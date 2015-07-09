@@ -47,6 +47,9 @@ Handle gH_Forwards_OnRestart = null;
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
 float gF_StartTime[MAXPLAYERS+1];
+float gF_PauseStartTime[MAXPLAYERS+1];
+float gF_PauseTotalTime[MAXPLAYERS+1];
+bool gB_ClientPaused[MAXPLAYERS+1];
 int gI_Jumps[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
 
@@ -160,6 +163,12 @@ public void OnPluginStart()
 
 	// timer stop
 	RegConsoleCmd("sm_stop", Command_StopTimer, "Stop your timer.");
+
+	// timer pause / resume
+	RegConsoleCmd("sm_pause", Command_TogglePause, "Toggle Pause.");
+	RegConsoleCmd("sm_unpause", Command_TogglePause, "Toggle Pause.");
+	RegConsoleCmd("sm_resume", Command_TogglePause, "Toggle Pause");
+
 	// commands END
 
 	#if defined DEBUG
@@ -256,6 +265,25 @@ public Action Command_StopTimer(int client, int args)
 
 	StopTimer(client);
 
+	return Plugin_Handled;
+}
+
+public Action Command_TogglePause(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(gB_ClientPaused[client])
+	{
+		ResumeTimer(client);
+	}
+	else
+	{
+		PauseTimer(client);
+	}
+	
 	return Plugin_Handled;
 }
 
@@ -382,7 +410,7 @@ public int Native_GetTimer(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 
 	// 2 - time
-	float time = GetEngineTime() - gF_StartTime[client];
+	float time = CalculateTime(client);
 	SetNativeCellRef(2, time);
 
 	// 3 - jumps
@@ -424,7 +452,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	Call_StartForward(gH_Forwards_Finish);
 	Call_PushCell(client);
 	Call_PushCell(view_as<int>gBS_Style[client]);
-	Call_PushCell(GetEngineTime() - gF_StartTime[client]);
+	Call_PushCell(CalculateTime(client));
 	Call_PushCell(gI_Jumps[client]);
 	Call_Finish();
 
@@ -441,6 +469,8 @@ public void StartTimer(int client)
 	gB_TimerEnabled[client] = true;
 	gI_Jumps[client] = 0;
 	gF_StartTime[client] = GetEngineTime();
+	gF_PauseTotalTime[client] = 0.0;
+	gB_ClientPaused[client] = false;
 }
 
 public void StopTimer(int client)
@@ -453,6 +483,38 @@ public void StopTimer(int client)
 	gB_TimerEnabled[client] = false;
 	gI_Jumps[client] = 0;
 	gF_StartTime[client] = 0.0;
+	gF_PauseTotalTime[client] = 0.0;
+	gB_ClientPaused[client] = false;
+}
+
+public void PauseTimer(int client)
+{
+	if(!IsValidClient(client) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	gF_PauseStartTime[client] = GetEngineTime();
+	gB_ClientPaused[client] = true;
+}
+
+public void ResumeTimer(int client)
+{
+	if(!IsValidClient(client) || IsFakeClient(client) || !gB_ClientPaused[client])
+	{
+		return;
+	}
+
+	gF_PauseTotalTime[client] = GetEngineTime() - gF_PauseStartTime[client];
+	gB_ClientPaused[client] = false;
+}
+
+public float CalculateTime(int client)
+{
+	if(!gB_ClientPaused[client])
+		return GetEngineTime() - gF_StartTime[client] - gF_PauseTotalTime[client];	
+	else
+		return gF_PauseStartTime[client] - gF_StartTime[client] - gF_PauseTotalTime[client];
 }
 
 public void OnClientDisconnect(int client)
@@ -569,7 +631,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
-	
+
+	if(gB_ClientPaused[client])
+	{
+		vel[0] = 0.0;
+		vel[1] = 0.0;
+		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>{0.0, 0.0, 0.0});
+	}
+
 	if(gB_Zones && gB_TimerEnabled[client] && !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT))
 	{
 		StopTimer(client);
