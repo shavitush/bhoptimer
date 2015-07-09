@@ -13,10 +13,6 @@ a bhop server should be simple
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
 
-[AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
-
-Use it to troubleshoot errors without needing my help!
-
 #  Installation:
 1. Add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit"
 ```
