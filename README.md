@@ -56,7 +56,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] + create a github repo
 
 shavit-core:
-- [ ] * make a better check of game engine instead of using a directory
+- [x] * make a better check of game engine instead of using a directory
 - [ ] + sm_pause
 - [ ] + sm_resume
 

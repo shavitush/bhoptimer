@@ -108,18 +108,20 @@ public void OnPluginStart()
 	// game types
 	char sGameName[64];
 	GetGameFolderName(sGameName, 64);
+	
+	EngineVersion evType = GetEngineVersion();
 
-	if(StrEqual(sGameName, "cstrike"))
+	if(evType == Engine_CSS)
 	{
 		gSG_Type = Game_CSS;
 	}
 
-	else if(StrEqual(sGameName, "csgo"))
+	else if(evType == Engine_CSGO)
 	{
 		gSG_Type = Game_CSGO;
 	}
 
-	if(gSG_Type == Game_Unknown)
+	else
 	{
 		SetFailState("This plugin was meant to be used in CS:S and CS:GO *only*.");
 	}
@@ -137,7 +139,7 @@ public void OnPluginStart()
 	// style
 	RegConsoleCmd("sm_style", Command_Style, "Choose your bhop style.");
 	RegConsoleCmd("sm_styles", Command_Style, "Choose your bhop style.");
-	RegConsoleCmd("sm_s", Command_Style, "Choose your bhop style.");
+	//RegConsoleCmd("sm_s", Command_Style, "Choose your bhop style.");
 	RegConsoleCmd("sm_diff", Command_Style, "Choose your bhop style.");
 	RegConsoleCmd("sm_difficulty", Command_Style, "Choose your bhop style.");
 
