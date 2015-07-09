@@ -1,3 +1,5 @@
+[AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
+
 [Download](https://github.com/Shavitush/bhoptimer/releases)
 
 # shavit's simple bhop timer
