@@ -3,8 +3,6 @@
 # shavit's simple bhop timer
 a bhop server should be simple
 
-I 
-
 [Mapzones' setup demonstration](https://www.youtube.com/watch?v=oPKso2hoLw0)
 
 # Requirements:
