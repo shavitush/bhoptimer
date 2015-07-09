@@ -1,0 +1,26 @@
+"Games"
+{
+	"cstrike"
+	{
+		"Offsets"
+		{
+			"GetMaxPlayerSpeed"
+			{
+				"windows"	"437"
+				"linux"		"438"
+			}
+		}
+	}
+
+	"csgo"
+	{
+		"Offsets"
+		{
+			"GetMaxPlayerSpeed"
+			{
+				"windows"	"494"
+				"linux"		"495"
+			}
+		}
+	}
+}

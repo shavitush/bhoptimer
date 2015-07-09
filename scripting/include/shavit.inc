@@ -23,11 +23,11 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "1.1b"
+#define SHAVIT_VERSION "1.2b"
 #define PREFIX " \x04[Timer]\x01"
 
 #define MAX_STYLES 2 // I could probably do sizeof(BhopStyle) but I suck
-#define MAX_ZONES 4
+#define MAX_ZONES 5
 
 // game types
 enum ServerGame(+=1)
@@ -45,12 +45,13 @@ enum BhopStyle(+=1)
 };
 
 // map zones
-enum MapZones
+enum MapZones(+=1)
 {
 	Zone_Start = 0,
-	Zone_End = 1,
-	Zone_Respawn = 2,
-	Zone_Stop = 3
+	Zone_End,
+	Zone_Respawn,
+	Zone_Stop,
+	Zone_Slay
 };
 
 // let's not throw errors k?
