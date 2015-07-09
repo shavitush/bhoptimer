@@ -55,8 +55,8 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 
 shavit-core:
 - [x] * make a better check of game engine instead of using a directory
-- [ ] + sm_pause
-- [ ] + sm_resume
+- [x] + sm_pause
+- [x] + sm_resume
 - [ ] + add natives for sm_pause/resume and polish code
 
 shavit-misc:
