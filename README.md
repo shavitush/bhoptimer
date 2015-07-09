@@ -57,6 +57,7 @@ shavit-core:
 - [x] * make a better check of game engine instead of using a directory
 - [ ] + sm_pause
 - [ ] + sm_resume
+- [ ] + add natives for sm_pause/resume and polish code
 
 shavit-misc:
 - [x] + cvar "shavit_misc_godmode"
