@@ -61,15 +61,15 @@ shavit-core:
 - [ ] + sm_resume
 
 shavit-misc:
-- [ ] + cvar "shavit_misc_godmode"
+- [x] + cvar "shavit_misc_godmode"
 0 - nothing
 1 - only world damage
 2 - only player damage
 3 - full godmode
-- [ ] + 250 maxspeed for every pistol
+- [x] + 250 maxspeed for every pistol
 
 shavit-zones:
-- [ ] + player slaying zone
-- [ ] + cvar "shavit_zones_style"
+- [x] + player slaying zone
+- [x] + cvar "shavit_zones_style"
 0 - 3d (default)
 1 - 2d
