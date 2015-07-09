@@ -24,22 +24,12 @@
 #include <sdkhooks>
 #include <shavit>
 
-#undef REQUIRE_EXTENSIONS
-#include <dhooks>
-
 #pragma semicolon 1
 #pragma dynamic 131072 // let's make stuff faster
 #pragma newdecls required // We're at 2015 :D
 
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late;
-
-// cvars
-ConVar gCV_GodMode = null;
-int gI_GodMode = 3;
-
-// dhooks
-Handle gH_GetMaxPlayerSpeed = null;
 
 public Plugin myinfo = 
 {
@@ -93,27 +83,7 @@ public void OnPluginStart()
 			LogError("idk what's wrong but for some reason, your CS:GO server is missing the \"mp_death_drop_gun\" cvar. go find what's causing it because I dunno");
 		}
 	}
-	
-	// cvars and stuff
-	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players? \n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.");
-	HookConVarChange(gCV_GodMode, OnConVarChanged);
-	
-	AutoExecConfig();
-	gI_GodMode = GetConVarInt(gCV_GodMode);
-	
-	if(LibraryExists("dhooks"))
-	{
-		Handle hGameData = LoadGameConfigFile("shavit.games");
-		
-		if(hGameData != null)
-		{
-			int iOffset = GameConfGetOffset(hGameData, "GetMaxPlayerSpeed");
-			gH_GetMaxPlayerSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetMaxPlayerSpeed);
-		}
-		
-		CloseHandle(hGameData);
-	}
-	
+
 	// late load
 	if(gB_Late)
 	{
@@ -125,27 +95,6 @@ public void OnPluginStart()
 			}
 		}
 	}
-}
-
-public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
-{
-	// using an if() statement just incase I'll add more cvars.
-	if(cvar == gCV_GodMode)
-	{
-		gI_GodMode = StringToInt(sNew);
-	}
-}
-
-public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
-{
-	if(IsValidClient(pThis, true))
-	{
-		DHookSetReturn(hReturn, 250.000);
-		
-		return MRES_Override;
-	}
-	
-	return MRES_Ignored;
 }
 
 public Action Timer_Message(Handle Timer)
@@ -205,44 +154,11 @@ public void OnClientPutInServer(int client)
 
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
-	
-	if(gH_GetMaxPlayerSpeed != null)
-	{
-		DHookEntity(gH_GetMaxPlayerSpeed, true, client);
-	}
 }
 
-public Action OnTakeDamage(int victim, int attacker)
+public Action OnTakeDamage(int victim)
 {
-	switch(gI_GodMode)
-	{
-		case 0:
-		{
-			return Plugin_Continue;
-		}
-		
-		case 1:
-		{
-			// 0 - world/fall damage
-			if(attacker == 0)
-			{
-				return Plugin_Handled;
-			}
-		}
-		
-		case 2:
-		{
-			if(IsValidClient(attacker, true))
-			{
-				return Plugin_Handled;
-			}
-		}
-		
-		// else
-		default: return Plugin_Handled;
-	}
-	
-	return Plugin_Continue;
+	return Plugin_Handled;
 }
 
 // hide

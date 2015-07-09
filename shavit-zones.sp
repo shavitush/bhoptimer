@@ -39,8 +39,7 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"Start Zone",
 	"End Zone",
 	"Glitch Zone (Respawn Player)",
-	"Glitch Zone (Stop Timer)",
-	"Slay Player"
+	"Glitch Zone (Stop Timer)"
 };
 
 MapZones gMZ_Type[MAXPLAYERS+1];
@@ -67,10 +66,6 @@ int gI_Colors[MAX_ZONES][4];
 Handle gH_AdminMenu = INVALID_HANDLE;
 
 bool gB_Late;
-
-// cvars
-ConVar gCV_ZoneStyle = null;
-bool gB_ZoneStyle = false;
 
 public Plugin myinfo = 
 {
@@ -121,22 +116,6 @@ public void OnPluginStart()
 	if(gB_Late)
 	{
 		OnAdminMenuReady(null);
-	}
-	
-	// cvars and stuff
-	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box");
-	HookConVarChange(gCV_ZoneStyle, OnConVarChanged);
-	
-	AutoExecConfig();
-	gB_ZoneStyle = GetConVarBool(gCV_ZoneStyle);
-}
-
-public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
-{
-	// using an if() statement just incase I'll add more cvars.
-	if(cvar == gCV_ZoneStyle)
-	{
-		gB_ZoneStyle = view_as<bool>StringToInt(sNew);
 	}
 }
 
@@ -233,7 +212,6 @@ public void SetupColors()
 	// glitches - invisible but orange for placement
 	gI_Colors[Zone_Respawn] = {255, 200, 0, 255};
 	gI_Colors[Zone_Stop] = {255, 200, 0, 255};
-	gI_Colors[Zone_Slay] = {255, 200, 0, 255};
 }
 
 public void OnMapStart()
@@ -640,13 +618,6 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	
 	if(bStarted)
 	{
-		if(InsideZone(client, gV_MapZones[Zone_Slay][0], gV_MapZones[Zone_Slay][1]))
-		{
-			Shavit_StopTimer(client);
-			
-			ForcePlayerSuicide(client);
-		}
-		
 		if(InsideZone(client, gV_MapZones[Zone_Stop][0], gV_MapZones[Zone_Stop][1]))
 		{
 			Shavit_StopTimer(client);
@@ -743,11 +714,6 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 			float vPoints[8][3];
 			vPoints[0] = gV_MapZones[i][0];
 			vPoints[7] = gV_MapZones[i][1];
-			
-			if(gB_ZoneStyle)
-			{
-				vPoints[7][2] = vPoints[0][2];
-			}
 			
 			CreateZonePoints(vPoints);
 			
