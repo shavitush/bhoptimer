@@ -688,8 +688,4 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	return bEdit? Plugin_Changed:Plugin_Continue;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> a507bd2c8783ed994cd2e5c60693762957344b00

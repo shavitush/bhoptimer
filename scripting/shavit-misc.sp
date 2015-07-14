@@ -214,7 +214,9 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			}
 		}
 	}
+	
 	gF_LastFlags[client] = GetEntityFlags(client);
+	
 	return Plugin_Continue;
 }
 
