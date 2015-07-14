@@ -524,7 +524,7 @@ public void ResumeTimer(int client)
 		return;
 	}
 
-	gF_PauseTotalTime[client] = GetEngineTime() - gF_PauseStartTime[client];
+	gF_PauseTotalTime[client] += GetEngineTime() - gF_PauseStartTime[client];
 	gB_ClientPaused[client] = false;
 }
 
