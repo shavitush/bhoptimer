@@ -52,6 +52,7 @@ float gF_PauseTotalTime[MAXPLAYERS+1];
 bool gB_ClientPaused[MAXPLAYERS+1];
 int gI_Jumps[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
+bool gB_Auto[MAXPLAYERS+1];
 
 // late load
 bool gB_Late;
@@ -168,7 +169,10 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_pause", Command_TogglePause, "Toggle pause.");
 	RegConsoleCmd("sm_unpause", Command_TogglePause, "Toggle pause.");
 	RegConsoleCmd("sm_resume", Command_TogglePause, "Toggle pause");
-
+	
+	// autobhop toggle
+	RegConsoleCmd("sm_auto", Command_AutoBhop, "Toggle autobhop.");
+	RegConsoleCmd("sm_autobhop", Command_AutoBhop, "Toggle autobhop.");
 	// commands END
 
 	#if defined DEBUG
@@ -296,6 +300,20 @@ public Action Command_FinishTest(int client, int args)
 	return Plugin_Handled;
 }
 #endif
+
+public Action Command_AutoBhop(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+	
+	gB_Auto[client] = !gB_Auto[client];
+	
+	ReplyToCommand(client, "%s Autobhop %s\x01.", PREFIX, gB_Auto[client]? "\x04enabled":"\x02disabled");
+	
+	return Plugin_Handled;
+}
 
 public Action Command_Style(int client, int args)
 {
@@ -530,6 +548,8 @@ public void OnClientDisconnect(int client)
 
 public void OnClientPutInServer(int client)
 {
+	gB_Auto[client] = true;
+	
 	StopTimer(client);
 
 	gBS_Style[client] = Style_Forwards;
@@ -655,7 +675,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// autobhop
-	if(buttons & IN_JUMP && !(GetEntityFlags(client) & FL_ONGROUND) && !bOnLadder && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
+	if(gB_Auto[client] && buttons & IN_JUMP && !(GetEntityFlags(client) & FL_ONGROUND) && !bOnLadder && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
 	{
 		buttons &= ~IN_JUMP;
 	}
