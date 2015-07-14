@@ -33,10 +33,13 @@
 
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late;
+int gF_LastFlags[MAXPLAYERS+1];
 
 // cvars
 ConVar gCV_GodMode = null;
 int gI_GodMode = 3;
+ConVar gCV_PreSpeed = null;
+int gI_PreSpeed = 3;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -97,9 +100,12 @@ public void OnPluginStart()
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players? \n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.");
 	HookConVarChange(gCV_GodMode, OnConVarChanged);
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "0", "Stop prespeed in startzone? \n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
+	HookConVarChange(gCV_PreSpeed, OnConVarChanged);
 	
 	AutoExecConfig();
 	gI_GodMode = GetConVarInt(gCV_GodMode);
+	gI_PreSpeed = GetConVarInt(gCV_PreSpeed);
 	
 	if(LibraryExists("dhooks"))
 	{
@@ -134,6 +140,10 @@ public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
 	{
 		gI_GodMode = StringToInt(sNew);
 	}
+	else if(cvar == gCV_PreSpeed)
+	{
+		gI_PreSpeed = StringToInt(sNew);
+	}
 }
 
 public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
@@ -155,7 +165,7 @@ public Action Timer_Message(Handle Timer)
 	return Plugin_Continue;
 }
 
-public Action OnPlayerRunCmd(int client)
+public Action OnPlayerRunCmd(int client, int &buttons)
 {
 	if(!IsValidClient(client, true))
 	{
@@ -179,23 +189,32 @@ public Action OnPlayerRunCmd(int client)
 	
 	if(Shavit_InsideZone(client, Zone_Start))
 	{
-		float fSpeed[3];
-		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
-
-		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-		float fScale = FloatDiv(280.0, fSpeed_New);
-		
-		if(fScale < 1.0) // 280 / 281 = below 1 | 280 / 279 = above 1 
+		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
 		{
-			fSpeed[0] *= fScale;
-			fSpeed[1] *= fScale;
-			
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>{0.0, 0.0, 0.0});
+			PrintToChat(client, "%s Bhopping in the start zone is not allowed", PREFIX);
+			gF_LastFlags[client] = GetEntityFlags(client);
+			return Plugin_Continue;
 		}
-		
-		return Plugin_Continue;
-	}
 
+		if(gI_PreSpeed == 1 || gI_PreSpeed == 3)
+		{
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+
+			float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+			float fScale = FloatDiv(280.0, fSpeed_New);
+			
+			if(fScale < 1.0) // 280 / 281 = below 1 | 280 / 279 = above 1 
+			{
+				fSpeed[0] *= fScale;
+				fSpeed[1] *= fScale;
+				
+				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+			}
+		}
+	}
+	gF_LastFlags[client] = GetEntityFlags(client);
 	return Plugin_Continue;
 }
 
