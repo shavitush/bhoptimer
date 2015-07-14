@@ -505,7 +505,7 @@ public void ResumeTimer(int client)
 		return;
 	}
 
-	gF_PauseTotalTime[client] = GetEngineTime() - gF_PauseStartTime[client];
+	gF_PauseTotalTime[client] += GetEngineTime() - gF_PauseStartTime[client];
 	gB_ClientPaused[client] = false;
 }
 
@@ -634,8 +634,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(gB_ClientPaused[client])
 	{
-		vel[0] = 0.0;
-		vel[1] = 0.0;
+		vel = view_as<float>{0.0, 0.0, 0.0};
 		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>{0.0, 0.0, 0.0});
 	}
 

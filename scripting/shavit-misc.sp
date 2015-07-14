@@ -33,6 +33,7 @@
 
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late;
+int gF_LastFlags[MAXPLAYERS+1];
 
 // cvars
 ConVar gCV_GodMode = null;
@@ -155,7 +156,7 @@ public Action Timer_Message(Handle Timer)
 	return Plugin_Continue;
 }
 
-public Action OnPlayerRunCmd(int client)
+public Action OnPlayerRunCmd(int client, int &buttons)
 {
 	if(!IsValidClient(client, true))
 	{
@@ -179,6 +180,14 @@ public Action OnPlayerRunCmd(int client)
 	
 	if(Shavit_InsideZone(client, Zone_Start))
 	{
+		if(!(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
+		{
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>{0.0, 0.0, 0.0});
+			PrintToChat(client, "%s Bhopping in the start zone is not allowed", PREFIX);
+			gF_LastFlags[client] = GetEntityFlags(client);
+			return Plugin_Continue;
+		}
+
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
@@ -192,10 +201,8 @@ public Action OnPlayerRunCmd(int client)
 			
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
 		}
-		
-		return Plugin_Continue;
 	}
-
+	gF_LastFlags[client] = GetEntityFlags(client);
 	return Plugin_Continue;
 }
 
