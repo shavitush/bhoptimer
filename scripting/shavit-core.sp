@@ -43,6 +43,8 @@ Handle gH_Forwards_Start = null;
 Handle gH_Forwards_Stop = null;
 Handle gH_Forwards_Finish = null;
 Handle gH_Forwards_OnRestart = null;
+Handle gH_Forwards_OnPause = null;
+Handle gH_Forwards_OnResume = null;
 
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
@@ -82,6 +84,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
+	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
+	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
 	
 	MarkNativeAsOptional("Shavit_GetGameType");
 	MarkNativeAsOptional("Shavit_GetDB");
@@ -108,6 +112,8 @@ public void OnPluginStart()
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell);
 	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell);
+	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell);
+	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
 
 	// game types
 	char sGameName[64];
@@ -478,6 +484,18 @@ public int Native_FinishMap(Handle handler, int numParams)
 	StopTimer(client);
 }
 
+public int Native_PauseTimer(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	PauseTimer(client);
+}
+
+public int Native_ResumeTimer(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	ResumeTimer(client);
+}
+
 public void StartTimer(int client)
 {
 	if(!IsValidClient(client) || IsFakeClient(client))
@@ -515,6 +533,10 @@ public void PauseTimer(int client)
 
 	gF_PauseStartTime[client] = GetEngineTime();
 	gB_ClientPaused[client] = true;
+
+	Call_StartForward(gH_Forwards_OnPause);
+	Call_PushCell(client);
+	Call_Finish();
 }
 
 public void ResumeTimer(int client)
@@ -526,6 +548,10 @@ public void ResumeTimer(int client)
 
 	gF_PauseTotalTime[client] += GetEngineTime() - gF_PauseStartTime[client];
 	gB_ClientPaused[client] = false;
+
+	Call_StartForward(gH_Forwards_OnResume);
+	Call_PushCell(client);
+	Call_Finish();
 }
 
 public float CalculateTime(int client)

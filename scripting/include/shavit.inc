@@ -292,6 +292,22 @@ native int Shavit_ZoneExists(MapZones type);
  */
 native int Shavit_InsideZone(int client, MapZones type);
 
+/**
+ * Called when a player's timer paused.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnPause(int client);
+
+/**
+ * Called when a player's timer resumed.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnResume(int client);
+
 public SharedPlugin:__pl_shavit = 
 {
 	name = "shavit",
