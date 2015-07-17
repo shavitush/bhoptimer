@@ -50,14 +50,14 @@ a bhop server should be simple
 shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
-# Todo for 1.2b release
+# Todo for 1.2b release < DONE!
 - [x] + create a github repo
 
 shavit-core:
 - [x] * make a better check of game engine instead of using a directory
 - [x] + sm_pause
 - [x] + sm_resume
-- [ ] + add natives for sm_pause/resume and polish code
+- [x] + add natives/forwards for sm_pause/resume and polish code
 
 shavit-misc:
 - [x] + cvar "shavit_misc_godmode"

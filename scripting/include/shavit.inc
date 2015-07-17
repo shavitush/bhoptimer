@@ -23,6 +23,8 @@
 #endif
 #define _shavit_included
 
+#pragma newdecls required
+
 #define SHAVIT_VERSION "1.2b"
 #define PREFIX " \x04[Timer]\x01"
 
@@ -192,11 +194,27 @@ forward void Shavit_OnFinish(int client, int style, float time, int jumps);
 forward void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps);
 
 /**
+ * Called when a player's timer paused.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnPause(int client);
+
+/**
+ * Called when a player's timer resumed.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnResume(int client);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
  */
-native ServerGame Shavit_GetGameType();
+native void ServerGame Shavit_GetGameType();
 
 /**
  * Returns the database handle the timer is using.
@@ -204,7 +222,7 @@ native ServerGame Shavit_GetGameType();
  * @param hSQL						Handle to store the database on.
  * @noreturn
  */
-native Shavit_GetDB(Handle &hSQL);
+native void Shavit_GetDB(Handle &hSQL);
 
 /**
  * (re)Starts the timer for a player.
@@ -213,7 +231,7 @@ native Shavit_GetDB(Handle &hSQL);
  * @param client					Client index.
  * @noreturn
  */
-native Shavit_StartTimer(int client);
+native void Shavit_StartTimer(int client);
 
 /**
  * Stops the timer for a player.
@@ -222,7 +240,7 @@ native Shavit_StartTimer(int client);
  * @param client					Client index.
  * @noreturn
  */
-native Shavit_StopTimer(int client);
+native void Shavit_StopTimer(int client);
 
 /**
  * Finishes the map for a player, with his current timer stats.
@@ -231,7 +249,7 @@ native Shavit_StopTimer(int client);
  * @param client					Client index.
  * @noreturn
  */
-native Shavit_FinishMap(int client);
+native void Shavit_FinishMap(int client);
 
 /**
  * Stores the player's timer stats on variables
@@ -243,7 +261,7 @@ native Shavit_FinishMap(int client);
  * @param started					Timer started?
  * @noreturn
  */
-native Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &style, bool &started);
+native void Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &style, bool &started);
 
 /**
  * Saves the WR time on the map on a variable.
@@ -252,7 +270,7 @@ native Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &style, bo
  * @param time						Reference to the time variable. 0.0 will be returned if no records.
  * @noreturn
  */
-native Shavit_GetWRTime(BhopStyle style, float &time);
+native void Shavit_GetWRTime(BhopStyle style, float &time);
 
 /**
  * Saves the WR's player name on the map on a variable.
@@ -262,7 +280,7 @@ native Shavit_GetWRTime(BhopStyle style, float &time);
  * @param wrmaxlength				Max length for the string.
  * @noreturn
  */
-native Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
+native void Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
 
 /**
  * Saves the player's personal best time on a variable.
@@ -272,7 +290,7 @@ native Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
  * @param time						Reference to the time variable. 0.0 will be returned if no personal record.
  * @noreturn
  */
-native Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
+native voidShavit_GetPlayerPB(int client, BhopStyle style, float &time);
 
 /**
  * Checks if a mapzone exists. 
@@ -293,22 +311,22 @@ native int Shavit_ZoneExists(MapZones type);
 native int Shavit_InsideZone(int client, MapZones type);
 
 /**
- * Called when a player's timer paused.
+ * Pauses a player's timer.
  *
  * @param client					Client index.
  * @noreturn
  */
-forward void Shavit_OnPause(int client);
+native void Shavit_PauseTimer(int client);
 
 /**
- * Called when a player's timer resumed.
+ * Resumes a player's timer.
  *
  * @param client					Client index.
  * @noreturn
  */
-forward void Shavit_OnResume(int client);
+native void Shavit_ResumeTimer(int client);
 
-public SharedPlugin:__pl_shavit = 
+public SharedPlugin __pl_shavit = 
 {
 	name = "shavit",
 	file = "shavit-core.smx",
