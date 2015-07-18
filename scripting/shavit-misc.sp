@@ -100,7 +100,7 @@ public void OnPluginStart()
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players? \n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.");
 	HookConVarChange(gCV_GodMode, OnConVarChanged);
-	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "0", "Stop prespeed in startzone? \n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone? \n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
 	HookConVarChange(gCV_PreSpeed, OnConVarChanged);
 	
 	AutoExecConfig();

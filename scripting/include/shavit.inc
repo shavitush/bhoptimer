@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#pragma newdecls required
+//#pragma newdecls required
 
 #define SHAVIT_VERSION "1.2b"
 #define PREFIX " \x04[Timer]\x01"
@@ -63,7 +63,7 @@ stock bool IsValidClient(int client, bool bAlive = false) // when bAlive is fals
 }
 
 // time formatting!
-stock FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true)
+stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true)
 {
 	int iTemp = RoundToFloor(time);
 	
@@ -214,7 +214,7 @@ forward void Shavit_OnResume(int client);
  *
  * @return							Game type. (See "enum ServerGame")
  */
-native void ServerGame Shavit_GetGameType();
+native ServerGame Shavit_GetGameType();
 
 /**
  * Returns the database handle the timer is using.
@@ -290,7 +290,7 @@ native void Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
  * @param time						Reference to the time variable. 0.0 will be returned if no personal record.
  * @noreturn
  */
-native voidShavit_GetPlayerPB(int client, BhopStyle style, float &time);
+native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
 
 /**
  * Checks if a mapzone exists. 
