@@ -45,6 +45,14 @@ public void OnPluginStart()
 	CreateTimer(0.1, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 }
 
+public void OnConfigsExecuted()
+{
+	if(gSG_Type == Game_CSS)
+	{
+		ServerCommand("sv_hudhint_sound 0");
+	}
+}
+
 public Action UpdateHUD_Timer(Handle Timer)
 {
 	for(int i = 1; i <= MaxClients; i++)
@@ -94,42 +102,42 @@ public void UpdateHUD(int client)
 
 	if(gSG_Type == Game_CSGO)
 	{
-		FormatEx(sHintText, 256, "<font size=\"18\">");
+		FormatEx(sHintText, sizeof(sHintText), "<font size=\"18\">");
 
 		float fPB;
 		Shavit_GetPlayerPB(target, bsStyle, fPB);
 		char sPB[32];
-		FormatSeconds(fPB, sPB, 32);
-		Format(sHintText, 256, "%sPB: %s\t", sHintText, sPB);
+		FormatSeconds(fPB, sPB, sizeof(sPB));
+		Format(sHintText, sizeof(sHintText), "%sPB: %s\t", sHintText, sPB);
 		
 		if(fPB != 0.0)
 		{
-			Format(sHintText, 256, "%s\t", sHintText);
+			Format(sHintText, sizeof(sHintText), "%s\t", sHintText);
 		}
 
 		if(bStarted)
 		{
 			char sTime[32];
-			FormatSeconds(fTime, sTime, 32, false);
+			FormatSeconds(fTime, sTime, sizeof(sTime), false);
 
-			char sColor[16];
+			char sColor[8];
 
 			if(fTime < fWR || fWR == 0.0)
 			{
-				FormatEx(sColor, 16, "00FF00");
+				strcopy(sColor, sizeof(sColor), "00FF00");
 			}
 
 			else if(fPB != 0.0 && fTime < fPB)
 			{
-				FormatEx(sColor, 16, "FFA500");
+				strcopy(sColor, sizeof(sColor), "FFA500");
 			}
 
 			else
 			{
-				FormatEx(sColor, 16, "FF0000");
+				strcopy(sColor, sizeof(sColor), "FF0000");
 			}
 
-			Format(sHintText, 256, "%sTime: <font color=\"#%s\">%s</font>", sHintText, sColor, sTime);
+			Format(sHintText, sizeof(sHintText), "%sTime: <font color=\"#%s\">%s</font>", sHintText, sColor, sTime);
 		}
 
 		float fSpeed[3];
@@ -137,21 +145,21 @@ public void UpdateHUD(int client)
 
 		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 
-		Format(sHintText, 256, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
+		Format(sHintText, sizeof(sHintText), "%s\nSpeed: %.02f", sHintText, fSpeed_New);
 
 		if(bStarted)
 		{
-			Format(sHintText, 256, "%s\tJumps: %d", sHintText, iJumps);
+			Format(sHintText, sizeof(sHintText), "%s\tJumps: %d", sHintText, iJumps);
 		}
 
-		Format(sHintText, 256, "%s\nStyle: <font color=\"%s</font>", sHintText, bsStyle == Style_Forwards? "#797FD4\">Forwards":"#B54CB3\">Sideways");
+		Format(sHintText, sizeof(sHintText), "%s\nStyle: <font color=\"%s</font>", sHintText, bsStyle == Style_Forwards? "#797FD4\">Forwards":"#B54CB3\">Sideways");
 
 		if(!bSpectating)
 		{
-			Format(sHintText, 256, "%s\tPlayer: <font color=\"#BF6821\">%N</font>", sHintText, target);
+			Format(sHintText, sizeof(sHintText), "%s\tPlayer: <font color=\"#BF6821\">%N</font>", sHintText, target);
 		}
 
-		Format(sHintText, 256, "%s</font>", sHintText);
+		Format(sHintText, sizeof(sHintText), "%s</font>", sHintText);
 	}
 
 	else
@@ -159,13 +167,13 @@ public void UpdateHUD(int client)
 		float fPB;
 		Shavit_GetPlayerPB(target, bsStyle, fPB);
 		char sPB[32];
-		FormatSeconds(fPB, sPB, 32);
-		Format(sHintText, 256, "%sPB: %s\t", sHintText, sPB);
+		FormatSeconds(fPB, sPB, sizeof(sPB));
+		Format(sHintText, sizeof(sHintText), "%sPB: %s\t", sHintText, sPB);
 
 		if(bStarted)
 		{
 			char sTime[32];
-			FormatSeconds(fTime, sTime, 32);
+			FormatSeconds(fTime, sTime, sizeof(sTime));
 
 			Format(sHintText, 256, "%sTime: %s", sHintText, sTime);
 		}
@@ -175,25 +183,20 @@ public void UpdateHUD(int client)
 
 		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 
-		Format(sHintText, 256, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
+		Format(sHintText, sizeof(sHintText), "%s\nSpeed: %.02f", sHintText, fSpeed_New);
 
 		if(bStarted)
 		{
-			Format(sHintText, 256, "%s\tJumps: %d", sHintText, iJumps);
+			Format(sHintText, sizeof(sHintText), "%s\tJumps: %d", sHintText, iJumps);
 		}
 
-		Format(sHintText, 256, "%s\nStyle: %s", sHintText, bsStyle == Style_Forwards? "Forwards":"Sideways");
+		Format(sHintText, sizeof(sHintText), "%s\nStyle: %s", sHintText, bsStyle == Style_Forwards? "Forwards":"Sideways");
 
 		if(!bSpectating)
 		{
-			Format(sHintText, 256, "%s\tPlayer: %N", sHintText, target);
+			Format(sHintText, sizeof(sHintText), "%s\tPlayer: %N", sHintText, target);
 		}
 	}
 
 	PrintHintText(client, sHintText);
-
-	if(gSG_Type == Game_CSS)
-	{
-		StopSound(client, SNDCHAN_STATIC, "UI/hint.wav");
-	}
 }
