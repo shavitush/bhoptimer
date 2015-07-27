@@ -44,6 +44,7 @@ a bhop server should be simple
 }
 ```
 2. Copy the desired .smx files to your plugins (addons/sourcemod/plugins) folder
+2.1. Copy shavit.games.txt to /gamedata if you have DHooks installed.
 3. Restart your server.
 
 # Required plugins:
