@@ -56,8 +56,9 @@ shavit-core:
 
 shavit-zones:
 - [x] + Allow creation of freestyle zones
-- [ ] + Make multiple freestyle zones possible (damn you Aoki and badges for making stuff difficult!)
-- [ ] + Handle deletion of multiple freestyle zones
+- [x] + Make multiple freestyle zones possible (damn you Aoki and badges for making stuff difficult!)
+- [x] + Handle deletion of multiple freestyle zones
+- [ ] + Handle drawing of end/freestyle zones properly
 
 # Todo for 1.4b release
 [NEW PLUGIN] shavit-stats:
