@@ -400,7 +400,7 @@ public Action Command_Specs(int client, int args)
 
 			else
 			{
-				Format(sSpecs, 256, "%s, %N", sSpecs);
+				Format(sSpecs, 256, "%s, %N", sSpecs, i);
 			}
 		}
 	}

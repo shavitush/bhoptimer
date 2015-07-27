@@ -50,25 +50,16 @@ a bhop server should be simple
 shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
-# Todo for 1.2b release < DONE!
-- [x] + create a github repo
-
+# Todo for 1.3b release
 shavit-core:
-- [x] * make a better check of game engine instead of using a directory
-- [x] + sm_pause
-- [x] + sm_resume
-- [x] + add natives/forwards for sm_pause/resume and polish code
-
-shavit-misc:
-- [x] + cvar "shavit_misc_godmode"
-0 - nothing
-1 - only world damage
-2 - only player damage
-3 - full godmode
-- [x] + 250 maxspeed for every pistol
+- [x] + Handle freestyle zones
 
 shavit-zones:
-- [x] + player slaying zone
-- [x] + cvar "shavit_zones_style"
-0 - 3d (default)
-1 - 2d
+- [x] + Allow creation of freestyle zones
+- [ ] + Make multiple freestyle zones possible (damn you Aoki and badges for making stuff difficult!)
+- [ ] + Handle deletion of multiple freestyle zones
+
+# Todo for 1.4b release
+[NEW PLUGIN] shavit-stats:
+[NEW PLUGIN] shavit-ranks:
+[NEW PLUGIN] shavit-replay:

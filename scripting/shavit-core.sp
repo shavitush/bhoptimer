@@ -116,9 +116,6 @@ public void OnPluginStart()
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
 
 	// game types
-	char sGameName[64];
-	GetGameFolderName(sGameName, 64);
-	
 	EngineVersion evType = GetEngineVersion();
 
 	if(evType == Engine_CSS)
@@ -693,7 +690,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bEdit = false;
 	
 	// SW cheat blocking
-	if(gBS_Style[client] == Style_Sideways && !bOnLadder && (vel[1] != 0.0 || buttons & IN_MOVELEFT || buttons & IN_MOVERIGHT))
+	if(!Shavit_InsideZone(client, Zone_Freestyle) && gBS_Style[client] == Style_Sideways && !bOnLadder && (vel[1] != 0.0 || buttons & IN_MOVELEFT || buttons & IN_MOVERIGHT))
 	{
 		bEdit = true;
 
