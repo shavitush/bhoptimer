@@ -157,10 +157,6 @@ public void UpdateHUD(int client)
 		if(!bSpectating)
 		{
 			Format(sHintText, 256, "%s\tPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
-
-		if(!bSpectating)
-		{
-			Format(sHintText, 256, "%s\tPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
 		}
 
 		Format(sHintText, 256, "%s</font>", sHintText);
@@ -198,7 +194,7 @@ public void UpdateHUD(int client)
 
 		if(!bSpectating)
 		{
-			Format(sHintText, 256 "%s\tPlayer: %N", sHintText, target);
+			Format(sHintText, 256, "%s\tPlayer: %N", sHintText, target);
 		}
 	}
 

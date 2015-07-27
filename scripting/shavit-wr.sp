@@ -36,7 +36,7 @@ bool gB_Late;
 Handle gH_OnWorldRecord = null;
 
 // database handle
-Handle gH_SQL = null;
+Database gH_SQL = null;
 
 BhopStyle gBS_LastWR[MAXPLAYERS+1];
 

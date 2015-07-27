@@ -29,7 +29,7 @@
 #define PREFIX " \x04[Timer]\x01"
 
 #define MAX_STYLES 2 // I could probably do sizeof(BhopStyle) but I suck
-#define MAX_ZONES 5
+#define MAX_ZONES 6
 
 // game types
 enum ServerGame(+=1)
