@@ -380,7 +380,7 @@ public Action Command_Specs(int client, int args)
 	}
 
 	int iCount;
-	char sSpecs[256];
+	char sSpecs[192];
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -395,12 +395,12 @@ public Action Command_Specs(int client, int args)
 
 			if(iCount == 1)
 			{
-				FormatEx(sSpecs, 256, "%N", i);
+				FormatEx(sSpecs, 192, "%N", i);
 			}
 
 			else
 			{
-				Format(sSpecs, 256, "%s, %N", sSpecs, i);
+				Format(sSpecs, 192, "%s, %N", sSpecs, i);
 			}
 		}
 	}

@@ -49,7 +49,11 @@ public void OnConfigsExecuted()
 {
 	if(gSG_Type == Game_CSS)
 	{
+<<<<<<< HEAD
 		FindConVar("sv_hudhint_sound 0").SetBool(false);
+=======
+		ServerCommand("sv_hudhint_sound 0");
+>>>>>>> 7fd745e1f394b7bc1781d815f373af6662d505a2
 	}
 }
 
@@ -151,8 +155,12 @@ public void UpdateHUD(int client)
 		{
 			Format(sHintText, 256, "%s\tJumps: %d", sHintText, iJumps);
 		}
-
+		
 		Format(sHintText, 256, "%s\nStyle: <font color='%s</font>", sHintText, bsStyle == Style_Forwards? "#797FD4'>Forwards":"#B54CB3'>Sideways");
+
+		if(!bSpectating)
+		{
+			Format(sHintText, 256, "%s\tPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
 
 		if(!bSpectating)
 		{
@@ -194,7 +202,7 @@ public void UpdateHUD(int client)
 
 		if(!bSpectating)
 		{
-			Format(sHintText, 256, "%s\tPlayer: %N", sHintText, target);
+			Format(sHintText, 256 "%s\tPlayer: %N", sHintText, target);
 		}
 	}
 
