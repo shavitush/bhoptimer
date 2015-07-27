@@ -252,7 +252,7 @@ public void SetupColors()
 	gI_Colors[Zone_Slay] = {255, 200, 0, 255};
 	
 	// freestyle - blue
-	gI_Colors[Zone_Freestyle] =  {25, 25, 255, 195};
+	gI_Colors[Zone_Freestyle] = {25, 25, 255, 195};
 }
 
 public void OnMapStart()
@@ -823,26 +823,21 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 {
 	for(int i = 0; i < MAX_ZONES; i++)
 	{
-		// check shavit.inc, blacklisting glitch zones from being drawn
-		if(i == view_as<int>Zone_Respawn || i == view_as<int>Zone_Stop)
-		{
-			continue;
-		}
-		
 		//PrintToChatAll("%d", i);
+		
+		float vPoints[8][3];
 		
 		if(i == view_as<int>Zone_Freestyle)
 		{
 			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
 			{
-				if(EmptyZone(gV_FreestyleZones[i][0]) && EmptyZone(gV_FreestyleZones[i][1]))
+				if(EmptyZone(gV_FreestyleZones[j][0]) && EmptyZone(gV_FreestyleZones[j][1]))
 				{
 					continue;
 				}
 				
-				float vPoints[8][3];
-				vPoints[0] = gV_FreestyleZones[i][0];
-				vPoints[7] = gV_FreestyleZones[i][1];
+				vPoints[0] = gV_FreestyleZones[j][0];
+				vPoints[7] = gV_FreestyleZones[j][1];
 				
 				if(gB_ZoneStyle)
 				{
@@ -857,9 +852,26 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 		
 		else
 		{
+			// check shavit.inc, blacklisting glitch zones from being drawn
+			
+			// ARGHH WHY IS THIS NOT WORKING PROPERLY?!
+			/*if(i == view_as<int>Zone_Respawn || i == view_as<int>Zone_Stop)
+			{
+				continue;
+			}*/
+			
+			if(i == view_as<int>Zone_Respawn)
+			{
+				continue;
+			}
+			
+			if(i == view_as<int>Zone_Stop)
+			{
+				continue;
+			}
+			
 			if(!EmptyZone(gV_MapZones[i][0]) && !EmptyZone(gV_MapZones[i][1]))
 			{
-				float vPoints[8][3];
 				vPoints[0] = gV_MapZones[i][0];
 				vPoints[7] = gV_MapZones[i][1];
 				
