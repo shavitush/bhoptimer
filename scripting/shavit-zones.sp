@@ -59,6 +59,7 @@ float gV_Point2[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 
 float gV_MapZones[MAX_ZONES][2][3];
+float gV_FreestyleZones[MULTIPLEZONES_LIMIT][2][3];
 
 int gI_BeamSprite = -1;
 
@@ -223,6 +224,17 @@ public int Native_InsideZone(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	MapZones type = GetNativeCell(2);
 	
+	if(type == Zone_Freestyle)
+	{
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			if(InsideZone(client, gV_FreestyleZones[i][0], gV_FreestyleZones[i][1]))
+			{
+				return true;
+			}
+		}
+	}
+	
 	return view_as<int>(InsideZone(client, gV_MapZones[type][0], gV_MapZones[type][1]));
 }
 
@@ -238,6 +250,9 @@ public void SetupColors()
 	gI_Colors[Zone_Respawn] = {255, 200, 0, 255};
 	gI_Colors[Zone_Stop] = {255, 200, 0, 255};
 	gI_Colors[Zone_Slay] = {255, 200, 0, 255};
+	
+	// freestyle - blue
+	gI_Colors[Zone_Freestyle] =  {25, 25, 255, 195};
 }
 
 public void OnMapStart()
@@ -264,14 +279,37 @@ public void UnloadZones(int zone)
 				gV_MapZones[i][1][j] = 0.0;
 			}
 		}
+		
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			for(int j = 0; j < 3; j++)
+			{
+				gV_FreestyleZones[i][0][j] = 0.0;
+				gV_FreestyleZones[i][1][j] = 0.0;
+			}
+		}
+
+		return;
 	}
 	
-	else
+	if(zone != view_as<int>Zone_Freestyle)
 	{
 		for(int i = 0; i < 3; i++)
 		{
 			gV_MapZones[zone][0][i] = 0.0;
 			gV_MapZones[zone][1][i] = 0.0;
+		}
+	}
+	
+	else
+	{
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			for(int j = 0; j < 3; j++)
+			{
+				gV_FreestyleZones[i][0][j] = 0.0;
+				gV_FreestyleZones[i][1][j] = 0.0;
+			}
 		}
 	}
 }
@@ -293,15 +331,22 @@ public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] er
 		return;
 	}
 	
+	int iFreestyleRow = 0;
+	
 	while(SQL_FetchRow(hndl))
 	{
 		MapZones type = view_as<MapZones>SQL_FetchInt(hndl, 0);
 		
 		if(type == Zone_Freestyle)
 		{
-			/*
-			* handle correctly
-			*/
+			gV_FreestyleZones[iFreestyleRow][0][0] = SQL_FetchFloat(hndl, 1);
+			gV_FreestyleZones[iFreestyleRow][0][1] = SQL_FetchFloat(hndl, 2);
+			gV_FreestyleZones[iFreestyleRow][0][2] = SQL_FetchFloat(hndl, 3);
+			gV_FreestyleZones[iFreestyleRow][1][0] = SQL_FetchFloat(hndl, 4);
+			gV_FreestyleZones[iFreestyleRow][1][1] = SQL_FetchFloat(hndl, 5);
+			gV_FreestyleZones[iFreestyleRow][1][2] = SQL_FetchFloat(hndl, 6);
+			
+			iFreestyleRow++;
 		}
 		
 		else
@@ -349,6 +394,8 @@ public Action Command_Zones(int client, int args)
 	AddMenuItem(menu, "1", "End Zone");
 	AddMenuItem(menu, "2", "Glitch Zone (Respawn Player)");
 	AddMenuItem(menu, "3", "Glitch Zone (Stop Timer)");
+	AddMenuItem(menu, "4", "Slay Player");
+	AddMenuItem(menu, "5", "Freestyle Zone");
 
 	SetMenuExitButton(menu, true);
 
@@ -369,6 +416,16 @@ public Action Command_DeleteZone(int client, int args)
 
 	for (int i = 0; i < MAX_ZONES; i++)
 	{
+		if(i == view_as<int>Zone_Freestyle)
+		{
+			if(!EmptyZone(gV_FreestyleZones[0][0]) && !EmptyZone(gV_FreestyleZones[0][1]))
+			{
+				char sInfo[8];
+				IntToString(i, sInfo, 8);
+				AddMenuItem(menu, sInfo, gS_ZoneNames[i]);
+			}
+		}
+		
 		if(!EmptyZone(gV_MapZones[i][0]) && !EmptyZone(gV_MapZones[i][1]))
 		{
 			char sInfo[8];
@@ -435,6 +492,7 @@ public void SQL_DeleteZone_Callback(Handle owner, Handle hndl, const char[] erro
 	}
 	
 	UnloadZones(type);
+	
 	RefreshZones();
 	
 	if(!client)
@@ -718,9 +776,16 @@ public void InsertZone(int client)
 	{
 		FormatEx(sQuery, 256, "INSERT INTO mapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2]);
 		
-		/*
-		* set gV_FreestyleZones[number] array here
-		*/
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			if(!EmptyZone(gV_FreestyleZones[i][0]) && !EmptyZone(gV_FreestyleZones[i][1]))
+			{
+				continue;
+			}
+			
+			gV_FreestyleZones[i][0] = gV_Point1[client];
+			gV_FreestyleZones[i][1] = gV_Point2[client];
+		}
 	}
 	
 	else
@@ -768,9 +833,26 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 		
 		if(i == view_as<int>Zone_Freestyle)
 		{
-			/*
-			* loop through freestyle zones and draw seperately
-			*/
+			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
+			{
+				if(EmptyZone(gV_FreestyleZones[i][0]) && EmptyZone(gV_FreestyleZones[i][1]))
+				{
+					continue;
+				}
+				
+				float vPoints[8][3];
+				vPoints[0] = gV_FreestyleZones[i][0];
+				vPoints[7] = gV_FreestyleZones[i][1];
+				
+				if(gB_ZoneStyle)
+				{
+					vPoints[7][2] = vPoints[0][2];
+				}
+				
+				CreateZonePoints(vPoints);
+				
+				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], 0.10);
+			}
 		}
 		
 		else
