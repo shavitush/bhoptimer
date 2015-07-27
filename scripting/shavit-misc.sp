@@ -395,12 +395,12 @@ public Action Command_Specs(int client, int args)
 
 			if(iCount == 1)
 			{
-				FormatEx(sSpecs, 256, "%N", i);
+				FormatEx(sSpecs, sizeof(sSpecs), "%N", i);
 			}
 
 			else
 			{
-				Format(sSpecs, 256, "%s, %N", sSpecs);
+				Format(sSpecs, sizeof(sSpecs), "%s, %N", sSpecs, i);
 			}
 		}
 	}
