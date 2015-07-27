@@ -109,16 +109,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deleterecords", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
 	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records");
 
-	// late load
-	if(gB_Late)
-	{
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			OnClientPutInServer(i);
-		}
-		
-		OnAdminMenuReady(null);
-	}
+	OnAdminMenuReady(null);
 }
 
 public void OnAdminMenuReady(Handle topmenu)
@@ -204,30 +195,7 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	// when I test this plugin, I late load. and it won't return any rows if I don't delay it when I late load so idk ;-;
-	if(gB_Late)
-	{
-		CreateTimer(0.01, Timer_DelayedCache, GetClientSerial(client));	
-	}
-
-	else
-	{
-		UpdateClientCache(client);
-	}
-}
-
-public Action Timer_DelayedCache(Handle Timer, any data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(!client)
-	{
-		return Plugin_Handled;
-	}
-
 	UpdateClientCache(client);
-
-	return Plugin_Handled;
 }
 
 public void UpdateClientCache(int client)
@@ -880,6 +848,14 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 		LogError("Timer (WR module) error! Users' times table creation failed. Reason: %s", error);
 
 		return;
+	}
+	
+	if(gB_Late)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			OnClientPutInServer(i);
+		}
 	}
 }
 
