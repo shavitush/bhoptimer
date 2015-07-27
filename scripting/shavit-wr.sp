@@ -856,6 +856,8 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 		{
 			OnClientPutInServer(i);
 		}
+		
+		gB_Late = false;
 	}
 }
 
