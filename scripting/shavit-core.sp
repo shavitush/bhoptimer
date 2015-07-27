@@ -116,9 +116,6 @@ public void OnPluginStart()
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
 
 	// game types
-	char sGameName[64];
-	GetGameFolderName(sGameName, 64);
-	
 	EngineVersion evType = GetEngineVersion();
 
 	if(evType == Engine_CSS)
