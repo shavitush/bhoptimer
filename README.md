@@ -51,17 +51,15 @@ a bhop server should be simple
 shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
-# Todo for 1.3b release
-shavit-core:
-- [x] + Handle freestyle zones
-
-shavit-zones:
-- [x] + Allow creation of freestyle zones
-- [x] + Make multiple freestyle zones possible (damn you Aoki and badges for making stuff difficult!)
-- [x] + Handle deletion of multiple freestyle zones
-- [x] + Handle drawing of end/freestyle zones properly
-
 # Todo for 1.4b release
-[NEW PLUGIN] shavit-stats:
-[NEW PLUGIN] shavit-ranks:
-[NEW PLUGIN] shavit-replay:
+~ shavit-zones:
+- [ ] + Add a submenu that can adjust the zone's Z/X/Y axis before it's being confirmed.
+
+~ [NEW PLUGIN] shavit-stats:
+- [ ] + Show maps done (/SW)
+- [ ] + Show maps left (/SW)
+- [ ] + Show SteamID3
+
+# Todo for 1.5b release
+[NEW PLUGIN] shavit-ranks:  
+[NEW PLUGIN] shavit-replay:  

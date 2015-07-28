@@ -2,7 +2,7 @@
  * shavit's Timer - Core
  * by: shavit
  *
- * This file is part of Shavit's Timer.
+ * This file is part of shavit's Timer.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
