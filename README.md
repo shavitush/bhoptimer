@@ -44,31 +44,22 @@ a bhop server should be simple
 }
 ```
 2. Copy the desired .smx files to your plugins (addons/sourcemod/plugins) folder
+2.1. Copy shavit.games.txt to /gamedata if you have DHooks installed.
 3. Restart your server.
 
 # Required plugins:
 shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
-# Todo for 1.2b release < DONE!
-- [x] + create a github repo
+# Todo for 1.4b release
+~ shavit-zones:
+- [ ] + Add a submenu that can adjust the zone's Z/X/Y axis before it's being confirmed.
 
-shavit-core:
-- [x] * make a better check of game engine instead of using a directory
-- [x] + sm_pause
-- [x] + sm_resume
-- [x] + add natives/forwards for sm_pause/resume and polish code
+~ [NEW PLUGIN] shavit-stats:
+- [ ] + Show maps done (/SW)
+- [ ] + Show maps left (/SW)
+- [ ] + Show SteamID3
 
-shavit-misc:
-- [x] + cvar "shavit_misc_godmode"
-0 - nothing
-1 - only world damage
-2 - only player damage
-3 - full godmode
-- [x] + 250 maxspeed for every pistol
-
-shavit-zones:
-- [x] + player slaying zone
-- [x] + cvar "shavit_zones_style"
-0 - 3d (default)
-1 - 2d
+# Todo for 1.5b release
+[NEW PLUGIN] shavit-ranks:  
+[NEW PLUGIN] shavit-replay:  

@@ -2,7 +2,7 @@
  * shavit's Timer - Map Zones
  * by: shavit
  *
- * This file is part of Shavit's Timer.
+ * This file is part of shavit's Timer.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -30,7 +30,7 @@
 #pragma dynamic 131072 // let's make stuff faster
 #pragma newdecls required // yay for SM 1.7 :D
 
-Handle gH_SQL = null;
+Database gH_SQL = null;
 
 char gS_Map[128];
 
@@ -40,7 +40,8 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"End Zone",
 	"Glitch Zone (Respawn Player)",
 	"Glitch Zone (Stop Timer)",
-	"Slay Player"
+	"Slay Player",
+	"Freestyle Zone" // ignores style physics when at this zone. e.g. WASD when SWing
 };
 
 MapZones gMZ_Type[MAXPLAYERS+1];
@@ -58,6 +59,7 @@ float gV_Point2[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 
 float gV_MapZones[MAX_ZONES][2][3];
+float gV_FreestyleZones[MULTIPLEZONES_LIMIT][2][3];
 
 int gI_BeamSprite = -1;
 
@@ -75,7 +77,7 @@ bool gB_ZoneStyle = false;
 public Plugin myinfo = 
 {
 	name = "[shavit] Map Zones",
-	author = "shavit", // reminder: add ~big big big~ HUGE thanks to blacky
+	author = "shavit", // reminder: add ~big big big~ HUGE thanks to blacky < done
 	description = "Map zones for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "http://forums.alliedmods.net/member.php?u=163134"
@@ -98,12 +100,15 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public void OnPluginStart()
+public void OnAllPluginsLoaded()
 {
 	// database shit
 	Shavit_GetDB(gH_SQL);
 	SQL_DBConnect();
+}
 
+public void OnPluginStart()
+{
 	// menu
 	RegAdminCmd("sm_zones", Command_Zones, ADMFLAG_RCON, "Opens the mapzones menu");
 	RegAdminCmd("sm_mapzones", Command_Zones, ADMFLAG_RCON, "Opens the mapzones menu");
@@ -219,6 +224,17 @@ public int Native_InsideZone(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	MapZones type = GetNativeCell(2);
 	
+	if(type == Zone_Freestyle)
+	{
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			if(InsideZone(client, gV_FreestyleZones[i][0], gV_FreestyleZones[i][1]))
+			{
+				return true;
+			}
+		}
+	}
+	
 	return view_as<int>(InsideZone(client, gV_MapZones[type][0], gV_MapZones[type][1]));
 }
 
@@ -234,6 +250,9 @@ public void SetupColors()
 	gI_Colors[Zone_Respawn] = {255, 200, 0, 255};
 	gI_Colors[Zone_Stop] = {255, 200, 0, 255};
 	gI_Colors[Zone_Slay] = {255, 200, 0, 255};
+	
+	// freestyle - blue
+	gI_Colors[Zone_Freestyle] = {25, 25, 255, 195};
 }
 
 public void OnMapStart()
@@ -260,14 +279,37 @@ public void UnloadZones(int zone)
 				gV_MapZones[i][1][j] = 0.0;
 			}
 		}
+		
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			for(int j = 0; j < 3; j++)
+			{
+				gV_FreestyleZones[i][0][j] = 0.0;
+				gV_FreestyleZones[i][1][j] = 0.0;
+			}
+		}
+
+		return;
 	}
 	
-	else
+	if(zone != view_as<int>Zone_Freestyle)
 	{
 		for(int i = 0; i < 3; i++)
 		{
 			gV_MapZones[zone][0][i] = 0.0;
 			gV_MapZones[zone][1][i] = 0.0;
+		}
+	}
+	
+	else
+	{
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			for(int j = 0; j < 3; j++)
+			{
+				gV_FreestyleZones[i][0][j] = 0.0;
+				gV_FreestyleZones[i][1][j] = 0.0;
+			}
 		}
 	}
 }
@@ -289,16 +331,33 @@ public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] er
 		return;
 	}
 	
+	int iFreestyleRow = 0;
+	
 	while(SQL_FetchRow(hndl))
 	{
-		int type = SQL_FetchInt(hndl, 0);
+		MapZones type = view_as<MapZones>SQL_FetchInt(hndl, 0);
 		
-		gV_MapZones[type][0][0] = SQL_FetchFloat(hndl, 1);
-		gV_MapZones[type][0][1] = SQL_FetchFloat(hndl, 2);
-		gV_MapZones[type][0][2] = SQL_FetchFloat(hndl, 3);
-		gV_MapZones[type][1][0] = SQL_FetchFloat(hndl, 4);
-		gV_MapZones[type][1][1] = SQL_FetchFloat(hndl, 5);
-		gV_MapZones[type][1][2] = SQL_FetchFloat(hndl, 6);
+		if(type == Zone_Freestyle)
+		{
+			gV_FreestyleZones[iFreestyleRow][0][0] = SQL_FetchFloat(hndl, 1);
+			gV_FreestyleZones[iFreestyleRow][0][1] = SQL_FetchFloat(hndl, 2);
+			gV_FreestyleZones[iFreestyleRow][0][2] = SQL_FetchFloat(hndl, 3);
+			gV_FreestyleZones[iFreestyleRow][1][0] = SQL_FetchFloat(hndl, 4);
+			gV_FreestyleZones[iFreestyleRow][1][1] = SQL_FetchFloat(hndl, 5);
+			gV_FreestyleZones[iFreestyleRow][1][2] = SQL_FetchFloat(hndl, 6);
+			
+			iFreestyleRow++;
+		}
+		
+		else
+		{
+			gV_MapZones[type][0][0] = SQL_FetchFloat(hndl, 1);
+			gV_MapZones[type][0][1] = SQL_FetchFloat(hndl, 2);
+			gV_MapZones[type][0][2] = SQL_FetchFloat(hndl, 3);
+			gV_MapZones[type][1][0] = SQL_FetchFloat(hndl, 4);
+			gV_MapZones[type][1][1] = SQL_FetchFloat(hndl, 5);
+			gV_MapZones[type][1][2] = SQL_FetchFloat(hndl, 6);
+		}
 	}
 }
 
@@ -335,6 +394,8 @@ public Action Command_Zones(int client, int args)
 	AddMenuItem(menu, "1", "End Zone");
 	AddMenuItem(menu, "2", "Glitch Zone (Respawn Player)");
 	AddMenuItem(menu, "3", "Glitch Zone (Stop Timer)");
+	AddMenuItem(menu, "4", "Slay Player");
+	AddMenuItem(menu, "5", "Freestyle Zone");
 
 	SetMenuExitButton(menu, true);
 
@@ -355,6 +416,16 @@ public Action Command_DeleteZone(int client, int args)
 
 	for (int i = 0; i < MAX_ZONES; i++)
 	{
+		if(i == view_as<int>Zone_Freestyle)
+		{
+			if(!EmptyZone(gV_FreestyleZones[0][0]) && !EmptyZone(gV_FreestyleZones[0][1]))
+			{
+				char sInfo[8];
+				IntToString(i, sInfo, 8);
+				AddMenuItem(menu, sInfo, gS_ZoneNames[i]);
+			}
+		}
+		
 		if(!EmptyZone(gV_MapZones[i][0]) && !EmptyZone(gV_MapZones[i][1]))
 		{
 			char sInfo[8];
@@ -421,6 +492,7 @@ public void SQL_DeleteZone_Callback(Handle owner, Handle hndl, const char[] erro
 	}
 	
 	UnloadZones(type);
+	
 	RefreshZones();
 	
 	if(!client)
@@ -698,20 +770,41 @@ public void InsertZone(int client)
 {
 	char sQuery[256];
 
-	if(EmptyZone(gV_MapZones[gMZ_Type[client]][0]) && EmptyZone(gV_MapZones[gMZ_Type[client]][1])) // insert
+	MapZones type = gMZ_Type[client];
+	
+	if(type == Zone_Freestyle)
 	{
-		FormatEx(sQuery, 256, "INSERT INTO mapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_Map, gMZ_Type[client], gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2]);
+		FormatEx(sQuery, 256, "INSERT INTO mapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2]);
+		
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			if(!EmptyZone(gV_FreestyleZones[i][0]) && !EmptyZone(gV_FreestyleZones[i][1]))
+			{
+				continue;
+			}
+			
+			gV_FreestyleZones[i][0] = gV_Point1[client];
+			gV_FreestyleZones[i][1] = gV_Point2[client];
+		}
 	}
-
-	else // update
+	
+	else
 	{
-		FormatEx(sQuery, 256, "UPDATE mapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f' WHERE map = '%s' AND type = '%d';", gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gS_Map, gMZ_Type[client]);
+		if(EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) // insert
+		{
+			FormatEx(sQuery, 256, "INSERT INTO mapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2]);
+		}
+		
+		else // update
+		{
+			FormatEx(sQuery, 256, "UPDATE mapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f' WHERE map = '%s' AND type = '%d';", gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gS_Map, type);
+		}
+		
+		gV_MapZones[type][0] = gV_Point1[client];
+		gV_MapZones[type][1] = gV_Point2[client];
 	}
 	
 	SQL_TQuery(gH_SQL, SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
-	
-	gV_MapZones[gMZ_Type[client]][0] = gV_Point1[client];
-	gV_MapZones[gMZ_Type[client]][1] = gV_Point2[client];
 	
 	Reset(client);
 }
@@ -730,28 +823,67 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 {
 	for(int i = 0; i < MAX_ZONES; i++)
 	{
-		// check shavit.inc, blacklisting glitch zones from being drawn
-		if(i == 2 || i == 3)
-		{
-			continue;
-		}
-		
 		//PrintToChatAll("%d", i);
 		
-		if(!EmptyZone(gV_MapZones[i][0]) && !EmptyZone(gV_MapZones[i][1]))
+		float vPoints[8][3];
+		
+		if(i == view_as<int>Zone_Freestyle)
 		{
-			float vPoints[8][3];
-			vPoints[0] = gV_MapZones[i][0];
-			vPoints[7] = gV_MapZones[i][1];
-			
-			if(gB_ZoneStyle)
+			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
 			{
-				vPoints[7][2] = vPoints[0][2];
+				if(EmptyZone(gV_FreestyleZones[j][0]) && EmptyZone(gV_FreestyleZones[j][1]))
+				{
+					continue;
+				}
+				
+				vPoints[0] = gV_FreestyleZones[j][0];
+				vPoints[7] = gV_FreestyleZones[j][1];
+				
+				if(gB_ZoneStyle)
+				{
+					vPoints[7][2] = vPoints[0][2];
+				}
+				
+				CreateZonePoints(vPoints);
+				
+				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], 0.10);
+			}
+		}
+		
+		else
+		{
+			// check shavit.inc, blacklisting glitch zones from being drawn
+			
+			// ARGHH WHY IS THIS NOT WORKING PROPERLY?!
+			/*if(i == view_as<int>Zone_Respawn || i == view_as<int>Zone_Stop)
+			{
+				continue;
+			}*/
+			
+			if(i == view_as<int>Zone_Respawn)
+			{
+				continue;
 			}
 			
-			CreateZonePoints(vPoints);
+			if(i == view_as<int>Zone_Stop)
+			{
+				continue;
+			}
 			
-			DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], 0.10);
+			if(!EmptyZone(gV_MapZones[i][0]) && !EmptyZone(gV_MapZones[i][1]))
+			{
+				vPoints[0] = gV_MapZones[i][0];
+				vPoints[7] = gV_MapZones[i][1];
+				
+				if(gB_ZoneStyle)
+				{
+					vPoints[7][2] = vPoints[0][2];
+				}
+				
+				CreateZonePoints(vPoints);
+				
+				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], 0.10);
+			}
 		}
 	}
 }
