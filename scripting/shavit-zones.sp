@@ -52,6 +52,8 @@ MapZones gMZ_Type[MAXPLAYERS+1];
 // 3 - confirm
 int gI_MapStep[MAXPLAYERS+1];
 
+int gI_Modifier[MAXPLAYERS+1];
+
 // I suck
 float gV_Point1[MAXPLAYERS+1][3];
 float gV_Point2[MAXPLAYERS+1][3];
@@ -109,6 +111,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
+	
 	// menu
 	RegAdminCmd("sm_zones", Command_Zones, ADMFLAG_RCON, "Opens the mapzones menu");
 	RegAdminCmd("sm_mapzones", Command_Zones, ADMFLAG_RCON, "Opens the mapzones menu");
@@ -371,6 +375,30 @@ public void OnClientDisconnect(int client)
 	Reset(client);
 }
 
+public Action Command_Modifier(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+	
+	if(!args)
+	{
+		ReplyToCommand(client, "%s Usage: sm_modifier <number>", PREFIX);
+		
+		return Plugin_Handled;
+	}
+	
+	char sArg1[16];
+	GetCmdArg(1, sArg1, 16);
+	
+	gI_Modifier[client] = StringToInt(sArg1);
+	
+	ReplyToCommand(client, "%s Modifier set to \x03%d\x01.", PREFIX, gI_Modifier[client]);
+	
+	return Plugin_Handled;
+}
+
 public Action Command_Zones(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -599,6 +627,8 @@ public int Select_Type_MenuHandler(Handle menu, MenuAction action, int param1, i
 
 public void Reset(int client)
 {
+	gI_Modifier[client] = 10;
+	
 	gI_MapStep[client] = 0;
 	
 	for(int i = 0; i < 3; i++)
@@ -674,6 +704,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			
 				AddMenuItem(menu, "yes", "Yes");
 				AddMenuItem(menu, "no", "No");
+				AddMenuItem(menu, "adjust", "Adjust position");
 			
 				SetMenuExitButton(menu, true);
 			
@@ -746,12 +777,178 @@ public int CreateZoneConfirm_Handler(Handle menu, MenuAction action, int param1,
 			
 			gI_MapStep[param1] = 0;
 		}
+		
+		else if(StrEqual(info, "adjust"))
+		{
+			CreateAdjustMenu(param1);
+		}
 	}
 
 	else if(action == MenuAction_End)
 	{
-		Reset(param1);
+		CloseHandle(menu);
+	}
+}
+
+public void CreateAdjustMenu(int client)
+{
+	Handle hMenu = CreateMenu(ZoneAdjuster_Handler);
+	SetMenuTitle(hMenu, "Adjust the zone's position.\nUse \"sm_modifier <number>\" to set a new modifier.");
+
+	AddMenuItem(hMenu, "done", "Done!");
+	AddMenuItem(hMenu, "cancel", "Cancel");
+	
+	char sDisplay[64];
+	
+	// sorry for this ugly code ;_;
+	FormatEx(sDisplay, 64, "Point 1 | X axis +%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p1x_plus", sDisplay);
+	FormatEx(sDisplay, 64, "Point 1 | X axis -%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p1x_minus", sDisplay);
+	
+	FormatEx(sDisplay, 64, "Point 1 | Y axis +%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p1y_plus", sDisplay);
+	FormatEx(sDisplay, 64, "Point 1 | Y axis -%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p1y_minus", sDisplay);
+	
+	FormatEx(sDisplay, 64, "Point 1 | Z axis +%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p1z_plus", sDisplay);
+	FormatEx(sDisplay, 64, "Point 1 | Z axis -%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p1z_minus", sDisplay);
+	
+	FormatEx(sDisplay, 64, "Point 2 | X axis +%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p2x_plus", sDisplay);
+	FormatEx(sDisplay, 64, "Point 2 | X axis -%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p2x_minus", sDisplay);
+	
+	FormatEx(sDisplay, 64, "Point 2 | Y axis +%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p2y_plus", sDisplay);
+	FormatEx(sDisplay, 64, "Point 2 | Y axis -%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p2y_minus", sDisplay);
+	
+	FormatEx(sDisplay, 64, "Point 2 | Z axis +%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p2z_plus", sDisplay);
+	FormatEx(sDisplay, 64, "Point 2 | Z axis -%d", gI_Modifier[client]);
+	AddMenuItem(hMenu, "p2z_minus", sDisplay);
+
+	SetMenuExitButton(hMenu, false);
+
+	DisplayMenu(hMenu, client, 20);
+}
+
+public int ZoneAdjuster_Handler(Handle menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char info[16];
+		GetMenuItem(menu, param2, info, 16);
+
+		if(StrEqual(info, "done"))
+		{
+			InsertZone(param1);
+			
+			gI_MapStep[param1] = 0;
+		}
 		
+		else if(StrEqual(info, "cancel"))
+		{
+			Reset(param1);
+		}
+		
+		else
+		{
+			// This is a damn big mess and I can't think of anything better to do this (I'm really tired now), any idea will be welcomed!
+			// (except for using for example "0;plus" in the info string, I hate exploding strings)
+			if(StrEqual(info, "p1x_plus"))
+			{
+				gV_Point1[param1][0] += gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03X\x01 axis \x0A(point 1) \x04increased\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p1x_minus"))
+			{
+				gV_Point1[param1][0] -= gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03X\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p1y_plus"))
+			{
+				gV_Point1[param1][1] += gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03Y\x01 axis \x0A(point 1) \x04increased\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p1y_minus"))
+			{
+				gV_Point1[param1][1] -= gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03Y\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p1z_plus"))
+			{
+				gV_Point1[param1][2] += gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03Z\x01 axis \x0A(point 1) \x04increased\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p1z_minus"))
+			{
+				gV_Point1[param1][2] -= gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03Z\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p2x_plus"))
+			{
+				gV_Point2[param1][0] += gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03X\x01 axis \x0A(point 2) \x04increased\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p2x_minus"))
+			{
+				gV_Point2[param1][0] -= gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03X\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p2y_plus"))
+			{
+				gV_Point2[param1][1] += gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03Y\x01 axis \x0A(point 2) \x04increased\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p2y_minus"))
+			{
+				gV_Point2[param1][1] -= gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03Y\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p2z_plus"))
+			{
+				gV_Point2[param1][2] += gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03Z\x01 axis \x0A(point 2) \x04increased\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			else if(StrEqual(info, "p2z_minus"))
+			{
+				gV_Point2[param1][2] -= gI_Modifier[param1];
+				
+				PrintToChat(param1, "%s \x03Z\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%d\x01.", PREFIX, gI_Modifier[param1]);
+			}
+			
+			CreateAdjustMenu(param1);
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
 		CloseHandle(menu);
 	}
 }

@@ -53,13 +53,16 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 
 # Todo for 1.4b release
 ~ shavit-zones:
-- [ ] + Add a submenu that can adjust the zone's Z/X/Y axis before it's being confirmed.
+- [x] + Add a submenu that can adjust the zone's Z/X/Y axis before it's being confirmed.
 
 ~ [NEW PLUGIN] shavit-stats:
 - [ ] + Show maps done (/SW)
 - [ ] + Show maps left (/SW)
 - [ ] + Show SteamID3
 
+~ [NEW PLUGIN] shavit-replay:
+- [ ] + Properly working replay bot for forwards
+- [ ] + \^ same but also for sideways
+
 # Todo for 1.5b release
 [NEW PLUGIN] shavit-ranks:  
-[NEW PLUGIN] shavit-replay:  
