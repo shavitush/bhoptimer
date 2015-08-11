@@ -94,7 +94,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_ZoneExists");
 	// MarkNativeAsOptional("Shavit_InsideZone"); // called in shavit-core
 
-	// registers library, check "LibraryExists(const String:name[])" in order to use with other plugins
+	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-zones");
 	
 	gB_Late = late;
@@ -107,6 +107,11 @@ public void OnAllPluginsLoaded()
 	// database shit
 	Shavit_GetDB(gH_SQL);
 	SQL_DBConnect();
+	
+	if(gB_Late)
+	{
+		OnAdminMenuReady(null);
+	}
 }
 
 public void OnPluginStart()
@@ -126,11 +131,6 @@ public void OnPluginStart()
 	// draw
 	// start drawing timer here
 	CreateTimer(0.10, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT);
-	
-	if(gB_Late)
-	{
-		OnAdminMenuReady(null);
-	}
 	
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box");
