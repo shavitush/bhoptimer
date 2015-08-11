@@ -100,10 +100,12 @@ public void OnPluginStart()
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players? \n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.");
 	HookConVarChange(gCV_GodMode, OnConVarChanged);
+	
 	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone? \n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
 	HookConVarChange(gCV_PreSpeed, OnConVarChanged);
 	
 	AutoExecConfig();
+	
 	gI_GodMode = GetConVarInt(gCV_GodMode);
 	gI_PreSpeed = GetConVarInt(gCV_PreSpeed);
 	
@@ -140,6 +142,7 @@ public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
 	{
 		gI_GodMode = StringToInt(sNew);
 	}
+	
 	else if(cvar == gCV_PreSpeed)
 	{
 		gI_PreSpeed = StringToInt(sNew);
@@ -316,7 +319,7 @@ public Action Command_Spec(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	ChangeClientTeam(client, CS_TEAM_SPECTATOR);
+	CS_SwitchTeam(client, CS_TEAM_SPECTATOR);
 	
 	if(args > 0)
 	{
@@ -434,12 +437,12 @@ public void Shavit_OnRestart(int client)
 		{
 			if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
 			{
-				ChangeClientTeam(client, CS_TEAM_T);
+				CS_SwitchTeam(client, CS_TEAM_T);
 			}
 			
 			else
 			{
-				ChangeClientTeam(client, CS_TEAM_CT);
+				CS_SwitchTeam(client, CS_TEAM_CT);
 			}
 			
 			CreateTimer(0.1, Respawn, client);
