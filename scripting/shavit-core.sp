@@ -62,6 +62,13 @@ bool gB_Late;
 // zones lateload support
 bool gB_Zones;
 
+// cvars
+ConVar gCV_Autobhop = null;
+bool gB_Autobhop;
+
+ConVar gCV_Leftright = null;
+bool gB_Leftright;
+
 public Plugin myinfo = 
 {
 	name = "[shavit] Core",
@@ -97,7 +104,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// prevent errors from shavit-zones
 	MarkNativeAsOptional("Shavit_InsideZone");
 	
-	// registers library, check "LibraryExists(const String:name[])" in order to use with other plugins
+	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
 	
 	gB_Late = late;
@@ -183,6 +190,17 @@ public void OnPluginStart()
 	#endif
 	
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD);
+	
+	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?", FCVAR_PLUGIN|FCVAR_NOTIFY);
+	HookConVarChange(gCV_Autobhop, OnConVarChanged);
+	
+	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN|FCVAR_NOTIFY);
+	HookConVarChange(gCV_Leftright, OnConVarChanged);
+	
+	AutoExecConfig();
+	
+	gB_Autobhop = GetConVarBool(gCV_Autobhop);
+	gB_Leftright = GetConVarBool(gCV_Leftright);
 
 	// late
 	if(gB_Late)
@@ -196,6 +214,20 @@ public void OnPluginStart()
 	}
 	
 	gB_Zones = LibraryExists("shavit-zones");
+}
+
+public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
+{
+	// using an if() statement just incase I'll add more cvars.
+	if(cvar == gCV_Autobhop)
+	{
+		gB_Autobhop = view_as<bool>StringToInt(sNew);
+	}
+	
+	else if(cvar == gCV_Leftright)
+	{
+		gB_Leftright = view_as<bool>StringToInt(sNew);
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -441,7 +473,7 @@ public int Native_GetTimer(Handle handler, int numParams)
 	// 4 - style
 	SetNativeCellRef(4, gBS_Style[client]);
 
-	// 5 - style
+	// 5 - enabled?
 	SetNativeCellRef(5, gB_TimerEnabled[client]);
 }
 
@@ -681,7 +713,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 
-	if(gB_Zones && gB_TimerEnabled[client] && !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT))
+	if(gB_Leftright && gB_Zones && gB_TimerEnabled[client] && !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT))
 	{
 		StopTimer(client);
 		PrintToChat(client, "%s I've stopped your timer for using +left/+right. No cheating!", PREFIX);
@@ -698,7 +730,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// autobhop
-	if(gB_Auto[client] && buttons & IN_JUMP && !(GetEntityFlags(client) & FL_ONGROUND) && !bOnLadder && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
+	if(gB_Autobhop && gB_Auto[client] && buttons & IN_JUMP && !(GetEntityFlags(client) & FL_ONGROUND) && !bOnLadder && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
 	{
 		buttons &= ~IN_JUMP;
 	}

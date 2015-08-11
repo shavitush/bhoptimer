@@ -73,7 +73,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 
-	// registers library, check "LibraryExists(const String:name[])" in order to use with other plugins
+	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
 
 	gB_Late = late;
