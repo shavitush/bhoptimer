@@ -319,7 +319,7 @@ public Action Command_Spec(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	CS_SwitchTeam(client, CS_TEAM_SPECTATOR);
+	ChangeClientTeam(client, CS_TEAM_SPECTATOR);
 	
 	if(args > 0)
 	{
