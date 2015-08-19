@@ -741,15 +741,15 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		return Plugin_Continue;
 	}
 	
+	if(InsideZone(client, gV_MapZones[Zone_Slay][0], gV_MapZones[Zone_Slay][1]))
+	{
+		Shavit_StopTimer(client);
+		
+		ForcePlayerSuicide(client);
+	}
+	
 	if(bStarted)
 	{
-		if(InsideZone(client, gV_MapZones[Zone_Slay][0], gV_MapZones[Zone_Slay][1]))
-		{
-			Shavit_StopTimer(client);
-			
-			ForcePlayerSuicide(client);
-		}
-		
 		if(InsideZone(client, gV_MapZones[Zone_Stop][0], gV_MapZones[Zone_Stop][1]))
 		{
 			Shavit_StopTimer(client);
