@@ -63,6 +63,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] + Show maps done (/SW)
 - [x] + Show maps left (/SW)
 - [x] + Show SteamID3
+- [ ] * make it actually work
 
 ~ [NEW PLUGIN] shavit-replay:
 - [ ] + Properly working replay bot for forwards
