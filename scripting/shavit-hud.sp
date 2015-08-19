@@ -72,8 +72,6 @@ public void UpdateHUD(int client)
 {
 	int target = client;
 
-	bool bSpectating;
-
 	if(IsClientObserver(client))
 	{
 		if(GetEntProp(client, Prop_Send, "m_iObserverMode") >= 3)
@@ -154,10 +152,7 @@ public void UpdateHUD(int client)
 		
 		Format(sHintText, 256, "%s\nStyle: <font color='%s</font>", sHintText, bsStyle == Style_Forwards? "#797FD4'>Forwards":"#B54CB3'>Sideways");
 
-		if(!bSpectating)
-		{
-			Format(sHintText, 256, "%s\tPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
-		}
+		Format(sHintText, 256, "%s\tPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
 
 		Format(sHintText, 256, "%s</font>", sHintText);
 	}
@@ -192,10 +187,7 @@ public void UpdateHUD(int client)
 
 		Format(sHintText, 256, "%s\nStyle: %s", sHintText, bsStyle == Style_Forwards? "Forwards":"Sideways");
 
-		if(!bSpectating)
-		{
-			Format(sHintText, 256, "%s\tPlayer: %N", sHintText, target);
-		}
+		Format(sHintText, 256, "%s\tPlayer: %N", sHintText, target);
 	}
 
 	PrintHintText(client, sHintText);
