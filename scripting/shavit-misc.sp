@@ -206,7 +206,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
 			float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-			float fScale = FloatDiv(280.0, fSpeed_New);
+			float fScale = 280.0 / fSpeed_New;
 			
 			if(fScale < 1.0) // 280 / 281 = below 1 | 280 / 279 = above 1 
 			{
