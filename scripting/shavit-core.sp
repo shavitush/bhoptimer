@@ -444,6 +444,7 @@ public void Player_Death(Handle event, const char[] name, bool dontBroadcast)
 	int userid = GetEventInt(event, "userid");
 	int client = GetClientOfUserId(userid);
 
+	ResumeTimer(client);
 	StopTimer(client);
 }
 
@@ -570,7 +571,7 @@ public void PauseTimer(int client)
 
 public void ResumeTimer(int client)
 {
-	if(!IsValidClient(client) || IsFakeClient(client) || !gB_ClientPaused[client])
+	if(!IsValidClient(client) || IsFakeClient(client))
 	{
 		return;
 	}

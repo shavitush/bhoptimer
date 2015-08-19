@@ -736,6 +736,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	
 	if(InsideZone(client, gV_MapZones[Zone_Start][0], gV_MapZones[Zone_Start][1]))
 	{
+		Shavit_ResumeTimer(client);
 		Shavit_StartTimer(client);
 		
 		return Plugin_Continue;
