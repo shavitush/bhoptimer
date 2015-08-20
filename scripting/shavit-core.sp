@@ -313,6 +313,13 @@ public Action Command_TogglePause(int client, int args)
 	{
 		return Plugin_Handled;
 	}
+	
+	if(!(GetEntityFlags(client) & FL_ONGROUND))
+	{
+		ReplyToCommand(client, "%s You are not allowed to pause when not on ground.", PREFIX);
+		
+		return Plugin_Handled;
+	}
 
 	if(gB_ClientPaused[client])
 	{
