@@ -110,7 +110,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		FormatEx(sMinutes, 8, "%d", iMinutes);
 	}
 	
-	float fSeconds = ((iTemp) + time - RoundToFloor(time))
+	float fSeconds = ((iTemp) + time - RoundToFloor(time));
 
 	char sSeconds[16];
 
