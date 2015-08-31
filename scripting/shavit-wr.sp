@@ -693,7 +693,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 		AddMenuItem(menu, sID, sDisplay);
 	}
 
-	if(!iCount)
+	if(!GetMenuItemCount(menu))
 	{
 		AddMenuItem(menu, "-1", "No records found.");
 	}
