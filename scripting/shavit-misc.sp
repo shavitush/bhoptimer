@@ -195,8 +195,9 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>{0.0, 0.0, 0.0});
-			PrintToChat(client, "%s Bhopping in the start zone is not allowed", PREFIX);
+			PrintToChat(client, "%s Bhopping in the start zone is not allowed.", PREFIX);
 			gF_LastFlags[client] = GetEntityFlags(client);
+			
 			return Plugin_Continue;
 		}
 
