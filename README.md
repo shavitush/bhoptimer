@@ -57,13 +57,16 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] + Add a cvar for +left/right blocks.
 
 ~ shavit-zones:
-- [x] + Add a submenu that can adjust the zone's Z/X/Y axis before it's being confirmed.
+- [x] + Add a submenu that can adjust the zone's X/Y/Z axis before it's being confirmed.
 
 ~ [NEW PLUGIN] shavit-stats:
 - [x] + Show maps done (/SW)
 - [x] + Show maps left (/SW)
 - [x] + Show SteamID3
 - [x] * Make it actually work
+
+~ [NEW PLUGIN] shavit-timelimit:
+- [ ] + Take an average of X (default: 100) times on a map and use it to decide the timelimit/roundtime for the map.
 
 ~ [NEW PLUGIN] shavit-replay:
 - [ ] + Properly working replay bot for forwards
