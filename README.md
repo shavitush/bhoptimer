@@ -66,7 +66,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] * Make it actually work
 
 ~ [NEW PLUGIN] shavit-timelimit:
-- [ ] + Take an average of X (default: 100) times on a map and use it to decide the timelimit/roundtime for the map.
+- [x] + Take an average of X (default: 100) times on a map and use it to decide the timelimit/roundtime for the map.
 
 ~ [NEW PLUGIN] shavit-replay:
 - [ ] + Properly working replay bot for forwards
