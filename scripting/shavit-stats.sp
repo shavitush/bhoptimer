@@ -53,13 +53,121 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_profile", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 	
-	/*RegConsoleCmd("sm_mapsdone", Command_Mapsdone, "Show maps done and the player's rank in them.");
-	RegConsoleCmd("sm_mapsleft", Command_Mapsleft, "Show maps that the player doesn't have them cleared yet.");
+	RegConsoleCmd("sm_mapsdone", Command_Mapsdone, "Show maps that the player have done already. Usage: sm_mapsdone [target]");
+	RegConsoleCmd("sm_mapsleft", Command_Mapsleft, "Show maps that the player doesn't have them cleared yet. Usage: sm_mapsleft [target]");
 	
-	RegConsoleCmd("sm_mapsdonesw", Command_MapsdoneSW, "Show maps done and the player's rank in them.");
-	RegConsoleCmd("sm_mapsleftsw", Command_MapsleftSW, "Show maps that the player doesn't have them cleared yet.");*/
+	RegConsoleCmd("sm_mapsdonesw", Command_MapsdoneSW, "[SW] Show maps done. Usage: sm_mapsdonesw [target]");
+	RegConsoleCmd("sm_mapsleftsw", Command_MapsleftSW, "[SW] Show maps that the player doesn't have them cleared yet. Usage: sm_mapsleftsw [target]");
 	
 	LoadTranslations("common.phrases");
+}
+
+public Action Command_Mapsdone(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+	
+	int target = client;
+	
+	if(args > 0)
+	{
+		char sArgs[64];
+		GetCmdArgString(sArgs, 64);
+		
+		target = FindTarget(client, sArgs, true, false);
+		
+		if(target == -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+	
+	ShowMaps(client, target, "mapsdone");
+	
+	return Plugin_Handled;
+}
+
+public Action Command_Mapsleft(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+	
+	int target = client;
+	
+	if(args > 0)
+	{
+		char sArgs[64];
+		GetCmdArgString(sArgs, 64);
+		
+		target = FindTarget(client, sArgs, true, false);
+		
+		if(target == -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+	
+	ShowMaps(client, target, "mapsleft");
+	
+	return Plugin_Handled;
+}
+
+public Action Command_MapsdoneSW(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+	
+	int target = client;
+	
+	if(args > 0)
+	{
+		char sArgs[64];
+		GetCmdArgString(sArgs, 64);
+		
+		target = FindTarget(client, sArgs, true, false);
+		
+		if(target == -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+	
+	ShowMaps(client, target, "mapsdonesw");
+	
+	return Plugin_Handled;
+}
+
+public Action Command_MapsleftSW(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+	
+	int target = client;
+	
+	if(args > 0)
+	{
+		char sArgs[64];
+		GetCmdArgString(sArgs, 64);
+		
+		target = FindTarget(client, sArgs, true, false);
+		
+		if(target == -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+	
+	ShowMaps(client, target, "mapsleftsw");
+	
+	return Plugin_Handled;
 }
 
 public Action Command_Profile(int client, int args)
@@ -87,13 +195,13 @@ public Action Command_Profile(int client, int args)
 	char sAuthID[32];
 	GetClientAuthId(target, AuthId_Steam3, sAuthID, 32);
 	
-	Handle menu = CreateMenu(MenuHandler_Profile);
-	SetMenuTitle(menu, "%N's profile.\nSteamID3: %s", target, sAuthID);
+	Menu menu = CreateMenu(MenuHandler_Profile);
+	menu.SetTitle("%N's profile.\nSteamID3: %s", target, sAuthID);
 	
-	AddMenuItem(menu, "mapsdone", "Maps done (Forwards)");
-	AddMenuItem(menu, "mapsleft", "Maps left (Forwards)");
-	AddMenuItem(menu, "mapsdonesw", "Maps done (Sideways)");
-	AddMenuItem(menu, "mapsleftsw", "Maps left (Sideways)");
+	menu.AddItem("mapsdone", "Maps done (Forwards)");
+	menu.AddItem("mapsleft", "Maps left (Forwards)");
+	menu.AddItem("mapsdonesw", "Maps done (Sideways)");
+	menu.AddItem("mapsleftsw", "Maps left (Sideways)");
 	
 	char sTarget[8];
 	IntToString(target, sTarget, 8);
@@ -107,7 +215,7 @@ public Action Command_Profile(int client, int args)
 	return Plugin_Handled;
 }
 
-public int MenuHandler_Profile(Handle menu, MenuAction action, int param1, int param2)
+public int MenuHandler_Profile(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -115,10 +223,10 @@ public int MenuHandler_Profile(Handle menu, MenuAction action, int param1, int p
 		
 		int target;
 		
-		for(int i = 0; i < GetMenuItemCount(menu); i++)
+		for(int i = 0; i < menu.ItemCount; i++)
 		{
 			char data[8];
-			GetMenuItem(menu, i, info, 16, _, data, 8);
+			menu.GetItem(i, info, 16, _, data, 8);
 			
 			if(StrEqual(info, "id"))
 			{
@@ -128,7 +236,7 @@ public int MenuHandler_Profile(Handle menu, MenuAction action, int param1, int p
 			}
 		}
 		
-		GetMenuItem(menu, param2, info, 16);
+		menu.GetItem(param2, info, 16);
 		
 		ShowMaps(param1, target, info);
 	}
@@ -157,8 +265,9 @@ public void ShowMaps(int client, int target, const char[] category)
 		FormatEx(sQuery, 256, "SELECT DISTINCT m.map FROM mapzones m LEFT JOIN playertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", sAuth, StrEqual(category, "mapsdone")? 0:1);
 	}
 	
-	Handle datapack = CreateDataPack();
-	PushArrayCell(datapack, GetClientSerial(client));
+	DataPack datapack = CreateDataPack();
+	datapack.WriteCell(GetClientSerial(client));
+	datapack.WriteString(category);
 	
 	SQL_TQuery(gH_SQL, ShowMapsCallback, sQuery, datapack, DBPrio_High);
 }
@@ -175,14 +284,15 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 	}
 	
 	ResetPack(data);
-	int userid = ReadPackCell(data);
+	
+	int serial = ReadPackCell(data);
 	
 	char sCategory[16];
 	ReadPackString(data, sCategory, 16);
 	
 	CloseHandle(data);
 	
-	int client = GetClientFromSerial(userid);
+	int client = GetClientFromSerial(serial);
 
 	if(!IsValidClient(client))
 	{
@@ -190,8 +300,6 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 	}
 	
 	int rows = SQL_GetRowCount(hndl);
-	
-	Handle menu = CreateMenu(MenuHandler_ShowMaps);
 	
 	char sTitle[64];
 	
@@ -215,19 +323,31 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 		FormatEx(sTitle, 32, "[SW] Maps left for %N: (%d)", client, rows);
 	}
 	
+	Menu menu = CreateMenu(MenuHandler_ShowMaps);
+	menu.SetTitle(sTitle);
+	
 	while(SQL_FetchRow(hndl))
 	{
 		char sMap[128];
 		SQL_FetchString(hndl, 0, sMap, 128);
 		
-		float time = SQL_FetchFloat(hndl, 1);
-		int jumps = SQL_FetchInt(hndl, 2);
-		
 		char sDisplay[192];
-		FormatEx(sDisplay, 192, "%s - %.03f (%d jumps)", sMap, time, jumps);
+		
+		if(StrContains(sCategory, "done") != -1)
+		{
+			float time = SQL_FetchFloat(hndl, 1);
+			int jumps = SQL_FetchInt(hndl, 2);
+			
+			FormatEx(sDisplay, 192, "%s - %.03f (%d jumps)", sMap, time, jumps);
+		}
+		
+		else
+		{
+			FormatEx(sDisplay, 192, "%s", sMap);
+		}
 		
 		// adding map as info, may be used in the future
-		AddMenuItem(menu, sMap, sDisplay);
+		menu.AddItem(sMap, sDisplay);
 	}
 	
 	if(!GetMenuItemCount(menu))
@@ -235,9 +355,9 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 		AddMenuItem(menu, "nope", "No results.");
 	}
 	
-	SetMenuExitButton(menu, true);
+	menu.ExitButton = true;
 	
-	DisplayMenu(menu, client, 60);
+	menu.Display(client, 60);
 }
 
 public int MenuHandler_ShowMaps(Handle menu, MenuAction action, int param1, int param2)
