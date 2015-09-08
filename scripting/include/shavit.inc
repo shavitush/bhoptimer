@@ -25,11 +25,11 @@
 
 //#pragma newdecls required
 
-#define SHAVIT_VERSION "1.3b"
+#define SHAVIT_VERSION "1.2b"
 #define PREFIX " \x04[Timer]\x01"
 
 #define MAX_STYLES 2 // I could probably do sizeof(BhopStyle) but I suck
-#define MAX_ZONES 6
+#define MAX_ZONES 5
 
 // game types
 enum ServerGame(+=1)
@@ -47,16 +47,13 @@ enum BhopStyle(+=1)
 };
 
 // map zones
-#define MULTIPLEZONES_LIMIT 16
-
 enum MapZones(+=1)
 {
 	Zone_Start = 0,
 	Zone_End,
 	Zone_Respawn,
 	Zone_Stop,
-	Zone_Slay,
-	Zone_Freestyle
+	Zone_Slay
 };
 
 // let's not throw errors k?
@@ -225,7 +222,7 @@ native ServerGame Shavit_GetGameType();
  * @param hSQL						Handle to store the database on.
  * @noreturn
  */
-native void Shavit_GetDB(Database &hSQL);
+native void Shavit_GetDB(Handle &hSQL);
 
 /**
  * (re)Starts the timer for a player.
