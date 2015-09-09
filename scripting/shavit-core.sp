@@ -526,12 +526,14 @@ public int Native_FinishMap(Handle handler, int numParams)
 public int Native_PauseTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	
 	PauseTimer(client);
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	
 	ResumeTimer(client);
 }
 
