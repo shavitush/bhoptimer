@@ -38,10 +38,13 @@ public Plugin myinfo =
 	url = "http://forums.alliedmods.net/member.php?u=163134"
 }
 
-public void OnPluginStart()
+public void OnAllPluginsLoaded()
 {
 	gSG_Type = Shavit_GetGameType();
+}
 
+public void OnPluginStart()
+{
 	CreateTimer(0.1, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 }
 
