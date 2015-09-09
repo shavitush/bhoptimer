@@ -101,20 +101,14 @@ public void UpdateHUD(int client)
 	if(gSG_Type == Game_CSGO)
 	{
 		FormatEx(sHintText, 256, "<font size='18'>");
-
+		
 		float fPB;
 		Shavit_GetPlayerPB(target, bsStyle, fPB);
-		char sPB[32];
-		FormatSeconds(fPB, sPB, 32);
-		Format(sHintText, 256, "%sPB: %s\t", sHintText, sPB);
-		
-		if(fPB != 0.0)
-		{
-			Format(sHintText, 256, "%s\t", sHintText);
-		}
 
 		if(bStarted)
 		{
+			Format(sHintText, 256, "%sJumps: %d", sHintText, iJumps);
+			
 			char sTime[32];
 			FormatSeconds(fTime, sTime, 32, false);
 
@@ -135,59 +129,56 @@ public void UpdateHUD(int client)
 				strcopy(sColor, 8, "FF0000");
 			}
 
-			Format(sHintText, 256, "%sTime: <font color='#%s'>%s</font>", sHintText, sColor, sTime);
+			Format(sHintText, 256, "%s\tTime: <font color='#%s'>%s</font>", sHintText, sColor, sTime);
 		}
-
+		
 		float fSpeed[3];
 		GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
 		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-
-		Format(sHintText, 256, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
-
-		if(bStarted)
-		{
-			Format(sHintText, 256, "%s\tJumps: %d", sHintText, iJumps);
-		}
+		
+		Format(sHintText, 256, "%s%sSpeed: %.02f", sHintText, bStarted? "\t":"\n", fSpeed_New);
 		
 		Format(sHintText, 256, "%s\nStyle: <font color='%s</font>", sHintText, bsStyle == Style_Forwards? "#797FD4'>Forwards":"#B54CB3'>Sideways");
 
-		Format(sHintText, 256, "%s\tPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
+		//Format(sHintText, 256, "%s\tPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
+		
+		char sPB[32];
+		FormatSeconds(fPB, sPB, 32);
+		Format(sHintText, 256, "%s\tPB: %s", sHintText, sPB);
 
 		Format(sHintText, 256, "%s</font>", sHintText);
 	}
 
 	else
 	{
-		float fPB;
-		Shavit_GetPlayerPB(target, bsStyle, fPB);
-		char sPB[32];
-		FormatSeconds(fPB, sPB, 32);
-		Format(sHintText, 256, "%sPB: %s\t", sHintText, sPB);
-
 		if(bStarted)
 		{
 			char sTime[32];
 			FormatSeconds(fTime, sTime, 32);
+			
+			FormatEx(sHintText, 256, "Jumps: %d", iJumps);
 
-			Format(sHintText, 256, "%sTime: %s", sHintText, sTime);
+			Format(sHintText, 256, "%s\tTime: %s", sHintText, sTime);
 		}
-
+		
 		float fSpeed[3];
 		GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
 		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-
-		Format(sHintText, 256, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
-
-		if(bStarted)
-		{
-			Format(sHintText, 256, "%s\tJumps: %d", sHintText, iJumps);
-		}
+		
+		Format(sHintText, 256, "%s%sSpeed: %.02f", sHintText, bStarted? "\t":"\n", fSpeed_New);
 
 		Format(sHintText, 256, "%s\nStyle: %s", sHintText, bsStyle == Style_Forwards? "Forwards":"Sideways");
 
-		Format(sHintText, 256, "%s\tPlayer: %N", sHintText, target);
+		//Format(sHintText, 256, "%s\tPlayer: %N", sHintText, target);
+		
+		float fPB;
+		Shavit_GetPlayerPB(target, bsStyle, fPB);
+		
+		char sPB[32];
+		FormatSeconds(fPB, sPB, 32);
+		Format(sHintText, 256, "%sPB: %s\t", sHintText, sPB);
 	}
 
 	PrintHintText(client, sHintText);
