@@ -760,9 +760,11 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 
 		// 1 - time
 		float fTime = SQL_FetchFloat(hndl, 1);
+		char sTime[16];
+		FormatSeconds(fTime, sTime, 16);
 
 		char sDisplay[128];
-		FormatEx(sDisplay, 128, "Time: %.03f", fTime);
+		FormatEx(sDisplay, 128, "Time: %s", sTime);
 		AddMenuItem(menu, "-1", sDisplay);
 
 		// 2 - jumps
