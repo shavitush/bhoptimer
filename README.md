@@ -55,6 +55,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-core:
 - [x] + Add a cvar for autobhop.
 - [x] + Add a cvar for +left/right blocks.
+- [x] + Add cvars that prevent pausing/restarting.
 
 ~ shavit-zones:
 - [x] + Add a submenu that can adjust the zone's X/Y/Z axis before it's being confirmed.
