@@ -64,10 +64,9 @@ bool gB_Zones;
 
 // cvars
 ConVar gCV_Autobhop = null;
-bool gB_Autobhop;
-
 ConVar gCV_Leftright = null;
-bool gB_Leftright;
+ConVar gCV_Restart = null;
+ConVar gCV_Pause = null;
 
 public Plugin myinfo = 
 {
@@ -192,15 +191,11 @@ public void OnPluginStart()
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	
 	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?", FCVAR_PLUGIN|FCVAR_NOTIFY);
-	HookConVarChange(gCV_Autobhop, OnConVarChanged);
-	
 	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN|FCVAR_NOTIFY);
-	HookConVarChange(gCV_Leftright, OnConVarChanged);
+	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN|FCVAR_NOTIFY);
+	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN|FCVAR_NOTIFY);
 	
 	AutoExecConfig();
-	
-	gB_Autobhop = GetConVarBool(gCV_Autobhop);
-	gB_Leftright = GetConVarBool(gCV_Leftright);
 
 	// late
 	if(gB_Late)
@@ -214,20 +209,6 @@ public void OnPluginStart()
 	}
 	
 	gB_Zones = LibraryExists("shavit-zones");
-}
-
-public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
-{
-	// using an if() statement just incase I'll add more cvars.
-	if(cvar == gCV_Autobhop)
-	{
-		gB_Autobhop = view_as<bool>StringToInt(sNew);
-	}
-	
-	else if(cvar == gCV_Leftright)
-	{
-		gB_Leftright = view_as<bool>StringToInt(sNew);
-	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -286,6 +267,19 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 	
+	if(!gCV_Restart.BoolValue)
+	{
+		if(args != -1)
+		{
+			char sCommand[16];
+			GetCmdArg(0, sCommand, 16);
+			
+			ReplyToCommand(client, "%s The command (\x03%s\x01) is disabled.", PREFIX, sCommand);
+		}
+		
+		return Plugin_Handled;
+	}
+	
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
 	Call_Finish();
@@ -311,6 +305,16 @@ public Action Command_TogglePause(int client, int args)
 {
 	if(!IsValidClient(client))
 	{
+		return Plugin_Handled;
+	}
+	
+	if(!gCV_Pause.BoolValue)
+	{
+		char sCommand[16];
+		GetCmdArg(0, sCommand, 16);
+		
+		ReplyToCommand(client, "%s The command (\x03%s\x01) is disabled.", PREFIX, sCommand);
+		
 		return Plugin_Handled;
 	}
 	
@@ -412,7 +416,9 @@ public Action Command_Forwards(int client, int args)
 
 	ReplyToCommand(client, "%s You have selected to play \x03Forwards", PREFIX);
 	
-	Command_StartTimer(client, 0);
+	StopTimer(client);
+	
+	Command_StartTimer(client, -1);
 
 	return Plugin_Handled;
 }
@@ -428,7 +434,9 @@ public Action Command_Sideways(int client, int args)
 
 	ReplyToCommand(client, "%s You have selected to play \x03Sideways", PREFIX);
 	
-	Command_StartTimer(client, 0);
+	StopTimer(client);
+	
+	Command_StartTimer(client, -1);
 
 	return Plugin_Handled;
 }
@@ -725,7 +733,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 
-	if(gB_Leftright && gB_Zones && gB_TimerEnabled[client] && !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT))
+	if(gCV_Leftright.BoolValue && gB_Zones && gB_TimerEnabled[client] && !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT))
 	{
 		StopTimer(client);
 		PrintToChat(client, "%s I've stopped your timer for using +left/+right. No cheating!", PREFIX);
@@ -742,7 +750,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// autobhop
-	if(gB_Autobhop && gB_Auto[client] && buttons & IN_JUMP && !(GetEntityFlags(client) & FL_ONGROUND) && !bOnLadder && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
+	if(gCV_Autobhop.BoolValue && gB_Auto[client] && buttons & IN_JUMP && !(GetEntityFlags(client) & FL_ONGROUND) && !bOnLadder && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
 	{
 		buttons &= ~IN_JUMP;
 	}
