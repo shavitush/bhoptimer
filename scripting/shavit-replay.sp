@@ -19,7 +19,6 @@
 */
 
 // I have no idea if this plugin will work with CS:S, sorry.
-// USE WITH https://forums.alliedmods.net/showthread.php?t=231077
 
 #include <sourcemod>
 #include <cstrike>
@@ -118,6 +117,21 @@ public void OnClientPutInServer(int client)
 
 public void OnMapStart()
 {
+	GetCurrentMap(gS_Map, 128);
+	RemoveMapPath(gS_Map, gS_Map, 128);
+	
+	char sTempMap[140];
+	Format(sTempMap, 140, "maps/%s.nav", gS_Map);
+	
+	if(!FileExists(sTempMap))
+	{
+		File_Copy("maps/base.nav", sTempMap);
+		
+		ForceChangeLevel(gS_Map, ".nav file generate");
+		
+		return;
+	}
+	
 	ConVar bot_zombie = FindConVar("bot_zombie");
 	
 	// idk if it exists in CS:S, safety check ;p
@@ -153,9 +167,6 @@ public void OnMapStart()
 	{
 		CreateDirectory(sPath, 511);
 	}
-	
-	GetCurrentMap(gS_Map, 128);
-	RemoveMapPath(gS_Map, gS_Map, 128);
 	
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
@@ -494,5 +505,47 @@ stock bool RemoveMapPath(const char[] map, char[] destination, int maxlen)
 	
 	SubString(map, pos + 1, len, destination, maxlen);
 	
+	return true;
+}
+
+/*
+ * Copies file source to destination
+ * Based on code of javalia:
+ * http://forums.alliedmods.net/showthread.php?t=159895
+ *
+ * @param source		Input file
+ * @param destination	Output file
+ */
+stock bool File_Copy(const char[] source, const char[] destination)
+{
+	Handle file_source = OpenFile(source, "rb");
+
+	if(file_source == null)
+	{
+		return false;
+	}
+
+	Handle file_destination = OpenFile(destination, "wb");
+
+	if(file_destination == null)
+	{
+		delete file_source;
+		
+		return false;
+	}
+
+	int buffer[32];
+	int cache;
+
+	while(!IsEndOfFile(file_source))
+	{
+		cache = ReadFile(file_source, buffer, 32, 1);
+		
+		WriteFile(file_destination, buffer, cache, 1);
+	}
+
+	delete file_source;
+	delete file_destination;
+
 	return true;
 }
