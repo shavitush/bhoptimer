@@ -499,11 +499,14 @@ public int Native_StartTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	StartTimer(client);
-
-	Call_StartForward(gH_Forwards_Start);
-	Call_PushCell(client);
-	Call_Finish();
+	if(!IsFakeClient(client))
+	{
+		StartTimer(client);
+		
+		Call_StartForward(gH_Forwards_Start);
+		Call_PushCell(client);
+		Call_Finish();
+	}
 }
 
 public int Native_StopTimer(Handle handler, int numParams)

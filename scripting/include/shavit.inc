@@ -1,5 +1,5 @@
 /*
- * shavit's Timer - .inc file
+ * Shavit's Timer - .inc file
  * by: shavit
  *
  * This file is part of shavit's Timer.
@@ -182,7 +182,7 @@ forward void Shavit_OnStop(int client);
  * @param jumps						Jumps amount.
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, int style, float time, int jumps);
+forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps);
 
 /**
  * Called when there's a new WR on the map.
@@ -190,7 +190,6 @@ forward void Shavit_OnFinish(int client, int style, float time, int jumps);
  * @param client					Client index.
  * @param style						Style the record was done on.
  * @param time						Record time.
- * @param jumps						Jumps amount.
  * @param jumps						Jumps amount.
  * @noreturn
  */
@@ -328,6 +327,23 @@ native void Shavit_PauseTimer(int client);
  * @noreturn
  */
 native void Shavit_ResumeTimer(int client);
+
+/**
+ * Retrieve the engine time of the replay bot's first frame.
+ *
+ * @param style						Bhop style.
+ * @param time						Reference to save the time on.
+ * @noreturn
+ */
+native void Shavit_GetReplayBotFirstFrame(BhopStyle style, float &time);
+
+/**
+ * Retrieve the replay bot's client index.
+ *
+ * @param style						Bhop style.
+ * @return							Client index for the replay bot.
+ */
+native int Shavit_GetReplayBotIndex(BhopStyle style);
 
 public SharedPlugin __pl_shavit = 
 {

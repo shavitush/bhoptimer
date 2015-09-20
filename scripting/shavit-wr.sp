@@ -455,8 +455,8 @@ public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] erro
 		return;
 	}
 
-	Handle menu = CreateMenu(OpenDelete_Handler);
-	SetMenuTitle(menu, "Records for %s:\n(%s)", gS_Map, style == Style_Forwards? "Forwards":"Sideways");
+	Menu menu = CreateMenu(OpenDelete_Handler);
+	menu.SetTitle("Records for %s:\n(%s)", gS_Map, style == Style_Forwards? "Forwards":"Sideways");
 
 	int iCount = 0;
 
@@ -483,7 +483,7 @@ public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] erro
 
 		char sDisplay[128];
 		FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
-		AddMenuItem(menu, sID, sDisplay);
+		menu.AddItem(sID, sDisplay);
 	}
 
 	if(!iCount)
@@ -619,8 +619,8 @@ public Action Command_WR(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '0' ORDER BY time ASC LIMIT 50;", gS_Map);
+	char sQuery[256];
+	FormatEx(sQuery, 256, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '0' ORDER BY time ASC LIMIT 50;", gS_Map);
 
 	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
@@ -636,8 +636,8 @@ public Action Command_WRSW(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '1' ORDER BY time ASC LIMIT 100;", gS_Map);
+	char sQuery[256];
+	FormatEx(sQuery, 256, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '1' ORDER BY time ASC LIMIT 100;", gS_Map);
 
 	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
@@ -662,7 +662,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 		return;
 	}
 
-	Handle menu = CreateMenu(WRMenu_Handler);
+	Menu menu = CreateMenu(WRMenu_Handler);
 	SetMenuTitle(menu, "Records for %s:", gS_Map);
 
 	int iCount = 0;
@@ -873,7 +873,7 @@ public any abs(any thing)
 	return thing;
 }
 
-public void Shavit_OnFinish(int client, int style, float time, int jumps)
+public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 {
 	BhopStyle bsStyle = view_as<BhopStyle>style;
 	

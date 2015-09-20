@@ -1216,7 +1216,7 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 
 public void Shavit_OnRestart(int client)
 {
-	if(!EmptyZone(gV_MapZones[0][0]) && !EmptyZone(gV_MapZones[0][1]))
+	if(!IsFakeClient(client) && !EmptyZone(gV_MapZones[0][0]) && !EmptyZone(gV_MapZones[0][1]))
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
