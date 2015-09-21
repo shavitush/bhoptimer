@@ -145,7 +145,7 @@ public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
 	// using an if() statement just incase I'll add more cvars.
 	if(cvar == gCV_ZoneStyle)
 	{
-		gB_ZoneStyle = view_as<bool>StringToInt(sNew);
+		gB_ZoneStyle = view_as<bool>(StringToInt(sNew));
 	}
 }
 
@@ -296,7 +296,7 @@ public void UnloadZones(int zone)
 		return;
 	}
 	
-	if(zone != view_as<int>Zone_Freestyle)
+	if(zone != view_as<int>(Zone_Freestyle))
 	{
 		for(int i = 0; i < 3; i++)
 		{
@@ -339,7 +339,7 @@ public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] er
 	
 	while(SQL_FetchRow(hndl))
 	{
-		MapZones type = view_as<MapZones>SQL_FetchInt(hndl, 0);
+		MapZones type = view_as<MapZones>(SQL_FetchInt(hndl, 0));
 		
 		if(type == Zone_Freestyle)
 		{
@@ -444,7 +444,7 @@ public Action Command_DeleteZone(int client, int args)
 
 	for (int i = 0; i < MAX_ZONES; i++)
 	{
-		if(i == view_as<int>Zone_Freestyle)
+		if(i == view_as<int>(Zone_Freestyle))
 		{
 			if(!EmptyZone(gV_FreestyleZones[0][0]) && !EmptyZone(gV_FreestyleZones[0][1]))
 			{
@@ -614,7 +614,7 @@ public int Select_Type_MenuHandler(Handle menu, MenuAction action, int param1, i
 		char info[8];
 		GetMenuItem(menu, param2, info, 8);
 
-		gMZ_Type[param1] = view_as<MapZones>StringToInt(info);
+		gMZ_Type[param1] = view_as<MapZones>(StringToInt(info));
 
 		ShowPanel(param1, 1);
 	}
@@ -1025,7 +1025,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 		
 		float vPoints[8][3];
 		
-		if(i == view_as<int>Zone_Freestyle)
+		if(i == view_as<int>(Zone_Freestyle))
 		{
 			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
 			{
@@ -1058,12 +1058,12 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 				continue;
 			}*/
 			
-			if(i == view_as<int>Zone_Respawn)
+			if(i == view_as<int>(Zone_Respawn))
 			{
 				continue;
 			}
 			
-			if(i == view_as<int>Zone_Stop)
+			if(i == view_as<int>(Zone_Stop))
 			{
 				continue;
 			}
@@ -1229,6 +1229,6 @@ public void Shavit_OnRestart(int client)
 		
 		AddVectors(gV_MapZones[0][0], vCenter, vCenter);
 		
-		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>{0.0, 0.0, 0.0});
+		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 	}
 }

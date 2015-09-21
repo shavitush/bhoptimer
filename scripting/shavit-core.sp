@@ -467,7 +467,7 @@ public void Player_Death(Handle event, const char[] name, bool dontBroadcast)
 
 public int Native_GetGameType(Handle handler, int numParams)
 {
-	return view_as<int>gSG_Type;
+	return view_as<int>(gSG_Type);
 }
 
 public int Native_GetDB(Handle handler, int numParams)
@@ -526,7 +526,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	Call_StartForward(gH_Forwards_Finish);
 	Call_PushCell(client);
-	Call_PushCell(view_as<int>gBS_Style[client]);
+	Call_PushCell(view_as<int>(gBS_Style[client]));
 	Call_PushCell(CalculateTime(client));
 	Call_PushCell(gI_Jumps[client]);
 	Call_Finish();
@@ -762,7 +762,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		bEdit = true;
 
-		vel = view_as<float>{0.0, 0.0, 0.0};
+		vel = view_as<float>({0.0, 0.0, 0.0});
 	}
 
 	return bEdit? Plugin_Changed:Plugin_Continue;

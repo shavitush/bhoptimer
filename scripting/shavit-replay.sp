@@ -179,7 +179,7 @@ public void OnMapStart()
 			CreateDirectory(sPath, 511);
 		}
 		
-		LoadReplay(view_as<BhopStyle>i);
+		LoadReplay(view_as<BhopStyle>(i));
 	}
 }
 

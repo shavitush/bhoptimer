@@ -775,7 +775,7 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 		// 3 - style
 		int iStyle = SQL_FetchInt(hndl, 3);
 		char sStyle[16];
-		FormatEx(sStyle, 16, "%s", iStyle == view_as<int>Style_Forwards? "Forwards":"Sideways");
+		FormatEx(sStyle, 16, "%s", iStyle == view_as<int>(Style_Forwards)? "Forwards":"Sideways");
 		FormatEx(sDisplay, 128, "Style: %s", sStyle);
 		AddMenuItem(menu, "-1", sDisplay);
 
@@ -875,7 +875,7 @@ public any abs(any thing)
 
 public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 {
-	BhopStyle bsStyle = view_as<BhopStyle>style;
+	BhopStyle bsStyle = view_as<BhopStyle>(style);
 	
 	char sTime[32];
 	FormatSeconds(time, sTime, 32);
