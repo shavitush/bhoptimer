@@ -99,6 +99,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_StopTimer");
 	MarkNativeAsOptional("Shavit_FinishMap");
 	MarkNativeAsOptional("Shavit_GetTimer");
+	MarkNativeAsOptional("Shavit_PauseTimer");
+	MarkNativeAsOptional("Shavit_ResumeTimer");
 	
 	// prevent errors from shavit-zones
 	MarkNativeAsOptional("Shavit_InsideZone");

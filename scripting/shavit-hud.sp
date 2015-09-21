@@ -40,6 +40,14 @@ public Plugin myinfo =
 	url = "http://forums.alliedmods.net/member.php?u=163134"
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
+	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
+
+	return APLRes_Success;
+}
+
 public void OnAllPluginsLoaded()
 {
 	gSG_Type = Shavit_GetGameType();
@@ -48,9 +56,6 @@ public void OnAllPluginsLoaded()
 public void OnPluginStart()
 {
 	// prevent errors in case the replay bot isn't loaded
-	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
-	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
-	
 	gB_Replay = LibraryExists("shavit-replay");
 	
 	CreateTimer(0.1, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
