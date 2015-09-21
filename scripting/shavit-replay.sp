@@ -218,6 +218,19 @@ public void LoadReplay(BhopStyle style)
 		
 		delete hFile;
 	}
+	
+	else
+	{
+		if(style == Style_Forwards)
+		{
+			SetClientName(gI_ReplayBotClient[Style_Forwards], "NM unloaded");
+		}
+		
+		else if(style == Style_Sideways)
+		{
+			SetClientName(gI_ReplayBotClient[Style_Sideways], "SW unloaded");
+		}
+	}
 }
 
 public void SaveReplay(BhopStyle style)

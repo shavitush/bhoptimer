@@ -301,7 +301,7 @@ native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
  * @return							1 if exists, 0 if doesn't exist.
  */
 native int Shavit_ZoneExists(MapZones type);
-// ^ I could make it return a boolean instead, but I blame SM 1.7 for not letting me :/. You can use view_as<bool> though :D
+// ^ I could make it return a boolean instead, but I blame SM 1.7 for not letting me :/. You can use view_as<bool>() though :D
 
 /**
  * Checks if a player is inside a mapzone
