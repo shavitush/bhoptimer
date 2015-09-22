@@ -52,27 +52,8 @@ a bhop server should be simple
 shavit-core - no other plugin will work without it.  
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
-# Todo for 1.4b release [DONE]
-~ shavit-core:
-- [x] + Add a cvar for autobhop.
-- [x] + Add a cvar for +left/right blocks.
-- [x] + Add cvars that prevent pausing/restarting.
-
-~ shavit-zones:
-- [x] + Add a submenu that can adjust the zone's X/Y/Z axis before it's being confirmed.
-
-~ [NEW PLUGIN] shavit-stats:
-- [x] + Show maps done (/SW)
-- [x] + Show maps left (/SW)
-- [x] + Show SteamID3
-- [x] * Make it actually work
-
-~ [NEW PLUGIN] shavit-timelimit:
-- [x] + Take an average of X (default: 100) times on a map and use it to decide the timelimit/roundtime for the map.
-
-~ [NEW PLUGIN] shavit-replay:
-- [x] + Properly working replay bot for forwards
-- [x] + \^ same but also for sideways
-
 # Todo for 1.5b release
-[NEW PLUGIN] shavit-ranks:  
+~ shavit-hud
+- [x] HUD toggling command
+
+~ [NEW PLUGIN] shavit-ranks:  
