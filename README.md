@@ -53,7 +53,11 @@ shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
 # Todo for 1.5b release
-~ shavit-hud
+~ shavit-hud:
 - [x] HUD toggling command
+
+~ shavit-replay
+- [ ] Add admin interface (delete replay data)
+- [ ] Remove replay bot on deletion of the #1 record
 
 ~ [NEW PLUGIN] shavit-ranks:  
