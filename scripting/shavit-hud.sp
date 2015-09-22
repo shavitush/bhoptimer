@@ -31,6 +31,8 @@ ServerGame gSG_Type = Game_Unknown;
 
 bool gB_Replay = false;
 
+bool gB_HUD[MAXPLAYERS+1] = {true, ...};
+
 public Plugin myinfo = 
 {
 	name = "[shavit] HUD",
@@ -59,6 +61,23 @@ public void OnPluginStart()
 	gB_Replay = LibraryExists("shavit-replay");
 	
 	CreateTimer(0.1, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
+	
+	RegConsoleCmd("sm_togglehud", Command_ToggleHUD, "Toggle the timer's HUD");
+	RegConsoleCmd("sm_hud", Command_ToggleHUD, "Toggle the timer's HUD");
+}
+
+public void OnClientPutInServer(int client)
+{
+	gB_HUD[client] = true;
+}
+
+public Action Command_ToggleHUD(int client, int args)
+{
+	gB_HUD[client] = !gB_HUD[client];
+	
+	ReplyToCommand(client, "%s HUD %s\x01.", PREFIX, gB_HUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x05disabled"));
+	
+	return Plugin_Handled;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -89,7 +108,7 @@ public Action UpdateHUD_Timer(Handle Timer)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i))
+		if(!IsValidClient(i) || !gB_HUD[i])
 		{
 			continue;
 		}
@@ -220,13 +239,14 @@ public void UpdateHUD(int client)
 	{
 		BhopStyle bsStyle = (target == Shavit_GetReplayBotIndex(Style_Forwards)? Style_Forwards:Style_Sideways);
 		
+		/* will work on this when I find enough time
 		float fBotStart;
 		Shavit_GetReplayBotFirstFrame(bsStyle, fBotStart);
 		
 		float fTime = GetEngineTime() - fBotStart;
 		
 		char sTime[32];
-		FormatSeconds(fTime, sTime, 32, false);
+		FormatSeconds(fTime, sTime, 32, false);*/
 		
 		float fSpeed[3];
 		GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
