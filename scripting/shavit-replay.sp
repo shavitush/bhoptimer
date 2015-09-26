@@ -284,28 +284,11 @@ public bool OnClientConnect(int client, char[] rejectmsg, int maxlen)
 		
 		if(bTimer)
 		{
-			CreateTimer(4.0, DelayedNameChange_Unloaded, client);
+			CreateTimer(4.0, RenameBot, client);
 		}
 	}
 	
 	return true;
-}
-
-public Action DelayedNameChange_Unloaded(Handle Timer, any data)
-{
-	if(data == gI_ReplayBotClient[Style_Forwards])
-	{
-		CS_SetClientClanTag(data, "NM REPLAY");
-		SetClientName(data, "NM unloaded");
-	}
-	
-	else if(data == gI_ReplayBotClient[Style_Sideways])
-	{
-		CS_SetClientClanTag(data, "SW REPLAY");
-		SetClientName(data, "SW unloaded");
-	}
-	
-	return Plugin_Stop;
 }
 
 public void OnClientDisconnect(int client)
