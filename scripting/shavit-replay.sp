@@ -67,7 +67,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	CreateTimer(1.0, BotCheck, INVALID_HANDLE, TIMER_REPEAT);
+	CreateTimer(5.0, BotCheck, INVALID_HANDLE, TIMER_REPEAT);
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -121,7 +121,7 @@ public void OnMapStart()
 	RemoveMapPath(gS_Map, gS_Map, 128);
 	
 	char sTempMap[140];
-	Format(sTempMap, 140, "maps/%s.nav", gS_Map);
+	FormatEx(sTempMap, 140, "maps/%s.nav", gS_Map);
 	
 	if(!FileExists(sTempMap))
 	{
@@ -179,11 +179,14 @@ public void OnMapStart()
 			CreateDirectory(sPath, 511);
 		}
 		
-		LoadReplay(view_as<BhopStyle>(i));
+		if(!LoadReplay(view_as<BhopStyle>(i)))
+		{
+			CreateTimer(5.0, RenameBot, i, TIMER_FLAG_NO_MAPCHANGE);
+		}
 	}
 }
 
-public void LoadReplay(BhopStyle style)
+public bool LoadReplay(BhopStyle style)
 {
 	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s.replay", style, gS_Map);
@@ -217,20 +220,21 @@ public void LoadReplay(BhopStyle style)
 		}
 		
 		delete hFile;
+		
+		return true;
 	}
 	
-	else
-	{
-		if(style == Style_Forwards)
-		{
-			SetClientName(gI_ReplayBotClient[Style_Forwards], "NM unloaded");
-		}
-		
-		else if(style == Style_Sideways)
-		{
-			SetClientName(gI_ReplayBotClient[Style_Sideways], "SW unloaded");
-		}
-	}
+	return false;
+}
+
+public Action RenameBot(Handle Timer, any data)
+{
+	char sName[MAX_NAME_LENGTH];
+	FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", data == Style_Forwards? "NM":"SW");
+	
+	SetClientName(gI_ReplayBotClient[data], sName);
+	
+	return Plugin_Stop;
 }
 
 public void SaveReplay(BhopStyle style)
@@ -262,24 +266,46 @@ public bool OnClientConnect(int client, char[] rejectmsg, int maxlen)
 {
 	if(IsFakeClient(client))
 	{
+		bool bTimer = false;
+		
 		if(gI_ReplayBotClient[Style_Forwards] == 0)
 		{
 			gI_ReplayBotClient[Style_Forwards] = client;
 			
-			CS_SetClientClanTag(client, "NM REPLAY");
-			SetClientName(client, "NM unloaded");
+			bTimer = true;
 		}
 		
 		else if(gI_ReplayBotClient[Style_Sideways] == 0)
 		{
 			gI_ReplayBotClient[Style_Sideways] = client;
 			
-			CS_SetClientClanTag(client, "SW REPLAY");
-			SetClientName(client, "SW unloaded");
+			bTimer = true;
+		}
+		
+		if(bTimer)
+		{
+			CreateTimer(4.0, DelayedNameChange_Unloaded, client);
 		}
 	}
 	
 	return true;
+}
+
+public Action DelayedNameChange_Unloaded(Handle Timer, any data)
+{
+	if(data == gI_ReplayBotClient[Style_Forwards])
+	{
+		CS_SetClientClanTag(data, "NM REPLAY");
+		SetClientName(data, "NM unloaded");
+	}
+	
+	else if(data == gI_ReplayBotClient[Style_Sideways])
+	{
+		CS_SetClientClanTag(data, "SW REPLAY");
+		SetClientName(data, "SW unloaded");
+	}
+	
+	return Plugin_Stop;
 }
 
 public void OnClientDisconnect(int client)
