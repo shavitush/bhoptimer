@@ -141,6 +141,11 @@ public void OnMapStart()
 		bot_zombie.SetBool(true);
 	}
 	
+	if(Shavit_GetGameType() == Game_CSGO)
+	{
+		FindConVar("bot_controllable").SetBool(false);
+	}
+	
 	ConVar bot_quota_mode = FindConVar("bot_quota_mode");
 	bot_quota_mode.SetString("normal");
 	
