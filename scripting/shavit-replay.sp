@@ -23,6 +23,7 @@
 #include <sourcemod>
 #include <cstrike>
 #include <sdktools>
+#include <sdkhooks>
 #include <shavit>
 
 #pragma semicolon 1
@@ -113,6 +114,26 @@ public Action BotCheck(Handle Timer)
 public void OnClientPutInServer(int client)
 {
 	gA_PlayerFrames[client] = new ArrayList(5);
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if(StrContains(classname, "trigger_") != -1 || StrContains(classname, "_door") != -1)
+	{
+		SDKHook(entity, SDKHook_StartTouch, HookTriggers);
+		SDKHook(entity, SDKHook_EndTouch, HookTriggers);
+		SDKHook(entity, SDKHook_Touch, HookTriggers);
+	}
+}
+
+public Action HookTriggers(int entity, int other)
+{
+	if(IsValidClient(other) && IsFakeClient(other))
+	{
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
 }
 
 public void OnMapStart()
