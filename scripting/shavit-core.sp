@@ -453,9 +453,7 @@ public void Player_Jump(Handle event, const char[] name, bool dontBroadcast)
 		gI_Jumps[client]++;
 	}
 
-	/* I'm just gonna let server owners do it within the .cfg file.
 	SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
-	*/
 }
 
 public void Player_Death(Handle event, const char[] name, bool dontBroadcast)
