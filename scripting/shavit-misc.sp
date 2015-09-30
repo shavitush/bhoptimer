@@ -37,9 +37,7 @@ int gF_LastFlags[MAXPLAYERS+1];
 
 // cvars
 ConVar gCV_GodMode = null;
-int gI_GodMode = 3;
 ConVar gCV_PreSpeed = null;
-int gI_PreSpeed = 3;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -66,11 +64,15 @@ public void OnPluginStart()
 	
 	// spec
 	RegConsoleCmd("sm_spec", Command_Spec, "Moves you to the spectators' team. Usage: sm_spec [target]");
-	RegConsoleCmd("sm_spectate", Command_Spec, "Moves you to the spectators' team. Usage: sm_spec [target]");
+	RegConsoleCmd("sm_spectate", Command_Spec, "Moves you to the spectators' team. Usage: sm_spectate [target]");
 
 	// hide
 	RegConsoleCmd("sm_hide", Command_Hide, "Toggle players' hiding.");
 	RegConsoleCmd("sm_unhide", Command_Hide, "Toggle players' hiding.");
+	
+	// tpto
+	RegConsoleCmd("sm_tpto", Command_Teleport, "Teleport to another player. Usage: sm_tpto [target]");
+	RegConsoleCmd("sm_goto", Command_Teleport, "Teleport to another player. Usage: sm_goto [target]");
 
 	// message
 	CreateTimer(600.0, Timer_Message, INVALID_HANDLE, TIMER_REPEAT);
@@ -84,11 +86,11 @@ public void OnPluginStart()
 	// CS:GO weapon cleanup
 	if(Shavit_GetGameType() == Game_CSGO)
 	{
-		Handle hDeathDropGun = FindConVar("mp_death_drop_gun");
+		ConVar hDeathDropGun = FindConVar("mp_death_drop_gun");
 		
 		if(hDeathDropGun != null)
 		{
-			SetConVarBool(hDeathDropGun, false);
+			hDeathDropGun.SetBool(false);
 		}
 		
 		else
@@ -99,15 +101,9 @@ public void OnPluginStart()
 	
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players? \n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.");
-	HookConVarChange(gCV_GodMode, OnConVarChanged);
-	
 	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone? \n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
-	HookConVarChange(gCV_PreSpeed, OnConVarChanged);
 	
 	AutoExecConfig();
-	
-	gI_GodMode = GetConVarInt(gCV_GodMode);
-	gI_PreSpeed = GetConVarInt(gCV_PreSpeed);
 	
 	if(LibraryExists("dhooks"))
 	{
@@ -132,20 +128,6 @@ public void OnPluginStart()
 				OnClientPutInServer(i);
 			}
 		}
-	}
-}
-
-public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
-{
-	// using an if() statement just incase I'll add more cvars.
-	if(cvar == gCV_GodMode)
-	{
-		gI_GodMode = StringToInt(sNew);
-	}
-	
-	else if(cvar == gCV_PreSpeed)
-	{
-		gI_PreSpeed = StringToInt(sNew);
 	}
 }
 
@@ -192,7 +174,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	
 	if(Shavit_InsideZone(client, Zone_Start))
 	{
-		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
+		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			PrintToChat(client, "%s Bhopping in the start zone is not allowed.", PREFIX);
@@ -201,7 +183,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			return Plugin_Continue;
 		}
 
-		if(gI_PreSpeed == 1 || gI_PreSpeed == 3)
+		if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue == 3)
 		{
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
@@ -239,7 +221,7 @@ public void OnClientPutInServer(int client)
 
 public Action OnTakeDamage(int victim, int attacker)
 {
-	switch(gI_GodMode)
+	switch(gCV_GodMode.IntValue)
 	{
 		case 0:
 		{
@@ -340,6 +322,111 @@ public Action Command_Spec(int client, int args)
 	return Plugin_Handled;
 }
 
+public Action Command_Teleport(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+	
+	if(args > 0)
+	{
+		char sArgs[MAX_TARGET_LENGTH];
+		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
+		
+		int iTarget = FindTarget(client, sArgs, false, false);
+		
+		if(iTarget == -1)
+		{
+			return Plugin_Handled;
+		}
+		
+		Teleport(client, GetClientSerial(iTarget));
+	}
+	
+	else
+	{
+		Menu menu = CreateMenu(MenuHandler_Teleport);
+		menu.SetTitle("Teleport to:");
+		
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(!IsValidClient(i, true) || i == client)
+			{
+				continue;
+			}
+			
+			char serial[16];
+			IntToString(GetClientSerial(i), serial, 16);
+			
+			char sName[MAX_NAME_LENGTH];
+			GetClientName(i, sName, MAX_NAME_LENGTH);
+			
+			menu.AddItem(serial, sName);
+		}
+		
+		menu.ExitButton = true;
+		
+		menu.Display(client, 60);
+	}
+	
+	return Plugin_Handled;
+}
+
+public int MenuHandler_Teleport(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char info[16];
+		menu.GetItem(param2, info, 16);
+		
+		if(Teleport(param1, StringToInt(info)) == -1)
+		{
+			Command_Teleport(param1, 0);
+		}
+	}
+	
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+}
+
+public int Teleport(int client, int targetserial)
+{
+	if(!IsPlayerAlive(client))
+	{
+		PrintToChat(client, "%s You can teleport only if you are alive.", PREFIX);
+		
+		return -1;
+	}
+	
+	int iTarget = GetClientFromSerial(targetserial);
+	
+	if(Shavit_InsideZone(client, Zone_Start) || Shavit_InsideZone(client, Zone_End))
+	{
+		PrintToChat(client, "%s You cannot teleport inside the start/end zones.", PREFIX);
+		
+		return -1;
+	}
+	
+	if(!iTarget)
+	{
+		PrintToChat(client, "%s Invalid target.", PREFIX);
+		
+		return -1;
+	}
+	
+	float vecPosition[3];
+	GetClientAbsOrigin(iTarget, vecPosition);
+	
+	Shavit_StopTimer(client);
+	
+	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
+	
+	return 0;
+}
+
 public Action Command_Specs(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -434,20 +521,17 @@ public void Shavit_OnRestart(int client)
 {
 	if(!IsPlayerAlive(client))
 	{
-		if(GetClientTeam(client) <= 1)
+		if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
 		{
-			if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
-			{
-				CS_SwitchTeam(client, CS_TEAM_T);
-			}
-			
-			else
-			{
-				CS_SwitchTeam(client, CS_TEAM_CT);
-			}
-			
-			CreateTimer(0.1, Respawn, client);
+			CS_SwitchTeam(client, CS_TEAM_T);
 		}
+		
+		else
+		{
+			CS_SwitchTeam(client, CS_TEAM_CT);
+		}
+		
+		CreateTimer(0.1, Respawn, client);
 	}
 }
 
