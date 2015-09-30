@@ -338,7 +338,10 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 			float time = SQL_FetchFloat(hndl, 1);
 			int jumps = SQL_FetchInt(hndl, 2);
 			
-			FormatEx(sDisplay, 192, "%s - %.03f (%d jumps)", sMap, time, jumps);
+			char sTime[32];
+			FormatSeconds(time, sTime, 32);
+			
+			FormatEx(sDisplay, 192, "%s - %s (%d jumps)", sMap, sTime, jumps);
 		}
 		
 		else
