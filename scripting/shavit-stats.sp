@@ -262,7 +262,8 @@ public void ShowMaps(int client, int target, const char[] category)
 	
 	else
 	{
-		FormatEx(sQuery, 256, "SELECT DISTINCT m.map FROM mapzones m LEFT JOIN playertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", sAuth, StrEqual(category, "mapsdone")? 0:1);
+		FormatEx(sQuery, 256, "SELECT DISTINCT m.map FROM mapzones m LEFT JOIN playertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", sAuth, StrEqual(category, "mapsleft")? 0:1);
+		PrintToConsole(client, sQuery);
 	}
 	
 	DataPack datapack = CreateDataPack();
