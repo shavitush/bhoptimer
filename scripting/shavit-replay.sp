@@ -377,6 +377,9 @@ public void Shavit_OnResume(int client)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
+	float vecPosition[3];
+	GetClientAbsOrigin(client, vecPosition);
+	
 	if(client == gI_ReplayBotClient[Style_Forwards] || client == gI_ReplayBotClient[Style_Sideways])
 	{
 		SetEntityMoveType(client, MOVETYPE_NOCLIP);
@@ -406,10 +409,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			
 			gI_ReplayTick[style]++;
 			
-			float vecPosition[3];
-			vecPosition[0] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 0);
-			vecPosition[1] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 1);
-			vecPosition[2] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 2);
+			float vecCurrentPosition[3];
+			vecCurrentPosition[0] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 0);
+			vecCurrentPosition[1] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 1);
+			vecCurrentPosition[2] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 2);
 			
 			float vecAngles[3];
 			vecAngles[0] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 3);
@@ -428,7 +431,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				
 				fDistance = GetVectorDistance(vecPosition, vecNextPosition);
 				
-				MakeVectorFromPoints(vecPosition, vecNextPosition, vecVelocity);
+				MakeVectorFromPoints(vecCurrentPosition, vecNextPosition, vecVelocity);
 				
 				for(int i = 0; i < 3; i++)
 				{
@@ -436,9 +439,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				}
 			}
 			
-			if(fDistance >= 100)
+			if(fDistance >= 100.0)
 			{
-				TeleportEntity(client, vecPosition, vecAngles, vecVelocity);
+				TeleportEntity(client, vecCurrentPosition, vecAngles, vecVelocity);
 			}
 			
 			else
@@ -454,9 +457,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			gI_PlayerFrames[client]++;
 			gA_PlayerFrames[client].Resize(gI_PlayerFrames[client]);
-
-			float vecPosition[3];
-			GetClientAbsOrigin(client, vecPosition);
 			
 			SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[0], 0);
 			SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[1], 1);
