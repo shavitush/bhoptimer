@@ -96,12 +96,12 @@ public void OnPluginStart()
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// WR command
-	RegConsoleCmd("sm_wr", Command_WR);
-	RegConsoleCmd("sm_worldrecord", Command_WR);
+	RegConsoleCmd("sm_wr", Command_WR, "Usage: sm_wr [map]");
+	RegConsoleCmd("sm_worldrecord", Command_WR, "Usage: sm_worldrecord [map]");
 
 	// WRSW command
-	RegConsoleCmd("sm_wrsw", Command_WRSW);
-	RegConsoleCmd("sm_worldrecordsw", Command_WRSW);
+	RegConsoleCmd("sm_wrsw", Command_WRSW, "Show SW records. Usage: sm_wrsw [map]");
+	RegConsoleCmd("sm_worldrecordsw", Command_WRSW, "Usage: sm_worldrecordsw [map]");
 
 	// delete records
 	RegAdminCmd("sm_delete", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
