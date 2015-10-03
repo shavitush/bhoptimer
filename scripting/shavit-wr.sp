@@ -618,27 +618,11 @@ public Action Command_WR(int client, int args)
 	{
 		return Plugin_Handled;
 	}
-	
-	char sMap[128];
-	
-	if(!args)
-	{
-		strcopy(sMap, 128, gS_Map);
-	}
-	
-	else
-	{
-		GetCmdArgString(sMap, 128);
-	}
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '0' ORDER BY time ASC LIMIT 50;", sMap);
-	
-	DataPack dp = CreateDataPack();
-	dp.WriteCell(GetClientSerial(client));
-	dp.WriteString(sMap);
-	
-	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, dp, DBPrio_High);
+	FormatEx(sQuery, 256, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '0' ORDER BY time ASC LIMIT 50;", gS_Map);
+
+	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
 	gBS_LastWR[client] = Style_Forwards;
 
@@ -651,27 +635,11 @@ public Action Command_WRSW(int client, int args)
 	{
 		return Plugin_Handled;
 	}
-	
-	char sMap[128];
-	
-	if(!args)
-	{
-		strcopy(sMap, 128, gS_Map);
-	}
-	
-	else
-	{
-		GetCmdArgString(sMap, 128);
-	}
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '1' ORDER BY time ASC LIMIT 50;", sMap);
-	
-	DataPack dp = CreateDataPack();
-	dp.WriteCell(GetClientSerial(client));
-	dp.WriteString(sMap);
-	
-	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, dp, DBPrio_High);
+	FormatEx(sQuery, 256, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '1' ORDER BY time ASC LIMIT 100;", gS_Map);
+
+	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
 	gBS_LastWR[client] = Style_Sideways;
 
@@ -680,15 +648,6 @@ public Action Command_WRSW(int client, int args)
 
 public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any data)
 {
-	ResetPack(data);
-	
-	int serial = ReadPackCell(data);
-	
-	char sMap[128];
-	ReadPackString(data, sMap, 128);
-	
-	CloseHandle(data);
-	
 	if(hndl == null)
 	{
 		LogError("Timer (WR SELECT) SQL query failed. Reason: %s", error);
@@ -696,7 +655,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 		return;
 	}
 
-	int client = GetClientFromSerial(serial);
+	int client = GetClientFromSerial(data);
 
 	if(!client)
 	{
@@ -704,7 +663,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 	}
 
 	Menu menu = CreateMenu(WRMenu_Handler);
-	SetMenuTitle(menu, "Records for %s:", sMap);
+	SetMenuTitle(menu, "Records for %s:", gS_Map);
 
 	int iCount = 0;
 
