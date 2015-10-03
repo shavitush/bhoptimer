@@ -39,6 +39,8 @@ float gF_StartTick[MAX_STYLES];
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 
+float gF_Tickrate;
+
 bool gB_Record[MAXPLAYERS+1];
 
 char gS_Map[128];
@@ -74,6 +76,8 @@ public void OnPluginStart()
 	{
 		OnClientPutInServer(i);
 	}
+	
+	gF_Tickrate = (1.0 / GetTickInterval());
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
@@ -433,10 +437,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				
 				MakeVectorFromPoints(vecCurrentPosition, vecNextPosition, vecVelocity);
 				
-				for(int i = 0; i < 3; i++)
-				{
-					vecVelocity[i] *= 100.0;
-				}
+				ScaleVector(vecVelocity, gF_Tickrate);
 			}
 			
 			if(fDistance >= 100.0)
