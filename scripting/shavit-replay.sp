@@ -115,11 +115,6 @@ public Action BotCheck(Handle Timer)
 	}
 }
 
-public void OnClientPutInServer(int client)
-{
-	gA_PlayerFrames[client] = new ArrayList(5);
-}
-
 public void OnEntityCreated(int entity, const char[] classname)
 {
 	if(StrContains(classname, "trigger_") != -1 || StrContains(classname, "_door") != -1)
@@ -264,7 +259,7 @@ public Action RenameBot(Handle Timer, any data)
 	
 	SetClientName(gI_ReplayBotClient[data], sName);
 	
-	return Plugin_Stop;
+	return Plugin_Continue;
 }
 
 public void SaveReplay(BhopStyle style)
@@ -292,7 +287,7 @@ public void SaveReplay(BhopStyle style)
 	}
 }
 
-public bool OnClientConnect(int client, char[] rejectmsg, int maxlen)
+public void OnClientPutInServer(int client)
 {
 	if(IsFakeClient(client))
 	{
@@ -318,7 +313,10 @@ public bool OnClientConnect(int client, char[] rejectmsg, int maxlen)
 		}
 	}
 	
-	return true;
+	else
+	{
+		gA_PlayerFrames[client] = new ArrayList(5);
+	}
 }
 
 public void OnClientDisconnect(int client)
