@@ -53,6 +53,8 @@ shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
 # Todo for 1.5b release
+- [ ] Add table prefix
+
 ~ shavit-hud:
 - [x] HUD toggling command
 
