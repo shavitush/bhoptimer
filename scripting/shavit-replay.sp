@@ -417,12 +417,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			
 			float vecVelocity[3];
 			
+			float fDistance = 0.0;
+			
 			if(gA_Frames[style].Length >= gI_ReplayTick[style] + 1)
 			{
 				float vecNextPosition[3];
 				vecNextPosition[0] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style], 0);
 				vecNextPosition[1] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style], 1);
 				vecNextPosition[2] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style], 2);
+				
+				fDistance = GetVectorDistance(vecPosition, vecNextPosition);
 				
 				MakeVectorFromPoints(vecPosition, vecNextPosition, vecVelocity);
 				
@@ -432,7 +436,15 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				}
 			}
 			
-			TeleportEntity(client, vecPosition, vecAngles, vecVelocity);
+			if(fDistance >= 100)
+			{
+				TeleportEntity(client, vecPosition, vecAngles, vecVelocity);
+			}
+			
+			else
+			{
+				TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
+			}
 		}
 	}
 	
