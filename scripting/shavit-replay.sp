@@ -32,7 +32,7 @@
 
 int gI_ReplayTick[MAX_STYLES];
 int gI_ReplayBotClient[MAX_STYLES];
-ArrayList gA_Frames[MAX_STYLES];
+ArrayList gA_Frames[MAX_STYLES] =  {null, ...};
 char gS_BotName[MAX_STYLES][MAX_NAME_LENGTH];
 float gF_StartTick[MAX_STYLES];
 
@@ -70,7 +70,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	CreateTimer(5.0, BotCheck, INVALID_HANDLE, TIMER_REPEAT);
+	CreateTimer(1.0, BotCheck, INVALID_HANDLE, TIMER_REPEAT);
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -78,6 +78,8 @@ public void OnPluginStart()
 	}
 	
 	gF_Tickrate = (1.0 / GetTickInterval());
+	
+	// insert delete replay command here
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
@@ -108,7 +110,19 @@ public Action BotCheck(Handle Timer)
 			CS_RespawnPlayer(gI_ReplayBotClient[i]);
 		}
 		
-		if(strlen(gS_BotName[i]) > 1)
+		char sName[MAX_NAME_LENGTH];
+		GetClientName(gI_ReplayBotClient[i], sName, MAX_NAME_LENGTH);
+		
+		float fWRTime;
+		Shavit_GetWRTime(view_as<BhopStyle>(i), fWRTime);
+		
+		if(gA_Frames[i] == null || fWRTime == 0.0)
+		{
+			FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", i == view_as<int>(Style_Forwards)? "NM":"SW");
+			SetClientName(gI_ReplayBotClient[i], sName);
+		}
+		
+		else if(!StrEqual(gS_BotName[i], sName))
 		{
 			SetClientName(gI_ReplayBotClient[i], gS_BotName[i]);
 		}
@@ -163,7 +177,11 @@ public void OnMapStart()
 	
 	if(Shavit_GetGameType() == Game_CSGO)
 	{
-		FindConVar("bot_controllable").SetBool(false);
+		// I have literally no idea why the fuck does this return invalid handle.
+		// FindConVar("bot_controllable").SetBool(false);
+		
+		ConVar bot_controllable = FindConVar("bot_controllable");
+		bot_controllable.SetBool(false);
 	}
 	
 	ConVar bot_quota_mode = FindConVar("bot_quota_mode");
@@ -206,7 +224,7 @@ public void OnMapStart()
 		
 		if(!LoadReplay(view_as<BhopStyle>(i)))
 		{
-			CreateTimer(5.0, RenameBot, i, TIMER_FLAG_NO_MAPCHANGE);
+			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "%s unloaded", i == view_as<int>(Style_Forwards)? "NM":"SW");
 		}
 	}
 }
@@ -252,16 +270,6 @@ public bool LoadReplay(BhopStyle style)
 	return false;
 }
 
-public Action RenameBot(Handle Timer, any data)
-{
-	char sName[MAX_NAME_LENGTH];
-	FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", data == Style_Forwards? "NM":"SW");
-	
-	SetClientName(gI_ReplayBotClient[data], sName);
-	
-	return Plugin_Continue;
-}
-
 public void SaveReplay(BhopStyle style)
 {
 	char sPath[PLATFORM_MAX_PATH];
@@ -289,27 +297,25 @@ public void SaveReplay(BhopStyle style)
 
 public void OnClientPutInServer(int client)
 {
+	if(!IsClientConnected(client))
+	{
+		return;
+	}
+	
 	if(IsFakeClient(client))
 	{
-		bool bTimer = false;
-		
 		if(gI_ReplayBotClient[Style_Forwards] == 0)
 		{
 			gI_ReplayBotClient[Style_Forwards] = client;
 			
-			bTimer = true;
+			// strcopy(gS_BotName[Style_Sideways], MAX_NAME_LENGTH, "NM unloaded");
 		}
 		
 		else if(gI_ReplayBotClient[Style_Sideways] == 0)
 		{
 			gI_ReplayBotClient[Style_Sideways] = client;
 			
-			bTimer = true;
-		}
-		
-		if(bTimer)
-		{
-			CreateTimer(4.0, RenameBot, client);
+			// strcopy(gS_BotName[Style_Sideways], MAX_NAME_LENGTH, "SW unloaded");
 		}
 	}
 	
@@ -384,22 +390,25 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	
 	if(client == gI_ReplayBotClient[Style_Forwards] || client == gI_ReplayBotClient[Style_Sideways])
 	{
-		SetEntityMoveType(client, MOVETYPE_NOCLIP);
-		
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 		
 		BhopStyle style = (client == gI_ReplayBotClient[Style_Forwards]? Style_Forwards:Style_Sideways);
 		
+		if(gA_Frames[style] == null) // if no replay is loaded
+		{
+			return Plugin_Continue;
+		}
+		
 		float fWRTime;
 		Shavit_GetWRTime(style, fWRTime);
 		
-		if(fWRTime != 0 && gA_Frames[style] != null && gI_ReplayTick[style] != -1)
+		if(fWRTime != 0.0 && gI_ReplayTick[style] != -1)
 		{
 			if(gI_ReplayTick[style] >= gA_Frames[style].Length)
 			{
 				gI_ReplayTick[style] = -1;
 				
-				CreateTimer(0.5, ResetReplay, style);
+				CreateTimer(0.5, ResetReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 				
 				return Plugin_Continue;
 			}
