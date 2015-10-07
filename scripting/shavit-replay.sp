@@ -45,6 +45,8 @@ bool gB_Record[MAXPLAYERS+1];
 
 char gS_Map[128];
 
+ConVar bot_quota = null;
+
 public Plugin myinfo = 
 {
 	name = "[shavit] Replay Bot",
@@ -70,6 +72,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	bot_quota = FindConVar("bot_quota");
+	
 	CreateTimer(1.0, BotCheck, INVALID_HANDLE, TIMER_REPEAT);
 	
 	for(int i = 1; i <= MaxClients; i++)
@@ -98,8 +102,26 @@ public int Native_GetReplayBotIndex(Handle handler, int numParams)
 
 public Action BotCheck(Handle Timer)
 {
+	if(bot_quota.IntValue != MAX_STYLES)
+	{
+		bot_quota.SetInt(MAX_STYLES);
+	}
+	
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
+		if(gI_ReplayBotClient[i] == 0 || !IsValidClient(gI_ReplayBotClient[i]))
+		{
+			for(int j = 1; j <= MaxClients; j++)
+			{
+				if(!IsClientConnected(j) || !IsFakeClient(j) || j == gI_ReplayBotClient[i])
+				{
+					continue;
+				}
+				
+				gI_ReplayBotClient[i] = j;
+			}
+		}
+		
 		if(!IsValidClient(gI_ReplayBotClient[i]))
 		{
 			continue;
@@ -109,6 +131,11 @@ public Action BotCheck(Handle Timer)
 		{
 			CS_RespawnPlayer(gI_ReplayBotClient[i]);
 		}
+		
+		char sStyle[16];
+		FormatEx(sStyle, 16, "%s REPLAY", i == view_as<int>(Style_Forwards)? "NM":"SW");
+		
+		CS_SetClientClanTag(gI_ReplayBotClient[i], sStyle);
 		
 		char sName[MAX_NAME_LENGTH];
 		GetClientName(gI_ReplayBotClient[i], sName, MAX_NAME_LENGTH);
@@ -366,7 +393,10 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 	
 	FormatEx(gS_BotName[style], MAX_NAME_LENGTH, "%s - %N", sWRTime, client);
 	
-	SetClientName(gI_ReplayBotClient[style], gS_BotName[style]);
+	if(gI_ReplayBotClient[style] != 0)
+	{
+		SetClientName(gI_ReplayBotClient[style], gS_BotName[style]);
+	}
 	
 	gA_PlayerFrames[client].Clear();
 	
