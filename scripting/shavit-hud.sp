@@ -100,7 +100,8 @@ public void OnConfigsExecuted()
 {
 	if(gSG_Type == Game_CSS)
 	{
-		FindConVar("sv_hudhint_sound").SetBool(false);
+		ConVar sv_hudhint_sound = FindConVar("sv_hudhint_sound");
+		sv_hudhint_sound.SetBool(false);
 	}
 }
 
