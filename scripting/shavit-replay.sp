@@ -132,6 +132,8 @@ public Action BotCheck(Handle Timer)
 			CS_RespawnPlayer(gI_ReplayBotClient[i]);
 		}
 		
+		CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
+		
 		char sStyle[16];
 		FormatEx(sStyle, 16, "%s REPLAY", i == view_as<int>(Style_Forwards)? "NM":"SW");
 		
