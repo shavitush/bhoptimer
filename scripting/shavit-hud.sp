@@ -33,6 +33,36 @@ bool gB_Replay = false;
 
 bool gB_HUD[MAXPLAYERS+1] = {true, ...};
 
+int gI_StartCycle = 0;
+
+char gS_Start[][] = 
+{
+	"ff0000",
+	"ff4000",
+	"ff7f00",
+	"ffbf00",
+	"ffff00",
+	"00ff00",
+	"00ff80",
+	"00ffff",
+	"0080ff",
+	"0000ff"
+};
+
+int gI_EndCycle = 0;
+
+char gS_End[][] = 
+{
+	"ff0000",
+	"ff4000",
+	"ff7f00",
+	"ffaa00",
+	"ffd400",
+	"ffff00",
+	"bba24e",
+	"77449c"
+};
+
 public Plugin myinfo = 
 {
 	name = "[shavit] HUD",
@@ -110,6 +140,20 @@ public void OnConfigsExecuted()
 
 public Action UpdateHUD_Timer(Handle Timer)
 {
+	gI_StartCycle++;
+	
+	if(gI_StartCycle > 9)
+	{
+		gI_StartCycle = 0;
+	}
+	
+	gI_EndCycle++;
+	
+	if(gI_EndCycle > 8)
+	{
+		gI_EndCycle = 0;
+	}
+	
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsValidClient(i) || !gB_HUD[i])
@@ -140,7 +184,23 @@ public void UpdateHUD(int client)
 		}
 	}
 	
-	if(!IsFakeClient(target))
+	char sHintText[256];
+	
+	if(Shavit_InsideZone(target, Zone_Start))
+	{
+		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_Start[gI_StartCycle]);
+		
+		PrintHintText(client, sHintText);
+	}
+	
+	else if(Shavit_InsideZone(target, Zone_End))
+	{
+		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_End[gI_EndCycle]);
+		
+		PrintHintText(client, sHintText);
+	}
+	
+	else if(!IsFakeClient(target))
 	{
 		float fTime;
 		int iJumps;
@@ -164,8 +224,6 @@ public void UpdateHUD(int client)
 		
 		char sTime[32];
 		FormatSeconds(fTime, sTime, 32, false);
-	
-		char sHintText[256];
 	
 		if(gSG_Type == Game_CSGO)
 		{
@@ -256,8 +314,6 @@ public void UpdateHUD(int client)
 		GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
 		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-		
-		char sHintText[256];
 	
 		if(gSG_Type == Game_CSGO)
 		{
