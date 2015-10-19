@@ -149,7 +149,7 @@ public Action UpdateHUD_Timer(Handle Timer)
 	
 	gI_EndCycle++;
 	
-	if(gI_EndCycle > 8)
+	if(gI_EndCycle > 7)
 	{
 		gI_EndCycle = 0;
 	}
