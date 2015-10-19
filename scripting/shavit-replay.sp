@@ -195,14 +195,17 @@ public void OnMapStart()
 		return;
 	}
 	
-	ConVar bot_zombie = FindConVar("bot_zombie");
+	/*ConVar bot_zombie = FindConVar("bot_zombie");
 	
 	// idk if it exists in CS:S, safety check ;p
 	if(bot_zombie != null)
 	{
 		bot_zombie.Flags = FCVAR_GAMEDLL|FCVAR_REPLICATED;
 		bot_zombie.SetBool(true);
-	}
+	}*/
+	
+	ConVar bot_stop = FindConVar("bot_stop");
+	bot_stop.SetBool(true);
 	
 	if(Shavit_GetGameType() == Game_CSGO)
 	{
@@ -211,10 +214,18 @@ public void OnMapStart()
 		
 		ConVar bot_controllable = FindConVar("bot_controllable");
 		bot_controllable.SetBool(false);
+		
+		delete bot_controllable;
 	}
 	
 	ConVar bot_quota_mode = FindConVar("bot_quota_mode");
 	bot_quota_mode.SetString("normal");
+	
+	ConVar mp_autoteambalance = FindConVar("mp_autoteambalance");
+	mp_autoteambalance.SetBool(false);
+	
+	ConVar mp_limitteams = FindConVar("mp_limitteams");
+	mp_limitteams.SetInt(0);
 	
 	ServerCommand("bot_kick");
 	
