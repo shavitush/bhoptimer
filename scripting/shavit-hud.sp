@@ -31,6 +31,7 @@ ServerGame gSG_Type = Game_Unknown;
 
 bool gB_Replay = false;
 
+bool gB_ZoneHUD[MAXPLAYERS+1] = {true, ...};
 bool gB_HUD[MAXPLAYERS+1] = {true, ...};
 
 int gI_StartCycle = 0;
@@ -94,6 +95,8 @@ public void OnPluginStart()
 	
 	RegConsoleCmd("sm_togglehud", Command_ToggleHUD, "Toggle the timer's HUD");
 	RegConsoleCmd("sm_hud", Command_ToggleHUD, "Toggle the timer's HUD");
+	
+	RegConsoleCmd("sm_zonehud", Command_ToggleZoneHUD, "Toggle the timer's flashing zone HUD");
 }
 
 public void OnClientPutInServer(int client)
@@ -106,6 +109,15 @@ public Action Command_ToggleHUD(int client, int args)
 	gB_HUD[client] = !gB_HUD[client];
 	
 	ReplyToCommand(client, "%s HUD %s\x01.", PREFIX, gB_HUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x05disabled"));
+	
+	return Plugin_Handled;
+}
+
+public Action Command_ToggleZoneHUD(int client, int args)
+{
+	gB_ZoneHUD[client] = !gB_ZoneHUD[client];
+	
+	ReplyToCommand(client, "%s Zone HUD %s\x01.", PREFIX, gB_ZoneHUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x05disabled"));
 	
 	return Plugin_Handled;
 }
@@ -186,14 +198,14 @@ public void UpdateHUD(int client)
 	
 	char sHintText[256];
 	
-	if(gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_Start))
+	if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_Start))
 	{
 		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_Start[gI_StartCycle]);
 		
 		PrintHintText(client, sHintText);
 	}
 	
-	else if(gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_End))
+	else if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_End))
 	{
 		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_End[gI_EndCycle]);
 		
