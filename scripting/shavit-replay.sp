@@ -253,6 +253,7 @@ public void OnMapStart()
 	
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
+		gI_ReplayTick[i] = 0;
 		gA_Frames[i] = new ArrayList(5);
 		
 		BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d", i);
