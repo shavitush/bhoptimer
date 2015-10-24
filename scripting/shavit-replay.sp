@@ -120,7 +120,7 @@ public Action BotCheck(Handle Timer)
 		{
 			for(int j = 1; j <= MaxClients; j++)
 			{
-				if(!IsClientConnected(j) || !IsFakeClient(j) || j == gI_ReplayBotClient[i])
+				if(!IsClientConnected(j) || !IsFakeClient(j) || view_as<bool>(j) == view_as<bool>(!gI_ReplayBotClient[i]))
 				{
 					continue;
 				}
