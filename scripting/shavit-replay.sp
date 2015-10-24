@@ -448,11 +448,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		
 		if(fWRTime != 0.0 && gI_ReplayTick[style] != -1)
 		{
-			if(gI_ReplayTick[style] >= gA_Frames[style].Length)
+			if(gI_ReplayTick[style] >= gA_Frames[style].Length - 10)
 			{
 				gI_ReplayTick[style] = -1;
 				
-				CreateTimer(0.5, ResetReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer(1.5, ResetReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 				
 				return Plugin_Continue;
 			}
@@ -491,7 +491,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				ScaleVector(vecVelocity, gF_Tickrate);
 			}
 			
-			if(fDistance >= 100.0)
+			if(fDistance >= 25.0)
 			{
 				TeleportEntity(client, vecCurrentPosition, vecAngles, vecVelocity);
 			}
