@@ -107,6 +107,13 @@ public Action BotCheck(Handle Timer)
 		bot_quota.SetInt(MAX_STYLES);
 	}
 	
+	// resets bot
+	if(gI_ReplayBotClient[Style_Forwards] == gI_ReplayBotClient[Style_Sideways])
+	{
+		gI_ReplayBotClient[Style_Forwards] = 0;
+		gI_ReplayBotClient[Style_Sideways] = 0;
+	}
+	
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
 		if(gI_ReplayBotClient[i] == 0 || !IsValidClient(gI_ReplayBotClient[i]))
