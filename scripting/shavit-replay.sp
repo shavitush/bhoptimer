@@ -139,6 +139,11 @@ public Action BotCheck(Handle Timer)
 			CS_RespawnPlayer(gI_ReplayBotClient[i]);
 		}
 		
+		if(GetPlayerWeaponSlot(gI_ReplayBotClient[i], CS_SLOT_KNIFE) == -1)
+		{
+			GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
+		}
+		
 		CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
 		
 		char sStyle[16];
@@ -246,6 +251,9 @@ public void OnMapStart()
 	
 	ConVar bot_chatter = FindConVar("bot_chatter");
 	bot_chatter.SetString("off");
+	
+	ConVar bot_auto_vacate = FindConVar("bot_auto_vacate");
+	bot_auto_vacate.SetBool(false);
 	
 	/*ConVar mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
 	mp_ignore_round_win_conditions.SetBool(true);*/
