@@ -38,6 +38,7 @@ int gF_LastFlags[MAXPLAYERS+1];
 // cvars
 ConVar gCV_GodMode = null;
 ConVar gCV_PreSpeed = null;
+ConVar gCV_HideTeamChanges = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -79,6 +80,7 @@ public void OnPluginStart()
 	
 	// hooks
 	HookEvent("player_spawn", Player_Spawn);
+	HookEvent("player_team", Player_Team, EventHookMode_Pre);
 
 	// let's fix issues with phrases :D
 	LoadTranslations("common.phrases");
@@ -102,6 +104,7 @@ public void OnPluginStart()
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players? \n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.");
 	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone? \n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
+	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?");
 	
 	AutoExecConfig();
 	
@@ -562,4 +565,16 @@ public void Player_Spawn(Handle event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(userid);
 
 	RestartTimer(client);
+}
+
+public Action Player_Team(Handle event, const char[] name, bool dontBroadcast)
+{
+	if(gCV_HideTeamChanges.BoolValue)
+	{
+		SetEventBroadcast(event, true);
+		
+		return Plugin_Changed;
+	}
+	
+	return Plugin_Continue;
 }

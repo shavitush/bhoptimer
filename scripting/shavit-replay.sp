@@ -120,7 +120,7 @@ public Action BotCheck(Handle Timer)
 		{
 			for(int j = 1; j <= MaxClients; j++)
 			{
-				if(!IsClientConnected(j) || !IsFakeClient(j) || view_as<bool>(j) == view_as<bool>(!gI_ReplayBotClient[i]))
+				if(!IsClientConnected(j) || !IsFakeClient(j) || j == gI_ReplayBotClient[!view_as<bool>(i)])
 				{
 					continue;
 				}
@@ -295,6 +295,7 @@ public bool LoadReplay(BhopStyle style)
 		Handle hFile = OpenFile(sPath, "r");
 		
 		ReadFileLine(hFile, gS_BotName[style], MAX_NAME_LENGTH);
+		TrimString(gS_BotName[style]);
 		
 		char sLine[320];
 		char sExplodedLine[5][64];
@@ -358,7 +359,7 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 	
-	if(IsFakeClient(client))
+	/*if(IsFakeClient(client))
 	{
 		if(gI_ReplayBotClient[Style_Forwards] == 0)
 		{
@@ -376,9 +377,9 @@ public void OnClientPutInServer(int client)
 	}
 	
 	else
-	{
-		gA_PlayerFrames[client] = new ArrayList(5);
-	}
+	{*/
+	gA_PlayerFrames[client] = new ArrayList(5);
+	//}
 }
 
 public void OnClientDisconnect(int client)
