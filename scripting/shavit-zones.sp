@@ -863,8 +863,8 @@ public void CreateEditMenu(int client)
 	AddMenuItem(menu, "yes", "Yes");
 	AddMenuItem(menu, "no", "No");
 	AddMenuItem(menu, "adjust", "Adjust position");
-	AddMenuItem(menu, "rotate", "Rotate Zone");
-	AddMenuItem(menu, "wl", "Modify Width/Length");
+	AddMenuItem(menu, "rotate", "Rotate zone");
+	AddMenuItem(menu, "wl", "Modify width/length");
 
 	SetMenuExitButton(menu, true);
 
@@ -1693,7 +1693,6 @@ public void SQL_DBConnect()
 		if(gH_SQL != null)
 		{
 			SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, "CREATE TABLE IF NOT EXISTS `mapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT, `fix1_x` FLOAT, `fix1_y` FLOAT, `fix2_x` FLOAT, `fix2_y` FLOAT, PRIMARY KEY (`id`));");
-			SQL_TQuery(gH_SQL, SQL_CheckRotation_Callback, "SELECT rot_ang FROM mapzones");
 		}
 	}
 
@@ -1711,6 +1710,8 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 
 		return;
 	}
+	
+	SQL_TQuery(gH_SQL, SQL_CheckRotation_Callback, "SELECT rot_ang FROM mapzones");
 }
 
 public void SQL_CheckRotation_Callback(Handle owner, Handle hndl, const char[] error, any data)
