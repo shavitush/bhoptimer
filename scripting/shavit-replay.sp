@@ -47,8 +47,6 @@ char gS_Map[128];
 
 ConVar bot_quota = null;
 
-bool gB_ShowNameChanges = true;
-
 public Plugin myinfo = 
 {
 	name = "[shavit] Replay Bot",
@@ -84,8 +82,6 @@ public void OnPluginStart()
 	}
 	
 	gF_Tickrate = (1.0 / GetTickInterval());
-	
-	HookUserMessage(GetUserMessageId("SayText2"), SayText2, true);
 	
 	// insert delete replay command here
 }
@@ -163,16 +159,19 @@ public Action BotCheck(Handle Timer)
 		
 		if(gA_Frames[i] == null || fWRTime == 0.0)
 		{
-			gB_ShowNameChanges = false;
+			char sCurrentName[MAX_NAME_LENGTH];
+			strcopy(sCurrentName, MAX_NAME_LENGTH, sName);
 			
 			FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", i == view_as<int>(Style_Forwards)? "NM":"SW");
-			SetClientName(gI_ReplayBotClient[i], sName);
+			
+			if(!StrEqual(sName, sCurrentName))
+			{
+				SetClientName(gI_ReplayBotClient[i], sName);
+			}
 		}
 		
 		else if(!StrEqual(gS_BotName[i], sName))
 		{
-			gB_ShowNameChanges = false;
-			
 			SetClientName(gI_ReplayBotClient[i], gS_BotName[i]);
 		}
 	}
@@ -202,8 +201,6 @@ public Action HookTriggers(int entity, int other)
 
 public void OnMapStart()
 {
-	gB_ShowNameChanges = true;
-	
 	GetCurrentMap(gS_Map, 128);
 	RemoveMapPath(gS_Map, gS_Map, 128);
 	
@@ -691,39 +688,4 @@ stock bool File_Copy(const char[] source, const char[] destination)
 	delete file_destination;
 
 	return true;
-}
-
-// Thanks Bacardi!
-// https://forums.alliedmods.net/showpost.php?p=2085836&postcount=11
-public Action SayText2(UserMsg msg_id, Handle bf, int[] players, int playersNum, bool reliable, bool init)
-{
-	if(!reliable || gB_ShowNameChanges)
-	{
-		return Plugin_Continue;
-	}
-	
-	gB_ShowNameChanges = true;
-	
-	char buffer[24];
-	
-	// CS:GO uses Protobuf for usermessages
-	if(GetUserMessageType() == UM_Protobuf)
-	{
-		PbReadString(bf, "msg_name", buffer, 24);
-	}
-	
-	// CS:GO uses bitbuffer for usermessages
-	else // CSS
-	{
-		BfReadChar(bf);
-		BfReadChar(bf);
-		BfReadString(bf, buffer, 24);
-	}
-	
-	if(StrEqual(buffer, "#Cstrike_Name_Change"))
-	{
-		return Plugin_Handled;
-	}
-	
-	return Plugin_Continue;
 }
