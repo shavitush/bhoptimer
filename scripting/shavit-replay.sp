@@ -725,7 +725,7 @@ public Action SayText2(UserMsg msg_id, Handle bf, int[] players, int playersNum,
 	
 	if(StrEqual(buffer, "#Cstrike_Name_Change"))
 	{
-		gB_ShowNameChanges = false;
+		gB_ShowNameChanges = true;
 		
 		return Plugin_Handled;
 	}
