@@ -702,17 +702,14 @@ public Action SayText2(UserMsg msg_id, Handle bf, int[] players, int playersNum,
 		return Plugin_Continue;
 	}
 	
+	gB_ShowNameChanges = true;
+	
 	char buffer[24];
 	
 	// CS:GO uses Protobuf for usermessages
 	if(GetUserMessageType() == UM_Protobuf)
 	{
 		PbReadString(bf, "msg_name", buffer, 24);
-		
-		if(StrEqual(buffer, "#Cstrike_Name_Change"))
-		{
-			return Plugin_Handled;
-		}
 	}
 	
 	// CS:GO uses bitbuffer for usermessages
@@ -725,8 +722,6 @@ public Action SayText2(UserMsg msg_id, Handle bf, int[] players, int playersNum,
 	
 	if(StrEqual(buffer, "#Cstrike_Name_Change"))
 	{
-		gB_ShowNameChanges = true;
-		
 		return Plugin_Handled;
 	}
 	
