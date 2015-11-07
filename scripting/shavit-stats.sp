@@ -268,6 +268,7 @@ public void ShowMaps(int client, int target, const char[] category)
 	
 	DataPack datapack = CreateDataPack();
 	datapack.WriteCell(GetClientSerial(client));
+	datapack.WriteCell(GetClientSerial(target));
 	datapack.WriteString(category);
 	
 	SQL_TQuery(gH_SQL, ShowMapsCallback, sQuery, datapack, DBPrio_High);
@@ -286,14 +287,22 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 	
 	ResetPack(data);
 	
-	int serial = ReadPackCell(data);
+	int clientserial = ReadPackCell(data);
+	int targetserial = ReadPackCell(data);
 	
 	char sCategory[16];
 	ReadPackString(data, sCategory, 16);
 	
 	CloseHandle(data);
 	
-	int client = GetClientFromSerial(serial);
+	int client = GetClientFromSerial(clientserial);
+
+	if(!IsValidClient(client))
+	{
+		return;
+	}
+	
+	int target = GetClientFromSerial(targetserial);
 
 	if(!IsValidClient(client))
 	{
@@ -306,22 +315,22 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 	
 	if(StrEqual(sCategory, "mapsdone"))
 	{
-		FormatEx(sTitle, 32, "Maps done for %N: (%d)", client, rows);
+		FormatEx(sTitle, 32, "Maps done for %N: (%d)", target, rows);
 	}
 	
 	else if(StrEqual(sCategory, "mapsleft"))
 	{
-		FormatEx(sTitle, 32, "Maps left for %N: (%d)", client, rows);
+		FormatEx(sTitle, 32, "Maps left for %N: (%d)", target, rows);
 	}
 	
 	else if(StrEqual(sCategory, "mapsdonesw"))
 	{
-		FormatEx(sTitle, 32, "[SW] Maps done for %N: (%d)", client, rows);
+		FormatEx(sTitle, 32, "[SW] Maps done for %N: (%d)", target, rows);
 	}
 	
 	else if(StrEqual(sCategory, "mapsleftsw"))
 	{
-		FormatEx(sTitle, 32, "[SW] Maps left for %N: (%d)", client, rows);
+		FormatEx(sTitle, 32, "[SW] Maps left for %N: (%d)", target, rows);
 	}
 	
 	Menu menu = CreateMenu(MenuHandler_ShowMaps);
