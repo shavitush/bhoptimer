@@ -298,14 +298,14 @@ public void UpdateHUD(int client)
 			
 			if(fPB > 0.00)
 			{
-				Format(sHintText, 256, "%s\tPB: %s", sHintText, sPB);
+				Format(sHintText, 256, "%s\nPB: %s", sHintText, sPB);
 			}
 	
 			Format(sHintText, 256, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
 	
 			if(bStarted)
 			{
-				Format(sHintText, 256, "%s\tJumps: %d", sHintText, iJumps);
+				Format(sHintText, 256, "%s\nJumps: %d", sHintText, iJumps);
 			}
 	
 			Format(sHintText, 256, "%s\nPlayer: %N", sHintText, target);
