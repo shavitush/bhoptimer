@@ -287,9 +287,14 @@ public void UpdateHUD(int client)
 			if(bStarted)
 			{
 				FormatEx(sHintText, 256, "Time: %s", sTime);
+				
+				Format(sHintText, 256, "%s\nStyle: %s", sHintText, bsStyle == Style_Forwards? "Forwards":"Sideways");
 			}
 			
-			Format(sHintText, 256, "%s\nStyle: %s", sHintText, bsStyle == Style_Forwards? "Forwards":"Sideways");
+			else
+			{
+				FormatEx(sHintText, 256, "Style: %s", bsStyle == Style_Forwards? "Forwards":"Sideways");
+			}
 			
 			if(fPB > 0.00)
 			{
