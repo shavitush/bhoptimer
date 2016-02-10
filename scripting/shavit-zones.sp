@@ -1372,7 +1372,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	{
 		GetClientAbsOrigin(data, vOrigin);
 
-		vOrigin[2] += 144;
+		vOrigin[2] += 144.0;
 	}
 
 	else
@@ -1386,8 +1386,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 	CreateZonePoints(vPoints, gF_RotateAngle[data], gV_Fix1[data], gV_Fix2[data], 1337, false);
 	
-	// TODO: optimize non-constant zones to be calculated once per zone change/map load
-	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[data]], gCV_Interval.FloatValue);
+	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[data]], 0.1);
 
 	return Plugin_Continue;
 }
@@ -1745,9 +1744,12 @@ public void Shavit_OnRestart(int client)
 		
 		// spawn at the same Z axis the start zone is at
 		// this may break some spawns, where there's a displacement instead of a flat surface at the spawn point, for example; bhop_monster_jam ~ recompile with this commented and the old method uncommented if it's an issue!
-		vCenter[2] = gV_MapZones[0][0][2];
+		// vCenter[2] = gV_MapZones[0][0] + 84.0;
+		// ^ didn't work
 
 		AddVectors(gV_MapZones[0][0], vCenter, vCenter);
+		
+		vCenter[2] = gV_MapZones[0][0][2];
 
 		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 	}
