@@ -36,11 +36,11 @@ char gS_Map[128];
 
 char gS_ZoneNames[MAX_ZONES][] =
 {
-	"Start Zone",
-	"End Zone",
-	"Glitch Zone (Respawn Player)",
-	"Glitch Zone (Stop Timer)",
-	"Slay Player",
+	"Start Zone", // starts timer
+	"End Zone", // stops timer
+	"Glitch Zone (Respawn Player)", // respawns the player
+	"Glitch Zone (Stop Timer)", // stops the player's timer
+	"Slay Player", // slays (kills) players which come to this zone   
 	"Freestyle Zone" // ignores style physics when at this zone. e.g. WASD when SWing
 };
 
@@ -67,6 +67,7 @@ float gV_FreestyleZones[MULTIPLEZONES_LIMIT][2][3];
 float gV_MapZonesFixes[MAX_ZONES][2][2];
 float gV_FreeStyleZonesFixes[MULTIPLEZONES_LIMIT][2][2];
 
+// ofir's pull request
 float gF_ConstSin[MAX_ZONES];
 float gF_MinusConstSin[MAX_ZONES];
 float gF_ConstCos[MAX_ZONES];
@@ -81,18 +82,21 @@ float gF_RotateAngle[MAXPLAYERS+1];
 float gV_Fix1[MAXPLAYERS+1][2];
 float gV_Fix2[MAXPLAYERS+1][2];
 
+// beamsprite, used to draw the zone
 int gI_BeamSprite = -1;
 
+// zone colors
 int gI_Colors[MAX_ZONES][4];
 
 // admin menu
 Handle gH_AdminMenu = INVALID_HANDLE;
 
+// late load?
 bool gB_Late;
 
 // cvars
 ConVar gCV_ZoneStyle = null;
-bool gB_ZoneStyle = false;
+ConVar gCV_Interval = null;
 
 public Plugin myinfo =
 {
@@ -108,7 +112,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// zone natives
 	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
-
+	
 	MarkNativeAsOptional("Shavit_ZoneExists");
 	// MarkNativeAsOptional("Shavit_InsideZone"); // called in shavit-core
 
@@ -146,26 +150,15 @@ public void OnPluginStart()
 	// colors
 	SetupColors();
 
-	// draw
-	// start drawing timer here
-	CreateTimer(0.10, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT);
-
 	// cvars and stuff
-	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box");
-	HookConVarChange(gCV_ZoneStyle, OnConVarChanged);
+	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", FCVAR_PLUGIN, true, 0.5, true, 5.0);
+
+	// draw
+	// start drawing mapzones here
+	CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT);
 
 	AutoExecConfig();
-	gB_ZoneStyle = GetConVarBool(gCV_ZoneStyle);
-}
-
-
-public void OnConVarChanged(ConVar cvar, const char[] sOld, const char[] sNew)
-{
-	// using an if() statement just incase I'll add more cvars.
-	if(cvar == gCV_ZoneStyle)
-	{
-		gB_ZoneStyle = view_as<bool>(StringToInt(sNew));
-	}
 }
 
 public void OnAdminMenuReady(Handle topmenu)
@@ -748,7 +741,8 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			if(gI_MapStep[client] == 1)
 			{
 				gV_Point1[client] = vOrigin;
-
+				
+				// not gonna use gCV_Interval.FloatValue here as we need percision when setting up zones
 				CreateTimer(0.1, Timer_Draw, client, TIMER_REPEAT);
 
 				ShowPanel(client, 2);
@@ -1306,7 +1300,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 				vPoints[0] = gV_FreestyleZones[j][0];
 				vPoints[7] = gV_FreestyleZones[j][1];
 
-				if(gB_ZoneStyle)
+				if(gCV_ZoneStyle.BoolValue)
 				{
 					vPoints[7][2] = vPoints[0][2];
 				}
@@ -1321,7 +1315,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 					CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false);
 				}
 
-				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], 0.10);
+				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue);
 			}
 		}
 
@@ -1350,14 +1344,14 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 				vPoints[0] = gV_MapZones[i][0];
 				vPoints[7] = gV_MapZones[i][1];
 
-				if(gB_ZoneStyle)
+				if(gCV_ZoneStyle.BoolValue)
 				{
 					vPoints[7][2] = vPoints[0][2];
 				}
 
 				CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false);
 
-				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], 0.10);
+				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue);
 			}
 		}
 	}
@@ -1391,8 +1385,9 @@ public Action Timer_Draw(Handle Timer, any data)
 	vPoints[7] = vOrigin;
 
 	CreateZonePoints(vPoints, gF_RotateAngle[data], gV_Fix1[data], gV_Fix2[data], 1337, false);
-
-	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[data]], 0.1);
+	
+	// TODO: optimize non-constant zones to be calculated once per zone change/map load
+	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[data]], gCV_Interval.FloatValue);
 
 	return Plugin_Continue;
 }
@@ -1738,12 +1733,19 @@ public void Shavit_OnRestart(int client)
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
-
+		
+		// calculate center
 		vCenter[0] /= 2;
 		vCenter[1] /= 2;
-		vCenter[2] /= 2;
-
-		vCenter[2] -= 20;
+		// i could also use ScaleVector() by 0.5f I guess? dunno which is more resource intensive, so i'll do it manually.
+		
+		// old method of calculating Z axis
+		// vCenter[2] /= 2;
+		// vCenter[2] -= 20;
+		
+		// spawn at the same Z axis the start zone is at
+		// this may break some spawns, where there's a displacement instead of a flat surface at the spawn point, for example; bhop_monster_jam ~ recompile with this commented and the old method uncommented if it's an issue!
+		vCenter[2] = gV_MapZones[0][0][2];
 
 		AddVectors(gV_MapZones[0][0], vCenter, vCenter);
 
