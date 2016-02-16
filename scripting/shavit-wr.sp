@@ -630,17 +630,8 @@ public Action Command_WR(int client, int args)
 	{
 		GetCmdArgString(sMap, 128);
 	}
-
-	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '0' ORDER BY time ASC LIMIT 50;", sMap);
 	
-	DataPack dp = CreateDataPack();
-	dp.WriteCell(GetClientSerial(client));
-	dp.WriteString(sMap);
-	
-	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, dp, DBPrio_High);
-
-	gBS_LastWR[client] = Style_Forwards;
+	StartWRMenu(client, sMap, view_as<int>(Style_Forwards));
 
 	return Plugin_Handled;
 }
@@ -663,19 +654,26 @@ public Action Command_WRSW(int client, int args)
 	{
 		GetCmdArgString(sMap, 128);
 	}
+	
+	StartWRMenu(client, sMap, view_as<int>(Style_Sideways));
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '1' ORDER BY time ASC LIMIT 50;", sMap);
+	return Plugin_Handled;
+}
+
+public void StartWRMenu(int client, const char[] map, int style)
+{
+	gBS_LastWR[client] = view_as<BhopStyle>(style);
 	
 	DataPack dp = CreateDataPack();
 	dp.WriteCell(GetClientSerial(client));
-	dp.WriteString(sMap);
+	dp.WriteString(map);
+	
+	char sQuery[512];
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM playertimes WHERE map = '%s' AND style = %d) AS records FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC LIMIT 50;", map, style, map, style);
 	
 	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, dp, DBPrio_High);
-
-	gBS_LastWR[client] = Style_Sideways;
-
-	return Plugin_Handled;
+	
+	return;
 }
 
 public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -702,16 +700,21 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 	{
 		return;
 	}
+	
+	char sAuth[32];
+	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
 
 	Menu menu = CreateMenu(WRMenu_Handler);
-	SetMenuTitle(menu, "Records for %s:", sMap);
 
 	int iCount = 0;
+	int iMyRank = 0;
+	
+	int iRecords = 0;
 
 	while(SQL_FetchRow(hndl))
 	{
 		iCount++;
-
+	
 		// 0 - record id, for statistic purposes.
 		int id = SQL_FetchInt(hndl, 0);
 		char sID[8];
@@ -728,15 +731,51 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 		// 3 - jumps
 		int iJumps = SQL_FetchInt(hndl, 3);
-
+		
+		// add item to menu
 		char sDisplay[128];
 		FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
 		AddMenuItem(menu, sID, sDisplay);
+		
+		// check if record exists in the map's top X
+		char sQueryAuth[32];
+		SQL_FetchString(hndl, 4, sQueryAuth, 32);
+		
+		if(StrEqual(sQueryAuth, sAuth))
+		{
+			iMyRank = iCount;
+		}
+		
+		// fetch amount of records
+		if(iRecords == 0)
+		{
+			iRecords = SQL_FetchInt(hndl, 5);
+		}
 	}
 
 	if(!GetMenuItemCount(menu))
 	{
+		SetMenuTitle(menu, "Records for %s", sMap);
+		
 		AddMenuItem(menu, "-1", "No records found.");
+	}
+	
+	else
+	{
+		// [32] just in case there are 150k records on a map and you're ranked 100k or something
+		char sRanks[32];
+		
+		if(gF_PlayerRecord[client][gBS_LastWR[client]] == 0.0)
+		{
+			FormatEx(sRanks, 32, "(%d record%s)", iRecords, iRecords == 1? "":"s");
+		}
+		
+		else
+		{
+			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
+		}
+		
+		SetMenuTitle(menu, "Records for %s:\n%s", sMap, sRanks);
 	}
 
 	SetMenuExitButton(menu, true);
@@ -904,7 +943,8 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 	}
 }
 
-public any abs(any thing)
+// not used anymore
+/*public any abs(any thing)
 {
 	if(thing < 0)
 	{
@@ -912,7 +952,7 @@ public any abs(any thing)
 	}
 	
 	return thing;
-}
+}*/
 
 public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 {
@@ -933,7 +973,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 		UpdateWRCache();
 	}
-
+	
 	// 0 - no query
 	// 1 - insert
 	// 2 - update
@@ -944,7 +984,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		overwrite = 1;
 	}
 
-	else if(time < gF_PlayerRecord[client][style])
+	else if(time <= gF_PlayerRecord[client][style])
 	{
 		overwrite = 2;
 	}
@@ -958,24 +998,31 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		char sAuthID[32];
 		GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
-
-		char sQuery[256];
+		
+		char sQuery[512];
 
 		if(overwrite == 1) // insert
 		{
 			PrintToChatAll("%s \x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps.", PREFIX, client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
 			
-			FormatEx(sQuery, 256, "INSERT INTO playertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), '%d');", sAuthID, gS_Map, time, jumps, style);
+			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
+			// TODO: work on a solution that can function the same while not causing lost records 
+			if(gH_SQL == null)
+			{
+				return;
+			}
+			
+			FormatEx(sQuery, 512, "INSERT INTO playertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), '%d');", sAuthID, gS_Map, time, jumps, style);
 		}
 
 		else // update
 		{
 			PrintToChatAll("%s \x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps. \x0C(%s)", PREFIX, client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
 			
-			FormatEx(sQuery, 256, "UPDATE playertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", time, jumps, gS_Map, sAuthID, style);
+			FormatEx(sQuery, 512, "UPDATE playertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", time, jumps, gS_Map, sAuthID, style);
 		}
-
-		SQL_TQuery(gH_SQL, SQL_OnFinish_Callback, sQuery, GetClientSerial(client));
+		
+		SQL_TQuery(gH_SQL, SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 	}
 
 	else
