@@ -258,14 +258,17 @@ public Action OnTakeDamage(int victim, int attacker)
 // hide
 public Action OnSetTransmit(int entity, int client)
 {
-	if(IsClientObserver(client))
+	if(client != entity && gB_Hide[client])
 	{
-		return Plugin_Continue;
-	}
-
-	if(gB_Hide[client] && client != entity)
-	{
-		return Plugin_Handled;
+		if(!IsClientObserver(client))
+		{
+			return Plugin_Handled;
+		}
+		
+		else if(GetEntProp(client, Prop_Send, "m_iObserverMode") != 6 && GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") != entity)
+		{
+			return Plugin_Handled;
+		}
 	}
 
 	return Plugin_Continue;
