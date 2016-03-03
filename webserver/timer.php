@@ -89,6 +89,8 @@ if(isset($_GET["style"]))
   <?php
   if($map)
   {
+  	$stmt = FALSE;
+
     if($stmt = $connection->prepare("SELECT p.id, p.map, u.auth, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC LIMIT " . RECORD_LIMIT . ";"))
     {
       $stmt->bind_param("ss", $_GET["map"], $_GET["style"]);
@@ -156,7 +158,10 @@ if(isset($_GET["style"]))
         echo "<h2>No results. Press <a href=\"timer.php\">Home</a> to get the map list.</h2>";
     }
 
-    $stmt->close();
+    if($stmt != FALSE)
+    {
+    	$stmt->close();
+    }
   }
 
   else
