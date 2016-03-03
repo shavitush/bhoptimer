@@ -39,6 +39,7 @@ int gF_LastFlags[MAXPLAYERS+1];
 ConVar gCV_GodMode = null;
 ConVar gCV_PreSpeed = null;
 ConVar gCV_HideTeamChanges = null;
+ConVar gCV_RespawnOnTeam = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -74,6 +75,9 @@ public void OnPluginStart()
 	// tpto
 	RegConsoleCmd("sm_tpto", Command_Teleport, "Teleport to another player. Usage: sm_tpto [target]");
 	RegConsoleCmd("sm_goto", Command_Teleport, "Teleport to another player. Usage: sm_goto [target]");
+	
+	// hook teamjoins
+	AddCommandListener(Command_Jointeam, "jointeam");
 
 	// message
 	CreateTimer(600.0, Timer_Message, INVALID_HANDLE, TIMER_REPEAT);
@@ -102,9 +106,10 @@ public void OnPluginStart()
 	}
 	
 	// cvars and stuff
-	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players? \n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.");
-	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone? \n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
-	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?");
+	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.");
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone?\n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
+	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled");
+	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled");
 	
 	AutoExecConfig();
 	
@@ -132,6 +137,68 @@ public void OnPluginStart()
 			}
 		}
 	}
+}
+
+public Action Command_Jointeam(int client, const char[] command, int args)
+{
+	char arg1[8];
+	GetCmdArg(1, arg1, 8);
+	
+	int iTeam = StringToInt(arg1);
+	
+	// client is trying to join the same team he's now.
+	// i'll let the game handle it.
+	if(GetClientTeam(client) == iTeam)
+	{
+		return Plugin_Continue;
+	}
+	
+	bool bRespawn = false;
+	
+	switch(iTeam)
+	{
+		case CS_TEAM_T:
+		{
+			// if T spawns are available in the map
+			if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
+			{
+				bRespawn = true;
+				
+				CS_SwitchTeam(client, CS_TEAM_T);
+			}
+		}
+		
+		case CS_TEAM_CT:
+		{
+			// if CT spawns are available in the map
+			if(FindEntityByClassname(-1, "info_player_counterterrorist") != -1)
+			{
+				bRespawn = true;
+				
+				CS_SwitchTeam(client, CS_TEAM_CT);
+			}
+		}
+		
+		// if they chose to spectate, i'll force them to join the spectators 
+		case CS_TEAM_SPECTATOR:
+		{
+			CS_SwitchTeam(client, CS_TEAM_SPECTATOR);
+		}
+		
+		default:
+		{
+			return Plugin_Continue;
+		}
+	}
+	
+	if(bRespawn && gCV_RespawnOnTeam.BoolValue)
+	{
+		CS_RespawnPlayer(client);
+		
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
 }
 
 public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
@@ -249,7 +316,10 @@ public Action OnTakeDamage(int victim, int attacker)
 		}
 		
 		// else
-		default: return Plugin_Handled;
+		default:
+		{
+			return Plugin_Handled;
+		}
 	}
 	
 	return Plugin_Continue;
