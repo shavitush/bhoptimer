@@ -736,7 +736,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 
-	if(gCV_Leftright.BoolValue && gB_Zones && gB_TimerEnabled[client] && !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT))
+	if(gCV_Leftright.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT)))
 	{
 		StopTimer(client);
 		PrintToChat(client, "%s I've stopped your timer for using +left/+right. No cheating!", PREFIX);
