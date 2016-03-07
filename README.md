@@ -19,9 +19,9 @@ a bhop server should be simple
 "Databases"
 {
 	"driver_default"		"mysql"
-	
+
 	// When specifying "host", you may use an IP address, a hostname, or a socket file path
-	
+
 	"default"
 	{
 		"driver"			"default"
@@ -32,7 +32,7 @@ a bhop server should be simple
 		//"timeout"			"0"
 		//"port"			"0"
 	}
-	
+
 	"shavit"
 	{
 		"driver"         "mysql"

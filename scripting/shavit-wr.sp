@@ -7,7 +7,7 @@
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
  * Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
@@ -51,7 +51,7 @@ float gF_PlayerRecord[MAXPLAYERS+1][MAX_STYLES];
 // admin menu
 Handle gH_AdminMenu = null;
 
-public Plugin myinfo = 
+public Plugin myinfo =
 {
 	name = "[shavit] World Records",
 	author = "shavit",
@@ -68,7 +68,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	// get pb
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
-	
+
 	MarkNativeAsOptional("Shavit_GetWRTime");
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
@@ -117,7 +117,7 @@ public void OnAdminMenuReady(Handle topmenu)
 	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
 	{
 		TopMenuObject tmoTimer = FindTopMenuCategory(gH_AdminMenu, "Timer Commands");
-	
+
 		if(tmoTimer != INVALID_TOPMENUOBJECT)
 		{
 			AddToTopMenu(gH_AdminMenu, "sm_deleteall", TopMenuObject_Item, AdminMenu_DeleteAll, tmoTimer, "sm_deleteall", ADMFLAG_RCON);
@@ -361,7 +361,7 @@ public Action Command_DeleteAll(int client, int args)
 	}
 
 	AddMenuItem(menu, "yes", "YES!!! DELETE ALL THE RECORDS!!! THIS ACTION CANNOT BE REVERTED!!!");
-	
+
 	for(int i = 1; i <= GetRandomInt(1, 3); i++)
 	{
 		AddMenuItem(menu, "-1", "NO!");
@@ -387,7 +387,7 @@ public int MenuHandler_DeleteAll(Handle menu, MenuAction action, int param1, int
 
 			return;
 		}
-		
+
 		char sQuery[256];
 		FormatEx(sQuery, 256, "DELETE FROM playertimes WHERE map = '%s';", gS_Map);
 
@@ -502,7 +502,7 @@ public int OpenDelete_Handler(Handle menu, MenuAction action, int param1, int pa
 	{
 		char info[16];
 		GetMenuItem(menu, param2, info, 16);
-		
+
 		if(StringToInt(info) == -1)
 		{
 			return;
@@ -517,7 +517,7 @@ public int OpenDelete_Handler(Handle menu, MenuAction action, int param1, int pa
 		}
 
 		AddMenuItem(hMenu, info, "YES!!! DELETE THE RECORD!!!");
-		
+
 		for(int i = 1; i <= GetRandomInt(1, 3); i++)
 		{
 			AddMenuItem(hMenu, "-1", "NO!");
@@ -547,7 +547,7 @@ public int DeleteConfirm_Handler(Handle menu, MenuAction action, int param1, int
 
 			return;
 		}
-		
+
 		char sQuery[256];
 		FormatEx(sQuery, 256, "DELETE FROM playertimes WHERE id = '%s';", info);
 
@@ -568,7 +568,7 @@ public void DeleteConfirm_Callback(Handle owner, Handle hndl, const char[] error
 
 		return;
 	}
-	
+
 	UpdateWRCache();
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -594,7 +594,7 @@ public void DeleteAll_Callback(Handle owner, Handle hndl, const char[] error, an
 
 		return;
 	}
-	
+
 	UpdateWRCache();
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -618,19 +618,19 @@ public Action Command_WR(int client, int args)
 	{
 		return Plugin_Handled;
 	}
-	
+
 	char sMap[128];
-	
+
 	if(!args)
 	{
 		strcopy(sMap, 128, gS_Map);
 	}
-	
+
 	else
 	{
 		GetCmdArgString(sMap, 128);
 	}
-	
+
 	StartWRMenu(client, sMap, view_as<int>(Style_Forwards));
 
 	return Plugin_Handled;
@@ -642,19 +642,19 @@ public Action Command_WRSW(int client, int args)
 	{
 		return Plugin_Handled;
 	}
-	
+
 	char sMap[128];
-	
+
 	if(!args)
 	{
 		strcopy(sMap, 128, gS_Map);
 	}
-	
+
 	else
 	{
 		GetCmdArgString(sMap, 128);
 	}
-	
+
 	StartWRMenu(client, sMap, view_as<int>(Style_Sideways));
 
 	return Plugin_Handled;
@@ -663,30 +663,30 @@ public Action Command_WRSW(int client, int args)
 public void StartWRMenu(int client, const char[] map, int style)
 {
 	gBS_LastWR[client] = view_as<BhopStyle>(style);
-	
+
 	DataPack dp = CreateDataPack();
 	dp.WriteCell(GetClientSerial(client));
 	dp.WriteString(map);
-	
+
 	char sQuery[512];
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM playertimes WHERE map = '%s' AND style = %d) AS records FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC LIMIT 50;", map, style, map, style);
-	
+
 	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, dp, DBPrio_High);
-	
+
 	return;
 }
 
 public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any data)
 {
 	ResetPack(data);
-	
+
 	int serial = ReadPackCell(data);
-	
+
 	char sMap[128];
 	ReadPackString(data, sMap, 128);
-	
+
 	CloseHandle(data);
-	
+
 	if(hndl == null)
 	{
 		LogError("Timer (WR SELECT) SQL query failed. Reason: %s", error);
@@ -700,7 +700,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 	{
 		return;
 	}
-	
+
 	char sAuth[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
 
@@ -708,13 +708,13 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 	int iCount = 0;
 	int iMyRank = 0;
-	
+
 	int iRecords = 0;
 
 	while(SQL_FetchRow(hndl))
 	{
 		iCount++;
-	
+
 		// 0 - record id, for statistic purposes.
 		int id = SQL_FetchInt(hndl, 0);
 		char sID[8];
@@ -731,21 +731,21 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 		// 3 - jumps
 		int iJumps = SQL_FetchInt(hndl, 3);
-		
+
 		// add item to menu
 		char sDisplay[128];
 		FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
 		AddMenuItem(menu, sID, sDisplay);
-		
+
 		// check if record exists in the map's top X
 		char sQueryAuth[32];
 		SQL_FetchString(hndl, 4, sQueryAuth, 32);
-		
+
 		if(StrEqual(sQueryAuth, sAuth))
 		{
 			iMyRank = iCount;
 		}
-		
+
 		// fetch amount of records
 		if(iRecords == 0)
 		{
@@ -756,25 +756,25 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 	if(!GetMenuItemCount(menu))
 	{
 		SetMenuTitle(menu, "Records for %s", sMap);
-		
+
 		AddMenuItem(menu, "-1", "No records found.");
 	}
-	
+
 	else
 	{
 		// [32] just in case there are 150k records on a map and you're ranked 100k or something
 		char sRanks[32];
-		
+
 		if(gF_PlayerRecord[client][gBS_LastWR[client]] == 0.0)
 		{
 			FormatEx(sRanks, 32, "(%d record%s)", iRecords, iRecords == 1? "":"s");
 		}
-		
+
 		else
 		{
 			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
 		}
-		
+
 		SetMenuTitle(menu, "Records for %s:\n%s", sMap, sRanks);
 	}
 
@@ -931,14 +931,14 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 
 		return;
 	}
-	
+
 	if(gB_Late)
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			OnClientPutInServer(i);
 		}
-		
+
 		gB_Late = false;
 	}
 }
@@ -950,14 +950,14 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 	{
 		return thing * -1;
 	}
-	
+
 	return thing;
 }*/
 
 public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 {
 	BhopStyle bsStyle = view_as<BhopStyle>(style);
-	
+
 	char sTime[32];
 	FormatSeconds(time, sTime, 32);
 
@@ -973,7 +973,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 		UpdateWRCache();
 	}
-	
+
 	// 0 - no query
 	// 1 - insert
 	// 2 - update
@@ -988,40 +988,40 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		overwrite = 2;
 	}
-	
+
 	float fDifference = (gF_PlayerRecord[client][style] - time) * -1.0;
-	
+
 	char sDifference[16];
 	FormatSeconds(fDifference, sDifference, 16, true);
-	
+
 	if(overwrite > 0)
 	{
 		char sAuthID[32];
 		GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
-		
+
 		char sQuery[512];
 
 		if(overwrite == 1) // insert
 		{
 			PrintToChatAll("%s \x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps.", PREFIX, client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
-			
+
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
-			// TODO: work on a solution that can function the same while not causing lost records 
+			// TODO: work on a solution that can function the same while not causing lost records
 			if(gH_SQL == null)
 			{
 				return;
 			}
-			
+
 			FormatEx(sQuery, 512, "INSERT INTO playertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), '%d');", sAuthID, gS_Map, time, jumps, style);
 		}
 
 		else // update
 		{
 			PrintToChatAll("%s \x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps. \x0C(%s)", PREFIX, client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
-			
+
 			FormatEx(sQuery, 512, "UPDATE playertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", time, jumps, gS_Map, sAuthID, style);
 		}
-		
+
 		SQL_TQuery(gH_SQL, SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 	}
 
@@ -1031,7 +1031,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		{
 			PrintToChat(client, "%s You have finished (%s) on \x07%s\x01 with %d jumps. \x08(+%s)", PREFIX, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
 		}
-		
+
 		else
 		{
 			PrintToChat(client, "%s You have finished (%s) on \x07%s\x01 with %d jumps.", PREFIX, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);

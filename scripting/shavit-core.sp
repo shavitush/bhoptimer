@@ -7,7 +7,7 @@
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
  * Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
@@ -68,7 +68,7 @@ ConVar gCV_Leftright = null;
 ConVar gCV_Restart = null;
 ConVar gCV_Pause = null;
 
-public Plugin myinfo = 
+public Plugin myinfo =
 {
 	name = "[shavit] Core",
 	author = "shavit",
@@ -92,7 +92,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
-	
+
 	MarkNativeAsOptional("Shavit_GetGameType");
 	MarkNativeAsOptional("Shavit_GetDB");
 	MarkNativeAsOptional("Shavit_StartTimer");
@@ -101,13 +101,13 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
-	
+
 	// prevent errors from shavit-zones
 	MarkNativeAsOptional("Shavit_InsideZone");
-	
+
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
-	
+
 	gB_Late = late;
 
 	return APLRes_Success;
@@ -180,7 +180,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_pause", Command_TogglePause, "Toggle pause.");
 	RegConsoleCmd("sm_unpause", Command_TogglePause, "Toggle pause.");
 	RegConsoleCmd("sm_resume", Command_TogglePause, "Toggle pause");
-	
+
 	// autobhop toggle
 	RegConsoleCmd("sm_auto", Command_AutoBhop, "Toggle autobhop.");
 	RegConsoleCmd("sm_autobhop", Command_AutoBhop, "Toggle autobhop.");
@@ -189,27 +189,27 @@ public void OnPluginStart()
 	#if defined DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
 	#endif
-	
+
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD);
-	
+
 	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?", FCVAR_PLUGIN|FCVAR_NOTIFY);
 	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN|FCVAR_NOTIFY);
 	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN|FCVAR_NOTIFY);
 	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN|FCVAR_NOTIFY);
-	
+
 	AutoExecConfig();
 
 	// late
 	if(gB_Late)
 	{
 		OnAdminMenuReady(null);
-		
+
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			OnClientPutInServer(i);
 		}
 	}
-	
+
 	gB_Zones = LibraryExists("shavit-zones");
 }
 
@@ -232,7 +232,7 @@ public void OnLibraryRemoved(const char[] name)
 public void OnAdminMenuReady(Handle topmenu)
 {
 	Handle hTopMenu = INVALID_HANDLE;
-	
+
 	if(LibraryExists("adminmenu") && ((hTopMenu = GetAdminTopMenu()) != INVALID_HANDLE))
 	{
 		AddToTopMenu(hTopMenu, "Timer Commands", TopMenuObject_Category, CategoryHandler, INVALID_TOPMENUOBJECT);
@@ -268,20 +268,20 @@ public Action Command_StartTimer(int client, int args)
 	{
 		return Plugin_Handled;
 	}
-	
+
 	if(!gCV_Restart.BoolValue)
 	{
 		if(args != -1)
 		{
 			char sCommand[16];
 			GetCmdArg(0, sCommand, 16);
-			
+
 			ReplyToCommand(client, "%s The command (\x03%s\x01) is disabled.", PREFIX, sCommand);
 		}
-		
+
 		return Plugin_Handled;
 	}
-	
+
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
 	Call_Finish();
@@ -309,21 +309,21 @@ public Action Command_TogglePause(int client, int args)
 	{
 		return Plugin_Handled;
 	}
-	
+
 	if(!gCV_Pause.BoolValue)
 	{
 		char sCommand[16];
 		GetCmdArg(0, sCommand, 16);
-		
+
 		ReplyToCommand(client, "%s The command (\x03%s\x01) is disabled.", PREFIX, sCommand);
-		
+
 		return Plugin_Handled;
 	}
-	
+
 	if(!(GetEntityFlags(client) & FL_ONGROUND))
 	{
 		ReplyToCommand(client, "%s You are not allowed to pause when not on ground.", PREFIX);
-		
+
 		return Plugin_Handled;
 	}
 
@@ -336,7 +336,7 @@ public Action Command_TogglePause(int client, int args)
 	{
 		PauseTimer(client);
 	}
-	
+
 	return Plugin_Handled;
 }
 
@@ -355,11 +355,11 @@ public Action Command_AutoBhop(int client, int args)
 	{
 		return Plugin_Handled;
 	}
-	
+
 	gB_Auto[client] = !gB_Auto[client];
-	
+
 	ReplyToCommand(client, "%s Autobhop %s\x01.", PREFIX, gB_Auto[client]? "\x04enabled":"\x02disabled");
-	
+
 	return Plugin_Handled;
 }
 
@@ -417,9 +417,9 @@ public Action Command_Forwards(int client, int args)
 	gBS_Style[client] = Style_Forwards;
 
 	ReplyToCommand(client, "%s You have selected to play \x03Forwards", PREFIX);
-	
+
 	StopTimer(client);
-	
+
 	Command_StartTimer(client, -1);
 
 	return Plugin_Handled;
@@ -431,13 +431,13 @@ public Action Command_Sideways(int client, int args)
 	{
 		return Plugin_Handled;
 	}
-	
+
 	gBS_Style[client] = Style_Sideways;
 
 	ReplyToCommand(client, "%s You have selected to play \x03Sideways", PREFIX);
-	
+
 	StopTimer(client);
-	
+
 	Command_StartTimer(client, -1);
 
 	return Plugin_Handled;
@@ -502,7 +502,7 @@ public int Native_StartTimer(Handle handler, int numParams)
 	if(!IsFakeClient(client))
 	{
 		StartTimer(client);
-		
+
 		Call_StartForward(gH_Forwards_Start);
 		Call_PushCell(client);
 		Call_Finish();
@@ -537,14 +537,14 @@ public int Native_FinishMap(Handle handler, int numParams)
 public int Native_PauseTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
-	
+
 	PauseTimer(client);
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
-	
+
 	ResumeTimer(client);
 }
 
@@ -610,7 +610,7 @@ public float CalculateTime(int client)
 {
 	if(!gB_ClientPaused[client])
 	{
-		return GetEngineTime() - gF_StartTime[client] - gF_PauseTotalTime[client];	
+		return GetEngineTime() - gF_StartTime[client] - gF_PauseTotalTime[client];
 	}
 
 	else
@@ -627,7 +627,7 @@ public void OnClientDisconnect(int client)
 public void OnClientPutInServer(int client)
 {
 	gB_Auto[client] = true;
-	
+
 	StopTimer(client);
 
 	gBS_Style[client] = Style_Forwards;
@@ -743,7 +743,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	bool bEdit = false;
-	
+
 	// SW cheat blocking
 	if(!Shavit_InsideZone(client, Zone_Freestyle) && gBS_Style[client] == Style_Sideways && !bOnLadder && (vel[1] != 0.0 || buttons & IN_MOVELEFT || buttons & IN_MOVERIGHT))
 	{

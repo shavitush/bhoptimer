@@ -40,7 +40,7 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"End Zone", // stops timer
 	"Glitch Zone (Respawn Player)", // respawns the player
 	"Glitch Zone (Stop Timer)", // stops the player's timer
-	"Slay Player", // slays (kills) players which come to this zone   
+	"Slay Player", // slays (kills) players which come to this zone
 	"Freestyle Zone" // ignores style physics when at this zone. e.g. WASD when SWing
 };
 
@@ -112,7 +112,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// zone natives
 	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
-	
+
 	MarkNativeAsOptional("Shavit_ZoneExists");
 	// MarkNativeAsOptional("Shavit_InsideZone"); // called in shavit-core
 
@@ -741,7 +741,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			if(gI_MapStep[client] == 1)
 			{
 				gV_Point1[client] = vOrigin;
-				
+
 				// not gonna use gCV_Interval.FloatValue here as we need percision when setting up zones
 				CreateTimer(0.1, Timer_Draw, client, TIMER_REPEAT);
 
@@ -1385,7 +1385,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	vPoints[7] = vOrigin;
 
 	CreateZonePoints(vPoints, gF_RotateAngle[data], gV_Fix1[data], gV_Fix2[data], 1337, false);
-	
+
 	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[data]], 0.1);
 
 	return Plugin_Continue;
@@ -1704,7 +1704,7 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 
 		return;
 	}
-	
+
 	SQL_TQuery(gH_SQL, SQL_CheckRotation_Callback, "SELECT rot_ang FROM mapzones");
 }
 
@@ -1732,23 +1732,23 @@ public void Shavit_OnRestart(int client)
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
-		
+
 		// calculate center
 		vCenter[0] /= 2;
 		vCenter[1] /= 2;
 		// i could also use ScaleVector() by 0.5f I guess? dunno which is more resource intensive, so i'll do it manually.
-		
+
 		// old method of calculating Z axis
 		// vCenter[2] /= 2;
 		// vCenter[2] -= 20;
-		
+
 		// spawn at the same Z axis the start zone is at
 		// this may break some spawns, where there's a displacement instead of a flat surface at the spawn point, for example; bhop_monster_jam ~ recompile with this commented and the old method uncommented if it's an issue!
 		// vCenter[2] = gV_MapZones[0][0] + 84.0;
 		// ^ didn't work
 
 		AddVectors(gV_MapZones[0][0], vCenter, vCenter);
-		
+
 		vCenter[2] = gV_MapZones[0][0][2];
 
 		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
