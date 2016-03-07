@@ -422,8 +422,8 @@ public Action Command_Teleport(int client, int args)
 
 	else
 	{
-		Menu menu = CreateMenu(MenuHandler_Teleport);
-		menu.SetTitle("Teleport to:");
+		Menu m = new Menu(MenuHandler_Teleport);
+		m.SetTitle("Teleport to:");
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -438,12 +438,12 @@ public Action Command_Teleport(int client, int args)
 			char sName[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
 
-			menu.AddItem(serial, sName);
+			m.AddItem(serial, sName);
 		}
 
-		menu.ExitButton = true;
+		m.ExitButton = true;
 
-		menu.Display(client, 60);
+		m.Display(client, 60);
 	}
 
 	return Plugin_Handled;

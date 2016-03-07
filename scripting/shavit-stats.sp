@@ -28,6 +28,9 @@
 // database handle
 Database gH_SQL = null;
 
+// table prefix
+char gS_MySQLPrefix[32];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Player Stats",
@@ -44,8 +47,9 @@ public void OnAllPluginsLoaded()
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
 
-	// database shit
+	// database related stuff
 	Shavit_GetDB(gH_SQL);
+	SetSQLPrefix();
 }
 
 public void OnPluginStart()
@@ -60,6 +64,35 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_mapsleftsw", Command_MapsleftSW, "[SW] Show maps that the player doesn't have them cleared yet. Usage: sm_mapsleftsw [target]");
 
 	LoadTranslations("common.phrases");
+}
+
+public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
+{
+	strcopy(gS_MySQLPrefix, 32, newValue);
+}
+
+public Action CheckForSQLPrefix(Handle Timer)
+{
+	Action a = SetSQLPrefix();
+
+	return a;
+}
+
+public Action SetSQLPrefix()
+{
+	ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+
+	if(cvMySQLPrefix != null)
+	{
+		cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
+		cvMySQLPrefix.AddChangeHook(OnPrefixChange);
+
+		return Plugin_Stop;
+	}
+
+	CreateTimer(5.0, CheckForSQLPrefix);
+
+	return Plugin_Continue;
 }
 
 public Action Command_Mapsdone(int client, int args)
@@ -195,27 +228,27 @@ public Action Command_Profile(int client, int args)
 	char sAuthID[32];
 	GetClientAuthId(target, AuthId_Steam3, sAuthID, 32);
 
-	Menu menu = CreateMenu(MenuHandler_Profile);
-	menu.SetTitle("%N's profile.\nSteamID3: %s", target, sAuthID);
+	Menu m = new Menu(MenuHandler_Profile);
+	m.SetTitle("%N's profile.\nSteamID3: %s", target, sAuthID);
 
-	menu.AddItem("mapsdone", "Maps done (Forwards)");
-	menu.AddItem("mapsleft", "Maps left (Forwards)");
-	menu.AddItem("mapsdonesw", "Maps done (Sideways)");
-	menu.AddItem("mapsleftsw", "Maps left (Sideways)");
+	m.AddItem("mapsdone", "Maps done (Forwards)");
+	m.AddItem("mapsleft", "Maps left (Forwards)");
+	m.AddItem("mapsdonesw", "Maps done (Sideways)");
+	m.AddItem("mapsleftsw", "Maps left (Sideways)");
 
 	char sTarget[8];
 	IntToString(target, sTarget, 8);
 
-	AddMenuItem(menu, "id", sTarget, ITEMDRAW_IGNORE);
+	m.AddItem("id", sTarget, ITEMDRAW_IGNORE);
 
-	SetMenuExitButton(menu, true);
+	m.ExitButton = true;
 
-	DisplayMenu(menu, client, 20);
+	m.Display(client, 20);
 
 	return Plugin_Handled;
 }
 
-public int MenuHandler_Profile(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_Profile(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -223,10 +256,10 @@ public int MenuHandler_Profile(Menu menu, MenuAction action, int param1, int par
 
 		int target;
 
-		for(int i = 0; i < menu.ItemCount; i++)
+		for(int i = 0; i < m.ItemCount; i++)
 		{
 			char data[8];
-			menu.GetItem(i, info, 16, _, data, 8);
+			m.GetItem(i, info, 16, _, data, 8);
 
 			if(StrEqual(info, "id"))
 			{
@@ -236,14 +269,14 @@ public int MenuHandler_Profile(Menu menu, MenuAction action, int param1, int par
 			}
 		}
 
-		menu.GetItem(param2, info, 16);
+		m.GetItem(param2, info, 16);
 
 		ShowMaps(param1, target, info);
 	}
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete m;
 	}
 }
 
@@ -257,12 +290,12 @@ public void ShowMaps(int client, int target, const char[] category)
 
 	if(StrContains(category, "done") != -1)
 	{
-		FormatEx(sQuery, 256, "SELECT map, time, jumps FROM playertimes WHERE auth = '%s' AND style = %d ORDER BY map;", sAuth, StrEqual(category, "mapsdone")? 0:1);
+		FormatEx(sQuery, 256, "SELECT map, time, jumps FROM %splayertimes WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, sAuth, StrEqual(category, "mapsdone")? 0:1);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 256, "SELECT DISTINCT m.map FROM mapzones m LEFT JOIN playertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", sAuth, StrEqual(category, "mapsleft")? 0:1);
+		FormatEx(sQuery, 256, "SELECT DISTINCT m.map FROM %smapzones m LEFT JOIN %splayertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, StrEqual(category, "mapsleft")? 0:1);
 		// PrintToConsole(client, sQuery);
 	}
 
@@ -333,8 +366,8 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 		FormatEx(sTitle, 32, "[SW] Maps left for %N: (%d)", target, rows);
 	}
 
-	Menu menu = CreateMenu(MenuHandler_ShowMaps);
-	menu.SetTitle(sTitle);
+	Menu m = new Menu(MenuHandler_ShowMaps);
+	m.SetTitle(sTitle);
 
 	while(SQL_FetchRow(hndl))
 	{
@@ -360,23 +393,23 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 		}
 
 		// adding map as info, may be used in the future
-		menu.AddItem(sMap, sDisplay);
+		m.AddItem(sMap, sDisplay);
 	}
 
-	if(!GetMenuItemCount(menu))
+	if(!GetMenuItemCount(m))
 	{
-		AddMenuItem(menu, "nope", "No results.");
+		m.AddItem("nope", "No results.");
 	}
 
-	menu.ExitButton = true;
+	m.ExitButton = true;
 
-	menu.Display(client, 60);
+	m.Display(client, 60);
 }
 
-public int MenuHandler_ShowMaps(Handle menu, MenuAction action, int param1, int param2)
+public int MenuHandler_ShowMaps(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete m;
 	}
 }

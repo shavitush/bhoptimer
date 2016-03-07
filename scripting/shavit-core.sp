@@ -67,6 +67,10 @@ ConVar gCV_Autobhop = null;
 ConVar gCV_Leftright = null;
 ConVar gCV_Restart = null;
 ConVar gCV_Pause = null;
+ConVar gCV_MySQLPrefix = null;
+
+// table prefix
+char gS_MySQLPrefix[32];
 
 public Plugin myinfo =
 {
@@ -195,9 +199,11 @@ public void OnPluginStart()
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD);
 
 	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?", FCVAR_PLUGIN|FCVAR_NOTIFY);
-	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN|FCVAR_NOTIFY);
-	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN|FCVAR_NOTIFY);
-	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN|FCVAR_NOTIFY);
+	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN);
+	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN);
+	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN);
+	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", FCVAR_PLUGIN);
+	gCV_MySQLPrefix.AddChangeHook(OnPrefixChange);
 
 	AutoExecConfig();
 
@@ -213,6 +219,11 @@ public void OnPluginStart()
 	}
 
 	gB_Zones = LibraryExists("shavit-zones");
+}
+
+public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
+{
+	strcopy(gS_MySQLPrefix, 32, newValue);
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -372,25 +383,25 @@ public Action Command_Style(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Handle menu = CreateMenu(StyleMenu_Handler);
-	SetMenuTitle(menu, "Choose a style:");
+	Menu m = new Menu(StyleMenu_Handler);
+	m.SetTitle("Choose a style:");
 
-	AddMenuItem(menu, "forwards", "Forwards");
-	AddMenuItem(menu, "sideways", "Sideways");
+	m.AddItem("forwards", "Forwards");
+	m.AddItem("sideways", "Sideways");
 
-	SetMenuExitButton(menu, true);
+	m.ExitButton = true;
 
-	DisplayMenu(menu, client, 20);
+	m.Display(client, 20);
 
 	return Plugin_Handled;
 }
 
-public int StyleMenu_Handler(Handle menu, MenuAction action, int param1, int param2)
+public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char info[16];
-		GetMenuItem(menu, param2, info, 16);
+		m.GetItem(param2, info, 16);
 
 		if(StrEqual(info, "forwards"))
 		{
@@ -405,7 +416,7 @@ public int StyleMenu_Handler(Handle menu, MenuAction action, int param1, int par
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete m;
 	}
 }
 
@@ -557,15 +568,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	int written = 0; // useless?
 
 	char[] buffer = new char[255];
-	// int FormatNativeString(int out_param, int fmt_param, int vararg_param, int out_len, int &written, char[] out_string, const char[] fmt_string)
 	FormatNativeString(0, 2, 3, 255, written, buffer);
-
-	/*GetNativeString(2, buffer, 255);
-
-	if(numParams >= 3)
-	{
-		VFormat(buffer, 255, buffer, GetNativeCellRef(3));
-	}*/
 
 	return PrintToChat(client, "%s%s %s", gSG_Type == Game_CSS? "":" ", PREFIX, buffer);
 }
@@ -683,7 +686,7 @@ public void OnClientPutInServer(int client)
 
 	// too lazy to calculate if it can go over 256 so let's not take risks and use 512, because #pragma dynamic <3
 	char sQuery[512];
-	FormatEx(sQuery, 512, "REPLACE INTO users (auth, name, country, ip) VALUES ('%s', '%s', '%s', '%s');", sAuthID3, sEscapedName, sCountry, sIP);
+	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip) VALUES ('%s', '%s', '%s', '%s');", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP);
 
 	SQL_TQuery(gH_SQL, SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
@@ -729,8 +732,11 @@ public void SQL_DBConnect()
 		SQL_FastQuery(gH_SQL, "SET NAMES 'utf8';");
 		SQL_UnlockDatabase(gH_SQL);
 
+		char sQuery[256];
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(45), `ip` VARCHAR(32), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+
 		// CREATE TABLE IF NOT EXISTS
-		SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, "CREATE TABLE IF NOT EXISTS `users` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(45), `ip` VARCHAR(32), PRIMARY KEY (`auth`));");
+		SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, sQuery);
 	}
 
 	else

@@ -53,9 +53,11 @@ shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
 # Todo for 1.5b release
+- [x] Migrate every menu to the new syntax.
+
 ~ shavit-core:
 - [x] Fix chat colors for CS:S
-- [ ] Add table prefix (shavit_core_sqlprefix)
+- [x] Add table prefix (shavit_core_sqlprefix)
 
 ~ shavit-hud:
 - [x] HUD toggling command (sm_hud)
@@ -64,6 +66,9 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-replay
 - [ ] Add admin interface (delete replay data)
 - [ ] Remove replay bot on deletion of the #1 record
+
+~ shavit-wr
+- [ ] Make UpdateWRCache smaller.
 
 ~ [NEW PLUGIN] shavit-ranks:
 - [ ] Create table

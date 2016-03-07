@@ -43,6 +43,9 @@ ConVar gCV_MinimumTimes = null;
 ConVar gCV_PlayerAmount = null;
 ConVar gCV_Style = null;
 
+// table prefix
+char gS_MySQLPrefix[32];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Dynamic Timelimits",
@@ -59,8 +62,9 @@ public void OnAllPluginsLoaded()
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
 
-	// database shit
+	// database related stuff
 	Shavit_GetDB(gH_SQL);
+	SetSQLPrefix();
 }
 
 public void OnPluginStart()
@@ -80,7 +84,38 @@ public void OnPluginStart()
 	AutoExecConfig();
 }
 
-public void OnMapStart()
+public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
+{
+	strcopy(gS_MySQLPrefix, 32, newValue);
+}
+
+public Action CheckForSQLPrefix(Handle Timer)
+{
+	Action a = SetSQLPrefix();
+
+	return a;
+}
+
+public Action SetSQLPrefix()
+{
+	ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+
+	if(cvMySQLPrefix != null)
+	{
+		cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
+		cvMySQLPrefix.AddChangeHook(OnPrefixChange);
+
+		StartCalculating();
+
+		return Plugin_Stop;
+	}
+
+	CreateTimer(5.0, CheckForSQLPrefix);
+
+	return Plugin_Continue;
+}
+
+public void StartCalculating()
 {
 	if(gH_SQL != null)
 	{
@@ -88,7 +123,7 @@ public void OnMapStart()
 		GetCurrentMap(sMap, 128);
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "SELECT time FROM playertimes WHERE map = '%s' %sLIMIT %d;", sMap, gCV_Style.BoolValue? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);
+		FormatEx(sQuery, 256, "SELECT time FROM %splayertimes WHERE map = '%s' %sLIMIT %d;", gS_MySQLPrefix, sMap, gCV_Style.BoolValue? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);
 
 		#if defined DEBUG
 		PrintToServer(sQuery);
