@@ -51,6 +51,9 @@ float gF_PlayerRecord[MAXPLAYERS+1][MAX_STYLES];
 // admin menu
 Handle gH_AdminMenu = null;
 
+// table prefix
+char gS_MySQLPrefix[32];
+
 public Plugin myinfo =
 {
 	name = "[shavit] World Records",
@@ -81,12 +84,15 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public void OnPluginStart()
+public void OnAllPluginsLoaded()
 {
 	// database connections
 	Shavit_GetDB(gH_SQL);
-	SQL_DBConnect();
+	SetSQLPrefix();
+}
 
+public void OnPluginStart()
+{
 	// debug because I was making this all by myself and no one wanted to help me *sniff*
 	#if defined DEBUG
 	RegConsoleCmd("sm_junk", Command_Junk);
@@ -110,6 +116,37 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records");
 
 	OnAdminMenuReady(null);
+}
+
+public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
+{
+	strcopy(gS_MySQLPrefix, 32, newValue);
+}
+
+public Action CheckForSQLPrefix(Handle Timer)
+{
+	Action a = SetSQLPrefix();
+
+	return a;
+}
+
+public Action SetSQLPrefix()
+{
+	ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+
+	if(cvMySQLPrefix != null)
+	{
+		cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
+		cvMySQLPrefix.AddChangeHook(OnPrefixChange);
+
+		SQL_DBConnect();
+
+		return Plugin_Stop;
+	}
+
+	CreateTimer(5.0, CheckForSQLPrefix);
+
+	return Plugin_Continue;
 }
 
 public void OnAdminMenuReady(Handle topmenu)
@@ -204,7 +241,7 @@ public void UpdateClientCache(int client)
 	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT time, style FROM playertimes WHERE map = '%s' AND auth = '%s';", gS_Map, sAuthID);
+	FormatEx(sQuery, 256, "SELECT time, style FROM %splayertimes WHERE map = '%s' AND auth = '%s';", gS_MySQLPrefix, gS_Map, sAuthID);
 	SQL_TQuery(gH_SQL, SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
@@ -233,11 +270,11 @@ public void SQL_UpdateCache_Callback(Handle owner, Handle hndl, const char[] err
 public void UpdateWRCache()
 {
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT u.name, p.time FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '0' ORDER BY time ASC LIMIT 1;", gS_Map);
+	FormatEx(sQuery, 256, "SELECT u.name, p.time FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '0' ORDER BY time ASC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 	SQL_TQuery(gH_SQL, SQL_UpdateWRCache_Forwards_Callback, sQuery, 0, DBPrio_High);
 
 	// I FUCKING KNOW THERE'S A WAY TO DO THIS IN 1 QUERY BUT I SUCK AT SQL SO FORGIVE PLS ;-;
-	FormatEx(sQuery, 256, "SELECT u.name, p.time FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '1' ORDER BY time ASC LIMIT 1;", gS_Map);
+	FormatEx(sQuery, 256, "SELECT u.name, p.time FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '1' ORDER BY time ASC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 	SQL_TQuery(gH_SQL, SQL_UpdateWRCache_Sideways_Callback, sQuery, 0, DBPrio_High);
 }
 
@@ -315,7 +352,7 @@ public Action Command_Junk(int client, int args)
 
 	char sAuth[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
-	FormatEx(sQuery, 256, "INSERT INTO playertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), 0);", sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15));
+	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), 0);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15));
 
 	SQL_LockDatabase(gH_SQL);
 	SQL_FastQuery(gH_SQL, sQuery);
@@ -389,7 +426,7 @@ public int MenuHandler_DeleteAll(Handle menu, MenuAction action, int param1, int
 		}
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM playertimes WHERE map = '%s';", gS_Map);
+		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
 		SQL_TQuery(gH_SQL, DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
@@ -427,7 +464,7 @@ public int MenuHandler_Delete(Handle menu, MenuAction action, int param1, int pa
 public void OpenDelete(int client, BhopStyle style)
 {
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC LIMIT 1000;", gS_Map, style);
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
 
 	Handle datapack = CreateDataPack();
 	WritePackCell(datapack, GetClientSerial(client));
@@ -549,7 +586,7 @@ public int DeleteConfirm_Handler(Handle menu, MenuAction action, int param1, int
 		}
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM playertimes WHERE id = '%s';", info);
+		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = '%s';", gS_MySQLPrefix, info);
 
 		SQL_TQuery(gH_SQL, DeleteConfirm_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
@@ -669,7 +706,7 @@ public void StartWRMenu(int client, const char[] map, int style)
 	dp.WriteString(map);
 
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM playertimes WHERE map = '%s' AND style = %d) AS records FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC LIMIT 50;", map, style, map, style);
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM %splayertimes WHERE map = '%s' AND style = %d) AS records FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC LIMIT 50;", gS_MySQLPrefix, map, style, gS_MySQLPrefix, gS_MySQLPrefix, map, style);
 
 	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, dp, DBPrio_High);
 
@@ -803,7 +840,7 @@ public int WRMenu_Handler(Handle menu, MenuAction action, int param1, int param2
 public void OpenSubMenu(int client, int id)
 {
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date FROM playertimes p JOIN users u ON p.auth = u.auth WHERE p.id = '%d' LIMIT 1;", id);
+	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%d' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 
 	SQL_TQuery(gH_SQL, SQL_SubMenu_Callback, sQuery, GetClientSerial(client));
 }
@@ -913,7 +950,10 @@ public void SQL_DBConnect()
 	{
 		if(gH_SQL != null)
 		{
-			SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, "CREATE TABLE IF NOT EXISTS `playertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` VARCHAR(32), `style` VARCHAR(32), `date` DATE, PRIMARY KEY (`id`));");
+			char sQuery[256];
+			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` VARCHAR(32), `style` VARCHAR(32), `date` DATE, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+
+			SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, sQuery);
 		}
 	}
 
@@ -942,17 +982,6 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 		gB_Late = false;
 	}
 }
-
-// not used anymore
-/*public any abs(any thing)
-{
-	if(thing < 0)
-	{
-		return thing * -1;
-	}
-
-	return thing;
-}*/
 
 public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 {
@@ -1012,14 +1041,14 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 				return;
 			}
 
-			FormatEx(sQuery, 512, "INSERT INTO playertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), '%d');", sAuthID, gS_Map, time, jumps, style);
+			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), '%d');", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, style);
 		}
 
 		else // update
 		{
 			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps. \x0C(%s)", client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
 
-			FormatEx(sQuery, 512, "UPDATE playertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", time, jumps, gS_Map, sAuthID, style);
+			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, gS_Map, sAuthID, style);
 		}
 
 		SQL_TQuery(gH_SQL, SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);

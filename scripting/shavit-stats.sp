@@ -28,6 +28,9 @@
 // database handle
 Database gH_SQL = null;
 
+// table prefix
+char gS_MySQLPrefix[32];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Player Stats",
@@ -44,8 +47,9 @@ public void OnAllPluginsLoaded()
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
 
-	// database shit
+	// database related stuff
 	Shavit_GetDB(gH_SQL);
+	SetSQLPrefix();
 }
 
 public void OnPluginStart()
@@ -60,6 +64,35 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_mapsleftsw", Command_MapsleftSW, "[SW] Show maps that the player doesn't have them cleared yet. Usage: sm_mapsleftsw [target]");
 
 	LoadTranslations("common.phrases");
+}
+
+public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
+{
+	strcopy(gS_MySQLPrefix, 32, newValue);
+}
+
+public Action CheckForSQLPrefix(Handle Timer)
+{
+	Action a = SetSQLPrefix();
+
+	return a;
+}
+
+public Action SetSQLPrefix()
+{
+	ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+
+	if(cvMySQLPrefix != null)
+	{
+		cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
+		cvMySQLPrefix.AddChangeHook(OnPrefixChange);
+
+		return Plugin_Stop;
+	}
+
+	CreateTimer(5.0, CheckForSQLPrefix);
+
+	return Plugin_Continue;
 }
 
 public Action Command_Mapsdone(int client, int args)
@@ -257,12 +290,12 @@ public void ShowMaps(int client, int target, const char[] category)
 
 	if(StrContains(category, "done") != -1)
 	{
-		FormatEx(sQuery, 256, "SELECT map, time, jumps FROM playertimes WHERE auth = '%s' AND style = %d ORDER BY map;", sAuth, StrEqual(category, "mapsdone")? 0:1);
+		FormatEx(sQuery, 256, "SELECT map, time, jumps FROM %splayertimes WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, sAuth, StrEqual(category, "mapsdone")? 0:1);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 256, "SELECT DISTINCT m.map FROM mapzones m LEFT JOIN playertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", sAuth, StrEqual(category, "mapsleft")? 0:1);
+		FormatEx(sQuery, 256, "SELECT DISTINCT m.map FROM %smapzones m LEFT JOIN %splayertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, StrEqual(category, "mapsleft")? 0:1);
 		// PrintToConsole(client, sQuery);
 	}
 
