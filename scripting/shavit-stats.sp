@@ -228,27 +228,27 @@ public Action Command_Profile(int client, int args)
 	char sAuthID[32];
 	GetClientAuthId(target, AuthId_Steam3, sAuthID, 32);
 
-	Menu menu = CreateMenu(MenuHandler_Profile);
-	menu.SetTitle("%N's profile.\nSteamID3: %s", target, sAuthID);
+	Menu m = new Menu(MenuHandler_Profile);
+	m.SetTitle("%N's profile.\nSteamID3: %s", target, sAuthID);
 
-	menu.AddItem("mapsdone", "Maps done (Forwards)");
-	menu.AddItem("mapsleft", "Maps left (Forwards)");
-	menu.AddItem("mapsdonesw", "Maps done (Sideways)");
-	menu.AddItem("mapsleftsw", "Maps left (Sideways)");
+	m.AddItem("mapsdone", "Maps done (Forwards)");
+	m.AddItem("mapsleft", "Maps left (Forwards)");
+	m.AddItem("mapsdonesw", "Maps done (Sideways)");
+	m.AddItem("mapsleftsw", "Maps left (Sideways)");
 
 	char sTarget[8];
 	IntToString(target, sTarget, 8);
 
-	AddMenuItem(menu, "id", sTarget, ITEMDRAW_IGNORE);
+	m.AddItem("id", sTarget, ITEMDRAW_IGNORE);
 
-	SetMenuExitButton(menu, true);
+	m.ExitButton = true;
 
-	DisplayMenu(menu, client, 20);
+	m.Display(client, 20);
 
 	return Plugin_Handled;
 }
 
-public int MenuHandler_Profile(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_Profile(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -256,10 +256,10 @@ public int MenuHandler_Profile(Menu menu, MenuAction action, int param1, int par
 
 		int target;
 
-		for(int i = 0; i < menu.ItemCount; i++)
+		for(int i = 0; i < m.ItemCount; i++)
 		{
 			char data[8];
-			menu.GetItem(i, info, 16, _, data, 8);
+			m.GetItem(i, info, 16, _, data, 8);
 
 			if(StrEqual(info, "id"))
 			{
@@ -269,14 +269,14 @@ public int MenuHandler_Profile(Menu menu, MenuAction action, int param1, int par
 			}
 		}
 
-		menu.GetItem(param2, info, 16);
+		m.GetItem(param2, info, 16);
 
 		ShowMaps(param1, target, info);
 	}
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete m;
 	}
 }
 
@@ -366,8 +366,8 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 		FormatEx(sTitle, 32, "[SW] Maps left for %N: (%d)", target, rows);
 	}
 
-	Menu menu = CreateMenu(MenuHandler_ShowMaps);
-	menu.SetTitle(sTitle);
+	Menu m = new Menu(MenuHandler_ShowMaps);
+	m.SetTitle(sTitle);
 
 	while(SQL_FetchRow(hndl))
 	{
@@ -393,23 +393,23 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 		}
 
 		// adding map as info, may be used in the future
-		menu.AddItem(sMap, sDisplay);
+		m.AddItem(sMap, sDisplay);
 	}
 
-	if(!GetMenuItemCount(menu))
+	if(!GetMenuItemCount(m))
 	{
-		AddMenuItem(menu, "nope", "No results.");
+		m.AddItem("nope", "No results.");
 	}
 
-	menu.ExitButton = true;
+	m.ExitButton = true;
 
-	menu.Display(client, 60);
+	m.Display(client, 60);
 }
 
-public int MenuHandler_ShowMaps(Handle menu, MenuAction action, int param1, int param2)
+public int MenuHandler_ShowMaps(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete m;
 	}
 }

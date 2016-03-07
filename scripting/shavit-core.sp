@@ -383,25 +383,25 @@ public Action Command_Style(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Handle menu = CreateMenu(StyleMenu_Handler);
-	SetMenuTitle(menu, "Choose a style:");
+	Menu m = new Menu(StyleMenu_Handler);
+	m.SetTitle("Choose a style:");
 
-	AddMenuItem(menu, "forwards", "Forwards");
-	AddMenuItem(menu, "sideways", "Sideways");
+	m.AddItem("forwards", "Forwards");
+	m.AddItem("sideways", "Sideways");
 
-	SetMenuExitButton(menu, true);
+	m.ExitButton = true;
 
-	DisplayMenu(menu, client, 20);
+	m.Display(client, 20);
 
 	return Plugin_Handled;
 }
 
-public int StyleMenu_Handler(Handle menu, MenuAction action, int param1, int param2)
+public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char info[16];
-		GetMenuItem(menu, param2, info, 16);
+		m.GetItem(param2, info, 16);
 
 		if(StrEqual(info, "forwards"))
 		{
@@ -416,7 +416,7 @@ public int StyleMenu_Handler(Handle menu, MenuAction action, int param1, int par
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete m;
 	}
 }
 

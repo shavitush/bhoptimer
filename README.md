@@ -53,7 +53,7 @@ shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
 # Todo for 1.5b release
-- [ ] Migrate every menu to the new syntax.
+- [x] Migrate every menu to the new syntax.
 
 ~ shavit-core:
 - [x] Fix chat colors for CS:S
