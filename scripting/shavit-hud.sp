@@ -108,7 +108,7 @@ public Action Command_ToggleHUD(int client, int args)
 {
 	gB_HUD[client] = !gB_HUD[client];
 
-	ReplyToCommand(client, "%s HUD %s\x01.", PREFIX, gB_HUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x05disabled"));
+	Shavit_PrintToChat(client, "HUD %s\x01.", gB_HUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x07F54242disabled"));
 
 	return Plugin_Handled;
 }
@@ -117,7 +117,7 @@ public Action Command_ToggleZoneHUD(int client, int args)
 {
 	gB_ZoneHUD[client] = !gB_ZoneHUD[client];
 
-	ReplyToCommand(client, "%s Zone HUD %s\x01.", PREFIX, gB_ZoneHUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x05disabled"));
+	Shavit_PrintToChat(client, "Zone HUD %s\x01.", gB_ZoneHUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x07F54242disabled"));
 
 	return Plugin_Handled;
 }

@@ -54,7 +54,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 
 # Todo for 1.5b release
 ~ shavit-core:
-- [ ] Fix chat colors for CS:S
+- [x] Fix chat colors for CS:S
 - [ ] Add table prefix (shavit_core_sqlprefix)
 
 ~ shavit-hud:

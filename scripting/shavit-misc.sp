@@ -215,7 +215,7 @@ public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 
 public Action Timer_Message(Handle Timer)
 {
-	PrintToChatAll("%s You may write !hide to hide other players.", PREFIX);
+	Shavit_PrintToChatAll("You may write !hide to hide other players.");
 
 	return Plugin_Continue;
 }
@@ -247,7 +247,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
-			PrintToChat(client, "%s Bhopping in the start zone is not allowed.", PREFIX);
+			Shavit_PrintToChat(client, "Bhopping in the start zone is not allowed.");
 			gF_LastFlags[client] = GetEntityFlags(client);
 
 			return Plugin_Continue;
@@ -366,7 +366,7 @@ public Action Command_Hide(int client, int args)
 	gB_Hide[client] = !gB_Hide[client];
 
 	// I use PTC instead of RTC there because I have an sm_hide bind just like many people :)
-	PrintToChat(client, "%s You are now %shiding players.", PREFIX, gB_Hide[client]? "":"not ");
+	Shavit_PrintToChat(client, "You are now %shiding players.", gB_Hide[client]? "":"not ");
 
 	return Plugin_Handled;
 }
@@ -472,7 +472,7 @@ public int Teleport(int client, int targetserial)
 {
 	if(!IsPlayerAlive(client))
 	{
-		PrintToChat(client, "%s You can teleport only if you are alive.", PREFIX);
+		Shavit_PrintToChat(client, "You can teleport only if you are alive.");
 
 		return -1;
 	}
@@ -481,14 +481,14 @@ public int Teleport(int client, int targetserial)
 
 	if(Shavit_InsideZone(client, Zone_Start) || Shavit_InsideZone(client, Zone_End))
 	{
-		PrintToChat(client, "%s You cannot teleport inside the start/end zones.", PREFIX);
+		Shavit_PrintToChat(client, "You cannot teleport inside the start/end zones.");
 
 		return -1;
 	}
 
 	if(!iTarget)
 	{
-		PrintToChat(client, "%s Invalid target.", PREFIX);
+		Shavit_PrintToChat(client, "Invalid target.");
 
 		return -1;
 	}
@@ -512,7 +512,7 @@ public Action Command_Specs(int client, int args)
 
 	if(!IsPlayerAlive(client) && !IsClientObserver(client))
 	{
-		ReplyToCommand(client, "%s You should be alive or spectate someone to see your/their spectators.", PREFIX);
+		Shavit_PrintToChat(client, "You should be alive or spectate someone to see your/their spectators.");
 
 		return Plugin_Handled;
 	}
@@ -538,7 +538,7 @@ public Action Command_Specs(int client, int args)
 
 		if(!IsPlayerAlive(iNewTarget))
 		{
-			ReplyToCommand(client, "%s You can't target a dead player.", PREFIX);
+			Shavit_PrintToChat(client, "You can't target a dead player.");
 
 			return Plugin_Handled;
 		}
@@ -574,12 +574,12 @@ public Action Command_Specs(int client, int args)
 
 	if(iCount > 0)
 	{
-		ReplyToCommand(client, "%s \x03%N\x01 has %d spectators: %s", PREFIX, iSpecTarget, iCount, sSpecs);
+		Shavit_PrintToChat(client, "\x03%N\x01 has %d spectators: %s", iSpecTarget, iCount, sSpecs);
 	}
 
 	else
 	{
-		ReplyToCommand(client, "%s No one is spectating \x03%N\x01.", PREFIX, iSpecTarget);
+		Shavit_PrintToChat(client, "No one is spectating \x03%N\x01.", iSpecTarget);
 	}
 
 	return Plugin_Handled;
@@ -587,9 +587,9 @@ public Action Command_Specs(int client, int args)
 
 public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
 {
-	for(int i = 1; i <= 3; i++)
+	for(int x = 1; x <= 3; x++)
 	{
-		PrintToChatAll(" \x02NEW %s WR!!!", style == Style_Forwards? "FORWARDS":"SIDEWAYS");
+		Shavit_PrintToChatAll("\x02NEW %s WR!!!", style == Style_Forwards? "FORWARDS":"SIDEWAYS");
 	}
 }
 

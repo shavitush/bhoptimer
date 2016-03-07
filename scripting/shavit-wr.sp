@@ -383,7 +383,7 @@ public int MenuHandler_DeleteAll(Handle menu, MenuAction action, int param1, int
 
 		if(StringToInt(info) == -1)
 		{
-			PrintToChat(param1, "%s Aborted deletion.", PREFIX);
+			Shavit_PrintToChat(param1, "Aborted deletion.");
 
 			return;
 		}
@@ -543,7 +543,7 @@ public int DeleteConfirm_Handler(Handle menu, MenuAction action, int param1, int
 
 		if(StringToInt(info) == -1)
 		{
-			PrintToChat(param1, "%s Aborted deletion.", PREFIX);
+			Shavit_PrintToChat(param1, "Aborted deletion.");
 
 			return;
 		}
@@ -583,7 +583,7 @@ public void DeleteConfirm_Callback(Handle owner, Handle hndl, const char[] error
 		return;
 	}
 
-	PrintToChat(client, "%s Deleted record.", PREFIX);
+	Shavit_PrintToChat(client, "Deleted record.");
 }
 
 public void DeleteAll_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -609,7 +609,7 @@ public void DeleteAll_Callback(Handle owner, Handle hndl, const char[] error, an
 		return;
 	}
 
-	PrintToChat(client, "%s Deleted ALL records for \"%s\".", PREFIX, gS_Map);
+	Shavit_PrintToChat(client, "Deleted ALL records for \"%s\".", gS_Map);
 }
 
 public Action Command_WR(int client, int args)
@@ -1003,7 +1003,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 		if(overwrite == 1) // insert
 		{
-			PrintToChatAll("%s \x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps.", PREFIX, client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps.", client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
 			// TODO: work on a solution that can function the same while not causing lost records
@@ -1017,7 +1017,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 		else // update
 		{
-			PrintToChatAll("%s \x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps. \x0C(%s)", PREFIX, client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps. \x0C(%s)", client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE playertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", time, jumps, gS_Map, sAuthID, style);
 		}
@@ -1029,12 +1029,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		if(!overwrite)
 		{
-			PrintToChat(client, "%s You have finished (%s) on \x07%s\x01 with %d jumps. \x08(+%s)", PREFIX, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
+			Shavit_PrintToChat(client, "%s You have finished (%s) on \x07%s\x01 with %d jumps. \x08(+%s)", bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
 		}
 
 		else
 		{
-			PrintToChat(client, "%s You have finished (%s) on \x07%s\x01 with %d jumps.", PREFIX, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
+			Shavit_PrintToChat(client, "%s You have finished (%s) on \x07%s\x01 with %d jumps.", bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
 		}
 	}
 }
