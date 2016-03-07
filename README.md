@@ -53,13 +53,18 @@ shavit-core - no other plugin will work without it.
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
 # Todo for 1.5b release
-- [ ] Add table prefix
+~ shavit-core:
+- [ ] Fix chat colors for CS:S
+- [ ] Add table prefix (shavit_core_sqlprefix)
 
 ~ shavit-hud:
-- [x] HUD toggling command
+- [x] HUD toggling command (sm_hud)
+- [x] Zone (start/end) HUD toggling command (sm_zonehud)
 
 ~ shavit-replay
 - [ ] Add admin interface (delete replay data)
 - [ ] Remove replay bot on deletion of the #1 record
 
-~ [NEW PLUGIN] shavit-ranks:  
+~ [NEW PLUGIN] shavit-ranks:
+- [ ] Create table
+- [ ] to be added
