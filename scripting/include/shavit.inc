@@ -7,7 +7,7 @@
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
  * Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
@@ -26,7 +26,8 @@
 //#pragma newdecls required
 
 #define SHAVIT_VERSION "1.5b"
-#define PREFIX " \x04[Timer]\x01"
+
+#define PREFIX "\x04[Timer]\x01"
 
 #define MAX_STYLES 2 // I could probably do sizeof(BhopStyle) but I suck
 #define MAX_ZONES 6
@@ -69,7 +70,7 @@ stock bool IsValidClient(int client, bool bAlive = false) // when bAlive is fals
 stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true)
 {
 	int iTemp = RoundToFloor(time);
-	
+
 	int iHours;
 
 	if(iTemp > 3600)
@@ -89,7 +90,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	{
 		FormatEx(sHours, 8, "%d", iHours);
 	}
-	
+
 	int iMinutes;
 
 	if(iTemp >= 60)
@@ -109,7 +110,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	{
 		FormatEx(sMinutes, 8, "%d", iMinutes);
 	}
-	
+
 	float fSeconds = ((iTemp) + time - RoundToFloor(time));
 
 	char sSeconds[16];
@@ -140,7 +141,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		{
 			FormatEx(newtime, newtimesize, "%.03fs", fSeconds);
 		}
-		
+
 		else
 		{
 			FormatEx(newtime, newtimesize, "%.01fs", fSeconds);
@@ -295,7 +296,7 @@ native void Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
 native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
 
 /**
- * Checks if a mapzone exists. 
+ * Checks if a mapzone exists.
  *
  * @param type						Mapzone type. (Check "enum MapZones")
  * @return							1 if exists, 0 if doesn't exist.
@@ -345,7 +346,35 @@ native void Shavit_GetReplayBotFirstFrame(BhopStyle style, float &time);
  */
 native int Shavit_GetReplayBotIndex(BhopStyle style);
 
-public SharedPlugin __pl_shavit = 
+/**
+ * Use this native when printing anything in chat if it's related to the timer.
+ * This native will auto-assign colors and a chat prefix.
+ *
+ * @param client					Client index.
+ * @param format					Formattiing rules.
+ * @param any						Variable number of format parameters.
+ * @return							PrintToChat()
+ */
+native int Shavit_PrintToChat(int client, const char[] format, any ...);
+
+// same as Shavit_PrintToChat() but loops through the whole server
+// code stolen from the base halflife.inc file
+stock Shavit_PrintToChatAll(const char[] format, any ...)
+{
+	char[] buffer = new char[255];
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientInGame(i))
+		{
+			SetGlobalTransTarget(i);
+			VFormat(buffer, 255, format, 2);
+			Shavit_PrintToChat(i, "%s", buffer);
+		}
+	}
+}
+
+public SharedPlugin __pl_shavit =
 {
 	name = "shavit",
 	file = "shavit-core.smx",

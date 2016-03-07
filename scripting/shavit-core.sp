@@ -92,6 +92,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
+	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
 
 	MarkNativeAsOptional("Shavit_GetGameType");
 	MarkNativeAsOptional("Shavit_GetDB");
@@ -101,6 +102,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
+	MarkNativeAsOptional("Shavit_PrintToChat");
 
 	// prevent errors from shavit-zones
 	MarkNativeAsOptional("Shavit_InsideZone");
@@ -276,7 +278,7 @@ public Action Command_StartTimer(int client, int args)
 			char sCommand[16];
 			GetCmdArg(0, sCommand, 16);
 
-			ReplyToCommand(client, "%s The command (\x03%s\x01) is disabled.", PREFIX, sCommand);
+			Shavit_PrintToChat(client, "The command (\x03%s\x01) is disabled.", sCommand);
 		}
 
 		return Plugin_Handled;
@@ -315,14 +317,14 @@ public Action Command_TogglePause(int client, int args)
 		char sCommand[16];
 		GetCmdArg(0, sCommand, 16);
 
-		ReplyToCommand(client, "%s The command (\x03%s\x01) is disabled.", PREFIX, sCommand);
+		Shavit_PrintToChat(client, "The command (\x03%s\x01) is disabled.", sCommand);
 
 		return Plugin_Handled;
 	}
 
 	if(!(GetEntityFlags(client) & FL_ONGROUND))
 	{
-		ReplyToCommand(client, "%s You are not allowed to pause when not on ground.", PREFIX);
+		Shavit_PrintToChat(client, "You are not allowed to pause when not on ground.");
 
 		return Plugin_Handled;
 	}
@@ -358,7 +360,7 @@ public Action Command_AutoBhop(int client, int args)
 
 	gB_Auto[client] = !gB_Auto[client];
 
-	ReplyToCommand(client, "%s Autobhop %s\x01.", PREFIX, gB_Auto[client]? "\x04enabled":"\x02disabled");
+	Shavit_PrintToChat(client, "%s Autobhop %s\x01.", gB_Auto[client]? "\x04enabled":"\x02disabled");
 
 	return Plugin_Handled;
 }
@@ -416,7 +418,7 @@ public Action Command_Forwards(int client, int args)
 
 	gBS_Style[client] = Style_Forwards;
 
-	ReplyToCommand(client, "%s You have selected to play \x03Forwards", PREFIX);
+	Shavit_PrintToChat(client, "You have selected to play \x03Forwards\x01.");
 
 	StopTimer(client);
 
@@ -434,7 +436,7 @@ public Action Command_Sideways(int client, int args)
 
 	gBS_Style[client] = Style_Sideways;
 
-	ReplyToCommand(client, "%s You have selected to play \x03Sideways", PREFIX);
+	Shavit_PrintToChat(client, "You have selected to play \x03Sideways\x01.");
 
 	StopTimer(client);
 
@@ -546,6 +548,26 @@ public int Native_ResumeTimer(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 
 	ResumeTimer(client);
+}
+
+public int Native_PrintToChat(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	int written = 0; // useless?
+
+	char[] buffer = new char[255];
+	// int FormatNativeString(int out_param, int fmt_param, int vararg_param, int out_len, int &written, char[] out_string, const char[] fmt_string)
+	FormatNativeString(0, 2, 3, 255, written, buffer);
+
+	/*GetNativeString(2, buffer, 255);
+
+	if(numParams >= 3)
+	{
+		VFormat(buffer, 255, buffer, GetNativeCellRef(3));
+	}*/
+
+	return PrintToChat(client, "%s%s %s", gSG_Type == Game_CSS? "":" ", PREFIX, buffer);
 }
 
 public void StartTimer(int client)
@@ -739,7 +761,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(gCV_Leftright.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT)))
 	{
 		StopTimer(client);
-		PrintToChat(client, "%s I've stopped your timer for using +left/+right. No cheating!", PREFIX);
+		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");
 	}
 
 	bool bEdit = false;
