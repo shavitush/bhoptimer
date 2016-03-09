@@ -1073,12 +1073,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		if(!overwrite)
 		{
-			Shavit_PrintToChat(client, "%s You have finished (%s) on \x07%s\x01 with %d jumps. \x08(+%s)", bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) on \x07%s\x01 with %d jumps. \x08(+%s)", bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "%s You have finished (%s) on \x07%s\x01 with %d jumps.", bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
+			Shavit_PrintToChat(client, "You have finished (%s) on \x07%s\x01 with %d jumps.", bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
 		}
 	}
 }
