@@ -62,6 +62,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-hud:
 - [x] HUD toggling command (sm_hud)
 - [x] Zone (start/end) HUD toggling command (sm_zonehud)
+- [ ] Show time in a "TIME/RECORD" format for replay bots
 
 ~ shavit-replay
 - [ ] Add admin interface (delete replay data)
