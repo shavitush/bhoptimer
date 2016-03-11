@@ -462,7 +462,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(client == gI_ReplayBotClient[Style_Forwards] || client == gI_ReplayBotClient[Style_Sideways])
 	{
-		SetEntProp(client, Prop_Data, "m_CollisionGroup", 1);
+		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 
 		BhopStyle style = (client == gI_ReplayBotClient[Style_Forwards]? Style_Forwards:Style_Sideways);
 
