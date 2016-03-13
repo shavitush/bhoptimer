@@ -58,6 +58,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-core:
 - [x] Fix chat colors for CS:S
 - [x] Add table prefix (shavit_core_sqlprefix)
+- [ ] Add style configuration through mysql (`style` table) and allow it to be custom with some options. (Autobhop, block each key individually and velocity limit)
 
 ~ shavit-hud:
 - [x] HUD toggling command (sm_hud)
@@ -70,6 +71,8 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 
 ~ shavit-wr
 - [ ] Make UpdateWRCache smaller.
+- [ ] Remove sm_wrsw and make sm_wr a dynamic menu with all difficulties.
+- [ ] Add a cvar that limits the amount of records in the WR menu. (default: 50)
 
 ~ [NEW PLUGIN] shavit-ranks:
 - [ ] Create table
