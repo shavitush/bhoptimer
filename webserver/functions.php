@@ -74,4 +74,38 @@ function formattoseconds($time)
 
   return $newtime;
 }
+
+function removeworkshop($mapname)
+{
+	if(strpos($mapname, "workshop/") !== false)
+	{
+		$pieces = explode("/", $mapname);
+
+		return $pieces[2];
+	}
+
+	return $mapname;
+}
+
+function getstylestring($style)
+{
+    $styletext = "";
+
+    switch($style)
+    {
+        case 0:
+        {
+            $styletext = "Forwards";
+            break;
+        }
+
+        case 1:
+        {
+            $styletext = "Sideways";
+            break;
+        }
+    }
+
+    return $styletext;
+}
 ?>
