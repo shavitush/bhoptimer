@@ -56,24 +56,26 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] Migrate every menu to the new syntax.
 
 ~ shavit-core:
-- [x] Fix chat colors for CS:S
-- [x] Add table prefix (shavit_core_sqlprefix)
+- [x] Fix chat colors for CS:S.
+- [x] Add table prefix. (`shavit_core_sqlprefix`)
 - [ ] Add style configuration through mysql (`style` table) and allow it to be custom with some options. (Autobhop, block each key individually and velocity limit)
 
 ~ shavit-hud:
-- [x] HUD toggling command (sm_hud)
-- [x] Zone (start/end) HUD toggling command (sm_zonehud)
-- [ ] Show time in a "TIME/RECORD" format for replay bots
+- [x] HUD toggling command. (`sm_hud`)
+- [x] Zone (start/end) HUD toggling command. (`sm_zonehud`)
+- [ ] Show time in a "TIME/RECORD" format for replay bots.
+- [ ] Replace "- Replay Bot -" for bots with an underlined and pretty text.
 
 ~ shavit-replay
-- [ ] Add admin interface (delete replay data)
-- [ ] Remove replay bot on deletion of the #1 record
+- [ ] Add admin interface. (delete replay data)
+- [ ] Remove replay bot on deletion of the #1 record.
+- [ ] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
 
 ~ shavit-wr
-- [ ] Make UpdateWRCache smaller.
-- [ ] Remove sm_wrsw and make sm_wr a dynamic menu with all difficulties.
+- [ ] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
+- [ ] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties.
 - [ ] Add a cvar that limits the amount of records in the WR menu. (default: 50)
 
 ~ [NEW PLUGIN] shavit-ranks:
-- [ ] Create table
-- [ ] to be added
+- [ ] Create table.
+- [ ] to be added.
