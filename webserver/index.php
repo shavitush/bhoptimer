@@ -64,6 +64,27 @@ if(isset($_REQUEST["map"]))
 
     <!-- load jquery, pretty sure we need it for bootstrap -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+
+    <script>
+    $(document).ready(function ()
+    {
+        $("tr").hover(function ()
+        {
+            if(!$(this).hasClass("lead"))
+            {
+                $(this).addClass("mark");
+            }
+        },
+
+        function ()
+        {
+            if(!$(this).hasClass("lead"))
+            {
+                $(this).removeClass("mark");
+            }
+        });
+    });
+    </script>
   </head>
 
   <body>
