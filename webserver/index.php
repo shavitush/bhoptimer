@@ -70,7 +70,7 @@ if(isset($_REQUEST["map"]))
     {
         $("tr").hover(function ()
         {
-            if(!$(this).hasClass("lead"))
+            if(!$(this).hasClass("lead") && $(this).attr('id') != "ignore")
             {
                 $(this).addClass("mark");
             }
@@ -78,7 +78,7 @@ if(isset($_REQUEST["map"]))
 
         function ()
         {
-            if(!$(this).hasClass("lead"))
+            if(!$(this).hasClass("lead") && $(this).attr('id') != "ignore")
             {
                 $(this).removeClass("mark");
             }
@@ -173,7 +173,7 @@ if(isset($_REQUEST["map"]))
                             <p><span class="mark"><?php echo(getstylestring($style)); ?></span> Records (<?php echo(number_format($rows)); ?>) for <i><?php echo(removeworkshop($map)); ?></i>:</p>
 
     						<table class="table">
-    						<tr><th>Rank</th>
+    						<tr id="ignore"><th>Rank</th>
     						<th>Record ID</th>
     						<th>SteamID3</th>
     						<th>Player</th>
