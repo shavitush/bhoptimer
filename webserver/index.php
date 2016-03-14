@@ -1,6 +1,4 @@
 <?php
-include("header.php");
-
 require("config.php");
 require("functions.php");
 require("steamid.php");
@@ -228,12 +226,12 @@ if(isset($_REQUEST["map"]))
 
     				?> </table> <?php
     			}
-    		}
 
-    		else
-    		{
-                ?> <h1>No results!</h1>
-                <p>Try another map, there may be some records!</p> <?php
+                else
+        		{
+                    ?> <h1>No results!</h1>
+                    <p>Try another map, there may be some records!</p> <?php
+        		}
     		}
 
     		if($stmt != FALSE)
