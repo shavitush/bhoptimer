@@ -43,18 +43,6 @@ if(isset($_REQUEST["map"]))
 		echo("<title>".removeworkshop($_GET["map"])."</title>");
 	} ?>
 
-    <!-- Bootstrap core CSS -->
-    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <link href="assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
-
-    <!-- Custom styles for this template, if we'll ever use it -->
-    <link href="timer.css" rel="stylesheet">
-
-    <!-- font awesome -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
-
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
@@ -63,12 +51,20 @@ if(isset($_REQUEST["map"]))
     <!-- let's hope maxcdn won't shut down ._. -->
 
     <!-- load jquery, pretty sure we need it for bootstrap -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <!-- asyncloading it will show irrelevant errors in the brwoser console, but has to happen due to pagespeed optimizing -->
+    <script async src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+
+    <!-- bootstrap itself -->
+    <script async src="assets/js/bootstrap.min.js"></script>
+    <script async src="assets/js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- Bootstrap core CSS | can't late-load -->
+    <link async rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
 
     <script>
-    $(document).ready(function ()
+    $(document).ready(function()
     {
-        $("tr").hover(function ()
+        $("tr").hover(function()
         {
             if(!$(this).hasClass("lead") && $(this).attr('id') != "ignore")
             {
@@ -76,7 +72,7 @@ if(isset($_REQUEST["map"]))
             }
         },
 
-        function ()
+        function()
         {
             if(!$(this).hasClass("lead") && $(this).attr('id') != "ignore")
             {
@@ -263,8 +259,15 @@ if(isset($_REQUEST["map"]))
         ?>
       </div>
     </div>
-
-    <script src="assets/js/bootstrap.min.js"></script>
-    <script src="assets/js/ie10-viewport-bug-workaround.js"></script>
   </body>
+
+  <!-- load those lately because it makes the page load faster -->
+  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+  <link rel="stylesheet" href="assets/css/ie10-viewport-bug-workaround.css">
+
+  <!-- Custom styles for this template, if we'll ever use it -->
+  <link rel="stylesheet" href="timer.css">
+
+  <!-- font awesome -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
 </html>
