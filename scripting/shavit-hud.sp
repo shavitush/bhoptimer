@@ -102,6 +102,7 @@ public void OnPluginStart()
 public void OnClientPutInServer(int client)
 {
 	gB_HUD[client] = true;
+	gB_ZoneHUD[client] = true;
 }
 
 public Action Command_ToggleHUD(int client, int args)
