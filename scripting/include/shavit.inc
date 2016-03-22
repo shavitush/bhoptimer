@@ -367,7 +367,7 @@ stock Shavit_PrintToChatAll(const char[] format, any ...)
 	{
 		if(IsClientInGame(i))
 		{
-			SetGlobalTransTarget(i);
+			SetGlobalTransTarget(i); // incase anyone will add translations to the plugin
 			VFormat(buffer, 255, format, 2);
 			Shavit_PrintToChat(i, "%s", buffer);
 		}
