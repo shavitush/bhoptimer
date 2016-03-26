@@ -38,15 +38,17 @@ Handle gH_OnWorldRecord = null;
 // database handle
 Database gH_SQL = null;
 
+// cache
 BhopStyle gBS_LastWR[MAXPLAYERS+1];
 
-char gS_Map[128]; // blame workshop paths to be so fkn long
+char gS_Map[192]; // blame workshop paths being so fucking long
 
 // current wr stats
 float gF_WRTime[MAX_STYLES];
 int gI_WRRecordID[MAX_STYLES];
 char gS_WRName[MAX_STYLES][MAX_NAME_LENGTH];
 
+// more caching
 float gF_PlayerRecord[MAXPLAYERS+1][MAX_STYLES];
 
 // admin menu
@@ -54,6 +56,9 @@ Handle gH_AdminMenu = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
+
+// cvars
+ConVar gCV_RecordsLimit = null;
 
 public Plugin myinfo =
 {
@@ -117,6 +122,11 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deleterecords", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
 	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records");
 
+	// cvars
+	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", FCVAR_PLUGIN, true, 1.0);
+
+	AutoExecConfig();
+
 	OnAdminMenuReady(null);
 }
 
@@ -127,9 +137,7 @@ public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newV
 
 public Action CheckForSQLPrefix(Handle Timer)
 {
-	Action a = SetSQLPrefix();
-
-	return a;
+	return SetSQLPrefix();
 }
 
 public Action SetSQLPrefix()
@@ -730,7 +738,7 @@ public void StartWRMenu(int client, const char[] map, int style)
 	dp.WriteString(map);
 
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM %splayertimes WHERE map = '%s' AND style = %d) AS records FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC LIMIT 50;", gS_MySQLPrefix, map, style, gS_MySQLPrefix, gS_MySQLPrefix, map, style);
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM %splayertimes WHERE map = '%s' AND style = %d) AS records FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC LIMIT %d;", gS_MySQLPrefix, map, style, gS_MySQLPrefix, gS_MySQLPrefix, map, style, gCV_RecordsLimit.IntValue);
 
 	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, dp, DBPrio_High);
 

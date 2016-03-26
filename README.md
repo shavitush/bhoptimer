@@ -64,19 +64,19 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-hud:
 - [x] HUD toggling command. (`sm_hud`)
 - [x] Zone (start/end) HUD toggling command. (`sm_zonehud`)
-- [ ] Removed `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list.
-- [ ] Show time in a "TIME/RECORD" format for replay bots.
+- [ ] Show time in a "TIME/RECORD" format including percentage for replay bots.
 - [ ] Replace "- Replay Bot -" for bots with an underlined and pretty text.
+- [ ] Removed `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list in a panel.
 
 ~ shavit-replay
 - [ ] Add admin interface. (delete replay data)
-- [ ] Remove replay bot on deletion of the #1 record.
+- [ ] Remove replay bot data on deletion of the #1 record.
 - [ ] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
 
 ~ shavit-wr
 - [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
+- [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
 - [ ] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties.
-- [ ] Add a cvar that limits the amount of records in the WR menu. (default: 50)
 - [ ] Add strafe sync to the WR menu where available.
 
 ~ [NEW PLUGIN] shavit-ranks:

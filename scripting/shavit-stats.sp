@@ -73,9 +73,7 @@ public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newV
 
 public Action CheckForSQLPrefix(Handle Timer)
 {
-	Action a = SetSQLPrefix();
-
-	return a;
+	return SetSQLPrefix();
 }
 
 public Action SetSQLPrefix()
