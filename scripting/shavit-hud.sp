@@ -240,7 +240,7 @@ public void UpdateHUD(int client)
 
 		if(gSG_Type == Game_CSGO)
 		{
-			FormatEx(sHintText, 256, "<font face='Stratum2'>");
+			strcopy(sHintText, 256, "<font face='Stratum2'>");
 
 			if(bStarted)
 			{

@@ -98,6 +98,9 @@ bool gB_Late;
 ConVar gCV_ZoneStyle = null;
 ConVar gCV_Interval = null;
 
+// table prefix
+char gS_MySQLPrefix[32];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
@@ -129,6 +132,7 @@ public void OnAllPluginsLoaded()
 	// database shit
 	Shavit_GetDB(gH_SQL);
 	SQL_DBConnect();
+	SetSQLPrefix();
 
 	if(gB_Late)
 	{
@@ -161,6 +165,37 @@ public void OnPluginStart()
 	AutoExecConfig();
 }
 
+public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
+{
+	strcopy(gS_MySQLPrefix, 32, newValue);
+}
+
+public Action CheckForSQLPrefix(Handle Timer)
+{
+	Action a = SetSQLPrefix();
+
+	return a;
+}
+
+public Action SetSQLPrefix()
+{
+	ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+
+	if(cvMySQLPrefix != null)
+	{
+		cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
+		cvMySQLPrefix.AddChangeHook(OnPrefixChange);
+
+		SQL_DBConnect();
+
+		return Plugin_Stop;
+	}
+
+	CreateTimer(5.0, CheckForSQLPrefix);
+
+	return Plugin_Continue;
+}
+
 public void OnAdminMenuReady(Handle topmenu)
 {
 	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
@@ -180,12 +215,12 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 {
 	if(action == TopMenuAction_DisplayTitle)
 	{
-		FormatEx(buffer, maxlength, "Timer Commands:");
+		strcopy(buffer, maxlength, "Timer Commands:");
 	}
 
 	else if (action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "Timer Commands");
+		strcopy(buffer, maxlength, "Timer Commands");
 	}
 }
 
@@ -193,7 +228,7 @@ public void AdminMenu_Zones(Handle topmenu,  TopMenuAction action, TopMenuObject
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "Add map zone");
+		strcopy(buffer, maxlength, "Add map zone");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -206,7 +241,7 @@ public void AdminMenu_DeleteZone(Handle topmenu,  TopMenuAction action, TopMenuO
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "Delete map zone");
+		strcopy(buffer, maxlength, "Delete map zone");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -219,7 +254,7 @@ public void AdminMenu_DeleteAllZones(Handle topmenu,  TopMenuAction action, TopM
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "Delete ALL map zones");
+		strcopy(buffer, maxlength, "Delete ALL map zones");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -337,7 +372,7 @@ public void UnloadZones(int zone)
 public void RefreshZones()
 {
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y FROM mapzones WHERE map = '%s';", gS_Map);
+	FormatEx(sQuery, 256, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y FROM %smapzones WHERE0 map = '%s';", gS_MySQLPrefix, gS_Map);
 
 	SQL_TQuery(gH_SQL, SQL_RefreshZones_Callback, sQuery, DBPrio_High);
 }
@@ -539,7 +574,7 @@ public int DeleteZone_MenuHandler(Handle menu, MenuAction action, int param1, in
 		}
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM mapzones WHERE map = '%s' AND type = '%d';", gS_Map, iInfo);
+		FormatEx(sQuery, 256, "DELETE FROM mapzones WHERE %smap = '%s' AND type = '%d';", gS_MySQLPrefix, gS_Map, iInfo);
 
 		Handle hDatapack = CreateDataPack();
 		WritePackCell(hDatapack, GetClientSerial(param1));
@@ -625,7 +660,7 @@ public int DeleteAllZones_MenuHandler(Handle menu, MenuAction action, int param1
 		}
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM mapzones WHERE map = '%s';", gS_Map);
+		FormatEx(sQuery, 256, "DELETE FROM mapzones WHERE %smap = '%s';", gS_MySQLPrefix, gS_Map);
 
 		SQL_TQuery(gH_SQL, SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
 	}
@@ -1213,7 +1248,7 @@ public void InsertZone(int client)
 
 	if(type == Zone_Freestyle)
 	{
-		FormatEx(sQuery, 512, "INSERT INTO mapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
+		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
 
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
 		{
@@ -1242,12 +1277,12 @@ public void InsertZone(int client)
 	{
 		if(EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) // insert
 		{
-			FormatEx(sQuery, 512, "INSERT INTO mapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
+			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
 		}
 
 		else // update
 		{
-			FormatEx(sQuery, 512, "UPDATE mapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
+			FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
 		}
 
 		gV_MapZones[type][0] = gV_Point1[client];

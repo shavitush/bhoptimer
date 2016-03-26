@@ -389,7 +389,7 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 
 		else
 		{
-			FormatEx(sDisplay, 192, "%s", sMap);
+			strcopy(sDisplay, 192, sMap);
 		}
 
 		// adding map as info, may be used in the future

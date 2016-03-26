@@ -167,7 +167,7 @@ public void AdminMenu_Delete(Handle topmenu,  TopMenuAction action, TopMenuObjec
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "Delete a single record");
+		strcopy(buffer, maxlength, "Delete a single record");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -180,7 +180,7 @@ public void AdminMenu_DeleteAll(Handle topmenu,  TopMenuAction action, TopMenuOb
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "Delete ALL map records");
+		strcopy(buffer, maxlength, "Delete ALL map records");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -289,7 +289,7 @@ public void SQL_UpdateWRCache_Forwards_Callback(Handle owner, Handle hndl, const
 
 	if(!SQL_FetchRow(hndl))
 	{
-		FormatEx(gS_WRName[0], MAX_NAME_LENGTH, "invalid");
+		strcopy(gS_WRName[0], MAX_NAME_LENGTH, "invalid");
 		gF_WRTime[0] = 0.0;
 	}
 
@@ -311,7 +311,7 @@ public void SQL_UpdateWRCache_Sideways_Callback(Handle owner, Handle hndl, const
 
 	if(!SQL_FetchRow(hndl))
 	{
-		FormatEx(gS_WRName[1], MAX_NAME_LENGTH, "invalid");
+		strcopy(gS_WRName[1], MAX_NAME_LENGTH, "invalid");
 		gF_WRTime[1] = 0.0;
 	}
 

@@ -256,12 +256,12 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 {
 	if(action == TopMenuAction_DisplayTitle)
 	{
-		FormatEx(buffer, maxlength, "Timer Commands:");
+		strcopy(buffer, maxlength, "Timer Commands:");
 	}
 
 	else if (action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "Timer Commands");
+		strcopy(buffer, maxlength, "Timer Commands");
 	}
 }
 
@@ -681,7 +681,7 @@ public void OnClientPutInServer(int client)
 
 	if(StrEqual(sCountry, ""))
 	{
-		FormatEx(sCountry, 45, "Local Area Network");
+		strcopy(sCountry, 45, "Local Area Network");
 	}
 
 	// too lazy to calculate if it can go over 256 so let's not take risks and use 512, because #pragma dynamic <3
