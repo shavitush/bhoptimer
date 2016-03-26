@@ -267,13 +267,23 @@ native void Shavit_FinishMap(int client);
 native void Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &style, bool &started);
 
 /**
- * Saves the WR time on the map on a variable.
+ * Saves the WR time for the current map on a variable.
  *
  * @param style						Style to get the WR for.
  * @param time						Reference to the time variable. 0.0 will be returned if no records.
  * @noreturn
  */
 native void Shavit_GetWRTime(BhopStyle style, float &time);
+
+/**
+ * Saves the WR's record ID for the current map on a variable.
+ * Unused in base plugins, as of pre-1.4b.
+ *
+ * @param style						Style to get the WR for.
+ * @param time						Reference to the time variable. 0.0 will be returned if no records.
+ * @noreturn
+ */
+native void Shavit_GetWRRecordID(BhopStyle style, int &recordid);
 
 /**
  * Saves the WR's player name on the map on a variable.

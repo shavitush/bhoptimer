@@ -74,7 +74,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [ ] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
 
 ~ shavit-wr
-- [ ] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
+- [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
 - [ ] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties.
 - [ ] Add a cvar that limits the amount of records in the WR menu. (default: 50)
 - [ ] Add strafe sync to the WR menu where available.

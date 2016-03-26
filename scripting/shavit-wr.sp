@@ -44,6 +44,7 @@ char gS_Map[128]; // blame workshop paths to be so fkn long
 
 // current wr stats
 float gF_WRTime[MAX_STYLES];
+int gI_WRRecordID[MAX_STYLES];
 char gS_WRName[MAX_STYLES][MAX_NAME_LENGTH];
 
 float gF_PlayerRecord[MAXPLAYERS+1][MAX_STYLES];
@@ -67,6 +68,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// get wr
 	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
+	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 
 	// get pb
@@ -270,37 +272,47 @@ public void SQL_UpdateCache_Callback(Handle owner, Handle hndl, const char[] err
 public void UpdateWRCache()
 {
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT u.name, p.time FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '0' ORDER BY time ASC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
-	SQL_TQuery(gH_SQL, SQL_UpdateWRCache_Forwards_Callback, sQuery, 0, DBPrio_High);
+	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
+	// was a bit confused with this one :s
+	FormatEx(sQuery, 256, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers AS u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 
-	// I FUCKING KNOW THERE'S A WAY TO DO THIS IN 1 QUERY BUT I SUCK AT SQL SO FORGIVE PLS ;-;
-	FormatEx(sQuery, 256, "SELECT u.name, p.time FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '1' ORDER BY time ASC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
-	SQL_TQuery(gH_SQL, SQL_UpdateWRCache_Sideways_Callback, sQuery, 0, DBPrio_High);
+	SQL_TQuery(gH_SQL, SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_High);
 }
 
-public void SQL_UpdateWRCache_Forwards_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_UpdateWRCache_Callback(Handle owner, Handle hndl, const char[] error, any data)
 {
 	if(hndl == null)
 	{
-		LogError("Timer (WR forwards cache update) SQL query failed. Reason: %s", error);
+		LogError("Timer (WR cache update) SQL query failed. Reason: %s", error);
 
 		return;
 	}
 
-	if(!SQL_FetchRow(hndl))
+	// resultset structure
+	// FIELD 0: style
+	// FIELD 1: id
+	// FIELD 2: time - sorted
+	// FIELD 3: name
+
+	// reset cache
+	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		strcopy(gS_WRName[0], MAX_NAME_LENGTH, "invalid");
-		gF_WRTime[0] = 0.0;
+		strcopy(gS_WRName[i], MAX_NAME_LENGTH, "invalid");
+		gF_WRTime[i] = 0.0;
 	}
 
-	else
+	// setup cache again, dynamically and not hardcoded
+	while(SQL_FetchRow(hndl))
 	{
-		SQL_FetchString(hndl, 0, gS_WRName[0], MAX_NAME_LENGTH);
-		gF_WRTime[0] = SQL_FetchFloat(hndl, 1);
+		int style = SQL_FetchInt(hndl, 0);
+
+		gI_WRRecordID[style] = SQL_FetchInt(hndl, 1);
+		gF_WRTime[style] = SQL_FetchFloat(hndl, 2);
+		SQL_FetchString(hndl, 3, gS_WRName[style], MAX_NAME_LENGTH);
 	}
 }
 
-public void SQL_UpdateWRCache_Sideways_Callback(Handle owner, Handle hndl, const char[] error, any data)
+/*public void SQL_UpdateWRCache_Sideways_Callback(Handle owner, Handle hndl, const char[] error, any data)
 {
 	if(hndl == null)
 	{
@@ -320,12 +332,18 @@ public void SQL_UpdateWRCache_Sideways_Callback(Handle owner, Handle hndl, const
 		SQL_FetchString(hndl, 0, gS_WRName[1], MAX_NAME_LENGTH);
 		gF_WRTime[1] = SQL_FetchFloat(hndl, 1);
 	}
-}
+}*/
 
 public int Native_GetWRTime(Handle handler, int numParams)
 {
 	BhopStyle style = GetNativeCell(1);
 	SetNativeCellRef(2, gF_WRTime[style]);
+}
+
+public int Native_GetWRRecordID(Handle handler, int numParams)
+{
+	BhopStyle style = GetNativeCell(1);
+	SetNativeCellRef(2, gI_WRRecordID[style]);
 }
 
 public int Native_GetWRName(Handle handler, int numParams)
@@ -1005,7 +1023,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	char sTime[32];
 	FormatSeconds(time, sTime, 32);
 
-	// k people I made this forward so I'll use it to make cool text messages on WR (check timer-misc soon™)
+	// k people I made this forward so I'll use it to make cool text messages on WR (check shavit-misc soon™) EDIT: implemented into shavit-misc ages ago lmao why is this line still here :o
 	if(time < gF_WRTime[style] || gF_WRTime[style] == 0.0) // WR?
 	{
 		Call_StartForward(gH_OnWorldRecord);
@@ -1021,7 +1039,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	// 0 - no query
 	// 1 - insert
 	// 2 - update
-	int overwrite;
+	int overwrite = 0;
 
 	if(gF_PlayerRecord[client][style] == 0.0)
 	{
