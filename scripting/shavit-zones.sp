@@ -130,9 +130,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnAllPluginsLoaded()
 {
 	// database shit
-	Shavit_GetDB(gH_SQL);
-	SQL_DBConnect();
 	SetSQLPrefix();
+	Shavit_GetDB(gH_SQL);
 
 	if(gB_Late)
 	{
@@ -370,7 +369,7 @@ public void UnloadZones(int zone)
 public void RefreshZones()
 {
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y FROM %smapzones WHERE0 map = '%s';", gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, 256, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
 	SQL_TQuery(gH_SQL, SQL_RefreshZones_Callback, sQuery, DBPrio_High);
 }
@@ -572,7 +571,7 @@ public int DeleteZone_MenuHandler(Handle menu, MenuAction action, int param1, in
 		}
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM mapzones WHERE %smap = '%s' AND type = '%d';", gS_MySQLPrefix, gS_Map, iInfo);
+		FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gS_Map, iInfo);
 
 		Handle hDatapack = CreateDataPack();
 		WritePackCell(hDatapack, GetClientSerial(param1));
@@ -658,7 +657,7 @@ public int DeleteAllZones_MenuHandler(Handle menu, MenuAction action, int param1
 		}
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM mapzones WHERE %smap = '%s';", gS_MySQLPrefix, gS_Map);
+		FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
 		SQL_TQuery(gH_SQL, SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
 	}
@@ -1719,7 +1718,10 @@ public void SQL_DBConnect()
 	{
 		if(gH_SQL != null)
 		{
-			SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, "CREATE TABLE IF NOT EXISTS `mapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT, `fix1_x` FLOAT, `fix1_y` FLOAT, `fix2_x` FLOAT, `fix2_y` FLOAT, PRIMARY KEY (`id`));");
+			char sQuery[256];
+			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT, `fix1_x` FLOAT, `fix1_y` FLOAT, `fix2_x` FLOAT, `fix2_y` FLOAT, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+
+			SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, sQuery);
 		}
 	}
 
@@ -1738,14 +1740,20 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 		return;
 	}
 
-	SQL_TQuery(gH_SQL, SQL_CheckRotation_Callback, "SELECT rot_ang FROM mapzones");
+	char sQuery[64];
+	FormatEx(sQuery, 128, "SELECT rot_ang FROM %smapzones;", gS_MySQLPrefix);
+
+	SQL_TQuery(gH_SQL, SQL_CheckRotation_Callback, sQuery);
 }
 
 public void SQL_CheckRotation_Callback(Handle owner, Handle hndl, const char[] error, any data)
 {
 	if(hndl == null)
 	{
-		SQL_TQuery(gH_SQL, SQL_AlterTable_Callback, "ALTER TABLE `mapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);");
+		char sQuery[256];
+		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
+
+		SQL_TQuery(gH_SQL, SQL_AlterTable_Callback, sQuery);
 	}
 }
 
