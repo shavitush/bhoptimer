@@ -48,8 +48,8 @@ public void OnAllPluginsLoaded()
 	}
 
 	// database related stuff
-	Shavit_GetDB(gH_SQL);
 	SetSQLPrefix();
+	Shavit_GetDB(gH_SQL);
 }
 
 public void OnPluginStart()

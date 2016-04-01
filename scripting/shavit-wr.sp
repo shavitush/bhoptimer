@@ -94,8 +94,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnAllPluginsLoaded()
 {
 	// database connections
-	Shavit_GetDB(gH_SQL);
 	SetSQLPrefix();
+	Shavit_GetDB(gH_SQL);
 }
 
 public void OnPluginStart()
