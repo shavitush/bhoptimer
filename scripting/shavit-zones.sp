@@ -129,9 +129,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-	// database shit
-	SetSQLPrefix();
+	// connection to database
 	Shavit_GetDB(gH_SQL);
+	SetSQLInfo();
 
 	if(gB_Late)
 	{
@@ -169,26 +169,38 @@ public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newV
 	strcopy(gS_MySQLPrefix, 32, newValue);
 }
 
-public Action CheckForSQLPrefix(Handle Timer)
+public Action CheckForSQLInfo(Handle Timer)
 {
-	return SetSQLPrefix();
+	return SetSQLInfo();
 }
 
-public Action SetSQLPrefix()
+public Action SetSQLInfo()
 {
-	ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+	float fTime = 0.0;
 
-	if(cvMySQLPrefix != null)
+	if(gH_SQL == null)
 	{
-		cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
-		cvMySQLPrefix.AddChangeHook(OnPrefixChange);
-
-		SQL_DBConnect();
-
-		return Plugin_Stop;
+		fTime = 0.5;
 	}
 
-	CreateTimer(5.0, CheckForSQLPrefix);
+	else
+	{
+		ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+
+		if(cvMySQLPrefix != null)
+		{
+			cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
+			cvMySQLPrefix.AddChangeHook(OnPrefixChange);
+
+			SQL_DBConnect();
+
+			return Plugin_Stop;
+		}
+
+		fTime = 1.0;
+	}
+
+	CreateTimer(fTime, CheckForSQLInfo);
 
 	return Plugin_Continue;
 }
