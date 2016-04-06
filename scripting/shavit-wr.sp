@@ -332,28 +332,6 @@ public void SQL_UpdateWRCache_Callback(Handle owner, Handle hndl, const char[] e
 	}
 }
 
-/*public void SQL_UpdateWRCache_Sideways_Callback(Handle owner, Handle hndl, const char[] error, any data)
-{
-	if(hndl == null)
-	{
-		LogError("Timer (WR sideways cache update) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
-	if(!SQL_FetchRow(hndl))
-	{
-		strcopy(gS_WRName[1], MAX_NAME_LENGTH, "invalid");
-		gF_WRTime[1] = 0.0;
-	}
-
-	else
-	{
-		SQL_FetchString(hndl, 0, gS_WRName[1], MAX_NAME_LENGTH);
-		gF_WRTime[1] = SQL_FetchFloat(hndl, 1);
-	}
-}*/
-
 public int Native_GetWRTime(Handle handler, int numParams)
 {
 	BhopStyle style = GetNativeCell(1);
