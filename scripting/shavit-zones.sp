@@ -1731,7 +1731,7 @@ public void SQL_DBConnect()
 		if(gH_SQL != null)
 		{
 			char sQuery[256];
-			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT, `fix1_x` FLOAT, `fix1_y` FLOAT, `fix2_x` FLOAT, `fix2_y` FLOAT, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
 			SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, sQuery);
 		}
