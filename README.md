@@ -58,6 +58,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-core:
 - [x] Fix chat colors for CS:S.
 - [x] Add table prefix. (`shavit_core_sqlprefix`)
+- [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams.
 - [ ] Add style configuration through mysql (`style` table) and allow it to be custom with some options. (Autobhop, block each key individually and velocity limit)
 - [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
 
