@@ -371,7 +371,7 @@ public Action Command_AutoBhop(int client, int args)
 
 	gB_Auto[client] = !gB_Auto[client];
 
-	Shavit_PrintToChat(client, "%s Autobhop %s\x01.", gB_Auto[client]? "\x04enabled":"\x02disabled");
+	Shavit_PrintToChat(client, "Autobhop %s\x01.", gB_Auto[client]? "\x04enabled":"\x02disabled");
 
 	return Plugin_Handled;
 }
