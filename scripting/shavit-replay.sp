@@ -209,6 +209,13 @@ public void OnMapStart()
 
 	if(!FileExists(sTempMap))
 	{
+		if(!FileExists("maps/base.nav"))
+		{
+			SetFailState("Plugin startup FAILED: \"maps/base.nav\" does not exist.");
+
+			return;
+		}
+
 		File_Copy("maps/base.nav", sTempMap);
 
 		ForceChangeLevel(gS_Map, ".nav file generate");
