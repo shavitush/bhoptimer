@@ -30,6 +30,8 @@
 #pragma dynamic 131072 // let's make stuff faster
 #pragma newdecls required // yay for SM 1.7 :D
 
+#define PLACEHOLDER 32767
+
 Database gH_SQL = null;
 
 char gS_Map[128];
@@ -288,7 +290,7 @@ public int Native_InsideZone(Handle handler, int numParams)
 	{
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
 		{
-			if(i == 0 && InsideZone(client, -1337))
+			if(i == 0 && InsideZone(client, -PLACEHOLDER))
 			{
 				return true;
 			}
@@ -1351,7 +1353,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 				if(j == 0)
 				{
-					CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -1337, false);
+					CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -PLACEHOLDER, false);
 				}
 
 				else
@@ -1428,7 +1430,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	vPoints[0] = gV_Point1[data];
 	vPoints[7] = vOrigin;
 
-	CreateZonePoints(vPoints, gF_RotateAngle[data], gV_Fix1[data], gV_Fix2[data], 1337, false);
+	CreateZonePoints(vPoints, gF_RotateAngle[data], gV_Fix1[data], gV_Fix2[data], PLACEHOLDER, false);
 
 	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[data]], 0.1);
 
@@ -1441,7 +1443,7 @@ public Action Timer_Draw(Handle Timer, any data)
 /*
 *
 * @param client - client to check
-* @param zone - zone to check (-1337 for freestyle 0, -zone for freestyle)
+* @param zone - zone to check (-PLACEHOLDER for freestyle 0, -zone for freestyle)
 *
 * returns true if a player is inside the given zone
 * returns false if they aren't in it
@@ -1469,7 +1471,7 @@ public bool InsideZone(int client, int zone)
 	else
 	{
 		// Explanation above
-		if(zone == -1337)
+		if(zone == -PLACEHOLDER)
 		{
 			vPoints[0] = gV_FreestyleZones[0][0];
 			vPoints[7] = gV_FreestyleZones[0][1];
@@ -1618,7 +1620,7 @@ public void PointTranslate(float point[3], float t[2])
 * angle - rotated angle for not constant zone (preview zone)
 * fix1 - edge fixes
 * fix2 - edge fixes
-* zone - 1337 for not constant zone, -1337 for index 0 freestyle zone, zone id (- for free style zone)
+* zone - PLACEHOLDER for not constant zone, -PLACEHOLDER for index 0 freestyle zone, zone id (- for free style zone)
 * norotate - dont rotae
 */
 public void CreateZonePoints(float point[8][3], float angle, float fix1[2], float fix2[2], int zone, bool norotate)
@@ -1636,11 +1638,11 @@ public void CreateZonePoints(float point[8][3], float angle, float fix1[2], floa
 		TranslateZone(point, fix1, fix2);
 	}
 
-	if(zone == 1337)
+	if(zone == PLACEHOLDER)
 	{
 		for(int i = 1; i < 8; i++)
 		{
-			if(zone == 1337)
+			if(zone == PLACEHOLDER)
 			{
 				PointRotate(angle, point[0], point[i]);
 			}
@@ -1648,7 +1650,7 @@ public void CreateZonePoints(float point[8][3], float angle, float fix1[2], floa
 	}
 	else
 	{
-		if(zone >= 0 && zone != -1337)
+		if(zone >= 0 && zone != -PLACEHOLDER)
 		{
 			if(!norotate)
 			{
@@ -1658,7 +1660,7 @@ public void CreateZonePoints(float point[8][3], float angle, float fix1[2], floa
 
 		else
 		{
-			if(zone == -1337)
+			if(zone == -PLACEHOLDER)
 			{
 				if(!norotate)
 				{
