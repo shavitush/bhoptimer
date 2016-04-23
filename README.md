@@ -59,6 +59,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] Fix chat colors for CS:S.
 - [x] Add table prefix. (`shavit_core_sqlprefix`)
 - [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams.
+- [ ] Add shavit_core_nostaminareset ("easybhop")
 - [ ] Add style configuration through mysql (`style` table) and allow it to be custom with some options. (Autobhop, block each key individually and velocity limit)
 - [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
 
@@ -79,6 +80,9 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
 - [ ] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties.
 - [ ] Add strafe sync to the WR menu where available.
+
+~ shavit-zones
+- [ ] Optimize `InsideZone()` so `CreateZonePoints()` will not be needed for simple (not rotated) zones.
 
 ~ [NEW PLUGIN] shavit-ranks:
 - [ ] Create table.

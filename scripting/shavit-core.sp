@@ -68,6 +68,7 @@ ConVar gCV_Leftright = null;
 ConVar gCV_Restart = null;
 ConVar gCV_Pause = null;
 ConVar gCV_MySQLPrefix = null;
+ConVar gCV_NoStaminaReset = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -204,6 +205,7 @@ public void OnPluginStart()
 	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN);
 	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", FCVAR_PLUGIN);
 	gCV_MySQLPrefix.AddChangeHook(OnPrefixChange);
+	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.", FCVAR_PLUGIN);
 
 	AutoExecConfig();
 
@@ -259,7 +261,7 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 		strcopy(buffer, maxlength, "Timer Commands:");
 	}
 
-	else if (action == TopMenuAction_DisplayOption)
+	else if(action == TopMenuAction_DisplayOption)
 	{
 		strcopy(buffer, maxlength, "Timer Commands");
 	}
@@ -466,7 +468,10 @@ public void Player_Jump(Handle event, const char[] name, bool dontBroadcast)
 		gI_Jumps[client]++;
 	}
 
-	SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+	if(gCV_NoStaminaReset.BoolValue)
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+	}
 }
 
 public void Player_Death(Handle event, const char[] name, bool dontBroadcast)
