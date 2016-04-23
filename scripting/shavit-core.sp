@@ -36,7 +36,7 @@
 ServerGame gSG_Type = Game_Unknown;
 
 // database handle
-Handle gH_SQL = null;
+Database gH_SQL = null;
 
 // forwards
 Handle gH_Forwards_Start = null;
@@ -288,7 +288,7 @@ public Action Command_StartTimer(int client, int args)
 	{
 		if(args != -1)
 		{
-			char sCommand[16];
+			char[] sCommand = new char[16];
 			GetCmdArg(0, sCommand, 16);
 
 			Shavit_PrintToChat(client, "The command (\x03%s\x01) is disabled.", sCommand);
@@ -327,7 +327,7 @@ public Action Command_TogglePause(int client, int args)
 
 	if(!gCV_Pause.BoolValue)
 	{
-		char sCommand[16];
+		char[] sCommand = new char[16];
 		GetCmdArg(0, sCommand, 16);
 
 		Shavit_PrintToChat(client, "The command (\x03%s\x01) is disabled.", sCommand);
@@ -402,7 +402,7 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
+		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
 		if(StrEqual(info, "forwards"))
@@ -420,6 +420,8 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 public Action Command_Forwards(int client, int args)
@@ -668,20 +670,20 @@ public void OnClientPutInServer(int client)
 	}
 
 	// SteamID3 is cool, 2015 B O Y S
-	char sAuthID3[32];
+	char[] sAuthID3 = new char[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32);
 
-	char sName[MAX_NAME_LENGTH];
+	char[] sName = new char[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 
 	int iLength = ((strlen(sName) * 2) + 1);
 	char[] sEscapedName = new char[iLength]; // dynamic arrays! I love you, SourcePawn 1.7!
 	SQL_EscapeString(gH_SQL, sName, sEscapedName, iLength);
 
-	char sIP[32];
+	char[] sIP = new char[32];
 	GetClientIP(client, sIP, 32);
 
-	char sCountry[45];
+	char[] sCountry = new char[45];
 	GeoipCountry(sIP, sCountry, 45);
 
 	if(StrEqual(sCountry, ""))
@@ -690,10 +692,10 @@ public void OnClientPutInServer(int client)
 	}
 
 	// too lazy to calculate if it can go over 256 so let's not take risks and use 512, because #pragma dynamic <3
-	char sQuery[512];
+	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip) VALUES ('%s', '%s', '%s', '%s');", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP);
 
-	SQL_TQuery(gH_SQL, SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
 
 public void SQL_InsertUser_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -720,12 +722,12 @@ public void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
-		CloseHandle(gH_SQL);
+		delete gH_SQL;
 	}
 
 	if(SQL_CheckConfig("shavit"))
 	{
-		char sError[255];
+		char[] sError = new char[255];
 
 		if(!(gH_SQL = SQL_Connect("shavit", true, sError, 255)))
 		{
@@ -737,11 +739,11 @@ public void SQL_DBConnect()
 		SQL_FastQuery(gH_SQL, "SET NAMES 'utf8';");
 		SQL_UnlockDatabase(gH_SQL);
 
-		char sQuery[256];
+		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(45), `ip` VARCHAR(32), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
 
 		// CREATE TABLE IF NOT EXISTS
-		SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, sQuery);
+		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}
 
 	else

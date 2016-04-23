@@ -229,7 +229,7 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 		strcopy(buffer, maxlength, "Timer Commands:");
 	}
 
-	else if (action == TopMenuAction_DisplayOption)
+	else if(action == TopMenuAction_DisplayOption)
 	{
 		strcopy(buffer, maxlength, "Timer Commands");
 	}
@@ -382,10 +382,10 @@ public void UnloadZones(int zone)
 
 public void RefreshZones()
 {
-	char sQuery[256];
+	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
-	SQL_TQuery(gH_SQL, SQL_RefreshZones_Callback, sQuery, DBPrio_High);
+	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, DBPrio_High);
 }
 
 public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -479,7 +479,7 @@ public Action Command_Modifier(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char sArg1[16];
+	char[] sArg1 = new char[16];
 	GetCmdArg(1, sArg1, 16);
 
 	if(StringToFloat(sArg1) <= 0.0)
@@ -511,19 +511,19 @@ public Action Command_Zones(int client, int args)
 
 	Reset(client);
 
-	Handle menu = CreateMenu(Select_Type_MenuHandler);
-	SetMenuTitle(menu, "Select a zone type:");
+	Menu menu = new Menu(Select_Type_MenuHandler);
+	menu.SetTitle("Select a zone type:");
 
-	AddMenuItem(menu, "0", "Start Zone");
-	AddMenuItem(menu, "1", "End Zone");
-	AddMenuItem(menu, "2", "Glitch Zone (Respawn Player)");
-	AddMenuItem(menu, "3", "Glitch Zone (Stop Timer)");
-	AddMenuItem(menu, "4", "Slay Player");
-	AddMenuItem(menu, "5", "Freestyle Zone");
+	menu.AddItem("0", "Start Zone");
+	menu.AddItem("1", "End Zone");
+	menu.AddItem("2", "Glitch Zone (Respawn Player)");
+	menu.AddItem("3", "Glitch Zone (Stop Timer)");
+	menu.AddItem("4", "Slay Player");
+	menu.AddItem("5", "Freestyle Zone");
 
-	SetMenuExitButton(menu, true);
+	menu.ExitButton = true;
 
-	DisplayMenu(menu, client, 20);
+	menu.Display(client, 20);
 
 	return Plugin_Handled;
 }
@@ -535,69 +535,71 @@ public Action Command_DeleteZone(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Handle menu = CreateMenu(DeleteZone_MenuHandler);
-	SetMenuTitle(menu, "Delete a zone:\nPressing a zone will delete it. This action CANNOT BE REVERTED!");
+	Menu menu = new Menu(DeleteZone_MenuHandler);
+	menu.SetTitle("Delete a zone:\nPressing a zone will delete it. This action CANNOT BE REVERTED!");
 
-	for (int i = 0; i < MAX_ZONES; i++)
+	for(int i = 0; i < MAX_ZONES; i++)
 	{
 		if(i == view_as<int>(Zone_Freestyle))
 		{
 			if(!EmptyZone(gV_FreestyleZones[0][0]) && !EmptyZone(gV_FreestyleZones[0][1]))
 			{
-				char sInfo[8];
+				char[] sInfo = new char[8];
 				IntToString(i, sInfo, 8);
-				AddMenuItem(menu, sInfo, gS_ZoneNames[i]);
+				menu.AddItem(sInfo, gS_ZoneNames[i]);
 			}
 		}
 
 		if(!EmptyZone(gV_MapZones[i][0]) && !EmptyZone(gV_MapZones[i][1]))
 		{
-			char sInfo[8];
+			char[] sInfo = new char[8];
 			IntToString(i, sInfo, 8);
-			AddMenuItem(menu, sInfo, gS_ZoneNames[i]);
+			menu.AddItem(sInfo, gS_ZoneNames[i]);
 		}
 	}
 
 	if(!GetMenuItemCount(menu))
 	{
-		AddMenuItem(menu, "-1", "No zones found.");
+		menu.AddItem("-1", "No zones found.");
 	}
 
-	SetMenuExitButton(menu, true);
+	menu.ExitButton = true;
 
-	DisplayMenu(menu, client, 20);
+	menu.Display(client, 20);
 
 	return Plugin_Handled;
 }
 
-public int DeleteZone_MenuHandler(Handle menu, MenuAction action, int param1, int param2)
+public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[8];
-		GetMenuItem(menu, param2, info, 8);
+		char[] info = new char[8];
+		menu.GetItem(param2, info, 8);
 
 		int iInfo = StringToInt(info);
 
 		if(iInfo == -1)
 		{
-			return;
+			return 0;
 		}
 
-		char sQuery[256];
+		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gS_Map, iInfo);
 
-		Handle hDatapack = CreateDataPack();
-		WritePackCell(hDatapack, GetClientSerial(param1));
-		WritePackCell(hDatapack, iInfo);
+		DataPack hDatapack = new DataPack();
+		hDatapack.WriteCell(GetClientSerial(param1));
+		hDatapack.WriteCell(iInfo);
 
-		SQL_TQuery(gH_SQL, SQL_DeleteZone_Callback, sQuery, hDatapack);
+		gH_SQL.Query(SQL_DeleteZone_Callback, sQuery, hDatapack);
 	}
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete menu;
 	}
+
+	return 0;
 }
 
 public void SQL_DeleteZone_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -606,7 +608,7 @@ public void SQL_DeleteZone_Callback(Handle owner, Handle hndl, const char[] erro
 	int client = GetClientFromSerial(ReadPackCell(data));
 	int type = ReadPackCell(data);
 
-	CloseHandle(data);
+	delete view_as<DataPack>(data);
 
 	if(hndl == null)
 	{
@@ -634,34 +636,34 @@ public Action Command_DeleteAllZones(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Handle menu = CreateMenu(DeleteAllZones_MenuHandler);
-	SetMenuTitle(menu, "Delete ALL mapzones?\nPressing \"Yes\" will delete all the existing mapzones for this map.\nThis action CANNOT BE REVERTED!");
+	Menu menu = new Menu(DeleteAllZones_MenuHandler);
+	menu.SetTitle("Delete ALL mapzones?\nPressing \"Yes\" will delete all the existing mapzones for this map.\nThis action CANNOT BE REVERTED!");
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
-		AddMenuItem(menu, "-1", "NO!");
+		menu.AddItem("-1", "NO!");
 	}
 
-	AddMenuItem(menu, "yes", "YES!!! DELETE ALL THE MAPZONES!!!");
+	menu.AddItem("yes", "YES!!! DELETE ALL THE MAPZONES!!!");
 
 	for(int i = 1; i <= GetRandomInt(1, 3); i++)
 	{
-		AddMenuItem(menu, "-1", "NO!");
+		menu.AddItem("-1", "NO!");
 	}
 
-	SetMenuExitButton(menu, true);
+	menu.ExitButton = true;
 
-	DisplayMenu(menu, client, 20);
+	menu.Display(client, 20);
 
 	return Plugin_Handled;
 }
 
-public int DeleteAllZones_MenuHandler(Handle menu, MenuAction action, int param1, int param2)
+public int DeleteAllZones_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[8];
-		GetMenuItem(menu, param2, info, 8);
+		char[] info = new char[8];
+		menu.GetItem(param2, info, 8);
 
 		int iInfo = StringToInt(info);
 
@@ -670,15 +672,15 @@ public int DeleteAllZones_MenuHandler(Handle menu, MenuAction action, int param1
 			return;
 		}
 
-		char sQuery[256];
+		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
-		SQL_TQuery(gH_SQL, SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
+		gH_SQL.Query(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
 	}
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete menu;
 	}
 }
 
@@ -703,12 +705,12 @@ public void SQL_DeleteAllZones_Callback(Handle owner, Handle hndl, const char[] 
 	PrintToChat(client, "%s Deleted all map zones sucessfully.", PREFIX);
 }
 
-public int Select_Type_MenuHandler(Handle menu, MenuAction action, int param1, int param2)
+public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[8];
-		GetMenuItem(menu, param2, info, 8);
+		char[] info = new char[8];
+		menu.GetItem(param2, info, 8);
 
 		gMZ_Type[param1] = view_as<MapZones>(StringToInt(info));
 
@@ -717,8 +719,10 @@ public int Select_Type_MenuHandler(Handle menu, MenuAction action, int param1, i
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete menu;
 	}
+
+	return 0;
 }
 
 public void Reset(int client)
@@ -727,7 +731,7 @@ public void Reset(int client)
 	gI_MapStep[client] = 0;
 	gF_RotateAngle[client] = 0.0;
 
-	for (int i = 0; i < 2; i++)
+	for(int i = 0; i < 2; i++)
 	{
 		gV_Fix1[client][i] = 0.0;
 		gV_Fix2[client][i] = 0.0;
@@ -745,29 +749,32 @@ public void ShowPanel(int client, int step)
 {
 	gI_MapStep[client] = step;
 
-	Handle hPanel = CreatePanel();
+	Panel pPanel = new Panel();
 
-	char sPanelText[128];
+	char[] sPanelText = new char[128];
 	FormatEx(sPanelText, 128, "Press USE (default \"E\") to set the %s corner in your current position.", step == 1? "FIRST":"SECOND");
 
-	DrawPanelItem(hPanel, sPanelText, ITEMDRAW_RAWLINE);
-	DrawPanelItem(hPanel, "Abort zone creation");
+	pPanel.DrawItem(sPanelText, ITEMDRAW_RAWLINE);
+	pPanel.DrawItem("Abort zone creation");
 
-	SendPanelToClient(hPanel, client, ZoneCreation_Handler, 540);
-	CloseHandle(hPanel);
+	pPanel.Send(client, ZoneCreation_Handler, 540);
+
+	delete pPanel;
 }
 
-public int ZoneCreation_Handler(Handle menu, MenuAction action, int param1, int param2)
+public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		Reset(param1);
 	}
 
-	else if (action == MenuAction_End)
+	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete menu;
 	}
+
+	return 0;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons)
@@ -859,12 +866,12 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	return Plugin_Continue;
 }
 
-public int CreateZoneConfirm_Handler(Handle menu, MenuAction action, int param1, int param2)
+public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[8];
-		GetMenuItem(menu, param2, info, 8);
+		char[] info = new char[8];
+		menu.GetItem(param2, info, 8);
 
 		if(StrEqual(info, "yes"))
 		{
@@ -891,78 +898,80 @@ public int CreateZoneConfirm_Handler(Handle menu, MenuAction action, int param1,
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete menu;
 	}
+
+	return 0;
 }
 
 public void CreateEditMenu(int client)
 {
-	Handle menu = CreateMenu(CreateZoneConfirm_Handler);
-	SetMenuTitle(menu, "Confirm?");
+	Menu menu = new Menu(CreateZoneConfirm_Handler);
+	menu.SetTitle("Confirm?");
 
-	AddMenuItem(menu, "yes", "Yes");
-	AddMenuItem(menu, "no", "No");
-	AddMenuItem(menu, "adjust", "Adjust position");
-	AddMenuItem(menu, "rotate", "Rotate zone");
-	AddMenuItem(menu, "wl", "Modify width/length");
+	menu.AddItem("yes", "Yes");
+	menu.AddItem("no", "No");
+	menu.AddItem("adjust", "Adjust position");
+	menu.AddItem("rotate", "Rotate zone");
+	menu.AddItem("wl", "Modify width/length");
 
-	SetMenuExitButton(menu, true);
+	menu.ExitButton = true;
 
-	DisplayMenu(menu, client, 20);
+	menu.Display(client, 20);
 }
 
 public void CreateAdjustMenu(int client, int page)
 {
-	Handle hMenu = CreateMenu(ZoneAdjuster_Handler);
-	SetMenuTitle(hMenu, "Adjust the zone's position.\nUse \"sm_modifier <number>\" to set a new modifier.");
+	Menu hMenu = new Menu(ZoneAdjuster_Handler);
+	hMenu.SetTitle("Adjust the zone's position.\nUse \"sm_modifier <number>\" to set a new modifier.");
 
-	AddMenuItem(hMenu, "done", "Done!");
-	AddMenuItem(hMenu, "cancel", "Cancel");
+	hMenu.AddItem("done", "Done!");
+	hMenu.AddItem("cancel", "Cancel");
 
-	char sDisplay[64];
+	char[] sDisplay = new char[64];
 
 	// sorry for this ugly code ;_;
 	FormatEx(sDisplay, 64, "Point 1 | X axis +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p1x_plus", sDisplay);
+	hMenu.AddItem("p1x_plus", sDisplay);
 	FormatEx(sDisplay, 64, "Point 1 | X axis -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p1x_minus", sDisplay);
+	hMenu.AddItem("p1x_minus", sDisplay);
 
 	FormatEx(sDisplay, 64, "Point 1 | Y axis +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p1y_plus", sDisplay);
+	hMenu.AddItem("p1y_plus", sDisplay);
 	FormatEx(sDisplay, 64, "Point 1 | Y axis -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p1y_minus", sDisplay);
+	hMenu.AddItem("p1y_minus", sDisplay);
 
 	FormatEx(sDisplay, 64, "Point 1 | Z axis +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p1z_plus", sDisplay);
+	hMenu.AddItem("p1z_plus", sDisplay);
 	FormatEx(sDisplay, 64, "Point 1 | Z axis -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p1z_minus", sDisplay);
+	hMenu.AddItem("p1z_minus", sDisplay);
 
 	FormatEx(sDisplay, 64, "Point 2 | X axis +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p2x_plus", sDisplay);
+	hMenu.AddItem("p2x_plus", sDisplay);
 	FormatEx(sDisplay, 64, "Point 2 | X axis -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p2x_minus", sDisplay);
+	hMenu.AddItem("p2x_minus", sDisplay);
 
 	FormatEx(sDisplay, 64, "Point 2 | Y axis +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p2y_plus", sDisplay);
+	hMenu.AddItem("p2y_plus", sDisplay);
 	FormatEx(sDisplay, 64, "Point 2 | Y axis -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p2y_minus", sDisplay);
+	hMenu.AddItem("p2y_minus", sDisplay);
 
 	FormatEx(sDisplay, 64, "Point 2 | Z axis +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p2z_plus", sDisplay);
+	hMenu.AddItem("p2z_plus", sDisplay);
 	FormatEx(sDisplay, 64, "Point 2 | Z axis -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "p2z_minus", sDisplay);
+	hMenu.AddItem("p2z_minus", sDisplay);
 
-	SetMenuExitButton(hMenu, false);
+	hMenu.ExitButton = false;
 
-	DisplayMenuAtItem(hMenu, client, page, 20);
+	hMenu.DisplayAt(client, page, 20);
 }
 
-public int ZoneAdjuster_Handler(Handle menu, MenuAction action, int param1, int param2)
+public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
-		GetMenuItem(menu, param2, info, 16);
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
 
 		if(StrEqual(info, "done"))
 		{
@@ -1069,33 +1078,35 @@ public int ZoneAdjuster_Handler(Handle menu, MenuAction action, int param1, int 
 
 	else if(action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete menu;
 	}
+
+	return 0;
 }
 
 public void CreateRotateMenu(int client)
 {
-	Handle hMenu = CreateMenu(ZoneRotate_Handler);
-	SetMenuTitle(hMenu, "Rotate the zone.\nUse \"sm_modifier <number>\" to set a new modifier.");
+	Menu hMenu = new Menu(ZoneRotate_Handler);
+	hMenu.SetTitle("Rotate the zone.\nUse \"sm_modifier <number>\" to set a new modifier.");
 
-	AddMenuItem(hMenu, "done", "Done!");
-	AddMenuItem(hMenu, "cancel", "Cancel");
+	hMenu.AddItem("done", "Done!");
+	hMenu.AddItem("cancel", "Cancel");
 
-	char sDisplay[64];
+	char[] sDisplay = new char[64];
 	FormatEx(sDisplay, 64, "Rotate by +%.01f degrees", gF_Modifier[client]);
-	AddMenuItem(hMenu, "plus", sDisplay);
+	hMenu.AddItem("plus", sDisplay);
 	FormatEx(sDisplay, 64, "Rotate by -%.01f degrees", gF_Modifier[client]);
-	AddMenuItem(hMenu, "minus", sDisplay);
+	hMenu.AddItem("minus", sDisplay);
 
-	DisplayMenu(hMenu, client, 40);
+	hMenu.Display(client, 40);
 }
 
-public int ZoneRotate_Handler(Handle menu, MenuAction action, int param1, int param2)
+public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
-		GetMenuItem(menu, param2, info, 16);
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
 
 		if(StrEqual(info, "done"))
 		{
@@ -1130,43 +1141,43 @@ public int ZoneRotate_Handler(Handle menu, MenuAction action, int param1, int pa
 
 public void CreateWidthLengthMenu(int client, int page)
 {
-	Handle hMenu = CreateMenu(ZoneEdge_Handler);
-	SetMenuTitle(hMenu, "Rotate the zone.\nUse \"sm_modifier <number>\" to set a new modifier.");
+	Menu hMenu = new Menu(ZoneEdge_Handler);
+	hMenu.SetTitle("Rotate the zone.\nUse \"sm_modifier <number>\" to set a new modifier.");
 
-	AddMenuItem(hMenu, "done", "Done!");
-	AddMenuItem(hMenu, "cancel", "Cancel");
+	hMenu.AddItem("done", "Done!");
+	hMenu.AddItem("cancel", "Cancel");
 
-	char sDisplay[64];
+	char[] sDisplay = new char[64];
 	FormatEx(sDisplay, 64, "Right edge | +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "plus_right", sDisplay);
+	hMenu.AddItem("plus_right", sDisplay);
 	FormatEx(sDisplay, 64, "Right edge | -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "minus_right", sDisplay);
+	hMenu.AddItem("minus_right", sDisplay);
 
 	FormatEx(sDisplay, 64, "Back edge | +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "plus_back", sDisplay);
+	hMenu.AddItem("plus_back", sDisplay);
 	FormatEx(sDisplay, 64, "Back edge | -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "minus_back", sDisplay);
+	hMenu.AddItem("minus_back", sDisplay);
 
 	FormatEx(sDisplay, 64, "Left edge | +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "plus_left", sDisplay);
+	hMenu.AddItem("plus_left", sDisplay);
 	FormatEx(sDisplay, 64, "Left edge | -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "minus_left", sDisplay);
+	hMenu.AddItem("minus_left", sDisplay);
 
 	FormatEx(sDisplay, 64, "Front edge | +%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "plus_front", sDisplay);
+	hMenu.AddItem("plus_front", sDisplay);
 	FormatEx(sDisplay, 64, "Front edge | -%.01f", gF_Modifier[client]);
-	AddMenuItem(hMenu, "minus_front", sDisplay);
+	hMenu.AddItem("minus_front", sDisplay);
 
 
 	DisplayMenuAtItem(hMenu, client, page, 40);
 }
 
-public int ZoneEdge_Handler(Handle menu, MenuAction action, int param1, int param2)
+public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
-		GetMenuItem(menu, param2, info, 16);
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
 
 		if(StrEqual(info, "done"))
 		{
@@ -1253,7 +1264,7 @@ public bool EmptyZone(float vZone[3])
 
 public void InsertZone(int client)
 {
-	char sQuery[512];
+	char[] sQuery = new char[512];
 
 	MapZones type = gMZ_Type[client];
 
@@ -1311,7 +1322,7 @@ public void InsertZone(int client)
 		gV_MapZonesFixes[type][1] = gV_Fix2[client];
 	}
 
-	SQL_TQuery(gH_SQL, SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
 
 	Reset(client);
 }
@@ -1330,8 +1341,6 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 {
 	for(int i = 0; i < MAX_ZONES; i++)
 	{
-		// PrintToChatAll("%d", i);
-
 		float vPoints[8][3];
 
 		if(i == view_as<int>(Zone_Freestyle))
@@ -1368,13 +1377,6 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 		else
 		{
 			// check shavit.inc, blacklisting glitch zones from being drawn
-
-			// ARGHH WHY IS THIS NOT WORKING PROPERLY?!
-			/*if(i == view_as<int>Zone_Respawn || i == view_as<int>Zone_Stop)
-			{
-				continue;
-			}*/
-
 			if(i == view_as<int>(Zone_Respawn))
 			{
 				continue;
@@ -1732,10 +1734,10 @@ public void SQL_DBConnect()
 	{
 		if(gH_SQL != null)
 		{
-			char sQuery[256];
-			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+			char[] sQuery = new char[512];
+			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
-			SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, sQuery);
+			gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 		}
 	}
 
@@ -1754,20 +1756,20 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 		return;
 	}
 
-	char sQuery[64];
+	char[] sQuery = new char[64];
 	FormatEx(sQuery, 128, "SELECT rot_ang FROM %smapzones;", gS_MySQLPrefix);
 
-	SQL_TQuery(gH_SQL, SQL_CheckRotation_Callback, sQuery);
+	gH_SQL.Query(SQL_CheckRotation_Callback, sQuery);
 }
 
 public void SQL_CheckRotation_Callback(Handle owner, Handle hndl, const char[] error, any data)
 {
 	if(hndl == null)
 	{
-		char sQuery[256];
+		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
 
-		SQL_TQuery(gH_SQL, SQL_AlterTable_Callback, sQuery);
+		gH_SQL.Query(SQL_AlterTable_Callback, sQuery);
 	}
 }
 

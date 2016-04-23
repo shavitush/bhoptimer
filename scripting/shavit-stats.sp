@@ -116,7 +116,7 @@ public Action Command_Mapsdone(int client, int args)
 
 	if(args > 0)
 	{
-		char sArgs[64];
+		char[] sArgs = new char[64];
 		GetCmdArgString(sArgs, 64);
 
 		target = FindTarget(client, sArgs, true, false);
@@ -143,7 +143,7 @@ public Action Command_Mapsleft(int client, int args)
 
 	if(args > 0)
 	{
-		char sArgs[64];
+		char[] sArgs = new char[64];
 		GetCmdArgString(sArgs, 64);
 
 		target = FindTarget(client, sArgs, true, false);
@@ -170,7 +170,7 @@ public Action Command_MapsdoneSW(int client, int args)
 
 	if(args > 0)
 	{
-		char sArgs[64];
+		char[] sArgs = new char[64];
 		GetCmdArgString(sArgs, 64);
 
 		target = FindTarget(client, sArgs, true, false);
@@ -197,7 +197,7 @@ public Action Command_MapsleftSW(int client, int args)
 
 	if(args > 0)
 	{
-		char sArgs[64];
+		char[] sArgs = new char[64];
 		GetCmdArgString(sArgs, 64);
 
 		target = FindTarget(client, sArgs, true, false);
@@ -224,7 +224,7 @@ public Action Command_Profile(int client, int args)
 
 	if(args > 0)
 	{
-		char sArgs[64];
+		char[] sArgs = new char[64];
 		GetCmdArgString(sArgs, 64);
 
 		target = FindTarget(client, sArgs, true, false);
@@ -235,7 +235,7 @@ public Action Command_Profile(int client, int args)
 		}
 	}
 
-	char sAuthID[32];
+	char[] sAuthID = new char[32];
 	GetClientAuthId(target, AuthId_Steam3, sAuthID, 32);
 
 	Menu m = new Menu(MenuHandler_Profile);
@@ -246,7 +246,7 @@ public Action Command_Profile(int client, int args)
 	m.AddItem("mapsdonesw", "Maps done (Sideways)");
 	m.AddItem("mapsleftsw", "Maps left (Sideways)");
 
-	char sTarget[8];
+	char[] sTarget = new char[8];
 	IntToString(target, sTarget, 8);
 
 	m.AddItem("id", sTarget, ITEMDRAW_IGNORE);
@@ -262,13 +262,13 @@ public int MenuHandler_Profile(Menu m, MenuAction action, int param1, int param2
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
+		char[] info = new char[16];
 
 		int target;
 
 		for(int i = 0; i < m.ItemCount; i++)
 		{
-			char data[8];
+			char[] data = new char[8];
 			m.GetItem(i, info, 16, _, data, 8);
 
 			if(StrEqual(info, "id"))
@@ -288,15 +288,17 @@ public int MenuHandler_Profile(Menu m, MenuAction action, int param1, int param2
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 // mapsleft - https://forums.alliedmods.net/showpost.php?p=2106711&postcount=4
 public void ShowMaps(int client, int target, const char[] category)
 {
-	char sAuth[32];
+	char[] sAuth = new char[32];
 	GetClientAuthId(target, AuthId_Steam3, sAuth, 32);
 
-	char sQuery[256];
+	char[] sQuery = new char[256];
 
 	if(StrContains(category, "done") != -1)
 	{
@@ -309,19 +311,19 @@ public void ShowMaps(int client, int target, const char[] category)
 		// PrintToConsole(client, sQuery);
 	}
 
-	DataPack datapack = CreateDataPack();
+	DataPack datapack = new DataPack();
 	datapack.WriteCell(GetClientSerial(client));
 	datapack.WriteCell(GetClientSerial(target));
 	datapack.WriteString(category);
 
-	SQL_TQuery(gH_SQL, ShowMapsCallback, sQuery, datapack, DBPrio_High);
+	gH_SQL.Query(ShowMapsCallback, sQuery, datapack, DBPrio_High);
 }
 
 public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any data)
 {
 	if(hndl == null)
 	{
-		CloseHandle(data);
+		delete view_as<DataPack>(data);
 
 		LogError("Timer (ShowMaps SELECT) SQL query failed. Reason: %s", error);
 
@@ -333,10 +335,10 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 	int clientserial = ReadPackCell(data);
 	int targetserial = ReadPackCell(data);
 
-	char sCategory[16];
+	char[] sCategory = new char[16];
 	ReadPackString(data, sCategory, 16);
 
-	CloseHandle(data);
+	delete view_as<DataPack>(data);
 
 	int client = GetClientFromSerial(clientserial);
 
@@ -354,7 +356,7 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 
 	int rows = SQL_GetRowCount(hndl);
 
-	char sTitle[64];
+	char[] sTitle = new char[64];
 
 	if(StrEqual(sCategory, "mapsdone"))
 	{
@@ -381,17 +383,17 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 
 	while(SQL_FetchRow(hndl))
 	{
-		char sMap[128];
+		char[] sMap = new char[128];
 		SQL_FetchString(hndl, 0, sMap, 128);
 
-		char sDisplay[192];
+		char[] sDisplay = new char[192];
 
 		if(StrContains(sCategory, "done") != -1)
 		{
 			float time = SQL_FetchFloat(hndl, 1);
 			int jumps = SQL_FetchInt(hndl, 2);
 
-			char sTime[32];
+			char[] sTime = new char[32];
 			FormatSeconds(time, sTime, 32);
 
 			FormatEx(sDisplay, 192, "%s - %s (%d jumps)", sMap, sTime, jumps);
@@ -422,4 +424,6 @@ public int MenuHandler_ShowMaps(Menu m, MenuAction action, int param1, int param
 	{
 		delete m;
 	}
+
+	return 0;
 }

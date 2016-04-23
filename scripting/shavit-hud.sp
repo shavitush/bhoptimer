@@ -141,12 +141,10 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnConfigsExecuted()
 {
-	if(gSG_Type == Game_CSS)
-	{
-		// causes an error :/
-		// FindConVar("sv_hudhint_sound").SetBool(false);
+	ConVar sv_hudhint_sound = FindConVar("sv_hudhint_sound");
 
-		ConVar sv_hudhint_sound = FindConVar("sv_hudhint_sound");
+	if(sv_hudhint_sound != null)
+	{
 		sv_hudhint_sound.SetBool(false);
 	}
 }
@@ -197,7 +195,7 @@ public void UpdateHUD(int client)
 		}
 	}
 
-	char sHintText[256];
+	char[] sHintText = new char[256];
 
 	if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_Start))
 	{
@@ -232,10 +230,10 @@ public void UpdateHUD(int client)
 		float fPB;
 		Shavit_GetPlayerPB(target, bsStyle, fPB);
 
-		char sPB[32];
+		char[] sPB = new char[32];
 		FormatSeconds(fPB, sPB, 32);
 
-		char sTime[32];
+		char[] sTime = new char[32];
 		FormatSeconds(fTime, sTime, 32, false);
 
 		if(gSG_Type == Game_CSGO)
@@ -244,7 +242,7 @@ public void UpdateHUD(int client)
 
 			if(bStarted)
 			{
-				char sColor[8];
+				char[] sColor = new char[8];
 
 				if(fTime < fWR || fWR == 0.0)
 				{

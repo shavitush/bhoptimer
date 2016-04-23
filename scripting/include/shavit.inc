@@ -79,7 +79,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		iTemp %= 3600;
 	}
 
-	char sHours[8];
+	char[] sHours = new char[8];
 
 	if(iHours < 10)
 	{
@@ -99,7 +99,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		iTemp %= 60;
 	}
 
-	char sMinutes[8];
+	char[] sMinutes = new char[8];
 
 	if(iMinutes < 10)
 	{
@@ -113,7 +113,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 
 	float fSeconds = ((iTemp) + time - RoundToFloor(time));
 
-	char sSeconds[16];
+	char[] sSeconds = new char[16];
 
 	if(fSeconds < 10)
 	{
@@ -377,7 +377,7 @@ stock Shavit_PrintToChatAll(const char[] format, any ...)
 	{
 		if(IsClientInGame(i))
 		{
-			SetGlobalTransTarget(i); // incase anyone will add translations to the plugin
+			// SetGlobalTransTarget(i); when we're out of beta
 			VFormat(buffer, 255, format, 2);
 			Shavit_PrintToChat(i, "%s", buffer);
 		}

@@ -185,7 +185,7 @@ public void OnAdminMenuReady(Handle topmenu)
 	}
 }
 
-public void AdminMenu_Delete(Handle topmenu,  TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+public void AdminMenu_Delete(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
@@ -264,7 +264,7 @@ public void UpdateClientCache(int client)
 
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT time, style FROM %splayertimes WHERE map = '%s' AND auth = '%s';", gS_MySQLPrefix, gS_Map, sAuthID);
-	SQL_TQuery(gH_SQL, SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+	gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
 public void SQL_UpdateCache_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -296,7 +296,7 @@ public void UpdateWRCache()
 	// was a bit confused with this one :s
 	FormatEx(sQuery, 256, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers AS u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 
-	SQL_TQuery(gH_SQL, SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_UpdateWRCache_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -364,9 +364,9 @@ public int Native_GetPlayerPB(Handle handler, int numParams)
 // debug
 public Action Command_Junk(int client, int args)
 {
-	char sQuery[256];
+	char[] sQuery = new char[256];
 
-	char sAuth[32];
+	char[] sAuth = new char[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
 	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), 0);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15));
 
@@ -405,7 +405,7 @@ public Action Command_DeleteAll(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char sFormattedTitle[192];
+	char[] sFormattedTitle = new char[192];
 	FormatEx(sFormattedTitle, 192, "Delete ALL the records for \"%s\"?", gS_Map);
 
 	Menu m = new Menu(MenuHandler_DeleteAll);
@@ -434,33 +434,35 @@ public int MenuHandler_DeleteAll(Menu m, MenuAction action, int param1, int para
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
+		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
 		if(StringToInt(info) == -1)
 		{
 			Shavit_PrintToChat(param1, "Aborted deletion.");
 
-			return;
+			return 0;
 		}
 
-		char sQuery[256];
+		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
-		SQL_TQuery(gH_SQL, DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
+		gH_SQL.Query(DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
 
 	else if(action == MenuAction_End)
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
+		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
 		if(StrEqual(info, "forwards"))
@@ -478,18 +480,20 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 public void OpenDelete(int client, BhopStyle style)
 {
-	char sQuery[512];
+	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
 
 	DataPack datapack = new DataPack();
 	datapack.WriteCell(GetClientSerial(client));
 	datapack.WriteCell(style);
 
-	SQL_TQuery(gH_SQL, SQL_OpenDelete_Callback, sQuery, datapack, DBPrio_High);
+	gH_SQL.Query(SQL_OpenDelete_Callback, sQuery, datapack, DBPrio_High);
 }
 
 public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -497,7 +501,7 @@ public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] erro
 	ResetPack(data);
 	int client = GetClientFromSerial(ReadPackCell(data));
 	BhopStyle style = ReadPackCell(data);
-	CloseHandle(data);
+	delete view_as<DataPack>(data);
 
 	if(hndl == null)
 	{
@@ -511,7 +515,7 @@ public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] erro
 		return;
 	}
 
-	char sFormattedTitle[256];
+	char[] sFormattedTitle = new char[256];
 	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", gS_Map, style == Style_Forwards? "Forwards":"Sideways");
 
 	Menu m = new Menu(OpenDelete_Handler);
@@ -525,22 +529,22 @@ public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] erro
 
 		// 0 - record id, for statistic purposes.
 		int id = SQL_FetchInt(hndl, 0);
-		char sID[8];
+		char[] sID = new char[8];
 		IntToString(id, sID, 8);
 
 		// 1 - player name
-		char sName[MAX_NAME_LENGTH];
+		char[] sName = new char[MAX_NAME_LENGTH];
 		SQL_FetchString(hndl, 1, sName, MAX_NAME_LENGTH);
 
 		// 2 - time
 		float fTime = SQL_FetchFloat(hndl, 2);
-		char sTime[16];
+		char[] sTime = new char[16];
 		FormatSeconds(fTime, sTime, 16);
 
 		// 3 - jumps
 		int iJumps = SQL_FetchInt(hndl, 3);
 
-		char sDisplay[128];
+		char[] sDisplay = new char[128];
 		FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
 		m.AddItem(sID, sDisplay);
 	}
@@ -559,12 +563,12 @@ public int OpenDelete_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
+		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
 		if(StringToInt(info) == -1)
 		{
-			return;
+			return 0;
 		}
 
 		Menu m2 = new Menu(DeleteConfirm_Handler);
@@ -591,32 +595,36 @@ public int OpenDelete_Handler(Menu m, MenuAction action, int param1, int param2)
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
+		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
 		if(StringToInt(info) == -1)
 		{
 			Shavit_PrintToChat(param1, "Aborted deletion.");
 
-			return;
+			return 0;
 		}
 
-		char sQuery[256];
+		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = '%s';", gS_MySQLPrefix, info);
 
-		SQL_TQuery(gH_SQL, DeleteConfirm_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
+		gH_SQL.Query(DeleteConfirm_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
 
 	else if(action == MenuAction_End)
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 public void DeleteConfirm_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -678,7 +686,7 @@ public Action Command_WR(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char sMap[128];
+	char[] sMap = new char[128];
 
 	if(!args)
 	{
@@ -702,7 +710,7 @@ public Action Command_WRSW(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char sMap[128];
+	char[] sMap = new char[128];
 
 	if(!args)
 	{
@@ -727,10 +735,10 @@ public void StartWRMenu(int client, const char[] map, int style)
 	dp.WriteCell(GetClientSerial(client));
 	dp.WriteString(map);
 
-	char sQuery[512];
+	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM %splayertimes WHERE map = '%s' AND style = %d) AS records FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC LIMIT %d;", gS_MySQLPrefix, map, style, gS_MySQLPrefix, gS_MySQLPrefix, map, style, gCV_RecordsLimit.IntValue);
 
-	SQL_TQuery(gH_SQL, SQL_WR_Callback, sQuery, dp, DBPrio_High);
+	gH_SQL.Query(SQL_WR_Callback, sQuery, dp, DBPrio_High);
 
 	return;
 }
@@ -741,10 +749,10 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 	int serial = ReadPackCell(data);
 
-	char sMap[128];
+	char[] sMap = new char[128];
 	ReadPackString(data, sMap, 128);
 
-	CloseHandle(data);
+	delete view_as<DataPack>(data);
 
 	if(hndl == null)
 	{
@@ -760,7 +768,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 		return;
 	}
 
-	char sAuth[32];
+	char[] sAuth = new char[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
 
 	Menu m = new Menu(WRMenu_Handler);
@@ -776,28 +784,28 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 		// 0 - record id, for statistic purposes.
 		int id = SQL_FetchInt(hndl, 0);
-		char sID[8];
+		char[] sID = new char[8];
 		IntToString(id, sID, 8);
 
 		// 1 - player name
-		char sName[MAX_NAME_LENGTH];
+		char[] sName = new char[MAX_NAME_LENGTH];
 		SQL_FetchString(hndl, 1, sName, MAX_NAME_LENGTH);
 
 		// 2 - time
 		float fTime = SQL_FetchFloat(hndl, 2);
-		char sTime[16];
+		char[] sTime = new char[16];
 		FormatSeconds(fTime, sTime, 16);
 
 		// 3 - jumps
 		int iJumps = SQL_FetchInt(hndl, 3);
 
 		// add item to m
-		char sDisplay[128];
+		char[] sDisplay = new char[128];
 		FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
 		m.AddItem(sID, sDisplay);
 
 		// check if record exists in the map's top X
-		char sQueryAuth[32];
+		char[] sQueryAuth = new char[32];
 		SQL_FetchString(hndl, 4, sQueryAuth, 32);
 
 		if(StrEqual(sQueryAuth, sAuth))
@@ -812,7 +820,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 		}
 	}
 
-	char sFormattedTitle[192];
+	char[] sFormattedTitle = new char[192];
 
 	if(!GetMenuItemCount(m))
 	{
@@ -826,7 +834,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 	else
 	{
 		// [32] just in case there are 150k records on a map and you're ranked 100k or something
-		char sRanks[32];
+		char[] sRanks = new char[32];
 
 		if(gF_PlayerRecord[client][gBS_LastWR[client]] == 0.0)
 		{
@@ -852,7 +860,7 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
+		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 		int id = StringToInt(info);
 
@@ -863,14 +871,16 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 public void OpenSubMenu(int client, int id)
 {
-	char sQuery[512];
+	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%d' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 
-	SQL_TQuery(gH_SQL, SQL_SubMenu_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client));
 }
 
 public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -891,8 +901,8 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 
 	Menu m = new Menu(SubMenu_Handler);
 
-	char sName[MAX_NAME_LENGTH];
-	char sAuthID[32];
+	char[] sName = new char[MAX_NAME_LENGTH];
+	char[] sAuthID = new char[32];
 
 	int iCount = 0;
 
@@ -905,10 +915,10 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 
 		// 1 - time
 		float fTime = SQL_FetchFloat(hndl, 1);
-		char sTime[16];
+		char[] sTime = new char[16];
 		FormatSeconds(fTime, sTime, 16);
 
-		char sDisplay[128];
+		char[] sDisplay = new char[128];
 		FormatEx(sDisplay, 128, "Time: %s", sTime);
 		m.AddItem("-1", sDisplay);
 
@@ -919,7 +929,7 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 
 		// 3 - style
 		int iStyle = SQL_FetchInt(hndl, 3);
-		char sStyle[16];
+		char[] sStyle = new char[16];
 		FormatEx(sStyle, 16, "%s", iStyle == view_as<int>(Style_Forwards)? "Forwards":"Sideways");
 		FormatEx(sDisplay, 128, "Style: %s", sStyle);
 		m.AddItem("-1", sDisplay);
@@ -928,13 +938,13 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 		SQL_FetchString(hndl, 4, sAuthID, 32);
 
 		// 5 - date
-		char sDate[32];
+		char[] sDate = new char[32];
 		SQL_FetchString(hndl, 5, sDate, 32);
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
 		m.AddItem("-1", sDisplay);
 	}
 
-	char sFormattedTitle[256];
+	char[] sFormattedTitle = new char[256];
 	FormatEx(sFormattedTitle, 256, "%s %s\n--- %s:", sName, sAuthID, gS_Map);
 
 	m.SetTitle(sFormattedTitle);
@@ -955,6 +965,8 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 public void OpenWR(int client)
@@ -981,10 +993,10 @@ public void SQL_DBConnect()
 	{
 		if(gH_SQL != null)
 		{
-			char sQuery[256];
+			char[] sQuery = new char[256];
 			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` VARCHAR(32), `style` VARCHAR(32), `date` DATE, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
-			SQL_TQuery(gH_SQL, SQL_CreateTable_Callback, sQuery);
+			gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 		}
 	}
 
@@ -1018,7 +1030,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 {
 	BhopStyle bsStyle = view_as<BhopStyle>(style);
 
-	char sTime[32];
+	char[] sTime = new char[32];
 	FormatSeconds(time, sTime, 32);
 
 	// k people I made this forward so I'll use it to make cool text messages on WR (check shavit-misc soon™) EDIT: implemented into shavit-misc ages ago lmao why is this line still here :o
@@ -1051,15 +1063,15 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 	float fDifference = (gF_PlayerRecord[client][style] - time) * -1.0;
 
-	char sDifference[16];
+	char[] sDifference = new char[16];
 	FormatSeconds(fDifference, sDifference, 16, true);
 
 	if(overwrite > 0)
 	{
-		char sAuthID[32];
+		char[] sAuthID = new char[32];
 		GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
-		char sQuery[512];
+		char[] sQuery = new char[512];
 
 		if(overwrite == 1) // insert
 		{
@@ -1082,7 +1094,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, gS_Map, sAuthID, style);
 		}
 
-		SQL_TQuery(gH_SQL, SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 	}
 
 	else

@@ -123,7 +123,7 @@ public void OnPluginStart()
 			gH_GetMaxPlayerSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetMaxPlayerSpeed);
 		}
 
-		CloseHandle(hGameData);
+		delete hGameData;
 	}
 
 	// late load
@@ -141,7 +141,7 @@ public void OnPluginStart()
 
 public Action Command_Jointeam(int client, const char[] command, int args)
 {
-	char arg1[8];
+	char[] arg1 = new char[8];
 	GetCmdArg(1, arg1, 8);
 
 	int iTeam = StringToInt(arg1);
@@ -395,7 +395,7 @@ public Action Command_Spec(int client, int args)
 
 	if(args > 0)
 	{
-		char sArgs[MAX_TARGET_LENGTH];
+		char[] sArgs = new char[MAX_TARGET_LENGTH];
 		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
 
 		int iTarget = FindTarget(client, sArgs, false, false);
@@ -420,7 +420,7 @@ public Action Command_Teleport(int client, int args)
 
 	if(args > 0)
 	{
-		char sArgs[MAX_TARGET_LENGTH];
+		char[] sArgs = new char[MAX_TARGET_LENGTH];
 		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
 
 		int iTarget = FindTarget(client, sArgs, false, false);
@@ -445,10 +445,10 @@ public Action Command_Teleport(int client, int args)
 				continue;
 			}
 
-			char serial[16];
+			char[] serial = new char[16];
 			IntToString(GetClientSerial(i), serial, 16);
 
-			char sName[MAX_NAME_LENGTH];
+			char[] sName = new char[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
 
 			m.AddItem(serial, sName);
@@ -466,7 +466,7 @@ public int MenuHandler_Teleport(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
+		char[] info = new char[16];
 		menu.GetItem(param2, info, 16);
 
 		if(Teleport(param1, StringToInt(info)) == -1)
@@ -479,6 +479,8 @@ public int MenuHandler_Teleport(Menu menu, MenuAction action, int param1, int pa
 	{
 		delete menu;
 	}
+
+	return 0;
 }
 
 public int Teleport(int client, int targetserial)
@@ -539,7 +541,7 @@ public Action Command_Specs(int client, int args)
 
 	if(args > 0)
 	{
-		char sTarget[MAX_TARGET_LENGTH];
+		char[] sTarget = new char[MAX_TARGET_LENGTH];
 		GetCmdArgString(sTarget, MAX_TARGET_LENGTH);
 
 		int iNewTarget = FindTarget(client, sTarget, false, false);
@@ -560,7 +562,7 @@ public Action Command_Specs(int client, int args)
 	}
 
 	int iCount;
-	char sSpecs[192];
+	char[] sSpecs = new char[192];
 
 	for(int i = 1; i <= MaxClients; i++)
 	{

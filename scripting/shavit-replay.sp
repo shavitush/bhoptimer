@@ -146,12 +146,12 @@ public Action BotCheck(Handle Timer)
 
 		CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
 
-		char sStyle[16];
+		char[] sStyle = new char[16];
 		FormatEx(sStyle, 16, "%s REPLAY", i == view_as<int>(Style_Forwards)? "NM":"SW");
 
 		CS_SetClientClanTag(gI_ReplayBotClient[i], sStyle);
 
-		char sName[MAX_NAME_LENGTH];
+		char[] sName = new char[MAX_NAME_LENGTH];
 		GetClientName(gI_ReplayBotClient[i], sName, MAX_NAME_LENGTH);
 
 		float fWRTime;
@@ -159,7 +159,7 @@ public Action BotCheck(Handle Timer)
 
 		if(gA_Frames[i] == null || fWRTime == 0.0)
 		{
-			char sCurrentName[MAX_NAME_LENGTH];
+			char[] sCurrentName = new char[MAX_NAME_LENGTH];
 			strcopy(sCurrentName, MAX_NAME_LENGTH, sName);
 
 			FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", i == view_as<int>(Style_Forwards)? "NM":"SW");
@@ -204,8 +204,8 @@ public void OnMapStart()
 	GetCurrentMap(gS_Map, 128);
 	RemoveMapPath(gS_Map, gS_Map, 128);
 
-	char sTempMap[140];
-	FormatEx(sTempMap, 140, "maps/%s.nav", gS_Map);
+	char[] sTempMap = new char[256];
+	FormatEx(sTempMap, 256, "maps/%s.nav", gS_Map);
 
 	if(!FileExists(sTempMap))
 	{
@@ -223,27 +223,14 @@ public void OnMapStart()
 		return;
 	}
 
-	/*ConVar bot_zombie = FindConVar("bot_zombie");
-
-	// idk if it exists in CS:S, safety check ;p
-	if(bot_zombie != null)
-	{
-		bot_zombie.Flags = FCVAR_GAMEDLL|FCVAR_REPLICATED;
-		bot_zombie.SetBool(true);
-	}*/
-
 	ConVar bot_stop = FindConVar("bot_stop");
 	bot_stop.SetBool(true);
 
-	if(Shavit_GetGameType() == Game_CSGO)
+	ConVar bot_controllable = FindConVar("bot_controllable");
+
+	if(bot_controllable != null)
 	{
-		// I have literally no idea why the fuck does this return invalid handle.
-		// FindConVar("bot_controllable").SetBool(false);
-
-		ConVar bot_controllable = FindConVar("bot_controllable");
 		bot_controllable.SetBool(false);
-
-		delete bot_controllable;
 	}
 
 	ConVar bot_quota_mode = FindConVar("bot_quota_mode");
@@ -271,10 +258,7 @@ public void OnMapStart()
 	ConVar bot_auto_vacate = FindConVar("bot_auto_vacate");
 	bot_auto_vacate.SetBool(false);
 
-	/*ConVar mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
-	mp_ignore_round_win_conditions.SetBool(true);*/
-
-	char sPath[PLATFORM_MAX_PATH];
+	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot");
 
 	if(!DirExists(sPath))
@@ -303,7 +287,7 @@ public void OnMapStart()
 
 public bool LoadReplay(BhopStyle style)
 {
-	char sPath[PLATFORM_MAX_PATH];
+	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s.replay", style, gS_Map);
 
 	if(FileExists(sPath))
@@ -313,8 +297,8 @@ public bool LoadReplay(BhopStyle style)
 		ReadFileLine(hFile, gS_BotName[style], MAX_NAME_LENGTH);
 		TrimString(gS_BotName[style]);
 
-		char sLine[320];
-		char sExplodedLine[5][64];
+		char[] sLine = new char[320];
+		char[][] sExplodedLine = new char[5][64];
 
 		ReadFileLine(hFile, sLine, 320);
 
@@ -345,7 +329,7 @@ public bool LoadReplay(BhopStyle style)
 
 public void SaveReplay(BhopStyle style)
 {
-	char sPath[PLATFORM_MAX_PATH];
+	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s.replay", style, gS_Map);
 
 	if(DirExists(sPath))
@@ -358,7 +342,7 @@ public void SaveReplay(BhopStyle style)
 
 	int iSize = gA_Frames[style].Length;
 
-	char sBuffer[320];
+	char[] sBuffer = new char[320];
 
 	for(int i = 0; i < iSize; i++)
 	{
@@ -375,27 +359,7 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	/*if(IsFakeClient(client))
-	{
-		if(gI_ReplayBotClient[Style_Forwards] == 0)
-		{
-			gI_ReplayBotClient[Style_Forwards] = client;
-
-			// strcopy(gS_BotName[Style_Sideways], MAX_NAME_LENGTH, "NM unloaded");
-		}
-
-		else if(gI_ReplayBotClient[Style_Sideways] == 0)
-		{
-			gI_ReplayBotClient[Style_Sideways] = client;
-
-			// strcopy(gS_BotName[Style_Sideways], MAX_NAME_LENGTH, "SW unloaded");
-		}
-	}
-
-	else
-	{*/
 	gA_PlayerFrames[client] = new ArrayList(5);
-	//}
 }
 
 public void OnClientDisconnect(int client)
@@ -434,16 +398,13 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 	gI_ReplayTick[style] = 0;
 
-	char sWRTime[16];
+	char[] sWRTime = new char[16];
 	FormatSeconds(time, sWRTime, 16);
 
 	FormatEx(gS_BotName[style], MAX_NAME_LENGTH, "%s - %N", sWRTime, client);
 
 	if(gI_ReplayBotClient[style] != 0)
 	{
-		// I won't be hiding this message, players can easily see the new WR like that.
-		// gB_ShowNameChanges = false;
-
 		SetClientName(gI_ReplayBotClient[style], gS_BotName[style]);
 	}
 
