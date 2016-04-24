@@ -30,6 +30,8 @@
 #pragma dynamic 131072 // let's make stuff faster
 #pragma newdecls required // We're at 2015 :D
 
+ServerGame gSG_Type = Game_Unknown;
+
 int gI_ReplayTick[MAX_STYLES];
 int gI_ReplayBotClient[MAX_STYLES];
 ArrayList gA_Frames[MAX_STYLES] =  {null, ...};
@@ -68,6 +70,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	RegPluginLibrary("shavit-replay");
 
 	return APLRes_Success;
+}
+
+public void OnAllPluginsLoaded()
+{
+	gSG_Type = Shavit_GetGameType();
 }
 
 public void OnPluginStart()
@@ -144,7 +151,10 @@ public Action BotCheck(Handle Timer)
 			GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
 		}
 
-		CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
+		if(gSG_Type == Game_CSGO)
+		{
+			CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
+		}
 
 		char[] sStyle = new char[16];
 		FormatEx(sStyle, 16, "%s REPLAY", i == view_as<int>(Style_Forwards)? "NM":"SW");
