@@ -49,6 +49,9 @@ char gS_Map[128];
 
 ConVar bot_quota = null;
 
+// Plugin ConVars
+ConVar gCV_ReplayDelay = null;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Replay Bot",
@@ -89,6 +92,9 @@ public void OnPluginStart()
 	}
 
 	gF_Tickrate = (1.0 / GetTickInterval());
+
+	// plugin convars
+	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "1.5", "Time to wait before restarting the replay after it finishes playing.", FCVAR_PLUGIN, true, 0.0, true, 10.0);
 
 	// insert delete replay command here
 }
@@ -458,7 +464,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				gI_ReplayTick[style] = -1;
 
-				CreateTimer(1.5, ResetReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer(gCV_ReplayDelay.FloatValue, ResetReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
 				return Plugin_Continue;
 			}
