@@ -329,9 +329,12 @@ public void OnMapStart()
 
 	UnloadZones(0);
 
-	gI_BeamSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
+	if(gH_SQL != null)
+	{
+		RefreshZones();
+	}
 
-	RefreshZones();
+	gI_BeamSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 }
 
 // 0 - all zones
@@ -387,7 +390,15 @@ public void RefreshZones()
 	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
-	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, DBPrio_High);
+	if(gH_SQL != null)
+	{
+		gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, DBPrio_High);
+	}
+
+	else
+	{
+		Shavit_GetDB(gH_SQL);
+	}
 }
 
 public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] error, any data)
@@ -628,7 +639,7 @@ public void SQL_DeleteZone_Callback(Handle owner, Handle hndl, const char[] erro
 		return;
 	}
 
-	PrintToChat(client, "%s Deleted \"%s\" sucessfully.", PREFIX, gS_ZoneNames[type]);
+	Shavit_PrintToChat(client, "Deleted \"%s\" sucessfully.", gS_ZoneNames[type]);
 }
 
 public Action Command_DeleteAllZones(int client, int args)
@@ -704,7 +715,7 @@ public void SQL_DeleteAllZones_Callback(Handle owner, Handle hndl, const char[] 
 		return;
 	}
 
-	PrintToChat(client, "%s Deleted all map zones sucessfully.", PREFIX);
+	Shavit_PrintToChat(client, "Deleted all map zones sucessfully.");
 }
 
 public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
@@ -994,84 +1005,84 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 			{
 				gV_Point1[param1][0] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03X\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p1x_minus"))
 			{
 				gV_Point1[param1][0] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03X\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p1y_plus"))
 			{
 				gV_Point1[param1][1] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Y\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p1y_minus"))
 			{
 				gV_Point1[param1][1] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Y\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p1z_plus"))
 			{
 				gV_Point1[param1][2] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Z\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p1z_minus"))
 			{
 				gV_Point1[param1][2] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Z\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p2x_plus"))
 			{
 				gV_Point2[param1][0] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03X\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p2x_minus"))
 			{
 				gV_Point2[param1][0] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03X\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p2y_plus"))
 			{
 				gV_Point2[param1][1] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Y\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p2y_minus"))
 			{
 				gV_Point2[param1][1] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Y\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p2z_plus"))
 			{
 				gV_Point2[param1][2] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Z\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "p2z_minus"))
 			{
 				gV_Point2[param1][2] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Z\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
 			}
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
@@ -1126,14 +1137,14 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 			{
 				gF_RotateAngle[param1] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s Zone Rotated \x01 by \x03%.01f\x01 degrees.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "Zone Rotated \x01 by \x03%.01f\x01 degrees.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "minus"))
 			{
 				gF_RotateAngle[param1] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s Zone Rotated \x01 by \x03-%.01f\x01 degrees.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "Zone Rotated \x01 by \x03-%.01f\x01 degrees.", gF_Modifier[param1]);
 			}
 
 			CreateRotateMenu(param1);
@@ -1197,56 +1208,56 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 			{
 				gV_Fix1[param1][0] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Left edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Left edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "minus_left"))
 			{
 				gV_Fix1[param1][0] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Left edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Left edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "plus_right"))
 			{
 				gV_Fix2[param1][0] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Right edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Right edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "minus_right"))
 			{
 				gV_Fix2[param1][0] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Right edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Right edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "plus_front"))
 			{
 				gV_Fix1[param1][1] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Front edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Front edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "minus_front"))
 			{
 				gV_Fix1[param1][1] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Front edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Front edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "plus_back"))
 			{
 				gV_Fix2[param1][1] += gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Back edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Back edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
 			}
 
 			else if(StrEqual(info, "minus_back"))
 			{
 				gV_Fix2[param1][1] -= gF_Modifier[param1];
 
-				PrintToChat(param1, "%s \x03Back edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", PREFIX, gF_Modifier[param1]);
+				Shavit_PrintToChat(param1, "\x03Back edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
 			}
 
 			CreateWidthLengthMenu(param1, GetMenuSelectionPosition());
@@ -1762,6 +1773,9 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 	FormatEx(sQuery, 128, "SELECT rot_ang FROM %smapzones;", gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_CheckRotation_Callback, sQuery);
+
+	// we have a database, time to load zones
+	RefreshZones();
 }
 
 public void SQL_CheckRotation_Callback(Handle owner, Handle hndl, const char[] error, any data)
