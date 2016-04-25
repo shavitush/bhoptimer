@@ -36,32 +36,16 @@ bool gB_HUD[MAXPLAYERS+1] = {true, ...};
 
 int gI_StartCycle = 0;
 
-char gS_Start[][] =
+char gS_StartColors[][] =
 {
-	"ff0000",
-	"ff4000",
-	"ff7f00",
-	"ffbf00",
-	"ffff00",
-	"00ff00",
-	"00ff80",
-	"00ffff",
-	"0080ff",
-	"0000ff"
+	"ff0000", "ff4000", "ff7f00", "ffbf00", "ffff00", "00ff00", "00ff80", "00ffff", "0080ff", "0000ff"
 };
 
 int gI_EndCycle = 0;
 
-char gS_End[][] =
+char gS_EndColors[][] =
 {
-	"ff0000",
-	"ff4000",
-	"ff7f00",
-	"ffaa00",
-	"ffd400",
-	"ffff00",
-	"bba24e",
-	"77449c"
+	"ff0000", "ff4000", "ff7f00", "ffaa00", "ffd400", "ffff00", "bba24e", "77449c"
 };
 
 public Plugin myinfo =
@@ -153,14 +137,14 @@ public Action UpdateHUD_Timer(Handle Timer)
 {
 	gI_StartCycle++;
 
-	if(gI_StartCycle > 9)
+	if(gI_StartCycle > (sizeof(gS_StartColors) - 1))
 	{
 		gI_StartCycle = 0;
 	}
 
 	gI_EndCycle++;
 
-	if(gI_EndCycle > 7)
+	if(gI_EndCycle > (sizeof(gS_EndColors) - 1))
 	{
 		gI_EndCycle = 0;
 	}
@@ -199,14 +183,14 @@ public void UpdateHUD(int client)
 
 	if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_Start))
 	{
-		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_Start[gI_StartCycle]);
+		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_StartCycle]);
 
 		PrintHintText(client, sHintText);
 	}
 
 	else if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_End))
 	{
-		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_End[gI_EndCycle]);
+		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_EndCycle]);
 
 		PrintHintText(client, sHintText);
 	}
