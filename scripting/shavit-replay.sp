@@ -67,9 +67,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	CreateNative("Shavit_GetReplayBotFirstFrame", Native_GetReplayBotFirstFrame);
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
+	CreateNative("Shavit_GetReplayBotCurrentFrame", Native_GetReplayBotIndex);
 
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
+	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -105,16 +107,17 @@ public void OnPluginStart()
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
 {
-	BhopStyle style = GetNativeCell(1);
-
-	SetNativeCellRef(2, gF_StartTick[style]);
+	SetNativeCellRef(2, gF_StartTick[GetNativeCell(1)]);
 }
 
 public int Native_GetReplayBotIndex(Handle handler, int numParams)
 {
-	BhopStyle style = GetNativeCell(1);
+	return gI_ReplayBotClient[GetNativeCell(1)];
+}
 
-	return gI_ReplayBotClient[style];
+public int Native_GetReplayBotCurrentFrame(Handle handler, int numParams)
+{
+	return gI_ReplayTick[GetNativeCell(1)];
 }
 
 public Action BotCheck(Handle Timer)
@@ -488,7 +491,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Continue;
 			}
 
-			if(gI_ReplayTick[iReplayBotStyle] == 1)
+			if(gI_ReplayTick[iReplayBotStyle] < 10)
 			{
 				gF_StartTick[iReplayBotStyle] = GetEngineTime();
 			}

@@ -385,6 +385,14 @@ native void Shavit_GetReplayBotFirstFrame(BhopStyle style, float &time);
 native int Shavit_GetReplayBotIndex(BhopStyle style);
 
 /**
+ * Retrieve the replay bot's current played frame.
+ *
+ * @param style						Bhop style.
+ * @return							Current played frame.
+ */
+native int Shavit_GetReplayBotCurrentFrame(BhopStyle style);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *

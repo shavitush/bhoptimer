@@ -192,7 +192,7 @@ public void UpdateHUD(int client)
 		}
 	}
 
-	char[] sHintText = new char[256];
+	char[] sHintText = new char[512];
 
 	bool bZoneHUD = false;
 
@@ -200,13 +200,13 @@ public void UpdateHUD(int client)
 	{
 		if(Shavit_InsideZone(target, Zone_Start))
 		{
-			FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_StartCycle]);
+			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_StartCycle]);
 			bZoneHUD = true;
 		}
 
 		else if(Shavit_InsideZone(target, Zone_End))
 		{
-			FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_EndCycle]);
+			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_EndCycle]);
 			bZoneHUD = true;
 		}
 	}
@@ -243,7 +243,7 @@ public void UpdateHUD(int client)
 
 		if(gSG_Type == Game_CSGO)
 		{
-			strcopy(sHintText, 256, "<font face='Stratum2'>");
+			strcopy(sHintText, 512, "<font face='Stratum2'>");
 
 			if(bStarted)
 			{
@@ -264,55 +264,55 @@ public void UpdateHUD(int client)
 					strcopy(sColor, 8, "FF0000");
 				}
 
-				Format(sHintText, 256, "%sTime: <font color='#%s'>%s</font>", sHintText, sColor, sTime);
+				Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font>", sHintText, sColor, sTime);
 			}
 
-			Format(sHintText, 256, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+			Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
 
 			if(fPB > 0.00)
 			{
-				Format(sHintText, 256, "%s\tPB: %s", sHintText, sPB);
+				Format(sHintText, 512, "%s\tPB: %s", sHintText, sPB);
 			}
 
-			Format(sHintText, 256, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
+			Format(sHintText, 512, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
 
 			if(bStarted)
 			{
-				Format(sHintText, 256, "%s\tJumps: %d", sHintText, iJumps);
+				Format(sHintText, 512, "%s\tJumps: %d", sHintText, iJumps);
 			}
 
-			Format(sHintText, 256, "%s\nPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
+			Format(sHintText, 512, "%s\nPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
 
-			Format(sHintText, 256, "%s</font>", sHintText);
+			Format(sHintText, 512, "%s</font>", sHintText);
 		}
 
 		else
 		{
 			if(bStarted)
 			{
-				FormatEx(sHintText, 256, "Time: %s", sTime);
+				FormatEx(sHintText, 512, "Time: %s", sTime);
 
-				Format(sHintText, 256, "%s\nStyle: %s", sHintText, gS_BhopStyles[bsStyle]);
+				Format(sHintText, 512, "%s\nStyle: %s", sHintText, gS_BhopStyles[bsStyle]);
 			}
 
 			else
 			{
-				FormatEx(sHintText, 256, "Style: %s", gS_BhopStyles[bsStyle]);
+				FormatEx(sHintText, 512, "Style: %s", gS_BhopStyles[bsStyle]);
 			}
 
 			if(fPB > 0.00)
 			{
-				Format(sHintText, 256, "%s\nPB: %s", sHintText, sPB);
+				Format(sHintText, 512, "%s\nPB: %s", sHintText, sPB);
 			}
 
-			Format(sHintText, 256, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
+			Format(sHintText, 512, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
 
 			if(bStarted)
 			{
-				Format(sHintText, 256, "%s\nJumps: %d", sHintText, iJumps);
+				Format(sHintText, 512, "%s\nJumps: %d", sHintText, iJumps);
 			}
 
-			Format(sHintText, 256, "%s\nPlayer: %N", sHintText, target);
+			Format(sHintText, 512, "%s\nPlayer: %N", sHintText, target);
 		}
 
 		PrintHintText(client, sHintText);
@@ -332,11 +332,24 @@ public void UpdateHUD(int client)
 			}
 		}
 
-		/* will work on this when I find enough time
-		float fBotStart;
-		Shavit_GetReplayBotFirstFrame(bsStyle, fBotStart);
+		/* I give up, please someone else do it
+		float fStart = 0.0;
+		Shavit_GetReplayBotFirstFrame(bsStyle, fStart);
 
-		float fTime = GetEngineTime() - fBotStart;
+		float fTime = GetEngineTime() - fStart;
+
+		float fWR;
+		Shavit_GetWRTime(bsStyle, fWR);
+
+		if(fTime - 1.0 > fWR) // 1.0 - safety check
+		{
+			PrintHintText(client, "No replay data loaded");
+
+			return;
+		}
+
+		char sWR[32];
+		FormatSeconds(fWR, sWR, 32, false);
 
 		char sTime[32];
 		FormatSeconds(fTime, sTime, 32, false);*/
@@ -348,18 +361,16 @@ public void UpdateHUD(int client)
 
 		if(gSG_Type == Game_CSGO)
 		{
-			FormatEx(sHintText, 256, "<font face='Stratum2'>");
-			Format(sHintText, 256, "%s\t<font color='#5F8BC9'>- Replay Bot -</font>", sHintText);
-			Format(sHintText, 256, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
-			Format(sHintText, 256, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
-			Format(sHintText, 256, "%s</font>", sHintText);
+			FormatEx(sHintText, 512, "<font face='Stratum2'>");
+			Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+			Format(sHintText, 512, "%s\n\tSpeed: %.02f", sHintText, fSpeed_New);
+			Format(sHintText, 512, "%s</font>", sHintText);
 		}
 
 		else
 		{
-			FormatEx(sHintText, 256, "\t- Replay Bot -", sHintText);
-			Format(sHintText, 256, "%s\nStyle: %s", sHintText, gS_BhopStyles[bsStyle]);
-			Format(sHintText, 256, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
+			FormatEx(sHintText, 512, "\t- %s Replay -", gS_BhopStyles[bsStyle], sHintText);
+			Format(sHintText, 512, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
 		}
 
 		PrintHintText(client, sHintText);

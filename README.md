@@ -69,8 +69,8 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-hud:
 - [x] HUD toggling command. (`sm_hud`)
 - [x] Zone (start/end) HUD toggling command. (`sm_zonehud`)
+- [x] [CS:GO] Replace "- Replay Bot -" for bots with an underlined and pretty text.
 - [ ] Show time in a "TIME/RECORD" format including percentage for replay bots.
-- [ ] [CS:GO] Replace "- Replay Bot -" for bots with an underlined and pretty text.
 - [ ] Remove `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list in a panel.
 
 ~ shavit-replay
