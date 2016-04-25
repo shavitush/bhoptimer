@@ -199,13 +199,14 @@ public void OnPluginStart()
 
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD);
 
-	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?", FCVAR_PLUGIN|FCVAR_NOTIFY);
-	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN);
-	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN);
-	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN);
+	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+
 	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", FCVAR_PLUGIN);
 	gCV_MySQLPrefix.AddChangeHook(OnPrefixChange);
-	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.", FCVAR_PLUGIN);
 
 	AutoExecConfig();
 
