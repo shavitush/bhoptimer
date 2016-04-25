@@ -52,23 +52,26 @@ a bhop server should be simple
 shavit-core - no other plugin will work without it.  
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
-# Todo for 1.5b release
+# Todo for 1.5b release (out of beta!)
 - [x] Migrate every menu to the new syntax.
 
 ~ shavit-core:
 - [x] Fix chat colors for CS:S.
 - [x] Add table prefix. (`shavit_core_sqlprefix`)
 - [x] Add shavit_core_nostaminareset ("easybhop")
+- [ ] Make a global enumerator/variable with per-style settings (bitflags)
 - [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams.
-- [ ] Add style configuration through mysql (`style` table) and allow it to be custom with some options. (Autobhop, block each key individually and velocity limit)
 - [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
+- [ ] (might be canceled!) Add style configuration through mysql (`style` table) and allow it to be custom with some options. (Style name, autobhop, block each key individually and velocity limit)
+- [ ] If the above will be canceled, load style settings from a config and use [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) to cache per-style settings.
+- [ ] Add unranked styles.
 
 ~ shavit-hud:
 - [x] HUD toggling command. (`sm_hud`)
 - [x] Zone (start/end) HUD toggling command. (`sm_zonehud`)
 - [ ] Show time in a "TIME/RECORD" format including percentage for replay bots.
-- [ ] Replace "- Replay Bot -" for bots with an underlined and pretty text.
-- [ ] Removed `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list in a panel.
+- [ ] [CS:GO] Replace "- Replay Bot -" for bots with an underlined and pretty text.
+- [ ] Remove `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list in a panel.
 
 ~ shavit-replay
 - [ ] Add admin interface. (delete replay data)

@@ -453,7 +453,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	GetClientAbsOrigin(client, vecPosition);
 
 	// TODO - just set a global boolean for each client so we can see if it's a replay bot instead of looping through the styles everytime
-	int iReplayBotStyle = 0;
+	int iReplayBotStyle = -1;
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
@@ -465,7 +465,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(iReplayBotStyle > 0)
+	if(iReplayBotStyle != -1)
 	{
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 
