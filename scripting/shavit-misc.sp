@@ -40,6 +40,8 @@ ConVar gCV_GodMode = null;
 ConVar gCV_PreSpeed = null;
 ConVar gCV_HideTeamChanges = null;
 ConVar gCV_RespawnOnTeam = null;
+ConVar gCV_RespawnOnRestart = null;
+ConVar gCV_StartOnSpawn = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -110,6 +112,8 @@ public void OnPluginStart()
 	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone?\n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.");
 	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled");
 	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled");
+	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if he uses the timer restart command?\n0 - Disabled\n1 - Enabled");
+	gCV_StartOnSpawn = CreateConVar("shavit_misc_startonspawn", "1", "Restart the timer for a player after he spawns?\n0 - Disabled\n1 - Enabled");
 
 	AutoExecConfig();
 
@@ -610,6 +614,11 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 public void Shavit_OnRestart(int client)
 {
+	if(!gCV_RespawnOnRestart.BoolValue)
+	{
+		return;
+	}
+
 	if(!IsPlayerAlive(client))
 	{
 		if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
@@ -649,6 +658,11 @@ public Action Respawn(Handle Timer, any client)
 
 public void Player_Spawn(Handle event, const char[] name, bool dontBroadcast)
 {
+	if(!gCV_StartOnSpawn.BoolValue)
+	{
+		return;
+	}
+
 	int userid = GetEventInt(event, "userid");
 	int client = GetClientOfUserId(userid);
 

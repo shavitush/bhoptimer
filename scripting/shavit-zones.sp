@@ -99,6 +99,7 @@ bool gB_Late;
 // cvars
 ConVar gCV_ZoneStyle = null;
 ConVar gCV_Interval = null;
+ConVar gCV_TeleportToStart = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -158,6 +159,7 @@ public void OnPluginStart()
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", FCVAR_PLUGIN, true, 0.5, true, 5.0);
+	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled");
 
 	// draw
 	// start drawing mapzones here
@@ -1785,7 +1787,7 @@ public void SQL_AlterTable_Callback(Handle owner, Handle hndl, const char[] erro
 
 public void Shavit_OnRestart(int client)
 {
-	if(!IsFakeClient(client) && !EmptyZone(gV_MapZones[0][0]) && !EmptyZone(gV_MapZones[0][1]))
+	if(gCV_TeleportToStart.BoolValue && !IsFakeClient(client) && !EmptyZone(gV_MapZones[0][0]) && !EmptyZone(gV_MapZones[0][1]))
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
