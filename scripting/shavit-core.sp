@@ -21,6 +21,8 @@
 #include <sourcemod>
 #include <sdktools>
 #include <geoip>
+
+#define USES_STYLE_NAMES
 #include <shavit>
 
 #undef REQUIRE_PLUGIN
@@ -161,18 +163,8 @@ public void OnPluginStart()
 	// style
 	RegConsoleCmd("sm_style", Command_Style, "Choose your bhop style.");
 	RegConsoleCmd("sm_styles", Command_Style, "Choose your bhop style.");
-	//RegConsoleCmd("sm_s", Command_Style, "Choose your bhop style.");
 	RegConsoleCmd("sm_diff", Command_Style, "Choose your bhop style.");
 	RegConsoleCmd("sm_difficulty", Command_Style, "Choose your bhop style.");
-
-	// forwards
-	RegConsoleCmd("sm_n", Command_Forwards, "Style shortcut: Forwards");
-	RegConsoleCmd("sm_forwards", Command_Forwards, "Style shortcut: Forwards");
-	RegConsoleCmd("sm_normal", Command_Forwards, "Style shortcut: Forwards");
-
-	// sideways
-	RegConsoleCmd("sm_sw", Command_Sideways, "Style shortcut: Sideways");
-	RegConsoleCmd("sm_sideways", Command_Sideways, "Style shortcut: Sideways");
 
 	// timer start
 	RegConsoleCmd("sm_s", Command_StartTimer, "Start your timer.");
@@ -389,8 +381,19 @@ public Action Command_Style(int client, int args)
 	Menu m = new Menu(StyleMenu_Handler);
 	m.SetTitle("Choose a style:");
 
-	m.AddItem("forwards", "Forwards");
-	m.AddItem("sideways", "Sideways");
+	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
+	{
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
+
+		m.AddItem(sInfo, gS_BhopStyles[i]);
+	}
+
+	// should NEVER happen
+	if(m.ItemCount == 0)
+	{
+		m.AddItem("-1", "Nothing");
+	}
 
 	m.ExitButton = true;
 
@@ -406,15 +409,9 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
-		if(StrEqual(info, "forwards"))
-		{
-			Command_Forwards(param1, 0);
-		}
+		BhopStyle style = view_as<BhopStyle>(StringToInt(info));
 
-		else if(StrEqual(info, "sideways"))
-		{
-			Command_Sideways(param1, 0);
-		}
+		ChangeClientStyle(param1, style);
 	}
 
 	else if(action == MenuAction_End)
@@ -425,40 +422,20 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public Action Command_Forwards(int client, int args)
+public void ChangeClientStyle(int client, BhopStyle style)
 {
 	if(!IsValidClient(client))
 	{
-		return Plugin_Handled;
+		return;
 	}
 
-	gBS_Style[client] = Style_Forwards;
+	gBS_Style[client] = style;
 
-	Shavit_PrintToChat(client, "You have selected to play \x03Forwards\x01.");
+	Shavit_PrintToChat(client, "You have selected to play \x03%s\x01.", gS_BhopStyles[view_as<int>(style)]);
 
 	StopTimer(client);
 
 	Command_StartTimer(client, -1);
-
-	return Plugin_Handled;
-}
-
-public Action Command_Sideways(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	gBS_Style[client] = Style_Sideways;
-
-	Shavit_PrintToChat(client, "You have selected to play \x03Sideways\x01.");
-
-	StopTimer(client);
-
-	Command_StartTimer(client, -1);
-
-	return Plugin_Handled;
 }
 
 public void Player_Jump(Handle event, const char[] name, bool dontBroadcast)

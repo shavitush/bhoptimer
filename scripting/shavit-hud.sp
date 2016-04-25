@@ -20,6 +20,9 @@
 
 #include <sourcemod>
 #include <sdktools>
+
+#define USES_STYLE_NAMES
+#define USES_STYLE_HTML_COLORS
 #include <shavit>
 
 #pragma semicolon 1
@@ -100,6 +103,13 @@ public Action Command_ToggleHUD(int client, int args)
 
 public Action Command_ToggleZoneHUD(int client, int args)
 {
+	if(gSG_Type != Game_CSGO)
+	{
+		Shavit_PrintToChat(client, "Zone HUD is not supported for this game, sorry.");
+
+		return Plugin_Handled;
+	}
+
 	gB_ZoneHUD[client] = !gB_ZoneHUD[client];
 
 	Shavit_PrintToChat(client, "Zone HUD %s\x01.", gB_ZoneHUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x07F54242disabled"));
@@ -135,18 +145,21 @@ public void OnConfigsExecuted()
 
 public Action UpdateHUD_Timer(Handle Timer)
 {
-	gI_StartCycle++;
-
-	if(gI_StartCycle > (sizeof(gS_StartColors) - 1))
+	if(gSG_Type == Game_CSGO)
 	{
-		gI_StartCycle = 0;
-	}
+		gI_StartCycle++;
 
-	gI_EndCycle++;
+		if(gI_StartCycle > (sizeof(gS_StartColors) - 1))
+		{
+			gI_StartCycle = 0;
+		}
 
-	if(gI_EndCycle > (sizeof(gS_EndColors) - 1))
-	{
-		gI_EndCycle = 0;
+		gI_EndCycle++;
+
+		if(gI_EndCycle > (sizeof(gS_EndColors) - 1))
+		{
+			gI_EndCycle = 0;
+		}
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -181,17 +194,25 @@ public void UpdateHUD(int client)
 
 	char[] sHintText = new char[256];
 
-	if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_Start))
-	{
-		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_StartCycle]);
+	bool bZoneHUD = false;
 
-		PrintHintText(client, sHintText);
+	if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO)
+	{
+		if(Shavit_InsideZone(target, Zone_Start))
+		{
+			FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_StartCycle]);
+			bZoneHUD = true;
+		}
+
+		else if(Shavit_InsideZone(target, Zone_End))
+		{
+			FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_EndCycle]);
+			bZoneHUD = true;
+		}
 	}
 
-	else if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO && Shavit_InsideZone(target, Zone_End))
+	if(bZoneHUD)
 	{
-		FormatEx(sHintText, 256, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_EndCycle]);
-
 		PrintHintText(client, sHintText);
 	}
 
@@ -246,7 +267,7 @@ public void UpdateHUD(int client)
 				Format(sHintText, 256, "%sTime: <font color='#%s'>%s</font>", sHintText, sColor, sTime);
 			}
 
-			Format(sHintText, 256, "%s\nStyle: <font color='%s</font>", sHintText, bsStyle == Style_Forwards? "#797FD4'>Forwards":"#B54CB3'>Sideways");
+			Format(sHintText, 256, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
 
 			if(fPB > 0.00)
 			{
@@ -271,12 +292,12 @@ public void UpdateHUD(int client)
 			{
 				FormatEx(sHintText, 256, "Time: %s", sTime);
 
-				Format(sHintText, 256, "%s\nStyle: %s", sHintText, bsStyle == Style_Forwards? "Forwards":"Sideways");
+				Format(sHintText, 256, "%s\nStyle: %s", sHintText, gS_BhopStyles[bsStyle]);
 			}
 
 			else
 			{
-				FormatEx(sHintText, 256, "Style: %s", bsStyle == Style_Forwards? "Forwards":"Sideways");
+				FormatEx(sHintText, 256, "Style: %s", gS_BhopStyles[bsStyle]);
 			}
 
 			if(fPB > 0.00)
@@ -299,7 +320,17 @@ public void UpdateHUD(int client)
 
 	else if(gB_Replay)
 	{
-		BhopStyle bsStyle = (target == Shavit_GetReplayBotIndex(Style_Forwards)? Style_Forwards:Style_Sideways);
+		BhopStyle bsStyle = view_as<BhopStyle>(0);
+
+		for(int i = 0; i < MAX_STYLES; i++)
+		{
+			if(Shavit_GetReplayBotIndex(view_as<BhopStyle>(i)) == target)
+			{
+				bsStyle = view_as<BhopStyle>(i);
+
+				break;
+			}
+		}
 
 		/* will work on this when I find enough time
 		float fBotStart;
@@ -319,7 +350,7 @@ public void UpdateHUD(int client)
 		{
 			FormatEx(sHintText, 256, "<font face='Stratum2'>");
 			Format(sHintText, 256, "%s\t<font color='#5F8BC9'>- Replay Bot -</font>", sHintText);
-			Format(sHintText, 256, "%s\nStyle: <font color='%s</font>", sHintText, bsStyle == Style_Forwards? "#797FD4'>Forwards":"#B54CB3'>Sideways");
+			Format(sHintText, 256, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
 			Format(sHintText, 256, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
 			Format(sHintText, 256, "%s</font>", sHintText);
 		}
@@ -327,7 +358,7 @@ public void UpdateHUD(int client)
 		else
 		{
 			FormatEx(sHintText, 256, "\t- Replay Bot -", sHintText);
-			Format(sHintText, 256, "%s\nStyle: %s", sHintText, bsStyle == Style_Forwards? "Forwards":"Sideways");
+			Format(sHintText, 256, "%s\nStyle: %s", sHintText, gS_BhopStyles[bsStyle]);
 			Format(sHintText, 256, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
 		}
 

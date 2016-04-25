@@ -22,6 +22,8 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
+
+#define USES_STYLE_NAMES
 #include <shavit>
 
 #undef REQUIRE_EXTENSIONS
@@ -606,9 +608,12 @@ public Action Command_Specs(int client, int args)
 
 public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
 {
+	char[] sUpperCase = new char[32];
+	String_ToUpper(gS_BhopStyles[view_as<int>(style)], sUpperCase, 32);
+
 	for(int x = 1; x <= 3; x++)
 	{
-		Shavit_PrintToChatAll("\x02NEW %s WR!!!", style == Style_Forwards? "FORWARDS":"SIDEWAYS");
+		Shavit_PrintToChatAll("\x02NEW %s WR!!!", sUpperCase);
 	}
 }
 
@@ -679,4 +684,32 @@ public Action Player_Team(Handle event, const char[] name, bool dontBroadcast)
 	}
 
 	return Plugin_Continue;
+}
+
+/**
+ * From SMLib
+ *
+ * Converts the whole String to upper case.
+ * Only works with alphabetical characters (not ���) because Sourcemod suxx !
+ * The Output String can be the same as the Input String.
+ *
+ * @param input				Input String.
+ * @param output			Output String.
+ * @param size				Max Size of the Output string
+ * @noreturn
+ */
+stock void String_ToUpper(const char[] input, char[] output, int size)
+{
+	size--;
+
+	int x = 0;
+
+	while(input[x] != '\0' && x < size)
+	{
+		output[x] = CharToUpper(input[x]);
+
+		x++;
+	}
+
+	output[x] = '\0';
 }

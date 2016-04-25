@@ -41,11 +41,39 @@ enum ServerGame(+=1)
 };
 
 // bhop styles
+// enum - for easier customization of settings
 enum BhopStyle(+=1)
 {
 	Style_Forwards = 0,
 	Style_Sideways = 1
 };
+
+#if defined USES_STYLE_NAMES
+// style names
+char gS_BhopStyles[][] =
+{
+	"Forwards",
+	"Sideways"
+};
+#endif
+
+#if defined USES_STYLE_HTML_COLORS
+// style HTML colors, for CS:GO HUD
+char gS_StyleHTMLColors[][] =
+{
+	"797FD4",
+	"B54CB3"
+};
+#endif
+
+#if defined USES_SHORT_STYLE_NAMES
+// short names - up to 4 characters please
+char gS_ShortBhopStyles[][] =
+{
+	"NM",
+	"SW"
+};
+#endif
 
 // map zones
 #define MULTIPLEZONES_LIMIT 16
@@ -71,7 +99,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 {
 	int iTemp = RoundToFloor(time);
 
-	int iHours;
+	int iHours = 0;
 
 	if(iTemp > 3600)
 	{
@@ -91,7 +119,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		FormatEx(sHours, 8, "%d", iHours);
 	}
 
-	int iMinutes;
+	int iMinutes = 0;
 
 	if(iTemp >= 60)
 	{

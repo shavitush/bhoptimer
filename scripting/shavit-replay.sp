@@ -24,6 +24,8 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
+
+#define USES_SHORT_STYLE_NAMES
 #include <shavit>
 
 #pragma semicolon 1
@@ -122,11 +124,17 @@ public Action BotCheck(Handle Timer)
 		bot_quota.SetInt(MAX_STYLES);
 	}
 
-	// resets bot
-	if(gI_ReplayBotClient[Style_Forwards] == gI_ReplayBotClient[Style_Sideways])
+	// resets a bot's client index if there are two on the same one.
+	for(int a = 0; a < MAX_STYLES; a++)
 	{
-		gI_ReplayBotClient[Style_Forwards] = 0;
-		gI_ReplayBotClient[Style_Sideways] = 0;
+		for(int b = 0; b < MAX_STYLES; b++)
+		{
+			if(gI_ReplayBotClient[a] == gI_ReplayBotClient[b])
+			{
+				gI_ReplayBotClient[a] = 0;
+				gI_ReplayBotClient[b] = 0;
+			}
+		}
 	}
 
 	for(int i = 0; i < MAX_STYLES; i++)
@@ -165,7 +173,7 @@ public Action BotCheck(Handle Timer)
 		}
 
 		char[] sStyle = new char[16];
-		FormatEx(sStyle, 16, "%s REPLAY", i == view_as<int>(Style_Forwards)? "NM":"SW");
+		FormatEx(sStyle, 16, "%s REPLAY", gS_ShortBhopStyles[i]);
 
 		CS_SetClientClanTag(gI_ReplayBotClient[i], sStyle);
 
@@ -180,7 +188,7 @@ public Action BotCheck(Handle Timer)
 			char[] sCurrentName = new char[MAX_NAME_LENGTH];
 			strcopy(sCurrentName, MAX_NAME_LENGTH, sName);
 
-			FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", i == view_as<int>(Style_Forwards)? "NM":"SW");
+			FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", gS_ShortBhopStyles[i]);
 
 			if(!StrEqual(sName, sCurrentName))
 			{
@@ -262,7 +270,7 @@ public void OnMapStart()
 
 	ServerCommand("bot_kick");
 
-	for(int i = 1; i <= MAX_STYLES; i++)
+	for(int i = 0; i < MAX_STYLES; i++)
 	{
 		ServerCommand("bot_add");
 	}
@@ -298,7 +306,7 @@ public void OnMapStart()
 
 		if(!LoadReplay(view_as<BhopStyle>(i)))
 		{
-			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "%s unloaded", i == view_as<int>(Style_Forwards)? "NM":"SW");
+			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "%s unloaded", gS_ShortBhopStyles[i]);
 		}
 	}
 }
@@ -382,14 +390,12 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect(int client)
 {
-	if(client == gI_ReplayBotClient[Style_Forwards])
+	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		gI_ReplayBotClient[Style_Forwards] = 0;
-	}
-
-	else if(client == gI_ReplayBotClient[Style_Sideways])
-	{
-		gI_ReplayBotClient[Style_Sideways] = 0;
+		if(client == gI_ReplayBotClient[i])
+		{
+			gI_ReplayBotClient[i] = 0;
+		}
 	}
 }
 
@@ -446,57 +452,68 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	float vecPosition[3];
 	GetClientAbsOrigin(client, vecPosition);
 
-	if(client == gI_ReplayBotClient[Style_Forwards] || client == gI_ReplayBotClient[Style_Sideways])
+	// TODO - just set a global boolean for each client so we can see if it's a replay bot instead of looping through the styles everytime
+	int iReplayBotStyle = 0;
+
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		if(client == gI_ReplayBotClient[i])
+		{
+			iReplayBotStyle = i;
+
+			break;
+		}
+	}
+
+	if(iReplayBotStyle > 0)
 	{
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 
-		BhopStyle style = (client == gI_ReplayBotClient[Style_Forwards]? Style_Forwards:Style_Sideways);
-
-		if(gA_Frames[style] == null) // if no replay is loaded
+		if(gA_Frames[iReplayBotStyle] == null) // if no replay is loaded
 		{
 			return Plugin_Continue;
 		}
 
 		float fWRTime;
-		Shavit_GetWRTime(style, fWRTime);
+		Shavit_GetWRTime(view_as<BhopStyle>(iReplayBotStyle), fWRTime);
 
-		if(fWRTime != 0.0 && gI_ReplayTick[style] != -1)
+		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1)
 		{
-			if(gI_ReplayTick[style] >= gA_Frames[style].Length - 10)
+			if(gI_ReplayTick[iReplayBotStyle] >= gA_Frames[iReplayBotStyle].Length - 10)
 			{
-				gI_ReplayTick[style] = -1;
+				gI_ReplayTick[iReplayBotStyle] = -1;
 
-				CreateTimer(gCV_ReplayDelay.FloatValue, ResetReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer(gCV_ReplayDelay.FloatValue, ResetReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
 
 				return Plugin_Continue;
 			}
 
-			if(gI_ReplayTick[style] == 1)
+			if(gI_ReplayTick[iReplayBotStyle] == 1)
 			{
-				gF_StartTick[style] = GetEngineTime();
+				gF_StartTick[iReplayBotStyle] = GetEngineTime();
 			}
 
-			gI_ReplayTick[style]++;
+			gI_ReplayTick[iReplayBotStyle]++;
 
 			float vecCurrentPosition[3];
-			vecCurrentPosition[0] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 0);
-			vecCurrentPosition[1] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 1);
-			vecCurrentPosition[2] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 2);
+			vecCurrentPosition[0] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 0);
+			vecCurrentPosition[1] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 1);
+			vecCurrentPosition[2] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 2);
 
 			float vecAngles[3];
-			vecAngles[0] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 3);
-			vecAngles[1] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style] - 1, 4);
+			vecAngles[0] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 3);
+			vecAngles[1] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 4);
 
 			float vecVelocity[3];
 
 			float fDistance = 0.0;
 
-			if(gA_Frames[style].Length >= gI_ReplayTick[style] + 1)
+			if(gA_Frames[iReplayBotStyle].Length >= gI_ReplayTick[iReplayBotStyle] + 1)
 			{
 				float vecNextPosition[3];
-				vecNextPosition[0] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style], 0);
-				vecNextPosition[1] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style], 1);
-				vecNextPosition[2] = GetArrayCell(gA_Frames[style], gI_ReplayTick[style], 2);
+				vecNextPosition[0] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle], 0);
+				vecNextPosition[1] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle], 1);
+				vecNextPosition[2] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle], 2);
 
 				fDistance = GetVectorDistance(vecPosition, vecNextPosition);
 
