@@ -19,6 +19,8 @@
 */
 
 #include <sourcemod>
+
+#define USES_STYLE_NAMES
 #include <shavit>
 
 #undef REQUIRE_PLUGIN
@@ -40,6 +42,7 @@ Database gH_SQL = null;
 
 // cache
 BhopStyle gBS_LastWR[MAXPLAYERS+1];
+char gS_ClientMap[MAXPLAYERS+1][256];
 
 char gS_Map[192]; // blame workshop paths being so fucking long
 
@@ -109,12 +112,8 @@ public void OnPluginStart()
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// WR command
-	RegConsoleCmd("sm_wr", Command_WR, "Usage: sm_wr [map]");
-	RegConsoleCmd("sm_worldrecord", Command_WR, "Usage: sm_worldrecord [map]");
-
-	// WRSW command
-	RegConsoleCmd("sm_wrsw", Command_WRSW, "Show SW records. Usage: sm_wrsw [map]");
-	RegConsoleCmd("sm_worldrecordsw", Command_WRSW, "Usage: sm_worldrecordsw [map]");
+	RegConsoleCmd("sm_wr", Command_WorldRecord, "Usage: sm_wr [map]");
+	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "Usage: sm_worldrecord [map]");
 
 	// delete records
 	RegAdminCmd("sm_delete", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
@@ -385,15 +384,20 @@ public Action Command_Delete(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Menu m = new Menu(MenuHandler_Delete);
-	m.SetTitle("Delete a record from:");
+	Menu menu = new Menu(MenuHandler_Delete);
+	menu.SetTitle("Delete a record from:");
 
-	m.AddItem("forwards", "Forwards");
-	m.AddItem("sideways", "Sideways");
+	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
+	{
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
 
-	m.ExitButton = true;
+		menu.AddItem(sInfo, gS_BhopStyles[i]);
+	}
 
-	m.Display(client, 20);
+	menu.ExitButton = true;
+
+	menu.Display(client, 20);
 
 	return Plugin_Handled;
 }
@@ -465,15 +469,7 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
-		if(StrEqual(info, "forwards"))
-		{
-			OpenDelete(param1, Style_Forwards);
-		}
-
-		else if(StrEqual(info, "sideways"))
-		{
-			OpenDelete(param1, Style_Sideways);
-		}
+		OpenDelete(param1, view_as<BhopStyle>(StringToInt(info)));
 	}
 
 	else if(action == MenuAction_End)
@@ -516,7 +512,7 @@ public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] erro
 	}
 
 	char[] sFormattedTitle = new char[256];
-	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", gS_Map, style == Style_Forwards? "Forwards":"Sideways");
+	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", gS_Map, gS_BhopStyles[style]);
 
 	Menu m = new Menu(OpenDelete_Handler);
 	m.SetTitle(sFormattedTitle);
@@ -679,58 +675,83 @@ public void DeleteAll_Callback(Handle owner, Handle hndl, const char[] error, an
 	Shavit_PrintToChat(client, "Deleted ALL records for \"%s\".", gS_Map);
 }
 
-public Action Command_WR(int client, int args)
+public Action Command_WorldRecord(int client, int args)
 {
 	if(!IsValidClient(client))
 	{
 		return Plugin_Handled;
 	}
 
-	char[] sMap = new char[128];
-
 	if(!args)
 	{
-		strcopy(sMap, 128, gS_Map);
+		strcopy(gS_ClientMap[client], 256, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(sMap, 128);
+		GetCmdArgString(gS_ClientMap[client], 256);
 	}
 
-	StartWRMenu(client, sMap, view_as<int>(Style_Forwards));
+	Menu menu = new Menu(MenuHandler_StyleChooser);
+	menu.SetTitle("Choose a style:");
+
+	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
+	{
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
+
+		menu.AddItem(sInfo, gS_BhopStyles[i]);
+	}
+
+	// should NEVER happen
+	if(menu.ItemCount == 0)
+	{
+		menu.AddItem("-1", "Nothing");
+	}
+
+	menu.ExitButton = true;
+
+	menu.Display(client, 30);
 
 	return Plugin_Handled;
 }
 
-public Action Command_WRSW(int client, int args)
+public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, int param2)
 {
-	if(!IsValidClient(client))
+	if(action == MenuAction_Select)
 	{
-		return Plugin_Handled;
+		if(!IsValidClient(param1))
+		{
+			return 0;
+		}
+
+		char[] sInfo = new char[8];
+		menu.GetItem(param2, sInfo, 8);
+
+		int iStyle = StringToInt(sInfo);
+
+		if(iStyle == -1)
+		{
+			Shavit_PrintToChat(param1, "FATAL ERROR: No styles are available. Contact the server owner immediately!");
+
+			return 0;
+		}
+
+		gBS_LastWR[param1] = view_as<BhopStyle>(iStyle);
+
+		StartWRMenu(param1, gS_ClientMap[param1], iStyle);
 	}
 
-	char[] sMap = new char[128];
-
-	if(!args)
+	else if(action == MenuAction_End)
 	{
-		strcopy(sMap, 128, gS_Map);
+		delete menu;
 	}
 
-	else
-	{
-		GetCmdArgString(sMap, 128);
-	}
-
-	StartWRMenu(client, sMap, view_as<int>(Style_Sideways));
-
-	return Plugin_Handled;
+	return 0;
 }
 
 public void StartWRMenu(int client, const char[] map, int style)
 {
-	gBS_LastWR[client] = view_as<BhopStyle>(style);
-
 	DataPack dp = new DataPack();
 	dp.WriteCell(GetClientSerial(client));
 	dp.WriteString(map);
@@ -851,7 +872,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 		m.SetTitle(sFormattedTitle);
 	}
 
-	m.ExitButton = true;
+	m.ExitBackButton = true;
 
 	m.Display(client, 20);
 }
@@ -865,6 +886,11 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 		int id = StringToInt(info);
 
 		OpenSubMenu(param1, id);
+	}
+
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		Command_WorldRecord(param1, 0);
 	}
 
 	else if(action == MenuAction_End)
@@ -929,9 +955,7 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 
 		// 3 - style
 		int iStyle = SQL_FetchInt(hndl, 3);
-		char[] sStyle = new char[16];
-		FormatEx(sStyle, 16, "%s", iStyle == view_as<int>(Style_Forwards)? "Forwards":"Sideways");
-		FormatEx(sDisplay, 128, "Style: %s", sStyle);
+		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[iStyle]);
 		m.AddItem("-1", sDisplay);
 
 		// 4 - steamid3
@@ -956,9 +980,9 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 
 public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
-	if((action == MenuAction_Cancel && (param2 == MenuCancel_ExitBack && param2 != MenuCancel_Exit)) || action == MenuAction_Select)
+	if(((action == MenuAction_Cancel && (param2 == MenuCancel_ExitBack && param2 != MenuCancel_Exit)) || action == MenuAction_Select) && IsValidClient(param1))
 	{
-		OpenWR(param1);
+		StartWRMenu(param1, gS_ClientMap[param1], view_as<int>(gBS_LastWR[param1]));
 	}
 
 	else if(action == MenuAction_End)
@@ -967,24 +991,6 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	}
 
 	return 0;
-}
-
-public void OpenWR(int client)
-{
-	if(!IsValidClient(client))
-	{
-		return;
-	}
-
-	if(gBS_LastWR[client] == Style_Forwards)
-	{
-		Command_WR(client, 0);
-	}
-
-	else
-	{
-		Command_WRSW(client, 0);
-	}
 }
 
 public void SQL_DBConnect()
@@ -1075,7 +1081,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 		if(overwrite == 1) // insert
 		{
-			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps.", client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps.", client, gS_BhopStyles[bsStyle], sTime, jumps);
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
 			// TODO: work on a solution that can function the same while not causing lost records
@@ -1089,7 +1095,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 		else // update
 		{
-			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps. \x0C(%s)", client, bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps. \x0C(%s)", client, gS_BhopStyles[bsStyle], sTime, jumps, sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, gS_Map, sAuthID, style);
 		}
@@ -1101,12 +1107,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		if(!overwrite)
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) on \x07%s\x01 with %d jumps. \x08(+%s)", bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps, sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) on \x07%s\x01 with %d jumps. \x08(+%s)", gS_BhopStyles[bsStyle], sTime, jumps, sDifference);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) on \x07%s\x01 with %d jumps.", bsStyle == Style_Forwards? "Forwards":"Sideways", sTime, jumps);
+			Shavit_PrintToChat(client, "You have finished (%s) on \x07%s\x01 with %d jumps.", gS_BhopStyles[bsStyle], sTime, jumps);
 		}
 	}
 }

@@ -78,7 +78,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-wr
 - [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
 - [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
-- [ ] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties.
+- [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
 - [ ] Add strafe sync to the WR menu where available.
 
 ~ shavit-zones
