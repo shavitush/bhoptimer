@@ -6,8 +6,8 @@
 		{
 			"GetMaxPlayerSpeed"
 			{
-				"windows"	"437"
-				"linux"		"438"
+				"windows"	"438"
+				"linux"		"439"
 			}
 		}
 	}
