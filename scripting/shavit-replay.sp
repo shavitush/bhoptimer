@@ -96,6 +96,8 @@ public void OnPluginStart()
 	// plugin convars
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "1.5", "Time to wait before restarting the replay after it finishes playing.", FCVAR_PLUGIN, true, 0.0, true, 10.0);
 
+	AutoExecConfig();
+
 	// insert delete replay command here
 }
 
