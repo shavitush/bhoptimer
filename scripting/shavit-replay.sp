@@ -537,20 +537,17 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else
+	else if(gB_Record[client] && !Shavit_InsideZone(client, Zone_Start))
 	{
-		if(gB_Record[client] && !Shavit_InsideZone(client, Zone_Start))
-		{
-			gI_PlayerFrames[client]++;
-			gA_PlayerFrames[client].Resize(gI_PlayerFrames[client]);
+		gI_PlayerFrames[client]++;
+		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client]);
 
-			SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[0], 0);
-			SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[1], 1);
-			SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[2], 2);
+		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[0], 0);
+		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[1], 1);
+		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[2], 2);
 
-			SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, angles[0], 3);
-			SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, angles[1], 4);
-		}
+		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, angles[0], 3);
+		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, angles[1], 4);
 	}
 
 	return Plugin_Continue;
