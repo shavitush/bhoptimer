@@ -184,6 +184,8 @@ public Action SetSQLInfo()
 
 	if(gH_SQL == null)
 	{
+		Shavit_GetDB(gH_SQL);
+
 		fTime = 0.5;
 	}
 
@@ -571,7 +573,7 @@ public Action Command_DeleteZone(int client, int args)
 		}
 	}
 
-	if(!GetMenuItemCount(menu))
+	if(menu.ItemCount == 0)
 	{
 		menu.AddItem("-1", "No zones found.");
 	}

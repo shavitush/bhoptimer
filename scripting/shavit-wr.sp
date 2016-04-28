@@ -843,7 +843,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 	char[] sFormattedTitle = new char[192];
 
-	if(!GetMenuItemCount(m))
+	if(m.ItemCount == 0)
 	{
 		FormatEx(sFormattedTitle, 192, "Records for %s", sMap);
 
@@ -930,12 +930,8 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 	char[] sName = new char[MAX_NAME_LENGTH];
 	char[] sAuthID = new char[32];
 
-	int iCount = 0;
-
-	while(SQL_FetchRow(hndl))
+	if(SQL_FetchRow(hndl))
 	{
-		iCount++;
-
 		// 0 - name
 		SQL_FetchString(hndl, 0, sName, MAX_NAME_LENGTH);
 
@@ -973,14 +969,14 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 
 	m.SetTitle(sFormattedTitle);
 
-	m.ExitButton = true;
+	m.ExitBackButton = true;
 
 	m.Display(client, 20);
 }
 
 public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
-	if(((action == MenuAction_Cancel && (param2 == MenuCancel_ExitBack && param2 != MenuCancel_Exit)) || action == MenuAction_Select) && IsValidClient(param1))
+	if((action == MenuAction_Cancel && param2 == MenuCancel_ExitBack) || action == MenuAction_Select)
 	{
 		StartWRMenu(param1, gS_ClientMap[param1], view_as<int>(gBS_LastWR[param1]));
 	}

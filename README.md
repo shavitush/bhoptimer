@@ -54,6 +54,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 
 # Todo for 1.5b release (out of beta!)
 - [x] Migrate every menu to the new syntax.
+- [ ] Migrate DBI to the new syntax.
 
 ~ shavit-core:
 - [x] Fix chat colors for CS:S.
@@ -88,7 +89,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [ ] Optimize `InsideZone()` so `CreateZonePoints()` will not be needed for simple (not rotated) zones.
 
 ~ shavit-stats
-- [ ] Make style names editable from shavit.inc (like I did to the rest of modules) - either that or integrate the whole module into shavit-wr.
+- [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
 
 ~ [NEW PLUGIN] shavit-ranks:
 - [ ] Create table.
