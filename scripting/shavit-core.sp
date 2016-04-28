@@ -59,10 +59,10 @@ BhopStyle gBS_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 
 // late load
-bool gB_Late;
+bool gB_Late = false;
 
 // zones lateload support
-bool gB_Zones;
+bool gB_Zones = false;
 
 // cvars
 ConVar gCV_Autobhop = null;
@@ -71,6 +71,7 @@ ConVar gCV_Restart = null;
 ConVar gCV_Pause = null;
 ConVar gCV_MySQLPrefix = null;
 ConVar gCV_NoStaminaReset = null;
+ConVar gCV_AllowTimerWithoutZone = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -196,6 +197,7 @@ public void OnPluginStart()
 	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 
 	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", FCVAR_PLUGIN);
 	gCV_MySQLPrefix.AddChangeHook(OnPrefixChange);
@@ -290,11 +292,19 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Call_StartForward(gH_Forwards_OnRestart);
-	Call_PushCell(client);
-	Call_Finish();
+	if(gCV_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
+	{
+		Call_StartForward(gH_Forwards_OnRestart);
+		Call_PushCell(client);
+		Call_Finish();
 
-	StartTimer(client);
+		StartTimer(client);
+	}
+
+	else
+	{
+		Shavit_PrintToChat(client, "Your timer will not start as a start zone for the map is not defined.");
+	}
 
 	return Plugin_Handled;
 }
