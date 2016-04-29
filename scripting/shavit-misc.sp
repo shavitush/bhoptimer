@@ -269,8 +269,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 			if(fScale < 1.0) // 280 / 281 = below 1 | 280 / 279 = above 1
 			{
-				fSpeed[0] *= fScale;
-				fSpeed[1] *= fScale;
+				ScaleVector(fSpeed, fScale);
 
 				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
 			}
