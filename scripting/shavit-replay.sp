@@ -193,7 +193,7 @@ public Action BotCheck(Handle Timer)
 		}
 
 		char[] sStyle = new char[16];
-		FormatEx(sStyle, 16, "REPLAY BOT", gS_ShortBhopStyles[i]);
+		FormatEx(sStyle, 16, "%s REPLAY", gS_ShortBhopStyles[i]);
 
 		CS_SetClientClanTag(gI_ReplayBotClient[i], sStyle);
 
