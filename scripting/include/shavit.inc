@@ -29,7 +29,7 @@
 
 #define PREFIX "\x04[Timer]\x01"
 
-#define MAX_STYLES 2
+#define MAX_STYLES 5
 #define MAX_ZONES 7
 
 // game types
@@ -45,10 +45,14 @@ enum ServerGame(+=1)
 enum BhopStyle(+=1)
 {
 	Style_Forwards = 0,
-	Style_Sideways
+	Style_Sideways,
+	Style_WOnly,
+	Style_Scroll,
+	Style_400Velocity
 };
 
 #if defined USES_STYLE_PROPERTIES
+#define STYLE_NONE				(0)
 #define STYLE_AUTOBHOP			(1 << 0)
 #define STYLE_BLOCK_W			(1 << 1)
 #define STYLE_BLOCK_A			(1 << 2)
@@ -60,7 +64,10 @@ enum BhopStyle(+=1)
 int gI_StyleProperties[MAX_STYLES] =
 {
 	STYLE_AUTOBHOP|STYLE_EASYBHOP, // Forwards
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D // Sideways
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D, // Sideways
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D|STYLE_BLOCK_S, // W-Only
+	STYLE_NONE, // Scroll
+	STYLE_VEL_LIMIT // 400 Velocity
 };
 
 #define VELOCITY_UNLIMITED 0.0
@@ -70,7 +77,10 @@ int gI_StyleProperties[MAX_STYLES] =
 float gF_VelocityLimit[MAX_STYLES] =
 {
 	VELOCITY_UNLIMITED, // Forwards
-	VELOCITY_UNLIMITED // Sideways
+	VELOCITY_UNLIMITED, // Sideways
+	VELOCITY_UNLIMITED, // W-Only
+	VELOCITY_UNLIMITED, // Scroll
+	400.00 // 400 Velocity
 };
 #endif
 
@@ -79,7 +89,10 @@ float gF_VelocityLimit[MAX_STYLES] =
 char gS_BhopStyles[MAX_STYLES][] =
 {
 	"Forwards",
-	"Sideways"
+	"Sideways",
+	"W-Only",
+	"Scroll",
+	"400 Velocity"
 };
 #endif
 
@@ -88,7 +101,10 @@ char gS_BhopStyles[MAX_STYLES][] =
 char gS_StyleHTMLColors[MAX_STYLES][] =
 {
 	"797FD4",
-	"B54CB3"
+	"B54CB3",
+	"9A59F0",
+	"279BC2",
+	"C9BB8B"
 };
 #endif
 
@@ -97,7 +113,10 @@ char gS_StyleHTMLColors[MAX_STYLES][] =
 char gS_ShortBhopStyles[MAX_STYLES][] =
 {
 	"NM",
-	"SW"
+	"SW",
+	"W",
+	"LEGIT",
+	"400VEL"
 };
 #endif
 
