@@ -142,11 +142,28 @@ public Action BotCheck(Handle Timer)
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		if(gI_ReplayBotClient[i] == 0 || !IsValidClient(gI_ReplayBotClient[i]))
+		if(!IsValidClient(gI_ReplayBotClient[i]))
 		{
 			for(int j = 1; j <= MaxClients; j++)
 			{
-				if(!IsClientConnected(j) || !IsFakeClient(j) || j == gI_ReplayBotClient[!view_as<bool>(i)])
+				if(!IsClientConnected(j) || !IsFakeClient(j))
+				{
+					continue;
+				}
+
+				bool bContinue = false;
+
+				for(int x = 0; x < MAX_STYLES; x++)
+				{
+					if(j == gI_ReplayBotClient[x])
+					{
+						bContinue = true;
+
+						break;
+					}
+				}
+
+				if(bContinue)
 				{
 					continue;
 				}
@@ -176,7 +193,7 @@ public Action BotCheck(Handle Timer)
 		}
 
 		char[] sStyle = new char[16];
-		FormatEx(sStyle, 16, "%s REPLAY", gS_ShortBhopStyles[i]);
+		FormatEx(sStyle, 16, "REPLAY BOT", gS_ShortBhopStyles[i]);
 
 		CS_SetClientClanTag(gI_ReplayBotClient[i], sStyle);
 
