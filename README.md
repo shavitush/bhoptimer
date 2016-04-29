@@ -60,12 +60,10 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] Fix chat colors for CS:S.
 - [x] Add table prefix. (`shavit_core_sqlprefix`)
 - [x] Add shavit_core_nostaminareset ("easybhop")
-- [ ] Make a global enumerator/variable with per-style settings (bitflags)
+- [x] Make a global enumerator/variable with per-style settings (bitflags) - configs are canceled, just recompile the plugin with your own edit of `shavit.inc`.
+- [ ] Add unranked styles.
 - [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams.
 - [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
-- [ ] (might be canceled!) Add style configuration through mysql (`style` table) and allow it to be custom with some options. (Style name, autobhop, block each key individually and velocity limit)
-- [ ] If the above will be canceled, load style settings from a config and use [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) to cache per-style settings.
-- [ ] Add unranked styles.
 
 ~ shavit-hud:
 - [x] HUD toggling command. (`sm_hud`)

@@ -22,6 +22,7 @@
 #include <sdktools>
 #include <geoip>
 
+#define USES_STYLE_PROPERTIES
 #define USES_STYLE_NAMES
 #include <shavit>
 
@@ -57,6 +58,7 @@ bool gB_ClientPaused[MAXPLAYERS+1];
 int gI_Jumps[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
+bool gB_OnGround[MAXPLAYERS+1];
 
 // late load
 bool gB_Late = false;
@@ -192,11 +194,11 @@ public void OnPluginStart()
 
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD);
 
-	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?\nWill be forced to not work if STYLE_AUTOBHOP is not defined for a style!", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.\nWill be forced to not work if STYLE_EASYBHOP is not defined for a style!", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 
 	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", FCVAR_PLUGIN);
@@ -445,7 +447,10 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 	StopTimer(client);
 
-	Command_StartTimer(client, -1);
+	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
+	{
+		Command_StartTimer(client, -1);
+	}
 }
 
 public void Player_Jump(Handle event, const char[] name, bool dontBroadcast)
@@ -458,7 +463,7 @@ public void Player_Jump(Handle event, const char[] name, bool dontBroadcast)
 		gI_Jumps[client]++;
 	}
 
-	if(gCV_NoStaminaReset.BoolValue)
+	if(gI_StyleProperties[gBS_Style[client]] & STYLE_EASYBHOP && gCV_NoStaminaReset.BoolValue)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
@@ -767,18 +772,68 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	bool bEdit = false;
 
-	// SW cheat blocking
-	if(!Shavit_InsideZone(client, Zone_Freestyle) && gBS_Style[client] == Style_Sideways && !bOnLadder && (vel[1] != 0.0 || buttons & IN_MOVELEFT || buttons & IN_MOVERIGHT))
+	// key blocking
+	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnLadder)
 	{
-		bEdit = true;
+		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
+		{
+			bEdit = true;
+			vel[0] = 0.0;
+			buttons &= ~IN_FORWARD;
+		}
 
-		vel[1] = 0.0;
+		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (vel[1] > 0 || buttons & IN_MOVELEFT))
+		{
+			bEdit = true;
+			vel[1] = 0.0;
+			buttons &= ~IN_MOVELEFT;
+		}
+
+		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S && (vel[0] < 0 || buttons & IN_BACK))
+		{
+			bEdit = true;
+			vel[0] = 0.0;
+			buttons &= ~IN_BACK;
+		}
+
+		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D && (vel[1] > 0 || buttons & IN_MOVERIGHT))
+		{
+			bEdit = true;
+			vel[1] = 0.0;
+			buttons &= ~IN_MOVERIGHT;
+		}
 	}
 
+	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
+
 	// autobhop
-	if(gCV_Autobhop.BoolValue && gB_Auto[client] && buttons & IN_JUMP && !(GetEntityFlags(client) & FL_ONGROUND) && !bOnLadder && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
+	if(gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP && gCV_Autobhop.BoolValue && gB_Auto[client] && buttons & IN_JUMP && !bOnGround && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
 	{
 		buttons &= ~IN_JUMP;
+	}
+
+	// velocity limit
+	if(bOnGround && gI_StyleProperties[gBS_Style[client]] & STYLE_VEL_LIMIT && gF_VelocityLimit[gBS_Style[client]] != VELOCITY_UNLIMITED && !gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit))
+	{
+		gB_OnGround[client] = true;
+
+		float fSpeed[3];
+		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+
+		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+		float fScale = gF_VelocityLimit[gBS_Style[client]] / fSpeed_New;
+
+		if(fScale < 1.0)
+		{
+			ScaleVector(fSpeed, fScale);
+
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+		}
+	}
+
+	else
+	{
+		gB_OnGround[client] = false;
 	}
 
 	if(gB_ClientPaused[client])

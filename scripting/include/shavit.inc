@@ -29,15 +29,15 @@
 
 #define PREFIX "\x04[Timer]\x01"
 
-#define MAX_STYLES 2 // I could probably do sizeof(BhopStyle) but I suck
-#define MAX_ZONES 6
+#define MAX_STYLES 2
+#define MAX_ZONES 7
 
 // game types
 enum ServerGame(+=1)
 {
 	Game_CSS = 0,
-	Game_CSGO = 1,
-	Game_Unknown = 2
+	Game_CSGO,
+	Game_Unknown
 };
 
 // bhop styles
@@ -45,12 +45,38 @@ enum ServerGame(+=1)
 enum BhopStyle(+=1)
 {
 	Style_Forwards = 0,
-	Style_Sideways = 1
+	Style_Sideways
 };
+
+#if defined USES_STYLE_PROPERTIES
+#define STYLE_AUTOBHOP			(1 << 0)
+#define STYLE_BLOCK_W			(1 << 1)
+#define STYLE_BLOCK_A			(1 << 2)
+#define STYLE_BLOCK_S			(1 << 3)
+#define STYLE_BLOCK_D			(1 << 4)
+#define STYLE_EASYBHOP			(1 << 5)
+#define STYLE_VEL_LIMIT			(1 << 6)
+
+int gI_StyleProperties[MAX_STYLES] =
+{
+	STYLE_AUTOBHOP|STYLE_EASYBHOP, // Forwards
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D // Sideways
+};
+
+#define VELOCITY_UNLIMITED 0.0
+
+// only applies if STYLE_VEL_LIMIT is defined for a style
+// use VELOCITY_UNLIMITED to ignore
+float gF_VelocityLimit[MAX_STYLES] =
+{
+	VELOCITY_UNLIMITED, // Forwards
+	VELOCITY_UNLIMITED // Sideways
+};
+#endif
 
 #if defined USES_STYLE_NAMES
 // style names
-char gS_BhopStyles[][] =
+char gS_BhopStyles[MAX_STYLES][] =
 {
 	"Forwards",
 	"Sideways"
@@ -59,7 +85,7 @@ char gS_BhopStyles[][] =
 
 #if defined USES_STYLE_HTML_COLORS
 // style HTML colors, for CS:GO HUD
-char gS_StyleHTMLColors[][] =
+char gS_StyleHTMLColors[MAX_STYLES][] =
 {
 	"797FD4",
 	"B54CB3"
@@ -68,7 +94,7 @@ char gS_StyleHTMLColors[][] =
 
 #if defined USES_SHORT_STYLE_NAMES
 // short names - up to 4 characters please
-char gS_ShortBhopStyles[][] =
+char gS_ShortBhopStyles[MAX_STYLES][] =
 {
 	"NM",
 	"SW"
@@ -76,7 +102,7 @@ char gS_ShortBhopStyles[][] =
 #endif
 
 // map zones
-#define MULTIPLEZONES_LIMIT 16
+#define MULTIPLEZONES_LIMIT 32
 
 enum MapZones(+=1)
 {
@@ -85,7 +111,8 @@ enum MapZones(+=1)
 	Zone_Respawn,
 	Zone_Stop,
 	Zone_Slay,
-	Zone_Freestyle
+	Zone_Freestyle,
+	Zone_NoVelLimit
 };
 
 // let's not throw errors k?
