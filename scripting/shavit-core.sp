@@ -813,7 +813,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// velocity limit
-	if(bOnGround && gI_StyleProperties[gBS_Style[client]] & STYLE_VEL_LIMIT && gF_VelocityLimit[gBS_Style[client]] != VELOCITY_UNLIMITED && !gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit))
+	if(bOnGround && gI_StyleProperties[gBS_Style[client]] & STYLE_VEL_LIMIT && gF_VelocityLimit[gBS_Style[client]] != VELOCITY_UNLIMITED && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
 		gB_OnGround[client] = true;
 
