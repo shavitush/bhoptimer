@@ -32,6 +32,8 @@
 
 #define PLACEHOLDER 32767
 
+ServerGame gSG_Type = Game_Unknown;
+
 Database gH_SQL = null;
 
 char gS_Map[128];
@@ -43,7 +45,8 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"Glitch Zone (Respawn Player)", // respawns the player
 	"Glitch Zone (Stop Timer)", // stops the player's timer
 	"Slay Player", // slays (kills) players which come to this zone
-	"Freestyle Zone" // ignores style physics when at this zone. e.g. WASD when SWing
+	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
+	"No Speed Limit" // ignores velocity limit in that zone
 };
 
 MapZones gMZ_Type[MAXPLAYERS+1];
@@ -86,6 +89,7 @@ float gV_Fix2[MAXPLAYERS+1][2];
 
 // beamsprite, used to draw the zone
 int gI_BeamSprite = -1;
+int gI_HaloSprite = -1;
 
 // zone colors
 int gI_Colors[MAX_ZONES][4];
@@ -290,7 +294,7 @@ public int Native_InsideZone(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	MapZones type = GetNativeCell(2);
 
-	if(type == Zone_Freestyle)
+	if(type == Zone_Freestyle || type == Zone_NoVelLimit)
 	{
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
 		{
@@ -321,8 +325,11 @@ public void SetupColors()
 	gI_Colors[Zone_Stop] = {255, 200, 0, 255};
 	gI_Colors[Zone_Slay] = {255, 200, 0, 255};
 
-	// freestyle - blue
+	// freestyle zones - blue
 	gI_Colors[Zone_Freestyle] = {25, 25, 255, 195};
+
+	// no speed limit - transparent hot pink
+	gI_Colors[Zone_NoVelLimit] = {247, 3, 255, 50};
 }
 
 public void OnMapStart()
@@ -336,7 +343,19 @@ public void OnMapStart()
 		RefreshZones();
 	}
 
-	gI_BeamSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
+	gSG_Type = Shavit_GetGameType();
+
+	if(gSG_Type == Game_CSS)
+    {
+        gI_BeamSprite = PrecacheModel("sprites/laser.vmt", true);
+        gI_HaloSprite = PrecacheModel("sprites/halo01.vmt", true);
+    }
+
+    else
+    {
+        gI_BeamSprite = PrecacheModel("sprites/laserbeam.vmt", true);
+        gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
+    }
 }
 
 // 0 - all zones
@@ -365,7 +384,7 @@ public void UnloadZones(int zone)
 		return;
 	}
 
-	if(zone != view_as<int>(Zone_Freestyle))
+	if(zone != view_as<int>(Zone_Freestyle) || zone != view_as<int>(Zone_NoVelLimit))
 	{
 		for(int i = 0; i < 3; i++)
 		{
@@ -418,7 +437,7 @@ public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] er
 	{
 		MapZones type = view_as<MapZones>(SQL_FetchInt(hndl, 0));
 
-		if(type == Zone_Freestyle)
+		if(type == Zone_Freestyle || type == Zone_NoVelLimit)
 		{
 			gV_FreestyleZones[iFreestyleRow][0][0] = SQL_FetchFloat(hndl, 1);
 			gV_FreestyleZones[iFreestyleRow][0][1] = SQL_FetchFloat(hndl, 2);
@@ -529,12 +548,13 @@ public Action Command_Zones(int client, int args)
 	Menu menu = new Menu(Select_Type_MenuHandler);
 	menu.SetTitle("Select a zone type:");
 
-	menu.AddItem("0", "Start Zone");
-	menu.AddItem("1", "End Zone");
-	menu.AddItem("2", "Glitch Zone (Respawn Player)");
-	menu.AddItem("3", "Glitch Zone (Stop Timer)");
-	menu.AddItem("4", "Slay Player");
-	menu.AddItem("5", "Freestyle Zone");
+	for(int i = 0; i < sizeof(gS_ZoneNames); i++)
+	{
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
+
+		menu.AddItem(sInfo, gS_ZoneNames[i]);
+	}
 
 	menu.ExitButton = true;
 
@@ -555,7 +575,7 @@ public Action Command_DeleteZone(int client, int args)
 
 	for(int i = 0; i < MAX_ZONES; i++)
 	{
-		if(i == view_as<int>(Zone_Freestyle))
+		if(i == view_as<int>(Zone_Freestyle) || i == view_as<int>(Zone_NoVelLimit))
 		{
 			if(!EmptyZone(gV_FreestyleZones[0][0]) && !EmptyZone(gV_FreestyleZones[0][1]))
 			{
@@ -1283,7 +1303,7 @@ public void InsertZone(int client)
 
 	MapZones type = gMZ_Type[client];
 
-	if(type == Zone_Freestyle)
+	if(type == Zone_Freestyle || type == Zone_NoVelLimit)
 	{
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
 
@@ -1358,7 +1378,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 	{
 		float vPoints[8][3];
 
-		if(i == view_as<int>(Zone_Freestyle))
+		if(i == view_as<int>(Zone_Freestyle) || i == view_as<int>(Zone_NoVelLimit))
 		{
 			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
 			{
@@ -1414,7 +1434,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 				CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false);
 
-				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue);
+				DrawZone(0, vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue);
 			}
 		}
 	}
