@@ -298,11 +298,7 @@ public int Native_InsideZone(Handle handler, int numParams)
 	{
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
 		{
-			if(i == 0 && InsideZone(client, -PLACEHOLDER))
-			{
-				return true;
-			}
-			else if(InsideZone(client, -i))
+			if((i == 0 && InsideZone(client, -PLACEHOLDER)) || InsideZone(client, -i))
 			{
 				return true;
 			}
@@ -346,16 +342,16 @@ public void OnMapStart()
 	gSG_Type = Shavit_GetGameType();
 
 	if(gSG_Type == Game_CSS)
-    {
-        gI_BeamSprite = PrecacheModel("sprites/laser.vmt", true);
-        gI_HaloSprite = PrecacheModel("sprites/halo01.vmt", true);
-    }
+	{
+		gI_BeamSprite = PrecacheModel("sprites/laser.vmt", true);
+		gI_HaloSprite = PrecacheModel("sprites/halo01.vmt", true);
+	}
 
-    else
-    {
-        gI_BeamSprite = PrecacheModel("sprites/laserbeam.vmt", true);
-        gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
-    }
+	else
+	{
+		gI_BeamSprite = PrecacheModel("sprites/laserbeam.vmt", true);
+		gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
+	}
 }
 
 // 0 - all zones
@@ -1303,61 +1299,17 @@ public void InsertZone(int client)
 
 	MapZones type = gMZ_Type[client];
 
-	if(type == Zone_Freestyle || type == Zone_NoVelLimit)
+	if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type == Zone_Freestyle || type == Zone_NoVelLimit) // insert
 	{
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
-
-		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
-		{
-			if(!EmptyZone(gV_FreestyleZones[i][0]) && !EmptyZone(gV_FreestyleZones[i][1]))
-			{
-				continue;
-			}
-
-			gV_FreestyleZones[i][0] = gV_Point1[client];
-			gV_FreestyleZones[i][1] = gV_Point2[client];
-
-			float radian = DegToRad(gF_RotateAngle[client]);
-			gF_FreeStyleConstSin[i] = Sine(radian);
-			gF_FreeStyleConstCos[i] = Cosine(radian);
-
-			radian = DegToRad(-gF_RotateAngle[client]);
-			gF_FreeStyleMinusConstSin[i] = Sine(radian);
-			gF_FreeStyleMinusConstCos[i] = Cosine(radian);
-
-			gV_FreeStyleZonesFixes[i][0] = gV_Fix1[client];
-			gV_FreeStyleZonesFixes[i][1] = gV_Fix2[client];
-		}
 	}
 
-	else
+	else // update
 	{
-		if(EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) // insert
-		{
-			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
-		}
-
-		else // update
-		{
-			FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
-		}
-
-		gV_MapZones[type][0] = gV_Point1[client];
-		gV_MapZones[type][1] = gV_Point2[client];
-
-		float radian = DegToRad(gF_RotateAngle[client]);
-		gF_ConstSin[type] = Sine(radian);
-		gF_ConstCos[type] = Cosine(radian);
-
-		radian = DegToRad(-gF_RotateAngle[client]);
-		gF_MinusConstSin[type] = Sine(radian);
-		gF_MinusConstCos[type] = Cosine(radian);
-
-		gV_MapZonesFixes[type][0] = gV_Fix1[client];
-		gV_MapZonesFixes[type][1] = gV_Fix2[client];
+		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
 	}
 
-	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, type);
 
 	Reset(client);
 }
@@ -1370,6 +1322,11 @@ public void SQL_InsertZone_Callback(Handle owner, Handle hndl, const char[] erro
 
 		return;
 	}
+
+	bool bFreestyle = (data == Zone_Freestyle || data == Zone_NoVelLimit);
+
+	UnloadZones(bFreestyle? 0:data);
+	RefreshZones();
 }
 
 public Action Timer_DrawEverything(Handle Timer, any data)
