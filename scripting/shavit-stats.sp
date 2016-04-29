@@ -285,12 +285,12 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sTitle, 32, "[%s] Maps done for %N: (%d)", gS_ShortBhopStyles[client], gI_Target[client], rows);
+		FormatEx(sTitle, 32, "[%s] Maps done for %N: (%d)", gS_ShortBhopStyles[gBS_Style[client]], gI_Target[client], rows);
 	}
 
 	else
 	{
-		FormatEx(sTitle, 32, "[%s] Maps left for %N: (%d)", gS_ShortBhopStyles[client], gI_Target[client], rows);
+		FormatEx(sTitle, 32, "[%s] Maps left for %N: (%d)", gS_ShortBhopStyles[gBS_Style[client]], gI_Target[client], rows);
 	}
 
 	Menu m = new Menu(MenuHandler_ShowMaps);
