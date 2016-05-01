@@ -147,12 +147,17 @@ public void OnPluginStart()
 
 public Action Command_Jointeam(int client, const char[] command, int args)
 {
+	if(!IsValidClient(client))
+	{
+		return Plugin_Continue;
+	}
+
 	char[] arg1 = new char[8];
 	GetCmdArg(1, arg1, 8);
 
 	int iTeam = StringToInt(arg1);
 
-	// client is trying to join the same team he's now.
+	// client is trying to join the same team he's in now.
 	// i'll let the game handle it.
 	if(GetClientTeam(client) == iTeam)
 	{
