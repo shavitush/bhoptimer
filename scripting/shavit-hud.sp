@@ -51,6 +51,9 @@ char gS_EndColors[][] =
 	"ff0000", "ff4000", "ff7f00", "ffaa00", "ffd400", "ffff00", "bba24e", "77449c"
 };
 
+// cvars
+ConVar gCV_ZoneHUD = null;
+
 public Plugin myinfo =
 {
 	name = "[shavit] HUD",
@@ -84,6 +87,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_hud", Command_ToggleHUD, "Toggle the timer's HUD");
 
 	RegConsoleCmd("sm_zonehud", Command_ToggleZoneHUD, "Toggle the timer's flashing zone HUD");
+
+	// cvars
+	gCV_ZoneHUD = CreateConVar("shavit_hud_zonehud", "1", "Enable \"zonehud\" server-sided? (The colored start/end zone display in CS:GO)", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 }
 
 public void OnClientPutInServer(int client)
@@ -103,6 +109,13 @@ public Action Command_ToggleHUD(int client, int args)
 
 public Action Command_ToggleZoneHUD(int client, int args)
 {
+	if(!gCV_ZoneHUD.BoolValue)
+	{
+		Shavit_PrintToChat(client, "This feature is disabled.");
+
+		return Plugin_Handled;
+	}
+
 	if(gSG_Type != Game_CSGO)
 	{
 		Shavit_PrintToChat(client, "Zone HUD is not supported for this game, sorry.");
@@ -145,7 +158,7 @@ public void OnConfigsExecuted()
 
 public Action UpdateHUD_Timer(Handle Timer)
 {
-	if(gSG_Type == Game_CSGO)
+	if(gCV_ZoneHUD.BoolValue && gSG_Type == Game_CSGO)
 	{
 		gI_StartCycle++;
 
@@ -196,7 +209,7 @@ public void UpdateHUD(int client)
 
 	bool bZoneHUD = false;
 
-	if(gB_ZoneHUD[client] && gSG_Type == Game_CSGO)
+	if(gCV_ZoneHUD.BoolValue && gB_ZoneHUD[client] && gSG_Type == Game_CSGO)
 	{
 		if(Shavit_InsideZone(target, Zone_Start))
 		{
