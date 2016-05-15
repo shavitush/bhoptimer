@@ -51,7 +51,7 @@ if(isset($_REQUEST["map"]))
     <!-- let's hope maxcdn won't shut down ._. -->
 
     <!-- load jquery, pretty sure we need it for bootstrap -->
-    <!-- asyncloading it will show irrelevant errors in the brwoser console, but has to happen due to pagespeed optimizing -->
+    <!-- asyncloading it will show irrelevant errors in the browser console, but has to happen due to pagespeed optimizing -->
     <script async src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 
     <!-- bootstrap itself -->
