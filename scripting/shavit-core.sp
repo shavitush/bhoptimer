@@ -782,7 +782,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			buttons &= ~IN_FORWARD;
 		}
 
-		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (vel[1] > 0 || buttons & IN_MOVELEFT))
+		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (vel[1] < 0 || buttons & IN_MOVELEFT))
 		{
 			bEdit = true;
 			vel[1] = 0.0;
