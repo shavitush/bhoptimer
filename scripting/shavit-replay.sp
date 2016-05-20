@@ -298,6 +298,8 @@ public void OnMapStart()
 
 	ServerCommand("bot_kick");
 
+	gI_ExpectedBots = 0;
+
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
 		if(ReplayEnabled(i))

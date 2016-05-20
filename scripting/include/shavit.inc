@@ -115,7 +115,7 @@ char gS_StyleHTMLColors[MAX_STYLES][] =
 #endif
 
 #if defined USES_SHORT_STYLE_NAMES
-// short names - up to 4 characters please
+// short names - up to 8 characters please
 char gS_ShortBhopStyles[MAX_STYLES][] =
 {
 	"NM",
