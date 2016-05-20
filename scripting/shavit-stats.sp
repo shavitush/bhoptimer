@@ -22,6 +22,7 @@
 
 #define USES_STYLE_NAMES
 #define USES_SHORT_STYLE_NAMES
+#define USES_STYLE_PROPERTIES
 #include <shavit>
 
 #pragma semicolon 1
@@ -162,6 +163,11 @@ public Action ShowStyleMenu(int client)
 
 	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
 	{
+		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		{
+			continue;
+		}
+		
 		char[] sInfo = new char[32];
 		FormatEx(sInfo, 32, "mapsdone;%d", i);
 

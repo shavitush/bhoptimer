@@ -26,6 +26,7 @@
 #include <sdkhooks>
 
 #define USES_SHORT_STYLE_NAMES
+#define USES_STYLE_PROPERTIES
 #include <shavit>
 
 #pragma semicolon 1
@@ -50,6 +51,8 @@ bool gB_Record[MAXPLAYERS+1];
 char gS_Map[128];
 
 ConVar bot_quota = null;
+
+int gI_ExpectedBots = 0;
 
 // Plugin ConVars
 ConVar gCV_ReplayDelay = null;
@@ -122,9 +125,9 @@ public int Native_GetReplayBotCurrentFrame(Handle handler, int numParams)
 
 public Action BotCheck(Handle Timer)
 {
-	if(bot_quota.IntValue != MAX_STYLES)
+	if(bot_quota.IntValue != gI_ExpectedBots)
 	{
-		bot_quota.SetInt(MAX_STYLES);
+		bot_quota.SetInt(gI_ExpectedBots);
 	}
 
 	// resets a bot's client index if there are two on the same one.
@@ -142,6 +145,11 @@ public Action BotCheck(Handle Timer)
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
+		if(!ReplayEnabled(i))
+		{
+			continue;
+		}
+
 		if(!IsValidClient(gI_ReplayBotClient[i]))
 		{
 			for(int j = 1; j <= MaxClients; j++)
@@ -292,7 +300,12 @@ public void OnMapStart()
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		ServerCommand("bot_add");
+		if(ReplayEnabled(i))
+		{
+			// ServerCommand("bot_add");
+
+			gI_ExpectedBots++;
+		}
 	}
 
 	ConVar bot_join_after_player = FindConVar("bot_join_after_player");
@@ -314,6 +327,11 @@ public void OnMapStart()
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
+		if(!ReplayEnabled(i))
+		{
+			continue;
+		}
+
 		gI_ReplayTick[i] = 0;
 		gA_Frames[i] = new ArrayList(5);
 
@@ -375,6 +393,11 @@ public bool LoadReplay(BhopStyle style)
 
 public void SaveReplay(BhopStyle style)
 {
+	if(!ReplayEnabled(style))
+	{
+		return;
+	}
+
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s.replay", style, gS_Map);
 
@@ -438,6 +461,11 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
 {
+	if(!ReplayEnabled(style))
+	{
+		return;
+	}
+
 	gA_Frames[style] = gA_PlayerFrames[client].Clone();
 
 	gI_ReplayTick[style] = 0;
@@ -485,7 +513,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(iReplayBotStyle != -1)
+	if(iReplayBotStyle != -1 && ReplayEnabled(iReplayBotStyle))
 	{
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 
@@ -573,6 +601,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 public Action ResetReplay(Handle Timer, any data)
 {
 	gI_ReplayTick[data] = 0;
+}
+
+public bool ReplayEnabled(any style)
+{
+	if(gI_StyleProperties[style] & STYLE_UNRANKED || gI_StyleProperties[style] & STYLE_NOREPLAY)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 // https://forums.alliedmods.net/showthread.php?p=2307350

@@ -60,9 +60,9 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] Fix chat colors for CS:S.
 - [x] Add table prefix. (`shavit_core_sqlprefix`)
 - [x] Add shavit_core_nostaminareset ("easybhop")
-- [x] Make a global enumerator/variable with per-style settings (bitflags) - configs are canceled, just recompile the plugin with your own edit of `shavit.inc`.
-- [ ] Add unranked styles.
-- [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams.
+- [x] ~~Make a global enumerator/variable with per-style settings (bitflags)~~ - configs are canceled, just recompile the plugin with your own edit of `shavit.inc`.
+- [x] Add unranked styles.
+- [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
 - [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
 
 ~ shavit-hud:
@@ -89,6 +89,9 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-stats
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
 
-~ [NEW PLUGIN] shavit-ranks:
+~ shavit-misc
+- [ ] Allow changing the prespeed limitation.
+
+~ [NEW PLUGIN] shavit-ranks: (delayed to 1.6b/out-of-beta)
 - [ ] Create table.
 - [ ] to be added.

@@ -53,13 +53,17 @@ enum BhopStyle(+=1)
 
 #if defined USES_STYLE_PROPERTIES
 #define STYLE_NONE				(0)
-#define STYLE_AUTOBHOP			(1 << 0)
-#define STYLE_BLOCK_W			(1 << 1)
-#define STYLE_BLOCK_A			(1 << 2)
-#define STYLE_BLOCK_S			(1 << 3)
-#define STYLE_BLOCK_D			(1 << 4)
-#define STYLE_EASYBHOP			(1 << 5)
-#define STYLE_VEL_LIMIT			(1 << 6)
+#define STYLE_AUTOBHOP			(1 << 0) // enable autobhop
+#define STYLE_BLOCK_W			(1 << 1) // block +forward
+#define STYLE_BLOCK_A			(1 << 2) // block +moveleft
+#define STYLE_BLOCK_S			(1 << 3) // block +back
+#define STYLE_BLOCK_D			(1 << 4) // block +moveright
+#define STYLE_EASYBHOP			(1 << 5) // enable easybhop (disable stamina reset)
+#define STYLE_VEL_LIMIT			(1 << 6) // allow velocity limits
+#define STYLE_BLOCK_USE			(1 << 7) // block +use
+#define STYLE_UNRANKED			(1 << 8) // unranked style. no ranking points and no records. (UNTESTED: REPORT ISSUES!)
+#define STYLE_NOREPLAY			(1 << 9) // disable replay bot for this style. don't use for unranked styles.
+#define STYLE_PRESPEED			(1 << 10) // allow prespeeding regardless of the prespeed setting
 
 int gI_StyleProperties[MAX_STYLES] =
 {
@@ -69,7 +73,9 @@ int gI_StyleProperties[MAX_STYLES] =
 	STYLE_EASYBHOP, // Scroll
 	STYLE_VEL_LIMIT // 400 Velocity
 };
+#endif
 
+#if defined USES_STYLE_VELOCITY_LIMITS
 #define VELOCITY_UNLIMITED 0.0
 
 // only applies if STYLE_VEL_LIMIT is defined for a style

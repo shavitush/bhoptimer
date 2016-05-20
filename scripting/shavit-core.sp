@@ -24,6 +24,7 @@
 
 #define USES_STYLE_PROPERTIES
 #define USES_STYLE_NAMES
+#define USES_STYLE_VELOCITY_LIMITS
 #include <shavit>
 
 #undef REQUIRE_PLUGIN
@@ -398,7 +399,18 @@ public Action Command_Style(int client, int args)
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
-		m.AddItem(sInfo, gS_BhopStyles[i]);
+		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		{
+			char sDisplay[64];
+			FormatEx(sDisplay, 64, "[UNRANKED] %s", gS_BhopStyles[i]);
+			m.AddItem(sInfo, sDisplay);
+		}
+
+		else
+		{
+			m.AddItem(sInfo, gS_BhopStyles[i]);
+		}
+
 	}
 
 	// should NEVER happen
@@ -444,6 +456,11 @@ public void ChangeClientStyle(int client, BhopStyle style)
 	gBS_Style[client] = style;
 
 	Shavit_PrintToChat(client, "You have selected to play \x03%s\x01.", gS_BhopStyles[view_as<int>(style)]);
+
+	if(gI_StyleProperties[style] & STYLE_UNRANKED)
+	{
+		Shavit_PrintToChat(client, "\x02WARNING: \x01This style is unranked. Your times WILL NOT be saved and will be only displayed to you!");
+	}
 
 	StopTimer(client);
 
@@ -834,6 +851,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	else
 	{
 		gB_OnGround[client] = false;
+	}
+
+	// block +use
+	if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_USE && buttons & IN_USE)
+	{
+		buttons &= ~IN_USE;
 	}
 
 	if(gB_ClientPaused[client])

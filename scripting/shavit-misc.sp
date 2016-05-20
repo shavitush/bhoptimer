@@ -24,6 +24,7 @@
 #include <sdkhooks>
 
 #define USES_STYLE_NAMES
+#define USES_STYLE_PROPERTIES
 #include <shavit>
 
 #undef REQUIRE_EXTENSIONS
@@ -44,6 +45,7 @@ ConVar gCV_HideTeamChanges = null;
 ConVar gCV_RespawnOnTeam = null;
 ConVar gCV_RespawnOnRestart = null;
 ConVar gCV_StartOnSpawn = null;
+ConVar gCV_PrespeedLimit = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -116,6 +118,7 @@ public void OnPluginStart()
 	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if he uses the timer restart command?\n0 - Disabled\n1 - Enabled", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_StartOnSpawn = CreateConVar("shavit_misc_startonspawn", "1", "Restart the timer for a player after he spawns?\n0 - Disabled\n1 - Enabled", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_PrespeedLimit = CreateConVar("shavit_misc_prespeedlimit", "280.00", "Prespeed limitation in startzone.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -238,22 +241,23 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		return Plugin_Continue;
 	}
 
+	// I'm horrible so I couldn't make it to not require so many variables :S
+	float fTime;
+	int iJumps;
+	BhopStyle bsStyle;
+	bool bStarted;
+	Shavit_GetTimer(client, fTime, iJumps, bsStyle, bStarted);
+
 	if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
-		// I'm horrible so I couldn't make it to not require so many variables :S
-		float fTime;
-		int iJumps;
-		BhopStyle bsStyle;
-		bool bStarted;
-		Shavit_GetTimer(client, fTime, iJumps, bsStyle, bStarted);
-
 		if(bStarted)
 		{
 			Shavit_StopTimer(client);
 		}
 	}
 
-	if(Shavit_InsideZone(client, Zone_Start))
+	// prespeed
+	if(!(gI_StyleProperties[bsStyle] & STYLE_PRESPEED) && Shavit_InsideZone(client, Zone_Start))
 	{
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
 		{
@@ -270,9 +274,9 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
 			float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-			float fScale = 280.0 / fSpeed_New;
+			float fScale = gCV_PrespeedLimit.FloatValue / fSpeed_New;
 
-			if(fScale < 1.0) // 280 / 281 = below 1 | 280 / 279 = above 1
+			if(fScale < 1.0)
 			{
 				ScaleVector(fSpeed, fScale);
 
