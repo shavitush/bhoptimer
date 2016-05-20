@@ -19,6 +19,8 @@ if(isset($_REQUEST["map"]))
 {
     $map = $_REQUEST["map"];
 }
+
+$rr = isset($_REQUEST["rr"]);
 ?>
 
 <!DOCTYPE html>
@@ -84,11 +86,11 @@ if(isset($_REQUEST["map"]))
   </head>
 
   <body>
-
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
           <a class="navbar-brand" href="index.php"><?php echo("<i class=\"fa fa-clock-o\"></i> ".TOPLEFT_TITLE); ?></a>
+          <a class="navbar-brand" href="index.php?rr=1">Recent Records</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <form id="records" class="navbar-form navbar-right" method="GET">
@@ -130,44 +132,111 @@ if(isset($_REQUEST["map"]))
     <div class="jumbotron">
       <div class="container">
         <?php
-        if(!isset($_REQUEST["map"]))
+        if(!isset($_REQUEST["map"]) && !$rr)
         {
             ?>
             <h1><?php echo(HEADER_TITLE); ?></h1>
-            <p>To show the records of any map, please select it using the menu at the top right of this page.<br/>
-            Don't forget to select a style if you wish, and then tap 'Submit'!</p>
+            <p>
+                To show the records of any map, please select it using the menu at the top right of this page.<br/>
+                Don't forget to select a style if you wish, and then tap 'Submit'!</p>
+
+            <p>
+                Alternatively, you may click <a href="index.php?rr=1">Recent Records</a> to view the latest <?php echo(RECORD_LIMIT_LATEST); ?> records.
+            </p>
             <?php
         }
 
         else
         {
+            $results = false;
             $stmt = FALSE;
 
-    		if($stmt = $connection->prepare("SELECT p.id, p.map, u.auth, u.name, p.time, p.jumps FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC;"))
+            if($rr && $stmt = $connection->prepare("SELECT p.map, u.name, p.style, p.time, p.jumps, u.auth, p.date FROM playertimes p JOIN (SELECT style, MIN(time) time FROM playertimes GROUP BY style, map) s ON p.style = s.style AND p.time = s.time JOIN users u ON p.auth = u.auth GROUP BY style, map ORDER BY date DESC;"))
+            {
+                echo $connection->error;
+
+                $stmt->execute();
+
+    			$stmt->store_result();
+
+    			$results = ($rows = $stmt->num_rows) > 0;
+
+    			$stmt->bind_result($map, $name, $style, $time, $jumps, $auth, $date);
+
+                if($rows > 0)
+                {
+                    $records = 0;
+
+                    $first = true;
+
+                    echo("<p>Recent records:</p>");
+
+                    while($row = $stmt->fetch())
+    				{
+                        if($first)
+                        {
+                            ?>
+                            <table class="table table-striped table-hover">
+                                <thead id="ignore">
+                                    <th>Map</th>
+                                    <th>Player</th>
+                                    <th>Style</th>
+                                    <th>Time</th>
+                                    <th>Jumps</th>
+                                    <th>SteamID3</th>
+                                    <th>Date <small>(YYYY-MM-DD)</small></th>
+                                </thead>
+                            <?php
+
+                            $first = false;
+                        }
+
+                        ?>
+
+    					<tr>
+                            <td><?php echo(removeworkshop($map)); ?></td>
+        					<td><?php echo($name); ?></td>
+        					<td><?php echo($styles[$style]); ?></td>
+        					<td><?php echo(formattoseconds($time)); ?></td>
+        					<td><?php echo(number_format($jumps)); ?></td>
+
+                            <td><?php
+                            $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
+        					echo("<a href=\"http://steamcommunity.com/profiles/" . $steamid->Format(SteamID::FORMAT_STEAMID64) . "/\">" . $auth . "</a>");
+                            ?></td>
+
+        					<td><?php echo($date); ?></td>
+                        </tr>
+
+                        <?php
+                        if(++$records > RECORD_LIMIT_LATEST)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
+    		else if($stmt = $connection->prepare("SELECT p.id, u.auth, u.name, p.time, p.jumps, p.date FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC;"))
     		{
-    			$stmt->bind_param("ss", $_GET["map"], $_GET["style"]);
+    			$stmt->bind_param("ss", $map, $style);
     			$stmt->execute();
 
     			$stmt->store_result();
 
-    			$rows = $stmt->num_rows;
+    			$results = ($rows = $stmt->num_rows) > 0;
 
-    			$stmt->bind_result($id, $map, $auth, $name, $time, $jumps);
+    			$stmt->bind_result($id, $auth, $name, $time, $jumps, $date);
 
     			if($rows > 0)
     			{
-    				$first = true;
+                    $first = true;
 
     				$rank = 1;
 
     				while($row = $stmt->fetch())
     				{
-                        if($rank > RECORD_LIMIT)
-                        {
-                            break;
-                        }
-
-    					if($first)
+                        if($first)
     					{
     						?>
                             <p><span class="mark"><?php echo($styles[$style]); ?></span> Records (<?php echo(number_format($rows)); ?>) for <i><?php echo(removeworkshop($map)); ?></i>:</p>
@@ -178,9 +247,12 @@ if(isset($_REQUEST["map"]))
     						<th>SteamID3</th>
     						<th>Player</th>
     						<th>Time</th>
-    						<th>Jumps</th></thead>
+    						<th>Jumps</th>
+                            <th>Date <small>(YYYY-MM-DD)</small></th></thead>
 
     						<?php
+
+                            $first = false;
     					}
     					?>
 
@@ -230,35 +302,37 @@ if(isset($_REQUEST["map"]))
     					<td><?php
     					$steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
     					echo("<a href=\"http://steamcommunity.com/profiles/" . $steamid->Format(SteamID::FORMAT_STEAMID64) . "/\">" . $auth . "</a>"); ?></td>
-    					<td class="name"><?php echo($name); ?></td>
-    					<td class="time">
+    					<td><?php echo($name); ?></td>
+    					<td>
 
     					<?php
     					echo(formattoseconds($time));
     					?></td>
-    					<td><?php echo(number_format($jumps)); ?></td></tr>
+    					<td><?php echo(number_format($jumps)); ?></td>
+                        <td><?php echo($date); ?></td></tr>
 
     					<?php
 
-    					$first = false;
-
-    					$rank++;
+    					if(++$rank > RECORD_LIMIT)
+                        {
+                            break;
+                        }
     				}
 
     				?> </table> <?php
     			}
-
-                else
-        		{
-                    ?> <h1>No results!</h1>
-                    <p>Try another map, there may be some records!</p> <?php
-        		}
     		}
 
     		if($stmt != FALSE)
     		{
     			$stmt->close();
     		}
+
+            if(!$results)
+            {
+                ?> <h1>No results!</h1>
+                <p>Try another map, there may be some records!</p> <?php
+            }
         }
         ?>
       </div>
