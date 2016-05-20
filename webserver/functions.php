@@ -86,26 +86,4 @@ function removeworkshop($mapname)
 
 	return $mapname;
 }
-
-function getstylestring($style)
-{
-    $styletext = "";
-
-    switch($style)
-    {
-        case 0:
-        {
-            $styletext = "Forwards";
-            break;
-        }
-
-        case 1:
-        {
-            $styletext = "Sideways";
-            break;
-        }
-    }
-
-    return $styletext;
-}
 ?>

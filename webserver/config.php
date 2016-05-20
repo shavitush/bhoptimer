@@ -25,4 +25,15 @@ define("MYSQL_PREFIX", "");
 
 // header title
 define("HEADER_TITLE", "Welcome!");
+
+// setup multi styles here
+$styles = array(
+    "Forwards", // 0
+    "Sideways", // 1
+    "W-Only", // 2
+    "Scroll", // 3
+    "400 Velocity" // 4
+);
+
+define("DEFAULT_STYLE", 0); // 0 - forwards
 ?>

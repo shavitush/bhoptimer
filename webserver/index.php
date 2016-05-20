@@ -94,8 +94,12 @@ if(isset($_REQUEST["map"]))
             <form id="records" class="navbar-form navbar-right" method="GET">
                 <div class="form-group">
                     <select name="style" class="form-control">
-                        <option value="0" selected="selected">Forwards</option>
-                        <option value="1">Sideways</option>
+                        <?php
+                        for($i = 0; $i < count($styles); $i++)
+                        {
+                            ?> <option value="<?php echo($i); ?>" <?php if($i == DEFAULT_STYLE || $style == $i) echo("selected=\"selected\""); ?>><?php echo($styles[$i]); ?></option> <?php
+                        }
+                        ?>
                     </select>
                 </div>
                 <div class="form-group">
@@ -110,7 +114,7 @@ if(isset($_REQUEST["map"]))
                 			{
                                 // $row["map"] - including workshop
                                 // removeworkshop($row["map"]) - no workshop
-                				echo("<option value=\"".$row["map"]."\">".removeworkshop($row["map"])."</option>");
+                				?> <option value="<?php echo($row["map"]); ?>" <?php if($row["map"] == $map) echo("selected=\"selected\""); ?>><?php echo(removeworkshop($row["map"])); ?></option> <?php
                 			}
                         }
                         ?>
@@ -166,15 +170,15 @@ if(isset($_REQUEST["map"]))
     					if($first)
     					{
     						?>
-                            <p><span class="mark"><?php echo(getstylestring($style)); ?></span> Records (<?php echo(number_format($rows)); ?>) for <i><?php echo(removeworkshop($map)); ?></i>:</p>
+                            <p><span class="mark"><?php echo($styles[$style]); ?></span> Records (<?php echo(number_format($rows)); ?>) for <i><?php echo(removeworkshop($map)); ?></i>:</p>
 
-    						<table class="table">
-    						<tr id="ignore"><th>Rank</th>
+    						<table class="table table-striped table-hover">
+    						<thead id="ignore"><th>Rank</th>
     						<th>Record ID</th>
     						<th>SteamID3</th>
     						<th>Player</th>
     						<th>Time</th>
-    						<th>Jumps</th></tr>
+    						<th>Jumps</th></thead>
 
     						<?php
     					}
@@ -183,14 +187,14 @@ if(isset($_REQUEST["map"]))
                         <?php if($rank == 1)
                         {
                             ?>
-                            <tr class="lead mark">
+                            <tr class="warning">
                             <?php
                         }
 
                         else
                         {
                             ?>
-                            <tr>
+                            <tr class="default">
                             <?php
                         }
                         ?>
