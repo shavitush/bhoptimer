@@ -326,6 +326,11 @@ public void SQL_UpdateWRCache_Callback(Handle owner, Handle hndl, const char[] e
 	{
 		int style = SQL_FetchInt(hndl, 0);
 
+		if(style >= MAX_STYLES || style < 0)
+		{
+			continue;
+		}
+
 		gI_WRRecordID[style] = SQL_FetchInt(hndl, 1);
 		gF_WRTime[style] = SQL_FetchFloat(hndl, 2);
 		SQL_FetchString(hndl, 3, gS_WRName[style], MAX_NAME_LENGTH);
