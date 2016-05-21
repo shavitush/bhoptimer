@@ -79,7 +79,7 @@ public void OnPluginStart()
 	gCV_DefaultLimit = CreateConVar("shavit_timelimit_default", "60.0", "Default timelimit to use in case there isn't an average.", FCVAR_PLUGIN, true, 10.0);
 	gCV_MinimumTimes = CreateConVar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.", FCVAR_PLUGIN, true, 5.0);
 	gCV_PlayerAmount = CreateConVar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nSet to 0 to have it \"unlimited\".", FCVAR_PLUGIN);
-	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the \"forwards\" style was used to set.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 }
@@ -141,24 +141,24 @@ public void StartCalculating()
 	}
 }
 
-public void SQL_GetMapTimes(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (TIMELIMIT time selection) SQL query failed. Reason: %s", error);
 
 		return;
 	}
 
-	int iRows = SQL_GetRowCount(hndl);
+	int iRows = results.RowCount;
 
 	if(iRows >= gCV_MinimumTimes.IntValue)
 	{
 		float fTotal = 0.0;
 
-		while(SQL_FetchRow(hndl))
+		while(results.FetchRow())
 		{
-			fTotal += SQL_FetchFloat(hndl, 0);
+			fTotal += results.FetchFloat(0);
 
 			#if defined DEBUG
 			PrintToServer("total: %.02f", fTotal);

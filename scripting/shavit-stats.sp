@@ -167,7 +167,7 @@ public Action ShowStyleMenu(int client)
 		{
 			continue;
 		}
-		
+
 		char[] sInfo = new char[32];
 		FormatEx(sInfo, 32, "mapsdone;%d", i);
 
@@ -269,9 +269,9 @@ public void ShowMaps(int client)
 	gH_SQL.Query(ShowMapsCallback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
-public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any data)
+public void ShowMapsCallback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (ShowMaps SELECT) SQL query failed. Reason: %s", error);
 
@@ -285,7 +285,7 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 		return;
 	}
 
-	int rows = SQL_GetRowCount(hndl);
+	int rows = results.RowCount;
 
 	char[] sTitle = new char[64];
 
@@ -302,10 +302,10 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 	Menu m = new Menu(MenuHandler_ShowMaps);
 	m.SetTitle(sTitle);
 
-	while(SQL_FetchRow(hndl))
+	while(results.FetchRow())
 	{
 		char[] sMap = new char[128];
-		SQL_FetchString(hndl, 0, sMap, 128);
+		results.FetchString(0, sMap, 128);
 
 		char[] sRecordID = new char[16];
 
@@ -313,15 +313,15 @@ public void ShowMapsCallback(Handle owner, Handle hndl, const char[] error, any 
 
 		if(gI_MapType[client] == MAPSDONE)
 		{
-			float time = SQL_FetchFloat(hndl, 1);
-			int jumps = SQL_FetchInt(hndl, 2);
+			float time = results.FetchFloat(1);
+			int jumps = results.FetchInt(2);
 
 			char[] sTime = new char[32];
 			FormatSeconds(time, sTime, 32);
 
 			FormatEx(sDisplay, 192, "%s - %s (%d jumps)", sMap, sTime, jumps);
 
-			int recordid = SQL_FetchInt(hndl, 3);
+			int recordid = results.FetchInt(3);
 			IntToString(recordid, sRecordID, 16);
 		}
 
@@ -377,9 +377,9 @@ public int MenuHandler_ShowMaps(Menu m, MenuAction action, int param1, int param
 	return 0;
 }
 
-public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (STATS SUBMENU) SQL query failed. Reason: %s", error);
 
@@ -399,13 +399,13 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 	char[] sAuthID = new char[32];
 	char[] sMap = new char[256];
 
-	if(SQL_FetchRow(hndl))
+	if(results.FetchRow())
 	{
 		// 0 - name
-		SQL_FetchString(hndl, 0, sName, MAX_NAME_LENGTH);
+		results.FetchString(0, sName, MAX_NAME_LENGTH);
 
 		// 1 - time
-		float fTime = SQL_FetchFloat(hndl, 1);
+		float fTime = results.FetchFloat(1);
 		char[] sTime = new char[16];
 		FormatSeconds(fTime, sTime, 16);
 
@@ -414,26 +414,26 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 		m.AddItem("-1", sDisplay);
 
 		// 2 - jumps
-		int iJumps = SQL_FetchInt(hndl, 2);
+		int iJumps = results.FetchInt(2);
 		FormatEx(sDisplay, 128, "Jumps: %d", iJumps);
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
-		int iStyle = SQL_FetchInt(hndl, 3);
+		int iStyle = results.FetchInt(3);
 		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[iStyle]);
 		m.AddItem("-1", sDisplay);
 
 		// 4 - steamid3
-		SQL_FetchString(hndl, 4, sAuthID, 32);
+		results.FetchString(4, sAuthID, 32);
 
 		// 5 - date
 		char[] sDate = new char[32];
-		SQL_FetchString(hndl, 5, sDate, 32);
+		results.FetchString(5, sDate, 32);
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
 		m.AddItem("-1", sDisplay);
 
 		// 6 - map
-		SQL_FetchString(hndl, 6, sMap, 256);
+		results.FetchString(6, sMap, 256);
 	}
 
 	char[] sFormattedTitle = new char[256];

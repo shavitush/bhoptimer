@@ -418,9 +418,9 @@ public void RefreshZones()
 	}
 }
 
-public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (zone refresh) SQL query failed. Reason: %s", error);
 
@@ -429,20 +429,20 @@ public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] er
 
 	int iFreestyleRow = 0;
 
-	while(SQL_FetchRow(hndl))
+	while(results.FetchRow())
 	{
-		MapZones type = view_as<MapZones>(SQL_FetchInt(hndl, 0));
+		MapZones type = view_as<MapZones>(results.FetchInt(0));
 
 		if(type == Zone_Freestyle || type == Zone_NoVelLimit)
 		{
-			gV_FreestyleZones[iFreestyleRow][0][0] = SQL_FetchFloat(hndl, 1);
-			gV_FreestyleZones[iFreestyleRow][0][1] = SQL_FetchFloat(hndl, 2);
-			gV_FreestyleZones[iFreestyleRow][0][2] = SQL_FetchFloat(hndl, 3);
-			gV_FreestyleZones[iFreestyleRow][1][0] = SQL_FetchFloat(hndl, 4);
-			gV_FreestyleZones[iFreestyleRow][1][1] = SQL_FetchFloat(hndl, 5);
-			gV_FreestyleZones[iFreestyleRow][1][2] = SQL_FetchFloat(hndl, 6);
+			gV_FreestyleZones[iFreestyleRow][0][0] = results.FetchFloat(1);
+			gV_FreestyleZones[iFreestyleRow][0][1] = results.FetchFloat(2);
+			gV_FreestyleZones[iFreestyleRow][0][2] = results.FetchFloat(3);
+			gV_FreestyleZones[iFreestyleRow][1][0] = results.FetchFloat(4);
+			gV_FreestyleZones[iFreestyleRow][1][1] = results.FetchFloat(5);
+			gV_FreestyleZones[iFreestyleRow][1][2] = results.FetchFloat(6);
 
-			float ang = SQL_FetchFloat(hndl, 7);
+			float ang = results.FetchFloat(7);
 			float radian = DegToRad(ang);
 			gF_FreeStyleConstSin[iFreestyleRow] = Sine(radian);
 			gF_FreeStyleConstCos[iFreestyleRow] = Cosine(radian);
@@ -451,24 +451,29 @@ public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] er
 			gF_FreeStyleMinusConstSin[iFreestyleRow] = Sine(radian);
 			gF_FreeStyleMinusConstCos[iFreestyleRow] = Cosine(radian);
 
-			gV_FreeStyleZonesFixes[iFreestyleRow][0][0] = SQL_FetchFloat(hndl, 8);
-			gV_FreeStyleZonesFixes[iFreestyleRow][0][1] = SQL_FetchFloat(hndl, 9);
-			gV_FreeStyleZonesFixes[iFreestyleRow][1][0] = SQL_FetchFloat(hndl, 10);
-			gV_FreeStyleZonesFixes[iFreestyleRow][1][1] = SQL_FetchFloat(hndl, 11);
+			gV_FreeStyleZonesFixes[iFreestyleRow][0][0] = results.FetchFloat(8);
+			gV_FreeStyleZonesFixes[iFreestyleRow][0][1] = results.FetchFloat(9);
+			gV_FreeStyleZonesFixes[iFreestyleRow][1][0] = results.FetchFloat(10);
+			gV_FreeStyleZonesFixes[iFreestyleRow][1][1] = results.FetchFloat(11);
 
 			iFreestyleRow++;
 		}
 
 		else
 		{
-			gV_MapZones[type][0][0] = SQL_FetchFloat(hndl, 1);
-			gV_MapZones[type][0][1] = SQL_FetchFloat(hndl, 2);
-			gV_MapZones[type][0][2] = SQL_FetchFloat(hndl, 3);
-			gV_MapZones[type][1][0] = SQL_FetchFloat(hndl, 4);
-			gV_MapZones[type][1][1] = SQL_FetchFloat(hndl, 5);
-			gV_MapZones[type][1][2] = SQL_FetchFloat(hndl, 6);
+			if(view_as<int>(type) >= MAX_ZONES || view_as<int>(type) < 0)
+			{
+				continue;
+			}
 
-			float ang = SQL_FetchFloat(hndl, 7);
+			gV_MapZones[type][0][0] = results.FetchFloat(1);
+			gV_MapZones[type][0][1] = results.FetchFloat(2);
+			gV_MapZones[type][0][2] = results.FetchFloat(3);
+			gV_MapZones[type][1][0] = results.FetchFloat(4);
+			gV_MapZones[type][1][1] = results.FetchFloat(5);
+			gV_MapZones[type][1][2] = results.FetchFloat(6);
+
+			float ang = results.FetchFloat(7);
 			float radian = DegToRad(ang);
 			gF_ConstSin[type] = Sine(radian);
 			gF_ConstCos[type] = Cosine(radian);
@@ -477,10 +482,10 @@ public void SQL_RefreshZones_Callback(Handle owner, Handle hndl, const char[] er
 			gF_MinusConstSin[type] = Sine(radian);
 			gF_MinusConstCos[type] = Cosine(radian);
 
-			gV_MapZonesFixes[type][0][0] = SQL_FetchFloat(hndl, 8);
-			gV_MapZonesFixes[type][0][1] = SQL_FetchFloat(hndl, 9);
-			gV_MapZonesFixes[type][1][0] = SQL_FetchFloat(hndl, 10);
-			gV_MapZonesFixes[type][1][1] = SQL_FetchFloat(hndl, 11);
+			gV_MapZonesFixes[type][0][0] = results.FetchFloat(8);
+			gV_MapZonesFixes[type][0][1] = results.FetchFloat(9);
+			gV_MapZonesFixes[type][1][0] = results.FetchFloat(10);
+			gV_MapZonesFixes[type][1][1] = results.FetchFloat(11);
 		}
 	}
 }
@@ -633,7 +638,7 @@ public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int 
 	return 0;
 }
 
-public void SQL_DeleteZone_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_DeleteZone_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	ResetPack(data);
 	int client = GetClientFromSerial(ReadPackCell(data));
@@ -641,7 +646,7 @@ public void SQL_DeleteZone_Callback(Handle owner, Handle hndl, const char[] erro
 
 	delete view_as<DataPack>(data);
 
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (single zone delete) SQL query failed. Reason: %s", error);
 
@@ -715,9 +720,9 @@ public int DeleteAllZones_MenuHandler(Menu menu, MenuAction action, int param1, 
 	}
 }
 
-public void SQL_DeleteAllZones_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_DeleteAllZones_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (single zone delete) SQL query failed. Reason: %s", error);
 
@@ -1314,9 +1319,9 @@ public void InsertZone(int client)
 	Reset(client);
 }
 
-public void SQL_InsertZone_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (zone insert) SQL query failed. Reason: %s", error);
 
@@ -1739,9 +1744,9 @@ public void SQL_DBConnect()
 	}
 }
 
-public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (zones module) error! Map zones' table creation failed. Reason: %s", error);
 
@@ -1757,9 +1762,10 @@ public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] err
 	RefreshZones();
 }
 
-public void SQL_CheckRotation_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_CheckRotation_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	// rot_ang and the new stuff are missing. this is for people that update [shavit] from an older version
+	if(results == null)
 	{
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
@@ -1768,9 +1774,9 @@ public void SQL_CheckRotation_Callback(Handle owner, Handle hndl, const char[] e
 	}
 }
 
-public void SQL_AlterTable_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_AlterTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (zones module) error! Map zones' table alteration failed. Reason: %s", error);
 

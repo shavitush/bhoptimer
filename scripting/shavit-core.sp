@@ -689,6 +689,7 @@ public void OnClientPutInServer(int client)
 	int iLength = ((strlen(sName) * 2) + 1);
 	char[] sEscapedName = new char[iLength]; // dynamic arrays! I love you, SourcePawn 1.7!
 	SQL_EscapeString(gH_SQL, sName, sEscapedName, iLength);
+	gH_SQL.Escape(sName, sEscapedName, iLength);
 
 	char[] sIP = new char[32];
 	GetClientIP(client, sIP, 32);
@@ -707,10 +708,9 @@ public void OnClientPutInServer(int client)
 
 	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
-
-public void SQL_InsertUser_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		int client = GetClientFromSerial(data);
 
@@ -739,15 +739,13 @@ public void SQL_DBConnect()
 	{
 		char[] sError = new char[255];
 
-		if(!(gH_SQL = SQL_Connect("shavit", true, sError, 255)))
+		if(!(gH_SQL = SQL_Connect("shavit", true, sError, 255))) // can't be asynced as we have modules that require this database connection instantly
 		{
 			SetFailState("Timer startup failed. Reason: %s", sError);
 		}
 
-		// let's not mess with shit and make it non-English characters work properly before we do any stupid crap rite?
-		SQL_LockDatabase(gH_SQL);
-		SQL_FastQuery(gH_SQL, "SET NAMES 'utf8';");
-		SQL_UnlockDatabase(gH_SQL);
+		// support unicode names
+		gH_SQL.SetCharset("utf8");
 
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(45), `ip` VARCHAR(32), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
@@ -762,9 +760,9 @@ public void SQL_DBConnect()
 	}
 }
 
-public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer error! Users' data table creation failed. Reason: %s", error);
 

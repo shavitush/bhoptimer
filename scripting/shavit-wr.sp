@@ -267,9 +267,9 @@ public void UpdateClientCache(int client)
 	gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
-public void SQL_UpdateCache_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (PB cache update) SQL query failed. Reason: %s", error);
 
@@ -283,9 +283,16 @@ public void SQL_UpdateCache_Callback(Handle owner, Handle hndl, const char[] err
 		return;
 	}
 
-	while(SQL_FetchRow(hndl))
+	while(results.FetchRow())
 	{
-		gF_PlayerRecord[client][SQL_FetchInt(hndl, 1)] = SQL_FetchFloat(hndl, 0);
+		int style = results.FetchInt(1);
+
+		if(style >= MAX_STYLES || style < 0)
+		{
+			continue;
+		}
+
+		gF_PlayerRecord[client][style] = results.FetchFloat(0);
 	}
 }
 
@@ -299,9 +306,9 @@ public void UpdateWRCache()
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_High);
 }
 
-public void SQL_UpdateWRCache_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (WR cache update) SQL query failed. Reason: %s", error);
 
@@ -322,18 +329,19 @@ public void SQL_UpdateWRCache_Callback(Handle owner, Handle hndl, const char[] e
 	}
 
 	// setup cache again, dynamically and not hardcoded
-	while(SQL_FetchRow(hndl))
+	while(results.FetchRow())
 	{
-		int style = SQL_FetchInt(hndl, 0);
+		int style = results.FetchInt(0);
 
 		if(style >= MAX_STYLES || style < 0)
 		{
 			continue;
 		}
 
-		gI_WRRecordID[style] = SQL_FetchInt(hndl, 1);
-		gF_WRTime[style] = SQL_FetchFloat(hndl, 2);
-		SQL_FetchString(hndl, 3, gS_WRName[style], MAX_NAME_LENGTH);
+		gI_WRRecordID[style] = results.FetchInt(1);
+		gF_WRTime[style] = results.FetchFloat(2);
+
+		results.FetchString(3, gS_WRName[style], MAX_NAME_LENGTH);
 	}
 }
 
@@ -498,14 +506,14 @@ public void OpenDelete(int client, BhopStyle style)
 	gH_SQL.Query(SQL_OpenDelete_Callback, sQuery, datapack, DBPrio_High);
 }
 
-public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	ResetPack(data);
 	int client = GetClientFromSerial(ReadPackCell(data));
 	BhopStyle style = ReadPackCell(data);
 	delete view_as<DataPack>(data);
 
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (WR OpenDelete) SQL query failed. Reason: %s", error);
 
@@ -525,26 +533,26 @@ public void SQL_OpenDelete_Callback(Handle owner, Handle hndl, const char[] erro
 
 	int iCount = 0;
 
-	while(SQL_FetchRow(hndl))
+	while(results.FetchRow())
 	{
 		iCount++;
 
 		// 0 - record id, for statistic purposes.
-		int id = SQL_FetchInt(hndl, 0);
+		int id = results.FetchInt(0);
 		char[] sID = new char[8];
 		IntToString(id, sID, 8);
 
 		// 1 - player name
 		char[] sName = new char[MAX_NAME_LENGTH];
-		SQL_FetchString(hndl, 1, sName, MAX_NAME_LENGTH);
+		results.FetchString(1, sName, MAX_NAME_LENGTH);
 
 		// 2 - time
-		float fTime = SQL_FetchFloat(hndl, 2);
+		float fTime = results.FetchFloat(2);
 		char[] sTime = new char[16];
 		FormatSeconds(fTime, sTime, 16);
 
 		// 3 - jumps
-		int iJumps = SQL_FetchInt(hndl, 3);
+		int iJumps = results.FetchInt(3);
 
 		char[] sDisplay = new char[128];
 		FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
@@ -629,9 +637,9 @@ public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int para
 	return 0;
 }
 
-public void DeleteConfirm_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (WR DeleteConfirm) SQL query failed. Reason: %s", error);
 
@@ -655,9 +663,9 @@ public void DeleteConfirm_Callback(Handle owner, Handle hndl, const char[] error
 	Shavit_PrintToChat(client, "Deleted record.");
 }
 
-public void DeleteAll_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void DeleteAll_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (WR DeleteAll) SQL query failed. Reason: %s", error);
 
@@ -768,14 +776,14 @@ public void StartWRMenu(int client, const char[] map, int style)
 	dp.WriteString(map);
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM %splayertimes WHERE map = '%s' AND style = %d) AS records FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC LIMIT %d;", gS_MySQLPrefix, map, style, gS_MySQLPrefix, gS_MySQLPrefix, map, style, gCV_RecordsLimit.IntValue);
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM %splayertimes WHERE map = '%s' AND style = %d) AS records FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC;", gS_MySQLPrefix, map, style, gS_MySQLPrefix, gS_MySQLPrefix, map, style);
 
 	gH_SQL.Query(SQL_WR_Callback, sQuery, dp, DBPrio_High);
 
 	return;
 }
 
-public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	ResetPack(data);
 
@@ -786,7 +794,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 	delete view_as<DataPack>(data);
 
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (WR SELECT) SQL query failed. Reason: %s", error);
 
@@ -810,26 +818,29 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 	int iRecords = 0;
 
-	while(SQL_FetchRow(hndl))
+	while(results.FetchRow())
 	{
-		iCount++;
+		if(++iCount > gCV_RecordsLimit.IntValue)
+		{
+			break;
+		}
 
 		// 0 - record id, for statistic purposes.
-		int id = SQL_FetchInt(hndl, 0);
+		int id = results.FetchInt(0);
 		char[] sID = new char[8];
 		IntToString(id, sID, 8);
 
 		// 1 - player name
 		char[] sName = new char[MAX_NAME_LENGTH];
-		SQL_FetchString(hndl, 1, sName, MAX_NAME_LENGTH);
+		results.FetchString(1, sName, MAX_NAME_LENGTH);
 
 		// 2 - time
-		float fTime = SQL_FetchFloat(hndl, 2);
+		float fTime = results.FetchFloat(2);
 		char[] sTime = new char[16];
 		FormatSeconds(fTime, sTime, 16);
 
 		// 3 - jumps
-		int iJumps = SQL_FetchInt(hndl, 3);
+		int iJumps = results.FetchInt(3);
 
 		// add item to m
 		char[] sDisplay = new char[128];
@@ -838,7 +849,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 
 		// check if record exists in the map's top X
 		char[] sQueryAuth = new char[32];
-		SQL_FetchString(hndl, 4, sQueryAuth, 32);
+		results.FetchString(4, sQueryAuth, 32);
 
 		if(StrEqual(sQueryAuth, sAuth))
 		{
@@ -848,7 +859,7 @@ public void SQL_WR_Callback(Handle owner, Handle hndl, const char[] error, any d
 		// fetch amount of records
 		if(iRecords == 0)
 		{
-			iRecords = SQL_FetchInt(hndl, 5);
+			iRecords = results.FetchInt(5);
 		}
 	}
 
@@ -920,9 +931,9 @@ public void OpenSubMenu(int client, int id)
 	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client));
 }
 
-public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (WR SUBMENU) SQL query failed. Reason: %s", error);
 
@@ -941,13 +952,13 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 	char[] sName = new char[MAX_NAME_LENGTH];
 	char[] sAuthID = new char[32];
 
-	if(SQL_FetchRow(hndl))
+	if(results.FetchRow())
 	{
 		// 0 - name
-		SQL_FetchString(hndl, 0, sName, MAX_NAME_LENGTH);
+		results.FetchString(0, sName, MAX_NAME_LENGTH);
 
 		// 1 - time
-		float fTime = SQL_FetchFloat(hndl, 1);
+		float fTime = results.FetchFloat(1);
 		char[] sTime = new char[16];
 		FormatSeconds(fTime, sTime, 16);
 
@@ -956,21 +967,21 @@ public void SQL_SubMenu_Callback(Handle owner, Handle hndl, const char[] error, 
 		m.AddItem("-1", sDisplay);
 
 		// 2 - jumps
-		int iJumps = SQL_FetchInt(hndl, 2);
+		int iJumps = results.FetchInt(2);
 		FormatEx(sDisplay, 128, "Jumps: %d", iJumps);
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
-		int iStyle = SQL_FetchInt(hndl, 3);
+		int iStyle = results.FetchInt(3);
 		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[iStyle]);
 		m.AddItem("-1", sDisplay);
 
 		// 4 - steamid3
-		SQL_FetchString(hndl, 4, sAuthID, 32);
+		results.FetchString(4, sAuthID, 32);
 
 		// 5 - date
 		char[] sDate = new char[32];
-		SQL_FetchString(hndl, 5, sDate, 32);
+		results.FetchString(5, sDate, 32);
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
 		m.AddItem("-1", sDisplay);
 	}
@@ -1019,9 +1030,9 @@ public void SQL_DBConnect()
 	}
 }
 
-public void SQL_CreateTable_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (WR module) error! Users' times table creation failed. Reason: %s", error);
 
@@ -1158,9 +1169,9 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	}
 }
 
-public void SQL_OnFinish_Callback(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(hndl == null)
+	if(results == null)
 	{
 		LogError("Timer (WR OnFinish) SQL query failed. Reason: %s", error);
 
