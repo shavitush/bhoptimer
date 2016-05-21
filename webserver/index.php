@@ -151,7 +151,7 @@ $rr = isset($_REQUEST["rr"]);
             $results = false;
             $stmt = FALSE;
 
-            if($rr && $stmt = $connection->prepare("SELECT p.map, u.name, p.style, p.time, p.jumps, u.auth, p.date FROM playertimes p JOIN (SELECT style, MIN(time) time FROM playertimes GROUP BY style, map) s ON p.style = s.style AND p.time = s.time JOIN users u ON p.auth = u.auth GROUP BY style, map ORDER BY date DESC;"))
+            if($rr && $stmt = $connection->prepare("SELECT p.map, u.name, p.style, p.time, p.jumps, u.auth, p.date FROM ".MYSQL_PREFIX."playertimes p JOIN (SELECT style, MIN(time) time FROM ".MYSQL_PREFIX."playertimes GROUP BY style, map) s ON p.style = s.style AND p.time = s.time JOIN ".MYSQL_PREFIX."users u ON p.auth = u.auth GROUP BY style, map ORDER BY date DESC;"))
             {
                 echo $connection->error;
 
@@ -217,7 +217,7 @@ $rr = isset($_REQUEST["rr"]);
                 }
             }
 
-    		else if($stmt = $connection->prepare("SELECT p.id, u.auth, u.name, p.time, p.jumps, p.date FROM playertimes p JOIN users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC;"))
+    		else if($stmt = $connection->prepare("SELECT p.id, u.auth, u.name, p.time, p.jumps, p.date FROM ".MYSQL_PREFIX."playertimes p JOIN ".MYSQL_PREFIX."users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC;"))
     		{
     			$stmt->bind_param("ss", $map, $style);
     			$stmt->execute();

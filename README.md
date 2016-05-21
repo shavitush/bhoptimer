@@ -52,7 +52,7 @@ a bhop server should be simple
 shavit-core - no other plugin will work without it.  
 shavit-zones - wouldn't really call it required but it's actually needed to get your timer to start/finish.
 
-# Todo for 1.5b release (out of beta!)
+# Todo for 1.5b release
 - [x] Migrate every menu to the new syntax.
 - [ ] Migrate DBI to the new syntax.
 
@@ -90,7 +90,7 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
 
 ~ shavit-misc
-- [ ] Allow changing the prespeed limitation.
+- [x] Allow changing the prespeed limitation.
 
 ~ [NEW PLUGIN] shavit-ranks: (delayed to 1.6b/out-of-beta)
 - [ ] Create table.
