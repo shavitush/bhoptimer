@@ -92,6 +92,11 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-misc
 - [x] Allow changing the prespeed limitation.
 
+~ shavit-sounds
+- [ ] Play sounds (from config file) on new events.
+- [ ] On nersonal best.
+- [ ] On new #1.
+
 ~ [NEW PLUGIN] shavit-ranks: (delayed to 1.6b/out-of-beta)
 - [ ] Create table.
 - [ ] to be added.
