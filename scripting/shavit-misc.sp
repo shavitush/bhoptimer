@@ -360,24 +360,35 @@ public Action OnSetTransmit(int entity, int client)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	// let's hope this works
 	if(IsChatTrigger())
 	{
 		// hide commands
 		return Plugin_Handled;
 	}
 
-	// if capitalized !R = run sm_r
-	if(StrEqual(sArgs, "!R"))
+	else if(sArgs[0] == '!' || sArgs[0] == '/')
 	{
-		// cannot be used as it will not teleport me to anywhere
-		// Shavit_StartTimer(client);
+		bool bUpper = false;
 
-		// executing a command will be better at this case
-		// also makes life easier for server owners that hardcoded sm_r to be disabled
-		FakeClientCommand(client, "sm_r");
+		for(int i = 0; i < strlen(sArgs); i++)
+		{
+			if(IsCharUpper(sArgs[i]))
+			{
+				bUpper = true;
 
-		return Plugin_Handled;
+				break;
+			}
+		}
+
+		if(bUpper)
+		{
+			char[] sCopy = new char[256];
+			strcopy(sCopy, 256, sArgs[1]);
+
+			FakeClientCommand(client, "sm_%s", sCopy);
+
+			return Plugin_Handled;
+		}
 	}
 
 	return Plugin_Continue;
