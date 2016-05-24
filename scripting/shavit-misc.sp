@@ -367,17 +367,17 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		return Plugin_Handled;
 	}
 
-	// if capitalized !R = run sm_r
-	if(StrEqual(sArgs, "!R"))
+	char sText[300];
+	GetCmdArgString(sText, sizeof(sText));
+	StripQuotes(sText);
+	
+	if((sText[0] == '!') || (sText[0] == '/'))
 	{
-		// cannot be used as it will not teleport me to anywhere
-		// Shavit_StartTimer(client);
-
-		// executing a command will be better at this case
-		// also makes life easier for server owners that hardcoded sm_r to be disabled
-		FakeClientCommand(client, "sm_r");
-
-		return Plugin_Handled;
+		if(IsCharUpper(sText[1]))
+		{
+			FakeClientCommand(client, "sm_%s", sText);
+			return Plugin_Handled;
+		}
 	}
 
 	return Plugin_Continue;
