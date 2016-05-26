@@ -65,7 +65,7 @@ enum BhopStyle(+=1)
 #define STYLE_UNRANKED			(1 << 8) // unranked style. no ranking points and no records. (UNTESTED: REPORT ISSUES!)
 #define STYLE_NOREPLAY			(1 << 9) // disable replay bot for this style. don't use for unranked styles.
 #define STYLE_PRESPEED			(1 << 10) // allow prespeeding regardless of the prespeed setting
-#define STYLE_HSW_ONLY			(1 << 11) // allow Half-Sideways
+#define STYLE_HSW_ONLY			(1 << 11) // force half-sideways
 
 int gI_StyleProperties[MAX_STYLES] =
 {
