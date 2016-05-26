@@ -688,7 +688,6 @@ public void OnClientPutInServer(int client)
 
 	int iLength = ((strlen(sName) * 2) + 1);
 	char[] sEscapedName = new char[iLength]; // dynamic arrays! I love you, SourcePawn 1.7!
-	SQL_EscapeString(gH_SQL, sName, sEscapedName, iLength);
 	gH_SQL.Escape(sName, sEscapedName, iLength);
 
 	char[] sIP = new char[32];
@@ -702,12 +701,12 @@ public void OnClientPutInServer(int client)
 		strcopy(sCountry, 45, "Local Area Network");
 	}
 
-	// too lazy to calculate if it can go over 256 so let's not take risks and use 512, because #pragma dynamic <3
-	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip) VALUES ('%s', '%s', '%s', '%s');", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP);
+	char[] sQuery = new char[256]; // cannot go over 256 (after testing)
+	FormatEx(sQuery, 256, "REPLACE INTO %susers (auth, name, country, ip) VALUES ('%s', '%s', '%s', '%s');", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP);
 
 	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
+
 public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
