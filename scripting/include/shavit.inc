@@ -29,7 +29,7 @@
 
 #define PREFIX "\x04[Timer]\x01"
 
-#define MAX_STYLES 5
+#define MAX_STYLES 6
 #define MAX_ZONES 7
 
 // game types
@@ -48,7 +48,8 @@ enum BhopStyle(+=1)
 	Style_Sideways,
 	Style_WOnly,
 	Style_Scroll,
-	Style_400Velocity
+	Style_400Velocity,
+	Style_HSW
 };
 
 #if defined USES_STYLE_PROPERTIES
@@ -64,6 +65,7 @@ enum BhopStyle(+=1)
 #define STYLE_UNRANKED			(1 << 8) // unranked style. no ranking points and no records. (UNTESTED: REPORT ISSUES!)
 #define STYLE_NOREPLAY			(1 << 9) // disable replay bot for this style. don't use for unranked styles.
 #define STYLE_PRESPEED			(1 << 10) // allow prespeeding regardless of the prespeed setting
+#define STYLE_HSW_ONLY			(1 << 11) // allow Half-Sideways
 
 int gI_StyleProperties[MAX_STYLES] =
 {
@@ -71,7 +73,8 @@ int gI_StyleProperties[MAX_STYLES] =
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D, // Sideways
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D|STYLE_BLOCK_S, // W-Only
 	STYLE_EASYBHOP, // Scroll
-	STYLE_VEL_LIMIT // 400 Velocity
+	STYLE_VEL_LIMIT, // 400 Velocity
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_S|STYLE_HSW_ONLY // HSW
 };
 #endif
 
@@ -86,7 +89,8 @@ float gF_VelocityLimit[MAX_STYLES] =
 	VELOCITY_UNLIMITED, // Sideways
 	VELOCITY_UNLIMITED, // W-Only
 	VELOCITY_UNLIMITED, // Scroll
-	400.00 // 400 Velocity
+	400.00, // 400 Velocity
+	VELOCITY_UNLIMITED // HSW
 };
 #endif
 
@@ -98,7 +102,8 @@ char gS_BhopStyles[MAX_STYLES][] =
 	"Sideways",
 	"W-Only",
 	"Scroll",
-	"400 Velocity"
+	"400 Velocity",
+	"Half-Sideways"
 };
 #endif
 
@@ -110,7 +115,8 @@ char gS_StyleHTMLColors[MAX_STYLES][] =
 	"B54CB3",
 	"9A59F0",
 	"279BC2",
-	"C9BB8B"
+	"C9BB8B",
+	"B54CBB"
 };
 #endif
 
@@ -122,7 +128,8 @@ char gS_ShortBhopStyles[MAX_STYLES][] =
 	"SW",
 	"W",
 	"LEGIT",
-	"400VEL"
+	"400VEL",
+	"HSW"
 };
 #endif
 
