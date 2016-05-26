@@ -25,6 +25,7 @@
 
 #define USES_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
+#define HIDE_RADAR 1<<12
 #include <shavit>
 
 #undef REQUIRE_EXTENSIONS
@@ -689,9 +690,15 @@ public void Player_Spawn(Handle event, const char[] name, bool dontBroadcast)
 
 	int userid = GetEventInt(event, "userid");
 	int client = GetClientOfUserId(userid);
-
+	CreateTimer(0.0, RemoveRadar, client);
 	RestartTimer(client);
 }
+
+public Action RemoveRadar(Handle timer, any client)
+{
+	SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | HIDE_RADAR);
+}
+
 
 public Action Player_Team(Handle event, const char[] name, bool dontBroadcast)
 {
