@@ -25,7 +25,6 @@
 
 #define USES_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
-#define HIDE_RADAR 1<<12
 #include <shavit>
 
 #undef REQUIRE_EXTENSIONS
@@ -696,9 +695,9 @@ public void Player_Spawn(Handle event, const char[] name, bool dontBroadcast)
 
 public Action RemoveRadar(Handle timer, any client)
 {
-	SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | HIDE_RADAR);
+	SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // Disables Player Radar On Spawn
+	return Plugin_Stop;
 }
-
 
 public Action Player_Team(Handle event, const char[] name, bool dontBroadcast)
 {
