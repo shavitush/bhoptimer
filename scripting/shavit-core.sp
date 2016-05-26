@@ -816,8 +816,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			vel[1] = 0.0;
 			buttons &= ~IN_MOVERIGHT;
 		}
+		
+		// HSW
+		if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY && !bOnLadder)
+		{
+			if(vel[0] == 0)
+			{
+				bEdit = true;
+				vel[1] = 0.0;
+				buttons &= ~IN_MOVELEFT;
+				vel[1] = 0.0;
+				buttons &= ~IN_MOVERIGHT;
+			}
+		}
 	}
-
 	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
 
 	// autobhop
