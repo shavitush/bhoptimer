@@ -792,6 +792,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
 		{
 			bEdit = true;
+
 			vel[0] = 0.0;
 			buttons &= ~IN_FORWARD;
 		}
@@ -799,6 +800,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (vel[1] < 0 || buttons & IN_MOVELEFT))
 		{
 			bEdit = true;
+
 			vel[1] = 0.0;
 			buttons &= ~IN_MOVELEFT;
 		}
@@ -806,6 +808,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S && (vel[0] < 0 || buttons & IN_BACK))
 		{
 			bEdit = true;
+
 			vel[0] = 0.0;
 			buttons &= ~IN_BACK;
 		}
@@ -813,23 +816,27 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D && (vel[1] > 0 || buttons & IN_MOVERIGHT))
 		{
 			bEdit = true;
+
 			vel[1] = 0.0;
 			buttons &= ~IN_MOVERIGHT;
 		}
-		
+
 		// HSW
-		if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY && !bOnLadder)
+		if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY)
 		{
 			if(vel[0] == 0)
 			{
 				bEdit = true;
+
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;
+
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVERIGHT;
 			}
 		}
 	}
+	
 	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
 
 	// autobhop
