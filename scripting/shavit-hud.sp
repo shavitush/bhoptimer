@@ -90,6 +90,8 @@ public void OnPluginStart()
 
 	// cvars
 	gCV_ZoneHUD = CreateConVar("shavit_hud_zonehud", "1", "Enable \"zonehud\" server-sided? (The colored start/end zone display in CS:GO)", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+
+	AutoExecConfig();
 }
 
 public void OnClientPutInServer(int client)
