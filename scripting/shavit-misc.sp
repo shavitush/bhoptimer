@@ -689,8 +689,14 @@ public void Player_Spawn(Handle event, const char[] name, bool dontBroadcast)
 
 	int userid = GetEventInt(event, "userid");
 	int client = GetClientOfUserId(userid);
-
+	CreateTimer(0.0, RemoveRadar, client);
 	RestartTimer(client);
+}
+
+public Action RemoveRadar(Handle timer, any client)
+{
+	SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // Disables Player Radar On Spawn
+	return Plugin_Stop;
 }
 
 public Action Player_Team(Handle event, const char[] name, bool dontBroadcast)
