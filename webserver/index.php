@@ -129,8 +129,14 @@ $rr = isset($_REQUEST["rr"]);
       </div>
     </nav>
 
-    <div class="jumbotron">
-      <div class="container">
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <div class="col-md-10 col-md-offset-1">
+          <div class="panel panel-default">
+            <div class="panel-heading cam-heading center">
+              <?php echo(HOMEPAGE_TITLE);?> <strong>-</strong> Record Database
+            </div>
+            <div class="panel-body table-responsive">
         <?php
         if(!isset($_REQUEST["map"]) && !$rr)
         {
@@ -169,8 +175,6 @@ $rr = isset($_REQUEST["rr"]);
 
                     $first = true;
 
-                    echo("<p>Recent records:</p>");
-
                     while($row = $stmt->fetch())
     				{
                         if($first)
@@ -183,7 +187,7 @@ $rr = isset($_REQUEST["rr"]);
                                     <th>Style</th>
                                     <th>Time</th>
                                     <th>Jumps</th>
-                                    <th>SteamID3</th>
+                                    <th>SteamID 3</th>
                                     <th>Date <small>(YYYY-MM-DD)</small></th>
                                 </thead>
                             <?php
@@ -202,7 +206,7 @@ $rr = isset($_REQUEST["rr"]);
 
                             <td><?php
                             $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
-        					echo("<a href=\"http://steamcommunity.com/profiles/" . $steamid->Format(SteamID::FORMAT_STEAMID64) . "/\">" . $auth . "</a>");
+        					echo("<a href=\"http://steamcommunity.com/profiles/" . $steamid->Format(SteamID::FORMAT_STEAMID64) . "/\" target=\"_blank\">" . $auth . "</a>");
                             ?></td>
 
         					<td><?php echo($date); ?></td>
@@ -244,7 +248,7 @@ $rr = isset($_REQUEST["rr"]);
     						<table class="table table-striped table-hover">
     						<thead id="ignore"><th>Rank</th>
     						<th>Record ID</th>
-    						<th>SteamID3</th>
+    						<th>SteamID 3</th>
     						<th>Player</th>
     						<th>Time</th>
     						<th>Jumps</th>
@@ -275,19 +279,19 @@ $rr = isset($_REQUEST["rr"]);
                         {
                             case 1:
                             {
-                                echo("<i class=\"fa fa-trophy\"></i> #".$rank);
+                                echo("<i class=\"fa fa-trophy\" style=\"color:#C98910\"></i>");
                                 break;
                             }
 
                             case 2:
                             {
-                                echo("<i class=\"fa fa-star\"></i> #".$rank);
+                                echo("<i class=\"fa fa-trophy\" style=\"color:#A8A8A8\"></i>");
                                 break;
                             }
 
                             case 3:
                             {
-                                echo("<i class=\"fa fa-thumbs-up\"></i> #".$rank);
+                                echo("<i class=\"fa fa-trophy\" style=\"color:#965A38\"></i>");
                                 break;
                             }
 
@@ -301,7 +305,7 @@ $rr = isset($_REQUEST["rr"]);
     					<td><?php echo($id); ?></td>
     					<td><?php
     					$steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
-    					echo("<a href=\"http://steamcommunity.com/profiles/" . $steamid->Format(SteamID::FORMAT_STEAMID64) . "/\">" . $auth . "</a>"); ?></td>
+    					echo("<a href=\"http://steamcommunity.com/profiles/" . $steamid->Format(SteamID::FORMAT_STEAMID64) . "/\" target=\"_blank\">" . $auth . "</a>"); ?></td>
     					<td><?php echo($name); ?></td>
     					<td>
 
@@ -337,14 +341,28 @@ $rr = isset($_REQUEST["rr"]);
         ?>
       </div>
     </div>
-  </body>
+  </div>
+</div>
+</div>
+</div>
+
+</body>
 
   <!-- load those lately because it makes the page load faster -->
   <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
   <link rel="stylesheet" href="assets/css/ie10-viewport-bug-workaround.css">
 
   <!-- Custom styles for this template, if we'll ever use it -->
-  <link rel="stylesheet" href="timer.css">
+  <?php
+  if(PAGE_STYLE =='0')
+  {
+    echo('<link rel="stylesheet" href="timer.css">');
+  }
+  else
+  {
+    echo('<link rel="stylesheet" href="timer-red.css">');
+  }
+  ?>
 
   <!-- font awesome -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">

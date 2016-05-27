@@ -1,0 +1,42 @@
+/* Custom Red Style CSS */
+body {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size: 14px;
+	line-height: 1.42857143;
+	background-color: #171C22;
+	padding-top: 75px;
+	padding-bottom: 20px;
+}
+th,td {
+	text-align:center;
+}
+.btn {
+	outline: none !important;
+	border: 0.25px solid #171C22;
+  padding:inherit;
+}
+select,select:focus,select:active {
+	background-color:#FFF;
+	outline:none;
+	border:none;
+	box-shadow:none;
+}
+.navbar-brand {
+	color: #fff !important;
+}
+.panel-default>.panel-heading {
+	background-color: #EA003D;
+	color: #fff;
+}
+.panel
+{
+	border-color: #EA003D;
+}
+h1,h2 {
+	margin: 0 0 20px 0;
+}
+table
+{
+	table-layout: fixed;
+	width: 100%;
+}
