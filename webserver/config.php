@@ -26,13 +26,17 @@ define("MYSQL_PREFIX", "");
 // header title
 define("HEADER_TITLE", "Welcome!");
 
+// page styling
+define("PAGE_STYLE", "0"); // 0 - Default | 1 - Red/Black
+
 // setup multi styles here
 $styles = array(
     "Forwards", // 0
     "Sideways", // 1
     "W-Only", // 2
     "Scroll", // 3
-    "400 Velocity" // 4
+    "400 Velocity", // 4
+    "Half-Sideways" // 5
 );
 
 define("DEFAULT_STYLE", 0); // 0 - forwards
