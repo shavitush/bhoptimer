@@ -46,6 +46,7 @@ ConVar gCV_RespawnOnTeam = null;
 ConVar gCV_RespawnOnRestart = null;
 ConVar gCV_StartOnSpawn = null;
 ConVar gCV_PrespeedLimit = null;
+ConVar gCV_HideRadar = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -119,6 +120,7 @@ public void OnPluginStart()
 	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if he uses the timer restart command?\n0 - Disabled\n1 - Enabled", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_StartOnSpawn = CreateConVar("shavit_misc_startonspawn", "1", "Restart the timer for a player after he spawns?\n0 - Disabled\n1 - Enabled", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_PrespeedLimit = CreateConVar("shavit_misc_prespeedlimit", "280.00", "Prespeed limitation in startzone.", FCVAR_PLUGIN, true, 10.0, false);
+	gCV_HideRadar = CreateConVar("shavit_misc_hideradar", "1", "Should the plugin hide the in-game radar?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -205,7 +207,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		}
 	}
 
-	if(bRespawn && gCV_RespawnOnTeam.BoolValue)
+	if(gCV_RespawnOnTeam.BoolValue && bRespawn)
 	{
 		CS_RespawnPlayer(client);
 
@@ -689,13 +691,23 @@ public void Player_Spawn(Handle event, const char[] name, bool dontBroadcast)
 
 	int userid = GetEventInt(event, "userid");
 	int client = GetClientOfUserId(userid);
-	CreateTimer(0.0, RemoveRadar, client);
+
+	CreateTimer(0.0, RemoveRadar, GetClientSerial(client));
+
 	RestartTimer(client);
 }
 
-public Action RemoveRadar(Handle timer, any client)
+public Action RemoveRadar(Handle timer, any data)
 {
-	SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // Disables Player Radar On Spawn
+	int client = GetClientFromSerial(data);
+
+	if(!IsValidClient(client))
+	{
+		return Plugin_Stop;
+	}
+
+	SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // disables player radar
+
 	return Plugin_Stop;
 }
 
