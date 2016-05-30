@@ -47,6 +47,7 @@ ConVar gCV_RespawnOnRestart = null;
 ConVar gCV_StartOnSpawn = null;
 ConVar gCV_PrespeedLimit = null;
 ConVar gCV_HideRadar = null;
+ConVar gCV_TeleportCommands = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -121,6 +122,7 @@ public void OnPluginStart()
 	gCV_StartOnSpawn = CreateConVar("shavit_misc_startonspawn", "1", "Restart the timer for a player after he spawns?\n0 - Disabled\n1 - Enabled", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_PrespeedLimit = CreateConVar("shavit_misc_prespeedlimit", "280.00", "Prespeed limitation in startzone.", FCVAR_PLUGIN, true, 10.0, false);
 	gCV_HideRadar = CreateConVar("shavit_misc_hideradar", "1", "Should the plugin hide the in-game radar?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_TeleportCommands = CreateConVar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -442,6 +444,13 @@ public Action Command_Teleport(int client, int args)
 {
 	if(!IsValidClient(client))
 	{
+		return Plugin_Handled;
+	}
+
+	if(!gCV_TeleportCommands.BoolValue)
+	{
+		Shavit_PrintToChat(client, "This command is disabled.");
+
 		return Plugin_Handled;
 	}
 
