@@ -47,6 +47,7 @@ Handle gH_Forwards_Start = null;
 Handle gH_Forwards_Stop = null;
 Handle gH_Forwards_Finish = null;
 Handle gH_Forwards_OnRestart = null;
+Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
 
@@ -133,6 +134,7 @@ public void OnPluginStart()
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell);
 	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell);
+	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
 
@@ -175,6 +177,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_start", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_r", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
+	
+	// teleport to end
+	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
 
 	// timer stop
 	RegConsoleCmd("sm_stop", Command_StopTimer, "Stop your timer.");
@@ -307,6 +312,29 @@ public Action Command_StartTimer(int client, int args)
 	else
 	{
 		Shavit_PrintToChat(client, "Your timer will not start as a start zone for the map is not defined.");
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_TeleportEnd(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(gB_Zones && Shavit_ZoneExists(Zone_End))
+	{
+		Shavit_StopTimer(client);
+		Call_StartForward(gH_Forwards_OnEnd);
+		Call_PushCell(client);
+		Call_Finish();
+	}
+
+	else
+	{
+		Shavit_PrintToChat(client, "You can't teleport as an end zone for the map is not defined.");
 	}
 
 	return Plugin_Handled;
