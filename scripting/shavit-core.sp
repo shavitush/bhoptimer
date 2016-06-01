@@ -76,6 +76,7 @@ ConVar gCV_Pause = null;
 ConVar gCV_MySQLPrefix = null;
 ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
+ConVar gCV_AllowKeysOnGround = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -206,6 +207,7 @@ public void OnPluginStart()
 	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.\nWill be forced to not work if STYLE_EASYBHOP is not defined for a style!", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_AllowKeysOnGround = CreateConVar("shavit_core_keysonground", "0", "Allow using all keys on ground disregarding style?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
 
 	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", FCVAR_PLUGIN);
 	gCV_MySQLPrefix.AddChangeHook(OnPrefixChange);
@@ -815,7 +817,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bEdit = false;
 
 	// key blocking
-	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnLadder)
+	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnLadder && !(bOnGround && gCV_AllowKeysOnGround ))
 	{
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
 		{
