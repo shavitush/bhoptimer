@@ -815,7 +815,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bEdit = false;
 
 	// key blocking
-	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnLadder)
+	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnLadder && !bOnGround)
 	{
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
 		{
@@ -861,6 +861,15 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
+	
+	if(Shavit_InsideZone(client, Zone_Start))
+	{
+		if(vel[2] > 0 || buttons & IN_JUMP)
+		{
+			vel[2] = 0.0;
+			buttons &= ~IN_JUMP;	//block jump
+		}
+	}		
 
 	// autobhop
 	if(gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP && gCV_Autobhop.BoolValue && gB_Auto[client] && buttons & IN_JUMP && !bOnGround && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
