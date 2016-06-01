@@ -254,6 +254,14 @@ forward void Shavit_OnStart(int client);
 forward void Shavit_OnRestart(int client);
 
 /**
+ * Called when a player uses the !end command.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnEnd(int client);
+
+/**
  * Called when a player's timer stops. (stop =/= finish a map)
  *
  * @param client					Client index.
