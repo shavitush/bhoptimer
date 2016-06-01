@@ -693,17 +693,18 @@ public Action Respawn(Handle Timer, any client)
 
 public void Player_Spawn(Handle event, const char[] name, bool dontBroadcast)
 {
-	if(!gCV_StartOnSpawn.BoolValue)
-	{
-		return;
-	}
-
 	int userid = GetEventInt(event, "userid");
 	int client = GetClientOfUserId(userid);
 
-	CreateTimer(0.0, RemoveRadar, GetClientSerial(client));
+	if(gCV_HideRadar.BoolValue)
+	{
+		CreateTimer(0.0, RemoveRadar, GetClientSerial(client));
+	}
 
-	RestartTimer(client);
+	if(gCV_StartOnSpawn.BoolValue)
+	{
+		RestartTimer(client);
+	}
 }
 
 public Action RemoveRadar(Handle timer, any data)
