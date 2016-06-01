@@ -178,7 +178,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_start", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_r", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
-	
+
 	// teleport to end
 	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
 
@@ -814,10 +814,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");
 	}
 
+	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
+
 	bool bEdit = false;
 
 	// key blocking
-	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnLadder && !bOnGround)
+	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnGround)
 	{
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
 		{
@@ -862,16 +864,15 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
-	
+
 	if(Shavit_InsideZone(client, Zone_Start) && gCV_BlockPreJump.BoolValue)
 	{
 		if(vel[2] > 0 || buttons & IN_JUMP)
 		{
 			vel[2] = 0.0;
-			buttons &= ~IN_JUMP;	//block jump
+			buttons &= ~IN_JUMP;
 		}
-	}		
+	}
 
 	// autobhop
 	if(gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP && gCV_Autobhop.BoolValue && gB_Auto[client] && buttons & IN_JUMP && !bOnGround && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
