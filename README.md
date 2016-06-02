@@ -43,10 +43,12 @@ a bhop server should be simple
 	}
 }
 ```
-2. Copy the desired .smx files to your plugins (addons/sourcemod/plugins) folder
+2. Copy the desired .smx files to your plugins (addons/sourcemod/plugins) folder  
 2.1. Copy shavit.games.txt to /gamedata if you have DHooks installed.
 3. Copy base.nav to the `maps` folder.
-4. Restart your server.
+4. Copy the files from the `sound` folder to the one on your server. Make sure to also have equivelant bz2 files!
+5. Copy the `configs` file to your server and modify `shavit-sounds.cfg` if you wish to.
+6. Restart your server.
 
 # Required plugins:
 shavit-core - no other plugin will work without it.  
@@ -92,11 +94,11 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 ~ shavit-misc
 - [x] Allow changing the prespeed limitation.
 
-~ shavit-sounds
-- [ ] Play sounds (from config file) on new events.
-- [ ] On new #1.
-- [ ] On personal best.
-- [ ] On map finish.
+~ [NEW PLUGIN] shavit-sounds
+- [x] Play sounds (from config file) on new events.
+- [x] On new #1.
+- [x] On personal best.
+- [x] On map finish.
 
 ~ [NEW PLUGIN] shavit-ranks: (delayed to 1.6b/out-of-beta)
 - [ ] Create table.

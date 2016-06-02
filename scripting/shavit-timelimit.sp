@@ -24,8 +24,8 @@
 #include <shavit>
 
 #pragma semicolon 1
-#pragma dynamic 131072 // let's make stuff faster
-#pragma newdecls required // We're at 2015 :D
+#pragma dynamic 131072
+#pragma newdecls required
 
 // #define DEBUG
 
