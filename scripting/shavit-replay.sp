@@ -101,7 +101,7 @@ public void OnPluginStart()
 	gF_Tickrate = (1.0 / GetTickInterval());
 
 	// plugin convars
-	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "1.5", "Time to wait before restarting the replay after it finishes playing.", FCVAR_PLUGIN, true, 0.0, true, 10.0);
+	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "1.5", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 
 	AutoExecConfig();
 

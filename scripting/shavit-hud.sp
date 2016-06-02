@@ -89,7 +89,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_zonehud", Command_ToggleZoneHUD, "Toggle the timer's flashing zone HUD");
 
 	// cvars
-	gCV_ZoneHUD = CreateConVar("shavit_hud_zonehud", "1", "Enable \"zonehud\" server-sided? (The colored start/end zone display in CS:GO)", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_ZoneHUD = CreateConVar("shavit_hud_zonehud", "1", "Enable \"zonehud\" server-sided? (The colored start/end zone display in CS:GO)", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 }

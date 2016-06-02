@@ -199,17 +199,17 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
 	#endif
 
-	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_DONTRECORD);
+	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 
-	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?\nWill be forced to not work if STYLE_AUTOBHOP is not defined for a style!", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.\nWill be forced to not work if STYLE_EASYBHOP is not defined for a style!", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?\nWill be forced to not work if STYLE_AUTOBHOP is not defined for a style!", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", 0, true, 0.0, true, 1.0);
+	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
+	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
+	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.\nWill be forced to not work if STYLE_EASYBHOP is not defined for a style!", 0, true, 0.0, true, 1.0);
+	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
+	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 
-	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", FCVAR_PLUGIN);
+	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", 0);
 	gCV_MySQLPrefix.AddChangeHook(OnPrefixChange);
 
 	AutoExecConfig();
@@ -617,7 +617,9 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	char[] buffer = new char[255];
 	FormatNativeString(0, 2, 3, 255, written, buffer);
 
-	return PrintToChat(client, "%s%s %s", gSG_Type == Game_CSS? "":" ", PREFIX, buffer);
+	PrintToChat(client, "%s%s %s", gSG_Type == Game_CSS? "":" ", PREFIX, buffer);
+
+	return;
 }
 
 public void StartTimer(int client)

@@ -94,8 +94,9 @@ shavit-zones - wouldn't really call it required but it's actually needed to get 
 
 ~ shavit-sounds
 - [ ] Play sounds (from config file) on new events.
-- [ ] On nersonal best.
 - [ ] On new #1.
+- [ ] On personal best.
+- [ ] On map finish.
 
 ~ [NEW PLUGIN] shavit-ranks: (delayed to 1.6b/out-of-beta)
 - [ ] Create table.

@@ -76,10 +76,10 @@ public void OnPluginStart()
 
 	gCV_RestartGame = FindConVar("mp_restartgame");
 
-	gCV_DefaultLimit = CreateConVar("shavit_timelimit_default", "60.0", "Default timelimit to use in case there isn't an average.", FCVAR_PLUGIN, true, 10.0);
-	gCV_MinimumTimes = CreateConVar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.", FCVAR_PLUGIN, true, 5.0);
-	gCV_PlayerAmount = CreateConVar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nSet to 0 to have it \"unlimited\".", FCVAR_PLUGIN);
-	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	gCV_DefaultLimit = CreateConVar("shavit_timelimit_default", "60.0", "Default timelimit to use in case there isn't an average.", 0, true, 10.0);
+	gCV_MinimumTimes = CreateConVar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.", 0, true, 5.0);
+	gCV_PlayerAmount = CreateConVar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nSet to 0 to have it \"unlimited\".", 0);
+	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 }

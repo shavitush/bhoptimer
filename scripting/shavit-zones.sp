@@ -161,9 +161,9 @@ public void OnPluginStart()
 	SetupColors();
 
 	// cvars and stuff
-	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", FCVAR_PLUGIN, true, 0.5, true, 5.0);
-	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", FCVAR_PLUGIN, true, 0.5, true, 5.0);
+	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
+	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
+	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
 
 	// draw
 	// start drawing mapzones here
@@ -1823,7 +1823,7 @@ public void Shavit_OnEnd(int client)
 		// calculate center
 		vCenter[0] /= 2;
 		vCenter[1] /= 2;
-		
+
 		AddVectors(gV_MapZones[1][0], vCenter, vCenter);
 
 		vCenter[2] = gV_MapZones[1][0][2];
