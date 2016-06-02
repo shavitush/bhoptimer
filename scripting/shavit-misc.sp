@@ -277,7 +277,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-			float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+			float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0) + Pow(fSpeed[2], 2.0));		//edited
 			float fScale = gCV_PrespeedLimit.FloatValue / fSpeed_New;
 
 			if(fScale < 1.0)
