@@ -168,11 +168,6 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
     if(StrContains(sSound, ".") != -1) // file has an extension?
     {
-        if(gSG_Type == Game_CSGO)
-        {
-            Format(sSound, PLATFORM_MAX_PATH, "*%s", sSound);
-        }
-
         PlayEventSound(client, bEveryone, sSound);
     }
 }
@@ -205,6 +200,20 @@ public void PlayEventSound(int client, bool everyone, const char[] sound)
 
     if(count > 0)
     {
-        EmitSound(clients, count, sound, SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_NORMAL);
+        if(gSG_Type == Game_CSGO)
+		{
+			char[] sPlay = new char[PLATFORM_MAX_PATH+8];
+			FormatEx(sPlay, PLATFORM_MAX_PATH+8, "play */%s", sound);
+
+			for(int i = 0; i < count; i++)
+			{
+				ClientCommand(clients[i], sPlay);
+			}
+		}
+
+		else
+		{
+			EmitSound(clients, count, sound);
+		}
     }
 }
