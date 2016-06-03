@@ -1491,7 +1491,6 @@ public bool InsideZone(int client, int zone)
 		}
 	}
 
-
 	// Checking if player is inside the box after rotation
 	for(int i = 0; i < 3; i++)
 	{
