@@ -1,26 +1,24 @@
 <?php
-require("config.php");
-require("functions.php");
-require("steamid.php");
+require 'config.php';
+require 'functions.php';
+require 'steamid.php';
 
 $connection = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_SCHEMA);
-$connection->set_charset("utf8");
+$connection->set_charset('utf8');
 
 $style = 0;
 
-if(isset($_REQUEST["style"]))
-{
-    $style = $_REQUEST["style"];
+if (isset($_REQUEST['style'])) {
+    $style = $_REQUEST['style'];
 }
 
-$map = "";
+$map = '';
 
-if(isset($_REQUEST["map"]))
-{
-    $map = $_REQUEST["map"];
+if (isset($_REQUEST['map'])) {
+    $map = $_REQUEST['map'];
 }
 
-$rr = isset($_REQUEST["rr"]);
+$rr = isset($_REQUEST['rr']);
 ?>
 
 <!DOCTYPE html>
@@ -35,15 +33,11 @@ $rr = isset($_REQUEST["rr"]);
     <link href="assets/icons/favicon.ico" rel="icon" type="image/x-icon" />
 
     <?php
-	if(!$map)
-	{
-		echo("<title>" . HOMEPAGE_TITLE . "</title>");
-	}
-
-	else
-	{
-		echo("<title>".removeworkshop($_GET["map"])."</title>");
-	} ?>
+    if (!$map) {
+        echo '<title>'.HOMEPAGE_TITLE.'</title>';
+    } else {
+        echo '<title>'.removeworkshop($_GET['map']).'</title>';
+    } ?>
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -89,7 +83,7 @@ $rr = isset($_REQUEST["rr"]);
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="index.php"><?php echo("<i class=\"fa fa-clock-o\"></i> ".TOPLEFT_TITLE); ?></a>
+          <a class="navbar-brand" href="index.php"><?php echo '<i class="fa fa-clock-o"></i> '.TOPLEFT_TITLE; ?></a>
           <a class="navbar-brand" href="index.php?rr=1">Recent Records</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
@@ -97,9 +91,14 @@ $rr = isset($_REQUEST["rr"]);
                 <div class="form-group">
                     <select name="style" class="form-control">
                         <?php
-                        for($i = 0; $i < count($styles); $i++)
-                        {
-                            ?> <option value="<?php echo($i); ?>" <?php if($i == DEFAULT_STYLE || $style == $i) echo("selected=\"selected\""); ?>><?php echo($styles[$i]); ?></option> <?php
+                        for ($i = 0; $i < count($styles); $i++) {
+                            ?> <option value="<?php echo $i;
+                            ?>" <?php if ($i == DEFAULT_STYLE || $style == $i) {
+                                echo 'selected="selected"';
+                            }
+                            ?>><?php echo $styles[$i];
+                            ?></option> <?php
+
                         }
                         ?>
                     </select>
@@ -108,16 +107,20 @@ $rr = isset($_REQUEST["rr"]);
                     <select name="map" class="form-control" required>
                         <option value="" selected="selected">None</option>
                         <?php
-                        $result = mysqli_query($connection, "SELECT DISTINCT ".MYSQL_PREFIX."map FROM mapzones ORDER BY map ASC;");
+                        $result = mysqli_query($connection, 'SELECT DISTINCT '.MYSQL_PREFIX.'map FROM mapzones ORDER BY map ASC;');
 
-                        if($result->num_rows > 0)
-                        {
-                            while($row = $result->fetch_assoc())
-                			{
+                        if ($result->num_rows > 0) {
+                            while ($row = $result->fetch_assoc()) {
                                 // $row["map"] - including workshop
                                 // removeworkshop($row["map"]) - no workshop
-                				?> <option value="<?php echo($row["map"]); ?>" <?php if($row["map"] == $map) echo("selected=\"selected\""); ?>><?php echo(removeworkshop($row["map"])); ?></option> <?php
-                			}
+                                ?> <option value="<?php echo $row['map'];
+                                ?>" <?php if ($row['map'] == $map) {
+                                    echo 'selected="selected"';
+                                }
+                                ?>><?php echo removeworkshop($row['map']);
+                                ?></option> <?php
+
+                            }
                         }
                         ?>
                     </select>
@@ -134,51 +137,46 @@ $rr = isset($_REQUEST["rr"]);
         <div class="col-md-10 col-md-offset-1">
           <div class="panel panel-default">
             <div class="panel-heading cam-heading center">
-              <?php echo(HOMEPAGE_TITLE);?> <strong>-</strong> Record Database
+              <?php echo HOMEPAGE_TITLE; ?> <strong>-</strong> Record Database
             </div>
             <div class="panel-body table-responsive">
         <?php
-        if(!isset($_REQUEST["map"]) && !$rr)
-        {
+        if (!isset($_REQUEST['map']) && !$rr) {
             ?>
-            <h1><?php echo(HEADER_TITLE); ?></h1>
+            <h1><?php echo HEADER_TITLE;
+            ?></h1>
             <p>
                 To show the records of any map, please select it using the menu at the top right of this page.<br/>
                 Don't forget to select a style if you wish, and then tap 'Submit'!</p>
 
             <p>
-                Alternatively, you may click <a href="index.php?rr=1">Recent Records</a> to view the latest <?php echo(RECORD_LIMIT_LATEST); ?> records.
+                Alternatively, you may click <a href="index.php?rr=1">Recent Records</a> to view the latest <?php echo RECORD_LIMIT_LATEST;
+            ?> records.
             </p>
             <?php
-        }
 
-        else
-        {
+        } else {
             $results = false;
-            $stmt = FALSE;
+            $stmt = false;
 
-            if($rr && $stmt = $connection->prepare("SELECT p.map, u.name, p.style, p.time, p.jumps, u.auth, p.date FROM ".MYSQL_PREFIX."playertimes p JOIN (SELECT style, MIN(time) time FROM ".MYSQL_PREFIX."playertimes GROUP BY style, map) s ON p.style = s.style AND p.time = s.time JOIN ".MYSQL_PREFIX."users u ON p.auth = u.auth GROUP BY style, map ORDER BY date DESC;"))
-            {
+            if ($rr && $stmt = $connection->prepare('SELECT p.map, u.name, p.style, p.time, p.jumps, u.auth, p.date FROM '.MYSQL_PREFIX.'playertimes p JOIN (SELECT style, MIN(time) time FROM '.MYSQL_PREFIX.'playertimes GROUP BY style, map) s ON p.style = s.style AND p.time = s.time JOIN '.MYSQL_PREFIX.'users u ON p.auth = u.auth GROUP BY style, map ORDER BY date DESC;')) {
                 echo $connection->error;
 
                 $stmt->execute();
 
-    			$stmt->store_result();
+                $stmt->store_result();
 
-    			$results = ($rows = $stmt->num_rows) > 0;
+                $results = ($rows = $stmt->num_rows) > 0;
 
-    			$stmt->bind_result($map, $name, $style, $time, $jumps, $auth, $date);
+                $stmt->bind_result($map, $name, $style, $time, $jumps, $auth, $date);
 
-                if($rows > 0)
-                {
+                if ($rows > 0) {
                     $records = 0;
 
                     $first = true;
 
-                    while($row = $stmt->fetch())
-    				{
-                        if($first)
-                        {
+                    while ($row = $stmt->fetch()) {
+                        if ($first) {
                             ?>
                             <table class="table table-striped table-hover">
                                 <thead id="ignore">
@@ -198,52 +196,54 @@ $rr = isset($_REQUEST["rr"]);
                         ?>
 
     					<tr>
-                            <td><?php echo(removeworkshop($map)); ?></td>
-        					<td><?php echo($name); ?></td>
-        					<td><?php echo($styles[$style]); ?></td>
-        					<td><?php echo(formattoseconds($time)); ?></td>
-        					<td><?php echo(number_format($jumps)); ?></td>
+                            <td><?php echo removeworkshop($map);
+                        ?></td>
+        					<td><?php echo $name;
+                        ?></td>
+        					<td><?php echo $styles[$style];
+                        ?></td>
+        					<td><?php echo formattoseconds($time);
+                        ?></td>
+        					<td><?php echo number_format($jumps);
+                        ?></td>
 
                             <td><?php
                             $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
-        					echo("<a href=\"http://steamcommunity.com/profiles/" . $steamid->Format(SteamID::FORMAT_STEAMID64) . "/\" target=\"_blank\">" . $auth . "</a>");
-                            ?></td>
+                        echo '<a href="http://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>';
+                        ?></td>
 
-        					<td><?php echo($date); ?></td>
+        					<td><?php echo $date;
+                        ?></td>
                         </tr>
 
                         <?php
-                        if(++$records > RECORD_LIMIT_LATEST)
-                        {
+                        if (++$records > RECORD_LIMIT_LATEST) {
                             break;
                         }
                     }
                 }
-            }
+            } elseif ($stmt = $connection->prepare('SELECT p.id, u.auth, u.name, p.time, p.jumps, p.date FROM '.MYSQL_PREFIX.'playertimes p JOIN '.MYSQL_PREFIX.'users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC;')) {
+                $stmt->bind_param('ss', $map, $style);
+                $stmt->execute();
 
-    		else if($stmt = $connection->prepare("SELECT p.id, u.auth, u.name, p.time, p.jumps, p.date FROM ".MYSQL_PREFIX."playertimes p JOIN ".MYSQL_PREFIX."users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC;"))
-    		{
-    			$stmt->bind_param("ss", $map, $style);
-    			$stmt->execute();
+                $stmt->store_result();
 
-    			$stmt->store_result();
+                $results = ($rows = $stmt->num_rows) > 0;
 
-    			$results = ($rows = $stmt->num_rows) > 0;
+                $stmt->bind_result($id, $auth, $name, $time, $jumps, $date);
 
-    			$stmt->bind_result($id, $auth, $name, $time, $jumps, $date);
-
-    			if($rows > 0)
-    			{
+                if ($rows > 0) {
                     $first = true;
 
-    				$rank = 1;
+                    $rank = 1;
 
-    				while($row = $stmt->fetch())
-    				{
-                        if($first)
-    					{
-    						?>
-                            <p><span class="mark"><?php echo($styles[$style]); ?></span> Records (<?php echo(number_format($rows)); ?>) for <i><?php echo(removeworkshop($map)); ?></i>:</p>
+                    while ($row = $stmt->fetch()) {
+                        if ($first) {
+                            ?>
+                            <p><span class="mark"><?php echo $styles[$style];
+                            ?></span> Records (<?php echo number_format($rows);
+                            ?>) for <i><?php echo removeworkshop($map);
+                            ?></i>:</p>
 
     						<table class="table table-striped table-hover">
     						<thead id="ignore"><th>Rank</th>
@@ -257,85 +257,86 @@ $rr = isset($_REQUEST["rr"]);
     						<?php
 
                             $first = false;
-    					}
-    					?>
+                        }
+                        ?>
 
-                        <?php if($rank == 1)
-                        {
+                        <?php if ($rank == 1) {
                             ?>
                             <tr class="warning">
                             <?php
-                        }
 
-                        else
-                        {
+                        } else {
                             ?>
                             <tr class="default">
                             <?php
+
                         }
                         ?>
                         <td>
-                        <?php switch($rank)
-                        {
+                        <?php switch ($rank) {
                             case 1:
                             {
-                                echo("<i class=\"fa fa-trophy\" style=\"color:#C98910\"></i>");
+                                echo '<i class="fa fa-trophy" style="color:#C98910"></i>';
                                 break;
                             }
 
                             case 2:
                             {
-                                echo("<i class=\"fa fa-trophy\" style=\"color:#A8A8A8\"></i>");
+                                echo '<i class="fa fa-trophy" style="color:#A8A8A8"></i>';
                                 break;
                             }
 
                             case 3:
                             {
-                                echo("<i class=\"fa fa-trophy\" style=\"color:#965A38\"></i>");
+                                echo '<i class="fa fa-trophy" style="color:#965A38"></i>';
                                 break;
                             }
 
                             default:
                             {
-                                echo("#".$rank);
+                                echo '#'.$rank;
                                 break;
                             }
                         }
                         ?></td>
-    					<td><?php echo($id); ?></td>
+    					<td><?php echo $id;
+                        ?></td>
     					<td><?php
-    					$steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
-    					echo("<a href=\"http://steamcommunity.com/profiles/" . $steamid->Format(SteamID::FORMAT_STEAMID64) . "/\" target=\"_blank\">" . $auth . "</a>"); ?></td>
-    					<td><?php echo($name); ?></td>
+                        $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
+                        echo '<a href="http://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>';
+                        ?></td>
+    					<td><?php echo $name;
+                        ?></td>
     					<td>
 
     					<?php
-    					echo(formattoseconds($time));
-    					?></td>
-    					<td><?php echo(number_format($jumps)); ?></td>
-                        <td><?php echo($date); ?></td></tr>
+                        echo formattoseconds($time);
+                        ?></td>
+    					<td><?php echo number_format($jumps);
+                        ?></td>
+                        <td><?php echo $date;
+                        ?></td></tr>
 
     					<?php
 
-    					if(++$rank > RECORD_LIMIT)
-                        {
+                        if (++$rank > RECORD_LIMIT) {
                             break;
                         }
-    				}
+                    }
 
-    				?> </table> <?php
-    			}
-    		}
+                    ?> </table> <?php
 
-    		if($stmt != FALSE)
-    		{
-    			$stmt->close();
-    		}
+                }
+            }
 
-            if(!$results)
-            {
+            if ($stmt != false) {
+                $stmt->close();
+            }
+
+            if (!$results) {
                 ?> <h1>No results!</h1>
                 <p>Try another map, there may be some records!</p> <?php
+
             }
         }
         ?>
@@ -354,13 +355,10 @@ $rr = isset($_REQUEST["rr"]);
 
   <!-- Custom styles for this template, if we'll ever use it -->
   <?php
-  if(PAGE_STYLE =='0')
-  {
-    echo('<link rel="stylesheet" href="timer.css">');
-  }
-  else
-  {
-    echo('<link rel="stylesheet" href="timer-red.css">');
+  if (PAGE_STYLE == '0') {
+      echo '<link rel="stylesheet" href="timer.css">';
+  } else {
+      echo '<link rel="stylesheet" href="timer-red.css">';
   }
   ?>
 
