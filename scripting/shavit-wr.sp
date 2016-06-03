@@ -789,8 +789,8 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	int serial = ReadPackCell(data);
 
-	char[] sMap = new char[128];
-	ReadPackString(data, sMap, 128);
+	char[] sMap = new char[192];
+	ReadPackString(data, sMap, 192);
 
 	delete view_as<DataPack>(data);
 
