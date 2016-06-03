@@ -776,7 +776,7 @@ public void StartWRMenu(int client, const char[] map, int style)
 	dp.WriteString(map);
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth, (SELECT COUNT(*) FROM %splayertimes WHERE map = '%s' AND style = %d) AS records FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC;", gS_MySQLPrefix, map, style, gS_MySQLPrefix, gS_MySQLPrefix, map, style);
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC;", gS_MySQLPrefix, gS_MySQLPrefix, map, style);
 
 	gH_SQL.Query(SQL_WR_Callback, sQuery, dp, DBPrio_High);
 
@@ -816,8 +816,6 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	int iCount = 0;
 	int iMyRank = 0;
 
-	int iRecords = 0;
-
 	while(results.FetchRow())
 	{
 		// add item to menu and don't overflow with too many entries
@@ -853,12 +851,6 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		{
 			iMyRank = iCount;
 		}
-
-		// fetch amount of records
-		if(iRecords == 0)
-		{
-			iRecords = results.FetchInt(5);
-		}
 	}
 
 	char[] sFormattedTitle = new char[192];
@@ -874,6 +866,8 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	else
 	{
+		int iRecords = results.RowCount;
+
 		// [32] just in case there are 150k records on a map and you're ranked 100k or something
 		char[] sRanks = new char[32];
 
