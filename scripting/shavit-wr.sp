@@ -820,32 +820,30 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	while(results.FetchRow())
 	{
-		if(++iCount > gCV_RecordsLimit.IntValue)
+		// add item to menu and don't overflow with too many entries
+		if(++iCount <= gCV_RecordsLimit.IntValue)
 		{
-			break;
+			// 0 - record id, for statistic purposes.
+			int id = results.FetchInt(0);
+			char[] sID = new char[8];
+			IntToString(id, sID, 8);
+
+			// 1 - player name
+			char[] sName = new char[MAX_NAME_LENGTH];
+			results.FetchString(1, sName, MAX_NAME_LENGTH);
+
+			// 2 - time
+			float fTime = results.FetchFloat(2);
+			char[] sTime = new char[16];
+			FormatSeconds(fTime, sTime, 16);
+
+			// 3 - jumps
+			int iJumps = results.FetchInt(3);
+
+			char[] sDisplay = new char[128];
+			FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
+			m.AddItem(sID, sDisplay);
 		}
-
-		// 0 - record id, for statistic purposes.
-		int id = results.FetchInt(0);
-		char[] sID = new char[8];
-		IntToString(id, sID, 8);
-
-		// 1 - player name
-		char[] sName = new char[MAX_NAME_LENGTH];
-		results.FetchString(1, sName, MAX_NAME_LENGTH);
-
-		// 2 - time
-		float fTime = results.FetchFloat(2);
-		char[] sTime = new char[16];
-		FormatSeconds(fTime, sTime, 16);
-
-		// 3 - jumps
-		int iJumps = results.FetchInt(3);
-
-		// add item to m
-		char[] sDisplay = new char[128];
-		FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
-		m.AddItem(sID, sDisplay);
 
 		// check if record exists in the map's top X
 		char[] sQueryAuth = new char[32];
