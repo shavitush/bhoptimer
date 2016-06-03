@@ -1,89 +1,67 @@
 <?php
+
 function formattoseconds($time)
 {
-  $iTemp = floor($time);
+    $iTemp = floor($time);
 
-	$iHours = 0;
+    $iHours = 0;
 
-	if($iTemp > 3600)
-	{
-		$iHours = floor($iTemp / 3600.0);
-		$iTemp %= 3600;
-	}
+    if ($iTemp > 3600) {
+        $iHours = floor($iTemp / 3600.0);
+        $iTemp %= 3600;
+    }
 
-	$sHours = "";
+    $sHours = '';
 
-	if($iHours < 10)
-	{
-		$sHours = "0" . $iHours;
-	}
+    if ($iHours < 10) {
+        $sHours = '0'.$iHours;
+    } else {
+        $sHours = $iHours;
+    }
 
-	else
-	{
-		$sHours = $iHours;
-	}
+    $iMinutes = 0;
 
-	$iMinutes = 0;
+    if ($iTemp >= 60) {
+        $iMinutes = floor($iTemp / 60.0);
+        $iTemp %= 60;
+    }
 
-	if($iTemp >= 60)
-	{
-		$iMinutes = floor($iTemp / 60.0);
-		$iTemp %= 60;
-	}
+    $sMinutes = '';
 
-	$sMinutes = "";
+    if ($iMinutes < 10) {
+        $sMinutes = '0'.$iMinutes;
+    } else {
+        $sMinutes = $iMinutes;
+    }
 
-	if($iMinutes < 10)
-	{
-		$sMinutes = "0" . $iMinutes;
-	}
+    $fSeconds = (($iTemp) + $time - floor($time));
 
-	else
-	{
-		$sMinutes = $iMinutes;
-	}
+    $sSeconds = '';
 
-	$fSeconds = (($iTemp) + $time - floor($time));
+    if ($fSeconds < 10) {
+        $sSeconds = '0'.number_format($fSeconds, 3);
+    } else {
+        $sSeconds = number_format($fSeconds, 3);
+    }
 
-	$sSeconds = "";
+    if ($iHours > 0) {
+        $newtime = $sHours.':'.$sMinutes.':'.$sSeconds.'s';
+    } elseif ($iMinutes > 0) {
+        $newtime = $sMinutes.':'.$sSeconds.'s';
+    } else {
+        $newtime = number_format($fSeconds, 3).'s';
+    }
 
-	if($fSeconds < 10)
-	{
-		$sSeconds = "0" . number_format($fSeconds, 3);
-	}
-
-	else
-	{
-		$sSeconds = number_format($fSeconds, 3);
-	}
-
-	if($iHours > 0)
-	{
-		$newtime = $sHours . ":" . $sMinutes . ":" . $sSeconds . "s";
-	}
-
-	else if($iMinutes > 0)
-	{
-		$newtime = $sMinutes . ":" . $sSeconds . "s";
-	}
-
-	else
-	{
-		$newtime = number_format($fSeconds, 3) . "s";
-	}
-
-  return $newtime;
+    return $newtime;
 }
 
 function removeworkshop($mapname)
 {
-	if(strpos($mapname, "workshop/") !== false)
-	{
-		$pieces = explode("/", $mapname);
+    if (strpos($mapname, 'workshop/') !== false) {
+        $pieces = explode('/', $mapname);
 
-		return $pieces[2];
-	}
+        return $pieces[2];
+    }
 
-	return $mapname;
+    return $mapname;
 }
-?>
