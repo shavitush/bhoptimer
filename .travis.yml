@@ -27,7 +27,7 @@ before_script:
     - chmod +x spcomp
     - PATH+=":$PWD"
 
-    - cp ../../../scripting/include/shavit.inc include/
+    - cp ../../../scripting/include/* include/
     - cd ../../..
 
 script:
