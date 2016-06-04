@@ -1,5 +1,5 @@
 <?php
-require 'config.php';
+require("config.php");
 require 'functions.php';
 require 'steamid.php';
 
@@ -8,14 +8,15 @@ $connection->set_charset('utf8');
 
 $style = 0;
 
-if (isset($_REQUEST['style'])) {
-    $style = $_REQUEST['style'];
+if (isset($_REQUEST["style"]))
+{
+                      $style = $_REQUEST['style'];
 }
 
 $map = '';
 
-if (isset($_REQUEST['map'])) {
-    $map = $_REQUEST['map'];
+if       (isset($_REQUEST['map'])) {
+                                                = $_REQUEST['map'];
 }
 
 $rr = isset($_REQUEST['rr']);
