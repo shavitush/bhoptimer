@@ -867,7 +867,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 
-	if(Shavit_InsideZone(client, Zone_Start) && gCV_BlockPreJump.BoolValue)
+	if(Shavit_InsideZone(client, Zone_Start) && gCV_BlockPreJump.BoolValue && !(gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED))
 	{
 		if(vel[2] > 0 || buttons & IN_JUMP)
 		{
