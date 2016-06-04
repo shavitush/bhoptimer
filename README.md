@@ -1,5 +1,5 @@
 ### Build status
-[![Build status](https://travis-ci.org/shavitush/bhoptimer.png)](https://travis-ci.org/shavitush/bhoptimer)
+[![Build status](https://travis-ci.org/shavitush/bhoptimer.svg?branch=master)](https://travis-ci.org/shavitush/bhoptimer)
 
 [AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
 
@@ -109,7 +109,7 @@ a bhop server should be simple
 - [ ] Create tables. (`mappoints`, `playerpoints`)
 - [ ] Allow RCON admins to set ideal points for map and time for the default style.
 - [ ] Implement an algorithm that will calculate points for the map, will also take the time and style into account. Add a +25% bonus if the time is equal or better than the ideal one.
-- [ ] Use a weighting system for points calculation. The highest ranked time will be weigted 100% and worse times will be weighted as 5% less each time.
+- [ ] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
 - [ ] Calculate points and rank for players once they connect to the server.
 - [ ] Add `sm_top` that will show the top X players, sort by points.
 - [ ] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank()` `void Shavit_GetMapPoints(float &points, float &idealtime)`
