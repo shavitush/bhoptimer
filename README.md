@@ -1,3 +1,6 @@
+### Build status
+[![Build status](https://travis-ci.org/shavitush/bhoptimer.png)](https://travis-ci.org/shavitush/bhoptimer)
+
 [AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
 
 [Download](https://github.com/Shavitush/bhoptimer/releases)
