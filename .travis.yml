@@ -1,0 +1,34 @@
+# i have no idea AT ALL on how to use travis,
+# stolen from splewis: https://raw.githubusercontent.com/splewis/csgo-pug-setup/master/.travis.yml
+# i'll fail anyways, right? :(
+sudo: false
+
+addons:
+    apt_packages:
+        - lib32stdc++6  # needed for spcomp
+
+env:
+    - SMVERSION=1.7
+    # - SMVERSION=1.8 # will enable when it's stable
+
+before_script:
+    # install smbuilder
+    - git clone https://github.com/splewis/sm-builder
+    - cd sm-builder
+    - pip install --user -r requirements.txt
+    - python setup.py install --prefix=~/.local
+    - cd ..
+
+    # install the sourcemod compiler
+    - SMPACKAGE="http://sourcemod.net/latest.php?os=linux&version=${SMVERSION}"
+    - wget $SMPACKAGE
+    - tar xfz $(basename $SMPACKAGE)
+    - cd addons/sourcemod/scripting/
+    - chmod +x spcomp
+    - PATH+=":$PWD"
+
+    - cp ../../../scripting/include/shavit.inc include/
+    - cd ../../..
+
+script:
+    - smbuilder --flags="-E"
