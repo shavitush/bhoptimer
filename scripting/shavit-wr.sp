@@ -43,7 +43,7 @@ Database gH_SQL = null;
 
 // cache
 BhopStyle gBS_LastWR[MAXPLAYERS+1];
-char gS_ClientMap[MAXPLAYERS+1][256];
+char gS_ClientMap[MAXPLAYERS+1][192];
 
 char gS_Map[192]; // blame workshop paths being so fucking long
 
@@ -698,12 +698,12 @@ public Action Command_WorldRecord(int client, int args)
 
 	if(!args)
 	{
-		strcopy(gS_ClientMap[client], 256, gS_Map);
+		strcopy(gS_ClientMap[client], 192, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(gS_ClientMap[client], 256);
+		GetCmdArgString(gS_ClientMap[client], 192);
 	}
 
 	return ShowWRStyleMenu(client, gS_ClientMap[client]);
