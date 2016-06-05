@@ -691,9 +691,9 @@ public Action Respawn(Handle Timer, any client)
 	return Plugin_Handled;
 }
 
-public void Player_Spawn(Handle event, const char[] name, bool dontBroadcast)
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 {
-	int userid = GetEventInt(event, "userid");
+	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
 
 	if(gCV_HideRadar.BoolValue)
@@ -721,11 +721,11 @@ public Action RemoveRadar(Handle timer, any data)
 	return Plugin_Stop;
 }
 
-public Action Player_Team(Handle event, const char[] name, bool dontBroadcast)
+public Action Player_Team(Event event, const char[] name, bool dontBroadcast)
 {
 	if(gCV_HideTeamChanges.BoolValue)
 	{
-		SetEventBroadcast(event, true);
+		event.BroadcastDisabled = true;
 
 		return Plugin_Changed;
 	}

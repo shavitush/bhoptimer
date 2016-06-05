@@ -62,6 +62,7 @@ a bhop server should be simple
 # Todo for 1.5b release (out of beta!)
 - [x] Migrate every menu to the 1.7 transitional syntax.
 - [x] Migrate DBI to the 1.7 transitional syntax.
+- [x] Migrate events to the 1.7 transitional syntax.
 
 ~ shavit-core:
 - [x] Fix chat colors for CS:S.
