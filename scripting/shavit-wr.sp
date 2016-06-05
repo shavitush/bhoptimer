@@ -706,6 +706,11 @@ public Action Command_WorldRecord(int client, int args)
 		GetCmdArgString(gS_ClientMap[client], 256);
 	}
 
+	return ShowWRStyleMenu(client, gS_ClientMap[client]);
+}
+
+public Action ShowWRStyleMenu(int client, const char[] map)
+{
 	Menu menu = new Menu(MenuHandler_StyleChooser);
 	menu.SetTitle("Choose a style:");
 
@@ -904,7 +909,7 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		Command_WorldRecord(param1, 0);
+		ShowWRStyleMenu(param1, gS_ClientMap[param1]);
 	}
 
 	else if(action == MenuAction_End)
