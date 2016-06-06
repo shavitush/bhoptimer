@@ -726,8 +726,6 @@ public Action Player_Team(Event event, const char[] name, bool dontBroadcast)
 	if(gCV_HideTeamChanges.BoolValue)
 	{
 		event.BroadcastDisabled = true;
-
-		return Plugin_Changed;
 	}
 
 	return Plugin_Continue;

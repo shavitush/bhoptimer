@@ -818,39 +818,29 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
 
-	bool bEdit = false;
-
 	// key blocking
 	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnGround)
 	{
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
 		{
-			bEdit = true;
-
 			vel[0] = 0.0;
 			buttons &= ~IN_FORWARD;
 		}
 
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (vel[1] < 0 || buttons & IN_MOVELEFT))
 		{
-			bEdit = true;
-
 			vel[1] = 0.0;
 			buttons &= ~IN_MOVELEFT;
 		}
 
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S && (vel[0] < 0 || buttons & IN_BACK))
 		{
-			bEdit = true;
-
 			vel[0] = 0.0;
 			buttons &= ~IN_BACK;
 		}
 
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D && (vel[1] > 0 || buttons & IN_MOVERIGHT))
 		{
-			bEdit = true;
-
 			vel[1] = 0.0;
 			buttons &= ~IN_MOVERIGHT;
 		}
@@ -858,8 +848,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		// HSW
 		if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY && (vel[0] == 0.0 || !((vel[0] > 0 || buttons & IN_FORWARD) && ((vel[1] < 0 || buttons & IN_MOVELEFT) || (vel[1] > 0 || buttons & IN_MOVERIGHT)))))
 		{
-			bEdit = true;
-
 			vel[1] = 0.0;
 			buttons &= ~IN_MOVELEFT;
 			buttons &= ~IN_MOVERIGHT;
@@ -914,10 +902,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(gB_ClientPaused[client])
 	{
-		bEdit = true;
-
 		vel = view_as<float>({0.0, 0.0, 0.0});
 	}
 
-	return bEdit? Plugin_Changed:Plugin_Continue;
+	return Plugin_Continue;
 }
