@@ -122,6 +122,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// zone natives
 	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
+	CreateNative("Shavit_IsInsideZone", Native_IsInsideZone);
 
 	MarkNativeAsOptional("Shavit_ZoneExists");
 	// MarkNativeAsOptional("Shavit_InsideZone"); // called in shavit-core
@@ -306,6 +307,25 @@ public int Native_InsideZone(Handle handler, int numParams)
 	}
 
 	return view_as<int>(InsideZone(client, view_as<int>(type)));
+}
+
+public int Native_IsInsideZone(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	MapZones type = GetNativeCell(2);
+
+	if(type == Zone_Freestyle || type == Zone_NoVelLimit)
+	{
+		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		{
+			if((i == 0 && IsInsideZone(client, -PLACEHOLDER)) || IsInsideZone(client, -i))
+			{
+				return true;
+			}
+		}
+	}
+
+	return view_as<int>(IsInsideZone(client, view_as<int>(type)));
 }
 
 public void SetupColors()
@@ -1505,6 +1525,69 @@ public bool InsideZone(int client, int zone)
 }
 
 /*
+*
+* @param client - client to check
+* @param zone - zone to check (-PLACEHOLDER for freestyle 0, -zone for freestyle)
+*
+* returns true if a player is inside the given zone
+* returns false if they aren't in it
+*/
+public bool IsInsideZone(int client, int zone)
+{
+	float playerPos[3];
+
+	GetEntPropVector(client, Prop_Send, "m_vecOrigin", playerPos);
+	//playerPos[2] += 5.0;	//don't move origin 5 units up!
+
+	float vPoints[8][3];
+
+	if(zone >= 0)
+	{
+		vPoints[0] = gV_MapZones[zone][0];
+		vPoints[7] = gV_MapZones[zone][1];
+
+		// Getting the original zone points with the fixes
+		CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[zone][0], gV_MapZonesFixes[zone][1], zone, true);
+
+		// Rotating the player so the box and the player will be on the same axis
+		PointConstRotate(gF_MinusConstSin[zone], gF_MinusConstCos[zone], vPoints[0], playerPos);
+	}
+	else
+	{
+		// Explanation above
+		if(zone == -PLACEHOLDER)
+		{
+			vPoints[0] = gV_FreestyleZones[0][0];
+			vPoints[7] = gV_FreestyleZones[0][1];
+
+			CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[0][0], gV_FreeStyleZonesFixes[0][1], zone, true);
+
+			PointConstRotate(gF_FreeStyleMinusConstSin[0], gF_FreeStyleMinusConstCos[0], vPoints[0], playerPos);
+		}
+
+		else
+		{
+			vPoints[0] = gV_FreestyleZones[-zone][0];
+			vPoints[7] = gV_FreestyleZones[-zone][1];
+
+			CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[-zone][0], gV_FreeStyleZonesFixes[-zone][1], zone, true);
+
+			PointConstRotate(gF_FreeStyleMinusConstSin[-zone], gF_FreeStyleMinusConstCos[-zone], vPoints[0], playerPos);
+		}
+	}
+
+
+	// Checking if player is inside the box after rotation
+	for(int i = 0; i < 3; i++)
+	{
+		if(vPoints[0][i] >= playerPos[i] == vPoints[7][i] >= playerPos[i])
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
 * Graphically draws a zone
 *    if client == 0, it draws it for all players in the game
 *   if client index is between 0 and MaxClients+1, it draws for the specified client

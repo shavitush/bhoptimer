@@ -261,7 +261,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	}
 
 	// prespeed
-	if(!(gI_StyleProperties[bsStyle] & STYLE_PRESPEED) && Shavit_InsideZone(client, Zone_Start))
+	if(!(gI_StyleProperties[bsStyle] & STYLE_PRESPEED) && Shavit_InsideZone(client, Zone_Start) || Shavit_IsInsideZone(client, Zone_Start) && !(gI_StyleProperties[bsStyle] & STYLE_PRESPEED))	//edited
 	{
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
 		{
