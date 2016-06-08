@@ -165,11 +165,11 @@ public void OnPluginStart()
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
 
+	AutoExecConfig();
+	
 	// draw
 	// start drawing mapzones here
 	CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT);
-
-	AutoExecConfig();
 }
 
 public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
