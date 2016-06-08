@@ -37,7 +37,7 @@ ServerGame gSG_Type = Game_Unknown;
 
 int gI_ReplayTick[MAX_STYLES];
 int gI_ReplayBotClient[MAX_STYLES];
-ArrayList gA_Frames[MAX_STYLES] =  {null, ...};
+ArrayList gA_Frames[MAX_STYLES] = {null, ...};
 char gS_BotName[MAX_STYLES][MAX_NAME_LENGTH];
 float gF_StartTick[MAX_STYLES];
 
@@ -377,12 +377,12 @@ public bool LoadReplay(BhopStyle style)
 
 			gA_Frames[style].Resize(++iSize);
 
-			SetArrayCell(gA_Frames[style], iSize - 1, StringToFloat(sExplodedLine[0]), 0);
-			SetArrayCell(gA_Frames[style], iSize - 1, StringToFloat(sExplodedLine[1]), 1);
-			SetArrayCell(gA_Frames[style], iSize - 1, StringToFloat(sExplodedLine[2]), 2);
+			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[0]), 0);
+			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[1]), 1);
+			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[2]), 2);
 
-			SetArrayCell(gA_Frames[style], iSize - 1, StringToFloat(sExplodedLine[3]), 3);
-			SetArrayCell(gA_Frames[style], iSize - 1, StringToFloat(sExplodedLine[4]), 4);
+			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[3]), 3);
+			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[4]), 4);
 		}
 
 		delete hFile;
@@ -417,7 +417,7 @@ public void SaveReplay(BhopStyle style)
 
 	for(int i = 0; i < iSize; i++)
 	{
-		FormatEx(sBuffer, 320, "%f|%f|%f|%f|%f", GetArrayCell(gA_Frames[style], i, 0), GetArrayCell(gA_Frames[style], i, 1), GetArrayCell(gA_Frames[style], i, 2), GetArrayCell(gA_Frames[style], i, 3), GetArrayCell(gA_Frames[style], i, 4));
+		FormatEx(sBuffer, 320, "%f|%f|%f|%f|%f", gA_Frames[style].Get(i, 0), gA_Frames[style].Get(i, 1), gA_Frames[style].Get(i, 2), gA_Frames[style].Get(i, 3), gA_Frames[style].Get(i, 4));
 
 		WriteFileLine(hFile, sBuffer);
 	}
@@ -546,13 +546,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			gI_ReplayTick[iReplayBotStyle]++;
 
 			float vecCurrentPosition[3];
-			vecCurrentPosition[0] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 0);
-			vecCurrentPosition[1] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 1);
-			vecCurrentPosition[2] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 2);
+			vecCurrentPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 0);
+			vecCurrentPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 1);
+			vecCurrentPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 2);
 
 			float vecAngles[3];
-			vecAngles[0] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 3);
-			vecAngles[1] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle] - 1, 4);
+			vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 3);
+			vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 4);
 
 			float vecVelocity[3];
 
@@ -561,9 +561,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			if(gA_Frames[iReplayBotStyle].Length >= gI_ReplayTick[iReplayBotStyle] + 1)
 			{
 				float vecNextPosition[3];
-				vecNextPosition[0] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle], 0);
-				vecNextPosition[1] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle], 1);
-				vecNextPosition[2] = GetArrayCell(gA_Frames[iReplayBotStyle], gI_ReplayTick[iReplayBotStyle], 2);
+				vecNextPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
+				vecNextPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
+				vecNextPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
 
 				fDistance = GetVectorDistance(vecPosition, vecNextPosition);
 
@@ -589,12 +589,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gI_PlayerFrames[client]++;
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client]);
 
-		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[0], 0);
-		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[1], 1);
-		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, vecPosition[2], 2);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, vecPosition[0], 0);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, vecPosition[1], 1);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, vecPosition[2], 2);
 
-		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, angles[0], 3);
-		SetArrayCell(gA_PlayerFrames[client], gI_PlayerFrames[client] - 1, angles[1], 4);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, angles[0], 3);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, angles[1], 4);
 	}
 
 	return Plugin_Continue;
