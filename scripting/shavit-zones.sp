@@ -879,6 +879,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 	if(InsideZone(client, view_as<int>(Zone_Respawn)))
 	{
+		Shavit_PrintToChat(client, "You got respawned due to a glitch-zone!");
 		CS_RespawnPlayer(client);
 
 		return Plugin_Continue;
@@ -901,6 +902,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 	if(InsideZone(client, view_as<int>(Zone_Slay)))
 	{
+		Shavit_PrintToChat(client, "You got slayed due to a glitch-zone!");
 		Shavit_StopTimer(client);
 
 		ForcePlayerSuicide(client);
@@ -910,6 +912,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	{
 		if(InsideZone(client, view_as<int>(Zone_Stop)))
 		{
+			Shavit_PrintToChat(client, "Your timer was stopped due to a glitch-zone!");
 			Shavit_StopTimer(client);
 		}
 
