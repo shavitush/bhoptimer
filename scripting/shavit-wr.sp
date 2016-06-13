@@ -783,7 +783,11 @@ public void StartWRMenu(int client, const char[] map, int style)
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC;", gS_MySQLPrefix, gS_MySQLPrefix, map, style);
 
-	gH_SQL.Query(SQL_WR_Callback, sQuery, dp, DBPrio_High);
+	int iLength = ((strlen(sQuery) * 2) + 1);
+	char[] sEscapedQuery = new char[iLength];
+	gH_SQL.Escape(sQuery, sEscapedQuery, iLength);
+
+	gH_SQL.Query(SQL_WR_Callback, sEscapedQuery, dp, DBPrio_High);
 
 	return;
 }

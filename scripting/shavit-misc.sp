@@ -267,6 +267,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "Bhopping in the start zone is not allowed.");
+			
 			gF_LastFlags[client] = GetEntityFlags(client);
 
 			return Plugin_Continue;
