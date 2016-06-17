@@ -157,9 +157,6 @@ public void OnPluginStart()
 		SetFailState("This plugin was meant to be used in CS:S and CS:GO *only*.");
 	}
 
-	// database connections
-	SQL_DBConnect();
-
 	// hooks
 	HookEvent("player_jump", Player_Jump);
 	HookEvent("player_death", Player_Death);
@@ -270,6 +267,12 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 	{
 		strcopy(buffer, maxlength, "Timer Commands");
 	}
+}
+
+public void OnConfigsExecuted()
+{
+	// database connections
+	SQL_DBConnect();
 }
 
 public void OnMapStart()
