@@ -11,7 +11,7 @@ a bhop server should be simple
 [Mapzones' setup demonstration](https://www.youtube.com/watch?v=oPKso2hoLw0)
 
 # Requirements:
-* [SourceMod 1.7 and above](http://www.sourcemod.net/downloads.php)
+* [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
@@ -94,6 +94,7 @@ a bhop server should be simple
 - [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
+- [ ] Use unix timestamps for future record dates.
 
 ~ shavit-stats
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
