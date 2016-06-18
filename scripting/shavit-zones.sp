@@ -136,6 +136,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
+	Shavit_GetDB(gH_SQL);
+
 	if(gB_Late)
 	{
 		OnAdminMenuReady(null);
@@ -326,9 +328,7 @@ public void SetupColors()
 
 public void OnConfigsExecuted()
 {
-    // connection to database
-	Shavit_GetDB(gH_SQL);
-	SetSQLInfo();
+    SetSQLInfo();
 }
 
 public void OnMapStart()
