@@ -269,6 +269,12 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 	}
 }
 
+public void OnConfigsExecuted()
+{
+	// database connections
+	SQL_DBConnect();
+}
+
 public void OnMapStart()
 {
 	// cvar forcing
@@ -277,12 +283,6 @@ public void OnMapStart()
 
 	ConVar cvAA = FindConVar("sv_airaccelerate");
 	SetConVarInt(cvAA, 2000);
-}
-
-public void OnConfigsExecuted()
-{
-	// database connections
-	SQL_DBConnect();
 }
 
 public Action Command_StartTimer(int client, int args)
