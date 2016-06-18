@@ -61,10 +61,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	// database related stuff
-	Shavit_GetDB(gH_SQL);
-	SetSQLInfo();
 }
 
 public void OnPluginStart()
@@ -82,11 +78,10 @@ public void OnPluginStart()
 	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
-}
 
-public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
-{
-	strcopy(gS_MySQLPrefix, 32, newValue);
+	Shavit_GetDB(gH_SQL);
+	SQL_SetPrefix();
+	SetSQLInfo();
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -96,31 +91,48 @@ public Action CheckForSQLInfo(Handle Timer)
 
 public Action SetSQLInfo()
 {
-	float fTime = 0.0;
-
 	if(gH_SQL == null)
 	{
-		fTime = 0.5;
+		Shavit_GetDB(gH_SQL);
+
+		CreateTimer(0.5, CheckForSQLInfo);
 	}
 
 	else
 	{
-		ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
-
-		if(cvMySQLPrefix != null)
-		{
-			cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
-			cvMySQLPrefix.AddChangeHook(OnPrefixChange);
-
-			return Plugin_Stop;
-		}
-
-		fTime = 1.0;
+		return Plugin_Stop;
 	}
 
-	CreateTimer(fTime, CheckForSQLInfo);
-
 	return Plugin_Continue;
+}
+
+public void SQL_SetPrefix()
+{
+	char[] sFile = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
+
+	File fFile = OpenFile(sFile, "r");
+
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
+	}
+
+	else
+	{
+		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		{
+			TrimString(sLine);
+
+			strcopy(gS_MySQLPrefix, 32, sLine);
+
+			break;
+		}
+	}
+
+	delete fFile;
 }
 
 public void StartCalculating()

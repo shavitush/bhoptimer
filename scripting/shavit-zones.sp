@@ -136,10 +136,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-	// connection to database
-	Shavit_GetDB(gH_SQL);
-	SetSQLInfo();
-
 	if(gB_Late)
 	{
 		OnAdminMenuReady(null);
@@ -166,15 +162,14 @@ public void OnPluginStart()
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
 
 	AutoExecConfig();
-	
+
 	// draw
 	// start drawing mapzones here
 	CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT);
-}
 
-public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
-{
-	strcopy(gS_MySQLPrefix, 32, newValue);
+	Shavit_GetDB(gH_SQL);
+	SQL_SetPrefix();
+	SetSQLInfo();
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -184,33 +179,19 @@ public Action CheckForSQLInfo(Handle Timer)
 
 public Action SetSQLInfo()
 {
-	float fTime = 0.0;
-
 	if(gH_SQL == null)
 	{
 		Shavit_GetDB(gH_SQL);
 
-		fTime = 0.5;
+		CreateTimer(0.5, CheckForSQLInfo);
 	}
 
 	else
 	{
-		ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+		SQL_DBConnect();
 
-		if(cvMySQLPrefix != null)
-		{
-			cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
-			cvMySQLPrefix.AddChangeHook(OnPrefixChange);
-
-			SQL_DBConnect();
-
-			return Plugin_Stop;
-		}
-
-		fTime = 1.0;
+		return Plugin_Stop;
 	}
-
-	CreateTimer(fTime, CheckForSQLInfo);
 
 	return Plugin_Continue;
 }
@@ -1723,6 +1704,35 @@ public void RotateZone(float point[8][3], float sin, float cos)
 }
 
 // thanks a lot for those stuff, I couldn't do it without you blacky!
+
+public void SQL_SetPrefix()
+{
+	char[] sFile = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
+
+	File fFile = OpenFile(sFile, "r");
+
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
+	}
+
+	else
+	{
+		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		{
+			TrimString(sLine);
+
+			strcopy(gS_MySQLPrefix, 32, sLine);
+
+			break;
+		}
+	}
+
+	delete fFile;
+}
 
 public void SQL_DBConnect()
 {

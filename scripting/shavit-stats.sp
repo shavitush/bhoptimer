@@ -59,10 +59,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	// database related stuff
-	Shavit_GetDB(gH_SQL);
-	SetSQLInfo();
 }
 
 public void OnPluginStart()
@@ -71,11 +67,10 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 
 	LoadTranslations("common.phrases");
-}
 
-public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
-{
-	strcopy(gS_MySQLPrefix, 32, newValue);
+	Shavit_GetDB(gH_SQL);
+	SQL_SetPrefix();
+	SetSQLInfo();
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -85,33 +80,48 @@ public Action CheckForSQLInfo(Handle Timer)
 
 public Action SetSQLInfo()
 {
-	float fTime = 0.0;
-
 	if(gH_SQL == null)
 	{
 		Shavit_GetDB(gH_SQL);
 
-		fTime = 0.5;
+		CreateTimer(0.5, CheckForSQLInfo);
 	}
 
 	else
 	{
-		ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
-
-		if(cvMySQLPrefix != null)
-		{
-			cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
-			cvMySQLPrefix.AddChangeHook(OnPrefixChange);
-
-			return Plugin_Stop;
-		}
-
-		fTime = 1.0;
+		return Plugin_Stop;
 	}
 
-	CreateTimer(fTime, CheckForSQLInfo);
-
 	return Plugin_Continue;
+}
+
+public void SQL_SetPrefix()
+{
+	char[] sFile = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
+
+	File fFile = OpenFile(sFile, "r");
+
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
+	}
+
+	else
+	{
+		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		{
+			TrimString(sLine);
+
+			strcopy(gS_MySQLPrefix, 32, sLine);
+
+			break;
+		}
+	}
+
+	delete fFile;
 }
 
 public Action Command_Profile(int client, int args)

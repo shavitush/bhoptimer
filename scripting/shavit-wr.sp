@@ -95,13 +95,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public void OnAllPluginsLoaded()
-{
-	// database connections
-	Shavit_GetDB(gH_SQL);
-	SetSQLInfo();
-}
-
 public void OnPluginStart()
 {
 	// debug because I was making this all by myself and no one wanted to help me *sniff*
@@ -128,11 +121,10 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	OnAdminMenuReady(null);
-}
 
-public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
-{
-	strcopy(gS_MySQLPrefix, 32, newValue);
+	Shavit_GetDB(gH_SQL);
+	SQL_SetPrefix();
+	SetSQLInfo();
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -142,31 +134,19 @@ public Action CheckForSQLInfo(Handle Timer)
 
 public Action SetSQLInfo()
 {
-	float fTime = 0.0;
-
 	if(gH_SQL == null)
 	{
-		fTime = 0.5;
+		Shavit_GetDB(gH_SQL);
+
+		CreateTimer(0.5, CheckForSQLInfo);
 	}
 
 	else
 	{
-		ConVar cvMySQLPrefix = FindConVar("shavit_core_sqlprefix");
+		SQL_DBConnect();
 
-		if(cvMySQLPrefix != null)
-		{
-			cvMySQLPrefix.GetString(gS_MySQLPrefix, 32);
-			cvMySQLPrefix.AddChangeHook(OnPrefixChange);
-
-			SQL_DBConnect();
-
-			return Plugin_Stop;
-		}
-
-		fTime = 1.0;
+		return Plugin_Stop;
 	}
-
-	CreateTimer(fTime, CheckForSQLInfo);
 
 	return Plugin_Continue;
 }
@@ -1010,6 +990,35 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	}
 
 	return 0;
+}
+
+public void SQL_SetPrefix()
+{
+	char[] sFile = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
+
+	File fFile = OpenFile(sFile, "r");
+
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
+	}
+
+	else
+	{
+		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		{
+			TrimString(sLine);
+
+			strcopy(gS_MySQLPrefix, 32, sLine);
+
+			break;
+		}
+	}
+
+	delete fFile;
 }
 
 public void SQL_DBConnect()

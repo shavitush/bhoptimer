@@ -67,7 +67,7 @@ a bhop server should be simple
 
 ~ shavit-core:
 - [x] Fix chat colors for CS:S.
-- [x] Add table prefix. (`shavit_core_sqlprefix`)
+- [x] Add table prefix. (configs/shavit-prefix.txt)
 - [x] Add shavit_core_nostaminareset ("easybhop")
 - [x] ~~Make a global enumerator/variable with per-style settings (bitflags)~~ - configs are canceled, just recompile the plugin with your own edit of `shavit.inc`.
 - [x] Add unranked styles.

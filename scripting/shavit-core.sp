@@ -73,7 +73,6 @@ ConVar gCV_Autobhop = null;
 ConVar gCV_Leftright = null;
 ConVar gCV_Restart = null;
 ConVar gCV_Pause = null;
-ConVar gCV_MySQLPrefix = null;
 ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
@@ -158,6 +157,7 @@ public void OnPluginStart()
 	}
 
 	// database connections
+	SQL_SetPrefix();
 	SQL_DBConnect();
 
 	// hooks
@@ -209,9 +209,6 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 
-	gCV_MySQLPrefix = CreateConVar("shavit_core_sqlprefix", "", "MySQL table prefix.\nDO NOT TOUCH OR MODIFY UNLESS YOU KNOW WHAT YOU ARE DOING!!!\nLeave empty unless you have your own prefix for tables.\nRestarting your server is highly recommended after changing this cvar!", 0);
-	gCV_MySQLPrefix.AddChangeHook(OnPrefixChange);
-
 	AutoExecConfig();
 
 	// late
@@ -226,11 +223,6 @@ public void OnPluginStart()
 	}
 
 	gB_Zones = LibraryExists("shavit-zones");
-}
-
-public void OnPrefixChange(ConVar cvar, const char[] oldValue, const char[] newValue)
-{
-	strcopy(gS_MySQLPrefix, 32, newValue);
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -757,6 +749,35 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 
 		return;
 	}
+}
+
+public void SQL_SetPrefix()
+{
+	char[] sFile = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
+
+	File fFile = OpenFile(sFile, "r");
+
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
+	}
+
+	else
+	{
+		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		{
+			TrimString(sLine);
+
+			strcopy(gS_MySQLPrefix, 32, sLine);
+
+			break;
+		}
+	}
+
+	delete fFile;
 }
 
 public void SQL_DBConnect()
