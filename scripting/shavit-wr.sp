@@ -97,8 +97,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-	// database connections
-	Shavit_GetDB(gH_SQL);
 	SetSQLInfo();
 }
 
@@ -147,6 +145,8 @@ public Action SetSQLInfo()
 	if(gH_SQL == null)
 	{
 		fTime = 0.5;
+
+		Shavit_GetDB(gH_SQL);
 	}
 
 	else

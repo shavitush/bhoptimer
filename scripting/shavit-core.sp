@@ -157,9 +157,6 @@ public void OnPluginStart()
 		SetFailState("This plugin was meant to be used in CS:S and CS:GO *only*.");
 	}
 
-	// database connections
-	SQL_DBConnect();
-
 	// hooks
 	HookEvent("player_jump", Player_Jump);
 	HookEvent("player_death", Player_Death);
@@ -280,6 +277,12 @@ public void OnMapStart()
 
 	ConVar cvAA = FindConVar("sv_airaccelerate");
 	SetConVarInt(cvAA, 2000);
+}
+
+public void OnConfigsExecuted()
+{
+	// database connections
+	SQL_DBConnect();
 }
 
 public Action Command_StartTimer(int client, int args)
