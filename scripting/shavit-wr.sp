@@ -225,13 +225,10 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
-public void OnAllPluginsLoaded()
-{
-	Shavit_GetDB(gH_SQL);
-}
-
 public void OnConfigsExecuted()
 {
+	// database connections
+	Shavit_GetDB(gH_SQL);
 	SetSQLInfo();
 }
 
