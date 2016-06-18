@@ -136,7 +136,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-	Shavit_GetDB(gH_SQL);
+	SetSQLInfo();
 
 	if(gB_Late)
 	{
@@ -186,9 +186,9 @@ public Action SetSQLInfo()
 
 	if(gH_SQL == null)
 	{
-		Shavit_GetDB(gH_SQL);
-
 		fTime = 0.5;
+		
+		Shavit_GetDB(gH_SQL);
 	}
 
 	else
@@ -324,11 +324,6 @@ public void SetupColors()
 
 	// no speed limit - transparent hot pink
 	gI_Colors[Zone_NoVelLimit] = {247, 3, 255, 50};
-}
-
-public void OnConfigsExecuted()
-{
-    SetSQLInfo();
 }
 
 public void OnMapStart()

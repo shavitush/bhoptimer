@@ -95,6 +95,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
+public void OnAllPluginsLoaded()
+{
+	SetSQLInfo();
+}
+
 public void OnPluginStart()
 {
 	// debug because I was making this all by myself and no one wanted to help me *sniff*
@@ -140,6 +145,8 @@ public Action SetSQLInfo()
 	if(gH_SQL == null)
 	{
 		fTime = 0.5;
+
+		Shavit_GetDB(gH_SQL);
 	}
 
 	else
@@ -223,16 +230,6 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gH_AdminMenu = null;
 	}
-}
-
-public void OnAllPluginsLoaded()
-{
-	Shavit_GetDB(gH_SQL);
-}
-
-public void OnConfigsExecuted()
-{
-	SetSQLInfo();
 }
 
 public void OnMapStart()
@@ -426,8 +423,11 @@ public Action Command_DeleteAll(int client, int args)
 		return Plugin_Handled;
 	}
 
+	char[] sDisplayMap = new char[strlen(gS_Map)];
+	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map));
+
 	char[] sFormattedTitle = new char[192];
-	FormatEx(sFormattedTitle, 192, "Delete ALL the records for \"%s\"?", gS_Map);
+	FormatEx(sFormattedTitle, 192, "Delete ALL the records for \"%s\"?", sDisplayMap);
 
 	Menu m = new Menu(MenuHandler_DeleteAll);
 	m.SetTitle(sFormattedTitle);
@@ -528,8 +528,11 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
+	char[] sDisplayMap = new char[strlen(gS_Map)];
+	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map));
+
 	char[] sFormattedTitle = new char[256];
-	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", gS_Map, gS_BhopStyles[style]);
+	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", sDisplayMap, gS_BhopStyles[style]);
 
 	Menu m = new Menu(OpenDelete_Handler);
 	m.SetTitle(sFormattedTitle);
@@ -865,11 +868,14 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		}
 	}
 
+	char[] sDisplayMap = new char[strlen(sMap)];
+	GetMapDisplayName(sMap, sDisplayMap, strlen(sMap));
+
 	char[] sFormattedTitle = new char[192];
 
 	if(m.ItemCount == 0)
 	{
-		FormatEx(sFormattedTitle, 192, "Records for %s", sMap);
+		FormatEx(sFormattedTitle, 192, "Records for %s", sDisplayMap);
 
 		m.SetTitle(sFormattedTitle);
 
@@ -893,7 +899,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
 		}
 
-		FormatEx(sFormattedTitle, 192, "Records for %s:\n%s", sMap, sRanks);
+		FormatEx(sFormattedTitle, 192, "Records for %s:\n%s", sDisplayMap, sRanks);
 
 		m.SetTitle(sFormattedTitle);
 	}
