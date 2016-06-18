@@ -136,7 +136,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
+	// connection to database
 	Shavit_GetDB(gH_SQL);
+	SetSQLInfo();
 
 	if(gB_Late)
 	{
@@ -164,7 +166,7 @@ public void OnPluginStart()
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
 
 	AutoExecConfig();
-
+	
 	// draw
 	// start drawing mapzones here
 	CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT);
@@ -324,11 +326,6 @@ public void SetupColors()
 
 	// no speed limit - transparent hot pink
 	gI_Colors[Zone_NoVelLimit] = {247, 3, 255, 50};
-}
-
-public void OnConfigsExecuted()
-{
-    SetSQLInfo();
 }
 
 public void OnMapStart()

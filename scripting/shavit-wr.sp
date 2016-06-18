@@ -95,6 +95,13 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
+public void OnAllPluginsLoaded()
+{
+	// database connections
+	Shavit_GetDB(gH_SQL);
+	SetSQLInfo();
+}
+
 public void OnPluginStart()
 {
 	// debug because I was making this all by myself and no one wanted to help me *sniff*
@@ -223,16 +230,6 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gH_AdminMenu = null;
 	}
-}
-
-public void OnAllPluginsLoaded()
-{
-	Shavit_GetDB(gH_SQL);
-}
-
-public void OnConfigsExecuted()
-{
-	SetSQLInfo();
 }
 
 public void OnMapStart()
