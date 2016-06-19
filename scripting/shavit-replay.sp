@@ -358,21 +358,21 @@ public bool LoadReplay(BhopStyle style)
 
 	if(FileExists(sPath))
 	{
-		Handle hFile = OpenFile(sPath, "r");
+		File fFile = OpenFile(sPath, "r");
 
-		ReadFileLine(hFile, gS_BotName[style], MAX_NAME_LENGTH);
+		fFile.ReadLine(gS_BotName[style], MAX_NAME_LENGTH);
 		TrimString(gS_BotName[style]);
 
 		char[] sLine = new char[320];
 		char[][] sExplodedLine = new char[5][64];
 
-		ReadFileLine(hFile, sLine, 320);
+		fFile.ReadLine(sLine, 320);
 
 		int iSize = 0;
 
-		while(!IsEndOfFile(hFile))
+		while(!fFile.EndOfFile())
 		{
-			ReadFileLine(hFile, sLine, 320);
+			fFile.ReadLine(sLine, 320);
 			ExplodeString(sLine, "|", sExplodedLine, 5, 64);
 
 			gA_Frames[style].Resize(++iSize);
@@ -385,7 +385,7 @@ public bool LoadReplay(BhopStyle style)
 			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[4]), 4);
 		}
 
-		delete hFile;
+		delete fFile;
 
 		return true;
 	}
@@ -408,8 +408,8 @@ public void SaveReplay(BhopStyle style)
 		DeleteFile(sPath);
 	}
 
-	Handle hFile = OpenFile(sPath, "w");
-	WriteFileLine(hFile, gS_BotName[style]);
+	File fFile = OpenFile(sPath, "w");
+	fFile.WriteLine(gS_BotName[style]);
 
 	int iSize = gA_Frames[style].Length;
 
@@ -419,7 +419,7 @@ public void SaveReplay(BhopStyle style)
 	{
 		FormatEx(sBuffer, 320, "%f|%f|%f|%f|%f", gA_Frames[style].Get(i, 0), gA_Frames[style].Get(i, 1), gA_Frames[style].Get(i, 2), gA_Frames[style].Get(i, 3), gA_Frames[style].Get(i, 4));
 
-		WriteFileLine(hFile, sBuffer);
+		fFile.WriteLine(sBuffer);
 	}
 }
 
@@ -718,14 +718,14 @@ stock bool RemoveMapPath(const char[] map, char[] destination, int maxlen)
  */
 stock bool File_Copy(const char[] source, const char[] destination)
 {
-	Handle file_source = OpenFile(source, "rb");
+	File file_source = OpenFile(source, "rb");
 
 	if(file_source == null)
 	{
 		return false;
 	}
 
-	Handle file_destination = OpenFile(destination, "wb");
+	File file_destination = OpenFile(destination, "wb");
 
 	if(file_destination == null)
 	{
@@ -735,7 +735,7 @@ stock bool File_Copy(const char[] source, const char[] destination)
 	}
 
 	int buffer[32];
-	int cache;
+	int cache = 0;
 
 	while(!IsEndOfFile(file_source))
 	{
