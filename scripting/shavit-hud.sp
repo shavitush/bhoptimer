@@ -19,7 +19,6 @@
 */
 
 #include <sourcemod>
-#include <sdktools>
 
 #define USES_STYLE_NAMES
 #define USES_STYLE_HTML_COLORS
