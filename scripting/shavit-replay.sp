@@ -449,7 +449,6 @@ public void Shavit_OnStart(int client)
 	if(!IsFakeClient(client))
 	{
 		gA_PlayerFrames[client].Clear();
-
 		gI_PlayerFrames[client] = 0;
 
 		gB_Record[client] = true;
@@ -469,7 +468,6 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 	}
 
 	gA_Frames[style] = gA_PlayerFrames[client].Clone();
-
 	gI_ReplayTick[style] = 0;
 
 	char[] sWRTime = new char[16];
@@ -502,7 +500,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	float vecPosition[3];
 	GetClientAbsOrigin(client, vecPosition);
 
-	// TODO - just set a global boolean for each client so we can see if it's a replay bot instead of looping through the styles everytime
 	int iReplayBotStyle = -1;
 
 	for(int i = 0; i < MAX_STYLES; i++)
@@ -611,61 +608,6 @@ public bool ReplayEnabled(any style)
 	{
 		return false;
 	}
-
-	return true;
-}
-
-// https://forums.alliedmods.net/showthread.php?p=2307350
-/**
- * Copy a substring from source to destination
- *
- * @param source		String to copy from
- * @param start			position to start at, 0 numbered. Negative means to start that many characters from the end.
- * @param len			number of characters to copy.  Negative means to not copy that many characters from the end.
- * @param destination	String to copy to
- * @param maxlen		Length of destination string.  Must be 1 or greater.
- *
- * @return				True on success, false if number of characters copied would be negative.
- * NOTE:				There is no mechanism to get the remaining characters of a string.
- * 						Instead, use strcopy with source[start] for that.
- */
-stock bool SubString(const char[] source, int start, int len, char[] destination, int maxlen)
-{
-	if(maxlen < 1)
-	{
-		ThrowError("Destination size must be 1 or greater, but was %d", maxlen);
-	}
-
-	if(len == 0)
-	{
-		destination[0] = '\0';
-
-		return true;
-	}
-
-	if(start < 0)
-	{
-		start = strlen(source) + start;
-
-		if(start < 0)
-		{
-			start = 0;
-		}
-	}
-
-	if(len < 0)
-	{
-		len = strlen(source) + len - start;
-
-		if(len < 0)
-		{
-			return false;
-		}
-	}
-
-	int realLength = len + 1 < maxlen? len + 1:maxlen;
-
-	strcopy(destination, realLength, source[start]);
 
 	return true;
 }
