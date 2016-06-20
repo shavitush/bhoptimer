@@ -855,41 +855,49 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
 
 	// key blocking
-	if(!Shavit_InsideZone(client, Zone_Freestyle) && !bOnGround)
+	if(!Shavit_InsideZone(client, Zone_Freestyle))
 	{
-		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
+		// block E
+		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_USE && buttons & IN_USE)
 		{
-			vel[0] = 0.0;
-			buttons &= ~IN_FORWARD;
+			buttons &= ~IN_USE;
 		}
 
-		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (vel[1] < 0 || buttons & IN_MOVELEFT))
+		if(!bOnGround)
 		{
-			vel[1] = 0.0;
-			buttons &= ~IN_MOVELEFT;
-		}
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
+			{
+				vel[0] = 0.0;
+				buttons &= ~IN_FORWARD;
+			}
 
-		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S && (vel[0] < 0 || buttons & IN_BACK))
-		{
-			vel[0] = 0.0;
-			buttons &= ~IN_BACK;
-		}
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (vel[1] < 0 || buttons & IN_MOVELEFT))
+			{
+				vel[1] = 0.0;
+				buttons &= ~IN_MOVELEFT;
+			}
 
-		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D && (vel[1] > 0 || buttons & IN_MOVERIGHT))
-		{
-			vel[1] = 0.0;
-			buttons &= ~IN_MOVERIGHT;
-		}
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S && (vel[0] < 0 || buttons & IN_BACK))
+			{
+				vel[0] = 0.0;
+				buttons &= ~IN_BACK;
+			}
 
-		// HSW
-		if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY && (vel[0] == 0.0 || !((vel[0] > 0 || buttons & IN_FORWARD) && ((vel[1] < 0 || buttons & IN_MOVELEFT) || (vel[1] > 0 || buttons & IN_MOVERIGHT)))))
-		{
-			vel[1] = 0.0;
-			buttons &= ~IN_MOVELEFT;
-			buttons &= ~IN_MOVERIGHT;
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D && (vel[1] > 0 || buttons & IN_MOVERIGHT))
+			{
+				vel[1] = 0.0;
+				buttons &= ~IN_MOVERIGHT;
+			}
+
+			// HSW
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY && (vel[0] == 0.0 || !((vel[0] > 0 || buttons & IN_FORWARD) && ((vel[1] < 0 || buttons & IN_MOVELEFT) || (vel[1] > 0 || buttons & IN_MOVERIGHT)))))
+			{
+				vel[1] = 0.0;
+				buttons &= ~IN_MOVELEFT;
+				buttons &= ~IN_MOVERIGHT;
+			}
 		}
 	}
-
 
 	if(Shavit_InsideZone(client, Zone_Start) && gCV_BlockPreJump.BoolValue && !(gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED))
 	{
@@ -928,12 +936,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	else
 	{
 		gB_OnGround[client] = false;
-	}
-
-	// block +use
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_USE && buttons & IN_USE)
-	{
-		buttons &= ~IN_USE;
 	}
 
 	if(gB_ClientPaused[client])
