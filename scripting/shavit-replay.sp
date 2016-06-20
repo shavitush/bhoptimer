@@ -48,7 +48,7 @@ float gF_Tickrate;
 
 bool gB_Record[MAXPLAYERS+1];
 
-char gS_Map[128];
+char gS_Map[256];
 
 ConVar bot_quota = null;
 
@@ -255,11 +255,11 @@ public Action HookTriggers(int entity, int other)
 
 public void OnMapStart()
 {
-	GetCurrentMap(gS_Map, 128);
-	RemoveMapPath(gS_Map, gS_Map, 128);
+	GetCurrentMap(gS_Map, 256);
+	GetMapDisplayName(gS_Map, gS_Map, 256);
 
-	char[] sTempMap = new char[256];
-	FormatEx(sTempMap, 256, "maps/%s.nav", gS_Map);
+	char[] sTempMap = new char[PLATFORM_MAX_PATH];
+	FormatEx(sTempMap, PLATFORM_MAX_PATH, "maps/%s.nav", gS_Map);
 
 	if(!FileExists(sTempMap))
 	{
@@ -666,44 +666,6 @@ stock bool SubString(const char[] source, int start, int len, char[] destination
 	int realLength = len + 1 < maxlen? len + 1:maxlen;
 
 	strcopy(destination, realLength, source[start]);
-
-	return true;
-}
-
-/**
- * Remove the path from the map name
- * This was intended to remove workshop paths.
- * Used internally by MapEqual and FindMapStringInArray.
- *
- * @param map			Map name
- * @param destination	String to copy map name to
- * @param maxlen		Length of destination string
- *
- * @return				True if path was removed, false if map and destination are the same
- */
-stock bool RemoveMapPath(const char[] map, char[] destination, int maxlen)
-{
-	if(strlen(map) < 1)
-	{
-		ThrowError("Bad map name: %s", map);
-	}
-
-	int pos = FindCharInString(map, '/', true);
-
-	if(pos == -1)
-	{
-		pos = FindCharInString(map, '\\', true);
-
-		if(pos == -1)
-		{
-			strcopy(destination, maxlen, map);
-			return false;
-		}
-	}
-
-	int len = strlen(map) - 1 - pos;
-
-	SubString(map, pos + 1, len, destination, maxlen);
 
 	return true;
 }
