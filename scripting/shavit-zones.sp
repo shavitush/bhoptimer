@@ -1795,24 +1795,15 @@ public void SQL_AlterTable_Callback(Database db, DBResultSet results, const char
 
 public void Shavit_OnRestart(int client)
 {
-	if(gCV_TeleportToStart.BoolValue && !IsFakeClient(client) && !EmptyZone(gV_MapZones[0][0]) && !EmptyZone(gV_MapZones[0][1]))
+	if(gCV_TeleportToStart.BoolValue && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
 
 		// calculate center
-		vCenter[0] /= 2;
-		vCenter[1] /= 2;
+		vCenter[0] /= 2.0;
+		vCenter[1] /= 2.0;
 		// i could also use ScaleVector() by 0.5f I guess? dunno which is more resource intensive, so i'll do it manually.
-
-		// old method of calculating Z axis
-		// vCenter[2] /= 2;
-		// vCenter[2] -= 20;
-
-		// spawn at the same Z axis the start zone is at
-		// this may break some spawns, where there's a displacement instead of a flat surface at the spawn point, for example; bhop_monster_jam ~ recompile with this commented and the old method uncommented if it's an issue!
-		// vCenter[2] = gV_MapZones[0][0] + 84.0;
-		// ^ didn't work
 
 		AddVectors(gV_MapZones[0][0], vCenter, vCenter);
 
@@ -1824,14 +1815,14 @@ public void Shavit_OnRestart(int client)
 
 public void Shavit_OnEnd(int client)
 {
-	if(gCV_TeleportToStart.BoolValue && !IsFakeClient(client) && !EmptyZone(gV_MapZones[1][0]) && !EmptyZone(gV_MapZones[1][1]))
+	if(gCV_TeleportToStart.BoolValue && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_End][0]) && !EmptyZone(gV_MapZones[Zone_End][1]))
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[1][0], gV_MapZones[1][1], vCenter);
 
 		// calculate center
-		vCenter[0] /= 2;
-		vCenter[1] /= 2;
+		vCenter[0] /= 2.0;
+		vCenter[1] /= 2.0;
 
 		AddVectors(gV_MapZones[1][0], vCenter, vCenter);
 

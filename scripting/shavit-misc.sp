@@ -267,7 +267,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "Bhopping in the start zone is not allowed.");
-			
+
 			gF_LastFlags[client] = GetEntityFlags(client);
 
 			return Plugin_Continue;
@@ -675,8 +675,7 @@ public void RestartTimer(int client)
 {
 	if(Shavit_ZoneExists(Zone_Start))
 	{
-		// I won't be adding a timer restart native, so I'll do this :S
-		FakeClientCommand(client, "sm_r");
+		Shavit_RestartTimer(client);
 	}
 }
 

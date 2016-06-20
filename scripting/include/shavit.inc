@@ -323,13 +323,22 @@ native ServerGame Shavit_GetGameType();
 native void Shavit_GetDB(Database &hSQL);
 
 /**
- * (re)Starts the timer for a player.
+ * Starts the timer for a player.
  * Will not teleport the player to anywhere, it's handled inside the mapzones plugin.
  *
  * @param client					Client index.
  * @noreturn
  */
 native void Shavit_StartTimer(int client);
+
+/**
+ * Restarts the timer for a player.
+ * Will work as if the player just used sm_r.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+native void Shavit_RestartTimer(int client);
 
 /**
  * Stops the timer for a player.

@@ -105,6 +105,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
+	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
 
 	MarkNativeAsOptional("Shavit_GetGameType");
 	MarkNativeAsOptional("Shavit_GetDB");
@@ -115,6 +116,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
+	MarkNativeAsOptional("Shavit_RestartTimer");
 
 	// prevent errors from shavit-zones
 	MarkNativeAsOptional("Shavit_InsideZone");
@@ -610,6 +612,19 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	FormatNativeString(0, 2, 3, 255, written, buffer);
 
 	PrintToChat(client, "%s%s %s", gSG_Type == Game_CSS? "":" ", PREFIX, buffer);
+
+	return;
+}
+
+public int Native_RestartTimer(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	Call_StartForward(gH_Forwards_OnRestart);
+	Call_PushCell(client);
+	Call_Finish();
+
+	StartTimer(client);
 
 	return;
 }
