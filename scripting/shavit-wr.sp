@@ -1037,7 +1037,7 @@ public void SQL_DBConnect()
 		if(gH_SQL != null)
 		{
 			char[] sQuery = new char[256];
-			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` VARCHAR(32), `style` VARCHAR(32), `date` DATE, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` DATE, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
 			gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 		}

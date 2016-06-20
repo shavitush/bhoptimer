@@ -638,7 +638,7 @@ stock bool File_Copy(const char[] source, const char[] destination)
 		return false;
 	}
 
-	int buffer[32];
+	int[] buffer = new int[32];
 	int cache = 0;
 
 	while(!IsEndOfFile(file_source))
