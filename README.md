@@ -115,7 +115,7 @@ a bhop server should be simple
 - [ ] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
 - [ ] Calculate points and rank for players once they connect to the server.
 - [ ] Add `sm_top` that will show the top X players, sort by points.
-- [ ] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank()` `void Shavit_GetMapPoints(float &points, float &idealtime)`
+- [ ] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapPoints(float &points, float &idealtime)`
 - [ ] Add a command that recalculates points for every player in the server. To be ran when rankings are first installed for retroactivity purposes.
 
 ~ [NEW PLUGIN] shavit-chat:
