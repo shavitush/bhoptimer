@@ -33,6 +33,7 @@ ServerGame gSG_Type = Game_Unknown;
 ArrayList gA_FirstSounds = null;
 ArrayList gA_PersonalSounds = null;
 ArrayList gA_WorldSounds = null;
+ArrayList gA_WorseSounds = null;
 
 public Plugin myinfo =
 {
@@ -56,6 +57,7 @@ public void OnPluginStart()
     gA_FirstSounds = new ArrayList(SOUNDS_LIMIT);
     gA_PersonalSounds = new ArrayList(SOUNDS_LIMIT);
     gA_WorldSounds = new ArrayList(SOUNDS_LIMIT);
+    gA_WorseSounds = new ArrayList(SOUNDS_LIMIT);
 
     gSG_Type = Shavit_GetGameType();
 }
@@ -110,6 +112,11 @@ public void OnMapStart()
                 gA_WorldSounds.PushString(sExploded[1]);
             }
 
+            else if(StrEqual(sExploded[0], "worse"))
+            {
+                gA_WorseSounds.PushString(sExploded[1]);
+            }
+
             else
             {
                 LogError("\"%s\" is an invalid record type!", sExploded[0]);
@@ -149,22 +156,27 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
     bool bEveryone = false;
 
-    if(gA_WorldSounds.Length != 0 && (fWRTime == 0.0 || time < fWRTime)) // no sounds? use the new PB sound instead
+    if(gA_WorldSounds.Length != 0 && (fWRTime == 0.0 || time < fWRTime))
     {
         bEveryone = true;
 
         gA_WorldSounds.GetString(GetRandomInt(0, gA_WorldSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
     }
 
-    else if(gA_PersonalSounds.Length != 0 && time < fOldTime) // no sounds? use the first record sound instead
+    else if(gA_PersonalSounds.Length != 0 && time < fOldTime)
     {
         gA_PersonalSounds.GetString(GetRandomInt(0, gA_PersonalSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
     }
 
-    else if(gA_FirstSounds.Length != 0 && fOldTime == 0.0) // no sounds at all? well, configure your shit.
-    {
-        gA_FirstSounds.GetString(GetRandomInt(0, gA_FirstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
-    }
+	else if(gA_WorseSounds.Length != 0 && time > fOldTime)
+	{
+		gA_WorseSounds.GetString(GetRandomInt(0, gA_WorseSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
+	}
+
+	else if(gA_FirstSounds.Length != 0 && fOldTime == 0.0)
+	{
+		gA_FirstSounds.GetString(GetRandomInt(0, gA_FirstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
+	}
 
     if(StrContains(sSound, ".") != -1) // file has an extension?
     {
