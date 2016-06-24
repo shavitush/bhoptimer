@@ -23,18 +23,25 @@
 #define USES_STYLE_NAMES
 #define USES_STYLE_HTML_COLORS
 #include <shavit>
+#include <clientprefs>
 
 #pragma semicolon 1
 #pragma dynamic 131072
 #pragma newdecls required
 
+#define HUD_NONE				(0)
+#define HUD_MASTER				(1 << 0) // master setting
+#define HUD_CENTER				(1 << 1) // show hud as hint text
+#define HUD_ZONEHUD				(1 << 2) // show colored start/end zone hud (csgo only)
+#define HUD_OBSERVE				(1 << 3) // show the HUD of the player you spectate
+#define HUD_SPECTATORS			(1 << 4) // show list of spectators
+
+#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE)
+
 // game type (CS:S/CS:GO)
 ServerGame gSG_Type = Game_Unknown;
 
 bool gB_Replay = false;
-
-bool gB_ZoneHUD[MAXPLAYERS+1] = {true, ...};
-bool gB_HUD[MAXPLAYERS+1] = {true, ...};
 
 int gI_StartCycle = 0;
 
@@ -50,8 +57,10 @@ char gS_EndColors[][] =
 	"ff0000", "ff4000", "ff7f00", "ffaa00", "ffd400", "ffff00", "bba24e", "77449c"
 };
 
-// cvars
-ConVar gCV_ZoneHUD = null;
+Handle gH_HUDCookie = null;
+int gI_HUDSettings[MAXPLAYERS+1];
+int gI_NameLength = MAX_NAME_LENGTH;
+int gI_SpecCycle = 0;
 
 public Plugin myinfo =
 {
@@ -67,12 +76,33 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 
+	if(late)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i))
+			{
+				OnClientCookiesCached(i);
+			}
+		}
+	}
+
 	return APLRes_Success;
 }
 
 public void OnAllPluginsLoaded()
 {
 	gSG_Type = Shavit_GetGameType();
+
+	if(gSG_Type == Game_CSS)
+	{
+		gI_NameLength = MAX_NAME_LENGTH;
+	}
+
+	else
+	{
+		gI_NameLength = 14; // 14 because long names will make it look spammy in CS:GO due to the font
+	}
 }
 
 public void OnPluginStart()
@@ -82,53 +112,101 @@ public void OnPluginStart()
 
 	CreateTimer(0.1, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 
-	RegConsoleCmd("sm_togglehud", Command_ToggleHUD, "Toggle the timer's HUD");
-	RegConsoleCmd("sm_hud", Command_ToggleHUD, "Toggle the timer's HUD");
+	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu");
 
-	RegConsoleCmd("sm_zonehud", Command_ToggleZoneHUD, "Toggle the timer's flashing zone HUD");
-
-	// cvars
-	gCV_ZoneHUD = CreateConVar("shavit_hud_zonehud", "1", "Enable \"zonehud\" server-sided? (The colored start/end zone display in CS:GO)", 0, true, 0.0, true, 1.0);
-
-	AutoExecConfig();
+	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
 }
 
-public void OnClientPutInServer(int client)
+public void OnClientCookiesCached(int client)
 {
-	gB_HUD[client] = true;
-	gB_ZoneHUD[client] = true;
+	char[] sHUDSettings = new char[8];
+	GetClientCookie(client, gH_HUDCookie, sHUDSettings, 8);
+
+	if(strlen(sHUDSettings) == 0)
+	{
+		IntToString(HUD_DEFAULT, sHUDSettings, 8);
+
+		SetClientCookie(client, gH_HUDCookie, sHUDSettings);
+		gI_HUDSettings[client] = HUD_DEFAULT;
+	}
+
+	else
+	{
+		gI_HUDSettings[client] = StringToInt(sHUDSettings);
+	}
 }
 
-public Action Command_ToggleHUD(int client, int args)
+public Action Command_HUD(int client, int args)
 {
-	gB_HUD[client] = !gB_HUD[client];
+	return ShowHUDMenu(client);
+}
 
-	Shavit_PrintToChat(client, "HUD %s\x01.", gB_HUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x07F54242disabled"));
+public Action ShowHUDMenu(int client)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	Menu m = new Menu(MenuHandler_HUD, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
+	m.SetTitle("HUD settings:");
+
+	char[] sInfo = new char[16];
+	IntToString(HUD_MASTER, sInfo, 16);
+	m.AddItem(sInfo, "Master");
+
+	IntToString(HUD_CENTER, sInfo, 16);
+	m.AddItem(sInfo, "Center text");
+
+	IntToString(HUD_ZONEHUD, sInfo, 16);
+	m.AddItem(sInfo, "Zone HUD");
+
+	IntToString(HUD_OBSERVE, sInfo, 16);
+	m.AddItem(sInfo, "Show the HUD of the player you spectate");
+
+	IntToString(HUD_SPECTATORS, sInfo, 16);
+	m.AddItem(sInfo, "Spectator list");
+
+	m.ExitButton = true;
+	m.Display(client, 60);
 
 	return Plugin_Handled;
 }
 
-public Action Command_ToggleZoneHUD(int client, int args)
+public int MenuHandler_HUD(Menu m, MenuAction action, int param1, int param2)
 {
-	if(!gCV_ZoneHUD.BoolValue)
+	if(action == MenuAction_Select)
 	{
-		Shavit_PrintToChat(client, "This feature is disabled.");
+		char[] sCookie = new char[16];
+		m.GetItem(param2, sCookie, 16);
+		int iSelection = StringToInt(sCookie);
 
-		return Plugin_Handled;
+		gI_HUDSettings[param1] ^= iSelection;
+		IntToString(gI_HUDSettings[param1], sCookie, 16); // string recycling Kappa
+
+		SetClientCookie(param1, gH_HUDCookie, sCookie);
+
+		ShowHUDMenu(param1);
 	}
 
-	if(gSG_Type != Game_CSGO)
+	else if(action == MenuAction_DisplayItem)
 	{
-		Shavit_PrintToChat(client, "Zone HUD is not supported for this game, sorry.");
+		char[] sInfo = new char[16];
+		char[] sDisplay = new char[64];
+		int style = 0; // temporary because of compiler issues
+		m.GetItem(param2, sInfo, 16, style, sDisplay, 64);
 
-		return Plugin_Handled;
+		Format(sDisplay, 64, "[%s] %s", (gI_HUDSettings[param1] & StringToInt(sInfo))? "x":" ", sDisplay);
+
+		return RedrawMenuItem(sDisplay);
 	}
 
-	gB_ZoneHUD[client] = !gB_ZoneHUD[client];
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
 
-	Shavit_PrintToChat(client, "Zone HUD %s\x01.", gB_ZoneHUD[client]? "\x04enabled":(gSG_Type == Game_CSGO? "\x02disabled":"\x07F54242disabled"));
-
-	return Plugin_Handled;
+	return 0;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -159,7 +237,7 @@ public void OnConfigsExecuted()
 
 public Action UpdateHUD_Timer(Handle Timer)
 {
-	if(gCV_ZoneHUD.BoolValue && gSG_Type == Game_CSGO)
+	if(gSG_Type == Game_CSGO)
 	{
 		gI_StartCycle++;
 
@@ -176,41 +254,45 @@ public Action UpdateHUD_Timer(Handle Timer)
 		}
 	}
 
+	if(gI_SpecCycle == 10)
+	{
+		gI_SpecCycle = 0;
+	}
+
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || !gB_HUD[i])
+		if(!IsValidClient(i) || !(gI_HUDSettings[i] & HUD_MASTER))
 		{
 			continue;
 		}
 
 		UpdateHUD(i);
+
+		if(gI_HUDSettings[i] & HUD_SPECTATORS && gI_SpecCycle == 0)
+		{
+			UpdateSpectatorList(i);
+		}
 	}
+
+	gI_SpecCycle++;
 
 	return Plugin_Continue;
 }
 
 public void UpdateHUD(int client)
 {
-	int target = client;
+	int target = GetHUDTarget(client);
 
-	if(IsClientObserver(client))
+	if(!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target)
 	{
-		if(GetEntProp(client, Prop_Send, "m_iObserverMode") >= 3)
-		{
-			int iTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
-
-			if(IsValidClient(iTarget, true))
-			{
-				target = iTarget;
-			}
-		}
+		return;
 	}
 
 	char[] sHintText = new char[512];
 
 	bool bZoneHUD = false;
 
-	if(gCV_ZoneHUD.BoolValue && gB_ZoneHUD[client] && gSG_Type == Game_CSGO)
+	if(gI_HUDSettings[client] & HUD_ZONEHUD && gSG_Type == Game_CSGO)
 	{
 		if(Shavit_InsideZone(target, Zone_Start))
 		{
@@ -230,7 +312,7 @@ public void UpdateHUD(int client)
 		PrintHintText(client, sHintText);
 	}
 
-	else if(!IsFakeClient(target))
+	else if(gI_HUDSettings[client] & HUD_CENTER && !IsFakeClient(target))
 	{
 		float fTime;
 		int iJumps;
@@ -389,4 +471,90 @@ public void UpdateHUD(int client)
 
 		PrintHintText(client, sHintText);
 	}
+}
+
+public void UpdateSpectatorList(int client)
+{
+	if(GetClientMenu(client, null) == MenuSource_None)
+	{
+		int target = GetHUDTarget(client);
+
+		if(!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target)
+		{
+			return;
+		}
+
+		int[] iSpectatorClients = new int[MaxClients];
+		int iSpectators = 0;
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(i == client || !IsValidClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target)
+			{
+				continue;
+			}
+
+			int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
+
+			if(iObserverMode >= 3 && iObserverMode <= 5)
+			{
+				iSpectatorClients[iSpectators++] = i;
+			}
+		}
+
+		if(iSpectators > 0)
+		{
+			Panel p = new Panel();
+			char[] sTitle = new char[32];
+			FormatEx(sTitle, 32, "%spectator%s (%d):", client == target? "S":"Other s", iSpectators > 0? "s":"", iSpectators);
+			p.SetTitle(sTitle);
+
+			for(int i = 0; i < iSpectators; i++)
+			{
+				if(i == 7)
+				{
+					p.DrawItem("...", ITEMDRAW_RAWLINE);
+
+					break;
+				}
+
+				char[] sName = new char[gI_NameLength];
+				GetClientName(iSpectatorClients[i], sName, gI_NameLength);
+
+				p.DrawItem(sName, ITEMDRAW_RAWLINE);
+			}
+
+			p.Send(client, PanelHandler_Nothing, 1);
+
+			delete p;
+		}
+	}
+}
+
+public int GetHUDTarget(int client)
+{
+	int target = client;
+
+	if(IsClientObserver(client))
+	{
+		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
+
+		if(iObserverMode >= 3 && iObserverMode <= 5)
+		{
+			int iTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
+
+			if(IsValidClient(iTarget, true))
+			{
+				target = iTarget;
+			}
+		}
+	}
+
+	return target;
+}
+
+public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param2)
+{
+	// i don't need anything here
+	return 0;
 }

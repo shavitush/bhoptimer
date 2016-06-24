@@ -12,6 +12,7 @@ a bhop server should be simple
 
 # Requirements:
 * [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
+* `clientprefs` plugin/extension. Comes built-in with SourceMod.
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
@@ -79,8 +80,9 @@ a bhop server should be simple
 - [x] HUD toggling command. (`sm_hud`)
 - [x] Zone (start/end) HUD toggling command. (`sm_zonehud`)
 - [x] [CS:GO] Replace "- Replay Bot -" for bots with an underlined and pretty text.
+- [x] Remove `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list in a panel.
+- [ ] Add spectator list.
 - [ ] Show time in a "TIME/RECORD" format including percentage for replay bots.
-- [ ] Remove `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list in a panel.
 - [ ] Support for bonus timer.
 
 ~ shavit-replay

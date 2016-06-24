@@ -168,14 +168,14 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
         gA_PersonalSounds.GetString(GetRandomInt(0, gA_PersonalSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
     }
 
-	else if(gA_WorseSounds.Length != 0 && time > fOldTime)
-	{
-		gA_WorseSounds.GetString(GetRandomInt(0, gA_WorseSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
-	}
-
 	else if(gA_FirstSounds.Length != 0 && fOldTime == 0.0)
 	{
 		gA_FirstSounds.GetString(GetRandomInt(0, gA_FirstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
+	}
+
+	else if(gA_WorseSounds.Length != 0 && time > fOldTime)
+	{
+		gA_WorseSounds.GetString(GetRandomInt(0, gA_WorseSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 	}
 
     if(StrContains(sSound, ".") != -1) // file has an extension?
@@ -203,8 +203,10 @@ public void PlayEventSound(int client, bool everyone, const char[] sound)
             continue;
         }
 
+		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
+
         // add player and his spectators
-        if(i == client || (IsClientObserver(i) && GetEntProp(client, Prop_Send, "m_iObserverMode") >= 3 && GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") == client))
+        if(i == client || (IsClientObserver(i) && (iObserverMode >= 3 || iObserverMode <= 5) && GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") == client))
         {
             clients[count++] = i;
         }
