@@ -506,7 +506,7 @@ public void UpdateSpectatorList(int client)
 		{
 			Panel p = new Panel();
 			char[] sTitle = new char[32];
-			FormatEx(sTitle, 32, "%spectator%s (%d):", client == target? "S":"Other s", iSpectators > 0? "s":"", iSpectators);
+			FormatEx(sTitle, 32, "%spectators (%d):", client == target? "S":"Other s", iSpectators);
 			p.SetTitle(sTitle);
 
 			for(int i = 0; i < iSpectators; i++)
