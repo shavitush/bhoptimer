@@ -206,7 +206,7 @@ public void PlayEventSound(int client, bool everyone, const char[] sound)
 		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
 
         // add player and his spectators
-        if(i == client || (IsClientObserver(i) && (iObserverMode >= 3 || iObserverMode <= 5) && GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") == client))
+        if(i == client || (IsClientObserver(i) && (iObserverMode >= 3 || iObserverMode <= 5) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client))
         {
             clients[count++] = i;
         }
