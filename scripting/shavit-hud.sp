@@ -35,6 +35,8 @@
 #define HUD_ZONEHUD				(1 << 2) // show colored start/end zone hud (csgo only)
 #define HUD_OBSERVE				(1 << 3) // show the HUD of the player you spectate
 #define HUD_SPECTATORS			(1 << 4) // show list of spectators
+#define HUD_KEYOVERLAY			(1 << 5) // show a key overlay
+#define HUD_HIDEWEAPON			(1 << 6) // hide the player's weapon
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE)
 
@@ -60,7 +62,6 @@ char gS_EndColors[][] =
 Handle gH_HUDCookie = null;
 int gI_HUDSettings[MAXPLAYERS+1];
 int gI_NameLength = MAX_NAME_LENGTH;
-int gI_SpecCycle = 0;
 
 public Plugin myinfo =
 {
@@ -167,6 +168,12 @@ public Action ShowHUDMenu(int client)
 	IntToString(HUD_SPECTATORS, sInfo, 16);
 	m.AddItem(sInfo, "Spectator list");
 
+	IntToString(HUD_KEYOVERLAY, sInfo, 16);
+	m.AddItem(sInfo, "Key overlay");
+
+	IntToString(HUD_HIDEWEAPON, sInfo, 16);
+	m.AddItem(sInfo, "Hide weapons");
+
 	m.ExitButton = true;
 	m.Display(client, 60);
 
@@ -193,7 +200,7 @@ public int MenuHandler_HUD(Menu m, MenuAction action, int param1, int param2)
 	{
 		char[] sInfo = new char[16];
 		char[] sDisplay = new char[64];
-		int style = 0; // temporary because of compiler issues
+		int style = 0;
 		m.GetItem(param2, sInfo, 16, style, sDisplay, 64);
 
 		Format(sDisplay, 64, "[%s] %s", (gI_HUDSettings[param1] & StringToInt(sInfo))? "x":" ", sDisplay);
@@ -254,11 +261,6 @@ public Action UpdateHUD_Timer(Handle Timer)
 		}
 	}
 
-	if(gI_SpecCycle == 10)
-	{
-		gI_SpecCycle = 0;
-	}
-
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsValidClient(i) || !(gI_HUDSettings[i] & HUD_MASTER))
@@ -267,14 +269,26 @@ public Action UpdateHUD_Timer(Handle Timer)
 		}
 
 		UpdateHUD(i);
+		SetEntProp(i, Prop_Data, "m_bDrawViewmodel", gI_HUDSettings[i] & HUD_HIDEWEAPON? 0:1);
 
-		if(gI_HUDSettings[i] & HUD_SPECTATORS && gI_SpecCycle == 0)
+		if((GetClientMenu(i, null) == MenuSource_None || GetClientMenu(i, null) == MenuSource_RawPanel) && (gI_HUDSettings[i] & HUD_KEYOVERLAY || gI_HUDSettings[i] & HUD_SPECTATORS))
 		{
-			UpdateSpectatorList(i);
+			bool bShouldDraw = false;
+			Panel pHUD = new Panel();
+
+			UpdateKeyOverlay(i, pHUD, bShouldDraw);
+			pHUD.DrawItem("", ITEMDRAW_RAWLINE);
+
+			UpdateSpectatorList(i, pHUD, bShouldDraw);
+
+			if(bShouldDraw)
+			{
+				pHUD.Send(i, PanelHandler_Nothing, 1);
+			}
+
+			delete pHUD;
 		}
 	}
-
-	gI_SpecCycle++;
 
 	return Plugin_Continue;
 }
@@ -473,61 +487,84 @@ public void UpdateHUD(int client)
 	}
 }
 
-public void UpdateSpectatorList(int client)
+public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 {
-	if(GetClientMenu(client, null) == MenuSource_None)
+	if(!(gI_HUDSettings[client] & HUD_KEYOVERLAY))
 	{
-		int target = GetHUDTarget(client);
+		return;
+	}
 
-		if(!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target)
+	int target = GetHUDTarget(client);
+
+	if((!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target) || !IsValidClient(target) || IsClientObserver(target))
+	{
+		return;
+	}
+
+	int buttons = GetClientButtons(target);
+
+	// that's a very ugly way, whatever :(
+	char[] sPanelLine = new char[128];
+	FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", buttons & IN_JUMP? "JUMP":"----", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
+
+	draw = true;
+}
+
+public void UpdateSpectatorList(int client, Panel panel, bool &draw)
+{
+	if(!(gI_HUDSettings[client] & HUD_SPECTATORS))
+	{
+		return;
+	}
+
+	int target = GetHUDTarget(client);
+
+	if((!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target) || !IsValidClient(target))
+	{
+		return;
+	}
+
+	int[] iSpectatorClients = new int[MaxClients];
+	int iSpectators = 0;
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(i == client || !IsValidClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target)
 		{
-			return;
+			continue;
 		}
 
-		int[] iSpectatorClients = new int[MaxClients];
-		int iSpectators = 0;
+		int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
 
-		for(int i = 1; i <= MaxClients; i++)
+		if(iObserverMode >= 3 && iObserverMode <= 5)
 		{
-			if(i == client || !IsValidClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target)
+			iSpectatorClients[iSpectators++] = i;
+		}
+	}
+
+	if(iSpectators > 0)
+	{
+		char[] sSpectators = new char[32];
+		FormatEx(sSpectators, 32, "%spectators (%d):", client == target? "S":"Other s", iSpectators);
+		panel.DrawItem(sSpectators, ITEMDRAW_RAWLINE);
+
+		for(int i = 0; i < iSpectators; i++)
+		{
+			if(i == 7)
 			{
-				continue;
+				panel.DrawItem("...", ITEMDRAW_RAWLINE);
+
+				break;
 			}
 
-			int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
+			char[] sName = new char[gI_NameLength];
+			GetClientName(iSpectatorClients[i], sName, gI_NameLength);
 
-			if(iObserverMode >= 3 && iObserverMode <= 5)
-			{
-				iSpectatorClients[iSpectators++] = i;
-			}
+			panel.DrawItem(sName, ITEMDRAW_RAWLINE);
 		}
 
-		if(iSpectators > 0)
-		{
-			Panel p = new Panel();
-			char[] sTitle = new char[32];
-			FormatEx(sTitle, 32, "%spectators (%d):", client == target? "S":"Other s", iSpectators);
-			p.SetTitle(sTitle);
-
-			for(int i = 0; i < iSpectators; i++)
-			{
-				if(i == 7)
-				{
-					p.DrawItem("...", ITEMDRAW_RAWLINE);
-
-					break;
-				}
-
-				char[] sName = new char[gI_NameLength];
-				GetClientName(iSpectatorClients[i], sName, gI_NameLength);
-
-				p.DrawItem(sName, ITEMDRAW_RAWLINE);
-			}
-
-			p.Send(client, PanelHandler_Nothing, 1);
-
-			delete p;
-		}
+		draw = true;
 	}
 }
 
