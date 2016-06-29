@@ -186,35 +186,35 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 
 public void PlayEventSound(int client, bool everyone, const char[] sound)
 {
-    int[] clients = new int[MaxClients];
-    int count;
+	int[] clients = new int[MaxClients];
+	int count;
 
-    for(int i = 1; i <= MaxClients; i++)
-    {
-        if(!IsValidClient(i))
-        {
-            continue;
-        }
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(!IsValidClient(i))
+		{
+			continue;
+		}
 
-        if(everyone)
-        {
-            clients[count++] = i;
+		if(everyone)
+		{
+			clients[count++] = i;
 
-            continue;
-        }
+			continue;
+		}
 
 		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
 
-        // add player and his spectators
-        if(i == client || (IsClientObserver(i) && (iObserverMode >= 3 || iObserverMode <= 5) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client))
-        {
-            clients[count++] = i;
-        }
-    }
+		// add player and his spectators
+		if(i == client || (IsClientObserver(i) && (iObserverMode >= 3 || iObserverMode <= 5) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client))
+		{
+			clients[count++] = i;
+		}
+	}
 
-    if(count > 0)
-    {
-        if(gSG_Type == Game_CSGO)
+	if(count > 0)
+	{
+		if(gSG_Type == Game_CSGO)
 		{
 			char[] sPlay = new char[PLATFORM_MAX_PATH+8];
 			FormatEx(sPlay, PLATFORM_MAX_PATH+8, "play */%s", sound);
@@ -229,5 +229,5 @@ public void PlayEventSound(int client, bool everyone, const char[] sound)
 		{
 			EmitSound(clients, count, sound);
 		}
-    }
+	}
 }
