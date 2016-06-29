@@ -343,7 +343,7 @@ public Action Command_StopTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	StopTimer(client);
+	Shavit_StopTimer(client);
 
 	return Plugin_Handled;
 }
@@ -848,7 +848,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(gCV_Leftright.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT)))
 	{
-		StopTimer(client);
+		Shavit_StopTimer(client);
 		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");
 	}
 
