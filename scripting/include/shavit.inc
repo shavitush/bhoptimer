@@ -1,5 +1,5 @@
 /*
- * Shavit's Timer - .inc file
+ * shavit's Timer - .inc file
  * by: shavit
  *
  * This file is part of shavit's Timer.
