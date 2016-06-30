@@ -122,8 +122,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_PrintToChat");
 	MarkNativeAsOptional("Shavit_RestartTimer");
 
-	// prevent errors from shavit-zones
+	// prevent errors from modules
 	MarkNativeAsOptional("Shavit_InsideZone");
+	MarkNativeAsOptional("Shavit_ZoneExists");
+	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
