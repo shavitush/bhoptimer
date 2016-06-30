@@ -45,8 +45,6 @@
 ServerGame gSG_Type = Game_Unknown;
 
 bool gB_Replay = false;
-bool gB_Zones = false;
-bool gB_WR = false;
 
 int gI_StartCycle = 0;
 
@@ -81,9 +79,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
-	MarkNativeAsOptional("Shavit_InsideZone");
-	MarkNativeAsOptional("Shavit_GetWRTime");
-	MarkNativeAsOptional("Shavit_GetPlayerPB");
 
 	if(late)
 	{
@@ -118,9 +113,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	// prevent errors in case the replay bot isn't loaded
 	gB_Replay = LibraryExists("shavit-replay");
-	gB_Zones = LibraryExists("shavit-zones");
-	gB_WR = LibraryExists("shavit-wr");
 
 	CreateTimer(0.1, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 
@@ -233,16 +227,6 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Replay = true;
 	}
-
-	else if(StrEqual(name, "shavit-zones"))
-	{
-		gB_Zones = true;
-	}
-
-	else if(StrEqual(name, "shavit-wr"))
-	{
-		gB_WR = true;
-	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -250,16 +234,6 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "shavit-replay"))
 	{
 		gB_Replay = false;
-	}
-
-	else if(StrEqual(name, "shavit-zones"))
-	{
-		gB_Zones = false;
-	}
-
-	else if(StrEqual(name, "shavit-wr"))
-	{
-		gB_WR = false;
 	}
 }
 
@@ -342,7 +316,7 @@ public void UpdateHUD(int client)
 
 	bool bZoneHUD = false;
 
-	if(gI_HUDSettings[client] & HUD_ZONEHUD && gSG_Type == Game_CSGO && gB_Zones)
+	if(gI_HUDSettings[client] & HUD_ZONEHUD && gSG_Type == Game_CSGO)
 	{
 		if(Shavit_InsideZone(target, Zone_Start))
 		{
@@ -370,25 +344,16 @@ public void UpdateHUD(int client)
 		bool bStarted;
 		Shavit_GetTimer(target, fTime, iJumps, bsStyle, bStarted);
 
-		float fWR = 0.0;
-		float fPB = 0.0;
-
-		if(gB_WR)
-		{
-			Shavit_GetWRTime(bsStyle, fWR);
-			Shavit_GetPlayerPB(target, bsStyle, fPB);
-		}
-
-		else
-		{
-			fWR = 0.0;
-			fPB = 0.0;
-		}
+		float fWR;
+		Shavit_GetWRTime(bsStyle, fWR);
 
 		float fSpeed[3];
 		GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
 		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+
+		float fPB;
+		Shavit_GetPlayerPB(target, bsStyle, fPB);
 
 		char[] sPB = new char[32];
 		FormatSeconds(fPB, sPB, 32);
