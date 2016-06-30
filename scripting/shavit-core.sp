@@ -61,12 +61,14 @@ int gI_Jumps[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 bool gB_OnGround[MAXPLAYERS+1];
+bool gB_TriggerJump[MAXPLAYERS+1];
 
 // late load
 bool gB_Late = false;
 
-// zones lateload support
+// modules
 bool gB_Zones = false;
+bool gB_HUD = false;
 
 // cvars
 ConVar gCV_Autobhop = null;
@@ -102,6 +104,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
+	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
@@ -113,6 +116,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_StopTimer");
 	MarkNativeAsOptional("Shavit_FinishMap");
 	MarkNativeAsOptional("Shavit_GetTimer");
+	MarkNativeAsOptional("Shavit_GetBhopStyle");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
@@ -225,6 +229,7 @@ public void OnPluginStart()
 	}
 
 	gB_Zones = LibraryExists("shavit-zones");
+	gB_HUD = LibraryExists("shavit-hud");
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -233,6 +238,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Zones = true;
 	}
+
+	else if(StrEqual(name, "shavit-hud"))
+	{
+		gB_HUD = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -240,6 +250,11 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "shavit-zones"))
 	{
 		gB_Zones = false;
+	}
+
+	else if(StrEqual(name, "shavit-hud"))
+	{
+		gB_HUD = false;
 	}
 }
 
@@ -270,10 +285,10 @@ public void OnMapStart()
 {
 	// cvar forcing
 	ConVar cvBhopping = FindConVar("sv_enablebunnyhopping");
-	SetConVarBool(cvBhopping, true);
+	cvBhopping.BoolValue = true;
 
 	ConVar cvAA = FindConVar("sv_airaccelerate");
-	SetConVarInt(cvAA, 2000);
+	cvAA.IntValue = 2000;
 }
 
 public Action Command_StartTimer(int client, int args)
@@ -529,7 +544,6 @@ public int Native_GetDB(Handle handler, int numParams)
 	SetNativeCellRef(1, gH_SQL);
 }
 
-// I can't return booleans :/
 public int Native_GetTimer(Handle handler, int numParams)
 {
 	// 1 - client
@@ -538,15 +552,16 @@ public int Native_GetTimer(Handle handler, int numParams)
 	// 2 - time
 	float time = CalculateTime(client);
 	SetNativeCellRef(2, time);
-
-	// 3 - jumps
 	SetNativeCellRef(3, gI_Jumps[client]);
-
-	// 4 - style
 	SetNativeCellRef(4, gBS_Style[client]);
-
-	// 5 - enabled?
 	SetNativeCellRef(5, gB_TimerEnabled[client]);
+}
+
+public int Native_GetBhopStyle(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	return view_as<int>(gBS_Style[client]);
 }
 
 public int Native_StartTimer(Handle handler, int numParams)
@@ -842,6 +857,24 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(!IsValidClient(client, true))
 	{
 		return Plugin_Continue;
+	}
+
+	if(gB_HUD)
+	{
+		if(buttons & IN_JUMP)
+		{
+			if(!gB_TriggerJump[client])
+			{
+				Shavit_ForceHUDUpdate(client, true);
+			}
+
+			gB_TriggerJump[client] = true;
+		}
+
+		else
+		{
+			gB_TriggerJump[client] = false;
+		}
 	}
 
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);

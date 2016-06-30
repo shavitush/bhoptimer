@@ -26,6 +26,7 @@
 
 #define USES_STYLE_NAMES
 #define USES_STYLE_HTML_COLORS
+#define USES_STYLE_PROPERTIES
 #include <shavit>
 #include <clientprefs>
 
@@ -74,6 +75,8 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
+
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 
@@ -87,6 +90,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 			}
 		}
 	}
+
+	RegPluginLibrary("shavit-hud");
 
 	return APLRes_Success;
 }
@@ -268,29 +273,34 @@ public Action UpdateHUD_Timer(Handle Timer)
 			continue;
 		}
 
-		UpdateHUD(i);
-		SetEntProp(i, Prop_Data, "m_bDrawViewmodel", gI_HUDSettings[i] & HUD_HIDEWEAPON? 0:1);
-
-		if((GetClientMenu(i, null) == MenuSource_None || GetClientMenu(i, null) == MenuSource_RawPanel) && (gI_HUDSettings[i] & HUD_KEYOVERLAY || gI_HUDSettings[i] & HUD_SPECTATORS))
-		{
-			bool bShouldDraw = false;
-			Panel pHUD = new Panel();
-
-			UpdateKeyOverlay(i, pHUD, bShouldDraw);
-			pHUD.DrawItem("", ITEMDRAW_RAWLINE);
-
-			UpdateSpectatorList(i, pHUD, bShouldDraw);
-
-			if(bShouldDraw)
-			{
-				pHUD.Send(i, PanelHandler_Nothing, 1);
-			}
-
-			delete pHUD;
-		}
+		TriggerHUDUpdate(i);
 	}
 
 	return Plugin_Continue;
+}
+
+public void TriggerHUDUpdate(int client)
+{
+	UpdateHUD(client);
+	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", gI_HUDSettings[client] & HUD_HIDEWEAPON? 0:1);
+
+	if((GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel) && (gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS))
+	{
+		bool bShouldDraw = false;
+		Panel pHUD = new Panel();
+
+		UpdateKeyOverlay(client, pHUD, bShouldDraw);
+		pHUD.DrawItem("", ITEMDRAW_RAWLINE);
+
+		UpdateSpectatorList(client, pHUD, bShouldDraw);
+
+		if(bShouldDraw)
+		{
+			pHUD.Send(client, PanelHandler_Nothing, 1);
+		}
+
+		delete pHUD;
+	}
 }
 
 public void UpdateHUD(int client)
@@ -505,7 +515,17 @@ public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
-	FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", buttons & IN_JUMP? "JUMP":"----", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+
+	if(gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) // don't include [JUMP] for autobhop styles
+	{
+		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+	}
+
+	else
+	{
+		FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", buttons & IN_JUMP? "JUMP":"----", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+	}
+
 	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
 
 	draw = true;
@@ -594,4 +614,41 @@ public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param
 {
 	// i don't need anything here
 	return 0;
+}
+
+public int Native_ForceHUDUpdate(Handle handler, int numParams)
+{
+	int[] clients = new int[MaxClients];
+	int count = 0;
+
+	int client = GetNativeCell(1);
+
+	if(!IsValidClient(client))
+	{
+		ThrowNativeError(200, "Invalid client index %d", client);
+
+		return -1;
+	}
+
+	clients[count++] = client;
+
+	if(view_as<bool>(GetNativeCell(2)))
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(i == client || !IsValidClient(i) || GetHUDTarget(i) != client)
+			{
+				continue;
+			}
+
+			clients[count++] = client;
+		}
+	}
+
+	for(int i = 0; i < count; i++)
+	{
+		TriggerHUDUpdate(clients[i]);
+	}
+
+	return count;
 }

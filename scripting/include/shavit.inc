@@ -371,6 +371,14 @@ native void Shavit_FinishMap(int client);
 native void Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &style, bool &started);
 
 /**
+ * Retrieve a client's bhopstyle
+ *
+ * @param client					Client index.
+ * @return                          Bhop style.
+ */
+native BhopStyle Shavit_GetBhopStyle(int client);
+
+/**
  * Saves the WR time for the current map on a variable.
  *
  * @param style						Style to get the WR for.
@@ -467,6 +475,16 @@ native int Shavit_GetReplayBotIndex(BhopStyle style);
  * @return							Current played frame.
  */
 native int Shavit_GetReplayBotCurrentFrame(BhopStyle style);
+
+/**
+ * Force an HUD update for a player. Requires shavit-hud.
+ *
+ * @param client					Client index.
+ * @param spectators                Should also update it for the player's spectators?
+ * @error                           Error code 200 if client isn't valid.
+ * @return                          Amount of players that had their HUD updated (client + spectators) or -1 on error.
+ */
+native int Shavit_ForceHUDUpdate(int client, bool spectators);
 
 /**
  * Use this native when printing anything in chat if it's related to the timer.
