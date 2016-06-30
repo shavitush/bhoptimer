@@ -369,25 +369,25 @@ public void UpdateHUD(int client)
 		bool bStarted;
 		Shavit_GetTimer(target, fTime, iJumps, bsStyle, bStarted);
 
-		float fWR;
+		float fWR = 0.0;
+		float fPB = 0.0;
 
 		if(gB_WR)
 		{
 			Shavit_GetWRTime(bsStyle, fWR);
+			Shavit_GetPlayerPB(target, bsStyle, fPB);
 		}
 
 		else
 		{
 			fWR = 0.0;
+			fPB = 0.0;
 		}
 
 		float fSpeed[3];
 		GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
 		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-
-		float fPB;
-		Shavit_GetPlayerPB(target, bsStyle, fPB);
 
 		char[] sPB = new char[32];
 		FormatSeconds(fPB, sPB, 32);
