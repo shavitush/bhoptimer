@@ -18,6 +18,10 @@
  *
 */
 
+#pragma semicolon 1
+#pragma dynamic 131072
+#pragma newdecls required
+
 #include <sourcemod>
 #include <sdktools>
 #include <cstrike>
@@ -25,10 +29,6 @@
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
-
-#pragma semicolon 1
-#pragma dynamic 131072
-#pragma newdecls required
 
 #define PLACEHOLDER 32767
 

@@ -20,6 +20,10 @@
 
 // I have no idea if this plugin will work with CS:S, sorry.
 
+#pragma semicolon 1
+#pragma dynamic 131072
+#pragma newdecls required
+
 #include <sourcemod>
 #include <cstrike>
 #include <sdktools>
@@ -28,10 +32,6 @@
 #define USES_SHORT_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
 #include <shavit>
-
-#pragma semicolon 1
-#pragma dynamic 131072
-#pragma newdecls required
 
 ServerGame gSG_Type = Game_Unknown;
 

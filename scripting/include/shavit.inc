@@ -481,7 +481,7 @@ native int Shavit_PrintToChat(int client, const char[] format, any ...);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
-stock Shavit_PrintToChatAll(const char[] format, any ...)
+stock void Shavit_PrintToChatAll(const char[] format, any ...)
 {
 	char[] buffer = new char[255];
 

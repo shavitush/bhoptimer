@@ -92,7 +92,7 @@ typeset ListenCB
 {
 	//Deleted
 	function void (int entity);
-	
+
 	//Created
 	function void (int entity, const char[] classname);
 };
@@ -105,42 +105,42 @@ typeset DHookCallback
 {
 	//Function Example: void Ham::Test() with this pointer ignore
 	function MRESReturn ();
-	
+
 	//Function Example: void Ham::Test() with this pointer passed
 	function MRESReturn (int pThis);
-	
+
 	//Function Example: void Ham::Test(int cake) with this pointer ignore
 	function MRESReturn (Handle hParams);
-	
+
 	//Function Example: void Ham::Test(int cake) with this pointer passed
 	function MRESReturn (int pThis, Handle hParams);
-	
+
 	//Function Example: int Ham::Test() with this pointer ignore
 	function MRESReturn (Handle hReturn);
-	
+
 	//Function Example: int Ham::Test() with this pointer passed
 	function MRESReturn (int pThis, Handle hReturn);
-	
+
 	//Function Example: int Ham::Test(int cake) with this pointer ignore
 	function MRESReturn (Handle hReturn, Handle hParams);
-	
+
 	//Function Example: int Ham::Test(int cake) with this pointer passed
 	function MRESReturn (int pThis, Handle hReturn, Handle hParams);
-	
+
 	//Address NOW
-	
+
 	//Function Example: void Ham::Test() with this pointer passed
 	function MRESReturn (Address pThis);
-	
+
 	//Function Example: void Ham::Test(int cake) with this pointer passed
 	function MRESReturn (Address pThis, Handle hParams);
-	
+
 	//Function Example: int Ham::Test() with this pointer passed
 	function MRESReturn (Address pThis, Handle hReturn);
-	
+
 	//Function Example: int Ham::Test(int cake) with this pointer passed
 	function MRESReturn (Address pThis, Handle hReturn, Handle hParams);
-	
+
 };
 
 /* Adds an entity listener hook
@@ -168,7 +168,7 @@ native bool DHookRemoveEntityListener(ListenType type, ListenCB callback);
  * @param returntype	Type type of return
  * @param thistype		Type of this pointer or ignore (ignore can be used if not needed)
  * @param callback		Callback function
- * 
+ *
  * @return Returns setup handle for the hook or INVALID_HANDLE.
 */
 native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, ThisPointerType thistype, DHookCallback callback);
@@ -179,7 +179,7 @@ native Handle DHookCreate(int offset, HookType hooktype, ReturnType returntype, 
  * @param type			Param type
  * @param size			Used for Objects (not Object ptr) to define the size of the object.
  * @param flag			Used to change the pass type.
- * 
+ *
  * @error	Invalid setup handle or too many params added (request upping the max in thread)
  * @noreturn
 */
@@ -187,170 +187,170 @@ native void DHookAddParam(Handle setup, HookParamType type, int size=-1, DHookPa
 //native DHookAddParam(Handle:setup, HookParamType:type);
 
 /* Hook entity
- * 
+ *
  * @param setup			Setup handle to use to add the hook.
  * @param post			True to make the hook a post hook. (If you need to change the retunr value or need the return value use a post hook! If you need to change params and return use a pre and post hook!)
  * @param entity		Entity index to hook on.
  * @param removalcb		Callback for when the hook is removed (Entity hooks are auto-removed on entity destroyed and will call this callback)
- * 
+ *
  * @error Invalid setup handle, invalid entity or invalid hook type.
  * @return -1 on fail a hookid on success
 */
 native int DHookEntity(Handle setup, bool post, int entity, DHookRemovalCB removalcb=INVALID_FUNCTION);
 
 /* Hook gamerules
- * 
+ *
  * @param setup			Setup handle to use to add the hook.
  * @param post			True to make the hook a post hook. (If you need to change the retunr value or need the return value use a post hook! If you need to change params and return use a pre and post hook!)
  * @param removalcb		Callback for when the hook is removed (Game rules hooks are auto-removed on map end and will call this callback)
- * 
+ *
  * @error Invalid setup handle, failing to get gamerules pointer or invalid hook type.
  * @return -1 on fail a hookid on success
 */
 native int DHookGamerules(Handle setup, bool post, DHookRemovalCB removalcb=INVALID_FUNCTION);
 
 /* Hook a raw pointer
- * 
+ *
  * @param setup			Setup handle to use to add the hook.
  * @param post			True to make the hook a post hook. (If you need to change the retunr value or need the return value use a post hook! If you need to change params and return use a pre and post hook!)
  * @param addr			This pointer address.
  * @param removalcb		Callback for when the hook is removed (Entity hooks are auto-removed on entity destroyed and will call this callback)
- * 
+ *
  * @error Invalid setup handle, invalid address or invalid hook type.
  * @return -1 on fail a hookid on success
 */
 native int DHookRaw(Handle setup, bool post, Address addr, DHookRemovalCB removalcb=INVALID_FUNCTION);
 
 /* Remove hook by hook id
- * 
+ *
  * @param hookid		Hook id to remove
- * 
+ *
  * @return true on success false otherwise
  * @note This will not fire the removal callback!
 */
 native bool DHookRemoveHookID(int hookid);
 
 /* Get param value (Only use for: int, entity, bool or float param types)
- * 
+ *
  * @param hParams		Handle to params structure
  * @param num			Param number to get. (Example if the function has 2 params and you need the value of the first param num would be 1. 0 Will return the number of params stored)
- * 
+ *
  * @error Invalid handle. Invalid param number. Invalid param type.
  * @return value if num greater than 0. If 0 returns paramcount.
 */
 native any DHookGetParam(Handle hParams, int num);
 
 /* Get vector param value
- * 
+ *
  * @param hParams		Handle to params structure
  * @param num			Param number to get. (Example if the function has 2 params and you need the value of the first param num would be 1.)
  * @param vec			Vector buffer to store result.
- * 
+ *
  * @error Invalid handle. Invalid param number. Invalid param type.
  * @noreturn
 */
 native void DHookGetParamVector(Handle hParams, int num, float vec[3]);
 
 /* Get string param value
- * 
+ *
  * @param hParams		Handle to params structure
  * @param num			Param number to get. (Example if the function has 2 params and you need the value of the first param num would be 1.)
  * @param buffer		String buffer to store result
  * @param size			Buffer size
- * 
+ *
  * @error Invalid handle. Invalid param number. Invalid param type.
  * @noreturn
 */
 native void DHookGetParamString(Handle hParams, int num, char[] buffer, int size);
 
 /* Set param value (Only use for: int, entity, bool or float param types)
- * 
+ *
  * @param hParams		Handle to params structure
  * @params num			Param number to set (Example if the function has 2 params and you need to set the value of the first param num would be 1.)
  * @param value			Value to set it as (only pass int, bool, float or entity index)
- * 
+ *
  * @error Invalid handle. Invalid param number. Invalid param type.
  * @noreturn
 */
 native void DHookSetParam(Handle hParams, int num, any value);
 
 /* Set vector param value
- * 
+ *
  * @param hParams		Handle to params structure
  * @params num			Param number to set (Example if the function has 2 params and you need to set the value of the first param num would be 1.)
  * @param vec			Value to set vector as.
- * 
+ *
  * @error Invalid handle. Invalid param number. Invalid param type.
  * @noreturn
 */
 native void DHookSetParamVector(Handle hParams, int num, float vec[3]);
 
 /* Set string param value
- * 
+ *
  * @param hParams		Handle to params structure
  * @params num			Param number to set (Example if the function has 2 params and you need to set the value of the first param num would be 1.)
  * @param value			Value to set string as.
- * 
+ *
  * @error Invalid handle. Invalid param number. Invalid param type.
  * @noreturn
 */
 native void DHookSetParamString(Handle hParams, int num, char[] value);
 
 /* Get return value (Only use for: int, entity, bool or float return types)
- * 
+ *
  * @param hReturn		Handle to return structure
- * 
+ *
  * @error Invalid Handle, invalid type.
  * @return Returns default value if prehook returns actual value if post hook.
 */
 native any DHookGetReturn(Handle hReturn);
 
 /* Get return vector value
- * 
+ *
  * @param hReturn		Handle to return structure
  * @param vec			Vector buffer to store result in. (In pre hooks will be default value (0.0,0.0,0.0))
- * 
+ *
  * @error Invalid Handle, invalid type.
  * @noreturn
 */
 native void DHookGetReturnVector(Handle hReturn, float vec[3]);
 
 /* Get return string value
- * 
+ *
  * @param hReturn		Handle to return structure
  * @param buffer		String buffer to store result in. (In pre hooks will be default value "")
  * @param size			String buffer size
- * 
+ *
  * @error Invalid Handle, invalid type.
  * @noreturn
 */
 native void DHookGetReturnString(Handle hReturn, char[] buffer, int size);
 
 /* Set return value (Only use for: int, entity, bool or float return types)
- * 
+ *
  * @param hReturn		Handle to return structure
  * @param value			Value to set return as
- * 
+ *
  * @error Invalid Handle, invalid type.
  * @noreturn
 */
 native void DHookSetReturn(Handle hReturn, any value);
 
 /* Set return vector value
- * 
+ *
  * @param hReturn		Handle to return structure
  * @param vec			Value to set return vector as
- * 
+ *
  * @error Invalid Handle, invalid type.
  * @noreturn
 */
 native void DHookSetReturnVector(Handle hReturn, float vec[3]);
 
 /* Set return string value
- * 
+ *
  * @param hReturn		Handle to return structure
  * @param value			Value to set return string as
- * 
+ *
  * @error Invalid Handle, invalid type.
  * @noreturn
 */
@@ -450,7 +450,7 @@ public Extension __ext_dhooks =
 };
 
 #if !defined REQUIRE_EXTENSIONS
-public __ext_dhooks_SetNTVOptional()
+public void __ext_dhooks_SetNTVOptional()
 {
 	MarkNativeAsOptional("DHookAddEntityListener");
 	MarkNativeAsOptional("DHookRemoveEntityListener");

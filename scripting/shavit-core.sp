@@ -18,6 +18,10 @@
  *
 */
 
+#pragma newdecls required
+#pragma semicolon 1
+#pragma dynamic 131072
+
 #include <sourcemod>
 #include <sdktools>
 #include <geoip>
@@ -29,10 +33,6 @@
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
-
-#pragma semicolon 1
-#pragma dynamic 131072
-#pragma newdecls required
 
 //#define DEBUG
 

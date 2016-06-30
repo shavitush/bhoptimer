@@ -18,6 +18,10 @@
  *
 */
 
+#pragma newdecls required
+#pragma semicolon 1
+#pragma dynamic 131072
+
 #include <sourcemod>
 #include <cstrike>
 #include <sdktools>
@@ -29,10 +33,6 @@
 
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
-
-#pragma semicolon 1
-#pragma dynamic 131072
-#pragma newdecls required
 
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late;
