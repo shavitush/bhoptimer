@@ -245,23 +245,15 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		return Plugin_Continue;
 	}
 
-	// I'm horrible so I couldn't make it to not require so many variables :S
-	float fTime;
-	int iJumps;
-	BhopStyle bsStyle;
-	bool bStarted;
-	Shavit_GetTimer(client, fTime, iJumps, bsStyle, bStarted);
+	bool bInStart = Shavit_InsideZone(client, Zone_Start);
 
-	if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	if(GetEntityMoveType(client) == MOVETYPE_NOCLIP && !bInStart && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
-		if(bStarted)
-		{
-			Shavit_StopTimer(client);
-		}
+		Shavit_StopTimer(client);
 	}
 
 	// prespeed
-	if(!(gI_StyleProperties[bsStyle] & STYLE_PRESPEED) && Shavit_InsideZone(client, Zone_Start))
+	if(!(gI_StyleProperties[Shavit_GetBhopStyle(client)] & STYLE_PRESPEED) && bInStart)
 	{
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
 		{
