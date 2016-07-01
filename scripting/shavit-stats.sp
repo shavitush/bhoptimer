@@ -18,16 +18,16 @@
  *
 */
 
-#pragma semicolon 1
-#pragma dynamic 131072
-#pragma newdecls required
-
 #include <sourcemod>
 
 #define USES_STYLE_NAMES
 #define USES_SHORT_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
 #include <shavit>
+
+#pragma semicolon 1
+#pragma dynamic 131072
+#pragma newdecls required
 
 // macros
 #define MAPSDONE 0

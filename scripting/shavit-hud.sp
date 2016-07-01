@@ -18,10 +18,6 @@
  *
 */
 
-#pragma newdecls required
-#pragma semicolon 1
-#pragma dynamic 131072
-
 #include <sourcemod>
 
 #define USES_STYLE_NAMES
@@ -29,6 +25,10 @@
 #define USES_STYLE_PROPERTIES
 #include <shavit>
 #include <clientprefs>
+
+#pragma newdecls required
+#pragma semicolon 1
+#pragma dynamic 131072
 
 #define HUD_NONE				(0)
 #define HUD_MASTER				(1 << 0) // master setting

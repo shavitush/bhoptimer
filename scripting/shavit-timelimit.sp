@@ -20,12 +20,12 @@
 
 // original idea from ckSurf.
 
+#include <sourcemod>
+#include <shavit>
+
 #pragma semicolon 1
 #pragma dynamic 131072
 #pragma newdecls required
-
-#include <sourcemod>
-#include <shavit>
 
 // #define DEBUG
 

@@ -18,13 +18,13 @@
  *
 */
 
-#pragma semicolon 1
-#pragma dynamic 131072
-#pragma newdecls required
-
 #include <sourcemod>
 #include <sdktools>
 #include <shavit>
+
+#pragma semicolon 1
+#pragma dynamic 131072
+#pragma newdecls required
 
 #define SOUNDS_LIMIT 64 // we really don't need more than that
 
