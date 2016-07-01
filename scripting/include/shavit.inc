@@ -52,6 +52,14 @@ enum BhopStyle(+=1)
 	Style_HSW
 };
 
+// status
+enum TimerStatus(+=1)
+{
+	Timer_Stopped = 0,
+	Timer_Running,
+	Timer_Paused
+};
+
 #if defined USES_STYLE_PROPERTIES
 #define STYLE_NONE				(0)
 #define STYLE_AUTOBHOP			(1 << 0) // enable autobhop
@@ -377,6 +385,14 @@ native void Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &styl
  * @return                          Bhop style.
  */
 native BhopStyle Shavit_GetBhopStyle(int client);
+
+/**
+ * Retrieve a client's timer status
+ *
+ * @param client					Client index.
+ * @return                          See TimerStatus enum.
+ */
+native TimerStatus Shavit_GetTimerStatus(int client);
 
 /**
  * Saves the WR time for the current map on a variable.
