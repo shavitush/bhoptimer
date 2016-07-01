@@ -246,8 +246,9 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	}
 
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
+	bool bNoclipping = GetEntityMoveType(client) == MOVETYPE_NOCLIP;
 
-	if(GetEntityMoveType(client) == MOVETYPE_NOCLIP && !bInStart && Shavit_GetTimerStatus(client) == Timer_Running)
+	if(bNoclipping && !bInStart && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
 		Shavit_StopTimer(client);
 	}
@@ -273,12 +274,17 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 			float fScale = gCV_PrespeedLimit.FloatValue / fSpeed_New;
 
-			if(fScale < 1.0 || GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+			if(bNoclipping)
+			{
+				fSpeed[2] = 0.0;
+			}
+
+			else if(fScale < 1.0)
 			{
 				ScaleVector(fSpeed, fScale);
-
-				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
 			}
+
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
 		}
 	}
 
@@ -663,14 +669,6 @@ public void Shavit_OnRestart(int client)
 	}
 }
 
-public void RestartTimer(int client)
-{
-	if(Shavit_ZoneExists(Zone_Start))
-	{
-		Shavit_RestartTimer(client);
-	}
-}
-
 public Action Respawn(Handle Timer, any client)
 {
 	if(IsValidClient(client) && !IsPlayerAlive(client))
@@ -681,6 +679,14 @@ public Action Respawn(Handle Timer, any client)
 	}
 
 	return Plugin_Handled;
+}
+
+public void RestartTimer(int client)
+{
+	if(Shavit_ZoneExists(Zone_Start))
+	{
+		Shavit_RestartTimer(client);
+	}
 }
 
 public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
