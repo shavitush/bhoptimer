@@ -449,7 +449,7 @@ native int Shavit_ZoneExists(MapZones type);
  * @param type						Mapzone type. (Check "enum MapZones")
  * @return							1 if is in the mapzone, 0 if isn't.
  */
-native int Shavit_InsideZone(int client, MapZones type);
+native bool Shavit_InsideZone(int client, MapZones type);
 
 /**
  * Pauses a player's timer.
