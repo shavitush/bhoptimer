@@ -60,9 +60,17 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	RegPluginLibrary("shavit-rankings");
+    CreateNative("Shavit_GetPoints", Native_GetPoints);
+    CreateNative("Shavit_GetRank", Native_GetRank);
+    CreateNative("Shavit_GetMapValues", Native_GetMapValues);
 
-	return APLRes_Success;
+    MarkNativeAsOptional("Shavit_GetPoints");
+    MarkNativeAsOptional("Shavit_GetRank");
+    MarkNativeAsOptional("Shavit_GetMapValues");
+
+    RegPluginLibrary("shavit-rankings");
+
+    return APLRes_Success;
 }
 
 public void OnAllPluginsLoaded()
@@ -106,6 +114,7 @@ public void OnClientPutInServer(int client)
     }
 
     gF_PlayerPoints[client] = -1.0;
+    gI_PlayerRank[client] = -1;
     gB_PointsToChat[client] = false;
 
     char[] sAuthID3 = new char[32];
@@ -701,6 +710,22 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
     {
         gI_PlayerRank[client] = results.FetchInt(0);
     }
+}
+
+public int Native_GetPoints(Handle handler, int numParams)
+{
+	return view_as<int>(gF_PlayerPoints[GetNativeCell(1)]);
+}
+
+public int Native_GetRank(Handle handler, int numParams)
+{
+	return gI_PlayerRank[GetNativeCell(1)];
+}
+
+public int Native_GetMapValues(Handle handler, int numParams)
+{
+    SetNativeCellRef(1, gF_MapPoints);
+    SetNativeCellRef(2, gF_IdealTime);
 }
 
 public Action CheckForSQLInfo(Handle Timer)

@@ -100,7 +100,7 @@ WR
 - [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
 - [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
 - [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
-- [ ] [rankings] Show points in WR menu.
+- [x] [rankings] Show points in WR menu.
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 - [ ] Use unix timestamps for future record dates.
@@ -125,7 +125,7 @@ Sounds **(NEW!)**
 Rankings **(NEW!)**
 --
 - [x] Create tables. (`mappoints`, `playerpoints`)
-- [x] Allow ROOT admins to set ideal points for map and time for the default style.
+- [x] Allow ROOT admins to set ideal points for map and time for the default style. (`sm_setpoints <time in seconds> <points>`)
 - [x] Add `sm_points`.
 - [x] Implement an algorithm that will calculate points for a record, will also take the time and style into account. Add a +25% bonus if the time is equal or better than the ideal one.
 - [x] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
@@ -134,8 +134,8 @@ Rankings **(NEW!)**
 - [x] Calculate rank for players once they connect to the server.
 - [x] Add `sm_rank`.
 - [x] Calculate points per scored time once it's added to the database.
-- [ ] Recalculate points for every record on the current map when a ROOT admin changes the point value for it.
-- [ ] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapPoints(float &points, float &idealtime)`
+- [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
+- [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 
 Chat **(NEW!)**
 --

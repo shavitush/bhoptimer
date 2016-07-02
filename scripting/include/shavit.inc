@@ -533,6 +533,33 @@ native int Shavit_GetReplayBotCurrentFrame(BhopStyle style);
 native bool Shavit_IsReplayDataLoaded(BhopStyle style);
 
 /**
+ * Gets player points.
+ *
+ * @param client					Client index.
+ * @return							Points. 0.0 if unranked and -1.0 if lookup is due.
+ */
+native float Shavit_GetPoints(int client);
+
+
+/**
+ * Gets player rank.
+ *
+ * @param client					Client index.
+ * @return							Rank. 0 if unranked and -1 if lookup is due.
+ */
+native int Shavit_GetRank(int client);
+
+/**
+ * Gets ranking values for the current map.
+ * See CalculatePoints() in shavit-rankings.
+ *
+ * @param points					Reference to map points. -1.0 if not set.
+ * @param idealtime					Reference to ideal time. 0.0 if not set.
+ * @noreturn
+ */
+native void Shavit_GetMapValues(int client);
+
+/**
  * Force an HUD update for a player. Requires shavit-hud.
  *
  * @param client					Client index.
