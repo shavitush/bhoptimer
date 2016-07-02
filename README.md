@@ -94,16 +94,16 @@ a bhop server should be simple
 - [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
 - [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
 - [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
+- [x] [rankings] Calculate points per scored time once it's added to the database.
+- [ ] [rankings] Show points in WR menu.
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 - [ ] Use unix timestamps for future record dates.
-- [ ] [rankings] Calculate points per scored time once it's added to the database.
-- [ ] [rankings] Show points in WR menu.
 
 ~ shavit-stats
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
-- [ ] Make a submenu per style, for aesthetics
-- [ ] Points implementation
+- [ ] Make a submenu per style, for aesthetics.
+- [ ] Points implementation.
 
 ~ shavit-misc
 - [x] Allow changing the prespeed limitation.
@@ -123,7 +123,7 @@ a bhop server should be simple
 - [x] Calculate points for players once they connect to the server.
 - [x] Add `sm_top` that will show the top X players, sort by points.
 - [x] Calculate rank for players once they connect to the server.
-- [ ] Add `sm_rank`.
+- [x] Add `sm_rank`.
 - [ ] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapPoints(float &points, float &idealtime)`
 - [ ] Recalculate points for every record on the current map when a ROOT admin changes the point value for it.
 

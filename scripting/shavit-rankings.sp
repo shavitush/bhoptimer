@@ -79,8 +79,10 @@ public void OnPluginStart()
 
     // player commands
     RegConsoleCmd("sm_points", Command_Points, "Prints the points and ideal time for the map.");
-    // sm_rank
+    RegConsoleCmd("sm_rank", Command_Rank, "Shows your current rank.");
+    RegConsoleCmd("sm_prank", Command_Rank, "Shows your current rank. (sm_rank alias)");
     RegConsoleCmd("sm_top", Command_Top, "Shows the top players menu.");
+    RegConsoleCmd("sm_ptop", Command_Top, "Shows the top players menu. (sm_top alias)");
 
     // admin commands
     RegAdminCmd("sm_setpoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points>");
@@ -222,6 +224,13 @@ public Action Command_Points(int client, int args)
     FormatSeconds(gF_IdealTime, sTime, 32, false);
 
     Shavit_PrintToChat(client, "\x04%s\x01: \x03%.01f\x01 points for \x05%s\x01.", sDisplayMap, gF_MapPoints, sTime);
+
+    return Plugin_Handled;
+}
+
+public Action Command_Rank(int client, int args)
+{
+    Shavit_PrintToChat(client, "You are ranked \x03%d\x01 with \x05%.02f points\x01.", gI_PlayerRank[client], gF_PlayerPoints[client]);
 
     return Plugin_Handled;
 }
