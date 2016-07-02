@@ -245,6 +245,18 @@ public Action Command_Points(int client, int args)
 
 public Action Command_Rank(int client, int args)
 {
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(gI_PlayerRank[client] <= 0 || gF_PlayerPoints[client] <= 0.0)
+	{
+		Shavit_PrintToChat(client, "You are unranked.");
+
+		return Plugin_Handled;
+	}
+
     Shavit_PrintToChat(client, "You are ranked \x03%d\x01 with \x05%.02f points\x01.", gI_PlayerRank[client], gF_PlayerPoints[client]);
 
     return Plugin_Handled;
