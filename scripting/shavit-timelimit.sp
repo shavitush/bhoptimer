@@ -52,7 +52,7 @@ public Plugin myinfo =
 	author = "shavit",
 	description = "Sets a dynamic value of mp_timelimit and mp_roundtime, based on average map times on the server.",
 	version = SHAVIT_VERSION,
-	url = "http://forums.alliedmods.net/member.php?u=163134"
+	url = "https://github.com/shavitush/bhoptimer"
 }
 
 public void OnAllPluginsLoaded()
@@ -125,7 +125,6 @@ public void SQL_SetPrefix()
 		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
 		{
 			TrimString(sLine);
-
 			strcopy(gS_MySQLPrefix, 32, sLine);
 
 			break;

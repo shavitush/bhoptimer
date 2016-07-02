@@ -41,7 +41,7 @@ public Plugin myinfo =
 	author = "shavit",
 	description = "Play custom sounds when timer-related events happen.",
 	version = SHAVIT_VERSION,
-	url = "http://forums.alliedmods.net/member.php?u=163134"
+	url = "https://github.com/shavitush/bhoptimer"
 }
 
 public void OnAllPluginsLoaded()

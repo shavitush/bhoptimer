@@ -61,12 +61,15 @@ a bhop server should be simple
 `shavit-rankings` - required for some functionality in `shavit-chat`.
 
 # Todo for 1.5b release (out of beta!)
+General
+--
 - [x] Migrate every menu to the 1.7 transitional syntax.
 - [x] Migrate DBI to the 1.7 transitional syntax.
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
 
-~ shavit-core:
+Core
+--
 - [x] Fix chat colors for CS:S.
 - [x] Add table prefix. (configs/shavit-prefix.txt)
 - [x] Add shavit_core_nostaminareset ("easybhop")
@@ -76,7 +79,8 @@ a bhop server should be simple
 - [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
 - [ ] Add bonus timer.
 
-~ shavit-hud:
+HUD
+--
 - [x] HUD toggling command. (`sm_hud`)
 - [x] Zone (start/end) HUD toggling command. (`sm_zonehud`)
 - [x] [CS:GO] Replace "- Replay Bot -" for bots with an underlined and pretty text.
@@ -85,42 +89,60 @@ a bhop server should be simple
 - [x] Show time in a "TIME/RECORD" format for replay bots.
 - [ ] Support for bonus timer.
 
-~ shavit-replay
+Replay
+--
 - [ ] Add admin interface. (delete replay data)
 - [ ] Remove replay bot data on deletion of the #1 record.
 - [ ] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
 
-~ shavit-wr
+WR
+--
 - [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
 - [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
 - [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
+- [x] [rankings] Show points in WR menu.
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 - [ ] Use unix timestamps for future record dates.
 
-~ shavit-stats
+Stats
+--
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
+- [x] Make a submenu per style, for aesthetics.
+- [x] [rankings] Points implementation.
 
-~ shavit-misc
+Miscellaneous
+--
 - [x] Allow changing the prespeed limitation.
 
-~ [NEW PLUGIN] shavit-sounds
+Sounds **(NEW!)**
+--
 - [x] Play sounds (from config file | `configs/shavit-sounds.cfg`) on new events.
 - [x] On new #1.
 - [x] On personal best.
 - [x] On map finish.
 
-~ [NEW PLUGIN] shavit-rankings:
-- [ ] Create tables. (`mappoints`, `playerpoints`)
-- [ ] Allow RCON admins to set ideal points for map and time for the default style.
-- [ ] Implement an algorithm that will calculate points for the map, will also take the time and style into account. Add a +25% bonus if the time is equal or better than the ideal one.
-- [ ] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
-- [ ] Calculate points and rank for players once they connect to the server.
-- [ ] Add `sm_top` that will show the top X players, sort by points.
-- [ ] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapPoints(float &points, float &idealtime)`
-- [ ] Add a command that recalculates points for every player in the server. To be ran when rankings are first installed for retroactivity purposes.
+Rankings **(NEW!)**
+--
+- [x] Create tables. (`mappoints`, `playerpoints`)
+- [x] Allow ROOT admins to set ideal points for map and time for the default style. (`sm_setpoints <time in seconds> <points>`)
+- [x] Add `sm_points`.
+- [x] Implement an algorithm that will calculate points for a record, will also take the time and style into account. Add a +25% bonus if the time is equal or better than the ideal one.
+- [x] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
+- [x] Calculate points for players once they connect to the server.
+- [x] Add `sm_top` that will show the top X players, sort by points.
+- [x] Calculate rank for players once they connect to the server.
+- [x] Add `sm_rank`.
+- [x] Calculate points per scored time once it's added to the database.
+- [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
+- [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 
-~ [NEW PLUGIN] shavit-chat:
-- [ ] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`.
-- [ ] Custom chat titles/colors for rank range. (will require shavit-rankings)
+Web Interface
+--
+- [x] Implement points.
+
+Chat **(NEW!)**
+--
+- [ ] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`. (might cancel this one)
+- [ ] Custom chat titles/colors for rank ranges. (will require shavit-rankings)
 - [ ] Custom chat titles/colors per individual player.

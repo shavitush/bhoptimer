@@ -33,6 +33,9 @@
 #define MAPSDONE 0
 #define MAPSLEFT 1
 
+// modules
+bool gB_Rankings = false;
+
 // database handle
 Database gH_SQL = null;
 
@@ -50,7 +53,7 @@ public Plugin myinfo =
 	author = "shavit",
 	description = "Player stats for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
-	url = "http://forums.alliedmods.net/member.php?u=163134"
+	url = "https://github.com/shavitush/bhoptimer"
 }
 
 public void OnAllPluginsLoaded()
@@ -63,14 +66,36 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	// player commands
 	RegConsoleCmd("sm_profile", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 
+	// translations
 	LoadTranslations("common.phrases");
 
+	// modules
+	gB_Rankings = LibraryExists("shavit-rankings");
+
+	// database connections
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
 	SetSQLInfo();
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = false;
+	}
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -114,7 +139,6 @@ public void SQL_SetPrefix()
 		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
 		{
 			TrimString(sLine);
-
 			strcopy(gS_MySQLPrefix, 32, sLine);
 
 			break;
@@ -168,26 +192,18 @@ public Action ShowStyleMenu(int client)
 	char[] sAuthID = new char[32];
 	GetClientAuthId(gI_Target[client], AuthId_Steam3, sAuthID, 32);
 
-	Menu m = new Menu(MenuHandler_Profile);
+	Menu m = new Menu(MenuHandler_ProfileHandler);
 	m.SetTitle("%N's profile.\nSteamID3: %s", gI_Target[client], sAuthID);
 
 	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
 	{
-		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		if(!(gI_StyleProperties[i] & STYLE_UNRANKED))
 		{
-			continue;
+			char[] sInfo = new char[4];
+			IntToString(i, sInfo, 4);
+
+			m.AddItem(sInfo, gS_BhopStyles[i]);
 		}
-
-		char[] sInfo = new char[32];
-		FormatEx(sInfo, 32, "mapsdone;%d", i);
-
-		char[] sDisplay = new char[32];
-		FormatEx(sDisplay, 32, "[%s] Maps done", gS_BhopStyles[i]);
-		m.AddItem(sInfo, sDisplay);
-
-		FormatEx(sInfo, 32, "mapsleft;%d", i);
-		FormatEx(sDisplay, 32, "[%s] Maps left", gS_BhopStyles[i]);
-		m.AddItem(sInfo, sDisplay);
 	}
 
 	// should NEVER happen
@@ -203,7 +219,7 @@ public Action ShowStyleMenu(int client)
 	return Plugin_Handled;
 }
 
-public int MenuHandler_Profile(Menu m, MenuAction action, int param1, int param2)
+public int MenuHandler_ProfileHandler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -215,11 +231,39 @@ public int MenuHandler_Profile(Menu m, MenuAction action, int param1, int param2
 		char[] sInfo = new char[32];
 		m.GetItem(param2, sInfo, 32);
 
-		char[][] sSplit = new char[2][16];
-		ExplodeString(sInfo, ";", sSplit, 2, 16);
+		gBS_Style[param1] = view_as<BhopStyle>(StringToInt(sInfo));
 
-		gI_MapType[param1] = StrEqual(sSplit[0], "mapsdone")? MAPSDONE:MAPSLEFT;
-		gBS_Style[param1] = view_as<BhopStyle>(StringToInt(sSplit[1]));
+		Menu menu = new Menu(MenuHandler_TypeHandler);
+		menu.SetTitle("[%s] Stats:", gS_ShortBhopStyles[gBS_Style[param1]]);
+
+		menu.AddItem("0", "Maps done");
+		menu.AddItem("1", "Maps left");
+
+		menu.ExitBackButton = true;
+
+		menu.Display(param1, 20);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
+
+	return 0;
+}
+
+public int MenuHandler_TypeHandler(Menu m, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		if(!IsValidClient(gI_Target[param1]))
+		{
+			return 0;
+		}
+
+		char[] sInfo = new char[32];
+		m.GetItem(param2, sInfo, 32);
+		gI_MapType[param1] = StringToInt(sInfo);
 
 		ShowMaps(param1);
 	}
@@ -268,7 +312,15 @@ public void ShowMaps(int client)
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sQuery, 256, "SELECT map, time, jumps, id FROM %splayertimes WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
+		if(gB_Rankings)
+		{
+			FormatEx(sQuery, 256, "SELECT pt.map, pt.time, pt.jumps, pt.id, pp.points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
+		}
+
+		else
+		{
+			FormatEx(sQuery, 256, "SELECT map, time, jumps, id FROM %splayertimes WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
+		}
 	}
 
 	else
@@ -318,21 +370,31 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		results.FetchString(0, sMap, 128);
 
 		char[] sRecordID = new char[16];
-
 		char[] sDisplay = new char[192];
 
 		if(gI_MapType[client] == MAPSDONE)
 		{
-			float time = results.FetchFloat(1);
-			int jumps = results.FetchInt(2);
+			float fTime = results.FetchFloat(1);
+			int iJumps = results.FetchInt(2);
 
 			char[] sTime = new char[32];
-			FormatSeconds(time, sTime, 32);
+			FormatSeconds(fTime, sTime, 32);
 
-			FormatEx(sDisplay, 192, "%s - %s (%d jumps)", sMap, sTime, jumps);
+			if(gB_Rankings)
+			{
+				char[] sPoints = new char[8];
+				results.FetchString(4, sPoints, 8);
 
-			int recordid = results.FetchInt(3);
-			IntToString(recordid, sRecordID, 16);
+				FormatEx(sDisplay, 192, "%s - %s (%s points)", sMap, sTime, sPoints);
+			}
+
+			else
+			{
+				FormatEx(sDisplay, 192, "%s - %s (%d jumps)", sMap, sTime, iJumps);
+			}
+
+			int iRecordID = results.FetchInt(3);
+			IntToString(iRecordID, sRecordID, 16);
 		}
 
 		else

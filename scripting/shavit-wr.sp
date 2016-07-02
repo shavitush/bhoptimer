@@ -31,12 +31,14 @@
 #pragma dynamic 131072
 #pragma newdecls required
 
-//#define DEBUG
+// #define DEBUG
 
-bool gB_Late;
+bool gB_Late = false;
+bool gB_Rankings = false;
 
 // forwards
 Handle gH_OnWorldRecord = null;
+Handle gH_OnFinish_Post = null;
 
 // database handle
 Database gH_SQL = null;
@@ -70,7 +72,7 @@ public Plugin myinfo =
 	author = "shavit",
 	description = "World records for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
-	url = "http://forums.alliedmods.net/member.php?u=163134"
+	url = "https://github.com/shavitush/bhoptimer"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -104,6 +106,7 @@ public void OnPluginStart()
 
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// WR command
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "Usage: sm_wr [map]");
@@ -117,6 +120,9 @@ public void OnPluginStart()
 
 	// cvars
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
+
+	// modules
+	gB_Rankings = LibraryExists("shavit-rankings");
 
 	AutoExecConfig();
 
@@ -197,13 +203,23 @@ public void OnLibraryAdded(const char[] name)
 	{
 		Shavit_GetDB(gH_SQL);
 	}
+
+	else if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
 {
 	if(StrEqual(name, "shavit"))
 	{
-		Shavit_GetDB(gH_SQL);
+		gH_SQL = null;
+	}
+
+	else if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = false;
 	}
 
 	else if(StrEqual(name, "adminmenu"))
@@ -916,7 +932,16 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 public void OpenSubMenu(int client, int id)
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%d' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
+
+	if(gB_Rankings)
+	{
+		FormatEx(sQuery, 512, "SELECT u.name, pt.time, pt.jumps, pt.style, u.auth, pt.date, pp.points FROM %splayertimes pt JOIN %susers u JOIN %splayerpoints pp ON pt.auth = u.auth AND pt.id = pp.recordid WHERE pt.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, id);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
+	}
 
 	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client));
 }
@@ -939,6 +964,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	Menu m = new Menu(SubMenu_Handler);
 
+	char[] sFormattedTitle = new char[256];
 	char[] sName = new char[MAX_NAME_LENGTH];
 	char[] sAuthID = new char[32];
 
@@ -966,6 +992,15 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[iStyle]);
 		m.AddItem("-1", sDisplay);
 
+		if(gB_Rankings)
+		{
+			// 6 - points
+			char[] sPoints = new char[16];
+			results.FetchString(6, sPoints, 16);
+			FormatEx(sDisplay, 128, "Points: %s", sPoints);
+			m.AddItem("-1", sDisplay);
+		}
+
 		// 4 - steamid3
 		results.FetchString(4, sAuthID, 32);
 
@@ -976,8 +1011,15 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		m.AddItem("-1", sDisplay);
 	}
 
-	char[] sFormattedTitle = new char[256];
-	FormatEx(sFormattedTitle, 256, "%s %s\n--- %s:", sName, sAuthID, gS_Map);
+	if(strlen(sName) > 0)
+	{
+		FormatEx(sFormattedTitle, 256, "%s %s\n--- %s:", sName, sAuthID, gS_Map);
+	}
+
+	else
+	{
+		strcopy(sFormattedTitle, 256, "ERROR");
+	}
 
 	m.SetTitle(sFormattedTitle);
 
@@ -1020,7 +1062,6 @@ public void SQL_SetPrefix()
 		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
 		{
 			TrimString(sLine);
-
 			strcopy(gS_MySQLPrefix, 32, sLine);
 
 			break;
@@ -1159,6 +1200,13 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+
+		Call_StartForward(gH_OnFinish_Post);
+		Call_PushCell(client);
+		Call_PushCell(style);
+		Call_PushCell(time);
+		Call_PushCell(jumps);
+		Call_Finish();
 	}
 
 	else if(!overwrite && !(gI_StyleProperties[style] & STYLE_UNRANKED))

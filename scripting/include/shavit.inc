@@ -141,6 +141,19 @@ char gS_ShortBhopStyles[MAX_STYLES][] =
 };
 #endif
 
+#if defined USES_STYLE_MULTIPLIERS
+// ranking system
+float gI_RankingMultipliers[MAX_STYLES] =
+{
+	1.00, // Forwards
+	1.30, // Sideways
+	1.33, // W-Only
+	1.30, // Scroll
+	1.50, // 400 Velocity
+	1.20 // HSW
+};
+#endif
+
 // map zones
 #define MULTIPLEZONES_LIMIT 32
 
@@ -287,6 +300,18 @@ forward void Shavit_OnStop(int client);
  * @noreturn
  */
 forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps);
+
+/**
+ * Like Shavit_OnFinish, but after the insertion query was called.
+ * Called from shavit-wr
+ *
+ * @param client					Client index.
+ * @param style						Style the record was done on.
+ * @param time						Record time.
+ * @param jumps						Jumps amount.
+ * @noreturn
+ */
+forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps);
 
 /**
  * Called when there's a new WR on the map.
@@ -506,6 +531,33 @@ native int Shavit_GetReplayBotCurrentFrame(BhopStyle style);
  * @return							Boolean value of if there's loaded replay data.
  */
 native bool Shavit_IsReplayDataLoaded(BhopStyle style);
+
+/**
+ * Gets player points.
+ *
+ * @param client					Client index.
+ * @return							Points. 0.0 if unranked and -1.0 if lookup is due.
+ */
+native float Shavit_GetPoints(int client);
+
+
+/**
+ * Gets player rank.
+ *
+ * @param client					Client index.
+ * @return							Rank. 0 if unranked and -1 if lookup is due.
+ */
+native int Shavit_GetRank(int client);
+
+/**
+ * Gets ranking values for the current map.
+ * See CalculatePoints() in shavit-rankings.
+ *
+ * @param points					Reference to map points. -1.0 if not set.
+ * @param idealtime					Reference to ideal time. 0.0 if not set.
+ * @noreturn
+ */
+native void Shavit_GetMapValues(int client);
 
 /**
  * Force an HUD update for a player. Requires shavit-hud.

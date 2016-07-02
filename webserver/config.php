@@ -44,3 +44,6 @@ define('DEFAULT_STYLE', 0); // 0 - forwards
 
 // amount of records that can be displayed in 'latest records'
 define('RECORD_LIMIT_LATEST', '10');
+
+// uses rankings?
+define('USES_RANKINGS', '1');
