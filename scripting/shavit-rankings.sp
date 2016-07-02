@@ -33,6 +33,9 @@
 char gS_Map[256];
 float gF_IdealTime = 0.0;
 float gF_MapPoints = -1.0;
+int gI_NeededRecordsAmount = 0;
+int gI_CachedRecordsAmount = 0;
+
 float gF_PlayerPoints[MAXPLAYERS+1];
 int gI_PlayerRank[MAXPLAYERS+1];
 bool gB_PointsToChat[MAXPLAYERS+1];
@@ -197,6 +200,9 @@ public Action Command_Calc(int args)
 
 public void OnMapStart()
 {
+    gI_NeededRecordsAmount = 0;
+    gI_CachedRecordsAmount = 0;
+
     gF_IdealTime = 0.0;
     gF_MapPoints = -1.0;
 
@@ -362,19 +368,77 @@ public void SetMapPoints(float time, float points)
 }
 
 public void SQL_SetPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (rankings module) error! Failed to insert map data to the table. Reason: %s", error);
+    {
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! Failed to insert map data to the table. Reason: %s", error);
 
-		return;
-	}
+        return;
+    }
+
+    char[] sQuery = new char[512];
+    FormatEx(sQuery, 512, "SELECT pt.id, pt.time, pt.style, mp.time, mp.points FROM %splayertimes pt JOIN %smappoints mp ON pt.map = mp.map WHERE pt.map = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
+
+    gH_SQL.Query(SQL_RetroactivePoints_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_RetroactivePoints_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! RetroactivePoints failed. Reason: %s", error);
+
+        return;
+    }
+
+    gI_NeededRecordsAmount = results.RowCount;
+
+    while(results.FetchRow())
+    {
+        float fTime = results.FetchFloat(1);
+        BhopStyle style = view_as<BhopStyle>(results.FetchInt(2));
+        float fIdealTime = results.FetchFloat(3);
+        float fMapPoints = results.FetchFloat(4);
+
+        float fPoints = CalculatePoints(fTime, style, fIdealTime, fMapPoints);
+
+        char[] sQuery = new char[256];
+        FormatEx(sQuery, 256, "REPLACE INTO %splayerpoints (recordid, points) VALUES ('%d', '%f');", gS_MySQLPrefix, results.FetchInt(0), fPoints);
+
+        gH_SQL.Query(SQL_RetroactivePoints_Callback2, sQuery, 0, DBPrio_High);
+
+        gI_CachedRecordsAmount++;
+    }
+}
+
+public void SQL_RetroactivePoints_Callback2(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! RetroactivePoints2 failed. Reason: %s", error);
+
+        return;
+    }
+
+    if(gI_CachedRecordsAmount == gI_NeededRecordsAmount)
+    {
+        for(int i = 1; i <= MaxClients; i++)
+        {
+            if(IsValidClient(i))
+            {
+                OnClientPutInServer(i);
+            }
+        }
+
+        gI_NeededRecordsAmount = 0;
+        gI_CachedRecordsAmount = 0;
+    }
 }
 
 public void UpdatePointsCache(const char[] map)
 {
-    char[] sQuery = new char[512]; // fuck workshop maps
-    FormatEx(sQuery, 512, "SELECT time, points FROM %smappoints WHERE map = '%s';", gS_MySQLPrefix, map);
+    char[] sQuery = new char[256];
+    FormatEx(sQuery, 256, "SELECT time, points FROM %smappoints WHERE map = '%s';", gS_MySQLPrefix, map);
 
     gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, 0, DBPrio_High);
 }
