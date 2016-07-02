@@ -20,12 +20,14 @@
 
 #include <sourcemod>
 
-// #define USES_STYLE_MULTIPLIERS
+#define USES_STYLE_MULTIPLIERS
 #include <shavit>
 
 #pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
+
+//#define DEBUG
 
 // cache
 char gS_Map[256];
@@ -75,13 +77,52 @@ public void OnPluginStart()
 
     // admin commands
     RegAdminCmd("sm_setpoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points>");
+
+    #if defined DEBUG
+    // debug
+    RegServerCmd("sm_calc", Command_Calc);
+    #endif
 }
+
+#if defined DEBUG
+public Action Command_Calc(int args)
+{
+    if(args != 4)
+    {
+        PrintToServer("no");
+
+        return Plugin_Handled;
+    }
+
+    char[] sArg1 = new char[32];
+    GetCmdArg(1, sArg1, 32);
+    float fTime = StringToFloat(sArg1);
+
+    char[] sArg2 = new char[32];
+    GetCmdArg(2, sArg2, 32);
+    BhopStyle style = view_as<BhopStyle>(StringToInt(sArg2));
+
+    char[] sArg3 = new char[32];
+    GetCmdArg(3, sArg3, 32);
+    float fIdealTime = StringToFloat(sArg3);
+
+    char[] sArg4 = new char[32];
+    GetCmdArg(4, sArg4, 32);
+    float fMapPoints = StringToFloat(sArg4);
+
+    PrintToServer("%.02f", CalculatePoints(fTime, style, fIdealTime, fMapPoints));
+
+    return Plugin_Handled;
+}
+#endif
 
 public void OnMapStart()
 {
+    gF_IdealTime = 0.0;
     gF_Points = -1.0;
 
     GetCurrentMap(gS_Map, 256);
+    UpdatePointsCache(gS_Map);
 }
 
 public Action Command_Points(int client, int args)
@@ -128,7 +169,14 @@ public Action Command_SetPoints(int client, int args)
 
     char[] sArg2 = new char[32];
     GetCmdArg(2, sArg2, 32);
-    float fPoints = gF_Points = StringToFloat(sArg1);
+    float fPoints = gF_Points = StringToFloat(sArg2);
+
+    if(fTime < 0.0 || fPoints < 0.0)
+    {
+        ReplyToCommand(client, "Invalid arguments: {%.01f} {%.01f}", fTime, fPoints);
+
+        return Plugin_Handled;
+    }
 
     ReplyToCommand(client, "Set \x03%.01f\x01 points for \x05%s\x01.", fPoints, sArg1);
 
@@ -153,6 +201,48 @@ public void SQL_SetPoints_Callback(Database db, DBResultSet results, const char[
 
 		return;
 	}
+}
+
+public void UpdatePointsCache(const char[] map)
+{
+    char[] sQuery = new char[512]; // fuck workshop maps
+    FormatEx(sQuery, 512, "SELECT time, points FROM %smappoints WHERE map = '%s';", gS_MySQLPrefix, map);
+
+    gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! Couldn't update points cache. Reason: %s", error);
+
+        return;
+    }
+
+    if(results.FetchRow())
+    {
+        gF_IdealTime = results.FetchFloat(0);
+        gF_Points = results.FetchFloat(1);
+    }
+}
+
+// a ***very simple*** 'aglorithm' that calculates points for a given time while taking into account the following: bhop style, ideal time and map points for the ideal time
+public float CalculatePoints(float time, BhopStyle style, float idealtime, float mappoints)
+{
+    if(gF_IdealTime < 0.0 || gF_Points < 0.0)
+    {
+        return -1.0; // something's wrong! map points might be undefined.
+    }
+
+    float points = ((mappoints / (time/idealtime)) * gI_RankingMultipliers[style]);
+
+    if(time <= idealtime)
+    {
+        points *= 1.25;
+    }
+
+    return points;
 }
 
 public Action CheckForSQLInfo(Handle Timer)
