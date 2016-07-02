@@ -120,13 +120,14 @@ a bhop server should be simple
 - [x] Add `sm_points`.
 - [x] Implement an algorithm that will calculate points for a record, will also take the time and style into account. Add a +25% bonus if the time is equal or better than the ideal one.
 - [x] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
-- [ ] Calculate points and rank for players once they connect to the server.
+- [x] Calculate points for players once they connect to the server.
+- [x] Add `sm_top` that will show the top X players, sort by points.
+- [x] Calculate rank for players once they connect to the server.
 - [ ] Add `sm_rank`.
-- [ ] Add `sm_top` that will show the top X players, sort by points.
 - [ ] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapPoints(float &points, float &idealtime)`
-- [ ] Add a command that recalculates points for every player in the server. To be ran manually when rankings are first installed for retroactivity purposes.
+- [ ] Recalculate points for every record on the current map when a ROOT admin changes the point value for it.
 
 ~ [NEW PLUGIN] shavit-chat:
-- [ ] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`.
+- [ ] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`. (might cancel this one)
 - [ ] Custom chat titles/colors for rank range. (will require shavit-rankings)
 - [ ] Custom chat titles/colors per individual player.

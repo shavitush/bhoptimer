@@ -27,14 +27,18 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
-#define DEBUG
+// #define DEBUG
 
 // cache
 char gS_Map[256];
 float gF_IdealTime = 0.0;
 float gF_MapPoints = -1.0;
 float gF_PlayerPoints[MAXPLAYERS+1];
-// float gF_PlayerRank[MAXPLAYERS+1];
+int gI_PlayerRank[MAXPLAYERS+1];
+bool gB_PointsToChat[MAXPLAYERS+1];
+
+// convars
+ConVar gCV_TopAmount = null;
 
 // database handle
 Database gH_SQL = null;
@@ -76,6 +80,7 @@ public void OnPluginStart()
     // player commands
     RegConsoleCmd("sm_points", Command_Points, "Prints the points and ideal time for the map.");
     // sm_rank
+    RegConsoleCmd("sm_top", Command_Top, "Shows the top players menu.");
 
     // admin commands
     RegAdminCmd("sm_setpoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points>");
@@ -84,6 +89,8 @@ public void OnPluginStart()
     // debug
     RegServerCmd("sm_calc", Command_Calc);
     #endif
+
+    gCV_TopAmount = CreateConVar("shavit_rankings_topamount", "100", "Amount of people to show within the sm_top menu.", 0, true, 1.0, false);
 }
 
 public void OnClientPutInServer(int client)
@@ -94,6 +101,7 @@ public void OnClientPutInServer(int client)
     }
 
     gF_PlayerPoints[client] = -1.0;
+    gB_PointsToChat[client] = false;
 
     char[] sAuthID3 = new char[32];
 
@@ -102,7 +110,7 @@ public void OnClientPutInServer(int client)
         char[] sQuery = new char[128];
         FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s';", gS_MySQLPrefix, sAuthID3);
 
-        gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client));
+        gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client), DBPrio_High);
     }
 }
 
@@ -125,6 +133,8 @@ public void SQL_GetUserPoints_Callback(Database db, DBResultSet results, const c
     if(results.FetchRow())
     {
         gF_PlayerPoints[client] = results.FetchFloat(0);
+
+        UpdatePlayerPoints(client, false);
     }
 
     else
@@ -136,7 +146,7 @@ public void SQL_GetUserPoints_Callback(Database db, DBResultSet results, const c
             char[] sQuery = new char[128];
             FormatEx(sQuery, 128, "REPLACE INTO %suserpoints (auth, points) VALUES ('%s', 0.0);", gS_MySQLPrefix, sAuthID3);
 
-            gH_SQL.Query(SQL_InsertUser_Callback, sQuery, 0);
+            gH_SQL.Query(SQL_InsertUser_Callback, sQuery, 0, DBPrio_High);
         }
     }
 }
@@ -214,6 +224,89 @@ public Action Command_Points(int client, int args)
     Shavit_PrintToChat(client, "\x04%s\x01: \x03%.01f\x01 points for \x05%s\x01.", sDisplayMap, gF_MapPoints, sTime);
 
     return Plugin_Handled;
+}
+
+public Action Command_Top(int client, int args)
+{
+    if(!IsValidClient(client))
+    {
+        return Plugin_Handled;
+    }
+
+    return ShowTopMenu(client);
+}
+
+public Action ShowTopMenu(int client)
+{
+    char[] sQuery = new char[192];
+    FormatEx(sQuery, 192, "SELECT u.name, FORMAT(up.points, 2) AS points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
+
+    gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+
+    return Plugin_Handled;
+}
+
+public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer error on ShowTopMenu. Reason: %s", error);
+
+        return;
+    }
+
+    int client = GetClientFromSerial(data);
+
+    if(client == 0)
+    {
+        return;
+    }
+
+    Menu m = new Menu(MenuHandler_TopMenu);
+    m.SetTitle("Top %d Players", gCV_TopAmount.IntValue);
+
+    if(results.RowCount == 0)
+    {
+        m.AddItem("-1", "No results.");
+    }
+
+    else
+    {
+        int count = 0;
+
+        while(results.FetchRow())
+        {
+            char[] sName = new char[MAX_NAME_LENGTH];
+            results.FetchString(0, sName, MAX_NAME_LENGTH);
+
+            char[] sPoints = new char[16];
+            results.FetchString(1, sPoints, 16);
+
+            int iRank = ++count;
+            char[] sRank = new char[6];
+            IntToString(iRank, sRank, 6); // info string for future purposes
+
+            char[] sDisplay = new char[64];
+            FormatEx(sDisplay, 64, "#%d - %s (%s points)", iRank, sName, sPoints);
+
+            m.AddItem(sRank, sDisplay);
+        }
+    }
+
+    m.ExitButton = true;
+
+    m.Display(client, 20);
+}
+
+public int MenuHandler_TopMenu(Menu m, MenuAction action, int param1, int param2)
+{
+    // eventually add some shavit-stats call here, to show the player's profile
+    if(action == MenuAction_End)
+    {
+        delete m;
+    }
+
+    return 0;
 }
 
 public Action Command_SetPoints(int client, int args)
@@ -331,7 +424,7 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
     if(fOldPB == 0.0 || time < fOldPB)
     {
         float fPoints = CalculatePoints(time, style, gF_IdealTime, gF_MapPoints);
-        Shavit_PrintToChat(client, "This record was rated \x05%.01f points\x01.", fPoints);
+        Shavit_PrintToChat(client, "This record was rated \x05%.02f points\x01.", fPoints);
         SavePoints(GetClientSerial(client), style, gS_Map, fPoints, "");
     }
 }
@@ -424,16 +517,18 @@ public void SQL_InsertPoints_Callback(Database db, DBResultSet results, const ch
 
     if(client != 0)
     {
-        UpdatePlayerPoints(client);
+        UpdatePlayerPoints(client, true);
     }
 }
 
-public void UpdatePlayerPoints(int client)
+public void UpdatePlayerPoints(int client, bool chat)
 {
     if(!IsClientAuthorized(client))
     {
         return;
     }
+
+    gB_PointsToChat[client] = chat;
 
     char[] sAuthID = new char[32];
     GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
@@ -467,10 +562,72 @@ public void SQL_UpdatePoints_Callback(Database db, DBResultSet results, const ch
 
     if(client != 0)
     {
-        Shavit_PrintToChat(client, "Total points: \x05%.02f\x01.", fPoints);
+        if(gB_PointsToChat[client])
+        {
+            Shavit_PrintToChat(client, "Total points: \x05%.02f\x01.", fPoints);
+
+            gB_PointsToChat[client] = false;
+        }
+
+        gF_PlayerPoints[client] = fPoints;
+
+        char[] sAuthID3 = new char[32];
+
+        if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+        {
+            char[] sQuery = new char[256];
+            FormatEx(sQuery, 256, "UPDATE %suserpoints SET points = '%f' WHERE auth = '%s';", gS_MySQLPrefix, fPoints, sAuthID3);
+
+            gH_SQL.Query(SQL_UpdatePointsTable_Callback, sQuery, 0, DBPrio_High);
+
+            UpdatePlayerRank(client);
+        }
+    }
+}
+
+public void SQL_UpdatePointsTable_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! UpdatePointsTable failed. Reason: %s", error);
+
+        return;
+    }
+}
+
+public void UpdatePlayerRank(int client)
+{
+    char[] sAuthID3 = new char[32];
+
+    if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+    {
+        char[] sQuery = new char[256];
+        FormatEx(sQuery, 256, "SELECT COUNT(*) AS rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s') ORDER BY up.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
+
+        gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+    }
+}
+
+public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! UpdatePlayerRank failed. Reason: %s", error);
+
+        return;
     }
 
-    // save player points somewhere in the database and cache
+    int client = GetClientFromSerial(data);
+
+    if(client == 0)
+    {
+        return;
+    }
+
+    if(results.FetchRow())
+    {
+        gI_PlayerRank[client] = results.FetchInt(0);
+    }
 }
 
 public Action CheckForSQLInfo(Handle Timer)
