@@ -33,6 +33,7 @@
 char gS_Map[256];
 float gF_IdealTime = 0.0;
 float gF_MapPoints = -1.0;
+// float gF_PlayerPoints[MAXPLAYERS+1];
 
 // database handle
 Database gH_SQL = null;
@@ -349,8 +350,53 @@ public void SQL_InsertPoints_Callback(Database db, DBResultSet results, const ch
 
     if(client != 0)
     {
-        // UpdatePlayerPoints();
+        UpdatePlayerPoints(client);
     }
+}
+
+public void UpdatePlayerPoints(int client)
+{
+    if(!IsClientAuthorized(client))
+    {
+        return;
+    }
+
+    char[] sAuthID = new char[32];
+    GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+
+    char[] sQuery = new char[256];
+    FormatEx(sQuery, 256, "SELECT points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE pt.auth = \"%s\" ORDER BY pp.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
+
+    gH_SQL.Query(SQL_UpdatePoints_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+}
+
+public void SQL_UpdatePoints_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! Update of %d (serial) points failed. Reason: %s", data, error);
+
+        return;
+    }
+
+    float fPoints = 0.0;
+    float fWeight = 1.0;
+
+    while(results.FetchRow())
+    {
+        float fFetchedPoints = results.FetchFloat(0);
+        fPoints += fFetchedPoints * fWeight;
+        fWeight *= 0.95;
+    }
+
+    int client = GetClientFromSerial(data);
+
+    if(client != 0)
+    {
+        Shavit_PrintToChat(client, "Total points: \x05%.02f\x01.", fPoints);
+    }
+
+    // save player points somewhere in the database and cache
 }
 
 public Action CheckForSQLInfo(Handle Timer)

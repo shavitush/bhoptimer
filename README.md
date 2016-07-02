@@ -119,7 +119,7 @@ a bhop server should be simple
 - [x] Allow ROOT admins to set ideal points for map and time for the default style.
 - [x] Add `sm_points`.
 - [x] Implement an algorithm that will calculate points for a record, will also take the time and style into account. Add a +25% bonus if the time is equal or better than the ideal one.
-- [ ] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
+- [x] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
 - [ ] Calculate points and rank for players once they connect to the server.
 - [ ] Add `sm_rank`.
 - [ ] Add `sm_top` that will show the top X players, sort by points.
