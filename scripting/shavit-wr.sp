@@ -33,10 +33,11 @@
 
 //#define DEBUG
 
-bool gB_Late;
+bool gB_Late = false;
 
 // forwards
 Handle gH_OnWorldRecord = null;
+Handle gH_OnFinish_Post = null;
 
 // database handle
 Database gH_SQL = null;
@@ -104,6 +105,7 @@ public void OnPluginStart()
 
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// WR command
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "Usage: sm_wr [map]");
@@ -1158,6 +1160,13 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+
+		Call_StartForward(gH_OnFinish_Post);
+		Call_PushCell(client);
+		Call_PushCell(style);
+		Call_PushCell(time);
+		Call_PushCell(jumps);
+		Call_Finish();
 	}
 
 	else if(!overwrite && !(gI_StyleProperties[style] & STYLE_UNRANKED))

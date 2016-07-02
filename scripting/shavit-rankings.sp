@@ -33,7 +33,8 @@
 char gS_Map[256];
 float gF_IdealTime = 0.0;
 float gF_MapPoints = -1.0;
-// float gF_PlayerPoints[MAXPLAYERS+1];
+float gF_PlayerPoints[MAXPLAYERS+1];
+// float gF_PlayerRank[MAXPLAYERS+1];
 
 // database handle
 Database gH_SQL = null;
@@ -83,6 +84,71 @@ public void OnPluginStart()
     // debug
     RegServerCmd("sm_calc", Command_Calc);
     #endif
+}
+
+public void OnClientPutInServer(int client)
+{
+    if(IsFakeClient(client))
+    {
+        return;
+    }
+
+    gF_PlayerPoints[client] = -1.0;
+
+    char[] sAuthID3 = new char[32];
+
+    if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+    {
+        char[] sQuery = new char[128];
+        FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s';", gS_MySQLPrefix, sAuthID3);
+
+        gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client));
+    }
+}
+
+public void SQL_GetUserPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer error on GetUserPoints. Reason: %s", error);
+
+        return;
+    }
+
+    int client = GetClientFromSerial(data);
+
+    if(client == 0)
+    {
+        return;
+    }
+
+    if(results.FetchRow())
+    {
+        gF_PlayerPoints[client] = results.FetchFloat(0);
+    }
+
+    else
+    {
+        char[] sAuthID3 = new char[32];
+
+        if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+        {
+            char[] sQuery = new char[128];
+            FormatEx(sQuery, 128, "REPLACE INTO %suserpoints (auth, points) VALUES ('%s', 0.0);", gS_MySQLPrefix, sAuthID3);
+
+            gH_SQL.Query(SQL_InsertUser_Callback, sQuery, 0);
+        }
+    }
+}
+
+public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer error on InsertUser. Reason: %s", error);
+
+        return;
+    }
 }
 
 #if defined DEBUG
@@ -225,6 +291,14 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
         gF_IdealTime = results.FetchFloat(0);
         gF_MapPoints = results.FetchFloat(1);
     }
+
+    for(int i = 1; i <= MaxClients; i++)
+    {
+        if(IsValidClient(i))
+        {
+            OnClientPutInServer(i);
+        }
+    }
 }
 
 // a ***very simple*** 'aglorithm' that calculates points for a given time while taking into account the following: bhop style, ideal time and map points for the ideal time
@@ -245,7 +319,7 @@ public float CalculatePoints(float time, BhopStyle style, float idealtime, float
     return points;
 }
 
-public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
+public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps)
 {
     #if defined DEBUG
     Shavit_PrintToChat(client, "Points: %.02f", CalculatePoints(time, style, gF_IdealTime, gF_MapPoints));
@@ -331,7 +405,7 @@ public void SQL_FindRecordID_Callback(Database db, DBResultSet results, const ch
         gH_SQL.Query(SQL_InsertPoints_Callback, sQuery, serial, DBPrio_High);
     }
 
-    else // just loop endlessly until it's in the database
+    else // just loop endlessly until it's in the database. if hosted locally, it should be instantly available!
     {
         SavePoints(serial, style, sMap, fPoints, sAuthID);
     }
@@ -462,6 +536,9 @@ public void SQL_DBConnect()
             gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 
             FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayerpoints` (`recordid` INT NOT NULL, `points` FLOAT, PRIMARY KEY (`recordid`));", gS_MySQLPrefix);
+            gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+
+            FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%suserpoints` (`auth` VARCHAR(32), `points` FLOAT, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
             gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 		}
 	}

@@ -302,6 +302,18 @@ forward void Shavit_OnStop(int client);
 forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps);
 
 /**
+ * Like Shavit_OnFinish, but after the insertion query was called.
+ * Called from shavit-wr
+ *
+ * @param client					Client index.
+ * @param style						Style the record was done on.
+ * @param time						Record time.
+ * @param jumps						Jumps amount.
+ * @noreturn
+ */
+forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps);
+
+/**
  * Called when there's a new WR on the map.
  *
  * @param client					Client index.
