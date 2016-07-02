@@ -27,12 +27,12 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
-//#define DEBUG
+#define DEBUG
 
 // cache
 char gS_Map[256];
 float gF_IdealTime = 0.0;
-float gF_Points = -1.0;
+float gF_MapPoints = -1.0;
 
 // database handle
 Database gH_SQL = null;
@@ -119,10 +119,9 @@ public Action Command_Calc(int args)
 public void OnMapStart()
 {
     gF_IdealTime = 0.0;
-    gF_Points = -1.0;
+    gF_MapPoints = -1.0;
 
     GetCurrentMap(gS_Map, 256);
-    UpdatePointsCache(gS_Map);
 }
 
 public Action Command_Points(int client, int args)
@@ -132,7 +131,7 @@ public Action Command_Points(int client, int args)
         return Plugin_Handled;
     }
 
-    if(gF_Points == -1.0)
+    if(gF_MapPoints == -1.0)
     {
         Shavit_PrintToChat(client, "Points are not defined for this map.");
 
@@ -145,7 +144,7 @@ public Action Command_Points(int client, int args)
     char[] sTime = new char[32];
     FormatSeconds(gF_IdealTime, sTime, 32, false);
 
-    Shavit_PrintToChat(client, "\x04%s\x01: \x03%.01f\x01 points for \x05%s\x01.", sDisplayMap, gF_Points, sTime);
+    Shavit_PrintToChat(client, "\x04%s\x01: \x03%.01f\x01 points for \x05%s\x01.", sDisplayMap, gF_MapPoints, sTime);
 
     return Plugin_Handled;
 }
@@ -169,7 +168,7 @@ public Action Command_SetPoints(int client, int args)
 
     char[] sArg2 = new char[32];
     GetCmdArg(2, sArg2, 32);
-    float fPoints = gF_Points = StringToFloat(sArg2);
+    float fPoints = gF_MapPoints = StringToFloat(sArg2);
 
     if(fTime < 0.0 || fPoints < 0.0)
     {
@@ -223,14 +222,14 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
     if(results.FetchRow())
     {
         gF_IdealTime = results.FetchFloat(0);
-        gF_Points = results.FetchFloat(1);
+        gF_MapPoints = results.FetchFloat(1);
     }
 }
 
 // a ***very simple*** 'aglorithm' that calculates points for a given time while taking into account the following: bhop style, ideal time and map points for the ideal time
 public float CalculatePoints(float time, BhopStyle style, float idealtime, float mappoints)
 {
-    if(gF_IdealTime < 0.0 || gF_Points < 0.0)
+    if(gF_IdealTime < 0.0 || gF_MapPoints < 0.0)
     {
         return -1.0; // something's wrong! map points might be undefined.
     }
@@ -243,6 +242,115 @@ public float CalculatePoints(float time, BhopStyle style, float idealtime, float
     }
 
     return points;
+}
+
+public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
+{
+    #if defined DEBUG
+    Shavit_PrintToChat(client, "Points: %.02f", CalculatePoints(time, style, gF_IdealTime, gF_MapPoints));
+    #endif
+
+    float fOldPB = 0.0;
+    Shavit_GetPlayerPB(client, style, fOldPB);
+
+    if(fOldPB == 0.0 || time < fOldPB)
+    {
+        float fPoints = CalculatePoints(time, style, gF_IdealTime, gF_MapPoints);
+        Shavit_PrintToChat(client, "This record was rated \x05%.01f points\x01.", fPoints);
+        SavePoints(GetClientSerial(client), style, gS_Map, fPoints, "");
+    }
+}
+
+public void SavePoints(int serial, BhopStyle style, const char[] map, float points, const char[] authid)
+{
+    char[] sAuthID = new char[32];
+
+    if(strlen(authid) == 0)
+    {
+        int client = GetClientFromSerial(serial);
+
+        if(client == 0)
+        {
+            LogError("Couldn't find client from serial %d.", serial);
+
+            return;
+        }
+
+        else
+        {
+            GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+        }
+    }
+
+    else
+    {
+        strcopy(sAuthID, 32, authid);
+    }
+
+    DataPack dp = new DataPack();
+    dp.WriteCell(serial);
+    dp.WriteString(sAuthID);
+    dp.WriteString(map);
+    dp.WriteCell(style);
+    dp.WriteCell(points);
+
+    char[] sQuery = new char[256];
+    FormatEx(sQuery, 256, "SELECT id FROM %splayertimes WHERE auth = '%s' AND map = '%s' AND style = %d;", gS_MySQLPrefix, sAuthID, map, style);
+
+    gH_SQL.Query(SQL_FindRecordID_Callback, sQuery, dp, DBPrio_Low);
+}
+
+public void SQL_FindRecordID_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    ResetPack(data);
+    int serial = ReadPackCell(data);
+
+    char[] sAuthID = new char[32];
+    ReadPackString(data, sAuthID, 32);
+
+    char[] sMap = new char[192];
+    ReadPackString(data, sMap, 192);
+
+    BhopStyle style = ReadPackCell(data);
+    float fPoints = ReadPackCell(data);
+    CloseHandle(data);
+
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! FindRecordID query failed. Reason: %s", error);
+
+        return;
+    }
+
+    if(results.FetchRow())
+    {
+        char[] sQuery = new char[256];
+        FormatEx(sQuery, 256, "REPLACE INTO %splayerpoints (recordid, points) VALUES ('%d', '%f');", gS_MySQLPrefix, results.FetchInt(0), fPoints);
+
+        gH_SQL.Query(SQL_InsertPoints_Callback, sQuery, serial, DBPrio_High);
+    }
+
+    else // just loop endlessly until it's in the database
+    {
+        SavePoints(serial, style, sMap, fPoints, sAuthID);
+    }
+}
+
+public void SQL_InsertPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! Insertion of %d (serial) points to table failed. Reason: %s", data, error);
+
+        return;
+    }
+
+    int client = GetClientFromSerial(data);
+
+    if(client != 0)
+    {
+        // UpdatePlayerPoints();
+    }
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -320,10 +428,12 @@ public void SQL_DBConnect()
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(results == null)
-	{
-		LogError("Timer (rankings module) error! Table creation failed. Reason: %s", error);
+    if(results == null)
+    {
+        LogError("Timer (rankings module) error! Table creation failed. Reason: %s", error);
 
-		return;
-	}
+        return;
+    }
+
+    UpdatePointsCache(gS_Map);
 }
