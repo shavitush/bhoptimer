@@ -168,13 +168,9 @@ $rr = isset($_REQUEST['rr']);
 
                 $results = ($rows = $stmt->num_rows) > 0;
 
-                if (USES_RANKINGS == '1')
-                {
+                if (USES_RANKINGS == '1') {
                     $stmt->bind_result($map, $name, $style, $time, $jumps, $auth, $date, $pp);
-                }
-
-                else
-                {
+                } else {
                     $stmt->bind_result($map, $name, $style, $time, $jumps, $auth, $date);
                 }
 
@@ -215,11 +211,15 @@ $rr = isset($_REQUEST['rr']);
                         ?></td>
         					<td><?php echo number_format($jumps);
                         ?></td>
-                            <td><?php if (USES_RANKINGS == '1') { echo number_format($pp, 2); } else { echo "---"; }
+                            <td><?php if (USES_RANKINGS == '1') {
+                            echo number_format($pp, 2);
+                        } else {
+                            echo '---';
+                        }
                         ?></td>
                             <td><?php
                             $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
-                            echo '<a href="https://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>';
+                        echo '<a href="https://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>';
                         ?></td>
 
         					<td><?php echo $date;
@@ -240,13 +240,9 @@ $rr = isset($_REQUEST['rr']);
 
                 $results = ($rows = $stmt->num_rows) > 0;
 
-                if (USES_RANKINGS == '1')
-                {
+                if (USES_RANKINGS == '1') {
                     $stmt->bind_result($id, $auth, $name, $time, $jumps, $date, $pp);
-                }
-
-                else
-                {
+                } else {
                     $stmt->bind_result($id, $auth, $name, $time, $jumps, $date);
                 }
 
@@ -333,7 +329,11 @@ $rr = isset($_REQUEST['rr']);
                         ?></td>
     					<td><?php echo number_format($jumps);
                         ?></td>
-                        <td><?php if (USES_RANKINGS == '1') { echo number_format($pp, 2); } else { echo "---"; }
+                        <td><?php if (USES_RANKINGS == '1') {
+                            echo number_format($pp, 2);
+                        } else {
+                            echo '---';
+                        }
                         ?></td>
                         <td><?php echo $date;
                         ?></td></tr>
