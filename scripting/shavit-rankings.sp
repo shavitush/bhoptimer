@@ -124,7 +124,7 @@ public void OnClientPutInServer(int client)
         char[] sQuery = new char[128];
         FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s';", gS_MySQLPrefix, sAuthID3);
 
-        gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+        gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
     }
 }
 
@@ -160,7 +160,7 @@ public void SQL_GetUserPoints_Callback(Database db, DBResultSet results, const c
             char[] sQuery = new char[128];
             FormatEx(sQuery, 128, "REPLACE INTO %suserpoints (auth, points) VALUES ('%s', 0.0);", gS_MySQLPrefix, sAuthID3);
 
-            gH_SQL.Query(SQL_InsertUser_Callback, sQuery, 0, DBPrio_High);
+            gH_SQL.Query(SQL_InsertUser_Callback, sQuery, 0, DBPrio_Low);
         }
     }
 }
@@ -257,9 +257,9 @@ public Action Command_Rank(int client, int args)
 		return Plugin_Handled;
 	}
 
-    Shavit_PrintToChat(client, "You are ranked \x03%d\x01 with \x05%.02f points\x01.", gI_PlayerRank[client], gF_PlayerPoints[client]);
+	Shavit_PrintToChat(client, "You are ranked \x03%d\x01 with \x05%.02f points\x01.", gI_PlayerRank[client], gF_PlayerPoints[client]);
 
-    return Plugin_Handled;
+	return Plugin_Handled;
 }
 
 public Action Command_Top(int client, int args)
@@ -277,7 +277,7 @@ public Action ShowTopMenu(int client)
     char[] sQuery = new char[192];
     FormatEx(sQuery, 192, "SELECT u.name, FORMAT(up.points, 2) AS points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
 
-    gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+    gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 
     return Plugin_Handled;
 }
@@ -385,7 +385,7 @@ public void SetMapPoints(float time, float points)
     char[] sQuery = new char[256];
     FormatEx(sQuery, 256, "REPLACE INTO %smappoints (map, time, points) VALUES ('%s', '%.01f', '%.01f');", gS_MySQLPrefix, gS_Map, time, points);
 
-    gH_SQL.Query(SQL_SetPoints_Callback, sQuery, 0, DBPrio_High);
+    gH_SQL.Query(SQL_SetPoints_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_SetPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -400,7 +400,7 @@ public void SQL_SetPoints_Callback(Database db, DBResultSet results, const char[
     char[] sQuery = new char[512];
     FormatEx(sQuery, 512, "SELECT pt.id, pt.time, pt.style, mp.time, mp.points FROM %splayertimes pt JOIN %smappoints mp ON pt.map = mp.map WHERE pt.map = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 
-    gH_SQL.Query(SQL_RetroactivePoints_Callback, sQuery, 0, DBPrio_High);
+    gH_SQL.Query(SQL_RetroactivePoints_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_RetroactivePoints_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -426,7 +426,7 @@ public void SQL_RetroactivePoints_Callback(Database db, DBResultSet results, con
         char[] sQuery = new char[256];
         FormatEx(sQuery, 256, "REPLACE INTO %splayerpoints (recordid, points) VALUES ('%d', '%f');", gS_MySQLPrefix, results.FetchInt(0), fPoints);
 
-        gH_SQL.Query(SQL_RetroactivePoints_Callback2, sQuery, 0, DBPrio_High);
+        gH_SQL.Query(SQL_RetroactivePoints_Callback2, sQuery, 0, DBPrio_Low);
 
         gI_CachedRecordsAmount++;
     }
@@ -461,7 +461,7 @@ public void UpdatePointsCache(const char[] map)
     char[] sQuery = new char[256];
     FormatEx(sQuery, 256, "SELECT time, points FROM %smappoints WHERE map = '%s';", gS_MySQLPrefix, map);
 
-    gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, 0, DBPrio_High);
+    gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -508,24 +508,24 @@ public float CalculatePoints(float time, BhopStyle style, float idealtime, float
 
 public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps)
 {
-    #if defined DEBUG
-    Shavit_PrintToChat(client, "Points: %.02f", CalculatePoints(time, style, gF_IdealTime, gF_MapPoints));
-    #endif
+	#if defined DEBUG
+	Shavit_PrintToChat(client, "Points: %.02f", CalculatePoints(time, style, gF_IdealTime, gF_MapPoints));
+	#endif
 
 	if(gF_MapPoints <= 0.0 || gF_IdealTime <= 0.0)
 	{
 		return;
 	}
 
-    float fOldPB = 0.0;
-    Shavit_GetPlayerPB(client, style, fOldPB);
+	float fOldPB = 0.0;
+	Shavit_GetPlayerPB(client, style, fOldPB);
 
-    if(fOldPB == 0.0 || time < fOldPB)
-    {
-        float fPoints = CalculatePoints(time, style, gF_IdealTime, gF_MapPoints);
-        Shavit_PrintToChat(client, "This record was rated \x05%.02f points\x01.", fPoints);
-        SavePoints(GetClientSerial(client), style, gS_Map, fPoints, "");
-    }
+	if(fOldPB == 0.0 || time < fOldPB)
+	{
+		float fPoints = CalculatePoints(time, style, gF_IdealTime, gF_MapPoints);
+		Shavit_PrintToChat(client, "This record was rated \x05%.02f points\x01.", fPoints);
+		SavePoints(GetClientSerial(client), style, gS_Map, fPoints, "");
+	}
 }
 
 public void SavePoints(int serial, BhopStyle style, const char[] map, float points, const char[] authid)
@@ -594,7 +594,7 @@ public void SQL_FindRecordID_Callback(Database db, DBResultSet results, const ch
         char[] sQuery = new char[256];
         FormatEx(sQuery, 256, "REPLACE INTO %splayerpoints (recordid, points) VALUES ('%d', '%f');", gS_MySQLPrefix, results.FetchInt(0), fPoints);
 
-        gH_SQL.Query(SQL_InsertPoints_Callback, sQuery, serial, DBPrio_High);
+        gH_SQL.Query(SQL_InsertPoints_Callback, sQuery, serial, DBPrio_Low);
     }
 
     else // just loop endlessly until it's in the database. if hosted locally, it should be instantly available!
@@ -635,7 +635,7 @@ public void UpdatePlayerPoints(int client, bool chat)
     char[] sQuery = new char[256];
     FormatEx(sQuery, 256, "SELECT points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE pt.auth = \"%s\" ORDER BY pp.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
-    gH_SQL.Query(SQL_UpdatePoints_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+    gH_SQL.Query(SQL_UpdatePoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
 
 public void SQL_UpdatePoints_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -677,7 +677,7 @@ public void SQL_UpdatePoints_Callback(Database db, DBResultSet results, const ch
             char[] sQuery = new char[256];
             FormatEx(sQuery, 256, "UPDATE %suserpoints SET points = '%f' WHERE auth = '%s';", gS_MySQLPrefix, fPoints, sAuthID3);
 
-            gH_SQL.Query(SQL_UpdatePointsTable_Callback, sQuery, 0, DBPrio_High);
+            gH_SQL.Query(SQL_UpdatePointsTable_Callback, sQuery, 0, DBPrio_Low);
 
             UpdatePlayerRank(client);
         }
@@ -703,7 +703,7 @@ public void UpdatePlayerRank(int client)
         char[] sQuery = new char[256];
         FormatEx(sQuery, 256, "SELECT COUNT(*) AS rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s') ORDER BY up.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
 
-        gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+        gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
     }
 }
 
@@ -805,13 +805,13 @@ public void SQL_DBConnect()
 		{
             char[] sQuery = new char[256];
             FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smappoints` (`map` VARCHAR(192), `time` FLOAT, `points` FLOAT, PRIMARY KEY (`map`));", gS_MySQLPrefix);
-            gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+            gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 
             FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayerpoints` (`recordid` INT NOT NULL, `points` FLOAT, PRIMARY KEY (`recordid`));", gS_MySQLPrefix);
-            gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+            gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 
             FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%suserpoints` (`auth` VARCHAR(32), `points` FLOAT, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
-            gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+            gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 		}
 	}
 
