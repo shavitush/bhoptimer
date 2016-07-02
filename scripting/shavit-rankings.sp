@@ -512,6 +512,11 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
     Shavit_PrintToChat(client, "Points: %.02f", CalculatePoints(time, style, gF_IdealTime, gF_MapPoints));
     #endif
 
+	if(gF_MapPoints <= 0.0 || gF_IdealTime <= 0.0)
+	{
+		return;
+	}
+
     float fOldPB = 0.0;
     Shavit_GetPlayerPB(client, style, fOldPB);
 
