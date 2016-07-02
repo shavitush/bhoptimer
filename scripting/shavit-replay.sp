@@ -419,6 +419,8 @@ public void SaveReplay(BhopStyle style)
 
 		fFile.WriteLine(sBuffer);
 	}
+
+	delete fFile;
 }
 
 public void OnClientPutInServer(int client)

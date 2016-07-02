@@ -35,7 +35,7 @@
 #pragma dynamic 131072
 
 bool gB_Hide[MAXPLAYERS+1];
-bool gB_Late;
+bool gB_Late = false;
 int gF_LastFlags[MAXPLAYERS+1];
 
 // cvars
