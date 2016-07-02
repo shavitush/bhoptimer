@@ -77,6 +77,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
+	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
 
 	if(late)
 	{
@@ -435,27 +436,26 @@ public void UpdateHUD(int client)
 			}
 		}
 
-		/* I give up, please someone else do it
 		float fStart = 0.0;
 		Shavit_GetReplayBotFirstFrame(bsStyle, fStart);
 
 		float fTime = GetEngineTime() - fStart;
 
-		float fWR;
+		float fWR = 0.0;
 		Shavit_GetWRTime(bsStyle, fWR);
 
-		if(fTime - 1.0 > fWR) // 1.0 - safety check
+		if(fTime > fWR || !Shavit_IsReplayDataLoaded(bsStyle))
 		{
 			PrintHintText(client, "No replay data loaded");
 
 			return;
 		}
 
-		char sWR[32];
-		FormatSeconds(fWR, sWR, 32, false);
+		char[] sTime = new char[32];
+		FormatSeconds(fTime, sTime, 32, false);
 
-		char sTime[32];
-		FormatSeconds(fTime, sTime, 32, false);*/
+		char[] sWR = new char[32];
+		FormatSeconds(fWR, sWR, 32, false);
 
 		float fSpeed[3];
 		GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
@@ -466,6 +466,7 @@ public void UpdateHUD(int client)
 		{
 			FormatEx(sHintText, 512, "<font face='Stratum2'>");
 			Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+			Format(sHintText, 512, "%s\n\tTime: <font color='#00FF00'>%s</font>/%s", sHintText, sTime, sWR);
 			Format(sHintText, 512, "%s\n\tSpeed: %.02f", sHintText, fSpeed_New);
 			Format(sHintText, 512, "%s</font>", sHintText);
 		}
@@ -473,6 +474,7 @@ public void UpdateHUD(int client)
 		else
 		{
 			FormatEx(sHintText, 512, "\t- %s Replay -", gS_BhopStyles[bsStyle], sHintText);
+			Format(sHintText, 512, "%s\nTime: %s/%s", sHintText, sTime, sWR);
 			Format(sHintText, 512, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
 		}
 

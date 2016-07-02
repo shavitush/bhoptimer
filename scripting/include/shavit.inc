@@ -437,17 +437,16 @@ native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
  * Checks if a mapzone exists.
  *
  * @param type						Mapzone type. (Check "enum MapZones")
- * @return							1 if exists, 0 if doesn't exist.
+ * @return							Boolean value.
  */
-native int Shavit_ZoneExists(MapZones type);
-// ^ I could make it return a boolean instead, but I blame SM 1.7 for not letting me :/. You can use view_as<bool>() though :D
+native bool Shavit_ZoneExists(MapZones type);
 
 /**
  * Checks if a player is inside a mapzone
  *
  * @param client					Client index.
  * @param type						Mapzone type. (Check "enum MapZones")
- * @return							1 if is in the mapzone, 0 if isn't.
+ * @return							Boolean value.
  */
 native bool Shavit_InsideZone(int client, MapZones type);
 
@@ -491,6 +490,14 @@ native int Shavit_GetReplayBotIndex(BhopStyle style);
  * @return							Current played frame.
  */
 native int Shavit_GetReplayBotCurrentFrame(BhopStyle style);
+
+/**
+ * Checks if there's loaded replay data for a bhop style or not.
+ *
+ * @param style						Bhop style.
+ * @return							Boolean value of if there's loaded replay data.
+ */
+native bool Shavit_IsReplayDataLoaded(BhopStyle style);
 
 /**
  * Force an HUD update for a player. Requires shavit-hud.
