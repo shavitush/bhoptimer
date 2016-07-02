@@ -41,15 +41,12 @@ float gF_StartTick[MAX_STYLES];
 
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
-
-float gF_Tickrate;
-
 bool gB_Record[MAXPLAYERS+1];
 
+float gF_Tickrate;
 char gS_Map[256];
 
 ConVar bot_quota = null;
-
 int gI_ExpectedBots = 0;
 
 // Plugin ConVars
@@ -298,24 +295,11 @@ public void OnMapStart()
 
 	gI_ExpectedBots = 0;
 
-	for(int i = 0; i < MAX_STYLES; i++)
-	{
-		if(ReplayEnabled(i))
-		{
-			// ServerCommand("bot_add");
-
-			gI_ExpectedBots++;
-		}
-	}
-
 	ConVar bot_join_after_player = FindConVar("bot_join_after_player");
 	bot_join_after_player.SetBool(false);
 
 	ConVar bot_chatter = FindConVar("bot_chatter");
 	bot_chatter.SetString("off");
-
-	ConVar bot_auto_vacate = FindConVar("bot_auto_vacate");
-	bot_auto_vacate.SetBool(false);
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot");
@@ -332,6 +316,7 @@ public void OnMapStart()
 			continue;
 		}
 
+		gI_ExpectedBots++;
 		gI_ReplayTick[i] = 0;
 		gA_Frames[i] = new ArrayList(5);
 
@@ -526,7 +511,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1)
 		{
-			if(gI_ReplayTick[iReplayBotStyle] >= gA_Frames[iReplayBotStyle].Length - 10)
+			if(gI_ReplayTick[iReplayBotStyle] >= gA_Frames[iReplayBotStyle].Length)
 			{
 				gI_ReplayTick[iReplayBotStyle] = -1;
 
@@ -535,21 +520,21 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Continue;
 			}
 
-			if(gI_ReplayTick[iReplayBotStyle] < 10)
+			if(gI_ReplayTick[iReplayBotStyle] == 1)
 			{
 				gF_StartTick[iReplayBotStyle] = GetEngineTime();
 			}
 
-			gI_ReplayTick[iReplayBotStyle]++;
-
 			float vecCurrentPosition[3];
-			vecCurrentPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 0);
-			vecCurrentPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 1);
-			vecCurrentPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 2);
+			vecCurrentPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
+			vecCurrentPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
+			vecCurrentPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
 
 			float vecAngles[3];
-			vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 3);
-			vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle] - 1, 4);
+			vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 3);
+			vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 4);
+
+			gI_ReplayTick[iReplayBotStyle]++;
 
 			float vecVelocity[3];
 
@@ -569,7 +554,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				ScaleVector(vecVelocity, gF_Tickrate);
 			}
 
-			if(fDistance >= 25.0)
+			if(fDistance >= 50.0)
 			{
 				TeleportEntity(client, vecCurrentPosition, vecAngles, vecVelocity);
 			}
@@ -583,15 +568,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	else if(gB_Record[client] && !Shavit_InsideZone(client, Zone_Start))
 	{
+		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
+
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[0], 0);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[1], 1);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[2], 2);
+
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+
 		gI_PlayerFrames[client]++;
-		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client]);
-
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, vecPosition[0], 0);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, vecPosition[1], 1);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, vecPosition[2], 2);
-
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, angles[0], 3);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client] - 1, angles[1], 4);
 	}
 
 	return Plugin_Continue;
