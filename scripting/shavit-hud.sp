@@ -299,27 +299,24 @@ public void UpdateHUD(int client)
 	}
 
 	char[] sHintText = new char[512];
-
-	bool bZoneHUD = false;
+	strcopy(sHintText, 512, "");
 
 	if(gI_HUDSettings[client] & HUD_ZONEHUD && gSG_Type == Game_CSGO)
 	{
 		if(Shavit_InsideZone(target, Zone_Start))
 		{
 			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_Cycle % sizeof(gS_StartColors)]);
-			bZoneHUD = true;
 		}
 
 		else if(Shavit_InsideZone(target, Zone_End))
 		{
 			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)]);
-			bZoneHUD = true;
 		}
-	}
 
-	if(bZoneHUD)
-	{
-		PrintHintText(client, sHintText);
+		if(strlen(sHintText) > 0)
+		{
+			PrintHintText(client, sHintText);
+		}
 	}
 
 	else if(gI_HUDSettings[client] & HUD_CENTER && !IsFakeClient(target))
