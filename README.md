@@ -137,6 +137,10 @@ Rankings **(NEW!)**
 - [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 
+Web Interface
+--
+- [x] Implement points.
+
 Chat **(NEW!)**
 --
 - [ ] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`. (might cancel this one)

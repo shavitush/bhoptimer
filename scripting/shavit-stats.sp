@@ -384,7 +384,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 			{
 				char[] sPoints = new char[8];
 				results.FetchString(4, sPoints, 8);
-				
+
 				FormatEx(sDisplay, 192, "%s - %s (%s points)", sMap, sTime, sPoints);
 			}
 

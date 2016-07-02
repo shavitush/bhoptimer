@@ -146,7 +146,7 @@ $rr = isset($_REQUEST['rr']);
             <h1><?php echo HEADER_TITLE;
             ?></h1>
             <p>
-                To show the records of any map, please select it using the menu at the top right of this page.<br/>
+                To view the records of any map, please select it using the menu at the top right of this page.<br/>
                 Don't forget to select a style if you wish, and then tap 'Submit'!</p>
 
             <p>
@@ -159,7 +159,7 @@ $rr = isset($_REQUEST['rr']);
             $results = false;
             $stmt = false;
 
-            if ($rr && $stmt = $connection->prepare('SELECT p.map, u.name, p.style, p.time, p.jumps, u.auth, p.date FROM '.MYSQL_PREFIX.'playertimes p JOIN (SELECT style, MIN(time) time FROM '.MYSQL_PREFIX.'playertimes GROUP BY style, map) s ON p.style = s.style AND p.time = s.time JOIN '.MYSQL_PREFIX.'users u ON p.auth = u.auth GROUP BY style, map ORDER BY date DESC;')) {
+            if ($rr && ((USES_RANKINGS == '0' && $stmt = $connection->prepare('SELECT p.map, u.name, p.style, p.time, p.jumps, u.auth, p.date FROM '.MYSQL_PREFIX.'playertimes p JOIN (SELECT style, MIN(time) time FROM '.MYSQL_PREFIX.'playertimes GROUP BY style, map) s ON p.style = s.style AND p.time = s.time JOIN '.MYSQL_PREFIX.'users u ON p.auth = u.auth GROUP BY style, map ORDER BY date DESC;')) || $stmt = $connection->prepare('SELECT pt.map, u.name, pt.style, pt.time, pt.jumps, u.auth, pt.date, pp.points FROM '.MYSQL_PREFIX.'playertimes pt JOIN '.MYSQL_PREFIX.'playerpoints pp JOIN (SELECT style, MIN(time) time FROM '.MYSQL_PREFIX.'playertimes GROUP BY style, map) s ON pt.style = s.style AND pt.time = s.time AND pt.id = pp.recordid JOIN '.MYSQL_PREFIX.'users u ON pt.auth = u.auth GROUP BY style, map ORDER BY date DESC;'))) {
                 echo $connection->error;
 
                 $stmt->execute();
@@ -168,7 +168,15 @@ $rr = isset($_REQUEST['rr']);
 
                 $results = ($rows = $stmt->num_rows) > 0;
 
-                $stmt->bind_result($map, $name, $style, $time, $jumps, $auth, $date);
+                if (USES_RANKINGS == '1')
+                {
+                    $stmt->bind_result($map, $name, $style, $time, $jumps, $auth, $date, $pp);
+                }
+
+                else
+                {
+                    $stmt->bind_result($map, $name, $style, $time, $jumps, $auth, $date);
+                }
 
                 if ($rows > 0) {
                     $records = 0;
@@ -185,6 +193,7 @@ $rr = isset($_REQUEST['rr']);
                                     <th>Style</th>
                                     <th>Time</th>
                                     <th>Jumps</th>
+                                    <th>Points</th>
                                     <th>SteamID 3</th>
                                     <th>Date <small>(YYYY-MM-DD)</small></th>
                                 </thead>
@@ -206,10 +215,11 @@ $rr = isset($_REQUEST['rr']);
                         ?></td>
         					<td><?php echo number_format($jumps);
                         ?></td>
-
+                            <td><?php if (USES_RANKINGS == '1') { echo number_format($pp, 2); } else { echo "---"; }
+                        ?></td>
                             <td><?php
                             $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
-                        echo '<a href="http://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>';
+                            echo '<a href="https://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>';
                         ?></td>
 
         					<td><?php echo $date;
@@ -222,7 +232,7 @@ $rr = isset($_REQUEST['rr']);
                         }
                     }
                 }
-            } elseif ($stmt = $connection->prepare('SELECT p.id, u.auth, u.name, p.time, p.jumps, p.date FROM '.MYSQL_PREFIX.'playertimes p JOIN '.MYSQL_PREFIX.'users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC;')) {
+            } elseif ((USES_RANKINGS == '0' && $stmt = $connection->prepare('SELECT p.id, u.auth, u.name, p.time, p.jumps, p.date FROM '.MYSQL_PREFIX.'playertimes p JOIN '.MYSQL_PREFIX.'users u ON p.auth = u.auth WHERE map = ? AND style = ? ORDER BY time ASC;')) || $stmt = $connection->prepare('SELECT pt.id, u.auth, u.name, pt.time, pt.jumps, pt.date, pp.points FROM '.MYSQL_PREFIX.'playertimes pt JOIN '.MYSQL_PREFIX.'playerpoints pp JOIN '.MYSQL_PREFIX.'users u ON pt.auth = u.auth AND pt.id = pp.recordid WHERE pt.map = ? AND pt.style = ? ORDER BY time ASC;')) {
                 $stmt->bind_param('ss', $map, $style);
                 $stmt->execute();
 
@@ -230,7 +240,15 @@ $rr = isset($_REQUEST['rr']);
 
                 $results = ($rows = $stmt->num_rows) > 0;
 
-                $stmt->bind_result($id, $auth, $name, $time, $jumps, $date);
+                if (USES_RANKINGS == '1')
+                {
+                    $stmt->bind_result($id, $auth, $name, $time, $jumps, $date, $pp);
+                }
+
+                else
+                {
+                    $stmt->bind_result($id, $auth, $name, $time, $jumps, $date);
+                }
 
                 if ($rows > 0) {
                     $first = true;
@@ -252,6 +270,7 @@ $rr = isset($_REQUEST['rr']);
     						<th>Player</th>
     						<th>Time</th>
     						<th>Jumps</th>
+    						<th>Points</th>
                             <th>Date <small>(YYYY-MM-DD)</small></th></thead>
 
     						<?php
@@ -314,6 +333,8 @@ $rr = isset($_REQUEST['rr']);
                         ?></td>
     					<td><?php echo number_format($jumps);
                         ?></td>
+                        <td><?php if (USES_RANKINGS == '1') { echo number_format($pp, 2); } else { echo "---"; }
+                        ?></td>
                         <td><?php echo $date;
                         ?></td></tr>
 
@@ -353,7 +374,7 @@ $rr = isset($_REQUEST['rr']);
   <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
   <link rel="stylesheet" href="assets/css/ie10-viewport-bug-workaround.css">
 
-  <!-- Custom styles for this template, if we'll ever use it -->
+  <!-- Custom styles for this template -->
   <?php
   if (PAGE_STYLE == '0') {
       echo '<link rel="stylesheet" href="timer.css">';
