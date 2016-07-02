@@ -312,11 +312,11 @@ public void UpdateHUD(int client)
 		{
 			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)]);
 		}
+	}
 
-		if(strlen(sHintText) > 0)
-		{
-			PrintHintText(client, sHintText);
-		}
+	if(strlen(sHintText) > 0)
+	{
+		PrintHintText(client, sHintText);
 	}
 
 	else if(gI_HUDSettings[client] & HUD_CENTER && !IsFakeClient(target))
