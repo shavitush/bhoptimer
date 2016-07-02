@@ -1125,12 +1125,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07D490CF%s\x01 with %d jumps.", client, gS_BhopStyles[style], sTime, jumps);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 with %d jumps.", client, gS_BhopStyles[style], sTime, jumps);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps.", client, gS_BhopStyles[style], sTime, jumps);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 with %d jumps.", client, gS_BhopStyles[style], sTime, jumps);
 			}
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
@@ -1147,12 +1147,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07D490CF%s\x01 with %d jumps. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, jumps, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 with %d jumps. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, jumps, sDifference);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) on \x07%s\x01 with %d jumps. \x0C(%s)", client, gS_BhopStyles[style], sTime, jumps, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 with %d jumps. \x0C(%s)", client, gS_BhopStyles[style], sTime, jumps, sDifference);
 			}
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, gS_Map, sAuthID, style);
@@ -1165,12 +1165,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		if(sGame == Game_CSS)
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) on \x07D490CF%s\x01 with %d jumps. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jumps. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, sDifference);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) on \x07%s\x01 with %d jumps. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jumps. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, sDifference);
 		}
 	}
 
@@ -1178,12 +1178,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		if(sGame == Game_CSS)
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) on \x07D490CF%s\x01 with %d jumps.", gS_BhopStyles[style], sTime, jumps);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jumps.", gS_BhopStyles[style], sTime, jumps);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) on \x07%s\x01 with %d jumps.", gS_BhopStyles[style], sTime, jumps);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jumps.", gS_BhopStyles[style], sTime, jumps);
 		}
 	}
 }
