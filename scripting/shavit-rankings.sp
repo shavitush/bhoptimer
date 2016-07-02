@@ -30,7 +30,7 @@
 // cache
 char gS_Map[256];
 float gF_IdealTime = 0.0;
-float gF_Points = 0.0;
+float gF_Points = -1.0;
 
 // database handle
 Database gH_SQL = null;
@@ -70,7 +70,7 @@ public void OnPluginStart()
     SetSQLInfo();
 
     // player commands
-    // sm_points
+    RegConsoleCmd("sm_points", Command_Points, "Prints the points and ideal time for the map.");
     // sm_rank
 
     // admin commands
@@ -79,14 +79,41 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
+    gF_Points = -1.0;
+
     GetCurrentMap(gS_Map, 256);
+}
+
+public Action Command_Points(int client, int args)
+{
+    if(!IsValidClient(client))
+    {
+        return Plugin_Handled;
+    }
+
+    if(gF_Points == -1.0)
+    {
+        Shavit_PrintToChat(client, "Points are not defined for this map.");
+
+        return Plugin_Handled;
+    }
+
+    char[] sDisplayMap = new char[strlen(gS_Map)];
+    GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map));
+
+    char[] sTime = new char[32];
+    FormatSeconds(gF_IdealTime, sTime, 32, false);
+
+    Shavit_PrintToChat(client, "\x04%s\x01: \x03%.01f\x01 points for \x05%s\x01.", sDisplayMap, gF_Points, sTime);
+
+    return Plugin_Handled;
 }
 
 public Action Command_SetPoints(int client, int args)
 {
     if(args != 2)
     {
-        char sArg0[32];
+        char[] sArg0 = new char[32];
         GetCmdArg(0, sArg0, 32);
 
         ReplyToCommand(client, "Usage: %s <time in seconds> <points>", sArg0);
@@ -94,16 +121,16 @@ public Action Command_SetPoints(int client, int args)
         return Plugin_Handled;
     }
 
-    char sArg1[32];
+    char[] sArg1 = new char[32];
     GetCmdArg(1, sArg1, 32);
     float fTime = gF_IdealTime = StringToFloat(sArg1);
     FormatSeconds(fTime, sArg1, 32, false);
 
-    char sArg2[32];
+    char[] sArg2 = new char[32];
     GetCmdArg(2, sArg2, 32);
     float fPoints = gF_Points = StringToFloat(sArg1);
 
-    ReplyToCommand(client, "Set \x03%.02f\x01 points for \x05%s\x01.", fPoints, sArg1);
+    ReplyToCommand(client, "Set \x03%.01f\x01 points for \x05%s\x01.", fPoints, sArg1);
 
     SetMapPoints(fTime, fPoints);
 
@@ -113,7 +140,7 @@ public Action Command_SetPoints(int client, int args)
 public void SetMapPoints(float time, float points)
 {
     char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "REPLACE INTO %smappoints (map, time, points) VALUES ('%s', '%.02f', '%.02f');", gS_MySQLPrefix, gS_Map, time, points);
+    FormatEx(sQuery, 256, "REPLACE INTO %smappoints (map, time, points) VALUES ('%s', '%.01f', '%.01f');", gS_MySQLPrefix, gS_Map, time, points);
 
     gH_SQL.Query(SQL_SetPoints_Callback, sQuery, 0, DBPrio_High);
 }
