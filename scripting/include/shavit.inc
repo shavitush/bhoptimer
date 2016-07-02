@@ -451,6 +451,14 @@ native bool Shavit_ZoneExists(MapZones type);
 native bool Shavit_InsideZone(int client, MapZones type);
 
 /**
+ * Checks if a player is in the process of creating a mapzone.
+ *
+ * @param client					Client index.
+ * @return							Boolean value.
+ */
+native bool Shavit_IsClientCreatingZone(int client);
+
+/**
  * Pauses a player's timer.
  *
  * @param client					Client index.

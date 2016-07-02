@@ -122,9 +122,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// zone natives
 	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
+	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
 
 	MarkNativeAsOptional("Shavit_ZoneExists");
 	// MarkNativeAsOptional("Shavit_InsideZone"); // called in shavit-core
+	MarkNativeAsOptional("Shavit_IsClientCreatingZone"); // called in shavit-core
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-zones");
@@ -287,6 +289,13 @@ public int Native_InsideZone(Handle handler, int numParams)
 	}
 
 	return view_as<int>(InsideZone(client, view_as<int>(type)));
+}
+
+public int Native_IsClientCreatingZone(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	return (gI_MapStep[client] != 0);
 }
 
 public void SetupColors()

@@ -45,6 +45,7 @@
 ServerGame gSG_Type = Game_Unknown;
 
 bool gB_Replay = false;
+bool gB_Zones = false;
 
 char gS_StartColors[][] =
 {
@@ -78,6 +79,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
+	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 
 	if(late)
 	{
@@ -114,6 +116,7 @@ public void OnPluginStart()
 {
 	// prevent errors in case the replay bot isn't loaded
 	gB_Replay = LibraryExists("shavit-replay");
+	gB_Zones = LibraryExists("shavit-zones");
 
 	CreateTimer(0.1, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 
@@ -226,6 +229,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Replay = true;
 	}
+
+	else if(StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -233,6 +241,11 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "shavit-replay"))
 	{
 		gB_Replay = false;
+	}
+
+	else if(StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = false;
 	}
 }
 
@@ -271,7 +284,7 @@ public void TriggerHUDUpdate(int client)
 	UpdateHUD(client);
 	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", gI_HUDSettings[client] & HUD_HIDEWEAPON? 0:1);
 
-	if((GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel) && (gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS))
+	if((!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel) && (gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS))
 	{
 		bool bShouldDraw = false;
 		Panel pHUD = new Panel();
