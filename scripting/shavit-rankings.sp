@@ -324,7 +324,7 @@ public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const cha
 
 public int MenuHandler_TopMenu(Menu m, MenuAction action, int param1, int param2)
 {
-    // eventually add some shavit-stats call here, to show the player's profile
+    // *eventually* add some shavit-stats call here, to show the player's profile
     if(action == MenuAction_End)
     {
         delete m;

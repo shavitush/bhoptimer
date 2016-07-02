@@ -108,8 +108,8 @@ WR
 Stats
 --
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
-- [ ] Make a submenu per style, for aesthetics.
-- [ ] Points implementation.
+- [x] Make a submenu per style, for aesthetics.
+- [x] [rankings] Points implementation.
 
 Miscellaneous
 --
