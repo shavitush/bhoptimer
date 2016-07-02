@@ -46,19 +46,17 @@ ServerGame gSG_Type = Game_Unknown;
 
 bool gB_Replay = false;
 
-int gI_StartCycle = 0;
-
 char gS_StartColors[][] =
 {
 	"ff0000", "ff4000", "ff7f00", "ffbf00", "ffff00", "00ff00", "00ff80", "00ffff", "0080ff", "0000ff"
 };
 
-int gI_EndCycle = 0;
-
 char gS_EndColors[][] =
 {
 	"ff0000", "ff4000", "ff7f00", "ffaa00", "ffd400", "ffff00", "bba24e", "77449c"
 };
+
+int gI_Cycle = 0;
 
 Handle gH_HUDCookie = null;
 int gI_HUDSettings[MAXPLAYERS+1];
@@ -249,21 +247,9 @@ public void OnConfigsExecuted()
 
 public Action UpdateHUD_Timer(Handle Timer)
 {
-	if(gSG_Type == Game_CSGO)
+	if(++gI_Cycle >= 65535) // i *think* sourcemod can memory leak somehow, i prefer to just reset it every once in a while
 	{
-		gI_StartCycle++;
-
-		if(gI_StartCycle > (sizeof(gS_StartColors) - 1))
-		{
-			gI_StartCycle = 0;
-		}
-
-		gI_EndCycle++;
-
-		if(gI_EndCycle > (sizeof(gS_EndColors) - 1))
-		{
-			gI_EndCycle = 0;
-		}
+		gI_Cycle = 0;
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -320,13 +306,13 @@ public void UpdateHUD(int client)
 	{
 		if(Shavit_InsideZone(target, Zone_Start))
 		{
-			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_StartCycle]);
+			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_Cycle % sizeof(gS_StartColors)]);
 			bZoneHUD = true;
 		}
 
 		else if(Shavit_InsideZone(target, Zone_End))
 		{
-			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_EndCycle]);
+			FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)]);
 			bZoneHUD = true;
 		}
 	}
