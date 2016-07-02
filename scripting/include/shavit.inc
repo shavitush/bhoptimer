@@ -141,6 +141,19 @@ char gS_ShortBhopStyles[MAX_STYLES][] =
 };
 #endif
 
+#if defined USES_STYLE_MULTIPLIERS
+// ranking system
+float gI_RankingMultipliers[MAX_STYLES] =
+{
+	1.00, // Forwards
+	1.30, // Sideways
+	1.33, // W-Only
+	1.30, // Scroll
+	1.50, // 400 Velocity
+	1.20 // HSW
+};
+#endif
+
 // map zones
 #define MULTIPLEZONES_LIMIT 32
 

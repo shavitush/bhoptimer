@@ -97,9 +97,12 @@ a bhop server should be simple
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 - [ ] Use unix timestamps for future record dates.
+- [ ] [rankings] Calculate points per scored time once it's added to the database.
+- [ ] [rankings] Show points in WR menu.
 
 ~ shavit-stats
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
+- [ ] Points implementation
 
 ~ shavit-misc
 - [x] Allow changing the prespeed limitation.
@@ -111,9 +114,10 @@ a bhop server should be simple
 - [x] On map finish.
 
 ~ [NEW PLUGIN] shavit-rankings:
-- [ ] Create tables. (`mappoints`, `playerpoints`)
-- [ ] Allow RCON admins to set ideal points for map and time for the default style.
-- [ ] Implement an algorithm that will calculate points for the map, will also take the time and style into account. Add a +25% bonus if the time is equal or better than the ideal one.
+- [x] Create tables. (`mappoints`, `playerpoints`)
+- [x] Allow ROOT admins to set ideal points for map and time for the default style.
+- [ ] Add `sm_points`.
+- [ ] Implement an algorithm that will calculate points for the current map, will also take the time and style into account. Add a +25% bonus if the time is equal or better than the ideal one.
 - [ ] Use a weighting system for points calculation. The highest ranked time will be weighted 100% and worse times will be weighted as 5% less each time.
 - [ ] Calculate points and rank for players once they connect to the server.
 - [ ] Add `sm_top` that will show the top X players, sort by points.

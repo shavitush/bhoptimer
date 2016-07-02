@@ -114,7 +114,7 @@ public Plugin myinfo =
 	author = "shavit", // reminder: add ~big big big~ HUGE thanks to blacky < done
 	description = "Map zones for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
-	url = "http://forums.alliedmods.net/member.php?u=163134"
+	url = "https://github.com/shavitush/bhoptimer"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -1733,7 +1733,6 @@ public void SQL_SetPrefix()
 		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
 		{
 			TrimString(sLine);
-
 			strcopy(gS_MySQLPrefix, 32, sLine);
 
 			break;

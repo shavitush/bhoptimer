@@ -72,7 +72,7 @@ bool gB_HUD = false;
 
 // cvars
 ConVar gCV_Autobhop = null;
-ConVar gCV_Leftright = null;
+ConVar gCV_LeftRight = null;
 ConVar gCV_Restart = null;
 ConVar gCV_Pause = null;
 ConVar gCV_NoStaminaReset = null;
@@ -88,7 +88,7 @@ public Plugin myinfo =
 	author = "shavit",
 	description = "The core for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
-	url = "http://forums.alliedmods.net/member.php?u=163134"
+	url = "https://github.com/shavitush/bhoptimer"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -210,7 +210,7 @@ public void OnPluginStart()
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 
 	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?\nWill be forced to not work if STYLE_AUTOBHOP is not defined for a style!", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	gCV_Leftright = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", 0, true, 0.0, true, 1.0);
+	gCV_LeftRight = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", 0, true, 0.0, true, 1.0);
 	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
 	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
 	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.\nWill be forced to not work if STYLE_EASYBHOP is not defined for a style!", 0, true, 0.0, true, 1.0);
@@ -769,7 +769,7 @@ public void OnClientPutInServer(int client)
 	char[] sCountry = new char[45];
 	GeoipCountry(sIP, sCountry, 45);
 
-	if(StrEqual(sCountry, ""))
+	if(strlen(sCountry) == 0)
 	{
 		strcopy(sCountry, 45, "Local Area Network");
 	}
@@ -819,7 +819,6 @@ public void SQL_SetPrefix()
 		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
 		{
 			TrimString(sLine);
-
 			strcopy(gS_MySQLPrefix, 32, sLine);
 
 			break;
@@ -898,7 +897,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 
-	if(gCV_Leftright.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT)))
+	if(gCV_LeftRight.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !Shavit_InsideZone(client, Zone_Start) && (buttons & IN_LEFT || buttons & IN_RIGHT)))
 	{
 		Shavit_StopTimer(client);
 		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");

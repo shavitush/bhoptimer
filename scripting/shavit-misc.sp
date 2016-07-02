@@ -58,7 +58,7 @@ public Plugin myinfo =
 	author = "shavit",
 	description = "Miscellaneous stuff for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
-	url = "http://forums.alliedmods.net/member.php?u=163134"
+	url = "https://github.com/shavitush/bhoptimer"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
