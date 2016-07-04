@@ -209,13 +209,13 @@ public Action Command_Calc(int args)
 
 public void OnMapStart()
 {
-    gI_NeededRecordsAmount = 0;
-    gI_CachedRecordsAmount = 0;
+	gI_NeededRecordsAmount = 0;
+	gI_CachedRecordsAmount = 0;
 
-    gF_IdealTime = 0.0;
-    gF_MapPoints = -1.0;
+	gF_IdealTime = 0.0;
+	gF_MapPoints = -1.0;
 
-    GetCurrentMap(gS_Map, 256);
+	GetCurrentMap(gS_Map, 256);
 	UpdatePointsCache(gS_Map);
 }
 
