@@ -511,17 +511,20 @@ public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	int buttons = GetClientButtons(target);
 
+	float fSpeed[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+
 	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
 
 	if(gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) // don't include [JUMP] for autobhop styles
 	{
-		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", buttons & IN_DUCK? "DUCK":"----", (buttons & IN_FORWARD || fSpeed[0] > 0)? "W":"-", (buttons & IN_MOVELEFT || fSpeed[1] < 0)? "A":"-", (buttons & IN_BACK || fSpeed[0] < 0)? "S":"-", (buttons & IN_MOVERIGHT || fSpeed[1] > 0)? "D":"-");
 	}
 
 	else
 	{
-		FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", buttons & IN_JUMP? "JUMP":"----", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+		FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", buttons & IN_JUMP? "JUMP":"----", buttons & IN_DUCK? "DUCK":"----", (buttons & IN_FORWARD || fSpeed[0] > 0)? "W":"-", (buttons & IN_MOVELEFT || fSpeed[1] < 0)? "A":"-", (buttons & IN_BACK || fSpeed[0] < 0)? "S":"-", (buttons & IN_MOVERIGHT || fSpeed[1] > 0)? "D":"-");
 	}
 
 	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
