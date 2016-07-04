@@ -216,6 +216,7 @@ public void OnMapStart()
     gF_MapPoints = -1.0;
 
     GetCurrentMap(gS_Map, 256);
+	UpdatePointsCache(gS_Map);
 }
 
 public Action Command_Points(int client, int args)
