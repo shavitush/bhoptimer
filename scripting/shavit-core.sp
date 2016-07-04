@@ -62,6 +62,7 @@ BhopStyle gBS_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 bool gB_OnGround[MAXPLAYERS+1];
 bool gB_TriggerJump[MAXPLAYERS+1];
+float gF_HSW_Requirement = 0.0;
 
 // late load
 bool gB_Late = false;
@@ -152,11 +153,13 @@ public void OnPluginStart()
 	if(evType == Engine_CSS)
 	{
 		gSG_Type = Game_CSS;
+		gF_HSW_Requirement = 399.00;
 	}
 
 	else if(evType == Engine_CSGO)
 	{
 		gSG_Type = Game_CSGO;
+		gF_HSW_Requirement = 449.00;
 	}
 
 	else
@@ -941,7 +944,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 
 			// HSW
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY && (vel[0] == 0.0 || !((vel[0] > 0 || buttons & IN_FORWARD) && ((vel[1] < 0 || buttons & IN_MOVELEFT) || (vel[1] > 0 || buttons & IN_MOVERIGHT)))))
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY && ((vel[0] < gF_HSW_Requirement && vel[0] > -gF_HSW_Requirement) || !((vel[0] > 0 || buttons & IN_FORWARD) && ((vel[1] < 0 || buttons & IN_MOVELEFT) || (vel[1] > 0 || buttons & IN_MOVERIGHT)))))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;

@@ -88,6 +88,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_GetWRTime");
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
+	MarkNativeAsOptional("Shavit_GetMapValues");
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
@@ -943,7 +944,7 @@ public void OpenSubMenu(int client, int id)
 		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 	}
 
-	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
 public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1080,7 +1081,7 @@ public void SQL_DBConnect()
 			char[] sQuery = new char[256];
 			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` DATE, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
-			gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+			gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 		}
 	}
 

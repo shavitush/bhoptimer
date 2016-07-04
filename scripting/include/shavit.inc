@@ -557,7 +557,7 @@ native int Shavit_GetRank(int client);
  * @param idealtime					Reference to ideal time. 0.0 if not set.
  * @noreturn
  */
-native void Shavit_GetMapValues(int client);
+native void Shavit_GetMapValues(float &points, float &idealtime);
 
 /**
  * Force an HUD update for a player. Requires shavit-hud.
