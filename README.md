@@ -57,9 +57,9 @@ a bhop server should be simple
 
 # Required plugins:
 `shavit-core` - no other plugin will work without it.  
-`shavit-zones` - required for server functionality and for `shavit-misc`.  
+`shavit-zones` - required for `shavit-core` and for `shavit-misc`.  
 `shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-sounds`, `shavit-stats` and `shavit-rankings`.  
-`shavit-rankings` - required for some functionality in `shavit-chat`.
+`shavit-rankings` - required for `shavit-chat`.
 
 # Todo for 1.5b release (out of beta!)
 General
