@@ -24,6 +24,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <basecomm>
+#include <rtler>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -31,9 +32,11 @@
 
 // cache
 float gF_LastMessage[MAXPLAYERS+1];
+KeyValues gKV_Chat = null;
 
 // modules
 bool gB_BaseComm = false;
+bool gB_RTLer = false;
 
 // game-related
 ServerGame gSG_Type = Game_Unknown;
@@ -59,7 +62,7 @@ public void OnAllPluginsLoaded()
 
     // modules
     gB_BaseComm = LibraryExists("basecomm");
-    MarkNativeAsOptional("BaseComm_IsClientGagged");
+    gB_RTLer = LibraryExists("rtler");
 }
 
 public void OnPluginStart()
@@ -68,11 +71,71 @@ public void OnPluginStart()
     {
         OnClientPutInServer(i); // late loading
     }
+
+    RegAdminCmd("sm_reloadchat", Command_ReloadChat, ADMFLAG_ROOT, "Reload chat config.");
+}
+
+public void OnMapStart()
+{
+    LoadConfig();
 }
 
 public void OnClientPutInServer(int client)
 {
     gF_LastMessage[client] = GetEngineTime();
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+    if(StrEqual(name, "basecomm"))
+    {
+        gB_BaseComm = true;
+    }
+
+    else if(StrEqual(name, "rtler"))
+    {
+        gB_RTLer = true;
+    }
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+    if(StrEqual(name, "basecomm"))
+    {
+        gB_BaseComm = false;
+    }
+
+    else if(StrEqual(name, "rtler"))
+    {
+        gB_RTLer = false;
+    }
+}
+
+public void LoadConfig()
+{
+    if(gKV_Chat != null)
+    {
+    delete gKV_Chat;
+    }
+
+    gKV_Chat = new KeyValues("Chat");
+
+    char[] sFile = new char[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-chat.cfg");
+
+    if(!gKV_Chat.ImportFromFile(sFile))
+    {
+        SetFailState("File %s could not be found or accessed.", sFile);
+    }
+}
+
+public Action Command_ReloadChat(int client, int args)
+{
+    LoadConfig();
+
+    ReplyToCommand(client, "Config reloaded.");
+
+    return Plugin_Handled;
 }
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
@@ -151,7 +214,20 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
         }
     }
 
-    FormatEx(buffer, maxlen, " \x03%s%s %N :\x01  %s", Shavit_GetRank(client), (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD*", sTeam, client, sMessage);
+    bool bUseFormattedText = false;
+
+    char[] sFormattedText = new char[maxlen];
+    strcopy(sFormattedText, maxlen, sMessage);
+
+    if(gB_RTLer)
+    {
+        if(RTLify(sFormattedText, maxlen, sMessage) > 0)
+        {
+            bUseFormattedText = true;
+        }
+    }
+
+    FormatEx(buffer, maxlen, " \x03%s%s %N :\x01  %s", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD*", sTeam, client, bUseFormattedText? sFormattedText:sMessage);
 }
 
 public void ChatMessage(int from, int[] clients, int count, const char[] sMessage)

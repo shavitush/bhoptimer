@@ -13,9 +13,11 @@ a bhop server should be simple
 # Requirements:
 * [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
+* [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat`.
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
+* [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) - required for properly formatted RTL text within `shavit-chat``
 
 #  Installation:
 1. Add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit"
@@ -145,8 +147,9 @@ Web Interface
 Chat **(NEW!)**
 --
 - [x] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`.
+- [ס] [RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) support.
+- [ ] Custom chat titles/colors per individual player.
 - [ ] Custom chat titles/colors for rank ranges.
 - [ ] Add `sm_ranks` `sm_chatranks`
-- [ ] Custom chat titles/colors per individual player.
 - [ ] Add `Shavit_FormatChat` native
 - [ ] Optional - add server/player local time to chat message.
