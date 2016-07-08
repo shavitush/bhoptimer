@@ -713,6 +713,16 @@ public Action Player_Team(Event event, const char[] name, bool dontBroadcast)
 	return Plugin_Continue;
 }
 
+public Action CS_OnTerminateRound(float &delay, CSRoundEndReason &reason)
+{
+	if(reason == CSRoundEnd_GameStart && (gCV_RespawnOnTeam.BoolValue || gCV_RespawnOnRestart.BoolValue))
+	{
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
 /**
  * From SMLib
  *
