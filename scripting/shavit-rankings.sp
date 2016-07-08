@@ -106,7 +106,10 @@ public void OnPluginStart()
 	RegServerCmd("sm_calc", Command_Calc);
 	#endif
 
+	// cvars
 	gCV_TopAmount = CreateConVar("shavit_rankings_topamount", "100", "Amount of people to show within the sm_top menu.", 0, true, 1.0, false);
+
+	AutoExecConfig();
 }
 
 public void OnClientPutInServer(int client)
