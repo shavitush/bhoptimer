@@ -97,22 +97,6 @@ public void OnPluginStart()
 	// let's fix issues with phrases :D
 	LoadTranslations("common.phrases");
 
-	// CS:GO weapon cleanup
-	if(Shavit_GetGameType() == Game_CSGO)
-	{
-		ConVar hDeathDropGun = FindConVar("mp_death_drop_gun");
-
-		if(hDeathDropGun != null)
-		{
-			hDeathDropGun.SetBool(false);
-		}
-
-		else
-		{
-			LogError("idk what's wrong but for some reason, your CS:GO server is missing the \"mp_death_drop_gun\" cvar. go find what's causing it because I dunno");
-		}
-	}
-
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
 	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone?\n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.", 0, true, 0.0, true, 3.0);
