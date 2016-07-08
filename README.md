@@ -145,7 +145,8 @@ Web Interface
 Chat **(NEW!)**
 --
 - [x] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`.
-- [ ] Custom chat titles/colors for rank ranges. (will require shavit-rankings)
+- [ ] Custom chat titles/colors for rank ranges.
+- [ ] Add `sm_ranks` `sm_chatranks`
 - [ ] Custom chat titles/colors per individual player.
 - [ ] Add `Shavit_FormatChat` native
 - [ ] Optional - add server/player local time to chat message.

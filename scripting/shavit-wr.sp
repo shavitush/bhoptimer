@@ -98,6 +98,12 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
+public void OnAllPluginsLoaded()
+{
+	// modules
+	gB_Rankings = LibraryExists("shavit-rankings");
+}
+
 public void OnPluginStart()
 {
 	// debug because I was making this all by myself and no one wanted to help me *sniff*
@@ -121,9 +127,6 @@ public void OnPluginStart()
 
 	// cvars
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
-
-	// modules
-	gB_Rankings = LibraryExists("shavit-rankings");
 
 	AutoExecConfig();
 

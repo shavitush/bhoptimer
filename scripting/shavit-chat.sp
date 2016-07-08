@@ -22,12 +22,20 @@
 #include <cstrike>
 #include <shavit>
 
+#undef REQUIRE_PLUGIN
+#include <basecomm>
+
 #pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
 
+// cache
 float gF_LastMessage[MAXPLAYERS+1];
 
+// modules
+bool gB_BaseComm = false;
+
+// game-related
 ServerGame gSG_Type = Game_Unknown;
 
 public Plugin myinfo =
@@ -48,6 +56,10 @@ public void OnAllPluginsLoaded()
 
     // placed here and not in OnPluginStart() as `chat` is coming before `core` if sorted alphabetically
     gSG_Type = Shavit_GetGameType();
+
+    // modules
+    gB_BaseComm = LibraryExists("basecomm");
+    MarkNativeAsOptional("BaseComm_IsClientGagged");
 }
 
 public void OnPluginStart()
@@ -65,6 +77,11 @@ public void OnClientPutInServer(int client)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
+    if(gB_BaseComm && BaseComm_IsClientGagged(client))
+    {
+        return Plugin_Continue;
+    }
+
     if(GetEngineTime() - gF_LastMessage[client] < 0.70)
     {
         return Plugin_Handled;
@@ -75,11 +92,13 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
     bool bTeam = StrEqual(command, "say_team");
     int iTeam = GetClientTeam(client);
 
-    char[] sMessage = new char[255];
-    FormatChat(client, sArgs, IsPlayerAlive(client), iTeam, bTeam, sMessage, 255);
+    char[] sMessage = new char[300];
+    FormatChat(client, sArgs, IsPlayerAlive(client), iTeam, bTeam, sMessage, 300);
 
     int[] clients = new int[MaxClients];
     int count = 0;
+
+    PrintToServer("%N: %s", client, sArgs);
 
     for(int i = 1; i <= MaxClients; i++)
     {
@@ -88,6 +107,8 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
             if(GetClientTeam(i) == iTeam || !bTeam)
             {
                 clients[count++] = i;
+
+                PrintToConsole(i, "%N: %s", client, sArgs);
             }
         }
     }
@@ -130,7 +151,7 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
         }
     }
 
-    FormatEx(buffer, maxlen, "\x03%s%s %N :\x01  %s", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD*", sTeam, client, sMessage);
+    FormatEx(buffer, maxlen, " \x03%s%s %N :\x01  %s", Shavit_GetRank(client), (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD*", sTeam, client, sMessage);
 }
 
 public void ChatMessage(int from, int[] clients, int count, const char[] sMessage)

@@ -62,6 +62,8 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
+
+	gB_Rankings = LibraryExists("shavit-rankings");
 }
 
 public void OnPluginStart()
@@ -72,9 +74,6 @@ public void OnPluginStart()
 
 	// translations
 	LoadTranslations("common.phrases");
-
-	// modules
-	gB_Rankings = LibraryExists("shavit-rankings");
 
 	// database connections
 	Shavit_GetDB(gH_SQL);
