@@ -26,8 +26,6 @@
 #pragma dynamic 131072
 #pragma newdecls required
 
-#define SOUNDS_LIMIT 64 // we really don't need more than that
-
 ServerGame gSG_Type = Game_Unknown;
 
 ArrayList gA_FirstSounds = null;
@@ -54,10 +52,10 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-    gA_FirstSounds = new ArrayList(SOUNDS_LIMIT);
-    gA_PersonalSounds = new ArrayList(SOUNDS_LIMIT);
-    gA_WorldSounds = new ArrayList(SOUNDS_LIMIT);
-    gA_WorseSounds = new ArrayList(SOUNDS_LIMIT);
+    gA_FirstSounds = new ArrayList(PLATFORM_MAX_PATH);
+    gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
+    gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
+    gA_WorseSounds = new ArrayList(PLATFORM_MAX_PATH);
 
     gSG_Type = Shavit_GetGameType();
 }
