@@ -83,27 +83,30 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-    // database connections
-    Shavit_GetDB(gH_SQL);
-    SQL_SetPrefix();
-    SetSQLInfo();
+	// database connections
+	Shavit_GetDB(gH_SQL);
+	SQL_SetPrefix();
+	SetSQLInfo();
 
-    // player commands
-    RegConsoleCmd("sm_points", Command_Points, "Prints the points and ideal time for the map.");
-    RegConsoleCmd("sm_rank", Command_Rank, "Shows your current rank.");
-    RegConsoleCmd("sm_prank", Command_Rank, "Shows your current rank. (sm_rank alias)");
-    RegConsoleCmd("sm_top", Command_Top, "Shows the top players menu.");
-    RegConsoleCmd("sm_ptop", Command_Top, "Shows the top players menu. (sm_top alias)");
+	// player commands
+	RegConsoleCmd("sm_points", Command_Points, "Prints the points and ideal time for the map.");
+	RegConsoleCmd("sm_rank", Command_Rank, "Shows your current rank.");
+	RegConsoleCmd("sm_prank", Command_Rank, "Shows your current rank. (sm_rank alias)");
+	RegConsoleCmd("sm_top", Command_Top, "Shows the top players menu.");
+	RegConsoleCmd("sm_ptop", Command_Top, "Shows the top players menu. (sm_top alias)");
 
-    // admin commands
-    RegAdminCmd("sm_setpoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points>");
+	// admin commands
+	RegAdminCmd("sm_setpoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points>");
 
-    #if defined DEBUG
-    // debug
-    RegServerCmd("sm_calc", Command_Calc);
-    #endif
+	// translations
+	LoadTranslations("common.phrases");
 
-    gCV_TopAmount = CreateConVar("shavit_rankings_topamount", "100", "Amount of people to show within the sm_top menu.", 0, true, 1.0, false);
+	#if defined DEBUG
+	// debug
+	RegServerCmd("sm_calc", Command_Calc);
+	#endif
+
+	gCV_TopAmount = CreateConVar("shavit_rankings_topamount", "100", "Amount of people to show within the sm_top menu.", 0, true, 1.0, false);
 }
 
 public void OnClientPutInServer(int client)
@@ -251,14 +254,29 @@ public Action Command_Rank(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gI_PlayerRank[client] <= 0 || gF_PlayerPoints[client] <= 0.0)
+	int target = client;
+
+	if(args > 0)
 	{
-		Shavit_PrintToChat(client, "You are unranked.");
+		char[] sTarget = new char[MAX_TARGET_LENGTH];
+		GetCmdArgString(sTarget, MAX_TARGET_LENGTH);
+
+		target = FindTarget(client, sTarget, true, false);
+
+		if(target == -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	if(gI_PlayerRank[target] <= 0 || gF_PlayerPoints[target] <= 0.0)
+	{
+		Shavit_PrintToChat(client, "\x03%N\x01 is unranked.", target);
 
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "You are ranked \x03%d\x01 with \x05%.02f points\x01.", gI_PlayerRank[client], gF_PlayerPoints[client]);
+	Shavit_PrintToChat(client, "\x03%N\x01 is ranked \x03#%d\x01 with \x05%.02f points\x01.", target, gI_PlayerRank[target], gF_PlayerPoints[target]);
 
 	return Plugin_Handled;
 }
