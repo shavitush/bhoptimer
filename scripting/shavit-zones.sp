@@ -1342,6 +1342,12 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 				vPoints[0] = gV_FreestyleZones[j][0];
 				vPoints[7] = gV_FreestyleZones[j][1];
 
+				if(gSG_Type == Game_CSS)
+				{
+					vPoints[0][2] += 2.0;
+					vPoints[7][2] += 2.0;
+				}
+
 				if(gCV_ZoneStyle.BoolValue)
 				{
 					vPoints[7][2] = vPoints[0][2];
@@ -1378,6 +1384,12 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 			{
 				vPoints[0] = gV_MapZones[i][0];
 				vPoints[7] = gV_MapZones[i][1];
+
+				if(gSG_Type == Game_CSS)
+				{
+					vPoints[0][2] += 2.0;
+					vPoints[7][2] += 2.0;
+				}
 
 				if(gCV_ZoneStyle.BoolValue)
 				{
