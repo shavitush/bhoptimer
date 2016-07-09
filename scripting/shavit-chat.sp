@@ -20,6 +20,8 @@
 
 #include <sourcemod>
 #include <cstrike>
+
+#define USES_CHAT_COLORS
 #include <shavit>
 
 #undef REQUIRE_PLUGIN
@@ -32,7 +34,9 @@
 
 // cache
 float gF_LastMessage[MAXPLAYERS+1];
-KeyValues gKV_Chat = null;
+StringMap gSM_Custom_Prefix = null;
+StringMap gSM_Custom_Name = null;
+StringMap gSM_Custom_Message = null;
 
 // modules
 bool gB_BaseComm = false;
@@ -67,12 +71,12 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-    for(int i = 1; i <= MaxClients; i++)
+	for(int i = 1; i <= MaxClients; i++)
     {
-        OnClientPutInServer(i); // late loading
-    }
+		OnClientPutInServer(i); // late loading
+	}
 
-    RegAdminCmd("sm_reloadchat", Command_ReloadChat, ADMFLAG_ROOT, "Reload chat config.");
+	RegAdminCmd("sm_reloadchat", Command_ReloadChat, ADMFLAG_ROOT, "Reload chat config.");
 }
 
 public void OnMapStart()
@@ -113,20 +117,67 @@ public void OnLibraryRemoved(const char[] name)
 
 public void LoadConfig()
 {
-    if(gKV_Chat != null)
-    {
-        delete gKV_Chat;
-    }
+	delete gSM_Custom_Prefix;
+	delete gSM_Custom_Name;
+	delete gSM_Custom_Message;
 
-    gKV_Chat = new KeyValues("Chat");
+	gSM_Custom_Prefix = new StringMap();
+	gSM_Custom_Name = new StringMap();
+	gSM_Custom_Message = new StringMap();
 
-    char[] sFile = new char[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-chat.cfg");
+	KeyValues kvConfig = new KeyValues("Chat");
 
-    if(!gKV_Chat.ImportFromFile(sFile))
-    {
-        SetFailState("File %s could not be found or accessed.", sFile);
-    }
+	char[] sFile = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-chat.cfg");
+
+	if(!kvConfig.ImportFromFile(sFile))
+	{
+		SetFailState("File %s could not be found or accessed.", sFile);
+	}
+
+	if(kvConfig.GotoFirstSubKey())
+	{
+		char[] sBuffer = new char[255];
+
+		do
+		{
+			kvConfig.GetSectionName(sBuffer, 255);
+
+			if(StrContains(sBuffer[0], "[U:") != -1)
+			{
+				char[] sProperty = new char[255];
+				kvConfig.GetString("prefix", sProperty, 255);
+
+				if(strlen(sProperty) > 0)
+				{
+					gSM_Custom_Prefix.SetString(sBuffer, sProperty);
+				}
+
+				kvConfig.GetString("name", sProperty, 255);
+
+				if(strlen(sProperty) > 0)
+				{
+					gSM_Custom_Name.SetString(sBuffer, sProperty);
+				}
+
+				kvConfig.GetString("message", sProperty, 255);
+
+				if(strlen(sProperty) > 0)
+				{
+					gSM_Custom_Message.SetString(sBuffer, sProperty);
+				}
+			}
+		}
+
+		while(kvConfig.GotoNextKey());
+	}
+
+	else
+	{
+		LogError("File %s might be empty?", sFile);
+	}
+
+	delete kvConfig;
 }
 
 public Action Command_ReloadChat(int client, int args)
@@ -140,96 +191,163 @@ public Action Command_ReloadChat(int client, int args)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-    if(!IsValidClient(client) || sArgs[0] == '!' || sArgs[0] == '/' || (gB_BaseComm && BaseComm_IsClientGagged(client)))
-    {
-        return Plugin_Continue;
-    }
+	if(!IsValidClient(client) || !IsClientAuthorized(client) || sArgs[0] == '!' || sArgs[0] == '/' || (gB_BaseComm && BaseComm_IsClientGagged(client)))
+	{
+		return Plugin_Continue;
+	}
 
 	if(GetEngineTime() - gF_LastMessage[client] < 0.70)
-    {
-        return Plugin_Handled;
-    }
+	{
+		return Plugin_Handled;
+	}
 
-    gF_LastMessage[client] = GetEngineTime();
+	gF_LastMessage[client] = GetEngineTime();
 
-    bool bTeam = StrEqual(command, "say_team");
-    int iTeam = GetClientTeam(client);
+	bool bTeam = StrEqual(command, "say_team");
+	int iTeam = GetClientTeam(client);
 
-    char[] sMessage = new char[300];
-    FormatChat(client, sArgs, IsPlayerAlive(client), iTeam, bTeam, sMessage, 300);
+	char[] sMessage = new char[300];
+	FormatChat(client, sArgs, IsPlayerAlive(client), iTeam, bTeam, sMessage, 300);
 
-    int[] clients = new int[MaxClients];
-    int count = 0;
+	int[] clients = new int[MaxClients];
+	int count = 0;
 
-    PrintToServer("%N: %s", client, sArgs);
+	PrintToServer("%N: %s", client, sArgs);
 
-    for(int i = 1; i <= MaxClients; i++)
-    {
-        if(IsValidClient(i))
-        {
-            if(GetClientTeam(i) == iTeam || !bTeam)
-            {
-                clients[count++] = i;
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsValidClient(i))
+		{
+			if(GetClientTeam(i) == iTeam || !bTeam)
+			{
+				clients[count++] = i;
 
-                PrintToConsole(i, "%N: %s", client, sArgs);
-            }
-        }
-    }
+				PrintToConsole(i, "%N: %s", client, sArgs);
+			}
+		}
+	}
 
-    ChatMessage(client, clients, count, sMessage);
+	ChatMessage(client, clients, count, sMessage);
 
-    return Plugin_Handled;
+	return Plugin_Handled;
 }
 
 public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam, bool bTeam, char[] buffer, int maxlen)
 {
-    char[] sTeam = new char[32];
+	char[] sTeam = new char[32];
 
-    if(!bTeam)
-    {
-        if(iTeam == CS_TEAM_SPECTATOR)
-        {
-            strcopy(sTeam, 32, "*SPEC* ");
-        }
-    }
+	if(!bTeam)
+	{
+		if(iTeam == CS_TEAM_SPECTATOR)
+		{
+			strcopy(sTeam, 32, "*SPEC* ");
+		}
+	}
 
-    else
-    {
-        switch(iTeam)
-        {
-            case CS_TEAM_SPECTATOR:
-            {
-                strcopy(sTeam, 32, "(Spectator) ");
-            }
+	else
+	{
+		switch(iTeam)
+		{
+			case CS_TEAM_SPECTATOR:
+			{
+				strcopy(sTeam, 32, "(Spectator) ");
+			}
 
-            case CS_TEAM_T:
-            {
-                strcopy(sTeam, 32, "(Terrorist) ");
-            }
+			case CS_TEAM_T:
+			{
+				strcopy(sTeam, 32, "(Terrorist) ");
+			}
 
-            case CS_TEAM_CT:
-            {
-                strcopy(sTeam, 32, "(Counter-Terrorist) ");
-            }
-        }
-    }
+			case CS_TEAM_CT:
+			{
+				strcopy(sTeam, 32, "(Counter-Terrorist) ");
+			}
+		}
+	}
 
-    bool bUseFormattedText = false;
+	char[] sAuthID = new char[32];
+	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
-    char[] sFormattedText = new char[maxlen];
-    strcopy(sFormattedText, maxlen, sMessage);
+	char[] sBuffer = new char[255];
 
-    if(gB_RTLer)
-    {
-        if(RTLify(sFormattedText, maxlen, sMessage) > 0)
-        {
-            bUseFormattedText = true;
-        }
-    }
+	char[] sNewPrefix = new char[32];
 
-    // int iRank = Shavit_GetRank(client);
+	if(gSM_Custom_Prefix.GetString(sAuthID, sBuffer, 255))
+	{
+		FormatVariables(client, sBuffer, 255, sMessage);
+		strcopy(sNewPrefix, 32, sBuffer);
+	}
 
-    FormatEx(buffer, maxlen, "%s\x03%s%s%N :\x01  %s", gSG_Type == Game_CSGO? " ":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD* ", sTeam, client, bUseFormattedText? sFormattedText:sMessage);
+	char[] sNewName = new char[MAX_NAME_LENGTH*2];
+
+	if(gSM_Custom_Name.GetString(sAuthID, sBuffer, 255))
+	{
+		FormatVariables(client, sBuffer, 255, sMessage);
+		strcopy(sNewName, MAX_NAME_LENGTH*2, sBuffer);
+	}
+
+	else
+	{
+		FormatEx(sNewName, MAX_NAME_LENGTH*2, "\x03%N", client);
+	}
+
+	char[] sFormattedText = new char[maxlen];
+	strcopy(sFormattedText, maxlen, sMessage);
+
+	// solve shitty exploits
+	ReplaceString(sFormattedText, maxlen, "\n", "");
+	ReplaceString(sFormattedText, maxlen, "\t", "");
+	TrimString(sFormattedText);
+
+	if(gB_RTLer)
+	{
+		RTLify(sFormattedText, maxlen, sFormattedText);
+	}
+
+	if(gSM_Custom_Message.GetString(sAuthID, sBuffer, 255))
+	{
+		FormatVariables(client, sBuffer, 255, sFormattedText);
+		strcopy(sFormattedText, 255, sBuffer);
+	}
+
+	// assign rank stuff if theres the need
+	// int iRank = Shavit_GetRank(client);
+
+	FormatEx(buffer, maxlen, "%s%s%s%s%s%s %s  %s", gSG_Type == Game_CSGO? " ":"", strlen(sNewPrefix) == 0? "\x03":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD* ", sTeam, sNewPrefix, sNewName, gSG_Type == Game_CSGO? ":\x01":"\x01:", sFormattedText);
+}
+
+public void FormatVariables(int client, char[] buffer, int maxlen, const char[] message)
+{
+	char[] sName = new char[MAX_NAME_LENGTH];
+	GetClientName(client, sName, MAX_NAME_LENGTH);
+	ReplaceString(buffer, maxlen, "{name}", sName);
+
+	char[] sClanTag = new char[32];
+	CS_GetClientClanTag(client, sClanTag, 32);
+	int iLen = strlen(sClanTag);
+	sClanTag[iLen] = iLen > 0? ' ':'\0'; // add spacing after the clan tag if there is one
+	ReplaceString(buffer, maxlen, "{clan}", sClanTag);
+
+	ReplaceString(buffer, maxlen, "{message}", message);
+
+	for(int i = 0; i < sizeof(gS_GlobalColorNames); i++)
+	{
+		ReplaceString(buffer, maxlen, gS_GlobalColorNames[i], gS_GlobalColors[i]);
+	}
+
+	if(gSG_Type == Game_CSS)
+	{
+		ReplaceString(buffer, maxlen, "{RGB}", "\x07");
+		ReplaceString(buffer, maxlen, "{RGBA}", "\x08");
+	}
+
+	else
+	{
+		for(int i = 0; i < sizeof(gS_CSGOColorNames); i++)
+		{
+			ReplaceString(buffer, maxlen, gS_CSGOColorNames[i], gS_CSGOColors[i]);
+		}
+	}
 }
 
 public void ChatMessage(int from, int[] clients, int count, const char[] sMessage)

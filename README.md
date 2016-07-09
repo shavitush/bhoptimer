@@ -117,6 +117,7 @@ Stats
 Miscellaneous
 --
 - [x] Allow changing the prespeed limitation.
+- [x] Add weapon cleanup.
 
 Sounds **(NEW!)**
 --
@@ -147,9 +148,8 @@ Web Interface
 Chat **(NEW!)**
 --
 - [x] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`.
-- [ס] [RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) support.
-- [ ] Custom chat titles/colors per individual player.
+- [x] [RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) support.
+- [x] Custom chat titles/colors per individual player.
 - [ ] Custom chat titles/colors for rank ranges.
 - [ ] Add `sm_ranks` `sm_chatranks`
 - [ ] Add `Shavit_FormatChat` native
-- [ ] Optional - add server/player local time to chat message.

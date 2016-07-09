@@ -154,6 +154,55 @@ float gI_RankingMultipliers[MAX_STYLES] =
 };
 #endif
 
+#if defined USES_CHAT_COLORS
+// hardcoded colors
+char gS_GlobalColorNames[][] =
+{
+	"{default}",
+	"{team}",
+	"{green}"
+};
+
+char gS_GlobalColors[][] =
+{
+	"\x01",
+	"\x03",
+	"\x04"
+};
+
+char gS_CSGOColorNames[][] =
+{
+	"{blue}",
+	"{bluegrey}",
+	"{darkblue}",
+	"{darkred}",
+	"{gold}",
+	"{grey}",
+	"{grey2}",
+	"{lightgreen}",
+	"{lightred}",
+	"{lime}",
+	"{orchid}",
+	"{yellow}"
+};
+
+char gS_CSGOColors[][] =
+{
+	"\x0B",
+	"\x0A",
+	"\x0C",
+	"\x02",
+	"\x10",
+	"\x08",
+	"\x0D",
+	"\x05",
+	"\x0F",
+	"\x06",
+	"\x0E",
+	"\x09"
+};
+#endif
+
 // map zones
 #define MULTIPLEZONES_LIMIT 32
 
