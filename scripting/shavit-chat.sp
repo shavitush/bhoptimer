@@ -115,7 +115,7 @@ public void LoadConfig()
 {
     if(gKV_Chat != null)
     {
-    delete gKV_Chat;
+        delete gKV_Chat;
     }
 
     gKV_Chat = new KeyValues("Chat");
@@ -227,7 +227,9 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
         }
     }
 
-    FormatEx(buffer, maxlen, " \x03%s%s %N :\x01  %s", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD*", sTeam, client, bUseFormattedText? sFormattedText:sMessage);
+    // int iRank = Shavit_GetRank(client);
+
+    FormatEx(buffer, maxlen, "%s\x03%s%s %N :\x01  %s", gSG_Type == Game_CSGO? " ":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD*", sTeam, client, bUseFormattedText? sFormattedText:sMessage);
 }
 
 public void ChatMessage(int from, int[] clients, int count, const char[] sMessage)
