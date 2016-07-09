@@ -868,14 +868,14 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		}
 	}
 
-	char[] sDisplayMap = new char[strlen(sMap)];
-	GetMapDisplayName(sMap, sDisplayMap, strlen(sMap));
+	char[] sDisplayMap = new char[256];
+	GetMapDisplayName(sMap, sDisplayMap, 256);
 
-	char[] sFormattedTitle = new char[192];
+	char[] sFormattedTitle = new char[256];
 
 	if(m.ItemCount == 0)
 	{
-		FormatEx(sFormattedTitle, 192, "Records for %s", sDisplayMap);
+		FormatEx(sFormattedTitle, 256, "Records for %s", sDisplayMap);
 
 		m.SetTitle(sFormattedTitle);
 

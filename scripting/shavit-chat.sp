@@ -140,12 +140,12 @@ public Action Command_ReloadChat(int client, int args)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-    if(gB_BaseComm && BaseComm_IsClientGagged(client))
+    if(!IsValidClient(client) || sArgs[0] == '!' || sArgs[0] == '/' || (gB_BaseComm && BaseComm_IsClientGagged(client)))
     {
         return Plugin_Continue;
     }
 
-    if(GetEngineTime() - gF_LastMessage[client] < 0.70)
+	if(GetEngineTime() - gF_LastMessage[client] < 0.70)
     {
         return Plugin_Handled;
     }
@@ -189,7 +189,7 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
     {
         if(iTeam == CS_TEAM_SPECTATOR)
         {
-            strcopy(sTeam, 32, "*SPEC*");
+            strcopy(sTeam, 32, "*SPEC* ");
         }
     }
 
@@ -199,17 +199,17 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
         {
             case CS_TEAM_SPECTATOR:
             {
-                strcopy(sTeam, 32, "(Spectator)");
+                strcopy(sTeam, 32, "(Spectator) ");
             }
 
             case CS_TEAM_T:
             {
-                strcopy(sTeam, 32, "(Terrorist)");
+                strcopy(sTeam, 32, "(Terrorist) ");
             }
 
             case CS_TEAM_CT:
             {
-                strcopy(sTeam, 32, "(Counter-Terrorist)");
+                strcopy(sTeam, 32, "(Counter-Terrorist) ");
             }
         }
     }
@@ -229,7 +229,7 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
 
     // int iRank = Shavit_GetRank(client);
 
-    FormatEx(buffer, maxlen, "%s\x03%s%s %N :\x01  %s", gSG_Type == Game_CSGO? " ":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD*", sTeam, client, bUseFormattedText? sFormattedText:sMessage);
+    FormatEx(buffer, maxlen, "%s\x03%s%s%N :\x01  %s", gSG_Type == Game_CSGO? " ":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD* ", sTeam, client, bUseFormattedText? sFormattedText:sMessage);
 }
 
 public void ChatMessage(int from, int[] clients, int count, const char[] sMessage)

@@ -287,8 +287,6 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 
-	/*gCV_NoWeaponDrops*/
-
 	if(gH_GetMaxPlayerSpeed != null)
 	{
 		DHookEntity(gH_GetMaxPlayerSpeed, true, client);
@@ -387,7 +385,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 			FakeClientCommand(client, "sm_%s", sCopy);
 
-			return Plugin_Handled;
+			return Plugin_Stop;
 		}
 	}
 
