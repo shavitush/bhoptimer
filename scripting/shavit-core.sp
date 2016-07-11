@@ -61,7 +61,7 @@ int gI_Jumps[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 bool gB_OnGround[MAXPLAYERS+1];
-bool gB_TriggerJump[MAXPLAYERS+1];
+int gI_ButtonCache[MAXPLAYERS+1];
 float gF_HSW_Requirement = 0.0;
 
 // late load
@@ -882,20 +882,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(gB_HUD)
 	{
-		if(buttons & IN_JUMP)
+		if(gI_ButtonCache[client] != buttons)
 		{
-			if(!gB_TriggerJump[client])
-			{
-				Shavit_ForceHUDUpdate(client, true);
-			}
-
-			gB_TriggerJump[client] = true;
+			Shavit_ForceHUDUpdate(client, true);
 		}
 
-		else
-		{
-			gB_TriggerJump[client] = false;
-		}
+		gI_ButtonCache[client] = buttons;
 	}
 
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
