@@ -805,7 +805,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
-	if(!IsValidClient(client, true))
+	if(!IsPlayerAlive(client))
 	{
 		return Plugin_Continue;
 	}

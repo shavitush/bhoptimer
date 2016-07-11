@@ -226,7 +226,7 @@ public Action Timer_Message(Handle Timer)
 
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
-	if(!IsValidClient(client, true))
+	if(!IsPlayerAlive(client))
 	{
 		return Plugin_Continue;
 	}
