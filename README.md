@@ -151,5 +151,6 @@ Chat **(NEW!)**
 - [x] [RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) support.
 - [x] Custom chat titles/colors per individual player.
 - [ ] Custom chat titles/colors for rank ranges.
+- [ ] Update cache for everyone when a player finishes a map.
 - [ ] Add `sm_ranks` `sm_chatranks`
 - [ ] Add `Shavit_FormatChat` native
