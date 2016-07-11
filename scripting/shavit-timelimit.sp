@@ -242,8 +242,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 public void SetLimit(int time)
 {
-	gCV_TimeLimit.SetInt(time);
-	gCV_RoundTime.SetInt(time);
-
+	gCV_TimeLimit.IntValue = time;
+	gCV_RoundTime.IntValue = time;
 	gCV_RestartGame.IntValue = 1;
 }

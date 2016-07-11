@@ -128,7 +128,7 @@ public void OnClientPutInServer(int client)
     if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
     {
         char[] sQuery = new char[128];
-        FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s';", gS_MySQLPrefix, sAuthID3);
+        FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1;", gS_MySQLPrefix, sAuthID3);
 
         gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
     }
@@ -481,7 +481,7 @@ public void SQL_RetroactivePoints_Callback2(Database db, DBResultSet results, co
 public void UpdatePointsCache(const char[] map)
 {
     char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT time, points FROM %smappoints WHERE map = '%s';", gS_MySQLPrefix, map);
+    FormatEx(sQuery, 256, "SELECT time, points FROM %smappoints WHERE map = '%s' LIMIT 1;", gS_MySQLPrefix, map);
 
     gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -584,7 +584,7 @@ public void SavePoints(int serial, BhopStyle style, const char[] map, float poin
     dp.WriteCell(points);
 
     char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT id FROM %splayertimes WHERE auth = '%s' AND map = '%s' AND style = %d;", gS_MySQLPrefix, sAuthID, map, style);
+    FormatEx(sQuery, 256, "SELECT id FROM %splayertimes WHERE auth = '%s' AND map = '%s' AND style = %d LIMIT 1;", gS_MySQLPrefix, sAuthID, map, style);
 
     gH_SQL.Query(SQL_FindRecordID_Callback, sQuery, dp, DBPrio_Low);
 }
@@ -655,7 +655,7 @@ public void UpdatePlayerPoints(int client, bool chat)
     GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
     char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE pt.auth = \"%s\" ORDER BY pp.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
+    FormatEx(sQuery, 256, "SELECT points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE pt.auth = '%s' ORDER BY pp.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
     gH_SQL.Query(SQL_UpdatePoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
@@ -723,7 +723,7 @@ public void UpdatePlayerRank(int client)
     if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
     {
         char[] sQuery = new char[256];
-        FormatEx(sQuery, 256, "SELECT COUNT(*) AS rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s') ORDER BY up.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
+        FormatEx(sQuery, 256, "SELECT COUNT(*) AS rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1) ORDER BY up.points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
 
         gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
     }

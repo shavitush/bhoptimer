@@ -1788,7 +1788,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	}
 
 	char[] sQuery = new char[64];
-	FormatEx(sQuery, 128, "SELECT rot_ang FROM %smapzones;", gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "SELECT rot_ang FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_CheckRotation_Callback, sQuery);
 
