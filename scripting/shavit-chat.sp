@@ -517,25 +517,13 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
 		strcopy(sFormattedText, 255, sBuffer);
 	}
 
-	FormatEx(buffer, maxlen, "%s%s%s%s%s%s %s  %s", gSG_Type == Game_CSGO? " ":"", strlen(sNewPrefix) == 0? "\x03":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD* ", sTeam, sNewPrefix, sNewName, gSG_Type == Game_CSGO? ":\x01":"\x01:", sFormattedText);
+	FormatEx(buffer, maxlen, "\x01%s%s%s\x03%s%s %s  %s", gSG_Type == Game_CSGO? " ":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD* ", sTeam, sNewPrefix, sNewName, gSG_Type == Game_CSGO? ":\x01":"\x01:", sFormattedText);
 }
 
 public void FormatVariables(int client, char[] buffer, int maxlen, const char[] formattingrules, const char[] message)
 {
 	char[] sTempFormattingRules = new char[maxlen];
 	strcopy(sTempFormattingRules, maxlen, formattingrules);
-
-	char[] sName = new char[MAX_NAME_LENGTH];
-	GetClientName(client, sName, MAX_NAME_LENGTH);
-	ReplaceString(sTempFormattingRules, maxlen, "{name}", sName);
-
-	char[] sClanTag = new char[32];
-	CS_GetClientClanTag(client, sClanTag, 32);
-	int iLen = strlen(sClanTag);
-	sClanTag[iLen] = (iLen > 0)? ' ':'\0';
-	ReplaceString(sTempFormattingRules, maxlen, "{clan}", sClanTag);
-
-	ReplaceString(sTempFormattingRules, maxlen, "{message}", message);
 
 	for(int i = 0; i < sizeof(gS_GlobalColorNames); i++)
 	{
@@ -555,6 +543,18 @@ public void FormatVariables(int client, char[] buffer, int maxlen, const char[] 
 			ReplaceString(sTempFormattingRules, maxlen, gS_CSGOColorNames[i], gS_CSGOColors[i]);
 		}
 	}
+
+	char[] sName = new char[MAX_NAME_LENGTH];
+	GetClientName(client, sName, MAX_NAME_LENGTH);
+	ReplaceString(sTempFormattingRules, maxlen, "{name}", sName);
+
+	char[] sClanTag = new char[32];
+	CS_GetClientClanTag(client, sClanTag, 32);
+	int iLen = strlen(sClanTag);
+	sClanTag[iLen] = (iLen > 0)? ' ':'\0';
+	ReplaceString(sTempFormattingRules, maxlen, "{clan}", sClanTag);
+
+	ReplaceString(sTempFormattingRules, maxlen, "{message}", message);
 
 	strcopy(buffer, maxlen, sTempFormattingRules);
 }
