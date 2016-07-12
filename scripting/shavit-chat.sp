@@ -397,7 +397,7 @@ public Action Command_ReloadChat(int client, int args)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if(!IsValidClient(client) || !IsClientAuthorized(client) || sArgs[0] == '!' || sArgs[0] == '@' || sArgs[0] == '/' || (gB_BaseComm && BaseComm_IsClientGagged(client)))
+	if(!IsValidClient(client) || !IsClientAuthorized(client) || sArgs[0] == '!' || sArgs[0] == '/' || (gB_BaseComm && BaseComm_IsClientGagged(client)))
 	{
 		return Plugin_Continue;
 	}
@@ -407,12 +407,36 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		return Plugin_Handled;
 	}
 
-	gF_LastMessage[client] = GetEngineTime();
-
 	bool bTeam = StrEqual(command, "say_team");
-	int iTeam = GetClientTeam(client);
+
+	if(bTeam || (CheckCommandAccess(client, "sm_say", ADMFLAG_CHAT) && sArgs[0] == '@'))
+	{
+		return Plugin_Handled;
+	}
 
 	char[] sMessage = new char[300];
+	strcopy(sMessage, 300, sArgs);
+	ReplaceString(sMessage[0], 1, "!", "");
+	ReplaceString(sMessage[0], 1, "/", "");
+
+	bool bCmd = false;
+	Handle hCon = FindFirstConCommand(sMessage, 300, bCmd);
+
+	if(hCon != null)
+	{
+		FindNextConCommand(hCon, sMessage, 300, bCmd);
+		delete hCon;
+
+		if(bCmd)
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	gF_LastMessage[client] = GetEngineTime();
+
+	int iTeam = GetClientTeam(client);
+
 	FormatChat(client, sArgs, IsPlayerAlive(client), iTeam, bTeam, sMessage, 300);
 
 	int[] clients = new int[MaxClients];
