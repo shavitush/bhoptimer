@@ -63,6 +63,18 @@ public Plugin myinfo =
 	url = "https://github.com/shavitush/bhoptimer"
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	// natives
+	CreateNative("Shavit_FormatChat", Native_FormatChat);
+	MarkNativeAsOptional("Shavit_FormatChat");
+
+	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
+	RegPluginLibrary("shavit-chat");
+
+	return APLRes_Success;
+}
+
 public void OnAllPluginsLoaded()
 {
     if(!LibraryExists("shavit-rankings"))
@@ -566,4 +578,26 @@ public void ChatMessage(int from, int[] clients, int count, const char[] sMessag
 
         EndMessage();
     }
+}
+
+public int Native_FormatChat(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	if(!IsValidClient(client))
+	{
+		ThrowNativeError(200, "Invalid client index %d", client);
+
+		return -1;
+	}
+
+	char[] sMessage = new char[255];
+	GetNativeString(2, sMessage, 255);
+
+	char[] sBuffer = new char[300];
+	FormatChat(client, sMessage, IsPlayerAlive(client), GetClientTeam(client), view_as<bool>(GetNativeCell(3)), sBuffer, 300);
+
+	int maxlength = GetNativeCell(5);
+
+	return SetNativeString(6, sBuffer, maxlength);
 }
