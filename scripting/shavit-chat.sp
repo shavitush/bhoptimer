@@ -396,7 +396,7 @@ public Action Command_ReloadChat(int client, int args)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if(!IsValidClient(client) || !IsClientAuthorized(client) || sArgs[0] == '!' || sArgs[0] == '/' || (gB_BaseComm && BaseComm_IsClientGagged(client)))
+	if(!IsValidClient(client) || !IsClientAuthorized(client) || sArgs[0] == '!' || sArgs[0] == '@' || sArgs[0] == '/' || (gB_BaseComm && BaseComm_IsClientGagged(client)))
 	{
 		return Plugin_Continue;
 	}
