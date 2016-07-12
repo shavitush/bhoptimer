@@ -161,7 +161,7 @@ public void LoadChatCache(int client)
 			int iFrom = gD_ChatRanks[i].GetInt("rank_from");
 			int iTo = gD_ChatRanks[i].GetInt("rank_to");
 
-			if(iRank < iFrom || (iRank > iTo && iTo != -5))
+			if(iRank < iFrom || (iRank > iTo && iTo != -3))
 			{
 				continue;
 			}
@@ -275,8 +275,7 @@ public void LoadConfig()
 
 				char[] sTo = new char[16];
 				kvConfig.GetString("rank_to", sTo, 16, "-2");
-
-				int iTo = StrEqual(sTo, "infinity")? -5:StringToInt(sTo);
+				int iTo = StrEqual(sTo, "infinity", false)? -3:StringToInt(sTo);
 
 				if(iTo == -2)
 				{
@@ -329,20 +328,20 @@ public Action Command_ChatRanks(int client, int args)
 	int[] clients = new int[1];
 	clients[0] = client;
 
-	ChatMessage(client, clients, 1, "List of chat ranks:");
+	ChatMessage(client, clients, 1, "\x01List of chat ranks:");
 
 	for(int i = gI_TotalChatRanks - 1; i >= 0; i--)
 	{
 		if(gD_ChatRanks[i].IsValid)
 		{
 			int iFrom = gD_ChatRanks[i].GetInt("rank_from");
-			int iTo = gD_ChatRanks[i].GetInt("rank_to");
 
-			if(iFrom <= 0 || (iTo <= 0 && iTo != -5))
+			if(iFrom <= 0)
 			{
 				continue; // don't show unranked/due-lookup 'chat ranks'
 			}
 
+			int iTo = gD_ChatRanks[i].GetInt("rank_to");
 			char[] sRankText = new char[16];
 
 			if(iFrom == iTo)
@@ -352,7 +351,9 @@ public Action Command_ChatRanks(int client, int args)
 
 			else
 			{
-				if(iTo == -5)
+				PrintToConsole(client, "%d", iTo);
+
+				if(iTo == -3)
 				{
 					FormatEx(sRankText, 16, "#%d - ∞", iFrom, iTo);
 				}
