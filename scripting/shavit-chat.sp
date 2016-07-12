@@ -324,14 +324,14 @@ public Action Command_ChatRanks(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "List of chat ranks:");
-
 	// dummies
 	// char[] sExample = "Example."; // I tried using this variable, but it seemed to pick up "List of Chat ranks:" instead, I wonder why..
 	int[] clients = new int[1];
 	clients[0] = client;
 
-	for(int i = 0; i < gI_TotalChatRanks; i++)
+	ChatMessage(client, clients, 1, "List of chat ranks:");
+
+	for(int i = gI_TotalChatRanks - 1; i >= 0; i--)
 	{
 		if(gD_ChatRanks[i].IsValid)
 		{
