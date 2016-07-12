@@ -29,6 +29,9 @@
 
 // #define DEBUG
 
+// forwards
+Handle gH_Forwards_OnRankUpdated = null;
+
 // cache
 char gS_Map[256];
 float gF_IdealTime = 0.0;
@@ -83,6 +86,9 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	// forwards
+	gH_Forwards_OnRankUpdated = CreateGlobalForward("Shavit_OnRankUpdated", ET_Event, Param_Cell);
+
 	// database connections
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
@@ -747,7 +753,11 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 
     if(results.FetchRow())
     {
-        gI_PlayerRank[client] = results.FetchInt(0);
+		gI_PlayerRank[client] = results.FetchInt(0);
+
+		Call_StartForward(gH_Forwards_OnRankUpdated);
+		Call_PushCell(client);
+		Call_Finish();
     }
 }
 

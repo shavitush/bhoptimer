@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <cstrike>
+#include <dynamic>
 
 #define USES_CHAT_COLORS
 #include <shavit>
@@ -35,13 +36,16 @@
 // cache
 float gF_LastMessage[MAXPLAYERS+1];
 
-char gS_Custom_Prefix[MAXPLAYERS+1][32];
-char gS_Custom_Name[MAXPLAYERS+1][MAX_NAME_LENGTH*2];
-char gS_Custom_Message[MAXPLAYERS+1][255];
+char gS_Cached_Prefix[MAXPLAYERS+1][32];
+char gS_Cached_Name[MAXPLAYERS+1][MAX_NAME_LENGTH*2];
+char gS_Cached_Message[MAXPLAYERS+1][255];
 
 StringMap gSM_Custom_Prefix = null;
 StringMap gSM_Custom_Name = null;
 StringMap gSM_Custom_Message = null;
+
+int gI_TotalChatRanks = 0;
+Dynamic gD_ChatRanks[64]; // limited to 64 chat ranks right now, i really don't think there's a need for more.
 
 // modules
 bool gB_BaseComm = false;
@@ -58,6 +62,7 @@ public Plugin myinfo =
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
 }
+
 public void OnAllPluginsLoaded()
 {
     if(!LibraryExists("shavit-rankings"))
@@ -86,11 +91,6 @@ public void OnMapStart()
 public void OnClientPutInServer(int client)
 {
 	gF_LastMessage[client] = GetEngineTime();
-
-	if(IsClientAuthorized(client))
-	{
-		LoadChatCache(client);
-	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -119,26 +119,56 @@ public void OnLibraryRemoved(const char[] name)
     }
 }
 
+public void Shavit_OnRankUpdated(int client)
+{
+	LoadChatCache(client);
+}
+
 public void LoadChatCache(int client)
 {
-	char[] sAuthID = new char[32];
-	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+	// assign rank properties
+	int iRank = Shavit_GetRank(client);
 
-	char[] sBuffer = new char[255];
-
-	if(gSM_Custom_Prefix.GetString(sAuthID, sBuffer, 255))
+	for(int i = 0; i < gI_TotalChatRanks; i++)
 	{
-		strcopy(gS_Custom_Prefix[client], 32, sBuffer);
+		if(gD_ChatRanks[i].IsValid)
+		{
+			int iFrom = gD_ChatRanks[i].GetInt("rank_from");
+			int iTo = gD_ChatRanks[i].GetInt("rank_to");
+
+			if(iRank < iFrom || iRank > iTo)
+			{
+				continue;
+			}
+
+			gD_ChatRanks[i].GetString("prefix", gS_Cached_Prefix[client], 32);
+			gD_ChatRanks[i].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
+			gD_ChatRanks[i].GetString("message", gS_Cached_Message[client], 255);
+		}
 	}
 
-	if(gSM_Custom_Name.GetString(sAuthID, sBuffer, 255))
+	if(IsClientAuthorized(client))
 	{
-		strcopy(gS_Custom_Name[client], MAX_NAME_LENGTH*2, sBuffer);
-	}
+		// lookup custom properties in addition to the rank properties
+		char[] sAuthID = new char[32];
+		GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
-	if(gSM_Custom_Message.GetString(sAuthID, sBuffer, 255))
-	{
-		strcopy(gS_Custom_Message[client], 255, sBuffer);
+		char[] sBuffer = new char[255];
+
+		if(gSM_Custom_Prefix.GetString(sAuthID, sBuffer, 255))
+		{
+			strcopy(gS_Cached_Prefix[client], 32, sBuffer);
+		}
+
+		if(gSM_Custom_Name.GetString(sAuthID, sBuffer, 255))
+		{
+			strcopy(gS_Cached_Name[client], MAX_NAME_LENGTH*2, sBuffer);
+		}
+
+		if(gSM_Custom_Message.GetString(sAuthID, sBuffer, 255))
+		{
+			strcopy(gS_Cached_Message[client], 255, sBuffer);
+		}
 	}
 }
 
@@ -151,6 +181,16 @@ public void LoadConfig()
 	gSM_Custom_Prefix = new StringMap();
 	gSM_Custom_Name = new StringMap();
 	gSM_Custom_Message = new StringMap();
+
+	for(int i = 0; i < 64; i++)
+	{
+		if(gD_ChatRanks[i].IsValid)
+		{
+			gD_ChatRanks[i].Dispose();
+		}
+	}
+
+	gI_TotalChatRanks = 0;
 
 	KeyValues kvConfig = new KeyValues("Chat");
 
@@ -170,29 +210,66 @@ public void LoadConfig()
 		{
 			kvConfig.GetSectionName(sBuffer, 255);
 
+			char[] sPrefix = new char[32];
+			kvConfig.GetString("prefix", sPrefix, 32);
+
+			char[] sName = new char[MAX_NAME_LENGTH*2];
+			kvConfig.GetString("name", sName, MAX_NAME_LENGTH*2);
+
+			char[] sMessage = new char[255];
+			kvConfig.GetString("message", sMessage, 255);
+
+			// custom
 			if(StrContains(sBuffer[0], "[U:") != -1)
 			{
-				char[] sProperty = new char[255];
-				kvConfig.GetString("prefix", sProperty, 255);
-
-				if(strlen(sProperty) > 0)
+				if(strlen(sPrefix) > 0)
 				{
-					gSM_Custom_Prefix.SetString(sBuffer, sProperty);
+					gSM_Custom_Prefix.SetString(sBuffer, sPrefix);
 				}
 
-				kvConfig.GetString("name", sProperty, 255);
-
-				if(strlen(sProperty) > 0)
+				if(strlen(sName) > 0)
 				{
-					gSM_Custom_Name.SetString(sBuffer, sProperty);
+					gSM_Custom_Name.SetString(sBuffer, sName);
 				}
 
-				kvConfig.GetString("message", sProperty, 255);
-
-				if(strlen(sProperty) > 0)
+				if(strlen(sMessage) > 0)
 				{
-					gSM_Custom_Message.SetString(sBuffer, sProperty);
+					gSM_Custom_Message.SetString(sBuffer, sMessage);
 				}
+			}
+
+			// ranks
+			else
+			{
+				int iFrom = kvConfig.GetNum("rank_from", -2);
+
+				if(iFrom == -2)
+				{
+					LogError("Invalid \"rank_from\" value for \"%s\": %d or non-existant.", sBuffer, iFrom);
+
+					continue;
+				}
+
+				char[] sTo = new char[6];
+				kvConfig.GetString("rank_to", sTo, 6, "-2");
+
+				int iTo = StrEqual(sTo, "infinity")? 2147483647:StringToInt(sTo);
+
+				if(iTo == -2)
+				{
+					LogError("Invalid \"rank_to\" value for \"%s\": %d or non-existant.", sBuffer, iTo);
+
+					continue;
+				}
+
+				gD_ChatRanks[gI_TotalChatRanks] = Dynamic();
+				gD_ChatRanks[gI_TotalChatRanks].SetInt("rank_from", iFrom);
+				gD_ChatRanks[gI_TotalChatRanks].SetInt("rank_to", iTo);
+				gD_ChatRanks[gI_TotalChatRanks].SetString("prefix", sPrefix, 32);
+				gD_ChatRanks[gI_TotalChatRanks].SetString("name", sName, MAX_NAME_LENGTH*2);
+				gD_ChatRanks[gI_TotalChatRanks].SetString("message", sMessage, 255);
+
+				gI_TotalChatRanks++;
 			}
 		}
 
@@ -208,9 +285,11 @@ public void LoadConfig()
 
 	for(int i = 1; i <= MaxClients; i++)
     {
-		if(IsValidClient(i))
+		if(IsValidClient(i)) // late loading
 		{
-			OnClientPutInServer(i); // late loading
+			gF_LastMessage[i] = GetEngineTime();
+
+			Shavit_OnRankUpdated(i);
 		}
 	}
 }
@@ -306,17 +385,19 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
 	char[] sBuffer = new char[255];
 	char[] sNewPrefix = new char[32];
 
-	if(strlen(gS_Custom_Prefix[client]) > 0)
+	if(strlen(gS_Cached_Prefix[client]) > 0)
 	{
-		FormatVariables(client, sBuffer, 255, gS_Custom_Prefix[client], sMessage);
+		FormatVariables(client, sBuffer, 255, gS_Cached_Prefix[client], sMessage);
+		int iLen = strlen(sBuffer);
+		sBuffer[iLen] = (iLen > 0)? ' ':'\0';
 		strcopy(sNewPrefix, 32, sBuffer);
 	}
 
 	char[] sNewName = new char[MAX_NAME_LENGTH*2];
 
-	if(strlen(gS_Custom_Name[client]) > 0)
+	if(strlen(gS_Cached_Name[client]) > 0)
 	{
-		FormatVariables(client, sBuffer, 255, gS_Custom_Name[client], sMessage);
+		FormatVariables(client, sBuffer, 255, gS_Cached_Name[client], sMessage);
 		strcopy(sNewName, MAX_NAME_LENGTH*2, sBuffer);
 	}
 
@@ -338,9 +419,9 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
 		RTLify(sFormattedText, maxlen, sFormattedText);
 	}
 
-	if(strlen(gS_Custom_Message[client]) > 0)
+	if(strlen(gS_Cached_Message[client]) > 0)
 	{
-		FormatVariables(client, sBuffer, 255, gS_Custom_Message[client], sFormattedText);
+		FormatVariables(client, sBuffer, 255, gS_Cached_Message[client], sFormattedText);
 		strcopy(sFormattedText, 255, sBuffer);
 	}
 
@@ -359,7 +440,7 @@ public void FormatVariables(int client, char[] buffer, int maxlen, const char[] 
 	char[] sClanTag = new char[32];
 	CS_GetClientClanTag(client, sClanTag, 32);
 	int iLen = strlen(sClanTag);
-	sClanTag[iLen] = iLen > 0? ' ':'\0'; // add spacing after the clan tag if there is one
+	sClanTag[iLen] = (iLen > 0)? ' ':'\0';
 	ReplaceString(sTempFormattingRules, maxlen, "{clan}", sClanTag);
 
 	ReplaceString(sTempFormattingRules, maxlen, "{message}", message);

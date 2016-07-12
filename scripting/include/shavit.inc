@@ -390,6 +390,15 @@ forward void Shavit_OnPause(int client);
 forward void Shavit_OnResume(int client);
 
 /**
+ * Called when a player's rank has updated or was just looked up.
+ * Will be called on initial rank lookup.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnRankUpdated(int client);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")

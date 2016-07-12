@@ -14,6 +14,7 @@ a bhop server should be simple
 * [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
+* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat`.
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
@@ -70,6 +71,7 @@ General
 - [x] Migrate DBI to the 1.7 transitional syntax.
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
+- [ ] **ENDGAME**: Migrate all the cached stuff (timer variables, HUD, chat cache) to Dynamic if I find it good and simple enough.
 
 Core
 --
@@ -113,6 +115,7 @@ Stats
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
 - [x] Make a submenu per style, for aesthetics.
 - [x] [rankings] Points implementation.
+- [ ] Make MVP count the amount of WRs the player has.
 
 Miscellaneous
 --
@@ -150,7 +153,7 @@ Chat **(NEW!)**
 - [x] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`.
 - [x] [RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) support.
 - [x] Custom chat titles/colors per individual player.
-- [ ] Custom chat titles/colors for rank ranges.
-- [ ] Update cache for everyone when a player finishes a map.
+- [x] Custom chat titles/colors for rank ranges.
+- [x] Update cache for a player when his rank updates.
 - [ ] Add `sm_ranks` `sm_chatranks`
 - [ ] Add `Shavit_FormatChat` native
