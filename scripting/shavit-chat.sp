@@ -81,6 +81,9 @@ public void OnAllPluginsLoaded()
 public void OnPluginStart()
 {
 	RegAdminCmd("sm_reloadchat", Command_ReloadChat, ADMFLAG_ROOT, "Reload chat config.");
+
+	RegConsoleCmd("sm_chatranks", Command_ChatRanks, "Shows a list of all the possible chat ranks.");
+	RegConsoleCmd("sm_ranks", Command_ChatRanks, "Shows a list of all the possible chat ranks. Alias for sm_chatranks.");
 }
 
 public void OnMapStart()
@@ -136,7 +139,7 @@ public void LoadChatCache(int client)
 			int iFrom = gD_ChatRanks[i].GetInt("rank_from");
 			int iTo = gD_ChatRanks[i].GetInt("rank_to");
 
-			if(iRank < iFrom || iRank > iTo)
+			if(iRank < iFrom || (iRank > iTo && iTo != -5))
 			{
 				continue;
 			}
@@ -250,10 +253,10 @@ public void LoadConfig()
 					continue;
 				}
 
-				char[] sTo = new char[6];
-				kvConfig.GetString("rank_to", sTo, 6, "-2");
+				char[] sTo = new char[16];
+				kvConfig.GetString("rank_to", sTo, 16, "-2");
 
-				int iTo = StrEqual(sTo, "infinity")? 2147483647:StringToInt(sTo);
+				int iTo = StrEqual(sTo, "infinity")? -5:StringToInt(sTo);
 
 				if(iTo == -2)
 				{
@@ -266,8 +269,8 @@ public void LoadConfig()
 				gD_ChatRanks[gI_TotalChatRanks].SetInt("rank_from", iFrom);
 				gD_ChatRanks[gI_TotalChatRanks].SetInt("rank_to", iTo);
 				gD_ChatRanks[gI_TotalChatRanks].SetString("prefix", sPrefix, 32);
-				gD_ChatRanks[gI_TotalChatRanks].SetString("name", sName, MAX_NAME_LENGTH*2);
-				gD_ChatRanks[gI_TotalChatRanks].SetString("message", sMessage, 255);
+				gD_ChatRanks[gI_TotalChatRanks].SetString("name", (strlen(sName) > 0)? sName:"{name}", MAX_NAME_LENGTH*2);
+				gD_ChatRanks[gI_TotalChatRanks].SetString("message", (strlen(sMessage) > 0)? sMessage:"{message}", 255);
 
 				gI_TotalChatRanks++;
 			}
@@ -292,6 +295,74 @@ public void LoadConfig()
 			Shavit_OnRankUpdated(i);
 		}
 	}
+}
+
+public Action Command_ChatRanks(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	Shavit_PrintToChat(client, "List of chat ranks:");
+
+	// dummies
+	// char[] sExample = "Example."; // I tried using this variable, but it seemed to pick up "List of Chat ranks:" instead, I wonder why..
+	int[] clients = new int[1];
+	clients[0] = client;
+
+	for(int i = 0; i < gI_TotalChatRanks; i++)
+	{
+		if(gD_ChatRanks[i].IsValid)
+		{
+			int iFrom = gD_ChatRanks[i].GetInt("rank_from");
+			int iTo = gD_ChatRanks[i].GetInt("rank_to");
+
+			if(iFrom <= 0 || (iTo <= 0 && iTo != -5))
+			{
+				continue; // don't show unranked/due-lookup 'chat ranks'
+			}
+
+			char[] sRankText = new char[16];
+
+			if(iFrom == iTo)
+			{
+				FormatEx(sRankText, 16, "#%d", iFrom);
+			}
+
+			else
+			{
+				if(iTo == -5)
+				{
+					FormatEx(sRankText, 16, "#%d - ∞", iFrom, iTo);
+				}
+
+				else
+				{
+					FormatEx(sRankText, 16, "#%d - #%d", iFrom, iTo);
+				}
+			}
+
+			char[] sPrefix = new char[32];
+			gD_ChatRanks[i].GetString("prefix", sPrefix, 32);
+			FormatVariables(client, sPrefix, 32, sPrefix, "Example.");
+
+			char[] sName = new char[MAX_NAME_LENGTH*2];
+			gD_ChatRanks[i].GetString("name", sName, MAX_NAME_LENGTH*2);
+			FormatVariables(client, sName, MAX_NAME_LENGTH*2, sName, "Example.");
+
+			char[] sMessage = new char[255];
+			gD_ChatRanks[i].GetString("message", sMessage, 255);
+			FormatVariables(client, sMessage, 255, sMessage, "Example.");
+
+			char[] sBuffer = new char[300];
+			FormatEx(sBuffer, 300, "%s\x04[%s]\x01 %s%s %s %s  %s", gSG_Type == Game_CSGO? " ":"", sRankText, strlen(sPrefix) == 0? "\x03":"", sPrefix, sName, gSG_Type == Game_CSGO? ":\x01":"\x01:", sMessage);
+
+			ChatMessage(client, clients, 1, sBuffer);
+		}
+	}
+
+	return Plugin_Handled;
 }
 
 public Action Command_ReloadChat(int client, int args)
@@ -412,6 +483,7 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
 	// solve shitty exploits
 	ReplaceString(sFormattedText, maxlen, "\n", "");
 	ReplaceString(sFormattedText, maxlen, "\t", "");
+	ReplaceString(sFormattedText, maxlen, "    ", " ");
 	TrimString(sFormattedText);
 
 	if(gB_RTLer)

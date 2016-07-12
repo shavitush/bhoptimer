@@ -155,5 +155,5 @@ Chat **(NEW!)**
 - [x] Custom chat titles/colors per individual player.
 - [x] Custom chat titles/colors for rank ranges.
 - [x] Update cache for a player when his rank updates.
-- [ ] Add `sm_ranks` `sm_chatranks`
+- [x] Add `sm_ranks` `sm_chatranks`
 - [ ] Add `Shavit_FormatChat` native
