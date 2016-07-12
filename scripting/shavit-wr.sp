@@ -98,6 +98,12 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
+public void OnAllPluginsLoaded()
+{
+	// modules
+	gB_Rankings = LibraryExists("shavit-rankings");
+}
+
 public void OnPluginStart()
 {
 	// debug because I was making this all by myself and no one wanted to help me *sniff*
@@ -121,9 +127,6 @@ public void OnPluginStart()
 
 	// cvars
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
-
-	// modules
-	gB_Rankings = LibraryExists("shavit-rankings");
 
 	AutoExecConfig();
 
@@ -865,14 +868,14 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		}
 	}
 
-	char[] sDisplayMap = new char[strlen(sMap)];
-	GetMapDisplayName(sMap, sDisplayMap, strlen(sMap));
+	char[] sDisplayMap = new char[256];
+	GetMapDisplayName(sMap, sDisplayMap, 256);
 
-	char[] sFormattedTitle = new char[192];
+	char[] sFormattedTitle = new char[256];
 
 	if(m.ItemCount == 0)
 	{
-		FormatEx(sFormattedTitle, 192, "Records for %s", sDisplayMap);
+		FormatEx(sFormattedTitle, 256, "Records for %s", sDisplayMap);
 
 		m.SetTitle(sFormattedTitle);
 

@@ -13,9 +13,12 @@ a bhop server should be simple
 # Requirements:
 * [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
+* [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
+* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat`.
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
+* [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) - required for properly formatted RTL text within `shavit-chat`.
 
 #  Installation:
 1. Add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit"
@@ -57,9 +60,9 @@ a bhop server should be simple
 
 # Required plugins:
 `shavit-core` - no other plugin will work without it.  
-`shavit-zones` - required for server functionality and for `shavit-misc`.  
+`shavit-zones` - required for `shavit-core` and for `shavit-misc`.  
 `shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-sounds`, `shavit-stats` and `shavit-rankings`.  
-`shavit-rankings` - required for some functionality in `shavit-chat`.
+`shavit-rankings` - required for `shavit-chat`.
 
 # Todo for 1.5b release (out of beta!)
 General
@@ -68,6 +71,7 @@ General
 - [x] Migrate DBI to the 1.7 transitional syntax.
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
+- [ ] **ENDGAME**: Migrate all the cached stuff (timer variables, HUD, chat cache) to Dynamic if I find it good and simple enough.
 
 Core
 --
@@ -111,10 +115,12 @@ Stats
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
 - [x] Make a submenu per style, for aesthetics.
 - [x] [rankings] Points implementation.
+- [ ] Make MVP count the amount of WRs the player has.
 
 Miscellaneous
 --
 - [x] Allow changing the prespeed limitation.
+- [x] Add weapon cleanup.
 
 Sounds **(NEW!)**
 --
@@ -144,6 +150,10 @@ Web Interface
 
 Chat **(NEW!)**
 --
-- [ ] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`. (might cancel this one)
-- [ ] Custom chat titles/colors for rank ranges. (will require shavit-rankings)
-- [ ] Custom chat titles/colors per individual player.
+- [x] Add logic that processes chat without requiring an external plugin such as `Simple Chat Processor (Redux)`.
+- [x] [RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) support.
+- [x] Custom chat titles/colors per individual player.
+- [x] Custom chat titles/colors for rank ranges.
+- [x] Update cache for a player when his rank updates.
+- [x] Add `sm_ranks` `sm_chatranks`.
+- [x] Add `Shavit_FormatChat` native.

@@ -154,6 +154,55 @@ float gI_RankingMultipliers[MAX_STYLES] =
 };
 #endif
 
+#if defined USES_CHAT_COLORS
+// hardcoded colors
+char gS_GlobalColorNames[][] =
+{
+	"{default}",
+	"{team}",
+	"{green}"
+};
+
+char gS_GlobalColors[][] =
+{
+	"\x01",
+	"\x03",
+	"\x04"
+};
+
+char gS_CSGOColorNames[][] =
+{
+	"{blue}",
+	"{bluegrey}",
+	"{darkblue}",
+	"{darkred}",
+	"{gold}",
+	"{grey}",
+	"{grey2}",
+	"{lightgreen}",
+	"{lightred}",
+	"{lime}",
+	"{orchid}",
+	"{yellow}"
+};
+
+char gS_CSGOColors[][] =
+{
+	"\x0B",
+	"\x0A",
+	"\x0C",
+	"\x02",
+	"\x10",
+	"\x08",
+	"\x0D",
+	"\x05",
+	"\x0F",
+	"\x06",
+	"\x0E",
+	"\x09"
+};
+#endif
+
 // map zones
 #define MULTIPLEZONES_LIMIT 32
 
@@ -339,6 +388,15 @@ forward void Shavit_OnPause(int client);
  * @noreturn
  */
 forward void Shavit_OnResume(int client);
+
+/**
+ * Called when a player's rank has updated or was just looked up.
+ * Will be called on initial rank lookup.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void Shavit_OnRankUpdated(int client);
 
 /**
  * Returns the game type the server is running.
@@ -568,6 +626,21 @@ native void Shavit_GetMapValues(float &points, float &idealtime);
  * @return                          Amount of players that had their HUD updated (client + spectators) or -1 on error.
  */
 native int Shavit_ForceHUDUpdate(int client, bool spectators);
+
+/**
+ * Formats chats exactly like the chat handler does.
+ * Takes team, alive status, rank and all those stuff into account.
+ * Called from shavit-chat
+ *
+ * @param client					Client index.
+ * @param message					Message to use.
+ * @param team						Simulate a team chat message?
+ * @param buffer					Buffer to store the formatted line on.
+ * @param maxlen					Length of 'buffer'
+ * @error                           Error code 200 if client isn't valid.
+ * @return							-1 on error, SP_ERROR_NONE on success.
+ */
+native int Shavit_FormatChat(int client, const char[] message, const bool team, char[] buffer, int maxlen);
 
 /**
  * Use this native when printing anything in chat if it's related to the timer.

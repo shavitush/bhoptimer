@@ -805,7 +805,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
-	if(!IsValidClient(client, true))
+	if(!IsPlayerAlive(client))
 	{
 		return Plugin_Continue;
 	}
@@ -822,7 +822,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 				gV_Point1[client] = vOrigin;
 
 				// not gonna use gCV_Interval.FloatValue here as we need percision when setting up zones
-				CreateTimer(0.1, Timer_Draw, client, TIMER_REPEAT);
+				CreateTimer(0.1, Timer_Draw, GetClientSerial(client), TIMER_REPEAT);
 
 				ShowPanel(client, 2);
 			}
@@ -1342,6 +1342,12 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 				vPoints[0] = gV_FreestyleZones[j][0];
 				vPoints[7] = gV_FreestyleZones[j][1];
 
+				if(gSG_Type == Game_CSS)
+				{
+					vPoints[0][2] += 2.0;
+					vPoints[7][2] += 2.0;
+				}
+
 				if(gCV_ZoneStyle.BoolValue)
 				{
 					vPoints[7][2] = vPoints[0][2];
@@ -1379,6 +1385,12 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 				vPoints[0] = gV_MapZones[i][0];
 				vPoints[7] = gV_MapZones[i][1];
 
+				if(gSG_Type == Game_CSS)
+				{
+					vPoints[0][2] += 2.0;
+					vPoints[7][2] += 2.0;
+				}
+
 				if(gCV_ZoneStyle.BoolValue)
 				{
 					vPoints[7][2] = vPoints[0][2];
@@ -1394,34 +1406,39 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 public Action Timer_Draw(Handle Timer, any data)
 {
-	if(!IsValidClient(data, true) || gI_MapStep[data] == 0)
+	int client = GetClientFromSerial(data);
+
+	if(client == 0 || gI_MapStep[client] == 0)
 	{
-		Reset(data);
+		Reset(client);
 
 		return Plugin_Stop;
 	}
 
 	float vOrigin[3];
 
-	if(gI_MapStep[data] == 1 || gV_Point2[data][0] == 0.0)
+	if(gI_MapStep[client] == 1 || gV_Point2[client][0] == 0.0)
 	{
-		GetClientAbsOrigin(data, vOrigin);
+		GetClientAbsOrigin(client, vOrigin);
 
 		vOrigin[2] += 144.0;
 	}
 
 	else
 	{
-		vOrigin = gV_Point2[data];
+		vOrigin = gV_Point2[client];
 	}
 
 	float vPoints[8][3];
-	vPoints[0] = gV_Point1[data];
+	vPoints[0] = gV_Point1[client];
+	vPoints[0][2] += 2.0;
+
 	vPoints[7] = vOrigin;
+	vPoints[7][2] += 2.0;
 
-	CreateZonePoints(vPoints, gF_RotateAngle[data], gV_Fix1[data], gV_Fix2[data], PLACEHOLDER, false);
+	CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false);
 
-	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[data]], 0.1);
+	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[client]], 0.1);
 
 	return Plugin_Continue;
 }
@@ -1771,7 +1788,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	}
 
 	char[] sQuery = new char[64];
-	FormatEx(sQuery, 128, "SELECT rot_ang FROM %smapzones;", gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "SELECT rot_ang FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_CheckRotation_Callback, sQuery);
 

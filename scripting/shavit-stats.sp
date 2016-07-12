@@ -62,6 +62,8 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
+
+	gB_Rankings = LibraryExists("shavit-rankings");
 }
 
 public void OnPluginStart()
@@ -72,9 +74,6 @@ public void OnPluginStart()
 
 	// translations
 	LoadTranslations("common.phrases");
-
-	// modules
-	gB_Rankings = LibraryExists("shavit-rankings");
 
 	// database connections
 	Shavit_GetDB(gH_SQL);
@@ -314,7 +313,7 @@ public void ShowMaps(int client)
 	{
 		if(gB_Rankings)
 		{
-			FormatEx(sQuery, 256, "SELECT pt.map, pt.time, pt.jumps, pt.id, pp.points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
+			FormatEx(sQuery, 256, "SELECT pt.map, pt.time, pt.jumps, pt.id, pp.points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE auth = '%s' AND style = %d ORDER BY points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
 		}
 
 		else

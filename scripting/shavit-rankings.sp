@@ -29,6 +29,9 @@
 
 // #define DEBUG
 
+// forwards
+Handle gH_Forwards_OnRankUpdated = null;
+
 // cache
 char gS_Map[256];
 float gF_IdealTime = 0.0;
@@ -83,27 +86,36 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-    // database connections
-    Shavit_GetDB(gH_SQL);
-    SQL_SetPrefix();
-    SetSQLInfo();
+	// forwards
+	gH_Forwards_OnRankUpdated = CreateGlobalForward("Shavit_OnRankUpdated", ET_Event, Param_Cell);
 
-    // player commands
-    RegConsoleCmd("sm_points", Command_Points, "Prints the points and ideal time for the map.");
-    RegConsoleCmd("sm_rank", Command_Rank, "Shows your current rank.");
-    RegConsoleCmd("sm_prank", Command_Rank, "Shows your current rank. (sm_rank alias)");
-    RegConsoleCmd("sm_top", Command_Top, "Shows the top players menu.");
-    RegConsoleCmd("sm_ptop", Command_Top, "Shows the top players menu. (sm_top alias)");
+	// database connections
+	Shavit_GetDB(gH_SQL);
+	SQL_SetPrefix();
+	SetSQLInfo();
 
-    // admin commands
-    RegAdminCmd("sm_setpoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points>");
+	// player commands
+	RegConsoleCmd("sm_points", Command_Points, "Prints the points and ideal time for the map.");
+	RegConsoleCmd("sm_rank", Command_Rank, "Shows your current rank.");
+	RegConsoleCmd("sm_prank", Command_Rank, "Shows your current rank. (sm_rank alias)");
+	RegConsoleCmd("sm_top", Command_Top, "Shows the top players menu.");
+	RegConsoleCmd("sm_ptop", Command_Top, "Shows the top players menu. (sm_top alias)");
 
-    #if defined DEBUG
-    // debug
-    RegServerCmd("sm_calc", Command_Calc);
-    #endif
+	// admin commands
+	RegAdminCmd("sm_setpoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points>");
 
-    gCV_TopAmount = CreateConVar("shavit_rankings_topamount", "100", "Amount of people to show within the sm_top menu.", 0, true, 1.0, false);
+	// translations
+	LoadTranslations("common.phrases");
+
+	#if defined DEBUG
+	// debug
+	RegServerCmd("sm_calc", Command_Calc);
+	#endif
+
+	// cvars
+	gCV_TopAmount = CreateConVar("shavit_rankings_topamount", "100", "Amount of people to show within the sm_top menu.", 0, true, 1.0, false);
+
+	AutoExecConfig();
 }
 
 public void OnClientPutInServer(int client)
@@ -122,7 +134,7 @@ public void OnClientPutInServer(int client)
     if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
     {
         char[] sQuery = new char[128];
-        FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s';", gS_MySQLPrefix, sAuthID3);
+        FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1;", gS_MySQLPrefix, sAuthID3);
 
         gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
     }
@@ -251,14 +263,29 @@ public Action Command_Rank(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gI_PlayerRank[client] <= 0 || gF_PlayerPoints[client] <= 0.0)
+	int target = client;
+
+	if(args > 0)
 	{
-		Shavit_PrintToChat(client, "You are unranked.");
+		char[] sTarget = new char[MAX_TARGET_LENGTH];
+		GetCmdArgString(sTarget, MAX_TARGET_LENGTH);
+
+		target = FindTarget(client, sTarget, true, false);
+
+		if(target == -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	if(gI_PlayerRank[target] <= 0 || gF_PlayerPoints[target] <= 0.0)
+	{
+		Shavit_PrintToChat(client, "\x03%N\x01 is unranked.", target);
 
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "You are ranked \x03%d\x01 with \x05%.02f points\x01.", gI_PlayerRank[client], gF_PlayerPoints[client]);
+	Shavit_PrintToChat(client, "\x03%N\x01 is ranked \x03#%d\x01 with \x05%.02f points\x01.", target, gI_PlayerRank[target], gF_PlayerPoints[target]);
 
 	return Plugin_Handled;
 }
@@ -460,7 +487,7 @@ public void SQL_RetroactivePoints_Callback2(Database db, DBResultSet results, co
 public void UpdatePointsCache(const char[] map)
 {
     char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT time, points FROM %smappoints WHERE map = '%s';", gS_MySQLPrefix, map);
+    FormatEx(sQuery, 256, "SELECT time, points FROM %smappoints WHERE map = '%s' LIMIT 1;", gS_MySQLPrefix, map);
 
     gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -563,7 +590,7 @@ public void SavePoints(int serial, BhopStyle style, const char[] map, float poin
     dp.WriteCell(points);
 
     char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT id FROM %splayertimes WHERE auth = '%s' AND map = '%s' AND style = %d;", gS_MySQLPrefix, sAuthID, map, style);
+    FormatEx(sQuery, 256, "SELECT id FROM %splayertimes WHERE auth = '%s' AND map = '%s' AND style = %d LIMIT 1;", gS_MySQLPrefix, sAuthID, map, style);
 
     gH_SQL.Query(SQL_FindRecordID_Callback, sQuery, dp, DBPrio_Low);
 }
@@ -634,7 +661,7 @@ public void UpdatePlayerPoints(int client, bool chat)
     GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
     char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE pt.auth = \"%s\" ORDER BY pp.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
+    FormatEx(sQuery, 256, "SELECT points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE pt.auth = '%s' ORDER BY pp.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
     gH_SQL.Query(SQL_UpdatePoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
@@ -702,7 +729,7 @@ public void UpdatePlayerRank(int client)
     if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
     {
         char[] sQuery = new char[256];
-        FormatEx(sQuery, 256, "SELECT COUNT(*) AS rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s') ORDER BY up.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
+        FormatEx(sQuery, 256, "SELECT COUNT(*) AS rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1) ORDER BY up.points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
 
         gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
     }
@@ -726,7 +753,11 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 
     if(results.FetchRow())
     {
-        gI_PlayerRank[client] = results.FetchInt(0);
+		gI_PlayerRank[client] = results.FetchInt(0);
+
+		Call_StartForward(gH_Forwards_OnRankUpdated);
+		Call_PushCell(client);
+		Call_Finish();
     }
 }
 

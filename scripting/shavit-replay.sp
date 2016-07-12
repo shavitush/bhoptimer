@@ -491,6 +491,11 @@ public void Shavit_OnResume(int client)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
+	if(!IsPlayerAlive(client))
+	{
+		return Plugin_Continue;
+	}
+
 	float vecPosition[3];
 	GetClientAbsOrigin(client, vecPosition);
 

@@ -48,6 +48,7 @@ ConVar gCV_StartOnSpawn = null;
 ConVar gCV_PrespeedLimit = null;
 ConVar gCV_HideRadar = null;
 ConVar gCV_TeleportCommands = null;
+ConVar gCV_NoWeaponDrops = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -107,6 +108,7 @@ public void OnPluginStart()
 	gCV_PrespeedLimit = CreateConVar("shavit_misc_prespeedlimit", "280.00", "Prespeed limitation in startzone.", 0, true, 10.0, false);
 	gCV_HideRadar = CreateConVar("shavit_misc_hideradar", "1", "Should the plugin hide the in-game radar?", 0, true, 0.0, true, 1.0);
 	gCV_TeleportCommands = CreateConVar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -224,7 +226,7 @@ public Action Timer_Message(Handle Timer)
 
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
-	if(!IsValidClient(client, true))
+	if(!IsPlayerAlive(client))
 	{
 		return Plugin_Continue;
 	}
@@ -281,8 +283,9 @@ public void OnClientPutInServer(int client)
 {
 	gB_Hide[client] = false;
 
-	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
+	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 
 	if(gH_GetMaxPlayerSpeed != null)
 	{
@@ -324,6 +327,14 @@ public Action OnTakeDamage(int victim, int attacker)
 	}
 
 	return Plugin_Continue;
+}
+
+public void OnWeaponDrop(int client, int entity)
+{
+	if(gCV_NoWeaponDrops.BoolValue && IsValidEntity(entity))
+	{
+		AcceptEntityInput(entity, "Kill");
+	}
 }
 
 // hide
@@ -374,7 +385,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 			FakeClientCommand(client, "sm_%s", sCopy);
 
-			return Plugin_Handled;
+			return Plugin_Stop;
 		}
 	}
 

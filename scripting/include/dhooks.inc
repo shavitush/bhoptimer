@@ -1,3 +1,5 @@
+// code by Dr!fter https://forums.alliedmods.net/showthread.php?t=180114
+
 #if defined _dhooks_included
 #endinput
 #endif
