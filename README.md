@@ -157,3 +157,4 @@ Chat **(NEW!)**
 - [x] Update cache for a player when his rank updates.
 - [x] Add `sm_ranks` `sm_chatranks`.
 - [x] Add `Shavit_FormatChat` native.
+- [ ] Add {randomrgb} and {randomrgba} for CS:S parsing.

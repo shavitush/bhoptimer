@@ -108,6 +108,30 @@ public void OnClientPutInServer(int client)
 	gF_LastMessage[client] = GetEngineTime();
 }
 
+public void OnClientAuthorized(int client, const char[] auth)
+{
+	// CS:S uses steamid3 but CS:GO doesn't sadly
+	char[] sAuthID = new char[32];
+	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+
+	char[] sBuffer = new char[255];
+
+	if(gSM_Custom_Prefix.GetString(sAuthID, sBuffer, 255))
+	{
+		strcopy(gS_Cached_Prefix[client], 32, sBuffer);
+	}
+
+	if(gSM_Custom_Name.GetString(sAuthID, sBuffer, 255))
+	{
+		strcopy(gS_Cached_Name[client], MAX_NAME_LENGTH*2, sBuffer);
+	}
+
+	if(gSM_Custom_Message.GetString(sAuthID, sBuffer, 255))
+	{
+		strcopy(gS_Cached_Message[client], 255, sBuffer);
+	}
+}
+
 public void OnLibraryAdded(const char[] name)
 {
     if(StrEqual(name, "basecomm"))
@@ -159,30 +183,6 @@ public void LoadChatCache(int client)
 			gD_ChatRanks[i].GetString("prefix", gS_Cached_Prefix[client], 32);
 			gD_ChatRanks[i].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
 			gD_ChatRanks[i].GetString("message", gS_Cached_Message[client], 255);
-		}
-	}
-
-	if(IsClientAuthorized(client))
-	{
-		// lookup custom properties in addition to the rank properties
-		char[] sAuthID = new char[32];
-		GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
-
-		char[] sBuffer = new char[255];
-
-		if(gSM_Custom_Prefix.GetString(sAuthID, sBuffer, 255))
-		{
-			strcopy(gS_Cached_Prefix[client], 32, sBuffer);
-		}
-
-		if(gSM_Custom_Name.GetString(sAuthID, sBuffer, 255))
-		{
-			strcopy(gS_Cached_Name[client], MAX_NAME_LENGTH*2, sBuffer);
-		}
-
-		if(gSM_Custom_Message.GetString(sAuthID, sBuffer, 255))
-		{
-			strcopy(gS_Cached_Message[client], 255, sBuffer);
 		}
 	}
 }
@@ -305,6 +305,11 @@ public void LoadConfig()
 			gF_LastMessage[i] = GetEngineTime();
 
 			Shavit_OnRankUpdated(i);
+
+			if(IsClientAuthorized(i))
+			{
+				OnClientAuthorized(i, "");
+			}
 		}
 	}
 }
