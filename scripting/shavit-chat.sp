@@ -416,20 +416,21 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 	char[] sMessage = new char[300];
 	strcopy(sMessage, 300, sArgs);
-	ReplaceString(sMessage[0], 1, "!", "");
-	ReplaceString(sMessage[0], 1, "/", "");
 
-	bool bCmd = false;
-	Handle hCon = FindFirstConCommand(sMessage, 300, bCmd);
-
-	if(hCon != null)
+	if(ReplaceString(sMessage[0], 1, "!", "") > 0 || ReplaceString(sMessage[0], 1, "/", "") > 0)
 	{
-		FindNextConCommand(hCon, sMessage, 300, bCmd);
-		delete hCon;
+		bool bCmd = false;
+		Handle hCon = FindFirstConCommand(sMessage, 300, bCmd);
 
-		if(bCmd)
+		if(hCon != null)
 		{
-			return Plugin_Handled;
+			FindNextConCommand(hCon, sMessage, 300, bCmd);
+			delete hCon;
+
+			if(bCmd)
+			{
+				return Plugin_Handled;
+			}
 		}
 	}
 
@@ -559,6 +560,24 @@ public void FormatVariables(int client, char[] buffer, int maxlen, const char[] 
 	{
 		ReplaceString(sTempFormattingRules, maxlen, "{RGB}", "\x07");
 		ReplaceString(sTempFormattingRules, maxlen, "{RGBA}", "\x08");
+
+		char[] sColorBuffer = new char[16];
+
+		do
+		{
+			GetRandomHex(sColorBuffer, 6);
+			Format(sColorBuffer, 16, "\x07%s", sColorBuffer);
+		}
+
+		while(ReplaceStringEx(sTempFormattingRules, maxlen, "{RGBX}", sColorBuffer) > 0);
+
+		do
+		{
+			GetRandomHex(sColorBuffer, 8);
+			Format(sColorBuffer, 16, "\x08%s", sColorBuffer);
+		}
+
+		while(ReplaceStringEx(sTempFormattingRules, maxlen, "{RGBAX}", sColorBuffer) > 0);
 	}
 
 	else
@@ -633,4 +652,29 @@ public int Native_FormatChat(Handle handler, int numParams)
 	int maxlength = GetNativeCell(5);
 
 	return SetNativeString(6, sBuffer, maxlength);
+}
+
+public void GetRandomHex(char[] buffer, int size)
+{
+	char[] sHex = "0123456789abcdef";
+
+	for(int i = 0; i < size; i++)
+	{
+		buffer[i] = sHex[RealRandomInt(0, 15)];
+	}
+
+	buffer[size+1] = '\0';
+}
+
+// from SMLib
+public int RealRandomInt(int min, int max)
+{
+	int random = GetURandomInt();
+
+	if(random == 0)
+	{
+		random++;
+	}
+
+	return RoundToCeil(float(random) / (float(2147483647) / float(max - min + 1))) + min - 1;
 }

@@ -157,4 +157,9 @@ Chat **(NEW!)**
 - [x] Update cache for a player when his rank updates.
 - [x] Add `sm_ranks` `sm_chatranks`.
 - [x] Add `Shavit_FormatChat` native.
-- [ ] Add {randomrgb} and {randomrgba} for CS:S parsing.
+- [x] Add random rgb and random rgba for CS:S parsing.
+
+Zones
+--
+- [ ] Make zones be trigger-based for high-performance.
+- [ ] Migrate zone settings and InsideZone() to use Dynamic.
