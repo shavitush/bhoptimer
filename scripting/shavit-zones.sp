@@ -111,7 +111,7 @@ char gS_MySQLPrefix[32];
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
-	author = "shavit", // reminder: add ~big big big~ HUGE thanks to blacky < done
+	author = "shavit",
 	description = "Map zones for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -499,7 +499,7 @@ public Action Command_Modifier(int client, int args)
 
 	if(!args)
 	{
-		ReplyToCommand(client, "%s Usage: sm_modifier <decimal number>", PREFIX);
+		Shavit_PrintToChat(client, "Usage: sm_modifier <decimal number>");
 
 		return Plugin_Handled;
 	}
@@ -507,15 +507,18 @@ public Action Command_Modifier(int client, int args)
 	char[] sArg1 = new char[16];
 	GetCmdArg(1, sArg1, 16);
 
-	if(StringToFloat(sArg1) <= 0.0)
+	float fArg1 = StringToFloat(sArg1);
+
+	if(fArg1 <= 0.0)
 	{
-		ReplyToCommand(client, "%s Modifier must be higher than 0.", PREFIX, gF_Modifier[client]);
+		Shavit_PrintToChat(client, "Modifier must be higher than 0.");
+
 		return Plugin_Handled;
 	}
 
-	gF_Modifier[client] = StringToFloat(sArg1);
+	gF_Modifier[client] = fArg1;
 
-	ReplyToCommand(client, "%s Modifier set to \x03%.01f\x01.", PREFIX, gF_Modifier[client]);
+	Shavit_PrintToChat(client, "Modifier set to \x03%.01f\x01.", fArg1);
 
 	return Plugin_Handled;
 }

@@ -14,7 +14,7 @@ a bhop server should be simple
 * [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
-* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat`.
+* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat` and `shavit-zones`.
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
@@ -161,5 +161,6 @@ Chat **(NEW!)**
 
 Zones
 --
-- [ ] Make zones be trigger-based for high-performance.
-- [ ] Migrate zone settings and InsideZone() to use Dynamic.
+- [ ] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
+- [ ] Migrate zone settings to use Dynamic.
+- [ ] Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
