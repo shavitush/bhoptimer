@@ -92,12 +92,9 @@ $rr = isset($_REQUEST['rr']);
                     <select name="style" class="form-control">
                         <?php
                         for ($i = 0; $i < count($styles); $i++) {
-                            ?> <option value="<?php echo $i;
-                            ?>" <?php if ($i == DEFAULT_STYLE || $style == $i) {
+                            ?> <option value="<?php echo $i; ?>" <?php if ($i == DEFAULT_STYLE || $style == $i) {
                                 echo 'selected="selected"';
-                            }
-                            ?>><?php echo $styles[$i];
-                            ?></option> <?php
+                            } ?>><?php echo $styles[$i]; ?></option> <?php
 
                         }
                         ?>
@@ -113,12 +110,9 @@ $rr = isset($_REQUEST['rr']);
                             while ($row = $result->fetch_assoc()) {
                                 // $row["map"] - including workshop
                                 // removeworkshop($row["map"]) - no workshop
-                                ?> <option value="<?php echo $row['map'];
-                                ?>" <?php if ($row['map'] == $map) {
+                                ?> <option value="<?php echo $row['map']; ?>" <?php if ($row['map'] == $map) {
                                     echo 'selected="selected"';
-                                }
-                                ?>><?php echo removeworkshop($row['map']);
-                                ?></option> <?php
+                                } ?>><?php echo removeworkshop($row['map']); ?></option> <?php
 
                             }
                         }
@@ -143,15 +137,13 @@ $rr = isset($_REQUEST['rr']);
         <?php
         if (!isset($_REQUEST['map']) && !$rr) {
             ?>
-            <h1><?php echo HEADER_TITLE;
-            ?></h1>
+            <h1><?php echo HEADER_TITLE; ?></h1>
             <p>
                 To view the records of any map, please select it using the menu at the top right of this page.<br/>
                 Don't forget to select a style if you wish, and then tap 'Submit'!</p>
 
             <p>
-                Alternatively, you may click <a href="index.php?rr=1">Recent Records</a> to view the latest <?php echo RECORD_LIMIT_LATEST;
-            ?> records.
+                Alternatively, you may click <a href="index.php?rr=1">Recent Records</a> to view the latest <?php echo RECORD_LIMIT_LATEST; ?> records.
             </p>
             <?php
 
@@ -196,34 +188,24 @@ $rr = isset($_REQUEST['rr']);
                             <?php
 
                             $first = false;
-                        }
-
-                        ?>
+                        } ?>
 
     					<tr>
-                            <td><?php echo removeworkshop($map);
-                        ?></td>
-        					<td><?php echo $name;
-                        ?></td>
-        					<td><?php echo $styles[$style];
-                        ?></td>
-        					<td><?php echo formattoseconds($time);
-                        ?></td>
-        					<td><?php echo number_format($jumps);
-                        ?></td>
+                            <td><?php echo removeworkshop($map); ?></td>
+        					<td><?php echo $name; ?></td>
+        					<td><?php echo $styles[$style]; ?></td>
+        					<td><?php echo formattoseconds($time); ?></td>
+        					<td><?php echo number_format($jumps); ?></td>
                             <td><?php if (USES_RANKINGS == '1') {
                             echo number_format($pp, 2);
                         } else {
                             echo '---';
-                        }
-                        ?></td>
+                        } ?></td>
                             <td><?php
                             $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
-                        echo '<a href="https://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>';
-                        ?></td>
+                        echo '<a href="https://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>'; ?></td>
 
-        					<td><?php echo $date;
-                        ?></td>
+        					<td><?php echo $date; ?></td>
                         </tr>
 
                         <?php
@@ -254,10 +236,7 @@ $rr = isset($_REQUEST['rr']);
                     while ($row = $stmt->fetch()) {
                         if ($first) {
                             ?>
-                            <p><span class="mark"><?php echo $styles[$style];
-                            ?></span> Records (<?php echo number_format($rows);
-                            ?>) for <i><?php echo removeworkshop($map);
-                            ?></i>:</p>
+                            <p><span class="mark"><?php echo $styles[$style]; ?></span> Records (<?php echo number_format($rows); ?>) for <i><?php echo removeworkshop($map); ?></i>:</p>
 
     						<table class="table table-striped table-hover">
     						<thead id="ignore"><th>Rank</th>
@@ -272,8 +251,7 @@ $rr = isset($_REQUEST['rr']);
     						<?php
 
                             $first = false;
-                        }
-                        ?>
+                        } ?>
 
                         <?php if ($rank == 1) {
                             ?>
@@ -285,8 +263,7 @@ $rr = isset($_REQUEST['rr']);
                             <tr class="default">
                             <?php
 
-                        }
-                        ?>
+                        } ?>
                         <td>
                         <?php switch ($rank) {
                             case 1:
@@ -312,40 +289,30 @@ $rr = isset($_REQUEST['rr']);
                                 echo '#'.$rank;
                                 break;
                             }
-                        }
-                        ?></td>
-    					<td><?php echo $id;
-                        ?></td>
+                        } ?></td>
+    					<td><?php echo $id; ?></td>
     					<td><?php
                         $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
-                        echo '<a href="http://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>';
-                        ?></td>
-    					<td><?php echo $name;
-                        ?></td>
+                        echo '<a href="http://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>'; ?></td>
+    					<td><?php echo $name; ?></td>
     					<td>
 
     					<?php
-                        echo formattoseconds($time);
-                        ?></td>
-    					<td><?php echo number_format($jumps);
-                        ?></td>
+                        echo formattoseconds($time); ?></td>
+    					<td><?php echo number_format($jumps); ?></td>
                         <td><?php if (USES_RANKINGS == '1') {
                             echo number_format($pp, 2);
                         } else {
                             echo '---';
-                        }
-                        ?></td>
-                        <td><?php echo $date;
-                        ?></td></tr>
+                        } ?></td>
+                        <td><?php echo $date; ?></td></tr>
 
     					<?php
 
                         if (++$rank > RECORD_LIMIT) {
                             break;
                         }
-                    }
-
-                    ?> </table> <?php
+                    } ?> </table> <?php
 
                 }
             }
