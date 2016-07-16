@@ -98,6 +98,11 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ranks", Command_ChatRanks, "Shows a list of all the possible chat ranks. Alias for sm_chatranks.");
 }
 
+public void OnPluginEnd()
+{
+	ResetCache();
+}
+
 public void OnMapStart()
 {
     LoadConfig();
@@ -195,6 +200,19 @@ public void LoadChatCache(int client)
 	}
 }
 
+public void ResetCache()
+{
+	for(int i = 0; i < 64; i++)
+	{
+		if(gD_ChatRanks[i].IsValid)
+		{
+			gD_ChatRanks[i].Dispose();
+		}
+	}
+
+	gI_TotalChatRanks = 0;
+}
+
 public void LoadConfig()
 {
 	delete gSM_Custom_Prefix;
@@ -205,15 +223,7 @@ public void LoadConfig()
 	gSM_Custom_Name = new StringMap();
 	gSM_Custom_Message = new StringMap();
 
-	for(int i = 0; i < 64; i++)
-	{
-		if(gD_ChatRanks[i].IsValid)
-		{
-			gD_ChatRanks[i].Dispose();
-		}
-	}
-
-	gI_TotalChatRanks = 0;
+	ResetCache();
 
 	KeyValues kvConfig = new KeyValues("Chat");
 
