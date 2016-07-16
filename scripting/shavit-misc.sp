@@ -138,6 +138,11 @@ public void OnPluginStart()
 	}
 }
 
+public void OnMapStart()
+{
+	CS_TerminateRound(3.0, CSRoundEnd_GameStart, true);
+}
+
 public Action Command_Jointeam(int client, const char[] command, int args)
 {
 	if(!IsValidClient(client))
