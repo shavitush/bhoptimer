@@ -766,19 +766,19 @@ public void OnClientPutInServer(int client)
 	char[] sEscapedName = new char[iLength]; // dynamic arrays! I love you, SourcePawn 1.7!
 	gH_SQL.Escape(sName, sEscapedName, iLength);
 
-	char[] sIP = new char[32];
-	GetClientIP(client, sIP, 32);
+	char[] sIP = new char[64];
+	GetClientIP(client, sIP, 64);
 
-	char[] sCountry = new char[45];
-	GeoipCountry(sIP, sCountry, 45);
+	char[] sCountry = new char[128];
+	GeoipCountry(sIP, sCountry, 128);
 
 	if(strlen(sCountry) == 0)
 	{
-		strcopy(sCountry, 45, "Local Area Network");
+		strcopy(sCountry, 128, "Local Area Network");
 	}
 
-	char[] sQuery = new char[256]; // cannot go over 256 (after testing)
-	FormatEx(sQuery, 256, "REPLACE INTO %susers (auth, name, country, ip) VALUES ('%s', '%s', '%s', '%s');", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP);
+	char[] sQuery = new char[512];
+	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip) VALUES ('%s', '%s', '%s', '%s');", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP);
 
 	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
@@ -851,7 +851,7 @@ public void SQL_DBConnect()
 		gH_SQL.SetCharset("utf8");
 
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(45), `ip` VARCHAR(32), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
 
 		// CREATE TABLE IF NOT EXISTS
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);

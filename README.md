@@ -143,6 +143,7 @@ Rankings **(NEW!)**
 - [x] Calculate points per scored time once it's added to the database.
 - [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
+- [ ] Add native that checks the total amount of players with over 0 points.
 
 Web Interface
 --
@@ -163,3 +164,8 @@ Zones
 --
 - [ ] Make zones be trigger-based for high-performance.
 - [ ] Migrate zone settings and InsideZone() to use Dynamic.
+
+World Records
+--
+- [ ] Add native that checks the total amount of players with records on a style.
+- [ ] Possibly cache the whole leaderboards with Dynamic.
