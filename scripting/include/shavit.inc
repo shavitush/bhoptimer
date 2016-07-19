@@ -30,7 +30,7 @@
 #define PREFIX "\x04[Timer]\x01"
 
 #define MAX_STYLES 6
-#define MAX_ZONES 7
+#define MAX_ZONES 8
 
 // game types
 enum ServerGame(+=1)
@@ -214,7 +214,8 @@ enum MapZones(+=1)
 	Zone_Stop,
 	Zone_Slay,
 	Zone_Freestyle,
-	Zone_NoVelLimit
+	Zone_NoVelLimit,
+	Zone_Teleport
 };
 
 // let's not throw errors k?
