@@ -96,9 +96,9 @@ HUD
 
 Replay
 --
-- [ ] Add admin interface. (delete replay data)
+- [x] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
 - [ ] Remove replay bot data on deletion of the #1 record.
-- [ ] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
+- [ ] Add admin interface. (delete replay data)
 
 WR
 --
@@ -162,8 +162,14 @@ Chat **(NEW!)**
 
 Zones
 --
-- [ ] Make zones be trigger-based for high-performance.
-- [ ] Migrate zone settings and InsideZone() to use Dynamic.
+- [x] Add teleport zones (multiple).
+- [x] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
+- [x] CANCELED: Migrate zone settings to use Dynamic. (i didn't think *too* far into it before i started)
+- [x] Handle teleport zones. (teleport to a value from gV_Teleport)
+- [x] **Canceled all the triggers stuff because I'm a retard: if you ever feel like doing it because I failed hard, the code I worked with is left out commented.**
+- [x] CANCELED: Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
+- [x] CANCELED: Cleanup unused variables as we use triggers now.
+- [x] CANCELED: Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
 
 World Records
 --

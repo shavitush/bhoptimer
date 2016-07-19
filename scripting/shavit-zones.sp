@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+/*#include <sdkhooks>*/
 #include <cstrike>
 #include <shavit>
 
@@ -46,7 +47,8 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"Glitch Zone (Stop Timer)", // stops the player's timer
 	"Slay Player", // slays (kills) players which come to this zone
 	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
-	"No Speed Limit" // ignores velocity limit in that zone
+	"No Speed Limit", // ignores velocity limit in that zone
+	"Teleport Zone" // teleports to a defined point
 };
 
 MapZones gMZ_Type[MAXPLAYERS+1];
@@ -62,11 +64,15 @@ float gF_Modifier[MAXPLAYERS+1];
 // I suck
 float gV_Point1[MAXPLAYERS+1][3];
 float gV_Point2[MAXPLAYERS+1][3];
+float gV_Teleport[MAXPLAYERS+1][3];
 
 bool gB_Button[MAXPLAYERS+1];
 
 float gV_MapZones[MAX_ZONES][2][3];
 float gV_FreestyleZones[MULTIPLEZONES_LIMIT][2][3];
+float gV_TeleportZoneDestination[MULTIPLEZONES_LIMIT][3];
+
+/*ArrayList gA_MapZoneEntRef = null;*/
 
 // Sorry for adding too many variables: zone rotations
 float gV_MapZonesFixes[MAX_ZONES][2][2];
@@ -111,7 +117,7 @@ char gS_MySQLPrefix[32];
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
-	author = "shavit", // reminder: add ~big big big~ HUGE thanks to blacky < done
+	author = "shavit",
 	description = "Map zones for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -147,6 +153,7 @@ public void OnAllPluginsLoaded()
 public void OnPluginStart()
 {
 	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
+	RegAdminCmd("sm_tpzone", Command_TPZone, ADMFLAG_RCON, "Defines the teleport zone so it teleports to the location you are in.");
 
 	// menu
 	RegAdminCmd("sm_zones", Command_Zones, ADMFLAG_RCON, "Opens the mapzones menu");
@@ -157,6 +164,8 @@ public void OnPluginStart()
 
 	// colors
 	SetupColors();
+
+	/*gA_MapZoneEntRef = new ArrayList(2);*/
 
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
@@ -277,7 +286,7 @@ public int Native_InsideZone(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	MapZones type = GetNativeCell(2);
 
-	if(type == Zone_Freestyle || type == Zone_NoVelLimit)
+	if(type >= Zone_Freestyle && type != Zone_Teleport)
 	{
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
 		{
@@ -310,6 +319,7 @@ public void SetupColors()
 	gI_Colors[Zone_Respawn] = {255, 200, 0, 255};
 	gI_Colors[Zone_Stop] = {255, 200, 0, 255};
 	gI_Colors[Zone_Slay] = {255, 200, 0, 255};
+	gI_Colors[Zone_Teleport] = {255, 200, 0, 255};
 
 	// freestyle zones - blue
 	gI_Colors[Zone_Freestyle] = {25, 25, 255, 195};
@@ -342,6 +352,8 @@ public void OnMapStart()
 		gI_BeamSprite = PrecacheModel("sprites/laserbeam.vmt", true);
 		gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
 	}
+
+	/*PrecacheModel("models/props/cs_office/vending_machine.mdl");*/
 }
 
 // 0 - all zones
@@ -370,7 +382,7 @@ public void UnloadZones(int zone)
 		return;
 	}
 
-	if(zone != view_as<int>(Zone_Freestyle) || zone != view_as<int>(Zone_NoVelLimit))
+	if(zone < view_as<int>(Zone_Freestyle))
 	{
 		for(int i = 0; i < 3; i++)
 		{
@@ -390,12 +402,14 @@ public void UnloadZones(int zone)
 			}
 		}
 	}
+
+	/*gA_MapZoneEntRef.Clear();*/
 }
 
 public void RefreshZones()
 {
-	char[] sQuery = new char[256];
-	FormatEx(sQuery, 256, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+	char[] sQuery = new char[512];
+	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
 	if(gH_SQL != null)
 	{
@@ -423,7 +437,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 	{
 		MapZones type = view_as<MapZones>(results.FetchInt(0));
 
-		if(type == Zone_Freestyle || type == Zone_NoVelLimit)
+		if(type >= Zone_Freestyle)
 		{
 			gV_FreestyleZones[iFreestyleRow][0][0] = results.FetchFloat(1);
 			gV_FreestyleZones[iFreestyleRow][0][1] = results.FetchFloat(2);
@@ -433,6 +447,8 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gV_FreestyleZones[iFreestyleRow][1][2] = results.FetchFloat(6);
 
 			float ang = results.FetchFloat(7);
+			/*CreateZoneEnt(gV_FreestyleZones[iFreestyleRow][0], gV_FreestyleZones[iFreestyleRow][1], ang);*/
+
 			float radian = DegToRad(ang);
 			gF_FreeStyleConstSin[iFreestyleRow] = Sine(radian);
 			gF_FreeStyleConstCos[iFreestyleRow] = Cosine(radian);
@@ -445,6 +461,13 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gV_FreeStyleZonesFixes[iFreestyleRow][0][1] = results.FetchFloat(9);
 			gV_FreeStyleZonesFixes[iFreestyleRow][1][0] = results.FetchFloat(10);
 			gV_FreeStyleZonesFixes[iFreestyleRow][1][1] = results.FetchFloat(11);
+
+			if(type == Zone_Teleport)
+			{
+				gV_TeleportZoneDestination[iFreestyleRow][0] = results.FetchFloat(12);
+				gV_TeleportZoneDestination[iFreestyleRow][1] = results.FetchFloat(13);
+				gV_TeleportZoneDestination[iFreestyleRow][2] = results.FetchFloat(14);
+			}
 
 			iFreestyleRow++;
 		}
@@ -464,6 +487,8 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gV_MapZones[type][1][2] = results.FetchFloat(6);
 
 			float ang = results.FetchFloat(7);
+			/*CreateZoneEnt(gV_MapZones[type][0], gV_MapZones[type][1], ang);*/
+
 			float radian = DegToRad(ang);
 			gF_ConstSin[type] = Sine(radian);
 			gF_ConstCos[type] = Cosine(radian);
@@ -479,6 +504,78 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		}
 	}
 }
+
+/*// this part is mostly taken from mephis' OpenTimer
+public void CreateZoneEnt(float[3] min, float[3] max, float rotation)
+{
+	int iEntity = CreateEntityByName("trigger_multiple");
+	gA_MapZoneEntRef.Push(EntIndexToEntRef(iEntity));
+
+	DispatchKeyValue(iEntity, "wait", "0");
+	DispatchKeyValue(iEntity, "StartDisabled", "0");
+	DispatchKeyValue(iEntity, "spawnflags", "1");
+
+	DispatchSpawn(iEntity);
+	ActivateEntity(iEntity);
+
+	SetEntityModel(iEntity, "models/props/cs_office/vending_machine.mdl");
+
+	SetEntProp(iEntity, Prop_Send, "m_fEffects", 32);
+
+	float vCenter[3];
+	MakeVectorFromPoints(min, max, vCenter);
+	vCenter[0] /= 2.0;
+	vCenter[1] /= 2.0;
+	AddVectors(min, vCenter, vCenter);
+
+	float vAngles[3];
+	GetEntPropVector(iEntity, Prop_Data, "m_angRotation", vAngles);
+	vAngles[1] += rotation;
+
+	if(vAngles[1] > 360 || vAngles[1] < -360)
+	{
+		// function "operator%(Float:,Float:)" is not implemented
+		// :(
+
+		float fRotated = (view_as<int>(vAngles[1]) % 360) + (vAngles[1] / 10.0);
+		vAngles[1] = fRotated;
+	}
+
+	TeleportEntity(iEntity, vCenter, vAngles, NULL_VECTOR);
+
+	vCenter[2] = 0.0;
+
+	float fDistance = GetVectorDistance(min, vCenter);
+
+	float vMins[3];
+	vMins[0] += -fDistance;
+	vMins[1] += -fDistance;
+	vMins[2] += -fDistance;
+
+	float vMaxs[3];
+	vMaxs[0] += fDistance;
+	vMaxs[1] += fDistance;
+	vMaxs[2] += fDistance;
+
+	//PrintToServer("%.01f | %.01f %.01f %.01f | %.01f %.01f %.01f | %.01f", fDistance, vMins[0], vMins[1], vMins[2], vMaxs[0], vMaxs[1], vMaxs[2], rotation);
+
+	SetEntPropVector(iEntity, Prop_Send, "m_vecMins", vMins);
+	SetEntPropVector(iEntity, Prop_Send, "m_vecMaxs", vMaxs);
+
+	SetEntProp(iEntity, Prop_Send, "m_nSolidType", 2);
+
+	SDKHook(iEntity, SDKHook_StartTouchPost, OnStartTouch);
+}
+
+public void OnStartTouch(int entity, int client)
+{
+	if(1 > client && client > MaxClients)
+	{
+		return;
+	}
+
+	PrintToChatAll("test %N %d", client, entity);
+}*/
 
 public void OnClientPutInServer(int client)
 {
@@ -499,7 +596,7 @@ public Action Command_Modifier(int client, int args)
 
 	if(!args)
 	{
-		ReplyToCommand(client, "%s Usage: sm_modifier <decimal number>", PREFIX);
+		Shavit_PrintToChat(client, "Usage: sm_modifier <decimal number>");
 
 		return Plugin_Handled;
 	}
@@ -507,15 +604,39 @@ public Action Command_Modifier(int client, int args)
 	char[] sArg1 = new char[16];
 	GetCmdArg(1, sArg1, 16);
 
-	if(StringToFloat(sArg1) <= 0.0)
+	float fArg1 = StringToFloat(sArg1);
+
+	if(fArg1 <= 0.0)
 	{
-		ReplyToCommand(client, "%s Modifier must be higher than 0.", PREFIX, gF_Modifier[client]);
+		Shavit_PrintToChat(client, "Modifier must be higher than 0.");
+
 		return Plugin_Handled;
 	}
 
-	gF_Modifier[client] = StringToFloat(sArg1);
+	gF_Modifier[client] = fArg1;
 
-	ReplyToCommand(client, "%s Modifier set to \x03%.01f\x01.", PREFIX, gF_Modifier[client]);
+	Shavit_PrintToChat(client, "Modifier set to \x03%.01f\x01.", fArg1);
+
+	return Plugin_Handled;
+}
+
+public Action Command_TPZone(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "You have to be alive in order to use this command.");
+
+		return Plugin_Handled;
+	}
+
+	GetClientAbsOrigin(client, gV_Teleport[client]);
+
+	Shavit_PrintToChat(client, "Teleport zone destination updated.");
 
 	return Plugin_Handled;
 }
@@ -566,7 +687,7 @@ public Action Command_DeleteZone(int client, int args)
 
 	for(int i = 0; i < MAX_ZONES; i++)
 	{
-		if(i == view_as<int>(Zone_Freestyle) || i == view_as<int>(Zone_NoVelLimit))
+		if(i >= view_as<int>(Zone_Freestyle))
 		{
 			if(!EmptyZone(gV_FreestyleZones[0][0]) && !EmptyZone(gV_FreestyleZones[0][1]))
 			{
@@ -767,6 +888,7 @@ public void Reset(int client)
 	{
 		gV_Point1[client][i] = 0.0;
 		gV_Point2[client][i] = 0.0;
+		gV_Teleport[client][i] = 0.0;
 	}
 }
 
@@ -852,6 +974,14 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		CS_RespawnPlayer(client);
 
 		return Plugin_Continue;
+	}
+
+	for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+	{
+		if(!EmptyZone(gV_TeleportZoneDestination[i]) && InsideZone(client, -i)) // i think this part makes ZERO SENSE but it *should* work
+		{
+			TeleportEntity(client, gV_TeleportZoneDestination[i], NULL_VECTOR, NULL_VECTOR);
+		}
 	}
 
 	// temp variables
@@ -954,38 +1084,24 @@ public void CreateAdjustMenu(int client, int page)
 	hMenu.AddItem("done", "Done!");
 	hMenu.AddItem("cancel", "Cancel");
 
-	char[] sDisplay = new char[64];
+	char[] sAxis = new char[4];
+	strcopy(sAxis, 4, "XYZ");
 
-	// sorry for this ugly code ;_;
-	FormatEx(sDisplay, 64, "Point 1 | X axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1x_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 1 | X axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1x_minus", sDisplay);
+	char[] sDisplay = new char[32];
+	char[] sInfo = new char[16];
 
-	FormatEx(sDisplay, 64, "Point 1 | Y axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1y_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 1 | Y axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1y_minus", sDisplay);
-
-	FormatEx(sDisplay, 64, "Point 1 | Z axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1z_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 1 | Z axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1z_minus", sDisplay);
-
-	FormatEx(sDisplay, 64, "Point 2 | X axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2x_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 2 | X axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2x_minus", sDisplay);
-
-	FormatEx(sDisplay, 64, "Point 2 | Y axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2y_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 2 | Y axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2y_minus", sDisplay);
-
-	FormatEx(sDisplay, 64, "Point 2 | Z axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2z_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 2 | Z axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2z_minus", sDisplay);
+	for(int iPoint = 1; iPoint <= 2; iPoint++)
+	{
+		for(int iAxis = 0; iAxis < 3; iAxis++)
+		{
+			for(int iState = 1; iState <= 2; iState++)
+			{
+				FormatEx(sDisplay, 32, "Point %d | %c axis %c%.01f", iPoint, sAxis[iAxis], iState == 1? '+':'-', gF_Modifier[client]);
+				FormatEx(sInfo, 16, "%d;%d;%d", iPoint, iAxis, iState);
+				hMenu.AddItem(sInfo, sDisplay);
+			}
+		}
+	}
 
 	hMenu.ExitButton = false;
 
@@ -996,107 +1112,34 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
-		menu.GetItem(param2, info, 16);
+		char[] sInfo = new char[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(info, "done"))
+		if(StrEqual(sInfo, "done"))
 		{
 			CreateEditMenu(param1);
 		}
 
-		else if(StrEqual(info, "cancel"))
+		else if(StrEqual(sInfo, "cancel"))
 		{
 			Reset(param1);
 		}
 
 		else
 		{
-			// This is a damn big mess and I can't think of anything better to do this (I'm really tired now), any idea will be welcomed!
-			// (except for using for example "0;plus" in the info string, I hate exploding strings)
+			char[] sAxis = new char[4];
+			strcopy(sAxis, 4, "XYZ");
 
-			if(StrEqual(info, "p1x_plus"))
-			{
-				gV_Point1[param1][0] += gF_Modifier[param1];
+			char[][] sExploded = new char[3][8];
+			ExplodeString(sInfo, ";", sExploded, 3, 8);
 
-				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
+			int iPoint = StringToInt(sExploded[0]);
+			int iAxis = StringToInt(sExploded[1]);
+			bool bIncrease = view_as<bool>(StringToInt(sExploded[2]) == 1);
 
-			else if(StrEqual(info, "p1x_minus"))
-			{
-				gV_Point1[param1][0] -= gF_Modifier[param1];
+			(iPoint == 1? gV_Point1:gV_Point2)[param1][iAxis] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 
-				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p1y_plus"))
-			{
-				gV_Point1[param1][1] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p1y_minus"))
-			{
-				gV_Point1[param1][1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p1z_plus"))
-			{
-				gV_Point1[param1][2] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p1z_minus"))
-			{
-				gV_Point1[param1][2] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2x_plus"))
-			{
-				gV_Point2[param1][0] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2x_minus"))
-			{
-				gV_Point2[param1][0] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2y_plus"))
-			{
-				gV_Point2[param1][1] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2y_minus"))
-			{
-				gV_Point2[param1][1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2z_plus"))
-			{
-				gV_Point2[param1][2] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2z_minus"))
-			{
-				gV_Point2[param1][2] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
+			Shavit_PrintToChat(param1, "\x03%c\x01 axis %s(point %d) \x04%s\x01 by \x03%.01f\x01.", sAxis[iAxis], gSG_Type == Game_CSGO? "\x0A":"\x05", iPoint, bIncrease? "increased":"decreased", gF_Modifier[param1]);
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
@@ -1120,9 +1163,10 @@ public void CreateRotateMenu(int client)
 
 	char[] sDisplay = new char[64];
 	FormatEx(sDisplay, 64, "Rotate by +%.01f degrees", gF_Modifier[client]);
-	hMenu.AddItem("plus", sDisplay);
+	hMenu.AddItem("1", sDisplay);
+
 	FormatEx(sDisplay, 64, "Rotate by -%.01f degrees", gF_Modifier[client]);
-	hMenu.AddItem("minus", sDisplay);
+	hMenu.AddItem("2", sDisplay);
 
 	hMenu.Display(client, 40);
 }
@@ -1131,37 +1175,33 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
-		menu.GetItem(param2, info, 16);
+		char[] sInfo = new char[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(info, "done"))
+		if(StrEqual(sInfo, "done"))
 		{
 			CreateEditMenu(param1);
 		}
 
-		else if(StrEqual(info, "cancel"))
+		else if(StrEqual(sInfo, "cancel"))
 		{
 			Reset(param1);
 		}
 
 		else
 		{
-			if(StrEqual(info, "plus"))
-			{
-				gF_RotateAngle[param1] += gF_Modifier[param1];
+			bool bIncrease = view_as<bool>(StringToInt(sInfo) == 1);
 
-				Shavit_PrintToChat(param1, "Zone Rotated \x01 by \x03%.01f\x01 degrees.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "minus"))
-			{
-				gF_RotateAngle[param1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "Zone Rotated \x01 by \x03-%.01f\x01 degrees.", gF_Modifier[param1]);
-			}
+			gF_RotateAngle[param1] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
+			Shavit_PrintToChat(param1, "Zone rotated by \x03%.01f\x01 degrees.", (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]));
 
 			CreateRotateMenu(param1);
 		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
 	}
 }
 
@@ -1173,27 +1213,26 @@ public void CreateWidthLengthMenu(int client, int page)
 	hMenu.AddItem("done", "Done!");
 	hMenu.AddItem("cancel", "Cancel");
 
-	char[] sDisplay = new char[64];
-	FormatEx(sDisplay, 64, "Right edge | +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("plus_right", sDisplay);
-	FormatEx(sDisplay, 64, "Right edge | -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("minus_right", sDisplay);
+	char sEdges[][] =
+	{
+		"Right",
+		"Back",
+		"Left",
+		"Front"
+	};
 
-	FormatEx(sDisplay, 64, "Back edge | +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("plus_back", sDisplay);
-	FormatEx(sDisplay, 64, "Back edge | -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("minus_back", sDisplay);
+	char[] sDisplay = new char[32];
+	char[] sInfo = new char[8];
 
-	FormatEx(sDisplay, 64, "Left edge | +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("plus_left", sDisplay);
-	FormatEx(sDisplay, 64, "Left edge | -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("minus_left", sDisplay);
-
-	FormatEx(sDisplay, 64, "Front edge | +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("plus_front", sDisplay);
-	FormatEx(sDisplay, 64, "Front edge | -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("minus_front", sDisplay);
-
+	for(int iEdge = 0; iEdge < 3; iEdge++)
+	{
+		for(int iState = 1; iState <= 2; iState++)
+		{
+			FormatEx(sDisplay, 32, "%s edge | %c%.01f", sEdges[iEdge], iState == 1? "+":"-", gF_Modifier[client]);
+			FormatEx(sInfo, 8, "%d;%d", iEdge, iState);
+			hMenu.AddItem(sInfo, sDisplay);
+		}
+	}
 
 	DisplayMenuAtItem(hMenu, client, page, 40);
 }
@@ -1202,79 +1241,56 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
-		menu.GetItem(param2, info, 16);
+		char[] sInfo = new char[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(info, "done"))
+		if(StrEqual(sInfo, "done"))
 		{
 			CreateEditMenu(param1);
 		}
 
-		else if(StrEqual(info, "cancel"))
+		else if(StrEqual(sInfo, "cancel"))
 		{
 			Reset(param1);
 		}
 
 		else
 		{
-			if(StrEqual(info, "plus_left"))
+			char sEdges[][] =
 			{
-				gV_Fix1[param1][0] += gF_Modifier[param1];
+				"Right",
+				"Back",
+				"Left",
+				"Front"
+			};
 
-				Shavit_PrintToChat(param1, "\x03Left edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
+			char[][] sExploded = new char[2][8];
+			ExplodeString(sInfo, ";", sExploded, 2, 8);
+
+			int iEdge = StringToInt(sExploded[0]);
+			bool bIncrease = view_as<bool>(StringToInt(sExploded[1]) == 1);
+
+			if(iEdge >= 2)
+			{
+				iEdge -= 2;
+
+				gV_Fix1[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 			}
 
-			else if(StrEqual(info, "minus_left"))
+			else
 			{
-				gV_Fix1[param1][0] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Left edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
+				gV_Fix2[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 			}
 
-			else if(StrEqual(info, "plus_right"))
-			{
-				gV_Fix2[param1][0] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Right edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "minus_right"))
-			{
-				gV_Fix2[param1][0] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Right edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "plus_front"))
-			{
-				gV_Fix1[param1][1] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Front edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "minus_front"))
-			{
-				gV_Fix1[param1][1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Front edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "plus_back"))
-			{
-				gV_Fix2[param1][1] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Back edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "minus_back"))
-			{
-				gV_Fix2[param1][1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Back edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
+			Shavit_PrintToChat(param1, "\x03%s edge \x04%s\x01 by \x03%.01f degrees\x01.", sEdges[iEdge], bIncrease? "increased":"decreased", gF_Modifier[param1]);
 
 			CreateWidthLengthMenu(param1, GetMenuSelectionPosition());
 		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
 	}
 }
 
@@ -1290,13 +1306,21 @@ public bool EmptyZone(float vZone[3])
 
 public void InsertZone(int client)
 {
-	char[] sQuery = new char[512];
-
 	MapZones type = gMZ_Type[client];
 
-	if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type == Zone_Freestyle || type == Zone_NoVelLimit) // insert
+	char[] sQuery = new char[512];
+
+	if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
 	{
-		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
+		if(type != Zone_Teleport)
+		{
+			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2]);
+		}
 	}
 
 	else // update
@@ -1318,9 +1342,7 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	bool bFreestyle = (data == Zone_Freestyle || data == Zone_NoVelLimit);
-
-	UnloadZones(bFreestyle? 0:data);
+	UnloadZones((data >= Zone_Freestyle)? 0:data);
 	RefreshZones();
 }
 
@@ -1330,76 +1352,66 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 	{
 		float vPoints[8][3];
 
-		if(i == view_as<int>(Zone_Freestyle) || i == view_as<int>(Zone_NoVelLimit))
+		if(i >= view_as<int>(Zone_Freestyle))
 		{
 			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
 			{
-				if(EmptyZone(gV_FreestyleZones[j][0]) && EmptyZone(gV_FreestyleZones[j][1]))
+				if(!EmptyZone(gV_FreestyleZones[j][0]) && !EmptyZone(gV_FreestyleZones[j][1]) && EmptyZone(gV_TeleportZoneDestination[j]))
 				{
-					continue;
+					vPoints[0] = gV_FreestyleZones[j][0];
+					vPoints[7] = gV_FreestyleZones[j][1];
+
+					if(gSG_Type == Game_CSS)
+					{
+						vPoints[0][2] += 2.0;
+						vPoints[7][2] += 2.0;
+					}
+
+					if(gCV_ZoneStyle.BoolValue)
+					{
+						vPoints[7][2] = vPoints[0][2];
+					}
+
+					if(j == 0)
+					{
+						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -PLACEHOLDER, false);
+					}
+
+					else
+					{
+						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false);
+					}
+
+					DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 				}
-
-				vPoints[0] = gV_FreestyleZones[j][0];
-				vPoints[7] = gV_FreestyleZones[j][1];
-
-				if(gSG_Type == Game_CSS)
-				{
-					vPoints[0][2] += 2.0;
-					vPoints[7][2] += 2.0;
-				}
-
-				if(gCV_ZoneStyle.BoolValue)
-				{
-					vPoints[7][2] = vPoints[0][2];
-				}
-
-				if(j == 0)
-				{
-					CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -PLACEHOLDER, false);
-				}
-
-				else
-				{
-					CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false);
-				}
-
-				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue);
 			}
 		}
 
 		else
 		{
 			// check shavit.inc, blacklisting glitch zones from being drawn
-			if(i == view_as<int>(Zone_Respawn))
+			if(i == view_as<int>(Zone_Respawn) || i == view_as<int>(Zone_Stop) || (EmptyZone(gV_MapZones[i][0]) && EmptyZone(gV_MapZones[i][1])))
 			{
 				continue;
 			}
 
-			if(i == view_as<int>(Zone_Stop))
+			vPoints[0] = gV_MapZones[i][0];
+			vPoints[7] = gV_MapZones[i][1];
+
+			if(gSG_Type == Game_CSS)
 			{
-				continue;
+				vPoints[0][2] += 2.0;
+				vPoints[7][2] += 2.0;
 			}
 
-			if(!EmptyZone(gV_MapZones[i][0]) && !EmptyZone(gV_MapZones[i][1]))
+			if(gCV_ZoneStyle.BoolValue)
 			{
-				vPoints[0] = gV_MapZones[i][0];
-				vPoints[7] = gV_MapZones[i][1];
-
-				if(gSG_Type == Game_CSS)
-				{
-					vPoints[0][2] += 2.0;
-					vPoints[7][2] += 2.0;
-				}
-
-				if(gCV_ZoneStyle.BoolValue)
-				{
-					vPoints[7][2] = vPoints[0][2];
-				}
-
-				CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false);
-
-				DrawZone(0, vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue);
+				vPoints[7][2] = vPoints[0][2];
 			}
+
+			CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false);
+
+			DrawZone(0, vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 		}
 	}
 }
@@ -1474,6 +1486,7 @@ public bool InsideZone(int client, int zone)
 		// Rotating the player so the box and the player will be on the same axis
 		PointConstRotate(gF_MinusConstSin[zone], gF_MinusConstCos[zone], vPoints[0], playerPos);
 	}
+
 	else
 	{
 		// Explanation above
@@ -1765,8 +1778,8 @@ public void SQL_DBConnect()
 	{
 		if(gH_SQL != null)
 		{
-			char[] sQuery = new char[512];
-			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+			char[] sQuery = new char[1024];
+			FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0, `destination_x` FLOAT NOT NULL default 0, `destination_y` FLOAT NOT NULL default 0, `destination_z` FLOAT NOT NULL default 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
 			gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 		}
@@ -1788,34 +1801,56 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	}
 
 	char[] sQuery = new char[64];
-	FormatEx(sQuery, 128, "SELECT rot_ang FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
+	FormatEx(sQuery, 64, "SELECT rot_ang FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
 
-	gH_SQL.Query(SQL_CheckRotation_Callback, sQuery);
-
-	// we have a database, time to load zones
-	RefreshZones();
+	FormatEx(sQuery, 64, "SELECT destination_x FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery);
 }
 
-public void SQL_CheckRotation_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	// rot_ang and the new stuff are missing. this is for people that update [shavit] from an older version
 	if(results == null)
 	{
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
 
-		gH_SQL.Query(SQL_AlterTable_Callback, sQuery);
+		gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 	}
 }
 
-public void SQL_AlterTable_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
 	{
-		LogError("Timer (zones module) error! Map zones' table alteration failed. Reason: %s", error);
+		LogError("Timer (zones module) error! Map zones' table migration (1) failed. Reason: %s", error);
 
 		return;
 	}
+}
+
+public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`destination_x` FLOAT NOT NULL default 0, `destination_y` FLOAT NOT NULL default 0, `destination_z` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
+
+		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
+	}
+}
+
+public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (zones module) error! Map zones' table migration (2) failed. Reason: %s", error);
+
+		return;
+	}
+
+	// we have a database, time to load zones
+	RefreshZones();
 }
 
 public void Shavit_OnRestart(int client)
