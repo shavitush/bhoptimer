@@ -143,6 +143,7 @@ Rankings **(NEW!)**
 - [x] Calculate points per scored time once it's added to the database.
 - [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
+- [ ] Add native that checks the total amount of players with over 0 points.
 
 Web Interface
 --
@@ -165,7 +166,12 @@ Zones
 - [x] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
 - [x] CANCELED: Migrate zone settings to use Dynamic. (i didn't think *too* far into it before i started)
 - [x] Handle teleport zones. (teleport to a value from gV_Teleport)
-- [x] Canceled all the triggers stuff because I'm a retard: if you ever feel like doing it because I failed hard, the code I worked with is left out commented.
+- [x] **Canceled all the triggers stuff because I'm a retard: if you ever feel like doing it because I failed hard, the code I worked with is left out commented.**
 - [x] CANCELED: Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
 - [x] CANCELED: Cleanup unused variables as we use triggers now.
 - [x] CANCELED: Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
+
+World Records
+--
+- [ ] Add native that checks the total amount of players with records on a style.
+- [ ] Possibly cache the whole leaderboards with Dynamic.
