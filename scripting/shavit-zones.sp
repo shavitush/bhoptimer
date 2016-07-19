@@ -70,6 +70,7 @@ bool gB_Button[MAXPLAYERS+1];
 
 float gV_MapZones[MAX_ZONES][2][3];
 float gV_FreestyleZones[MULTIPLEZONES_LIMIT][2][3];
+MapZones gMZ_FreestyleTypes[MAXPLAYERS+1];
 float gV_TeleportZoneDestination[MULTIPLEZONES_LIMIT][3];
 
 /*ArrayList gA_MapZoneEntRef = null;*/
@@ -376,6 +377,7 @@ public void UnloadZones(int zone)
 			{
 				gV_FreestyleZones[i][0][j] = 0.0;
 				gV_FreestyleZones[i][1][j] = 0.0;
+				gMZ_FreestyleTypes[i] = view_as<MapZones>(-1);
 			}
 		}
 
@@ -399,6 +401,7 @@ public void UnloadZones(int zone)
 			{
 				gV_FreestyleZones[i][0][j] = 0.0;
 				gV_FreestyleZones[i][1][j] = 0.0;
+				gMZ_FreestyleTypes[i] = view_as<MapZones>(-1);
 			}
 		}
 	}
@@ -445,6 +448,8 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gV_FreestyleZones[iFreestyleRow][1][0] = results.FetchFloat(4);
 			gV_FreestyleZones[iFreestyleRow][1][1] = results.FetchFloat(5);
 			gV_FreestyleZones[iFreestyleRow][1][2] = results.FetchFloat(6);
+
+			gMZ_FreestyleTypes[iFreestyleRow] = type;
 
 			float ang = results.FetchFloat(7);
 			/*CreateZoneEnt(gV_FreestyleZones[iFreestyleRow][0], gV_FreestyleZones[iFreestyleRow][1], ang);*/
@@ -978,7 +983,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 	for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
 	{
-		if(!EmptyZone(gV_TeleportZoneDestination[i]) && InsideZone(client, -i)) // i think this part makes ZERO SENSE but it *should* work
+		if(gMZ_FreestyleTypes[i] == Zone_Teleport && !EmptyZone(gV_TeleportZoneDestination[i]) && InsideTeleportZone(client, i))
 		{
 			TeleportEntity(client, gV_TeleportZoneDestination[i], NULL_VECTOR, NULL_VECTOR);
 		}
@@ -1356,7 +1361,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 		{
 			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
 			{
-				if(!EmptyZone(gV_FreestyleZones[j][0]) && !EmptyZone(gV_FreestyleZones[j][1]) && EmptyZone(gV_TeleportZoneDestination[j]))
+				if(gMZ_FreestyleTypes[j] != Zone_Freestyle && !EmptyZone(gV_FreestyleZones[j][0]) && !EmptyZone(gV_FreestyleZones[j][1]))
 				{
 					vPoints[0] = gV_FreestyleZones[j][0];
 					vPoints[7] = gV_FreestyleZones[j][1];
@@ -1469,8 +1474,8 @@ public Action Timer_Draw(Handle Timer, any data)
 public bool InsideZone(int client, int zone)
 {
 	float playerPos[3];
-
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", playerPos);
+
 	playerPos[2] += 5.0;
 
 	float vPoints[8][3];
@@ -1496,7 +1501,6 @@ public bool InsideZone(int client, int zone)
 			vPoints[7] = gV_FreestyleZones[0][1];
 
 			CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[0][0], gV_FreeStyleZonesFixes[0][1], zone, true);
-
 			PointConstRotate(gF_FreeStyleMinusConstSin[0], gF_FreeStyleMinusConstCos[0], vPoints[0], playerPos);
 		}
 
@@ -1506,10 +1510,36 @@ public bool InsideZone(int client, int zone)
 			vPoints[7] = gV_FreestyleZones[-zone][1];
 
 			CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[-zone][0], gV_FreeStyleZonesFixes[-zone][1], zone, true);
-
 			PointConstRotate(gF_FreeStyleMinusConstSin[-zone], gF_FreeStyleMinusConstCos[-zone], vPoints[0], playerPos);
 		}
 	}
+
+	// Checking if player is inside the box after rotation
+	for(int i = 0; i < 3; i++)
+	{
+		if(vPoints[0][i] >= playerPos[i] == vPoints[7][i] >= playerPos[i])
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// like InsideZone but for teleport zones
+public bool InsideTeleportZone(int client, int zone)
+{
+	float playerPos[3];
+	GetEntPropVector(client, Prop_Send, "m_vecOrigin", playerPos);
+
+	playerPos[2] += 5.0;
+
+	float vPoints[8][3];
+	vPoints[0] = gV_FreestyleZones[zone][0];
+	vPoints[7] = gV_FreestyleZones[zone][1];
+
+	CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[zone][0], gV_FreeStyleZonesFixes[zone][1], zone, true);
+	PointConstRotate(gF_FreeStyleMinusConstSin[zone], gF_FreeStyleMinusConstCos[zone], vPoints[0], playerPos);
 
 	// Checking if player is inside the box after rotation
 	for(int i = 0; i < 3; i++)
@@ -1666,32 +1696,24 @@ public void CreateZonePoints(float point[8][3], float angle, float fix1[2], floa
 			}
 		}
 	}
-	else
+
+	else if(!norotate)
 	{
 		if(zone >= 0 && zone != -PLACEHOLDER)
 		{
-			if(!norotate)
-			{
-				RotateZone(point, gF_ConstSin[zone], gF_ConstCos[zone]);
-			}
+			RotateZone(point, gF_ConstSin[zone], gF_ConstCos[zone]);
 		}
 
 		else
 		{
 			if(zone == -PLACEHOLDER)
 			{
-				if(!norotate)
-				{
-					RotateZone(point, gF_FreeStyleConstSin[0], gF_FreeStyleConstCos[0]);
-				}
+				RotateZone(point, gF_FreeStyleConstSin[0], gF_FreeStyleConstCos[0]);
 			}
 
 			else
 			{
-				if(!norotate)
-				{
-					RotateZone(point, gF_FreeStyleConstSin[-zone], gF_FreeStyleConstCos[-zone]);
-				}
+				RotateZone(point, gF_FreeStyleConstSin[-zone], gF_FreeStyleConstCos[-zone]);
 			}
 		}
 	}
