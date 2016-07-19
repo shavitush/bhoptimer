@@ -14,7 +14,7 @@ a bhop server should be simple
 * [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
-* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat` and `shavit-zones`.
+* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat`.
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
@@ -96,9 +96,9 @@ HUD
 
 Replay
 --
-- [ ] Add admin interface. (delete replay data)
+- [x] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
 - [ ] Remove replay bot data on deletion of the #1 record.
-- [ ] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
+- [ ] Add admin interface. (delete replay data)
 
 WR
 --
@@ -163,6 +163,9 @@ Zones
 --
 - [x] Add teleport zones (multiple).
 - [x] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
-- [ ] Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
-- [ ] Migrate zone settings to use Dynamic.
-- [ ] Handle teleport zones once everything is done. (teleport to a value from gV_Teleport)
+- [x] CANCELED: Migrate zone settings to use Dynamic. (i didn't think *too* far into it before i started)
+- [x] Handle teleport zones. (teleport to a value from gV_Teleport)
+- [x] Canceled all the triggers stuff because I'm a retard: if you ever feel like doing it because I failed hard, the code I worked with is left out commented.
+- [x] CANCELED: Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
+- [x] CANCELED: Cleanup unused variables as we use triggers now.
+- [x] CANCELED: Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
