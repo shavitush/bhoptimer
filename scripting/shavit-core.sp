@@ -770,9 +770,8 @@ public void OnClientPutInServer(int client)
 	GetClientIP(client, sIP, 64);
 
 	char[] sCountry = new char[128];
-	GeoipCountry(sIP, sCountry, 128);
 
-	if(strlen(sCountry) == 0)
+	if(!GeoipCountry(sIP, sCountry, 128))
 	{
 		strcopy(sCountry, 128, "Local Area Network");
 	}
