@@ -162,7 +162,7 @@ Chat **(NEW!)**
 Zones
 --
 - [x] Add teleport zones (multiple).
-- [ ] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
+- [x] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
 - [ ] Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
 - [ ] Migrate zone settings to use Dynamic.
 - [ ] Handle teleport zones once everything is done. (teleport to a value from gV_Teleport)

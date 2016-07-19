@@ -983,38 +983,24 @@ public void CreateAdjustMenu(int client, int page)
 	hMenu.AddItem("done", "Done!");
 	hMenu.AddItem("cancel", "Cancel");
 
-	char[] sDisplay = new char[64];
+	char[] sAxis = new char[4];
+	strcopy(sAxis, 4, "XYZ");
 
-	// sorry for this ugly code ;_;
-	FormatEx(sDisplay, 64, "Point 1 | X axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1x_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 1 | X axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1x_minus", sDisplay);
+	char[] sDisplay = new char[32];
+	char[] sInfo = new char[16];
 
-	FormatEx(sDisplay, 64, "Point 1 | Y axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1y_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 1 | Y axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1y_minus", sDisplay);
-
-	FormatEx(sDisplay, 64, "Point 1 | Z axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1z_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 1 | Z axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p1z_minus", sDisplay);
-
-	FormatEx(sDisplay, 64, "Point 2 | X axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2x_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 2 | X axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2x_minus", sDisplay);
-
-	FormatEx(sDisplay, 64, "Point 2 | Y axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2y_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 2 | Y axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2y_minus", sDisplay);
-
-	FormatEx(sDisplay, 64, "Point 2 | Z axis +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2z_plus", sDisplay);
-	FormatEx(sDisplay, 64, "Point 2 | Z axis -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("p2z_minus", sDisplay);
+	for(int iPoint = 1; iPoint <= 2; iPoint++)
+	{
+		for(int iAxis = 0; iAxis < 3; iAxis++)
+		{
+			for(int iState = 1; iState <= 2; iState++)
+			{
+				FormatEx(sDisplay, 32, "Point %d | %c axis %c%.01f", iPoint, sAxis[iAxis], iState == 1? '+':'-', gF_Modifier[client]);
+				FormatEx(sInfo, 16, "%d;%d;%d", iPoint, iAxis, iState);
+				hMenu.AddItem(sInfo, sDisplay);
+			}
+		}
+	}
 
 	hMenu.ExitButton = false;
 
@@ -1025,107 +1011,34 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
-		menu.GetItem(param2, info, 16);
+		char[] sInfo = new char[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(info, "done"))
+		if(StrEqual(sInfo, "done"))
 		{
 			CreateEditMenu(param1);
 		}
 
-		else if(StrEqual(info, "cancel"))
+		else if(StrEqual(sInfo, "cancel"))
 		{
 			Reset(param1);
 		}
 
 		else
 		{
-			// This is a damn big mess and I can't think of anything better to do this (I'm really tired now), any idea will be welcomed!
-			// (except for using for example "0;plus" in the info string, I hate exploding strings)
+			char[] sAxis = new char[4];
+			strcopy(sAxis, 4, "XYZ");
 
-			if(StrEqual(info, "p1x_plus"))
-			{
-				gV_Point1[param1][0] += gF_Modifier[param1];
+			char[][] sExploded = new char[3][8];
+			ExplodeString(sInfo, ";", sExploded, 3, 8);
 
-				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
+			int iPoint = StringToInt(sExploded[0]);
+			int iAxis = StringToInt(sExploded[1]);
+			bool bIncrease = view_as<bool>(StringToInt(sExploded[2]) == 1);
 
-			else if(StrEqual(info, "p1x_minus"))
-			{
-				gV_Point1[param1][0] -= gF_Modifier[param1];
+			(iPoint == 1? gV_Point1:gV_Point2)[param1][iAxis] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 
-				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p1y_plus"))
-			{
-				gV_Point1[param1][1] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p1y_minus"))
-			{
-				gV_Point1[param1][1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p1z_plus"))
-			{
-				gV_Point1[param1][2] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 1) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p1z_minus"))
-			{
-				gV_Point1[param1][2] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 1) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2x_plus"))
-			{
-				gV_Point2[param1][0] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2x_minus"))
-			{
-				gV_Point2[param1][0] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03X\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2y_plus"))
-			{
-				gV_Point2[param1][1] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2y_minus"))
-			{
-				gV_Point2[param1][1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Y\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2z_plus"))
-			{
-				gV_Point2[param1][2] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 2) \x04increased\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "p2z_minus"))
-			{
-				gV_Point2[param1][2] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Z\x01 axis \x0A(point 2) \x02reduced\x01 by \x03%.01f\x01.", gF_Modifier[param1]);
-			}
+			Shavit_PrintToChat(param1, "\x03%c\x01 axis %s(point %d) \x04%s\x01 by \x03%.01f\x01.", sAxis[iAxis], gSG_Type == Game_CSGO? "\x0A":"\x05", iPoint, bIncrease? "increased":"decreased", gF_Modifier[param1]);
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
@@ -1192,6 +1105,11 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 			CreateRotateMenu(param1);
 		}
 	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
 }
 
 public void CreateWidthLengthMenu(int client, int page)
@@ -1202,27 +1120,26 @@ public void CreateWidthLengthMenu(int client, int page)
 	hMenu.AddItem("done", "Done!");
 	hMenu.AddItem("cancel", "Cancel");
 
-	char[] sDisplay = new char[64];
-	FormatEx(sDisplay, 64, "Right edge | +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("plus_right", sDisplay);
-	FormatEx(sDisplay, 64, "Right edge | -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("minus_right", sDisplay);
+	char sEdges[][] =
+	{
+		"Right",
+		"Back",
+		"Left",
+		"Front"
+	};
 
-	FormatEx(sDisplay, 64, "Back edge | +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("plus_back", sDisplay);
-	FormatEx(sDisplay, 64, "Back edge | -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("minus_back", sDisplay);
+	char[] sDisplay = new char[32];
+	char[] sInfo = new char[8];
 
-	FormatEx(sDisplay, 64, "Left edge | +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("plus_left", sDisplay);
-	FormatEx(sDisplay, 64, "Left edge | -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("minus_left", sDisplay);
-
-	FormatEx(sDisplay, 64, "Front edge | +%.01f", gF_Modifier[client]);
-	hMenu.AddItem("plus_front", sDisplay);
-	FormatEx(sDisplay, 64, "Front edge | -%.01f", gF_Modifier[client]);
-	hMenu.AddItem("minus_front", sDisplay);
-
+	for(int iEdge = 0; iEdge < 3; iEdge++)
+	{
+		for(int iState = 1; iState <= 2; iState++)
+		{
+			FormatEx(sDisplay, 32, "%s edge | %c%.01f", sEdges[iEdge], iState == 1? "+":"-", gF_Modifier[client]);
+			FormatEx(sInfo, 8, "%d;%d", iEdge, iState);
+			hMenu.AddItem(sInfo, sDisplay);
+		}
+	}
 
 	DisplayMenuAtItem(hMenu, client, page, 40);
 }
@@ -1231,79 +1148,56 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
-		menu.GetItem(param2, info, 16);
+		char[] sInfo = new char[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(info, "done"))
+		if(StrEqual(sInfo, "done"))
 		{
 			CreateEditMenu(param1);
 		}
 
-		else if(StrEqual(info, "cancel"))
+		else if(StrEqual(sInfo, "cancel"))
 		{
 			Reset(param1);
 		}
 
 		else
 		{
-			if(StrEqual(info, "plus_left"))
+			char sEdges[][] =
 			{
-				gV_Fix1[param1][0] += gF_Modifier[param1];
+				"Right",
+				"Back",
+				"Left",
+				"Front"
+			};
 
-				Shavit_PrintToChat(param1, "\x03Left edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
+			char[][] sExploded = new char[2][8];
+			ExplodeString(sInfo, ";", sExploded, 2, 8);
+
+			int iEdge = StringToInt(sExploded[0]);
+			bool bIncrease = view_as<bool>(StringToInt(sExploded[1]) == 1);
+
+			if(iEdge >= 2)
+			{
+				iEdge -= 2;
+
+				gV_Fix1[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 			}
 
-			else if(StrEqual(info, "minus_left"))
+			else
 			{
-				gV_Fix1[param1][0] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Left edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
+				gV_Fix2[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 			}
 
-			else if(StrEqual(info, "plus_right"))
-			{
-				gV_Fix2[param1][0] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Right edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "minus_right"))
-			{
-				gV_Fix2[param1][0] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Right edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "plus_front"))
-			{
-				gV_Fix1[param1][1] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Front edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "minus_front"))
-			{
-				gV_Fix1[param1][1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Front edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "plus_back"))
-			{
-				gV_Fix2[param1][1] += gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Back edge\x01 \x04increased\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
-
-			else if(StrEqual(info, "minus_back"))
-			{
-				gV_Fix2[param1][1] -= gF_Modifier[param1];
-
-				Shavit_PrintToChat(param1, "\x03Back edge\x01 \x02reduced\x01 by \x03%.01f degrees\x01.", gF_Modifier[param1]);
-			}
+			Shavit_PrintToChat(param1, "\x03%s edge \x04%s\x01 by \x03%.01f degrees\x01.", sEdges[iEdge], bIncrease? "increased":"decreased", gF_Modifier[param1]);
 
 			CreateWidthLengthMenu(param1, GetMenuSelectionPosition());
 		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
 	}
 }
 
@@ -1319,9 +1213,9 @@ public bool EmptyZone(float vZone[3])
 
 public void InsertZone(int client)
 {
-	char[] sQuery = new char[512];
-
 	MapZones type = gMZ_Type[client];
+
+	char[] sQuery = new char[512];
 
 	if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
 	{
@@ -1390,7 +1284,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 					CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false);
 				}
 
-				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue);
+				DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 			}
 		}
 
@@ -1425,7 +1319,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 				CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false);
 
-				DrawZone(0, vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue);
+				DrawZone(0, vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 			}
 		}
 	}
