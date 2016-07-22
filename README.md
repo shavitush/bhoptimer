@@ -170,9 +170,13 @@ Zones
 - [x] CANCELED: Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
 - [x] CANCELED: Cleanup unused variables as we use triggers now.
 - [x] CANCELED: Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
-- [ ] Don't call 
 
 World Records
 --
 - [ ] Add native that checks the total amount of players with records on a style.
 - [ ] Possibly cache the whole leaderboards with Dynamic.
+
+Time Limits
+--
+- [x] Make the query order by time and add proper limitations.
+- [x] Optimize query.

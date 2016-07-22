@@ -678,6 +678,8 @@ public void StartTimer(int client)
 	gF_StartTime[client] = GetEngineTime();
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
+
+	SetEntityGravity(client, 1.0);
 }
 
 public void StopTimer(int client)

@@ -65,12 +65,11 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	gCV_RestartGame = FindConVar("mp_restartgame");
 	gCV_TimeLimit = FindConVar("mp_timelimit");
 
 	gCV_RoundTime = FindConVar("mp_roundtime");
 	gCV_RoundTime.SetBounds(ConVarBound_Upper, false);
-
-	gCV_RestartGame = FindConVar("mp_restartgame");
 
 	gCV_DefaultLimit = CreateConVar("shavit_timelimit_default", "60.0", "Default timelimit to use in case there isn't an average.", 0, true, 10.0);
 	gCV_MinimumTimes = CreateConVar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.", 0, true, 5.0);
@@ -138,11 +137,11 @@ public void StartCalculating()
 {
 	if(gH_SQL != null)
 	{
-		char sMap[128];
-		GetCurrentMap(sMap, 128);
+		char sMap[256];
+		GetCurrentMap(sMap, 256);
 
-		char sQuery[256];
-		FormatEx(sQuery, 256, "SELECT time FROM %splayertimes WHERE map = '%s' %sLIMIT %d;", gS_MySQLPrefix, sMap, gCV_Style.BoolValue? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);
+		char sQuery[512];
+		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, gCV_Style.BoolValue? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);
 
 		#if defined DEBUG
 		PrintToServer(sQuery);
@@ -161,26 +160,13 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 		return;
 	}
 
-	int iRows = results.RowCount;
+	results.FetchRow();
+	int iRows = results.FetchInt(0);
 
 	if(iRows >= gCV_MinimumTimes.IntValue)
 	{
-		float fTotal = 0.0;
-
-		while(results.FetchRow())
-		{
-			fTotal += results.FetchFloat(0);
-
-			#if defined DEBUG
-			PrintToServer("total: %.02f", fTotal);
-			#endif
-		}
-
-		float fAverage = (fTotal / 60 / iRows);
-
-		#if defined DEBUG
-		PrintToServer("fAverage 1: %.02f", fAverage);
-		#endif
+		float fTimeSum = results.FetchFloat(1);
+		float fAverage = (fTimeSum / 60 / iRows);
 
 		if(fAverage <= 1)
 		{
@@ -207,15 +193,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 			fAverage *= 6;
 		}
 
-		#if defined DEBUG
-		PrintToServer("fAverage 2: %.02f", fAverage);
-		#endif
-
 		fAverage += 5; // I give extra 5 minutes, so players can actually retry the map until they get a good time.
-
-		#if defined DEBUG
-		PrintToServer("fAverage 3: %.02f", fAverage);
-		#endif
 
 		if(fAverage < 20)
 		{
@@ -226,10 +204,6 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 		{
 			fAverage = 120.0;
 		}
-
-		#if defined DEBUG
-		PrintToServer("fAverage 4: %.02f", fAverage);
-		#endif
 
 		SetLimit(RoundToNearest(fAverage));
 	}
