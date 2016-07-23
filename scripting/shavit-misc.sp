@@ -198,7 +198,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		default:
 		{
 			bRespawn = true;
-			
+
 			CS_SwitchTeam(client, GetRandomInt(2, 3));
 		}
 	}
@@ -234,7 +234,7 @@ public Action Timer_Message(Handle Timer)
 
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
-	if(!IsPlayerAlive(client))
+	if(!IsPlayerAlive(client) || IsFakeClient(client))
 	{
 		return Plugin_Continue;
 	}

@@ -60,6 +60,13 @@ enum TimerStatus(+=1)
 	Timer_Paused
 };
 
+enum ReplayStatus(+=1)
+{
+	Replay_Start = 0,
+	Replay_Running,
+	Replay_End
+};
+
 #if defined USES_STYLE_PROPERTIES
 #define STYLE_NONE				(0)
 #define STYLE_AUTOBHOP			(1 << 0) // enable autobhop

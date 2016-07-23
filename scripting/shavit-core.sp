@@ -908,7 +908,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3])
 {
-	if(!IsPlayerAlive(client))
+	if(!IsPlayerAlive(client) || IsFakeClient(client))
 	{
 		return Plugin_Continue;
 	}

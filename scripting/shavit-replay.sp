@@ -40,6 +40,8 @@ int gI_ReplayBotClient[MAX_STYLES];
 ArrayList gA_Frames[MAX_STYLES] = {null, ...};
 char gS_BotName[MAX_STYLES][MAX_NAME_LENGTH];
 float gF_StartTick[MAX_STYLES];
+ReplayStatus gRS_ReplayStatus[MAX_STYLES];
+
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 bool gB_Record[MAXPLAYERS+1];
@@ -99,7 +101,7 @@ public void OnPluginStart()
 	gF_Tickrate = (1.0 / GetTickInterval());
 
 	// plugin convars
-	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "1.5", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
+	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 
 	AutoExecConfig();
 
@@ -418,6 +420,8 @@ public bool LoadReplay(BhopStyle style)
 
 		delete fFile;
 
+		gRS_ReplayStatus[style] = Replay_Running;
+
 		return true;
 	}
 
@@ -572,8 +576,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Continue;
 	}
 
-	float vecPosition[3];
-	GetClientAbsOrigin(client, vecPosition);
+	float vecCurrentPosition[3];
+	GetClientAbsOrigin(client, vecCurrentPosition);
 
 	int iReplayBotStyle = -1;
 
@@ -596,16 +600,47 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			return Plugin_Continue;
 		}
 
-		float fWRTime;
+		float fWRTime = 0.0;
 		Shavit_GetWRTime(view_as<BhopStyle>(iReplayBotStyle), fWRTime);
 
 		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1)
 		{
+			float vecPosition[3];
+			float vecAngles[3];
+
+			if(gRS_ReplayStatus[iReplayBotStyle] != Replay_Running)
+			{
+				if(gRS_ReplayStatus[iReplayBotStyle] == Replay_Start)
+				{
+					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(0, 0);
+					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(0, 1);
+					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(0, 2);
+
+					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(0, 3);
+					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(0, 4);
+				}
+
+				else
+				{
+					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 0);
+					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 1);
+					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 2);
+
+					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 3);
+					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 4);
+				}
+
+				TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
+
+				return Plugin_Continue;
+			}
+
 			if(gI_ReplayTick[iReplayBotStyle] >= gA_Frames[iReplayBotStyle].Length)
 			{
-				gI_ReplayTick[iReplayBotStyle] = -1;
+				gI_ReplayTick[iReplayBotStyle] = 0;
+				gRS_ReplayStatus[iReplayBotStyle] = Replay_End;
 
-				CreateTimer(gCV_ReplayDelay.FloatValue, ResetReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
 
 				return Plugin_Continue;
 			}
@@ -615,12 +650,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gF_StartTick[iReplayBotStyle] = GetEngineTime();
 			}
 
-			float vecCurrentPosition[3];
-			vecCurrentPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
-			vecCurrentPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
-			vecCurrentPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
+			vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
+			vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
+			vecPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
 
-			float vecAngles[3];
 			vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 3);
 			vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 4);
 
@@ -636,12 +669,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				vecNextPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
 				vecNextPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
 
-				fDistance = GetVectorDistance(vecPosition, vecNextPosition);
-				MakeVectorFromPoints(vecCurrentPosition, vecNextPosition, vecVelocity);
+				fDistance = GetVectorDistance(vecCurrentPosition, vecNextPosition);
+				MakeVectorFromPoints(vecPosition, vecNextPosition, vecVelocity);
 				ScaleVector(vecVelocity, gF_Tickrate);
 			}
 
-			TeleportEntity(client, fDistance >= 50.0? vecCurrentPosition:NULL_VECTOR, vecAngles, vecVelocity);
+			TeleportEntity(client, fDistance >= 50.0? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
 		}
 	}
 
@@ -649,9 +682,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[0], 0);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[1], 1);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[2], 2);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
 
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
@@ -662,9 +695,17 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	return Plugin_Continue;
 }
 
-public Action ResetReplay(Handle Timer, any data)
+public Action EndReplay(Handle Timer, any data)
 {
 	gI_ReplayTick[data] = 0;
+	gRS_ReplayStatus[data] = Replay_Start;
+
+	CreateTimer(gCV_ReplayDelay.FloatValue / 2, StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action StartReplay(Handle Timer, any data)
+{
+	gRS_ReplayStatus[data] = Replay_Running;
 }
 
 public bool ReplayEnabled(any style)
