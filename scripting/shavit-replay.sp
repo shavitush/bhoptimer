@@ -223,7 +223,7 @@ public Action Cron(Handle Timer)
 			char[] sCurrentName = new char[MAX_NAME_LENGTH];
 			strcopy(sCurrentName, MAX_NAME_LENGTH, sName);
 
-			FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", gS_ShortBhopStyles[i]);
+			FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
 
 			if(!StrEqual(sName, sCurrentName))
 			{
@@ -245,7 +245,10 @@ public Action Cron(Handle Timer)
 
 			if(!StrEqual(gS_BotName[i], sName))
 			{
-				SetClientName(gI_ReplayBotClient[i], gS_BotName[i]);
+				char[] sName = new char[MAX_NAME_LENGTH];
+				FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[i], gS_BotName[i]);
+
+				SetClientName(gI_ReplayBotClient[i], sName);
 			}
 		}
 	}
