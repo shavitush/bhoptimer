@@ -23,6 +23,7 @@
 #include <sdktools>
 #include <sdkhooks>
 
+#define USES_STYLE_NAMES
 #define USES_SHORT_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
 #include <shavit>
@@ -109,7 +110,8 @@ public void OnPluginStart()
 	HookEvent("player_spawn", Player_Event);
 	HookEvent("player_death", Player_Event);
 
-	// insert delete replay command here
+	// commands
+	RegAdminCmd("sm_deletereplay", Command_DeleteReplay, ADMFLAG_RCON, "Open replay deletion menu.");
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
@@ -211,7 +213,7 @@ public Action Cron(Handle Timer)
 		float fWRTime;
 		Shavit_GetWRTime(view_as<BhopStyle>(i), fWRTime);
 
-		if(gA_Frames[i] == null || fWRTime == 0.0)
+		if(gA_Frames[i] == null || gA_Frames[i].Length == 0 || fWRTime == 0.0)
 		{
 			if(IsPlayerAlive(gI_ReplayBotClient[i]))
 			{
@@ -375,6 +377,12 @@ public void OnMapStart()
 		if(!LoadReplay(view_as<BhopStyle>(i)))
 		{
 			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "%s unloaded", gS_ShortBhopStyles[i]);
+			gI_ReplayTick[i] = -1;
+		}
+
+		else
+		{
+			gRS_ReplayStatus[i] = Replay_Running;
 		}
 	}
 }
@@ -420,8 +428,6 @@ public bool LoadReplay(BhopStyle style)
 
 		delete fFile;
 
-		gRS_ReplayStatus[style] = Replay_Running;
-
 		return true;
 	}
 
@@ -459,6 +465,9 @@ public bool SaveReplay(BhopStyle style)
 
 	delete fFile;
 
+	gI_ReplayTick[style] = 0;
+	gRS_ReplayStatus[style] = Replay_End;
+
 	return true;
 }
 
@@ -478,7 +487,9 @@ public bool DeleteReplay(BhopStyle style)
 	}
 
 	gA_Frames[style].Clear();
-	gI_ReplayTick[style] = 0;
+	gI_ReplayTick[style] = -1;
+
+	CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
 	return true;
 }
@@ -738,6 +749,67 @@ public void ClearFrames(int client)
 public void Shavit_OnWRDeleted(BhopStyle style)
 {
 	DeleteReplay(style);
+}
+
+public Action Command_DeleteReplay(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	Menu m = new Menu(DeleteReplay_Callback);
+	m.SetTitle("Delete a replay:");
+
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		if(!ReplayEnabled(i) || gA_Frames[i].Length == 0)
+		{
+			continue;
+		}
+
+		char[] sInfo = new char[4];
+		IntToString(i, sInfo, 4);
+
+		m.AddItem(sInfo, gS_BhopStyles[i]);
+	}
+
+	if(m.ItemCount == 0)
+	{
+		m.AddItem("-1", "No replays available.");
+	}
+
+	m.ExitButton = true;
+	m.Display(client, 20);
+
+	return Plugin_Handled;
+}
+
+public int DeleteReplay_Callback(Menu m, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] sInfo = new char[4];
+		m.GetItem(param2, sInfo, 4);
+		BhopStyle style = view_as<BhopStyle>(StringToInt(sInfo));
+
+		if(DeleteReplay(style))
+		{
+			LogAction(param1, param1, "Deleted replay for %s on map %s.", gS_BhopStyles[style], gS_Map);
+
+			Shavit_PrintToChat(param1, "Replay for \x01%s\x01 deleted.", gS_BhopStyles[style]);
+		}
+
+		else
+		{
+			Shavit_PrintToChat(param1, "Couldn't delete replay for \x01%s\x01.", gS_BhopStyles[style]);
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
 }
 
 /*
