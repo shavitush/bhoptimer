@@ -126,6 +126,7 @@ Miscellaneous
 --
 - [x] Allow changing the prespeed limitation.
 - [x] Add weapon cleanup.
+- [ ] Add SSJ (Speed Sixth Jump)
 
 Sounds **(NEW!)**
 --
@@ -165,6 +166,7 @@ Chat **(NEW!)**
 - [x] Add `sm_ranks` `sm_chatranks`.
 - [x] Add `Shavit_FormatChat` native.
 - [x] Add random rgb and random rgba for CS:S parsing.
+- [ ] Implement Simple Chat Processor and make my own chat processor a fallback solution.
 
 Zones
 --
@@ -176,6 +178,7 @@ Zones
 - [x] CANCELED: Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
 - [x] CANCELED: Cleanup unused variables as we use triggers now.
 - [x] CANCELED: Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
+- [ ] Change zone sprite.
 
 World Records
 --

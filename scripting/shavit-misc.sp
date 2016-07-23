@@ -93,7 +93,8 @@ public void OnPluginStart()
 
 	// hooks
 	HookEvent("player_spawn", Player_Spawn);
-	HookEvent("player_team", Player_Team, EventHookMode_Pre);
+	HookEvent("player_team", Player_Notifications, EventHookMode_Pre);
+	HookEvent("player_death", Player_Notifications, EventHookMode_Pre);
 
 	// let's fix issues with phrases :D
 	LoadTranslations("common.phrases");
@@ -719,7 +720,7 @@ public Action RemoveRadar(Handle timer, any data)
 	return Plugin_Stop;
 }
 
-public Action Player_Team(Event event, const char[] name, bool dontBroadcast)
+public Action Player_Notifications(Event event, const char[] name, bool dontBroadcast)
 {
 	if(gCV_HideTeamChanges.BoolValue)
 	{

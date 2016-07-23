@@ -365,11 +365,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	while(results.FetchRow())
 	{
-		char[] sMap = new char[128];
-		results.FetchString(0, sMap, 128);
+		char[] sMap = new char[192];
+		results.FetchString(0, sMap, 192);
+		GetMapDisplayName(sMap, sMap, 192);
 
 		char[] sRecordID = new char[16];
-		char[] sDisplay = new char[192];
+		char[] sDisplay = new char[256];
 
 		if(gI_MapType[client] == MAPSDONE)
 		{
@@ -505,6 +506,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		// 6 - map
 		results.FetchString(6, sMap, 256);
+		GetMapDisplayName(sMap, sMap, 256);
 	}
 
 	char[] sFormattedTitle = new char[256];
