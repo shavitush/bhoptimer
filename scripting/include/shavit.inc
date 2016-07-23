@@ -626,7 +626,6 @@ native bool Shavit_IsReplayDataLoaded(BhopStyle style);
  */
 native float Shavit_GetPoints(int client);
 
-
 /**
  * Gets player rank.
  *
@@ -644,6 +643,14 @@ native int Shavit_GetRank(int client);
  * @noreturn
  */
 native void Shavit_GetMapValues(float &points, float &idealtime);
+
+/**
+ * Gets the amount of players with over 0 points.
+ *
+ * @param client					Client index.
+ * @return							Amount of ranked players.
+ */
+native int Shavit_GetRankedPlayers(int client);
 
 /**
  * Force an HUD update for a player. Requires shavit-hud.

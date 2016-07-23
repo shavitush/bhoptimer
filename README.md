@@ -85,7 +85,7 @@ Core
 - [x] Add unranked styles.
 - [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
 - [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
-- [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
+- [ ] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
 - [ ] Add bonus timer.
 
 HUD
@@ -160,9 +160,9 @@ Rankings **(NEW!)**
 - [x] Calculate points per scored time once it's added to the database.
 - [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
-- [ ] Add native that checks the total amount of players with over 0 points.
-- [ ] Remove deleted records from `playerpoints`.
+- [x] Add native that checks the total amount of players with over 0 points.
 - [ ] Find a way to update newly calculated points for all records on a map with the least amount of queries possible.
+- [ ] Remove deleted records from `playerpoints`.
 
 Web Interface
 --
