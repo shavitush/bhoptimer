@@ -98,7 +98,7 @@ HUD
 - [x] Support zonehud for CS:S.
 - [X] Redo CS:S HUD and use the HUD capabilities added in late 2013, attempt to look like [this HUD](https://i.imgur.com/pj8c7vP.png) because I'm very original!!!111one!1!!
 - [x] Show [PAUSED] if needed.
-- [ ] Add potential map rank.
+- [x] Add potential map rank.
 - [ ] Add strafes/sync.
 - [ ] Support for bonus timer.
 
@@ -112,16 +112,6 @@ Replay
 - [x] Clear player cache on spawn/death.
 - [ ] Add admin interface. (delete replay data)
 - [ ] Add a setting so there are two modes: one is that bots always play, and the other is that there are X bots (defined by server admin) and players can start their playback with a command. (`sm_replay`)
-
-WR
---
-- [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
-- [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
-- [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
-- [x] [rankings] Show points in WR menu.
-- [ ] Add strafe sync to the WR menu where available.
-- [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
-- [ ] Use unix timestamps for future record dates.
 
 Stats
 --
@@ -177,7 +167,7 @@ Chat **(NEW!)**
 - [x] Add `sm_ranks` `sm_chatranks`.
 - [x] Add `Shavit_FormatChat` native.
 - [x] Add random rgb and random rgba for CS:S parsing.
-- [x] Implement Simple Chat Processor (Redux) support and make my own chat processor a fallback solution.
+- [x] Implement [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) support and make my own chat processor a fallback solution.
 
 Zones
 --
@@ -192,8 +182,17 @@ Zones
 
 World Records
 --
+- [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
+- [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
+- [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
+- [x] [rankings] Show points in WR menu.
 - [x] Add native that checks the total amount of players with records on a style.
-- [ ] Possibly cache the whole leaderboards with Dynamic.
+- [x] Cache the whole leaderboard per style, sorted and updated at record removal, insertion and updates.
+- [x] Add `Shavit_GetRankForTime(BhopStyle style, float time)` which will calculate a map rank for the given time.
+- [ ] Show map rank on finish.
+- [ ] Add strafe sync to the WR menu where available.
+- [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
+- [ ] Use unix timestamps for future record dates.
 
 Time Limits
 --

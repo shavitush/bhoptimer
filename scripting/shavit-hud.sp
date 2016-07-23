@@ -419,7 +419,7 @@ public void UpdateHUD(int client)
 						strcopy(sColor, 8, "FF0000");
 					}
 
-					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font>", sHintText, sColor, sTime);
+					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)", sHintText, sColor, sTime, Shavit_GetRankForTime(bsStyle, fTime));
 				}
 
 				Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
@@ -446,7 +446,7 @@ public void UpdateHUD(int client)
 				{
 					if(Shavit_GetTimerStatus(target) == Timer_Running)
 					{
-						FormatEx(sHintText, 512, "%s\nTime: %s\nJumps: %d\nSpeed: %d", gS_BhopStyles[bsStyle], sTime, iJumps, RoundToZero(fSpeed_New));
+						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nSpeed: %d", gS_BhopStyles[bsStyle], sTime, Shavit_GetRankForTime(bsStyle, fTime), iJumps, RoundToZero(fSpeed_New));
 					}
 
 					else

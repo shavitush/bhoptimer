@@ -550,7 +550,16 @@ native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
  * @param style						Bhop style.
  * @return							Amount of records.
  */
-native void Shavit_GetRecordAmount(BhopStyle style);
+native int Shavit_GetRecordAmount(BhopStyle style);
+
+/**
+ * Calculate potential rank for a given style and time.
+ *
+ * @param style						Bhop style.
+ * @param time						Time to check for.
+ * @return							Amount of records.
+ */
+native int Shavit_GetRankForTime(BhopStyle style, float time);
 
 /**
  * Checks if a mapzone exists.
