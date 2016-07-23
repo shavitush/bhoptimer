@@ -100,7 +100,7 @@ Replay
 - [x] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
 - [x] Stop recording frames (and clear cache) when the player is past the WR for the style.
 - [x] Overall optimizations.
-- [ ] Remove replay bot data on deletion of the #1 record.
+- [x] Remove replay bot data on deletion of the #1 record.
 - [ ] If possible, start using a faster method to cache all the replay frames to prevent lag.
 - [ ] Make replay bots dead if there's no replay data loaded.
 - [ ] Add admin interface. (delete replay data)

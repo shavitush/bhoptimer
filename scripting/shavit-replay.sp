@@ -371,6 +371,11 @@ public void OnMapStart()
 
 public bool LoadReplay(BhopStyle style)
 {
+	if(!ReplayEnabled(style))
+	{
+		return false;
+	}
+
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s.replay", style, gS_Map);
 
@@ -411,17 +416,17 @@ public bool LoadReplay(BhopStyle style)
 	return false;
 }
 
-public void SaveReplay(BhopStyle style)
+public bool SaveReplay(BhopStyle style)
 {
 	if(!ReplayEnabled(style))
 	{
-		return;
+		return false;
 	}
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s.replay", style, gS_Map);
 
-	if(DirExists(sPath))
+	if(FileExists(sPath))
 	{
 		DeleteFile(sPath);
 	}
@@ -441,6 +446,29 @@ public void SaveReplay(BhopStyle style)
 	}
 
 	delete fFile;
+
+	return true;
+}
+
+public bool DeleteReplay(BhopStyle style)
+{
+	if(!ReplayEnabled(style))
+	{
+		return false;
+	}
+
+	char[] sPath = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s.replay", style, gS_Map);
+
+	if(!FileExists(sPath) || !DeleteFile(sPath))
+	{
+		return false;
+	}
+
+	gA_Frames[style].Clear();
+	gI_ReplayTick[style] = 0;
+
+	return true;
 }
 
 public void OnClientPutInServer(int client)
@@ -655,6 +683,11 @@ public void ClearFrames(int client)
 {
 	gA_PlayerFrames[client].Clear();
 	gI_PlayerFrames[client] = 0;
+}
+
+public void Shavit_OnWRDeleted(BhopStyle style, int id)
+{
+	DeleteReplay(style);
 }
 
 /*
