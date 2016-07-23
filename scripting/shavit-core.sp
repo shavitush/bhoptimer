@@ -681,14 +681,19 @@ public int Native_RestartTimer(Handle handler, int numParams)
 
 public void StartTimer(int client)
 {
-	if(!IsValidClient(client) || IsFakeClient(client) || (!(gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) && gCV_NoZAxisSpeed.BoolValue && GetEntPropFloat(client, Prop_Data, "m_vecVelocity[2]") != 0.0))
+	if(!IsValidClient(client) || IsFakeClient(client))
 	{
 		return;
 	}
 
 	gB_TimerEnabled[client] = true;
 	gI_Jumps[client] = 0;
-	gF_StartTime[client] = GetEngineTime();
+
+	if(gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED || (gCV_NoZAxisSpeed.BoolValue && GetEntPropFloat(client, Prop_Send, "m_vecVelocity[2]") == 0.0))
+	{
+		gF_StartTime[client] = GetEngineTime();
+	}
+
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
 
