@@ -79,6 +79,7 @@ ConVar gCV_Pause = null;
 ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
+ConVar gCV_NoZAxisSpeed = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -221,6 +222,7 @@ public void OnPluginStart()
 	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.\nWill be forced to not work if STYLE_EASYBHOP is not defined for a style!", 0, true, 0.0, true, 1.0);
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
+	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -679,7 +681,7 @@ public int Native_RestartTimer(Handle handler, int numParams)
 
 public void StartTimer(int client)
 {
-	if(!IsValidClient(client) || IsFakeClient(client))
+	if(!IsValidClient(client) || IsFakeClient(client) || (!(gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) && gCV_NoZAxisSpeed.BoolValue && GetEntPropFloat(client, Prop_Data, "m_vecVelocity[2]") != 0.0))
 	{
 		return;
 	}

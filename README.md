@@ -80,7 +80,7 @@ Core
 - [x] Add shavit_core_nostaminareset ("easybhop")
 - [x] ~~Make a global enumerator/variable with per-style settings (bitflags)~~ - configs are canceled, just recompile the plugin with your own edit of `shavit.inc`.
 - [x] Add unranked styles.
-- [ ] Don't start timer if Z axis velocity is a thing (non-prespeed styles).
+- [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
 - [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
 - [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
 - [ ] Add bonus timer.
@@ -167,7 +167,7 @@ Chat **(NEW!)**
 
 Zones
 --
-- [x] Add teleport zones (multiple).
+- [x] Add teleport zones (multiple). Use the command `sm_tpzone` between the time of setting the zone and confirming the setup.
 - [x] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
 - [x] CANCELED: Migrate zone settings to use Dynamic. (i didn't think *too* far into it before i started)
 - [x] Handle teleport zones. (teleport to a value from gV_Teleport)
