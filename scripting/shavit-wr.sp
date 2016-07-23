@@ -39,6 +39,7 @@ bool gB_Rankings = false;
 // forwards
 Handle gH_OnWorldRecord = null;
 Handle gH_OnFinish_Post = null;
+Handle gH_OnWRDeleted = null;
 
 // database handle
 Database gH_SQL = null;
@@ -114,6 +115,7 @@ public void OnPluginStart()
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell);
 
 	// WR command
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "Usage: sm_wr [map]");
@@ -465,6 +467,22 @@ public int MenuHandler_DeleteAll(Menu m, MenuAction action, int param1, int para
 			return 0;
 		}
 
+		for(int i = 0; i < MAX_STYLES; i++)
+		{
+			if(gI_StyleProperties[i] & STYLE_UNRANKED)
+			{
+				continue;
+			}
+
+			if(gF_WRTime[i] != 0.0)
+			{
+				Call_StartForward(gH_OnWRDeleted);
+				Call_PushCell(i);
+				Call_PushCell(-1);
+				Call_Finish();
+			}
+		}
+
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
@@ -621,16 +639,33 @@ public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int para
 	{
 		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
+		int iRecordID = StringToInt(info);
 
-		if(StringToInt(info) == -1)
+		if(iRecordID == -1)
 		{
 			Shavit_PrintToChat(param1, "Aborted deletion.");
 
 			return 0;
 		}
 
+		for(int i = 0; i < MAX_STYLES; i++)
+		{
+			if(gI_StyleProperties[i] & STYLE_UNRANKED || gI_WRRecordID[i] != iRecordID)
+			{
+				continue;
+			}
+
+			if(gF_WRTime[i] != 0.0)
+			{
+				Call_StartForward(gH_OnWRDeleted);
+				Call_PushCell(i);
+				Call_PushCell(iRecordID);
+				Call_Finish();
+			}
+		}
+
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = '%s';", gS_MySQLPrefix, info);
+		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;", gS_MySQLPrefix, iRecordID);
 
 		gH_SQL.Query(DeleteConfirm_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}

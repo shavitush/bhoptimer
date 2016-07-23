@@ -375,6 +375,15 @@ forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int j
 forward void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps);
 
 /**
+ * Called when an admin deletes a WR.
+ *
+ * @param style						Style the record was done on.
+ * @param id						Record ID. -1 if mass deletion.
+ * @noreturn
+ */
+forward void Shavit_OnWRDeleted(BhopStyle style, int id);
+
+/**
  * Called when a player's timer paused.
  *
  * @param client					Client index.

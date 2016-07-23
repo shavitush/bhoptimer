@@ -149,6 +149,7 @@ Rankings **(NEW!)**
 - [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 - [ ] Add native that checks the total amount of players with over 0 points.
+- [ ] Remove deleted records from `playerpoints`.
 
 Web Interface
 --
