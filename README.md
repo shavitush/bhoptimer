@@ -74,7 +74,6 @@ General
 - [x] Migrate DBI to the 1.7 transitional syntax.
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
-- [ ] **ENDGAME**: Migrate all the cached stuff (timer variables, HUD, chat cache) to Dynamic if I find it good and simple enough.
 
 Core
 --
@@ -193,7 +192,7 @@ Zones
 
 World Records
 --
-- [ ] Add native that checks the total amount of players with records on a style.
+- [x] Add native that checks the total amount of players with records on a style.
 - [ ] Possibly cache the whole leaderboards with Dynamic.
 
 Time Limits

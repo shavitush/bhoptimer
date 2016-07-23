@@ -54,6 +54,7 @@ char gS_Map[192]; // blame workshop paths being so fucking long
 float gF_WRTime[MAX_STYLES];
 int gI_WRRecordID[MAX_STYLES];
 char gS_WRName[MAX_STYLES][MAX_NAME_LENGTH];
+int gI_RecordAmount[MAX_STYLES];
 
 // more caching
 float gF_PlayerRecord[MAXPLAYERS+1][MAX_STYLES];
@@ -303,7 +304,7 @@ public void UpdateWRCache()
 	char sQuery[512];
 	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
 	// was a bit confused with this one :s
-	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name, s.count FROM %splayertimes p JOIN(SELECT style, MIN(time) time, COUNT(*) count FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_High);
 }
@@ -328,6 +329,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	{
 		strcopy(gS_WRName[i], MAX_NAME_LENGTH, "invalid");
 		gF_WRTime[i] = 0.0;
+		gI_RecordAmount[i] = 0;
 	}
 
 	// setup cache again, dynamically and not hardcoded
@@ -344,6 +346,8 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		gF_WRTime[style] = results.FetchFloat(2);
 
 		results.FetchString(3, gS_WRName[style], MAX_NAME_LENGTH);
+
+		gI_RecordAmount[i] = results.FetchInt(4);
 	}
 }
 
@@ -911,7 +915,6 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	if(m.ItemCount == 0)
 	{
 		FormatEx(sFormattedTitle, 256, "Records for %s", sDisplayMap);
-
 		m.SetTitle(sFormattedTitle);
 
 		m.AddItem("-1", "No records found.");
@@ -931,11 +934,10 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		else
 		{
-			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
+			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, gI_RecordAmount[gBS_LastWR[client]]);
 		}
 
 		FormatEx(sFormattedTitle, 192, "Records for %s:\n%s", sDisplayMap, sRanks);
-
 		m.SetTitle(sFormattedTitle);
 	}
 

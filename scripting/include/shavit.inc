@@ -545,6 +545,14 @@ native void Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
 native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
 
 /**
+ * Get the amount of records on the current map/style.
+ *
+ * @param style						Bhop style.
+ * @return							Amount of records.
+ */
+native void Shavit_GetRecordAmount(BhopStyle style);
+
+/**
  * Checks if a mapzone exists.
  *
  * @param type						Mapzone type. (Check "enum MapZones")
