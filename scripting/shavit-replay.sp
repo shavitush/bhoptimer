@@ -243,12 +243,12 @@ public Action Cron(Handle Timer)
 				GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
 			}
 
-			if(!StrEqual(gS_BotName[i], sName))
-			{
-				char[] sName = new char[MAX_NAME_LENGTH];
-				FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[i], gS_BotName[i]);
+			char[] sNewName = new char[MAX_NAME_LENGTH];
+			FormatEx(sNewName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[i], gS_BotName[i]);
 
-				SetClientName(gI_ReplayBotClient[i], sName);
+			if(!StrEqual(gS_BotName[i], sNewName))
+			{
+				SetClientName(gI_ReplayBotClient[i], sNewName);
 			}
 		}
 	}
@@ -379,7 +379,7 @@ public void OnMapStart()
 
 		if(!LoadReplay(view_as<BhopStyle>(i)))
 		{
-			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "%s unloaded", gS_ShortBhopStyles[i]);
+			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
 			gI_ReplayTick[i] = -1;
 		}
 
@@ -468,9 +468,6 @@ public bool SaveReplay(BhopStyle style)
 
 	delete fFile;
 
-	gI_ReplayTick[style] = 0;
-	gRS_ReplayStatus[style] = Replay_End;
-
 	return true;
 }
 
@@ -556,7 +553,6 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 	}
 
 	gA_Frames[style] = gA_PlayerFrames[client].Clone();
-	gI_ReplayTick[style] = 0;
 
 	char[] sWRTime = new char[16];
 	FormatSeconds(time, sWRTime, 16);
@@ -565,10 +561,16 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 
 	if(gI_ReplayBotClient[style] != 0)
 	{
-		SetClientName(gI_ReplayBotClient[style], gS_BotName[style]);
+		char[] sNewName = new char[MAX_NAME_LENGTH];
+		FormatEx(sNewName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
+
+		SetClientName(gI_ReplayBotClient[style], sNewName);
 	}
 
 	ClearFrames(client);
+
+	gRS_ReplayStatus[style] = Replay_Running;
+	gI_ReplayTick[style] = gA_PlayerFrames[client].Length;
 
 	SaveReplay(style);
 }
@@ -715,11 +717,20 @@ public Action EndReplay(Handle Timer, any data)
 	gRS_ReplayStatus[data] = Replay_Start;
 
 	CreateTimer(gCV_ReplayDelay.FloatValue / 2, StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
+
+	return Plugin_Stop;
 }
 
 public Action StartReplay(Handle Timer, any data)
 {
+	if(gRS_ReplayStatus[data] == Replay_Running)
+	{
+		return Plugin_Stop;
+	}
+
 	gRS_ReplayStatus[data] = Replay_Running;
+
+	return Plugin_Stop;
 }
 
 public bool ReplayEnabled(any style)
@@ -796,16 +807,56 @@ public int DeleteReplay_Callback(Menu m, MenuAction action, int param1, int para
 		m.GetItem(param2, sInfo, 4);
 		BhopStyle style = view_as<BhopStyle>(StringToInt(sInfo));
 
+		if(style == view_as<BhopStyle>(-1))
+		{
+			return 0;
+		}
+
+		Menu submenu = new Menu(DeleteConfirmation_Callback);
+		submenu.SetTitle("Confirm deletion of %s replay?", gS_BhopStyles[style]);
+
+		for(int i = 1; i <= GetRandomInt(2, 4); i++)
+		{
+			submenu.AddItem("-1", "NO");
+		}
+
+		submenu.AddItem(sInfo, "Yes, I understand this action cannot be reversed!");
+
+		for(int i = 1; i <= GetRandomInt(2, 4); i++)
+		{
+			submenu.AddItem("-1", "NO");
+		}
+
+		submenu.ExitButton = true;
+		submenu.Display(param1, 20);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
+
+	return 0;
+}
+
+public int DeleteConfirmation_Callback(Menu m, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] sInfo = new char[4];
+		m.GetItem(param2, sInfo, 4);
+		BhopStyle style = view_as<BhopStyle>(StringToInt(sInfo));
+
 		if(DeleteReplay(style))
 		{
 			LogAction(param1, param1, "Deleted replay for %s on map %s.", gS_BhopStyles[style], gS_Map);
 
-			Shavit_PrintToChat(param1, "Replay for \x01%s\x01 deleted.", gS_BhopStyles[style]);
+			Shavit_PrintToChat(param1, "Deleted replay for \x05%s\x01.", gS_BhopStyles[style]);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(param1, "Couldn't delete replay for \x01%s\x01.", gS_BhopStyles[style]);
+			Shavit_PrintToChat(param1, "Could not delete replay for \x05%s\x01.", gS_BhopStyles[style]);
 		}
 	}
 
@@ -813,6 +864,8 @@ public int DeleteReplay_Callback(Menu m, MenuAction action, int param1, int para
 	{
 		delete m;
 	}
+
+	return 0;
 }
 
 /*
