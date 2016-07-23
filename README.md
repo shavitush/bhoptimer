@@ -15,10 +15,12 @@ a bhop server should be simple
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
 * [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat`.
+* [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for compilation and better runtime of `shavit-chat` (plugin can run without it). Use the scp.inc file I attached in `include/scp.inc` for transitional syntax support.
 
 # Optional requirements:
-* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
+* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) - required for properly formatted RTL text within `shavit-chat`.
+* [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for more proper parsing inside `shavit-chat`.
 
 #  Installation:
 1. Add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit"
@@ -167,7 +169,7 @@ Chat **(NEW!)**
 - [x] Add `sm_ranks` `sm_chatranks`.
 - [x] Add `Shavit_FormatChat` native.
 - [x] Add random rgb and random rgba for CS:S parsing.
-- [ ] Implement Simple Chat Processor and make my own chat processor a fallback solution.
+- [x] Implement Simple Chat Processor (Redux) support and make my own chat processor a fallback solution.
 
 Zones
 --
