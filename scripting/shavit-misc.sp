@@ -53,6 +53,7 @@ ConVar gCV_PrespeedLimit = null;
 ConVar gCV_HideRadar = null;
 ConVar gCV_TeleportCommands = null;
 ConVar gCV_NoWeaponDrops = null;
+ConVar gCV_NoBlock = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -117,6 +118,7 @@ public void OnPluginStart()
 	gCV_HideRadar = CreateConVar("shavit_misc_hideradar", "1", "Should the plugin hide the in-game radar?", 0, true, 0.0, true, 1.0);
 	gCV_TeleportCommands = CreateConVar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_NoBlock = CreateConVar("shavit_misc_noblock", "1", "Disable player collision?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -705,6 +707,11 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	if(gCV_StartOnSpawn.BoolValue)
 	{
 		RestartTimer(client);
+	}
+
+	if(gCV_NoBlock.BoolValue)
+	{
+		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	}
 }
 
