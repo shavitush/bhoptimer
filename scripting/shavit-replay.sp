@@ -88,7 +88,7 @@ public void OnPluginStart()
 {
 	bot_quota = FindConVar("bot_quota");
 
-	CreateTimer(1.0, BotCheck, INVALID_HANDLE, TIMER_REPEAT);
+	CreateTimer(1.0, Cron, INVALID_HANDLE, TIMER_REPEAT);
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -101,6 +101,8 @@ public void OnPluginStart()
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "1.5", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 
 	AutoExecConfig();
+
+	// hook death/spawn for cache reset
 
 	// insert delete replay command here
 }
@@ -127,8 +129,9 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 	return view_as<int>(ReplayEnabled(style) && gA_Frames[style] != null);
 }
 
-public Action BotCheck(Handle Timer)
+public Action Cron(Handle Timer)
 {
+	// make sure there are e nough bots
 	if(bot_quota.IntValue != gI_ExpectedBots)
 	{
 		bot_quota.SetInt(gI_ExpectedBots);
@@ -147,6 +150,7 @@ public Action BotCheck(Handle Timer)
 		}
 	}
 
+	// make sure replay bot client indexes are fine
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
 		if(!ReplayEnabled(i))
@@ -231,6 +235,30 @@ public Action BotCheck(Handle Timer)
 		else if(!StrEqual(gS_BotName[i], sName))
 		{
 			SetClientName(gI_ReplayBotClient[i], gS_BotName[i]);
+		}
+	}
+
+	// clear player cache if time is worse than wr
+	// might cause issues if WR time is removed and someone else gets a new WR
+	float[] fWRTimes = new float[MAX_STYLES];
+
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		Shavit_GetWRTime(view_as<BhopStyle>(i), fWRTimes[i]);
+	}
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(gI_PlayerFrames[i] == 0 || !IsValidClient(i, true))
+		{
+			continue;
+		}
+
+		BhopStyle style = Shavit_GetBhopStyle(i);
+
+		if(!ReplayEnabled(style) || Shavit_GetClientTime(i) >  fWRTimes[style])
+		{
+			ClearFrames(i);
 		}
 	}
 }
@@ -434,6 +462,8 @@ public void OnClientDisconnect(int client)
 		if(client == gI_ReplayBotClient[i])
 		{
 			gI_ReplayBotClient[i] = 0;
+
+			break;
 		}
 	}
 }
@@ -442,21 +472,33 @@ public void Shavit_OnStart(int client)
 {
 	if(!IsFakeClient(client))
 	{
-		gA_PlayerFrames[client].Clear();
-		gI_PlayerFrames[client] = 0;
+		ClearFrames(client);
 
 		gB_Record[client] = true;
 	}
 }
 
+public void Shavit_OnStop(int client)
+{
+	ClearFrames(client);
+}
+
 public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 {
+	float fWRTime = 0.0;
+	Shavit_GetWRTime(style, fWRTime);
+
+	if(time > fWRTime || !ReplayEnabled(style))
+	{
+		ClearFrames(client);
+	}
+
 	gB_Record[client] = false;
 }
 
 public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
 {
-	if(!ReplayEnabled(style))
+	if(!ReplayEnabled(style) || gI_PlayerFrames[client] == 0)
 	{
 		return;
 	}
@@ -474,7 +516,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 		SetClientName(gI_ReplayBotClient[style], gS_BotName[style]);
 	}
 
-	gA_PlayerFrames[client].Clear();
+	ClearFrames(client);
 
 	SaveReplay(style);
 }
@@ -551,7 +593,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			gI_ReplayTick[iReplayBotStyle]++;
 
 			float vecVelocity[3];
-
 			float fDistance = 0.0;
 
 			if(gA_Frames[iReplayBotStyle].Length >= gI_ReplayTick[iReplayBotStyle] + 1)
@@ -580,7 +621,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if(gB_Record[client] && !Shavit_InsideZone(client, Zone_Start))
+	else if(gB_Record[client] && !Shavit_InsideZone(client, Zone_Start) && ReplayEnabled(Shavit_GetBhopStyle(client)))
 	{
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
@@ -610,6 +651,12 @@ public bool ReplayEnabled(any style)
 	}
 
 	return true;
+}
+
+public void ClearFrames(int client)
+{
+	gA_PlayerFrames[client].Clear();
+	gI_PlayerFrames[client] = 0;
 }
 
 /*

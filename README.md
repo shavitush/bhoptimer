@@ -80,6 +80,7 @@ Core
 - [x] Add shavit_core_nostaminareset ("easybhop")
 - [x] ~~Make a global enumerator/variable with per-style settings (bitflags)~~ - configs are canceled, just recompile the plugin with your own edit of `shavit.inc`.
 - [x] Add unranked styles.
+- [ ] Don't start timer if Z axis velocity is a thing (non-prespeed styles).
 - [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
 - [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
 - [ ] Add bonus timer.
@@ -97,7 +98,11 @@ HUD
 Replay
 --
 - [x] Make a boolean native that confirms if a client is a replay bot with loaded data. (used for `shavit-hud`)
+- [x] Stop recording frames (and clear cache) when the player is past the WR for the style.
+- [x] Overall optimizations.
 - [ ] Remove replay bot data on deletion of the #1 record.
+- [ ] If possible, start using a faster method to cache all the replay frames to prevent lag.
+- [ ] Make replay bots dead if there's no replay data loaded.
 - [ ] Add admin interface. (delete replay data)
 
 WR
