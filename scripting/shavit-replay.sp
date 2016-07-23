@@ -629,21 +629,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				vecNextPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
 
 				fDistance = GetVectorDistance(vecPosition, vecNextPosition);
-
 				MakeVectorFromPoints(vecCurrentPosition, vecNextPosition, vecVelocity);
-
 				ScaleVector(vecVelocity, gF_Tickrate);
 			}
 
-			if(fDistance >= 50.0)
-			{
-				TeleportEntity(client, vecCurrentPosition, vecAngles, vecVelocity);
-			}
-
-			else
-			{
-				TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
-			}
+			TeleportEntity(client, fDistance >= 50.0? vecCurrentPosition:NULL_VECTOR, vecAngles, vecVelocity);
 		}
 	}
 

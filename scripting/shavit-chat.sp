@@ -544,7 +544,25 @@ public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam
 
 	if(gB_RTLer)
 	{
-		RTLify(sFormattedText, maxlen, sFormattedText);
+		char[][] sExploded = new char[96][96]; // fixed size from RTLer
+		ExplodeString(sFormattedText, " ", sExploded, 96, 96);
+
+		bool bRTLify = true;
+
+		for(int i = 0; i < 96; i++)
+		{
+			if(strlen(sExploded[i]) > 32)
+			{
+				bRTLify = false;
+
+				break;
+			}
+		}
+
+		if(bRTLify)
+		{
+			RTLify(sFormattedText, maxlen, sFormattedText);
+		}
 	}
 
 	if(strlen(gS_Cached_Message[client]) > 0)
