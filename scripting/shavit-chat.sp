@@ -427,7 +427,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	char[] sMessage = new char[300];
 	strcopy(sMessage, 300, sArgs);
 
-	if(ReplaceString(sMessage[0], 1, "!", "") > 0 || ReplaceString(sMessage[0], 1, "/", "") > 0)
+	if(ReplaceString(sMessage[0], 1, "!", "sm_") > 0 || ReplaceString(sMessage[0], 1, "/", "sm_") > 0)
 	{
 		bool bCmd = false;
 		Handle hCon = FindFirstConCommand(sMessage, 300, bCmd);
