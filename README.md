@@ -53,7 +53,8 @@ a bhop server should be simple
 2. Copy the desired .smx files to your plugins (addons/sourcemod/plugins) folder  
 2.1. Copy shavit.games.txt to /gamedata if you have DHooks installed.
 3. Copy base.nav to the `maps` folder.
-4. Copy the files from the `sound` folder to the one on your server. Make sure to also have equivelant bz2 files on your FastDL server!
+4. Copy the files from the `sound` folder to the one on your server. Make sure to also have equivelant bz2 files on your FastDL server!  
+4.1. Do the same for the `materials` folder.
 5. Copy the `configs` file to your server and modify `shavit-sounds.cfg` if you wish to.  
 5.1. Changing `shavit-prefix.txt` to contain your MySQL database prefix might be needed depending on your usage.
 6. Restart your server.
@@ -174,11 +175,10 @@ Zones
 - [x] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
 - [x] CANCELED: Migrate zone settings to use Dynamic. (i didn't think *too* far into it before i started)
 - [x] Handle teleport zones. (teleport to a value from gV_Teleport)
-- [x] **Canceled all the triggers stuff because I'm a retard: if you ever feel like doing it because I failed hard, the code I worked with is left out commented.**
-- [x] CANCELED: Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
-- [x] CANCELED: Cleanup unused variables as we use triggers now.
-- [x] CANCELED: Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
-- [ ] Change zone sprite.
+- [x] Change zone sprite. (see configs/shavit-zones.cfg and shavit_zones_usecustomsprite)
+- [ ] Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
+- [ ] Cleanup unused variables as we use triggers now.
+- [ ] Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
 
 World Records
 --

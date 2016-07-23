@@ -111,6 +111,7 @@ bool gB_Late;
 ConVar gCV_ZoneStyle = null;
 ConVar gCV_Interval = null;
 ConVar gCV_TeleportToStart = null;
+ConVar gCV_UseCustomSprite = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -170,8 +171,9 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
-	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
+	gCV_Interval = CreateConVar("shavit_zones_interval", "5.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
+	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
 
 	AutoExecConfig();
 
@@ -342,16 +344,69 @@ public void OnMapStart()
 
 	gSG_Type = Shavit_GetGameType();
 
-	if(gSG_Type == Game_CSS)
+	if(gCV_UseCustomSprite.BoolValue)
 	{
-		gI_BeamSprite = PrecacheModel("sprites/laser.vmt", true);
-		gI_HaloSprite = PrecacheModel("sprites/halo01.vmt", true);
+		char[] sFile = new char[PLATFORM_MAX_PATH];
+		BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-zones.cfg");
+
+		File fFile = OpenFile(sFile, "r");
+
+		if(fFile == null)
+		{
+			SetFailState("Cannot open \"configs/shavit-zones.cfg\". Make sure this file exists and that the server has read permissions to it.");
+		}
+
+		else
+		{
+			char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+
+			while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+			{
+				TrimString(sLine);
+
+				if(sLine[0] != '\"')
+				{
+					continue;
+				}
+
+				ReplaceString(sLine, PLATFORM_MAX_PATH * 2, "\"", "");
+
+				char sExploded[2][PLATFORM_MAX_PATH];
+				ExplodeString(sLine, " ", sExploded, 2, PLATFORM_MAX_PATH);
+
+				if(StrEqual(sExploded[0], "sprite"))
+				{
+					gI_BeamSprite = PrecacheModel(sExploded[1], true);
+				}
+
+				else if(StrEqual(sExploded[0], "halo"))
+				{
+					gI_HaloSprite = StrEqual(sExploded[0], "none")? -1:PrecacheModel(sExploded[1], true);
+				}
+
+				else if(StrEqual(sExploded[0], "download"))
+				{
+					AddFileToDownloadsTable(sExploded[1]);
+				}
+			}
+		}
+
+		delete fFile;
 	}
 
 	else
 	{
-		gI_BeamSprite = PrecacheModel("sprites/laserbeam.vmt", true);
-		gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
+		if(gSG_Type == Game_CSS)
+		{
+			gI_BeamSprite = PrecacheModel("sprites/laser.vmt", true);
+			gI_HaloSprite = PrecacheModel("sprites/halo01.vmt", true);
+		}
+
+		else
+		{
+			gI_BeamSprite = PrecacheModel("sprites/laserbeam.vmt", true);
+			gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
+		}
 	}
 
 	/*PrecacheModel("models/props/cs_office/vending_machine.mdl");*/
@@ -1416,7 +1471,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 			CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false);
 
-			DrawZone(0, vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
+			DrawZone(0, vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 		}
 	}
 }

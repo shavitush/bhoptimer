@@ -682,14 +682,16 @@ public void StartTimer(int client)
 		return;
 	}
 
-	gB_TimerEnabled[client] = true;
-	gI_Jumps[client] = 0;
+	float fSpeed[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED || (gCV_NoZAxisSpeed.BoolValue && GetEntPropFloat(client, Prop_Send, "m_vecVelocity[2]") == 0.0))
+	if((!gB_TimerEnabled[client] && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0) || gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED || (gCV_NoZAxisSpeed.BoolValue && fSpeed[2] == 0.0))
 	{
 		gF_StartTime[client] = GetEngineTime();
+		gB_TimerEnabled[client] = true;
 	}
 
+	gI_Jumps[client] = 0;
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
 
