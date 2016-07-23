@@ -189,7 +189,7 @@ World Records
 - [x] Add native that checks the total amount of players with records on a style.
 - [x] Cache the whole leaderboard per style, sorted and updated at record removal, insertion and updates.
 - [x] Add `Shavit_GetRankForTime(BhopStyle style, float time)` which will calculate a map rank for the given time.
-- [ ] Show map rank on finish.
+- [x] Show map rank on finish.
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 - [ ] Use unix timestamps for future record dates.
