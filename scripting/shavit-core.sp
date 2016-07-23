@@ -105,6 +105,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
+	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
@@ -118,6 +119,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("Shavit_StopTimer");
 	MarkNativeAsOptional("Shavit_FinishMap");
 	MarkNativeAsOptional("Shavit_GetTimer");
+	MarkNativeAsOptional("Shavit_GetClientTime");
 	MarkNativeAsOptional("Shavit_GetBhopStyle");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
 	MarkNativeAsOptional("Shavit_PauseTimer");
@@ -560,6 +562,15 @@ public int Native_GetTimer(Handle handler, int numParams)
 	SetNativeCellRef(3, gI_Jumps[client]);
 	SetNativeCellRef(4, gBS_Style[client]);
 	SetNativeCellRef(5, gB_TimerEnabled[client]);
+}
+
+public int Native_GetClientTime(Handle handler, int numParams)
+{
+	// 1 - client
+	int client = GetNativeCell(1);
+
+	// 2 - time
+	return view_as<int>(CalculateTime(client));
 }
 
 public int Native_GetBhopStyle(Handle handler, int numParams)

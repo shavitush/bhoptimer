@@ -463,6 +463,14 @@ native void Shavit_FinishMap(int client);
 native void Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &style, bool &started);
 
 /**
+ * Retrieve a client's current time.
+ *
+ * @param client					Client index.
+ * @return                          Current time.
+ */
+native float Shavit_GetClientTime(int client);
+
+/**
  * Retrieve a client's bhopstyle
  *
  * @param client					Client index.
