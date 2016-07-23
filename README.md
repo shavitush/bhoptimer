@@ -96,6 +96,11 @@ HUD
 - [x] Remove `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list in a panel.
 - [x] Add spectator list.
 - [x] Show time in a "TIME/RECORD" format for replay bots.
+- [x] Support zonehud for CS:S.
+- [X] Redo CS:S HUD and use the HUD capabilities added in late 2013, attempt to look like [this HUD](https://i.imgur.com/pj8c7vP.png) because I'm very original!!!111one!1!!
+- [x] Show [PAUSED] if needed.
+- [ ] Add potential map rank.
+- [ ] Add strafes/sync.
 - [ ] Support for bonus timer.
 
 Replay
@@ -104,9 +109,10 @@ Replay
 - [x] Stop recording frames (and clear cache) when the player is past the WR for the style.
 - [x] Overall optimizations.
 - [x] Remove replay bot data on deletion of the #1 record.
-- [ ] If possible, start using a faster method to cache all the replay frames to prevent lag.
-- [ ] Make replay bots dead if there's no replay data loaded.
+- [x] Make replay bots dead if there's no replay data loaded.
+- [x] Clear player cache on spawn/death.
 - [ ] Add admin interface. (delete replay data)
+- [ ] Add a setting so there are two modes: one is that bots always play, and the other is that there are X bots (defined by server admin) and players can start their playback with a command. (`sm_replay`)
 
 WR
 --
@@ -123,13 +129,15 @@ Stats
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
 - [x] Make a submenu per style, for aesthetics.
 - [x] [rankings] Points implementation.
-- [ ] Make MVP count the amount of WRs the player has.
+- [x] Make MVP count the amount of WRs the player has. (with cvar)
 
 Miscellaneous
 --
 - [x] Allow changing the prespeed limitation.
 - [x] Add weapon cleanup.
-- [ ] Add SSJ (Speed Sixth Jump)
+- [x] Support radar hiding for CS:S.
+- [x] Fix respawn for auto team join.
+- [ ] Add SSJ (Speed Sixth Jump).
 
 Sounds **(NEW!)**
 --
@@ -154,6 +162,7 @@ Rankings **(NEW!)**
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 - [ ] Add native that checks the total amount of players with over 0 points.
 - [ ] Remove deleted records from `playerpoints`.
+- [ ] Find a way to update newly calculated points for all records on a map with the least amount of queries possible.
 
 Web Interface
 --

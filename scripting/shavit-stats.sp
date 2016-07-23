@@ -19,6 +19,7 @@
 */
 
 #include <sourcemod>
+#include <cstrike>
 
 #define USES_STYLE_NAMES
 #define USES_SHORT_STYLE_NAMES
@@ -47,6 +48,9 @@ int gI_MapType[MAXPLAYERS+1];
 int gI_Target[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
 
+// cvars
+ConVar gCV_MVPRankOnes = null;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Player Stats",
@@ -74,6 +78,15 @@ public void OnPluginStart()
 
 	// translations
 	LoadTranslations("common.phrases");
+
+	// hooks
+	HookEvent("player_spawn", Player_Event);
+	HookEvent("player_team", Player_Event);
+
+	// cvars
+	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.", 0, true, 0.0, true, 2.0);
+
+	AutoExecConfig();
 
 	// database connections
 	Shavit_GetDB(gH_SQL);
@@ -133,9 +146,9 @@ public void SQL_SetPrefix()
 
 	else
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+		char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 		{
 			TrimString(sLine);
 			strcopy(gS_MySQLPrefix, 32, sLine);
@@ -145,6 +158,82 @@ public void SQL_SetPrefix()
 	}
 
 	delete fFile;
+}
+
+public void Player_Event(Event event, const char[] name, bool dontBroadcast)
+{
+	int userid = event.GetInt("userid");
+	int client = GetClientOfUserId(userid);
+
+	if(gCV_MVPRankOnes.BoolValue && IsValidClient(client))
+	{
+		UpdateMVPs(client);
+	}
+}
+
+public void Shavit_OnFinish_Post(int client)
+{
+	UpdateMVPs(client);
+}
+
+public void Shavit_OnWorldRecord(int client)
+{
+	if(gCV_MVPRankOnes.BoolValue)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i, true))
+			{
+				UpdateMVPs(i);
+			}
+		}
+	}
+}
+
+public void UpdateMVPs(int client)
+{
+	if(gH_SQL == null)
+	{
+		return;
+	}
+
+	char[] sAuthID = new char[32];
+
+	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
+	{
+		char[] sQuery = new char[256];
+
+		if(gCV_MVPRankOnes.IntValue == 2)
+		{
+			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes GROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s';", gS_MySQLPrefix, sAuthID);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT s.auth FROM (SELECT auth, MIN(time) FROM %splayertimes GROUP BY map, style) s) ss WHERE ss.auth = '%s';", gS_MySQLPrefix, sAuthID);
+		}
+
+		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
+	}
+}
+
+public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (get WR amount) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0 || !results.FetchRow())
+	{
+		return;
+	}
+
+	CS_SetMVPCount(client, results.FetchInt(0));
 }
 
 public Action Command_Profile(int client, int args)

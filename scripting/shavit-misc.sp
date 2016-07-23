@@ -34,6 +34,10 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
+// game type
+ServerGame gSG_Type = Game_Unknown;
+
+// cache
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gF_LastFlags[MAXPLAYERS+1];
@@ -69,6 +73,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	// cache
+	gSG_Type = Shavit_GetGameType();
+
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
 	RegConsoleCmd("sm_spectators", Command_Specs, "Show a list of spectators.");
@@ -156,13 +163,6 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 	int iTeam = StringToInt(arg1);
 
-	// client is trying to join the same team he's in now.
-	// i'll let the game handle it.
-	if(GetClientTeam(client) == iTeam)
-	{
-		return Plugin_Continue;
-	}
-
 	bool bRespawn = false;
 
 	switch(iTeam)
@@ -197,7 +197,9 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 		default:
 		{
-			return Plugin_Continue;
+			bRespawn = true;
+			
+			CS_SwitchTeam(client, GetRandomInt(2, 3));
 		}
 	}
 
@@ -715,7 +717,16 @@ public Action RemoveRadar(Handle timer, any data)
 		return Plugin_Stop;
 	}
 
-	SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // disables player radar
+	if(gSG_Type == Game_CSGO)
+	{
+		SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // disables player radar
+	}
+
+	else
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 3600.0);
+		SetEntPropFloat(client, Prop_Send, "m_flFlashMaxAlpha", 0.5);
+	}
 
 	return Plugin_Stop;
 }

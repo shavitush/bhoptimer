@@ -50,6 +50,7 @@ Handle gH_Forwards_OnRestart = null;
 Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
+Handle gH_Forwards_OnStyleChanged = null;
 
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
@@ -149,6 +150,7 @@ public void OnPluginStart()
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
+	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 
 	// game types
 	EngineVersion evType = GetEngineVersion();
@@ -501,6 +503,12 @@ public void ChangeClientStyle(int client, BhopStyle style)
 		return;
 	}
 
+	Call_StartForward(gH_Forwards_OnStyleChanged);
+	Call_PushCell(client);
+	Call_PushCell(gBS_Style[client]);
+	Call_PushCell(style);
+	Call_Finish();
+
 	gBS_Style[client] = style;
 
 	Shavit_PrintToChat(client, "You have selected to play \x03%s\x01.", gS_BhopStyles[view_as<int>(style)]);
@@ -514,7 +522,11 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
 	{
-		Command_StartTimer(client, -1);
+		Call_StartForward(gH_Forwards_OnRestart);
+		Call_PushCell(client);
+		Call_Finish();
+
+		StartTimer(client);
 	}
 }
 
@@ -838,9 +850,9 @@ public void SQL_SetPrefix()
 
 	else
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+		char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 		{
 			TrimString(sLine);
 			strcopy(gS_MySQLPrefix, 32, sLine);

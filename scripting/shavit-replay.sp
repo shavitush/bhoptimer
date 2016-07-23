@@ -31,21 +31,22 @@
 #pragma dynamic 131072
 #pragma newdecls required
 
+// game type
 ServerGame gSG_Type = Game_Unknown;
 
+// cache
 int gI_ReplayTick[MAX_STYLES];
 int gI_ReplayBotClient[MAX_STYLES];
 ArrayList gA_Frames[MAX_STYLES] = {null, ...};
 char gS_BotName[MAX_STYLES][MAX_NAME_LENGTH];
 float gF_StartTick[MAX_STYLES];
-
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 bool gB_Record[MAXPLAYERS+1];
 
-float gF_Tickrate;
+// server specific
+float gF_Tickrate = 0.0;
 char gS_Map[256];
-
 ConVar bot_quota = null;
 int gI_ExpectedBots = 0;
 
@@ -102,7 +103,9 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	// hook death/spawn for cache reset
+	// hooks
+	HookEvent("player_spawn", Player_Event);
+	HookEvent("player_death", Player_Event);
 
 	// insert delete replay command here
 }
@@ -193,25 +196,12 @@ public Action Cron(Handle Timer)
 			continue;
 		}
 
-		if(!IsPlayerAlive(gI_ReplayBotClient[i]))
-		{
-			CS_RespawnPlayer(gI_ReplayBotClient[i]);
-		}
-
-		if(GetPlayerWeaponSlot(gI_ReplayBotClient[i], CS_SLOT_KNIFE) == -1)
-		{
-			GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
-		}
-
 		if(gSG_Type == Game_CSGO)
 		{
 			CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
 		}
 
-		char[] sStyle = new char[16];
-		FormatEx(sStyle, 16, "%s REPLAY", gS_ShortBhopStyles[i]);
-
-		CS_SetClientClanTag(gI_ReplayBotClient[i], sStyle);
+		CS_SetClientClanTag(gI_ReplayBotClient[i], "REPLAY");
 
 		char[] sName = new char[MAX_NAME_LENGTH];
 		GetClientName(gI_ReplayBotClient[i], sName, MAX_NAME_LENGTH);
@@ -221,6 +211,11 @@ public Action Cron(Handle Timer)
 
 		if(gA_Frames[i] == null || fWRTime == 0.0)
 		{
+			if(IsPlayerAlive(gI_ReplayBotClient[i]))
+			{
+				ForcePlayerSuicide(gI_ReplayBotClient[i]);
+			}
+
 			char[] sCurrentName = new char[MAX_NAME_LENGTH];
 			strcopy(sCurrentName, MAX_NAME_LENGTH, sName);
 
@@ -232,9 +227,22 @@ public Action Cron(Handle Timer)
 			}
 		}
 
-		else if(!StrEqual(gS_BotName[i], sName))
+		else
 		{
-			SetClientName(gI_ReplayBotClient[i], gS_BotName[i]);
+			if(!IsPlayerAlive(gI_ReplayBotClient[i]))
+			{
+				CS_RespawnPlayer(gI_ReplayBotClient[i]);
+			}
+
+			if(GetPlayerWeaponSlot(gI_ReplayBotClient[i], CS_SLOT_KNIFE) == -1)
+			{
+				GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
+			}
+
+			if(!StrEqual(gS_BotName[i], sName))
+			{
+				SetClientName(gI_ReplayBotClient[i], gS_BotName[i]);
+			}
 		}
 	}
 
@@ -509,7 +517,7 @@ public void Shavit_OnStop(int client)
 	ClearFrames(client);
 }
 
-public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
+public void Shavit_OnFinish(int client, BhopStyle style, float time)
 {
 	float fWRTime = 0.0;
 	Shavit_GetWRTime(style, fWRTime);
@@ -522,7 +530,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	gB_Record[client] = false;
 }
 
-public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
+public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 {
 	if(!ReplayEnabled(style) || gI_PlayerFrames[client] == 0)
 	{
@@ -669,13 +677,24 @@ public bool ReplayEnabled(any style)
 	return true;
 }
 
+public void Player_Event(Event event, const char[] name, bool dontBroadcast)
+{
+	int userid = event.GetInt("userid");
+	int client = GetClientOfUserId(userid);
+
+	if(IsValidClient(client))
+	{
+		ClearFrames(client);
+	}
+}
+
 public void ClearFrames(int client)
 {
 	gA_PlayerFrames[client].Clear();
 	gI_PlayerFrames[client] = 0;
 }
 
-public void Shavit_OnWRDeleted(BhopStyle style, int id)
+public void Shavit_OnWRDeleted(BhopStyle style)
 {
 	DeleteReplay(style);
 }

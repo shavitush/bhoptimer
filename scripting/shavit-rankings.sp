@@ -303,7 +303,7 @@ public Action Command_Top(int client, int args)
 public Action ShowTopMenu(int client)
 {
     char[] sQuery = new char[192];
-    FormatEx(sQuery, 192, "SELECT u.name, FORMAT(up.points, 2) AS points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
+    FormatEx(sQuery, 192, "SELECT u.name, FORMAT(up.points, 2) points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
 
     gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
@@ -729,7 +729,7 @@ public void UpdatePlayerRank(int client)
     if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
     {
         char[] sQuery = new char[256];
-        FormatEx(sQuery, 256, "SELECT COUNT(*) AS rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1) ORDER BY up.points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
+        FormatEx(sQuery, 256, "SELECT COUNT(*) rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1) ORDER BY up.points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
 
         gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
     }
@@ -815,9 +815,9 @@ public void SQL_SetPrefix()
 
 	else
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+		char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 		{
 			TrimString(sLine);
 			strcopy(gS_MySQLPrefix, 32, sLine);

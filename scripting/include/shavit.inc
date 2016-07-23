@@ -409,6 +409,16 @@ forward void Shavit_OnResume(int client);
 forward void Shavit_OnRankUpdated(int client);
 
 /**
+ * Called when a player changes his bhopstyle.
+ *
+ * @param client					Client index.
+ * @param oldstyle					Old bhop style.
+ * @param newstyle					New bhop style.
+ * @noreturn
+ */
+forward void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle newstyle);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
