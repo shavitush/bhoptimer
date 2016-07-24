@@ -166,15 +166,11 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
-	gCV_Interval = CreateConVar("shavit_zones_interval", "5.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
+	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
 
 	AutoExecConfig();
-
-	// draw
-	// start drawing mapzones here
-	CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT);
 
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
@@ -405,6 +401,10 @@ public void OnMapStart()
 	}
 
 	PrecacheModel("models/props/cs_office/vending_machine.mdl"); // placeholder model
+
+	// draw
+	// start drawing mapzones here
+	CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 // 0 - all zones
