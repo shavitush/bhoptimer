@@ -1351,6 +1351,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 public int GetRankForTime(BhopStyle style, float time)
 {
+	/*
 	for(int i = 0; i < gA_LeaderBoard[style].Length; i++)
 	{
 		if(time < gA_LeaderBoard[style].Get(i))
@@ -1358,6 +1359,22 @@ public int GetRankForTime(BhopStyle style, float time)
 			return ++i;
 		}
 	}
+	*/
+
+	int left = 0;
+	int right = gA_LeaderBoard[style].Length - 1;
+	int middle;
+	while (left <= right) 
+	{
+		middle = RoundToFloor((left + right)/2.0);
+		if (gA_LeaderBoard[style].Get(middle) > time)
+			right = middle - 1;
+		else if (gA_LeaderBoard[style].Get(middle) < time)
+			left = middle + 1;
+		else
+			return middle;
+	}
+
 
 	return gA_LeaderBoard[style].Length + 1;
 }
