@@ -81,23 +81,23 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-    if(!LibraryExists("shavit-rankings"))
-    {
-        SetFailState("shavit-rankings is required for the plugin to work.");
-    }
+	if(!LibraryExists("shavit-rankings"))
+	{
+		SetFailState("shavit-rankings is required for the plugin to work.");
+	}
 
-    // placed here and not in OnPluginStart() as `chat` is coming before `core` if sorted alphabetically
-    gSG_Type = Shavit_GetGameType();
+	// placed here and not in OnPluginStart() as `chat` is coming before `core` if sorted alphabetically
+	gSG_Type = Shavit_GetGameType();
 
 	if(gSG_Type == Game_CSGO)
 	{
 		gCV_Deadtalk = FindConVar("sv_deadtalk");
 	}
 
-    // modules
-    gB_BaseComm = LibraryExists("basecomm");
-    gB_RTLer = LibraryExists("rtler");
-    gB_SCP = LibraryExists("scp");
+	// modules
+	gB_BaseComm = LibraryExists("basecomm");
+	gB_RTLer = LibraryExists("rtler");
+	gB_SCP = LibraryExists("scp");
 }
 
 public void OnPluginStart()
