@@ -42,6 +42,7 @@ ArrayList gA_Frames[MAX_STYLES] = {null, ...};
 char gS_BotName[MAX_STYLES][MAX_NAME_LENGTH];
 float gF_StartTick[MAX_STYLES];
 ReplayStatus gRS_ReplayStatus[MAX_STYLES];
+int gI_FrameCount[MAX_STYLES];
 
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
@@ -133,7 +134,7 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 {
 	BhopStyle style = view_as<BhopStyle>(GetNativeCell(1));
 
-	return view_as<int>(ReplayEnabled(style) && gA_Frames[style] != null);
+	return view_as<int>(ReplayEnabled(style) && gI_FrameCount[style] > 0);
 }
 
 public Action Cron(Handle Timer)
@@ -213,7 +214,7 @@ public Action Cron(Handle Timer)
 		float fWRTime;
 		Shavit_GetWRTime(view_as<BhopStyle>(i), fWRTime);
 
-		if(gA_Frames[i] == null || gA_Frames[i].Length == 0 || fWRTime == 0.0)
+		if(gI_FrameCount[i] == 0 || fWRTime == 0.0)
 		{
 			if(IsPlayerAlive(gI_ReplayBotClient[i]))
 			{
@@ -368,6 +369,7 @@ public void OnMapStart()
 
 		gI_ExpectedBots++;
 		gI_ReplayTick[i] = 0;
+		gI_FrameCount[i] = 0;
 		gA_Frames[i] = new ArrayList(5);
 
 		BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d", i);
@@ -429,6 +431,8 @@ public bool LoadReplay(BhopStyle style)
 			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[4]), 4);
 		}
 
+		gI_FrameCount[style] = gA_Frames[style].Length;
+
 		delete fFile;
 
 		return true;
@@ -468,6 +472,8 @@ public bool SaveReplay(BhopStyle style)
 
 	delete fFile;
 
+	gI_FrameCount[style] = iSize;
+
 	return true;
 }
 
@@ -487,6 +493,7 @@ public bool DeleteReplay(BhopStyle style)
 	}
 
 	gA_Frames[style].Clear();
+	gI_FrameCount[style] = 0;
 	gI_ReplayTick[style] = -1;
 
 	CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
@@ -609,18 +616,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(iReplayBotStyle != -1 && ReplayEnabled(iReplayBotStyle))
 	{
-		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
-
 		if(gA_Frames[iReplayBotStyle] == null) // if no replay is loaded
 		{
 			return Plugin_Continue;
 		}
+
+		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 
 		float fWRTime = 0.0;
 		Shavit_GetWRTime(view_as<BhopStyle>(iReplayBotStyle), fWRTime);
 
 		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1)
 		{
+			int iSize = gI_FrameCount[iReplayBotStyle];
+
 			float vecPosition[3];
 			float vecAngles[3];
 
@@ -638,12 +647,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				else
 				{
-					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 0);
-					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 1);
-					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 2);
+					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 0);
+					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 1);
+					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 2);
 
-					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 3);
-					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 4);
+					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 3);
+					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 4);
 				}
 
 				TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
@@ -651,7 +660,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Continue;
 			}
 
-			if(gI_ReplayTick[iReplayBotStyle] >= gA_Frames[iReplayBotStyle].Length)
+			if(gI_ReplayTick[iReplayBotStyle] >= iSize)
 			{
 				gI_ReplayTick[iReplayBotStyle] = 0;
 				gRS_ReplayStatus[iReplayBotStyle] = Replay_End;
@@ -678,7 +687,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			float vecVelocity[3];
 			float fDistance = 0.0;
 
-			if(gA_Frames[iReplayBotStyle].Length >= gI_ReplayTick[iReplayBotStyle] + 1)
+			if(gI_FrameCount[iReplayBotStyle] >= gI_ReplayTick[iReplayBotStyle] + 1)
 			{
 				float vecNextPosition[3];
 				vecNextPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
@@ -777,7 +786,7 @@ public Action Command_DeleteReplay(int client, int args)
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		if(!ReplayEnabled(i) || gA_Frames[i].Length == 0)
+		if(!ReplayEnabled(i) || gI_FrameCount[i] == 0)
 		{
 			continue;
 		}
