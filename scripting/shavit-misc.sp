@@ -54,6 +54,7 @@ ConVar gCV_HideRadar = null;
 ConVar gCV_TeleportCommands = null;
 ConVar gCV_NoWeaponDrops = null;
 ConVar gCV_NoBlock = null;
+ConVar gCV_AutoRespawn = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -119,6 +120,7 @@ public void OnPluginStart()
 	gCV_TeleportCommands = CreateConVar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoBlock = CreateConVar("shavit_misc_noblock", "1", "Disable player collision?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_AutoRespawn = CreateConVar("shavit_misc_autorespawn", "1.5", "Seconds to wait before respawning player?\n0 - Disabled", 0, true, 0.0, true, 10.0);
 
 	AutoExecConfig();
 
@@ -670,17 +672,22 @@ public void Shavit_OnRestart(int client)
 			CS_SwitchTeam(client, CS_TEAM_CT);
 		}
 
-		CreateTimer(0.1, Respawn, client);
+		CreateTimer(0.1, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
-public Action Respawn(Handle Timer, any client)
+public Action Respawn(Handle Timer, any data)
 {
+	int client = GetClientFromSerial(data);
+
 	if(IsValidClient(client) && !IsPlayerAlive(client))
 	{
 		CS_RespawnPlayer(client);
 
-		RestartTimer(client);
+		if(gCV_RespawnOnRestart.BoolValue)
+		{
+			RestartTimer(client);
+		}
 	}
 
 	return Plugin_Handled;
@@ -743,6 +750,16 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 	if(gCV_HideTeamChanges.BoolValue)
 	{
 		event.BroadcastDisabled = true;
+	}
+
+	if(gCV_AutoRespawn.BoolValue && StrEqual(name, "player_death"))
+	{
+		int client = GetClientOfUserId(event.GetInt("userid"));
+
+		if(!IsFakeClient(client))
+		{
+			CreateTimer(gCV_AutoRespawn.FloatValue, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+		}
 	}
 
 	return Plugin_Continue;
