@@ -180,7 +180,7 @@ Zones
 - [x] Handle teleport zones. (teleport to a value from gV_Teleport)
 - [x] Change zone sprite. (see configs/shavit-zones.cfg and shavit_zones_usecustomsprite)
 - [x] Optimize InsideZone() so 8 points won't be always calculated (blame ofir™). Cut execution time by over 95%!!
-- [ ] Add grid snapping on zone creation.
+- [x] Add grid snapping on zone creation.
 
 World Records
 --

@@ -59,6 +59,7 @@ MapZones gMZ_Type[MAXPLAYERS+1];
 int gI_MapStep[MAXPLAYERS+1];
 
 float gF_Modifier[MAXPLAYERS+1];
+int gI_GridSnap[MAXPLAYERS+1];
 
 // I suck
 float gV_Point1[MAXPLAYERS+1][3];
@@ -167,8 +168,8 @@ public void OnPluginStart()
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
-	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
-	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.5, true, 5.0);
+	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -854,6 +855,7 @@ public void Reset(int client)
 {
 	gF_Modifier[client] = 10.0;
 	gI_MapStep[client] = 0;
+	gI_GridSnap[client] = 16;
 	gF_RotateAngle[client] = 0.0;
 
 	for(int i = 0; i < 2; i++)
@@ -883,7 +885,11 @@ public void ShowPanel(int client, int step)
 	pPanel.DrawItem(sPanelText, ITEMDRAW_RAWLINE);
 	pPanel.DrawItem("Abort zone creation");
 
-	pPanel.Send(client, ZoneCreation_Handler, 540);
+	char[] sDisplay = new char[16];
+	FormatEx(sDisplay, 16, "Grid snap: x%d", gI_GridSnap[client]);
+	pPanel.DrawItem(sDisplay);
+
+	pPanel.Send(client, ZoneCreation_Handler, 600);
 
 	delete pPanel;
 }
@@ -892,7 +898,22 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		Reset(param1);
+		if(param2 == 1)
+		{
+			Reset(param1);
+		}
+
+		else
+		{
+			gI_GridSnap[param1] *= 2;
+
+			if(gI_GridSnap[param1] > 64)
+			{
+				gI_GridSnap[param1] = 1;
+			}
+
+			ShowPanel(param1, gI_MapStep[param1]);
+		}
 	}
 
 	else if(action == MenuAction_End)
@@ -916,6 +937,10 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		{
 			float vOrigin[3];
 			GetClientAbsOrigin(client, vOrigin);
+
+			// grid snapping
+			vOrigin[0] = float(RoundToNearest(vOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+			vOrigin[1] = float(RoundToNearest(vOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
 
 			if(gI_MapStep[client] == 1)
 			{
@@ -1040,7 +1065,7 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 public void CreateEditMenu(int client)
 {
-	Menu menu = new Menu(CreateZoneConfirm_Handler);
+	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
 	menu.SetTitle("Confirm?");
 
 	menu.AddItem("yes", "Yes");
@@ -1051,7 +1076,7 @@ public void CreateEditMenu(int client)
 
 	menu.ExitButton = true;
 
-	menu.Display(client, 20);
+	menu.Display(client, 600);
 }
 
 public void CreateAdjustMenu(int client, int page)
@@ -1360,7 +1385,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false, true);
 					}
 
-					DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
+					DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 				}
 			}
 		}
@@ -1389,7 +1414,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 			CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false, true);
 
-			DrawZone(0, vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
+			DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 		}
 	}
 }
@@ -1405,13 +1430,16 @@ public Action Timer_Draw(Handle Timer, any data)
 		return Plugin_Stop;
 	}
 
+	float vPlayerOrigin[3];
 	float vOrigin[3];
 
 	if(gI_MapStep[client] == 1 || gV_Point2[client][0] == 0.0)
 	{
-		GetClientAbsOrigin(client, vOrigin);
+		GetClientAbsOrigin(client, vPlayerOrigin);
 
-		vOrigin[2] += 144.0;
+		vOrigin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+		vOrigin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+		vOrigin[2] = vPlayerOrigin[2] + 144.0;
 	}
 
 	else
@@ -1427,8 +1455,12 @@ public Action Timer_Draw(Handle Timer, any data)
 	vPoints[7][2] += 2.0;
 
 	CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
+	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
 
-	DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[gMZ_Type[client]], 0.1);
+	vOrigin[2] -= 144.0;
+
+	TE_SetupBeamPoints(vPlayerOrigin, vOrigin, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
+	TE_SendToAll(0.0);
 
 	return Plugin_Continue;
 }
@@ -1574,7 +1606,7 @@ public bool InsideTeleportZone(int client, int zone)
 *    if client == 0, it draws it for all players in the game
 *   if client index is between 0 and MaxClients+1, it draws for the specified client
 */
-public void DrawZone(int client, float array[8][3], int beamsprite, int halosprite, int color[4], float life)
+public void DrawZone(float array[8][3], int beamsprite, int halosprite, int color[4], float life)
 {
 	for(int i = 0, i2 = 3; i2 >= 0; i += i2--)
 	{
@@ -1583,16 +1615,7 @@ public void DrawZone(int client, float array[8][3], int beamsprite, int halospri
 			if(j != 7 - i)
 			{
 				TE_SetupBeamPoints(array[i], array[j], beamsprite, halosprite, 0, 0, life, 5.0, 5.0, 0, 0.0, color, 0);
-
-				if(0 < client <= MaxClients)
-				{
-					TE_SendToClient(client, 0.0);
-				}
-
-				else
-				{
-					TE_SendToAll(0.0);
-				}
+				TE_SendToAll(0.0);
 			}
 		}
 	}
