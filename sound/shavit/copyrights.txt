@@ -1,0 +1,6 @@
+I'm in no way the owner of the sound samples included in this directory.
+They are used for this project, if you want any of those files removed,
+please contact me through GitHub by creating an issue here: https://github.com/shavitush/bhoptimer/issues -
+and request to have them removed instead of filing a DMCA against my open-source and non-profiting project.
+
+Appreciated, thank you.
