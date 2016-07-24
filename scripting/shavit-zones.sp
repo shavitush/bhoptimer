@@ -1169,9 +1169,7 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 		else
 		{
 			bool bIncrease = view_as<bool>(StringToInt(sInfo) == 1);
-
 			gF_RotateAngle[param1] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
-			gF_RotateAngle[param1] = view_as<int>(gF_RotateAngle[param1]) % 360 + gF_RotateAngle[param1] / 10;
 
 			Shavit_PrintToChat(param1, "Zone rotated by \x03%.01f\x01 degrees.", (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]));
 
@@ -1354,12 +1352,12 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 					if(j == 0)
 					{
-						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -PLACEHOLDER, false, false);
+						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -PLACEHOLDER, false, true);
 					}
 
 					else
 					{
-						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false, false);
+						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false, true);
 					}
 
 					DrawZone(0, vPoints, gI_BeamSprite, 0, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
