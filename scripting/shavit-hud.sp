@@ -419,7 +419,7 @@ public void UpdateHUD(int client)
 						strcopy(sColor, 8, "FF0000");
 					}
 
-					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)", sHintText, sColor, sTime, Shavit_GetRankForTime(bsStyle, fTime));
+					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)%s", sHintText, sColor, sTime, Shavit_GetRankForTime(bsStyle, fTime), Shavit_GetTimerStatus(target) == Timer_Paused? " [PAUSED]":"");
 				}
 
 				Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);

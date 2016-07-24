@@ -699,7 +699,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				ScaleVector(vecVelocity, gF_Tickrate);
 			}
 
-			TeleportEntity(client, fDistance >= 50.0? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
+			TeleportEntity(client, fDistance >= 75.0? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
 		}
 	}
 

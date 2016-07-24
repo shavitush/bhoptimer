@@ -55,6 +55,7 @@ ConVar gCV_TeleportCommands = null;
 ConVar gCV_NoWeaponDrops = null;
 ConVar gCV_NoBlock = null;
 ConVar gCV_AutoRespawn = null;
+ConVar gCV_CreateSpawnPoints = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -121,6 +122,7 @@ public void OnPluginStart()
 	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoBlock = CreateConVar("shavit_misc_noblock", "1", "Disable player collision?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_AutoRespawn = CreateConVar("shavit_misc_autorespawn", "1.5", "Seconds to wait before respawning player?\n0 - Disabled", 0, true, 0.0, true, 10.0);
+	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "32", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 10.0);
 
 	AutoExecConfig();
 
@@ -153,6 +155,38 @@ public void OnPluginStart()
 public void OnMapStart()
 {
 	CS_TerminateRound(3.0, CSRoundEnd_GameStart, true);
+
+	if(gCV_CreateSpawnPoints.BoolValue)
+	{
+		int iEntity = -1;
+		float fOrigin[3];
+
+		if((iEntity = FindEntityByClassname(-1, "info_player_terrorist")) != -1)
+		{
+			GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", fOrigin);
+		}
+
+		else if((iEntity = FindEntityByClassname(-1, "info_player_counterterrorist")) != -1)
+		{
+			GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", fOrigin);
+		}
+
+		if(iEntity != -1)
+		{
+			for(int i = 1; i <= gCV_CreateSpawnPoints.IntValue; i++)
+			{
+				for(int iTeam = 1; iTeam <= 2; iTeam++)
+				{
+					int iSpawnPoint = CreateEntityByName(iTeam == 1? "info_player_terrorist":"info_player_counterterrorist");
+
+					if(DispatchSpawn(iSpawnPoint))
+					{
+						TeleportEntity(iSpawnPoint, fOrigin, view_as<float>({0.0, 0.0, 0.0}), NULL_VECTOR);
+					}
+				}
+			}
+		}
+	}
 }
 
 public Action Command_Jointeam(int client, const char[] command, int args)

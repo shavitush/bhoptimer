@@ -99,7 +99,8 @@ HUD
 - [X] Redo CS:S HUD and use the HUD capabilities added in late 2013, attempt to look like [this HUD](https://i.imgur.com/pj8c7vP.png) because I'm very original!!!111one!1!!
 - [x] Show [PAUSED] if needed.
 - [x] Add potential map rank.
-- [ ] Add strafes/sync.
+- [ ] Add strafes/sync. (replace 'Player' with strafes and sync in csgo, use keyhinttext for sync/spectator amount in css)
+- [ ] Show 'time left' in CS:S HUD.
 - [ ] Support for bonus timer.
 
 Replay
@@ -126,6 +127,8 @@ Miscellaneous
 - [x] Add weapon cleanup.
 - [x] Support radar hiding for CS:S.
 - [x] Fix respawn for auto team join.
+- [x] Create extra spawn points for both teams because many bhop maps lack them. (`shavit_misc_createspawnpoints`)
+- [ ] Support map changing, specifically SourceMod's built-in mapchooser and MCE.
 - [ ] Add SSJ (Speed Sixth Jump).
 
 Sounds **(NEW!)**
@@ -177,6 +180,7 @@ Zones
 - [x] Handle teleport zones. (teleport to a value from gV_Teleport)
 - [x] Change zone sprite. (see configs/shavit-zones.cfg and shavit_zones_usecustomsprite)
 - [x] Optimize InsideZone() so 8 points won't be always calculated (blame ofir™). Cut execution time by over 95%!!
+- [ ] Add grid snapping on zone creation.
 
 World Records
 --
@@ -189,6 +193,7 @@ World Records
 - [x] Add `Shavit_GetRankForTime(BhopStyle style, float time)` which will calculate a map rank for the given time.
 - [x] Show map rank on finish.
 - [ ] Add strafe sync to the WR menu where available.
+- [ ] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 - [ ] Use unix timestamps for future record dates.
 
