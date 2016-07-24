@@ -83,8 +83,8 @@ Core
 - [x] ~~Make a global enumerator/variable with per-style settings (bitflags)~~ - configs are canceled, just recompile the plugin with your own edit of `shavit.inc`.
 - [x] Add unranked styles.
 - [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
-- [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
 - [ ] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
+- [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
 - [ ] Add bonus timer.
 
 HUD

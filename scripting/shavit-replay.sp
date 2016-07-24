@@ -51,7 +51,6 @@ bool gB_Record[MAXPLAYERS+1];
 // server specific
 float gF_Tickrate = 0.0;
 char gS_Map[256];
-ConVar bot_quota = null;
 int gI_ExpectedBots = 0;
 
 // Plugin ConVars
@@ -91,8 +90,6 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-	bot_quota = FindConVar("bot_quota");
-
 	CreateTimer(1.0, Cron, INVALID_HANDLE, TIMER_REPEAT);
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -139,12 +136,6 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 
 public Action Cron(Handle Timer)
 {
-	// make sure there are e nough bots
-	if(bot_quota.IntValue != gI_ExpectedBots)
-	{
-		bot_quota.SetInt(gI_ExpectedBots);
-	}
-
 	// resets a bot's client index if there are two on the same one.
 	for(int a = 0; a < MAX_STYLES; a++)
 	{
@@ -204,6 +195,11 @@ public Action Cron(Handle Timer)
 		if(gSG_Type == Game_CSGO)
 		{
 			CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
+		}
+
+		else
+		{
+			SetEntProp(gI_ReplayBotClient[i], Prop_Data, "m_iFrags", 2000);
 		}
 
 		CS_SetClientClanTag(gI_ReplayBotClient[i], "REPLAY");
@@ -323,9 +319,6 @@ public void OnMapStart()
 		return;
 	}
 
-	ConVar bot_stop = FindConVar("bot_stop");
-	bot_stop.SetBool(true);
-
 	ConVar bot_controllable = FindConVar("bot_controllable");
 
 	if(bot_controllable != null)
@@ -371,6 +364,8 @@ public void OnMapStart()
 		gI_ReplayTick[i] = 0;
 		gI_FrameCount[i] = 0;
 		gA_Frames[i] = new ArrayList(5);
+
+		ServerCommand("bot_add");
 
 		BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d", i);
 
@@ -616,9 +611,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(iReplayBotStyle != -1 && ReplayEnabled(iReplayBotStyle))
 	{
-		if(gA_Frames[iReplayBotStyle] == null) // if no replay is loaded
+		SetEntProp(client, Prop_Data, "m_nButtons", 0);
+		buttons = 0;
+
+		int iSize = gI_FrameCount[iReplayBotStyle];
+
+		if(gA_Frames[iReplayBotStyle] == null && iSize <= 0) // if no replay is loaded
 		{
-			return Plugin_Continue;
+			return Plugin_Changed;
 		}
 
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
@@ -626,10 +626,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		float fWRTime = 0.0;
 		Shavit_GetWRTime(view_as<BhopStyle>(iReplayBotStyle), fWRTime);
 
-		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1)
+		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1 && iSize >= 1)
 		{
-			int iSize = gI_FrameCount[iReplayBotStyle];
-
 			float vecPosition[3];
 			float vecAngles[3];
 
@@ -657,7 +655,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
 
-				return Plugin_Continue;
+				return Plugin_Changed;
 			}
 
 			if(gI_ReplayTick[iReplayBotStyle] >= iSize)
@@ -667,7 +665,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
 
-				return Plugin_Continue;
+				return Plugin_Changed;
 			}
 
 			if(gI_ReplayTick[iReplayBotStyle] == 1)
@@ -700,6 +698,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 
 			TeleportEntity(client, fDistance >= 75.0? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
+
+			return Plugin_Changed;
 		}
 	}
 

@@ -1431,12 +1431,12 @@ public Action Timer_Draw(Handle Timer, any data)
 	}
 
 	float vPlayerOrigin[3];
+	GetClientAbsOrigin(client, vPlayerOrigin);
+
 	float vOrigin[3];
 
 	if(gI_MapStep[client] == 1 || gV_Point2[client][0] == 0.0)
 	{
-		GetClientAbsOrigin(client, vPlayerOrigin);
-
 		vOrigin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
 		vOrigin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
 		vOrigin[2] = vPlayerOrigin[2] + 144.0;
@@ -1457,10 +1457,13 @@ public Action Timer_Draw(Handle Timer, any data)
 	CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
 	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
 
-	vOrigin[2] -= 144.0;
-
-	TE_SetupBeamPoints(vPlayerOrigin, vOrigin, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
-	TE_SendToAll(0.0);
+	if(!EmptyZone(vOrigin))
+	{
+		vOrigin[2] -= 144.0;
+		
+		TE_SetupBeamPoints(vPlayerOrigin, vOrigin, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
+		TE_SendToAll(0.0);
+	}
 
 	return Plugin_Continue;
 }
