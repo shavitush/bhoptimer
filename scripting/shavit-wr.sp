@@ -1351,7 +1351,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 public int GetRankForTime(BhopStyle style, float time)
 {
-	for(int i = 0; i < gA_LeaderBoard[style].Length; i++)
+	for(int i = 0; i < gI_RecordAmount[style]; i++)
 	{
 		if(time < gA_LeaderBoard[style].Get(i))
 		{
@@ -1359,5 +1359,5 @@ public int GetRankForTime(BhopStyle style, float time)
 		}
 	}
 
-	return gA_LeaderBoard[style].Length + 1;
+	return gI_RecordAmount[style] + 1;
 }

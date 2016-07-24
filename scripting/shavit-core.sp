@@ -689,7 +689,7 @@ public int Native_RestartTimer(Handle handler, int numParams)
 
 public void StartTimer(int client)
 {
-	if(!IsValidClient(client) || IsFakeClient(client))
+	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
 	{
 		return;
 	}
