@@ -56,6 +56,7 @@ bool gB_SCP = false;
 
 // game-related
 ServerGame gSG_Type = Game_Unknown;
+ConVar gCV_Deadtalk = null;
 
 public Plugin myinfo =
 {
@@ -87,6 +88,11 @@ public void OnAllPluginsLoaded()
 
     // placed here and not in OnPluginStart() as `chat` is coming before `core` if sorted alphabetically
     gSG_Type = Shavit_GetGameType();
+
+	if(gSG_Type == Game_CSGO)
+	{
+		gCV_Deadtalk = FindConVar("sv_deadtalk");
+	}
 
     // modules
     gB_BaseComm = LibraryExists("basecomm");
@@ -426,7 +432,7 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 		return Plugin_Continue;
 	}
 
-	if(gB_SCPFormat && GetMessageFlags() & CHATFLAGS_ALL && !IsPlayerAlive(author))
+	if(gB_SCPFormat && GetMessageFlags() & CHATFLAGS_ALL && !IsPlayerAlive(author) && (gSG_Type == Game_CSS || !gCV_Deadtalk.BoolValue))
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -435,6 +441,8 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 				recipients.Push(i);
 			}
 		}
+
+		gB_SCPFormat = false;
 	}
 
 	char[] sBuffer = new char[255];
@@ -473,8 +481,6 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 
 	FormatEx(name, MAXLENGTH_NAME, "%s%s%s", gSG_Type == Game_CSGO? " ":"", sPrefix, sName);
 	strcopy(message, MAXLENGTH_MESSAGE, sFormattedText);
-
-	gB_SCPFormat = false;
 
 	return Plugin_Changed;
 }

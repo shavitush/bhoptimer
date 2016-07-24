@@ -1685,7 +1685,8 @@ public void PointTranslate(float point[3], float t[2])
 * fix1 - edge fixes
 * fix2 - edge fixes
 * zone - PLACEHOLDER for not constant zone, -PLACEHOLDER for index 0 freestyle zone, zone id (- for free style zone)
-* norotate - dont rotae
+* norotate - don't rotate zone points
+* all - calculate all 8 zone points
 */
 public void CreateZonePoints(float point[8][3], float angle, float fix1[2], float fix2[2], int zone, bool norotate, bool all)
 {
