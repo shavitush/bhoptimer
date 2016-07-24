@@ -23,6 +23,7 @@
 #include <sdktools>
 #include <sdkhooks>
 
+#define USES_STYLE_NAMES
 #define USES_SHORT_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
 #include <shavit>
@@ -31,21 +32,24 @@
 #pragma dynamic 131072
 #pragma newdecls required
 
+// game type
 ServerGame gSG_Type = Game_Unknown;
 
+// cache
 int gI_ReplayTick[MAX_STYLES];
 int gI_ReplayBotClient[MAX_STYLES];
 ArrayList gA_Frames[MAX_STYLES] = {null, ...};
 char gS_BotName[MAX_STYLES][MAX_NAME_LENGTH];
 float gF_StartTick[MAX_STYLES];
+ReplayStatus gRS_ReplayStatus[MAX_STYLES];
 
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 bool gB_Record[MAXPLAYERS+1];
 
-float gF_Tickrate;
+// server specific
+float gF_Tickrate = 0.0;
 char gS_Map[256];
-
 ConVar bot_quota = null;
 int gI_ExpectedBots = 0;
 
@@ -98,13 +102,16 @@ public void OnPluginStart()
 	gF_Tickrate = (1.0 / GetTickInterval());
 
 	// plugin convars
-	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "1.5", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
+	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 
 	AutoExecConfig();
 
-	// hook death/spawn for cache reset
+	// hooks
+	HookEvent("player_spawn", Player_Event);
+	HookEvent("player_death", Player_Event);
 
-	// insert delete replay command here
+	// commands
+	RegAdminCmd("sm_deletereplay", Command_DeleteReplay, ADMFLAG_RCON, "Open replay deletion menu.");
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
@@ -193,25 +200,12 @@ public Action Cron(Handle Timer)
 			continue;
 		}
 
-		if(!IsPlayerAlive(gI_ReplayBotClient[i]))
-		{
-			CS_RespawnPlayer(gI_ReplayBotClient[i]);
-		}
-
-		if(GetPlayerWeaponSlot(gI_ReplayBotClient[i], CS_SLOT_KNIFE) == -1)
-		{
-			GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
-		}
-
 		if(gSG_Type == Game_CSGO)
 		{
 			CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
 		}
 
-		char[] sStyle = new char[16];
-		FormatEx(sStyle, 16, "%s REPLAY", gS_ShortBhopStyles[i]);
-
-		CS_SetClientClanTag(gI_ReplayBotClient[i], sStyle);
+		CS_SetClientClanTag(gI_ReplayBotClient[i], "REPLAY");
 
 		char[] sName = new char[MAX_NAME_LENGTH];
 		GetClientName(gI_ReplayBotClient[i], sName, MAX_NAME_LENGTH);
@@ -219,12 +213,17 @@ public Action Cron(Handle Timer)
 		float fWRTime;
 		Shavit_GetWRTime(view_as<BhopStyle>(i), fWRTime);
 
-		if(gA_Frames[i] == null || fWRTime == 0.0)
+		if(gA_Frames[i] == null || gA_Frames[i].Length == 0 || fWRTime == 0.0)
 		{
+			if(IsPlayerAlive(gI_ReplayBotClient[i]))
+			{
+				ForcePlayerSuicide(gI_ReplayBotClient[i]);
+			}
+
 			char[] sCurrentName = new char[MAX_NAME_LENGTH];
 			strcopy(sCurrentName, MAX_NAME_LENGTH, sName);
 
-			FormatEx(sName, MAX_NAME_LENGTH, "%s unloaded", gS_ShortBhopStyles[i]);
+			FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
 
 			if(!StrEqual(sName, sCurrentName))
 			{
@@ -232,9 +231,25 @@ public Action Cron(Handle Timer)
 			}
 		}
 
-		else if(!StrEqual(gS_BotName[i], sName))
+		else
 		{
-			SetClientName(gI_ReplayBotClient[i], gS_BotName[i]);
+			if(!IsPlayerAlive(gI_ReplayBotClient[i]))
+			{
+				CS_RespawnPlayer(gI_ReplayBotClient[i]);
+			}
+
+			if(GetPlayerWeaponSlot(gI_ReplayBotClient[i], CS_SLOT_KNIFE) == -1)
+			{
+				GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
+			}
+
+			char[] sNewName = new char[MAX_NAME_LENGTH];
+			FormatEx(sNewName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[i], gS_BotName[i]);
+
+			if(!StrEqual(gS_BotName[i], sNewName))
+			{
+				SetClientName(gI_ReplayBotClient[i], sNewName);
+			}
 		}
 	}
 
@@ -364,7 +379,13 @@ public void OnMapStart()
 
 		if(!LoadReplay(view_as<BhopStyle>(i)))
 		{
-			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "%s unloaded", gS_ShortBhopStyles[i]);
+			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
+			gI_ReplayTick[i] = -1;
+		}
+
+		else
+		{
+			gRS_ReplayStatus[i] = Replay_Running;
 		}
 	}
 }
@@ -466,7 +487,9 @@ public bool DeleteReplay(BhopStyle style)
 	}
 
 	gA_Frames[style].Clear();
-	gI_ReplayTick[style] = 0;
+	gI_ReplayTick[style] = -1;
+
+	CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
 	return true;
 }
@@ -509,7 +532,7 @@ public void Shavit_OnStop(int client)
 	ClearFrames(client);
 }
 
-public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
+public void Shavit_OnFinish(int client, BhopStyle style, float time)
 {
 	float fWRTime = 0.0;
 	Shavit_GetWRTime(style, fWRTime);
@@ -522,7 +545,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	gB_Record[client] = false;
 }
 
-public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
+public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 {
 	if(!ReplayEnabled(style) || gI_PlayerFrames[client] == 0)
 	{
@@ -530,7 +553,6 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 	}
 
 	gA_Frames[style] = gA_PlayerFrames[client].Clone();
-	gI_ReplayTick[style] = 0;
 
 	char[] sWRTime = new char[16];
 	FormatSeconds(time, sWRTime, 16);
@@ -539,10 +561,16 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 	if(gI_ReplayBotClient[style] != 0)
 	{
-		SetClientName(gI_ReplayBotClient[style], gS_BotName[style]);
+		char[] sNewName = new char[MAX_NAME_LENGTH];
+		FormatEx(sNewName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
+
+		SetClientName(gI_ReplayBotClient[style], sNewName);
 	}
 
 	ClearFrames(client);
+
+	gRS_ReplayStatus[style] = Replay_Running;
+	gI_ReplayTick[style] = gA_PlayerFrames[client].Length;
 
 	SaveReplay(style);
 }
@@ -564,8 +592,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Continue;
 	}
 
-	float vecPosition[3];
-	GetClientAbsOrigin(client, vecPosition);
+	float vecCurrentPosition[3];
+	GetClientAbsOrigin(client, vecCurrentPosition);
 
 	int iReplayBotStyle = -1;
 
@@ -588,16 +616,47 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			return Plugin_Continue;
 		}
 
-		float fWRTime;
+		float fWRTime = 0.0;
 		Shavit_GetWRTime(view_as<BhopStyle>(iReplayBotStyle), fWRTime);
 
 		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1)
 		{
+			float vecPosition[3];
+			float vecAngles[3];
+
+			if(gRS_ReplayStatus[iReplayBotStyle] != Replay_Running)
+			{
+				if(gRS_ReplayStatus[iReplayBotStyle] == Replay_Start)
+				{
+					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(0, 0);
+					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(0, 1);
+					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(0, 2);
+
+					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(0, 3);
+					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(0, 4);
+				}
+
+				else
+				{
+					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 0);
+					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 1);
+					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 2);
+
+					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 3);
+					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gA_Frames[iReplayBotStyle].Length - 1, 4);
+				}
+
+				TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
+
+				return Plugin_Continue;
+			}
+
 			if(gI_ReplayTick[iReplayBotStyle] >= gA_Frames[iReplayBotStyle].Length)
 			{
-				gI_ReplayTick[iReplayBotStyle] = -1;
+				gI_ReplayTick[iReplayBotStyle] = 0;
+				gRS_ReplayStatus[iReplayBotStyle] = Replay_End;
 
-				CreateTimer(gCV_ReplayDelay.FloatValue, ResetReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
 
 				return Plugin_Continue;
 			}
@@ -607,12 +666,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gF_StartTick[iReplayBotStyle] = GetEngineTime();
 			}
 
-			float vecCurrentPosition[3];
-			vecCurrentPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
-			vecCurrentPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
-			vecCurrentPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
+			vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
+			vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
+			vecPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
 
-			float vecAngles[3];
 			vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 3);
 			vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 4);
 
@@ -628,12 +685,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				vecNextPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
 				vecNextPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
 
-				fDistance = GetVectorDistance(vecPosition, vecNextPosition);
-				MakeVectorFromPoints(vecCurrentPosition, vecNextPosition, vecVelocity);
+				fDistance = GetVectorDistance(vecCurrentPosition, vecNextPosition);
+				MakeVectorFromPoints(vecPosition, vecNextPosition, vecVelocity);
 				ScaleVector(vecVelocity, gF_Tickrate);
 			}
 
-			TeleportEntity(client, fDistance >= 50.0? vecCurrentPosition:NULL_VECTOR, vecAngles, vecVelocity);
+			TeleportEntity(client, fDistance >= 50.0? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
 		}
 	}
 
@@ -641,9 +698,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[0], 0);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[1], 1);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecPosition[2], 2);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
 
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
@@ -654,9 +711,26 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	return Plugin_Continue;
 }
 
-public Action ResetReplay(Handle Timer, any data)
+public Action EndReplay(Handle Timer, any data)
 {
 	gI_ReplayTick[data] = 0;
+	gRS_ReplayStatus[data] = Replay_Start;
+
+	CreateTimer(gCV_ReplayDelay.FloatValue / 2, StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
+
+	return Plugin_Stop;
+}
+
+public Action StartReplay(Handle Timer, any data)
+{
+	if(gRS_ReplayStatus[data] == Replay_Running)
+	{
+		return Plugin_Stop;
+	}
+
+	gRS_ReplayStatus[data] = Replay_Running;
+
+	return Plugin_Stop;
 }
 
 public bool ReplayEnabled(any style)
@@ -669,15 +743,129 @@ public bool ReplayEnabled(any style)
 	return true;
 }
 
+public void Player_Event(Event event, const char[] name, bool dontBroadcast)
+{
+	int userid = event.GetInt("userid");
+	int client = GetClientOfUserId(userid);
+
+	if(IsValidClient(client))
+	{
+		ClearFrames(client);
+	}
+}
+
 public void ClearFrames(int client)
 {
 	gA_PlayerFrames[client].Clear();
 	gI_PlayerFrames[client] = 0;
 }
 
-public void Shavit_OnWRDeleted(BhopStyle style, int id)
+public void Shavit_OnWRDeleted(BhopStyle style)
 {
 	DeleteReplay(style);
+}
+
+public Action Command_DeleteReplay(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	Menu m = new Menu(DeleteReplay_Callback);
+	m.SetTitle("Delete a replay:");
+
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		if(!ReplayEnabled(i) || gA_Frames[i].Length == 0)
+		{
+			continue;
+		}
+
+		char[] sInfo = new char[4];
+		IntToString(i, sInfo, 4);
+
+		m.AddItem(sInfo, gS_BhopStyles[i]);
+	}
+
+	if(m.ItemCount == 0)
+	{
+		m.AddItem("-1", "No replays available.");
+	}
+
+	m.ExitButton = true;
+	m.Display(client, 20);
+
+	return Plugin_Handled;
+}
+
+public int DeleteReplay_Callback(Menu m, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] sInfo = new char[4];
+		m.GetItem(param2, sInfo, 4);
+		BhopStyle style = view_as<BhopStyle>(StringToInt(sInfo));
+
+		if(style == view_as<BhopStyle>(-1))
+		{
+			return 0;
+		}
+
+		Menu submenu = new Menu(DeleteConfirmation_Callback);
+		submenu.SetTitle("Confirm deletion of %s replay?", gS_BhopStyles[style]);
+
+		for(int i = 1; i <= GetRandomInt(2, 4); i++)
+		{
+			submenu.AddItem("-1", "NO");
+		}
+
+		submenu.AddItem(sInfo, "Yes, I understand this action cannot be reversed!");
+
+		for(int i = 1; i <= GetRandomInt(2, 4); i++)
+		{
+			submenu.AddItem("-1", "NO");
+		}
+
+		submenu.ExitButton = true;
+		submenu.Display(param1, 20);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
+
+	return 0;
+}
+
+public int DeleteConfirmation_Callback(Menu m, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] sInfo = new char[4];
+		m.GetItem(param2, sInfo, 4);
+		BhopStyle style = view_as<BhopStyle>(StringToInt(sInfo));
+
+		if(DeleteReplay(style))
+		{
+			LogAction(param1, param1, "Deleted replay for %s on map %s.", gS_BhopStyles[style], gS_Map);
+
+			Shavit_PrintToChat(param1, "Deleted replay for \x05%s\x01.", gS_BhopStyles[style]);
+		}
+
+		else
+		{
+			Shavit_PrintToChat(param1, "Could not delete replay for \x05%s\x01.", gS_BhopStyles[style]);
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
+
+	return 0;
 }
 
 /*

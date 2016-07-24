@@ -38,6 +38,7 @@ float gF_IdealTime = 0.0;
 float gF_MapPoints = -1.0;
 int gI_NeededRecordsAmount = 0;
 int gI_CachedRecordsAmount = 0;
+int gI_RankedPlayers = 0;
 
 float gF_PlayerPoints[MAXPLAYERS+1];
 int gI_PlayerRank[MAXPLAYERS+1];
@@ -63,17 +64,19 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-    CreateNative("Shavit_GetPoints", Native_GetPoints);
-    CreateNative("Shavit_GetRank", Native_GetRank);
-    CreateNative("Shavit_GetMapValues", Native_GetMapValues);
+	CreateNative("Shavit_GetPoints", Native_GetPoints);
+	CreateNative("Shavit_GetRank", Native_GetRank);
+	CreateNative("Shavit_GetMapValues", Native_GetMapValues);
+	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
 
-    MarkNativeAsOptional("Shavit_GetPoints");
-    MarkNativeAsOptional("Shavit_GetRank");
-    MarkNativeAsOptional("Shavit_GetMapValues");
+	MarkNativeAsOptional("Shavit_GetPoints");
+	MarkNativeAsOptional("Shavit_GetRank");
+	MarkNativeAsOptional("Shavit_GetMapValues");
+	MarkNativeAsOptional("Shavit_GetRankedPlayers");
 
-    RegPluginLibrary("shavit-rankings");
+	RegPluginLibrary("shavit-rankings");
 
-    return APLRes_Success;
+	return APLRes_Success;
 }
 
 public void OnAllPluginsLoaded()
@@ -142,39 +145,41 @@ public void OnClientPutInServer(int client)
 
 public void SQL_GetUserPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-    if(results == null)
-    {
-        LogError("Timer error on GetUserPoints. Reason: %s", error);
+	if(results == null)
+	{
+		LogError("Timer error on GetUserPoints. Reason: %s", error);
 
-        return;
-    }
+		return;
+	}
 
-    int client = GetClientFromSerial(data);
+	int client = GetClientFromSerial(data);
 
-    if(client == 0)
-    {
-        return;
-    }
+	if(client == 0)
+	{
+		return;
+	}
 
-    if(results.FetchRow())
-    {
-        gF_PlayerPoints[client] = results.FetchFloat(0);
+	if(results.FetchRow())
+	{
+		gF_PlayerPoints[client] = results.FetchFloat(0);
 
-        UpdatePlayerPoints(client, false);
-    }
+		UpdatePlayerPoints(client, false);
+	}
 
-    else
-    {
-        char[] sAuthID3 = new char[32];
+	else
+	{
+		char[] sAuthID3 = new char[32];
 
-        if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
-        {
-            char[] sQuery = new char[128];
-            FormatEx(sQuery, 128, "REPLACE INTO %suserpoints (auth, points) VALUES ('%s', 0.0);", gS_MySQLPrefix, sAuthID3);
+		if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+		{
+			char[] sQuery = new char[128];
+			FormatEx(sQuery, 128, "REPLACE INTO %suserpoints (auth, points) VALUES ('%s', 0.0);", gS_MySQLPrefix, sAuthID3);
 
-            gH_SQL.Query(SQL_InsertUser_Callback, sQuery, 0, DBPrio_Low);
-        }
-    }
+			gH_SQL.Query(SQL_InsertUser_Callback, sQuery, 0, DBPrio_Low);
+		}
+	}
+
+	UpdateRankedPlayers();
 }
 
 public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -285,7 +290,7 @@ public Action Command_Rank(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "\x03%N\x01 is ranked \x03#%d\x01 with \x05%.02f points\x01.", target, gI_PlayerRank[target], gF_PlayerPoints[target]);
+	Shavit_PrintToChat(client, "\x03%N\x01 is ranked \x03%d\x01 out of \x03%d\x01 with \x05%.02f points\x01.", target, gI_PlayerRank[target], gI_RankedPlayers, gF_PlayerPoints[target]);
 
 	return Plugin_Handled;
 }
@@ -303,7 +308,7 @@ public Action Command_Top(int client, int args)
 public Action ShowTopMenu(int client)
 {
     char[] sQuery = new char[192];
-    FormatEx(sQuery, 192, "SELECT u.name, FORMAT(up.points, 2) AS points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
+    FormatEx(sQuery, 192, "SELECT u.name, FORMAT(up.points, 2) points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
 
     gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
@@ -462,26 +467,28 @@ public void SQL_RetroactivePoints_Callback(Database db, DBResultSet results, con
 
 public void SQL_RetroactivePoints_Callback2(Database db, DBResultSet results, const char[] error, any data)
 {
-    if(results == null)
-    {
-        LogError("Timer (rankings module) error! RetroactivePoints2 failed. Reason: %s", error);
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! RetroactivePoints2 failed. Reason: %s", error);
 
-        return;
-    }
+		return;
+	}
 
-    if(gI_CachedRecordsAmount == gI_NeededRecordsAmount)
-    {
-        for(int i = 1; i <= MaxClients; i++)
-        {
-            if(IsValidClient(i))
-            {
-                OnClientPutInServer(i);
-            }
-        }
+	if(gI_CachedRecordsAmount == gI_NeededRecordsAmount)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i))
+			{
+				OnClientPutInServer(i);
+			}
+		}
 
-        gI_NeededRecordsAmount = 0;
-        gI_CachedRecordsAmount = 0;
-    }
+		gI_NeededRecordsAmount = 0;
+		gI_CachedRecordsAmount = 0;
+	}
+
+	UpdateRankedPlayers();
 }
 
 public void UpdatePointsCache(const char[] map)
@@ -633,19 +640,21 @@ public void SQL_FindRecordID_Callback(Database db, DBResultSet results, const ch
 
 public void SQL_InsertPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-    if(results == null)
-    {
-        LogError("Timer (rankings module) error! Insertion of %d (serial) points to table failed. Reason: %s", data, error);
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! Insertion of %d (serial) points to table failed. Reason: %s", data, error);
 
-        return;
-    }
+		return;
+	}
 
-    int client = GetClientFromSerial(data);
+	int client = GetClientFromSerial(data);
 
-    if(client != 0)
-    {
-        UpdatePlayerPoints(client, true);
-    }
+	if(client != 0)
+	{
+		UpdatePlayerPoints(client, true);
+	}
+
+	UpdateRankedPlayers();
 }
 
 public void UpdatePlayerPoints(int client, bool chat)
@@ -729,7 +738,7 @@ public void UpdatePlayerRank(int client)
     if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
     {
         char[] sQuery = new char[256];
-        FormatEx(sQuery, 256, "SELECT COUNT(*) AS rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1) ORDER BY up.points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
+        FormatEx(sQuery, 256, "SELECT COUNT(*) rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1) ORDER BY up.points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
 
         gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
     }
@@ -761,6 +770,29 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
     }
 }
 
+public void UpdateRankedPlayers()
+{
+	char[] sQuery = new char[128];
+	FormatEx(sQuery, 128, "SELECT COUNT(*) FROM %suserpoints WHERE points > 0 LIMIT 1;", gS_MySQLPrefix);
+
+	gH_SQL.Query(SQL_UpdateRankedPlayers_Callback, sQuery);
+}
+
+public void SQL_UpdateRankedPlayers_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! UpdateRankedPlayers failed. Reason: %s", error);
+
+		return;
+	}
+
+	if(results.FetchRow())
+	{
+		gI_RankedPlayers = results.FetchInt(0);
+	}
+}
+
 public int Native_GetPoints(Handle handler, int numParams)
 {
 	return view_as<int>(gF_PlayerPoints[GetNativeCell(1)]);
@@ -775,6 +807,11 @@ public int Native_GetMapValues(Handle handler, int numParams)
 {
     SetNativeCellRef(1, gF_MapPoints);
     SetNativeCellRef(2, gF_IdealTime);
+}
+
+public int Native_GetRankedPlayers(Handle handler, int numParams)
+{
+    return gI_RankedPlayers;
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -815,9 +852,9 @@ public void SQL_SetPrefix()
 
 	else
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+		char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 		{
 			TrimString(sLine);
 			strcopy(gS_MySQLPrefix, 32, sLine);

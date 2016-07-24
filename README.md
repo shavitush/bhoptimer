@@ -15,10 +15,12 @@ a bhop server should be simple
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
 * [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat`.
+* [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for compilation and better runtime of `shavit-chat` (plugin can run without it). Use the scp.inc file I attached in `include/scp.inc` for transitional syntax support.
 
 # Optional requirements:
-* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe (bhoptimer 1.2b and above)
+* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) - required for properly formatted RTL text within `shavit-chat`.
+* [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for more proper parsing inside `shavit-chat`.
 
 #  Installation:
 1. Add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit"
@@ -53,7 +55,8 @@ a bhop server should be simple
 2. Copy the desired .smx files to your plugins (addons/sourcemod/plugins) folder  
 2.1. Copy shavit.games.txt to /gamedata if you have DHooks installed.
 3. Copy base.nav to the `maps` folder.
-4. Copy the files from the `sound` folder to the one on your server. Make sure to also have equivelant bz2 files on your FastDL server!
+4. Copy the files from the `sound` folder to the one on your server. Make sure to also have equivelant bz2 files on your FastDL server!  
+4.1. Do the same for the `materials` folder.
 5. Copy the `configs` file to your server and modify `shavit-sounds.cfg` if you wish to.  
 5.1. Changing `shavit-prefix.txt` to contain your MySQL database prefix might be needed depending on your usage.
 6. Restart your server.
@@ -71,7 +74,6 @@ General
 - [x] Migrate DBI to the 1.7 transitional syntax.
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
-- [ ] **ENDGAME**: Migrate all the cached stuff (timer variables, HUD, chat cache) to Dynamic if I find it good and simple enough.
 
 Core
 --
@@ -82,7 +84,7 @@ Core
 - [x] Add unranked styles.
 - [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
 - [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
-- [ ] Measure strafe sync, also have it in the Shavit_OnFinish forward.
+- [ ] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
 - [ ] Add bonus timer.
 
 HUD
@@ -93,6 +95,11 @@ HUD
 - [x] Remove `sm_zonehud` and make `sm_hud` a menu that can toggle HUD, zonehud and spectators list in a panel.
 - [x] Add spectator list.
 - [x] Show time in a "TIME/RECORD" format for replay bots.
+- [x] Support zonehud for CS:S.
+- [X] Redo CS:S HUD and use the HUD capabilities added in late 2013, attempt to look like [this HUD](https://i.imgur.com/pj8c7vP.png) because I'm very original!!!111one!1!!
+- [x] Show [PAUSED] if needed.
+- [x] Add potential map rank.
+- [ ] Add strafes/sync.
 - [ ] Support for bonus timer.
 
 Replay
@@ -101,32 +108,25 @@ Replay
 - [x] Stop recording frames (and clear cache) when the player is past the WR for the style.
 - [x] Overall optimizations.
 - [x] Remove replay bot data on deletion of the #1 record.
-- [ ] If possible, start using a faster method to cache all the replay frames to prevent lag.
-- [ ] Make replay bots dead if there's no replay data loaded.
-- [ ] Add admin interface. (delete replay data)
-
-WR
---
-- [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
-- [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
-- [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
-- [x] [rankings] Show points in WR menu.
-- [ ] Add strafe sync to the WR menu where available.
-- [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
-- [ ] Use unix timestamps for future record dates.
+- [x] Make replay bots dead if there's no replay data loaded.
+- [x] Clear player cache on spawn/death.
+- [x] Add admin interface. (delete replay data, `sm_deletereplay` for RCON admins.)
+- [ ] Add a setting so there are two modes: one is that bots always play, and the other is that there are X bots (defined by server admin) and players can start their playback with a command. (`sm_replay`)
 
 Stats
 --
 - [x] Make style names editable from shavit.inc (like I did to the rest of modules) (dynamic!)
 - [x] Make a submenu per style, for aesthetics.
 - [x] [rankings] Points implementation.
-- [ ] Make MVP count the amount of WRs the player has.
+- [x] Make MVP count the amount of WRs the player has. (with cvar)
 
 Miscellaneous
 --
 - [x] Allow changing the prespeed limitation.
 - [x] Add weapon cleanup.
-- [ ] Add SSJ (Speed Sixth Jump)
+- [x] Support radar hiding for CS:S.
+- [x] Fix respawn for auto team join.
+- [ ] Add SSJ (Speed Sixth Jump).
 
 Sounds **(NEW!)**
 --
@@ -149,7 +149,8 @@ Rankings **(NEW!)**
 - [x] Calculate points per scored time once it's added to the database.
 - [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
-- [ ] Add native that checks the total amount of players with over 0 points.
+- [x] Add native that checks the total amount of players with over 0 points.
+- [ ] Find a way to update newly calculated points for all records on a map with the least amount of queries possible.
 - [ ] Remove deleted records from `playerpoints`.
 
 Web Interface
@@ -166,7 +167,7 @@ Chat **(NEW!)**
 - [x] Add `sm_ranks` `sm_chatranks`.
 - [x] Add `Shavit_FormatChat` native.
 - [x] Add random rgb and random rgba for CS:S parsing.
-- [ ] Implement Simple Chat Processor and make my own chat processor a fallback solution.
+- [x] Implement [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) support and make my own chat processor a fallback solution.
 
 Zones
 --
@@ -174,16 +175,22 @@ Zones
 - [x] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
 - [x] CANCELED: Migrate zone settings to use Dynamic. (i didn't think *too* far into it before i started)
 - [x] Handle teleport zones. (teleport to a value from gV_Teleport)
-- [x] **Canceled all the triggers stuff because I'm a retard: if you ever feel like doing it because I failed hard, the code I worked with is left out commented.**
-- [x] CANCELED: Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
-- [x] CANCELED: Cleanup unused variables as we use triggers now.
-- [x] CANCELED: Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
-- [ ] Change zone sprite.
+- [x] Change zone sprite. (see configs/shavit-zones.cfg and shavit_zones_usecustomsprite)
+- [x] Optimize InsideZone() so 8 points won't be always calculated (blame ofir™). Cut execution time by over 95%!!
 
 World Records
 --
-- [ ] Add native that checks the total amount of players with records on a style.
-- [ ] Possibly cache the whole leaderboards with Dynamic.
+- [x] Make `UpdateWRCache` smaller. Will result in extra optimization and more uhm.. dynamic!
+- [x] Add a cvar that limits the amount of records in the WR menu. (default: 50 | `shavit_wr_recordlimit`)
+- [x] Remove `sm_wrsw` and make `sm_wr` a dynamic menu with all difficulties. (dynamic!)
+- [x] [rankings] Show points in WR menu.
+- [x] Add native that checks the total amount of players with records on a style.
+- [x] Cache the whole leaderboard per style, sorted and updated at record removal, insertion and updates.
+- [x] Add `Shavit_GetRankForTime(BhopStyle style, float time)` which will calculate a map rank for the given time.
+- [x] Show map rank on finish.
+- [ ] Add strafe sync to the WR menu where available.
+- [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
+- [ ] Use unix timestamps for future record dates.
 
 Time Limits
 --

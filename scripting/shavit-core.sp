@@ -50,6 +50,7 @@ Handle gH_Forwards_OnRestart = null;
 Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
+Handle gH_Forwards_OnStyleChanged = null;
 
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
@@ -149,6 +150,7 @@ public void OnPluginStart()
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
+	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 
 	// game types
 	EngineVersion evType = GetEngineVersion();
@@ -501,6 +503,12 @@ public void ChangeClientStyle(int client, BhopStyle style)
 		return;
 	}
 
+	Call_StartForward(gH_Forwards_OnStyleChanged);
+	Call_PushCell(client);
+	Call_PushCell(gBS_Style[client]);
+	Call_PushCell(style);
+	Call_Finish();
+
 	gBS_Style[client] = style;
 
 	Shavit_PrintToChat(client, "You have selected to play \x03%s\x01.", gS_BhopStyles[view_as<int>(style)]);
@@ -514,7 +522,11 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
 	{
-		Command_StartTimer(client, -1);
+		Call_StartForward(gH_Forwards_OnRestart);
+		Call_PushCell(client);
+		Call_Finish();
+
+		StartTimer(client);
 	}
 }
 
@@ -682,14 +694,16 @@ public void StartTimer(int client)
 		return;
 	}
 
-	gB_TimerEnabled[client] = true;
-	gI_Jumps[client] = 0;
+	float fSpeed[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED || (gCV_NoZAxisSpeed.BoolValue && GetEntPropFloat(client, Prop_Send, "m_vecVelocity[2]") == 0.0))
+	if((!gB_TimerEnabled[client] && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0) || gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED || (gCV_NoZAxisSpeed.BoolValue && fSpeed[2] == 0.0))
 	{
 		gF_StartTime[client] = GetEngineTime();
+		gB_TimerEnabled[client] = true;
 	}
 
+	gI_Jumps[client] = 0;
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
 
@@ -836,9 +850,9 @@ public void SQL_SetPrefix()
 
 	else
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+		char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 		{
 			TrimString(sLine);
 			strcopy(gS_MySQLPrefix, 32, sLine);
@@ -894,7 +908,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3])
 {
-	if(!IsPlayerAlive(client))
+	if(!IsPlayerAlive(client) || IsFakeClient(client))
 	{
 		return Plugin_Continue;
 	}

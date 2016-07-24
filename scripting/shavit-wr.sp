@@ -54,6 +54,8 @@ char gS_Map[192]; // blame workshop paths being so fucking long
 float gF_WRTime[MAX_STYLES];
 int gI_WRRecordID[MAX_STYLES];
 char gS_WRName[MAX_STYLES][MAX_NAME_LENGTH];
+int gI_RecordAmount[MAX_STYLES];
+ArrayList gA_LeaderBoard[MAX_STYLES];
 
 // more caching
 float gF_PlayerRecord[MAXPLAYERS+1][MAX_STYLES];
@@ -78,18 +80,18 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	// get wr
+	// natives
 	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
 	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
-
-	// get pb
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
+	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
 
 	MarkNativeAsOptional("Shavit_GetWRTime");
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetMapValues");
+	MarkNativeAsOptional("Shavit_GetRankForTime");
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
@@ -132,8 +134,16 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
+	// arrays
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		gA_LeaderBoard[i] = new ArrayList();
+	}
+
+	// admin menu
 	OnAdminMenuReady(null);
 
+	// mysql
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
 	SetSQLInfo();
@@ -280,7 +290,7 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 
 	int client = GetClientFromSerial(data);
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}
@@ -303,9 +313,9 @@ public void UpdateWRCache()
 	char sQuery[512];
 	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
 	// was a bit confused with this one :s
-	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers AS u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name, s.count FROM %splayertimes p JOIN(SELECT style, MIN(time) time, COUNT(*) count FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 
-	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -328,6 +338,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	{
 		strcopy(gS_WRName[i], MAX_NAME_LENGTH, "invalid");
 		gF_WRTime[i] = 0.0;
+		gI_RecordAmount[i] = 0;
 	}
 
 	// setup cache again, dynamically and not hardcoded
@@ -342,9 +353,11 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 
 		gI_WRRecordID[style] = results.FetchInt(1);
 		gF_WRTime[style] = results.FetchFloat(2);
-
 		results.FetchString(3, gS_WRName[style], MAX_NAME_LENGTH);
+		gI_RecordAmount[style] = results.FetchInt(4);
 	}
+
+	UpdateLeaderboards();
 }
 
 public int Native_GetWRTime(Handle handler, int numParams)
@@ -373,6 +386,14 @@ public int Native_GetPlayerPB(Handle handler, int numParams)
 	BhopStyle style = GetNativeCell(2);
 
 	SetNativeCellRef(3, gF_PlayerRecord[client][style]);
+}
+
+public int Native_GetRankForTime(Handle handler, int numParams)
+{
+	BhopStyle style = GetNativeCell(1);
+	float time = GetNativeCell(2);
+
+	return GetRankForTime(style, time);
 }
 
 #if defined DEBUG
@@ -505,6 +526,8 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 		m.GetItem(param2, info, 16);
 
 		OpenDelete(param1, view_as<BhopStyle>(StringToInt(info)));
+
+		UpdateLeaderboards();
 	}
 
 	else if(action == MenuAction_End)
@@ -911,7 +934,6 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	if(m.ItemCount == 0)
 	{
 		FormatEx(sFormattedTitle, 256, "Records for %s", sDisplayMap);
-
 		m.SetTitle(sFormattedTitle);
 
 		m.AddItem("-1", "No records found.");
@@ -931,11 +953,10 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		else
 		{
-			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
+			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, gI_RecordAmount[gBS_LastWR[client]]);
 		}
 
 		FormatEx(sFormattedTitle, 192, "Records for %s:\n%s", sDisplayMap, sRanks);
-
 		m.SetTitle(sFormattedTitle);
 	}
 
@@ -1096,9 +1117,9 @@ public void SQL_SetPrefix()
 
 	else
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+		char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 		{
 			TrimString(sLine);
 			strcopy(gS_MySQLPrefix, 32, sLine);
@@ -1205,12 +1226,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 with %d jumps.", client, gS_BhopStyles[style], sTime, jumps);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jumps.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 with %d jumps.", client, gS_BhopStyles[style], sTime, jumps);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jumps.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps);
 			}
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
@@ -1227,12 +1248,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 with %d jumps. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, jumps, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jumps. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, sDifference);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 with %d jumps. \x0C(%s)", client, gS_BhopStyles[style], sTime, jumps, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jumps. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, sDifference);
 			}
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, gS_Map, sAuthID, style);
@@ -1293,4 +1314,50 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 
 	UpdateWRCache();
 	UpdateClientCache(client);
+}
+
+public void UpdateLeaderboards()
+{
+	char[] sQuery = new char[192];
+	FormatEx(sQuery, 192, "SELECT style, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC;", gS_MySQLPrefix, gS_Map);
+
+	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery, 0, DBPrio_Low);
+}
+
+public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR UpdateLeaderboards) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		gA_LeaderBoard[i].Clear();
+	}
+
+	while(results.FetchRow())
+	{
+		gA_LeaderBoard[results.FetchInt(0)].Push(results.FetchFloat(1));
+	}
+
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		SortADTArray(gA_LeaderBoard[i], Sort_Ascending, Sort_Float);
+	}
+}
+
+public int GetRankForTime(BhopStyle style, float time)
+{
+	for(int i = 0; i < gA_LeaderBoard[style].Length; i++)
+	{
+		if(time < gA_LeaderBoard[style].Get(i))
+		{
+			return ++i;
+		}
+	}
+
+	return gA_LeaderBoard[style].Length + 1;
 }

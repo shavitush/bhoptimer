@@ -33,20 +33,23 @@
 #define HUD_NONE				(0)
 #define HUD_MASTER				(1 << 0) // master setting
 #define HUD_CENTER				(1 << 1) // show hud as hint text
-#define HUD_ZONEHUD				(1 << 2) // show colored start/end zone hud (csgo only)
+#define HUD_ZONEHUD				(1 << 2) // show start/end zone hud
 #define HUD_OBSERVE				(1 << 3) // show the HUD of the player you spectate
 #define HUD_SPECTATORS			(1 << 4) // show list of spectators
 #define HUD_KEYOVERLAY			(1 << 5) // show a key overlay
 #define HUD_HIDEWEAPON			(1 << 6) // hide the player's weapon
+#define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times (css only)
 
-#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE)
+#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT)
 
 // game type (CS:S/CS:GO)
 ServerGame gSG_Type = Game_Unknown;
 
+// modules
 bool gB_Replay = false;
 bool gB_Zones = false;
 
+// zone colors
 char gS_StartColors[][] =
 {
 	"ff0000", "ff4000", "ff7f00", "ffbf00", "ffff00", "00ff00", "00ff80", "00ffff", "0080ff", "0000ff"
@@ -57,11 +60,15 @@ char gS_EndColors[][] =
 	"ff0000", "ff4000", "ff7f00", "ffaa00", "ffd400", "ffff00", "bba24e", "77449c"
 };
 
+// cache
 int gI_Cycle = 0;
 
 Handle gH_HUDCookie = null;
 int gI_HUDSettings[MAXPLAYERS+1];
 int gI_NameLength = MAX_NAME_LENGTH;
+
+// css hud
+Handle gH_HUD = null;
 
 public Plugin myinfo =
 {
@@ -97,12 +104,14 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public void OnAllPluginsLoaded()
+public void OnPluginStart()
 {
+	// game-specific
 	gSG_Type = Shavit_GetGameType();
 
 	if(gSG_Type == Game_CSS)
 	{
+		gH_HUD = CreateHudSynchronizer();
 		gI_NameLength = MAX_NAME_LENGTH;
 	}
 
@@ -110,18 +119,18 @@ public void OnAllPluginsLoaded()
 	{
 		gI_NameLength = 14; // 14 because long names will make it look spammy in CS:GO due to the font
 	}
-}
 
-public void OnPluginStart()
-{
 	// prevent errors in case the replay bot isn't loaded
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
 
-	CreateTimer(0.1, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
+	// cron
+	CreateTimer(0.10, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 
+	// commands
 	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu");
 
+	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
 }
 
@@ -180,6 +189,12 @@ public Action ShowHUDMenu(int client)
 
 	IntToString(HUD_HIDEWEAPON, sInfo, 16);
 	m.AddItem(sInfo, "Hide weapons");
+
+	if(gSG_Type == Game_CSS)
+	{
+		IntToString(HUD_TOPLEFT, sInfo, 16);
+		m.AddItem(sInfo, "Top left HUD (WR/PB)");
+	}
 
 	m.ExitButton = true;
 	m.Display(client, 60);
@@ -261,7 +276,7 @@ public void OnConfigsExecuted()
 
 public Action UpdateHUD_Timer(Handle Timer)
 {
-	if(++gI_Cycle >= 65535) // i *think* sourcemod can memory leak somehow, i prefer to just reset it every once in a while
+	if(++gI_Cycle >= 65535)
 	{
 		gI_Cycle = 0;
 	}
@@ -284,7 +299,12 @@ public void TriggerHUDUpdate(int client)
 	UpdateHUD(client);
 	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", gI_HUDSettings[client] & HUD_HIDEWEAPON? 0:1);
 
-	if((!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel) && (gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS))
+	if(gSG_Type == Game_CSS)
+	{
+		UpdateTopLeftHUD(client, true);
+	}
+
+	if((gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS) && (!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel))
 	{
 		bool bShouldDraw = false;
 		Panel pHUD = new Panel();
@@ -305,197 +325,199 @@ public void TriggerHUDUpdate(int client)
 
 public void UpdateHUD(int client)
 {
-    int target = GetHUDTarget(client);
+	int target = GetHUDTarget(client);
 
-    if(!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target)
-    {
-        return;
-    }
+	if(!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target)
+	{
+		return;
+	}
 
-    char[] sHintText = new char[512];
-    strcopy(sHintText, 512, "");
+	float fSpeed[3];
+	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
-    if(gI_HUDSettings[client] & HUD_ZONEHUD && gSG_Type == Game_CSGO)
-    {
-        if(Shavit_InsideZone(target, Zone_Start))
-        {
-            FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_Cycle % sizeof(gS_StartColors)]);
-        }
+	float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 
-        else if(Shavit_InsideZone(target, Zone_End))
-        {
-            FormatEx(sHintText, 512, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)]);
-        }
-    }
+	char[] sHintText = new char[512];
+	strcopy(sHintText, 512, "");
 
-    if(strlen(sHintText) > 0)
-    {
-        PrintHintText(client, sHintText);
-    }
+	if(gI_HUDSettings[client] & HUD_ZONEHUD)
+	{
+		if(Shavit_InsideZone(target, Zone_Start))
+		{
+			if(gSG_Type == Game_CSGO)
+			{
+				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_Cycle % sizeof(gS_StartColors)]);
+			}
 
-    else if(gI_HUDSettings[client] & HUD_CENTER)
-    {
-        if(!IsFakeClient(target))
-        {
-            float fTime;
-            int iJumps;
-            BhopStyle bsStyle;
-            bool bStarted;
-            Shavit_GetTimer(target, fTime, iJumps, bsStyle, bStarted);
+			else
+			{
+				FormatEx(sHintText, 32, "In Start Zone\n\n%d", RoundToZero(fSpeed_New));
+			}
+		}
 
-            float fWR;
-            Shavit_GetWRTime(bsStyle, fWR);
+		else if(Shavit_InsideZone(target, Zone_End))
+		{
+			if(gSG_Type == Game_CSGO)
+			{
+				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)]);
+			}
 
-            float fSpeed[3];
-            GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
+			else
+			{
+				FormatEx(sHintText, 32, "In End Zone\n\n%d", RoundToZero(fSpeed_New));
+			}
+		}
+	}
 
-            float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+	if(strlen(sHintText) > 0)
+	{
+		PrintHintText(client, sHintText);
+	}
 
-            float fPB;
-            Shavit_GetPlayerPB(target, bsStyle, fPB);
+	else if(gI_HUDSettings[client] & HUD_CENTER)
+	{
+		if(!IsFakeClient(target))
+		{
+			float fTime;
+			int iJumps;
+			BhopStyle bsStyle;
+			bool bStarted;
+			Shavit_GetTimer(target, fTime, iJumps, bsStyle, bStarted);
 
-            char[] sPB = new char[32];
-            FormatSeconds(fPB, sPB, 32);
+			float fWR;
+			Shavit_GetWRTime(bsStyle, fWR);
 
-            char[] sTime = new char[32];
-            FormatSeconds(fTime, sTime, 32, false);
+			float fPB;
+			Shavit_GetPlayerPB(target, bsStyle, fPB);
 
-            if(gSG_Type == Game_CSGO)
-            {
-                strcopy(sHintText, 512, "<font face='Stratum2'>");
+			char[] sPB = new char[32];
+			FormatSeconds(fPB, sPB, 32);
 
-                if(bStarted)
-                {
-                    char[] sColor = new char[8];
+			char[] sTime = new char[32];
+			FormatSeconds(fTime, sTime, 32, false);
 
-                    if(fTime < fWR || fWR == 0.0)
-                    {
-                        strcopy(sColor, 8, "00FF00");
-                    }
+			if(gSG_Type == Game_CSGO)
+			{
+				strcopy(sHintText, 512, "<font face='Stratum2'>");
 
-                    else if(fPB != 0.0 && fTime < fPB)
-                    {
-                        strcopy(sColor, 8, "FFA500");
-                    }
+				if(bStarted)
+				{
+					char[] sColor = new char[8];
 
-                    else
-                    {
-                        strcopy(sColor, 8, "FF0000");
-                    }
+					if(fTime < fWR || fWR == 0.0)
+					{
+						strcopy(sColor, 8, "00FF00");
+					}
 
-                    Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font>", sHintText, sColor, sTime);
-                }
+					else if(fPB != 0.0 && fTime < fPB)
+					{
+						strcopy(sColor, 8, "FFA500");
+					}
 
-                Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+					else
+					{
+						strcopy(sColor, 8, "FF0000");
+					}
 
-                if(fPB > 0.00)
-                {
-                    Format(sHintText, 512, "%s\tPB: %s", sHintText, sPB);
-                }
+					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)", sHintText, sColor, sTime, Shavit_GetRankForTime(bsStyle, fTime));
+				}
 
-                Format(sHintText, 512, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
+				Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
 
-                if(bStarted)
-                {
-                    Format(sHintText, 512, "%s\tJumps: %d", sHintText, iJumps);
-                }
+				if(fPB > 0.00)
+				{
+					Format(sHintText, 512, "%s\tPB: %s", sHintText, sPB);
+				}
 
-                Format(sHintText, 512, "%s\nPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
+				Format(sHintText, 512, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
 
-                Format(sHintText, 512, "%s</font>", sHintText);
-            }
+				if(bStarted)
+				{
+					Format(sHintText, 512, "%s\tJumps: %d", sHintText, iJumps);
+				}
 
-            else
-            {
-                if(bStarted)
-                {
-                    FormatEx(sHintText, 512, "Time: %s", sTime);
+				Format(sHintText, 512, "%s\nPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
+				Format(sHintText, 512, "%s</font>", sHintText);
+			}
 
-                    Format(sHintText, 512, "%s\nStyle: %s", sHintText, gS_BhopStyles[bsStyle]);
-                }
+			else
+			{
+				if(bStarted)
+				{
+					if(Shavit_GetTimerStatus(target) == Timer_Running)
+					{
+						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nSpeed: %d", gS_BhopStyles[bsStyle], sTime, Shavit_GetRankForTime(bsStyle, fTime), iJumps, RoundToZero(fSpeed_New));
+					}
 
-                else
-                {
-                    FormatEx(sHintText, 512, "Style: %s", gS_BhopStyles[bsStyle]);
-                }
+					else
+					{
+						strcopy(sHintText, 16, "[PAUSED]");
+					}
+				}
 
-                if(fPB > 0.00)
-                {
-                    Format(sHintText, 512, "%s\nPB: %s", sHintText, sPB);
-                }
+				else
+				{
+					IntToString(RoundToZero(fSpeed_New), sHintText, 8);
+				}
+			}
 
-                Format(sHintText, 512, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
+			PrintHintText(client, sHintText);
+		}
 
-                if(bStarted)
-                {
-                    Format(sHintText, 512, "%s\nJumps: %d", sHintText, iJumps);
-                }
+		else if(gB_Replay)
+		{
+			BhopStyle bsStyle = view_as<BhopStyle>(0);
 
-                Format(sHintText, 512, "%s\nPlayer: %N", sHintText, target);
-            }
+			for(int i = 0; i < MAX_STYLES; i++)
+			{
+				if(Shavit_GetReplayBotIndex(view_as<BhopStyle>(i)) == target)
+				{
+					bsStyle = view_as<BhopStyle>(i);
 
-            PrintHintText(client, sHintText);
-        }
+					break;
+				}
+			}
 
-        else if(gB_Replay)
-        {
-            BhopStyle bsStyle = view_as<BhopStyle>(0);
+			float fStart = 0.0;
+			Shavit_GetReplayBotFirstFrame(bsStyle, fStart);
 
-            for(int i = 0; i < MAX_STYLES; i++)
-            {
-                if(Shavit_GetReplayBotIndex(view_as<BhopStyle>(i)) == target)
-                {
-                    bsStyle = view_as<BhopStyle>(i);
+			float fTime = GetEngineTime() - fStart;
 
-                    break;
-                }
-            }
+			float fWR = 0.0;
+			Shavit_GetWRTime(bsStyle, fWR);
 
-            float fStart = 0.0;
-            Shavit_GetReplayBotFirstFrame(bsStyle, fStart);
+			if(fTime > fWR || !Shavit_IsReplayDataLoaded(bsStyle))
+			{
+				PrintHintText(client, "No replay data loaded");
 
-            float fTime = GetEngineTime() - fStart;
+				return;
+			}
 
-            float fWR = 0.0;
-            Shavit_GetWRTime(bsStyle, fWR);
+			char[] sTime = new char[32];
+			FormatSeconds(fTime, sTime, 32, false);
 
-            if(fTime > fWR || !Shavit_IsReplayDataLoaded(bsStyle))
-            {
-                PrintHintText(client, "No replay data loaded");
+			char[] sWR = new char[32];
+			FormatSeconds(fWR, sWR, 32, false);
 
-                return;
-            }
+			if(gSG_Type == Game_CSGO)
+			{
+				FormatEx(sHintText, 512, "<font face='Stratum2'>");
+				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+				Format(sHintText, 512, "%s\n\tTime: <font color='#00FF00'>%s</font>/%s", sHintText, sTime, sWR);
+				Format(sHintText, 512, "%s\n\tSpeed: %.02f", sHintText, fSpeed_New);
+				Format(sHintText, 512, "%s</font>", sHintText);
+			}
 
-            char[] sTime = new char[32];
-            FormatSeconds(fTime, sTime, 32, false);
+			else
+			{
+				FormatEx(sHintText, 512, "%s Replay", gS_BhopStyles[bsStyle], sHintText);
+				Format(sHintText, 512, "%s\nTime: %s/%s", sHintText, sTime, sWR);
+				Format(sHintText, 512, "%s\nSpeed: %d", sHintText, RoundToZero(fSpeed_New));
+			}
 
-            char[] sWR = new char[32];
-            FormatSeconds(fWR, sWR, 32, false);
-
-            float fSpeed[3];
-            GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
-
-            float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-
-            if(gSG_Type == Game_CSGO)
-            {
-                FormatEx(sHintText, 512, "<font face='Stratum2'>");
-                Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
-                Format(sHintText, 512, "%s\n\tTime: <font color='#00FF00'>%s</font>/%s", sHintText, sTime, sWR);
-                Format(sHintText, 512, "%s\n\tSpeed: %.02f", sHintText, fSpeed_New);
-                Format(sHintText, 512, "%s</font>", sHintText);
-            }
-
-            else
-            {
-                FormatEx(sHintText, 512, "\t- %s Replay -", gS_BhopStyles[bsStyle], sHintText);
-                Format(sHintText, 512, "%s\nTime: %s/%s", sHintText, sTime, sWR);
-                Format(sHintText, 512, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
-            }
-
-            PrintHintText(client, sHintText);
-        }
-    }
+			PrintHintText(client, sHintText);
+		}
+	}
 }
 
 public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
@@ -589,6 +611,40 @@ public void UpdateSpectatorList(int client, Panel panel, bool &draw)
 	}
 }
 
+public void UpdateTopLeftHUD(int client, bool wait)
+{
+	if((!wait || gI_Cycle % 25 == 0) && gI_HUDSettings[client] & HUD_TOPLEFT)
+	{
+		int target = GetHUDTarget(client);
+
+		BhopStyle style = Shavit_GetBhopStyle(target);
+
+		float fWRTime = 0.0;
+		Shavit_GetWRTime(style, fWRTime);
+
+		if(fWRTime != 0.0)
+		{
+			char[] sWRTime = new char[16];
+			FormatSeconds(fWRTime, sWRTime, 16);
+
+			char[] sWRName = new char[MAX_NAME_LENGTH];
+			Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH);
+
+			float fPBTime = 0.0;
+			Shavit_GetPlayerPB(target, style, fPBTime);
+
+			char[] sPBTime = new char[16];
+			FormatSeconds(fPBTime, sPBTime, MAX_NAME_LENGTH);
+
+			char[] sTopLeft = new char[64];
+			FormatEx(sTopLeft, 64, "WR: %s (%s)\nBest: %s", sWRTime, sWRName, fPBTime != 0.0? sPBTime:"N/A");
+
+			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 2.5, 2.5, 2.5);
+			ShowSyncHudText(client, gH_HUD, sTopLeft);
+		}
+	}
+}
+
 public int GetHUDTarget(int client)
 {
 	int target = client;
@@ -615,6 +671,11 @@ public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param
 {
 	// i don't need anything here
 	return 0;
+}
+
+public void Shavit_OnStyleChanged(int client)
+{
+	UpdateTopLeftHUD(client, false);
 }
 
 public int Native_ForceHUDUpdate(Handle handler, int numParams)

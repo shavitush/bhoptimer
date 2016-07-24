@@ -34,6 +34,10 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
+// game type
+ServerGame gSG_Type = Game_Unknown;
+
+// cache
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gF_LastFlags[MAXPLAYERS+1];
@@ -49,6 +53,7 @@ ConVar gCV_PrespeedLimit = null;
 ConVar gCV_HideRadar = null;
 ConVar gCV_TeleportCommands = null;
 ConVar gCV_NoWeaponDrops = null;
+ConVar gCV_NoBlock = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -69,6 +74,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	// cache
+	gSG_Type = Shavit_GetGameType();
+
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
 	RegConsoleCmd("sm_spectators", Command_Specs, "Show a list of spectators.");
@@ -110,6 +118,7 @@ public void OnPluginStart()
 	gCV_HideRadar = CreateConVar("shavit_misc_hideradar", "1", "Should the plugin hide the in-game radar?", 0, true, 0.0, true, 1.0);
 	gCV_TeleportCommands = CreateConVar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_NoBlock = CreateConVar("shavit_misc_noblock", "1", "Disable player collision?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -156,13 +165,6 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 	int iTeam = StringToInt(arg1);
 
-	// client is trying to join the same team he's in now.
-	// i'll let the game handle it.
-	if(GetClientTeam(client) == iTeam)
-	{
-		return Plugin_Continue;
-	}
-
 	bool bRespawn = false;
 
 	switch(iTeam)
@@ -197,7 +199,9 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 		default:
 		{
-			return Plugin_Continue;
+			bRespawn = true;
+
+			CS_SwitchTeam(client, GetRandomInt(2, 3));
 		}
 	}
 
@@ -232,7 +236,7 @@ public Action Timer_Message(Handle Timer)
 
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
-	if(!IsPlayerAlive(client))
+	if(!IsPlayerAlive(client) || IsFakeClient(client))
 	{
 		return Plugin_Continue;
 	}
@@ -704,6 +708,11 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	{
 		RestartTimer(client);
 	}
+
+	if(gCV_NoBlock.BoolValue)
+	{
+		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
+	}
 }
 
 public Action RemoveRadar(Handle timer, any data)
@@ -715,7 +724,16 @@ public Action RemoveRadar(Handle timer, any data)
 		return Plugin_Stop;
 	}
 
-	SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // disables player radar
+	if(gSG_Type == Game_CSGO)
+	{
+		SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // disables player radar
+	}
+
+	else
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 3600.0);
+		SetEntPropFloat(client, Prop_Send, "m_flFlashMaxAlpha", 0.5);
+	}
 
 	return Plugin_Stop;
 }

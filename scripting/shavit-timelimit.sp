@@ -119,9 +119,9 @@ public void SQL_SetPrefix()
 
 	else
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+		char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 		{
 			TrimString(sLine);
 			strcopy(gS_MySQLPrefix, 32, sLine);

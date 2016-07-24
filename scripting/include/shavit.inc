@@ -60,6 +60,13 @@ enum TimerStatus(+=1)
 	Timer_Paused
 };
 
+enum ReplayStatus(+=1)
+{
+	Replay_Start = 0,
+	Replay_Running,
+	Replay_End
+};
+
 #if defined USES_STYLE_PROPERTIES
 #define STYLE_NONE				(0)
 #define STYLE_AUTOBHOP			(1 << 0) // enable autobhop
@@ -409,6 +416,16 @@ forward void Shavit_OnResume(int client);
 forward void Shavit_OnRankUpdated(int client);
 
 /**
+ * Called when a player changes his bhopstyle.
+ *
+ * @param client					Client index.
+ * @param oldstyle					Old bhop style.
+ * @param newstyle					New bhop style.
+ * @noreturn
+ */
+forward void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle newstyle);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
@@ -535,6 +552,23 @@ native void Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
 native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
 
 /**
+ * Get the amount of records on the current map/style.
+ *
+ * @param style						Bhop style.
+ * @return							Amount of records.
+ */
+native int Shavit_GetRecordAmount(BhopStyle style);
+
+/**
+ * Calculate potential rank for a given style and time.
+ *
+ * @param style						Bhop style.
+ * @param time						Time to check for.
+ * @return							Amount of records.
+ */
+native int Shavit_GetRankForTime(BhopStyle style, float time);
+
+/**
  * Checks if a mapzone exists.
  *
  * @param type						Mapzone type. (Check "enum MapZones")
@@ -616,7 +650,6 @@ native bool Shavit_IsReplayDataLoaded(BhopStyle style);
  */
 native float Shavit_GetPoints(int client);
 
-
 /**
  * Gets player rank.
  *
@@ -634,6 +667,14 @@ native int Shavit_GetRank(int client);
  * @noreturn
  */
 native void Shavit_GetMapValues(float &points, float &idealtime);
+
+/**
+ * Gets the amount of players with over 0 points.
+ *
+ * @param client					Client index.
+ * @return							Amount of ranked players.
+ */
+native int Shavit_GetRankedPlayers(int client);
 
 /**
  * Force an HUD update for a player. Requires shavit-hud.

@@ -1,0 +1,8 @@
+"UnlitGeneric"
+{
+	"$baseTexture" "shavit/zonev2_sprite"
+
+	"$additive" 0
+	"$vertexcolor" 1
+	"$vertexalpha" 1
+}

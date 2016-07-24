@@ -28,12 +28,14 @@
 #undef REQUIRE_PLUGIN
 #include <basecomm>
 #include <rtler>
+#include <scp>
 
 #pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
 
 // cache
+bool gB_SCPFormat = false;
 float gF_LastMessage[MAXPLAYERS+1];
 
 char gS_Cached_Prefix[MAXPLAYERS+1][32];
@@ -50,6 +52,7 @@ Dynamic gD_ChatRanks[64]; // limited to 64 chat ranks right now, i really don't 
 // modules
 bool gB_BaseComm = false;
 bool gB_RTLer = false;
+bool gB_SCP = false;
 
 // game-related
 ServerGame gSG_Type = Game_Unknown;
@@ -88,6 +91,7 @@ public void OnAllPluginsLoaded()
     // modules
     gB_BaseComm = LibraryExists("basecomm");
     gB_RTLer = LibraryExists("rtler");
+    gB_SCP = LibraryExists("scp");
 }
 
 public void OnPluginStart()
@@ -129,6 +133,11 @@ public void OnLibraryAdded(const char[] name)
     {
         gB_RTLer = true;
     }
+
+	else if(StrEqual(name, "scp"))
+    {
+        gB_SCP = true;
+    }
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -141,6 +150,11 @@ public void OnLibraryRemoved(const char[] name)
     else if(StrEqual(name, "rtler"))
     {
         gB_RTLer = false;
+    }
+
+	else if(StrEqual(name, "scp"))
+    {
+        gB_SCP = false;
     }
 }
 
@@ -405,9 +419,76 @@ public Action Command_ReloadChat(int client, int args)
     return Plugin_Handled;
 }
 
+public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char[] message)
+{
+	if(!gB_SCP)
+	{
+		return Plugin_Continue;
+	}
+
+	if(gB_SCPFormat && GetMessageFlags() & CHATFLAGS_ALL && !IsPlayerAlive(author))
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i, true))
+			{
+				recipients.Push(i);
+			}
+		}
+	}
+
+	char[] sBuffer = new char[255];
+	char[] sPrefix = new char[32];
+
+	if(strlen(gS_Cached_Prefix[author]) > 0)
+	{
+		FormatVariables(author, sBuffer, 255, gS_Cached_Prefix[author], message);
+		int iLen = strlen(sBuffer);
+		sBuffer[iLen] = (iLen > 0)? ' ':'\0';
+		strcopy(sPrefix, 32, sBuffer);
+	}
+
+	char[] sName = new char[MAX_NAME_LENGTH*2];
+
+	if(strlen(gS_Cached_Name[author]) > 0)
+	{
+		FormatVariables(author, sBuffer, 255, gS_Cached_Name[author], message);
+		strcopy(sName, MAX_NAME_LENGTH*2, sBuffer);
+	}
+
+	char[] sFormattedText = new char[MAXLENGTH_MESSAGE];
+	strcopy(sFormattedText, MAXLENGTH_MESSAGE, message);
+
+	// solve shitty exploits
+	ReplaceString(sFormattedText, MAXLENGTH_MESSAGE, "\n", "");
+	ReplaceString(sFormattedText, MAXLENGTH_MESSAGE, "\t", "");
+	ReplaceString(sFormattedText, MAXLENGTH_MESSAGE, "    ", " ");
+	TrimString(sFormattedText);
+
+	if(strlen(gS_Cached_Message[author]) > 0)
+	{
+		FormatVariables(author, sBuffer, 255, gS_Cached_Message[author], sFormattedText);
+		strcopy(sFormattedText, 255, sBuffer);
+	}
+
+	FormatEx(name, MAXLENGTH_NAME, "%s%s%s", gSG_Type == Game_CSGO? " ":"", sPrefix, sName);
+	strcopy(message, MAXLENGTH_MESSAGE, sFormattedText);
+
+	gB_SCPFormat = false;
+
+	return Plugin_Changed;
+}
+
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if(!IsValidClient(client) || !IsClientAuthorized(client) || sArgs[0] == '!' || sArgs[0] == '/' || (gB_BaseComm && BaseComm_IsClientGagged(client)))
+	if(gB_SCP)
+	{
+		gB_SCPFormat = true;
+
+		return Plugin_Continue;
+	}
+
+	if(!IsValidClient(client) || !IsClientAuthorized(client) || (gB_BaseComm && BaseComm_IsClientGagged(client)))
 	{
 		return Plugin_Continue;
 	}
@@ -427,7 +508,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	char[] sMessage = new char[300];
 	strcopy(sMessage, 300, sArgs);
 
-	if(ReplaceString(sMessage[0], 1, "!", "sm_") > 0 || ReplaceString(sMessage[0], 1, "/", "sm_") > 0)
+	if(ReplaceString(sMessage[0], 4, "!", "sm_") > 0 || ReplaceString(sMessage[0], 4, "/", "sm_") > 0)
 	{
 		bool bCmd = false;
 		Handle hCon = FindFirstConCommand(sMessage, 300, bCmd);
@@ -448,7 +529,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 	int iTeam = GetClientTeam(client);
 
-	FormatChat(client, sArgs, IsPlayerAlive(client), iTeam, bTeam, sMessage, 300);
+	FormatChatLine(client, sArgs, IsPlayerAlive(client), iTeam, bTeam, sMessage, 300);
 
 	int[] clients = new int[MaxClients];
 	int count = 0;
@@ -473,7 +554,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	return Plugin_Handled;
 }
 
-public void FormatChat(int client, const char[] sMessage, bool bAlive, int iTeam, bool bTeam, char[] buffer, int maxlen)
+public void FormatChatLine(int client, const char[] sMessage, bool bAlive, int iTeam, bool bTeam, char[] buffer, int maxlen)
 {
 	char[] sTeam = new char[32];
 
@@ -675,7 +756,7 @@ public int Native_FormatChat(Handle handler, int numParams)
 	GetNativeString(2, sMessage, 255);
 
 	char[] sBuffer = new char[300];
-	FormatChat(client, sMessage, IsPlayerAlive(client), GetClientTeam(client), view_as<bool>(GetNativeCell(3)), sBuffer, 300);
+	FormatChatLine(client, sMessage, IsPlayerAlive(client), GetClientTeam(client), view_as<bool>(GetNativeCell(3)), sBuffer, 300);
 
 	int maxlength = GetNativeCell(5);
 
