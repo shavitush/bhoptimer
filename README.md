@@ -176,9 +176,7 @@ Zones
 - [x] CANCELED: Migrate zone settings to use Dynamic. (i didn't think *too* far into it before i started)
 - [x] Handle teleport zones. (teleport to a value from gV_Teleport)
 - [x] Change zone sprite. (see configs/shavit-zones.cfg and shavit_zones_usecustomsprite)
-- [ ] Make zones be trigger-based for high-performance. Also remove InsideZone() and use booleans instead (OnStartTouch/OnEndTouch).
-- [ ] Cleanup unused variables as we use triggers now.
-- [ ] Add `Shavit_OnEnterZone` and `Shavit_OnLeaveZone`
+- [x] Optimize InsideZone() so 8 points won't be always calculated (blame ofir™). Cut execution time by over 95%!!
 
 World Records
 --
