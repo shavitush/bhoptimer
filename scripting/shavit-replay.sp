@@ -272,7 +272,7 @@ public Action Cron(Handle Timer)
 
 		BhopStyle style = Shavit_GetBhopStyle(i);
 
-		if(!ReplayEnabled(style) || Shavit_GetClientTime(i) >  fWRTimes[style])
+		if(!ReplayEnabled(style) || (fWRTimes[style] > 0.0 && Shavit_GetClientTime(i) > fWRTimes[style]))
 		{
 			ClearFrames(i);
 		}
@@ -544,7 +544,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time)
 	float fWRTime = 0.0;
 	Shavit_GetWRTime(style, fWRTime);
 
-	if(time > fWRTime || !ReplayEnabled(style))
+	if((fWRTime > 0.0 && time > fWRTime) || !ReplayEnabled(style))
 	{
 		ClearFrames(client);
 	}
