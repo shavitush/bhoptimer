@@ -373,8 +373,7 @@ public void OnMapStart()
 
 				else if(StrEqual(sExploded[0], "halo"))
 				{
-					//gI_HaloSprite = StrEqual(sExploded[1], "none")? 0:PrecacheModel(sExploded[1], true);
-					gI_HaloSprite = 0;
+					gI_HaloSprite = StrEqual(sExploded[1], "none")? 0:PrecacheModel(sExploded[1], true);
 				}
 
 				else if(StrEqual(sExploded[0], "download"))
