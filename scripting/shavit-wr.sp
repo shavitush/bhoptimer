@@ -307,7 +307,7 @@ public void UpdateWRCache()
 	char sQuery[512];
 	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
 	// was a bit confused with this one :s
-	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name, s.count FROM %splayertimes p JOIN(SELECT style, MIN(time) time, COUNT(*) count FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -348,7 +348,6 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		gI_WRRecordID[style] = results.FetchInt(1);
 		gF_WRTime[style] = results.FetchFloat(2);
 		results.FetchString(3, gS_WRName[style], MAX_NAME_LENGTH);
-		gI_RecordAmount[style] = results.FetchInt(4);
 	}
 
 	UpdateLeaderboards();
@@ -1340,6 +1339,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
 		SortADTArray(gA_LeaderBoard[i], Sort_Ascending, Sort_Float);
+		gI_RecordAmount[i] = gA_LeaderBoard[i].Length;
 	}
 }
 
