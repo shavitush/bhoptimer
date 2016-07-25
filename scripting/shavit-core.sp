@@ -697,7 +697,7 @@ public void StartTimer(int client)
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if((!gB_TimerEnabled[client] && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0) || gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED || (gCV_NoZAxisSpeed.BoolValue && fSpeed[2] == 0.0))
+	if(!gCV_NoZAxisSpeed.BoolValue || gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED || fSpeed[2] == 0.0 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0)
 	{
 		gF_StartTime[client] = GetEngineTime();
 		gB_TimerEnabled[client] = true;
