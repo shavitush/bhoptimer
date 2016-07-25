@@ -388,12 +388,7 @@ public Action OnSetTransmit(int entity, int client)
 {
 	if(client != entity && gB_Hide[client])
 	{
-		if(!IsClientObserver(client))
-		{
-			return Plugin_Handled;
-		}
-
-		else if(GetEntProp(client, Prop_Send, "m_iObserverMode") != 6 && GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") != entity)
+		if(!IsClientObserver(client) || (GetEntProp(client, Prop_Send, "m_iObserverMode") != 6 && GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") != entity))
 		{
 			return Plugin_Handled;
 		}
@@ -426,8 +421,8 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 		if(bUpper)
 		{
-			char[] sCopy = new char[256];
-			strcopy(sCopy, 256, sArgs[1]);
+			char[] sCopy = new char[32];
+			strcopy(sCopy, 32, sArgs[1]);
 
 			FakeClientCommand(client, "sm_%s", sCopy);
 
@@ -679,7 +674,15 @@ public Action Command_Specs(int client, int args)
 public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
 {
 	char[] sUpperCase = new char[32];
-	String_ToUpper(gS_BhopStyles[view_as<int>(style)], sUpperCase, 32);
+	strcopy(sUpperCase, 32, gS_BhopStyles[view_as<int>(style)]);
+
+	for(int i = 0; i < strlen(sUpperCase); i++)
+	{
+		if(IsCharUpper(sUpperCase[i]))
+		{
+			sUpperCase[i] = CharToUpper(sUpperCase[i]);
+		}
+	}
 
 	for(int x = 1; x <= 3; x++)
 	{
@@ -807,32 +810,4 @@ public Action CS_OnTerminateRound(float &delay, CSRoundEndReason &reason)
 	}
 
 	return Plugin_Continue;
-}
-
-/**
- * From SMLib
- *
- * Converts the whole String to upper case.
- * Only works with alphabetical characters (not ���) because Sourcemod suxx !
- * The Output String can be the same as the Input String.
- *
- * @param input				Input String.
- * @param output			Output String.
- * @param size				Max Size of the Output string
- * @noreturn
- */
-stock void String_ToUpper(const char[] input, char[] output, int size)
-{
-	size--;
-
-	int x = 0;
-
-	while(input[x] != '\0' && x < size)
-	{
-		output[x] = CharToUpper(input[x]);
-
-		x++;
-	}
-
-	output[x] = '\0';
 }

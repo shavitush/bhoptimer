@@ -373,7 +373,7 @@ public void OnMapStart()
 
 				else if(StrEqual(sExploded[0], "halo"))
 				{
-					gI_HaloSprite = StrEqual(sExploded[0], "none")? -1:PrecacheModel(sExploded[1], true);
+					gI_HaloSprite = StrEqual(sExploded[1], "none")? -1:PrecacheModel(sExploded[1], true);
 				}
 
 				else if(StrEqual(sExploded[0], "download"))
@@ -1460,7 +1460,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	if(!EmptyZone(vOrigin))
 	{
 		vOrigin[2] -= 144.0;
-		
+
 		TE_SetupBeamPoints(vPlayerOrigin, vOrigin, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
 		TE_SendToAll(0.0);
 	}
