@@ -72,11 +72,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotCurrentFrame", Native_GetReplayBotIndex);
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
 
-	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
-	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
-	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
-	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
-
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
 

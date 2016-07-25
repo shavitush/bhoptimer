@@ -115,23 +115,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
 	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
 
-	MarkNativeAsOptional("Shavit_GetGameType");
-	MarkNativeAsOptional("Shavit_GetDB");
-	MarkNativeAsOptional("Shavit_StartTimer");
-	MarkNativeAsOptional("Shavit_StopTimer");
-	MarkNativeAsOptional("Shavit_FinishMap");
-	MarkNativeAsOptional("Shavit_GetTimer");
-	MarkNativeAsOptional("Shavit_GetClientTime");
-	MarkNativeAsOptional("Shavit_GetBhopStyle");
-	MarkNativeAsOptional("Shavit_GetTimerStatus");
-	MarkNativeAsOptional("Shavit_PauseTimer");
-	MarkNativeAsOptional("Shavit_ResumeTimer");
-	MarkNativeAsOptional("Shavit_PrintToChat");
-	MarkNativeAsOptional("Shavit_RestartTimer");
-
-	// prevent errors from shavit-zones
-	MarkNativeAsOptional("Shavit_InsideZone");
-
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
 

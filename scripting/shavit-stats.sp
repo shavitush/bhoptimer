@@ -225,6 +225,7 @@ public void UpdateMVPs(int client)
 		if(gCV_MVPRankOnes.IntValue == 2)
 		{
 			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes GROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s' LIMIT 1;", gS_MySQLPrefix, sAuthID);
+
 		}
 
 		else

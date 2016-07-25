@@ -739,3 +739,36 @@ public SharedPlugin __pl_shavit =
 	required = 0,
 #endif
 };
+
+public void __pl_shavit_SetNTVOptional()
+{
+	MarkNativeAsOptional("Shavit_StartTimer");
+	MarkNativeAsOptional("Shavit_StopTimer");
+	MarkNativeAsOptional("Shavit_FinishMap");
+	MarkNativeAsOptional("Shavit_GetTimer");
+	MarkNativeAsOptional("Shavit_GetClientTime");
+	MarkNativeAsOptional("Shavit_GetBhopStyle");
+	MarkNativeAsOptional("Shavit_GetTimerStatus");
+	MarkNativeAsOptional("Shavit_PauseTimer");
+	MarkNativeAsOptional("Shavit_ResumeTimer");
+	MarkNativeAsOptional("Shavit_PrintToChat");
+	MarkNativeAsOptional("Shavit_RestartTimer");
+	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
+	MarkNativeAsOptional("Shavit_GetPoints");
+	MarkNativeAsOptional("Shavit_GetRank");
+	MarkNativeAsOptional("Shavit_GetMapValues");
+	MarkNativeAsOptional("Shavit_GetRankedPlayers");
+	MarkNativeAsOptional("Shavit_GetWRTime");
+	MarkNativeAsOptional("Shavit_GetWRRecordID");
+	MarkNativeAsOptional("Shavit_GetWRName");
+	MarkNativeAsOptional("Shavit_GetPlayerPB");
+	MarkNativeAsOptional("Shavit_GetRankForTime");
+	MarkNativeAsOptional("Shavit_ZoneExists");
+	MarkNativeAsOptional("Shavit_InsideZone");
+	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
+	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
+	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
+	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
+	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
+	MarkNativeAsOptional("Shavit_FormatChat");
+}

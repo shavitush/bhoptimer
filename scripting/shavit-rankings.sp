@@ -69,11 +69,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetMapValues", Native_GetMapValues);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
 
-	MarkNativeAsOptional("Shavit_GetPoints");
-	MarkNativeAsOptional("Shavit_GetRank");
-	MarkNativeAsOptional("Shavit_GetMapValues");
-	MarkNativeAsOptional("Shavit_GetRankedPlayers");
-
 	RegPluginLibrary("shavit-rankings");
 
 	return APLRes_Success;

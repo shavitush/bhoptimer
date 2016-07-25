@@ -130,10 +130,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
 
-	MarkNativeAsOptional("Shavit_ZoneExists");
-	// MarkNativeAsOptional("Shavit_InsideZone"); // called in shavit-core
-	MarkNativeAsOptional("Shavit_IsClientCreatingZone"); // called in shavit-core
-
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-zones");
 

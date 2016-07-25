@@ -81,12 +81,8 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	// natives
 	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
-
-	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
-	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
-	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
-	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 
 	if(late)
 	{

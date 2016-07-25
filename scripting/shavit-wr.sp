@@ -87,12 +87,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
 
-	MarkNativeAsOptional("Shavit_GetWRTime");
-	MarkNativeAsOptional("Shavit_GetWRName");
-	MarkNativeAsOptional("Shavit_GetPlayerPB");
-	MarkNativeAsOptional("Shavit_GetMapValues");
-	MarkNativeAsOptional("Shavit_GetRankForTime");
-
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
 

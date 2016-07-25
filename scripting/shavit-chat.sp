@@ -71,7 +71,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// natives
 	CreateNative("Shavit_FormatChat", Native_FormatChat);
-	MarkNativeAsOptional("Shavit_FormatChat");
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-chat");
