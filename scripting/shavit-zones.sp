@@ -373,7 +373,8 @@ public void OnMapStart()
 
 				else if(StrEqual(sExploded[0], "halo"))
 				{
-					gI_HaloSprite = StrEqual(sExploded[1], "none")? -1:PrecacheModel(sExploded[1], true);
+					//gI_HaloSprite = StrEqual(sExploded[1], "none")? 0:PrecacheModel(sExploded[1], true);
+					gI_HaloSprite = 0;
 				}
 
 				else if(StrEqual(sExploded[0], "download"))
@@ -1039,6 +1040,11 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 			gI_MapStep[param1] = 0;
 		}
 
+		else if(StrEqual(info, "no"))
+		{
+			Reset(param1);
+		}
+
 		else if(StrEqual(info, "adjust"))
 		{
 			CreateAdjustMenu(param1, 0);
@@ -1385,7 +1391,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false, true);
 					}
 
-					DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
+					DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 				}
 			}
 		}
@@ -1414,7 +1420,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 			CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false, true);
 
-			DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
+			DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
 		}
 	}
 }
@@ -1455,13 +1461,13 @@ public Action Timer_Draw(Handle Timer, any data)
 	vPoints[7][2] += 2.0;
 
 	CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
-	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
+	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
 
 	if(!EmptyZone(vOrigin))
 	{
 		vOrigin[2] -= 144.0;
 
-		TE_SetupBeamPoints(vPlayerOrigin, vOrigin, gI_BeamSprite, gI_HaloSprite == -1? 0:gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, vOrigin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
 		TE_SendToAll(0.0);
 	}
 
