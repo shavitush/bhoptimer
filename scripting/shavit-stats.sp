@@ -190,10 +190,29 @@ public void Shavit_OnWorldRecord(int client)
 	}
 }
 
+public Action RedoMVPs(Handle Timer, any data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return Plugin_Stop;
+	}
+
+	Shavit_GetDB(gH_SQL);
+	SetSQLInfo();
+
+	UpdateMVPs(client);
+
+	return Plugin_Stop;
+}
+
 public void UpdateMVPs(int client)
 {
 	if(gH_SQL == null)
 	{
+		CreateTimer(1.0, RedoMVPs, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+
 		return;
 	}
 
