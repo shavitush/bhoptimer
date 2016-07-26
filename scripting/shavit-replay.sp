@@ -62,6 +62,7 @@ bool gB_DontCallTimer = false;
 // plugin cvars
 ConVar gCV_ReplayDelay = null;
 ConVar gCV_TimeLimit = null;
+ConVar gCV_NameStyle = null;
 
 public Plugin myinfo =
 {
@@ -92,18 +93,22 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-	CreateTimer(1.0, Cron, INVALID_HANDLE, TIMER_REPEAT);
-
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		OnClientPutInServer(i);
+		if(IsValidClient(i) && !IsFakeClient(i))
+		{
+			OnClientPutInServer(i);
+		}
 	}
+
+	CreateTimer(1.0, Cron, INVALID_HANDLE, TIMER_REPEAT);
 
 	gF_Tickrate = (1.0 / GetTickInterval());
 
 	// plugin convars
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
+	gCV_NameStyle = CreateConVar("shavit_replay_namestyle", "1", "Replay bot naming style\n0 - [SHORT STYLE] <TIME> - PLAYER NAME\n1 - LONG STYLE - <TIME>", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -403,16 +408,16 @@ public bool DeleteReplay(BhopStyle style)
 
 	CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
+	if(gI_ReplayBotClient[style] != 0)
+	{
+		UpdateReplayInfo(gI_ReplayBotClient[style], style, 0.0);
+	}
+
 	return true;
 }
 
 public void OnClientPutInServer(int client)
 {
-	if(!IsClientConnected(client))
-	{
-		return;
-	}
-
 	if(!IsFakeClient(client))
 	{
 		gA_PlayerFrames[client] = new ArrayList(5);
@@ -426,7 +431,7 @@ public void OnClientPutInServer(int client)
 			{
 				gI_ReplayBotClient[i] = client;
 
-				UpdateReplayInfo(client, view_as<BhopStyle>(i));
+				UpdateReplayInfo(client, view_as<BhopStyle>(i), -1.0);
 
 				break;
 			}
@@ -434,27 +439,53 @@ public void OnClientPutInServer(int client)
 	}
 }
 
-public void UpdateReplayInfo(int client, BhopStyle style)
+public void UpdateReplayInfo(int client, BhopStyle style, float time)
 {
 	if(!IsValidClient(client))
 	{
 		return;
 	}
 
+	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
+
 	CS_SetClientClanTag(client, "REPLAY");
 
-	// causes heap leak for some reason :/
-	// char[] sName = new char[MAX_NAME_LENGTH];
-	char sName[MAX_NAME_LENGTH];
+	float fWRTime = 0.0;
+	Shavit_GetWRTime(style, fWRTime);
 
-	if(gI_FrameCount[style] == 0 || strlen(gS_BotName[style]) == 0)
-	{
-		FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[style]);
-	}
+	char[] sTime = new char[16];
+	FormatSeconds(time == -1.0? fWRTime:time, sTime, 16);
 
-	else
+	char[] sName = new char[MAX_NAME_LENGTH];
+
+	// switch because i may add more
+	switch(gCV_NameStyle.IntValue)
 	{
-		FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
+		case 0:
+		{
+			if(gI_FrameCount[style] == 0 || time == 0.0)
+			{
+				FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[style]);
+			}
+
+			else
+			{
+				FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
+			}
+		}
+
+		case 1:
+		{
+			if(gI_FrameCount[style] == 0 || time == 0.0)
+			{
+				FormatEx(sName, MAX_NAME_LENGTH, "%s - N/A", gS_BhopStyles[style]);
+			}
+
+			else
+			{
+				FormatEx(sName, MAX_NAME_LENGTH, "%s - %s", gS_BhopStyles[style], sTime);
+			}
+		}
 	}
 
 	gB_HideNameChange = true;
@@ -470,12 +501,9 @@ public void UpdateReplayInfo(int client, BhopStyle style)
 		SetEntProp(client, Prop_Data, "m_iFrags", 2000);
 	}
 
-	float fWRTime;
-	Shavit_GetWRTime(view_as<BhopStyle>(style), fWRTime);
-
 	gB_DontCallTimer = true;
 
-	if((gI_FrameCount[style] == 0 || fWRTime == 0.0) && IsPlayerAlive(client))
+	if((gI_FrameCount[style] == 0 || time == 0.0) && IsPlayerAlive(client))
 	{
 		ForcePlayerSuicide(client);
 	}
@@ -553,6 +581,13 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 
 	gA_Frames[style] = gA_PlayerFrames[client].Clone();
 
+	ClearFrames(client);
+
+	gRS_ReplayStatus[style] = Replay_Running;
+	gI_ReplayTick[style] = gA_PlayerFrames[client].Length;
+
+	SaveReplay(style);
+
 	char[] sWRTime = new char[16];
 	FormatSeconds(time, sWRTime, 16);
 
@@ -560,20 +595,8 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 
 	if(gI_ReplayBotClient[style] != 0)
 	{
-		char[] sNewName = new char[MAX_NAME_LENGTH];
-		FormatEx(sNewName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
-
-		gB_HideNameChange = true;
-
-		UpdateReplayInfo(gI_ReplayBotClient[style], style);
+		UpdateReplayInfo(gI_ReplayBotClient[style], style, time);
 	}
-
-	ClearFrames(client);
-
-	gRS_ReplayStatus[style] = Replay_Running;
-	gI_ReplayTick[style] = gA_PlayerFrames[client].Length;
-
-	SaveReplay(style);
 }
 
 public void Shavit_OnPause(int client)
@@ -610,20 +633,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(iReplayBotStyle != -1 && ReplayEnabled(iReplayBotStyle))
 	{
-		SetEntProp(client, Prop_Data, "m_nButtons", 0);
 		buttons = 0;
 
-		if(gA_Frames[iReplayBotStyle] == null && gI_FrameCount[iReplayBotStyle] <= 0) // if no replay is loaded
+		if(gA_Frames[iReplayBotStyle] == null || gI_FrameCount[iReplayBotStyle] <= 0) // if no replay is loaded
 		{
 			return Plugin_Changed;
 		}
 
-		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
-
-		float fWRTime = 0.0;
-		Shavit_GetWRTime(view_as<BhopStyle>(iReplayBotStyle), fWRTime);
-
-		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1 && gI_FrameCount[iReplayBotStyle] >= 1)
+		if(gI_ReplayTick[iReplayBotStyle] != -1 && gI_FrameCount[iReplayBotStyle] >= 1)
 		{
 			float vecPosition[3];
 			float vecAngles[3];
@@ -772,7 +789,7 @@ public Action DelayedUpdate(Handle Timer, any data)
 		return Plugin_Stop;
 	}
 
-	UpdateReplayInfo(client, GetReplayStyle(client));
+	UpdateReplayInfo(client, GetReplayStyle(client), -1.0);
 
 	return Plugin_Stop;
 }
@@ -787,7 +804,7 @@ public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 
 		if(IsValidClient(client))
 		{
-			UpdateReplayInfo(client, GetReplayStyle(client));
+			UpdateReplayInfo(client, GetReplayStyle(client), -1.0);
 		}
 	}
 }
