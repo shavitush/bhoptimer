@@ -168,8 +168,6 @@ public Action Cron(Handle Timer)
 			SetEntProp(gI_ReplayBotClient[i], Prop_Data, "m_iFrags", 2000);
 		}
 
-		CS_SetClientClanTag(gI_ReplayBotClient[i], "REPLAY");
-
 		char[] sName = new char[MAX_NAME_LENGTH];
 		GetClientName(gI_ReplayBotClient[i], sName, MAX_NAME_LENGTH);
 
@@ -473,27 +471,39 @@ public void OnClientPutInServer(int client)
 			{
 				gI_ReplayBotClient[i] = client;
 
-				// causes heap leak for some reason :/
-				// char[] sName = new char[MAX_NAME_LENGTH];
-				char sName[MAX_NAME_LENGTH];
-
-				if(gI_FrameCount[i] == 0 || strlen(gS_BotName[i]) == 0)
-				{
-					FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
-				}
-
-				else
-				{
-					FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[i], gS_BotName[i]);
-				}
-
-				gB_HideNameChange = true;
-				SetClientName(client, sName);
+				UpdateReplayInfo(client, view_as<BhopStyle>(i));
 
 				break;
 			}
 		}
 	}
+}
+
+public void UpdateReplayInfo(int client, BhopStyle style)
+{
+	if(!IsValidClient(client))
+	{
+		return;
+	}
+
+	CS_SetClientClanTag(client, "REPLAY");
+
+	// causes heap leak for some reason :/
+	// char[] sName = new char[MAX_NAME_LENGTH];
+	char sName[MAX_NAME_LENGTH];
+
+	if(gI_FrameCount[style] == 0 || strlen(gS_BotName[style]) == 0)
+	{
+		FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[style]);
+	}
+
+	else
+	{
+		FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
+	}
+
+	gB_HideNameChange = true;
+	SetClientName(client, sName);
 }
 
 public void OnClientDisconnect(int client)
@@ -566,7 +576,8 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 		FormatEx(sNewName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
 
 		gB_HideNameChange = true;
-		SetClientName(gI_ReplayBotClient[style], sNewName);
+
+		UpdateReplayInfo(gI_ReplayBotClient[style], style);
 	}
 
 	ClearFrames(client);
@@ -684,7 +695,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			float vecVelocity[3];
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
-
 			ScaleVector(vecVelocity, gF_Tickrate);
 
 			TeleportEntity(client, (GetVectorDistance(vecCurrentPosition, vecPosition) >= 50.0)? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
@@ -750,6 +760,8 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 	if(IsFakeClient(client))
 	{
 		event.BroadcastDisabled = true;
+
+		UpdateReplayInfo(client, GetReplayStyle(client));
 	}
 
 	else
@@ -763,6 +775,13 @@ public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 	if(event.GetBool("bot"))
 	{
 		event.BroadcastDisabled = true;
+
+		int client = GetClientOfUserId(event.GetInt("userid"));
+
+		if(IsValidClient(client))
+		{
+			UpdateReplayInfo(client, GetReplayStyle(client));
+		}
 	}
 }
 
@@ -911,6 +930,19 @@ public int DeleteConfirmation_Callback(Menu m, MenuAction action, int param1, in
 	}
 
 	return 0;
+}
+
+public BhopStyle GetReplayStyle(int client)
+{
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		if(gI_ReplayBotClient[i] == client)
+		{
+			return view_as<BhopStyle>(i);
+		}
+	}
+
+	return view_as<BhopStyle>(-1);
 }
 
 /*
