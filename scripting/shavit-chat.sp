@@ -22,10 +22,9 @@
 #include <cstrike>
 #include <dynamic>
 
+#undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
 #include <shavit>
-
-#undef REQUIRE_PLUGIN
 #include <basecomm>
 #include <rtler>
 #include <scp>

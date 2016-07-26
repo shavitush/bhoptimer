@@ -740,6 +740,7 @@ public SharedPlugin __pl_shavit =
 #endif
 };
 
+#if !defined REQUIRE_PLUGIN
 public void __pl_shavit_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_StartTimer");
@@ -772,3 +773,4 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
 	MarkNativeAsOptional("Shavit_FormatChat");
 }
+#endif

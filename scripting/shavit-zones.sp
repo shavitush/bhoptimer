@@ -21,9 +21,9 @@
 #include <sourcemod>
 #include <sdktools>
 #include <cstrike>
-#include <shavit>
 
 #undef REQUIRE_PLUGIN
+#include <shavit>
 #include <adminmenu>
 
 #pragma semicolon 1

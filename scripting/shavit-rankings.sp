@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 
+#undef REQUIRE_PLUGIN
 #define USES_STYLE_MULTIPLIERS
 #include <shavit>
 

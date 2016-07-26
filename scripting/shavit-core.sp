@@ -22,12 +22,11 @@
 #include <sdktools>
 #include <geoip>
 
+#undef REQUIRE_PLUGIN
 #define USES_STYLE_PROPERTIES
 #define USES_STYLE_NAMES
 #define USES_STYLE_VELOCITY_LIMITS
 #include <shavit>
-
-#undef REQUIRE_PLUGIN
 #include <adminmenu>
 
 #pragma newdecls required

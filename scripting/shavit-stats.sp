@@ -21,6 +21,7 @@
 #include <sourcemod>
 #include <cstrike>
 
+#undef REQUIRE_PLUGIN
 #define USES_STYLE_NAMES
 #define USES_SHORT_STYLE_NAMES
 #define USES_STYLE_PROPERTIES

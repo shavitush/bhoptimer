@@ -21,6 +21,8 @@
 // original idea from ckSurf.
 
 #include <sourcemod>
+
+#undef REQUIRE_PLUGIN
 #include <shavit>
 
 #pragma semicolon 1

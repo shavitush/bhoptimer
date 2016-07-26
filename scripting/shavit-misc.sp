@@ -23,6 +23,7 @@
 #include <sdktools>
 #include <sdkhooks>
 
+#undef REQUIRE_PLUGIN
 #define USES_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
 #include <shavit>

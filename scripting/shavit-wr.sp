@@ -20,11 +20,10 @@
 
 #include <sourcemod>
 
+#undef REQUIRE_PLUGIN
 #define USES_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
 #include <shavit>
-
-#undef REQUIRE_PLUGIN
 #include <adminmenu>
 
 #pragma semicolon 1

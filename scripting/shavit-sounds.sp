@@ -20,6 +20,8 @@
 
 #include <sourcemod>
 #include <sdktools>
+
+#undef REQUIRE_PLUGIN
 #include <shavit>
 
 #pragma semicolon 1
