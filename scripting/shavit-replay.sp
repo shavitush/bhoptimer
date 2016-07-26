@@ -55,6 +55,9 @@ char gS_Map[256];
 int gI_ExpectedBots = 0;
 ConVar bot_quota = null;
 
+// name changes
+bool gB_HideNameChange = false;
+
 // plugin cvars
 ConVar gCV_ReplayDelay = null;
 ConVar gCV_TimeLimit = null;
@@ -104,8 +107,14 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	// hooks
-	HookEvent("player_spawn", Player_Event);
-	HookEvent("player_death", Player_Event);
+	HookEvent("player_spawn", Player_Event, EventHookMode_Pre);
+	HookEvent("player_death", Player_Event, EventHookMode_Pre);
+	HookEvent("player_connect", BotEvents, EventHookMode_Pre);
+	HookEvent("player_disconnect", BotEvents, EventHookMode_Pre);
+	HookEventEx("player_connect_client", BotEvents, EventHookMode_Pre);
+
+	// name change suppression
+	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
 
 	// commands
 	RegAdminCmd("sm_deletereplay", Command_DeleteReplay, ADMFLAG_RCON, "Open replay deletion menu.");
@@ -173,16 +182,6 @@ public Action Cron(Handle Timer)
 			{
 				ForcePlayerSuicide(gI_ReplayBotClient[i]);
 			}
-
-			char[] sCurrentName = new char[MAX_NAME_LENGTH];
-			strcopy(sCurrentName, MAX_NAME_LENGTH, sName);
-
-			FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
-
-			if(!StrEqual(sName, sCurrentName))
-			{
-				SetClientName(gI_ReplayBotClient[i], sName);
-			}
 		}
 
 		else
@@ -195,14 +194,6 @@ public Action Cron(Handle Timer)
 			if(GetPlayerWeaponSlot(gI_ReplayBotClient[i], CS_SLOT_KNIFE) == -1)
 			{
 				GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
-			}
-
-			char[] sNewName = new char[MAX_NAME_LENGTH];
-			FormatEx(sNewName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[i], gS_BotName[i]);
-
-			if(!StrEqual(gS_BotName[i], sNewName))
-			{
-				SetClientName(gI_ReplayBotClient[i], sNewName);
 			}
 		}
 	}
@@ -257,6 +248,7 @@ public Action HookTriggers(int entity, int other)
 public void OnMapStart()
 {
 	bot_quota = FindConVar("bot_quota");
+	bot_quota.Flags &= ~FCVAR_NOTIFY;
 
 	GetCurrentMap(gS_Map, 256);
 	GetMapDisplayName(gS_Map, gS_Map, 256);
@@ -282,24 +274,27 @@ public void OnMapStart()
 
 	if(bot_controllable != null)
 	{
-		bot_controllable.SetBool(false);
+		bot_controllable.BoolValue = false;
 	}
+
+	ConVar bot_stop = FindConVar("bot_stop");
+	bot_stop.BoolValue = false;
 
 	ConVar bot_quota_mode = FindConVar("bot_quota_mode");
 	bot_quota_mode.SetString("normal");
 
 	ConVar mp_autoteambalance = FindConVar("mp_autoteambalance");
-	mp_autoteambalance.SetBool(false);
+	mp_autoteambalance.BoolValue = false;
 
 	ConVar mp_limitteams = FindConVar("mp_limitteams");
-	mp_limitteams.SetInt(0);
+	mp_limitteams.IntValue = 0;
 
 	ServerCommand("bot_kick");
 
 	gI_ExpectedBots = 0;
 
 	ConVar bot_join_after_player = FindConVar("bot_join_after_player");
-	bot_join_after_player.SetBool(false);
+	bot_join_after_player.BoolValue = false;
 
 	ConVar bot_chatter = FindConVar("bot_chatter");
 	bot_chatter.SetString("off");
@@ -336,6 +331,7 @@ public void OnMapStart()
 		if(!LoadReplay(view_as<BhopStyle>(i)))
 		{
 			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
+
 			gI_ReplayTick[i] = -1;
 		}
 
@@ -375,14 +371,16 @@ public bool LoadReplay(BhopStyle style)
 			fFile.ReadLine(sLine, 320);
 			ExplodeString(sLine, "|", sExplodedLine, 5, 64);
 
-			gA_Frames[style].Resize(++iSize);
+			gA_Frames[style].Resize(iSize + 1);
 
-			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[0]), 0);
-			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[1]), 1);
-			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[2]), 2);
+			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[0]), 0);
+			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[1]), 1);
+			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[2]), 2);
 
-			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[3]), 3);
-			gA_Frames[style].Set(iSize - 1, StringToFloat(sExplodedLine[4]), 4);
+			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[3]), 3);
+			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[4]), 4);
+
+			iSize++;
 		}
 
 		gI_FrameCount[style] = gA_Frames[style].Length;
@@ -475,6 +473,23 @@ public void OnClientPutInServer(int client)
 			{
 				gI_ReplayBotClient[i] = client;
 
+				// causes heap leak for some reason :/
+				// char[] sName = new char[MAX_NAME_LENGTH];
+				char sName[MAX_NAME_LENGTH];
+
+				if(gI_FrameCount[i] == 0 || strlen(gS_BotName[i]) == 0)
+				{
+					FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
+				}
+
+				else
+				{
+					FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[i], gS_BotName[i]);
+				}
+
+				gB_HideNameChange = true;
+				SetClientName(client, sName);
+
 				break;
 			}
 		}
@@ -550,6 +565,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 		char[] sNewName = new char[MAX_NAME_LENGTH];
 		FormatEx(sNewName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
 
+		gB_HideNameChange = true;
 		SetClientName(gI_ReplayBotClient[style], sNewName);
 	}
 
@@ -677,7 +693,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if(gB_Record[client] && !Shavit_InsideZone(client, Zone_Start) && ReplayEnabled(Shavit_GetBhopStyle(client)))
+	else if(gB_Record[client] && ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
@@ -731,10 +747,56 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
 
-	if(!IsFakeClient(client))
+	if(IsFakeClient(client))
+	{
+		event.BroadcastDisabled = true;
+	}
+
+	else
 	{
 		ClearFrames(client);
 	}
+}
+
+public void BotEvents(Event event, const char[] name, bool dontBroadcast)
+{
+	if(event.GetBool("bot"))
+	{
+		event.BroadcastDisabled = true;
+	}
+}
+
+public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
+{
+	if(!gB_HideNameChange)
+	{
+		return Plugin_Continue;
+	}
+
+	char[] sMessage = new char[24];
+
+	if(GetUserMessageType() == UM_Protobuf)
+	{
+		Protobuf pbmsg = msg;
+		pbmsg.ReadString("msg_name", sMessage, 24);
+	}
+
+	else
+	{
+		BfRead bfmsg = msg;
+		bfmsg.ReadByte();
+		bfmsg.ReadByte();
+		bfmsg.ReadString(sMessage, 24, false);
+	}
+
+	if(StrEqual(sMessage, "#Cstrike_Name_Change"))
+	{
+		gB_HideNameChange = false;
+
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
 }
 
 public void ClearFrames(int client)

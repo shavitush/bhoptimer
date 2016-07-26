@@ -683,6 +683,10 @@ public void StartTimer(int client)
 	{
 		gF_StartTime[client] = GetEngineTime();
 		gB_TimerEnabled[client] = true;
+
+		Call_StartForward(gH_Forwards_Start);
+		Call_PushCell(client);
+		Call_Finish();
 	}
 
 	gI_Jumps[client] = 0;
@@ -690,10 +694,6 @@ public void StartTimer(int client)
 	gB_ClientPaused[client] = false;
 
 	SetEntityGravity(client, 1.0);
-
-	Call_StartForward(gH_Forwards_Start);
-	Call_PushCell(client);
-	Call_Finish();
 }
 
 public void StopTimer(int client)
