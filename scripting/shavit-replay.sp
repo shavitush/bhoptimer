@@ -150,52 +150,6 @@ public Action Cron(Handle Timer)
 		bot_quota.IntValue = gI_ExpectedBots;
 	}
 
-	// make sure replay bot client indexes are fine
-	for(int i = 0; i < MAX_STYLES; i++)
-	{
-		if(!ReplayEnabled(i) || !IsValidClient(gI_ReplayBotClient[i]))
-		{
-			continue;
-		}
-
-		if(gSG_Type == Game_CSGO)
-		{
-			CS_SetClientContributionScore(gI_ReplayBotClient[i], 2000);
-		}
-
-		else
-		{
-			SetEntProp(gI_ReplayBotClient[i], Prop_Data, "m_iFrags", 2000);
-		}
-
-		char[] sName = new char[MAX_NAME_LENGTH];
-		GetClientName(gI_ReplayBotClient[i], sName, MAX_NAME_LENGTH);
-
-		float fWRTime;
-		Shavit_GetWRTime(view_as<BhopStyle>(i), fWRTime);
-
-		if(gI_FrameCount[i] == 0 || fWRTime == 0.0)
-		{
-			if(IsPlayerAlive(gI_ReplayBotClient[i]))
-			{
-				ForcePlayerSuicide(gI_ReplayBotClient[i]);
-			}
-		}
-
-		else
-		{
-			if(!IsPlayerAlive(gI_ReplayBotClient[i]))
-			{
-				CS_RespawnPlayer(gI_ReplayBotClient[i]);
-			}
-
-			if(GetPlayerWeaponSlot(gI_ReplayBotClient[i], CS_SLOT_KNIFE) == -1)
-			{
-				GivePlayerItem(gI_ReplayBotClient[i], "weapon_knife");
-			}
-		}
-	}
-
 	// clear player cache if time is worse than wr
 	// might cause issues if WR time is removed and someone else gets a new WR
 	float[] fWRTimes = new float[MAX_STYLES];
@@ -504,6 +458,37 @@ public void UpdateReplayInfo(int client, BhopStyle style)
 
 	gB_HideNameChange = true;
 	SetClientName(client, sName);
+
+	if(gSG_Type == Game_CSGO)
+	{
+		CS_SetClientContributionScore(client, 2000);
+	}
+
+	else
+	{
+		SetEntProp(client, Prop_Data, "m_iFrags", 2000);
+	}
+
+	float fWRTime;
+	Shavit_GetWRTime(view_as<BhopStyle>(style), fWRTime);
+
+	if((gI_FrameCount[style] == 0 || fWRTime == 0.0) && IsPlayerAlive(client))
+	{
+		ForcePlayerSuicide(client);
+	}
+
+	else
+	{
+		if(!IsPlayerAlive(client))
+		{
+			CS_RespawnPlayer(client);
+		}
+
+		if(GetPlayerWeaponSlot(client, CS_SLOT_KNIFE) == -1)
+		{
+			GivePlayerItem(client, "weapon_knife");
+		}
+	}
 }
 
 public void OnClientDisconnect(int client)
