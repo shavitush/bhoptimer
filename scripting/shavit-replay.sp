@@ -55,8 +55,9 @@ char gS_Map[256];
 int gI_ExpectedBots = 0;
 ConVar bot_quota = null;
 
-// name changes
+// how do i call this
 bool gB_HideNameChange = false;
+bool gB_DontCallTimer = false;
 
 // plugin cvars
 ConVar gCV_ReplayDelay = null;
@@ -230,7 +231,7 @@ public void OnMapStart()
 	}
 
 	ConVar bot_stop = FindConVar("bot_stop");
-	bot_stop.BoolValue = false;
+	bot_stop.BoolValue = true;
 
 	ConVar bot_quota_mode = FindConVar("bot_quota_mode");
 	bot_quota_mode.SetString("normal");
@@ -471,6 +472,8 @@ public void UpdateReplayInfo(int client, BhopStyle style)
 
 	float fWRTime;
 	Shavit_GetWRTime(view_as<BhopStyle>(style), fWRTime);
+
+	gB_DontCallTimer = true;
 
 	if((gI_FrameCount[style] == 0 || fWRTime == 0.0) && IsPlayerAlive(client))
 	{
@@ -746,13 +749,32 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 	{
 		event.BroadcastDisabled = true;
 
-		UpdateReplayInfo(client, GetReplayStyle(client));
+		if(!gB_DontCallTimer)
+		{
+			CreateTimer(0.10, DelayedUpdate, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+		}
+
+		gB_DontCallTimer = false;
 	}
 
 	else
 	{
 		ClearFrames(client);
 	}
+}
+
+public Action DelayedUpdate(Handle Timer, any data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return Plugin_Stop;
+	}
+
+	UpdateReplayInfo(client, GetReplayStyle(client));
+
+	return Plugin_Stop;
 }
 
 public void BotEvents(Event event, const char[] name, bool dontBroadcast)
