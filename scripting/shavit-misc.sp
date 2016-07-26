@@ -681,7 +681,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 	for(int i = 0; i < strlen(sUpperCase); i++)
 	{
-		if(IsCharUpper(sUpperCase[i]))
+		if(!IsCharUpper(sUpperCase[i]))
 		{
 			sUpperCase[i] = CharToUpper(sUpperCase[i]);
 		}
