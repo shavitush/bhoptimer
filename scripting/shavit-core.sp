@@ -698,7 +698,7 @@ public void StartTimer(int client)
 
 public void StopTimer(int client)
 {
-	if(!IsValidClient(client))
+	if(!IsValidClient(client) || IsFakeClient(client))
 	{
 		return;
 	}

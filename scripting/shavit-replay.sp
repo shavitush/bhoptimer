@@ -53,9 +53,11 @@ bool gB_Record[MAXPLAYERS+1];
 float gF_Tickrate = 0.0;
 char gS_Map[256];
 int gI_ExpectedBots = 0;
+ConVar bot_quota = null;
 
-// Plugin ConVars
+// plugin cvars
 ConVar gCV_ReplayDelay = null;
+ConVar gCV_TimeLimit = null;
 
 public Plugin myinfo =
 {
@@ -97,6 +99,7 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
+	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
 
 	AutoExecConfig();
 
@@ -132,58 +135,16 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 
 public Action Cron(Handle Timer)
 {
-	// resets a bot's client index if there are two on the same one.
-	for(int a = 0; a < MAX_STYLES; a++)
+	// make sure there are enough bots
+	if(bot_quota != null && bot_quota.IntValue != gI_ExpectedBots)
 	{
-		for(int b = 0; b < MAX_STYLES; b++)
-		{
-			if(gI_ReplayBotClient[a] == gI_ReplayBotClient[b])
-			{
-				gI_ReplayBotClient[a] = 0;
-				gI_ReplayBotClient[b] = 0;
-			}
-		}
+		bot_quota.IntValue = gI_ExpectedBots;
 	}
 
 	// make sure replay bot client indexes are fine
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		if(!ReplayEnabled(i))
-		{
-			continue;
-		}
-
-		if(!IsValidClient(gI_ReplayBotClient[i]))
-		{
-			for(int j = 1; j <= MaxClients; j++)
-			{
-				if(!IsClientConnected(j) || !IsFakeClient(j))
-				{
-					continue;
-				}
-
-				bool bContinue = false;
-
-				for(int x = 0; x < MAX_STYLES; x++)
-				{
-					if(j == gI_ReplayBotClient[x])
-					{
-						bContinue = true;
-
-						break;
-					}
-				}
-
-				if(bContinue)
-				{
-					continue;
-				}
-
-				gI_ReplayBotClient[i] = j;
-			}
-		}
-
-		if(!IsValidClient(gI_ReplayBotClient[i]))
+		if(!ReplayEnabled(i) || !IsValidClient(gI_ReplayBotClient[i]))
 		{
 			continue;
 		}
@@ -257,7 +218,7 @@ public Action Cron(Handle Timer)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(gI_PlayerFrames[i] == 0 || !IsValidClient(i, true))
+		if(gI_PlayerFrames[i] == 0 || !IsValidClient(i, true) || IsFakeClient(i))
 		{
 			continue;
 		}
@@ -295,6 +256,8 @@ public Action HookTriggers(int entity, int other)
 
 public void OnMapStart()
 {
+	bot_quota = FindConVar("bot_quota");
+
 	GetCurrentMap(gS_Map, 256);
 	GetMapDisplayName(gS_Map, gS_Map, 256);
 
@@ -499,11 +462,32 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	gA_PlayerFrames[client] = new ArrayList(5);
+	if(!IsFakeClient(client))
+	{
+		gA_PlayerFrames[client] = new ArrayList(5);
+	}
+
+	else
+	{
+		for(int i = 0; i < MAX_STYLES; i++)
+		{
+			if(gI_ReplayBotClient[i] == 0)
+			{
+				gI_ReplayBotClient[i] = client;
+
+				break;
+			}
+		}
+	}
 }
 
 public void OnClientDisconnect(int client)
 {
+	if(!IsFakeClient(client))
+	{
+		return;
+	}
+
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
 		if(client == gI_ReplayBotClient[i])
@@ -517,12 +501,9 @@ public void OnClientDisconnect(int client)
 
 public void Shavit_OnStart(int client)
 {
-	if(!IsFakeClient(client))
-	{
-		ClearFrames(client);
+	ClearFrames(client);
 
-		gB_Record[client] = true;
-	}
+	gB_Record[client] = true;
 }
 
 public void Shavit_OnStop(int client)
@@ -547,6 +528,13 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 {
 	if(!ReplayEnabled(style) || gI_PlayerFrames[client] == 0)
 	{
+		return;
+	}
+
+	if(gCV_TimeLimit.BoolValue && time > gCV_TimeLimit.FloatValue)
+	{
+		ClearFrames(client);
+
 		return;
 	}
 
@@ -610,9 +598,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		SetEntProp(client, Prop_Data, "m_nButtons", 0);
 		buttons = 0;
 
-		int iSize = gI_FrameCount[iReplayBotStyle];
-
-		if(gA_Frames[iReplayBotStyle] == null && iSize <= 0) // if no replay is loaded
+		if(gA_Frames[iReplayBotStyle] == null && gI_FrameCount[iReplayBotStyle] <= 0) // if no replay is loaded
 		{
 			return Plugin_Changed;
 		}
@@ -622,7 +608,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		float fWRTime = 0.0;
 		Shavit_GetWRTime(view_as<BhopStyle>(iReplayBotStyle), fWRTime);
 
-		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1 && iSize >= 1)
+		if(fWRTime != 0.0 && gI_ReplayTick[iReplayBotStyle] != -1 && gI_FrameCount[iReplayBotStyle] >= 1)
 		{
 			float vecPosition[3];
 			float vecAngles[3];
@@ -641,12 +627,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				else
 				{
-					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 0);
-					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 1);
-					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 2);
+					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 0);
+					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 1);
+					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 2);
 
-					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 3);
-					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(iSize - 1, 4);
+					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 3);
+					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 4);
 				}
 
 				TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
@@ -654,12 +640,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Changed;
 			}
 
-			if(gI_ReplayTick[iReplayBotStyle] >= iSize)
+			if(++gI_ReplayTick[iReplayBotStyle] >= gI_FrameCount[iReplayBotStyle])
 			{
 				gI_ReplayTick[iReplayBotStyle] = 0;
 				gRS_ReplayStatus[iReplayBotStyle] = Replay_End;
 
 				CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
+
+				SetEntityMoveType(client, MOVETYPE_NONE);
 
 				return Plugin_Changed;
 			}
@@ -669,6 +657,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gF_StartTick[iReplayBotStyle] = GetEngineTime();
 			}
 
+			SetEntityMoveType(client, (GetEntityFlags(client) & FL_ONGROUND)? MOVETYPE_WALK:MOVETYPE_NOCLIP);
+
 			vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
 			vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
 			vecPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
@@ -676,24 +666,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 3);
 			vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 4);
 
-			gI_ReplayTick[iReplayBotStyle]++;
-
 			float vecVelocity[3];
-			float fDistance = 0.0;
+			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 
-			if(gI_FrameCount[iReplayBotStyle] >= gI_ReplayTick[iReplayBotStyle] + 1)
-			{
-				float vecNextPosition[3];
-				vecNextPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
-				vecNextPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
-				vecNextPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 2);
+			ScaleVector(vecVelocity, gF_Tickrate);
 
-				fDistance = GetVectorDistance(vecCurrentPosition, vecNextPosition);
-				MakeVectorFromPoints(vecPosition, vecNextPosition, vecVelocity);
-				ScaleVector(vecVelocity, gF_Tickrate);
-			}
-
-			TeleportEntity(client, fDistance >= 75.0? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
+			TeleportEntity(client, (GetVectorDistance(vecCurrentPosition, vecPosition) >= 50.0)? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
 
 			return Plugin_Changed;
 		}
@@ -753,7 +731,7 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
 
-	if(IsValidClient(client))
+	if(!IsFakeClient(client))
 	{
 		ClearFrames(client);
 	}

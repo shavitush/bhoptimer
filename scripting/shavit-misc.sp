@@ -687,9 +687,9 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 		}
 	}
 
-	for(int x = 1; x <= 3; x++)
+	for(int i = 1; i <= 3; i++)
 	{
-		Shavit_PrintToChatAll("\x02NEW %s WR!!!", sUpperCase);
+		Shavit_PrintToChatAll("%sNEW %s WR!!!", gSG_Type == Game_CSGO? "\x02":"\x077D42C9", sUpperCase);
 	}
 }
 
