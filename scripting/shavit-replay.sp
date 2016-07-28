@@ -647,25 +647,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			if(gRS_ReplayStatus[iReplayBotStyle] != Replay_Running)
 			{
-				if(gRS_ReplayStatus[iReplayBotStyle] == Replay_Start)
-				{
-					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(0, 0);
-					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(0, 1);
-					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(0, 2);
+				int iFrame = (gRS_ReplayStatus[iReplayBotStyle] == Replay_Start)? 0:gI_FrameCount[iReplayBotStyle] - 1;
 
-					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(0, 3);
-					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(0, 4);
-				}
+				vecPosition[0] = gA_Frames[iReplayBotStyle].Get(iFrame, 0);
+				vecPosition[1] = gA_Frames[iReplayBotStyle].Get(iFrame, 1);
+				vecPosition[2] = gA_Frames[iReplayBotStyle].Get(iFrame, 2);
 
-				else
-				{
-					vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 0);
-					vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 1);
-					vecPosition[2] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 2);
-
-					vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 3);
-					vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_FrameCount[iReplayBotStyle] - 1, 4);
-				}
+				vecAngles[0] = gA_Frames[iReplayBotStyle].Get(iFrame, 3);
+				vecAngles[1] = gA_Frames[iReplayBotStyle].Get(iFrame, 4);
 
 				TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
 
@@ -804,7 +793,12 @@ public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 
 		if(IsValidClient(client))
 		{
-			UpdateReplayInfo(client, GetReplayStyle(client), -1.0);
+			BhopStyle style = GetReplayStyle(client);
+
+			if(style != view_as<BhopStyle>(-1))
+			{
+				UpdateReplayInfo(client, style, -1.0);
+			}
 		}
 	}
 }
