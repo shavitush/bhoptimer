@@ -100,10 +100,14 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	// commands
 	RegAdminCmd("sm_reloadchat", Command_ReloadChat, ADMFLAG_ROOT, "Reload chat config.");
 
 	RegConsoleCmd("sm_chatranks", Command_ChatRanks, "Shows a list of all the possible chat ranks.");
 	RegConsoleCmd("sm_ranks", Command_ChatRanks, "Shows a list of all the possible chat ranks. Alias for sm_chatranks.");
+
+	// hooks
+	HookEvent("player_spawn", Player_Spawn);
 }
 
 public void OnPluginEnd()
@@ -171,11 +175,6 @@ public void LoadChatCache(int client)
 {
 	// assign rank properties
 	int iRank = Shavit_GetRank(client);
-
-	if(iRank == -1)
-	{
-		return;
-	}
 
 	for(int i = 0; i < gI_TotalChatRanks; i++)
 	{
@@ -743,6 +742,16 @@ public void ChatMessage(int from, int[] clients, int count, const char[] sMessag
 
         EndMessage();
     }
+}
+
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if(!IsFakeClient(client))
+	{
+		LoadChatCache(client);
+	}
 }
 
 public int Native_FormatChat(Handle handler, int numParams)
