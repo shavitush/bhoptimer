@@ -438,8 +438,8 @@ public Action Command_DeleteAll(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sDisplayMap = new char[strlen(gS_Map)];
-	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map));
+	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
+	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
 	char[] sFormattedTitle = new char[192];
 	FormatEx(sFormattedTitle, 192, "Delete ALL the records for \"%s\"?", sDisplayMap);
@@ -561,8 +561,8 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	char[] sDisplayMap = new char[strlen(gS_Map)];
-	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map));
+	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
+	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
 	char[] sFormattedTitle = new char[256];
 	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", sDisplayMap, gS_BhopStyles[style]);

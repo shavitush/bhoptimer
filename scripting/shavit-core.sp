@@ -514,8 +514,7 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 {
-	int userid = event.GetInt("userid");
-	int client = GetClientOfUserId(userid);
+	int client = GetClientOfUserId(event.GetInt("userid"));
 
 	if(gB_TimerEnabled[client])
 	{
@@ -530,8 +529,7 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 
 public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 {
-	int userid = event.GetInt("userid");
-	int client = GetClientOfUserId(userid);
+	int userid = event.GetInt(GetClientOfUserId(userid));
 
 	ResumeTimer(client);
 	StopTimer(client);

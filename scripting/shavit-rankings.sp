@@ -246,8 +246,8 @@ public Action Command_Points(int client, int args)
         return Plugin_Handled;
     }
 
-    char[] sDisplayMap = new char[strlen(gS_Map)];
-    GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map));
+    char[] sDisplayMap = new char[strlen(gS_Map) + 1];
+    GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
     char[] sTime = new char[32];
     FormatSeconds(gF_IdealTime, sTime, 32, false);
