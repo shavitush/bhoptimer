@@ -19,6 +19,7 @@
 */
 
 #include <sourcemod>
+#include <sdkhooks>
 #include <sdktools>
 #include <geoip>
 
@@ -80,9 +81,14 @@ ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
+ConVar gCV_DefaultAA = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
+
+// server side
+int gI_CachedDefaultAA = 2000;
+ConVar sv_airaccelerate = null;
 
 public Plugin myinfo =
 {
@@ -207,8 +213,13 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
+	gCV_DefaultAA = CreateConVar("shavit_core_defaultaa", "2000", "Airaccelerate value to use for non-100AA styles, overrides sv_airaccelerate.\nRestart the server after you change this value to not cause issues.");
 
 	AutoExecConfig();
+
+	sv_airaccelerate = FindConVar("sv_airaccelerate");
+	sv_airaccelerate.IntValue = gI_CachedDefaultAA = gCV_DefaultAA.IntValue;
+	sv_airaccelerate.Flags &= ~FCVAR_NOTIFY;
 
 	// late
 	if(gB_Late)
@@ -691,7 +702,7 @@ public void StartTimer(int client)
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
 
-	SetEntityGravity(client, 1.0);
+	SetEntityGravity(client, 0.0);
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 1.0);
 }
 
@@ -770,7 +781,8 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	// SteamID3 is cool, 2015 B O Y S
+	SDKHook(client, SDKHook_PreThink, PreThink);
+
 	char[] sAuthID3 = new char[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32);
 
@@ -887,6 +899,11 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
+}
+
+public void PreThink(int client)
+{
+	sv_airaccelerate.IntValue = (gI_StyleProperties[gBS_Style[client]] & STYLE_100AA)? 100:gI_CachedDefaultAA;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3])

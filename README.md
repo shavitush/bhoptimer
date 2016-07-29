@@ -85,6 +85,7 @@ Core
 - [x] Add unranked styles.
 - [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
 - [x] Add speed reset at timer start.
+- [x] Add support for 100AA styles.
 - [ ] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
 - [ ] Add a native that will execute threaded MySQL queries and allow callbacks.
 - [ ] Add bonus timer.
@@ -159,6 +160,7 @@ Rankings **(NEW!)**
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 - [x] Add native that checks the total amount of players with over 0 points.
 - [ ] Find a way to update newly calculated points for all records on a map with the least amount of queries possible.
+- [ ] Implement map tiers or remove idealtime and use the WR time for each style instead.
 - [ ] Remove deleted records from `playerpoints`.
 
 Web Interface

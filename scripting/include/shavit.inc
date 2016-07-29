@@ -78,9 +78,10 @@ enum ReplayStatus(+=1)
 #define STYLE_VEL_LIMIT			(1 << 6) // allow velocity limits
 #define STYLE_BLOCK_USE			(1 << 7) // block +use
 #define STYLE_UNRANKED			(1 << 8) // unranked style. no ranking points and no records. (UNTESTED: REPORT ISSUES!)
-#define STYLE_NOREPLAY			(1 << 9) // disable replay bot for this style. don't use for unranked styles.
+#define STYLE_NOREPLAY			(1 << 9) // disable replay bot for this style. don't use for unranked styles
 #define STYLE_PRESPEED			(1 << 10) // allow prespeeding regardless of the prespeed setting
 #define STYLE_HSW_ONLY			(1 << 11) // force half-sideways
+#define STYLE_100AA				(1 << 12) // force 100 airacclerate for the style
 
 int gI_StyleProperties[MAX_STYLES] =
 {
@@ -88,7 +89,7 @@ int gI_StyleProperties[MAX_STYLES] =
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D, // Sideways
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D|STYLE_BLOCK_S, // W-Only
 	STYLE_EASYBHOP, // Scroll
-	STYLE_VEL_LIMIT, // 400 Velocity
+	STYLE_VEL_LIMIT|STYLE_100AA, // 400 Velocity
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_HSW_ONLY // HSW
 };
 #endif

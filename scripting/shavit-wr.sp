@@ -601,7 +601,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		int iJumps = results.FetchInt(3);
 
 		char[] sDisplay = new char[128];
-		FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
+		FormatEx(sDisplay, 128, "#%d - %s - %s (%d jump%s)", iCount, sName, sTime, iJumps, (iJumps != 1)? "s":"");
 		m.AddItem(sID, sDisplay);
 	}
 
@@ -911,7 +911,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			int iJumps = results.FetchInt(3);
 
 			char[] sDisplay = new char[128];
-			FormatEx(sDisplay, 128, "#%d - %s - %s (%d Jumps)", iCount, sName, sTime, iJumps);
+			FormatEx(sDisplay, 128, "#%d - %s - %s (%d jump%s)", iCount, sName, sTime, iJumps, (iJumps != 1)? "s":"");
 			m.AddItem(sID, sDisplay);
 		}
 
@@ -947,7 +947,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gF_PlayerRecord[client][gBS_LastWR[client]] == 0.0)
 		{
-			FormatEx(sRanks, 32, "(%d record%s)", iRecords, iRecords == 1? "":"s");
+			FormatEx(sRanks, 32, "(%d record%s)", iRecords, (iRecords != 1)? "s":"");
 		}
 
 		else
@@ -1020,7 +1020,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	Menu m = new Menu(RRMenu_Handler);
-	m.SetTitle("Recent %d record%s:", gCV_RecentLimit.IntValue, gCV_RecentLimit.IntValue > 1? "s":"");
+	m.SetTitle("Recent %d record%s:", gCV_RecentLimit.IntValue, (gCV_RecentLimit.IntValue != 1)? "s":"");
 
 	while(results.FetchRow())
 	{
@@ -1059,7 +1059,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(!bPoints)
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d jumps)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, iJumps);
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d jump%s)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, iJumps, (iJumps != 1)? "s":"");
 		}
 
 		char[] sInfo = new char[192];
@@ -1353,12 +1353,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jumps.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"");
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jumps.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"");
 			}
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
@@ -1375,12 +1375,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jumps. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", sDifference);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jumps. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", sDifference);
 			}
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = %d WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), gS_Map, sAuthID, style);
@@ -1407,12 +1407,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		if(sGame == Game_CSS)
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jumps. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", sDifference);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jumps. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", sDifference);
 		}
 	}
 
@@ -1420,12 +1420,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		if(sGame == Game_CSS)
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jumps.", gS_BhopStyles[style], sTime, jumps);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s.", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"");
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jumps.", gS_BhopStyles[style], sTime, jumps);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s.", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"");
 		}
 	}
 }
