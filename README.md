@@ -23,7 +23,7 @@ a bhop server should be simple
 * [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for more proper parsing inside `shavit-chat`.
 
 #  Installation:
-1. Add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit"
+1. If you want to use MySQL (**VERY RECOMMENDED**) add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit". The plugin also supports the "sqlite" driver. You can also skip this step and not modify databases.cfg.
 ```
 "Databases"
 {
@@ -74,7 +74,7 @@ General
 - [x] Migrate DBI to the 1.7 transitional syntax.
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
-- [ ] Support "out of the box" installations (SQLite).
+- [x] Support "out of the box" installations and SQLite support.
 
 Core
 --
@@ -194,9 +194,9 @@ World Records
 - [x] Cache the whole leaderboard per style, sorted and updated at record removal, insertion and updates.
 - [x] Add `Shavit_GetRankForTime(BhopStyle style, float time)` which will calculate a map rank for the given time.
 - [x] Show map rank on finish.
+- [ ] Add `sm_recent`.
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
-- [ ] Add `sm_recent`.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 - [ ] Use unix timestamps for future record dates.
 

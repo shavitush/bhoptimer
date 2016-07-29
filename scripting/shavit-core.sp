@@ -852,29 +852,31 @@ public void SQL_DBConnect()
 		delete gH_SQL;
 	}
 
-	if(SQL_CheckConfig("shavit"))
-	{
-		char[] sError = new char[255];
+	char[] sError = new char[255];
 
-		if(!(gH_SQL = SQL_Connect("shavit", true, sError, 255))) // can't be asynced as we have modules that require this database connection instantly
+	if(SQL_CheckConfig("shavit")) // can't be asynced as we have modules that require this database connection instantly
+	{
+		gH_SQL = SQL_Connect("shavit", true, sError, 255);
+
+		if(gH_SQL == null)
 		{
 			SetFailState("Timer startup failed. Reason: %s", sError);
 		}
-
-		// support unicode names
-		gH_SQL.SetCharset("utf8");
-
-		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
-
-		// CREATE TABLE IF NOT EXISTS
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}
 
 	else
 	{
-		SetFailState("Timer startup failed. Reason: %s", "\"shavit\" is not a specified entry in databases.cfg.");
+		gH_SQL = SQLite_UseDatabase("shavit", sError, 255);
 	}
+
+	// support unicode names
+	gH_SQL.SetCharset("utf8");
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+
+	// CREATE TABLE IF NOT EXISTS
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)

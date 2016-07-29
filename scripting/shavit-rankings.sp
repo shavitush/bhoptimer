@@ -50,6 +50,7 @@ ConVar gCV_TopAmount = null;
 
 // database handle
 Database gH_SQL = null;
+bool gB_MySQL = false;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -304,7 +305,7 @@ public Action Command_Top(int client, int args)
 public Action ShowTopMenu(int client)
 {
     char[] sQuery = new char[192];
-    FormatEx(sQuery, 192, "SELECT u.name, FORMAT(up.points, 2) points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
+    FormatEx(sQuery, 192, "SELECT u.name, %s points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gB_MySQL? "FORMAT(up.points, 2)":"up.points", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
 
     gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
@@ -551,7 +552,7 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 	float fOldPB = 0.0;
 	Shavit_GetPlayerPB(client, style, fOldPB);
 
-	if(fOldPB == 0.0 || time < fOldPB)
+	if(fOldPB == 0.0 || time <= fOldPB)
 	{
 		float fPoints = CalculatePoints(time, style, gF_IdealTime, gF_MapPoints);
 		Shavit_PrintToChat(client, "This record was rated \x05%.02f points\x01.", fPoints);
@@ -600,38 +601,38 @@ public void SavePoints(int serial, BhopStyle style, const char[] map, float poin
 
 public void SQL_FindRecordID_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-    ResetPack(data);
-    int serial = ReadPackCell(data);
+	ResetPack(data);
+	int serial = ReadPackCell(data);
 
-    char[] sAuthID = new char[32];
-    ReadPackString(data, sAuthID, 32);
+	char[] sAuthID = new char[32];
+	ReadPackString(data, sAuthID, 32);
 
-    char[] sMap = new char[192];
-    ReadPackString(data, sMap, 192);
+	char[] sMap = new char[192];
+	ReadPackString(data, sMap, 192);
 
-    BhopStyle style = ReadPackCell(data);
-    float fPoints = ReadPackCell(data);
-    CloseHandle(data);
+	BhopStyle style = ReadPackCell(data);
+	float fPoints = ReadPackCell(data);
+	CloseHandle(data);
 
-    if(results == null)
-    {
-        LogError("Timer (rankings module) error! FindRecordID query failed. Reason: %s", error);
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! FindRecordID query failed. Reason: %s", error);
 
-        return;
-    }
+		return;
+	}
 
-    if(results.FetchRow())
-    {
-        char[] sQuery = new char[256];
-        FormatEx(sQuery, 256, "REPLACE INTO %splayerpoints (recordid, points) VALUES ('%d', '%f');", gS_MySQLPrefix, results.FetchInt(0), fPoints);
+	if(results.FetchRow())
+	{
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "REPLACE INTO %splayerpoints (recordid, points) VALUES ('%d', '%f');", gS_MySQLPrefix, results.FetchInt(0), fPoints);
 
-        gH_SQL.Query(SQL_InsertPoints_Callback, sQuery, serial, DBPrio_Low);
-    }
+		gH_SQL.Query(SQL_InsertPoints_Callback, sQuery, serial, DBPrio_Low);
+	}
 
-    else // just loop endlessly until it's in the database. if hosted locally, it should be instantly available!
-    {
-        SavePoints(serial, style, sMap, fPoints, sAuthID);
-    }
+	else // just loop endlessly until it's in the database. if hosted locally, it should be instantly available!
+	{
+		SavePoints(serial, style, sMap, fPoints, sAuthID);
+	}
 }
 
 public void SQL_InsertPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -864,25 +865,21 @@ public void SQL_SetPrefix()
 
 public void SQL_DBConnect()
 {
-	if(SQL_CheckConfig("shavit"))
+	if(gH_SQL != null)
 	{
-		if(gH_SQL != null)
-		{
-            char[] sQuery = new char[256];
-            FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smappoints` (`map` VARCHAR(192), `time` FLOAT, `points` FLOAT, PRIMARY KEY (`map`));", gS_MySQLPrefix);
-            gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+		char[] sDriver = new char[8];
+		gH_SQL.Driver.GetIdentifier(sDriver, 8);
+		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
-            FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayerpoints` (`recordid` INT NOT NULL, `points` FLOAT, PRIMARY KEY (`recordid`));", gS_MySQLPrefix);
-            gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smappoints` (`map` VARCHAR(192), `time` FLOAT, `points` FLOAT, PRIMARY KEY (`map`));", gS_MySQLPrefix);
+		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 
-            FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%suserpoints` (`auth` VARCHAR(32), `points` FLOAT, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
-            gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
-		}
-	}
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayerpoints` (`recordid` INT NOT NULL, `points` FLOAT, PRIMARY KEY (`recordid`));", gS_MySQLPrefix);
+		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 
-	else
-	{
-		SetFailState("Timer (rankings module) startup failed. Reason: %s", "\"shavit\" is not a specified entry in databases.cfg.");
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%suserpoints` (`auth` VARCHAR(32), `points` FLOAT, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}
 }
 

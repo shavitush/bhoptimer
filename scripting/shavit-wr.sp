@@ -42,6 +42,7 @@ Handle gH_OnWRDeleted = null;
 
 // database handle
 Database gH_SQL = null;
+bool gB_MySQL = false;
 
 // cache
 BhopStyle gBS_LastWR[MAXPLAYERS+1];
@@ -396,7 +397,7 @@ public Action Command_Junk(int client, int args)
 
 	char[] sAuth = new char[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
-	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), 0);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15));
+	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, %d, 0);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime());
 
 	SQL_LockDatabase(gH_SQL);
 	SQL_FastQuery(gH_SQL, sQuery);
@@ -1125,20 +1126,16 @@ public void SQL_SetPrefix()
 
 public void SQL_DBConnect()
 {
-	if(SQL_CheckConfig("shavit"))
+	if(gH_SQL != null)
 	{
-		if(gH_SQL != null)
-		{
-			char[] sQuery = new char[256];
-			FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` DATE, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+		char[] sDriver = new char[8];
+		gH_SQL.Driver.GetIdentifier(sDriver, 8);
+		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
-			gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
-		}
-	}
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` DATE%s);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
 
-	else
-	{
-		SetFailState("Timer (WR module) startup failed. Reason: %s", "\"shavit\" is not a specified entry in databases.cfg.");
+		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}
 }
 
@@ -1233,7 +1230,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 				return;
 			}
 
-			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, CURRENT_TIMESTAMP(), '%d');", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, style);
+			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, %d, '%d');", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style);
 		}
 
 		else // update
@@ -1248,7 +1245,14 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jumps. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, sDifference);
 			}
 
-			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = CURRENT_TIMESTAMP() WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, gS_Map, sAuthID, style);
+			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = %d WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), gS_Map, sAuthID, style);
+		}
+
+		gF_PlayerRecord[client][style] = time;
+
+		if(time < gF_WRTime[style])
+		{
+			gF_WRTime[style] = time;
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -1299,7 +1303,7 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 
 	int client = GetClientFromSerial(data);
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}
