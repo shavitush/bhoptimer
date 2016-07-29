@@ -1063,7 +1063,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		if(sDate[4] != '-')
 		{
-			FormatTime(sDate, 32, "%Y-%m-%d %H:%I:%S", StringToInt(sDate));
+			FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", StringToInt(sDate));
 		}
 
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
