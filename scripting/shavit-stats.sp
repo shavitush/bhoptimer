@@ -410,16 +410,16 @@ public void ShowMaps(int client)
 	char[] sAuth = new char[32];
 	GetClientAuthId(gI_Target[client], AuthId_Steam3, sAuth, 32);
 
-	char[] sQuery = new char[256];
+	char[] sQuery = new char[512];
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sQuery, 256, "SELECT map, time, jumps, id FROM %splayertimes WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
+		FormatEx(sQuery, 512, "SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style WHERE a.auth = '%s' AND a.style = %d GROUP BY a.map ORDER BY a.map;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
 	}
 
 	else
 	{
-		FormatEx(sQuery, 256, "SELECT DISTINCT m.map FROM %smapzones m LEFT JOIN %splayertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
+		FormatEx(sQuery, 512, "SELECT DISTINCT m.map FROM %smapzones m LEFT JOIN %splayertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d WHERE r.map IS NULL ORDER BY m.map;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
 	}
 
 	gH_SQL.Query(ShowMapsCallback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -471,6 +471,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		{
 			float fTime = results.FetchFloat(1);
 			int iJumps = results.FetchInt(2);
+			int iRank = results.FetchInt(4);
 
 			char[] sTime = new char[32];
 			FormatSeconds(fTime, sTime, 32);
@@ -485,14 +486,14 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 				if(fPoints != -1.0 && fIdealTime != 0.0)
 				{
-					FormatEx(sDisplay, 192, "%s - %s (%.03f points)", sMap, sTime, Shavit_CalculatePoints(fTime, gBS_Style[client], fIdealTime, fPoints));
+					FormatEx(sDisplay, 192, "[#%d] %s - %s (%.03f points)", iRank, sMap, sTime, Shavit_CalculatePoints(fTime, gBS_Style[client], fIdealTime, fPoints));
 					bPoints = true;
 				}
 			}
 
 			if(!bPoints)
 			{
-				FormatEx(sDisplay, 192, "%s - %s (%d jumps)", sMap, sTime, iJumps);
+				FormatEx(sDisplay, 192, "[#%d] %s - %s (%d jumps)", iRank, sMap, sTime, iJumps);
 			}
 
 			int iRecordID = results.FetchInt(3);
@@ -593,12 +594,28 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
-		int iStyle = results.FetchInt(3);
-		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[iStyle]);
+		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(3));
+		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[bsStyle]);
 		m.AddItem("-1", sDisplay);
 
 		// 4 - steamid3
 		results.FetchString(4, sAuthID, 32);
+
+		// 6 - map
+		results.FetchString(6, sMap, 256);
+
+		if(gB_Rankings)
+		{
+			float fPoints = 0.0;
+			float fIdealTime = -1.0;
+			Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
+
+			if(fPoints != -1.0 && fIdealTime != 0.0)
+			{
+				FormatEx(sDisplay, 192, "Points: %.03f", Shavit_CalculatePoints(fTime, bsStyle, fIdealTime, fPoints));
+				m.AddItem("-1", sDisplay);
+			}
+		}
 
 		// 5 - date
 		char[] sDate = new char[32];
@@ -612,8 +629,6 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
 		m.AddItem("-1", sDisplay);
 
-		// 6 - map
-		results.FetchString(6, sMap, 256);
 		GetMapDisplayName(sMap, sMap, 256);
 	}
 

@@ -123,8 +123,8 @@ Stats
 - [x] [rankings] Points implementation.
 - [x] Make MVP count the amount of WRs the player has. (with cvar)
 - [x] Generate mapsdone points on the fly.
-- [ ] Add map rank to mapsdone.
-- [ ] Rework on points sorting and Show weighting percentages.
+- [x] Add map rank to mapsdone.
+- [ ] Rework on points sorting and show weighting percentages.
 
 Miscellaneous
 --
