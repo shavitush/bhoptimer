@@ -985,16 +985,7 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 public void OpenSubMenu(int client, int id)
 {
 	char[] sQuery = new char[512];
-
-	if(gB_Rankings)
-	{
-		FormatEx(sQuery, 512, "SELECT u.name, pt.time, pt.jumps, pt.style, u.auth, pt.date, pp.points FROM %splayertimes pt JOIN %susers u JOIN %splayerpoints pp ON pt.auth = u.auth AND pt.id = pp.recordid WHERE pt.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, id);
-	}
-
-	else
-	{
-		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
-	}
+	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 
 	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
@@ -1010,7 +1001,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	int client = GetClientFromSerial(data);
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}
@@ -1041,17 +1032,25 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
-		int iStyle = results.FetchInt(3);
-		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[iStyle]);
+		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(3));
+		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[bsStyle]);
 		m.AddItem("-1", sDisplay);
 
 		if(gB_Rankings)
 		{
-			// 6 - points
-			char[] sPoints = new char[16];
-			results.FetchString(6, sPoints, 16);
-			FormatEx(sDisplay, 128, "Points: %s", sPoints);
-			m.AddItem("-1", sDisplay);
+			// 6 - map
+			char[] sMap = new char[192];
+			results.FetchString(6, sMap, 192);
+
+			float fPoints = 0.0;
+			float fIdealTime = -1.0;
+			Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
+
+			if(fPoints != -1.0 && fIdealTime != 0.0)
+			{
+				FormatEx(sDisplay, 128, "Points: %.03f", Shavit_CalculatePoints(fTime, bsStyle, fIdealTime, fPoints));
+				m.AddItem("-1", sDisplay);
+			}
 		}
 
 		// 4 - steamid3
@@ -1069,6 +1068,11 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
 
 		m.AddItem("-1", sDisplay);
+	}
+
+	else
+	{
+		m.AddItem("-1", "Database error");
 	}
 
 	if(strlen(sName) > 0)

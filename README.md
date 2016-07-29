@@ -122,6 +122,9 @@ Stats
 - [x] Make a submenu per style, for aesthetics.
 - [x] [rankings] Points implementation.
 - [x] Make MVP count the amount of WRs the player has. (with cvar)
+- [x] Generate mapsdone points on the fly.
+- [ ] Add map rank to mapsdone.
+- [ ] Rework on points sorting and Show weighting percentages.
 
 Miscellaneous
 --
@@ -195,9 +198,9 @@ World Records
 - [x] Add `Shavit_GetRankForTime(BhopStyle style, float time)` which will calculate a map rank for the given time.
 - [x] Show map rank on finish.
 - [x] Use unix timestamps for future record dates.
+- [x] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
 - [ ] Add `sm_recent`.
 - [ ] Add strafe sync to the WR menu where available.
-- [ ] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 
 Time Limits

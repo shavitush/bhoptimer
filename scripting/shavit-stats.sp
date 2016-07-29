@@ -414,15 +414,7 @@ public void ShowMaps(int client)
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		if(gB_Rankings)
-		{
-			FormatEx(sQuery, 256, "SELECT pt.map, pt.time, pt.jumps, pt.id, pp.points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE auth = '%s' AND style = %d ORDER BY points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
-		}
-
-		else
-		{
-			FormatEx(sQuery, 256, "SELECT map, time, jumps, id FROM %splayertimes WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
-		}
+		FormatEx(sQuery, 256, "SELECT map, time, jumps, id FROM %splayertimes WHERE auth = '%s' AND style = %d ORDER BY map;", gS_MySQLPrefix, sAuth, view_as<int>(gBS_Style[client]));
 	}
 
 	else
@@ -483,15 +475,22 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 			char[] sTime = new char[32];
 			FormatSeconds(fTime, sTime, 32);
 
+			bool bPoints = false;
+
 			if(gB_Rankings)
 			{
-				char[] sPoints = new char[8];
-				results.FetchString(4, sPoints, 8);
+				float fPoints = 0.0;
+				float fIdealTime = -1.0;
+				Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
 
-				FormatEx(sDisplay, 192, "%s - %s (%s points)", sMap, sTime, sPoints);
+				if(fPoints != -1.0 && fIdealTime != 0.0)
+				{
+					FormatEx(sDisplay, 192, "%s - %s (%.03f points)", sMap, sTime, Shavit_CalculatePoints(fTime, gBS_Style[client], fIdealTime, fPoints));
+					bPoints = true;
+				}
 			}
 
-			else
+			if(!bPoints)
 			{
 				FormatEx(sDisplay, 192, "%s - %s (%d jumps)", sMap, sTime, iJumps);
 			}
@@ -604,6 +603,12 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		// 5 - date
 		char[] sDate = new char[32];
 		results.FetchString(5, sDate, 32);
+
+		if(sDate[4] != '-')
+		{
+			FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", StringToInt(sDate));
+		}
+
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
 		m.AddItem("-1", sDisplay);
 

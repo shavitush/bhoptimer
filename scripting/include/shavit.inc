@@ -669,12 +669,34 @@ native int Shavit_GetRank(int client);
 native void Shavit_GetMapValues(float &points, float &idealtime);
 
 /**
+ * Gets ranking values for a given map.
+ * See CalculatePoints() in shavit-rankings.
+ *
+ * @param map						Map to get values from.
+ * @param points					Reference to map points. -1.0 if not set.
+ * @param idealtime					Reference to ideal time. 0.0 if not set.
+ * @noreturn
+ */
+native void Shavit_GetGivenMapValues(const char[] map, float &points, float &idealtime);
+
+/**
  * Gets the amount of players with over 0 points.
  *
  * @param client					Client index.
  * @return							Amount of ranked players.
  */
 native int Shavit_GetRankedPlayers(int client);
+
+/**
+ * Calculates points for given time, style, ideal time and points for the ideal time.
+ *
+ * @param time						Time.
+ * @param idealtime					Ideal time.
+ * @param style						Bhop style.
+ * @param mappoints					Points for the ideal time
+ * @return							Calculated poiints.
+ */
+native float Shavit_CalculatePoints(float time, BhopStyle style, float idealtime, float mappoints);
 
 /**
  * Force an HUD update for a player. Requires shavit-hud.
@@ -759,6 +781,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetRank");
 	MarkNativeAsOptional("Shavit_GetMapValues");
 	MarkNativeAsOptional("Shavit_GetRankedPlayers");
+	MarkNativeAsOptional("Shavit_CalculatePoints");
 	MarkNativeAsOptional("Shavit_GetWRTime");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRName");
@@ -772,5 +795,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
 	MarkNativeAsOptional("Shavit_FormatChat");
+	MarkNativeAsOptional("Shavit_GetGivenMapValues");
 }
 #endif

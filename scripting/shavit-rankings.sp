@@ -45,6 +45,9 @@ float gF_PlayerPoints[MAXPLAYERS+1];
 int gI_PlayerRank[MAXPLAYERS+1];
 bool gB_PointsToChat[MAXPLAYERS+1];
 
+StringMap gSM_Points = null;
+StringMap gSM_Time = null;
+
 // convars
 ConVar gCV_TopAmount = null;
 
@@ -69,7 +72,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetPoints", Native_GetPoints);
 	CreateNative("Shavit_GetRank", Native_GetRank);
 	CreateNative("Shavit_GetMapValues", Native_GetMapValues);
+	CreateNative("Shavit_GetGivenMapValues", Native_GetGivenMapValues);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
+	CreateNative("Shavit_CalculatePoints", Native_CalculatePoints);
 
 	RegPluginLibrary("shavit-rankings");
 
@@ -86,6 +91,10 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	// cache
+	gSM_Points = new StringMap();
+	gSM_Time = new StringMap();
+
 	// forwards
 	gH_Forwards_OnRankUpdated = CreateGlobalForward("Shavit_OnRankUpdated", ET_Event, Param_Cell);
 
@@ -488,36 +497,71 @@ public void SQL_RetroactivePoints_Callback2(Database db, DBResultSet results, co
 	UpdateRankedPlayers();
 }
 
+public void UpdateStringMap()
+{
+	char[] sQuery = new char[64];
+	FormatEx(sQuery, 64, "SELECT * FROM %smappoints;", gS_MySQLPrefix);
+
+	gH_SQL.Query(SQL_UpdateStringMap_Callback, sQuery, 0, DBPrio_Low);
+}
+
+public void SQL_UpdateStringMap_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! Couldn't update stringmap. Reason: %s", error);
+
+		return;
+	}
+
+	gSM_Time.Clear();
+	gSM_Points.Clear();
+
+	while(results.FetchRow())
+	{
+		char[] sMap = new char[192];
+		results.FetchString(0, sMap, 192);
+
+		float fTime = results.FetchFloat(1);
+		gSM_Time.SetValue(sMap, fTime);
+
+		float fPoints = results.FetchFloat(2);
+		gSM_Points.SetValue(sMap, fPoints);
+	}
+}
+
 public void UpdatePointsCache(const char[] map)
 {
-    char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT time, points FROM %smappoints WHERE map = '%s' LIMIT 1;", gS_MySQLPrefix, map);
+    char[] sQuery = new char[192];
+    FormatEx(sQuery, 192, "SELECT time, points FROM %smappoints WHERE map = '%s' LIMIT 1;", gS_MySQLPrefix, map);
 
     gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-    if(results == null)
-    {
-        LogError("Timer (rankings module) error! Couldn't update points cache. Reason: %s", error);
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! Couldn't update points cache. Reason: %s", error);
 
-        return;
-    }
+		return;
+	}
 
-    if(results.FetchRow())
-    {
-        gF_IdealTime = results.FetchFloat(0);
-        gF_MapPoints = results.FetchFloat(1);
-    }
+	if(results.FetchRow())
+	{
+		gF_IdealTime = results.FetchFloat(0);
+		gF_MapPoints = results.FetchFloat(1);
+	}
 
-    for(int i = 1; i <= MaxClients; i++)
-    {
-        if(IsValidClient(i))
-        {
-            OnClientPutInServer(i);
-        }
-    }
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsValidClient(i))
+		{
+			OnClientPutInServer(i);
+		}
+	}
+
+	UpdateStringMap();
 }
 
 // a ***very simple*** 'aglorithm' that calculates points for a given time while taking into account the following: bhop style, ideal time and map points for the ideal time
@@ -788,6 +832,8 @@ public void SQL_UpdateRankedPlayers_Callback(Database db, DBResultSet results, c
 	{
 		gI_RankedPlayers = results.FetchInt(0);
 	}
+
+	UpdateStringMap();
 }
 
 public int Native_GetPoints(Handle handler, int numParams)
@@ -806,9 +852,38 @@ public int Native_GetMapValues(Handle handler, int numParams)
     SetNativeCellRef(2, gF_IdealTime);
 }
 
+public int Native_GetGivenMapValues(Handle handler, int numParams)
+{
+	char[] map = new char[192];
+	GetNativeString(1, map, 192);
+
+	float fPoints = -1.0;
+
+	if(!gSM_Points.GetValue(map, fPoints))
+	{
+		fPoints = -1.0;
+	}
+
+	SetNativeCellRef(2, fPoints);
+
+	float fTime = 0.0;
+
+	if(!gSM_Time.GetValue(map, fTime))
+	{
+		fTime = 0.0;
+	}
+
+	SetNativeCellRef(3, fTime);
+}
+
 public int Native_GetRankedPlayers(Handle handler, int numParams)
 {
     return gI_RankedPlayers;
+}
+
+public int Native_CalculatePoints(Handle handler, int numParams)
+{
+	return view_as<int>(CalculatePoints(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3), GetNativeCell(4)));
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -885,12 +960,12 @@ public void SQL_DBConnect()
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-    if(results == null)
-    {
-        LogError("Timer (rankings module) error! Table creation failed. Reason: %s", error);
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! Table creation failed. Reason: %s", error);
 
-        return;
-    }
+		return;
+	}
 
-    UpdatePointsCache(gS_Map);
+	UpdatePointsCache(gS_Map);
 }
