@@ -86,7 +86,7 @@ Core
 - [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
 - [x] Add speed reset at timer start.
 - [ ] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
-- [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
+- [ ] Add a native that will execute threaded MySQL queries and allow callbacks.
 - [ ] Add bonus timer.
 
 HUD
@@ -199,7 +199,7 @@ World Records
 - [x] Show map rank on finish.
 - [x] Use unix timestamps for future record dates.
 - [x] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
-- [ ] Add `sm_recent`.
+- [x] Add `sm_recent` `sm_recentrecords` `sm_rr`.
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 

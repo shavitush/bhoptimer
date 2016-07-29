@@ -22,6 +22,7 @@
 
 #undef REQUIRE_PLUGIN
 #define USES_STYLE_NAMES
+#define USES_SHORT_STYLE_NAMES
 #define USES_STYLE_PROPERTIES
 #include <shavit>
 #include <adminmenu>
@@ -68,6 +69,7 @@ char gS_MySQLPrefix[32];
 
 // cvars
 ConVar gCV_RecordsLimit = null;
+ConVar gCV_RecentLimit = null;
 
 public Plugin myinfo =
 {
@@ -113,9 +115,12 @@ public void OnPluginStart()
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell);
 
-	// WR command
-	RegConsoleCmd("sm_wr", Command_WorldRecord, "Usage: sm_wr [map]");
-	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "Usage: sm_worldrecord [map]");
+	// player commands
+	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
+	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
+	RegConsoleCmd("sm_recent", Command_RecentRecords, "View the recent #1 times set.");
+	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
+	RegConsoleCmd("sm_rr", Command_RecentRecords, "View the recent #1 times set.");
 
 	// delete records
 	RegAdminCmd("sm_delete", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
@@ -125,6 +130,7 @@ public void OnPluginStart()
 
 	// cvars
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
+	gCV_RecentLimit = CreateConVar("shavit_wr_recentlimit", "50", "Limit of records shown in the RR menu.", 0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -869,7 +875,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	int client = GetClientFromSerial(serial);
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}
@@ -967,6 +973,124 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 		int id = StringToInt(info);
 
 		OpenSubMenu(param1, id);
+	}
+
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		ShowWRStyleMenu(param1, gS_ClientMap[param1]);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
+
+	return 0;
+}
+
+public Action Command_RecentRecords(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	char[] sQuery = new char[512];
+	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, p.time, p.jumps, p.style FROM %splayertimes p JOIN %susers u ON p.auth = u.auth ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_RecentLimit.IntValue);
+
+	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+
+	return Plugin_Handled;
+}
+
+public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (RR SELECT) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	Menu m = new Menu(RRMenu_Handler);
+	m.SetTitle("Recent %d record%s:", gCV_RecentLimit.IntValue, gCV_RecentLimit.IntValue > 1? "s":"");
+
+	while(results.FetchRow())
+	{
+		char[] sMap = new char[192];
+		results.FetchString(1, sMap, 192);
+
+		char[] sDisplayMap = new char[64];
+		GetMapDisplayName(sMap, sDisplayMap, 64);
+
+		char[] sName = new char[MAX_NAME_LENGTH];
+		results.FetchString(2, sName, MAX_NAME_LENGTH);
+
+		char[] sTime = new char[16];
+		float fTime = results.FetchFloat(3);
+		FormatSeconds(fTime, sTime, 16);
+
+		int iJumps = results.FetchInt(4);
+		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(5));
+
+		char[] sDisplay = new char[192];
+
+		bool bPoints = false;
+
+		if(gB_Rankings)
+		{
+			float fPoints = 0.0;
+			float fIdealTime = -1.0;
+			Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
+
+			if(fPoints != -1.0 && fIdealTime != 0.0)
+			{
+				FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f points)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, Shavit_CalculatePoints(fTime, bsStyle, fIdealTime, fPoints));
+				bPoints = true;
+			}
+		}
+
+		if(!bPoints)
+		{
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d jumps)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, iJumps);
+		}
+
+		char[] sInfo = new char[192];
+		FormatEx(sInfo, 192, "%d;%s", results.FetchInt(0), sMap);
+
+		m.AddItem(sInfo, sDisplay);
+	}
+
+	if(m.ItemCount == 0)
+	{
+		m.AddItem("-1", "No records found.");
+	}
+
+	m.ExitButton = true;
+
+	m.Display(client, 20);
+}
+
+public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] sInfo = new char[192];
+		m.GetItem(param2, sInfo, 192);
+
+		char[][] sExploded = new char[2][192];
+		ExplodeString(sInfo, ";", sExploded, 2, 192, true);
+
+		strcopy(gS_ClientMap[param1], 192, sExploded[1]);
+
+		OpenSubMenu(param1, StringToInt(sExploded[0]));
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
