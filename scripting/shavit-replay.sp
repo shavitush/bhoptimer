@@ -748,8 +748,7 @@ public bool ReplayEnabled(any style)
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	int userid = event.GetInt("userid");
-	int client = GetClientOfUserId(userid);
+	int client = GetClientOfUserId(event.GetInt("userid"));
 
 	if(IsFakeClient(client))
 	{

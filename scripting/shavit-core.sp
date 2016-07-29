@@ -529,7 +529,7 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 
 public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 {
-	int userid = event.GetInt(GetClientOfUserId(userid));
+	int client = GetClientOfUserId(event.GetInt("userid"));
 
 	ResumeTimer(client);
 	StopTimer(client);

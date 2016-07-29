@@ -74,6 +74,7 @@ General
 - [x] Migrate DBI to the 1.7 transitional syntax.
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
+- [ ] Support "out of the box" installations (SQLite).
 
 Core
 --
@@ -83,6 +84,7 @@ Core
 - [x] ~~Make a global enumerator/variable with per-style settings (bitflags)~~ - configs are canceled, just recompile the plugin with your own edit of `shavit.inc`.
 - [x] Add unranked styles.
 - [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
+- [ ] Add speed reset at timer start.
 - [ ] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
 - [ ] Add native that will execute threaded MySQL queries and allow callbacks - including safety checks, to prevent error spams. (Migrate DBI to new syntax first!)
 - [ ] Add bonus timer.
@@ -194,6 +196,7 @@ World Records
 - [x] Show map rank on finish.
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
+- [ ] Add `sm_recent`.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 - [ ] Use unix timestamps for future record dates.
 
