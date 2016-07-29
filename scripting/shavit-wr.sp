@@ -1060,7 +1060,14 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		// 5 - date
 		char[] sDate = new char[32];
 		results.FetchString(5, sDate, 32);
+
+		if(sDate[4] != '-')
+		{
+			FormatTime(sDate, 32, "%Y-%m-%d %H:%I:%S", StringToInt(sDate));
+		}
+
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
+
 		m.AddItem("-1", sDisplay);
 	}
 
@@ -1157,6 +1164,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 		gB_Late = false;
 	}
+
+	char[] sQuery = new char[64];
+	FormatEx(sQuery, 64, "SELECT rot_ang FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
 }
 
 public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)

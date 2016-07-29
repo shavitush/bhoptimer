@@ -194,11 +194,11 @@ World Records
 - [x] Cache the whole leaderboard per style, sorted and updated at record removal, insertion and updates.
 - [x] Add `Shavit_GetRankForTime(BhopStyle style, float time)` which will calculate a map rank for the given time.
 - [x] Show map rank on finish.
+- [x] Use unix timestamps for future record dates.
 - [ ] Add `sm_recent`.
 - [ ] Add strafe sync to the WR menu where available.
 - [ ] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
-- [ ] Use unix timestamps for future record dates.
 
 Time Limits
 --
