@@ -48,6 +48,7 @@ char gS_MySQLPrefix[32];
 int gI_MapType[MAXPLAYERS+1];
 int gI_Target[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
+bool gB_RoundStarted = false;
 
 // cvars
 ConVar gCV_MVPRankOnes = null;
@@ -81,6 +82,7 @@ public void OnPluginStart()
 	LoadTranslations("common.phrases");
 
 	// hooks
+	HookEvent("round_start", Round_Start);
 	HookEvent("player_spawn", Player_Event);
 	HookEvent("player_team", Player_Event);
 
@@ -93,6 +95,11 @@ public void OnPluginStart()
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
 	SetSQLInfo();
+}
+
+public void OnMapStart()
+{
+	gB_RoundStarted = false;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -161,6 +168,11 @@ public void SQL_SetPrefix()
 	delete fFile;
 }
 
+public void Round_Start(Event event, const char[] name, bool dontBroadcast)
+{
+	gB_RoundStarted = true;
+}
+
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	int userid = event.GetInt("userid");
@@ -191,29 +203,10 @@ public void Shavit_OnWorldRecord(int client)
 	}
 }
 
-public Action RedoMVPs(Handle Timer, any data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return Plugin_Stop;
-	}
-
-	Shavit_GetDB(gH_SQL);
-	SetSQLInfo();
-
-	UpdateMVPs(client);
-
-	return Plugin_Stop;
-}
-
 public void UpdateMVPs(int client)
 {
-	if(gH_SQL == null)
+	if(gH_SQL == null || !gB_RoundStarted)
 	{
-		CreateTimer(1.0, RedoMVPs, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
-
 		return;
 	}
 
@@ -234,7 +227,7 @@ public void UpdateMVPs(int client)
 			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT s.auth FROM (SELECT auth, MIN(time) FROM %splayertimes GROUP BY map, style) s) ss WHERE ss.auth = '%s' LIMIT 1;", gS_MySQLPrefix, sAuthID);
 		}
 
-		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
+		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 	}
 }
 
@@ -458,7 +451,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	int rows = results.RowCount;
 
-	char[] sTitle = new char[64];
+	char[] sTitle = new char[32];
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
