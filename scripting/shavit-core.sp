@@ -63,6 +63,7 @@ BhopStyle gBS_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 bool gB_OnGround[MAXPLAYERS+1];
 int gI_ButtonCache[MAXPLAYERS+1];
+int gI_Strafes[MAXPLAYERS+1];
 float gF_HSW_Requirement = 0.0;
 
 // late load
@@ -119,6 +120,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
 	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
+	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -678,6 +680,11 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	return;
 }
 
+public int Native_GetStrafeCount(Handle handler, int numParams)
+{
+	return gI_Strafes[GetNativeCell(1)];
+}
+
 public void StartTimer(int client)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
@@ -692,13 +699,14 @@ public void StartTimer(int client)
 	{
 		gF_StartTime[client] = GetEngineTime();
 		gB_TimerEnabled[client] = true;
+		gI_Strafes[client] = 0;
+		gI_Jumps[client] = 0;
 
 		Call_StartForward(gH_Forwards_Start);
 		Call_PushCell(client);
 		Call_Finish();
 	}
 
-	gI_Jumps[client] = 0;
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
 
@@ -718,6 +726,7 @@ public void StopTimer(int client)
 	gF_StartTime[client] = 0.0;
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
+	gI_Strafes[client] = 0;
 }
 
 public void PauseTimer(int client)
@@ -913,17 +922,28 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Continue;
 	}
 
-	if(gB_HUD)
+	if(!(gI_ButtonCache[client] & IN_FORWARD) && buttons & IN_FORWARD)
 	{
-		if(gI_ButtonCache[client] != buttons)
-		{
-			Shavit_ForceHUDUpdate(client, true);
-		}
+		gI_Strafes[client]++;
+	}
 
-		gI_ButtonCache[client] = buttons;
+	if(!(gI_ButtonCache[client] & IN_MOVELEFT) && buttons & IN_MOVELEFT)
+	{
+		gI_Strafes[client]++;
+	}
+
+	if(!(gI_ButtonCache[client] & IN_BACK) && buttons & IN_BACK)
+	{
+		gI_Strafes[client]++;
+	}
+
+	if(!(gI_ButtonCache[client] & IN_MOVERIGHT) && buttons & IN_MOVERIGHT)
+	{
+		gI_Strafes[client]++;
 	}
 
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
+	bool bOnGround = (GetEntityFlags(client) & FL_ONGROUND || bOnLadder);
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
 
 	if(gCV_LeftRight.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && (buttons & IN_LEFT || buttons & IN_RIGHT)))
@@ -931,8 +951,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		Shavit_StopTimer(client);
 		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");
 	}
-
-	bool bOnGround = GetEntityFlags(client) & FL_ONGROUND || bOnLadder;
 
 	// key blocking
 	if(!Shavit_InsideZone(client, Zone_Freestyle))
@@ -945,25 +963,25 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 		if(!bOnGround)
 		{
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (vel[0] > 0 || buttons & IN_FORWARD))
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (buttons & IN_FORWARD || vel[0] > 0.0))
 			{
 				vel[0] = 0.0;
 				buttons &= ~IN_FORWARD;
 			}
 
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (vel[1] < 0 || buttons & IN_MOVELEFT))
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (buttons & IN_MOVELEFT || vel[1] < 0.0))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;
 			}
 
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S && (vel[0] < 0 || buttons & IN_BACK))
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S && (buttons & IN_BACK || vel[0] < 0.0))
 			{
 				vel[0] = 0.0;
 				buttons &= ~IN_BACK;
 			}
 
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D && (vel[1] > 0 || buttons & IN_MOVERIGHT))
+			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D && (buttons & IN_MOVERIGHT || vel[1] > 0.0))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVERIGHT;
@@ -994,6 +1012,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		buttons &= ~IN_JUMP;
 	}
 
+	if(gB_HUD && gI_ButtonCache[client] != buttons)
+	{
+		Shavit_ForceHUDUpdate(client, true);
+	}
+
 	// velocity limit
 	if(bOnGround && gI_StyleProperties[gBS_Style[client]] & STYLE_VEL_LIMIT && gF_VelocityLimit[gBS_Style[client]] != VELOCITY_UNLIMITED && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
@@ -1022,6 +1045,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		vel = view_as<float>({0.0, 0.0, 0.0});
 	}
+
+	gI_ButtonCache[client] = buttons;
 
 	return Plugin_Continue;
 }

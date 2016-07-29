@@ -514,6 +514,15 @@ native BhopStyle Shavit_GetBhopStyle(int client);
 native TimerStatus Shavit_GetTimerStatus(int client);
 
 /**
+ * Retrieve the amount of strafes done since the timer started.
+ * Will return 0 if timer isn't running.
+ *
+ * @param client					Client index.
+ * @return                          Amount of strafes since timer start.
+ */
+native int Shavit_GetStrafeCount(int client);
+
+/**
  * Saves the WR time for the current map on a variable.
  *
  * @param style						Style to get the WR for.
@@ -766,36 +775,37 @@ public SharedPlugin __pl_shavit =
 #if !defined REQUIRE_PLUGIN
 public void __pl_shavit_SetNTVOptional()
 {
-	MarkNativeAsOptional("Shavit_StartTimer");
-	MarkNativeAsOptional("Shavit_StopTimer");
+	MarkNativeAsOptional("Shavit_CalculatePoints");
 	MarkNativeAsOptional("Shavit_FinishMap");
-	MarkNativeAsOptional("Shavit_GetTimer");
-	MarkNativeAsOptional("Shavit_GetClientTime");
-	MarkNativeAsOptional("Shavit_GetBhopStyle");
-	MarkNativeAsOptional("Shavit_GetTimerStatus");
-	MarkNativeAsOptional("Shavit_PauseTimer");
-	MarkNativeAsOptional("Shavit_ResumeTimer");
-	MarkNativeAsOptional("Shavit_PrintToChat");
-	MarkNativeAsOptional("Shavit_RestartTimer");
 	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
+	MarkNativeAsOptional("Shavit_FormatChat");
+	MarkNativeAsOptional("Shavit_GetBhopStyle");
+	MarkNativeAsOptional("Shavit_GetClientTime");
+	MarkNativeAsOptional("Shavit_GetGivenMapValues");
+	MarkNativeAsOptional("Shavit_GetMapValues");
+	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");
 	MarkNativeAsOptional("Shavit_GetRank");
-	MarkNativeAsOptional("Shavit_GetMapValues");
-	MarkNativeAsOptional("Shavit_GetRankedPlayers");
-	MarkNativeAsOptional("Shavit_CalculatePoints");
-	MarkNativeAsOptional("Shavit_GetWRTime");
-	MarkNativeAsOptional("Shavit_GetWRRecordID");
-	MarkNativeAsOptional("Shavit_GetWRName");
-	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetRankForTime");
-	MarkNativeAsOptional("Shavit_ZoneExists");
-	MarkNativeAsOptional("Shavit_InsideZone");
-	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
+	MarkNativeAsOptional("Shavit_GetRankedPlayers");
+	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
-	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
+	MarkNativeAsOptional("Shavit_GetStrafeCount");
+	MarkNativeAsOptional("Shavit_GetTimer");
+	MarkNativeAsOptional("Shavit_GetTimerStatus");
+	MarkNativeAsOptional("Shavit_GetWRName");
+	MarkNativeAsOptional("Shavit_GetWRRecordID");
+	MarkNativeAsOptional("Shavit_GetWRTime");
+	MarkNativeAsOptional("Shavit_InsideZone");
+	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
-	MarkNativeAsOptional("Shavit_FormatChat");
-	MarkNativeAsOptional("Shavit_GetGivenMapValues");
+	MarkNativeAsOptional("Shavit_PauseTimer");
+	MarkNativeAsOptional("Shavit_PrintToChat");
+	MarkNativeAsOptional("Shavit_RestartTimer");
+	MarkNativeAsOptional("Shavit_ResumeTimer");
+	MarkNativeAsOptional("Shavit_StartTimer");
+	MarkNativeAsOptional("Shavit_StopTimer");
+	MarkNativeAsOptional("Shavit_ZoneExists");
 }
 #endif

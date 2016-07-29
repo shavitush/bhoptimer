@@ -433,7 +433,7 @@ public void UpdateHUD(int client)
 					Format(sHintText, 512, "%s\tJumps: %d", sHintText, iJumps);
 				}
 
-				Format(sHintText, 512, "%s\nPlayer: <font color='#BF6821'>%N</font>", sHintText, target);
+				Format(sHintText, 512, "%s\nStrafes: <font color='#BF6821'>%d</font>", sHintText, Shavit_GetStrafeCount(target));
 				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
@@ -443,7 +443,7 @@ public void UpdateHUD(int client)
 				{
 					if(Shavit_GetTimerStatus(target) == Timer_Running)
 					{
-						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nSpeed: %d", gS_BhopStyles[bsStyle], sTime, Shavit_GetRankForTime(bsStyle, fTime), iJumps, RoundToZero(fSpeed_New));
+						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d", gS_BhopStyles[bsStyle], sTime, Shavit_GetRankForTime(bsStyle, fTime), iJumps, Shavit_GetStrafeCount(target), RoundToZero(fSpeed_New));
 					}
 
 					else

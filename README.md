@@ -86,6 +86,7 @@ Core
 - [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
 - [x] Add speed reset at timer start.
 - [x] Add support for 100AA styles.
+- [ ] Add low gravity styles (0.6)
 - [ ] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
 - [ ] Add a native that will execute threaded MySQL queries and allow callbacks.
 - [ ] Add bonus timer.
@@ -115,6 +116,7 @@ Replay
 - [x] Make replay bots dead if there's no replay data loaded.
 - [x] Clear player cache on spawn/death.
 - [x] Add admin interface. (delete replay data, `sm_deletereplay` for RCON admins.)
+- [ ] Save first/last frame per style globally instead of calling Get() every time.
 - [ ] Add a setting so there are two modes: one is that bots always play, and the other is that there are X bots (defined by server admin) and players can start their playback with a command. (`sm_replay`)
 
 Stats
