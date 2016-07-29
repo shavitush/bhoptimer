@@ -692,6 +692,7 @@ public void StartTimer(int client)
 	gB_ClientPaused[client] = false;
 
 	SetEntityGravity(client, 1.0);
+	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 1.0);
 }
 
 public void StopTimer(int client)
