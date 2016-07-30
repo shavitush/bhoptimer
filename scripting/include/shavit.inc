@@ -29,7 +29,7 @@
 
 #define PREFIX "\x04[Timer]\x01"
 
-#define MAX_STYLES 6
+#define MAX_STYLES 7
 #define MAX_ZONES 8
 
 // game types
@@ -82,6 +82,7 @@ enum ReplayStatus(+=1)
 #define STYLE_PRESPEED			(1 << 10) // allow prespeeding regardless of the prespeed setting
 #define STYLE_HSW_ONLY			(1 << 11) // force half-sideways
 #define STYLE_100AA				(1 << 12) // force 100 airacclerate for the style
+#define STYLE_LOWGRAV			(1 << 13) // 0.6x gravity
 
 int gI_StyleProperties[MAX_STYLES] =
 {
@@ -90,7 +91,8 @@ int gI_StyleProperties[MAX_STYLES] =
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D|STYLE_BLOCK_S, // W-Only
 	STYLE_EASYBHOP, // Scroll
 	STYLE_VEL_LIMIT, // 400 Velocity
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_HSW_ONLY // HSW
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_HSW_ONLY, // HSW
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_LOWGRAV|STYLE_UNRANKED // Low gravity
 };
 #endif
 
@@ -132,7 +134,8 @@ char gS_StyleHTMLColors[MAX_STYLES][] =
 	"9A59F0",
 	"279BC2",
 	"C9BB8B",
-	"B54CBB"
+	"B54CBB",
+	"DB88C2"
 };
 #endif
 
@@ -145,7 +148,8 @@ char gS_ShortBhopStyles[MAX_STYLES][] =
 	"W",
 	"LEGIT",
 	"400VEL",
-	"HSW"
+	"HSW",
+	"LG"
 };
 #endif
 
@@ -158,7 +162,8 @@ float gI_RankingMultipliers[MAX_STYLES] =
 	1.33, // W-Only
 	1.30, // Scroll
 	1.50, // 400 Velocity
-	1.20 // HSW
+	1.20, // HSW
+	0.00 // Low gravity
 };
 #endif
 
@@ -319,9 +324,12 @@ forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps,
  * @param style						Style the record was done on.
  * @param time						Record time.
  * @param jumps						Jumps amount.
+ * @param strafes					Amount of strafes.
+ * @param sync						Sync percentage (0.0 to 100.0).
+ * @param rank						Rank on map.
  * @noreturn
  */
-forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps);
+forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank);
 
 /**
  * Called when there's a new WR on the map.
@@ -330,9 +338,11 @@ forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int j
  * @param style						Style the record was done on.
  * @param time						Record time.
  * @param jumps						Jumps amount.
+ * @param strafes					Amount of strafes.
+ * @param sync						Sync percentage (0.0 to 100.0).
  * @noreturn
  */
-forward void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps);
+forward void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps, int strafes, float sync);
 
 /**
  * Called when an admin deletes a WR.

@@ -146,6 +146,7 @@ Sounds **(NEW!)**
 - [x] On new #1.
 - [x] On personal best.
 - [x] On map finish.
+- [ ] Add support for 'sound for X map rank'.
 
 Rankings **(NEW!)**
 --

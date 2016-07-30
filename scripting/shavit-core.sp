@@ -542,6 +542,11 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
+
+	if(gI_StyleProperties[gBS_Style[client]] & STYLE_LOWGRAV)
+	{
+		SetEntityGravity(client, 0.6);
+	}
 }
 
 public void Player_Death(Event event, const char[] name, bool dontBroadcast)
@@ -725,7 +730,7 @@ public void StartTimer(int client)
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
 
-	SetEntityGravity(client, 0.0);
+	SetEntityGravity(client, (gI_StyleProperties[gBS_Style[client]] & STYLE_LOWGRAV)? 0.6:0.0);
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 1.0);
 }
 

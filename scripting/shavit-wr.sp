@@ -111,8 +111,8 @@ public void OnPluginStart()
 	#endif
 
 	// forwards
-	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell);
 
 	// player commands
@@ -336,6 +336,11 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	// reset cache
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
+		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		{
+			continue;
+		}
+
 		strcopy(gS_WRName[i], MAX_NAME_LENGTH, "invalid");
 		gF_WRTime[i] = 0.0;
 		gI_RecordAmount[i] = 0;
@@ -1360,25 +1365,17 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 	char[] sTime = new char[32];
 	FormatSeconds(time, sTime, 32);
 
-	// k people I made this forward so I'll use it to make cool text messages on WR (check shavit-misc soon™) EDIT: implemented into shavit-misc ages ago lmao why is this line still here :o
-	if(!(gI_StyleProperties[style] & STYLE_UNRANKED) && time < gF_WRTime[style] || gF_WRTime[style] == 0.0) // WR?
-	{
-		Call_StartForward(gH_OnWorldRecord);
-		Call_PushCell(client);
-		Call_PushCell(style);
-		Call_PushCell(time);
-		Call_PushCell(jumps);
-		Call_Finish();
-
-		UpdateWRCache();
-	}
-
 	// 0 - no query
 	// 1 - insert
 	// 2 - update
 	int overwrite = 0;
 
-	if(gF_PlayerRecord[client][style] == 0.0)
+	if(gI_StyleProperties[style] & STYLE_UNRANKED)
+	{
+		overwrite = 0; // ugly way of not writing to database
+	}
+
+	else if(gF_PlayerRecord[client][style] == 0.0)
 	{
 		overwrite = 1;
 	}
@@ -1388,9 +1385,20 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		overwrite = 2;
 	}
 
-	else if(gI_StyleProperties[style] & STYLE_UNRANKED)
+	int iRank = GetRankForTime(style, time);
+
+	if(overwrite > 0 && (time < gF_WRTime[style] || gF_WRTime[style] == 0.0)) // WR?
 	{
-		overwrite = 0; // ugly way of not writing to database
+		Call_StartForward(gH_OnWorldRecord);
+		Call_PushCell(client);
+		Call_PushCell(style);
+		Call_PushCell(time);
+		Call_PushCell(jumps);
+		Call_PushCell(strafes);
+		Call_PushCell(sync);
+		Call_Finish();
+
+		UpdateWRCache();
 	}
 
 	float fDifference = (gF_PlayerRecord[client][style] - time) * -1.0;
@@ -1411,12 +1419,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01.", client, gS_BhopStyles[style], sTime, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%\x01.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%\x01.", client, gS_BhopStyles[style], sTime, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
 			}
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
@@ -1433,12 +1441,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%\x01. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%\x01. \x0C(%s)", client, gS_BhopStyles[style], sTime, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 			}
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
@@ -1458,6 +1466,9 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		Call_PushCell(style);
 		Call_PushCell(time);
 		Call_PushCell(jumps);
+		Call_PushCell(strafes);
+		Call_PushCell(sync);
+		Call_PushCell(iRank);
 		Call_Finish();
 	}
 
@@ -1532,11 +1543,23 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	while(results.FetchRow())
 	{
-		gA_LeaderBoard[results.FetchInt(0)].Push(results.FetchFloat(1));
+		BhopStyle style = view_as<BhopStyle>(results.FetchInt(0));
+
+		if(gI_StyleProperties[style] & STYLE_UNRANKED)
+		{
+			continue;
+		}
+
+		gA_LeaderBoard[style].Push(results.FetchFloat(1));
 	}
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
+		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		{
+			continue;
+		}
+
 		SortADTArray(gA_LeaderBoard[i], Sort_Ascending, Sort_Float);
 		gI_RecordAmount[i] = gA_LeaderBoard[i].Length;
 	}
