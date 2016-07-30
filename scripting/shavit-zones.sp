@@ -35,6 +35,7 @@
 ServerGame gSG_Type = Game_Unknown;
 
 Database gH_SQL = null;
+bool gB_MySQL = false;
 
 char gS_Map[128];
 
@@ -1845,6 +1846,10 @@ public void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
+		char[] sDriver = new char[8];
+		gH_SQL.Driver.GetIdentifier(sDriver, 8);
+		gB_MySQL = StrEqual(sDriver, "mysql", false);
+
 		char[] sQuery = new char[1024];
 		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0, `destination_x` FLOAT NOT NULL default 0, `destination_y` FLOAT NOT NULL default 0, `destination_z` FLOAT NOT NULL default 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
@@ -1874,9 +1879,27 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
 
-		gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
+			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `rot_ang` FLOAT NOT NULL default 0;", gS_MySQLPrefix);
+			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+
+			for(int i = 1; i <= 2; i++)
+			{
+				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `fix%d_x` FLOAT NOT NULL default 0;", gS_MySQLPrefix, i);
+				gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+
+				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `fix%d_y` FLOAT NOT NULL default 0;", gS_MySQLPrefix, i);
+				gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+			}
+		}
 	}
 }
 

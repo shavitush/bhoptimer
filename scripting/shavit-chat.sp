@@ -723,7 +723,7 @@ public void ChatMessage(int from, int[] clients, int count, const char[] sMessag
     {
         if(gSG_Type == Game_CSGO)
         {
-            PbSetInt(hSayText2, "ent_idx", from);
+			PbSetInt(hSayText2, "ent_idx", from);
             PbSetBool(hSayText2, "chat", true);
             PbSetString(hSayText2, "msg_name", sMessage);
 

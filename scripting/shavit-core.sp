@@ -64,6 +64,9 @@ bool gB_Auto[MAXPLAYERS+1];
 bool gB_OnGround[MAXPLAYERS+1];
 int gI_ButtonCache[MAXPLAYERS+1];
 int gI_Strafes[MAXPLAYERS+1];
+float gF_AngleCache[MAXPLAYERS+1][3];
+int gI_TotalMeasures[MAXPLAYERS+1];
+int gI_GoodGains[MAXPLAYERS+1];
 float gF_HSW_Requirement = 0.0;
 
 // late load
@@ -121,6 +124,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
 	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
+	CreateNative("Shavit_GetSync", Native_GetSync);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -135,7 +139,7 @@ public void OnPluginStart()
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell);
-	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell);
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell);
@@ -634,6 +638,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	Call_PushCell(view_as<int>(gBS_Style[client]));
 	Call_PushCell(CalculateTime(client));
 	Call_PushCell(gI_Jumps[client]);
+	Call_PushCell(gI_Strafes[client]);
+	Call_PushCell((gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0));
 	Call_Finish();
 
 	StopTimer(client);
@@ -685,6 +691,13 @@ public int Native_GetStrafeCount(Handle handler, int numParams)
 	return gI_Strafes[GetNativeCell(1)];
 }
 
+public int Native_GetSync(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	return view_as<int>((gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0));
+}
+
 public void StartTimer(int client)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
@@ -701,6 +714,8 @@ public void StartTimer(int client)
 		gB_TimerEnabled[client] = true;
 		gI_Strafes[client] = 0;
 		gI_Jumps[client] = 0;
+		gI_TotalMeasures[client] = 0;
+		gI_GoodGains[client] = 0;
 
 		Call_StartForward(gH_Forwards_Start);
 		Call_PushCell(client);
@@ -727,6 +742,8 @@ public void StopTimer(int client)
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
 	gI_Strafes[client] = 0;
+	gI_TotalMeasures[client] = 0;
+	gI_GoodGains[client] = 0;
 }
 
 public void PauseTimer(int client)
@@ -763,12 +780,12 @@ public float CalculateTime(int client)
 {
 	if(!gB_ClientPaused[client])
 	{
-		return GetEngineTime() - gF_StartTime[client] - gF_PauseTotalTime[client];
+		return (GetEngineTime() - gF_StartTime[client] - gF_PauseTotalTime[client]);
 	}
 
 	else
 	{
-		return gF_PauseStartTime[client] - gF_StartTime[client] - gF_PauseTotalTime[client];
+		return (gF_PauseStartTime[client] - gF_StartTime[client] - gF_PauseTotalTime[client]);
 	}
 }
 
@@ -915,7 +932,7 @@ public void PreThink(int client)
 	sv_airaccelerate.IntValue = (gI_StyleProperties[gBS_Style[client]] & STYLE_100AA)? 100:gI_CachedDefaultAA;
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3])
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
 	if(!IsPlayerAlive(client) || IsFakeClient(client))
 	{
@@ -942,8 +959,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gI_Strafes[client]++;
 	}
 
+	int iFlags = GetEntityFlags(client);
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
-	bool bOnGround = (GetEntityFlags(client) & FL_ONGROUND || bOnLadder);
+	bool bOnGround = (iFlags & FL_ONGROUND || bOnLadder);
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
 
 	if(gCV_LeftRight.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && (buttons & IN_LEFT || buttons & IN_RIGHT)))
@@ -1046,7 +1064,36 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		vel = view_as<float>({0.0, 0.0, 0.0});
 	}
 
+	float fSpeed[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+
+	if(!bOnGround && !(iFlags & FL_INWATER) && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) > 0.0)
+	{
+		float fAngle = (angles[1] - gF_AngleCache[client][1]);
+
+		while(fAngle > 180.0)
+		{
+			fAngle -= 180.0;
+		}
+
+		while(fAngle < -180.0)
+		{
+			fAngle += 180.0;
+		}
+
+		if(fAngle != 0.0)
+		{
+			gI_TotalMeasures[client]++;
+
+			if((fAngle > 0.0 && (vel[1] < 0.0 || vel[0] > 0.0)) || (fAngle < 0.0 && (vel[1] > 0.0 || vel[1] < 0.0)))
+			{
+				gI_GoodGains[client]++;
+			}
+		}
+	}
+
 	gI_ButtonCache[client] = buttons;
+	gF_AngleCache[client] = angles;
 
 	return Plugin_Continue;
 }

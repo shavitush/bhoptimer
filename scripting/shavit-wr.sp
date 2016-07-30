@@ -403,7 +403,7 @@ public Action Command_Junk(int client, int args)
 
 	char[] sAuth = new char[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
-	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, %d, 0);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime());
+	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES ('%s', '%s', %.03f, %d, %d, 0, %d, %.02f);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
 
 	SQL_LockDatabase(gH_SQL);
 	SQL_FastQuery(gH_SQL, sQuery);
@@ -1075,7 +1075,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 	m.ExitButton = true;
 
-	m.Display(client, 20);
+	m.Display(client, 60);
 }
 
 public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
@@ -1109,7 +1109,7 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 public void OpenSubMenu(int client, int id)
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
+	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 
 	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
@@ -1190,8 +1190,16 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
-
 		m.AddItem("-1", sDisplay);
+
+		int iStrafes = results.FetchInt(7);
+		float fSync = results.FetchFloat(8);
+
+		if((iJumps > 0 && fSync > 0.0) || iStrafes > 0)
+		{
+			FormatEx(sDisplay, 128, "Strafes: %d (%.02f%%)", iStrafes, fSync);
+			m.AddItem("-1", sDisplay);
+		}
 	}
 
 	else
@@ -1268,7 +1276,7 @@ public void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` DATE%s);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` DATE%s, `strafes` INT, `sync` FLOAT);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}
@@ -1294,10 +1302,44 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	}
 
 	char[] sQuery = new char[64];
-	FormatEx(sQuery, 64, "SELECT rot_ang FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
+	FormatEx(sQuery, 64, "SELECT strafes FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
 }
 
-public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
+public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		char[] sQuery = new char[256];
+
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD (`strafes` INT NOT NULL DEFAULT 0, `sync` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD COLUMN `strafes` INT NOT NULL DEFAULT 0;", gS_MySQLPrefix);
+			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+
+			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD COLUMN `sync` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix);
+			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+		}
+	}
+}
+
+public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR module) error! Times' table migration (1) failed. Reason: %s", error);
+
+		return;
+	}
+}
+
+public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, int strafes, float sync)
 {
 	char[] sTime = new char[32];
 	FormatSeconds(time, sTime, 32);
@@ -1353,12 +1395,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"");
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"");
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
 			}
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
@@ -1368,22 +1410,22 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 				return;
 			}
 
-			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style) VALUES ('%s', '%s', %.03f, %d, %d, '%d');", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style);
+			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES ('%s', '%s', %.03f, %d, %d, %d, %d, %.2f);", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style, strafes, sync);
 		}
 
 		else // update
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 			}
 
-			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = '%.03f', jumps = '%d', date = %d WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), gS_Map, sAuthID, style);
+			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}
 
 		gF_PlayerRecord[client][style] = time;
@@ -1403,16 +1445,16 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 		Call_Finish();
 	}
 
-	else if(!overwrite && !(gI_StyleProperties[style] & STYLE_UNRANKED))
+	else if(overwrite == 0 && !(gI_StyleProperties[style] & STYLE_UNRANKED))
 	{
 		if(sGame == Game_CSS)
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s, %d strafe%s @ \x06%.02f%%. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 		}
 	}
 
@@ -1420,12 +1462,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
 	{
 		if(sGame == Game_CSS)
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s.", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"");
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%.", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s.", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"");
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s, %d strafe%s @ \x06%.02f%%.", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
 		}
 	}
 }

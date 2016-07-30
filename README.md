@@ -86,9 +86,8 @@ Core
 - [x] Add a setting to not start timer if Z axis velocity is a thing (non-prespeed styles).
 - [x] Add speed reset at timer start.
 - [x] Add support for 100AA styles.
-- [ ] Add low gravity styles (0.6)
-- [ ] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
-- [ ] Add a native that will execute threaded MySQL queries and allow callbacks.
+- [x] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
+- [ ] Add low gravity styles (0.6).
 - [ ] Add bonus timer.
 
 HUD
@@ -103,7 +102,7 @@ HUD
 - [X] Redo CS:S HUD and use the HUD capabilities added in late 2013, attempt to look like [this HUD](https://i.imgur.com/pj8c7vP.png) because I'm very original!!!111one!1!!
 - [x] Show [PAUSED] if needed.
 - [x] Add potential map rank.
-- [ ] Add strafes/sync. (replace 'Player' with strafes and sync in csgo, use keyhinttext for sync/spectator amount in css)
+- [x] Add strafes/sync. (replace 'Player' with strafes and sync in csgo, use keyhinttext for sync in css)
 - [ ] Show 'time left' in CS:S HUD.
 - [ ] Support for bonus timer.
 
@@ -127,6 +126,7 @@ Stats
 - [x] Make MVP count the amount of WRs the player has. (with cvar)
 - [x] Generate mapsdone points on the fly.
 - [x] Add map rank to mapsdone.
+- [x] Show strafes/sync in mapsdone submenu.
 - [ ] Rework on points sorting and show weighting percentages.
 
 Miscellaneous
@@ -136,6 +136,7 @@ Miscellaneous
 - [x] Support radar hiding for CS:S.
 - [x] Fix respawn for auto team join.
 - [x] Create extra spawn points for both teams because many bhop maps lack them. (`shavit_misc_createspawnpoints`)
+- [ ] Make frags/score as -time and deaths as rank.
 - [ ] Support map changing, specifically SourceMod's built-in mapchooser and MCE.
 - [ ] Add SSJ (Speed Sixth Jump).
 
@@ -168,6 +169,7 @@ Rankings **(NEW!)**
 Web Interface
 --
 - [x] Implement points.
+- [ ] Compatibility for unix timestamps.
 
 Chat **(NEW!)**
 --
@@ -201,10 +203,10 @@ World Records
 - [x] Cache the whole leaderboard per style, sorted and updated at record removal, insertion and updates.
 - [x] Add `Shavit_GetRankForTime(BhopStyle style, float time)` which will calculate a map rank for the given time.
 - [x] Show map rank on finish.
-- [x] Use unix timestamps for future record dates.
+- [x] Use unix timestamps for future record dates and add backwards compatibility.
 - [x] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
 - [x] Add `sm_recent` `sm_recentrecords` `sm_rr`.
-- [ ] Add strafe sync to the WR menu where available.
+- [x] Add strafes/sync to the WR menu where available.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 
 Time Limits

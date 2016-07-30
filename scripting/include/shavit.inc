@@ -355,9 +355,11 @@ forward void Shavit_OnStop(int client);
  * @param style						Style the record was done on.
  * @param time						Record time.
  * @param jumps						Jumps amount.
+ * @param strafes					Amount of strafes.
+ * @param sync						Sync percentage (0.0 to 100.0).
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps);
+forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, int strafes, float sync);
 
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.
@@ -521,6 +523,15 @@ native TimerStatus Shavit_GetTimerStatus(int client);
  * @return                          Amount of strafes since timer start.
  */
 native int Shavit_GetStrafeCount(int client);
+
+/**
+ * Retrieve strafe sync since timer start.
+ * Will return 0.0 if timer isn't running.
+ *
+ * @param client					Client index.
+ * @return                          Amount of strafes since timer start.
+ */
+native float Shavit_GetSync(int client);
 
 /**
  * Saves the WR time for the current map on a variable.
@@ -792,6 +803,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
+	MarkNativeAsOptional("Shavit_GetSync");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
 	MarkNativeAsOptional("Shavit_GetWRName");

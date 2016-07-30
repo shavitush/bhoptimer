@@ -534,7 +534,7 @@ public int MenuHandler_ShowMaps(Menu m, MenuAction action, int param1, int param
 		}
 
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%s' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sInfo);
+		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%s' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sInfo);
 
 		gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(param1));
 	}
@@ -628,6 +628,15 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		FormatEx(sDisplay, 128, "Date: %s", sDate);
 		m.AddItem("-1", sDisplay);
+
+		int iStrafes = results.FetchInt(7);
+		float fSync = results.FetchFloat(8);
+
+		if((iJumps > 0 && fSync > 0.0) || iStrafes > 0)
+		{
+			FormatEx(sDisplay, 128, "Strafes: %d (%.02f%%)", iStrafes, fSync);
+			m.AddItem("-1", sDisplay);
+		}
 
 		GetMapDisplayName(sMap, sMap, 256);
 	}

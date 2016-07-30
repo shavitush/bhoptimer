@@ -40,8 +40,9 @@
 #define HUD_KEYOVERLAY			(1 << 5) // show a key overlay
 #define HUD_HIDEWEAPON			(1 << 6) // hide the player's weapon
 #define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times (css only)
+#define HUD_SYNC				(1 << 8) // shows sync at right side of the screen (css only)
 
-#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT)
+#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC)
 
 // game type (CS:S/CS:GO)
 ServerGame gSG_Type = Game_Unknown;
@@ -191,6 +192,9 @@ public Action ShowHUDMenu(int client)
 	{
 		IntToString(HUD_TOPLEFT, sInfo, 16);
 		m.AddItem(sInfo, "Top left HUD (WR/PB)");
+
+		IntToString(HUD_SYNC, sInfo, 16);
+		m.AddItem(sInfo, "Sync");
 	}
 
 	m.ExitButton = true;
@@ -433,7 +437,7 @@ public void UpdateHUD(int client)
 					Format(sHintText, 512, "%s\tJumps: %d", sHintText, iJumps);
 				}
 
-				Format(sHintText, 512, "%s\nStrafes: <font color='#BF6821'>%d</font>", sHintText, Shavit_GetStrafeCount(target));
+				Format(sHintText, 512, "%s\nStrafes: <font color='#BF6821'>%d (%.02f%%)</font>", sHintText, Shavit_GetStrafeCount(target), Shavit_GetSync(target));
 				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
@@ -449,6 +453,17 @@ public void UpdateHUD(int client)
 					else
 					{
 						strcopy(sHintText, 16, "[PAUSED]");
+					}
+
+					if(gI_HUDSettings[client] & HUD_SYNC)
+					{
+						char[] sSync = new char[16];
+						FormatEx(sSync, 16, "Sync: %.02f", Shavit_GetSync(target));
+
+						Handle hKeyHintText = StartMessageOne("KeyHintText", client);
+						BfWriteByte(hKeyHintText, 1);
+						BfWriteString(hKeyHintText, sSync);
+						EndMessage();
 					}
 				}
 
@@ -586,7 +601,7 @@ public void UpdateSpectatorList(int client, Panel panel, bool &draw)
 	if(iSpectators > 0)
 	{
 		char[] sSpectators = new char[32];
-		FormatEx(sSpectators, 32, "%spectators (%d):", client == target? "S":"Other s", iSpectators);
+		FormatEx(sSpectators, 32, "%spectators (%d):", (client == target)? "S":"Other s", iSpectators);
 		panel.DrawItem(sSpectators, ITEMDRAW_RAWLINE);
 
 		for(int i = 0; i < iSpectators; i++)
@@ -636,7 +651,7 @@ public void UpdateTopLeftHUD(int client, bool wait)
 			char[] sTopLeft = new char[64];
 			FormatEx(sTopLeft, 64, "WR: %s (%s)\nBest: %s", sWRTime, sWRName, fPBTime != 0.0? sPBTime:"N/A");
 
-			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 2.5, 2.5, 2.5);
+			SetHudTextParams(0.01, 0.01, 1.0, 255, 255, 255, 255);
 			ShowSyncHudText(client, gH_HUD, sTopLeft);
 		}
 	}
