@@ -443,16 +443,16 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	int rows = results.RowCount;
 
-	char[] sTitle = new char[32];
+	char[] sTitle = new char[64];
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sTitle, 32, "[%s] Maps done for %N: (%d)", gS_ShortBhopStyles[gBS_Style[client]], gI_Target[client], rows);
+		FormatEx(sTitle, 64, "[%s] Maps done for %N: (%d)", gS_ShortBhopStyles[gBS_Style[client]], gI_Target[client], rows);
 	}
 
 	else
 	{
-		FormatEx(sTitle, 32, "[%s] Maps left for %N: (%d)", gS_ShortBhopStyles[gBS_Style[client]], gI_Target[client], rows);
+		FormatEx(sTitle, 64, "[%s] Maps left for %N: (%d)", gS_ShortBhopStyles[gBS_Style[client]], gI_Target[client], rows);
 	}
 
 	Menu m = new Menu(MenuHandler_ShowMaps);

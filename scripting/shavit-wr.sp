@@ -925,8 +925,8 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		}
 	}
 
-	char[] sDisplayMap = new char[256];
-	GetMapDisplayName(sMap, sDisplayMap, 256);
+	char[] sDisplayMap = new char[strlen(sMap) + 1];
+	GetMapDisplayName(sMap, sDisplayMap, strlen(sMap) + 1);
 
 	char[] sFormattedTitle = new char[256];
 
@@ -1135,6 +1135,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	char[] sFormattedTitle = new char[256];
 	char[] sName = new char[MAX_NAME_LENGTH];
 	char[] sAuthID = new char[32];
+	char[] sDisplayMap = new char[192];
 
 	if(results.FetchRow())
 	{
@@ -1160,12 +1161,13 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[bsStyle]);
 		m.AddItem("-1", sDisplay);
 
+		// 6 - map
+		char[] sMap = new char[192];
+		results.FetchString(6, sMap, 192);
+		GetMapDisplayName(sMap, sDisplayMap, 192);
+
 		if(gB_Rankings)
 		{
-			// 6 - map
-			char[] sMap = new char[192];
-			results.FetchString(6, sMap, 192);
-
 			float fPoints = 0.0;
 			float fIdealTime = -1.0;
 			Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
@@ -1209,7 +1211,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	if(strlen(sName) > 0)
 	{
-		FormatEx(sFormattedTitle, 256, "%s %s\n--- %s:", sName, sAuthID, gS_Map);
+		FormatEx(sFormattedTitle, 256, "%s %s\n--- %s:", sName, sAuthID, sDisplayMap);
 	}
 
 	else
@@ -1218,9 +1220,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	}
 
 	m.SetTitle(sFormattedTitle);
-
 	m.ExitBackButton = true;
-
 	m.Display(client, 20);
 }
 
@@ -1276,7 +1276,7 @@ public void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` DATE%s, `strafes` INT, `sync` FLOAT);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` VARCHAR(32), `strafes` INT, `sync` FLOAT%s);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}
@@ -1304,6 +1304,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	char[] sQuery = new char[64];
 	FormatEx(sQuery, 64, "SELECT strafes FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
+
+	FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date VARCHAR(32);", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1334,6 +1337,16 @@ public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer (WR module) error! Times' table migration (1) failed. Reason: %s", error);
+
+		return;
+	}
+}
+
+public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR module) error! Times' table migration (2) failed. Reason: %s", error);
 
 		return;
 	}
