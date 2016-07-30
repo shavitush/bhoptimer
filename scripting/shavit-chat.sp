@@ -717,31 +717,31 @@ public void FormatVariables(int client, char[] buffer, int maxlen, const char[] 
 
 public void ChatMessage(int from, int[] clients, int count, const char[] sMessage)
 {
-    Handle hSayText2 = StartMessage("SayText2", clients, count);
+	Handle hSayText2 = StartMessage("SayText2", clients, count);
 
-    if(hSayText2 != null)
-    {
-        if(gSG_Type == Game_CSGO)
-        {
+	if(hSayText2 != null)
+	{
+		if(gSG_Type == Game_CSGO)
+		{
 			PbSetInt(hSayText2, "ent_idx", from);
-            PbSetBool(hSayText2, "chat", true);
-            PbSetString(hSayText2, "msg_name", sMessage);
+			PbSetBool(hSayText2, "chat", true);
+			PbSetString(hSayText2, "msg_name", sMessage);
 
-            for(int i = 1; i <= 4; i++)
-            {
-                PbAddString(hSayText2, "params", "");
-            }
-        }
+			for(int i = 1; i <= 4; i++)
+			{
+				PbAddString(hSayText2, "params", "");
+			}
+		}
 
-        else
-        {
-            BfWriteByte(hSayText2, from);
-            BfWriteByte(hSayText2, true);
-            BfWriteString(hSayText2, sMessage);
-        }
+		else
+		{
+			BfWriteByte(hSayText2, from);
+			BfWriteByte(hSayText2, true);
+			BfWriteString(hSayText2, sMessage);
+		}
 
-        EndMessage();
-    }
+		EndMessage();
+	}
 }
 
 public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
