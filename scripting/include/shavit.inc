@@ -44,7 +44,7 @@ enum ServerGame(+=1)
 // enum - for easier customization of settings
 enum BhopStyle(+=1)
 {
-	Style_Forwards = 0,
+	Style_Normal = 0,
 	Style_Sideways,
 	Style_WOnly,
 	Style_Scroll,
@@ -85,11 +85,11 @@ enum ReplayStatus(+=1)
 
 int gI_StyleProperties[MAX_STYLES] =
 {
-	STYLE_AUTOBHOP|STYLE_EASYBHOP, // Forwards
+	STYLE_AUTOBHOP|STYLE_EASYBHOP, // Normal
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D, // Sideways
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D|STYLE_BLOCK_S, // W-Only
 	STYLE_EASYBHOP, // Scroll
-	STYLE_VEL_LIMIT|STYLE_100AA, // 400 Velocity
+	STYLE_VEL_LIMIT, // 400 Velocity
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_HSW_ONLY // HSW
 };
 #endif
@@ -101,7 +101,7 @@ int gI_StyleProperties[MAX_STYLES] =
 // use VELOCITY_UNLIMITED to ignore
 float gF_VelocityLimit[MAX_STYLES] =
 {
-	VELOCITY_UNLIMITED, // Forwards
+	VELOCITY_UNLIMITED, // Normal
 	VELOCITY_UNLIMITED, // Sideways
 	VELOCITY_UNLIMITED, // W-Only
 	VELOCITY_UNLIMITED, // Scroll
@@ -114,7 +114,7 @@ float gF_VelocityLimit[MAX_STYLES] =
 // style names
 char gS_BhopStyles[MAX_STYLES][] =
 {
-	"Forwards",
+	"Normal",
 	"Sideways",
 	"W-Only",
 	"Scroll",
@@ -153,7 +153,7 @@ char gS_ShortBhopStyles[MAX_STYLES][] =
 // ranking system
 float gI_RankingMultipliers[MAX_STYLES] =
 {
-	1.00, // Forwards
+	1.00, // Normal
 	1.30, // Sideways
 	1.33, // W-Only
 	1.30, // Scroll
@@ -235,82 +235,32 @@ stock bool IsValidClient(int client, bool bAlive = false) // when bAlive is fals
 // time formatting!
 stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true)
 {
-	int iTemp = RoundToFloor(time);
+	int iRounded = RoundToFloor(time);
+	float fSeconds = (iRounded % 60) + time - iRounded;
 
-	int iHours = 0;
+	char[] sSeconds = new char[8];
+	FormatEx(sSeconds, 8, precise? "%.03f":"%.01f", fSeconds);
 
-	if(iTemp > 3600)
+	if(time < 60.0)
 	{
-		iHours = RoundToFloor(iTemp / 3600.0);
-		iTemp %= 3600;
-	}
-
-	char[] sHours = new char[8];
-
-	if(iHours < 10)
-	{
-		FormatEx(sHours, 8, "0%d", iHours);
+		strcopy(newtime, newtimesize, sSeconds);
 	}
 
 	else
 	{
-		FormatEx(sHours, 8, "%d", iHours);
-	}
+		int iMinutes = (iRounded / 60);
 
-	int iMinutes = 0;
-
-	if(iTemp >= 60)
-	{
-		iMinutes = RoundToFloor(iTemp / 60.0);
-		iTemp %= 60;
-	}
-
-	char[] sMinutes = new char[8];
-
-	if(iMinutes < 10)
-	{
-		FormatEx(sMinutes, 8, "0%d", iMinutes);
-	}
-
-	else
-	{
-		FormatEx(sMinutes, 8, "%d", iMinutes);
-	}
-
-	float fSeconds = ((iTemp) + time - RoundToFloor(time));
-
-	char[] sSeconds = new char[16];
-
-	if(fSeconds < 10)
-	{
-		FormatEx(sSeconds, 16, "0%.03f", fSeconds);
-	}
-
-	else
-	{
-		FormatEx(sSeconds, 16, "%.03f", fSeconds);
-	}
-
-	if(iHours > 0)
-	{
-		FormatEx(newtime, newtimesize, "%s:%s:%ss", sHours, sMinutes, sSeconds);
-	}
-
-	else if(iMinutes > 0)
-	{
-		FormatEx(newtime, newtimesize, "%s:%ss", sMinutes, sSeconds);
-	}
-
-	else
-	{
-		if(precise)
+		if(time < 3600.0)
 		{
-			FormatEx(newtime, newtimesize, "%.03fs", fSeconds);
+			FormatEx(newtime, newtimesize, "%d:%s%s", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
 
 		else
 		{
-			FormatEx(newtime, newtimesize, "%.01fs", fSeconds);
+			iMinutes %= 60;
+			int iHours = (iRounded / 3600);
+
+			FormatEx(newtime, newtimesize, "%d:%s%d:%s%s", iHours, (iMinutes < 10)? "0":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
 	}
 }

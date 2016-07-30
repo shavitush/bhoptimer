@@ -1411,12 +1411,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%\x01.", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
 			}
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
@@ -1433,12 +1433,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		{
 			if(sGame == Game_CSS)
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 			}
 
 			else
 			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
+				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%\x01. \x0C(%s)", client, gS_BhopStyles[style], sTime, GetRankForTime(style, time), jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 			}
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
@@ -1465,12 +1465,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 	{
 		if(sGame == Game_CSS)
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s, %d strafe%s @ \x06%.02f%%. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
+			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s, %d strafe%s @ \x06%.02f%%\x01. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
 		}
 	}
 
