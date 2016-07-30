@@ -399,7 +399,7 @@ public void UpdateHUD(int client)
 
 			if(gSG_Type == Game_CSGO)
 			{
-				strcopy(sHintText, 512, "<font face='Stratum2'>");
+				strcopy(sHintText, 512, "<font size=\"18\" face=\"Stratum2\">");
 
 				if(bStarted)
 				{
@@ -424,20 +424,14 @@ public void UpdateHUD(int client)
 				}
 
 				Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
-
-				if(fPB > 0.00)
-				{
-					Format(sHintText, 512, "%s\tPB: %s", sHintText, sPB);
-				}
-
-				Format(sHintText, 512, "%s\nSpeed: %.02f%s", sHintText, fSpeed_New, fSpeed_New < 10? "\t":"");
+				Format(sHintText, 512, "%s\t%sStrafes: %d (%.02f)", sHintText, (strlen(gS_BhopStyles[bsStyle]) <= 6)? "\t":"", Shavit_GetStrafeCount(target), Shavit_GetSync(target));
+				Format(sHintText, 512, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
 
 				if(bStarted)
 				{
 					Format(sHintText, 512, "%s\tJumps: %d", sHintText, iJumps);
 				}
 
-				Format(sHintText, 512, "%s\nStrafes: <font color='#BF6821'>%d (%.02f%%)</font>", sHintText, Shavit_GetStrafeCount(target), Shavit_GetSync(target));
 				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
