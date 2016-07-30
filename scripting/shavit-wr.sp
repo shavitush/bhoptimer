@@ -996,7 +996,7 @@ public Action Command_RecentRecords(int client, int args)
 	}
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, p.time, p.jumps, p.style FROM %splayertimes p JOIN %susers u ON p.auth = u.auth ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_RecentLimit.IntValue);
+	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, MIN(p.time), p.jumps, p.style FROM %splayertimes p JOIN %susers u ON p.auth = u.auth GROUP BY p.map, p.style ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_RecentLimit.IntValue);
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
