@@ -87,7 +87,7 @@ Core
 - [x] Add speed reset at timer start.
 - [x] Add support for 100AA styles.
 - [x] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
-- [ ] Add low gravity styles (0.6).
+- [x] Add low gravity styles (0.6).
 - [ ] Add bonus timer.
 
 HUD
