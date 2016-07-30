@@ -800,7 +800,7 @@ public void OnClientPutInServer(int client)
 
 	StopTimer(client);
 
-	gBS_Style[client] = Style_Forwards;
+	gBS_Style[client] = view_as<BhopStyle>(0);
 
 	if(!IsValidClient(client) || IsFakeClient(client) || gH_SQL == null)
 	{
