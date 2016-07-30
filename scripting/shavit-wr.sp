@@ -1305,8 +1305,11 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	FormatEx(sQuery, 64, "SELECT strafes FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
 
-	FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date VARCHAR(32);", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
+	if(gB_MySQL) // this isn't possible in sqlite
+	{
+		FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date VARCHAR(32);", gS_MySQLPrefix);
+		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
+	}
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)

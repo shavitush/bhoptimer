@@ -64,7 +64,7 @@ bool gB_Auto[MAXPLAYERS+1];
 bool gB_OnGround[MAXPLAYERS+1];
 int gI_ButtonCache[MAXPLAYERS+1];
 int gI_Strafes[MAXPLAYERS+1];
-float gF_AngleCache[MAXPLAYERS+1][3];
+float gF_AngleCache[MAXPLAYERS+1];
 int gI_TotalMeasures[MAXPLAYERS+1];
 int gI_GoodGains[MAXPLAYERS+1];
 float gF_HSW_Requirement = 0.0;
@@ -1064,36 +1064,56 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		vel = view_as<float>({0.0, 0.0, 0.0});
 	}
 
-	float fSpeed[3];
-	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+	float fAngle = (angles[1] - gF_AngleCache[client]);
 
-	if(!bOnGround && !(iFlags & FL_INWATER) && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) > 0.0)
+	while(fAngle > 180.0)
 	{
-		float fAngle = (angles[1] - gF_AngleCache[client][1]);
+		fAngle -= 360.0;
+	}
 
-		while(fAngle > 180.0)
+	while(fAngle < -180.0)
+	{
+		fAngle += 360.0;
+	}
+
+	if(!bOnGround && !(iFlags & FL_INWATER) && fAngle != 0.0)
+	{
+		float fAbsVelocity[3];
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+
+		if(SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)) > 0.0)
 		{
-			fAngle -= 180.0;
-		}
+			float fTempAngle = angles[1];
 
-		while(fAngle < -180.0)
-		{
-			fAngle += 180.0;
-		}
+			float fAngles[3];
+			GetVectorAngles(fAbsVelocity, fAngles);
 
-		if(fAngle != 0.0)
-		{
-			gI_TotalMeasures[client]++;
-
-			if((fAngle > 0.0 && (vel[1] < 0.0 || vel[0] > 0.0)) || (fAngle < 0.0 && (vel[1] > 0.0 || vel[1] < 0.0)))
+			if(fTempAngle < 0.0)
 			{
-				gI_GoodGains[client]++;
+				fTempAngle += 360.0;
+			}
+
+			float fDirectionAngle = (fTempAngle - fAngles[1]);
+
+			if(fDirectionAngle < 0.0)
+			{
+				fDirectionAngle = -fDirectionAngle;
+			}
+
+			if(fDirectionAngle < 22.5 || fDirectionAngle > 337.5)
+			{
+				gI_TotalMeasures[client]++;
+
+				if((fAngle > 0.0 && vel[1] < 0.0) || (fAngle < 0.0 && vel[1] > 0.0))
+				{
+					gI_GoodGains[client]++;
+				}
 			}
 		}
 	}
 
 	gI_ButtonCache[client] = buttons;
-	gF_AngleCache[client] = angles;
+	gF_AngleCache[client] = angles[1];
 
 	return Plugin_Continue;
 }

@@ -579,7 +579,7 @@ public void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(i == client || !IsValidClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target)
+		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target)
 		{
 			continue;
 		}
@@ -645,7 +645,7 @@ public void UpdateTopLeftHUD(int client, bool wait)
 			char[] sTopLeft = new char[64];
 			FormatEx(sTopLeft, 64, "WR: %s (%s)\nBest: %s", sWRTime, sWRName, fPBTime != 0.0? sPBTime:"N/A");
 
-			SetHudTextParams(0.01, 0.01, 1.0, 255, 255, 255, 255);
+			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255);
 			ShowSyncHudText(client, gH_HUD, sTopLeft);
 		}
 	}
