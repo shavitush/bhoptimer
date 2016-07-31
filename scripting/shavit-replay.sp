@@ -60,6 +60,7 @@ bool gB_HideNameChange = false;
 bool gB_DontCallTimer = false;
 
 // plugin cvars
+ConVar gCV_Enabled = null;
 ConVar gCV_ReplayDelay = null;
 ConVar gCV_TimeLimit = null;
 ConVar gCV_NameStyle = null;
@@ -101,11 +102,10 @@ public void OnPluginStart()
 		}
 	}
 
-	CreateTimer(1.0, Cron, INVALID_HANDLE, TIMER_REPEAT);
-
 	gF_Tickrate = (1.0 / GetTickInterval());
 
 	// plugin convars
+	gCV_Enabled = CreateConVar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
 	gCV_NameStyle = CreateConVar("shavit_replay_namestyle", "1", "Replay bot naming style\n0 - [SHORT STYLE] <TIME> - PLAYER NAME\n1 - LONG STYLE - <TIME>", 0, true, 0.0, true, 1.0);
@@ -150,8 +150,15 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 
 public Action Cron(Handle Timer)
 {
+	if(!gCV_Enabled.BoolValue)
+	{
+		bot_quota.IntValue = 0;
+
+		return Plugin_Continue;
+	}
+
 	// make sure there are enough bots
-	if(bot_quota != null && bot_quota.IntValue != gI_ExpectedBots)
+	else if(bot_quota != null && bot_quota.IntValue != gI_ExpectedBots)
 	{
 		bot_quota.IntValue = gI_ExpectedBots;
 	}
@@ -179,6 +186,8 @@ public Action Cron(Handle Timer)
 			ClearFrames(i);
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -205,6 +214,11 @@ public Action HookTriggers(int entity, int other)
 
 public void OnMapStart()
 {
+	if(!gCV_Enabled.BoolValue)
+	{
+		return;
+	}
+
 	bot_quota = FindConVar("bot_quota");
 	bot_quota.Flags &= ~FCVAR_NOTIFY;
 
@@ -298,6 +312,8 @@ public void OnMapStart()
 			gRS_ReplayStatus[i] = Replay_Running;
 		}
 	}
+
+	CreateTimer(1.0, Cron, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public bool LoadReplay(BhopStyle style)
@@ -441,7 +457,7 @@ public void OnClientPutInServer(int client)
 
 public void UpdateReplayInfo(int client, BhopStyle style, float time)
 {
-	if(!IsValidClient(client))
+	if(!IsValidClient(client) || !gCV_Enabled.BoolValue)
 	{
 		return;
 	}
@@ -557,7 +573,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time)
 	float fWRTime = 0.0;
 	Shavit_GetWRTime(style, fWRTime);
 
-	if((fWRTime > 0.0 && time > fWRTime) || !ReplayEnabled(style))
+	if(!gCV_Enabled.BoolValue || (fWRTime > 0.0 && time > fWRTime) || !ReplayEnabled(style))
 	{
 		ClearFrames(client);
 	}
@@ -572,7 +588,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 		return;
 	}
 
-	if(gCV_TimeLimit.BoolValue && time > gCV_TimeLimit.FloatValue)
+	if(!gCV_Enabled.BoolValue || (gCV_TimeLimit.BoolValue && time > gCV_TimeLimit.FloatValue))
 	{
 		ClearFrames(client);
 
@@ -611,7 +627,7 @@ public void Shavit_OnResume(int client)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
-	if(!IsPlayerAlive(client))
+	if(!IsPlayerAlive(client) || !gCV_Enabled.BoolValue)
 	{
 		return Plugin_Continue;
 	}
@@ -751,6 +767,11 @@ public bool ReplayEnabled(any style)
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
+	if(!gCV_Enabled.BoolValue)
+	{
+		return;
+	}
+
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
 	if(IsFakeClient(client))
@@ -787,6 +808,11 @@ public Action DelayedUpdate(Handle Timer, any data)
 
 public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 {
+	if(!gCV_Enabled.BoolValue)
+	{
+		return;
+	}
+
 	if(event.GetBool("bot"))
 	{
 		event.BroadcastDisabled = true;
@@ -807,7 +833,7 @@ public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 
 public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
 {
-	if(!gB_HideNameChange)
+	if(!gB_HideNameChange || !gCV_Enabled.BoolValue)
 	{
 		return Plugin_Continue;
 	}
