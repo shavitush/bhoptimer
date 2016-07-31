@@ -49,7 +49,9 @@ enum BhopStyle(+=1)
 	Style_WOnly,
 	Style_Scroll,
 	Style_400Velocity,
-	Style_HSW
+	Style_HSW,
+	Style_LowGravity,
+	Style_SlowMotion
 };
 
 // status
