@@ -104,7 +104,7 @@ HUD
 - [x] Show [PAUSED] if needed.
 - [x] Add potential map rank.
 - [x] Add strafes/sync. (replace 'Player' with strafes and sync in csgo, use keyhinttext for sync in css)
-- [x] Show 'time left' in CS:S HUD.
+- [x] Show 'time left' to HUD (CS:S only).
 - [ ] Support for bonus timer.
 
 Replay
