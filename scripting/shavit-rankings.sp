@@ -316,61 +316,70 @@ public Action ShowTopMenu(int client)
     char[] sQuery = new char[192];
     FormatEx(sQuery, 192, "SELECT u.name, %s points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gB_MySQL? "FORMAT(up.points, 2)":"up.points", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
 
-    gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+    gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client));
 
     return Plugin_Handled;
 }
 
 public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-    if(results == null)
-    {
-        LogError("Timer error on ShowTopMenu. Reason: %s", error);
+	if(results == null)
+	{
+		LogError("Timer error on ShowTopMenu. Reason: %s", error);
 
-        return;
-    }
+		return;
+	}
 
-    int client = GetClientFromSerial(data);
+	int client = GetClientFromSerial(data);
 
-    if(client == 0)
-    {
-        return;
-    }
+	if(client == 0)
+	{
+		return;
+	}
 
-    Menu m = new Menu(MenuHandler_TopMenu);
-    m.SetTitle("Top %d Players", gCV_TopAmount.IntValue);
+	Menu m = new Menu(MenuHandler_TopMenu);
+	m.SetTitle("Top %d Players", gCV_TopAmount.IntValue);
 
-    if(results.RowCount == 0)
-    {
-        m.AddItem("-1", "No results.");
-    }
+	if(results.RowCount == 0)
+	{
+		m.AddItem("-1", "No results.");
+	}
 
-    else
-    {
-        int count = 0;
+	else
+	{
+		int count = 0;
 
-        while(results.FetchRow())
-        {
-            char[] sName = new char[MAX_NAME_LENGTH];
-            results.FetchString(0, sName, MAX_NAME_LENGTH);
+		while(results.FetchRow())
+		{
+			char[] sName = new char[MAX_NAME_LENGTH];
+			results.FetchString(0, sName, MAX_NAME_LENGTH);
 
-            char[] sPoints = new char[16];
-            results.FetchString(1, sPoints, 16);
+			int iRank = ++count;
+			char[] sRank = new char[6];
+			IntToString(iRank, sRank, 6); // info string for future purposes
 
-            int iRank = ++count;
-            char[] sRank = new char[6];
-            IntToString(iRank, sRank, 6); // info string for future purposes
+			char[] sDisplay = new char[64];
 
-            char[] sDisplay = new char[64];
-            FormatEx(sDisplay, 64, "#%d - %s (%s points)", iRank, sName, sPoints);
+			if(gB_MySQL)
+			{
+				char[] sPoints = new char[16];
+				results.FetchString(1, sPoints, 16);
 
-            m.AddItem(sRank, sDisplay);
-        }
-    }
+				FormatEx(sDisplay, 64, "#%d - %s (%s points)", iRank, sName, sPoints);
+			}
 
-    m.ExitButton = true;
+			else
+			{
+				FormatEx(sDisplay, 64, "#%d - %s (%.02f points)", iRank, sName, results.FetchFloat(1));
+			}
 
-    m.Display(client, 20);
+			m.AddItem(sRank, sDisplay);
+		}
+	}
+
+	m.ExitButton = true;
+
+	m.Display(client, 20);
 }
 
 public int MenuHandler_TopMenu(Menu m, MenuAction action, int param1, int param2)
@@ -705,7 +714,7 @@ public void UpdatePlayerPoints(int client, bool chat)
     GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
     char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE pt.auth = '%s' ORDER BY pp.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
+    FormatEx(sQuery, 256, "SELECT points FROM %splayertimes pt JOIN %splayerpoints pp ON pt.id = pp.recordid WHERE pt.auth = '%s' AND pp.points != -1 ORDER BY pp.points DESC;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
     gH_SQL.Query(SQL_UpdatePoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
@@ -724,8 +733,7 @@ public void SQL_UpdatePoints_Callback(Database db, DBResultSet results, const ch
 
     while(results.FetchRow())
     {
-        float fFetchedPoints = results.FetchFloat(0);
-        fPoints += fFetchedPoints * fWeight;
+        fPoints += (results.FetchFloat(0) * fWeight);
         fWeight *= 0.95;
     }
 

@@ -471,7 +471,7 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 	Shavit_GetWRTime(style, fWRTime);
 
 	char[] sTime = new char[16];
-	FormatSeconds(time == -1.0? fWRTime:time, sTime, 16);
+	FormatSeconds((time == -1.0)? fWRTime:time, sTime, 16);
 
 	char[] sName = new char[MAX_NAME_LENGTH];
 
@@ -520,9 +520,12 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 
 	gB_DontCallTimer = true;
 
-	if((gI_FrameCount[style] == 0 || time == 0.0) && IsPlayerAlive(client))
+	if((gI_FrameCount[style] == 0 || fWRTime == 0.0))
 	{
-		ForcePlayerSuicide(client);
+		if(IsPlayerAlive(client))
+		{
+			ForcePlayerSuicide(client);
+		}
 	}
 
 	else
@@ -636,17 +639,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	float vecCurrentPosition[3];
 	GetClientAbsOrigin(client, vecCurrentPosition);
 
-	int iReplayBotStyle = -1;
-
-	for(int i = 0; i < MAX_STYLES; i++)
-	{
-		if(client == gI_ReplayBotClient[i])
-		{
-			iReplayBotStyle = i;
-
-			break;
-		}
-	}
+	int iReplayBotStyle = view_as<int>(GetReplayStyle(client));
 
 	if(iReplayBotStyle != -1 && ReplayEnabled(iReplayBotStyle))
 	{
