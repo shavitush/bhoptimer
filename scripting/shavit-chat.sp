@@ -46,6 +46,9 @@ StringMap gSM_Custom_Name = null;
 StringMap gSM_Custom_Message = null;
 
 int gI_TotalChatRanks = 0;
+int gI_UnassignedTitle = -1;
+int gI_UnrankedTitle = -1;
+
 Dynamic gD_ChatRanks[64]; // limited to 64 chat ranks right now, i really don't think there's a need for more.
 
 // modules
@@ -123,6 +126,13 @@ public void OnMapStart()
 public void OnClientPutInServer(int client)
 {
 	gF_LastMessage[client] = GetEngineTime();
+
+	if(gI_TotalChatRanks >= 1 && gD_ChatRanks[0].IsValid)
+	{
+		gD_ChatRanks[0].GetString("prefix", gS_Cached_Prefix[client], 32);
+		gD_ChatRanks[0].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
+		gD_ChatRanks[0].GetString("message", gS_Cached_Message[client], 255);
+	}
 }
 
 public void OnClientAuthorized(int client, const char[] auth)
@@ -175,22 +185,33 @@ public void LoadChatCache(int client)
 {
 	// assign rank properties
 	int iRank = Shavit_GetRank(client);
+	int iTitle = (iRank == -1)? gI_UnassignedTitle:gI_UnrankedTitle;
 
-	for(int i = 0; i < gI_TotalChatRanks; i++)
+	if(iRank <= 0)
 	{
-		if(gD_ChatRanks[i].IsValid)
+		gD_ChatRanks[iTitle].GetString("prefix", gS_Cached_Prefix[client], 32);
+		gD_ChatRanks[iTitle].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
+		gD_ChatRanks[iTitle].GetString("message", gS_Cached_Message[client], 255);
+	}
+
+	else
+	{
+		for(int i = 0; i < gI_TotalChatRanks; i++)
 		{
-			int iFrom = gD_ChatRanks[i].GetInt("rank_from");
-			int iTo = gD_ChatRanks[i].GetInt("rank_to");
-
-			if(iRank < iFrom || (iRank > iTo && iTo != -3))
+			if(gD_ChatRanks[i].IsValid)
 			{
-				continue;
-			}
+				int iFrom = gD_ChatRanks[i].GetInt("rank_from");
+				int iTo = gD_ChatRanks[i].GetInt("rank_to");
 
-			gD_ChatRanks[i].GetString("prefix", gS_Cached_Prefix[client], 32);
-			gD_ChatRanks[i].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
-			gD_ChatRanks[i].GetString("message", gS_Cached_Message[client], 255);
+				if(iRank < iFrom || (iRank > iTo && iTo != -3))
+				{
+					continue;
+				}
+
+				gD_ChatRanks[i].GetString("prefix", gS_Cached_Prefix[client], 32);
+				gD_ChatRanks[i].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
+				gD_ChatRanks[i].GetString("message", gS_Cached_Message[client], 255);
+			}
 		}
 	}
 
@@ -228,6 +249,8 @@ public void ResetCache()
 	}
 
 	gI_TotalChatRanks = 0;
+	gI_UnassignedTitle = -1;
+	gI_UnrankedTitle = -1;
 }
 
 public void LoadConfig()
@@ -318,6 +341,16 @@ public void LoadConfig()
 				gD_ChatRanks[gI_TotalChatRanks].SetString("name", (strlen(sName) > 0)? sName:"{name}", MAX_NAME_LENGTH*2);
 				gD_ChatRanks[gI_TotalChatRanks].SetString("message", (strlen(sMessage) > 0)? sMessage:"{message}", 255);
 
+				if(iFrom == -1 && gI_UnassignedTitle == -1)
+				{
+					gI_UnassignedTitle = gI_TotalChatRanks;
+				}
+
+				else if(iFrom == 0 && gI_UnrankedTitle == -1)
+				{
+					gI_UnrankedTitle = gI_TotalChatRanks;
+				}
+
 				gI_TotalChatRanks++;
 			}
 		}
@@ -336,9 +369,14 @@ public void LoadConfig()
     {
 		if(IsValidClient(i)) // late loading
 		{
-			gF_LastMessage[i] = GetEngineTime();
+			OnClientPutInServer(i);
 
-			Shavit_OnRankUpdated(i);
+			char[] sAuth = new char[32];
+
+			if(GetClientAuthId(i, AuthId_Steam3, sAuth, 32))
+			{
+				OnClientAuthorized(i, sAuth);
+			}
 		}
 	}
 }
@@ -461,6 +499,11 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 		strcopy(sName, MAX_NAME_LENGTH*2, sBuffer);
 	}
 
+	else
+	{
+		FormatEx(sName, MAX_NAME_LENGTH*2, "\x03%N", author);
+	}
+
 	char[] sFormattedText = new char[MAXLENGTH_MESSAGE];
 	strcopy(sFormattedText, MAXLENGTH_MESSAGE, message);
 
@@ -474,6 +517,11 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 	{
 		FormatVariables(author, sBuffer, 255, gS_Cached_Message[author], sFormattedText);
 		strcopy(sFormattedText, 255, sBuffer);
+	}
+
+	else
+	{
+		strcopy(sFormattedText, 255, message);
 	}
 
 	FormatEx(name, MAXLENGTH_NAME, "%s%s%s", gSG_Type == Game_CSGO? " ":"", sPrefix, sName);
