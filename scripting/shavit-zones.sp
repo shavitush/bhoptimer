@@ -1229,7 +1229,7 @@ public void CreateWidthLengthMenu(int client, int page)
 	char[] sDisplay = new char[32];
 	char[] sInfo = new char[8];
 
-	for(int iEdge = 0; iEdge < 3; iEdge++)
+	for(int iEdge = 0; iEdge < 4; iEdge++)
 	{
 		for(int iState = 1; iState <= 2; iState++)
 		{
