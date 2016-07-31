@@ -971,6 +971,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Continue;
 	}
 
+	if(gB_ClientPaused[client])
+	{
+		buttons = 0;
+		vel = view_as<float>({0.0, 0.0, 0.0});
+
+		return Plugin_Changed;
+	}
+
 	if(!(gI_ButtonCache[client] & IN_FORWARD) && buttons & IN_FORWARD)
 	{
 		gI_Strafes[client]++;
@@ -1097,11 +1105,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	else
 	{
 		gB_OnGround[client] = false;
-	}
-
-	if(gB_ClientPaused[client])
-	{
-		vel = view_as<float>({0.0, 0.0, 0.0});
 	}
 
 	float fAngle = (angles[1] - gF_AngleCache[client]);

@@ -281,6 +281,8 @@ public void OnMapStart()
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
+		gA_Frames[i] = new ArrayList(5);
+
 		if(!ReplayEnabled(i))
 		{
 			continue;
@@ -289,7 +291,6 @@ public void OnMapStart()
 		gI_ExpectedBots++;
 		gI_ReplayTick[i] = 0;
 		gI_FrameCount[i] = 0;
-		gA_Frames[i] = new ArrayList(5);
 
 		ServerCommand("bot_add");
 
