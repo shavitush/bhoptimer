@@ -1545,7 +1545,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	{
 		BhopStyle style = view_as<BhopStyle>(results.FetchInt(0));
 
-		if(gI_StyleProperties[style] & STYLE_UNRANKED)
+		if(view_as<int>(style) >= MAX_STYLES || gI_StyleProperties[style] & STYLE_UNRANKED)
 		{
 			continue;
 		}
@@ -1555,7 +1555,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		if(view_as<int>(i) >= MAX_STYLES || gI_StyleProperties[i] & STYLE_UNRANKED)
 		{
 			continue;
 		}
