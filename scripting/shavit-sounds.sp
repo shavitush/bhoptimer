@@ -33,7 +33,6 @@ ServerGame gSG_Type = Game_Unknown;
 ArrayList gA_FirstSounds = null;
 ArrayList gA_PersonalSounds = null;
 ArrayList gA_WorldSounds = null;
-ArrayList gA_WorseSounds = null;
 StringMap gSM_RankSounds = null;
 
 public Plugin myinfo =
@@ -58,7 +57,6 @@ public void OnPluginStart()
 	gA_FirstSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
-	gA_WorseSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gSM_RankSounds = new StringMap();
 
 	gSG_Type = Shavit_GetGameType();
@@ -115,11 +113,6 @@ public void OnMapStart()
 				gA_WorldSounds.PushString(sExploded[1]);
 			}
 
-			else if(StrEqual(sExploded[0], "worse"))
-			{
-				gA_WorseSounds.PushString(sExploded[1]);
-			}
-
 			else
 			{
 				char[] sRank = new char[8];
@@ -148,7 +141,7 @@ public void OnMapStart()
 	delete fFile;
 }
 
-public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank)
+public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank, int overwrite)
 {
 	float fOldTime = 0.0;
 	Shavit_GetPlayerPB(client, style, fOldTime);
@@ -177,14 +170,9 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 		gA_PersonalSounds.GetString(GetRandomInt(0, gA_PersonalSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 	}
 
-	else if(gA_FirstSounds.Length != 0 && fOldTime == 0.0)
+	else if(gA_FirstSounds.Length != 0 && overwrite == 1)
 	{
 		gA_FirstSounds.GetString(GetRandomInt(0, gA_FirstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
-	}
-
-	else if(gA_WorseSounds.Length != 0 && time > fOldTime)
-	{
-		gA_WorseSounds.GetString(GetRandomInt(0, gA_WorseSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 	}
 
 	if(StrContains(sSound, ".") != -1) // file has an extension?
