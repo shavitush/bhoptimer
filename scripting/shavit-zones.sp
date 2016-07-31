@@ -1457,10 +1457,13 @@ public Action Timer_Draw(Handle Timer, any data)
 
 	float vPoints[8][3];
 	vPoints[0] = gV_Point1[client];
-	vPoints[0][2] += 2.0;
-
 	vPoints[7] = vOrigin;
-	vPoints[7][2] += 2.0;
+
+	if(gSG_Type == Game_CSS)
+	{
+		vPoints[0][2] += 2.0;
+		vPoints[7][2] += 2.0;
+	}
 
 	CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
 	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
