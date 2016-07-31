@@ -224,7 +224,7 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
-	gCV_DefaultAA = CreateConVar("shavit_core_defaultaa", "2000", "Airaccelerate value to use for non-100AA styles, overrides sv_airaccelerate.\nRestart the server after you change this value to not cause issues.");
+	gCV_DefaultAA = CreateConVar("shavit_core_defaultaa", "1000", "Airaccelerate value to use for non-100AA styles, overrides sv_airaccelerate.\nRestart the server after you change this value to not cause issues.");
 
 	AutoExecConfig();
 
@@ -1078,7 +1078,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(gB_HUD && gI_ButtonCache[client] != buttons)
+	if(gI_ButtonCache[client] != buttons && gB_HUD)
 	{
 		Shavit_ForceHUDUpdate(client, true);
 	}
