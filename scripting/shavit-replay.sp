@@ -427,7 +427,7 @@ public void OnClientPutInServer(int client)
 	{
 		for(int i = 0; i < MAX_STYLES; i++)
 		{
-			if(gI_ReplayBotClient[i] == 0)
+			if(ReplayEnabled(i) && gI_ReplayBotClient[i] == 0)
 			{
 				gI_ReplayBotClient[i] = client;
 
@@ -697,18 +697,21 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if(gB_Record[client] && ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
+	else
 	{
-		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
+		if(gB_Record[client] && ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
+		{
+			gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
 
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
 
-		gI_PlayerFrames[client]++;
+			gI_PlayerFrames[client]++;
+		}
 	}
 
 	return Plugin_Continue;

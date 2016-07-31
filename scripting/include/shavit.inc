@@ -29,7 +29,7 @@
 
 #define PREFIX "\x04[Timer]\x01"
 
-#define MAX_STYLES 7
+#define MAX_STYLES 8
 #define MAX_ZONES 8
 
 // game types
@@ -82,7 +82,9 @@ enum ReplayStatus(+=1)
 #define STYLE_PRESPEED			(1 << 10) // allow prespeeding regardless of the prespeed setting
 #define STYLE_HSW_ONLY			(1 << 11) // force half-sideways
 #define STYLE_100AA				(1 << 12) // force 100 airacclerate for the style
-#define STYLE_LOWGRAV			(1 << 13) // 0.6x gravity
+#define STYLE_LOWGRAV			(1 << 13) // 0.6x gravity (standard for low gravity styles)
+#define STYLE_SLOWMO			(1 << 14) // 0.5x speed (standard for slowmo styles)
+#define STYLE_SLOWMOTIME		(1 << 15) // calculation of times will be halved, replays WILL NOT function properly
 
 int gI_StyleProperties[MAX_STYLES] =
 {
@@ -92,7 +94,8 @@ int gI_StyleProperties[MAX_STYLES] =
 	STYLE_EASYBHOP, // Scroll
 	STYLE_VEL_LIMIT, // 400 Velocity
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_HSW_ONLY, // HSW
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_LOWGRAV|STYLE_UNRANKED // Low gravity
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_LOWGRAV|STYLE_UNRANKED, // Low gravity
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_SLOWMO|STYLE_SLOWMOTIME|STYLE_UNRANKED // Slow motion
 };
 #endif
 
@@ -108,7 +111,9 @@ float gF_VelocityLimit[MAX_STYLES] =
 	VELOCITY_UNLIMITED, // W-Only
 	VELOCITY_UNLIMITED, // Scroll
 	400.00, // 400 Velocity
-	VELOCITY_UNLIMITED // HSW
+	VELOCITY_UNLIMITED, // HSW
+	VELOCITY_UNLIMITED, // Low gravity
+	VELOCITY_UNLIMITED, // Slow motion
 };
 #endif
 
@@ -121,7 +126,9 @@ char gS_BhopStyles[MAX_STYLES][] =
 	"W-Only",
 	"Scroll",
 	"400 Velocity",
-	"Half-Sideways"
+	"Half-Sideways",
+	"Low Gravity",
+	"Slow Motion"
 };
 #endif
 
@@ -135,7 +142,8 @@ char gS_StyleHTMLColors[MAX_STYLES][] =
 	"279BC2",
 	"C9BB8B",
 	"B54CBB",
-	"DB88C2"
+	"DB88C2",
+	"C288DB"
 };
 #endif
 
@@ -149,7 +157,8 @@ char gS_ShortBhopStyles[MAX_STYLES][] =
 	"LEGIT",
 	"400VEL",
 	"HSW",
-	"LG"
+	"LG",
+	"SLOW"
 };
 #endif
 
@@ -163,7 +172,8 @@ float gI_RankingMultipliers[MAX_STYLES] =
 	1.30, // Scroll
 	1.50, // 400 Velocity
 	1.20, // HSW
-	0.00 // Low gravity
+	0.00, // Low gravity
+	0.00 // Slow motion
 };
 #endif
 

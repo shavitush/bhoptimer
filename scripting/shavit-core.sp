@@ -547,6 +547,11 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 	{
 		SetEntityGravity(client, 0.6);
 	}
+
+	if(gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMO)
+	{
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 0.5);
+	}
 }
 
 public void Player_Death(Event event, const char[] name, bool dontBroadcast)
@@ -731,7 +736,7 @@ public void StartTimer(int client)
 	gB_ClientPaused[client] = false;
 
 	SetEntityGravity(client, (gI_StyleProperties[gBS_Style[client]] & STYLE_LOWGRAV)? 0.6:0.0);
-	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 1.0);
+	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", (gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMO)? 0.5:1.0);
 }
 
 public void StopTimer(int client)
@@ -783,15 +788,24 @@ public void ResumeTimer(int client)
 
 public float CalculateTime(int client)
 {
+	float time = 0.0;
+
 	if(!gB_ClientPaused[client])
 	{
-		return (GetEngineTime() - gF_StartTime[client] - gF_PauseTotalTime[client]);
+		time = (GetEngineTime() - gF_StartTime[client] - gF_PauseTotalTime[client]);
 	}
 
 	else
 	{
-		return (gF_PauseStartTime[client] - gF_StartTime[client] - gF_PauseTotalTime[client]);
+		time = (gF_PauseStartTime[client] - gF_StartTime[client] - gF_PauseTotalTime[client]);
 	}
+
+	if(gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMOTIME)
+	{
+		time /= 2.0;
+	}
+
+	return time;
 }
 
 public void OnClientDisconnect(int client)

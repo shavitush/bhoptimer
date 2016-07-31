@@ -144,7 +144,7 @@ public void OnMapStart()
     delete fFile;
 }
 
-public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps)
+public void Shavit_OnFinish_Post(int client, BhopStyle style, float time)
 {
     float fOldTime = 0.0;
     Shavit_GetPlayerPB(client, style, fOldTime);
