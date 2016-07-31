@@ -67,6 +67,7 @@ int gI_Strafes[MAXPLAYERS+1];
 float gF_AngleCache[MAXPLAYERS+1];
 int gI_TotalMeasures[MAXPLAYERS+1];
 int gI_GoodGains[MAXPLAYERS+1];
+bool gB_DoubleSteps[MAXPLAYERS+1];
 float gF_HSW_Requirement = 0.0;
 
 // late load
@@ -203,6 +204,10 @@ public void OnPluginStart()
 	// autobhop toggle
 	RegConsoleCmd("sm_auto", Command_AutoBhop, "Toggle autobhop.");
 	RegConsoleCmd("sm_autobhop", Command_AutoBhop, "Toggle autobhop.");
+
+	// doublstep fixer
+	AddCommandListener(Command_DoubleStep, "+ds");
+	AddCommandListener(Command_DoubleStep, "-ds");
 	// commands END
 
 	#if defined DEBUG
@@ -429,6 +434,13 @@ public Action Command_AutoBhop(int client, int args)
 	gB_Auto[client] = !gB_Auto[client];
 
 	Shavit_PrintToChat(client, "Autobhop %s\x01.", gB_Auto[client]? "\x04enabled":"\x02disabled");
+
+	return Plugin_Handled;
+}
+
+public Action Command_DoubleStep(int client, const char[] command, int args)
+{
+	gB_DoubleSteps[client] = (command[0] == '+');
 
 	return Plugin_Handled;
 }
@@ -816,6 +828,7 @@ public void OnClientDisconnect(int client)
 public void OnClientPutInServer(int client)
 {
 	gB_Auto[client] = true;
+	gB_DoubleSteps[client] = false;
 
 	StopTimer(client);
 
@@ -978,9 +991,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gI_Strafes[client]++;
 	}
 
-	int iFlags = GetEntityFlags(client);
+	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
+	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
-	bool bOnGround = (iFlags & FL_ONGROUND || bOnLadder);
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
 
 	if(gCV_LeftRight.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && (buttons & IN_LEFT || buttons & IN_RIGHT)))
@@ -998,7 +1011,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			buttons &= ~IN_USE;
 		}
 
-		if(!bOnGround)
+		if(iGroundEntity == -1)
 		{
 			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (buttons & IN_FORWARD || vel[0] > 0.0))
 			{
@@ -1044,9 +1057,17 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// autobhop
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP && gCV_Autobhop.BoolValue && gB_Auto[client] && buttons & IN_JUMP && !bOnGround && GetEntProp(client, Prop_Send, "m_nWaterLevel") <= 1)
+	if(gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP && gCV_Autobhop.BoolValue && gB_Auto[client])
 	{
-		buttons &= ~IN_JUMP;
+		if(buttons & IN_JUMP && iGroundEntity == -1 && !bOnLadder && !bInWater)
+		{
+			buttons &= ~IN_JUMP;
+		}
+
+		else if(gB_DoubleSteps[client] && (iGroundEntity != -1 || bOnLadder || bInWater))
+		{
+			buttons |= IN_JUMP;
+		}
 	}
 
 	if(gB_HUD && gI_ButtonCache[client] != buttons)
@@ -1055,7 +1076,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// velocity limit
-	if(bOnGround && gI_StyleProperties[gBS_Style[client]] & STYLE_VEL_LIMIT && gF_VelocityLimit[gBS_Style[client]] != VELOCITY_UNLIMITED && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
+	if(iGroundEntity != -1 && gI_StyleProperties[gBS_Style[client]] & STYLE_VEL_LIMIT && gF_VelocityLimit[gBS_Style[client]] != VELOCITY_UNLIMITED && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
 		gB_OnGround[client] = true;
 
@@ -1095,7 +1116,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		fAngle += 360.0;
 	}
 
-	if(!bOnGround && !(iFlags & FL_INWATER) && fAngle != 0.0)
+	if(iGroundEntity == -1 && !(GetEntityFlags(client) & FL_INWATER) && fAngle != 0.0)
 	{
 		float fAbsVelocity[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);

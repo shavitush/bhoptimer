@@ -88,6 +88,7 @@ Core
 - [x] Add support for 100AA styles.
 - [x] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
 - [x] Add low gravity styles (0.6).
+- [x] Better implementation of autobhop and +ds (doublestep fix).
 - [ ] Add bonus timer.
 
 HUD
