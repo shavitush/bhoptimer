@@ -41,8 +41,9 @@
 #define HUD_HIDEWEAPON			(1 << 6) // hide the player's weapon
 #define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times (css only)
 #define HUD_SYNC				(1 << 8) // shows sync at right side of the screen (css only)
+#define HUD_TIMELEFT			(1 << 9) // shows time left at right tside of the screen (css only)
 
-#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC)
+#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT)
 
 // game type (CS:S/CS:GO)
 ServerGame gSG_Type = Game_Unknown;
@@ -195,6 +196,9 @@ public Action ShowHUDMenu(int client)
 
 		IntToString(HUD_SYNC, sInfo, 16);
 		m.AddItem(sInfo, "Sync");
+
+		IntToString(HUD_TIMELEFT, sInfo, 16);
+		m.AddItem(sInfo, "Time left");
 	}
 
 	m.ExitButton = true;
@@ -303,6 +307,7 @@ public void TriggerHUDUpdate(int client)
 	if(gSG_Type == Game_CSS)
 	{
 		UpdateTopLeftHUD(client, true);
+		UpdateKeyHint(client);
 	}
 
 	if((gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS) && (!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel))
@@ -447,17 +452,6 @@ public void UpdateHUD(int client)
 					else
 					{
 						strcopy(sHintText, 16, "[PAUSED]");
-					}
-
-					if(gI_HUDSettings[client] & HUD_SYNC)
-					{
-						char[] sSync = new char[16];
-						FormatEx(sSync, 16, "Sync: %.02f", Shavit_GetSync(target));
-
-						Handle hKeyHintText = StartMessageOne("KeyHintText", client);
-						BfWriteByte(hKeyHintText, 1);
-						BfWriteString(hKeyHintText, sSync);
-						EndMessage();
 					}
 				}
 
@@ -647,6 +641,35 @@ public void UpdateTopLeftHUD(int client, bool wait)
 
 			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255);
 			ShowSyncHudText(client, gH_HUD, sTopLeft);
+		}
+	}
+}
+
+public void UpdateKeyHint(int client)
+{
+	if(gI_Cycle % 10 == 0 && (gI_HUDSettings[client] & HUD_SYNC || gI_HUDSettings[client] & HUD_TIMELEFT))
+	{
+		char[] sMessage = new char[128];
+		int iTimeLeft = -1;
+
+		if(gI_HUDSettings[client] & HUD_TIMELEFT && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
+		{
+			FormatEx(sMessage, 128, (iTimeLeft > 60)? "Time left: %d minutes":"Time left: <1 minute", (iTimeLeft / 60));
+		}
+
+		int target = GetHUDTarget(client);
+
+		if(gI_HUDSettings[client] & HUD_SYNC && Shavit_GetTimerStatus(target) == Timer_Running)
+		{
+			Format(sMessage, 128, "%s%sSync: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", Shavit_GetSync(target));
+		}
+
+		if(strlen(sMessage) > 0)
+		{
+			Handle hKeyHintText = StartMessageOne("KeyHintText", client);
+			BfWriteByte(hKeyHintText, 1);
+			BfWriteString(hKeyHintText, sMessage);
+			EndMessage();
 		}
 	}
 }

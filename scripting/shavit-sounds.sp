@@ -34,6 +34,7 @@ ArrayList gA_FirstSounds = null;
 ArrayList gA_PersonalSounds = null;
 ArrayList gA_WorldSounds = null;
 ArrayList gA_WorseSounds = null;
+StringMap gSM_RankSounds = null;
 
 public Plugin myinfo =
 {
@@ -54,119 +55,127 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-    gA_FirstSounds = new ArrayList(PLATFORM_MAX_PATH);
-    gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
-    gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
-    gA_WorseSounds = new ArrayList(PLATFORM_MAX_PATH);
+	gA_FirstSounds = new ArrayList(PLATFORM_MAX_PATH);
+	gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
+	gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
+	gA_WorseSounds = new ArrayList(PLATFORM_MAX_PATH);
+	gSM_RankSounds = new StringMap();
 
-    gSG_Type = Shavit_GetGameType();
+	gSG_Type = Shavit_GetGameType();
 }
 
 public void OnMapStart()
 {
-    gA_FirstSounds.Clear();
-    gA_PersonalSounds.Clear();
-    gA_WorldSounds.Clear();
+	gA_FirstSounds.Clear();
+	gA_PersonalSounds.Clear();
+	gA_WorldSounds.Clear();
+	gSM_RankSounds.Clear();
 
-    char[] sFile = new char[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-sounds.cfg");
+	char[] sFile = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-sounds.cfg");
 
-    File fFile = OpenFile(sFile, "r"); // readonly, unless i implement in-game editing
+	File fFile = OpenFile(sFile, "r"); // readonly, unless i implement in-game editing
 
-    if(fFile == null)
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-sounds.cfg\". Make sure this file exists and that the server has read permissions to it.");
+	}
+
+	else
     {
-        SetFailState("Cannot open \"configs/shavit-sounds.cfg\". Make sure this file exists and that the server has read permissions to it.");
+		char[] sLine = new char[PLATFORM_MAX_PATH*2];
+		char[] sDownloadString = new char[PLATFORM_MAX_PATH];
+
+		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
+		{
+			TrimString(sLine);
+
+			if(sLine[0] != '\"')
+			{
+				continue;
+			}
+
+			ReplaceString(sLine, PLATFORM_MAX_PATH*2, "\"", "");
+
+			char sExploded[2][PLATFORM_MAX_PATH];
+			ExplodeString(sLine, " ", sExploded, 2, PLATFORM_MAX_PATH);
+
+			if(StrEqual(sExploded[0], "first"))
+			{
+				gA_FirstSounds.PushString(sExploded[1]);
+			}
+
+			else if(StrEqual(sExploded[0], "personal"))
+			{
+				gA_PersonalSounds.PushString(sExploded[1]);
+			}
+
+			else if(StrEqual(sExploded[0], "world"))
+			{
+				gA_WorldSounds.PushString(sExploded[1]);
+			}
+
+			else if(StrEqual(sExploded[0], "worse"))
+			{
+				gA_WorseSounds.PushString(sExploded[1]);
+			}
+
+			else
+			{
+				char[] sRank = new char[8];
+				IntToString(StringToInt(sExploded[0]), sRank, 8);
+
+				gSM_RankSounds.SetString(sRank, sExploded[1]);
+			}
+
+			// thanks TotallyMehis for this workaround
+			// make sure to star his amazing StandUp plugin! https://github.com/TotallyMehis/StandUp
+			if(gSG_Type == Game_CSGO || PrecacheSound(sExploded[1]))
+			{
+				PrefetchSound(sExploded[1]);
+
+				FormatEx(sDownloadString, PLATFORM_MAX_PATH, "sound/%s", sExploded[1]);
+				AddFileToDownloadsTable(sDownloadString);
+			}
+
+			else
+			{
+				LogError("\"sound/%s\" could not be accessed.", sExploded[1]);
+			}
+		}
     }
 
-    else
-    {
-        char[] sLine = new char[PLATFORM_MAX_PATH*2];
-        char[] sDownloadString = new char[PLATFORM_MAX_PATH];
-
-        while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-        {
-            TrimString(sLine);
-
-            if(sLine[0] != '\"')
-            {
-                continue;
-            }
-
-            ReplaceString(sLine, PLATFORM_MAX_PATH*2, "\"", "");
-
-            char sExploded[2][PLATFORM_MAX_PATH];
-            ExplodeString(sLine, " ", sExploded, 2, PLATFORM_MAX_PATH);
-
-            if(StrEqual(sExploded[0], "first"))
-            {
-                gA_FirstSounds.PushString(sExploded[1]);
-            }
-
-            else if(StrEqual(sExploded[0], "personal"))
-            {
-                gA_PersonalSounds.PushString(sExploded[1]);
-            }
-
-            else if(StrEqual(sExploded[0], "world"))
-            {
-                gA_WorldSounds.PushString(sExploded[1]);
-            }
-
-            else if(StrEqual(sExploded[0], "worse"))
-            {
-                gA_WorseSounds.PushString(sExploded[1]);
-            }
-
-            else
-            {
-                LogError("\"%s\" is an invalid record type!", sExploded[0]);
-
-                continue;
-            }
-
-            // thanks TotallyMehis for this workaround
-            // make sure to star his amazing StandUp plugin! https://github.com/TotallyMehis/StandUp
-            if(gSG_Type == Game_CSGO || PrecacheSound(sExploded[1]))
-            {
-                PrefetchSound(sExploded[1]);
-
-                FormatEx(sDownloadString, PLATFORM_MAX_PATH, "sound/%s", sExploded[1]);
-                AddFileToDownloadsTable(sDownloadString);
-            }
-
-            else
-            {
-                LogError("\"sound/%s\" could not be accessed.", sExploded[1]);
-            }
-        }
-    }
-
-    delete fFile;
+	delete fFile;
 }
 
-public void Shavit_OnFinish_Post(int client, BhopStyle style, float time)
+public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank)
 {
-    float fOldTime = 0.0;
-    Shavit_GetPlayerPB(client, style, fOldTime);
+	float fOldTime = 0.0;
+	Shavit_GetPlayerPB(client, style, fOldTime);
 
-    float fWRTime = 0.0;
-    Shavit_GetWRTime(style, fWRTime);
+	char[] sSound = new char[PLATFORM_MAX_PATH];
 
-    char[] sSound = new char[PLATFORM_MAX_PATH];
+	bool bEveryone = false;
 
-    bool bEveryone = false;
+	char[] sRank = new char[8];
+	IntToString(rank, sRank, 8);
 
-    if(gA_WorldSounds.Length != 0 && (fWRTime == 0.0 || time < fWRTime))
-    {
-        bEveryone = true;
+	if((time <= fOldTime || fOldTime == 0.0) && gSM_RankSounds.GetString(sRank, sSound, PLATFORM_MAX_PATH))
+	{
+		bEveryone = true;
+	}
 
-        gA_WorldSounds.GetString(GetRandomInt(0, gA_WorldSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
-    }
+	else if(gA_WorldSounds.Length != 0 && rank == 1)
+	{
+		bEveryone = true;
 
-    else if(gA_PersonalSounds.Length != 0 && time < fOldTime)
-    {
-        gA_PersonalSounds.GetString(GetRandomInt(0, gA_PersonalSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
-    }
+		gA_WorldSounds.GetString(GetRandomInt(0, gA_WorldSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
+	}
+
+	else if(gA_PersonalSounds.Length != 0 && time < fOldTime)
+	{
+		gA_PersonalSounds.GetString(GetRandomInt(0, gA_PersonalSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
+	}
 
 	else if(gA_FirstSounds.Length != 0 && fOldTime == 0.0)
 	{
@@ -178,10 +187,10 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time)
 		gA_WorseSounds.GetString(GetRandomInt(0, gA_WorseSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 	}
 
-    if(StrContains(sSound, ".") != -1) // file has an extension?
-    {
-        PlayEventSound(client, bEveryone, sSound);
-    }
+	if(StrContains(sSound, ".") != -1) // file has an extension?
+	{
+		PlayEventSound(client, bEveryone, sSound);
+	}
 }
 
 public void PlayEventSound(int client, bool everyone, const char[] sound)
