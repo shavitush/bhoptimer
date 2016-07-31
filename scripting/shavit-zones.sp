@@ -54,8 +54,8 @@ char gS_ZoneNames[MAX_ZONES][] =
 MapZones gMZ_Type[MAXPLAYERS+1];
 
 // 0 - nothing
-// 1 - needs to press E to setup first coord
-// 2 - needs to press E to setup second coord
+// 1 - wait for E tap to setup first coord
+// 2 - wait for E tap to setup second coord
 // 3 - confirm
 int gI_MapStep[MAXPLAYERS+1];
 
@@ -874,10 +874,16 @@ public void ShowPanel(int client, int step)
 {
 	gI_MapStep[client] = step;
 
+	if(step == 1)
+	{
+		// not gonna use gCV_Interval.FloatValue here as we need percision when setting up zones
+		CreateTimer(0.1, Timer_Draw, GetClientSerial(client), TIMER_REPEAT);
+	}
+
 	Panel pPanel = new Panel();
 
 	char[] sPanelText = new char[128];
-	FormatEx(sPanelText, 128, "Press USE (default \"E\") to set the %s corner in your current position.", step == 1? "FIRST":"SECOND");
+	FormatEx(sPanelText, 128, "Press USE (default \"E\") to set the %s corner in your current position.", (step == 1)? "FIRST":"SECOND");
 
 	pPanel.DrawItem(sPanelText, ITEMDRAW_RAWLINE);
 	pPanel.DrawItem("Abort zone creation");
@@ -928,45 +934,45 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		return Plugin_Continue;
 	}
 
-	if(buttons & IN_USE)
+	if(gI_MapStep[client] > 0 && gI_MapStep[client] != 3)
 	{
-		if(!gB_Button[client] && gI_MapStep[client] > 0 && gI_MapStep[client] != 3)
+		if(buttons & IN_USE)
 		{
-			float vOrigin[3];
-			GetClientAbsOrigin(client, vOrigin);
-
-			// grid snapping
-			vOrigin[0] = float(RoundToNearest(vOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-			vOrigin[1] = float(RoundToNearest(vOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
-
-			if(gI_MapStep[client] == 1)
+			if(!gB_Button[client])
 			{
-				gV_Point1[client] = vOrigin;
+				float vOrigin[3];
+				GetClientAbsOrigin(client, vOrigin);
 
-				// not gonna use gCV_Interval.FloatValue here as we need percision when setting up zones
-				CreateTimer(0.1, Timer_Draw, GetClientSerial(client), TIMER_REPEAT);
+				// grid snapping
+				vOrigin[0] = float(RoundToNearest(vOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+				vOrigin[1] = float(RoundToNearest(vOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
 
-				ShowPanel(client, 2);
+				if(gI_MapStep[client] == 1)
+				{
+					gV_Point1[client] = vOrigin;
+
+					ShowPanel(client, 2);
+				}
+
+				else if(gI_MapStep[client] == 2)
+				{
+					//vOrigin[2] += 72; // was requested to make it higher
+					vOrigin[2] += 144;
+					gV_Point2[client] = vOrigin;
+
+					gI_MapStep[client]++;
+
+					CreateEditMenu(client);
+				}
 			}
 
-			else if(gI_MapStep[client] == 2)
-			{
-				//vOrigin[2] += 72; // was requested to make it higher
-				vOrigin[2] += 144;
-				gV_Point2[client] = vOrigin;
-
-				gI_MapStep[client]++;
-
-				CreateEditMenu(client);
-			}
+			gB_Button[client] = true;
 		}
 
-		gB_Button[client] = true;
-	}
-
-	else
-	{
-		gB_Button[client] = false;
+		else
+		{
+			gB_Button[client] = false;
+		}
 	}
 
 	if(InsideZone(client, view_as<int>(Zone_Respawn)))
@@ -1436,12 +1442,12 @@ public Action Timer_Draw(Handle Timer, any data)
 	GetClientAbsOrigin(client, vPlayerOrigin);
 
 	float vOrigin[3];
+	vOrigin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+	vOrigin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
 
-	if(gI_MapStep[client] == 1 || gV_Point2[client][0] == 0.0)
+	if(gI_MapStep[client] == 1 || (gV_Point2[client][0] == 0.0))
 	{
-		vOrigin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		vOrigin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		vOrigin[2] = vPlayerOrigin[2] + 144.0;
+		vOrigin[2] = (vPlayerOrigin[2] + 144.0);
 	}
 
 	else
@@ -1459,7 +1465,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
 	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
 
-	if(!EmptyZone(vOrigin))
+	if(gI_MapStep[client] != 3 && !EmptyZone(vOrigin))
 	{
 		vOrigin[2] -= 144.0;
 
