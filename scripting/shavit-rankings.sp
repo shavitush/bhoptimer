@@ -582,7 +582,7 @@ public float CalculatePoints(float time, BhopStyle style, float idealtime, float
     return points;
 }
 
-public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps)
+public void Shavit_OnFinish_Post(int client, BhopStyle style, float time)
 {
 	#if defined DEBUG
 	Shavit_PrintToChat(client, "Points: %.02f", CalculatePoints(time, style, gF_IdealTime, gF_MapPoints));
@@ -593,15 +593,9 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 		return;
 	}
 
-	float fOldPB = 0.0;
-	Shavit_GetPlayerPB(client, style, fOldPB);
-
-	if(fOldPB == 0.0 || time <= fOldPB)
-	{
-		float fPoints = CalculatePoints(time, style, gF_IdealTime, gF_MapPoints);
-		Shavit_PrintToChat(client, "This record was rated \x05%.02f points\x01.", fPoints);
-		SavePoints(GetClientSerial(client), style, gS_Map, fPoints, "");
-	}
+	float fPoints = CalculatePoints(time, style, gF_IdealTime, gF_MapPoints);
+	Shavit_PrintToChat(client, "This record was rated \x05%.02f points\x01.", fPoints);
+	SavePoints(GetClientSerial(client), style, gS_Map, fPoints, "");
 }
 
 public void SavePoints(int serial, BhopStyle style, const char[] map, float points, const char[] authid)

@@ -339,9 +339,10 @@ forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps,
  * @param strafes					Amount of strafes.
  * @param sync						Sync percentage (0.0 to 100.0).
  * @param rank						Rank on map.
+ * @param overwrite					1 - brand new record. 2 - update.
  * @noreturn
  */
-forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank);
+forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank, int overwrite);
 
 /**
  * Called when there's a new WR on the map.

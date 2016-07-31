@@ -112,7 +112,7 @@ public void OnPluginStart()
 
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell);
 
 	// player commands
@@ -1452,13 +1452,6 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}
 
-		gF_PlayerRecord[client][style] = time;
-
-		if(time < gF_WRTime[style])
-		{
-			gF_WRTime[style] = time;
-		}
-
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
 		Call_StartForward(gH_OnFinish_Post);
@@ -1469,7 +1462,15 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		Call_PushCell(strafes);
 		Call_PushCell(sync);
 		Call_PushCell(iRank);
+		Call_PushCell(overwrite);
 		Call_Finish();
+
+		gF_PlayerRecord[client][style] = time;
+
+		if(time < gF_WRTime[style])
+		{
+			gF_WRTime[style] = time;
+		}
 	}
 
 	else if(overwrite == 0 && !(gI_StyleProperties[style] & STYLE_UNRANKED))

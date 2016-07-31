@@ -160,7 +160,7 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 	char[] sRank = new char[8];
 	IntToString(rank, sRank, 8);
 
-	if((time <= fOldTime || fOldTime == 0.0) && gSM_RankSounds.GetString(sRank, sSound, PLATFORM_MAX_PATH))
+	if((time < fOldTime || fOldTime == 0.0) && gSM_RankSounds.GetString(sRank, sSound, PLATFORM_MAX_PATH))
 	{
 		bEveryone = true;
 	}

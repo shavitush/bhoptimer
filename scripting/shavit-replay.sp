@@ -574,7 +574,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time)
 	float fWRTime = 0.0;
 	Shavit_GetWRTime(style, fWRTime);
 
-	if(!gCV_Enabled.BoolValue || (fWRTime > 0.0 && time > fWRTime) || !ReplayEnabled(style))
+	if(!gCV_Enabled.BoolValue || !ReplayEnabled(style) || (fWRTime > 0.0 && time > fWRTime))
 	{
 		ClearFrames(client);
 	}
