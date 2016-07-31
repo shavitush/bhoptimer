@@ -114,8 +114,7 @@ Replay
 - [x] Remove replay bot data on deletion of the #1 record.
 - [x] Make replay bots dead if there's no replay data loaded.
 - [x] Clear player cache on spawn/death.
-- [x] Add admin interface. (delete replay data, `sm_deletereplay` for RCON admins.)
-- [ ] Save first/last frame per style globally instead of calling Get() every time.
+- [x] Add admin interface. (delete replay data, `sm_deletereplay` for RCON admins.
 - [ ] Add a setting so there are two modes: one is that bots always play, and the other is that there are X bots (defined by server admin) and players can start their playback with a command. (`sm_replay`)
 
 Stats

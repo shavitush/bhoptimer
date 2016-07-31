@@ -38,6 +38,10 @@
 // game type
 ServerGame gSG_Type = Game_Unknown;
 
+char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "followme", "takingfire", "go", "fallback", "sticktog",
+	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
+	"getout", "negative", "enemydown", "compliment", "thanks", "cheer"};
+
 // cache
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
@@ -57,6 +61,7 @@ ConVar gCV_NoWeaponDrops = null;
 ConVar gCV_NoBlock = null;
 ConVar gCV_AutoRespawn = null;
 ConVar gCV_CreateSpawnPoints = null;
+ConVar gCV_DisableRadio = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -101,6 +106,12 @@ public void OnPluginStart()
 	// hook teamjoins
 	AddCommandListener(Command_Jointeam, "jointeam");
 
+	// hook radio commands instead of a global listener
+	for(int i = 0; i < sizeof(gS_RadioCommands); i++)
+	{
+		AddCommandListener(Command_Radio, gS_RadioCommands[i]);
+	}
+
 	// message
 	CreateTimer(600.0, Timer_Message, INVALID_HANDLE, TIMER_REPEAT);
 
@@ -125,7 +136,8 @@ public void OnPluginStart()
 	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoBlock = CreateConVar("shavit_misc_noblock", "1", "Disable player collision?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_AutoRespawn = CreateConVar("shavit_misc_autorespawn", "1.5", "Seconds to wait before respawning player?\n0 - Disabled", 0, true, 0.0, true, 10.0);
-	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "32", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 10.0);
+	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "32", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
+	gCV_DisableRadio = CreateConVar("shavit_misc_disableradio", "0", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -248,6 +260,16 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	{
 		CS_RespawnPlayer(client);
 
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
+public Action Command_Radio(int client, const char[] command, int args)
+{
+	if(gCV_DisableRadio.BoolValue)
+	{
 		return Plugin_Handled;
 	}
 
