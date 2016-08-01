@@ -979,22 +979,22 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Changed;
 	}
 
-	if(!(gI_ButtonCache[client] & IN_FORWARD) && buttons & IN_FORWARD)
+	if(!(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W) && !(gI_ButtonCache[client] & IN_FORWARD) && buttons & IN_FORWARD)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(!(gI_ButtonCache[client] & IN_MOVELEFT) && buttons & IN_MOVELEFT)
+	if(!(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A) && !(gI_ButtonCache[client] & IN_MOVELEFT) && buttons & IN_MOVELEFT)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(!(gI_ButtonCache[client] & IN_BACK) && buttons & IN_BACK)
+	if(!(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S) && !(gI_ButtonCache[client] & IN_BACK) && buttons & IN_BACK)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(!(gI_ButtonCache[client] & IN_MOVERIGHT) && buttons & IN_MOVERIGHT)
+	if(!(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D) && !(gI_ButtonCache[client] & IN_MOVERIGHT) && buttons & IN_MOVERIGHT)
 	{
 		gI_Strafes[client]++;
 	}
