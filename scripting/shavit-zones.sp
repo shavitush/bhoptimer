@@ -646,7 +646,6 @@ public Action Command_Zones(int client, int args)
 	}
 
 	menu.ExitButton = true;
-
 	menu.Display(client, 20);
 
 	return Plugin_Handled;
@@ -688,7 +687,6 @@ public Action Command_DeleteZone(int client, int args)
 	}
 
 	menu.ExitButton = true;
-
 	menu.Display(client, 20);
 
 	return Plugin_Handled;
@@ -1455,18 +1453,21 @@ public Action Timer_Draw(Handle Timer, any data)
 		vOrigin = gV_Point2[client];
 	}
 
-	float vPoints[8][3];
-	vPoints[0] = gV_Point1[client];
-	vPoints[7] = vOrigin;
-
-	if(gSG_Type == Game_CSS)
+	if(!EmptyZone(gV_Point1[client]) || !EmptyZone(gV_Point2[client]))
 	{
-		vPoints[0][2] += 2.0;
-		vPoints[7][2] += 2.0;
-	}
+		float vPoints[8][3];
+		vPoints[0] = gV_Point1[client];
+		vPoints[7] = vOrigin;
 
-	CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
-	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
+		if(gSG_Type == Game_CSS)
+		{
+			vPoints[0][2] += 2.0;
+			vPoints[7][2] += 2.0;
+		}
+
+		CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
+		DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
+	}
 
 	if(gI_MapStep[client] != 3 && !EmptyZone(vOrigin))
 	{

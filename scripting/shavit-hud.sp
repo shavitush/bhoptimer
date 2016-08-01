@@ -341,7 +341,7 @@ public void UpdateHUD(int client)
 	float fSpeed[3];
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
-	float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+	int iSpeed = RoundToFloor(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
 
 	char[] sHintText = new char[512];
 	strcopy(sHintText, 512, "");
@@ -357,7 +357,7 @@ public void UpdateHUD(int client)
 
 			else
 			{
-				FormatEx(sHintText, 32, "In Start Zone\n\n%d", RoundToZero(fSpeed_New));
+				FormatEx(sHintText, 32, "In Start Zone\n\n%d", iSpeed);
 			}
 		}
 
@@ -370,7 +370,7 @@ public void UpdateHUD(int client)
 
 			else
 			{
-				FormatEx(sHintText, 32, "In End Zone\n\n%d", RoundToZero(fSpeed_New));
+				FormatEx(sHintText, 32, "In End Zone\n\n%d", iSpeed);
 			}
 		}
 	}
@@ -384,16 +384,20 @@ public void UpdateHUD(int client)
 	{
 		if(!IsFakeClient(target))
 		{
-			float fTime;
-			int iJumps;
-			BhopStyle bsStyle;
-			bool bStarted;
+			float fTime = 0.0;
+			int iJumps = 0;
+			BhopStyle bsStyle = view_as<BhopStyle>(-1);
+			bool bStarted = false;
 			Shavit_GetTimer(target, fTime, iJumps, bsStyle, bStarted);
 
-			float fWR;
+			TimerStatus tStatus = Shavit_GetTimerStatus(target);
+			int iStrafes = Shavit_GetStrafeCount(target);
+			int iPotentialRank = Shavit_GetRankForTime(bsStyle, fTime);
+
+			float fWR = 0.0;
 			Shavit_GetWRTime(bsStyle, fWR);
 
-			float fPB;
+			float fPB = 0.0;
 			Shavit_GetPlayerPB(target, bsStyle, fPB);
 
 			char[] sPB = new char[32];
@@ -425,16 +429,29 @@ public void UpdateHUD(int client)
 						strcopy(sColor, 8, "FF0000");
 					}
 
-					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)%s", sHintText, sColor, sTime, Shavit_GetRankForTime(bsStyle, fTime), Shavit_GetTimerStatus(target) == Timer_Paused? " [PAUSED]":"");
+					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)", sHintText, sColor, (tStatus == Timer_Paused)? " [PAUSED]\t":sTime, iPotentialRank);
 				}
 
-				Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
-				Format(sHintText, 512, "%s\t%sStrafes: %d (%.02f)", sHintText, (strlen(gS_BhopStyles[bsStyle]) <= 6)? "\t":"", Shavit_GetStrafeCount(target), Shavit_GetSync(target));
-				Format(sHintText, 512, "%s\nSpeed: %.02f", sHintText, fSpeed_New);
+				if(fPB > 0.0)
+				{
+					Format(sHintText, 512, "%s%sBest: %s (#%d)", sHintText, bStarted? "\t":"", sPB, (Shavit_GetRankForTime(bsStyle, fPB) - 1));
+				}
 
 				if(bStarted)
 				{
-					Format(sHintText, 512, "%s\tJumps: %d", sHintText, iJumps);
+					Format(sHintText, 512, "%s\nJumps: %d\t\tStyle: <font color='#%s'>%s</font>", sHintText, iJumps, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+				}
+
+				else
+				{
+					Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+				}
+
+				Format(sHintText, 512, "%s\nSpeed: %d", sHintText, iSpeed);
+
+				if(tStatus >= Timer_Running)
+				{
+					Format(sHintText, 512, "%s%s\tStrafes: %d (%.02f%%)", sHintText, (iSpeed < 1000)? "\t":"", iStrafes, Shavit_GetSync(target));
 				}
 
 				Format(sHintText, 512, "%s</font>", sHintText);
@@ -446,7 +463,7 @@ public void UpdateHUD(int client)
 				{
 					if(Shavit_GetTimerStatus(target) == Timer_Running)
 					{
-						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d", gS_BhopStyles[bsStyle], sTime, Shavit_GetRankForTime(bsStyle, fTime), iJumps, Shavit_GetStrafeCount(target), RoundToZero(fSpeed_New));
+						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d", gS_BhopStyles[bsStyle], sTime, iPotentialRank, iJumps, iStrafes, iSpeed);
 					}
 
 					else
@@ -457,11 +474,11 @@ public void UpdateHUD(int client)
 
 				else
 				{
-					IntToString(RoundToZero(fSpeed_New), sHintText, 8);
+					IntToString(iSpeed, sHintText, 8);
 				}
 			}
 
-			PrintHintText(client, sHintText);
+			PrintHintText(client, "%s", sHintText);
 		}
 
 		else if(gB_Replay)
@@ -504,7 +521,7 @@ public void UpdateHUD(int client)
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
 				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
 				Format(sHintText, 512, "%s\n\tTime: <font color='#00FF00'>%s</font>/%s", sHintText, sTime, sWR);
-				Format(sHintText, 512, "%s\n\tSpeed: %.02f", sHintText, fSpeed_New);
+				Format(sHintText, 512, "%s\n\tSpeed: %d", sHintText, iSpeed);
 				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
@@ -512,10 +529,10 @@ public void UpdateHUD(int client)
 			{
 				FormatEx(sHintText, 512, "%s Replay", gS_BhopStyles[bsStyle], sHintText);
 				Format(sHintText, 512, "%s\nTime: %s/%s", sHintText, sTime, sWR);
-				Format(sHintText, 512, "%s\nSpeed: %d", sHintText, RoundToZero(fSpeed_New));
+				Format(sHintText, 512, "%s\nSpeed: %d", sHintText, iSpeed);
 			}
 
-			PrintHintText(client, sHintText);
+			PrintHintText(client, "%s", sHintText);
 		}
 	}
 }

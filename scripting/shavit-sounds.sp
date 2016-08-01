@@ -113,6 +113,11 @@ public void OnMapStart()
 				gA_WorldSounds.PushString(sExploded[1]);
 			}
 
+			else if(StrEqual(sExploded[0], "worse"))
+			{
+				PrintToServer("\"worse\" sounds are not supported anymore.");
+			}
+
 			else
 			{
 				char[] sRank = new char[8];
