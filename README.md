@@ -136,8 +136,8 @@ Miscellaneous
 - [x] Support radar hiding for CS:S.
 - [x] Fix respawn for auto team join.
 - [x] Create extra spawn points for both teams because many bhop maps lack them. (`shavit_misc_createspawnpoints`)
+- [x] Support map changing, specifically SourceMod's built-in mapchooser and MCE.
 - [ ] Make frags/score as -time and deaths as rank.
-- [ ] Support map changing, specifically SourceMod's built-in mapchooser and MCE.
 - [ ] Add SSJ (Speed Sixth Jump).
 
 Sounds **(NEW!)**
