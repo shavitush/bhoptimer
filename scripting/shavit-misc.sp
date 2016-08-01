@@ -63,9 +63,6 @@ ConVar gCV_AutoRespawn = null;
 ConVar gCV_CreateSpawnPoints = null;
 ConVar gCV_DisableRadio = null;
 
-// game cvars
-ConVar mp_ignore_round_win_conditions = null;
-
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
 
@@ -144,9 +141,6 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	// game cvars
-	mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
-
 	if(LibraryExists("dhooks"))
 	{
 		Handle hGameData = LoadGameConfigFile("shavit.games");
@@ -175,8 +169,6 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-	CS_TerminateRound(10.0, CSRoundEnd_GameStart, true);
-
 	if(gCV_CreateSpawnPoints.BoolValue)
 	{
 		int iEntity = -1;
@@ -828,18 +820,6 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 		{
 			CreateTimer(gCV_AutoRespawn.FloatValue, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
-	}
-
-	return Plugin_Continue;
-}
-
-public Action CS_OnTerminateRound(float &delay, CSRoundEndReason &reason)
-{
-	int iTimeLeft = 0;
-
-	if(mp_ignore_round_win_conditions.BoolValue || (reason == CSRoundEnd_GameStart && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 1 && (gCV_RespawnOnTeam.BoolValue || gCV_RespawnOnRestart.BoolValue)))
-	{
-		return Plugin_Handled;
 	}
 
 	return Plugin_Continue;

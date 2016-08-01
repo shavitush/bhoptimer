@@ -439,7 +439,7 @@ public void UpdateHUD(int client)
 
 				if(bStarted)
 				{
-					Format(sHintText, 512, "%s\nJumps: %d\t\tStyle: <font color='#%s'>%s</font>", sHintText, iJumps, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+					Format(sHintText, 512, "%s\nJumps: %d%s\tStyle: <font color='#%s'>%s</font>", sHintText, iJumps, (iJumps < 1000)? "\t":"", gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
 				}
 
 				else
