@@ -22,6 +22,7 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
+#include <clientprefs>
 
 #undef REQUIRE_PLUGIN
 #define USES_STYLE_NAMES
@@ -35,6 +36,16 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
+#define SSJ_NONE				(0)
+#define SSJ_ENABLED				(1 << 1) // master setting
+#define SSJ_EVERY				(1 << 2) // every jump instead of sixth
+#define SSJ_CSPEED				(1 << 3) // speed at finish
+#define SSJ_SPEEDD				(1 << 4) // speed difference
+#define SSJ_HEIGHT				(1 << 5) // height difference
+#define SSJ_GAIN				(1 << 6) // gain percentage
+
+#define SSJ_DEFAULT				(SSJ_CSPEED|SSJ_SPEEDD|SSJ_HEIGHT|SSJ_GAIN)
+
 // game specific
 ServerGame gSG_Type = Game_Unknown;
 int gI_Ammo = -1;
@@ -47,6 +58,16 @@ char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "foll
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gF_LastFlags[MAXPLAYERS+1];
+
+// ssj
+Handle gH_SSJCookie = null;
+int gI_SSJJumps[MAXPLAYERS+1];
+int gI_SSJSettings[MAXPLAYERS+1];
+float gF_SSJStartingSpeed[MAXPLAYERS+1];
+float gF_SSJStartingHeight[MAXPLAYERS+1];
+float gF_SSJMaxSpeed[MAXPLAYERS+1];
+float gF_SSJFirstSpeed[MAXPLAYERS+1];
+float gF_HitGround[MAXPLAYERS+1];
 
 // cvars
 ConVar gCV_GodMode = null;
@@ -121,6 +142,10 @@ public void OnPluginStart()
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
+	// ssj
+	RegConsoleCmd("sm_ssj", Command_SSJ, "SSJ ('speed sixth jump') menu.");
+	gH_SSJCookie = RegClientCookie("shavit_ssj_setting", "SSJ settings", CookieAccess_Protected);
+
 	// hook teamjoins
 	AddCommandListener(Command_Jointeam, "jointeam");
 
@@ -138,6 +163,7 @@ public void OnPluginStart()
 	HookEvent("player_spawn", Player_Spawn);
 	HookEvent("player_team", Player_Notifications, EventHookMode_Pre);
 	HookEvent("player_death", Player_Notifications, EventHookMode_Pre);
+	HookEvent("player_jump", Player_Jump);
 	HookEvent("weapon_fire", Weapon_Fire);
 
 	// phrases
@@ -212,7 +238,7 @@ public void OnMapStart()
 			{
 				for(int iTeam = 1; iTeam <= 2; iTeam++)
 				{
-					int iSpawnPoint = CreateEntityByName(iTeam == 1? "info_player_terrorist":"info_player_counterterrorist");
+					int iSpawnPoint = CreateEntityByName((iTeam == 1)? "info_player_terrorist":"info_player_counterterrorist");
 
 					if(DispatchSpawn(iSpawnPoint))
 					{
@@ -424,14 +450,84 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		}
 	}
 
+	if(gI_SSJSettings[client] & SSJ_ENABLED)
+	{
+		if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
+		{
+			if(gF_HitGround[client] == 0.0)
+			{
+				gF_HitGround[client] = GetEngineTime();
+			}
+
+			else if(gI_SSJJumps[client] > 0 && (GetEngineTime() - gF_HitGround[client]) > 0.100)
+			{
+				ResetSSJ(client, true, false);
+				gF_SSJFirstSpeed[client] = 0.0;
+			}
+		}
+
+		else
+		{
+			gF_HitGround[client] = 0.0;
+		}
+
+		float fSpeed = GetClientSpeed(client);
+
+		if(fSpeed > gF_SSJMaxSpeed[client])
+		{
+			gF_SSJMaxSpeed[client] = fSpeed;
+		}
+
+		if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+		{
+			ResetSSJ(client, true, false);
+			gF_SSJFirstSpeed[client] = 0.0;
+		}
+	}
+
 	gF_LastFlags[client] = GetEntityFlags(client);
 
 	return Plugin_Continue;
 }
 
+public void ResetSSJ(int client, bool jumps, bool usecurrent)
+{
+	if(jumps)
+	{
+		gI_SSJJumps[client] = 0;
+	}
+
+	gF_SSJStartingSpeed[client] = (usecurrent)? GetClientSpeed(client):0.0;
+	gF_SSJStartingHeight[client] = (usecurrent)? GetClientHeight(client):0.0;
+	gF_HitGround[client] = 0.0;
+}
+
+public float GetClientSpeed(int client)
+{
+	float fSpeed[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+
+	return SquareRoot((Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
+}
+
+public float GetClientHeight(int client)
+{
+	float fPosition[3];
+	GetClientAbsOrigin(client, fPosition);
+
+	return fPosition[2];
+}
+
+public void OnClientDisconnect(int client)
+{
+	gI_SSJSettings[client] = SSJ_NONE;
+}
+
 public void OnClientPutInServer(int client)
 {
 	gB_Hide[client] = false;
+
+	ResetSSJ(client, true, false);
 
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
@@ -440,6 +536,30 @@ public void OnClientPutInServer(int client)
 	if(gH_GetMaxPlayerSpeed != null)
 	{
 		DHookEntity(gH_GetMaxPlayerSpeed, true, client);
+	}
+
+	if(AreClientCookiesCached(client))
+	{
+		OnClientCookiesCached(client);
+	}
+}
+
+public void OnClientCookiesCached(int client)
+{
+	char[] sHUDSettings = new char[8];
+	GetClientCookie(client, gH_SSJCookie, sHUDSettings, 8);
+
+	if(strlen(sHUDSettings) == 0)
+	{
+		IntToString(SSJ_DEFAULT, sHUDSettings, 8);
+
+		SetClientCookie(client, gH_SSJCookie, sHUDSettings);
+		gI_SSJSettings[client] = SSJ_DEFAULT;
+	}
+
+	else
+	{
+		gI_SSJSettings[client] = StringToInt(sHUDSettings);
 	}
 }
 
@@ -766,6 +886,95 @@ public void SetWeaponAmmo(int client, int weapon)
 	}
 }
 
+public Action Command_SSJ(int client, int args)
+{
+	return ShowSSJMenu(client);
+}
+
+public Action ShowSSJMenu(int client)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	Menu m = new Menu(MenuHandler_SSJ, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
+	m.SetTitle("SSJ settings:");
+
+	char[] sInfo = new char[16];
+	IntToString(SSJ_ENABLED, sInfo, 16);
+	m.AddItem(sInfo, "Enabled");
+
+	IntToString(SSJ_EVERY, sInfo, 16);
+	m.AddItem(sInfo, "Mode: ");
+
+	IntToString(SSJ_CSPEED, sInfo, 16);
+	m.AddItem(sInfo, "Current speed");
+
+	IntToString(SSJ_SPEEDD, sInfo, 16);
+	m.AddItem(sInfo, "Speed difference");
+
+	IntToString(SSJ_HEIGHT, sInfo, 16);
+	m.AddItem(sInfo, "Height difference");
+
+	IntToString(SSJ_GAIN, sInfo, 16);
+	m.AddItem(sInfo, "Gain percentage");
+
+	m.ExitButton = true;
+	m.Display(client, 60);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_SSJ(Menu m, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] sCookie = new char[16];
+		m.GetItem(param2, sCookie, 16);
+		int iSelection = StringToInt(sCookie);
+
+		gI_SSJSettings[param1] ^= iSelection;
+		IntToString(gI_SSJSettings[param1], sCookie, 16); // string recycling Kappa
+
+		SetClientCookie(param1, gH_SSJCookie, sCookie);
+
+		if(iSelection == SSJ_ENABLED)
+		{
+			ResetSSJ(param1, true, false);
+		}
+
+		ShowSSJMenu(param1);
+	}
+
+	else if(action == MenuAction_DisplayItem)
+	{
+		char[] sInfo = new char[16];
+		char[] sDisplay = new char[64];
+		int style = 0;
+		m.GetItem(param2, sInfo, 16, style, sDisplay, 64);
+
+		if(StringToInt(sInfo) == SSJ_EVERY)
+		{
+			Format(sDisplay, 64, "%sEvery%s", sDisplay, (gI_SSJSettings[param1] & SSJ_EVERY)? "":" 6th");
+		}
+
+		else
+		{
+			Format(sDisplay, 64, "[%s] %s", (gI_SSJSettings[param1] & StringToInt(sInfo))? "x":" ", sDisplay);
+		}
+
+		return RedrawMenuItem(sDisplay);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
+
+	return 0;
+}
+
 public Action Command_Specs(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -982,6 +1191,71 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 	}
 
 	return Plugin_Continue;
+}
+
+public void Player_Jump(Event event, const char[] name, bool dB)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if(!(gI_SSJSettings[client] & SSJ_ENABLED))
+	{
+		return;
+	}
+
+	gI_SSJJumps[client]++;
+
+	if(gI_SSJJumps[client] == 1)
+	{
+		ResetSSJ(client, false, true);
+
+		gF_SSJFirstSpeed[client] = GetClientSpeed(client);
+		gF_SSJMaxSpeed[client] = GetClientSpeed(client);
+	}
+
+	if(gI_SSJSettings[client] & SSJ_EVERY || gI_SSJJumps[client] % 6 == 0)
+	{
+		char[] sGain = new char[32];
+		FormatEx(sGain, 32, " | Gain: \x04%.02f%%", (gF_SSJFirstSpeed[client] / gF_SSJMaxSpeed[client]) * 100.0);
+
+		gF_SSJFirstSpeed[client] = GetClientSpeed(client);
+		gF_SSJMaxSpeed[client] = GetClientSpeed(client);
+
+		int[] clients = new int[MaxClients];
+		int iClients = 0;
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(i == client)
+			{
+				clients[iClients++] = i;
+
+				continue;
+			}
+
+			if(IsValidClient(i))
+			{
+				if(IsClientObserver(client))
+				{
+					int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
+
+					if(iObserverMode >= 3 && iObserverMode <= 5)
+					{
+						if(GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") == client)
+						{
+							clients[iClients++] = i;
+						}
+					}
+				}
+			}
+		}
+
+		for(int i = 0; i < iClients; i++)
+		{
+			Shavit_PrintToChat(clients[i], "Jump: \x04%d\x01 | Speed: \x04%d\x01 | Speed Δ: \x04%d\x01 | Height Δ: \x04%d\x01%s", gI_SSJJumps[client], RoundToFloor(GetClientSpeed(client)), RoundToFloor(GetClientSpeed(client) - gF_SSJStartingSpeed[client]), RoundToFloor(GetClientHeight(client) - gF_SSJStartingHeight[client]), (gI_SSJJumps[client] > 1)? sGain:"");
+		}
+
+		ResetSSJ(client, false, true);
+	}
 }
 
 public void Weapon_Fire(Event event, const char[] name, bool dB)

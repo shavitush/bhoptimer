@@ -118,6 +118,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
+	CreateNative("Shavit_GetClientJumps", Native_GetClientJumps);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
@@ -606,11 +607,14 @@ public int Native_GetClientTime(Handle handler, int numParams)
 	return view_as<int>(CalculateTime(client));
 }
 
+public int Native_GetClientJumps(Handle handler, int numParams)
+{
+	return gI_Jumps[GetNativeCell(1)];
+}
+
 public int Native_GetBhopStyle(Handle handler, int numParams)
 {
-	int client = GetNativeCell(1);
-
-	return view_as<int>(gBS_Style[client]);
+	return view_as<int>(gBS_Style[GetNativeCell(1)]);
 }
 
 public int Native_GetTimerStatus(Handle handler, int numParams)
@@ -669,16 +673,12 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 public int Native_PauseTimer(Handle handler, int numParams)
 {
-	int client = GetNativeCell(1);
-
-	PauseTimer(client);
+	PauseTimer(GetNativeCell(1));
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
 {
-	int client = GetNativeCell(1);
-
-	ResumeTimer(client);
+	ResumeTimer(GetNativeCell(1));
 }
 
 public int Native_PrintToChat(Handle handler, int numParams)
@@ -1076,6 +1076,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			buttons |= IN_JUMP;
 		}
+	}
+
+	else if(gB_DoubleSteps[client])
+	{
+		buttons |= IN_JUMP;
 	}
 
 	if(gI_ButtonCache[client] != buttons && gB_HUD)

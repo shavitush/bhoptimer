@@ -91,7 +91,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(IsValidClient(i))
+			if(IsValidClient(i) && AreClientCookiesCached(i))
 			{
 				OnClientCookiesCached(i);
 			}
@@ -107,7 +107,7 @@ public void OnPluginStart()
 {
 	// game-specific
 	gSG_Type = Shavit_GetGameType();
-	
+
 	if(gSG_Type == Game_CSS)
 	{
 		gH_HUD = CreateHudSynchronizer();
@@ -684,7 +684,7 @@ public void UpdateKeyHint(int client)
 
 		int target = GetHUDTarget(client);
 
-		if(gI_HUDSettings[client] & HUD_SYNC && Shavit_GetTimerStatus(target) == Timer_Running && gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_MEASURESYNC && !IsFakeClient(target))
+		if(gI_HUDSettings[client] & HUD_SYNC && Shavit_GetTimerStatus(target) == Timer_Running && gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_MEASURESYNC && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
 		{
 			Format(sMessage, 128, "%s%sSync: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", Shavit_GetSync(target));
 		}

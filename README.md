@@ -89,6 +89,7 @@ Core
 - [x] Measure strafe count/sync, also have it in the Shavit_OnFinish forward.
 - [x] Add low gravity styles (0.6).
 - [x] Better implementation of autobhop and +ds (doublestep fix).
+- [ ] Save autobhop/styles to clientprefs.
 - [ ] Add bonus timer.
 
 HUD
@@ -139,7 +140,7 @@ Miscellaneous
 - [x] Support map changing, specifically SourceMod's built-in mapchooser and MCE.
 - [x] Make frags/score as -time and deaths as rank.
 - [x] Add `sm_usp` `sm_glock` `sm_knife`.
-- [ ] Add SSJ (Speed Sixth Jump).
+- [ ] Add SSJ (Speed Sixth Jump), save settings to clientprefs and print SSJ to spectators.
 
 Sounds **(NEW!)**
 --

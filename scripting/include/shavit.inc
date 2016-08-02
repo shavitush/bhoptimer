@@ -474,6 +474,14 @@ native void Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &styl
 native float Shavit_GetClientTime(int client);
 
 /**
+ * Retrieve client jumps since timer start.
+ *
+ * @param client					Client index.
+ * @return                          Current amount of jumps, 0 if timer is inactive.
+ */
+native int Shavit_GetClientJumps(int client);
+
+/**
  * Retrieve a client's bhopstyle
  *
  * @param client					Client index.
@@ -766,6 +774,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_FormatChat");
 	MarkNativeAsOptional("Shavit_GetBhopStyle");
 	MarkNativeAsOptional("Shavit_GetClientTime");
+	MarkNativeAsOptional("Shavit_GetClientJumps");
 	MarkNativeAsOptional("Shavit_GetGivenMapValues");
 	MarkNativeAsOptional("Shavit_GetMapValues");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
