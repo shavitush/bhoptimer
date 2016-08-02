@@ -170,6 +170,11 @@ public Action Cron(Handle Timer)
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
 		Shavit_GetWRTime(view_as<BhopStyle>(i), fWRTimes[i]);
+
+		if(gI_ReplayBotClient[i] != 0)
+		{
+			UpdateReplayInfo(gI_ReplayBotClient[i], view_as<BhopStyle>(i), fWRTimes[i]);
+		}
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -423,8 +428,6 @@ public bool DeleteReplay(BhopStyle style)
 	gI_FrameCount[style] = 0;
 	gI_ReplayTick[style] = -1;
 
-	CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
-
 	if(gI_ReplayBotClient[style] != 0)
 	{
 		UpdateReplayInfo(gI_ReplayBotClient[style], style, 0.0);
@@ -508,15 +511,19 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 	gB_HideNameChange = true;
 	SetClientName(client, sName);
 
+	int iScore = (gI_FrameCount[style] > 0)? 2000:1999;
+
 	if(gSG_Type == Game_CSGO)
 	{
-		CS_SetClientContributionScore(client, 2000);
+		CS_SetClientContributionScore(client, iScore);
 	}
 
 	else
 	{
-		SetEntProp(client, Prop_Data, "m_iFrags", 2000);
+		SetEntProp(client, Prop_Data, "m_iFrags", iScore);
 	}
+
+	SetEntProp(client, Prop_Data, "m_iDeaths", 0);
 
 	gB_DontCallTimer = true;
 
@@ -616,6 +623,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 	if(gI_ReplayBotClient[style] != 0)
 	{
 		UpdateReplayInfo(gI_ReplayBotClient[style], style, time);
+		CS_RespawnPlayer(gI_ReplayBotClient[style]);
 	}
 }
 
