@@ -1208,21 +1208,17 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 
 	if(gI_SSJSettings[client] & SSJ_EVERY || gI_SSJJumps[client] % 6 == 0)
 	{
-		char[] sGain = new char[32];
-		FormatEx(sGain, 32, " | Gain: \x04%.02f%%", (gF_SSJFirstSpeed[client] / gF_SSJMaxSpeed[client]) * 100.0);
+		float gain = ((gF_SSJFirstSpeed[client] / gF_SSJMaxSpeed[client]) * 100.0);
 
 		gF_SSJFirstSpeed[client] = GetClientSpeed(client);
 		gF_SSJMaxSpeed[client] = GetClientSpeed(client);
 
-		int[] clients = new int[MaxClients];
-		int count = 0;
+		PrintSSJ(client, client, gain);
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			if(i == client)
 			{
-				clients[count++] = i;
-
 				continue;
 			}
 
@@ -1234,19 +1230,42 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 				{
 					if(GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client)
 					{
-						clients[count++] = i;
+						PrintSSJ(client, i, gain);
 					}
 				}
 			}
 		}
 
-		for(int i = 0; i < count; i++)
-		{
-			Shavit_PrintToChat(clients[i], "Jump: \x04%d\x01 | Speed: \x04%d\x01 | Speed Δ: \x04%d\x01 | Height Δ: \x04%d\x01%s", gI_SSJJumps[client], RoundToFloor(GetClientSpeed(client)), RoundToFloor(GetClientSpeed(client) - gF_SSJStartingSpeed[client]), RoundToFloor(GetClientHeight(client) - gF_SSJStartingHeight[client]), (gI_SSJJumps[client] > 1)? sGain:"");
-		}
-
 		ResetSSJ(client, false, true);
 	}
+}
+
+public void PrintSSJ(int client, int target, float gain)
+{
+	char[] sMessage = new char[256];
+	FormatEx(sMessage, 256, "Jump: \x04%d\x01", gI_SSJJumps[target]);
+
+	if(gI_SSJSettings[client] & SSJ_CSPEED)
+	{
+		Format(sMessage, 256, "%s | Speed: \x04%d\x01", sMessage, RoundToFloor(GetClientSpeed(target)));
+	}
+
+	if(gI_SSJSettings[client] & SSJ_SPEEDD)
+	{
+		Format(sMessage, 256, "%s | Speed Δ: \x04%d\x01", sMessage, RoundToFloor(GetClientSpeed(target) - gF_SSJStartingSpeed[target]));
+	}
+
+	if(gI_SSJSettings[client] & SSJ_HEIGHT)
+	{
+		Format(sMessage, 256, "%s | Height Δ: \x04%d\x01", sMessage, RoundToFloor(GetClientHeight(target) - gF_SSJStartingHeight[target]));
+	}
+
+	if(gI_SSJSettings[client] & SSJ_GAIN && gI_SSJJumps[target] > 1)
+	{
+		Format(sMessage, 256, "%s | Gain: \x04%.02f%%\x01", sMessage, gain);
+	}
+
+	Shavit_PrintToChat(client, "%s", sMessage);
 }
 
 public void Weapon_Fire(Event event, const char[] name, bool dB)
