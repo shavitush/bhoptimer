@@ -35,8 +35,9 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
-// game type
+// game specific
 ServerGame gSG_Type = Game_Unknown;
+int gI_Ammo = -1;
 
 char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "followme", "takingfire", "go", "fallback", "sticktog",
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
@@ -63,6 +64,7 @@ ConVar gCV_AutoRespawn = null;
 ConVar gCV_CreateSpawnPoints = null;
 ConVar gCV_DisableRadio = null;
 ConVar gCV_Scoreboard = null;
+ConVar gCV_WeaponCommands = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -112,6 +114,13 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tpto", Command_Teleport, "Teleport to another player. Usage: sm_tpto [target]");
 	RegConsoleCmd("sm_goto", Command_Teleport, "Teleport to another player. Usage: sm_goto [target]");
 
+	// weapons
+	RegConsoleCmd("sm_usp", Command_Weapon, "Spawn a USP.");
+	RegConsoleCmd("sm_glock", Command_Weapon, "Spawn a Glock.");
+	RegConsoleCmd("sm_knife", Command_Weapon, "Spawn a knife.");
+
+	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
+
 	// hook teamjoins
 	AddCommandListener(Command_Jointeam, "jointeam");
 
@@ -121,7 +130,7 @@ public void OnPluginStart()
 		AddCommandListener(Command_Radio, gS_RadioCommands[i]);
 	}
 
-	// message
+	// crons
 	CreateTimer(1.0, Timer_Scoreboard, INVALID_HANDLE, TIMER_REPEAT);
 	CreateTimer(600.0, Timer_Message, INVALID_HANDLE, TIMER_REPEAT);
 
@@ -129,8 +138,9 @@ public void OnPluginStart()
 	HookEvent("player_spawn", Player_Spawn);
 	HookEvent("player_team", Player_Notifications, EventHookMode_Pre);
 	HookEvent("player_death", Player_Notifications, EventHookMode_Pre);
+	HookEvent("weapon_fire", Weapon_Fire);
 
-	// let's fix issues with phrases :D
+	// phrases
 	LoadTranslations("common.phrases");
 
 	// cvars and stuff
@@ -149,6 +159,7 @@ public void OnPluginStart()
 	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "32", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
 	gCV_DisableRadio = CreateConVar("shavit_misc_disableradio", "0", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
 	gCV_Scoreboard = CreateConVar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_WeaponCommands = CreateConVar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.", 0, true, 0.0, true, 2.0);
 
 	AutoExecConfig();
 
@@ -682,6 +693,79 @@ public int Teleport(int client, int targetserial)
 	return 0;
 }
 
+public Action Command_Weapon(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!gCV_WeaponCommands.BoolValue)
+	{
+		Shavit_PrintToChat(client, "This command is disabled.");
+
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "You need to be alive to spawn weapons.");
+
+		return Plugin_Handled;
+	}
+
+	char[] sCommand = new char[16];
+	GetCmdArg(0, sCommand, 16);
+
+	int iSlot = CS_SLOT_SECONDARY;
+	char[] sWeapon = new char[16];
+
+	if(StrContains(sCommand, "usp", false) != -1)
+	{
+		strcopy(sWeapon, 16, (gSG_Type == Game_CSS)? "weapon_usp":"weapon_usp_silencer");
+	}
+
+	else if(StrContains(sCommand, "glock", false) != -1)
+	{
+		strcopy(sWeapon, 16, "weapon_glock");
+	}
+
+	else
+	{
+		strcopy(sWeapon, 16, "weapon_knife");
+		iSlot = CS_SLOT_KNIFE;
+	}
+
+	int iWeapon = GetPlayerWeaponSlot(client, iSlot);
+
+	if(iWeapon != -1)
+	{
+		RemovePlayerItem(client, iWeapon);
+		AcceptEntityInput(iWeapon, "Kill");
+	}
+
+	iWeapon = GivePlayerItem(client, sWeapon);
+	FakeClientCommand(client, "use %s", sWeapon);
+
+	if(iSlot != CS_SLOT_KNIFE)
+	{
+		SetWeaponAmmo(client, iWeapon);
+	}
+
+	return Plugin_Handled;
+}
+
+public void SetWeaponAmmo(int client, int weapon)
+{
+	int iAmmo = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType");
+	SetEntData(client, gI_Ammo + (iAmmo * 4), 255, 4, true);
+
+	if(gSG_Type == Game_CSGO)
+	{
+		SetEntProp(weapon, Prop_Send, "m_iPrimaryReserveAmmoCount", 255);
+	}
+}
+
 public Action Command_Specs(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -898,6 +982,24 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 	}
 
 	return Plugin_Continue;
+}
+
+public void Weapon_Fire(Event event, const char[] name, bool dB)
+{
+	if(gCV_WeaponCommands.IntValue < 2)
+	{
+		return;
+	}
+
+	char[] sWeapon = new char[16];
+	event.GetString("weapon", sWeapon, 16);
+
+	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hpk") != -1 || StrEqual(sWeapon, "glock"))
+	{
+		int client = GetClientOfUserId(event.GetInt("userid"));
+
+		SetWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"));
+	}
 }
 
 public void Shavit_OnFinish(int client)

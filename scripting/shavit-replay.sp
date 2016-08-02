@@ -511,7 +511,7 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 	gB_HideNameChange = true;
 	SetClientName(client, sName);
 
-	int iScore = (gI_FrameCount[style] > 0)? 2000:1999;
+	int iScore = (gI_FrameCount[style] > 0)? 2000:-2000;
 
 	if(gSG_Type == Game_CSGO)
 	{

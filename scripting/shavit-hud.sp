@@ -107,7 +107,7 @@ public void OnPluginStart()
 {
 	// game-specific
 	gSG_Type = Shavit_GetGameType();
-
+	
 	if(gSG_Type == Game_CSS)
 	{
 		gH_HUD = CreateHudSynchronizer();
