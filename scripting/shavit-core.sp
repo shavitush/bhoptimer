@@ -661,7 +661,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	Call_PushCell(CalculateTime(client));
 	Call_PushCell(gI_Jumps[client]);
 	Call_PushCell(gI_Strafes[client]);
-	Call_PushCell((gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0));
+	Call_PushCell((gI_StyleProperties[gBS_Style[client]] & STYLE_MEASURESYNC)? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 	Call_Finish();
 
 	StopTimer(client);
@@ -717,7 +717,7 @@ public int Native_GetSync(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	return view_as<int>((gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0));
+	return view_as<int>((gI_StyleProperties[gBS_Style[client]] & STYLE_MEASURESYNC)? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 }
 
 public void StartTimer(int client)

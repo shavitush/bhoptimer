@@ -71,6 +71,13 @@ char gS_MySQLPrefix[32];
 ConVar gCV_RecordsLimit = null;
 ConVar gCV_RecentLimit = null;
 
+// colors to minimize printtochat on finish
+char gS_Color_Time[16];
+char gS_Color_Rank[16];
+char gS_Color_Sync[16];
+char gS_Color_Better[16];
+char gS_Color_Worse[16];
+
 public Plugin myinfo =
 {
 	name = "[shavit] World Records",
@@ -142,6 +149,15 @@ public void OnPluginStart()
 
 	// admin menu
 	OnAdminMenuReady(null);
+
+	// colors
+	ServerGame sgType = Shavit_GetGameType();
+
+	strcopy(gS_Color_Time, 16, (sgType == Game_CSS)? "\x07D490CF":"\x07");
+	strcopy(gS_Color_Rank, 16, (sgType == Game_CSS)? "\x077585E0":"\x05");
+	strcopy(gS_Color_Sync, 16, (sgType == Game_CSS)? "\x07B590D4":"\x06");
+	strcopy(gS_Color_Better, 16, (sgType == Game_CSS)? "\x07AD3BA6":"\x0C");
+	strcopy(gS_Color_Worse, 16, (sgType == Game_CSS)? "\x07CCCCCC":"\x08");
 
 	// mysql
 	Shavit_GetDB(gH_SQL);
@@ -1202,9 +1218,9 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int iStrafes = results.FetchInt(7);
 		float fSync = results.FetchFloat(8);
 
-		if((iJumps > 0 && fSync > 0.0) || iStrafes > 0)
+		if(iJumps > 0 || iStrafes > 0)
 		{
-			FormatEx(sDisplay, 128, "Strafes: %d (%.02f%%)", iStrafes, fSync);
+			FormatEx(sDisplay, 128, (fSync != -1.0)? "Strafes: %d (%.02f%%)":"Strafes: %d", iStrafes, fSync);
 			m.AddItem("-1", sDisplay);
 		}
 	}
@@ -1406,7 +1422,8 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 	char[] sDifference = new char[16];
 	FormatSeconds(fDifference, sDifference, 16, true);
 
-	ServerGame sGame = Shavit_GetGameType();
+	char[] sSync = new char[32]; // 32 because colors
+	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_Color_Sync, sync);
 
 	if(overwrite > 0)
 	{
@@ -1417,15 +1434,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		if(overwrite == 1) // insert
 		{
-			if(sGame == Game_CSS)
-			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01.", client, gS_BhopStyles[style], sTime, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
-			}
-
-			else
-			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%\x01.", client, gS_BhopStyles[style], sTime, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
-			}
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01.", client, gS_BhopStyles[style], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync);
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
 			// TODO: work on a solution that can function the same while not causing lost records
@@ -1439,15 +1448,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		else // update
 		{
-			if(sGame == Game_CSS)
-			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07D490CF%s\x01 (\x077585E0#%d\x01) with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01. \x07AD3BA6(%s)", client, gS_BhopStyles[style], sTime, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
-			}
-
-			else
-			{
-				Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in \x07%s\x01 (\x05#%d\x01) with %d jump%s, %d strafe%s @ \x06%.02f%%\x01. \x0C(%s)", client, gS_BhopStyles[style], sTime, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
-			}
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01. %s(%s)", client, gS_BhopStyles[style], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Better, sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}
@@ -1475,28 +1476,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 	else if(overwrite == 0 && !(gI_StyleProperties[style] & STYLE_UNRANKED))
 	{
-		if(sGame == Game_CSS)
-		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%\x01. \x07CCCCCC(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
-		}
-
-		else
-		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s, %d strafe%s @ \x06%.02f%%\x01. \x08(+%s)", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync, sDifference);
-		}
+		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01. %s(+%s)", gS_BhopStyles[style], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Worse, sDifference);
 	}
 
 	else
 	{
-		if(sGame == Game_CSS)
-		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07D490CF%s\x01 with %d jump%s, %d strafe%s @ \x07B590D4%.02f%%.", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
-		}
-
-		else
-		{
-			Shavit_PrintToChat(client, "You have finished (%s) in \x07%s\x01 with %d jump%s, %d strafe%s @ \x06%.02f%%.", gS_BhopStyles[style], sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sync);
-		}
+		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01.", gS_BhopStyles[style], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync);
 	}
 }
 

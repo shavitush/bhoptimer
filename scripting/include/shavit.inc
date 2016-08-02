@@ -87,17 +87,18 @@ enum ReplayStatus(+=1)
 #define STYLE_LOWGRAV			(1 << 13) // 0.6x gravity (standard for low gravity styles)
 #define STYLE_SLOWMO			(1 << 14) // 0.5x speed (standard for slowmo styles)
 #define STYLE_SLOWMOTIME		(1 << 15) // calculation of times will be halved, replays WILL NOT function properly
+#define STYLE_MEASURESYNC		(1 << 16) // measure sync for that style, useless for non-forwards styles like SW
 
 int gI_StyleProperties[MAX_STYLES] =
 {
-	STYLE_AUTOBHOP|STYLE_EASYBHOP, // Normal
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_MEASURESYNC, // Normal
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D, // Sideways
 	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D|STYLE_BLOCK_S, // W-Only
-	STYLE_EASYBHOP, // Scroll
-	STYLE_VEL_LIMIT, // 400 Velocity
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_HSW_ONLY, // HSW
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_LOWGRAV|STYLE_UNRANKED, // Low gravity
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_SLOWMO|STYLE_SLOWMOTIME|STYLE_UNRANKED // Slow motion
+	STYLE_EASYBHOP|STYLE_MEASURESYNC, // Scroll
+	STYLE_VEL_LIMIT|STYLE_MEASURESYNC, // 400 Velocity
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_HSW_ONLY|STYLE_MEASURESYNC, // HSW
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_LOWGRAV|STYLE_UNRANKED|STYLE_MEASURESYNC, // Low gravity
+	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_SLOWMO|STYLE_SLOWMOTIME|STYLE_UNRANKED|STYLE_MEASURESYNC // Slow motion
 };
 #endif
 
@@ -323,7 +324,7 @@ forward void Shavit_OnStop(int client);
  * @param time						Record time.
  * @param jumps						Jumps amount.
  * @param strafes					Amount of strafes.
- * @param sync						Sync percentage (0.0 to 100.0).
+ * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @noreturn
  */
 forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, int strafes, float sync);
@@ -337,7 +338,7 @@ forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps,
  * @param time						Record time.
  * @param jumps						Jumps amount.
  * @param strafes					Amount of strafes.
- * @param sync						Sync percentage (0.0 to 100.0).
+ * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @param rank						Rank on map.
  * @param overwrite					1 - brand new record. 2 - update.
  * @noreturn
@@ -352,7 +353,7 @@ forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int j
  * @param time						Record time.
  * @param jumps						Jumps amount.
  * @param strafes					Amount of strafes.
- * @param sync						Sync percentage (0.0 to 100.0).
+ * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @noreturn
  */
 forward void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps, int strafes, float sync);
@@ -499,7 +500,7 @@ native int Shavit_GetStrafeCount(int client);
 
 /**
  * Retrieve strafe sync since timer start.
- * Will return 0.0 if timer isn't running.
+ * Will return 0.0 if timer isn't running or -1.0 when not measured.
  *
  * @param client					Client index.
  * @return                          Amount of strafes since timer start.

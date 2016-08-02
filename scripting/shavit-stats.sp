@@ -632,9 +632,9 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int iStrafes = results.FetchInt(7);
 		float fSync = results.FetchFloat(8);
 
-		if((iJumps > 0 && fSync > 0.0) || iStrafes > 0)
+		if(iJumps > 0 || iStrafes > 0)
 		{
-			FormatEx(sDisplay, 128, "Strafes: %d (%.02f%%)", iStrafes, fSync);
+			FormatEx(sDisplay, 128, (fSync != -1.0)? "Strafes: %d (%.02f%%)":"Strafes: %d", iStrafes, fSync);
 			m.AddItem("-1", sDisplay);
 		}
 

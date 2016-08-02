@@ -451,7 +451,15 @@ public void UpdateHUD(int client)
 
 				if(tStatus >= Timer_Running)
 				{
-					Format(sHintText, 512, "%s%s\tStrafes: %d (%.02f%%)", sHintText, (iSpeed < 1000)? "\t":"", iStrafes, Shavit_GetSync(target));
+					if(gI_StyleProperties[bsStyle] & STYLE_MEASURESYNC)
+					{
+						Format(sHintText, 512, "%s%s\tStrafes: %d (%.02f%%)", sHintText, (iSpeed < 1000)? "\t":"", iStrafes, Shavit_GetSync(target));
+					}
+
+					else
+					{
+						Format(sHintText, 512, "%s%s\tStrafes: %d", sHintText, (iSpeed < 1000)? "\t":"", iStrafes);
+					}
 				}
 
 				Format(sHintText, 512, "%s</font>", sHintText);
@@ -676,7 +684,7 @@ public void UpdateKeyHint(int client)
 
 		int target = GetHUDTarget(client);
 
-		if(gI_HUDSettings[client] & HUD_SYNC && Shavit_GetTimerStatus(target) == Timer_Running)
+		if(gI_HUDSettings[client] & HUD_SYNC && Shavit_GetTimerStatus(target) == Timer_Running && gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_MEASURESYNC && !IsFakeClient(target))
 		{
 			Format(sMessage, 128, "%s%sSync: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", Shavit_GetSync(target));
 		}
