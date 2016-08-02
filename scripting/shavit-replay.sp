@@ -308,7 +308,7 @@ public void OnMapStart()
 
 		if(!LoadReplay(view_as<BhopStyle>(i)))
 		{
-			FormatEx(gS_BotName[i], MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[i]);
+			strcopy(gS_BotName[i], MAX_NAME_LENGTH, "unloaded");
 
 			gI_ReplayTick[i] = -1;
 		}
@@ -483,7 +483,7 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 	{
 		case 0:
 		{
-			if(gI_FrameCount[style] == 0 || time == 0.0)
+			if(gI_FrameCount[style] == 0)
 			{
 				FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[style]);
 			}
@@ -496,7 +496,7 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 
 		case 1:
 		{
-			if(gI_FrameCount[style] == 0 || time == 0.0)
+			if(gI_FrameCount[style] == 0)
 			{
 				FormatEx(sName, MAX_NAME_LENGTH, "%s - N/A", gS_BhopStyles[style]);
 			}
