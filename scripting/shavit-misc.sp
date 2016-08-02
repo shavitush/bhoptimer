@@ -450,39 +450,38 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		}
 	}
 
-	if(gI_SSJSettings[client] & SSJ_ENABLED)
+	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
 	{
-		if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
+		if(gF_HitGround[client] == 0.0)
 		{
-			if(gF_HitGround[client] == 0.0)
-			{
-				gF_HitGround[client] = GetEngineTime();
-			}
-
-			else if(gI_SSJJumps[client] > 0 && (GetEngineTime() - gF_HitGround[client]) > 0.100)
-			{
-				ResetSSJ(client, true, false);
-				gF_SSJFirstSpeed[client] = 0.0;
-			}
+			gF_HitGround[client] = GetEngineTime();
 		}
 
-		else
-		{
-			gF_HitGround[client] = 0.0;
-		}
-
-		float fSpeed = GetClientSpeed(client);
-
-		if(fSpeed > gF_SSJMaxSpeed[client])
-		{
-			gF_SSJMaxSpeed[client] = fSpeed;
-		}
-
-		if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+		else if(gI_SSJJumps[client] > 0 && (GetEngineTime() - gF_HitGround[client]) > 0.100)
 		{
 			ResetSSJ(client, true, false);
 			gF_SSJFirstSpeed[client] = 0.0;
 		}
+	}
+
+	else
+	{
+		gF_HitGround[client] = 0.0;
+	}
+
+	float fSpeed = GetClientSpeed(client);
+
+	if(fSpeed > gF_SSJMaxSpeed[client])
+	{
+		gF_SSJMaxSpeed[client] = fSpeed;
+	}
+
+	MoveType iMoveType = GetEntityMoveType(client);
+
+	if(iMoveType == MOVETYPE_NOCLIP || iMoveType == MOVETYPE_LADDER)
+	{
+		ResetSSJ(client, true, false);
+		gF_SSJFirstSpeed[client] = 0.0;
 	}
 
 	gF_LastFlags[client] = GetEntityFlags(client);
@@ -1197,11 +1196,6 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(!(gI_SSJSettings[client] & SSJ_ENABLED))
-	{
-		return;
-	}
-
 	gI_SSJJumps[client]++;
 
 	if(gI_SSJJumps[client] == 1)
@@ -1221,35 +1215,32 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 		gF_SSJMaxSpeed[client] = GetClientSpeed(client);
 
 		int[] clients = new int[MaxClients];
-		int iClients = 0;
+		int count = 0;
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			if(i == client)
 			{
-				clients[iClients++] = i;
+				clients[count++] = i;
 
 				continue;
 			}
 
-			if(IsValidClient(i))
+			if(gI_SSJSettings[i] & SSJ_ENABLED && IsValidClient(i) && IsClientObserver(i))
 			{
-				if(IsClientObserver(client))
-				{
-					int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
+				int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
 
-					if(iObserverMode >= 3 && iObserverMode <= 5)
+				if(iObserverMode >= 3 && iObserverMode <= 5)
+				{
+					if(GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client)
 					{
-						if(GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") == client)
-						{
-							clients[iClients++] = i;
-						}
+						clients[count++] = i;
 					}
 				}
 			}
 		}
 
-		for(int i = 0; i < iClients; i++)
+		for(int i = 0; i < count; i++)
 		{
 			Shavit_PrintToChat(clients[i], "Jump: \x04%d\x01 | Speed: \x04%d\x01 | Speed Δ: \x04%d\x01 | Height Δ: \x04%d\x01%s", gI_SSJJumps[client], RoundToFloor(GetClientSpeed(client)), RoundToFloor(GetClientSpeed(client) - gF_SSJStartingSpeed[client]), RoundToFloor(GetClientHeight(client) - gF_SSJStartingHeight[client]), (gI_SSJJumps[client] > 1)? sGain:"");
 		}
