@@ -22,6 +22,7 @@
 #include <sdkhooks>
 #include <sdktools>
 #include <geoip>
+#include <clientprefs>
 
 #undef REQUIRE_PLUGIN
 #define USES_STYLE_PROPERTIES
@@ -69,6 +70,10 @@ int gI_TotalMeasures[MAXPLAYERS+1];
 int gI_GoodGains[MAXPLAYERS+1];
 bool gB_DoubleSteps[MAXPLAYERS+1];
 float gF_HSW_Requirement = 0.0;
+
+// cookies
+Handle gH_StyleCookie = null;
+Handle gH_AutoBhopCookie = null;
 
 // late load
 bool gB_Late = false;
@@ -184,6 +189,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_styles", Command_Style, "Choose your bhop style.");
 	RegConsoleCmd("sm_diff", Command_Style, "Choose your bhop style.");
 	RegConsoleCmd("sm_difficulty", Command_Style, "Choose your bhop style.");
+	gH_StyleCookie = RegClientCookie("shavit_style", "Style cookie", CookieAccess_Protected);
 
 	// timer start
 	RegConsoleCmd("sm_s", Command_StartTimer, "Start your timer.");
@@ -205,6 +211,7 @@ public void OnPluginStart()
 	// autobhop toggle
 	RegConsoleCmd("sm_auto", Command_AutoBhop, "Toggle autobhop.");
 	RegConsoleCmd("sm_autobhop", Command_AutoBhop, "Toggle autobhop.");
+	gH_AutoBhopCookie = RegClientCookie("shavit_autobhop", "Autobhop cookie", CookieAccess_Protected);
 
 	// doublstep fixer
 	AddCommandListener(Command_DoubleStep, "+ds");
@@ -436,6 +443,11 @@ public Action Command_AutoBhop(int client, int args)
 
 	Shavit_PrintToChat(client, "Autobhop %s\x01.", gB_Auto[client]? "\x04enabled":"\x02disabled");
 
+	char[] sAutoBhop = new char[4];
+	IntToString(view_as<int>(gB_Auto[client]), sAutoBhop, 4);
+
+	SetClientCookie(client, gH_AutoBhopCookie, sAutoBhop);
+
 	return Plugin_Handled;
 }
 
@@ -482,7 +494,6 @@ public Action Command_Style(int client, int args)
 	}
 
 	m.ExitButton = true;
-
 	m.Display(client, 20);
 
 	return Plugin_Handled;
@@ -540,6 +551,11 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 		StartTimer(client);
 	}
+
+	char[] sStyle = new char[4];
+	IntToString(view_as<int>(style), sStyle, 4);
+
+	SetClientCookie(client, gH_StyleCookie, sStyle);
 }
 
 public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
@@ -825,14 +841,28 @@ public void OnClientDisconnect(int client)
 	StopTimer(client);
 }
 
+public void OnClientCookiesCached(int client)
+{
+	char[] sCookie = new char[4];
+	GetClientCookie(client, gH_AutoBhopCookie, sCookie, 4);
+	gB_Auto[client] = (strlen(sCookie) > 0)? view_as<bool>(StringToInt(sCookie)):true;
+
+	GetClientCookie(client, gH_StyleCookie, sCookie, 4);
+	gBS_Style[client] = view_as<BhopStyle>(StringToInt(sCookie));
+}
+
 public void OnClientPutInServer(int client)
 {
 	gB_Auto[client] = true;
-	gB_DoubleSteps[client] = false;
+	gBS_Style[client] = view_as<BhopStyle>(0);
 
 	StopTimer(client);
+	gB_DoubleSteps[client] = false;
 
-	gBS_Style[client] = view_as<BhopStyle>(0);
+	if(AreClientCookiesCached(client))
+	{
+		OnClientCookiesCached(client);
+	}
 
 	if(!IsValidClient(client) || IsFakeClient(client) || gH_SQL == null)
 	{
