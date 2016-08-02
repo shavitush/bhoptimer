@@ -62,9 +62,13 @@ ConVar gCV_NoBlock = null;
 ConVar gCV_AutoRespawn = null;
 ConVar gCV_CreateSpawnPoints = null;
 ConVar gCV_DisableRadio = null;
+ConVar gCV_Scoreboard = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
+
+// modules
+bool gB_Rankings = false;
 
 public Plugin myinfo =
 {
@@ -80,6 +84,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	gB_Late = late;
 
 	return APLRes_Success;
+}
+
+public void OnAllPluginsLoaded()
+{
+	gB_Rankings = LibraryExists("shavit-rankings");
 }
 
 public void OnPluginStart()
@@ -113,6 +122,7 @@ public void OnPluginStart()
 	}
 
 	// message
+	CreateTimer(1.0, Timer_Scoreboard, INVALID_HANDLE, TIMER_REPEAT);
 	CreateTimer(600.0, Timer_Message, INVALID_HANDLE, TIMER_REPEAT);
 
 	// hooks
@@ -138,6 +148,7 @@ public void OnPluginStart()
 	gCV_AutoRespawn = CreateConVar("shavit_misc_autorespawn", "1.5", "Seconds to wait before respawning player?\n0 - Disabled", 0, true, 0.0, true, 10.0);
 	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "32", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
 	gCV_DisableRadio = CreateConVar("shavit_misc_disableradio", "0", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
+	gCV_Scoreboard = CreateConVar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -199,6 +210,22 @@ public void OnMapStart()
 				}
 			}
 		}
+	}
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = false;
 	}
 }
 
@@ -286,11 +313,54 @@ public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 	return MRES_Ignored;
 }
 
+public Action Timer_Scoreboard(Handle Timer)
+{
+	if(!gCV_Scoreboard.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(!IsValidClient(i) || IsFakeClient(i))
+		{
+			continue;
+		}
+
+		UpdateScoreboard(i);
+	}
+
+	return Plugin_Continue;
+}
+
 public Action Timer_Message(Handle Timer)
 {
 	Shavit_PrintToChatAll("You may write !hide to hide other players.");
 
 	return Plugin_Continue;
+}
+
+public void UpdateScoreboard(int client)
+{
+	float fPB = 0.0;
+	Shavit_GetPlayerPB(client, view_as<BhopStyle>(0), fPB);
+
+	int iScore = (fPB != 0.0 && fPB < 2000)? -RoundToFloor(fPB):-2000;
+
+	if(gSG_Type == Game_CSGO)
+	{
+		CS_SetClientContributionScore(client, iScore);
+	}
+
+	else
+	{
+		SetEntProp(client, Prop_Data, "m_iFrags", iScore);
+	}
+
+	if(gB_Rankings)
+	{
+		SetEntProp(client, Prop_Data, "m_iDeaths", Shavit_GetRank(client));
+	}
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons)
@@ -301,7 +371,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	}
 
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
-	bool bNoclipping = GetEntityMoveType(client) == MOVETYPE_NOCLIP;
+	bool bNoclipping = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
 
 	if(bNoclipping && !bInStart && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
@@ -780,6 +850,11 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	{
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	}
+
+	if(gCV_Scoreboard.BoolValue && !IsFakeClient(client))
+	{
+		UpdateScoreboard(client);
+	}
 }
 
 public Action RemoveRadar(Handle timer, any data)
@@ -823,4 +898,14 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 	}
 
 	return Plugin_Continue;
+}
+
+public void Shavit_OnFinish(int client)
+{
+	if(!gCV_Scoreboard.BoolValue)
+	{
+		return;
+	}
+
+	UpdateScoreboard(client);
 }

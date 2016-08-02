@@ -137,7 +137,8 @@ Miscellaneous
 - [x] Fix respawn for auto team join.
 - [x] Create extra spawn points for both teams because many bhop maps lack them. (`shavit_misc_createspawnpoints`)
 - [x] Support map changing, specifically SourceMod's built-in mapchooser and MCE.
-- [ ] Make frags/score as -time and deaths as rank.
+- [x] Make frags/score as -time and deaths as rank.
+- [ ] Add `sm_usp` `sm_glock` `sm_knife`.
 - [ ] Add SSJ (Speed Sixth Jump).
 
 Sounds **(NEW!)**
