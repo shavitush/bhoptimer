@@ -43,6 +43,7 @@ int gI_RankedPlayers = 0;
 
 char gS_CachedMap[MAXPLAYERS+1][192];
 int gI_MapTier = -1;
+bool gB_ChatMessage[MAXPLAYERS+1];
 
 float gF_PlayerPoints[MAXPLAYERS+1];
 int gI_PlayerRank[MAXPLAYERS+1];
@@ -136,12 +137,17 @@ public void OnPluginStart()
 	AutoExecConfig();
 }
 
+public void OnClientAuthorized(int client, const char[] auth)
+{
+	gB_ChatMessage[client] = false;
+}
+
 public void OnClientPutInServer(int client)
 {
 	if(IsFakeClient(client))
 	{
-	return;
-		}
+		return;
+	}
 
 	gF_PlayerPoints[client] = -1.0;
 	gI_PlayerRank[client] = -1;
@@ -157,7 +163,12 @@ public void OnClientPutInServer(int client)
 		gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 	}
 
-	CreateTimer(5.0, Timer_PrintTier, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+	if(!gB_ChatMessage[client])
+	{
+		CreateTimer(5.0, Timer_PrintTier, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+
+		gB_ChatMessage[client] = true;
+	}
 }
 
 public void SQL_GetUserPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
