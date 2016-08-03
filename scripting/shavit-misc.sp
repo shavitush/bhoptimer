@@ -86,6 +86,7 @@ ConVar gCV_CreateSpawnPoints = null;
 ConVar gCV_DisableRadio = null;
 ConVar gCV_Scoreboard = null;
 ConVar gCV_WeaponCommands = null;
+ConVar gCV_PlayerOpacity = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -186,6 +187,7 @@ public void OnPluginStart()
 	gCV_DisableRadio = CreateConVar("shavit_misc_disableradio", "0", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
 	gCV_Scoreboard = CreateConVar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_WeaponCommands = CreateConVar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.", 0, true, 0.0, true, 2.0);
+	gCV_PlayerOpacity = CreateConVar("shavit_misc_playeropacity", "-1", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 
 	AutoExecConfig();
 
@@ -1146,6 +1148,12 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	if(gCV_Scoreboard.BoolValue && !IsFakeClient(client))
 	{
 		UpdateScoreboard(client);
+	}
+
+	if(gCV_PlayerOpacity.IntValue != -1 && FindSendPropInfo("CCSPlayer", "m_nRenderFX") != -1)
+	{
+		SetEntityRenderMode(client, RENDER_TRANSCOLOR);
+		SetEntityRenderColor(client, 255, 255, 255, gCV_PlayerOpacity.IntValue);
 	}
 }
 
