@@ -140,6 +140,7 @@ Miscellaneous
 - [x] Make frags/score as -time and deaths as rank.
 - [x] Add `sm_usp` `sm_glock` `sm_knife`.
 - [x] Add SSJ (Speed Sixth Jump), save settings to clientprefs and print SSJ to spectators.
+- [ ] Add cvar to disable static 250 maxspeed.
 
 Sounds **(NEW!)**
 --
@@ -164,8 +165,9 @@ Rankings **(NEW!)**
 - [x] Recalculate points for every record on the current map when a ROOT admin changes the point value for it. (retroactive!)
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 - [x] Add native that checks the total amount of players with over 0 points.
+- [x] Add map tiers. `sm_tier` `sm_settier`
 - [ ] Find a way to update newly calculated points for all records on a map with the least amount of queries possible.
-- [ ] Implement map tiers or remove idealtime and use the WR time for each style instead.
+- [ ] Remove idealtime and use the WR time for the default time instead.
 - [ ] Remove deleted records from `playerpoints`.
 
 Web Interface

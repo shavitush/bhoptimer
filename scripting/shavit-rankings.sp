@@ -41,6 +41,9 @@ int gI_NeededRecordsAmount = 0;
 int gI_CachedRecordsAmount = 0;
 int gI_RankedPlayers = 0;
 
+char gS_CachedMap[MAXPLAYERS+1][192];
+int gI_MapTier = -1;
+
 float gF_PlayerPoints[MAXPLAYERS+1];
 int gI_PlayerRank[MAXPLAYERS+1];
 bool gB_PointsToChat[MAXPLAYERS+1];
@@ -51,8 +54,9 @@ StringMap gSM_Time = null;
 // convars
 ConVar gCV_TopAmount = null;
 
-// database handle
+// database handles
 Database gH_SQL = null;
+Database gH_Tiers = null;
 bool gB_MySQL = false;
 
 // table prefix
@@ -62,7 +66,7 @@ public Plugin myinfo =
 {
 	name = "[shavit] Rankings",
 	author = "shavit",
-	description = "Rankings system for shavit's bhop timer.",
+	description = "Ranking system for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
 }
@@ -109,9 +113,14 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_prank", Command_Rank, "Shows your current rank. (sm_rank alias)");
 	RegConsoleCmd("sm_top", Command_Top, "Shows the top players menu.");
 	RegConsoleCmd("sm_ptop", Command_Top, "Shows the top players menu. (sm_top alias)");
+	RegConsoleCmd("sm_tier", Command_Tier, "Prints the map's tier to chat.");
+	RegConsoleCmd("sm_maptier", Command_Tier, "Prints the map's tier to chat. (sm_tier alias)");
 
 	// admin commands
 	RegAdminCmd("sm_setpoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points>");
+	RegAdminCmd("sm_setmappoints", Command_SetPoints, ADMFLAG_ROOT, "Set points for a defined ideal time. sm_setpoints <time in seconds> <points> (sm_setpoints alias)");
+	RegAdminCmd("sm_settier", Command_SetTier, ADMFLAG_ROOT, "Set map tier. Has no effect except for sm_tier output or message upon connection.");
+	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_ROOT, "Set map tier. Has no effect except for sm_tier output or message upon connection. (sm_settier alias)");
 
 	// translations
 	LoadTranslations("common.phrases");
@@ -129,24 +138,26 @@ public void OnPluginStart()
 
 public void OnClientPutInServer(int client)
 {
-    if(IsFakeClient(client))
-    {
-        return;
-    }
+	if(IsFakeClient(client))
+	{
+	return;
+		}
 
-    gF_PlayerPoints[client] = -1.0;
-    gI_PlayerRank[client] = -1;
-    gB_PointsToChat[client] = false;
+	gF_PlayerPoints[client] = -1.0;
+	gI_PlayerRank[client] = -1;
+	gB_PointsToChat[client] = false;
 
-    char[] sAuthID3 = new char[32];
+	char[] sAuthID3 = new char[32];
 
-    if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
-    {
-        char[] sQuery = new char[128];
-        FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1;", gS_MySQLPrefix, sAuthID3);
+	if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+	{
+		char[] sQuery = new char[128];
+		FormatEx(sQuery, 128, "SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1;", gS_MySQLPrefix, sAuthID3);
 
-        gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
-    }
+		gH_SQL.Query(SQL_GetUserPoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
+	}
+
+	CreateTimer(5.0, Timer_PrintTier, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void SQL_GetUserPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -198,6 +209,23 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
     }
 }
 
+public Action Timer_PrintTier(Handle Timer, any data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(client == 0 || gI_MapTier == -1)
+	{
+		return Plugin_Stop;
+	}
+
+	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
+	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
+
+	Shavit_PrintToChat(client, "\x04%s\x01 is rated \x05tier %d\x01.", sDisplayMap, gI_MapTier);
+
+	return Plugin_Stop;
+}
+
 #if defined DEBUG
 public Action Command_Calc(int args)
 {
@@ -240,6 +268,26 @@ public void OnMapStart()
 
 	GetCurrentMap(gS_Map, 256);
 	UpdatePointsCache(gS_Map);
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+
+	gH_Tiers.Query(SQL_SetTierCache_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_SetTierCache_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! Set tier cache failed. Reason: %s", error);
+
+		return;
+	}
+
+	if(results.FetchRow())
+	{
+		gI_MapTier = results.FetchInt(0);
+	}
 }
 
 public Action Command_Points(int client, int args)
@@ -393,6 +441,121 @@ public int MenuHandler_TopMenu(Menu m, MenuAction action, int param1, int param2
     return 0;
 }
 
+public Action Command_Tier(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(args == 0)
+	{
+		char[] sDisplayMap = new char[strlen(gS_Map) + 1];
+		GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
+
+		if(gI_MapTier != -1)
+		{
+			Shavit_PrintToChat(client, "\x04%s\x01 is rated \x05tier %d\x01.", sDisplayMap, gI_MapTier);
+		}
+
+		else
+		{
+			Shavit_PrintToChat(client, "\x04%s\x01 is not rated.", sDisplayMap);
+		}
+	}
+
+	else
+	{
+		GetCmdArg(1, gS_CachedMap[client], 192);
+
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers WHERE map LIKE '%%%s%%';", gS_MySQLPrefix, gS_CachedMap[client]);
+
+		gH_Tiers.Query(SQL_GetTier_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+	}
+
+	return Plugin_Handled;
+}
+
+public void SQL_GetTier_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! Get map tier failed. Reason: %s", error);
+
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	if(results.FetchRow())
+	{
+		char[] sMap = new char[192];
+		results.FetchString(0, sMap, 192);
+
+		char[] sDisplayMap = new char[strlen(sMap) + 1];
+		GetMapDisplayName(sMap, sDisplayMap, strlen(sMap) + 1);
+
+		Shavit_PrintToChat(client, "\x04%s\x01 is rated \x05tier %d\x01.", sDisplayMap, gI_MapTier);
+	}
+
+	else
+	{
+		Shavit_PrintToChat(client, "Couldn't find map tier for \x04%s\x01.", gS_CachedMap[client]);
+	}
+}
+
+public Action Command_SetTier(int client, int args)
+{
+	if(args != 1)
+	{
+		char[] sArg0 = new char[32];
+		GetCmdArg(0, sArg0, 32);
+
+		ReplyToCommand(client, "Usage: %s <tier>", sArg0);
+
+		return Plugin_Handled;
+	}
+
+	char[] sArg1 = new char[8];
+	GetCmdArg(1, sArg1, 8);
+
+	int iTier = StringToInt(sArg1);
+
+	if(iTier < 0)
+	{
+		ReplyToCommand(client, "Invalid map tier (%d)!", iTier);
+
+		return Plugin_Handled;
+	}
+
+	gI_MapTier = iTier;
+
+	ReplyToCommand(client, "Map tier is now %d.", iTier);
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, iTier);
+
+	gH_Tiers.Query(SQL_SetTier_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+
+	return Plugin_Handled;
+}
+
+public void SQL_SetTier_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! Set map tier failed. Reason: %s", error);
+
+		return;
+	}
+}
+
 public Action Command_SetPoints(int client, int args)
 {
     if(args != 2)
@@ -437,7 +600,7 @@ public void SetMapPoints(float time, float points)
 }
 
 public void SQL_SetPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
-    {
+{
     if(results == null)
     {
         LogError("Timer (rankings module) error! Failed to insert map data to the table. Reason: %s", error);
@@ -957,6 +1120,19 @@ public void SQL_DBConnect()
 
 		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%suserpoints` (`auth` VARCHAR(32), `points` FLOAT, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+
+		char[] sError = new char[255];
+		gH_Tiers = SQLite_UseDatabase("shavit-tiers", sError, 255);
+
+		if(gH_Tiers == null)
+		{
+			LogError("Cannot start `shavit-tiers` SQLite table. %s", sError);
+
+			return;
+		}
+
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(192), `tier` INT, PRIMARY KEY (`map`));", gS_MySQLPrefix);
+		gH_Tiers.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}
 }
 
