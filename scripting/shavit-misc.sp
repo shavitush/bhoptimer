@@ -837,21 +837,21 @@ public Action Command_Weapon(int client, int args)
 	GetCmdArg(0, sCommand, 16);
 
 	int iSlot = CS_SLOT_SECONDARY;
-	char[] sWeapon = new char[16];
+	char[] sWeapon = new char[32];
 
 	if(StrContains(sCommand, "usp", false) != -1)
 	{
-		strcopy(sWeapon, 16, (gSG_Type == Game_CSS)? "weapon_usp":"weapon_usp_silencer");
+		strcopy(sWeapon, 32, (gSG_Type == Game_CSS)? "weapon_usp":"weapon_usp_silencer");
 	}
 
 	else if(StrContains(sCommand, "glock", false) != -1)
 	{
-		strcopy(sWeapon, 16, "weapon_glock");
+		strcopy(sWeapon, 32, "weapon_glock");
 	}
 
 	else
 	{
-		strcopy(sWeapon, 16, "weapon_knife");
+		strcopy(sWeapon, 32, "weapon_knife");
 		iSlot = CS_SLOT_KNIFE;
 	}
 
