@@ -1222,7 +1222,7 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 				continue;
 			}
 
-			if(gI_SSJSettings[i] & SSJ_ENABLED && IsValidClient(i) && IsClientObserver(i))
+			if(IsValidClient(i) && IsClientObserver(i))
 			{
 				int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
 
@@ -1242,6 +1242,11 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 
 public void PrintSSJ(int client, int target, float gain)
 {
+	if(!(gI_SSJSettings[client] & SSJ_ENABLED))
+	{
+		return;
+	}
+
 	char[] sMessage = new char[256];
 	FormatEx(sMessage, 256, "Jump: \x04%d\x01", gI_SSJJumps[target]);
 
