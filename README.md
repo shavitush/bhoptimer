@@ -171,7 +171,7 @@ Rankings **(NEW!)**
 Web Interface
 --
 - [x] Implement points.
-- [ ] Compatibility for unix timestamps.
+- [x] Compatibility for unix timestamps.
 
 Chat **(NEW!)**
 --
