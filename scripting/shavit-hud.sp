@@ -384,12 +384,9 @@ public void UpdateHUD(int client)
 	{
 		if(!IsFakeClient(target))
 		{
-			float fTime = 0.0;
-			int iJumps = 0;
-			BhopStyle bsStyle = view_as<BhopStyle>(-1);
-			bool bStarted = false;
-			Shavit_GetTimer(target, fTime, iJumps, bsStyle, bStarted);
-
+			float fTime = Shavit_GetClientTime(target);
+			int iJumps = Shavit_GetClientJumps(target);
+			BhopStyle bsStyle = Shavit_GetBhopStyle(target);
 			TimerStatus tStatus = Shavit_GetTimerStatus(target);
 			int iStrafes = Shavit_GetStrafeCount(target);
 			int iPotentialRank = Shavit_GetRankForTime(bsStyle, fTime);
@@ -410,7 +407,7 @@ public void UpdateHUD(int client)
 			{
 				strcopy(sHintText, 512, "<font size=\"18\" face=\"Stratum2\">");
 
-				if(bStarted)
+				if(tStatus >= Timer_Running)
 				{
 					char[] sColor = new char[8];
 
@@ -434,10 +431,10 @@ public void UpdateHUD(int client)
 
 				if(fPB > 0.0)
 				{
-					Format(sHintText, 512, "%s%sBest: %s (#%d)", sHintText, bStarted? "\t":"", sPB, (Shavit_GetRankForTime(bsStyle, fPB) - 1));
+					Format(sHintText, 512, "%s%sBest: %s (#%d)", sHintText, (tStatus >= Timer_Running)? "\t":"", sPB, (Shavit_GetRankForTime(bsStyle, fPB) - 1));
 				}
 
-				if(bStarted)
+				if(tStatus >= Timer_Running)
 				{
 					Format(sHintText, 512, "%s\nJumps: %d%s\tStyle: <font color='#%s'>%s</font>", sHintText, iJumps, (iJumps < 1000)? "\t":"", gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
 				}
@@ -467,7 +464,7 @@ public void UpdateHUD(int client)
 
 			else
 			{
-				if(bStarted)
+				if(tStatus != Timer_Stopped)
 				{
 					if(Shavit_GetTimerStatus(target) == Timer_Running)
 					{
