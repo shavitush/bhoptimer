@@ -253,13 +253,20 @@ stock bool IsValidClient(int client, bool bAlive = false) // when bAlive is fals
 // time formatting!
 stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true)
 {
-	int iRounded = RoundToFloor(time);
-	float fSeconds = (iRounded % 60) + time - iRounded;
+	float fTempTime = time;
+
+	if(fTempTime < 0.0)
+	{
+		fTempTime = -fTempTime;
+	}
+
+	int iRounded = RoundToFloor(fTempTime);
+	float fSeconds = (iRounded % 60) + fTempTime - iRounded;
 
 	char[] sSeconds = new char[8];
 	FormatEx(sSeconds, 8, precise? "%.03f":"%.01f", fSeconds);
 
-	if(time < 60.0)
+	if(fTempTime < 60.0)
 	{
 		strcopy(newtime, newtimesize, sSeconds);
 	}
@@ -268,9 +275,9 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	{
 		int iMinutes = (iRounded / 60);
 
-		if(time < 3600.0)
+		if(fTempTime < 3600.0)
 		{
-			FormatEx(newtime, newtimesize, "%d:%s%s", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
+			FormatEx(newtime, newtimesize, "%s%d:%s%s", (time < 0.0)? "-":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
 
 		else
@@ -278,7 +285,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 			iMinutes %= 60;
 			int iHours = (iRounded / 3600);
 
-			FormatEx(newtime, newtimesize, "%d:%s%d:%s%s", iHours, (iMinutes < 10)? "0":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
+			FormatEx(newtime, newtimesize, "-%d:%s%d:%s%s", (time < 0.0)? "-":"", iHours, (iMinutes < 10)? "0":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
 	}
 }

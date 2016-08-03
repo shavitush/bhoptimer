@@ -1217,21 +1217,18 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(i == client)
+			if(i == client || !IsValidClient(i) || !IsClientObserver(i) || IsFakeClient(i))
 			{
 				continue;
 			}
 
-			if(IsValidClient(i) && IsClientObserver(i))
-			{
-				int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
+			int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
 
-				if(iObserverMode >= 3 && iObserverMode <= 5)
+			if(iObserverMode >= 3 && iObserverMode <= 5)
+			{
+				if(GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client)
 				{
-					if(GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client)
-					{
-						PrintSSJ(client, i, gain);
-					}
+					PrintSSJ(i, client, gain);
 				}
 			}
 		}
