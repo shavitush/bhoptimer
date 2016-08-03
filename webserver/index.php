@@ -205,7 +205,15 @@ $rr = isset($_REQUEST['rr']);
                             $steamid = SteamID::Parse($auth, SteamID::FORMAT_STEAMID3);
                         echo '<a href="https://steamcommunity.com/profiles/'.$steamid->Format(SteamID::FORMAT_STEAMID64).'/" target="_blank">'.$auth.'</a>'; ?></td>
 
-        					<td><?php echo $date; ?></td>
+        					<td><?php if ($date[4] == '-')
+		                        {
+		                            echo $date;
+		                        }
+
+		                        else
+		                        {
+		                            echo date('Y-m-d H:i:s', $date);
+		                        } ?></td>
                         </tr>
 
                         <?php
@@ -305,7 +313,15 @@ $rr = isset($_REQUEST['rr']);
                         } else {
                             echo '---';
                         } ?></td>
-                        <td><?php echo $date; ?></td></tr>
+                        <td><?php if ($date[4] == '-')
+                        {
+                            echo $date;
+                        }
+
+                        else
+                        {
+                            echo date('Y-m-d H:i:s', $date);
+                        } ?></td></tr>
 
     					<?php
 
