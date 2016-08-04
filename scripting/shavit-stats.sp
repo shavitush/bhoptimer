@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <cstrike>
+#include <geoip>
 
 #undef REQUIRE_PLUGIN
 #define USES_STYLE_NAMES
@@ -37,6 +38,7 @@
 
 // modules
 bool gB_Rankings = false;
+bool gB_Zones = false;
 
 // database handle
 Database gH_SQL = null;
@@ -48,7 +50,9 @@ char gS_MySQLPrefix[32];
 int gI_MapType[MAXPLAYERS+1];
 int gI_Target[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
-bool gB_RoundStarted = false;
+int gI_WRAmount[MAXPLAYERS+1];
+int gI_ClearCount[MAXPLAYERS+1];
+int gI_TotalMaps = 0;
 
 // cvars
 ConVar gCV_MVPRankOnes = null;
@@ -70,6 +74,7 @@ public void OnAllPluginsLoaded()
 	}
 
 	gB_Rankings = LibraryExists("shavit-rankings");
+	gB_Zones = LibraryExists("shavit-zones");
 }
 
 public void OnPluginStart()
@@ -82,7 +87,6 @@ public void OnPluginStart()
 	LoadTranslations("common.phrases");
 
 	// hooks
-	HookEvent("round_start", Round_Start);
 	HookEvent("player_spawn", Player_Event);
 	HookEvent("player_team", Player_Event);
 
@@ -99,7 +103,33 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-	gB_RoundStarted = false;
+	if(LibraryExists("shavit-zones")) // called before OnAllPluginsLoaded()
+	{
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
+
+		gH_SQL.Query(SQL_GetTotalMaps_Callback, sQuery);
+	}
+}
+
+public void SQL_GetTotalMaps_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (get total maps) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	if(results.FetchRow())
+	{
+		gI_TotalMaps = results.FetchInt(0);
+	}
+}
+
+public void OnClientPutInServer(int client)
+{
+	gI_WRAmount[client] = 0;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -168,44 +198,36 @@ public void SQL_SetPrefix()
 	delete fFile;
 }
 
-public void Round_Start(Event event, const char[] name, bool dontBroadcast)
-{
-	gB_RoundStarted = true;
-}
-
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
 
-	if(gCV_MVPRankOnes.BoolValue && IsValidClient(client))
+	if(IsValidClient(client))
 	{
-		UpdateMVPs(client);
+		UpdateWRs(client);
 	}
 }
 
 public void Shavit_OnFinish_Post(int client)
 {
-	UpdateMVPs(client);
+	UpdateWRs(client);
 }
 
 public void Shavit_OnWorldRecord(int client)
 {
-	if(gCV_MVPRankOnes.BoolValue)
+	for(int i = 1; i <= MaxClients; i++)
 	{
-		for(int i = 1; i <= MaxClients; i++)
+		if(IsValidClient(i, true))
 		{
-			if(IsValidClient(i, true))
-			{
-				UpdateMVPs(i);
-			}
+			UpdateWRs(i);
 		}
 	}
 }
 
-public void UpdateMVPs(int client)
+public void UpdateWRs(int client)
 {
-	if(gH_SQL == null || !gB_RoundStarted)
+	if(gH_SQL == null)
 	{
 		return;
 	}
@@ -227,7 +249,10 @@ public void UpdateMVPs(int client)
 			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT s.auth FROM (SELECT auth, MIN(time) FROM %splayertimes GROUP BY map, style) s) ss WHERE ss.auth = '%s' LIMIT 1;", gS_MySQLPrefix, sAuthID);
 		}
 
-		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
+
+		FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' GROUP BY map%s) s;", gS_MySQLPrefix, sAuthID, (gCV_MVPRankOnes.IntValue == 2)? ", style":"");
+		gH_SQL.Query(SQL_GetClears_Callback, sQuery, GetClientSerial(client));
 	}
 }
 
@@ -247,7 +272,36 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 		return;
 	}
 
-	CS_SetMVPCount(client, results.FetchInt(0));
+	int iWRs = results.FetchInt(0);
+
+	if(gCV_MVPRankOnes.BoolValue)
+	{
+		CS_SetMVPCount(client, iWRs);
+	}
+
+	gI_WRAmount[client] = iWRs;
+}
+
+public void SQL_GetClears_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (get clear amount) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	if(results.FetchRow())
+	{
+		gI_ClearCount[client] = results.FetchInt(0);
+	}
 }
 
 public Action Command_Profile(int client, int args)
@@ -294,8 +348,26 @@ public Action ShowStyleMenu(int client)
 	char[] sAuthID = new char[32];
 	GetClientAuthId(gI_Target[client], AuthId_Steam3, sAuthID, 32);
 
+	char[] sRankingString = new char[128];
+
+	if(gB_Rankings)
+	{
+		FormatEx(sRankingString, 128, "\nRank: %d/%d\nPoints: %d", Shavit_GetRank(gI_Target[client]), Shavit_GetRankedPlayers(), RoundToFloor(Shavit_GetPoints(gI_Target[client])));
+	}
+
+	char[] sCountry = new char[64];
+	GetClientIP(gI_Target[client], sCountry, 64);
+
+	if(!GeoipCountry(sCountry, sCountry, 64))
+	{
+		strcopy(sCountry, 64, "Local Area Network");
+	}
+
+	char[] sClearString = new char[128];
+	FormatEx(sClearString, 128, (gB_Zones)? "Map completions: %d/%d":"Map completions: %d", gI_ClearCount[gI_Target[client]], gI_TotalMaps);
+
 	Menu m = new Menu(MenuHandler_ProfileHandler);
-	m.SetTitle("%N's profile.\nSteamID3: %s", gI_Target[client], sAuthID);
+	m.SetTitle("%N's profile.\nCountry: %s\n%s\n%s #1 records: %d%s\nSteamID3: %s", gI_Target[client], sCountry, sClearString, (gCV_MVPRankOnes.IntValue == 2)? gS_BhopStyles[0]:"Total", gI_WRAmount[gI_Target[client]], sRankingString, sAuthID);
 
 	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
 	{
