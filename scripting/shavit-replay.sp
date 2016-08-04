@@ -40,7 +40,6 @@ EngineVersion gEV_Type = Engine_Unknown;
 int gI_ReplayTick[MAX_STYLES];
 int gI_ReplayBotClient[MAX_STYLES];
 ArrayList gA_Frames[MAX_STYLES] = {null, ...};
-char gS_BotName[MAX_STYLES][MAX_NAME_LENGTH];
 float gF_StartTick[MAX_STYLES];
 ReplayStatus gRS_ReplayStatus[MAX_STYLES];
 int gI_FrameCount[MAX_STYLES];
@@ -306,8 +305,6 @@ public void OnMapStart()
 
 		if(!LoadReplay(view_as<BhopStyle>(i)))
 		{
-			strcopy(gS_BotName[i], MAX_NAME_LENGTH, "unloaded");
-
 			gI_ReplayTick[i] = -1;
 		}
 
@@ -334,8 +331,8 @@ public bool LoadReplay(BhopStyle style)
 	{
 		File fFile = OpenFile(sPath, "r");
 
-		fFile.ReadLine(gS_BotName[style], MAX_NAME_LENGTH);
-		TrimString(gS_BotName[style]);
+		char[] sDummy = new char[MAX_NAME_LENGTH];
+		fFile.ReadLine(sDummy, MAX_NAME_LENGTH); // not used anymore
 
 		char[] sLine = new char[320];
 		char[][] sExplodedLine = new char[5][64];
@@ -387,7 +384,7 @@ public bool SaveReplay(BhopStyle style)
 	}
 
 	File fFile = OpenFile(sPath, "w");
-	fFile.WriteLine(gS_BotName[style]);
+	fFile.WriteLine("dummy line"); // not used anymore
 
 	int iSize = gA_Frames[style].Length;
 
@@ -488,7 +485,10 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 
 			else
 			{
-				FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s", gS_ShortBhopStyles[style], gS_BotName[style]);
+				char[] sWRName = new char[MAX_NAME_LENGTH];
+				Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH);
+
+				FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s - %s", gS_ShortBhopStyles[style], sWRName, sTime);
 			}
 		}
 
@@ -615,8 +615,6 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 
 	char[] sWRTime = new char[16];
 	FormatSeconds(time, sWRTime, 16);
-
-	FormatEx(gS_BotName[style], MAX_NAME_LENGTH, "%s - %N", sWRTime, client);
 
 	if(gI_ReplayBotClient[style] != 0)
 	{
