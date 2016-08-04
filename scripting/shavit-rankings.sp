@@ -49,6 +49,8 @@ float gF_PlayerPoints[MAXPLAYERS+1];
 int gI_PlayerRank[MAXPLAYERS+1];
 bool gB_PointsToChat[MAXPLAYERS+1];
 
+bool gB_CheckRankedPlayers = false;
+
 StringMap gSM_Points = null;
 StringMap gSM_Time = null;
 
@@ -276,6 +278,8 @@ public void OnMapStart()
 
 	gF_IdealTime = 0.0;
 	gF_MapPoints = -1.0;
+
+	gB_CheckRankedPlayers = false;
 
 	GetCurrentMap(gS_Map, 256);
 	UpdatePointsCache(gS_Map);
@@ -989,6 +993,13 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 		Call_StartForward(gH_Forwards_OnRankUpdated);
 		Call_PushCell(client);
 		Call_Finish();
+
+		if(!gB_CheckRankedPlayers)
+		{
+			UpdateRankedPlayers();
+
+			gB_CheckRankedPlayers = true;
+		}
     }
 }
 
@@ -1015,6 +1026,8 @@ public void SQL_UpdateRankedPlayers_Callback(Database db, DBResultSet results, c
 	}
 
 	UpdateStringMap();
+
+	gB_CheckRankedPlayers = false;
 }
 
 public int Native_GetPoints(Handle handler, int numParams)
