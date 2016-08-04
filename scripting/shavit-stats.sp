@@ -359,7 +359,7 @@ public Action ShowStyleMenu(int client)
 	}
 
 	char[] sClearString = new char[128];
-	FormatEx(sClearString, 128, "Map completions: %d/%d", gI_ClearCount[gI_Target[client]], gI_TotalMaps);
+	FormatEx(sClearString, 128, "Map completions: %d/%d (%.01f%%)", gI_ClearCount[gI_Target[client]], gI_TotalMaps, ((float((gI_ClearCount[gI_Target[client]])) / gI_TotalMaps) * 100.0));
 
 	Menu m = new Menu(MenuHandler_ProfileHandler);
 	m.SetTitle("%N's profile.\nCountry: %s\n%s\n%s #1 records: %d%s\nSteamID3: %s", gI_Target[client], sCountry, sClearString, (gCV_MVPRankOnes.IntValue == 2)? gS_BhopStyles[0]:"Total", gI_WRAmount[gI_Target[client]], sRankingString, sAuthID);
