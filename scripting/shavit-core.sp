@@ -335,7 +335,7 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gCV_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
+	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
