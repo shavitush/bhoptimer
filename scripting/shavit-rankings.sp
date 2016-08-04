@@ -299,6 +299,11 @@ public void SQL_SetTierCache_Callback(Database db, DBResultSet results, const ch
 	{
 		gI_MapTier = results.FetchInt(0);
 	}
+
+	else
+	{
+		gI_MapTier = -1;
+	}
 }
 
 public Action Command_Points(int client, int args)

@@ -38,7 +38,6 @@
 
 // modules
 bool gB_Rankings = false;
-bool gB_Zones = false;
 
 // database handle
 Database gH_SQL = null;
@@ -74,7 +73,6 @@ public void OnAllPluginsLoaded()
 	}
 
 	gB_Rankings = LibraryExists("shavit-rankings");
-	gB_Zones = LibraryExists("shavit-zones");
 }
 
 public void OnPluginStart()
@@ -103,20 +101,17 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-	if(LibraryExists("shavit-zones")) // called before OnAllPluginsLoaded()
-	{
-		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT id FROM %smapzones GROUP BY map) s;", gS_MySQLPrefix);
 
-		gH_SQL.Query(SQL_GetTotalMaps_Callback, sQuery);
-	}
+	gH_SQL.Query(SQL_GetTotalMaps_Callback, sQuery);
 }
 
 public void SQL_GetTotalMaps_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
 	{
-		LogError("Timer (get total maps) SQL query failed. Reason: %s", error);
+		LogError("Timer (get total maps) SQL query failed. You might be missing shavit-zones. Reason: %s", error);
 
 		return;
 	}
@@ -251,7 +246,7 @@ public void UpdateWRs(int client)
 
 		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
 
-		FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' GROUP BY map%s) s;", gS_MySQLPrefix, sAuthID, (gCV_MVPRankOnes.IntValue == 2)? ", style":"");
+		FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT id FROM %splayertimes WHERE auth = '%s' GROUP BY map) s LIMIT 1;", gS_MySQLPrefix, sAuthID);
 		gH_SQL.Query(SQL_GetClears_Callback, sQuery, GetClientSerial(client));
 	}
 }
@@ -364,7 +359,7 @@ public Action ShowStyleMenu(int client)
 	}
 
 	char[] sClearString = new char[128];
-	FormatEx(sClearString, 128, (gB_Zones)? "Map completions: %d/%d":"Map completions: %d", gI_ClearCount[gI_Target[client]], gI_TotalMaps);
+	FormatEx(sClearString, 128, "Map completions: %d/%d", gI_ClearCount[gI_Target[client]], gI_TotalMaps);
 
 	Menu m = new Menu(MenuHandler_ProfileHandler);
 	m.SetTitle("%N's profile.\nCountry: %s\n%s\n%s #1 records: %d%s\nSteamID3: %s", gI_Target[client], sCountry, sClearString, (gCV_MVPRankOnes.IntValue == 2)? gS_BhopStyles[0]:"Total", gI_WRAmount[gI_Target[client]], sRankingString, sAuthID);
@@ -414,7 +409,6 @@ public int MenuHandler_ProfileHandler(Menu m, MenuAction action, int param1, int
 		menu.AddItem("1", "Maps left");
 
 		menu.ExitBackButton = true;
-
 		menu.Display(param1, 20);
 	}
 
@@ -440,6 +434,11 @@ public int MenuHandler_TypeHandler(Menu m, MenuAction action, int param1, int pa
 		gI_MapType[param1] = StringToInt(sInfo);
 
 		ShowMaps(param1);
+	}
+
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		ShowStyleMenu(param1);
 	}
 
 	else if(action == MenuAction_End)
