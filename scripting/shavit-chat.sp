@@ -40,10 +40,12 @@ float gF_LastMessage[MAXPLAYERS+1];
 char gS_Cached_Prefix[MAXPLAYERS+1][32];
 char gS_Cached_Name[MAXPLAYERS+1][MAX_NAME_LENGTH*2];
 char gS_Cached_Message[MAXPLAYERS+1][255];
+char gS_Cached_ClanTag[MAXPLAYERS+1][32];
 
 StringMap gSM_Custom_Prefix = null;
 StringMap gSM_Custom_Name = null;
 StringMap gSM_Custom_Message = null;
+StringMap gSM_Custom_ClanTag = null;
 
 int gI_TotalChatRanks = 0;
 int gI_UnassignedTitle = -1;
@@ -132,6 +134,22 @@ public void OnClientPutInServer(int client)
 		gD_ChatRanks[0].GetString("prefix", gS_Cached_Prefix[client], 32);
 		gD_ChatRanks[0].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
 		gD_ChatRanks[0].GetString("message", gS_Cached_Message[client], 255);
+		gD_ChatRanks[0].GetString("clantag", gS_Cached_ClanTag[client], 32);
+
+		UpdateClanTag(client);
+	}
+}
+
+public void OnClientSettingsChanged(int client)
+{
+	UpdateClanTag(client);
+}
+
+public void UpdateClanTag(int client)
+{
+	if(strlen(gS_Cached_ClanTag[client]) > 0)
+	{
+		CS_SetClientClanTag(client, gS_Cached_ClanTag[client]);
 	}
 }
 
@@ -192,6 +210,7 @@ public void LoadChatCache(int client)
 		gD_ChatRanks[iTitle].GetString("prefix", gS_Cached_Prefix[client], 32);
 		gD_ChatRanks[iTitle].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
 		gD_ChatRanks[iTitle].GetString("message", gS_Cached_Message[client], 255);
+		gD_ChatRanks[iTitle].GetString("clantag", gS_Cached_ClanTag[client], 255);
 	}
 
 	else
@@ -211,6 +230,7 @@ public void LoadChatCache(int client)
 				gD_ChatRanks[i].GetString("prefix", gS_Cached_Prefix[client], 32);
 				gD_ChatRanks[i].GetString("name", gS_Cached_Name[client], MAX_NAME_LENGTH*2);
 				gD_ChatRanks[i].GetString("message", gS_Cached_Message[client], 255);
+				gD_ChatRanks[i].GetString("clantag", gS_Cached_ClanTag[client], 255);
 			}
 		}
 	}
@@ -235,6 +255,11 @@ public void LoadChatCache(int client)
 		{
 			strcopy(gS_Cached_Message[client], 255, sBuffer);
 		}
+
+		if(gSM_Custom_ClanTag.GetString(sAuthID, sBuffer, 255))
+		{
+			strcopy(gS_Cached_ClanTag[client], 32, sBuffer);
+		}
 	}
 }
 
@@ -258,10 +283,12 @@ public void LoadConfig()
 	delete gSM_Custom_Prefix;
 	delete gSM_Custom_Name;
 	delete gSM_Custom_Message;
+	delete gSM_Custom_ClanTag;
 
 	gSM_Custom_Prefix = new StringMap();
 	gSM_Custom_Name = new StringMap();
 	gSM_Custom_Message = new StringMap();
+	gSM_Custom_ClanTag = new StringMap();
 
 	ResetCache();
 
@@ -292,6 +319,9 @@ public void LoadConfig()
 			char[] sMessage = new char[255];
 			kvConfig.GetString("message", sMessage, 255);
 
+			char[] sClanTag = new char[32];
+			kvConfig.GetString("clantag", sClanTag, 32);
+
 			// custom
 			if(StrContains(sBuffer[0], "[U:") != -1)
 			{
@@ -308,6 +338,11 @@ public void LoadConfig()
 				if(strlen(sMessage) > 0)
 				{
 					gSM_Custom_Message.SetString(sBuffer, sMessage);
+				}
+
+				if(strlen(sClanTag) > 0)
+				{
+					gSM_Custom_ClanTag.SetString(sBuffer, sClanTag);
 				}
 			}
 
@@ -340,6 +375,7 @@ public void LoadConfig()
 				gD_ChatRanks[gI_TotalChatRanks].SetString("prefix", sPrefix, 32);
 				gD_ChatRanks[gI_TotalChatRanks].SetString("name", (strlen(sName) > 0)? sName:"{name}", MAX_NAME_LENGTH*2);
 				gD_ChatRanks[gI_TotalChatRanks].SetString("message", (strlen(sMessage) > 0)? sMessage:"{message}", 255);
+				gD_ChatRanks[gI_TotalChatRanks].SetString("clantag", (strlen(sClanTag) > 0)? sClanTag:"", 32);
 
 				if(iFrom == -1 && gI_UnassignedTitle == -1)
 				{
