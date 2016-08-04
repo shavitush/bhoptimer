@@ -32,7 +32,7 @@
 
 #define PLACEHOLDER 32767
 
-ServerGame gSG_Type = Game_Unknown;
+EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
 bool gB_MySQL = false;
@@ -149,8 +149,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
-	RegAdminCmd("sm_tpzone", Command_TPZone, ADMFLAG_RCON, "Defines the teleport zone so it teleports to the location you are in.");
+	// game specific
+	gEV_Type = GetEngineVersion();
 
 	// menu
 	RegAdminCmd("sm_zones", Command_Zones, ADMFLAG_RCON, "Opens the mapzones menu");
@@ -158,6 +158,9 @@ public void OnPluginStart()
 
 	RegAdminCmd("sm_deletezone", Command_DeleteZone, ADMFLAG_RCON, "Delete a mapzone");
 	RegAdminCmd("sm_deleteallzones", Command_DeleteAllZones, ADMFLAG_RCON, "Delete all mapzones");
+
+	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
+	RegAdminCmd("sm_tpzone", Command_TPZone, ADMFLAG_RCON, "Defines the teleport zone so it teleports to the location you are in.");
 
 	// colors
 	SetupColors();
@@ -331,8 +334,6 @@ public void OnMapStart()
 		RefreshZones();
 	}
 
-	gSG_Type = Shavit_GetGameType();
-
 	if(gCV_UseCustomSprite.BoolValue)
 	{
 		char[] sFile = new char[PLATFORM_MAX_PATH];
@@ -385,7 +386,7 @@ public void OnMapStart()
 
 	else
 	{
-		if(gSG_Type == Game_CSS)
+		if(gEV_Type == Engine_CSS)
 		{
 			gI_BeamSprite = PrecacheModel("sprites/laser.vmt", true);
 			gI_HaloSprite = PrecacheModel("sprites/halo01.vmt", true);
@@ -1148,7 +1149,7 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 
 			(iPoint == 1? gV_Point1:gV_Point2)[param1][iAxis] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 
-			Shavit_PrintToChat(param1, "\x03%c\x01 axis %s(point %d) \x04%s\x01 by \x03%.01f\x01.", sAxis[iAxis], gSG_Type == Game_CSGO? "\x0A":"\x05", iPoint, bIncrease? "increased":"decreased", gF_Modifier[param1]);
+			Shavit_PrintToChat(param1, "\x03%c\x01 axis %s(point %d) \x04%s\x01 by \x03%.01f\x01.", sAxis[iAxis], (gEV_Type == Engine_CSGO)? "\x0A":"\x05", iPoint, bIncrease? "increased":"decreased", gF_Modifier[param1]);
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
@@ -1370,7 +1371,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 					vPoints[0] = gV_FreestyleZones[j][0];
 					vPoints[7] = gV_FreestyleZones[j][1];
 
-					if(gSG_Type == Game_CSS)
+					if(gEV_Type == Engine_CSS)
 					{
 						vPoints[0][2] += 2.0;
 						vPoints[7][2] += 2.0;
@@ -1407,7 +1408,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 			vPoints[0] = gV_MapZones[i][0];
 			vPoints[7] = gV_MapZones[i][1];
 
-			if(gSG_Type == Game_CSS)
+			if(gEV_Type == Engine_CSS)
 			{
 				vPoints[0][2] += 2.0;
 				vPoints[7][2] += 2.0;
@@ -1459,7 +1460,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		vPoints[0] = gV_Point1[client];
 		vPoints[7] = vOrigin;
 
-		if(gSG_Type == Game_CSS)
+		if(gEV_Type == Engine_CSS)
 		{
 			vPoints[0][2] += 2.0;
 			vPoints[7][2] += 2.0;

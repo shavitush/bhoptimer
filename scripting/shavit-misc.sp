@@ -47,7 +47,7 @@
 #define SSJ_DEFAULT				(SSJ_CSPEED|SSJ_SPEEDD|SSJ_HEIGHT|SSJ_GAIN)
 
 // game specific
-ServerGame gSG_Type = Game_Unknown;
+EngineVersion gEV_Type = Engine_Unknown;
 int gI_Ammo = -1;
 
 char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "followme", "takingfire", "go", "fallback", "sticktog",
@@ -118,7 +118,7 @@ public void OnAllPluginsLoaded()
 public void OnPluginStart()
 {
 	// cache
-	gSG_Type = Shavit_GetGameType();
+	gEV_Type = GetEngineVersion();
 
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
@@ -386,7 +386,7 @@ public void UpdateScoreboard(int client)
 
 	int iScore = (fPB != 0.0 && fPB < 2000)? -RoundToFloor(fPB):-2000;
 
-	if(gSG_Type == Game_CSGO)
+	if(gEV_Type == Engine_CSGO)
 	{
 		CS_SetClientContributionScore(client, iScore);
 	}
@@ -843,7 +843,7 @@ public Action Command_Weapon(int client, int args)
 
 	if(StrContains(sCommand, "usp", false) != -1)
 	{
-		strcopy(sWeapon, 32, (gSG_Type == Game_CSS)? "weapon_usp":"weapon_usp_silencer");
+		strcopy(sWeapon, 32, (gEV_Type == Engine_CSS)? "weapon_usp":"weapon_usp_silencer");
 	}
 
 	else if(StrContains(sCommand, "glock", false) != -1)
@@ -881,7 +881,7 @@ public void SetWeaponAmmo(int client, int weapon)
 	int iAmmo = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType");
 	SetEntData(client, gI_Ammo + (iAmmo * 4), 255, 4, true);
 
-	if(gSG_Type == Game_CSGO)
+	if(gEV_Type == Engine_CSGO)
 	{
 		SetEntProp(weapon, Prop_Send, "m_iPrimaryReserveAmmoCount", 255);
 	}
@@ -1073,7 +1073,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 	for(int i = 1; i <= 3; i++)
 	{
-		Shavit_PrintToChatAll("%sNEW %s WR!!!", gSG_Type == Game_CSGO? "\x02":"\x077D42C9", sUpperCase);
+		Shavit_PrintToChatAll("%sNEW %s WR!!!", gEV_Type == Engine_CSGO? "\x02":"\x077D42C9", sUpperCase);
 	}
 }
 
@@ -1166,7 +1166,7 @@ public Action RemoveRadar(Handle timer, any data)
 		return Plugin_Stop;
 	}
 
-	if(gSG_Type == Game_CSGO)
+	if(gEV_Type == Engine_CSGO)
 	{
 		SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // disables player radar
 	}

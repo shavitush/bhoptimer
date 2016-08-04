@@ -151,13 +151,13 @@ public void OnPluginStart()
 	OnAdminMenuReady(null);
 
 	// colors
-	ServerGame sgType = Shavit_GetGameType();
+	EngineVersion evType = GetEngineVersion();
 
-	strcopy(gS_Color_Time, 16, (sgType == Game_CSS)? "\x07D490CF":"\x07");
-	strcopy(gS_Color_Rank, 16, (sgType == Game_CSS)? "\x077585E0":"\x05");
-	strcopy(gS_Color_Sync, 16, (sgType == Game_CSS)? "\x07B590D4":"\x06");
-	strcopy(gS_Color_Better, 16, (sgType == Game_CSS)? "\x07AD3BA6":"\x0C");
-	strcopy(gS_Color_Worse, 16, (sgType == Game_CSS)? "\x07CCCCCC":"\x08");
+	strcopy(gS_Color_Time, 16, (evType == Engine_CSS)? "\x07D490CF":"\x07");
+	strcopy(gS_Color_Rank, 16, (evType == Engine_CSS)? "\x077585E0":"\x05");
+	strcopy(gS_Color_Sync, 16, (evType == Engine_CSS)? "\x07B590D4":"\x06");
+	strcopy(gS_Color_Better, 16, (evType == Engine_CSS)? "\x07AD3BA6":"\x0C");
+	strcopy(gS_Color_Worse, 16, (evType == Engine_CSS)? "\x07CCCCCC":"\x08");
 
 	// mysql
 	Shavit_GetDB(gH_SQL);
@@ -1417,7 +1417,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		UpdateWRCache();
 	}
 
-	float fDifference = (gF_PlayerRecord[client][style] - time) * -1.0;
+	float fDifference = (gF_PlayerRecord[client][style] - time);
+
+	if(fDifference < 0.0)
+	{
+		fDifference = -fDifference;
+	}
 
 	char[] sDifference = new char[16];
 	FormatSeconds(fDifference, sDifference, 16, true);
@@ -1448,7 +1453,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		else // update
 		{
-			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01. %s(%s)", client, gS_BhopStyles[style], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Better, sDifference);
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01. %s(-%s)", client, gS_BhopStyles[style], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Better, sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}

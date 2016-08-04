@@ -57,7 +57,7 @@ bool gB_RTLer = false;
 bool gB_SCP = false;
 
 // game-related
-ServerGame gSG_Type = Game_Unknown;
+EngineVersion gEV_Type = Engine_Unknown;
 ConVar gCV_Deadtalk = null;
 
 public Plugin myinfo =
@@ -87,14 +87,6 @@ public void OnAllPluginsLoaded()
 		SetFailState("shavit-rankings is required for the plugin to work.");
 	}
 
-	// placed here and not in OnPluginStart() as `chat` is coming before `core` if sorted alphabetically
-	gSG_Type = Shavit_GetGameType();
-
-	if(gSG_Type == Game_CSGO)
-	{
-		gCV_Deadtalk = FindConVar("sv_deadtalk");
-	}
-
 	// modules
 	gB_BaseComm = LibraryExists("basecomm");
 	gB_RTLer = LibraryExists("rtler");
@@ -103,6 +95,14 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	// game specific
+	gEV_Type = GetEngineVersion();
+
+	if(gEV_Type == Engine_CSGO)
+	{
+		gCV_Deadtalk = FindConVar("sv_deadtalk");
+	}
+
 	// commands
 	RegAdminCmd("sm_reloadchat", Command_ReloadChat, ADMFLAG_ROOT, "Reload chat config.");
 
@@ -442,7 +442,7 @@ public Action Command_ChatRanks(int client, int args)
 			FormatVariables(client, sMessage, 255, sMessage, "Example.");
 
 			char[] sBuffer = new char[300];
-			FormatEx(sBuffer, 300, "%s\x04[%s]\x01 %s%s %s %s  %s", gSG_Type == Game_CSGO? " ":"", sRankText, strlen(sPrefix) == 0? "\x03":"", sPrefix, sName, gSG_Type == Game_CSGO? ":\x01":"\x01:", sMessage);
+			FormatEx(sBuffer, 300, "%s\x04[%s]\x01 %s%s %s %s  %s", gEV_Type == Engine_CSGO? " ":"", sRankText, strlen(sPrefix) == 0? "\x03":"", sPrefix, sName, gEV_Type == Engine_CSGO? ":\x01":"\x01:", sMessage);
 
 			ChatMessage(client, clients, 1, sBuffer);
 		}
@@ -467,7 +467,7 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 		return Plugin_Continue;
 	}
 
-	if(gB_SCPFormat && GetMessageFlags() & CHATFLAGS_ALL && !IsPlayerAlive(author) && (gSG_Type == Game_CSS || !gCV_Deadtalk.BoolValue))
+	if(gB_SCPFormat && GetMessageFlags() & CHATFLAGS_ALL && !IsPlayerAlive(author) && (gEV_Type == Engine_CSS || !gCV_Deadtalk.BoolValue))
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -524,7 +524,7 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 		strcopy(sFormattedText, 255, message);
 	}
 
-	FormatEx(name, MAXLENGTH_NAME, "%s%s%s", gSG_Type == Game_CSGO? " ":"", sPrefix, sName);
+	FormatEx(name, MAXLENGTH_NAME, "%s%s%s", gEV_Type == Engine_CSGO? " ":"", sPrefix, sName);
 	strcopy(message, MAXLENGTH_MESSAGE, sFormattedText);
 
 	return Plugin_Changed;
@@ -703,7 +703,7 @@ public void FormatChatLine(int client, const char[] sMessage, bool bAlive, int i
 		strcopy(sFormattedText, 255, sBuffer);
 	}
 
-	FormatEx(buffer, maxlen, "\x01%s%s%s\x03%s%s %s  %s", gSG_Type == Game_CSGO? " ":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD* ", sTeam, sNewPrefix, sNewName, gSG_Type == Game_CSGO? ":\x01":"\x01:", sFormattedText);
+	FormatEx(buffer, maxlen, "\x01%s%s%s\x03%s%s %s  %s", gEV_Type == Engine_CSGO? " ":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD* ", sTeam, sNewPrefix, sNewName, gEV_Type == Engine_CSGO? ":\x01":"\x01:", sFormattedText);
 }
 
 public void FormatVariables(int client, char[] buffer, int maxlen, const char[] formattingrules, const char[] message)
@@ -716,7 +716,7 @@ public void FormatVariables(int client, char[] buffer, int maxlen, const char[] 
 		ReplaceString(sTempFormattingRules, maxlen, gS_GlobalColorNames[i], gS_GlobalColors[i]);
 	}
 
-	if(gSG_Type == Game_CSS)
+	if(gEV_Type == Engine_CSS)
 	{
 		ReplaceString(sTempFormattingRules, maxlen, "{RGB}", "\x07");
 		ReplaceString(sTempFormattingRules, maxlen, "{RGBA}", "\x08");
@@ -769,7 +769,7 @@ public void ChatMessage(int from, int[] clients, int count, const char[] sMessag
 
 	if(hSayText2 != null)
 	{
-		if(gSG_Type == Game_CSGO)
+		if(gEV_Type == Engine_CSGO)
 		{
 			PbSetInt(hSayText2, "ent_idx", from);
 			PbSetBool(hSayText2, "chat", true);

@@ -34,7 +34,7 @@
 #pragma newdecls required
 
 // game type
-ServerGame gSG_Type = Game_Unknown;
+EngineVersion gEV_Type = Engine_Unknown;
 
 // cache
 int gI_ReplayTick[MAX_STYLES];
@@ -87,13 +87,13 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public void OnAllPluginsLoaded()
-{
-	gSG_Type = Shavit_GetGameType();
-}
-
 public void OnPluginStart()
 {
+	// game specific
+	gEV_Type = GetEngineVersion();
+	gF_Tickrate = (1.0 / GetTickInterval());
+
+	// late load
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsValidClient(i) && !IsFakeClient(i))
@@ -101,8 +101,6 @@ public void OnPluginStart()
 			OnClientPutInServer(i);
 		}
 	}
-
-	gF_Tickrate = (1.0 / GetTickInterval());
 
 	// plugin convars
 	gCV_Enabled = CreateConVar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
@@ -513,7 +511,7 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 
 	int iScore = (gI_FrameCount[style] > 0)? 2000:-2000;
 
-	if(gSG_Type == Game_CSGO)
+	if(gEV_Type == Engine_CSGO)
 	{
 		CS_SetClientContributionScore(client, iScore);
 	}

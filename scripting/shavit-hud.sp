@@ -46,7 +46,7 @@
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT)
 
 // game type (CS:S/CS:GO)
-ServerGame gSG_Type = Game_Unknown;
+EngineVersion gEV_Type = Engine_Unknown;
 
 // modules
 bool gB_Replay = false;
@@ -106,9 +106,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	// game-specific
-	gSG_Type = Shavit_GetGameType();
+	gEV_Type = GetEngineVersion();
 
-	if(gSG_Type == Game_CSS)
+	if(gEV_Type == Engine_CSS)
 	{
 		gH_HUD = CreateHudSynchronizer();
 		gI_NameLength = MAX_NAME_LENGTH;
@@ -189,7 +189,7 @@ public Action ShowHUDMenu(int client)
 	IntToString(HUD_HIDEWEAPON, sInfo, 16);
 	m.AddItem(sInfo, "Hide weapons");
 
-	if(gSG_Type == Game_CSS)
+	if(gEV_Type == Engine_CSS)
 	{
 		IntToString(HUD_TOPLEFT, sInfo, 16);
 		m.AddItem(sInfo, "Top left HUD (WR/PB)");
@@ -304,7 +304,7 @@ public void TriggerHUDUpdate(int client)
 	UpdateHUD(client);
 	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", gI_HUDSettings[client] & HUD_HIDEWEAPON? 0:1);
 
-	if(gSG_Type == Game_CSS)
+	if(gEV_Type == Engine_CSS)
 	{
 		UpdateTopLeftHUD(client, true);
 		UpdateKeyHint(client);
@@ -350,7 +350,7 @@ public void UpdateHUD(int client)
 	{
 		if(Shavit_InsideZone(target, Zone_Start))
 		{
-			if(gSG_Type == Game_CSGO)
+			if(gEV_Type == Engine_CSGO)
 			{
 				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_Cycle % sizeof(gS_StartColors)]);
 			}
@@ -363,7 +363,7 @@ public void UpdateHUD(int client)
 
 		else if(Shavit_InsideZone(target, Zone_End))
 		{
-			if(gSG_Type == Game_CSGO)
+			if(gEV_Type == Engine_CSGO)
 			{
 				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)]);
 			}
@@ -403,7 +403,7 @@ public void UpdateHUD(int client)
 			char[] sTime = new char[32];
 			FormatSeconds(fTime, sTime, 32, false);
 
-			if(gSG_Type == Game_CSGO)
+			if(gEV_Type == Engine_CSGO)
 			{
 				strcopy(sHintText, 512, "<font size=\"18\" face=\"Stratum2\">");
 
@@ -521,7 +521,7 @@ public void UpdateHUD(int client)
 			char[] sWR = new char[32];
 			FormatSeconds(fWR, sWR, 32, false);
 
-			if(gSG_Type == Game_CSGO)
+			if(gEV_Type == Engine_CSGO)
 			{
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
 				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);

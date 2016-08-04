@@ -28,7 +28,7 @@
 #pragma dynamic 131072
 #pragma newdecls required
 
-ServerGame gSG_Type = Game_Unknown;
+EngineVersion gEV_Type = Engine_Unknown;
 
 ArrayList gA_FirstSounds = null;
 ArrayList gA_PersonalSounds = null;
@@ -54,12 +54,14 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	// game specific
+	gEV_Type = GetEngineVersion();
+
+	// cache
 	gA_FirstSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gSM_RankSounds = new StringMap();
-
-	gSG_Type = Shavit_GetGameType();
 }
 
 public void OnMapStart()
@@ -128,7 +130,7 @@ public void OnMapStart()
 
 			// thanks TotallyMehis for this workaround
 			// make sure to star his amazing StandUp plugin! https://github.com/TotallyMehis/StandUp
-			if(gSG_Type == Game_CSGO || PrecacheSound(sExploded[1]))
+			if(gEV_Type == Engine_CSGO || PrecacheSound(sExploded[1]))
 			{
 				PrefetchSound(sExploded[1]);
 
@@ -216,7 +218,7 @@ public void PlayEventSound(int client, bool everyone, const char[] sound)
 
 	if(count > 0)
 	{
-		if(gSG_Type == Game_CSGO)
+		if(gEV_Type == Engine_CSGO)
 		{
 			char[] sPlay = new char[PLATFORM_MAX_PATH+8];
 			FormatEx(sPlay, PLATFORM_MAX_PATH+8, "play */%s", sound);

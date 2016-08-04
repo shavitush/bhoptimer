@@ -71,23 +71,23 @@ enum ReplayStatus(+=1)
 
 #if defined USES_STYLE_PROPERTIES
 #define STYLE_NONE				(0)
-#define STYLE_AUTOBHOP			(1 << 0) // enable autobhop
-#define STYLE_BLOCK_W			(1 << 1) // block +forward
-#define STYLE_BLOCK_A			(1 << 2) // block +moveleft
-#define STYLE_BLOCK_S			(1 << 3) // block +back
-#define STYLE_BLOCK_D			(1 << 4) // block +moveright
-#define STYLE_EASYBHOP			(1 << 5) // enable easybhop (disable stamina reset)
-#define STYLE_VEL_LIMIT			(1 << 6) // allow velocity limits
-#define STYLE_BLOCK_USE			(1 << 7) // block +use
-#define STYLE_UNRANKED			(1 << 8) // unranked style. no ranking points and no records. (UNTESTED: REPORT ISSUES!)
-#define STYLE_NOREPLAY			(1 << 9) // disable replay bot for this style. don't use for unranked styles
-#define STYLE_PRESPEED			(1 << 10) // allow prespeeding regardless of the prespeed setting
-#define STYLE_HSW_ONLY			(1 << 11) // force half-sideways
-#define STYLE_100AA				(1 << 12) // force 100 airacclerate for the style
-#define STYLE_LOWGRAV			(1 << 13) // 0.6x gravity (standard for low gravity styles)
-#define STYLE_SLOWMO			(1 << 14) // 0.5x speed (standard for slowmo styles)
-#define STYLE_SLOWMOTIME		(1 << 15) // calculation of times will be halved, replays WILL NOT function properly
-#define STYLE_MEASURESYNC		(1 << 16) // measure sync for that style, useless for non-forwards styles like SW
+#define STYLE_AUTOBHOP			(1 << 0)	// enable autobhop
+#define STYLE_BLOCK_W			(1 << 1)	// block +forward
+#define STYLE_BLOCK_A			(1 << 2)	// block +moveleft
+#define STYLE_BLOCK_S			(1 << 3)	// block +back
+#define STYLE_BLOCK_D			(1 << 4)	// block +moveright
+#define STYLE_EASYBHOP			(1 << 5)	// enable easybhop (disable stamina reset)
+#define STYLE_VEL_LIMIT			(1 << 6)	// allow velocity limits
+#define STYLE_BLOCK_USE			(1 << 7)	// block +use
+#define STYLE_UNRANKED			(1 << 8)	// unranked style. no ranking points and no records. (UNTESTED: REPORT ISSUES!)
+#define STYLE_NOREPLAY			(1 << 9)	// disable replay bot for this style. don't use for unranked styles
+#define STYLE_PRESPEED			(1 << 10)	// allow prespeeding regardless of the prespeed setting
+#define STYLE_HSW_ONLY			(1 << 11)	// force half-sideways
+#define STYLE_100AA				(1 << 12)	// force 100 airacclerate for the style
+#define STYLE_LOWGRAV			(1 << 13)	// 0.6x gravity (standard for low gravity styles)
+#define STYLE_SLOWMO			(1 << 14)	// 0.5x speed (standard for slowmo styles)
+#define STYLE_SLOWMOTIME		(1 << 15)	// calculation of times will be halved, replays WILL NOT function properly
+#define STYLE_MEASURESYNC		(1 << 16)	// measure sync for that style, useless for non-forwards styles like SW
 
 int gI_StyleProperties[MAX_STYLES] =
 {
@@ -264,7 +264,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	float fSeconds = (iRounded % 60) + fTempTime - iRounded;
 
 	char[] sSeconds = new char[8];
-	FormatEx(sSeconds, 8, precise? "%.03f":"%.01f", fSeconds);
+	FormatEx(sSeconds, 8, precise? "%s%.03f":"%s%.01f", (fSeconds < 0.0)? "-":"", fSeconds);
 
 	if(fTempTime < 60.0)
 	{

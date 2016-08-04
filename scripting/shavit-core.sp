@@ -38,7 +38,8 @@
 //#define DEBUG
 
 // game type (CS:S/CS:GO)
-ServerGame gSG_Type = Game_Unknown;
+ServerGame gSG_Type = Game_Unknown; // deperecated and here for backwards compatibility
+EngineVersion gEV_Type = Engine_Unknown;
 
 // database handle
 Database gH_SQL = null;
@@ -154,15 +155,15 @@ public void OnPluginStart()
 	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 
 	// game types
-	EngineVersion evType = GetEngineVersion();
+	gEV_Type = GetEngineVersion();
 
-	if(evType == Engine_CSS)
+	if(gEV_Type == Engine_CSS)
 	{
 		gSG_Type = Game_CSS;
 		gF_HSW_Requirement = 399.00;
 	}
 
-	else if(evType == Engine_CSGO)
+	else if(gEV_Type == Engine_CSGO)
 	{
 		gSG_Type = Game_CSGO;
 		gF_HSW_Requirement = 449.00;
@@ -706,7 +707,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	char[] buffer = new char[255];
 	FormatNativeString(0, 2, 3, 255, written, buffer);
 
-	PrintToChat(client, "%s%s %s", gSG_Type == Game_CSS? "":" ", PREFIX, buffer);
+	PrintToChat(client, "%s%s %s", (gEV_Type == Engine_CSS)? "":" ", PREFIX, buffer);
 
 	return;
 }
