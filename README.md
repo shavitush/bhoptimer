@@ -21,6 +21,7 @@ a bhop server should be simple
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for static 250 prestrafe.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) - required for properly formatted RTL text within `shavit-chat`.
 * [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for more proper parsing inside `shavit-chat`.
+* `sv_disable_immunity_alpha` set to 1 in CS:GO for `shavit_misc_playeropacity` to work.
 
 #  Installation:
 1. If you want to use MySQL (**VERY RECOMMENDED**) add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit". The plugin also supports the "sqlite" driver. You can also skip this step and not modify databases.cfg.

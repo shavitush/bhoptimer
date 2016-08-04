@@ -277,7 +277,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 
 		if(fTempTime < 3600.0)
 		{
-			FormatEx(newtime, newtimesize, "%s%d:%s%s", (time < 0.0)? "-":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
+			FormatEx(newtime, newtimesize, "%c%d:%c%s", (time < 0.0)? "-":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
 
 		else
@@ -285,7 +285,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 			iMinutes %= 60;
 			int iHours = (iRounded / 3600);
 
-			FormatEx(newtime, newtimesize, "-%d:%s%d:%s%s", (time < 0.0)? "-":"", iHours, (iMinutes < 10)? "0":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
+			FormatEx(newtime, newtimesize, "%c%d:%c%d:%c%s", (time < 0.0)? "-":"", iHours, (iMinutes < 10)? "0":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
 	}
 }
