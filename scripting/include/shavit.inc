@@ -209,7 +209,8 @@ char gS_CSGOColorNames[][] =
 	"{lightred}",
 	"{lime}",
 	"{orchid}",
-	"{yellow}"
+	"{yellow}",
+	"{palered}"
 };
 
 char gS_CSGOColors[][] =
@@ -225,7 +226,8 @@ char gS_CSGOColors[][] =
 	"\x0F",
 	"\x06",
 	"\x0E",
-	"\x09"
+	"\x09",
+	"\x07"
 };
 #endif
 
