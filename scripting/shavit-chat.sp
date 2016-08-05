@@ -147,7 +147,7 @@ public void OnClientSettingsChanged(int client)
 
 public void UpdateClanTag(int client)
 {
-	if(strlen(gS_Cached_ClanTag[client]) > 0)
+	if(IsValidClient(client) && strlen(gS_Cached_ClanTag[client]) > 0)
 	{
 		CS_SetClientClanTag(client, gS_Cached_ClanTag[client]);
 	}

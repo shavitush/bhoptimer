@@ -297,9 +297,7 @@ public int Native_InsideZone(Handle handler, int numParams)
 
 public int Native_IsClientCreatingZone(Handle handler, int numParams)
 {
-	int client = GetNativeCell(1);
-
-	return (gI_MapStep[client] != 0);
+	return (gI_MapStep[GetNativeCell(1)] != 0);
 }
 
 public void SetupColors()

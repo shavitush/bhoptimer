@@ -35,6 +35,7 @@
 
 bool gB_Late = false;
 bool gB_Rankings = false;
+bool gB_Stats = false;
 
 // forwards
 Handle gH_OnWorldRecord = null;
@@ -104,12 +105,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public void OnAllPluginsLoaded()
-{
-	// modules
-	gB_Rankings = LibraryExists("shavit-rankings");
-}
-
 public void OnPluginStart()
 {
 	// debug because I was making this all by myself and no one wanted to help me *sniff*
@@ -158,6 +153,10 @@ public void OnPluginStart()
 	strcopy(gS_Color_Sync, 16, (evType == Engine_CSS)? "\x07B590D4":"\x06");
 	strcopy(gS_Color_Better, 16, (evType == Engine_CSS)? "\x07AD3BA6":"\x0C");
 	strcopy(gS_Color_Worse, 16, (evType == Engine_CSS)? "\x07CCCCCC":"\x08");
+
+	// modules
+	gB_Rankings = LibraryExists("shavit-rankings");
+	gB_Stats = LibraryExists("shavit-stats");
 
 	// mysql
 	Shavit_GetDB(gH_SQL);
@@ -240,6 +239,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
+
+	else if(StrEqual(name, "shavit-stats"))
+	{
+		gB_Stats = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -252,6 +256,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
+	}
+
+	else if(StrEqual(name, "shavit-stats"))
+	{
+		gB_Stats = false;
 	}
 
 	else if(StrEqual(name, "adminmenu"))
@@ -626,13 +635,12 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		m.AddItem(sID, sDisplay);
 	}
 
-	if(!iCount)
+	if(iCount == 0)
 	{
 		m.AddItem("-1", "No records found.");
 	}
 
 	m.ExitButton = true;
-
 	m.Display(client, 20);
 }
 
@@ -981,7 +989,6 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	m.ExitBackButton = true;
-
 	m.Display(client, 20);
 }
 
@@ -989,11 +996,19 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
-		m.GetItem(param2, info, 16);
-		int id = StringToInt(info);
+		char[] sInfo = new char[16];
+		m.GetItem(param2, sInfo, 16);
+		int id = StringToInt(sInfo);
 
-		OpenSubMenu(param1, id);
+		if(id != -1)
+		{
+			OpenSubMenu(param1, id);
+		}
+
+		else
+		{
+			ShowWRStyleMenu(param1, gS_ClientMap[param1]);
+		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
@@ -1106,12 +1121,20 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 		char[] sInfo = new char[192];
 		m.GetItem(param2, sInfo, 192);
 
-		char[][] sExploded = new char[2][192];
-		ExplodeString(sInfo, ";", sExploded, 2, 192, true);
+		if(StringToInt(sInfo) != -1)
+		{
+			char[][] sExploded = new char[2][192];
+			ExplodeString(sInfo, ";", sExploded, 2, 192, true);
 
-		strcopy(gS_ClientMap[param1], 192, sExploded[1]);
+			strcopy(gS_ClientMap[param1], 192, sExploded[1]);
 
-		OpenSubMenu(param1, StringToInt(sExploded[0]));
+			OpenSubMenu(param1, StringToInt(sExploded[0]));
+		}
+
+		else
+		{
+			ShowWRStyleMenu(param1, gS_ClientMap[param1]);
+		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
@@ -1223,6 +1246,8 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatEx(sDisplay, 128, (fSync != -1.0)? "Strafes: %d (%.02f%%)":"Strafes: %d", iStrafes, fSync);
 			m.AddItem("-1", sDisplay);
 		}
+
+		m.AddItem(sAuthID, "Player stats");
 	}
 
 	else
@@ -1247,7 +1272,23 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
-	if((action == MenuAction_Cancel && param2 == MenuCancel_ExitBack) || action == MenuAction_Select)
+	if(action == MenuAction_Select)
+	{
+		char[] sInfo = new char[32];
+		m.GetItem(param2, sInfo, 32);
+
+		if(gB_Stats && StringToInt(sInfo) != -1)
+		{
+			Shavit_OpenStatsMenu(param1, sInfo);
+		}
+
+		else
+		{
+			StartWRMenu(param1, gS_ClientMap[param1], view_as<int>(gBS_LastWR[param1]));
+		}
+	}
+
+	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
 		StartWRMenu(param1, gS_ClientMap[param1], view_as<int>(gBS_LastWR[param1]));
 	}

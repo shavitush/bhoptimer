@@ -65,6 +65,9 @@ bool gB_MySQL = false;
 // table prefix
 char gS_MySQLPrefix[32];
 
+// modules
+bool gB_Stats = false;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Rankings",
@@ -137,6 +140,25 @@ public void OnPluginStart()
 	gCV_TopAmount = CreateConVar("shavit_rankings_topamount", "100", "Amount of people to show within the sm_top menu.", 0, true, 1.0, false);
 
 	AutoExecConfig();
+
+	// modules
+	gB_Stats = LibraryExists("shavit-stats");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit-stats"))
+	{
+		gB_Stats = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit-stats"))
+	{
+		gB_Stats = false;
+	}
 }
 
 public void OnClientAuthorized(int client, const char[] auth)
@@ -382,7 +404,7 @@ public Action Command_Top(int client, int args)
 public Action ShowTopMenu(int client)
 {
     char[] sQuery = new char[192];
-    FormatEx(sQuery, 192, "SELECT u.name, %s points FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gB_MySQL? "FORMAT(up.points, 2)":"up.points", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
+    FormatEx(sQuery, 192, "SELECT u.name, %s points, u.auth FROM %susers u JOIN %suserpoints up ON up.auth = u.auth WHERE up.points > 0.0 ORDER BY up.points DESC LIMIT %d;", gB_MySQL? "FORMAT(up.points, 2)":"up.points", gS_MySQLPrefix, gS_MySQLPrefix, gCV_TopAmount.IntValue);
 
     gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client));
 
@@ -423,8 +445,6 @@ public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const cha
 			results.FetchString(0, sName, MAX_NAME_LENGTH);
 
 			int iRank = ++count;
-			char[] sRank = new char[6];
-			IntToString(iRank, sRank, 6); // info string for future purposes
 
 			char[] sDisplay = new char[64];
 
@@ -441,7 +461,10 @@ public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const cha
 				FormatEx(sDisplay, 64, "#%d - %s (%.02f points)", iRank, sName, results.FetchFloat(1));
 			}
 
-			m.AddItem(sRank, sDisplay);
+			char[] sAuthID = new char[32];
+			results.FetchString(2, sAuthID, 32);
+
+			m.AddItem(sAuthID, sDisplay);
 		}
 	}
 
@@ -452,13 +475,23 @@ public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const cha
 
 public int MenuHandler_TopMenu(Menu m, MenuAction action, int param1, int param2)
 {
-    // *eventually* add some shavit-stats call here, to show the player's profile
-    if(action == MenuAction_End)
-    {
-        delete m;
-    }
+	if(action == MenuAction_Select && gB_Stats)
+	{
+		char[] sInfo = new char[32];
+		m.GetItem(param2, sInfo, 32);
 
-    return 0;
+		if(StringToInt(sInfo) != -1)
+		{
+			Shavit_OpenStatsMenu(param1, sInfo);
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete m;
+	}
+
+	return 0;
 }
 
 public Action Command_Tier(int client, int args)

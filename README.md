@@ -91,6 +91,7 @@ Core
 - [x] Add low gravity styles (0.6).
 - [x] Better implementation of autobhop and +ds (doublestep fix).
 - [x] Save autobhop/styles to clientprefs.
+- [x] Add `lastlogin` column to `users`.
 - [ ] Add bonus timer.
 
 HUD
@@ -128,7 +129,11 @@ Stats
 - [x] Generate mapsdone points on the fly.
 - [x] Add map rank to mapsdone.
 - [x] Show strafes/sync in mapsdone submenu.
+- [x] Redo *everything*.
+- [x] Add 'last online' field.
+- [x] Add `Shavit_GetWRCount(int client)`.
 - [ ] Rework on points sorting and show weighting percentages.
+- [ ] Stop calculating points on the fly and grab everything from the table.
 
 Miscellaneous
 --
@@ -167,6 +172,8 @@ Rankings **(NEW!)**
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 - [x] Add native that checks the total amount of players with over 0 points.
 - [x] Add map tiers. `sm_tier` `sm_settier`
+- [ ] Redirect to stats menu from `sm_top`.
+- [ ] Deprecate the tables, use a `playertimes` column for map points and a `users` column for total points.
 - [ ] Find a way to update newly calculated points for all records on a map with the least amount of queries possible.
 - [ ] Remove idealtime and use the WR time for the default time instead.
 - [ ] Remove deleted records from `playerpoints`.
@@ -212,6 +219,8 @@ World Records
 - [x] Calculate points on the fly (sub-menu) instead of grabbing them from `playerpoints`.
 - [x] Add `sm_recent` `sm_recentrecords` `sm_rr`.
 - [x] Add strafes/sync to the WR menu where available.
+- [x] Add 'player stats' to submenu.
+- [ ] Grab points from `playertimes` instead of calculating on the fly.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 
 Time Limits

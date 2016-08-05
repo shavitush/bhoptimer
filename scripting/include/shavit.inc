@@ -735,6 +735,25 @@ native int Shavit_ForceHUDUpdate(int client, bool spectators);
 native int Shavit_FormatChat(int client, const char[] message, const bool team, char[] buffer, int maxlen);
 
 /**
+ * Opens the stats menu for a client.
+ *
+ * @param client					Client index.
+ * @param authid					Target SteamID3 to use.
+ * @noreturn
+ */
+native void Shavit_OpenStatsMenu(int client, const char[] authid);
+
+/**
+ * Retrieves the amount of #1 records a player has.
+ * Result will depend on the value of `shavit_stats_mvprankones`.
+ * Called from shavit-stats.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+native int Shavit_GetWRCount(int client);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -797,12 +816,14 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetSync");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
+	MarkNativeAsOptional("Shavit_GetWRCount");
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRTime");
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
+	MarkNativeAsOptional("Shavit_OpenStatsMenu");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
 	MarkNativeAsOptional("Shavit_RestartTimer");

@@ -43,6 +43,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 
 // database handle
 Database gH_SQL = null;
+bool gB_MySQL = false;
 
 // forwards
 Handle gH_Forwards_Start = null;
@@ -893,7 +894,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip) VALUES ('%s', '%s', '%s', '%s');", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP);
+	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d);", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, GetTime());
 
 	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
@@ -904,7 +905,7 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 	{
 		int client = GetClientFromSerial(data);
 
-		if(!client)
+		if(client == 0)
 		{
 			LogError("Timer error! Failed to insert a disconnected player's data to the table. Reason: %s", error);
 		}
@@ -973,8 +974,12 @@ public void SQL_DBConnect()
 	// support unicode names
 	gH_SQL.SetCharset("utf8");
 
+	char[] sDriver = new char[8];
+	gH_SQL.Driver.GetIdentifier(sDriver, 8);
+	gB_MySQL = StrEqual(sDriver, "mysql", false);
+
 	char[] sQuery = new char[256];
-	FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+	FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), `lastlogin` %s NOT NULL DEFAULT -1, PRIMARY KEY (`auth`));", gS_MySQLPrefix, gB_MySQL? "INT":"INTEGER");
 
 	// CREATE TABLE IF NOT EXISTS
 	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
@@ -985,6 +990,30 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer error! Users' data table creation failed. Reason: %s", error);
+
+		return;
+	}
+
+	char[] sQuery = new char[64];
+	FormatEx(sQuery, 64, "SELECT lastlogin FROM %susers LIMIT 1;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		char[] sQuery = new char[128];
+		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, gB_MySQL? "(`lastlogin` INT NOT NULL DEFAULT -1)":"COLUMN `lastlogin` INTEGER NOT NULL DEFAULT -1");
+		gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+	}
+}
+
+public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer error! Table alteration 1 (core) failed. Reason: %s", error);
 
 		return;
 	}
