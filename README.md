@@ -119,6 +119,7 @@ Replay
 - [x] Make replay bots dead if there's no replay data loaded.
 - [x] Clear player cache on spawn/death.
 - [x] Add admin interface. (delete replay data, `sm_deletereplay` for RCON admins.
+- [ ] Bonus replay for default style.
 
 Stats
 --
@@ -132,8 +133,8 @@ Stats
 - [x] Redo *everything*.
 - [x] Add 'last online' field.
 - [x] Add `Shavit_GetWRCount(int client)`.
+- [x] Stop calculating points on the fly and grab everything from the table.
 - [ ] Rework on points sorting and show weighting percentages.
-- [ ] Stop calculating points on the fly and grab everything from the table.
 
 Miscellaneous
 --
@@ -172,16 +173,18 @@ Rankings **(NEW!)**
 - [x] Add natives. `float Shavit_GetPoints(int client)` `int Shavit_GetRank(int client)` `void Shavit_GetMapValues(float &points, float &idealtime)`
 - [x] Add native that checks the total amount of players with over 0 points.
 - [x] Add map tiers. `sm_tier` `sm_settier`
-- [ ] Redirect to stats menu from `sm_top`.
-- [ ] Deprecate the tables, use a `playertimes` column for map points and a `users` column for total points.
-- [ ] Find a way to update newly calculated points for all records on a map with the least amount of queries possible.
-- [ ] Remove idealtime and use the WR time for the default time instead.
-- [ ] Remove deleted records from `playerpoints`.
+- [x] Redirect to stats menu from `sm_top`.
+- [x] Deprecate the tables, use a `playertimes` column for map points and a `users` column for total points.
+- [x] Find a way to update newly calculated points for all records on a map with the least amount of queries possible.
+- [x] Remove idealtime and use the WR time for the default time instead.
+- [x] Remove deleted records from `playerpoints`.
+- [x] Update every player's total points once per map. (MySQL only)
 
 Web Interface
 --
 - [x] Implement points.
 - [x] Compatibility for unix timestamps.
+- [ ] Compatibility for new points.
 
 Chat **(NEW!)**
 --
@@ -220,7 +223,7 @@ World Records
 - [x] Add `sm_recent` `sm_recentrecords` `sm_rr`.
 - [x] Add strafes/sync to the WR menu where available.
 - [x] Add 'player stats' to submenu.
-- [ ] Grab points from `playertimes` instead of calculating on the fly.
+- [x] Grab points from `playertimes` instead of calculating on the fly.
 - [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
 
 Time Limits

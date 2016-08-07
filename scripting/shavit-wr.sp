@@ -517,22 +517,6 @@ public int MenuHandler_DeleteAll(Menu m, MenuAction action, int param1, int para
 			return 0;
 		}
 
-		for(int i = 0; i < MAX_STYLES; i++)
-		{
-			if(gI_StyleProperties[i] & STYLE_UNRANKED)
-			{
-				continue;
-			}
-
-			if(gF_WRTime[i] != 0.0)
-			{
-				Call_StartForward(gH_OnWRDeleted);
-				Call_PushCell(i);
-				Call_PushCell(-1);
-				Call_Finish();
-			}
-		}
-
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
@@ -706,13 +690,10 @@ public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int para
 				continue;
 			}
 
-			if(gF_WRTime[i] != 0.0)
-			{
-				Call_StartForward(gH_OnWRDeleted);
-				Call_PushCell(i);
-				Call_PushCell(iRecordID);
-				Call_Finish();
-			}
+			Call_StartForward(gH_OnWRDeleted);
+			Call_PushCell(i);
+			Call_PushCell(iRecordID);
+			Call_Finish();
 		}
 
 		char[] sQuery = new char[256];
@@ -776,6 +757,19 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 	if(!client)
 	{
 		return;
+	}
+
+	for(int i = 0; i < MAX_STYLES; i++)
+	{
+		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		{
+			continue;
+		}
+
+		Call_StartForward(gH_OnWRDeleted);
+		Call_PushCell(i);
+		Call_PushCell(-1);
+		Call_Finish();
 	}
 
 	Shavit_PrintToChat(client, "Deleted ALL records for \"%s\".", gS_Map);
@@ -1032,7 +1026,7 @@ public Action Command_RecentRecords(int client, int args)
 	}
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, MIN(p.time), p.jumps, p.style FROM %splayertimes p JOIN %susers u ON p.auth = u.auth GROUP BY p.map, p.style ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_RecentLimit.IntValue);
+	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, MIN(p.time), p.jumps, p.style, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth GROUP BY p.map, p.style ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_RecentLimit.IntValue);
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
@@ -1075,25 +1069,16 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		int iJumps = results.FetchInt(4);
 		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(5));
+		float fPoints = results.FetchFloat(6);
 
 		char[] sDisplay = new char[192];
 
-		bool bPoints = false;
-
-		if(gB_Rankings)
+		if(gB_Rankings && fPoints > 0.0)
 		{
-			float fPoints = 0.0;
-			float fIdealTime = -1.0;
-			Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
-
-			if(fPoints != -1.0 && fIdealTime != 0.0)
-			{
-				FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f points)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, Shavit_CalculatePoints(fTime, bsStyle, fIdealTime, fPoints));
-				bPoints = true;
-			}
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f points)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, fPoints);
 		}
 
-		if(!bPoints)
+		else
 		{
 			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d jump%s)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, iJumps, (iJumps != 1)? "s":"");
 		}
@@ -1110,7 +1095,6 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	m.ExitButton = true;
-
 	m.Display(client, 60);
 }
 
@@ -1153,7 +1137,7 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 public void OpenSubMenu(int client, int id)
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
+	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 
 	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
@@ -1210,17 +1194,12 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		results.FetchString(6, sMap, 192);
 		GetMapDisplayName(sMap, sDisplayMap, 192);
 
-		if(gB_Rankings)
-		{
-			float fPoints = 0.0;
-			float fIdealTime = -1.0;
-			Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
+		float fPoints = results.FetchFloat(9);
 
-			if(fPoints != -1.0 && fIdealTime != 0.0)
-			{
-				FormatEx(sDisplay, 128, "Points: %.03f", Shavit_CalculatePoints(fTime, bsStyle, fIdealTime, fPoints));
-				m.AddItem("-1", sDisplay);
-			}
+		if(gB_Rankings && fPoints > 0.0)
+		{
+			FormatEx(sDisplay, 128, "Points: %.03f", fPoints);
+			m.AddItem("-1", sDisplay);
 		}
 
 		// 4 - steamid3
@@ -1337,8 +1316,8 @@ public void SQL_DBConnect()
 		gH_SQL.Driver.GetIdentifier(sDriver, 8);
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
-		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` VARCHAR(32), `strafes` INT, `sync` FLOAT%s);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
+		char[] sQuery = new char[512];
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` VARCHAR(32), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0%s);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}
@@ -1372,6 +1351,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date VARCHAR(32);", gS_MySQLPrefix);
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
+
+	FormatEx(sQuery, 64, "SELECT points FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigration3_Callback, sQuery);
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1417,6 +1399,26 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 	}
 }
 
+public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, gB_MySQL? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
+		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery);
+	}
+}
+
+public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR module) error! Times' table migration (3) failed. Reason: %s", error);
+
+		return;
+	}
+}
+
 public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, int strafes, float sync)
 {
 	char[] sTime = new char[32];
@@ -1442,10 +1444,10 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		overwrite = 2;
 	}
 
-	int iRank = GetRankForTime(style, time);
-
 	if(overwrite > 0 && (time < gF_WRTime[style] || gF_WRTime[style] == 0.0)) // WR?
 	{
+		gF_WRTime[style] = time;
+
 		Call_StartForward(gH_OnWorldRecord);
 		Call_PushCell(client);
 		Call_PushCell(style);
@@ -1457,6 +1459,8 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		UpdateWRCache();
 	}
+
+	int iRank = GetRankForTime(style, time);
 
 	float fDifference = (gF_PlayerRecord[client][style] - time);
 
@@ -1513,11 +1517,6 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		Call_Finish();
 
 		gF_PlayerRecord[client][style] = time;
-
-		if(time < gF_WRTime[style])
-		{
-			gF_WRTime[style] = time;
-		}
 	}
 
 	else if(overwrite == 0 && !(gI_StyleProperties[style] & STYLE_UNRANKED))
@@ -1570,6 +1569,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
+		gI_RecordAmount[i] = 0;
 		gA_LeaderBoard[i].Clear();
 	}
 
@@ -1599,6 +1599,11 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 public int GetRankForTime(BhopStyle style, float time)
 {
+	if(time < gF_WRTime[style])
+	{
+		return 1;
+	}
+
 	for(int i = 0; i < gI_RecordAmount[style]; i++)
 	{
 		if(time < gA_LeaderBoard[style].Get(i))

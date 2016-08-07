@@ -294,14 +294,13 @@ public Action OpenStatsMenu(int client, const char[] authid)
 
 	if(gB_Rankings)
 	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin, e.rank, f.points FROM " ...
+		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin, d.points, e.rank FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' GROUP BY map) s LIMIT 1) a " ...
 			   	"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones GROUP BY map) s LIMIT 1) b " ...
 				"JOIN (SELECT COUNT(*) wrs FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes GROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s' LIMIT 1) c " ...
-				"JOIN (SELECT name, country, lastlogin FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
-				"JOIN (SELECT COUNT(*) rank FROM %suserpoints up LEFT JOIN %susers u ON up.auth = u.auth WHERE up.points >= (SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1) ORDER BY up.points DESC LIMIT 1) e " ...
-				"JOIN (SELECT points FROM %suserpoints WHERE auth = '%s' LIMIT 1) f " ...
-		    "LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid);
+				"JOIN (SELECT name, country, lastlogin, points FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
+				"JOIN (SELECT COUNT(*) rank FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1) e " ...
+		    "LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid);
 	}
 
 	else
@@ -356,8 +355,8 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 		if(gB_Rankings)
 		{
-			iRank = results.FetchInt(6);
-			fPoints = results.FetchFloat(7);
+			fPoints = results.FetchFloat(6);
+			iRank = results.FetchInt(7);
 		}
 
 		char[] sRankingString = new char[64];
@@ -492,7 +491,7 @@ public void ShowMaps(int client)
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sQuery, 512, "SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style WHERE a.auth = '%s' AND a.style = %d GROUP BY a.map ORDER BY a.map;", gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], view_as<int>(gBS_Style[client]));
+		FormatEx(sQuery, 512, "SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style WHERE a.auth = '%s' AND a.style = %d GROUP BY a.map ORDER BY a.%s;", gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], view_as<int>(gBS_Style[client]), (gB_Rankings)? "points":"map");
 	}
 
 	else
@@ -554,22 +553,14 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 			char[] sTime = new char[32];
 			FormatSeconds(fTime, sTime, 32);
 
-			bool bPoints = false;
+			float fPoints = results.FetchFloat(5);
 
-			if(gB_Rankings)
+			if(gB_Rankings && fPoints > 0.0)
 			{
-				float fPoints = 0.0;
-				float fIdealTime = -1.0;
-				Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
-
-				if(fPoints != -1.0 && fIdealTime != 0.0)
-				{
-					FormatEx(sDisplay, 192, "[#%d] %s - %s (%.03f points)", iRank, sMap, sTime, Shavit_CalculatePoints(fTime, gBS_Style[client], fIdealTime, fPoints));
-					bPoints = true;
-				}
+				FormatEx(sDisplay, 192, "[#%d] %s - %s (%.03f points)", iRank, sMap, sTime, fPoints);
 			}
 
-			if(!bPoints)
+			else
 			{
 				FormatEx(sDisplay, 192, "[#%d] %s - %s (%d jumps)", iRank, sMap, sTime, iJumps);
 			}
@@ -612,7 +603,7 @@ public int MenuHandler_ShowMaps(Menu m, MenuAction action, int param1, int param
 		}
 
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%s' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sInfo);
+		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%s' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sInfo);
 
 		gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(param1));
 	}
@@ -682,17 +673,12 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		// 6 - map
 		results.FetchString(6, sMap, 256);
 
-		if(gB_Rankings)
-		{
-			float fPoints = 0.0;
-			float fIdealTime = -1.0;
-			Shavit_GetGivenMapValues(sMap, fPoints, fIdealTime);
+		float fPoints = results.FetchFloat(9);
 
-			if(fPoints != -1.0 && fIdealTime != 0.0)
-			{
-				FormatEx(sDisplay, 192, "Points: %.03f", Shavit_CalculatePoints(fTime, bsStyle, fIdealTime, fPoints));
-				m.AddItem("-1", sDisplay);
-			}
+		if(gB_Rankings && fPoints > 0.0)
+		{
+			FormatEx(sDisplay, 192, "Points: %.03f", fPoints);
+			m.AddItem("-1", sDisplay);
 		}
 
 		// 5 - date

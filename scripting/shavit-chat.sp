@@ -261,6 +261,8 @@ public void LoadChatCache(int client)
 			strcopy(gS_Cached_ClanTag[client], 32, sBuffer);
 		}
 	}
+
+	UpdateClanTag(client);
 }
 
 public void ResetCache()

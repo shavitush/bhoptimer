@@ -167,7 +167,7 @@ char gS_ShortBhopStyles[MAX_STYLES][] =
 
 #if defined USES_STYLE_MULTIPLIERS
 // ranking system
-float gI_RankingMultipliers[MAX_STYLES] =
+float gF_RankingMultipliers[MAX_STYLES] =
 {
 	1.00, // Normal
 	1.30, // Sideways
@@ -671,43 +671,11 @@ native float Shavit_GetPoints(int client);
 native int Shavit_GetRank(int client);
 
 /**
- * Gets ranking values for the current map.
- * See CalculatePoints() in shavit-rankings.
- *
- * @param points					Reference to map points. -1.0 if not set.
- * @param idealtime					Reference to ideal time. 0.0 if not set.
- * @noreturn
- */
-native void Shavit_GetMapValues(float &points, float &idealtime);
-
-/**
- * Gets ranking values for a given map.
- * See CalculatePoints() in shavit-rankings.
- *
- * @param map						Map to get values from.
- * @param points					Reference to map points. -1.0 if not set.
- * @param idealtime					Reference to ideal time. 0.0 if not set.
- * @noreturn
- */
-native void Shavit_GetGivenMapValues(const char[] map, float &points, float &idealtime);
-
-/**
  * Gets the amount of players with over 0 points.
  *
  * @return							Amount of ranked players.
  */
 native int Shavit_GetRankedPlayers();
-
-/**
- * Calculates points for given time, style, ideal time and points for the ideal time.
- *
- * @param time						Time.
- * @param idealtime					Ideal time.
- * @param style						Bhop style.
- * @param mappoints					Points for the ideal time
- * @return							Calculated poiints.
- */
-native float Shavit_CalculatePoints(float time, BhopStyle style, float idealtime, float mappoints);
 
 /**
  * Force an HUD update for a player. Requires shavit-hud.
@@ -795,15 +763,12 @@ public SharedPlugin __pl_shavit =
 #if !defined REQUIRE_PLUGIN
 public void __pl_shavit_SetNTVOptional()
 {
-	MarkNativeAsOptional("Shavit_CalculatePoints");
 	MarkNativeAsOptional("Shavit_FinishMap");
 	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
 	MarkNativeAsOptional("Shavit_FormatChat");
 	MarkNativeAsOptional("Shavit_GetBhopStyle");
 	MarkNativeAsOptional("Shavit_GetClientTime");
 	MarkNativeAsOptional("Shavit_GetClientJumps");
-	MarkNativeAsOptional("Shavit_GetGivenMapValues");
-	MarkNativeAsOptional("Shavit_GetMapValues");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");
 	MarkNativeAsOptional("Shavit_GetRank");
