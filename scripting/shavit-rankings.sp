@@ -57,6 +57,7 @@ ConVar gCV_PlayersToCalculate = null;
 Database gH_SQL = null;
 Database gH_Tiers = null;
 bool gB_MySQL = false;
+bool gB_TiersTable = false;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -161,13 +162,16 @@ public void OnClientPutInServer(int client)
 	gF_PlayerPoints[client] = -1.0;
 	gI_PlayerRank[client] = -1;
 
-	UpdatePointsToDatabase(client);
-
 	if(!gB_ChatMessage[client])
 	{
 		CreateTimer(5.0, Timer_PrintTier, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 
 		gB_ChatMessage[client] = true;
+	}
+
+	if(gH_SQL != null && gH_Tiers != null)
+	{
+		UpdatePlayerRank(client);
 	}
 }
 
@@ -244,7 +248,7 @@ public void OnMapStart()
 
 	GetCurrentMap(gS_Map, 256);
 
-	if(gH_Tiers != null)
+	if(gH_Tiers != null && gB_TiersTable)
 	{
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
@@ -361,7 +365,7 @@ public Action Command_Rank(int client, int args)
 		}
 	}
 
-	if(gI_PlayerRank[target] <= 0 || gF_PlayerPoints[target] <= 0.0)
+	if(gI_PlayerRank[target] <= 0)
 	{
 		Shavit_PrintToChat(client, "\x03%N\x01 is unranked.", target);
 
@@ -641,7 +645,7 @@ public void UpdateRecordPoints()
 			fMeasureTime = fDefaultWR;
 		}
 
-		FormatEx(sQuery, 512, "UPDATE %splayertimes SET points = ((%.02f / time) * %f) WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, fMeasureTime, ((fTier * gCV_PointsPerTier.FloatValue) * gF_RankingMultipliers[i]), gS_Map, i);
+		FormatEx(sQuery, 512, "UPDATE %splayertimes SET points = ((%.02f / time) * %.02f) WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, fMeasureTime, ((fTier * gCV_PointsPerTier.FloatValue) * gF_RankingMultipliers[i]), gS_Map, i);
 		gH_SQL.Query(SQL_UpdateRecords_Callback, sQuery, 0, DBPrio_Low);
 	}
 }
@@ -671,8 +675,8 @@ public void WeighPoints(const char[] auth, int serial)
 		return;
 	}
 
-	char[] sQuery = new char[256];
-	FormatEx(sQuery, 256, "UPDATE %susers SET points = (SELECT (points * (@f := 0.98 * @f) / 0.98) sumpoints FROM %splayertimes pt CROSS JOIN (SELECT @f := 1.0) params WHERE auth = '%s' AND points > 0.0 ORDER BY points DESC LIMIT 1) WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
+	char[] sQuery = new char[512];
+	FormatEx(sQuery, 512, "UPDATE %susers SET points = (SELECT (points * (@f := 0.98 * @f) / 0.98) sumpoints FROM %splayertimes pt CROSS JOIN (SELECT @f := 1.0) params WHERE auth = '%s' AND points > 0.0 ORDER BY points DESC LIMIT 1) WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
 
 	gH_SQL.Query(SQL_WeighPoints_Callback, sQuery, serial, DBPrio_Low);
 }
@@ -713,24 +717,7 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 	Shavit_PrintToChat(client, "Points: %.02f", CalculatePoints(time, style, gF_IdealTime, gF_MapPoints));
 	#endif
 
-	float fPoints = CalculatePoints(time, style, (gF_MapTier == -1.0)? 1.0:gF_MapTier);
-	Shavit_PrintToChat(client, "This record was rated \x05%.02f points\x01.", fPoints);
-
 	UpdateRecordPoints();
-
-	CreateTimer(5.0, DelayedPointsUpdate, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
-}
-
-public Action DelayedPointsUpdate(Handle Timer, any data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(client != 0)
-	{
-		UpdatePointsToDatabase(client);
-	}
-
-	return Plugin_Stop;
 }
 
 public void UpdatePlayerPoints(int client)
@@ -778,7 +765,7 @@ public void SQL_UpdatePoints_Callback(Database db, DBResultSet results, const ch
         if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
         {
 			char[] sQuery = new char[256];
-			FormatEx(sQuery, 256, "UPDATE %susers SET points = '%f' WHERE auth = '%s';", gS_MySQLPrefix, fPoints, sAuthID3);
+			FormatEx(sQuery, 256, "UPDATE %susers SET points = '%.02f' WHERE auth = '%s';", gS_MySQLPrefix, fPoints, sAuthID3);
 
 			gH_SQL.Query(SQL_UpdatePointsTable_Callback, sQuery, 0, DBPrio_Low);
         }
@@ -817,7 +804,7 @@ public void UpdatePlayerRank(int client)
 	if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
 	{
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "SELECT COUNT(*) rank FROM %susers u WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY u.points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
+		FormatEx(sQuery, 256, "SELECT COUNT(*) rank, points FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
 
 		gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 	}
@@ -839,9 +826,11 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 		return;
 	}
 
-	if(results.FetchRow())
+	if(results.FetchRow() && results.FetchFloat(1) > 0.0)
 	{
 		gI_PlayerRank[client] = results.FetchInt(0);
+
+		UpdatePointsToDatabase(client);
 
 		Call_StartForward(gH_Forwards_OnRankUpdated);
 		Call_PushCell(client);
@@ -853,6 +842,11 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 
 			gB_CheckRankedPlayers = true;
 		}
+	}
+
+	else
+	{
+		gI_PlayerRank[client] = 0;
 	}
 }
 
@@ -996,6 +990,8 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
+
+	gB_TiersTable = true;
 
 	OnMapStart();
 }
