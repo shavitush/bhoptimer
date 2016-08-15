@@ -433,6 +433,11 @@ public bool DeleteReplay(BhopStyle style)
 
 public void OnClientPutInServer(int client)
 {
+	if(IsClientSourceTV(client))
+	{
+		return;
+	}
+
 	if(!IsFakeClient(client))
 	{
 		gA_PlayerFrames[client] = new ArrayList(5);

@@ -754,9 +754,9 @@ public SharedPlugin __pl_shavit =
 	name = "shavit",
 	file = "shavit-core.smx",
 #if defined REQUIRE_PLUGIN
-	required = 1,
+	required = 1
 #else
-	required = 0,
+	required = 0
 #endif
 };
 

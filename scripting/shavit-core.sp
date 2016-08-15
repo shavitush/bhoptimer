@@ -82,7 +82,6 @@ bool gB_Late = false;
 
 // modules
 bool gB_Zones = false;
-bool gB_HUD = false;
 
 // cvars
 ConVar gCV_Autobhop = null;
@@ -254,7 +253,6 @@ public void OnPluginStart()
 	}
 
 	gB_Zones = LibraryExists("shavit-zones");
-	gB_HUD = LibraryExists("shavit-hud");
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -263,11 +261,6 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Zones = true;
 	}
-
-	else if(StrEqual(name, "shavit-hud"))
-	{
-		gB_HUD = true;
-	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -275,11 +268,6 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "shavit-zones"))
 	{
 		gB_Zones = false;
-	}
-
-	else if(StrEqual(name, "shavit-hud"))
-	{
-		gB_HUD = false;
 	}
 }
 
@@ -1164,11 +1152,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	else if(gB_DoubleSteps[client])
 	{
 		buttons |= IN_JUMP;
-	}
-
-	if(gI_ButtonCache[client] != buttons && gB_HUD)
-	{
-		Shavit_ForceHUDUpdate(client, true);
 	}
 
 	// velocity limit

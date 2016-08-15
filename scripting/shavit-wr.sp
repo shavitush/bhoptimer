@@ -391,38 +391,27 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 
 public int Native_GetWRTime(Handle handler, int numParams)
 {
-	BhopStyle style = GetNativeCell(1);
-	SetNativeCellRef(2, gF_WRTime[style]);
+	SetNativeCellRef(2, gF_WRTime[GetNativeCell(1)]);
 }
 
 public int Native_GetWRRecordID(Handle handler, int numParams)
 {
-	BhopStyle style = GetNativeCell(1);
-	SetNativeCellRef(2, gI_WRRecordID[style]);
+	SetNativeCellRef(2, gI_WRRecordID[GetNativeCell(1)]);
 }
 
 public int Native_GetWRName(Handle handler, int numParams)
 {
-	BhopStyle style = GetNativeCell(1);
-	int maxlength = GetNativeCell(3);
-
-	SetNativeString(2, gS_WRName[style], maxlength);
+	SetNativeString(2, gS_WRName[GetNativeCell(1)], GetNativeCell(3));
 }
 
 public int Native_GetPlayerPB(Handle handler, int numParams)
 {
-	int client = GetNativeCell(1);
-	BhopStyle style = GetNativeCell(2);
-
-	SetNativeCellRef(3, gF_PlayerRecord[client][style]);
+	SetNativeCellRef(3, gF_PlayerRecord[GetNativeCell(1)][GetNativeCell(2)]);
 }
 
 public int Native_GetRankForTime(Handle handler, int numParams)
 {
-	BhopStyle style = GetNativeCell(1);
-	float time = GetNativeCell(2);
-
-	return GetRankForTime(style, time);
+	return GetRankForTime(GetNativeCell(1), GetNativeCell(2));
 }
 
 #if defined DEBUG

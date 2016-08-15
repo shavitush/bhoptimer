@@ -969,8 +969,6 @@ public void SQL_DBConnect()
 			}
 		}
 
-		OnMapStart();
-
 		char[] sDriver = new char[8];
 		gH_SQL.Driver.GetIdentifier(sDriver, 8);
 		gB_MySQL = StrEqual(sDriver, "mysql", false);

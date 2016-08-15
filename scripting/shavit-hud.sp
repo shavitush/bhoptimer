@@ -308,9 +308,10 @@ public void TriggerHUDUpdate(int client)
 	{
 		UpdateTopLeftHUD(client, true);
 		UpdateKeyHint(client);
+		UpdateCenterKeys(client);
 	}
 
-	if((gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS) && (!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel))
+	else if((gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS) && (!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel))
 	{
 		bool bShouldDraw = false;
 		Panel pHUD = new Panel();
@@ -576,6 +577,33 @@ public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	draw = true;
 }
 
+public void UpdateCenterKeys(int client)
+{
+	if(!(gI_HUDSettings[client] & HUD_KEYOVERLAY))
+	{
+		return;
+	}
+
+	int target = GetHUDTarget(client);
+
+	if((!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target) || !IsValidClient(target) || IsClientObserver(target))
+	{
+		return;
+	}
+
+	int buttons = GetClientButtons(target);
+
+	if(gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) // don't include [JUMP] for autobhop styles
+	{
+		PrintCenterText(client, "[%s]\n    %s\n%s   %s   %s", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+	}
+
+	else
+	{
+		PrintCenterText(client, "[%s] [%s]\n    %s\n%s   %s   %s", buttons & IN_JUMP? "JUMP":"----", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+	}
+}
+
 public void UpdateSpectatorList(int client, Panel panel, bool &draw)
 {
 	if(!(gI_HUDSettings[client] & HUD_SPECTATORS))
@@ -671,19 +699,62 @@ public void UpdateKeyHint(int client)
 {
 	if(gI_Cycle % 10 == 0 && (gI_HUDSettings[client] & HUD_SYNC || gI_HUDSettings[client] & HUD_TIMELEFT))
 	{
-		char[] sMessage = new char[128];
+		char[] sMessage = new char[256];
 		int iTimeLeft = -1;
 
 		if(gI_HUDSettings[client] & HUD_TIMELEFT && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
 		{
-			FormatEx(sMessage, 128, (iTimeLeft > 60)? "Time left: %d minutes":"Time left: <1 minute", (iTimeLeft / 60));
+			FormatEx(sMessage, 256, (iTimeLeft > 60)? "Time left: %d minutes":"Time left: <1 minute", (iTimeLeft / 60));
 		}
 
 		int target = GetHUDTarget(client);
 
-		if(gI_HUDSettings[client] & HUD_SYNC && Shavit_GetTimerStatus(target) == Timer_Running && gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_MEASURESYNC && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
+		if(IsValidClient(target) && (target == client || gI_HUDSettings[client] & HUD_OBSERVE))
 		{
-			Format(sMessage, 128, "%s%sSync: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", Shavit_GetSync(target));
+			if(gI_HUDSettings[client] & HUD_SYNC && Shavit_GetTimerStatus(target) == Timer_Running && gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_MEASURESYNC && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
+			{
+				Format(sMessage, 256, "%s%sSync: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", Shavit_GetSync(target));
+			}
+
+			if(gI_HUDSettings[client] & HUD_SPECTATORS)
+			{
+				int[] iSpectatorClients = new int[MaxClients];
+				int iSpectators = 0;
+
+				for(int i = 1; i <= MaxClients; i++)
+				{
+					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target)
+					{
+						continue;
+					}
+
+					int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
+
+					if(iObserverMode >= 3 && iObserverMode <= 5)
+					{
+						iSpectatorClients[iSpectators++] = i;
+					}
+				}
+
+				if(iSpectators > 0)
+				{
+					Format(sMessage, 256, "%s%s%spectators (%d):", sMessage, (strlen(sMessage) > 0)? "\n\n":"", (client == target)? "S":"Other s", iSpectators);
+
+					for(int i = 0; i < iSpectators; i++)
+					{
+						if(i == 7)
+						{
+							Format(sMessage, 256, "%s\n...", sMessage);
+
+							break;
+						}
+
+						char[] sName = new char[gI_NameLength];
+						GetClientName(iSpectatorClients[i], sName, gI_NameLength);
+						Format(sMessage, 256, "%s\n%s", sMessage, sName);
+					}
+				}
+			}
 		}
 
 		if(strlen(sMessage) > 0)

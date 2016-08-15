@@ -3,7 +3,7 @@
 
 [AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
 
-[Download](https://github.com/Shavitush/bhoptimer/releases)
+[Download](https://github.com/shavitush/bhoptimer/releases)
 
 # shavit's simple bhop timer
 a bhop server should be simple
@@ -56,7 +56,7 @@ a bhop server should be simple
 2. Copy the desired .smx files to your plugins (addons/sourcemod/plugins) folder  
 2.1. Copy shavit.games.txt to /gamedata if you have DHooks installed.
 3. Copy base.nav to the `maps` folder.
-4. Copy the files from the `sound` folder to the one on your server. Make sure to also have equivelant bz2 files on your FastDL server!  
+4. Copy the files from the `sound` folder to the one on your server. Make sure to also have equivalent bz2 files on your FastDL server!  
 4.1. Do the same for the `materials` folder.
 5. Copy the `configs` file to your server and modify `shavit-sounds.cfg` if you wish to.  
 5.1. Changing `shavit-prefix.txt` to contain your MySQL database prefix might be needed depending on your usage.

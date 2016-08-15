@@ -397,7 +397,7 @@ public void OnMapStart()
 		}
 	}
 
-	PrecacheModel("models/props/cs_office/vending_machine.mdl"); // placeholder model
+	// PrecacheModel("models/props/cs_office/vending_machine.mdl"); // placeholder model
 
 	// draw
 	// start drawing mapzones here
