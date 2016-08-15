@@ -88,6 +88,7 @@ ConVar gCV_Scoreboard = null;
 ConVar gCV_WeaponCommands = null;
 ConVar gCV_PlayerOpacity = null;
 ConVar gCV_StaticPrestrafe = null;
+ConVar gCV_NoclipMe = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -148,6 +149,15 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ssj", Command_SSJ, "SSJ ('speed sixth jump') menu.");
 	gH_SSJCookie = RegClientCookie("shavit_ssj_setting", "SSJ settings", CookieAccess_Protected);
 
+	// noclip
+	RegConsoleCmd("sm_p", Command_Noclip, "Toggles noclip.");
+	RegConsoleCmd("sm_prac", Command_Noclip, "Toggles noclip. (sm_p alias)");
+	RegConsoleCmd("sm_practice", Command_Noclip, "Toggles noclip. (sm_p alias)");
+	RegConsoleCmd("sm_nc", Command_Noclip, "Toggles noclip. (sm_p alias)");
+	RegConsoleCmd("sm_noclipme", Command_Noclip, "Toggles noclip. (sm_p alias)");
+	AddCommandListener(CommandListener_Noclip, "+noclip");
+	AddCommandListener(CommandListener_Noclip, "-noclip");
+
 	// hook teamjoins
 	AddCommandListener(Command_Jointeam, "jointeam");
 
@@ -190,6 +200,7 @@ public void OnPluginStart()
 	gCV_WeaponCommands = CreateConVar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.", 0, true, 0.0, true, 2.0);
 	gCV_PlayerOpacity = CreateConVar("shavit_misc_playeropacity", "-1", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 	gCV_StaticPrestrafe = CreateConVar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -892,6 +903,67 @@ public void SetWeaponAmmo(int client, int weapon)
 public Action Command_SSJ(int client, int args)
 {
 	return ShowSSJMenu(client);
+}
+
+public Action Command_Noclip(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(gCV_NoclipMe.IntValue == 0)
+	{
+		Shavit_PrintToChat(client, "This feature is disabled.");
+
+		return Plugin_Handled;
+	}
+
+	if(gCV_NoclipMe.IntValue == 2 && !CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))
+	{
+		Shavit_PrintToChat(client, "You're lacking access to this command.");
+
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "You have to be alive to use this command.");
+
+		return Plugin_Handled;
+	}
+
+	if(GetEntityMoveType(client) != MOVETYPE_NOCLIP)
+	{
+		SetEntityMoveType(client, MOVETYPE_NOCLIP);
+	}
+
+	else
+	{
+		SetEntityMoveType(client, MOVETYPE_WALK);
+	}
+
+	return Plugin_Handled;
+}
+
+public Action CommandListener_Noclip(int client, const char[] command, int args)
+{
+	if(!IsValidClient(client, true))
+	{
+		return Plugin_Handled;
+	}
+
+	if((gCV_NoclipMe.IntValue == 1 || (gCV_NoclipMe.IntValue == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
+	{
+		SetEntityMoveType(client, MOVETYPE_NOCLIP);
+	}
+
+	else if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	{
+		SetEntityMoveType(client, MOVETYPE_WALK);
+	}
+
+	return Plugin_Handled;
 }
 
 public Action ShowSSJMenu(int client)
