@@ -87,6 +87,7 @@ ConVar gCV_DisableRadio = null;
 ConVar gCV_Scoreboard = null;
 ConVar gCV_WeaponCommands = null;
 ConVar gCV_PlayerOpacity = null;
+ConVar gCV_StaticPrestrafe = null;
 
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
@@ -188,6 +189,7 @@ public void OnPluginStart()
 	gCV_Scoreboard = CreateConVar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_WeaponCommands = CreateConVar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.", 0, true, 0.0, true, 2.0);
 	gCV_PlayerOpacity = CreateConVar("shavit_misc_playeropacity", "-1", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
+	gCV_StaticPrestrafe = CreateConVar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -342,14 +344,14 @@ public Action Command_Radio(int client, const char[] command, int args)
 
 public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 {
-	if(IsValidClient(pThis, true))
+	if(!gCV_StaticPrestrafe.BoolValue && !IsValidClient(pThis, true))
 	{
-		DHookSetReturn(hReturn, 250.000);
-
-		return MRES_Override;
+		return MRES_Ignored;
 	}
 
-	return MRES_Ignored;
+	DHookSetReturn(hReturn, (gI_StyleProperties[Shavit_GetBhopStyle(pThis)] & STYLE_260PRESTRAFE)? 260.00:250.00);
+
+	return MRES_Override;
 }
 
 public Action Timer_Scoreboard(Handle Timer)

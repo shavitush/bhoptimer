@@ -147,7 +147,7 @@ Miscellaneous
 - [x] Make frags/score as -time and deaths as rank.
 - [x] Add `sm_usp` `sm_glock` `sm_knife`.
 - [x] Add SSJ (Speed Sixth Jump), save settings to clientprefs and print SSJ to spectators.
-- [ ] Add cvar to disable static 250 maxspeed.
+- [x] Add cvar to disable static 250 maxspeed.
 
 Sounds **(NEW!)**
 --
