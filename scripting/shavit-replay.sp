@@ -283,7 +283,7 @@ public void OnMapStart()
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		gA_Frames[i] = new ArrayList(5);
+		gA_Frames[i] = new ArrayList(6);
 
 		if(!ReplayEnabled(i))
 		{
@@ -335,7 +335,7 @@ public bool LoadReplay(BhopStyle style)
 		fFile.ReadLine(sDummy, MAX_NAME_LENGTH); // not used anymore
 
 		char[] sLine = new char[320];
-		char[][] sExplodedLine = new char[5][64];
+		char[][] sExplodedLine = new char[6][64];
 
 		fFile.ReadLine(sLine, 320);
 
@@ -344,7 +344,7 @@ public bool LoadReplay(BhopStyle style)
 		while(!fFile.EndOfFile())
 		{
 			fFile.ReadLine(sLine, 320);
-			ExplodeString(sLine, "|", sExplodedLine, 5, 64);
+			int iStrings = ExplodeString(sLine, "|", sExplodedLine, 6, 64);
 
 			gA_Frames[style].Resize(iSize + 1);
 
@@ -354,6 +354,8 @@ public bool LoadReplay(BhopStyle style)
 
 			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[3]), 3);
 			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[4]), 4);
+
+			gA_Frames[style].Set(iSize, (iStrings == 6)? StringToInt(sExplodedLine[5]):0, 5);
 
 			iSize++;
 		}
@@ -392,7 +394,7 @@ public bool SaveReplay(BhopStyle style)
 
 	for(int i = 0; i < iSize; i++)
 	{
-		FormatEx(sBuffer, 320, "%f|%f|%f|%f|%f", gA_Frames[style].Get(i, 0), gA_Frames[style].Get(i, 1), gA_Frames[style].Get(i, 2), gA_Frames[style].Get(i, 3), gA_Frames[style].Get(i, 4));
+		FormatEx(sBuffer, 320, "%f|%f|%f|%f|%f|%d", gA_Frames[style].Get(i, 0), gA_Frames[style].Get(i, 1), gA_Frames[style].Get(i, 2), gA_Frames[style].Get(i, 3), gA_Frames[style].Get(i, 4), gA_Frames[style].Get(i, 5));
 
 		fFile.WriteLine(sBuffer);
 	}
@@ -440,7 +442,7 @@ public void OnClientPutInServer(int client)
 
 	if(!IsFakeClient(client))
 	{
-		gA_PlayerFrames[client] = new ArrayList(5);
+		gA_PlayerFrames[client] = new ArrayList(6);
 	}
 
 	else
@@ -706,11 +708,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			vecAngles[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 3);
 			vecAngles[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 4);
 
+			buttons = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 5);
+
 			float vecVelocity[3];
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
 
-			TeleportEntity(client, (GetVectorDistance(vecCurrentPosition, vecPosition) >= 50.0)? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
+			TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
 
 			return Plugin_Changed;
 		}
@@ -728,6 +732,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
 			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
 
 			gI_PlayerFrames[client]++;
 		}
