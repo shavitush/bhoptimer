@@ -862,7 +862,13 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_PreThink, PreThink);
 
 	char[] sAuthID3 = new char[32];
-	GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32);
+
+	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+	{
+		KickClient(client, "Couldn't verify your, or the server's connection to Steam.");
+
+		return;
+	}
 
 	char[] sName = new char[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
