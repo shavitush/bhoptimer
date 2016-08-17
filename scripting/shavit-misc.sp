@@ -1147,7 +1147,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 	for(int i = 1; i <= 3; i++)
 	{
-		Shavit_PrintToChatAll("%sNEW %s WR!!!", gEV_Type == Engine_CSGO? "\x02":"\x077D42C9", sUpperCase);
+		Shavit_PrintToChatAll("%sNEW %s WR!!!", (gEV_Type == Engine_CSGO)? "\x02":"\x077D42C9", sUpperCase);
 	}
 }
 
@@ -1178,7 +1178,7 @@ public Action Respawn(Handle Timer, any data)
 {
 	int client = GetClientFromSerial(data);
 
-	if(IsValidClient(client) && !IsPlayerAlive(client))
+	if(IsValidClient(client) && !IsPlayerAlive(client) && GetClientTeam(client) >= CS_TEAM_T)
 	{
 		CS_RespawnPlayer(client);
 
