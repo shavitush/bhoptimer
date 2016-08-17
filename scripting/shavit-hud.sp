@@ -469,7 +469,7 @@ public void UpdateHUD(int client)
 				{
 					if(Shavit_GetTimerStatus(target) == Timer_Running)
 					{
-						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d", gS_BhopStyles[bsStyle], sTime, iPotentialRank, iJumps, iStrafes, iSpeed);
+						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d%s", gS_BhopStyles[bsStyle], sTime, iPotentialRank, iJumps, iStrafes, iSpeed, (gI_StyleProperties[bsStyle] & STYLE_VEL_LIMIT && Shavit_InsideZone(target, Zone_NoVelLimit))? "\nNo Speed Limit":"");
 					}
 
 					else

@@ -1364,7 +1364,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 		{
 			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
 			{
-				if(gMZ_FreestyleTypes[j] != Zone_Freestyle && !EmptyZone(gV_FreestyleZones[j][0]) && !EmptyZone(gV_FreestyleZones[j][1]))
+				if(gMZ_FreestyleTypes[j] != Zone_NoVelLimit && !EmptyZone(gV_FreestyleZones[j][0]) && !EmptyZone(gV_FreestyleZones[j][1]))
 				{
 					vPoints[0] = gV_FreestyleZones[j][0];
 					vPoints[7] = gV_FreestyleZones[j][1];
