@@ -45,6 +45,12 @@ ConVar gCV_MinimumTimes = null;
 ConVar gCV_PlayerAmount = null;
 ConVar gCV_Style = null;
 
+// cached cvars
+float gF_DefaultLimit = 60.0;
+int gI_MinimumTimes = 5;
+int gI_PlayerAmount = 25;
+bool gB_Style = true;
+
 // table prefix
 char gS_MySQLPrefix[32];
 
@@ -78,11 +84,24 @@ public void OnPluginStart()
 	gCV_PlayerAmount = CreateConVar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nSet to 0 to have it \"unlimited\".", 0);
 	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.", 0, true, 0.0, true, 1.0);
 
+	gCV_DefaultLimit.AddChangeHook(OnConVarChanged);
+	gCV_MinimumTimes.AddChangeHook(OnConVarChanged);
+	gCV_PlayerAmount.AddChangeHook(OnConVarChanged);
+	gCV_Style.AddChangeHook(OnConVarChanged);
+
 	AutoExecConfig();
 
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
 	SetSQLInfo();
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gF_DefaultLimit = gCV_DefaultLimit.FloatValue;
+	gI_MinimumTimes = gCV_MinimumTimes.IntValue;
+	gI_PlayerAmount = gCV_PlayerAmount.IntValue;
+	gB_Style = gCV_Style.BoolValue;
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -143,7 +162,7 @@ public void StartCalculating()
 		GetCurrentMap(sMap, 256);
 
 		char sQuery[512];
-		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, gCV_Style.BoolValue? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);
+		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gB_Style)? "AND style = 0 ":"", gI_PlayerAmount);
 
 		#if defined DEBUG
 		PrintToServer(sQuery);
@@ -165,7 +184,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 	results.FetchRow();
 	int iRows = results.FetchInt(0);
 
-	if(iRows >= gCV_MinimumTimes.IntValue)
+	if(iRows >= gI_MinimumTimes)
 	{
 		float fTimeSum = results.FetchFloat(1);
 		float fAverage = (fTimeSum / 60 / iRows);
@@ -212,7 +231,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 	else
 	{
-		SetLimit(RoundToNearest(gCV_DefaultLimit.FloatValue));
+		SetLimit(RoundToNearest(gF_DefaultLimit));
 	}
 }
 

@@ -72,6 +72,10 @@ char gS_MySQLPrefix[32];
 ConVar gCV_RecordsLimit = null;
 ConVar gCV_RecentLimit = null;
 
+// cached cvars
+int gI_RecordsLimit = 50;
+int gI_RecentLimit = 50;
+
 // colors to minimize printtochat on finish
 char gS_Color_Time[16];
 char gS_Color_Rank[16];
@@ -134,6 +138,9 @@ public void OnPluginStart()
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
 	gCV_RecentLimit = CreateConVar("shavit_wr_recentlimit", "50", "Limit of records shown in the RR menu.", 0, true, 1.0);
 
+	gCV_RecordsLimit.AddChangeHook(OnConVarChanged);
+	gCV_RecentLimit.AddChangeHook(OnConVarChanged);
+
 	AutoExecConfig();
 
 	// arrays
@@ -162,6 +169,12 @@ public void OnPluginStart()
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
 	SetSQLInfo();
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gI_RecordsLimit = gCV_RecordsLimit.BoolValue;
+	gI_RecentLimit = gCV_RecentLimit.BoolValue;
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -903,7 +916,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	while(results.FetchRow())
 	{
 		// add item to menu and don't overflow with too many entries
-		if(++iCount <= gCV_RecordsLimit.IntValue)
+		if(++iCount <= gI_RecordsLimit)
 		{
 			// 0 - record id, for statistic purposes.
 			int id = results.FetchInt(0);
@@ -1015,7 +1028,7 @@ public Action Command_RecentRecords(int client, int args)
 	}
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, MIN(p.time), p.jumps, p.style, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth GROUP BY p.map, p.style ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gCV_RecentLimit.IntValue);
+	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, MIN(p.time), p.jumps, p.style, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth GROUP BY p.map, p.style ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gI_RecentLimit);
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 
@@ -1039,7 +1052,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	Menu m = new Menu(RRMenu_Handler);
-	m.SetTitle("Recent %d record%s:", gCV_RecentLimit.IntValue, (gCV_RecentLimit.IntValue != 1)? "s":"");
+	m.SetTitle("Recent %d record%s:", gI_RecentLimit, (gI_RecentLimit != 1)? "s":"");
 
 	while(results.FetchRow())
 	{

@@ -112,6 +112,12 @@ ConVar gCV_Interval = null;
 ConVar gCV_TeleportToStart = null;
 ConVar gCV_UseCustomSprite = null;
 
+// cached cvars
+int gI_ZoneStyle = 0;
+float gF_Interval = 1.0;
+bool gB_TeleportToStart = true;
+bool gB_UseCustomSprite = true;
+
 // table prefix
 char gS_MySQLPrefix[32];
 
@@ -171,11 +177,24 @@ public void OnPluginStart()
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
+	gCV_ZoneStyle.AddChangeHook(OnConVarChanged);
+	gCV_Interval.AddChangeHook(OnConVarChanged);
+	gCV_TeleportToStart.AddChangeHook(OnConVarChanged);
+	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
+
 	AutoExecConfig();
 
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
 	SetSQLInfo();
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gI_ZoneStyle = gCV_ZoneStyle.IntValue;
+	gF_Interval = gCV_Interval.FloatValue;
+	gB_TeleportToStart = gCV_TeleportToStart.BoolValue;
+	gB_UseCustomSprite = gCV_UseCustomSprite.BoolValue;
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -332,7 +351,7 @@ public void OnMapStart()
 		RefreshZones();
 	}
 
-	if(gCV_UseCustomSprite.BoolValue)
+	if(gB_UseCustomSprite)
 	{
 		char[] sFile = new char[PLATFORM_MAX_PATH];
 		BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-zones.cfg");
@@ -401,7 +420,7 @@ public void OnMapStart()
 
 	// draw
 	// start drawing mapzones here
-	CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 // 0 - all zones
@@ -873,7 +892,7 @@ public void ShowPanel(int client, int step)
 
 	if(step == 1)
 	{
-		// not gonna use gCV_Interval.FloatValue here as we need percision when setting up zones
+		// not gonna use gF_Interval here as we need percision when setting up zones
 		CreateTimer(0.1, Timer_Draw, GetClientSerial(client), TIMER_REPEAT);
 	}
 
@@ -1375,7 +1394,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 						vPoints[7][2] += 2.0;
 					}
 
-					if(gCV_ZoneStyle.BoolValue)
+					if(gI_ZoneStyle == 1)
 					{
 						vPoints[7][2] = vPoints[0][2];
 					}
@@ -1390,7 +1409,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false, true);
 					}
 
-					DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
+					DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gF_Interval + 0.2);
 				}
 			}
 		}
@@ -1412,14 +1431,14 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 				vPoints[7][2] += 2.0;
 			}
 
-			if(gCV_ZoneStyle.BoolValue)
+			if(gI_ZoneStyle == 1)
 			{
 				vPoints[7][2] = vPoints[0][2];
 			}
 
 			CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false, true);
 
-			DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gCV_Interval.FloatValue + 0.2);
+			DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gF_Interval + 0.2);
 		}
 	}
 }
@@ -1948,7 +1967,7 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnRestart(int client)
 {
-	if(gCV_TeleportToStart.BoolValue && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
+	if(gB_TeleportToStart && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
@@ -1968,7 +1987,7 @@ public void Shavit_OnRestart(int client)
 
 public void Shavit_OnEnd(int client)
 {
-	if(gCV_TeleportToStart.BoolValue && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_End][0]) && !EmptyZone(gV_MapZones[Zone_End][1]))
+	if(gB_TeleportToStart && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_End][0]) && !EmptyZone(gV_MapZones[Zone_End][1]))
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[1][0], gV_MapZones[1][1], vCenter);

@@ -64,6 +64,12 @@ ConVar gCV_ReplayDelay = null;
 ConVar gCV_TimeLimit = null;
 ConVar gCV_NameStyle = null;
 
+// cached cvars
+bool gB_Enabled = true;
+float gF_ReplayDelay = 5.0;
+float gF_TimeLimit = 5400.0;
+int gI_NameStyle = 1;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Replay Bot",
@@ -107,6 +113,11 @@ public void OnPluginStart()
 	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
 	gCV_NameStyle = CreateConVar("shavit_replay_namestyle", "1", "Replay bot naming style\n0 - [SHORT STYLE] <TIME> - PLAYER NAME\n1 - LONG STYLE - <TIME>", 0, true, 0.0, true, 1.0);
 
+	gCV_Enabled.AddChangeHook(OnConVarChanged);
+	gCV_ReplayDelay.AddChangeHook(OnConVarChanged);
+	gCV_TimeLimit.AddChangeHook(OnConVarChanged);
+	gCV_NameStyle.AddChangeHook(OnConVarChanged);
+
 	AutoExecConfig();
 
 	// hooks
@@ -121,6 +132,14 @@ public void OnPluginStart()
 
 	// commands
 	RegAdminCmd("sm_deletereplay", Command_DeleteReplay, ADMFLAG_RCON, "Open replay deletion menu.");
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gB_Enabled = gCV_Enabled.BoolValue;
+	gF_ReplayDelay = gCV_ReplayDelay.FloatValue;
+	gF_TimeLimit = gCV_TimeLimit.FloatValue;
+	gI_NameStyle = gCV_NameStyle.IntValue;
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
@@ -147,7 +166,7 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 
 public Action Cron(Handle Timer)
 {
-	if(!gCV_Enabled.BoolValue)
+	if(!gB_Enabled)
 	{
 		bot_quota.IntValue = 0;
 
@@ -216,7 +235,7 @@ public Action HookTriggers(int entity, int other)
 
 public void OnMapStart()
 {
-	if(!gCV_Enabled.BoolValue)
+	if(!gB_Enabled)
 	{
 		return;
 	}
@@ -463,7 +482,7 @@ public void OnClientPutInServer(int client)
 
 public void UpdateReplayInfo(int client, BhopStyle style, float time)
 {
-	if(!IsValidClient(client) || !gCV_Enabled.BoolValue)
+	if(!IsValidClient(client) || !gB_Enabled)
 	{
 		return;
 	}
@@ -481,7 +500,7 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 	char[] sName = new char[MAX_NAME_LENGTH];
 
 	// switch because i may add more
-	switch(gCV_NameStyle.IntValue)
+	switch(gI_NameStyle)
 	{
 		case 0:
 		{
@@ -589,7 +608,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time)
 	float fWRTime = 0.0;
 	Shavit_GetWRTime(style, fWRTime);
 
-	if(!gCV_Enabled.BoolValue || !ReplayEnabled(style) || (fWRTime > 0.0 && time > fWRTime))
+	if(!gB_Enabled || !ReplayEnabled(style) || (fWRTime > 0.0 && time > fWRTime))
 	{
 		ClearFrames(client);
 	}
@@ -604,7 +623,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 		return;
 	}
 
-	if(!gCV_Enabled.BoolValue || (gCV_TimeLimit.BoolValue && time > gCV_TimeLimit.FloatValue))
+	if(!gB_Enabled || (gF_TimeLimit > 0.0 && time > gF_TimeLimit))
 	{
 		ClearFrames(client);
 
@@ -642,7 +661,7 @@ public void Shavit_OnResume(int client)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
-	if(!IsPlayerAlive(client) || !gCV_Enabled.BoolValue)
+	if(!IsPlayerAlive(client) || !gB_Enabled)
 	{
 		return Plugin_Continue;
 	}
@@ -687,7 +706,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gI_ReplayTick[iReplayBotStyle] = 0;
 				gRS_ReplayStatus[iReplayBotStyle] = Replay_End;
 
-				CreateTimer(gCV_ReplayDelay.FloatValue / 2, EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer(gF_ReplayDelay / 2.0, EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
 
 				SetEntityMoveType(client, MOVETYPE_NONE);
 
@@ -747,7 +766,7 @@ public Action EndReplay(Handle Timer, any data)
 	gI_ReplayTick[data] = 0;
 	gRS_ReplayStatus[data] = Replay_Start;
 
-	CreateTimer(gCV_ReplayDelay.FloatValue / 2, StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(gF_ReplayDelay / 2.0, StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
 
 	return Plugin_Stop;
 }
@@ -776,7 +795,7 @@ public bool ReplayEnabled(any style)
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	if(!gCV_Enabled.BoolValue)
+	if(!gB_Enabled)
 	{
 		return;
 	}
@@ -817,7 +836,7 @@ public Action DelayedUpdate(Handle Timer, any data)
 
 public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 {
-	if(!gCV_Enabled.BoolValue)
+	if(!gB_Enabled)
 	{
 		return;
 	}
@@ -842,7 +861,7 @@ public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 
 public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
 {
-	if(!gB_HideNameChange || !gCV_Enabled.BoolValue)
+	if(!gB_HideNameChange || !gB_Enabled)
 	{
 		return Plugin_Continue;
 	}

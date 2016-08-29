@@ -90,6 +90,27 @@ ConVar gCV_PlayerOpacity = null;
 ConVar gCV_StaticPrestrafe = null;
 ConVar gCV_NoclipMe = null;
 
+// cached cvars
+int gI_GodMode = 3;
+int gI_PreSpeed = 3;
+bool gB_HideTeamChanges = true;
+bool gB_RespawnOnTeam = true;
+bool gB_RespawnOnRestart = true;
+bool gB_StartOnSpawn = true;
+float gF_PrespeedLimit = 280.00;
+bool gB_HideRadar = true;
+bool gB_TeleportCommands = true;
+bool gB_NoWeaponDrops = true;
+bool gB_NoBlock = true;
+float gF_AutoRespawn = 1.5;
+int gI_CreateSpawnPoints = 32;
+bool gB_DisableRadio = false;
+bool gB_Scoreboard = true;
+int gI_WeaponCommands = 2;
+int gI_PlayerOpacity = -1;
+bool gB_StaticPrestrafe = true;
+int gI_NoclipMe = true;
+
 // dhooks
 Handle gH_GetMaxPlayerSpeed = null;
 
@@ -202,6 +223,26 @@ public void OnPluginStart()
 	gCV_StaticPrestrafe = CreateConVar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 1.0);
 
+	gCV_GodMode.AddChangeHook(OnConVarChanged);
+	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
+	gCV_HideTeamChanges.AddChangeHook(OnConVarChanged);
+	gCV_RespawnOnTeam.AddChangeHook(OnConVarChanged);
+	gCV_RespawnOnRestart.AddChangeHook(OnConVarChanged);
+	gCV_StartOnSpawn.AddChangeHook(OnConVarChanged);
+	gCV_PrespeedLimit.AddChangeHook(OnConVarChanged);
+	gCV_HideRadar.AddChangeHook(OnConVarChanged);
+	gCV_TeleportCommands.AddChangeHook(OnConVarChanged);
+	gCV_NoWeaponDrops.AddChangeHook(OnConVarChanged);
+	gCV_NoBlock.AddChangeHook(OnConVarChanged);
+	gCV_AutoRespawn.AddChangeHook(OnConVarChanged);
+	gCV_CreateSpawnPoints.AddChangeHook(OnConVarChanged);
+	gCV_DisableRadio.AddChangeHook(OnConVarChanged);
+	gCV_Scoreboard.AddChangeHook(OnConVarChanged);
+	gCV_WeaponCommands.AddChangeHook(OnConVarChanged);
+	gCV_PlayerOpacity.AddChangeHook(OnConVarChanged);
+	gCV_StaticPrestrafe.AddChangeHook(OnConVarChanged);
+	gCV_NoclipMe.AddChangeHook(OnConVarChanged);
+
 	AutoExecConfig();
 
 	if(LibraryExists("dhooks"))
@@ -230,9 +271,32 @@ public void OnPluginStart()
 	}
 }
 
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gI_GodMode = gCV_GodMode.IntValue;
+	gI_PreSpeed = gCV_PreSpeed.IntValue;
+	gB_HideTeamChanges = gCV_HideTeamChanges.BoolValue;
+	gB_RespawnOnTeam = gCV_RespawnOnTeam.BoolValue;
+	gB_RespawnOnRestart = gCV_RespawnOnRestart.BoolValue;
+	gB_StartOnSpawn = gCV_StartOnSpawn.BoolValue;
+	gF_PrespeedLimit = gCV_PrespeedLimit.FloatValue;
+	gB_HideRadar = gCV_HideRadar.BoolValue;
+	gB_TeleportCommands = gCV_TeleportCommands.BoolValue;
+	gB_NoWeaponDrops = gCV_NoWeaponDrops.BoolValue;
+	gB_NoBlock = gCV_NoBlock.BoolValue;
+	gF_AutoRespawn = gCV_AutoRespawn.FloatValue;
+	gI_CreateSpawnPoints = gCV_CreateSpawnPoints.IntValue;
+	gB_DisableRadio = gCV_DisableRadio.BoolValue;
+	gB_Scoreboard = gCV_Scoreboard.BoolValue;
+	gI_WeaponCommands = gCV_WeaponCommands.IntValue;
+	gI_PlayerOpacity = gCV_PlayerOpacity.IntValue;
+	gB_StaticPrestrafe = gCV_StaticPrestrafe.BoolValue;
+	gI_NoclipMe = gCV_NoclipMe.IntValue;
+}
+
 public void OnMapStart()
 {
-	if(gCV_CreateSpawnPoints.BoolValue)
+	if(gI_CreateSpawnPoints > 0)
 	{
 		int iEntity = -1;
 		float fOrigin[3];
@@ -249,7 +313,7 @@ public void OnMapStart()
 
 		if(iEntity != -1)
 		{
-			for(int i = 1; i <= gCV_CreateSpawnPoints.IntValue; i++)
+			for(int i = 1; i <= gI_CreateSpawnPoints; i++)
 			{
 				for(int iTeam = 1; iTeam <= 2; iTeam++)
 				{
@@ -333,7 +397,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		}
 	}
 
-	if(gCV_RespawnOnTeam.BoolValue && bRespawn)
+	if(gB_RespawnOnTeam && bRespawn)
 	{
 		CS_RespawnPlayer(client);
 
@@ -345,7 +409,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 public Action Command_Radio(int client, const char[] command, int args)
 {
-	if(gCV_DisableRadio.BoolValue)
+	if(gB_DisableRadio)
 	{
 		return Plugin_Handled;
 	}
@@ -355,7 +419,7 @@ public Action Command_Radio(int client, const char[] command, int args)
 
 public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 {
-	if(!gCV_StaticPrestrafe.BoolValue && !IsValidClient(pThis, true))
+	if(!gB_StaticPrestrafe && !IsValidClient(pThis, true))
 	{
 		return MRES_Ignored;
 	}
@@ -367,7 +431,7 @@ public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 
 public Action Timer_Scoreboard(Handle Timer)
 {
-	if(!gCV_Scoreboard.BoolValue)
+	if(!gB_Scoreboard)
 	{
 		return Plugin_Continue;
 	}
@@ -433,7 +497,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	// prespeed
 	if((gI_StyleProperties[Shavit_GetBhopStyle(client)] & STYLE_PRESPEED) == 0 && bInStart)
 	{
-		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && (gF_LastFlags[client] & FL_ONGROUND) > 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
+		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gF_LastFlags[client] & FL_ONGROUND) > 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "Bhopping in the start zone is not allowed.");
@@ -443,13 +507,13 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			return Plugin_Continue;
 		}
 
-		if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue == 3)
+		if(gI_PreSpeed == 1 || gI_PreSpeed == 3)
 		{
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
 			float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-			float fScale = gCV_PrespeedLimit.FloatValue / fSpeed_New;
+			float fScale = (gF_PrespeedLimit / fSpeed_New);
 
 			if(bNoclipping)
 			{
@@ -579,7 +643,7 @@ public void OnClientCookiesCached(int client)
 
 public Action OnTakeDamage(int victim, int attacker)
 {
-	switch(gCV_GodMode.IntValue)
+	switch(gI_GodMode)
 	{
 		case 0:
 		{
@@ -615,7 +679,7 @@ public Action OnTakeDamage(int victim, int attacker)
 
 public void OnWeaponDrop(int client, int entity)
 {
-	if(gCV_NoWeaponDrops.BoolValue && IsValidEntity(entity))
+	if(gB_NoWeaponDrops && IsValidEntity(entity))
 	{
 		AcceptEntityInput(entity, "Kill");
 	}
@@ -720,7 +784,7 @@ public Action Command_Teleport(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gCV_TeleportCommands.BoolValue)
+	if(!gB_TeleportCommands)
 	{
 		Shavit_PrintToChat(client, "This command is disabled.");
 
@@ -834,7 +898,7 @@ public Action Command_Weapon(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gCV_WeaponCommands.BoolValue)
+	if(gI_WeaponCommands == 0)
 	{
 		Shavit_PrintToChat(client, "This command is disabled.");
 
@@ -912,14 +976,14 @@ public Action Command_Noclip(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gCV_NoclipMe.IntValue == 0)
+	if(gI_NoclipMe == 0)
 	{
 		Shavit_PrintToChat(client, "This feature is disabled.");
 
 		return Plugin_Handled;
 	}
 
-	if(gCV_NoclipMe.IntValue == 2 && !CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))
+	if(gI_NoclipMe == 2 && !CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))
 	{
 		Shavit_PrintToChat(client, "You're lacking access to this command.");
 
@@ -953,7 +1017,7 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 		return Plugin_Handled;
 	}
 
-	if((gCV_NoclipMe.IntValue == 1 || (gCV_NoclipMe.IntValue == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
+	if((gI_NoclipMe == 1 || (gI_NoclipMe == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
 	{
 		SetEntityMoveType(client, MOVETYPE_NOCLIP);
 	}
@@ -1153,7 +1217,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 public void Shavit_OnRestart(int client)
 {
-	if(!gCV_RespawnOnRestart.BoolValue)
+	if(!gB_RespawnOnRestart)
 	{
 		return;
 	}
@@ -1182,7 +1246,7 @@ public Action Respawn(Handle Timer, any data)
 	{
 		CS_RespawnPlayer(client);
 
-		if(gCV_RespawnOnRestart.BoolValue)
+		if(gB_RespawnOnRestart)
 		{
 			RestartTimer(client);
 		}
@@ -1204,30 +1268,30 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
 
-	if(gCV_HideRadar.BoolValue)
+	if(gB_HideRadar)
 	{
 		CreateTimer(0.0, RemoveRadar, GetClientSerial(client));
 	}
 
-	if(gCV_StartOnSpawn.BoolValue)
+	if(gB_StartOnSpawn)
 	{
 		RestartTimer(client);
 	}
 
-	if(gCV_NoBlock.BoolValue)
+	if(gB_NoBlock)
 	{
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	}
 
-	if(gCV_Scoreboard.BoolValue && !IsFakeClient(client))
+	if(gB_Scoreboard && !IsFakeClient(client))
 	{
 		UpdateScoreboard(client);
 	}
 
-	if(gCV_PlayerOpacity.IntValue != -1 && FindSendPropInfo("CCSPlayer", "m_nRenderFX") != -1)
+	if(gI_PlayerOpacity != -1 && FindSendPropInfo("CCSPlayer", "m_nRenderFX") != -1)
 	{
 		SetEntityRenderMode(client, RENDER_TRANSCOLOR);
-		SetEntityRenderColor(client, 255, 255, 255, gCV_PlayerOpacity.IntValue);
+		SetEntityRenderColor(client, 255, 255, 255, gI_PlayerOpacity);
 	}
 }
 
@@ -1256,18 +1320,18 @@ public Action RemoveRadar(Handle timer, any data)
 
 public Action Player_Notifications(Event event, const char[] name, bool dontBroadcast)
 {
-	if(gCV_HideTeamChanges.BoolValue)
+	if(gB_HideTeamChanges)
 	{
 		event.BroadcastDisabled = true;
 	}
 
-	if(gCV_AutoRespawn.BoolValue && StrEqual(name, "player_death"))
+	if(gF_AutoRespawn > 0.0 && StrEqual(name, "player_death"))
 	{
 		int client = GetClientOfUserId(event.GetInt("userid"));
 
 		if(!IsFakeClient(client))
 		{
-			CreateTimer(gCV_AutoRespawn.FloatValue, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+			CreateTimer(gF_AutoRespawn, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 
@@ -1354,7 +1418,7 @@ public void PrintSSJ(int client, int target, float gain)
 
 public void Weapon_Fire(Event event, const char[] name, bool dB)
 {
-	if(gCV_WeaponCommands.IntValue < 2)
+	if(gI_WeaponCommands < 2)
 	{
 		return;
 	}
@@ -1372,7 +1436,7 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 
 public void Shavit_OnFinish(int client)
 {
-	if(!gCV_Scoreboard.BoolValue)
+	if(!gB_Scoreboard)
 	{
 		return;
 	}

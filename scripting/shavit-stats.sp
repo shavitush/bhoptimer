@@ -55,6 +55,9 @@ int gI_WRAmount[MAXPLAYERS+1];
 // cvars
 ConVar gCV_MVPRankOnes = null;
 
+// cached cvars
+int gI_MVPRankOnes = 2;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Player Stats",
@@ -101,12 +104,19 @@ public void OnPluginStart()
 	// cvars
 	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.", 0, true, 0.0, true, 2.0);
 
+	gCV_MVPRankOnes.AddChangeHook(OnConVarChanged);
+
 	AutoExecConfig();
 
 	// database connections
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
 	SetSQLInfo();
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gI_MVPRankOnes = gCV_MVPRankOnes.IntValue;
 }
 
 public void OnClientPutInServer(int client)
@@ -219,7 +229,7 @@ public void UpdateWRs(int client)
 	{
 		char[] sQuery = new char[256];
 
-		if(gCV_MVPRankOnes.IntValue == 2)
+		if(gI_MVPRankOnes == 2)
 		{
 			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes GROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s' LIMIT 1;", gS_MySQLPrefix, sAuthID);
 
@@ -252,7 +262,7 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 
 	int iWRs = results.FetchInt(0);
 
-	if(gCV_MVPRankOnes.BoolValue)
+	if(gI_MVPRankOnes > 0)
 	{
 		CS_SetMVPCount(client, iWRs);
 	}

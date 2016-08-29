@@ -53,6 +53,12 @@ ConVar gCV_TiersDB = null;
 ConVar gCV_PointsPerTier = null;
 ConVar gCV_PlayersToCalculate = null;
 
+// cached cvars
+int gI_TopAmount = 100;
+bool gB_TiersDB = false;
+float gF_PointsPerTier = 25.0;
+int gI_PlayersToCalculate = -1;
+
 // database handles
 Database gH_SQL = null;
 Database gH_Tiers = null;
@@ -120,6 +126,11 @@ public void OnPluginStart()
 	gCV_PointsPerTier = CreateConVar("shavit_rankings_pointspertier", "25", "Points for default style's WR per map tier.\nFor example: if you set this value to 50 and you get a #1 Normal record, you will receive 50 points and players below you will receive less.\nIf a map has no tier set, it will reward as if it's tier 1.", 0, true, 1.0);
 	gCV_PlayersToCalculate = CreateConVar("shavit_rankings_playerstocalculate", "-1", "(MySQL only!) Amount of players to have their points re-calculated per new map.\nSet to -1 if you want it to use the value of \"shavit_rankings_topamount\".", 0, true, -1.0, true, 250.0);
 
+	gCV_TopAmount.AddChangeHook(OnConVarChanged);
+	gCV_TiersDB.AddChangeHook(OnConVarChanged);
+	gCV_PointsPerTier.AddChangeHook(OnConVarChanged);
+	gCV_PlayersToCalculate.AddChangeHook(OnConVarChanged);
+
 	AutoExecConfig();
 
 	// database connections
@@ -129,6 +140,14 @@ public void OnPluginStart()
 
 	// modules
 	gB_Stats = LibraryExists("shavit-stats");
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gI_TopAmount = gCV_TopAmount.IntValue;
+	gB_TiersDB = gCV_TiersDB.BoolValue;
+	gF_PointsPerTier = gCV_PointsPerTier.FloatValue;
+	gI_PlayersToCalculate = gCV_PlayersToCalculate.IntValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -272,7 +291,7 @@ public void SQL_SetTierCache_Callback(Database db, DBResultSet results, const ch
 	}
 
 	char[] sQuery = new char[256];
-	FormatEx(sQuery, 256, "SELECT auth FROM %susers ORDER BY points DESC LIMIT %d;", gS_MySQLPrefix, (gCV_PlayersToCalculate.IntValue == -1)? gCV_TopAmount.IntValue:gCV_PlayersToCalculate.IntValue);
+	FormatEx(sQuery, 256, "SELECT auth FROM %susers ORDER BY points DESC LIMIT %d;", gS_MySQLPrefix, (gI_PlayersToCalculate == -1)? gI_TopAmount:gI_PlayersToCalculate);
 
 	gH_SQL.Query(SQL_RecalculatePoints_Callback, sQuery);
 }
@@ -338,7 +357,7 @@ public Action Command_Points(int client, int args)
 	char[] sTime = new char[32];
 	FormatSeconds(fWRTime, sTime, 32, false);
 
-	Shavit_PrintToChat(client, "\x04%s\x01: Around \x03%.01f\x01 points for a time of \x05%s\x01.", sDisplayMap, (fTier * gCV_PointsPerTier.FloatValue), sTime);
+	Shavit_PrintToChat(client, "\x04%s\x01: Around \x03%.01f\x01 points for a time of \x05%s\x01.", sDisplayMap, (fTier * gF_PointsPerTier), sTime);
 
 	return Plugin_Handled;
 }
@@ -390,7 +409,7 @@ public Action Command_Top(int client, int args)
 public Action ShowTopMenu(int client)
 {
     char[] sQuery = new char[192];
-    FormatEx(sQuery, 192, "SELECT name, %s points, auth FROM %susers WHERE points > 0.0 ORDER BY points DESC LIMIT %d;", gB_MySQL? "FORMAT(points, 2)":"points", gS_MySQLPrefix, gCV_TopAmount.IntValue);
+    FormatEx(sQuery, 192, "SELECT name, %s points, auth FROM %susers WHERE points > 0.0 ORDER BY points DESC LIMIT %d;", gB_MySQL? "FORMAT(points, 2)":"points", gS_MySQLPrefix, gI_TopAmount);
 
     gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client));
 
@@ -414,7 +433,7 @@ public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const cha
 	}
 
 	Menu m = new Menu(MenuHandler_TopMenu);
-	m.SetTitle("Top %d Players", gCV_TopAmount.IntValue);
+	m.SetTitle("Top %d Players", gI_TopAmount);
 
 	if(results.RowCount == 0)
 	{
@@ -645,7 +664,7 @@ public void UpdateRecordPoints()
 			fMeasureTime = fDefaultWR;
 		}
 
-		FormatEx(sQuery, 512, "UPDATE %splayertimes SET points = ((%.02f / time) * %.02f) WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, fMeasureTime, ((fTier * gCV_PointsPerTier.FloatValue) * gF_RankingMultipliers[i]), gS_Map, i);
+		FormatEx(sQuery, 512, "UPDATE %splayertimes SET points = ((%.02f / time) * %.02f) WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, fMeasureTime, ((fTier * gF_PointsPerTier) * gF_RankingMultipliers[i]), gS_Map, i);
 		gH_SQL.Query(SQL_UpdateRecords_Callback, sQuery, 0, DBPrio_Low);
 	}
 }
@@ -705,10 +724,10 @@ public float CalculatePoints(float time, BhopStyle style, float tier)
 
 	if(tier <= 0.0 || fWRTime <= 0.0)
 	{
-		return gCV_PointsPerTier.FloatValue;
+		return gF_PointsPerTier;
 	}
 
-	return (((fWRTime / time) * (tier * gCV_PointsPerTier.FloatValue)) * gF_RankingMultipliers[style]);
+	return (((fWRTime / time) * (tier * gF_PointsPerTier)) * gF_RankingMultipliers[style]);
 }
 
 public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank)
@@ -952,7 +971,7 @@ public void SQL_DBConnect()
 	{
 		char[] sError = new char[255];
 
-		if(gCV_TiersDB.BoolValue)
+		if(gB_TiersDB)
 		{
 			gH_Tiers = gH_SQL;
 		}

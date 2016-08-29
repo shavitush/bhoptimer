@@ -94,6 +94,16 @@ ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
 ConVar gCV_DefaultAA = null;
 
+// cached cvars
+bool gB_Autobhop = true;
+bool gB_LeftRight = true;
+bool gB_Restart = true;
+bool gB_Pause = true;
+bool gB_NoStaminaReset = true;
+bool gB_AllowTimerWithoutZone = false;
+bool gB_BlockPreJump = true;
+bool gB_NoZAxisSpeed = true;
+
 // table prefix
 char gS_MySQLPrefix[32];
 
@@ -235,6 +245,15 @@ public void OnPluginStart()
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
 	gCV_DefaultAA = CreateConVar("shavit_core_defaultaa", "1000", "Airaccelerate value to use for non-100AA styles, overrides sv_airaccelerate.\nRestart the server after you change this value to not cause issues.");
 
+	gCV_Autobhop.AddChangeHook(OnConVarChanged);
+	gCV_LeftRight.AddChangeHook(OnConVarChanged);
+	gCV_Restart.AddChangeHook(OnConVarChanged);
+	gCV_Pause.AddChangeHook(OnConVarChanged);
+	gCV_NoStaminaReset.AddChangeHook(OnConVarChanged);
+	gCV_AllowTimerWithoutZone.AddChangeHook(OnConVarChanged);
+	gCV_BlockPreJump.AddChangeHook(OnConVarChanged);
+	gCV_NoZAxisSpeed.AddChangeHook(OnConVarChanged);
+
 	AutoExecConfig();
 
 	sv_airaccelerate = FindConVar("sv_airaccelerate");
@@ -253,6 +272,18 @@ public void OnPluginStart()
 	}
 
 	gB_Zones = LibraryExists("shavit-zones");
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gB_Autobhop = gCV_Autobhop.BoolValue;
+	gB_LeftRight = gCV_LeftRight.BoolValue;
+	gB_Restart = gCV_Restart.BoolValue;
+	gB_Pause = gCV_Pause.BoolValue;
+	gB_NoStaminaReset = gCV_NoStaminaReset.BoolValue;
+	gB_AllowTimerWithoutZone = gCV_AllowTimerWithoutZone.BoolValue;
+	gB_BlockPreJump = gCV_BlockPreJump.BoolValue;
+	gB_NoZAxisSpeed = gCV_NoZAxisSpeed.BoolValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -297,11 +328,8 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 public void OnMapStart()
 {
 	// cvar forcing
-	ConVar cvBhopping = FindConVar("sv_enablebunnyhopping");
-	cvBhopping.BoolValue = true;
-
-	ConVar cvAA = FindConVar("sv_airaccelerate");
-	cvAA.IntValue = 2000;
+	FindConVar("sv_enablebunnyhopping").BoolValue = true;
+	FindConVar("sv_airaccelerate").IntValue = gI_CachedDefaultAA;
 }
 
 public Action Command_StartTimer(int client, int args)
@@ -311,7 +339,7 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gCV_Restart.BoolValue)
+	if(!gB_Restart)
 	{
 		if(args != -1)
 		{
@@ -324,7 +352,7 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
+	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
@@ -383,7 +411,7 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gCV_Pause.BoolValue)
+	if(!gB_Pause)
 	{
 		char[] sCommand = new char[16];
 		GetCmdArg(0, sCommand, 16);
@@ -532,7 +560,7 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 	StopTimer(client);
 
-	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
+	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
@@ -556,7 +584,7 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		gI_Jumps[client]++;
 	}
 
-	if((gI_StyleProperties[gBS_Style[client]] & STYLE_EASYBHOP) > 0 && gCV_NoStaminaReset.BoolValue)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_EASYBHOP) > 0 && gB_NoStaminaReset)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
@@ -735,7 +763,7 @@ public void StartTimer(int client)
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if(!gCV_NoZAxisSpeed.BoolValue || (gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) > 0 || fSpeed[2] == 0.0 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0)
+	if(!gB_NoZAxisSpeed || (gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) > 0 || fSpeed[2] == 0.0 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0)
 	{
 		gF_StartTime[client] = GetEngineTime();
 		gB_TimerEnabled[client] = true;
@@ -1080,7 +1108,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
 
-	if(gCV_LeftRight.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && ((buttons & IN_LEFT) > 0 || (buttons & IN_RIGHT) > 0)))
+	if(gB_LeftRight && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && ((buttons & IN_LEFT) > 0 || (buttons & IN_RIGHT) > 0)))
 	{
 		Shavit_StopTimer(client);
 		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");
@@ -1131,7 +1159,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(bInStart && gCV_BlockPreJump.BoolValue && (gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) == 0)
+	if(bInStart && gB_BlockPreJump && (gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) == 0)
 	{
 		if(vel[2] > 0 || (buttons & IN_JUMP) > 0)
 		{
@@ -1141,7 +1169,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// autobhop
-	if((gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP) > 0 && gCV_Autobhop.BoolValue && gB_Auto[client])
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP) > 0 && gB_Autobhop && gB_Auto[client])
 	{
 		if((buttons & IN_JUMP) > 0 && iGroundEntity == -1 && !bOnLadder && !bInWater)
 		{
