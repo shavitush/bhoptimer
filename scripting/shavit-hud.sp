@@ -42,6 +42,7 @@
 #define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times (css only)
 #define HUD_SYNC				(1 << 8) // shows sync at right side of the screen (css only)
 #define HUD_TIMELEFT			(1 << 9) // shows time left at right tside of the screen (css only)
+#define HUD_2DVEL				(1 << 10) // shows 2d velocity
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT)
 
@@ -154,10 +155,10 @@ public void OnClientCookiesCached(int client)
 
 public Action Command_HUD(int client, int args)
 {
-	return ShowHUDMenu(client);
+	return ShowHUDMenu(client, 0);
 }
 
-public Action ShowHUDMenu(int client)
+public Action ShowHUDMenu(int client, int item)
 {
 	if(!IsValidClient(client))
 	{
@@ -201,8 +202,11 @@ public Action ShowHUDMenu(int client)
 		m.AddItem(sInfo, "Time left");
 	}
 
+	IntToString(HUD_2DVEL, sInfo, 16);
+	m.AddItem(sInfo, "Use 2D velocity");
+
 	m.ExitButton = true;
-	m.Display(client, 60);
+	m.DisplayAt(client, item, 60);
 
 	return Plugin_Handled;
 }
@@ -220,7 +224,7 @@ public int MenuHandler_HUD(Menu m, MenuAction action, int param1, int param2)
 
 		SetClientCookie(param1, gH_HUDCookie, sCookie);
 
-		ShowHUDMenu(param1);
+		ShowHUDMenu(param1, GetMenuSelectionPosition());
 	}
 
 	else if(action == MenuAction_DisplayItem)
@@ -342,7 +346,7 @@ public void UpdateHUD(int client)
 	float fSpeed[3];
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
-	int iSpeed = RoundToFloor(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
+	int iSpeed = RoundToFloor(((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
 
 	char[] sHintText = new char[512];
 	strcopy(sHintText, 512, "");

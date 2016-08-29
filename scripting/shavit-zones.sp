@@ -1112,8 +1112,7 @@ public void CreateAdjustMenu(int client, int page)
 	}
 
 	hMenu.ExitButton = false;
-
-	hMenu.DisplayAt(client, page, 20);
+	hMenu.DisplayAt(client, page, MENU_TIME_FOREVER);
 }
 
 public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -1242,7 +1241,8 @@ public void CreateWidthLengthMenu(int client, int page)
 		}
 	}
 
-	DisplayMenuAtItem(hMenu, client, page, 40);
+	hMenu.Pagination = page;
+	hMenu.DisplayAt(client, page, MENU_TIME_FOREVER);
 }
 
 public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2)
