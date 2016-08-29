@@ -1060,7 +1060,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gI_Strafes[client]++;
 	}
 
-	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A) == 0 && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 && (buttons & IN_MOVELEFT) > 0)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A) == 0 && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 && (buttons & IN_MOVELEFT) > 0 && ((gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY) > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gI_Strafes[client]++;
 	}
@@ -1070,7 +1070,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gI_Strafes[client]++;
 	}
 
-	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D) == 0 && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 && (buttons & IN_MOVERIGHT) > 0)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D) == 0 && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 && (buttons & IN_MOVERIGHT) > 0 && ((gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY) > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gI_Strafes[client]++;
 	}
