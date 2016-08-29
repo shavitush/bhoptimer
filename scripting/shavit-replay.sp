@@ -714,7 +714,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
 
-			TeleportEntity(client, (gI_ReplayTick[iReplayBotStyle] == 1)? vecPosition:NULL_VECTOR, vecAngles, vecVelocity);
+			TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
 
 			return Plugin_Changed;
 		}

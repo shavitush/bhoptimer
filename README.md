@@ -16,7 +16,7 @@ a bhop server should be simple
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for compilation of `shavit-misc`.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
 * [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for compilation and better runtime of `shavit-chat` (plugin can run without it). Use the scp.inc file I attached in `include/scp.inc` for transitional syntax support.
-* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of `shavit-chat`.
+* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of the whole plugin.
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 prestrafe for all weapons.
@@ -59,7 +59,7 @@ a bhop server should be simple
 3. Copy base.nav to the `maps` folder.
 4. Copy the files from the `sound` folder to the one on your server. Make sure to also have equivalent bz2 files on your FastDL server!  
 4.1. Do the same for the `materials` folder.
-5. Copy the `configs` file to your server and modify `shavit-sounds.cfg` if you wish to.  
+5. Copy the `configs` folder to your server and modify them if you need to.  
 5.1. Changing `shavit-prefix.txt` to contain your MySQL database prefix might be needed depending on your usage.
 6. Restart your server.
 
@@ -77,6 +77,8 @@ General
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
 - [x] Support "out of the box" installations and SQLite support.
+- [ ] Implement configs for styles and use Dynamic to save/load them via the global settings.
+- [ ] Save timer variables on Dynamic's per-player settings.
 
 Core
 --
@@ -93,6 +95,7 @@ Core
 - [x] Better implementation of autobhop and +ds (doublestep fix).
 - [x] Save autobhop/styles to clientprefs.
 - [x] Add `lastlogin` column to `users`.
+- [ ] Allow reloading of the styles config file by changing maps.
 - [ ] Add bonus timer.
 
 HUD

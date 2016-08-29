@@ -1,4 +1,4 @@
-/*
+ /*
  * shavit's Timer - Core
  * by: shavit
  *
@@ -474,7 +474,6 @@ public Action Command_Style(int client, int args)
 		{
 			m.AddItem(sInfo, gS_BhopStyles[i]);
 		}
-
 	}
 
 	// should NEVER happen
@@ -796,7 +795,7 @@ public void ResumeTimer(int client)
 		return;
 	}
 
-	gF_PauseTotalTime[client] += GetEngineTime() - gF_PauseStartTime[client];
+	gF_PauseTotalTime[client] += (GetEngineTime() - gF_PauseStartTime[client]);
 	gB_ClientPaused[client] = false;
 
 	Call_StartForward(gH_Forwards_OnResume);
