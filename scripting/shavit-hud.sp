@@ -230,7 +230,7 @@ public int MenuHandler_HUD(Menu m, MenuAction action, int param1, int param2)
 		int style = 0;
 		m.GetItem(param2, sInfo, 16, style, sDisplay, 64);
 
-		Format(sDisplay, 64, "[%s] %s", (gI_HUDSettings[param1] & StringToInt(sInfo))? "x":" ", sDisplay);
+		Format(sDisplay, 64, "[%s] %s", ((gI_HUDSettings[param1] & StringToInt(sInfo)) > 0)? "x":" ", sDisplay);
 
 		return RedrawMenuItem(sDisplay);
 	}
@@ -288,7 +288,7 @@ public Action UpdateHUD_Timer(Handle Timer)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || !(gI_HUDSettings[i] & HUD_MASTER))
+		if(!IsValidClient(i) || (gI_HUDSettings[i] & HUD_MASTER) == 0)
 		{
 			continue;
 		}
@@ -302,7 +302,7 @@ public Action UpdateHUD_Timer(Handle Timer)
 public void TriggerHUDUpdate(int client)
 {
 	UpdateHUD(client);
-	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", gI_HUDSettings[client] & HUD_HIDEWEAPON? 0:1);
+	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", ((gI_HUDSettings[client] & HUD_HIDEWEAPON) > 0)? 0:1);
 
 	if(gEV_Type == Engine_CSS)
 	{
@@ -311,7 +311,7 @@ public void TriggerHUDUpdate(int client)
 		UpdateCenterKeys(client);
 	}
 
-	else if((gI_HUDSettings[client] & HUD_KEYOVERLAY || gI_HUDSettings[client] & HUD_SPECTATORS) && (!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel))
+	else if(((gI_HUDSettings[client] & HUD_KEYOVERLAY) > 0 || (gI_HUDSettings[client] & HUD_SPECTATORS) > 0) && (!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel))
 	{
 		bool bShouldDraw = false;
 		Panel pHUD = new Panel();
@@ -334,7 +334,7 @@ public void UpdateHUD(int client)
 {
 	int target = GetHUDTarget(client);
 
-	if(!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target)
+	if((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target)
 	{
 		return;
 	}
@@ -347,7 +347,7 @@ public void UpdateHUD(int client)
 	char[] sHintText = new char[512];
 	strcopy(sHintText, 512, "");
 
-	if(gI_HUDSettings[client] & HUD_ZONEHUD)
+	if((gI_HUDSettings[client] & HUD_ZONEHUD) > 0)
 	{
 		if(Shavit_InsideZone(target, Zone_Start))
 		{
@@ -381,7 +381,7 @@ public void UpdateHUD(int client)
 		PrintHintText(client, sHintText);
 	}
 
-	else if(gI_HUDSettings[client] & HUD_CENTER)
+	else if((gI_HUDSettings[client] & HUD_CENTER) > 0)
 	{
 		if(!IsFakeClient(target))
 		{
@@ -449,7 +449,7 @@ public void UpdateHUD(int client)
 
 				if(tStatus >= Timer_Running)
 				{
-					if(gI_StyleProperties[bsStyle] & STYLE_MEASURESYNC)
+					if((gI_StyleProperties[bsStyle] & STYLE_MEASURESYNC) > 0)
 					{
 						Format(sHintText, 512, "%s%s\tStrafes: %d (%.02f%%)", sHintText, (iSpeed < 1000)? "\t":"", iStrafes, Shavit_GetSync(target));
 					}
@@ -469,7 +469,7 @@ public void UpdateHUD(int client)
 				{
 					if(Shavit_GetTimerStatus(target) == Timer_Running)
 					{
-						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d%s", gS_BhopStyles[bsStyle], sTime, iPotentialRank, iJumps, iStrafes, iSpeed, (gI_StyleProperties[bsStyle] & STYLE_VEL_LIMIT && Shavit_InsideZone(target, Zone_NoVelLimit))? "\nNo Speed Limit":"");
+						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d%s", gS_BhopStyles[bsStyle], sTime, iPotentialRank, iJumps, iStrafes, iSpeed, ((gI_StyleProperties[bsStyle] & STYLE_VEL_LIMIT) > 0 && Shavit_InsideZone(target, Zone_NoVelLimit))? "\nNo Speed Limit":"");
 					}
 
 					else
@@ -545,14 +545,14 @@ public void UpdateHUD(int client)
 
 public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 {
-	if(!(gI_HUDSettings[client] & HUD_KEYOVERLAY))
+	if((gI_HUDSettings[client] & HUD_KEYOVERLAY) == 0)
 	{
 		return;
 	}
 
 	int target = GetHUDTarget(client);
 
-	if((!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target) || !IsValidClient(target) || IsClientObserver(target))
+	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) || !IsValidClient(target) || IsClientObserver(target))
 	{
 		return;
 	}
@@ -562,14 +562,14 @@ public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
 
-	if(gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) // don't include [JUMP] for autobhop styles
+	if((gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) > 0) // don't include [JUMP] for autobhop styles
 	{
-		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 	}
 
 	else
 	{
-		FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", buttons & IN_JUMP? "JUMP":"----", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+		FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", (buttons & IN_JUMP) > 0? "JUMP":"----", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 	}
 
 	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
@@ -579,41 +579,41 @@ public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 public void UpdateCenterKeys(int client)
 {
-	if(!(gI_HUDSettings[client] & HUD_KEYOVERLAY))
+	if((gI_HUDSettings[client] & HUD_KEYOVERLAY) == 0)
 	{
 		return;
 	}
 
 	int target = GetHUDTarget(client);
 
-	if((!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target) || !IsValidClient(target) || IsClientObserver(target))
+	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) || !IsValidClient(target) || IsClientObserver(target))
 	{
 		return;
 	}
 
 	int buttons = GetClientButtons(target);
 
-	if(gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) // don't include [JUMP] for autobhop styles
+	if((gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) > 0) // don't include [JUMP] for autobhop styles
 	{
-		PrintCenterText(client, "[%s]\n    %s\n%s   %s   %s", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+		PrintCenterText(client, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 	}
 
 	else
 	{
-		PrintCenterText(client, "[%s] [%s]\n    %s\n%s   %s   %s", buttons & IN_JUMP? "JUMP":"----", buttons & IN_DUCK? "DUCK":"----", buttons & IN_FORWARD? "W":"-", buttons & IN_MOVELEFT? "A":"-", buttons & IN_BACK? "S":"-", buttons & IN_MOVERIGHT? "D":"-");
+		PrintCenterText(client, "[%s] [%s]\n    %s\n%s   %s   %s", (buttons & IN_JUMP) > 0? "JUMP":"----", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 	}
 }
 
 public void UpdateSpectatorList(int client, Panel panel, bool &draw)
 {
-	if(!(gI_HUDSettings[client] & HUD_SPECTATORS))
+	if((gI_HUDSettings[client] & HUD_SPECTATORS) == 0)
 	{
 		return;
 	}
 
 	int target = GetHUDTarget(client);
 
-	if((!(gI_HUDSettings[client] & HUD_OBSERVE) && client != target) || !IsValidClient(target))
+	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) || !IsValidClient(target))
 	{
 		return;
 	}
@@ -663,7 +663,7 @@ public void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 public void UpdateTopLeftHUD(int client, bool wait)
 {
-	if((!wait || gI_Cycle % 25 == 0) && gI_HUDSettings[client] & HUD_TOPLEFT)
+	if((!wait || gI_Cycle % 25 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
 	{
 		int target = GetHUDTarget(client);
 
@@ -697,26 +697,26 @@ public void UpdateTopLeftHUD(int client, bool wait)
 
 public void UpdateKeyHint(int client)
 {
-	if(gI_Cycle % 10 == 0 && (gI_HUDSettings[client] & HUD_SYNC || gI_HUDSettings[client] & HUD_TIMELEFT))
+	if((gI_Cycle % 10) == 0 && ((gI_HUDSettings[client] & HUD_SYNC) > 0 || (gI_HUDSettings[client] & HUD_TIMELEFT) > 0))
 	{
 		char[] sMessage = new char[256];
 		int iTimeLeft = -1;
 
-		if(gI_HUDSettings[client] & HUD_TIMELEFT && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
+		if((gI_HUDSettings[client] & HUD_TIMELEFT) > 0 && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
 		{
 			FormatEx(sMessage, 256, (iTimeLeft > 60)? "Time left: %d minutes":"Time left: <1 minute", (iTimeLeft / 60));
 		}
 
 		int target = GetHUDTarget(client);
 
-		if(IsValidClient(target) && (target == client || gI_HUDSettings[client] & HUD_OBSERVE))
+		if(IsValidClient(target) && (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0))
 		{
-			if(gI_HUDSettings[client] & HUD_SYNC && Shavit_GetTimerStatus(target) == Timer_Running && gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_MEASURESYNC && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
+			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && (gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_MEASURESYNC) > 0 && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
 			{
 				Format(sMessage, 256, "%s%sSync: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", Shavit_GetSync(target));
 			}
 
-			if(gI_HUDSettings[client] & HUD_SPECTATORS)
+			if((gI_HUDSettings[client] & HUD_SPECTATORS) > 0)
 			{
 				int[] iSpectatorClients = new int[MaxClients];
 				int iSpectators = 0;

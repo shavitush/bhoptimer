@@ -361,7 +361,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	// reset cache
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
 		{
 			continue;
 		}
@@ -674,7 +674,7 @@ public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int para
 
 		for(int i = 0; i < MAX_STYLES; i++)
 		{
-			if(gI_StyleProperties[i] & STYLE_UNRANKED || gI_WRRecordID[i] != iRecordID)
+			if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0 || gI_WRRecordID[i] != iRecordID)
 			{
 				continue;
 			}
@@ -750,7 +750,7 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
 		{
 			continue;
 		}
@@ -791,7 +791,7 @@ public Action ShowWRStyleMenu(int client, const char[] map)
 
 	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
 	{
-		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
 		{
 			continue;
 		}
@@ -1418,7 +1418,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 	// 2 - update
 	int overwrite = 0;
 
-	if(gI_StyleProperties[style] & STYLE_UNRANKED)
+	if((gI_StyleProperties[style] & STYLE_UNRANKED) > 0)
 	{
 		overwrite = 0; // ugly way of not writing to database
 	}
@@ -1508,7 +1508,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		gF_PlayerRecord[client][style] = time;
 	}
 
-	else if(overwrite == 0 && !(gI_StyleProperties[style] & STYLE_UNRANKED))
+	else if(overwrite == 0 && (gI_StyleProperties[style] & STYLE_UNRANKED) == 0)
 	{
 		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01. %s(+%s)", gS_BhopStyles[style], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Worse, sDifference);
 	}
@@ -1566,7 +1566,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	{
 		BhopStyle style = view_as<BhopStyle>(results.FetchInt(0));
 
-		if(view_as<int>(style) >= MAX_STYLES || gI_StyleProperties[style] & STYLE_UNRANKED)
+		if(view_as<int>(style) >= MAX_STYLES || (gI_StyleProperties[style] & STYLE_UNRANKED) > 0)
 		{
 			continue;
 		}
@@ -1576,7 +1576,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		if(view_as<int>(i) >= MAX_STYLES || gI_StyleProperties[i] & STYLE_UNRANKED)
+		if(view_as<int>(i) >= MAX_STYLES || (gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
 		{
 			continue;
 		}

@@ -699,7 +699,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gF_StartTick[iReplayBotStyle] = GetEngineTime();
 			}
 
-			SetEntityMoveType(client, (GetEntityFlags(client) & FL_ONGROUND)? MOVETYPE_WALK:MOVETYPE_NOCLIP);
+			SetEntityMoveType(client, ((GetEntityFlags(client) & FL_ONGROUND) > 0)? MOVETYPE_WALK:MOVETYPE_NOCLIP);
 
 			vecPosition[0] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 0);
 			vecPosition[1] = gA_Frames[iReplayBotStyle].Get(gI_ReplayTick[iReplayBotStyle], 1);
@@ -766,7 +766,7 @@ public Action StartReplay(Handle Timer, any data)
 
 public bool ReplayEnabled(any style)
 {
-	if(gI_StyleProperties[style] & STYLE_UNRANKED || gI_StyleProperties[style] & STYLE_NOREPLAY)
+	if((gI_StyleProperties[style] & STYLE_UNRANKED) > 0 || (gI_StyleProperties[style] & STYLE_NOREPLAY) > 0)
 	{
 		return false;
 	}

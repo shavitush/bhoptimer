@@ -617,7 +617,7 @@ public void UpdateRecordPoints()
 
 	for(int i = 0; i < MAX_STYLES; i++)
 	{
-		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
 		{
 			continue;
 		}

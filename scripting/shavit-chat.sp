@@ -505,7 +505,7 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 		return Plugin_Continue;
 	}
 
-	if(gB_SCPFormat && GetMessageFlags() & CHATFLAGS_ALL && !IsPlayerAlive(author) && (gEV_Type == Engine_CSS || !gCV_Deadtalk.BoolValue))
+	if(gB_SCPFormat && (GetMessageFlags() & CHATFLAGS_ALL) > 0 && !IsPlayerAlive(author) && (gEV_Type == Engine_CSS || !gCV_Deadtalk.BoolValue))
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{

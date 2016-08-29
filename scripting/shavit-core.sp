@@ -393,7 +393,7 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!(GetEntityFlags(client) & FL_ONGROUND))
+	if((GetEntityFlags(client) & FL_ONGROUND) == 0)
 	{
 		Shavit_PrintToChat(client, "You are not allowed to pause when not on ground.");
 
@@ -463,7 +463,7 @@ public Action Command_Style(int client, int args)
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
-		if(gI_StyleProperties[i] & STYLE_UNRANKED)
+		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
 		{
 			char sDisplay[64];
 			FormatEx(sDisplay, 64, "[UNRANKED] %s", gS_BhopStyles[i]);
@@ -525,7 +525,7 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 	Shavit_PrintToChat(client, "You have selected to play \x03%s\x01.", gS_BhopStyles[view_as<int>(style)]);
 
-	if(gI_StyleProperties[style] & STYLE_UNRANKED)
+	if((gI_StyleProperties[style] & STYLE_UNRANKED) > 0)
 	{
 		Shavit_PrintToChat(client, "\x02WARNING: \x01This style is unranked. Your times WILL NOT be saved and will be only displayed to you!");
 	}
@@ -556,17 +556,17 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		gI_Jumps[client]++;
 	}
 
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_EASYBHOP && gCV_NoStaminaReset.BoolValue)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_EASYBHOP) > 0 && gCV_NoStaminaReset.BoolValue)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
 
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_LOWGRAV)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_LOWGRAV) > 0)
 	{
 		SetEntityGravity(client, 0.6);
 	}
 
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMO)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMO) > 0)
 	{
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 0.5);
 	}
@@ -670,7 +670,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	Call_PushCell(CalculateTime(client));
 	Call_PushCell(gI_Jumps[client]);
 	Call_PushCell(gI_Strafes[client]);
-	Call_PushCell((gI_StyleProperties[gBS_Style[client]] & STYLE_MEASURESYNC)? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
+	Call_PushCell(((gI_StyleProperties[gBS_Style[client]] & STYLE_MEASURESYNC) > 0)? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 	Call_Finish();
 
 	StopTimer(client);
@@ -722,7 +722,7 @@ public int Native_GetSync(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	return view_as<int>((gI_StyleProperties[gBS_Style[client]] & STYLE_MEASURESYNC)? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
+	return view_as<int>(((gI_StyleProperties[gBS_Style[client]] & STYLE_MEASURESYNC) > 0)? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 }
 
 public void StartTimer(int client)
@@ -735,7 +735,7 @@ public void StartTimer(int client)
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if(!gCV_NoZAxisSpeed.BoolValue || gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED || fSpeed[2] == 0.0 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0)
+	if(!gCV_NoZAxisSpeed.BoolValue || (gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) > 0 || fSpeed[2] == 0.0 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0)
 	{
 		gF_StartTime[client] = GetEngineTime();
 		gB_TimerEnabled[client] = true;
@@ -752,8 +752,8 @@ public void StartTimer(int client)
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
 
-	SetEntityGravity(client, (gI_StyleProperties[gBS_Style[client]] & STYLE_LOWGRAV)? 0.6:0.0);
-	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", (gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMO)? 0.5:1.0);
+	SetEntityGravity(client, ((gI_StyleProperties[gBS_Style[client]] & STYLE_LOWGRAV) > 0)? 0.6:0.0);
+	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", ((gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMO) > 0)? 0.5:1.0);
 }
 
 public void StopTimer(int client)
@@ -817,7 +817,7 @@ public float CalculateTime(int client)
 		time = (gF_PauseStartTime[client] - gF_StartTime[client] - gF_PauseTotalTime[client]);
 	}
 
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMOTIME)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_SLOWMOTIME) > 0)
 	{
 		time /= 2.0;
 	}
@@ -1037,7 +1037,7 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void PreThink(int client)
 {
-	sv_airaccelerate.IntValue = (gI_StyleProperties[gBS_Style[client]] & STYLE_100AA)? 100:gI_CachedDefaultAA;
+	sv_airaccelerate.IntValue = ((gI_StyleProperties[gBS_Style[client]] & STYLE_100AA) > 0)? 100:gI_CachedDefaultAA;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
@@ -1055,22 +1055,22 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Changed;
 	}
 
-	if(!(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W) && !(gI_ButtonCache[client] & IN_FORWARD) && buttons & IN_FORWARD)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W) == 0 && (gI_ButtonCache[client] & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(!(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A) && !(gI_ButtonCache[client] & IN_MOVELEFT) && buttons & IN_MOVELEFT)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A) == 0 && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 && (buttons & IN_MOVELEFT) > 0)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(!(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S) && !(gI_ButtonCache[client] & IN_BACK) && buttons & IN_BACK)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S) == 0 && (gI_ButtonCache[client] & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(!(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D) && !(gI_ButtonCache[client] & IN_MOVERIGHT) && buttons & IN_MOVERIGHT)
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D) == 0 && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 && (buttons & IN_MOVERIGHT) > 0)
 	{
 		gI_Strafes[client]++;
 	}
@@ -1080,7 +1080,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
 
-	if(gCV_LeftRight.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && (buttons & IN_LEFT || buttons & IN_RIGHT)))
+	if(gCV_LeftRight.BoolValue && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && ((buttons & IN_LEFT) > 0 || (buttons & IN_RIGHT) > 0)))
 	{
 		Shavit_StopTimer(client);
 		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");
@@ -1090,39 +1090,39 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(!Shavit_InsideZone(client, Zone_Freestyle))
 	{
 		// block E
-		if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_USE && buttons & IN_USE)
+		if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_USE) > 0 && (buttons & IN_USE) > 0)
 		{
 			buttons &= ~IN_USE;
 		}
 
 		if(iGroundEntity == -1)
 		{
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W && (buttons & IN_FORWARD || vel[0] > 0.0))
+			if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W) > 0 && ((buttons & IN_FORWARD) > 0 || vel[0] > 0.0))
 			{
 				vel[0] = 0.0;
 				buttons &= ~IN_FORWARD;
 			}
 
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A && (buttons & IN_MOVELEFT || vel[1] < 0.0))
+			if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A) > 0 && ((buttons & IN_MOVELEFT) > 0 || vel[1] < 0.0))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;
 			}
 
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S && (buttons & IN_BACK || vel[0] < 0.0))
+			if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S) > 0 && ((buttons & IN_BACK) > 0 || vel[0] < 0.0))
 			{
 				vel[0] = 0.0;
 				buttons &= ~IN_BACK;
 			}
 
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D && (buttons & IN_MOVERIGHT || vel[1] > 0.0))
+			if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D) > 0 && ((buttons & IN_MOVERIGHT) > 0 || vel[1] > 0.0))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVERIGHT;
 			}
 
 			// HSW
-			if(gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY && ((vel[0] < gF_HSW_Requirement && vel[0] > -gF_HSW_Requirement) || !((vel[0] > 0 || buttons & IN_FORWARD) && ((vel[1] < 0 || buttons & IN_MOVELEFT) || (vel[1] > 0 || buttons & IN_MOVERIGHT)))))
+			if((gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY) > 0 && ((vel[0] < gF_HSW_Requirement && vel[0] > -gF_HSW_Requirement) || !((vel[0] > 0 || (buttons & IN_FORWARD) > 0) && ((vel[1] < 0 || (buttons & IN_MOVELEFT) > 0) || (vel[1] > 0 || (buttons & IN_MOVERIGHT) > 0)))))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;
@@ -1131,9 +1131,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(bInStart && gCV_BlockPreJump.BoolValue && !(gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED))
+	if(bInStart && gCV_BlockPreJump.BoolValue && (gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) == 0)
 	{
-		if(vel[2] > 0 || buttons & IN_JUMP)
+		if(vel[2] > 0 || (buttons & IN_JUMP) > 0)
 		{
 			vel[2] = 0.0;
 			buttons &= ~IN_JUMP;
@@ -1141,9 +1141,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// autobhop
-	if(gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP && gCV_Autobhop.BoolValue && gB_Auto[client])
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP) > 0 && gCV_Autobhop.BoolValue && gB_Auto[client])
 	{
-		if(buttons & IN_JUMP && iGroundEntity == -1 && !bOnLadder && !bInWater)
+		if((buttons & IN_JUMP) > 0 && iGroundEntity == -1 && !bOnLadder && !bInWater)
 		{
 			buttons &= ~IN_JUMP;
 		}
@@ -1160,7 +1160,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// velocity limit
-	if(iGroundEntity != -1 && gI_StyleProperties[gBS_Style[client]] & STYLE_VEL_LIMIT && gF_VelocityLimit[gBS_Style[client]] != VELOCITY_UNLIMITED && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
+	if(iGroundEntity != -1 && (gI_StyleProperties[gBS_Style[client]] & STYLE_VEL_LIMIT) > 0 && gF_VelocityLimit[gBS_Style[client]] != VELOCITY_UNLIMITED && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
 		gB_OnGround[client] = true;
 

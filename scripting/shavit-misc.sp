@@ -360,7 +360,7 @@ public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 		return MRES_Ignored;
 	}
 
-	DHookSetReturn(hReturn, (gI_StyleProperties[Shavit_GetBhopStyle(pThis)] & STYLE_260PRESTRAFE)? 260.00:250.00);
+	DHookSetReturn(hReturn, ((gI_StyleProperties[Shavit_GetBhopStyle(pThis)] & STYLE_260PRESTRAFE) > 0)? 260.00:250.00);
 
 	return MRES_Override;
 }
@@ -431,9 +431,9 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	}
 
 	// prespeed
-	if(!(gI_StyleProperties[Shavit_GetBhopStyle(client)] & STYLE_PRESPEED) && bInStart)
+	if((gI_StyleProperties[Shavit_GetBhopStyle(client)] & STYLE_PRESPEED) == 0 && bInStart)
 	{
-		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && !(gF_LastFlags[client] & FL_ONGROUND) && (GetEntityFlags(client) & FL_ONGROUND) && buttons & IN_JUMP)
+		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && (gF_LastFlags[client] & FL_ONGROUND) > 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "Bhopping in the start zone is not allowed.");
@@ -1031,12 +1031,12 @@ public int MenuHandler_SSJ(Menu m, MenuAction action, int param1, int param2)
 
 		if(StringToInt(sInfo) == SSJ_EVERY)
 		{
-			Format(sDisplay, 64, "%sEvery%s", sDisplay, (gI_SSJSettings[param1] & SSJ_EVERY)? "":" 6th");
+			Format(sDisplay, 64, "%sEvery%s", sDisplay, ((gI_SSJSettings[param1] & SSJ_EVERY) > 0)? "":" 6th");
 		}
 
 		else
 		{
-			Format(sDisplay, 64, "[%s] %s", (gI_SSJSettings[param1] & StringToInt(sInfo))? "x":" ", sDisplay);
+			Format(sDisplay, 64, "[%s] %s", ((gI_SSJSettings[param1] & StringToInt(sInfo)) > 0)? "x":" ", sDisplay);
 		}
 
 		return RedrawMenuItem(sDisplay);
@@ -1288,7 +1288,7 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 		gF_SSJMaxSpeed[client] = GetClientSpeed(client);
 	}
 
-	if(gI_SSJSettings[client] & SSJ_EVERY || gI_SSJJumps[client] % 6 == 0)
+	if((gI_SSJSettings[client] & SSJ_EVERY) > 0 || gI_SSJJumps[client] % 6 == 0)
 	{
 		float gain = ((gF_SSJFirstSpeed[client] / gF_SSJMaxSpeed[client]) * 100.0);
 
@@ -1321,7 +1321,7 @@ public void Player_Jump(Event event, const char[] name, bool dB)
 
 public void PrintSSJ(int client, int target, float gain)
 {
-	if(!(gI_SSJSettings[client] & SSJ_ENABLED))
+	if((gI_SSJSettings[client] & SSJ_ENABLED) == 0)
 	{
 		return;
 	}
@@ -1329,22 +1329,22 @@ public void PrintSSJ(int client, int target, float gain)
 	char[] sMessage = new char[256];
 	FormatEx(sMessage, 256, "Jump: \x04%d\x01", gI_SSJJumps[target]);
 
-	if(gI_SSJSettings[client] & SSJ_CSPEED)
+	if((gI_SSJSettings[client] & SSJ_CSPEED) > 0)
 	{
 		Format(sMessage, 256, "%s | Speed: \x04%d\x01", sMessage, RoundToFloor(GetClientSpeed(target)));
 	}
 
-	if(gI_SSJSettings[client] & SSJ_SPEEDD)
+	if((gI_SSJSettings[client] & SSJ_SPEEDD) > 0)
 	{
 		Format(sMessage, 256, "%s | Speed Δ: \x04%d\x01", sMessage, RoundToFloor(GetClientSpeed(target) - gF_SSJStartingSpeed[target]));
 	}
 
-	if(gI_SSJSettings[client] & SSJ_HEIGHT)
+	if((gI_SSJSettings[client] & SSJ_HEIGHT) > 0)
 	{
 		Format(sMessage, 256, "%s | Height Δ: \x04%d\x01", sMessage, RoundToFloor(GetClientHeight(target) - gF_SSJStartingHeight[target]));
 	}
 
-	if(gI_SSJSettings[client] & SSJ_GAIN && gI_SSJJumps[target] > 1)
+	if((gI_SSJSettings[client] & SSJ_GAIN) > 0 && gI_SSJJumps[target] > 1)
 	{
 		Format(sMessage, 256, "%s | Gain: \x04%.02f%%\x01", sMessage, gain);
 	}

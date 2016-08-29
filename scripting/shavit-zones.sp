@@ -933,7 +933,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 	if(gI_MapStep[client] > 0 && gI_MapStep[client] != 3)
 	{
-		if(buttons & IN_USE)
+		if((buttons & IN_USE) > 0)
 		{
 			if(!gB_Button[client])
 			{

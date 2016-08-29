@@ -387,7 +387,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 		for(int i = 0; i < sizeof(gS_BhopStyles); i++)
 		{
-			if(!(gI_StyleProperties[i] & STYLE_UNRANKED))
+			if((gI_StyleProperties[i] & STYLE_UNRANKED) == 0)
 			{
 				char[] sInfo = new char[4];
 				IntToString(i, sInfo, 4);
