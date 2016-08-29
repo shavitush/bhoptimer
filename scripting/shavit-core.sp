@@ -1159,15 +1159,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(bInStart && gB_BlockPreJump && (gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) == 0)
-	{
-		if(vel[2] > 0 || (buttons & IN_JUMP) > 0)
-		{
-			vel[2] = 0.0;
-			buttons &= ~IN_JUMP;
-		}
-	}
-
 	// autobhop
 	if((gI_StyleProperties[gBS_Style[client]] & STYLE_AUTOBHOP) > 0 && gB_Autobhop && gB_Auto[client])
 	{
@@ -1185,6 +1176,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	else if(gB_DoubleSteps[client])
 	{
 		buttons |= IN_JUMP;
+	}
+
+	if(bInStart && gB_BlockPreJump && (gI_StyleProperties[gBS_Style[client]] & STYLE_PRESPEED) == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
+	{
+		vel[2] = 0.0;
+		buttons &= ~IN_JUMP;
 	}
 
 	// velocity limit
@@ -1252,6 +1249,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gI_TotalMeasures[client]++;
 
 				if((fAngle > 0.0 && vel[1] < 0.0) || (fAngle < 0.0 && vel[1] > 0.0))
+				{
+					gI_GoodGains[client]++;
+				}
+			}
+
+			else if(fDirectionAngle > 67.5 && fDirectionAngle < 112.5 || fDirectionAngle > 247.5 && fDirectionAngle < 292.5)
+			{
+				gI_TotalMeasures[client]++;
+
+				if(vel[0] != 0.0)
 				{
 					gI_GoodGains[client]++;
 				}
