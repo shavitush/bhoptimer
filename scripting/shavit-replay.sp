@@ -329,7 +329,8 @@ public void OnMapStart()
 
 		else
 		{
-			gRS_ReplayStatus[i] = Replay_Running;
+			gRS_ReplayStatus[i] = Replay_Start;
+			CreateTimer(gF_ReplayDelay / 2.0, StartReplay, i, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 
