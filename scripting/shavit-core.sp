@@ -1083,26 +1083,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Changed;
 	}
 
-	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W) == 0 && (gI_ButtonCache[client] & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
-	{
-		gI_Strafes[client]++;
-	}
-
-	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A) == 0 && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 && (buttons & IN_MOVELEFT) > 0 && ((gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY) > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
-	{
-		gI_Strafes[client]++;
-	}
-
-	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S) == 0 && (gI_ButtonCache[client] & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
-	{
-		gI_Strafes[client]++;
-	}
-
-	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D) == 0 && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 && (buttons & IN_MOVERIGHT) > 0 && ((gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY) > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
-	{
-		gI_Strafes[client]++;
-	}
-
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
@@ -1157,6 +1137,26 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				buttons &= ~IN_MOVERIGHT;
 			}
 		}
+	}
+
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_W) == 0 && (gI_ButtonCache[client] & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
+	{
+		gI_Strafes[client]++;
+	}
+
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_A) == 0 && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 && (buttons & IN_MOVELEFT) > 0 && ((gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY) > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	{
+		gI_Strafes[client]++;
+	}
+
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_S) == 0 && (gI_ButtonCache[client] & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
+	{
+		gI_Strafes[client]++;
+	}
+
+	if((gI_StyleProperties[gBS_Style[client]] & STYLE_BLOCK_D) == 0 && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 && (buttons & IN_MOVERIGHT) > 0 && ((gI_StyleProperties[gBS_Style[client]] & STYLE_HSW_ONLY) > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	{
+		gI_Strafes[client]++;
 	}
 
 	// autobhop
