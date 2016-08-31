@@ -1254,7 +1254,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				}
 			}
 
-			else if(fDirectionAngle > 67.5 && fDirectionAngle < 112.5 || fDirectionAngle > 247.5 && fDirectionAngle < 292.5)
+			else if((fDirectionAngle > 67.5 && fDirectionAngle < 112.5) || (fDirectionAngle > 247.5 && fDirectionAngle < 292.5))
 			{
 				gI_TotalMeasures[client]++;
 

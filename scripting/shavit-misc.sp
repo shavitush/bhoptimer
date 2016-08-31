@@ -22,7 +22,6 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
-#include <clientprefs>
 
 #undef REQUIRE_PLUGIN
 #define USES_STYLE_NAMES
@@ -35,17 +34,6 @@
 #pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
-
-#define SSJ_NONE				(0)
-#define SSJ_ENABLED				(1 << 1) // master setting
-#define SSJ_EVERY				(1 << 2) // every jump instead of sixth
-#define SSJ_CSPEED				(1 << 3) // speed at finish
-#define SSJ_SPEEDD				(1 << 4) // speed difference
-#define SSJ_HEIGHT				(1 << 5) // height difference
-#define SSJ_GAIN				(1 << 6) // gain percentage
-
-#define SSJ_DEFAULT				(SSJ_CSPEED|SSJ_SPEEDD|SSJ_HEIGHT|SSJ_GAIN)
-
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
 int gI_Ammo = -1;
@@ -58,16 +46,6 @@ char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "foll
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gF_LastFlags[MAXPLAYERS+1];
-
-// ssj
-Handle gH_SSJCookie = null;
-int gI_SSJJumps[MAXPLAYERS+1];
-int gI_SSJSettings[MAXPLAYERS+1];
-float gF_SSJStartingSpeed[MAXPLAYERS+1];
-float gF_SSJStartingHeight[MAXPLAYERS+1];
-float gF_SSJMaxSpeed[MAXPLAYERS+1];
-float gF_SSJFirstSpeed[MAXPLAYERS+1];
-float gF_HitGround[MAXPLAYERS+1];
 
 // cvars
 ConVar gCV_GodMode = null;
@@ -166,10 +144,6 @@ public void OnPluginStart()
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
-	// ssj
-	RegConsoleCmd("sm_ssj", Command_SSJ, "SSJ ('speed sixth jump') menu.");
-	gH_SSJCookie = RegClientCookie("shavit_ssj_setting", "SSJ settings", CookieAccess_Protected);
-
 	// noclip
 	RegConsoleCmd("sm_p", Command_Noclip, "Toggles noclip.");
 	RegConsoleCmd("sm_prac", Command_Noclip, "Toggles noclip. (sm_p alias)");
@@ -196,7 +170,6 @@ public void OnPluginStart()
 	HookEvent("player_spawn", Player_Spawn);
 	HookEvent("player_team", Player_Notifications, EventHookMode_Pre);
 	HookEvent("player_death", Player_Notifications, EventHookMode_Pre);
-	HookEvent("player_jump", Player_Jump);
 	HookEvent("weapon_fire", Weapon_Fire);
 
 	// phrases
@@ -529,83 +502,12 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		}
 	}
 
-	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
-	{
-		if(gF_HitGround[client] == 0.0)
-		{
-			gF_HitGround[client] = GetEngineTime();
-		}
-
-		else if(gI_SSJJumps[client] > 0 && (GetEngineTime() - gF_HitGround[client]) > 0.100)
-		{
-			ResetSSJ(client, true, false);
-			gF_SSJFirstSpeed[client] = 0.0;
-		}
-	}
-
-	else
-	{
-		gF_HitGround[client] = 0.0;
-	}
-
-	float fSpeed = GetClientSpeed(client);
-
-	if(fSpeed > gF_SSJMaxSpeed[client])
-	{
-		gF_SSJMaxSpeed[client] = fSpeed;
-	}
-
-	MoveType iMoveType = GetEntityMoveType(client);
-
-	if(iMoveType == MOVETYPE_NOCLIP || iMoveType == MOVETYPE_LADDER)
-	{
-		ResetSSJ(client, true, false);
-		gF_SSJFirstSpeed[client] = 0.0;
-	}
-
-	gF_LastFlags[client] = GetEntityFlags(client);
-
 	return Plugin_Continue;
-}
-
-public void ResetSSJ(int client, bool jumps, bool usecurrent)
-{
-	if(jumps)
-	{
-		gI_SSJJumps[client] = 0;
-	}
-
-	gF_SSJStartingSpeed[client] = (usecurrent)? GetClientSpeed(client):0.0;
-	gF_SSJStartingHeight[client] = (usecurrent)? GetClientHeight(client):0.0;
-	gF_HitGround[client] = 0.0;
-}
-
-public float GetClientSpeed(int client)
-{
-	float fSpeed[3];
-	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
-
-	return SquareRoot((Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
-}
-
-public float GetClientHeight(int client)
-{
-	float fPosition[3];
-	GetClientAbsOrigin(client, fPosition);
-
-	return fPosition[2];
-}
-
-public void OnClientDisconnect(int client)
-{
-	gI_SSJSettings[client] = SSJ_NONE;
 }
 
 public void OnClientPutInServer(int client)
 {
 	gB_Hide[client] = false;
-
-	ResetSSJ(client, true, false);
 
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
@@ -614,30 +516,6 @@ public void OnClientPutInServer(int client)
 	if(gH_GetMaxPlayerSpeed != null)
 	{
 		DHookEntity(gH_GetMaxPlayerSpeed, true, client);
-	}
-
-	if(AreClientCookiesCached(client))
-	{
-		OnClientCookiesCached(client);
-	}
-}
-
-public void OnClientCookiesCached(int client)
-{
-	char[] sHUDSettings = new char[8];
-	GetClientCookie(client, gH_SSJCookie, sHUDSettings, 8);
-
-	if(strlen(sHUDSettings) == 0)
-	{
-		IntToString(SSJ_DEFAULT, sHUDSettings, 8);
-
-		SetClientCookie(client, gH_SSJCookie, sHUDSettings);
-		gI_SSJSettings[client] = SSJ_DEFAULT;
-	}
-
-	else
-	{
-		gI_SSJSettings[client] = StringToInt(sHUDSettings);
 	}
 }
 
@@ -964,11 +842,6 @@ public void SetWeaponAmmo(int client, int weapon)
 	}
 }
 
-public Action Command_SSJ(int client, int args)
-{
-	return ShowSSJMenu(client);
-}
-
 public Action Command_Noclip(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -1028,90 +901,6 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 	}
 
 	return Plugin_Handled;
-}
-
-public Action ShowSSJMenu(int client)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	Menu m = new Menu(MenuHandler_SSJ, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	m.SetTitle("SSJ settings:");
-
-	char[] sInfo = new char[16];
-	IntToString(SSJ_ENABLED, sInfo, 16);
-	m.AddItem(sInfo, "Enabled");
-
-	IntToString(SSJ_EVERY, sInfo, 16);
-	m.AddItem(sInfo, "Mode: ");
-
-	IntToString(SSJ_CSPEED, sInfo, 16);
-	m.AddItem(sInfo, "Current speed");
-
-	IntToString(SSJ_SPEEDD, sInfo, 16);
-	m.AddItem(sInfo, "Speed difference");
-
-	IntToString(SSJ_HEIGHT, sInfo, 16);
-	m.AddItem(sInfo, "Height difference");
-
-	IntToString(SSJ_GAIN, sInfo, 16);
-	m.AddItem(sInfo, "Gain percentage");
-
-	m.ExitButton = true;
-	m.Display(client, 60);
-
-	return Plugin_Handled;
-}
-
-public int MenuHandler_SSJ(Menu m, MenuAction action, int param1, int param2)
-{
-	if(action == MenuAction_Select)
-	{
-		char[] sCookie = new char[16];
-		m.GetItem(param2, sCookie, 16);
-		int iSelection = StringToInt(sCookie);
-
-		gI_SSJSettings[param1] ^= iSelection;
-		IntToString(gI_SSJSettings[param1], sCookie, 16); // string recycling Kappa
-
-		SetClientCookie(param1, gH_SSJCookie, sCookie);
-
-		if(iSelection == SSJ_ENABLED)
-		{
-			ResetSSJ(param1, true, false);
-		}
-
-		ShowSSJMenu(param1);
-	}
-
-	else if(action == MenuAction_DisplayItem)
-	{
-		char[] sInfo = new char[16];
-		char[] sDisplay = new char[64];
-		int style = 0;
-		m.GetItem(param2, sInfo, 16, style, sDisplay, 64);
-
-		if(StringToInt(sInfo) == SSJ_EVERY)
-		{
-			Format(sDisplay, 64, "%sEvery%s", sDisplay, ((gI_SSJSettings[param1] & SSJ_EVERY) > 0)? "":" 6th");
-		}
-
-		else
-		{
-			Format(sDisplay, 64, "[%s] %s", ((gI_SSJSettings[param1] & StringToInt(sInfo)) > 0)? "x":" ", sDisplay);
-		}
-
-		return RedrawMenuItem(sDisplay);
-	}
-
-	else if(action == MenuAction_End)
-	{
-		delete m;
-	}
-
-	return 0;
 }
 
 public Action Command_Specs(int client, int args)
@@ -1336,84 +1125,6 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 	}
 
 	return Plugin_Continue;
-}
-
-public void Player_Jump(Event event, const char[] name, bool dB)
-{
-	int client = GetClientOfUserId(event.GetInt("userid"));
-
-	gI_SSJJumps[client]++;
-
-	if(gI_SSJJumps[client] == 1)
-	{
-		ResetSSJ(client, false, true);
-
-		gF_SSJFirstSpeed[client] = GetClientSpeed(client);
-		gF_SSJMaxSpeed[client] = GetClientSpeed(client);
-	}
-
-	if((gI_SSJSettings[client] & SSJ_EVERY) > 0 || gI_SSJJumps[client] % 6 == 0)
-	{
-		float gain = ((gF_SSJFirstSpeed[client] / gF_SSJMaxSpeed[client]) * 100.0);
-
-		gF_SSJFirstSpeed[client] = GetClientSpeed(client);
-		gF_SSJMaxSpeed[client] = GetClientSpeed(client);
-
-		PrintSSJ(client, client, gain);
-
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			if(i == client || !IsValidClient(i) || !IsClientObserver(i) || IsFakeClient(i))
-			{
-				continue;
-			}
-
-			int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
-
-			if(iObserverMode >= 3 && iObserverMode <= 5)
-			{
-				if(GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client)
-				{
-					PrintSSJ(i, client, gain);
-				}
-			}
-		}
-
-		ResetSSJ(client, false, true);
-	}
-}
-
-public void PrintSSJ(int client, int target, float gain)
-{
-	if((gI_SSJSettings[client] & SSJ_ENABLED) == 0)
-	{
-		return;
-	}
-
-	char[] sMessage = new char[256];
-	FormatEx(sMessage, 256, "Jump: \x04%d\x01", gI_SSJJumps[target]);
-
-	if((gI_SSJSettings[client] & SSJ_CSPEED) > 0)
-	{
-		Format(sMessage, 256, "%s | Speed: \x04%d\x01", sMessage, RoundToFloor(GetClientSpeed(target)));
-	}
-
-	if((gI_SSJSettings[client] & SSJ_SPEEDD) > 0)
-	{
-		Format(sMessage, 256, "%s | Speed Δ: \x04%d\x01", sMessage, RoundToFloor(GetClientSpeed(target) - gF_SSJStartingSpeed[target]));
-	}
-
-	if((gI_SSJSettings[client] & SSJ_HEIGHT) > 0)
-	{
-		Format(sMessage, 256, "%s | Height Δ: \x04%d\x01", sMessage, RoundToFloor(GetClientHeight(target) - gF_SSJStartingHeight[target]));
-	}
-
-	if((gI_SSJSettings[client] & SSJ_GAIN) > 0 && gI_SSJJumps[target] > 1)
-	{
-		Format(sMessage, 256, "%s | Gain: \x04%.02f%%\x01", sMessage, gain);
-	}
-
-	Shavit_PrintToChat(client, "%s", sMessage);
 }
 
 public void Weapon_Fire(Event event, const char[] name, bool dB)
