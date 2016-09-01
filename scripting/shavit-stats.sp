@@ -477,7 +477,7 @@ public Action Timer_DBFailure(Handle timer, any data)
 {
 	int client = GetClientFromSerial(data);
 
-	if(!client)
+	if(client == 0)
 	{
 		return Plugin_Stop;
 	}
@@ -642,7 +642,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	int client = GetClientFromSerial(data);
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}

@@ -15,13 +15,13 @@ a bhop server should be simple
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for compilation of `shavit-misc`.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
-* [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for compilation and better runtime of `shavit-chat` (plugin can run without it). Use the scp.inc file I attached in `include/scp.inc` for transitional syntax support.
+* [Chat-Processor](https://forums.alliedmods.net/showthread.php?t=286913) - for compilation and better runtime of `shavit-chat` (plugin can run without it).
 * [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of the whole plugin.
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 prestrafe for all weapons.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) - required for properly formatted RTL text within `shavit-chat`.
-* [Simple Chat Processor \(Redux\)](https://forums.alliedmods.net/showthread.php?p=1820365) - for more proper parsing inside `shavit-chat`.
+* [Chat-Processor](https://forums.alliedmods.net/showthread.php?t=286913) - for more proper parsing inside `shavit-chat`.
 * `sv_disable_immunity_alpha` set to 1 in CS:GO for `shavit_misc_playeropacity` to work.
 
 #  Installation:

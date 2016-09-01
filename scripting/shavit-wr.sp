@@ -579,7 +579,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}
@@ -730,7 +730,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 
 	int client = GetClientFromSerial(data);
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}
@@ -756,7 +756,7 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 
 	int client = GetClientFromSerial(data);
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}

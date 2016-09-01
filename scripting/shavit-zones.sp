@@ -760,7 +760,7 @@ public void SQL_DeleteZone_Callback(Database db, DBResultSet results, const char
 	UnloadZones(type);
 	RefreshZones();
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}
@@ -836,7 +836,7 @@ public void SQL_DeleteAllZones_Callback(Database db, DBResultSet results, const 
 
 	int client = GetClientFromSerial(data);
 
-	if(!client)
+	if(client == 0)
 	{
 		return;
 	}

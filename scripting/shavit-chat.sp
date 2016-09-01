@@ -27,14 +27,13 @@
 #include <shavit>
 #include <basecomm>
 #include <rtler>
-#include <scp>
+#include <chat-processor>
 
 #pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
 
 // cache
-bool gB_SCPFormat = false;
 float gF_LastMessage[MAXPLAYERS+1];
 
 char gS_Cached_Prefix[MAXPLAYERS+1][32];
@@ -56,11 +55,10 @@ Dynamic gD_ChatRanks[64]; // limited to 64 chat ranks right now, i really don't 
 // modules
 bool gB_BaseComm = false;
 bool gB_RTLer = false;
-bool gB_SCP = false;
+bool gB_ChatProcessor = false;
 
 // game-related
 EngineVersion gEV_Type = Engine_Unknown;
-ConVar gCV_Deadtalk = null;
 
 public Plugin myinfo =
 {
@@ -92,18 +90,13 @@ public void OnAllPluginsLoaded()
 	// modules
 	gB_BaseComm = LibraryExists("basecomm");
 	gB_RTLer = LibraryExists("rtler");
-	gB_SCP = LibraryExists("scp");
+	gB_ChatProcessor = LibraryExists("chat-processor");
 }
 
 public void OnPluginStart()
 {
 	// game specific
 	gEV_Type = GetEngineVersion();
-
-	if(gEV_Type == Engine_CSGO)
-	{
-		gCV_Deadtalk = FindConVar("sv_deadtalk");
-	}
 
 	// commands
 	RegAdminCmd("sm_reloadchat", Command_ReloadChat, ADMFLAG_ROOT, "Reload chat config.");
@@ -170,9 +163,9 @@ public void OnLibraryAdded(const char[] name)
         gB_RTLer = true;
     }
 
-	else if(StrEqual(name, "scp"))
+	else if(StrEqual(name, "chat-processor"))
     {
-        gB_SCP = true;
+        gB_ChatProcessor = true;
     }
 }
 
@@ -188,9 +181,9 @@ public void OnLibraryRemoved(const char[] name)
         gB_RTLer = false;
     }
 
-	else if(StrEqual(name, "scp"))
+	else if(StrEqual(name, "chat-processor"))
     {
-        gB_SCP = false;
+        gB_ChatProcessor = false;
     }
 }
 
@@ -498,24 +491,11 @@ public Action Command_ReloadChat(int client, int args)
     return Plugin_Handled;
 }
 
-public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char[] message)
+public Action OnChatMessage(int &author, ArrayList recipients, eChatFlags &flag, char[] name, char[] message, bool &bProcessColors, bool &bRemoveColors)
 {
-	if(!gB_SCP)
+	if(!gB_ChatProcessor)
 	{
 		return Plugin_Continue;
-	}
-
-	if(gB_SCPFormat && (GetMessageFlags() & CHATFLAGS_ALL) > 0 && !IsPlayerAlive(author) && (gEV_Type == Engine_CSS || !gCV_Deadtalk.BoolValue))
-	{
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			if(IsValidClient(i, true))
-			{
-				recipients.Push(i);
-			}
-		}
-
-		gB_SCPFormat = false;
 	}
 
 	char[] sBuffer = new char[255];
@@ -562,7 +542,7 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 		strcopy(sFormattedText, 255, message);
 	}
 
-	FormatEx(name, MAXLENGTH_NAME, "%s%s%s", gEV_Type == Engine_CSGO? " ":"", sPrefix, sName);
+	FormatEx(name, MAXLENGTH_NAME, "%s%s%s", (gEV_Type == Engine_CSGO)? " ":"", sPrefix, sName);
 	strcopy(message, MAXLENGTH_MESSAGE, sFormattedText);
 
 	return Plugin_Changed;
@@ -570,14 +550,7 @@ public Action OnChatMessage(int &author, ArrayList recipients, char[] name, char
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if(gB_SCP)
-	{
-		gB_SCPFormat = true;
-
-		return Plugin_Continue;
-	}
-
-	if(!IsValidClient(client) || !IsClientAuthorized(client) || (gB_BaseComm && BaseComm_IsClientGagged(client)))
+	if(gB_ChatProcessor || !IsValidClient(client) || !IsClientAuthorized(client) || (gB_BaseComm && BaseComm_IsClientGagged(client)))
 	{
 		return Plugin_Continue;
 	}
