@@ -674,19 +674,22 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 	gA_Frames[style] = gA_PlayerFrames[client].Clone();
 
 	ClearFrames(client);
-
-	gRS_ReplayStatus[style] = Replay_Running;
-	gI_ReplayTick[style] = gA_PlayerFrames[client].Length;
-
 	SaveReplay(style);
-
-	char[] sWRTime = new char[16];
-	FormatSeconds(time, sWRTime, 16);
 
 	if(gI_ReplayBotClient[style] != 0)
 	{
 		UpdateReplayInfo(gI_ReplayBotClient[style], style, time);
 		CS_RespawnPlayer(gI_ReplayBotClient[style]);
+
+		gRS_ReplayStatus[style] = Replay_Running;
+		gI_ReplayTick[style] = 0;
+
+		float vecPosition[3];
+		vecPosition[0] = gA_Frames[style].Get(0, 0);
+		vecPosition[1] = gA_Frames[style].Get(0, 1);
+		vecPosition[2] = gA_Frames[style].Get(0, 2);
+
+		TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
 	}
 }
 
