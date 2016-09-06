@@ -4,7 +4,7 @@
 	{
 		"Offsets"
 		{
-			"GetMaxPlayerSpeed"
+			"GetPlayerMaxSpeed"
 			{
 				"windows"	"438"
 				"linux"		"439"
@@ -16,7 +16,7 @@
 	{
 		"Offsets"
 		{
-			"GetMaxPlayerSpeed"
+			"GetPlayerMaxSpeed"
 			{
 				"windows"	"496"
 				"linux"		"497"

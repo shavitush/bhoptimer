@@ -90,7 +90,7 @@ bool gB_StaticPrestrafe = true;
 int gI_NoclipMe = true;
 
 // dhooks
-Handle gH_GetMaxPlayerSpeed = null;
+Handle gH_GetPlayerMaxSpeed = null;
 
 // modules
 bool gB_Rankings = false;
@@ -224,8 +224,8 @@ public void OnPluginStart()
 
 		if(hGameData != null)
 		{
-			int iOffset = GameConfGetOffset(hGameData, "GetMaxPlayerSpeed");
-			gH_GetMaxPlayerSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetMaxPlayerSpeed);
+			int iOffset = GameConfGetOffset(hGameData, "GetPlayerMaxSpeed");
+			gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetMaxPlayerSpeed);
 		}
 
 		delete hGameData;
@@ -515,9 +515,9 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 
-	if(gH_GetMaxPlayerSpeed != null)
+	if(gH_GetPlayerMaxSpeed != null)
 	{
-		DHookEntity(gH_GetMaxPlayerSpeed, true, client);
+		DHookEntity(gH_GetPlayerMaxSpeed, true, client);
 	}
 }
 
