@@ -45,7 +45,7 @@ char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "foll
 // cache
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
-int gF_LastFlags[MAXPLAYERS+1];
+int gI_LastFlags[MAXPLAYERS+1];
 
 // cvars
 ConVar gCV_GodMode = null;
@@ -470,12 +470,12 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	// prespeed
 	if((gI_StyleProperties[Shavit_GetBhopStyle(client)] & STYLE_PRESPEED) == 0 && bInStart)
 	{
-		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gF_LastFlags[client] & FL_ONGROUND) > 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
+		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gI_LastFlags[client] & FL_ONGROUND) > 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "Bhopping in the start zone is not allowed.");
 
-			gF_LastFlags[client] = GetEntityFlags(client);
+			gI_LastFlags[client] = GetEntityFlags(client);
 
 			return Plugin_Continue;
 		}
@@ -501,6 +501,8 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
 		}
 	}
+
+	gI_LastFlags[client] = GetEntityFlags(client);
 
 	return Plugin_Continue;
 }
