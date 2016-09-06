@@ -29,6 +29,8 @@
 #define USES_STYLE_PROPERTIES
 #include <shavit>
 
+#define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
+
 #pragma semicolon 1
 #pragma dynamic 131072
 #pragma newdecls required
@@ -349,35 +351,60 @@ public bool LoadReplay(BhopStyle style)
 
 	if(FileExists(sPath))
 	{
-		File fFile = OpenFile(sPath, "r");
+		File fFile = OpenFile(sPath, "rb");
 
-		char[] sDummy = new char[MAX_NAME_LENGTH];
-		fFile.ReadLine(sDummy, MAX_NAME_LENGTH); // not used anymore
+		char[] sHeader = new char[64];
 
-		char[] sLine = new char[320];
-		char[][] sExplodedLine = new char[6][64];
-
-		fFile.ReadLine(sLine, 320);
-
-		int iSize = 0;
-
-		while(!fFile.EndOfFile())
+		if(!fFile.ReadLine(sHeader, 64))
 		{
+			return false;
+		}
+
+		TrimString(sHeader);
+		char[][] sExplodedHeader = new char[2][64];
+		ExplodeString(sHeader, ":", sExplodedHeader, 2, 64);
+
+		if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_V2)) // new replay format, fast!
+		{
+			int iReplaySize = StringToInt(sExplodedHeader[0]);
+			gA_Frames[style].Resize(iReplaySize);
+
+			any[] aReplayData = new any[6];
+
+			for(int i = 0; i < iReplaySize; i++)
+			{
+				if(fFile.Read(aReplayData, 6, 4) >= 0)
+				{
+					gA_Frames[style].Set(i, view_as<float>(aReplayData[0]), 0);
+					gA_Frames[style].Set(i, view_as<float>(aReplayData[1]), 1);
+					gA_Frames[style].Set(i, view_as<float>(aReplayData[2]), 2);
+					gA_Frames[style].Set(i, view_as<float>(aReplayData[3]), 3);
+					gA_Frames[style].Set(i, view_as<float>(aReplayData[4]), 4);
+					gA_Frames[style].Set(i, view_as<int>(aReplayData[5]), 5);
+				}
+			}
+		}
+
+		else // old, outdated and slow - only used for old replays
+		{
+			char[] sLine = new char[320];
 			fFile.ReadLine(sLine, 320);
-			int iStrings = ExplodeString(sLine, "|", sExplodedLine, 6, 64);
 
-			gA_Frames[style].Resize(iSize + 1);
+			char[][] sExplodedLine = new char[6][64];
 
-			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[0]), 0);
-			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[1]), 1);
-			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[2]), 2);
+			for(int i = 0; !fFile.EndOfFile(); i++)
+			{
+				fFile.ReadLine(sLine, 320);
+				int iStrings = ExplodeString(sLine, "|", sExplodedLine, 6, 64);
 
-			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[3]), 3);
-			gA_Frames[style].Set(iSize, StringToFloat(sExplodedLine[4]), 4);
-
-			gA_Frames[style].Set(iSize, (iStrings == 6)? StringToInt(sExplodedLine[5]):0, 5);
-
-			iSize++;
+				gA_Frames[style].Resize(i + 1);
+				gA_Frames[style].Set(i, StringToFloat(sExplodedLine[0]), 0);
+				gA_Frames[style].Set(i, StringToFloat(sExplodedLine[1]), 1);
+				gA_Frames[style].Set(i, StringToFloat(sExplodedLine[2]), 2);
+				gA_Frames[style].Set(i, StringToFloat(sExplodedLine[3]), 3);
+				gA_Frames[style].Set(i, StringToFloat(sExplodedLine[4]), 4);
+				gA_Frames[style].Set(i, (iStrings == 6)? StringToInt(sExplodedLine[5]):0, 5);
+			}
 		}
 
 		gI_FrameCount[style] = gA_Frames[style].Length;
@@ -405,18 +432,31 @@ public bool SaveReplay(BhopStyle style)
 		DeleteFile(sPath);
 	}
 
-	File fFile = OpenFile(sPath, "w");
-	fFile.WriteLine("dummy line"); // not used anymore
-
 	int iSize = gA_Frames[style].Length;
 
-	char[] sBuffer = new char[320];
+	File fFile = OpenFile(sPath, "wb");
+	fFile.WriteLine("%d:%s", iSize, REPLAY_FORMAT_V2);
 
-	for(int i = 0; i < iSize; i++)
+	int iTickrate = RoundToZero(gF_Tickrate);
+	int iArraySize = (iTickrate * 6);
+	any[] aReplayData = new any[iArraySize];
+	any aFrameData[6]; // any aFrameData = new any[6]; // error 116: no methodmap or class was found for any
+
+	int iQueuedFrames = 0;
+
+	for(int i = 0; i < iSize; iQueuedFrames = (++i % iTickrate))
 	{
-		FormatEx(sBuffer, 320, "%f|%f|%f|%f|%f|%d", gA_Frames[style].Get(i, 0), gA_Frames[style].Get(i, 1), gA_Frames[style].Get(i, 2), gA_Frames[style].Get(i, 3), gA_Frames[style].Get(i, 4), gA_Frames[style].Get(i, 5));
+		gA_Frames[style].GetArray(i, aFrameData, 6);
 
-		fFile.WriteLine(sBuffer);
+		for(int x = 0; x < 6; x++)
+		{
+			aReplayData[((iQueuedFrames * 6) + x)] = aFrameData[x];
+		}
+
+		if(i == (iSize - 1) || (iQueuedFrames + 1) == iTickrate)
+		{
+			fFile.Write(aReplayData, iQueuedFrames * 6, 4);
+		}
 	}
 
 	delete fFile;
@@ -1053,7 +1093,7 @@ stock bool File_Copy(const char[] source, const char[] destination)
 	{
 		cache = ReadFile(file_source, buffer, 32, 1);
 
-		WriteFile(file_destination, buffer, cache, 1);
+		file_destination.Write(buffer, cache, 1);
 	}
 
 	delete file_source;
