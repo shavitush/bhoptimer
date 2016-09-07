@@ -440,7 +440,7 @@ public bool SaveReplay(BhopStyle style)
 	int iTickrate = RoundToZero(gF_Tickrate);
 	int iArraySize = (iTickrate * 6);
 	any[] aReplayData = new any[iArraySize];
-	any aFrameData[6]; // any aFrameData = new any[6]; // error 116: no methodmap or class was found for any
+	any[] aFrameData = new any[6];
 
 	int iQueuedFrames = 0;
 
@@ -731,7 +731,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			if(gRS_ReplayStatus[iReplayBotStyle] != Replay_Running)
 			{
-				int iFrame = (gRS_ReplayStatus[iReplayBotStyle] == Replay_Start)? 0:gI_FrameCount[iReplayBotStyle] - 1;
+				int iFrame = (gRS_ReplayStatus[iReplayBotStyle] == Replay_Start)? 0:(gI_FrameCount[iReplayBotStyle] - 1);
 
 				vecPosition[0] = gA_Frames[iReplayBotStyle].Get(iFrame, 0);
 				vecPosition[1] = gA_Frames[iReplayBotStyle].Get(iFrame, 1);

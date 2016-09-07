@@ -559,7 +559,7 @@ public void SQL_GetTier_Callback(Database db, DBResultSet results, const char[] 
 		char[] sDisplayMap = new char[strlen(sMap) + 1];
 		GetMapDisplayName(sMap, sDisplayMap, strlen(sMap) + 1);
 
-		Shavit_PrintToChat(client, "\x04%s\x01 is rated \x05tier %.01f\x01.", sDisplayMap, gF_MapTier);
+		Shavit_PrintToChat(client, "\x04%s\x01 is rated \x05tier %.01f\x01.", sDisplayMap, results.FetchFloat(1));
 	}
 
 	else
