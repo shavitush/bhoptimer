@@ -388,8 +388,6 @@ public bool LoadReplay(BhopStyle style)
 		else // old, outdated and slow - only used for old replays
 		{
 			char[] sLine = new char[320];
-			fFile.ReadLine(sLine, 320);
-
 			char[][] sExplodedLine = new char[6][64];
 
 			for(int i = 0; !fFile.EndOfFile(); i++)
