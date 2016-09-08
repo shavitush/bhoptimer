@@ -521,7 +521,7 @@ public void OnClientPutInServer(int client)
 
 public void UpdateReplayInfo(int client, BhopStyle style, float time)
 {
-	if(!IsValidClient(client) || !gB_Enabled)
+	if(!gB_Enabled || !IsValidClient(client) || !IsFakeClient(client))
 	{
 		return;
 	}
@@ -687,7 +687,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 		vecPosition[1] = gA_Frames[style].Get(0, 1);
 		vecPosition[2] = gA_Frames[style].Get(0, 2);
 
-		TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
+		TeleportEntity(gI_ReplayBotClient[style], vecPosition, NULL_VECTOR, NULL_VECTOR);
 	}
 }
 
