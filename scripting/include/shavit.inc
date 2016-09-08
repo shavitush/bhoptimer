@@ -23,11 +23,17 @@
 #endif
 #define _shavit_included
 
-//#pragma newdecls required
+#if !defined _dynamic_included
+  #include <dynamic>
+#endif
+
+#pragma newdecls required
 
 #define SHAVIT_VERSION "1.5b"
-
 #define PREFIX "\x04[Timer]\x01"
+
+#define INVALID_TIMERSETTINGS view_as<TimerSettings>(-1)
+#define STYLE_LIMIT 256
 
 #define MAX_STYLES 8
 #define MAX_ZONES 8
@@ -750,6 +756,28 @@ stock void Shavit_PrintToChatAll(const char[] format, any ...)
 	}
 }
 
+methodmap TimerSettings < Dynamic
+{
+	public TimerSettings()
+	{
+		return view_as<TimerSettings>(Dynamic());
+	}
+}
+
+/**
+ * Returns a TimerSettings object (Dynamic) that has all loaded styles and their settings on it.
+ * Requires the style index and a colon as prefix.
+ *
+ * For example, use styles.GetInt("0:settings") to get style settings (STYLE_*) for the first style.
+ * Available style properties are:
+ * 'name' (string), 'speedlimit' (float), 'htmlcolor' (string), 'shortname' (string), 'rankingmultiplier' (float), 'airaccelerate' (int), 'runspeed' (float).
+ *
+ * Use styles.GetInt("amount") to receive the amount of loaded styles (hardcoded limit is 256).
+ *
+ * @return							TimerSettings object.
+ */
+native TimerSettings Shavit_GetStyleSettings();
+
 public SharedPlugin __pl_shavit =
 {
 	name = "shavit",
@@ -779,6 +807,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
+	MarkNativeAsOptional("Shavit_GetStyleSettings");
 	MarkNativeAsOptional("Shavit_GetSync");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");

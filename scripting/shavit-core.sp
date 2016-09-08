@@ -108,8 +108,11 @@ bool gB_NoZAxisSpeed = true;
 char gS_MySQLPrefix[32];
 
 // server side
-int gI_CachedDefaultAA = 2000;
+int gI_CachedDefaultAA = 1000;
 ConVar sv_airaccelerate = null;
+
+// timer settings
+TimerSettings gTS_Styles = INVALID_TIMERSETTINGS;
 
 public Plugin myinfo =
 {
@@ -143,6 +146,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetSync", Native_GetSync);
+	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -182,6 +186,14 @@ public void OnPluginStart()
 	else
 	{
 		SetFailState("This plugin was meant to be used in CS:S and CS:GO *only*.");
+	}
+
+	// styles
+	gTS_Styles = LoadStyles();
+
+	if(gTS_Styles == INVALID_TIMERSETTINGS)
+	{
+		SetFailState("Could not load the styles configuration file. Make sure it exists (addons/sourcemod/configs/shavit-styles.cfg) and follows the proper syntax!");
 	}
 
 	// database connections
@@ -272,6 +284,14 @@ public void OnPluginStart()
 	}
 
 	gB_Zones = LibraryExists("shavit-zones");
+}
+
+public void OnPluginEnd()
+{
+	if(gTS_Styles.IsValid)
+	{
+		gTS_Styles.Dispose(true);
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -753,6 +773,11 @@ public int Native_GetSync(Handle handler, int numParams)
 	return view_as<int>(((gI_StyleProperties[gBS_Style[client]] & STYLE_MEASURESYNC) > 0)? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 }
 
+public int Native_GetStyleSettings(Handle handler, int numParams)
+{
+	return view_as<int>(gTS_Styles);
+}
+
 public void StartTimer(int client)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
@@ -938,6 +963,39 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 
 		return;
 	}
+}
+
+public TimerSettings LoadStyles()
+{
+	Dynamic dStylesConfig = Dynamic();
+
+	if(!dStylesConfig.ReadKeyValues("addons/sourcemod/configs/shavit-styles.cfg"))
+	{
+		return INVALID_TIMERSETTINGS;
+	}
+
+	if(dStylesConfig.MemberCount == 0)
+	{
+		dStylesConfig.Dispose();
+
+		return INVALID_TIMERSETTINGS;
+	}
+
+	else
+	{
+		PrintToServer("count: %d", dStylesConfig.MemberCount);
+	}
+
+	dStylesConfig.Dispose();
+
+	TimerSettings tsStyles = TimerSettings();
+
+	/*if(tsStyles.GetInt("amount") == 0)
+	{
+		return INVALID_TIMERSETTINGS;
+	}*/
+
+	return tsStyles;
 }
 
 public void SQL_SetPrefix()
