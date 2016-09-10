@@ -1254,13 +1254,12 @@ public void CreateWidthLengthMenu(int client, int page)
 	{
 		for(int iState = 1; iState <= 2; iState++)
 		{
-			FormatEx(sDisplay, 32, "%s edge | %c%.01f", sEdges[iEdge], iState == 1? "+":"-", gF_Modifier[client]);
+			FormatEx(sDisplay, 32, "%s edge | %c%.01f", sEdges[iEdge], (iState == 1)? "+":"-", gF_Modifier[client]);
 			FormatEx(sInfo, 8, "%d;%d", iEdge, iState);
 			hMenu.AddItem(sInfo, sDisplay);
 		}
 	}
 
-	hMenu.Pagination = page;
 	hMenu.DisplayAt(client, page, MENU_TIME_FOREVER);
 }
 
