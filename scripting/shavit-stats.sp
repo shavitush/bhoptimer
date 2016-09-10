@@ -49,11 +49,18 @@ char gS_TargetAuth[MAXPLAYERS+1][32];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 int gI_WRAmount[MAXPLAYERS+1];
 
+bool gB_Late = false;
+
 // cvars
 ConVar gCV_MVPRankOnes = null;
 
 // cached cvars
 int gI_MVPRankOnes = 2;
+
+// timer settings
+int gI_Styles = 0;
+char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
+any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
 public Plugin myinfo =
 {
@@ -71,6 +78,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetWRCount", Native_GetWRConut);
 
 	RegPluginLibrary("shavit-stats");
+
+	gB_Late = late;
 
 	return APLRes_Success;
 }
@@ -109,6 +118,31 @@ public void OnPluginStart()
 	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
 	SetSQLInfo();
+}
+
+public void OnMapStart()
+{
+	if(gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(-1);
+	}
+}
+
+public void Shavit_OnStyleConfigLoaded(int styles)
+{
+	if(styles == -1)
+	{
+		styles = Shavit_GetStyleCount();
+	}
+
+	for(int i = 0; i < styles; i++)
+	{
+		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sShortName, gS_StyleStrings[i][sShortName], 128);
+	}
+
+	gI_Styles = styles;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -390,17 +424,19 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatEx(sClearString, 128, "Map completions: %d/%d (%.01f%%)", iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
 
 		Menu m = new Menu(MenuHandler_ProfileHandler);
-		m.SetTitle("%s's profile. %s\nCountry: %s\n%s\n%s\n[%s] world records: %d%s\n", gS_TargetName[client], gS_TargetAuth[client], sCountry, sLastLogin, sClearString, gS_BhopStyles[0], iWRs, sRankingString);
+		m.SetTitle("%s's profile. %s\nCountry: %s\n%s\n%s\n[%s] world records: %d%s\n", gS_TargetName[client], gS_TargetAuth[client], sCountry, sLastLogin, sClearString, gS_StyleStrings[0][sStyleName], iWRs, sRankingString);
 
-		for(int i = 0; i < sizeof(gS_BhopStyles); i++)
+		for(int i = 0; i < gI_Styles; i++)
 		{
-			if((gI_StyleProperties[i] & STYLE_UNRANKED) == 0)
+			if(gA_StyleSettings[i][bUnranked])
 			{
-				char[] sInfo = new char[4];
-				IntToString(i, sInfo, 4);
-
-				m.AddItem(sInfo, gS_BhopStyles[i]);
+				continue;
 			}
+
+			char[] sInfo = new char[4];
+			IntToString(i, sInfo, 4);
+
+			m.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
 		}
 
 		// should NEVER happen
@@ -429,7 +465,7 @@ public int MenuHandler_ProfileHandler(Menu m, MenuAction action, int param1, int
 		gBS_Style[param1] = view_as<BhopStyle>(StringToInt(sInfo));
 
 		Menu menu = new Menu(MenuHandler_TypeHandler);
-		menu.SetTitle("[%s] Stats:", gS_ShortBhopStyles[gBS_Style[param1]]);
+		menu.SetTitle("[%s] Stats:", gS_StyleStrings[gBS_Style[param1]][sShortName]);
 
 		menu.AddItem("0", "Maps done");
 		menu.AddItem("1", "Maps left");
@@ -531,12 +567,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sTitle, 64, "[%s] Maps done for %s: (%d)", gS_ShortBhopStyles[gBS_Style[client]], gS_TargetName[client], rows);
+		FormatEx(sTitle, 64, "[%s] Maps done for %s: (%d)", gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows);
 	}
 
 	else
 	{
-		FormatEx(sTitle, 64, "[%s] Maps left for %s: (%d)", gS_ShortBhopStyles[gBS_Style[client]], gS_TargetName[client], rows);
+		FormatEx(sTitle, 64, "[%s] Maps left for %s: (%d)", gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows);
 	}
 
 	Menu m = new Menu(MenuHandler_ShowMaps);
@@ -671,7 +707,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		// 3 - style
 		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(3));
-		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[bsStyle]);
+		FormatEx(sDisplay, 128, "Style: %s", gS_StyleStrings[bsStyle][sStyleName]);
 		m.AddItem("-1", sDisplay);
 
 		// 4 - steamid3

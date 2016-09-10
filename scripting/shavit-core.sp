@@ -501,7 +501,7 @@ public Action Command_Style(int client, int args)
 	Menu m = new Menu(StyleMenu_Handler);
 	m.SetTitle("Choose a style:");
 
-	for(int i = 0; i < sizeof(gS_StyleStrings); i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
