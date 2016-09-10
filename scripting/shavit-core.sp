@@ -1036,8 +1036,6 @@ public bool LoadStyles()
 		gA_StyleSettings[i][bStrafeCountD] = dStyle.GetBool("strafe_count_d", true);
 		gA_StyleSettings[i][fRankingMultiplier] = dStyle.GetFloat("rankingmultiplier", 1.00);
 
-		dStyle.Dispose();
-
 		if(bRegister && strlen(gS_StyleStrings[i][sChangeCommand]) > 0)
 		{
 			char[][] sStyleCommands = new char[32][32];
@@ -1075,9 +1073,11 @@ public Action Command_StyleChange(int client, int args)
 	if(gSM_StyleCommands.GetValue(sCommand, style))
 	{
 		ChangeClientStyle(client, style);
+
+		return Plugin_Handled;
 	}
 
-	return Plugin_Handled;
+	return Plugin_Continue;
 }
 
 public void SQL_SetPrefix()
