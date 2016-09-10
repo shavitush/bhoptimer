@@ -597,7 +597,7 @@ public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
 
-	if(gA_StyleSettings[Shavit_GetBhopStyle(target)][bSync]) // don't include [JUMP] for autobhop styles
+	if(gA_StyleSettings[Shavit_GetBhopStyle(target)][bAutobhop]) // don't include [JUMP] for autobhop styles
 	{
 		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 	}

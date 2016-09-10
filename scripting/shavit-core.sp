@@ -63,7 +63,6 @@ bool gB_ClientPaused[MAXPLAYERS+1];
 int gI_Jumps[MAXPLAYERS+1];
 BhopStyle gBS_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
-bool gB_OnGround[MAXPLAYERS+1];
 int gI_ButtonCache[MAXPLAYERS+1];
 int gI_Strafes[MAXPLAYERS+1];
 float gF_AngleCache[MAXPLAYERS+1];
@@ -571,7 +570,7 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 	gBS_Style[client] = style;
 
-	Shavit_PrintToChat(client, "You have selected to play \x03%s\x01.", gS_StyleStrings[view_as<int>(style)][sStyleName]);
+	Shavit_PrintToChat(client, "You have selected to play \x03%s\x01.", gS_StyleStrings[style][sStyleName]);
 
 	if(gA_StyleSettings[style][bUnranked])
 	{
@@ -1333,25 +1332,23 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	// velocity limit
 	if(iGroundEntity != -1 && gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0 && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
-		gB_OnGround[client] = true;
-
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-		float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-		float fScale = gA_StyleSettings[gBS_Style[client]][fVelocityLimit] / fSpeed_New;
+		float fSpeed_New = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
 
-		if(fScale < 1.0)
+		if(fSpeed_New > 0.0)
 		{
-			ScaleVector(fSpeed, fScale);
+			float fScale = view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit]) / fSpeed_New;
 
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+			PrintToChat(client, "%.02f / %.02f = %.02f", gA_StyleSettings[gBS_Style[client]][fVelocityLimit], fSpeed_New, gA_StyleSettings[gBS_Style[client]][fVelocityLimit] / fSpeed_New);
+
+			if(fScale < 1.0)
+			{
+				ScaleVector(fSpeed, fScale);
+				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+			}
 		}
-	}
-
-	else
-	{
-		gB_OnGround[client] = false;
 	}
 
 	float fAngle = (angles[1] - gF_AngleCache[client]);

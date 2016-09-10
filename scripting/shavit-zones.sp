@@ -21,6 +21,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <cstrike>
+#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -50,6 +51,25 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"No Speed Limit", // ignores velocity limit in that zone
 	"Teleport Zone" // teleports to a defined point
 };
+
+enum
+{
+	sBeamSprite,
+	sHaloSprite,
+	ZONESPRITES_SIZE
+}
+
+enum
+{
+	bVisible,
+	iRed,
+	iGreen,
+	iBlue,
+	iAlpha,
+	ZONESETTINGS_SIZE
+}
+
+any gA_ZoneSettings[MAX_ZONES*8][ZONESETTINGS_SIZE];
 
 MapZones gMZ_Type[MAXPLAYERS+1];
 
@@ -94,11 +114,9 @@ float gV_Fix1[MAXPLAYERS+1][2];
 float gV_Fix2[MAXPLAYERS+1][2];
 
 // beamsprite, used to draw the zone
+char gS_Sprites[ZONESPRITES_SIZE][PLATFORM_MAX_PATH];
 int gI_BeamSprite = -1;
 int gI_HaloSprite = -1;
-
-// zone colors
-int gI_Colors[MAX_ZONES][4];
 
 // admin menu
 Handle gH_AdminMenu = INVALID_HANDLE;
@@ -167,9 +185,6 @@ public void OnPluginStart()
 
 	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
 	RegAdminCmd("sm_tpzone", Command_TPZone, ADMFLAG_RCON, "Defines the teleport zone so it teleports to the location you are in.");
-
-	// colors
-	SetupColors();
 
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
@@ -319,25 +334,55 @@ public int Native_IsClientCreatingZone(Handle handler, int numParams)
 	return (gI_MapStep[GetNativeCell(1)] != 0);
 }
 
-public void SetupColors()
+public bool LoadZonesConfig()
 {
-	// start - cyan
-	gI_Colors[Zone_Start] = {67, 210, 230, 255};
+	char[] sPath = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-zones.cfg");
 
-	// end - purple
-	gI_Colors[Zone_End] = {165, 19, 194, 255};
+	Dynamic dZones = Dynamic();
 
-	// glitches - invisible but orange for placement
-	gI_Colors[Zone_Respawn] = {255, 200, 0, 255};
-	gI_Colors[Zone_Stop] = {255, 200, 0, 255};
-	gI_Colors[Zone_Slay] = {255, 200, 0, 255};
-	gI_Colors[Zone_Teleport] = {255, 200, 0, 255};
+	if(!dZones.ReadKeyValues(sPath))
+	{
+		dZones.Dispose();
 
-	// freestyle zones - blue
-	gI_Colors[Zone_Freestyle] = {25, 25, 255, 195};
+		return false;
+	}
 
-	// no speed limit - transparent hot pink
-	gI_Colors[Zone_NoVelLimit] = {247, 3, 255, 50};
+	Dynamic dSprites = dZones.GetDynamic((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
+	dSprites.GetString("beam", gS_Sprites[sBeamSprite], PLATFORM_MAX_PATH);
+	dSprites.GetString("halo", gS_Sprites[sHaloSprite], PLATFORM_MAX_PATH);
+
+	char[] sDownloads = new char[PLATFORM_MAX_PATH * 8];
+	dSprites.GetString("downloads", sDownloads, PLATFORM_MAX_PATH * 8);
+
+	char[][] sDownloadsExploded = new char[PLATFORM_MAX_PATH][PLATFORM_MAX_PATH]; // we don't need more than 8 sprites ever
+	int iDownloads = ExplodeString(sDownloads, ";", sDownloadsExploded, PLATFORM_MAX_PATH, PLATFORM_MAX_PATH, false);
+
+	for(int i = 0; i < iDownloads; i++)
+	{
+		if(strlen(sDownloadsExploded[i]) > 0)
+		{
+			TrimString(sDownloadsExploded[i]);
+			AddFileToDownloadsTable(sDownloadsExploded[i]);
+		}
+	}
+
+	Dynamic dColors = dZones.GetDynamic("Colors");
+	int iCount = dColors.MemberCount;
+
+	for(int i = 0; i < iCount; i++)
+	{
+		Dynamic dZoneSettings = dColors.GetDynamicByIndex(i);
+		gA_ZoneSettings[i][bVisible] = dZoneSettings.GetBool("visible", true);
+		gA_ZoneSettings[i][iRed] = dZoneSettings.GetInt("red", 255);
+		gA_ZoneSettings[i][iGreen] = dZoneSettings.GetInt("green", 255);
+		gA_ZoneSettings[i][iBlue] = dZoneSettings.GetInt("blue", 255);
+		gA_ZoneSettings[i][iAlpha] = dZoneSettings.GetInt("alpha", 255);
+	}
+
+	dZones.Dispose(true);
+
+	return true;
 }
 
 public void OnMapStart()
@@ -351,54 +396,15 @@ public void OnMapStart()
 		RefreshZones();
 	}
 
+	if(!LoadZonesConfig())
+	{
+		SetFailState("Cannot open \"configs/shavit-zones.cfg\". Make sure this file exists and that the server has read permissions to it.");
+	}
+
 	if(gB_UseCustomSprite)
 	{
-		char[] sFile = new char[PLATFORM_MAX_PATH];
-		BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-zones.cfg");
-
-		File fFile = OpenFile(sFile, "r");
-
-		if(fFile == null)
-		{
-			SetFailState("Cannot open \"configs/shavit-zones.cfg\". Make sure this file exists and that the server has read permissions to it.");
-		}
-
-		else
-		{
-			char[] sLine = new char[PLATFORM_MAX_PATH*2];
-
-			while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-			{
-				TrimString(sLine);
-
-				if(sLine[0] != '\"')
-				{
-					continue;
-				}
-
-				ReplaceString(sLine, PLATFORM_MAX_PATH*2, "\"", "");
-
-				char sExploded[2][PLATFORM_MAX_PATH];
-				ExplodeString(sLine, " ", sExploded, 2, PLATFORM_MAX_PATH);
-
-				if(StrEqual(sExploded[0], "sprite"))
-				{
-					gI_BeamSprite = PrecacheModel(sExploded[1], true);
-				}
-
-				else if(StrEqual(sExploded[0], "halo"))
-				{
-					gI_HaloSprite = StrEqual(sExploded[1], "none")? 0:PrecacheModel(sExploded[1], true);
-				}
-
-				else if(StrEqual(sExploded[0], "download"))
-				{
-					AddFileToDownloadsTable(sExploded[1]);
-				}
-			}
-		}
-
-		delete fFile;
+		gI_BeamSprite = PrecacheModel(gS_Sprites[sBeamSprite], true);
+		gI_HaloSprite = (StrEqual(gS_Sprites[sHaloSprite], "none"))? 0:PrecacheModel(gS_Sprites[sHaloSprite], true);
 	}
 
 	else
@@ -1382,7 +1388,7 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 		{
 			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
 			{
-				if(gMZ_FreestyleTypes[j] != Zone_NoVelLimit && !EmptyZone(gV_FreestyleZones[j][0]) && !EmptyZone(gV_FreestyleZones[j][1]))
+				if(gMZ_FreestyleTypes[j] >= Zone_Freestyle && gA_ZoneSettings[gMZ_FreestyleTypes[j]][bVisible] && !EmptyZone(gV_FreestyleZones[j][0]) && !EmptyZone(gV_FreestyleZones[j][1]))
 				{
 					vPoints[0] = gV_FreestyleZones[j][0];
 					vPoints[7] = gV_FreestyleZones[j][1];
@@ -1408,15 +1414,20 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false, true);
 					}
 
-					DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gF_Interval + 0.2);
+					int iColors[4];
+					iColors[0] = gA_ZoneSettings[gMZ_FreestyleTypes[j]][iRed];
+					iColors[1] = gA_ZoneSettings[gMZ_FreestyleTypes[j]][iGreen];
+					iColors[2] = gA_ZoneSettings[gMZ_FreestyleTypes[j]][iBlue];
+					iColors[3] = gA_ZoneSettings[gMZ_FreestyleTypes[j]][iAlpha];
+
+					DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, iColors, gF_Interval + 0.2);
 				}
 			}
 		}
 
 		else
 		{
-			// check shavit.inc, blacklisting glitch zones from being drawn
-			if(i == view_as<int>(Zone_Respawn) || i == view_as<int>(Zone_Stop) || (EmptyZone(gV_MapZones[i][0]) && EmptyZone(gV_MapZones[i][1])))
+			if(!gA_ZoneSettings[i][bVisible] || (EmptyZone(gV_MapZones[i][0]) && EmptyZone(gV_MapZones[i][1])))
 			{
 				continue;
 			}
@@ -1437,7 +1448,13 @@ public Action Timer_DrawEverything(Handle Timer, any data)
 
 			CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false, true);
 
-			DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[i], gF_Interval + 0.2);
+			int iColors[4];
+			iColors[0] = gA_ZoneSettings[i][iRed];
+			iColors[1] = gA_ZoneSettings[i][iGreen];
+			iColors[2] = gA_ZoneSettings[i][iBlue];
+			iColors[3] = gA_ZoneSettings[i][iAlpha];
+
+			DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, iColors, gF_Interval + 0.2);
 		}
 	}
 }
@@ -1483,7 +1500,14 @@ public Action Timer_Draw(Handle Timer, any data)
 		}
 
 		CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
-		DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, gI_Colors[gMZ_Type[client]], 0.1);
+
+		int iColors[4];
+		iColors[0] = gA_ZoneSettings[gMZ_Type[client]][iRed];
+		iColors[1] = gA_ZoneSettings[gMZ_Type[client]][iGreen];
+		iColors[2] = gA_ZoneSettings[gMZ_Type[client]][iBlue];
+		iColors[3] = 255;
+
+		DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, iColors, 0.1);
 	}
 
 	if(gI_MapStep[client] != 3 && !EmptyZone(vOrigin))
