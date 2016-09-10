@@ -68,8 +68,15 @@ Handle gH_HUDCookie = null;
 int gI_HUDSettings[MAXPLAYERS+1];
 int gI_NameLength = MAX_NAME_LENGTH;
 
+bool gB_Late = false;
+
 // css hud
 Handle gH_HUD = null;
+
+// timer settings
+int gI_Styles = 0;
+char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
+any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
 public Plugin myinfo =
 {
@@ -85,18 +92,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// natives
 	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
 
-	if(late)
-	{
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			if(IsValidClient(i) && AreClientCookiesCached(i))
-			{
-				OnClientCookiesCached(i);
-			}
-		}
-	}
-
 	RegPluginLibrary("shavit-hud");
+
+	gB_Late = late;
 
 	return APLRes_Success;
 }
@@ -129,6 +127,42 @@ public void OnPluginStart()
 
 	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
+
+	if(gB_Late)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i) && AreClientCookiesCached(i))
+			{
+				OnClientCookiesCached(i);
+			}
+		}
+	}
+}
+
+public void OnMapStart()
+{
+	if(gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(-1);
+	}
+}
+
+public void Shavit_OnStyleConfigLoaded(int styles)
+{
+	if(styles == -1)
+	{
+		styles = Shavit_GetStyleCount();
+	}
+
+	for(int i = 0; i < styles; i++)
+	{
+		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sHTMLColor, gS_StyleStrings[i][sHTMLColor], 128);
+	}
+
+	gI_Styles = styles;
 }
 
 public void OnClientCookiesCached(int client)
@@ -438,19 +472,19 @@ public void UpdateHUD(int client)
 
 				if(tStatus >= Timer_Running)
 				{
-					Format(sHintText, 512, "%s\nJumps: %d%s\tStyle: <font color='#%s'>%s</font>", sHintText, iJumps, (iJumps < 1000)? "\t":"", gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+					Format(sHintText, 512, "%s\nJumps: %d%s\tStyle: <font color='#%s'>%s</font>", sHintText, iJumps, (iJumps < 1000)? "\t":"", gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
 				}
 
 				else
 				{
-					Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+					Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
 				}
 
 				Format(sHintText, 512, "%s\nSpeed: %d", sHintText, iSpeed);
 
 				if(tStatus >= Timer_Running)
 				{
-					if((gI_StyleProperties[bsStyle] & STYLE_MEASURESYNC) > 0)
+					if(gA_StyleSettings[bsStyle][bSync])
 					{
 						Format(sHintText, 512, "%s%s\tStrafes: %d (%.02f%%)", sHintText, (iSpeed < 1000)? "\t":"", iStrafes, Shavit_GetSync(target));
 					}
@@ -470,7 +504,7 @@ public void UpdateHUD(int client)
 				{
 					if(Shavit_GetTimerStatus(target) == Timer_Running)
 					{
-						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d%s", gS_BhopStyles[bsStyle], sTime, iPotentialRank, iJumps, iStrafes, iSpeed, ((gI_StyleProperties[bsStyle] & STYLE_VEL_LIMIT) > 0 && Shavit_InsideZone(target, Zone_NoVelLimit))? "\nNo Speed Limit":"");
+						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d%s", gS_StyleStrings[bsStyle][sStyleName], sTime, iPotentialRank, iJumps, iStrafes, iSpeed, (gA_StyleSettings[bsStyle][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit))? "\nNo Speed Limit":"");
 					}
 
 					else
@@ -492,7 +526,7 @@ public void UpdateHUD(int client)
 		{
 			BhopStyle bsStyle = view_as<BhopStyle>(0);
 
-			for(int i = 0; i < MAX_STYLES; i++)
+			for(int i = 0; i < gI_Styles; i++)
 			{
 				if(Shavit_GetReplayBotIndex(view_as<BhopStyle>(i)) == target)
 				{
@@ -526,7 +560,7 @@ public void UpdateHUD(int client)
 			if(gEV_Type == Engine_CSGO)
 			{
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
-				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleHTMLColors[bsStyle], gS_BhopStyles[bsStyle]);
+				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
 				Format(sHintText, 512, "%s\n\tTime: <font color='#00FF00'>%s</font>/%s", sHintText, sTime, sWR);
 				Format(sHintText, 512, "%s\n\tSpeed: %d", sHintText, iSpeed);
 				Format(sHintText, 512, "%s</font>", sHintText);
@@ -534,7 +568,7 @@ public void UpdateHUD(int client)
 
 			else
 			{
-				FormatEx(sHintText, 512, "%s Replay", gS_BhopStyles[bsStyle], sHintText);
+				FormatEx(sHintText, 512, "%s Replay", gS_StyleStrings[bsStyle][sStyleName], sHintText);
 				Format(sHintText, 512, "%s\nTime: %s/%s", sHintText, sTime, sWR);
 				Format(sHintText, 512, "%s\nSpeed: %d", sHintText, iSpeed);
 			}
@@ -563,7 +597,7 @@ public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
 
-	if((gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) > 0) // don't include [JUMP] for autobhop styles
+	if(gA_StyleSettings[Shavit_GetBhopStyle(target)][bSync]) // don't include [JUMP] for autobhop styles
 	{
 		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 	}
@@ -594,7 +628,7 @@ public void UpdateCenterKeys(int client)
 
 	int buttons = GetClientButtons(target);
 
-	if((gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_AUTOBHOP) > 0) // don't include [JUMP] for autobhop styles
+	if(gA_StyleSettings[Shavit_GetBhopStyle(target)][bAutobhop]) // don't include [JUMP] for autobhop styles
 	{
 		PrintCenterText(client, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 	}
@@ -712,7 +746,7 @@ public void UpdateKeyHint(int client)
 
 		if(IsValidClient(target) && (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0))
 		{
-			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && (gI_StyleProperties[Shavit_GetBhopStyle(target)] & STYLE_MEASURESYNC) > 0 && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
+			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && gA_StyleSettings[Shavit_GetBhopStyle(target)][bSync] && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
 			{
 				Format(sMessage, 256, "%s%sSync: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", Shavit_GetSync(target));
 			}

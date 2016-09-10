@@ -79,7 +79,7 @@ any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 public Plugin myinfo =
 {
 	name = "[shavit] Replay Bot",
-	author = "shavit, ofir",
+	author = "shavit",
 	description = "A replay bot for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
