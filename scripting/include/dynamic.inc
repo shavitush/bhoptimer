@@ -79,7 +79,7 @@ native bool Dynamic_ReadConfig(Dynamic obj, const char[] path, bool use_valve_fs
 native bool Dynamic_WriteConfig(Dynamic obj, const char[] path);
 
 native bool Dynamic_ReadKeyValues(Dynamic obj, const char[] path, int valuelength, Dynamic_HookType callback=INVALID_FUNCTION);
-native bool Dynamic_WriteKeyValues(Dynamic obj, const char[] path);
+native bool Dynamic_WriteKeyValues(Dynamic obj, const char[] path, const char[] basekey);
 
 native int Dynamic_GetMemberCount(Dynamic obj);
 native int Dynamic_GetMemberOffset(Dynamic obj, const char[] membername);
@@ -262,9 +262,9 @@ methodmap Dynamic
 		return Dynamic_ReadKeyValues(this, path, valuelength, callback);
 	}
 	
-	public bool WriteKeyValues(const char[] path)
+	public bool WriteKeyValues(const char[] path, const char[] basekey="")
 	{
-		return Dynamic_WriteKeyValues(this, path);
+		return Dynamic_WriteKeyValues(this, path, basekey);
 	}
 	
 	public static Dynamic GetSettings()
