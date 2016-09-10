@@ -33,9 +33,9 @@
 #define PREFIX "\x04[Timer]\x01"
 
 #define STYLE_LIMIT 256
-#define MAX_STYLES 8
 #define MAX_ZONES 8
 
+// for reference, not used anymore
 // game types
 enum ServerGame(+=1)
 {
@@ -44,18 +44,10 @@ enum ServerGame(+=1)
 	Game_Unknown
 };
 
-// bhop styles
-// enum - for easier customization of settings
+// old enum was used for style configuration and is now here for reference
 enum BhopStyle(+=1)
 {
-	Style_Normal = 0,
-	Style_Sideways,
-	Style_WOnly,
-	Style_Scroll,
-	Style_400Velocity,
-	Style_HSW,
-	Style_LowGravity,
-	Style_SlowMotion
+	Style_Default = 0
 };
 
 // status
@@ -106,120 +98,9 @@ enum
 	bStrafeCountA,
 	bStrafeCountS,
 	bStrafeCountD,
+	fRankingMultiplier,
 	STYLESETTINGS_SIZE
 };
-
-#if defined USES_STYLE_PROPERTIES
-#define STYLE_NONE				(0)
-#define STYLE_AUTOBHOP			(1 << 0)	// enable autobhop
-#define STYLE_BLOCK_W			(1 << 1)	// block +forward
-#define STYLE_BLOCK_A			(1 << 2)	// block +moveleft
-#define STYLE_BLOCK_S			(1 << 3)	// block +back
-#define STYLE_BLOCK_D			(1 << 4)	// block +moveright
-#define STYLE_EASYBHOP			(1 << 5)	// enable easybhop (disable stamina reset)
-#define STYLE_VEL_LIMIT			(1 << 6)	// allow velocity limits
-#define STYLE_BLOCK_USE			(1 << 7)	// block +use
-#define STYLE_UNRANKED			(1 << 8)	// unranked style. no ranking points and no records. (UNTESTED: REPORT ISSUES!)
-#define STYLE_NOREPLAY			(1 << 9)	// disable replay bot for this style. don't use for unranked styles
-#define STYLE_PRESPEED			(1 << 10)	// allow prespeeding regardless of the prespeed setting
-#define STYLE_HSW_ONLY			(1 << 11)	// force half-sideways
-#define STYLE_100AA				(1 << 12)	// force 100 airacclerate for the style
-#define STYLE_LOWGRAV			(1 << 13)	// 0.6x gravity (standard for low gravity styles)
-#define STYLE_SLOWMO			(1 << 14)	// 0.5x speed (standard for slowmo styles)
-#define STYLE_SLOWMOTIME		(1 << 15)	// calculation of times will be halved, replays WILL NOT function properly
-#define STYLE_MEASURESYNC		(1 << 16)	// measure sync for that style, useless for non-forwards styles like SW
-#define STYLE_260PRESTRAFE		(1 << 17)	// 260 prestrafe instead of the default 250; requires dhooks and shavit_misc_staticprestrafe 1.
-
-int gI_StyleProperties[MAX_STYLES] =
-{
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_MEASURESYNC|STYLE_260PRESTRAFE, // Normal
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_MEASURESYNC|STYLE_BLOCK_A|STYLE_BLOCK_D|STYLE_260PRESTRAFE, // Sideways
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_BLOCK_A|STYLE_BLOCK_D|STYLE_BLOCK_S|STYLE_260PRESTRAFE, // W-Only
-	STYLE_EASYBHOP|STYLE_MEASURESYNC, // Scroll
-	STYLE_VEL_LIMIT|STYLE_MEASURESYNC, // 400 Velocity
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_HSW_ONLY|STYLE_MEASURESYNC|STYLE_260PRESTRAFE, // HSW
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_LOWGRAV|STYLE_UNRANKED|STYLE_MEASURESYNC|STYLE_260PRESTRAFE, // Low gravity
-	STYLE_AUTOBHOP|STYLE_EASYBHOP|STYLE_SLOWMO|STYLE_SLOWMOTIME|STYLE_UNRANKED|STYLE_MEASURESYNC|STYLE_260PRESTRAFE // Slow motion
-};
-#endif
-
-#if defined USES_STYLE_VELOCITY_LIMITS
-#define VELOCITY_UNLIMITED 0.0
-
-// only applies if STYLE_VEL_LIMIT is defined for a style
-// use VELOCITY_UNLIMITED to ignore
-float gF_VelocityLimit[MAX_STYLES] =
-{
-	VELOCITY_UNLIMITED, // Normal
-	VELOCITY_UNLIMITED, // Sideways
-	VELOCITY_UNLIMITED, // W-Only
-	VELOCITY_UNLIMITED, // Scroll
-	400.00, // 400 Velocity
-	VELOCITY_UNLIMITED, // HSW
-	VELOCITY_UNLIMITED, // Low gravity
-	VELOCITY_UNLIMITED, // Slow motion
-};
-#endif
-
-#if defined USES_STYLE_NAMES
-// style names
-char gS_BhopStyles[MAX_STYLES][] =
-{
-	"Normal",
-	"Sideways",
-	"W-Only",
-	"Scroll",
-	"400 Velocity",
-	"Half-Sideways",
-	"Low Gravity",
-	"Slow Motion"
-};
-#endif
-
-#if defined USES_STYLE_HTML_COLORS
-// style HTML colors, for CS:GO HUD
-char gS_StyleHTMLColors[MAX_STYLES][] =
-{
-	"797FD4",
-	"B54CB3",
-	"9A59F0",
-	"279BC2",
-	"C9BB8B",
-	"B54CBB",
-	"DB88C2",
-	"C288DB"
-};
-#endif
-
-#if defined USES_SHORT_STYLE_NAMES
-// short names - up to 8 characters please
-char gS_ShortBhopStyles[MAX_STYLES][] =
-{
-	"NM",
-	"SW",
-	"W",
-	"LEGIT",
-	"400VEL",
-	"HSW",
-	"LG",
-	"SLOW"
-};
-#endif
-
-#if defined USES_STYLE_MULTIPLIERS
-// ranking system
-float gF_RankingMultipliers[MAX_STYLES] =
-{
-	1.00, // Normal
-	1.30, // Sideways
-	1.33, // W-Only
-	1.30, // Scroll
-	1.50, // 400 Velocity
-	1.20, // HSW
-	0.00, // Low gravity
-	0.00 // Slow motion
-};
-#endif
 
 #if defined USES_CHAT_COLORS
 // hardcoded colors

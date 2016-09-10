@@ -23,9 +23,6 @@
 #include <geoip>
 
 #undef REQUIRE_PLUGIN
-#define USES_STYLE_NAMES
-#define USES_SHORT_STYLE_NAMES
-#define USES_STYLE_PROPERTIES
 #include <shavit>
 
 #pragma semicolon 1

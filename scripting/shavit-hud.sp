@@ -22,9 +22,6 @@
 #include <clientprefs>
 
 #undef REQUIRE_PLUGIN
-#define USES_STYLE_NAMES
-#define USES_STYLE_HTML_COLORS
-#define USES_STYLE_PROPERTIES
 #include <shavit>
 
 #pragma newdecls required

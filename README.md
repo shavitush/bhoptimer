@@ -77,7 +77,7 @@ General
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
 - [x] Support "out of the box" installations and SQLite support.
-- [ ] Implement a config file for styles and use Dynamic to load them, add Shavit_OnStylesLoaded.
+- [ ] Implement a config file for styles and use Dynamic to load them, add Shavit_OnStylesLoaded and caching natives.
 - [ ] Save timer variables on Dynamic's per-player settings.
 
 Core
@@ -159,6 +159,7 @@ Sounds **(NEW!)**
 - [x] On personal best.
 - [x] On map finish.
 - [x] Add support for 'sound for X map rank'.
+- [ ] Add styles config for enabling/disabling sounds.
 
 Rankings **(NEW!)**
 --

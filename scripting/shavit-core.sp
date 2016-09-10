@@ -25,9 +25,6 @@
 #include <clientprefs>
 
 #undef REQUIRE_PLUGIN
-#define USES_STYLE_PROPERTIES
-#define USES_STYLE_NAMES
-#define USES_STYLE_VELOCITY_LIMITS
 #include <shavit>
 #include <adminmenu>
 
@@ -1012,11 +1009,10 @@ public bool LoadStyles()
 		gA_StyleSettings[i][bStrafeCountA] = dStyle.GetBool("strafe_count_a", true);
 		gA_StyleSettings[i][bStrafeCountS] = dStyle.GetBool("strafe_count_s", false);
 		gA_StyleSettings[i][bStrafeCountD] = dStyle.GetBool("strafe_count_d", true);
+		gA_StyleSettings[i][fRankingMultiplier] = dStyle.GetFloat("rankingmultiplier", 1.00);
 
 		dStyle.Dispose();
 	}
-
-	PrintToServer("styles: %d", gI_Styles);
 
 	dStylesConfig.Dispose(true);
 

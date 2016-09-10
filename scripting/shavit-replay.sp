@@ -24,9 +24,6 @@
 #include <sdkhooks>
 
 #undef REQUIRE_PLUGIN
-#define USES_STYLE_NAMES
-#define USES_SHORT_STYLE_NAMES
-#define USES_STYLE_PROPERTIES
 #include <shavit>
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
