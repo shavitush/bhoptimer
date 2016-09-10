@@ -241,3 +241,8 @@ public void SetLimit(int time)
 	gCV_RoundTime.IntValue = time;
 	gCV_RestartGame.IntValue = 1;
 }
+
+public void Shavit_OnDatabaseLoaded(Database db)
+{
+	gH_SQL = db;
+}

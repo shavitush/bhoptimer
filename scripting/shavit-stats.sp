@@ -784,3 +784,8 @@ public int Native_GetWRConut(Handle handler, int numParams)
 {
 	return gI_WRAmount[GetNativeCell(1)];
 }
+
+public void Shavit_OnDatabaseLoaded(Database db)
+{
+	gH_SQL = db;
+}

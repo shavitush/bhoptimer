@@ -1640,3 +1640,8 @@ public int GetRankForTime(BhopStyle style, float time)
 
 	return gI_RecordAmount[style] + 1;
 }
+
+public void Shavit_OnDatabaseLoaded(Database db)
+{
+	gH_SQL = db;
+}

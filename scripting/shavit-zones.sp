@@ -2003,3 +2003,8 @@ public void Shavit_OnEnd(int client)
 		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 	}
 }
+
+public void Shavit_OnDatabaseLoaded(Database db)
+{
+	gH_SQL = db;
+}

@@ -52,6 +52,7 @@ Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
 Handle gH_Forwards_OnStyleChanged = null;
 Handle gH_Forwards_OnStyleConfigLoaded = null;
+Handle gH_Forwards_OnDatabaseLoaded = null;
 
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
@@ -168,6 +169,7 @@ public void OnPluginStart()
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
 	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
+	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event, Param_Cell);
 
 	// game types
 	gEV_Type = GetEngineVersion();
@@ -1080,6 +1082,10 @@ public void SQL_DBConnect()
 
 	// support unicode names
 	gH_SQL.SetCharset("utf8");
+
+	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
+	Call_PushCell(gH_SQL);
+	Call_Finish();
 
 	char[] sDriver = new char[8];
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);

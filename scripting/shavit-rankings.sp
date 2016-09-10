@@ -1038,3 +1038,8 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	OnMapStart();
 }
+
+public void Shavit_OnDatabaseLoaded(Database db)
+{
+	gH_SQL = db;
+}

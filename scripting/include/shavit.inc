@@ -342,10 +342,19 @@ forward void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle new
 forward void Shavit_OnStyleConfigLoaded(int styles);
 
 /**
+ * Called when there's a successful connection to the database.
+ *
+ * @param db						Database handle.
+ * @noreturn
+ */
+forward void Shavit_OnDatabaseLoaded(Database db);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
  */
+#pragma deprecated Use GetEngineVersion() instead.
 native ServerGame Shavit_GetGameType();
 
 /**
