@@ -36,16 +36,18 @@
 EngineVersion gEV_Type = Engine_Unknown;
 
 // cache
-int gI_ReplayTick[MAX_STYLES];
-int gI_ReplayBotClient[MAX_STYLES];
-ArrayList gA_Frames[MAX_STYLES] = {null, ...};
-float gF_StartTick[MAX_STYLES];
-ReplayStatus gRS_ReplayStatus[MAX_STYLES];
-int gI_FrameCount[MAX_STYLES];
+int gI_ReplayTick[STYLE_LIMIT];
+int gI_ReplayBotClient[STYLE_LIMIT];
+ArrayList gA_Frames[STYLE_LIMIT] = {null, ...};
+float gF_StartTick[STYLE_LIMIT];
+ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
+int gI_FrameCount[STYLE_LIMIT];
 
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 bool gB_Record[MAXPLAYERS+1];
+
+bool gB_Late = false;
 
 // server specific
 float gF_Tickrate = 0.0;
@@ -69,6 +71,11 @@ float gF_ReplayDelay = 5.0;
 float gF_TimeLimit = 5400.0;
 int gI_NameStyle = 1;
 
+// timer settings
+int gI_Styles = 0;
+char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
+any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Replay Bot",
@@ -87,6 +94,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
+
+	gB_Late = late;
 
 	return APLRes_Success;
 }
@@ -180,9 +189,9 @@ public Action Cron(Handle Timer)
 
 	// clear player cache if time is worse than wr
 	// might cause issues if WR time is removed and someone else gets a new WR
-	float[] fWRTimes = new float[MAX_STYLES];
+	float[] fWRTimes = new float[gI_Styles];
 
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		Shavit_GetWRTime(view_as<BhopStyle>(i), fWRTimes[i]);
 
@@ -234,6 +243,11 @@ public Action HookTriggers(int entity, int other)
 
 public void OnMapStart()
 {
+	if(gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(-1);
+	}
+
 	if(!gB_Enabled)
 	{
 		return;
@@ -299,7 +313,7 @@ public void OnMapStart()
 		CreateDirectory(sPath, 511);
 	}
 
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		gA_Frames[i] = new ArrayList(6);
 
@@ -334,6 +348,23 @@ public void OnMapStart()
 	}
 
 	CreateTimer(1.0, Cron, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public void Shavit_OnStyleConfigLoaded(int styles)
+{
+	if(styles == -1)
+	{
+		styles = Shavit_GetStyleCount();
+	}
+
+	for(int i = 0; i < styles; i++)
+	{
+		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sShortName, gS_StyleStrings[i][sShortName], 128);
+	}
+
+	gI_Styles = styles;
 }
 
 public bool LoadReplay(BhopStyle style)
@@ -502,7 +533,7 @@ public void OnClientPutInServer(int client)
 
 	else
 	{
-		for(int i = 0; i < MAX_STYLES; i++)
+		for(int i = 0; i < gI_Styles; i++)
 		{
 			if(ReplayEnabled(i) && gI_ReplayBotClient[i] == 0)
 			{
@@ -542,7 +573,7 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 		{
 			if(gI_FrameCount[style] == 0)
 			{
-				FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_ShortBhopStyles[style]);
+				FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_StyleStrings[style][sShortName]);
 			}
 
 			else
@@ -550,7 +581,7 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 				char[] sWRName = new char[MAX_NAME_LENGTH];
 				Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH);
 
-				FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s - %s", gS_ShortBhopStyles[style], sWRName, sTime);
+				FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s - %s", gS_StyleStrings[style][sShortName], sWRName, sTime);
 			}
 		}
 
@@ -558,12 +589,12 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 		{
 			if(gI_FrameCount[style] == 0)
 			{
-				FormatEx(sName, MAX_NAME_LENGTH, "%s - N/A", gS_BhopStyles[style]);
+				FormatEx(sName, MAX_NAME_LENGTH, "%s - N/A", gS_StyleStrings[style][sStyleName]);
 			}
 
 			else
 			{
-				FormatEx(sName, MAX_NAME_LENGTH, "%s - %s", gS_BhopStyles[style], sTime);
+				FormatEx(sName, MAX_NAME_LENGTH, "%s - %s", gS_StyleStrings[style][sStyleName], sTime);
 			}
 		}
 	}
@@ -616,7 +647,7 @@ public void OnClientDisconnect(int client)
 		return;
 	}
 
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		if(client == gI_ReplayBotClient[i])
 		{
@@ -824,12 +855,7 @@ public Action StartReplay(Handle Timer, any data)
 
 public bool ReplayEnabled(any style)
 {
-	if((gI_StyleProperties[style] & STYLE_UNRANKED) > 0 || (gI_StyleProperties[style] & STYLE_NOREPLAY) > 0)
-	{
-		return false;
-	}
-
-	return true;
+	return (!gA_StyleSettings[style][bUnranked] && !gA_StyleSettings[style][bNoReplay]);
 }
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
@@ -952,7 +978,7 @@ public Action Command_DeleteReplay(int client, int args)
 	Menu m = new Menu(DeleteReplay_Callback);
 	m.SetTitle("Delete a replay:");
 
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		if(!ReplayEnabled(i) || gI_FrameCount[i] == 0)
 		{
@@ -962,7 +988,7 @@ public Action Command_DeleteReplay(int client, int args)
 		char[] sInfo = new char[4];
 		IntToString(i, sInfo, 4);
 
-		m.AddItem(sInfo, gS_BhopStyles[i]);
+		m.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
 	}
 
 	if(m.ItemCount == 0)
@@ -990,7 +1016,7 @@ public int DeleteReplay_Callback(Menu m, MenuAction action, int param1, int para
 		}
 
 		Menu submenu = new Menu(DeleteConfirmation_Callback);
-		submenu.SetTitle("Confirm deletion of %s replay?", gS_BhopStyles[style]);
+		submenu.SetTitle("Confirm deletion of %s replay?", gS_StyleStrings[style][sStyleName]);
 
 		for(int i = 1; i <= GetRandomInt(2, 4); i++)
 		{
@@ -1026,14 +1052,14 @@ public int DeleteConfirmation_Callback(Menu m, MenuAction action, int param1, in
 
 		if(DeleteReplay(style))
 		{
-			LogAction(param1, param1, "Deleted replay for %s on map %s.", gS_BhopStyles[style], gS_Map);
+			LogAction(param1, param1, "Deleted replay for %s on map %s.", gS_StyleStrings[style][sStyleName], gS_Map);
 
-			Shavit_PrintToChat(param1, "Deleted replay for \x05%s\x01.", gS_BhopStyles[style]);
+			Shavit_PrintToChat(param1, "Deleted replay for \x05%s\x01.", gS_StyleStrings[style][sStyleName]);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(param1, "Could not delete replay for \x05%s\x01.", gS_BhopStyles[style]);
+			Shavit_PrintToChat(param1, "Could not delete replay for \x05%s\x01.", gS_StyleStrings[style][sStyleName]);
 		}
 	}
 
@@ -1047,7 +1073,7 @@ public int DeleteConfirmation_Callback(Menu m, MenuAction action, int param1, in
 
 public BhopStyle GetReplayStyle(int client)
 {
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		if(gI_ReplayBotClient[i] == client)
 		{

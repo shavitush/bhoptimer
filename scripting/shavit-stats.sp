@@ -191,7 +191,7 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(IsValidClient(client))
+	if(IsValidClient(client) && !IsFakeClient(client))
 	{
 		UpdateWRs(client);
 	}
