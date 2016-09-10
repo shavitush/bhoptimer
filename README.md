@@ -77,7 +77,7 @@ General
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
 - [x] Support "out of the box" installations and SQLite support.
-- [ ] Implement a config file for styles and use Dynamic to save them and load via a native.
+- [ ] Implement a config file for styles and use Dynamic to load them, add Shavit_OnStylesLoaded.
 - [ ] Save timer variables on Dynamic's per-player settings.
 
 Core

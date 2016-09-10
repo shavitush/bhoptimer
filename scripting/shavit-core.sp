@@ -1,4 +1,4 @@
- /*
+/*
  * shavit's Timer - Core
  * by: shavit
  *
@@ -54,6 +54,7 @@ Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
 Handle gH_Forwards_OnStyleChanged = null;
+Handle gH_Forwards_OnStyleConfigLoaded = null;
 
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
@@ -112,7 +113,9 @@ int gI_CachedDefaultAA = 1000;
 ConVar sv_airaccelerate = null;
 
 // timer settings
-TimerSettings gTS_Styles = INVALID_TIMERSETTINGS;
+int gI_Styles = 0;
+char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
+any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
 public Plugin myinfo =
 {
@@ -167,6 +170,7 @@ public void OnPluginStart()
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
 	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 
 	// game types
 	gEV_Type = GetEngineVersion();
@@ -186,14 +190,6 @@ public void OnPluginStart()
 	else
 	{
 		SetFailState("This plugin was meant to be used in CS:S and CS:GO *only*.");
-	}
-
-	// styles
-	gTS_Styles = LoadStyles();
-
-	if(gTS_Styles == INVALID_TIMERSETTINGS)
-	{
-		SetFailState("Could not load the styles configuration file. Make sure it exists (addons/sourcemod/configs/shavit-styles.cfg) and follows the proper syntax!");
 	}
 
 	// database connections
@@ -286,14 +282,6 @@ public void OnPluginStart()
 	gB_Zones = LibraryExists("shavit-zones");
 }
 
-public void OnPluginEnd()
-{
-	if(gTS_Styles.IsValid)
-	{
-		gTS_Styles.Dispose(true);
-	}
-}
-
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	gB_Autobhop = gCV_Autobhop.BoolValue;
@@ -347,6 +335,19 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 
 public void OnMapStart()
 {
+	// styles
+	if(!LoadStyles())
+	{
+		SetFailState("Could not load the styles configuration file. Make sure it exists (addons/sourcemod/configs/shavit-styles.cfg) and follows the proper syntax!");
+	}
+
+	else
+	{
+		Call_StartForward(gH_Forwards_OnStyleConfigLoaded);
+		Call_PushCell(gI_Styles);
+		Call_Finish();
+	}
+
 	// cvar forcing
 	FindConVar("sv_enablebunnyhopping").BoolValue = true;
 	FindConVar("sv_airaccelerate").IntValue = gI_CachedDefaultAA;
@@ -775,7 +776,7 @@ public int Native_GetSync(Handle handler, int numParams)
 
 public int Native_GetStyleSettings(Handle handler, int numParams)
 {
-	return view_as<int>(gTS_Styles);
+	return view_as<int>(2);
 }
 
 public void StartTimer(int client)
@@ -965,37 +966,61 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 	}
 }
 
-public TimerSettings LoadStyles()
+public bool LoadStyles()
 {
+	char[] sPath = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-dynamic.cfg");
+
 	Dynamic dStylesConfig = Dynamic();
 
-	if(!dStylesConfig.ReadKeyValues("addons/sourcemod/configs/shavit-styles.cfg"))
-	{
-		return INVALID_TIMERSETTINGS;
-	}
-
-	if(dStylesConfig.MemberCount == 0)
+	if(!dStylesConfig.ReadKeyValues(sPath))
 	{
 		dStylesConfig.Dispose();
 
-		return INVALID_TIMERSETTINGS;
+		return false;
 	}
 
-	else
+	gI_Styles = dStylesConfig.MemberCount;
+
+	for(int i = 0; i < gI_Styles; i++)
 	{
-		PrintToServer("count: %d", dStylesConfig.MemberCount);
+		Dynamic dStyle = dStylesConfig.GetDynamicByIndex(i);
+		dStyle.GetString("name", gS_StyleStrings[i][sStyleName], 128);
+		dStyle.GetString("shortname", gS_StyleStrings[i][sShortName], 128);
+		dStyle.GetString("htmlcolor", gS_StyleStrings[i][sHTMLColor], 128);
+		dStyle.GetString("command", gS_StyleStrings[i][sChangeCommand], 128);
+
+		gA_StyleSettings[i][bAutobhop] = dStyle.GetBool("autobhop", true);
+		gA_StyleSettings[i][bEasybhop] = dStyle.GetBool("easybhop", true);
+		gA_StyleSettings[i][bPrespeed] = dStyle.GetBool("prespeed", false);
+		gA_StyleSettings[i][fVelocityLimit] = dStyle.GetFloat("velocity_limit", 0.0);
+		gA_StyleSettings[i][iAiraccelerate] = dStyle.GetInt("airaccelerate", 1000);
+		gA_StyleSettings[i][fRunspeed] = dStyle.GetFloat("runspeed", 260.00);
+		gA_StyleSettings[i][fGravityMultiplier] = dStyle.GetFloat("gravity", 0.0);
+		gA_StyleSettings[i][fGravityMultiplier] = dStyle.GetFloat("speed", 0.0);
+		gA_StyleSettings[i][bHalftime] = dStyle.GetBool("halftime", false);
+		gA_StyleSettings[i][bBlockW] = dStyle.GetBool("block_w", false);
+		gA_StyleSettings[i][bBlockA] = dStyle.GetBool("block_a", false);
+		gA_StyleSettings[i][bBlockS] = dStyle.GetBool("block_s", false);
+		gA_StyleSettings[i][bBlockD] = dStyle.GetBool("block_d", false);
+		gA_StyleSettings[i][bBlockUse] = dStyle.GetBool("block_use", false);
+		gA_StyleSettings[i][bForceHSW] = dStyle.GetBool("force_hsw", false);
+		gA_StyleSettings[i][bUnranked] = dStyle.GetBool("unranked", false);
+		gA_StyleSettings[i][bNoReplay] = dStyle.GetBool("noreplay", false);
+		gA_StyleSettings[i][bSync] = dStyle.GetBool("sync", true);
+		gA_StyleSettings[i][bStrafeCountW] = dStyle.GetBool("strafe_count_w", false);
+		gA_StyleSettings[i][bStrafeCountA] = dStyle.GetBool("strafe_count_a", true);
+		gA_StyleSettings[i][bStrafeCountS] = dStyle.GetBool("strafe_count_s", false);
+		gA_StyleSettings[i][bStrafeCountD] = dStyle.GetBool("strafe_count_d", true);
+
+		dStyle.Dispose();
 	}
 
-	dStylesConfig.Dispose();
+	PrintToServer("styles: %d", gI_Styles);
 
-	TimerSettings tsStyles = TimerSettings();
+	dStylesConfig.Dispose(true);
 
-	/*if(tsStyles.GetInt("amount") == 0)
-	{
-		return INVALID_TIMERSETTINGS;
-	}*/
-
-	return tsStyles;
+	return true;
 }
 
 public void SQL_SetPrefix()
@@ -1123,7 +1148,10 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void PreThink(int client)
 {
-	sv_airaccelerate.IntValue = ((gI_StyleProperties[gBS_Style[client]] & STYLE_100AA) > 0)? 100:gI_CachedDefaultAA;
+	if(IsPlayerAlive(client))
+	{
+		sv_airaccelerate.IntValue = ((gI_StyleProperties[gBS_Style[client]] & STYLE_100AA) > 0)? 100:gI_CachedDefaultAA;
+	}
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])

@@ -32,9 +32,7 @@
 #define SHAVIT_VERSION "1.5b"
 #define PREFIX "\x04[Timer]\x01"
 
-#define INVALID_TIMERSETTINGS view_as<TimerSettings>(-1)
 #define STYLE_LIMIT 256
-
 #define MAX_STYLES 8
 #define MAX_ZONES 8
 
@@ -73,6 +71,42 @@ enum ReplayStatus(+=1)
 	Replay_Start = 0,
 	Replay_Running,
 	Replay_End
+};
+
+enum
+{
+	sStyleName,
+	sShortName,
+	sHTMLColor,
+	sChangeCommand,
+	STYLESTRINGS_SIZE
+};
+
+enum
+{
+	bAutobhop,
+	bEasybhop,
+	bPrespeed,
+	fVelocityLimit,
+	iAiraccelerate,
+	fGravityMultiplier,
+	fSpeedMultiplier,
+	fSpeed,
+	bHalftime,
+	bBlockW,
+	bBlockA,
+	bBlockS,
+	bBlockD,
+	bBlockUse,
+	bForceHSW,
+	bUnranked,
+	bNoReplay,
+	bSync,
+	bStrafeCountW,
+	bStrafeCountA,
+	bStrafeCountS,
+	bStrafeCountD,
+	STYLESETTINGS_SIZE
 };
 
 #if defined USES_STYLE_PROPERTIES
@@ -419,6 +453,14 @@ forward void Shavit_OnRankUpdated(int client);
 forward void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle newstyle);
 
 /**
+ * Called when the styles configuration finishes loading and it's ready to load everything into the cache.
+ *
+ * @param styles					Amount of styles loaded.
+ * @noreturn
+ */
+forward void Shavit_OnStyleConfigLoaded(int styles);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
@@ -729,6 +771,20 @@ native void Shavit_OpenStatsMenu(int client, const char[] authid);
 native int Shavit_GetWRCount(int client);
 
 /**
+* Saves the style settings on an `any` reference.
+*
+* @noreturn
+*/
+native void Shavit_GetStyleSettings(any StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE]);
+
+/**
+ * Saves the style related strings on a string reference.
+ *
+ * @noreturn
+ */
+native void Shavit_GetStyleStrings(char StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128]);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -755,28 +811,6 @@ stock void Shavit_PrintToChatAll(const char[] format, any ...)
 		}
 	}
 }
-
-methodmap TimerSettings < Dynamic
-{
-	public TimerSettings()
-	{
-		return view_as<TimerSettings>(Dynamic());
-	}
-}
-
-/**
- * Returns a TimerSettings object (Dynamic) that has all loaded styles and their settings on it.
- * Requires the style index and a colon as prefix.
- *
- * For example, use styles.GetInt("0:settings") to get style settings (STYLE_*) for the first style.
- * Available style properties are:
- * 'name' (string), 'speedlimit' (float), 'htmlcolor' (string), 'shortname' (string), 'rankingmultiplier' (float), 'airaccelerate' (int), 'runspeed' (float).
- *
- * Use styles.GetInt("amount") to receive the amount of loaded styles (hardcoded limit is 256).
- *
- * @return							TimerSettings object.
- */
-native TimerSettings Shavit_GetStyleSettings();
 
 public SharedPlugin __pl_shavit =
 {
@@ -808,6 +842,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
+	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
