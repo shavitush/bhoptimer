@@ -249,6 +249,11 @@ public void OnPluginStart()
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
+	if(styles == -1)
+	{
+		styles = Shavit_GetStyleCount();
+	}
+
 	for(int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
@@ -311,6 +316,11 @@ public void OnMapStart()
 				}
 			}
 		}
+	}
+
+	if(gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(-1);
 	}
 }
 

@@ -672,6 +672,13 @@ native int Shavit_GetStyleSettings(BhopStyle style, any StyleSettings[STYLESETTI
 native int Shavit_GetStyleStrings(BhopStyle style, int stringtype, char[] StyleStrings, int size);
 
 /**
+ * Retrieves the amount of styles in the server.
+ *
+ * @return							Amount of styles or -1 if there's an error.
+ */
+native int Shavit_GetStyleCount();
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -728,6 +735,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
+	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");

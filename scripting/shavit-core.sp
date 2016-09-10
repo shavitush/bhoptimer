@@ -144,6 +144,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetSync", Native_GetSync);
+	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 
@@ -767,6 +768,11 @@ public int Native_GetSync(Handle handler, int numParams)
 	return view_as<int>((gA_StyleSettings[gBS_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 }
 
+public int Native_GetStyleCount(Handle handler, int numParams)
+{
+	return (gI_Styles > 0)? gI_Styles:-1;
+}
+
 public int Native_GetStyleSettings(Handle handler, int numParams)
 {
 	return SetNativeArray(2, gA_StyleSettings[GetNativeCell(1)], STYLESETTINGS_SIZE);
@@ -774,7 +780,7 @@ public int Native_GetStyleSettings(Handle handler, int numParams)
 
 public int Native_GetStyleStrings(Handle handler, int numParams)
 {
-	return SetNativeString(4, gS_StyleStrings[GetNativeCell(1)][GetNativeCell(2)], GetNativeCell(3));
+	return SetNativeString(3, gS_StyleStrings[GetNativeCell(1)][GetNativeCell(2)], GetNativeCell(4));
 }
 
 public void StartTimer(int client)
