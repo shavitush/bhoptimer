@@ -839,7 +839,7 @@ public void SQL_UpdatePointsTable_Callback(Database db, DBResultSet results, con
 
 public void UpdatePlayerRank(int client)
 {
-	if(!IsValidClient(client))
+	if(!IsValidClient(client) || gH_SQL == null)
 	{
 		return;
 	}
