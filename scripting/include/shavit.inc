@@ -652,18 +652,24 @@ native void Shavit_OpenStatsMenu(int client, const char[] authid);
 native int Shavit_GetWRCount(int client);
 
 /**
-* Saves the style settings on an `any` reference.
+* Saves the style settings on `any` references.
 *
-* @noreturn
+* @param style						Style index.
+* @param StyleSettings				Reference to the settings array.
+* @return							SP_ERROR_NONE on success, anything else on failure.
 */
-native void Shavit_GetStyleSettings(any StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE]);
+native int Shavit_GetStyleSettings(BhopStyle style, any StyleSettings[STYLESETTINGS_SIZE]);
 
 /**
- * Saves the style related strings on a string reference.
+ * Saves the style related strings on string references.
  *
- * @noreturn
+ * @param style						Style index.
+ * @param stringtype				String type to grab.
+ * @param StyleStrings				Reference to the string buffer.
+ * @param size						Max length for the buffer.
+ * @return							SP_ERROR_NONE on success, anything else on failure.
  */
-native void Shavit_GetStyleStrings(char StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128]);
+native int Shavit_GetStyleStrings(BhopStyle style, int stringtype, char[] StyleStrings, int size);
 
 /**
  * Use this native when printing anything in chat if it's related to the timer.

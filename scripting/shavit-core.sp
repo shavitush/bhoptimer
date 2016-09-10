@@ -145,6 +145,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
+	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -768,7 +769,12 @@ public int Native_GetSync(Handle handler, int numParams)
 
 public int Native_GetStyleSettings(Handle handler, int numParams)
 {
-	return view_as<int>(2);
+	return SetNativeArray(2, gA_StyleSettings[GetNativeCell(1)], STYLESETTINGS_SIZE);
+}
+
+public int Native_GetStyleStrings(Handle handler, int numParams)
+{
+	return SetNativeString(4, gS_StyleStrings[GetNativeCell(1)][GetNativeCell(2)], GetNativeCell(3));
 }
 
 public void StartTimer(int client)
