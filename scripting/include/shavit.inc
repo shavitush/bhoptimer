@@ -93,6 +93,7 @@ enum
 	bForceHSW,
 	bBlockPLeft,
 	bBlockPRight,
+	bBlockPStrafe,
 	bUnranked,
 	bNoReplay,
 	bSync,

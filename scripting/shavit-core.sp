@@ -70,6 +70,8 @@ float gF_AngleCache[MAXPLAYERS+1];
 int gI_TotalMeasures[MAXPLAYERS+1];
 int gI_GoodGains[MAXPLAYERS+1];
 bool gB_DoubleSteps[MAXPLAYERS+1];
+float gF_StrafeWarning[MAXPLAYERS+1];
+
 float gF_HSW_Requirement = 0.0;
 StringMap gSM_StyleCommands = null;
 
@@ -908,6 +910,7 @@ public void OnClientPutInServer(int client)
 
 	StopTimer(client);
 	gB_DoubleSteps[client] = false;
+	gF_StrafeWarning[client] = 0.0;
 
 	if(AreClientCookiesCached(client))
 	{
@@ -1023,6 +1026,7 @@ public bool LoadStyles()
 		gA_StyleSettings[i][bForceHSW] = dStyle.GetBool("force_hsw", false);
 		gA_StyleSettings[i][bBlockPLeft] = dStyle.GetBool("block_pleft", false);
 		gA_StyleSettings[i][bBlockPRight] = dStyle.GetBool("block_pright", false);
+		gA_StyleSettings[i][bBlockPStrafe] = dStyle.GetBool("block_pstrafe", false);
 		gA_StyleSettings[i][bUnranked] = dStyle.GetBool("unranked", false);
 		gA_StyleSettings[i][bNoReplay] = dStyle.GetBool("noreplay", false);
 		gA_StyleSettings[i][bSync] = dStyle.GetBool("sync", true);
@@ -1233,8 +1237,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(gB_LeftRight && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] && (buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
 	{
-		Shavit_StopTimer(client);
-		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");
+		StopTimer_Cheat(client, "Detected +left/right on a disallowed style.");
 	}
 
 	// key blocking
@@ -1409,8 +1412,32 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
+	// +strafe block
+	if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] && gB_TimerEnabled[client] && !gB_ClientPaused[client] && Inconsistency(vel, buttons))
+	{
+		float fTime = GetEngineTime();
+
+		if(gF_StrafeWarning[client] < fTime)
+		{
+			StopTimer_Cheat(client, "Detected inconsistencies in button presses.");
+		}
+
+		gF_StrafeWarning[client] = fTime + 0.20;
+	}
+
 	gI_ButtonCache[client] = buttons;
 	gF_AngleCache[client] = angles[1];
 
 	return Plugin_Continue;
+}
+
+public void StopTimer_Cheat(int client, const char[] message)
+{
+	Shavit_StopTimer(client);
+	Shavit_PrintToChat(client, "Timer stopped! %s", message);
+}
+
+public bool Inconsistency(const float[] vel, const int buttons)
+{
+	return ((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0) || (vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0));
 }
