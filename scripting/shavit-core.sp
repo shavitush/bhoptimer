@@ -1011,6 +1011,8 @@ public bool LoadStyles()
 		gA_StyleSettings[i][bBlockD] = dStyle.GetBool("block_d", false);
 		gA_StyleSettings[i][bBlockUse] = dStyle.GetBool("block_use", false);
 		gA_StyleSettings[i][bForceHSW] = dStyle.GetBool("force_hsw", false);
+		gA_StyleSettings[i][bBlockPLeft] = dStyle.GetBool("block_pleft", false);
+		gA_StyleSettings[i][bBlockPRight] = dStyle.GetBool("block_pright", false);
 		gA_StyleSettings[i][bUnranked] = dStyle.GetBool("unranked", false);
 		gA_StyleSettings[i][bNoReplay] = dStyle.GetBool("noreplay", false);
 		gA_StyleSettings[i][bSync] = dStyle.GetBool("sync", true);
@@ -1183,7 +1185,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
 
-	if(gB_LeftRight && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && ((buttons & IN_LEFT) > 0 || (buttons & IN_RIGHT) > 0)))
+	if(gB_LeftRight && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] && (buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
 	{
 		Shavit_StopTimer(client);
 		Shavit_PrintToChat(client, "I've stopped your timer for using +left/+right. No cheating!");

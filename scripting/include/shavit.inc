@@ -91,6 +91,8 @@ enum
 	bBlockD,
 	bBlockUse,
 	bForceHSW,
+	bBlockPLeft,
+	bBlockPRight,
 	bUnranked,
 	bNoReplay,
 	bSync,
