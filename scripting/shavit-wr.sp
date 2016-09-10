@@ -1644,4 +1644,6 @@ public int GetRankForTime(BhopStyle style, float time)
 public void Shavit_OnDatabaseLoaded(Database db)
 {
 	gH_SQL = db;
+	
+	UpdateLeaderboards();
 }

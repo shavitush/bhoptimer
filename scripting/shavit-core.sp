@@ -71,6 +71,7 @@ int gI_TotalMeasures[MAXPLAYERS+1];
 int gI_GoodGains[MAXPLAYERS+1];
 bool gB_DoubleSteps[MAXPLAYERS+1];
 float gF_HSW_Requirement = 0.0;
+StringMap gSM_StyleCommands = null;
 
 // cookies
 Handle gH_StyleCookie = null;
@@ -986,6 +987,15 @@ public bool LoadStyles()
 		return false;
 	}
 
+	bool bRegister = false;
+
+	if(gSM_StyleCommands == null || gSM_StyleCommands.Size == 0)
+	{
+		bRegister = true;
+	}
+
+	gSM_StyleCommands = new StringMap();
+
 	gI_Styles = dStylesConfig.MemberCount;
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -1023,11 +1033,47 @@ public bool LoadStyles()
 		gA_StyleSettings[i][fRankingMultiplier] = dStyle.GetFloat("rankingmultiplier", 1.00);
 
 		dStyle.Dispose();
+
+		if(bRegister && strlen(gS_StyleStrings[i][sChangeCommand]) > 0)
+		{
+			char[][] sStyleCommands = new char[32][32];
+			int iCommands = ExplodeString(gS_StyleStrings[i][sChangeCommand], ";", sStyleCommands, 32, 32, false);
+
+			for(int x = 0; x < iCommands; x++)
+			{
+				TrimString(sStyleCommands[x]);
+				StripQuotes(sStyleCommands[x]);
+
+				char[] sCommand = new char[32];
+				FormatEx(sCommand, 32, "sm_%s", sStyleCommands[x]);
+				gSM_StyleCommands.SetValue(sCommand, i);
+
+				char[] sDescription = new char[128];
+				FormatEx(sDescription, 128, "Change style to %s.", gS_StyleStrings[i][sStyleName]);
+
+				RegConsoleCmd(sCommand, Command_StyleChange, sDescription);
+			}
+		}
 	}
 
 	dStylesConfig.Dispose(true);
 
 	return true;
+}
+
+public Action Command_StyleChange(int client, int args)
+{
+	char[] sCommand = new char[128];
+	GetCmdArg(0, sCommand, 128);
+
+	BhopStyle style = Style_Default;
+
+	if(gSM_StyleCommands.GetValue(sCommand, style))
+	{
+		ChangeClientStyle(client, style);
+	}
+
+	return Plugin_Handled;
 }
 
 public void SQL_SetPrefix()

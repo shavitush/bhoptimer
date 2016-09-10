@@ -96,6 +96,7 @@ Core
 - [x] Save autobhop/styles to clientprefs.
 - [x] Add `lastlogin` column to `users`.
 - [x] Allow late loading by adding Shavit_OnDatabaseLoaded() and get the new database handle in modules.
+- [x] Add style changing commands (config file).
 - [ ] Add bonus timer.
 
 HUD
