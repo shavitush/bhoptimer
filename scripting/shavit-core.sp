@@ -973,7 +973,7 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 public bool LoadStyles()
 {
 	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-dynamic.cfg");
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-styles.cfg");
 
 	Dynamic dStylesConfig = Dynamic();
 

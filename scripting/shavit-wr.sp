@@ -145,12 +145,6 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	// arrays
-	for(int i = 0; i < gI_Styles; i++)
-	{
-		gA_LeaderBoard[i] = new ArrayList();
-	}
-
 	// admin menu
 	OnAdminMenuReady(null);
 
@@ -311,6 +305,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
 		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sShortName, gS_StyleStrings[i][sShortName], 128);
+	}
+
+	// arrays
+	for(int i = 0; i < styles; i++)
+	{
+		gA_LeaderBoard[i] = new ArrayList();
 	}
 
 	gI_Styles = styles;
