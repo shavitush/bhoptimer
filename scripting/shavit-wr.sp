@@ -21,9 +21,6 @@
 #include <sourcemod>
 
 #undef REQUIRE_PLUGIN
-#define USES_STYLE_NAMES
-#define USES_SHORT_STYLE_NAMES
-#define USES_STYLE_PROPERTIES
 #include <shavit>
 #include <adminmenu>
 
@@ -53,14 +50,14 @@ char gS_ClientMap[MAXPLAYERS+1][192];
 char gS_Map[192]; // blame workshop paths being so fucking long
 
 // current wr stats
-float gF_WRTime[MAX_STYLES];
-int gI_WRRecordID[MAX_STYLES];
-char gS_WRName[MAX_STYLES][MAX_NAME_LENGTH];
-int gI_RecordAmount[MAX_STYLES];
-ArrayList gA_LeaderBoard[MAX_STYLES];
+float gF_WRTime[STYLE_LIMIT];
+int gI_WRRecordID[STYLE_LIMIT];
+char gS_WRName[STYLE_LIMIT][MAX_NAME_LENGTH];
+int gI_RecordAmount[STYLE_LIMIT];
+ArrayList gA_LeaderBoard[STYLE_LIMIT];
 
 // more caching
-float gF_PlayerRecord[MAXPLAYERS+1][MAX_STYLES];
+float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT];
 
 // admin menu
 Handle gH_AdminMenu = null;
@@ -82,6 +79,11 @@ char gS_Color_Rank[16];
 char gS_Color_Sync[16];
 char gS_Color_Better[16];
 char gS_Color_Worse[16];
+
+// timer settings
+int gI_Styles = 0;
+char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
+any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
 public Plugin myinfo =
 {
@@ -142,12 +144,6 @@ public void OnPluginStart()
 	gCV_RecentLimit.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
-
-	// arrays
-	for(int i = 0; i < MAX_STYLES; i++)
-	{
-		gA_LeaderBoard[i] = new ArrayList();
-	}
 
 	// admin menu
 	OnAdminMenuReady(null);
@@ -290,11 +286,39 @@ public void OnMapStart()
 	{
 		UpdateWRCache();
 	}
+
+	if(gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(-1);
+	}
+}
+
+public void Shavit_OnStyleConfigLoaded(int styles)
+{
+	if(styles == -1)
+	{
+		styles = Shavit_GetStyleCount();
+	}
+
+	for(int i = 0; i < styles; i++)
+	{
+		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sShortName, gS_StyleStrings[i][sShortName], 128);
+	}
+
+	// arrays
+	for(int i = 0; i < styles; i++)
+	{
+		gA_LeaderBoard[i] = new ArrayList();
+	}
+
+	gI_Styles = styles;
 }
 
 public void OnClientPutInServer(int client)
 {
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		gF_PlayerRecord[client][i] = 0.0;
 	}
@@ -337,7 +361,7 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 	{
 		int style = results.FetchInt(1);
 
-		if(style >= MAX_STYLES || style < 0)
+		if(style >= gI_Styles || style < 0)
 		{
 			continue;
 		}
@@ -372,9 +396,9 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	// FIELD 3: name
 
 	// reset cache
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
-		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
+		if(gA_StyleSettings[i][bUnranked])
 		{
 			continue;
 		}
@@ -389,7 +413,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	{
 		int style = results.FetchInt(0);
 
-		if(style >= MAX_STYLES || style < 0)
+		if(style >= gI_Styles || style < 0)
 		{
 			continue;
 		}
@@ -455,12 +479,12 @@ public Action Command_Delete(int client, int args)
 	Menu menu = new Menu(MenuHandler_Delete);
 	menu.SetTitle("Delete a record from:");
 
-	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
-		menu.AddItem(sInfo, gS_BhopStyles[i]);
+		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
 	}
 
 	menu.ExitButton = true;
@@ -588,7 +612,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
 	char[] sFormattedTitle = new char[256];
-	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", sDisplayMap, gS_BhopStyles[style]);
+	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", sDisplayMap, gS_StyleStrings[style][sStyleName]);
 
 	Menu m = new Menu(OpenDelete_Handler);
 	m.SetTitle(sFormattedTitle);
@@ -685,9 +709,9 @@ public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int para
 			return 0;
 		}
 
-		for(int i = 0; i < MAX_STYLES; i++)
+		for(int i = 0; i < gI_Styles; i++)
 		{
-			if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0 || gI_WRRecordID[i] != iRecordID)
+			if(gA_StyleSettings[i][bUnranked] || gI_WRRecordID[i] != iRecordID)
 			{
 				continue;
 			}
@@ -761,9 +785,9 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		return;
 	}
 
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
-		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
+		if(gA_StyleSettings[i][bUnranked])
 		{
 			continue;
 		}
@@ -802,9 +826,9 @@ public Action ShowWRStyleMenu(int client, const char[] map)
 	Menu menu = new Menu(MenuHandler_StyleChooser);
 	menu.SetTitle("Choose a style:");
 
-	for(int i = 0; i < sizeof(gS_BhopStyles); i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
-		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
+		if(gA_StyleSettings[i][bUnranked])
 		{
 			continue;
 		}
@@ -812,7 +836,7 @@ public Action ShowWRStyleMenu(int client, const char[] map)
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
-		menu.AddItem(sInfo, gS_BhopStyles[i]);
+		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
 	}
 
 	// should NEVER happen
@@ -1077,12 +1101,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f points)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, fPoints);
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f points)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, fPoints);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d jump%s)", gS_ShortBhopStyles[bsStyle], sDisplayMap, sName, sTime, iJumps, (iJumps != 1)? "s":"");
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d jump%s)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, iJumps, (iJumps != 1)? "s":"");
 		}
 
 		char[] sInfo = new char[192];
@@ -1188,7 +1212,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		// 3 - style
 		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(3));
-		FormatEx(sDisplay, 128, "Style: %s", gS_BhopStyles[bsStyle]);
+		FormatEx(sDisplay, 128, "Style: %s", gS_StyleStrings[bsStyle][sStyleName]);
 		m.AddItem("-1", sDisplay);
 
 		// 6 - map
@@ -1431,7 +1455,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 	// 2 - update
 	int overwrite = 0;
 
-	if((gI_StyleProperties[style] & STYLE_UNRANKED) > 0)
+	if(gA_StyleSettings[style][bUnranked])
 	{
 		overwrite = 0; // ugly way of not writing to database
 	}
@@ -1486,7 +1510,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		if(overwrite == 1) // insert
 		{
-			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01.", client, gS_BhopStyles[style], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync);
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01.", client, gS_StyleStrings[style][sStyleName], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync);
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
 			// TODO: work on a solution that can function the same while not causing lost records
@@ -1500,7 +1524,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		else // update
 		{
-			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01. %s(-%s)", client, gS_BhopStyles[style], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Better, sDifference);
+			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01. %s(-%s)", client, gS_StyleStrings[style][sStyleName], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Better, sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}
@@ -1521,14 +1545,14 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		gF_PlayerRecord[client][style] = time;
 	}
 
-	else if(overwrite == 0 && (gI_StyleProperties[style] & STYLE_UNRANKED) == 0)
+	else if(overwrite == 0 && !gA_StyleSettings[style][bUnranked])
 	{
-		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01. %s(+%s)", gS_BhopStyles[style], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Worse, sDifference);
+		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01. %s(+%s)", gS_StyleStrings[style][sStyleName], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Worse, sDifference);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01.", gS_BhopStyles[style], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync);
+		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01.", gS_StyleStrings[style][sStyleName], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync);
 	}
 }
 
@@ -1569,7 +1593,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		return;
 	}
 
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
 		gI_RecordAmount[i] = 0;
 		gA_LeaderBoard[i].Clear();
@@ -1579,7 +1603,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	{
 		BhopStyle style = view_as<BhopStyle>(results.FetchInt(0));
 
-		if(view_as<int>(style) >= MAX_STYLES || (gI_StyleProperties[style] & STYLE_UNRANKED) > 0)
+		if(view_as<int>(style) >= gI_Styles || gA_StyleSettings[style][bUnranked])
 		{
 			continue;
 		}
@@ -1587,9 +1611,9 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		gA_LeaderBoard[style].Push(results.FetchFloat(1));
 	}
 
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(view_as<int>(i) >= MAX_STYLES || (gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
+		if(view_as<int>(i) >= gI_Styles || gA_StyleSettings[i][bUnranked])
 		{
 			continue;
 		}
@@ -1615,4 +1639,11 @@ public int GetRankForTime(BhopStyle style, float time)
 	}
 
 	return gI_RecordAmount[style] + 1;
+}
+
+public void Shavit_OnDatabaseLoaded(Database db)
+{
+	gH_SQL = db;
+	
+	UpdateLeaderboards();
 }

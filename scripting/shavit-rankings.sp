@@ -21,8 +21,6 @@
 #include <sourcemod>
 
 #undef REQUIRE_PLUGIN
-#define USES_STYLE_PROPERTIES
-#define USES_STYLE_MULTIPLIERS
 #include <shavit>
 
 #pragma newdecls required
@@ -46,6 +44,8 @@ float gF_PlayerPoints[MAXPLAYERS+1];
 int gI_PlayerRank[MAXPLAYERS+1];
 
 bool gB_CheckRankedPlayers = false;
+
+bool gB_Late = false;
 
 // convars
 ConVar gCV_TopAmount = null;
@@ -71,6 +71,10 @@ char gS_MySQLPrefix[32];
 // modules
 bool gB_Stats = false;
 
+// timer settings
+int gI_Styles = 0;
+any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Rankings",
@@ -87,6 +91,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
 
 	RegPluginLibrary("shavit-rankings");
+
+	gB_Late = late;
 
 	return APLRes_Success;
 }
@@ -274,6 +280,11 @@ public void OnMapStart()
 
 		gH_Tiers.Query(SQL_SetTierCache_Callback, sQuery, 0, DBPrio_High);
 	}
+
+	if(gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(-1);
+	}
 }
 
 public void SQL_SetTierCache_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -325,6 +336,21 @@ public void SQL_RecalculatePoints_Callback(Database db, DBResultSet results, con
 
 		WeighPoints(sAuthID, iSerial);
 	}
+}
+
+public void Shavit_OnStyleConfigLoaded(int styles)
+{
+	if(styles == -1)
+	{
+		styles = Shavit_GetStyleCount();
+	}
+
+	for(int i = 0; i < styles; i++)
+	{
+		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
+	}
+
+	gI_Styles = styles;
 }
 
 public Action Command_Points(int client, int args)
@@ -634,9 +660,9 @@ public void UpdateRecordPoints()
 
 	char[] sQuery = new char[512];
 
-	for(int i = 0; i < MAX_STYLES; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
-		if((gI_StyleProperties[i] & STYLE_UNRANKED) > 0)
+		if(gA_StyleSettings[i][bUnranked])
 		{
 			continue;
 		}
@@ -664,7 +690,7 @@ public void UpdateRecordPoints()
 			fMeasureTime = fDefaultWR;
 		}
 
-		FormatEx(sQuery, 512, "UPDATE %splayertimes SET points = ((%.02f / time) * %.02f) WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, fMeasureTime, ((fTier * gF_PointsPerTier) * gF_RankingMultipliers[i]), gS_Map, i);
+		FormatEx(sQuery, 512, "UPDATE %splayertimes SET points = ((%.02f / time) * %.02f) WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, fMeasureTime, ((fTier * gF_PointsPerTier) * gA_StyleSettings[i][fRankingMultiplier]), gS_Map, i);
 		gH_SQL.Query(SQL_UpdateRecords_Callback, sQuery, 0, DBPrio_Low);
 	}
 }
@@ -727,7 +753,7 @@ public float CalculatePoints(float time, BhopStyle style, float tier)
 		return gF_PointsPerTier;
 	}
 
-	return (((fWRTime / time) * (tier * gF_PointsPerTier)) * gF_RankingMultipliers[style]);
+	return (((fWRTime / time) * (tier * gF_PointsPerTier)) * gA_StyleSettings[style][fRankingMultiplier]);
 }
 
 public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank)
@@ -813,7 +839,7 @@ public void SQL_UpdatePointsTable_Callback(Database db, DBResultSet results, con
 
 public void UpdatePlayerRank(int client)
 {
-	if(!IsValidClient(client))
+	if(!IsValidClient(client) || gH_SQL == null)
 	{
 		return;
 	}
@@ -1011,4 +1037,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	gB_TiersTable = true;
 
 	OnMapStart();
+}
+
+public void Shavit_OnDatabaseLoaded(Database db)
+{
+	gH_SQL = db;
 }

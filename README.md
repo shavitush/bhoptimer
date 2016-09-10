@@ -16,7 +16,7 @@ a bhop server should be simple
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for compilation of `shavit-misc`.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
 * [Chat-Processor](https://forums.alliedmods.net/showthread.php?t=286913) - for compilation and better runtime of `shavit-chat` (plugin can run without it).
-* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of the whole plugin.
+* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of the whole plugin. (use latest version from GitHub)
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 prestrafe for all weapons.
@@ -77,7 +77,7 @@ General
 - [x] Migrate events to the 1.7 transitional syntax.
 - [x] Migrate ADT_Arrays to ArrayList.
 - [x] Support "out of the box" installations and SQLite support.
-- [ ] Implement configs for styles and use Dynamic to save/load them via the global settings.
+- [x] Implement a config file for styles and use Dynamic to load them, add Shavit_OnStylesLoaded and caching natives.
 - [ ] Save timer variables on Dynamic's per-player settings.
 
 Core
@@ -95,7 +95,8 @@ Core
 - [x] Better implementation of autobhop and +ds (doublestep fix).
 - [x] Save autobhop/styles to clientprefs.
 - [x] Add `lastlogin` column to `users`.
-- [ ] Allow reloading of the styles config file by changing maps.
+- [x] Allow late loading by adding Shavit_OnDatabaseLoaded() and get the new database handle in modules.
+- [x] Add style changing commands (config file).
 - [ ] Add bonus timer.
 
 HUD
@@ -160,6 +161,7 @@ Sounds **(NEW!)**
 - [x] On personal best.
 - [x] On map finish.
 - [x] Add support for 'sound for X map rank'.
+- [ ] Add styles config for enabling/disabling sounds.
 
 Rankings **(NEW!)**
 --

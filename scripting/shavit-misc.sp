@@ -24,8 +24,6 @@
 #include <sdkhooks>
 
 #undef REQUIRE_PLUGIN
-#define USES_STYLE_NAMES
-#define USES_STYLE_PROPERTIES
 #include <shavit>
 
 #undef REQUIRE_EXTENSIONS
@@ -34,6 +32,7 @@
 #pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
+
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
 int gI_Ammo = -1;
@@ -94,6 +93,10 @@ Handle gH_GetPlayerMaxSpeed = null;
 
 // modules
 bool gB_Rankings = false;
+
+// timer settings
+char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
+any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
 public Plugin myinfo =
 {
@@ -244,6 +247,20 @@ public void OnPluginStart()
 	}
 }
 
+public void Shavit_OnStyleConfigLoaded(int styles)
+{
+	if(styles == -1)
+	{
+		styles = Shavit_GetStyleCount();
+	}
+
+	for(int i = 0; i < styles; i++)
+	{
+		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
+	}
+}
+
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	gI_GodMode = gCV_GodMode.IntValue;
@@ -299,6 +316,11 @@ public void OnMapStart()
 				}
 			}
 		}
+	}
+
+	if(gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(-1);
 	}
 }
 
@@ -397,7 +419,7 @@ public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 		return MRES_Ignored;
 	}
 
-	DHookSetReturn(hReturn, ((gI_StyleProperties[Shavit_GetBhopStyle(pThis)] & STYLE_260PRESTRAFE) > 0)? 260.00:250.00);
+	DHookSetReturn(hReturn, gA_StyleSettings[Shavit_GetBhopStyle(pThis)][fRunspeed]);
 
 	return MRES_Override;
 }
@@ -468,9 +490,9 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	}
 
 	// prespeed
-	if((gI_StyleProperties[Shavit_GetBhopStyle(client)] & STYLE_PRESPEED) == 0 && bInStart)
+	if(!gA_StyleSettings[Shavit_GetBhopStyle(client)][bPrespeed] && bInStart)
 	{
-		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gI_LastFlags[client] & FL_ONGROUND) > 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
+		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gI_LastFlags[client] & FL_ONGROUND) == 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "Bhopping in the start zone is not allowed.");
@@ -989,8 +1011,8 @@ public Action Command_Specs(int client, int args)
 
 public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
 {
-	char[] sUpperCase = new char[32];
-	strcopy(sUpperCase, 32, gS_BhopStyles[view_as<int>(style)]);
+	char[] sUpperCase = new char[64];
+	strcopy(sUpperCase, 64, gS_StyleStrings[style][sStyleName]);
 
 	for(int i = 0; i < strlen(sUpperCase); i++)
 	{
