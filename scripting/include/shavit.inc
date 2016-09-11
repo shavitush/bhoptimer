@@ -102,6 +102,7 @@ enum
 	bStrafeCountS,
 	bStrafeCountD,
 	fRankingMultiplier,
+	iSpecial,
 	STYLESETTINGS_SIZE
 };
 

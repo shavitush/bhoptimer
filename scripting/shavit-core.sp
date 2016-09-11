@@ -1034,6 +1034,7 @@ public bool LoadStyles()
 		gA_StyleSettings[i][bStrafeCountS] = dStyle.GetBool("strafe_count_s", false);
 		gA_StyleSettings[i][bStrafeCountD] = dStyle.GetBool("strafe_count_d", true);
 		gA_StyleSettings[i][fRankingMultiplier] = dStyle.GetFloat("rankingmultiplier", 1.00);
+		gA_StyleSettings[i][iSpecial] = dStyle.GetInt("special", 0);
 
 		if(bRegister && strlen(gS_StyleStrings[i][sChangeCommand]) > 0)
 		{
