@@ -608,14 +608,14 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier] != 0.0)
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 0.0)
 	{
-		SetEntityGravity(client, gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]);
+		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier] != 0.0)
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 1.0)
 	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]);
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
 	}
 }
 
@@ -1330,7 +1330,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// velocity limit
-	if(iGroundEntity != -1 && gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0 && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
+	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);

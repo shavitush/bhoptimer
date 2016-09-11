@@ -690,7 +690,7 @@ public void UpdateRecordPoints()
 			fMeasureTime = fDefaultWR;
 		}
 
-		FormatEx(sQuery, 512, "UPDATE %splayertimes SET points = ((%.02f / time) * %.02f) WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, fMeasureTime, ((fTier * gF_PointsPerTier) * gA_StyleSettings[i][fRankingMultiplier]), gS_Map, i);
+		FormatEx(sQuery, 512, "UPDATE %splayertimes SET points = ((%.02f / time) * %.02f) WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, fMeasureTime, ((fTier * gF_PointsPerTier) * view_as<float>(gA_StyleSettings[i][fRankingMultiplier])), gS_Map, i);
 		gH_SQL.Query(SQL_UpdateRecords_Callback, sQuery, 0, DBPrio_Low);
 	}
 }
@@ -753,7 +753,7 @@ public float CalculatePoints(float time, BhopStyle style, float tier)
 		return gF_PointsPerTier;
 	}
 
-	return (((fWRTime / time) * (tier * gF_PointsPerTier)) * gA_StyleSettings[style][fRankingMultiplier]);
+	return (((fWRTime / time) * (tier * gF_PointsPerTier)) * view_as<float>(gA_StyleSettings[style][fRankingMultiplier]));
 }
 
 public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank)
