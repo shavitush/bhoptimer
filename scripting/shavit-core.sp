@@ -613,9 +613,9 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
 	}
 
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 1.0)
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]) != 1.0)
 	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 	}
 }
 
