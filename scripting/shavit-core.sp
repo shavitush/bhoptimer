@@ -1342,8 +1342,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			float fScale = view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit]) / fSpeed_New;
 
-			PrintToChat(client, "%.02f / %.02f = %.02f", gA_StyleSettings[gBS_Style[client]][fVelocityLimit], fSpeed_New, gA_StyleSettings[gBS_Style[client]][fVelocityLimit] / fSpeed_New);
-
 			if(fScale < 1.0)
 			{
 				ScaleVector(fSpeed, fScale);
