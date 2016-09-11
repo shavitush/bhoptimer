@@ -419,7 +419,7 @@ public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 		return MRES_Ignored;
 	}
 
-	DHookSetReturn(hReturn, gA_StyleSettings[Shavit_GetBhopStyle(pThis)][fRunspeed]);
+	DHookSetReturn(hReturn, view_as<float>(gA_StyleSettings[Shavit_GetBhopStyle(pThis)][fRunspeed]));
 
 	return MRES_Override;
 }
