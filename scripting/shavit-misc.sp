@@ -23,11 +23,11 @@
 #include <sdktools>
 #include <sdkhooks>
 
-#undef REQUIRE_PLUGIN
-#include <shavit>
-
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
+
+#undef REQUIRE_PLUGIN
+#include <shavit>
 
 #pragma newdecls required
 #pragma semicolon 1
