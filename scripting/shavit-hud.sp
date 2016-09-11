@@ -561,7 +561,7 @@ public void UpdateHUD(int client)
 			{
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
 				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
-				Format(sHintText, 512, "%s\n\tTime: <font color='#00FF00'>%s</font>/%s", sHintText, sTime, sWR);
+				Format(sHintText, 512, "%s\n\tTime: <font color='#00FF00'>%s</font>%s", sHintText, sTime, sWR);
 				Format(sHintText, 512, "%s\n\tSpeed: %d", sHintText, iSpeed);
 				Format(sHintText, 512, "%s</font>", sHintText);
 			}

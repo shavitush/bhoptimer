@@ -20,14 +20,13 @@
 
 #include <sourcemod>
 #include <cstrike>
-#include <dynamic>
 
 #undef REQUIRE_PLUGIN
-#define USES_CHAT_COLORS
-#include <shavit>
 #include <basecomm>
 #include <rtler>
 #include <chat-processor>
+#define USES_CHAT_COLORS
+#include <shavit>
 
 #pragma newdecls required
 #pragma semicolon 1
