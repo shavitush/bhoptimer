@@ -98,6 +98,9 @@ bool gB_Rankings = false;
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
+// chat settings
+char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Miscellaneous",
@@ -261,6 +264,14 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 }
 
+public void Shavit_OnChatConfigLoaded()
+{
+	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
+	{
+		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
+	}
+}
+
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	gI_GodMode = gCV_GodMode.IntValue;
@@ -321,6 +332,7 @@ public void OnMapStart()
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnChatConfigLoaded();
 	}
 }
 
@@ -446,7 +458,7 @@ public Action Timer_Scoreboard(Handle Timer)
 
 public Action Timer_Message(Handle Timer)
 {
-	Shavit_PrintToChatAll("You may write !hide to hide other players.");
+	Shavit_PrintToChatAll("You may write %s!hide%s to %shide%s other players.", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
 
 	return Plugin_Continue;
 }
@@ -495,7 +507,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gI_LastFlags[client] & FL_ONGROUND) == 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
-			Shavit_PrintToChat(client, "Bhopping in the start zone is not allowed.");
+			Shavit_PrintToChat(client, "Bunnyhopping in the %sstart zone%s is %snot allowed%s.", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 			gI_LastFlags[client] = GetEntityFlags(client);
 
@@ -646,8 +658,15 @@ public Action Command_Hide(int client, int args)
 
 	gB_Hide[client] = !gB_Hide[client];
 
-	// I use PTC instead of RTC there because I have an sm_hide bind just like many people :)
-	Shavit_PrintToChat(client, "You are now %shiding players.", gB_Hide[client]? "":"not ");
+	if(gB_Hide[client])
+	{
+		Shavit_PrintToChat(client, "You are now %shiding%s players.", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+	}
+
+	else
+	{
+		Shavit_PrintToChat(client, "You are now %snot hiding%s players.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+	}
 
 	return Plugin_Handled;
 }
@@ -688,7 +707,7 @@ public Action Command_Teleport(int client, int args)
 
 	if(!gB_TeleportCommands)
 	{
-		Shavit_PrintToChat(client, "This command is disabled.");
+		Shavit_PrintToChat(client, "This command is %sdisabled%s.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -771,12 +790,12 @@ public int Teleport(int client, int targetserial)
 
 	if(Shavit_InsideZone(client, Zone_Start) || Shavit_InsideZone(client, Zone_End))
 	{
-		Shavit_PrintToChat(client, "You cannot teleport inside the start/end zones.");
+		Shavit_PrintToChat(client, "You %scannot teleport%s inside the %sstart/end zones%s.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 		return -1;
 	}
 
-	if(!iTarget)
+	if(iTarget == 0)
 	{
 		Shavit_PrintToChat(client, "Invalid target.");
 
@@ -802,14 +821,14 @@ public Action Command_Weapon(int client, int args)
 
 	if(gI_WeaponCommands == 0)
 	{
-		Shavit_PrintToChat(client, "This command is disabled.");
+		Shavit_PrintToChat(client, "This command is %sdisabled%s.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if(!IsPlayerAlive(client))
 	{
-		Shavit_PrintToChat(client, "You need to be alive to spawn weapons.");
+		Shavit_PrintToChat(client, "You need to be %salive%s to spawn weapons.", gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -875,21 +894,21 @@ public Action Command_Noclip(int client, int args)
 
 	if(gI_NoclipMe == 0)
 	{
-		Shavit_PrintToChat(client, "This feature is disabled.");
+		Shavit_PrintToChat(client, "This feature is %sdisabled%s.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if(gI_NoclipMe == 2 && !CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))
 	{
-		Shavit_PrintToChat(client, "You're lacking access to this command.");
+		Shavit_PrintToChat(client, "You're %slacking access%s to this command.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if(!IsPlayerAlive(client))
 	{
-		Shavit_PrintToChat(client, "You have to be alive to use this command.");
+		Shavit_PrintToChat(client, "You have to be %salive%s to use this command.", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -962,7 +981,7 @@ public Action Command_Specs(int client, int args)
 
 		if(!IsPlayerAlive(iNewTarget))
 		{
-			Shavit_PrintToChat(client, "You can't target a dead player.");
+			Shavit_PrintToChat(client, "You %scannot%s target a dead player.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 			return Plugin_Handled;
 		}
@@ -986,24 +1005,24 @@ public Action Command_Specs(int client, int args)
 
 			if(iCount == 1)
 			{
-				FormatEx(sSpecs, 192, "%N", i);
+				FormatEx(sSpecs, 192, "%s%N", gS_ChatStrings[sMessageVariable2], i);
 			}
 
 			else
 			{
-				Format(sSpecs, 192, "%s, %N", sSpecs, i);
+				Format(sSpecs, 192, "%s%s, %s%N", sSpecs, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], i);
 			}
 		}
 	}
 
 	if(iCount > 0)
 	{
-		Shavit_PrintToChat(client, "\x03%N\x01 has %d spectators: %s", iSpecTarget, iCount, sSpecs);
+		Shavit_PrintToChat(client, "%s%N%s has %s%d%s spectators: %s", gS_ChatStrings[sMessageVariable2], iSpecTarget, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iCount, gS_ChatStrings[sMessageText], sSpecs);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "No one is spectating \x03%N\x01.", iSpecTarget);
+		Shavit_PrintToChat(client, "No one is spectating %s%N%s.", gS_ChatStrings[sMessageVariable2], iSpecTarget, gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -1024,7 +1043,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 	for(int i = 1; i <= 3; i++)
 	{
-		Shavit_PrintToChatAll("%sNEW %s WR!!!", (gEV_Type == Engine_CSGO)? "\x02":"\x077D42C9", sUpperCase);
+		Shavit_PrintToChatAll("%sNEW %s WR!!!", gS_ChatStrings[sMessageWarning], sUpperCase);
 	}
 }
 
