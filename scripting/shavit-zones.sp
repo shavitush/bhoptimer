@@ -139,6 +139,9 @@ bool gB_UseCustomSprite = true;
 // table prefix
 char gS_MySQLPrefix[32];
 
+// chat settings
+char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
@@ -427,6 +430,19 @@ public void OnMapStart()
 	// draw
 	// start drawing mapzones here
 	CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+
+	if(gB_Late)
+	{
+		Shavit_OnChatConfigLoaded();
+	}
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
+	{
+		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
+	}
 }
 
 // 0 - all zones
@@ -616,7 +632,7 @@ public Action Command_Modifier(int client, int args)
 
 	gF_Modifier[client] = fArg1;
 
-	Shavit_PrintToChat(client, "Modifier set to \x03%.01f\x01.", fArg1);
+	Shavit_PrintToChat(client, "Modifier set to %s%.01f%s.", gS_ChatStrings[sMessageVariable], fArg1, gS_ChatStrings[sMessageText]);
 
 	return Plugin_Handled;
 }
@@ -651,7 +667,7 @@ public Action Command_Zones(int client, int args)
 
 	if(!IsPlayerAlive(client))
 	{
-		ReplyToCommand(client, "%s You can't setup mapzones when you're dead.", PREFIX);
+		Shavit_PrintToChat(client, "You %scannot%s setup mapzones when you're dead.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -771,7 +787,7 @@ public void SQL_DeleteZone_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	Shavit_PrintToChat(client, "Deleted \"%s\" sucessfully.", gS_ZoneNames[type]);
+	Shavit_PrintToChat(client, "Deleted %s%s%s sucessfully.", gS_ChatStrings[sMessageVariable], gS_ZoneNames[type], gS_ChatStrings[sMessageText]);
 }
 
 public Action Command_DeleteAllZones(int client, int args)
@@ -1169,9 +1185,17 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 			int iAxis = StringToInt(sExploded[1]);
 			bool bIncrease = view_as<bool>(StringToInt(sExploded[2]) == 1);
 
-			(iPoint == 1? gV_Point1:gV_Point2)[param1][iAxis] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
+			((iPoint == 1)? gV_Point1:gV_Point2)[param1][iAxis] += ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]);
 
-			Shavit_PrintToChat(param1, "\x03%c\x01 axis %s(point %d) \x04%s\x01 by \x03%.01f\x01.", sAxis[iAxis], (gEV_Type == Engine_CSGO)? "\x0A":"\x05", iPoint, bIncrease? "increased":"decreased", gF_Modifier[param1]);
+			if(bIncrease)
+			{
+				Shavit_PrintToChat(param1, "%s%c axis%s (point %d) increased by %s%.01f%s.", gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
+			}
+
+			else
+			{
+				Shavit_PrintToChat(param1, "%s%c axis%s (point %d) decreased by %s%.01f%s.", gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
+			}
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
@@ -1225,7 +1249,7 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 			bool bIncrease = view_as<bool>(StringToInt(sInfo) == 1);
 			gF_RotateAngle[param1] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 
-			Shavit_PrintToChat(param1, "Zone rotated by \x03%.01f\x01 degrees.", (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]));
+			Shavit_PrintToChat(param1, "Zone rotated by %s%.01f%s degrees.", gS_ChatStrings[sMessageVariable], ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]), gS_ChatStrings[sMessageText]);
 
 			CreateRotateMenu(param1);
 		}
@@ -1314,7 +1338,7 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 				gV_Fix2[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 			}
 
-			Shavit_PrintToChat(param1, "\x03%s edge \x04%s\x01 by \x03%.01f degrees\x01.", sEdges[iEdge], bIncrease? "increased":"decreased", gF_Modifier[param1]);
+			Shavit_PrintToChat(param1, "%s edge %s%s%s by %s%.01f degrees%s.", sEdges[iEdge], gS_ChatStrings[sMessageVariable2], (bIncrease)? "increased":"decreased", gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
 
 			CreateWidthLengthMenu(param1, GetMenuSelectionPosition());
 		}

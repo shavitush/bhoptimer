@@ -75,6 +75,9 @@ bool gB_Stats = false;
 int gI_Styles = 0;
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
+// chat settings
+char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Rankings",
@@ -261,7 +264,7 @@ public Action Timer_PrintTier(Handle Timer, any data)
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	Shavit_PrintToChat(client, "\x04%s\x01 is rated \x05tier %.01f\x01.", sDisplayMap, gF_MapTier);
+	Shavit_PrintToChat(client, "%s%s%s is rated %stier %.01f%s.", gS_ChatStrings[sMessageVariable2], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
 
 	return Plugin_Stop;
 }
@@ -284,6 +287,7 @@ public void OnMapStart()
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnChatConfigLoaded();
 	}
 }
 
@@ -353,6 +357,14 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	gI_Styles = styles;
 }
 
+public void Shavit_OnChatConfigLoaded()
+{
+	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
+	{
+		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
+	}
+}
+
 public Action Command_Points(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -368,7 +380,7 @@ public Action Command_Points(int client, int args)
 
 	if(fWRTime < 0.0)
 	{
-		Shavit_PrintToChat(client, "\x04%s\x01: Unknown points, no records on map.", sDisplayMap);
+		Shavit_PrintToChat(client, "%s%s%s: Unknown points, no records on map.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -383,7 +395,7 @@ public Action Command_Points(int client, int args)
 	char[] sTime = new char[32];
 	FormatSeconds(fWRTime, sTime, 32, false);
 
-	Shavit_PrintToChat(client, "\x04%s\x01: Around \x03%.01f\x01 points for a time of \x05%s\x01.", sDisplayMap, (fTier * gF_PointsPerTier), sTime);
+	Shavit_PrintToChat(client, "%s%s%s: Around %s%.01f%s points for a time of %s%s%s.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], (fTier * gF_PointsPerTier), gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], sTime, gS_ChatStrings[sMessageText]);
 
 	return Plugin_Handled;
 }
@@ -412,12 +424,12 @@ public Action Command_Rank(int client, int args)
 
 	if(gI_PlayerRank[target] <= 0)
 	{
-		Shavit_PrintToChat(client, "\x03%N\x01 is unranked.", target);
+		Shavit_PrintToChat(client, "%s%N%s is %sunranked%s.", gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "\x03%N\x01 is ranked \x03%d\x01 out of \x03%d\x01 with \x05%.02f points\x01.", target, gI_PlayerRank[target], gI_RankedPlayers, gF_PlayerPoints[target]);
+	Shavit_PrintToChat(client, "%s%N%s is ranked %s%d%s out of %s%d%s with %s%.02f points%s.", gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gI_PlayerRank[target], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gI_RankedPlayers, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_PlayerPoints[target], gS_ChatStrings[sMessageText]);
 
 	return Plugin_Handled;
 }
@@ -539,12 +551,12 @@ public Action Command_Tier(int client, int args)
 
 		if(gF_MapTier != -1)
 		{
-			Shavit_PrintToChat(client, "\x04%s\x01 is rated \x05tier %.01f\x01.", sDisplayMap, gF_MapTier);
+			Shavit_PrintToChat(client, "%s%s%s is rated %stier %.01f%s.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "\x04%s\x01 is not rated.", sDisplayMap);
+			Shavit_PrintToChat(client, "%s%s%s is not rated.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText]);
 		}
 	}
 
@@ -585,12 +597,12 @@ public void SQL_GetTier_Callback(Database db, DBResultSet results, const char[] 
 		char[] sDisplayMap = new char[strlen(sMap) + 1];
 		GetMapDisplayName(sMap, sDisplayMap, strlen(sMap) + 1);
 
-		Shavit_PrintToChat(client, "\x04%s\x01 is rated \x05tier %.01f\x01.", sDisplayMap, results.FetchFloat(1));
+		Shavit_PrintToChat(client, "%s%s%s is rated %stier %.01f%s.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], results.FetchFloat(1), gS_ChatStrings[sMessageText]);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "Couldn't find map tier for \x04%s\x01.", gS_CachedMap[client]);
+		Shavit_PrintToChat(client, "Couldn't find map tier for %s%s%s.", gS_ChatStrings[sMessageVariable], gS_CachedMap[client], gS_ChatStrings[sMessageText]);
 	}
 }
 

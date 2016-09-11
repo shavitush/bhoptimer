@@ -62,6 +62,9 @@ int gI_Styles = 0;
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
+// chat settings
+char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Player Stats",
@@ -125,6 +128,7 @@ public void OnMapStart()
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnChatConfigLoaded();
 	}
 }
 
@@ -143,6 +147,14 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 
 	gI_Styles = styles;
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
+	{
+		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -451,7 +463,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 	else
 	{
-		Shavit_PrintToChat(client, "ERROR: Could not open the stats menu.");
+		Shavit_PrintToChat(client, "%sERROR: %sCould not open the stats menu.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 }
 
