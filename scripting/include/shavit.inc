@@ -178,7 +178,8 @@ enum MapZones(+=1)
 	Zone_Slay,
 	Zone_Freestyle,
 	Zone_NoVelLimit,
-	Zone_Teleport
+	Zone_Teleport,
+	Zone_CustomSpawn
 };
 
 // let's not throw errors k?

@@ -23,6 +23,7 @@
 #include <sdktools>
 #include <geoip>
 #include <clientprefs>
+#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
@@ -635,7 +636,7 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
 
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 1.0)
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 0.0)
 	{
 		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
 	}
@@ -1063,7 +1064,7 @@ public bool LoadStyles()
 		gA_StyleSettings[i][fVelocityLimit] = dStyle.GetFloat("velocity_limit", 0.0);
 		gA_StyleSettings[i][iAiraccelerate] = dStyle.GetInt("airaccelerate", 1000);
 		gA_StyleSettings[i][fRunspeed] = dStyle.GetFloat("runspeed", 260.00);
-		gA_StyleSettings[i][fGravityMultiplier] = dStyle.GetFloat("gravity", 1.0);
+		gA_StyleSettings[i][fGravityMultiplier] = dStyle.GetFloat("gravity", 0.0);
 		gA_StyleSettings[i][fSpeedMultiplier] = dStyle.GetFloat("speed", 1.0);
 		gA_StyleSettings[i][bHalftime] = dStyle.GetBool("halftime", false);
 		gA_StyleSettings[i][bBlockW] = dStyle.GetBool("block_w", false);
