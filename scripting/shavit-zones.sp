@@ -24,7 +24,8 @@
 #include <dynamic>
 
 #undef REQUIRE_PLUGIN
-#include <shavit>
+//#include <shavit>
+#include "include/shavit.inc"
 #include <adminmenu>
 
 #pragma semicolon 1
@@ -50,6 +51,7 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
 	"No Speed Limit", // ignores velocity limit in that zone
 	"Teleport Zone" // teleports to a defined point
+	//"Custom Spawn" // Custom start position to teleport to on !r
 };
 
 enum
@@ -108,6 +110,10 @@ float gF_FreeStyleConstSin[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleMinusConstSin[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleConstCos[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleMinusConstCos[MULTIPLEZONES_LIMIT];
+
+bool gB_CustomSpawn;
+bool gB_UpdateCustomSpawn[MAXPLAYERS+1];
+float gF_CustomSpawn[3];
 
 float gF_RotateAngle[MAXPLAYERS+1];
 float gV_Fix1[MAXPLAYERS+1][2];
@@ -185,6 +191,9 @@ public void OnPluginStart()
 
 	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
 	RegAdminCmd("sm_tpzone", Command_TPZone, ADMFLAG_RCON, "Defines the teleport zone so it teleports to the location you are in.");
+
+	RegAdminCmd("sm_addspawn", Command_AddSpawn,  ADMFLAG_RCON, "Adds a custom spawn location");
+	RegAdminCmd("sm_delspawn", Command_DelSpawn,  ADMFLAG_RCON, "Deletes a custom spawn location");
 
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
@@ -510,7 +519,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 	{
 		MapZones type = view_as<MapZones>(results.FetchInt(0));
 
-		if(type >= Zone_Freestyle)
+		if(type >= Zone_Freestyle && type != Zone_CustomSpawn)
 		{
 			gV_FreestyleZones[iFreestyleRow][0][0] = results.FetchFloat(1);
 			gV_FreestyleZones[iFreestyleRow][0][1] = results.FetchFloat(2);
@@ -545,11 +554,20 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 			iFreestyleRow++;
 		}
-
 		else
 		{
 			if(view_as<int>(type) >= MAX_ZONES || view_as<int>(type) < 0)
 			{
+				continue;
+			}
+
+			if(type == Zone_CustomSpawn)
+			{
+				gF_CustomSpawn[0] = results.FetchFloat(1);
+				gF_CustomSpawn[1] = results.FetchFloat(2);
+				gF_CustomSpawn[2] = results.FetchFloat(3);
+				gB_CustomSpawn = true;
+
 				continue;
 			}
 
@@ -640,6 +658,65 @@ public Action Command_TPZone(int client, int args)
 	Shavit_PrintToChat(client, "Teleport zone destination updated.");
 
 	return Plugin_Handled;
+}
+
+public Action Command_AddSpawn(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		ReplyToCommand(client, "%s You can't place zones when you're dead.", PREFIX);
+
+		return Plugin_Handled;
+	}
+
+	gMZ_Type[client] = Zone_CustomSpawn;
+	GetClientAbsOrigin(client, gV_Point1[client]);
+
+	if(gB_CustomSpawn)
+		gB_UpdateCustomSpawn[client] = true;
+
+	InsertZone(client);
+
+	return Plugin_Handled;
+}
+
+public Action Command_DelSpawn(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE type = '%d' AND map = '%s';", gS_MySQLPrefix, Zone_CustomSpawn, gS_Map);
+
+	gH_SQL.Query(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(client));
+
+	return Plugin_Handled;
+}
+
+public void SQL_DeleteCustom_Spawn(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (custom spawn delete) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	Shavit_PrintToChat(client, "Deleted Custom Spawn sucessfully.");
 }
 
 public Action Command_Zones(int client, int args)
@@ -1342,13 +1419,16 @@ public void InsertZone(int client)
 
 	char[] sQuery = new char[512];
 
-	if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
+	if(!gB_UpdateCustomSpawn[client] || (EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
 	{
 		if(type != Zone_Teleport)
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
 		}
-
+		else if(type == Zone_CustomSpawn)
+		{
+			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
+		}
 		else
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2]);
@@ -1357,7 +1437,10 @@ public void InsertZone(int client)
 
 	else // update
 	{
-		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
+		if(type == Zone_CustomSpawn)
+			FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gS_Map, type);
+		else
+			FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
 	}
 
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, type);
@@ -1992,19 +2075,26 @@ public void Shavit_OnRestart(int client)
 {
 	if(gB_TeleportToStart && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
 	{
-		float vCenter[3];
-		MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
+		if(gB_CustomSpawn)
+		{
+			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		}
+		else
+		{
+			float vCenter[3];
+			MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
 
-		// calculate center
-		vCenter[0] /= 2.0;
-		vCenter[1] /= 2.0;
-		// i could also use ScaleVector() by 0.5f I guess? dunno which is more resource intensive, so i'll do it manually.
+			// calculate center
+			vCenter[0] /= 2.0;
+			vCenter[1] /= 2.0;
+			// i could also use ScaleVector() by 0.5f I guess? dunno which is more resource intensive, so i'll do it manually.
 
-		AddVectors(gV_MapZones[0][0], vCenter, vCenter);
+			AddVectors(gV_MapZones[0][0], vCenter, vCenter);
 
-		vCenter[2] = gV_MapZones[0][0][2];
+			vCenter[2] = gV_MapZones[0][0][2];
 
-		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		}
 	}
 }
 
