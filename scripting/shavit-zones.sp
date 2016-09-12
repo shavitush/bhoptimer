@@ -684,7 +684,7 @@ public Action Command_AddSpawn(int client, int args)
 
 	if(!IsPlayerAlive(client))
 	{
-		ReplyToCommand(client, "%s You can't place zones when you're dead.", PREFIX);
+		ReplyToCommand(client, "You can't place zones when you're dead.");
 
 		return Plugin_Handled;
 	}
