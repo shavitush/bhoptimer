@@ -538,9 +538,9 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 		if(type == Zone_CustomSpawn)
 		{
-			gF_CustomSpawn[0] = results.FetchFloat(1);
-			gF_CustomSpawn[1] = results.FetchFloat(2);
-			gF_CustomSpawn[2] = results.FetchFloat(3);
+			gF_CustomSpawn[0] = results.FetchFloat(12);
+			gF_CustomSpawn[1] = results.FetchFloat(13);
+			gF_CustomSpawn[2] = results.FetchFloat(14);
 			gB_CustomSpawn = true;
 		}
 		else if(type >= Zone_Freestyle)
@@ -693,7 +693,7 @@ public Action Command_AddSpawn(int client, int args)
 	if(gB_CustomSpawn)
 	{
 		Shavit_PrintToChat(client, "Custom Spawn already exists. Please delete it before placing a new one.");
-		
+
 		return Plugin_Handled;
 	}
 
@@ -1468,7 +1468,7 @@ public void InsertZone(int client)
 		}
 		else if(type == Zone_CustomSpawn)
 		{
-			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
+			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
 		}
 		else
 		{
