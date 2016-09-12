@@ -477,6 +477,7 @@ public void UnloadZones(int zone)
 		}
 
 		ClearCustomSpawn();
+		return;
 	}
 
 	if(zone < view_as<int>(Zone_Freestyle))
