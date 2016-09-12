@@ -113,6 +113,7 @@ char gS_MySQLPrefix[32];
 ConVar sv_airaccelerate = null;
 
 // timer settings
+bool gB_Registered = false;
 int gI_Styles = 0;
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
@@ -240,9 +241,12 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_autobhop", Command_AutoBhop, "Toggle autobhop.");
 	gH_AutoBhopCookie = RegClientCookie("shavit_autobhop", "Autobhop cookie", CookieAccess_Protected);
 
-	// doublstep fixer
+	// doublestep fixer
 	AddCommandListener(Command_DoubleStep, "+ds");
 	AddCommandListener(Command_DoubleStep, "-ds");
+
+	// style commands
+	gSM_StyleCommands = new StringMap();
 	// commands END
 
 	#if defined DEBUG
@@ -1038,15 +1042,6 @@ public bool LoadStyles()
 		return false;
 	}
 
-	bool bRegister = false;
-
-	if(gSM_StyleCommands == null || gSM_StyleCommands.Size == 0)
-	{
-		bRegister = true;
-	}
-
-	gSM_StyleCommands = new StringMap();
-
 	gI_Styles = dStylesConfig.MemberCount;
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -1085,7 +1080,7 @@ public bool LoadStyles()
 		gA_StyleSettings[i][fRankingMultiplier] = dStyle.GetFloat("rankingmultiplier", 1.00);
 		gA_StyleSettings[i][iSpecial] = dStyle.GetInt("special", 0);
 
-		if(bRegister && strlen(gS_StyleStrings[i][sChangeCommand]) > 0)
+		if(!gB_Registered && strlen(gS_StyleStrings[i][sChangeCommand]) > 0)
 		{
 			char[][] sStyleCommands = new char[32][32];
 			int iCommands = ExplodeString(gS_StyleStrings[i][sChangeCommand], ";", sStyleCommands, 32, 32, false);
@@ -1097,6 +1092,7 @@ public bool LoadStyles()
 
 				char[] sCommand = new char[32];
 				FormatEx(sCommand, 32, "sm_%s", sStyleCommands[x]);
+
 				gSM_StyleCommands.SetValue(sCommand, i);
 
 				char[] sDescription = new char[128];
@@ -1106,6 +1102,8 @@ public bool LoadStyles()
 			}
 		}
 	}
+
+	gB_Registered = true;
 
 	dStylesConfig.Dispose(true);
 
