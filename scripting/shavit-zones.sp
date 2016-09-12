@@ -685,7 +685,7 @@ public Action Command_AddSpawn(int client, int args)
 
 	if(!IsPlayerAlive(client))
 	{
-		ReplyToCommand(client, "You can't place zones when you're dead.");
+		Shavit_PrintToChat(client, "You can't place zones when you're dead.");
 
 		return Plugin_Handled;
 	}
@@ -699,7 +699,6 @@ public Action Command_AddSpawn(int client, int args)
 
 	gMZ_Type[client] = Zone_CustomSpawn;
 	GetClientAbsOrigin(client, gV_Point1[client]);
-
 	InsertZone(client);
 
 	return Plugin_Handled;
@@ -715,12 +714,12 @@ public Action Command_DelSpawn(int client, int args)
 	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE type = '%d' AND map = '%s';", gS_MySQLPrefix, Zone_CustomSpawn, gS_Map);
 
-	gH_SQL.Query(SQL_DeleteCustom_Spawn, sQuery, GetClientSerial(client));
+	gH_SQL.Query(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(client));
 
 	return Plugin_Handled;
 }
 
-public void SQL_DeleteCustom_Spawn(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
 	{
