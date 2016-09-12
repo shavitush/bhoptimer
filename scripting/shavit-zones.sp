@@ -477,7 +477,7 @@ public void UnloadZones(int zone)
 			}
 		}
 
-		return;
+		ClearCustomSpawn();
 	}
 
 	if(zone < view_as<int>(Zone_Freestyle))
@@ -488,7 +488,10 @@ public void UnloadZones(int zone)
 			gV_MapZones[zone][1][i] = 0.0;
 		}
 	}
-
+	if(zone == view_as<int>(Zone_CustomSpawn))
+	{
+		ClearCustomSpawn();
+	}
 	else
 	{
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
@@ -534,7 +537,14 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 	{
 		MapZones type = view_as<MapZones>(results.FetchInt(0));
 
-		if(type >= Zone_Freestyle && type != Zone_CustomSpawn)
+		if(type == Zone_CustomSpawn)
+		{
+			gF_CustomSpawn[0] = results.FetchFloat(1);
+			gF_CustomSpawn[1] = results.FetchFloat(2);
+			gF_CustomSpawn[2] = results.FetchFloat(3);
+			gB_CustomSpawn = true;
+		}
+		else if(type >= Zone_Freestyle)
 		{
 			gV_FreestyleZones[iFreestyleRow][0][0] = results.FetchFloat(1);
 			gV_FreestyleZones[iFreestyleRow][0][1] = results.FetchFloat(2);
@@ -573,16 +583,6 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		{
 			if(view_as<int>(type) >= MAX_ZONES || view_as<int>(type) < 0)
 			{
-				continue;
-			}
-
-			if(type == Zone_CustomSpawn)
-			{
-				gF_CustomSpawn[0] = results.FetchFloat(1);
-				gF_CustomSpawn[1] = results.FetchFloat(2);
-				gF_CustomSpawn[2] = results.FetchFloat(3);
-				gB_CustomSpawn = true;
-
 				continue;
 			}
 
@@ -675,6 +675,8 @@ public Action Command_TPZone(int client, int args)
 	return Plugin_Handled;
 }
 
+//Krypt Custom Spawn Functions
+
 public Action Command_AddSpawn(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -695,6 +697,7 @@ public Action Command_AddSpawn(int client, int args)
 	if(gB_CustomSpawn)
 		gB_UpdateCustomSpawn[client] = true;
 
+	PrintToChatAll("%d", client);
 	InsertZone(client);
 
 	return Plugin_Handled;
@@ -710,7 +713,7 @@ public Action Command_DelSpawn(int client, int args)
 	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE type = '%d' AND map = '%s';", gS_MySQLPrefix, Zone_CustomSpawn, gS_Map);
 
-	gH_SQL.Query(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query(SQL_DeleteCustom_Spawn, sQuery, GetClientSerial(client));
 
 	return Plugin_Handled;
 }
@@ -731,8 +734,21 @@ public void SQL_DeleteCustom_Spawn(Database db, DBResultSet results, const char[
 		return;
 	}
 
+	ClearCustomSpawn();
+
 	Shavit_PrintToChat(client, "Deleted Custom Spawn sucessfully.");
 }
+
+public void ClearCustomSpawn()
+{
+	for(int i = 0; i < 3; i++)
+	{
+		gF_CustomSpawn[i] = 0.0;
+	}
+	gB_CustomSpawn = false;
+}
+
+//End of Krypt Custom Spawn Functions
 
 public Action Command_Zones(int client, int args)
 {
@@ -1480,7 +1496,7 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	UnloadZones((data >= Zone_Freestyle)? 0:data);
+	UnloadZones((data >= Zone_Freestyle && data != Zone_CustomSpawn)? 0:data);
 	RefreshZones();
 }
 
