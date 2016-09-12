@@ -697,7 +697,6 @@ public Action Command_AddSpawn(int client, int args)
 	if(gB_CustomSpawn)
 		gB_UpdateCustomSpawn[client] = true;
 
-	PrintToChatAll("%d", client);
 	InsertZone(client);
 
 	return Plugin_Handled;
