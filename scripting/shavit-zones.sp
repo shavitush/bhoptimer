@@ -111,7 +111,6 @@ float gF_FreeStyleConstCos[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleMinusConstCos[MULTIPLEZONES_LIMIT];
 
 bool gB_CustomSpawn;
-bool gB_UpdateCustomSpawn[MAXPLAYERS+1];
 float gF_CustomSpawn[3];
 
 float gF_RotateAngle[MAXPLAYERS+1];
@@ -691,11 +690,15 @@ public Action Command_AddSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if(gB_CustomSpawn)
+	{
+		Shavit_PrintToChat(client, "Custom Spawn already exists. Please delete it before placing a new one.");
+		
+		return Plugin_Handled;
+	}
+
 	gMZ_Type[client] = Zone_CustomSpawn;
 	GetClientAbsOrigin(client, gV_Point1[client]);
-
-	if(gB_CustomSpawn)
-		gB_UpdateCustomSpawn[client] = true;
 
 	InsertZone(client);
 
@@ -1457,7 +1460,7 @@ public void InsertZone(int client)
 
 	char[] sQuery = new char[512];
 
-	if(!gB_UpdateCustomSpawn[client] || (EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
+	if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
 	{
 		if(type != Zone_Teleport)
 		{
@@ -1475,10 +1478,7 @@ public void InsertZone(int client)
 
 	else // update
 	{
-		if(type == Zone_CustomSpawn)
-			FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gS_Map, type);
-		else
-			FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
+		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
 	}
 
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, type);
