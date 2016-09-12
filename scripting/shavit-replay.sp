@@ -76,6 +76,9 @@ int gI_Styles = 0;
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
+// chat settings
+char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Replay Bot",
@@ -246,6 +249,7 @@ public void OnMapStart()
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnChatConfigLoaded();
 	}
 
 	if(!gB_Enabled)
@@ -365,6 +369,14 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 
 	gI_Styles = styles;
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
+	{
+		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
+	}
 }
 
 public bool LoadReplay(BhopStyle style)
@@ -1054,12 +1066,12 @@ public int DeleteConfirmation_Callback(Menu m, MenuAction action, int param1, in
 		{
 			LogAction(param1, param1, "Deleted replay for %s on map %s.", gS_StyleStrings[style][sStyleName], gS_Map);
 
-			Shavit_PrintToChat(param1, "Deleted replay for \x05%s\x01.", gS_StyleStrings[style][sStyleName]);
+			Shavit_PrintToChat(param1, "Deleted replay for %s%s%s.", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(param1, "Could not delete replay for \x05%s\x01.", gS_StyleStrings[style][sStyleName]);
+			Shavit_PrintToChat(param1, "Could not delete replay for %s%s%s.", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 		}
 	}
 

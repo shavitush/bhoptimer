@@ -30,8 +30,6 @@
 #pragma newdecls required
 
 #define SHAVIT_VERSION "1.5b"
-#define PREFIX "\x04[Timer]\x01"
-
 #define STYLE_LIMIT 256
 #define MAX_ZONES 8
 
@@ -104,6 +102,17 @@ enum
 	fRankingMultiplier,
 	iSpecial,
 	STYLESETTINGS_SIZE
+};
+
+enum
+{
+	sMessagePrefix,
+	sMessageText,
+	sMessageWarning,
+	sMessageVariable,
+	sMessageVariable2,
+	sMessageStyle,
+	CHATSETTINGS_SIZE
 };
 
 #if defined USES_CHAT_COLORS
@@ -352,6 +361,13 @@ forward void Shavit_OnStyleConfigLoaded(int styles);
  * @noreturn
  */
 forward void Shavit_OnDatabaseLoaded(Database db);
+
+/**
+ * Called when the chat messages configuration finishes loading and it's ready to load everything into the cache.
+ *
+ * @noreturn
+ */
+forward void Shavit_OnChatConfigLoaded();
 
 /**
  * Returns the game type the server is running.
@@ -692,6 +708,16 @@ native int Shavit_GetStyleStrings(BhopStyle style, int stringtype, char[] StyleS
 native int Shavit_GetStyleCount();
 
 /**
+ * Saves chat related strings on string references.
+ *
+ * @param stringtype				String type to grab.
+ * @param ChatStrings				Reference to the string buffer.
+ * @param size						Max length for the buffer.
+ * @return							SP_ERROR_NONE on success, anything else on failure.
+ */
+native int Shavit_GetChatStrings(int stringtype, char[] ChatStrings, int size);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -706,14 +732,14 @@ native int Shavit_PrintToChat(int client, const char[] format, any ...);
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
 {
-	char[] buffer = new char[255];
+	char[] buffer = new char[300];
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGame(i))
 		{
-			// SetGlobalTransTarget(i); when we're out of beta
-			VFormat(buffer, 255, format, 2);
+			SetGlobalTransTarget(i);
+			VFormat(buffer, 300, format, 2);
 			Shavit_PrintToChat(i, "%s", buffer);
 		}
 	}
@@ -737,6 +763,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
 	MarkNativeAsOptional("Shavit_FormatChat");
 	MarkNativeAsOptional("Shavit_GetBhopStyle");
+	MarkNativeAsOptional("Shavit_GetChatStrings");
 	MarkNativeAsOptional("Shavit_GetClientTime");
 	MarkNativeAsOptional("Shavit_GetClientJumps");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");

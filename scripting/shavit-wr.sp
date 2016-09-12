@@ -73,17 +73,13 @@ ConVar gCV_RecentLimit = null;
 int gI_RecordsLimit = 50;
 int gI_RecentLimit = 50;
 
-// colors to minimize printtochat on finish
-char gS_Color_Time[16];
-char gS_Color_Rank[16];
-char gS_Color_Sync[16];
-char gS_Color_Better[16];
-char gS_Color_Worse[16];
-
 // timer settings
 int gI_Styles = 0;
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
+
+// chat settings
+char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 
 public Plugin myinfo =
 {
@@ -147,15 +143,6 @@ public void OnPluginStart()
 
 	// admin menu
 	OnAdminMenuReady(null);
-
-	// colors
-	EngineVersion evType = GetEngineVersion();
-
-	strcopy(gS_Color_Time, 16, (evType == Engine_CSS)? "\x07D490CF":"\x07");
-	strcopy(gS_Color_Rank, 16, (evType == Engine_CSS)? "\x077585E0":"\x05");
-	strcopy(gS_Color_Sync, 16, (evType == Engine_CSS)? "\x07B590D4":"\x06");
-	strcopy(gS_Color_Better, 16, (evType == Engine_CSS)? "\x07AD3BA6":"\x0C");
-	strcopy(gS_Color_Worse, 16, (evType == Engine_CSS)? "\x07CCCCCC":"\x08");
 
 	// modules
 	gB_Rankings = LibraryExists("shavit-rankings");
@@ -290,6 +277,7 @@ public void OnMapStart()
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnChatConfigLoaded();
 	}
 }
 
@@ -314,6 +302,14 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 
 	gI_Styles = styles;
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
+	{
+		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
+	}
 }
 
 public void OnClientPutInServer(int client)
@@ -798,7 +794,7 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		Call_Finish();
 	}
 
-	Shavit_PrintToChat(client, "Deleted ALL records for \"%s\".", gS_Map);
+	Shavit_PrintToChat(client, "Deleted ALL records for %s%s%s.", gS_ChatStrings[sMessageVariable], gS_Map, gS_ChatStrings[sMessageText]);
 }
 
 public Action Command_WorldRecord(int client, int args)
@@ -868,7 +864,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 
 		if(iStyle == -1)
 		{
-			Shavit_PrintToChat(param1, "FATAL ERROR: No styles are available. Contact the server owner immediately!");
+			Shavit_PrintToChat(param1, "%sFATAL ERROR: %sNo styles are available. Contact the server owner immediately!", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 			return 0;
 		}
@@ -1499,7 +1495,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 	FormatSeconds(fDifference, sDifference, 16, true);
 
 	char[] sSync = new char[32]; // 32 because colors
-	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_Color_Sync, sync);
+	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_ChatStrings[sMessageVariable], sync);
 
 	if(overwrite > 0)
 	{
@@ -1510,7 +1506,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		if(overwrite == 1) // insert
 		{
-			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01.", client, gS_StyleStrings[style][sStyleName], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync);
+			Shavit_PrintToChatAll("%s%N%s finished (%s%s%s) in %s%s%s (%s#%d%s) with %d jump%s, %d strafe%s%s%s.", gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
 			// TODO: work on a solution that can function the same while not causing lost records
@@ -1524,7 +1520,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		else // update
 		{
-			Shavit_PrintToChatAll("\x03%N\x01 finished (%s) in %s%s\x01 (%s#%d\x01) with %d jump%s, %d strafe%s%s\x01. %s(-%s)", client, gS_StyleStrings[style][sStyleName], gS_Color_Time, sTime, gS_Color_Rank, iRank, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Better, sDifference);
+			Shavit_PrintToChatAll("%s%N%s finished (%s%s%s) in %s%s%s (%s#%d%s) with %d jump%s, %d strafe%s%s%s. %s(-%s)", gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}
@@ -1547,12 +1543,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 	else if(overwrite == 0 && !gA_StyleSettings[style][bUnranked])
 	{
-		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01. %s(+%s)", gS_StyleStrings[style][sStyleName], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_Color_Worse, sDifference);
+		Shavit_PrintToChat(client, "You have finished (%s%s%s) in %s%s%s with %d jump%s, %d strafe%s%s%s. (+%s)", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], sDifference);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "You have finished (%s) in %s%s\x01 with %d jump%s, %d strafe%s%s\x01.", gS_StyleStrings[style][sStyleName], gS_Color_Time, sTime, jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync);
+		Shavit_PrintToChat(client, "You have finished (%s%s%s) in %s%s%s with %d jump%s, %d strafe%s%s%s.", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
 	}
 }
 
@@ -1644,6 +1640,6 @@ public int GetRankForTime(BhopStyle style, float time)
 public void Shavit_OnDatabaseLoaded(Database db)
 {
 	gH_SQL = db;
-	
+
 	UpdateLeaderboards();
 }

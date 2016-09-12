@@ -25,14 +25,15 @@
 #include <clientprefs>
 
 #undef REQUIRE_PLUGIN
-#include <shavit>
 #include <adminmenu>
+#define USES_CHAT_COLORS
+#include <shavit>
 
 #pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
 
-//#define DEBUG
+// #define DEBUG
 
 // game type (CS:S/CS:GO)
 ServerGame gSG_Type = Game_Unknown; // deperecated and here for backwards compatibility
@@ -53,6 +54,7 @@ Handle gH_Forwards_OnResume = null;
 Handle gH_Forwards_OnStyleChanged = null;
 Handle gH_Forwards_OnStyleConfigLoaded = null;
 Handle gH_Forwards_OnDatabaseLoaded = null;
+Handle gH_Forwards_OnChatConfigLoaded = null;
 
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
@@ -115,6 +117,9 @@ int gI_Styles = 0;
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
+// chat settings
+char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Core",
@@ -150,6 +155,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
+	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -172,6 +178,7 @@ public void OnPluginStart()
 	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event, Param_Cell);
+	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 
 	// game types
 	gEV_Type = GetEngineVersion();
@@ -347,6 +354,18 @@ public void OnMapStart()
 		Call_Finish();
 	}
 
+	// messages
+	if(!LoadMessages())
+	{
+		SetFailState("Could not load the chat messages configuration file. Make sure it exists (addons/sourcemod/configs/shavit-messages.cfg) and follows the proper syntax!");
+	}
+
+	else
+	{
+		Call_StartForward(gH_Forwards_OnChatConfigLoaded);
+		Call_Finish();
+	}
+
 	// cvar forcing
 	FindConVar("sv_enablebunnyhopping").BoolValue = true;
 }
@@ -365,7 +384,7 @@ public Action Command_StartTimer(int client, int args)
 			char[] sCommand = new char[16];
 			GetCmdArg(0, sCommand, 16);
 
-			Shavit_PrintToChat(client, "The command (\x03%s\x01) is disabled.", sCommand);
+			Shavit_PrintToChat(client, "The command (%s%s%s) is disabled.", gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
 		}
 
 		return Plugin_Handled;
@@ -382,7 +401,7 @@ public Action Command_StartTimer(int client, int args)
 
 	else
 	{
-		Shavit_PrintToChat(client, "Your timer will not start as a start zone for the map is not defined.");
+		Shavit_PrintToChat(client, "Your timer %swill not%s start as a start zone for the map is not defined.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -405,7 +424,7 @@ public Action Command_TeleportEnd(int client, int args)
 
 	else
 	{
-		Shavit_PrintToChat(client, "You can't teleport as an end zone for the map is not defined.");
+		Shavit_PrintToChat(client, "You %scan't%s teleport as an end zone for the map is not defined.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -435,14 +454,14 @@ public Action Command_TogglePause(int client, int args)
 		char[] sCommand = new char[16];
 		GetCmdArg(0, sCommand, 16);
 
-		Shavit_PrintToChat(client, "The command (\x03%s\x01) is disabled.", sCommand);
+		Shavit_PrintToChat(client, "The command (%s%s%s) is disabled.", gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if((GetEntityFlags(client) & FL_ONGROUND) == 0)
 	{
-		Shavit_PrintToChat(client, "You are not allowed to pause when not on ground.");
+		Shavit_PrintToChat(client, "You %sare not%s allowed to pause when not on ground.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -478,7 +497,15 @@ public Action Command_AutoBhop(int client, int args)
 
 	gB_Auto[client] = !gB_Auto[client];
 
-	Shavit_PrintToChat(client, "Autobhop %s\x01.", gB_Auto[client]? "\x04enabled":"\x02disabled");
+	if(gB_Auto[client])
+	{
+		Shavit_PrintToChat(client, "Autobhop %senabled%s.", gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
+	}
+
+	else
+	{
+		Shavit_PrintToChat(client, "Autobhop %sdisabled%s.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+	}
 
 	char[] sAutoBhop = new char[4];
 	IntToString(view_as<int>(gB_Auto[client]), sAutoBhop, 4);
@@ -570,11 +597,11 @@ public void ChangeClientStyle(int client, BhopStyle style)
 
 	gBS_Style[client] = style;
 
-	Shavit_PrintToChat(client, "You have selected to play \x03%s\x01.", gS_StyleStrings[style][sStyleName]);
+	Shavit_PrintToChat(client, "You have selected to play %s%s%s.", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 
 	if(gA_StyleSettings[style][bUnranked])
 	{
-		Shavit_PrintToChat(client, "\x02WARNING: \x01This style is unranked. Your times WILL NOT be saved and will be only displayed to you!");
+		Shavit_PrintToChat(client, "%sWARNING: %sThis style is unranked. Your times WILL NOT be saved and will be only displayed to you!", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	StopTimer(client);
@@ -613,9 +640,9 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
 	}
 
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 1.0)
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]) != 1.0)
 	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 	}
 }
 
@@ -736,13 +763,30 @@ public int Native_ResumeTimer(Handle handler, int numParams)
 public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	static int written = 0; // useless?
 
-	int written = 0; // useless?
+	char[] buffer = new char[300];
+	FormatNativeString(0, 2, 3, 300, written, buffer);
+	Format(buffer, 300, "%s %s%s", gS_ChatStrings[sMessagePrefix], gS_ChatStrings[sMessageText], buffer);
 
-	char[] buffer = new char[255];
-	FormatNativeString(0, 2, 3, 255, written, buffer);
+	if(gEV_Type == Engine_CSS)
+	{
+		Handle hSayText2 = StartMessageOne("SayText2", client);
 
-	PrintToChat(client, "%s%s %s", (gEV_Type == Engine_CSS)? "":" ", PREFIX, buffer);
+		if(hSayText2 != null)
+		{
+			BfWriteByte(hSayText2, client);
+			BfWriteByte(hSayText2, true);
+			BfWriteString(hSayText2, buffer);
+		}
+
+		EndMessage();
+	}
+
+	else
+	{
+		PrintToChat(client, " %s", buffer);
+	}
 
 	return;
 }
@@ -785,6 +829,11 @@ public int Native_GetStyleSettings(Handle handler, int numParams)
 public int Native_GetStyleStrings(Handle handler, int numParams)
 {
 	return SetNativeString(3, gS_StyleStrings[GetNativeCell(1)][GetNativeCell(2)], GetNativeCell(4));
+}
+
+public int Native_GetChatStrings(Handle handler, int numParams)
+{
+	return SetNativeString(2, gS_ChatStrings[GetNativeCell(1)], GetNativeCell(3));
 }
 
 public void StartTimer(int client)
@@ -1080,6 +1129,49 @@ public Action Command_StyleChange(int client, int args)
 	return Plugin_Continue;
 }
 
+public bool LoadMessages()
+{
+	char[] sPath = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-messages.cfg");
+
+	Dynamic dMessagesConfig = Dynamic();
+
+	if(!dMessagesConfig.ReadKeyValues(sPath))
+	{
+		dMessagesConfig.Dispose();
+
+		return false;
+	}
+
+	Dynamic dMessage = dMessagesConfig.GetDynamic((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
+	dMessage.GetString("prefix", gS_ChatStrings[sMessagePrefix], 128);
+	dMessage.GetString("text", gS_ChatStrings[sMessageText], 128);
+	dMessage.GetString("warning", gS_ChatStrings[sMessageWarning], 128);
+	dMessage.GetString("variable", gS_ChatStrings[sMessageVariable], 128);
+	dMessage.GetString("variable2", gS_ChatStrings[sMessageVariable2], 128);
+	dMessage.GetString("style", gS_ChatStrings[sMessageStyle], 128);
+
+	dMessagesConfig.Dispose(true);
+
+	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
+	{
+		for(int x = 0; x < sizeof(gS_GlobalColorNames); x++)
+		{
+			ReplaceString(gS_ChatStrings[i], 128, gS_GlobalColorNames[x], gS_GlobalColors[x]);
+		}
+
+		for(int x = 0; x < sizeof(gS_CSGOColorNames); x++)
+		{
+			ReplaceString(gS_ChatStrings[i], 128, gS_CSGOColorNames[x], gS_CSGOColors[x]);
+		}
+
+		ReplaceString(gS_ChatStrings[i], 128, "{RGB}", "\x07");
+		ReplaceString(gS_ChatStrings[i], 128, "{RGBA}", "\x08");
+	}
+
+	return true;
+}
+
 public void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
@@ -1240,6 +1332,19 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		StopTimer_Cheat(client, "Detected +left/right on a disallowed style.");
 	}
 
+	// +strafe block
+	if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] && gB_TimerEnabled[client] && !gB_ClientPaused[client] && Inconsistency(vel, buttons))
+	{
+		float fTime = GetEngineTime();
+
+		if(gF_StrafeWarning[client] < fTime)
+		{
+			StopTimer_Cheat(client, "Detected inconsistencies in button presses.");
+		}
+
+		gF_StrafeWarning[client] = fTime + 0.20;
+	}
+
 	// key blocking
 	if(!Shavit_InsideZone(client, Zone_Freestyle))
 	{
@@ -1276,7 +1381,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 
 			// HSW
-			if(gA_StyleSettings[gBS_Style[client]][bForceHSW] > 0 && ((vel[0] < gF_HSW_Requirement && vel[0] > -gF_HSW_Requirement) || !((vel[0] > 0 || (buttons & IN_FORWARD) > 0) && ((vel[1] < 0 || (buttons & IN_MOVELEFT) > 0) || (vel[1] > 0 || (buttons & IN_MOVERIGHT) > 0)))))
+			if(gA_StyleSettings[gBS_Style[client]][bForceHSW] && ((vel[0] < gF_HSW_Requirement && vel[0] > -gF_HSW_Requirement) || !((vel[0] > 0 || (buttons & IN_FORWARD) > 0) && ((vel[1] < 0 || (buttons & IN_MOVELEFT) > 0) || (vel[1] > 0 || (buttons & IN_MOVERIGHT) > 0)))))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;
@@ -1341,8 +1446,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		if(fSpeed_New > 0.0)
 		{
 			float fScale = view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit]) / fSpeed_New;
-
-			PrintToChat(client, "%.02f / %.02f = %.02f", gA_StyleSettings[gBS_Style[client]][fVelocityLimit], fSpeed_New, gA_StyleSettings[gBS_Style[client]][fVelocityLimit] / fSpeed_New);
 
 			if(fScale < 1.0)
 			{
@@ -1410,19 +1513,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	// +strafe block
-	if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] && gB_TimerEnabled[client] && !gB_ClientPaused[client] && Inconsistency(vel, buttons))
-	{
-		float fTime = GetEngineTime();
-
-		if(gF_StrafeWarning[client] < fTime)
-		{
-			StopTimer_Cheat(client, "Detected inconsistencies in button presses.");
-		}
-
-		gF_StrafeWarning[client] = fTime + 0.20;
-	}
-
 	gI_ButtonCache[client] = buttons;
 	gF_AngleCache[client] = angles[1];
 
@@ -1432,7 +1522,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 public void StopTimer_Cheat(int client, const char[] message)
 {
 	Shavit_StopTimer(client);
-	Shavit_PrintToChat(client, "Timer stopped! %s", message);
+	Shavit_PrintToChat(client, "%sTimer stopped! %s%s", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], message);
 }
 
 public bool Inconsistency(const float[] vel, const int buttons)
