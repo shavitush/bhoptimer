@@ -24,8 +24,7 @@
 #include <dynamic>
 
 #undef REQUIRE_PLUGIN
-//#include <shavit>
-#include "include/shavit.inc"
+#include <shavit>
 #include <adminmenu>
 
 #pragma semicolon 1
