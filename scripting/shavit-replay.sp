@@ -236,7 +236,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 
 public Action HookTriggers(int entity, int other)
 {
-	if(IsValidClient(other) && IsFakeClient(other))
+	if(other >= 1 && other <= MaxClients && IsFakeClient(other))
 	{
 		return Plugin_Handled;
 	}
@@ -590,8 +590,8 @@ public void UpdateReplayInfo(int client, BhopStyle style, float time)
 
 			else
 			{
-				char[] sWRName = new char[MAX_NAME_LENGTH];
-				Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH);
+				char[] sWRName = new char[16];
+				Shavit_GetWRName(style, sWRName, 16);
 
 				FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s - %s", gS_StyleStrings[style][sShortName], sWRName, sTime);
 			}

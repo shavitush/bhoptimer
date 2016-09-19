@@ -231,7 +231,16 @@ public void OnPluginStart()
 		if(hGameData != null)
 		{
 			int iOffset = GameConfGetOffset(hGameData, "GetPlayerMaxSpeed");
-			gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetMaxPlayerSpeed);
+
+			if(iOffset != -1)
+			{
+				gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetMaxPlayerSpeed);
+			}
+
+			else
+			{
+				SetFailState("Couldn't get the offset for \"GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+			}
 		}
 
 		delete hGameData;

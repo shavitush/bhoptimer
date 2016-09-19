@@ -722,7 +722,16 @@ public void UpdateTopLeftHUD(int client, bool wait)
 			FormatSeconds(fPBTime, sPBTime, MAX_NAME_LENGTH);
 
 			char[] sTopLeft = new char[64];
-			FormatEx(sTopLeft, 64, "WR: %s (%s)\nBest: %s", sWRTime, sWRName, fPBTime != 0.0? sPBTime:"N/A");
+
+			if(fPBTime != 0.0)
+			{
+				FormatEx(sTopLeft, 64, "WR: %s (%s)\nBest: %s (#%d)", sWRTime, sWRName, sPBTime, (Shavit_GetRankForTime(style, fPBTime) - 1));
+			}
+
+			else
+			{
+				FormatEx(sTopLeft, 64, "WR: %s (%s)", sWRTime, sWRName);
+			}
 
 			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255);
 			ShowSyncHudText(client, gH_HUD, sTopLeft);

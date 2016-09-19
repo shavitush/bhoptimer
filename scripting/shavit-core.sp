@@ -969,7 +969,7 @@ public void OnClientPutInServer(int client)
 		OnClientCookiesCached(client);
 	}
 
-	if(!IsValidClient(client) || IsFakeClient(client) || gH_SQL == null)
+	if(gH_SQL == null || !IsValidClient(client) || IsFakeClient(client))
 	{
 		return;
 	}
@@ -1321,26 +1321,28 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
-	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
-	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 	bool bInStart = Shavit_InsideZone(client, Zone_Start);
 
-	if(gB_LeftRight && gB_TimerEnabled[client] && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] && (buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
+	if(gB_TimerEnabled[client] && !gB_ClientPaused[client])
 	{
-		StopTimer_Cheat(client, "Detected +left/right on a disallowed style.");
-	}
-
-	// +strafe block
-	if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] && gB_TimerEnabled[client] && !gB_ClientPaused[client] && Inconsistency(vel, buttons))
-	{
-		float fTime = GetEngineTime();
-
-		if(gF_StrafeWarning[client] < fTime)
+		// +left/right block
+		if(gB_LeftRight && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] && (buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
 		{
-			StopTimer_Cheat(client, "Detected inconsistencies in button presses.");
+			StopTimer_Cheat(client, "Detected +left/right on a disallowed style.");
 		}
 
-		gF_StrafeWarning[client] = fTime + 0.20;
+		// +strafe block
+		if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] && Inconsistency(vel, buttons))
+		{
+			float fTime = GetEngineTime();
+
+			if(gF_StrafeWarning[client] < fTime)
+			{
+				StopTimer_Cheat(client, "Detected inconsistencies in button presses.");
+			}
+
+			gF_StrafeWarning[client] = fTime + 0.20;
+		}
 	}
 
 	// key blocking
@@ -1411,6 +1413,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	// autobhop
 	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client])
 	{
+		bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
+		bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
+
 		if((buttons & IN_JUMP) > 0 && iGroundEntity == -1 && !bOnLadder && !bInWater)
 		{
 			buttons &= ~IN_JUMP;
