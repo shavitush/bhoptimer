@@ -16,7 +16,7 @@ a bhop server should be simple
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for compilation of `shavit-misc`.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
 * [Chat-Processor](https://forums.alliedmods.net/showthread.php?t=286913) - for compilation and better runtime of `shavit-chat` (plugin can run without it).
-* [Dynamic](https://forums.alliedmods.net/showthread.php?t=270519) for compilation and runtime of the whole plugin. (use latest version from GitHub)
+* [Dynamic](https://github.com/ntoxin66/Dynamic) for compilation and runtime of the whole plugin. (use latest version from GitHub)
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 prestrafe for all weapons.
