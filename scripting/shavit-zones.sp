@@ -351,7 +351,7 @@ public bool LoadZonesConfig()
 		return false;
 	}
 
-	Dynamic dSprites = dZones.GetDynamic((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
+	Dynamic dSprites = dZones.GetDynamicByIndex((gEV_Type == Engine_CSS)? 0:1);
 	dSprites.GetString("beam", gS_Sprites[sBeamSprite], PLATFORM_MAX_PATH);
 	dSprites.GetString("halo", gS_Sprites[sHaloSprite], PLATFORM_MAX_PATH);
 
@@ -370,7 +370,7 @@ public bool LoadZonesConfig()
 		}
 	}
 
-	Dynamic dColors = dZones.GetDynamic("Colors");
+	Dynamic dColors = dZones.GetDynamicByIndex(2);
 	int iCount = dColors.MemberCount;
 
 	for(int i = 0; i < iCount; i++)
