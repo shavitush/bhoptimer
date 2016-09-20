@@ -543,7 +543,7 @@ public Action Command_Style(int client, int args)
 
 		if(gA_StyleSettings[i][bUnranked])
 		{
-			char sDisplay[64];
+			char[] sDisplay = new char[64];
 			FormatEx(sDisplay, 64, "[UNRANKED] %s", gS_StyleStrings[i][sStyleName]);
 			m.AddItem(sInfo, sDisplay);
 		}
