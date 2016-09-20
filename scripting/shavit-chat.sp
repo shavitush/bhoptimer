@@ -114,7 +114,7 @@ public void OnPluginEnd()
 
 public void OnMapStart()
 {
-    LoadConfig();
+	LoadConfig();
 }
 
 public void OnClientPutInServer(int client)
@@ -152,38 +152,38 @@ public void OnClientAuthorized(int client, const char[] auth)
 
 public void OnLibraryAdded(const char[] name)
 {
-    if(StrEqual(name, "basecomm"))
-    {
-        gB_BaseComm = true;
-    }
+	if(StrEqual(name, "basecomm"))
+	{
+		gB_BaseComm = true;
+	}
 
-    else if(StrEqual(name, "rtler"))
-    {
-        gB_RTLer = true;
-    }
+	else if(StrEqual(name, "rtler"))
+	{
+		gB_RTLer = true;
+	}
 
 	else if(StrEqual(name, "chat-processor"))
-    {
-        gB_ChatProcessor = true;
-    }
+	{
+		gB_ChatProcessor = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
 {
-    if(StrEqual(name, "basecomm"))
-    {
-        gB_BaseComm = false;
-    }
+	if(StrEqual(name, "basecomm"))
+	{
+		gB_BaseComm = false;
+	}
 
-    else if(StrEqual(name, "rtler"))
-    {
-        gB_RTLer = false;
-    }
+	else if(StrEqual(name, "rtler"))
+	{
+		gB_RTLer = false;
+	}
 
 	else if(StrEqual(name, "chat-processor"))
-    {
-        gB_ChatProcessor = false;
-    }
+	{
+		gB_ChatProcessor = false;
+	}
 }
 
 public void Shavit_OnRankUpdated(int client)
@@ -396,7 +396,7 @@ public void LoadConfig()
 	delete kvConfig;
 
 	for(int i = 1; i <= MaxClients; i++)
-    {
+	{
 		if(IsValidClient(i)) // late loading
 		{
 			OnClientPutInServer(i);
@@ -483,11 +483,11 @@ public Action Command_ChatRanks(int client, int args)
 
 public Action Command_ReloadChat(int client, int args)
 {
-    LoadConfig();
+	LoadConfig();
 
-    ReplyToCommand(client, "Config reloaded.");
+	ReplyToCommand(client, "Config reloaded.");
 
-    return Plugin_Handled;
+	return Plugin_Handled;
 }
 
 public Action OnChatMessage(int &author, ArrayList recipients, eChatFlags &flag, char[] name, char[] message, bool &bProcessColors, bool &bRemoveColors)

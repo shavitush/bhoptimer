@@ -82,7 +82,7 @@ public void OnMapStart()
 	}
 
 	else
-    {
+	{
 		char[] sLine = new char[PLATFORM_MAX_PATH*2];
 		char[] sDownloadString = new char[PLATFORM_MAX_PATH];
 
@@ -143,7 +143,7 @@ public void OnMapStart()
 				LogError("\"sound/%s\" could not be accessed.", sExploded[1]);
 			}
 		}
-    }
+	}
 
 	delete fFile;
 }
