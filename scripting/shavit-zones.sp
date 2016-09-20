@@ -50,6 +50,7 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
 	"No Speed Limit", // ignores velocity limit in that zone
 	"Teleport Zone" // teleports to a defined point
+	//"Custom Spawn" // Custom start position to teleport to on !r
 };
 
 enum
@@ -108,6 +109,9 @@ float gF_FreeStyleConstSin[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleMinusConstSin[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleConstCos[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleMinusConstCos[MULTIPLEZONES_LIMIT];
+
+bool gB_CustomSpawn;
+float gF_CustomSpawn[3];
 
 float gF_RotateAngle[MAXPLAYERS+1];
 float gV_Fix1[MAXPLAYERS+1][2];
@@ -188,6 +192,9 @@ public void OnPluginStart()
 
 	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
 	RegAdminCmd("sm_tpzone", Command_TPZone, ADMFLAG_RCON, "Defines the teleport zone so it teleports to the location you are in.");
+
+	RegAdminCmd("sm_addspawn", Command_AddSpawn,  ADMFLAG_RCON, "Adds a custom spawn location");
+	RegAdminCmd("sm_delspawn", Command_DelSpawn,  ADMFLAG_RCON, "Deletes a custom spawn location");
 
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
@@ -469,6 +476,7 @@ public void UnloadZones(int zone)
 			}
 		}
 
+		ClearCustomSpawn();
 		return;
 	}
 
@@ -480,7 +488,10 @@ public void UnloadZones(int zone)
 			gV_MapZones[zone][1][i] = 0.0;
 		}
 	}
-
+	if(zone == view_as<int>(Zone_CustomSpawn))
+	{
+		ClearCustomSpawn();
+	}
 	else
 	{
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
@@ -526,7 +537,14 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 	{
 		MapZones type = view_as<MapZones>(results.FetchInt(0));
 
-		if(type >= Zone_Freestyle)
+		if(type == Zone_CustomSpawn)
+		{
+			gF_CustomSpawn[0] = results.FetchFloat(12);
+			gF_CustomSpawn[1] = results.FetchFloat(13);
+			gF_CustomSpawn[2] = results.FetchFloat(14);
+			gB_CustomSpawn = true;
+		}
+		else if(type >= Zone_Freestyle)
 		{
 			gV_FreestyleZones[iFreestyleRow][0][0] = results.FetchFloat(1);
 			gV_FreestyleZones[iFreestyleRow][0][1] = results.FetchFloat(2);
@@ -561,7 +579,6 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 			iFreestyleRow++;
 		}
-
 		else
 		{
 			if(view_as<int>(type) >= MAX_ZONES || view_as<int>(type) < 0)
@@ -657,6 +674,83 @@ public Action Command_TPZone(int client, int args)
 
 	return Plugin_Handled;
 }
+
+//Krypt Custom Spawn Functions
+
+public Action Command_AddSpawn(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "You can't place zones when you're dead.");
+
+		return Plugin_Handled;
+	}
+
+	if(gB_CustomSpawn)
+	{
+		Shavit_PrintToChat(client, "Custom Spawn already exists. Please delete it before placing a new one.");
+
+		return Plugin_Handled;
+	}
+
+	gMZ_Type[client] = Zone_CustomSpawn;
+	GetClientAbsOrigin(client, gV_Point1[client]);
+	InsertZone(client);
+
+	return Plugin_Handled;
+}
+
+public Action Command_DelSpawn(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE type = '%d' AND map = '%s';", gS_MySQLPrefix, Zone_CustomSpawn, gS_Map);
+
+	gH_SQL.Query(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(client));
+
+	return Plugin_Handled;
+}
+
+public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (custom spawn delete) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	ClearCustomSpawn();
+
+	Shavit_PrintToChat(client, "Deleted Custom Spawn sucessfully.");
+}
+
+public void ClearCustomSpawn()
+{
+	for(int i = 0; i < 3; i++)
+	{
+		gF_CustomSpawn[i] = 0.0;
+	}
+	gB_CustomSpawn = false;
+}
+
+//End of Krypt Custom Spawn Functions
 
 public Action Command_Zones(int client, int args)
 {
@@ -1372,7 +1466,10 @@ public void InsertZone(int client)
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
 		}
-
+		else if(type == Zone_CustomSpawn)
+		{
+			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
+		}
 		else
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2]);
@@ -1398,7 +1495,7 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	UnloadZones((data >= Zone_Freestyle)? 0:data);
+	UnloadZones((data >= Zone_Freestyle && data != Zone_CustomSpawn)? 0:data);
 	RefreshZones();
 }
 
@@ -2016,19 +2113,26 @@ public void Shavit_OnRestart(int client)
 {
 	if(gB_TeleportToStart && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
 	{
-		float vCenter[3];
-		MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
+		if(gB_CustomSpawn)
+		{
+			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		}
+		else
+		{
+			float vCenter[3];
+			MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
 
-		// calculate center
-		vCenter[0] /= 2.0;
-		vCenter[1] /= 2.0;
-		// i could also use ScaleVector() by 0.5f I guess? dunno which is more resource intensive, so i'll do it manually.
+			// calculate center
+			vCenter[0] /= 2.0;
+			vCenter[1] /= 2.0;
+			// i could also use ScaleVector() by 0.5f I guess? dunno which is more resource intensive, so i'll do it manually.
 
-		AddVectors(gV_MapZones[0][0], vCenter, vCenter);
+			AddVectors(gV_MapZones[0][0], vCenter, vCenter);
 
-		vCenter[2] = gV_MapZones[0][0][2];
+			vCenter[2] = gV_MapZones[0][0][2];
 
-		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		}
 	}
 }
 
