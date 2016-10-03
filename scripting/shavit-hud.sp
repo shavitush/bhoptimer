@@ -23,6 +23,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+#include <bhopstats>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -49,6 +50,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 // modules
 bool gB_Replay = false;
 bool gB_Zones = false;
+bool gB_BhopStats = false;
 
 // zone colors
 char gS_StartColors[][] =
@@ -67,6 +69,8 @@ int gI_Cycle = 0;
 Handle gH_HUDCookie = null;
 int gI_HUDSettings[MAXPLAYERS+1];
 int gI_NameLength = MAX_NAME_LENGTH;
+int gI_LastScrollCount[MAXPLAYERS+1];
+int gI_ScrollCount[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -118,6 +122,7 @@ public void OnPluginStart()
 	// prevent errors in case the replay bot isn't loaded
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
+	gB_BhopStats = LibraryExists("bhopstats");
 
 	// cron
 	CreateTimer(0.10, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
@@ -163,6 +168,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 
 	gI_Styles = styles;
+}
+
+public void OnClientPutInServer(int client)
+{
+	gI_LastScrollCount[client] = 0;
+	gI_ScrollCount[client] = 0;
 }
 
 public void OnClientCookiesCached(int client)
@@ -289,6 +300,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Zones = true;
 	}
+
+	else if(StrEqual(name, "bhopstats"))
+	{
+		gB_BhopStats = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -301,6 +317,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-zones"))
 	{
 		gB_Zones = false;
+	}
+
+	else if(StrEqual(name, "bhopstats"))
+	{
+		gB_BhopStats = false;
 	}
 }
 
@@ -612,6 +633,29 @@ public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	draw = true;
 }
 
+public void Bunnyhop_OnTouchGround(int client)
+{
+	gI_LastScrollCount[client] = BunnyhopStats.GetScrollCount(client);
+}
+
+public void Bunnyhop_OnJumpPressed(int client)
+{
+	gI_ScrollCount[client] = BunnyhopStats.GetScrollCount(client);
+
+	if(gA_StyleSettings[Shavit_GetBhopStyle(client)][bAutobhop] || gEV_Type != Engine_CSS)
+	{
+		return;
+	}
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(i == client || (IsValidClient(i) && GetHUDTarget(i) == client))
+		{
+			UpdateCenterKeys(i);
+		}
+	}
+}
+
 public void UpdateCenterKeys(int client)
 {
 	if((gI_HUDSettings[client] & HUD_KEYOVERLAY) == 0)
@@ -628,15 +672,17 @@ public void UpdateCenterKeys(int client)
 
 	int buttons = GetClientButtons(target);
 
-	if(gA_StyleSettings[Shavit_GetBhopStyle(target)][bAutobhop]) // don't include [JUMP] for autobhop styles
+	char[] sCenterText = new char[64];
+	FormatEx(sCenterText, 64, "%s %s %s\n%s %s %s",
+		(buttons & IN_DUCK > 0)? "C":"-", (buttons & IN_FORWARD > 0)? "W":"-", (buttons & IN_JUMP > 0)? "J":"-",
+		(buttons & IN_MOVELEFT > 0)? "A":"-", (buttons & IN_BACK > 0)? "S":"-", (buttons & IN_MOVERIGHT > 0)? "D":"-");
+
+	if(gB_BhopStats && !gA_StyleSettings[Shavit_GetBhopStyle(target)][bAutobhop])
 	{
-		PrintCenterText(client, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
+		Format(sCenterText, 64, "%s\n%d    %d", sCenterText, gI_ScrollCount[client], gI_LastScrollCount[target]);
 	}
 
-	else
-	{
-		PrintCenterText(client, "[%s] [%s]\n    %s\n%s   %s   %s", (buttons & IN_JUMP) > 0? "JUMP":"----", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
-	}
+	PrintCenterText(client, "%s", sCenterText);
 }
 
 public void UpdateSpectatorList(int client, Panel panel, bool &draw)
