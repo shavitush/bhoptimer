@@ -102,10 +102,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-    if(!LibraryExists("shavit-wr"))
-    {
-        SetFailState("shavit-wr is required for the plugin to work.");
-    }
+	if(!LibraryExists("shavit-wr"))
+	{
+		SetFailState("shavit-wr is required for the plugin to work.");
+	}
 }
 
 public void OnPluginStart()
@@ -244,12 +244,12 @@ public void SQL_GetUserPoints_Callback(Database db, DBResultSet results, const c
 
 public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-    if(results == null)
-    {
-        LogError("Timer error on InsertUser. Reason: %s", error);
+	if(results == null)
+	{
+		LogError("Timer error on InsertUser. Reason: %s", error);
 
-        return;
-    }
+		return;
+	}
 }
 
 public Action Timer_PrintTier(Handle Timer, any data)
@@ -436,22 +436,22 @@ public Action Command_Rank(int client, int args)
 
 public Action Command_Top(int client, int args)
 {
-    if(!IsValidClient(client))
-    {
-        return Plugin_Handled;
-    }
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
 
-    return ShowTopMenu(client);
+	return ShowTopMenu(client);
 }
 
 public Action ShowTopMenu(int client)
 {
-    char[] sQuery = new char[192];
-    FormatEx(sQuery, 192, "SELECT name, %s points, auth FROM %susers WHERE points > 0.0 ORDER BY points DESC LIMIT %d;", gB_MySQL? "FORMAT(points, 2)":"points", gS_MySQLPrefix, gI_TopAmount);
+	char[] sQuery = new char[192];
+	FormatEx(sQuery, 192, "SELECT name, %s points, auth FROM %susers WHERE points > 0.0 ORDER BY points DESC LIMIT %d;", gB_MySQL? "FORMAT(points, 2)":"points", gS_MySQLPrefix, gI_TopAmount);
 
-    gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query(SQL_ShowTopMenu_Callback, sQuery, GetClientSerial(client));
 
-    return Plugin_Handled;
+	return Plugin_Handled;
 }
 
 public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -779,54 +779,54 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 
 public void UpdatePlayerPoints(int client)
 {
-    if(!IsClientAuthorized(client))
-    {
-        return;
-    }
+	if(!IsClientAuthorized(client))
+	{
+		return;
+	}
 
-    char[] sAuthID = new char[32];
-    GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+	char[] sAuthID = new char[32];
+	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
-    char[] sQuery = new char[256];
-    FormatEx(sQuery, 256, "SELECT points FROM %splayertimes WHERE auth = '%s' AND points > 0.0 ORDER BY points DESC;", gS_MySQLPrefix, sAuthID);
-    gH_SQL.Query(SQL_UpdatePoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "SELECT points FROM %splayertimes WHERE auth = '%s' AND points > 0.0 ORDER BY points DESC;", gS_MySQLPrefix, sAuthID);
+	gH_SQL.Query(SQL_UpdatePoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
 
 // would completely deprecate this if we weren't SQLite compatible
 public void SQL_UpdatePoints_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-    if(results == null)
-    {
-        LogError("Timer (rankings module) error! Update of %d (serial) points failed. Reason: %s", data, error);
+	if(results == null)
+	{
+		LogError("Timer (rankings module) error! Update of %d (serial) points failed. Reason: %s", data, error);
 
-        return;
-    }
+		return;
+	}
 
-    float fPoints = 0.0;
-    float fWeight = 1.0;
+	float fPoints = 0.0;
+	float fWeight = 1.0;
 
-    while(results.FetchRow())
-    {
-        fPoints += (results.FetchFloat(0) * fWeight);
-        fWeight *= 0.95;
-    }
+	while(results.FetchRow())
+	{
+		fPoints += (results.FetchFloat(0) * fWeight);
+		fWeight *= 0.95;
+	}
 
-    int client = GetClientFromSerial(data);
+	int client = GetClientFromSerial(data);
 
-    if(client != 0)
-    {
-        gF_PlayerPoints[client] = fPoints;
+	if(client != 0)
+	{
+		gF_PlayerPoints[client] = fPoints;
 
-        char[] sAuthID3 = new char[32];
+		char[] sAuthID3 = new char[32];
 
-        if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
-        {
+		if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+		{
 			char[] sQuery = new char[256];
 			FormatEx(sQuery, 256, "UPDATE %susers SET points = '%.02f' WHERE auth = '%s';", gS_MySQLPrefix, fPoints, sAuthID3);
 
 			gH_SQL.Query(SQL_UpdatePointsTable_Callback, sQuery, 0, DBPrio_Low);
-        }
-    }
+		}
+	}
 }
 
 public void SQL_UpdatePointsTable_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -948,7 +948,7 @@ public int Native_GetRank(Handle handler, int numParams)
 
 public int Native_GetRankedPlayers(Handle handler, int numParams)
 {
-    return gI_RankedPlayers;
+	return gI_RankedPlayers;
 }
 
 public Action CheckForSQLInfo(Handle Timer)
