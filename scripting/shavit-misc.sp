@@ -26,7 +26,7 @@
 
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
-#include <steamworks>
+#include <SteamWorks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -578,7 +578,6 @@ public Action Timer_Advertisement(Handle Timer)
 			ReplaceString(sTempMessage, 300, "{timeleftraw}", sTimeLeftRaw);
 			ReplaceString(sTempMessage, 300, "{hostname}", sHostname);
 			ReplaceString(sTempMessage, 300, "{serverip}", sIPAddress);
-			
 
 			Shavit_PrintToChat(i, "%s", sTempMessage);
 		}
