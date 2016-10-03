@@ -22,6 +22,7 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
+#include <dynamic>
 
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
@@ -45,6 +46,8 @@ char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "foll
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gI_LastFlags[MAXPLAYERS+1];
+ArrayList gA_Advertisements = null;
+int gI_AdvertisementsCycle = 0;
 
 // cvars
 ConVar gCV_GodMode = null;
@@ -66,6 +69,7 @@ ConVar gCV_WeaponCommands = null;
 ConVar gCV_PlayerOpacity = null;
 ConVar gCV_StaticPrestrafe = null;
 ConVar gCV_NoclipMe = null;
+ConVar gCV_AdvertisementInterval = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -87,6 +91,7 @@ int gI_WeaponCommands = 2;
 int gI_PlayerOpacity = -1;
 bool gB_StaticPrestrafe = true;
 int gI_NoclipMe = true;
+float gF_AdvertisementInterval = 600.0;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -168,10 +173,6 @@ public void OnPluginStart()
 		AddCommandListener(Command_Radio, gS_RadioCommands[i]);
 	}
 
-	// crons
-	CreateTimer(1.0, Timer_Scoreboard, INVALID_HANDLE, TIMER_REPEAT);
-	CreateTimer(600.0, Timer_Message, INVALID_HANDLE, TIMER_REPEAT);
-
 	// hooks
 	HookEvent("player_spawn", Player_Spawn);
 	HookEvent("player_team", Player_Notifications, EventHookMode_Pre);
@@ -180,6 +181,9 @@ public void OnPluginStart()
 
 	// phrases
 	LoadTranslations("common.phrases");
+
+	// advertisements
+	gA_Advertisements = new ArrayList(300);
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
@@ -201,6 +205,7 @@ public void OnPluginStart()
 	gCV_PlayerOpacity = CreateConVar("shavit_misc_playeropacity", "-1", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 	gCV_StaticPrestrafe = CreateConVar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 1.0);
+	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.\nSet to -1 to disable.", 0, true, -1.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -221,8 +226,12 @@ public void OnPluginStart()
 	gCV_PlayerOpacity.AddChangeHook(OnConVarChanged);
 	gCV_StaticPrestrafe.AddChangeHook(OnConVarChanged);
 	gCV_NoclipMe.AddChangeHook(OnConVarChanged);
+	gCV_AdvertisementInterval.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
+
+	// crons
+	CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
 
 	if(LibraryExists("dhooks"))
 	{
@@ -279,6 +288,11 @@ public void Shavit_OnChatConfigLoaded()
 	{
 		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
 	}
+
+	if(!LoadAdvertisementsConfig())
+	{
+		SetFailState("Cannot open \"configs/shavit-advertisements.cfg\". Make sure this file exists and that the server has read permissions to it.");
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -302,6 +316,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_PlayerOpacity = gCV_PlayerOpacity.IntValue;
 	gB_StaticPrestrafe = gCV_StaticPrestrafe.BoolValue;
 	gI_NoclipMe = gCV_NoclipMe.IntValue;
+	gF_AdvertisementInterval = gCV_AdvertisementInterval.FloatValue;
 }
 
 public void OnMapStart()
@@ -343,6 +358,51 @@ public void OnMapStart()
 		Shavit_OnStyleConfigLoaded(-1);
 		Shavit_OnChatConfigLoaded();
 	}
+
+	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public bool LoadAdvertisementsConfig()
+{
+	gA_Advertisements.Clear();
+
+	char[] sPath = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-advertisements.cfg");
+
+	Dynamic dAdvertisements = Dynamic();
+
+	if(!dAdvertisements.ReadKeyValues(sPath))
+	{
+		dAdvertisements.Dispose();
+
+		return false;
+	}
+
+	int iCount = dAdvertisements.MemberCount;
+
+	for(int i = 0; i < iCount; i++)
+	{
+		char[] sID = new char[4];
+		IntToString(i, sID, 4);
+
+		char[] sTempMessage = new char[300];
+		dAdvertisements.GetString(sID, sTempMessage, 300);
+
+		PrintToServer("%d %s %s", i, sID, sTempMessage);
+
+		// {text} {warning} {variable} {variable2} {style}
+		ReplaceString(sTempMessage, 300, "{text}", gS_ChatStrings[sMessageText]);
+		ReplaceString(sTempMessage, 300, "{warning}", gS_ChatStrings[sMessageWarning]);
+		ReplaceString(sTempMessage, 300, "{variable}", gS_ChatStrings[sMessageVariable]);
+		ReplaceString(sTempMessage, 300, "{variable2}", gS_ChatStrings[sMessageVariable2]);
+		ReplaceString(sTempMessage, 300, "{style}", gS_ChatStrings[sMessageStyle]);
+
+		gA_Advertisements.PushString(sTempMessage);
+	}
+
+	dAdvertisements.Dispose(true);
+
+	return true;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -465,11 +525,33 @@ public Action Timer_Scoreboard(Handle Timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_Message(Handle Timer)
+public Action Timer_Advertisement(Handle Timer)
 {
-	Shavit_PrintToChatAll("You may write %s!hide%s to %shide%s other players.", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
+	if(gF_AdvertisementInterval < 0.0)
+	{
+		return Plugin_Stop;
+	}
 
-	return Plugin_Continue;
+	int iAdvertisement = (gI_AdvertisementsCycle++ % gA_Advertisements.Length);
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientConnected(i) && IsClientInGame(i))
+		{
+			char[] sTempMessage = new char[300];
+			gA_Advertisements.GetString(iAdvertisement, sTempMessage, 300);
+
+			char[] sName = new char[MAX_NAME_LENGTH];
+			GetClientName(i, sName, MAX_NAME_LENGTH);
+			ReplaceString(sTempMessage, 300, "{name}", sName);
+
+			Shavit_PrintToChat(i, "%s", sTempMessage);
+		}
+	}
+
+	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement);
+
+	return Plugin_Stop;
 }
 
 public void UpdateScoreboard(int client)
