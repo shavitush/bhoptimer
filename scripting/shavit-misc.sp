@@ -26,6 +26,7 @@
 
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
+#include <steamworks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -48,6 +49,9 @@ bool gB_Late = false;
 int gI_LastFlags[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
+char gS_CurrentMap[192];
+ConVar gCV_Hostname = null;
+ConVar gCV_Hostport = null;
 
 // cvars
 ConVar gCV_GodMode = null;
@@ -184,6 +188,8 @@ public void OnPluginStart()
 
 	// advertisements
 	gA_Advertisements = new ArrayList(300);
+	gCV_Hostname = FindConVar("hostname");
+	gCV_Hostport = FindConVar("hostport");
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
@@ -321,6 +327,9 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 public void OnMapStart()
 {
+	GetCurrentMap(gS_CurrentMap, 192);
+	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
+
 	if(gI_CreateSpawnPoints > 0)
 	{
 		int iEntity = -1;
@@ -388,9 +397,6 @@ public bool LoadAdvertisementsConfig()
 		char[] sTempMessage = new char[300];
 		dAdvertisements.GetString(sID, sTempMessage, 300);
 
-		PrintToServer("%d %s %s", i, sID, sTempMessage);
-
-		// {text} {warning} {variable} {variable2} {style}
 		ReplaceString(sTempMessage, 300, "{text}", gS_ChatStrings[sMessageText]);
 		ReplaceString(sTempMessage, 300, "{warning}", gS_ChatStrings[sMessageWarning]);
 		ReplaceString(sTempMessage, 300, "{variable}", gS_ChatStrings[sMessageVariable]);
@@ -532,6 +538,28 @@ public Action Timer_Advertisement(Handle Timer)
 		return Plugin_Stop;
 	}
 
+	char[] sHostname = new char[128];
+	gCV_Hostname.GetString(sHostname, 128);
+
+	char[] sTimeLeft = new char[32];
+	int iTimeLeft = 0;
+	GetMapTimeLeft(iTimeLeft);
+	FormatSeconds(view_as<float>(iTimeLeft), sTimeLeft, 32, false);
+
+	char[] sTimeLeftRaw = new char[8];
+	IntToString(iTimeLeft, sTimeLeftRaw, 8);
+
+	char[] sIPAddress = new char[64];
+	strcopy(sIPAddress, 64, "");
+
+	if(GetFeatureStatus(FeatureType_Native, "SteamWorks_GetPublicIP") == FeatureStatus_Available)
+	{
+		int iAddress[4];
+		SteamWorks_GetPublicIP(iAddress);
+
+		FormatEx(sIPAddress, 64, "%d.%d.%d.%d:%d", iAddress[0], iAddress[1], iAddress[2], iAddress[3], gCV_Hostport.IntValue);
+	}
+
 	int iAdvertisement = (gI_AdvertisementsCycle++ % gA_Advertisements.Length);
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -543,7 +571,14 @@ public Action Timer_Advertisement(Handle Timer)
 
 			char[] sName = new char[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
+
 			ReplaceString(sTempMessage, 300, "{name}", sName);
+			ReplaceString(sTempMessage, 300, "{map}", gS_CurrentMap);
+			ReplaceString(sTempMessage, 300, "{timeleft}", sTimeLeft);
+			ReplaceString(sTempMessage, 300, "{timeleftraw}", sTimeLeftRaw);
+			ReplaceString(sTempMessage, 300, "{hostname}", sHostname);
+			ReplaceString(sTempMessage, 300, "{serverip}", sIPAddress);
+			
 
 			Shavit_PrintToChat(i, "%s", sTempMessage);
 		}
