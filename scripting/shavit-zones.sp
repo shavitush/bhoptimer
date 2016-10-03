@@ -187,7 +187,6 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deleteallzones", Command_DeleteAllZones, ADMFLAG_RCON, "Delete all mapzones");
 
 	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
-	RegAdminCmd("sm_tpzone", Command_TPZone, ADMFLAG_RCON, "Defines the teleport zone so it teleports to the location you are in.");
 
 	// cvars and stuff
 	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
@@ -637,27 +636,6 @@ public Action Command_Modifier(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action Command_TPZone(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	if(!IsPlayerAlive(client))
-	{
-		Shavit_PrintToChat(client, "You have to be alive in order to use this command.");
-
-		return Plugin_Handled;
-	}
-
-	GetClientAbsOrigin(client, gV_Teleport[client]);
-
-	Shavit_PrintToChat(client, "Teleport zone destination updated.");
-
-	return Plugin_Handled;
-}
-
 public Action Command_Zones(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -1099,6 +1077,14 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		{
 			CreateWidthLengthMenu(param1, 0);
 		}
+
+		else if(StrEqual(info, "tpzone"))
+		{
+			GetClientAbsOrigin(param1, gV_Teleport[param1]);
+			Shavit_PrintToChat(param1, "Teleport zone destination updated.");
+
+			CreateEditMenu(param1);
+		}
 	}
 
 	else if(action == MenuAction_End)
@@ -1114,7 +1100,26 @@ public void CreateEditMenu(int client)
 	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
 	menu.SetTitle("Confirm?");
 
-	menu.AddItem("yes", "Yes");
+	if(gMZ_Type[client] == Zone_Teleport)
+	{
+		if(EmptyZone(gV_Teleport[client]))
+		{
+			menu.AddItem("-1", "Yes (choose teleport destination first)", ITEMDRAW_DISABLED);
+		}
+
+		else
+		{
+			menu.AddItem("yes", "Yes");
+		}
+
+		menu.AddItem("tpzone", "Update teleport destination");
+	}
+
+	else
+	{
+		menu.AddItem("yes", "Yes");
+	}
+	
 	menu.AddItem("no", "No");
 	menu.AddItem("adjust", "Adjust position");
 	menu.AddItem("rotate", "Rotate zone");
@@ -1532,6 +1537,12 @@ public Action Timer_Draw(Handle Timer, any data)
 		iColors[3] = 255;
 
 		DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, iColors, 0.1);
+
+		if(gMZ_Type[client] == Zone_Teleport && !EmptyZone(gV_Teleport[client]))
+		{
+			TE_SetupEnergySplash(gV_Teleport[client], NULL_VECTOR, false);
+			TE_SendToAll(0.0);
+		}
 	}
 
 	if(gI_MapStep[client] != 3 && !EmptyZone(vOrigin))
