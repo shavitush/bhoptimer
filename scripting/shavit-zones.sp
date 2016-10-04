@@ -50,7 +50,6 @@ char gS_ZoneNames[MAX_ZONES][] =
 	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
 	"No Speed Limit", // ignores velocity limit in that zone
 	"Teleport Zone" // teleports to a defined point
-	//"Custom Spawn" // Custom start position to teleport to on !r
 };
 
 enum
@@ -110,7 +109,6 @@ float gF_FreeStyleMinusConstSin[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleConstCos[MULTIPLEZONES_LIMIT];
 float gF_FreeStyleMinusConstCos[MULTIPLEZONES_LIMIT];
 
-bool gB_CustomSpawn;
 float gF_CustomSpawn[3];
 
 float gF_RotateAngle[MAXPLAYERS+1];
@@ -476,6 +474,7 @@ public void UnloadZones(int zone)
 		}
 		
 		ClearCustomSpawn();
+		
 		return;
 	}
 
@@ -487,10 +486,12 @@ public void UnloadZones(int zone)
 			gV_MapZones[zone][1][i] = 0.0;
 		}
 	}
+	
 	else if(zone == view_as<int>(Zone_CustomSpawn))
 	{
 		ClearCustomSpawn();
 	}
+	
 	else
 	{
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
@@ -541,8 +542,8 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gF_CustomSpawn[0] = results.FetchFloat(12);
 			gF_CustomSpawn[1] = results.FetchFloat(13);
 			gF_CustomSpawn[2] = results.FetchFloat(14);
-			gB_CustomSpawn = true;
 		}
+		
 		else if(type >= Zone_Freestyle)
 		{
 			gV_FreestyleZones[iFreestyleRow][0][0] = results.FetchFloat(1);
@@ -654,8 +655,7 @@ public Action Command_Modifier(int client, int args)
 	return Plugin_Handled;
 }
 
-//Krypt Custom Spawn Functions
-
+//Krypt Custom Spawn Functions (https://github.com/Kryptanyte)
 public Action Command_AddSpawn(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -670,7 +670,7 @@ public Action Command_AddSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gB_CustomSpawn)
+	if(!EmptyZone(gF_CustomSpawn))
 	{
 		Shavit_PrintToChat(client, "Custom Spawn already exists. Please delete it before placing a new one.");
 
@@ -678,6 +678,7 @@ public Action Command_AddSpawn(int client, int args)
 	}
 
 	gMZ_Type[client] = Zone_CustomSpawn;
+	
 	GetClientAbsOrigin(client, gV_Point1[client]);
 	InsertZone(client);
 
@@ -726,10 +727,7 @@ public void ClearCustomSpawn()
 	{
 		gF_CustomSpawn[i] = 0.0;
 	}
-	gB_CustomSpawn = false;
 }
-
-//End of Krypt Custom Spawn Functions
 
 public Action Command_Zones(int client, int args)
 {
@@ -1465,16 +1463,19 @@ public void InsertZone(int client)
 	MapZones type = gMZ_Type[client];
 
 	char[] sQuery = new char[512];
+	
 	if(type == Zone_CustomSpawn)
 	{
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
 	}
+	
 	else if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
 	{
 		if(type != Zone_Teleport)
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
 		}
+		
 		else
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2]);
@@ -1486,7 +1487,7 @@ public void InsertZone(int client)
 		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
 	}
 	
-	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, client);
+	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
 }
 
 public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1498,17 +1499,16 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 	
+	int client = GetClientFromSerial(data);
 	
-	if(gMZ_Type[data] == Zone_CustomSpawn)
+	if(gMZ_Type[client] == Zone_CustomSpawn)
 	{
-		Shavit_PrintToChat(data, "Successfully placed custom spawn!.");
-		gB_CustomSpawn = true;
+		Shavit_PrintToChat(client, "Successfully placed custom spawn!.");
 	}
-		
-
-	UnloadZones((gMZ_Type[data] >= Zone_Freestyle && gMZ_Type[data] != Zone_CustomSpawn)? 0:view_as<int>(gMZ_Type[data]));
+	
+	UnloadZones((gMZ_Type[client] >= Zone_Freestyle && gMZ_Type[client] != Zone_CustomSpawn)? 0:view_as<int>(gMZ_Type[client]));
 	RefreshZones();
-	Reset(data);
+	Reset(client);
 }
 
 public Action Timer_DrawEverything(Handle Timer, any data)
@@ -2131,10 +2131,11 @@ public void Shavit_OnRestart(int client)
 {
 	if(gB_TeleportToStart && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
 	{
-		if(gB_CustomSpawn)
+		if(!EmptyZone(gF_CustomSpawn))
 		{
 			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
+		
 		else
 		{
 			float vCenter[3];
