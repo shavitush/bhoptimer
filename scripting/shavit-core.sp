@@ -615,8 +615,6 @@ public void ChangeClientStyle(int client, BhopStyle style)
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_Finish();
-
-		StartTimer(client);
 	}
 
 	char[] sStyle = new char[4];
@@ -719,12 +717,7 @@ public int Native_GetTimerStatus(Handle handler, int numParams)
 
 public int Native_StartTimer(Handle handler, int numParams)
 {
-	int client = GetNativeCell(1);
-
-	if(!IsFakeClient(client))
-	{
-		StartTimer(client);
-	}
+	StartTimer(GetNativeCell(1));
 }
 
 public int Native_StopTimer(Handle handler, int numParams)

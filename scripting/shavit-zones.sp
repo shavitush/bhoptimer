@@ -2136,6 +2136,8 @@ public void Shavit_OnRestart(int client)
 {
 	if(gB_TeleportToStart && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
 	{
+		Shavit_StartTimer(client);
+
 		if(!EmptyZone(gF_CustomSpawn))
 		{
 			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
@@ -2145,14 +2147,10 @@ public void Shavit_OnRestart(int client)
 		{
 			float vCenter[3];
 			MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
-
-			// calculate center
 			vCenter[0] /= 2.0;
 			vCenter[1] /= 2.0;
-			// i could also use ScaleVector() by 0.5f I guess? dunno which is more resource intensive, so i'll do it manually.
 
 			AddVectors(gV_MapZones[0][0], vCenter, vCenter);
-
 			vCenter[2] = gV_MapZones[0][0][2];
 
 			TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
@@ -2166,13 +2164,10 @@ public void Shavit_OnEnd(int client)
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[1][0], gV_MapZones[1][1], vCenter);
-
-		// calculate center
 		vCenter[0] /= 2.0;
 		vCenter[1] /= 2.0;
 
 		AddVectors(gV_MapZones[1][0], vCenter, vCenter);
-
 		vCenter[2] = gV_MapZones[1][0][2];
 
 		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
