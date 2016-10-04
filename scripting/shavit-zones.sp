@@ -1501,8 +1501,10 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 	
 	int client = GetClientFromSerial(data);
 	
-	if(!client)
+	if(client == 0)
+	{
 		return;
+	}
 	
 	if(gMZ_Type[client] == Zone_CustomSpawn)
 	{
