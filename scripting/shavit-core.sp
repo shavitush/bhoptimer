@@ -1309,7 +1309,11 @@ public void PreThink(int client)
 	if(IsPlayerAlive(client))
 	{
 		sv_airaccelerate.IntValue = gA_StyleSettings[gBS_Style[client]][iAiraccelerate];
-		UpdateAutobhop(client);
+
+		if(sv_autobunnyhopping != null)
+		{
+			sv_autobunnyhopping.BoolValue = (gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client]);
+		}
 	}
 }
 
@@ -1543,14 +1547,4 @@ public void StopTimer_Cheat(int client, const char[] message)
 public bool Inconsistency(const float[] vel, const int buttons)
 {
 	return ((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0) || (vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0));
-}
-
-public void UpdateAutobhop(int client)
-{
-	if(gEV_Type != Engine_CSGO || sv_autobunnyhopping == null)
-	{
-		return;
-	}
-
-	sv_autobunnyhopping.BoolValue = (gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client]);
 }
