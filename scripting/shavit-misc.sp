@@ -211,7 +211,7 @@ public void OnPluginStart()
 	gCV_PlayerOpacity = CreateConVar("shavit_misc_playeropacity", "-1", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 	gCV_StaticPrestrafe = CreateConVar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 1.0);
-	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.\nSet to -1 to disable.", 0, true, -1.0);
+	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires map restart for changes to take effect.", 0, true, 0.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -368,7 +368,10 @@ public void OnMapStart()
 		Shavit_OnChatConfigLoaded();
 	}
 
-	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_FLAG_NO_MAPCHANGE);
+	if(gF_AdvertisementInterval > 0.0)
+	{
+		CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 bool LoadAdvertisementsConfig()
@@ -533,11 +536,6 @@ public Action Timer_Scoreboard(Handle Timer)
 
 public Action Timer_Advertisement(Handle Timer)
 {
-	if(gF_AdvertisementInterval < 0.0)
-	{
-		return Plugin_Stop;
-	}
-
 	char[] sHostname = new char[128];
 	gCV_Hostname.GetString(sHostname, 128);
 
@@ -582,8 +580,6 @@ public Action Timer_Advertisement(Handle Timer)
 			Shavit_PrintToChat(i, "%s", sTempMessage);
 		}
 	}
-
-	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement);
 
 	return Plugin_Stop;
 }
