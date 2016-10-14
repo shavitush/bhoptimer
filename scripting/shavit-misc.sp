@@ -1222,8 +1222,7 @@ public void RestartTimer(int client)
 
 public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 {
-	int userid = event.GetInt("userid");
-	int client = GetClientOfUserId(userid);
+	int client = GetClientOfUserId(event.GetInt("userid"));
 
 	if(gB_HideRadar)
 	{

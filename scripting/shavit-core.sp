@@ -111,6 +111,7 @@ char gS_MySQLPrefix[32];
 
 // server side
 ConVar sv_airaccelerate = null;
+ConVar sv_autobunnyhopping = null;
 
 // timer settings
 bool gB_Registered = false;
@@ -194,6 +195,9 @@ public void OnPluginStart()
 	{
 		gSG_Type = Game_CSGO;
 		gF_HSW_Requirement = 449.00;
+
+		sv_autobunnyhopping = FindConVar("sv_autobunnyhopping");
+		sv_autobunnyhopping.Flags &= ~FCVAR_NOTIFY;
 	}
 
 	else
@@ -940,6 +944,11 @@ public void OnClientDisconnect(int client)
 
 public void OnClientCookiesCached(int client)
 {
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+
 	char[] sCookie = new char[4];
 	GetClientCookie(client, gH_AutoBhopCookie, sCookie, 4);
 	gB_Auto[client] = (strlen(sCookie) > 0)? view_as<bool>(StringToInt(sCookie)):true;
@@ -950,10 +959,15 @@ public void OnClientCookiesCached(int client)
 
 public void OnClientPutInServer(int client)
 {
+	StopTimer(client);
+
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+
 	gB_Auto[client] = true;
 	gBS_Style[client] = view_as<BhopStyle>(0);
-
-	StopTimer(client);
 	gB_DoubleSteps[client] = false;
 	gF_StrafeWarning[client] = 0.0;
 
@@ -962,7 +976,7 @@ public void OnClientPutInServer(int client)
 		OnClientCookiesCached(client);
 	}
 
-	if(gH_SQL == null || !IsValidClient(client) || IsFakeClient(client))
+	if(gH_SQL == null)
 	{
 		return;
 	}
@@ -1295,6 +1309,7 @@ public void PreThink(int client)
 	if(IsPlayerAlive(client))
 	{
 		sv_airaccelerate.IntValue = gA_StyleSettings[gBS_Style[client]][iAiraccelerate];
+		UpdateAutobhop(client);
 	}
 }
 
@@ -1403,26 +1418,30 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gI_Strafes[client]++;
 	}
 
-	// autobhop
-	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client])
+	// autobhop for cs:s
+	// cs:go has a built-in autobhop cvar
+	if(gEV_Type == Engine_CSS)
 	{
-		bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
-		bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
-
-		if((buttons & IN_JUMP) > 0 && iGroundEntity == -1 && !bOnLadder && !bInWater)
+		if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client])
 		{
-			buttons &= ~IN_JUMP;
+			bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
+			bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
+
+			if((buttons & IN_JUMP) > 0 && iGroundEntity == -1 && !bOnLadder && !bInWater)
+			{
+				buttons &= ~IN_JUMP;
+			}
+
+			else if(gB_DoubleSteps[client] && (iGroundEntity != -1 || bOnLadder || bInWater))
+			{
+				buttons |= IN_JUMP;
+			}
 		}
 
-		else if(gB_DoubleSteps[client] && (iGroundEntity != -1 || bOnLadder || bInWater))
+		else if(gB_DoubleSteps[client])
 		{
 			buttons |= IN_JUMP;
 		}
-	}
-
-	else if(gB_DoubleSteps[client])
-	{
-		buttons |= IN_JUMP;
 	}
 
 	if(bInStart && gB_BlockPreJump && !gA_StyleSettings[gBS_Style[client]][bPrespeed] && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
@@ -1524,4 +1543,14 @@ public void StopTimer_Cheat(int client, const char[] message)
 public bool Inconsistency(const float[] vel, const int buttons)
 {
 	return ((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0) || (vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0));
+}
+
+public void UpdateAutobhop(int client)
+{
+	if(gEV_Type != Engine_CSGO || sv_autobunnyhopping == null)
+	{
+		return;
+	}
+
+	sv_autobunnyhopping.BoolValue = (gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client]);
 }
