@@ -379,7 +379,7 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
-public bool LoadReplay(BhopStyle style)
+bool LoadReplay(BhopStyle style)
 {
 	if(!ReplayEnabled(style))
 	{
@@ -455,7 +455,7 @@ public bool LoadReplay(BhopStyle style)
 	return false;
 }
 
-public bool SaveReplay(BhopStyle style)
+bool SaveReplay(BhopStyle style)
 {
 	if(!ReplayEnabled(style))
 	{
@@ -504,7 +504,7 @@ public bool SaveReplay(BhopStyle style)
 	return true;
 }
 
-public bool DeleteReplay(BhopStyle style)
+bool DeleteReplay(BhopStyle style)
 {
 	if(!ReplayEnabled(style))
 	{
@@ -559,7 +559,7 @@ public void OnClientPutInServer(int client)
 	}
 }
 
-public void UpdateReplayInfo(int client, BhopStyle style, float time)
+void UpdateReplayInfo(int client, BhopStyle style, float time)
 {
 	if(!gB_Enabled || !IsValidClient(client) || !IsFakeClient(client))
 	{
@@ -865,7 +865,7 @@ public Action StartReplay(Handle Timer, any data)
 	return Plugin_Stop;
 }
 
-public bool ReplayEnabled(any style)
+bool ReplayEnabled(any style)
 {
 	return (!gA_StyleSettings[style][bUnranked] && !gA_StyleSettings[style][bNoReplay]);
 }
@@ -969,7 +969,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	return Plugin_Continue;
 }
 
-public void ClearFrames(int client)
+void ClearFrames(int client)
 {
 	gA_PlayerFrames[client].Clear();
 	gI_PlayerFrames[client] = 0;
@@ -1083,7 +1083,7 @@ public int DeleteConfirmation_Callback(Menu m, MenuAction action, int param1, in
 	return 0;
 }
 
-public BhopStyle GetReplayStyle(int client)
+BhopStyle GetReplayStyle(int client)
 {
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -1104,7 +1104,7 @@ public BhopStyle GetReplayStyle(int client)
  * @param source		Input file
  * @param destination	Output file
  */
-stock bool File_Copy(const char[] source, const char[] destination)
+bool File_Copy(const char[] source, const char[] destination)
 {
 	File file_source = OpenFile(source, "rb");
 

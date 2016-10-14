@@ -203,7 +203,7 @@ public void OnClientPutInServer(int client)
 	}
 }
 
-public void UpdatePointsToDatabase(int client)
+void UpdatePointsToDatabase(int client)
 {
 	char[] sAuthID3 = new char[32];
 
@@ -444,7 +444,7 @@ public Action Command_Top(int client, int args)
 	return ShowTopMenu(client);
 }
 
-public Action ShowTopMenu(int client)
+Action ShowTopMenu(int client)
 {
 	char[] sQuery = new char[192];
 	FormatEx(sQuery, 192, "SELECT name, %s points, auth FROM %susers WHERE points > 0.0 ORDER BY points DESC LIMIT %d;", gB_MySQL? "FORMAT(points, 2)":"points", gS_MySQLPrefix, gI_TopAmount);
@@ -653,7 +653,7 @@ public void SQL_SetTier_Callback(Database db, DBResultSet results, const char[] 
 	UpdateRecordPoints();
 }
 
-public void UpdateRecordPoints()
+void UpdateRecordPoints()
 {
 	if(gF_MapTier == -1.0)
 	{
@@ -725,7 +725,7 @@ public void SQL_UpdateRecords_Callback(Database db, DBResultSet results, const c
 	}
 }
 
-public void WeighPoints(const char[] auth, int serial)
+void WeighPoints(const char[] auth, int serial)
 {
 	if(!gB_MySQL)
 	{
@@ -755,7 +755,8 @@ public void SQL_WeighPoints_Callback(Database db, DBResultSet results, const cha
 	}
 }
 
-public float CalculatePoints(float time, BhopStyle style, float tier)
+#if defined DEBUG
+float CalculatePoints(float time, BhopStyle style, float tier)
 {
 	float fWRTime = 0.0;
 	Shavit_GetWRTime(view_as<BhopStyle>(0), fWRTime);
@@ -767,6 +768,7 @@ public float CalculatePoints(float time, BhopStyle style, float tier)
 
 	return (((fWRTime / time) * (tier * gF_PointsPerTier)) * view_as<float>(gA_StyleSettings[style][fRankingMultiplier]));
 }
+#endif
 
 public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank)
 {
@@ -777,7 +779,7 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 	UpdateRecordPoints();
 }
 
-public void UpdatePlayerPoints(int client)
+void UpdatePlayerPoints(int client)
 {
 	if(!IsClientAuthorized(client))
 	{
@@ -849,7 +851,7 @@ public void SQL_UpdatePointsTable_Callback(Database db, DBResultSet results, con
 	}
 }
 
-public void UpdatePlayerRank(int client)
+void UpdatePlayerRank(int client)
 {
 	if(!IsValidClient(client) || gH_SQL == null)
 	{
@@ -907,7 +909,7 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 	}
 }
 
-public void UpdateRankedPlayers()
+void UpdateRankedPlayers()
 {
 	char[] sQuery = new char[128];
 	FormatEx(sQuery, 128, "SELECT COUNT(*) FROM %susers WHERE points > 0.0 LIMIT 1;", gS_MySQLPrefix);
@@ -956,7 +958,7 @@ public Action CheckForSQLInfo(Handle Timer)
 	return SetSQLInfo();
 }
 
-public Action SetSQLInfo()
+Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
@@ -975,7 +977,7 @@ public Action SetSQLInfo()
 	return Plugin_Continue;
 }
 
-public void SQL_SetPrefix()
+void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
@@ -1003,7 +1005,7 @@ public void SQL_SetPrefix()
 	delete fFile;
 }
 
-public void SQL_DBConnect()
+void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{

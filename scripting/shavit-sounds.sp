@@ -188,7 +188,7 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 	}
 }
 
-public void PlayEventSound(int client, bool everyone, const char[] sound)
+void PlayEventSound(int client, bool everyone, const char[] sound)
 {
 	int[] clients = new int[MaxClients];
 	int count = 0;

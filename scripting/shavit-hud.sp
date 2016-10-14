@@ -200,7 +200,7 @@ public Action Command_HUD(int client, int args)
 	return ShowHUDMenu(client, 0);
 }
 
-public Action ShowHUDMenu(int client, int item)
+Action ShowHUDMenu(int client, int item)
 {
 	if(!IsValidClient(client))
 	{
@@ -355,7 +355,7 @@ public Action UpdateHUD_Timer(Handle Timer)
 	return Plugin_Continue;
 }
 
-public void TriggerHUDUpdate(int client)
+void TriggerHUDUpdate(int client)
 {
 	UpdateHUD(client);
 	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", ((gI_HUDSettings[client] & HUD_HIDEWEAPON) > 0)? 0:1);
@@ -386,7 +386,7 @@ public void TriggerHUDUpdate(int client)
 	}
 }
 
-public void UpdateHUD(int client)
+void UpdateHUD(int client)
 {
 	int target = GetHUDTarget(client);
 
@@ -599,7 +599,7 @@ public void UpdateHUD(int client)
 	}
 }
 
-public void UpdateKeyOverlay(int client, Panel panel, bool &draw)
+void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 {
 	if((gI_HUDSettings[client] & HUD_KEYOVERLAY) == 0)
 	{
@@ -656,7 +656,7 @@ public void Bunnyhop_OnJumpPressed(int client)
 	}
 }
 
-public void UpdateCenterKeys(int client)
+void UpdateCenterKeys(int client)
 {
 	if((gI_HUDSettings[client] & HUD_KEYOVERLAY) == 0)
 	{
@@ -685,7 +685,7 @@ public void UpdateCenterKeys(int client)
 	PrintCenterText(client, "%s", sCenterText);
 }
 
-public void UpdateSpectatorList(int client, Panel panel, bool &draw)
+void UpdateSpectatorList(int client, Panel panel, bool &draw)
 {
 	if((gI_HUDSettings[client] & HUD_SPECTATORS) == 0)
 	{
@@ -742,7 +742,7 @@ public void UpdateSpectatorList(int client, Panel panel, bool &draw)
 	}
 }
 
-public void UpdateTopLeftHUD(int client, bool wait)
+void UpdateTopLeftHUD(int client, bool wait)
 {
 	if((!wait || gI_Cycle % 25 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
 	{
@@ -785,7 +785,7 @@ public void UpdateTopLeftHUD(int client, bool wait)
 	}
 }
 
-public void UpdateKeyHint(int client)
+void UpdateKeyHint(int client)
 {
 	if((gI_Cycle % 10) == 0 && ((gI_HUDSettings[client] & HUD_SYNC) > 0 || (gI_HUDSettings[client] & HUD_TIMELEFT) > 0))
 	{
@@ -857,7 +857,7 @@ public void UpdateKeyHint(int client)
 	}
 }
 
-public int GetHUDTarget(int client)
+int GetHUDTarget(int client)
 {
 	int target = client;
 
@@ -878,6 +878,7 @@ public int GetHUDTarget(int client)
 
 	return target;
 }
+
 
 public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param2)
 {

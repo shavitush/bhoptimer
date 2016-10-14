@@ -109,7 +109,7 @@ public Action CheckForSQLInfo(Handle Timer)
 	return SetSQLInfo();
 }
 
-public Action SetSQLInfo()
+Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
@@ -126,7 +126,7 @@ public Action SetSQLInfo()
 	return Plugin_Continue;
 }
 
-public void SQL_SetPrefix()
+void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
@@ -154,7 +154,7 @@ public void SQL_SetPrefix()
 	delete fFile;
 }
 
-public void StartCalculating()
+void StartCalculating()
 {
 	if(gH_SQL != null)
 	{
@@ -235,7 +235,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 	}
 }
 
-public void SetLimit(int time)
+void SetLimit(int time)
 {
 	gCV_TimeLimit.IntValue = time;
 	gCV_RoundTime.IntValue = time;

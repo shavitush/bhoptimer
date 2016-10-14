@@ -188,7 +188,7 @@ public Action CheckForSQLInfo(Handle Timer)
 	return SetSQLInfo();
 }
 
-public Action SetSQLInfo()
+Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
@@ -205,7 +205,7 @@ public Action SetSQLInfo()
 	return Plugin_Continue;
 }
 
-public void SQL_SetPrefix()
+void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
@@ -259,7 +259,7 @@ public void Shavit_OnWorldRecord(int client)
 	}
 }
 
-public void UpdateWRs(int client)
+void UpdateWRs(int client)
 {
 	if(gH_SQL == null)
 	{
@@ -340,7 +340,7 @@ public Action Command_Profile(int client, int args)
 	return OpenStatsMenu(client, gS_TargetAuth[client]);
 }
 
-public Action OpenStatsMenu(int client, const char[] authid)
+Action OpenStatsMenu(int client, const char[] authid)
 {
 	// big ass query, looking for optimizations
 	char[] sQuery = new char[2048];
@@ -532,7 +532,7 @@ public Action Timer_DBFailure(Handle timer, any data)
 	return Plugin_Stop;
 }
 
-public void ShowMaps(int client)
+void ShowMaps(int client)
 {
 	// database not found, display with a 3 seconds delay
 	if(gH_SQL == null)

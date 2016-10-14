@@ -165,7 +165,7 @@ public Action CheckForSQLInfo(Handle Timer)
 	return SetSQLInfo();
 }
 
-public Action SetSQLInfo()
+Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
@@ -327,7 +327,7 @@ public void OnClientPutInServer(int client)
 	UpdateClientCache(client);
 }
 
-public void UpdateClientCache(int client)
+void UpdateClientCache(int client)
 {
 	char sAuthID[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
@@ -366,7 +366,7 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 	}
 }
 
-public void UpdateWRCache()
+void UpdateWRCache()
 {
 	char sQuery[512];
 	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
@@ -573,7 +573,7 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public void OpenDelete(int client, BhopStyle style)
+void OpenDelete(int client, BhopStyle style)
 {
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
@@ -814,10 +814,10 @@ public Action Command_WorldRecord(int client, int args)
 		GetCmdArgString(gS_ClientMap[client], 192);
 	}
 
-	return ShowWRStyleMenu(client, gS_ClientMap[client]);
+	return ShowWRStyleMenu(client);
 }
 
-public Action ShowWRStyleMenu(int client, const char[] map)
+Action ShowWRStyleMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_StyleChooser);
 	menu.SetTitle("Choose a style:");
@@ -842,7 +842,6 @@ public Action ShowWRStyleMenu(int client, const char[] map)
 	}
 
 	menu.ExitButton = true;
-
 	menu.Display(client, 30);
 
 	return Plugin_Handled;
@@ -882,7 +881,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 	return 0;
 }
 
-public void StartWRMenu(int client, const char[] map, int style)
+void StartWRMenu(int client, const char[] map, int style)
 {
 	DataPack dp = new DataPack();
 	dp.WriteCell(GetClientSerial(client));
@@ -1023,13 +1022,13 @@ public int WRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		else
 		{
-			ShowWRStyleMenu(param1, gS_ClientMap[param1]);
+			ShowWRStyleMenu(param1);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		ShowWRStyleMenu(param1, gS_ClientMap[param1]);
+		ShowWRStyleMenu(param1);
 	}
 
 	else if(action == MenuAction_End)
@@ -1139,13 +1138,13 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		else
 		{
-			ShowWRStyleMenu(param1, gS_ClientMap[param1]);
+			ShowWRStyleMenu(param1);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		ShowWRStyleMenu(param1, gS_ClientMap[param1]);
+		ShowWRStyleMenu(param1);
 	}
 
 	else if(action == MenuAction_End)
@@ -1156,7 +1155,7 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public void OpenSubMenu(int client, int id)
+void OpenSubMenu(int client, int id)
 {
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
@@ -1302,7 +1301,7 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public void SQL_SetPrefix()
+void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
@@ -1330,7 +1329,7 @@ public void SQL_SetPrefix()
 	delete fFile;
 }
 
-public void SQL_DBConnect()
+void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
@@ -1572,7 +1571,7 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 	UpdateClientCache(client);
 }
 
-public void UpdateLeaderboards()
+void UpdateLeaderboards()
 {
 	char[] sQuery = new char[192];
 	FormatEx(sQuery, 192, "SELECT style, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC;", gS_MySQLPrefix, gS_Map);
@@ -1619,7 +1618,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	}
 }
 
-public int GetRankForTime(BhopStyle style, float time)
+int GetRankForTime(BhopStyle style, float time)
 {
 	if(time < gF_WRTime[style])
 	{
