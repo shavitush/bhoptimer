@@ -371,7 +371,7 @@ public void OnMapStart()
 	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-public bool LoadAdvertisementsConfig()
+bool LoadAdvertisementsConfig()
 {
 	gA_Advertisements.Clear();
 
@@ -588,7 +588,7 @@ public Action Timer_Advertisement(Handle Timer)
 	return Plugin_Stop;
 }
 
-public void UpdateScoreboard(int client)
+void UpdateScoreboard(int client)
 {
 	float fPB = 0.0;
 	Shavit_GetPlayerPB(client, view_as<BhopStyle>(0), fPB);
@@ -888,7 +888,7 @@ public int MenuHandler_Teleport(Menu menu, MenuAction action, int param1, int pa
 		char[] info = new char[16];
 		menu.GetItem(param2, info, 16);
 
-		if(Teleport(param1, StringToInt(info)) == -1)
+		if(!Teleport(param1, StringToInt(info)))
 		{
 			Command_Teleport(param1, 0);
 		}
@@ -902,13 +902,13 @@ public int MenuHandler_Teleport(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
-public int Teleport(int client, int targetserial)
+bool Teleport(int client, int targetserial)
 {
 	if(!IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "You can teleport only if you are alive.");
 
-		return -1;
+		return false;
 	}
 
 	int iTarget = GetClientFromSerial(targetserial);
@@ -917,14 +917,14 @@ public int Teleport(int client, int targetserial)
 	{
 		Shavit_PrintToChat(client, "You %scannot teleport%s inside the %sstart/end zones%s.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
-		return -1;
+		return false;
 	}
 
 	if(iTarget == 0)
 	{
 		Shavit_PrintToChat(client, "Invalid target.");
 
-		return -1;
+		return false;
 	}
 
 	float vecPosition[3];
@@ -934,7 +934,7 @@ public int Teleport(int client, int targetserial)
 
 	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
 
-	return 0;
+	return true;
 }
 
 public Action Command_Weapon(int client, int args)
@@ -999,7 +999,7 @@ public Action Command_Weapon(int client, int args)
 	return Plugin_Handled;
 }
 
-public void SetWeaponAmmo(int client, int weapon)
+void SetWeaponAmmo(int client, int weapon)
 {
 	int iAmmo = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType");
 	SetEntData(client, gI_Ammo + (iAmmo * 4), 255, 4, true);
@@ -1212,7 +1212,7 @@ public Action Respawn(Handle Timer, any data)
 	return Plugin_Handled;
 }
 
-public void RestartTimer(int client)
+void RestartTimer(int client)
 {
 	if(Shavit_ZoneExists(Zone_Start))
 	{

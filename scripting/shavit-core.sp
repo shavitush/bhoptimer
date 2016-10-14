@@ -590,7 +590,7 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public void ChangeClientStyle(int client, BhopStyle style)
+void ChangeClientStyle(int client, BhopStyle style)
 {
 	if(!IsValidClient(client))
 	{
@@ -837,7 +837,7 @@ public int Native_GetChatStrings(Handle handler, int numParams)
 	return SetNativeString(2, gS_ChatStrings[GetNativeCell(1)], GetNativeCell(3));
 }
 
-public void StartTimer(int client)
+void StartTimer(int client)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
 	{
@@ -868,7 +868,7 @@ public void StartTimer(int client)
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]);
 }
 
-public void StopTimer(int client)
+void StopTimer(int client)
 {
 	if(!IsValidClient(client) || IsFakeClient(client))
 	{
@@ -885,7 +885,7 @@ public void StopTimer(int client)
 	gI_GoodGains[client] = 0;
 }
 
-public void PauseTimer(int client)
+void PauseTimer(int client)
 {
 	if(!IsValidClient(client) || IsFakeClient(client))
 	{
@@ -900,7 +900,7 @@ public void PauseTimer(int client)
 	Call_Finish();
 }
 
-public void ResumeTimer(int client)
+void ResumeTimer(int client)
 {
 	if(!IsValidClient(client) || IsFakeClient(client))
 	{
@@ -915,7 +915,7 @@ public void ResumeTimer(int client)
 	Call_Finish();
 }
 
-public float CalculateTime(int client)
+float CalculateTime(int client)
 {
 	float time = 0.0;
 
@@ -1035,7 +1035,7 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 	}
 }
 
-public bool LoadStyles()
+bool LoadStyles()
 {
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-styles.cfg");
@@ -1134,7 +1134,7 @@ public Action Command_StyleChange(int client, int args)
 	return Plugin_Continue;
 }
 
-public bool LoadMessages()
+bool LoadMessages()
 {
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-messages.cfg");
@@ -1177,7 +1177,7 @@ public bool LoadMessages()
 	return true;
 }
 
-public void SQL_SetPrefix()
+void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
@@ -1205,7 +1205,7 @@ public void SQL_SetPrefix()
 	delete fFile;
 }
 
-public void SQL_DBConnect()
+void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
@@ -1344,7 +1344,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 
 		// +strafe block
-		if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] && Inconsistency(vel, buttons))
+		if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] && // newlining this because it's really long
+			(vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0) || (vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0))
 		{
 			float fTime = GetEngineTime();
 
@@ -1538,13 +1539,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	return Plugin_Continue;
 }
 
-public void StopTimer_Cheat(int client, const char[] message)
+void StopTimer_Cheat(int client, const char[] message)
 {
 	Shavit_StopTimer(client);
 	Shavit_PrintToChat(client, "%sTimer stopped! %s%s", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], message);
-}
-
-public bool Inconsistency(const float[] vel, const int buttons)
-{
-	return ((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0) || (vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0));
 }

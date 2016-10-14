@@ -137,7 +137,7 @@ public void OnClientSettingsChanged(int client)
 	UpdateClanTag(client);
 }
 
-public void UpdateClanTag(int client)
+void UpdateClanTag(int client)
 {
 	if(IsValidClient(client) && strlen(gS_Cached_ClanTag[client]) > 0)
 	{
@@ -191,7 +191,7 @@ public void Shavit_OnRankUpdated(int client)
 	LoadChatCache(client);
 }
 
-public void LoadChatCache(int client)
+void LoadChatCache(int client)
 {
 	// assign rank properties
 	int iRank = Shavit_GetRank(client);
@@ -257,7 +257,7 @@ public void LoadChatCache(int client)
 	UpdateClanTag(client);
 }
 
-public void ResetCache()
+void ResetCache()
 {
 	for(int i = 0; i < 64; i++)
 	{
@@ -272,7 +272,7 @@ public void ResetCache()
 	gI_UnrankedTitle = -1;
 }
 
-public void LoadConfig()
+void LoadConfig()
 {
 	delete gSM_Custom_Prefix;
 	delete gSM_Custom_Name;
@@ -615,7 +615,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	return Plugin_Handled;
 }
 
-public void FormatChatLine(int client, const char[] sMessage, bool bAlive, int iTeam, bool bTeam, char[] buffer, int maxlen)
+void FormatChatLine(int client, const char[] sMessage, bool bAlive, int iTeam, bool bTeam, char[] buffer, int maxlen)
 {
 	char[] sTeam = new char[32];
 
@@ -716,7 +716,7 @@ public void FormatChatLine(int client, const char[] sMessage, bool bAlive, int i
 	FormatEx(buffer, maxlen, "\x01%s%s%s\x03%s%s %s  %s", gEV_Type == Engine_CSGO? " ":"", (bAlive || iTeam == CS_TEAM_SPECTATOR)? "":"*DEAD* ", sTeam, sNewPrefix, sNewName, gEV_Type == Engine_CSGO? ":\x01":"\x01:", sFormattedText);
 }
 
-public void FormatVariables(int client, char[] buffer, int maxlen, const char[] formattingrules, const char[] message)
+void FormatVariables(int client, char[] buffer, int maxlen, const char[] formattingrules, const char[] message)
 {
 	char[] sTempFormattingRules = new char[maxlen];
 	strcopy(sTempFormattingRules, maxlen, formattingrules);
@@ -735,16 +735,14 @@ public void FormatVariables(int client, char[] buffer, int maxlen, const char[] 
 
 		do
 		{
-			GetRandomHex(sColorBuffer, 6);
-			Format(sColorBuffer, 16, "\x07%s", sColorBuffer);
+			Format(sColorBuffer, 16, "\x07%x%x%x", RealRandomInt(1, 255), RealRandomInt(1, 255), RealRandomInt(1, 255));
 		}
 
 		while(ReplaceStringEx(sTempFormattingRules, maxlen, "{RGBX}", sColorBuffer) > 0);
 
 		do
 		{
-			GetRandomHex(sColorBuffer, 8);
-			Format(sColorBuffer, 16, "\x08%s", sColorBuffer);
+			Format(sColorBuffer, 16, "\x08%x%x%x%x", RealRandomInt(1, 255), RealRandomInt(1, 255), RealRandomInt(1, 255), RealRandomInt(1, 255));
 		}
 
 		while(ReplaceStringEx(sTempFormattingRules, maxlen, "{RGBAX}", sColorBuffer) > 0);
@@ -773,7 +771,7 @@ public void FormatVariables(int client, char[] buffer, int maxlen, const char[] 
 	strcopy(buffer, maxlen, sTempFormattingRules);
 }
 
-public void ChatMessage(int from, int[] clients, int count, const char[] sMessage)
+void ChatMessage(int from, int[] clients, int count, const char[] sMessage)
 {
 	Handle hSayText2 = StartMessage("SayText2", clients, count);
 
@@ -834,20 +832,8 @@ public int Native_FormatChat(Handle handler, int numParams)
 	return SetNativeString(6, sBuffer, maxlength);
 }
 
-public void GetRandomHex(char[] buffer, int size)
-{
-	char[] sHex = "0123456789abcdef";
-
-	for(int i = 0; i < size; i++)
-	{
-		buffer[i] = sHex[RealRandomInt(0, 15)];
-	}
-
-	buffer[size+1] = '\0';
-}
-
 // from SMLib
-public int RealRandomInt(int min, int max)
+int RealRandomInt(int min, int max)
 {
 	int random = GetURandomInt();
 

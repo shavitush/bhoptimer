@@ -224,7 +224,7 @@ public Action CheckForSQLInfo(Handle Timer)
 	return SetSQLInfo();
 }
 
-public Action SetSQLInfo()
+Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
@@ -341,7 +341,7 @@ public int Native_IsClientCreatingZone(Handle handler, int numParams)
 	return (gI_MapStep[GetNativeCell(1)] != 0);
 }
 
-public bool LoadZonesConfig()
+bool LoadZonesConfig()
 {
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-zones.cfg");
@@ -450,7 +450,7 @@ public void Shavit_OnChatConfigLoaded()
 }
 
 // 0 - all zones
-public void UnloadZones(int zone)
+void UnloadZones(int zone)
 {
 	if(!zone)
 	{
@@ -506,7 +506,7 @@ public void UnloadZones(int zone)
 	}
 }
 
-public void RefreshZones()
+void RefreshZones()
 {
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
@@ -721,7 +721,7 @@ public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, co
 	Shavit_PrintToChat(client, "Deleted Custom Spawn sucessfully.");
 }
 
-public void ClearCustomSpawn()
+void ClearCustomSpawn()
 {
 	for(int i = 0; i < 3; i++)
 	{
@@ -957,7 +957,7 @@ public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int
 	return 0;
 }
 
-public void Reset(int client)
+void Reset(int client)
 {
 	gF_Modifier[client] = 10.0;
 	gI_MapStep[client] = 0;
@@ -979,7 +979,7 @@ public void Reset(int client)
 }
 
 // neat idea for this part is by alongub, you have a cool way of thinking. :)
-public void ShowPanel(int client, int step)
+void ShowPanel(int client, int step)
 {
 	gI_MapStep[client] = step;
 
@@ -1188,7 +1188,7 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 	return 0;
 }
 
-public void CreateEditMenu(int client)
+void CreateEditMenu(int client)
 {
 	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
 	menu.SetTitle("Confirm?");
@@ -1223,7 +1223,7 @@ public void CreateEditMenu(int client)
 	menu.Display(client, 600);
 }
 
-public void CreateAdjustMenu(int client, int page)
+void CreateAdjustMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneAdjuster_Handler);
 	hMenu.SetTitle("Adjust the zone's position.\nUse \"sm_modifier <number>\" to set a new modifier.");
@@ -1307,7 +1307,7 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
-public void CreateRotateMenu(int client)
+void CreateRotateMenu(int client)
 {
 	Menu hMenu = new Menu(ZoneRotate_Handler);
 	hMenu.SetTitle("Rotate the zone.\nUse \"sm_modifier <number>\" to set a new modifier.");
@@ -1359,7 +1359,7 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 	}
 }
 
-public void CreateWidthLengthMenu(int client, int page)
+void CreateWidthLengthMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneEdge_Handler);
 	hMenu.SetTitle("Rotate the zone.\nUse \"sm_modifier <number>\" to set a new modifier.");
@@ -1448,7 +1448,7 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 	}
 }
 
-public bool EmptyZone(float vZone[3])
+bool EmptyZone(float vZone[3])
 {
 	if(vZone[0] == 0.0 && vZone[1] == 0.0 && vZone[2] == 0.0)
 	{
@@ -1458,7 +1458,7 @@ public bool EmptyZone(float vZone[3])
 	return false;
 }
 
-public void InsertZone(int client)
+void InsertZone(int client)
 {
 	MapZones type = gMZ_Type[client];
 
@@ -1665,7 +1665,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-public bool UsedFixes(float[2][2] fixes)
+bool UsedFixes(float[2][2] fixes)
 {
 	for(int a = 0; a < 2; a++)
 	{
@@ -1692,7 +1692,7 @@ public bool UsedFixes(float[2][2] fixes)
 * returns true if a player is inside the given zone
 * returns false if they aren't in it
 */
-public bool InsideZone(int client, int zone)
+bool InsideZone(int client, int zone)
 {
 	float playerPos[3];
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", playerPos);
@@ -1768,7 +1768,7 @@ public bool InsideZone(int client, int zone)
 }
 
 // like InsideZone but for teleport zones
-public bool InsideTeleportZone(int client, int zone)
+bool InsideTeleportZone(int client, int zone)
 {
 	float fPlayerPos[3];
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fPlayerPos);
@@ -1806,7 +1806,7 @@ public bool InsideTeleportZone(int client, int zone)
 *    if client == 0, it draws it for all players in the game
 *   if client index is between 0 and MaxClients+1, it draws for the specified client
 */
-public void DrawZone(float array[8][3], int beamsprite, int halosprite, int color[4], float life)
+void DrawZone(float array[8][3], int beamsprite, int halosprite, int color[4], float life)
 {
 	for(int i = 0, i2 = 3; i2 >= 0; i += i2--)
 	{
@@ -1822,7 +1822,7 @@ public void DrawZone(float array[8][3], int beamsprite, int halosprite, int colo
 }
 
 // Rotating point around 2d axis
-public void PointRotate(float angle, float axis[3], float point[3])
+void PointRotate(float angle, float axis[3], float point[3])
 {
 	/*
 	a - rotation degree as radians
@@ -1860,7 +1860,7 @@ public void PointRotate(float angle, float axis[3], float point[3])
 }
 
 // Rotating point around 2d axis with constant sin and cos
-public void PointConstRotate(float sin, float cos, float axis[3], float point[3])
+void PointConstRotate(float sin, float cos, float axis[3], float point[3])
 {
 	/*
 	a - rotation degree as radians
@@ -1896,7 +1896,7 @@ public void PointConstRotate(float sin, float cos, float axis[3], float point[3]
 }
 
 // Translate 2D Point
-public void PointTranslate(float point[3], float t[2])
+void PointTranslate(float point[3], float t[2])
 {
 	point[0] += t[0];
 	point[1] += t[1];
@@ -1911,7 +1911,7 @@ public void PointTranslate(float point[3], float t[2])
 * norotate - don't rotate zone points
 * all - calculate all 8 zone points
 */
-public void CreateZonePoints(float point[8][3], float angle, float fix1[2], float fix2[2], int zone, bool norotate, bool all)
+void CreateZonePoints(float point[8][3], float angle, float fix1[2], float fix2[2], int zone, bool norotate, bool all)
 {
 	if(all)
 	{
@@ -1963,7 +1963,7 @@ public void CreateZonePoints(float point[8][3], float angle, float fix1[2], floa
 }
 
 // Translating Zone
-public void TranslateZone(float point[8][3], float fix1[2], float fix2[2])
+void TranslateZone(float point[8][3], float fix1[2], float fix2[2])
 {
 	float fix[2];
 	// X Translate
@@ -1999,7 +1999,7 @@ public void TranslateZone(float point[8][3], float fix1[2], float fix2[2])
 }
 
 //Rotating Zone by constant sin and cos
-public void RotateZone(float point[8][3], float sin, float cos)
+void RotateZone(float point[8][3], float sin, float cos)
 {
 	for(int i = 1; i < 8; i++)
 	{
@@ -2008,8 +2008,7 @@ public void RotateZone(float point[8][3], float sin, float cos)
 }
 
 // thanks a lot for those stuff, I couldn't do it without you blacky!
-
-public void SQL_SetPrefix()
+void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
@@ -2037,7 +2036,7 @@ public void SQL_SetPrefix()
 	delete fFile;
 }
 
-public void SQL_DBConnect()
+void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
