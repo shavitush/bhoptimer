@@ -109,6 +109,11 @@ public Action CheckForSQLInfo(Handle Timer)
 	return SetSQLInfo();
 }
 
+public void OnMapStart()
+{
+	StartCalculating();
+}
+
 Action SetSQLInfo()
 {
 	if(gH_SQL == null)
