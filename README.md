@@ -80,7 +80,7 @@ General
 - [x] Migrate ADT_Arrays to ArrayList.
 - [x] Support "out of the box" installations and SQLite support.
 - [x] Implement a config file for styles and use Dynamic to load them, add Shavit_OnStylesLoaded and caching natives.
-- [ ] Save timer variables on Dynamic's per-player settings.
+- [ ] Add support for multiple tracks (main/bonus etc).
 
 Core
 --
@@ -99,7 +99,6 @@ Core
 - [x] Add `lastlogin` column to `users`.
 - [x] Allow late loading by adding Shavit_OnDatabaseLoaded() and get the new database handle in modules.
 - [x] Add style changing commands (config file).
-- [ ] Add bonus timer.
 
 HUD
 --
@@ -115,7 +114,7 @@ HUD
 - [x] Add potential map rank.
 - [x] Add strafes/sync. (replace 'Player' with strafes and sync in csgo, use keyhinttext for sync in css)
 - [x] Show 'time left' to HUD (CS:S only).
-- [ ] Support for bonus timer.
+- [ ] Support for multiple tracks.
 
 Replay
 --
@@ -126,7 +125,7 @@ Replay
 - [x] Make replay bots dead if there's no replay data loaded.
 - [x] Clear player cache on spawn/death.
 - [x] Add admin interface. (delete replay data, `sm_deletereplay` for RCON admins.
-- [ ] Bonus replay for default style.
+- [ ] Support for multiple tracks and styles.
 
 Stats
 --
@@ -208,7 +207,7 @@ Chat **(NEW!)**
 
 Zones
 --
-- [x] Add teleport zones (multiple). Use the command `sm_tpzone` between the time of setting the zone and confirming the setup.
+- [x] Add teleport zones (multiple). ~~Use the command `sm_tpzone` between the time of setting the zone and confirming the setup.~~ made them very easy to setup!
 - [x] Use string explosion in ZoneAdjuster_Handler and ZoneEdge_Handler for code efficiency.
 - [x] CANCELED: Migrate zone settings to use Dynamic. (i didn't think *too* far into it before i started)
 - [x] Handle teleport zones. (teleport to a value from gV_Teleport)
@@ -232,7 +231,7 @@ World Records
 - [x] Add strafes/sync to the WR menu where available.
 - [x] Add 'player stats' to submenu.
 - [x] Grab points from `playertimes` instead of calculating on the fly.
-- [ ] Add `sm_bwr` `sm_bonuswr` `sm_bonusworldrecord`.
+- [ ] Support multiple tracks.
 
 Time Limits
 --
