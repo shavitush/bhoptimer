@@ -205,8 +205,8 @@ public void OnPluginStart()
 	gCV_ZoneStyle.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToStart.AddChangeHook(OnConVarChanged);
-	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToEnd.AddChangeHook(OnConVarChanged);
+	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -2138,7 +2138,7 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnRestart(int client)
 {
-	if(gB_TeleportToStart && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
+	if(gB_TeleportToStart && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
 	{
 		Shavit_StartTimer(client);
 
@@ -2164,7 +2164,7 @@ public void Shavit_OnRestart(int client)
 
 public void Shavit_OnEnd(int client)
 {
-	if(gB_TeleportToEnd && !IsFakeClient(client) && !EmptyZone(gV_MapZones[Zone_End][0]) && !EmptyZone(gV_MapZones[Zone_End][1]))
+	if(gB_TeleportToEnd && !EmptyZone(gV_MapZones[Zone_End][0]) && !EmptyZone(gV_MapZones[Zone_End][1]))
 	{
 		float vCenter[3];
 		MakeVectorFromPoints(gV_MapZones[1][0], gV_MapZones[1][1], vCenter);

@@ -6,7 +6,11 @@
 [Download](https://github.com/shavitush/bhoptimer/releases)
 
 # shavit's simple bhop timer
-a bhop server should be simple
+*a bhop server should be simple*
+
+This is (nearly) an all-in-one server plugin for Counter-Strike: Source and Counter-Strike: Global Offensive that adds a timer system and many other utilities, so you can install it and have a proper bunnyhop server running.
+
+Including a records system, map zones (start/end marks etc), HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, rankings and more!
 
 [Mapzones' setup demonstration](https://www.youtube.com/watch?v=oPKso2hoLw0)
 
@@ -14,7 +18,7 @@ a bhop server should be simple
 * [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
 * `clientprefs` plugin/extension. Comes built-in with SourceMod.
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for compilation of `shavit-misc`.
-* [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in Ther RTLer's requirements.
+* [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in *The RTLer*'s requirements.
 * [Chat-Processor](https://forums.alliedmods.net/showthread.php?t=286913) - for compilation and better runtime of `shavit-chat` (plugin can run without it).
 * [Dynamic](https://github.com/ntoxin66/Dynamic) for compilation and runtime of the whole plugin. (use latest version from GitHub)
 
