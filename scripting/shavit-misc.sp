@@ -577,7 +577,7 @@ public Action Timer_Advertisement(Handle Timer)
 		}
 	}
 
-	return Plugin_Stop;
+	return Plugin_Continue;
 }
 
 void UpdateScoreboard(int client)
