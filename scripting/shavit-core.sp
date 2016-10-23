@@ -1480,7 +1480,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		fAngle += 360.0;
 	}
 
-	if(iGroundEntity == -1 && !(GetEntityFlags(client) & FL_INWATER) && fAngle != 0.0)
+	if(iGroundEntity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
 	{
 		float fAbsVelocity[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
