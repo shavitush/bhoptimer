@@ -554,18 +554,15 @@ public Action Timer_Advertisement(Handle Timer)
 		FormatEx(sIPAddress, 64, "%d.%d.%d.%d:%d", iAddress[0], iAddress[1], iAddress[2], iAddress[3], gCV_Hostport.IntValue);
 	}
 
-	int iAdvertisement = (gI_AdvertisementsCycle++ % gA_Advertisements.Length);
-
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientConnected(i) && IsClientInGame(i))
 		{
 			char[] sTempMessage = new char[300];
-			gA_Advertisements.GetString(iAdvertisement, sTempMessage, 300);
+			gA_Advertisements.GetString(gI_AdvertisementsCycle, sTempMessage, 300);
 
 			char[] sName = new char[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
-
 			ReplaceString(sTempMessage, 300, "{name}", sName);
 			ReplaceString(sTempMessage, 300, "{map}", gS_CurrentMap);
 			ReplaceString(sTempMessage, 300, "{timeleft}", sTimeLeft);
@@ -575,6 +572,11 @@ public Action Timer_Advertisement(Handle Timer)
 
 			Shavit_PrintToChat(i, "%s", sTempMessage);
 		}
+	}
+
+	if(++gI_AdvertisementsCycle >= gA_Advertisements.Length)
+	{
+		gI_AdvertisementsCycle = 0;
 	}
 
 	return Plugin_Continue;
