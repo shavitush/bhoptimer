@@ -1336,14 +1336,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(gB_TimerEnabled[client] && !gB_ClientPaused[client])
 	{
 		// +left/right block
-		if(gB_LeftRight && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] && (buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
+		if(gB_LeftRight && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] &&
+			(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
 		{
 			StopTimer_Cheat(client, "Detected +left/right on a disallowed style.");
 		}
 
 		// +strafe block
-		if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] && // newlining this because it's really long
-			(vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0) || (vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0))
+		if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] &&
+			((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) ||
+			(vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0)))
 		{
 			float fTime = GetEngineTime();
 
@@ -1392,7 +1394,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 
 			// HSW
-			if(gA_StyleSettings[gBS_Style[client]][bForceHSW] && ((vel[0] < gF_HSW_Requirement && vel[0] > -gF_HSW_Requirement) || !((vel[0] > 0 || (buttons & IN_FORWARD) > 0) && ((vel[1] < 0 || (buttons & IN_MOVELEFT) > 0) || (vel[1] > 0 || (buttons & IN_MOVERIGHT) > 0)))))
+			if(gA_StyleSettings[gBS_Style[client]][bForceHSW] && ((vel[0] < gF_HSW_Requirement && vel[0] > -gF_HSW_Requirement) ||
+				!((vel[0] > 0 || (buttons & IN_FORWARD) > 0) && ((vel[1] < 0 || (buttons & IN_MOVELEFT) > 0) || (vel[1] > 0 || (buttons & IN_MOVERIGHT) > 0)))))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;
@@ -1401,22 +1404,26 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountW] && !gA_StyleSettings[gBS_Style[client]][bBlockW] && (gI_ButtonCache[client] & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
+	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountW] && !gA_StyleSettings[gBS_Style[client]][bBlockW] &&
+		(gI_ButtonCache[client] & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountA] && !gA_StyleSettings[gBS_Style[client]][bBlockA] && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 && (buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gBS_Style[client]][bForceHSW] || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountA] && !gA_StyleSettings[gBS_Style[client]][bBlockA] && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 &&
+		(buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gBS_Style[client]][bForceHSW] || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountS] && !gA_StyleSettings[gBS_Style[client]][bBlockS] && (gI_ButtonCache[client] & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
+	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountS] && !gA_StyleSettings[gBS_Style[client]][bBlockS] &&
+		(gI_ButtonCache[client] & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountD] && !gA_StyleSettings[gBS_Style[client]][bBlockD] && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 && (buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gBS_Style[client]][bForceHSW] || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountD] && !gA_StyleSettings[gBS_Style[client]][bBlockD] && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 &&
+		(buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gBS_Style[client]][bForceHSW] || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gI_Strafes[client]++;
 	}
@@ -1449,7 +1456,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// velocity limit
-	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) && (!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
+	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) &&
+	(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);

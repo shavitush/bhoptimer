@@ -1216,14 +1216,22 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(gB_HideRadar)
+	if(!IsFakeClient(client))
 	{
-		CreateTimer(0.0, RemoveRadar, GetClientSerial(client));
-	}
+		if(gB_HideRadar)
+		{
+			RequestFrame(RemoveRadar, GetClientSerial(client));
+		}
 
-	if(gB_StartOnSpawn)
-	{
-		RestartTimer(client);
+		if(gB_StartOnSpawn)
+		{
+			RestartTimer(client);
+		}
+
+		if(gB_Scoreboard)
+		{
+			UpdateScoreboard(client);
+		}
 	}
 
 	if(gB_NoBlock)
@@ -1231,25 +1239,20 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	}
 
-	if(gB_Scoreboard && !IsFakeClient(client))
-	{
-		UpdateScoreboard(client);
-	}
-
-	if(gI_PlayerOpacity != -1 && FindSendPropInfo("CCSPlayer", "m_nRenderFX") != -1)
+	if(gI_PlayerOpacity != -1)
 	{
 		SetEntityRenderMode(client, RENDER_TRANSCOLOR);
 		SetEntityRenderColor(client, 255, 255, 255, gI_PlayerOpacity);
 	}
 }
 
-public Action RemoveRadar(Handle timer, any data)
+public void RemoveRadar(any data)
 {
 	int client = GetClientFromSerial(data);
 
-	if(!IsValidClient(client))
+	if(client == 0 || !IsPlayerAlive(client))
 	{
-		return Plugin_Stop;
+		return;
 	}
 
 	if(gEV_Type == Engine_CSGO)
@@ -1262,8 +1265,6 @@ public Action RemoveRadar(Handle timer, any data)
 		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 3600.0);
 		SetEntPropFloat(client, Prop_Send, "m_flFlashMaxAlpha", 0.5);
 	}
-
-	return Plugin_Stop;
 }
 
 public Action Player_Notifications(Event event, const char[] name, bool dontBroadcast)
