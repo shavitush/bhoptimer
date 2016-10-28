@@ -211,7 +211,7 @@ public void OnPluginStart()
 	gCV_PlayerOpacity = CreateConVar("shavit_misc_playeropacity", "-1", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 	gCV_StaticPrestrafe = CreateConVar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 1.0);
-	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.\nSet to -1 to disable.", 0, true, -1.0);
+	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -238,6 +238,7 @@ public void OnPluginStart()
 
 	// crons
 	CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
+	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT);
 
 	if(LibraryExists("dhooks"))
 	{
@@ -367,8 +368,6 @@ public void OnMapStart()
 		Shavit_OnStyleConfigLoaded(-1);
 		Shavit_OnChatConfigLoaded();
 	}
-
-	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 bool LoadAdvertisementsConfig()
@@ -533,11 +532,6 @@ public Action Timer_Scoreboard(Handle Timer)
 
 public Action Timer_Advertisement(Handle Timer)
 {
-	if(gF_AdvertisementInterval < 0.0)
-	{
-		return Plugin_Stop;
-	}
-
 	char[] sHostname = new char[128];
 	gCV_Hostname.GetString(sHostname, 128);
 
@@ -560,18 +554,15 @@ public Action Timer_Advertisement(Handle Timer)
 		FormatEx(sIPAddress, 64, "%d.%d.%d.%d:%d", iAddress[0], iAddress[1], iAddress[2], iAddress[3], gCV_Hostport.IntValue);
 	}
 
-	int iAdvertisement = (gI_AdvertisementsCycle++ % gA_Advertisements.Length);
-
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientConnected(i) && IsClientInGame(i))
 		{
 			char[] sTempMessage = new char[300];
-			gA_Advertisements.GetString(iAdvertisement, sTempMessage, 300);
+			gA_Advertisements.GetString(gI_AdvertisementsCycle, sTempMessage, 300);
 
 			char[] sName = new char[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
-
 			ReplaceString(sTempMessage, 300, "{name}", sName);
 			ReplaceString(sTempMessage, 300, "{map}", gS_CurrentMap);
 			ReplaceString(sTempMessage, 300, "{timeleft}", sTimeLeft);
@@ -583,9 +574,12 @@ public Action Timer_Advertisement(Handle Timer)
 		}
 	}
 
-	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement);
+	if(++gI_AdvertisementsCycle >= gA_Advertisements.Length)
+	{
+		gI_AdvertisementsCycle = 0;
+	}
 
-	return Plugin_Stop;
+	return Plugin_Continue;
 }
 
 void UpdateScoreboard(int client)
@@ -1224,14 +1218,22 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(gB_HideRadar)
+	if(!IsFakeClient(client))
 	{
-		CreateTimer(0.0, RemoveRadar, GetClientSerial(client));
-	}
+		if(gB_HideRadar)
+		{
+			RequestFrame(RemoveRadar, GetClientSerial(client));
+		}
 
-	if(gB_StartOnSpawn)
-	{
-		RestartTimer(client);
+		if(gB_StartOnSpawn)
+		{
+			RestartTimer(client);
+		}
+
+		if(gB_Scoreboard)
+		{
+			UpdateScoreboard(client);
+		}
 	}
 
 	if(gB_NoBlock)
@@ -1239,25 +1241,20 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	}
 
-	if(gB_Scoreboard && !IsFakeClient(client))
-	{
-		UpdateScoreboard(client);
-	}
-
-	if(gI_PlayerOpacity != -1 && FindSendPropInfo("CCSPlayer", "m_nRenderFX") != -1)
+	if(gI_PlayerOpacity != -1)
 	{
 		SetEntityRenderMode(client, RENDER_TRANSCOLOR);
 		SetEntityRenderColor(client, 255, 255, 255, gI_PlayerOpacity);
 	}
 }
 
-public Action RemoveRadar(Handle timer, any data)
+public void RemoveRadar(any data)
 {
 	int client = GetClientFromSerial(data);
 
-	if(!IsValidClient(client))
+	if(client == 0 || !IsPlayerAlive(client))
 	{
-		return Plugin_Stop;
+		return;
 	}
 
 	if(gEV_Type == Engine_CSGO)
@@ -1270,8 +1267,6 @@ public Action RemoveRadar(Handle timer, any data)
 		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 3600.0);
 		SetEntPropFloat(client, Prop_Send, "m_flFlashMaxAlpha", 0.5);
 	}
-
-	return Plugin_Stop;
 }
 
 public Action Player_Notifications(Event event, const char[] name, bool dontBroadcast)
