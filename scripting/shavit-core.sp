@@ -478,7 +478,6 @@ public Action Command_TogglePause(int client, int args)
 	{
 		ResumeTimer(client);
 		Shavit_PrintToChat(client, "Timer has been %sunpaused%s.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-
 	}
 
 	else
