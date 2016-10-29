@@ -483,7 +483,7 @@ void UpdateHUD(int client)
 						strcopy(sColor, 8, "FF0000");
 					}
 
-					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)", sHintText, sColor, (tStatus == Timer_Paused)? " [PAUSED]\t":sTime, iPotentialRank);
+					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)", sHintText, (tStatus == Timer_Paused)? "FF0000":sColor, (tStatus == Timer_Paused)? "[PAUSED]\t":sTime, iPotentialRank);
 				}
 
 				if(fPB > 0.0)
