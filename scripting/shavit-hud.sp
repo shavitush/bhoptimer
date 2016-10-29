@@ -488,7 +488,7 @@ void UpdateHUD(int client)
 
 				if(fPB > 0.0)
 				{
-					Format(sHintText, 512, "%s%sBest: %s (#%d)", sHintText, (tStatus >= Timer_Running)? "\t":"", sPB, (oGetRankForTime(bsStyle, fPB) - 1));
+					Format(sHintText, 512, "%s%sBest: %s (#%d)", sHintText, (tStatus >= Timer_Running)? "\t":"", sPB, (Shavit_GetRankForTime(bsStyle, fPB) - 1));
 				}
 
 				if(tStatus >= Timer_Running)
