@@ -264,7 +264,7 @@ public Action Timer_PrintTier(Handle Timer, any data)
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	Shavit_PrintToChat(client, "%s%s%s is rated %stier %.01f%s.", gS_ChatStrings[sMessageVariable2], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%s%s%s is rated as %sTier %.01f%s.", gS_ChatStrings[sMessageVariable2], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
 
 	return Plugin_Stop;
 }
@@ -551,7 +551,7 @@ public Action Command_Tier(int client, int args)
 
 		if(gF_MapTier != -1)
 		{
-			Shavit_PrintToChat(client, "%s%s%s is rated %stier %.01f%s.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(client, "%s%s%s is rated as %sTier %.01f%s.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
 		}
 
 		else
