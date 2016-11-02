@@ -22,36 +22,6 @@
 		"en"		"The command ({1}{2}{3}) is disabled."
     }
 	// ---------- Errors ---------- //
-	"ClientInsertionFailure"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"Timer error! Failed to insert {1}'s data to the table. Reason: {2}"
-	}
-	"DatabaseConnectionFailure"
-	{
-		"#format"	"{1:s}"
-		"en"		"Timer startup failed. Reason: {1}"
-	}
-	"DisconnectedPlayerInsertionFailure"
-	{
-		"#format"	"{1:s}"
-		"en"		"Timer error! Failed to insert a disconnected player's data to the table. Reason: {1}"
-	}
-	"TableAlterationFailure"
-	{
-		"#format"	"{1:s}"
-		"en"		"Timer error! Table alteration 1 (core) failed. Reason: {1}"
-	}
-	"TableAlterationFailure2"
-	{
-		"#format"	"{1:s}"
-		"en"		"Timer error! Table alteration 2 (core) failed. Reason: {1}"
-	}
-	"UsersDatabaseCreationFailure"
-	{
-		"#format"	"{1:s}"
-		"en"		"Timer error! Users' data table creation failed. Reason: {1}"
-	}
 	"VerificationFailed"
 	{
 		"en"		"Couldn't verify your, or the server's connection to Steam."
