@@ -1,5 +1,61 @@
 "Phrases"
 {
+	// ---------- HUD Components ---------- //
+	// DO NOT MAKE NAMES LONGER THAN DISPLAYED HERE //
+	"HudStartZone"
+	{
+		"en"		"Start Zone"
+	}
+	"HudInStartZone"
+	{
+		"#format"	"{1:d}"
+		"en"		"In Start Zone\n\n{1}"
+	}
+	"HudEndZone"
+	{
+		"en"		"End Zone"
+	}
+	"HudInEndZone"
+	{
+		"#format"	"{1:d}"
+		"en"		"In End Zone\n\n{1}"
+	}
+	"HudPaused"
+	{
+		"en"		"[PAUSED]"
+	}
+	"HudTimeText"
+	{
+		"en"		"Time"
+	}
+	"HudBestText"
+	{
+		"en"		"Best"
+	}
+	"HudJumpsText"
+	{
+		"en"		"Jumps"
+	}
+	"HudStyleText"
+	{
+		"en"		"Style"
+	}
+	"HudSpeedText"
+	{
+		"en"		"Speed"
+	}
+	"HudStrafeText"
+	{
+		"en"		"Strafes"
+	}
+	"HudTimeLeft"
+	{
+		"en"		"Time left"
+	}
+	"HudSync"
+	{
+		"en"		"Sync"
+	}
 	// ---------- Menus ---------- //
 	"HUDMenuTitle"
 	{
@@ -48,5 +104,23 @@
 	"Hud2dVel"
 	{
 		"en"		"Use 2D Velocity"
+	}
+	// ---------- Record Bots ---------- //
+	"ReplayText"
+	{
+		"en"		"Replay"
+	}
+	"NoReplayData"
+	{
+		"en"		"No replay data loaded"
+	}
+	// ---------- Panels ---------- //
+	"SpectatorPersonal"
+	{
+		"en"		"Spectators"
+	}
+	"SpectatorWatching"
+	{
+		"en"		"Other Spectators"
 	}
 }
