@@ -105,6 +105,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-hud.phrases");
+
 	// game-specific
 	gEV_Type = GetEngineVersion();
 
@@ -211,41 +213,53 @@ Action ShowHUDMenu(int client, int item)
 	m.SetTitle("%T", "HUDMenuTitle", client);
 
 	char[] sInfo = new char[16];
+	char[] sHudItem = new char[64];
 	IntToString(HUD_MASTER, sInfo, 16);
-	m.AddItem(sInfo, "Master");
+	FormatEx(sHudItem, 64, "%T", "HudMaster", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_CENTER, sInfo, 16);
-	m.AddItem(sInfo, "Center text");
+	FormatEx(sHudItem, 64, "%T", "HudCenter", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_ZONEHUD, sInfo, 16);
-	m.AddItem(sInfo, "Zone HUD");
+	FormatEx(sHudItem, 64, "%T", "HudZoneHud", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_OBSERVE, sInfo, 16);
-	m.AddItem(sInfo, "Show the HUD of the player you spectate");
+	FormatEx(sHudItem, 64, "%T", "HudObserve", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_SPECTATORS, sInfo, 16);
-	m.AddItem(sInfo, "Spectator list");
+	FormatEx(sHudItem, 64, "%T", "HudSpectators", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_KEYOVERLAY, sInfo, 16);
-	m.AddItem(sInfo, "Key overlay");
+	FormatEx(sHudItem, 64, "%T", "HudKeyOverlay", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_HIDEWEAPON, sInfo, 16);
-	m.AddItem(sInfo, "Hide weapons");
+	FormatEx(sHudItem, 64, "%T", "HudHideWeapon", client);
+	m.AddItem(sInfo, sHudItem);
 
 	if(gEV_Type == Engine_CSS)
 	{
 		IntToString(HUD_TOPLEFT, sInfo, 16);
-		m.AddItem(sInfo, "Top left HUD (WR/PB)");
+		FormatEx(sHudItem, 64, "%T", "HudTopLeft", client);
+		m.AddItem(sInfo, sHudItem);
 
 		IntToString(HUD_SYNC, sInfo, 16);
-		m.AddItem(sInfo, "Sync");
+		FormatEx(sHudItem, 64, "%T", "HudSync", client);
+		m.AddItem(sInfo, sHudItem);
 
 		IntToString(HUD_TIMELEFT, sInfo, 16);
-		m.AddItem(sInfo, "Time left");
+		FormatEx(sHudItem, 64, "%T", "HudTimeleft", client);
+		m.AddItem(sInfo, sHudItem);
 	}
 
 	IntToString(HUD_2DVEL, sInfo, 16);
-	m.AddItem(sInfo, "Use 2D velocity");
+	FormatEx(sHudItem, 64, "%T", "Hud2dVel", client);
+	m.AddItem(sInfo, sHudItem);
 
 	m.ExitButton = true;
 	m.DisplayAt(client, item, 60);

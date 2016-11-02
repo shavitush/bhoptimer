@@ -5,4 +5,48 @@
 	{
 		"en"		"HUD settings:"
 	}
+	"HudMaster"
+	{
+		"en"		"Master"
+	}
+	"HudCenter"
+	{
+		"en"		"Center text"
+	}
+	"HudZoneHud"
+	{
+		"en"		"Zone HUD"
+	}
+	"HudObserve"
+	{
+		"en"		"Shows the HUD of the player you spectate"
+	}
+	"HudSpectators"
+	{
+		"en"		"Spectator List"
+	}
+	"HudKeyOverlay"
+	{
+		"en"		"Key overlay"
+	}
+	"HudHideWeapon"
+	{
+		"en"		"Hide weapons"
+	}
+	"HudTopLeft"
+	{
+		"en"		"Top left HUD (WR/PB)"
+	}
+	"HudSync"
+	{
+		"en"		"Sync"
+	}
+	"HudTimeleft"
+	{
+		"en"		"Time left"
+	}
+	"Hud2dVel"
+	{
+		"en"		"Use 2D Velocity"
+	}
 }
