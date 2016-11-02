@@ -128,6 +128,7 @@ public void OnPluginStart()
 
 	// translations
 	LoadTranslations("common.phrases");
+	LoadTranslations("shavit-rankings.phrases");
 
 	// cvars
 	gCV_TopAmount = CreateConVar("shavit_rankings_topamount", "100", "Amount of people to show within the sm_top menu.", 0, true, 1.0, false);
@@ -264,7 +265,7 @@ public Action Timer_PrintTier(Handle Timer, any data)
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	Shavit_PrintToChat(client, "%s%s%s is rated as %sTier %.01f%s.", gS_ChatStrings[sMessageVariable2], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "Tier", client, gS_ChatStrings[sMessageVariable2], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
 
 	return Plugin_Stop;
 }
@@ -380,7 +381,7 @@ public Action Command_Points(int client, int args)
 
 	if(fWRTime < 0.0)
 	{
-		Shavit_PrintToChat(client, "%s%s%s: Unknown points, no records on map.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "UnknownPoints", client, gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -395,7 +396,7 @@ public Action Command_Points(int client, int args)
 	char[] sTime = new char[32];
 	FormatSeconds(fWRTime, sTime, 32, false);
 
-	Shavit_PrintToChat(client, "%s%s%s: Around %s%.01f%s points for a time of %s%s%s.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], (fTier * gF_PointsPerTier), gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], sTime, gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "ApproximatePoints", client, gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], (fTier * gF_PointsPerTier), gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], sTime, gS_ChatStrings[sMessageText]);
 
 	return Plugin_Handled;
 }
@@ -424,12 +425,12 @@ public Action Command_Rank(int client, int args)
 
 	if(gI_PlayerRank[target] <= 0)
 	{
-		Shavit_PrintToChat(client, "%s%N%s is %sunranked%s.", gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "Unranked", client, gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "%s%N%s is ranked %s%d%s out of %s%d%s with %s%.02f points%s.", gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gI_PlayerRank[target], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gI_RankedPlayers, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_PlayerPoints[target], gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gI_PlayerRank[target], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gI_RankedPlayers, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_PlayerPoints[target], gS_ChatStrings[sMessageText]);
 
 	return Plugin_Handled;
 }
@@ -471,11 +472,13 @@ public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const cha
 	}
 
 	Menu m = new Menu(MenuHandler_TopMenu);
-	m.SetTitle("Top %d Players", gI_TopAmount);
+	m.SetTitle("%T", "TopMenuTitle", client, gI_TopAmount);
 
 	if(results.RowCount == 0)
 	{
-		m.AddItem("-1", "No results.");
+		char[] sRankItem = new char[64];
+		FormatEx(sRankItem, 64, "%T", "TopNoResults", client);
+		m.AddItem("-1", sRankItem);
 	}
 
 	else
@@ -496,12 +499,12 @@ public void SQL_ShowTopMenu_Callback(Database db, DBResultSet results, const cha
 				char[] sPoints = new char[16];
 				results.FetchString(1, sPoints, 16);
 
-				FormatEx(sDisplay, 64, "#%d - %s (%s points)", iRank, sName, sPoints);
+				FormatEx(sDisplay, 64, "%T", "TopMenuClients", client, iRank, sName, sPoints);
 			}
 
 			else
 			{
-				FormatEx(sDisplay, 64, "#%d - %s (%.02f points)", iRank, sName, results.FetchFloat(1));
+				FormatEx(sDisplay, 64, "%T", "TopMenuClients", client, iRank, sName, results.FetchFloat(1));
 			}
 
 			char[] sAuthID = new char[32];
@@ -551,12 +554,12 @@ public Action Command_Tier(int client, int args)
 
 		if(gF_MapTier != -1)
 		{
-			Shavit_PrintToChat(client, "%s%s%s is rated as %sTier %.01f%s.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(client, "%T", "Tier", client, gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], gF_MapTier, gS_ChatStrings[sMessageText]);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(client, "%s%s%s is not rated.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(client, "%T", "TierUnset", client, gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText]);
 		}
 	}
 
@@ -597,12 +600,12 @@ public void SQL_GetTier_Callback(Database db, DBResultSet results, const char[] 
 		char[] sDisplayMap = new char[strlen(sMap) + 1];
 		GetMapDisplayName(sMap, sDisplayMap, strlen(sMap) + 1);
 
-		Shavit_PrintToChat(client, "%s%s%s is rated %stier %.01f%s.", gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], results.FetchFloat(1), gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "Tier", client, gS_ChatStrings[sMessageVariable], sDisplayMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], results.FetchFloat(1), gS_ChatStrings[sMessageText]);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "Couldn't find map tier for %s%s%s.", gS_ChatStrings[sMessageVariable], gS_CachedMap[client], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "TierUnset", client, gS_ChatStrings[sMessageVariable], gS_CachedMap[client], gS_ChatStrings[sMessageText]);
 	}
 }
 
@@ -613,7 +616,7 @@ public Action Command_SetTier(int client, int args)
 		char[] sArg0 = new char[32];
 		GetCmdArg(0, sArg0, 32);
 
-		ReplyToCommand(client, "Usage: %s <tier>", sArg0);
+		ReplyToCommand(client, "%T", "TierCommand", client, sArg0);
 
 		return Plugin_Handled;
 	}
@@ -625,14 +628,14 @@ public Action Command_SetTier(int client, int args)
 
 	if(fTier < 0)
 	{
-		ReplyToCommand(client, "Invalid map tier (%.01f)!", fTier);
+		ReplyToCommand(client, "%T", "TierInvalid", client, fTier);
 
 		return Plugin_Handled;
 	}
 
 	gF_MapTier = fTier;
 
-	ReplyToCommand(client, "Map tier is now %.01f.", fTier);
+	ReplyToCommand(client, "%T", "TierSet", client, fTier);
 
 	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %.1f);", gS_MySQLPrefix, gS_Map, fTier);
