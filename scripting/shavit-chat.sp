@@ -422,8 +422,10 @@ public Action Command_ChatRanks(int client, int args)
 	// char[] sExample = "Example."; // I tried using this variable, but it seemed to pick up "List of Chat ranks:" instead, I wonder why..
 	int[] clients = new int[1];
 	clients[0] = client;
+	char[] sChatMessage = new char[64];
+	FormatEx(sChatMessage, 64, "\x01%T", "ChatRankList", client);
 
-	ChatMessage(client, clients, 1, "\x01List of chat ranks:");
+	ChatMessage(client, clients, 1, sChatMessage);
 
 	for(int i = gI_TotalChatRanks - 1; i >= 0; i--)
 	{
@@ -458,18 +460,20 @@ public Action Command_ChatRanks(int client, int args)
 					FormatEx(sRankText, 16, "#%d - #%d", iFrom, iTo);
 				}
 			}
+			char[] sExampleMessage = new char[32];
+			FormatEx(sExampleMessage, 64, "\x01%T", "ExampleMessage", client);
 
 			char[] sPrefix = new char[32];
 			gD_ChatRanks[i].GetString("prefix", sPrefix, 32);
-			FormatVariables(client, sPrefix, 32, sPrefix, "Example.");
+			FormatVariables(client, sPrefix, 32, sPrefix, sExampleMessage);
 
 			char[] sName = new char[MAX_NAME_LENGTH*2];
 			gD_ChatRanks[i].GetString("name", sName, MAX_NAME_LENGTH*2);
-			FormatVariables(client, sName, MAX_NAME_LENGTH*2, sName, "Example.");
+			FormatVariables(client, sName, MAX_NAME_LENGTH*2, sName, sExampleMessage);
 
 			char[] sMessage = new char[255];
 			gD_ChatRanks[i].GetString("message", sMessage, 255);
-			FormatVariables(client, sMessage, 255, sMessage, "Example.");
+			FormatVariables(client, sMessage, 255, sMessage, sExampleMessage);
 
 			char[] sBuffer = new char[300];
 			FormatEx(sBuffer, 300, "%s\x04[%s]\x01 %s%s %s %s  %s", gEV_Type == Engine_CSGO? " ":"", sRankText, strlen(sPrefix) == 0? "\x03":"", sPrefix, sName, gEV_Type == Engine_CSGO? ":\x01":"\x01:", sMessage);
@@ -485,7 +489,7 @@ public Action Command_ReloadChat(int client, int args)
 {
 	LoadConfig();
 
-	ReplyToCommand(client, "Config reloaded.");
+	ReplyToCommand(client, "%T", "ReloadChat", client);
 
 	return Plugin_Handled;
 }
@@ -618,12 +622,14 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 void FormatChatLine(int client, const char[] sMessage, bool bAlive, int iTeam, bool bTeam, char[] buffer, int maxlen)
 {
 	char[] sTeam = new char[32];
+	char[] sTeamName = new char[32];
 
 	if(!bTeam)
 	{
 		if(iTeam == CS_TEAM_SPECTATOR)
 		{
-			strcopy(sTeam, 32, "*SPEC* ");
+			FormatEx(sTeamName, 32, "%T", "TeamSpec", client);
+			strcopy(sTeam, 32, sTeamName);
 		}
 	}
 
@@ -633,17 +639,20 @@ void FormatChatLine(int client, const char[] sMessage, bool bAlive, int iTeam, b
 		{
 			case CS_TEAM_SPECTATOR:
 			{
-				strcopy(sTeam, 32, "(Spectator) ");
+				FormatEx(sTeamName, 32, "%T", "TeamSpectator", client);
+				strcopy(sTeam, 32, sTeamName);
 			}
 
 			case CS_TEAM_T:
 			{
-				strcopy(sTeam, 32, "(Terrorist) ");
+				FormatEx(sTeamName, 32, "%T", "TeamT", client);
+				strcopy(sTeam, 32, sTeamName);
 			}
 
 			case CS_TEAM_CT:
 			{
-				strcopy(sTeam, 32, "(Counter-Terrorist) ");
+				FormatEx(sTeamName, 32, "%T", "TeamCT", client);
+				strcopy(sTeam, 32, sTeamName);
 			}
 		}
 	}
