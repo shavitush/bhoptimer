@@ -1,0 +1,87 @@
+"Phrases"
+{
+	// ---------- Commands ---------- //
+	"CommandAlive"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"You have to be {1}alive{2} to use this command."
+	}
+	"CommandDisabled"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"This command is {1}disabled{2}."
+	}
+	"FeatureDisabled"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"This feature is {1}disabled{2}."
+	}
+	"HideEnabled"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"You are now {1}hiding{2} players."
+	}
+	"HideDisabled"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"You are now {1}not hiding{2} players."
+	}
+	"LackingAccess"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"You're {1}lacking access{2} to this command."
+	}
+	"SpectateDead"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"You {1}cannot{2} target a dead player."
+	}
+	"SpectatorCount"
+	{
+		"#format"	"{1:c},{2:N},{3:c},{4:c},{5:i},{6:c},{7:s}"
+		"en"		"{1}{2}{3} has {4}{5}{6} spectators: {7}"
+	}
+	"SpectatorCountZero"
+	{
+		"#format"	"{1:c},{2:N},{3:c}"
+		"en"		"No one is spectating {1}{2}{3}."
+	}
+	"SpectatorInvalid"
+	{
+		"en"		"You should be alive or spectate someone to see your/their spectators."
+	}
+	"TeleportAlive"
+	{
+		"en"		"You can teleport only if you are alive."
+	}
+	"TeleportInZone"
+	{
+		"#format"	"{1:c},{2:c},{3:c},{4:c}"
+		"en"		"You {1}cannot teleport{2} inside the {3}start/end zones{4}."
+	}
+	"TeleportInvalidTarget"
+	{
+		"en"		"Invalid target."
+	}
+	// ---------- Menus ---------- //
+	"TeleportMenuTitle"
+	{
+		"en"		"Teleport to:"
+	}
+	"WeaponAlive"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"You need to be {1}alive{2} to spawn weapons."
+	}
+	// ---------- Misc ---------- //
+	"BHStartZoneDisallowed"
+	{
+		"#format"	"{1:c},{2:c},{3:c},{4:c}"
+		"en"		"Bunnyhopping in the {1}start zone{2} is {3}not allowed{4}."
+	}
+	"WRNotice"
+	{
+		"#format"	"{1:c},{2:s}"
+		"en"		"{1}NEW {2} WR!!!"
+	}
+}
