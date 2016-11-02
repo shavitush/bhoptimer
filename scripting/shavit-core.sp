@@ -182,6 +182,8 @@ public void OnPluginStart()
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 
+	LoadTranslations("shavit-core.phrases");
+
 	// game types
 	gEV_Type = GetEngineVersion();
 
@@ -392,7 +394,7 @@ public Action Command_StartTimer(int client, int args)
 			char[] sCommand = new char[16];
 			GetCmdArg(0, sCommand, 16);
 
-			Shavit_PrintToChat(client, "The command (%s%s%s) is disabled.", gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(client, "%t", "CommandDisabled", gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
 		}
 
 		return Plugin_Handled;
@@ -409,7 +411,7 @@ public Action Command_StartTimer(int client, int args)
 
 	else
 	{
-		Shavit_PrintToChat(client, "Your timer %swill not%s start as a start zone for the map is not defined.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%t", "StartZoneUndefined", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -432,7 +434,7 @@ public Action Command_TeleportEnd(int client, int args)
 
 	else
 	{
-		Shavit_PrintToChat(client, "You %scan't%s teleport as an end zone for the map is not defined.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%t", "EndZoneUndefined", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -462,14 +464,14 @@ public Action Command_TogglePause(int client, int args)
 		char[] sCommand = new char[16];
 		GetCmdArg(0, sCommand, 16);
 
-		Shavit_PrintToChat(client, "The command (%s%s%s) is disabled.", gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%t", "CommandDisabled", gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if((GetEntityFlags(client) & FL_ONGROUND) == 0)
 	{
-		Shavit_PrintToChat(client, "You %sare not%s allowed to pause when not on ground.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%t", "PauseNotOnGround", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -507,12 +509,12 @@ public Action Command_AutoBhop(int client, int args)
 
 	if(gB_Auto[client])
 	{
-		Shavit_PrintToChat(client, "Autobhop %senabled%s.", gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%t", "AutobhopEnabled", gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "Autobhop %sdisabled%s.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%t", "AutobhopDisabled", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	char[] sAutoBhop = new char[4];
@@ -538,7 +540,7 @@ public Action Command_Style(int client, int args)
 	}
 
 	Menu m = new Menu(StyleMenu_Handler);
-	m.SetTitle("Choose a style:");
+	m.SetTitle("%t", "StyleMenuTitle");
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -606,11 +608,11 @@ void ChangeClientStyle(int client, BhopStyle style)
 	gBS_Style[client] = style;
 	UpdateAutoBhop(client);
 
-	Shavit_PrintToChat(client, "You have selected to play %s%s%s.", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%t", "StyleSelection", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 
 	if(gA_StyleSettings[style][bUnranked])
 	{
-		Shavit_PrintToChat(client, "%sWARNING: %sThis style is unranked. Your times WILL NOT be saved and will be only displayed to you!", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%t", "UnrankedWarning", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	StopTimer(client);
@@ -990,7 +992,7 @@ public void OnClientPutInServer(int client)
 
 	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
 	{
-		KickClient(client, "Couldn't verify your, or the server's connection to Steam.");
+		KickClient(client, "%t", "VerificationFailed");
 
 		return;
 	}
@@ -1543,7 +1545,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 void StopTimer_Cheat(int client, const char[] message)
 {
 	Shavit_StopTimer(client);
-	Shavit_PrintToChat(client, "%sTimer stopped! %s%s", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], message);
+	Shavit_PrintToChat(client, "%t", "CheatTimerStop", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], message);
 }
 
 void UpdateAutoBhop(int client)
