@@ -394,7 +394,7 @@ public Action Command_StartTimer(int client, int args)
 			char[] sCommand = new char[16];
 			GetCmdArg(0, sCommand, 16);
 
-			Shavit_PrintToChat(client, "%t", "CommandDisabled", gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
 		}
 
 		return Plugin_Handled;
@@ -411,7 +411,7 @@ public Action Command_StartTimer(int client, int args)
 
 	else
 	{
-		Shavit_PrintToChat(client, "%t", "StartZoneUndefined", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -434,7 +434,7 @@ public Action Command_TeleportEnd(int client, int args)
 
 	else
 	{
-		Shavit_PrintToChat(client, "%t", "EndZoneUndefined", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "EndZoneUndefined", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -464,14 +464,14 @@ public Action Command_TogglePause(int client, int args)
 		char[] sCommand = new char[16];
 		GetCmdArg(0, sCommand, 16);
 
-		Shavit_PrintToChat(client, "%t", "CommandDisabled", gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if((GetEntityFlags(client) & FL_ONGROUND) == 0)
 	{
-		Shavit_PrintToChat(client, "%t", "PauseNotOnGround", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -509,12 +509,12 @@ public Action Command_AutoBhop(int client, int args)
 
 	if(gB_Auto[client])
 	{
-		Shavit_PrintToChat(client, "%t", "AutobhopEnabled", gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "AutobhopEnabled", client, gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "%t", "AutobhopDisabled", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "AutobhopDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	char[] sAutoBhop = new char[4];
@@ -540,7 +540,7 @@ public Action Command_Style(int client, int args)
 	}
 
 	Menu m = new Menu(StyleMenu_Handler);
-	m.SetTitle("%t", "StyleMenuTitle");
+	m.SetTitle("%T", "StyleMenuTitle", client);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -608,11 +608,11 @@ void ChangeClientStyle(int client, BhopStyle style)
 	gBS_Style[client] = style;
 	UpdateAutoBhop(client);
 
-	Shavit_PrintToChat(client, "%t", "StyleSelection", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 
 	if(gA_StyleSettings[style][bUnranked])
 	{
-		Shavit_PrintToChat(client, "%t", "UnrankedWarning", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "UnrankedWarning", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	StopTimer(client);
@@ -992,7 +992,7 @@ public void OnClientPutInServer(int client)
 
 	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
 	{
-		KickClient(client, "%t", "VerificationFailed");
+		KickClient(client, "%T", "VerificationFailed", client);
 
 		return;
 	}
@@ -1545,7 +1545,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 void StopTimer_Cheat(int client, const char[] message)
 {
 	Shavit_StopTimer(client);
-	Shavit_PrintToChat(client, "%t", "CheatTimerStop", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], message);
+	Shavit_PrintToChat(client, "%T", "CheatTimerStop", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], message);
 }
 
 void UpdateAutoBhop(int client)

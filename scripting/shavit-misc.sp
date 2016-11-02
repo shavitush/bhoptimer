@@ -628,7 +628,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gI_LastFlags[client] & FL_ONGROUND) == 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
-			Shavit_PrintToChat(client, "%t", "BHStartZoneDisallowed", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 			gI_LastFlags[client] = GetEntityFlags(client);
 
@@ -781,12 +781,12 @@ public Action Command_Hide(int client, int args)
 
 	if(gB_Hide[client])
 	{
-		Shavit_PrintToChat(client, "%t", "HideEnabled", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "HideEnabled", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "%t", "HideDisabled", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "HideDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -828,7 +828,7 @@ public Action Command_Teleport(int client, int args)
 
 	if(!gB_TeleportCommands)
 	{
-		Shavit_PrintToChat(client, "%t", "CommandDisabled", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -851,7 +851,7 @@ public Action Command_Teleport(int client, int args)
 	else
 	{
 		Menu m = new Menu(MenuHandler_Teleport);
-		m.SetTitle("%t", "TeleportMenuTitle");
+		m.SetTitle("%T", "TeleportMenuTitle", client);
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -902,7 +902,7 @@ bool Teleport(int client, int targetserial)
 {
 	if(!IsPlayerAlive(client))
 	{
-		Shavit_PrintToChat(client, "%t", "TeleportAlive");
+		Shavit_PrintToChat(client, "%T", "TeleportAlive", client);
 
 		return false;
 	}
@@ -911,14 +911,14 @@ bool Teleport(int client, int targetserial)
 
 	if(Shavit_InsideZone(client, Zone_Start) || Shavit_InsideZone(client, Zone_End))
 	{
-		Shavit_PrintToChat(client, "%t", "TeleportInZone", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "TeleportInZone", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 		return false;
 	}
 
 	if(iTarget == 0)
 	{
-		Shavit_PrintToChat(client, "%t", "TeleportInvalidTarget");
+		Shavit_PrintToChat(client, "%T", "TeleportInvalidTarget", client);
 
 		return false;
 	}
@@ -942,14 +942,14 @@ public Action Command_Weapon(int client, int args)
 
 	if(gI_WeaponCommands == 0)
 	{
-		Shavit_PrintToChat(client, "%t", "CommandDisabled", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if(!IsPlayerAlive(client))
 	{
-		Shavit_PrintToChat(client, "%t", "WeaponAlive", gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "WeaponAlive", client, gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -1015,21 +1015,21 @@ public Action Command_Noclip(int client, int args)
 
 	if(gI_NoclipMe == 0)
 	{
-		Shavit_PrintToChat(client, "%t", "FeatureDisabled", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if(gI_NoclipMe == 2 && !CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))
 	{
-		Shavit_PrintToChat(client, "%t", "LackingAccess", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "LackingAccess", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
 	if(!IsPlayerAlive(client))
 	{
-		Shavit_PrintToChat(client, "%t", "CommandAlive", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -1076,7 +1076,7 @@ public Action Command_Specs(int client, int args)
 
 	if(!IsPlayerAlive(client) && !IsClientObserver(client))
 	{
-		Shavit_PrintToChat(client, "%t", "SpectatorInvalid");
+		Shavit_PrintToChat(client, "%T", "SpectatorInvalid", client);
 
 		return Plugin_Handled;
 	}
@@ -1102,7 +1102,7 @@ public Action Command_Specs(int client, int args)
 
 		if(!IsPlayerAlive(iNewTarget))
 		{
-			Shavit_PrintToChat(client, "%t", "SpectateDead", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(client, "%T", "SpectateDead", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 			return Plugin_Handled;
 		}
@@ -1138,12 +1138,12 @@ public Action Command_Specs(int client, int args)
 
 	if(iCount > 0)
 	{
-		Shavit_PrintToChat(client, "%t", "SpectatorCount", gS_ChatStrings[sMessageVariable2], iSpecTarget, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iCount, gS_ChatStrings[sMessageText], sSpecs);
+		Shavit_PrintToChat(client, "%T", "SpectatorCount", client, gS_ChatStrings[sMessageVariable2], iSpecTarget, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iCount, gS_ChatStrings[sMessageText], sSpecs);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "%t", "SpectatorCountZero", gS_ChatStrings[sMessageVariable2], iSpecTarget, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "SpectatorCountZero", client, gS_ChatStrings[sMessageVariable2], iSpecTarget, gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
@@ -1164,7 +1164,7 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int ju
 
 	for(int i = 1; i <= 3; i++)
 	{
-		Shavit_PrintToChatAll("%t", "WRNotice", gS_ChatStrings[sMessageWarning], sUpperCase);
+		Shavit_PrintToChatAll("%T", "WRNotice", client, gS_ChatStrings[sMessageWarning], sUpperCase);
 	}
 }
 

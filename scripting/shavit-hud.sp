@@ -208,7 +208,7 @@ Action ShowHUDMenu(int client, int item)
 	}
 
 	Menu m = new Menu(MenuHandler_HUD, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	m.SetTitle("%t", "HUDMenuTitle");
+	m.SetTitle("%T", "HUDMenuTitle", client);
 
 	char[] sInfo = new char[16];
 	IntToString(HUD_MASTER, sInfo, 16);
