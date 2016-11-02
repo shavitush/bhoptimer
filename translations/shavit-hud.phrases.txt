@@ -1,0 +1,8 @@
+"Phrases"
+{
+	// ---------- Menus ---------- //
+	"HUDMenuTitle"
+	{
+		"en"		"HUD settings:"
+	}
+}
