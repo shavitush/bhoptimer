@@ -94,6 +94,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-chat.phrases");
+
 	// game specific
 	gEV_Type = GetEngineVersion();
 
