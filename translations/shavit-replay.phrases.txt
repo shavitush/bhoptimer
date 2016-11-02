@@ -1,0 +1,36 @@
+"Phrases"
+{
+	// ---------- Menus ---------- //
+	"DeleteReplayMenuTitle"
+	{
+		"en"		"Delete a replay:"
+	}
+	"MenuResponseNo"
+	{
+		"en"		"NO!"
+	}
+	"MenuResponseYes"
+	{
+		"en"		"Yes, I understand this action cannot be reversed!"
+	}
+	"ReplayDeletionConfirmation"
+	{
+		"#format"	"{1:s}"
+		"en"		"Confirm deletion of {1} replay?"
+	}
+	"ReplaysUnavailable"
+	{
+		"en"		"No replays available."
+	}
+	// ---------- Replay Deletion ---------- //
+	"ReplayDeleted"
+	{
+		"#format"	"{1:c},{2:s},{3:c}"
+		"en"		"Deleted replay for {1}{2}{3}."
+	}
+	"ReplayDeleteFailure"
+	{
+		"#format"	"{1:c},{2:s},{3:c}"
+		"en"		"Could not delete replay for {1}{2}{3}."
+	}
+}
