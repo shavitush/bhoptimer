@@ -67,7 +67,8 @@ Including a records system, map zones (start/end marks etc), HUD with useful inf
 4.1. Do the same for the `materials` folder.
 5. Copy the `configs` folder to your server and modify them if you need to.  
 5.1. Changing `shavit-prefix.txt` to contain your MySQL database prefix might be needed depending on your usage.
-6. Restart your server.
+6. Copy the `translations` folder to your server.  
+7. Restart your server.
 
 # Required plugins:
 `shavit-core` - no other plugin will work without it.  
