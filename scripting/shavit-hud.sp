@@ -253,7 +253,7 @@ Action ShowHUDMenu(int client, int item)
 		m.AddItem(sInfo, sHudItem);
 
 		IntToString(HUD_TIMELEFT, sInfo, 16);
-		FormatEx(sHudItem, 64, "%T", "HudTimeleft", client);
+		FormatEx(sHudItem, 64, "%T", "HudTimeLeft", client);
 		m.AddItem(sInfo, sHudItem);
 	}
 

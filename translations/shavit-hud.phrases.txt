@@ -97,10 +97,6 @@
 	{
 		"en"		"Sync"
 	}
-	"HudTimeleft"
-	{
-		"en"		"Time left"
-	}
 	"Hud2dVel"
 	{
 		"en"		"Use 2D Velocity"
