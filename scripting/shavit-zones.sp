@@ -180,6 +180,7 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-zones.phrases");
 	// game specific
 	gEV_Type = GetEngineVersion();
 
@@ -191,7 +192,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deleteallzones", Command_DeleteAllZones, ADMFLAG_RCON, "Delete all mapzones");
 
 	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
-	
+
 	RegAdminCmd("sm_addspawn", Command_AddSpawn,  ADMFLAG_RCON, "Adds a custom spawn location");
 	RegAdminCmd("sm_delspawn", Command_DelSpawn,  ADMFLAG_RCON, "Deletes a custom spawn location");
 
@@ -267,12 +268,12 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 {
 	if(action == TopMenuAction_DisplayTitle)
 	{
-		strcopy(buffer, maxlength, "Timer Commands:");
+		FormatEx(buffer, maxlength, "%t:", "TimerCommands");
 	}
 
 	else if(action == TopMenuAction_DisplayOption)
 	{
-		strcopy(buffer, maxlength, "Timer Commands");
+		FormatEx(buffer, maxlength, "%t", "TimerCommands");
 	}
 }
 
@@ -280,7 +281,7 @@ public void AdminMenu_Zones(Handle topmenu,  TopMenuAction action, TopMenuObject
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		strcopy(buffer, maxlength, "Add map zone");
+		FormatEx(buffer, maxlength, "%t", "AddMapZone");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -293,7 +294,7 @@ public void AdminMenu_DeleteZone(Handle topmenu,  TopMenuAction action, TopMenuO
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		strcopy(buffer, maxlength, "Delete map zone");
+		FormatEx(buffer, maxlength, "%t", "DeleteMapZone");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -306,7 +307,7 @@ public void AdminMenu_DeleteAllZones(Handle topmenu,  TopMenuAction action, TopM
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		strcopy(buffer, maxlength, "Delete ALL map zones");
+		FormatEx(buffer, maxlength, "%t", "DeleteAllMapZone");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -477,9 +478,9 @@ void UnloadZones(int zone)
 				gMZ_FreestyleTypes[i] = view_as<MapZones>(-1);
 			}
 		}
-		
+
 		ClearCustomSpawn();
-		
+
 		return;
 	}
 
@@ -491,12 +492,12 @@ void UnloadZones(int zone)
 			gV_MapZones[zone][1][i] = 0.0;
 		}
 	}
-	
+
 	else if(zone == view_as<int>(Zone_CustomSpawn))
 	{
 		ClearCustomSpawn();
 	}
-	
+
 	else
 	{
 		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
@@ -541,14 +542,14 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 	while(results.FetchRow())
 	{
 		MapZones type = view_as<MapZones>(results.FetchInt(0));
-		
+
 		if(type == Zone_CustomSpawn)
 		{
 			gF_CustomSpawn[0] = results.FetchFloat(12);
 			gF_CustomSpawn[1] = results.FetchFloat(13);
 			gF_CustomSpawn[2] = results.FetchFloat(14);
 		}
-		
+
 		else if(type >= Zone_Freestyle)
 		{
 			gV_FreestyleZones[iFreestyleRow][0][0] = results.FetchFloat(1);
@@ -636,7 +637,7 @@ public Action Command_Modifier(int client, int args)
 
 	if(!args)
 	{
-		Shavit_PrintToChat(client, "Usage: sm_modifier <decimal number>");
+		Shavit_PrintToChat(client, "%T", "ModifierCommandNoArgs", client);
 
 		return Plugin_Handled;
 	}
@@ -648,14 +649,14 @@ public Action Command_Modifier(int client, int args)
 
 	if(fArg1 <= 0.0)
 	{
-		Shavit_PrintToChat(client, "Modifier must be higher than 0.");
+		Shavit_PrintToChat(client, "%T", "ModifierTooLow", client);
 
 		return Plugin_Handled;
 	}
 
 	gF_Modifier[client] = fArg1;
 
-	Shavit_PrintToChat(client, "Modifier set to %s%.01f%s.", gS_ChatStrings[sMessageVariable], fArg1, gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T %s%.01f%s.", "ModifierSet", client, gS_ChatStrings[sMessageVariable], fArg1, gS_ChatStrings[sMessageText]);
 
 	return Plugin_Handled;
 }
@@ -670,20 +671,20 @@ public Action Command_AddSpawn(int client, int args)
 
 	if(!IsPlayerAlive(client))
 	{
-		Shavit_PrintToChat(client, "You can't place zones when you're dead.");
+		Shavit_PrintToChat(client, "%T", "ZoneDead", client);
 
 		return Plugin_Handled;
 	}
 
 	if(!EmptyZone(gF_CustomSpawn))
 	{
-		Shavit_PrintToChat(client, "Custom Spawn already exists. Please delete it before placing a new one.");
+		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnExists", client);
 
 		return Plugin_Handled;
 	}
 
 	gMZ_Type[client] = Zone_CustomSpawn;
-	
+
 	GetClientAbsOrigin(client, gV_Point1[client]);
 	InsertZone(client);
 
@@ -723,7 +724,7 @@ public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, co
 
 	ClearCustomSpawn();
 
-	Shavit_PrintToChat(client, "Deleted Custom Spawn sucessfully.");
+	Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnDelete", client);
 }
 
 void ClearCustomSpawn()
@@ -743,7 +744,7 @@ public Action Command_Zones(int client, int args)
 
 	if(!IsPlayerAlive(client))
 	{
-		Shavit_PrintToChat(client, "You %scannot%s setup mapzones when you're dead.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "ZonesCommand", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -751,7 +752,7 @@ public Action Command_Zones(int client, int args)
 	Reset(client);
 
 	Menu menu = new Menu(Select_Type_MenuHandler);
-	menu.SetTitle("Select a zone type:");
+	menu.SetTitle("%T", "ZoneMenuTitle", client);
 
 	for(int i = 0; i < sizeof(gS_ZoneNames); i++)
 	{
@@ -775,7 +776,7 @@ public Action Command_DeleteZone(int client, int args)
 	}
 
 	Menu menu = new Menu(DeleteZone_MenuHandler);
-	menu.SetTitle("Delete a zone:\nPressing a zone will delete it. This action CANNOT BE REVERTED!");
+	menu.SetTitle("%T", "ZoneMenuDeleteTitle", client);
 
 	for(int i = 0; i < MAX_ZONES; i++)
 	{
@@ -799,7 +800,9 @@ public Action Command_DeleteZone(int client, int args)
 
 	if(menu.ItemCount == 0)
 	{
-		menu.AddItem("-1", "No zones found.");
+		char[] sMenuItem = new char[64];
+		FormatEx(sMenuItem, 64, "%T", "ZonesMenuNoneFound", client);
+		menu.AddItem("-1", sMenuItem);
 	}
 
 	menu.ExitButton = true;
@@ -863,7 +866,7 @@ public void SQL_DeleteZone_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	Shavit_PrintToChat(client, "Deleted %s%s%s sucessfully.", gS_ChatStrings[sMessageVariable], gS_ZoneNames[type], gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "ZoneDeleteSuccessful", client, gS_ChatStrings[sMessageVariable], gS_ZoneNames[type], gS_ChatStrings[sMessageText]);
 }
 
 public Action Command_DeleteAllZones(int client, int args)
@@ -874,18 +877,23 @@ public Action Command_DeleteAllZones(int client, int args)
 	}
 
 	Menu menu = new Menu(DeleteAllZones_MenuHandler);
-	menu.SetTitle("Delete ALL mapzones?\nPressing \"Yes\" will delete all the existing mapzones for this map.\nThis action CANNOT BE REVERTED!");
+	menu.SetTitle("%T", "ZoneMenuDeleteALLTitle", client);
+
+	char[] sMenuItem = new char[64];
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
-		menu.AddItem("-1", "NO!");
+		FormatEx(sMenuItem, 64, "%T", "ZoneMenuNo", client);
+		menu.AddItem("-1", sMenuItem);
 	}
 
-	menu.AddItem("yes", "YES!!! DELETE ALL THE MAPZONES!!!");
+	FormatEx(sMenuItem, 64, "%T", "ZoneMenuYes", client);
+	menu.AddItem("yes", sMenuItem);
 
 	for(int i = 1; i <= GetRandomInt(1, 3); i++)
 	{
-		menu.AddItem("-1", "NO!");
+		FormatEx(sMenuItem, 64, "%T", "ZoneMenuNo", client);
+		menu.AddItem("-1", sMenuItem);
 	}
 
 	menu.ExitButton = true;
@@ -939,7 +947,7 @@ public void SQL_DeleteAllZones_Callback(Database db, DBResultSet results, const 
 		return;
 	}
 
-	Shavit_PrintToChat(client, "Deleted all map zones sucessfully.");
+	Shavit_PrintToChat(client, "%T", "ZoneDeleteAllSuccessful", client);
 }
 
 public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
@@ -997,13 +1005,15 @@ void ShowPanel(int client, int step)
 	Panel pPanel = new Panel();
 
 	char[] sPanelText = new char[128];
-	FormatEx(sPanelText, 128, "Press USE (default \"E\") to set the %s corner in your current position.", (step == 1)? "FIRST":"SECOND");
+	FormatEx(sPanelText, 128, "%T", "ZonePlaceText", client, (step == 1)? "FIRST":"SECOND");
 
 	pPanel.DrawItem(sPanelText, ITEMDRAW_RAWLINE);
-	pPanel.DrawItem("Abort zone creation");
+	char[] sPanelItem = new char[64];
+	FormatEx(sPanelItem, 64, "%T", "AbortZoneCreation", client);
+	pPanel.DrawItem(sPanelItem);
 
 	char[] sDisplay = new char[16];
-	FormatEx(sDisplay, 16, "Grid snap: x%d", gI_GridSnap[client]);
+	FormatEx(sDisplay, 16, "%T: x%d", "GridSnap", client, gI_GridSnap[client]);
 	pPanel.DrawItem(sDisplay);
 
 	pPanel.Send(client, ZoneCreation_Handler, 600);
@@ -1179,7 +1189,7 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		else if(StrEqual(info, "tpzone"))
 		{
 			GetClientAbsOrigin(param1, gV_Teleport[param1]);
-			Shavit_PrintToChat(param1, "Teleport zone destination updated.");
+			Shavit_PrintToChat(param1, "%T", "ZoneTeleportUpdated", param1);
 
 			CreateEditMenu(param1);
 		}
@@ -1196,32 +1206,40 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 void CreateEditMenu(int client)
 {
 	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	menu.SetTitle("Confirm?");
+	menu.SetTitle("%T", "ZoneEditConfirm", client);
+
+	char[] sMenuItem = new char[64];
 
 	if(gMZ_Type[client] == Zone_Teleport)
 	{
 		if(EmptyZone(gV_Teleport[client]))
 		{
-			menu.AddItem("-1", "Yes (choose teleport destination first)", ITEMDRAW_DISABLED);
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetTP", client);
+			menu.AddItem("-1", sMenuItem, ITEMDRAW_DISABLED);
 		}
 
 		else
 		{
-			menu.AddItem("yes", "Yes");
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
+			menu.AddItem("yes", sMenuItem);
 		}
-
-		menu.AddItem("tpzone", "Update teleport destination");
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetTPZone", client);
+		menu.AddItem("tpzone", sMenuItem);
 	}
 
 	else
 	{
-		menu.AddItem("yes", "Yes");
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
+		menu.AddItem("yes", sMenuItem);
 	}
-	
-	menu.AddItem("no", "No");
-	menu.AddItem("adjust", "Adjust position");
-	menu.AddItem("rotate", "Rotate zone");
-	menu.AddItem("wl", "Modify width/length");
+	FormatEx(sMenuItem, 64, "%T", "ZoneSetNo", client);
+	menu.AddItem("no", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
+	menu.AddItem("adjust", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneSetRotate", client);
+	menu.AddItem("rotate", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneSetSize", client);
+	menu.AddItem("wl", sMenuItem);
 
 	menu.ExitButton = true;
 
@@ -1231,10 +1249,14 @@ void CreateEditMenu(int client)
 void CreateAdjustMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneAdjuster_Handler);
-	hMenu.SetTitle("Adjust the zone's position.\nUse \"sm_modifier <number>\" to set a new modifier.");
+	char[] sMenuItem = new char[64];
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustPosition", client);
+	hMenu.SetTitle("%T", "ZoneAdjustPosition", client);
 
-	hMenu.AddItem("done", "Done!");
-	hMenu.AddItem("cancel", "Cancel");
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
+	hMenu.AddItem("done", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustCancel", client);
+	hMenu.AddItem("cancel", sMenuItem);
 
 	char[] sAxis = new char[4];
 	strcopy(sAxis, 4, "XYZ");
@@ -1248,7 +1270,7 @@ void CreateAdjustMenu(int client, int page)
 		{
 			for(int iState = 1; iState <= 2; iState++)
 			{
-				FormatEx(sDisplay, 32, "Point %d | %c axis %c%.01f", iPoint, sAxis[iAxis], (iState == 1)? '+':'-', gF_Modifier[client]);
+				FormatEx(sDisplay, 32, "%T %d | %c axis %c%.01f", "ZonePoint", client, iPoint, "ZoneAxis", client, sAxis[iAxis], (iState == 1)? '+':'-', gF_Modifier[client]);
 				FormatEx(sInfo, 16, "%d;%d;%d", iPoint, iAxis, iState);
 				hMenu.AddItem(sInfo, sDisplay);
 			}
@@ -1292,12 +1314,12 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 
 			if(bIncrease)
 			{
-				Shavit_PrintToChat(param1, "%s%c axis%s (point %d) increased by %s%.01f%s.", gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
+				Shavit_PrintToChat(param1, "%T", "ZoneSizeIncrease", param1, gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
 			}
 
 			else
 			{
-				Shavit_PrintToChat(param1, "%s%c axis%s (point %d) decreased by %s%.01f%s.", gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
+				Shavit_PrintToChat(param1, "%T", "ZoneSizeDecrease", param1, gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
 			}
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
@@ -1315,16 +1337,20 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 void CreateRotateMenu(int client)
 {
 	Menu hMenu = new Menu(ZoneRotate_Handler);
-	hMenu.SetTitle("Rotate the zone.\nUse \"sm_modifier <number>\" to set a new modifier.");
+	char[] sMenuItem = new char[64];
 
-	hMenu.AddItem("done", "Done!");
-	hMenu.AddItem("cancel", "Cancel");
+	hMenu.SetTitle("%T", "ZoneRotate", client);
+
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
+	hMenu.AddItem("done", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustCancel", client);
+	hMenu.AddItem("cancel", sMenuItem);
 
 	char[] sDisplay = new char[64];
-	FormatEx(sDisplay, 64, "Rotate by +%.01f degrees", gF_Modifier[client]);
+	FormatEx(sDisplay, 64, "%T", "ZoneRotatePlus", client, gF_Modifier[client]);
 	hMenu.AddItem("1", sDisplay);
 
-	FormatEx(sDisplay, 64, "Rotate by -%.01f degrees", gF_Modifier[client]);
+	FormatEx(sDisplay, 64, "%T", "ZoneRotateNegative", client, gF_Modifier[client]);
 	hMenu.AddItem("2", sDisplay);
 
 	hMenu.Display(client, 40);
@@ -1352,7 +1378,7 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 			bool bIncrease = view_as<bool>(StringToInt(sInfo) == 1);
 			gF_RotateAngle[param1] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 
-			Shavit_PrintToChat(param1, "Zone rotated by %s%.01f%s degrees.", gS_ChatStrings[sMessageVariable], ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]), gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T", "ZoneRotateSuccesful", param1, gS_ChatStrings[sMessageVariable], ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]), gS_ChatStrings[sMessageText]);
 
 			CreateRotateMenu(param1);
 		}
@@ -1367,10 +1393,13 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 void CreateWidthLengthMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneEdge_Handler);
-	hMenu.SetTitle("Rotate the zone.\nUse \"sm_modifier <number>\" to set a new modifier.");
+	hMenu.SetTitle("%T", "ZoneRotate", client);
 
-	hMenu.AddItem("done", "Done!");
-	hMenu.AddItem("cancel", "Cancel");
+	char[] sMenuItem = new char[64];
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
+	hMenu.AddItem("done", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustCancel", client);
+	hMenu.AddItem("cancel", sMenuItem);
 
 	char sEdges[][] =
 	{
@@ -1387,7 +1416,7 @@ void CreateWidthLengthMenu(int client, int page)
 	{
 		for(int iState = 1; iState <= 2; iState++)
 		{
-			FormatEx(sDisplay, 32, "%s edge | %c%.01f", sEdges[iEdge], (iState == 1)? "+":"-", gF_Modifier[client]);
+			FormatEx(sDisplay, 32, "%s %T | %c%.01f", sEdges[iEdge], "ZoneEdge", client, (iState == 1)? "+":"-", gF_Modifier[client]);
 			FormatEx(sInfo, 8, "%d;%d", iEdge, iState);
 			hMenu.AddItem(sInfo, sDisplay);
 		}
@@ -1441,7 +1470,7 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 				gV_Fix2[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 			}
 
-			Shavit_PrintToChat(param1, "%s edge %s%s%s by %s%.01f degrees%s.", sEdges[iEdge], gS_ChatStrings[sMessageVariable2], (bIncrease)? "increased":"decreased", gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T", "ZoneEdgeChange", param1, sEdges[iEdge], gS_ChatStrings[sMessageVariable2], (bIncrease)? "increased":"decreased", gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
 
 			CreateWidthLengthMenu(param1, GetMenuSelectionPosition());
 		}
@@ -1468,19 +1497,19 @@ void InsertZone(int client)
 	MapZones type = gMZ_Type[client];
 
 	char[] sQuery = new char[512];
-	
+
 	if(type == Zone_CustomSpawn)
 	{
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
 	}
-	
+
 	else if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
 	{
 		if(type != Zone_Teleport)
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
 		}
-		
+
 		else
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2]);
@@ -1491,7 +1520,7 @@ void InsertZone(int client)
 	{
 		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
 	}
-	
+
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
 }
 
@@ -1503,19 +1532,19 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 
 		return;
 	}
-	
+
 	int client = GetClientFromSerial(data);
-	
+
 	if(client == 0)
 	{
 		return;
 	}
-	
+
 	if(gMZ_Type[client] == Zone_CustomSpawn)
 	{
-		Shavit_PrintToChat(client, "Successfully placed custom spawn!.");
+		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnSuccess", client);
 	}
-	
+
 	UnloadZones((gMZ_Type[client] >= Zone_Freestyle && gMZ_Type[client] != Zone_CustomSpawn)? 0:view_as<int>(gMZ_Type[client]));
 	RefreshZones();
 	Reset(client);
@@ -2146,7 +2175,7 @@ public void Shavit_OnRestart(int client)
 		{
 			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
-		
+
 		else
 		{
 			float vCenter[3];
