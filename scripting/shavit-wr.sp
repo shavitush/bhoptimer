@@ -502,11 +502,8 @@ public Action Command_DeleteAll(int client, int args)
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	char[] sFormattedTitle = new char[192];
-	FormatEx(sFormattedTitle, 192, "%T", "DeleteAllRecordsMenuTitle", client);
-
 	Menu m = new Menu(MenuHandler_DeleteAll);
-	m.SetTitle(sFormattedTitle);
+	m.SetTitle("%T", "DeleteAllRecordsMenuTitle", client, sDisplayMap);
 
 	char[] sMenuItem = new char[64];
 

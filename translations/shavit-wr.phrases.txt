@@ -52,6 +52,7 @@
 	}
 	"DeleteAllRecordsMenuTitle"
 	{
+		"#format"	"{1:s}"
 		"en"		"Delete ALL the records for '{1}'?"
 	}
 	"DeleteConfirm"
@@ -76,7 +77,7 @@
 	}
 	"MenuResponseYes"
 	{
-		"en"		"YES!!! DELETE ALL THE RECORDS!!! THIS ACTION CANNOT BE REVERTED!!!"
+		"en"		"YES!!! DELETE ALL THE RECORDS!!! THIS ACTION IS IRREVERSIBLE!"
 	}
 	// ---------- Errors ---------- //
 	"DatabaseError"
