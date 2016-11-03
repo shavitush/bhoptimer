@@ -550,7 +550,7 @@ public Action Command_Style(int client, int args)
 		if(gA_StyleSettings[i][bUnranked])
 		{
 			char[] sDisplay = new char[64];
-			FormatEx(sDisplay, 64, "[UNRANKED] %s", gS_StyleStrings[i][sStyleName]);
+			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", clientgS_StyleStrings[i][sStyleName]);
 			m.AddItem(sInfo, sDisplay);
 		}
 
@@ -1337,11 +1337,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(gB_TimerEnabled[client] && !gB_ClientPaused[client])
 	{
+		char[] sCheatDetected = new char[64];
+
 		// +left/right block
 		if(gB_LeftRight && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] &&
 			(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
 		{
-			StopTimer_Cheat(client, "Detected +left/right on a disallowed style.");
+			FormatEx(sCheatDetected, 64, "%T", "LeftRightCheat", client);
+			StopTimer_Cheat(client, sCheatDetected);
 		}
 
 		// +strafe block
@@ -1353,7 +1356,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			if(gF_StrafeWarning[client] < fTime)
 			{
-				StopTimer_Cheat(client, "Detected inconsistencies in button presses.");
+				FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
+				StopTimer_Cheat(client, sCheatDetected);
 			}
 
 			gF_StrafeWarning[client] = fTime + 0.20;
