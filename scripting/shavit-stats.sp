@@ -105,6 +105,7 @@ public void OnPluginStart()
 
 	// translations
 	LoadTranslations("common.phrases");
+	LoadTranslations("shavit-stats.phrases");
 
 	// hooks
 	HookEvent("player_spawn", Player_Event);
@@ -401,7 +402,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		int iLastLogin = results.FetchInt(5);
 		char[] sLastLogin = new char[32];
 		FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
-		Format(sLastLogin, 32, "Last login: %s", (iLastLogin != -1)? sLastLogin:"N/A");
+		Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
 
 		int iRank = -1;
 		float fPoints = -1.0;
@@ -418,12 +419,12 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		{
 			if(iRank > 0 && fPoints > 0.0)
 			{
-				FormatEx(sRankingString, 64, "\nRank: #%d/%d\nPoints: %.02f", iRank, Shavit_GetRankedPlayers(), fPoints);
+				FormatEx(sRankingString, 64, "\n%T: #%d/%d\n%T: %.02f", "Rank", client, iRank, Shavit_GetRankedPlayers(), "Points", client, fPoints);
 			}
 
 			else
 			{
-				FormatEx(sRankingString, 64, "\nRank: Unranked");
+				FormatEx(sRankingString, 64, "\n%T: %T", "Rank", client, "PointsUnranked", client);
 			}
 		}
 
@@ -433,10 +434,10 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		}
 
 		char[] sClearString = new char[128];
-		FormatEx(sClearString, 128, "Map completions: %d/%d (%.01f%%)", iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
+		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
 
 		Menu m = new Menu(MenuHandler_ProfileHandler);
-		m.SetTitle("%s's profile. %s\nCountry: %s\n%s\n%s\n[%s] world records: %d%s\n", gS_TargetName[client], gS_TargetAuth[client], sCountry, sLastLogin, sClearString, gS_StyleStrings[0][sStyleName], iWRs, sRankingString);
+		m.SetTitle("%s's %T. %s\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n", gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString, gS_StyleStrings[0][sStyleName], "WorldRecords", client, iWRs, sRankingString);
 
 		for(int i = 0; i < gI_Styles; i++)
 		{
@@ -454,7 +455,9 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		// should NEVER happen
 		if(m.ItemCount == 0)
 		{
-			m.AddItem("-1", "Nothing");
+			char[] sMenuItem = new char[64];
+			FormatEx(sMenuItem, 64, "%T", "NoRecords", client);
+			m.AddItem("-1", sMenuItem);
 		}
 
 		m.ExitButton = true;
@@ -463,7 +466,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 	else
 	{
-		Shavit_PrintToChat(client, "%sERROR: %sCould not open the stats menu.", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "StatsMenuFailure", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 }
 
@@ -472,15 +475,19 @@ public int MenuHandler_ProfileHandler(Menu m, MenuAction action, int param1, int
 	if(action == MenuAction_Select)
 	{
 		char[] sInfo = new char[32];
+		char[] sMenuItem = new char[64];
+
 		m.GetItem(param2, sInfo, 32);
 
 		gBS_Style[param1] = view_as<BhopStyle>(StringToInt(sInfo));
 
 		Menu menu = new Menu(MenuHandler_TypeHandler);
-		menu.SetTitle("[%s] Stats:", gS_StyleStrings[gBS_Style[param1]][sShortName]);
+		menu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]][sShortName]);
 
-		menu.AddItem("0", "Maps done");
-		menu.AddItem("1", "Maps left");
+		FormatEx(sMenuItem, 64, "%T", "MapsDone", param1);
+		menu.AddItem("0", sMenuItem);
+		FormatEx(sMenuItem, 64, "%T", "MapsLeft", param1);
+		menu.AddItem("1", sMenuItem);
 
 		menu.ExitBackButton = true;
 		menu.Display(param1, 20);
@@ -579,12 +586,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sTitle, 64, "[%s] Maps done for %s: (%d)", gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows);
+		FormatEx(sTitle, 64, "%T", "MapsDoneFor", client, gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows);
 	}
 
 	else
 	{
-		FormatEx(sTitle, 64, "[%s] Maps left for %s: (%d)", gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows);
+		FormatEx(sTitle, 64, "%T", "MapsLeftFor", client, gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows);
 	}
 
 	Menu m = new Menu(MenuHandler_ShowMaps);
@@ -612,12 +619,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 			if(gB_Rankings && fPoints > 0.0)
 			{
-				FormatEx(sDisplay, 192, "[#%d] %s - %s (%.03f points)", iRank, sMap, sTime, fPoints);
+				FormatEx(sDisplay, 192, "[#%d] %s - %s (%.03f %T)", iRank, sMap, sTime, fPoints, "MapsPoints", client);
 			}
 
 			else
 			{
-				FormatEx(sDisplay, 192, "[#%d] %s - %s (%d jumps)", iRank, sMap, sTime, iJumps);
+				FormatEx(sDisplay, 192, "[#%d] %s - %s (%d %T)", iRank, sMap, sTime, iJumps, "MapsJumps", client);
 			}
 
 			int iRecordID = results.FetchInt(3);
@@ -635,7 +642,9 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(m.ItemCount == 0)
 	{
-		m.AddItem("nope", "No results.");
+		char[] sMenuItem = new char[64];
+		FormatEx(sMenuItem, 64, "%T", "NoResults", client);
+		m.AddItem("nope", sMenuItem);
 	}
 
 	m.ExitBackButton = true;
@@ -709,17 +718,17 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatSeconds(fTime, sTime, 16);
 
 		char[] sDisplay = new char[128];
-		FormatEx(sDisplay, 128, "Time: %s", sTime);
+		FormatEx(sDisplay, 128, "%T: %s", "Time", client, sTime);
 		m.AddItem("-1", sDisplay);
 
 		// 2 - jumps
 		int iJumps = results.FetchInt(2);
-		FormatEx(sDisplay, 128, "Jumps: %d", iJumps);
+		FormatEx(sDisplay, 128, "%T: %d", "Jumps", client, iJumps);
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
 		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(3));
-		FormatEx(sDisplay, 128, "Style: %s", gS_StyleStrings[bsStyle][sStyleName]);
+		FormatEx(sDisplay, 128, "%T: %s", "Style", client, gS_StyleStrings[bsStyle][sStyleName]);
 		m.AddItem("-1", sDisplay);
 
 		// 4 - steamid3
@@ -732,7 +741,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "Points: %.03f", fPoints);
+			FormatEx(sDisplay, 192, "%T: %.03f", "Points", client, fPoints);
 			m.AddItem("-1", sDisplay);
 		}
 
@@ -745,7 +754,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", StringToInt(sDate));
 		}
 
-		FormatEx(sDisplay, 128, "Date: %s", sDate);
+		FormatEx(sDisplay, 128, "%T: %s", "Date", client, sDate);
 		m.AddItem("-1", sDisplay);
 
 		int iStrafes = results.FetchInt(7);
@@ -753,7 +762,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		if(iJumps > 0 || iStrafes > 0)
 		{
-			FormatEx(sDisplay, 128, (fSync > 0.0)? "Strafes: %d (%.02f%%)":"Strafes: %d", iStrafes, fSync);
+			FormatEx(sDisplay, 128, (fSync > 0.0)? "%T: %d (%.02f%%)":"%T: %d", "Strafes", client, iStrafes, fSync, "Strafes", client, iStrafes);
 			m.AddItem("-1", sDisplay);
 		}
 
