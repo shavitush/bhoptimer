@@ -1,0 +1,162 @@
+"Phrases"
+{
+	// ---------- Commands ---------- //
+	"DeletionAborted"
+	{
+		"en"		"Aborted deletion."
+	}
+	"DeletedRecord"
+	{
+		"en"		"Deleted record."
+	}
+	"DeletedRecordsMap"
+	{
+		"#format"	"{1:c},{2:s},{3:c}"
+		"en"		"Deleted ALL records for {1}{2}{3}."
+	}
+	// ---------- Client Menus ---------- //
+	"ListClientRecords"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Records for {1}:\n({2})"
+	}
+	"ListClientRecordsNone"
+	{
+		"en"		"No records found."
+	}
+	// ---------- Completion Messages ---------- //
+	"FirstCompletion"
+	{
+		"#format"	"{1:c},{2:N},{3:c},{4:c},{5:s},{6:c},{7:c},{8:s},{9:c},{10:c},{11:d},{12:c},{13:d},{14:s},{15:d},{16:s},{17:s},{18:c}"
+		"en"		"{1}{2}{3} finished ({4}{5}{6}) in {7}{8}{9} ({10}#{11}{12}) with {13} jump{14}, {15} strafe{16}{17}{18}."
+	}
+	"NotFirstCompletion"
+	{
+		"#format"	"{1:c},{2:N},{3:c},{4:c},{5:s},{6:c},{7:c},{8:s},{9:c},{10:c},{11:d},{12:c},{13:d},{14:s},{15:d},{16:s},{17:s},{18:c},{19:c},{20:s}"
+		"en"		"{1}{2}{3} finished ({4}{5}{6}) in {7}{8}{9} ({10}#{11}{12}) with {13} jump{14}, {15} strafe{16}{17}{18}. {19}(-{20})"
+	}
+	"WorseTime"
+	{
+		"#format"	"{1:c},{2:s},{3:c},{4:c},{5:s},{6:c},{7:d},{8:s},{9:d},{10:s},{11:s},{12:c},{13:s}"
+		"en"		"You have finished ({1}{2}{3}) in {4}{5}{6} with {7} jump{8}, {9} strafe{10}{11}{12}. (+{13})"
+	}
+	"UnrankedTime"
+	{
+		"#format"	"{1:c},{2:s},{3:c},{4:c},{5:s},{6:c},{7:d},{8:s},{9:d},{10:s},{11:s},{12:c}"
+		"en"		"You have finished ({1}{2}{3}) in {4}{5}{6} with {7} jump{8}, {9} strafe{10}{11}{12}."
+	}
+	// ---------- Deletion Menus ---------- //
+	"DeleteAllRecords"
+	{
+		"en"		"Delete ALL map records"
+	}
+	"DeleteAllRecordsMenuTitle"
+	{
+		"en"		"Delete ALL the records for '{1}'?"
+	}
+	"DeleteConfirm"
+	{
+		"en"		"Are you sure?"
+	}
+	"DeleteMenuTitle"
+	{
+		"en"		"Delete a record from:"
+	}
+	"DeleteSingleRecord"
+	{
+		"en"		"Delete a single record"
+	}
+	"MenuResponseNo"
+	{
+		"en"		"NO!"
+	}
+	"MenuResponseYesSingle"
+	{
+		"en"		"YES!!! DELETE THE RECORD!!!"
+	}
+	"MenuResponseYes"
+	{
+		"en"		"YES!!! DELETE ALL THE RECORDS!!! THIS ACTION CANNOT BE REVERTED!!!"
+	}
+	// ---------- Errors ---------- //
+	"DatabaseError"
+	{
+		"en"		"Database error"
+	}
+	"Error"
+	{
+		"en"		"ERROR"
+	}
+	"NoStyles"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"{1}FATAL ERROR: {2}No styles are available. Contact the server owner immediately!"
+	}
+	// ---------- WR Menu ---------- //
+	"RecentRecords"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"Recent {1} record{2}"
+	}
+	"WRDate"
+	{
+		"en"		"Date"
+	}
+	"WRJump"
+	{
+		"en"		"jump"
+	}
+	"WRJumps"
+	{
+		"en"		"Jumps"
+	}
+	"WRMap"
+	{
+		"#format"	"{1:s}"
+		"en"		"Records for {1}"
+	}
+	"WRMapNoRecords"
+	{
+		"en"		"No records found."
+	}
+	"WRMenuTitle"
+	{
+		"en"		"Choose a style:"
+	}
+	"WRPoints"
+	{
+		"en"		"points"
+	}
+	"WRPlayerStats"
+	{
+		"en"		"Player stats"
+	}
+	"WRPointsCap"
+	{
+		"en"		"Points"
+	}
+	"WRRecord"
+	{
+		"en"		"record"
+	}
+	"WRRecordFor"
+	{
+		"en"		"Records for"
+	}
+	"WRStrafes"
+	{
+		"en"		"Strafes"
+	}
+	"WRStyle"
+	{
+		"en"		"Style"
+	}
+	"WRStyleNothing"
+	{
+		"en"		"Nothing."
+	}
+	"WRTime"
+	{
+		"en"		"Time"
+	}
+}
