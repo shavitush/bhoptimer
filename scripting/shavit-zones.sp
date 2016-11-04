@@ -268,12 +268,12 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 {
 	if(action == TopMenuAction_DisplayTitle)
 	{
-		FormatEx(buffer, maxlength, "%t:", "TimerCommands");
+		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
 	}
 
 	else if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "TimerCommands");
+		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
 	}
 }
 
@@ -281,7 +281,7 @@ public void AdminMenu_Zones(Handle topmenu,  TopMenuAction action, TopMenuObject
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "AddMapZone");
+		FormatEx(buffer, maxlength, "%T", "AddMapZone", param);
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -294,7 +294,7 @@ public void AdminMenu_DeleteZone(Handle topmenu,  TopMenuAction action, TopMenuO
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "DeleteMapZone");
+		FormatEx(buffer, maxlength, "%T", "DeleteMapZone", param);
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -307,7 +307,7 @@ public void AdminMenu_DeleteAllZones(Handle topmenu,  TopMenuAction action, TopM
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		FormatEx(buffer, maxlength, "%t", "DeleteAllMapZone");
+		FormatEx(buffer, maxlength, "%T", "DeleteAllMapZone", param);
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -1270,7 +1270,7 @@ void CreateAdjustMenu(int client, int page)
 		{
 			for(int iState = 1; iState <= 2; iState++)
 			{
-				FormatEx(sDisplay, 32, "%T %d | %c axis %c%.01f", "ZonePoint", client, iPoint, "ZoneAxis", client, sAxis[iAxis], (iState == 1)? '+':'-', gF_Modifier[client]);
+				FormatEx(sDisplay, 32, "%T %d | %c %T %c%.01f", "ZonePoint", client, iPoint, sAxis[iAxis], "ZoneAxis", client, (iState == 1)? '+':'-', gF_Modifier[client]);
 				FormatEx(sInfo, 16, "%d;%d;%d", iPoint, iAxis, iState);
 				hMenu.AddItem(sInfo, sDisplay);
 			}

@@ -1520,7 +1520,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		if(overwrite == 1) // insert
 		{
-			Shavit_PrintToChatAll("%T", "FirstCompletion", client, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChatAll("%T", "FirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
 			// TODO: work on a solution that can function the same while not causing lost records
@@ -1534,7 +1534,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		else // update
 		{
-			Shavit_PrintToChatAll("%T", "NotFirstCompletion", client, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
+			Shavit_PrintToChatAll("%T", "NotFirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}
