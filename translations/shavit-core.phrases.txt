@@ -55,6 +55,16 @@
 		"en"		"{1}WARNING: {2}This style is unranked. Your times WILL NOT be saved and will be only displayed to you!"
 	}
 	// ---------- Pauses ---------- //
+	"MessagePause"
+	{
+		"#format"	"{1:c},{2:c},{3:c}"
+		"en"		"{1}Timer has been {2}paused{3}.
+	}
+	"MessageUnpause"
+	{
+		"#format"	"{1:c},{2:c},{3:c}"
+		"en"		"{1}Timer has been {2}unpaused{3}.
+	}
 	"PauseNotOnGround"
 	{
 		"#format"	"{1:c},{2:c}"
