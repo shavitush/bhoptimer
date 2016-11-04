@@ -105,6 +105,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-hud.phrases");
+
 	// game-specific
 	gEV_Type = GetEngineVersion();
 
@@ -209,44 +211,56 @@ Action ShowHUDMenu(int client, int item)
 	}
 
 	Menu m = new Menu(MenuHandler_HUD, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	m.SetTitle("HUD settings:");
+	m.SetTitle("%T", "HUDMenuTitle", client);
 
 	char[] sInfo = new char[16];
+	char[] sHudItem = new char[64];
 	IntToString(HUD_MASTER, sInfo, 16);
-	m.AddItem(sInfo, "Master");
+	FormatEx(sHudItem, 64, "%T", "HudMaster", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_CENTER, sInfo, 16);
-	m.AddItem(sInfo, "Center text");
+	FormatEx(sHudItem, 64, "%T", "HudCenter", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_ZONEHUD, sInfo, 16);
-	m.AddItem(sInfo, "Zone HUD");
+	FormatEx(sHudItem, 64, "%T", "HudZoneHud", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_OBSERVE, sInfo, 16);
-	m.AddItem(sInfo, "Show the HUD of the player you spectate");
+	FormatEx(sHudItem, 64, "%T", "HudObserve", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_SPECTATORS, sInfo, 16);
-	m.AddItem(sInfo, "Spectator list");
+	FormatEx(sHudItem, 64, "%T", "HudSpectators", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_KEYOVERLAY, sInfo, 16);
-	m.AddItem(sInfo, "Key overlay");
+	FormatEx(sHudItem, 64, "%T", "HudKeyOverlay", client);
+	m.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_HIDEWEAPON, sInfo, 16);
-	m.AddItem(sInfo, "Hide weapons");
+	FormatEx(sHudItem, 64, "%T", "HudHideWeapon", client);
+	m.AddItem(sInfo, sHudItem);
 
 	if(gEV_Type == Engine_CSS)
 	{
 		IntToString(HUD_TOPLEFT, sInfo, 16);
-		m.AddItem(sInfo, "Top left HUD (WR/PB)");
+		FormatEx(sHudItem, 64, "%T", "HudTopLeft", client);
+		m.AddItem(sInfo, sHudItem);
 
 		IntToString(HUD_SYNC, sInfo, 16);
-		m.AddItem(sInfo, "Sync");
+		FormatEx(sHudItem, 64, "%T", "HudSync", client);
+		m.AddItem(sInfo, sHudItem);
 
 		IntToString(HUD_TIMELEFT, sInfo, 16);
-		m.AddItem(sInfo, "Time left");
+		FormatEx(sHudItem, 64, "%T", "HudTimeLeft", client);
+		m.AddItem(sInfo, sHudItem);
 	}
 
 	IntToString(HUD_2DVEL, sInfo, 16);
-	m.AddItem(sInfo, "Use 2D velocity");
+	FormatEx(sHudItem, 64, "%T", "Hud2dVel", client);
+	m.AddItem(sInfo, sHudItem);
 
 	m.ExitButton = true;
 	m.DisplayAt(client, item, 60);
@@ -410,12 +424,12 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">Start Zone</font>", gS_StartColors[gI_Cycle % sizeof(gS_StartColors)]);
+				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">%T</font>", gS_StartColors[gI_Cycle % sizeof(gS_StartColors)], "HudStartZone", client);
 			}
 
 			else
 			{
-				FormatEx(sHintText, 32, "In Start Zone\n\n%d", iSpeed);
+				FormatEx(sHintText, 32, "%T", "HudInStartZone", client, iSpeed);
 			}
 		}
 
@@ -423,12 +437,12 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">End Zone</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)]);
+				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">%T</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)], "HudEndZone", client);
 			}
 
 			else
 			{
-				FormatEx(sHintText, 32, "In End Zone\n\n%d", iSpeed);
+				FormatEx(sHintText, 32, "%T", "HudInEndZone", client, iSpeed);
 			}
 		}
 	}
@@ -484,36 +498,36 @@ void UpdateHUD(int client)
 						strcopy(sColor, 8, "FF0000");
 					}
 
-					Format(sHintText, 512, "%sTime: <font color='#%s'>%s</font> (%d)", sHintText, sColor, (tStatus == Timer_Paused)? " [PAUSED]\t":sTime, iPotentialRank);
+					Format(sHintText, 512, "%s%T: <font color='#%s'>%s</font> (%d)", sHintText, "HudTimeText", client, sColor, (tStatus == Timer_Paused)? " %T\t":sTime, iPotentialRank, "HudPaused", client);
 				}
 
 				if(fPB > 0.0)
 				{
-					Format(sHintText, 512, "%s%sBest: %s (#%d)", sHintText, (tStatus >= Timer_Running)? "\t":"", sPB, (Shavit_GetRankForTime(bsStyle, fPB) - 1));
+					Format(sHintText, 512, "%s%s%T: %s (#%d)", sHintText, (tStatus >= Timer_Running)? "\t":"", "HudBestText", client, sPB, (Shavit_GetRankForTime(bsStyle, fPB) - 1));
 				}
 
 				if(tStatus >= Timer_Running)
 				{
-					Format(sHintText, 512, "%s\nJumps: %d%s\tStyle: <font color='#%s'>%s</font>", sHintText, iJumps, (iJumps < 1000)? "\t":"", gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
+					Format(sHintText, 512, "%s\n%T: %d%s\t%T: <font color='#%s'>%s</font>", sHintText, "HudJumpsText", client, iJumps, (iJumps < 1000)? "\t":"", "HudStyleText", client, gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
 				}
 
 				else
 				{
-					Format(sHintText, 512, "%s\nStyle: <font color='#%s'>%s</font>", sHintText, gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
+					Format(sHintText, 512, "%s\n%T: <font color='#%s'>%s</font>", sHintText, "HudStyleText", client, gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
 				}
 
-				Format(sHintText, 512, "%s\nSpeed: %d", sHintText, iSpeed);
+				Format(sHintText, 512, "%s\n%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 
 				if(tStatus >= Timer_Running)
 				{
 					if(gA_StyleSettings[bsStyle][bSync])
 					{
-						Format(sHintText, 512, "%s%s\tStrafes: %d (%.02f%%)", sHintText, (iSpeed < 1000)? "\t":"", iStrafes, Shavit_GetSync(target));
+						Format(sHintText, 512, "%s%s\t%T: %d (%.02f%%)", sHintText, (iSpeed < 1000)? "\t":"", "HudStrafeText", client, iStrafes, Shavit_GetSync(target));
 					}
 
 					else
 					{
-						Format(sHintText, 512, "%s%s\tStrafes: %d", sHintText, (iSpeed < 1000)? "\t":"", iStrafes);
+						Format(sHintText, 512, "%s%s\t%T: %d", sHintText, (iSpeed < 1000)? "\t":"", "HudStrafeText", client, iStrafes);
 					}
 				}
 
@@ -526,12 +540,12 @@ void UpdateHUD(int client)
 				{
 					if(Shavit_GetTimerStatus(target) == Timer_Running)
 					{
-						FormatEx(sHintText, 512, "%s\nTime: %s (%d)\nJumps: %d\nStrafes: %d\nSpeed: %d%s", gS_StyleStrings[bsStyle][sStyleName], sTime, iPotentialRank, iJumps, iStrafes, iSpeed, (gA_StyleSettings[bsStyle][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit))? "\nNo Speed Limit":"");
+						FormatEx(sHintText, 512, "%s\n%T: %s (%d)\n%T: %d\n%T: %d\n%T: %d%s", gS_StyleStrings[bsStyle][sStyleName], "HudTimeText", client, sTime, iPotentialRank, "HudJumpsText", client, iJumps, "HudStrafeText", client, iStrafes, "HudSpeedText", client, iSpeed, (gA_StyleSettings[bsStyle][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit))? "\nNo Speed Limit":"");
 					}
 
 					else
 					{
-						strcopy(sHintText, 16, "[PAUSED]");
+						FormatEx(sHintText, 16, "%T", "HudPaused", client);
 					}
 				}
 
@@ -568,7 +582,7 @@ void UpdateHUD(int client)
 
 			if(fTime > fWR || !Shavit_IsReplayDataLoaded(bsStyle))
 			{
-				PrintHintText(client, "No replay data loaded");
+				PrintHintText(client, "%T", "NoReplayData", client);
 
 				return;
 			}
@@ -582,17 +596,17 @@ void UpdateHUD(int client)
 			if(gEV_Type == Engine_CSGO)
 			{
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
-				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s Replay</font></u>", sHintText, gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName]);
-				Format(sHintText, 512, "%s\n\tTime: <font color='#00FF00'>%s</font> / %s", sHintText, sTime, sWR);
-				Format(sHintText, 512, "%s\n\tSpeed: %d", sHintText, iSpeed);
+				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s %T</font></u>", sHintText, gS_StyleStrings[bsStyle][sHTMLColor], gS_StyleStrings[bsStyle][sStyleName], "ReplayText", client);
+				Format(sHintText, 512, "%s\n\t%T: <font color='#00FF00'>%s</font> / %s", sHintText, "HudTimeText", client, sTime, sWR);
+				Format(sHintText, 512, "%s\n\t%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
 			else
 			{
 				FormatEx(sHintText, 512, "%s Replay", gS_StyleStrings[bsStyle][sStyleName], sHintText);
-				Format(sHintText, 512, "%s\nTime: %s/%s", sHintText, sTime, sWR);
-				Format(sHintText, 512, "%s\nSpeed: %d", sHintText, iSpeed);
+				Format(sHintText, 512, "%s\n%T: %s/%s", sHintText, "HudTimeText", client, sTime, sWR);
+				Format(sHintText, 512, "%s\n%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 			}
 
 			PrintHintText(client, "%s", sHintText);
@@ -721,7 +735,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 	if(iSpectators > 0)
 	{
 		char[] sSpectators = new char[32];
-		FormatEx(sSpectators, 32, "%spectators (%d):", (client == target)? "S":"Other s", iSpectators);
+		FormatEx(sSpectators, 32, "%spectators (%d):", (client == target)? "S":"Other S", iSpectators);
 		panel.DrawItem(sSpectators, ITEMDRAW_RAWLINE);
 
 		for(int i = 0; i < iSpectators; i++)
@@ -772,7 +786,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 			if(fPBTime != 0.0)
 			{
-				FormatEx(sTopLeft, 64, "WR: %s (%s)\nBest: %s (#%d)", sWRTime, sWRName, sPBTime, (Shavit_GetRankForTime(style, fPBTime) - 1));
+				FormatEx(sTopLeft, 64, "WR: %s (%s)\n%T: %s (#%d)", sWRTime, sWRName, "HudBestText", client, sPBTime, (Shavit_GetRankForTime(style, fPBTime) - 1));
 			}
 
 			else
@@ -795,7 +809,7 @@ void UpdateKeyHint(int client)
 
 		if((gI_HUDSettings[client] & HUD_TIMELEFT) > 0 && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
 		{
-			FormatEx(sMessage, 256, (iTimeLeft > 60)? "Time left: %d minutes":"Time left: <1 minute", (iTimeLeft / 60));
+			FormatEx(sMessage, 256, (iTimeLeft > 60)? "%T: %d minutes":"%T: <1 minute", "HudTimeLeft", client, (iTimeLeft / 60), "HudTimeLeft", client);
 		}
 
 		int target = GetHUDTarget(client);
@@ -804,7 +818,7 @@ void UpdateKeyHint(int client)
 		{
 			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && gA_StyleSettings[Shavit_GetBhopStyle(target)][bSync] && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
 			{
-				Format(sMessage, 256, "%s%sSync: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", Shavit_GetSync(target));
+				Format(sMessage, 256, "%s%s%T: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 			}
 
 			if((gI_HUDSettings[client] & HUD_SPECTATORS) > 0)
@@ -829,7 +843,7 @@ void UpdateKeyHint(int client)
 
 				if(iSpectators > 0)
 				{
-					Format(sMessage, 256, "%s%s%spectators (%d):", sMessage, (strlen(sMessage) > 0)? "\n\n":"", (client == target)? "S":"Other s", iSpectators);
+					Format(sMessage, 256, "%s%s%spectators (%d):", sMessage, (strlen(sMessage) > 0)? "\n\n":"", (client == target)? "S":"Other S", iSpectators);
 
 					for(int i = 0; i < iSpectators; i++)
 					{

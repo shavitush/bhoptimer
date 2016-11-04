@@ -1,0 +1,33 @@
+"Phrases"
+{
+	// ---------- Chat ---------- //
+	"ChatRankList"
+	{
+		"en"		"List of chat ranks:"
+	}
+	"ExampleMessage"
+	{
+		"en"		"Example."
+	}
+	"ReloadChat"
+	{
+		"en"		"Config reloaded."
+	}
+	// ---------- Teams ---------- //
+	"TeamSpec"
+	{
+		"en"		"*SPEC* "
+	}
+	"TeamSpectator"
+	{
+		"en"		"(Spectator) "
+	}
+	"TeamT"
+	{
+		"en"		"(Terrorist) "
+	}
+	"TeamCT"
+	{
+		"en"		"(Counter-Terrorist) "
+	}
+}

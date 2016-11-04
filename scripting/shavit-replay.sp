@@ -105,6 +105,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-replay.phrases");
+
 	// game specific
 	gEV_Type = GetEngineVersion();
 	gF_Tickrate = (1.0 / GetTickInterval());
@@ -988,7 +990,7 @@ public Action Command_DeleteReplay(int client, int args)
 	}
 
 	Menu m = new Menu(DeleteReplay_Callback);
-	m.SetTitle("Delete a replay:");
+	m.SetTitle("%T", "DeleteReplayMenuTitle", client);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -1005,7 +1007,9 @@ public Action Command_DeleteReplay(int client, int args)
 
 	if(m.ItemCount == 0)
 	{
-		m.AddItem("-1", "No replays available.");
+		char[] sMenuItem = new char[64];
+		FormatEx(sMenuItem, 64, "%T", "ReplaysUnavailable", client);
+		m.AddItem("-1", sMenuItem);
 	}
 
 	m.ExitButton = true;
@@ -1019,6 +1023,7 @@ public int DeleteReplay_Callback(Menu m, MenuAction action, int param1, int para
 	if(action == MenuAction_Select)
 	{
 		char[] sInfo = new char[4];
+		char[] sMenuItem = new char[64];
 		m.GetItem(param2, sInfo, 4);
 		BhopStyle style = view_as<BhopStyle>(StringToInt(sInfo));
 
@@ -1028,18 +1033,21 @@ public int DeleteReplay_Callback(Menu m, MenuAction action, int param1, int para
 		}
 
 		Menu submenu = new Menu(DeleteConfirmation_Callback);
-		submenu.SetTitle("Confirm deletion of %s replay?", gS_StyleStrings[style][sStyleName]);
+		submenu.SetTitle("%T", "ReplayDeletionConfirmation", param1, gS_StyleStrings[style][sStyleName]);
 
 		for(int i = 1; i <= GetRandomInt(2, 4); i++)
 		{
-			submenu.AddItem("-1", "NO");
+			FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", param1);
+			submenu.AddItem("-1", sMenuItem);
 		}
 
-		submenu.AddItem(sInfo, "Yes, I understand this action cannot be reversed!");
+		FormatEx(sMenuItem, 64, "%T", "MenuResponseYes", param1);
+		submenu.AddItem(sInfo, sMenuItem);
 
 		for(int i = 1; i <= GetRandomInt(2, 4); i++)
 		{
-			submenu.AddItem("-1", "NO");
+			FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", param1);
+			submenu.AddItem("-1", sMenuItem);
 		}
 
 		submenu.ExitButton = true;
@@ -1066,12 +1074,12 @@ public int DeleteConfirmation_Callback(Menu m, MenuAction action, int param1, in
 		{
 			LogAction(param1, param1, "Deleted replay for %s on map %s.", gS_StyleStrings[style][sStyleName], gS_Map);
 
-			Shavit_PrintToChat(param1, "Deleted replay for %s%s%s.", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T", "ReplayDeleted", param1, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(param1, "Could not delete replay for %s%s%s.", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T", "ReplayDeleteFailure", param1, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 		}
 	}
 

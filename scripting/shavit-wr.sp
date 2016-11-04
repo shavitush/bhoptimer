@@ -109,6 +109,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-wr.phrases");
+
 	// debug because I was making this all by myself and no one wanted to help me *sniff*
 	#if defined DEBUG
 	RegConsoleCmd("sm_junk", Command_Junk);
@@ -202,7 +204,7 @@ public void AdminMenu_Delete(Handle topmenu, TopMenuAction action, TopMenuObject
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		strcopy(buffer, maxlength, "Delete a single record");
+		FormatEx(buffer, maxlength, "%t", "DeleteSingleRecord");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -215,7 +217,7 @@ public void AdminMenu_DeleteAll(Handle topmenu,  TopMenuAction action, TopMenuOb
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
-		strcopy(buffer, maxlength, "Delete ALL map records");
+		FormatEx(buffer, maxlength, "%t", "DeleteAllRecords");
 	}
 
 	else if(action == TopMenuAction_SelectOption)
@@ -473,7 +475,7 @@ public Action Command_Delete(int client, int args)
 	}
 
 	Menu menu = new Menu(MenuHandler_Delete);
-	menu.SetTitle("Delete a record from:");
+	menu.SetTitle("%T", "DeleteMenuTitle", client);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -500,21 +502,23 @@ public Action Command_DeleteAll(int client, int args)
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	char[] sFormattedTitle = new char[192];
-	FormatEx(sFormattedTitle, 192, "Delete ALL the records for \"%s\"?", sDisplayMap);
-
 	Menu m = new Menu(MenuHandler_DeleteAll);
-	m.SetTitle(sFormattedTitle);
+	m.SetTitle("%T", "DeleteAllRecordsMenuTitle", client, sDisplayMap);
+
+	char[] sMenuItem = new char[64];
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
-		m.AddItem("-1", "NO!");
+		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
+		m.AddItem("-1", sMenuItem);
 	}
 
-	m.AddItem("yes", "YES!!! DELETE ALL THE RECORDS!!! THIS ACTION CANNOT BE REVERTED!!!");
+	FormatEx(sMenuItem, 64, "%T", "MenuResponseYes", client);
+	m.AddItem("yes", sMenuItem);
 
 	for(int i = 1; i <= GetRandomInt(1, 3); i++)
 	{
+		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
 		m.AddItem("-1", "NO!");
 	}
 
@@ -534,7 +538,7 @@ public int MenuHandler_DeleteAll(Menu m, MenuAction action, int param1, int para
 
 		if(StringToInt(info) == -1)
 		{
-			Shavit_PrintToChat(param1, "Aborted deletion.");
+			Shavit_PrintToChat(param1, "%T", "DeletionAborted", param1);
 
 			return 0;
 		}
@@ -607,11 +611,8 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	char[] sFormattedTitle = new char[256];
-	FormatEx(sFormattedTitle, 256, "Records for %s:\n(%s)", sDisplayMap, gS_StyleStrings[style][sStyleName]);
-
 	Menu m = new Menu(OpenDelete_Handler);
-	m.SetTitle(sFormattedTitle);
+	m.SetTitle("%t", "ListClientRecords", sDisplayMap, gS_StyleStrings[style][sStyleName]);
 
 	int iCount = 0;
 
@@ -643,7 +644,9 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 
 	if(iCount == 0)
 	{
-		m.AddItem("-1", "No records found.");
+		char[] sNoRecords = new char[64];
+		FormatEx(sNoRecords, 64, "%T", "ListClientRecordsNone", client);
+		m.AddItem("-1", sNoRecords);
 	}
 
 	m.ExitButton = true;
@@ -655,6 +658,7 @@ public int OpenDelete_Handler(Menu m, MenuAction action, int param1, int param2)
 	if(action == MenuAction_Select)
 	{
 		char[] info = new char[16];
+		char[] sMenuItem = new char[64];
 		m.GetItem(param2, info, 16);
 
 		if(StringToInt(info) == -1)
@@ -663,18 +667,21 @@ public int OpenDelete_Handler(Menu m, MenuAction action, int param1, int param2)
 		}
 
 		Menu m2 = new Menu(DeleteConfirm_Handler);
-		m2.SetTitle("Are you sure?");
+		m2.SetTitle("%T", "DeleteConfirm", param1);
 
 		for(int i = 1; i <= GetRandomInt(1, 4); i++)
 		{
-			m2.AddItem("-1", "NO!");
+			FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", param1);
+			m2.AddItem("-1", sMenuItem);
 		}
 
-		m2.AddItem(info, "YES!!! DELETE THE RECORD!!!");
+		FormatEx(sMenuItem, 64, "%T", "MenuResponseYesSingle", param1);
+		m2.AddItem(info, sMenuItem);
 
 		for(int i = 1; i <= GetRandomInt(1, 3); i++)
 		{
-			m2.AddItem("-1", "NO!");
+			FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", param1);
+			m2.AddItem("-1", sMenuItem);
 		}
 
 		m2.ExitButton = true;
@@ -700,7 +707,7 @@ public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int para
 
 		if(iRecordID == -1)
 		{
-			Shavit_PrintToChat(param1, "Aborted deletion.");
+			Shavit_PrintToChat(param1, "%T", "DeletionAborted", param1);
 
 			return 0;
 		}
@@ -755,7 +762,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 		return;
 	}
 
-	Shavit_PrintToChat(client, "Deleted record.");
+	Shavit_PrintToChat(client, "%T", "DeletedRecord", client);
 }
 
 public void DeleteAll_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -794,7 +801,7 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		Call_Finish();
 	}
 
-	Shavit_PrintToChat(client, "Deleted ALL records for %s%s%s.", gS_ChatStrings[sMessageVariable], gS_Map, gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings[sMessageVariable], gS_Map, gS_ChatStrings[sMessageText]);
 }
 
 public Action Command_WorldRecord(int client, int args)
@@ -820,7 +827,7 @@ public Action Command_WorldRecord(int client, int args)
 Action ShowWRStyleMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_StyleChooser);
-	menu.SetTitle("Choose a style:");
+	menu.SetTitle("%T", "WRMenuTitle", client);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -838,7 +845,9 @@ Action ShowWRStyleMenu(int client)
 	// should NEVER happen
 	if(menu.ItemCount == 0)
 	{
-		menu.AddItem("-1", "Nothing");
+		char[] sMenuItem = new char[64];
+		FormatEx(sMenuItem, 64, "%T", "WRStyleNothing", client);
+		menu.AddItem("-1", sMenuItem);
 	}
 
 	menu.ExitButton = true;
@@ -863,7 +872,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 
 		if(iStyle == -1)
 		{
-			Shavit_PrintToChat(param1, "%sFATAL ERROR: %sNo styles are available. Contact the server owner immediately!", gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T", "NoStyles", param1, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 			return 0;
 		}
@@ -955,7 +964,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			int iJumps = results.FetchInt(3);
 
 			char[] sDisplay = new char[128];
-			FormatEx(sDisplay, 128, "#%d - %s - %s (%d jump%s)", iCount, sName, sTime, iJumps, (iJumps != 1)? "s":"");
+			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T%s)", iCount, sName, sTime, iJumps, "WRJump", client, (iJumps != 1)? "s":"");
 			m.AddItem(sID, sDisplay);
 		}
 
@@ -976,10 +985,11 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	if(m.ItemCount == 0)
 	{
-		FormatEx(sFormattedTitle, 256, "Records for %s", sDisplayMap);
-		m.SetTitle(sFormattedTitle);
+		m.SetTitle("%T", "WRMap", client, sDisplayMap);
+		char[] sNoRecords = new char[64];
+		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
 
-		m.AddItem("-1", "No records found.");
+		m.AddItem("-1", sNoRecords);
 	}
 
 	else
@@ -991,7 +1001,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gF_PlayerRecord[client][gBS_LastWR[client]] == 0.0)
 		{
-			FormatEx(sRanks, 32, "(%d record%s)", iRecords, (iRecords != 1)? "s":"");
+			FormatEx(sRanks, 32, "(%d %T%s)", iRecords, "WRRecord", client, (iRecords != 1)? "s":"");
 		}
 
 		else
@@ -999,7 +1009,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, gI_RecordAmount[gBS_LastWR[client]]);
 		}
 
-		FormatEx(sFormattedTitle, 192, "Records for %s:\n%s", sDisplayMap, sRanks);
+		FormatEx(sFormattedTitle, 192, "%T %s:\n%s", "WRRecordFor", client, sDisplayMap, sRanks);
 		m.SetTitle(sFormattedTitle);
 	}
 
@@ -1071,7 +1081,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	Menu m = new Menu(RRMenu_Handler);
-	m.SetTitle("Recent %d record%s:", gI_RecentLimit, (gI_RecentLimit != 1)? "s":"");
+	m.SetTitle("%T:", "RecentRecords", client, gI_RecentLimit, (gI_RecentLimit != 1)? "s":"");
 
 	while(results.FetchRow())
 	{
@@ -1096,12 +1106,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f points)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, fPoints);
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f %T)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, fPoints, "WRPoints", client);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d jump%s)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, iJumps, (iJumps != 1)? "s":"");
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d %T%s)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, iJumps, "WRJump", client, (iJumps != 1)? "s":"");
 		}
 
 		char[] sInfo = new char[192];
@@ -1112,7 +1122,9 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 	if(m.ItemCount == 0)
 	{
-		m.AddItem("-1", "No records found.");
+		char[] sMenuItem = new char[64];
+		FormatEx(sMenuItem, 64, "%T", "WRMapNoRecords", client);
+		m.AddItem("-1", sMenuItem);
 	}
 
 	m.ExitButton = true;
@@ -1197,17 +1209,17 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatSeconds(fTime, sTime, 16);
 
 		char[] sDisplay = new char[128];
-		FormatEx(sDisplay, 128, "Time: %s", sTime);
+		FormatEx(sDisplay, 128, "%T: %s", "WRTime", client, sTime);
 		m.AddItem("-1", sDisplay);
 
 		// 2 - jumps
 		int iJumps = results.FetchInt(2);
-		FormatEx(sDisplay, 128, "Jumps: %d", iJumps);
+		FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, iJumps);
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
 		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(3));
-		FormatEx(sDisplay, 128, "Style: %s", gS_StyleStrings[bsStyle][sStyleName]);
+		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[bsStyle][sStyleName]);
 		m.AddItem("-1", sDisplay);
 
 		// 6 - map
@@ -1219,7 +1231,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 128, "Points: %.03f", fPoints);
+			FormatEx(sDisplay, 128, "%T: %.03f", "WRPointsCap", client, fPoints);
 			m.AddItem("-1", sDisplay);
 		}
 
@@ -1235,7 +1247,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", StringToInt(sDate));
 		}
 
-		FormatEx(sDisplay, 128, "Date: %s", sDate);
+		FormatEx(sDisplay, 128, "%T: %s", "WRDate", client, sDate);
 		m.AddItem("-1", sDisplay);
 
 		int iStrafes = results.FetchInt(7);
@@ -1243,16 +1255,19 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		if(iJumps > 0 || iStrafes > 0)
 		{
-			FormatEx(sDisplay, 128, (fSync != -1.0)? "Strafes: %d (%.02f%%)":"Strafes: %d", iStrafes, fSync);
+			FormatEx(sDisplay, 128, (fSync != -1.0)? "%T: %d (%.02f%%)":"%T: %d", "WRStrafes", client, iStrafes, fSync);
 			m.AddItem("-1", sDisplay);
 		}
-
-		m.AddItem(sAuthID, "Player stats");
+		char[] sMenuItem = new char[64];
+		FormatEx(sMenuItem, 64, "%T", "WRPlayerStats", client);
+		m.AddItem(sAuthID, sMenuItem);
 	}
 
 	else
 	{
-		m.AddItem("-1", "Database error");
+		char[] sMenuItem = new char[64];
+		FormatEx(sMenuItem, 64, "%T", "DatabaseError", client);
+		m.AddItem("-1", sMenuItem);
 	}
 
 	if(strlen(sName) > 0)
@@ -1262,7 +1277,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	else
 	{
-		strcopy(sFormattedTitle, 256, "ERROR");
+		FormatEx(sFormattedTitle, 256, "%T", "Error", client);
 	}
 
 	m.SetTitle(sFormattedTitle);
@@ -1505,7 +1520,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		if(overwrite == 1) // insert
 		{
-			Shavit_PrintToChatAll("%s%N%s finished (%s%s%s) in %s%s%s (%s#%d%s) with %d jump%s, %d strafe%s%s%s.", gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChatAll("%T", "FirstCompletion", client, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
 			// TODO: work on a solution that can function the same while not causing lost records
@@ -1519,7 +1534,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		else // update
 		{
-			Shavit_PrintToChatAll("%s%N%s finished (%s%s%s) in %s%s%s (%s#%d%s) with %d jump%s, %d strafe%s%s%s. %s(-%s)", gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
+			Shavit_PrintToChatAll("%T", "NotFirstCompletion", client, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}
@@ -1542,12 +1557,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 	else if(overwrite == 0 && !gA_StyleSettings[style][bUnranked])
 	{
-		Shavit_PrintToChat(client, "You have finished (%s%s%s) in %s%s%s with %d jump%s, %d strafe%s%s%s. (+%s)", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], sDifference);
+		Shavit_PrintToChat(client, "%T", "WorseTime", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], sDifference);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "You have finished (%s%s%s) in %s%s%s with %d jump%s, %d strafe%s%s%s.", gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "UnrankedTime", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
 	}
 }
 
