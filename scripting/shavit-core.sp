@@ -479,11 +479,13 @@ public Action Command_TogglePause(int client, int args)
 	if(gB_ClientPaused[client])
 	{
 		ResumeTimer(client);
+		Shavit_PrintToChat(client, "%T", "MessageUnpause", client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	else
 	{
 		PauseTimer(client);
+		Shavit_PrintToChat(client, "%T", "MessagePause", client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
