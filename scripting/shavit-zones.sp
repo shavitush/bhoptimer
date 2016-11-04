@@ -2053,18 +2053,15 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
+	
+	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-	else
+	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+		TrimString(sLine);
+		strcopy(gS_MySQLPrefix, 32, sLine);
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
-		{
-			TrimString(sLine);
-			strcopy(gS_MySQLPrefix, 32, sLine);
-
-			break;
-		}
+		break;
 	}
 
 	delete fFile;

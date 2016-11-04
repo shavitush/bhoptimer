@@ -427,6 +427,7 @@ public Action Command_TeleportEnd(int client, int args)
 	if(gB_Zones && Shavit_ZoneExists(Zone_End))
 	{
 		Shavit_StopTimer(client);
+		
 		Call_StartForward(gH_Forwards_OnEnd);
 		Call_PushCell(client);
 		Call_Finish();
@@ -1202,18 +1203,15 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
+	
+	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-	else
+	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH*2];
+		TrimString(sLine);
+		strcopy(gS_MySQLPrefix, 32, sLine);
 
-		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-		{
-			TrimString(sLine);
-			strcopy(gS_MySQLPrefix, 32, sLine);
-
-			break;
-		}
+		break;
 	}
 
 	delete fFile;
