@@ -131,6 +131,7 @@ public void OnPluginStart()
 
 	// commands
 	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu");
+	RegConsoleCmd("sm_options", Command_HUD, "Opens the HUD settings menu (alias for sm_hud");
 
 	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
