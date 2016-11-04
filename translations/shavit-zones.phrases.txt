@@ -1,0 +1,196 @@
+"Phrases"
+{
+	// ---------- Admin Menu ---------- //
+	"AddMapZone"
+	{
+		"en"		"Add map zone"
+	}
+	"DeleteAllMapZone"
+	{
+		"en"		"Delete ALL map zones"
+	}
+	"DeleteMapZone"
+	{
+		"en"		"Delete map zone"
+	}
+	"TimerCommands"
+	{
+		"en"		"Timer Commands"
+	}
+	// ---------- Commands ---------- //
+	"ModifierCommandNoArgs"
+	{
+		"en"		"Usage: sm_modifier <decimal number>"
+	}
+	"ModifierTooLow"
+	{
+		"en"		"Modifier must be higher than 0."
+	}
+	"ModifierSet"
+	{
+		"en"		"Modifier set to"
+	}
+	"ZonesCommand"
+	{
+		"#format"	"{1:c},{2:c}"
+		"en"		"You {1}cannot{2} setup mapzones when you're dead."
+	}
+	"ZoneCustomSpawnExists"
+	{
+		"en"		"Custom Spawn already exists. Please delete it before placing a new one."
+	}
+	"ZoneCustomSpawnDelete"
+	{
+		"en"		"Deleted Custom Spawn successfully."
+	}
+	"ZoneDead"
+	{
+		"en"		"You can't place zones when you're dead."
+	}
+	// ---------- Panel Text ---------- //
+	"AbortZoneCreation"
+	{
+		"en"		"Abort zone creation"
+	}
+	"GridSnap"
+	{
+		"en"		"Grid snap"
+	}
+	// ---------- Zone Menu ---------- //
+	"ZoneAdjustCancel"
+	{
+		"en"		"Cancel"
+	}
+	"ZoneAdjustDone"
+	{
+		"en"		"Done!"
+	}
+	"ZoneAdjustPosition"
+	{
+		"en"		"Adjust the zone's position.\nUse 'sm_modifier <number>' to set a new modifier."
+	}
+	"ZoneAxis"
+	{
+		"en"		"axis"
+	}
+	"ZoneCustomSpawnSuccess"
+	{
+		"en"		"Successfully placed custom spawn!"
+	}
+	"ZoneEditConfirm"
+	{
+		"en"		"Confirm?"
+	}
+	"ZoneDeleteSuccessful"
+	{
+		"#format"	"{1:c},{2:s},{3:c}"
+		"en"		"Deleted {1}{2}{3} successfully."
+	}
+	"ZoneDeleteAllSuccessful"
+	{
+		"en"		"Deleted all map zones succesfully"
+	}
+	"ZoneEdge"
+	{
+		"en"		"edge"
+	}
+	"ZoneEdgeChange"
+	{
+		"#format"	"{1:s},{2:c},{3:s},{4:c},{5:c},{6:.01f},{7:c}"
+		"en"		"{1} edge {2}{3}{4} by {5}{6} degrees{7}."
+	}
+	"ZoneMenuDeleteTitle"
+	{
+		"en"		"Delete a zone:\nPressing a zone will delete it. This action CANNOT BE REVERTED!"
+	}
+	"ZoneMenuDeleteALLTitle"
+	{
+		"en"		"Delete ALL mapzones?\nPressing 'Yes' will delete all the existing mapzones for this map.\nThis action CANNOT BE REVERTED!"
+	}
+	"ZoneMenuNo"
+	{
+		"en"		"NO!"
+	}
+	"ZonesMenuNoneFound"
+	{
+		"en"		"No zones found."
+	}
+	"ZoneMenuTitle"
+	{
+		"en"		"Select a zone type:"
+	}
+	"ZoneMenuYes"
+	{
+		"en"		"YES!!! DELETE ALL THE MAPZONES!!!"
+	}
+	"ZonePlaceText"
+	{
+		"#format"	"{1:s}"
+		"en"		"Press USE (default 'E') to set the {1} corner in your current position."
+	}
+	"ZonePoint"
+	{
+		"en"		"Point"
+	}
+	"ZoneRotate"
+	{
+		"en"		"Rotate the zone.\nUse 'sm_modifier <number>' to set a new modifier"
+	}
+	"ZoneRotateNegative"
+	{
+		"#format"	"{1:.01f}"
+		"en"		"Rotate by -{1} degrees"
+	}
+	"ZoneRotatePlus"
+	{
+		"#format"	"{1:.01f}"
+		"en"		"Rotate by +{1} degrees"
+	}
+	"ZoneRotateSuccesful"
+	{
+		"#format"	"{1:c},{2:.01f},{3:c}"
+		"en"		"Zone rotated by {1}{2}{3} degrees."
+	}
+	"ZoneSetAdjust"
+	{
+		"en"		"Adjust position"
+	}
+	"ZoneSetNo"
+	{
+		"en"		"No"
+	}
+	"ZoneSetRotate"
+	{
+		"en"		"Rotate zone"
+	}
+	"ZoneSetSize"
+	{
+		"en"		"Modify width/length"
+	}
+	"ZoneSetTP"
+	{
+		"en"		"Yes (choose teleport destination first)"
+	}
+	"ZoneSetTPZone"
+	{
+		"en"		"Update teleport destination"
+	}
+	"ZoneSetYes"
+	{
+		"en"		"Yes"
+	}
+	"ZoneSizeIncrease"
+	{
+		"#format"	"{1:c},{2:c},{3:c},{4:d},{5:c},{6:.01f},{7:c}"
+		"en"		"{1}{2} axis{3} (point {4}) increased by {5}{6}{7}"
+	}
+	"ZoneSizeDecrease"
+	{
+		"#format"	"{1:c},{2:c},{3:c},{4:d},{5:c},{6:.01f},{7:c}"
+		"en"		"{1}{2} axis{3} (point {4}) decreased by {5}{6}{7}"
+	}
+	"ZoneTeleportUpdated"
+	{
+		"en"		"Teleport zone destination updated."
+	}
+}

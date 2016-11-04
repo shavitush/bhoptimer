@@ -1,0 +1,71 @@
+"Phrases"
+{
+	// ---------- Commands ---------- //
+	"TierCommand"
+	{
+		"#format"	"{1:s}"
+		"en"		"Usage: {1} <tier>"
+	}
+	"TierInvalid"
+	{
+		"#format"	"{1:i}"
+		"en"		"Invalid map tier ({1})"
+	}
+	"TierSet"
+	{
+		"#format"	"{1:.01f}"
+		"en"		"Map tier is now {1}."
+	}
+	// ---------- Menus ---------- //
+	"TopMenuClients"
+	{
+		"#format"	"{1:d},{2:s},{3:s}"
+		"en"		"#{1} - {2} ({3} points)"
+	}
+	"TopMenuClients2"
+	{
+		"#format"	"{1:d},{2:s},{3:.02f}"
+		"en"		"#{1} - {2} ({3} points)"
+	}
+	"TopMenuTitle"
+	{
+		"#format"	"{1:s}"
+		"en"		"Top {1} Players"
+	}
+	"TopNoResults"
+	{
+		"en"		"No results found."
+	}
+	// ---------- Points ---------- //
+	"ApproximatePoints"
+	{
+		"#format"	"{1:c},{2:s},{3:c},{4:c},{5:.01f},{6:c},{7:c},{8:i},{9:s}"
+		"en"		"{1}{2}{3}: Around {4}{5}{6} points for a time of {7}{8}{9}."
+	}
+	"Rank"
+	{
+		"#format"	"{1:c},{2:N},{3:c},{4:c},{5:i},{6:c},{7:c},{8:i},{9:c},{10:c},{11:.02f},{12:s}"
+		"en"		"{1}{2}{3} is ranked {4}{5}{6} out of {7}{8}{9} with {10}{11} points {12}."
+	}
+	"UnknownPoints"
+	{
+		"#format"	"{1:c},{2:s},{3:c}"
+		"en"		"{1}{2}{3}: Unknown points, no records on map."
+	}
+	"Unranked"
+	{
+		"#format"	"{1:c},{2:N},{3:c},{4:c},{5:c}"
+		"en"		"{1}{2}{3} is {4}unranked{5}."
+	}
+	// ---------- Tiers ---------- //
+	"Tier"
+	{
+		"#format"	"{1:c},{2:s},{3:c},{4:c},{5:.01f},{6:c}"
+		"en"		"{1}{2}{3} is rated as {4}Tier {5}{6}."
+	}
+	"TierUnset"
+	{
+		"#format"	"{1:c},{2:s},{3:c}"
+		"en"		"{1}{2}{3} is not rated."
+	}
+}

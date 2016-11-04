@@ -1,0 +1,122 @@
+"Phrases"
+{
+	// ---------- HUD Components ---------- //
+	// DO NOT MAKE NAMES LONGER THAN DISPLAYED HERE //
+	"HudStartZone"
+	{
+		"en"		"Start Zone"
+	}
+	"HudInStartZone"
+	{
+		"#format"	"{1:d}"
+		"en"		"In Start Zone\n\n{1}"
+	}
+	"HudEndZone"
+	{
+		"en"		"End Zone"
+	}
+	"HudInEndZone"
+	{
+		"#format"	"{1:d}"
+		"en"		"In End Zone\n\n{1}"
+	}
+	"HudPaused"
+	{
+		"en"		"[PAUSED]"
+	}
+	"HudTimeText"
+	{
+		"en"		"Time"
+	}
+	"HudBestText"
+	{
+		"en"		"Best"
+	}
+	"HudJumpsText"
+	{
+		"en"		"Jumps"
+	}
+	"HudStyleText"
+	{
+		"en"		"Style"
+	}
+	"HudSpeedText"
+	{
+		"en"		"Speed"
+	}
+	"HudStrafeText"
+	{
+		"en"		"Strafes"
+	}
+	"HudTimeLeft"
+	{
+		"en"		"Time left"
+	}
+	"HudSync"
+	{
+		"en"		"Sync"
+	}
+	// ---------- Menus ---------- //
+	"HUDMenuTitle"
+	{
+		"en"		"HUD settings:"
+	}
+	"HudMaster"
+	{
+		"en"		"Master"
+	}
+	"HudCenter"
+	{
+		"en"		"Center text"
+	}
+	"HudZoneHud"
+	{
+		"en"		"Zone HUD"
+	}
+	"HudObserve"
+	{
+		"en"		"Shows the HUD of the player you spectate"
+	}
+	"HudSpectators"
+	{
+		"en"		"Spectator List"
+	}
+	"HudKeyOverlay"
+	{
+		"en"		"Key overlay"
+	}
+	"HudHideWeapon"
+	{
+		"en"		"Hide weapons"
+	}
+	"HudTopLeft"
+	{
+		"en"		"Top left HUD (WR/PB)"
+	}
+	"HudSync"
+	{
+		"en"		"Sync"
+	}
+	"Hud2dVel"
+	{
+		"en"		"Use 2D Velocity"
+	}
+	// ---------- Record Bots ---------- //
+	"ReplayText"
+	{
+		"en"		"Replay"
+	}
+	"NoReplayData"
+	{
+		"en"		"No replay data loaded"
+	}
+	// ---------- Panels ---------- //
+	"SpectatorPersonal"
+	{
+		"en"		"Spectators"
+	}
+	"SpectatorWatching"
+	{
+		"en"		"Other Spectators"
+	}
+}
