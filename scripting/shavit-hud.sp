@@ -741,7 +741,11 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 	if(iSpectators > 0)
 	{
 		char[] sSpectators = new char[32];
-		FormatEx(sSpectators, 32, "%spectators (%d):", (client == target)? "S":"Other S", iSpectators);
+		char[] sSpectatorsPersonal = new char[64];
+		char[] sSpectatorWatching = new char[64];
+		FormatEx(sSpectatorsPersonal, 32, "%T", "SpectatorPersonal", client);
+		FormatEx(sSpectatorWatching, 32, "%T", "SpectatorWatching", client);
+		FormatEx(sSpectators, 32, "%s (%d):", (client == target)? sSpectatorsPersonal:sSpectatorWatching, iSpectators);
 		panel.DrawItem(sSpectators, ITEMDRAW_RAWLINE);
 
 		for(int i = 0; i < iSpectators; i++)
