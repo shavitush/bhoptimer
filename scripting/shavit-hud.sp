@@ -483,7 +483,7 @@ void UpdateHUD(int client)
 				{
 					char[] sColor = new char[8];
 					
-					if((tStatus == Timer_Paused)
+					if(tStatus == Timer_Paused)
 					{
 						strcopy(sColor, 8, "FF0000");
 					}
