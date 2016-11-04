@@ -58,12 +58,12 @@
 	"MessagePause"
 	{
 		"#format"	"{1:c},{2:c},{3:c}"
-		"en"		"{1}Timer has been {2}paused{3}.
+		"en"		"{1}Timer has been {2}paused{3}."
 	}
 	"MessageUnpause"
 	{
 		"#format"	"{1:c},{2:c},{3:c}"
-		"en"		"{1}Timer has been {2}unpaused{3}.
+		"en"		"{1}Timer has been {2}unpaused{3}."
 	}
 	"PauseNotOnGround"
 	{
