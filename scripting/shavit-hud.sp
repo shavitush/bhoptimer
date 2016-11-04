@@ -482,8 +482,13 @@ void UpdateHUD(int client)
 				if(tStatus >= Timer_Running)
 				{
 					char[] sColor = new char[8];
-
-					if(fTime < fWR || fWR == 0.0)
+					
+					if((tStatus == Timer_Paused)
+					{
+						strcopy(sColor, 8, "FF0000");
+					}
+					
+					else if(fTime < fWR || fWR == 0.0)
 					{
 						strcopy(sColor, 8, "00FF00");
 					}
