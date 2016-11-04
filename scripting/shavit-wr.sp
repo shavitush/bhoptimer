@@ -519,7 +519,7 @@ public Action Command_DeleteAll(int client, int args)
 	for(int i = 1; i <= GetRandomInt(1, 3); i++)
 	{
 		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
-		m.AddItem("-1", "NO!");
+		m.AddItem("-1", sMenuItem);
 	}
 
 	m.ExitButton = true;
