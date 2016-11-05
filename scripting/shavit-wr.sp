@@ -964,7 +964,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			int iJumps = results.FetchInt(3);
 
 			char[] sDisplay = new char[128];
-			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T%s)", iCount, sName, sTime, iJumps, "WRJump", client, (iJumps != 1)? "s":"");
+			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T%s)", iCount, sName, sTime, iJumps, "WRJumps", client);
 			m.AddItem(sID, sDisplay);
 		}
 
@@ -1111,7 +1111,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d %T%s)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, iJumps, "WRJump", client, (iJumps != 1)? "s":"");
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d %T)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, iJumps, "WRJumps", client);
 		}
 
 		char[] sInfo = new char[192];
@@ -1520,7 +1520,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		if(overwrite == 1) // insert
 		{
-			Shavit_PrintToChatAll("%T", "FirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChatAll("%T", "FirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText]);
 
 			// prevent duplicate records in case there's a long enough lag for the mysql server between two map finishes
 			// TODO: work on a solution that can function the same while not causing lost records
@@ -1534,7 +1534,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 		else // update
 		{
-			Shavit_PrintToChatAll("%T", "NotFirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
+			Shavit_PrintToChatAll("%T", "NotFirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f WHERE map = '%s' AND auth = '%s' AND style = '%d';", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style);
 		}
@@ -1557,12 +1557,12 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 
 	else if(overwrite == 0 && !gA_StyleSettings[style][bUnranked])
 	{
-		Shavit_PrintToChat(client, "%T", "WorseTime", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText], sDifference);
+		Shavit_PrintToChat(client, "%T", "WorseTime", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText], sDifference);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "%T", "UnrankedTime", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, (jumps != 1)? "s":"", strafes, (strafes != 1)? "s":"", sSync, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "UnrankedTime", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText]);
 	}
 }
 

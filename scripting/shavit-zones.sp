@@ -1005,7 +1005,11 @@ void ShowPanel(int client, int step)
 	Panel pPanel = new Panel();
 
 	char[] sPanelText = new char[128];
-	FormatEx(sPanelText, 128, "%T", "ZonePlaceText", client, (step == 1)? "FIRST":"SECOND");
+	char[] sFirst = new char[64];
+	char[] sSecond = new char[64];
+	FormatEx(sFirst, 64, "%T", "ZoneFirst", client);
+	FormatEx(sSecond, 64, "%T", "ZoneSecond", client);
+	FormatEx(sPanelText, 128, "%T", "ZonePlaceText", client, (step == 1)? sFirst:sSecond);
 
 	pPanel.DrawItem(sPanelText, ITEMDRAW_RAWLINE);
 	char[] sPanelItem = new char[64];
@@ -1013,7 +1017,7 @@ void ShowPanel(int client, int step)
 	pPanel.DrawItem(sPanelItem);
 
 	char[] sDisplay = new char[16];
-	FormatEx(sDisplay, 16, "%T: x%d", "GridSnap", client, gI_GridSnap[client]);
+	FormatEx(sDisplay, 16, "%T", "GridSnap", client, gI_GridSnap[client]);
 	pPanel.DrawItem(sDisplay);
 
 	pPanel.Send(client, ZoneCreation_Handler, 600);
@@ -1270,7 +1274,7 @@ void CreateAdjustMenu(int client, int page)
 		{
 			for(int iState = 1; iState <= 2; iState++)
 			{
-				FormatEx(sDisplay, 32, "%T %d | %c %T %c%.01f", "ZonePoint", client, iPoint, sAxis[iAxis], "ZoneAxis", client, (iState == 1)? '+':'-', gF_Modifier[client]);
+				FormatEx(sDisplay, 32, "%T %c%.01f", "ZonePoint", client, iPoint, sAxis[iAxis], "ZoneAxis", client, (iState == 1)? '+':'-', gF_Modifier[client]);
 				FormatEx(sInfo, 16, "%d;%d;%d", iPoint, iAxis, iState);
 				hMenu.AddItem(sInfo, sDisplay);
 			}
@@ -1393,7 +1397,7 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 void CreateWidthLengthMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneEdge_Handler);
-	hMenu.SetTitle("%T", "ZoneRotate", client);
+	hMenu.SetTitle("%T", "ZoneAdjustPosition", client);
 
 	char[] sMenuItem = new char[64];
 	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
@@ -1401,13 +1405,11 @@ void CreateWidthLengthMenu(int client, int page)
 	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustCancel", client);
 	hMenu.AddItem("cancel", sMenuItem);
 
-	char sEdges[][] =
-	{
-		"Right",
-		"Back",
-		"Left",
-		"Front"
-	};
+	char sEdges[4][64];
+	FormatEx(sEdges[0], 64, "%T", "Edge_Right", client);
+	FormatEx(sEdges[1], 64, "%T", "Edge_Back", client);
+	FormatEx(sEdges[2], 64, "%T", "Edge_Left", client);
+	FormatEx(sEdges[3], 64, "%T", "Edge_Front", client);
 
 	char[] sDisplay = new char[32];
 	char[] sInfo = new char[8];
@@ -1444,13 +1446,11 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 
 		else
 		{
-			char sEdges[][] =
-			{
-				"Right",
-				"Back",
-				"Left",
-				"Front"
-			};
+			char sEdges[4][64];
+			FormatEx(sEdges[0], 64, "%T", "Edge_Right", client);
+			FormatEx(sEdges[1], 64, "%T", "Edge_Back", client);
+			FormatEx(sEdges[2], 64, "%T", "Edge_Left", client);
+			FormatEx(sEdges[3], 64, "%T", "Edge_Front", client);
 
 			char[][] sExploded = new char[2][8];
 			ExplodeString(sInfo, ";", sExploded, 2, 8);
