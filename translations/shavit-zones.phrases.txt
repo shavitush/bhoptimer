@@ -151,7 +151,7 @@
 	}
 	"ZonePoint"
 	{
-		"#format"	"{1:d},{2:c},{3:s}"
+		"#format"	"{1:d},{2:c}"
 		"en"		"Point {1} | {2} axis"
 	}
 	"ZoneRotate"
