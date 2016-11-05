@@ -964,7 +964,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			int iJumps = results.FetchInt(3);
 
 			char[] sDisplay = new char[128];
-			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T%s)", iCount, sName, sTime, iJumps, "WRJumps", client);
+			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", iCount, sName, sTime, iJumps, "WRJumps", client);
 			m.AddItem(sID, sDisplay);
 		}
 
