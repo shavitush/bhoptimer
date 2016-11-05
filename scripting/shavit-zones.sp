@@ -1274,7 +1274,7 @@ void CreateAdjustMenu(int client, int page)
 		{
 			for(int iState = 1; iState <= 2; iState++)
 			{
-				FormatEx(sDisplay, 32, "%T %c%.01f", "ZonePoint", client, iPoint, sAxis[iAxis], "ZoneAxis", client, (iState == 1)? '+':'-', gF_Modifier[client]);
+				FormatEx(sDisplay, 32, "%T %c%.01f", "ZonePoint", client, iPoint, sAxis[iAxis], (iState == 1)? '+':'-', gF_Modifier[client]);
 				FormatEx(sInfo, 16, "%d;%d;%d", iPoint, iAxis, iState);
 				hMenu.AddItem(sInfo, sDisplay);
 			}
