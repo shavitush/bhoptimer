@@ -1447,10 +1447,10 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 		else
 		{
 			char sEdges[4][64];
-			FormatEx(sEdges[0], 64, "%T", "Edge_Right", client);
-			FormatEx(sEdges[1], 64, "%T", "Edge_Back", client);
-			FormatEx(sEdges[2], 64, "%T", "Edge_Left", client);
-			FormatEx(sEdges[3], 64, "%T", "Edge_Front", client);
+			FormatEx(sEdges[0], 64, "%T", "Edge_Right", param1);
+			FormatEx(sEdges[1], 64, "%T", "Edge_Back", param1);
+			FormatEx(sEdges[2], 64, "%T", "Edge_Left", param1);
+			FormatEx(sEdges[3], 64, "%T", "Edge_Front", param1);
 
 			char[][] sExploded = new char[2][8];
 			ExplodeString(sInfo, ";", sExploded, 2, 8);
