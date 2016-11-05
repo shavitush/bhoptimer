@@ -502,11 +502,9 @@ void UpdateHUD(int client)
 					{
 						strcopy(sColor, 8, "FF0000");
 					}
-					char[] sFormatPaused = new char[64];
-					char[] sFormatNPaused = new char[64];
-					FormatEx(sFormatPaused, 64, "%T %d\t", "HudPaused", client, iPotentialRank);
-					FormatEx(sFormatNPaused, 64, "%s %d\t", sTime, iPotentialRank);
-					Format(sHintText, 512, "%s%T: <font color='#%s'>%s</font>", sHintText, "HudTimeText", client, sColor, (tStatus == Timer_Paused)? sFormatPaused:sFormatNPaused);
+					char[] sFormatItem = new char[64];
+					FormatEx(sFormatItem, 64, "%T\t", "HudPaused", client);
+					Format(sHintText, 512, "%s%T: <font color='#%s'>%s</font> (%d)", sHintText, "HudTimeText", client, sColor, (tStatus == Timer_Paused)? sFormatItem:sTime, iPotentialRank);
 				}
 
 				if(fPB > 0.0)
