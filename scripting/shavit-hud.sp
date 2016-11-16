@@ -502,10 +502,13 @@ void UpdateHUD(int client)
 					{
 						strcopy(sColor, 8, "FF0000");
 					}
+
 					char[] sPauseItem = new char[64];
-					char[] sUnpausedItem = new char[64];
 					FormatEx(sPauseItem, 64, "%T\t</font>", "HudPaused", client);
+
+					char[] sUnpausedItem = new char[64];
 					FormatEx(sUnpausedItem, 64, "%s</font> (%d)\t", sTime, iPotentialRank);
+					
 					Format(sHintText, 512, "%s%T: <font color='#%s'>%s", sHintText, "HudTimeText", client, sColor, (tStatus == Timer_Paused)? sPauseItem:sUnpausedItem);
 				}
 
