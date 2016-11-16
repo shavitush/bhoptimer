@@ -240,7 +240,6 @@ public void OnPluginStart()
 
 	// crons
 	CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
-	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT);
 
 	if(LibraryExists("dhooks"))
 	{
@@ -370,6 +369,8 @@ public void OnMapStart()
 		Shavit_OnStyleConfigLoaded(-1);
 		Shavit_OnChatConfigLoaded();
 	}
+
+	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 bool LoadAdvertisementsConfig()
@@ -723,12 +724,10 @@ public void OnWeaponDrop(int client, int entity)
 // hide
 public Action OnSetTransmit(int entity, int client)
 {
-	if(client != entity && gB_Hide[client])
+	if(gB_Hide[client] && client != entity && (!IsClientObserver(client) || (GetEntProp(client, Prop_Send, "m_iObserverMode") != 6 &&
+		GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") != entity)))
 	{
-		if(!IsClientObserver(client) || (GetEntProp(client, Prop_Send, "m_iObserverMode") != 6 && GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") != entity))
-		{
-			return Plugin_Handled;
-		}
+		return Plugin_Handled;
 	}
 
 	return Plugin_Continue;
@@ -881,10 +880,10 @@ public int MenuHandler_Teleport(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
-		menu.GetItem(param2, info, 16);
+		char[] sInfo = new char[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		if(!Teleport(param1, StringToInt(info)))
+		if(!Teleport(param1, StringToInt(sInfo)))
 		{
 			Command_Teleport(param1, 0);
 		}
