@@ -397,7 +397,10 @@ public void OnMapStart()
 		Shavit_OnChatConfigLoaded();
 	}
 
-	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	if(gF_AdvertisementInterval > 0.0)
+	{
+		CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 bool LoadAdvertisementsConfig()
