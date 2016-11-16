@@ -482,12 +482,12 @@ void UpdateHUD(int client)
 				if(tStatus >= Timer_Running)
 				{
 					char[] sColor = new char[8];
-					
+
 					if(tStatus == Timer_Paused)
 					{
 						strcopy(sColor, 8, "FF0000");
 					}
-					
+
 					else if(fTime < fWR || fWR == 0.0)
 					{
 						strcopy(sColor, 8, "00FF00");
@@ -502,9 +502,11 @@ void UpdateHUD(int client)
 					{
 						strcopy(sColor, 8, "FF0000");
 					}
-					char[] sFormatItem = new char[64];
-					FormatEx(sFormatItem, 64, "%T\t", "HudPaused", client);
-					Format(sHintText, 512, "%s%T: <font color='#%s'>%s</font> (%d)", sHintText, "HudTimeText", client, sColor, (tStatus == Timer_Paused)? sFormatItem:sTime, iPotentialRank);
+					char[] sPauseItem = new char[64];
+					char[] sUnpausedItem = new char[64];
+					FormatEx(sPauseItem, 64, "%T\t</font>", "HudPaused", client);
+					FormatEx(sUnpausedItem, 64, "%s</font> (%d)\t", sTime, iPotentialRank);
+					Format(sHintText, 512, "%s%T: <font color='#%s'>%s", sHintText, "HudTimeText", client, sColor, (tStatus == Timer_Paused)? sPauseItem:sUnpausedItem);
 				}
 
 				if(fPB > 0.0)
@@ -741,7 +743,11 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 	if(iSpectators > 0)
 	{
 		char[] sSpectators = new char[32];
-		FormatEx(sSpectators, 32, "%spectators (%d):", (client == target)? "S":"Other S", iSpectators);
+		char[] sSpectatorsPersonal = new char[64];
+		char[] sSpectatorWatching = new char[64];
+		FormatEx(sSpectatorsPersonal, 32, "%T", "SpectatorPersonal", client);
+		FormatEx(sSpectatorWatching, 32, "%T", "SpectatorWatching", client);
+		FormatEx(sSpectators, 32, "%s (%d):", (client == target)? sSpectatorsPersonal:sSpectatorWatching, iSpectators);
 		panel.DrawItem(sSpectators, ITEMDRAW_RAWLINE);
 
 		for(int i = 0; i < iSpectators; i++)

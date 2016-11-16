@@ -54,9 +54,26 @@
 	}
 	"GridSnap"
 	{
-		"en"		"Grid snap"
+		"#format"	"{1:d}"
+		"en"		"Grid snap: x{1}"
 	}
 	// ---------- Zone Menu ---------- //
+	"Edge_Back"
+	{
+		"en"		"Back"
+	}
+	"Edge_Front"
+	{
+		"en"		"Front"
+	}
+	"Edge_Left"
+	{
+		"en"		"Left"
+	}
+	"Edge_Right"
+	{
+		"en"		"Right"
+	}
 	"ZoneAdjustCancel"
 	{
 		"en"		"Cancel"
@@ -94,6 +111,10 @@
 	{
 		"en"		"edge"
 	}
+	"ZoneFirst"
+	{
+		"en"		"FIRST"
+	}
 	"ZoneEdgeChange"
 	{
 		"#format"	"{1:s},{2:c},{3:s},{4:c},{5:c},{6:.01f},{7:c}"
@@ -130,7 +151,8 @@
 	}
 	"ZonePoint"
 	{
-		"en"		"Point"
+		"#format"	"{1:d},{2:c}"
+		"en"		"Point {1} | {2} axis"
 	}
 	"ZoneRotate"
 	{
@@ -150,6 +172,10 @@
 	{
 		"#format"	"{1:c},{2:.01f},{3:c}"
 		"en"		"Zone rotated by {1}{2}{3} degrees."
+	}
+	"ZoneSecond"
+	{
+		"en"		"SECOND"
 	}
 	"ZoneSetAdjust"
 	{

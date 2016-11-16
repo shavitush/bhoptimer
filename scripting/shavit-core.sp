@@ -459,6 +459,13 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if(Shavit_InsideZone(client, Zone_Start))
+	{
+		Shavit_PrintToChat(client, "%T", "PauseStartZone", client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+
+		return Plugin_Handled;
+	}
+
 	if(!gB_Pause)
 	{
 		char[] sCommand = new char[16];
