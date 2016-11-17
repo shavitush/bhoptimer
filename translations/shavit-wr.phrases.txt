@@ -96,8 +96,8 @@
 	// ---------- WR Menu ---------- //
 	"RecentRecords"
 	{
-		"#format"	"{1:d},{2:s}"
-		"en"		"Recent {1} record{2}"
+		"#format"	"{1:d}"
+		"en"		"Recent {1} record(s)"
 	}
 	"WRDate"
 	{

@@ -1254,7 +1254,6 @@ void CreateAdjustMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneAdjuster_Handler);
 	char[] sMenuItem = new char[64];
-	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustPosition", client);
 	hMenu.SetTitle("%T", "ZoneAdjustPosition", client);
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
@@ -1382,7 +1381,7 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 			bool bIncrease = view_as<bool>(StringToInt(sInfo) == 1);
 			gF_RotateAngle[param1] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 
-			Shavit_PrintToChat(param1, "%T", "ZoneRotateSuccesful", param1, gS_ChatStrings[sMessageVariable], ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]), gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T", "ZoneRotateSuccessful", param1, gS_ChatStrings[sMessageVariable], ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]), gS_ChatStrings[sMessageText]);
 
 			CreateRotateMenu(param1);
 		}
@@ -1397,7 +1396,7 @@ public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int para
 void CreateWidthLengthMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneEdge_Handler);
-	hMenu.SetTitle("%T", "ZoneAdjustPosition", client);
+	hMenu.SetTitle("%T", "ZoneRotate", client);
 
 	char[] sMenuItem = new char[64];
 	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
@@ -2053,7 +2052,7 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
-	
+
 	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
