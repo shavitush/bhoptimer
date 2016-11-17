@@ -168,7 +168,7 @@
 		"#format"	"{1:.01f}"
 		"en"		"Rotate by +{1} degrees"
 	}
-	"ZoneRotateSuccesful"
+	"ZoneRotateSuccessful"
 	{
 		"#format"	"{1:c},{2:.01f},{3:c}"
 		"en"		"Zone rotated by {1}{2}{3} degrees."
