@@ -29,7 +29,7 @@
 	}
 	"TopMenuTitle"
 	{
-		"#format"	"{1:s}"
+		"#format"	"{1:d}"
 		"en"		"Top {1} Players"
 	}
 	"TopNoResults"
