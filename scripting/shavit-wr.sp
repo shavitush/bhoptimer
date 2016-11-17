@@ -1081,7 +1081,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	Menu m = new Menu(RRMenu_Handler);
-	m.SetTitle("%T:", "RecentRecords", client, gI_RecentLimit, (gI_RecentLimit != 1)? "s":"");
+	m.SetTitle("%T:", "RecentRecords", client, gI_RecentLimit);
 
 	while(results.FetchRow())
 	{
@@ -1327,7 +1327,7 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
-	
+
 	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
