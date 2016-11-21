@@ -23,6 +23,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <dynamic>
+#include <clientprefs>
 
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
@@ -52,6 +53,9 @@ int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
 ConVar gCV_Hostname = null;
 ConVar gCV_Hostport = null;
+
+// cookies
+Handle gH_HideCookie = null;
 
 // cvars
 ConVar gCV_GodMode = null;
@@ -149,6 +153,7 @@ public void OnPluginStart()
 	// hide
 	RegConsoleCmd("sm_hide", Command_Hide, "Toggle players' hiding.");
 	RegConsoleCmd("sm_unhide", Command_Hide, "Toggle players' hiding.");
+	gH_HideCookie = RegClientCookie("shavit_hide", "Hide settings", CookieAccess_Protected);
 
 	// tpto
 	RegConsoleCmd("sm_tpto", Command_Teleport, "Teleport to another player. Usage: sm_tpto [target]");
@@ -271,8 +276,30 @@ public void OnPluginStart()
 			if(IsValidClient(i))
 			{
 				OnClientPutInServer(i);
+
+				if(AreClientCookiesCached(i))
+				{
+					OnClientCookiesCached(i);
+				}
 			}
 		}
+	}
+}
+
+public void OnClientCookiesCached(int client)
+{
+	char[] sHideSetting = new char[8];
+	GetClientCookie(client, gH_HideCookie, sHideSetting, 8);
+
+	if(strlen(sHideSetting) == 0)
+	{
+		SetClientCookie(client, gH_HideCookie, "0");
+		gB_Hide[client] = false;
+	}
+
+	else
+	{
+		gB_Hide[client] = view_as<bool>(StringToInt(sHideSetting));
 	}
 }
 
@@ -370,7 +397,10 @@ public void OnMapStart()
 		Shavit_OnChatConfigLoaded();
 	}
 
-	CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	if(gF_AdvertisementInterval > 0.0)
+	{
+		CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 bool LoadAdvertisementsConfig()
@@ -665,7 +695,10 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 public void OnClientPutInServer(int client)
 {
-	gB_Hide[client] = false;
+	if(!AreClientCookiesCached(client))
+	{
+		gB_Hide[client] = false;
+	}
 
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
@@ -1019,7 +1052,7 @@ public Action Command_Noclip(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gI_NoclipMe == 2 && !CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))
+	else if(gI_NoclipMe == 2 && !CheckCommandAccess(client, "admin_noclipme", ADMFLAG_CHEATS))
 	{
 		Shavit_PrintToChat(client, "%T", "LackingAccess", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
