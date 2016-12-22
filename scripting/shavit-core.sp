@@ -1024,8 +1024,14 @@ public void OnClientPutInServer(int client)
 		strcopy(sCountry, 128, "Local Area Network");
 	}
 
+	int points = 0;
+	if (LibraryExists("shavit-rankings"))
+	{
+		points = Shavit_GetPoints(client);
+	}
+	
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d);", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, GetTime());
+	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip, lastlogin, points) VALUES ('%s', '%s', '%s', '%s', %d , %i);", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, GetTime(), points);
 
 	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
