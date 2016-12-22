@@ -620,7 +620,7 @@ native bool Shavit_IsReplayDataLoaded(BhopStyle style);
  * @param client					Client index.
  * @return							Points. 0.0 if unranked and -1.0 if lookup is due.
  */
-native float Shavit_GetPoints(int client);
+native int Shavit_GetPoints(int client);
 
 /**
  * Gets player rank.
