@@ -412,7 +412,7 @@ public Action Event_PlayerSpawned(Event event, const char[] name, bool dontBroad
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if(IsValidClient(client))
 	{
-		SetEntProp(client, Prop_Data, "m_iScore", gI_PlayerPoints[client]);
+		//SetEntProp(client, Prop_Data, "m_iScore", gI_PlayerPoints[client]);
 		SetEntProp(client, Prop_Data, "m_iDeaths", gI_PlayerRank[client]);
 	}
 	
