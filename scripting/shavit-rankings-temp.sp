@@ -72,8 +72,9 @@ public void OnPluginStart()
 	// modules
 	gB_Stats = LibraryExists("shavit-stats");
 	
-	//UpdateLadders();
-	UpdateRankedPlayers();
+	HookEvent("player_spawned", Event_PlayerSpawned);
+	
+	UpdateLadders();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -117,30 +118,7 @@ public void OnClientAuthorized(int client)
 
 	if(gH_SQL != null)
 	{
-		char[] sAuthID3 = new char[32];
-		
-		if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
-		{
-			char[] sQuery = new char[256];
-			FormatEx(sQuery, 256, "SELECT COUNT(*) rank, points FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
-
-			DBResultSet results = SQL_Query(gH_SQL, sQuery);
-			
-			if(results.FetchRow() && results.FetchInt(1) > 0)
-			{
-				gI_PlayerRank[client] = results.FetchInt(0);
-				gI_PlayerPoints[client] = results.FetchInt(1);
-			}	
-			else
-			{
-				gI_PlayerRank[client] = 0;
-				gI_PlayerPoints[client] = 0;
-			}	
-			
-			delete results;
-
-			Shavit_GetPlayerPB(client, Style_Default, gF_PlayerPB[client]);
-		}
+		UpdateClientInfo(client);
 	}
 	
 	
@@ -391,33 +369,54 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 	{
 		UpdateLadders();
 		
-		// Update gF_playerPB
-		gF_PlayerPB[client] = time;
-		 
-		// Update  gI_PlayerRank and gI_PlayerPoints
-		char[] sAuthID3 = new char[32];
-		
-		if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
-		{
-			char[] sQuery = new char[256];
-			FormatEx(sQuery, 256, "SELECT COUNT(*) rank, points FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
+		CreateTimer(1.5,TimerForUpdateClientInfo,client);
+	}
+}
 
-			DBResultSet results = SQL_Query(gH_SQL, sQuery);
+void UpdateClientInfo(int client)
+{
+	char[] sAuthID3 = new char[32];
+		
+	if(GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+	{
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "SELECT COUNT(*) rank, points FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sAuthID3);
+
+		DBResultSet results = SQL_Query(gH_SQL, sQuery);
 			
-			if(results.FetchRow() && results.FetchInt(1) > 0)
-			{
-				gI_PlayerRank[client] = results.FetchInt(0);
-				gI_PlayerPoints[client] = results.FetchInt(1);
-			}	
-			else
-			{
+		if(results.FetchRow() && results.FetchInt(1) > 0)
+		{
+			gI_PlayerRank[client] = results.FetchInt(0);
+			gI_PlayerPoints[client] = results.FetchInt(1);
+		}	
+		else
+		{
 				gI_PlayerRank[client] = 0;
 				gI_PlayerPoints[client] = 0;
-			}	
-			
-			delete results;
-		}
+		}	
+		
+		Shavit_GetPlayerPB(client, Style_Default, gF_PlayerPB[client]);
+				
+		delete results;
 	}
+}
+
+public Action TimerForUpdateClientInfo(Handle timer, any client)
+{
+	UpdateClientInfo(client);
+	return Plugin_Handled;
+}
+
+public Action Event_PlayerSpawned(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if(IsValidClient(client))
+	{
+		SetEntProp(client, Prop_Data, "m_iScore", gI_PlayerPoints[client]);
+		SetEntProp(client, Prop_Data, "m_iDeaths", gI_PlayerRank[client]);
+	}
+	
+	return Plugin_Handled;
 }
 
 // -----------------------
@@ -427,55 +426,9 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 void UpdatePointsInUsers()
 {
 	char[] sQuery = new char[256];
-	FormatEx(sQuery, 256, "SELECT p.auth,SUM(p.points),u.points FROM %splayertimes p LEFT JOIN %susers u ON p.auth=u.auth WHERE p.points > 0 GROUP BY auth;", gS_MySQLPrefix, gS_MySQLPrefix);
+	FormatEx(sQuery, 256, "UPDATE %susers u LEFT JOIN (SELECT auth,SUM(points) sumpoints  FROM  %splayertimes GROUP BY auth) p ON u.auth=p.auth SET u.points = p.sumpoints WHERE p.sumpoints > 0;", gS_MySQLPrefix, gS_MySQLPrefix);
 	
-	DBResultSet results = SQL_Query(gH_SQL, sQuery);
-	
-	if(results == null)
-	{
-		return;
-	}
-	
-
-	while(results.FetchRow())
-	{
-		char[] currentAuth = new char[32];
-		results.FetchString(0, currentAuth, 32);
-		int points = results.FetchInt(1);
-		int prevPoints = results.FetchInt(2);
-		
-		if (prevPoints!=points)
-		{
-			SetPointsInUsers(points, currentAuth);
-			//PrintToConsole(0, "AUTH CURR %s | points %i ,", currentAuth, points );
-		}
-	}
-	
-	delete results;
-}
-
-
-void SetPointsInUsers(int points, char[] Auth)
-{
-	if(!gB_MySQL)
-	{
-		return;
-	}
-
-	char[] sQuery = new char[128];
-	FormatEx(sQuery, 128, "UPDATE %susers SET points=%i WHERE auth='%s';", gS_MySQLPrefix, points, Auth);
-
-	gH_SQL.Query(SQL_SetPointsInUsers_Callback, sQuery);
-}
-
-public void SQL_SetPointsInUsers_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (rankings module) error! SetPointsInPlayerTimes Failed. Reason: %s", error);
-
-		return;
-	}
+	SQL_Query(gH_SQL, sQuery);
 }
 
 
@@ -577,9 +530,8 @@ void UpdateRankedPlayers()
 
 void UpdateLadders()
 {
-	UpdatePointsInPlayerTimes();
-	UpdatePointsInUsers();
-	UpdateRankedPlayers();
+	CreateTimer(0.5 ,TimerForPointsInPlayerTimes);
+	CreateTimer(1.0 ,TimerForPointsInUsers);
 
 	// It shouldn't be done like that, we should do it somewhere else
 	// where we could check if player Stats actually updated
@@ -622,5 +574,13 @@ public Action TimerForPointsInUsers(Handle timer)
 {
 	UpdatePointsInUsers();
 	UpdateRankedPlayers();
-	return Plugin_Continue;
+	return Plugin_Handled;
 }
+
+public Action TimerForPointsInPlayerTimes(Handle timer)
+{
+	UpdatePointsInPlayerTimes();
+	return Plugin_Handled;
+}
+
+// SELECT *,(SELECT COUNT(*)+1 from playertimes p2 WHERE p1.map = p2.map AND style=0 and p2.time < p1.time) rank FROM playertimes p1 WHERE style=0 ORDER BY map,time ASC;
