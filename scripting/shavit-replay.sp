@@ -27,6 +27,8 @@
 #include <shavit>
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
+#define ReplayCheckFrame 100
+
 
 #pragma semicolon 1
 #pragma dynamic 131072
@@ -817,7 +819,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
 
-			TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
+			if((gI_ReplayTick[iReplayBotStyle] % ReplayCheckFrame) == 0)
+				TeleportEntity(client, vecPosition, vecAngles, vecVelocity);
+			else
+				TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
 
 			return Plugin_Changed;
 		}
