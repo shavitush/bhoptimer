@@ -162,7 +162,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
 
-	gB_Late = late;
+	gB_Late = alate;
 
 	return APLRes_Success;
 }
