@@ -37,7 +37,7 @@
 #define HUD_SPECTATORS			(1 << 4) // show list of spectators
 #define HUD_KEYOVERLAY			(1 << 5) // show a key overlay
 #define HUD_HIDEWEAPON			(1 << 6) // hide the player's weapon
-#define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times (css only)
+#define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times
 #define HUD_SYNC				(1 << 8) // shows sync at right side of the screen (css only)
 #define HUD_TIMELEFT			(1 << 9) // shows time left at right tside of the screen (css only)
 #define HUD_2DVEL				(1 << 10) // shows 2d velocity
@@ -75,7 +75,7 @@ BhopStyle gBS_Style[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
-// css hud
+// hud handle
 Handle gH_HUD = null;
 
 // timer settings
@@ -113,7 +113,6 @@ public void OnPluginStart()
 
 	if(gEV_Type == Engine_CSS)
 	{
-		gH_HUD = CreateHudSynchronizer();
 		gI_NameLength = MAX_NAME_LENGTH;
 	}
 
@@ -126,6 +125,9 @@ public void OnPluginStart()
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_BhopStats = LibraryExists("bhopstats");
+
+	// HUD handle
+	gH_HUD = CreateHudSynchronizer();
 
 	// cron
 	CreateTimer(0.10, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
@@ -247,12 +249,12 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudHideWeapon", client);
 	m.AddItem(sInfo, sHudItem);
 
+	IntToString(HUD_TOPLEFT, sInfo, 16);
+	FormatEx(sHudItem, 64, "%T", "HudTopLeft", client);
+	m.AddItem(sInfo, sHudItem);
+
 	if(gEV_Type == Engine_CSS)
 	{
-		IntToString(HUD_TOPLEFT, sInfo, 16);
-		FormatEx(sHudItem, 64, "%T", "HudTopLeft", client);
-		m.AddItem(sInfo, sHudItem);
-
 		IntToString(HUD_SYNC, sInfo, 16);
 		FormatEx(sHudItem, 64, "%T", "HudSync", client);
 		m.AddItem(sInfo, sHudItem);
@@ -378,10 +380,10 @@ void TriggerHUDUpdate(int client)
 {
 	UpdateHUD(client);
 	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", ((gI_HUDSettings[client] & HUD_HIDEWEAPON) > 0)? 0:1);
+	UpdateTopLeftHUD(client, true);
 
 	if(gEV_Type == Engine_CSS)
 	{
-		UpdateTopLeftHUD(client, true);
 		UpdateKeyHint(client);
 		UpdateCenterKeys(client);
 	}
@@ -837,7 +839,7 @@ void UpdateKeyHint(int client)
 
 		if(IsValidClient(target) && (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0))
 		{
-			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && gA_StyleSettings[Shavit_GetBhopStyle(target)][bSync] && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
+			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && gA_StyleSettings[gBS_Style[target]][bSync] && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
 			{
 				Format(sMessage, 256, "%s%s%T: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 			}
