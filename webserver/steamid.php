@@ -78,7 +78,6 @@ class SteamID
     const FORMAT_RAW = 5; // Raw index. like 64-bit minus the base value.
     const FORMAT_VANITY = 6; // Vanity URL name. Forward conversion only.
 
-
     const STEAMID64_BASE = '76561197960265728';
 
     // max allowed value. (sanity check)
