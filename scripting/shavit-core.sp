@@ -963,11 +963,21 @@ public void OnClientCookiesCached(int client)
 	}
 
 	char[] sCookie = new char[4];
-	GetClientCookie(client, gH_AutoBhopCookie, sCookie, 4);
+
+	if(gH_AutoBhopCookie != null)
+	{
+		GetClientCookie(client, gH_AutoBhopCookie, sCookie, 4);
+	}
+
 	gB_Auto[client] = (strlen(sCookie) > 0)? view_as<bool>(StringToInt(sCookie)):true;
 
-	GetClientCookie(client, gH_StyleCookie, sCookie, 4);
-	gBS_Style[client] = view_as<BhopStyle>(StringToInt(sCookie));
+	if(gH_StyleCookie != null)
+	{
+		GetClientCookie(client, gH_StyleCookie, sCookie, 4);
+	}
+
+	gBS_Style[client] = view_as<BhopStyle>((strlen(sCookie) > 0)? StringToInt(sCookie):0);
+
 	UpdateAutoBhop(client);
 }
 
