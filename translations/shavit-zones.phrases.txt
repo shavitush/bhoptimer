@@ -219,4 +219,8 @@
 	{
 		"en"		"Teleport zone destination updated."
 	}
+	"ZoneTeleportInsideZone"
+	{
+		"en"		"You may not place a destination inside the teleport zone."
+	}
 }
