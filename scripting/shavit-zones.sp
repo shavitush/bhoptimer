@@ -1192,8 +1192,37 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 		else if(StrEqual(info, "tpzone"))
 		{
-			GetClientAbsOrigin(param1, gV_Teleport[param1]);
-			Shavit_PrintToChat(param1, "%T", "ZoneTeleportUpdated", param1);
+			float vTeleport[3];
+			GetClientAbsOrigin(param1, vTeleport);
+			vTeleport[2] += 2.0;
+
+			float vPoints[8][3];
+			vPoints[0] = gV_Point1[param1];
+			vPoints[7] = gV_Point2[param1];
+
+			CreateZonePoints(vPoints, gF_RotateAngle[param1], gV_Fix1[param1], gV_Fix2[param1], PLACEHOLDER, false, true);
+
+			bool bInside = true;
+
+			for(int i = 0; i < 3; i++)
+			{
+				if(vPoints[0][i] >= vTeleport[i] == vPoints[7][i] >= vTeleport[i])
+				{
+					bInside = false;
+				}
+			}
+
+			if(bInside)
+			{
+				Shavit_PrintToChat(param1, "%T", "ZoneTeleportInsideZone", param1);
+			}
+
+			else
+			{
+				gV_Teleport[param1] = vTeleport;
+
+				Shavit_PrintToChat(param1, "%T", "ZoneTeleportUpdated", param1);
+			}
 
 			CreateEditMenu(param1);
 		}
@@ -1227,6 +1256,7 @@ void CreateEditMenu(int client)
 			FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
 			menu.AddItem("yes", sMenuItem);
 		}
+
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetTPZone", client);
 		menu.AddItem("tpzone", sMenuItem);
 	}

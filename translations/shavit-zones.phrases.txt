@@ -32,7 +32,7 @@
 	}
 	"ZonesCommand"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}cannot{2} setup mapzones when you're dead."
 	}
 	"ZoneCustomSpawnExists"
@@ -100,7 +100,7 @@
 	}
 	"ZoneDeleteSuccessful"
 	{
-		"#format"	"{1:c},{2:s},{3:c}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"Deleted {1}{2}{3} successfully."
 	}
 	"ZoneDeleteAllSuccessful"
@@ -117,7 +117,7 @@
 	}
 	"ZoneEdgeChange"
 	{
-		"#format"	"{1:s},{2:c},{3:s},{4:c},{5:c},{6:.01f},{7:c}"
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:.01f},{7:s}"
 		"en"		"{1} edge {2}{3}{4} by {5}{6} degrees{7}."
 	}
 	"ZoneMenuDeleteTitle"
@@ -151,7 +151,7 @@
 	}
 	"ZonePoint"
 	{
-		"#format"	"{1:d},{2:c}"
+		"#format"	"{1:d},{2:s}"
 		"en"		"Point {1} | {2} axis"
 	}
 	"ZoneRotate"
@@ -170,7 +170,7 @@
 	}
 	"ZoneRotateSuccessful"
 	{
-		"#format"	"{1:c},{2:.01f},{3:c}"
+		"#format"	"{1:s},{2:.01f},{3:s}"
 		"en"		"Zone rotated by {1}{2}{3} degrees."
 	}
 	"ZoneSecond"
@@ -207,16 +207,20 @@
 	}
 	"ZoneSizeIncrease"
 	{
-		"#format"	"{1:c},{2:c},{3:c},{4:d},{5:c},{6:.01f},{7:c}"
+		"#format"	"{1:s},{2:s},{3:s},{4:d},{5:s},{6:.01f},{7:s}"
 		"en"		"{1}{2} axis{3} (point {4}) increased by {5}{6}{7}"
 	}
 	"ZoneSizeDecrease"
 	{
-		"#format"	"{1:c},{2:c},{3:c},{4:d},{5:c},{6:.01f},{7:c}"
+		"#format"	"{1:s},{2:s},{3:s},{4:d},{5:s},{6:.01f},{7:s}"
 		"en"		"{1}{2} axis{3} (point {4}) decreased by {5}{6}{7}"
 	}
 	"ZoneTeleportUpdated"
 	{
 		"en"		"Teleport zone destination updated."
+	}
+	"ZoneTeleportInsideZone"
+	{
+		"en"		"You may not place a destination inside the teleport zone."
 	}
 }

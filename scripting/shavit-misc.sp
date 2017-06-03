@@ -53,6 +53,7 @@ int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
 ConVar gCV_Hostname = null;
 ConVar gCV_Hostport = null;
+BhopStyle gBS_Style[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -200,7 +201,7 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
-	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeed in startzone?\n0 - Disabled\n1 - Limit 280 speed.\n2 - Block bhopping in startzone\n3 - Limit 280 speed and block bhopping in startzone.", 0, true, 0.0, true, 3.0);
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit to shavit_misc_prespeedlimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to shavit_misc_prespeedlimit and block bunnyhopping.", 0, true, 0.0, true, 3.0);
 	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if he uses the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -217,7 +218,7 @@ public void OnPluginStart()
 	gCV_WeaponCommands = CreateConVar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.", 0, true, 0.0, true, 2.0);
 	gCV_PlayerOpacity = CreateConVar("shavit_misc_playeropacity", "-1", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 	gCV_StaticPrestrafe = CreateConVar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 1.0);
+	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'admin_noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 2.0);
 	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
@@ -301,6 +302,8 @@ public void OnClientCookiesCached(int client)
 	{
 		gB_Hide[client] = view_as<bool>(StringToInt(sHideSetting));
 	}
+
+	gBS_Style[client] = Shavit_GetBhopStyle(client);
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -328,6 +331,11 @@ public void Shavit_OnChatConfigLoaded()
 	{
 		SetFailState("Cannot open \"configs/shavit-advertisements.cfg\". Make sure this file exists and that the server has read permissions to it.");
 	}
+}
+
+public void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle newstyle)
+{
+	gBS_Style[client] = newstyle;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -538,7 +546,7 @@ public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 		return MRES_Ignored;
 	}
 
-	DHookSetReturn(hReturn, view_as<float>(gA_StyleSettings[Shavit_GetBhopStyle(pThis)][fRunspeed]));
+	DHookSetReturn(hReturn, view_as<float>(gA_StyleSettings[gBS_Style[pThis]][fRunspeed]));
 
 	return MRES_Override;
 }
@@ -654,7 +662,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 	}
 
 	// prespeed
-	if(!gA_StyleSettings[Shavit_GetBhopStyle(client)][bPrespeed] && bInStart)
+	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && bInStart)
 	{
 		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gI_LastFlags[client] & FL_ONGROUND) == 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
 		{
@@ -669,9 +677,9 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		if(gI_PreSpeed == 1 || gI_PreSpeed == 3)
 		{
 			float fSpeed[3];
-			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
-			float fSpeed_New = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+			float fSpeed_New = GetVectorLength(fSpeed);
 			float fScale = (gF_PrespeedLimit / fSpeed_New);
 
 			if(bNoclipping)
@@ -695,6 +703,8 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 public void OnClientPutInServer(int client)
 {
+	gBS_Style[client] = Shavit_GetBhopStyle(client);
+
 	if(!AreClientCookiesCached(client))
 	{
 		gB_Hide[client] = false;

@@ -25,12 +25,12 @@
 	// ---------- Replay Deletion ---------- //
 	"ReplayDeleted"
 	{
-		"#format"	"{1:c},{2:s},{3:c}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"Deleted replay for {1}{2}{3}."
 	}
 	"ReplayDeleteFailure"
 	{
-		"#format"	"{1:c},{2:s},{3:c}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"Could not delete replay for {1}{2}{3}."
 	}
 }
