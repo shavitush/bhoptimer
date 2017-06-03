@@ -333,6 +333,11 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
+public void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle newstyle)
+{
+	gBS_Style[client] = newstyle;
+}
+
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	gI_GodMode = gCV_GodMode.IntValue;
