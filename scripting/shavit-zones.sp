@@ -91,7 +91,7 @@ bool gB_Button[MAXPLAYERS+1];
 
 float gV_MapZones[MAX_ZONES][2][3];
 float gV_FreestyleZones[MULTIPLEZONES_LIMIT][2][3];
-MapZones gMZ_FreestyleTypes[MAXPLAYERS+1];
+MapZones gMZ_FreestyleTypes[MULTIPLEZONES_LIMIT];
 float gV_TeleportZoneDestination[MULTIPLEZONES_LIMIT][3];
 
 // Sorry for adding too many variables: zone rotations
@@ -181,6 +181,7 @@ public void OnAllPluginsLoaded()
 public void OnPluginStart()
 {
 	LoadTranslations("shavit-zones.phrases");
+
 	// game specific
 	gEV_Type = GetEngineVersion();
 
@@ -391,6 +392,14 @@ bool LoadZonesConfig()
 		gA_ZoneSettings[i][iGreen] = dZoneSettings.GetInt("green", 255);
 		gA_ZoneSettings[i][iBlue] = dZoneSettings.GetInt("blue", 255);
 		gA_ZoneSettings[i][iAlpha] = dZoneSettings.GetInt("alpha", 255);
+
+		// debug
+		/*
+			char[] sName = new char[32];
+			dZoneSettings.GetName(sName, 32);
+
+			PrintToServer("-- [DEBUG] [%s] [visible %d] [r %d] [g %d] [b %d] [a %d]", sName, gA_ZoneSettings[i][bVisible], gA_ZoneSettings[i][iRed], gA_ZoneSettings[i][iGreen], gA_ZoneSettings[i][iBlue], gA_ZoneSettings[i][iAlpha]);
+		*/
 	}
 
 	dZones.Dispose(true);
@@ -1579,85 +1588,59 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 	Reset(client);
 }
 
-public Action Timer_DrawEverything(Handle Timer, any data)
+public Action Timer_DrawEverything(Handle Timer)
 {
-	for(int i = 0; i < MAX_ZONES; i++)
+	for(int i = 0; i < view_as<int>(Zone_Freestyle); i++)
 	{
-		float vPoints[8][3];
-
-		if(i >= view_as<int>(Zone_Freestyle))
+		if(gA_ZoneSettings[i][bVisible] && !EmptyZone(gV_MapZones[i][0]) || !EmptyZone(gV_MapZones[i][1]))
 		{
-			for(int j = 0; j < MULTIPLEZONES_LIMIT; j++)
-			{
-				if(gMZ_FreestyleTypes[j] >= Zone_Freestyle && gA_ZoneSettings[gMZ_FreestyleTypes[j]][bVisible] && !EmptyZone(gV_FreestyleZones[j][0]) && !EmptyZone(gV_FreestyleZones[j][1]))
-				{
-					vPoints[0] = gV_FreestyleZones[j][0];
-					vPoints[7] = gV_FreestyleZones[j][1];
-
-					if(gEV_Type == Engine_CSS)
-					{
-						vPoints[0][2] += 2.0;
-						vPoints[7][2] += 2.0;
-					}
-
-					if(gI_ZoneStyle == 1)
-					{
-						vPoints[7][2] = vPoints[0][2];
-					}
-
-					if(j == 0)
-					{
-						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -PLACEHOLDER, false, true);
-					}
-
-					else
-					{
-						CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[j][0], gV_FreeStyleZonesFixes[j][1], -j, false, true);
-					}
-
-					int iColors[4];
-					iColors[0] = gA_ZoneSettings[gMZ_FreestyleTypes[j]][iRed];
-					iColors[1] = gA_ZoneSettings[gMZ_FreestyleTypes[j]][iGreen];
-					iColors[2] = gA_ZoneSettings[gMZ_FreestyleTypes[j]][iBlue];
-					iColors[3] = gA_ZoneSettings[gMZ_FreestyleTypes[j]][iAlpha];
-
-					DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, iColors, gF_Interval + 0.2);
-				}
-			}
-		}
-
-		else
-		{
-			if(!gA_ZoneSettings[i][bVisible] || (EmptyZone(gV_MapZones[i][0]) && EmptyZone(gV_MapZones[i][1])))
-			{
-				continue;
-			}
-
-			vPoints[0] = gV_MapZones[i][0];
-			vPoints[7] = gV_MapZones[i][1];
-
-			if(gEV_Type == Engine_CSS)
-			{
-				vPoints[0][2] += 2.0;
-				vPoints[7][2] += 2.0;
-			}
-
-			if(gI_ZoneStyle == 1)
-			{
-				vPoints[7][2] = vPoints[0][2];
-			}
-
-			CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], i, false, true);
-
-			int iColors[4];
-			iColors[0] = gA_ZoneSettings[i][iRed];
-			iColors[1] = gA_ZoneSettings[i][iGreen];
-			iColors[2] = gA_ZoneSettings[i][iBlue];
-			iColors[3] = gA_ZoneSettings[i][iAlpha];
-
-			DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, iColors, gF_Interval + 0.2);
+			DrawToAll(gV_MapZones[i][0], gV_MapZones[i][1], gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], view_as<MapZones>(i));
 		}
 	}
+
+	for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+	{
+		MapZones type = gMZ_FreestyleTypes[i] + view_as<MapZones>(1);
+
+		if(0 <= view_as<int>(type) <= MAX_ZONES && gA_ZoneSettings[type][bVisible] && (!EmptyZone(gV_FreestyleZones[i][0]) || !EmptyZone(gV_FreestyleZones[i][1])))
+		{
+			DrawToAll(gV_FreestyleZones[i][0], gV_FreestyleZones[i][1], gV_FreeStyleZonesFixes[i][0], gV_FreeStyleZonesFixes[i][1], type);
+		}
+	}
+
+	return Plugin_Continue;
+}
+
+int[] GetZoneColors(MapZones type)
+{
+	int colors[4];
+	colors[0] = gA_ZoneSettings[type][iRed];
+	colors[1] = gA_ZoneSettings[type][iGreen];
+	colors[2] = gA_ZoneSettings[type][iBlue];
+	colors[3] = gA_ZoneSettings[type][iAlpha];
+
+	return colors;
+}
+
+void DrawToAll(float point1[3], float point2[3], float fix1[2], float fix2[2], MapZones type)
+{
+	float vPoints[8][3];
+	vPoints[0] = point1;
+	vPoints[7] = point2;
+
+	if(gEV_Type == Engine_CSS)
+	{
+		vPoints[0][2] += 2.0;
+		vPoints[7][2] += 2.0;
+	}
+
+	if(gI_ZoneStyle == 1)
+	{
+		vPoints[7][2] = vPoints[0][2];
+	}
+
+	CreateZonePoints(vPoints, 0.0, fix1, fix2, (type >= Zone_Freestyle)? -PLACEHOLDER:view_as<int>(type), false, true);
+	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, GetZoneColors(type), gF_Interval + 0.2);
 }
 
 public Action Timer_Draw(Handle Timer, any data)
@@ -2029,6 +2012,7 @@ void CreateZonePoints(float point[8][3], float angle, float fix1[2], float fix2[
 void TranslateZone(float point[8][3], float fix1[2], float fix2[2])
 {
 	float fix[2];
+
 	// X Translate
 	fix[1] = 0.0;
 	fix[0] = fix1[0];
