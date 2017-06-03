@@ -963,11 +963,23 @@ public void OnClientCookiesCached(int client)
 	}
 
 	char[] sCookie = new char[4];
-	GetClientCookie(client, gH_AutoBhopCookie, sCookie, 4);
-	gB_Auto[client] = (strlen(sCookie) > 0)? view_as<bool>(StringToInt(sCookie)):true;
 
-	GetClientCookie(client, gH_StyleCookie, sCookie, 4);
-	gBS_Style[client] = view_as<BhopStyle>(StringToInt(sCookie));
+	if(gH_AutoBhopCookie != null)
+	{
+		GetClientCookie(client, gH_AutoBhopCookie, sCookie, 4);
+	}
+
+	gB_Auto[client] = (strlen(sCookie) > 0)? view_as<bool>(StringToInt(sCookie)):true;
+	int style = 0;
+
+	if(gH_StyleCookie != null)
+	{
+		GetClientCookie(client, gH_StyleCookie, sCookie, 4);
+		style = StringToInt(sCookie);
+	}
+
+	gBS_Style[client] = view_as<BhopStyle>((style >= 0 && style < gI_Styles)? style:0);
+
 	UpdateAutoBhop(client);
 }
 
@@ -1470,7 +1482,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	// velocity limit
 	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) &&
-	(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
+		(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);

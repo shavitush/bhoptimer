@@ -3,7 +3,7 @@
 	// ---------- Errors ---------- //
 	"StatsMenuFailure"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"{1}ERROR: {2}Could not open the stats menu."
 	}
 	// ---------- Map Completions ---------- //
