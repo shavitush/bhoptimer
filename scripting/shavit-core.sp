@@ -970,13 +970,15 @@ public void OnClientCookiesCached(int client)
 	}
 
 	gB_Auto[client] = (strlen(sCookie) > 0)? view_as<bool>(StringToInt(sCookie)):true;
+	int style = 0;
 
 	if(gH_StyleCookie != null)
 	{
 		GetClientCookie(client, gH_StyleCookie, sCookie, 4);
+		style = StringToInt(sCookie);
 	}
 
-	gBS_Style[client] = view_as<BhopStyle>((strlen(sCookie) > 0)? StringToInt(sCookie):0);
+	gBS_Style[client] = view_as<BhopStyle>((style >= 0 && style < gI_Styles)? style:0);
 
 	UpdateAutoBhop(client);
 }
