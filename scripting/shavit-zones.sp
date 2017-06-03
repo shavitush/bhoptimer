@@ -1192,7 +1192,12 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 		else if(StrEqual(info, "tpzone"))
 		{
-			GetClientAbsOrigin(param1, gV_Teleport[param1]);
+			float vTeleport[3];
+			GetClientAbsOrigin(param1, vTeleport);
+
+			// if()
+			gV_Teleport[param1] = vTeleport;
+			//GetClientAbsOrigin(param1, gV_Teleport[param1]);
 			Shavit_PrintToChat(param1, "%T", "ZoneTeleportUpdated", param1);
 
 			CreateEditMenu(param1);
