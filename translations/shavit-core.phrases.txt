@@ -3,22 +3,22 @@
 	// ---------- Commands ---------- //
 	"AutobhopEnabled"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"Autobhop {1}enabled{2}."
 	}
 	"AutobhopDisabled"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"Autobhop {1}disabled{2}."
 	}
 	"CheatTimerStop"
 	{
-		"#format"	"{1:c},{2:c},{3:s}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}Timer stopped! {2}{3}"
 	}
     "CommandDisabled"
     {
-        "#format" 	"{1:c},{2:s},{3:c}"
+        "#format" 	"{1:s},{2:s},{3:s}"
 		"en"		"The command ({1}{2}{3}) is disabled."
     }
 	// ---------- Errors ---------- //
@@ -33,7 +33,7 @@
 	}
 	"StyleSelection"
 	{
-		"#format"	"{1:c},{2:s},{3:c}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"You have selected to play {1}{2}{3}."
 	}
 	"StyleUnranked"
@@ -51,49 +51,49 @@
 	}
 	"UnrankedWarning"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"{1}WARNING: {2}This style is unranked. Your times WILL NOT be saved and will be only displayed to you!"
 	}
 	// ---------- Pauses ---------- //
 	"MessagePause"
 	{
-		"#format"	"{1:c},{2:c},{3:c}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}Timer has been {2}paused{3}."
 	}
 	"MessageUnpause"
 	{
-		"#format"	"{1:c},{2:c},{3:c}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}Timer has been {2}resumed{3}."
 	}
 	"PauseNotOnGround"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}are not{2} allowed to pause when not on ground."
 	}
 	"PauseStartZone"
 	{
-		"#format"	"{1:c},{2:c},{3:c},{4:c},{5:c}"
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s}"
 		"en"		"{1}You {2}cannot{3} pause in the {4}start zone{5}."
 	}
 	"TimerUnpaused"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"Timer has been {1}unpaused{2}."
 	}
 	"TimerPaused"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"Timer has been {1}paused{2}."
 	}
 	// ---------- Zones ---------- //
 	"StartZoneUndefined"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"Your timer {1}will not{2} start as a start zone for the map is not defined."
 	}
 	"EndZoneUndefined"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}can't{2} teleport as an end zone for the map is not defined."
 	}
 }

@@ -1482,7 +1482,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	// velocity limit
 	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) &&
-	(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
+		(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
 	{
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
