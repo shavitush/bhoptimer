@@ -11,7 +11,7 @@
 	}
 	"DeletedRecordsMap"
 	{
-		"#format"	"{1:c},{2:s},{3:c}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"Deleted ALL records for {1}{2}{3}."
 	}
 	// ---------- Client Menus ---------- //
@@ -27,22 +27,22 @@
 	// ---------- Completion Messages ---------- //
 	"FirstCompletion"
 	{
-		"#format"	"{1:c},{2:N},{3:c},{4:c},{5:s},{6:c},{7:c},{8:s},{9:c},{10:c},{11:d},{12:c},{13:d},{14:d},{15:s},{16:c}"
+		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s},{11:d},{12:s},{13:d},{14:d},{15:s},{16:s}"
 		"en"		"{1}{2}{3} finished ({4}{5}{6}) in {7}{8}{9} ({10}#{11}{12}) with {13} jumps, {14} strafes{15}{16}."
 	}
 	"NotFirstCompletion"
 	{
-		"#format"	"{1:c},{2:N},{3:c},{4:c},{5:s},{6:c},{7:c},{8:s},{9:c},{10:c},{11:d},{12:c},{13:d},{14:d},{15:s},{16:c},{17:c},{18:s}"
+		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s},{11:d},{12:s},{13:d},{14:d},{15:s},{16:s},{17:s},{18:s}"
 		"en"		"{1}{2}{3} finished ({4}{5}{6}) in {7}{8}{9} ({10}#{11}{12}) with {13} jumps, {14} strafes{15}{16}. {17}(-{18})"
 	}
 	"WorseTime"
 	{
-		"#format"	"{1:c},{2:s},{3:c},{4:c},{5:s},{6:c},{7:d},{8:d},{9:s},{10:c},{11:s}"
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:d},{8:d},{9:s},{10:s},{11:s}"
 		"en"		"You have finished ({1}{2}{3}) in {4}{5}{6} with {7} jumps, {8} strafes{9}{10}. (+{11})"
 	}
 	"UnrankedTime"
 	{
-		"#format"	"{1:c},{2:s},{3:c},{4:c},{5:s},{6:c},{7:d},{8:d},{9:s},{10:c}"
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:d},{8:d},{9:s},{10:s}"
 		"en"		"You have finished ({1}{2}{3}) in {4}{5}{6} with {7} jumps, {8} strafes{9}{10}."
 	}
 	// ---------- Deletion Menus ---------- //
@@ -90,7 +90,7 @@
 	}
 	"NoStyles"
 	{
-		"#format"	"{1:c},{2:c}"
+		"#format"	"{1:s},{2:s}"
 		"en"		"{1}FATAL ERROR: {2}No styles are available. Contact the server owner immediately!"
 	}
 	// ---------- WR Menu ---------- //
