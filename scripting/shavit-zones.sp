@@ -1016,8 +1016,8 @@ void ShowPanel(int client, int step)
 	FormatEx(sPanelItem, 64, "%T", "AbortZoneCreation", client);
 	pPanel.DrawItem(sPanelItem);
 
-	char[] sDisplay = new char[16];
-	FormatEx(sDisplay, 16, "%T", "GridSnap", client, gI_GridSnap[client]);
+	char[] sDisplay = new char[64];
+	FormatEx(sDisplay, 64, "%T", "GridSnap", client, gI_GridSnap[client]);
 	pPanel.DrawItem(sDisplay);
 
 	pPanel.Send(client, ZoneCreation_Handler, 600);
@@ -1469,7 +1469,10 @@ public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2
 				gV_Fix2[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
 			}
 
-			Shavit_PrintToChat(param1, "%T", "ZoneEdgeChange", param1, sEdges[iEdge], gS_ChatStrings[sMessageVariable2], (bIncrease)? "increased":"decreased", gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
+			char changeText[64];
+			Format(changeText, sizeof(changeText), "%T", (bIncrease)? "ZoneIncreased":"ZoneDecreased", param1);
+
+			Shavit_PrintToChat(param1, "%T", "ZoneEdgeChange", param1, sEdges[iEdge], gS_ChatStrings[sMessageVariable2], changeText, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
 
 			CreateWidthLengthMenu(param1, GetMenuSelectionPosition());
 		}
