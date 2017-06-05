@@ -101,6 +101,10 @@
 	{
 		"en"		"Use 2D Velocity"
 	}
+	"HudNoRecordSounds"
+	{
+		"en"		"Disable record sounds"
+	}
 	// ---------- Record Bots ---------- //
 	"ReplayText"
 	{
