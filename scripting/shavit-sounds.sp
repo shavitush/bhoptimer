@@ -224,7 +224,7 @@ void PlayEventSound(int client, bool everyone, const char[] sound)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || (Shavit_GetHUDSettings(i) & HUD_NOSOUNDS) > 0)
+		if(!IsValidClient(i) || (gB_HUD && (Shavit_GetHUDSettings(i) & HUD_NOSOUNDS) > 0))
 		{
 			continue;
 		}
