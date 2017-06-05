@@ -419,7 +419,7 @@ void UpdateHUD(int client)
 	float fSpeed[3];
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
-	int iSpeed = RoundToFloor(((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
+	int iSpeed = RoundToNearest(((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
 
 	char[] sHintText = new char[512];
 	strcopy(sHintText, 512, "");
