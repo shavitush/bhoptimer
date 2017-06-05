@@ -33,6 +33,21 @@
 #define STYLE_LIMIT 256
 #define MAX_ZONES 8
 
+// HUD
+#define HUD_NONE				(0)
+#define HUD_MASTER				(1 << 0) // master setting
+#define HUD_CENTER				(1 << 1) // show hud as hint text
+#define HUD_ZONEHUD				(1 << 2) // show start/end zone hud
+#define HUD_OBSERVE				(1 << 3) // show the HUD of the player you spectate
+#define HUD_SPECTATORS			(1 << 4) // show list of spectators
+#define HUD_KEYOVERLAY			(1 << 5) // show a key overlay
+#define HUD_HIDEWEAPON			(1 << 6) // hide the player's weapon
+#define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times
+#define HUD_SYNC				(1 << 8) // shows sync at right side of the screen (css only)
+#define HUD_TIMELEFT			(1 << 9) // shows time left at right tside of the screen (css only)
+#define HUD_2DVEL				(1 << 10) // shows 2d velocity
+#define HUD_NOSOUNDS			(1 << 11) // disables sounds on personal best, world record etc
+
 // for reference, not used anymore
 // game types
 enum ServerGame(+=1)
@@ -719,6 +734,15 @@ native int Shavit_GetStyleCount();
 native int Shavit_GetChatStrings(int stringtype, char[] ChatStrings, int size);
 
 /**
+ * Gets the HUD settings of a player.
+ * See the HUD_* defines for information.
+ *
+ * @param client					Client index.
+ * @return                          HUD settings.
+ */
+native int Shavit_GetHUDSettings(int client);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -765,13 +789,14 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_FormatChat");
 	MarkNativeAsOptional("Shavit_GetBhopStyle");
 	MarkNativeAsOptional("Shavit_GetChatStrings");
-	MarkNativeAsOptional("Shavit_GetClientTime");
 	MarkNativeAsOptional("Shavit_GetClientJumps");
+	MarkNativeAsOptional("Shavit_GetClientTime");
+	MarkNativeAsOptional("Shavit_GetHUDSettings");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");
 	MarkNativeAsOptional("Shavit_GetRank");
-	MarkNativeAsOptional("Shavit_GetRankForTime");
 	MarkNativeAsOptional("Shavit_GetRankedPlayers");
+	MarkNativeAsOptional("Shavit_GetRankForTime");
 	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");

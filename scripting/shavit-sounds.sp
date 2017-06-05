@@ -28,6 +28,8 @@
 #pragma dynamic 131072
 #pragma newdecls required
 
+bool gB_HUD;
+
 EngineVersion gEV_Type = Engine_Unknown;
 
 ArrayList gA_FirstSounds = null;
@@ -42,6 +44,14 @@ public Plugin myinfo =
 	description = "Play custom sounds when timer-related events happen.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
+}
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
+	RegPluginLibrary("shavit-sounds");
+
+	return APLRes_Success;
 }
 
 public void OnAllPluginsLoaded()
@@ -62,6 +72,25 @@ public void OnPluginStart()
 	gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gSM_RankSounds = new StringMap();
+
+	// modules
+	gB_HUD = LibraryExists("shavit-hud");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit-hud"))
+	{
+		gB_HUD = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit-hud"))
+	{
+		gB_HUD = false;
+	}
 }
 
 public void OnMapStart()
@@ -195,7 +224,7 @@ void PlayEventSound(int client, bool everyone, const char[] sound)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i))
+		if(!IsValidClient(i) || (gB_HUD && (Shavit_GetHUDSettings(i) & HUD_NOSOUNDS) > 0))
 		{
 			continue;
 		}

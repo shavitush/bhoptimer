@@ -29,19 +29,6 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
-#define HUD_NONE				(0)
-#define HUD_MASTER				(1 << 0) // master setting
-#define HUD_CENTER				(1 << 1) // show hud as hint text
-#define HUD_ZONEHUD				(1 << 2) // show start/end zone hud
-#define HUD_OBSERVE				(1 << 3) // show the HUD of the player you spectate
-#define HUD_SPECTATORS			(1 << 4) // show list of spectators
-#define HUD_KEYOVERLAY			(1 << 5) // show a key overlay
-#define HUD_HIDEWEAPON			(1 << 6) // hide the player's weapon
-#define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times
-#define HUD_SYNC				(1 << 8) // shows sync at right side of the screen (css only)
-#define HUD_TIMELEFT			(1 << 9) // shows time left at right tside of the screen (css only)
-#define HUD_2DVEL				(1 << 10) // shows 2d velocity
-
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT)
 
 // game type (CS:S/CS:GO)
@@ -51,6 +38,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Replay = false;
 bool gB_Zones = false;
 bool gB_BhopStats = false;
+bool gB_Sounds = false;
 
 // zone colors
 char gS_StartColors[][] =
@@ -96,7 +84,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// natives
 	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
+	CreateNative("Shavit_GetHUDSettings", Native_GetHUDSettings);
 
+	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-hud");
 
 	gB_Late = late;
@@ -156,6 +146,62 @@ public void OnMapStart()
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
+	}
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit-replay"))
+	{
+		gB_Replay = true;
+	}
+
+	else if(StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = true;
+	}
+
+	else if(StrEqual(name, "shavit-sounds"))
+	{
+		gB_Sounds = true;
+	}
+
+	else if(StrEqual(name, "bhopstats"))
+	{
+		gB_BhopStats = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit-replay"))
+	{
+		gB_Replay = false;
+	}
+
+	else if(StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = false;
+	}
+
+	else if(StrEqual(name, "shavit-sounds"))
+	{
+		gB_Sounds = false;
+	}
+
+	else if(StrEqual(name, "bhopstats"))
+	{
+		gB_BhopStats = false;
+	}
+}
+
+public void OnConfigsExecuted()
+{
+	ConVar sv_hudhint_sound = FindConVar("sv_hudhint_sound");
+
+	if(sv_hudhint_sound != null)
+	{
+		sv_hudhint_sound.SetBool(false);
 	}
 }
 
@@ -268,6 +314,13 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "Hud2dVel", client);
 	m.AddItem(sInfo, sHudItem);
 
+	if(gB_Sounds)
+	{
+		IntToString(HUD_NOSOUNDS, sInfo, 16);
+		FormatEx(sHudItem, 64, "%T", "HudNoRecordSounds", client);
+		m.AddItem(sInfo, sHudItem);
+	}
+
 	m.ExitButton = true;
 	m.DisplayAt(client, item, 60);
 
@@ -308,52 +361,6 @@ public int MenuHandler_HUD(Menu m, MenuAction action, int param1, int param2)
 	}
 
 	return 0;
-}
-
-public void OnLibraryAdded(const char[] name)
-{
-	if(StrEqual(name, "shavit-replay"))
-	{
-		gB_Replay = true;
-	}
-
-	else if(StrEqual(name, "shavit-zones"))
-	{
-		gB_Zones = true;
-	}
-
-	else if(StrEqual(name, "bhopstats"))
-	{
-		gB_BhopStats = true;
-	}
-}
-
-public void OnLibraryRemoved(const char[] name)
-{
-	if(StrEqual(name, "shavit-replay"))
-	{
-		gB_Replay = false;
-	}
-
-	else if(StrEqual(name, "shavit-zones"))
-	{
-		gB_Zones = false;
-	}
-
-	else if(StrEqual(name, "bhopstats"))
-	{
-		gB_BhopStats = false;
-	}
-}
-
-public void OnConfigsExecuted()
-{
-	ConVar sv_hudhint_sound = FindConVar("sv_hudhint_sound");
-
-	if(sv_hudhint_sound != null)
-	{
-		sv_hudhint_sound.SetBool(false);
-	}
 }
 
 public Action UpdateHUD_Timer(Handle Timer)
@@ -419,7 +426,7 @@ void UpdateHUD(int client)
 	float fSpeed[3];
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
-	int iSpeed = RoundToFloor(((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
+	int iSpeed = RoundToNearest(((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
 
 	char[] sHintText = new char[512];
 	strcopy(sHintText, 512, "");
@@ -938,7 +945,7 @@ public int Native_ForceHUDUpdate(Handle handler, int numParams)
 
 	int client = GetNativeCell(1);
 
-	if(!IsValidClient(client))
+	if(client < 0 || client > MaxClients || !IsClientInGame(client))
 	{
 		ThrowNativeError(200, "Invalid client index %d", client);
 
@@ -966,4 +973,18 @@ public int Native_ForceHUDUpdate(Handle handler, int numParams)
 	}
 
 	return count;
+}
+
+public int Native_GetHUDSettings(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	if(client < 0 || client > MaxClients)
+	{
+		ThrowNativeError(200, "Invalid client index %d", client);
+
+		return -1;
+	}
+
+	return gI_HUDSettings[client];
 }

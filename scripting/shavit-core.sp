@@ -1419,12 +1419,31 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 
 			// HSW
-			if(gA_StyleSettings[gBS_Style[client]][bForceHSW] && ((vel[0] < gF_HSW_Requirement && vel[0] > -gF_HSW_Requirement) ||
-				!((vel[0] > 0 || (buttons & IN_FORWARD) > 0) && ((vel[1] < 0 || (buttons & IN_MOVELEFT) > 0) || (vel[1] > 0 || (buttons & IN_MOVERIGHT) > 0)))))
+			// Theory about blocking non-HSW strafes while playing HSW:
+			// Block S and W without A or D.
+			// Block A and D without S or W.
+			if(gA_StyleSettings[gBS_Style[client]][bForceHSW])
 			{
-				vel[1] = 0.0;
-				buttons &= ~IN_MOVELEFT;
-				buttons &= ~IN_MOVERIGHT;
+				bool bForward = ((buttons & IN_FORWARD) > 0 || vel[0] > gF_HSW_Requirement);
+				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 || vel[1] < -gF_HSW_Requirement);
+				bool bBack = ((buttons & IN_BACK) > 0 || vel[0] < -gF_HSW_Requirement);
+				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 || vel[1] > gF_HSW_Requirement);
+
+				if((bForward || bBack) && !(bMoveLeft || bMoveRight))
+				{
+					vel[0] = 0.0;
+
+					buttons &= ~IN_FORWARD;
+					buttons &= ~IN_BACK;
+				}
+
+				if((bMoveLeft || bMoveRight) && !(bForward || bBack))
+				{
+					vel[1] = 0.0;
+
+					buttons &= ~IN_MOVELEFT;
+					buttons &= ~IN_MOVERIGHT;
+				}
 			}
 		}
 	}
