@@ -68,6 +68,16 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"Your timer has been {1}stopped{2} due to teleporting."
 	}
+	"MiscCheckpointsSaved"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Checkpoint {1}saved{2}."
+	}
+	"MiscCheckpointsTeleported"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1}Teleported{2} to checkpoint."
+	}
 	// ---------- Menus ---------- //
 	"TeleportMenuTitle"
 	{
