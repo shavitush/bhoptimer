@@ -179,8 +179,8 @@ public void OnPluginStart()
 	// checkpoints
 	RegConsoleCmd("sm_cpmenu", Command_Checkpoints, "Opens the checkpoints menu.");
 	RegConsoleCmd("sm_cp", Command_Checkpoints, "Opens the checkpoints menu. Alias for sm_cpmenu.");
-	// RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint 1.");
-	// RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint 1.");
+	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint 1.");
+	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint 1.");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
@@ -1105,6 +1105,52 @@ public Action Command_Checkpoints(int client, int args)
 	}
 
 	return OpenCheckpointsMenu(client, 0);
+}
+
+public Action Command_Save(int client, int args)
+{
+	if(client == 0)
+	{
+		ReplyToCommand(client, "This command may be only performed in-game.");
+
+		return Plugin_Handled;
+	}
+
+	if(!gB_Checkpoints)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+
+		return Plugin_Handled;
+	}
+
+	SaveCheckpoint(client, 0);
+
+	Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+
+	return Plugin_Handled;
+}
+
+public Action Command_Tele(int client, int args)
+{
+	if(client == 0)
+	{
+		ReplyToCommand(client, "This command may be only performed in-game.");
+
+		return Plugin_Handled;
+	}
+
+	if(!gB_Checkpoints)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+
+		return Plugin_Handled;
+	}
+
+	TeleportToCheckpoint(client, 0);
+
+	Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+
+	return Plugin_Handled;
 }
 
 public Action OpenCheckpointsMenu(int client, int item)
