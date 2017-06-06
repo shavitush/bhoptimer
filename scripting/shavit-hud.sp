@@ -262,77 +262,77 @@ Action ShowHUDMenu(int client, int item)
 		return Plugin_Handled;
 	}
 
-	Menu m = new Menu(MenuHandler_HUD, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	m.SetTitle("%T", "HUDMenuTitle", client);
+	Menu menu = new Menu(MenuHandler_HUD, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
+	menu.SetTitle("%T", "HUDMenuTitle", client);
 
 	char[] sInfo = new char[16];
 	char[] sHudItem = new char[64];
 	IntToString(HUD_MASTER, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudMaster", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_CENTER, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudCenter", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_ZONEHUD, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudZoneHud", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_OBSERVE, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudObserve", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_SPECTATORS, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudSpectators", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_KEYOVERLAY, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudKeyOverlay", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_HIDEWEAPON, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudHideWeapon", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	IntToString(HUD_TOPLEFT, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudTopLeft", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	if(gEV_Type == Engine_CSS)
 	{
 		IntToString(HUD_SYNC, sInfo, 16);
 		FormatEx(sHudItem, 64, "%T", "HudSync", client);
-		m.AddItem(sInfo, sHudItem);
+		menu.AddItem(sInfo, sHudItem);
 
 		IntToString(HUD_TIMELEFT, sInfo, 16);
 		FormatEx(sHudItem, 64, "%T", "HudTimeLeft", client);
-		m.AddItem(sInfo, sHudItem);
+		menu.AddItem(sInfo, sHudItem);
 	}
 
 	IntToString(HUD_2DVEL, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "Hud2dVel", client);
-	m.AddItem(sInfo, sHudItem);
+	menu.AddItem(sInfo, sHudItem);
 
 	if(gB_Sounds)
 	{
 		IntToString(HUD_NOSOUNDS, sInfo, 16);
 		FormatEx(sHudItem, 64, "%T", "HudNoRecordSounds", client);
-		m.AddItem(sInfo, sHudItem);
+		menu.AddItem(sInfo, sHudItem);
 	}
 
-	m.ExitButton = true;
-	m.DisplayAt(client, item, 60);
+	menu.ExitButton = true;
+	menu.DisplayAt(client, item, 60);
 
 	return Plugin_Handled;
 }
 
-public int MenuHandler_HUD(Menu m, MenuAction action, int param1, int param2)
+public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] sCookie = new char[16];
-		m.GetItem(param2, sCookie, 16);
+		menu.GetItem(param2, sCookie, 16);
 		int iSelection = StringToInt(sCookie);
 
 		gI_HUDSettings[param1] ^= iSelection;
@@ -348,7 +348,7 @@ public int MenuHandler_HUD(Menu m, MenuAction action, int param1, int param2)
 		char[] sInfo = new char[16];
 		char[] sDisplay = new char[64];
 		int style = 0;
-		m.GetItem(param2, sInfo, 16, style, sDisplay, 64);
+		menu.GetItem(param2, sInfo, 16, style, sDisplay, 64);
 
 		Format(sDisplay, 64, "[%s] %s", ((gI_HUDSettings[param1] & StringToInt(sInfo)) > 0)? "x":" ", sDisplay);
 
@@ -357,7 +357,7 @@ public int MenuHandler_HUD(Menu m, MenuAction action, int param1, int param2)
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;

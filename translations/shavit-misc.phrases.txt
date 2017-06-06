@@ -63,6 +63,11 @@
 	{
 		"en"		"Invalid target."
 	}
+	"MiscCheckpointsStopped"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Your timer has been {1}stopped{2} due to teleporting."
+	}
 	// ---------- Menus ---------- //
 	"TeleportMenuTitle"
 	{
@@ -72,6 +77,38 @@
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"You need to be {1}alive{2} to spawn weapons."
+	}
+	"MiscCheckpointMenu"
+	{
+		"en"		"Checkpoints"
+	}
+	"MiscCheckpointWarning"
+	{
+		"en"		"WARNING: Teleporting will stop your timer!"
+	}
+	"MiscCheckpointSave1"
+	{
+		"en"		"Save 1st checkpoint"
+	}
+	"MiscCheckpointTele1"
+	{
+		"en"		"Teleport to 1st checkpoint"
+	}
+	"MiscCheckpointSave2"
+	{
+		"en"		"Save 2nd checkpoint"
+	}
+	"MiscCheckpointTele2"
+	{
+		"en"		"Teleport to 2nd checkpoint"
+	}
+	"MiscCheckpointUseAngles"
+	{
+		"en"		"Use angles"
+	}
+	"MiscCheckpointUseVelocity"
+	{
+		"en"		"Use velocity"
 	}
 	// ---------- Misc ---------- //
 	"BHStartZoneDisallowed"

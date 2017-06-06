@@ -36,6 +36,12 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
+#define CP_NONE					(0)
+#define CP_ANGLES				(1 << 0)
+#define CP_VELOCITY				(1 << 1)
+
+#define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
+
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
 int gI_Ammo = -1;
@@ -54,9 +60,12 @@ char gS_CurrentMap[192];
 ConVar gCV_Hostname = null;
 ConVar gCV_Hostport = null;
 BhopStyle gBS_Style[MAXPLAYERS+1];
+float gF_Checkpoints[MAXPLAYERS+1][2][3][3]; // 3 - position, angles, velocity
+int gI_CheckpointsSettings[MAXPLAYERS+1]; // 3 - position, angles, velocity
 
 // cookies
 Handle gH_HideCookie = null;
+Handle gH_CheckpointsCookie = null;
 
 // cvars
 ConVar gCV_GodMode = null;
@@ -79,6 +88,7 @@ ConVar gCV_PlayerOpacity = null;
 ConVar gCV_StaticPrestrafe = null;
 ConVar gCV_NoclipMe = null;
 ConVar gCV_AdvertisementInterval = null;
+ConVar gCV_Checkpoints = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -101,6 +111,7 @@ int gI_PlayerOpacity = -1;
 bool gB_StaticPrestrafe = true;
 int gI_NoclipMe = true;
 float gF_AdvertisementInterval = 600.0;
+bool gB_Checkpoints = true;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -165,6 +176,13 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_glock", Command_Weapon, "Spawn a Glock.");
 	RegConsoleCmd("sm_knife", Command_Weapon, "Spawn a knife.");
 
+	// checkpoints
+	RegConsoleCmd("sm_cpmenu", Command_Checkpoints, "Opens the checkpoints menu.");
+	RegConsoleCmd("sm_cp", Command_Checkpoints, "Opens the checkpoints menu. Alias for sm_cpmenu.");
+	// RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint 1.");
+	// RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint 1.");
+	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
+
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
 	// noclip
@@ -220,6 +238,7 @@ public void OnPluginStart()
 	gCV_StaticPrestrafe = CreateConVar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'admin_noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 2.0);
 	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
+	gCV_Checkpoints = CreateConVar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -241,6 +260,7 @@ public void OnPluginStart()
 	gCV_StaticPrestrafe.AddChangeHook(OnConVarChanged);
 	gCV_NoclipMe.AddChangeHook(OnConVarChanged);
 	gCV_AdvertisementInterval.AddChangeHook(OnConVarChanged);
+	gCV_Checkpoints.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -289,10 +309,10 @@ public void OnPluginStart()
 
 public void OnClientCookiesCached(int client)
 {
-	char[] sHideSetting = new char[8];
-	GetClientCookie(client, gH_HideCookie, sHideSetting, 8);
+	char[] sSetting = new char[8];
+	GetClientCookie(client, gH_HideCookie, sSetting, 8);
 
-	if(strlen(sHideSetting) == 0)
+	if(strlen(sSetting) == 0)
 	{
 		SetClientCookie(client, gH_HideCookie, "0");
 		gB_Hide[client] = false;
@@ -300,7 +320,21 @@ public void OnClientCookiesCached(int client)
 
 	else
 	{
-		gB_Hide[client] = view_as<bool>(StringToInt(sHideSetting));
+		gB_Hide[client] = view_as<bool>(StringToInt(sSetting));
+	}
+
+	GetClientCookie(client, gH_CheckpointsCookie, sSetting, 8);
+
+	if(strlen(sSetting) == 0)
+	{
+		IntToString(CP_DEFAULT, sSetting, 8);
+		SetClientCookie(client, gH_CheckpointsCookie, sSetting);
+		gI_CheckpointsSettings[client] = CP_DEFAULT;
+	}
+
+	else
+	{
+		gI_CheckpointsSettings[client] = StringToInt(sSetting);
 	}
 
 	gBS_Style[client] = Shavit_GetBhopStyle(client);
@@ -360,6 +394,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_StaticPrestrafe = gCV_StaticPrestrafe.BoolValue;
 	gI_NoclipMe = gCV_NoclipMe.IntValue;
 	gF_AdvertisementInterval = gCV_AdvertisementInterval.FloatValue;
+	gB_Checkpoints = gCV_Checkpoints.BoolValue;
 }
 
 public void OnMapStart()
@@ -708,6 +743,7 @@ public void OnClientPutInServer(int client)
 	if(!AreClientCookiesCached(client))
 	{
 		gB_Hide[client] = false;
+		gI_CheckpointsSettings[client] = CP_DEFAULT;
 	}
 
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
@@ -717,6 +753,17 @@ public void OnClientPutInServer(int client)
 	if(gH_GetPlayerMaxSpeed != null)
 	{
 		DHookEntity(gH_GetPlayerMaxSpeed, true, client);
+	}
+
+	for(int i = 0; i < sizeof(gF_Checkpoints[]); i++)
+	{
+		for(int j = 0; j < sizeof(gF_Checkpoints[][]); j++)
+		{
+			for(int k = 0; k < sizeof(gF_Checkpoints[][][]); k++)
+			{
+				gF_Checkpoints[client][i][j][k] = 0.0;
+			}
+		}
 	}
 }
 
@@ -892,8 +939,8 @@ public Action Command_Teleport(int client, int args)
 
 	else
 	{
-		Menu m = new Menu(MenuHandler_Teleport);
-		m.SetTitle("%T", "TeleportMenuTitle", client);
+		Menu menu = new Menu(MenuHandler_Teleport);
+		menu.SetTitle("%T", "TeleportMenuTitle", client);
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -908,12 +955,12 @@ public Action Command_Teleport(int client, int args)
 			char[] sName = new char[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
 
-			m.AddItem(serial, sName);
+			menu.AddItem(serial, sName);
 		}
 
-		m.ExitButton = true;
+		menu.ExitButton = true;
 
-		m.Display(client, 60);
+		menu.Display(client, 60);
 	}
 
 	return Plugin_Handled;
@@ -1046,6 +1093,148 @@ void SetWeaponAmmo(int client, int weapon)
 	{
 		SetEntProp(weapon, Prop_Send, "m_iPrimaryReserveAmmoCount", 255);
 	}
+}
+
+public Action Command_Checkpoints(int client, int args)
+{
+	if(client == 0)
+	{
+		ReplyToCommand(client, "This command may be only performed in-game.");
+
+		return Plugin_Handled;
+	}
+
+	return OpenCheckpointsMenu(client, 0);
+}
+
+public Action OpenCheckpointsMenu(int client, int item)
+{
+	if(!gB_Checkpoints)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+
+		return Plugin_Handled;
+	}
+
+	Menu menu = new Menu(MenuHandler_Checkpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
+	menu.SetTitle("%T\n%T", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
+
+	char[] sDisplay = new char[64];
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave1", client);
+	menu.AddItem("save;0", sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointTele1", client);
+	menu.AddItem("tele;0", sDisplay, (!IsVectorEmpty(gF_Checkpoints[client][0][0]))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave2", client);
+	menu.AddItem("save;1", sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointTele2", client);
+	menu.AddItem("tele;1", sDisplay, (!IsVectorEmpty(gF_Checkpoints[client][1][0]))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+
+	char[] sInfo = new char[16];
+	IntToString(CP_ANGLES, sInfo, 16);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseAngles", client);
+	menu.AddItem(sInfo, sDisplay);
+
+	IntToString(CP_VELOCITY, sInfo, 16);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseVelocity", client);
+	menu.AddItem(sInfo, sDisplay);
+
+	menu.ExitButton = true;
+	menu.Display(client, 60);
+
+	return Plugin_Handled;
+}
+
+bool IsVectorEmpty(float vec[3])
+{
+	return (vec[0] == 0.0 && vec[1] == 0.0 && vec[2] == 0.0);
+}
+
+public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] sInfo = new char[8];
+		menu.GetItem(param2, sInfo, 8);
+
+		if(param2 <= 3)
+        {
+        	char[][] sExplodedString = new char[2][8];
+        	ExplodeString(sInfo, ";", sExplodedString, 2, 8);
+
+        	bool bSave = StrEqual(sExplodedString[0], "save");
+        	int index = StringToInt(sExplodedString[1]);
+
+        	if(bSave)
+        	{
+        		SaveCheckpoint(param1, index);
+        	}
+
+        	else if(!IsVectorEmpty(gF_Checkpoints[param1][index][0]))
+        	{
+        		TeleportToCheckpoint(param1, index);
+        	}
+        }
+
+		else
+		{
+			char[] sCookie = new char[8];
+			gI_CheckpointsSettings[param1] ^= StringToInt(sInfo);
+			IntToString(gI_CheckpointsSettings[param1], sCookie, 16);
+
+			SetClientCookie(param1, gH_CheckpointsCookie, sCookie);
+		}
+
+		OpenCheckpointsMenu(param1, GetMenuSelectionPosition());
+	}
+
+	else if(action == MenuAction_DisplayItem && param2 >= 4)
+	{
+		char[] sInfo = new char[16];
+		char[] sDisplay = new char[64];
+		int style = 0;
+		menu.GetItem(param2, sInfo, 16, style, sDisplay, 64);
+
+		Format(sDisplay, 64, "[%s] %s", ((gI_CheckpointsSettings[param1] & StringToInt(sInfo)) > 0)? "x":" ", sDisplay);
+
+		return RedrawMenuItem(sDisplay);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void SaveCheckpoint(int client, int index)
+{
+	GetClientAbsOrigin(client, gF_Checkpoints[client][index][0]);
+	GetClientEyeAngles(client, gF_Checkpoints[client][index][1]);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_Checkpoints[client][index][2]);
+}
+
+void TeleportToCheckpoint(int client, int index)
+{
+	if(Shavit_GetTimerStatus(client) != Timer_Stopped)
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsStopped", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_StopTimer(client);
+	}
+
+	TeleportEntity(client, gF_Checkpoints[client][index][0],
+		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? gF_Checkpoints[client][index][1]:NULL_VECTOR,
+		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0)? gF_Checkpoints[client][index][2]:NULL_VECTOR);
 }
 
 public Action Command_Noclip(int client, int args)
