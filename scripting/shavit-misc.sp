@@ -61,7 +61,7 @@ ConVar gCV_Hostname = null;
 ConVar gCV_Hostport = null;
 BhopStyle gBS_Style[MAXPLAYERS+1];
 float gF_Checkpoints[MAXPLAYERS+1][2][3][3]; // 3 - position, angles, velocity
-int gI_CheckpointsSettings[MAXPLAYERS+1]; // 3 - position, angles, velocity
+int gI_CheckpointsSettings[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -407,12 +407,12 @@ public void OnMapStart()
 		int iEntity = -1;
 		float fOrigin[3];
 
-		if((iEntity = FindEntityByClassname(-1, "info_player_terrorist")) != -1)
+		if((iEntity = FindEntityByClassname(iEntity, "info_player_terrorist")) != INVALID_ENT_REFERENCE)
 		{
 			GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", fOrigin);
 		}
 
-		else if((iEntity = FindEntityByClassname(-1, "info_player_counterterrorist")) != -1)
+		else if((iEntity = FindEntityByClassname(iEntity, "info_player_counterterrorist")) != INVALID_ENT_REFERENCE)
 		{
 			GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", fOrigin);
 		}
