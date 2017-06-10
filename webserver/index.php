@@ -95,7 +95,6 @@ $rr = isset($_REQUEST['rr']);
                             ?> <option value="<?php echo $i; ?>" <?php if ($i == DEFAULT_STYLE || $style == $i) {
                                 echo 'selected="selected"';
                             } ?>><?php echo $styles[$i]; ?></option> <?php
-
                         }
                         ?>
                     </select>
@@ -113,7 +112,6 @@ $rr = isset($_REQUEST['rr']);
                                 ?> <option value="<?php echo $row['map']; ?>" <?php if ($row['map'] == $map) {
                                     echo 'selected="selected"';
                                 } ?>><?php echo removeworkshop($row['map']); ?></option> <?php
-
                             }
                         }
                         ?>
@@ -146,7 +144,6 @@ $rr = isset($_REQUEST['rr']);
                 Alternatively, you may click <a href="index.php?rr=1">Recent Records</a> to view the latest <?php echo RECORD_LIMIT_LATEST; ?> records.
             </p>
             <?php
-
         } else {
             $results = false;
             $stmt = false;
@@ -261,12 +258,10 @@ $rr = isset($_REQUEST['rr']);
                             ?>
                             <tr class="warning">
                             <?php
-
                         } else {
                             ?>
                             <tr class="default">
                             <?php
-
                         } ?>
                         <td>
                         <?php switch ($rank) {
@@ -321,7 +316,6 @@ $rr = isset($_REQUEST['rr']);
                             break;
                         }
                     } ?> </table> <?php
-
                 }
             }
 
@@ -332,7 +326,6 @@ $rr = isset($_REQUEST['rr']);
             if (!$results) {
                 ?> <h1>No results!</h1>
                 <p>Try another map, there may be some records!</p> <?php
-
             }
         }
         ?>
