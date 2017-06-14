@@ -16,11 +16,11 @@
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}Timer stopped! {2}{3}"
 	}
-    "CommandDisabled"
-    {
-        "#format" 	"{1:s},{2:s},{3:s}"
+	"CommandDisabled"
+	{
+		"#format" 	"{1:s},{2:s},{3:s}"
 		"en"		"The command ({1}{2}{3}) is disabled."
-    }
+	}
 	// ---------- Errors ---------- //
 	"VerificationFailed"
 	{
