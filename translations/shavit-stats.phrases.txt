@@ -92,10 +92,6 @@
 	{
 		"en"		"Jumps"
 	}
-	"Points"
-	{
-		"en"		"Points"
-	}
 	"Strafes"
 	{
 		"en"		"Strafes"

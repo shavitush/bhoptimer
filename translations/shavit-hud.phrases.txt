@@ -93,10 +93,6 @@
 	{
 		"en"		"Top left HUD (WR/PB)"
 	}
-	"HudSync"
-	{
-		"en"		"Sync"
-	}
 	"Hud2dVel"
 	{
 		"en"		"Use 2D Velocity"
