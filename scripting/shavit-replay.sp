@@ -48,6 +48,7 @@ ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 bool gB_Record[MAXPLAYERS+1];
 
 bool gB_Late = false;
+int gI_DefaultTeamSlots = 0;
 
 // server specific
 float gF_Tickrate = 0.0;
@@ -64,12 +65,14 @@ ConVar gCV_Enabled = null;
 ConVar gCV_ReplayDelay = null;
 ConVar gCV_TimeLimit = null;
 ConVar gCV_NameStyle = null;
+ConVar gCV_DefaultTeam = null;
 
 // cached cvars
 bool gB_Enabled = true;
 float gF_ReplayDelay = 5.0;
 float gF_TimeLimit = 5400.0;
 int gI_NameStyle = 1;
+int gI_DefaultTeam = 3;
 
 // timer settings
 int gI_Styles = 0;
@@ -125,11 +128,13 @@ public void OnPluginStart()
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
 	gCV_NameStyle = CreateConVar("shavit_replay_namestyle", "1", "Replay bot naming style\n0 - [SHORT STYLE] <TIME> - PLAYER NAME\n1 - LONG STYLE - <TIME>", 0, true, 0.0, true, 1.0);
+	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists\n3 - Counter Terrorists", 0, true, 2.0, true, 3.0);
 
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
 	gCV_ReplayDelay.AddChangeHook(OnConVarChanged);
 	gCV_TimeLimit.AddChangeHook(OnConVarChanged);
 	gCV_NameStyle.AddChangeHook(OnConVarChanged);
+	gCV_DefaultTeam.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -139,6 +144,7 @@ public void OnPluginStart()
 	HookEvent("player_connect", BotEvents, EventHookMode_Pre);
 	HookEvent("player_disconnect", BotEvents, EventHookMode_Pre);
 	HookEventEx("player_connect_client", BotEvents, EventHookMode_Pre);
+	HookEvent("round_start", Round_Start);
 
 	// name change suppression
 	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
@@ -153,6 +159,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gF_ReplayDelay = gCV_ReplayDelay.FloatValue;
 	gF_TimeLimit = gCV_TimeLimit.FloatValue;
 	gI_NameStyle = gCV_NameStyle.IntValue;
+	gI_DefaultTeam = gCV_NameStyle.IntValue;
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
@@ -652,6 +659,11 @@ void UpdateReplayInfo(int client, BhopStyle style, float time)
 			GivePlayerItem(client, "weapon_knife");
 		}
 	}
+
+	if(GetClientTeam(client) != gI_DefaultTeam && gI_DefaultTeamSlots >= gI_Styles)
+	{
+		CS_SwitchTeam(client, gI_DefaultTeam);
+	}
 }
 
 public void OnClientDisconnect(int client)
@@ -945,6 +957,18 @@ public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 				UpdateReplayInfo(client, style, -1.0);
 			}
 		}
+	}
+}
+
+public void Round_Start(Event event, const char[] name, bool dontBroadcast)
+{
+	gI_DefaultTeamSlots = 0;
+
+	int iEntity = -1;
+
+	while((iEntity = FindEntityByClassname(iEntity, (gI_DefaultTeam == 2)? "info_player_terrorist":"info_player_counterterrorist")) != INVALID_ENT_REFERENCE)
+	{
+		gI_DefaultTeamSlots++;
 	}
 }
 

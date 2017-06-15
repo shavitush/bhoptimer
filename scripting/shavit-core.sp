@@ -95,6 +95,7 @@ ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
+ConVar gCV_ForceBunnyhopping = null;
 
 // cached cvars
 bool gB_Autobhop = true;
@@ -105,6 +106,7 @@ bool gB_NoStaminaReset = true;
 bool gB_AllowTimerWithoutZone = false;
 bool gB_BlockPreJump = true;
 bool gB_NoZAxisSpeed = true;
+bool gB_ForceBunnyhopping = false;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -112,6 +114,8 @@ char gS_MySQLPrefix[32];
 // server side
 ConVar sv_airaccelerate = null;
 ConVar sv_autobunnyhopping = null;
+ConVar sv_enablebunnyhopping = null;
+int gI_LastAA = 100; // cache
 
 // timer settings
 bool gB_Registered = false;
@@ -269,6 +273,7 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
+	gCV_ForceBunnyhopping = CreateConVar("shavit_core_forcebunnyhopping", "0", "Lock the value of sv_enablebunnyhopping to 1? DO NOT use if your server has _strafe maps! Change maps to apply changes.", 0, true, 0.0, true, 1.0);
 
 	gCV_Autobhop.AddChangeHook(OnConVarChanged);
 	gCV_LeftRight.AddChangeHook(OnConVarChanged);
@@ -278,11 +283,14 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone.AddChangeHook(OnConVarChanged);
 	gCV_BlockPreJump.AddChangeHook(OnConVarChanged);
 	gCV_NoZAxisSpeed.AddChangeHook(OnConVarChanged);
+	gCV_ForceBunnyhopping.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
 	sv_airaccelerate = FindConVar("sv_airaccelerate");
 	sv_airaccelerate.Flags &= ~FCVAR_NOTIFY;
+
+	sv_enablebunnyhopping = FindConVar("sv_enablebunnyhopping");
 
 	// late
 	if(gB_Late)
@@ -308,6 +316,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_AllowTimerWithoutZone = gCV_AllowTimerWithoutZone.BoolValue;
 	gB_BlockPreJump = gCV_BlockPreJump.BoolValue;
 	gB_NoZAxisSpeed = gCV_NoZAxisSpeed.BoolValue;
+	gB_ForceBunnyhopping = gCV_ForceBunnyhopping.BoolValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -375,9 +384,23 @@ public void OnMapStart()
 		Call_StartForward(gH_Forwards_OnChatConfigLoaded);
 		Call_Finish();
 	}
+}
 
-	// cvar forcing
-	FindConVar("sv_enablebunnyhopping").BoolValue = true;
+public void OnConfigsExecuted()
+{
+	if(sv_enablebunnyhopping != null)
+	{
+		if(gB_ForceBunnyhopping)
+		{
+			sv_enablebunnyhopping.BoolValue = true;
+			sv_enablebunnyhopping.SetBounds(ConVarBound_Lower, true, 1.0);
+		}
+
+		else
+		{
+			sv_enablebunnyhopping.SetBounds(ConVarBound_Lower, true, 0.0);
+		}
+	}
 }
 
 public Action Command_StartTimer(int client, int args)
@@ -477,7 +500,7 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if((GetEntityFlags(client) & FL_ONGROUND) == 0)
+	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
 	{
 		Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
@@ -856,6 +879,8 @@ void StartTimer(int client)
 	{
 		return;
 	}
+
+	
 
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
@@ -1330,9 +1355,9 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void PreThink(int client)
 {
-	if(IsPlayerAlive(client))
+	if(IsPlayerAlive(client) && gI_LastAA != gA_StyleSettings[gBS_Style[client]][iAiraccelerate])
 	{
-		sv_airaccelerate.IntValue = gA_StyleSettings[gBS_Style[client]][iAiraccelerate];
+		sv_airaccelerate.IntValue = gI_LastAA = gA_StyleSettings[gBS_Style[client]][iAiraccelerate];
 	}
 }
 
