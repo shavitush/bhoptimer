@@ -705,6 +705,25 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 	{
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 	}
+
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]) != 1.0)
+	{
+		RequestFrame(ApplyNewVelocity, GetClientSerial(client));
+	}
+}
+
+void ApplyNewVelocity(int data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(data != 0)
+	{
+		float fAbsVelocity[3];
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+		fAbsVelocity[0] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
+		fAbsVelocity[1] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
+		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+	}
 }
 
 public void Player_Death(Event event, const char[] name, bool dontBroadcast)
@@ -1202,6 +1221,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][fGravityMultiplier] = dStyle.GetFloat("gravity", 1.0);
 		gA_StyleSettings[i][fSpeedMultiplier] = dStyle.GetFloat("speed", 1.0);
 		gA_StyleSettings[i][bHalftime] = dStyle.GetBool("halftime", false);
+		gA_StyleSettings[i][fVelocity] = dStyle.GetFloat("velocity", 1.0);
 		gA_StyleSettings[i][bBlockW] = dStyle.GetBool("block_w", false);
 		gA_StyleSettings[i][bBlockA] = dStyle.GetBool("block_a", false);
 		gA_StyleSettings[i][bBlockS] = dStyle.GetBool("block_s", false);

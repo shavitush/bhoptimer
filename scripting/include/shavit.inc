@@ -98,6 +98,7 @@ enum
 	fGravityMultiplier,
 	fSpeedMultiplier,
 	bHalftime,
+	fVelocity,
 	bBlockW,
 	bBlockA,
 	bBlockS,
