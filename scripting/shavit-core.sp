@@ -573,24 +573,26 @@ public Action Command_Style(int client, int args)
 	}
 
 	Menu m = new Menu(StyleMenu_Handler);
-	m.SetTitle("%T", "StyleMenuTitle", client);
+	m.SetTitle("%T\n%T\n ", "StyleMenuTitle", client, "StyleMenuCurrent", client, gS_StyleStrings[gBS_Style[client]][sStyleName]);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
+		char[] sDisplay = new char[64];
+
 		if(gA_StyleSettings[i][bUnranked])
 		{
-			char[] sDisplay = new char[64];
 			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, gS_StyleStrings[i][sStyleName]);
-			m.AddItem(sInfo, sDisplay);
 		}
 
 		else
 		{
-			m.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
 		}
+
+		m.AddItem(sInfo, sDisplay, (view_as<int>(gBS_Style[client]) == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	// should NEVER happen
@@ -613,6 +615,11 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 		m.GetItem(param2, info, 16);
 
 		BhopStyle style = view_as<BhopStyle>(StringToInt(info));
+
+		if(view_as<int>(style) == -1)
+		{
+			return 0;
+		}
 
 		ChangeClientStyle(param1, style);
 	}

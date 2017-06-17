@@ -29,7 +29,7 @@
 	// ---------- Menus ---------- //
 	"StyleMenuTitle"
 	{
-		"en"		"Choose a style:"
+		"en"		"Choose a style"
 	}
 	"StyleSelection"
 	{
@@ -39,6 +39,11 @@
 	"StyleUnranked"
 	{
 		"en"		"[Unranked]"
+	}
+	"StyleMenuCurrent"
+	{
+		"#format"	"{1:s}"
+		"en"		"Current: {1}"
 	}
 	// ---------- Misc ---------- //
 	"LeftRightCheat"
