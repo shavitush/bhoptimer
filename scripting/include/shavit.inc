@@ -130,6 +130,23 @@ enum
 	CHATSETTINGS_SIZE
 };
 
+enum
+{
+	bTimerEnabled,
+	fStartTime,
+	fCurrentTime,
+	fPauseStartTime,
+	fPauseTotalTime,
+	bClientPaused,
+	iJumps,
+	bsStyle,
+	iStrafes,
+	iTotalMeasures,
+	iGoodGains,
+	fServerTime,
+	TIMERSNAPSHOT_SIZE
+};
+
 #if defined USES_CHAT_COLORS
 // hardcoded colors
 char gS_GlobalColorNames[][] =
@@ -743,6 +760,44 @@ native int Shavit_GetChatStrings(int stringtype, char[] ChatStrings, int size);
 native int Shavit_GetHUDSettings(int client);
 
 /**
+ * Sets practice mode on a client.
+ * Practice mode means that the client's records will not be saved, just like unranked mode, but for ranked styles.
+ * Intended to be used by checkpoints.
+ *
+ * @param client					Client index.
+ * @param practice					Enable or disable practice modce.
+ * @param alert						Alert the client about practice mode?
+ * @noreturn
+ */
+native void Shavit_SetPracticeMode(int client, bool practice, bool alert);
+
+/**
+ * Gets a client's practice mode status.
+ *
+ * @param client					Client index.
+ * @return							Practice mode status.
+ */
+native bool Shavit_IsPracticeMode(int client);
+
+/**
+ * Save a client's timer into a snapshot.
+ * See the enumeration that ends with TIMERSNAPSHOT_SIZE.
+ *
+ * @param client					Client index.
+ * @param snapshot					Full snapshot of the client's timer.
+ * @noreturn
+ */
+native void Shavit_SaveSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
+
+/**
+ * Restores the client's timer from a snapshot.
+ *
+ * @param client					Client index.
+ * @param snapshot					Full snapshot of the client's timer.
+ */
+native void Shavit_LoadSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -813,12 +868,16 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetWRTime");
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
+	MarkNativeAsOptional("Shavit_IsPracticeMode");
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
+	MarkNativeAsOptional("Shavit_LoadSnapshot");
 	MarkNativeAsOptional("Shavit_OpenStatsMenu");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
 	MarkNativeAsOptional("Shavit_RestartTimer");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
+	MarkNativeAsOptional("Shavit_SaveSnapshot");
+	MarkNativeAsOptional("Shavit_SetPracticeMode");
 	MarkNativeAsOptional("Shavit_StartTimer");
 	MarkNativeAsOptional("Shavit_StopTimer");
 	MarkNativeAsOptional("Shavit_ZoneExists");

@@ -62,6 +62,7 @@ ConVar gCV_Hostport = null;
 BhopStyle gBS_Style[MAXPLAYERS+1];
 float gF_Checkpoints[MAXPLAYERS+1][2][3][3]; // 3 - position, angles, velocity
 int gI_CheckpointsSettings[MAXPLAYERS+1];
+any gA_CheckpointsSnapshots[MAXPLAYERS+1][2][TIMERSNAPSHOT_SIZE];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -765,6 +766,21 @@ public void OnClientPutInServer(int client)
 			}
 		}
 	}
+
+	for(int i = 0; i <= 1; i++)
+	{
+		gA_CheckpointsSnapshots[client][i][bTimerEnabled] = false;
+		gA_CheckpointsSnapshots[client][i][fStartTime] = 0.0;
+		gA_CheckpointsSnapshots[client][i][fCurrentTime] = 0.0;
+		gA_CheckpointsSnapshots[client][i][fPauseStartTime] = 0.0;
+		gA_CheckpointsSnapshots[client][i][fPauseTotalTime] = 0.0;
+		gA_CheckpointsSnapshots[client][i][bClientPaused] = false;
+		gA_CheckpointsSnapshots[client][i][iJumps] = 0;
+		gA_CheckpointsSnapshots[client][i][bsStyle] = view_as<BhopStyle>(0);
+		gA_CheckpointsSnapshots[client][i][iStrafes] = 0;
+		gA_CheckpointsSnapshots[client][i][iTotalMeasures] = 0;
+		gA_CheckpointsSnapshots[client][i][iGoodGains] = 0;
+	}
 }
 
 public Action OnTakeDamage(int victim, int attacker)
@@ -1170,7 +1186,7 @@ public Action OpenCheckpointsMenu(int client, int item)
 	}
 
 	Menu menu = new Menu(MenuHandler_Checkpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	menu.SetTitle("%T\n%T", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
+	menu.SetTitle("%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
 
 	char[] sDisplay = new char[64];
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave1", client);
@@ -1268,15 +1284,13 @@ void SaveCheckpoint(int client, int index)
 	GetClientAbsOrigin(client, gF_Checkpoints[client][index][0]);
 	GetClientEyeAngles(client, gF_Checkpoints[client][index][1]);
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_Checkpoints[client][index][2]);
+	Shavit_SaveSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 }
 
 void TeleportToCheckpoint(int client, int index)
 {
-	if(Shavit_GetTimerStatus(client) != Timer_Stopped)
-	{
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsStopped", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-		Shavit_StopTimer(client);
-	}
+	Shavit_SetPracticeMode(client, true, true);
+	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 
 	TeleportEntity(client, gF_Checkpoints[client][index][0],
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? gF_Checkpoints[client][index][1]:NULL_VECTOR,

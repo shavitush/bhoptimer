@@ -59,6 +59,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1}WARNING: {2}This style is unranked. Your times WILL NOT be saved and will be only displayed to you!"
 	}
+	"PracticeModeAlert"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1}WARNING: {2}You're now in practice mode. Your times WILL NOT be saved and will be only displayed to you!"
+	}
 	// ---------- Pauses ---------- //
 	"MessagePause"
 	{
@@ -89,6 +94,11 @@
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Timer has been {1}paused{2}."
+	}
+	"PausePractice"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"You {1}are not{2} allowed to pause while in practice mode."
 	}
 	// ---------- Zones ---------- //
 	"StartZoneUndefined"

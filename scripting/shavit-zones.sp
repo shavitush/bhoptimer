@@ -1127,13 +1127,6 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		}
 	}
 
-	// temp variables
-	static float fTime;
-	static int iJumps;
-	static BhopStyle bsStyle;
-	bool bStarted;
-	Shavit_GetTimer(client, fTime, iJumps, bsStyle, bStarted);
-
 	if(InsideZone(client, view_as<int>(Zone_Start)))
 	{
 		Shavit_ResumeTimer(client);
@@ -1149,7 +1142,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		ForcePlayerSuicide(client);
 	}
 
-	if(bStarted)
+	if(Shavit_GetTimerStatus(client) == Timer_Running)
 	{
 		if(InsideZone(client, view_as<int>(Zone_Stop)))
 		{

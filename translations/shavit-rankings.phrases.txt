@@ -39,33 +39,33 @@
 	// ---------- Points ---------- //
 	"ApproximatePoints"
 	{
-		"#format"	"{1s},{2:s},{3s},{4s},{5:.01f},{6s},{7s},{8:i},{9:s}"
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:.01f},{6:s},{7:s},{8:i},{9:s}"
 		"en"		"{1}{2}{3}: Around {4}{5}{6} points for a time of {7}{8}{9}."
 	}
 	"Rank"
 	{
-		"#format"	"{1s},{2:N},{3s},{4s},{5:i},{6s},{7s},{8:i},{9s},{10s},{11:.02f},{12:s}"
+		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:i},{6:s},{7:s},{8:i},{9:s},{10:s},{11:.02f},{12:s}"
 		"en"		"{1}{2}{3} is ranked {4}{5}{6} out of {7}{8}{9} with {10}{11} points {12}."
 	}
 	"UnknownPoints"
 	{
-		"#format"	"{1s},{2:s},{3s}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}{2}{3}: Unknown points, no records on map."
 	}
 	"Unranked"
 	{
-		"#format"	"{1s},{2:N},{3s},{4s},{5s}"
+		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:s}"
 		"en"		"{1}{2}{3} is {4}unranked{5}."
 	}
 	// ---------- Tiers ---------- //
 	"Tier"
 	{
-		"#format"	"{1s},{2:s},{3s},{4s},{5:.01f},{6s}"
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:.01f},{6:s}"
 		"en"		"{1}{2}{3} is rated as {4}Tier {5}{6}."
 	}
 	"TierUnset"
 	{
-		"#format"	"{1s},{2:s},{3s}"
+		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}{2}{3} is not rated."
 	}
 }

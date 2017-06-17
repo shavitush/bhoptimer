@@ -63,11 +63,6 @@
 	{
 		"en"		"Invalid target."
 	}
-	"MiscCheckpointsStopped"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"Your timer has been {1}stopped{2} due to teleporting."
-	}
 	"MiscCheckpointsSaved"
 	{
 		"#format"	"{1:s},{2:s}"
