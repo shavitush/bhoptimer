@@ -1353,16 +1353,7 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 			bool bIncrease = view_as<bool>(StringToInt(sExploded[2]) == 1);
 
 			((iPoint == 1)? gV_Point1:gV_Point2)[param1][iAxis] += ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]);
-
-			if(bIncrease)
-			{
-				Shavit_PrintToChat(param1, "%T", "ZoneSizeIncrease", param1, gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
-			}
-
-			else
-			{
-				Shavit_PrintToChat(param1, "%T", "ZoneSizeDecrease", param1, gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
-			}
+			Shavit_PrintToChat(param1, "%T", (bIncrease)? "ZoneSizeIncrease":"ZoneSizeDecrease", param1, gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
