@@ -90,6 +90,7 @@ ConVar gCV_StaticPrestrafe = null;
 ConVar gCV_NoclipMe = null;
 ConVar gCV_AdvertisementInterval = null;
 ConVar gCV_Checkpoints = null;
+ConVar gCV_RemoveRagdolls = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -113,6 +114,7 @@ bool gB_StaticPrestrafe = true;
 int gI_NoclipMe = true;
 float gF_AdvertisementInterval = 600.0;
 bool gB_Checkpoints = true;
+int gI_RemoveRagdolls = 1;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -240,6 +242,7 @@ public void OnPluginStart()
 	gCV_NoclipMe = CreateConVar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'admin_noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 2.0);
 	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 	gCV_Checkpoints = CreateConVar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
+	gCV_RemoveRagdolls = CreateConVar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -262,6 +265,7 @@ public void OnPluginStart()
 	gCV_NoclipMe.AddChangeHook(OnConVarChanged);
 	gCV_AdvertisementInterval.AddChangeHook(OnConVarChanged);
 	gCV_Checkpoints.AddChangeHook(OnConVarChanged);
+	gCV_RemoveRagdolls.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -396,6 +400,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_NoclipMe = gCV_NoclipMe.IntValue;
 	gF_AdvertisementInterval = gCV_AdvertisementInterval.FloatValue;
 	gB_Checkpoints = gCV_Checkpoints.BoolValue;
+	gI_RemoveRagdolls = gCV_RemoveRagdolls.IntValue;
 }
 
 public void OnMapStart()
@@ -679,6 +684,16 @@ void UpdateScoreboard(int client)
 	if(gB_Rankings)
 	{
 		SetEntProp(client, Prop_Data, "m_iDeaths", Shavit_GetRank(client));
+	}
+}
+
+void RemoveRagdoll(int client)
+{
+	int iEntity = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
+
+	if(iEntity != INVALID_ENT_REFERENCE)
+	{
+		AcceptEntityInput(iEntity, "Kill");
 	}
 }
 
@@ -1569,13 +1584,36 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 		event.BroadcastDisabled = true;
 	}
 
-	if(gF_AutoRespawn > 0.0 && StrEqual(name, "player_death"))
-	{
-		int client = GetClientOfUserId(event.GetInt("userid"));
+	int client = GetClientOfUserId(event.GetInt("userid"));
 
-		if(!IsFakeClient(client))
+	if(gF_AutoRespawn > 0.0 && StrEqual(name, "player_death") && !IsFakeClient(client))
+	{
+		CreateTimer(gF_AutoRespawn, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+	}
+
+	switch(gI_RemoveRagdolls)
+	{
+		case 0:
 		{
-			CreateTimer(gF_AutoRespawn, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+			return Plugin_Continue;
+		}
+
+		case 1:
+		{
+			if(IsFakeClient(client))
+			{
+				RemoveRagdoll(client);
+			}
+		}
+
+		case 2:
+		{
+			RemoveRagdoll(client);
+		}
+
+		default:
+		{
+			return Plugin_Continue;
 		}
 	}
 
