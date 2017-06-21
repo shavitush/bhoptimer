@@ -72,6 +72,7 @@ int gI_TotalMeasures[MAXPLAYERS+1];
 int gI_GoodGains[MAXPLAYERS+1];
 bool gB_DoubleSteps[MAXPLAYERS+1];
 float gF_StrafeWarning[MAXPLAYERS+1];
+bool gB_PracticeMode[MAXPLAYERS+1];
 
 float gF_HSW_Requirement = 0.0;
 StringMap gSM_StyleCommands = null;
@@ -162,6 +163,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
+	CreateNative("Shavit_SetPracticeMode", Native_SetPracticeMode);
+	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
+	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
+	CreateNative("Shavit_LoadSnapshot", Native_LoadSnapshot);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -478,7 +483,7 @@ public Action Command_StopTimer(int client, int args)
 
 public Action Command_TogglePause(int client, int args)
 {
-	if(!IsValidClient(client))
+	if(!IsValidClient(client) || !gB_TimerEnabled[client])
 	{
 		return Plugin_Handled;
 	}
@@ -503,6 +508,13 @@ public Action Command_TogglePause(int client, int args)
 	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
 	{
 		Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+
+		return Plugin_Handled;
+	}
+
+	if(gB_PracticeMode[client])
+	{
+		Shavit_PrintToChat(client, "%T", "PausePractice", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -573,24 +585,26 @@ public Action Command_Style(int client, int args)
 	}
 
 	Menu m = new Menu(StyleMenu_Handler);
-	m.SetTitle("%T", "StyleMenuTitle", client);
+	m.SetTitle("%T\n%T\n ", "StyleMenuTitle", client, "StyleMenuCurrent", client, gS_StyleStrings[gBS_Style[client]][sStyleName]);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
+		char[] sDisplay = new char[64];
+
 		if(gA_StyleSettings[i][bUnranked])
 		{
-			char[] sDisplay = new char[64];
 			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, gS_StyleStrings[i][sStyleName]);
-			m.AddItem(sInfo, sDisplay);
 		}
 
 		else
 		{
-			m.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
 		}
+
+		m.AddItem(sInfo, sDisplay, (view_as<int>(gBS_Style[client]) == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	// should NEVER happen
@@ -613,6 +627,11 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 		m.GetItem(param2, info, 16);
 
 		BhopStyle style = view_as<BhopStyle>(StringToInt(info));
+
+		if(view_as<int>(style) == -1)
+		{
+			return 0;
+		}
 
 		ChangeClientStyle(param1, style);
 	}
@@ -685,6 +704,25 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]) != 1.0)
 	{
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
+	}
+
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]) != 1.0)
+	{
+		RequestFrame(ApplyNewVelocity, GetClientSerial(client));
+	}
+}
+
+void ApplyNewVelocity(int data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(data != 0)
+	{
+		float fAbsVelocity[3];
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+		fAbsVelocity[0] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
+		fAbsVelocity[1] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
+		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 	}
 }
 
@@ -873,14 +911,75 @@ public int Native_GetChatStrings(Handle handler, int numParams)
 	return SetNativeString(2, gS_ChatStrings[GetNativeCell(1)], GetNativeCell(3));
 }
 
+public int Native_SetPracticeMode(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	bool practice = view_as<bool>(GetNativeCell(2));
+	bool alert = view_as<bool>(GetNativeCell(3));
+
+	if(alert && practice && !gB_PracticeMode[client])
+	{
+		Shavit_PrintToChat(client, "%T", "PracticeModeAlert", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+	}
+
+	gB_PracticeMode[client] = practice;
+
+	return;
+}
+
+public int Native_IsPracticeMode(Handle handler, int numParams)
+{
+	return view_as<int>(gB_PracticeMode[GetNativeCell(1)]);
+}
+
+public int Native_SaveSnapshot(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
+	snapshot[bTimerEnabled] = gB_TimerEnabled[client];
+	snapshot[fStartTime] = gF_StartTime[client];
+	snapshot[fPauseStartTime] = gF_PauseStartTime[client];
+	snapshot[fPauseTotalTime] = gF_PauseTotalTime[client];
+	snapshot[bClientPaused] = gB_ClientPaused[client];
+	snapshot[iJumps] = gI_Jumps[client];
+	snapshot[bsStyle] = gBS_Style[client];
+	snapshot[iStrafes] = gI_Strafes[client];
+	snapshot[iTotalMeasures] = gI_TotalMeasures[client];
+	snapshot[iGoodGains] = gI_GoodGains[client];
+	snapshot[fServerTime] = GetEngineTime();
+	snapshot[fCurrentTime] = CalculateTime(client);
+
+	return SetNativeArray(2, snapshot, TIMERSNAPSHOT_SIZE);
+}
+
+public int Native_LoadSnapshot(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
+	GetNativeArray(2, snapshot, TIMERSNAPSHOT_SIZE);
+
+	gB_TimerEnabled[client] = view_as<bool>(snapshot[bTimerEnabled]);
+	gF_PauseStartTime[client] = view_as<float>(snapshot[fPauseStartTime]);
+	gF_PauseTotalTime[client] = view_as<float>(snapshot[fPauseTotalTime]);
+	gB_ClientPaused[client] = false; // Pausing is disabled in practice mode.
+	gI_Jumps[client] = view_as<int>(snapshot[iJumps]);
+	gBS_Style[client] = view_as<BhopStyle>(snapshot[bsStyle]);
+	gI_Strafes[client] = view_as<int>(snapshot[iStrafes]);
+	gI_TotalMeasures[client] = view_as<int>(snapshot[iTotalMeasures]);
+	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
+	gF_StartTime[client] = GetEngineTime() - view_as<float>(snapshot[fCurrentTime]);
+
+	return;
+}
+
 void StartTimer(int client)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
 	{
 		return;
 	}
-
-	
 
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
@@ -901,6 +1000,7 @@ void StartTimer(int client)
 
 	gF_PauseTotalTime[client] = 0.0;
 	gB_ClientPaused[client] = false;
+	gB_PracticeMode[client] = false;
 
 	SetEntityGravity(client, gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]);
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]);
@@ -1021,6 +1121,7 @@ public void OnClientPutInServer(int client)
 	gB_DoubleSteps[client] = false;
 	gF_StrafeWarning[client] = 0.0;
 	gBS_Style[client] = view_as<BhopStyle>(0);
+	gB_PracticeMode[client] = false;
 	UpdateAutoBhop(client);
 
 	if(AreClientCookiesCached(client))
@@ -1120,6 +1221,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][fGravityMultiplier] = dStyle.GetFloat("gravity", 1.0);
 		gA_StyleSettings[i][fSpeedMultiplier] = dStyle.GetFloat("speed", 1.0);
 		gA_StyleSettings[i][bHalftime] = dStyle.GetBool("halftime", false);
+		gA_StyleSettings[i][fVelocity] = dStyle.GetFloat("velocity", 1.0);
 		gA_StyleSettings[i][bBlockW] = dStyle.GetBool("block_w", false);
 		gA_StyleSettings[i][bBlockA] = dStyle.GetBool("block_a", false);
 		gA_StyleSettings[i][bBlockS] = dStyle.GetBool("block_s", false);

@@ -630,15 +630,15 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
 
 		// 2 - time
-		float fTime = results.FetchFloat(2);
+		float time = results.FetchFloat(2);
 		char[] sTime = new char[16];
-		FormatSeconds(fTime, sTime, 16);
+		FormatSeconds(time, sTime, 16);
 
 		// 3 - jumps
-		int iJumps = results.FetchInt(3);
+		int jumps = results.FetchInt(3);
 
 		char[] sDisplay = new char[128];
-		FormatEx(sDisplay, 128, "#%d - %s - %s (%d jump%s)", iCount, sName, sTime, iJumps, (iJumps != 1)? "s":"");
+		FormatEx(sDisplay, 128, "#%d - %s - %s (%d jump%s)", iCount, sName, sTime, jumps, (jumps != 1)? "s":"");
 		m.AddItem(sID, sDisplay);
 	}
 
@@ -956,15 +956,15 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			results.FetchString(1, sName, MAX_NAME_LENGTH);
 
 			// 2 - time
-			float fTime = results.FetchFloat(2);
+			float time = results.FetchFloat(2);
 			char[] sTime = new char[16];
-			FormatSeconds(fTime, sTime, 16);
+			FormatSeconds(time, sTime, 16);
 
 			// 3 - jumps
-			int iJumps = results.FetchInt(3);
+			int jumps = results.FetchInt(3);
 
 			char[] sDisplay = new char[128];
-			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", iCount, sName, sTime, iJumps, "WRJumps", client);
+			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", iCount, sName, sTime, jumps, "WRJumps", client);
 			m.AddItem(sID, sDisplay);
 		}
 
@@ -1095,23 +1095,23 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		results.FetchString(2, sName, MAX_NAME_LENGTH);
 
 		char[] sTime = new char[16];
-		float fTime = results.FetchFloat(3);
-		FormatSeconds(fTime, sTime, 16);
+		float time = results.FetchFloat(3);
+		FormatSeconds(time, sTime, 16);
 
-		int iJumps = results.FetchInt(4);
-		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(5));
+		int jumps = results.FetchInt(4);
+		BhopStyle style = view_as<BhopStyle>(results.FetchInt(5));
 		float fPoints = results.FetchFloat(6);
 
 		char[] sDisplay = new char[192];
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f %T)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, fPoints, "WRPoints", client);
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sDisplayMap, sName, sTime, fPoints, "WRPoints", client);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d %T)", gS_StyleStrings[bsStyle][sShortName], sDisplayMap, sName, sTime, iJumps, "WRJumps", client);
+			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sDisplayMap, sName, sTime, jumps, "WRJumps", client);
 		}
 
 		char[] sInfo = new char[192];
@@ -1204,22 +1204,22 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		results.FetchString(0, sName, MAX_NAME_LENGTH);
 
 		// 1 - time
-		float fTime = results.FetchFloat(1);
+		float time = results.FetchFloat(1);
 		char[] sTime = new char[16];
-		FormatSeconds(fTime, sTime, 16);
+		FormatSeconds(time, sTime, 16);
 
 		char[] sDisplay = new char[128];
 		FormatEx(sDisplay, 128, "%T: %s", "WRTime", client, sTime);
 		m.AddItem("-1", sDisplay);
 
 		// 2 - jumps
-		int iJumps = results.FetchInt(2);
-		FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, iJumps);
+		int jumps = results.FetchInt(2);
+		FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, jumps);
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
-		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(3));
-		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[bsStyle][sStyleName]);
+		BhopStyle style = view_as<BhopStyle>(results.FetchInt(3));
+		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[style][sStyleName]);
 		m.AddItem("-1", sDisplay);
 
 		// 6 - map
@@ -1250,12 +1250,12 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatEx(sDisplay, 128, "%T: %s", "WRDate", client, sDate);
 		m.AddItem("-1", sDisplay);
 
-		int iStrafes = results.FetchInt(7);
-		float fSync = results.FetchFloat(8);
+		int strafes = results.FetchInt(7);
+		float sync = results.FetchFloat(8);
 
-		if(iJumps > 0 || iStrafes > 0)
+		if(jumps > 0 || strafes > 0)
 		{
-			FormatEx(sDisplay, 128, (fSync != -1.0)? "%T: %d (%.02f%%)":"%T: %d", "WRStrafes", client, iStrafes, fSync);
+			FormatEx(sDisplay, 128, (sync != -1.0)? "%T: %d (%.02f%%)":"%T: %d", "WRStrafes", client, strafes, sync);
 			m.AddItem("-1", sDisplay);
 		}
 		char[] sMenuItem = new char[64];
@@ -1462,7 +1462,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 	// 2 - update
 	int overwrite = 0;
 
-	if(gA_StyleSettings[style][bUnranked])
+	if(gA_StyleSettings[style][bUnranked] || Shavit_IsPracticeMode(client))
 	{
 		overwrite = 0; // ugly way of not writing to database
 	}

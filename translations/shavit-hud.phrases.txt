@@ -56,6 +56,10 @@
 	{
 		"en"		"Sync"
 	}
+	"HudPracticeMode"
+	{
+		"en"		"[PRACTICE]"
+	}
 	// ---------- Menus ---------- //
 	"HUDMenuTitle"
 	{

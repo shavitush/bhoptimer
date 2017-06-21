@@ -401,22 +401,22 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
 		Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
 
-		int iRank = -1;
-		float fPoints = -1.0;
+		int rank = -1;
+		float points = -1.0;
 
 		if(gB_Rankings)
 		{
-			fPoints = results.FetchFloat(6);
-			iRank = results.FetchInt(7);
+			points = results.FetchFloat(6);
+			rank = results.FetchInt(7);
 		}
 
 		char[] sRankingString = new char[64];
 
 		if(gB_Rankings)
 		{
-			if(iRank > 0 && fPoints > 0.0)
+			if(rank > 0 && points > 0.0)
 			{
-				FormatEx(sRankingString, 64, "\n%T: #%d/%d\n%T: %.02f", "Rank", client, iRank, Shavit_GetRankedPlayers(), "Points", client, fPoints);
+				FormatEx(sRankingString, 64, "\n%T: #%d/%d\n%T: %.02f", "Rank", client, rank, Shavit_GetRankedPlayers(), "Points", client, points);
 			}
 
 			else
@@ -605,23 +605,23 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 		if(gI_MapType[client] == MAPSDONE)
 		{
-			float fTime = results.FetchFloat(1);
-			int iJumps = results.FetchInt(2);
-			int iRank = results.FetchInt(4);
+			float time = results.FetchFloat(1);
+			int jumps = results.FetchInt(2);
+			int rank = results.FetchInt(4);
 
 			char[] sTime = new char[32];
-			FormatSeconds(fTime, sTime, 32);
+			FormatSeconds(time, sTime, 32);
 
-			float fPoints = results.FetchFloat(5);
+			float points = results.FetchFloat(5);
 
-			if(gB_Rankings && fPoints > 0.0)
+			if(gB_Rankings && points > 0.0)
 			{
-				FormatEx(sDisplay, 192, "[#%d] %s - %s (%.03f %T)", iRank, sMap, sTime, fPoints, "MapsPoints", client);
+				FormatEx(sDisplay, 192, "[#%d] %s - %s (%.03f %T)", rank, sMap, sTime, points, "MapsPoints", client);
 			}
 
 			else
 			{
-				FormatEx(sDisplay, 192, "[#%d] %s - %s (%d %T)", iRank, sMap, sTime, iJumps, "MapsJumps", client);
+				FormatEx(sDisplay, 192, "[#%d] %s - %s (%d %T)", rank, sMap, sTime, jumps, "MapsJumps", client);
 			}
 
 			int iRecordID = results.FetchInt(3);
@@ -710,22 +710,22 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		results.FetchString(0, sName, MAX_NAME_LENGTH);
 
 		// 1 - time
-		float fTime = results.FetchFloat(1);
+		float time = results.FetchFloat(1);
 		char[] sTime = new char[16];
-		FormatSeconds(fTime, sTime, 16);
+		FormatSeconds(time, sTime, 16);
 
 		char[] sDisplay = new char[128];
 		FormatEx(sDisplay, 128, "%T: %s", "Time", client, sTime);
 		m.AddItem("-1", sDisplay);
 
 		// 2 - jumps
-		int iJumps = results.FetchInt(2);
-		FormatEx(sDisplay, 128, "%T: %d", "Jumps", client, iJumps);
+		int jumps = results.FetchInt(2);
+		FormatEx(sDisplay, 128, "%T: %d", "Jumps", client, jumps);
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
-		BhopStyle bsStyle = view_as<BhopStyle>(results.FetchInt(3));
-		FormatEx(sDisplay, 128, "%T: %s", "Style", client, gS_StyleStrings[bsStyle][sStyleName]);
+		BhopStyle style = view_as<BhopStyle>(results.FetchInt(3));
+		FormatEx(sDisplay, 128, "%T: %s", "Style", client, gS_StyleStrings[style][sStyleName]);
 		m.AddItem("-1", sDisplay);
 
 		// 4 - steamid3
@@ -734,11 +734,11 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		// 6 - map
 		results.FetchString(6, sMap, 256);
 
-		float fPoints = results.FetchFloat(9);
+		float points = results.FetchFloat(9);
 
-		if(gB_Rankings && fPoints > 0.0)
+		if(gB_Rankings && points > 0.0)
 		{
-			FormatEx(sDisplay, 192, "%T: %.03f", "Points", client, fPoints);
+			FormatEx(sDisplay, 192, "%T: %.03f", "Points", client, points);
 			m.AddItem("-1", sDisplay);
 		}
 
@@ -754,12 +754,12 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatEx(sDisplay, 128, "%T: %s", "Date", client, sDate);
 		m.AddItem("-1", sDisplay);
 
-		int iStrafes = results.FetchInt(7);
-		float fSync = results.FetchFloat(8);
+		int strafes = results.FetchInt(7);
+		float sync = results.FetchFloat(8);
 
-		if(iJumps > 0 || iStrafes > 0)
+		if(jumps > 0 || strafes > 0)
 		{
-			FormatEx(sDisplay, 128, (fSync > 0.0)? "%T: %d (%.02f%%)":"%T: %d", "Strafes", client, iStrafes, fSync, "Strafes", client, iStrafes);
+			FormatEx(sDisplay, 128, (sync > 0.0)? "%T: %d (%.02f%%)":"%T: %d", "Strafes", client, strafes, sync, "Strafes", client, strafes);
 			m.AddItem("-1", sDisplay);
 		}
 

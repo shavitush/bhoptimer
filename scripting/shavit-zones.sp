@@ -1127,13 +1127,6 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		}
 	}
 
-	// temp variables
-	static float fTime;
-	static int iJumps;
-	static BhopStyle bsStyle;
-	bool bStarted;
-	Shavit_GetTimer(client, fTime, iJumps, bsStyle, bStarted);
-
 	if(InsideZone(client, view_as<int>(Zone_Start)))
 	{
 		Shavit_ResumeTimer(client);
@@ -1149,7 +1142,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		ForcePlayerSuicide(client);
 	}
 
-	if(bStarted)
+	if(Shavit_GetTimerStatus(client) == Timer_Running)
 	{
 		if(InsideZone(client, view_as<int>(Zone_Stop)))
 		{
@@ -1353,16 +1346,7 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 			bool bIncrease = view_as<bool>(StringToInt(sExploded[2]) == 1);
 
 			((iPoint == 1)? gV_Point1:gV_Point2)[param1][iAxis] += ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]);
-
-			if(bIncrease)
-			{
-				Shavit_PrintToChat(param1, "%T", "ZoneSizeIncrease", param1, gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
-			}
-
-			else
-			{
-				Shavit_PrintToChat(param1, "%T", "ZoneSizeDecrease", param1, gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
-			}
+			Shavit_PrintToChat(param1, "%T", (bIncrease)? "ZoneSizeIncrease":"ZoneSizeDecrease", param1, gS_ChatStrings[sMessageVariable2], sAxis[iAxis], gS_ChatStrings[sMessageText], iPoint, gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
