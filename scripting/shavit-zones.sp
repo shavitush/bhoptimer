@@ -91,7 +91,7 @@ float gF_CustomSpawn[3];
 any gA_ZoneSettings[ZONETYPES_SIZE][ZONESETTINGS_SIZE];
 any gA_ZoneCache[MAX_ZONES][ZONECACHE_SIZE]; // Vectors will not be inside this array.
 int gI_MapZones = 0;
-float gV_MapZones[MAX_ZONES][2][3];
+float gV_MapZones[MAX_ZONES][8][3];
 float gV_Destinations[MAX_ZONES][3];
 int gI_EntityZone[4096];
 
@@ -433,7 +433,7 @@ void ClearZone(int index)
 	for(int i = 0; i < 3; i++)
 	{
 		gV_MapZones[index][0][i] = 0.0;
-		gV_MapZones[index][1][i] = 0.0;
+		gV_MapZones[index][7][i] = 0.0;
 	}
 
 	gA_ZoneCache[index][bZoneInitialized] = false;
@@ -518,9 +518,11 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gV_MapZones[gI_MapZones][0][0] = results.FetchFloat(1);
 			gV_MapZones[gI_MapZones][0][1] = results.FetchFloat(2);
 			gV_MapZones[gI_MapZones][0][2] = results.FetchFloat(3);
-			gV_MapZones[gI_MapZones][1][0] = results.FetchFloat(4);
-			gV_MapZones[gI_MapZones][1][1] = results.FetchFloat(5);
-			gV_MapZones[gI_MapZones][1][2] = results.FetchFloat(6);
+			gV_MapZones[gI_MapZones][7][0] = results.FetchFloat(4);
+			gV_MapZones[gI_MapZones][7][1] = results.FetchFloat(5);
+			gV_MapZones[gI_MapZones][7][2] = results.FetchFloat(6);
+
+			CreateZonePoints(gV_MapZones[gI_MapZones]);
 
 			if(type == Zone_Teleport)
 			{
@@ -1279,7 +1281,7 @@ void InsertZone(int client)
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
 	}
 
-	else if((EmptyVector(gV_MapZones[type][0]) && EmptyVector(gV_MapZones[type][1])) || type >= Zone_Respawn) // insert
+	else if(GetZoneIndex(type) == -1 || type >= Zone_Respawn) // insert
 	{
 		if(type != Zone_Teleport)
 		{
@@ -1337,7 +1339,7 @@ public Action Timer_DrawEverything(Handle Timer)
 	{
 		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
 		{
-			DrawZone(gV_MapZones[i][0], gV_MapZones[i][1], GetZoneColors(i), gF_Interval);
+			DrawZone(gV_MapZones[i], GetZoneColors(i), gF_Interval);
 		}
 	}
 
@@ -1385,13 +1387,11 @@ public Action Timer_Draw(Handle Timer, any data)
 
 	if(!EmptyVector(gV_Point1[client]) || !EmptyVector(gV_Point2[client]))
 	{
-		float point1[3];
-		point1 = gV_Point1[client];
+		float points[8][3];
+		points[0] = gV_Point1[client];
+		points[7] = vOrigin;
 
-		float point2[3];
-		point2 = vOrigin;
-
-		DrawZone(point1, point2, GetZoneColors(gI_ZoneType[client]), 0.1);
+		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -1411,14 +1411,8 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float point1[3], float point2[3], int color[4], float life)
+void DrawZone(float points[8][3], int color[4], float life)
 {
-	float box[8][3];
-	box[0] = point1;
-	box[7] = point2;
-
-	CreateZonePoints(box);
-
 	// this loop is by blacky, and i have no clue what i'm doing
 	// math isn't my thing :/
 	for(int i = 0, i2 = 3; i2 >= 0; i += i2--)
@@ -1427,7 +1421,7 @@ void DrawZone(float point1[3], float point2[3], int color[4], float life)
 		{
 			if(j != 7 - i)
 			{
-				TE_SetupBeamPoints(box[i], box[j], gI_BeamSprite, gI_HaloSprite, 0, 0, life, 3.5, 3.5, 0, 0.0, color, 0);
+				TE_SetupBeamPoints(points[i], points[j], gI_BeamSprite, gI_HaloSprite, 0, 0, life, 3.5, 3.5, 0, 0.0, color, 0);
 				TE_SendToAll(0.0);
 			}
 		}
@@ -1589,7 +1583,7 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnRestart(int client)
 {
-	if(gB_TeleportToStart && GetZoneIndex(Zone_Start) != -1)
+	if(gB_TeleportToStart)
 	{
 		Shavit_StartTimer(client);
 
@@ -1600,32 +1594,46 @@ public void Shavit_OnRestart(int client)
 
 		else
 		{
-			float vCenter[3];
-			MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
-			vCenter[0] /= 2.0;
-			vCenter[1] /= 2.0;
+			int index = GetZoneIndex(Zone_Start);
 
-			AddVectors(gV_MapZones[0][0], vCenter, vCenter);
-			vCenter[2] = gV_MapZones[0][0][2];
+			if(index == -1)
+			{
+				return;
+			}
 
-			TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			float center[3];
+			MakeVectorFromPoints(gV_MapZones[index][0], gV_MapZones[index][7], center);
+			center[0] /= 2.0;
+			center[1] /= 2.0;
+
+			AddVectors(gV_MapZones[index][0], center, center);
+			center[2] = gV_MapZones[index][0][2];
+
+			TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 	}
 }
 
 public void Shavit_OnEnd(int client)
 {
-	if(gB_TeleportToEnd && GetZoneIndex(Zone_End) != -1)
+	if(gB_TeleportToEnd)
 	{
-		float vCenter[3];
-		MakeVectorFromPoints(gV_MapZones[1][0], gV_MapZones[1][1], vCenter);
-		vCenter[0] /= 2.0;
-		vCenter[1] /= 2.0;
+		int index = GetZoneIndex(Zone_End);
 
-		AddVectors(gV_MapZones[1][0], vCenter, vCenter);
-		vCenter[2] = gV_MapZones[1][0][2];
+		if(index == -1)
+		{
+			return;
+		}
 
-		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		float center[3];
+		MakeVectorFromPoints(gV_MapZones[index][0], gV_MapZones[index][7], center);
+		center[0] /= 2.0;
+		center[1] /= 2.0;
+
+		AddVectors(gV_MapZones[index][0], center, center);
+		center[2] = gV_MapZones[index][0][2];
+
+		TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 	}
 }
 
@@ -1722,16 +1730,16 @@ public void CreateZoneEntities()
 		SetEntityModel(entity, "models/props/cs_office/vending_machine.mdl");
 		SetEntProp(entity, Prop_Send, "m_fEffects", 32);
 
-		float center[3];
-		center[0] = (gV_MapZones[i][0][0] + gV_MapZones[i][1][0]) * 0.5;
-		center[1] = (gV_MapZones[i][0][1] + gV_MapZones[i][1][1]) * 0.5;
-		center[2] = (gV_MapZones[i][0][2] + gV_MapZones[i][1][2]) * 0.5;
+		float center[3]; // center between both points
+		center[0] = (gV_MapZones[i][0][0] + gV_MapZones[i][7][0]) / 2.0;
+		center[1] = (gV_MapZones[i][0][1] + gV_MapZones[i][7][1]) / 2.0;
+		center[2] = (gV_MapZones[i][0][2] + gV_MapZones[i][7][2]) / 2.0;
 
 		TeleportEntity(entity, center, NULL_VECTOR, NULL_VECTOR);
 
-		float distance_x = abs(gV_MapZones[i][0][0] - gV_MapZones[i][1][0]);
-		float distance_y = abs(gV_MapZones[i][0][1] - gV_MapZones[i][1][1]);
-		float distance_z = abs(gV_MapZones[i][0][2] - gV_MapZones[i][1][2]);
+		float distance_x = abs(gV_MapZones[i][0][0] - gV_MapZones[i][7][0]);
+		float distance_y = abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]);
+		float distance_z = abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]);
 
 		float min[3];
 		min[0] = -(distance_x / 2);
