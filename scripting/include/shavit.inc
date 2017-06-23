@@ -31,7 +31,7 @@
 
 #define SHAVIT_VERSION "1.5b"
 #define STYLE_LIMIT 256
-#define MAX_ZONES 8
+#define MAX_ZONES 64
 
 // HUD
 #define HUD_NONE				(0)
@@ -199,10 +199,7 @@ char gS_CSGOColors[][] =
 };
 #endif
 
-// map zones
-#define MULTIPLEZONES_LIMIT 32
-
-enum MapZones(+=1)
+enum(+=1)
 {
 	Zone_Start = 0,
 	Zone_End,
@@ -212,7 +209,17 @@ enum MapZones(+=1)
 	Zone_Freestyle,
 	Zone_NoVelLimit,
 	Zone_Teleport,
-	Zone_CustomSpawn
+	Zone_CustomSpawn,
+	ZONETYPES_SIZE
+};
+
+enum
+{
+	bZoneInitialized,
+	iZoneType,
+	iZoneTrack, // 0 - main, 1 - bonus
+	iEntityID,
+	ZONECACHE_SIZE
 };
 
 // let's not throw errors k?
@@ -576,19 +583,19 @@ native int Shavit_GetRankForTime(BhopStyle style, float time);
 /**
  * Checks if a mapzone exists.
  *
- * @param type						Mapzone type. (Check "enum MapZones")
+ * @param type						Mapzone type.
  * @return							Boolean value.
  */
-native bool Shavit_ZoneExists(MapZones type);
+native bool Shavit_ZoneExists(int type);
 
 /**
  * Checks if a player is inside a mapzone
  *
  * @param client					Client index.
- * @param type						Mapzone type. (Check "enum MapZones")
+ * @param type						Mapzone type.
  * @return							Boolean value.
  */
-native bool Shavit_InsideZone(int client, MapZones type);
+native bool Shavit_InsideZone(int client, int type);
 
 /**
  * Checks if a player is in the process of creating a mapzone.

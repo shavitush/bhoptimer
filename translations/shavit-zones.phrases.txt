@@ -58,22 +58,6 @@
 		"en"		"Grid snap: x{1}"
 	}
 	// ---------- Zone Menu ---------- //
-	"Edge_Back"
-	{
-		"en"		"Back"
-	}
-	"Edge_Front"
-	{
-		"en"		"Front"
-	}
-	"Edge_Left"
-	{
-		"en"		"Left"
-	}
-	"Edge_Right"
-	{
-		"en"		"Right"
-	}
 	"ZoneAdjustCancel"
 	{
 		"en"		"Cancel"
@@ -162,25 +146,6 @@
 		"#format"	"{1:d},{2:c}"
 		"en"		"Point {1} | {2} axis"
 	}
-	"ZoneRotate"
-	{
-		"en"		"Rotate the zone.\nUse 'sm_modifier <number>' to set a new modifier"
-	}
-	"ZoneRotateNegative"
-	{
-		"#format"	"{1:.01f}"
-		"en"		"Rotate by -{1} degrees"
-	}
-	"ZoneRotatePlus"
-	{
-		"#format"	"{1:.01f}"
-		"en"		"Rotate by +{1} degrees"
-	}
-	"ZoneRotateSuccessful"
-	{
-		"#format"	"{1:s},{2:.01f},{3:s}"
-		"en"		"Zone rotated by {1}{2}{3} degrees."
-	}
 	"ZoneSecond"
 	{
 		"en"		"SECOND"
@@ -196,10 +161,6 @@
 	"ZoneSetRotate"
 	{
 		"en"		"Rotate zone"
-	}
-	"ZoneSetSize"
-	{
-		"en"		"Modify width/length"
 	}
 	"ZoneSetTP"
 	{
@@ -230,5 +191,22 @@
 	"ZoneTeleportInsideZone"
 	{
 		"en"		"You may not place a destination inside the teleport zone."
+	}
+	"ZoneEditMain"
+	{
+		"en"		"Main"
+	}
+	"ZoneEditBonus"
+	{
+		"en"		"Bonus"
+	}
+	"ZoneEditTrack"
+	{
+		"#format"	"{1:s}"
+		"en"		"Zone track: {1}"
+	}
+	"ZoneChangeTrack"
+	{
+		"en"		"Change zone track"
 	}
 }

@@ -1556,7 +1556,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-public void RemoveRadar(any data)
+void RemoveRadar(any data)
 {
 	int client = GetClientFromSerial(data);
 
