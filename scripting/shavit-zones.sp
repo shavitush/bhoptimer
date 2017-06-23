@@ -2076,7 +2076,7 @@ void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char[] sQuery = new char[1024];
-		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0, `destination_x` FLOAT NOT NULL default 0, `destination_y` FLOAT NOT NULL default 0, `destination_z` FLOAT NOT NULL default 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL DEFAULT 0, `fix1_x` FLOAT NOT NULL DEFAULT 0, `fix1_y` FLOAT NOT NULL DEFAULT 0, `fix2_x` FLOAT NOT NULL DEFAULT 0, `fix2_y` FLOAT NOT NULL DEFAULT 0, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}
@@ -2110,21 +2110,21 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 
 		if(gB_MySQL)
 		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL DEFAULT 0, `fix1_x` FLOAT NOT NULL DEFAULT 0, `fix1_y` FLOAT NOT NULL DEFAULT 0, `fix2_x` FLOAT NOT NULL DEFAULT 0, `fix2_y` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
 			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 		}
 
 		else
 		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `rot_ang` FLOAT NOT NULL default 0;", gS_MySQLPrefix);
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `rot_ang` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix);
 			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 
 			for(int i = 1; i <= 2; i++)
 			{
-				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `fix%d_x` FLOAT NOT NULL default 0;", gS_MySQLPrefix, i);
+				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `fix%d_x` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix, i);
 				gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 
-				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `fix%d_y` FLOAT NOT NULL default 0;", gS_MySQLPrefix, i);
+				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `fix%d_y` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix, i);
 				gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 			}
 		}
@@ -2146,9 +2146,24 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`destination_x` FLOAT NOT NULL default 0, `destination_y` FLOAT NOT NULL default 0, `destination_z` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
 
-		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+			gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
+		}
+
+		else
+		{
+			char[] sAxis = new char[4];
+			strcopy(sAxis, 4, "xyz");
+
+			for(int i = 0; i < 3; i++)
+			{
+				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `destination_%c` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix, sAxis[i]);
+				gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
+			}
+		}
 	}
 }
 
@@ -2167,9 +2182,18 @@ public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`bonus` INT NOT NULL default 0);", gS_MySQLPrefix);
 
-		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery);
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`bonus` INT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `bonus` INTEGER NOT NULL DEFAULT 0;", gS_MySQLPrefix);
+		}
+
+		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
 }
 
@@ -2177,7 +2201,7 @@ public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const cha
 {
 	if(results == null)
 	{
-		LogError("Timer (zones module) error! Map zones' table migration (2) failed. Reason: %s", error);
+		LogError("Timer (zones module) error! Map zones' table migration (3) failed. Reason: %s", error);
 
 		return;
 	}
