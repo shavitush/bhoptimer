@@ -85,6 +85,7 @@ float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 bool gB_BonusZones[MAXPLAYERS+1];
+bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE];
 float gF_CustomSpawn[3];
 
 // Zone cache.
@@ -123,6 +124,10 @@ char gS_MySQLPrefix[32];
 
 // chat settings
 char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
+// forwards
+Handle gH_Forwards_EnterZone = null;
+Handle gH_Forwards_LeaveZone = null;
 
 public Plugin myinfo =
 {
@@ -177,6 +182,10 @@ public void OnPluginStart()
 
 	// events
 	HookEvent("round_start", Round_Start);
+
+	// forwards
+	gH_Forwards_EnterZone = CreateGlobalForward("Shavit_OnEnterZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_LeaveZone = CreateGlobalForward("Shavit_OnLeaveZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// cvars and stuff
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
@@ -302,8 +311,7 @@ public int Native_ZoneExists(Handle handler, int numParams)
 
 public int Native_InsideZone(Handle handler, int numParams)
 {
-	// TODO: implement
-	return false;
+	return InsideZone(GetNativeCell(1), GetNativeCell(2));
 }
 
 public int Native_IsClientCreatingZone(Handle handler, int numParams)
@@ -902,6 +910,11 @@ void Reset(int client)
 		gV_Point2[client][i] = 0.0;
 		gV_Teleport[client][i] = 0.0;
 	}
+
+	for(int i = 0; i < ZONETYPES_SIZE; i++)
+	{
+		gB_InsideZone[client][i] = false;
+	}
 }
 
 void ShowPanel(int client, int step)
@@ -1013,50 +1026,6 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		}
 	}
 
-	if(InsideZone(client, Zone_Respawn))
-	{
-		CS_RespawnPlayer(client);
-
-		return Plugin_Continue;
-	}
-
-	// TODO: fix teleport zones
-	/*for(int i = 0; i < 2; i++)
-	{
-		if(gMZ_FreestyleTypes[i] == Zone_Teleport && !EmptyZone(gV_TeleportZoneDestination[i]) && InsideTeleportZone(client, i))
-		{
-			TeleportEntity(client, gV_TeleportZoneDestination[i], NULL_VECTOR, NULL_VECTOR);
-		}
-	}*/
-
-	if(InsideZone(client, Zone_Start))
-	{
-		Shavit_ResumeTimer(client);
-		Shavit_StartTimer(client);
-
-		return Plugin_Continue;
-	}
-
-	if(InsideZone(client, Zone_Slay))
-	{
-		Shavit_StopTimer(client);
-
-		ForcePlayerSuicide(client);
-	}
-
-	if(Shavit_GetTimerStatus(client) == Timer_Running)
-	{
-		if(InsideZone(client, Zone_Stop))
-		{
-			Shavit_StopTimer(client);
-		}
-
-		if(InsideZone(client, Zone_End))
-		{
-			Shavit_FinishMap(client);
-		}
-	}
-
 	return Plugin_Continue;
 }
 
@@ -1090,23 +1059,15 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 			GetClientAbsOrigin(param1, vTeleport);
 			vTeleport[2] += 2.0;
 
-			float vPoints[8][3];
-			vPoints[0] = gV_Point1[param1];
-			vPoints[7] = gV_Point2[param1];
-
-			// TODO: reimplement
-			/*
-			CreateZonePoints(vPoints, 0.0, 0.0, 0.0, 0, false, true);
+			bool bInside = true;
 
 			for(int i = 0; i < 3; i++)
 			{
-				if(vPoints[0][i] >= vTeleport[i] == vPoints[7][i] >= vTeleport[i])
+				if(gV_Point1[param1][i] >= vTeleport[i] == gV_Point2[param1][i] >= vTeleport[i])
 				{
 					bInside = false;
 				}
-			}*/
-
-			bool bInside = false;
+			}
 
 			if(bInside)
 			{
@@ -1449,14 +1410,7 @@ void CreateZonePoints(float point[8][3])
 
 public bool InsideZone(int client, int zone)
 {
-	// TODO: reimplement, set to private
-	return false;
-}
-
-public bool InsideTeleportZone(int client, int zone)
-{
-	// TODO: remove, use zone type instead
-	return false;
+	return gB_InsideZone[client][zone];
 }
 
 void SQL_SetPrefix()
@@ -1706,6 +1660,8 @@ public void CreateZoneEntities()
 			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
 			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
 
+			KillZoneEntity(i);
+
 			gA_ZoneCache[i][iEntityID] = -1;
 		}
 
@@ -1764,6 +1720,7 @@ public void CreateZoneEntities()
 
 		SDKHook(entity, SDKHook_StartTouchPost, StartTouchPost);
 		SDKHook(entity, SDKHook_EndTouchPost, EndTouchPost);
+		SDKHook(entity, SDKHook_TouchPost, TouchPost);
 
 		gI_EntityZone[entity] = i;
 		gA_ZoneCache[i][iEntityID] = entity;
@@ -1772,20 +1729,91 @@ public void CreateZoneEntities()
 
 public void StartTouchPost(int entity, int other)
 {
-	if(!IsValidClient(other, true))
+	if(other < 1 || other > MaxClients || !IsPlayerAlive(other))
 	{
 		return;
 	}
 
-	Shavit_PrintToChat(other, "Entered: %s", gS_ZoneNames[gA_ZoneCache[gI_EntityZone[entity]][iZoneType]]);
+	TimerStatus status = Shavit_GetTimerStatus(other);
+
+	switch(gA_ZoneCache[gI_EntityZone[entity]][iZoneType])
+	{
+		case Zone_Respawn:
+		{
+			CS_RespawnPlayer(other);
+		}
+
+		case Zone_Teleport:
+		{
+			TeleportEntity(other, gV_Destinations[gI_EntityZone[entity]], NULL_VECTOR, NULL_VECTOR);
+		}
+
+		case Zone_Slay:
+		{
+			Shavit_StopTimer(other);
+
+			ForcePlayerSuicide(other);
+		}
+
+		case Zone_Stop:
+		{
+			if(status != Timer_Stopped)
+			{
+				Shavit_StopTimer(other);
+			}
+		}
+
+		case Zone_End:
+		{
+			if(status != Timer_Stopped)
+			{
+				Shavit_FinishMap(other);
+			}
+		}
+	}
+
+	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]] = true;
+
+	Call_StartForward(gH_Forwards_EnterZone);
+	Call_PushCell(other);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneType]);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
+	Call_PushCell(gI_EntityZone[entity]);
+	Call_PushCell(entity);
+	Call_Finish();
 }
 
 public void EndTouchPost(int entity, int other)
 {
-	if(!IsValidClient(other, true))
+	if(other < 1 || other > MaxClients || !IsPlayerAlive(other))
 	{
 		return;
 	}
 
-	Shavit_PrintToChat(other, "Left: %s", gS_ZoneNames[gA_ZoneCache[gI_EntityZone[entity]][iZoneType]]);
+	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]] = false;
+
+	Call_StartForward(gH_Forwards_LeaveZone);
+	Call_PushCell(other);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneType]);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
+	Call_PushCell(gI_EntityZone[entity]);
+	Call_PushCell(entity);
+	Call_Finish();
+}
+
+public void TouchPost(int entity, int other)
+{
+	if(other < 1 || other > MaxClients || !IsPlayerAlive(other))
+	{
+		return;
+	}
+
+	// do precise stuff here, this will be called *A LOT*
+	switch(gA_ZoneCache[gI_EntityZone[entity]][iZoneType])
+	{
+		case Zone_Start:
+		{
+			Shavit_StartTimer(other);
+		}
+	}
 }

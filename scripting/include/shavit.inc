@@ -411,6 +411,30 @@ forward void Shavit_OnDatabaseLoaded(Database db);
 forward void Shavit_OnChatConfigLoaded();
 
 /**
+ * Called when a player enters a zone.
+ *
+ * @param client					Client index.
+ * @param type						Zone type.
+ * @param track						Zone track.
+ * @param id						Zone ID.
+ * @param entity					Zone entity iD.
+ * @noreturn
+ */
+forward void Shavit_OnEnterZone(int client, int type, int track, int id, int entity);
+
+/**
+ * Called when a player leaves a zone.
+ *
+ * @param client					Client index.
+ * @param type						Zone type.
+ * @param track						Zone track.
+ * @param id						Zone ID.
+ * @param entity					Zone entity iD.
+ * @noreturn
+ */
+forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
