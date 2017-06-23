@@ -2097,6 +2097,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	FormatEx(sQuery, 64, "SELECT destination_x FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery);
+
+	FormatEx(sQuery, 64, "SELECT bonus FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigration3_Callback, sQuery);
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2150,6 +2153,27 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 }
 
 public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (zones module) error! Map zones' table migration (2) failed. Reason: %s", error);
+
+		return;
+	}
+}
+
+public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`bonus` INT NOT NULL default 0);", gS_MySQLPrefix);
+
+		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery);
+	}
+}
+
+public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
 	{
