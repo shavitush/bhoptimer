@@ -231,4 +231,21 @@
 	{
 		"en"		"You may not place a destination inside the teleport zone."
 	}
+	"ZoneEditMain"
+	{
+		"en"		"Main"
+	}
+	"ZoneEditBonus"
+	{
+		"en"		"Bonus"
+	}
+	"ZoneEditTrack"
+	{
+		"#format"	"{1:s}"
+		"en"		"Zone track: {1}"
+	}
+	"ZoneChangeTrack"
+	{
+		"en"		"Change zone track"
+	}
 }

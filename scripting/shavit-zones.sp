@@ -86,6 +86,7 @@ int gI_GridSnap[MAXPLAYERS+1];
 float gV_Point1[MAXPLAYERS+1][3];
 float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
+bool gB_BonusZones[MAXPLAYERS+1];
 
 bool gB_Button[MAXPLAYERS+1];
 
@@ -981,6 +982,7 @@ public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int
 
 void Reset(int client)
 {
+	gB_BonusZones[client] = false;
 	gF_Modifier[client] = 10.0;
 	gI_MapStep[client] = 0;
 	gI_GridSnap[client] = 16;
@@ -1228,6 +1230,13 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 			CreateEditMenu(param1);
 		}
+
+		else if(StrEqual(info, "track"))
+		{
+			gB_BonusZones[param1] = !gB_BonusZones[param1];
+
+			CreateEditMenu(param1);
+		}
 	}
 
 	else if(action == MenuAction_End)
@@ -1240,8 +1249,20 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 void CreateEditMenu(int client)
 {
+	char[] sTrack = new char[32];
+	
+	if(!gB_BonusZones[client])
+	{
+		FormatEx(sTrack, 32, "%T", "ZoneEditMain", client);
+	}
+
+	else
+	{
+		FormatEx(sTrack, 32, "%T", "ZoneEditBonus", client);
+	}
+
 	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	menu.SetTitle("%T", "ZoneEditConfirm", client);
+	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
 
 	char[] sMenuItem = new char[64];
 
@@ -1276,6 +1297,8 @@ void CreateEditMenu(int client)
 	menu.AddItem("rotate", sMenuItem);
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetSize", client);
 	menu.AddItem("wl", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneChangeTrack", client);
+	menu.AddItem("track", sMenuItem);
 
 	menu.ExitButton = true;
 
