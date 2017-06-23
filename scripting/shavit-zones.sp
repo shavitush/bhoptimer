@@ -560,7 +560,7 @@ public Action Command_Modifier(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!args)
+	if(args == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ModifierCommandNoArgs", client);
 
@@ -708,8 +708,12 @@ public Action Command_DeleteZone(int client, int args)
 		if(gA_ZoneCache[i][bZoneInitialized])
 		{
 			char[] sInfo = new char[8];
-			IntToString(gA_ZoneCache[i][iZoneType], sInfo, 8);
-			menu.AddItem(sInfo, gS_ZoneNames[gA_ZoneCache[i][iZoneType]]);
+			IntToString(i, sInfo, 8);
+
+			char[] sDisplay = new char[64];
+			FormatEx(sDisplay, 64, "#%d %s", (i + 1), gS_ZoneNames[gA_ZoneCache[i][iZoneType]]);
+
+			menu.AddItem(sInfo, sDisplay);
 		}
 	}
 
@@ -1391,6 +1395,8 @@ public Action Timer_Draw(Handle Timer, any data)
 		points[0] = gV_Point1[client];
 		points[7] = vOrigin;
 
+		CreateZonePoints(points);
+
 		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
@@ -1717,6 +1723,7 @@ public void CreateZoneEntities()
 			continue;
 		}
 
+		DispatchKeyValue(entity, "wait", "0");
 		DispatchKeyValue(entity, "spawnflags", "4097");
 		
 		if(!DispatchSpawn(entity))
@@ -1742,15 +1749,15 @@ public void CreateZoneEntities()
 		float distance_z = abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]);
 
 		float min[3];
-		min[0] = -(distance_x / 2);
-		min[1] = -(distance_y / 2);
-		min[2] = -(distance_z / 2);
+		min[0] = -(distance_x / 2) + 16.0;
+		min[1] = -(distance_y / 2) + 16.0;
+		min[2] = -(distance_z / 2) + 16.0;
 		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
 
 		float max[3];
-		max[0] = distance_x / 2;
-		max[1] = distance_y / 2;
-		max[2] = distance_z / 2;
+		max[0] = (distance_x / 2) - 16.0;
+		max[1] = (distance_y / 2) - 16.0;
+		max[2] = (distance_z / 2) - 16.0;
 		SetEntPropVector(entity, Prop_Send, "m_vecMaxs", max);
 
 		SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
