@@ -181,6 +181,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_delspawn", Command_DelSpawn,  ADMFLAG_RCON, "Deletes a custom spawn location");
 
 	// events
+	HookEvent("player_spawn", Player_Spawn);
 	HookEvent("round_start", Round_Start);
 
 	// forwards
@@ -1629,6 +1630,11 @@ int GetZoneIndex(int type, int start = 0)
 	}
 
 	return -1;
+}
+
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+{
+	Reset(GetClientOfUserId(event.GetInt("userid")));
 }
 
 public void Round_Start(Event event, const char[] name, bool dontBroadcast)
