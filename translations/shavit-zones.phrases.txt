@@ -95,18 +95,9 @@
 	{
 		"en"		"Deleted all map zones succesfully"
 	}
-	"ZoneEdge"
-	{
-		"en"		"edge"
-	}
 	"ZoneFirst"
 	{
 		"en"		"FIRST"
-	}
-	"ZoneEdgeChange"
-	{
-		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:.01f},{7:s}"
-		"en"		"{1} edge {2}{3}{4} by {5}{6} degrees{7}."
 	}
 	"ZoneIncreased"
 	{
