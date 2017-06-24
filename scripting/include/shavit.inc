@@ -222,6 +222,13 @@ enum
 	ZONECACHE_SIZE
 };
 
+enum
+{
+	Track_Main,
+	Track_Bonus,
+	TRACKS_SIZE
+};
+
 // let's not throw errors k?
 stock bool IsValidClient(int client, bool bAlive = false) // when bAlive is false = technical checks, when it's true = gameplay checks
 {
@@ -608,18 +615,20 @@ native int Shavit_GetRankForTime(BhopStyle style, float time);
  * Checks if a mapzone exists.
  *
  * @param type						Mapzone type.
+ * @param track						Mapzone track, -1 to ignore track.
  * @return							Boolean value.
  */
-native bool Shavit_ZoneExists(int type);
+native bool Shavit_ZoneExists(int type, int track);
 
 /**
  * Checks if a player is inside a mapzone
  *
  * @param client					Client index.
  * @param type						Mapzone type.
+ * @param track						Mapzone track, -1 to ignore track.
  * @return							Boolean value.
  */
-native bool Shavit_InsideZone(int client, int type);
+native bool Shavit_InsideZone(int client, int type, int track);
 
 /**
  * Checks if a player is in the process of creating a mapzone.

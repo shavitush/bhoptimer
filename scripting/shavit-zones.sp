@@ -85,7 +85,7 @@ float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 bool gB_BonusZones[MAXPLAYERS+1];
-bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE];
+bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 float gF_CustomSpawn[3];
 
 // Zone cache.
@@ -307,12 +307,32 @@ public void AdminMenu_DeleteAllZones(Handle topmenu,  TopMenuAction action, TopM
 
 public int Native_ZoneExists(Handle handler, int numParams)
 {
-	return view_as<int>(GetZoneIndex(GetNativeCell(1)) != -1);
+	return (GetZoneIndex(GetNativeCell(1), GetNativeCell(2)) != -1);
 }
 
 public int Native_InsideZone(Handle handler, int numParams)
 {
-	return InsideZone(GetNativeCell(1), GetNativeCell(2));
+	int client = GetNativeCell(1);
+	int type = GetNativeCell(2);
+	int track = GetNativeCell(3);
+
+	if(track != -1)
+	{
+		return gB_InsideZone[client][type][track];
+	}
+
+	else
+	{
+		for(int i = 0; i < TRACKS_SIZE; i++)
+		{
+			if(gB_InsideZone[client][type][i])
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 public int Native_IsClientCreatingZone(Handle handler, int numParams)
@@ -914,7 +934,10 @@ void Reset(int client)
 
 	for(int i = 0; i < ZONETYPES_SIZE; i++)
 	{
-		gB_InsideZone[client][i] = false;
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			gB_InsideZone[client][i][j] = false;
+		}
 	}
 }
 
@@ -1245,7 +1268,7 @@ void InsertZone(int client)
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
 	}
 
-	else if(GetZoneIndex(type) == -1 || type >= Zone_Respawn) // insert
+	else if(GetZoneIndex(type, view_as<int>(gB_BonusZones[client])) == -1 || type >= Zone_Respawn) // insert
 	{
 		if(type != Zone_Teleport)
 		{
@@ -1407,11 +1430,6 @@ void CreateZonePoints(float point[8][3])
 	}
 }
 
-public bool InsideZone(int client, int zone)
-{
-	return gB_InsideZone[client][zone];
-}
-
 void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
@@ -1553,7 +1571,7 @@ public void Shavit_OnRestart(int client)
 
 		else
 		{
-			int index = GetZoneIndex(Zone_Start);
+			int index = GetZoneIndex(Zone_Start, Track_Main);
 
 			if(index == -1)
 			{
@@ -1577,7 +1595,7 @@ public void Shavit_OnEnd(int client)
 {
 	if(gB_TeleportToEnd)
 	{
-		int index = GetZoneIndex(Zone_End);
+		int index = GetZoneIndex(Zone_End, Track_Main);
 
 		if(index == -1)
 		{
@@ -1607,21 +1625,16 @@ bool EmptyVector(float vec[3])
 }
 
 // returns -1 if there's no zone
-int GetZoneIndex(int type, int start = 0)
+int GetZoneIndex(int type, int track, int start = 0)
 {
 	if(gI_MapZones == 0)
 	{
 		return -1;
 	}
 
-	if(start != 0)
-	{
-		start++;
-	}
-
 	for(int i = start; i < gI_MapZones; i++)
 	{
-		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneCache[i][iZoneType] == type)
+		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneCache[i][iZoneType] == type && (gA_ZoneCache[i][iZoneTrack] == track || track == -1))
 		{
 			return i;
 		}
@@ -1769,14 +1782,14 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_End:
 		{
-			if(status != Timer_Stopped)
+			if(status != Timer_Stopped && gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
 			{
 				Shavit_FinishMap(other);
 			}
 		}
 	}
 
-	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]] = true;
+	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]][gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]] = true;
 
 	Call_StartForward(gH_Forwards_EnterZone);
 	Call_PushCell(other);
@@ -1794,7 +1807,7 @@ public void EndTouchPost(int entity, int other)
 		return;
 	}
 
-	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]] = false;
+	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]][gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]] = false;
 
 	Call_StartForward(gH_Forwards_LeaveZone);
 	Call_PushCell(other);
@@ -1817,7 +1830,10 @@ public void TouchPost(int entity, int other)
 	{
 		case Zone_Start:
 		{
-			Shavit_StartTimer(other);
+			if(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			{
+				Shavit_StartTimer(other);
+			}
 		}
 	}
 }

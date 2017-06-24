@@ -428,7 +428,7 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
+	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start, Track_Main)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
@@ -452,7 +452,7 @@ public Action Command_TeleportEnd(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gB_Zones && Shavit_ZoneExists(Zone_End))
+	if(gB_Zones && Shavit_ZoneExists(Zone_End, Track_Main))
 	{
 		Shavit_StopTimer(client);
 		
@@ -488,7 +488,7 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(Shavit_InsideZone(client, Zone_Start))
+	if(Shavit_InsideZone(client, Zone_Start, -1))
 	{
 		Shavit_PrintToChat(client, "%T", "PauseStartZone", client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
@@ -669,7 +669,7 @@ void ChangeClientStyle(int client, BhopStyle style)
 
 	StopTimer(client);
 
-	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start)))
+	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start, Track_Main)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
@@ -1479,7 +1479,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
-	bool bInStart = Shavit_InsideZone(client, Zone_Start);
+	bool bInStart = Shavit_InsideZone(client, Zone_Start, Track_Main);
 
 	if(gB_TimerEnabled[client] && !gB_ClientPaused[client])
 	{
@@ -1511,7 +1511,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// key blocking
-	if(!Shavit_InsideZone(client, Zone_Freestyle))
+	if(!Shavit_InsideZone(client, Zone_Freestyle, -1))
 	{
 		// block E
 		if(gA_StyleSettings[gBS_Style[client]][bBlockUse] && (buttons & IN_USE) > 0)
@@ -1628,7 +1628,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	// velocity limit
 	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) &&
-		(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit)))
+		(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit, -1)))
 	{
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
