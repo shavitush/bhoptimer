@@ -1148,8 +1148,6 @@ void CreateEditMenu(int client)
 	menu.AddItem("no", sMenuItem);
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
 	menu.AddItem("adjust", sMenuItem);
-	FormatEx(sMenuItem, 64, "%T", "ZoneSetRotate", client);
-	menu.AddItem("rotate", sMenuItem);
 	FormatEx(sMenuItem, 64, "%T", "ZoneChangeTrack", client);
 	menu.AddItem("track", sMenuItem);
 

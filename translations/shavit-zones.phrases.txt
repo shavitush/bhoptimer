@@ -149,10 +149,6 @@
 	{
 		"en"		"No"
 	}
-	"ZoneSetRotate"
-	{
-		"en"		"Rotate zone"
-	}
 	"ZoneSetTP"
 	{
 		"en"		"Yes (choose teleport destination first)"
