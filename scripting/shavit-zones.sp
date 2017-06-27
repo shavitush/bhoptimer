@@ -110,12 +110,14 @@ Handle gH_AdminMenu = INVALID_HANDLE;
 bool gB_Late = false;
 
 // cvars
+ConVar gCV_FlatZones = null;
 ConVar gCV_Interval = null;
 ConVar gCV_TeleportToStart = null;
 ConVar gCV_TeleportToEnd = null;
 ConVar gCV_UseCustomSprite = null;
 
 // cached cvars
+bool gB_FlatZones = false;
 float gF_Interval = 1.0;
 bool gB_TeleportToStart = true;
 bool gB_TeleportToEnd = true;
@@ -191,11 +193,13 @@ public void OnPluginStart()
 	gH_Forwards_LeaveZone = CreateGlobalForward("Shavit_OnLeaveZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// cvars and stuff
+	gCV_FlatZones = CreateConVar("shavit_zones_flat", "0", "Should zones be drawn as flat instead of a 3D box?", 0, true, 0.0, true, 1.0);
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
+	gCV_FlatZones.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToStart.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToEnd.AddChangeHook(OnConVarChanged);
@@ -210,6 +214,7 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
+	gB_FlatZones = gCV_FlatZones.BoolValue;
 	gF_Interval = gCV_Interval.FloatValue;
 	gB_TeleportToStart = gCV_TeleportToStart.BoolValue;
 	gB_UseCustomSprite = gCV_UseCustomSprite.BoolValue;
@@ -1376,7 +1381,7 @@ public Action Timer_DrawEverything(Handle Timer)
 	{
 		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
 		{
-			DrawZone(gV_MapZones[i], GetZoneColors(i), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth]);
+			DrawZone(gV_MapZones[i], GetZoneColors(i), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones);
 		}
 	}
 
@@ -1434,7 +1439,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		CreateZonePoints(points);
 
-		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth]);
+		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -1454,20 +1459,28 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat)
 {
-	// this loop is by blacky, and i have no clue what i'm doing
-	// math isn't my thing :/
-	for(int i = 0, i2 = 3; i2 >= 0; i += i2--)
+	static int pairs[][] =
 	{
-		for(int j = 1; j <= 7; j += (j / 2) + 1)
-		{
-			if(j != 7 - i)
-			{
-				TE_SetupBeamPoints(points[i], points[j], gI_BeamSprite, gI_HaloSprite, 0, 0, life, width, width, 0, 0.0, color, 0);
-				TE_SendToAll(0.0);
-			}
-		}
+		{ 0, 2 },
+		{ 2, 6 },
+		{ 6, 4 },
+		{ 4, 0 },
+		{ 0, 1 },
+		{ 3, 1 },
+		{ 3, 2 },
+		{ 3, 7 },
+		{ 5, 1 },
+		{ 5, 4 },
+		{ 6, 7 },
+		{ 7, 5 }
+	};
+
+	for(int i = 0; i < ((flat)? 4:12); i++)
+	{
+		TE_SetupBeamPoints(points[pairs[i][0]], points[pairs[i][1]], gI_BeamSprite, gI_HaloSprite, 0, 0, life, width, width, 0, 0.0, color, 0);
+		TE_SendToAll(0.0);
 	}
 }
 
