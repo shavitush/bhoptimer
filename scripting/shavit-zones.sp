@@ -1075,6 +1075,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 				if(gI_MapStep[client] == 1)
 				{
 					gV_Point1[client] = origin;
+					gV_Point1[client][2] += 1.0;
 
 					ShowPanel(client, 2);
 				}
