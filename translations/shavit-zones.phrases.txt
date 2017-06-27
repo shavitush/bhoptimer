@@ -57,6 +57,11 @@
 		"#format"	"{1:d}"
 		"en"		"Grid snap: x{1}"
 	}
+	"WallSnap"
+	{
+		"#format"	"{1:T}"
+		"en"		"Snap to wall: {1}"
+	}
 	// ---------- Zone Menu ---------- //
 	"ZoneAdjustCancel"
 	{

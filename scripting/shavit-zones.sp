@@ -78,6 +78,7 @@ int gI_MapStep[MAXPLAYERS+1];
 
 float gF_Modifier[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
+bool gB_SnapToWall[MAXPLAYERS+1];
 
 // Cache.
 float gV_Point1[MAXPLAYERS+1][3];
@@ -924,6 +925,7 @@ void Reset(int client)
 	gF_Modifier[client] = 10.0;
 	gI_MapStep[client] = 0;
 	gI_GridSnap[client] = 16;
+	gB_SnapToWall[client] = false;
 
 	for(int i = 0; i < 3; i++)
 	{
@@ -968,6 +970,9 @@ void ShowPanel(int client, int step)
 	FormatEx(sDisplay, 64, "%T", "GridSnap", client, gI_GridSnap[client]);
 	pPanel.DrawItem(sDisplay);
 
+	FormatEx(sDisplay, 64, "%T", "WallSnap", client, (gB_SnapToWall[client])? "ZoneSetYes":"ZoneSetNo", client);
+	pPanel.DrawItem(sDisplay);
+
 	pPanel.Send(client, ZoneCreation_Handler, 600);
 
 	delete pPanel;
@@ -977,22 +982,32 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		if(param2 == 1)
+		switch(param2)
 		{
-			Reset(param1);
-		}
-
-		else
-		{
-			gI_GridSnap[param1] *= 2;
-
-			if(gI_GridSnap[param1] > 64)
+			case 1:
 			{
-				gI_GridSnap[param1] = 1;
+				Reset(param1);
+
+				return 0;
 			}
 
-			ShowPanel(param1, gI_MapStep[param1]);
+			case 2:
+			{
+				gI_GridSnap[param1] *= 2;
+
+				if(gI_GridSnap[param1] > 64)
+				{
+					gI_GridSnap[param1] = 1;
+				}
+			}
+
+			case 3:
+			{
+				gB_SnapToWall[param1] = !gB_SnapToWall[param1];
+			}
 		}
+		
+		ShowPanel(param1, gI_MapStep[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -1001,6 +1016,40 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 	}
 
 	return 0;
+}
+
+bool SnapToWall(float pos[3], int client, float final[3])
+{
+	bool snap = false;
+	float angles[3];
+
+	while(angles[1] < 360.0)
+	{
+		angles[1] += 90.0;
+
+		TR_TraceRayFilter(pos, angles, MASK_PLAYERSOLID_BRUSHONLY, RayType_Infinite, TraceFilter_NoClients, client);
+
+		if(TR_DidHit())
+		{
+			float end[3];
+			TR_GetEndPosition(end);
+
+			if(GetVectorDistance(pos, end) <= gI_GridSnap[client])
+			{
+				int axis = (angles[1] == 0 || angles[1] == 180)? 0:1;
+				final[axis] = end[axis];
+
+				snap = true;
+			}
+		}
+	}
+
+	return snap;
+}
+
+public bool TraceFilter_NoClients(int entity, int contentsMask, any data)
+{
+	return (entity != data && !IsValidClient(data));
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons)
@@ -1016,24 +1065,30 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		{
 			if(!gB_Button[client])
 			{
-				float vOrigin[3];
-				GetClientAbsOrigin(client, vOrigin);
+				float vPlayerOrigin[3];
+				GetClientAbsOrigin(client, vPlayerOrigin);
 
-				// grid snapping
-				vOrigin[0] = float(RoundToNearest(vOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-				vOrigin[1] = float(RoundToNearest(vOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+				float origin[3];
+
+				if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
+				{
+					origin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+					origin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+				}
+
+				origin[2] = vPlayerOrigin[2];
 
 				if(gI_MapStep[client] == 1)
 				{
-					gV_Point1[client] = vOrigin;
+					gV_Point1[client] = origin;
 
 					ShowPanel(client, 2);
 				}
 
 				else if(gI_MapStep[client] == 2)
 				{
-					vOrigin[2] += 128.0;
-					gV_Point2[client] = vOrigin;
+					origin[2] += 128.0;
+					gV_Point2[client] = origin;
 
 					gI_MapStep[client]++;
 
@@ -1358,25 +1413,29 @@ public Action Timer_Draw(Handle Timer, any data)
 	float vPlayerOrigin[3];
 	GetClientAbsOrigin(client, vPlayerOrigin);
 
-	float vOrigin[3];
-	vOrigin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-	vOrigin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+	float origin[3];
+
+	if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
+	{
+		origin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+		origin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+	}
 
 	if(gI_MapStep[client] == 1 || (gV_Point2[client][0] == 0.0))
 	{
-		vOrigin[2] = (vPlayerOrigin[2] + 128.0);
+		origin[2] = (vPlayerOrigin[2] + 128.0);
 	}
 
 	else
 	{
-		vOrigin = gV_Point2[client];
+		origin = gV_Point2[client];
 	}
 
 	if(!EmptyVector(gV_Point1[client]) || !EmptyVector(gV_Point2[client]))
 	{
 		float points[8][3];
 		points[0] = gV_Point1[client];
-		points[7] = vOrigin;
+		points[7] = origin;
 
 		CreateZonePoints(points);
 
@@ -1389,11 +1448,11 @@ public Action Timer_Draw(Handle Timer, any data)
 		}
 	}
 
-	if(gI_MapStep[client] != 3 && !EmptyVector(vOrigin))
+	if(gI_MapStep[client] != 3 && !EmptyVector(origin))
 	{
-		vOrigin[2] -= 128.0;
+		origin[2] -= 128.0;
 
-		TE_SetupBeamPoints(vPlayerOrigin, vOrigin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
 		TE_SendToAll(0.0);
 	}
 
