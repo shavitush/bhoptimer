@@ -96,6 +96,7 @@ any gA_ZoneCache[MAX_ZONES][ZONECACHE_SIZE]; // Vectors will not be inside this 
 int gI_MapZones = 0;
 float gV_MapZones[MAX_ZONES][8][3];
 float gV_Destinations[MAX_ZONES][3];
+float gV_ZoneCenter[MAX_ZONES][3];
 int gI_EntityZone[4096];
 
 // beamsprite, used to draw the zone
@@ -118,10 +119,13 @@ ConVar gCV_UseCustomSprite = null;
 
 // cached cvars
 bool gB_FlatZones = false;
-float gF_Interval = 1.0;
+float gF_Interval = 1.5;
 bool gB_TeleportToStart = true;
 bool gB_TeleportToEnd = true;
 bool gB_UseCustomSprite = true;
+
+// handles
+Handle gH_DrawEverything = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -194,7 +198,7 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_FlatZones = CreateConVar("shavit_zones_flat", "0", "Should zones be drawn as flat instead of a 3D box?", 0, true, 0.0, true, 1.0);
-	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
+	gCV_Interval = CreateConVar("shavit_zones_interval", "1.5", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -219,6 +223,12 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_TeleportToStart = gCV_TeleportToStart.BoolValue;
 	gB_UseCustomSprite = gCV_UseCustomSprite.BoolValue;
 	gB_TeleportToEnd = gCV_TeleportToEnd.BoolValue;
+
+	if(convar == gCV_Interval)
+	{
+		delete gH_DrawEverything;
+		gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -441,7 +451,7 @@ public void OnMapStart()
 
 	// draw
 	// start drawing mapzones here
-	CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 
 	if(gB_Late)
 	{
@@ -463,6 +473,8 @@ void ClearZone(int index)
 	{
 		gV_MapZones[index][0][i] = 0.0;
 		gV_MapZones[index][7][i] = 0.0;
+		gV_Destinations[index][i] = 0.0;
+		gV_ZoneCenter[index][i] = 0.0;
 	}
 
 	gA_ZoneCache[index][bZoneInitialized] = false;
@@ -552,6 +564,10 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gV_MapZones[gI_MapZones][7][2] = results.FetchFloat(6);
 
 			CreateZonePoints(gV_MapZones[gI_MapZones]);
+
+			gV_ZoneCenter[gI_MapZones][0] = (gV_MapZones[gI_MapZones][0][0] + gV_MapZones[gI_MapZones][7][0]) / 2.0;
+			gV_ZoneCenter[gI_MapZones][1] = (gV_MapZones[gI_MapZones][0][1] + gV_MapZones[gI_MapZones][7][1]) / 2.0;
+			gV_ZoneCenter[gI_MapZones][2] = (gV_MapZones[gI_MapZones][0][2] + gV_MapZones[gI_MapZones][7][2]) / 2.0;
 
 			if(type == Zone_Teleport)
 			{
@@ -1051,6 +1067,11 @@ public bool TraceFilter_NoClients(int entity, int contentsMask, any data)
 	return (entity != data && !IsValidClient(data));
 }
 
+public bool TraceFilter_World(int entity, int contentsMask)
+{
+	return (entity == 0);
+}
+
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
 	if(!IsPlayerAlive(client) || IsFakeClient(client))
@@ -1381,7 +1402,7 @@ public Action Timer_DrawEverything(Handle Timer)
 	{
 		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
 		{
-			DrawZone(gV_MapZones[i], GetZoneColors(i), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones);
+			DrawZone(gV_MapZones[i], GetZoneColors(gA_ZoneCache[i][iZoneType]), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
 		}
 	}
 
@@ -1439,7 +1460,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		CreateZonePoints(points);
 
-		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false);
+		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -1459,7 +1480,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width, bool flat)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3])
 {
 	static int pairs[][] =
 	{
@@ -1477,10 +1498,28 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 		{ 7, 5 }
 	};
 
+	int[] clients = new int[MaxClients];
+	int count = 0;
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientInGame(i) && !IsFakeClient(i))
+		{
+			float eyes[3];
+			GetClientEyePosition(i, eyes);
+
+			if(GetVectorDistance(eyes, center) <= 1024.0 ||
+				(TR_TraceRayFilter(eyes, center, CONTENTS_SOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit()))
+			{
+				clients[count++] = i;
+			}
+		}
+	}
+
 	for(int i = 0; i < ((flat)? 4:12); i++)
 	{
 		TE_SetupBeamPoints(points[pairs[i][0]], points[pairs[i][1]], gI_BeamSprite, gI_HaloSprite, 0, 0, life, width, width, 0, 0.0, color, 0);
-		TE_SendToAll(0.0);
+		TE_Send(clients, count, 0.0);
 	}
 }
 
@@ -1646,11 +1685,8 @@ public void Shavit_OnRestart(int client)
 			}
 
 			float center[3];
-			MakeVectorFromPoints(gV_MapZones[index][0], gV_MapZones[index][7], center);
-			center[0] /= 2.0;
-			center[1] /= 2.0;
-
-			AddVectors(gV_MapZones[index][0], center, center);
+			center[0] = gV_ZoneCenter[index][0];
+			center[1] = gV_ZoneCenter[index][1];
 			center[2] = gV_MapZones[index][0][2];
 
 			TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
@@ -1670,11 +1706,8 @@ public void Shavit_OnEnd(int client)
 		}
 
 		float center[3];
-		MakeVectorFromPoints(gV_MapZones[index][0], gV_MapZones[index][7], center);
-		center[0] /= 2.0;
-		center[1] /= 2.0;
-
-		AddVectors(gV_MapZones[index][0], center, center);
+		center[0] = gV_ZoneCenter[index][0];
+		center[1] = gV_ZoneCenter[index][1];
 		center[2] = gV_MapZones[index][0][2];
 
 		TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
@@ -1777,12 +1810,7 @@ public void CreateZoneEntities()
 		SetEntityModel(entity, "models/props/cs_office/vending_machine.mdl");
 		SetEntProp(entity, Prop_Send, "m_fEffects", 32);
 
-		float center[3]; // center between both points
-		center[0] = (gV_MapZones[i][0][0] + gV_MapZones[i][7][0]) / 2.0;
-		center[1] = (gV_MapZones[i][0][1] + gV_MapZones[i][7][1]) / 2.0;
-		center[2] = (gV_MapZones[i][0][2] + gV_MapZones[i][7][2]) / 2.0;
-
-		TeleportEntity(entity, center, NULL_VECTOR, NULL_VECTOR);
+		TeleportEntity(entity, gV_ZoneCenter[i], NULL_VECTOR, NULL_VECTOR);
 
 		float distance_x = abs(gV_MapZones[i][0][0] - gV_MapZones[i][7][0]);
 		float distance_y = abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]);
