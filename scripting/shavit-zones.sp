@@ -1724,13 +1724,13 @@ public void CreateZoneEntities()
 		float min[3];
 		min[0] = -(distance_x / 2) + 16.0;
 		min[1] = -(distance_y / 2) + 16.0;
-		min[2] = -(distance_z / 2) + 16.0;
+		min[2] = -(distance_z / 2) + 36.0;
 		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
 
 		float max[3];
 		max[0] = (distance_x / 2) - 16.0;
 		max[1] = (distance_y / 2) - 16.0;
-		max[2] = (distance_z / 2) - 16.0;
+		max[2] = (distance_z / 2) - 36.0;
 		SetEntPropVector(entity, Prop_Send, "m_vecMaxs", max);
 
 		SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
