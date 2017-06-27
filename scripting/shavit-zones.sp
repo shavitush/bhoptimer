@@ -65,6 +65,7 @@ enum
 	iGreen,
 	iBlue,
 	iAlpha,
+	fWidth,
 	ZONESETTINGS_SIZE
 }
 
@@ -385,14 +386,7 @@ bool LoadZonesConfig()
 		gA_ZoneSettings[i][iGreen] = dZoneSettings.GetInt("green", 255);
 		gA_ZoneSettings[i][iBlue] = dZoneSettings.GetInt("blue", 255);
 		gA_ZoneSettings[i][iAlpha] = dZoneSettings.GetInt("alpha", 255);
-
-		// debug
-		/*
-			char[] sName = new char[32];
-			dZoneSettings.GetName(sName, 32);
-
-			PrintToServer("-- [DEBUG] [%s] [visible %d] [r %d] [g %d] [b %d] [a %d]", sName, gA_ZoneSettings[i][bVisible], gA_ZoneSettings[i][iRed], gA_ZoneSettings[i][iGreen], gA_ZoneSettings[i][iBlue], gA_ZoneSettings[i][iAlpha]);
-		*/
+		gA_ZoneSettings[i][fWidth] = dZoneSettings.GetFloat("width", 2.0);
 	}
 
 	dZones.Dispose(true);
@@ -1381,7 +1375,7 @@ public Action Timer_DrawEverything(Handle Timer)
 	{
 		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
 		{
-			DrawZone(gV_MapZones[i], GetZoneColors(i), gF_Interval);
+			DrawZone(gV_MapZones[i], GetZoneColors(i), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth]);
 		}
 	}
 
@@ -1439,7 +1433,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		CreateZonePoints(points);
 
-		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1);
+		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth]);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -1459,7 +1453,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life)
+void DrawZone(float points[8][3], int color[4], float life, float width)
 {
 	// this loop is by blacky, and i have no clue what i'm doing
 	// math isn't my thing :/
@@ -1469,7 +1463,7 @@ void DrawZone(float points[8][3], int color[4], float life)
 		{
 			if(j != 7 - i)
 			{
-				TE_SetupBeamPoints(points[i], points[j], gI_BeamSprite, gI_HaloSprite, 0, 0, life, 3.5, 3.5, 0, 0.0, color, 0);
+				TE_SetupBeamPoints(points[i], points[j], gI_BeamSprite, gI_HaloSprite, 0, 0, life, width, width, 0, 0.0, color, 0);
 				TE_SendToAll(0.0);
 			}
 		}
