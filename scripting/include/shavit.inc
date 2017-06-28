@@ -31,7 +31,7 @@
 
 #define SHAVIT_VERSION "1.5b"
 #define STYLE_LIMIT 256
-#define MAX_ZONES 8
+#define MAX_ZONES 64
 
 // HUD
 #define HUD_NONE				(0)
@@ -199,10 +199,7 @@ char gS_CSGOColors[][] =
 };
 #endif
 
-// map zones
-#define MULTIPLEZONES_LIMIT 32
-
-enum MapZones(+=1)
+enum(+=1)
 {
 	Zone_Start = 0,
 	Zone_End,
@@ -212,7 +209,24 @@ enum MapZones(+=1)
 	Zone_Freestyle,
 	Zone_NoVelLimit,
 	Zone_Teleport,
-	Zone_CustomSpawn
+	Zone_CustomSpawn,
+	ZONETYPES_SIZE
+};
+
+enum
+{
+	bZoneInitialized,
+	iZoneType,
+	iZoneTrack, // 0 - main, 1 - bonus
+	iEntityID,
+	ZONECACHE_SIZE
+};
+
+enum
+{
+	Track_Main,
+	Track_Bonus,
+	TRACKS_SIZE
 };
 
 // let's not throw errors k?
@@ -404,6 +418,30 @@ forward void Shavit_OnDatabaseLoaded(Database db);
 forward void Shavit_OnChatConfigLoaded();
 
 /**
+ * Called when a player enters a zone.
+ *
+ * @param client					Client index.
+ * @param type						Zone type.
+ * @param track						Zone track.
+ * @param id						Zone ID.
+ * @param entity					Zone entity iD.
+ * @noreturn
+ */
+forward void Shavit_OnEnterZone(int client, int type, int track, int id, int entity);
+
+/**
+ * Called when a player leaves a zone.
+ *
+ * @param client					Client index.
+ * @param type						Zone type.
+ * @param track						Zone track.
+ * @param id						Zone ID.
+ * @param entity					Zone entity iD.
+ * @noreturn
+ */
+forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
@@ -576,19 +614,21 @@ native int Shavit_GetRankForTime(BhopStyle style, float time);
 /**
  * Checks if a mapzone exists.
  *
- * @param type						Mapzone type. (Check "enum MapZones")
+ * @param type						Mapzone type.
+ * @param track						Mapzone track, -1 to ignore track.
  * @return							Boolean value.
  */
-native bool Shavit_ZoneExists(MapZones type);
+native bool Shavit_ZoneExists(int type, int track);
 
 /**
  * Checks if a player is inside a mapzone
  *
  * @param client					Client index.
- * @param type						Mapzone type. (Check "enum MapZones")
+ * @param type						Mapzone type.
+ * @param track						Mapzone track, -1 to ignore track.
  * @return							Boolean value.
  */
-native bool Shavit_InsideZone(int client, MapZones type);
+native bool Shavit_InsideZone(int client, int type, int track);
 
 /**
  * Checks if a player is in the process of creating a mapzone.

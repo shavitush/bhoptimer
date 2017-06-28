@@ -433,7 +433,7 @@ void UpdateHUD(int client)
 
 	if((gI_HUDSettings[client] & HUD_ZONEHUD) > 0)
 	{
-		if(Shavit_InsideZone(target, Zone_Start))
+		if(Shavit_InsideZone(target, Zone_Start, -1))
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
@@ -446,7 +446,7 @@ void UpdateHUD(int client)
 			}
 		}
 
-		else if(Shavit_InsideZone(target, Zone_End))
+		else if(Shavit_InsideZone(target, Zone_End, -1))
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
@@ -571,7 +571,7 @@ void UpdateHUD(int client)
 							Format(sFirstLine, 64, "%s %T", sFirstLine, "HudPracticeMode", client);
 						}
 
-						FormatEx(sHintText, 512, "%s\n%T: %s (%d)\n%T: %d\n%T: %d\n%T: %d%s", sFirstLine, "HudTimeText", client, sTime, rank, "HudJumpsText", client, jumps, "HudStrafeText", client, strafes, "HudSpeedText", client, iSpeed, (gA_StyleSettings[gBS_Style[target]][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit))? "\nNo Speed Limit":"");
+						FormatEx(sHintText, 512, "%s\n%T: %s (%d)\n%T: %d\n%T: %d\n%T: %d%s", sFirstLine, "HudTimeText", client, sTime, rank, "HudJumpsText", client, jumps, "HudStrafeText", client, strafes, "HudSpeedText", client, iSpeed, (gA_StyleSettings[gBS_Style[target]][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit, -1))? "\nNo Speed Limit":"");
 					}
 
 					else
@@ -854,7 +854,7 @@ void UpdateKeyHint(int client)
 
 		if(IsValidClient(target) && (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0))
 		{
-			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && gA_StyleSettings[gBS_Style[target]][bSync] && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start)))
+			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && gA_StyleSettings[gBS_Style[target]][bSync] && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, -1)))
 			{
 				Format(sMessage, 256, "%s%s%T: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 			}

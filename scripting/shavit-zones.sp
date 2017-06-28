@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 #include <cstrike>
 #include <dynamic>
 
@@ -31,8 +32,6 @@
 #pragma dynamic 131072
 #pragma newdecls required
 
-#define PLACEHOLDER 32767
-
 EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
@@ -40,7 +39,7 @@ bool gB_MySQL = false;
 
 char gS_Map[128];
 
-char gS_ZoneNames[MAX_ZONES][] =
+char gS_ZoneNames[][] =
 {
 	"Start Zone", // starts timer
 	"End Zone", // stops timer
@@ -66,12 +65,11 @@ enum
 	iGreen,
 	iBlue,
 	iAlpha,
+	fWidth,
 	ZONESETTINGS_SIZE
 }
 
-any gA_ZoneSettings[MAX_ZONES*8][ZONESETTINGS_SIZE];
-
-MapZones gMZ_Type[MAXPLAYERS+1];
+int gI_ZoneType[MAXPLAYERS+1];
 
 // 0 - nothing
 // 1 - wait for E tap to setup first coord
@@ -81,39 +79,25 @@ int gI_MapStep[MAXPLAYERS+1];
 
 float gF_Modifier[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
+bool gB_SnapToWall[MAXPLAYERS+1];
 
-// I suck
+// Cache.
 float gV_Point1[MAXPLAYERS+1][3];
 float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
-
 bool gB_Button[MAXPLAYERS+1];
-
-float gV_MapZones[MAX_ZONES][2][3];
-float gV_FreestyleZones[MULTIPLEZONES_LIMIT][2][3];
-MapZones gMZ_FreestyleTypes[MULTIPLEZONES_LIMIT];
-float gV_TeleportZoneDestination[MULTIPLEZONES_LIMIT][3];
-
-// Sorry for adding too many variables: zone rotations
-float gV_MapZonesFixes[MAX_ZONES][2][2];
-float gV_FreeStyleZonesFixes[MULTIPLEZONES_LIMIT][2][2];
-
-// ofir's pull request
-float gF_ConstSin[MAX_ZONES];
-float gF_MinusConstSin[MAX_ZONES];
-float gF_ConstCos[MAX_ZONES];
-float gF_MinusConstCos[MAX_ZONES];
-
-float gF_FreeStyleConstSin[MULTIPLEZONES_LIMIT];
-float gF_FreeStyleMinusConstSin[MULTIPLEZONES_LIMIT];
-float gF_FreeStyleConstCos[MULTIPLEZONES_LIMIT];
-float gF_FreeStyleMinusConstCos[MULTIPLEZONES_LIMIT];
-
+bool gB_BonusZones[MAXPLAYERS+1];
+bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 float gF_CustomSpawn[3];
 
-float gF_RotateAngle[MAXPLAYERS+1];
-float gV_Fix1[MAXPLAYERS+1][2];
-float gV_Fix2[MAXPLAYERS+1][2];
+// Zone cache.
+any gA_ZoneSettings[ZONETYPES_SIZE][ZONESETTINGS_SIZE];
+any gA_ZoneCache[MAX_ZONES][ZONECACHE_SIZE]; // Vectors will not be inside this array.
+int gI_MapZones = 0;
+float gV_MapZones[MAX_ZONES][8][3];
+float gV_Destinations[MAX_ZONES][3];
+float gV_ZoneCenter[MAX_ZONES][3];
+int gI_EntityZone[4096];
 
 // beamsprite, used to draw the zone
 char gS_Sprites[ZONESPRITES_SIZE][PLATFORM_MAX_PATH];
@@ -124,27 +108,36 @@ int gI_HaloSprite = -1;
 Handle gH_AdminMenu = INVALID_HANDLE;
 
 // late load?
-bool gB_Late;
+bool gB_Late = false;
 
 // cvars
-ConVar gCV_ZoneStyle = null;
+ConVar gCV_FlatZones = null;
 ConVar gCV_Interval = null;
 ConVar gCV_TeleportToStart = null;
 ConVar gCV_TeleportToEnd = null;
 ConVar gCV_UseCustomSprite = null;
+ConVar gCV_Height = null;
 
 // cached cvars
-int gI_ZoneStyle = 0;
-float gF_Interval = 1.0;
+bool gB_FlatZones = false;
+float gF_Interval = 1.5;
 bool gB_TeleportToStart = true;
 bool gB_TeleportToEnd = true;
 bool gB_UseCustomSprite = true;
+float gF_Height = 128.0;
+
+// handles
+Handle gH_DrawEverything = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
 
 // chat settings
 char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
+// forwards
+Handle gH_Forwards_EnterZone = null;
+Handle gH_Forwards_LeaveZone = null;
 
 public Plugin myinfo =
 {
@@ -197,18 +190,28 @@ public void OnPluginStart()
 	RegAdminCmd("sm_addspawn", Command_AddSpawn,  ADMFLAG_RCON, "Adds a custom spawn location");
 	RegAdminCmd("sm_delspawn", Command_DelSpawn,  ADMFLAG_RCON, "Deletes a custom spawn location");
 
+	// events
+	HookEvent("player_spawn", Player_Spawn);
+	HookEvent("round_start", Round_Start);
+
+	// forwards
+	gH_Forwards_EnterZone = CreateGlobalForward("Shavit_OnEnterZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_LeaveZone = CreateGlobalForward("Shavit_OnLeaveZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+
 	// cvars and stuff
-	gCV_ZoneStyle = CreateConVar("shavit_zones_style", "0", "Style for mapzone drawing.\n0 - 3D box\n1 - 2D box", 0, true, 0.0, true, 1.0);
-	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
+	gCV_FlatZones = CreateConVar("shavit_zones_flat", "0", "Should zones be drawn as flat instead of a 3D box?", 0, true, 0.0, true, 1.0);
+	gCV_Interval = CreateConVar("shavit_zones_interval", "1.5", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_Height = CreateConVar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
 
-	gCV_ZoneStyle.AddChangeHook(OnConVarChanged);
+	gCV_FlatZones.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToStart.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToEnd.AddChangeHook(OnConVarChanged);
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
+	gCV_Height.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -219,11 +222,18 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gI_ZoneStyle = gCV_ZoneStyle.IntValue;
+	gB_FlatZones = gCV_FlatZones.BoolValue;
 	gF_Interval = gCV_Interval.FloatValue;
 	gB_TeleportToStart = gCV_TeleportToStart.BoolValue;
 	gB_UseCustomSprite = gCV_UseCustomSprite.BoolValue;
 	gB_TeleportToEnd = gCV_TeleportToEnd.BoolValue;
+	gF_Height = gCV_Height.FloatValue;
+
+	if(convar == gCV_Interval)
+	{
+		delete gH_DrawEverything;
+		gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -319,28 +329,32 @@ public void AdminMenu_DeleteAllZones(Handle topmenu,  TopMenuAction action, TopM
 
 public int Native_ZoneExists(Handle handler, int numParams)
 {
-	MapZones type = GetNativeCell(1);
-
-	return view_as<int>(!EmptyZone(gV_MapZones[type][0]) && !EmptyZone(gV_MapZones[type][1]));
+	return (GetZoneIndex(GetNativeCell(1), GetNativeCell(2)) != -1);
 }
 
 public int Native_InsideZone(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
-	MapZones type = GetNativeCell(2);
+	int type = GetNativeCell(2);
+	int track = GetNativeCell(3);
 
-	if(type >= Zone_Freestyle && type != Zone_Teleport)
+	if(track != -1)
 	{
-		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+		return gB_InsideZone[client][type][track];
+	}
+
+	else
+	{
+		for(int i = 0; i < TRACKS_SIZE; i++)
 		{
-			if((i == 0 && InsideZone(client, -PLACEHOLDER)) || InsideZone(client, -i))
+			if(gB_InsideZone[client][type][i])
 			{
 				return true;
 			}
 		}
 	}
 
-	return view_as<int>(InsideZone(client, view_as<int>(type)));
+	return false;
 }
 
 public int Native_IsClientCreatingZone(Handle handler, int numParams)
@@ -392,14 +406,7 @@ bool LoadZonesConfig()
 		gA_ZoneSettings[i][iGreen] = dZoneSettings.GetInt("green", 255);
 		gA_ZoneSettings[i][iBlue] = dZoneSettings.GetInt("blue", 255);
 		gA_ZoneSettings[i][iAlpha] = dZoneSettings.GetInt("alpha", 255);
-
-		// debug
-		/*
-			char[] sName = new char[32];
-			dZoneSettings.GetName(sName, 32);
-
-			PrintToServer("-- [DEBUG] [%s] [visible %d] [r %d] [g %d] [b %d] [a %d]", sName, gA_ZoneSettings[i][bVisible], gA_ZoneSettings[i][iRed], gA_ZoneSettings[i][iGreen], gA_ZoneSettings[i][iBlue], gA_ZoneSettings[i][iAlpha]);
-		*/
+		gA_ZoneSettings[i][fWidth] = dZoneSettings.GetFloat("width", 2.0);
 	}
 
 	dZones.Dispose(true);
@@ -411,6 +418,7 @@ public void OnMapStart()
 {
 	GetCurrentMap(gS_Map, 128);
 
+	gI_MapZones = 0;
 	UnloadZones(0);
 
 	if(gH_SQL != null)
@@ -444,11 +452,11 @@ public void OnMapStart()
 		}
 	}
 
-	// PrecacheModel("models/props/cs_office/vending_machine.mdl"); // placeholder model
+	PrecacheModel("models/props/cs_office/vending_machine.mdl");
 
 	// draw
 	// start drawing mapzones here
-	CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 
 	if(gB_Late)
 	{
@@ -464,27 +472,46 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
+void ClearZone(int index)
+{
+	for(int i = 0; i < 3; i++)
+	{
+		gV_MapZones[index][0][i] = 0.0;
+		gV_MapZones[index][7][i] = 0.0;
+		gV_Destinations[index][i] = 0.0;
+		gV_ZoneCenter[index][i] = 0.0;
+	}
+
+	gA_ZoneCache[index][bZoneInitialized] = false;
+	gA_ZoneCache[index][iZoneType] = -1;
+	gA_ZoneCache[index][iZoneTrack] = -1;
+	gA_ZoneCache[index][iEntityID] = -1;
+}
+
+void KillZoneEntity(int index)
+{
+	if(gA_ZoneCache[index][iEntityID] != -1 && IsValidEntity(gA_ZoneCache[index][iEntityID]))
+	{
+		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
+	}
+}
+
 // 0 - all zones
 void UnloadZones(int zone)
 {
-	if(!zone)
+	if(zone == Zone_CustomSpawn)
+	{
+		ClearCustomSpawn();
+	}
+
+	else
 	{
 		for(int i = 0; i < MAX_ZONES; i++)
 		{
-			for(int j = 0; j < 3; j++)
+			if(gA_ZoneCache[i][bZoneInitialized] && (zone == 0 || gA_ZoneCache[i][iZoneType] == zone))
 			{
-				gV_MapZones[i][0][j] = 0.0;
-				gV_MapZones[i][1][j] = 0.0;
-			}
-		}
-
-		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
-		{
-			for(int j = 0; j < 3; j++)
-			{
-				gV_FreestyleZones[i][0][j] = 0.0;
-				gV_FreestyleZones[i][1][j] = 0.0;
-				gMZ_FreestyleTypes[i] = view_as<MapZones>(-1);
+				KillZoneEntity(i);
+				ClearZone(i);
 			}
 		}
 
@@ -492,39 +519,12 @@ void UnloadZones(int zone)
 
 		return;
 	}
-
-	if(zone < view_as<int>(Zone_Freestyle))
-	{
-		for(int i = 0; i < 3; i++)
-		{
-			gV_MapZones[zone][0][i] = 0.0;
-			gV_MapZones[zone][1][i] = 0.0;
-		}
-	}
-
-	else if(zone == view_as<int>(Zone_CustomSpawn))
-	{
-		ClearCustomSpawn();
-	}
-
-	else
-	{
-		for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
-		{
-			for(int j = 0; j < 3; j++)
-			{
-				gV_FreestyleZones[i][0][j] = 0.0;
-				gV_FreestyleZones[i][1][j] = 0.0;
-				gMZ_FreestyleTypes[i] = view_as<MapZones>(-1);
-			}
-		}
-	}
 }
 
 void RefreshZones()
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
 	if(gH_SQL != null)
 	{
@@ -546,85 +546,51 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 
-	int iFreestyleRow = 0;
+	gI_MapZones = 0;
 
 	while(results.FetchRow())
 	{
-		MapZones type = view_as<MapZones>(results.FetchInt(0));
+		int type = results.FetchInt(0);
 
 		if(type == Zone_CustomSpawn)
 		{
-			gF_CustomSpawn[0] = results.FetchFloat(12);
-			gF_CustomSpawn[1] = results.FetchFloat(13);
-			gF_CustomSpawn[2] = results.FetchFloat(14);
-		}
-
-		else if(type >= Zone_Freestyle)
-		{
-			gV_FreestyleZones[iFreestyleRow][0][0] = results.FetchFloat(1);
-			gV_FreestyleZones[iFreestyleRow][0][1] = results.FetchFloat(2);
-			gV_FreestyleZones[iFreestyleRow][0][2] = results.FetchFloat(3);
-			gV_FreestyleZones[iFreestyleRow][1][0] = results.FetchFloat(4);
-			gV_FreestyleZones[iFreestyleRow][1][1] = results.FetchFloat(5);
-			gV_FreestyleZones[iFreestyleRow][1][2] = results.FetchFloat(6);
-
-			gMZ_FreestyleTypes[iFreestyleRow] = type;
-
-			float ang = results.FetchFloat(7);
-
-			float radian = DegToRad(ang);
-			gF_FreeStyleConstSin[iFreestyleRow] = Sine(radian);
-			gF_FreeStyleConstCos[iFreestyleRow] = Cosine(radian);
-
-			radian = DegToRad(-ang);
-			gF_FreeStyleMinusConstSin[iFreestyleRow] = Sine(radian);
-			gF_FreeStyleMinusConstCos[iFreestyleRow] = Cosine(radian);
-
-			gV_FreeStyleZonesFixes[iFreestyleRow][0][0] = results.FetchFloat(8);
-			gV_FreeStyleZonesFixes[iFreestyleRow][0][1] = results.FetchFloat(9);
-			gV_FreeStyleZonesFixes[iFreestyleRow][1][0] = results.FetchFloat(10);
-			gV_FreeStyleZonesFixes[iFreestyleRow][1][1] = results.FetchFloat(11);
-
-			if(type == Zone_Teleport)
-			{
-				gV_TeleportZoneDestination[iFreestyleRow][0] = results.FetchFloat(12);
-				gV_TeleportZoneDestination[iFreestyleRow][1] = results.FetchFloat(13);
-				gV_TeleportZoneDestination[iFreestyleRow][2] = results.FetchFloat(14);
-			}
-
-			iFreestyleRow++;
+			gF_CustomSpawn[0] = results.FetchFloat(7);
+			gF_CustomSpawn[1] = results.FetchFloat(8);
+			gF_CustomSpawn[2] = results.FetchFloat(9);
 		}
 
 		else
 		{
-			if(view_as<int>(type) >= MAX_ZONES || view_as<int>(type) < 0)
+			gV_MapZones[gI_MapZones][0][0] = results.FetchFloat(1);
+			gV_MapZones[gI_MapZones][0][1] = results.FetchFloat(2);
+			gV_MapZones[gI_MapZones][0][2] = results.FetchFloat(3);
+			gV_MapZones[gI_MapZones][7][0] = results.FetchFloat(4);
+			gV_MapZones[gI_MapZones][7][1] = results.FetchFloat(5);
+			gV_MapZones[gI_MapZones][7][2] = results.FetchFloat(6);
+
+			CreateZonePoints(gV_MapZones[gI_MapZones]);
+
+			gV_ZoneCenter[gI_MapZones][0] = (gV_MapZones[gI_MapZones][0][0] + gV_MapZones[gI_MapZones][7][0]) / 2.0;
+			gV_ZoneCenter[gI_MapZones][1] = (gV_MapZones[gI_MapZones][0][1] + gV_MapZones[gI_MapZones][7][1]) / 2.0;
+			gV_ZoneCenter[gI_MapZones][2] = (gV_MapZones[gI_MapZones][0][2] + gV_MapZones[gI_MapZones][7][2]) / 2.0;
+
+			if(type == Zone_Teleport)
 			{
-				continue;
+				gV_Destinations[gI_MapZones][0] = results.FetchFloat(7);
+				gV_Destinations[gI_MapZones][1] = results.FetchFloat(8);
+				gV_Destinations[gI_MapZones][2] = results.FetchFloat(9);
 			}
 
-			gV_MapZones[type][0][0] = results.FetchFloat(1);
-			gV_MapZones[type][0][1] = results.FetchFloat(2);
-			gV_MapZones[type][0][2] = results.FetchFloat(3);
-			gV_MapZones[type][1][0] = results.FetchFloat(4);
-			gV_MapZones[type][1][1] = results.FetchFloat(5);
-			gV_MapZones[type][1][2] = results.FetchFloat(6);
+			gA_ZoneCache[gI_MapZones][bZoneInitialized] = true;
+			gA_ZoneCache[gI_MapZones][iZoneType] = type;
+			gA_ZoneCache[gI_MapZones][iZoneTrack] = results.FetchInt(10);
+			gA_ZoneCache[gI_MapZones][iEntityID] = -1;
 
-			float ang = results.FetchFloat(7);
-
-			float radian = DegToRad(ang);
-			gF_ConstSin[type] = Sine(radian);
-			gF_ConstCos[type] = Cosine(radian);
-
-			radian = DegToRad(-ang);
-			gF_MinusConstSin[type] = Sine(radian);
-			gF_MinusConstCos[type] = Cosine(radian);
-
-			gV_MapZonesFixes[type][0][0] = results.FetchFloat(8);
-			gV_MapZonesFixes[type][0][1] = results.FetchFloat(9);
-			gV_MapZonesFixes[type][1][0] = results.FetchFloat(10);
-			gV_MapZonesFixes[type][1][1] = results.FetchFloat(11);
+			gI_MapZones++;
 		}
 	}
+
+	CreateZoneEntities();
 }
 
 public void OnClientPutInServer(int client)
@@ -644,7 +610,7 @@ public Action Command_Modifier(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!args)
+	if(args == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ModifierCommandNoArgs", client);
 
@@ -685,14 +651,14 @@ public Action Command_AddSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!EmptyZone(gF_CustomSpawn))
+	if(!EmptyVector(gF_CustomSpawn))
 	{
 		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnExists", client);
 
 		return Plugin_Handled;
 	}
 
-	gMZ_Type[client] = Zone_CustomSpawn;
+	gI_ZoneType[client] = Zone_CustomSpawn;
 
 	GetClientAbsOrigin(client, gV_Point1[client]);
 	InsertZone(client);
@@ -787,23 +753,17 @@ public Action Command_DeleteZone(int client, int args)
 	Menu menu = new Menu(DeleteZone_MenuHandler);
 	menu.SetTitle("%T", "ZoneMenuDeleteTitle", client);
 
-	for(int i = 0; i < MAX_ZONES; i++)
+	for(int i = 0; i < gI_MapZones; i++)
 	{
-		if(i >= view_as<int>(Zone_Freestyle))
-		{
-			if(!EmptyZone(gV_FreestyleZones[0][0]) && !EmptyZone(gV_FreestyleZones[0][1]))
-			{
-				char[] sInfo = new char[8];
-				IntToString(i, sInfo, 8);
-				menu.AddItem(sInfo, gS_ZoneNames[i]);
-			}
-		}
-
-		if(!EmptyZone(gV_MapZones[i][0]) && !EmptyZone(gV_MapZones[i][1]))
+		if(gA_ZoneCache[i][bZoneInitialized])
 		{
 			char[] sInfo = new char[8];
 			IntToString(i, sInfo, 8);
-			menu.AddItem(sInfo, gS_ZoneNames[i]);
+
+			char[] sDisplay = new char[64];
+			FormatEx(sDisplay, 64, "#%d %s", (i + 1), gS_ZoneNames[gA_ZoneCache[i][iZoneType]]);
+
+			menu.AddItem(sInfo, sDisplay);
 		}
 	}
 
@@ -966,7 +926,7 @@ public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int
 		char[] info = new char[8];
 		menu.GetItem(param2, info, 8);
 
-		gMZ_Type[param1] = view_as<MapZones>(StringToInt(info));
+		gI_ZoneType[param1] = StringToInt(info);
 
 		ShowPanel(param1, 1);
 	}
@@ -981,16 +941,11 @@ public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int
 
 void Reset(int client)
 {
+	gB_BonusZones[client] = false;
 	gF_Modifier[client] = 10.0;
 	gI_MapStep[client] = 0;
 	gI_GridSnap[client] = 16;
-	gF_RotateAngle[client] = 0.0;
-
-	for(int i = 0; i < 2; i++)
-	{
-		gV_Fix1[client][i] = 0.0;
-		gV_Fix2[client][i] = 0.0;
-	}
+	gB_SnapToWall[client] = false;
 
 	for(int i = 0; i < 3; i++)
 	{
@@ -998,16 +953,22 @@ void Reset(int client)
 		gV_Point2[client][i] = 0.0;
 		gV_Teleport[client][i] = 0.0;
 	}
+
+	for(int i = 0; i < ZONETYPES_SIZE; i++)
+	{
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			gB_InsideZone[client][i][j] = false;
+		}
+	}
 }
 
-// neat idea for this part is by alongub, you have a cool way of thinking. :)
 void ShowPanel(int client, int step)
 {
 	gI_MapStep[client] = step;
 
 	if(step == 1)
 	{
-		// not gonna use gF_Interval here as we need percision when setting up zones
 		CreateTimer(0.1, Timer_Draw, GetClientSerial(client), TIMER_REPEAT);
 	}
 
@@ -1029,6 +990,9 @@ void ShowPanel(int client, int step)
 	FormatEx(sDisplay, 64, "%T", "GridSnap", client, gI_GridSnap[client]);
 	pPanel.DrawItem(sDisplay);
 
+	FormatEx(sDisplay, 64, "%T", "WallSnap", client, (gB_SnapToWall[client])? "ZoneSetYes":"ZoneSetNo", client);
+	pPanel.DrawItem(sDisplay);
+
 	pPanel.Send(client, ZoneCreation_Handler, 600);
 
 	delete pPanel;
@@ -1038,22 +1002,32 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		if(param2 == 1)
+		switch(param2)
 		{
-			Reset(param1);
-		}
-
-		else
-		{
-			gI_GridSnap[param1] *= 2;
-
-			if(gI_GridSnap[param1] > 64)
+			case 1:
 			{
-				gI_GridSnap[param1] = 1;
+				Reset(param1);
+
+				return 0;
 			}
 
-			ShowPanel(param1, gI_MapStep[param1]);
+			case 2:
+			{
+				gI_GridSnap[param1] *= 2;
+
+				if(gI_GridSnap[param1] > 64)
+				{
+					gI_GridSnap[param1] = 1;
+				}
+			}
+
+			case 3:
+			{
+				gB_SnapToWall[param1] = !gB_SnapToWall[param1];
+			}
 		}
+		
+		ShowPanel(param1, gI_MapStep[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -1062,6 +1036,45 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 	}
 
 	return 0;
+}
+
+bool SnapToWall(float pos[3], int client, float final[3])
+{
+	bool snap = false;
+	float angles[3];
+
+	while(angles[1] < 360.0)
+	{
+		angles[1] += 90.0;
+
+		TR_TraceRayFilter(pos, angles, MASK_PLAYERSOLID_BRUSHONLY, RayType_Infinite, TraceFilter_NoClients, client);
+
+		if(TR_DidHit())
+		{
+			float end[3];
+			TR_GetEndPosition(end);
+
+			if(GetVectorDistance(pos, end) <= gI_GridSnap[client])
+			{
+				int axis = (angles[1] == 0 || angles[1] == 180)? 0:1;
+				final[axis] = end[axis];
+
+				snap = true;
+			}
+		}
+	}
+
+	return snap;
+}
+
+public bool TraceFilter_NoClients(int entity, int contentsMask, any data)
+{
+	return (entity != data && !IsValidClient(data));
+}
+
+public bool TraceFilter_World(int entity, int contentsMask)
+{
+	return (entity == 0);
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons)
@@ -1077,25 +1090,31 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		{
 			if(!gB_Button[client])
 			{
-				float vOrigin[3];
-				GetClientAbsOrigin(client, vOrigin);
+				float vPlayerOrigin[3];
+				GetClientAbsOrigin(client, vPlayerOrigin);
 
-				// grid snapping
-				vOrigin[0] = float(RoundToNearest(vOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-				vOrigin[1] = float(RoundToNearest(vOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+				float origin[3];
+
+				if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
+				{
+					origin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+					origin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+				}
+
+				origin[2] = vPlayerOrigin[2];
 
 				if(gI_MapStep[client] == 1)
 				{
-					gV_Point1[client] = vOrigin;
+					gV_Point1[client] = origin;
+					gV_Point1[client][2] += 1.0;
 
 					ShowPanel(client, 2);
 				}
 
 				else if(gI_MapStep[client] == 2)
 				{
-					//vOrigin[2] += 72; // was requested to make it higher
-					vOrigin[2] += 144;
-					gV_Point2[client] = vOrigin;
+					origin[2] += gF_Height;
+					gV_Point2[client] = origin;
 
 					gI_MapStep[client]++;
 
@@ -1109,49 +1128,6 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		else
 		{
 			gB_Button[client] = false;
-		}
-	}
-
-	if(InsideZone(client, view_as<int>(Zone_Respawn)))
-	{
-		CS_RespawnPlayer(client);
-
-		return Plugin_Continue;
-	}
-
-	for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
-	{
-		if(gMZ_FreestyleTypes[i] == Zone_Teleport && !EmptyZone(gV_TeleportZoneDestination[i]) && InsideTeleportZone(client, i))
-		{
-			TeleportEntity(client, gV_TeleportZoneDestination[i], NULL_VECTOR, NULL_VECTOR);
-		}
-	}
-
-	if(InsideZone(client, view_as<int>(Zone_Start)))
-	{
-		Shavit_ResumeTimer(client);
-		Shavit_StartTimer(client);
-
-		return Plugin_Continue;
-	}
-
-	if(InsideZone(client, view_as<int>(Zone_Slay)))
-	{
-		Shavit_StopTimer(client);
-
-		ForcePlayerSuicide(client);
-	}
-
-	if(Shavit_GetTimerStatus(client) == Timer_Running)
-	{
-		if(InsideZone(client, view_as<int>(Zone_Stop)))
-		{
-			Shavit_StopTimer(client);
-		}
-
-		if(InsideZone(client, view_as<int>(Zone_End)))
-		{
-			Shavit_FinishMap(client);
 		}
 	}
 
@@ -1182,33 +1158,17 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 			CreateAdjustMenu(param1, 0);
 		}
 
-		else if(StrEqual(info, "rotate"))
-		{
-			CreateRotateMenu(param1);
-		}
-
-		else if(StrEqual(info, "wl"))
-		{
-			CreateWidthLengthMenu(param1, 0);
-		}
-
 		else if(StrEqual(info, "tpzone"))
 		{
 			float vTeleport[3];
 			GetClientAbsOrigin(param1, vTeleport);
 			vTeleport[2] += 2.0;
 
-			float vPoints[8][3];
-			vPoints[0] = gV_Point1[param1];
-			vPoints[7] = gV_Point2[param1];
-
-			CreateZonePoints(vPoints, gF_RotateAngle[param1], gV_Fix1[param1], gV_Fix2[param1], PLACEHOLDER, false, true);
-
 			bool bInside = true;
 
 			for(int i = 0; i < 3; i++)
 			{
-				if(vPoints[0][i] >= vTeleport[i] == vPoints[7][i] >= vTeleport[i])
+				if(gV_Point1[param1][i] >= vTeleport[i] == gV_Point2[param1][i] >= vTeleport[i])
 				{
 					bInside = false;
 				}
@@ -1228,6 +1188,13 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 			CreateEditMenu(param1);
 		}
+
+		else if(StrEqual(info, "track"))
+		{
+			gB_BonusZones[param1] = !gB_BonusZones[param1];
+
+			CreateEditMenu(param1);
+		}
 	}
 
 	else if(action == MenuAction_End)
@@ -1240,14 +1207,26 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 void CreateEditMenu(int client)
 {
+	char[] sTrack = new char[32];
+	
+	if(!gB_BonusZones[client])
+	{
+		FormatEx(sTrack, 32, "%T", "ZoneEditMain", client);
+	}
+
+	else
+	{
+		FormatEx(sTrack, 32, "%T", "ZoneEditBonus", client);
+	}
+
 	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	menu.SetTitle("%T", "ZoneEditConfirm", client);
+	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
 
 	char[] sMenuItem = new char[64];
 
-	if(gMZ_Type[client] == Zone_Teleport)
+	if(gI_ZoneType[client] == Zone_Teleport)
 	{
-		if(EmptyZone(gV_Teleport[client]))
+		if(EmptyVector(gV_Teleport[client]))
 		{
 			FormatEx(sMenuItem, 64, "%T", "ZoneSetTP", client);
 			menu.AddItem("-1", sMenuItem, ITEMDRAW_DISABLED);
@@ -1268,14 +1247,13 @@ void CreateEditMenu(int client)
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
 		menu.AddItem("yes", sMenuItem);
 	}
+
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetNo", client);
 	menu.AddItem("no", sMenuItem);
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
 	menu.AddItem("adjust", sMenuItem);
-	FormatEx(sMenuItem, 64, "%T", "ZoneSetRotate", client);
-	menu.AddItem("rotate", sMenuItem);
-	FormatEx(sMenuItem, 64, "%T", "ZoneSetSize", client);
-	menu.AddItem("wl", sMenuItem);
+	FormatEx(sMenuItem, 64, "%T", "ZoneChangeTrack", client);
+	menu.AddItem("track", sMenuItem);
 
 	menu.ExitButton = true;
 
@@ -1360,166 +1338,9 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
-void CreateRotateMenu(int client)
-{
-	Menu hMenu = new Menu(ZoneRotate_Handler);
-	char[] sMenuItem = new char[64];
-
-	hMenu.SetTitle("%T", "ZoneRotate", client);
-
-	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
-	hMenu.AddItem("done", sMenuItem);
-	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustCancel", client);
-	hMenu.AddItem("cancel", sMenuItem);
-
-	char[] sDisplay = new char[64];
-	FormatEx(sDisplay, 64, "%T", "ZoneRotatePlus", client, gF_Modifier[client]);
-	hMenu.AddItem("1", sDisplay);
-
-	FormatEx(sDisplay, 64, "%T", "ZoneRotateNegative", client, gF_Modifier[client]);
-	hMenu.AddItem("2", sDisplay);
-
-	hMenu.Display(client, 40);
-}
-
-public int ZoneRotate_Handler(Menu menu, MenuAction action, int param1, int param2)
-{
-	if(action == MenuAction_Select)
-	{
-		char[] sInfo = new char[16];
-		menu.GetItem(param2, sInfo, 16);
-
-		if(StrEqual(sInfo, "done"))
-		{
-			CreateEditMenu(param1);
-		}
-
-		else if(StrEqual(sInfo, "cancel"))
-		{
-			Reset(param1);
-		}
-
-		else
-		{
-			bool bIncrease = view_as<bool>(StringToInt(sInfo) == 1);
-			gF_RotateAngle[param1] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
-
-			Shavit_PrintToChat(param1, "%T", "ZoneRotateSuccessful", param1, gS_ChatStrings[sMessageVariable], ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]), gS_ChatStrings[sMessageText]);
-
-			CreateRotateMenu(param1);
-		}
-	}
-
-	else if(action == MenuAction_End)
-	{
-		delete menu;
-	}
-}
-
-void CreateWidthLengthMenu(int client, int page)
-{
-	Menu hMenu = new Menu(ZoneEdge_Handler);
-	hMenu.SetTitle("%T", "ZoneRotate", client);
-
-	char[] sMenuItem = new char[64];
-	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
-	hMenu.AddItem("done", sMenuItem);
-	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustCancel", client);
-	hMenu.AddItem("cancel", sMenuItem);
-
-	char sEdges[4][64];
-	FormatEx(sEdges[0], 64, "%T", "Edge_Right", client);
-	FormatEx(sEdges[1], 64, "%T", "Edge_Back", client);
-	FormatEx(sEdges[2], 64, "%T", "Edge_Left", client);
-	FormatEx(sEdges[3], 64, "%T", "Edge_Front", client);
-
-	char[] sDisplay = new char[32];
-	char[] sInfo = new char[8];
-
-	for(int iEdge = 0; iEdge < 4; iEdge++)
-	{
-		for(int iState = 1; iState <= 2; iState++)
-		{
-			FormatEx(sDisplay, 32, "%s %T | %c%.01f", sEdges[iEdge], "ZoneEdge", client, (iState == 1)? "+":"-", gF_Modifier[client]);
-			FormatEx(sInfo, 8, "%d;%d", iEdge, iState);
-			hMenu.AddItem(sInfo, sDisplay);
-		}
-	}
-
-	hMenu.DisplayAt(client, page, MENU_TIME_FOREVER);
-}
-
-public int ZoneEdge_Handler(Menu menu, MenuAction action, int param1, int param2)
-{
-	if(action == MenuAction_Select)
-	{
-		char[] sInfo = new char[16];
-		menu.GetItem(param2, sInfo, 16);
-
-		if(StrEqual(sInfo, "done"))
-		{
-			CreateEditMenu(param1);
-		}
-
-		else if(StrEqual(sInfo, "cancel"))
-		{
-			Reset(param1);
-		}
-
-		else
-		{
-			char sEdges[4][64];
-			FormatEx(sEdges[0], 64, "%T", "Edge_Right", param1);
-			FormatEx(sEdges[1], 64, "%T", "Edge_Back", param1);
-			FormatEx(sEdges[2], 64, "%T", "Edge_Left", param1);
-			FormatEx(sEdges[3], 64, "%T", "Edge_Front", param1);
-
-			char[][] sExploded = new char[2][8];
-			ExplodeString(sInfo, ";", sExploded, 2, 8);
-
-			int iEdge = StringToInt(sExploded[0]);
-			bool bIncrease = view_as<bool>(StringToInt(sExploded[1]) == 1);
-
-			if(iEdge >= 2)
-			{
-				iEdge -= 2;
-
-				gV_Fix1[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
-			}
-
-			else
-			{
-				gV_Fix2[param1][iEdge] += (bIncrease? gF_Modifier[param1]:-gF_Modifier[param1]);
-			}
-
-			char changeText[64];
-			Format(changeText, sizeof(changeText), "%T", (bIncrease)? "ZoneIncreased":"ZoneDecreased", param1);
-
-			Shavit_PrintToChat(param1, "%T", "ZoneEdgeChange", param1, sEdges[iEdge], gS_ChatStrings[sMessageVariable2], changeText, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gF_Modifier[param1], gS_ChatStrings[sMessageText]);
-
-			CreateWidthLengthMenu(param1, GetMenuSelectionPosition());
-		}
-	}
-
-	else if(action == MenuAction_End)
-	{
-		delete menu;
-	}
-}
-
-bool EmptyZone(float vZone[3])
-{
-	if(vZone[0] == 0.0 && vZone[1] == 0.0 && vZone[2] == 0.0)
-	{
-		return true;
-	}
-
-	return false;
-}
-
 void InsertZone(int client)
 {
-	MapZones type = gMZ_Type[client];
+	int type = gI_ZoneType[client];
 
 	char[] sQuery = new char[512];
 
@@ -1528,22 +1349,22 @@ void InsertZone(int client)
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
 	}
 
-	else if((EmptyZone(gV_MapZones[type][0]) && EmptyZone(gV_MapZones[type][1])) || type >= Zone_Freestyle) // insert
+	else if(GetZoneIndex(type, view_as<int>(gB_BonusZones[client])) == -1 || type >= Zone_Respawn) // insert
 	{
 		if(type != Zone_Teleport)
 		{
-			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1]);
+			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, track) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%d');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], view_as<int>(gB_BonusZones[client]));
 		}
 
 		else
 		{
-			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, rot_ang, fix1_x, fix1_y, fix2_x, fix2_y, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2]);
+			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2]);
 		}
 	}
 
 	else // update
 	{
-		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', rot_ang = '%.03f', fix1_x = '%.03f', fix1_y = '%.03f', fix2_x = '%.03f', fix2_y = '%.03f' WHERE map = '%s' AND type = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gF_RotateAngle[client], gV_Fix1[client][0], gV_Fix1[client][1], gV_Fix2[client][0], gV_Fix2[client][1], gS_Map, type);
+		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f' WHERE map = '%s' AND type = '%d' AND track = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gS_Map, type, view_as<int>(gB_BonusZones[client]));
 	}
 
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
@@ -1565,40 +1386,35 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	if(gMZ_Type[client] == Zone_CustomSpawn)
+	if(gI_ZoneType[client] == Zone_CustomSpawn)
 	{
 		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnSuccess", client);
 	}
 
-	UnloadZones((gMZ_Type[client] >= Zone_Freestyle && gMZ_Type[client] != Zone_CustomSpawn)? 0:view_as<int>(gMZ_Type[client]));
+	UnloadZones(0);
 	RefreshZones();
 	Reset(client);
 }
 
 public Action Timer_DrawEverything(Handle Timer)
 {
-	for(int i = 0; i < view_as<int>(Zone_Freestyle); i++)
+	if(gI_MapZones == 0)
 	{
-		if(gA_ZoneSettings[i][bVisible] && !EmptyZone(gV_MapZones[i][0]) || !EmptyZone(gV_MapZones[i][1]))
-		{
-			DrawToAll(gV_MapZones[i][0], gV_MapZones[i][1], gV_MapZonesFixes[i][0], gV_MapZonesFixes[i][1], view_as<MapZones>(i));
-		}
+		return Plugin_Continue;
 	}
 
-	for(int i = 0; i < MULTIPLEZONES_LIMIT; i++)
+	for(int i = 0; i < gI_MapZones; i++)
 	{
-		MapZones type = gMZ_FreestyleTypes[i] + view_as<MapZones>(1);
-
-		if(0 <= view_as<int>(type) <= MAX_ZONES && gA_ZoneSettings[type][bVisible] && (!EmptyZone(gV_FreestyleZones[i][0]) || !EmptyZone(gV_FreestyleZones[i][1])))
+		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
 		{
-			DrawToAll(gV_FreestyleZones[i][0], gV_FreestyleZones[i][1], gV_FreeStyleZonesFixes[i][0], gV_FreeStyleZonesFixes[i][1], type);
+			DrawZone(gV_MapZones[i], GetZoneColors(gA_ZoneCache[i][iZoneType]), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
 		}
 	}
 
 	return Plugin_Continue;
 }
 
-int[] GetZoneColors(MapZones type)
+int[] GetZoneColors(int type)
 {
 	int colors[4];
 	colors[0] = gA_ZoneSettings[type][iRed];
@@ -1607,27 +1423,6 @@ int[] GetZoneColors(MapZones type)
 	colors[3] = gA_ZoneSettings[type][iAlpha];
 
 	return colors;
-}
-
-void DrawToAll(float point1[3], float point2[3], float fix1[2], float fix2[2], MapZones type)
-{
-	float vPoints[8][3];
-	vPoints[0] = point1;
-	vPoints[7] = point2;
-
-	if(gEV_Type == Engine_CSS)
-	{
-		vPoints[0][2] += 2.0;
-		vPoints[7][2] += 2.0;
-	}
-
-	if(gI_ZoneStyle == 1)
-	{
-		vPoints[7][2] = vPoints[0][2];
-	}
-
-	CreateZonePoints(vPoints, 0.0, fix1, fix2, (type >= Zone_Freestyle)? -PLACEHOLDER:view_as<int>(type), false, true);
-	DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, GetZoneColors(type), gF_Interval + 0.2);
 }
 
 public Action Timer_Draw(Handle Timer, any data)
@@ -1644,404 +1439,108 @@ public Action Timer_Draw(Handle Timer, any data)
 	float vPlayerOrigin[3];
 	GetClientAbsOrigin(client, vPlayerOrigin);
 
-	float vOrigin[3];
-	vOrigin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-	vOrigin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+	float origin[3];
+
+	if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
+	{
+		origin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+		origin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+	}
 
 	if(gI_MapStep[client] == 1 || (gV_Point2[client][0] == 0.0))
 	{
-		vOrigin[2] = (vPlayerOrigin[2] + 144.0);
+		origin[2] = (vPlayerOrigin[2] + 128.0);
 	}
 
 	else
 	{
-		vOrigin = gV_Point2[client];
+		origin = gV_Point2[client];
 	}
 
-	if(!EmptyZone(gV_Point1[client]) || !EmptyZone(gV_Point2[client]))
+	if(!EmptyVector(gV_Point1[client]) || !EmptyVector(gV_Point2[client]))
 	{
-		float vPoints[8][3];
-		vPoints[0] = gV_Point1[client];
-		vPoints[7] = vOrigin;
+		float points[8][3];
+		points[0] = gV_Point1[client];
+		points[7] = origin;
 
-		if(gEV_Type == Engine_CSS)
-		{
-			vPoints[0][2] += 2.0;
-			vPoints[7][2] += 2.0;
-		}
+		CreateZonePoints(points);
 
-		CreateZonePoints(vPoints, gF_RotateAngle[client], gV_Fix1[client], gV_Fix2[client], PLACEHOLDER, false, true);
+		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
 
-		int iColors[4];
-		iColors[0] = gA_ZoneSettings[gMZ_Type[client]][iRed];
-		iColors[1] = gA_ZoneSettings[gMZ_Type[client]][iGreen];
-		iColors[2] = gA_ZoneSettings[gMZ_Type[client]][iBlue];
-		iColors[3] = 255;
-
-		DrawZone(vPoints, gI_BeamSprite, gI_HaloSprite, iColors, 0.1);
-
-		if(gMZ_Type[client] == Zone_Teleport && !EmptyZone(gV_Teleport[client]))
+		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
 			TE_SetupEnergySplash(gV_Teleport[client], NULL_VECTOR, false);
 			TE_SendToAll(0.0);
 		}
 	}
 
-	if(gI_MapStep[client] != 3 && !EmptyZone(vOrigin))
+	if(gI_MapStep[client] != 3 && !EmptyVector(origin))
 	{
-		vOrigin[2] -= 144.0;
+		origin[2] -= 128.0;
 
-		TE_SetupBeamPoints(vPlayerOrigin, vOrigin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
 		TE_SendToAll(0.0);
 	}
 
 	return Plugin_Continue;
 }
 
-bool UsedFixes(float[2][2] fixes)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3])
 {
-	for(int a = 0; a < 2; a++)
+	static int pairs[][] =
 	{
-		for(int b = 0; b < 2; b++)
+		{ 0, 2 },
+		{ 2, 6 },
+		{ 6, 4 },
+		{ 4, 0 },
+		{ 0, 1 },
+		{ 3, 1 },
+		{ 3, 2 },
+		{ 3, 7 },
+		{ 5, 1 },
+		{ 5, 4 },
+		{ 6, 7 },
+		{ 7, 5 }
+	};
+
+	int[] clients = new int[MaxClients];
+	int count = 0;
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientInGame(i) && !IsFakeClient(i))
 		{
-			if(fixes[a][b] > 0.0)
+			float eyes[3];
+			GetClientEyePosition(i, eyes);
+
+			if(GetVectorDistance(eyes, center) <= 1024.0 ||
+				(TR_TraceRayFilter(eyes, center, CONTENTS_SOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit()))
 			{
-				return true;
+				clients[count++] = i;
 			}
 		}
 	}
 
-	return false;
+	for(int i = 0; i < ((flat)? 4:12); i++)
+	{
+		TE_SetupBeamPoints(points[pairs[i][0]], points[pairs[i][1]], gI_BeamSprite, gI_HaloSprite, 0, 0, life, width, width, 0, 0.0, color, 0);
+		TE_Send(clients, count, 0.0);
+	}
 }
 
-// by blacky https://forums.alliedmods.net/showthread.php?t=222822
-// Some of those functions are by ofir753. Thanks <3
-// I just remade it for SM 1.7, that's it.
-/*
-*
-* @param client - client to check
-* @param zone - zone to check (-PLACEHOLDER for freestyle 0, -zone for freestyle)
-*
-* returns true if a player is inside the given zone
-* returns false if they aren't in it
-*/
-bool InsideZone(int client, int zone)
+// by blacky
+// creates 3d box from 2 points
+void CreateZonePoints(float point[8][3])
 {
-	float playerPos[3];
-	GetEntPropVector(client, Prop_Send, "m_vecOrigin", playerPos);
-
-	playerPos[2] += 5.0;
-
-	float vPoints[8][3];
-
-	if(zone >= 0)
+	for(int i = 1; i < 7; i++)
 	{
-		vPoints[0] = gV_MapZones[zone][0];
-		vPoints[7] = gV_MapZones[zone][1];
-
-		if(UsedFixes(gV_MapZonesFixes[zone]))
+		for(int j = 0; j < 3; j++)
 		{
-			// Getting the original zone points with the fixes
-			CreateZonePoints(vPoints, 0.0, gV_MapZonesFixes[zone][0], gV_MapZonesFixes[zone][1], zone, true, false);
-		}
-
-		if(gF_MinusConstSin[zone] != 0.0 || gF_MinusConstCos[zone] != 0.0)
-		{
-			// Rotating the player so the box and the player will be on the same axis
-			PointConstRotate(gF_MinusConstSin[zone], gF_MinusConstCos[zone], vPoints[0], playerPos);
-		}
-	}
-
-	else
-	{
-		// Explanation above
-		if(zone == -PLACEHOLDER)
-		{
-			vPoints[0] = gV_FreestyleZones[0][0];
-			vPoints[7] = gV_FreestyleZones[0][1];
-
-			if(UsedFixes(gV_FreeStyleZonesFixes[0]))
-			{
-				CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[0][0], gV_FreeStyleZonesFixes[0][1], zone, true, false);
-			}
-
-			if(gF_FreeStyleMinusConstSin[0] != 0.0 || gF_FreeStyleMinusConstCos[0] != 0.0)
-			{
-				PointConstRotate(gF_FreeStyleMinusConstSin[0], gF_FreeStyleMinusConstCos[0], vPoints[0], playerPos);
-			}
-		}
-
-		else
-		{
-			vPoints[0] = gV_FreestyleZones[-zone][0];
-			vPoints[7] = gV_FreestyleZones[-zone][1];
-
-			if(UsedFixes(gV_FreeStyleZonesFixes[-zone]))
-			{
-				CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[-zone][0], gV_FreeStyleZonesFixes[-zone][1], zone, true, false);
-			}
-
-			if(gF_FreeStyleMinusConstSin[-zone] != 0.0 || gF_FreeStyleMinusConstCos[-zone] != 0.0)
-			{
-				PointConstRotate(gF_FreeStyleMinusConstSin[-zone], gF_FreeStyleMinusConstCos[-zone], vPoints[0], playerPos);
-			}
-		}
-	}
-
-	// Checking if player is inside the box after rotation
-	for(int i = 0; i < 3; i++)
-	{
-		if(vPoints[0][i] >= playerPos[i] == vPoints[7][i] >= playerPos[i])
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-// like InsideZone but for teleport zones
-bool InsideTeleportZone(int client, int zone)
-{
-	float fPlayerPos[3];
-	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fPlayerPos);
-
-	fPlayerPos[2] += 5.0;
-
-	float vPoints[8][3];
-	vPoints[0] = gV_FreestyleZones[zone][0];
-	vPoints[7] = gV_FreestyleZones[zone][1];
-
-	if(UsedFixes(gV_FreeStyleZonesFixes[zone]))
-	{
-		CreateZonePoints(vPoints, 0.0, gV_FreeStyleZonesFixes[zone][0], gV_FreeStyleZonesFixes[zone][1], zone, true, false);
-	}
-
-	if(gF_FreeStyleMinusConstSin[zone] != 0.0 || gF_FreeStyleMinusConstCos[zone] != 0.0)
-	{
-		PointConstRotate(gF_FreeStyleMinusConstSin[zone], gF_FreeStyleMinusConstCos[zone], vPoints[0], fPlayerPos);
-	}
-
-	// Checking if player is inside the box after rotation
-	for(int i = 0; i < 3; i++)
-	{
-		if(vPoints[0][i] >= fPlayerPos[i] == vPoints[7][i] >= fPlayerPos[i])
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/*
-* Graphically draws a zone
-*    if client == 0, it draws it for all players in the game
-*   if client index is between 0 and MaxClients+1, it draws for the specified client
-*/
-void DrawZone(float array[8][3], int beamsprite, int halosprite, int color[4], float life)
-{
-	for(int i = 0, i2 = 3; i2 >= 0; i += i2--)
-	{
-		for(int j = 1; j <= 7; j += (j / 2) + 1)
-		{
-			if(j != 7 - i)
-			{
-				TE_SetupBeamPoints(array[i], array[j], beamsprite, halosprite, 0, 0, life, 5.0, 5.0, 0, 0.0, color, 0);
-				TE_SendToAll(0.0);
-			}
+			point[i][j] = point[((i >> (2-j)) & 1) * 7][j];
 		}
 	}
 }
 
-// Rotating point around 2d axis
-void PointRotate(float angle, float axis[3], float point[3])
-{
-	/*
-	a - rotation degree as radians
-	x - old X
-	x' - new X
-	y - old Y
-	y' - new Y
-
-	Rotation Transformation formula:
-	x' = x cos(a) - y sin(a)
-	y' = y cos(a) + x sin(a)
-	*/
-
-	float transTmp[3];
-	transTmp[0] = point[0];
-	transTmp[1] = point[1];
-
-	// Moving point for axis = (0, 0)
-	transTmp[0] -= axis[0];
-	transTmp[1] -= axis[1];
-
-	float radian = DegToRad(angle);
-	float rotTmp[3];
-
-	// Rotating point (0, 0) as axis
-	rotTmp[0] = transTmp[0] * Cosine(radian) - transTmp[1] * Sine(radian);
-	rotTmp[1] = transTmp[1] * Cosine(radian) + transTmp[0] * Sine(radian);
-
-	// Moving point back
-	rotTmp[0] += axis[0];
-	rotTmp[1] += axis[1];
-
-	point[0] = rotTmp[0];
-	point[1] = rotTmp[1];
-}
-
-// Rotating point around 2d axis with constant sin and cos
-void PointConstRotate(float sin, float cos, float axis[3], float point[3])
-{
-	/*
-	a - rotation degree as radians
-	x - old X
-	x' - new X
-	y - old Y
-	y' - new Y
-
-	Rotation Transformation formula:
-	x' = x cos(a) - y sin(a)
-	y' = y cos(a) + x sin(a)
-	*/
-
-	float transTmp[3];
-	transTmp[0] = point[0];
-	transTmp[1] = point[1];
-
-	// Moving point for axis = (0, 0)
-	transTmp[0] -= axis[0];
-	transTmp[1] -= axis[1];
-
-	float rotTmp[3];
-	// Rotating point (0, 0) as axis
-	rotTmp[0] = transTmp[0] * cos - transTmp[1] * sin;
-	rotTmp[1] = transTmp[1] * cos + transTmp[0] * sin;
-
-	// Moving point back
-	rotTmp[0] += axis[0];
-	rotTmp[1] += axis[1];
-
-	point[0] = rotTmp[0];
-	point[1] = rotTmp[1];
-}
-
-// Translate 2D Point
-void PointTranslate(float point[3], float t[2])
-{
-	point[0] += t[0];
-	point[1] += t[1];
-}
-
-/*
-* Generates 8 points of a zone given just 2 of its points
-* angle - rotated angle for not constant zone (preview zone)
-* fix1 - edge fixes
-* fix2 - edge fixes
-* zone - PLACEHOLDER for not constant zone, -PLACEHOLDER for index 0 freestyle zone, zone id (- for free style zone)
-* norotate - don't rotate zone points
-* all - calculate all 8 zone points
-*/
-void CreateZonePoints(float point[8][3], float angle, float fix1[2], float fix2[2], int zone, bool norotate, bool all)
-{
-	if(all)
-	{
-		for(int i = 1; i < 7; i++)
-		{
-			for(int j = 0; j < 3; j++)
-			{
-				point[i][j] = point[((i >> (2-j)) & 1) * 7][j];
-			}
-		}
-	}
-
-	if(fix1[0] != 0.0 || fix2[0] != 0.0 || fix1[1] != 0.0 || fix2[1] != 0.0)
-	{
-		TranslateZone(point, fix1, fix2);
-	}
-
-	if(zone == PLACEHOLDER)
-	{
-		for(int i = 1; i < 8; i++)
-		{
-			if(zone == PLACEHOLDER)
-			{
-				PointRotate(angle, point[0], point[i]);
-			}
-		}
-	}
-
-	else if(!norotate)
-	{
-		if(zone >= 0 && zone != -PLACEHOLDER)
-		{
-			RotateZone(point, gF_ConstSin[zone], gF_ConstCos[zone]);
-		}
-
-		else
-		{
-			if(zone == -PLACEHOLDER)
-			{
-				RotateZone(point, gF_FreeStyleConstSin[0], gF_FreeStyleConstCos[0]);
-			}
-
-			else
-			{
-				RotateZone(point, gF_FreeStyleConstSin[-zone], gF_FreeStyleConstCos[-zone]);
-			}
-		}
-	}
-}
-
-// Translating Zone
-void TranslateZone(float point[8][3], float fix1[2], float fix2[2])
-{
-	float fix[2];
-
-	// X Translate
-	fix[1] = 0.0;
-	fix[0] = fix1[0];
-
-	PointTranslate(point[0], fix);
-	PointTranslate(point[1], fix);
-	PointTranslate(point[2], fix);
-	PointTranslate(point[3], fix);
-
-	fix[0] = fix2[0];
-	PointTranslate(point[4], fix);
-	PointTranslate(point[5], fix);
-	PointTranslate(point[6], fix);
-	PointTranslate(point[7], fix);
-
-	// Y Translate
-	fix[0] = 0.0;
-	fix[1] = fix1[1];
-
-	PointTranslate(point[0], fix);
-	PointTranslate(point[1], fix);
-	PointTranslate(point[4], fix);
-	PointTranslate(point[5], fix);
-
-	fix[1] = fix2[1];
-
-	PointTranslate(point[2], fix);
-	PointTranslate(point[3], fix);
-	PointTranslate(point[6], fix);
-	PointTranslate(point[7], fix);
-}
-
-//Rotating Zone by constant sin and cos
-void RotateZone(float point[8][3], float sin, float cos)
-{
-	for(int i = 1; i < 8; i++)
-	{
-		PointConstRotate(sin, cos, point[0], point[i]);
-	}
-}
-
-// thanks a lot for those stuff, I couldn't do it without you blacky!
 void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
@@ -2076,7 +1575,7 @@ void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char[] sQuery = new char[1024];
-		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0, `destination_x` FLOAT NOT NULL default 0, `destination_y` FLOAT NOT NULL default 0, `destination_z` FLOAT NOT NULL default 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}
@@ -2092,10 +1591,10 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	}
 
 	char[] sQuery = new char[64];
-	FormatEx(sQuery, 64, "SELECT rot_ang FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
+	FormatEx(sQuery, 64, "SELECT destination_x FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
 
-	FormatEx(sQuery, 64, "SELECT destination_x FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
+	FormatEx(sQuery, 64, "SELECT track FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery);
 }
 
@@ -2107,26 +1606,24 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 
 		if(gB_MySQL)
 		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`rot_ang` FLOAT NOT NULL default 0, `fix1_x` FLOAT NOT NULL default 0, `fix1_y` FLOAT NOT NULL default 0, `fix2_x` FLOAT NOT NULL default 0, `fix2_y` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
 			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 		}
 
 		else
 		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `rot_ang` FLOAT NOT NULL default 0;", gS_MySQLPrefix);
-			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
+			char[] sAxis = new char[4];
+			strcopy(sAxis, 4, "xyz");
 
-			for(int i = 1; i <= 2; i++)
+			for(int i = 0; i < 3; i++)
 			{
-				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `fix%d_x` FLOAT NOT NULL default 0;", gS_MySQLPrefix, i);
-				gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-
-				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `fix%d_y` FLOAT NOT NULL default 0;", gS_MySQLPrefix, i);
+				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `destination_%c` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix, sAxis[i]);
 				gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 			}
 		}
 	}
 }
+
 
 public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
@@ -2143,11 +1640,21 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`destination_x` FLOAT NOT NULL default 0, `destination_y` FLOAT NOT NULL default 0, `destination_z` FLOAT NOT NULL default 0);", gS_MySQLPrefix);
+
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`track` INT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `track` INTEGER NOT NULL DEFAULT 0;", gS_MySQLPrefix);
+		}
 
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
 }
+
 
 public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
@@ -2164,47 +1671,269 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnRestart(int client)
 {
-	if(gB_TeleportToStart && !EmptyZone(gV_MapZones[Zone_Start][0]) && !EmptyZone(gV_MapZones[Zone_Start][1]))
+	if(gB_TeleportToStart)
 	{
 		Shavit_StartTimer(client);
 
-		if(!EmptyZone(gF_CustomSpawn))
+		if(!EmptyVector(gF_CustomSpawn))
 		{
 			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		else
 		{
-			float vCenter[3];
-			MakeVectorFromPoints(gV_MapZones[0][0], gV_MapZones[0][1], vCenter);
-			vCenter[0] /= 2.0;
-			vCenter[1] /= 2.0;
+			int index = GetZoneIndex(Zone_Start, Track_Main);
 
-			AddVectors(gV_MapZones[0][0], vCenter, vCenter);
-			vCenter[2] = gV_MapZones[0][0][2];
+			if(index == -1)
+			{
+				return;
+			}
 
-			TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			float center[3];
+			center[0] = gV_ZoneCenter[index][0];
+			center[1] = gV_ZoneCenter[index][1];
+			center[2] = gV_MapZones[index][0][2];
+
+			TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 	}
 }
 
 public void Shavit_OnEnd(int client)
 {
-	if(gB_TeleportToEnd && !EmptyZone(gV_MapZones[Zone_End][0]) && !EmptyZone(gV_MapZones[Zone_End][1]))
+	if(gB_TeleportToEnd)
 	{
-		float vCenter[3];
-		MakeVectorFromPoints(gV_MapZones[1][0], gV_MapZones[1][1], vCenter);
-		vCenter[0] /= 2.0;
-		vCenter[1] /= 2.0;
+		int index = GetZoneIndex(Zone_End, Track_Main);
 
-		AddVectors(gV_MapZones[1][0], vCenter, vCenter);
-		vCenter[2] = gV_MapZones[1][0][2];
+		if(index == -1)
+		{
+			return;
+		}
 
-		TeleportEntity(client, vCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		float center[3];
+		center[0] = gV_ZoneCenter[index][0];
+		center[1] = gV_ZoneCenter[index][1];
+		center[2] = gV_MapZones[index][0][2];
+
+		TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 	}
 }
 
 public void Shavit_OnDatabaseLoaded(Database db)
 {
 	gH_SQL = db;
+}
+
+bool EmptyVector(float vec[3])
+{
+	return (vec[0] == 0.0 && vec[1] == 0.0 && vec[2] == 0.0);
+}
+
+// returns -1 if there's no zone
+int GetZoneIndex(int type, int track, int start = 0)
+{
+	if(gI_MapZones == 0)
+	{
+		return -1;
+	}
+
+	for(int i = start; i < gI_MapZones; i++)
+	{
+		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneCache[i][iZoneType] == type && (gA_ZoneCache[i][iZoneTrack] == track || track == -1))
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+{
+	Reset(GetClientOfUserId(event.GetInt("userid")));
+}
+
+public void Round_Start(Event event, const char[] name, bool dontBroadcast)
+{
+	CreateTimer(1.0, Timer_CreateZoneEntities);
+}
+
+public Action Timer_CreateZoneEntities(Handle Timer)
+{
+	CreateZoneEntities();
+}
+
+float abs(float input)
+{
+	if(input < 0.0)
+	{
+		return -input;
+	}
+
+	return input;
+}
+
+public void CreateZoneEntities()
+{
+	for(int i = 0; i < gI_MapZones; i++)
+	{
+		if(gA_ZoneCache[i][iEntityID] != -1)
+		{
+			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
+			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
+
+			KillZoneEntity(i);
+
+			gA_ZoneCache[i][iEntityID] = -1;
+		}
+
+		if(!gA_ZoneCache[i][bZoneInitialized])
+		{
+			continue;
+		}
+
+		int entity = CreateEntityByName("trigger_multiple");
+
+		if(entity == -1)
+		{
+			LogError("\"trigger_multiple\" creation failed, map %s.", gS_Map);
+
+			continue;
+		}
+
+		DispatchKeyValue(entity, "wait", "0");
+		DispatchKeyValue(entity, "spawnflags", "4097");
+		
+		if(!DispatchSpawn(entity))
+		{
+			LogError("\"trigger_multiple\" spawning failed, map %s.", gS_Map);
+
+			continue;
+		}
+
+		ActivateEntity(entity);
+		SetEntityModel(entity, "models/props/cs_office/vending_machine.mdl");
+		SetEntProp(entity, Prop_Send, "m_fEffects", 32);
+
+		TeleportEntity(entity, gV_ZoneCenter[i], NULL_VECTOR, NULL_VECTOR);
+
+		float distance_x = abs(gV_MapZones[i][0][0] - gV_MapZones[i][7][0]);
+		float distance_y = abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]);
+		float distance_z = abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]);
+
+		float min[3];
+		min[0] = -(distance_x / 2) + 16.0;
+		min[1] = -(distance_y / 2) + 16.0;
+		min[2] = -(distance_z / 2) + 36.0;
+		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
+
+		float max[3];
+		max[0] = (distance_x / 2) - 16.0;
+		max[1] = (distance_y / 2) - 16.0;
+		max[2] = (distance_z / 2) - 36.0;
+		SetEntPropVector(entity, Prop_Send, "m_vecMaxs", max);
+
+		SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
+
+		SDKHook(entity, SDKHook_StartTouchPost, StartTouchPost);
+		SDKHook(entity, SDKHook_EndTouchPost, EndTouchPost);
+		SDKHook(entity, SDKHook_TouchPost, TouchPost);
+
+		gI_EntityZone[entity] = i;
+		gA_ZoneCache[i][iEntityID] = entity;
+	}
+}
+
+public void StartTouchPost(int entity, int other)
+{
+	if(other < 1 || other > MaxClients || !IsPlayerAlive(other))
+	{
+		return;
+	}
+
+	TimerStatus status = Shavit_GetTimerStatus(other);
+
+	switch(gA_ZoneCache[gI_EntityZone[entity]][iZoneType])
+	{
+		case Zone_Respawn:
+		{
+			CS_RespawnPlayer(other);
+		}
+
+		case Zone_Teleport:
+		{
+			TeleportEntity(other, gV_Destinations[gI_EntityZone[entity]], NULL_VECTOR, NULL_VECTOR);
+		}
+
+		case Zone_Slay:
+		{
+			Shavit_StopTimer(other);
+
+			ForcePlayerSuicide(other);
+		}
+
+		case Zone_Stop:
+		{
+			if(status != Timer_Stopped)
+			{
+				Shavit_StopTimer(other);
+			}
+		}
+
+		case Zone_End:
+		{
+			if(status != Timer_Stopped && gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			{
+				Shavit_FinishMap(other);
+			}
+		}
+	}
+
+	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]][gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]] = true;
+
+	Call_StartForward(gH_Forwards_EnterZone);
+	Call_PushCell(other);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneType]);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
+	Call_PushCell(gI_EntityZone[entity]);
+	Call_PushCell(entity);
+	Call_Finish();
+}
+
+public void EndTouchPost(int entity, int other)
+{
+	if(other < 1 || other > MaxClients || !IsPlayerAlive(other))
+	{
+		return;
+	}
+
+	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]][gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]] = false;
+
+	Call_StartForward(gH_Forwards_LeaveZone);
+	Call_PushCell(other);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneType]);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
+	Call_PushCell(gI_EntityZone[entity]);
+	Call_PushCell(entity);
+	Call_Finish();
+}
+
+public void TouchPost(int entity, int other)
+{
+	if(other < 1 || other > MaxClients || !IsPlayerAlive(other))
+	{
+		return;
+	}
+
+	// do precise stuff here, this will be called *A LOT*
+	switch(gA_ZoneCache[gI_EntityZone[entity]][iZoneType])
+	{
+		case Zone_Start:
+		{
+			if(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			{
+				Shavit_StartTimer(other);
+			}
+		}
+	}
 }

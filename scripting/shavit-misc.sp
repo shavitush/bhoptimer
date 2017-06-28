@@ -704,7 +704,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		return Plugin_Continue;
 	}
 
-	bool bInStart = Shavit_InsideZone(client, Zone_Start);
+	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
 	bool bNoclipping = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
 
 	if(bNoclipping && !bInStart && Shavit_GetTimerStatus(client) == Timer_Running)
@@ -1029,7 +1029,7 @@ bool Teleport(int client, int targetserial)
 
 	int iTarget = GetClientFromSerial(targetserial);
 
-	if(Shavit_InsideZone(client, Zone_Start) || Shavit_InsideZone(client, Zone_End))
+	if(Shavit_InsideZone(client, Zone_Start, -1) || Shavit_InsideZone(client, Zone_End, -1))
 	{
 		Shavit_PrintToChat(client, "%T", "TeleportInZone", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
@@ -1516,7 +1516,7 @@ public Action Respawn(Handle Timer, any data)
 
 void RestartTimer(int client)
 {
-	if(Shavit_ZoneExists(Zone_Start))
+	if(Shavit_ZoneExists(Zone_Start, Track_Main))
 	{
 		Shavit_RestartTimer(client);
 	}
@@ -1556,7 +1556,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-public void RemoveRadar(any data)
+void RemoveRadar(any data)
 {
 	int client = GetClientFromSerial(data);
 

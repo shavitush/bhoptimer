@@ -57,23 +57,12 @@
 		"#format"	"{1:d}"
 		"en"		"Grid snap: x{1}"
 	}
+	"WallSnap"
+	{
+		"#format"	"{1:T}"
+		"en"		"Snap to wall: {1}"
+	}
 	// ---------- Zone Menu ---------- //
-	"Edge_Back"
-	{
-		"en"		"Back"
-	}
-	"Edge_Front"
-	{
-		"en"		"Front"
-	}
-	"Edge_Left"
-	{
-		"en"		"Left"
-	}
-	"Edge_Right"
-	{
-		"en"		"Right"
-	}
 	"ZoneAdjustCancel"
 	{
 		"en"		"Cancel"
@@ -111,18 +100,9 @@
 	{
 		"en"		"Deleted all map zones succesfully"
 	}
-	"ZoneEdge"
-	{
-		"en"		"edge"
-	}
 	"ZoneFirst"
 	{
 		"en"		"FIRST"
-	}
-	"ZoneEdgeChange"
-	{
-		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:.01f},{7:s}"
-		"en"		"{1} edge {2}{3}{4} by {5}{6} degrees{7}."
 	}
 	"ZoneIncreased"
 	{
@@ -162,25 +142,6 @@
 		"#format"	"{1:d},{2:c}"
 		"en"		"Point {1} | {2} axis"
 	}
-	"ZoneRotate"
-	{
-		"en"		"Rotate the zone.\nUse 'sm_modifier <number>' to set a new modifier"
-	}
-	"ZoneRotateNegative"
-	{
-		"#format"	"{1:.01f}"
-		"en"		"Rotate by -{1} degrees"
-	}
-	"ZoneRotatePlus"
-	{
-		"#format"	"{1:.01f}"
-		"en"		"Rotate by +{1} degrees"
-	}
-	"ZoneRotateSuccessful"
-	{
-		"#format"	"{1:s},{2:.01f},{3:s}"
-		"en"		"Zone rotated by {1}{2}{3} degrees."
-	}
 	"ZoneSecond"
 	{
 		"en"		"SECOND"
@@ -192,14 +153,6 @@
 	"ZoneSetNo"
 	{
 		"en"		"No"
-	}
-	"ZoneSetRotate"
-	{
-		"en"		"Rotate zone"
-	}
-	"ZoneSetSize"
-	{
-		"en"		"Modify width/length"
 	}
 	"ZoneSetTP"
 	{
@@ -230,5 +183,22 @@
 	"ZoneTeleportInsideZone"
 	{
 		"en"		"You may not place a destination inside the teleport zone."
+	}
+	"ZoneEditMain"
+	{
+		"en"		"Main"
+	}
+	"ZoneEditBonus"
+	{
+		"en"		"Bonus"
+	}
+	"ZoneEditTrack"
+	{
+		"#format"	"{1:s}"
+		"en"		"Zone track: {1}"
+	}
+	"ZoneChangeTrack"
+	{
+		"en"		"Change zone track"
 	}
 }
