@@ -116,6 +116,7 @@ ConVar gCV_Interval = null;
 ConVar gCV_TeleportToStart = null;
 ConVar gCV_TeleportToEnd = null;
 ConVar gCV_UseCustomSprite = null;
+ConVar gCV_Height = null;
 
 // cached cvars
 bool gB_FlatZones = false;
@@ -123,6 +124,7 @@ float gF_Interval = 1.5;
 bool gB_TeleportToStart = true;
 bool gB_TeleportToEnd = true;
 bool gB_UseCustomSprite = true;
+float gF_Height = 128.0;
 
 // handles
 Handle gH_DrawEverything = null;
@@ -202,12 +204,14 @@ public void OnPluginStart()
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_Height = CreateConVar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
 
 	gCV_FlatZones.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToStart.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToEnd.AddChangeHook(OnConVarChanged);
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
+	gCV_Height.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -223,6 +227,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_TeleportToStart = gCV_TeleportToStart.BoolValue;
 	gB_UseCustomSprite = gCV_UseCustomSprite.BoolValue;
 	gB_TeleportToEnd = gCV_TeleportToEnd.BoolValue;
+	gF_Height = gCV_Height.FloatValue;
 
 	if(convar == gCV_Interval)
 	{
@@ -1108,7 +1113,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 				else if(gI_MapStep[client] == 2)
 				{
-					origin[2] += 128.0;
+					origin[2] += gF_Height;
 					gV_Point2[client] = origin;
 
 					gI_MapStep[client]++;
