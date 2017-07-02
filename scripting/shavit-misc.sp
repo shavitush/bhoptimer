@@ -727,23 +727,23 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 		if(gI_PreSpeed == 1 || gI_PreSpeed == 3)
 		{
-			float fSpeed[3];
-			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+			float speed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", speed);
 
-			float fSpeed_New = GetVectorLength(fSpeed);
-			float fScale = (gF_PrespeedLimit / fSpeed_New);
+			float speed_New = (SquareRoot(Pow(speed[0], 2.0) + Pow(speed[1], 2.0)));
+			float fScale = (gF_PrespeedLimit / speed_New);
 
 			if(bNoclipping)
 			{
-				fSpeed[2] = 0.0;
+				speed[2] = 0.0;
 			}
 
 			else if(fScale < 1.0)
 			{
-				ScaleVector(fSpeed, fScale);
+				ScaleVector(speed, fScale);
 			}
 
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, speed);
 		}
 	}
 
