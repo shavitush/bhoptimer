@@ -373,7 +373,7 @@ void UpdateWRCache()
 	char sQuery[512];
 	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
 	// was a bit confused with this one :s
-	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers u ON p.auth = u.auth;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers u ON p.auth = u.auth GROUP BY p.style;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
 }
