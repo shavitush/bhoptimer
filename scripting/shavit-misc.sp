@@ -36,11 +36,12 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
-#define CP_NONE					(0)
 #define CP_ANGLES				(1 << 0)
 #define CP_VELOCITY				(1 << 1)
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
+
+#define CP_MAX					64 // this is the amount i'm willing to go for,
 
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
@@ -49,6 +50,14 @@ int gI_Ammo = -1;
 char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "followme", "takingfire", "go", "fallback", "sticktog",
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
 	"getout", "negative", "enemydown", "compliment", "thanks", "cheer"};
+
+// enums
+enum
+{
+	iCheckpoints,
+	iCurrentCheckpoint,
+	CHECKPOINTSCACHE_SIZE
+};
 
 // cache
 bool gB_Hide[MAXPLAYERS+1];
@@ -60,9 +69,10 @@ char gS_CurrentMap[192];
 ConVar gCV_Hostname = null;
 ConVar gCV_Hostport = null;
 BhopStyle gBS_Style[MAXPLAYERS+1];
-float gF_Checkpoints[MAXPLAYERS+1][2][3][3]; // 3 - position, angles, velocity
+float gF_Checkpoints[MAXPLAYERS+1][CP_MAX][3][3]; // 3 - position, angles, velocity
 int gI_CheckpointsSettings[MAXPLAYERS+1];
-any gA_CheckpointsSnapshots[MAXPLAYERS+1][2][TIMERSNAPSHOT_SIZE];
+any gA_CheckpointsSnapshots[MAXPLAYERS+1][CP_MAX][TIMERSNAPSHOT_SIZE];
+any gA_CheckpointsCache[MAXPLAYERS+1][CHECKPOINTSCACHE_SIZE];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -182,8 +192,8 @@ public void OnPluginStart()
 	// checkpoints
 	RegConsoleCmd("sm_cpmenu", Command_Checkpoints, "Opens the checkpoints menu.");
 	RegConsoleCmd("sm_cp", Command_Checkpoints, "Opens the checkpoints menu. Alias for sm_cpmenu.");
-	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint 1.");
-	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint 1.");
+	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint (default: 1). Usage: sm_save [number]");
+	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint (default: 1). Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
@@ -771,6 +781,11 @@ public void OnClientPutInServer(int client)
 		DHookEntity(gH_GetPlayerMaxSpeed, true, client);
 	}
 
+	ResetCheckpoints(client);
+}
+
+void ResetCheckpoints(int client)
+{
 	for(int i = 0; i < sizeof(gF_Checkpoints[]); i++)
 	{
 		for(int j = 0; j < sizeof(gF_Checkpoints[][]); j++)
@@ -782,7 +797,7 @@ public void OnClientPutInServer(int client)
 		}
 	}
 
-	for(int i = 0; i <= 1; i++)
+	for(int i = 0; i < CP_MAX; i++)
 	{
 		gA_CheckpointsSnapshots[client][i][bTimerEnabled] = false;
 		gA_CheckpointsSnapshots[client][i][fStartTime] = 0.0;
@@ -796,6 +811,9 @@ public void OnClientPutInServer(int client)
 		gA_CheckpointsSnapshots[client][i][iTotalMeasures] = 0;
 		gA_CheckpointsSnapshots[client][i][iGoodGains] = 0;
 	}
+
+	gA_CheckpointsCache[client][iCheckpoints] = 0;
+	gA_CheckpointsCache[client][iCurrentCheckpoint] = 1;
 }
 
 public Action OnTakeDamage(int victim, int attacker)
@@ -1154,9 +1172,24 @@ public Action Command_Save(int client, int args)
 		return Plugin_Handled;
 	}
 
-	SaveCheckpoint(client, 0);
+	int index = 0;
 
-	Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+	if(args > 0)
+	{
+		char[] arg = new char[4];
+		GetCmdArg(1, arg, 4);
+
+		int parsed = StringToInt(arg);
+
+		if(parsed > 0 && parsed <= CP_MAX)
+		{
+			index = (parsed - 1);
+		}
+	}
+
+	SaveCheckpoint(client, index);
+
+	Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 	return Plugin_Handled;
 }
@@ -1177,9 +1210,24 @@ public Action Command_Tele(int client, int args)
 		return Plugin_Handled;
 	}
 
-	TeleportToCheckpoint(client, 0);
+	int index = 0;
 
-	Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+	if(args > 0)
+	{
+		char[] arg = new char[4];
+		GetCmdArg(1, arg, 4);
+
+		int parsed = StringToInt(arg);
+
+		if(parsed > 0 && parsed <= CP_MAX)
+		{
+			index = (parsed - 1);
+		}
+	}
+
+	TeleportToCheckpoint(client, index);
+
+	Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 	return Plugin_Handled;
 }
@@ -1204,17 +1252,29 @@ public Action OpenCheckpointsMenu(int client, int item)
 	menu.SetTitle("%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
 
 	char[] sDisplay = new char[64];
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave1", client);
-	menu.AddItem("save;0", sDisplay);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_CheckpointsCache[client][iCheckpoints] + 1));
+	menu.AddItem("save", sDisplay, (gA_CheckpointsCache[client][iCheckpoints] < CP_MAX)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointTele1", client);
-	menu.AddItem("tele;0", sDisplay, (!IsVectorEmpty(gF_Checkpoints[client][0][0]))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	if(gA_CheckpointsCache[client][iCheckpoints] > 0)
+	{
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gA_CheckpointsCache[client][iCurrentCheckpoint]);
+		menu.AddItem("tele", sDisplay, ITEMDRAW_DEFAULT);
+	}
 
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave2", client);
-	menu.AddItem("save;1", sDisplay);
+	else
+	{
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, 1);
+		menu.AddItem("tele", sDisplay, ITEMDRAW_DISABLED);
+	}
 
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointTele2", client);
-	menu.AddItem("tele;1", sDisplay, (!IsVectorEmpty(gF_Checkpoints[client][1][0]))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointPrevious", client);
+	menu.AddItem("prev", sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointNext", client);
+	menu.AddItem("next", sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
+	menu.AddItem("reset", sDisplay);
 
 	char[] sInfo = new char[16];
 	IntToString(CP_ANGLES, sInfo, 16);
@@ -1231,50 +1291,61 @@ public Action OpenCheckpointsMenu(int client, int item)
 	return Plugin_Handled;
 }
 
-bool IsVectorEmpty(float vec[3])
-{
-	return (vec[0] == 0.0 && vec[1] == 0.0 && vec[2] == 0.0);
-}
-
 public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[8];
-		menu.GetItem(param2, sInfo, 8);
-
-		if(param2 <= 3)
-        {
-        	char[][] sExplodedString = new char[2][8];
-        	ExplodeString(sInfo, ";", sExplodedString, 2, 8);
-
-        	bool bSave = StrEqual(sExplodedString[0], "save");
-        	int index = StringToInt(sExplodedString[1]);
-
-        	if(bSave)
-        	{
-        		SaveCheckpoint(param1, index);
-        	}
-
-        	else if(!IsVectorEmpty(gF_Checkpoints[param1][index][0]))
-        	{
-        		TeleportToCheckpoint(param1, index);
-        	}
-        }
-
-		else
+		switch(param2)
 		{
-			char[] sCookie = new char[8];
-			gI_CheckpointsSettings[param1] ^= StringToInt(sInfo);
-			IntToString(gI_CheckpointsSettings[param1], sCookie, 16);
+			case 0:
+			{
+				SaveCheckpoint(param1, gA_CheckpointsCache[param1][iCheckpoints]);
+				gA_CheckpointsCache[param1][iCurrentCheckpoint] = ++gA_CheckpointsCache[param1][iCheckpoints];
+			}
 
-			SetClientCookie(param1, gH_CheckpointsCookie, sCookie);
+			case 1:
+			{
+				TeleportToCheckpoint(param1, gA_CheckpointsCache[param1][iCurrentCheckpoint] - 1);
+			}
+
+			case 2:
+			{
+				if(gA_CheckpointsCache[param1][iCurrentCheckpoint] > 1)
+				{
+					gA_CheckpointsCache[param1][iCurrentCheckpoint]--;
+				}
+			}
+
+			case 3:
+			{
+				if(gA_CheckpointsCache[param1][iCurrentCheckpoint] < CP_MAX)
+				{
+					gA_CheckpointsCache[param1][iCurrentCheckpoint]++;
+				}
+			}
+
+			case 4:
+			{
+				ResetCheckpoints(param1);
+			}
+
+			default:
+			{
+				char[] sInfo = new char[8];
+				menu.GetItem(param2, sInfo, 8);
+				
+				char[] sCookie = new char[8];
+				gI_CheckpointsSettings[param1] ^= StringToInt(sInfo);
+				IntToString(gI_CheckpointsSettings[param1], sCookie, 16);
+
+				SetClientCookie(param1, gH_CheckpointsCookie, sCookie);
+			}
 		}
 
 		OpenCheckpointsMenu(param1, GetMenuSelectionPosition());
 	}
 
-	else if(action == MenuAction_DisplayItem && param2 >= 4)
+	else if(action == MenuAction_DisplayItem && param2 >= 5)
 	{
 		char[] sInfo = new char[16];
 		char[] sDisplay = new char[64];
@@ -1304,7 +1375,7 @@ void SaveCheckpoint(int client, int index)
 
 void TeleportToCheckpoint(int client, int index)
 {
-	Shavit_SetPracticeMode(client, true, true);
+	Shavit_SetPracticeMode(client, true, !Shavit_InsideZone(client, Track_Main, Zone_Start));
 	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 
 	TeleportEntity(client, gF_Checkpoints[client][index][0],
