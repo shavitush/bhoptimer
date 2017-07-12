@@ -46,6 +46,7 @@ bool gB_MySQL = false;
 // forwards
 Handle gH_Forwards_Start = null;
 Handle gH_Forwards_Stop = null;
+Handle gH_Forwards_FinishPre = null;
 Handle gH_Forwards_Finish = null;
 Handle gH_Forwards_OnRestart = null;
 Handle gH_Forwards_OnEnd = null;
@@ -181,6 +182,7 @@ public void OnPluginStart()
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell);
+	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
 	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell);
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell);
@@ -813,13 +815,52 @@ public int Native_FinishMap(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
+	any snapshot[TIMERSNAPSHOT_SIZE];
+	snapshot[bTimerEnabled] = gB_TimerEnabled[client];
+	snapshot[fStartTime] = gF_StartTime[client];
+	snapshot[fPauseStartTime] = gF_PauseStartTime[client];
+	snapshot[fPauseTotalTime] = gF_PauseTotalTime[client];
+	snapshot[bClientPaused] = gB_ClientPaused[client];
+	snapshot[iJumps] = gI_Jumps[client];
+	snapshot[bsStyle] = gBS_Style[client];
+	snapshot[iStrafes] = gI_Strafes[client];
+	snapshot[iTotalMeasures] = gI_TotalMeasures[client];
+	snapshot[iGoodGains] = gI_GoodGains[client];
+	snapshot[fServerTime] = GetEngineTime();
+	snapshot[fCurrentTime] = CalculateTime(client);
+
+	Action result = Plugin_Continue;
+	Call_StartForward(gH_Forwards_FinishPre);
+	Call_PushCell(client);
+	Call_PushArrayEx(snapshot, TIMERSNAPSHOT_SIZE, SM_PARAM_COPYBACK);
+	Call_Finish(result);
+	
+	if(result != Plugin_Continue && result != Plugin_Changed)
+	{
+		return;
+	}
+
 	Call_StartForward(gH_Forwards_Finish);
 	Call_PushCell(client);
-	Call_PushCell(view_as<int>(gBS_Style[client]));
-	Call_PushCell(CalculateTime(client));
-	Call_PushCell(gI_Jumps[client]);
-	Call_PushCell(gI_Strafes[client]);
-	Call_PushCell((gA_StyleSettings[gBS_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
+
+	if(result == Plugin_Continue)
+	{
+		Call_PushCell(gBS_Style[client]);
+		Call_PushCell(CalculateTime(client));
+		Call_PushCell(gI_Jumps[client]);
+		Call_PushCell(gI_Strafes[client]);
+		Call_PushCell((gA_StyleSettings[gBS_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
+	}
+
+	else
+	{
+		Call_PushCell(snapshot[bsStyle]);
+		Call_PushCell(snapshot[fCurrentTime]);
+		Call_PushCell(snapshot[iJumps]);
+		Call_PushCell(snapshot[iStrafes]);
+		Call_PushCell((gA_StyleSettings[snapshot[bsStyle]][bSync])? (snapshot[iGoodGains] == 0)? 0.0:(snapshot[iGoodGains] / float(snapshot[iTotalMeasures]) * 100.0):-1.0);
+	}
+
 	Call_Finish();
 
 	StopTimer(client);
@@ -862,8 +903,6 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	{
 		PrintToChat(client, " %s", buffer);
 	}
-
-	return;
 }
 
 public int Native_RestartTimer(Handle handler, int numParams)
@@ -875,8 +914,6 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	Call_Finish();
 
 	StartTimer(client);
-
-	return;
 }
 
 public int Native_GetStrafeCount(Handle handler, int numParams)
@@ -923,8 +960,6 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	}
 
 	gB_PracticeMode[client] = practice;
-
-	return;
 }
 
 public int Native_IsPracticeMode(Handle handler, int numParams)
@@ -970,8 +1005,6 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_TotalMeasures[client] = view_as<int>(snapshot[iTotalMeasures]);
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
 	gF_StartTime[client] = GetEngineTime() - view_as<float>(snapshot[fCurrentTime]);
-
-	return;
 }
 
 void StartTimer(int client)
@@ -986,16 +1019,26 @@ void StartTimer(int client)
 
 	if(!gB_NoZAxisSpeed || gA_StyleSettings[gBS_Style[client]][bPrespeed] || fSpeed[2] == 0.0 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0)
 	{
-		gF_StartTime[client] = GetEngineTime();
-		gB_TimerEnabled[client] = true;
 		gI_Strafes[client] = 0;
 		gI_Jumps[client] = 0;
 		gI_TotalMeasures[client] = 0;
 		gI_GoodGains[client] = 0;
+		gF_StartTime[client] = GetEngineTime();
 
+		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
 		Call_PushCell(client);
-		Call_Finish();
+		Call_Finish(result);
+
+		if(result == Plugin_Continue)
+		{
+			gB_TimerEnabled[client] = true;
+		}
+
+		else if(result == Plugin_Handled || result == Plugin_Stop)
+		{
+			gB_TimerEnabled[client] = false;
+		}
 	}
 
 	gF_PauseTotalTime[client] = 0.0;

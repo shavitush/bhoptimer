@@ -280,9 +280,9 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * (WARNING: Will be called every tick when the player stands at the start zone!)
  *
  * @param client					Client index.
- * @noreturn
+ * @return							Plugin_Continue to do nothing or anything else to not start the timer.
  */
-forward void Shavit_OnStart(int client);
+forward Action Shavit_OnStart(int client);
 
 /**
  * Called when a player uses the restart command.
@@ -307,6 +307,15 @@ forward void Shavit_OnEnd(int client);
  * @noreturn
  */
 forward void Shavit_OnStop(int client);
+
+/**
+ * Called before a player finishes a map.
+ *
+ * @param client					Client index.
+ * @param snapshot					A snapshot of the player's timer.
+ * @return							Plugin_Continue to do nothing, Plugin_Changed to change the variables or anything else to stop the timer from finishing.
+ */
+forward Action Shavit_OnFinishPre(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
 
 /**
  * Called when a player finishes a map. (touches the end zone)
