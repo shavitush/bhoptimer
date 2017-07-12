@@ -41,7 +41,7 @@
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
 
-#define CP_MAX					64 // this is the amount i'm willing to go for,
+#define CP_MAX					64 // this is the amount i'm willing to go for
 
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
@@ -101,6 +101,7 @@ ConVar gCV_NoclipMe = null;
 ConVar gCV_AdvertisementInterval = null;
 ConVar gCV_Checkpoints = null;
 ConVar gCV_RemoveRagdolls = null;
+ConVar gCV_ClanTag = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -125,6 +126,8 @@ int gI_NoclipMe = true;
 float gF_AdvertisementInterval = 600.0;
 bool gB_Checkpoints = true;
 int gI_RemoveRagdolls = 1;
+char gS_ClanTag[32] = "{styletag} :: {time}";
+bool gB_ClanTag = true;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -253,6 +256,7 @@ public void OnPluginStart()
 	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 	gCV_Checkpoints = CreateConVar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RemoveRagdolls = CreateConVar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
+	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style settings from shavit-styles.cfg.\n{style} - style name.\n{time} - formatted time.", 0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -276,6 +280,7 @@ public void OnPluginStart()
 	gCV_AdvertisementInterval.AddChangeHook(OnConVarChanged);
 	gCV_Checkpoints.AddChangeHook(OnConVarChanged);
 	gCV_RemoveRagdolls.AddChangeHook(OnConVarChanged);
+	gCV_ClanTag.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -366,6 +371,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	{
 		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sClanTag, gS_StyleStrings[i][sClanTag], 128);
 	}
 }
 
@@ -411,6 +417,8 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gF_AdvertisementInterval = gCV_AdvertisementInterval.FloatValue;
 	gB_Checkpoints = gCV_Checkpoints.BoolValue;
 	gI_RemoveRagdolls = gCV_RemoveRagdolls.IntValue;
+	gCV_ClanTag.GetString(gS_ClanTag, 32);
+	gB_ClanTag = !StrEqual(gS_ClanTag, "0");
 }
 
 public void OnMapStart()
@@ -617,6 +625,11 @@ public Action Timer_Scoreboard(Handle Timer)
 		}
 
 		UpdateScoreboard(i);
+
+		if(gB_ClanTag && IsPlayerAlive(i))
+		{
+			UpdateClanTag(i);
+		}
 	}
 
 	return Plugin_Continue;
@@ -695,6 +708,43 @@ void UpdateScoreboard(int client)
 	{
 		SetEntProp(client, Prop_Data, "m_iDeaths", Shavit_GetRank(client));
 	}
+}
+
+void UpdateClanTag(int client)
+{
+	int time = RoundToFloor(Shavit_GetClientTime(client));
+	char[] sTime = new char[16];
+
+	if(time < 60)
+	{
+		IntToString(time, sTime, 16);
+	}
+
+	else
+	{
+		int minutes = (time / 60);
+		int seconds = (time % 60);
+
+		if(time < 3600)
+		{
+			FormatEx(sTime, 16, "%d:%s%d", minutes, (seconds < 10)? "0":"", seconds);
+		}
+
+		else
+		{
+			minutes %= 60;
+
+			FormatEx(sTime, 16, "%d:%s%d:%s%d", (time / 3600), (minutes < 10)? "0":"", minutes, (seconds < 10)? "0":"", seconds);
+		}
+	}
+
+	char[] sCustomTag = new char[32];
+	strcopy(sCustomTag, 32, gS_ClanTag);
+	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gBS_Style[client]][sStyleName]);
+	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gBS_Style[client]][sClanTag]);
+	ReplaceString(sCustomTag, 32, "{time}", sTime);
+
+	CS_SetClientClanTag(client, sCustomTag);
 }
 
 void RemoveRagdoll(int client)

@@ -62,6 +62,11 @@
 		"#format"	"{1:T}"
 		"en"		"Snap to wall: {1}"
 	}
+	"CursorZone"
+	{
+		"#format"	"{1:T}"
+		"en"		"Use cursor position: {1}"
+	}
 	// ---------- Zone Menu ---------- //
 	"ZoneAdjustCancel"
 	{

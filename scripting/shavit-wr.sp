@@ -486,7 +486,6 @@ public Action Command_Delete(int client, int args)
 	}
 
 	menu.ExitButton = true;
-
 	menu.Display(client, 20);
 
 	return Plugin_Handled;
@@ -523,7 +522,6 @@ public Action Command_DeleteAll(int client, int args)
 	}
 
 	m.ExitButton = true;
-
 	m.Display(client, 20);
 
 	return Plugin_Handled;
@@ -611,8 +609,8 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	Menu m = new Menu(OpenDelete_Handler);
-	m.SetTitle("%t", "ListClientRecords", sDisplayMap, gS_StyleStrings[style][sStyleName]);
+	Menu menu = new Menu(OpenDelete_Handler);
+	menu.SetTitle("%t", "ListClientRecords", sDisplayMap, gS_StyleStrings[style][sStyleName]);
 
 	int iCount = 0;
 
@@ -639,70 +637,78 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 
 		char[] sDisplay = new char[128];
 		FormatEx(sDisplay, 128, "#%d - %s - %s (%d jump%s)", iCount, sName, sTime, jumps, (jumps != 1)? "s":"");
-		m.AddItem(sID, sDisplay);
+		menu.AddItem(sID, sDisplay);
 	}
 
 	if(iCount == 0)
 	{
 		char[] sNoRecords = new char[64];
 		FormatEx(sNoRecords, 64, "%T", "ListClientRecordsNone", client);
-		m.AddItem("-1", sNoRecords);
+		menu.AddItem("-1", sNoRecords);
 	}
 
-	m.ExitButton = true;
-	m.Display(client, 20);
+	menu.ExitButton = true;
+	menu.Display(client, 20);
 }
 
-public int OpenDelete_Handler(Menu m, MenuAction action, int param1, int param2)
+public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] info = new char[16];
-		char[] sMenuItem = new char[64];
-		m.GetItem(param2, info, 16);
+		menu.GetItem(param2, info, 16);
 
-		if(StringToInt(info) == -1)
+		int id = StringToInt(info);
+
+		if(id != -1)
 		{
-			return 0;
+			OpenDeleteMenu(param1, id);
 		}
-
-		Menu m2 = new Menu(DeleteConfirm_Handler);
-		m2.SetTitle("%T", "DeleteConfirm", param1);
-
-		for(int i = 1; i <= GetRandomInt(1, 4); i++)
-		{
-			FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", param1);
-			m2.AddItem("-1", sMenuItem);
-		}
-
-		FormatEx(sMenuItem, 64, "%T", "MenuResponseYesSingle", param1);
-		m2.AddItem(info, sMenuItem);
-
-		for(int i = 1; i <= GetRandomInt(1, 3); i++)
-		{
-			FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", param1);
-			m2.AddItem("-1", sMenuItem);
-		}
-
-		m2.ExitButton = true;
-
-		m2.Display(param1, 20);
 	}
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
 }
 
-public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int param2)
+void OpenDeleteMenu(int client, int id)
+{
+	char[] sMenuItem = new char[64];
+
+	Menu menu = new Menu(DeleteConfirm_Handler);
+	menu.SetTitle("%T", "DeleteConfirm", client);
+
+	for(int i = 1; i <= GetRandomInt(1, 4); i++)
+	{
+		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
+		menu.AddItem("-1", sMenuItem);
+	}
+
+	FormatEx(sMenuItem, 64, "%T", "MenuResponseYesSingle", client);
+
+	char[] info = new char[16];
+	IntToString(id, info, 16);
+	menu.AddItem(info, sMenuItem);
+
+	for(int i = 1; i <= GetRandomInt(1, 3); i++)
+	{
+		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
+		menu.AddItem("-1", sMenuItem);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, 20);
+}
+
+public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] info = new char[16];
-		m.GetItem(param2, info, 16);
+		menu.GetItem(param2, info, 16);
 		int iRecordID = StringToInt(info);
 
 		if(iRecordID == -1)
@@ -733,7 +739,7 @@ public int DeleteConfirm_Handler(Menu m, MenuAction action, int param1, int para
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
@@ -1172,7 +1178,11 @@ void OpenSubMenu(int client, int id)
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 
-	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+	DataPack datapack = new DataPack();
+	datapack.WriteCell(GetClientSerial(client));
+	datapack.WriteCell(id);
+
+	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, datapack, DBPrio_High);
 }
 
 public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1184,7 +1194,10 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		return;
 	}
 
-	int client = GetClientFromSerial(data);
+	ResetPack(data);
+	int client = GetClientFromSerial(ReadPackCell(data));
+	int id = ReadPackCell(data);
+	delete view_as<DataPack>(data);
 
 	if(client == 0)
 	{
@@ -1258,9 +1271,24 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatEx(sDisplay, 128, (sync != -1.0)? "%T: %d (%.02f%%)":"%T: %d", "WRStrafes", client, strafes, sync);
 			m.AddItem("-1", sDisplay);
 		}
+
 		char[] sMenuItem = new char[64];
 		FormatEx(sMenuItem, 64, "%T", "WRPlayerStats", client);
-		m.AddItem(sAuthID, sMenuItem);
+
+		char[] sInfo = new char[32];
+		FormatEx(sInfo, 32, "0;%s", sAuthID);
+
+		if(gB_Stats)
+		{
+			m.AddItem(sInfo, sMenuItem);
+		}
+
+		if(CheckCommandAccess(client, "sm_delete", ADMFLAG_RCON))
+		{
+			FormatEx(sMenuItem, 64, "%T", "WRDeleteRecord", client);
+			FormatEx(sInfo, 32, "1;%d", id);
+			m.AddItem(sInfo, sMenuItem);
+		}
 	}
 
 	else
@@ -1294,7 +1322,23 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		if(gB_Stats && StringToInt(sInfo) != -1)
 		{
-			Shavit_OpenStatsMenu(param1, sInfo);
+			char[][] sExploded = new char[2][32];
+			ExplodeString(sInfo, ";", sExploded, 2, 32, true);
+
+			int first = StringToInt(sExploded[0]);
+
+			switch(first)
+			{
+				case 0:
+				{
+					Shavit_OpenStatsMenu(param1, sInfo);
+				}
+
+				case 1:
+				{
+					OpenDeleteMenu(param1, StringToInt(sExploded[1]));
+				}
+			}
 		}
 
 		else
