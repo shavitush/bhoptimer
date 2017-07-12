@@ -132,6 +132,10 @@
 	{
 		"en"		"Player stats"
 	}
+	"WRDeleteRecord"
+	{
+		"en"		"Delete record"
+	}
 	"WRPointsCap"
 	{
 		"en"		"Points"
