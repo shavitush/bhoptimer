@@ -1254,6 +1254,7 @@ bool LoadStyles()
 		dStyle.GetString("shortname", gS_StyleStrings[i][sShortName], 128);
 		dStyle.GetString("htmlcolor", gS_StyleStrings[i][sHTMLColor], 128);
 		dStyle.GetString("command", gS_StyleStrings[i][sChangeCommand], 128);
+		dStyle.GetString("clantag", gS_StyleStrings[i][sClanTag], 128);
 
 		gA_StyleSettings[i][bAutobhop] = dStyle.GetBool("autobhop", true);
 		gA_StyleSettings[i][bEasybhop] = dStyle.GetBool("easybhop", true);

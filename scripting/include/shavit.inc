@@ -84,6 +84,7 @@ enum
 	sShortName,
 	sHTMLColor,
 	sChangeCommand,
+	sClanTag,
 	STYLESTRINGS_SIZE
 };
 
