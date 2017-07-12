@@ -315,8 +315,8 @@ void LoadConfig()
 			char[] sMessage = new char[255];
 			kvConfig.GetString("message", sMessage, 255);
 
-			char[] sClanTag = new char[32];
-			kvConfig.GetString("clantag", sClanTag, 32);
+			char[] sCustomClanTag = new char[32];
+			kvConfig.GetString("clantag", sCustomClanTag, 32);
 
 			// custom
 			if(StrContains(sBuffer[0], "[U:") != -1)
@@ -336,9 +336,9 @@ void LoadConfig()
 					gSM_Custom_Message.SetString(sBuffer, sMessage);
 				}
 
-				if(strlen(sClanTag) > 0)
+				if(strlen(sCustomClanTag) > 0)
 				{
-					gSM_Custom_ClanTag.SetString(sBuffer, sClanTag);
+					gSM_Custom_ClanTag.SetString(sBuffer, sCustomClanTag);
 				}
 			}
 
@@ -371,7 +371,7 @@ void LoadConfig()
 				gD_ChatRanks[gI_TotalChatRanks].SetString("prefix", sPrefix, 32);
 				gD_ChatRanks[gI_TotalChatRanks].SetString("name", (strlen(sName) > 0)? sName:"{name}", MAX_NAME_LENGTH*2);
 				gD_ChatRanks[gI_TotalChatRanks].SetString("message", (strlen(sMessage) > 0)? sMessage:"{message}", 255);
-				gD_ChatRanks[gI_TotalChatRanks].SetString("clantag", (strlen(sClanTag) > 0)? sClanTag:"", 32);
+				gD_ChatRanks[gI_TotalChatRanks].SetString("clantag", (strlen(sCustomClanTag) > 0)? sCustomClanTag:"", 32);
 
 				if(iFrom == -1 && gI_UnassignedTitle == -1)
 				{
@@ -771,11 +771,11 @@ void FormatVariables(int client, char[] buffer, int maxlen, const char[] formatt
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(sTempFormattingRules, maxlen, "{name}", sName);
 
-	char[] sClanTag = new char[32];
-	CS_GetClientClanTag(client, sClanTag, 32);
-	int iLen = strlen(sClanTag);
-	sClanTag[iLen] = (iLen > 0)? ' ':'\0';
-	ReplaceString(sTempFormattingRules, maxlen, "{clan}", sClanTag);
+	char[] sCustomClanTag = new char[32];
+	CS_GetClientClanTag(client, sCustomClanTag, 32);
+	int iLen = strlen(sCustomClanTag);
+	sCustomClanTag[iLen] = (iLen > 0)? ' ':'\0';
+	ReplaceString(sTempFormattingRules, maxlen, "{clan}", sCustomClanTag);
 
 	ReplaceString(sTempFormattingRules, maxlen, "{message}", message);
 
