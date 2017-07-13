@@ -93,7 +93,7 @@ bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 bool gB_InsideZoneID[MAXPLAYERS+1][MAX_ZONES];
 float gF_CustomSpawn[3];
 int gI_ZoneTrack[MAXPLAYERS+1];
-int gI_ZoneID[MAXPLAYERS+1];
+int gI_ZoneDatabaseID[MAXPLAYERS+1];
 
 // Zone cache.
 any gA_ZoneSettings[ZONETYPES_SIZE][ZONESETTINGS_SIZE];
@@ -511,6 +511,7 @@ void ClearZone(int index)
 	gA_ZoneCache[index][iZoneType] = -1;
 	gA_ZoneCache[index][iZoneTrack] = -1;
 	gA_ZoneCache[index][iEntityID] = -1;
+	gA_ZoneCache[index][iDatabaseID] = -1;
 }
 
 void KillZoneEntity(int index)
@@ -549,7 +550,7 @@ void UnloadZones(int zone)
 void RefreshZones()
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT id, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s FROM %smapzones WHERE map = '%s';", (gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
 	if(gH_SQL != null)
 	{
@@ -575,25 +576,23 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 	while(results.FetchRow())
 	{
-		int type = results.FetchInt(1);
+		int type = results.FetchInt(0);
 
 		if(type == Zone_CustomSpawn)
 		{
-			gF_CustomSpawn[0] = results.FetchFloat(8);
-			gF_CustomSpawn[1] = results.FetchFloat(9);
-			gF_CustomSpawn[2] = results.FetchFloat(10);
+			gF_CustomSpawn[0] = results.FetchFloat(7);
+			gF_CustomSpawn[1] = results.FetchFloat(8);
+			gF_CustomSpawn[2] = results.FetchFloat(9);
 		}
 
 		else
 		{
-			gA_ZoneCache[gI_MapZones][iDatabaseID] = results.FetchInt(0);
-
-			gV_MapZones[gI_MapZones][0][0] = results.FetchFloat(2);
-			gV_MapZones[gI_MapZones][0][1] = results.FetchFloat(3);
-			gV_MapZones[gI_MapZones][0][2] = results.FetchFloat(4);
-			gV_MapZones[gI_MapZones][7][0] = results.FetchFloat(5);
-			gV_MapZones[gI_MapZones][7][1] = results.FetchFloat(6);
-			gV_MapZones[gI_MapZones][7][2] = results.FetchFloat(7);
+			gV_MapZones[gI_MapZones][0][0] = results.FetchFloat(1);
+			gV_MapZones[gI_MapZones][0][1] = results.FetchFloat(2);
+			gV_MapZones[gI_MapZones][0][2] = results.FetchFloat(3);
+			gV_MapZones[gI_MapZones][7][0] = results.FetchFloat(4);
+			gV_MapZones[gI_MapZones][7][1] = results.FetchFloat(5);
+			gV_MapZones[gI_MapZones][7][2] = results.FetchFloat(6);
 
 			CreateZonePoints(gV_MapZones[gI_MapZones]);
 
@@ -603,14 +602,15 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 			if(type == Zone_Teleport)
 			{
-				gV_Destinations[gI_MapZones][0] = results.FetchFloat(8);
-				gV_Destinations[gI_MapZones][1] = results.FetchFloat(9);
-				gV_Destinations[gI_MapZones][2] = results.FetchFloat(10);
+				gV_Destinations[gI_MapZones][0] = results.FetchFloat(7);
+				gV_Destinations[gI_MapZones][1] = results.FetchFloat(8);
+				gV_Destinations[gI_MapZones][2] = results.FetchFloat(9);
 			}
 
 			gA_ZoneCache[gI_MapZones][bZoneInitialized] = true;
 			gA_ZoneCache[gI_MapZones][iZoneType] = type;
-			gA_ZoneCache[gI_MapZones][iZoneTrack] = results.FetchInt(11);
+			gA_ZoneCache[gI_MapZones][iZoneTrack] = results.FetchInt(10);
+			gA_ZoneCache[gI_MapZones][iDatabaseID] = results.FetchInt(11);
 			gA_ZoneCache[gI_MapZones][iEntityID] = -1;
 
 			gI_MapZones++;
@@ -864,12 +864,12 @@ public int ZoneEdit_MenuHandler(Menu menu, MenuAction action, int param1, int pa
 			{
 				// a hack to place the player in the last step of zone editing
 				gI_MapStep[param1] = 3;
-				gI_ZoneID[param1] = id;
 				gV_Point1[param1] = gV_MapZones[id][0];
 				gV_Point2[param1] = gV_MapZones[id][7];
 				gI_ZoneType[param1] = gA_ZoneCache[id][iZoneType];
 				gI_ZoneTrack[param1] = gA_ZoneCache[id][iZoneTrack];
 				gV_Teleport[param1] = gV_Destinations[id];
+				gI_ZoneDatabaseID[param1] = gA_ZoneCache[id][iDatabaseID];
 
 				// to stop the original zone from drawing
 				gA_ZoneCache[id][bZoneInitialized] = false;
@@ -967,7 +967,7 @@ public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int 
 			default:
 			{
 				char[] sQuery = new char[256];
-				FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE id = '%d';", gS_MySQLPrefix, gA_ZoneCache[id][iDatabaseID]);
+				FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE %s = %d;", gS_MySQLPrefix, (gB_MySQL)? "id":"rowid", gA_ZoneCache[id][iDatabaseID]);
 
 				DataPack hDatapack = new DataPack();
 				hDatapack.WriteCell(GetClientSerial(param1));
@@ -1121,13 +1121,7 @@ void Reset(int client)
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
 	gB_CursorTracing[client] = false;
-
-	if(gI_ZoneID[client] != -1)
-	{
-		gA_ZoneCache[gI_ZoneID[client]][bZoneInitialized] = true;
-	}
-
-	gI_ZoneID[client] = -1;
+	gI_ZoneDatabaseID[client] = -1;
 
 	for(int i = 0; i < 3; i++)
 	{
@@ -1623,6 +1617,8 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 void InsertZone(int client)
 {
 	int type = gI_ZoneType[client];
+	int index = GetZoneIndex(type, gI_ZoneTrack[client]);
+	bool insert = (gI_ZoneDatabaseID[client] == -1 && (index == -1 || type >= Zone_Respawn));
 
 	char[] sQuery = new char[512];
 
@@ -1631,7 +1627,7 @@ void InsertZone(int client)
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
 	}
 
-	else if(gI_ZoneID[client] == -1 && (GetZoneIndex(type, gI_ZoneTrack[client]) == -1 || type >= Zone_Respawn)) // insert
+	else if(insert) // insert
 	{
 		if(type != Zone_Teleport)
 		{
@@ -1646,7 +1642,18 @@ void InsertZone(int client)
 
 	else // update
 	{
-		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f' WHERE map = '%s' AND type = '%d' AND track = '%d';", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gS_Map, type, gI_ZoneTrack[client]);
+		if(gI_ZoneDatabaseID[client] == -1)
+		{
+			for(int i = 0; i < gI_MapZones; i++)
+			{
+				if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneCache[i][iZoneType] == type && gA_ZoneCache[i][iZoneTrack] == gI_ZoneTrack[client])
+				{
+					gI_ZoneDatabaseID[client] = gA_ZoneCache[i][iDatabaseID];
+				}
+			}
+		}
+
+		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f' WHERE %s = %d;", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}
 
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
