@@ -220,6 +220,7 @@ enum
 	iZoneType,
 	iZoneTrack, // 0 - main, 1 - bonus
 	iEntityID,
+	iDatabaseID,
 	ZONECACHE_SIZE
 };
 
