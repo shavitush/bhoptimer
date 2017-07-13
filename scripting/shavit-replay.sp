@@ -176,6 +176,11 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_NameStyle = gCV_NameStyle.IntValue;
 	gI_DefaultTeam = gCV_NameStyle.IntValue;
 	gB_CentralBot = gCV_CentralBot.BoolValue;
+
+	if(convar == gCV_CentralBot)
+	{
+		OnMapStart();
+	}
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
