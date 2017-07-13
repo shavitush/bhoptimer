@@ -38,6 +38,7 @@ bool gB_Stats = false;
 Handle gH_OnWorldRecord = null;
 Handle gH_OnFinish_Post = null;
 Handle gH_OnWRDeleted = null;
+Handle gH_OnWorstRecord = null;
 
 // database handle
 Database gH_SQL = null;
@@ -98,6 +99,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
+	CreateNative("Shavit_GetRecordAmount", Native_GetRecordAmount);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
@@ -120,6 +122,7 @@ public void OnPluginStart()
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell);
+	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// player commands
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
@@ -447,6 +450,11 @@ public int Native_GetPlayerPB(Handle handler, int numParams)
 public int Native_GetRankForTime(Handle handler, int numParams)
 {
 	return GetRankForTime(GetNativeCell(1), GetNativeCell(2));
+}
+
+public int Native_GetRecordAmount(Handle handler, int numParams)
+{
+	return gI_RecordAmount[GetNativeCell(1)];
 }
 
 #if defined DEBUG
@@ -1538,6 +1546,18 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 	}
 
 	int iRank = GetRankForTime(style, time);
+
+	if(iRank >= gI_RecordAmount[style])
+	{
+		Call_StartForward(gH_OnWorstRecord);
+		Call_PushCell(client);
+		Call_PushCell(style);
+		Call_PushCell(time);
+		Call_PushCell(jumps);
+		Call_PushCell(strafes);
+		Call_PushCell(sync);
+		Call_Finish();
+	}
 
 	float fDifference = (gF_PlayerRecord[client][style] - time);
 

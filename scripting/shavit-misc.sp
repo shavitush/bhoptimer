@@ -712,29 +712,38 @@ void UpdateScoreboard(int client)
 
 void UpdateClanTag(int client)
 {
-	int time = RoundToFloor(Shavit_GetClientTime(client));
 	char[] sTime = new char[16];
 
-	if(time < 60)
+	if(Shavit_GetTimerStatus(client) == Timer_Stopped)
 	{
-		IntToString(time, sTime, 16);
+		strcopy(sTime, 16, "N/A");
 	}
 
 	else
 	{
-		int minutes = (time / 60);
-		int seconds = (time % 60);
+		int time = RoundToFloor(Shavit_GetClientTime(client));
 
-		if(time < 3600)
+		if(time < 60)
 		{
-			FormatEx(sTime, 16, "%d:%s%d", minutes, (seconds < 10)? "0":"", seconds);
+			IntToString(time, sTime, 16);
 		}
 
 		else
 		{
-			minutes %= 60;
+			int minutes = (time / 60);
+			int seconds = (time % 60);
 
-			FormatEx(sTime, 16, "%d:%s%d:%s%d", (time / 3600), (minutes < 10)? "0":"", minutes, (seconds < 10)? "0":"", seconds);
+			if(time < 3600)
+			{
+				FormatEx(sTime, 16, "%d:%s%d", minutes, (seconds < 10)? "0":"", seconds);
+			}
+
+			else
+			{
+				minutes %= 60;
+
+				FormatEx(sTime, 16, "%d:%s%d:%s%d", (time / 3600), (minutes < 10)? "0":"", minutes, (seconds < 10)? "0":"", seconds);
+			}
 		}
 	}
 

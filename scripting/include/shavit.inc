@@ -453,6 +453,20 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
 forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity);
 
 /**
+ * Called when a player gets the worst record in the server for the style.
+ * Note: Will be only called for ranked styles.
+ *
+ * @param client					Client index.
+ * @param style						Style the record was done on.
+ * @param time						Record time.
+ * @param jumps						Jumps amount.
+ * @param strafes					Amount of strafes.
+ * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
+ * @noreturn
+ */
+forward void Shavit_OnWorstRecord(int client, BhopStyle style, float time, int jumps, int strafes, float sync);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
@@ -846,6 +860,7 @@ native void Shavit_SaveSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
  *
  * @param client					Client index.
  * @param snapshot					Full snapshot of the client's timer.
+ * @noreturn
  */
 native void Shavit_LoadSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
 
@@ -904,6 +919,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetRank");
 	MarkNativeAsOptional("Shavit_GetRankedPlayers");
 	MarkNativeAsOptional("Shavit_GetRankForTime");
+	MarkNativeAsOptional("Shavit_GetRecordAmount");
 	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
