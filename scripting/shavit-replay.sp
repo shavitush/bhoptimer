@@ -174,7 +174,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gF_ReplayDelay = gCV_ReplayDelay.FloatValue;
 	gF_TimeLimit = gCV_TimeLimit.FloatValue;
 	gI_NameStyle = gCV_NameStyle.IntValue;
-	gI_DefaultTeam = gCV_NameStyle.IntValue;
+	gI_DefaultTeam = gCV_DefaultTeam.IntValue;
 	gB_CentralBot = gCV_CentralBot.BoolValue;
 
 	if(convar == gCV_CentralBot)
