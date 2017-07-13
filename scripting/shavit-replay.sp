@@ -789,7 +789,7 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time)
 
 public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 {
-	if(!ReplayEnabled(style) || gI_PlayerFrames[client] == 0)
+	if(gI_PlayerFrames[client] == 0)
 	{
 		return;
 	}
@@ -802,11 +802,11 @@ public void Shavit_OnWorldRecord(int client, BhopStyle style, float time)
 	}
 
 	gA_Frames[style] = gA_PlayerFrames[client].Clone();
-
 	ClearFrames(client);
+
 	SaveReplay(style);
 
-	if(!gB_CentralBot && gI_ReplayBotClient[style] != 0)
+	if(ReplayEnabled(style) && !gB_CentralBot && gI_ReplayBotClient[style] != 0)
 	{
 		UpdateReplayInfo(gI_ReplayBotClient[style], view_as<int>(style), time);
 		CS_RespawnPlayer(gI_ReplayBotClient[style]);
