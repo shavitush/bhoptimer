@@ -59,7 +59,7 @@ int gI_HUDSettings[MAXPLAYERS+1];
 int gI_NameLength = MAX_NAME_LENGTH;
 int gI_LastScrollCount[MAXPLAYERS+1];
 int gI_ScrollCount[MAXPLAYERS+1];
-BhopStyle gBS_Style[MAXPLAYERS+1];
+int gBS_Style[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -214,9 +214,9 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
-		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sHTMLColor, gS_StyleStrings[i][sHTMLColor], 128);
+		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(i, sHTMLColor, gS_StyleStrings[i][sHTMLColor], 128);
 	}
 
 	gI_Styles = styles;
@@ -591,13 +591,13 @@ void UpdateHUD(int client)
 
 		else if(gB_Replay)
 		{
-			BhopStyle style = view_as<BhopStyle>(0);
+			int style = 0;
 
 			for(int i = 0; i < gI_Styles; i++)
 			{
-				if(Shavit_GetReplayBotIndex(view_as<BhopStyle>(i)) == target)
+				if(Shavit_GetReplayBotIndex(i) == target)
 				{
-					style = view_as<BhopStyle>(i);
+					style = i;
 
 					break;
 				}
@@ -938,7 +938,7 @@ public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param
 	return 0;
 }
 
-public void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle newstyle)
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
 {
 	UpdateTopLeftHUD(client, false);
 

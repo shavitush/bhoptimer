@@ -68,7 +68,7 @@ int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
 ConVar gCV_Hostname = null;
 ConVar gCV_Hostport = null;
-BhopStyle gBS_Style[MAXPLAYERS+1];
+int gBS_Style[MAXPLAYERS+1];
 float gF_Checkpoints[MAXPLAYERS+1][CP_MAX][3][3]; // 3 - position, angles, velocity
 int gI_CheckpointsSettings[MAXPLAYERS+1];
 any gA_CheckpointsSnapshots[MAXPLAYERS+1][CP_MAX][TIMERSNAPSHOT_SIZE];
@@ -374,9 +374,9 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
-		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sClanTag, gS_StyleStrings[i][sClanTag], 128);
+		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(i, sClanTag, gS_StyleStrings[i][sClanTag], 128);
 	}
 }
 
@@ -393,7 +393,7 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
-public void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle newstyle)
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
 {
 	gBS_Style[client] = newstyle;
 }
@@ -697,7 +697,7 @@ public Action Timer_Advertisement(Handle Timer)
 void UpdateScoreboard(int client)
 {
 	float fPB = 0.0;
-	Shavit_GetPlayerPB(client, view_as<BhopStyle>(0), fPB);
+	Shavit_GetPlayerPB(client, 0, fPB);
 
 	int iScore = (fPB != 0.0 && fPB < 2000)? -RoundToFloor(fPB):-2000;
 
@@ -872,7 +872,7 @@ void ResetCheckpoints(int client)
 		gA_CheckpointsSnapshots[client][i][fPauseTotalTime] = 0.0;
 		gA_CheckpointsSnapshots[client][i][bClientPaused] = false;
 		gA_CheckpointsSnapshots[client][i][iJumps] = 0;
-		gA_CheckpointsSnapshots[client][i][bsStyle] = view_as<BhopStyle>(0);
+		gA_CheckpointsSnapshots[client][i][bsStyle] = 0;
 		gA_CheckpointsSnapshots[client][i][iStrafes] = 0;
 		gA_CheckpointsSnapshots[client][i][iTotalMeasures] = 0;
 		gA_CheckpointsSnapshots[client][i][iGoodGains] = 0;
@@ -1592,7 +1592,7 @@ public Action Command_Specs(int client, int args)
 	return Plugin_Handled;
 }
 
-public void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps)
+public void Shavit_OnWorldRecord(int client, int style, float time, int jumps)
 {
 	char[] sUpperCase = new char[64];
 	strcopy(sUpperCase, 64, gS_StyleStrings[style][sStyleName]);

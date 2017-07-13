@@ -203,7 +203,7 @@ public void OnMapStart()
 	delete fFile;
 }
 
-public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank, int overwrite)
+public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite)
 {
 	float fOldTime = 0.0;
 	Shavit_GetPlayerPB(client, style, fOldTime);
@@ -242,7 +242,7 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 	}
 }
 
-public void Shavit_OnWorstRecord(int client, BhopStyle style, float time, int jumps, int strafes, float sync)
+public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync)
 {
 	if(gA_WorstSounds.Length != 0 && Shavit_GetRecordAmount(style) >= gI_MinimiumWorst)
 	{

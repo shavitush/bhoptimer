@@ -64,7 +64,7 @@ float gF_PauseStartTime[MAXPLAYERS+1];
 float gF_PauseTotalTime[MAXPLAYERS+1];
 bool gB_ClientPaused[MAXPLAYERS+1];
 int gI_Jumps[MAXPLAYERS+1];
-BhopStyle gBS_Style[MAXPLAYERS+1];
+int gBS_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 int gI_ButtonCache[MAXPLAYERS+1];
 int gI_Strafes[MAXPLAYERS+1];
@@ -606,7 +606,7 @@ public Action Command_Style(int client, int args)
 			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
 		}
 
-		m.AddItem(sInfo, sDisplay, (view_as<int>(gBS_Style[client]) == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+		m.AddItem(sInfo, sDisplay, (gBS_Style[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	// should NEVER happen
@@ -628,9 +628,9 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
-		BhopStyle style = view_as<BhopStyle>(StringToInt(info));
+		int style = StringToInt(info);
 
-		if(view_as<int>(style) == -1)
+		if(style == -1)
 		{
 			return 0;
 		}
@@ -646,7 +646,7 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-void ChangeClientStyle(int client, BhopStyle style)
+void ChangeClientStyle(int client, int style)
 {
 	if(!IsValidClient(client))
 	{
@@ -679,7 +679,7 @@ void ChangeClientStyle(int client, BhopStyle style)
 	}
 
 	char[] sStyle = new char[4];
-	IntToString(view_as<int>(style), sStyle, 4);
+	IntToString(style, sStyle, 4);
 
 	SetClientCookie(client, gH_StyleCookie, sStyle);
 }
@@ -775,7 +775,7 @@ public int Native_GetClientJumps(Handle handler, int numParams)
 
 public int Native_GetBhopStyle(Handle handler, int numParams)
 {
-	return view_as<int>(gBS_Style[GetNativeCell(1)]);
+	return gBS_Style[GetNativeCell(1)];
 }
 
 public int Native_GetTimerStatus(Handle handler, int numParams)
@@ -1000,7 +1000,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gF_PauseTotalTime[client] = view_as<float>(snapshot[fPauseTotalTime]);
 	gB_ClientPaused[client] = false; // Pausing is disabled in practice mode.
 	gI_Jumps[client] = view_as<int>(snapshot[iJumps]);
-	gBS_Style[client] = view_as<BhopStyle>(snapshot[bsStyle]);
+	gBS_Style[client] = snapshot[bsStyle];
 	gI_Strafes[client] = view_as<int>(snapshot[iStrafes]);
 	gI_TotalMeasures[client] = view_as<int>(snapshot[iTotalMeasures]);
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
@@ -1146,7 +1146,7 @@ public void OnClientCookiesCached(int client)
 		style = StringToInt(sCookie);
 	}
 
-	gBS_Style[client] = view_as<BhopStyle>((style >= 0 && style < gI_Styles)? style:0);
+	gBS_Style[client] = (style >= 0 && style < gI_Styles)? style:0;
 
 	UpdateAutoBhop(client);
 }
@@ -1163,7 +1163,7 @@ public void OnClientPutInServer(int client)
 	gB_Auto[client] = true;
 	gB_DoubleSteps[client] = false;
 	gF_StrafeWarning[client] = 0.0;
-	gBS_Style[client] = view_as<BhopStyle>(0);
+	gBS_Style[client] = 0;
 	gB_PracticeMode[client] = false;
 	UpdateAutoBhop(client);
 
@@ -1320,7 +1320,7 @@ public Action Command_StyleChange(int client, int args)
 	char[] sCommand = new char[128];
 	GetCmdArg(0, sCommand, 128);
 
-	BhopStyle style = Style_Default;
+	int style = 0;
 
 	if(gSM_StyleCommands.GetValue(sCommand, style))
 	{

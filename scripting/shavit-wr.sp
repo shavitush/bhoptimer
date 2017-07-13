@@ -45,7 +45,7 @@ Database gH_SQL = null;
 bool gB_MySQL = false;
 
 // cache
-BhopStyle gBS_LastWR[MAXPLAYERS+1];
+int gBS_LastWR[MAXPLAYERS+1];
 char gS_ClientMap[MAXPLAYERS+1][128];
 char gS_Map[192]; // blame workshop paths being so fucking long
 ArrayList gA_ValidMaps = null;
@@ -361,9 +361,9 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
-		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sShortName, gS_StyleStrings[i][sShortName], 128);
+		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i][sShortName], 128);
 	}
 
 	// arrays
@@ -636,7 +636,7 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
-		OpenDelete(param1, view_as<BhopStyle>(StringToInt(info)));
+		OpenDelete(param1, StringToInt(info));
 
 		UpdateLeaderboards();
 	}
@@ -649,7 +649,7 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-void OpenDelete(int client, BhopStyle style)
+void OpenDelete(int client, int style)
 {
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
@@ -665,7 +665,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 {
 	ResetPack(data);
 	int client = GetClientFromSerial(ReadPackCell(data));
-	BhopStyle style = ReadPackCell(data);
+	int style = ReadPackCell(data);
 	delete view_as<DataPack>(data);
 
 	if(results == null)
@@ -958,7 +958,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 			return 0;
 		}
 
-		gBS_LastWR[param1] = view_as<BhopStyle>(iStyle);
+		gBS_LastWR[param1] = iStyle;
 
 		StartWRMenu(param1, gS_ClientMap[param1], iStyle);
 	}
@@ -1181,7 +1181,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		FormatSeconds(time, sTime, 16);
 
 		int jumps = results.FetchInt(4);
-		BhopStyle style = view_as<BhopStyle>(results.FetchInt(5));
+		int style = results.FetchInt(5);
 		float fPoints = results.FetchFloat(6);
 
 		char[] sDisplay = new char[192];
@@ -1307,7 +1307,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
-		BhopStyle style = view_as<BhopStyle>(results.FetchInt(3));
+		int style = results.FetchInt(3);
 		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[style][sStyleName]);
 		m.AddItem("-1", sDisplay);
 
@@ -1419,13 +1419,13 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		else
 		{
-			StartWRMenu(param1, gS_ClientMap[param1], view_as<int>(gBS_LastWR[param1]));
+			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1]);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		StartWRMenu(param1, gS_ClientMap[param1], view_as<int>(gBS_LastWR[param1]));
+		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -1572,7 +1572,7 @@ public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const cha
 	}
 }
 
-public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, int strafes, float sync)
+public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync)
 {
 	char[] sTime = new char[32];
 	FormatSeconds(time, sTime, 32);
@@ -1740,9 +1740,9 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	while(results.FetchRow())
 	{
-		BhopStyle style = view_as<BhopStyle>(results.FetchInt(0));
+		int style = results.FetchInt(0);
 
-		if(view_as<int>(style) >= gI_Styles || gA_StyleSettings[style][bUnranked])
+		if(style >= gI_Styles || gA_StyleSettings[style][bUnranked])
 		{
 			continue;
 		}
@@ -1752,7 +1752,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(view_as<int>(i) >= gI_Styles || gA_StyleSettings[i][bUnranked])
+		if(i >= gI_Styles || gA_StyleSettings[i][bUnranked])
 		{
 			continue;
 		}
@@ -1762,7 +1762,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	}
 }
 
-int GetRankForTime(BhopStyle style, float time)
+int GetRankForTime(int style, float time)
 {
 	if(time < gF_WRTime[style])
 	{
