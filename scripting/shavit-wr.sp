@@ -46,9 +46,10 @@ bool gB_MySQL = false;
 
 // cache
 BhopStyle gBS_LastWR[MAXPLAYERS+1];
-char gS_ClientMap[MAXPLAYERS+1][192];
-
+char gS_ClientMap[MAXPLAYERS+1][128];
 char gS_Map[192]; // blame workshop paths being so fucking long
+ArrayList gA_ValidMaps = null;
+int gI_ValidMaps = 1;
 
 // current wr stats
 float gF_WRTime[STYLE_LIMIT];
@@ -152,6 +153,9 @@ public void OnPluginStart()
 	// modules
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Stats = LibraryExists("shavit-stats");
+
+	// cache
+	gA_ValidMaps = new ArrayList(192);
 
 	// mysql
 	Shavit_GetDB(gH_SQL);
@@ -277,6 +281,29 @@ public void OnMapStart()
 	if(gH_SQL != null)
 	{
 		UpdateWRCache();
+
+		int size = (strlen(gS_Map) + 1);
+		char[] sDisplayMap = new char[size];
+		GetMapDisplayName(gS_Map, sDisplayMap, size);
+
+		char[] sLowerCase = new char[128];
+		strcopy(sLowerCase, 128, sDisplayMap);
+
+		for(int i = 0; i < strlen(sLowerCase); i++)
+		{
+			if(!IsCharUpper(sLowerCase[i]))
+			{
+				sLowerCase[i] = CharToLower(sLowerCase[i]);
+			}
+		}
+
+		gA_ValidMaps.Clear();
+		gA_ValidMaps.PushString(sLowerCase);
+		gI_ValidMaps = 1;
+
+		char sQuery[128];
+		FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
+		gH_SQL.Query(SQL_UpdateMaps_Callback, sQuery, 0, DBPrio_Low);
 	}
 
 	if(gB_Late)
@@ -284,6 +311,45 @@ public void OnMapStart()
 		Shavit_OnStyleConfigLoaded(-1);
 		Shavit_OnChatConfigLoaded();
 	}
+}
+
+public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR maps cache update) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	while(results.FetchRow())
+	{
+		char[] sMap = new char[192];
+		results.FetchString(0, sMap, 192);
+
+		int size = (strlen(sMap) + 1);
+		char[] sDisplayMap = new char[size];
+		GetMapDisplayName(sMap, sDisplayMap, size);
+
+		char[] sLowerCase = new char[128];
+		strcopy(sLowerCase, 128, sDisplayMap);
+
+		for(int i = 0; i < strlen(sLowerCase); i++)
+		{
+			if(!IsCharUpper(sLowerCase[i]))
+			{
+				sLowerCase[i] = CharToLower(sLowerCase[i]);
+			}
+		}
+
+		if(gA_ValidMaps.FindString(sLowerCase) == -1)
+		{
+			gA_ValidMaps.PushString(sLowerCase);
+			gI_ValidMaps++;
+		}
+	}
+
+	SortADTArray(gA_ValidMaps, Sort_Ascending, Sort_String);
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -825,14 +891,15 @@ public Action Command_WorldRecord(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!args)
+	if(args == 0)
 	{
-		strcopy(gS_ClientMap[client], 192, gS_Map);
+		strcopy(gS_ClientMap[client], 128, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(gS_ClientMap[client], 192);
+		GetCmdArgString(gS_ClientMap[client], 128);
+		GuessBestMapName(gS_ClientMap[client], gS_ClientMap[client], 128);
 	}
 
 	return ShowWRStyleMenu(client);
@@ -992,8 +1059,9 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		}
 	}
 
-	char[] sDisplayMap = new char[strlen(sMap) + 1];
-	GetMapDisplayName(sMap, sDisplayMap, strlen(sMap) + 1);
+	int size = (strlen(sMap) + 1);
+	char[] sDisplayMap = new char[size];
+	GetMapDisplayName(sMap, sDisplayMap, size);
 
 	char[] sFormattedTitle = new char[256];
 
@@ -1149,15 +1217,15 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[192];
-		m.GetItem(param2, sInfo, 192);
+		char[] sInfo = new char[128];
+		m.GetItem(param2, sInfo, 128);
 
 		if(StringToInt(sInfo) != -1)
 		{
-			char[][] sExploded = new char[2][192];
-			ExplodeString(sInfo, ";", sExploded, 2, 192, true);
+			char[][] sExploded = new char[2][128];
+			ExplodeString(sInfo, ";", sExploded, 2, 128, true);
 
-			strcopy(gS_ClientMap[param1], 192, sExploded[1]);
+			strcopy(gS_ClientMap[param1], 128, sExploded[1]);
 
 			OpenSubMenu(param1, StringToInt(sExploded[0]));
 		}
@@ -1709,7 +1777,33 @@ int GetRankForTime(BhopStyle style, float time)
 		}
 	}
 
-	return gI_RecordAmount[style] + 1;
+	return (gI_RecordAmount[style] + 1);
+}
+
+public bool GuessBestMapName(const char[] input, char[] output, int size)
+{
+	if(gA_ValidMaps.FindString(input) != -1)
+	{
+		strcopy(output, size, input);
+
+		return true;
+	}
+
+	char[] sCache = new char[128];
+
+	for(int i = 0; i < gI_ValidMaps; i++)
+	{
+		gA_ValidMaps.GetString(i, sCache, 128);
+
+		if(StrContains(sCache, input) != -1)
+		{
+			strcopy(output, size, sCache);
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 public void Shavit_OnDatabaseLoaded(Database db)
