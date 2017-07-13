@@ -112,7 +112,7 @@
 	}
 	"NoReplayData"
 	{
-		"en"		"No replay data loaded"
+		"en"		"No replay data loaded\nPress USE to play"
 	}
 	// ---------- Panels ---------- //
 	"SpectatorPersonal"

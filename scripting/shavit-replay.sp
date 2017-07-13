@@ -51,6 +51,7 @@ float gF_StartTick[STYLE_LIMIT];
 ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
 int gI_FrameCount[STYLE_LIMIT];
 
+bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 bool gB_Record[MAXPLAYERS+1];
@@ -835,15 +836,35 @@ public void Shavit_OnResume(int client)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
-	if(!IsPlayerAlive(client) || !gB_Enabled)
+	if(!gB_Enabled)
 	{
+		return Plugin_Continue;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		if((buttons & IN_USE) > 0)
+		{
+			if(!gB_Button[client] && GetSpectatorTarget(client) == gA_CentralCache[iCentralClient])
+			{
+				OpenReplayMenu(client);
+			}
+
+			gB_Button[client] = true;
+		}
+
+		else
+		{
+			gB_Button[client] = false;
+		}
+
 		return Plugin_Continue;
 	}
 
 	float vecCurrentPosition[3];
 	GetClientAbsOrigin(client, vecCurrentPosition);
 
-	int iReplayBotStyle = view_as<int>(GetReplayStyle(client));
+	int iReplayBotStyle = GetReplayStyle(client);
 
 	if(iReplayBotStyle != -1 && ReplayEnabled(iReplayBotStyle))
 	{

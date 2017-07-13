@@ -431,7 +431,7 @@ void UpdateHUD(int client)
 	char[] sHintText = new char[512];
 	strcopy(sHintText, 512, "");
 
-	if((gI_HUDSettings[client] & HUD_ZONEHUD) > 0)
+	if(!IsFakeClient(target) && (gI_HUDSettings[client] & HUD_ZONEHUD) > 0)
 	{
 		if(Shavit_InsideZone(target, Zone_Start, -1))
 		{
