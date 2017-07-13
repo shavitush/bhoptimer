@@ -1780,13 +1780,13 @@ int GetRankForTime(BhopStyle style, float time)
 	return (gI_RecordAmount[style] + 1);
 }
 
-public bool GuessBestMapName(const char[] input, char[] output, int size)
+void GuessBestMapName(const char[] input, char[] output, int size)
 {
 	if(gA_ValidMaps.FindString(input) != -1)
 	{
 		strcopy(output, size, input);
 
-		return true;
+		return;
 	}
 
 	char[] sCache = new char[128];
@@ -1799,11 +1799,9 @@ public bool GuessBestMapName(const char[] input, char[] output, int size)
 		{
 			strcopy(output, size, sCache);
 
-			return true;
+			return;
 		}
 	}
-
-	return false;
 }
 
 public void Shavit_OnDatabaseLoaded(Database db)
