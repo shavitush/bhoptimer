@@ -102,6 +102,7 @@ ConVar gCV_AdvertisementInterval = null;
 ConVar gCV_Checkpoints = null;
 ConVar gCV_RemoveRagdolls = null;
 ConVar gCV_ClanTag = null;
+ConVar gCV_DropAll = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -128,6 +129,7 @@ bool gB_Checkpoints = true;
 int gI_RemoveRagdolls = 1;
 char gS_ClanTag[32] = "{styletag} :: {time}";
 bool gB_ClanTag = true;
+bool gB_DropAll = true;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -224,6 +226,7 @@ public void OnPluginStart()
 	HookEvent("player_team", Player_Notifications, EventHookMode_Pre);
 	HookEvent("player_death", Player_Notifications, EventHookMode_Pre);
 	HookEvent("weapon_fire", Weapon_Fire);
+	AddCommandListener(Command_Drop, "drop");
 
 	// phrases
 	LoadTranslations("common.phrases");
@@ -257,6 +260,7 @@ public void OnPluginStart()
 	gCV_Checkpoints = CreateConVar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RemoveRagdolls = CreateConVar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
 	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style settings from shavit-styles.cfg.\n{style} - style name.\n{time} - formatted time.", 0);
+	gCV_DropAll = CreateConVar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -281,6 +285,7 @@ public void OnPluginStart()
 	gCV_Checkpoints.AddChangeHook(OnConVarChanged);
 	gCV_RemoveRagdolls.AddChangeHook(OnConVarChanged);
 	gCV_ClanTag.AddChangeHook(OnConVarChanged);
+	gCV_DropAll.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -418,6 +423,8 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_Checkpoints = gCV_Checkpoints.BoolValue;
 	gI_RemoveRagdolls = gCV_RemoveRagdolls.IntValue;
 	gCV_ClanTag.GetString(gS_ClanTag, 32);
+	gB_DropAll = gCV_DropAll.BoolValue;
+
 	gB_ClanTag = !StrEqual(gS_ClanTag, "0");
 }
 
@@ -1776,4 +1783,21 @@ public void Shavit_OnFinish(int client)
 	}
 
 	UpdateScoreboard(client);
+}
+
+public Action Command_Drop(int client, const char[] command, int argc)
+{
+	if(!gB_DropAll)
+	{
+		return Plugin_Continue;
+	}
+
+	int weapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+
+	if(weapon != -1 && IsValidEntity(weapon))
+	{
+		CS_DropWeapon(client, weapon, true);
+	}
+
+	return Plugin_Handled;
 }
