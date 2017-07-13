@@ -932,7 +932,6 @@ int GetHUDTarget(int client)
 	return target;
 }
 
-
 public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param2)
 {
 	// i don't need anything here

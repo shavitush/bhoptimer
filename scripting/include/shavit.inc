@@ -75,7 +75,8 @@ enum ReplayStatus(+=1)
 {
 	Replay_Start = 0,
 	Replay_Running,
-	Replay_End
+	Replay_End,
+	Replay_Idle
 };
 
 enum
