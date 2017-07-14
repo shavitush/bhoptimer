@@ -1237,7 +1237,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 
 bool SnapToWall(float pos[3], int client, float final[3])
 {
-	if(AreVectorsEqual(pos, gV_OldPosition[client]) && EmptyVector(gV_WallSnap[client]))
+	if(AreVectorsEqual(pos, gV_OldPosition[client]))
 	{
 		final = gV_WallSnap[client];
 
@@ -1247,28 +1247,24 @@ bool SnapToWall(float pos[3], int client, float final[3])
 	bool snap = false;
 	
 	float end[3];
+	float temp[3];
 
 	for(int i = 0; i < 4; i++)
 	{
 		end = pos;
-		
+
 		int axis = (i / 2);
-		end[axis] += ((i % 2)? -gI_GridSnap[client]:gI_GridSnap[client]);
+		end[axis] += (((i % 2) == 1)? -gI_GridSnap[client]:gI_GridSnap[client]);
 
 		TR_TraceRayFilter(pos, end, MASK_SOLID, RayType_EndPoint, TraceFilter_NoClients, client);
 
 		if(TR_DidHit())
 		{
-			TR_GetEndPosition(end);
-			pos[axis] = end[axis];
+			TR_GetEndPosition(temp);
+			final[axis] = temp[axis];
 
 			snap = true;
 		}
-	}
-
-	if(snap)
-	{
-		final = end;
 	}
 
 	return snap;
