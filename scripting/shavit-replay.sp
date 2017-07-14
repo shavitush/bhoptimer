@@ -376,13 +376,13 @@ public void OnMapStart()
 	{
 		gA_Frames[i] = new ArrayList(6);
 
+		gI_ReplayTick[i] = 0;
+		gI_FrameCount[i] = 0;
+
 		if(!ReplayEnabled(i))
 		{
 			continue;
 		}
-
-		gI_ReplayTick[i] = 0;
-		gI_FrameCount[i] = 0;
 
 		BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d", i);
 
@@ -906,7 +906,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gI_ReplayTick[iReplayBotStyle] = 0;
 				gRS_ReplayStatus[iReplayBotStyle] = gA_CentralCache[iCentralReplayStatus] = Replay_End;
 
-				CreateTimer(gF_ReplayDelay / 2.0, EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer((gF_ReplayDelay / 2.0), EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
 
 				SetEntityMoveType(client, MOVETYPE_NONE);
 

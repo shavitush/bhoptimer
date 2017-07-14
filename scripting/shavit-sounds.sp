@@ -39,10 +39,10 @@ ArrayList gA_WorstSounds = null;
 StringMap gSM_RankSounds = null;
 
 // cvars
-ConVar gCV_MinimiumWorst = null;
+ConVar gCV_MinimumWorst = null;
 
 // cached cvars
-int gI_MinimiumWorst = 10;
+int gI_MinimumWorst = 10;
 
 public Plugin myinfo =
 {
@@ -85,16 +85,16 @@ public void OnPluginStart()
 	gB_HUD = LibraryExists("shavit-hud");
 
 	// cvars
-	gCV_MinimiumWorst = CreateConVar("shavit_sounds_minimumworst", "10", "Minimum amount of records to be saved for a \"worst\" sound to play.", 0, true, 1.0);
+	gCV_MinimumWorst = CreateConVar("shavit_sounds_minimumworst", "10", "Minimum amount of records to be saved for a \"worst\" sound to play.", 0, true, 1.0);
 
-	gCV_MinimiumWorst.AddChangeHook(OnConVarChanged);
+	gCV_MinimumWorst.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gI_MinimiumWorst = gCV_MinimiumWorst.IntValue;
+	gI_MinimumWorst = gCV_MinimumWorst.IntValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -244,7 +244,7 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 
 public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync)
 {
-	if(gA_WorstSounds.Length != 0 && Shavit_GetRecordAmount(style) >= gI_MinimiumWorst)
+	if(gA_WorstSounds.Length != 0 && Shavit_GetRecordAmount(style) >= gI_MinimumWorst)
 	{
 		char[] sSound = new char[PLATFORM_MAX_PATH];
 		gA_WorstSounds.GetString(GetRandomInt(0, gA_WorstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
