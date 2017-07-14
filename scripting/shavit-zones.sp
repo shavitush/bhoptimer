@@ -1210,6 +1210,11 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 				if(gB_SnapToWall[param1])
 				{
 					gB_CursorTracing[param1] = false;
+
+					if(gI_GridSnap[param1] < 32)
+					{
+						gI_GridSnap[param1] = 32;
+					}
 				}
 			}
 
