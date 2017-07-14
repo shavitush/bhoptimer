@@ -201,7 +201,6 @@ public void OnPluginStart()
 
 	// events
 	HookEvent("player_spawn", Player_Spawn);
-	HookEvent("player_death", Player_Death);
 	HookEvent("round_start", Round_Start);
 
 	// forwards
@@ -539,10 +538,10 @@ void UnloadZones(int zone)
 			{
 				for(int j = 1; j <= MaxClients; j++)
 				{
-					if(IsValidClient(j) && gB_InsideZoneID[j][gA_ZoneCache[i][iDatabaseID]]) // no alive check because it may happen to dead players too
+					if(IsValidClient(j) && gB_InsideZoneID[j][i]) // no alive check because it may happen to dead players too
 					{
 						gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
-						gB_InsideZoneID[j][gA_ZoneCache[i][iDatabaseID]] = false;
+						gB_InsideZoneID[j][i] = false;
 					}
 				}
 
@@ -2063,20 +2062,6 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	Reset(GetClientOfUserId(event.GetInt("userid")));
 }
 
-public void Player_Death(Event event, const char[] name, bool dontBroadcast)
-{
-	int client = GetClientOfUserId(event.GetInt("userid"));
-	
-	for(int i = 0; i < gI_MapZones; i++)
-	{
-		if(gB_InsideZoneID[client][gA_ZoneCache[i][iDatabaseID]])
-		{
-			gB_InsideZone[client][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
-			gB_InsideZoneID[client][gA_ZoneCache[i][iDatabaseID]] = false;
-		}
-	}
-}
-
 public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 {
 	CreateTimer(1.0, Timer_CreateZoneEntities);
@@ -2171,7 +2156,7 @@ public void CreateZoneEntities()
 
 public void StartTouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || !IsPlayerAlive(other) || !gA_ZoneCache[gI_EntityZone[entity]][bZoneInitialized])
+	if(other < 1 || other > MaxClients || !gA_ZoneCache[gI_EntityZone[entity]][bZoneInitialized] || IsFakeClient(other))
 	{
 		return;
 	}
@@ -2228,7 +2213,7 @@ public void StartTouchPost(int entity, int other)
 
 public void EndTouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || !IsPlayerAlive(other))
+	if(other < 1 || other > MaxClients || IsFakeClient(other))
 	{
 		return;
 	}
@@ -2247,7 +2232,7 @@ public void EndTouchPost(int entity, int other)
 
 public void TouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || !IsPlayerAlive(other))
+	if(other < 1 || other > MaxClients || IsFakeClient(other))
 	{
 		return;
 	}
