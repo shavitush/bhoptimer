@@ -378,6 +378,8 @@ public void OnMapStart()
 
 		gI_ReplayTick[i] = 0;
 		gI_FrameCount[i] = 0;
+		gF_StartTick[i] = -65535.0;
+		gRS_ReplayStatus[i] = Replay_Idle;
 
 		if(!ReplayEnabled(i))
 		{
@@ -406,7 +408,7 @@ public void OnMapStart()
 			else
 			{
 				gRS_ReplayStatus[i] = Replay_Start;
-				CreateTimer(gF_ReplayDelay / 2.0, StartReplay, i, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer((gF_ReplayDelay / 2.0), StartReplay, i, TIMER_FLAG_NO_MAPCHANGE);
 			}
 		}
 	}
@@ -592,6 +594,11 @@ bool DeleteReplay(int style)
 	if(gI_ReplayBotClient[style] != 0)
 	{
 		UpdateReplayInfo(gI_ReplayBotClient[style], style, 0.0);
+	}
+
+	if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style)
+	{
+		StopCentralReplay(0);
 	}
 
 	return true;
@@ -1127,7 +1134,10 @@ void ClearFrames(int client)
 
 public void Shavit_OnWRDeleted(int style)
 {
-	DeleteReplay(style);
+	if(gI_FrameCount[style] > 0)
+	{
+		DeleteReplay(style);
+	}
 }
 
 public Action Command_DeleteReplay(int client, int args)
@@ -1332,21 +1342,11 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 
 		else
 		{
+			gI_ReplayTick[style] = 0;
 			gA_CentralCache[iCentralStyle] = style;
 			gI_ReplayBotClient[style] = gA_CentralCache[iCentralClient];
-
 			gRS_ReplayStatus[style] = gA_CentralCache[iCentralReplayStatus] = Replay_Start;
-
-			float vecPosition[3];
-			vecPosition[0] = gA_Frames[style].Get(0, 0);
-			vecPosition[1] = gA_Frames[style].Get(0, 1);
-			vecPosition[2] = gA_Frames[style].Get(0, 2);
-
-			float vecAngles[3];
-			vecAngles[0] = gA_Frames[style].Get(0, 3);
-			vecAngles[1] = gA_Frames[style].Get(0, 4);
-
-			TeleportEntity(gA_CentralCache[iCentralClient], vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportToStart(gA_CentralCache[iCentralClient], style);
 
 			float time = 0.0;
 			Shavit_GetWRTime(gA_CentralCache[iCentralStyle], time);
@@ -1365,9 +1365,31 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 	return 0;
 }
 
+void TeleportToStart(int client, int style)
+{
+	if(gI_FrameCount[style] == 0)
+	{
+		return;
+	}
+
+	float vecPosition[3];
+	vecPosition[0] = gA_Frames[style].Get(0, 0);
+	vecPosition[1] = gA_Frames[style].Get(0, 1);
+	vecPosition[2] = gA_Frames[style].Get(0, 2);
+
+	float vecAngles[3];
+	vecAngles[0] = gA_Frames[style].Get(0, 3);
+	vecAngles[1] = gA_Frames[style].Get(0, 4);
+
+	TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
+}
+
 void StopCentralReplay(int client)
 {
-	Shavit_PrintToChat(client, "%T", "CentralReplayStopped", client);
+	if(client > 0)
+	{
+		Shavit_PrintToChat(client, "%T", "CentralReplayStopped", client);
+	}
 
 	int style = gA_CentralCache[iCentralStyle];
 
@@ -1375,6 +1397,7 @@ void StopCentralReplay(int client)
 	gI_ReplayTick[style] = 0;
 	gI_ReplayBotClient[style] = 0;
 	gF_StartTick[style] = -65535.0;
+	TeleportToStart(gA_CentralCache[iCentralClient], style);
 	gA_CentralCache[iCentralStyle] = 0;
 }
 
