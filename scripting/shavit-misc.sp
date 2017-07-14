@@ -1353,8 +1353,9 @@ public Action OpenCheckpointsMenu(int client, int item)
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseVelocity", client);
 	menu.AddItem(sInfo, sDisplay);
 
+	menu.Pagination = MENU_NO_PAGINATION;
 	menu.ExitButton = true;
-	menu.Display(client, 60);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
