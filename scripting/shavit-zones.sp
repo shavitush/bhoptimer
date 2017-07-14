@@ -1244,10 +1244,13 @@ bool SnapToWall(float pos[3], int client, float final[3])
 		return true;
 	}
 
-	bool snap = false;
-	
+	bool hit = false;
+
 	float end[3];
 	float temp[3];
+
+	float prefinal[3];
+	prefinal = pos;
 
 	for(int i = 0; i < 4; i++)
 	{
@@ -1261,13 +1264,19 @@ bool SnapToWall(float pos[3], int client, float final[3])
 		if(TR_DidHit())
 		{
 			TR_GetEndPosition(temp);
-			final[axis] = temp[axis];
-
-			snap = true;
+			prefinal[axis] = temp[axis];
+			hit = true;
 		}
 	}
 
-	return snap;
+	if(hit && GetVectorDistance(prefinal, pos) <= gI_GridSnap[client])
+	{
+		final = prefinal;
+
+		return true;
+	}
+
+	return false;
 }
 
 public bool TraceFilter_NoClients(int entity, int contentsMask, any data)
@@ -2068,7 +2077,7 @@ public Action Timer_CreateZoneEntities(Handle Timer)
 	CreateZoneEntities();
 }
 
-float abs(float input)
+float Abs(float input)
 {
 	if(input < 0.0)
 	{
@@ -2123,9 +2132,9 @@ public void CreateZoneEntities()
 
 		TeleportEntity(entity, gV_ZoneCenter[i], NULL_VECTOR, NULL_VECTOR);
 
-		float distance_x = abs(gV_MapZones[i][0][0] - gV_MapZones[i][7][0]);
-		float distance_y = abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]);
-		float distance_z = abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]);
+		float distance_x = Abs(gV_MapZones[i][0][0] - gV_MapZones[i][7][0]);
+		float distance_y = Abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]);
+		float distance_z = Abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]);
 
 		float min[3];
 		min[0] = -(distance_x / 2) + 16.0;
