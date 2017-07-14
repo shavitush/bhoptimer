@@ -201,6 +201,7 @@ public void OnPluginStart()
 
 	// events
 	HookEvent("player_spawn", Player_Spawn);
+	HookEvent("player_death", Player_Death);
 	HookEvent("round_start", Round_Start);
 
 	// forwards
@@ -536,6 +537,15 @@ void UnloadZones(int zone)
 		{
 			if(gA_ZoneCache[i][bZoneInitialized] && (zone == 0 || gA_ZoneCache[i][iZoneType] == zone))
 			{
+				for(int j = 1; j <= MaxClients; j++)
+				{
+					if(IsValidClient(j) && gB_InsideZoneID[j][gA_ZoneCache[i][iDatabaseID]]) // no alive check because it may happen to dead players too
+					{
+						gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
+						gB_InsideZoneID[j][gA_ZoneCache[i][iDatabaseID]] = false;
+					}
+				}
+
 				KillZoneEntity(i);
 				ClearZone(i);
 			}
@@ -2053,6 +2063,20 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	Reset(GetClientOfUserId(event.GetInt("userid")));
 }
 
+public void Player_Death(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	
+	for(int i = 0; i < gI_MapZones; i++)
+	{
+		if(gB_InsideZoneID[client][gA_ZoneCache[i][iDatabaseID]])
+		{
+			gB_InsideZone[client][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
+			gB_InsideZoneID[client][gA_ZoneCache[i][iDatabaseID]] = false;
+		}
+	}
+}
+
 public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 {
 	CreateTimer(1.0, Timer_CreateZoneEntities);
@@ -2079,10 +2103,11 @@ public void CreateZoneEntities()
 	{
 		if(gA_ZoneCache[i][iEntityID] != -1)
 		{
+			KillZoneEntity(i);
+
 			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
 			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
-
-			KillZoneEntity(i);
+			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_TouchPost, TouchPost);
 
 			gA_ZoneCache[i][iEntityID] = -1;
 		}
