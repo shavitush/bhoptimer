@@ -40,6 +40,17 @@ enum
 	CENTRALBOTCACHE_SIZE
 };
 
+enum
+{
+	sReplayClanTag,
+	sReplayNameStyle,
+	sReplayCentralName,
+	sReplayCentralStyle,
+	sReplayCentralStyleTag,
+	sReplayUnloaded,
+	REPLAYSTRINGS_SIZE
+};
+
 // game type
 EngineVersion gEV_Type = Engine_Unknown;
 
@@ -74,7 +85,6 @@ bool gB_DontCallTimer = false;
 ConVar gCV_Enabled = null;
 ConVar gCV_ReplayDelay = null;
 ConVar gCV_TimeLimit = null;
-ConVar gCV_NameStyle = null;
 ConVar gCV_DefaultTeam = null;
 ConVar gCV_CentralBot = null;
 
@@ -82,7 +92,6 @@ ConVar gCV_CentralBot = null;
 bool gB_Enabled = true;
 float gF_ReplayDelay = 5.0;
 float gF_TimeLimit = 5400.0;
-int gI_NameStyle = 1;
 int gI_DefaultTeam = 3;
 bool gB_CentralBot = true;
 
@@ -93,6 +102,9 @@ any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
 // chat settings
 char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+
+// replay settings
+char gS_ReplayStrings[REPLAYSTRINGS_SIZE][MAX_NAME_LENGTH];
 
 public Plugin myinfo =
 {
@@ -139,14 +151,12 @@ public void OnPluginStart()
 	gCV_Enabled = CreateConVar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
-	gCV_NameStyle = CreateConVar("shavit_replay_namestyle", "1", "Replay bot naming style\n0 - [SHORT STYLE] <TIME> - PLAYER NAME\n1 - LONG STYLE - <TIME>", 0, true, 0.0, true, 1.0);
 	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists\n3 - Counter Terrorists", 0, true, 2.0, true, 3.0);
 	gCV_CentralBot = CreateConVar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
 	gCV_ReplayDelay.AddChangeHook(OnConVarChanged);
 	gCV_TimeLimit.AddChangeHook(OnConVarChanged);
-	gCV_NameStyle.AddChangeHook(OnConVarChanged);
 	gCV_DefaultTeam.AddChangeHook(OnConVarChanged);
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
@@ -173,7 +183,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_Enabled = gCV_Enabled.BoolValue;
 	gF_ReplayDelay = gCV_ReplayDelay.FloatValue;
 	gF_TimeLimit = gCV_TimeLimit.FloatValue;
-	gI_NameStyle = gCV_NameStyle.IntValue;
 	gI_DefaultTeam = gCV_DefaultTeam.IntValue;
 	gB_CentralBot = gCV_CentralBot.BoolValue;
 
@@ -243,10 +252,7 @@ public Action Cron(Handle Timer)
 	{
 		if(gA_CentralCache[iCentralStyle] != -1)
 		{
-			float time = 0.0;
-			Shavit_GetWRTime(gA_CentralCache[iCentralStyle], time);
-
-			UpdateReplayInfo(gA_CentralCache[iCentralClient], gA_CentralCache[iCentralStyle], time);
+			UpdateReplayInfo(gA_CentralCache[iCentralClient], gA_CentralCache[iCentralStyle], -1.0);
 		}
 
 		else
@@ -295,8 +301,39 @@ public Action HookTriggers(int entity, int other)
 	return Plugin_Continue;
 }
 
+bool LoadStyling()
+{
+	char[] sPath = new char[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-replay.cfg");
+
+	Dynamic dReplayConfig = Dynamic();
+
+	if(!dReplayConfig.ReadKeyValues(sPath))
+	{
+		dReplayConfig.Dispose();
+
+		return false;
+	}
+
+	dReplayConfig.GetString("clantag", gS_ReplayStrings[sReplayClanTag], MAX_NAME_LENGTH);
+	dReplayConfig.GetString("namestyle", gS_ReplayStrings[sReplayNameStyle], MAX_NAME_LENGTH);
+	dReplayConfig.GetString("centralname", gS_ReplayStrings[sReplayCentralName], MAX_NAME_LENGTH);
+	dReplayConfig.GetString("centralstyle", gS_ReplayStrings[sReplayCentralStyle], MAX_NAME_LENGTH);
+	dReplayConfig.GetString("centralstyletag", gS_ReplayStrings[sReplayCentralStyleTag], MAX_NAME_LENGTH);
+	dReplayConfig.GetString("unloaded", gS_ReplayStrings[sReplayUnloaded], MAX_NAME_LENGTH);
+
+	dReplayConfig.Dispose();
+
+	return true;
+}
+
 public void OnMapStart()
 {
+	if(!LoadStyling())
+	{
+		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
+	}
+
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
@@ -307,6 +344,9 @@ public void OnMapStart()
 	gA_CentralCache[iCentralStyle] = -1;
 	gA_CentralCache[iCentralReplayStatus] = Replay_Idle;
 
+	GetCurrentMap(gS_Map, 256);
+	GetMapDisplayName(gS_Map, gS_Map, 256);
+
 	if(!gB_Enabled)
 	{
 		return;
@@ -314,9 +354,6 @@ public void OnMapStart()
 
 	bot_quota = FindConVar("bot_quota");
 	bot_quota.Flags &= ~FCVAR_NOTIFY;
-
-	GetCurrentMap(gS_Map, 256);
-	GetMapDisplayName(gS_Map, gS_Map, 256);
 
 	char[] sTempMap = new char[PLATFORM_MAX_PATH];
 	FormatEx(sTempMap, PLATFORM_MAX_PATH, "maps/%s.nav", gS_Map);
@@ -419,7 +456,7 @@ public void OnMapStart()
 		ServerCommand("bot_add");
 	}
 
-	CreateTimer(1.0, Cron, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(3.0, Cron, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -642,6 +679,40 @@ public void OnClientPutInServer(int client)
 	}
 }
 
+void FormatStyle(const char[] source, int style, bool central, float time, char[] dest, int size)
+{
+	float fWRTime = 0.0;
+	Shavit_GetWRTime(style, fWRTime);
+
+	char[] sTime = new char[16];
+	FormatSeconds((time == -1.0)? fWRTime:time, sTime, 16);
+
+	char[] sName = new char[MAX_NAME_LENGTH];
+	Shavit_GetWRName(style, sName, MAX_NAME_LENGTH);
+	
+	char[] temp = new char[size];
+	strcopy(temp, size, source);
+
+	ReplaceString(temp, size, "{map}", gS_Map);
+
+	if(central && gA_CentralCache[iCentralReplayStatus] == Replay_Idle)
+	{
+		ReplaceString(temp, size, "{style}", gS_ReplayStrings[sReplayCentralStyle]);
+		ReplaceString(temp, size, "{styletag}", gS_ReplayStrings[sReplayCentralStyleTag]);
+	}
+
+	else
+	{
+		ReplaceString(temp, size, "{style}", gS_StyleStrings[style][sStyleName]);
+		ReplaceString(temp, size, "{styletag}", gS_StyleStrings[style][sClanTag]);
+	}
+	
+	ReplaceString(temp, size, "{time}", sTime);
+	ReplaceString(temp, size, "{player}", sName);
+
+	strcopy(dest, size, temp);
+}
+
 void UpdateReplayInfo(int client, int style, float time)
 {
 	if(!gB_Enabled || !IsValidClient(client) || !IsFakeClient(client))
@@ -651,55 +722,23 @@ void UpdateReplayInfo(int client, int style, float time)
 
 	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 
-	CS_SetClientClanTag(client, "REPLAY");
+	bool central = (gA_CentralCache[iCentralClient] == client);
+	bool idle = (central && gA_CentralCache[iCentralReplayStatus] == Replay_Idle);
 
-	float fWRTime = 0.0;
-	Shavit_GetWRTime(style, fWRTime);
-
-	char[] sTime = new char[16];
-	FormatSeconds((time == -1.0)? fWRTime:time, sTime, 16);
+	char[] sTag = new char[MAX_NAME_LENGTH];
+	FormatStyle(gS_ReplayStrings[sReplayClanTag], style, central, time, sTag, MAX_NAME_LENGTH);
+	CS_SetClientClanTag(client, sTag);
 
 	char[] sName = new char[MAX_NAME_LENGTH];
-
-	// switch because i may add more
-	if(!gB_CentralBot || gA_CentralCache[iCentralReplayStatus] != Replay_Idle)
+	
+	if(central || gI_FrameCount[style] > 0)
 	{
-		switch(gI_NameStyle)
-		{
-			case 0:
-			{
-				if(gI_FrameCount[style] == 0)
-				{
-					FormatEx(sName, MAX_NAME_LENGTH, "[%s] unloaded", gS_StyleStrings[style][sShortName]);
-				}
-
-				else
-				{
-					char[] sWRName = new char[16];
-					Shavit_GetWRName(style, sWRName, 16);
-
-					FormatEx(sName, MAX_NAME_LENGTH, "[%s] %s - %s", gS_StyleStrings[style][sShortName], sWRName, sTime);
-				}
-			}
-
-			case 1:
-			{
-				if(gI_FrameCount[style] == 0)
-				{
-					FormatEx(sName, MAX_NAME_LENGTH, "%s - N/A", gS_StyleStrings[style][sStyleName]);
-				}
-
-				else
-				{
-					FormatEx(sName, MAX_NAME_LENGTH, "%s - %s", gS_StyleStrings[style][sStyleName], sTime);
-				}
-			}
-		}
+		FormatStyle(gS_ReplayStrings[(idle)? sReplayCentralName:sReplayNameStyle], style, central, time, sName, MAX_NAME_LENGTH);
 	}
 
 	else
 	{
-		strcopy(sName, MAX_NAME_LENGTH, "!replay");
+		FormatStyle(gS_ReplayStrings[sReplayUnloaded], style, central, time, sName, MAX_NAME_LENGTH);
 	}
 
 	gB_HideNameChange = true;
@@ -721,7 +760,7 @@ void UpdateReplayInfo(int client, int style, float time)
 
 	gB_DontCallTimer = true;
 
-	if(!gB_CentralBot && (gI_FrameCount[style] == 0 || fWRTime == 0.0))
+	if(!gB_CentralBot && gI_FrameCount[style] == 0)
 	{
 		if(IsPlayerAlive(client))
 		{
@@ -742,7 +781,7 @@ void UpdateReplayInfo(int client, int style, float time)
 		}
 	}
 
-	if(GetClientTeam(client) != gI_DefaultTeam && gI_DefaultTeamSlots >= gI_Styles)
+	if(gI_DefaultTeamSlots >= gI_Styles && GetClientTeam(client) != gI_DefaultTeam)
 	{
 		CS_SwitchTeam(client, gI_DefaultTeam);
 	}
@@ -1399,6 +1438,8 @@ void StopCentralReplay(int client)
 	gF_StartTick[style] = -65535.0;
 	TeleportToStart(gA_CentralCache[iCentralClient], style);
 	gA_CentralCache[iCentralStyle] = 0;
+
+	UpdateReplayInfo(client, 0, 0.0);
 }
 
 int GetReplayStyle(int client)
