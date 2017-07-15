@@ -621,11 +621,6 @@ public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
 
 public Action Timer_Scoreboard(Handle Timer)
 {
-	if(!gB_Scoreboard)
-	{
-		return Plugin_Continue;
-	}
-
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsValidClient(i) || IsFakeClient(i))
@@ -633,9 +628,12 @@ public Action Timer_Scoreboard(Handle Timer)
 			continue;
 		}
 
-		UpdateScoreboard(i);
+		if(gB_Scoreboard)
+		{
+			UpdateScoreboard(i);
+		}
 
-		if(gB_ClanTag && IsPlayerAlive(i))
+		if(gB_ClanTag)
 		{
 			UpdateClanTag(i);
 		}
@@ -723,14 +721,16 @@ void UpdateClanTag(int client)
 {
 	char[] sTime = new char[16];
 
-	if(Shavit_GetTimerStatus(client) == Timer_Stopped)
+	float fTime = Shavit_GetClientTime(client);
+
+	if(Shavit_GetTimerStatus(client) == Timer_Stopped || fTime <= 0.0)
 	{
 		strcopy(sTime, 16, "N/A");
 	}
 
 	else
 	{
-		int time = RoundToFloor(Shavit_GetClientTime(client));
+		int time = RoundToFloor(fTime);
 
 		if(time < 60)
 		{
@@ -1682,6 +1682,11 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		{
 			UpdateScoreboard(client);
 		}
+
+		if(gB_ClanTag)
+		{
+			UpdateClanTag(client);
+		}
 	}
 
 	if(gB_NoBlock)
@@ -1786,6 +1791,7 @@ public void Shavit_OnFinish(int client)
 	}
 
 	UpdateScoreboard(client);
+	UpdateClanTag(client);
 }
 
 public Action Command_Drop(int client, const char[] command, int argc)
