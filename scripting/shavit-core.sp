@@ -74,6 +74,7 @@ int gI_GoodGains[MAXPLAYERS+1];
 bool gB_DoubleSteps[MAXPLAYERS+1];
 float gF_StrafeWarning[MAXPLAYERS+1];
 bool gB_PracticeMode[MAXPLAYERS+1];
+int gI_SHSW_FirstCombination[MAXPLAYERS+1]; // 0 - W/A S/A 1- W/D S/D
 
 float gF_HSW_Requirement = 0.0;
 StringMap gSM_StyleCommands = null;
@@ -1033,6 +1034,7 @@ void StartTimer(int client)
 		if(result == Plugin_Continue)
 		{
 			gB_TimerEnabled[client] = true;
+			gI_SHSW_FirstCombination[client] = -1;
 		}
 
 		else if(result == Plugin_Handled || result == Plugin_Stop)
@@ -1165,6 +1167,7 @@ public void OnClientPutInServer(int client)
 	gF_StrafeWarning[client] = 0.0;
 	gBS_Style[client] = 0;
 	gB_PracticeMode[client] = false;
+	gI_SHSW_FirstCombination[client] = -1;
 	UpdateAutoBhop(client);
 
 	if(AreClientCookiesCached(client))
@@ -1271,7 +1274,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][bBlockS] = dStyle.GetBool("block_s", false);
 		gA_StyleSettings[i][bBlockD] = dStyle.GetBool("block_d", false);
 		gA_StyleSettings[i][bBlockUse] = dStyle.GetBool("block_use", false);
-		gA_StyleSettings[i][bForceHSW] = dStyle.GetBool("force_hsw", false);
+		gA_StyleSettings[i][iForceHSW] = dStyle.GetInt("force_hsw", 0);
 		gA_StyleSettings[i][bBlockPLeft] = dStyle.GetBool("block_pleft", false);
 		gA_StyleSettings[i][bBlockPRight] = dStyle.GetBool("block_pright", false);
 		gA_StyleSettings[i][bBlockPStrafe] = dStyle.GetBool("block_pstrafe", false);
@@ -1593,7 +1596,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			// Theory about blocking non-HSW strafes while playing HSW:
 			// Block S and W without A or D.
 			// Block A and D without S or W.
-			if(gA_StyleSettings[gBS_Style[client]][bForceHSW])
+			if(gA_StyleSettings[gBS_Style[client]][iForceHSW] > 0)
 			{
 				bool bForward = ((buttons & IN_FORWARD) > 0 || vel[0] > gF_HSW_Requirement);
 				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 || vel[1] < -gF_HSW_Requirement);

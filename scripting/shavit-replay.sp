@@ -1344,6 +1344,16 @@ Action OpenReplayMenu(int client)
 		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName], (gI_FrameCount[i] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
+	if(menu.ItemCount == 0)
+	{
+		menu.AddItem("-1", "ERROR");
+	}
+
+	else if(menu.ItemCount <= ((gEV_Type == Engine_CSS)? 9:8))
+	{
+		menu.Pagination = MENU_NO_PAGINATION;
+	}
+
 	menu.ExitButton = true;
 	menu.Display(client, 20);
 
@@ -1367,7 +1377,7 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 
 		int style = StringToInt(info);
 
-		if(!ReplayEnabled(style) || gI_FrameCount[style] == 0 || gA_CentralCache[iCentralClient] <= 0)
+		if(style == -1 || !ReplayEnabled(style) || gI_FrameCount[style] == 0 || gA_CentralCache[iCentralClient] <= 0)
 		{
 			return 0;
 		}

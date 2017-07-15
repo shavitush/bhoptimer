@@ -100,7 +100,7 @@ enum
 	bBlockS,
 	bBlockD,
 	bBlockUse,
-	bForceHSW,
+	iForceHSW,
 	bBlockPLeft,
 	bBlockPRight,
 	bBlockPStrafe,
