@@ -64,6 +64,16 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1}WARNING: {2}You're now in practice mode. Your times WILL NOT be saved and will be only displayed to you!"
 	}
+	"SHSWCombination0"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Your SHSW combination is {1}W/A & S/D{2}."
+	}
+	"SHSWCombination1"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Your SHSW combination is {1}W/D & S/A{2}."
+	}
 	// ---------- Pauses ---------- //
 	"MessagePause"
 	{

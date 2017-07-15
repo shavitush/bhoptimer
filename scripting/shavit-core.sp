@@ -74,7 +74,7 @@ int gI_GoodGains[MAXPLAYERS+1];
 bool gB_DoubleSteps[MAXPLAYERS+1];
 float gF_StrafeWarning[MAXPLAYERS+1];
 bool gB_PracticeMode[MAXPLAYERS+1];
-int gI_SHSW_FirstCombination[MAXPLAYERS+1]; // 0 - W/A S/A 1- W/D S/D
+int gI_SHSW_FirstCombination[MAXPLAYERS+1];
 
 float gF_HSW_Requirement = 0.0;
 StringMap gSM_StyleCommands = null;
@@ -1598,25 +1598,82 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			// Block A and D without S or W.
 			if(gA_StyleSettings[gBS_Style[client]][iForceHSW] > 0)
 			{
+				bool bSHSW = (gA_StyleSettings[gBS_Style[client]][iForceHSW] == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
+				int iCombination = -1;
+
 				bool bForward = ((buttons & IN_FORWARD) > 0 || vel[0] > gF_HSW_Requirement);
 				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 || vel[1] < -gF_HSW_Requirement);
 				bool bBack = ((buttons & IN_BACK) > 0 || vel[0] < -gF_HSW_Requirement);
 				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 || vel[1] > gF_HSW_Requirement);
 
-				if((bForward || bBack) && !(bMoveLeft || bMoveRight))
+				if(bSHSW)
 				{
-					vel[0] = 0.0;
+					if((bForward && bMoveLeft) || (bBack && bMoveRight))
+					{
+						iCombination = 0;
+					}
 
-					buttons &= ~IN_FORWARD;
-					buttons &= ~IN_BACK;
+					else if((bForward && bMoveRight || bBack && bMoveLeft))
+					{
+						iCombination = 1;
+					}
+
+					// int gI_SHSW_FirstCombination[MAXPLAYERS+1]; // 0 - W/A S/D | 1 - W/D S/A
+					if(gI_SHSW_FirstCombination[client] == -1 && iCombination != -1)
+					{
+						Shavit_PrintToChat(client, "%T", (iCombination == 0)? "SHSWCombination0":"SHSWCombination1", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+						gI_SHSW_FirstCombination[client] = iCombination;
+					}
+
+					bool bStop = false;
+
+					// W/A S/D
+					if(gI_SHSW_FirstCombination[client] == 0)
+					{
+						if(iCombination != 0)
+						{
+							bStop = true;
+						}
+					}
+
+					// W/D S/A
+					else if(gI_SHSW_FirstCombination[client] == 1)
+					{
+						if(iCombination != 1)
+						{
+							bStop = true;
+						}
+					}
+
+					if(bStop)
+					{
+						vel[0] = 0.0;
+						vel[1] = 0.0;
+
+						buttons &= ~IN_FORWARD;
+						buttons &= ~IN_MOVELEFT;
+						buttons &= ~IN_MOVERIGHT;
+						buttons &= ~IN_BACK;
+					}
 				}
 
-				if((bMoveLeft || bMoveRight) && !(bForward || bBack))
+				else
 				{
-					vel[1] = 0.0;
+					if((bForward || bBack) && !(bMoveLeft || bMoveRight))
+					{
+						vel[0] = 0.0;
 
-					buttons &= ~IN_MOVELEFT;
-					buttons &= ~IN_MOVERIGHT;
+						buttons &= ~IN_FORWARD;
+						buttons &= ~IN_BACK;
+					}
+
+					if((bMoveLeft || bMoveRight) && !(bForward || bBack))
+					{
+						vel[1] = 0.0;
+
+						buttons &= ~IN_MOVELEFT;
+						buttons &= ~IN_MOVERIGHT;
+					}
 				}
 			}
 		}
@@ -1629,7 +1686,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountA] && !gA_StyleSettings[gBS_Style[client]][bBlockA] && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 &&
-		(buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gBS_Style[client]][bForceHSW] || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+		(buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gBS_Style[client]][iForceHSW] > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gI_Strafes[client]++;
 	}
@@ -1641,7 +1698,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountD] && !gA_StyleSettings[gBS_Style[client]][bBlockD] && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 &&
-		(buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gBS_Style[client]][bForceHSW] || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+		(buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gBS_Style[client]][iForceHSW] > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gI_Strafes[client]++;
 	}
