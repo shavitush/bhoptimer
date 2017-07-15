@@ -1407,7 +1407,7 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 			{
 				case 0:
 				{
-					Shavit_OpenStatsMenu(param1, sInfo);
+					Shavit_OpenStatsMenu(param1, sExploded[1]);
 				}
 
 				case 1:
