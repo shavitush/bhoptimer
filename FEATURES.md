@@ -28,3 +28,23 @@ Some features are: Per-player settings (!hud), truevel and gradient-like display
 This plugin handles miscellaneous things used in bunnyhop servers.
 
 Such as: Team handling (respawning/spectating too), spectators list (!specs), smart player hiding that works for spectating too, teleportation to other players, weapon commands (!knife/!usp/!glock) and ammo management, segmented checkpoints, noclipping (can be set to work for VIPs/admins only), drop-all, godmode, prespeed blocking, prespeed limitation, chat tidying, radar hiding, weapon drop cleaning, player collision removal, auto-respawning, spawn points generator, radio remobal, scoreboard manipulation, model opacity changes, fixed runspeed, automatic and configurable chat advertisements, player ragdoll removal and WR messages.
+
+###### shavit-replay
+Creates a replay bot that records the players' world records and playback them on command (!replay/automatic).  
+The replay bot playback can be stopped (if central) and the saved replay can be deleted by server administrators.  
+Replay bots will change their clan tags/names according to the server's configuration.
+
+###### shavit-sounds
+Will play custom sounds when event actions happen.  
+Such as: Getting a world record, improving your own record, getting the worst record in the server, beating a map for the first time or setting a rank #X record.
+
+###### shavit-stats
+The statistics plugin is a statistics frontend for the players.  
+It displays rankings, maps done, maps left, server records, SteamID, country, map completion, last login date and more useful infromation!
+
+###### shavit-timelimit
+Sets a dynamic map time limit according to the average completion time of the map.
+
+###### shavit-wr
+Saves the players' records to the database and allows players to see the server's records.  
+The ability to see records for other maps also exists and can be lazily looked up (!wr map_name, or a part of the map's name).
