@@ -985,6 +985,7 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot[iGoodGains] = gI_GoodGains[client];
 	snapshot[fServerTime] = GetEngineTime();
 	snapshot[fCurrentTime] = CalculateTime(client);
+	snapshot[iSHSWCombination] = gI_SHSW_FirstCombination[client];
 
 	return SetNativeArray(2, snapshot, TIMERSNAPSHOT_SIZE);
 }
@@ -1006,6 +1007,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_TotalMeasures[client] = view_as<int>(snapshot[iTotalMeasures]);
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
 	gF_StartTime[client] = GetEngineTime() - view_as<float>(snapshot[fCurrentTime]);
+	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
 }
 
 void StartTimer(int client)

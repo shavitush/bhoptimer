@@ -878,6 +878,7 @@ void ResetCheckpoints(int client)
 		gA_CheckpointsSnapshots[client][i][iStrafes] = 0;
 		gA_CheckpointsSnapshots[client][i][iTotalMeasures] = 0;
 		gA_CheckpointsSnapshots[client][i][iGoodGains] = 0;
+		gA_CheckpointsSnapshots[client][i][iSHSWCombination] = -1;
 	}
 
 	gA_CheckpointsCache[client][iCheckpoints] = 0;

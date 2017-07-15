@@ -24,7 +24,7 @@
 #define _shavit_included
 
 #if !defined _dynamic_included
-  #include <dynamic>
+	#include <dynamic>
 #endif
 
 #pragma newdecls required
@@ -141,6 +141,7 @@ enum
 	iTotalMeasures,
 	iGoodGains,
 	fServerTime,
+	iSHSWCombination,
 	TIMERSNAPSHOT_SIZE
 };
 
