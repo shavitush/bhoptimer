@@ -1288,7 +1288,7 @@ public Action Command_Tele(int client, int args)
 		return Plugin_Handled;
 	}
 
-	int index = 0;
+	int index = (gA_CheckpointsCache[client][iCurrentCheckpoint] - 1);
 
 	if(args > 0)
 	{
