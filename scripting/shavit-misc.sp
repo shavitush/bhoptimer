@@ -867,10 +867,7 @@ void ResetCheckpoints(int client)
 	{
 		for(int j = 0; j < sizeof(gF_Checkpoints[][]); j++)
 		{
-			for(int k = 0; k < sizeof(gF_Checkpoints[][][]); k++)
-			{
-				gF_Checkpoints[client][i][j][k] = 0.0;
-			}
+			gF_Checkpoints[client][i][j] = NULL_VECTOR;
 		}
 	}
 
@@ -1090,7 +1087,6 @@ public Action Command_Teleport(int client, int args)
 		}
 
 		menu.ExitButton = true;
-
 		menu.Display(client, 60);
 	}
 
@@ -1307,6 +1303,13 @@ public Action Command_Tele(int client, int args)
 		}
 	}
 
+	if(IsNullVector(gF_Checkpoints[client][index][0]))
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, (index + 1), gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+
+		return Plugin_Handled;
+	}
+
 	TeleportToCheckpoint(client, index);
 
 	Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
@@ -1378,6 +1381,8 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
+		int current = gA_CheckpointsCache[param1][iCurrentCheckpoint];
+
 		switch(param2)
 		{
 			case 0:
@@ -1388,12 +1393,12 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 			case 1:
 			{
-				TeleportToCheckpoint(param1, gA_CheckpointsCache[param1][iCurrentCheckpoint] - 1);
+				TeleportToCheckpoint(param1, current - 1);
 			}
 
 			case 2:
 			{
-				if(gA_CheckpointsCache[param1][iCurrentCheckpoint] > 1)
+				if(current > 1)
 				{
 					gA_CheckpointsCache[param1][iCurrentCheckpoint]--;
 				}
@@ -1401,7 +1406,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 			case 3:
 			{
-				if(gA_CheckpointsCache[param1][iCurrentCheckpoint] < CP_MAX)
+				if(current < CP_MAX && !IsNullVector(gF_Checkpoints[param1][current][0]))
 				{
 					gA_CheckpointsCache[param1][iCurrentCheckpoint]++;
 				}
@@ -1832,4 +1837,9 @@ public Action Command_Drop(int client, const char[] command, int argc)
 	}
 
 	return Plugin_Handled;
+}
+
+bool IsNullVector(float vec[3])
+{
+	return (vec[0] == NULL_VECTOR[0] && vec[1] == NULL_VECTOR[1] && vec[2] == NULL_VECTOR[2]);
 }
