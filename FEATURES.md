@@ -15,7 +15,7 @@ Includes *but not limited to*: Custom chat messages and colors, snapshots, pausi
 The zones plugins handles everything related to map zones (such as start/end zone etc) and is necessary for `bhoptimer` to operate.  
 Zones are trigger based and are very lightweight.
 
-The zones plugin includes some less common features such as: Zone editing (after setup), snapping zones to walls/corners/grid, zone setup using the cursor's position, configurable sprite/colors for zoone types, zone tracks (main/bonus - can be extended), manual adjustments of coordinates before confirmations, teleport zones, glitch zones, no-limit zones (for styles like 400-velocity), flat/3D boxes for zone rendering, an API and more.
+The zones plugin includes some less common features such as: Zone editing (after setup), snapping zones to walls/corners/grid, zone setup using the cursor's position, configurable sprite/colors for zone types, zone tracks (main/bonus - can be extended), manual adjustments of coordinates before confirmations, teleport zones, glitch zones, no-limit zones (for styles like 400-velocity), flat/3D boxes for zone rendering, an API and more.
 
 #### shavit-hud
 The HUD plugin is `bhoptimer`'s OSD frontend.  
@@ -27,7 +27,7 @@ Some features are: Per-player settings (!hud), truevel and gradient-like display
 #### shavit-misc
 This plugin handles miscellaneous things used in bunnyhop servers.
 
-Such as: Team handling (respawning/spectating too), spectators list (!specs), smart player hiding that works for spectating too, teleportation to other players, weapon commands (!knife/!usp/!glock) and ammo management, segmented checkpoints, noclipping (can be set to work for VIPs/admins only), drop-all, godmode, prespeed blocking, prespeed limitation, chat tidying, radar hiding, weapon drop cleaning, player collision removal, auto-respawning, spawn points generator, radio remobal, scoreboard manipulation, model opacity changes, fixed runspeed, automatic and configurable chat advertisements, player ragdoll removal and WR messages.
+Such as: Team handling (respawning/spectating too), spectators list (!specs), smart player hiding that works for spectating too, teleportation to other players, weapon commands (!knife/!usp/!glock) and ammo management, segmented checkpoints, noclipping (can be set to work for VIPs/admins only), drop-all, godmode, prespeed blocking, prespeed limitation, chat tidying, radar hiding, weapon drop cleaning, player collision removal, auto-respawning, spawn points generator, radio removal, scoreboard manipulation, model opacity changes, fixed runspeed, automatic and configurable chat advertisements, player ragdoll removal and WR messages.
 
 #### shavit-replay
 Creates a replay bot that records the players' world records and playback them on command (!replay/automatic).  
@@ -40,7 +40,7 @@ Such as: Getting a world record, improving your own record, getting the worst re
 
 #### shavit-stats
 The statistics plugin is a statistics frontend for the players.  
-It displays rankings, maps done, maps left, server records, SteamID, country, map completion, last login date and more useful infromation!
+It displays rankings, maps done, maps left, server records, SteamID, country, map completion, last login date and more useful information!
 
 #### shavit-timelimit
 Sets a dynamic map time limit according to the average completion time of the map.
