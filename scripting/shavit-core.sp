@@ -587,8 +587,8 @@ public Action Command_Style(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Menu m = new Menu(StyleMenu_Handler);
-	m.SetTitle("%T\n%T\n ", "StyleMenuTitle", client, "StyleMenuCurrent", client, gS_StyleStrings[gBS_Style[client]][sStyleName]);
+	Menu menu = new Menu(StyleMenu_Handler);
+	menu.SetTitle("%T\n%T\n ", "StyleMenuTitle", client, "StyleMenuCurrent", client, gS_StyleStrings[gBS_Style[client]][sStyleName]);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -607,17 +607,22 @@ public Action Command_Style(int client, int args)
 			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
 		}
 
-		m.AddItem(sInfo, sDisplay, (gBS_Style[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+		menu.AddItem(sInfo, sDisplay, (gBS_Style[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	// should NEVER happen
-	if(m.ItemCount == 0)
+	if(menu.ItemCount == 0)
 	{
-		m.AddItem("-1", "Nothing");
+		menu.AddItem("-1", "Nothing");
 	}
 
-	m.ExitButton = true;
-	m.Display(client, 20);
+	else if(menu.ItemCount <= ((gEV_Type == Engine_CSS)? 9:8))
+	{
+		menu.Pagination = MENU_NO_PAGINATION;
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, 20);
 
 	return Plugin_Handled;
 }
