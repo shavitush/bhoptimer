@@ -1468,7 +1468,7 @@ void SaveCheckpoint(int client, int index)
 
 void TeleportToCheckpoint(int client, int index)
 {
-	if(index >= 0 && index < CP_MAX && IsNullVector(gF_Checkpoints[client][index][0]))
+	if(index < 0 || index >= CP_MAX || IsNullVector(gF_Checkpoints[client][index][0]))
 	{
 		return;
 	}
