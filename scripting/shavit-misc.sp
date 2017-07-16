@@ -1468,6 +1468,11 @@ void SaveCheckpoint(int client, int index)
 
 void TeleportToCheckpoint(int client, int index)
 {
+	if(IsNullVector(gF_Checkpoints[client][index][0]))
+	{
+		return;
+	}
+
 	Shavit_SetPracticeMode(client, true, !Shavit_InsideZone(client, Track_Main, Zone_Start));
 	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 
