@@ -457,7 +457,17 @@ void UpdateWRCache()
 	char sQuery[512];
 	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
 	// was a bit confused with this one :s
-	FormatEx(sQuery, 512, "SELECT p.style, p.id, TRUNCATE(LEAST(s.time, p.time), 3), u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map FROM %splayertimes WHERE map = '%s' GROUP BY style ORDER BY date ASC) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style ORDER BY date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+
+	if(gB_MySQL)
+	{
+		FormatEx(sQuery, 512, "SELECT p.style, p.id, TRUNCATE(LEAST(s.time, p.time), 3), u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map FROM %splayertimes WHERE map = '%s' GROUP BY style ORDER BY date ASC) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style ORDER BY date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+	}
+
+	// sorry, LEAST() isn't available for SQLITE!
+	else
+	{
+		FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+	}
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
 }
