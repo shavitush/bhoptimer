@@ -133,10 +133,11 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_rr", Command_RecentRecords, "View the recent #1 times set.");
 
 	// delete records
-	RegAdminCmd("sm_delete", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
-	RegAdminCmd("sm_deleterecord", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
-	RegAdminCmd("sm_deleterecords", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
-	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records");
+	RegAdminCmd("sm_delete", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
+	RegAdminCmd("sm_deleterecord", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
+	RegAdminCmd("sm_deleterecords", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
+	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records for this map.");
+	RegAdminCmd("sm_deletestylerecords", Command_DeleteStyleRecords, ADMFLAG_RCON, "Deletes all the records for a style.");
 
 	// cvars
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
@@ -203,6 +204,7 @@ public void OnAdminMenuReady(Handle topmenu)
 		{
 			AddToTopMenu(gH_AdminMenu, "sm_deleteall", TopMenuObject_Item, AdminMenu_DeleteAll, tmoTimer, "sm_deleteall", ADMFLAG_RCON);
 			AddToTopMenu(gH_AdminMenu, "sm_delete", TopMenuObject_Item, AdminMenu_Delete, tmoTimer, "sm_delete", ADMFLAG_RCON);
+			AddToTopMenu(gH_AdminMenu, "sm_deletestylerecords", TopMenuObject_Item, AdminMenu_DeleteStyleRecords, tmoTimer, "sm_deletestylerecords", ADMFLAG_RCON);
 		}
 	}
 }
@@ -230,6 +232,19 @@ public void AdminMenu_DeleteAll(Handle topmenu,  TopMenuAction action, TopMenuOb
 	else if(action == TopMenuAction_SelectOption)
 	{
 		Command_DeleteAll(param, 0);
+	}
+}
+
+public void AdminMenu_DeleteStyleRecords(Handle topmenu,  TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%t", "DeleteStyleRecords");
+	}
+
+	else if(action == TopMenuAction_SelectOption)
+	{
+		Command_DeleteStyleRecords(param, 0);
 	}
 }
 
@@ -549,7 +564,7 @@ public Action Command_Delete(int client, int args)
 	}
 
 	Menu menu = new Menu(MenuHandler_Delete);
-	menu.SetTitle("%T", "DeleteMenuTitle", client);
+	menu.SetTitle("%T\n ", "DeleteMenuTitle", client);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -575,38 +590,38 @@ public Action Command_DeleteAll(int client, int args)
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	Menu m = new Menu(MenuHandler_DeleteAll);
-	m.SetTitle("%T", "DeleteAllRecordsMenuTitle", client, sDisplayMap);
+	Menu menu = new Menu(MenuHandler_DeleteAll);
+	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, sDisplayMap);
 
 	char[] sMenuItem = new char[64];
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
 		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
-		m.AddItem("-1", sMenuItem);
+		menu.AddItem("-1", sMenuItem);
 	}
 
 	FormatEx(sMenuItem, 64, "%T", "MenuResponseYes", client);
-	m.AddItem("yes", sMenuItem);
+	menu.AddItem("yes", sMenuItem);
 
 	for(int i = 1; i <= GetRandomInt(1, 3); i++)
 	{
 		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
-		m.AddItem("-1", sMenuItem);
+		menu.AddItem("-1", sMenuItem);
 	}
 
-	m.ExitButton = true;
-	m.Display(client, 20);
+	menu.ExitButton = true;
+	menu.Display(client, 20);
 
 	return Plugin_Handled;
 }
 
-public int MenuHandler_DeleteAll(Menu m, MenuAction action, int param1, int param2)
+public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] info = new char[16];
-		m.GetItem(param2, info, 16);
+		menu.GetItem(param2, info, 16);
 
 		if(StringToInt(info) == -1)
 		{
@@ -623,10 +638,166 @@ public int MenuHandler_DeleteAll(Menu m, MenuAction action, int param1, int para
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
+}
+
+public Action Command_DeleteStyleRecords(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
+	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
+
+	Menu menu = new Menu(MenuHandler_DeleteStyleRecords);
+	menu.SetTitle("%T\n ", "DeleteStyleRecordsRecordsMenuTitle", client, sDisplayMap);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		if(gA_StyleSettings[i][bUnranked])
+		{
+			continue;
+		}
+
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
+
+		char[] sDisplay = new char[64];
+		FormatEx(sDisplay, 64, "%s (%d %T)", gS_StyleStrings[i][sStyleName], gI_RecordAmount[i], "WRRecord", client);
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	}
+
+	if(menu.ItemCount == 0)
+	{
+		char[] sNoRecords = new char[64];
+		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
+		menu.AddItem("-1", sNoRecords);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, 20);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
+
+		int style = StringToInt(info);
+
+		// (gI_RecordAmount[i] == 0) will trigger if the admin uses a cheat that hooks into menus
+		// and doesn't allow items to be disabled
+		if(gI_RecordAmount[style] == 0)
+		{
+			return 0;
+		}
+
+		char[] sMenuItem = new char[128];
+
+		Menu submenu = new Menu(MenuHandler_DeleteStyleRecords_Confirm);
+		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style]);
+
+		for(int i = 1; i <= GetRandomInt(1, 4); i++)
+		{
+			FormatEx(sMenuItem, 128, "%T", "MenuResponseNo", param1);
+			submenu.AddItem("-1", sMenuItem);
+		}
+
+		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style]);
+
+		IntToString(style, info, 16);
+		submenu.AddItem(info, sMenuItem);
+
+		for(int i = 1; i <= GetRandomInt(1, 3); i++)
+		{
+			FormatEx(sMenuItem, 128, "%T", "MenuResponseNo", param1);
+			submenu.AddItem("-1", sMenuItem);
+		}
+
+		submenu.ExitButton = true;
+		submenu.Display(param1, 20);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
+
+		int style = StringToInt(info);
+
+		if(style == -1)
+		{
+			Shavit_PrintToChat(param1, "%T", "DeletionAborted", param1);
+
+			return 0;
+		}
+
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, gS_Map, style);
+
+		DataPack pack = new DataPack();
+		pack.WriteCell(GetClientSerial(param1));
+		pack.WriteCell(style);
+
+		gH_SQL.Query(DeleteStyleRecords_Callback, sQuery, pack, DBPrio_High);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	ResetPack(view_as<DataPack>(data));
+	int serial = ReadPackCell(data);
+	int style = ReadPackCell(data);
+	delete view_as<DataPack>(data);
+
+	if(results == null)
+	{
+		LogError("Timer (WR DeleteStyleRecords) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	UpdateWRCache();
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		OnClientPutInServer(i);
+	}
+
+	int client = GetClientFromSerial(serial);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	Shavit_PrintToChat(client, "%T", "DeletedRecordsStyle", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 }
 
 public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
@@ -717,7 +888,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 	if(iCount == 0)
 	{
 		char[] sNoRecords = new char[64];
-		FormatEx(sNoRecords, 64, "%T", "ListClientRecordsNone", client);
+		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
 		menu.AddItem("-1", sNoRecords);
 	}
 
@@ -753,7 +924,7 @@ void OpenDeleteMenu(int client, int id)
 	char[] sMenuItem = new char[64];
 
 	Menu menu = new Menu(DeleteConfirm_Handler);
-	menu.SetTitle("%T", "DeleteConfirm", client);
+	menu.SetTitle("%T\n ", "DeleteConfirm", client);
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
@@ -861,13 +1032,6 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		OnClientPutInServer(i);
 	}
 
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
-	}
-
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		if(gA_StyleSettings[i][bUnranked])
@@ -879,6 +1043,13 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		Call_PushCell(i);
 		Call_PushCell(-1);
 		Call_Finish();
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
 	}
 
 	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings[sMessageVariable], gS_Map, gS_ChatStrings[sMessageText]);

@@ -14,15 +14,16 @@
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"Deleted ALL records for {1}{2}{3}."
 	}
+	"DeletedRecordsStyle"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Deleted ALL records for {1}{2}{3}."
+	}
 	// ---------- Client Menus ---------- //
 	"ListClientRecords"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Records for {1}:\n({2})"
-	}
-	"ListClientRecordsNone"
-	{
-		"en"		"No records found."
 	}
 	// ---------- Completion Messages ---------- //
 	"FirstCompletion"
@@ -78,6 +79,25 @@
 	"MenuResponseYes"
 	{
 		"en"		"YES!!! DELETE ALL THE RECORDS!!! THIS ACTION IS IRREVERSIBLE!"
+	}
+	"DeleteStyleRecords"
+	{
+		"en"		"Delete ALL map records for a style"
+	}
+	"DeleteStyleRecordsRecordsMenuTitle"
+	{
+		"#format"	"{1:s}"
+		"en"		"Choose a style to delete all the records of for '{1}':"
+	}
+	"DeleteConfirmStyle"
+	{
+		"#format"	"{1:s}"
+		"en"		"Are you sure you want to delete ALL THE RECORDS for {1}?"
+	}
+	"MenuResponseYesStyle"
+	{
+		"#format"	"{1:s}"
+		"en"		"YES!!! DELETE THE RECORDS FOR {1}!!! THIS ACTION IS IRREVERSIBLE!"
 	}
 	// ---------- Errors ---------- //
 	"DatabaseError"
