@@ -1049,8 +1049,8 @@ void StartTimer(int client)
 	gB_ClientPaused[client] = false;
 	gB_PracticeMode[client] = false;
 
-	SetEntityGravity(client, gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]);
-	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]);
+	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
+	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 }
 
 void StopTimer(int client)

@@ -59,6 +59,14 @@ enum
 	CHECKPOINTSCACHE_SIZE
 };
 
+enum
+{
+	iCPMoveType,
+	fCPGravity,
+	fCPSpeed,
+	PCHECKPOINTSCACHE_SIZE
+};
+
 // cache
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
@@ -71,6 +79,7 @@ ConVar gCV_Hostport = null;
 int gBS_Style[MAXPLAYERS+1];
 float gF_Checkpoints[MAXPLAYERS+1][CP_MAX][3][3]; // 3 - position, angles, velocity
 int gI_CheckpointsSettings[MAXPLAYERS+1];
+any gA_PlayerCheckPointsCache[MAXPLAYERS+1][CP_MAX][PCHECKPOINTSCACHE_SIZE];
 any gA_CheckpointsSnapshots[MAXPLAYERS+1][CP_MAX][TIMERSNAPSHOT_SIZE];
 any gA_CheckpointsCache[MAXPLAYERS+1][CHECKPOINTSCACHE_SIZE];
 
@@ -879,6 +888,10 @@ void ResetCheckpoints(int client)
 		gA_CheckpointsSnapshots[client][i][iTotalMeasures] = 0;
 		gA_CheckpointsSnapshots[client][i][iGoodGains] = 0;
 		gA_CheckpointsSnapshots[client][i][iSHSWCombination] = -1;
+
+		gA_PlayerCheckPointsCache[client][i][iCPMoveType] = MOVETYPE_WALK;
+		gA_PlayerCheckPointsCache[client][i][fCPGravity] = 1.0;
+		gA_PlayerCheckPointsCache[client][i][fCPSpeed] = 1.0;
 	}
 
 	gA_CheckpointsCache[client][iCheckpoints] = 0;
@@ -1440,6 +1453,11 @@ void SaveCheckpoint(int client, int index)
 	GetClientAbsOrigin(client, gF_Checkpoints[client][index][0]);
 	GetClientEyeAngles(client, gF_Checkpoints[client][index][1]);
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_Checkpoints[client][index][2]);
+
+	gA_PlayerCheckPointsCache[client][index][iCPMoveType] = GetEntityMoveType(client);
+	gA_PlayerCheckPointsCache[client][index][fCPGravity] = GetEntityGravity(client);
+	gA_PlayerCheckPointsCache[client][index][fCPSpeed] = 1.0;
+
 	Shavit_SaveSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 }
 
@@ -1451,6 +1469,10 @@ void TeleportToCheckpoint(int client, int index)
 	TeleportEntity(client, gF_Checkpoints[client][index][0],
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? gF_Checkpoints[client][index][1]:NULL_VECTOR,
 		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0)? gF_Checkpoints[client][index][2]:NULL_VECTOR);
+
+	SetEntityMoveType(client, view_as<MoveType>(gA_PlayerCheckPointsCache[client][index][iCPMoveType]));
+	SetEntityGravity(client, view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPGravity]));
+	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPSpeed]));
 }
 
 public Action Command_Noclip(int client, int args)
