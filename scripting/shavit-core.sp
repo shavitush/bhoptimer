@@ -1630,21 +1630,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					bool bStop = false;
 
 					// W/A S/D
-					if(gI_SHSW_FirstCombination[client] == 0)
-					{
-						if(iCombination != 0)
-						{
-							bStop = true;
-						}
-					}
-
+					if((gI_SHSW_FirstCombination[client] == 0 && iCombination != 0) ||
 					// W/D S/A
-					else if(gI_SHSW_FirstCombination[client] == 1)
+						(gI_SHSW_FirstCombination[client] == 1 && iCombination != 1) ||
+					// no valid combination & no valid input
+						(gI_SHSW_FirstCombination[client] == -1 && iCombination == -1))
 					{
-						if(iCombination != 1)
-						{
-							bStop = true;
-						}
+						bStop = true;
 					}
 
 					if(bStop)
