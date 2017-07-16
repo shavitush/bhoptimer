@@ -1249,11 +1249,11 @@ public Action Command_Save(int client, int args)
 
 		return Plugin_Handled;
 	}
-
-	int index = 0;
-
+	
 	if(args > 0)
 	{
+		int index = 0;
+
 		char[] arg = new char[4];
 		GetCmdArg(1, arg, 4);
 
@@ -1263,11 +1263,28 @@ public Action Command_Save(int client, int args)
 		{
 			index = (parsed - 1);
 		}
+
+		SaveCheckpoint(client, index);
+
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 	}
 
-	SaveCheckpoint(client, index);
+	else
+	{
+		if(gA_CheckpointsCache[client][iCheckpoints] < CP_MAX)
+		{
+			SaveCheckpoint(client, gA_CheckpointsCache[client][iCheckpoints]);
+			gA_CheckpointsCache[client][iCurrentCheckpoint] = ++gA_CheckpointsCache[client][iCheckpoints];
+		}
 
-	Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		else
+		{
+			SaveCheckpoint(client, (CP_MAX - 1));
+			gA_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
+		}
+
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client][iCurrentCheckpoint], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+	}
 
 	return Plugin_Handled;
 }
@@ -1387,6 +1404,12 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		{
 			case 0:
 			{
+				// fight an exploit
+				if(gA_CheckpointsCache[param1][iCheckpoints] >= CP_MAX)
+				{
+					return 0;
+				}
+
 				SaveCheckpoint(param1, gA_CheckpointsCache[param1][iCheckpoints]);
 				gA_CheckpointsCache[param1][iCurrentCheckpoint] = ++gA_CheckpointsCache[param1][iCheckpoints];
 			}
