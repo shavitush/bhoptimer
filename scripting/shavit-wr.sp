@@ -652,8 +652,8 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 void OpenDelete(int client, int style)
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
 
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
 	DataPack datapack = new DataPack();
 	datapack.WriteCell(GetClientSerial(client));
 	datapack.WriteCell(style);
@@ -982,8 +982,8 @@ void StartWRMenu(int client, const char[] map, int style)
 	gH_SQL.Escape(map, sEscapedMap, iLength);
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style);
 
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style);
 	gH_SQL.Query(SQL_WR_Callback, sQuery, dp, DBPrio_High);
 
 	return;
@@ -1083,7 +1083,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gF_PlayerRecord[client][gBS_LastWR[client]] == 0.0)
 		{
-			FormatEx(sRanks, 32, "(%d %T%s)", iRecords, "WRRecord", client, (iRecords != 1)? "s":"");
+			FormatEx(sRanks, 32, "(%d %T)", iRecords, "WRRecord", client);
 		}
 
 		else
@@ -1718,8 +1718,8 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 void UpdateLeaderboards()
 {
 	char[] sQuery = new char[192];
-	FormatEx(sQuery, 192, "SELECT style, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC;", gS_MySQLPrefix, gS_Map);
 
+	FormatEx(sQuery, 192, "SELECT style, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery, 0, DBPrio_Low);
 }
 

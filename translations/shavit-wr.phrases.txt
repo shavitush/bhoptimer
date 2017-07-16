@@ -142,7 +142,7 @@
 	}
 	"WRRecord"
 	{
-		"en"		"record"
+		"en"		"records"
 	}
 	"WRRecordFor"
 	{
