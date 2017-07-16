@@ -1471,6 +1471,8 @@ void TeleportToCheckpoint(int client, int index)
 	Shavit_SetPracticeMode(client, true, !Shavit_InsideZone(client, Track_Main, Zone_Start));
 	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 
+	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
+
 	TeleportEntity(client, gF_Checkpoints[client][index][0],
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? gF_Checkpoints[client][index][1]:NULL_VECTOR,
 		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0)? gF_Checkpoints[client][index][2]:NULL_VECTOR);
@@ -1478,6 +1480,11 @@ void TeleportToCheckpoint(int client, int index)
 	SetEntityMoveType(client, view_as<MoveType>(gA_PlayerCheckPointsCache[client][index][iCPMoveType]));
 	SetEntityGravity(client, view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPGravity]));
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPSpeed]));
+
+	if(bInStart)
+	{
+		Shavit_StopTimer(client);
+	}
 }
 
 public Action Command_Noclip(int client, int args)
