@@ -396,18 +396,10 @@ public void OnMapStart()
 
 public void OnConfigsExecuted()
 {
-	if(sv_enablebunnyhopping != null)
+	if(sv_enablebunnyhopping != null && gB_ForceBunnyhopping)
 	{
-		if(gB_ForceBunnyhopping)
-		{
-			sv_enablebunnyhopping.BoolValue = true;
-			sv_enablebunnyhopping.SetBounds(ConVarBound_Lower, true, 1.0);
-		}
-
-		else
-		{
-			sv_enablebunnyhopping.SetBounds(ConVarBound_Lower, true, 0.0);
-		}
+		sv_enablebunnyhopping.BoolValue = true;
+		sv_enablebunnyhopping.SetBounds(ConVarBound_Lower, true, 1.0);
 	}
 }
 
