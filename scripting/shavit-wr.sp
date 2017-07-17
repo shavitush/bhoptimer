@@ -38,16 +38,18 @@ bool gB_Stats = false;
 Handle gH_OnWorldRecord = null;
 Handle gH_OnFinish_Post = null;
 Handle gH_OnWRDeleted = null;
+Handle gH_OnWorstRecord = null;
 
 // database handle
 Database gH_SQL = null;
 bool gB_MySQL = false;
 
 // cache
-BhopStyle gBS_LastWR[MAXPLAYERS+1];
-char gS_ClientMap[MAXPLAYERS+1][192];
-
+int gBS_LastWR[MAXPLAYERS+1];
+char gS_ClientMap[MAXPLAYERS+1][128];
 char gS_Map[192]; // blame workshop paths being so fucking long
+ArrayList gA_ValidMaps = null;
+int gI_ValidMaps = 1;
 
 // current wr stats
 float gF_WRTime[STYLE_LIMIT];
@@ -98,6 +100,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
+	CreateNative("Shavit_GetRecordAmount", Native_GetRecordAmount);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
@@ -120,6 +123,7 @@ public void OnPluginStart()
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell);
+	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// player commands
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
@@ -129,10 +133,11 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_rr", Command_RecentRecords, "View the recent #1 times set.");
 
 	// delete records
-	RegAdminCmd("sm_delete", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
-	RegAdminCmd("sm_deleterecord", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
-	RegAdminCmd("sm_deleterecords", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface");
-	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records");
+	RegAdminCmd("sm_delete", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
+	RegAdminCmd("sm_deleterecord", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
+	RegAdminCmd("sm_deleterecords", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
+	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records for this map.");
+	RegAdminCmd("sm_deletestylerecords", Command_DeleteStyleRecords, ADMFLAG_RCON, "Deletes all the records for a style.");
 
 	// cvars
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
@@ -149,6 +154,9 @@ public void OnPluginStart()
 	// modules
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Stats = LibraryExists("shavit-stats");
+
+	// cache
+	gA_ValidMaps = new ArrayList(192);
 
 	// mysql
 	Shavit_GetDB(gH_SQL);
@@ -196,6 +204,7 @@ public void OnAdminMenuReady(Handle topmenu)
 		{
 			AddToTopMenu(gH_AdminMenu, "sm_deleteall", TopMenuObject_Item, AdminMenu_DeleteAll, tmoTimer, "sm_deleteall", ADMFLAG_RCON);
 			AddToTopMenu(gH_AdminMenu, "sm_delete", TopMenuObject_Item, AdminMenu_Delete, tmoTimer, "sm_delete", ADMFLAG_RCON);
+			AddToTopMenu(gH_AdminMenu, "sm_deletestylerecords", TopMenuObject_Item, AdminMenu_DeleteStyleRecords, tmoTimer, "sm_deletestylerecords", ADMFLAG_RCON);
 		}
 	}
 }
@@ -223,6 +232,19 @@ public void AdminMenu_DeleteAll(Handle topmenu,  TopMenuAction action, TopMenuOb
 	else if(action == TopMenuAction_SelectOption)
 	{
 		Command_DeleteAll(param, 0);
+	}
+}
+
+public void AdminMenu_DeleteStyleRecords(Handle topmenu,  TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%t", "DeleteStyleRecords");
+	}
+
+	else if(action == TopMenuAction_SelectOption)
+	{
+		Command_DeleteStyleRecords(param, 0);
 	}
 }
 
@@ -274,6 +296,29 @@ public void OnMapStart()
 	if(gH_SQL != null)
 	{
 		UpdateWRCache();
+
+		int size = (strlen(gS_Map) + 1);
+		char[] sDisplayMap = new char[size];
+		GetMapDisplayName(gS_Map, sDisplayMap, size);
+
+		char[] sLowerCase = new char[128];
+		strcopy(sLowerCase, 128, sDisplayMap);
+
+		for(int i = 0; i < strlen(sLowerCase); i++)
+		{
+			if(!IsCharUpper(sLowerCase[i]))
+			{
+				sLowerCase[i] = CharToLower(sLowerCase[i]);
+			}
+		}
+
+		gA_ValidMaps.Clear();
+		gA_ValidMaps.PushString(sLowerCase);
+		gI_ValidMaps = 1;
+
+		char sQuery[128];
+		FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
+		gH_SQL.Query(SQL_UpdateMaps_Callback, sQuery, 0, DBPrio_Low);
 	}
 
 	if(gB_Late)
@@ -281,6 +326,45 @@ public void OnMapStart()
 		Shavit_OnStyleConfigLoaded(-1);
 		Shavit_OnChatConfigLoaded();
 	}
+}
+
+public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR maps cache update) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	while(results.FetchRow())
+	{
+		char[] sMap = new char[192];
+		results.FetchString(0, sMap, 192);
+
+		int size = (strlen(sMap) + 1);
+		char[] sDisplayMap = new char[size];
+		GetMapDisplayName(sMap, sDisplayMap, size);
+
+		char[] sLowerCase = new char[128];
+		strcopy(sLowerCase, 128, sDisplayMap);
+
+		for(int i = 0; i < strlen(sLowerCase); i++)
+		{
+			if(!IsCharUpper(sLowerCase[i]))
+			{
+				sLowerCase[i] = CharToLower(sLowerCase[i]);
+			}
+		}
+
+		if(gA_ValidMaps.FindString(sLowerCase) == -1)
+		{
+			gA_ValidMaps.PushString(sLowerCase);
+			gI_ValidMaps++;
+		}
+	}
+
+	SortADTArray(gA_ValidMaps, Sort_Ascending, Sort_String);
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -292,9 +376,9 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sStyleName, gS_StyleStrings[i][sStyleName], 128);
-		Shavit_GetStyleStrings(view_as<BhopStyle>(i), sShortName, gS_StyleStrings[i][sShortName], 128);
+		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
+		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i][sShortName], 128);
 	}
 
 	// arrays
@@ -373,7 +457,17 @@ void UpdateWRCache()
 	char sQuery[512];
 	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
 	// was a bit confused with this one :s
-	FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time JOIN %susers u ON p.auth = u.auth GROUP BY p.style;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+
+	if(gB_MySQL)
+	{
+		FormatEx(sQuery, 512, "SELECT p.style, p.id, TRUNCATE(LEAST(s.time, p.time), 3), u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map FROM %splayertimes WHERE map = '%s' GROUP BY style ORDER BY date ASC) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style ORDER BY date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+	}
+
+	// sorry, LEAST() isn't available for SQLITE!
+	else
+	{
+		FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map FROM %splayertimes WHERE map = '%s' GROUP BY style) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+	}
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -449,6 +543,11 @@ public int Native_GetRankForTime(Handle handler, int numParams)
 	return GetRankForTime(GetNativeCell(1), GetNativeCell(2));
 }
 
+public int Native_GetRecordAmount(Handle handler, int numParams)
+{
+	return gI_RecordAmount[GetNativeCell(1)];
+}
+
 #if defined DEBUG
 // debug
 public Action Command_Junk(int client, int args)
@@ -475,7 +574,7 @@ public Action Command_Delete(int client, int args)
 	}
 
 	Menu menu = new Menu(MenuHandler_Delete);
-	menu.SetTitle("%T", "DeleteMenuTitle", client);
+	menu.SetTitle("%T\n ", "DeleteMenuTitle", client);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -501,38 +600,38 @@ public Action Command_DeleteAll(int client, int args)
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
-	Menu m = new Menu(MenuHandler_DeleteAll);
-	m.SetTitle("%T", "DeleteAllRecordsMenuTitle", client, sDisplayMap);
+	Menu menu = new Menu(MenuHandler_DeleteAll);
+	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, sDisplayMap);
 
 	char[] sMenuItem = new char[64];
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
 		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
-		m.AddItem("-1", sMenuItem);
+		menu.AddItem("-1", sMenuItem);
 	}
 
 	FormatEx(sMenuItem, 64, "%T", "MenuResponseYes", client);
-	m.AddItem("yes", sMenuItem);
+	menu.AddItem("yes", sMenuItem);
 
 	for(int i = 1; i <= GetRandomInt(1, 3); i++)
 	{
 		FormatEx(sMenuItem, 64, "%T", "MenuResponseNo", client);
-		m.AddItem("-1", sMenuItem);
+		menu.AddItem("-1", sMenuItem);
 	}
 
-	m.ExitButton = true;
-	m.Display(client, 20);
+	menu.ExitButton = true;
+	menu.Display(client, 20);
 
 	return Plugin_Handled;
 }
 
-public int MenuHandler_DeleteAll(Menu m, MenuAction action, int param1, int param2)
+public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] info = new char[16];
-		m.GetItem(param2, info, 16);
+		menu.GetItem(param2, info, 16);
 
 		if(StringToInt(info) == -1)
 		{
@@ -549,10 +648,166 @@ public int MenuHandler_DeleteAll(Menu m, MenuAction action, int param1, int para
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
+}
+
+public Action Command_DeleteStyleRecords(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
+	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
+
+	Menu menu = new Menu(MenuHandler_DeleteStyleRecords);
+	menu.SetTitle("%T\n ", "DeleteStyleRecordsRecordsMenuTitle", client, sDisplayMap);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		if(gA_StyleSettings[i][bUnranked])
+		{
+			continue;
+		}
+
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
+
+		char[] sDisplay = new char[64];
+		FormatEx(sDisplay, 64, "%s (%d %T)", gS_StyleStrings[i][sStyleName], gI_RecordAmount[i], "WRRecord", client);
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	}
+
+	if(menu.ItemCount == 0)
+	{
+		char[] sNoRecords = new char[64];
+		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
+		menu.AddItem("-1", sNoRecords);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, 20);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
+
+		int style = StringToInt(info);
+
+		// (gI_RecordAmount[i] == 0) will trigger if the admin uses a cheat that hooks into menus
+		// and doesn't allow items to be disabled
+		if(gI_RecordAmount[style] == 0)
+		{
+			return 0;
+		}
+
+		char[] sMenuItem = new char[128];
+
+		Menu submenu = new Menu(MenuHandler_DeleteStyleRecords_Confirm);
+		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style]);
+
+		for(int i = 1; i <= GetRandomInt(1, 4); i++)
+		{
+			FormatEx(sMenuItem, 128, "%T", "MenuResponseNo", param1);
+			submenu.AddItem("-1", sMenuItem);
+		}
+
+		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style]);
+
+		IntToString(style, info, 16);
+		submenu.AddItem(info, sMenuItem);
+
+		for(int i = 1; i <= GetRandomInt(1, 3); i++)
+		{
+			FormatEx(sMenuItem, 128, "%T", "MenuResponseNo", param1);
+			submenu.AddItem("-1", sMenuItem);
+		}
+
+		submenu.ExitButton = true;
+		submenu.Display(param1, 20);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
+
+		int style = StringToInt(info);
+
+		if(style == -1)
+		{
+			Shavit_PrintToChat(param1, "%T", "DeletionAborted", param1);
+
+			return 0;
+		}
+
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, gS_Map, style);
+
+		DataPack pack = new DataPack();
+		pack.WriteCell(GetClientSerial(param1));
+		pack.WriteCell(style);
+
+		gH_SQL.Query(DeleteStyleRecords_Callback, sQuery, pack, DBPrio_High);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	ResetPack(view_as<DataPack>(data));
+	int serial = ReadPackCell(data);
+	int style = ReadPackCell(data);
+	delete view_as<DataPack>(data);
+
+	if(results == null)
+	{
+		LogError("Timer (WR DeleteStyleRecords) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	UpdateWRCache();
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		OnClientPutInServer(i);
+	}
+
+	int client = GetClientFromSerial(serial);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	Shavit_PrintToChat(client, "%T", "DeletedRecordsStyle", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 }
 
 public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
@@ -562,7 +817,7 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 		char[] info = new char[16];
 		m.GetItem(param2, info, 16);
 
-		OpenDelete(param1, view_as<BhopStyle>(StringToInt(info)));
+		OpenDelete(param1, StringToInt(info));
 
 		UpdateLeaderboards();
 	}
@@ -575,11 +830,11 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-void OpenDelete(int client, BhopStyle style)
+void OpenDelete(int client, int style)
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
 
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
 	DataPack datapack = new DataPack();
 	datapack.WriteCell(GetClientSerial(client));
 	datapack.WriteCell(style);
@@ -591,7 +846,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 {
 	ResetPack(data);
 	int client = GetClientFromSerial(ReadPackCell(data));
-	BhopStyle style = ReadPackCell(data);
+	int style = ReadPackCell(data);
 	delete view_as<DataPack>(data);
 
 	if(results == null)
@@ -643,7 +898,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 	if(iCount == 0)
 	{
 		char[] sNoRecords = new char[64];
-		FormatEx(sNoRecords, 64, "%T", "ListClientRecordsNone", client);
+		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
 		menu.AddItem("-1", sNoRecords);
 	}
 
@@ -679,7 +934,7 @@ void OpenDeleteMenu(int client, int id)
 	char[] sMenuItem = new char[64];
 
 	Menu menu = new Menu(DeleteConfirm_Handler);
-	menu.SetTitle("%T", "DeleteConfirm", client);
+	menu.SetTitle("%T\n ", "DeleteConfirm", client);
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
@@ -787,13 +1042,6 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		OnClientPutInServer(i);
 	}
 
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
-	}
-
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		if(gA_StyleSettings[i][bUnranked])
@@ -807,6 +1055,13 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		Call_Finish();
 	}
 
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
 	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings[sMessageVariable], gS_Map, gS_ChatStrings[sMessageText]);
 }
 
@@ -817,14 +1072,15 @@ public Action Command_WorldRecord(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!args)
+	if(args == 0)
 	{
-		strcopy(gS_ClientMap[client], 192, gS_Map);
+		strcopy(gS_ClientMap[client], 128, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(gS_ClientMap[client], 192);
+		GetCmdArgString(gS_ClientMap[client], 128);
+		GuessBestMapName(gS_ClientMap[client], gS_ClientMap[client], 128);
 	}
 
 	return ShowWRStyleMenu(client);
@@ -883,7 +1139,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 			return 0;
 		}
 
-		gBS_LastWR[param1] = view_as<BhopStyle>(iStyle);
+		gBS_LastWR[param1] = iStyle;
 
 		StartWRMenu(param1, gS_ClientMap[param1], iStyle);
 	}
@@ -907,8 +1163,8 @@ void StartWRMenu(int client, const char[] map, int style)
 	gH_SQL.Escape(map, sEscapedMap, iLength);
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style);
 
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style);
 	gH_SQL.Query(SQL_WR_Callback, sQuery, dp, DBPrio_High);
 
 	return;
@@ -984,8 +1240,9 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		}
 	}
 
-	char[] sDisplayMap = new char[strlen(sMap) + 1];
-	GetMapDisplayName(sMap, sDisplayMap, strlen(sMap) + 1);
+	int size = (strlen(sMap) + 1);
+	char[] sDisplayMap = new char[size];
+	GetMapDisplayName(sMap, sDisplayMap, size);
 
 	char[] sFormattedTitle = new char[256];
 
@@ -1007,7 +1264,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gF_PlayerRecord[client][gBS_LastWR[client]] == 0.0)
 		{
-			FormatEx(sRanks, 32, "(%d %T%s)", iRecords, "WRRecord", client, (iRecords != 1)? "s":"");
+			FormatEx(sRanks, 32, "(%d %T)", iRecords, "WRRecord", client);
 		}
 
 		else
@@ -1105,7 +1362,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		FormatSeconds(time, sTime, 16);
 
 		int jumps = results.FetchInt(4);
-		BhopStyle style = view_as<BhopStyle>(results.FetchInt(5));
+		int style = results.FetchInt(5);
 		float fPoints = results.FetchFloat(6);
 
 		char[] sDisplay = new char[192];
@@ -1141,15 +1398,15 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[192];
-		m.GetItem(param2, sInfo, 192);
+		char[] sInfo = new char[128];
+		m.GetItem(param2, sInfo, 128);
 
 		if(StringToInt(sInfo) != -1)
 		{
-			char[][] sExploded = new char[2][192];
-			ExplodeString(sInfo, ";", sExploded, 2, 192, true);
+			char[][] sExploded = new char[2][128];
+			ExplodeString(sInfo, ";", sExploded, 2, 128, true);
 
-			strcopy(gS_ClientMap[param1], 192, sExploded[1]);
+			strcopy(gS_ClientMap[param1], 128, sExploded[1]);
 
 			OpenSubMenu(param1, StringToInt(sExploded[0]));
 		}
@@ -1231,7 +1488,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		m.AddItem("-1", sDisplay);
 
 		// 3 - style
-		BhopStyle style = view_as<BhopStyle>(results.FetchInt(3));
+		int style = results.FetchInt(3);
 		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[style][sStyleName]);
 		m.AddItem("-1", sDisplay);
 
@@ -1331,7 +1588,7 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 			{
 				case 0:
 				{
-					Shavit_OpenStatsMenu(param1, sInfo);
+					Shavit_OpenStatsMenu(param1, sExploded[1]);
 				}
 
 				case 1:
@@ -1343,13 +1600,13 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		else
 		{
-			StartWRMenu(param1, gS_ClientMap[param1], view_as<int>(gBS_LastWR[param1]));
+			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1]);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		StartWRMenu(param1, gS_ClientMap[param1], view_as<int>(gBS_LastWR[param1]));
+		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -1496,7 +1753,7 @@ public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const cha
 	}
 }
 
-public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, int strafes, float sync)
+public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync)
 {
 	char[] sTime = new char[32];
 	FormatSeconds(time, sTime, 32);
@@ -1533,11 +1790,21 @@ public void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, 
 		Call_PushCell(strafes);
 		Call_PushCell(sync);
 		Call_Finish();
-
-		UpdateWRCache();
 	}
 
 	int iRank = GetRankForTime(style, time);
+
+	if(iRank >= gI_RecordAmount[style])
+	{
+		Call_StartForward(gH_OnWorstRecord);
+		Call_PushCell(client);
+		Call_PushCell(style);
+		Call_PushCell(time);
+		Call_PushCell(jumps);
+		Call_PushCell(strafes);
+		Call_PushCell(sync);
+		Call_Finish();
+	}
 
 	float fDifference = (gF_PlayerRecord[client][style] - time);
 
@@ -1630,8 +1897,8 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 void UpdateLeaderboards()
 {
 	char[] sQuery = new char[192];
-	FormatEx(sQuery, 192, "SELECT style, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC;", gS_MySQLPrefix, gS_Map);
 
+	FormatEx(sQuery, 192, "SELECT style, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery, 0, DBPrio_Low);
 }
 
@@ -1652,9 +1919,9 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	while(results.FetchRow())
 	{
-		BhopStyle style = view_as<BhopStyle>(results.FetchInt(0));
+		int style = results.FetchInt(0);
 
-		if(view_as<int>(style) >= gI_Styles || gA_StyleSettings[style][bUnranked])
+		if(style >= gI_Styles || gA_StyleSettings[style][bUnranked])
 		{
 			continue;
 		}
@@ -1664,7 +1931,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(view_as<int>(i) >= gI_Styles || gA_StyleSettings[i][bUnranked])
+		if(i >= gI_Styles || gA_StyleSettings[i][bUnranked])
 		{
 			continue;
 		}
@@ -1674,7 +1941,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	}
 }
 
-int GetRankForTime(BhopStyle style, float time)
+int GetRankForTime(int style, float time)
 {
 	if(time < gF_WRTime[style])
 	{
@@ -1689,7 +1956,31 @@ int GetRankForTime(BhopStyle style, float time)
 		}
 	}
 
-	return gI_RecordAmount[style] + 1;
+	return (gI_RecordAmount[style] + 1);
+}
+
+void GuessBestMapName(const char[] input, char[] output, int size)
+{
+	if(gA_ValidMaps.FindString(input) != -1)
+	{
+		strcopy(output, size, input);
+
+		return;
+	}
+
+	char[] sCache = new char[128];
+
+	for(int i = 0; i < gI_ValidMaps; i++)
+	{
+		gA_ValidMaps.GetString(i, sCache, 128);
+
+		if(StrContains(sCache, input) != -1)
+		{
+			strcopy(output, size, sCache);
+
+			return;
+		}
+	}
 }
 
 public void Shavit_OnDatabaseLoaded(Database db)

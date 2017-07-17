@@ -352,7 +352,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(view_as<BhopStyle>(i), gA_StyleSettings[i]);
+		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 	}
 
 	gI_Styles = styles;
@@ -377,7 +377,7 @@ public Action Command_Points(int client, int args)
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
 	float fWRTime = 0.0;
-	Shavit_GetWRTime(view_as<BhopStyle>(0), fWRTime);
+	Shavit_GetWRTime(0, fWRTime);
 
 	if(fWRTime < 0.0)
 	{
@@ -671,7 +671,7 @@ void UpdateRecordPoints()
 	}
 
 	float fDefaultWR = 0.0;
-	Shavit_GetWRTime(view_as<BhopStyle>(0), fDefaultWR);
+	Shavit_GetWRTime(0, fDefaultWR);
 
 	char[] sQuery = new char[512];
 
@@ -683,7 +683,7 @@ void UpdateRecordPoints()
 		}
 
 		float fStyleWR = 0.0;
-		Shavit_GetWRTime(view_as<BhopStyle>(i), fStyleWR);
+		Shavit_GetWRTime(i, fStyleWR);
 
 		float fMeasureTime = 0.0;
 
@@ -762,7 +762,7 @@ public void SQL_WeighPoints_Callback(Database db, DBResultSet results, const cha
 float CalculatePoints(float time, BhopStyle style, float tier)
 {
 	float fWRTime = 0.0;
-	Shavit_GetWRTime(view_as<BhopStyle>(0), fWRTime);
+	Shavit_GetWRTime(0, fWRTime);
 
 	if(tier <= 0.0 || fWRTime <= 0.0)
 	{
@@ -773,7 +773,7 @@ float CalculatePoints(float time, BhopStyle style, float tier)
 }
 #endif
 
-public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank)
+public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank)
 {
 	#if defined DEBUG
 	Shavit_PrintToChat(client, "Points: %.02f", CalculatePoints(time, style, gF_IdealTime, gF_MapPoints));

@@ -33,4 +33,26 @@
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"Could not delete replay for {1}{2}{3}."
 	}
+	// ---------- Central Replay Menu ---------- //
+	"CentralReplaySpectator"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s}"
+		"en"		"You have to {1}spectate{2} the {3}central bot{4} to use this feature."
+	}
+	"CentralReplayTitle"
+	{
+		"en"		"Select a replay style to play:"
+	}
+	"CentralReplayPlaying"
+	{
+		"en"		"The replay bot is busy, try again when it's idle."
+	}
+	"CentralReplayStop"
+	{
+		"en"		"Stop the current replay."
+	}
+	"CentralReplayStopped"
+	{
+		"en"		"Forcibly stopped replay."
+	}
 }

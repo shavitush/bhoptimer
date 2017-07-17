@@ -35,7 +35,14 @@ EngineVersion gEV_Type = Engine_Unknown;
 ArrayList gA_FirstSounds = null;
 ArrayList gA_PersonalSounds = null;
 ArrayList gA_WorldSounds = null;
+ArrayList gA_WorstSounds = null;
 StringMap gSM_RankSounds = null;
+
+// cvars
+ConVar gCV_MinimumWorst = null;
+
+// cached cvars
+int gI_MinimumWorst = 10;
 
 public Plugin myinfo =
 {
@@ -71,10 +78,23 @@ public void OnPluginStart()
 	gA_FirstSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
+	gA_WorstSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gSM_RankSounds = new StringMap();
 
 	// modules
 	gB_HUD = LibraryExists("shavit-hud");
+
+	// cvars
+	gCV_MinimumWorst = CreateConVar("shavit_sounds_minimumworst", "10", "Minimum amount of records to be saved for a \"worst\" sound to play.", 0, true, 1.0);
+
+	gCV_MinimumWorst.AddChangeHook(OnConVarChanged);
+
+	AutoExecConfig();
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gI_MinimumWorst = gCV_MinimumWorst.IntValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -98,6 +118,7 @@ public void OnMapStart()
 	gA_FirstSounds.Clear();
 	gA_PersonalSounds.Clear();
 	gA_WorldSounds.Clear();
+	gA_WorstSounds.Clear();
 	gSM_RankSounds.Clear();
 
 	char[] sFile = new char[PLATFORM_MAX_PATH];
@@ -144,9 +165,14 @@ public void OnMapStart()
 				gA_WorldSounds.PushString(sExploded[1]);
 			}
 
+			else if(StrEqual(sExploded[0], "worst"))
+			{
+				gA_WorstSounds.PushString(sExploded[1]);
+			}
+
 			else if(StrEqual(sExploded[0], "worse"))
 			{
-				PrintToServer("\"worse\" sounds are not supported anymore.");
+				LogError("\"worse\" sounds are not supported anymore.");
 			}
 
 			else
@@ -177,13 +203,12 @@ public void OnMapStart()
 	delete fFile;
 }
 
-public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank, int overwrite)
+public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite)
 {
 	float fOldTime = 0.0;
 	Shavit_GetPlayerPB(client, style, fOldTime);
 
 	char[] sSound = new char[PLATFORM_MAX_PATH];
-
 	bool bEveryone = false;
 
 	char[] sRank = new char[8];
@@ -217,6 +242,20 @@ public void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int ju
 	}
 }
 
+public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync)
+{
+	if(gA_WorstSounds.Length != 0 && Shavit_GetRecordAmount(style) >= gI_MinimumWorst)
+	{
+		char[] sSound = new char[PLATFORM_MAX_PATH];
+		gA_WorstSounds.GetString(GetRandomInt(0, gA_WorstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
+
+		if(StrContains(sSound, ".") != -1)
+		{
+			PlayEventSound(client, false, sSound);
+		}
+	}
+}
+
 void PlayEventSound(int client, bool everyone, const char[] sound)
 {
 	int[] clients = new int[MaxClients];
@@ -238,7 +277,7 @@ void PlayEventSound(int client, bool everyone, const char[] sound)
 
 		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
 
-		// add player and his spectators
+		// add player and their spectators
 		if(i == client || (IsClientObserver(i) && (iObserverMode >= 3 || iObserverMode <= 5) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client))
 		{
 			clients[count++] = i;

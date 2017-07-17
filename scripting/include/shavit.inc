@@ -24,7 +24,7 @@
 #define _shavit_included
 
 #if !defined _dynamic_included
-  #include <dynamic>
+	#include <dynamic>
 #endif
 
 #pragma newdecls required
@@ -57,12 +57,6 @@ enum ServerGame(+=1)
 	Game_Unknown
 };
 
-// old enum was used for style configuration and is now here for reference
-enum BhopStyle(+=1)
-{
-	Style_Default = 0
-};
-
 // status
 enum TimerStatus(+=1)
 {
@@ -75,7 +69,8 @@ enum ReplayStatus(+=1)
 {
 	Replay_Start = 0,
 	Replay_Running,
-	Replay_End
+	Replay_End,
+	Replay_Idle
 };
 
 enum
@@ -105,7 +100,7 @@ enum
 	bBlockS,
 	bBlockD,
 	bBlockUse,
-	bForceHSW,
+	iForceHSW,
 	bBlockPLeft,
 	bBlockPRight,
 	bBlockPStrafe,
@@ -146,6 +141,7 @@ enum
 	iTotalMeasures,
 	iGoodGains,
 	fServerTime,
+	iSHSWCombination,
 	TIMERSNAPSHOT_SIZE
 };
 
@@ -220,6 +216,7 @@ enum
 	iZoneType,
 	iZoneTrack, // 0 - main, 1 - bonus
 	iEntityID,
+	iDatabaseID,
 	ZONECACHE_SIZE
 };
 
@@ -329,7 +326,7 @@ forward Action Shavit_OnFinishPre(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps, int strafes, float sync);
+forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync);
 
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.
@@ -345,7 +342,7 @@ forward void Shavit_OnFinish(int client, BhopStyle style, float time, int jumps,
  * @param overwrite					1 - brand new record. 2 - update.
  * @noreturn
  */
-forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int jumps, int strafes, float sync, int rank, int overwrite);
+forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite);
 
 /**
  * Called when there's a new WR on the map.
@@ -358,7 +355,7 @@ forward void Shavit_OnFinish_Post(int client, BhopStyle style, float time, int j
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @noreturn
  */
-forward void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int jumps, int strafes, float sync);
+forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync);
 
 /**
  * Called when an admin deletes a WR.
@@ -367,7 +364,7 @@ forward void Shavit_OnWorldRecord(int client, BhopStyle style, float time, int j
  * @param id						Record ID. -1 if mass deletion.
  * @noreturn
  */
-forward void Shavit_OnWRDeleted(BhopStyle style, int id);
+forward void Shavit_OnWRDeleted(int style, int id);
 
 /**
  * Called when a player's timer paused.
@@ -395,14 +392,14 @@ forward void Shavit_OnResume(int client);
 forward void Shavit_OnRankUpdated(int client);
 
 /**
- * Called when a player changes his bhopstyle.
+ * Called when a player changes their bhopstyle.
  *
  * @param client					Client index.
  * @param oldstyle					Old bhop style.
  * @param newstyle					New bhop style.
  * @noreturn
  */
-forward void Shavit_OnStyleChanged(int client, BhopStyle oldstyle, BhopStyle newstyle);
+forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle);
 
 /**
  * Called when the styles configuration finishes loading and it's ready to load everything into the cache.
@@ -452,6 +449,20 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
 forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity);
 
 /**
+ * Called when a player gets the worst record in the server for the style.
+ * Note: Will be only called for ranked styles.
+ *
+ * @param client					Client index.
+ * @param style						Style the record was done on.
+ * @param time						Record time.
+ * @param jumps						Jumps amount.
+ * @param strafes					Amount of strafes.
+ * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
+ * @noreturn
+ */
+forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
@@ -495,7 +506,7 @@ native void Shavit_RestartTimer(int client);
 native void Shavit_StopTimer(int client);
 
 /**
- * Finishes the map for a player, with his current timer stats.
+ * Finishes the map for a player, with their current timer stats.
  * Will not teleport the player to anywhere, it's handled inside the mapzones plugin.
  *
  * @param client					Client index.
@@ -513,7 +524,7 @@ native void Shavit_FinishMap(int client);
  * @param started					Timer started?
  * @noreturn
  */
-native void Shavit_GetTimer(int client, float &time, int &jumps, BhopStyle &style, bool &started);
+native void Shavit_GetTimer(int client, float &time, int &jumps, int &style, bool &started);
 
 /**
  * Retrieve a client's current time.
@@ -537,7 +548,7 @@ native int Shavit_GetClientJumps(int client);
  * @param client					Client index.
  * @return                          Bhop style.
  */
-native BhopStyle Shavit_GetBhopStyle(int client);
+native int Shavit_GetBhopStyle(int client);
 
 /**
  * Retrieve a client's timer status
@@ -572,7 +583,7 @@ native float Shavit_GetSync(int client);
  * @param time						Reference to the time variable. 0.0 will be returned if no records.
  * @noreturn
  */
-native void Shavit_GetWRTime(BhopStyle style, float &time);
+native void Shavit_GetWRTime(int style, float &time);
 
 /**
  * Saves the WR's record ID for the current map on a variable.
@@ -582,7 +593,7 @@ native void Shavit_GetWRTime(BhopStyle style, float &time);
  * @param time						Reference to the time variable. 0.0 will be returned if no records.
  * @noreturn
  */
-native void Shavit_GetWRRecordID(BhopStyle style, int &recordid);
+native void Shavit_GetWRRecordID(int style, int &recordid);
 
 /**
  * Saves the WR's player name on the map on a variable.
@@ -592,7 +603,7 @@ native void Shavit_GetWRRecordID(BhopStyle style, int &recordid);
  * @param wrmaxlength				Max length for the string.
  * @noreturn
  */
-native void Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
+native void Shavit_GetWRName(int style, char[] wrname, int wrmaxlength);
 
 /**
  * Saves the player's personal best time on a variable.
@@ -602,7 +613,7 @@ native void Shavit_GetWRName(BhopStyle style, char[] wrname, int wrmaxlength);
  * @param time						Reference to the time variable. 0.0 will be returned if no personal record.
  * @noreturn
  */
-native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
+native void Shavit_GetPlayerPB(int client, int style, float &time);
 
 /**
  * Get the amount of records on the current map/style.
@@ -610,7 +621,7 @@ native void Shavit_GetPlayerPB(int client, BhopStyle style, float &time);
  * @param style						Bhop style.
  * @return							Amount of records.
  */
-native int Shavit_GetRecordAmount(BhopStyle style);
+native int Shavit_GetRecordAmount(int style);
 
 /**
  * Calculate potential rank for a given style and time.
@@ -619,7 +630,7 @@ native int Shavit_GetRecordAmount(BhopStyle style);
  * @param time						Time to check for.
  * @return							Amount of records.
  */
-native int Shavit_GetRankForTime(BhopStyle style, float time);
+native int Shavit_GetRankForTime(int style, float time);
 
 /**
  * Checks if a mapzone exists.
@@ -671,7 +682,7 @@ native void Shavit_ResumeTimer(int client);
  * @param time						Reference to save the time on.
  * @noreturn
  */
-native void Shavit_GetReplayBotFirstFrame(BhopStyle style, float &time);
+native void Shavit_GetReplayBotFirstFrame(int style, float &time);
 
 /**
  * Retrieve the replay bot's client index.
@@ -679,7 +690,7 @@ native void Shavit_GetReplayBotFirstFrame(BhopStyle style, float &time);
  * @param style						Bhop style.
  * @return							Client index for the replay bot.
  */
-native int Shavit_GetReplayBotIndex(BhopStyle style);
+native int Shavit_GetReplayBotIndex(int style);
 
 /**
  * Retrieve the replay bot's current played frame.
@@ -687,7 +698,7 @@ native int Shavit_GetReplayBotIndex(BhopStyle style);
  * @param style						Bhop style.
  * @return							Current played frame.
  */
-native int Shavit_GetReplayBotCurrentFrame(BhopStyle style);
+native int Shavit_GetReplayBotCurrentFrame(int style);
 
 /**
  * Checks if there's loaded replay data for a bhop style or not.
@@ -695,7 +706,7 @@ native int Shavit_GetReplayBotCurrentFrame(BhopStyle style);
  * @param style						Bhop style.
  * @return							Boolean value of if there's loaded replay data.
  */
-native bool Shavit_IsReplayDataLoaded(BhopStyle style);
+native bool Shavit_IsReplayDataLoaded(int style);
 
 /**
  * Gets player points.
@@ -771,7 +782,7 @@ native int Shavit_GetWRCount(int client);
 * @param StyleSettings				Reference to the settings array.
 * @return							SP_ERROR_NONE on success, anything else on failure.
 */
-native int Shavit_GetStyleSettings(BhopStyle style, any StyleSettings[STYLESETTINGS_SIZE]);
+native int Shavit_GetStyleSettings(int style, any StyleSettings[STYLESETTINGS_SIZE]);
 
 /**
  * Saves the style related strings on string references.
@@ -782,7 +793,7 @@ native int Shavit_GetStyleSettings(BhopStyle style, any StyleSettings[STYLESETTI
  * @param size						Max length for the buffer.
  * @return							SP_ERROR_NONE on success, anything else on failure.
  */
-native int Shavit_GetStyleStrings(BhopStyle style, int stringtype, char[] StyleStrings, int size);
+native int Shavit_GetStyleStrings(int style, int stringtype, char[] StyleStrings, int size);
 
 /**
  * Retrieves the amount of styles in the server.
@@ -845,6 +856,7 @@ native void Shavit_SaveSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
  *
  * @param client					Client index.
  * @param snapshot					Full snapshot of the client's timer.
+ * @noreturn
  */
 native void Shavit_LoadSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
 
@@ -903,6 +915,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetRank");
 	MarkNativeAsOptional("Shavit_GetRankedPlayers");
 	MarkNativeAsOptional("Shavit_GetRankForTime");
+	MarkNativeAsOptional("Shavit_GetRecordAmount");
 	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");

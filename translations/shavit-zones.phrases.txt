@@ -206,4 +206,20 @@
 	{
 		"en"		"Change zone track"
 	}
+	"ZoneEdit"
+	{
+		"en"		"Edit a map zone"
+	}
+	"ZoneEditTitle"
+	{
+		"en"		"Choose a zone to edit:"
+	}
+	"ZoneInside"
+	{
+		"en"		"(Inside!)"
+	}
+	"ZoneEditRefresh"
+	{
+		"en"		"Refresh menu"
+	}
 }
