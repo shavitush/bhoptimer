@@ -29,21 +29,16 @@
 	// ---------- Menus ---------- //
 	"StyleMenuTitle"
 	{
-		"en"		"Choose a style"
+		"en"		"Choose a style:"
 	}
 	"StyleSelection"
 	{
 		"#format"	"{1:s},{2:s},{3:s}"
-		"en"		"You have selected to play {1}{2}{3}."
+		"en"		"You have chosen to play {1}{2}{3}."
 	}
 	"StyleUnranked"
 	{
 		"en"		"[Unranked]"
-	}
-	"StyleMenuCurrent"
-	{
-		"#format"	"{1:s}"
-		"en"		"Current: {1}"
 	}
 	// ---------- Misc ---------- //
 	"LeftRightCheat"

@@ -580,7 +580,7 @@ public Action Command_Style(int client, int args)
 	}
 
 	Menu menu = new Menu(StyleMenu_Handler);
-	menu.SetTitle("%T\n%T\n ", "StyleMenuTitle", client, "StyleMenuCurrent", client, gS_StyleStrings[gBS_Style[client]][sStyleName]);
+	menu.SetTitle("%T", "StyleMenuTitle", client);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
