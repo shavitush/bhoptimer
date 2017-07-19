@@ -710,6 +710,11 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 	{
 		RequestFrame(ApplyNewVelocity, GetClientSerial(client));
 	}
+		
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]) != 0.0)
+	{
+		RequestFrame(AddBonusVelocity, GetClientSerial(client));
+	}
 	
 	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]) != 0.0)
 	{
@@ -728,6 +733,30 @@ void ApplyNewVelocity(int data)
 		fAbsVelocity[0] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
 		fAbsVelocity[1] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+	}
+}
+
+void AddBonusVelocity(int data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(data != 0)
+	{
+		float fAbsVelocity[3];
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+
+		float currentspeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
+		
+		if(currentspeed > 0.0)
+		{
+			float fBonus = view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]);
+
+			float x = currentspeed / (currentspeed + fBonus);
+			fAbsVelocity[0] /= x;
+			fAbsVelocity[1] /= x;
+				
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
+		}
 	}
 }
 
@@ -1300,6 +1329,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][fSpeedMultiplier] = dStyle.GetFloat("speed", 1.0);
 		gA_StyleSettings[i][bHalftime] = dStyle.GetBool("halftime", false);
 		gA_StyleSettings[i][fVelocity] = dStyle.GetFloat("velocity", 1.0);
+		gA_StyleSettings[i][fBonusVelocity] = dStyle.GetFloat("bonus_velocity", 0.0);
 		gA_StyleSettings[i][fMinVelocity] = dStyle.GetFloat("min_velocity", 0.0);
 		gA_StyleSettings[i][bBlockW] = dStyle.GetBool("block_w", false);
 		gA_StyleSettings[i][bBlockA] = dStyle.GetBool("block_a", false);
