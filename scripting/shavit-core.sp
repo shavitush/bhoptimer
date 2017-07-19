@@ -710,15 +710,15 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 	{
 		RequestFrame(ApplyNewVelocity, GetClientSerial(client));
 	}
+		
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]) != 0.0)
+	{
+		RequestFrame(AddBonusVelocity, GetClientSerial(client));
+	}
 	
 	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]) != 0.0)
 	{
 		RequestFrame(MinimumVelocity, GetClientSerial(client));
-	}
-	
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]) != 0.0)
-	{
-		RequestFrame(AddBonusVelocity, GetClientSerial(client));
 	}
 }
 
