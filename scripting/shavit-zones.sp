@@ -36,6 +36,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
 bool gB_MySQL = false;
+bool gB_DBReady = false;
 
 char gS_Map[128];
 
@@ -446,7 +447,7 @@ public void OnMapStart()
 	gI_MapZones = 0;
 	UnloadZones(0);
 
-	if(gH_SQL != null)
+	if(gH_SQL != null && gB_DBReady)
 	{
 		RefreshZones();
 	}
@@ -1972,6 +1973,13 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
+
+	else
+	{
+		// we have a database, time to load zones
+		gB_DBReady = true;
+		RefreshZones();
+	}
 }
 
 
@@ -1983,9 +1991,6 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
-
-	// we have a database, time to load zones
-	RefreshZones();
 }
 
 public void Shavit_OnRestart(int client)
