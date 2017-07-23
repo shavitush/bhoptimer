@@ -582,6 +582,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 
+	gB_DBReady = true;
 	gI_MapZones = 0;
 
 	while(results.FetchRow())
@@ -1977,7 +1978,6 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 	else
 	{
 		// we have a database, time to load zones
-		gB_DBReady = true;
 		RefreshZones();
 	}
 }
