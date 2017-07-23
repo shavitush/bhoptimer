@@ -23,10 +23,6 @@
 #endif
 #define _shavit_included
 
-#if !defined _dynamic_included
-	#include <dynamic>
-#endif
-
 #pragma newdecls required
 
 #define SHAVIT_VERSION "1.5b"

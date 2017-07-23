@@ -23,6 +23,7 @@
 #include <sdktools>
 #include <geoip>
 #include <clientprefs>
+#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>

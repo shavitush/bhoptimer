@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <cstrike>
+#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <basecomm>

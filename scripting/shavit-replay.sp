@@ -22,6 +22,7 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
+#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
