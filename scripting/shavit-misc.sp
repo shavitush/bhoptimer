@@ -1859,7 +1859,7 @@ public void Shavit_OnFinish(int client)
 
 public Action Command_Drop(int client, const char[] command, int argc)
 {
-	if(!gB_DropAll)
+	if(!gB_DropAll || !IsValidClient(client))
 	{
 		return Plugin_Continue;
 	}

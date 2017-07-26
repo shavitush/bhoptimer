@@ -23,8 +23,6 @@
 #endif
 #define _shavit_included
 
-#pragma newdecls required
-
 #define SHAVIT_VERSION "1.5b"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
