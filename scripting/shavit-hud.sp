@@ -40,19 +40,10 @@ bool gB_Zones = false;
 bool gB_BhopStats = false;
 bool gB_Sounds = false;
 
-// zone colors
-char gS_StartColors[][] =
-{
-	"ff0000", "ff4000", "ff7f00", "ffbf00", "ffff00", "00ff00", "00ff80", "00ffff", "0080ff", "0000ff"
-};
-
-char gS_EndColors[][] =
-{
-	"ff0000", "ff4000", "ff7f00", "ffaa00", "ffd400", "ffff00", "bba24e", "77449c"
-};
-
 // cache
 int gI_Cycle = 0;
+int gI_GradientColors[3];
+int gI_GradientDirection = -1;
 
 Handle gH_HUDCookie = null;
 int gI_HUDSettings[MAXPLAYERS+1];
@@ -65,6 +56,12 @@ bool gB_Late = false;
 
 // hud handle
 Handle gH_HUD = null;
+
+// plugin cvars
+ConVar gCV_GradientStepSize = null;
+
+// cached cvars
+int gI_GradientStepSize = 5;
 
 // timer settings
 int gI_Styles = 0;
@@ -119,6 +116,13 @@ public void OnPluginStart()
 	// HUD handle
 	gH_HUD = CreateHudSynchronizer();
 
+	// plugin convars
+	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
+
+	gCV_GradientStepSize.AddChangeHook(OnConVarChanged);
+
+	AutoExecConfig();
+
 	// cron
 	CreateTimer(0.10, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 
@@ -139,6 +143,11 @@ public void OnPluginStart()
 			}
 		}
 	}
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gI_GradientStepSize = gCV_GradientStepSize.IntValue;
 }
 
 public void OnMapStart()
@@ -370,6 +379,81 @@ public Action UpdateHUD_Timer(Handle Timer)
 		gI_Cycle = 0;
 	}
 
+	switch(gI_GradientDirection)
+	{
+		case 0:
+		{
+			gI_GradientColors[2] += gI_GradientStepSize;
+
+			if(gI_GradientColors[2] >= 255)
+			{
+				gI_GradientColors[2] = 255;
+				gI_GradientDirection = 1;
+			}
+		}
+
+		case 1:
+		{
+			gI_GradientColors[0] -= gI_GradientStepSize;
+
+			if(gI_GradientColors[0] <= 0)
+			{
+				gI_GradientColors[0] = 0;
+				gI_GradientDirection = 2;
+			}
+		}
+
+		case 2:
+		{
+			gI_GradientColors[1] += gI_GradientStepSize;
+
+			if(gI_GradientColors[1] >= 255)
+			{
+				gI_GradientColors[1] = 255;
+				gI_GradientDirection = 3;
+			}
+		}
+
+		case 3:
+		{
+			gI_GradientColors[2] -= gI_GradientStepSize;
+
+			if(gI_GradientColors[2] <= 0)
+			{
+				gI_GradientColors[2] = 0;
+				gI_GradientDirection = 4;
+			}
+		}
+
+		case 4:
+		{
+			gI_GradientColors[0] += gI_GradientStepSize;
+
+			if(gI_GradientColors[0] >= 255)
+			{
+				gI_GradientColors[0] = 255;
+				gI_GradientDirection = 5;
+			}
+		}
+
+		case 5:
+		{
+			gI_GradientColors[1] -= gI_GradientStepSize;
+
+			if(gI_GradientColors[1] <= 0)
+			{
+				gI_GradientColors[1] = 0;
+				gI_GradientDirection = 0;
+			}
+		}
+
+		default:
+		{
+			gI_GradientColors[0] = 255;
+			gI_GradientDirection = 0;
+		}
+	}
+
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsValidClient(i) || (gI_HUDSettings[i] & HUD_MASTER) == 0)
@@ -437,7 +521,7 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">%T</font>", gS_StartColors[gI_Cycle % sizeof(gS_StartColors)], "HudStartZone", client);
+				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%06X\">%T</font>", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client);
 			}
 
 			else
@@ -450,7 +534,7 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%s\">%T</font>", gS_EndColors[gI_Cycle % sizeof(gS_EndColors)], "HudEndZone", client);
+				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%06X\">%T</font>", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client);
 			}
 
 			else
