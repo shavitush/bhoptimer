@@ -625,6 +625,11 @@ bool DeleteReplay(int style)
 		return false;
 	}
 
+	if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style)
+	{
+		StopCentralReplay(0);
+	}
+
 	gA_Frames[style].Clear();
 	gI_FrameCount[style] = 0;
 	gI_ReplayTick[style] = -1;
@@ -632,11 +637,6 @@ bool DeleteReplay(int style)
 	if(gI_ReplayBotClient[style] != 0)
 	{
 		UpdateReplayInfo(gI_ReplayBotClient[style], style, 0.0);
-	}
-
-	if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style)
-	{
-		StopCentralReplay(0);
 	}
 
 	return true;
@@ -861,18 +861,26 @@ public void Shavit_OnWorldRecord(int client, int style, float time)
 
 	if(ReplayEnabled(style) && !gB_CentralBot && gI_ReplayBotClient[style] != 0)
 	{
-		UpdateReplayInfo(gI_ReplayBotClient[style], style, time);
-		CS_RespawnPlayer(gI_ReplayBotClient[style]);
+		if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style)
+		{
+			StopCentralReplay(0);
+		}
 
-		gRS_ReplayStatus[style] = Replay_Running;
-		gI_ReplayTick[style] = 0;
+		else if(gI_ReplayBotClient[style] != 0)
+		{
+			UpdateReplayInfo(gI_ReplayBotClient[style], style, time);
+			CS_RespawnPlayer(gI_ReplayBotClient[style]);
 
-		float vecPosition[3];
-		vecPosition[0] = gA_Frames[style].Get(0, 0);
-		vecPosition[1] = gA_Frames[style].Get(0, 1);
-		vecPosition[2] = gA_Frames[style].Get(0, 2);
+			gRS_ReplayStatus[style] = Replay_Running;
+			gI_ReplayTick[style] = 0;
 
-		TeleportEntity(gI_ReplayBotClient[style], vecPosition, NULL_VECTOR, NULL_VECTOR);
+			float vecPosition[3];
+			vecPosition[0] = gA_Frames[style].Get(0, 0);
+			vecPosition[1] = gA_Frames[style].Get(0, 1);
+			vecPosition[2] = gA_Frames[style].Get(0, 2);
+
+			TeleportEntity(gI_ReplayBotClient[style], vecPosition, NULL_VECTOR, NULL_VECTOR);
+		}
 	}
 }
 
