@@ -517,8 +517,12 @@ void ClearZone(int index)
 
 void KillZoneEntity(int index)
 {
-	if(gA_ZoneCache[index][iEntityID] != -1 && IsValidEntity(gA_ZoneCache[index][iEntityID]))
+	if(IsValidEntity(gA_ZoneCache[index][iEntityID]))
 	{
+		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
+		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
+		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_TouchPost, TouchPost);
+		
 		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
 	}
 }
@@ -546,7 +550,11 @@ void UnloadZones(int zone)
 					}
 				}
 
-				KillZoneEntity(i);
+				if(gA_ZoneCache[i][iEntityID] != -1)
+				{
+					KillZoneEntity(i);
+				}
+
 				ClearZone(i);
 			}
 		}
@@ -2104,10 +2112,6 @@ public void CreateZoneEntities()
 		if(gA_ZoneCache[i][iEntityID] != -1)
 		{
 			KillZoneEntity(i);
-
-			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
-			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
-			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_TouchPost, TouchPost);
 
 			gA_ZoneCache[i][iEntityID] = -1;
 		}
