@@ -70,7 +70,7 @@ enum
 // cache
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
-int gI_LastFlags[MAXPLAYERS+1];
+int gI_GroundEntity[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
@@ -791,23 +791,17 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		return Plugin_Continue;
 	}
 
-	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
-	bool bNoclipping = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
-
-	if(bNoclipping && !bInStart && Shavit_GetTimerStatus(client) == Timer_Running)
-	{
-		Shavit_StopTimer(client);
-	}
+	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && bInStart)
+	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, -1))
 	{
-		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gI_LastFlags[client] & FL_ONGROUND) == 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
+		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
-			gI_LastFlags[client] = GetEntityFlags(client);
+			gI_GroundEntity[client] = iGroundEntity;
 
 			return Plugin_Continue;
 		}
@@ -820,7 +814,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			float speed_New = (SquareRoot(Pow(speed[0], 2.0) + Pow(speed[1], 2.0)));
 			float fScale = (gF_PrespeedLimit / speed_New);
 
-			if(bNoclipping)
+			if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 			{
 				speed[2] = 0.0;
 			}
@@ -834,7 +828,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		}
 	}
 
-	gI_LastFlags[client] = GetEntityFlags(client);
+	gI_GroundEntity[client] = iGroundEntity;
 
 	return Plugin_Continue;
 }
@@ -1656,6 +1650,16 @@ public Action Command_Specs(int client, int args)
 	}
 
 	return Plugin_Handled;
+}
+
+public Action Shavit_OnStart(int client)
+{
+	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	{
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
 }
 
 public void Shavit_OnWorldRecord(int client, int style, float time, int jumps)
