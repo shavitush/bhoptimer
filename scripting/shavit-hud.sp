@@ -873,6 +873,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 			char[] sName = new char[gI_NameLength];
 			GetClientName(iSpectatorClients[i], sName, gI_NameLength);
+			ReplaceString(sName, gI_NameLength, "#", "?");
 
 			panel.DrawItem(sName, ITEMDRAW_RAWLINE);
 		}
@@ -978,6 +979,7 @@ void UpdateKeyHint(int client)
 
 						char[] sName = new char[gI_NameLength];
 						GetClientName(iSpectatorClients[i], sName, gI_NameLength);
+						ReplaceString(sName, gI_NameLength, "#", "?");
 						Format(sMessage, 256, "%s\n%s", sMessage, sName);
 					}
 				}

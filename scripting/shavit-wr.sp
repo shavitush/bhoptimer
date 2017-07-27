@@ -513,6 +513,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		gI_WRRecordID[style] = results.FetchInt(1);
 		gF_WRTime[style] = results.FetchFloat(2);
 		results.FetchString(3, gS_WRName[style], MAX_NAME_LENGTH);
+		ReplaceString(gS_WRName[style], MAX_NAME_LENGTH, "#", "?");
 	}
 
 	UpdateLeaderboards();
@@ -881,6 +882,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		// 1 - player name
 		char[] sName = new char[MAX_NAME_LENGTH];
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
+		ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
 		// 2 - time
 		float time = results.FetchFloat(2);

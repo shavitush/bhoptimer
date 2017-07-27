@@ -1254,9 +1254,10 @@ public void OnClientPutInServer(int client)
 
 	char[] sName = new char[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
+	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
 
 	int iLength = ((strlen(sName) * 2) + 1);
-	char[] sEscapedName = new char[iLength]; // dynamic arrays! I love you, SourcePawn 1.7!
+	char[] sEscapedName = new char[iLength];
 	gH_SQL.Escape(sName, sEscapedName, iLength);
 
 	char[] sIP = new char[64];

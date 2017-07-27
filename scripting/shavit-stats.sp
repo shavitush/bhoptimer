@@ -392,6 +392,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		int iTotalMaps = results.FetchInt(1);
 		int iWRs = results.FetchInt(2);
 		results.FetchString(3, gS_TargetName[client], MAX_NAME_LENGTH);
+		ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
 
 		char[] sCountry = new char[64];
 		results.FetchString(4, sCountry, 64);
@@ -433,8 +434,8 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		char[] sClearString = new char[128];
 		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
 
-		Menu m = new Menu(MenuHandler_ProfileHandler);
-		m.SetTitle("%s's %T. %s\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n", gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString, gS_StyleStrings[0][sStyleName], "WorldRecords", client, iWRs, sRankingString);
+		Menu menu = new Menu(MenuHandler_ProfileHandler);
+		menu.SetTitle("%s's %T. %s\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n", gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString, gS_StyleStrings[0][sStyleName], "WorldRecords", client, iWRs, sRankingString);
 
 		for(int i = 0; i < gI_Styles; i++)
 		{
@@ -446,19 +447,19 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			char[] sInfo = new char[4];
 			IntToString(i, sInfo, 4);
 
-			m.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+			menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
 		}
 
 		// should NEVER happen
-		if(m.ItemCount == 0)
+		if(menu.ItemCount == 0)
 		{
 			char[] sMenuItem = new char[64];
 			FormatEx(sMenuItem, 64, "%T", "NoRecords", client);
-			m.AddItem("-1", sMenuItem);
+			menu.AddItem("-1", sMenuItem);
 		}
 
-		m.ExitButton = true;
-		m.Display(client, 20);
+		menu.ExitButton = true;
+		menu.Display(client, 20);
 	}
 
 	else
@@ -467,43 +468,43 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 	}
 }
 
-public int MenuHandler_ProfileHandler(Menu m, MenuAction action, int param1, int param2)
+public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] sInfo = new char[32];
 		char[] sMenuItem = new char[64];
 
-		m.GetItem(param2, sInfo, 32);
+		menu.GetItem(param2, sInfo, 32);
 
 		gBS_Style[param1] = StringToInt(sInfo);
 
-		Menu menu = new Menu(MenuHandler_TypeHandler);
-		menu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]][sShortName]);
+		Menu submenu = new Menu(MenuHandler_TypeHandler);
+		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]][sShortName]);
 
 		FormatEx(sMenuItem, 64, "%T", "MapsDone", param1);
-		menu.AddItem("0", sMenuItem);
+		submenu.AddItem("0", sMenuItem);
 		FormatEx(sMenuItem, 64, "%T", "MapsLeft", param1);
-		menu.AddItem("1", sMenuItem);
+		submenu.AddItem("1", sMenuItem);
 
-		menu.ExitBackButton = true;
-		menu.Display(param1, 20);
+		submenu.ExitBackButton = true;
+		submenu.Display(param1, 20);
 	}
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
 }
 
-public int MenuHandler_TypeHandler(Menu m, MenuAction action, int param1, int param2)
+public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] sInfo = new char[32];
-		m.GetItem(param2, sInfo, 32);
+		menu.GetItem(param2, sInfo, 32);
 		gI_MapType[param1] = StringToInt(sInfo);
 
 		ShowMaps(param1);
@@ -516,7 +517,7 @@ public int MenuHandler_TypeHandler(Menu m, MenuAction action, int param1, int pa
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
@@ -649,12 +650,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 	m.Display(client, 60);
 }
 
-public int MenuHandler_ShowMaps(Menu m, MenuAction action, int param1, int param2)
+public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] sInfo = new char[16];
-		m.GetItem(param2, sInfo, 16);
+		menu.GetItem(param2, sInfo, 16);
 
 		if(StrEqual(sInfo, "nope"))
 		{
@@ -676,7 +677,7 @@ public int MenuHandler_ShowMaps(Menu m, MenuAction action, int param1, int param
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
@@ -775,7 +776,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	m.Display(client, 20);
 }
 
-public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
+public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -784,7 +785,7 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
