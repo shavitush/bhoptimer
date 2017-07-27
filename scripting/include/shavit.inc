@@ -89,6 +89,7 @@ enum
 	fSpeedMultiplier,
 	bHalftime,
 	fVelocity,
+	fBonusVelocity,
 	fMinVelocity,
 	bBlockW,
 	bBlockA,
