@@ -673,7 +673,9 @@ public void OnClientPutInServer(int client)
 
 		else if(gA_CentralCache[iCentralClient] == -1)
 		{
-			SetClientName(client, "!replay");
+			char[] sName = new char[MAX_NAME_LENGTH];
+			FormatStyle(gS_ReplayStrings[sReplayCentralName], 0, true, 0.0, sName, MAX_NAME_LENGTH);
+			SetClientName(client, sName);
 
 			gA_CentralCache[iCentralClient] = client;
 		}
