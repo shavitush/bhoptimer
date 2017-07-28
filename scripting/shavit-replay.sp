@@ -392,6 +392,7 @@ public void OnMapStart()
 	FindConVar("mp_limitteams").IntValue = 0;
 	FindConVar("bot_join_after_player").BoolValue = false;
 	FindConVar("bot_chatter").SetString("off");
+	FindConVar("bot_zombie").BoolValue = true;
 
 	ServerCommand("bot_kick");
 
@@ -770,6 +771,17 @@ void UpdateReplayInfo(int client, int style, float time)
 			CS_RespawnPlayer(client);
 		}
 
+		else
+		{
+			int iFlags = GetEntityFlags(client);
+
+			if((iFlags & FL_ATCONTROLS) == 0)
+			{
+				SetEntityFlags(client, (iFlags|FL_ATCONTROLS));
+			}
+		}
+
+		// Spectating is laggy if the player has no weapons
 		if(GetPlayerWeaponSlot(client, CS_SLOT_KNIFE) == -1)
 		{
 			GivePlayerItem(client, "weapon_knife");
@@ -958,7 +970,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				CreateTimer((gF_ReplayDelay / 2.0), EndReplay, iReplayBotStyle, TIMER_FLAG_NO_MAPCHANGE);
 
-				SetEntityMoveType(client, MOVETYPE_NONE);
+				SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
 				return Plugin_Changed;
 			}
