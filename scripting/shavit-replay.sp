@@ -1210,7 +1210,10 @@ public Action Command_DeleteReplay(int client, int args)
 
 		if(time > 0.0)
 		{
-			FormatEx(sDisplay, 64, "%s - WR: %.01f", gS_StyleStrings[i][sStyleName], time);
+			char[] sTime = new char[32];
+			FormatSeconds(time, sTime, 32, false);
+
+			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i][sStyleName], sTime);
 		}
 
 		else
@@ -1367,7 +1370,10 @@ Action OpenReplayMenu(int client)
 
 		if(time > 0.0)
 		{
-			FormatEx(sDisplay, 64, "%s - WR: %.01f", gS_StyleStrings[i][sStyleName], time);
+			char[] sTime = new char[32];
+			FormatSeconds(time, sTime, 32, false);
+
+			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i][sStyleName], sTime);
 		}
 
 		else

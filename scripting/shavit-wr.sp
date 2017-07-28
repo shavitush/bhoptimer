@@ -1107,7 +1107,10 @@ Action ShowWRStyleMenu(int client)
 
 		if(gF_WRTime[i] > 0.0)
 		{
-			FormatEx(sDisplay, 64, "%s - WR: %.01f", gS_StyleStrings[i][sStyleName], gF_WRTime[i]);
+			char[] sTime = new char[32];
+			FormatSeconds(gF_WRTime[i], sTime, 32, false);
+
+			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i][sStyleName], sTime);
 		}
 
 		else

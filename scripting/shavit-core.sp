@@ -619,7 +619,10 @@ public Action Command_Style(int client, int args)
 
 			if(time > 0.0)
 			{
-				FormatEx(sDisplay, 64, "%s - WR: %.01f", gS_StyleStrings[i][sStyleName], time);
+				char[] sTime = new char[32];
+				FormatSeconds(time, sTime, 32, false);
+
+				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i][sStyleName], sTime);
 			}
 
 			else
@@ -1349,6 +1352,7 @@ bool LoadStyles()
 		kv.GetString("shortname", gS_StyleStrings[i][sShortName], 128, "<MISSING SHORT STYLE NAME>");
 		kv.GetString("htmlcolor", gS_StyleStrings[i][sHTMLColor], 128, "<MISSING STYLE HTML COLOR>");
 		kv.GetString("command", gS_StyleStrings[i][sChangeCommand], 128, "");
+		PrintToServer("%s", gS_StyleStrings[i][sChangeCommand]);
 		kv.GetString("clantag", gS_StyleStrings[i][sClanTag], 128, "<MISSING STYLE CLAN TAG>");
 
 		gA_StyleSettings[i][bAutobhop] = view_as<bool>(kv.GetNum("autobhop", 1));
