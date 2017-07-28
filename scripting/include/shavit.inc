@@ -270,6 +270,23 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 }
 
 /**
+ * Called before shavit-core processes the client's usercmd.
+ * Before this is called, safety checks (fake/dead clients) happen.
+ * Use this forward in modules that use OnPlayerRunCmd to avoid errors and unintended behavior.
+ * If a module conflicts with buttons/velocity/angles being changed in shavit-core, this forward is recommended.
+ * This forward will NOT be called if a player's timer is paused.
+ * 
+ * @param client					Client index.
+ * @param buttons					Buttons sent in the usercmd.
+ * @param impulse					Impulse sent in the usercmd.
+ * @param vel						A vector that contain's the player's desired movement. vel[0] is forwardmove, vel[1] is sidemove.
+ * @param angles					The player's requested viewangles. They will not necessarily be applied as SRCDS itself won't accept every value.
+ * @param status					The player's timer status.
+ * @return							Plugin_Continue to let shavit-core keep doing what it does, Plugin_Changed to pass different values.
+ */
+forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status);
+
+/**
  * Called when a player's timer starts.
  * (WARNING: Will be called every tick when the player stands at the start zone!)
  *

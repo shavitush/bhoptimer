@@ -57,6 +57,7 @@ Handle gH_Forwards_OnStyleChanged = null;
 Handle gH_Forwards_OnStyleConfigLoaded = null;
 Handle gH_Forwards_OnDatabaseLoaded = null;
 Handle gH_Forwards_OnChatConfigLoaded = null;
+Handle gH_Forwards_OnUserCmdPre = null;
 
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
@@ -194,6 +195,7 @@ public void OnPluginStart()
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
+	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell);
 
 	LoadTranslations("shavit-core.phrases");
 
@@ -840,19 +842,7 @@ public int Native_GetBhopStyle(Handle handler, int numParams)
 
 public int Native_GetTimerStatus(Handle handler, int numParams)
 {
-	int client = GetNativeCell(1);
-
-	if(!gB_TimerEnabled[client])
-	{
-		return view_as<int>(Timer_Stopped);
-	}
-
-	else if(gB_ClientPaused[client])
-	{
-		return view_as<int>(Timer_Paused);
-	}
-
-	return view_as<int>(Timer_Running);
+	return GetTimerStatus(GetNativeCell(1));
 }
 
 public int Native_StartTimer(Handle handler, int numParams)
@@ -1067,6 +1057,21 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
 	gF_StartTime[client] = GetEngineTime() - view_as<float>(snapshot[fCurrentTime]);
 	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
+}
+
+int GetTimerStatus(int client)
+{
+	if(!gB_TimerEnabled[client])
+	{
+		return view_as<int>(Timer_Stopped);
+	}
+
+	else if(gB_ClientPaused[client])
+	{
+		return view_as<int>(Timer_Paused);
+	}
+
+	return view_as<int>(Timer_Running);
 }
 
 void StartTimer(int client)
@@ -1587,6 +1592,21 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		vel = view_as<float>({0.0, 0.0, 0.0});
 
 		return Plugin_Changed;
+	}
+
+	Action result = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnUserCmdPre);
+	Call_PushCell(client);
+	Call_PushCellRef(buttons);
+	Call_PushCellRef(impulse);
+	Call_PushArrayEx(vel, 3, SM_PARAM_COPYBACK);
+	Call_PushArrayEx(angles, 3, SM_PARAM_COPYBACK);
+	Call_PushCell(GetTimerStatus(client));
+	Call_Finish(result);
+	
+	if(result != Plugin_Continue && result != Plugin_Changed)
+	{
+		return result;
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");

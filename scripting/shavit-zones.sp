@@ -1337,7 +1337,7 @@ bool AreVectorsEqual(float vec1[3], float vec2[3])
 	return (vec1[0] == vec2[0] && vec1[1] == vec2[1] && vec1[2] == vec2[2]);
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status)
 {
 	if(!IsPlayerAlive(client) || IsFakeClient(client))
 	{

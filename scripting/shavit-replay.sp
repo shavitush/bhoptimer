@@ -896,6 +896,7 @@ public void Shavit_OnResume(int client)
 	gB_Record[client] = true;
 }
 
+// OnPlayerRunCmd instead of Shavit_OnUserCmdPre because bots are also used here.
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
 	if(!gB_Enabled)

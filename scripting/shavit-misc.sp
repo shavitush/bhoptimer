@@ -784,13 +784,8 @@ void RemoveRagdoll(int client)
 	}
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status)
 {
-	if(!IsPlayerAlive(client) || IsFakeClient(client))
-	{
-		return Plugin_Continue;
-	}
-
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
