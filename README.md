@@ -15,18 +15,14 @@ Including a records system, map zones (start/end marks etc), HUD with useful inf
 [Mapzones' setup demonstration](https://www.youtube.com/watch?v=oPKso2hoLw0)
 
 # Requirements:
-* [SourceMod 1.8 and above](http://www.sourcemod.net/downloads.php)
-* `clientprefs` plugin/extension. Comes built-in with SourceMod.
-* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for compilation of `shavit-misc`.
-* [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) is required to *compile* `shavit-chat` and you don't need Simple Chat Processor as listed in *The RTLer*'s requirements.
-* [Chat-Processor](https://forums.alliedmods.net/showthread.php?t=286913) - for compilation and better runtime of `shavit-chat` (plugin can run without it).
-* [Dynamic](https://github.com/ntoxin66/Dynamic) for compilation and runtime of the whole plugin. (use latest version from GitHub)
+* Steam version of Counter-Strike: Source or Counter-Strike: Global Offensive.
+* [SourceMod 1.8 or above](http://www.sourcemod.net/downloads.php)
 
 # Optional requirements:
-* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 prestrafe for all weapons.
+* `sv_disable_immunity_alpha` set to 1 in CS:GO for the `shavit_misc_playeropacity` setting to work.
+* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 runspeed for all weapons.
 * [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) - required for properly formatted RTL text within `shavit-chat`.
 * [Chat-Processor](https://forums.alliedmods.net/showthread.php?t=286913) - for more proper parsing inside `shavit-chat`.
-* `sv_disable_immunity_alpha` set to 1 in CS:GO for `shavit_misc_playeropacity` to work.
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135) - to show amount of scrolls for non-auto styles in the key display. CS:S only!
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) - for the `{serverip}` advertisement variable.
 
@@ -71,7 +67,6 @@ Including a records system, map zones (start/end marks etc), HUD with useful inf
 7. Restart your server.
 
 # Required plugins:
-`shavit-core` - no other plugin will work without it.  
-`shavit-zones` - required for `shavit-core` and for `shavit-misc`.  
-`shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-sounds`, `shavit-stats` and `shavit-rankings`.  
-`shavit-rankings` - required for `shavit-chat`.
+`shavit-core` - compeletely required.
+`shavit-zones` - compeletely required.
+`shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-sounds` and `shavit-stats`.
