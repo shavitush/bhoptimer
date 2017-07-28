@@ -445,7 +445,6 @@ public void OnConfigsExecuted()
 	if(sv_disable_immunity_alpha != null)
 	{
 		sv_disable_immunity_alpha.BoolValue = true;
-		delete sv_disable_immunity_alpha;
 	}
 }
 
