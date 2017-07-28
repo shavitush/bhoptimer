@@ -90,6 +90,7 @@ bool gB_Late = false;
 
 // modules
 bool gB_Zones = false;
+bool gB_WR = false;
 
 // cvars
 ConVar gCV_Autobhop = null;
@@ -315,6 +316,7 @@ public void OnPluginStart()
 	}
 
 	gB_Zones = LibraryExists("shavit-zones");
+	gB_WR = LibraryExists("shavit-wr");
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -336,6 +338,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Zones = true;
 	}
+
+	else if(StrEqual(name, "shavit-wr"))
+	{
+		gB_WR = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -343,6 +350,11 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "shavit-zones"))
 	{
 		gB_Zones = false;
+	}
+
+	else if(StrEqual(name, "shavit-wr"))
+	{
+		gB_WR = false;
 	}
 }
 
@@ -599,7 +611,22 @@ public Action Command_Style(int client, int args)
 
 		else
 		{
-			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
+			float time = 0.0;
+
+			if(gB_WR)
+			{
+				Shavit_GetWRTime(i, time);
+			}
+
+			if(time > 0.0)
+			{
+				FormatEx(sDisplay, 64, "%s - WR: %.01f", gS_StyleStrings[i][sStyleName], time);
+			}
+
+			else
+			{
+				strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
+			}
 		}
 
 		menu.AddItem(sInfo, sDisplay, (gBS_Style[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
@@ -622,12 +649,12 @@ public Action Command_Style(int client, int args)
 	return Plugin_Handled;
 }
 
-public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
+public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] info = new char[16];
-		m.GetItem(param2, info, 16);
+		menu.GetItem(param2, info, 16);
 
 		int style = StringToInt(info);
 
@@ -641,7 +668,7 @@ public int StyleMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;

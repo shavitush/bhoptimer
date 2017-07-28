@@ -1201,8 +1201,8 @@ public Action Command_DeleteReplay(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Menu m = new Menu(DeleteReplay_Callback);
-	m.SetTitle("%T", "DeleteReplayMenuTitle", client);
+	Menu menu = new Menu(DeleteReplay_Callback);
+	menu.SetTitle("%T", "DeleteReplayMenuTitle", client);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -1214,18 +1214,33 @@ public Action Command_DeleteReplay(int client, int args)
 		char[] sInfo = new char[4];
 		IntToString(i, sInfo, 4);
 
-		m.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+		float time = 0.0;
+		Shavit_GetWRTime(i, time);
+
+		char[] sDisplay = new char[64];
+
+		if(time > 0.0)
+		{
+			FormatEx(sDisplay, 64, "%s - WR: %.01f", gS_StyleStrings[i][sStyleName], time);
+		}
+
+		else
+		{
+			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
+		}
+
+		menu.AddItem(sInfo, sDisplay);
 	}
 
-	if(m.ItemCount == 0)
+	if(menu.ItemCount == 0)
 	{
 		char[] sMenuItem = new char[64];
 		FormatEx(sMenuItem, 64, "%T", "ReplaysUnavailable", client);
-		m.AddItem("-1", sMenuItem);
+		menu.AddItem("-1", sMenuItem);
 	}
 
-	m.ExitButton = true;
-	m.Display(client, 20);
+	menu.ExitButton = true;
+	menu.Display(client, 20);
 
 	return Plugin_Handled;
 }
@@ -1356,7 +1371,22 @@ Action OpenReplayMenu(int client)
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
-		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName], (gI_FrameCount[i] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		float time = 0.0;
+		Shavit_GetWRTime(i, time);
+
+		char[] sDisplay = new char[64];
+
+		if(time > 0.0)
+		{
+			FormatEx(sDisplay, 64, "%s - WR: %.01f", gS_StyleStrings[i][sStyleName], time);
+		}
+
+		else
+		{
+			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
+		}
+
+		menu.AddItem(sInfo, sDisplay, (gI_FrameCount[i] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	if(menu.ItemCount == 0)

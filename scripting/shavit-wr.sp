@@ -1103,7 +1103,19 @@ Action ShowWRStyleMenu(int client)
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
-		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+		char[] sDisplay = new char[64];
+
+		if(gF_WRTime[i] > 0.0)
+		{
+			FormatEx(sDisplay, 64, "%s - WR: %.01f", gS_StyleStrings[i][sStyleName], gF_WRTime[i]);
+		}
+
+		else
+		{
+			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
+		}
+
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	// should NEVER happen
