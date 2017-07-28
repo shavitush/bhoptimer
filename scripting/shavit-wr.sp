@@ -561,7 +561,14 @@ public int Native_GetPlayerPB(Handle handler, int numParams)
 
 public int Native_GetRankForTime(Handle handler, int numParams)
 {
-	return GetRankForTime(GetNativeCell(1), GetNativeCell(2));
+	int style = GetNativeCell(1);
+
+	if(gA_LeaderBoard[style].Length == 0)
+	{
+		return 1;
+	}
+
+	return GetRankForTime(style, GetNativeCell(2));
 }
 
 public int Native_GetRecordAmount(Handle handler, int numParams)
@@ -1980,7 +1987,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 int GetRankForTime(int style, float time)
 {
-	if(time < gF_WRTime[style] || gA_LeaderBoard[style].Length == 0)
+	if(time < gF_WRTime[style] || gI_RecordAmount[style] <= 0)
 	{
 		return 1;
 	}
