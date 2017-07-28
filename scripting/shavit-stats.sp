@@ -34,6 +34,7 @@
 #define MAPSLEFT 1
 
 // modules
+bool gB_Shavit = false;
 bool gB_Rankings = false;
 
 // database handle
@@ -93,8 +94,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	gB_Rankings = LibraryExists("shavit-rankings");
 }
 
 public void OnPluginStart()
@@ -118,10 +117,15 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	// database connections
-	Shavit_GetDB(gH_SQL);
-	SQL_SetPrefix();
-	SetSQLInfo();
+	gB_Shavit = LibraryExists("shavit");
+	gB_Rankings = LibraryExists("shavit-rankings");
+
+	if(gB_Shavit)
+	{
+		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
+	}
 }
 
 public void OnMapStart()
@@ -170,7 +174,16 @@ public void OnClientPutInServer(int client)
 
 public void OnLibraryAdded(const char[] name)
 {
-	if(StrEqual(name, "shavit-rankings"))
+	if(StrEqual(name, "shavit"))
+	{
+		gB_Shavit = true;
+		
+		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
+	}
+
+	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = true;
 	}
@@ -178,7 +191,13 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-	if(StrEqual(name, "shavit-rankings"))
+	if(StrEqual(name, "shavit"))
+	{
+		gB_Shavit = false;
+		gH_SQL = null;
+	}
+
+	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
 	}

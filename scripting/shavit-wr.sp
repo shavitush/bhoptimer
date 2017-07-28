@@ -160,6 +160,12 @@ public void OnPluginStart()
 	// cache
 	gA_ValidMaps = new ArrayList(192);
 
+	for(int i = 0; i < STYLE_LIMIT; i++)
+	{
+		gA_LeaderBoard[i] = new ArrayList();
+		gI_RecordAmount[i] = 0;
+	}
+
 	if(gB_Shavit)
 	{
 		Shavit_GetDB(gH_SQL);
@@ -393,7 +399,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	// arrays
 	for(int i = 0; i < styles; i++)
 	{
-		gA_LeaderBoard[i] = new ArrayList();
+		gA_LeaderBoard[i].Clear();
+	}
+
+	for(int i = styles; i < STYLE_LIMIT; i++)
+	{
+		delete gA_LeaderBoard[i];
 	}
 
 	gI_Styles = styles;
@@ -1969,7 +1980,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 int GetRankForTime(int style, float time)
 {
-	if(time < gF_WRTime[style])
+	if(time < gF_WRTime[style] || gA_LeaderBoard[style].Length == 0)
 	{
 		return 1;
 	}

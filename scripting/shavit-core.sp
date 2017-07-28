@@ -310,7 +310,10 @@ public void OnPluginStart()
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			OnClientPutInServer(i);
+			if(IsValidClient(i))
+			{
+				OnClientPutInServer(i);
+			}
 		}
 	}
 
@@ -1252,7 +1255,7 @@ public void OnClientPutInServer(int client)
 {
 	StopTimer(client);
 
-	if(IsFakeClient(client))
+	if(IsClientConnected(client) && IsFakeClient(client))
 	{
 		return;
 	}
