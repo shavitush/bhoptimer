@@ -410,7 +410,7 @@ public void OnMapStart()
 	{
 		gA_Frames[i] = new ArrayList(6);
 
-		gI_ReplayTick[i] = 0;
+		gI_ReplayTick[i] = -1;
 		gI_FrameCount[i] = 0;
 		gF_StartTick[i] = -65535.0;
 		gRS_ReplayStatus[i] = Replay_Idle;
@@ -434,13 +434,9 @@ public void OnMapStart()
 			ServerCommand("bot_add");
 			gI_ExpectedBots++;
 
-			if(!loaded)
+			if(loaded)
 			{
-				gI_ReplayTick[i] = -1;
-			}
-
-			else
-			{
+				gI_ReplayTick[i] = 0;
 				gRS_ReplayStatus[i] = Replay_Start;
 				CreateTimer((gF_ReplayDelay / 2.0), StartReplay, i, TIMER_FLAG_NO_MAPCHANGE);
 			}
