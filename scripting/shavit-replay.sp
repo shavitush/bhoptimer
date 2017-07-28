@@ -383,29 +383,19 @@ public void OnMapStart()
 	if(bot_controllable != null)
 	{
 		bot_controllable.BoolValue = false;
+		delete bot_controllable;
 	}
 
-	ConVar bot_stop = FindConVar("bot_stop");
-	bot_stop.BoolValue = true;
-
-	ConVar bot_quota_mode = FindConVar("bot_quota_mode");
-	bot_quota_mode.SetString("normal");
-
-	ConVar mp_autoteambalance = FindConVar("mp_autoteambalance");
-	mp_autoteambalance.BoolValue = false;
-
-	ConVar mp_limitteams = FindConVar("mp_limitteams");
-	mp_limitteams.IntValue = 0;
+	FindConVar("bot_stop").BoolValue = true;
+	FindConVar("bot_quota_mode").SetString("normal");
+	FindConVar("mp_autoteambalance").BoolValue = false;
+	FindConVar("mp_limitteams").IntValue = 0;
+	FindConVar("bot_join_after_player").BoolValue = false;
+	FindConVar("bot_chatter").SetString("off");
 
 	ServerCommand("bot_kick");
 
 	gI_ExpectedBots = 0;
-
-	ConVar bot_join_after_player = FindConVar("bot_join_after_player");
-	bot_join_after_player.BoolValue = false;
-
-	ConVar bot_chatter = FindConVar("bot_chatter");
-	bot_chatter.SetString("off");
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot");
