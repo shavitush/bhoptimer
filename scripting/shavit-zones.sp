@@ -22,7 +22,6 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <cstrike>
-#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -393,23 +392,23 @@ bool LoadZonesConfig()
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-zones.cfg");
 
-	Dynamic dZones = Dynamic();
-
-	if(!dZones.ReadKeyValues(sPath))
+	KeyValues kv = new KeyValues("shavit-zones");
+	
+	if(!kv.ImportFromFile(sPath))
 	{
-		dZones.Dispose();
+		delete kv;
 
 		return false;
 	}
 
-	Dynamic dSprites = dZones.GetDynamicByIndex((gEV_Type == Engine_CSS)? 0:1);
-	dSprites.GetString("beam", gS_Sprites[sBeamSprite], PLATFORM_MAX_PATH);
-	dSprites.GetString("halo", gS_Sprites[sHaloSprite], PLATFORM_MAX_PATH);
+	kv.JumpToKey((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
+	kv.GetString("beam", gS_Sprites[sBeamSprite], PLATFORM_MAX_PATH);
+	kv.GetString("halo", gS_Sprites[sHaloSprite], PLATFORM_MAX_PATH);
 
 	char[] sDownloads = new char[PLATFORM_MAX_PATH * 8];
-	dSprites.GetString("downloads", sDownloads, PLATFORM_MAX_PATH * 8);
+	kv.GetString("downloads", sDownloads, (PLATFORM_MAX_PATH * 8));
 
-	char[][] sDownloadsExploded = new char[PLATFORM_MAX_PATH][PLATFORM_MAX_PATH]; // we don't need more than 8 sprites ever
+	char[][] sDownloadsExploded = new char[PLATFORM_MAX_PATH][PLATFORM_MAX_PATH];
 	int iDownloads = ExplodeString(sDownloads, ";", sDownloadsExploded, PLATFORM_MAX_PATH, PLATFORM_MAX_PATH, false);
 
 	for(int i = 0; i < iDownloads; i++)
@@ -421,21 +420,27 @@ bool LoadZonesConfig()
 		}
 	}
 
-	Dynamic dColors = dZones.GetDynamicByIndex(2);
-	int iCount = dColors.MemberCount;
+	kv.GoBack();
+	kv.JumpToKey("Colors");
+	kv.JumpToKey("Start"); // A stupid and hacky way to achieve what I want. It works though.
 
-	for(int i = 0; i < iCount; i++)
+	int i = 0;
+
+	do
 	{
-		Dynamic dZoneSettings = dColors.GetDynamicByIndex(i);
-		gA_ZoneSettings[i][bVisible] = dZoneSettings.GetBool("visible", true);
-		gA_ZoneSettings[i][iRed] = dZoneSettings.GetInt("red", 255);
-		gA_ZoneSettings[i][iGreen] = dZoneSettings.GetInt("green", 255);
-		gA_ZoneSettings[i][iBlue] = dZoneSettings.GetInt("blue", 255);
-		gA_ZoneSettings[i][iAlpha] = dZoneSettings.GetInt("alpha", 255);
-		gA_ZoneSettings[i][fWidth] = dZoneSettings.GetFloat("width", 2.0);
+		gA_ZoneSettings[i][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
+		gA_ZoneSettings[i][iRed] = kv.GetNum("red", 255);
+		gA_ZoneSettings[i][iGreen] = kv.GetNum("green", 255);
+		gA_ZoneSettings[i][iBlue] = kv.GetNum("blue", 255);
+		gA_ZoneSettings[i][iAlpha] = kv.GetNum("alpha", 255);
+		gA_ZoneSettings[i][fWidth] = kv.GetFloat("width", 2.0);
+
+		i++;
 	}
 
-	dZones.Dispose(true);
+	while(kv.GotoNextKey(false));
+
+	delete kv;
 
 	return true;
 }

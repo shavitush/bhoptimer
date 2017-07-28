@@ -22,7 +22,6 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
-#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -313,23 +312,23 @@ bool LoadStyling()
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-replay.cfg");
 
-	Dynamic dReplayConfig = Dynamic();
-
-	if(!dReplayConfig.ReadKeyValues(sPath))
+	KeyValues kv = new KeyValues("shavit-replay");
+	
+	if(!kv.ImportFromFile(sPath))
 	{
-		dReplayConfig.Dispose();
+		delete kv;
 
 		return false;
 	}
 
-	dReplayConfig.GetString("clantag", gS_ReplayStrings[sReplayClanTag], MAX_NAME_LENGTH);
-	dReplayConfig.GetString("namestyle", gS_ReplayStrings[sReplayNameStyle], MAX_NAME_LENGTH);
-	dReplayConfig.GetString("centralname", gS_ReplayStrings[sReplayCentralName], MAX_NAME_LENGTH);
-	dReplayConfig.GetString("centralstyle", gS_ReplayStrings[sReplayCentralStyle], MAX_NAME_LENGTH);
-	dReplayConfig.GetString("centralstyletag", gS_ReplayStrings[sReplayCentralStyleTag], MAX_NAME_LENGTH);
-	dReplayConfig.GetString("unloaded", gS_ReplayStrings[sReplayUnloaded], MAX_NAME_LENGTH);
+	kv.GetString("clantag", gS_ReplayStrings[sReplayClanTag], MAX_NAME_LENGTH, "<EMPTY CLANTAG>");
+	kv.GetString("namestyle", gS_ReplayStrings[sReplayNameStyle], MAX_NAME_LENGTH, "<EMPTY NAMESTYLE>");
+	kv.GetString("centralname", gS_ReplayStrings[sReplayCentralName], MAX_NAME_LENGTH, "<EMPTY CENTRALNAME>");
+	kv.GetString("centralstyle", gS_ReplayStrings[sReplayCentralStyle], MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLE>");
+	kv.GetString("centralstyletag", gS_ReplayStrings[sReplayCentralStyleTag], MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLETAG>");
+	kv.GetString("unloaded", gS_ReplayStrings[sReplayUnloaded], MAX_NAME_LENGTH, "<EMPTY UNLOADED>");
 
-	dReplayConfig.Dispose();
+	delete kv;
 
 	return true;
 }

@@ -22,7 +22,6 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
-#include <dynamic>
 #include <clientprefs>
 
 #undef REQUIRE_EXTENSIONS
@@ -495,24 +494,19 @@ bool LoadAdvertisementsConfig()
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-advertisements.cfg");
 
-	Dynamic dAdvertisements = Dynamic();
-
-	if(!dAdvertisements.ReadKeyValues(sPath))
+	KeyValues kv = new KeyValues("shavit-advertisements");
+	
+	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey(false))
 	{
-		dAdvertisements.Dispose();
+		delete kv;
 
 		return false;
 	}
 
-	int iCount = dAdvertisements.MemberCount;
-
-	for(int i = 0; i < iCount; i++)
+	do
 	{
-		char[] sID = new char[4];
-		IntToString(i, sID, 4);
-
 		char[] sTempMessage = new char[300];
-		dAdvertisements.GetString(sID, sTempMessage, 300);
+		kv.GetString(NULL_STRING, sTempMessage, 300, "<EMPTY ADVERTISEMENT>");
 
 		ReplaceString(sTempMessage, 300, "{text}", gS_ChatStrings[sMessageText]);
 		ReplaceString(sTempMessage, 300, "{warning}", gS_ChatStrings[sMessageWarning]);
@@ -523,7 +517,9 @@ bool LoadAdvertisementsConfig()
 		gA_Advertisements.PushString(sTempMessage);
 	}
 
-	dAdvertisements.Dispose(true);
+	while(kv.GotoNextKey(false));
+
+	delete kv;
 
 	return true;
 }
@@ -786,6 +782,13 @@ void RemoveRagdoll(int client)
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status)
 {
+	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
+
+	if(bNoclip && status == Timer_Running)
+	{
+		Shavit_StopTimer(client);
+	}
+
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
@@ -809,7 +812,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			float speed_New = (SquareRoot(Pow(speed[0], 2.0) + Pow(speed[1], 2.0)));
 			float fScale = (gF_PrespeedLimit / speed_New);
 
-			if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+			if(bNoclip)
 			{
 				speed[2] = 0.0;
 			}
@@ -1534,6 +1537,11 @@ public Action Command_Noclip(int client, int args)
 
 	if(GetEntityMoveType(client) != MOVETYPE_NOCLIP)
 	{
+		if(Shavit_GetTimerStatus(client) != Timer_Stopped)
+		{
+			Shavit_StopTimer(client);
+		}
+
 		SetEntityMoveType(client, MOVETYPE_NOCLIP);
 	}
 
@@ -1554,6 +1562,11 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 
 	if((gI_NoclipMe == 1 || (gI_NoclipMe == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
 	{
+		if(Shavit_GetTimerStatus(client) != Timer_Stopped)
+		{
+			Shavit_StopTimer(client);
+		}
+		
 		SetEntityMoveType(client, MOVETYPE_NOCLIP);
 	}
 

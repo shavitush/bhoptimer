@@ -23,7 +23,6 @@
 #include <sdktools>
 #include <geoip>
 #include <clientprefs>
-#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
@@ -1333,56 +1332,55 @@ bool LoadStyles()
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-styles.cfg");
 
-	Dynamic dStylesConfig = Dynamic();
-
-	if(!dStylesConfig.ReadKeyValues(sPath))
+	KeyValues kv = new KeyValues("shavit-styles");
+	
+	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
 	{
-		dStylesConfig.Dispose();
+		delete kv;
 
 		return false;
 	}
 
-	gI_Styles = dStylesConfig.MemberCount;
+	int i = 0;
 
-	for(int i = 0; i < gI_Styles; i++)
+	do
 	{
-		Dynamic dStyle = dStylesConfig.GetDynamicByIndex(i);
-		dStyle.GetString("name", gS_StyleStrings[i][sStyleName], 128);
-		dStyle.GetString("shortname", gS_StyleStrings[i][sShortName], 128);
-		dStyle.GetString("htmlcolor", gS_StyleStrings[i][sHTMLColor], 128);
-		dStyle.GetString("command", gS_StyleStrings[i][sChangeCommand], 128);
-		dStyle.GetString("clantag", gS_StyleStrings[i][sClanTag], 128);
+		kv.GetString("name", gS_StyleStrings[i][sStyleName], 128, "<MISSING STYLE NAME>");
+		kv.GetString("shortname", gS_StyleStrings[i][sShortName], 128, "<MISSING SHORT STYLE NAME>");
+		kv.GetString("htmlcolor", gS_StyleStrings[i][sHTMLColor], 128, "<MISSING STYLE HTML COLOR>");
+		kv.GetString("command", gS_StyleStrings[i][sChangeCommand], 128, "");
+		kv.GetString("clantag", gS_StyleStrings[i][sClanTag], 128, "<MISSING STYLE CLAN TAG>");
 
-		gA_StyleSettings[i][bAutobhop] = dStyle.GetBool("autobhop", true);
-		gA_StyleSettings[i][bEasybhop] = dStyle.GetBool("easybhop", true);
-		gA_StyleSettings[i][bPrespeed] = dStyle.GetBool("prespeed", false);
-		gA_StyleSettings[i][fVelocityLimit] = dStyle.GetFloat("velocity_limit", 0.0);
-		gA_StyleSettings[i][iAiraccelerate] = dStyle.GetInt("airaccelerate", 1000);
-		gA_StyleSettings[i][fRunspeed] = dStyle.GetFloat("runspeed", 260.00);
-		gA_StyleSettings[i][fGravityMultiplier] = dStyle.GetFloat("gravity", 1.0);
-		gA_StyleSettings[i][fSpeedMultiplier] = dStyle.GetFloat("speed", 1.0);
-		gA_StyleSettings[i][bHalftime] = dStyle.GetBool("halftime", false);
-		gA_StyleSettings[i][fVelocity] = dStyle.GetFloat("velocity", 1.0);
-		gA_StyleSettings[i][fBonusVelocity] = dStyle.GetFloat("bonus_velocity", 0.0);
-		gA_StyleSettings[i][fMinVelocity] = dStyle.GetFloat("min_velocity", 0.0);
-		gA_StyleSettings[i][bBlockW] = dStyle.GetBool("block_w", false);
-		gA_StyleSettings[i][bBlockA] = dStyle.GetBool("block_a", false);
-		gA_StyleSettings[i][bBlockS] = dStyle.GetBool("block_s", false);
-		gA_StyleSettings[i][bBlockD] = dStyle.GetBool("block_d", false);
-		gA_StyleSettings[i][bBlockUse] = dStyle.GetBool("block_use", false);
-		gA_StyleSettings[i][iForceHSW] = dStyle.GetInt("force_hsw", 0);
-		gA_StyleSettings[i][bBlockPLeft] = dStyle.GetBool("block_pleft", false);
-		gA_StyleSettings[i][bBlockPRight] = dStyle.GetBool("block_pright", false);
-		gA_StyleSettings[i][bBlockPStrafe] = dStyle.GetBool("block_pstrafe", false);
-		gA_StyleSettings[i][bUnranked] = dStyle.GetBool("unranked", false);
-		gA_StyleSettings[i][bNoReplay] = dStyle.GetBool("noreplay", false);
-		gA_StyleSettings[i][bSync] = dStyle.GetBool("sync", true);
-		gA_StyleSettings[i][bStrafeCountW] = dStyle.GetBool("strafe_count_w", false);
-		gA_StyleSettings[i][bStrafeCountA] = dStyle.GetBool("strafe_count_a", true);
-		gA_StyleSettings[i][bStrafeCountS] = dStyle.GetBool("strafe_count_s", false);
-		gA_StyleSettings[i][bStrafeCountD] = dStyle.GetBool("strafe_count_d", true);
-		gA_StyleSettings[i][fRankingMultiplier] = dStyle.GetFloat("rankingmultiplier", 1.00);
-		gA_StyleSettings[i][iSpecial] = dStyle.GetInt("special", 0);
+		gA_StyleSettings[i][bAutobhop] = view_as<bool>(kv.GetNum("autobhop", 1));
+		gA_StyleSettings[i][bEasybhop] = view_as<bool>(kv.GetNum("easybhop", 1));
+		gA_StyleSettings[i][bPrespeed] = view_as<bool>(kv.GetNum("prespeed", 0));
+		gA_StyleSettings[i][fVelocityLimit] = kv.GetFloat("velocity_limit", 0.0);
+		gA_StyleSettings[i][iAiraccelerate] = kv.GetNum("airaccelerate", 1000);
+		gA_StyleSettings[i][fRunspeed] = kv.GetFloat("runspeed", 260.00);
+		gA_StyleSettings[i][fGravityMultiplier] = kv.GetFloat("gravity", 1.0);
+		gA_StyleSettings[i][fSpeedMultiplier] = kv.GetFloat("speed", 1.0);
+		gA_StyleSettings[i][bHalftime] = view_as<bool>(kv.GetNum("halftime", 0));
+		gA_StyleSettings[i][fVelocity] = kv.GetFloat("velocity", 1.0);
+		gA_StyleSettings[i][fBonusVelocity] = kv.GetFloat("bonus_velocity", 0.0);
+		gA_StyleSettings[i][fMinVelocity] = kv.GetFloat("min_velocity", 0.0);
+		gA_StyleSettings[i][bBlockW] = view_as<bool>(kv.GetNum("block_w", 0));
+		gA_StyleSettings[i][bBlockA] = view_as<bool>(kv.GetNum("block_a", 0));
+		gA_StyleSettings[i][bBlockS] = view_as<bool>(kv.GetNum("block_s", 0));
+		gA_StyleSettings[i][bBlockD] = view_as<bool>(kv.GetNum("block_d", 0));
+		gA_StyleSettings[i][bBlockUse] = view_as<bool>(kv.GetNum("block_use", 0));
+		gA_StyleSettings[i][iForceHSW] = kv.GetNum("force_hsw", 0);
+		gA_StyleSettings[i][bBlockPLeft] = view_as<bool>(kv.GetNum("block_pleft", 0));
+		gA_StyleSettings[i][bBlockPRight] = view_as<bool>(kv.GetNum("block_pright", 0));
+		gA_StyleSettings[i][bBlockPStrafe] = view_as<bool>(kv.GetNum("block_pstrafe", 0));
+		gA_StyleSettings[i][bUnranked] = view_as<bool>(kv.GetNum("unranked", 0));
+		gA_StyleSettings[i][bNoReplay] = view_as<bool>(kv.GetNum("noreplay", 0));
+		gA_StyleSettings[i][bSync] = view_as<bool>(kv.GetNum("sync", 1));
+		gA_StyleSettings[i][bStrafeCountW] = view_as<bool>(kv.GetNum("strafe_count_w", false));
+		gA_StyleSettings[i][bStrafeCountA] = view_as<bool>(kv.GetNum("strafe_count_a", 1));
+		gA_StyleSettings[i][bStrafeCountS] = view_as<bool>(kv.GetNum("strafe_count_s", false));
+		gA_StyleSettings[i][bStrafeCountD] = view_as<bool>(kv.GetNum("strafe_count_d", 1));
+		gA_StyleSettings[i][fRankingMultiplier] = kv.GetFloat("rankingmultiplier", 1.00);
+		gA_StyleSettings[i][iSpecial] = kv.GetNum("special", 0);
 
 		if(!gB_Registered && strlen(gS_StyleStrings[i][sChangeCommand]) > 0)
 		{
@@ -1405,11 +1403,16 @@ bool LoadStyles()
 				RegConsoleCmd(sCommand, Command_StyleChange, sDescription);
 			}
 		}
+
+		i++;
 	}
 
-	gB_Registered = true;
+	while(kv.GotoNextKey());
 
-	dStylesConfig.Dispose(true);
+	delete kv;
+
+	gI_Styles = i;
+	gB_Registered = true;
 
 	return true;
 }
@@ -1436,24 +1439,25 @@ bool LoadMessages()
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-messages.cfg");
 
-	Dynamic dMessagesConfig = Dynamic();
-
-	if(!dMessagesConfig.ReadKeyValues(sPath))
+	KeyValues kv = new KeyValues("shavit-messages");
+	
+	if(!kv.ImportFromFile(sPath))
 	{
-		dMessagesConfig.Dispose();
+		delete kv;
 
 		return false;
 	}
 
-	Dynamic dMessage = dMessagesConfig.GetDynamic((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
-	dMessage.GetString("prefix", gS_ChatStrings[sMessagePrefix], 128);
-	dMessage.GetString("text", gS_ChatStrings[sMessageText], 128);
-	dMessage.GetString("warning", gS_ChatStrings[sMessageWarning], 128);
-	dMessage.GetString("variable", gS_ChatStrings[sMessageVariable], 128);
-	dMessage.GetString("variable2", gS_ChatStrings[sMessageVariable2], 128);
-	dMessage.GetString("style", gS_ChatStrings[sMessageStyle], 128);
+	kv.JumpToKey((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
 
-	dMessagesConfig.Dispose(true);
+	kv.GetString("prefix", gS_ChatStrings[sMessagePrefix], 128, "\x075e70d0[Timer]");
+	kv.GetString("text", gS_ChatStrings[sMessageText], 128, "\x07ffffff");
+	kv.GetString("warning", gS_ChatStrings[sMessageWarning], 128, "\x07af2a22");
+	kv.GetString("variable", gS_ChatStrings[sMessageVariable], 128, "\x077fd772");
+	kv.GetString("variable2", gS_ChatStrings[sMessageVariable2], 128, "\x07276f5c");
+	kv.GetString("style", gS_ChatStrings[sMessageStyle], 128, "\x07db88c2");
+
+	delete kv;
 
 	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
 	{
