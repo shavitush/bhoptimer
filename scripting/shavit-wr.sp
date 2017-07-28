@@ -715,7 +715,7 @@ public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int para
 		char[] sMenuItem = new char[128];
 
 		Menu submenu = new Menu(MenuHandler_DeleteStyleRecords_Confirm);
-		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style]);
+		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style][sStyleName]);
 
 		for(int i = 1; i <= GetRandomInt(1, 4); i++)
 		{
@@ -723,7 +723,7 @@ public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int para
 			submenu.AddItem("-1", sMenuItem);
 		}
 
-		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style]);
+		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style][sStyleName]);
 
 		IntToString(style, info, 16);
 		submenu.AddItem(info, sMenuItem);
