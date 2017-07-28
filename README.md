@@ -12,7 +12,7 @@ This is (nearly) an all-in-one server plugin for Counter-Strike: Source and Coun
 
 Including a records system, map zones (start/end marks etc), HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, rankings and more!
 
-[Mapzones' setup demonstration](https://www.youtube.com/watch?v=oPKso2hoLw0)
+[Mapzones' setup demonstration](https://youtu.be/OXFMGm40F6c)
 
 # Requirements:
 * Steam version of Counter-Strike: Source or Counter-Strike: Global Offensive.
@@ -21,8 +21,6 @@ Including a records system, map zones (start/end marks etc), HUD with useful inf
 # Optional requirements:
 * `sv_disable_immunity_alpha` set to 1 in CS:GO for the `shavit_misc_playeropacity` setting to work.
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 runspeed for all weapons.
-* [The RTLer](https://forums.alliedmods.net/showthread.php?p=1649882) - required for properly formatted RTL text within `shavit-chat`.
-* [Chat-Processor](https://forums.alliedmods.net/showthread.php?t=286913) - for more proper parsing inside `shavit-chat`.
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135) - to show amount of scrolls for non-auto styles in the key display. CS:S only!
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) - for the `{serverip}` advertisement variable.
 
