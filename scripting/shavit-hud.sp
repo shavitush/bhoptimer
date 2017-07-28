@@ -64,7 +64,6 @@ ConVar gCV_GradientStepSize = null;
 int gI_GradientStepSize = 5;
 
 // timer settings
-int gI_Styles = 0;
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 
@@ -227,8 +226,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
 		Shavit_GetStyleStrings(i, sHTMLColor, gS_StyleStrings[i][sHTMLColor], 128);
 	}
-
-	gI_Styles = styles;
 }
 
 public void OnClientPutInServer(int client)
@@ -456,7 +453,7 @@ public Action UpdateHUD_Timer(Handle Timer)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || (gI_HUDSettings[i] & HUD_MASTER) == 0)
+		if(!IsValidClient(i) || IsFakeClient(i) || (gI_HUDSettings[i] & HUD_MASTER) == 0)
 		{
 			continue;
 		}
@@ -675,22 +672,17 @@ void UpdateHUD(int client)
 
 		else if(gB_Replay)
 		{
-			int style = 0;
+			int style = Shavit_GetReplayBotStyle(target);
 
-			for(int i = 0; i < gI_Styles; i++)
+			if(style == -1)
 			{
-				if(Shavit_GetReplayBotIndex(i) == target)
-				{
-					style = i;
-
-					break;
-				}
+				return;
 			}
 
 			float start = 0.0;
 			Shavit_GetReplayBotFirstFrame(style, start);
 
-			float time = GetEngineTime() - start;
+			float time = (GetEngineTime() - start);
 
 			float fWR = 0.0;
 			Shavit_GetWRTime(style, fWR);
@@ -743,12 +735,20 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 		return;
 	}
 
+	int style = (IsFakeClient(client) && gB_Replay)? Shavit_GetReplayBotStyle(target):gBS_Style[target];
+
+	// Fallback. To avoid issues when the central bot is idle.
+	if(gBS_Style[target] == -1)
+	{
+		style = gBS_Style[target];
+	}
+
 	int buttons = GetClientButtons(target);
 
 	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
 
-	if(gA_StyleSettings[gBS_Style[client]][bAutobhop]) // don't include [JUMP] for autobhop styles
+	if(gA_StyleSettings[style][bAutobhop]) // don't include [JUMP] for autobhop styles
 	{
 		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 	}

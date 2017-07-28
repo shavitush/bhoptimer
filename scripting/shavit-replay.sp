@@ -122,6 +122,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
 	CreateNative("Shavit_GetReplayBotCurrentFrame", Native_GetReplayBotIndex);
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
+	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -218,6 +219,11 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 	}
 
 	return view_as<int>(ReplayEnabled(style) && gI_FrameCount[style] > 0);
+}
+
+public int Native_GetReplayBotStyle(Handle handler, int numParams)
+{
+	return (gB_CentralBot && gA_CentralCache[iCentralReplayStatus] == Replay_Idle)? -1:GetReplayStyle(GetNativeCell(1));
 }
 
 public Action Cron(Handle Timer)
@@ -673,10 +679,7 @@ public void OnClientPutInServer(int client)
 
 		else if(gA_CentralCache[iCentralClient] == -1)
 		{
-			char[] sName = new char[MAX_NAME_LENGTH];
-			FormatStyle(gS_ReplayStrings[sReplayCentralName], 0, true, 0.0, sName, MAX_NAME_LENGTH);
-			SetClientName(client, sName);
-
+			UpdateReplayInfo(client, 0, 0.0);
 			gA_CentralCache[iCentralClient] = client;
 		}
 	}

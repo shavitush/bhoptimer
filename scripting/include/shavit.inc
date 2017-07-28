@@ -706,6 +706,14 @@ native void Shavit_GetReplayBotFirstFrame(int style, float &time);
 native int Shavit_GetReplayBotIndex(int style);
 
 /**
+ * Retrieve the style being played by the replay bot.
+ *
+ * @param client					Client index.
+ * @return							Style being played by the replay bot. -1 if it's a central replay bot that's idle.
+ */
+native int Shavit_GetReplayBotStyle(int client);
+
+/**
  * Retrieve the replay bot's current played frame.
  *
  * @param style						Bhop style.
@@ -932,6 +940,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
+	MarkNativeAsOptional("Shavit_GetReplayBotStyle");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
