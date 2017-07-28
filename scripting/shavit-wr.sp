@@ -31,6 +31,7 @@
 // #define DEBUG
 
 bool gB_Late = false;
+bool gB_Shavit = false;
 bool gB_Rankings = false;
 bool gB_Stats = false;
 
@@ -152,16 +153,19 @@ public void OnPluginStart()
 	OnAdminMenuReady(null);
 
 	// modules
+	gB_Shavit = LibraryExists("shavit");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Stats = LibraryExists("shavit-stats");
 
 	// cache
 	gA_ValidMaps = new ArrayList(192);
 
-	// mysql
-	Shavit_GetDB(gH_SQL);
-	SQL_SetPrefix();
-	SetSQLInfo();
+	if(gB_Shavit)
+	{
+		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -252,7 +256,11 @@ public void OnLibraryAdded(const char[] name)
 {
 	if(StrEqual(name, "shavit"))
 	{
+		gB_Shavit = true;
+		
 		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
 	}
 
 	else if(StrEqual(name, "shavit-rankings"))
@@ -270,6 +278,7 @@ public void OnLibraryRemoved(const char[] name)
 {
 	if(StrEqual(name, "shavit"))
 	{
+		gB_Shavit = false;
 		gH_SQL = null;
 	}
 
