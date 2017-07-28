@@ -1,8 +1,6 @@
-Plugin(source='scripting/shavit-chat.sp')
 Plugin(source='scripting/shavit-core.sp')
 Plugin(source='scripting/shavit-hud.sp')
 Plugin(source='scripting/shavit-misc.sp')
-Plugin(source='scripting/shavit-rankings.sp')
 Plugin(source='scripting/shavit-replay.sp')
 Plugin(source='scripting/shavit-sounds.sp')
 Plugin(source='scripting/shavit-stats.sp')
@@ -11,7 +9,7 @@ Plugin(source='scripting/shavit-wr.sp')
 Plugin(source='scripting/shavit-zones.sp')
 
 Package(name='bhoptimer',
-        plugins=['shavit-chat', 'shavit-core', 'shavit-hud', 'shavit-misc', 'shavit-rankings', 'shavit-replay', 'shavit-sounds', 'shavit-stats', 'shavit-timelimit', 'shavit-wr', 'shavit-zones'],
+        plugins=['shavit-core', 'shavit-hud', 'shavit-misc', 'shavit-replay', 'shavit-sounds', 'shavit-stats', 'shavit-timelimit', 'shavit-wr', 'shavit-zones'],
         filegroups={
             '.': ['README.md', 'LICENSE'],
         },
