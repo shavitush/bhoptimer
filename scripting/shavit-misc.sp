@@ -67,6 +67,7 @@ enum
 };
 
 // cache
+ConVar sv_disable_immunity_alpha;
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gI_GroundEntity[MAXPLAYERS+1];
@@ -179,6 +180,7 @@ public void OnPluginStart()
 
 	// cache
 	gEV_Type = GetEngineVersion();
+	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
 
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
@@ -436,6 +438,15 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_DropAll = gCV_DropAll.BoolValue;
 
 	gB_ClanTag = !StrEqual(gS_ClanTag, "0");
+}
+
+public void OnConfigsExecuted()
+{
+	if(sv_disable_immunity_alpha != null)
+	{
+		sv_disable_immunity_alpha.BoolValue = true;
+		delete sv_disable_immunity_alpha;
+	}
 }
 
 public void OnMapStart()
