@@ -112,8 +112,9 @@ int gI_HaloSprite = -1;
 // admin menu
 Handle gH_AdminMenu = INVALID_HANDLE;
 
-// late load?
+// cache
 bool gB_Late = false;
+bool gB_Shavit = false;
 
 // cvars
 ConVar gCV_FlatZones = null;
@@ -224,9 +225,14 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	Shavit_GetDB(gH_SQL);
-	SQL_SetPrefix();
-	SetSQLInfo();
+	gB_Shavit = LibraryExists("shavit");
+
+	if(gB_Shavit)
+	{
+		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -267,6 +273,27 @@ Action SetSQLInfo()
 	}
 
 	return Plugin_Continue;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit"))
+	{
+		gB_Shavit = true;
+		
+		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit"))
+	{
+		gB_Shavit = false;
+		gH_SQL = null;
+	}
 }
 
 public void OnAdminMenuReady(Handle topmenu)
