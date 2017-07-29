@@ -96,12 +96,12 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	// natives
-	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
-	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
-	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
 	CreateNative("Shavit_GetRecordAmount", Native_GetRecordAmount);
+	CreateNative("Shavit_GetWRName", Native_GetWRName);
+	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
+	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
@@ -1695,7 +1695,7 @@ void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` VARCHAR(32), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0%s);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` VARCHAR(32), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0%s);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}
@@ -1732,6 +1732,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	FormatEx(sQuery, 64, "SELECT points FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration3_Callback, sQuery);
+
+	FormatEx(sQuery, 64, "SELECT track FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigration4_Callback, sQuery);
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1782,7 +1785,7 @@ public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, gB_MySQL? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
+		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
 		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery);
 	}
 }
@@ -1792,6 +1795,26 @@ public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer (WR module) error! Times' table migration (3) failed. Reason: %s", error);
+
+		return;
+	}
+}
+
+public void SQL_TableMigration4_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`track` INT NOT NULL DEFAULT 0)":"COLUMN `track` INT NOT NULL DEFAULT 0");
+		gH_SQL.Query(SQL_AlterTable4_Callback, sQuery);
+	}
+}
+
+public void SQL_AlterTable4_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR module) error! Times' table migration (4) failed. Reason: %s", error);
 
 		return;
 	}

@@ -1503,7 +1503,7 @@ void GetTrackName(int client, int track, char[] output, int size)
 
 	static char sTrack[16];
 	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%s", "%T", sTrack, client);
+	FormatEx(output, size, "%T", sTrack, client);
 }
 
 void UpdateTeleportZone(int client)
@@ -2016,11 +2016,11 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 	}
 }
 
-public void Shavit_OnRestart(int client)
+public void Shavit_OnRestart(int client, int track)
 {
 	if(gB_TeleportToStart)
 	{
-		Shavit_StartTimer(client);
+		Shavit_StartTimer(client, track);
 
 		if(!EmptyVector(gF_CustomSpawn))
 		{
@@ -2029,7 +2029,7 @@ public void Shavit_OnRestart(int client)
 
 		else
 		{
-			int index = GetZoneIndex(Zone_Start, Track_Main);
+			int index = GetZoneIndex(Zone_Start, track);
 
 			if(index == -1)
 			{
@@ -2046,11 +2046,11 @@ public void Shavit_OnRestart(int client)
 	}
 }
 
-public void Shavit_OnEnd(int client)
+public void Shavit_OnEnd(int client, int track)
 {
 	if(gB_TeleportToEnd)
 	{
-		int index = GetZoneIndex(Zone_End, Track_Main);
+		int index = GetZoneIndex(Zone_End, track);
 
 		if(index == -1)
 		{
@@ -2226,9 +2226,9 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_End:
 		{
-			if(status != Timer_Stopped && gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack])
 			{
-				Shavit_FinishMap(other);
+				Shavit_FinishMap(other, gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
 			}
 		}
 	}
@@ -2276,9 +2276,16 @@ public void TouchPost(int entity, int other)
 	{
 		case Zone_Start:
 		{
-			if(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			// start timer instantly for main track, but require bonuses to have the current timer stopped
+			// so you don't accidentally step on those while running
+			if(Shavit_GetTimerStatus(other) == Timer_Stopped || Shavit_GetClientTrack(other) != Track_Main)
 			{
-				Shavit_StartTimer(other);
+				Shavit_StartTimer(other, gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
+			}
+
+			else if(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			{
+				Shavit_StartTimer(other, Track_Main);
 			}
 		}
 	}

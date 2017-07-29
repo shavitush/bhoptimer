@@ -76,6 +76,7 @@ bool gB_DoubleSteps[MAXPLAYERS+1];
 float gF_StrafeWarning[MAXPLAYERS+1];
 bool gB_PracticeMode[MAXPLAYERS+1];
 int gI_SHSW_FirstCombination[MAXPLAYERS+1];
+int gI_Track[MAXPLAYERS+1];
 
 float gF_HSW_Requirement = 0.0;
 StringMap gSM_StyleCommands = null;
@@ -149,28 +150,29 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetDB", Native_GetDB);
 
 	// timer natives
-	CreateNative("Shavit_StartTimer", Native_StartTimer);
-	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
-	CreateNative("Shavit_GetTimer", Native_GetTimer);
-	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
-	CreateNative("Shavit_GetClientJumps", Native_GetClientJumps);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
-	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
-	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
-	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
-	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
-	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
+	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
+	CreateNative("Shavit_GetClientJumps", Native_GetClientJumps);
+	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
+	CreateNative("Shavit_GetClientTrack", Native_GetClientTrack);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
-	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
-	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
-	CreateNative("Shavit_SetPracticeMode", Native_SetPracticeMode);
+	CreateNative("Shavit_GetSync", Native_GetSync);
+	CreateNative("Shavit_GetTimer", Native_GetTimer);
+	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
-	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
 	CreateNative("Shavit_LoadSnapshot", Native_LoadSnapshot);
+	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
+	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
+	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
+	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
+	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
+	CreateNative("Shavit_SetPracticeMode", Native_SetPracticeMode);
+	CreateNative("Shavit_StartTimer", Native_StartTimer);
+	CreateNative("Shavit_StopTimer", Native_StopTimer);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -183,19 +185,19 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	// forwards
-	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell);
-	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell);
+	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
-	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell);
-	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell);
-	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell);
-	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell);
-	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
-	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell);
+	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell);
 
 	LoadTranslations("shavit-core.phrases");
 
@@ -246,8 +248,13 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_r", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
 
+	RegConsoleCmd("sm_b", Command_StartTimer_Bonus, "Start your timer on the bonus track.");
+	RegConsoleCmd("sm_bonus", Command_StartTimer_Bonus, "Start your timer on the bonus track.");
+
 	// teleport to end
 	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
+	RegConsoleCmd("sm_bend", Command_TeleportEnd_Bonus, "Teleport to endzone of the bonus track.");
+	RegConsoleCmd("sm_bonusend", Command_TeleportEnd_Bonus, "Teleport to endzone of the bonus track.");
 
 	// timer stop
 	RegConsoleCmd("sm_stop", Command_StopTimer, "Stop your timer.");
@@ -444,9 +451,48 @@ public Action Command_StartTimer(int client, int args)
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
+		Call_PushCell(Track_Main);
 		Call_Finish();
 
-		StartTimer(client);
+		StartTimer(client, Track_Main);
+	}
+
+	else
+	{
+		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_StartTimer_Bonus(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!gB_Restart)
+	{
+		if(args != -1)
+		{
+			char[] sCommand = new char[16];
+			GetCmdArg(0, sCommand, 16);
+
+			Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
+		}
+
+		return Plugin_Handled;
+	}
+
+	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start, Track_Bonus)))
+	{
+		Call_StartForward(gH_Forwards_OnRestart);
+		Call_PushCell(client);
+		Call_PushCell(Track_Bonus);
+		Call_Finish();
+
+		StartTimer(client, Track_Bonus);
 	}
 
 	else
@@ -470,6 +516,32 @@ public Action Command_TeleportEnd(int client, int args)
 		
 		Call_StartForward(gH_Forwards_OnEnd);
 		Call_PushCell(client);
+		Call_PushCell(Track_Main); // sm_bend will be bonus end
+		Call_Finish();
+	}
+
+	else
+	{
+		Shavit_PrintToChat(client, "%T", "EndZoneUndefined", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_TeleportEnd_Bonus(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(gB_Zones && Shavit_ZoneExists(Zone_End, Track_Bonus))
+	{
+		Shavit_StopTimer(client);
+		
+		Call_StartForward(gH_Forwards_OnEnd);
+		Call_PushCell(client);
+		Call_PushCell(Track_Bonus);
 		Call_Finish();
 	}
 
@@ -690,6 +762,7 @@ void ChangeClientStyle(int client, int style)
 	Call_PushCell(client);
 	Call_PushCell(gBS_Style[client]);
 	Call_PushCell(style);
+	Call_PushCell(gI_Track[client]);
 	Call_Finish();
 
 	gBS_Style[client] = style;
@@ -708,6 +781,7 @@ void ChangeClientStyle(int client, int style)
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
+		Call_PushCell(gI_Track[client]);
 		Call_Finish();
 	}
 
@@ -855,11 +929,12 @@ public int Native_GetTimer(Handle handler, int numParams)
 
 public int Native_GetClientTime(Handle handler, int numParams)
 {
-	// 1 - client
-	int client = GetNativeCell(1);
+	return view_as<int>(CalculateTime(GetNativeCell(1)));
+}
 
-	// 2 - time
-	return view_as<int>(CalculateTime(client));
+public int Native_GetClientTrack(Handle handler, int numParams)
+{
+	return gI_Track[GetNativeCell(1)];
 }
 
 public int Native_GetClientJumps(Handle handler, int numParams)
@@ -879,7 +954,7 @@ public int Native_GetTimerStatus(Handle handler, int numParams)
 
 public int Native_StartTimer(Handle handler, int numParams)
 {
-	StartTimer(GetNativeCell(1));
+	StartTimer(GetNativeCell(1), GetNativeCell(2));
 }
 
 public int Native_StopTimer(Handle handler, int numParams)
@@ -890,6 +965,7 @@ public int Native_StopTimer(Handle handler, int numParams)
 
 	Call_StartForward(gH_Forwards_Stop);
 	Call_PushCell(client);
+	Call_PushCell(gI_Track[client]);
 	Call_Finish();
 }
 
@@ -910,6 +986,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot[iGoodGains] = gI_GoodGains[client];
 	snapshot[fServerTime] = GetEngineTime();
 	snapshot[fCurrentTime] = CalculateTime(client);
+	snapshot[iSHSWCombination] = gI_SHSW_FirstCombination[client];
+	snapshot[iTimerTrack] = gI_Track[client];
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -943,6 +1021,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 		Call_PushCell((gA_StyleSettings[snapshot[bsStyle]][bSync])? (snapshot[iGoodGains] == 0)? 0.0:(snapshot[iGoodGains] / float(snapshot[iTotalMeasures]) * 100.0):-1.0);
 	}
 
+	Call_PushCell(gI_Track[client]);
 	Call_Finish();
 
 	StopTimer(client);
@@ -990,12 +1069,14 @@ public int Native_PrintToChat(Handle handler, int numParams)
 public int Native_RestartTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	int track = GetNativeCell(2);
 
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
+	Call_PushCell(track);
 	Call_Finish();
 
-	StartTimer(client);
+	StartTimer(client, track);
 }
 
 public int Native_GetStrafeCount(Handle handler, int numParams)
@@ -1067,6 +1148,7 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot[fServerTime] = GetEngineTime();
 	snapshot[fCurrentTime] = CalculateTime(client);
 	snapshot[iSHSWCombination] = gI_SHSW_FirstCombination[client];
+	snapshot[iTimerTrack] = gI_Track[client];
 
 	return SetNativeArray(2, snapshot, TIMERSNAPSHOT_SIZE);
 }
@@ -1089,6 +1171,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
 	gF_StartTime[client] = GetEngineTime() - view_as<float>(snapshot[fCurrentTime]);
 	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
+	gI_Track[client] = view_as<int>(snapshot[iTimerTrack]);
 }
 
 int GetTimerStatus(int client)
@@ -1106,7 +1189,7 @@ int GetTimerStatus(int client)
 	return view_as<int>(Timer_Running);
 }
 
-void StartTimer(int client)
+void StartTimer(int client, int track)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
 	{
@@ -1123,10 +1206,12 @@ void StartTimer(int client)
 		gI_TotalMeasures[client] = 0;
 		gI_GoodGains[client] = 0;
 		gF_StartTime[client] = GetEngineTime();
+		gI_Track[client] = track;
 
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
 		Call_PushCell(client);
+		Call_PushCell(track);
 		Call_Finish(result);
 
 		if(result == Plugin_Continue)
@@ -1178,6 +1263,7 @@ void PauseTimer(int client)
 
 	Call_StartForward(gH_Forwards_OnPause);
 	Call_PushCell(client);
+	Call_PushCell(gI_Track[client]);
 	Call_Finish();
 }
 
@@ -1193,6 +1279,7 @@ void ResumeTimer(int client)
 
 	Call_StartForward(gH_Forwards_OnResume);
 	Call_PushCell(client);
+	Call_PushCell(gI_Track[client]);
 	Call_Finish();
 }
 
@@ -1266,6 +1353,7 @@ public void OnClientPutInServer(int client)
 	gBS_Style[client] = 0;
 	gB_PracticeMode[client] = false;
 	gI_SHSW_FirstCombination[client] = -1;
+	gI_Track[client] = 0;
 	UpdateAutoBhop(client);
 
 	if(AreClientCookiesCached(client))
@@ -1639,6 +1727,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	Call_PushArrayEx(vel, 3, SM_PARAM_COPYBACK);
 	Call_PushArrayEx(angles, 3, SM_PARAM_COPYBACK);
 	Call_PushCell(GetTimerStatus(client));
+	Call_PushCell(gI_Track[client]);
 	Call_Finish(result);
 	
 	if(result != Plugin_Continue && result != Plugin_Changed)

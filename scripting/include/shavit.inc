@@ -138,6 +138,7 @@ enum
 	iGoodGains,
 	fServerTime,
 	iSHSWCombination,
+	iTimerTrack,
 	TIMERSNAPSHOT_SIZE
 };
 
@@ -282,42 +283,47 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * @param vel						A vector that contain's the player's desired movement. vel[0] is forwardmove, vel[1] is sidemove.
  * @param angles					The player's requested viewangles. They will not necessarily be applied as SRCDS itself won't accept every value.
  * @param status					The player's timer status.
+ * @param track						The player's timer track.
  * @return							Plugin_Continue to let shavit-core keep doing what it does, Plugin_Changed to pass different values.
  */
-forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status);
+forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track);
 
 /**
  * Called when a player's timer starts.
  * (WARNING: Will be called every tick when the player stands at the start zone!)
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @return							Plugin_Continue to do nothing or anything else to not start the timer.
  */
-forward Action Shavit_OnStart(int client);
+forward Action Shavit_OnStart(int client, int track);
 
 /**
  * Called when a player uses the restart command.
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnRestart(int client);
+forward void Shavit_OnRestart(int client, int track);
 
 /**
  * Called when a player uses the !end command.
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnEnd(int client);
+forward void Shavit_OnEnd(int client, int track);
 
 /**
  * Called when a player's timer stops. (stop =/= finish a map)
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnStop(int client);
+forward void Shavit_OnStop(int client, int track);
 
 /**
  * Called before a player finishes a map.
@@ -337,9 +343,10 @@ forward Action Shavit_OnFinishPre(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
  * @param jumps						Jumps amount.
  * @param strafes					Amount of strafes.
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync);
+forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track);
 
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.
@@ -366,9 +373,10 @@ forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, 
  * @param jumps						Jumps amount.
  * @param strafes					Amount of strafes.
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync);
+forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track);
 
 /**
  * Called when an admin deletes a WR.
@@ -383,17 +391,19 @@ forward void Shavit_OnWRDeleted(int style, int id);
  * Called when a player's timer paused.
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnPause(int client);
+forward void Shavit_OnPause(int client, int track);
 
 /**
  * Called when a player's timer resumed.
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnResume(int client);
+forward void Shavit_OnResume(int client, int track);
 
 /**
  * Called when a player's rank has updated or was just looked up.
@@ -410,9 +420,10 @@ forward void Shavit_OnRankUpdated(int client);
  * @param client					Client index.
  * @param oldstyle					Old bhop style.
  * @param newstyle					New bhop style.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle);
+forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track);
 
 /**
  * Called when the styles configuration finishes loading and it's ready to load everything into the cache.
@@ -496,18 +507,20 @@ native void Shavit_GetDB(Database &hSQL);
  * Will not teleport the player to anywhere, it's handled inside the mapzones plugin.
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @noreturn
  */
-native void Shavit_StartTimer(int client);
+native void Shavit_StartTimer(int client, int track);
 
 /**
  * Restarts the timer for a player.
  * Will work as if the player just used sm_r.
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @noreturn
  */
-native void Shavit_RestartTimer(int client);
+native void Shavit_RestartTimer(int client, int track);
 
 /**
  * Stops the timer for a player.
@@ -523,9 +536,10 @@ native void Shavit_StopTimer(int client);
  * Will not teleport the player to anywhere, it's handled inside the mapzones plugin.
  *
  * @param client					Client index.
+ * @param track						Timer track.
  * @noreturn
  */
-native void Shavit_FinishMap(int client);
+native void Shavit_FinishMap(int client, int track);
 
 /**
  * Stores the player's timer stats on variables
@@ -537,6 +551,7 @@ native void Shavit_FinishMap(int client);
  * @param started					Timer started?
  * @noreturn
  */
+#pragma deprecated Use different natives or Shavit_SaveSnapshot instead.
 native void Shavit_GetTimer(int client, float &time, int &jumps, int &style, bool &started);
 
 /**
@@ -546,6 +561,14 @@ native void Shavit_GetTimer(int client, float &time, int &jumps, int &style, boo
  * @return                          Current time.
  */
 native float Shavit_GetClientTime(int client);
+
+/**
+ * Retrieve the client's track. (Track_Main/Track_Bonus etc..)
+ *
+ * @param client					Client index.
+ * @return                          Timer track.
+ */
+native int Shavit_GetClientTrack(int client);
 
 /**
  * Retrieve client jumps since timer start.
@@ -930,6 +953,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetChatStrings");
 	MarkNativeAsOptional("Shavit_GetClientJumps");
 	MarkNativeAsOptional("Shavit_GetClientTime");
+	MarkNativeAsOptional("Shavit_GetClientTrack");
 	MarkNativeAsOptional("Shavit_GetHUDSettings");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");

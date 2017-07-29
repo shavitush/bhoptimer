@@ -176,6 +176,7 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-misc.phrases");
 
 	// cache
@@ -790,7 +791,7 @@ void RemoveRagdoll(int client)
 	}
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track)
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
 
@@ -802,7 +803,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, -1))
+	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, track))
 	{
 		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
@@ -1680,7 +1681,21 @@ public Action Shavit_OnStart(int client)
 	return Plugin_Continue;
 }
 
-public void Shavit_OnWorldRecord(int client, int style, float time, int jumps)
+void GetTrackName(int client, int track, char[] output, int size)
+{
+	if(track < 0 || track >= TRACKS_SIZE)
+	{
+		FormatEx(output, size, "%T", "Track_Unknown", client);
+
+		return;
+	}
+
+	static char sTrack[16];
+	FormatEx(sTrack, 16, "Track_%d", track);
+	FormatEx(output, size, "%T", sTrack, client);
+}
+
+public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int track)
 {
 	char[] sUpperCase = new char[64];
 	strcopy(sUpperCase, 64, gS_StyleStrings[style][sStyleName]);
@@ -1693,9 +1708,28 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps)
 		}
 	}
 
-	for(int i = 1; i <= 3; i++)
+	for(int i = 1; i <= MaxClients; i++)
 	{
-		Shavit_PrintToChatAll("%T", "WRNotice", client, gS_ChatStrings[sMessageWarning], sUpperCase);
+		if(!IsValidClient(i))
+		{
+			continue;
+		}
+
+		char[] sTrack = new char[32];
+		GetTrackName(i, track, sTrack, 32);
+
+		for(int j = 1; j <= 3; j++)
+		{
+			if(track == Track_Main)
+			{
+				Shavit_PrintToChat(i, "%T", "WRNotice", i, gS_ChatStrings[sMessageWarning], sUpperCase);
+			}
+
+			else
+			{
+				Shavit_PrintToChat(i, "%s[%s]%s %T", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], "WRNotice", i, gS_ChatStrings[sMessageWarning], sUpperCase);
+			}
+		}
 	}
 }
 
@@ -1743,7 +1777,7 @@ void RestartTimer(int client)
 {
 	if(Shavit_ZoneExists(Zone_Start, Track_Main))
 	{
-		Shavit_RestartTimer(client);
+		Shavit_RestartTimer(client, Track_Main);
 	}
 }
 

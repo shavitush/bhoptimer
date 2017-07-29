@@ -1,6 +1,10 @@
 "Phrases"
 {
 	// ---------- Tracks ---------- //
+	"Track"
+	{
+		"en"		"Track"
+	}
 	"Track_Unknown"
 	{
 		"en"		"UNKNOWN TRACK"

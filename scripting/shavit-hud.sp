@@ -92,6 +92,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-hud.phrases");
 
 	// game-specific
@@ -659,6 +660,17 @@ void UpdateHUD(int client)
 					{
 						FormatEx(sHintText, 16, "%T", "HudPaused", client);
 					}
+
+					// Note: If you're contributing a CS:GO version of the track part in the HUD, make sure to move this up somewhere so it's visible by both the CS:S/CS:GO scopes.
+					int track = Shavit_GetClientTrack(target);
+
+					if(track != Track_Main)
+					{
+						char[] sTrack = new char[32];
+						GetTrackName(client, track, sTrack, 32);
+
+						Format(sHintText, 512, "%s\n%s", sHintText, sTrack);
+					}
 				}
 
 				else
@@ -1080,4 +1092,18 @@ public int Native_GetHUDSettings(Handle handler, int numParams)
 	}
 
 	return gI_HUDSettings[client];
+}
+
+void GetTrackName(int client, int track, char[] output, int size)
+{
+	if(track < 0 || track >= TRACKS_SIZE)
+	{
+		FormatEx(output, size, "%T", "Track_Unknown", client);
+
+		return;
+	}
+
+	static char sTrack[16];
+	FormatEx(sTrack, 16, "Track_%d", track);
+	FormatEx(output, size, "%T", sTrack, client);
 }
