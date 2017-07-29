@@ -572,7 +572,7 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(Shavit_InsideZone(client, Zone_Start, -1))
+	if(Shavit_InsideZone(client, Zone_Start, gI_Track[client]))
 	{
 		Shavit_PrintToChat(client, "%T", "PauseStartZone", client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
@@ -689,7 +689,7 @@ public Action Command_Style(int client, int args)
 
 			if(gB_WR)
 			{
-				Shavit_GetWRTime(i, time);
+				Shavit_GetWRTime(i, time, Track_Main);
 			}
 
 			if(time > 0.0)
@@ -1736,7 +1736,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
-	bool bInStart = Shavit_InsideZone(client, Zone_Start, Track_Main);
+	bool bInStart = Shavit_InsideZone(client, Zone_Start, gI_Track[client]);
 
 	if(gB_TimerEnabled[client] && !gB_ClientPaused[client])
 	{

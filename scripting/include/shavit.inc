@@ -360,9 +360,10 @@ forward void Shavit_OnFinish(int client, int style, float time, int jumps, int s
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @param rank						Rank on map.
  * @param overwrite					1 - brand new record. 2 - update.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite);
+forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track);
 
 /**
  * Called when there's a new WR on the map.
@@ -482,9 +483,10 @@ forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int ent
  * @param jumps						Jumps amount.
  * @param strafes					Amount of strafes.
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
+ * @param track						Timer track.
  * @noreturn
  */
-forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync);
+forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync, int track);
 
 /**
  * Returns the game type the server is running.
@@ -617,9 +619,10 @@ native float Shavit_GetSync(int client);
  *
  * @param style						Style to get the WR for.
  * @param time						Reference to the time variable. 0.0 will be returned if no records.
+ * @param track						Timer track.
  * @noreturn
  */
-native void Shavit_GetWRTime(int style, float &time);
+native void Shavit_GetWRTime(int style, float &time, int track);
 
 /**
  * Saves the WR's record ID for the current map on a variable.
@@ -627,9 +630,10 @@ native void Shavit_GetWRTime(int style, float &time);
  *
  * @param style						Style to get the WR for.
  * @param time						Reference to the time variable. 0.0 will be returned if no records.
+ * @param track						Timer track.
  * @noreturn
  */
-native void Shavit_GetWRRecordID(int style, int &recordid);
+native void Shavit_GetWRRecordID(int style, int &recordid, int track);
 
 /**
  * Saves the WR's player name on the map on a variable.
@@ -637,9 +641,10 @@ native void Shavit_GetWRRecordID(int style, int &recordid);
  * @param style						Style to get the WR for.
  * @param wrname					Reference to the name variable.
  * @param wrmaxlength				Max length for the string.
+ * @param track						Timer track.
  * @noreturn
  */
-native void Shavit_GetWRName(int style, char[] wrname, int wrmaxlength);
+native void Shavit_GetWRName(int style, char[] wrname, int wrmaxlength, int track);
 
 /**
  * Saves the player's personal best time on a variable.
@@ -647,26 +652,29 @@ native void Shavit_GetWRName(int style, char[] wrname, int wrmaxlength);
  * @param client					Client index.
  * @param style						Style to get the PB for.
  * @param time						Reference to the time variable. 0.0 will be returned if no personal record.
+ * @param track						Timer track.
  * @noreturn
  */
-native void Shavit_GetPlayerPB(int client, int style, float &time);
+native void Shavit_GetPlayerPB(int client, int style, float &time, int track);
 
 /**
- * Get the amount of records on the current map/style.
+ * Get the amount of records on the current map/style on a track.
  *
  * @param style						Bhop style.
+ * @param track						Timer track.
  * @return							Amount of records.
  */
-native int Shavit_GetRecordAmount(int style);
+native int Shavit_GetRecordAmount(int style, int track);
 
 /**
  * Calculate potential rank for a given style and time.
  *
  * @param style						Bhop style.
  * @param time						Time to check for.
+ * @param track						Timer track.
  * @return							Amount of records.
  */
-native int Shavit_GetRankForTime(int style, float time);
+native int Shavit_GetRankForTime(int style, float time, int track);
 
 /**
  * Checks if a mapzone exists.

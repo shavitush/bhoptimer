@@ -203,10 +203,10 @@ public void OnMapStart()
 	delete fFile;
 }
 
-public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite)
+public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
 {
 	float fOldTime = 0.0;
-	Shavit_GetPlayerPB(client, style, fOldTime);
+	Shavit_GetPlayerPB(client, style, fOldTime, track);
 
 	char[] sSound = new char[PLATFORM_MAX_PATH];
 	bool bEveryone = false;
@@ -242,9 +242,9 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	}
 }
 
-public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync)
+public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync, int track)
 {
-	if(gA_WorstSounds.Length != 0 && Shavit_GetRecordAmount(style) >= gI_MinimumWorst)
+	if(gA_WorstSounds.Length != 0 && Shavit_GetRecordAmount(style, track) >= gI_MinimumWorst)
 	{
 		char[] sSound = new char[PLATFORM_MAX_PATH];
 		gA_WorstSounds.GetString(GetRandomInt(0, gA_WorstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);

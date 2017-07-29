@@ -713,7 +713,7 @@ public Action Timer_Advertisement(Handle Timer)
 void UpdateScoreboard(int client)
 {
 	float fPB = 0.0;
-	Shavit_GetPlayerPB(client, 0, fPB);
+	Shavit_GetPlayerPB(client, 0, fPB, Track_Main);
 
 	int iScore = (fPB != 0.0 && fPB < 2000)? -RoundToFloor(fPB):-2000;
 
@@ -1695,7 +1695,7 @@ void GetTrackName(int client, int track, char[] output, int size)
 	FormatEx(output, size, "%T", sTrack, client);
 }
 
-public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int track)
+public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track)
 {
 	char[] sUpperCase = new char[64];
 	strcopy(sUpperCase, 64, gS_StyleStrings[style][sStyleName]);
@@ -1727,7 +1727,7 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 
 			else
 			{
-				Shavit_PrintToChat(i, "%s[%s]%s %T", gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], "WRNotice", i, gS_ChatStrings[sMessageWarning], sUpperCase);
+				Shavit_PrintToChat(i, "%s[%s]%s %T", gS_ChatStrings[sMessageVariable], sTrack, gS_ChatStrings[sMessageText], "WRNotice", i, gS_ChatStrings[sMessageWarning], sUpperCase);
 			}
 		}
 	}
