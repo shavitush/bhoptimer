@@ -123,7 +123,7 @@ public void OnPluginStart()
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell);
+	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// player commands
@@ -1051,7 +1051,7 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 				Call_StartForward(gH_OnWRDeleted);
 				Call_PushCell(i);
 				Call_PushCell(iRecordID);
-				// Call_PushCell(j); // TODO: TRACK
+				Call_PushCell(j);
 				Call_Finish();
 			}
 		}
@@ -1119,10 +1119,14 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 			continue;
 		}
 
-		Call_StartForward(gH_OnWRDeleted);
-		Call_PushCell(i);
-		Call_PushCell(-1);
-		Call_Finish();
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			Call_StartForward(gH_OnWRDeleted);
+			Call_PushCell(i);
+			Call_PushCell(-1);
+			Call_PushCell(j);
+			Call_Finish();
+		}
 	}
 
 	int client = GetClientFromSerial(data);
@@ -1719,13 +1723,13 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		else
 		{
-			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], Track_Main); // TODO: use client's cached track
+			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], Track_Main);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], Track_Main); // TODO: use client's cached track
+		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], Track_Main);
 	}
 
 	else if(action == MenuAction_End)
