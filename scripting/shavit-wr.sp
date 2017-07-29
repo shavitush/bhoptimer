@@ -56,7 +56,7 @@ int gI_ValidMaps = 1;
 // current wr stats
 float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
 int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
-char gS_WRName[STYLE_LIMIT][MAX_NAME_LENGTH][TRACKS_SIZE];
+char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
 int gI_RecordAmount[STYLE_LIMIT][TRACKS_SIZE];
 ArrayList gA_LeaderBoard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
