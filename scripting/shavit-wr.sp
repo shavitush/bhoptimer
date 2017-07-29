@@ -1489,12 +1489,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%.03f %T) [%s]", gS_StyleStrings[style][sShortName], sDisplayMap, sName, sTime, fPoints, "WRPoints", client, sTrack);
+			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sTrack, sDisplayMap, sName, sTime, fPoints, "WRPoints", client);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s] %s - %s @ %s (%d %T) [%s]", gS_StyleStrings[style][sShortName], sDisplayMap, sName, sTime, jumps, "WRJumps", client, sTrack);
+			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack, sDisplayMap, sName, sTime, jumps, "WRJumps", client);
 		}
 
 		char[] sInfo = new char[192];
