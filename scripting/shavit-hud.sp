@@ -690,13 +690,15 @@ void UpdateHUD(int client)
 				return;
 			}
 
+			track = Shavit_GetReplayBotTrack(target);
+
 			float start = 0.0;
 			Shavit_GetReplayBotFirstFrame(style, start);
 
 			float time = (GetEngineTime() - start);
 
 			float fWR = 0.0;
-			Shavit_GetWRTime(style, fWR, Track_Main); // TODO: get timer track from bot here
+			Shavit_GetWRTime(style, fWR, track);
 
 			if(time > fWR || !Shavit_IsReplayDataLoaded(style))
 			{
@@ -711,6 +713,14 @@ void UpdateHUD(int client)
 			char[] sWR = new char[32];
 			FormatSeconds(fWR, sWR, 32, false);
 
+			char[] sTrack = new char[32];
+
+			if(track != Track_Main)
+			{
+				GetTrackName(client, track, sTrack, 32);
+				Format(sTrack, 32, "(%s) ", sTrack);
+			}
+
 			if(gEV_Type == Engine_CSGO)
 			{
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
@@ -722,7 +732,7 @@ void UpdateHUD(int client)
 
 			else
 			{
-				FormatEx(sHintText, 512, "%s Replay", gS_StyleStrings[style][sStyleName], sHintText);
+				FormatEx(sHintText, 512, "%s %sReplay", gS_StyleStrings[style][sStyleName], sTrack);
 				Format(sHintText, 512, "%s\n%T: %s/%s", sHintText, "HudTimeText", client, sTime, sWR);
 				Format(sHintText, 512, "%s\n%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 			}

@@ -55,4 +55,8 @@
 	{
 		"en"		"Forcibly stopped replay."
 	}
+	"CentralReplayTrack"
+	{
+		"en"		"Select a track to play:"
+	}
 }
