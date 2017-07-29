@@ -31,6 +31,7 @@
 // #define DEBUG
 
 bool gB_Late = false;
+bool gB_Shavit = false;
 bool gB_Rankings = false;
 bool gB_Stats = false;
 
@@ -152,16 +153,25 @@ public void OnPluginStart()
 	OnAdminMenuReady(null);
 
 	// modules
+	gB_Shavit = LibraryExists("shavit");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Stats = LibraryExists("shavit-stats");
 
 	// cache
 	gA_ValidMaps = new ArrayList(192);
 
-	// mysql
-	Shavit_GetDB(gH_SQL);
-	SQL_SetPrefix();
-	SetSQLInfo();
+	for(int i = 0; i < STYLE_LIMIT; i++)
+	{
+		gA_LeaderBoard[i] = new ArrayList();
+		gI_RecordAmount[i] = 0;
+	}
+
+	if(gB_Shavit)
+	{
+		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -252,7 +262,11 @@ public void OnLibraryAdded(const char[] name)
 {
 	if(StrEqual(name, "shavit"))
 	{
+		gB_Shavit = true;
+		
 		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
 	}
 
 	else if(StrEqual(name, "shavit-rankings"))
@@ -270,6 +284,7 @@ public void OnLibraryRemoved(const char[] name)
 {
 	if(StrEqual(name, "shavit"))
 	{
+		gB_Shavit = false;
 		gH_SQL = null;
 	}
 
@@ -384,7 +399,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	// arrays
 	for(int i = 0; i < styles; i++)
 	{
-		gA_LeaderBoard[i] = new ArrayList();
+		gA_LeaderBoard[i].Clear();
+	}
+
+	for(int i = styles; i < STYLE_LIMIT; i++)
+	{
+		delete gA_LeaderBoard[i];
 	}
 
 	gI_Styles = styles;
@@ -513,6 +533,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		gI_WRRecordID[style] = results.FetchInt(1);
 		gF_WRTime[style] = results.FetchFloat(2);
 		results.FetchString(3, gS_WRName[style], MAX_NAME_LENGTH);
+		ReplaceString(gS_WRName[style], MAX_NAME_LENGTH, "#", "?");
 	}
 
 	UpdateLeaderboards();
@@ -540,7 +561,14 @@ public int Native_GetPlayerPB(Handle handler, int numParams)
 
 public int Native_GetRankForTime(Handle handler, int numParams)
 {
-	return GetRankForTime(GetNativeCell(1), GetNativeCell(2));
+	int style = GetNativeCell(1);
+
+	if(gA_LeaderBoard[style].Length == 0)
+	{
+		return 1;
+	}
+
+	return GetRankForTime(style, GetNativeCell(2));
 }
 
 public int Native_GetRecordAmount(Handle handler, int numParams)
@@ -714,7 +742,7 @@ public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int para
 		char[] sMenuItem = new char[128];
 
 		Menu submenu = new Menu(MenuHandler_DeleteStyleRecords_Confirm);
-		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style]);
+		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style][sStyleName]);
 
 		for(int i = 1; i <= GetRandomInt(1, 4); i++)
 		{
@@ -722,7 +750,7 @@ public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int para
 			submenu.AddItem("-1", sMenuItem);
 		}
 
-		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style]);
+		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style][sStyleName]);
 
 		IntToString(style, info, 16);
 		submenu.AddItem(info, sMenuItem);
@@ -881,6 +909,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		// 1 - player name
 		char[] sName = new char[MAX_NAME_LENGTH];
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
+		ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
 		// 2 - time
 		float time = results.FetchFloat(2);
@@ -1101,7 +1130,22 @@ Action ShowWRStyleMenu(int client)
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
-		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+		char[] sDisplay = new char[64];
+
+		if(gF_WRTime[i] > 0.0)
+		{
+			char[] sTime = new char[32];
+			FormatSeconds(gF_WRTime[i], sTime, 32, false);
+
+			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i][sStyleName], sTime);
+		}
+
+		else
+		{
+			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
+		}
+
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	// should NEVER happen
@@ -1943,7 +1987,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 int GetRankForTime(int style, float time)
 {
-	if(time < gF_WRTime[style])
+	if(time < gF_WRTime[style] || gI_RecordAmount[style] <= 0)
 	{
 		return 1;
 	}

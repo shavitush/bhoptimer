@@ -87,7 +87,7 @@
 	"DeleteStyleRecordsRecordsMenuTitle"
 	{
 		"#format"	"{1:s}"
-		"en"		"Choose a style to delete all the records of for '{1}':"
+		"en"		"Choose a style to delete all the records for '{1}':"
 	}
 	"DeleteConfirmStyle"
 	{

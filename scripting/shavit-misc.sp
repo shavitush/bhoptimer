@@ -22,7 +22,6 @@
 #include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
-#include <dynamic>
 #include <clientprefs>
 
 #undef REQUIRE_EXTENSIONS
@@ -68,9 +67,10 @@ enum
 };
 
 // cache
+ConVar sv_disable_immunity_alpha;
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
-int gI_LastFlags[MAXPLAYERS+1];
+int gI_GroundEntity[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
@@ -180,6 +180,7 @@ public void OnPluginStart()
 
 	// cache
 	gEV_Type = GetEngineVersion();
+	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
 
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
@@ -439,6 +440,14 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_ClanTag = !StrEqual(gS_ClanTag, "0");
 }
 
+public void OnConfigsExecuted()
+{
+	if(sv_disable_immunity_alpha != null)
+	{
+		sv_disable_immunity_alpha.BoolValue = true;
+	}
+}
+
 public void OnMapStart()
 {
 	GetCurrentMap(gS_CurrentMap, 192);
@@ -495,24 +504,19 @@ bool LoadAdvertisementsConfig()
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-advertisements.cfg");
 
-	Dynamic dAdvertisements = Dynamic();
-
-	if(!dAdvertisements.ReadKeyValues(sPath))
+	KeyValues kv = new KeyValues("shavit-advertisements");
+	
+	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey(false))
 	{
-		dAdvertisements.Dispose();
+		delete kv;
 
 		return false;
 	}
 
-	int iCount = dAdvertisements.MemberCount;
-
-	for(int i = 0; i < iCount; i++)
+	do
 	{
-		char[] sID = new char[4];
-		IntToString(i, sID, 4);
-
 		char[] sTempMessage = new char[300];
-		dAdvertisements.GetString(sID, sTempMessage, 300);
+		kv.GetString(NULL_STRING, sTempMessage, 300, "<EMPTY ADVERTISEMENT>");
 
 		ReplaceString(sTempMessage, 300, "{text}", gS_ChatStrings[sMessageText]);
 		ReplaceString(sTempMessage, 300, "{warning}", gS_ChatStrings[sMessageWarning]);
@@ -523,7 +527,9 @@ bool LoadAdvertisementsConfig()
 		gA_Advertisements.PushString(sTempMessage);
 	}
 
-	dAdvertisements.Dispose(true);
+	while(kv.GotoNextKey(false));
+
+	delete kv;
 
 	return true;
 }
@@ -784,30 +790,26 @@ void RemoveRagdoll(int client)
 	}
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status)
 {
-	if(!IsPlayerAlive(client) || IsFakeClient(client))
-	{
-		return Plugin_Continue;
-	}
+	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
 
-	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
-	bool bNoclipping = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
-
-	if(bNoclipping && !bInStart && Shavit_GetTimerStatus(client) == Timer_Running)
+	if(bNoclip && status == Timer_Running)
 	{
 		Shavit_StopTimer(client);
 	}
 
+	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
+
 	// prespeed
-	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && bInStart)
+	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, -1))
 	{
-		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && (gI_LastFlags[client] & FL_ONGROUND) == 0 && (GetEntityFlags(client) & FL_ONGROUND) > 0 && (buttons & IN_JUMP) > 0)
+		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
-			gI_LastFlags[client] = GetEntityFlags(client);
+			gI_GroundEntity[client] = iGroundEntity;
 
 			return Plugin_Continue;
 		}
@@ -820,7 +822,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			float speed_New = (SquareRoot(Pow(speed[0], 2.0) + Pow(speed[1], 2.0)));
 			float fScale = (gF_PrespeedLimit / speed_New);
 
-			if(bNoclipping)
+			if(bNoclip)
 			{
 				speed[2] = 0.0;
 			}
@@ -834,7 +836,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 		}
 	}
 
-	gI_LastFlags[client] = GetEntityFlags(client);
+	gI_GroundEntity[client] = iGroundEntity;
 
 	return Plugin_Continue;
 }
@@ -1545,6 +1547,11 @@ public Action Command_Noclip(int client, int args)
 
 	if(GetEntityMoveType(client) != MOVETYPE_NOCLIP)
 	{
+		if(Shavit_GetTimerStatus(client) != Timer_Stopped)
+		{
+			Shavit_StopTimer(client);
+		}
+
 		SetEntityMoveType(client, MOVETYPE_NOCLIP);
 	}
 
@@ -1565,6 +1572,11 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 
 	if((gI_NoclipMe == 1 || (gI_NoclipMe == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
 	{
+		if(Shavit_GetTimerStatus(client) != Timer_Stopped)
+		{
+			Shavit_StopTimer(client);
+		}
+		
 		SetEntityMoveType(client, MOVETYPE_NOCLIP);
 	}
 
@@ -1656,6 +1668,16 @@ public Action Command_Specs(int client, int args)
 	}
 
 	return Plugin_Handled;
+}
+
+public Action Shavit_OnStart(int client)
+{
+	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	{
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
 }
 
 public void Shavit_OnWorldRecord(int client, int style, float time, int jumps)
@@ -1859,7 +1881,7 @@ public void Shavit_OnFinish(int client)
 
 public Action Command_Drop(int client, const char[] command, int argc)
 {
-	if(!gB_DropAll)
+	if(!gB_DropAll || !IsValidClient(client))
 	{
 		return Plugin_Continue;
 	}

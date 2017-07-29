@@ -22,7 +22,6 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <cstrike>
-#include <dynamic>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -36,6 +35,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
 bool gB_MySQL = false;
+bool gB_DBReady = false;
 
 char gS_Map[128];
 
@@ -112,8 +112,9 @@ int gI_HaloSprite = -1;
 // admin menu
 Handle gH_AdminMenu = INVALID_HANDLE;
 
-// late load?
+// cache
 bool gB_Late = false;
+bool gB_Shavit = false;
 
 // cvars
 ConVar gCV_FlatZones = null;
@@ -224,9 +225,14 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	Shavit_GetDB(gH_SQL);
-	SQL_SetPrefix();
-	SetSQLInfo();
+	gB_Shavit = LibraryExists("shavit");
+
+	if(gB_Shavit)
+	{
+		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -267,6 +273,27 @@ Action SetSQLInfo()
 	}
 
 	return Plugin_Continue;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit"))
+	{
+		gB_Shavit = true;
+		
+		Shavit_GetDB(gH_SQL);
+		SQL_SetPrefix();
+		SetSQLInfo();
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit"))
+	{
+		gB_Shavit = false;
+		gH_SQL = null;
+	}
 }
 
 public void OnAdminMenuReady(Handle topmenu)
@@ -392,23 +419,23 @@ bool LoadZonesConfig()
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-zones.cfg");
 
-	Dynamic dZones = Dynamic();
-
-	if(!dZones.ReadKeyValues(sPath))
+	KeyValues kv = new KeyValues("shavit-zones");
+	
+	if(!kv.ImportFromFile(sPath))
 	{
-		dZones.Dispose();
+		delete kv;
 
 		return false;
 	}
 
-	Dynamic dSprites = dZones.GetDynamicByIndex((gEV_Type == Engine_CSS)? 0:1);
-	dSprites.GetString("beam", gS_Sprites[sBeamSprite], PLATFORM_MAX_PATH);
-	dSprites.GetString("halo", gS_Sprites[sHaloSprite], PLATFORM_MAX_PATH);
+	kv.JumpToKey((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
+	kv.GetString("beam", gS_Sprites[sBeamSprite], PLATFORM_MAX_PATH);
+	kv.GetString("halo", gS_Sprites[sHaloSprite], PLATFORM_MAX_PATH);
 
 	char[] sDownloads = new char[PLATFORM_MAX_PATH * 8];
-	dSprites.GetString("downloads", sDownloads, PLATFORM_MAX_PATH * 8);
+	kv.GetString("downloads", sDownloads, (PLATFORM_MAX_PATH * 8));
 
-	char[][] sDownloadsExploded = new char[PLATFORM_MAX_PATH][PLATFORM_MAX_PATH]; // we don't need more than 8 sprites ever
+	char[][] sDownloadsExploded = new char[PLATFORM_MAX_PATH][PLATFORM_MAX_PATH];
 	int iDownloads = ExplodeString(sDownloads, ";", sDownloadsExploded, PLATFORM_MAX_PATH, PLATFORM_MAX_PATH, false);
 
 	for(int i = 0; i < iDownloads; i++)
@@ -420,21 +447,27 @@ bool LoadZonesConfig()
 		}
 	}
 
-	Dynamic dColors = dZones.GetDynamicByIndex(2);
-	int iCount = dColors.MemberCount;
+	kv.GoBack();
+	kv.JumpToKey("Colors");
+	kv.JumpToKey("Start"); // A stupid and hacky way to achieve what I want. It works though.
 
-	for(int i = 0; i < iCount; i++)
+	int i = 0;
+
+	do
 	{
-		Dynamic dZoneSettings = dColors.GetDynamicByIndex(i);
-		gA_ZoneSettings[i][bVisible] = dZoneSettings.GetBool("visible", true);
-		gA_ZoneSettings[i][iRed] = dZoneSettings.GetInt("red", 255);
-		gA_ZoneSettings[i][iGreen] = dZoneSettings.GetInt("green", 255);
-		gA_ZoneSettings[i][iBlue] = dZoneSettings.GetInt("blue", 255);
-		gA_ZoneSettings[i][iAlpha] = dZoneSettings.GetInt("alpha", 255);
-		gA_ZoneSettings[i][fWidth] = dZoneSettings.GetFloat("width", 2.0);
+		gA_ZoneSettings[i][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
+		gA_ZoneSettings[i][iRed] = kv.GetNum("red", 255);
+		gA_ZoneSettings[i][iGreen] = kv.GetNum("green", 255);
+		gA_ZoneSettings[i][iBlue] = kv.GetNum("blue", 255);
+		gA_ZoneSettings[i][iAlpha] = kv.GetNum("alpha", 255);
+		gA_ZoneSettings[i][fWidth] = kv.GetFloat("width", 2.0);
+
+		i++;
 	}
 
-	dZones.Dispose(true);
+	while(kv.GotoNextKey(false));
+
+	delete kv;
 
 	return true;
 }
@@ -446,7 +479,7 @@ public void OnMapStart()
 	gI_MapZones = 0;
 	UnloadZones(0);
 
-	if(gH_SQL != null)
+	if(gH_SQL != null && gB_DBReady)
 	{
 		RefreshZones();
 	}
@@ -516,8 +549,12 @@ void ClearZone(int index)
 
 void KillZoneEntity(int index)
 {
-	if(gA_ZoneCache[index][iEntityID] != -1 && IsValidEntity(gA_ZoneCache[index][iEntityID]))
+	if(IsValidEntity(gA_ZoneCache[index][iEntityID]))
 	{
+		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
+		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
+		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_TouchPost, TouchPost);
+		
 		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
 	}
 }
@@ -545,7 +582,11 @@ void UnloadZones(int zone)
 					}
 				}
 
-				KillZoneEntity(i);
+				if(gA_ZoneCache[i][iEntityID] != -1)
+				{
+					KillZoneEntity(i);
+				}
+
 				ClearZone(i);
 			}
 		}
@@ -581,6 +622,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 
+	gB_DBReady = true;
 	gI_MapZones = 0;
 
 	while(results.FetchRow())
@@ -1327,7 +1369,7 @@ bool AreVectorsEqual(float vec1[3], float vec2[3])
 	return (vec1[0] == vec2[0] && vec1[1] == vec2[1] && vec1[2] == vec2[2]);
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status)
 {
 	if(!IsPlayerAlive(client) || IsFakeClient(client))
 	{
@@ -1972,6 +2014,12 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
+
+	else
+	{
+		// we have a database, time to load zones
+		RefreshZones();
+	}
 }
 
 
@@ -1983,9 +2031,6 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
-
-	// we have a database, time to load zones
-	RefreshZones();
 }
 
 public void Shavit_OnRestart(int client)
@@ -2099,10 +2144,6 @@ public void CreateZoneEntities()
 		if(gA_ZoneCache[i][iEntityID] != -1)
 		{
 			KillZoneEntity(i);
-
-			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
-			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
-			SDKUnhook(gA_ZoneCache[i][iEntityID], SDKHook_TouchPost, TouchPost);
 
 			gA_ZoneCache[i][iEntityID] = -1;
 		}
