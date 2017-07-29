@@ -498,11 +498,6 @@ public void Shavit_OnChatConfigLoaded()
 
 bool LoadReplay(int style, int track)
 {
-	if(!ReplayEnabled(style))
-	{
-		return false;
-	}
-
 	char[] sTrack = new char[4];
 	FormatEx(sTrack, 4, "_%d", track);
 
@@ -577,11 +572,6 @@ bool LoadReplay(int style, int track)
 
 bool SaveReplay(int style, int track)
 {
-	if(!ReplayEnabled(style))
-	{
-		return false;
-	}
-
 	char[] sTrack = new char[4];
 	FormatEx(sTrack, 4, "_%d", track);
 
@@ -629,11 +619,6 @@ bool SaveReplay(int style, int track)
 
 bool DeleteReplay(int style, int track)
 {
-	if(!ReplayEnabled(style))
-	{
-		return false;
-	}
-
 	char[] sTrack = new char[4];
 	FormatEx(sTrack, 4, "_%d", track);
 
@@ -861,7 +846,7 @@ public void Shavit_OnStop(int client)
 	ClearFrames(client);
 }
 
-public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
+public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
 {
 	float fWRTime = 0.0;
 	Shavit_GetWRTime(style, fWRTime, track);
