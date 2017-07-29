@@ -189,14 +189,6 @@
 	{
 		"en"		"You may not place a destination inside the teleport zone."
 	}
-	"ZoneEditMain"
-	{
-		"en"		"Main"
-	}
-	"ZoneEditBonus"
-	{
-		"en"		"Bonus"
-	}
 	"ZoneEditTrack"
 	{
 		"#format"	"{1:s}"

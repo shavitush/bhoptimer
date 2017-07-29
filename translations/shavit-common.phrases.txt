@@ -1,0 +1,16 @@
+"Phrases"
+{
+	// ---------- Tracks ---------- //
+	"Track_Unknown"
+	{
+		"en"		"UNKNOWN TRACK"
+	}
+	"Track_0"
+	{
+		"en"		"Main"
+	}
+	"Track_1"
+	{
+		"en"		"Bonus"
+	}
+}

@@ -179,6 +179,7 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-zones.phrases");
 
 	// game specific
@@ -1485,33 +1486,24 @@ int CycleTracks(int track)
 {
 	if(++track >= TRACKS_SIZE)
 	{
-		return Track_Main;
+		return 0;
 	}
 
 	return track;
 }
 
-int GetTrackName(int client, int track, char[] output, int size)
+void GetTrackName(int client, int track, char[] output, int size)
 {
-	switch(track)
+	if(track < 0 || track >= TRACKS_SIZE)
 	{
-		case Track_Main:
-		{
-			FormatEx(output, size, "%T", "ZoneEditMain", client);
-		}
+		FormatEx(output, size, "%T", "Track_Unknown", client);
 
-		case Track_Bonus:
-		{
-			FormatEx(output, size, "%T", "ZoneEditBonus", client);
-		}
-
-		default:
-		{
-			strcopy(output, size, "ERROR");
-		}
+		return;
 	}
 
-	return 0; // unnecessary, but the compiler threw warnings when this function was a void
+	static char sTrack[16];
+	FormatEx(sTrack, 16, "Track_%d", track);
+	FormatEx(output, size, "%s", "%T", sTrack, client);
 }
 
 void UpdateTeleportZone(int client)
@@ -1546,16 +1538,7 @@ void UpdateTeleportZone(int client)
 void CreateEditMenu(int client)
 {
 	char[] sTrack = new char[32];
-	
-	if(gI_ZoneTrack[client] == Track_Main)
-	{
-		FormatEx(sTrack, 32, "%T", "ZoneEditMain", client);
-	}
-
-	else
-	{
-		FormatEx(sTrack, 32, "%T", "ZoneEditBonus", client);
-	}
+	GetTrackName(client, gI_ZoneTrack[client], sTrack, 32);
 
 	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
 	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
