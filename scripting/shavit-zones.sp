@@ -2165,16 +2165,18 @@ public void CreateZoneEntities()
 		float distance_y = Abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]);
 		float distance_z = Abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]);
 
+		float height = ((gEV_Type == Engine_CSS)? 62.0:72.0) / 2;
+
 		float min[3];
 		min[0] = -(distance_x / 2) + 16.0;
 		min[1] = -(distance_y / 2) + 16.0;
-		min[2] = -(distance_z / 2) + 36.0;
+		min[2] = -(distance_z / 2) + height;
 		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
 
 		float max[3];
 		max[0] = (distance_x / 2) - 16.0;
 		max[1] = (distance_y / 2) - 16.0;
-		max[2] = (distance_z / 2) - 36.0;
+		max[2] = (distance_z / 2) - height;
 		SetEntPropVector(entity, Prop_Send, "m_vecMaxs", max);
 
 		SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
