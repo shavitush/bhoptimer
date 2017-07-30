@@ -281,7 +281,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
 	#endif
 
-	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
+	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", (FCVAR_NOTIFY|FCVAR_DONTRECORD));
 
 	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?\nWill be forced to not work if STYLE_AUTOBHOP is not defined for a style!", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	gCV_LeftRight = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", 0, true, 0.0, true, 1.0);
@@ -765,15 +765,20 @@ void ChangeClientStyle(int client, int style)
 	Call_PushCell(gI_Track[client]);
 	Call_Finish();
 
-	gBS_Style[client] = style;
-	UpdateAutoBhop(client);
-
 	Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 
 	if(gA_StyleSettings[style][bUnranked])
 	{
 		Shavit_PrintToChat(client, "%T", "UnrankedWarning", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
+
+	if(gA_StyleSettings[gBS_Style[client]][iAiraccelerate] != gA_StyleSettings[style][iAiraccelerate])
+	{
+		Shavit_PrintToChat(client, "%T", "NewAiraccelerate", client, gA_StyleSettings[gBS_Style[client]][iAiraccelerate], gS_ChatStrings[sMessageVariable], gA_StyleSettings[style][iAiraccelerate], gS_ChatStrings[sMessageText]);
+	}	
+
+	gBS_Style[client] = style;
+	UpdateAutoBhop(client);
 
 	StopTimer(client);
 
