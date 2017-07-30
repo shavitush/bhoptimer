@@ -844,10 +844,9 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 public void OnClientPutInServer(int client)
 {
-	gBS_Style[client] = Shavit_GetBhopStyle(client);
-
 	if(!AreClientCookiesCached(client))
 	{
+		gBS_Style[client] = Shavit_GetBhopStyle(client);
 		gB_Hide[client] = false;
 		gI_CheckpointsSettings[client] = CP_DEFAULT;
 	}
@@ -998,6 +997,10 @@ public Action Command_Hide(int client, int args)
 	}
 
 	gB_Hide[client] = !gB_Hide[client];
+
+	char[] sCookie = new char[4];
+	IntToString(view_as<int>(gB_Hide[client]), sCookie, 4);
+	SetClientCookie(client, gH_HideCookie, sCookie);
 
 	if(gB_Hide[client])
 	{
