@@ -101,7 +101,6 @@ ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
-ConVar gCV_ForceBunnyhopping = null;
 
 // cached cvars
 bool gB_Autobhop = true;
@@ -112,7 +111,6 @@ bool gB_NoStaminaReset = true;
 bool gB_AllowTimerWithoutZone = false;
 bool gB_BlockPreJump = true;
 bool gB_NoZAxisSpeed = true;
-bool gB_ForceBunnyhopping = false;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -121,7 +119,6 @@ char gS_MySQLPrefix[32];
 ConVar sv_airaccelerate = null;
 ConVar sv_autobunnyhopping = null;
 ConVar sv_enablebunnyhopping = null;
-float gF_LastAA = 1000.0; // cache
 
 // timer settings
 bool gB_Registered = false;
@@ -291,7 +288,6 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
-	gCV_ForceBunnyhopping = CreateConVar("shavit_core_forcebunnyhopping", "0", "Lock the value of sv_enablebunnyhopping to 1? DO NOT use if your server has _strafe maps! Change maps to apply changes.", 0, true, 0.0, true, 1.0);
 
 	gCV_Autobhop.AddChangeHook(OnConVarChanged);
 	gCV_LeftRight.AddChangeHook(OnConVarChanged);
@@ -301,7 +297,6 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone.AddChangeHook(OnConVarChanged);
 	gCV_BlockPreJump.AddChangeHook(OnConVarChanged);
 	gCV_NoZAxisSpeed.AddChangeHook(OnConVarChanged);
-	gCV_ForceBunnyhopping.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -309,6 +304,7 @@ public void OnPluginStart()
 	sv_airaccelerate.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 
 	sv_enablebunnyhopping = FindConVar("sv_enablebunnyhopping");
+	sv_enablebunnyhopping.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 
 	// late
 	if(gB_Late)
@@ -338,7 +334,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_AllowTimerWithoutZone = gCV_AllowTimerWithoutZone.BoolValue;
 	gB_BlockPreJump = gCV_BlockPreJump.BoolValue;
 	gB_NoZAxisSpeed = gCV_NoZAxisSpeed.BoolValue;
-	gB_ForceBunnyhopping = gCV_ForceBunnyhopping.BoolValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -415,15 +410,6 @@ public void OnMapStart()
 	{
 		Call_StartForward(gH_Forwards_OnChatConfigLoaded);
 		Call_Finish();
-	}
-}
-
-public void OnConfigsExecuted()
-{
-	if(sv_enablebunnyhopping != null && gB_ForceBunnyhopping)
-	{
-		sv_enablebunnyhopping.BoolValue = true;
-		sv_enablebunnyhopping.SetBounds(ConVarBound_Lower, true, 1.0);
 	}
 }
 
@@ -784,6 +770,7 @@ void ChangeClientStyle(int client, int style)
 
 	UpdateAutoBhop(client);
 	UpdateAiraccelerate(client);
+	UpdateBunnyhopping(client);
 
 	StopTimer(client);
 
@@ -1347,6 +1334,7 @@ public void OnClientCookiesCached(int client)
 
 	UpdateAutoBhop(client);
 	UpdateAiraccelerate(client);
+	UpdateBunnyhopping(client);
 }
 
 public void OnClientPutInServer(int client)
@@ -1374,10 +1362,11 @@ public void OnClientPutInServer(int client)
 	else
 	{
 		gBS_Style[client] = 0;
-	}
 
-	UpdateAutoBhop(client);
-	UpdateAiraccelerate(client);
+		UpdateAutoBhop(client);
+		UpdateAiraccelerate(client);
+		UpdateBunnyhopping(client);
+	}
 
 	if(gH_SQL == null)
 	{
@@ -1468,6 +1457,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][bPrespeed] = view_as<bool>(kv.GetNum("prespeed", 0));
 		gA_StyleSettings[i][fVelocityLimit] = kv.GetFloat("velocity_limit", 0.0);
 		gA_StyleSettings[i][fAiraccelerate] = kv.GetFloat("airaccelerate", 1000.0);
+		gA_StyleSettings[i][bEnableBunnyhopping] = view_as<bool>(kv.GetNum("bunnyhopping", 1));
 		gA_StyleSettings[i][fRunspeed] = kv.GetFloat("runspeed", 260.00);
 		gA_StyleSettings[i][fGravityMultiplier] = kv.GetFloat("gravity", 1.0);
 		gA_StyleSettings[i][fSpeedMultiplier] = kv.GetFloat("speed", 1.0);
@@ -1718,11 +1708,8 @@ public void PreThinkPost(int client)
 {
 	if(IsPlayerAlive(client))
 	{
-		// this is in a different statement because i plan to add sv_enablebunnyhopping here too
-		if(gF_LastAA != gA_StyleSettings[gBS_Style[client]][fAiraccelerate])
-		{
-			sv_airaccelerate.FloatValue = gF_LastAA = gA_StyleSettings[gBS_Style[client]][fAiraccelerate];
-		}
+		sv_airaccelerate.FloatValue = gA_StyleSettings[gBS_Style[client]][fAiraccelerate];
+		sv_enablebunnyhopping.BoolValue = gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping];
 	}
 }
 
@@ -2055,10 +2042,13 @@ void UpdateAutoBhop(int client)
 
 void UpdateAiraccelerate(int client)
 {
-	if(sv_airaccelerate != null)
-	{
-		char[] sAiraccelerate = new char[8];
-		FloatToString(gA_StyleSettings[gBS_Style[client]][fAiraccelerate], sAiraccelerate, 8);
-		sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
-	}
+	char[] sAiraccelerate = new char[8];
+	FloatToString(gA_StyleSettings[gBS_Style[client]][fAiraccelerate], sAiraccelerate, 8);
+	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+}
+
+void UpdateBunnyhopping(int client)
+{
+	// No null check here. Pre-OB - no support.
+	sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping])? "1":"0");
 }
