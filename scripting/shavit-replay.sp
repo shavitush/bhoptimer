@@ -1491,7 +1491,7 @@ void OpenReplaySubMenu(int client, int track)
 		menu.AddItem("-1", "ERROR");
 	}
 
-	else if(menu.ItemCount <= ((gEV_Type == Engine_CSS)? 9:8))
+	else if(menu.ItemCount <= ((gEV_Type == Engine_CSS)? 8:7))
 	{
 		menu.Pagination = MENU_NO_PAGINATION;
 	}
