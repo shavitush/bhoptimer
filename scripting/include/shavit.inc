@@ -83,7 +83,7 @@ enum
 	bEasybhop,
 	bPrespeed,
 	fVelocityLimit,
-	iAiraccelerate,
+	fAiraccelerate,
 	fRunspeed,
 	fGravityMultiplier,
 	fSpeedMultiplier,

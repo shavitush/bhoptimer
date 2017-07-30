@@ -121,7 +121,7 @@ char gS_MySQLPrefix[32];
 ConVar sv_airaccelerate = null;
 ConVar sv_autobunnyhopping = null;
 ConVar sv_enablebunnyhopping = null;
-int gI_LastAA = 100; // cache
+float gF_LastAA = 1000.0; // cache
 
 // timer settings
 bool gB_Registered = false;
@@ -306,7 +306,7 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	sv_airaccelerate = FindConVar("sv_airaccelerate");
-	sv_airaccelerate.Flags &= ~FCVAR_NOTIFY;
+	sv_airaccelerate.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 
 	sv_enablebunnyhopping = FindConVar("sv_enablebunnyhopping");
 
@@ -772,13 +772,18 @@ void ChangeClientStyle(int client, int style)
 		Shavit_PrintToChat(client, "%T", "UnrankedWarning", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][iAiraccelerate] != gA_StyleSettings[style][iAiraccelerate])
+	int aa_old = RoundToZero(gA_StyleSettings[gBS_Style[client]][fAiraccelerate]);
+	int aa_new = RoundToZero(gA_StyleSettings[style][fAiraccelerate]);
+
+	if(aa_old != aa_new)
 	{
-		Shavit_PrintToChat(client, "%T", "NewAiraccelerate", client, gA_StyleSettings[gBS_Style[client]][iAiraccelerate], gS_ChatStrings[sMessageVariable], gA_StyleSettings[style][iAiraccelerate], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "NewAiraccelerate", client, aa_old, gS_ChatStrings[sMessageVariable], aa_new, gS_ChatStrings[sMessageText]);
 	}	
 
 	gBS_Style[client] = style;
+
 	UpdateAutoBhop(client);
+	UpdateAiraccelerate(client);
 
 	StopTimer(client);
 
@@ -1341,6 +1346,7 @@ public void OnClientCookiesCached(int client)
 	gBS_Style[client] = (style >= 0 && style < gI_Styles)? style:0;
 
 	UpdateAutoBhop(client);
+	UpdateAiraccelerate(client);
 }
 
 public void OnClientPutInServer(int client)
@@ -1359,19 +1365,26 @@ public void OnClientPutInServer(int client)
 	gB_PracticeMode[client] = false;
 	gI_SHSW_FirstCombination[client] = -1;
 	gI_Track[client] = 0;
-	UpdateAutoBhop(client);
 
 	if(AreClientCookiesCached(client))
 	{
 		OnClientCookiesCached(client);
 	}
 
+	else
+	{
+		gBS_Style[client] = 0;
+	}
+
+	UpdateAutoBhop(client);
+	UpdateAiraccelerate(client);
+
 	if(gH_SQL == null)
 	{
 		return;
 	}
 
-	SDKHook(client, SDKHook_PreThink, PreThink);
+	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
 
 	char[] sAuthID3 = new char[32];
 
@@ -1454,7 +1467,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][bEasybhop] = view_as<bool>(kv.GetNum("easybhop", 1));
 		gA_StyleSettings[i][bPrespeed] = view_as<bool>(kv.GetNum("prespeed", 0));
 		gA_StyleSettings[i][fVelocityLimit] = kv.GetFloat("velocity_limit", 0.0);
-		gA_StyleSettings[i][iAiraccelerate] = kv.GetNum("airaccelerate", 1000);
+		gA_StyleSettings[i][fAiraccelerate] = kv.GetFloat("airaccelerate", 1000.0);
 		gA_StyleSettings[i][fRunspeed] = kv.GetFloat("runspeed", 260.00);
 		gA_StyleSettings[i][fGravityMultiplier] = kv.GetFloat("gravity", 1.0);
 		gA_StyleSettings[i][fSpeedMultiplier] = kv.GetFloat("speed", 1.0);
@@ -1701,11 +1714,15 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 	}
 }
 
-public void PreThink(int client)
+public void PreThinkPost(int client)
 {
-	if(IsPlayerAlive(client) && gI_LastAA != gA_StyleSettings[gBS_Style[client]][iAiraccelerate])
+	if(IsPlayerAlive(client))
 	{
-		sv_airaccelerate.IntValue = gI_LastAA = gA_StyleSettings[gBS_Style[client]][iAiraccelerate];
+		// this is in a different statement because i plan to add sv_enablebunnyhopping here too
+		if(gF_LastAA != gA_StyleSettings[gBS_Style[client]][fAiraccelerate])
+		{
+			sv_airaccelerate.FloatValue = gF_LastAA = gA_StyleSettings[gBS_Style[client]][fAiraccelerate];
+		}
 	}
 }
 
@@ -2033,5 +2050,15 @@ void UpdateAutoBhop(int client)
 	if(sv_autobunnyhopping != null)
 	{
 		sv_autobunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client])? "1":"0");
+	}
+}
+
+void UpdateAiraccelerate(int client)
+{
+	if(sv_airaccelerate != null)
+	{
+		char[] sAiraccelerate = new char[8];
+		FloatToString(gA_StyleSettings[gBS_Style[client]][fAiraccelerate], sAiraccelerate, 8);
+		sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
 	}
 }
