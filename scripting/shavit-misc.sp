@@ -189,7 +189,7 @@ public void OnPluginStart()
 
 	// cache
 	gEV_Type = GetEngineVersion();
-	
+
 	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
 
 	sv_footsteps = FindConVar("sv_footsteps");
@@ -868,6 +868,8 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
+	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
+	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 
 	if(IsFakeClient(client))
 	{
@@ -882,9 +884,6 @@ public void OnClientPutInServer(int client)
 
 		UpdateFootsteps(client);
 	}
-
-	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 
 	if(gH_GetPlayerMaxSpeed != null)
 	{
