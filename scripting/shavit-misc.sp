@@ -69,7 +69,9 @@ enum
 };
 
 // cache
-ConVar sv_disable_immunity_alpha;
+ConVar sv_disable_immunity_alpha = null;
+ConVar sv_footsteps = null;
+
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gI_GroundEntity[MAXPLAYERS+1];
@@ -187,6 +189,12 @@ public void OnPluginStart()
 	// cache
 	gEV_Type = GetEngineVersion();
 	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
+
+	if(gEV_Type == Engine_CSS) // doesn't exist in CS:GO :/
+	{
+		sv_footsteps = FindConVar("sv_footsteps");
+		sv_footsteps.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
+	}
 
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
@@ -339,7 +347,7 @@ public void OnPluginStart()
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(IsValidClient(i))
+			if(IsValidClient(i) && !IsFakeClient(i))
 			{
 				OnClientPutInServer(i);
 
@@ -367,6 +375,8 @@ public void OnClientCookiesCached(int client)
 	{
 		gB_Hide[client] = view_as<bool>(StringToInt(sSetting));
 	}
+
+	UpdateFootsteps(client);
 
 	GetClientCookie(client, gH_CheckpointsCookie, sSetting, 8);
 
@@ -857,6 +867,8 @@ public void OnClientPutInServer(int client)
 		gBS_Style[client] = Shavit_GetBhopStyle(client);
 		gB_Hide[client] = false;
 		gI_CheckpointsSettings[client] = CP_DEFAULT;
+
+		UpdateFootsteps(client);
 	}
 
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
@@ -1009,6 +1021,7 @@ public Action Command_Hide(int client, int args)
 	}
 
 	gB_Hide[client] = !gB_Hide[client];
+	UpdateFootsteps(client);
 
 	char[] sCookie = new char[4];
 	IntToString(view_as<int>(gB_Hide[client]), sCookie, 4);
@@ -1962,6 +1975,16 @@ public Action Command_Drop(int client, const char[] command, int argc)
 	}
 
 	return Plugin_Handled;
+}
+
+void UpdateFootsteps(int client)
+{
+	if(sv_footsteps != null)
+	{
+		char[] sFootsteps = new char[4];
+		IntToString((gB_Hide[client])? 0:sv_footsteps.IntValue, sFootsteps, 4);
+		sv_footsteps.ReplicateToClient(client, sFootsteps);
+	}
 }
 
 bool IsNullVector(float vec[3])
