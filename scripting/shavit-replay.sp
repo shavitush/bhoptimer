@@ -963,7 +963,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			if(gRS_ReplayStatus[style] != Replay_Running)
 			{
-				int iFrame = (gRS_ReplayStatus[style] == Replay_Start)? 0:(gI_FrameCount[style][track] - 1);
+				bool bStart = (gRS_ReplayStatus[style] == Replay_Start);
+
+				int iFrame = (bStart)? 0:(gI_FrameCount[style][track] - 1);
 
 				vecPosition[0] = gA_Frames[style][track].Get(iFrame, 0);
 				vecPosition[1] = gA_Frames[style][track].Get(iFrame, 1);
@@ -971,8 +973,19 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				vecAngles[0] = gA_Frames[style][track].Get(iFrame, 3);
 				vecAngles[1] = gA_Frames[style][track].Get(iFrame, 4);
+				
+				if(bStart)
+				{
+					TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
+				}
 
-				TeleportEntity(client, vecPosition, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
+				else
+				{
+					float vecVelocity[3];
+					MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
+					ScaleVector(vecVelocity, gF_Tickrate);
+					TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
+				}
 
 				return Plugin_Changed;
 			}
