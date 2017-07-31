@@ -574,18 +574,21 @@ void UnloadZones(int zone)
 		{
 			if(zone == 0 || gA_ZoneCache[i][iZoneType] == zone)
 			{
-				for(int j = 1; j <= MaxClients; j++)
+				if(gA_ZoneCache[i][bZoneInitialized])
 				{
-					if(IsValidClient(j))
+					for(int j = 1; j <= MaxClients; j++)
 					{
-						gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
-						gB_InsideZoneID[j][gI_EntityZone[i]] = false;
+						if(IsValidClient(j))
+						{
+							gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
+							gB_InsideZoneID[j][gI_EntityZone[i]] = false;
+						}
 					}
-				}
 
-				if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneCache[i][iEntityID] != -1)
-				{
-					KillZoneEntity(i);
+					if(gA_ZoneCache[i][iEntityID] != -1)
+					{
+						KillZoneEntity(i);
+					}
 				}
 
 				ClearZone(i);

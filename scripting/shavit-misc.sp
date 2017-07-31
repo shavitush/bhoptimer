@@ -75,6 +75,7 @@ ConVar sv_footsteps = null;
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gI_GroundEntity[MAXPLAYERS+1];
+int gI_LastShot[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
@@ -253,6 +254,7 @@ public void OnPluginStart()
 	HookEvent("player_death", Player_Notifications, EventHookMode_Pre);
 	HookEvent("weapon_fire", Weapon_Fire);
 	AddCommandListener(Command_Drop, "drop");
+	AddTempEntHook("Shotgun Shot", Shotgun_Shot);
 
 	// phrases
 	LoadTranslations("common.phrases");
@@ -347,7 +349,7 @@ public void OnPluginStart()
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(IsValidClient(i) && !IsFakeClient(i))
+			if(IsValidClient(i))
 			{
 				OnClientPutInServer(i);
 
@@ -366,7 +368,7 @@ public void OnClientCookiesCached(int client)
 	{
 		return;
 	}
-	
+
 	char[] sSetting = new char[8];
 	GetClientCookie(client, gH_HideCookie, sSetting, 8);
 
@@ -867,6 +869,8 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 public void OnClientPutInServer(int client)
 {
+	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
+
 	if(IsFakeClient(client))
 	{
 		return;
@@ -882,7 +886,6 @@ public void OnClientPutInServer(int client)
 	}
 
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
-	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 
 	if(gH_GetPlayerMaxSpeed != null)
@@ -1957,6 +1960,62 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 
 		SetWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"));
 	}
+}
+
+public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numClients, float delay)
+{
+	int client = (TE_ReadNum("m_iPlayer") + 1);
+	int ticks = GetGameTickCount();
+
+	if(gI_LastShot[client] == ticks)
+	{
+		return Plugin_Continue;
+	}
+
+	gI_LastShot[client] = ticks;
+
+	int[] clients = new int[MaxClients];
+	int count = 0;
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(!IsValidClient(i) || i == client || gB_Hide[i])
+		{
+			continue;
+		}
+
+		if(IsClientObserver(i) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client)
+		{
+			// recycling code from shavit-hud~
+			int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
+
+			if(iObserverMode >= 3 && iObserverMode <= 5)
+			{
+				clients[count++] = i;
+			}
+		}
+	}
+
+	if(numClients == count)
+	{
+		return Plugin_Continue;
+	}
+
+	float temp[3];
+	TE_Start("Shotgun Shot");
+	TE_ReadVector("m_vecOrigin", temp);
+	TE_WriteVector("m_vecOrigin", temp);
+	TE_WriteFloat("m_vecAngles[0]", TE_ReadFloat("m_vecAngles[0]"));
+	TE_WriteFloat("m_vecAngles[1]", TE_ReadFloat("m_vecAngles[1]"));
+	TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
+	TE_WriteNum("m_iMode", TE_ReadNum("m_iMode"));
+	TE_WriteNum("m_iSeed", TE_ReadNum("m_iSeed"));
+	TE_WriteNum("m_iPlayer", (client - 1));
+	TE_WriteFloat("m_fInaccuracy", TE_ReadFloat("m_fInaccuracy"));
+	TE_WriteFloat("m_fSpread", TE_ReadFloat("m_fSpread"));
+	TE_Send(clients, count, delay);
+
+	return Plugin_Stop;
 }
 
 public void Shavit_OnFinish(int client)
