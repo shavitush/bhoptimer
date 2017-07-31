@@ -189,13 +189,11 @@ public void OnPluginStart()
 
 	// cache
 	gEV_Type = GetEngineVersion();
+	
 	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
 
-	if(gEV_Type == Engine_CSS) // doesn't exist in CS:GO :/
-	{
-		sv_footsteps = FindConVar("sv_footsteps");
-		sv_footsteps.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
-	}
+	sv_footsteps = FindConVar("sv_footsteps");
+	sv_footsteps.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
