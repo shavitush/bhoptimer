@@ -362,6 +362,11 @@ public void OnPluginStart()
 
 public void OnClientCookiesCached(int client)
 {
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+	
 	char[] sSetting = new char[8];
 	GetClientCookie(client, gH_HideCookie, sSetting, 8);
 
@@ -862,6 +867,11 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 public void OnClientPutInServer(int client)
 {
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+
 	if(!AreClientCookiesCached(client))
 	{
 		gBS_Style[client] = Shavit_GetBhopStyle(client);

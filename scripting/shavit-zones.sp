@@ -572,18 +572,18 @@ void UnloadZones(int zone)
 	{
 		for(int i = 0; i < MAX_ZONES; i++)
 		{
-			if(gA_ZoneCache[i][bZoneInitialized] && (zone == 0 || gA_ZoneCache[i][iZoneType] == zone))
+			if(zone == 0 || gA_ZoneCache[i][iZoneType] == zone)
 			{
 				for(int j = 1; j <= MaxClients; j++)
 				{
-					if(IsValidClient(j) && gB_InsideZoneID[j][i]) // no alive check because it may happen to dead players too
+					if(IsValidClient(j))
 					{
 						gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
-						gB_InsideZoneID[j][i] = false;
+						gB_InsideZoneID[j][gI_EntityZone[i]] = false;
 					}
 				}
 
-				if(gA_ZoneCache[i][iEntityID] != -1)
+				if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneCache[i][iEntityID] != -1)
 				{
 					KillZoneEntity(i);
 				}
@@ -1697,7 +1697,7 @@ void InsertZone(int client)
 			}
 		}
 
-		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f' WHERE %s = %d;", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
+		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', track = %d WHERE %s = %d;", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gI_ZoneTrack[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}
 
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
