@@ -614,6 +614,18 @@ public Action Command_Junk(int client, int args)
 }
 #endif
 
+int GetTrackRecordCount(int track)
+{
+	int count = 0;
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		count += gI_RecordAmount[i][track];
+	}
+
+	return count;
+}
+
 public Action Command_Delete(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -621,6 +633,54 @@ public Action Command_Delete(int client, int args)
 		return Plugin_Handled;
 	}
 
+	Menu menu = new Menu(MenuHandler_Delete_First);
+	menu.SetTitle("%T\n ", "DeleteTrackSingle", client);
+
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
+
+		int records = GetTrackRecordCount(i);
+
+		char[] sTrack = new char[64];
+		GetTrackName(client, i, sTrack, 64);
+
+		if(records > 0)
+		{
+			Format(sTrack, 64, "%s (%T: %d)", sTrack, "WRRecord", client, records);
+		}
+
+		menu.AddItem(sInfo, sTrack, (records > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, 20);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
+		gI_LastTrack[param1] = StringToInt(info);
+
+		DeleteSubmenu(param1);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void DeleteSubmenu(int client)
+{
 	Menu menu = new Menu(MenuHandler_Delete);
 	menu.SetTitle("%T\n ", "DeleteMenuTitle", client);
 
@@ -629,13 +689,14 @@ public Action Command_Delete(int client, int args)
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
+		char[] sDisplay = new char[64];
+		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i][sStyleName], "WRRecord", client, gI_RecordAmount[i][gI_LastTrack[client]]);
+
 		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
 	}
 
 	menu.ExitButton = true;
 	menu.Display(client, 20);
-
-	return Plugin_Handled;
 }
 
 public Action Command_DeleteAll(int client, int args)
@@ -645,11 +706,62 @@ public Action Command_DeleteAll(int client, int args)
 		return Plugin_Handled;
 	}
 
+	Menu menu = new Menu(MenuHandler_DeleteAll_First);
+	menu.SetTitle("%T\n ", "DeleteTrackAll", client);
+
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
+
+		int records = GetTrackRecordCount(i);
+
+		char[] sTrack = new char[64];
+		GetTrackName(client, i, sTrack, 64);
+
+		if(records > 0)
+		{
+			Format(sTrack, 64, "%s (%T: %d)", sTrack, "WRRecord", client, records);
+		}
+
+		menu.AddItem(sInfo, sTrack, (records > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, 20);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] info = new char[16];
+		menu.GetItem(param2, info, 16);
+		gI_LastTrack[param1] = StringToInt(info);
+
+		DeleteAllSubmenu(param1);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void DeleteAllSubmenu(int client)
+{
 	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
 	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
 
+	char[] sTrack = new char[32];
+	GetTrackName(client, gI_LastTrack[client], sTrack, 32);
+
 	Menu menu = new Menu(MenuHandler_DeleteAll);
-	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, sDisplayMap);
+	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, sDisplayMap, sTrack);
 
 	char[] sMenuItem = new char[64];
 
@@ -670,8 +782,6 @@ public Action Command_DeleteAll(int client, int args)
 
 	menu.ExitButton = true;
 	menu.Display(client, 20);
-
-	return Plugin_Handled;
 }
 
 public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int param2)
@@ -689,7 +799,7 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 		}
 
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND track = %d;", gS_MySQLPrefix, gS_Map, gI_LastTrack[param1]);
 
 		gH_SQL.Query(DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
@@ -870,12 +980,12 @@ public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const 
 	Shavit_PrintToChat(client, "%T", "DeletedRecordsStyle", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
 }
 
-public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
+public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char[] info = new char[16];
-		m.GetItem(param2, info, 16);
+		menu.GetItem(param2, info, 16);
 
 		OpenDelete(param1, StringToInt(info));
 
@@ -884,7 +994,7 @@ public int MenuHandler_Delete(Menu m, MenuAction action, int param1, int param2)
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
@@ -894,7 +1004,7 @@ void OpenDelete(int client, int style)
 {
 	char[] sQuery = new char[512];
 
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = '%d' ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style);
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style, gI_LastTrack[client]);
 	DataPack datapack = new DataPack();
 	datapack.WriteCell(GetClientSerial(client));
 	datapack.WriteCell(style);
@@ -1112,6 +1222,13 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		OnClientPutInServer(i);
 	}
 
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		if(gA_StyleSettings[i][bUnranked])
@@ -1119,21 +1236,11 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 			continue;
 		}
 
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			Call_StartForward(gH_OnWRDeleted);
-			Call_PushCell(i);
-			Call_PushCell(-1);
-			Call_PushCell(j);
-			Call_Finish();
-		}
-	}
-
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
+		Call_StartForward(gH_OnWRDeleted);
+		Call_PushCell(i);
+		Call_PushCell(-1);
+		Call_PushCell(gI_LastTrack[client]);
+		Call_Finish();
 	}
 
 	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings[sMessageVariable], gS_Map, gS_ChatStrings[sMessageText]);
