@@ -115,6 +115,7 @@ ConVar gCV_Checkpoints = null;
 ConVar gCV_RemoveRagdolls = null;
 ConVar gCV_ClanTag = null;
 ConVar gCV_DropAll = null;
+ConVar gCV_ResetTargetname = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -142,6 +143,7 @@ int gI_RemoveRagdolls = 1;
 char gS_ClanTag[32] = "{styletag} :: {time}";
 bool gB_ClanTag = true;
 bool gB_DropAll = true;
+bool gB_ResetTargetname = true;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -277,6 +279,7 @@ public void OnPluginStart()
 	gCV_RemoveRagdolls = CreateConVar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
 	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style settings from shavit-styles.cfg.\n{style} - style name.\n{time} - formatted time.", 0);
 	gCV_DropAll = CreateConVar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
+	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "1", "Reset the player's targetname upon timer start?\nRecommended to leave enabled. Disable via per-map configs if it's problematic.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -302,6 +305,7 @@ public void OnPluginStart()
 	gCV_RemoveRagdolls.AddChangeHook(OnConVarChanged);
 	gCV_ClanTag.AddChangeHook(OnConVarChanged);
 	gCV_DropAll.AddChangeHook(OnConVarChanged);
+	gCV_ResetTargetname.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -440,6 +444,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_RemoveRagdolls = gCV_RemoveRagdolls.IntValue;
 	gCV_ClanTag.GetString(gS_ClanTag, 32);
 	gB_DropAll = gCV_DropAll.BoolValue;
+	gB_ResetTargetname = gCV_ResetTargetname.BoolValue;
 
 	gB_ClanTag = !StrEqual(gS_ClanTag, "0");
 }
@@ -1700,6 +1705,11 @@ public Action Shavit_OnStart(int client)
 	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
+	}
+
+	if(gB_ResetTargetname)
+	{
+		DispatchKeyValue(client, "targetname", "");
 	}
 
 	return Plugin_Continue;
