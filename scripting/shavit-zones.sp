@@ -552,11 +552,11 @@ void KillZoneEntity(int index)
 {
 	if(IsValidEntity(gA_ZoneCache[index][iEntityID]))
 	{
+		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
+
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_TouchPost, TouchPost);
-		
-		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
 	}
 }
 
