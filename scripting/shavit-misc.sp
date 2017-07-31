@@ -84,6 +84,7 @@ int gI_CheckpointsSettings[MAXPLAYERS+1];
 any gA_PlayerCheckPointsCache[MAXPLAYERS+1][CP_MAX][PCHECKPOINTSCACHE_SIZE];
 any gA_CheckpointsSnapshots[MAXPLAYERS+1][CP_MAX][TIMERSNAPSHOT_SIZE];
 any gA_CheckpointsCache[MAXPLAYERS+1][CHECKPOINTSCACHE_SIZE];
+char gS_CheckpointsTargetname[MAXPLAYERS+1][CP_MAX][32];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -895,6 +896,8 @@ void ResetCheckpoints(int client)
 		gA_PlayerCheckPointsCache[client][i][fCPSpeed] = 1.0;
 		gA_PlayerCheckPointsCache[client][i][fCPStamina] = 1.0;
 		gA_PlayerCheckPointsCache[client][i][bCPDucking] = false;
+
+		strcopy(gS_CheckpointsTargetname[client][i], 32, "");
 	}
 
 	gA_CheckpointsCache[client][iCheckpoints] = 0;
@@ -1491,6 +1494,7 @@ void SaveCheckpoint(int client, int index)
 	GetClientAbsOrigin(client, gF_Checkpoints[client][index][0]);
 	GetClientEyeAngles(client, gF_Checkpoints[client][index][1]);
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_Checkpoints[client][index][2]);
+	GetEntPropString(client, Prop_Data, "m_iName", gS_CheckpointsTargetname[client][index], 32);
 
 	gA_PlayerCheckPointsCache[client][index][iCPMoveType] = GetEntityMoveType(client);
 	gA_PlayerCheckPointsCache[client][index][fCPGravity] = GetEntityGravity(client);
@@ -1530,6 +1534,7 @@ void TeleportToCheckpoint(int client, int index)
 	SetEntityGravity(client, view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPGravity]));
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPSpeed]));
 	SetEntPropFloat(client, Prop_Send, "m_flStamina", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPStamina]));
+	DispatchKeyValue(client, "targetname", gS_CheckpointsTargetname[client][index]);
 
 	if(bInStart)
 	{
