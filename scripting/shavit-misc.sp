@@ -63,6 +63,8 @@ enum
 	iCPMoveType,
 	fCPGravity,
 	fCPSpeed,
+	fCPStamina,
+	bCPDucking,
 	PCHECKPOINTSCACHE_SIZE
 };
 
@@ -891,6 +893,8 @@ void ResetCheckpoints(int client)
 		gA_PlayerCheckPointsCache[client][i][iCPMoveType] = MOVETYPE_WALK;
 		gA_PlayerCheckPointsCache[client][i][fCPGravity] = 1.0;
 		gA_PlayerCheckPointsCache[client][i][fCPSpeed] = 1.0;
+		gA_PlayerCheckPointsCache[client][i][fCPStamina] = 1.0;
+		gA_PlayerCheckPointsCache[client][i][bCPDucking] = false;
 	}
 
 	gA_CheckpointsCache[client][iCheckpoints] = 0;
@@ -1491,6 +1495,8 @@ void SaveCheckpoint(int client, int index)
 	gA_PlayerCheckPointsCache[client][index][iCPMoveType] = GetEntityMoveType(client);
 	gA_PlayerCheckPointsCache[client][index][fCPGravity] = GetEntityGravity(client);
 	gA_PlayerCheckPointsCache[client][index][fCPSpeed] = 1.0;
+	gA_PlayerCheckPointsCache[client][index][fCPStamina] = GetEntPropFloat(client, Prop_Send, "m_flStamina");
+	gA_PlayerCheckPointsCache[client][index][bCPDucking] = (GetClientButtons(client) & IN_DUCK) > 0;
 
 	Shavit_SaveSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 }
@@ -1502,10 +1508,19 @@ void TeleportToCheckpoint(int client, int index)
 		return;
 	}
 
-	Shavit_SetPracticeMode(client, true, !Shavit_InsideZone(client, Track_Main, Zone_Start));
-	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
+	bool bDucking = (GetClientButtons(client) & IN_DUCK) > 0;
+
+	if(gA_PlayerCheckPointsCache[client][index][bCPDucking] != bDucking)
+	{
+		Shavit_PrintToChat(client, "%T", (bDucking)? "MiscCheckpointsCrouchOff":"MiscCheckpointsCrouchOn", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+
+		return;
+	}
 
 	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
+
+	Shavit_SetPracticeMode(client, true, !bInStart);
+	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 
 	TeleportEntity(client, gF_Checkpoints[client][index][0],
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? gF_Checkpoints[client][index][1]:NULL_VECTOR,
@@ -1514,6 +1529,7 @@ void TeleportToCheckpoint(int client, int index)
 	SetEntityMoveType(client, view_as<MoveType>(gA_PlayerCheckPointsCache[client][index][iCPMoveType]));
 	SetEntityGravity(client, view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPGravity]));
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPSpeed]));
+	SetEntPropFloat(client, Prop_Send, "m_flStamina", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPStamina]));
 
 	if(bInStart)
 	{
