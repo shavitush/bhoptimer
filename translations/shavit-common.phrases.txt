@@ -17,4 +17,18 @@
 	{
 		"en"		"Bonus"
 	}
+	// ---------- Commands ---------- //
+	"NoCommandAccess"
+	{
+		"en"		"You do not have access to this command."
+	}
+	"NoConsole"
+	{
+		"en"		"Run this command from inside the game."
+	}
+	"ArgumentsMissing"
+	{
+		"#format"	"{1:s}"
+		"en"		"Usage: {1}"
+	}
 }

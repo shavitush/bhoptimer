@@ -804,21 +804,6 @@ native int Shavit_GetRankedPlayers();
 native int Shavit_ForceHUDUpdate(int client, bool spectators);
 
 /**
- * Formats chats exactly like the chat handler does.
- * Takes team, alive status, rank and all those stuff into account.
- * Called from shavit-chat
- *
- * @param client					Client index.
- * @param message					Message to use.
- * @param team						Simulate a team chat message?
- * @param buffer					Buffer to store the formatted line on.
- * @param maxlen					Length of 'buffer'
- * @error                           Error code 200 if client isn't valid.
- * @return							-1 on error, SP_ERROR_NONE on success.
- */
-native int Shavit_FormatChat(int client, const char[] message, const bool team, char[] buffer, int maxlen);
-
-/**
  * Opens the stats menu for a client.
  *
  * @param client					Client index.
@@ -923,6 +908,33 @@ native void Shavit_SaveSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
 native void Shavit_LoadSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
 
 /**
+ * Sets a player's replay recording frames from a provided ArrayList.
+ * To be used by save states/TAS etc.
+ *
+ * @param client					Client index.
+ * @param data						ArrayList with proper replay data.
+ * @noreturn
+ */
+native void Shavit_SetReplayData(int client, ArrayList data);
+
+/**
+ * Saves a player's replay recording frames (if exists) into an ArrayList.
+ * To be used by save states/TAS etc.
+ *
+ * @param client					Client index.
+ * @return							ArrayList with proper replay data, or -1 if the player has no recorded data.
+ */
+native ArrayList Shavit_GetReplayData(int client);
+
+/**
+ * Use this native to stop the chat tick sound that happens in CS:S.
+ * Call it before each Shavit_PrintToChat() or Shavit_PrintToChatAll().
+ *
+ * @noreturn
+ */
+native void Shavit_StopChatSound();
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -984,6 +996,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetReplayBotStyle");
 	MarkNativeAsOptional("Shavit_GetReplayBotTrack");
+	MarkNativeAsOptional("Shavit_GetReplayData");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
@@ -1007,7 +1020,9 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_ResumeTimer");
 	MarkNativeAsOptional("Shavit_SaveSnapshot");
 	MarkNativeAsOptional("Shavit_SetPracticeMode");
+	MarkNativeAsOptional("Shavit_SetReplayData");
 	MarkNativeAsOptional("Shavit_StartTimer");
+	MarkNativeAsOptional("Shavit_StopChatSound");
 	MarkNativeAsOptional("Shavit_StopTimer");
 	MarkNativeAsOptional("Shavit_ZoneExists");
 }
