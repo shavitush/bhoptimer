@@ -177,6 +177,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 public void OnClientPutInServer(int client)
 {
 	gI_WRAmount[client] = 0;
+	UpdateWRs(client);
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -259,27 +260,16 @@ void SQL_SetPrefix()
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
+	if(gI_MVPRankOnes == 0)
+	{
+		return;
+	}
+
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(IsValidClient(client) && !IsFakeClient(client))
+	if(IsValidClient(client) && !IsFakeClient(client) )
 	{
-		UpdateWRs(client);
-	}
-}
-
-public void Shavit_OnFinish_Post(int client)
-{
-	UpdateWRs(client);
-}
-
-public void Shavit_OnWorldRecord(int client)
-{
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsValidClient(i, true))
-		{
-			UpdateWRs(i);
-		}
+		CS_SetMVPCount(client, gI_WRAmount[client]);
 	}
 }
 
