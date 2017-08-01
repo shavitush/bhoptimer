@@ -1054,7 +1054,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 		if(hSayText2 != null)
 		{
-			BfWriteByte(hSayText2, client);
+			BfWriteByte(hSayText2, 0);
 			BfWriteByte(hSayText2, !gB_StopChatSound);
 			BfWriteString(hSayText2, buffer);
 		}

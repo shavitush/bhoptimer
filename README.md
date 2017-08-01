@@ -65,6 +65,6 @@ Including a records system, map zones (start/end marks etc), bonuses, HUD with u
 7. Restart your server.
 
 # Required plugins:
-`shavit-core` - compeletely required.
-`shavit-zones` - compeletely required.
+`shavit-core` - compeletely required.  
+`shavit-zones` - compeletely required.  
 `shavit-wr` - required for `shavit-stats`, `shavit-replay` and `shavit-sounds`.

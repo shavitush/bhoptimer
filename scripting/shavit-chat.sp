@@ -42,6 +42,15 @@ char gS_CustomName[MAXPLAYERS+1][128];
 bool gB_MessageEnabled[MAXPLAYERS+1];
 char gS_CustomMessage[MAXPLAYERS+1][16];
 
+public Plugin myinfo =
+{
+	name = "[shavit] Chat",
+	author = "shavit",
+	description = "Custom chat privileges (custom name and message colors).",
+	version = SHAVIT_VERSION,
+	url = "https://github.com/shavitush/bhoptimer"
+}
+
 public void OnPluginStart()
 {
 	gEV_Type = GetEngineVersion();
