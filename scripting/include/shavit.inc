@@ -923,6 +923,25 @@ native void Shavit_SaveSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
 native void Shavit_LoadSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
 
 /**
+ * Sets a player's replay recording frames from a provided ArrayList.
+ * To be used by save states/TAS etc.
+ *
+ * @param client					Client index.
+ * @param data						ArrayList with proper replay data.
+ * @noreturn
+ */
+native void Shavit_SetReplayData(int client, ArrayList data);
+
+/**
+ * Saves a player's replay recording frames (if exists) into an ArrayList.
+ * To be used by save states/TAS etc.
+ *
+ * @param client					Client index.
+ * @return							ArrayList with proper replay data, or -1 if the player has no recorded data.
+ */
+native ArrayList Shavit_GetReplayData(int client);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -984,6 +1003,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetReplayBotStyle");
 	MarkNativeAsOptional("Shavit_GetReplayBotTrack");
+	MarkNativeAsOptional("Shavit_GetReplayData");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
@@ -1007,6 +1027,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_ResumeTimer");
 	MarkNativeAsOptional("Shavit_SaveSnapshot");
 	MarkNativeAsOptional("Shavit_SetPracticeMode");
+	MarkNativeAsOptional("Shavit_SetReplayData");
 	MarkNativeAsOptional("Shavit_StartTimer");
 	MarkNativeAsOptional("Shavit_StopTimer");
 	MarkNativeAsOptional("Shavit_ZoneExists");

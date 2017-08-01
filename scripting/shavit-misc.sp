@@ -95,6 +95,7 @@ float gF_SaveStateData[MAXPLAYERS+1][3][3];
 any gA_SaveStates[MAXPLAYERS+1][TIMERSNAPSHOT_SIZE];
 bool gB_SaveStates[MAXPLAYERS+1];
 char gS_SaveStateTargetname[MAXPLAYERS+1][32];
+ArrayList gA_SaveFrames[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -162,6 +163,7 @@ Handle gH_GetPlayerMaxSpeed = null;
 
 // modules
 bool gB_Rankings = false;
+bool gB_Replay = false;
 
 // timer settings
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
@@ -184,11 +186,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	gB_Late = late;
 
 	return APLRes_Success;
-}
-
-public void OnAllPluginsLoaded()
-{
-	gB_Rankings = LibraryExists("shavit-rankings");
 }
 
 public void OnPluginStart()
@@ -369,6 +366,10 @@ public void OnPluginStart()
 			}
 		}
 	}
+
+	// modules
+	gB_Rankings = LibraryExists("shavit-rankings");
+	gB_Replay = LibraryExists("shavit-replay");
 }
 
 public void OnClientCookiesCached(int client)
@@ -576,6 +577,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
+
+	else if(StrEqual(name, "shavit-replay"))
+	{
+		gB_Replay = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -583,6 +589,11 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
+	}
+
+	else if(StrEqual(name, "shavit-replay"))
+	{
+		gB_Replay = false;
 	}
 }
 
@@ -908,7 +919,14 @@ public void OnClientPutInServer(int client)
 	}
 
 	ResetCheckpoints(client);
+
 	gB_SaveStates[client] = false;
+
+	if(gA_SaveFrames[client] != null)
+	{
+		delete gA_SaveFrames[client];
+		gA_SaveFrames[client] = null;
+	}
 }
 
 void ResetCheckpoints(int client)
@@ -2114,10 +2132,21 @@ public Action Command_Drop(int client, const char[] command, int argc)
 
 void LoadState(int client)
 {
-	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
-		
 	TeleportEntity(client, gF_SaveStateData[client][0], gF_SaveStateData[client][1], gF_SaveStateData[client][2]);
 	DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
+
+	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
+
+	if(gA_SaveFrames[client] != null)
+	{
+		if(gB_Replay)
+		{
+			Shavit_SetReplayData(client, gA_SaveFrames[client]);
+		}
+
+		delete gA_SaveFrames[client];
+		gA_SaveFrames[client] = null;
+	}
 
 	gB_SaveStates[client] = false;
 }
@@ -2128,13 +2157,18 @@ void SaveState(int client)
 	{
 		return;
 	}
-
-	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
 	
 	GetClientAbsOrigin(client, gF_SaveStateData[client][0]);
 	GetClientEyeAngles(client, gF_SaveStateData[client][1]);
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_SaveStateData[client][2]);
 	GetEntPropString(client, Prop_Data, "m_iName", gS_SaveStateTargetname[client], 32);
+
+	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
+
+	if(gB_Replay)
+	{
+		gA_SaveFrames[client] = Shavit_GetReplayData(client);
+	}
 
 	gB_SaveStates[client] = true;
 }

@@ -125,6 +125,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
+	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
+	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -222,6 +224,26 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 	}
 
 	return view_as<int>(ReplayEnabled(style) && gI_FrameCount[style][Track_Main] > 0);
+}
+
+public int Native_SetReplayData(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	gA_PlayerFrames[client] = (view_as<ArrayList>(GetNativeCell(2))).Clone();
+	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
+}
+
+public int Native_GetReplayData(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	if(gA_PlayerFrames[client] != null)
+	{
+		return view_as<int>(gA_PlayerFrames[client].Clone());
+	}
+
+	return -1;
 }
 
 public int Native_GetReplayBotStyle(Handle handler, int numParams)
