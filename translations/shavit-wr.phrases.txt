@@ -53,8 +53,8 @@
 	}
 	"DeleteAllRecordsMenuTitle"
 	{
-		"#format"	"{1:s}"
-		"en"		"Delete ALL the records for '{1}'?"
+		"#format"	"{1:s},{2:s}"
+		"en"		"Delete ALL the records for '{1}'? (Track: {2})"
 	}
 	"DeleteConfirm"
 	{
@@ -98,6 +98,14 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"YES!!! DELETE THE RECORDS FOR {1}!!! THIS ACTION IS IRREVERSIBLE!"
+	}
+	"DeleteTrackSingle"
+	{
+		"en"		"Choose a track to delete a single record from:"
+	}
+	"DeleteTrackAll"
+	{
+		"en"		"Choose a track to delete a ALL records from:"
 	}
 	// ---------- Errors ---------- //
 	"DatabaseError"

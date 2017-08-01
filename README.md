@@ -10,7 +10,7 @@
 
 This is (nearly) an all-in-one server plugin for Counter-Strike: Source and Counter-Strike: Global Offensive that adds a timer system and many other utilities, so you can install it and have a proper bunnyhop server running.
 
-Including a records system, map zones (start/end marks etc), HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, rankings and more!
+Including a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics and more!
 
 [Mapzones' setup demonstration](https://youtu.be/OXFMGm40F6c)
 
@@ -66,4 +66,4 @@ Including a records system, map zones (start/end marks etc), HUD with useful inf
 # Required plugins:
 `shavit-core` - compeletely required.
 `shavit-zones` - compeletely required.
-`shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-sounds` and `shavit-stats`.
+`shavit-wr` - required for `shavit-stats`, `shavit-replay` and `shavit-sounds`.

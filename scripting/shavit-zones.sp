@@ -179,6 +179,7 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-zones.phrases");
 
 	// game specific
@@ -551,11 +552,11 @@ void KillZoneEntity(int index)
 {
 	if(IsValidEntity(gA_ZoneCache[index][iEntityID]))
 	{
+		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
+
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_TouchPost, TouchPost);
-		
-		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
 	}
 }
 
@@ -571,20 +572,23 @@ void UnloadZones(int zone)
 	{
 		for(int i = 0; i < MAX_ZONES; i++)
 		{
-			if(gA_ZoneCache[i][bZoneInitialized] && (zone == 0 || gA_ZoneCache[i][iZoneType] == zone))
+			if(zone == 0 || gA_ZoneCache[i][iZoneType] == zone)
 			{
-				for(int j = 1; j <= MaxClients; j++)
+				if(gA_ZoneCache[i][bZoneInitialized])
 				{
-					if(IsValidClient(j) && gB_InsideZoneID[j][i]) // no alive check because it may happen to dead players too
+					for(int j = 1; j <= MaxClients; j++)
 					{
-						gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
-						gB_InsideZoneID[j][i] = false;
+						if(IsValidClient(j))
+						{
+							gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
+							gB_InsideZoneID[j][gI_EntityZone[i]] = false;
+						}
 					}
-				}
 
-				if(gA_ZoneCache[i][iEntityID] != -1)
-				{
-					KillZoneEntity(i);
+					if(gA_ZoneCache[i][iEntityID] != -1)
+					{
+						KillZoneEntity(i);
+					}
 				}
 
 				ClearZone(i);
@@ -1485,33 +1489,24 @@ int CycleTracks(int track)
 {
 	if(++track >= TRACKS_SIZE)
 	{
-		return Track_Main;
+		return 0;
 	}
 
 	return track;
 }
 
-int GetTrackName(int client, int track, char[] output, int size)
+void GetTrackName(int client, int track, char[] output, int size)
 {
-	switch(track)
+	if(track < 0 || track >= TRACKS_SIZE)
 	{
-		case Track_Main:
-		{
-			FormatEx(output, size, "%T", "ZoneEditMain", client);
-		}
+		FormatEx(output, size, "%T", "Track_Unknown", client);
 
-		case Track_Bonus:
-		{
-			FormatEx(output, size, "%T", "ZoneEditBonus", client);
-		}
-
-		default:
-		{
-			strcopy(output, size, "ERROR");
-		}
+		return;
 	}
 
-	return 0; // unnecessary, but the compiler threw warnings when this function was a void
+	static char sTrack[16];
+	FormatEx(sTrack, 16, "Track_%d", track);
+	FormatEx(output, size, "%T", sTrack, client);
 }
 
 void UpdateTeleportZone(int client)
@@ -1546,16 +1541,7 @@ void UpdateTeleportZone(int client)
 void CreateEditMenu(int client)
 {
 	char[] sTrack = new char[32];
-	
-	if(gI_ZoneTrack[client] == Track_Main)
-	{
-		FormatEx(sTrack, 32, "%T", "ZoneEditMain", client);
-	}
-
-	else
-	{
-		FormatEx(sTrack, 32, "%T", "ZoneEditBonus", client);
-	}
+	GetTrackName(client, gI_ZoneTrack[client], sTrack, 32);
 
 	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
 	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
@@ -1714,7 +1700,7 @@ void InsertZone(int client)
 			}
 		}
 
-		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f' WHERE %s = %d;", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
+		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', track = %d WHERE %s = %d;", gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gI_ZoneTrack[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}
 
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
@@ -2033,11 +2019,11 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 	}
 }
 
-public void Shavit_OnRestart(int client)
+public void Shavit_OnRestart(int client, int track)
 {
 	if(gB_TeleportToStart)
 	{
-		Shavit_StartTimer(client);
+		Shavit_StartTimer(client, track);
 
 		if(!EmptyVector(gF_CustomSpawn))
 		{
@@ -2046,7 +2032,7 @@ public void Shavit_OnRestart(int client)
 
 		else
 		{
-			int index = GetZoneIndex(Zone_Start, Track_Main);
+			int index = GetZoneIndex(Zone_Start, track);
 
 			if(index == -1)
 			{
@@ -2063,11 +2049,11 @@ public void Shavit_OnRestart(int client)
 	}
 }
 
-public void Shavit_OnEnd(int client)
+public void Shavit_OnEnd(int client, int track)
 {
 	if(gB_TeleportToEnd)
 	{
-		int index = GetZoneIndex(Zone_End, Track_Main);
+		int index = GetZoneIndex(Zone_End, track);
 
 		if(index == -1)
 		{
@@ -2178,20 +2164,22 @@ public void CreateZoneEntities()
 
 		TeleportEntity(entity, gV_ZoneCenter[i], NULL_VECTOR, NULL_VECTOR);
 
-		float distance_x = Abs(gV_MapZones[i][0][0] - gV_MapZones[i][7][0]);
-		float distance_y = Abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]);
-		float distance_z = Abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]);
+		float distance_x = Abs(gV_MapZones[i][0][0] - gV_MapZones[i][7][0]) / 2;
+		float distance_y = Abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]) / 2;
+		float distance_z = Abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]) / 2;
+
+		float height = ((gEV_Type == Engine_CSS)? 62.0:72.0) / 2;
 
 		float min[3];
-		min[0] = -(distance_x / 2) + 16.0;
-		min[1] = -(distance_y / 2) + 16.0;
-		min[2] = -(distance_z / 2) + 36.0;
+		min[0] = -distance_x + 16.0;
+		min[1] = -distance_y + 16.0;
+		min[2] = -distance_z + height;
 		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
 
 		float max[3];
-		max[0] = (distance_x / 2) - 16.0;
-		max[1] = (distance_y / 2) - 16.0;
-		max[2] = (distance_z / 2) - 36.0;
+		max[0] = distance_x - 16.0;
+		max[1] = distance_y - 16.0;
+		max[2] = distance_z - height;
 		SetEntPropVector(entity, Prop_Send, "m_vecMaxs", max);
 
 		SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
@@ -2243,9 +2231,9 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_End:
 		{
-			if(status != Timer_Stopped && gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack])
 			{
-				Shavit_FinishMap(other);
+				Shavit_FinishMap(other, gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
 			}
 		}
 	}
@@ -2293,9 +2281,16 @@ public void TouchPost(int entity, int other)
 	{
 		case Zone_Start:
 		{
-			if(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			// start timer instantly for main track, but require bonuses to have the current timer stopped
+			// so you don't accidentally step on those while running
+			if(Shavit_GetTimerStatus(other) == Timer_Stopped || Shavit_GetClientTrack(other) != Track_Main)
 			{
-				Shavit_StartTimer(other);
+				Shavit_StartTimer(other, gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
+			}
+
+			else if(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] == Track_Main)
+			{
+				Shavit_StartTimer(other, Track_Main);
 			}
 		}
 	}

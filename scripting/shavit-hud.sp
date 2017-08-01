@@ -92,6 +92,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-hud.phrases");
 
 	// game-specific
@@ -548,19 +549,21 @@ void UpdateHUD(int client)
 
 	else if((gI_HUDSettings[client] & HUD_CENTER) > 0)
 	{
+		int track = Shavit_GetClientTrack(target);
+
 		if(!IsFakeClient(target))
 		{
 			float time = Shavit_GetClientTime(target);
 			int jumps = Shavit_GetClientJumps(target);
 			TimerStatus status = Shavit_GetTimerStatus(target);
 			int strafes = Shavit_GetStrafeCount(target);
-			int rank = Shavit_GetRankForTime(gBS_Style[target], time);
+			int rank = Shavit_GetRankForTime(gBS_Style[target], time, track);
 
 			float fWR = 0.0;
-			Shavit_GetWRTime(gBS_Style[target], fWR);
+			Shavit_GetWRTime(gBS_Style[target], fWR, track);
 
 			float fPB = 0.0;
-			Shavit_GetPlayerPB(target, gBS_Style[target], fPB);
+			Shavit_GetPlayerPB(target, gBS_Style[target], fPB, track);
 
 			char[] sPB = new char[32];
 			FormatSeconds(fPB, sPB, 32);
@@ -607,7 +610,7 @@ void UpdateHUD(int client)
 
 				if(fPB > 0.0)
 				{
-					Format(sHintText, 512, "%s%T: %s (#%d)", sHintText, "HudBestText", client, sPB, (Shavit_GetRankForTime(gBS_Style[target], fPB) - 1));
+					Format(sHintText, 512, "%s%T: %s (#%d)", sHintText, "HudBestText", client, sPB, (Shavit_GetRankForTime(gBS_Style[target], fPB, track) - 1));
 				}
 
 				if(status >= Timer_Running)
@@ -659,6 +662,14 @@ void UpdateHUD(int client)
 					{
 						FormatEx(sHintText, 16, "%T", "HudPaused", client);
 					}
+
+					if(track != Track_Main)
+					{
+						char[] sTrack = new char[32];
+						GetTrackName(client, track, sTrack, 32);
+
+						Format(sHintText, 512, "%s\n%s", sHintText, sTrack);
+					}
 				}
 
 				else
@@ -679,13 +690,15 @@ void UpdateHUD(int client)
 				return;
 			}
 
+			track = Shavit_GetReplayBotTrack(target);
+
 			float start = 0.0;
 			Shavit_GetReplayBotFirstFrame(style, start);
 
 			float time = (GetEngineTime() - start);
 
 			float fWR = 0.0;
-			Shavit_GetWRTime(style, fWR);
+			Shavit_GetWRTime(style, fWR, track);
 
 			if(time > fWR || !Shavit_IsReplayDataLoaded(style))
 			{
@@ -700,6 +713,14 @@ void UpdateHUD(int client)
 			char[] sWR = new char[32];
 			FormatSeconds(fWR, sWR, 32, false);
 
+			char[] sTrack = new char[32];
+
+			if(track != Track_Main)
+			{
+				GetTrackName(client, track, sTrack, 32);
+				Format(sTrack, 32, "(%s) ", sTrack);
+			}
+
 			if(gEV_Type == Engine_CSGO)
 			{
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
@@ -711,7 +732,7 @@ void UpdateHUD(int client)
 
 			else
 			{
-				FormatEx(sHintText, 512, "%s Replay", gS_StyleStrings[style][sStyleName], sHintText);
+				FormatEx(sHintText, 512, "%s %sReplay", gS_StyleStrings[style][sStyleName], sTrack);
 				Format(sHintText, 512, "%s\n%T: %s/%s", sHintText, "HudTimeText", client, sTime, sWR);
 				Format(sHintText, 512, "%s\n%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 			}
@@ -839,7 +860,8 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target || GetClientTeam(i) < 1)
+		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target || GetClientTeam(i) < 1
+			|| CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK))
 		{
 			continue;
 		}
@@ -887,9 +909,10 @@ void UpdateTopLeftHUD(int client, bool wait)
 	if((!wait || gI_Cycle % 25 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
 	{
 		int target = GetHUDTarget(client);
+		int track = Shavit_GetClientTrack(target);
 
 		float fWRTime = 0.0;
-		Shavit_GetWRTime(gBS_Style[target], fWRTime);
+		Shavit_GetWRTime(gBS_Style[target], fWRTime, track);
 
 		if(fWRTime != 0.0)
 		{
@@ -897,10 +920,10 @@ void UpdateTopLeftHUD(int client, bool wait)
 			FormatSeconds(fWRTime, sWRTime, 16);
 
 			char[] sWRName = new char[MAX_NAME_LENGTH];
-			Shavit_GetWRName(gBS_Style[target], sWRName, MAX_NAME_LENGTH);
+			Shavit_GetWRName(gBS_Style[target], sWRName, MAX_NAME_LENGTH, track);
 
 			float fPBTime = 0.0;
-			Shavit_GetPlayerPB(target, gBS_Style[target], fPBTime);
+			Shavit_GetPlayerPB(target, gBS_Style[target], fPBTime, track);
 
 			char[] sPBTime = new char[16];
 			FormatSeconds(fPBTime, sPBTime, MAX_NAME_LENGTH);
@@ -909,7 +932,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 			if(fPBTime != 0.0)
 			{
-				FormatEx(sTopLeft, 64, "WR: %s (%s)\n%T: %s (#%d)", sWRTime, sWRName, "HudBestText", client, sPBTime, (Shavit_GetRankForTime(gBS_Style[target], fPBTime) - 1));
+				FormatEx(sTopLeft, 64, "WR: %s (%s)\n%T: %s (#%d)", sWRTime, sWRName, "HudBestText", client, sPBTime, (Shavit_GetRankForTime(gBS_Style[target], fPBTime, track) - 1));
 			}
 
 			else
@@ -951,7 +974,8 @@ void UpdateKeyHint(int client)
 
 				for(int i = 1; i <= MaxClients; i++)
 				{
-					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target || GetClientTeam(i) < 1)
+					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target
+						|| GetClientTeam(i) < 1 || CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK))
 					{
 						continue;
 					}
@@ -1080,4 +1104,18 @@ public int Native_GetHUDSettings(Handle handler, int numParams)
 	}
 
 	return gI_HUDSettings[client];
+}
+
+void GetTrackName(int client, int track, char[] output, int size)
+{
+	if(track < 0 || track >= TRACKS_SIZE)
+	{
+		FormatEx(output, size, "%T", "Track_Unknown", client);
+
+		return;
+	}
+
+	static char sTrack[16];
+	FormatEx(sTrack, 16, "Track_%d", track);
+	FormatEx(output, size, "%T", sTrack, client);
 }
