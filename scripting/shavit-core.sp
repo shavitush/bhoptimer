@@ -129,6 +129,9 @@ any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 // chat settings
 char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 
+// misc cache
+bool gB_StopChatSound = false;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Core",
@@ -140,19 +143,14 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	// get game type
-	CreateNative("Shavit_GetGameType", Native_GetGameType);
-
-	// get database handle
-	CreateNative("Shavit_GetDB", Native_GetDB);
-
-	// timer natives
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
 	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
 	CreateNative("Shavit_GetClientJumps", Native_GetClientJumps);
 	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
 	CreateNative("Shavit_GetClientTrack", Native_GetClientTrack);
+	CreateNative("Shavit_GetDB", Native_GetDB);
+	CreateNative("Shavit_GetGameType", Native_GetGameType);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
@@ -169,6 +167,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
 	CreateNative("Shavit_SetPracticeMode", Native_SetPracticeMode);
 	CreateNative("Shavit_StartTimer", Native_StartTimer);
+	CreateNative("Shavit_StopChatSound", Native_StopChatSound);
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
@@ -1034,6 +1033,12 @@ public int Native_ResumeTimer(Handle handler, int numParams)
 	ResumeTimer(GetNativeCell(1));
 }
 
+public int Native_StopChatSound(Handle handler, int numParams)
+{
+	gB_StopChatSound = true;
+	RequestFrame(RevertChatSound);
+}
+
 public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
@@ -1050,7 +1055,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 		if(hSayText2 != null)
 		{
 			BfWriteByte(hSayText2, client);
-			BfWriteByte(hSayText2, true);
+			BfWriteByte(hSayText2, !gB_StopChatSound);
 			BfWriteString(hSayText2, buffer);
 		}
 
@@ -1184,6 +1189,11 @@ int GetTimerStatus(int client)
 	}
 
 	return view_as<int>(Timer_Running);
+}
+
+public void RevertChatSound(any data)
+{
+	gB_StopChatSound = false;
 }
 
 void StartTimer(int client, int track)
