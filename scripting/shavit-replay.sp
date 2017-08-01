@@ -835,7 +835,6 @@ public void OnClientDisconnect(int client)
 public Action Shavit_OnStart(int client)
 {
 	ClearFrames(client);
-
 	gB_Record[client] = true;
 
 	return Plugin_Continue;

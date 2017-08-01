@@ -71,6 +71,8 @@ enum
 // cache
 ConVar sv_disable_immunity_alpha = null;
 ConVar sv_footsteps = null;
+ConVar hostname = null;
+ConVar hostport = null;
 
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
@@ -79,17 +81,20 @@ int gI_LastShot[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
-ConVar gCV_Hostname = null;
-ConVar gCV_Hostport = null;
 int gBS_Style[MAXPLAYERS+1];
+
 float gF_Checkpoints[MAXPLAYERS+1][CP_MAX][3][3]; // 3 - position, angles, velocity
 int gI_CheckpointsSettings[MAXPLAYERS+1];
 any gA_PlayerCheckPointsCache[MAXPLAYERS+1][CP_MAX][PCHECKPOINTSCACHE_SIZE];
 any gA_CheckpointsSnapshots[MAXPLAYERS+1][CP_MAX][TIMERSNAPSHOT_SIZE];
 any gA_CheckpointsCache[MAXPLAYERS+1][CHECKPOINTSCACHE_SIZE];
 char gS_CheckpointsTargetname[MAXPLAYERS+1][CP_MAX][32];
-// any gA_SaveState[MAXPLAYERS+1][TIMERSNAPSHOT_SIZE];
-float gF_SaveStateAngles[MAXPLAYERS+1][3];
+
+// save states
+float gF_SaveStateData[MAXPLAYERS+1][3][3];
+any gA_SaveStates[MAXPLAYERS+1][TIMERSNAPSHOT_SIZE];
+bool gB_SaveStates[MAXPLAYERS+1];
+char gS_SaveStateTargetname[MAXPLAYERS+1][32];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -121,6 +126,7 @@ ConVar gCV_RemoveRagdolls = null;
 ConVar gCV_ClanTag = null;
 ConVar gCV_DropAll = null;
 ConVar gCV_ResetTargetname = null;
+ConVar gCV_RestoreStates = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -149,6 +155,7 @@ char gS_ClanTag[32] = "{styletag} :: {time}";
 bool gB_ClanTag = true;
 bool gB_DropAll = true;
 bool gB_ResetTargetname = true;
+bool gB_RestoreStates = false;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -261,8 +268,8 @@ public void OnPluginStart()
 
 	// advertisements
 	gA_Advertisements = new ArrayList(300);
-	gCV_Hostname = FindConVar("hostname");
-	gCV_Hostport = FindConVar("hostport");
+	hostname = FindConVar("hostname");
+	hostport = FindConVar("hostport");
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
@@ -290,6 +297,7 @@ public void OnPluginStart()
 	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style settings from shavit-styles.cfg.\n{style} - style name.\n{time} - formatted time.", 0);
 	gCV_DropAll = CreateConVar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
 	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "1", "Reset the player's targetname upon timer start?\nRecommended to leave enabled. Disable via per-map configs if it's problematic.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
+	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -316,6 +324,7 @@ public void OnPluginStart()
 	gCV_ClanTag.AddChangeHook(OnConVarChanged);
 	gCV_DropAll.AddChangeHook(OnConVarChanged);
 	gCV_ResetTargetname.AddChangeHook(OnConVarChanged);
+	gCV_RestoreStates.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -462,6 +471,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gCV_ClanTag.GetString(gS_ClanTag, 32);
 	gB_DropAll = gCV_DropAll.BoolValue;
 	gB_ResetTargetname = gCV_ResetTargetname.BoolValue;
+	gB_RestoreStates = gCV_RestoreStates.BoolValue;
 
 	gB_ClanTag = !StrEqual(gS_ClanTag, "0");
 }
@@ -583,6 +593,11 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		return Plugin_Continue;
 	}
 
+	if(!gB_SaveStates[client])
+	{
+		SaveState(client);
+	}
+
 	char[] arg1 = new char[8];
 	GetCmdArg(1, arg1, 8);
 
@@ -617,7 +632,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		// if they chose to spectate, i'll force them to join the spectators
 		case CS_TEAM_SPECTATOR:
 		{
-			CS_SwitchTeam(client, CS_TEAM_SPECTATOR);
+			ChangeClientTeam(client, CS_TEAM_SPECTATOR);
 		}
 
 		default:
@@ -686,7 +701,7 @@ public Action Timer_Scoreboard(Handle Timer)
 public Action Timer_Advertisement(Handle Timer)
 {
 	char[] sHostname = new char[128];
-	gCV_Hostname.GetString(sHostname, 128);
+	hostname.GetString(sHostname, 128);
 
 	char[] sTimeLeft = new char[32];
 	int iTimeLeft = 0;
@@ -704,7 +719,7 @@ public Action Timer_Advertisement(Handle Timer)
 		int iAddress[4];
 		SteamWorks_GetPublicIP(iAddress);
 
-		FormatEx(sIPAddress, 64, "%d.%d.%d.%d:%d", iAddress[0], iAddress[1], iAddress[2], iAddress[3], gCV_Hostport.IntValue);
+		FormatEx(sIPAddress, 64, "%d.%d.%d.%d:%d", iAddress[0], iAddress[1], iAddress[2], iAddress[3], hostport.IntValue);
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -893,6 +908,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	ResetCheckpoints(client);
+	gB_SaveStates[client] = false;
 }
 
 void ResetCheckpoints(int client)
@@ -1846,14 +1862,29 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 	if(!IsFakeClient(client))
 	{
+		int serial = GetClientSerial(client);
+
 		if(gB_HideRadar)
 		{
-			RequestFrame(RemoveRadar, GetClientSerial(client));
+			RequestFrame(RemoveRadar, serial);
 		}
 
 		if(gB_StartOnSpawn)
 		{
 			RestartTimer(client);
+		}
+
+		if(gB_SaveStates[client])
+		{
+			if(gB_RestoreStates)
+			{
+				RequestFrame(RestoreState, serial);
+			}
+
+			else
+			{
+				gB_SaveStates[client] = false;
+			}
 		}
 
 		if(gB_Scoreboard)
@@ -1900,6 +1931,18 @@ void RemoveRadar(any data)
 	}
 }
 
+void RestoreState(any data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(client == 0 || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	LoadState(client);
+}
+
 public Action Player_Notifications(Event event, const char[] name, bool dontBroadcast)
 {
 	if(gB_HideTeamChanges)
@@ -1909,9 +1952,17 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(gF_AutoRespawn > 0.0 && StrEqual(name, "player_death") && !IsFakeClient(client))
+	if(!IsFakeClient(client))
 	{
-		CreateTimer(gF_AutoRespawn, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+		if(!gB_SaveStates[client])
+		{
+			SaveState(client);
+		}
+
+		if(gF_AutoRespawn > 0.0 && StrEqual(name, "player_death"))
+		{
+			CreateTimer(gF_AutoRespawn, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+		}
 	}
 
 	switch(gI_RemoveRagdolls)
@@ -2030,17 +2081,17 @@ public void Shavit_OnFinish(int client)
 
 public void Shavit_OnPause(int client, int track)
 {
-	if(!GetClientEyeAngles(client, gF_SaveStateAngles[client]))
+	if(!GetClientEyeAngles(client, gF_SaveStateData[client][1]))
 	{
-		gF_SaveStateAngles[client] = NULL_VECTOR;
+		gF_SaveStateData[client][1] = NULL_VECTOR;
 	}
 }
 
 public void Shavit_OnResume(int client, int track)
 {
-	if(!IsNullVector(gF_SaveStateAngles[client]))
+	if(!IsNullVector(gF_SaveStateData[client][1]))
 	{
-		TeleportEntity(client, NULL_VECTOR, gF_SaveStateAngles[client], NULL_VECTOR);
+		TeleportEntity(client, NULL_VECTOR, gF_SaveStateData[client][1], NULL_VECTOR);
 	}
 }
 
@@ -2059,6 +2110,33 @@ public Action Command_Drop(int client, const char[] command, int argc)
 	}
 
 	return Plugin_Handled;
+}
+
+void LoadState(int client)
+{
+	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
+		
+	TeleportEntity(client, gF_SaveStateData[client][0], gF_SaveStateData[client][1], gF_SaveStateData[client][2]);
+	DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
+
+	gB_SaveStates[client] = false;
+}
+
+void SaveState(int client)
+{
+	if(Shavit_GetTimerStatus(client) == Timer_Stopped)
+	{
+		return;
+	}
+
+	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
+	
+	GetClientAbsOrigin(client, gF_SaveStateData[client][0]);
+	GetClientEyeAngles(client, gF_SaveStateData[client][1]);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_SaveStateData[client][2]);
+	GetEntPropString(client, Prop_Data, "m_iName", gS_SaveStateTargetname[client], 32);
+
+	gB_SaveStates[client] = true;
 }
 
 void UpdateFootsteps(int client)
