@@ -1255,13 +1255,13 @@ void PauseTimer(int client)
 		return;
 	}
 
-	gF_PauseStartTime[client] = GetEngineTime();
-	gB_ClientPaused[client] = true;
-
 	Call_StartForward(gH_Forwards_OnPause);
 	Call_PushCell(client);
 	Call_PushCell(gI_Track[client]);
 	Call_Finish();
+
+	gF_PauseStartTime[client] = GetEngineTime();
+	gB_ClientPaused[client] = true;
 }
 
 void ResumeTimer(int client)
@@ -1271,13 +1271,13 @@ void ResumeTimer(int client)
 		return;
 	}
 
-	gF_PauseTotalTime[client] += (GetEngineTime() - gF_PauseStartTime[client]);
-	gB_ClientPaused[client] = false;
-
 	Call_StartForward(gH_Forwards_OnResume);
 	Call_PushCell(client);
 	Call_PushCell(gI_Track[client]);
 	Call_Finish();
+
+	gF_PauseTotalTime[client] += (GetEngineTime() - gF_PauseStartTime[client]);
+	gB_ClientPaused[client] = false;
 }
 
 float CalculateTime(int client)

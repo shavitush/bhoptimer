@@ -88,6 +88,8 @@ any gA_PlayerCheckPointsCache[MAXPLAYERS+1][CP_MAX][PCHECKPOINTSCACHE_SIZE];
 any gA_CheckpointsSnapshots[MAXPLAYERS+1][CP_MAX][TIMERSNAPSHOT_SIZE];
 any gA_CheckpointsCache[MAXPLAYERS+1][CHECKPOINTSCACHE_SIZE];
 char gS_CheckpointsTargetname[MAXPLAYERS+1][CP_MAX][32];
+// any gA_SaveState[MAXPLAYERS+1][TIMERSNAPSHOT_SIZE];
+float gF_SaveStateAngles[MAXPLAYERS+1][3];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -2024,6 +2026,22 @@ public void Shavit_OnFinish(int client)
 
 	UpdateScoreboard(client);
 	UpdateClanTag(client);
+}
+
+public void Shavit_OnPause(int client, int track)
+{
+	if(!GetClientEyeAngles(client, gF_SaveStateAngles[client]))
+	{
+		gF_SaveStateAngles[client] = NULL_VECTOR;
+	}
+}
+
+public void Shavit_OnResume(int client, int track)
+{
+	if(!IsNullVector(gF_SaveStateAngles[client]))
+	{
+		TeleportEntity(client, NULL_VECTOR, gF_SaveStateAngles[client], NULL_VECTOR);
+	}
 }
 
 public Action Command_Drop(int client, const char[] command, int argc)
