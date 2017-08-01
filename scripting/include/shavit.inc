@@ -804,21 +804,6 @@ native int Shavit_GetRankedPlayers();
 native int Shavit_ForceHUDUpdate(int client, bool spectators);
 
 /**
- * Formats chats exactly like the chat handler does.
- * Takes team, alive status, rank and all those stuff into account.
- * Called from shavit-chat
- *
- * @param client					Client index.
- * @param message					Message to use.
- * @param team						Simulate a team chat message?
- * @param buffer					Buffer to store the formatted line on.
- * @param maxlen					Length of 'buffer'
- * @error                           Error code 200 if client isn't valid.
- * @return							-1 on error, SP_ERROR_NONE on success.
- */
-native int Shavit_FormatChat(int client, const char[] message, const bool team, char[] buffer, int maxlen);
-
-/**
  * Opens the stats menu for a client.
  *
  * @param client					Client index.

@@ -190,9 +190,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	LoadTranslations("shavit-common.phrases");
-	LoadTranslations("shavit-misc.phrases");
-
 	// cache
 	gEV_Type = GetEngineVersion();
 
@@ -262,6 +259,8 @@ public void OnPluginStart()
 
 	// phrases
 	LoadTranslations("common.phrases");
+	LoadTranslations("shavit-common.phrases");
+	LoadTranslations("shavit-misc.phrases");
 
 	// advertisements
 	gA_Advertisements = new ArrayList(300);

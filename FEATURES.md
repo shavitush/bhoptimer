@@ -17,6 +17,12 @@ Zones are trigger based and are very lightweight.
 
 The zones plugin includes some less common features such as: Multiple tracks (main/bonus), zone editing (after setup), snapping zones to walls/corners/grid, zone setup using the cursor's position, configurable sprite/colors for zone types, zone tracks (main/bonus - can be extended), manual adjustments of coordinates before confirmations, teleport zones, glitch zones, no-limit zones (for styles like 400-velocity), flat/3D boxes for zone rendering, an API and more.
 
+#### shavit-chat
+The chat plugin manipulates chat messages sent by players.  
+It includes custom chat names, tags, colors and all can be defined by the players/admins.  
+Admins need the chat flag, or the "shavit_chat" override (good for a donator perk).  
+There's a user-friendly command named !cchelp so the users can easily understand what's going on.
+
 #### shavit-hud
 The HUD plugin is `bhoptimer`'s OSD frontend.  
 It shows most (if not all) of the information that the player needs to see.  
