@@ -230,20 +230,26 @@ public int Native_SetReplayData(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	gA_PlayerFrames[client] = (view_as<ArrayList>(GetNativeCell(2))).Clone();
+	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2), handler));
+	gA_PlayerFrames[client] = frames.Clone();
+	delete frames;
+
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
 }
 
 public int Native_GetReplayData(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	ArrayList frames = null;
 
 	if(gA_PlayerFrames[client] != null)
 	{
-		return view_as<int>(gA_PlayerFrames[client].Clone());
+		ArrayList temp = gA_PlayerFrames[client].Clone();
+		frames = view_as<ArrayList>(CloneHandle(temp, handler));
+		delete temp;
 	}
 
-	return -1;
+	return view_as<int>(frames);
 }
 
 public int Native_GetReplayBotStyle(Handle handler, int numParams)

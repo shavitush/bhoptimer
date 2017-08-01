@@ -922,7 +922,7 @@ native void Shavit_SetReplayData(int client, ArrayList data);
  * To be used by save states/TAS etc.
  *
  * @param client					Client index.
- * @return							ArrayList with proper replay data, or -1 if the player has no recorded data.
+ * @return							ArrayList with proper replay data, or null if the player has no recorded data.
  */
 native ArrayList Shavit_GetReplayData(int client);
 
