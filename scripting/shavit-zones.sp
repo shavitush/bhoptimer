@@ -1836,7 +1836,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		points[0] = gV_Point1[client];
 		points[7] = origin;
 
-		CreateZonePoints(points);
+		CreateZonePoints(points, gF_Offset);
 
 		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
 
