@@ -398,11 +398,19 @@ void FormatRandom(char[] buffer, int size)
 
 	do
 	{
-		int color = ((RealRandomInt(0, 255) & 0xFF) << 16);
-		color |= ((RealRandomInt(0, 255) & 0xFF) << 8);
-		color |= (RealRandomInt(0, 255) & 0xFF);
+		if(gEV_Type == Engine_CSS)
+		{
+			int color = ((RealRandomInt(0, 255) & 0xFF) << 16);
+			color |= ((RealRandomInt(0, 255) & 0xFF) << 8);
+			color |= (RealRandomInt(0, 255) & 0xFF);
 
-		FormatEx(temp, 16, "\x07%06X", color);
+			FormatEx(temp, 8, "\x07%06X", color);
+		}
+
+		else
+		{
+			strcopy(temp, 8, gS_CSGOColors[RealRandomInt(0, sizeof(gS_CSGOColors))]);
+		}
 	}
 
 	while(ReplaceStringEx(buffer, size, "{rand}", temp) > 0);
