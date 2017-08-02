@@ -267,7 +267,7 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(IsValidClient(client) && !IsFakeClient(client) )
+	if(IsValidClient(client) && !IsFakeClient(client))
 	{
 		CS_SetMVPCount(client, gI_WRAmount[client]);
 	}

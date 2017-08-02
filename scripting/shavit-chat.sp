@@ -325,12 +325,10 @@ public Action Command_CCList(int client, int args)
 
 public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstring, char[] name, char[] message, bool &processcolors, bool &removecolors)
 {
-	if(!gB_AllowCustom[author])
+	if(author == 0 || !gB_AllowCustom[author])
 	{
 		return Plugin_Continue;
 	}
-
-	Action retvalue = Plugin_Continue;
 
 	if(gB_NameEnabled[author] && strlen(gS_CustomName[author]) > 0)
 	{
@@ -340,22 +338,32 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 
 		strcopy(name, MAXLENGTH_NAME, gS_CustomName[author]);
 		FormatRandom(name, MAXLENGTH_NAME);
-
-		retvalue = Plugin_Changed;
 	}
 
 	if(gB_MessageEnabled[author] && strlen(gS_CustomMessage[author]) > 0)
 	{
 		Format(message, MAXLENGTH_MESSAGE, "%s%s", gS_CustomMessage[author], message);
 		FormatRandom(message, MAXLENGTH_MESSAGE);
+	}
 
-		retvalue = Plugin_Changed;
+	bool allchat = (StrContains(flagstring, "_All") != -1);
+	int team = GetClientTeam(author);
+
+	recipients.Clear();
+	recipients.Push(author);
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(i != author && IsClientInGame(i) && (allchat || GetClientTeam(i) == team))
+		{
+			recipients.Push(i);
+		}
 	}
 
 	removecolors = true;
 	processcolors = false;
 
-	return retvalue;
+	return Plugin_Changed;
 }
 
 void FormatColors(char[] buffer, int size, bool colors, bool escape)
@@ -390,11 +398,19 @@ void FormatRandom(char[] buffer, int size)
 
 	do
 	{
-		int color = ((RealRandomInt(0, 255) & 0xFF) << 16);
-		color |= ((RealRandomInt(0, 255) & 0xFF) << 8);
-		color |= (RealRandomInt(0, 255) & 0xFF);
+		if(gEV_Type == Engine_CSS)
+		{
+			int color = ((RealRandomInt(0, 255) & 0xFF) << 16);
+			color |= ((RealRandomInt(0, 255) & 0xFF) << 8);
+			color |= (RealRandomInt(0, 255) & 0xFF);
 
-		FormatEx(temp, 16, "\x07%06X", color);
+			FormatEx(temp, 8, "\x07%06X", color);
+		}
+
+		else
+		{
+			strcopy(temp, 8, gS_CSGOColors[RealRandomInt(0, sizeof(gS_CSGOColors))]);
+		}
 	}
 
 	while(ReplaceStringEx(buffer, size, "{rand}", temp) > 0);

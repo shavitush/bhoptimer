@@ -99,7 +99,8 @@ int gI_ZoneDatabaseID[MAXPLAYERS+1];
 any gA_ZoneSettings[ZONETYPES_SIZE][ZONESETTINGS_SIZE];
 any gA_ZoneCache[MAX_ZONES][ZONECACHE_SIZE]; // Vectors will not be inside this array.
 int gI_MapZones = 0;
-float gV_MapZones[MAX_ZONES][8][3];
+float gV_MapZones[MAX_ZONES][2][3];
+float gV_MapZones_Visual[MAX_ZONES][8][3];
 float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
 int gI_EntityZone[4096];
@@ -123,6 +124,7 @@ ConVar gCV_TeleportToStart = null;
 ConVar gCV_TeleportToEnd = null;
 ConVar gCV_UseCustomSprite = null;
 ConVar gCV_Height = null;
+ConVar gCV_Offset = null;
 
 // cached cvars
 bool gB_FlatZones = false;
@@ -131,6 +133,7 @@ bool gB_TeleportToStart = true;
 bool gB_TeleportToEnd = true;
 bool gB_UseCustomSprite = true;
 float gF_Height = 128.0;
+float gF_Offset = 0.5;
 
 // handles
 Handle gH_DrawEverything = null;
@@ -216,6 +219,7 @@ public void OnPluginStart()
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_Height = CreateConVar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
+	gCV_Offset = CreateConVar("shavit_zones_offset", "0.5", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
 
 	gCV_FlatZones.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
@@ -223,6 +227,7 @@ public void OnPluginStart()
 	gCV_TeleportToEnd.AddChangeHook(OnConVarChanged);
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
 	gCV_Height.AddChangeHook(OnConVarChanged);
+	gCV_Offset.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -244,11 +249,32 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_UseCustomSprite = gCV_UseCustomSprite.BoolValue;
 	gB_TeleportToEnd = gCV_TeleportToEnd.BoolValue;
 	gF_Height = gCV_Height.FloatValue;
+	gF_Offset = gCV_Offset.FloatValue;
 
 	if(convar == gCV_Interval)
 	{
 		delete gH_DrawEverything;
 		gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
+
+	else if(convar == gCV_Offset && gI_MapZones > 0)
+	{
+		for(int i = 0; i < gI_MapZones; i++)
+		{
+			if(!gA_ZoneCache[i][bZoneInitialized])
+			{
+				continue;
+			}
+
+			gV_MapZones_Visual[i][0][0] = gV_MapZones[i][0][0];
+			gV_MapZones_Visual[i][0][1] = gV_MapZones[i][0][1];
+			gV_MapZones_Visual[i][0][2] = gV_MapZones[i][0][2];
+			gV_MapZones_Visual[i][7][0] = gV_MapZones[i][1][0];
+			gV_MapZones_Visual[i][7][1] = gV_MapZones[i][1][1];
+			gV_MapZones_Visual[i][7][2] = gV_MapZones[i][1][2];
+
+			CreateZonePoints(gV_MapZones_Visual[i], gF_Offset);
+		}
 	}
 }
 
@@ -536,7 +562,7 @@ void ClearZone(int index)
 	for(int i = 0; i < 3; i++)
 	{
 		gV_MapZones[index][0][i] = 0.0;
-		gV_MapZones[index][7][i] = 0.0;
+		gV_MapZones[index][1][i] = 0.0;
 		gV_Destinations[index][i] = 0.0;
 		gV_ZoneCenter[index][i] = 0.0;
 	}
@@ -552,11 +578,11 @@ void KillZoneEntity(int index)
 {
 	if(IsValidEntity(gA_ZoneCache[index][iEntityID]))
 	{
-		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
-
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
 		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_TouchPost, TouchPost);
+
+		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
 	}
 }
 
@@ -642,18 +668,18 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 		else
 		{
-			gV_MapZones[gI_MapZones][0][0] = results.FetchFloat(1);
-			gV_MapZones[gI_MapZones][0][1] = results.FetchFloat(2);
-			gV_MapZones[gI_MapZones][0][2] = results.FetchFloat(3);
-			gV_MapZones[gI_MapZones][7][0] = results.FetchFloat(4);
-			gV_MapZones[gI_MapZones][7][1] = results.FetchFloat(5);
-			gV_MapZones[gI_MapZones][7][2] = results.FetchFloat(6);
+			gV_MapZones[gI_MapZones][0][0] = gV_MapZones_Visual[gI_MapZones][0][0] = results.FetchFloat(1);
+			gV_MapZones[gI_MapZones][0][1] = gV_MapZones_Visual[gI_MapZones][0][1] = results.FetchFloat(2);
+			gV_MapZones[gI_MapZones][0][2] = gV_MapZones_Visual[gI_MapZones][0][2] = results.FetchFloat(3);
+			gV_MapZones[gI_MapZones][1][0] = gV_MapZones_Visual[gI_MapZones][7][0] = results.FetchFloat(4);
+			gV_MapZones[gI_MapZones][1][1] = gV_MapZones_Visual[gI_MapZones][7][1] = results.FetchFloat(5);
+			gV_MapZones[gI_MapZones][1][2] = gV_MapZones_Visual[gI_MapZones][7][2] = results.FetchFloat(6);
 
-			CreateZonePoints(gV_MapZones[gI_MapZones]);
+			CreateZonePoints(gV_MapZones_Visual[gI_MapZones], gF_Offset);
 
-			gV_ZoneCenter[gI_MapZones][0] = (gV_MapZones[gI_MapZones][0][0] + gV_MapZones[gI_MapZones][7][0]) / 2.0;
-			gV_ZoneCenter[gI_MapZones][1] = (gV_MapZones[gI_MapZones][0][1] + gV_MapZones[gI_MapZones][7][1]) / 2.0;
-			gV_ZoneCenter[gI_MapZones][2] = (gV_MapZones[gI_MapZones][0][2] + gV_MapZones[gI_MapZones][7][2]) / 2.0;
+			gV_ZoneCenter[gI_MapZones][0] = (gV_MapZones[gI_MapZones][0][0] + gV_MapZones[gI_MapZones][1][0]) / 2.0;
+			gV_ZoneCenter[gI_MapZones][1] = (gV_MapZones[gI_MapZones][0][1] + gV_MapZones[gI_MapZones][1][1]) / 2.0;
+			gV_ZoneCenter[gI_MapZones][2] = (gV_MapZones[gI_MapZones][0][2] + gV_MapZones[gI_MapZones][1][2]) / 2.0;
 
 			if(type == Zone_Teleport)
 			{
@@ -920,7 +946,7 @@ public int ZoneEdit_MenuHandler(Menu menu, MenuAction action, int param1, int pa
 				// a hack to place the player in the last step of zone editing
 				gI_MapStep[param1] = 3;
 				gV_Point1[param1] = gV_MapZones[id][0];
-				gV_Point2[param1] = gV_MapZones[id][7];
+				gV_Point2[param1] = gV_MapZones[id][1];
 				gI_ZoneType[param1] = gA_ZoneCache[id][iZoneType];
 				gI_ZoneTrack[param1] = gA_ZoneCache[id][iZoneTrack];
 				gV_Teleport[param1] = gV_Destinations[id];
@@ -1743,7 +1769,7 @@ public Action Timer_DrawEverything(Handle Timer)
 	{
 		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
 		{
-			DrawZone(gV_MapZones[i], GetZoneColors(gA_ZoneCache[i][iZoneType]), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
+			DrawZone(gV_MapZones_Visual[i], GetZoneColors(gA_ZoneCache[i][iZoneType]), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
 		}
 	}
 
@@ -1810,7 +1836,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		points[0] = gV_Point1[client];
 		points[7] = origin;
 
-		CreateZonePoints(points);
+		CreateZonePoints(points, gF_Offset);
 
 		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
 
@@ -1877,13 +1903,37 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 // by blacky
 // creates 3d box from 2 points
-void CreateZonePoints(float point[8][3])
+void CreateZonePoints(float point[8][3], float offset = 0.0)
 {
 	for(int i = 1; i < 7; i++)
 	{
 		for(int j = 0; j < 3; j++)
 		{
-			point[i][j] = point[((i >> (2-j)) & 1) * 7][j];
+			point[i][j] = point[((i >> (2 - j)) & 1) * 7][j];
+		}
+	}
+
+	if(offset != 0.0)
+	{
+		float center[2];
+		center[0] = ((point[0][0] + point[7][0]) / 2);
+		center[1] = ((point[0][1] + point[7][1]) / 2);
+
+		// i have to double loop unfortunately :( i hate math
+		for(int i = 0; i < 8; i++)
+		{
+			for(int j = 0; j < 2; j++)
+			{
+				if(point[i][j] < center[j])
+				{
+					point[i][j] += offset;
+				}
+
+				else
+				{
+					point[i][j] -= offset;
+				}
+			}
 		}
 	}
 }
@@ -2164,9 +2214,9 @@ public void CreateZoneEntities()
 
 		TeleportEntity(entity, gV_ZoneCenter[i], NULL_VECTOR, NULL_VECTOR);
 
-		float distance_x = Abs(gV_MapZones[i][0][0] - gV_MapZones[i][7][0]) / 2;
-		float distance_y = Abs(gV_MapZones[i][0][1] - gV_MapZones[i][7][1]) / 2;
-		float distance_z = Abs(gV_MapZones[i][0][2] - gV_MapZones[i][7][2]) / 2;
+		float distance_x = Abs(gV_MapZones[i][0][0] - gV_MapZones[i][1][0]) / 2;
+		float distance_y = Abs(gV_MapZones[i][0][1] - gV_MapZones[i][1][1]) / 2;
+		float distance_z = Abs(gV_MapZones[i][0][2] - gV_MapZones[i][1][2]) / 2;
 
 		float height = ((gEV_Type == Engine_CSS)? 62.0:72.0) / 2;
 
@@ -2195,7 +2245,7 @@ public void CreateZoneEntities()
 
 public void StartTouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || !gA_ZoneCache[gI_EntityZone[entity]][bZoneInitialized] || IsFakeClient(other))
+	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || !gA_ZoneCache[gI_EntityZone[entity]][bZoneInitialized] || IsFakeClient(other))
 	{
 		return;
 	}
@@ -2252,7 +2302,7 @@ public void StartTouchPost(int entity, int other)
 
 public void EndTouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || IsFakeClient(other))
+	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || IsFakeClient(other))
 	{
 		return;
 	}
@@ -2271,7 +2321,7 @@ public void EndTouchPost(int entity, int other)
 
 public void TouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || IsFakeClient(other))
+	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || IsFakeClient(other))
 	{
 		return;
 	}
