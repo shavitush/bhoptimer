@@ -113,6 +113,7 @@ ConVar gCV_HideRadar = null;
 ConVar gCV_TeleportCommands = null;
 ConVar gCV_NoWeaponDrops = null;
 ConVar gCV_NoBlock = null;
+ConVar gCV_NoBlood = null;
 ConVar gCV_AutoRespawn = null;
 ConVar gCV_CreateSpawnPoints = null;
 ConVar gCV_DisableRadio = null;
@@ -141,6 +142,7 @@ bool gB_HideRadar = true;
 bool gB_TeleportCommands = true;
 bool gB_NoWeaponDrops = true;
 bool gB_NoBlock = true;
+bool gB_NoBlood = false;
 float gF_AutoRespawn = 1.5;
 int gI_CreateSpawnPoints = 32;
 bool gB_DisableRadio = false;
@@ -256,6 +258,8 @@ public void OnPluginStart()
 	HookEvent("weapon_fire", Weapon_Fire);
 	AddCommandListener(Command_Drop, "drop");
 	AddTempEntHook("Shotgun Shot", Shotgun_Shot);
+	AddTempEntHook("EffectDispatch", EffectDispatch);
+	AddTempEntHook("World Decal", WorldDecal);
 
 	// phrases
 	LoadTranslations("common.phrases");
@@ -279,6 +283,7 @@ public void OnPluginStart()
 	gCV_TeleportCommands = CreateConVar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoBlock = CreateConVar("shavit_misc_noblock", "1", "Disable player collision?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_NoBlood = CreateConVar("shavit_misc_noblood", "0", "Hide blood decals and particles?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_AutoRespawn = CreateConVar("shavit_misc_autorespawn", "1.5", "Seconds to wait before respawning player?\n0 - Disabled", 0, true, 0.0, true, 10.0);
 	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "32", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
 	gCV_DisableRadio = CreateConVar("shavit_misc_disableradio", "0", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
@@ -306,6 +311,7 @@ public void OnPluginStart()
 	gCV_TeleportCommands.AddChangeHook(OnConVarChanged);
 	gCV_NoWeaponDrops.AddChangeHook(OnConVarChanged);
 	gCV_NoBlock.AddChangeHook(OnConVarChanged);
+	gCV_NoBlood.AddChangeHook(OnConVarChanged);
 	gCV_AutoRespawn.AddChangeHook(OnConVarChanged);
 	gCV_CreateSpawnPoints.AddChangeHook(OnConVarChanged);
 	gCV_DisableRadio.AddChangeHook(OnConVarChanged);
@@ -457,6 +463,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_TeleportCommands = gCV_TeleportCommands.BoolValue;
 	gB_NoWeaponDrops = gCV_NoWeaponDrops.BoolValue;
 	gB_NoBlock = gCV_NoBlock.BoolValue;
+	gB_NoBlood = gCV_NoBlood.BoolValue;
 	gF_AutoRespawn = gCV_AutoRespawn.FloatValue;
 	gI_CreateSpawnPoints = gCV_CreateSpawnPoints.IntValue;
 	gB_DisableRadio = gCV_DisableRadio.BoolValue;
@@ -2083,6 +2090,92 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 	TE_Send(clients, count, delay);
 
 	return Plugin_Stop;
+}
+
+public Action EffectDispatch(const char[] te_name, const Players[], int numClients, float delay)
+{
+	int iEffectIndex = TE_ReadNum("m_iEffectName");
+	int nHitBox = TE_ReadNum("m_nHitBox");
+	char sEffectName[64];
+
+	GetEffectName(iEffectIndex, sEffectName, 64);
+
+	if(gB_NoBlood)
+	{
+		if(StrEqual(sEffectName, "csblood"))
+		{
+			return Plugin_Handled;
+		}
+
+		if(StrEqual(sEffectName, "ParticleEffect"))
+		{
+			char sParticleEffectName[64];
+			GetParticleEffectName(nHitBox, sParticleEffectName, 64);
+
+			if(StrEqual(sParticleEffectName, "impact_helmet_headshot") || StrEqual(sParticleEffectName, "impact_physics_dust"))
+			{
+				return Plugin_Handled;
+			}
+		}
+	}
+
+	return Plugin_Continue;
+}
+
+public Action WorldDecal(const char[] te_name, const Players[], int numClients, float delay)
+{
+	float vecOrigin[3];
+	int nIndex = TE_ReadNum("m_nIndex");
+	char sDecalName[64];
+
+	TE_ReadVector("m_vecOrigin", vecOrigin);
+	GetDecalName(nIndex, sDecalName, 64);
+    
+	if(gB_NoBlood)
+	{
+		if(StrContains(sDecalName, "decals/blood") == 0 && StrContains(sDecalName, "_subrect") != -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	return Plugin_Continue;
+}
+
+public int GetParticleEffectName(int index, char[] sEffectName, int maxlen)
+{
+	int table = INVALID_STRING_TABLE;
+	
+	if (table == INVALID_STRING_TABLE)
+	{
+		table = FindStringTable("ParticleEffectNames");
+	}
+	
+	return ReadStringTable(table, index, sEffectName, maxlen);
+}
+
+public int GetEffectName(int index, char[] sEffectName, int maxlen)
+{
+	int table = INVALID_STRING_TABLE;
+	
+	if (table == INVALID_STRING_TABLE)
+	{
+		table = FindStringTable("EffectDispatch");
+	}
+	
+	return ReadStringTable(table, index, sEffectName, maxlen);
+}
+
+public int GetDecalName(int index, char[] sDecalName, int maxlen)
+{
+	int table = INVALID_STRING_TABLE;
+	
+	if (table == INVALID_STRING_TABLE)
+	{
+		table = FindStringTable("decalprecache");
+	}
+	
+	return ReadStringTable(table, index, sDecalName, maxlen);
 }
 
 public void Shavit_OnFinish(int client)
