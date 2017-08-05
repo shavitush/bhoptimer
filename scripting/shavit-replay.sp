@@ -62,6 +62,7 @@ ArrayList gA_Frames[STYLE_LIMIT][TRACKS_SIZE];
 float gF_StartTick[STYLE_LIMIT];
 ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
 int gI_FrameCount[STYLE_LIMIT][TRACKS_SIZE];
+bool gB_ForciblyStopped = false;
 
 bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
@@ -393,6 +394,8 @@ public void OnMapStart()
 	gA_CentralCache[iCentralReplayStatus] = Replay_Idle;
 	gA_CentralCache[iCentralTrack] = Track_Main;
 
+	gB_ForciblyStopped = false;
+
 	GetCurrentMap(gS_Map, 256);
 	GetMapDisplayName(gS_Map, gS_Map, 256);
 
@@ -485,7 +488,7 @@ public void OnMapStart()
 			{
 				gI_ReplayTick[i] = 0;
 				gRS_ReplayStatus[i] = Replay_Start;
-				CreateTimer((gF_ReplayDelay / 2.0), StartReplay, i, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer((gF_ReplayDelay / 2.0), Timer_StartReplay, i, TIMER_FLAG_NO_MAPCHANGE);
 			}
 		}
 	}
@@ -1022,7 +1025,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gI_ReplayTick[style] = 0;
 				gRS_ReplayStatus[style] = gA_CentralCache[iCentralReplayStatus] = Replay_End;
 
-				CreateTimer((gF_ReplayDelay / 2.0), EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+				CreateTimer((gF_ReplayDelay / 2.0), Timer_EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
 				SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
@@ -1084,15 +1087,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	return Plugin_Continue;
 }
 
-public Action EndReplay(Handle Timer, any data)
+public Action Timer_EndReplay(Handle Timer, any data)
 {
+	gB_ForciblyStopped = false;
 	gI_ReplayTick[data] = 0;
 
 	if(gI_ReplayBotClient[data] != gA_CentralCache[iCentralClient])
 	{
 		gRS_ReplayStatus[data] = Replay_Start;
 
-		CreateTimer((gF_ReplayDelay / 2.0), StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer((gF_ReplayDelay / 2.0), Timer_StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
 	}
 
 	else
@@ -1104,9 +1108,9 @@ public Action EndReplay(Handle Timer, any data)
 	return Plugin_Stop;
 }
 
-public Action StartReplay(Handle Timer, any data)
+public Action Timer_StartReplay(Handle Timer, any data)
 {
-	if(gRS_ReplayStatus[data] == Replay_Running)
+	if(gRS_ReplayStatus[data] == Replay_Running || (gB_CentralBot && gB_ForciblyStopped))
 	{
 		return Plugin_Stop;
 	}
@@ -1577,13 +1581,14 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 			gI_ReplayBotClient[style] = gA_CentralCache[iCentralClient];
 			gRS_ReplayStatus[style] = gA_CentralCache[iCentralReplayStatus] = Replay_Start;
 			TeleportToStart(gA_CentralCache[iCentralClient], style, gI_Track[param1]);
+			gB_ForciblyStopped = false;
 
 			float time = 0.0;
 			Shavit_GetWRTime(gA_CentralCache[iCentralStyle], time, gI_Track[param1]);
 
 			UpdateReplayInfo(gA_CentralCache[iCentralClient], style, time, gI_Track[param1]);
 
-			CreateTimer((gF_ReplayDelay / 2.0), StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+			CreateTimer((gF_ReplayDelay / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 
@@ -1634,6 +1639,7 @@ void StopCentralReplay(int client)
 	gF_StartTick[style] = -65535.0;
 	TeleportToStart(gA_CentralCache[iCentralClient], style, GetReplayTrack(gA_CentralCache[iCentralClient]));
 	gA_CentralCache[iCentralStyle] = 0;
+	gB_ForciblyStopped = true;
 
 	UpdateReplayInfo(client, 0, 0.0, gA_CentralCache[iCentralTrack]);
 }

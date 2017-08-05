@@ -48,7 +48,9 @@ char gS_ZoneNames[][] =
 	"Slay Player", // slays (kills) players which come to this zone
 	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
 	"No Speed Limit", // ignores velocity limit in that zone
-	"Teleport Zone" // teleports to a defined point
+	"Teleport Zone", // teleports to a defined point
+	"SPAWN POINT", // << unused
+	"Easybhop Zone" // forces easybhop whether if the player is in non-easy styles or if the server has different settings
 };
 
 enum
@@ -104,6 +106,7 @@ float gV_MapZones_Visual[MAX_ZONES][8][3];
 float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
 int gI_EntityZone[4096];
+bool gB_ZonesCreated = false;
 
 // beamsprite, used to draw the zone
 char gS_Sprites[ZONESPRITES_SIZE][PLATFORM_MAX_PATH];
@@ -574,15 +577,31 @@ void ClearZone(int index)
 	gA_ZoneCache[index][iDatabaseID] = -1;
 }
 
+void UnhookEntity(int entity)
+{
+	SDKUnhook(entity, SDKHook_StartTouchPost, StartTouchPost);
+	SDKUnhook(entity, SDKHook_EndTouchPost, EndTouchPost);
+	SDKUnhook(entity, SDKHook_TouchPost, TouchPost);
+}
+
 void KillZoneEntity(int index)
 {
-	if(IsValidEntity(gA_ZoneCache[index][iEntityID]))
+	int entity = gA_ZoneCache[index][iEntityID];
+	
+	if(entity > MaxClients && IsValidEntity(entity))
 	{
-		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_StartTouchPost, StartTouchPost);
-		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_EndTouchPost, EndTouchPost);
-		SDKUnhook(gA_ZoneCache[index][iEntityID], SDKHook_TouchPost, TouchPost);
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			for(int j = 0; j < TRACKS_SIZE; j++)
+			{
+				gB_InsideZone[i][gA_ZoneCache[index][iZoneType]][j] = false;
+			}
 
-		AcceptEntityInput(gA_ZoneCache[index][iEntityID], "Kill");
+			gB_InsideZoneID[i][index] = false;
+		}
+
+		UnhookEntity(entity);
+		AcceptEntityInput(entity, "Kill");
 	}
 }
 
@@ -602,26 +621,35 @@ void UnloadZones(int zone)
 			{
 				if(gA_ZoneCache[i][bZoneInitialized])
 				{
-					for(int j = 1; j <= MaxClients; j++)
-					{
-						if(IsValidClient(j))
-						{
-							gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][gA_ZoneCache[i][iZoneTrack]] = false;
-							gB_InsideZoneID[j][gI_EntityZone[i]] = false;
-						}
-					}
-
-					if(gA_ZoneCache[i][iEntityID] != -1)
-					{
-						KillZoneEntity(i);
-					}
+					KillZoneEntity(i);
+					ClearZone(i);
 				}
-
-				ClearZone(i);
 			}
 		}
 
 		ClearCustomSpawn();
+
+		if(zone == 0)
+		{
+			gB_ZonesCreated = false;
+
+			int iMaxEntities = GetMaxEntities();
+
+			char[] sClassname = new char[32];
+			char[] sTargetname = new char[32];
+
+			for(int i = (MaxClients + 1); i < iMaxEntities; i++)
+			{
+				if(!IsValidEntity(i) 
+					|| !GetEntityClassname(i, sClassname, 32) || !StrEqual(sClassname, "trigger_multiple")
+					|| GetEntPropString(i, Prop_Data, "m_iName", sTargetname, 32) == 0 || StrContains(sTargetname, "shavit_zones_") == -1)
+				{
+					continue;
+				}
+
+				AcceptEntityInput(i, "Kill");
+			}
+		}
 
 		return;
 	}
@@ -864,6 +892,11 @@ public Action Command_Zones(int client, int args)
 
 	for(int i = 0; i < sizeof(gS_ZoneNames); i++)
 	{
+		if(i == Zone_CustomSpawn)
+		{
+			continue;
+		}
+
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
@@ -2155,10 +2188,12 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 {
-	CreateTimer(1.0, Timer_CreateZoneEntities);
+	gB_ZonesCreated = false;
+
+	RequestFrame(Frame_CreateZoneEntities);
 }
 
-public Action Timer_CreateZoneEntities(Handle Timer)
+public void Frame_CreateZoneEntities(any data)
 {
 	CreateZoneEntities();
 }
@@ -2175,6 +2210,11 @@ float Abs(float input)
 
 public void CreateZoneEntities()
 {
+	if(gB_ZonesCreated)
+	{
+		return;
+	}
+
 	for(int i = 0; i < gI_MapZones; i++)
 	{
 		if(gA_ZoneCache[i][iEntityID] != -1)
@@ -2240,6 +2280,12 @@ public void CreateZoneEntities()
 
 		gI_EntityZone[entity] = i;
 		gA_ZoneCache[i][iEntityID] = entity;
+
+		char[] sTargetname = new char[32];
+		FormatEx(sTargetname, 32, "shavit_zones_%d_%d", gA_ZoneCache[i][iZoneTrack], gA_ZoneCache[i][iZoneType]);
+		DispatchKeyValue(entity, "targetname", sTargetname);
+
+		gB_ZonesCreated = true;
 	}
 }
 
@@ -2302,19 +2348,23 @@ public void StartTouchPost(int entity, int other)
 
 public void EndTouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || IsFakeClient(other))
+	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || gI_EntityZone[entity] >= sizeof(gA_ZoneCache) || IsFakeClient(other))
 	{
 		return;
 	}
 
-	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]][iZoneType]][gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]] = false;
-	gB_InsideZoneID[other][gI_EntityZone[entity]] = false;
+	int entityzone = gI_EntityZone[entity];
+	int type = gA_ZoneCache[entityzone][iZoneType];
+	int track = gA_ZoneCache[entityzone][iZoneTrack];
+
+	gB_InsideZone[other][type][track] = false;
+	gB_InsideZoneID[other][entityzone] = false;
 
 	Call_StartForward(gH_Forwards_LeaveZone);
 	Call_PushCell(other);
-	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneType]);
-	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack]);
-	Call_PushCell(gI_EntityZone[entity]);
+	Call_PushCell(type);
+	Call_PushCell(track);
+	Call_PushCell(entityzone);
 	Call_PushCell(entity);
 	Call_Finish();
 }
