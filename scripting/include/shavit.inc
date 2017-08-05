@@ -205,6 +205,7 @@ enum(+=1)
 	Zone_NoVelLimit,
 	Zone_Teleport,
 	Zone_CustomSpawn,
+	Zone_Easybhop,
 	ZONETYPES_SIZE
 };
 
@@ -285,9 +286,11 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * @param angles					The player's requested viewangles. They will not necessarily be applied as SRCDS itself won't accept every value.
  * @param status					The player's timer status.
  * @param track						The player's timer track.
+ * @param style						The player's bhop style.
+ * @param stylesettings				An array that contains the player's bhop style's settings.
  * @return							Plugin_Continue to let shavit-core keep doing what it does, Plugin_Changed to pass different values.
  */
-forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track);
+forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesttings[STYLESETTINGS_SIZE]);
 
 /**
  * Called when a player's timer starts.
