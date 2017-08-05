@@ -796,7 +796,7 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		gI_Jumps[client]++;
 	}
 
-	if(gB_NoStaminaReset && gA_StyleSettings[gBS_Style[client]][bEasybhop])
+	if((gB_NoStaminaReset && gA_StyleSettings[gBS_Style[client]][bEasybhop]) || Shavit_InsideZone(client, Zone_Easybhop, gI_Track[client]))
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}

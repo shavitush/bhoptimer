@@ -205,6 +205,7 @@ enum(+=1)
 	Zone_NoVelLimit,
 	Zone_Teleport,
 	Zone_CustomSpawn,
+	Zone_Easybhop,
 	ZONETYPES_SIZE
 };
 
