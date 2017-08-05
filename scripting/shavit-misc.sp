@@ -2094,28 +2094,30 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 
 public Action EffectDispatch(const char[] te_name, const Players[], int numClients, float delay)
 {
+	if(!gB_NoBlood)
+	{
+		return Plugin_Continue;
+	}
+
 	int iEffectIndex = TE_ReadNum("m_iEffectName");
 	int nHitBox = TE_ReadNum("m_nHitBox");
-	char sEffectName[64];
 
-	GetEffectName(iEffectIndex, sEffectName, 64);
+	char[] sEffectName = new char[32];
+	GetEffectName(iEffectIndex, sEffectName, 32);
 
-	if(gB_NoBlood)
+	if(StrEqual(sEffectName, "csblood"))
 	{
-		if(StrEqual(sEffectName, "csblood"))
+		return Plugin_Handled;
+	}
+
+	if(StrEqual(sEffectName, "ParticleEffect"))
+	{
+		char[] sParticleEffectName = new char[32];
+		GetParticleEffectName(nHitBox, sParticleEffectName, 32);
+
+		if(StrEqual(sParticleEffectName, "impact_helmet_headshot") || StrEqual(sParticleEffectName, "impact_physics_dust"))
 		{
 			return Plugin_Handled;
-		}
-
-		if(StrEqual(sEffectName, "ParticleEffect"))
-		{
-			char sParticleEffectName[64];
-			GetParticleEffectName(nHitBox, sParticleEffectName, 64);
-
-			if(StrEqual(sParticleEffectName, "impact_helmet_headshot") || StrEqual(sParticleEffectName, "impact_physics_dust"))
-			{
-				return Plugin_Handled;
-			}
 		}
 	}
 
@@ -2124,29 +2126,32 @@ public Action EffectDispatch(const char[] te_name, const Players[], int numClien
 
 public Action WorldDecal(const char[] te_name, const Players[], int numClients, float delay)
 {
-	float vecOrigin[3];
-	int nIndex = TE_ReadNum("m_nIndex");
-	char sDecalName[64];
-
-	TE_ReadVector("m_vecOrigin", vecOrigin);
-	GetDecalName(nIndex, sDecalName, 64);
-    
-	if(gB_NoBlood)
+	if(!gB_NoBlood)
 	{
-		if(StrContains(sDecalName, "decals/blood") == 0 && StrContains(sDecalName, "_subrect") != -1)
-		{
-			return Plugin_Handled;
-		}
+		return Plugin_Continue;
+	}
+
+	float vecOrigin[3];
+	TE_ReadVector("m_vecOrigin", vecOrigin);
+	
+	int nIndex = TE_ReadNum("m_nIndex");
+
+	char[] sDecalName = new char[32];
+	GetDecalName(nIndex, sDecalName, 32);
+
+	if(StrContains(sDecalName, "decals/blood") == 0 && StrContains(sDecalName, "_subrect") != -1)
+	{
+		return Plugin_Handled;
 	}
 
 	return Plugin_Continue;
 }
 
-public int GetParticleEffectName(int index, char[] sEffectName, int maxlen)
+static int GetParticleEffectName(int index, char[] sEffectName, int maxlen)
 {
 	int table = INVALID_STRING_TABLE;
 	
-	if (table == INVALID_STRING_TABLE)
+	if(table == INVALID_STRING_TABLE)
 	{
 		table = FindStringTable("ParticleEffectNames");
 	}
@@ -2154,11 +2159,11 @@ public int GetParticleEffectName(int index, char[] sEffectName, int maxlen)
 	return ReadStringTable(table, index, sEffectName, maxlen);
 }
 
-public int GetEffectName(int index, char[] sEffectName, int maxlen)
+static int GetEffectName(int index, char[] sEffectName, int maxlen)
 {
 	int table = INVALID_STRING_TABLE;
 	
-	if (table == INVALID_STRING_TABLE)
+	if(table == INVALID_STRING_TABLE)
 	{
 		table = FindStringTable("EffectDispatch");
 	}
@@ -2166,11 +2171,11 @@ public int GetEffectName(int index, char[] sEffectName, int maxlen)
 	return ReadStringTable(table, index, sEffectName, maxlen);
 }
 
-public int GetDecalName(int index, char[] sDecalName, int maxlen)
+static int GetDecalName(int index, char[] sDecalName, int maxlen)
 {
 	int table = INVALID_STRING_TABLE;
 	
-	if (table == INVALID_STRING_TABLE)
+	if(table == INVALID_STRING_TABLE)
 	{
 		table = FindStringTable("decalprecache");
 	}
