@@ -2133,7 +2133,7 @@ public Action WorldDecal(const char[] te_name, const Players[], int numClients, 
 
 	float vecOrigin[3];
 	TE_ReadVector("m_vecOrigin", vecOrigin);
-	
+
 	int nIndex = TE_ReadNum("m_nIndex");
 
 	char[] sDecalName = new char[32];
@@ -2147,39 +2147,39 @@ public Action WorldDecal(const char[] te_name, const Players[], int numClients, 
 	return Plugin_Continue;
 }
 
-static int GetParticleEffectName(int index, char[] sEffectName, int maxlen)
+int GetParticleEffectName(int index, char[] sEffectName, int maxlen)
 {
-	int table = INVALID_STRING_TABLE;
-	
+	static int table = INVALID_STRING_TABLE;
+
 	if(table == INVALID_STRING_TABLE)
 	{
 		table = FindStringTable("ParticleEffectNames");
 	}
-	
+
 	return ReadStringTable(table, index, sEffectName, maxlen);
 }
 
-static int GetEffectName(int index, char[] sEffectName, int maxlen)
+int GetEffectName(int index, char[] sEffectName, int maxlen)
 {
-	int table = INVALID_STRING_TABLE;
-	
+	static int table = INVALID_STRING_TABLE;
+
 	if(table == INVALID_STRING_TABLE)
 	{
 		table = FindStringTable("EffectDispatch");
 	}
-	
+
 	return ReadStringTable(table, index, sEffectName, maxlen);
 }
 
-static int GetDecalName(int index, char[] sDecalName, int maxlen)
+int GetDecalName(int index, char[] sDecalName, int maxlen)
 {
-	int table = INVALID_STRING_TABLE;
-	
+	static int table = INVALID_STRING_TABLE;
+
 	if(table == INVALID_STRING_TABLE)
 	{
 		table = FindStringTable("decalprecache");
 	}
-	
+
 	return ReadStringTable(table, index, sDecalName, maxlen);
 }
 
