@@ -55,13 +55,6 @@ char gS_ZoneNames[][] =
 
 enum
 {
-	sBeamSprite,
-	sHaloSprite,
-	ZONESPRITES_SIZE
-}
-
-enum
-{
 	bVisible,
 	iRed,
 	iGreen,
@@ -108,8 +101,7 @@ float gV_ZoneCenter[MAX_ZONES][3];
 int gI_EntityZone[4096];
 bool gB_ZonesCreated = false;
 
-// beamsprite, used to draw the zone
-char gS_Sprites[ZONESPRITES_SIZE][PLATFORM_MAX_PATH];
+char gS_BeamSprite[PLATFORM_MAX_PATH];
 int gI_BeamSprite = -1;
 int gI_HaloSprite = -1;
 
@@ -206,6 +198,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_zoneedit", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone.");
 	RegAdminCmd("sm_editzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
 	RegAdminCmd("sm_modifyzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
+	
+	RegAdminCmd("sm_reloadzonesettings", Command_ReloadZoneSettings, ADMFLAG_ROOT, "Reloads the zone settings.");
 
 	// events
 	HookEvent("player_spawn", Player_Spawn);
@@ -220,7 +214,7 @@ public void OnPluginStart()
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.5", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_Height = CreateConVar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
 	gCV_Offset = CreateConVar("shavit_zones_offset", "0.5", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
 
@@ -278,6 +272,11 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 			CreateZonePoints(gV_MapZones_Visual[i], gF_Offset);
 		}
+	}
+
+	else if(convar == gCV_UseCustomSprite && !StrEqual(oldValue, newValue))
+	{
+		LoadZoneSettings();
 	}
 }
 
@@ -458,9 +457,8 @@ bool LoadZonesConfig()
 		return false;
 	}
 
-	kv.JumpToKey((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
-	kv.GetString("beam", gS_Sprites[sBeamSprite], PLATFORM_MAX_PATH);
-	kv.GetString("halo", gS_Sprites[sHaloSprite], PLATFORM_MAX_PATH);
+	kv.JumpToKey("Sprites");
+	kv.GetString("beam", gS_BeamSprite, PLATFORM_MAX_PATH);
 
 	char[] sDownloads = new char[PLATFORM_MAX_PATH * 8];
 	kv.GetString("downloads", sDownloads, (PLATFORM_MAX_PATH * 8));
@@ -502,18 +500,8 @@ bool LoadZonesConfig()
 	return true;
 }
 
-public void OnMapStart()
+void LoadZoneSettings()
 {
-	GetCurrentMap(gS_Map, 128);
-
-	gI_MapZones = 0;
-	UnloadZones(0);
-
-	if(gH_SQL != null && gB_DBReady)
-	{
-		RefreshZones();
-	}
-
 	if(!LoadZonesConfig())
 	{
 		SetFailState("Cannot open \"configs/shavit-zones.cfg\". Make sure this file exists and that the server has read permissions to it.");
@@ -521,8 +509,8 @@ public void OnMapStart()
 
 	if(gB_UseCustomSprite)
 	{
-		gI_BeamSprite = PrecacheModel(gS_Sprites[sBeamSprite], true);
-		gI_HaloSprite = (StrEqual(gS_Sprites[sHaloSprite], "none"))? 0:PrecacheModel(gS_Sprites[sHaloSprite], true);
+		gI_BeamSprite = PrecacheModel(gS_BeamSprite, true);
+		gI_HaloSprite = 0;
 	}
 
 	else
@@ -540,6 +528,22 @@ public void OnMapStart()
 		}
 	}
 
+}
+
+public void OnMapStart()
+{
+	GetCurrentMap(gS_Map, 128);
+
+	gI_MapZones = 0;
+	UnloadZones(0);
+
+	if(gH_SQL != null && gB_DBReady)
+	{
+		RefreshZones();
+	}
+
+	LoadZoneSettings();
+	
 	PrecacheModel("models/props/cs_office/vending_machine.mdl");
 
 	// draw
@@ -869,6 +873,15 @@ public Action Command_ZoneEdit(int client, int args)
 	Reset(client);
 
 	return OpenEditMenu(client);
+}
+
+public Action Command_ReloadZoneSettings(int client, int args)
+{
+	LoadZoneSettings();
+
+	ReplyToCommand(client, "Reloaded zone settings.");
+
+	return Plugin_Handled;
 }
 
 public Action Command_Zones(int client, int args)
@@ -1809,13 +1822,13 @@ public Action Timer_DrawEverything(Handle Timer)
 	return Plugin_Continue;
 }
 
-int[] GetZoneColors(int type)
+int[] GetZoneColors(int type, int customalpha = 0)
 {
 	int colors[4];
 	colors[0] = gA_ZoneSettings[type][iRed];
 	colors[1] = gA_ZoneSettings[type][iGreen];
 	colors[2] = gA_ZoneSettings[type][iBlue];
-	colors[3] = gA_ZoneSettings[type][iAlpha];
+	colors[3] = (customalpha > 0)? customalpha:gA_ZoneSettings[type][iAlpha];
 
 	return colors;
 }
@@ -1868,10 +1881,12 @@ public Action Timer_Draw(Handle Timer, any data)
 		float points[8][3];
 		points[0] = gV_Point1[client];
 		points[7] = origin;
-
 		CreateZonePoints(points, gF_Offset);
 
-		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
+		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
+		origin = points[7];
+
+		DrawZone(points, GetZoneColors(gI_ZoneType[client], 25), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -1884,7 +1899,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	{
 		origin[2] -= gF_Height;
 
-		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
 		TE_SendToAll(0.0);
 	}
 

@@ -1,8 +1,0 @@
-"UnlitGeneric"
-{
-	"$baseTexture" "shavit/zonev2_halo"
-
-	"$additive" 0
-	"$vertexcolor" 1
-	"$vertexalpha" 1
-}
