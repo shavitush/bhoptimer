@@ -412,15 +412,6 @@ forward void Shavit_OnPause(int client, int track);
 forward void Shavit_OnResume(int client, int track);
 
 /**
- * Called when a player's rank has updated or was just looked up.
- * Will be called on initial rank lookup.
- *
- * @param client					Client index.
- * @noreturn
- */
-forward void Shavit_OnRankUpdated(int client);
-
-/**
  * Called when a player changes their bhopstyle.
  *
  * @param client					Client index.
