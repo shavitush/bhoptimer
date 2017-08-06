@@ -206,6 +206,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_zoneedit", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone.");
 	RegAdminCmd("sm_editzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
 	RegAdminCmd("sm_modifyzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
+	
+	RegAdminCmd("sm_reloadzonesettings", Command_ReloadZoneSettings, ADMFLAG_ROOT, "Reloads the zone settings.");
 
 	// events
 	HookEvent("player_spawn", Player_Spawn);
@@ -220,7 +222,7 @@ public void OnPluginStart()
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.5", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\nRestart server after change.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_Height = CreateConVar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
 	gCV_Offset = CreateConVar("shavit_zones_offset", "0.5", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
 
@@ -278,6 +280,11 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 			CreateZonePoints(gV_MapZones_Visual[i], gF_Offset);
 		}
+	}
+
+	else if(convar == gCV_UseCustomSprite && !StrEqual(oldValue, newValue))
+	{
+		LoadZoneSettings();
 	}
 }
 
@@ -502,18 +509,8 @@ bool LoadZonesConfig()
 	return true;
 }
 
-public void OnMapStart()
+void LoadZoneSettings()
 {
-	GetCurrentMap(gS_Map, 128);
-
-	gI_MapZones = 0;
-	UnloadZones(0);
-
-	if(gH_SQL != null && gB_DBReady)
-	{
-		RefreshZones();
-	}
-
 	if(!LoadZonesConfig())
 	{
 		SetFailState("Cannot open \"configs/shavit-zones.cfg\". Make sure this file exists and that the server has read permissions to it.");
@@ -540,6 +537,22 @@ public void OnMapStart()
 		}
 	}
 
+}
+
+public void OnMapStart()
+{
+	GetCurrentMap(gS_Map, 128);
+
+	gI_MapZones = 0;
+	UnloadZones(0);
+
+	if(gH_SQL != null && gB_DBReady)
+	{
+		RefreshZones();
+	}
+
+	LoadZoneSettings();
+	
 	PrecacheModel("models/props/cs_office/vending_machine.mdl");
 
 	// draw
@@ -869,6 +882,15 @@ public Action Command_ZoneEdit(int client, int args)
 	Reset(client);
 
 	return OpenEditMenu(client);
+}
+
+public Action Command_ReloadZoneSettings(int client, int args)
+{
+	LoadZoneSettings();
+
+	ReplyToCommand(client, "Reloaded zone settings.");
+
+	return Plugin_Handled;
 }
 
 public Action Command_Zones(int client, int args)
