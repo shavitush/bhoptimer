@@ -1822,13 +1822,13 @@ public Action Timer_DrawEverything(Handle Timer)
 	return Plugin_Continue;
 }
 
-int[] GetZoneColors(int type)
+int[] GetZoneColors(int type, int customalpha = 0)
 {
 	int colors[4];
 	colors[0] = gA_ZoneSettings[type][iRed];
 	colors[1] = gA_ZoneSettings[type][iGreen];
 	colors[2] = gA_ZoneSettings[type][iBlue];
-	colors[3] = gA_ZoneSettings[type][iAlpha];
+	colors[3] = (customalpha > 0)? customalpha:gA_ZoneSettings[type][iAlpha];
 
 	return colors;
 }
@@ -1881,10 +1881,12 @@ public Action Timer_Draw(Handle Timer, any data)
 		float points[8][3];
 		points[0] = gV_Point1[client];
 		points[7] = origin;
-
 		CreateZonePoints(points, gF_Offset);
 
-		DrawZone(points, GetZoneColors(gI_ZoneType[client]), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
+		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
+		origin = points[7];
+
+		DrawZone(points, GetZoneColors(gI_ZoneType[client], 25), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -1897,7 +1899,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	{
 		origin[2] -= gF_Height;
 
-		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 3.5, 3.5, 0, 0.0, {230, 83, 124, 175}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
 		TE_SendToAll(0.0);
 	}
 
