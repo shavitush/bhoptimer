@@ -55,13 +55,6 @@ char gS_ZoneNames[][] =
 
 enum
 {
-	sBeamSprite,
-	sHaloSprite,
-	ZONESPRITES_SIZE
-}
-
-enum
-{
 	bVisible,
 	iRed,
 	iGreen,
@@ -108,8 +101,7 @@ float gV_ZoneCenter[MAX_ZONES][3];
 int gI_EntityZone[4096];
 bool gB_ZonesCreated = false;
 
-// beamsprite, used to draw the zone
-char gS_Sprites[ZONESPRITES_SIZE][PLATFORM_MAX_PATH];
+char gS_BeamSprite[PLATFORM_MAX_PATH];
 int gI_BeamSprite = -1;
 int gI_HaloSprite = -1;
 
@@ -465,9 +457,8 @@ bool LoadZonesConfig()
 		return false;
 	}
 
-	kv.JumpToKey((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
-	kv.GetString("beam", gS_Sprites[sBeamSprite], PLATFORM_MAX_PATH);
-	kv.GetString("halo", gS_Sprites[sHaloSprite], PLATFORM_MAX_PATH);
+	kv.JumpToKey("Sprites");
+	kv.GetString("beam", gS_BeamSprite, PLATFORM_MAX_PATH);
 
 	char[] sDownloads = new char[PLATFORM_MAX_PATH * 8];
 	kv.GetString("downloads", sDownloads, (PLATFORM_MAX_PATH * 8));
@@ -518,8 +509,8 @@ void LoadZoneSettings()
 
 	if(gB_UseCustomSprite)
 	{
-		gI_BeamSprite = PrecacheModel(gS_Sprites[sBeamSprite], true);
-		gI_HaloSprite = (StrEqual(gS_Sprites[sHaloSprite], "none"))? 0:PrecacheModel(gS_Sprites[sHaloSprite], true);
+		gI_BeamSprite = PrecacheModel(gS_BeamSprite, true);
+		gI_HaloSprite = 0;
 	}
 
 	else
