@@ -787,7 +787,10 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
-	FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", (buttons & IN_JUMP) > 0? "JUMP":"----", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
+	FormatEx(sPanelLine, 128, "［%s］　［%s］\n　　 %s\n%s　 %s 　%s", 
+		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
+		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
+		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
 
 	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
 
