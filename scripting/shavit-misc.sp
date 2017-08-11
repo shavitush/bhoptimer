@@ -2028,10 +2028,9 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 	char[] sWeapon = new char[16];
 	event.GetString("weapon", sWeapon, 16);
 
-	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hpk") != -1 || StrEqual(sWeapon, "glock"))
+	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hpk") != -1 || StrContains(sWeapon, "glock") != -1)
 	{
 		int client = GetClientOfUserId(event.GetInt("userid"));
-
 		SetWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"));
 	}
 }
