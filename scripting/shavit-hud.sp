@@ -785,7 +785,6 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	// to make it shorter
 	int buttons = gI_Buttons[target];
 
-	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
 	FormatEx(sPanelLine, 128, "［%s］　［%s］\n　　 %s\n%s　 %s 　%s", 
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
@@ -842,13 +841,14 @@ void UpdateCenterKeys(int client)
 	int buttons = gI_Buttons[target];
 
 	char[] sCenterText = new char[64];
-	FormatEx(sCenterText, 64, "%s %s %s\n%s %s %s",
-		(buttons & IN_DUCK > 0)? "C":"-", (buttons & IN_FORWARD > 0)? "W":"-", (buttons & IN_JUMP > 0)? "J":"-",
-		(buttons & IN_MOVELEFT > 0)? "A":"-", (buttons & IN_BACK > 0)? "S":"-", (buttons & IN_MOVERIGHT > 0)? "D":"-");
+	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s　 %s 　%s", 
+		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
+		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
+		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
 
 	if(gB_BhopStats && !gA_StyleSettings[gBS_Style[target]][bAutobhop])
 	{
-		Format(sCenterText, 64, "%s\n%d    %d", sCenterText, gI_ScrollCount[client], gI_LastScrollCount[target]);
+		Format(sCenterText, 64, "%s\n　　%d　%d", sCenterText, gI_ScrollCount[client], gI_LastScrollCount[client]);
 	}
 
 	PrintCenterText(client, "%s", sCenterText);
