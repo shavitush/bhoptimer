@@ -1412,8 +1412,19 @@ public void OnClientPutInServer(int client)
 		strcopy(sCountry, 128, "Local Area Network");
 	}
 
+	int iTime = GetTime();
+
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d);", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, GetTime());
+
+	if(gB_MySQL)
+	{
+		FormatEx(sQuery, 512, "INSERT INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d) ON DUPLICATE KEY UPDATE name = '%s', country = '%s', ip = '%s', lastlogin = %d;", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, iTime, sAuthID3, sEscapedName, sCountry, sIP, iTime);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d);", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, iTime);
+	}
 
 	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
@@ -1651,7 +1662,16 @@ void SQL_DBConnect()
 	gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), `lastlogin` %s NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`));", gS_MySQLPrefix, gB_MySQL? "INT":"INTEGER");
+
+	if(gB_MySQL)
+	{
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL PRIMARY KEY, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+	}
 
 	// CREATE TABLE IF NOT EXISTS
 	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
