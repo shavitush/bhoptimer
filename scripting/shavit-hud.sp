@@ -232,7 +232,18 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
 {
-	gI_Buttons[client] = buttons;
+	if(gI_Buttons[client] != buttons)
+	{
+		gI_Buttons[client] = buttons;
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(i == client || (IsValidClient(i) && GetHUDTarget(i) == client))
+			{
+				TriggerHUDUpdate(i, true);
+			}
+		}
+	}
 
 	return Plugin_Continue;
 }
@@ -473,15 +484,22 @@ public Action UpdateHUD_Timer(Handle Timer)
 	return Plugin_Continue;
 }
 
-void TriggerHUDUpdate(int client)
+void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:S lags when you send too many usermessages
 {
-	UpdateHUD(client);
-	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", ((gI_HUDSettings[client] & HUD_HIDEWEAPON) > 0)? 0:1);
-	UpdateTopLeftHUD(client, true);
+	if(!keysonly)
+	{
+		UpdateHUD(client);
+		SetEntProp(client, Prop_Data, "m_bDrawViewmodel", ((gI_HUDSettings[client] & HUD_HIDEWEAPON) > 0)? 0:1);
+		UpdateTopLeftHUD(client, true);
+	}
 
 	if(gEV_Type == Engine_CSS)
 	{
-		UpdateKeyHint(client);
+		if(!keysonly)
+		{
+			UpdateKeyHint(client);
+		}
+
 		UpdateCenterKeys(client);
 	}
 
