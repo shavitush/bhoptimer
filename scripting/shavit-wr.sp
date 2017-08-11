@@ -1307,7 +1307,7 @@ Action ShowWRStyleMenu(int client, int track)
 
 		char[] sDisplay = new char[64];
 
-		if(gF_WRTime[i][track] > 0.0)
+		if(StrEqual(gS_ClientMap[client], gS_Map) && gF_WRTime[i][track] > 0.0)
 		{
 			char[] sTime = new char[32];
 			FormatSeconds(gF_WRTime[i][track], sTime, 32, false);
