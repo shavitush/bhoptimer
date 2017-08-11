@@ -1953,24 +1953,20 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 // creates 3d box from 2 points
 void CreateZonePoints(float point[8][3], float offset = 0.0)
 {
-	for(int i = 1; i < 7; i++)
+	float center[2];
+	center[0] = ((point[0][0] + point[7][0]) / 2);
+	center[1] = ((point[0][1] + point[7][1]) / 2);
+
+	for(int i = 0; i < 8; i++)
 	{
 		for(int j = 0; j < 3; j++)
 		{
-			point[i][j] = point[((i >> (2 - j)) & 1) * 7][j];
-		}
-	}
+			if(i > 0 && i < 7)
+			{
+				point[i][j] = point[((i >> (2 - j)) & 1) * 7][j];
+			}
 
-	if(offset != 0.0)
-	{
-		float center[2];
-		center[0] = ((point[0][0] + point[7][0]) / 2);
-		center[1] = ((point[0][1] + point[7][1]) / 2);
-
-		// i have to double loop unfortunately :( i hate math
-		for(int i = 0; i < 8; i++)
-		{
-			for(int j = 0; j < 2; j++)
+			if(offset != 0.0 && j < 2)
 			{
 				if(point[i][j] < center[j])
 				{
