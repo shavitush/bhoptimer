@@ -51,6 +51,7 @@ int gI_NameLength = MAX_NAME_LENGTH;
 int gI_LastScrollCount[MAXPLAYERS+1];
 int gI_ScrollCount[MAXPLAYERS+1];
 int gBS_Style[MAXPLAYERS+1];
+int gI_Buttons[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -227,6 +228,13 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
 		Shavit_GetStyleStrings(i, sHTMLColor, gS_StyleStrings[i][sHTMLColor], 128);
 	}
+}
+
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
+{
+	gI_Buttons[client] = buttons;
+
+	return Plugin_Continue;
 }
 
 public void OnClientPutInServer(int client)
@@ -756,28 +764,12 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 		return;
 	}
 
-	int style = (IsFakeClient(client) && gB_Replay)? Shavit_GetReplayBotStyle(target):gBS_Style[target];
-
-	// Fallback. To avoid issues when the central bot is idle.
-	if(gBS_Style[target] == -1)
-	{
-		style = gBS_Style[target];
-	}
-
-	int buttons = GetClientButtons(target);
+	// to make it shorter
+	int buttons = gI_Buttons[target];
 
 	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
-
-	if(gA_StyleSettings[style][bAutobhop]) // don't include [JUMP] for autobhop styles
-	{
-		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
-	}
-
-	else
-	{
-		FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", (buttons & IN_JUMP) > 0? "JUMP":"----", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
-	}
+	FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", (buttons & IN_JUMP) > 0? "JUMP":"----", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
 
 	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
 
@@ -826,7 +818,7 @@ void UpdateCenterKeys(int client)
 		return;
 	}
 
-	int buttons = GetClientButtons(target);
+	int buttons = gI_Buttons[target];
 
 	char[] sCenterText = new char[64];
 	FormatEx(sCenterText, 64, "%s %s %s\n%s %s %s",
