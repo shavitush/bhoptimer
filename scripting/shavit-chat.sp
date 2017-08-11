@@ -338,6 +338,11 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 
 		strcopy(name, MAXLENGTH_NAME, gS_CustomName[author]);
 		FormatRandom(name, MAXLENGTH_NAME);
+
+		if(gEV_Type == Engine_CSGO)
+		{
+			Format(name, MAXLENGTH_NAME, " %s", name);
+		}
 	}
 
 	if(gB_MessageEnabled[author] && strlen(gS_CustomMessage[author]) > 0)
@@ -409,7 +414,7 @@ void FormatRandom(char[] buffer, int size)
 
 		else
 		{
-			strcopy(temp, 8, gS_CSGOColors[RealRandomInt(0, sizeof(gS_CSGOColors))]);
+			strcopy(temp, 8, gS_CSGOColors[RealRandomInt(0, sizeof(gS_CSGOColors) - 1)]);
 		}
 	}
 
