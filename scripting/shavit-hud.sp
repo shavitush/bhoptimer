@@ -230,6 +230,14 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 }
 
+public Action Shavit_OnPlayerRunCmd(int client, int &buttons)
+{
+	if(IsFakeClient(client) && gI_Buttons[client] != buttons)
+	{
+		gI_Buttons[client] = buttons;
+	}
+}
+
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
 {
 	if(gI_Buttons[client] != buttons)
@@ -848,7 +856,7 @@ void UpdateCenterKeys(int client)
 
 	if(gB_BhopStats && !gA_StyleSettings[gBS_Style[target]][bAutobhop])
 	{
-		Format(sCenterText, 64, "%s\n　　%d　%d", sCenterText, gI_ScrollCount[client], gI_LastScrollCount[client]);
+		Format(sCenterText, 64, "%s\n　　%d　%d", sCenterText, gI_ScrollCount[target], gI_LastScrollCount[target]);
 	}
 
 	PrintCenterText(client, "%s", sCenterText);
