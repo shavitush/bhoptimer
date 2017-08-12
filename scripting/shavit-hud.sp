@@ -558,7 +558,7 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%06X\">%T</font>", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client);
+				FormatEx(sHintText, 64, "<font size=\"38\" color=\"#%06X\">%T</font>\n\t%T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client, "HudSpeedText", client, iSpeed);
 			}
 
 			else
@@ -571,7 +571,7 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%06X\">%T</font>", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client);
+				FormatEx(sHintText, 64, "<font size=\"38\" color=\"#%06X\">%T</font>\n\t%T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client, "HudSpeedText", client, iSpeed);
 			}
 
 			else
