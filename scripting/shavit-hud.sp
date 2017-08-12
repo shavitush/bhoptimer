@@ -230,15 +230,22 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 }
 
-public Action Shavit_OnPlayerRunCmd(int client, int &buttons)
+public Action OnPlayerRunCmd(int client, int &buttons)
 {
-	if(IsFakeClient(client) && gI_Buttons[client] != buttons)
+	if(IsFakeClient(client))
 	{
-		gI_Buttons[client] = buttons;
+		DoButtons(client, buttons);
 	}
 }
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
+{
+	DoButtons(client, buttons);
+
+	return Plugin_Continue;
+}
+
+void DoButtons(int client, int buttons)
 {
 	if(gI_Buttons[client] != buttons)
 	{
@@ -252,8 +259,6 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			}
 		}
 	}
-
-	return Plugin_Continue;
 }
 
 public void OnClientPutInServer(int client)
