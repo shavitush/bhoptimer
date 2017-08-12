@@ -768,7 +768,7 @@ native bool Shavit_IsReplayDataLoaded(int style);
  * Gets player points.
  *
  * @param client					Client index.
- * @return							Points. 0.0 if unranked and -1.0 if lookup is due.
+ * @return							Points. 0.0 if unranked.
  */
 native float Shavit_GetPoints(int client);
 
@@ -776,7 +776,7 @@ native float Shavit_GetPoints(int client);
  * Gets player rank.
  *
  * @param client					Client index.
- * @return							Rank. 0 if unranked and -1 if lookup is due.
+ * @return							Rank. 0 if unranked.
  */
 native int Shavit_GetRank(int client);
 
