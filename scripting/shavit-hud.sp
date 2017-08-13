@@ -19,6 +19,7 @@
 */
 
 #include <sourcemod>
+#include <sdktools>
 #include <clientprefs>
 
 #undef REQUIRE_PLUGIN
@@ -232,8 +233,9 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public Action OnPlayerRunCmd(int client, int &buttons)
 {
-	if(IsFakeClient(client))
+	if(gB_Replay && IsFakeClient(client))
 	{
+		//PrintToChatAll("%N buttons: %d", client, buttons);
 		gI_Buttons[client] = buttons;
 
 		for(int i = 1; i <= MaxClients; i++)
@@ -244,6 +246,8 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 			}
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
