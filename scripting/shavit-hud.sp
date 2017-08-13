@@ -238,7 +238,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(i != client || (IsValidClient(i) && GetHUDTarget(i) == client))
+			if(i != client && (IsValidClient(i) && GetHUDTarget(i) == client))
 			{
 				TriggerHUDUpdate(i, true);
 			}
