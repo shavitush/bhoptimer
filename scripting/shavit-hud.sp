@@ -234,31 +234,31 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 {
 	if(IsFakeClient(client))
 	{
-		DoButtons(client, buttons);
-	}
-}
-
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
-{
-	DoButtons(client, buttons);
-
-	return Plugin_Continue;
-}
-
-void DoButtons(int client, int buttons)
-{
-	if(gI_Buttons[client] != buttons)
-	{
 		gI_Buttons[client] = buttons;
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(i == client || (IsValidClient(i) && GetHUDTarget(i) == client))
+			if(i != client || (IsValidClient(i) && GetHUDTarget(i) == client))
 			{
 				TriggerHUDUpdate(i, true);
 			}
 		}
 	}
+}
+
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
+{
+	gI_Buttons[client] = buttons;
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(i == client || (IsValidClient(i) && GetHUDTarget(i) == client))
+		{
+			TriggerHUDUpdate(i, true);
+		}
+	}
+
+	return Plugin_Continue;
 }
 
 public void OnClientPutInServer(int client)

@@ -2228,6 +2228,16 @@ public void CreateZoneEntities()
 
 	for(int i = 0; i < gI_MapZones; i++)
 	{
+		for(int j = 1; j <= MaxClients; j++)
+		{
+			for(int k = 0; k < TRACKS_SIZE; k++)
+			{
+				gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][k] = false;
+			}
+
+			gB_InsideZoneID[j][i] = false;
+		}
+
 		if(gA_ZoneCache[i][iEntityID] != -1)
 		{
 			KillZoneEntity(i);

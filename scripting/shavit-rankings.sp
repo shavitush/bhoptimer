@@ -78,6 +78,15 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 int gI_Styles = 0;
 
+public Plugin myinfo =
+{
+	name = "[shavit] Rankings",
+	author = "shavit",
+	description = "A fair and competitive ranking system for shavit's bhoptimer.",
+	version = SHAVIT_VERSION,
+	url = "https://github.com/shavitush/bhoptimer"
+}
+
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	CreateNative("Shavit_GetPoints", Native_GetPoints);
@@ -344,7 +353,7 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 	{
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
-		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, gI_Tier, DBPrio_High);
 	}
 }
 
@@ -474,7 +483,14 @@ public Action Command_Top(int client, int args)
 
 	else
 	{
-		for(int i = 0; i < gI_RankedPlayers; i++)
+		int ranked = gI_RankedPlayers;
+
+		if(ranked > 100)
+		{
+			ranked = 100;
+		}
+
+		for(int i = 0; i < ranked; i++)
 		{
 			char[] sDisplay = new char[64];
 			FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_Top100_Names[i], gS_Top100_Points[i]);
@@ -599,7 +615,7 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 			"AND t.track = %d " ...
 			"AND t.style = %d;",
 			gS_MySQLPrefix, gS_MySQLPrefix,
-			gF_PointsPerTier, tier, tier,
+			gF_PointsPerTier, (track == Track_Main)? tier:1, (track == Track_Main)? tier:1,
 			gS_MySQLPrefix, gS_MySQLPrefix,
 			gA_StyleSettings[style][fRankingMultiplier], (track == Track_Main)? 1.0:0.25,
 			map, track, style);
