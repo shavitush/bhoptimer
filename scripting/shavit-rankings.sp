@@ -46,6 +46,9 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+// uncomment when done
+// #define DEBUG
+
 char gS_MySQLPrefix[32];
 Database gH_SQL = null;	
 
@@ -620,7 +623,7 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 			gA_StyleSettings[style][fRankingMultiplier], (track == Track_Main)? 1.0:0.25,
 			map, track, style);
 
-	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_Low);
+	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -672,7 +675,7 @@ public void SQL_UpdatePlayerPoints_Callback(Database db, DBResultSet results, co
 void UpdateAllPoints()
 {
 	char[] sQuery = new char[128];
-	FormatEx(sQuery, 128, "SELECT auth FROM %susers;", gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "SELECT auth FROM %splayertimes WHERE points > 0.0 GROUP BY auth;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery, 0, DBPrio_Low);
 }
 
@@ -704,6 +707,10 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 
 	Transaction trans = new Transaction();
 
+	#if defined DEBUG
+	LogError("start: %f", GetEngineTime());
+	#endif
+
 	if(results.RowCount > 0)
 	{
 		while(results.FetchRow())
@@ -732,17 +739,29 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 
 	delete auths;
 
+	#if defined DEBUG
+	LogError("start: %f", GetEngineTime());
+	#endif
+
 	gH_SQL.Execute(trans, SQL_OnSuccess, SQL_OnFailure);
 }
 
 public void SQL_OnSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
 	UpdateRankedPlayers();
+
+	#if defined DEBUG
+	LogError("end (success): %f", GetEngineTime());
+	#endif
 }
 
 public void SQL_OnFailure(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
 {
 	LogError("Transaction query (%d): %s", failIndex, error);
+
+	#if defined DEBUG
+	LogError("end (fail): %f", GetEngineTime());
+	#endif
 }
 
 void UpdatePlayerRank(int client)

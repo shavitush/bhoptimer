@@ -235,7 +235,6 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 {
 	if(gB_Replay && IsFakeClient(client))
 	{
-		//PrintToChatAll("%N buttons: %d", client, buttons);
 		gI_Buttons[client] = buttons;
 
 		for(int i = 1; i <= MaxClients; i++)
