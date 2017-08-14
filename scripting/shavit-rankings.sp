@@ -831,7 +831,7 @@ public void SQL_UpdateRankedPlayers_Callback(Database db, DBResultSet results, c
 void UpdateTop100()
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT auth, name, CAST(points AS DECIMAL(18, 2)) points FROM %susers WHERE points > 0.0 ORDER BY points DESC LIMIT 100;", gS_MySQLPrefix);
+	FormatEx(sQuery, 512, "SELECT auth, name, FORMAT(points, 2) FROM %susers WHERE points > 0.0 ORDER BY points DESC LIMIT 100;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateTop100_Callback, sQuery, 0, DBPrio_Low);
 }
 

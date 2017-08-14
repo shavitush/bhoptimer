@@ -364,8 +364,8 @@ Action OpenStatsMenu(int client, const char[] authid)
 				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s LIMIT 1) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 GROUP BY map) s LIMIT 1) b " ...
 				"JOIN (SELECT COUNT(*) wrs FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes WHERE track = 0 GROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s' LIMIT 1) c " ...
-				"JOIN (SELECT name, country, lastlogin, points FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
-				"JOIN (SELECT COUNT(*) rank FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1) e " ...
+				"JOIN (SELECT name, country, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
+				"JOIN (SELECT FORMAT(COUNT(*), 0) rank FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1) e " ...
 			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid);
 	}
 
@@ -417,22 +417,22 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
 		Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
 
-		int rank = -1;
-		float points = -1.0;
+		char[] sPoints = new char[16];
+		char[] sRank = new char[16];
 
 		if(gB_Rankings)
 		{
-			points = results.FetchFloat(6);
-			rank = results.FetchInt(7);
+			results.FetchString(6, sPoints, 16);
+			results.FetchString(7, sRank, 16);
 		}
 
 		char[] sRankingString = new char[64];
 
 		if(gB_Rankings)
 		{
-			if(rank > 0 && points > 0.0)
+			if(StringToInt(sRank) > 0 && StringToInt(sPoints) > 0)
 			{
-				FormatEx(sRankingString, 64, "\n%T: #%d/%d\n%T: %.02f", "Rank", client, rank, Shavit_GetRankedPlayers(), "Points", client, points);
+				FormatEx(sRankingString, 64, "\n%T: #%s/%d\n%T: %s", "Rank", client, sRank, Shavit_GetRankedPlayers(), "Points", client, sPoints);
 			}
 
 			else

@@ -1463,7 +1463,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	int size = (strlen(sMap) + 1);
 	char[] sDisplayMap = new char[size];
-	GetMapDisplayName(sMap, sDisplayMap, size);
+	GetMapDisplayName(sMap, sDisplayMap, size + 1);
 
 	char[] sFormattedTitle = new char[256];
 
@@ -1483,7 +1483,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		// [32] just in case there are 150k records on a map and you're ranked 100k or something
 		char[] sRanks = new char[32];
 
-		if(gF_PlayerRecord[client][gBS_LastWR[client]][track] == 0.0 && iMyRank != 0)
+		if(gF_PlayerRecord[client][gBS_LastWR[client]][track] == 0.0 || iMyRank == 0)
 		{
 			FormatEx(sRanks, 32, "(%d %T)", iRecords, "WRRecord", client);
 		}
