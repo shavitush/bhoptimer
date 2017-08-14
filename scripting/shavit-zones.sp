@@ -37,7 +37,7 @@ Database gH_SQL = null;
 bool gB_MySQL = false;
 bool gB_DBReady = false;
 
-char gS_Map[128];
+char gS_Map[160];
 
 char gS_ZoneNames[][] =
 {
@@ -532,7 +532,8 @@ void LoadZoneSettings()
 
 public void OnMapStart()
 {
-	GetCurrentMap(gS_Map, 128);
+	GetCurrentMap(gS_Map, 160);
+	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	gI_MapZones = 0;
 	UnloadZones(0);

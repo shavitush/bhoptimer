@@ -160,8 +160,9 @@ void StartCalculating()
 {
 	if(gH_SQL != null)
 	{
-		char sMap[256];
-		GetCurrentMap(sMap, 256);
+		char sMap[160];
+		GetCurrentMap(sMap, 160);
+		GetMapDisplayName(sMap, sMap, 160);
 
 		char sQuery[512];
 		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' AND r.track = 0 %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gB_Style)? "AND style = 0 ":"", gI_PlayerAmount);

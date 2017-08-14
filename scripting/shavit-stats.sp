@@ -629,7 +629,6 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 	{
 		char[] sMap = new char[192];
 		results.FetchString(0, sMap, 192);
-		GetMapDisplayName(sMap, sMap, 192);
 
 		char[] sRecordID = new char[16];
 		char[] sDisplay = new char[256];
@@ -732,7 +731,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	char[] sName = new char[MAX_NAME_LENGTH];
 	char[] sAuthID = new char[32];
-	char[] sMap = new char[256];
+	char[] sMap = new char[192];
 
 	if(results.FetchRow())
 	{
@@ -762,7 +761,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		results.FetchString(4, sAuthID, 32);
 
 		// 6 - map
-		results.FetchString(6, sMap, 256);
+		results.FetchString(6, sMap, 192);
 
 		float points = results.FetchFloat(9);
 
@@ -792,8 +791,6 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatEx(sDisplay, 128, (sync > 0.0)? "%T: %d (%.02f%%)":"%T: %d", "Strafes", client, strafes, sync, "Strafes", client, strafes);
 			menu.AddItem("-1", sDisplay);
 		}
-
-		GetMapDisplayName(sMap, sMap, 256);
 	}
 
 	char[] sFormattedTitle = new char[256];

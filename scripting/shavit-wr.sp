@@ -49,7 +49,7 @@ bool gB_MySQL = false;
 int gBS_LastWR[MAXPLAYERS+1];
 char gS_ClientMap[MAXPLAYERS+1][128];
 int gI_LastTrack[MAXPLAYERS+1];
-char gS_Map[192]; // blame workshop paths being so fucking long
+char gS_Map[160]; // blame workshop paths being so fucking long
 ArrayList gA_ValidMaps = null;
 int gI_ValidMaps = 1;
 
@@ -314,18 +314,15 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnMapStart()
 {
-	GetCurrentMap(gS_Map, 128);
+	GetCurrentMap(gS_Map, 160);
+	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	if(gH_SQL != null)
 	{
 		UpdateWRCache();
 
-		int size = (strlen(gS_Map) + 1);
-		char[] sDisplayMap = new char[size];
-		GetMapDisplayName(gS_Map, sDisplayMap, size);
-
-		char[] sLowerCase = new char[128];
-		strcopy(sLowerCase, 128, sDisplayMap);
+		char[] sLowerCase = new char[160];
+		strcopy(sLowerCase, 160, gS_Map);
 
 		for(int i = 0; i < strlen(sLowerCase); i++)
 		{
@@ -365,12 +362,8 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 		char[] sMap = new char[192];
 		results.FetchString(0, sMap, 192);
 
-		int size = (strlen(sMap) + 1);
-		char[] sDisplayMap = new char[size];
-		GetMapDisplayName(sMap, sDisplayMap, size);
-
 		char[] sLowerCase = new char[128];
-		strcopy(sLowerCase, 128, sDisplayMap);
+		strcopy(sLowerCase, 128, sMap);
 
 		for(int i = 0; i < strlen(sLowerCase); i++)
 		{
@@ -754,14 +747,11 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 
 void DeleteAllSubmenu(int client)
 {
-	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
-	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
-
 	char[] sTrack = new char[32];
 	GetTrackName(client, gI_LastTrack[client], sTrack, 32);
 
 	Menu menu = new Menu(MenuHandler_DeleteAll);
-	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, sDisplayMap, sTrack);
+	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, gS_Map, sTrack);
 
 	char[] sMenuItem = new char[64];
 
@@ -819,11 +809,8 @@ public Action Command_DeleteStyleRecords(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
-	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
-
 	Menu menu = new Menu(MenuHandler_DeleteStyleRecords);
-	menu.SetTitle("%T\n ", "DeleteStyleRecordsRecordsMenuTitle", client, sDisplayMap);
+	menu.SetTitle("%T\n ", "DeleteStyleRecordsRecordsMenuTitle", client, gS_Map);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -1031,11 +1018,8 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	char[] sDisplayMap = new char[strlen(gS_Map) + 1];
-	GetMapDisplayName(gS_Map, sDisplayMap, strlen(gS_Map) + 1);
-
 	Menu menu = new Menu(OpenDelete_Handler);
-	menu.SetTitle("%t", "ListClientRecords", sDisplayMap, gS_StyleStrings[style][sStyleName]);
+	menu.SetTitle("%t", "ListClientRecords", gS_Map, gS_StyleStrings[style][sStyleName]);
 
 	int iCount = 0;
 
@@ -1461,15 +1445,11 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		}
 	}
 
-	int size = (strlen(sMap) + 1);
-	char[] sDisplayMap = new char[size];
-	GetMapDisplayName(sMap, sDisplayMap, size + 1);
-
 	char[] sFormattedTitle = new char[256];
 
 	if(menu.ItemCount == 0)
 	{
-		menu.SetTitle("%T", "WRMap", client, sDisplayMap);
+		menu.SetTitle("%T", "WRMap", client, sMap);
 		char[] sNoRecords = new char[64];
 		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
 
@@ -1496,7 +1476,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		char[] sTrack = new char[32];
 		GetTrackName(client, track, sTrack, 32);
 
-		FormatEx(sFormattedTitle, 192, "%T %s: [%s]\n%s", "WRRecordFor", client, sDisplayMap, sTrack, sRanks);
+		FormatEx(sFormattedTitle, 192, "%T %s: [%s]\n%s", "WRRecordFor", client, sMap, sTrack, sRanks);
 		menu.SetTitle(sFormattedTitle);
 	}
 
@@ -1574,10 +1554,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	{
 		char[] sMap = new char[192];
 		results.FetchString(1, sMap, 192);
-
-		char[] sDisplayMap = new char[64];
-		GetMapDisplayName(sMap, sDisplayMap, 64);
-
+		
 		char[] sName = new char[MAX_NAME_LENGTH];
 		results.FetchString(2, sName, MAX_NAME_LENGTH);
 
@@ -1596,12 +1573,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sTrack, sDisplayMap, sName, sTime, fPoints, "WRPoints", client);
+			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sTrack, sMap, sName, sTime, fPoints, "WRPoints", client);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack, sDisplayMap, sName, sTime, jumps, "WRJumps", client);
+			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack, sMap, sName, sTime, jumps, "WRJumps", client);
 		}
 
 		char[] sInfo = new char[192];
@@ -1693,8 +1670,8 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	char[] sFormattedTitle = new char[256];
 	char[] sName = new char[MAX_NAME_LENGTH];
 	char[] sAuthID = new char[32];
-	char[] sDisplayMap = new char[192];
 	char[] sTrack = new char[32];
+	char[] sMap = new char[192];
 
 	if(results.FetchRow())
 	{
@@ -1721,10 +1698,8 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		menu.AddItem("-1", sDisplay);
 
 		// 6 - map
-		char[] sMap = new char[192];
 		results.FetchString(6, sMap, 192);
-		GetMapDisplayName(sMap, sDisplayMap, 192);
-
+		
 		float fPoints = results.FetchFloat(9);
 
 		if(gB_Rankings && fPoints > 0.0)
@@ -1787,7 +1762,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	if(strlen(sName) > 0)
 	{
-		FormatEx(sFormattedTitle, 256, "%s %s\n--- %s: [%s]", sName, sAuthID, sDisplayMap, sTrack);
+		FormatEx(sFormattedTitle, 256, "%s %s\n--- %s: [%s]", sName, sAuthID, sMap, sTrack);
 	}
 
 	else

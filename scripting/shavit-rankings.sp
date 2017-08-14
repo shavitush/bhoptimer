@@ -59,7 +59,6 @@ bool gB_Late = false;
 int gI_Tier = 1; // No floating numbers for tiers, sorry.
 
 char gS_Map[160];
-char gS_DisplayMap[128];
 
 int gI_ValidMaps = 0;
 ArrayList gA_ValidMaps = null;
@@ -309,7 +308,7 @@ public void OnMapStart()
 	}
 
 	GetCurrentMap(gS_Map, 160);
-	GetMapDisplayName(gS_Map, gS_DisplayMap, 128);
+	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	// Default tier.
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
@@ -377,11 +376,8 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 		char[] sMap = new char[160];
 		results.FetchString(0, sMap, 160);
 
-		char[] sDisplayMap = new char[128];
-		GetMapDisplayName(sMap, sDisplayMap, 128);
-
-		gA_MapTiers.SetValue(sDisplayMap, results.FetchInt(1));
-		gA_ValidMaps.PushString(sDisplayMap);
+		gA_MapTiers.SetValue(sMap, results.FetchInt(1));
+		gA_ValidMaps.PushString(sMap);
 	}
 
 	gI_ValidMaps = gA_ValidMaps.Length;
@@ -422,7 +418,7 @@ public Action Command_Tier(int client, int args)
 	int tier = gI_Tier;
 
 	char[] sMap = new char[128];
-	strcopy(sMap, 128, gS_DisplayMap);
+	strcopy(sMap, 128, gS_Map);
 
 	if(args > 0)
 	{
@@ -431,7 +427,7 @@ public Action Command_Tier(int client, int args)
 		
 		if(!gA_MapTiers.GetValue(sMap, tier))
 		{
-			strcopy(sMap, 128, gS_DisplayMap);
+			strcopy(sMap, 128, gS_Map);
 		}
 	}
 

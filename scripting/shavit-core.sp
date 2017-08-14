@@ -1686,12 +1686,30 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	char[] sQuery = new char[64];
-	FormatEx(sQuery, 64, "SELECT lastlogin FROM %susers LIMIT 1;", gS_MySQLPrefix);
+	char[] sQuery = new char[192];
+	FormatEx(sQuery, 192, "SELECT lastlogin FROM %susers LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery, 0, DBPrio_High);
 
-	FormatEx(sQuery, 64, "SELECT points FROM %susers LIMIT 1;", gS_MySQLPrefix);
+	FormatEx(sQuery, 192, "SELECT points FROM %susers LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_High);
+
+	// TODO: table migration to all tables here, to remove workshop/xxxxxx/ from names
+
+	char sTables[][] =
+	{
+		"maptiers",
+		"mapzones",
+		"playertimes"
+	};
+
+	for(int i = 0; i < sizeof(sTables); i++)
+	{
+		DataPack dp = new DataPack();
+		dp.WriteString(sTables[i]);
+
+		FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_MySQLPrefix, sTables[i]);
+		gH_SQL.Query(SQL_TableMigration3_Callback, sQuery, dp, DBPrio_Low);
+	}
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1699,7 +1717,7 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[128];
-		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, gB_MySQL? "(`lastlogin` INT NOT NULL DEFAULT -1)":"COLUMN `lastlogin` INTEGER NOT NULL DEFAULT -1");
+		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`lastlogin` INT NOT NULL DEFAULT -1)":"COLUMN `lastlogin` INTEGER NOT NULL DEFAULT -1");
 		gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 	}
 }
@@ -1719,7 +1737,7 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[128];
-		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, gB_MySQL? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
+		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
 }
@@ -1729,6 +1747,44 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer error! Table alteration 2 (core) failed. Reason: %s", error);
+
+		return;
+	}
+}
+
+public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	char[] sTable = new char[16];
+
+	data.Reset();
+	data.ReadString(sTable, 16);
+	delete data;
+
+	if(results == null || results.RowCount == 0)
+	{
+		// no error logging here because not everyone runs the rankings/wr modules
+		return;
+	}
+
+	while(results.FetchRow())
+	{
+		char[] sMap = new char[160];
+		results.FetchString(0, sMap, 160);
+
+		char[] sDisplayMap = new char[160];
+		GetMapDisplayName(sMap, sDisplayMap, 160);
+
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "UPDATE %s%s SET map = '%s' WHERE map = '%s';", gS_MySQLPrefix, sTable, sDisplayMap, sMap);
+		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery, 0, DBPrio_High);
+	}
+}
+
+public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer error! Table alteration 3 (core) failed. Reason: %s", error);
 
 		return;
 	}
