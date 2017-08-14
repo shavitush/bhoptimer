@@ -975,6 +975,22 @@ void ResetCheckpoints(int client)
 
 public Action OnTakeDamage(int victim, int attacker)
 {
+	if(gB_Hide[victim])
+	{
+		if(gEV_Type == Engine_CSGO)
+		{
+			SetEntPropVector(victim, Prop_Send, "m_viewPunchAngle", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngle", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngleVel", NULL_VECTOR);
+		}
+
+		else
+		{
+			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngle", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngleVel", NULL_VECTOR);
+		}
+	}
+
 	switch(gI_GodMode)
 	{
 		case 0:
