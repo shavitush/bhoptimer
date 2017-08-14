@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 #include <clientprefs>
 
 #undef REQUIRE_PLUGIN
@@ -231,24 +232,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons)
-{
-	if(gB_Replay && IsFakeClient(client))
-	{
-		gI_Buttons[client] = buttons;
-
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			if(i != client && (IsValidClient(i) && GetHUDTarget(i) == client))
-			{
-				TriggerHUDUpdate(i, true);
-			}
-		}
-	}
-
-	return Plugin_Continue;
-}
-
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
 {
 	gI_Buttons[client] = buttons;
@@ -269,6 +252,29 @@ public void OnClientPutInServer(int client)
 	gI_LastScrollCount[client] = 0;
 	gI_ScrollCount[client] = 0;
 	gBS_Style[client] = Shavit_GetBhopStyle(client);
+
+	if(IsFakeClient(client))
+	{
+		SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
+	}
+}
+
+public void PostThinkPost(int client)
+{
+	int buttons = GetClientButtons(client);
+
+	if(gI_Buttons[client] != buttons)
+	{
+		gI_Buttons[client] = buttons;
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(i != client && (IsValidClient(i) && GetHUDTarget(i) == client))
+			{
+				TriggerHUDUpdate(i, true);
+			}
+		}
+	}
 }
 
 public void OnClientCookiesCached(int client)
