@@ -71,9 +71,7 @@ int gI_Rank[MAXPLAYERS+1];
 float gF_Points[MAXPLAYERS+1];
 
 int gI_RankedPlayers = 0;
-char gS_Top100_SteamID[100][32];
-char gS_Top100_Names[100][MAX_NAME_LENGTH];
-char gS_Top100_Points[100][16]; // char[] because of formatting!
+Menu gH_Top100Menu = null;
 
 Handle gH_Forwards_OnTierAssigned = null;
 
@@ -481,35 +479,8 @@ public Action Command_Rank(int client, int args)
 
 public Action Command_Top(int client, int args)
 {
-	Menu menu = new Menu(MenuHandler_Top);
-	menu.SetTitle("%T (%d)\n ", "Top100", client, gI_RankedPlayers);
-
-	if(gI_RankedPlayers == 0)
-	{
-		char[] sDisplay = new char[64];
-		FormatEx(sDisplay, 64, "%T", "NoRankedPlayers", client);
-		menu.AddItem("-1", sDisplay);
-	}
-
-	else
-	{
-		int ranked = gI_RankedPlayers;
-
-		if(ranked > 100)
-		{
-			ranked = 100;
-		}
-
-		for(int i = 0; i < ranked; i++)
-		{
-			char[] sDisplay = new char[64];
-			FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_Top100_Names[i], gS_Top100_Points[i]);
-			menu.AddItem(gS_Top100_SteamID[i], sDisplay);
-		}
-	}
-
-	menu.ExitButton = true;
-	menu.Display(client, 60);
+	gH_Top100Menu.SetTitle("%T (%d)\n ", "Top100", client, gI_RankedPlayers);
+	gH_Top100Menu.Display(client, 60);
 
 	return Plugin_Handled;
 }
@@ -525,11 +496,6 @@ public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
 		{
 			Shavit_OpenStatsMenu(param1, sInfo);
 		}
-	}
-
-	else if(action == MenuAction_End)
-	{
-		delete menu;
 	}
 
 	return 0;
@@ -856,14 +822,44 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 
+	if(gH_Top100Menu != null)
+	{
+		delete gH_Top100Menu;
+	}
+
+	gH_Top100Menu = new Menu(MenuHandler_Top);
+
 	int row = 0;
 
 	while(results.FetchRow())
 	{
-		results.FetchString(0, gS_Top100_SteamID[row], 32);
-		results.FetchString(1, gS_Top100_Names[row], MAX_NAME_LENGTH);
-		results.FetchString(2, gS_Top100_Points[row++], 16);
+		if(row > 100)
+		{
+			break;
+		}
+
+		char[] sAuthID = new char[32];
+		results.FetchString(0, sAuthID, 32);
+
+		char[] sName = new char[MAX_NAME_LENGTH];
+		results.FetchString(1, sName, MAX_NAME_LENGTH);
+
+		char[] sPoints = new char[16];
+		results.FetchString(2, sPoints, 16);
+
+		char[] sDisplay = new char[96];
+		FormatEx(sDisplay, 96, "#%d - %s (%s)", (++row), sName, sPoints);
+		gH_Top100Menu.AddItem(sAuthID, sDisplay);
 	}
+
+	if(gH_Top100Menu.ItemCount == 0)
+	{
+		char[] sDisplay = new char[64];
+		FormatEx(sDisplay, 64, "%t", "NoRankedPlayers");
+		gH_Top100Menu.AddItem("-1", sDisplay);
+	}
+
+	gH_Top100Menu.ExitButton = true;
 }
 
 public int Native_GetPoints(Handle handler, int numParams)
