@@ -485,6 +485,17 @@ forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int ent
 forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync, int track);
 
 /**
+ * Gets called when a map's tier is assigned.
+ * Only called once per map, if the rankings plugin is enabled.
+ * The exception is if the admin changes the current map's tier.
+ *
+ * @param map						Map display name.
+ * @param tier						Map's tier.
+ * @noreturn
+ */
+forward void Shavit_OnTierAssigned(const char[] map, int tier);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")

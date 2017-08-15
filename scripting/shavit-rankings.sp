@@ -75,6 +75,8 @@ char gS_Top100_SteamID[100][32];
 char gS_Top100_Names[100][MAX_NAME_LENGTH];
 char gS_Top100_Points[100][16]; // char[] because of formatting!
 
+Handle gH_Forwards_OnTierAssigned = null;
+
 // Timer settings.
 char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
@@ -112,6 +114,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	gH_Forwards_OnTierAssigned = CreateGlobalForward("Shavit_OnTierAssigned", ET_Event, Param_String, Param_Cell);
+
 	RegConsoleCmd("sm_tier", Command_Tier, "Prints the map's tier to chat.");
 	RegConsoleCmd("sm_maptier", Command_Tier, "Prints the map's tier to chat. (sm_tier alias)");
 
@@ -348,7 +352,7 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix, gS_Map);
-		gH_SQL.Query(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_Low);
+		gH_SQL.Query(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
 	}
 
 	else
@@ -376,8 +380,15 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 		char[] sMap = new char[160];
 		results.FetchString(0, sMap, 160);
 
-		gA_MapTiers.SetValue(sMap, results.FetchInt(1));
+		int tier = results.FetchInt(1);
+
+		gA_MapTiers.SetValue(sMap, tier);
 		gA_ValidMaps.PushString(sMap);
+
+		Call_StartForward(gH_Forwards_OnTierAssigned);
+		Call_PushString(sMap);
+		Call_PushCell(tier);
+		Call_Finish();
 	}
 
 	gI_ValidMaps = gA_ValidMaps.Length;
@@ -539,6 +550,11 @@ public Action Command_SetTier(int client, int args)
 	}
 
 	gI_Tier = tier;
+
+	Call_StartForward(gH_Forwards_OnTierAssigned);
+	Call_PushString(gS_Map);
+	Call_PushCell(tier);
+	Call_Finish();
 
 	Shavit_PrintToChat(client, "%T", "SetTier", client, gS_ChatStrings[sMessageVariable2], tier, gS_ChatStrings[sMessageText]);
 
