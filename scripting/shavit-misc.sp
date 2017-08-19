@@ -2081,7 +2081,17 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 	TE_WriteVector("m_vecOrigin", temp);
 	TE_WriteFloat("m_vecAngles[0]", TE_ReadFloat("m_vecAngles[0]"));
 	TE_WriteFloat("m_vecAngles[1]", TE_ReadFloat("m_vecAngles[1]"));
-	TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
+	
+	if(gEV_Type == Engine_CSS)
+	{
+		TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
+	}
+
+	else
+	{
+		TE_WriteNum("m_weapon", TE_ReadNum("m_weapon"));
+	}
+        
 	TE_WriteNum("m_iMode", TE_ReadNum("m_iMode"));
 	TE_WriteNum("m_iSeed", TE_ReadNum("m_iSeed"));
 	TE_WriteNum("m_iPlayer", (client - 1));
