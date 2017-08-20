@@ -21,6 +21,7 @@
 // original idea from ckSurf.
 
 #include <sourcemod>
+#include <cstrike>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -35,18 +36,27 @@
 Database gH_SQL = null;
 
 // base cvars
+ConVar gCV_do_warmup_period = null;
+ConVar gCV_freezetime = null;
+ConVar gCV_ignore_round_win_conditions = null;
 ConVar gCV_TimeLimit = null;
 ConVar gCV_RoundTime = null;
 ConVar gCV_RestartGame = null;
 
 // cvars
+ConVar gCV_Config = null;
 ConVar gCV_DefaultLimit = null;
+ConVar gCV_DynamicTimelimits = null;
+ConVar gCV_ForceMapEnd = null;
 ConVar gCV_MinimumTimes = null;
 ConVar gCV_PlayerAmount = null;
 ConVar gCV_Style = null;
 
 // cached cvars
+bool gB_Config = true;
 float gF_DefaultLimit = 60.0;
+bool gB_DynamicTimelimits = true;
+bool gB_ForceMapEnd = true;
 int gI_MinimumTimes = 5;
 int gI_PlayerAmount = 25;
 bool gB_Style = true;
@@ -73,18 +83,30 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
+	HookEvent("player_spawn", Player_Spawn);
+
+	gCV_do_warmup_period = FindConVar("mp_do_warmup_period");
+	gCV_freezetime = FindConVar("mp_freezetime");
+	gCV_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
 	gCV_RestartGame = FindConVar("mp_restartgame");
 	gCV_TimeLimit = FindConVar("mp_timelimit");
 
 	gCV_RoundTime = FindConVar("mp_roundtime");
 	gCV_RoundTime.SetBounds(ConVarBound_Upper, false);
 
+	gCV_Config = CreateConVar("shavit_timelimit_config", "1", "Enables the following game settings:\n\"mp_do_warmup_period\" \"0\"\n\"mp_freezetime\" \"0\"\n\"mp_ignore_round_win_conditions\" \"1\"", 0, true, 0.0, true, 1.0);
 	gCV_DefaultLimit = CreateConVar("shavit_timelimit_default", "60.0", "Default timelimit to use in case there isn't an average.", 0, true, 10.0);
-	gCV_MinimumTimes = CreateConVar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.", 0, true, 5.0);
-	gCV_PlayerAmount = CreateConVar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nSet to 0 to have it \"unlimited\".", 0);
-	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.", 0, true, 0.0, true, 1.0);
+	gCV_DynamicTimelimits = CreateConVar("shavit_timelimit_dynamic", "1", "Use dynamic timelimits.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_ForceMapEnd = CreateConVar("shavit_timelimit_forcemapend", "1", "Force the map to end after the timelimit.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_MinimumTimes = CreateConVar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 5.0);
+	gCV_PlayerAmount = CreateConVar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!\nSet to 0 to have it \"unlimited\".", 0);
+	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 0.0, true, 1.0);
 
+	gCV_Config.AddChangeHook(OnConVarChanged);
 	gCV_DefaultLimit.AddChangeHook(OnConVarChanged);
+	gCV_DynamicTimelimits.AddChangeHook(OnConVarChanged);
+	gCV_ForceMapEnd.AddChangeHook(OnConVarChanged);
 	gCV_MinimumTimes.AddChangeHook(OnConVarChanged);
 	gCV_PlayerAmount.AddChangeHook(OnConVarChanged);
 	gCV_Style.AddChangeHook(OnConVarChanged);
@@ -98,10 +120,34 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
+	gB_Config = gCV_Config.BoolValue;
 	gF_DefaultLimit = gCV_DefaultLimit.FloatValue;
+	gB_DynamicTimelimits = gCV_DynamicTimelimits.BoolValue;
+	gB_ForceMapEnd = gCV_ForceMapEnd.BoolValue;
 	gI_MinimumTimes = gCV_MinimumTimes.IntValue;
 	gI_PlayerAmount = gCV_PlayerAmount.IntValue;
 	gB_Style = gCV_Style.BoolValue;
+}
+
+public void OnConfigsExecuted()
+{
+	if(gB_Config)
+	{
+		if(gCV_do_warmup_period != null)
+		{
+			gCV_do_warmup_period.BoolValue = false;
+		}
+
+		if(gCV_freezetime != null)
+		{
+			gCV_freezetime.IntValue = 0;
+		}
+
+		if(gCV_ignore_round_win_conditions != null)
+		{
+			gCV_ignore_round_win_conditions.BoolValue = true;
+		}
+	}
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -111,7 +157,15 @@ public Action CheckForSQLInfo(Handle Timer)
 
 public void OnMapStart()
 {
-	StartCalculating();
+	if(gB_DynamicTimelimits)
+	{
+		StartCalculating();
+	}
+
+	else
+	{
+		SetLimit(RoundToNearest(gF_DefaultLimit));
+	}
 }
 
 Action SetSQLInfo()
@@ -242,6 +296,58 @@ void SetLimit(int time)
 	gCV_TimeLimit.IntValue = time;
 	gCV_RoundTime.IntValue = time;
 	gCV_RestartGame.IntValue = 1;
+}
+
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if(gB_ForceMapEnd)
+	{
+		CreateTimer(1.0, CheckRemainingTime, client, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+public Action CheckRemainingTime(Handle timer, int data)
+{
+	int client = GetClientFromSerial(data);
+	int timelimit;
+
+	if(!GetMapTimeLimit(timelimit) || timelimit == 0)
+	{
+		return Plugin_Continue;
+	}
+
+	int timeleft;
+	GetMapTimeLeft(timeleft);
+
+	switch(timeleft)
+	{
+		case 3600:	Shavit_PrintToChatAll("%T", "Minutes", client, "60");
+		case 1800:	Shavit_PrintToChatAll("%T", "Minutes", client, "30");
+		case 1200:	Shavit_PrintToChatAll("%T", "Minutes", client, "20");
+		case 600:	Shavit_PrintToChatAll("%T", "Minutes", client, "10");
+		case 300:	Shavit_PrintToChatAll("%T", "Minutes", client, "5");
+		case 120:	Shavit_PrintToChatAll("%T", "Minutes", client, "2");
+		case 60:	Shavit_PrintToChatAll("%T", "Seconds", client, "60");
+		case 30:	Shavit_PrintToChatAll("%T", "Seconds", client, "30");
+		case 15:	Shavit_PrintToChatAll("%T", "Seconds", client, "15");
+		case -1:	Shavit_PrintToChatAll("3..");
+		case -2:	Shavit_PrintToChatAll("2..");
+		case -3:	Shavit_PrintToChatAll("1..");
+	}
+
+	if(timeleft < -3)
+	{
+		CS_TerminateRound(0.0, CSRoundEnd_Draw, true);
+	}
+
+	return Plugin_Continue;
+}
+
+public Action CS_OnTerminateRound(float &fDelay, CSRoundEndReason &iReason)
+{
+	return Plugin_Continue;
 }
 
 public void Shavit_OnDatabaseLoaded(Database db)

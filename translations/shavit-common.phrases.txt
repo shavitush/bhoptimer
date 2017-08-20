@@ -31,4 +31,15 @@
 		"#format"	"{1:s}"
 		"en"		"Usage: {1}"
 	}
+	// ---------- Timelimit ---------- //
+	"Minutes"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} minutes remaining."
+	}	
+	"Seconds"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} seconds remaining."
+	}
 }
