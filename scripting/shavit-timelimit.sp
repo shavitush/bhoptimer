@@ -36,9 +36,9 @@
 Database gH_SQL = null;
 
 // base cvars
-ConVar gCV_do_warmup_period = null;
-ConVar gCV_freezetime = null;
-ConVar gCV_ignore_round_win_conditions = null;
+ConVar mp_do_warmup_period = null;
+ConVar mp_freezetime = null;
+ConVar mp_ignore_round_win_conditions = null;
 ConVar gCV_TimeLimit = null;
 ConVar gCV_RoundTime = null;
 ConVar gCV_RestartGame = null;
@@ -86,9 +86,9 @@ public void OnPluginStart()
 	LoadTranslations("shavit-common.phrases");
 	HookEvent("player_spawn", Player_Spawn);
 
-	gCV_do_warmup_period = FindConVar("mp_do_warmup_period");
-	gCV_freezetime = FindConVar("mp_freezetime");
-	gCV_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
+	mp_do_warmup_period = FindConVar("mp_do_warmup_period");
+	mp_freezetime = FindConVar("mp_freezetime");
+	mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
 	gCV_RestartGame = FindConVar("mp_restartgame");
 	gCV_TimeLimit = FindConVar("mp_timelimit");
 
@@ -133,19 +133,19 @@ public void OnConfigsExecuted()
 {
 	if(gB_Config)
 	{
-		if(gCV_do_warmup_period != null)
+		if(mp_do_warmup_period != null)
 		{
-			gCV_do_warmup_period.BoolValue = false;
+			mp_do_warmup_period.BoolValue = false;
 		}
 
-		if(gCV_freezetime != null)
+		if(mp_freezetime != null)
 		{
-			gCV_freezetime.IntValue = 0;
+			mp_freezetime.IntValue = 0;
 		}
 
-		if(gCV_ignore_round_win_conditions != null)
+		if(mp_ignore_round_win_conditions != null)
 		{
-			gCV_ignore_round_win_conditions.BoolValue = true;
+			mp_ignore_round_win_conditions.BoolValue = true;
 		}
 	}
 }
