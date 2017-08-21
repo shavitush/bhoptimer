@@ -39,9 +39,9 @@ Database gH_SQL = null;
 ConVar mp_do_warmup_period = null;
 ConVar mp_freezetime = null;
 ConVar mp_ignore_round_win_conditions = null;
-ConVar gCV_TimeLimit = null;
-ConVar gCV_RoundTime = null;
-ConVar gCV_RestartGame = null;
+ConVar mp_timelimit = null;
+ConVar mp_roundtime = null;
+ConVar mp_restartgame = null;
 
 // cvars
 ConVar gCV_Config = null;
@@ -84,16 +84,15 @@ public void OnAllPluginsLoaded()
 public void OnPluginStart()
 {
 	LoadTranslations("shavit-common.phrases");
-	HookEvent("player_spawn", Player_Spawn);
 
 	mp_do_warmup_period = FindConVar("mp_do_warmup_period");
 	mp_freezetime = FindConVar("mp_freezetime");
 	mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
-	gCV_RestartGame = FindConVar("mp_restartgame");
-	gCV_TimeLimit = FindConVar("mp_timelimit");
+	mp_restartgame = FindConVar("mp_restartgame");
+	mp_timelimit = FindConVar("mp_timelimit");
 
-	gCV_RoundTime = FindConVar("mp_roundtime");
-	gCV_RoundTime.SetBounds(ConVarBound_Upper, false);
+	mp_roundtime = FindConVar("mp_roundtime");
+	mp_roundtime.SetBounds(ConVarBound_Upper, false);
 
 	gCV_Config = CreateConVar("shavit_timelimit_config", "1", "Enables the following game settings:\n\"mp_do_warmup_period\" \"0\"\n\"mp_freezetime\" \"0\"\n\"mp_ignore_round_win_conditions\" \"1\"", 0, true, 0.0, true, 1.0);
 	gCV_DefaultLimit = CreateConVar("shavit_timelimit_default", "60.0", "Default timelimit to use in case there isn't an average.", 0, true, 10.0);
@@ -166,6 +165,11 @@ public void OnMapStart()
 	{
 		SetLimit(RoundToNearest(gF_DefaultLimit));
 	}
+
+	if(gB_ForceMapEnd)
+	{
+		CreateTimer(1.0, CheckRemainingTime, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 Action SetSQLInfo()
@@ -196,7 +200,7 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
-	
+
 	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
@@ -293,48 +297,84 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 void SetLimit(int time)
 {
-	gCV_TimeLimit.IntValue = time;
-	gCV_RoundTime.IntValue = time;
-	gCV_RestartGame.IntValue = 1;
+	mp_timelimit.IntValue = time;
+	mp_roundtime.IntValue = time;
+	mp_restartgame.IntValue = 1;
 }
 
-public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+public Action CheckRemainingTime(Handle timer)
 {
-	int client = GetClientOfUserId(event.GetInt("userid"));
-
-	if(gB_ForceMapEnd)
-	{
-		CreateTimer(1.0, CheckRemainingTime, client, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-	}
-}
-
-public Action CheckRemainingTime(Handle timer, int data)
-{
-	int client = GetClientFromSerial(data);
-	int timelimit;
+	int timelimit = 0;
 
 	if(!GetMapTimeLimit(timelimit) || timelimit == 0)
 	{
 		return Plugin_Continue;
 	}
 
-	int timeleft;
+	int timeleft = 0;
 	GetMapTimeLeft(timeleft);
 
 	switch(timeleft)
 	{
-		case 3600:	Shavit_PrintToChatAll("%T", "Minutes", client, "60");
-		case 1800:	Shavit_PrintToChatAll("%T", "Minutes", client, "30");
-		case 1200:	Shavit_PrintToChatAll("%T", "Minutes", client, "20");
-		case 600:	Shavit_PrintToChatAll("%T", "Minutes", client, "10");
-		case 300:	Shavit_PrintToChatAll("%T", "Minutes", client, "5");
-		case 120:	Shavit_PrintToChatAll("%T", "Minutes", client, "2");
-		case 60:	Shavit_PrintToChatAll("%T", "Seconds", client, "60");
-		case 30:	Shavit_PrintToChatAll("%T", "Seconds", client, "30");
-		case 15:	Shavit_PrintToChatAll("%T", "Seconds", client, "15");
-		case -1:	Shavit_PrintToChatAll("3..");
-		case -2:	Shavit_PrintToChatAll("2..");
-		case -3:	Shavit_PrintToChatAll("1..");
+		case 3600:
+		{
+			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "60");
+		}
+
+		case 1800:
+		{
+			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "30");
+		}
+
+		case 1200:
+		{
+			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "20");
+		}
+
+		case 600:
+		{
+			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "10");
+		}
+
+		case 300:
+		{
+			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "5");
+		}
+
+		case 120:
+		{
+			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "2");
+		}
+
+		case 60:
+		{
+			Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "60");
+		}
+
+		case 30:
+		{
+			Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "30");
+		}
+
+		case 15:
+		{
+			Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "15");
+		}
+
+		case -1:
+		{
+			Shavit_PrintToChatAll("3..");
+		}
+
+		case -2:
+		{
+			Shavit_PrintToChatAll("2..");
+		}
+
+		case -3:
+		{
+			Shavit_PrintToChatAll("1..");
+		}
 	}
 
 	if(timeleft < -3)
