@@ -168,7 +168,7 @@ public void OnMapStart()
 
 	if(gB_ForceMapEnd)
 	{
-		CreateTimer(1.0, CheckRemainingTime, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
@@ -225,7 +225,7 @@ void StartCalculating()
 		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' AND r.track = 0 %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gB_Style)? "AND style = 0 ":"", gI_PlayerAmount);
 
 		#if defined DEBUG
-		PrintToServer(sQuery);
+		PrintToServer("%s", sQuery);
 		#endif
 
 		gH_SQL.Query(SQL_GetMapTimes, sQuery, 0, DBPrio_High);
@@ -302,7 +302,7 @@ void SetLimit(int time)
 	mp_restartgame.IntValue = 1;
 }
 
-public Action CheckRemainingTime(Handle timer)
+public Action Timer_PrintToChat(Handle Timer)
 {
 	int timelimit = 0;
 
@@ -316,67 +316,35 @@ public Action CheckRemainingTime(Handle timer)
 
 	switch(timeleft)
 	{
-		case 3600:
-		{
-			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "60");
-		}
-
-		case 1800:
-		{
-			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "30");
-		}
-
-		case 1200:
-		{
-			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "20");
-		}
-
-		case 600:
-		{
-			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "10");
-		}
-
-		case 300:
-		{
-			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "5");
-		}
-
-		case 120:
-		{
-			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "2");
-		}
-
-		case 60:
-		{
-			Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "60");
-		}
-
-		case 30:
-		{
-			Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "30");
-		}
-
-		case 15:
-		{
-			Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "15");
-		}
-
+		case 3600: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "60");
+		case 1800: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "30");
+		case 1200: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "20");
+		case 600: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "10");
+		case 300: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "5");
+		case 120: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "2");
+		case 60: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "60");
+		case 30: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "30");
+		case 15: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "15");
+		
 		case -1:
 		{
+			Shavit_StopChatSound();
 			Shavit_PrintToChatAll("3..");
 		}
-
+		
 		case -2:
 		{
+			Shavit_StopChatSound();
 			Shavit_PrintToChatAll("2..");
 		}
-
+		
 		case -3:
 		{
+			Shavit_StopChatSound();
 			Shavit_PrintToChatAll("1..");
 		}
 	}
-
+	
 	if(timeleft < -3)
 	{
 		CS_TerminateRound(0.0, CSRoundEnd_Draw, true);
