@@ -1053,7 +1053,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		return Plugin_Handled;
 	}
 
-	else if(sArgs[0] == '!' || sArgs[0] == '/')
+	if(sArgs[0] == '!' || sArgs[0] == '/')
 	{
 		bool bUpper = false;
 
@@ -1072,7 +1072,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			char[] sCopy = new char[32];
 			strcopy(sCopy, 32, sArgs[1]);
 
-			FakeClientCommand(client, "sm_%s", sCopy);
+			FakeClientCommandEx(client, "sm_%s", sCopy);
 
 			return Plugin_Stop;
 		}

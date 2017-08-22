@@ -577,6 +577,10 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 
 void RecalculateMap(const char[] map, const int track, const int style, const int tier)
 {
+	#if defined DEBUG
+	PrintToServer("Recalculating points. (%s, %d, %d, %d)", map, track, style, tier);
+	#endif
+
 	char[] sQuery = new char[2048];
 	FormatEx(sQuery, 2048, "UPDATE %splayertimes t LEFT JOIN " ...
 		"(SELECT MIN(time) mintime, MAP, track, style FROM %splayertimes GROUP BY MAP, track, style) minjoin " ...
@@ -602,6 +606,10 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 			map, track, style);
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
+
+	#if defined DEBUG
+	PrintToServer("Sent query.");
+	#endif
 }
 
 public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -612,6 +620,10 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
+
+	#if defined DEBUG
+	PrintToServer("Recalculated.");
+	#endif
 }
 
 void UpdatePlayerPoints(int client)
