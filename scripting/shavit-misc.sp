@@ -1412,8 +1412,6 @@ public Action Command_Tele(int client, int args)
 
 	TeleportToCheckpoint(client, index);
 
-	Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
-
 	return Plugin_Handled;
 }
 
@@ -1610,6 +1608,8 @@ void TeleportToCheckpoint(int client, int index)
 	{
 		Shavit_StopTimer(client);
 	}
+	
+	Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 }
 
 public Action Command_Noclip(int client, int args)
