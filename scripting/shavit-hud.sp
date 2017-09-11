@@ -572,7 +572,8 @@ void UpdateHUD(int client)
 
 			else
 			{
-				FormatEx(sHintText, 32, "%T", "HudInStartZone", client, iSpeed);
+				// yes, this space is intentional
+				FormatEx(sHintText, 32, "%T ", "HudInStartZone", client, iSpeed);
 			}
 		}
 
@@ -585,7 +586,7 @@ void UpdateHUD(int client)
 
 			else
 			{
-				FormatEx(sHintText, 32, "%T", "HudInEndZone", client, iSpeed);
+				FormatEx(sHintText, 32, "%T ", "HudInEndZone", client, iSpeed);
 			}
 		}
 	}
