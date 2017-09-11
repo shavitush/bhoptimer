@@ -1426,9 +1426,7 @@ public Action Command_Tele(int client, int args)
 		return Plugin_Handled;
 	}
 
-	TeleportToCheckpoint(client, index);
-
-	Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+	TeleportToCheckpoint(client, index, false);
 
 	return Plugin_Handled;
 }
@@ -1515,7 +1513,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 			case 1:
 			{
-				TeleportToCheckpoint(param1, current - 1);
+				TeleportToCheckpoint(param1, current - 1, true);
 			}
 
 			case 2:
@@ -1591,7 +1589,7 @@ void SaveCheckpoint(int client, int index)
 	Shavit_SaveSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 }
 
-void TeleportToCheckpoint(int client, int index)
+void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
 	if(index < 0 || index >= CP_MAX || IsNullVector(gF_Checkpoints[client][index][0]))
 	{
@@ -1625,6 +1623,11 @@ void TeleportToCheckpoint(int client, int index)
 	if(bInStart)
 	{
 		Shavit_StopTimer(client);
+	}
+	
+	if(!suppressMessage)
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 	}
 }
 
