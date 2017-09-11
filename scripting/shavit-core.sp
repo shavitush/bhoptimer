@@ -101,6 +101,7 @@ ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
+ConVar gCV_VelocityTeleport = null;
 
 // cached cvars
 bool gB_Autobhop = true;
@@ -111,6 +112,7 @@ bool gB_NoStaminaReset = true;
 bool gB_AllowTimerWithoutZone = false;
 bool gB_BlockPreJump = true;
 bool gB_NoZAxisSpeed = true;
+bool gB_VelocityTeleport = true;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -287,6 +289,7 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
+	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "1", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 
 	gCV_Autobhop.AddChangeHook(OnConVarChanged);
 	gCV_LeftRight.AddChangeHook(OnConVarChanged);
@@ -296,6 +299,7 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone.AddChangeHook(OnConVarChanged);
 	gCV_BlockPreJump.AddChangeHook(OnConVarChanged);
 	gCV_NoZAxisSpeed.AddChangeHook(OnConVarChanged);
+	gCV_VelocityTeleport.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -333,6 +337,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_AllowTimerWithoutZone = gCV_AllowTimerWithoutZone.BoolValue;
 	gB_BlockPreJump = gCV_BlockPreJump.BoolValue;
 	gB_NoZAxisSpeed = gCV_NoZAxisSpeed.BoolValue;
+	gB_VelocityTeleport = gCV_VelocityTeleport.BoolValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -811,84 +816,60 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 	}
 
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]) != 1.0)
-	{
-		RequestFrame(ApplyNewVelocity, GetClientSerial(client));
-	}
-		
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]) != 0.0)
-	{
-		RequestFrame(AddBonusVelocity, GetClientSerial(client));
-	}
-	
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]) != 0.0)
-	{
-		RequestFrame(MinimumVelocity, GetClientSerial(client));
-	}
+	RequestFrame(VelocityChanges, GetClientSerial(client));
 }
 
-void ApplyNewVelocity(int data)
+void VelocityChanges(int data)
 {
 	int client = GetClientFromSerial(data);
 
-	if(data != 0)
+	if(client == 0)
 	{
-		float fAbsVelocity[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
-		fAbsVelocity[0] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
-		fAbsVelocity[1] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
+		return;
+	}
+
+	float fAbsVelocity[3];
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+
+	float fSpeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
+
+	if(fSpeed == 0.0)
+	{
+		return;
+	}
+
+	float fVelocityMultiplier = view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
+	float fVelocityBonus = view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]);
+	float fMin = view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]);
+
+	if(fVelocityMultiplier != 0.0)
+	{
+		fAbsVelocity[0] *= fVelocityMultiplier;
+		fAbsVelocity[1] *= fVelocityMultiplier;
+	}
+
+	if(fVelocityBonus != 0.0)
+	{
+		float x = fSpeed / (fSpeed + fVelocityBonus);
+		fAbsVelocity[0] /= x;
+		fAbsVelocity[1] /= x;
+	}
+
+	if(fMin != 0.0 && fSpeed < fMin)
+	{
+		float x = (fSpeed / fMin);
+		fAbsVelocity[0] /= x;
+		fAbsVelocity[1] /= x;
+	}
+
+	if(gB_VelocityTeleport)
+	{
+		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
+	}
+
+	else
+	{
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
-	}
-}
-
-void AddBonusVelocity(int data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(data != 0)
-	{
-		float fAbsVelocity[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
-
-		float currentspeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
-		
-		if(currentspeed > 0.0)
-		{
-			float fBonus = view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]);
-
-			float x = currentspeed / (currentspeed + fBonus);
-			fAbsVelocity[0] /= x;
-			fAbsVelocity[1] /= x;
-				
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
-		}
-	}
-}
-
-void MinimumVelocity(int data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(data != 0)
-	{
-		float fAbsVelocity[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
-
-		float currentspeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
-		
-		if(currentspeed > 0.0)
-		{
-			float fMin = view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]);
-
-			if(currentspeed < fMin)
-			{
-				float x = currentspeed / (fMin);
-				fAbsVelocity[0] /= x;
-				fAbsVelocity[1] /= x;
-				
-				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
-			}
-		}
 	}
 }
 
@@ -907,6 +888,7 @@ public int Native_GetGameType(Handle handler, int numParams)
 
 public int Native_GetDB(Handle handler, int numParams)
 {
+	// TODO: deprecate and do handle cloning, as i'm supposed to
 	SetNativeCellRef(1, gH_SQL);
 }
 
