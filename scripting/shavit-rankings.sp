@@ -595,7 +595,7 @@ public Action Command_RecalcAll(int client, int args)
 
 	gI_Progress[client] = 0;
 
-	int serial = GetClientSerial(client);
+	int serial = (client == 0)? 0:GetClientSerial(client);
 	int size = gA_ValidMaps.Length;
 
 	for(int i = 0; i < size; i++)
@@ -606,7 +606,7 @@ public Action Command_RecalcAll(int client, int args)
 		int tier = 1;
 		gA_MapTiers.GetValue(sMap, tier);
 
-		RecalculateAll(sMap, tier, serial);
+		RecalculateAll(sMap, tier, serial, true);
 
 		#if defined DEBUG
 		PrintToConsole(client, "size: %d | %d | %s", size, i, sMap);
@@ -616,7 +616,7 @@ public Action Command_RecalcAll(int client, int args)
 	return Plugin_Handled;
 }
 
-void RecalculateAll(const char[] map, const int tier, int serial = 0)
+void RecalculateAll(const char[] map, const int tier, int serial = 0, bool print = false)
 {
 	#if defined DEBUG
 	LogError("DEBUG: 5 (RecalculateAll)");
@@ -631,7 +631,7 @@ void RecalculateAll(const char[] map, const int tier, int serial = 0)
 				continue;
 			}
 
-			RecalculateMap(map, i, j, tier, serial);
+			RecalculateMap(map, i, j, tier, serial, print);
 		}
 	}
 }
@@ -641,7 +641,7 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	RecalculateMap(gS_Map, track, style, gI_Tier);
 }
 
-void RecalculateMap(const char[] map, const int track, const int style, const int tier, int serial = -1)
+void RecalculateMap(const char[] map, const int track, const int style, const int tier, int serial = -1, bool print = false)
 {
 	#if defined DEBUG
 	PrintToServer("Recalculating points. (%s, %d, %d, %d)", map, track, style, tier);
@@ -677,6 +677,7 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 	pack.WriteString(map);
 	pack.WriteCell(track);
 	pack.WriteCell(style);
+	pack.WriteCell(print);
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, pack, DBPrio_High);
 
@@ -696,6 +697,7 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 
 	int track = ReadPackCell(data);
 	int style = ReadPackCell(data);
+	bool print = view_as<bool>(ReadPackCell(data));
 	delete view_as<DataPack>(data);
 
 	if(results == null)
@@ -705,11 +707,11 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	if(serial != -1)
+	if(print && serial != -1)
 	{
-		int client = GetClientFromSerial(serial);
+		int client = (serial == 0)? 0:GetClientFromSerial(serial);
 
-		if(client == 0)
+		if(serial != 0 && client == 0)
 		{
 			return;
 		}
