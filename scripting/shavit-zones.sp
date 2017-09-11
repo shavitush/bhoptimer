@@ -35,7 +35,6 @@ EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
 bool gB_MySQL = false;
-bool gB_DBReady = false;
 
 char gS_Map[160];
 
@@ -110,7 +109,6 @@ Handle gH_AdminMenu = INVALID_HANDLE;
 
 // cache
 bool gB_Late = false;
-bool gB_Shavit = false;
 
 // cvars
 ConVar gCV_FlatZones = null;
@@ -173,6 +171,8 @@ public void OnAllPluginsLoaded()
 	{
 		OnAdminMenuReady(null);
 	}
+
+	Shavit_OnDatabaseLoaded();
 }
 
 public void OnPluginStart()
@@ -228,14 +228,7 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	gB_Shavit = LibraryExists("shavit");
-
-	if(gB_Shavit)
-	{
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
+	SQL_SetPrefix();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -277,51 +270,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	else if(convar == gCV_UseCustomSprite && !StrEqual(oldValue, newValue))
 	{
 		LoadZoneSettings();
-	}
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		Shavit_GetDB(gH_SQL);
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-public void OnLibraryAdded(const char[] name)
-{
-	if(StrEqual(name, "shavit"))
-	{
-		gB_Shavit = true;
-		
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
-}
-
-public void OnLibraryRemoved(const char[] name)
-{
-	if(StrEqual(name, "shavit"))
-	{
-		gB_Shavit = false;
-		gH_SQL = null;
 	}
 }
 
@@ -532,16 +480,17 @@ void LoadZoneSettings()
 
 public void OnMapStart()
 {
+	if(gH_SQL == null)
+	{
+		return;
+	}
+
 	GetCurrentMap(gS_Map, 160);
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	gI_MapZones = 0;
 	UnloadZones(0);
-
-	if(gH_SQL != null && gB_DBReady)
-	{
-		RefreshZones();
-	}
+	RefreshZones();
 
 	LoadZoneSettings();
 	
@@ -665,15 +614,7 @@ void RefreshZones()
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s FROM %smapzones WHERE map = '%s';", (gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
-	if(gH_SQL != null)
-	{
-		gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
-	}
-
-	else
-	{
-		Shavit_GetDB(gH_SQL);
-	}
+	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -685,7 +626,6 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 
-	gB_DBReady = true;
 	gI_MapZones = 0;
 
 	while(results.FetchRow())
@@ -1983,6 +1923,36 @@ void CreateZonePoints(float point[8][3], float offset = 0.0)
 	}
 }
 
+public void Shavit_OnDatabaseLoaded()
+{
+	gH_SQL = Shavit_GetDatabase();
+	SetSQLInfo();
+}
+
+public Action CheckForSQLInfo(Handle Timer)
+{
+	return SetSQLInfo();
+}
+
+Action SetSQLInfo()
+{
+	if(gH_SQL == null)
+	{
+		gH_SQL = Shavit_GetDatabase();
+
+		CreateTimer(0.5, CheckForSQLInfo);
+	}
+
+	else
+	{
+		SQL_DBConnect();
+
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
+}
+
 void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
@@ -1994,7 +1964,7 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
-
+	
 	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
@@ -2066,7 +2036,6 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 	}
 }
 
-
 public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
@@ -2094,13 +2063,11 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 		}
 
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
+
+		return;
 	}
 
-	else
-	{
-		// we have a database, time to load zones
-		RefreshZones();
-	}
+	OnMapStart();
 }
 
 
@@ -2112,6 +2079,8 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
+
+	OnMapStart();
 }
 
 public void Shavit_OnRestart(int client, int track)
@@ -2162,11 +2131,6 @@ public void Shavit_OnEnd(int client, int track)
 
 		TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 	}
-}
-
-public void Shavit_OnDatabaseLoaded(Database db)
-{
-	gH_SQL = db;
 }
 
 bool EmptyVector(float vec[3])

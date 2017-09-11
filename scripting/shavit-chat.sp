@@ -72,36 +72,14 @@ public void OnPluginStart()
 			OnClientPostAdminCheck(i);
 		}
 	}
-
-	if(LibraryExists("shavit"))
-	{
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
+	
+	SQL_SetPrefix();
 }
 
-public void OnLibraryAdded(const char[] name)
+public void Shavit_OnDatabaseLoaded()
 {
-	if(StrEqual(name, "shavit"))
-	{
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
-}
-
-public void OnLibraryRemoved(const char[] name)
-{
-	if(StrEqual(name, "shavit"))
-	{
-		gH_SQL = null;
-	}
-}
-
-public void Shavit_OnDatabaseLoaded(Database db)
-{
-	gH_SQL = db;
+	gH_SQL = Shavit_GetDatabase();
+	SetSQLInfo();
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -113,7 +91,7 @@ Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
-		Shavit_GetDB(gH_SQL);
+		gH_SQL = Shavit_GetDatabase();
 
 		CreateTimer(0.5, CheckForSQLInfo);
 	}

@@ -31,7 +31,6 @@
 // #define DEBUG
 
 bool gB_Late = false;
-bool gB_Shavit = false;
 bool gB_Rankings = false;
 bool gB_Stats = false;
 
@@ -110,6 +109,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
+public void OnAllPluginsLoaded()
+{
+	Shavit_OnDatabaseLoaded();
+}
+
 public void OnPluginStart()
 {
 	LoadTranslations("shavit-common.phrases");
@@ -158,7 +162,6 @@ public void OnPluginStart()
 	OnAdminMenuReady(null);
 
 	// modules
-	gB_Shavit = LibraryExists("shavit");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Stats = LibraryExists("shavit-stats");
 
@@ -174,42 +177,13 @@ public void OnPluginStart()
 		}
 	}
 
-	if(gB_Shavit)
-	{
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
+	SQL_SetPrefix();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	gI_RecordsLimit = gCV_RecordsLimit.BoolValue;
 	gI_RecentLimit = gCV_RecentLimit.BoolValue;
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		Shavit_GetDB(gH_SQL);
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
 }
 
 public void OnAdminMenuReady(Handle topmenu)
@@ -268,16 +242,7 @@ public void AdminMenu_DeleteStyleRecords(Handle topmenu,  TopMenuAction action, 
 
 public void OnLibraryAdded(const char[] name)
 {
-	if(StrEqual(name, "shavit"))
-	{
-		gB_Shavit = true;
-		
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
-
-	else if(StrEqual(name, "shavit-rankings"))
+	if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = true;
 	}
@@ -290,13 +255,7 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-	if(StrEqual(name, "shavit"))
-	{
-		gB_Shavit = false;
-		gH_SQL = null;
-	}
-
-	else if(StrEqual(name, "shavit-rankings"))
+	if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
 	}
@@ -314,6 +273,11 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnMapStart()
 {
+	if(gH_SQL == null)
+	{
+		return;
+	}
+
 	GetCurrentMap(gS_Map, 160);
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
@@ -1822,6 +1786,36 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 	return 0;
 }
 
+public void Shavit_OnDatabaseLoaded()
+{
+	gH_SQL = Shavit_GetDatabase();
+	SetSQLInfo();
+}
+
+public Action CheckForSQLInfo(Handle Timer)
+{
+	return SetSQLInfo();
+}
+
+Action SetSQLInfo()
+{
+	if(gH_SQL == null)
+	{
+		gH_SQL = Shavit_GetDatabase();
+
+		CreateTimer(0.5, CheckForSQLInfo);
+	}
+
+	else
+	{
+		SQL_DBConnect();
+
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
+}
+
 void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
@@ -1833,7 +1827,7 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
-
+	
 	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
@@ -1968,7 +1962,11 @@ public void SQL_TableMigration4_Callback(Database db, DBResultSet results, const
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`track` INT NOT NULL DEFAULT 0)":"COLUMN `track` INT NOT NULL DEFAULT 0");
 		gH_SQL.Query(SQL_AlterTable4_Callback, sQuery);
+
+		return;
 	}
+
+	OnMapStart();
 }
 
 public void SQL_AlterTable4_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1979,6 +1977,8 @@ public void SQL_AlterTable4_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
+
+	OnMapStart();
 }
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
@@ -2233,11 +2233,4 @@ void GetTrackName(int client, int track, char[] output, int size)
 	static char sTrack[16];
 	FormatEx(sTrack, 16, "Track_%d", track);
 	FormatEx(output, size, "%T", sTrack, client);
-}
-
-public void Shavit_OnDatabaseLoaded(Database db)
-{
-	gH_SQL = db;
-
-	UpdateLeaderboards();
 }

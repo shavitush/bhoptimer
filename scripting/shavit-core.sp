@@ -151,6 +151,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetClientJumps", Native_GetClientJumps);
 	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
 	CreateNative("Shavit_GetClientTrack", Native_GetClientTrack);
+	CreateNative("Shavit_GetDatabase", Native_GetDatabase);
 	CreateNative("Shavit_GetDB", Native_GetDB);
 	CreateNative("Shavit_GetGameType", Native_GetGameType);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
@@ -193,7 +194,7 @@ public void OnPluginStart()
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
-	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event, Param_Cell);
+	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array);
 
@@ -886,9 +887,13 @@ public int Native_GetGameType(Handle handler, int numParams)
 	return view_as<int>(gSG_Type);
 }
 
+public int Native_GetDatabase(Handle handler, int numParams)
+{
+	return view_as<int>(CloneHandle(gH_SQL, handler));
+}
+
 public int Native_GetDB(Handle handler, int numParams)
 {
-	// TODO: deprecate and do handle cloning, as i'm supposed to
 	SetNativeCellRef(1, gH_SQL);
 }
 
@@ -1636,7 +1641,6 @@ void SQL_DBConnect()
 	gH_SQL.SetCharset("utf8");
 
 	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
-	Call_PushCell(gH_SQL);
 	Call_Finish();
 
 	char[] sDriver = new char[8];
@@ -1674,8 +1678,6 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	FormatEx(sQuery, 192, "SELECT points FROM %susers LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_High);
-
-	// TODO: table migration to all tables here, to remove workshop/xxxxxx/ from names
 
 	char sTables[][] =
 	{

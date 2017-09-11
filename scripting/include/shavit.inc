@@ -433,10 +433,9 @@ forward void Shavit_OnStyleConfigLoaded(int styles);
 /**
  * Called when there's a successful connection to the database.
  *
- * @param db						Database handle.
  * @noreturn
  */
-forward void Shavit_OnDatabaseLoaded(Database db);
+forward void Shavit_OnDatabaseLoaded();
 
 /**
  * Called when the chat messages configuration finishes loading and it's ready to load everything into the cache.
@@ -509,7 +508,16 @@ native ServerGame Shavit_GetGameType();
  * @param hSQL						Handle to store the database on.
  * @noreturn
  */
+ #pragma deprecated Use Shavit_GetDatabase() instead.
 native void Shavit_GetDB(Database &hSQL);
+
+/**
+ * Returns bhoptimer's database handle.
+ * Call within Shavit_OnDatabaseLoaded. Safety is not guaranteed anywhere else!
+ *
+ * @return							Database handle.
+ */
+native Database Shavit_GetDatabase();
 
 /**
  * Starts the timer for a player.
@@ -989,6 +997,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClientJumps");
 	MarkNativeAsOptional("Shavit_GetClientTime");
 	MarkNativeAsOptional("Shavit_GetClientTrack");
+	MarkNativeAsOptional("Shavit_GetDatabase");
+	MarkNativeAsOptional("Shavit_GetDB");
 	MarkNativeAsOptional("Shavit_GetHUDSettings");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");
