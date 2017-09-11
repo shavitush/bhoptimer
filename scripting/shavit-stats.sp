@@ -44,6 +44,7 @@ Database gH_SQL = null;
 char gS_MySQLPrefix[32];
 
 // cache
+bool gB_AllowStats[MAXPLAYERS+1];
 int gI_MapType[MAXPLAYERS+1];
 int gBS_Style[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
@@ -176,6 +177,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 public void OnClientPutInServer(int client)
 {
+	gB_AllowStats[client] = true;
 	gI_WRAmount[client] = 0;
 	UpdateWRs(client);
 }
@@ -355,6 +357,12 @@ public Action Command_Profile(int client, int args)
 
 Action OpenStatsMenu(int client, const char[] authid)
 {
+	// no spam please
+	if(!gB_AllowStats[client])
+	{
+		return Plugin_Handled;
+	}
+
 	// big ass query, looking for optimizations
 	char[] sQuery = new char[2048];
 
@@ -379,21 +387,23 @@ Action OpenStatsMenu(int client, const char[] authid)
 			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid);
 	}
 
-	gH_SQL.Query(OpenStatsMenuCallback, sQuery, GetClientSerial(client));
+	gB_AllowStats[client] = false;
+	gH_SQL.Query(OpenStatsMenuCallback, sQuery, GetClientSerial(client), DBPrio_Low);
 
 	return Plugin_Handled;
 }
 
 public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[] error, any data)
 {
+	int client = GetClientFromSerial(data);
+	gB_AllowStats[client] = true;
+
 	if(results == null)
 	{
 		LogError("Timer (statsmenu) SQL query failed. Reason: %s", error);
 
 		return;
 	}
-
-	int client = GetClientFromSerial(data);
 
 	if(client == 0)
 	{

@@ -667,7 +667,7 @@ void RefreshZones()
 
 	if(gH_SQL != null)
 	{
-		gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, DBPrio_High);
+		gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
 	}
 
 	else
