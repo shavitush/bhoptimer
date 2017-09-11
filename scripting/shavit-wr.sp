@@ -111,7 +111,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-	Shavit_OnDatabaseLoaded();
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()

@@ -172,7 +172,10 @@ public void OnAllPluginsLoaded()
 		OnAdminMenuReady(null);
 	}
 
-	Shavit_OnDatabaseLoaded();
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()

@@ -108,7 +108,10 @@ public void OnAllPluginsLoaded()
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
 
-	Shavit_OnDatabaseLoaded();
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()
@@ -248,7 +251,7 @@ void SQL_DBConnect()
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(160), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`));", gS_MySQLPrefix);
 
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
 	}
 }
 
@@ -259,6 +262,15 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		LogError("Timer (rankings) error! Map tiers table creation failed. Reason: %s", error);
 
 		return;
+	}
+
+	#if defined DEBUG
+	PrintToServer("DEBUG: 0 (SQL_CreateTable_Callback)");
+	#endif
+
+	if(gI_Styles == 0)
+	{
+		Shavit_OnStyleConfigLoaded(-1);
 	}
 
 	OnMapStart();
@@ -298,12 +310,11 @@ public void OnMapStart()
 		return;
 	}
 
-	UpdateRankedPlayers();
+	#if defined DEBUG
+	PrintToServer("DEBUG: 1 (OnMapStart)");
+	#endif
 
-	if(gB_Late)
-	{
-		Shavit_OnStyleConfigLoaded(-1);
-	}
+	UpdateRankedPlayers();
 
 	GetCurrentMap(gS_Map, 160);
 	GetMapDisplayName(gS_Map, gS_Map, 160);
@@ -312,20 +323,17 @@ public void OnMapStart()
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
 	gI_Tier = 1;
 
-	if(gH_SQL != null)
+	char[] sDriver = new char[8];
+	gH_SQL.Driver.GetIdentifier(sDriver, 8);
+	
+	if(!StrEqual(sDriver, "mysql", false))
 	{
-		char[] sDriver = new char[8];
-		gH_SQL.Driver.GetIdentifier(sDriver, 8);
-		
-		if(!StrEqual(sDriver, "mysql", false))
-		{
-			SetFailState("Rankings will only support MySQL for the moment. Sorry.");
-		}
-
-		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
-		gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_High);
+		SetFailState("Rankings will only support MySQL for the moment. Sorry.");
 	}
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -337,12 +345,24 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
+	#if defined DEBUG
+	PrintToServer("DEBUG: 2 (SQL_GetMapTier_Callback)");
+	#endif
+
 	if(results.RowCount > 0 && results.FetchRow())
 	{
 		gI_Tier = results.FetchInt(0);
 
+		#if defined DEBUG
+		PrintToServer("DEBUG: 3 (tier: %d) (SQL_GetMapTier_Callback)", gI_Tier);
+		#endif
+
 		RecalculateAll(gS_Map, gI_Tier);
 		UpdateAllPoints();
+
+		#if defined DEBUG
+		PrintToServer("DEBUG: 4 (SQL_GetMapTier_Callback)");
+		#endif
 
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix, gS_Map);
@@ -552,6 +572,10 @@ public Action Command_RecalcMap(int client, int args)
 
 void RecalculateAll(const char[] map, const int tier)
 {
+		#if defined DEBUG
+	LogError("DEBUG: 5 (RecalculateAll)");
+	#endif
+
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
 		for(int j = 0; j < gI_Styles; j++)
@@ -660,6 +684,10 @@ public void SQL_UpdatePlayerPoints_Callback(Database db, DBResultSet results, co
 // this takes a while, needs to be ran manually or on map start, in a transaction
 void UpdateAllPoints()
 {
+		#if defined DEBUG
+	LogError("DEBUG: 6 (UpdateAllPoints)");
+	#endif
+
 	char[] sQuery = new char[128];
 	FormatEx(sQuery, 128, "SELECT auth FROM %splayertimes WHERE points > 0.0 GROUP BY auth;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery, 0, DBPrio_Low);

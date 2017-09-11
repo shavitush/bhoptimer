@@ -80,7 +80,10 @@ public void OnAllPluginsLoaded()
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
 
-	Shavit_OnDatabaseLoaded();
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()
