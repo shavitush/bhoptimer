@@ -68,6 +68,7 @@ float gF_PointsPerTier = 50.0;
 
 int gI_Rank[MAXPLAYERS+1];
 float gF_Points[MAXPLAYERS+1];
+int gI_Progress[MAXPLAYERS+1];
 
 int gI_RankedPlayers = 0;
 Menu gH_Top100Menu = null;
@@ -76,8 +77,12 @@ Handle gH_Forwards_OnTierAssigned = null;
 
 // Timer settings.
 char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+char gS_StyleNames[STYLE_LIMIT][64];
+char gS_TrackNames[TRACKS_SIZE][32];
+
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 int gI_Styles = 0;
+int gI_RankedStyles = 0;
 
 public Plugin myinfo =
 {
@@ -112,6 +117,11 @@ public void OnAllPluginsLoaded()
 	{
 		Shavit_OnDatabaseLoaded();
 	}
+
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		GetTrackName(LANG_SERVER, i, gS_TrackNames[i], 32);
+	}
 }
 
 public void OnPluginStart()
@@ -128,6 +138,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Prints the map's tier to chat. Usage: sm_setmaptier <tier> (sm_settier alias)");
 
 	RegAdminCmd("sm_recalcmap", Command_RecalcMap, ADMFLAG_RCON, "Recalculate the current map's records' points.");
+
+	RegAdminCmd("sm_recalcall", Command_RecalcAll, ADMFLAG_ROOT, "Recalculate the points for every map on the server. Run this after you change the ranking multiplier for a style or after you install the plugin.");
 
 	gCV_PointsPerTier = CreateConVar("shavit_rankings_pointspertier", "50.0", "Base points to use for per-tier scaling.\nRead the design idea to see how it works: https://github.com/shavitush/bhoptimer/issues/465", 0, true, 1.0);
 	gCV_PointsPerTier.AddChangeHook(OnConVarChanged);
@@ -168,6 +180,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleNames[i], 64);
+
+		if(!gA_StyleSettings[i][bUnranked])
+		{
+			gI_RankedStyles++;
+		}
 	}
 }
 
@@ -570,9 +588,37 @@ public Action Command_RecalcMap(int client, int args)
 	return Plugin_Handled;
 }
 
-void RecalculateAll(const char[] map, const int tier)
+public Action Command_RecalcAll(int client, int args)
 {
+	ReplyToCommand(client, "Check your console for information.\nDatabase related queries might not work until this is done.");
+	ReplyToCommand(client, "- [0.0%%] Started recalculating points for all maps.");
+
+	gI_Progress[client] = 0;
+
+	int serial = GetClientSerial(client);
+	int size = gA_ValidMaps.Length;
+
+	for(int i = 0; i < size; i++)
+	{
+		char[] sMap = new char[160];
+		gA_ValidMaps.GetString(i, sMap, 160);
+
+		int tier = 1;
+		gA_MapTiers.GetValue(sMap, tier);
+
+		RecalculateAll(sMap, tier, serial);
+
 		#if defined DEBUG
+		PrintToConsole(client, "size: %d | %d | %s", size, i, sMap);
+		#endif
+	}
+
+	return Plugin_Handled;
+}
+
+void RecalculateAll(const char[] map, const int tier, int serial = 0)
+{
+	#if defined DEBUG
 	LogError("DEBUG: 5 (RecalculateAll)");
 	#endif
 
@@ -585,7 +631,7 @@ void RecalculateAll(const char[] map, const int tier)
 				continue;
 			}
 
-			RecalculateMap(map, i, j, tier);
+			RecalculateMap(map, i, j, tier, serial);
 		}
 	}
 }
@@ -595,7 +641,7 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	RecalculateMap(gS_Map, track, style, gI_Tier);
 }
 
-void RecalculateMap(const char[] map, const int track, const int style, const int tier)
+void RecalculateMap(const char[] map, const int track, const int style, const int tier, int serial = -1)
 {
 	#if defined DEBUG
 	PrintToServer("Recalculating points. (%s, %d, %d, %d)", map, track, style, tier);
@@ -625,7 +671,14 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 			gA_StyleSettings[style][fRankingMultiplier], (track == Track_Main)? 1.0:0.25,
 			map, track, style);
 
-	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
+	DataPack pack = new DataPack();
+	pack.WriteCell(serial);
+	pack.WriteCell(strlen(map));
+	pack.WriteString(map);
+	pack.WriteCell(track);
+	pack.WriteCell(style);
+
+	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, pack, DBPrio_High);
 
 	#if defined DEBUG
 	PrintToServer("Sent query.");
@@ -634,11 +687,37 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 
 public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
+	ResetPack(view_as<DataPack>(data));
+	int serial = ReadPackCell(data);
+	int size = ReadPackCell(data);
+
+	char[] sMap = new char[size + 1];
+	ReadPackString(data, sMap, size + 1);
+
+	int track = ReadPackCell(data);
+	int style = ReadPackCell(data);
+	delete view_as<DataPack>(data);
+
 	if(results == null)
 	{
 		LogError("Timer (rankings, recalculate map points) error! Reason: %s", error);
 
 		return;
+	}
+
+	if(serial != -1)
+	{
+		int client = GetClientFromSerial(serial);
+
+		if(client == 0)
+		{
+			return;
+		}
+
+		int max = ((gA_ValidMaps.Length * 2) * gI_RankedStyles);
+		float current = ((float(++gI_Progress[client]) / max) * 100.0);
+
+		PrintToConsole(client, "- [%.01f%%] Recalculated \"%s\" (%s | %s).", current, sMap, gS_TrackNames[track], gS_StyleNames[style]);
 	}
 
 	#if defined DEBUG
@@ -684,7 +763,7 @@ public void SQL_UpdatePlayerPoints_Callback(Database db, DBResultSet results, co
 // this takes a while, needs to be ran manually or on map start, in a transaction
 void UpdateAllPoints()
 {
-		#if defined DEBUG
+	#if defined DEBUG
 	LogError("DEBUG: 6 (UpdateAllPoints)");
 	#endif
 
@@ -896,6 +975,20 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 	}
 
 	gH_Top100Menu.ExitButton = true;
+}
+
+void GetTrackName(int client, int track, char[] output, int size)
+{
+	if(track < 0 || track >= TRACKS_SIZE)
+	{
+		FormatEx(output, size, "%T", "Track_Unknown", client);
+
+		return;
+	}
+
+	static char sTrack[16];
+	FormatEx(sTrack, 16, "Track_%d", track);
+	FormatEx(output, size, "%T", sTrack, client);
 }
 
 public int Native_GetPoints(Handle handler, int numParams)
