@@ -1750,7 +1750,7 @@ public Action Command_Specs(int client, int args)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i))
+		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK))
 		{
 			continue;
 		}
