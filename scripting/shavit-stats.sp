@@ -25,9 +25,8 @@
 #undef REQUIRE_PLUGIN
 #include <shavit>
 
-#pragma semicolon 1
-#pragma dynamic 131072
 #pragma newdecls required
+#pragma semicolon 1
 
 // macros
 #define MAPSDONE 0

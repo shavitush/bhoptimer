@@ -28,9 +28,9 @@
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 
+#pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
-#pragma newdecls required
 
 enum
 {

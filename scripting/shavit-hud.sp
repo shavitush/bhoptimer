@@ -29,7 +29,6 @@
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 131072
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 
