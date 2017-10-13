@@ -1346,7 +1346,6 @@ public void OnClientPutInServer(int client)
 	gB_Auto[client] = true;
 	gB_DoubleSteps[client] = false;
 	gF_StrafeWarning[client] = 0.0;
-	gBS_Style[client] = 0;
 	gB_PracticeMode[client] = false;
 	gI_SHSW_FirstCombination[client] = -1;
 	gI_Track[client] = 0;
@@ -1358,12 +1357,12 @@ public void OnClientPutInServer(int client)
 
 	else
 	{
-		gBS_Style[client] = 0;
-
 		UpdateAutoBhop(client);
 		UpdateAiraccelerate(client);
 		UpdateBunnyhopping(client);
 	}
+
+	gBS_Style[client] = 0;
 
 	if(gH_SQL == null)
 	{

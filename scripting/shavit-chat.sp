@@ -26,10 +26,17 @@
 #undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
 #include <shavit>
+#include <rtler>
+
+#pragma newdecls required
+#pragma semicolon 1
 
 // database
 Database gH_SQL = null;
 char gS_MySQLPrefix[32];
+
+// modules
+bool gB_RTLer = false;
 
 // cache
 EngineVersion gEV_Type = Engine_Unknown;
@@ -49,6 +56,11 @@ public Plugin myinfo =
 	description = "Custom chat privileges (custom name and message colors).",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
+}
+
+public void OnAllPluginsLoaded()
+{
+	gB_RTLer = LibraryExists("rtler");
 }
 
 public void OnPluginStart()
@@ -129,6 +141,22 @@ void SQL_SetPrefix()
 	}
 
 	delete fFile;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "rtler"))
+	{
+		gB_RTLer = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "rtler"))
+	{
+		gB_RTLer = false;
+	}
 }
 
 public void OnClientDisconnect(int client)
@@ -294,7 +322,7 @@ public Action Command_CCList(int client, int args)
 	{
 		if(gB_AllowCustom[i])
 		{
-			PrintToConsole(client, "%N (%d/%d) (name: \"%s\"; message: \"%s\")", i, i, GetClientUserId(i), gS_CustomName[i], gS_CustomMessage[i])
+			PrintToConsole(client, "%N (%d/%d) (name: \"%s\"; message: \"%s\")", i, i, GetClientUserId(i), gS_CustomName[i], gS_CustomMessage[i]);
 		}
 	}
 
@@ -325,7 +353,19 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 
 	if(gB_MessageEnabled[author] && strlen(gS_CustomMessage[author]) > 0)
 	{
-		Format(message, MAXLENGTH_MESSAGE, "%s%s", gS_CustomMessage[author], message);
+		char[] sTemp = new char[MAXLENGTH_MESSAGE];
+
+		// proper colors with rtler
+		if(gB_RTLer && RTLify(sTemp, MAXLENGTH_MESSAGE, message))
+		{
+			Format(message, MAXLENGTH_MESSAGE, "%s%s", message, gS_CustomMessage[author]);
+		}
+
+		else
+		{
+			Format(message, MAXLENGTH_MESSAGE, "%s%s", gS_CustomMessage[author], message);
+		}
+
 		FormatRandom(message, MAXLENGTH_MESSAGE);
 	}
 
