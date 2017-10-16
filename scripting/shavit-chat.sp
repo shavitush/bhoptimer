@@ -356,7 +356,7 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 		char[] sTemp = new char[MAXLENGTH_MESSAGE];
 
 		// proper colors with rtler
-		if(gB_RTLer && RTLify(sTemp, MAXLENGTH_MESSAGE, message))
+		if(gB_RTLer && RTLify(sTemp, MAXLENGTH_MESSAGE, message) > 0)
 		{
 			Format(message, MAXLENGTH_MESSAGE, "%s%s", message, gS_CustomMessage[author]);
 		}

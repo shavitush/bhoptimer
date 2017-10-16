@@ -111,7 +111,7 @@ bool gB_NoStaminaReset = true;
 bool gB_AllowTimerWithoutZone = false;
 bool gB_BlockPreJump = true;
 bool gB_NoZAxisSpeed = true;
-bool gB_VelocityTeleport = true;
+bool gB_VelocityTeleport = false;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -289,7 +289,7 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
-	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "1", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
+	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 
 	gCV_Autobhop.AddChangeHook(OnConVarChanged);
 	gCV_LeftRight.AddChangeHook(OnConVarChanged);
@@ -806,16 +806,6 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
 
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 1.0)
-	{
-		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
-	}
-
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]) != 1.0)
-	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
-	}
-
 	RequestFrame(VelocityChanges, GetClientSerial(client));
 }
 
@@ -826,6 +816,16 @@ void VelocityChanges(int data)
 	if(client == 0)
 	{
 		return;
+	}
+
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 1.0)
+	{
+		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
+	}
+
+	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]) != 1.0)
+	{
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 	}
 
 	float fAbsVelocity[3];
@@ -862,14 +862,14 @@ void VelocityChanges(int data)
 		fAbsVelocity[1] /= x;
 	}
 
-	if(gB_VelocityTeleport)
+	if(!gB_VelocityTeleport)
 	{
-		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
+		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 	}
 
 	else
 	{
-		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
 	}
 }
 
