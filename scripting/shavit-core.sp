@@ -191,7 +191,7 @@ public void OnPluginStart()
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
@@ -730,7 +730,7 @@ public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param
 			return 0;
 		}
 
-		ChangeClientStyle(param1, style);
+		ChangeClientStyle(param1, style, true);
 	}
 
 	else if(action == MenuAction_End)
@@ -741,21 +741,30 @@ public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param
 	return 0;
 }
 
-void ChangeClientStyle(int client, int style)
+void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
+{
+	Call_StartForward(gH_Forwards_OnStyleChanged);
+	Call_PushCell(client);
+	Call_PushCell(oldstyle);
+	Call_PushCell(newstyle);
+	Call_PushCell(gI_Track[client]);
+	Call_PushCell(manual);
+	Call_Finish();
+}
+
+void ChangeClientStyle(int client, int style, bool manual)
 {
 	if(!IsValidClient(client))
 	{
 		return;
 	}
 
-	Call_StartForward(gH_Forwards_OnStyleChanged);
-	Call_PushCell(client);
-	Call_PushCell(gBS_Style[client]);
-	Call_PushCell(style);
-	Call_PushCell(gI_Track[client]);
-	Call_Finish();
+	CallOnStyleChanged(client, gBS_Style[client], style, manual);
 
-	Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+	if(manual)
+	{
+		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+	}
 
 	if(gA_StyleSettings[style][bUnranked])
 	{
@@ -768,7 +777,7 @@ void ChangeClientStyle(int client, int style)
 	if(aa_old != aa_new)
 	{
 		Shavit_PrintToChat(client, "%T", "NewAiraccelerate", client, aa_old, gS_ChatStrings[sMessageVariable], aa_new, gS_ChatStrings[sMessageText]);
-	}	
+	}
 
 	gBS_Style[client] = style;
 
@@ -1327,6 +1336,7 @@ public void OnClientCookiesCached(int client)
 	}
 
 	gBS_Style[client] = (style >= 0 && style < gI_Styles)? style:0;
+	CallOnStyleChanged(client, 0, gBS_Style[client], false);
 
 	UpdateAutoBhop(client);
 	UpdateAiraccelerate(client);
@@ -1359,9 +1369,10 @@ public void OnClientPutInServer(int client)
 		UpdateAutoBhop(client);
 		UpdateAiraccelerate(client);
 		UpdateBunnyhopping(client);
-	}
 
-	gBS_Style[client] = 0;
+		CallOnStyleChanged(client, 0, 0, false);
+		gBS_Style[client] = 0;
+	}
 
 	if(gH_SQL == null)
 	{
@@ -1534,7 +1545,7 @@ public Action Command_StyleChange(int client, int args)
 
 	if(gSM_StyleCommands.GetValue(sCommand, style))
 	{
-		ChangeClientStyle(client, style);
+		ChangeClientStyle(client, style, true);
 
 		return Plugin_Handled;
 	}

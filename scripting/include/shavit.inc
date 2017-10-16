@@ -413,14 +413,16 @@ forward void Shavit_OnResume(int client, int track);
 
 /**
  * Called when a player changes their bhopstyle.
+ * Note: Doesn't guarantee that the player is in-game or connected.
  *
  * @param client					Client index.
  * @param oldstyle					Old bhop style.
  * @param newstyle					New bhop style.
  * @param track						Timer track.
+ * @param manual					Was the change manual, or assigned automatically?
  * @noreturn
  */
-forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track);
+forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual);
 
 /**
  * Called when the styles configuration finishes loading and it's ready to load everything into the cache.

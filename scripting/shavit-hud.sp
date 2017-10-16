@@ -1083,11 +1083,14 @@ public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param
 	return 0;
 }
 
-public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
-	UpdateTopLeftHUD(client, false);
-
 	gBS_Style[client] = newstyle;
+
+	if(IsClientInGame(client))
+	{
+		UpdateTopLeftHUD(client, false);
+	}
 }
 
 public int Native_ForceHUDUpdate(Handle handler, int numParams)

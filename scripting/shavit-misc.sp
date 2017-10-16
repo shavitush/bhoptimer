@@ -445,7 +445,7 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
-public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
 	gBS_Style[client] = newstyle;
 }
