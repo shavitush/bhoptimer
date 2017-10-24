@@ -868,8 +868,10 @@ void UpdatePlayerRank(int client)
 
 	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
 	{
+		// if there's any issue with this query,
+		// add "ORDER BY points DESC " before "LIMIT 1"
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "SELECT COUNT(*) rank, points FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1;",
+		FormatEx(sQuery, 512, "SELECT COUNT(*) rank, p.points FROM %susers u JOIN (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) p WHERE u.points >= p.points LIMIT 1;",
 			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
 		gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
