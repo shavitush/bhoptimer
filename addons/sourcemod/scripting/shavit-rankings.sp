@@ -727,7 +727,7 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 	#endif
 }
 
-void UpdatePlayerPoints(int client)
+void UpdatePlayerPoints(int client, bool updaterankedplayers = true)
 {
 	char[] sAuthID = new char[32];
 
@@ -739,12 +739,23 @@ void UpdatePlayerPoints(int client)
 			"SET u.points = temp.total WHERE auth = '%s';",
 			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID, sAuthID);
 
-		gH_SQL.Query(SQL_UpdatePlayerPoints_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
+		int serial = GetClientSerial(client);
+
+		DataPack pack = new DataPack();
+		pack.WriteCell(serial);
+		pack.WriteCell(updaterankedplayers);
+
+		gH_SQL.Query(SQL_UpdatePlayerPoints_Callback, sQuery, pack, DBPrio_Low);
 	}
 }
 
 public void SQL_UpdatePlayerPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
+	ResetPack(view_as<DataPack>(data));
+	int serial = ReadPackCell(data);
+	bool bUpdateRankedPlayers = view_as<bool>(ReadPackCell(data));
+	delete view_as<DataPack>(data);
+
 	if(results == null)
 	{
 		LogError("Timer (rankings, update player points) error! Reason: %s", error);
@@ -752,14 +763,17 @@ public void SQL_UpdatePlayerPoints_Callback(Database db, DBResultSet results, co
 		return;
 	}
 
-	int client = GetClientFromSerial(data);
+	int client = GetClientFromSerial(serial);
 
 	if(client != 0)
 	{
 		UpdatePlayerRank(client);
-	}
 
-	UpdateRankedPlayers();
+		if(bUpdateRankedPlayers)
+		{
+			UpdateRankedPlayers();
+		}
+	}
 }
 
 // this takes a while, needs to be ran manually or on map start, in a transaction
@@ -817,7 +831,7 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 
 			if(auths.GetValue(sAuthID, client))
 			{
-				UpdatePlayerPoints(client);
+				UpdatePlayerPoints(client, false);
 
 				continue;
 			}
