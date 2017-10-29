@@ -10,7 +10,7 @@
 
 This is (nearly) an all-in-one server plugin for Counter-Strike: Source and Counter-Strike: Global Offensive that adds a timer system and many other utilities, so you can install it and have a proper bunnyhop server running.
 
-Including a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics and more!
+Including a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, a fair & competitive rankings system and more!
 
 [Mapzones' setup demonstration](https://youtu.be/OXFMGm40F6c)
 
@@ -23,6 +23,7 @@ Including a records system, map zones (start/end marks etc), bonuses, HUD with u
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135) - to show amount of scrolls for non-auto styles in the key display. CS:S only!
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) - for the `{serverip}` advertisement variable.
 * [Chat-Processor](https://github.com/Drixevel/Chat-Processor) - if you're enabling the `shavit-chat` module.
+* A MySQL database if you want to use the rankings plugin.
 
 #  Installation:
 1. If you want to use MySQL (**VERY RECOMMENDED**) add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit". The plugin also supports the "sqlite" driver. You can also skip this step and not modify databases.cfg.
@@ -67,4 +68,4 @@ Including a records system, map zones (start/end marks etc), bonuses, HUD with u
 # Required plugins:
 `shavit-core` - compeletely required.  
 `shavit-zones` - compeletely required.  
-`shavit-wr` - required for `shavit-stats`, `shavit-replay` and `shavit-sounds`.
+`shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-rankings` and `shavit-sounds`.

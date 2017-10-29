@@ -445,7 +445,7 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
-public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
 	gBS_Style[client] = newstyle;
 }
@@ -975,6 +975,22 @@ void ResetCheckpoints(int client)
 
 public Action OnTakeDamage(int victim, int attacker)
 {
+	if(gB_Hide[victim])
+	{
+		if(gEV_Type == Engine_CSGO)
+		{
+			SetEntPropVector(victim, Prop_Send, "m_viewPunchAngle", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngle", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngleVel", NULL_VECTOR);
+		}
+
+		else
+		{
+			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngle", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngleVel", NULL_VECTOR);
+		}
+	}
+
 	switch(gI_GodMode)
 	{
 		case 0:
@@ -1037,7 +1053,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		return Plugin_Handled;
 	}
 
-	else if(sArgs[0] == '!' || sArgs[0] == '/')
+	if(sArgs[0] == '!' || sArgs[0] == '/')
 	{
 		bool bUpper = false;
 
@@ -1056,7 +1072,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			char[] sCopy = new char[32];
 			strcopy(sCopy, 32, sArgs[1]);
 
-			FakeClientCommand(client, "sm_%s", sCopy);
+			FakeClientCommandEx(client, "sm_%s", sCopy);
 
 			return Plugin_Stop;
 		}
@@ -1734,7 +1750,7 @@ public Action Command_Specs(int client, int args)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i))
+		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK))
 		{
 			continue;
 		}
@@ -2031,10 +2047,9 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 	char[] sWeapon = new char[16];
 	event.GetString("weapon", sWeapon, 16);
 
-	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hpk") != -1 || StrEqual(sWeapon, "glock"))
+	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hpk") != -1 || StrContains(sWeapon, "glock") != -1)
 	{
 		int client = GetClientOfUserId(event.GetInt("userid"));
-
 		SetWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"));
 	}
 }

@@ -28,9 +28,9 @@
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 
+#pragma newdecls required
 #pragma semicolon 1
 #pragma dynamic 131072
-#pragma newdecls required
 
 enum
 {
@@ -75,7 +75,7 @@ int gI_DefaultTeamSlots = 0;
 
 // server specific
 float gF_Tickrate = 0.0;
-char gS_Map[256];
+char gS_Map[192];
 int gI_ExpectedBots = 0;
 ConVar bot_quota = null;
 any gA_CentralCache[CENTRALBOTCACHE_SIZE];
@@ -396,8 +396,8 @@ public void OnMapStart()
 
 	gB_ForciblyStopped = false;
 
-	GetCurrentMap(gS_Map, 256);
-	GetMapDisplayName(gS_Map, gS_Map, 256);
+	GetCurrentMap(gS_Map, 192);
+	GetMapDisplayName(gS_Map, gS_Map, 192);
 
 	if(!gB_Enabled)
 	{
@@ -1554,7 +1554,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 		if(StrEqual(info, "stop"))
 		{
 			StopCentralReplay(param1);
-			OpenReplayMenu(param1);
+			OpenReplaySubMenu(param1, gI_Track[param1]);
 
 			return 0;
 		}
@@ -1570,7 +1570,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 		{
 			Shavit_PrintToChat(param1, "%T", "CentralReplayPlaying", param1);
 
-			OpenReplayMenu(param1);
+			OpenReplaySubMenu(param1, gI_Track[param1]);
 		}
 
 		else

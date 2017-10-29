@@ -290,7 +290,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * @param stylesettings				An array that contains the player's bhop style's settings.
  * @return							Plugin_Continue to let shavit-core keep doing what it does, Plugin_Changed to pass different values.
  */
-forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesttings[STYLESETTINGS_SIZE]);
+forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE]);
 
 /**
  * Called when a player's timer starts.
@@ -412,24 +412,17 @@ forward void Shavit_OnPause(int client, int track);
 forward void Shavit_OnResume(int client, int track);
 
 /**
- * Called when a player's rank has updated or was just looked up.
- * Will be called on initial rank lookup.
- *
- * @param client					Client index.
- * @noreturn
- */
-forward void Shavit_OnRankUpdated(int client);
-
-/**
  * Called when a player changes their bhopstyle.
+ * Note: Doesn't guarantee that the player is in-game or connected.
  *
  * @param client					Client index.
  * @param oldstyle					Old bhop style.
  * @param newstyle					New bhop style.
  * @param track						Timer track.
+ * @param manual					Was the change manual, or assigned automatically?
  * @noreturn
  */
-forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track);
+forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual);
 
 /**
  * Called when the styles configuration finishes loading and it's ready to load everything into the cache.
@@ -442,10 +435,9 @@ forward void Shavit_OnStyleConfigLoaded(int styles);
 /**
  * Called when there's a successful connection to the database.
  *
- * @param db						Database handle.
  * @noreturn
  */
-forward void Shavit_OnDatabaseLoaded(Database db);
+forward void Shavit_OnDatabaseLoaded();
 
 /**
  * Called when the chat messages configuration finishes loading and it's ready to load everything into the cache.
@@ -494,6 +486,17 @@ forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int ent
 forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync, int track);
 
 /**
+ * Gets called when a map's tier is assigned.
+ * Only called once per map, if the rankings plugin is enabled.
+ * The exception is if the admin changes the current map's tier.
+ *
+ * @param map						Map display name.
+ * @param tier						Map's tier.
+ * @noreturn
+ */
+forward void Shavit_OnTierAssigned(const char[] map, int tier);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
@@ -507,7 +510,16 @@ native ServerGame Shavit_GetGameType();
  * @param hSQL						Handle to store the database on.
  * @noreturn
  */
+ #pragma deprecated Use Shavit_GetDatabase() instead.
 native void Shavit_GetDB(Database &hSQL);
+
+/**
+ * Returns bhoptimer's database handle.
+ * Call within Shavit_OnDatabaseLoaded. Safety is not guaranteed anywhere else!
+ *
+ * @return							Database handle.
+ */
+native Database Shavit_GetDatabase();
 
 /**
  * Starts the timer for a player.
@@ -777,7 +789,7 @@ native bool Shavit_IsReplayDataLoaded(int style);
  * Gets player points.
  *
  * @param client					Client index.
- * @return							Points. 0.0 if unranked and -1.0 if lookup is due.
+ * @return							Points. 0.0 if unranked.
  */
 native float Shavit_GetPoints(int client);
 
@@ -785,7 +797,7 @@ native float Shavit_GetPoints(int client);
  * Gets player rank.
  *
  * @param client					Client index.
- * @return							Rank. 0 if unranked and -1 if lookup is due.
+ * @return							Rank. 0 if unranked.
  */
 native int Shavit_GetRank(int client);
 
@@ -987,6 +999,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClientJumps");
 	MarkNativeAsOptional("Shavit_GetClientTime");
 	MarkNativeAsOptional("Shavit_GetClientTrack");
+	MarkNativeAsOptional("Shavit_GetDatabase");
+	MarkNativeAsOptional("Shavit_GetDB");
 	MarkNativeAsOptional("Shavit_GetHUDSettings");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");

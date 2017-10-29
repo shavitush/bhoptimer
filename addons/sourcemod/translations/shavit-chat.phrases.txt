@@ -28,7 +28,7 @@
 	}
 	"CCHelp_Generic"
 	{
-		"en"		"- !ccname can be used to change your custom chat name. Use \"!ccname off\" to toggle it off.\n- !ccmsg can be used to change your custom message prefix/color. Use \"!ccmsgg off\" to toggle it off.\nThere are custom variables, such as:"
+		"en"		"- !ccname can be used to change your custom chat name. Use \"!ccname off\" to toggle it off.\n- !ccmsg can be used to change your custom message prefix/color. Use \"!ccmsg off\" to toggle it off.\nThere are custom variables, such as:"
 	}
 	"CCHelp_GenericVariables"
 	{

@@ -1,0 +1,33 @@
+"Phrases"
+{
+	// ---------- Commands ---------- //
+	"CurrentTier"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:d},{6:s}"
+		"en"		"{1}{2}{3} is tier {4}{5}{6}."
+	}
+	"SetTier"
+	{
+		"#format"	"{1:s},{2:d},{3:s}"
+		"en"		"Tier changed to {1}{2}{3}."
+	}
+	"Rank"
+	{
+		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:d},{6:s},{7:d},{8:s},{9:.1f},{10:s}"
+		"en"		"{1}{2}{3} is ranked {4}{5}{6} out of {7} with {8}{9}{10} points."
+	}
+	"Unranked"
+	{
+		"#format"	"{1:s},{2:N},{3:s}"
+		"en"		"{1}{2}{3} is unranked."
+	}
+	// ---------- Menus ---------- //
+	"Top100"
+	{
+		"en"		"Top 100 ranked players:"
+	}
+	"NoRankedPlayers"
+	{
+		"en"		"No ranked players found."
+	}
+}

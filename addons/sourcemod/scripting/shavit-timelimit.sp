@@ -26,9 +26,8 @@
 #undef REQUIRE_PLUGIN
 #include <shavit>
 
-#pragma semicolon 1
-#pragma dynamic 131072
 #pragma newdecls required
+#pragma semicolon 1
 
 // #define DEBUG
 
@@ -79,6 +78,11 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
+
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()
@@ -112,9 +116,7 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	Shavit_GetDB(gH_SQL);
 	SQL_SetPrefix();
-	SetSQLInfo();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -149,13 +151,13 @@ public void OnConfigsExecuted()
 	}
 }
 
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
 public void OnMapStart()
 {
+	if(gH_SQL == null)
+	{
+		return;
+	}
+
 	if(gB_DynamicTimelimits)
 	{
 		StartCalculating();
@@ -172,17 +174,30 @@ public void OnMapStart()
 	}
 }
 
+public void Shavit_OnDatabaseLoaded()
+{
+	gH_SQL = Shavit_GetDatabase();
+	SetSQLInfo();
+}
+
+public Action CheckForSQLInfo(Handle Timer)
+{
+	return SetSQLInfo();
+}
+
 Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
-		Shavit_GetDB(gH_SQL);
+		gH_SQL = Shavit_GetDatabase();
 
 		CreateTimer(0.5, CheckForSQLInfo);
 	}
 
 	else
 	{
+		OnMapStart();
+
 		return Plugin_Stop;
 	}
 
@@ -200,7 +215,7 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
-
+	
 	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
@@ -218,8 +233,9 @@ void StartCalculating()
 {
 	if(gH_SQL != null)
 	{
-		char sMap[256];
-		GetCurrentMap(sMap, 256);
+		char sMap[160];
+		GetCurrentMap(sMap, 160);
+		GetMapDisplayName(sMap, sMap, 160);
 
 		char sQuery[512];
 		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' AND r.track = 0 %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gB_Style)? "AND style = 0 ":"", gI_PlayerAmount);
@@ -356,9 +372,4 @@ public Action Timer_PrintToChat(Handle Timer)
 public Action CS_OnTerminateRound(float &fDelay, CSRoundEndReason &iReason)
 {
 	return Plugin_Continue;
-}
-
-public void Shavit_OnDatabaseLoaded(Database db)
-{
-	gH_SQL = db;
 }

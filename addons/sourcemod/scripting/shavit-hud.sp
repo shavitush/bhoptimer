@@ -19,6 +19,8 @@
 */
 
 #include <sourcemod>
+#include <sdktools>
+#include <sdkhooks>
 #include <clientprefs>
 
 #undef REQUIRE_PLUGIN
@@ -27,9 +29,8 @@
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 131072
 
-#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT)
+#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 
 // game type (CS:S/CS:GO)
 EngineVersion gEV_Type = Engine_Unknown;
@@ -51,6 +52,7 @@ int gI_NameLength = MAX_NAME_LENGTH;
 int gI_LastScrollCount[MAXPLAYERS+1];
 int gI_ScrollCount[MAXPLAYERS+1];
 int gBS_Style[MAXPLAYERS+1];
+int gI_Buttons[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -229,11 +231,49 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 }
 
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
+{
+	gI_Buttons[client] = buttons;
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(i == client || (IsValidClient(i) && GetHUDTarget(i) == client))
+		{
+			TriggerHUDUpdate(i, true);
+		}
+	}
+
+	return Plugin_Continue;
+}
+
 public void OnClientPutInServer(int client)
 {
 	gI_LastScrollCount[client] = 0;
 	gI_ScrollCount[client] = 0;
 	gBS_Style[client] = Shavit_GetBhopStyle(client);
+
+	if(IsFakeClient(client))
+	{
+		SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
+	}
+}
+
+public void PostThinkPost(int client)
+{
+	int buttons = GetClientButtons(client);
+
+	if(gI_Buttons[client] != buttons)
+	{
+		gI_Buttons[client] = buttons;
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(i != client && (IsValidClient(i) && GetHUDTarget(i) == client))
+			{
+				TriggerHUDUpdate(i, true);
+			}
+		}
+	}
 }
 
 public void OnClientCookiesCached(int client)
@@ -465,15 +505,22 @@ public Action UpdateHUD_Timer(Handle Timer)
 	return Plugin_Continue;
 }
 
-void TriggerHUDUpdate(int client)
+void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:S lags when you send too many usermessages
 {
-	UpdateHUD(client);
-	SetEntProp(client, Prop_Data, "m_bDrawViewmodel", ((gI_HUDSettings[client] & HUD_HIDEWEAPON) > 0)? 0:1);
-	UpdateTopLeftHUD(client, true);
+	if(!keysonly)
+	{
+		UpdateHUD(client);
+		SetEntProp(client, Prop_Data, "m_bDrawViewmodel", ((gI_HUDSettings[client] & HUD_HIDEWEAPON) > 0)? 0:1);
+		UpdateTopLeftHUD(client, true);
+	}
 
 	if(gEV_Type == Engine_CSS)
 	{
-		UpdateKeyHint(client);
+		if(!keysonly)
+		{
+			UpdateKeyHint(client);
+		}
+
 		UpdateCenterKeys(client);
 	}
 
@@ -519,12 +566,13 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%06X\">%T</font>", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client);
+				FormatEx(sHintText, 64, "<font size=\"38\" color=\"#%06X\">%T</font>\n\t%T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client, "HudSpeedText", client, iSpeed);
 			}
 
 			else
 			{
-				FormatEx(sHintText, 32, "%T", "HudInStartZone", client, iSpeed);
+				// yes, this space is intentional
+				FormatEx(sHintText, 32, "%T ", "HudInStartZone", client, iSpeed);
 			}
 		}
 
@@ -532,12 +580,12 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"45\" color=\"#%06X\">%T</font>", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client);
+				FormatEx(sHintText, 64, "<font size=\"38\" color=\"#%06X\">%T</font>\n\t%T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client, "HudSpeedText", client, iSpeed);
 			}
 
 			else
 			{
-				FormatEx(sHintText, 32, "%T", "HudInEndZone", client, iSpeed);
+				FormatEx(sHintText, 32, "%T ", "HudInEndZone", client, iSpeed);
 			}
 		}
 	}
@@ -756,28 +804,14 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 		return;
 	}
 
-	int style = (IsFakeClient(client) && gB_Replay)? Shavit_GetReplayBotStyle(target):gBS_Style[target];
+	// to make it shorter
+	int buttons = gI_Buttons[target];
 
-	// Fallback. To avoid issues when the central bot is idle.
-	if(gBS_Style[target] == -1)
-	{
-		style = gBS_Style[target];
-	}
-
-	int buttons = GetClientButtons(target);
-
-	// that's a very ugly way, whatever :(
 	char[] sPanelLine = new char[128];
-
-	if(gA_StyleSettings[style][bAutobhop]) // don't include [JUMP] for autobhop styles
-	{
-		FormatEx(sPanelLine, 128, "[%s]\n    %s\n%s   %s   %s", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
-	}
-
-	else
-	{
-		FormatEx(sPanelLine, 128, "[%s] [%s]\n    %s\n%s   %s   %s", (buttons & IN_JUMP) > 0? "JUMP":"----", (buttons & IN_DUCK) > 0? "DUCK":"----", (buttons & IN_FORWARD) > 0? "W":"-", (buttons & IN_MOVELEFT) > 0? "A":"-", (buttons & IN_BACK) > 0? "S":"-", (buttons & IN_MOVERIGHT) > 0? "D":"-");
-	}
+	FormatEx(sPanelLine, 128, "［%s］　［%s］\n　　 %s\n%s　 %s 　%s", 
+		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
+		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
+		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
 
 	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
 
@@ -826,16 +860,17 @@ void UpdateCenterKeys(int client)
 		return;
 	}
 
-	int buttons = GetClientButtons(target);
+	int buttons = gI_Buttons[target];
 
 	char[] sCenterText = new char[64];
-	FormatEx(sCenterText, 64, "%s %s %s\n%s %s %s",
-		(buttons & IN_DUCK > 0)? "C":"-", (buttons & IN_FORWARD > 0)? "W":"-", (buttons & IN_JUMP > 0)? "J":"-",
-		(buttons & IN_MOVELEFT > 0)? "A":"-", (buttons & IN_BACK > 0)? "S":"-", (buttons & IN_MOVERIGHT > 0)? "D":"-");
+	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s　 %s 　%s", 
+		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
+		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
+		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
 
 	if(gB_BhopStats && !gA_StyleSettings[gBS_Style[target]][bAutobhop])
 	{
-		Format(sCenterText, 64, "%s\n%d    %d", sCenterText, gI_ScrollCount[client], gI_LastScrollCount[target]);
+		Format(sCenterText, 64, "%s\n　　%d　%d", sCenterText, gI_ScrollCount[target], gI_LastScrollCount[target]);
 	}
 
 	PrintCenterText(client, "%s", sCenterText);
@@ -1048,11 +1083,14 @@ public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param
 	return 0;
 }
 
-public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
-	UpdateTopLeftHUD(client, false);
-
 	gBS_Style[client] = newstyle;
+
+	if(IsClientInGame(client))
+	{
+		UpdateTopLeftHUD(client, false);
+	}
 }
 
 public int Native_ForceHUDUpdate(Handle handler, int numParams)

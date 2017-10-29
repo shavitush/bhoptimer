@@ -26,10 +26,17 @@
 #undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
 #include <shavit>
+#include <rtler>
+
+#pragma newdecls required
+#pragma semicolon 1
 
 // database
 Database gH_SQL = null;
 char gS_MySQLPrefix[32];
+
+// modules
+bool gB_RTLer = false;
 
 // cache
 EngineVersion gEV_Type = Engine_Unknown;
@@ -49,6 +56,11 @@ public Plugin myinfo =
 	description = "Custom chat privileges (custom name and message colors).",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
+}
+
+public void OnAllPluginsLoaded()
+{
+	gB_RTLer = LibraryExists("rtler");
 }
 
 public void OnPluginStart()
@@ -72,36 +84,14 @@ public void OnPluginStart()
 			OnClientPostAdminCheck(i);
 		}
 	}
-
-	if(LibraryExists("shavit"))
-	{
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
+	
+	SQL_SetPrefix();
 }
 
-public void OnLibraryAdded(const char[] name)
+public void Shavit_OnDatabaseLoaded()
 {
-	if(StrEqual(name, "shavit"))
-	{
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
-}
-
-public void OnLibraryRemoved(const char[] name)
-{
-	if(StrEqual(name, "shavit"))
-	{
-		gH_SQL = null;
-	}
-}
-
-public void Shavit_OnDatabaseLoaded(Database db)
-{
-	gH_SQL = db;
+	gH_SQL = Shavit_GetDatabase();
+	SetSQLInfo();
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -113,7 +103,7 @@ Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
-		Shavit_GetDB(gH_SQL);
+		gH_SQL = Shavit_GetDatabase();
 
 		CreateTimer(0.5, CheckForSQLInfo);
 	}
@@ -151,6 +141,22 @@ void SQL_SetPrefix()
 	}
 
 	delete fFile;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "rtler"))
+	{
+		gB_RTLer = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "rtler"))
+	{
+		gB_RTLer = false;
+	}
 }
 
 public void OnClientDisconnect(int client)
@@ -316,7 +322,7 @@ public Action Command_CCList(int client, int args)
 	{
 		if(gB_AllowCustom[i])
 		{
-			PrintToConsole(client, "%N (%d/%d) (name: \"%s\"; message: \"%s\")", i, i, GetClientUserId(i), gS_CustomName[i], gS_CustomMessage[i])
+			PrintToConsole(client, "%N (%d/%d) (name: \"%s\"; message: \"%s\")", i, i, GetClientUserId(i), gS_CustomName[i], gS_CustomMessage[i]);
 		}
 	}
 
@@ -338,11 +344,28 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 
 		strcopy(name, MAXLENGTH_NAME, gS_CustomName[author]);
 		FormatRandom(name, MAXLENGTH_NAME);
+
+		if(gEV_Type == Engine_CSGO)
+		{
+			Format(name, MAXLENGTH_NAME, " %s", name);
+		}
 	}
 
 	if(gB_MessageEnabled[author] && strlen(gS_CustomMessage[author]) > 0)
 	{
-		Format(message, MAXLENGTH_MESSAGE, "%s%s", gS_CustomMessage[author], message);
+		char[] sTemp = new char[MAXLENGTH_MESSAGE];
+
+		// proper colors with rtler
+		if(gB_RTLer && RTLify(sTemp, MAXLENGTH_MESSAGE, message) > 0)
+		{
+			Format(message, MAXLENGTH_MESSAGE, "%s%s", message, gS_CustomMessage[author]);
+		}
+
+		else
+		{
+			Format(message, MAXLENGTH_MESSAGE, "%s%s", gS_CustomMessage[author], message);
+		}
+
 		FormatRandom(message, MAXLENGTH_MESSAGE);
 	}
 
@@ -409,7 +432,7 @@ void FormatRandom(char[] buffer, int size)
 
 		else
 		{
-			strcopy(temp, 8, gS_CSGOColors[RealRandomInt(0, sizeof(gS_CSGOColors))]);
+			strcopy(temp, 8, gS_CSGOColors[RealRandomInt(0, sizeof(gS_CSGOColors) - 1)]);
 		}
 	}
 
@@ -433,7 +456,7 @@ void SQL_DBConnect()
 	if(gH_SQL != null)
 	{
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` VARCHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` CHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` CHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` CHAR(16), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
 		
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}

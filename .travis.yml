@@ -26,7 +26,7 @@ before_script:
     - chmod +x spcomp
     - PATH+=":$PWD"
 
-    - cp ../../../scripting/include/* include/
+    # - cp ../../../scripting/include/* include/ # i don't think this is necessary anymore
     - cd ../../..
 
 script:

@@ -35,6 +35,11 @@ This plugin handles miscellaneous things used in bunnyhop servers.
 
 Such as: Team handling (respawning/spectating too), spectators list (!specs), smart player hiding that works for spectating too, teleportation to other players, weapon commands (!knife/!usp/!glock) and ammo management, segmented checkpoints, noclipping (can be set to work for VIPs/admins only), drop-all, godmode, prespeed blocking, prespeed limitation, chat tidying, radar hiding, weapon drop cleaning, player collision removal, auto-respawning, spawn points generator, radio removal, scoreboard manipulation, model opacity changes, fixed runspeed, automatic and configurable chat advertisements, player ragdoll removal and WR messages.
 
+#### shavit-rankings
+Enables !rank, !top and introduces map tiers (!settier).  
+Each record gets points assigned to it according to the map's tier and overall - how good the time is.  
+This system doesn't allow "rank grinding" by beating all of the easy maps on the server but instead, awards the players that get the best times on the hardest maps and styles.
+
 #### shavit-replay
 Creates a replay bot that records the players' world records and playback them on command (!replay/automatic).  
 The replay bot playback can be stopped (if central) and the saved replay can be deleted by server administrators.  

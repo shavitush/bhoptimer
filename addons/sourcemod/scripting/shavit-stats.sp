@@ -25,16 +25,14 @@
 #undef REQUIRE_PLUGIN
 #include <shavit>
 
-#pragma semicolon 1
-#pragma dynamic 131072
 #pragma newdecls required
+#pragma semicolon 1
 
 // macros
 #define MAPSDONE 0
 #define MAPSLEFT 1
 
 // modules
-bool gB_Shavit = false;
 bool gB_Rankings = false;
 
 // database handle
@@ -44,6 +42,7 @@ Database gH_SQL = null;
 char gS_MySQLPrefix[32];
 
 // cache
+bool gB_AllowStats[MAXPLAYERS+1];
 int gI_MapType[MAXPLAYERS+1];
 int gBS_Style[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
@@ -97,6 +96,11 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
+
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()
@@ -123,15 +127,9 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	gB_Shavit = LibraryExists("shavit");
 	gB_Rankings = LibraryExists("shavit-rankings");
 
-	if(gB_Shavit)
-	{
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
+	SQL_SetPrefix();
 }
 
 public void OnMapStart()
@@ -176,22 +174,14 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 public void OnClientPutInServer(int client)
 {
+	gB_AllowStats[client] = true;
 	gI_WRAmount[client] = 0;
 	UpdateWRs(client);
 }
 
 public void OnLibraryAdded(const char[] name)
 {
-	if(StrEqual(name, "shavit"))
-	{
-		gB_Shavit = true;
-		
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
-
-	else if(StrEqual(name, "shavit-rankings"))
+	if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = true;
 	}
@@ -199,16 +189,16 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-	if(StrEqual(name, "shavit"))
-	{
-		gB_Shavit = false;
-		gH_SQL = null;
-	}
-
-	else if(StrEqual(name, "shavit-rankings"))
+	if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
 	}
+}
+
+public void Shavit_OnDatabaseLoaded()
+{
+	gH_SQL = Shavit_GetDatabase();
+	SetSQLInfo();
 }
 
 public Action CheckForSQLInfo(Handle Timer)
@@ -220,7 +210,7 @@ Action SetSQLInfo()
 {
 	if(gH_SQL == null)
 	{
-		Shavit_GetDB(gH_SQL);
+		gH_SQL = Shavit_GetDatabase();
 
 		CreateTimer(0.5, CheckForSQLInfo);
 	}
@@ -355,6 +345,12 @@ public Action Command_Profile(int client, int args)
 
 Action OpenStatsMenu(int client, const char[] authid)
 {
+	// no spam please
+	if(!gB_AllowStats[client])
+	{
+		return Plugin_Handled;
+	}
+
 	// big ass query, looking for optimizations
 	char[] sQuery = new char[2048];
 
@@ -364,8 +360,8 @@ Action OpenStatsMenu(int client, const char[] authid)
 				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s LIMIT 1) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 GROUP BY map) s LIMIT 1) b " ...
 				"JOIN (SELECT COUNT(*) wrs FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes WHERE track = 0 GROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s' LIMIT 1) c " ...
-				"JOIN (SELECT name, country, lastlogin, points FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
-				"JOIN (SELECT COUNT(*) rank FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1) e " ...
+				"JOIN (SELECT name, country, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
+				"JOIN (SELECT FORMAT(COUNT(*), 0) rank FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1) e " ...
 			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid);
 	}
 
@@ -379,21 +375,23 @@ Action OpenStatsMenu(int client, const char[] authid)
 			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid);
 	}
 
-	gH_SQL.Query(OpenStatsMenuCallback, sQuery, GetClientSerial(client));
+	gB_AllowStats[client] = false;
+	gH_SQL.Query(OpenStatsMenuCallback, sQuery, GetClientSerial(client), DBPrio_Low);
 
 	return Plugin_Handled;
 }
 
 public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[] error, any data)
 {
+	int client = GetClientFromSerial(data);
+	gB_AllowStats[client] = true;
+
 	if(results == null)
 	{
 		LogError("Timer (statsmenu) SQL query failed. Reason: %s", error);
 
 		return;
 	}
-
-	int client = GetClientFromSerial(data);
 
 	if(client == 0)
 	{
@@ -417,22 +415,22 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
 		Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
 
-		int rank = -1;
-		float points = -1.0;
+		char[] sPoints = new char[16];
+		char[] sRank = new char[16];
 
 		if(gB_Rankings)
 		{
-			points = results.FetchFloat(6);
-			rank = results.FetchInt(7);
+			results.FetchString(6, sPoints, 16);
+			results.FetchString(7, sRank, 16);
 		}
 
 		char[] sRankingString = new char[64];
 
 		if(gB_Rankings)
 		{
-			if(rank > 0 && points > 0.0)
+			if(StringToInt(sRank) > 0 && StringToInt(sPoints) > 0)
 			{
-				FormatEx(sRankingString, 64, "\n%T: #%d/%d\n%T: %.02f", "Rank", client, rank, Shavit_GetRankedPlayers(), "Points", client, points);
+				FormatEx(sRankingString, 64, "\n%T: #%s/%d\n%T: %s", "Rank", client, sRank, Shavit_GetRankedPlayers(), "Points", client, sPoints);
 			}
 
 			else
@@ -581,7 +579,7 @@ void ShowMaps(int client)
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sQuery, 512, "SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = '%s' AND a.style = %d AND a.track = %d GROUP BY a.map ORDER BY a.%s;", gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gBS_Style[client], gI_Track[client], (gB_Rankings)? "points":"map");
+		FormatEx(sQuery, 512, "SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = '%s' AND a.style = %d AND a.track = %d GROUP BY a.map ORDER BY a.%s;", gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gBS_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
 	}
 
 	else
@@ -629,7 +627,6 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 	{
 		char[] sMap = new char[192];
 		results.FetchString(0, sMap, 192);
-		GetMapDisplayName(sMap, sMap, 192);
 
 		char[] sRecordID = new char[16];
 		char[] sDisplay = new char[256];
@@ -732,7 +729,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	char[] sName = new char[MAX_NAME_LENGTH];
 	char[] sAuthID = new char[32];
-	char[] sMap = new char[256];
+	char[] sMap = new char[192];
 
 	if(results.FetchRow())
 	{
@@ -762,7 +759,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		results.FetchString(4, sAuthID, 32);
 
 		// 6 - map
-		results.FetchString(6, sMap, 256);
+		results.FetchString(6, sMap, 192);
 
 		float points = results.FetchFloat(9);
 
@@ -792,8 +789,6 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatEx(sDisplay, 128, (sync > 0.0)? "%T: %d (%.02f%%)":"%T: %d", "Strafes", client, strafes, sync, "Strafes", client, strafes);
 			menu.AddItem("-1", sDisplay);
 		}
-
-		GetMapDisplayName(sMap, sMap, 256);
 	}
 
 	char[] sFormattedTitle = new char[256];
@@ -844,9 +839,4 @@ void GetTrackName(int client, int track, char[] output, int size)
 	static char sTrack[16];
 	FormatEx(sTrack, 16, "Track_%d", track);
 	FormatEx(output, size, "%T", sTrack, client);
-}
-
-public void Shavit_OnDatabaseLoaded(Database db)
-{
-	gH_SQL = db;
 }

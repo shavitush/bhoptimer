@@ -35,9 +35,8 @@ EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
 bool gB_MySQL = false;
-bool gB_DBReady = false;
 
-char gS_Map[128];
+char gS_Map[160];
 
 char gS_ZoneNames[][] =
 {
@@ -110,7 +109,6 @@ Handle gH_AdminMenu = INVALID_HANDLE;
 
 // cache
 bool gB_Late = false;
-bool gB_Shavit = false;
 
 // cvars
 ConVar gCV_FlatZones = null;
@@ -123,7 +121,7 @@ ConVar gCV_Offset = null;
 
 // cached cvars
 bool gB_FlatZones = false;
-float gF_Interval = 1.5;
+float gF_Interval = 1.0;
 bool gB_TeleportToStart = true;
 bool gB_TeleportToEnd = true;
 bool gB_UseCustomSprite = true;
@@ -173,6 +171,11 @@ public void OnAllPluginsLoaded()
 	{
 		OnAdminMenuReady(null);
 	}
+
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()
@@ -211,7 +214,7 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_FlatZones = CreateConVar("shavit_zones_flat", "0", "Should zones be drawn as flat instead of a 3D box?", 0, true, 0.0, true, 1.0);
-	gCV_Interval = CreateConVar("shavit_zones_interval", "1.5", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
+	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -228,14 +231,7 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	gB_Shavit = LibraryExists("shavit");
-
-	if(gB_Shavit)
-	{
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
+	SQL_SetPrefix();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -277,51 +273,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	else if(convar == gCV_UseCustomSprite && !StrEqual(oldValue, newValue))
 	{
 		LoadZoneSettings();
-	}
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		Shavit_GetDB(gH_SQL);
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-public void OnLibraryAdded(const char[] name)
-{
-	if(StrEqual(name, "shavit"))
-	{
-		gB_Shavit = true;
-		
-		Shavit_GetDB(gH_SQL);
-		SQL_SetPrefix();
-		SetSQLInfo();
-	}
-}
-
-public void OnLibraryRemoved(const char[] name)
-{
-	if(StrEqual(name, "shavit"))
-	{
-		gB_Shavit = false;
-		gH_SQL = null;
 	}
 }
 
@@ -532,15 +483,17 @@ void LoadZoneSettings()
 
 public void OnMapStart()
 {
-	GetCurrentMap(gS_Map, 128);
+	if(gH_SQL == null)
+	{
+		return;
+	}
+
+	GetCurrentMap(gS_Map, 160);
+	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	gI_MapZones = 0;
 	UnloadZones(0);
-
-	if(gH_SQL != null && gB_DBReady)
-	{
-		RefreshZones();
-	}
+	RefreshZones();
 
 	LoadZoneSettings();
 	
@@ -664,15 +617,7 @@ void RefreshZones()
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s FROM %smapzones WHERE map = '%s';", (gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
-	if(gH_SQL != null)
-	{
-		gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, DBPrio_High);
-	}
-
-	else
-	{
-		Shavit_GetDB(gH_SQL);
-	}
+	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -684,7 +629,6 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 
-	gB_DBReady = true;
 	gI_MapZones = 0;
 
 	while(results.FetchRow())
@@ -1953,24 +1897,20 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 // creates 3d box from 2 points
 void CreateZonePoints(float point[8][3], float offset = 0.0)
 {
-	for(int i = 1; i < 7; i++)
+	float center[2];
+	center[0] = ((point[0][0] + point[7][0]) / 2);
+	center[1] = ((point[0][1] + point[7][1]) / 2);
+
+	for(int i = 0; i < 8; i++)
 	{
 		for(int j = 0; j < 3; j++)
 		{
-			point[i][j] = point[((i >> (2 - j)) & 1) * 7][j];
-		}
-	}
+			if(i > 0 && i < 7)
+			{
+				point[i][j] = point[((i >> (2 - j)) & 1) * 7][j];
+			}
 
-	if(offset != 0.0)
-	{
-		float center[2];
-		center[0] = ((point[0][0] + point[7][0]) / 2);
-		center[1] = ((point[0][1] + point[7][1]) / 2);
-
-		// i have to double loop unfortunately :( i hate math
-		for(int i = 0; i < 8; i++)
-		{
-			for(int j = 0; j < 2; j++)
+			if(offset != 0.0 && j < 2)
 			{
 				if(point[i][j] < center[j])
 				{
@@ -1986,6 +1926,36 @@ void CreateZonePoints(float point[8][3], float offset = 0.0)
 	}
 }
 
+public void Shavit_OnDatabaseLoaded()
+{
+	gH_SQL = Shavit_GetDatabase();
+	SetSQLInfo();
+}
+
+public Action CheckForSQLInfo(Handle Timer)
+{
+	return SetSQLInfo();
+}
+
+Action SetSQLInfo()
+{
+	if(gH_SQL == null)
+	{
+		gH_SQL = Shavit_GetDatabase();
+
+		CreateTimer(0.5, CheckForSQLInfo);
+	}
+
+	else
+	{
+		SQL_DBConnect();
+
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
+}
+
 void SQL_SetPrefix()
 {
 	char[] sFile = new char[PLATFORM_MAX_PATH];
@@ -1997,7 +1967,7 @@ void SQL_SetPrefix()
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
-
+	
 	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
@@ -2020,7 +1990,7 @@ void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char[] sQuery = new char[1024];
-		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` CHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`));", gS_MySQLPrefix);
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}
@@ -2069,7 +2039,6 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 	}
 }
 
-
 public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
@@ -2097,13 +2066,11 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 		}
 
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
+
+		return;
 	}
 
-	else
-	{
-		// we have a database, time to load zones
-		RefreshZones();
-	}
+	OnMapStart();
 }
 
 
@@ -2115,6 +2082,8 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
+
+	OnMapStart();
 }
 
 public void Shavit_OnRestart(int client, int track)
@@ -2165,11 +2134,6 @@ public void Shavit_OnEnd(int client, int track)
 
 		TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 	}
-}
-
-public void Shavit_OnDatabaseLoaded(Database db)
-{
-	gH_SQL = db;
 }
 
 bool EmptyVector(float vec[3])
@@ -2232,6 +2196,16 @@ public void CreateZoneEntities()
 
 	for(int i = 0; i < gI_MapZones; i++)
 	{
+		for(int j = 1; j <= MaxClients; j++)
+		{
+			for(int k = 0; k < TRACKS_SIZE; k++)
+			{
+				gB_InsideZone[j][gA_ZoneCache[i][iZoneType]][k] = false;
+			}
+
+			gB_InsideZoneID[j][i] = false;
+		}
+
 		if(gA_ZoneCache[i][iEntityID] != -1)
 		{
 			KillZoneEntity(i);

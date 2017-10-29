@@ -31,7 +31,6 @@
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 131072
 
 // #define DEBUG
 
@@ -101,6 +100,7 @@ ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
+ConVar gCV_VelocityTeleport = null;
 
 // cached cvars
 bool gB_Autobhop = true;
@@ -111,6 +111,7 @@ bool gB_NoStaminaReset = true;
 bool gB_AllowTimerWithoutZone = false;
 bool gB_BlockPreJump = true;
 bool gB_NoZAxisSpeed = true;
+bool gB_VelocityTeleport = false;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -149,6 +150,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetClientJumps", Native_GetClientJumps);
 	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
 	CreateNative("Shavit_GetClientTrack", Native_GetClientTrack);
+	CreateNative("Shavit_GetDatabase", Native_GetDatabase);
 	CreateNative("Shavit_GetDB", Native_GetDB);
 	CreateNative("Shavit_GetGameType", Native_GetGameType);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
@@ -189,9 +191,9 @@ public void OnPluginStart()
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
-	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event, Param_Cell);
+	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array);
 
@@ -287,6 +289,7 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "1", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
+	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 
 	gCV_Autobhop.AddChangeHook(OnConVarChanged);
 	gCV_LeftRight.AddChangeHook(OnConVarChanged);
@@ -296,6 +299,7 @@ public void OnPluginStart()
 	gCV_AllowTimerWithoutZone.AddChangeHook(OnConVarChanged);
 	gCV_BlockPreJump.AddChangeHook(OnConVarChanged);
 	gCV_NoZAxisSpeed.AddChangeHook(OnConVarChanged);
+	gCV_VelocityTeleport.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -333,6 +337,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_AllowTimerWithoutZone = gCV_AllowTimerWithoutZone.BoolValue;
 	gB_BlockPreJump = gCV_BlockPreJump.BoolValue;
 	gB_NoZAxisSpeed = gCV_NoZAxisSpeed.BoolValue;
+	gB_VelocityTeleport = gCV_VelocityTeleport.BoolValue;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -725,7 +730,7 @@ public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param
 			return 0;
 		}
 
-		ChangeClientStyle(param1, style);
+		ChangeClientStyle(param1, style, true);
 	}
 
 	else if(action == MenuAction_End)
@@ -736,21 +741,30 @@ public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param
 	return 0;
 }
 
-void ChangeClientStyle(int client, int style)
+void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
+{
+	Call_StartForward(gH_Forwards_OnStyleChanged);
+	Call_PushCell(client);
+	Call_PushCell(oldstyle);
+	Call_PushCell(newstyle);
+	Call_PushCell(gI_Track[client]);
+	Call_PushCell(manual);
+	Call_Finish();
+}
+
+void ChangeClientStyle(int client, int style, bool manual)
 {
 	if(!IsValidClient(client))
 	{
 		return;
 	}
 
-	Call_StartForward(gH_Forwards_OnStyleChanged);
-	Call_PushCell(client);
-	Call_PushCell(gBS_Style[client]);
-	Call_PushCell(style);
-	Call_PushCell(gI_Track[client]);
-	Call_Finish();
+	CallOnStyleChanged(client, gBS_Style[client], style, manual);
 
-	Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+	if(manual)
+	{
+		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+	}
 
 	if(gA_StyleSettings[style][bUnranked])
 	{
@@ -763,7 +777,7 @@ void ChangeClientStyle(int client, int style)
 	if(aa_old != aa_new)
 	{
 		Shavit_PrintToChat(client, "%T", "NewAiraccelerate", client, aa_old, gS_ChatStrings[sMessageVariable], aa_new, gS_ChatStrings[sMessageText]);
-	}	
+	}
 
 	gBS_Style[client] = style;
 
@@ -801,6 +815,18 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
 
+	RequestFrame(VelocityChanges, GetClientSerial(client));
+}
+
+void VelocityChanges(int data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
 	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 1.0)
 	{
 		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
@@ -811,84 +837,48 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 	}
 
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]) != 1.0)
-	{
-		RequestFrame(ApplyNewVelocity, GetClientSerial(client));
-	}
-		
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]) != 0.0)
-	{
-		RequestFrame(AddBonusVelocity, GetClientSerial(client));
-	}
-	
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]) != 0.0)
-	{
-		RequestFrame(MinimumVelocity, GetClientSerial(client));
-	}
-}
+	float fAbsVelocity[3];
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 
-void ApplyNewVelocity(int data)
-{
-	int client = GetClientFromSerial(data);
+	float fSpeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
 
-	if(data != 0)
+	if(fSpeed == 0.0)
 	{
-		float fAbsVelocity[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
-		fAbsVelocity[0] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
-		fAbsVelocity[1] *= view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
+		return;
+	}
+
+	float fVelocityMultiplier = view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
+	float fVelocityBonus = view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]);
+	float fMin = view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]);
+
+	if(fVelocityMultiplier != 0.0)
+	{
+		fAbsVelocity[0] *= fVelocityMultiplier;
+		fAbsVelocity[1] *= fVelocityMultiplier;
+	}
+
+	if(fVelocityBonus != 0.0)
+	{
+		float x = fSpeed / (fSpeed + fVelocityBonus);
+		fAbsVelocity[0] /= x;
+		fAbsVelocity[1] /= x;
+	}
+
+	if(fMin != 0.0 && fSpeed < fMin)
+	{
+		float x = (fSpeed / fMin);
+		fAbsVelocity[0] /= x;
+		fAbsVelocity[1] /= x;
+	}
+
+	if(!gB_VelocityTeleport)
+	{
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 	}
-}
 
-void AddBonusVelocity(int data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(data != 0)
+	else
 	{
-		float fAbsVelocity[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
-
-		float currentspeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
-		
-		if(currentspeed > 0.0)
-		{
-			float fBonus = view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]);
-
-			float x = currentspeed / (currentspeed + fBonus);
-			fAbsVelocity[0] /= x;
-			fAbsVelocity[1] /= x;
-				
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
-		}
-	}
-}
-
-void MinimumVelocity(int data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(data != 0)
-	{
-		float fAbsVelocity[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
-
-		float currentspeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
-		
-		if(currentspeed > 0.0)
-		{
-			float fMin = view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]);
-
-			if(currentspeed < fMin)
-			{
-				float x = currentspeed / (fMin);
-				fAbsVelocity[0] /= x;
-				fAbsVelocity[1] /= x;
-				
-				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
-			}
-		}
+		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
 	}
 }
 
@@ -903,6 +893,11 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 public int Native_GetGameType(Handle handler, int numParams)
 {
 	return view_as<int>(gSG_Type);
+}
+
+public int Native_GetDatabase(Handle handler, int numParams)
+{
+	return view_as<int>(CloneHandle(gH_SQL, handler));
 }
 
 public int Native_GetDB(Handle handler, int numParams)
@@ -1341,6 +1336,7 @@ public void OnClientCookiesCached(int client)
 	}
 
 	gBS_Style[client] = (style >= 0 && style < gI_Styles)? style:0;
+	CallOnStyleChanged(client, 0, gBS_Style[client], false);
 
 	UpdateAutoBhop(client);
 	UpdateAiraccelerate(client);
@@ -1359,7 +1355,6 @@ public void OnClientPutInServer(int client)
 	gB_Auto[client] = true;
 	gB_DoubleSteps[client] = false;
 	gF_StrafeWarning[client] = 0.0;
-	gBS_Style[client] = 0;
 	gB_PracticeMode[client] = false;
 	gI_SHSW_FirstCombination[client] = -1;
 	gI_Track[client] = 0;
@@ -1371,11 +1366,12 @@ public void OnClientPutInServer(int client)
 
 	else
 	{
-		gBS_Style[client] = 0;
-
 		UpdateAutoBhop(client);
 		UpdateAiraccelerate(client);
 		UpdateBunnyhopping(client);
+
+		CallOnStyleChanged(client, 0, 0, false);
+		gBS_Style[client] = 0;
 	}
 
 	if(gH_SQL == null)
@@ -1412,8 +1408,19 @@ public void OnClientPutInServer(int client)
 		strcopy(sCountry, 128, "Local Area Network");
 	}
 
+	int iTime = GetTime();
+
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d);", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, GetTime());
+
+	if(gB_MySQL)
+	{
+		FormatEx(sQuery, 512, "INSERT INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d) ON DUPLICATE KEY UPDATE name = '%s', country = '%s', ip = '%s', lastlogin = %d;", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, iTime, sEscapedName, sCountry, sIP, iTime);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d);", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, iTime);
+	}
 
 	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
@@ -1538,7 +1545,7 @@ public Action Command_StyleChange(int client, int args)
 
 	if(gSM_StyleCommands.GetValue(sCommand, style))
 	{
-		ChangeClientStyle(client, style);
+		ChangeClientStyle(client, style, true);
 
 		return Plugin_Handled;
 	}
@@ -1643,7 +1650,6 @@ void SQL_DBConnect()
 	gH_SQL.SetCharset("utf8");
 
 	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
-	Call_PushCell(gH_SQL);
 	Call_Finish();
 
 	char[] sDriver = new char[8];
@@ -1651,7 +1657,16 @@ void SQL_DBConnect()
 	gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), `lastlogin` %s NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`));", gS_MySQLPrefix, gB_MySQL? "INT":"INTEGER");
+
+	if(gB_MySQL)
+	{
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL, `name` VARCHAR(32), `country` CHAR(32), `ip` CHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL PRIMARY KEY, `name` VARCHAR(32), `country` CHAR(32), `ip` CHAR(64), `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+	}
 
 	// CREATE TABLE IF NOT EXISTS
 	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
@@ -1666,12 +1681,28 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	char[] sQuery = new char[64];
-	FormatEx(sQuery, 64, "SELECT lastlogin FROM %susers LIMIT 1;", gS_MySQLPrefix);
+	char[] sQuery = new char[192];
+	FormatEx(sQuery, 192, "SELECT lastlogin FROM %susers LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery, 0, DBPrio_High);
 
-	FormatEx(sQuery, 64, "SELECT points FROM %susers LIMIT 1;", gS_MySQLPrefix);
+	FormatEx(sQuery, 192, "SELECT points FROM %susers LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_High);
+
+	char sTables[][] =
+	{
+		"maptiers",
+		"mapzones",
+		"playertimes"
+	};
+
+	for(int i = 0; i < sizeof(sTables); i++)
+	{
+		DataPack dp = new DataPack();
+		dp.WriteString(sTables[i]);
+
+		FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_MySQLPrefix, sTables[i]);
+		gH_SQL.Query(SQL_TableMigration3_Callback, sQuery, dp, DBPrio_Low);
+	}
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1679,7 +1710,7 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[128];
-		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, gB_MySQL? "(`lastlogin` INT NOT NULL DEFAULT -1)":"COLUMN `lastlogin` INTEGER NOT NULL DEFAULT -1");
+		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`lastlogin` INT NOT NULL DEFAULT -1)":"COLUMN `lastlogin` INTEGER NOT NULL DEFAULT -1");
 		gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 	}
 }
@@ -1699,7 +1730,7 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 	if(results == null)
 	{
 		char[] sQuery = new char[128];
-		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, gB_MySQL? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
+		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
 }
@@ -1709,6 +1740,44 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer error! Table alteration 2 (core) failed. Reason: %s", error);
+
+		return;
+	}
+}
+
+public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	char[] sTable = new char[16];
+
+	data.Reset();
+	data.ReadString(sTable, 16);
+	delete data;
+
+	if(results == null || results.RowCount == 0)
+	{
+		// no error logging here because not everyone runs the rankings/wr modules
+		return;
+	}
+
+	while(results.FetchRow())
+	{
+		char[] sMap = new char[160];
+		results.FetchString(0, sMap, 160);
+
+		char[] sDisplayMap = new char[160];
+		GetMapDisplayName(sMap, sDisplayMap, 160);
+
+		char[] sQuery = new char[256];
+		FormatEx(sQuery, 256, "UPDATE %s%s SET map = '%s' WHERE map = '%s';", gS_MySQLPrefix, sTable, sDisplayMap, sMap);
+		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery, 0, DBPrio_High);
+	}
+}
+
+public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer error! Table alteration 3 (core) failed. Reason: %s", error);
 
 		return;
 	}
