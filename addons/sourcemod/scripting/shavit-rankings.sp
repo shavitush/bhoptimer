@@ -265,7 +265,6 @@ void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
-		// 160 because of mysql limitations
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` CHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`));", gS_MySQLPrefix);
 
@@ -290,6 +289,53 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	{
 		Shavit_OnStyleConfigLoaded(-1);
 	}
+
+	SQL_LockDatabase(gH_SQL);
+	SQL_FastQuery(gH_SQL, "DELIMITER ;;");
+	SQL_FastQuery(gH_SQL, "DROP PROCEDURE IF EXISTS UpdateAllPoints;;");
+
+	char[] sQuery = new char[1024];
+	FormatEx(sQuery, 1024,
+		"CREATE PROCEDURE UpdateAllPoints() " ...
+		"BEGIN " ...
+			"DECLARE authid CHAR(32); " ...
+			"DECLARE done INT DEFAULT 0; " ...
+			"DECLARE cur CURSOR FOR (SELECT auth FROM %splayertimes WHERE points > 0.0 GROUP BY auth); " ...
+			"DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1; " ...
+			"OPEN cur; " ...
+			"ranks: LOOP " ...
+				"FETCH cur INTO authid; " ...
+				"IF done THEN " ...
+					"LEAVE ranks; " ...
+				"END IF; " ...
+				"UPDATE %susers SET points = (SELECT SUM((points * (@f := 0.975 * @f) / 0.975)) FROM %splayertimes " ...
+					"JOIN (SELECT @f := 1.0) params WHERE points > 0.0 AND auth = authid ORDER BY points DESC) " ...
+					"WHERE auth = authid; " ...
+			"END LOOP; " ...
+			"CLOSE cur; " ...
+		"END;;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+
+	#if defined DEBUG
+	LogError("%s", sQuery);
+	#endif
+
+	if(!SQL_FastQuery(gH_SQL, sQuery))
+	{
+		char[] sError = new char[255];
+		SQL_GetError(gH_SQL, sError, 255);
+		LogError("Timer (rankings, create procedure) error! Reason: %s", sError);
+
+		SQL_UnlockDatabase(gH_SQL);
+
+		return;
+	}
+
+	else
+	{
+		SQL_FastQuery(gH_SQL, "DELIMITER ;");
+	}
+
+	SQL_UnlockDatabase(gH_SQL);
 
 	OnMapStart();
 
@@ -727,56 +773,6 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 	#endif
 }
 
-void UpdatePlayerPoints(int client, bool updaterankedplayers = true)
-{
-	char[] sAuthID = new char[32];
-
-	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
-	{
-		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "UPDATE %susers" ...
-			"SET points = (SELECT SUM((points * (@f := 0.975 * @f) / 0.975)) FROM %splayertimes" ...
-			"JOIN (SELECT @f := 1.0) params WHERE points > 0.0 AND auth = '%s' ORDER BY points DESC)" ...
-			"WHERE auth = '%s';",
-			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID, sAuthID);
-
-		int serial = GetClientSerial(client);
-
-		DataPack pack = new DataPack();
-		pack.WriteCell(serial);
-		pack.WriteCell(updaterankedplayers);
-
-		gH_SQL.Query(SQL_UpdatePlayerPoints_Callback, sQuery, pack, DBPrio_Low);
-	}
-}
-
-public void SQL_UpdatePlayerPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	ResetPack(view_as<DataPack>(data));
-	int serial = ReadPackCell(data);
-	bool bUpdateRankedPlayers = view_as<bool>(ReadPackCell(data));
-	delete view_as<DataPack>(data);
-
-	if(results == null)
-	{
-		LogError("Timer (rankings, update player points) error! Reason: %s", error);
-
-		return;
-	}
-
-	int client = GetClientFromSerial(serial);
-
-	if(client != 0)
-	{
-		UpdatePlayerRank(client);
-
-		if(bUpdateRankedPlayers)
-		{
-			UpdateRankedPlayers();
-		}
-	}
-}
-
 // this takes a while, needs to be ran manually or on map start, in a transaction
 void UpdateAllPoints()
 {
@@ -784,9 +780,7 @@ void UpdateAllPoints()
 	LogError("DEBUG: 6 (UpdateAllPoints)");
 	#endif
 
-	char[] sQuery = new char[128];
-	FormatEx(sQuery, 128, "SELECT auth FROM %splayertimes WHERE points > 0.0 GROUP BY auth;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery, 0, DBPrio_Low);
+	gH_SQL.Query(SQL_UpdateAllPoints_Callback, "CALL UpdateAllPoints();");
 }
 
 public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -797,82 +791,6 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 
 		return;
 	}
-
-	StringMap auths = new StringMap();
-
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(!IsValidClient(i))
-		{
-			continue;
-		}
-
-		char[] sAuthID = new char[32];
-
-		if(GetClientAuthId(i, AuthId_Steam3, sAuthID, 32))
-		{
-			auths.SetValue(sAuthID, i);
-		}
-	}
-
-	Transaction trans = new Transaction();
-
-	#if defined DEBUG
-	LogError("start: %f", GetEngineTime());
-	#endif
-
-	if(results.RowCount > 0)
-	{
-		while(results.FetchRow())
-		{
-			char[] sAuthID = new char[32];
-			results.FetchString(0, sAuthID, 32);
-
-			int client = 0;
-
-			if(auths.GetValue(sAuthID, client))
-			{
-				UpdatePlayerPoints(client, false);
-
-				continue;
-			}
-
-			char[] sQuery = new char[512];
-			FormatEx(sQuery, 512, "UPDATE %susers" ...
-				"SET points = (SELECT SUM((points * (@f := 0.975 * @f) / 0.975)) FROM %splayertimes" ...
-				"JOIN (SELECT @f := 1.0) params WHERE points > 0.0 AND auth = '%s' ORDER BY points DESC)" ...
-				"WHERE auth = '%s';",
-				gS_MySQLPrefix, gS_MySQLPrefix, sAuthID, sAuthID);
-
-			trans.AddQuery(sQuery);
-		}
-	}
-
-	delete auths;
-
-	#if defined DEBUG
-	LogError("start: %f", GetEngineTime());
-	#endif
-
-	gH_SQL.Execute(trans, SQL_OnSuccess, SQL_OnFailure);
-}
-
-public void SQL_OnSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
-{
-	UpdateRankedPlayers();
-
-	#if defined DEBUG
-	LogError("end (success): %f", GetEngineTime());
-	#endif
-}
-
-public void SQL_OnFailure(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
-{
-	LogError("Transaction query (%d): %s", failIndex, error);
-
-	#if defined DEBUG
-	LogError("end (fail): %f", GetEngineTime());
-	#endif
 }
 
 void UpdatePlayerRank(int client)
