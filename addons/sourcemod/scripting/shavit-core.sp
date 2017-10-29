@@ -1660,12 +1660,12 @@ void SQL_DBConnect()
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL, `name` VARCHAR(32), `country` CHAR(32), `ip` CHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`));", gS_MySQLPrefix);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL PRIMARY KEY, `name` VARCHAR(32), `country` VARCHAR(128), `ip` VARCHAR(64), `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL PRIMARY KEY, `name` VARCHAR(32), `country` CHAR(32), `ip` CHAR(64), `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
 	}
 
 	// CREATE TABLE IF NOT EXISTS

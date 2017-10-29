@@ -1852,7 +1852,16 @@ void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` %s, `auth` VARCHAR(32), `map` VARCHAR(192), `time` FLOAT, `jumps` INT, `style` INT, `date` VARCHAR(32), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0%s);", gS_MySQLPrefix, gB_MySQL? "INT NOT NULL AUTO_INCREMENT":"INTEGER PRIMARY KEY", gB_MySQL? ", PRIMARY KEY (`id`)":"");
+
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `auth` (`auth`), INDEX `points` (`points`), INDEX `time` (`time`));", gS_MySQLPrefix);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+		}
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}
@@ -1883,7 +1892,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	if(gB_MySQL) // this isn't possible in sqlite
 	{
-		FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date VARCHAR(32);", gS_MySQLPrefix);
+		FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date CHAR(16);", gS_MySQLPrefix);
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
 

@@ -456,7 +456,7 @@ void SQL_DBConnect()
 	if(gH_SQL != null)
 	{
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` VARCHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` CHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` CHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` CHAR(16), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
 		
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}

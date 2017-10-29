@@ -267,7 +267,7 @@ void SQL_DBConnect()
 	{
 		// 160 because of mysql limitations
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(160), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` CHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`));", gS_MySQLPrefix);
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
 	}
