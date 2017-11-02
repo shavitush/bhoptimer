@@ -1901,10 +1901,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				bool bSHSW = (gA_StyleSettings[gBS_Style[client]][iForceHSW] == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
 				int iCombination = -1;
 
-				bool bForward = ((buttons & IN_FORWARD) > 0 || vel[0] > gF_HSW_Requirement);
-				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 || vel[1] < -gF_HSW_Requirement);
-				bool bBack = ((buttons & IN_BACK) > 0 || vel[0] < -gF_HSW_Requirement);
-				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 || vel[1] > gF_HSW_Requirement);
+				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] > gF_HSW_Requirement);
+				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 && vel[1] < -gF_HSW_Requirement);
+				bool bBack = ((buttons & IN_BACK) > 0 && vel[0] < -gF_HSW_Requirement);
+				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 && vel[1] > gF_HSW_Requirement);
 
 				if(bSHSW)
 				{
