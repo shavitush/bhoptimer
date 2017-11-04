@@ -596,6 +596,7 @@ public Action Command_SetTier(int client, int args)
 	}
 
 	gI_Tier = tier;
+	gA_MapTiers.SetValue(gS_Map, tier);
 
 	Call_StartForward(gH_Forwards_OnTierAssigned);
 	Call_PushString(gS_Map);
