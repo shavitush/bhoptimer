@@ -95,6 +95,8 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_GetMapTier", Native_GetMapTier);
+	CreateNative("Shavit_GetMapTiers", Native_GetMapTiers);
 	CreateNative("Shavit_GetPoints", Native_GetPoints);
 	CreateNative("Shavit_GetRank", Native_GetRank);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
@@ -928,6 +930,26 @@ void GetTrackName(int client, int track, char[] output, int size)
 	static char sTrack[16];
 	FormatEx(sTrack, 16, "Track_%d", track);
 	FormatEx(output, size, "%T", sTrack, client);
+}
+
+public int Native_GetMapTier(Handle handler, int numParams)
+{
+	int tier = 0;
+
+	char[] sMap = new char[128];
+	GetNativeString(1, sMap, 128);
+
+	if(!gA_MapTiers.GetValue(sMap, tier))
+	{
+		return 0;
+	}
+
+	return tier;
+}
+
+public int Native_GetMapTiers(Handle handler, int numParams)
+{
+	return view_as<int>(CloneHandle(gA_MapTiers, handler));
 }
 
 public int Native_GetPoints(Handle handler, int numParams)

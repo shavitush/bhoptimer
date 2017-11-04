@@ -950,6 +950,23 @@ native ArrayList Shavit_GetReplayData(int client);
 native void Shavit_StopChatSound();
 
 /**
+ * Gets the map tier for a specified map.
+ * Use the map's display name.
+ *
+ * @param map						Map to get the tier of.
+ * @return							Map tier. 0 if no results were found.
+ */
+native int Shavit_GetMapTier(const char[] map);
+
+/**
+ * Gets a StringMap that contains all the cached map tiers.
+ * The returned StringMap must be deleted from memory after use!
+ *
+ * @return							StringMap with {const char[]: map, int: tier} structure.
+ */
+native StringMap Shavit_GetMapTiers();
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -1002,6 +1019,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetDatabase");
 	MarkNativeAsOptional("Shavit_GetDB");
 	MarkNativeAsOptional("Shavit_GetHUDSettings");
+	MarkNativeAsOptional("Shavit_GetMapTier");
+	MarkNativeAsOptional("Shavit_GetMapTiers");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");
 	MarkNativeAsOptional("Shavit_GetRank");
