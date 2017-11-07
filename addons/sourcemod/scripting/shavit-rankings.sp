@@ -179,6 +179,8 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		gI_Styles = Shavit_GetStyleCount();
 	}
 
+	gI_RankedStyles = 0;
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
@@ -765,7 +767,7 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 			return;
 		}
 
-		int max = ((gA_ValidMaps.Length * 2) * gI_RankedStyles);
+		int max = ((gA_ValidMaps.Length * TRACKS_SIZE) * gI_RankedStyles);
 		float current = ((float(++gI_Progress[client]) / max) * 100.0);
 
 		PrintToConsole(client, "- [%.01f%%] Recalculated \"%s\" (%s | %s).", current, sMap, gS_TrackNames[track], gS_StyleNames[style]);
