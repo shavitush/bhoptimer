@@ -2197,11 +2197,14 @@ int GetRankForTime(int style, float time, int track)
 		return 1;
 	}
 
-	for(int i = 0; i < gI_RecordAmount[style][track]; i++)
+	if(gA_LeaderBoard[style][track] != null && gA_LeaderBoard[style][track].Length > 0)
 	{
-		if(time < gA_LeaderBoard[style][track].Get(i))
+		for(int i = 0; i < gI_RecordAmount[style][track]; i++)
 		{
-			return ++i;
+			if(time < gA_LeaderBoard[style][track].Get(i))
+			{
+				return ++i;
+			}
 		}
 	}
 
