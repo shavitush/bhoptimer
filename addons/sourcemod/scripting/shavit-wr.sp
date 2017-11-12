@@ -1771,13 +1771,13 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		else
 		{
-			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], Track_Main);
+			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], gI_LastTrack[param1]);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], Track_Main);
+		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], gI_LastTrack[param1]);
 	}
 
 	else if(action == MenuAction_End)
