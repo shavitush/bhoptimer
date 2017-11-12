@@ -2092,7 +2092,7 @@ public void Shavit_OnRestart(int client, int track)
 	{
 		Shavit_StartTimer(client, track);
 
-		if(!EmptyVector(gF_CustomSpawn))
+		if(track == Track_Main && !EmptyVector(gF_CustomSpawn))
 		{
 			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
