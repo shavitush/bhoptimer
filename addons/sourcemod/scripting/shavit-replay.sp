@@ -27,6 +27,7 @@
 #include <shavit>
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
+// #define DEBUG
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -760,7 +761,8 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 		return;
 	}
 
-	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
+	SetEntProp(client, Prop_Data, "m_CollisionGroup", 1);
+	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
 	bool central = (gA_CentralCache[iCentralClient] == client);
 	bool idle = (central && gA_CentralCache[iCentralReplayStatus] == Replay_Idle);
@@ -981,6 +983,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		buttons = 0;
 
+		vel[0] = 0.0;
+		vel[1] = 0.0;
+		// vel[2] = 0.0; // i doubt this is needed
+
 		if(gA_Frames[style][track] == null || gI_FrameCount[style][track] <= 0) // if no replay is loaded
 		{
 			return Plugin_Changed;
@@ -1027,8 +1033,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				CreateTimer((gF_ReplayDelay / 2.0), Timer_EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
-				SetEntityMoveType(client, MOVETYPE_NOCLIP);
-
 				return Plugin_Changed;
 			}
 
@@ -1036,8 +1040,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				gF_StartTick[style] = GetEngineTime();
 			}
-
-			SetEntityMoveType(client, ((GetEntityFlags(client) & FL_ONGROUND) > 0)? MOVETYPE_WALK:MOVETYPE_NOCLIP);
 
 			vecPosition[0] = gA_Frames[style][track].Get(gI_ReplayTick[style], 0);
 			vecPosition[1] = gA_Frames[style][track].Get(gI_ReplayTick[style], 1);
@@ -1052,17 +1054,28 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
 
-			float fDistance = GetVectorDistance(vecCurrentPosition, vecPosition);
-
-			if((gI_ReplayTick[style] % RoundToFloor(gF_Tickrate * 1.5)) == 0 && GetVectorLength(vecVelocity) < 2.0 * fDistance)
+			if((gI_ReplayTick[style] % RoundToFloor(gF_Tickrate * 1.5)) == 0)
 			{
-				TeleportEntity(client, vecPosition, vecAngles, vecVelocity);
+				float vecLastPosition[3];
+				vecLastPosition[0] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 0);
+				vecLastPosition[1] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 1);
+				vecLastPosition[2] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 2);
+
+				#if defined DEBUG
+				PrintToChatAll("vecVelocity: %.02f | dist %.02f", GetVectorLength(vecVelocity), GetVectorDistance(vecLastPosition, vecPosition) * gF_Tickrate);
+				#endif
+
+				if(GetVectorLength(vecVelocity) / (GetVectorDistance(vecLastPosition, vecPosition) * gF_Tickrate) > 2.0)
+				{
+					MakeVectorFromPoints(vecLastPosition, vecPosition, vecVelocity);
+					ScaleVector(vecVelocity, gF_Tickrate);
+					TeleportEntity(client, vecLastPosition, vecAngles, vecVelocity);
+
+					return Plugin_Changed;
+				}
 			}
 
-			else
-			{
-				TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
-			}
+			TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
 
 			return Plugin_Changed;
 		}
