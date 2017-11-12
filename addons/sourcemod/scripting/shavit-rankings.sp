@@ -554,7 +554,7 @@ public Action Command_Rank(int client, int args)
 	}
 
 	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText],
-		gS_ChatStrings[sMessageVariable], gI_Rank[target], gS_ChatStrings[sMessageText],
+		gS_ChatStrings[sMessageVariable], (gI_Rank[target] > gI_RankedPlayers)? gI_RankedPlayers:gI_Rank[target], gS_ChatStrings[sMessageText],
 		gI_RankedPlayers,
 		gS_ChatStrings[sMessageVariable], gF_Points[target], gS_ChatStrings[sMessageText]);
 
