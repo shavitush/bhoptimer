@@ -546,7 +546,7 @@ public Action Command_Rank(int client, int args)
 		}
 	}
 
-	if(gI_Rank[target] == 0)
+	if(gF_Points[target] == 0.0)
 	{
 		Shavit_PrintToChat(client, "%T", "Unranked", client, gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText]);
 
