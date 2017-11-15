@@ -226,8 +226,7 @@ enum
 	TRACKS_SIZE
 };
 
-// let's not throw errors k?
-stock bool IsValidClient(int client, bool bAlive = false) // when bAlive is false = technical checks, when it's true = gameplay checks
+stock bool IsValidClient(int client, bool bAlive = false)
 {
 	return (client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsClientSourceTV(client) && (!bAlive || IsPlayerAlive(client)));
 }
