@@ -689,9 +689,19 @@ native int Shavit_GetRecordAmount(int style, int track);
  * @param style						Bhop style.
  * @param time						Time to check for.
  * @param track						Timer track.
- * @return							Amount of records.
+ * @return							Map rank.
  */
 native int Shavit_GetRankForTime(int style, float time, int track);
+
+/**
+ * Retrieves the time of a record from a specified rank.
+ *
+ * @param style						Bhop style.
+ * @param rank						Rank to retrieve the time from.
+ * @param track						Timer track.
+ * @return							Record time. 0.0 if none.
+ */
+native float Shavit_GetTimeForRank(int style, int rank, int track);
 
 /**
  * Checks if a mapzone exists.
@@ -1038,6 +1048,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");
+	MarkNativeAsOptional("Shavit_GetTimeForRank");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
 	MarkNativeAsOptional("Shavit_GetWRCount");

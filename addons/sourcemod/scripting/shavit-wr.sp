@@ -96,6 +96,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
 	CreateNative("Shavit_GetRecordAmount", Native_GetRecordAmount);
+	CreateNative("Shavit_GetTimeForRank", Native_GetTimeForRank);
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
 	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
@@ -553,6 +554,24 @@ public int Native_GetRankForTime(Handle handler, int numParams)
 public int Native_GetRecordAmount(Handle handler, int numParams)
 {
 	return gI_RecordAmount[GetNativeCell(1)][GetNativeCell(2)];
+}
+
+public int Native_GetTimeForRank(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+	int rank = GetNativeCell(2);
+	int track = GetNativeCell(3);
+
+	#if defined DEBUG
+	Shavit_PrintToChatAll("style %d | rank %d | track %d | amount %d", style, rank, track, gI_RecordAmount[style][track]);
+	#endif
+
+	if(rank > gI_RecordAmount[style][track])
+	{
+		return view_as<int>(0.0);
+	}
+
+	return view_as<int>(gA_LeaderBoard[style][track].Get(rank - 1));
 }
 
 #if defined DEBUG
