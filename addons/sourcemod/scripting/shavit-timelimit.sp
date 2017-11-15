@@ -60,6 +60,9 @@ int gI_MinimumTimes = 5;
 int gI_PlayerAmount = 25;
 bool gB_Style = true;
 
+// misc cache
+Handle gH_Timer = null;
+
 // table prefix
 char gS_MySQLPrefix[32];
 
@@ -128,6 +131,19 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_MinimumTimes = gCV_MinimumTimes.IntValue;
 	gI_PlayerAmount = gCV_PlayerAmount.IntValue;
 	gB_Style = gCV_Style.BoolValue;
+
+	if(convar == gCV_ForceMapEnd)
+	{
+		if(gB_ForceMapEnd)
+		{
+			gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
+		}
+
+		else
+		{
+			delete gH_Timer;
+		}
+	}
 }
 
 public void OnConfigsExecuted()
@@ -168,9 +184,9 @@ public void OnMapStart()
 		SetLimit(RoundToNearest(gF_DefaultLimit));
 	}
 
-	if(gB_ForceMapEnd)
+	if(gB_ForceMapEnd && gH_Timer == null)
 	{
-		CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
 	}
 }
 
