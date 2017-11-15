@@ -369,15 +369,18 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 		FormatRandom(message, MAXLENGTH_MESSAGE);
 	}
 
+	#if defined DEBUG
+	PrintToServer("%N %s", author, flagstring);
+	#endif
+
 	bool allchat = (StrContains(flagstring, "_All") != -1);
 	int team = GetClientTeam(author);
 
 	recipients.Clear();
-	recipients.Push(author);
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(i != author && IsClientInGame(i) && (allchat || GetClientTeam(i) == team))
+		if(i == author || (IsClientInGame(i) && (allchat || GetClientTeam(i) == team)))
 		{
 			recipients.Push(i);
 		}
