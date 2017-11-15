@@ -56,7 +56,7 @@ float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
 int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
 char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
 int gI_RecordAmount[STYLE_LIMIT][TRACKS_SIZE];
-ArrayList gA_LeaderBoard[STYLE_LIMIT][TRACKS_SIZE];
+ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 
 // admin menu
@@ -175,7 +175,7 @@ public void OnPluginStart()
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			gA_LeaderBoard[i][j] = new ArrayList();
+			gA_Leaderboard[i][j] = new ArrayList();
 			gI_RecordAmount[i][j] = 0;
 		}
 	}
@@ -365,19 +365,19 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 
 	// arrays
-	for(int i = 0; i < styles; i++)
+	for(int i = 0; i < STYLE_LIMIT; i++)
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			gA_LeaderBoard[i][j].Clear();
-		}
-	}
+			if(i < styles)
+			{
+				gA_Leaderboard[i][j].Clear();
+			}
 
-	for(int i = styles; i < STYLE_LIMIT; i++)
-	{
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			delete gA_LeaderBoard[i][j];
+			else
+			{
+				delete gA_Leaderboard[i][j];
+			}
 		}
 	}
 
@@ -543,7 +543,7 @@ public int Native_GetRankForTime(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(3);
 
-	if(gA_LeaderBoard[style][track].Length == 0)
+	if(gA_Leaderboard[style][track].Length == 0)
 	{
 		return 1;
 	}
@@ -571,7 +571,7 @@ public int Native_GetTimeForRank(Handle handler, int numParams)
 		return view_as<int>(0.0);
 	}
 
-	return view_as<int>(gA_LeaderBoard[style][track].Get(rank - 1));
+	return view_as<int>(gA_Leaderboard[style][track].Get(rank - 1));
 }
 
 #if defined DEBUG
@@ -2183,7 +2183,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			gI_RecordAmount[i][j] = 0;
-			gA_LeaderBoard[i][j].Clear();
+			gA_Leaderboard[i][j].Clear();
 		}
 	}
 
@@ -2197,7 +2197,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 			continue;
 		}
 
-		gA_LeaderBoard[style][track].Push(results.FetchFloat(1));
+		gA_Leaderboard[style][track].Push(results.FetchFloat(1));
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -2209,8 +2209,8 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			SortADTArray(gA_LeaderBoard[i][j], Sort_Ascending, Sort_Float);
-			gI_RecordAmount[i][j] = gA_LeaderBoard[i][j].Length;
+			SortADTArray(gA_Leaderboard[i][j], Sort_Ascending, Sort_Float);
+			gI_RecordAmount[i][j] = gA_Leaderboard[i][j].Length;
 		}
 	}
 }
@@ -2222,11 +2222,11 @@ int GetRankForTime(int style, float time, int track)
 		return 1;
 	}
 
-	if(gA_LeaderBoard[style][track] != null && gA_LeaderBoard[style][track].Length > 0)
+	if(gA_Leaderboard[style][track] != null && gA_Leaderboard[style][track].Length > 0)
 	{
 		for(int i = 0; i < gI_RecordAmount[style][track]; i++)
 		{
-			if(time < gA_LeaderBoard[style][track].Get(i))
+			if(time < gA_Leaderboard[style][track].Get(i))
 			{
 				return ++i;
 			}

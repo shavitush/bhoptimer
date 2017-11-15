@@ -501,7 +501,10 @@ public void OnMapStart()
 
 	// draw
 	// start drawing mapzones here
-	gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	if(gH_DrawEverything == null)
+	{
+		gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 
 	if(gB_Late)
 	{
@@ -1755,13 +1758,23 @@ public Action Timer_DrawEverything(Handle Timer)
 		return Plugin_Continue;
 	}
 
-	for(int i = 0; i < gI_MapZones; i++)
+	static int iCycle = 0;
+	int iMaxZonesPerFrame = (gB_FlatZones)? 16:5;
+
+	for(int i = iCycle; i < gI_MapZones; i++)
 	{
 		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
 		{
-			DrawZone(gV_MapZones_Visual[i], GetZoneColors(gA_ZoneCache[i][iZoneType]), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
+			DrawZone(gV_MapZones_Visual[i], GetZoneColors(gA_ZoneCache[i][iZoneType]), RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
+		}
+
+		if(++iCycle % iMaxZonesPerFrame == 0)
+		{
+			return Plugin_Continue;
 		}
 	}
+
+	iCycle = 0;
 
 	return Plugin_Continue;
 }
