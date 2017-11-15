@@ -1362,26 +1362,37 @@ public Action Command_Save(int client, int args)
 			index = (parsed - 1);
 		}
 
-		SaveCheckpoint(client, index);
-
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		if(SaveCheckpoint(client, index))
+		{
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		}
 	}
 
 	else
 	{
+		bool bSaved = false;
+
 		if(gA_CheckpointsCache[client][iCheckpoints] < CP_MAX)
 		{
-			SaveCheckpoint(client, gA_CheckpointsCache[client][iCheckpoints]);
-			gA_CheckpointsCache[client][iCurrentCheckpoint] = ++gA_CheckpointsCache[client][iCheckpoints];
+			if((bSaved = SaveCheckpoint(client, gA_CheckpointsCache[client][iCheckpoints])))
+			{
+				gA_CheckpointsCache[client][iCurrentCheckpoint] = ++gA_CheckpointsCache[client][iCheckpoints];
+			}
 		}
 
 		else
 		{
-			SaveCheckpoint(client, (CP_MAX - 1));
-			gA_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
+			if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
+			{
+				gA_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
+			}
 		}
 
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client][iCurrentCheckpoint], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		if(bSaved)
+		{
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client][iCurrentCheckpoint],
+				gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		}
 	}
 
 	return Plugin_Handled;
@@ -1565,7 +1576,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 	return 0;
 }
 
-void SaveCheckpoint(int client, int index)
+bool SaveCheckpoint(int client, int index)
 {
 	int target = client;
 
@@ -1581,7 +1592,7 @@ void SaveCheckpoint(int client, int index)
 	{
 		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
-		return;
+		return false;
 	}
 
 	GetClientAbsOrigin(target, gF_Checkpoints[client][index][0]);
@@ -1591,11 +1602,13 @@ void SaveCheckpoint(int client, int index)
 
 	gA_PlayerCheckPointsCache[client][index][iCPMoveType] = GetEntityMoveType(target);
 	gA_PlayerCheckPointsCache[client][index][fCPGravity] = GetEntityGravity(target);
-	gA_PlayerCheckPointsCache[client][index][fCPSpeed] = 1.0;
+	gA_PlayerCheckPointsCache[client][index][fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
 	gA_PlayerCheckPointsCache[client][index][fCPStamina] = GetEntPropFloat(target, Prop_Send, "m_flStamina");
 	gA_PlayerCheckPointsCache[client][index][bCPDucking] = (GetClientButtons(target) & IN_DUCK) > 0;
 
 	Shavit_SaveSnapshot(target, gA_CheckpointsSnapshots[client][index]);
+
+	return true;
 }
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
