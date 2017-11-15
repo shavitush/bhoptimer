@@ -127,7 +127,7 @@ public void OnPluginStart()
 	#endif
 
 	// forwards
-	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
@@ -2022,6 +2022,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	if(overwrite > 0 && (time < gF_WRTime[style][track] || gF_WRTime[style][track] == 0.0)) // WR?
 	{
+		float oldwr = gF_WRTime[style][track];
 		gF_WRTime[style][track] = time;
 
 		Call_StartForward(gH_OnWorldRecord);
@@ -2032,7 +2033,12 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(strafes);
 		Call_PushCell(sync);
 		Call_PushCell(track);
+		Call_PushCell(oldwr);
 		Call_Finish();
+
+		#if defined DEBUG
+		Shavit_PrintToChat(client, "old: %.01f new: %.01f", oldwr, time);
+		#endif
 	}
 
 	int iRank = GetRankForTime(style, time, track);

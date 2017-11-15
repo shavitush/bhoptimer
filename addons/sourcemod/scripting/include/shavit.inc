@@ -378,9 +378,10 @@ forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, 
  * @param strafes					Amount of strafes.
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @param track						Timer track.
+ * @param oldwr						Time of the old WR. 0.0 if there's none.
  * @noreturn
  */
-forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track);
+forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldwr);
 
 /**
  * Called when an admin deletes a WR.
