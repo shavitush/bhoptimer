@@ -243,7 +243,7 @@ public Action Command_CCName(int client, int args)
 	if(args == 0 || strlen(sArgs) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_ccname <text>");
-		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, sArgs);
+		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, gS_CustomName[client]);
 
 		return Plugin_Handled;
 	}
@@ -293,7 +293,7 @@ public Action Command_CCMessage(int client, int args)
 	if(args == 0 || strlen(sArgs) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_ccmsg <text>");
-		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, sArgs);
+		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, gS_CustomMessage[client]);
 
 		return Plugin_Handled;
 	}
