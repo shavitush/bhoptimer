@@ -61,6 +61,11 @@ public Plugin myinfo =
 public void OnAllPluginsLoaded()
 {
 	gB_RTLer = LibraryExists("rtler");
+
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()

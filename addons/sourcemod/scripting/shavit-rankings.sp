@@ -212,7 +212,6 @@ public void OnLibraryRemoved(const char[] name)
 public void Shavit_OnDatabaseLoaded()
 {
 	gH_SQL = Shavit_GetDatabase();
-
 	SetSQLInfo();
 }
 
