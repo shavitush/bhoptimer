@@ -1761,6 +1761,11 @@ public Action Timer_DrawEverything(Handle Timer)
 	static int iCycle = 0;
 	int iMaxZonesPerFrame = (gB_FlatZones)? 16:5;
 
+	if(iCycle >= gI_MapZones)
+	{
+		iCycle = 0;
+	}
+
 	for(int i = iCycle; i < gI_MapZones; i++)
 	{
 		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
