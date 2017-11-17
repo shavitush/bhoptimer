@@ -953,7 +953,7 @@ native void Shavit_SetReplayData(int client, ArrayList data);
 native ArrayList Shavit_GetReplayData(int client);
 
 /**
- * Reloads a specific replay into the repla bot cache.
+ * Reloads a specific replay into the replay bot cache.
  * Note: Not guaranteed to work with legacy replay bots.
  *
  * @param style						Replay style.
