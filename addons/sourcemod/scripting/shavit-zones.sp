@@ -512,6 +512,11 @@ public void OnMapStart()
 	}
 }
 
+public void OnMapEnd()
+{
+	delete gH_DrawEverything;
+}
+
 public void Shavit_OnChatConfigLoaded()
 {
 	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
