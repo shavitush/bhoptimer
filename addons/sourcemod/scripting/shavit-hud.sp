@@ -45,6 +45,7 @@ bool gB_Sounds = false;
 int gI_Cycle = 0;
 int gI_GradientColors[3];
 int gI_GradientDirection = -1;
+int gI_Styles = 0;
 
 Handle gH_HUDCookie = null;
 int gI_HUDSettings[MAXPLAYERS+1];
@@ -139,9 +140,14 @@ public void OnPluginStart()
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(IsValidClient(i) && AreClientCookiesCached(i))
+			if(IsValidClient(i))
 			{
-				OnClientCookiesCached(i);
+				OnClientPutInServer(i);
+
+				if(AreClientCookiesCached(i))
+				{
+					OnClientCookiesCached(i);
+				}
 			}
 		}
 	}
@@ -222,6 +228,8 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	{
 		styles = Shavit_GetStyleCount();
 	}
+
+	gI_Styles = styles;
 
 	for(int i = 0; i < styles; i++)
 	{
@@ -825,25 +833,7 @@ public void Bunnyhop_OnTouchGround(int client)
 
 public void Bunnyhop_OnJumpPressed(int client)
 {
-	if(gEV_Type != Engine_CSS)
-	{
-		return;
-	}
-
 	gI_ScrollCount[client] = BunnyhopStats.GetScrollCount(client);
-
-	if(gA_StyleSettings[gBS_Style[client]][bAutobhop])
-	{
-		return;
-	}
-
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(i == client || (IsValidClient(i) && GetHUDTarget(i) == client))
-		{
-			UpdateCenterKeys(i);
-		}
-	}
 }
 
 void UpdateCenterKeys(int client)
@@ -868,7 +858,14 @@ void UpdateCenterKeys(int client)
 		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
 		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
 
-	if(gB_BhopStats && !gA_StyleSettings[gBS_Style[target]][bAutobhop])
+	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):gBS_Style[target];
+
+	if(style < 0 || style > gI_Styles)
+	{
+		style = 0;
+	}
+
+	if(gB_BhopStats && !gA_StyleSettings[style][bAutobhop])
 	{
 		Format(sCenterText, 64, "%s\n　　%d　%d", sCenterText, gI_ScrollCount[target], gI_LastScrollCount[target]);
 	}
