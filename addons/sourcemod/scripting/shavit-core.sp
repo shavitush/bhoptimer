@@ -133,6 +133,9 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 // misc cache
 bool gB_StopChatSound = false;
 
+// kz support
+bool gB_KZMap = false;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Core",
@@ -160,8 +163,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
+	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
 	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
 	CreateNative("Shavit_LoadSnapshot", Native_LoadSnapshot);
+	CreateNative("Shavit_MarkKZMap", Native_MarkKZMap);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
 	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
@@ -417,6 +422,11 @@ public void OnMapStart()
 	}
 }
 
+public void OnMapEnd()
+{
+	gB_KZMap = false;
+}
+
 public Action Command_StartTimer(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -437,14 +447,17 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start, Track_Main)))
+	if(gB_AllowTimerWithoutZone || (gB_Zones && (Shavit_ZoneExists(Zone_Start, Track_Main) || gB_KZMap)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_PushCell(Track_Main);
 		Call_Finish();
 
-		StartTimer(client, Track_Main);
+		if(gB_AllowTimerWithoutZone)
+		{
+			StartTimer(client, Track_Main);
+		}
 	}
 
 	else
@@ -475,14 +488,17 @@ public Action Command_StartTimer_Bonus(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start, Track_Bonus)))
+	if(gB_AllowTimerWithoutZone || (gB_Zones && (Shavit_ZoneExists(Zone_Start, Track_Bonus) || gB_KZMap)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_PushCell(Track_Bonus);
 		Call_Finish();
 
-		StartTimer(client, Track_Bonus);
+		if(gB_AllowTimerWithoutZone)
+		{
+			StartTimer(client, Track_Bonus);
+		}
 	}
 
 	else
@@ -943,6 +959,11 @@ public int Native_GetTimerStatus(Handle handler, int numParams)
 	return GetTimerStatus(GetNativeCell(1));
 }
 
+public int Native_IsKZMap(Handle handler, int numParams)
+{
+	return view_as<bool>(gB_KZMap);
+}
+
 public int Native_StartTimer(Handle handler, int numParams)
 {
 	StartTimer(GetNativeCell(1), GetNativeCell(2));
@@ -1169,6 +1190,11 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gF_StartTime[client] = GetEngineTime() - view_as<float>(snapshot[fCurrentTime]);
 	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
 	gI_Track[client] = view_as<int>(snapshot[iTimerTrack]);
+}
+
+public int Native_MarkKZMap(Handle handler, int numParams)
+{
+	gB_KZMap = true;
 }
 
 int GetTimerStatus(int client)

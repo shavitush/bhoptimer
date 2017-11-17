@@ -982,6 +982,20 @@ native int Shavit_ReloadReplays(bool restart);
 native void Shavit_StopChatSound();
 
 /**
+ * Marks a map as a KZ map.
+ *
+ * @noreturn
+ */
+native void Shavit_MarkKZMap();
+
+/**
+ * Lets us know if the map was marked as a KZ map.
+ *
+ * @return							Boolean value.
+ */
+native bool Shavit_IsKZMap();
+
+/**
  * Gets the map tier for a specified map.
  * Use the map's display name.
  *
@@ -1079,15 +1093,17 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetWRTime");
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
+	MarkNativeAsOptional("Shavit_IsKZMap");
 	MarkNativeAsOptional("Shavit_IsPracticeMode");
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
 	MarkNativeAsOptional("Shavit_LoadSnapshot");
+	MarkNativeAsOptional("Shavit_MarkKZMap");
 	MarkNativeAsOptional("Shavit_OpenStatsMenu");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
-	MarkNativeAsOptional("Shavit_RestartTimer");
 	MarkNativeAsOptional("Shavit_ReloadReplay");
 	MarkNativeAsOptional("Shavit_ReloadReplays");
+	MarkNativeAsOptional("Shavit_RestartTimer");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
 	MarkNativeAsOptional("Shavit_SaveSnapshot");
 	MarkNativeAsOptional("Shavit_SetPracticeMode");
