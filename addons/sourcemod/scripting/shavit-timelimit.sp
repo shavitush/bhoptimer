@@ -377,7 +377,7 @@ public Action Timer_PrintToChat(Handle Timer)
 		}
 	}
 	
-	if(timeleft < -3)
+	if(timeleft == -4)
 	{
 		CS_TerminateRound(0.0, CSRoundEnd_Draw, true);
 	}
