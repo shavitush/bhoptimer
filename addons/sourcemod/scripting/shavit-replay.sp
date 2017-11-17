@@ -126,9 +126,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
-	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
-	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
+	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
+	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
+	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
+	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -219,13 +221,95 @@ public int Native_GetReplayBotIndex(Handle handler, int numParams)
 public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
 
 	if(gB_CentralBot)
 	{
-		return (gA_CentralCache[iCentralClient] != -1 && gA_CentralCache[iCentralClient] != Replay_Idle);
+		return (gA_CentralCache[iCentralClient] != -1 && gA_CentralCache[iCentralClient] != Replay_Idle && gI_FrameCount[style][track] > 0);
 	}
 
 	return view_as<int>(ReplayEnabled(style) && gI_FrameCount[style][Track_Main] > 0);
+}
+
+public int Native_ReloadReplay(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	gI_ReplayTick[style] = -1;
+	gF_StartTick[style] = -65535.0;
+	gRS_ReplayStatus[style] = Replay_Idle;
+
+	int track = GetNativeCell(2);
+	bool restart = view_as<bool>(GetNativeCell(3));
+
+	char[] path = new char[PLATFORM_MAX_PATH];
+	GetNativeString(4, path, PLATFORM_MAX_PATH);
+
+	delete gA_Frames[style][track];
+	gA_Frames[style][track] = new ArrayList(6);
+	gI_FrameCount[style][track] = 0;
+
+	bool loaded = false;
+
+	if(strlen(path) > 0)
+	{
+		loaded = LoadReplay(style, track, path);
+	}
+
+	else
+	{
+		loaded = DefaultLoadReplay(style, track);
+	}
+
+	if(gB_CentralBot)
+	{
+		if(gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
+		{
+			StopCentralReplay(0);
+		}
+	}
+
+	else
+	{
+		if(gI_ReplayBotClient[style] == 0)
+		{
+			ServerCommand("bot_add");
+			gI_ExpectedBots++;
+		}
+
+		if(loaded && restart)
+		{
+			gI_ReplayTick[style] = 0;
+			gRS_ReplayStatus[style] = Replay_Start;
+			CreateTimer((gF_ReplayDelay / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+		}
+	}
+
+	return loaded;
+}
+
+public int Native_ReloadReplays(Handle handler, int numParams)
+{
+	bool restart = view_as<bool>(GetNativeCell(1));
+	int loaded = 0;
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		if(!ReplayEnabled(i))
+		{
+			continue;
+		}
+
+		for(int j = 0; j < ((gB_CentralBot)? TRACKS_SIZE:1); j++)
+		{
+			if(Shavit_ReloadReplay(i, j, restart))
+			{
+				loaded++;
+			}
+		}
+	}
+
+	return loaded;
 }
 
 public int Native_SetReplayData(Handle handler, int numParams)
@@ -475,9 +559,10 @@ public void OnMapStart()
 
 		for(int j = 0; j < ((gB_CentralBot)? TRACKS_SIZE:1); j++)
 		{
+			delete gA_Frames[i][j];
 			gA_Frames[i][j] = new ArrayList(6);
 			gI_FrameCount[i][j] = 0;
-			loaded = LoadReplay(i, j);
+			loaded = DefaultLoadReplay(i, j);
 		}
 
 		if(!gB_CentralBot)
@@ -528,7 +613,7 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
-bool LoadReplay(int style, int track)
+bool DefaultLoadReplay(int style, int track)
 {
 	char[] sTrack = new char[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -536,9 +621,14 @@ bool LoadReplay(int style, int track)
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s%s.replay", style, gS_Map, (track > 0)? sTrack:"");
 
-	if(FileExists(sPath))
+	return LoadReplay(style, track, sPath);
+}
+
+bool LoadReplay(int style, int track, const char[] path)
+{
+	if(FileExists(path))
 	{
-		File fFile = OpenFile(sPath, "rb");
+		File fFile = OpenFile(path, "rb");
 
 		char[] sHeader = new char[64];
 
@@ -662,7 +752,7 @@ bool DeleteReplay(int style, int track)
 		return false;
 	}
 
-	if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style)
+	if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
 	{
 		StopCentralReplay(0);
 	}
@@ -908,9 +998,9 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 	gA_Frames[style][track] = gA_PlayerFrames[client].Clone();
 	SaveReplay(style, track);
 
-	if(ReplayEnabled(style) && !gB_CentralBot && gI_ReplayBotClient[style] != 0)
+	if(ReplayEnabled(style))
 	{
-		if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style)
+		if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
 		{
 			StopCentralReplay(0);
 		}

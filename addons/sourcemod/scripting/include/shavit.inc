@@ -601,7 +601,7 @@ native int Shavit_GetClientJumps(int client);
  * Retrieve a client's bhopstyle
  *
  * @param client					Client index.
- * @return                          Bhop style.
+ * @return                          Style.
  */
 native int Shavit_GetBhopStyle(int client);
 
@@ -677,7 +677,7 @@ native void Shavit_GetPlayerPB(int client, int style, float &time, int track);
 /**
  * Get the amount of records on the current map/style on a track.
  *
- * @param style						Bhop style.
+ * @param style						Style.
  * @param track						Timer track.
  * @return							Amount of records.
  */
@@ -686,7 +686,7 @@ native int Shavit_GetRecordAmount(int style, int track);
 /**
  * Calculate potential rank for a given style and time.
  *
- * @param style						Bhop style.
+ * @param style						Style.
  * @param time						Time to check for.
  * @param track						Timer track.
  * @return							Map rank.
@@ -696,7 +696,7 @@ native int Shavit_GetRankForTime(int style, float time, int track);
 /**
  * Retrieves the time of a record from a specified rank.
  *
- * @param style						Bhop style.
+ * @param style						Style.
  * @param rank						Rank to retrieve the time from.
  * @param track						Timer track.
  * @return							Record time. 0.0 if none.
@@ -749,7 +749,7 @@ native void Shavit_ResumeTimer(int client);
 /**
  * Retrieve the engine time of the replay bot's first frame.
  *
- * @param style						Bhop style.
+ * @param style						Style.
  * @param time						Reference to save the time on.
  * @noreturn
  */
@@ -758,7 +758,7 @@ native void Shavit_GetReplayBotFirstFrame(int style, float &time);
 /**
  * Retrieve the replay bot's client index.
  *
- * @param style						Bhop style.
+ * @param style						Style.
  * @return							Client index for the replay bot.
  */
 native int Shavit_GetReplayBotIndex(int style);
@@ -782,7 +782,7 @@ native int Shavit_GetReplayBotTrack(int client);
 /**
  * Retrieve the replay bot's current played frame.
  *
- * @param style						Bhop style.
+ * @param style						Style.
  * @return							Current played frame.
  */
 native int Shavit_GetReplayBotCurrentFrame(int style);
@@ -790,10 +790,11 @@ native int Shavit_GetReplayBotCurrentFrame(int style);
 /**
  * Checks if there's loaded replay data for a bhop style or not.
  *
- * @param style						Bhop style.
+ * @param style						Style.
+ * @param track						Track.
  * @return							Boolean value of if there's loaded replay data.
  */
-native bool Shavit_IsReplayDataLoaded(int style);
+native bool Shavit_IsReplayDataLoaded(int style, int track);
 
 /**
  * Gets player points.
@@ -952,6 +953,27 @@ native void Shavit_SetReplayData(int client, ArrayList data);
 native ArrayList Shavit_GetReplayData(int client);
 
 /**
+ * Reloads a specific replay into the repla bot cache.
+ * Note: Not guaranteed to work with legacy replay bots.
+ *
+ * @param style						Replay style.
+ * @param track						Replay track.
+ * @param restart					Restart the playback of the replay bot if it's playing?
+ * @param path						Path to the replay file. Use `BuildPath(Path_SM, ...)` to generate one. Leave as empty to use default.
+ * @return							Was the replay loaded?
+ */
+native bool Shavit_ReloadReplay(int style, int track, bool restart, char[] path = "");
+
+/**
+ * Reloads all of the replays for the map.
+ * Note: Not guaranteed to work with legacy replay bots.
+ *
+ * @param restart					Restart the playback of the replay bots?
+ * @return							Amount of loaded replays.
+ */
+native int Shavit_ReloadReplays(bool restart);
+
+/**
  * Use this native to stop the chat tick sound that happens in CS:S.
  * Call it before each Shavit_PrintToChat() or Shavit_PrintToChatAll().
  *
@@ -1064,6 +1086,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
 	MarkNativeAsOptional("Shavit_RestartTimer");
+	MarkNativeAsOptional("Shavit_ReloadReplay");
+	MarkNativeAsOptional("Shavit_ReloadReplays");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
 	MarkNativeAsOptional("Shavit_SaveSnapshot");
 	MarkNativeAsOptional("Shavit_SetPracticeMode");

@@ -748,7 +748,7 @@ void UpdateHUD(int client)
 			float fWR = 0.0;
 			Shavit_GetWRTime(style, fWR, track);
 
-			if(time > fWR || !Shavit_IsReplayDataLoaded(style))
+			if(time > fWR || !Shavit_IsReplayDataLoaded(style, track))
 			{
 				PrintHintText(client, "%T", "NoReplayData", client);
 
