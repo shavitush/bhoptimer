@@ -90,7 +90,7 @@ int gI_ZoneTrack[MAXPLAYERS+1];
 int gI_ZoneDatabaseID[MAXPLAYERS+1];
 
 // Zone cache.
-any gA_ZoneSettings[ZONETYPES_SIZE][ZONESETTINGS_SIZE];
+any gA_ZoneSettings[ZONETYPES_SIZE][TRACKS_SIZE][ZONESETTINGS_SIZE];
 any gA_ZoneCache[MAX_ZONES][ZONECACHE_SIZE]; // Vectors will not be inside this array.
 int gI_MapZones = 0;
 float gV_MapZones[MAX_ZONES][2][3];
@@ -230,6 +230,19 @@ public void OnPluginStart()
 	gCV_Offset.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
+
+	for(int i = 0; i < ZONETYPES_SIZE; i++)
+	{
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			gA_ZoneSettings[i][j][bVisible] = true;
+			gA_ZoneSettings[i][j][iRed] = 255;
+			gA_ZoneSettings[i][j][iGreen] = 255;
+			gA_ZoneSettings[i][j][iBlue] = 255;
+			gA_ZoneSettings[i][j][iAlpha] = 255;
+			gA_ZoneSettings[i][j][fWidth] = 2.0;
+		}
+	}
 
 	SQL_SetPrefix();
 }
@@ -434,12 +447,15 @@ bool LoadZonesConfig()
 
 	do
 	{
-		gA_ZoneSettings[i][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
-		gA_ZoneSettings[i][iRed] = kv.GetNum("red", 255);
-		gA_ZoneSettings[i][iGreen] = kv.GetNum("green", 255);
-		gA_ZoneSettings[i][iBlue] = kv.GetNum("blue", 255);
-		gA_ZoneSettings[i][iAlpha] = kv.GetNum("alpha", 255);
-		gA_ZoneSettings[i][fWidth] = kv.GetFloat("width", 2.0);
+		int track = (i <= 9)? Track_Main:Track_Bonus;
+		int index = (track == Track_Main)? i:i-10;
+
+		gA_ZoneSettings[index][track][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
+		gA_ZoneSettings[index][track][iRed] = kv.GetNum("red", 255);
+		gA_ZoneSettings[index][track][iGreen] = kv.GetNum("green", 255);
+		gA_ZoneSettings[index][track][iBlue] = kv.GetNum("blue", 255);
+		gA_ZoneSettings[index][track][iAlpha] = kv.GetNum("alpha", 255);
+		gA_ZoneSettings[index][track][fWidth] = kv.GetFloat("width", 2.0);
 
 		i++;
 	}
@@ -1773,9 +1789,15 @@ public Action Timer_DrawEverything(Handle Timer)
 
 	for(int i = iCycle; i < gI_MapZones; i++)
 	{
-		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
+		if(gA_ZoneCache[i][bZoneInitialized])
 		{
-			DrawZone(gV_MapZones_Visual[i], GetZoneColors(gA_ZoneCache[i][iZoneType]), RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
+			int type = gA_ZoneCache[i][iZoneType];
+			int track = gA_ZoneCache[i][iZoneTrack];
+
+			if(gA_ZoneSettings[type][track][bVisible])
+			{
+				DrawZone(gV_MapZones_Visual[i], GetZoneColors(type, track), RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gF_Interval, gA_ZoneSettings[type][track][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
+			}
 		}
 
 		if(++iCycle % iMaxZonesPerFrame == 0)
@@ -1789,13 +1811,13 @@ public Action Timer_DrawEverything(Handle Timer)
 	return Plugin_Continue;
 }
 
-int[] GetZoneColors(int type, int customalpha = 0)
+int[] GetZoneColors(int type, int track, int customalpha = 0)
 {
 	int colors[4];
-	colors[0] = gA_ZoneSettings[type][iRed];
-	colors[1] = gA_ZoneSettings[type][iGreen];
-	colors[2] = gA_ZoneSettings[type][iBlue];
-	colors[3] = (customalpha > 0)? customalpha:gA_ZoneSettings[type][iAlpha];
+	colors[0] = gA_ZoneSettings[type][track][iRed];
+	colors[1] = gA_ZoneSettings[type][track][iGreen];
+	colors[2] = gA_ZoneSettings[type][track][iBlue];
+	colors[3] = (customalpha > 0)? customalpha:gA_ZoneSettings[type][track][iAlpha];
 
 	return colors;
 }
@@ -1853,7 +1875,10 @@ public Action Timer_Draw(Handle Timer, any data)
 		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
 		origin = points[7];
 
-		DrawZone(points, GetZoneColors(gI_ZoneType[client], 25), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
+		int type = gI_ZoneType[client];
+		int track = gI_ZoneTrack[client];
+
+		DrawZone(points, GetZoneColors(type, track, 125), 0.1, gA_ZoneSettings[type][track][fWidth], false, origin);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
