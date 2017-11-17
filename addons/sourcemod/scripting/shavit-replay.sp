@@ -27,6 +27,7 @@
 #include <shavit>
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
+// #define DEBUG
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -125,9 +126,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
-	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
-	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
+	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
+	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
+	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
+	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -218,13 +221,95 @@ public int Native_GetReplayBotIndex(Handle handler, int numParams)
 public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
 
 	if(gB_CentralBot)
 	{
-		return (gA_CentralCache[iCentralClient] != -1 && gA_CentralCache[iCentralClient] != Replay_Idle);
+		return (gA_CentralCache[iCentralClient] != -1 && gA_CentralCache[iCentralClient] != Replay_Idle && gI_FrameCount[style][track] > 0);
 	}
 
 	return view_as<int>(ReplayEnabled(style) && gI_FrameCount[style][Track_Main] > 0);
+}
+
+public int Native_ReloadReplay(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	gI_ReplayTick[style] = -1;
+	gF_StartTick[style] = -65535.0;
+	gRS_ReplayStatus[style] = Replay_Idle;
+
+	int track = GetNativeCell(2);
+	bool restart = view_as<bool>(GetNativeCell(3));
+
+	char[] path = new char[PLATFORM_MAX_PATH];
+	GetNativeString(4, path, PLATFORM_MAX_PATH);
+
+	delete gA_Frames[style][track];
+	gA_Frames[style][track] = new ArrayList(6);
+	gI_FrameCount[style][track] = 0;
+
+	bool loaded = false;
+
+	if(strlen(path) > 0)
+	{
+		loaded = LoadReplay(style, track, path);
+	}
+
+	else
+	{
+		loaded = DefaultLoadReplay(style, track);
+	}
+
+	if(gB_CentralBot)
+	{
+		if(gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
+		{
+			StopCentralReplay(0);
+		}
+	}
+
+	else
+	{
+		if(gI_ReplayBotClient[style] == 0)
+		{
+			ServerCommand("bot_add");
+			gI_ExpectedBots++;
+		}
+
+		if(loaded && restart)
+		{
+			gI_ReplayTick[style] = 0;
+			gRS_ReplayStatus[style] = Replay_Start;
+			CreateTimer((gF_ReplayDelay / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+		}
+	}
+
+	return loaded;
+}
+
+public int Native_ReloadReplays(Handle handler, int numParams)
+{
+	bool restart = view_as<bool>(GetNativeCell(1));
+	int loaded = 0;
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		if(!ReplayEnabled(i))
+		{
+			continue;
+		}
+
+		for(int j = 0; j < ((gB_CentralBot)? TRACKS_SIZE:1); j++)
+		{
+			if(Shavit_ReloadReplay(i, j, restart))
+			{
+				loaded++;
+			}
+		}
+	}
+
+	return loaded;
 }
 
 public int Native_SetReplayData(Handle handler, int numParams)
@@ -474,9 +559,10 @@ public void OnMapStart()
 
 		for(int j = 0; j < ((gB_CentralBot)? TRACKS_SIZE:1); j++)
 		{
+			delete gA_Frames[i][j];
 			gA_Frames[i][j] = new ArrayList(6);
 			gI_FrameCount[i][j] = 0;
-			loaded = LoadReplay(i, j);
+			loaded = DefaultLoadReplay(i, j);
 		}
 
 		if(!gB_CentralBot)
@@ -527,7 +613,7 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
-bool LoadReplay(int style, int track)
+bool DefaultLoadReplay(int style, int track)
 {
 	char[] sTrack = new char[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -535,9 +621,14 @@ bool LoadReplay(int style, int track)
 	char[] sPath = new char[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s%s.replay", style, gS_Map, (track > 0)? sTrack:"");
 
-	if(FileExists(sPath))
+	return LoadReplay(style, track, sPath);
+}
+
+bool LoadReplay(int style, int track, const char[] path)
+{
+	if(FileExists(path))
 	{
-		File fFile = OpenFile(sPath, "rb");
+		File fFile = OpenFile(path, "rb");
 
 		char[] sHeader = new char[64];
 
@@ -661,7 +752,7 @@ bool DeleteReplay(int style, int track)
 		return false;
 	}
 
-	if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style)
+	if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
 	{
 		StopCentralReplay(0);
 	}
@@ -760,7 +851,8 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 		return;
 	}
 
-	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
+	SetEntProp(client, Prop_Data, "m_CollisionGroup", 1);
+	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
 	bool central = (gA_CentralCache[iCentralClient] == client);
 	bool idle = (central && gA_CentralCache[iCentralReplayStatus] == Replay_Idle);
@@ -906,9 +998,9 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 	gA_Frames[style][track] = gA_PlayerFrames[client].Clone();
 	SaveReplay(style, track);
 
-	if(ReplayEnabled(style) && !gB_CentralBot && gI_ReplayBotClient[style] != 0)
+	if(ReplayEnabled(style))
 	{
-		if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style)
+		if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
 		{
 			StopCentralReplay(0);
 		}
@@ -981,6 +1073,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		buttons = 0;
 
+		vel[0] = 0.0;
+		vel[1] = 0.0;
+		// vel[2] = 0.0; // i doubt this is needed
+
 		if(gA_Frames[style][track] == null || gI_FrameCount[style][track] <= 0) // if no replay is loaded
 		{
 			return Plugin_Changed;
@@ -1027,8 +1123,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				CreateTimer((gF_ReplayDelay / 2.0), Timer_EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
-				SetEntityMoveType(client, MOVETYPE_NOCLIP);
-
 				return Plugin_Changed;
 			}
 
@@ -1036,8 +1130,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				gF_StartTick[style] = GetEngineTime();
 			}
-
-			SetEntityMoveType(client, ((GetEntityFlags(client) & FL_ONGROUND) > 0)? MOVETYPE_WALK:MOVETYPE_NOCLIP);
 
 			vecPosition[0] = gA_Frames[style][track].Get(gI_ReplayTick[style], 0);
 			vecPosition[1] = gA_Frames[style][track].Get(gI_ReplayTick[style], 1);
@@ -1052,17 +1144,28 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
 
-			float fDistance = GetVectorDistance(vecCurrentPosition, vecPosition);
-
-			if((gI_ReplayTick[style] % RoundToFloor(gF_Tickrate * 1.5)) == 0 && GetVectorLength(vecVelocity) < 2.0 * fDistance)
+			if((gI_ReplayTick[style] % RoundToFloor(gF_Tickrate * 1.5)) == 0)
 			{
-				TeleportEntity(client, vecPosition, vecAngles, vecVelocity);
+				float vecLastPosition[3];
+				vecLastPosition[0] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 0);
+				vecLastPosition[1] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 1);
+				vecLastPosition[2] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 2);
+
+				#if defined DEBUG
+				PrintToChatAll("vecVelocity: %.02f | dist %.02f", GetVectorLength(vecVelocity), GetVectorDistance(vecLastPosition, vecPosition) * gF_Tickrate);
+				#endif
+
+				if(GetVectorLength(vecVelocity) / (GetVectorDistance(vecLastPosition, vecPosition) * gF_Tickrate) > 2.0)
+				{
+					MakeVectorFromPoints(vecLastPosition, vecPosition, vecVelocity);
+					ScaleVector(vecVelocity, gF_Tickrate);
+					TeleportEntity(client, vecLastPosition, vecAngles, vecVelocity);
+
+					return Plugin_Changed;
+				}
 			}
 
-			else
-			{
-				TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
-			}
+			TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
 
 			return Plugin_Changed;
 		}

@@ -33,7 +33,6 @@
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 131072
 
 #define CP_ANGLES				(1 << 0)
 #define CP_VELOCITY				(1 << 1)
@@ -157,7 +156,7 @@ int gI_RemoveRagdolls = 1;
 char gS_ClanTag[32] = "{styletag} :: {time}";
 bool gB_ClanTag = true;
 bool gB_DropAll = true;
-bool gB_ResetTargetname = true;
+bool gB_ResetTargetname = false;
 bool gB_RestoreStates = false;
 
 // dhooks
@@ -296,9 +295,9 @@ public void OnPluginStart()
 	gCV_Checkpoints = CreateConVar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RemoveRagdolls = CreateConVar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
 	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style settings from shavit-styles.cfg.\n{style} - style name.\n{time} - formatted time.", 0);
-	gCV_DropAll = CreateConVar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
-	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "1", "Reset the player's targetname upon timer start?\nRecommended to leave enabled. Disable via per-map configs if it's problematic.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
-	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 2.0);
+	gCV_DropAll = CreateConVar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -1363,26 +1362,37 @@ public Action Command_Save(int client, int args)
 			index = (parsed - 1);
 		}
 
-		SaveCheckpoint(client, index);
-
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		if(SaveCheckpoint(client, index))
+		{
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		}
 	}
 
 	else
 	{
+		bool bSaved = false;
+
 		if(gA_CheckpointsCache[client][iCheckpoints] < CP_MAX)
 		{
-			SaveCheckpoint(client, gA_CheckpointsCache[client][iCheckpoints]);
-			gA_CheckpointsCache[client][iCurrentCheckpoint] = ++gA_CheckpointsCache[client][iCheckpoints];
+			if((bSaved = SaveCheckpoint(client, gA_CheckpointsCache[client][iCheckpoints])))
+			{
+				gA_CheckpointsCache[client][iCurrentCheckpoint] = ++gA_CheckpointsCache[client][iCheckpoints];
+			}
 		}
 
 		else
 		{
-			SaveCheckpoint(client, (CP_MAX - 1));
-			gA_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
+			if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
+			{
+				gA_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
+			}
 		}
 
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client][iCurrentCheckpoint], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		if(bSaved)
+		{
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client][iCurrentCheckpoint],
+				gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		}
 	}
 
 	return Plugin_Handled;
@@ -1436,13 +1446,6 @@ public Action OpenCheckpointsMenu(int client, int item)
 	if(!gB_Checkpoints)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-
-		return Plugin_Handled;
-	}
-
-	if(!IsPlayerAlive(client))
-	{
-		Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
@@ -1573,26 +1576,52 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 	return 0;
 }
 
-void SaveCheckpoint(int client, int index)
+bool SaveCheckpoint(int client, int index)
 {
-	GetClientAbsOrigin(client, gF_Checkpoints[client][index][0]);
-	GetClientEyeAngles(client, gF_Checkpoints[client][index][1]);
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_Checkpoints[client][index][2]);
-	GetEntPropString(client, Prop_Data, "m_iName", gS_CheckpointsTargetname[client][index], 32);
+	int target = client;
 
-	gA_PlayerCheckPointsCache[client][index][iCPMoveType] = GetEntityMoveType(client);
-	gA_PlayerCheckPointsCache[client][index][fCPGravity] = GetEntityGravity(client);
-	gA_PlayerCheckPointsCache[client][index][fCPSpeed] = 1.0;
-	gA_PlayerCheckPointsCache[client][index][fCPStamina] = GetEntPropFloat(client, Prop_Send, "m_flStamina");
-	gA_PlayerCheckPointsCache[client][index][bCPDucking] = (GetClientButtons(client) & IN_DUCK) > 0;
+	int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
+	int iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
 
-	Shavit_SaveSnapshot(client, gA_CheckpointsSnapshots[client][index]);
+	if(IsClientObserver(client) && !IsFakeClient(iObserverTarget) && IsValidClient(iObserverTarget) && iObserverMode >= 3 && iObserverMode <= 5)
+	{
+		target = iObserverTarget;
+	}
+
+	else if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+
+		return false;
+	}
+
+	GetClientAbsOrigin(target, gF_Checkpoints[client][index][0]);
+	GetClientEyeAngles(target, gF_Checkpoints[client][index][1]);
+	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", gF_Checkpoints[client][index][2]);
+	GetEntPropString(target, Prop_Data, "m_iName", gS_CheckpointsTargetname[client][index], 32);
+
+	gA_PlayerCheckPointsCache[client][index][iCPMoveType] = GetEntityMoveType(target);
+	gA_PlayerCheckPointsCache[client][index][fCPGravity] = GetEntityGravity(target);
+	gA_PlayerCheckPointsCache[client][index][fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
+	gA_PlayerCheckPointsCache[client][index][fCPStamina] = GetEntPropFloat(target, Prop_Send, "m_flStamina");
+	gA_PlayerCheckPointsCache[client][index][bCPDucking] = (GetClientButtons(target) & IN_DUCK) > 0;
+
+	Shavit_SaveSnapshot(target, gA_CheckpointsSnapshots[client][index]);
+
+	return true;
 }
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
 	if(index < 0 || index >= CP_MAX || IsNullVector(gF_Checkpoints[client][index][0]))
 	{
+		return;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+
 		return;
 	}
 
@@ -1716,11 +1745,11 @@ public Action Command_Specs(int client, int args)
 		return Plugin_Handled;
 	}
 
-	int iSpecTarget = client;
+	int iObserverTarget = client;
 
 	if(IsClientObserver(client))
 	{
-		iSpecTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
+		iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
 	}
 
 	if(args > 0)
@@ -1742,7 +1771,7 @@ public Action Command_Specs(int client, int args)
 			return Plugin_Handled;
 		}
 
-		iSpecTarget = iNewTarget;
+		iObserverTarget = iNewTarget;
 	}
 
 	int iCount;
@@ -1755,7 +1784,7 @@ public Action Command_Specs(int client, int args)
 			continue;
 		}
 
-		if(GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == iSpecTarget)
+		if(GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == iObserverTarget)
 		{
 			iCount++;
 
@@ -1773,12 +1802,12 @@ public Action Command_Specs(int client, int args)
 
 	if(iCount > 0)
 	{
-		Shavit_PrintToChat(client, "%T", "SpectatorCount", client, gS_ChatStrings[sMessageVariable2], iSpecTarget, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iCount, gS_ChatStrings[sMessageText], sSpecs);
+		Shavit_PrintToChat(client, "%T", "SpectatorCount", client, gS_ChatStrings[sMessageVariable2], iObserverTarget, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iCount, gS_ChatStrings[sMessageText], sSpecs);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "%T", "SpectatorCountZero", client, gS_ChatStrings[sMessageVariable2], iSpecTarget, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "SpectatorCountZero", client, gS_ChatStrings[sMessageVariable2], iObserverTarget, gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
