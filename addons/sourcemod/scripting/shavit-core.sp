@@ -1883,8 +1883,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
+	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
+
 	// key blocking
-	if(!Shavit_InsideZone(client, Zone_Freestyle, -1))
+	if(!bOnLadder && !Shavit_InsideZone(client, Zone_Freestyle, -1))
 	{
 		// block E
 		if(gA_StyleSettings[gBS_Style[client]][bBlockUse] && (buttons & IN_USE) > 0)
@@ -2024,7 +2026,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client])
 	{
 		bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
-		bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 
 		if((buttons & IN_JUMP) > 0 && iGroundEntity == -1 && !bOnLadder && !bInWater)
 		{
