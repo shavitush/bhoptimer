@@ -47,6 +47,8 @@ bool gB_MySQL = false;
 int gBS_LastWR[MAXPLAYERS+1];
 char gS_ClientMap[MAXPLAYERS+1][128];
 int gI_LastTrack[MAXPLAYERS+1];
+bool gB_PendingMenu[MAXPLAYERS+1];
+
 char gS_Map[160]; // blame workshop paths being so fucking long
 ArrayList gA_ValidMaps = null;
 int gI_ValidMaps = 1;
@@ -394,6 +396,8 @@ public void Shavit_OnChatConfigLoaded()
 
 public void OnClientPutInServer(int client)
 {
+	gB_PendingMenu[client] = false;
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
@@ -1503,7 +1507,7 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 public Action Command_RecentRecords(int client, int args)
 {
-	if(!IsValidClient(client))
+	if(gB_PendingMenu[client] || !IsValidClient(client))
 	{
 		return Plugin_Handled;
 	}
@@ -1511,21 +1515,25 @@ public Action Command_RecentRecords(int client, int args)
 	char[] sQuery = new char[512];
 	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, MIN(p.time), p.jumps, p.style, p.points, p.track FROM %splayertimes p JOIN %susers u ON p.auth = u.auth GROUP BY p.map, p.style, p.track ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gI_RecentLimit);
 
-	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
+
+	gB_PendingMenu[client] = true;
 
 	return Plugin_Handled;
 }
 
 public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
+	int client = GetClientFromSerial(data);
+
+	gB_PendingMenu[client] = false;
+
 	if(results == null)
 	{
 		LogError("Timer (RR SELECT) SQL query failed. Reason: %s", error);
 
 		return;
 	}
-
-	int client = GetClientFromSerial(data);
 
 	if(client == 0)
 	{
@@ -1541,7 +1549,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		results.FetchString(1, sMap, 192);
 		
 		char[] sName = new char[MAX_NAME_LENGTH];
-		results.FetchString(2, sName, MAX_NAME_LENGTH);
+		results.FetchString(2, sName, 10);
+
+		if(strlen(sName) == 9)
+		{
+			Format(sName, MAX_NAME_LENGTH, "%s...", sName);
+		}
 
 		char[] sTime = new char[16];
 		float time = results.FetchFloat(3);
@@ -1558,12 +1571,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sTrack, sMap, sName, sTime, fPoints, "WRPoints", client);
+			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sTrack[0], sMap, sName, sTime, fPoints, "WRPoints", client);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack, sMap, sName, sTime, jumps, "WRJumps", client);
+			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack[0], sMap, sName, sTime, jumps, "WRJumps", client);
 		}
 
 		char[] sInfo = new char[192];
