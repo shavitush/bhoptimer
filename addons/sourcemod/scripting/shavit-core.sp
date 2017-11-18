@@ -77,7 +77,6 @@ bool gB_PracticeMode[MAXPLAYERS+1];
 int gI_SHSW_FirstCombination[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 
-float gF_HSW_Requirement = 0.0;
 StringMap gSM_StyleCommands = null;
 
 // cookies
@@ -210,14 +209,12 @@ public void OnPluginStart()
 	if(gEV_Type == Engine_CSS)
 	{
 		gSG_Type = Game_CSS;
-		gF_HSW_Requirement = 399.00;
 	}
 
 	else if(gEV_Type == Engine_CSGO)
 	{
 		gSG_Type = Game_CSGO;
-		gF_HSW_Requirement = 449.00;
-
+		
 		sv_autobunnyhopping = FindConVar("sv_autobunnyhopping");
 		sv_autobunnyhopping.BoolValue = false;
 	}
@@ -627,7 +624,7 @@ public Action Command_TogglePause(int client, int args)
 #if defined DEBUG
 public Action Command_FinishTest(int client, int args)
 {
-	Shavit_FinishMap(client);
+	Shavit_FinishMap(client, gI_Track[client]);
 
 	return Plugin_Handled;
 }
@@ -1883,6 +1880,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
+	#if defined DEBUG
+	static int cycle = 0;
+
+	if(++cycle % 50 == 0)
+	{
+		Shavit_StopChatSound();
+		Shavit_PrintToChat(client, "vel[0]: %.01f | vel[1]: %.01f", vel[0], vel[1]);
+	}
+	#endif
+
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 
 	// key blocking
@@ -1929,10 +1936,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				bool bSHSW = (gA_StyleSettings[gBS_Style[client]][iForceHSW] == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
 				int iCombination = -1;
 
-				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] > gF_HSW_Requirement);
-				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 && vel[1] < -gF_HSW_Requirement);
-				bool bBack = ((buttons & IN_BACK) > 0 && vel[0] < -gF_HSW_Requirement);
-				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 && vel[1] > gF_HSW_Requirement);
+				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] >= 200.0);
+				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 && vel[1] <= -200.0);
+				bool bBack = ((buttons & IN_BACK) > 0 && vel[0] <= -200.0);
+				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 && vel[1] >= 200.0);
 
 				if(bSHSW)
 				{
