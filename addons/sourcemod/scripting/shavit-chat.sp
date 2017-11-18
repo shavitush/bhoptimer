@@ -61,6 +61,11 @@ public Plugin myinfo =
 public void OnAllPluginsLoaded()
 {
 	gB_RTLer = LibraryExists("rtler");
+
+	if(gH_SQL == null)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnPluginStart()
@@ -238,7 +243,7 @@ public Action Command_CCName(int client, int args)
 	if(args == 0 || strlen(sArgs) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_ccname <text>");
-		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, sArgs);
+		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, gS_CustomName[client]);
 
 		return Plugin_Handled;
 	}
@@ -288,7 +293,7 @@ public Action Command_CCMessage(int client, int args)
 	if(args == 0 || strlen(sArgs) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_ccmsg <text>");
-		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, sArgs);
+		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, gS_CustomMessage[client]);
 
 		return Plugin_Handled;
 	}
@@ -369,15 +374,18 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 		FormatRandom(message, MAXLENGTH_MESSAGE);
 	}
 
+	#if defined DEBUG
+	PrintToServer("%N %s", author, flagstring);
+	#endif
+
 	bool allchat = (StrContains(flagstring, "_All") != -1);
 	int team = GetClientTeam(author);
 
 	recipients.Clear();
-	recipients.Push(author);
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(i != author && IsClientInGame(i) && (allchat || GetClientTeam(i) == team))
+		if(i == author || (IsClientInGame(i) && (allchat || GetClientTeam(i) == team)))
 		{
 			recipients.Push(i);
 		}

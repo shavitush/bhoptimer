@@ -56,7 +56,7 @@ float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
 int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
 char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
 int gI_RecordAmount[STYLE_LIMIT][TRACKS_SIZE];
-ArrayList gA_LeaderBoard[STYLE_LIMIT][TRACKS_SIZE];
+ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 
 // admin menu
@@ -96,6 +96,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
 	CreateNative("Shavit_GetRecordAmount", Native_GetRecordAmount);
+	CreateNative("Shavit_GetTimeForRank", Native_GetTimeForRank);
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
 	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
@@ -127,7 +128,7 @@ public void OnPluginStart()
 	#endif
 
 	// forwards
-	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
@@ -174,7 +175,7 @@ public void OnPluginStart()
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			gA_LeaderBoard[i][j] = new ArrayList();
+			gA_Leaderboard[i][j] = new ArrayList();
 			gI_RecordAmount[i][j] = 0;
 		}
 	}
@@ -364,19 +365,19 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	}
 
 	// arrays
-	for(int i = 0; i < styles; i++)
+	for(int i = 0; i < STYLE_LIMIT; i++)
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			gA_LeaderBoard[i][j].Clear();
-		}
-	}
+			if(i < styles)
+			{
+				gA_Leaderboard[i][j].Clear();
+			}
 
-	for(int i = styles; i < STYLE_LIMIT; i++)
-	{
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			delete gA_LeaderBoard[i][j];
+			else
+			{
+				delete gA_Leaderboard[i][j];
+			}
 		}
 	}
 
@@ -542,7 +543,7 @@ public int Native_GetRankForTime(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(3);
 
-	if(gA_LeaderBoard[style][track].Length == 0)
+	if(gA_Leaderboard[style][track].Length == 0)
 	{
 		return 1;
 	}
@@ -553,6 +554,24 @@ public int Native_GetRankForTime(Handle handler, int numParams)
 public int Native_GetRecordAmount(Handle handler, int numParams)
 {
 	return gI_RecordAmount[GetNativeCell(1)][GetNativeCell(2)];
+}
+
+public int Native_GetTimeForRank(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+	int rank = GetNativeCell(2);
+	int track = GetNativeCell(3);
+
+	#if defined DEBUG
+	Shavit_PrintToChatAll("style %d | rank %d | track %d | amount %d", style, rank, track, gI_RecordAmount[style][track]);
+	#endif
+
+	if(rank > gI_RecordAmount[style][track])
+	{
+		return view_as<int>(0.0);
+	}
+
+	return view_as<int>(gA_Leaderboard[style][track].Get(rank - 1));
 }
 
 #if defined DEBUG
@@ -1771,13 +1790,13 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		else
 		{
-			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], Track_Main);
+			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], gI_LastTrack[param1]);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], Track_Main);
+		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], gI_LastTrack[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -2022,6 +2041,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	if(overwrite > 0 && (time < gF_WRTime[style][track] || gF_WRTime[style][track] == 0.0)) // WR?
 	{
+		float oldwr = gF_WRTime[style][track];
 		gF_WRTime[style][track] = time;
 
 		Call_StartForward(gH_OnWorldRecord);
@@ -2032,7 +2052,12 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(strafes);
 		Call_PushCell(sync);
 		Call_PushCell(track);
+		Call_PushCell(oldwr);
 		Call_Finish();
+
+		#if defined DEBUG
+		Shavit_PrintToChat(client, "old: %.01f new: %.01f", oldwr, time);
+		#endif
 	}
 
 	int iRank = GetRankForTime(style, time, track);
@@ -2158,7 +2183,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			gI_RecordAmount[i][j] = 0;
-			gA_LeaderBoard[i][j].Clear();
+			gA_Leaderboard[i][j].Clear();
 		}
 	}
 
@@ -2172,7 +2197,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 			continue;
 		}
 
-		gA_LeaderBoard[style][track].Push(results.FetchFloat(1));
+		gA_Leaderboard[style][track].Push(results.FetchFloat(1));
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -2184,8 +2209,8 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			SortADTArray(gA_LeaderBoard[i][j], Sort_Ascending, Sort_Float);
-			gI_RecordAmount[i][j] = gA_LeaderBoard[i][j].Length;
+			SortADTArray(gA_Leaderboard[i][j], Sort_Ascending, Sort_Float);
+			gI_RecordAmount[i][j] = gA_Leaderboard[i][j].Length;
 		}
 	}
 }
@@ -2197,11 +2222,14 @@ int GetRankForTime(int style, float time, int track)
 		return 1;
 	}
 
-	for(int i = 0; i < gI_RecordAmount[style][track]; i++)
+	if(gA_Leaderboard[style][track] != null && gA_Leaderboard[style][track].Length > 0)
 	{
-		if(time < gA_LeaderBoard[style][track].Get(i))
+		for(int i = 0; i < gI_RecordAmount[style][track]; i++)
 		{
-			return ++i;
+			if(time < gA_Leaderboard[style][track].Get(i))
+			{
+				return ++i;
+			}
 		}
 	}
 

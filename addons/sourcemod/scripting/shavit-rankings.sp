@@ -95,6 +95,8 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_GetMapTier", Native_GetMapTier);
+	CreateNative("Shavit_GetMapTiers", Native_GetMapTiers);
 	CreateNative("Shavit_GetPoints", Native_GetPoints);
 	CreateNative("Shavit_GetRank", Native_GetRank);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
@@ -177,6 +179,8 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		gI_Styles = Shavit_GetStyleCount();
 	}
 
+	gI_RankedStyles = 0;
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
@@ -208,7 +212,6 @@ public void OnLibraryRemoved(const char[] name)
 public void Shavit_OnDatabaseLoaded()
 {
 	gH_SQL = Shavit_GetDatabase();
-
 	SetSQLInfo();
 }
 
@@ -542,7 +545,7 @@ public Action Command_Rank(int client, int args)
 		}
 	}
 
-	if(gI_Rank[target] == 0)
+	if(gF_Points[target] == 0.0)
 	{
 		Shavit_PrintToChat(client, "%T", "Unranked", client, gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText]);
 
@@ -550,7 +553,7 @@ public Action Command_Rank(int client, int args)
 	}
 
 	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText],
-		gS_ChatStrings[sMessageVariable], gI_Rank[target], gS_ChatStrings[sMessageText],
+		gS_ChatStrings[sMessageVariable], (gI_Rank[target] > gI_RankedPlayers)? gI_RankedPlayers:gI_Rank[target], gS_ChatStrings[sMessageText],
 		gI_RankedPlayers,
 		gS_ChatStrings[sMessageVariable], gF_Points[target], gS_ChatStrings[sMessageText]);
 
@@ -596,6 +599,7 @@ public Action Command_SetTier(int client, int args)
 	}
 
 	gI_Tier = tier;
+	gA_MapTiers.SetValue(gS_Map, tier);
 
 	Call_StartForward(gH_Forwards_OnTierAssigned);
 	Call_PushString(gS_Map);
@@ -762,7 +766,7 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 			return;
 		}
 
-		int max = ((gA_ValidMaps.Length * 2) * gI_RankedStyles);
+		int max = ((gA_ValidMaps.Length * TRACKS_SIZE) * gI_RankedStyles);
 		float current = ((float(++gI_Progress[client]) / max) * 100.0);
 
 		PrintToConsole(client, "- [%.01f%%] Recalculated \"%s\" (%s | %s).", current, sMap, gS_TrackNames[track], gS_StyleNames[style]);
@@ -927,6 +931,26 @@ void GetTrackName(int client, int track, char[] output, int size)
 	static char sTrack[16];
 	FormatEx(sTrack, 16, "Track_%d", track);
 	FormatEx(output, size, "%T", sTrack, client);
+}
+
+public int Native_GetMapTier(Handle handler, int numParams)
+{
+	int tier = 0;
+
+	char[] sMap = new char[128];
+	GetNativeString(1, sMap, 128);
+
+	if(!gA_MapTiers.GetValue(sMap, tier))
+	{
+		return 0;
+	}
+
+	return tier;
+}
+
+public int Native_GetMapTiers(Handle handler, int numParams)
+{
+	return view_as<int>(CloneHandle(gA_MapTiers, handler));
 }
 
 public int Native_GetPoints(Handle handler, int numParams)

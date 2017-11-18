@@ -6,6 +6,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"You have to be {1}alive{2} to use this command."
 	}
+	"CommandAliveSpectate"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s}"
+		"en"		"You have to be {1}alive{2} or {3}spectate a player{4} to use this command."
+	}
 	"CommandDisabled"
 	{
 		"#format"	"{1:s},{2:s}"

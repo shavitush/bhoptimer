@@ -76,7 +76,7 @@ int gI_GridSnap[MAXPLAYERS+1];
 bool gB_SnapToWall[MAXPLAYERS+1];
 bool gB_CursorTracing[MAXPLAYERS+1];
 
-// Cache.
+// cache
 float gV_Point1[MAXPLAYERS+1][3];
 float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
@@ -89,8 +89,8 @@ float gF_CustomSpawn[3];
 int gI_ZoneTrack[MAXPLAYERS+1];
 int gI_ZoneDatabaseID[MAXPLAYERS+1];
 
-// Zone cache.
-any gA_ZoneSettings[ZONETYPES_SIZE][ZONESETTINGS_SIZE];
+// zone cache
+any gA_ZoneSettings[ZONETYPES_SIZE][TRACKS_SIZE][ZONESETTINGS_SIZE];
 any gA_ZoneCache[MAX_ZONES][ZONECACHE_SIZE]; // Vectors will not be inside this array.
 int gI_MapZones = 0;
 float gV_MapZones[MAX_ZONES][2][3];
@@ -107,7 +107,7 @@ int gI_HaloSprite = -1;
 // admin menu
 Handle gH_AdminMenu = INVALID_HANDLE;
 
-// cache
+// misc cache
 bool gB_Late = false;
 
 // cvars
@@ -140,6 +140,10 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 // forwards
 Handle gH_Forwards_EnterZone = null;
 Handle gH_Forwards_LeaveZone = null;
+
+// kz support
+float gF_ClimbButtonCache[MAXPLAYERS+1][TRACKS_SIZE][2][3]; // 0 - location, 1 - angles
+int gI_KZButtons[TRACKS_SIZE][2]; // 0 - start, 1 - end
 
 public Plugin myinfo =
 {
@@ -230,6 +234,27 @@ public void OnPluginStart()
 	gCV_Offset.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
+
+	for(int i = 0; i < ZONETYPES_SIZE; i++)
+	{
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			gA_ZoneSettings[i][j][bVisible] = true;
+			gA_ZoneSettings[i][j][iRed] = 255;
+			gA_ZoneSettings[i][j][iGreen] = 255;
+			gA_ZoneSettings[i][j][iBlue] = 255;
+			gA_ZoneSettings[i][j][iAlpha] = 255;
+			gA_ZoneSettings[i][j][fWidth] = 2.0;
+		}
+	}
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientConnected(i) && IsClientInGame(i))
+		{
+			OnClientPutInServer(i);
+		}
+	}
 
 	SQL_SetPrefix();
 }
@@ -434,12 +459,15 @@ bool LoadZonesConfig()
 
 	do
 	{
-		gA_ZoneSettings[i][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
-		gA_ZoneSettings[i][iRed] = kv.GetNum("red", 255);
-		gA_ZoneSettings[i][iGreen] = kv.GetNum("green", 255);
-		gA_ZoneSettings[i][iBlue] = kv.GetNum("blue", 255);
-		gA_ZoneSettings[i][iAlpha] = kv.GetNum("alpha", 255);
-		gA_ZoneSettings[i][fWidth] = kv.GetFloat("width", 2.0);
+		int track = (i <= 9)? Track_Main:Track_Bonus;
+		int index = (track == Track_Main)? i:i-10;
+
+		gA_ZoneSettings[index][track][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
+		gA_ZoneSettings[index][track][iRed] = kv.GetNum("red", 255);
+		gA_ZoneSettings[index][track][iGreen] = kv.GetNum("green", 255);
+		gA_ZoneSettings[index][track][iBlue] = kv.GetNum("blue", 255);
+		gA_ZoneSettings[index][track][iAlpha] = kv.GetNum("alpha", 255);
+		gA_ZoneSettings[index][track][fWidth] = kv.GetFloat("width", 2.0);
 
 		i++;
 	}
@@ -501,11 +529,73 @@ public void OnMapStart()
 
 	// draw
 	// start drawing mapzones here
-	gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	if(gH_DrawEverything == null)
+	{
+		gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 
 	if(gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
+	}
+}
+
+public void OnMapEnd()
+{
+	delete gH_DrawEverything;
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if(!StrEqual(classname, "func_button", false))
+	{
+		return;
+	}
+
+	RequestFrame(Frame_HookButton, EntIndexToEntRef(entity));
+}
+
+public void Frame_HookButton(any data)
+{
+	int entity = EntRefToEntIndex(data);
+
+	if(entity == INVALID_ENT_REFERENCE)
+	{
+		return;
+	}
+
+	char[] sName = new char[32];
+	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
+
+	if(StrContains(sName, "climb_") == -1)
+	{
+		return;
+	}
+
+	int zone = -1;
+	int track = Track_Main;
+
+	if(StrContains(sName, "startbutton") != -1)
+	{
+		zone = Zone_Start;
+	}
+
+	else if(StrContains(sName, "endbutton") != -1)
+	{
+		zone = Zone_End;
+	}
+
+	if(StrContains(sName, "bonus") != -1)
+	{
+		track = Track_Bonus;
+	}
+
+	if(zone != -1)
+	{
+		gI_KZButtons[track][zone] = entity;
+		Shavit_MarkKZMap();
+
+		SDKHook(entity, SDKHook_UsePost, UsePost);
 	}
 }
 
@@ -679,11 +769,17 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 public void OnClientPutInServer(int client)
 {
-	for(int i = 0; i < ZONETYPES_SIZE; i++)
+	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		for(int j = 0; j < TRACKS_SIZE; j++)
+		for(int j = 0; j < ZONETYPES_SIZE; j++)
 		{
-			gB_InsideZone[client][i][j] = false;
+			gB_InsideZone[client][j][i] = false;
+		}
+
+		for(int j = 0; j < 3; j++)
+		{
+			gF_ClimbButtonCache[client][i][0][j] = 0.0;
+			gF_ClimbButtonCache[client][i][1][j] = 0.0;
 		}
 	}
 
@@ -692,11 +788,6 @@ public void OnClientPutInServer(int client)
 		gB_InsideZoneID[client][i] = false;
 	}
 
-	Reset(client);
-}
-
-public void OnClientDisconnect(int client)
-{
 	Reset(client);
 }
 
@@ -1755,24 +1846,45 @@ public Action Timer_DrawEverything(Handle Timer)
 		return Plugin_Continue;
 	}
 
-	for(int i = 0; i < gI_MapZones; i++)
+	static int iCycle = 0;
+	int iMaxZonesPerFrame = (gB_FlatZones)? 16:5;
+
+	if(iCycle >= gI_MapZones)
 	{
-		if(gA_ZoneCache[i][bZoneInitialized] && gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][bVisible])
+		iCycle = 0;
+	}
+
+	for(int i = iCycle; i < gI_MapZones; i++)
+	{
+		if(gA_ZoneCache[i][bZoneInitialized])
 		{
-			DrawZone(gV_MapZones_Visual[i], GetZoneColors(gA_ZoneCache[i][iZoneType]), gF_Interval, gA_ZoneSettings[gA_ZoneCache[i][iZoneType]][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
+			int type = gA_ZoneCache[i][iZoneType];
+			int track = gA_ZoneCache[i][iZoneTrack];
+
+			if(gA_ZoneSettings[type][track][bVisible])
+			{
+				DrawZone(gV_MapZones_Visual[i], GetZoneColors(type, track), RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gF_Interval, gA_ZoneSettings[type][track][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
+			}
+		}
+
+		if(++iCycle % iMaxZonesPerFrame == 0)
+		{
+			return Plugin_Continue;
 		}
 	}
+
+	iCycle = 0;
 
 	return Plugin_Continue;
 }
 
-int[] GetZoneColors(int type, int customalpha = 0)
+int[] GetZoneColors(int type, int track, int customalpha = 0)
 {
 	int colors[4];
-	colors[0] = gA_ZoneSettings[type][iRed];
-	colors[1] = gA_ZoneSettings[type][iGreen];
-	colors[2] = gA_ZoneSettings[type][iBlue];
-	colors[3] = (customalpha > 0)? customalpha:gA_ZoneSettings[type][iAlpha];
+	colors[0] = gA_ZoneSettings[type][track][iRed];
+	colors[1] = gA_ZoneSettings[type][track][iGreen];
+	colors[2] = gA_ZoneSettings[type][track][iBlue];
+	colors[3] = (customalpha > 0)? customalpha:gA_ZoneSettings[type][track][iAlpha];
 
 	return colors;
 }
@@ -1830,7 +1942,10 @@ public Action Timer_Draw(Handle Timer, any data)
 		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
 		origin = points[7];
 
-		DrawZone(points, GetZoneColors(gI_ZoneType[client], 25), 0.1, gA_ZoneSettings[gI_ZoneType[client]][fWidth], false, origin);
+		int type = gI_ZoneType[client];
+		int track = gI_ZoneTrack[client];
+
+		DrawZone(points, GetZoneColors(type, track, 125), 0.1, gA_ZoneSettings[type][track][fWidth], false, origin);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -2090,11 +2205,16 @@ public void Shavit_OnRestart(int client, int track)
 {
 	if(gB_TeleportToStart)
 	{
-		Shavit_StartTimer(client, track);
-
-		if(!EmptyVector(gF_CustomSpawn))
+		if(track == Track_Main && !EmptyVector(gF_CustomSpawn))
 		{
 			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		}
+
+		else if(Shavit_IsKZMap() && !EmptyVector(gF_ClimbButtonCache[client][track][0]) && !EmptyVector(gF_ClimbButtonCache[client][track][1]))
+		{
+			TeleportEntity(client, gF_ClimbButtonCache[client][track][0], gF_ClimbButtonCache[client][track][1], view_as<float>({0.0, 0.0, 0.0}));
+
+			return;
 		}
 
 		else
@@ -2113,6 +2233,8 @@ public void Shavit_OnRestart(int client, int track)
 
 			TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
+
+		Shavit_StartTimer(client, track);
 	}
 }
 
@@ -2167,6 +2289,12 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 {
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		gI_KZButtons[i][0] = -1;
+		gI_KZButtons[i][1] = -1;
+	}
+
 	gB_ZonesCreated = false;
 
 	RequestFrame(Frame_CreateZoneEntities);
@@ -2382,5 +2510,43 @@ public void TouchPost(int entity, int other)
 				Shavit_StartTimer(other, Track_Main);
 			}
 		}
+	}
+}
+
+public void UsePost(int entity, int activator, int caller, UseType type, float value)
+{
+	if(activator < 1 || activator > MaxClients || IsFakeClient(activator) || GetEntPropEnt(activator, Prop_Send, "m_hGroundEntity") == -1)
+	{
+		return;
+	}
+
+	int zone = -1;
+	int track = Track_Main;
+
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		for(int j = 0; j < 2; j++)
+		{
+			if(gI_KZButtons[i][j] == entity)
+			{
+				zone = j;
+				track = i;
+
+				break;
+			}
+		}
+	}
+
+	if(zone == Zone_Start)
+	{
+		GetClientAbsOrigin(activator, gF_ClimbButtonCache[activator][track][0]);
+		GetClientEyeAngles(activator, gF_ClimbButtonCache[activator][track][1]);
+
+		Shavit_StartTimer(activator, track);
+	}
+
+	if(zone == Zone_End)
+	{
+		Shavit_FinishMap(activator, track);
 	}
 }
