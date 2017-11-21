@@ -66,7 +66,7 @@ int gI_ReplayBotClient[STYLE_LIMIT];
 ArrayList gA_Frames[STYLE_LIMIT][TRACKS_SIZE];
 float gF_StartTick[STYLE_LIMIT];
 ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
-any gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE][3]; // int frame_count, float, time, bool new_format
+any gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE][3]; // int frame_count, float time, bool new_format
 char gS_ReplayNames[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
 bool gB_ForciblyStopped = false;
 
@@ -136,6 +136,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
+	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
+	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
+	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
+	CreateNative("Shavit_GetReplayTime", Native_GetReplayTime);
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
 	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
@@ -250,7 +254,7 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 
 	if(gB_CentralBot)
 	{
-		return (gA_CentralCache[iCentralClient] != -1 && gA_CentralCache[iCentralClient] != Replay_Idle && gA_FrameCache[style][track][0] > 0);
+		return (gA_CentralCache[iCentralClient] != -1 && gA_CentralCache[iCentralClient] != Replay_Idle && view_as<int>(gA_FrameCache[style][track][0]) > 0);
 	}
 
 	return view_as<int>(ReplayEnabled(style) && gA_FrameCache[style][Track_Main][0] > 0);
@@ -364,6 +368,42 @@ public int Native_GetReplayData(Handle handler, int numParams)
 	}
 
 	return view_as<int>(frames);
+}
+
+public int Native_GetReplayFrameCount(Handle handler, int numParams)
+{
+	return view_as<int>(gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)][0]);
+}
+
+public int Native_GetReplayLength(Handle handler, int numParams)
+{
+	return view_as<int>(gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)][1]);
+}
+
+public int Native_GetReplayName(Handle handler, int numParams)
+{
+	return SetNativeString(3, gS_ReplayNames[GetNativeCell(1)][GetNativeCell(2)], GetNativeCell(4));
+}
+
+public int Native_GetReplayTime(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
+
+	if(gB_CentralBot)
+	{
+		if(gA_CentralCache[iCentralReplayStatus] == Replay_End)
+		{
+			return view_as<int>(gA_FrameCache[style][track][1]);
+		}
+	}
+
+	else if(gRS_ReplayStatus[style] == Replay_End)
+	{
+		return view_as<int>(gA_FrameCache[style][Track_Main][1]);
+	}
+
+	return view_as<int>(float(gI_ReplayTick[style]) / gF_Tickrate);
 }
 
 public int Native_GetReplayBotStyle(Handle handler, int numParams)
@@ -727,7 +767,6 @@ bool LoadReplay(int style, int track, const char[] path)
 
 			if(gH_SQL != null)
 			{
-				// TODO: query database with above steamid and store name into `gS_ReplayNames[style][track]`
 				char[] sQuery = new char[192];
 				FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = '%s';", gS_MySQLPrefix, sAuthID);
 
