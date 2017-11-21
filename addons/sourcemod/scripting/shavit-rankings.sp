@@ -736,19 +736,19 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 	#endif
 }
 
-public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(view_as<DataPack>(data));
-	int serial = ReadPackCell(data);
-	int size = ReadPackCell(data);
+	data.Reset();
+	int serial = data.ReadCell();
+	int size = data.ReadCell();
 
 	char[] sMap = new char[size + 1];
 	ReadPackString(data, sMap, size + 1);
 
-	int track = ReadPackCell(data);
-	int style = ReadPackCell(data);
-	bool print = view_as<bool>(ReadPackCell(data));
-	delete view_as<DataPack>(data);
+	int track = data.ReadCell();
+	int style = data.ReadCell();
+	bool print = view_as<bool>(data.ReadCell());
+	delete data;
 
 	if(results == null)
 	{

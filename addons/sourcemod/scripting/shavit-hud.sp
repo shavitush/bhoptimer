@@ -38,8 +38,8 @@ EngineVersion gEV_Type = Engine_Unknown;
 // modules
 bool gB_Replay = false;
 bool gB_Zones = false;
-bool gB_BhopStats = false;
 bool gB_Sounds = false;
+bool gB_BhopStats = false;
 
 // cache
 int gI_Cycle = 0;
@@ -114,6 +114,7 @@ public void OnPluginStart()
 	// prevent errors in case the replay bot isn't loaded
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
+	gB_Sounds = LibraryExists("shavit-sounds");
 	gB_BhopStats = LibraryExists("bhopstats");
 
 	// HUD handle
@@ -121,7 +122,6 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
-
 	gCV_GradientStepSize.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();

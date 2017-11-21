@@ -1148,13 +1148,13 @@ public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int 
 	return 0;
 }
 
-public void SQL_DeleteZone_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_DeleteZone_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(data);
-	int client = GetClientFromSerial(ReadPackCell(data));
-	int type = ReadPackCell(data);
+	data.Reset();
+	int client = GetClientFromSerial(data.ReadCell());
+	int type = data.ReadCell();
 
-	delete view_as<DataPack>(data);
+	delete data;
 
 	if(results == null)
 	{

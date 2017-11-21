@@ -925,12 +925,12 @@ public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, 
 	return 0;
 }
 
-public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(view_as<DataPack>(data));
-	int serial = ReadPackCell(data);
-	int style = ReadPackCell(data);
-	delete view_as<DataPack>(data);
+	data.Reset();
+	int serial = data.ReadCell();
+	int style = data.ReadCell();
+	delete data;
 
 	if(results == null)
 	{
@@ -988,12 +988,12 @@ void OpenDelete(int client, int style)
 	gH_SQL.Query(SQL_OpenDelete_Callback, sQuery, datapack, DBPrio_High);
 }
 
-public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(data);
-	int client = GetClientFromSerial(ReadPackCell(data));
-	int style = ReadPackCell(data);
-	delete view_as<DataPack>(data);
+	data.Reset();
+	int client = GetClientFromSerial(data.ReadCell());
+	int style = data.ReadCell();
+	delete data;
 
 	if(results == null)
 	{
@@ -1363,17 +1363,16 @@ void StartWRMenu(int client, const char[] map, int style, int track)
 	return;
 }
 
-public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(data);
-
-	int serial = ReadPackCell(data);
-	int track = ReadPackCell(data);
+	data.Reset();
+	int serial = data.ReadCell();
+	int track = data.ReadCell();
 
 	char[] sMap = new char[192];
-	ReadPackString(data, sMap, 192);
+	data.ReadString(sMap, 192);
 
-	delete view_as<DataPack>(data);
+	delete data;
 
 	if(results == null)
 	{
@@ -1649,19 +1648,19 @@ void OpenSubMenu(int client, int id)
 	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, datapack, DBPrio_High);
 }
 
-public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
+	data.Reset();
+	int client = GetClientFromSerial(data.ReadCell());
+	int id = data.ReadCell();
+	delete data;
+
 	if(results == null)
 	{
 		LogError("Timer (WR SUBMENU) SQL query failed. Reason: %s", error);
 
 		return;
 	}
-
-	ResetPack(data);
-	int client = GetClientFromSerial(ReadPackCell(data));
-	int id = ReadPackCell(data);
-	delete view_as<DataPack>(data);
 
 	if(client == 0)
 	{
