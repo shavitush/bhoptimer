@@ -772,8 +772,6 @@ void ChangeClientStyle(int client, int style, bool manual)
 		return;
 	}
 
-	CallOnStyleChanged(client, gBS_Style[client], style, manual);
-
 	if(manual)
 	{
 		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
@@ -792,6 +790,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 		Shavit_PrintToChat(client, "%T", "NewAiraccelerate", client, aa_old, gS_ChatStrings[sMessageVariable], aa_new, gS_ChatStrings[sMessageText]);
 	}
 
+	CallOnStyleChanged(client, gBS_Style[client], style, manual);
 	gBS_Style[client] = style;
 
 	UpdateAutoBhop(client);
@@ -1175,6 +1174,11 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
 	GetNativeArray(2, snapshot, TIMERSNAPSHOT_SIZE);
 
+	if(gBS_Style[client] != snapshot[bsStyle])
+	{
+		CallOnStyleChanged(client, gBS_Style[client], snapshot[bsStyle], false);
+	}
+
 	gB_TimerEnabled[client] = view_as<bool>(snapshot[bTimerEnabled]);
 	gF_PauseStartTime[client] = view_as<float>(snapshot[fPauseStartTime]);
 	gF_PauseTotalTime[client] = view_as<float>(snapshot[fPauseTotalTime]);
@@ -1358,8 +1362,8 @@ public void OnClientCookiesCached(int client)
 		style = StringToInt(sCookie);
 	}
 
-	gBS_Style[client] = (style >= 0 && style < gI_Styles)? style:0;
 	CallOnStyleChanged(client, 0, gBS_Style[client], false);
+	gBS_Style[client] = (style >= 0 && style < gI_Styles)? style:0;
 
 	UpdateAutoBhop(client);
 	UpdateAiraccelerate(client);
