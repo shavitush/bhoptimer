@@ -107,7 +107,7 @@ ConVar gCV_HideTeamChanges = null;
 ConVar gCV_RespawnOnTeam = null;
 ConVar gCV_RespawnOnRestart = null;
 ConVar gCV_StartOnSpawn = null;
-ConVar gCV_PrespeedLimit = null;
+ConVar gCV_PrestrafeLimit = null;
 ConVar gCV_HideRadar = null;
 ConVar gCV_TeleportCommands = null;
 ConVar gCV_NoWeaponDrops = null;
@@ -131,19 +131,19 @@ ConVar gCV_RestoreStates = null;
 
 // cached cvars
 int gI_GodMode = 3;
-int gI_PreSpeed = 3;
+int gI_PreSpeed = 1;
 bool gB_HideTeamChanges = true;
 bool gB_RespawnOnTeam = true;
 bool gB_RespawnOnRestart = true;
 bool gB_StartOnSpawn = true;
-float gF_PrespeedLimit = 280.00;
+float gF_PrestrafeLimit = 30.00;
 bool gB_HideRadar = true;
 bool gB_TeleportCommands = true;
 bool gB_NoWeaponDrops = true;
 bool gB_NoBlock = true;
 bool gB_NoBlood = false;
 float gF_AutoRespawn = 1.5;
-int gI_CreateSpawnPoints = 32;
+int gI_CreateSpawnPoints = 6;
 bool gB_DisableRadio = false;
 bool gB_Scoreboard = true;
 int gI_WeaponCommands = 2;
@@ -272,19 +272,19 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
-	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit to shavit_misc_prespeedlimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to shavit_misc_prespeedlimit and block bunnyhopping.", 0, true, 0.0, true, 3.0);
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to shavit_misc_prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to shavit_misc_prestrafelimit and block bunnyhopping.", 0, true, 0.0, true, 3.0);
 	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_StartOnSpawn = CreateConVar("shavit_misc_startonspawn", "1", "Restart the timer for a player after they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_PrespeedLimit = CreateConVar("shavit_misc_prespeedlimit", "280.00", "Prespeed limitation in startzone.", 0, true, 10.0, false);
+	gCV_PrestrafeLimit = CreateConVar("shavit_misc_prestrafelimit", "30", "Prestrafe limitation in startzone.\nThe value used internally is style run speed + this.\ni.e. run speed of 250 can prestrafe up to 278 (+28) with regular settings.", 0, true, 0.0, false);
 	gCV_HideRadar = CreateConVar("shavit_misc_hideradar", "1", "Should the plugin hide the in-game radar?", 0, true, 0.0, true, 1.0);
 	gCV_TeleportCommands = CreateConVar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoBlock = CreateConVar("shavit_misc_noblock", "1", "Disable player collision?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoBlood = CreateConVar("shavit_misc_noblood", "0", "Hide blood decals and particles?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_AutoRespawn = CreateConVar("shavit_misc_autorespawn", "1.5", "Seconds to wait before respawning player?\n0 - Disabled", 0, true, 0.0, true, 10.0);
-	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "32", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
+	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "6", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
 	gCV_DisableRadio = CreateConVar("shavit_misc_disableradio", "0", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
 	gCV_Scoreboard = CreateConVar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_WeaponCommands = CreateConVar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.", 0, true, 0.0, true, 2.0);
@@ -305,7 +305,7 @@ public void OnPluginStart()
 	gCV_RespawnOnTeam.AddChangeHook(OnConVarChanged);
 	gCV_RespawnOnRestart.AddChangeHook(OnConVarChanged);
 	gCV_StartOnSpawn.AddChangeHook(OnConVarChanged);
-	gCV_PrespeedLimit.AddChangeHook(OnConVarChanged);
+	gCV_PrestrafeLimit.AddChangeHook(OnConVarChanged);
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
 	gCV_TeleportCommands.AddChangeHook(OnConVarChanged);
 	gCV_NoWeaponDrops.AddChangeHook(OnConVarChanged);
@@ -457,7 +457,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_RespawnOnTeam = gCV_RespawnOnTeam.BoolValue;
 	gB_RespawnOnRestart = gCV_RespawnOnRestart.BoolValue;
 	gB_StartOnSpawn = gCV_StartOnSpawn.BoolValue;
-	gF_PrespeedLimit = gCV_PrespeedLimit.FloatValue;
+	gF_PrestrafeLimit = gCV_PrestrafeLimit.FloatValue;
 	gB_HideRadar = gCV_HideRadar.BoolValue;
 	gB_TeleportCommands = gCV_TeleportCommands.BoolValue;
 	gB_NoWeaponDrops = gCV_NoWeaponDrops.BoolValue;
@@ -849,8 +849,9 @@ void RemoveRagdoll(int client)
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track)
 {
-	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
+	bool bNoclip = GetEntityMoveType(client) == MOVETYPE_NOCLIP;
 
+	// i will not be adding a setting to toggle this off
 	if(bNoclip && status == Timer_Running)
 	{
 		Shavit_StopTimer(client);
@@ -859,7 +860,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, track))
+	if(!bNoclip && !gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, track))
 	{
 		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
@@ -873,23 +874,27 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 		if(gI_PreSpeed == 1 || gI_PreSpeed == 3)
 		{
-			float speed[3];
-			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", speed);
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
-			float speed_New = (SquareRoot(Pow(speed[0], 2.0) + Pow(speed[1], 2.0)));
-			float fScale = (gF_PrespeedLimit / speed_New);
+			float fLimit = view_as<float>(gA_StyleSettings[gBS_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
 
-			if(bNoclip)
+			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
+			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
+			if(fSpeed[2] > 0.0)
 			{
-				speed[2] = 0.0;
+				fLimit /= 3.0;
 			}
 
-			else if(fScale < 1.0)
+			float fSpeedXY = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
+			float fScale = (fLimit / fSpeedXY);
+
+			if(fScale < 1.0)
 			{
-				ScaleVector(speed, fScale);
+				ScaleVector(fSpeed, fScale);
 			}
 
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, speed);
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
 		}
 	}
 
