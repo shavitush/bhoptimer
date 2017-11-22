@@ -1547,7 +1547,10 @@ void ClearFrames(int client)
 
 public void Shavit_OnWRDeleted(int style, int id, int track)
 {
-	if(view_as<int>(gA_FrameCache[style][track][0]) > 0)
+	float time = 0.0;
+	Shavit_GetWRTime(style, time, track);
+
+	if(view_as<int>(gA_FrameCache[style][track][0]) > 0 && view_as<float>(gA_FrameCache[style][track][1]) == time)
 	{
 		DeleteReplay(style, track);
 	}
