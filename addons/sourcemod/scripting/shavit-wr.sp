@@ -1891,7 +1891,7 @@ void SQL_DBConnect()
 
 		if(gB_MySQL)
 		{
-			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `auth` (`auth`), INDEX `points` (`points`), INDEX `time` (`time`), FULLTEXT INDEX `map` (`map`));", gS_MySQLPrefix);
+			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `auth` (`auth`), INDEX `points` (`points`), INDEX `time` (`time`), INDEX `style` (`style`), INDEX `track` (`track`), INDEX `date` (`date`), FULLTEXT INDEX `map` (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
 		}
 
 		else

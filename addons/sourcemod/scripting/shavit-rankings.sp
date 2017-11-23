@@ -268,8 +268,16 @@ void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
+		char[] sDriver = new char[8];
+		gH_SQL.Driver.GetIdentifier(sDriver, 8);
+
+		if(!StrEqual(sDriver, "mysql", false))
+		{
+			SetFailState("MySQL is the only supported database engine for shavit-rankings.");
+		}
+
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` CHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` CHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
 	}
