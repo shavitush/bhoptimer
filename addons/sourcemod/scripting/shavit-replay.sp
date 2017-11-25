@@ -377,7 +377,7 @@ public int Native_GetReplayFrameCount(Handle handler, int numParams)
 
 public int Native_GetReplayLength(Handle handler, int numParams)
 {
-	return view_as<int>(gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)][1]);
+	return view_as<int>(GetReplayLength(GetNativeCell(1), GetNativeCell(2)));
 }
 
 public int Native_GetReplayName(Handle handler, int numParams)
@@ -750,7 +750,7 @@ bool LoadReplay(int style, int track, const char[] path)
 
 			int iTemp = 0;
 			fFile.ReadInt32(iTemp);
-			gA_FrameCache[style][track][0] = view_as<int>(iTemp);
+			gA_FrameCache[style][track][0] = iTemp;
 
 			if(gA_Frames[style][track] == null)
 			{
@@ -760,7 +760,7 @@ bool LoadReplay(int style, int track, const char[] path)
 			gA_Frames[style][track].Resize(iTemp);
 
 			fFile.ReadInt32(iTemp);
-			gA_FrameCache[style][track][1] = view_as<float>(iTemp);
+			gA_FrameCache[style][track][1] = iTemp;
 
 			char[] sAuthID = new char[32];
 			fFile.ReadString(sAuthID, 32);
@@ -792,7 +792,7 @@ bool LoadReplay(int style, int track, const char[] path)
 				}
 			}
 
-			gA_FrameCache[style][track][2] = view_as<bool>(true); // not wr-based
+			gA_FrameCache[style][track][2] = true; // not wr-based
 		}
 
 		else if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_V2))
@@ -800,7 +800,7 @@ bool LoadReplay(int style, int track, const char[] path)
 			int iReplaySize = gA_FrameCache[style][track][0] = StringToInt(sExplodedHeader[0]);
 			gA_Frames[style][track].Resize(iReplaySize);
 
-			gA_FrameCache[style][track][1] = view_as<float>(0.0); // N/A at this version
+			gA_FrameCache[style][track][1] = 0.0; // N/A at this version
 
 			any[] aReplayData = new any[6];
 
@@ -817,7 +817,7 @@ bool LoadReplay(int style, int track, const char[] path)
 				}
 			}
 
-			gA_FrameCache[style][track][2] = view_as<bool>(false);
+			gA_FrameCache[style][track][2] = false;
 			strcopy(gS_ReplayNames[style][track], MAX_NAME_LENGTH, "invalid");
 		}
 
@@ -840,9 +840,9 @@ bool LoadReplay(int style, int track, const char[] path)
 				gA_Frames[style][track].Set(i, (iStrings == 6)? StringToInt(sExplodedLine[5]):0, 5);
 			}
 
-			gA_FrameCache[style][track][0] = view_as<int>(gA_Frames[style][track].Length);
-			gA_FrameCache[style][track][1] = view_as<float>(0.0); // N/A at this version
-			gA_FrameCache[style][track][2] = view_as<bool>(false); // wr-based
+			gA_FrameCache[style][track][0] = gA_Frames[style][track].Length;
+			gA_FrameCache[style][track][1] = 0.0; // N/A at this version
+			gA_FrameCache[style][track][2] = false; // wr-based
 			strcopy(gS_ReplayNames[style][track], MAX_NAME_LENGTH, "invalid");
 		}
 
