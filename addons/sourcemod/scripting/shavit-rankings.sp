@@ -330,23 +330,24 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	LogError("%s", sQuery);
 	#endif
 
+	bool bSuccess = true;
+
 	if(!SQL_FastQuery(gH_SQL, sQuery))
 	{
 		char[] sError = new char[255];
 		SQL_GetError(gH_SQL, sError, 255);
 		LogError("Timer (rankings, create procedure) error! Reason: %s", sError);
 
-		SQL_UnlockDatabase(gH_SQL);
+		bSuccess = false;
+	}
 
+	SQL_FastQuery(gH_SQL, "DELIMITER ;");
+	SQL_UnlockDatabase(gH_SQL);
+
+	if(!bSuccess)
+	{
 		return;
 	}
-
-	else
-	{
-		SQL_FastQuery(gH_SQL, "DELIMITER ;");
-	}
-
-	SQL_UnlockDatabase(gH_SQL);
 
 	OnMapStart();
 
