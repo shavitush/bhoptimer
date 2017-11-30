@@ -1641,6 +1641,11 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
 
+	if(bInStart)
+	{
+		Shavit_StopTimer(client);
+	}
+
 	Shavit_SetPracticeMode(client, true, !bInStart);
 	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 
@@ -1653,11 +1658,6 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPSpeed]));
 	SetEntPropFloat(client, Prop_Send, "m_flStamina", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPStamina]));
 	DispatchKeyValue(client, "targetname", gS_CheckpointsTargetname[client][index]);
-
-	if(bInStart)
-	{
-		Shavit_StopTimer(client);
-	}
 	
 	if(!suppressMessage)
 	{

@@ -1174,6 +1174,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
 	GetNativeArray(2, snapshot, TIMERSNAPSHOT_SIZE);
 
+	gI_Track[client] = view_as<int>(snapshot[iTimerTrack]);
+
 	if(gBS_Style[client] != snapshot[bsStyle])
 	{
 		CallOnStyleChanged(client, gBS_Style[client], snapshot[bsStyle], false);
@@ -1189,8 +1191,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_TotalMeasures[client] = view_as<int>(snapshot[iTotalMeasures]);
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
 	gF_StartTime[client] = GetEngineTime() - view_as<float>(snapshot[fCurrentTime]);
-	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
-	gI_Track[client] = view_as<int>(snapshot[iTimerTrack]);
+	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);\
 }
 
 public int Native_MarkKZMap(Handle handler, int numParams)
@@ -1228,7 +1229,7 @@ void StartTimer(int client, int track)
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if(!gB_NoZAxisSpeed || gA_StyleSettings[gBS_Style[client]][bPrespeed] || fSpeed[2] == 0.0 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0)
+	if(!gB_NoZAxisSpeed || gA_StyleSettings[gBS_Style[client]][bPrespeed] || (fSpeed[2] == 0.0 && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 280.0))
 	{
 		gI_Strafes[client] = 0;
 		gI_Jumps[client] = 0;
@@ -1247,6 +1248,13 @@ void StartTimer(int client, int track)
 		{
 			gB_TimerEnabled[client] = true;
 			gI_SHSW_FirstCombination[client] = -1;
+
+			gF_PauseTotalTime[client] = 0.0;
+			gB_ClientPaused[client] = false;
+			gB_PracticeMode[client] = false;
+
+			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
+			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 		}
 
 		else if(result == Plugin_Handled || result == Plugin_Stop)
@@ -1254,13 +1262,6 @@ void StartTimer(int client, int track)
 			gB_TimerEnabled[client] = false;
 		}
 	}
-
-	gF_PauseTotalTime[client] = 0.0;
-	gB_ClientPaused[client] = false;
-	gB_PracticeMode[client] = false;
-
-	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
-	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
 }
 
 void StopTimer(int client)
