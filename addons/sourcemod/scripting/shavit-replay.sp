@@ -394,13 +394,13 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 	{
 		if(gA_CentralCache[iCentralReplayStatus] == Replay_End)
 		{
-			return view_as<int>(gA_FrameCache[style][track][1]);
+			return view_as<int>(GetReplayLength(style, track));
 		}
 	}
 
 	else if(gRS_ReplayStatus[style] == Replay_End)
 	{
-		return view_as<int>(gA_FrameCache[style][Track_Main][1]);
+		return view_as<int>(GetReplayLength(Track_Main, track));
 	}
 
 	return view_as<int>(float(gI_ReplayTick[style]) / gF_Tickrate);
@@ -888,9 +888,9 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
 
 	delete fFile;
 
-	gA_FrameCache[style][track][0] = view_as<int>(iSize);
-	gA_FrameCache[style][track][1] = view_as<float>(time);
-	gA_FrameCache[style][track][2] = view_as<bool>(true);
+	gA_FrameCache[style][track][0] = iSize;
+	gA_FrameCache[style][track][1] = time;
+	gA_FrameCache[style][track][2] = true;
 	strcopy(gS_ReplayNames[style][track], MAX_NAME_LENGTH, name);
 
 	return true;
@@ -915,9 +915,9 @@ bool DeleteReplay(int style, int track)
 	}
 
 	gA_Frames[style][track].Clear();
-	gA_FrameCache[style][track][0] = view_as<int>(0);
-	gA_FrameCache[style][track][1] = view_as<float>(0.0);
-	gA_FrameCache[style][track][2] = view_as<bool>(false);
+	gA_FrameCache[style][track][0] = 0;
+	gA_FrameCache[style][track][1] = 0.0;
+	gA_FrameCache[style][track][2] = false;
 	strcopy(gS_ReplayNames[style][track], MAX_NAME_LENGTH, "invalid");
 	gI_ReplayTick[style] = -1;
 
@@ -1171,7 +1171,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	else
 	{
-		float fReplayTime = view_as<float>(gA_FrameCache[style][track][1]);
+		float fReplayTime = GetReplayLength(style, track);
 
 		if(fReplayTime != 0.0 && time >= fReplayTime)
 		{
@@ -1552,7 +1552,7 @@ public void Shavit_OnWRDeleted(int style, int id, int track)
 	float time = 0.0;
 	Shavit_GetWRTime(style, time, track);
 
-	if(view_as<int>(gA_FrameCache[style][track][0]) > 0 && view_as<float>(gA_FrameCache[style][track][1]) - 0.1 <= time) // -0.1 to fix rounding issues
+	if(view_as<int>(gA_FrameCache[style][track][0]) > 0 && GetReplayLength(style, track) - gF_Tickrate <= time) // -0.1 to fix rounding issues
 	{
 		DeleteReplay(style, track);
 	}
