@@ -1496,6 +1496,7 @@ bool LoadStyles()
 		kv.GetString("htmlcolor", gS_StyleStrings[i][sHTMLColor], 128, "<MISSING STYLE HTML COLOR>");
 		kv.GetString("command", gS_StyleStrings[i][sChangeCommand], 128, "");
 		kv.GetString("clantag", gS_StyleStrings[i][sClanTag], 128, "<MISSING STYLE CLAN TAG>");
+		kv.GetString("specialstring", gS_StyleStrings[i][sSpecialString], 128, "");
 
 		gA_StyleSettings[i][bAutobhop] = view_as<bool>(kv.GetNum("autobhop", 1));
 		gA_StyleSettings[i][bEasybhop] = view_as<bool>(kv.GetNum("easybhop", 1));

@@ -74,6 +74,7 @@ enum
 	sHTMLColor,
 	sChangeCommand,
 	sClanTag,
+	sSpecialString,
 	STYLESTRINGS_SIZE
 };
 
