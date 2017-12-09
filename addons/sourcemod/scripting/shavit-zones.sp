@@ -80,7 +80,6 @@ bool gB_CursorTracing[MAXPLAYERS+1];
 float gV_Point1[MAXPLAYERS+1][3];
 float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
-float gV_OldPosition[MAXPLAYERS+1][3];
 float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
@@ -1290,7 +1289,6 @@ void Reset(int client)
 		gV_Point1[client][i] = 0.0;
 		gV_Point2[client][i] = 0.0;
 		gV_Teleport[client][i] = 0.0;
-		gV_OldPosition[client][i] = 0.0;
 		gV_WallSnap[client][i] = 0.0;
 	}
 }
@@ -1395,13 +1393,6 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 
 bool SnapToWall(float pos[3], int client, float final[3])
 {
-	if(AreVectorsEqual(pos, gV_OldPosition[client]))
-	{
-		final = gV_WallSnap[client];
-
-		return true;
-	}
-
 	bool hit = false;
 
 	float end[3];
@@ -1429,6 +1420,9 @@ bool SnapToWall(float pos[3], int client, float final[3])
 
 	if(hit && GetVectorDistance(prefinal, pos) <= gI_GridSnap[client])
 	{
+		prefinal[0] = float(RoundToNearest(prefinal[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
+		prefinal[1] = float(RoundToNearest(prefinal[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+
 		final = prefinal;
 
 		return true;
@@ -1475,11 +1469,6 @@ public bool TraceFilter_World(int entity, int contentsMask)
 	return (entity == 0);
 }
 
-bool AreVectorsEqual(float vec1[3], float vec2[3])
-{
-	return (vec1[0] == vec2[0] && vec1[1] == vec2[1] && vec1[2] == vec2[2]);
-}
-
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status)
 {
 	if(!IsPlayerAlive(client) || IsFakeClient(client))
@@ -1512,7 +1501,6 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 				else
 				{
 					gV_WallSnap[client] = origin;
-					gV_OldPosition[client] = vPlayerOrigin;
 				}
 
 				origin[2] = vPlayerOrigin[2];
@@ -1919,7 +1907,6 @@ public Action Timer_Draw(Handle Timer, any data)
 	else
 	{
 		gV_WallSnap[client] = origin;
-		gV_OldPosition[client] = vPlayerOrigin;
 	}
 
 	if(gI_MapStep[client] == 1 || gV_Point2[client][0] == 0.0)
