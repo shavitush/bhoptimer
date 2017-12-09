@@ -463,8 +463,8 @@ bool LoadZonesConfig()
 
 	do
 	{
-		int track = (i <= 9)? Track_Main:Track_Bonus;
-		int index = (track == Track_Main)? i:i-10;
+		int track = (i / ZONETYPES_SIZE);
+		int index = (i % ZONETYPES_SIZE);
 
 		gA_ZoneSettings[index][track][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
 		gA_ZoneSettings[index][track][iRed] = kv.GetNum("red", 255);
