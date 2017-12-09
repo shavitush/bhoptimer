@@ -260,7 +260,7 @@ void StartCalculating()
 		PrintToServer("%s", sQuery);
 		#endif
 
-		gH_SQL.Query(SQL_GetMapTimes, sQuery, 0, DBPrio_High);
+		gH_SQL.Query(SQL_GetMapTimes, sQuery, 0, DBPrio_Low);
 	}
 }
 

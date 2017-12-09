@@ -409,7 +409,7 @@ public void OnMapStart()
 
 	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
-	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char[] error, any data)
