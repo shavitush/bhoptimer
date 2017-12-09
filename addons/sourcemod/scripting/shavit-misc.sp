@@ -2342,7 +2342,9 @@ void UpdateFootsteps(int client)
 	}
 }
 
+#if SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR < 9
 bool IsNullVector(float vec[3])
 {
 	return (vec[0] == NULL_VECTOR[0] && vec[1] == NULL_VECTOR[1] && vec[2] == NULL_VECTOR[2]);
 }
+#endif
