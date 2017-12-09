@@ -1519,6 +1519,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	{
 		Protobuf pbmsg = msg;
 		pbmsg.ReadString("msg_name", sMessage, 24);
+		delete pbmsg;
 	}
 
 	else
@@ -1527,6 +1528,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		bfmsg.ReadByte();
 		bfmsg.ReadByte();
 		bfmsg.ReadString(sMessage, 24, false);
+		delete bfmsg;
 	}
 
 	if(StrEqual(sMessage, "#Cstrike_Name_Change"))
