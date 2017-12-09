@@ -1171,7 +1171,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	else
 	{
-		float fReplayTime = GetReplayLength(style, track);
+		float fReplayTime = view_as<float>(gA_FrameCache[style][track][1]);
 
 		if(fReplayTime != 0.0 && time >= fReplayTime)
 		{
