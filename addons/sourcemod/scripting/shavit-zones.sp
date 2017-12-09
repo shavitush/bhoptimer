@@ -2423,8 +2423,8 @@ public void StartTouchPost(int entity, int other)
 		case Zone_Slay:
 		{
 			Shavit_StopTimer(other);
-
 			ForcePlayerSuicide(other);
+			Shavit_PrintToChat(other, "%T", "ZoneSlayEnter", other, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageWarning]);
 		}
 
 		case Zone_Stop:
@@ -2432,6 +2432,7 @@ public void StartTouchPost(int entity, int other)
 			if(status != Timer_Stopped)
 			{
 				Shavit_StopTimer(other);
+				Shavit_PrintToChat(other, "%T", "ZoneStopEnter", other, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageVariable2], gS_ChatStrings[sMessageWarning]);
 			}
 		}
 
