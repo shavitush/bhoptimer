@@ -117,6 +117,7 @@ ConVar gCV_TeleportToEnd = null;
 ConVar gCV_UseCustomSprite = null;
 ConVar gCV_Height = null;
 ConVar gCV_Offset = null;
+ConVar gCV_EnforceTracks = null;
 
 // cached cvars
 bool gB_FlatZones = false;
@@ -126,6 +127,7 @@ bool gB_TeleportToEnd = true;
 bool gB_UseCustomSprite = true;
 float gF_Height = 128.0;
 float gF_Offset = 0.5;
+bool gB_EnforceTracks = true;
 
 // handles
 Handle gH_DrawEverything = null;
@@ -223,6 +225,7 @@ public void OnPluginStart()
 	gCV_UseCustomSprite = CreateConVar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_Height = CreateConVar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
 	gCV_Offset = CreateConVar("shavit_zones_offset", "0.5", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
+	gCV_EnforceTracks = CreateConVar("shavit_zones_enforcetracks", "1", "Enforce zone tracks upon entry?\n0 - allow every zone except for start/end to affect users on every zone.\n1- require the user's track to match the zone's track.", 0, true, 0.0, true, 1.0);
 
 	gCV_FlatZones.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
@@ -231,6 +234,7 @@ public void OnPluginStart()
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
 	gCV_Height.AddChangeHook(OnConVarChanged);
 	gCV_Offset.AddChangeHook(OnConVarChanged);
+	gCV_EnforceTracks.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -267,6 +271,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_TeleportToEnd = gCV_TeleportToEnd.BoolValue;
 	gF_Height = gCV_Height.FloatValue;
 	gF_Offset = gCV_Offset.FloatValue;
+	gB_EnforceTracks = gCV_EnforceTracks.BoolValue;
 
 	if(convar == gCV_Interval)
 	{
@@ -2395,7 +2400,8 @@ public void CreateZoneEntities()
 
 public void StartTouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || !gA_ZoneCache[gI_EntityZone[entity]][bZoneInitialized] || IsFakeClient(other))
+	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || !gA_ZoneCache[gI_EntityZone[entity]][bZoneInitialized] || IsFakeClient(other) ||
+		(gB_EnforceTracks && gA_ZoneCache[gI_EntityZone[entity]][iZoneType] > Zone_End && gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] != Shavit_GetClientTrack(other)))
 	{
 		return;
 	}
@@ -2475,7 +2481,8 @@ public void EndTouchPost(int entity, int other)
 
 public void TouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || IsFakeClient(other))
+	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || IsFakeClient(other) ||
+		(gB_EnforceTracks && gA_ZoneCache[gI_EntityZone[entity]][iZoneType] > Zone_End && gA_ZoneCache[gI_EntityZone[entity]][iZoneTrack] != Shavit_GetClientTrack(other)))
 	{
 		return;
 	}
