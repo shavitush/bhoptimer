@@ -411,7 +411,7 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudTopLeft", client);
 	menu.AddItem(sInfo, sHudItem);
 
-	if(gEV_Type == Engine_CSS)
+	if(IsSource2013(gEV_Type))
 	{
 		IntToString(HUD_SYNC, sInfo, 16);
 		FormatEx(sHudItem, 64, "%T", "HudSync", client);
@@ -584,7 +584,7 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 		UpdateTopLeftHUD(client, true);
 	}
 
-	if(gEV_Type == Engine_CSS)
+	if(IsSource2013(gEV_Type))
 	{
 		if(!keysonly)
 		{
