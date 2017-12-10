@@ -114,6 +114,10 @@
 	{
 		"en"		"No replay data loaded\nPress USE or beat #1 to play"
 	}
+	"NoReplayDataTF2"
+	{
+		"en"		"No replay data loaded\n!replay or beat #1 to play"
+	}
 	// ---------- Panels ---------- //
 	"SpectatorPersonal"
 	{

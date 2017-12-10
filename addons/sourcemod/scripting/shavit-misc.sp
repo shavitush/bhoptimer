@@ -19,7 +19,6 @@
 */
 
 #include <sourcemod>
-#include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
 #include <clientprefs>
@@ -27,6 +26,9 @@
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
 #include <SteamWorks>
+#include <cstrike>
+#include <tf2>
+#include <tf2_stocks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -107,7 +109,7 @@ ConVar gCV_HideTeamChanges = null;
 ConVar gCV_RespawnOnTeam = null;
 ConVar gCV_RespawnOnRestart = null;
 ConVar gCV_StartOnSpawn = null;
-ConVar gCV_PrespeedLimit = null;
+ConVar gCV_PrestrafeLimit = null;
 ConVar gCV_HideRadar = null;
 ConVar gCV_TeleportCommands = null;
 ConVar gCV_NoWeaponDrops = null;
@@ -131,19 +133,19 @@ ConVar gCV_RestoreStates = null;
 
 // cached cvars
 int gI_GodMode = 3;
-int gI_PreSpeed = 3;
+int gI_PreSpeed = 1;
 bool gB_HideTeamChanges = true;
 bool gB_RespawnOnTeam = true;
 bool gB_RespawnOnRestart = true;
 bool gB_StartOnSpawn = true;
-float gF_PrespeedLimit = 280.00;
+float gF_PrestrafeLimit = 30.00;
 bool gB_HideRadar = true;
 bool gB_TeleportCommands = true;
 bool gB_NoWeaponDrops = true;
 bool gB_NoBlock = true;
 bool gB_NoBlood = false;
 float gF_AutoRespawn = 1.5;
-int gI_CreateSpawnPoints = 32;
+int gI_CreateSpawnPoints = 6;
 bool gB_DisableRadio = false;
 bool gB_Scoreboard = true;
 int gI_WeaponCommands = 2;
@@ -254,11 +256,15 @@ public void OnPluginStart()
 	HookEvent("player_spawn", Player_Spawn);
 	HookEvent("player_team", Player_Notifications, EventHookMode_Pre);
 	HookEvent("player_death", Player_Notifications, EventHookMode_Pre);
-	HookEvent("weapon_fire", Weapon_Fire);
+	HookEventEx("weapon_fire", Weapon_Fire);
 	AddCommandListener(Command_Drop, "drop");
-	AddTempEntHook("Shotgun Shot", Shotgun_Shot);
 	AddTempEntHook("EffectDispatch", EffectDispatch);
 	AddTempEntHook("World Decal", WorldDecal);
+
+	if(gEV_Type != Engine_TF2)
+	{
+		AddTempEntHook("Shotgun Shot", Shotgun_Shot);
+	}
 
 	// phrases
 	LoadTranslations("common.phrases");
@@ -272,19 +278,19 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
-	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "3", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit to shavit_misc_prespeedlimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to shavit_misc_prespeedlimit and block bunnyhopping.", 0, true, 0.0, true, 3.0);
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to shavit_misc_prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to shavit_misc_prestrafelimit and block bunnyhopping.", 0, true, 0.0, true, 3.0);
 	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_StartOnSpawn = CreateConVar("shavit_misc_startonspawn", "1", "Restart the timer for a player after they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_PrespeedLimit = CreateConVar("shavit_misc_prespeedlimit", "280.00", "Prespeed limitation in startzone.", 0, true, 10.0, false);
+	gCV_PrestrafeLimit = CreateConVar("shavit_misc_prestrafelimit", "30", "Prestrafe limitation in startzone.\nThe value used internally is style run speed + this.\ni.e. run speed of 250 can prestrafe up to 278 (+28) with regular settings.", 0, true, 0.0, false);
 	gCV_HideRadar = CreateConVar("shavit_misc_hideradar", "1", "Should the plugin hide the in-game radar?", 0, true, 0.0, true, 1.0);
 	gCV_TeleportCommands = CreateConVar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoWeaponDrops = CreateConVar("shavit_misc_noweapondrops", "1", "Remove every dropped weapon.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoBlock = CreateConVar("shavit_misc_noblock", "1", "Disable player collision?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoBlood = CreateConVar("shavit_misc_noblood", "0", "Hide blood decals and particles?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_AutoRespawn = CreateConVar("shavit_misc_autorespawn", "1.5", "Seconds to wait before respawning player?\n0 - Disabled", 0, true, 0.0, true, 10.0);
-	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "32", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
+	gCV_CreateSpawnPoints = CreateConVar("shavit_misc_createspawnpoints", "6", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
 	gCV_DisableRadio = CreateConVar("shavit_misc_disableradio", "0", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
 	gCV_Scoreboard = CreateConVar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_WeaponCommands = CreateConVar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.", 0, true, 0.0, true, 2.0);
@@ -305,7 +311,7 @@ public void OnPluginStart()
 	gCV_RespawnOnTeam.AddChangeHook(OnConVarChanged);
 	gCV_RespawnOnRestart.AddChangeHook(OnConVarChanged);
 	gCV_StartOnSpawn.AddChangeHook(OnConVarChanged);
-	gCV_PrespeedLimit.AddChangeHook(OnConVarChanged);
+	gCV_PrestrafeLimit.AddChangeHook(OnConVarChanged);
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
 	gCV_TeleportCommands.AddChangeHook(OnConVarChanged);
 	gCV_NoWeaponDrops.AddChangeHook(OnConVarChanged);
@@ -330,28 +336,31 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	// crons
-	CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
-
-	if(LibraryExists("dhooks"))
+	if(gEV_Type != Engine_TF2)
 	{
-		Handle hGameData = LoadGameConfigFile("shavit.games");
+		CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
 
-		if(hGameData != null)
+		if(LibraryExists("dhooks"))
 		{
-			int iOffset = GameConfGetOffset(hGameData, "GetPlayerMaxSpeed");
+			Handle hGameData = LoadGameConfigFile("shavit.games");
 
-			if(iOffset != -1)
+			if(hGameData != null)
 			{
-				gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetMaxPlayerSpeed);
+				int iOffset = GameConfGetOffset(hGameData, "GetPlayerMaxSpeed");
+
+				if(iOffset != -1)
+				{
+					gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetPlayerMaxSpeed);
+				}
+
+				else
+				{
+					SetFailState("Couldn't get the offset for \"GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+				}
 			}
 
-			else
-			{
-				SetFailState("Couldn't get the offset for \"GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
-			}
+			delete hGameData;
 		}
-
-		delete hGameData;
 	}
 
 	// late load
@@ -457,7 +466,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_RespawnOnTeam = gCV_RespawnOnTeam.BoolValue;
 	gB_RespawnOnRestart = gCV_RespawnOnRestart.BoolValue;
 	gB_StartOnSpawn = gCV_StartOnSpawn.BoolValue;
-	gF_PrespeedLimit = gCV_PrespeedLimit.FloatValue;
+	gF_PrestrafeLimit = gCV_PrestrafeLimit.FloatValue;
 	gB_HideRadar = gCV_HideRadar.BoolValue;
 	gB_TeleportCommands = gCV_TeleportCommands.BoolValue;
 	gB_NoWeaponDrops = gCV_NoWeaponDrops.BoolValue;
@@ -623,50 +632,73 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 	switch(iTeam)
 	{
-		case CS_TEAM_T:
+		case 2:
 		{
 			// if T spawns are available in the map
-			if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
+			if(gEV_Type == Engine_TF2 || FindEntityByClassname(-1, "info_player_terrorist") != -1)
 			{
 				bRespawn = true;
-
-				CS_SwitchTeam(client, CS_TEAM_T);
+				CleanSwitchTeam(client, 2);
 			}
 		}
 
-		case CS_TEAM_CT:
+		case 3:
 		{
 			// if CT spawns are available in the map
-			if(FindEntityByClassname(-1, "info_player_counterterrorist") != -1)
+			if(gEV_Type == Engine_TF2 || FindEntityByClassname(-1, "info_player_counterterrorist") != -1)
 			{
 				bRespawn = true;
-
-				CS_SwitchTeam(client, CS_TEAM_CT);
+				CleanSwitchTeam(client, 3);
 			}
 		}
 
 		// if they chose to spectate, i'll force them to join the spectators
-		case CS_TEAM_SPECTATOR:
+		case 1:
 		{
-			ChangeClientTeam(client, CS_TEAM_SPECTATOR);
+			CleanSwitchTeam(client, 1, false);
 		}
 
 		default:
 		{
 			bRespawn = true;
-
-			CS_SwitchTeam(client, GetRandomInt(2, 3));
+			CleanSwitchTeam(client, GetRandomInt(2, 3));
 		}
 	}
 
 	if(gB_RespawnOnTeam && bRespawn)
 	{
-		CS_RespawnPlayer(client);
+		if(gEV_Type == Engine_TF2)
+		{
+			TF2_RespawnPlayer(client);
+		}
+
+		else
+		{
+			CS_RespawnPlayer(client);
+		}
 
 		return Plugin_Handled;
 	}
 
 	return Plugin_Continue;
+}
+
+void CleanSwitchTeam(int client, int team, bool change = false)
+{
+	if(gEV_Type == Engine_TF2)
+	{
+		TF2_ChangeClientTeam(client, view_as<TFTeam>(team));
+	}
+
+	else if(change)
+	{
+		CS_SwitchTeam(client, team);
+	}
+
+	else
+	{
+		ChangeClientTeam(client, team);
+	}
 }
 
 public Action Command_Radio(int client, const char[] command, int args)
@@ -679,9 +711,9 @@ public Action Command_Radio(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
-public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
+public MRESReturn DHook_GetPlayerMaxSpeed(int pThis, Handle hReturn)
 {
-	if(!gB_StaticPrestrafe && !IsValidClient(pThis, true))
+	if(!gB_StaticPrestrafe || !IsValidClient(pThis, true))
 	{
 		return MRES_Ignored;
 	}
@@ -768,6 +800,12 @@ public Action Timer_Advertisement(Handle Timer)
 
 void UpdateScoreboard(int client)
 {
+	// this doesn't work on tf2 for some reason
+	if(gEV_Type == Engine_TF2)
+	{
+		return;
+	}
+
 	float fPB = 0.0;
 	Shavit_GetPlayerPB(client, 0, fPB, Track_Main);
 
@@ -791,6 +829,12 @@ void UpdateScoreboard(int client)
 
 void UpdateClanTag(int client)
 {
+	// no clan tags in tf2
+	if(gEV_Type == Engine_TF2)
+	{
+		return;
+	}
+
 	char[] sTime = new char[16];
 
 	float fTime = Shavit_GetClientTime(client);
@@ -847,10 +891,11 @@ void RemoveRagdoll(int client)
 	}
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
 
+	// i will not be adding a setting to toggle this off
 	if(bNoclip && status == Timer_Running)
 	{
 		Shavit_StopTimer(client);
@@ -859,7 +904,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, track))
+	if(!bNoclip && !gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, track))
 	{
 		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
@@ -873,23 +918,27 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 		if(gI_PreSpeed == 1 || gI_PreSpeed == 3)
 		{
-			float speed[3];
-			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", speed);
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
-			float speed_New = (SquareRoot(Pow(speed[0], 2.0) + Pow(speed[1], 2.0)));
-			float fScale = (gF_PrespeedLimit / speed_New);
+			float fLimit = view_as<float>(gA_StyleSettings[gBS_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
 
-			if(bNoclip)
+			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
+			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
+			if(fSpeed[2] > 0.0)
 			{
-				speed[2] = 0.0;
+				fLimit /= 3.0;
 			}
 
-			else if(fScale < 1.0)
+			float fSpeedXY = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
+			float fScale = (fLimit / fSpeedXY);
+
+			if(fScale < 1.0)
 			{
-				ScaleVector(speed, fScale);
+				ScaleVector(fSpeed, fScale);
 			}
 
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, speed);
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
 		}
 	}
 
@@ -903,6 +952,11 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+
+	if(gEV_Type == Engine_TF2)
+	{
+		SDKHook(client, SDKHook_PreThinkPost, OnPreThink);
+	}
 
 	if(IsFakeClient(client))
 	{
@@ -1044,6 +1098,15 @@ public Action OnSetTransmit(int entity, int client)
 	return Plugin_Continue;
 }
 
+public void OnPreThink(int client)
+{
+	if(IsPlayerAlive(client))
+	{
+		// not the best method, but only one i found for tf2
+		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", view_as<float>(gA_StyleSettings[gBS_Style[client]][fRunspeed]));
+	}
+}
+
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
 	if(IsChatTrigger())
@@ -1114,7 +1177,7 @@ public Action Command_Spec(int client, int args)
 		return Plugin_Handled;
 	}
 
-	ChangeClientTeam(client, CS_TEAM_SPECTATOR);
+	CleanSwitchTeam(client, 1, false);
 
 	if(args > 0)
 	{
@@ -1249,7 +1312,7 @@ bool Teleport(int client, int targetserial)
 
 public Action Command_Weapon(int client, int args)
 {
-	if(!IsValidClient(client))
+	if(!IsValidClient(client) || gEV_Type == Engine_TF2)
 	{
 		return Plugin_Handled;
 	}
@@ -1636,6 +1699,11 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
 
+	if(bInStart)
+	{
+		Shavit_StopTimer(client);
+	}
+
 	Shavit_SetPracticeMode(client, true, !bInStart);
 	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 
@@ -1648,11 +1716,6 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPSpeed]));
 	SetEntPropFloat(client, Prop_Send, "m_flStamina", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPStamina]));
 	DispatchKeyValue(client, "targetname", gS_CheckpointsTargetname[client][index]);
-
-	if(bInStart)
-	{
-		Shavit_StopTimer(client);
-	}
 	
 	if(!suppressMessage)
 	{
@@ -1889,14 +1952,22 @@ public void Shavit_OnRestart(int client)
 
 	if(!IsPlayerAlive(client))
 	{
-		if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
+		if(gEV_Type == Engine_TF2)
 		{
-			CS_SwitchTeam(client, CS_TEAM_T);
+			TF2_ChangeClientTeam(client, view_as<TFTeam>(3));
 		}
-
+		
 		else
 		{
-			CS_SwitchTeam(client, CS_TEAM_CT);
+			if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
+			{
+				CS_SwitchTeam(client, 2);
+			}
+
+			else
+			{
+				CS_SwitchTeam(client, 3);
+			}
 		}
 
 		CreateTimer(0.1, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
@@ -1907,9 +1978,17 @@ public Action Respawn(Handle Timer, any data)
 {
 	int client = GetClientFromSerial(data);
 
-	if(IsValidClient(client) && !IsPlayerAlive(client) && GetClientTeam(client) >= CS_TEAM_T)
+	if(IsValidClient(client) && !IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
-		CS_RespawnPlayer(client);
+		if(gEV_Type == Engine_TF2)
+		{
+			TF2_RespawnPlayer(client);
+		}
+
+		else
+		{
+			CS_RespawnPlayer(client);
+		}
 
 		if(gB_RespawnOnRestart)
 		{
@@ -1996,7 +2075,7 @@ void RemoveRadar(any data)
 		SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // disables player radar
 	}
 
-	else
+	else if(gEV_Type == Engine_CSS)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 3600.0);
 		SetEntPropFloat(client, Prop_Send, "m_flFlashMaxAlpha", 0.5);
@@ -2269,7 +2348,7 @@ public void Shavit_OnResume(int client, int track)
 
 public Action Command_Drop(int client, const char[] command, int argc)
 {
-	if(!gB_DropAll || !IsValidClient(client))
+	if(!gB_DropAll || !IsValidClient(client) || gEV_Type == Engine_TF2)
 	{
 		return Plugin_Continue;
 	}
@@ -2337,7 +2416,9 @@ void UpdateFootsteps(int client)
 	}
 }
 
+#if SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR < 9
 bool IsNullVector(float vec[3])
 {
 	return (vec[0] == NULL_VECTOR[0] && vec[1] == NULL_VECTOR[1] && vec[2] == NULL_VECTOR[2]);
 }
+#endif

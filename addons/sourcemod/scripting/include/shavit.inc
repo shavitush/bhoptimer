@@ -74,6 +74,7 @@ enum
 	sHTMLColor,
 	sChangeCommand,
 	sClanTag,
+	sSpecialString,
 	STYLESTRINGS_SIZE
 };
 
@@ -229,6 +230,11 @@ enum
 stock bool IsValidClient(int client, bool bAlive = false)
 {
 	return (client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsClientSourceTV(client) && (!bAlive || IsPlayerAlive(client)));
+}
+
+stock bool IsSource2013(EngineVersion ev)
+{
+	return (ev == Engine_CSS || ev == Engine_TF2);
 }
 
 // time formatting!
@@ -747,7 +753,7 @@ native void Shavit_PauseTimer(int client);
 native void Shavit_ResumeTimer(int client);
 
 /**
- * Retrieve the engine time of the replay bot's first frame.
+ * Retrieves the engine time of the replay bot's first frame.
  *
  * @param style						Style.
  * @param time						Reference to save the time on.
@@ -786,6 +792,44 @@ native int Shavit_GetReplayBotTrack(int client);
  * @return							Current played frame.
  */
 native int Shavit_GetReplayBotCurrentFrame(int style);
+
+/**
+ * Retrieves a replay's frame count.
+ *
+ * @param style						Style.
+ * @param track						Track.
+ * @noreturn
+ */
+native int Shavit_GetReplayFrameCount(int style, int track);
+
+/**
+ * Retrieves a replay's total length in seconds.
+ *
+ * @param style						Style.
+ * @param track						Track.
+ * @noreturn
+ */
+native float Shavit_GetReplayLength(int style, int track);
+
+/**
+ * Retrieves an actively playing replay's time.
+ *
+ * @param style						Style.
+ * @param track						Track. (ignored for non-central bots)
+ * @noreturn
+ */
+native float Shavit_GetReplayTime(int style, int track);
+
+/**
+ * Retrieves a replay holder's name.
+ *
+ * @param style						Style.
+ * @param track						Track.
+ * @param buffer					Buffer string.
+ * @param length					String length.
+ * @noreturn
+ */
+native void Shavit_GetReplayName(int style, int track, char[] buffer, int length);
 
 /**
  * Checks if there's loaded replay data for a bhop style or not.
@@ -1079,6 +1123,10 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotStyle");
 	MarkNativeAsOptional("Shavit_GetReplayBotTrack");
 	MarkNativeAsOptional("Shavit_GetReplayData");
+	MarkNativeAsOptional("Shavit_GetReplayFrameCount");
+	MarkNativeAsOptional("Shavit_GetReplayLength");
+	MarkNativeAsOptional("Shavit_GetReplayName");
+	MarkNativeAsOptional("Shavit_GetReplayTime");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");

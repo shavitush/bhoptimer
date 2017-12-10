@@ -19,11 +19,13 @@
 */
 
 #include <sourcemod>
-#include <cstrike>
 #include <geoip>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -49,6 +51,7 @@ int gI_Track[MAXPLAYERS+1];
 char gS_TargetAuth[MAXPLAYERS+1][32];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 int gI_WRAmount[MAXPLAYERS+1];
+EngineVersion gEV_Type = Engine_Unknown;
 
 bool gB_Late = false;
 
@@ -105,6 +108,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	gEV_Type = GetEngineVersion();
+
 	// player commands
 	RegConsoleCmd("sm_profile", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
@@ -119,8 +124,8 @@ public void OnPluginStart()
 	HookEvent("player_team", Player_Event);
 
 	// cvars
-	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.", 0, true, 0.0, true, 2.0);
-	gCV_MVPRankOnes_Main = CreateConVar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.", 0, true, 0.0, true, 1.0);
+	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
+	gCV_MVPRankOnes_Main = CreateConVar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
 
 	gCV_MVPRankOnes.AddChangeHook(OnConVarChanged);
 	gCV_MVPRankOnes_Main.AddChangeHook(OnConVarChanged);
@@ -130,6 +135,17 @@ public void OnPluginStart()
 	gB_Rankings = LibraryExists("shavit-rankings");
 
 	SQL_SetPrefix();
+
+	if(gB_Late)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsClientConnected(i) && IsClientInGame(i))
+			{
+				OnClientPutInServer(i);
+			}
+		}
+	}
 }
 
 public void OnMapStart()
@@ -174,6 +190,11 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 public void OnClientPutInServer(int client)
 {
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+
 	gB_AllowStats[client] = true;
 	gI_WRAmount[client] = 0;
 	UpdateWRs(client);
@@ -257,7 +278,7 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(IsValidClient(client) && !IsFakeClient(client))
+	if(IsValidClient(client) && !IsFakeClient(client) && gEV_Type != Engine_TF2)
 	{
 		CS_SetMVPCount(client, gI_WRAmount[client]);
 	}
@@ -278,12 +299,12 @@ void UpdateWRs(int client)
 
 		if(gI_MVPRankOnes == 2)
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes %sGROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s' LIMIT 1;", gS_MySQLPrefix, (gB_MVPRankOnes_Main)? "WHERE track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gB_MVPRankOnes_Main)? "AND track = 0 ":"", sAuthID);
 		}
 
 		else
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM (SELECT s.auth FROM (SELECT auth, MIN(time) FROM %splayertimes %sGROUP BY map, style) s) ss WHERE ss.auth = '%s' LIMIT 1;", gS_MySQLPrefix, (gB_MVPRankOnes_Main)? "WHERE track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gB_MVPRankOnes_Main)? "WHERE track = 0 ":"", sAuthID);
 		}
 
 		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
@@ -308,7 +329,7 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 
 	int iWRs = results.FetchInt(0);
 
-	if(gI_MVPRankOnes > 0)
+	if(gI_MVPRankOnes > 0 && gEV_Type != Engine_TF2)
 	{
 		CS_SetMVPCount(client, iWRs);
 	}
@@ -357,22 +378,22 @@ Action OpenStatsMenu(int client, const char[] authid)
 	if(gB_Rankings)
 	{
 		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin, d.points, e.rank FROM " ...
-				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s LIMIT 1) a " ...
-				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 GROUP BY map) s LIMIT 1) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes WHERE track = 0 GROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s' LIMIT 1) c " ...
+				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
+				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 GROUP BY map) s) b " ...
+				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map) b ON a.time = b.time WHERE auth = '%s') c " ...
 				"JOIN (SELECT name, country, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
 				"JOIN (SELECT FORMAT(COUNT(*), 0) rank FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC LIMIT 1) e " ...
-			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid);
+			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid);
 	}
 
 	else
 	{
 		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin FROM " ...
-				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s LIMIT 1) a " ...
-				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 GROUP BY map) s LIMIT 1) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM (SELECT s.auth FROM (SELECT style, auth, MIN(time) FROM %splayertimes WHERE track = 0 GROUP BY map, style) s WHERE style = 0) ss WHERE ss.auth = '%s' LIMIT 1) c " ...
+				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
+				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 GROUP BY map) s) b " ...
+				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map) b ON a.time = b.time WHERE auth = '%s') c " ...
 				"JOIN (SELECT name, country, lastlogin FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
-			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid);
+			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid);
 	}
 
 	gB_AllowStats[client] = false;

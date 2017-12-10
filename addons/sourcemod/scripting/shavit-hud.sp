@@ -32,14 +32,14 @@
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 
-// game type (CS:S/CS:GO)
+// game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
 
 // modules
 bool gB_Replay = false;
 bool gB_Zones = false;
-bool gB_BhopStats = false;
 bool gB_Sounds = false;
+bool gB_BhopStats = false;
 
 // cache
 int gI_Cycle = 0;
@@ -54,6 +54,8 @@ int gI_LastScrollCount[MAXPLAYERS+1];
 int gI_ScrollCount[MAXPLAYERS+1];
 int gBS_Style[MAXPLAYERS+1];
 int gI_Buttons[MAXPLAYERS+1];
+float gF_ConnectTime[MAXPLAYERS+1];
+bool gB_FirstPrint[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -101,7 +103,7 @@ public void OnPluginStart()
 	// game-specific
 	gEV_Type = GetEngineVersion();
 
-	if(gEV_Type == Engine_CSS)
+	if(IsSource2013(gEV_Type))
 	{
 		gI_NameLength = MAX_NAME_LENGTH;
 	}
@@ -111,9 +113,17 @@ public void OnPluginStart()
 		gI_NameLength = 14; // 14 because long names will make it look spammy in CS:GO due to the font
 	}
 
+	if(gEV_Type == Engine_TF2)
+	{
+		HookEvent("player_changeclass", Player_ChangeClass);
+		HookEvent("player_team", Player_ChangeClass);
+		HookEvent("teamplay_round_start", Teamplay_Round_Start);
+	}
+
 	// prevent errors in case the replay bot isn't loaded
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
+	gB_Sounds = LibraryExists("shavit-sounds");
 	gB_BhopStats = LibraryExists("bhopstats");
 
 	// HUD handle
@@ -121,7 +131,6 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
-
 	gCV_GradientStepSize.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
@@ -259,6 +268,7 @@ public void OnClientPutInServer(int client)
 	gI_LastScrollCount[client] = 0;
 	gI_ScrollCount[client] = 0;
 	gBS_Style[client] = Shavit_GetBhopStyle(client);
+	gB_FirstPrint[client] = false;
 
 	if(IsFakeClient(client))
 	{
@@ -303,6 +313,53 @@ public void OnClientCookiesCached(int client)
 	}
 
 	gBS_Style[client] = Shavit_GetBhopStyle(client);
+}
+
+public void Player_ChangeClass(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if((gI_HUDSettings[client] & HUD_MASTER) > 0 && (gI_HUDSettings[client] & HUD_CENTER) > 0)
+	{
+		CreateTimer(0.5, Timer_FillerHintText, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+public void Teamplay_Round_Start(Event event, const char[] name, bool dontBroadcast)
+{
+	CreateTimer(0.5, Timer_FillerHintTextAll, 0, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action Timer_FillerHintTextAll(Handle timer, any data)
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientConnected(i) && IsClientInGame(i))
+		{
+			FillerHintText(i);
+		}
+	}
+
+	return Plugin_Stop;
+}
+
+public Action Timer_FillerHintText(Handle timer, any data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(client != 0)
+	{
+		FillerHintText(client);
+	}
+
+	return Plugin_Stop;
+}
+
+void FillerHintText(int client)
+{
+	PrintHintText(client, "...");
+	gF_ConnectTime[client] = GetEngineTime();
+	gB_FirstPrint[client] = true;
 }
 
 public Action Command_HUD(int client, int args)
@@ -392,6 +449,11 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 
 		gI_HUDSettings[param1] ^= iSelection;
 		IntToString(gI_HUDSettings[param1], sCookie, 16); // string recycling Kappa
+
+		if(gEV_Type == Engine_TF2 && iSelection == HUD_CENTER && (gI_HUDSettings[param1] & HUD_MASTER) > 0)
+		{
+			FillerHintText(param1);
+		}
 
 		SetClientCookie(param1, gH_HUDCookie, sCookie);
 
@@ -555,7 +617,8 @@ void UpdateHUD(int client)
 {
 	int target = GetHUDTarget(client);
 
-	if((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target)
+	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) ||
+		(gEV_Type == Engine_TF2 && (!gB_FirstPrint[target] || GetEngineTime() - gF_ConnectTime[target] < 1.5))) // TF2 has weird handling for hint text
 	{
 		return;
 	}
@@ -743,31 +806,26 @@ void UpdateHUD(int client)
 
 			if(style == -1)
 			{
+				PrintHintText(client, "%T", (gEV_Type != Engine_TF2)? "NoReplayData":"NoReplayDataTF2", client);
+
 				return;
 			}
 
 			track = Shavit_GetReplayBotTrack(target);
 
-			float start = 0.0;
-			Shavit_GetReplayBotFirstFrame(style, start);
+			float fReplayTime = Shavit_GetReplayTime(style, track);
+			float fReplayLength = Shavit_GetReplayLength(style, track);
 
-			float time = (GetEngineTime() - start);
-
-			float fWR = 0.0;
-			Shavit_GetWRTime(style, fWR, track);
-
-			if(time > fWR || !Shavit_IsReplayDataLoaded(style, track))
+			if(fReplayTime < 0.0 || fReplayTime > fReplayLength || !Shavit_IsReplayDataLoaded(style, track))
 			{
-				PrintHintText(client, "%T", "NoReplayData", client);
-
 				return;
 			}
 
-			char[] sTime = new char[32];
-			FormatSeconds(time, sTime, 32, false);
+			char[] sReplayTime = new char[32];
+			FormatSeconds(fReplayTime, sReplayTime, 32, false);
 
-			char[] sWR = new char[32];
-			FormatSeconds(fWR, sWR, 32, false);
+			char[] sReplayLength = new char[32];
+			FormatSeconds(fReplayLength, sReplayLength, 32, false);
 
 			char[] sTrack = new char[32];
 
@@ -781,15 +839,19 @@ void UpdateHUD(int client)
 			{
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
 				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s %T</font></u>", sHintText, gS_StyleStrings[style][sHTMLColor], gS_StyleStrings[style][sStyleName], "ReplayText", client);
-				Format(sHintText, 512, "%s\n\t%T: <font color='#00FF00'>%s</font> / %s", sHintText, "HudTimeText", client, sTime, sWR);
+				Format(sHintText, 512, "%s\n\t%T: <font color='#00FF00'>%s</font> / %s", sHintText, "HudTimeText", client, sReplayTime, sReplayLength);
 				Format(sHintText, 512, "%s\n\t%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
 			else
 			{
-				FormatEx(sHintText, 512, "%s %sReplay", gS_StyleStrings[style][sStyleName], sTrack);
-				Format(sHintText, 512, "%s\n%T: %s/%s", sHintText, "HudTimeText", client, sTime, sWR);
+				char[] sPlayerName = new char[MAX_NAME_LENGTH];
+				Shavit_GetReplayName(style, track, sPlayerName, MAX_NAME_LENGTH);
+
+				FormatEx(sHintText, 512, "%s %s%T", gS_StyleStrings[style][sStyleName], sTrack, "ReplayText", client);
+				Format(sHintText, 512, "%s\n%s", sHintText, sPlayerName);
+				Format(sHintText, 512, "%s\n%T: %s/%s", sHintText, "HudTimeText", client, sReplayTime, sReplayLength);
 				Format(sHintText, 512, "%s\n%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 			}
 
