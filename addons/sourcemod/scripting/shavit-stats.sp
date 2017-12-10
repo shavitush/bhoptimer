@@ -19,11 +19,13 @@
 */
 
 #include <sourcemod>
-#include <cstrike>
 #include <geoip>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -49,6 +51,7 @@ int gI_Track[MAXPLAYERS+1];
 char gS_TargetAuth[MAXPLAYERS+1][32];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 int gI_WRAmount[MAXPLAYERS+1];
+EngineVersion gEV_Type = Engine_Unknown;
 
 bool gB_Late = false;
 
@@ -105,6 +108,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	gEV_Type = GetEngineVersion();
+
 	// player commands
 	RegConsoleCmd("sm_profile", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
@@ -119,8 +124,8 @@ public void OnPluginStart()
 	HookEvent("player_team", Player_Event);
 
 	// cvars
-	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.", 0, true, 0.0, true, 2.0);
-	gCV_MVPRankOnes_Main = CreateConVar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.", 0, true, 0.0, true, 1.0);
+	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
+	gCV_MVPRankOnes_Main = CreateConVar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
 
 	gCV_MVPRankOnes.AddChangeHook(OnConVarChanged);
 	gCV_MVPRankOnes_Main.AddChangeHook(OnConVarChanged);
@@ -130,6 +135,17 @@ public void OnPluginStart()
 	gB_Rankings = LibraryExists("shavit-rankings");
 
 	SQL_SetPrefix();
+
+	if(gB_Late)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsClientConnected(i) && IsClientInGame(i))
+			{
+				OnClientPutInServer(i);
+			}
+		}
+	}
 }
 
 public void OnMapStart()
@@ -262,7 +278,7 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(IsValidClient(client) && !IsFakeClient(client))
+	if(IsValidClient(client) && !IsFakeClient(client) && gEV_Type != Engine_TF2)
 	{
 		CS_SetMVPCount(client, gI_WRAmount[client]);
 	}
@@ -313,7 +329,7 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 
 	int iWRs = results.FetchInt(0);
 
-	if(gI_MVPRankOnes > 0)
+	if(gI_MVPRankOnes > 0 && gEV_Type != Engine_TF2)
 	{
 		CS_SetMVPCount(client, iWRs);
 	}

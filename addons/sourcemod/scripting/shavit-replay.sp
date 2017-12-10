@@ -19,12 +19,15 @@
 */
 
 #include <sourcemod>
-#include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
+#include <tf2>
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
@@ -188,7 +191,7 @@ public void OnPluginStart()
 	gCV_Enabled = CreateConVar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
-	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists\n3 - Counter Terrorists", 0, true, 2.0, true, 3.0);
+	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
 	gCV_CentralBot = CreateConVar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
@@ -587,8 +590,12 @@ public void OnMapStart()
 		return;
 	}
 
-	bot_quota = FindConVar("bot_quota");
-	bot_quota.Flags &= ~FCVAR_NOTIFY;
+	bot_quota = FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota");
+
+	if(bot_quota != null)
+	{
+		bot_quota.Flags &= ~FCVAR_NOTIFY;
+	}
 
 	char[] sTempMap = new char[PLATFORM_MAX_PATH];
 	FormatEx(sTempMap, PLATFORM_MAX_PATH, "maps/%s.nav", gS_Map);
@@ -615,15 +622,59 @@ public void OnMapStart()
 		delete bot_controllable;
 	}
 
-	FindConVar("bot_stop").BoolValue = true;
-	FindConVar("bot_quota_mode").SetString("normal");
-	FindConVar("mp_autoteambalance").BoolValue = false;
-	FindConVar("mp_limitteams").IntValue = 0;
-	FindConVar("bot_join_after_player").BoolValue = false;
-	FindConVar("bot_chatter").SetString("off");
-	FindConVar("bot_zombie").BoolValue = true;
+	ConVar bot_stop = FindConVar("bot_stop");
 
-	ServerCommand("bot_kick");
+	if(bot_stop != null)
+	{
+		bot_stop.BoolValue = true;
+		delete bot_stop;
+	}
+
+	ConVar bot_quota_mode = FindConVar((gEV_Type != Engine_TF2)? "bot_quota_mode":"tf_bot_quota_mode");
+
+	if(bot_quota_mode != null)
+	{
+		bot_quota_mode.SetString("normal");
+		delete bot_quota_mode;
+	}
+
+	ConVar mp_limitteams = FindConVar("mp_limitteams");
+
+	if(mp_limitteams != null)
+	{
+		mp_limitteams.IntValue = 0;
+		delete mp_limitteams;
+	}
+
+	ConVar bot_join_after_player = FindConVar((gEV_Type != Engine_TF2)? "bot_join_after_player":"tf_bot_join_after_player");
+
+	if(bot_join_after_player != null)
+	{
+		bot_join_after_player.BoolValue = false;
+		delete bot_join_after_player;
+	}
+
+	ConVar bot_chatter = FindConVar("bot_chatter");
+
+	if(bot_chatter != null)
+	{
+		bot_chatter.SetString("off");
+		delete bot_chatter;
+	}
+
+	ConVar bot_zombie = FindConVar("bot_zombie");
+
+	if(bot_zombie != null)
+	{
+		bot_zombie.BoolValue = true;
+		delete bot_zombie;
+	}
+
+	ConVar mp_autoteambalance = FindConVar("mp_autoteambalance");
+	mp_autoteambalance.BoolValue = false;
+	delete mp_autoteambalance;
+
+	ServerCommand((gEV_Type != Engine_TF2)? "bot_kick":"tf_bot_kick all");
 
 	gI_ExpectedBots = 0;
 
@@ -669,7 +720,7 @@ public void OnMapStart()
 
 		if(!gB_CentralBot)
 		{
-			ServerCommand("bot_add");
+			ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
 			gI_ExpectedBots++;
 
 			if(loaded)
@@ -684,7 +735,7 @@ public void OnMapStart()
 	if(gB_CentralBot)
 	{
 		gI_ExpectedBots = 1;
-		ServerCommand("bot_add");
+		ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
 	}
 
 	CreateTimer(3.0, Cron, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
@@ -1037,9 +1088,12 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 	bool central = (gA_CentralCache[iCentralClient] == client);
 	bool idle = (central && gA_CentralCache[iCentralReplayStatus] == Replay_Idle);
 
-	char[] sTag = new char[MAX_NAME_LENGTH];
-	FormatStyle(gS_ReplayStrings[sReplayClanTag], style, central, time, track, sTag, MAX_NAME_LENGTH);
-	CS_SetClientClanTag(client, sTag);
+	if(gEV_Type != Engine_TF2)
+	{
+		char[] sTag = new char[MAX_NAME_LENGTH];
+		FormatStyle(gS_ReplayStrings[sReplayClanTag], style, central, time, track, sTag, MAX_NAME_LENGTH);
+		CS_SetClientClanTag(client, sTag);
+	}
 
 	char[] sName = new char[MAX_NAME_LENGTH];
 	int iFrameCount = view_as<int>(gA_FrameCache[style][track][0]);
@@ -1064,7 +1118,7 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 		CS_SetClientContributionScore(client, iScore);
 	}
 
-	else
+	else if(gEV_Type == Engine_CSS)
 	{
 		SetEntProp(client, Prop_Data, "m_iFrags", iScore);
 	}
@@ -1085,7 +1139,15 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 	{
 		if(!IsPlayerAlive(client))
 		{
-			CS_RespawnPlayer(client);
+			if(gEV_Type == Engine_TF2)
+			{
+				TF2_RespawnPlayer(client);
+			}
+
+			else
+			{
+				CS_RespawnPlayer(client);
+			}
 		}
 
 		else
@@ -1099,7 +1161,7 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 		}
 
 		// Spectating is laggy if the player has no weapons
-		if(GetPlayerWeaponSlot(client, CS_SLOT_KNIFE) == -1)
+		if(gEV_Type != Engine_TF2 && GetPlayerWeaponSlot(client, CS_SLOT_KNIFE) == -1)
 		{
 			GivePlayerItem(client, "weapon_knife");
 		}
@@ -1107,7 +1169,15 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 
 	if(gI_DefaultTeamSlots >= gI_Styles && GetClientTeam(client) != gI_DefaultTeam)
 	{
-		CS_SwitchTeam(client, gI_DefaultTeam);
+		if(gEV_Type == Engine_TF2)
+		{
+			ChangeClientTeam(client, gI_DefaultTeam);
+		}
+
+		else
+		{
+			CS_SwitchTeam(client, gI_DefaultTeam);
+		}
 	}
 }
 
@@ -1212,7 +1282,16 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		else if(!gB_CentralBot && gI_ReplayBotClient[style] != 0)
 		{
 			UpdateReplayInfo(gI_ReplayBotClient[style], style, time, track);
-			CS_RespawnPlayer(gI_ReplayBotClient[style]);
+
+			if(gEV_Type == Engine_TF2)
+			{
+				TF2_RespawnPlayer(gI_ReplayBotClient[style]);
+			}
+
+			else
+			{
+				CS_RespawnPlayer(gI_ReplayBotClient[style]);
+			}
 
 			gRS_ReplayStatus[style] = Replay_Running;
 			gI_ReplayTick[style] = 0;
@@ -1498,9 +1577,21 @@ public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 {
 	gI_DefaultTeamSlots = 0;
 
+	char[] sEntity = new char[32];
+
+	if(gEV_Type == Engine_TF2)
+	{
+		strcopy(sEntity, 32, "info_player_teamspawn");
+	}
+
+	else
+	{
+		strcopy(sEntity, 32, (gI_DefaultTeam == 2)? "info_player_terrorist":"info_player_counterterrorist");
+	}
+
 	int iEntity = -1;
 
-	while((iEntity = FindEntityByClassname(iEntity, (gI_DefaultTeam == 2)? "info_player_terrorist":"info_player_counterterrorist")) != INVALID_ENT_REFERENCE)
+	while((iEntity = FindEntityByClassname(iEntity, sEntity)) != INVALID_ENT_REFERENCE)
 	{
 		gI_DefaultTeamSlots++;
 	}
@@ -1531,7 +1622,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		delete bfmsg;
 	}
 
-	if(StrEqual(sMessage, "#Cstrike_Name_Change"))
+	if(StrEqual(sMessage, "#Cstrike_Name_Change") || StrEqual(sMessage, "#TF_Name_Change"))
 	{
 		gB_HideNameChange = false;
 

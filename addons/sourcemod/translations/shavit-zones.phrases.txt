@@ -142,6 +142,11 @@
 		"#format"	"{1:s}"
 		"en"		"Press USE (default 'E') to set the {1} corner in your current position."
 	}
+	"ZonePlaceTextTF2"
+	{
+		"#format"	"{1:s}"
+		"en"		"Press ATTACK2 (default 'right click') to set the {1} corner in your current position."
+	}
 	"ZonePoint"
 	{
 		"#format"	"{1:d},{2:c}"
