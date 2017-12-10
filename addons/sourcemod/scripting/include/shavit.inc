@@ -232,6 +232,11 @@ stock bool IsValidClient(int client, bool bAlive = false)
 	return (client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsClientSourceTV(client) && (!bAlive || IsPlayerAlive(client)));
 }
 
+stock bool IsSource2013(EngineVersion ev)
+{
+	return (ev == Engine_CSS || ev == Engine_TF2);
+}
+
 // time formatting!
 stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true)
 {

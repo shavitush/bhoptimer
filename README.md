@@ -20,7 +20,7 @@ Including a records system, map zones (start/end marks etc), bonuses, HUD with u
 
 # Optional requirements:
 * [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 runspeed for all weapons.
-* [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135) - to show amount of scrolls for non-auto styles in the key display. CS:S only!
+* [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135) - to show amount of scrolls for non-auto styles in the key display. Required for TF2 servers.
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) - for the `{serverip}` advertisement variable.
 * [Chat-Processor](https://github.com/Drixevel/Chat-Processor) - if you're enabling the `shavit-chat` module.
 * A MySQL database (preferably locally hosted) if your database is likely to grow or want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is recommended.

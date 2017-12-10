@@ -19,7 +19,6 @@
 */
 
 #include <sourcemod>
-#include <cstrike>
 #include <sdktools>
 #include <sdkhooks>
 #include <clientprefs>
@@ -27,6 +26,9 @@
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
 #include <SteamWorks>
+#include <cstrike>
+#include <tf2>
+#include <tf2_stocks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -254,11 +256,15 @@ public void OnPluginStart()
 	HookEvent("player_spawn", Player_Spawn);
 	HookEvent("player_team", Player_Notifications, EventHookMode_Pre);
 	HookEvent("player_death", Player_Notifications, EventHookMode_Pre);
-	HookEvent("weapon_fire", Weapon_Fire);
+	HookEventEx("weapon_fire", Weapon_Fire);
 	AddCommandListener(Command_Drop, "drop");
-	AddTempEntHook("Shotgun Shot", Shotgun_Shot);
 	AddTempEntHook("EffectDispatch", EffectDispatch);
 	AddTempEntHook("World Decal", WorldDecal);
+
+	if(gEV_Type != Engine_TF2)
+	{
+		AddTempEntHook("Shotgun Shot", Shotgun_Shot);
+	}
 
 	// phrases
 	LoadTranslations("common.phrases");
@@ -330,28 +336,31 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	// crons
-	CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
-
-	if(LibraryExists("dhooks"))
+	if(gEV_Type != Engine_TF2)
 	{
-		Handle hGameData = LoadGameConfigFile("shavit.games");
+		CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
 
-		if(hGameData != null)
+		if(LibraryExists("dhooks"))
 		{
-			int iOffset = GameConfGetOffset(hGameData, "GetPlayerMaxSpeed");
+			Handle hGameData = LoadGameConfigFile("shavit.games");
 
-			if(iOffset != -1)
+			if(hGameData != null)
 			{
-				gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetMaxPlayerSpeed);
+				int iOffset = GameConfGetOffset(hGameData, "GetPlayerMaxSpeed");
+
+				if(iOffset != -1)
+				{
+					gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetPlayerMaxSpeed);
+				}
+
+				else
+				{
+					SetFailState("Couldn't get the offset for \"GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+				}
 			}
 
-			else
-			{
-				SetFailState("Couldn't get the offset for \"GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
-			}
+			delete hGameData;
 		}
-
-		delete hGameData;
 	}
 
 	// late load
@@ -623,50 +632,73 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 	switch(iTeam)
 	{
-		case CS_TEAM_T:
+		case 2:
 		{
 			// if T spawns are available in the map
-			if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
+			if(gEV_Type == Engine_TF2 || FindEntityByClassname(-1, "info_player_terrorist") != -1)
 			{
 				bRespawn = true;
-
-				CS_SwitchTeam(client, CS_TEAM_T);
+				CleanSwitchTeam(client, 2);
 			}
 		}
 
-		case CS_TEAM_CT:
+		case 3:
 		{
 			// if CT spawns are available in the map
-			if(FindEntityByClassname(-1, "info_player_counterterrorist") != -1)
+			if(gEV_Type == Engine_TF2 || FindEntityByClassname(-1, "info_player_counterterrorist") != -1)
 			{
 				bRespawn = true;
-
-				CS_SwitchTeam(client, CS_TEAM_CT);
+				CleanSwitchTeam(client, 3);
 			}
 		}
 
 		// if they chose to spectate, i'll force them to join the spectators
-		case CS_TEAM_SPECTATOR:
+		case 1:
 		{
-			ChangeClientTeam(client, CS_TEAM_SPECTATOR);
+			CleanSwitchTeam(client, 1, false);
 		}
 
 		default:
 		{
 			bRespawn = true;
-
-			CS_SwitchTeam(client, GetRandomInt(2, 3));
+			CleanSwitchTeam(client, GetRandomInt(2, 3));
 		}
 	}
 
 	if(gB_RespawnOnTeam && bRespawn)
 	{
-		CS_RespawnPlayer(client);
+		if(gEV_Type == Engine_TF2)
+		{
+			TF2_RespawnPlayer(client);
+		}
+
+		else
+		{
+			CS_RespawnPlayer(client);
+		}
 
 		return Plugin_Handled;
 	}
 
 	return Plugin_Continue;
+}
+
+void CleanSwitchTeam(int client, int team, bool change = false)
+{
+	if(gEV_Type == Engine_TF2)
+	{
+		TF2_ChangeClientTeam(client, view_as<TFTeam>(team));
+	}
+
+	else if(change)
+	{
+		CS_SwitchTeam(client, team);
+	}
+
+	else
+	{
+		ChangeClientTeam(client, team);
+	}
 }
 
 public Action Command_Radio(int client, const char[] command, int args)
@@ -679,9 +711,9 @@ public Action Command_Radio(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
-public MRESReturn DHook_GetMaxPlayerSpeed(int pThis, Handle hReturn)
+public MRESReturn DHook_GetPlayerMaxSpeed(int pThis, Handle hReturn)
 {
-	if(!gB_StaticPrestrafe && !IsValidClient(pThis, true))
+	if(!gB_StaticPrestrafe || !IsValidClient(pThis, true))
 	{
 		return MRES_Ignored;
 	}
@@ -768,6 +800,12 @@ public Action Timer_Advertisement(Handle Timer)
 
 void UpdateScoreboard(int client)
 {
+	// this doesn't work on tf2 for some reason
+	if(gEV_Type == Engine_TF2)
+	{
+		return;
+	}
+
 	float fPB = 0.0;
 	Shavit_GetPlayerPB(client, 0, fPB, Track_Main);
 
@@ -791,6 +829,12 @@ void UpdateScoreboard(int client)
 
 void UpdateClanTag(int client)
 {
+	// no clan tags in tf2
+	if(gEV_Type == Engine_TF2)
+	{
+		return;
+	}
+
 	char[] sTime = new char[16];
 
 	float fTime = Shavit_GetClientTime(client);
@@ -847,9 +891,9 @@ void RemoveRagdoll(int client)
 	}
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
 {
-	bool bNoclip = GetEntityMoveType(client) == MOVETYPE_NOCLIP;
+	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
 
 	// i will not be adding a setting to toggle this off
 	if(bNoclip && status == Timer_Running)
@@ -908,6 +952,11 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+
+	if(gEV_Type == Engine_TF2)
+	{
+		SDKHook(client, SDKHook_PreThinkPost, OnPreThink);
+	}
 
 	if(IsFakeClient(client))
 	{
@@ -1049,6 +1098,15 @@ public Action OnSetTransmit(int entity, int client)
 	return Plugin_Continue;
 }
 
+public void OnPreThink(int client)
+{
+	if(IsPlayerAlive(client))
+	{
+		// not the best method, but only one i found for tf2
+		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", view_as<float>(gA_StyleSettings[gBS_Style[client]][fRunspeed]));
+	}
+}
+
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
 	if(IsChatTrigger())
@@ -1119,7 +1177,7 @@ public Action Command_Spec(int client, int args)
 		return Plugin_Handled;
 	}
 
-	ChangeClientTeam(client, CS_TEAM_SPECTATOR);
+	CleanSwitchTeam(client, 1, false);
 
 	if(args > 0)
 	{
@@ -1254,7 +1312,7 @@ bool Teleport(int client, int targetserial)
 
 public Action Command_Weapon(int client, int args)
 {
-	if(!IsValidClient(client))
+	if(!IsValidClient(client) || gEV_Type == Engine_TF2)
 	{
 		return Plugin_Handled;
 	}
@@ -1894,14 +1952,22 @@ public void Shavit_OnRestart(int client)
 
 	if(!IsPlayerAlive(client))
 	{
-		if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
+		if(gEV_Type == Engine_TF2)
 		{
-			CS_SwitchTeam(client, CS_TEAM_T);
+			TF2_ChangeClientTeam(client, view_as<TFTeam>(3));
 		}
-
+		
 		else
 		{
-			CS_SwitchTeam(client, CS_TEAM_CT);
+			if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
+			{
+				CS_SwitchTeam(client, 2);
+			}
+
+			else
+			{
+				CS_SwitchTeam(client, 3);
+			}
 		}
 
 		CreateTimer(0.1, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
@@ -1912,9 +1978,17 @@ public Action Respawn(Handle Timer, any data)
 {
 	int client = GetClientFromSerial(data);
 
-	if(IsValidClient(client) && !IsPlayerAlive(client) && GetClientTeam(client) >= CS_TEAM_T)
+	if(IsValidClient(client) && !IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
-		CS_RespawnPlayer(client);
+		if(gEV_Type == Engine_TF2)
+		{
+			TF2_RespawnPlayer(client);
+		}
+
+		else
+		{
+			CS_RespawnPlayer(client);
+		}
 
 		if(gB_RespawnOnRestart)
 		{
@@ -2001,7 +2075,7 @@ void RemoveRadar(any data)
 		SetEntProp(client, Prop_Send, "m_iHideHUD", GetEntProp(client, Prop_Send, "m_iHideHUD") | (1 << 12)); // disables player radar
 	}
 
-	else
+	else if(gEV_Type == Engine_CSS)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 3600.0);
 		SetEntPropFloat(client, Prop_Send, "m_flFlashMaxAlpha", 0.5);
@@ -2274,7 +2348,7 @@ public void Shavit_OnResume(int client, int track)
 
 public Action Command_Drop(int client, const char[] command, int argc)
 {
-	if(!gB_DropAll || !IsValidClient(client))
+	if(!gB_DropAll || !IsValidClient(client) || gEV_Type == Engine_TF2)
 	{
 		return Plugin_Continue;
 	}

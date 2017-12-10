@@ -21,10 +21,12 @@
 // original idea from ckSurf.
 
 #include <sourcemod>
-#include <cstrike>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -62,6 +64,7 @@ bool gB_Style = true;
 
 // misc cache
 Handle gH_Timer = null;
+EngineVersion gEV_Type = Engine_Unknown;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -90,6 +93,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	gEV_Type = GetEngineVersion();
+
 	LoadTranslations("shavit-common.phrases");
 
 	mp_do_warmup_period = FindConVar("mp_do_warmup_period");
@@ -97,9 +102,12 @@ public void OnPluginStart()
 	mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
 	mp_restartgame = FindConVar("mp_restartgame");
 	mp_timelimit = FindConVar("mp_timelimit");
-
 	mp_roundtime = FindConVar("mp_roundtime");
-	mp_roundtime.SetBounds(ConVarBound_Upper, false);
+	
+	if(mp_roundtime != null)
+	{
+		mp_roundtime.SetBounds(ConVarBound_Upper, false);
+	}
 
 	gCV_Config = CreateConVar("shavit_timelimit_config", "1", "Enables the following game settings:\n\"mp_do_warmup_period\" \"0\"\n\"mp_freezetime\" \"0\"\n\"mp_ignore_round_win_conditions\" \"1\"", 0, true, 0.0, true, 1.0);
 	gCV_DefaultLimit = CreateConVar("shavit_timelimit_default", "60.0", "Default timelimit to use in case there isn't an average.", 0, true, 10.0);
@@ -134,7 +142,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 	if(convar == gCV_ForceMapEnd)
 	{
-		if(gB_ForceMapEnd)
+		if(gB_ForceMapEnd && gEV_Type != Engine_TF2)
 		{
 			gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
 		}
@@ -184,7 +192,7 @@ public void OnMapStart()
 		SetLimit(RoundToNearest(gF_DefaultLimit));
 	}
 
-	if(gB_ForceMapEnd && gH_Timer == null)
+	if(gB_ForceMapEnd && gH_Timer == null && gEV_Type != Engine_TF2)
 	{
 		gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
 	}
@@ -330,8 +338,12 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 void SetLimit(int time)
 {
 	mp_timelimit.IntValue = time;
-	mp_roundtime.IntValue = time;
 	mp_restartgame.IntValue = 1;
+
+	if(mp_roundtime != null)
+	{
+		mp_roundtime.IntValue = time;
+	}
 }
 
 public Action Timer_PrintToChat(Handle Timer)

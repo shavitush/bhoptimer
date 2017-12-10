@@ -26,6 +26,8 @@
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
+#include <bhopstats>
+
 #define USES_CHAT_COLORS
 #include <shavit>
 
@@ -34,7 +36,7 @@
 
 // #define DEBUG
 
-// game type (CS:S/CS:GO)
+// game type (CS:S/CS:GO/TF2)
 ServerGame gSG_Type = Game_Unknown; // deperecated and here for backwards compatibility
 EngineVersion gEV_Type = Engine_Unknown;
 
@@ -131,6 +133,7 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 
 // misc cache
 bool gB_StopChatSound = false;
+bool gB_HookedJump = false;
 
 // kz support
 bool gB_KZMap = false;
@@ -206,7 +209,7 @@ public void OnPluginStart()
 	// game types
 	gEV_Type = GetEngineVersion();
 
-	if(gEV_Type == Engine_CSS)
+	if(gEV_Type == Engine_CSS || gEV_Type == Engine_TF2)
 	{
 		gSG_Type = Game_CSS;
 	}
@@ -221,7 +224,7 @@ public void OnPluginStart()
 
 	else
 	{
-		SetFailState("This plugin was meant to be used in CS:S and CS:GO *only*.");
+		SetFailState("This plugin was meant to be used in CS:S, CS:GO and TF2 *only*.");
 	}
 
 	// database connections
@@ -229,7 +232,7 @@ public void OnPluginStart()
 	SQL_DBConnect();
 
 	// hooks
-	HookEvent("player_jump", Player_Jump);
+	gB_HookedJump = HookEventEx("player_jump", Player_Jump);
 	HookEvent("player_death", Player_Death);
 	HookEvent("player_team", Player_Death);
 	HookEvent("player_spawn", Player_Death);
@@ -309,7 +312,11 @@ public void OnPluginStart()
 	sv_airaccelerate.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 
 	sv_enablebunnyhopping = FindConVar("sv_enablebunnyhopping");
-	sv_enablebunnyhopping.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
+	
+	if(sv_enablebunnyhopping != null)
+	{
+		sv_enablebunnyhopping.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
+	}
 
 	// late
 	if(gB_Late)
@@ -813,16 +820,31 @@ void ChangeClientStyle(int client, int style, bool manual)
 	SetClientCookie(client, gH_StyleCookie, sStyle);
 }
 
+// used as an alternative for games where player_jump isn't a thing, such as TF2
+public void Bunnyhop_OnLeaveGround(int client, bool jumped, bool ladder)
+{
+	if(gB_HookedJump || !jumped || ladder)
+	{
+		return;
+	}
+
+	DoJump(client);
+}
+
 public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(event.GetInt("userid"));
+	DoJump(GetClientOfUserId(event.GetInt("userid")));
+}
 
+void DoJump(int client)
+{
 	if(gB_TimerEnabled[client])
 	{
 		gI_Jumps[client]++;
 	}
 
-	if((gB_NoStaminaReset && gA_StyleSettings[gBS_Style[client]][bEasybhop]) || Shavit_InsideZone(client, Zone_Easybhop, gI_Track[client]))
+	// TF2 doesn't use stamina
+	if(gEV_Type != Engine_TF2 && (gB_NoStaminaReset && gA_StyleSettings[gBS_Style[client]][bEasybhop]) || Shavit_InsideZone(client, Zone_Easybhop, gI_Track[client]))
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
@@ -1060,7 +1082,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	FormatNativeString(0, 2, 3, 300, written, buffer);
 	Format(buffer, 300, "%s %s%s", gS_ChatStrings[sMessagePrefix], gS_ChatStrings[sMessageText], buffer);
 
-	if(gEV_Type == Engine_CSS)
+	if(IsSource2013(gEV_Type))
 	{
 		Handle hSayText2 = StartMessageOne("SayText2", client);
 
@@ -1596,7 +1618,7 @@ bool LoadMessages()
 		return false;
 	}
 
-	kv.JumpToKey((gEV_Type == Engine_CSS)? "CS:S":"CS:GO");
+	kv.JumpToKey((IsSource2013(gEV_Type))? "CS:S":"CS:GO");
 
 	kv.GetString("prefix", gS_ChatStrings[sMessagePrefix], 128, "\x075e70d0[Timer]");
 	kv.GetString("text", gS_ChatStrings[sMessageText], 128, "\x07ffffff");
@@ -1816,8 +1838,12 @@ public void PreThinkPost(int client)
 {
 	if(IsPlayerAlive(client))
 	{
-		sv_airaccelerate.FloatValue = gA_StyleSettings[gBS_Style[client]][fAiraccelerate];
-		sv_enablebunnyhopping.BoolValue = gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping];
+		sv_airaccelerate.FloatValue = view_as<float>(gA_StyleSettings[gBS_Style[client]][fAiraccelerate]);
+
+		if(sv_enablebunnyhopping != null)
+		{
+			sv_enablebunnyhopping.BoolValue = view_as<bool>(gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping]);
+		}
 	}
 }
 
@@ -2036,10 +2062,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gI_Strafes[client]++;
 	}
 
+	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
+
+	// enable duck-jumping/bhop in tf2
+	if(gEV_Type == Engine_TF2 && gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping] && (buttons & IN_JUMP) > 0 && iGroundEntity != -1)
+	{
+		float fSpeed[3];
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+
+		fSpeed[2] = 271.0;
+		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+	}
+
 	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client])
 	{
-		bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
-
 		if((buttons & IN_JUMP) > 0 && iGroundEntity == -1 && !bOnLadder && !bInWater)
 		{
 			buttons &= ~IN_JUMP;
@@ -2078,7 +2114,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			if(fScale < 1.0)
 			{
 				ScaleVector(fSpeed, fScale);
-				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed); // maybe change this to SetEntPropVector some time?
 			}
 		}
 	}
@@ -2170,6 +2206,8 @@ void UpdateAiraccelerate(int client)
 
 void UpdateBunnyhopping(int client)
 {
-	// No null check here. Pre-OB - no support.
-	sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping])? "1":"0");
+	if(sv_enablebunnyhopping != null)
+	{
+		sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping])? "1":"0");
+	}
 }

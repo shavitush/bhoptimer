@@ -205,7 +205,7 @@ public Action Command_CCHelp(int client, int args)
 	PrintToConsole(client, "%T", "CCHelp_Generic", client);
 	PrintToConsole(client, "%T", "CCHelp_GenericVariables", client);
 
-	if(gEV_Type == Engine_CSS)
+	if(IsSource2013(gEV_Type))
 	{
 		PrintToConsole(client, "%T", "CCHelp_CSS_1", client);
 		PrintToConsole(client, "%T", "CCHelp_CSS_2", client);
@@ -429,7 +429,7 @@ void FormatRandom(char[] buffer, int size)
 
 	do
 	{
-		if(gEV_Type == Engine_CSS)
+		if(IsSource2013(gEV_Type))
 		{
 			int color = ((RealRandomInt(0, 255) & 0xFF) << 16);
 			color |= ((RealRandomInt(0, 255) & 0xFF) << 8);
