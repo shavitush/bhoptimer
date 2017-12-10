@@ -38,8 +38,8 @@ EngineVersion gEV_Type = Engine_Unknown;
 // modules
 bool gB_Replay = false;
 bool gB_Zones = false;
-bool gB_BhopStats = false;
 bool gB_Sounds = false;
+bool gB_BhopStats = false;
 
 // cache
 int gI_Cycle = 0;
@@ -114,6 +114,7 @@ public void OnPluginStart()
 	// prevent errors in case the replay bot isn't loaded
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
+	gB_Sounds = LibraryExists("shavit-sounds");
 	gB_BhopStats = LibraryExists("bhopstats");
 
 	// HUD handle
@@ -121,7 +122,6 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
-
 	gCV_GradientStepSize.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
@@ -743,31 +743,26 @@ void UpdateHUD(int client)
 
 			if(style == -1)
 			{
-				return;
-			}
-
-			track = Shavit_GetReplayBotTrack(target);
-
-			float start = 0.0;
-			Shavit_GetReplayBotFirstFrame(style, start);
-
-			float time = (GetEngineTime() - start);
-
-			float fWR = 0.0;
-			Shavit_GetWRTime(style, fWR, track);
-
-			if(time > fWR || !Shavit_IsReplayDataLoaded(style, track))
-			{
 				PrintHintText(client, "%T", "NoReplayData", client);
 
 				return;
 			}
 
-			char[] sTime = new char[32];
-			FormatSeconds(time, sTime, 32, false);
+			track = Shavit_GetReplayBotTrack(target);
 
-			char[] sWR = new char[32];
-			FormatSeconds(fWR, sWR, 32, false);
+			float fReplayTime = Shavit_GetReplayTime(style, track);
+			float fReplayLength = Shavit_GetReplayLength(style, track);
+
+			if(fReplayTime < 0.0 || fReplayTime > fReplayLength || !Shavit_IsReplayDataLoaded(style, track))
+			{
+				return;
+			}
+
+			char[] sReplayTime = new char[32];
+			FormatSeconds(fReplayTime, sReplayTime, 32, false);
+
+			char[] sReplayLength = new char[32];
+			FormatSeconds(fReplayLength, sReplayLength, 32, false);
 
 			char[] sTrack = new char[32];
 
@@ -781,15 +776,19 @@ void UpdateHUD(int client)
 			{
 				FormatEx(sHintText, 512, "<font face='Stratum2'>");
 				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s %T</font></u>", sHintText, gS_StyleStrings[style][sHTMLColor], gS_StyleStrings[style][sStyleName], "ReplayText", client);
-				Format(sHintText, 512, "%s\n\t%T: <font color='#00FF00'>%s</font> / %s", sHintText, "HudTimeText", client, sTime, sWR);
+				Format(sHintText, 512, "%s\n\t%T: <font color='#00FF00'>%s</font> / %s", sHintText, "HudTimeText", client, sReplayTime, sReplayLength);
 				Format(sHintText, 512, "%s\n\t%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
 			else
 			{
-				FormatEx(sHintText, 512, "%s %sReplay", gS_StyleStrings[style][sStyleName], sTrack);
-				Format(sHintText, 512, "%s\n%T: %s/%s", sHintText, "HudTimeText", client, sTime, sWR);
+				char[] sPlayerName = new char[MAX_NAME_LENGTH];
+				Shavit_GetReplayName(style, track, sPlayerName, MAX_NAME_LENGTH);
+
+				FormatEx(sHintText, 512, "%s %s%T", gS_StyleStrings[style][sStyleName], sTrack, "ReplayText", client);
+				Format(sHintText, 512, "%s\n%s", sHintText, sPlayerName);
+				Format(sHintText, 512, "%s\n%T: %s/%s", sHintText, "HudTimeText", client, sReplayTime, sReplayLength);
 				Format(sHintText, 512, "%s\n%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 			}
 

@@ -268,8 +268,16 @@ void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
+		char[] sDriver = new char[8];
+		gH_SQL.Driver.GetIdentifier(sDriver, 8);
+
+		if(!StrEqual(sDriver, "mysql", false))
+		{
+			SetFailState("MySQL is the only supported database engine for shavit-rankings.");
+		}
+
 		char[] sQuery = new char[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` CHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` CHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
 	}
@@ -322,23 +330,24 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	LogError("%s", sQuery);
 	#endif
 
+	bool bSuccess = true;
+
 	if(!SQL_FastQuery(gH_SQL, sQuery))
 	{
 		char[] sError = new char[255];
 		SQL_GetError(gH_SQL, sError, 255);
 		LogError("Timer (rankings, create procedure) error! Reason: %s", sError);
 
-		SQL_UnlockDatabase(gH_SQL);
+		bSuccess = false;
+	}
 
+	SQL_FastQuery(gH_SQL, "DELIMITER ;");
+	SQL_UnlockDatabase(gH_SQL);
+
+	if(!bSuccess)
+	{
 		return;
 	}
-
-	else
-	{
-		SQL_FastQuery(gH_SQL, "DELIMITER ;");
-	}
-
-	SQL_UnlockDatabase(gH_SQL);
 
 	OnMapStart();
 
@@ -400,7 +409,7 @@ public void OnMapStart()
 
 	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
-	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -736,19 +745,19 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 	#endif
 }
 
-public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(view_as<DataPack>(data));
-	int serial = ReadPackCell(data);
-	int size = ReadPackCell(data);
+	data.Reset();
+	int serial = data.ReadCell();
+	int size = data.ReadCell();
 
 	char[] sMap = new char[size + 1];
 	ReadPackString(data, sMap, size + 1);
 
-	int track = ReadPackCell(data);
-	int style = ReadPackCell(data);
-	bool print = view_as<bool>(ReadPackCell(data));
-	delete view_as<DataPack>(data);
+	int track = data.ReadCell();
+	int style = data.ReadCell();
+	bool print = view_as<bool>(data.ReadCell());
+	delete data;
 
 	if(results == null)
 	{

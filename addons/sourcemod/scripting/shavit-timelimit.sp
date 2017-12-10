@@ -260,7 +260,7 @@ void StartCalculating()
 		PrintToServer("%s", sQuery);
 		#endif
 
-		gH_SQL.Query(SQL_GetMapTimes, sQuery, 0, DBPrio_High);
+		gH_SQL.Query(SQL_GetMapTimes, sQuery, 0, DBPrio_Low);
 	}
 }
 
@@ -346,6 +346,11 @@ public Action Timer_PrintToChat(Handle Timer)
 	int timeleft = 0;
 	GetMapTimeLeft(timeleft);
 
+	if(timeleft <= -1 || timeleft >= -3)
+	{
+		Shavit_StopChatSound();
+	}
+
 	switch(timeleft)
 	{
 		case 3600: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "60");
@@ -360,26 +365,23 @@ public Action Timer_PrintToChat(Handle Timer)
 		
 		case -1:
 		{
-			Shavit_StopChatSound();
 			Shavit_PrintToChatAll("3..");
 		}
 		
 		case -2:
 		{
-			Shavit_StopChatSound();
 			Shavit_PrintToChatAll("2..");
 		}
 		
 		case -3:
 		{
-			Shavit_StopChatSound();
 			Shavit_PrintToChatAll("1..");
 		}
-	}
-	
-	if(timeleft == -4)
-	{
-		CS_TerminateRound(0.0, CSRoundEnd_Draw, true);
+
+		case -4:
+		{
+			CS_TerminateRound(0.0, CSRoundEnd_Draw, true);
+		}
 	}
 
 	return Plugin_Continue;

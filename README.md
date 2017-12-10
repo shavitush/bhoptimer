@@ -23,7 +23,7 @@ Including a records system, map zones (start/end marks etc), bonuses, HUD with u
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135) - to show amount of scrolls for non-auto styles in the key display. CS:S only!
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) - for the `{serverip}` advertisement variable.
 * [Chat-Processor](https://github.com/Drixevel/Chat-Processor) - if you're enabling the `shavit-chat` module.
-* A MySQL database if you want to use the rankings plugin.
+* A MySQL database (preferably locally hosted) if your database is likely to grow or want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is recommended.
 
 #  Installation:
 1. If you want to use MySQL (**VERY RECOMMENDED**) add a database entry in addons/sourcemod/configs/databases.cfg, call it "shavit". The plugin also supports the "sqlite" driver. You can also skip this step and not modify databases.cfg.

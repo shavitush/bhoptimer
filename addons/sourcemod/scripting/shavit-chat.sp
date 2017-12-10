@@ -463,8 +463,12 @@ void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
+		char[] sDriver = new char[8];
+		gH_SQL.Driver.GetIdentifier(sDriver, 8);
+		bool bMySQL = StrEqual(sDriver, "mysql", false);
+
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` CHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` CHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` CHAR(16), PRIMARY KEY (`auth`));", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` CHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` CHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` CHAR(16), PRIMARY KEY (`auth`))%s;", gS_MySQLPrefix, (bMySQL)? " ENGINE=INNODB":"");
 		
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}

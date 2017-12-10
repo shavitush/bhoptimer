@@ -47,6 +47,8 @@ bool gB_MySQL = false;
 int gBS_LastWR[MAXPLAYERS+1];
 char gS_ClientMap[MAXPLAYERS+1][128];
 int gI_LastTrack[MAXPLAYERS+1];
+bool gB_PendingMenu[MAXPLAYERS+1];
+
 char gS_Map[160]; // blame workshop paths being so fucking long
 ArrayList gA_ValidMaps = null;
 int gI_ValidMaps = 1;
@@ -394,6 +396,8 @@ public void Shavit_OnChatConfigLoaded()
 
 public void OnClientPutInServer(int client)
 {
+	gB_PendingMenu[client] = false;
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
@@ -921,12 +925,12 @@ public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, 
 	return 0;
 }
 
-public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(view_as<DataPack>(data));
-	int serial = ReadPackCell(data);
-	int style = ReadPackCell(data);
-	delete view_as<DataPack>(data);
+	data.Reset();
+	int serial = data.ReadCell();
+	int style = data.ReadCell();
+	delete data;
 
 	if(results == null)
 	{
@@ -984,12 +988,12 @@ void OpenDelete(int client, int style)
 	gH_SQL.Query(SQL_OpenDelete_Callback, sQuery, datapack, DBPrio_High);
 }
 
-public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(data);
-	int client = GetClientFromSerial(ReadPackCell(data));
-	int style = ReadPackCell(data);
-	delete view_as<DataPack>(data);
+	data.Reset();
+	int client = GetClientFromSerial(data.ReadCell());
+	int style = data.ReadCell();
+	delete data;
 
 	if(results == null)
 	{
@@ -1359,17 +1363,16 @@ void StartWRMenu(int client, const char[] map, int style, int track)
 	return;
 }
 
-public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	ResetPack(data);
-
-	int serial = ReadPackCell(data);
-	int track = ReadPackCell(data);
+	data.Reset();
+	int serial = data.ReadCell();
+	int track = data.ReadCell();
 
 	char[] sMap = new char[192];
-	ReadPackString(data, sMap, 192);
+	data.ReadString(sMap, 192);
 
-	delete view_as<DataPack>(data);
+	delete data;
 
 	if(results == null)
 	{
@@ -1503,29 +1506,38 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 public Action Command_RecentRecords(int client, int args)
 {
-	if(!IsValidClient(client))
+	if(gB_PendingMenu[client] || !IsValidClient(client))
 	{
 		return Plugin_Handled;
 	}
 
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT p.id, p.map, u.name, MIN(p.time), p.jumps, p.style, p.points, p.track FROM %splayertimes p JOIN %susers u ON p.auth = u.auth GROUP BY p.map, p.style, p.track ORDER BY date DESC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, gI_RecentLimit);
 
-	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+	FormatEx(sQuery, 512,
+		"SELECT a.id, a.map, u.name, a.time, a.jumps, a.style, a.points, a.track FROM %splayertimes a " ...
+		"JOIN (SELECT MIN(time) time, map, style, track FROM %splayertimes GROUP by map, style, track) b " ...
+		"JOIN %susers u ON a.time = b.time AND a.auth = u.auth AND a.map = b.map AND a.style = b.style AND a.track = b.track " ...
+		"ORDER BY date DESC LIMIT 100;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+
+	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
+
+	gB_PendingMenu[client] = true;
 
 	return Plugin_Handled;
 }
 
 public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
+	int client = GetClientFromSerial(data);
+
+	gB_PendingMenu[client] = false;
+
 	if(results == null)
 	{
 		LogError("Timer (RR SELECT) SQL query failed. Reason: %s", error);
 
 		return;
 	}
-
-	int client = GetClientFromSerial(data);
 
 	if(client == 0)
 	{
@@ -1541,7 +1553,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		results.FetchString(1, sMap, 192);
 		
 		char[] sName = new char[MAX_NAME_LENGTH];
-		results.FetchString(2, sName, MAX_NAME_LENGTH);
+		results.FetchString(2, sName, 10);
+
+		if(strlen(sName) == 9)
+		{
+			Format(sName, MAX_NAME_LENGTH, "%s...", sName);
+		}
 
 		char[] sTime = new char[16];
 		float time = results.FetchFloat(3);
@@ -1558,12 +1575,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sTrack, sMap, sName, sTime, fPoints, "WRPoints", client);
+			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sTrack[0], sMap, sName, sTime, fPoints, "WRPoints", client);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s] [%s] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack, sMap, sName, sTime, jumps, "WRJumps", client);
+			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack[0], sMap, sName, sTime, jumps, "WRJumps", client);
 		}
 
 		char[] sInfo = new char[192];
@@ -1631,19 +1648,19 @@ void OpenSubMenu(int client, int id)
 	gH_SQL.Query(SQL_SubMenu_Callback, sQuery, datapack, DBPrio_High);
 }
 
-public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
+	data.Reset();
+	int client = GetClientFromSerial(data.ReadCell());
+	int id = data.ReadCell();
+	delete data;
+
 	if(results == null)
 	{
 		LogError("Timer (WR SUBMENU) SQL query failed. Reason: %s", error);
 
 		return;
 	}
-
-	ResetPack(data);
-	int client = GetClientFromSerial(ReadPackCell(data));
-	int id = ReadPackCell(data);
-	delete view_as<DataPack>(data);
 
 	if(client == 0)
 	{
@@ -1874,7 +1891,7 @@ void SQL_DBConnect()
 
 		if(gB_MySQL)
 		{
-			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `auth` (`auth`), INDEX `points` (`points`), INDEX `time` (`time`), FULLTEXT INDEX `map` (`map`));", gS_MySQLPrefix);
+			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `auth` (`auth`), INDEX `points` (`points`), INDEX `time` (`time`), INDEX `style` (`style`), INDEX `track` (`track`), INDEX `date` (`date`), FULLTEXT INDEX `map` (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
 		}
 
 		else
