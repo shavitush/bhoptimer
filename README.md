@@ -5,6 +5,8 @@
 
 [Download](https://github.com/shavitush/bhoptimer/releases)
 
+[Discord server](https://discord.gg/jyA9q5k)
+
 # shavit's simple bhop timer
 *a bhop server should be simple*
 
