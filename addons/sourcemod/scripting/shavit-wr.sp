@@ -187,8 +187,8 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gI_RecordsLimit = gCV_RecordsLimit.BoolValue;
-	gI_RecentLimit = gCV_RecentLimit.BoolValue;
+	gI_RecordsLimit = gCV_RecordsLimit.IntValue;
+	gI_RecentLimit = gCV_RecentLimit.IntValue;
 }
 
 public void OnAdminMenuReady(Handle topmenu)
@@ -1356,11 +1356,9 @@ void StartWRMenu(int client, const char[] map, int style, int track)
 	gH_SQL.Escape(map, sEscapedMap, iLength);
 
 	char[] sQuery = new char[512];
-
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style, track);
-	gH_SQL.Query(SQL_WR_Callback, sQuery, dp, DBPrio_High);
-
-	return;
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC LIMIT %d;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style, track, gI_RecordsLimit);
+	PrintToServer("%s", sQuery);
+	gH_SQL.Query(SQL_WR_Callback, sQuery, dp);
 }
 
 public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -1398,30 +1396,26 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	while(results.FetchRow())
 	{
-		// add item to menu and don't overflow with too many entries
-		if(++iCount <= gI_RecordsLimit)
-		{
-			// 0 - record id, for statistic purposes.
-			int id = results.FetchInt(0);
-			char[] sID = new char[8];
-			IntToString(id, sID, 8);
+		// 0 - record id, for statistic purposes.
+		int id = results.FetchInt(0);
+		char[] sID = new char[8];
+		IntToString(id, sID, 8);
 
-			// 1 - player name
-			char[] sName = new char[MAX_NAME_LENGTH];
-			results.FetchString(1, sName, MAX_NAME_LENGTH);
+		// 1 - player name
+		char[] sName = new char[MAX_NAME_LENGTH];
+		results.FetchString(1, sName, MAX_NAME_LENGTH);
 
-			// 2 - time
-			float time = results.FetchFloat(2);
-			char[] sTime = new char[16];
-			FormatSeconds(time, sTime, 16);
+		// 2 - time
+		float time = results.FetchFloat(2);
+		char[] sTime = new char[16];
+		FormatSeconds(time, sTime, 16);
 
-			// 3 - jumps
-			int jumps = results.FetchInt(3);
+		// 3 - jumps
+		int jumps = results.FetchInt(3);
 
-			char[] sDisplay = new char[128];
-			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", iCount, sName, sTime, jumps, "WRJumps", client);
-			menu.AddItem(sID, sDisplay);
-		}
+		char[] sDisplay = new char[128];
+		FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", ++iCount, sName, sTime, jumps, "WRJumps", client);
+		menu.AddItem(sID, sDisplay);
 
 		// check if record exists in the map's top X
 		char[] sQueryAuth = new char[32];
