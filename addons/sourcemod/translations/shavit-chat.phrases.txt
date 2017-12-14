@@ -4,46 +4,68 @@
 	"ChatUpdated"
 	{
 		"en"		"Setting updated."
+		"pt"		"Definição atualizada."
+		"pt_p"		"Definição atualizada."
 	}
 	"ChatCurrent"
 	{
 		"#format"	"{1:s}"
 		"en"		"Current setting: {1}"
+		"pt"		"Definição atual: {1}"
+		"pt_p"		"Definição atual: {1}"
 	}
 	"NameOff"
 	{
 		"en"		"Custom chat name is now off."
+		"pt"		"Nome customizado no chat está agora desligado."
+		"pt_p"		"Nome customizado no chat está agora desligado."
 	}
 	"MessageOff"
 	{
 		"en"		"Custom chat text color is now off."
+		"pt"		"Texto customizado no chat está agora desligado."
+		"pt_p"		"Texto customizado no chat está agora desligado."
 	}
 	"CheckConsole"
 	{
 		"en"		"Check your console."
+		"pt"		"Verifique a sua consola."
+		"pt_p"		"Verifica a tua consola."
 	}
 	"CCHelp_Intro"
 	{
 		"en"		"- You have access to custom chat.\nUsage information:"
+		"pt"		"- Você tem acesso ao chat customizado.\nInformação de utilização:"
+		"pt_p"		"- Tens acesso ao chat customizado.\nInformação de utilização:"
 	}
 	"CCHelp_Generic"
 	{
 		"en"		"- !ccname can be used to change your custom chat name. Use \"!ccname off\" to toggle it off.\n- !ccmsg can be used to change your custom message prefix/color. Use \"!ccmsg off\" to toggle it off.\nThere are custom variables, such as:"
+		"pt"		"- !ccname pode ser usado para mudar a customização do seu nome no chat. Use \"!ccname off\" para o desativar.\n- !ccmsg pode ser usado para mudar a customização do prefixo/cor de suas mensagens. Use \"!ccmsg off\" para o desativar.\nExistem variáveis customizadas, como:"
+		"pt"		"- !ccname pode ser usado para mudar a customização do teu nome no chat. Use \"!ccname off\" para o desativar.\n- !ccmsg pode ser usado para mudar a customização do prefixo/cor das tuas mensagens. Use \"!ccmsg off\" para o desativar.\nExistem variáveis customizadas, como:"
 	}
 	"CCHelp_GenericVariables"
 	{
 		"en"		"- {name} - your in-game name.\n- {rand} - a random color.\n- {team} - your team color.\n- {green} - green color."
+		"pt"		"- {name} - seu nome no jogo.\n- {rand} - uma cor aleatória.\n- {team} - sua cor de equipe.\n- {green} - cor verde."
+		"pt_p"		"- {name} - o teu nome no jogo.\n- {rand} - uma cor aleatória.\n- {team} - a cor da tua equipa.\n- {green} - cor verde."
 	}
 	"CCHelp_CSS_1"
 	{
 		"en"		"- To use a custom color, write ^RRGGBB (HEX/HTML colors). For example, ^FFFFFF is white and ^000000 is black."
+		"pt"		"- Para usar uma cor customizada, escreva ^RRGGBB (cores HEX/HTML). Por exemplo, ^FFFFFF é branco e ^000000 é preto."
+		"pt_p"		"- Para usar uma cor customizada, escreva ^RRGGBB (cores HEX/HTML). Por exemplo, ^FFFFFF é branco e ^000000 é preto."
 	}
 	"CCHelp_CSS_2"
 	{
 		"en"		"- You can also use a set alpha (opacity in HEX, where FF is 255). &RRGGBBAA. For example, &FFFFFF7F is 127 alpha, so all text after the color will have 50% opacity."
+		"pt"		"- Pode também definir uma transparência (opacidade em HEX, onde FF é 255). &RRGGBBAA. Por exemplo, &FFFFFF7F tem 127 de transparência, então todo o texto depois da cor terá 50% opacidade."
+		"pt_p"		"- Podes também definir uma transparência (opacidade em HEX, onde FF é 255). &RRGGBBAA. Por exemplo, &FFFFFF7F tem 127 de transparência, então todo o texto depois da cor terá 50% opacidade."
 	}
 	"CCHelp_CSGO_1"
 	{
 		"en"		"- The following colors are also available: {blue}, {bluegrey}, {darkblue}, {darkred}, {gold}, {grey}, {grey2}, {lightgreen}, {lightred}, {lime}, {orchid}, {yellow} and {palered}."
+		"pt"		"- As seguintes cores estão também disponíveis: {blue}, {bluegrey}, {darkblue}, {darkred}, {gold}, {grey}, {grey2}, {lightgreen}, {lightred}, {lime}, {orchid}, {yellow} e {palered}."
+		"pt_p"		"- As seguintes cores estão também disponíveis: {blue}, {bluegrey}, {darkblue}, {darkred}, {gold}, {grey}, {grey2}, {lightgreen}, {lightred}, {lime}, {orchid}, {yellow} e {palered}."
 	}
 }
