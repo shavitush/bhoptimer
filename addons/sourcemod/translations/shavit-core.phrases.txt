@@ -5,120 +5,169 @@
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Autobhop {1}enabled{2}."
+		"pt"		"Autobhop {1}ativado{2}."
+		"pt_p"		"Autobhop {1}ativado{2}."
 	}
 	"AutobhopDisabled"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Autobhop {1}disabled{2}."
+		"pt"		"Autobhop {1}desativado{2}."
+		"pt_p"		"Autobhop {1}desativado{2}."
 	}
 	"CheatTimerStop"
 	{
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}Timer stopped! {2}{3}"
+		"pt"		"{1}Timer parado! {2}{3}"
+		"pt_p"		"{1}Timer parado! {2}{3}"
 	}
 	"CommandDisabled"
 	{
 		"#format" 	"{1:s},{2:s},{3:s}"
 		"en"		"The command ({1}{2}{3}) is disabled."
+		"pt"		"O comando ({1}{2}{3}) está desabilitado."
+		"pt_p"		"O comando ({1}{2}{3}) está desativado."
 	}
 	// ---------- Errors ---------- //
 	"VerificationFailed"
 	{
 		"en"		"Couldn't verify your, or the server's connection to Steam."
+		"pt"		"Não foi possível verificar a sua conexão ou a do servidor ao Steam."
+		"pt_p"		"Não foi possível verificar a tua conexão ou a do servidor à Steam."
 	}
 	// ---------- Menus ---------- //
 	"StyleMenuTitle"
 	{
 		"en"		"Choose a style:"
+		"pt"		"Escolha um estilo:"
+		"pt_p"		"Escolhe um estilo:"
 	}
 	"StyleSelection"
 	{
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"You have chosen to play {1}{2}{3}."
+		"pt"		"Escolheu jogar {1}{2}{3}."
+		"pt_p"		"Escolheste jogar {1}{2}{3}."
 	}
 	"StyleUnranked"
 	{
 		"en"		"[Unranked]"
+		"pt"		"[Sem Rank]"
+		"pt_p"		"[Sem Rank]"
 	}
 	// ---------- Misc ---------- //
 	"LeftRightCheat"
 	{
 		"en"		"Detected +left/right on a disallowed style."
+		"pt"		"Detetado +left/right não permitido num estilo."
+		"pt_p"		"Detectado +left/right não permitido num estilo."
 	}
 	"Inconsistencies"
 	{
 		"en"		"Detected inconsistencies in button presses."
+		"pt"		"Detetadas inconsistências no clique de botões."
+		"pt_p"		"Detectadas inconsistências em clique de botões."
 	}
 	"UnrankedWarning"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1}WARNING: {2}This style is unranked. Your times WILL NOT be saved and will be only displayed to you!"
+		"pt"		"{1}AVISO: {2}Este estilo não é classificado. Os tempos NÃO SERÃO gravados e só serão visíveis para você!"
+		"pt_p"		"{1}AVISO: {2}Este estilo não é classificado. Os tempos NÃO SERÃO guardados e só serão visíveis para ti!"
 	}
 	"PracticeModeAlert"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1}WARNING: {2}You're now in practice mode. Your times WILL NOT be saved and will be only displayed to you!"
+		"pt"		"{1}AVISO: {2}Você está agora no modo de prática. Os tempos NÃO SERÃO gravados e só serão visíveis para você!"
+		"pt_p"		"{1}AVISO: {2}Estás agora no modo de prática. Os tempos NÃO SERÃO guardados e só serão visíveis para ti!"
 	}
 	"SHSWCombination0"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Your SHSW combination is {1}W/A & S/D{2}."
+		"pt"		"A sua combinação SHSW é {1}W/A & S/D{2}."
+		"pt_p"		"A tua combinação SHSW é {1}W/A & S/D{2}."
 	}
 	"SHSWCombination1"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Your SHSW combination is {1}W/D & S/A{2}."
+		"pt"		"A sua combinação SHSW é {1}W/D & S/A{2}."
+		"pt_p"		"A tua combinação SHSW é {1}W/D & S/A{2}."
 	}
 	"NewAiraccelerate"
 	{
 		"#format"	"{1:d},{2:s},{3:d},{4:s}"
 		"en"		"Your airacceleration has been changed from {1} to {2}{3}{4}."
+		"pt"		"O seu airacceleration foi mudado de {1} para {2}{3}{4}."
+		"pt_p"		"O teu airacceleration foi mudado de {1} para {2}{3}{4}."
 	}
 	// ---------- Pauses ---------- //
 	"MessagePause"
 	{
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}Timer has been {2}paused{3}."
+		"pt"		"{1}Timer foi {2}pausado{3}."
+		"pt_p"		"{1}Timer foi {2}pausado{3}."
 	}
 	"MessageUnpause"
 	{
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}Timer has been {2}resumed{3}."
+		"pt"		"{1}Timer foi {2}resumido{3}."
+		"pt_p"		"{1}Timer foi {2}retomado{3}."
 	}
 	"PauseNotOnGround"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}are not{2} allowed to pause when not on ground."
+		"pt"		"Você {1}não é{2} autorizado a pausar quando não estiver no chão."
+		"pt_p"		"{1}Não estás{2} autorizado a pausar quando não estiveres no chão."
 	}
 	"PauseStartZone"
 	{
 		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s}"
 		"en"		"{1}You {2}cannot{3} pause in the {4}start zone{5}."
+		"pt"		"{1}Você {2}não pode{3} pausar na {4}zona inicial{5}."
+		"pt_p"		"{1}Tu {2}não podes{3} pausar na {4}zona inicial{5}."
 	}
 	"TimerUnpaused"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Timer has been {1}unpaused{2}."
+		"pt"		"Timer foi {1}resumido{2}."
+		"pt_p"		"Timer foi {1}retomado{2}."
 	}
 	"TimerPaused"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Timer has been {1}paused{2}."
+		"pt"		"Timer foi {1}pausado{2}."
+		"pt_p"		"Timer foi {1}pausado{2}."
 	}
 	"PausePractice"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}are not{2} allowed to pause while in practice mode."
+		"pt"		"Você {1}não está{2} autorizado a pausar enquanto estiver em modo de prática."
+		"pt_p"		"{1}Não estás{2} autorizado a pausar em modo de prática."
 	}
+	
 	// ---------- Zones ---------- //
 	"StartZoneUndefined"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"Your timer {1}will not{2} start as a start zone for the map is not defined."
+		"pt"		"Seu timer {1}não irá{2} iniciar uma vez que uma zona de início não está definida no mapa."
+		"pt_p"		"O teu timer {1}não irá{2} iniciar uma vez que uma zona de início não está definida no mapa."
 	}
 	"EndZoneUndefined"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}can't{2} teleport as an end zone for the map is not defined."
+		"pt"		"Você {1}não se pode{2} teleportar para a zona final uma vez que não foi definida no mapa."
+		"pt"		"{1}Não te podes{2} teleportar para a zona final uma vez que não foi definida no mapa."
 	}
 }
