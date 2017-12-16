@@ -52,7 +52,8 @@ char gS_ZoneNames[][] =
 	"No Speed Limit", // ignores velocity limit in that zone
 	"Teleport Zone", // teleports to a defined point
 	"SPAWN POINT", // << unused
-	"Easybhop Zone" // forces easybhop whether if the player is in non-easy styles or if the server has different settings
+	"Easybhop Zone", // forces easybhop whether if the player is in non-easy styles or if the server has different settings
+	"Slide Zone" // allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
 };
 
 enum
@@ -1503,7 +1504,7 @@ public bool TraceFilter_World(int entity, int contentsMask)
 	return (entity == 0);
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE])
 {
 	if(gI_MapStep[client] > 0 && gI_MapStep[client] != 3)
 	{
@@ -1564,7 +1565,31 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		}
 	}
 
+	if(InsideZone(client, Zone_Slide, (gB_EnforceTracks)? track:-1) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
+	{
+		// raytrace down, see if there's 5 distance or less to ground
+		float fPosition[3];
+		GetClientAbsOrigin(client, fPosition);
+		TR_TraceRayFilter(fPosition, view_as<float>({90.0, 0.0, 0.0}), MASK_PLAYERSOLID, RayType_Infinite, TRFilter_NoPlayers, client);
+
+		float fGroundPosition[3];
+
+		if(TR_DidHit() && TR_GetEndPosition(fGroundPosition) && GetVectorDistance(fPosition, fGroundPosition) <= 5.0)
+		{
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+
+			fSpeed[2] = 5.0;
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+		}
+	}
+
 	return Plugin_Continue;
+}
+
+public bool TRFilter_NoPlayers(int entity, int mask, any data)
+{
+	return (entity != view_as<int>(data) || (entity < 1 || entity > MaxClients));
 }
 
 public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, int param2)

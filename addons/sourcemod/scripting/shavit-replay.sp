@@ -308,7 +308,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 	{
 		if(gI_ReplayBotClient[style] == 0)
 		{
-			ServerCommand("bot_add");
+			ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
 			gI_ExpectedBots++;
 		}
 

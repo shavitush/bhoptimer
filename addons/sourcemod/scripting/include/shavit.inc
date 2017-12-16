@@ -207,6 +207,7 @@ enum(+=1)
 	Zone_Teleport,
 	Zone_CustomSpawn,
 	Zone_Easybhop,
+	Zone_Slide,
 	ZONETYPES_SIZE
 };
 

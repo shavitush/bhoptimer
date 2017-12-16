@@ -1070,7 +1070,6 @@ public int Native_ResumeTimer(Handle handler, int numParams)
 public int Native_StopChatSound(Handle handler, int numParams)
 {
 	gB_StopChatSound = true;
-	RequestFrame(RevertChatSound);
 }
 
 public int Native_PrintToChat(Handle handler, int numParams)
@@ -1100,6 +1099,8 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	{
 		PrintToChat(client, " %s", buffer);
 	}
+
+	gB_StopChatSound = false;
 }
 
 public int Native_RestartTimer(Handle handler, int numParams)
@@ -1234,11 +1235,6 @@ int GetTimerStatus(int client)
 	}
 
 	return view_as<int>(Timer_Running);
-}
-
-public void RevertChatSound(any data)
-{
-	gB_StopChatSound = false;
 }
 
 void StartTimer(int client, int track)
