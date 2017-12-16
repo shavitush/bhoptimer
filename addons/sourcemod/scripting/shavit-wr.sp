@@ -1415,7 +1415,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			int jumps = results.FetchInt(3);
 
 			char[] sDisplay = new char[128];
-			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", ++iCount, sName, sTime, jumps, "WRJumps", client);
+			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", iCount, sName, sTime, jumps, "WRJumps", client);
 			menu.AddItem(sID, sDisplay);
 		}
 
