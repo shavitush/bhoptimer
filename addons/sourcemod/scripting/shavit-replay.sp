@@ -1226,6 +1226,11 @@ public void Shavit_OnStop(int client)
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
 {
+	if(Shavit_IsPracticeMode(client))
+	{
+		return;
+	}
+
 	gB_Record[client] = false;
 
 	float fWR = 0.0;
