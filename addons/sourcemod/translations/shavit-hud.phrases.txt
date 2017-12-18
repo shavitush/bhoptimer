@@ -83,7 +83,7 @@
 	}
 	"HudSpectators"
 	{
-		"en"		"Spectator List"
+		"en"		"Spectator list"
 	}
 	"HudKeyOverlay"
 	{
