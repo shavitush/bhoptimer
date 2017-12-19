@@ -187,8 +187,8 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gI_RecordsLimit = gCV_RecordsLimit.BoolValue;
-	gI_RecentLimit = gCV_RecentLimit.BoolValue;
+	gI_RecordsLimit = gCV_RecordsLimit.IntValue;
+	gI_RecentLimit = gCV_RecentLimit.IntValue;
 }
 
 public void OnAdminMenuReady(Handle topmenu)
@@ -1356,11 +1356,8 @@ void StartWRMenu(int client, const char[] map, int style, int track)
 	gH_SQL.Escape(map, sEscapedMap, iLength);
 
 	char[] sQuery = new char[512];
-
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style, track);
-	gH_SQL.Query(SQL_WR_Callback, sQuery, dp, DBPrio_High);
-
-	return;
+	gH_SQL.Query(SQL_WR_Callback, sQuery, dp);
 }
 
 public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -1398,7 +1395,6 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	while(results.FetchRow())
 	{
-		// add item to menu and don't overflow with too many entries
 		if(++iCount <= gI_RecordsLimit)
 		{
 			// 0 - record id, for statistic purposes.

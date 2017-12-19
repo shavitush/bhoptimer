@@ -308,7 +308,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 	{
 		if(gI_ReplayBotClient[style] == 0)
 		{
-			ServerCommand("bot_add");
+			ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
 			gI_ExpectedBots++;
 		}
 
@@ -1226,6 +1226,11 @@ public void Shavit_OnStop(int client)
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
 {
+	if(Shavit_IsPracticeMode(client))
+	{
+		return;
+	}
+
 	gB_Record[client] = false;
 
 	float fWR = 0.0;

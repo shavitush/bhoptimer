@@ -638,7 +638,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 			if(gEV_Type == Engine_TF2 || FindEntityByClassname(-1, "info_player_terrorist") != -1)
 			{
 				bRespawn = true;
-				CleanSwitchTeam(client, 2);
+				CleanSwitchTeam(client, 2, true);
 			}
 		}
 
@@ -648,7 +648,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 			if(gEV_Type == Engine_TF2 || FindEntityByClassname(-1, "info_player_counterterrorist") != -1)
 			{
 				bRespawn = true;
-				CleanSwitchTeam(client, 3);
+				CleanSwitchTeam(client, 3, true);
 			}
 		}
 
@@ -661,7 +661,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		default:
 		{
 			bRespawn = true;
-			CleanSwitchTeam(client, GetRandomInt(2, 3));
+			CleanSwitchTeam(client, GetRandomInt(2, 3), true);
 		}
 	}
 
