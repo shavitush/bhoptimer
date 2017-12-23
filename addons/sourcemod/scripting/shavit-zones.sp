@@ -2591,7 +2591,7 @@ public void UsePost(int entity, int activator, int caller, UseType type, float v
 		Shavit_StartTimer(activator, track);
 	}
 
-	if(zone == Zone_End)
+	if(zone == Zone_End && Shavit_GetTimerStatus(activator) == Timer_Running && Shavit_GetClientTrack(activator) == track)
 	{
 		Shavit_FinishMap(activator, track);
 	}

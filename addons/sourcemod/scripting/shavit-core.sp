@@ -217,7 +217,7 @@ public void OnPluginStart()
 	else if(gEV_Type == Engine_CSGO)
 	{
 		gSG_Type = Game_CSGO;
-		
+
 		sv_autobunnyhopping = FindConVar("sv_autobunnyhopping");
 		sv_autobunnyhopping.BoolValue = false;
 	}
@@ -658,8 +658,9 @@ public Action Command_AutoBhop(int client, int args)
 
 	char[] sAutoBhop = new char[4];
 	IntToString(view_as<int>(gB_Auto[client]), sAutoBhop, 4);
-
 	SetClientCookie(client, gH_AutoBhopCookie, sAutoBhop);
+
+	UpdateAutoBhop(client);
 
 	return Plugin_Handled;
 }
@@ -770,6 +771,12 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
 	Call_PushCell(gI_Track[client]);
 	Call_PushCell(manual);
 	Call_Finish();
+
+	gBS_Style[client] = newstyle;
+
+	UpdateAutoBhop(client);
+	UpdateAiraccelerate(client);
+	UpdateBunnyhopping(client);
 }
 
 void ChangeClientStyle(int client, int style, bool manual)
@@ -798,11 +805,6 @@ void ChangeClientStyle(int client, int style, bool manual)
 	}
 
 	CallOnStyleChanged(client, gBS_Style[client], style, manual);
-	gBS_Style[client] = style;
-
-	UpdateAutoBhop(client);
-	UpdateAiraccelerate(client);
-	UpdateBunnyhopping(client);
 
 	StopTimer(client);
 
@@ -1381,12 +1383,8 @@ public void OnClientCookiesCached(int client)
 		style = StringToInt(sCookie);
 	}
 
-	CallOnStyleChanged(client, 0, gBS_Style[client], false);
-	gBS_Style[client] = (style >= 0 && style < gI_Styles)? style:0;
-
-	UpdateAutoBhop(client);
-	UpdateAiraccelerate(client);
-	UpdateBunnyhopping(client);
+	int newstyle = (style >= 0 && style < gI_Styles)? style:0;
+	CallOnStyleChanged(client, gBS_Style[client], newstyle, false);
 }
 
 public void OnClientPutInServer(int client)
@@ -1412,12 +1410,7 @@ public void OnClientPutInServer(int client)
 
 	else
 	{
-		UpdateAutoBhop(client);
-		UpdateAiraccelerate(client);
-		UpdateBunnyhopping(client);
-
 		CallOnStyleChanged(client, 0, 0, false);
-		gBS_Style[client] = 0;
 	}
 
 	if(gH_SQL == null)
@@ -1918,7 +1911,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 	#endif
 
-	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
+	MoveType mtMoveType = GetEntityMoveType(client);
+	bool bOnLadder = (mtMoveType == MOVETYPE_LADDER);
 
 	// key blocking
 	if(!bOnLadder && !Shavit_InsideZone(client, Zone_Freestyle, -1))
@@ -2070,20 +2064,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client])
+	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client] && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
 	{
-		if((buttons & IN_JUMP) > 0 && iGroundEntity == -1 && !bOnLadder && !bInWater)
-		{
-			buttons &= ~IN_JUMP;
-		}
-
-		else if(gB_DoubleSteps[client] && (iGroundEntity != -1 || bOnLadder || bInWater))
-		{
-			buttons |= IN_JUMP;
-		}
+		int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
+		SetEntProp(client, Prop_Data, "m_nOldButtons", iOldButtons & ~IN_JUMP);
 	}
 
-	else if(gB_DoubleSteps[client])
+	else if(gB_DoubleSteps[client] && (buttons & IN_JUMP) == 0)
 	{
 		buttons |= IN_JUMP;
 	}
