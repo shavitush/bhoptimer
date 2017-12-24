@@ -156,7 +156,6 @@ float gF_AdvertisementInterval = 600.0;
 bool gB_Checkpoints = true;
 int gI_RemoveRagdolls = 1;
 char gS_ClanTag[32] = "{styletag} :: {time}";
-bool gB_ClanTag = true;
 bool gB_DropAll = true;
 bool gB_ResetTargetname = false;
 bool gB_RestoreStates = false;
@@ -487,8 +486,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_DropAll = gCV_DropAll.BoolValue;
 	gB_ResetTargetname = gCV_ResetTargetname.BoolValue;
 	gB_RestoreStates = gCV_RestoreStates.BoolValue;
-
-	gB_ClanTag = !StrEqual(gS_ClanTag, "0");
 }
 
 public void OnConfigsExecuted()
@@ -737,10 +734,7 @@ public Action Timer_Scoreboard(Handle Timer)
 			UpdateScoreboard(i);
 		}
 
-		if(gB_ClanTag)
-		{
-			UpdateClanTag(i);
-		}
+		UpdateClanTag(i);
 	}
 
 	return Plugin_Continue;
@@ -830,7 +824,7 @@ void UpdateScoreboard(int client)
 void UpdateClanTag(int client)
 {
 	// no clan tags in tf2
-	if(gEV_Type == Engine_TF2)
+	if(gEV_Type == Engine_TF2 || StrEqual(gS_ClanTag, "0"))
 	{
 		return;
 	}
@@ -2043,10 +2037,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			UpdateScoreboard(client);
 		}
 
-		if(gB_ClanTag)
-		{
-			UpdateClanTag(client);
-		}
+		UpdateClanTag(client);
 	}
 
 	if(gB_NoBlock)
