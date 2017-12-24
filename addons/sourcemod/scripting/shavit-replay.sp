@@ -1236,9 +1236,9 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	float fWR = 0.0;
 	Shavit_GetWRTime(style, fWR, track);
 
-	if(!view_as<bool>(gA_FrameCache[style][track][2]) && view_as<int>(gA_FrameCache[style][track][0] != 0))
+	if(!view_as<bool>(gA_FrameCache[style][track][2]))
 	{
-		if(time >= fWR)
+		if(view_as<int>(gA_FrameCache[style][track][0]) != 0 && gI_PlayerFrames[client] > gA_FrameCache[style][track][0])
 		{
 			return;
 		}
