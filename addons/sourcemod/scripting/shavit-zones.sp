@@ -572,16 +572,14 @@ public void OnMapEnd()
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	int ref = EntIndexToEntRef(entity);
-
 	if(StrEqual(classname, "func_button", false))
 	{
-		RequestFrame(Frame_HookButton, ref);
+		RequestFrame(Frame_HookButton, EntIndexToEntRef(entity));
 	}
 
 	else if(StrEqual(classname, "trigger_multiple", false))
 	{
-		RequestFrame(Frame_HookTrigger, ref);
+		RequestFrame(Frame_HookTrigger, EntIndexToEntRef(entity));
 	}
 }
 
