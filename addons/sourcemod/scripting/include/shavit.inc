@@ -459,7 +459,7 @@ forward void Shavit_OnChatConfigLoaded();
  * @param client					Client index.
  * @param type						Zone type.
  * @param track						Zone track.
- * @param id						Zone ID.
+ * @param id						Zone ID. 0 for native zones.
  * @param entity					Zone entity iD.
  * @noreturn
  */
@@ -471,7 +471,7 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
  * @param client					Client index.
  * @param type						Zone type.
  * @param track						Zone track.
- * @param id						Zone ID.
+ * @param id						Zone ID. 0 for native zones.
  * @param entity					Zone entity iD.
  * @noreturn
  */
@@ -1027,7 +1027,7 @@ native int Shavit_ReloadReplays(bool restart);
 native void Shavit_StopChatSound();
 
 /**
- * Marks a map as a KZ map.
+ * Marks a map as if it has built-in zones/buttons.
  *
  * @noreturn
  */
@@ -1035,6 +1035,8 @@ native void Shavit_MarkKZMap();
 
 /**
  * Lets us know if the map was marked as a KZ map.
+ * KZ map: a map with built-in zones/buttons.
+ * Does not necessarily mean that the map was designed for KZ gameplay.
  *
  * @return							Boolean value.
  */
