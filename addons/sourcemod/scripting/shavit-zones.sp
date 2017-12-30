@@ -1426,6 +1426,22 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
+float[] SnapToGrid(float pos[3], int grid, bool third)
+{
+	float origin[3];
+	origin = pos;
+
+	origin[0] = float(RoundToNearest(pos[0] / grid) * grid);
+	origin[1] = float(RoundToNearest(pos[1] / grid) * grid);
+	
+	if(third)
+	{
+		origin[2] = float(RoundToNearest(pos[2] / grid) * grid);
+	}
+
+	return origin;
+}
+
 bool SnapToWall(float pos[3], int client, float final[3])
 {
 	bool hit = false;
@@ -1455,10 +1471,7 @@ bool SnapToWall(float pos[3], int client, float final[3])
 
 	if(hit && GetVectorDistance(prefinal, pos) <= gI_GridSnap[client])
 	{
-		prefinal[0] = float(RoundToNearest(prefinal[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		prefinal[1] = float(RoundToNearest(prefinal[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
-
-		final = prefinal;
+		final = SnapToGrid(prefinal, gI_GridSnap[client], false);
 
 		return true;
 	}
@@ -1486,14 +1499,7 @@ float[] GetAimPosition(int client)
 		float end[3];
 		TR_GetEndPosition(end);
 
-		float final[3];
-		final = end;
-		
-		final[0] = float(RoundToNearest(end[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		final[1] = float(RoundToNearest(end[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		final[2] = float(RoundToNearest(end[2] / gI_GridSnap[client]) * gI_GridSnap[client]);
-
-		return final;
+		return SnapToGrid(end, gI_GridSnap[client], true);
 	}
 
 	return pos;
@@ -1526,8 +1532,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 				else if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
 				{
-					origin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-					origin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+					origin = SnapToGrid(vPlayerOrigin, gI_GridSnap[client], false);
 				}
 
 				else
@@ -1956,8 +1961,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 	else if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
 	{
-		origin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		origin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+		origin = SnapToGrid(vPlayerOrigin, gI_GridSnap[client], false);
 	}
 
 	else
