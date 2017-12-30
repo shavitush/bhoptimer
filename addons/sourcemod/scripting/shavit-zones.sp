@@ -2003,6 +2003,22 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
 		TE_SendToAll(0.0);
+
+		// visualize grid snap
+		float snap1[3];
+		float snap2[3];
+
+		for(int i = 0; i < 3; i++)
+		{
+			snap1 = origin;
+			snap1[i] -= (gI_GridSnap[client] / 2);
+
+			snap2 = origin;
+			snap2[i] += (gI_GridSnap[client] / 2);
+
+			TE_SetupBeamPoints(snap1, snap2, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
+			TE_SendToAll(0.0);
+		}
 	}
 
 	return Plugin_Continue;
