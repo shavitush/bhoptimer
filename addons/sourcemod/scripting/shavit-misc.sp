@@ -130,6 +130,7 @@ ConVar gCV_ClanTag = null;
 ConVar gCV_DropAll = null;
 ConVar gCV_ResetTargetname = null;
 ConVar gCV_RestoreStates = null;
+ConVar gCV_JointeamHook = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -156,10 +157,10 @@ float gF_AdvertisementInterval = 600.0;
 bool gB_Checkpoints = true;
 int gI_RemoveRagdolls = 1;
 char gS_ClanTag[32] = "{styletag} :: {time}";
-bool gB_ClanTag = true;
 bool gB_DropAll = true;
 bool gB_ResetTargetname = false;
 bool gB_RestoreStates = false;
+bool gB_JointeamHook = true;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -304,6 +305,7 @@ public void OnPluginStart()
 	gCV_DropAll = CreateConVar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_JointeamHook = CreateConVar("shavit_misc_jointeamhook", "1", "Hook `jointeam`?\n0 - Disabled\n1 - Enabled, players can instantly change teams.", 0, true, 0.0, true, 1.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -332,6 +334,7 @@ public void OnPluginStart()
 	gCV_DropAll.AddChangeHook(OnConVarChanged);
 	gCV_ResetTargetname.AddChangeHook(OnConVarChanged);
 	gCV_RestoreStates.AddChangeHook(OnConVarChanged);
+	gCV_JointeamHook.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -487,8 +490,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_DropAll = gCV_DropAll.BoolValue;
 	gB_ResetTargetname = gCV_ResetTargetname.BoolValue;
 	gB_RestoreStates = gCV_RestoreStates.BoolValue;
-
-	gB_ClanTag = !StrEqual(gS_ClanTag, "0");
+	gB_JointeamHook = gCV_JointeamHook.BoolValue;
 }
 
 public void OnConfigsExecuted()
@@ -613,7 +615,7 @@ public void OnLibraryRemoved(const char[] name)
 
 public Action Command_Jointeam(int client, const char[] command, int args)
 {
-	if(!IsValidClient(client))
+	if(!IsValidClient(client) || !gB_JointeamHook)
 	{
 		return Plugin_Continue;
 	}
@@ -737,10 +739,7 @@ public Action Timer_Scoreboard(Handle Timer)
 			UpdateScoreboard(i);
 		}
 
-		if(gB_ClanTag)
-		{
-			UpdateClanTag(i);
-		}
+		UpdateClanTag(i);
 	}
 
 	return Plugin_Continue;
@@ -830,7 +829,7 @@ void UpdateScoreboard(int client)
 void UpdateClanTag(int client)
 {
 	// no clan tags in tf2
-	if(gEV_Type == Engine_TF2)
+	if(gEV_Type == Engine_TF2 || StrEqual(gS_ClanTag, "0"))
 	{
 		return;
 	}
@@ -2043,10 +2042,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			UpdateScoreboard(client);
 		}
 
-		if(gB_ClanTag)
-		{
-			UpdateClanTag(client);
-		}
+		UpdateClanTag(client);
 	}
 
 	if(gB_NoBlock)

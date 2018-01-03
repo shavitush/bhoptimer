@@ -88,7 +88,7 @@ float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 bool gB_InsideZoneID[MAXPLAYERS+1][MAX_ZONES];
-float gF_CustomSpawn[3];
+float gF_CustomSpawn[TRACKS_SIZE][3];
 int gI_ZoneTrack[MAXPLAYERS+1];
 int gI_ZoneDatabaseID[MAXPLAYERS+1];
 
@@ -572,12 +572,15 @@ public void OnMapEnd()
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	if(!StrEqual(classname, "func_button", false))
+	if(StrEqual(classname, "func_button", false))
 	{
-		return;
+		RequestFrame(Frame_HookButton, EntIndexToEntRef(entity));
 	}
 
-	RequestFrame(Frame_HookButton, EntIndexToEntRef(entity));
+	else if(StrEqual(classname, "trigger_multiple", false))
+	{
+		RequestFrame(Frame_HookTrigger, EntIndexToEntRef(entity));
+	}
 }
 
 public void Frame_HookButton(any data)
@@ -621,6 +624,70 @@ public void Frame_HookButton(any data)
 		Shavit_MarkKZMap();
 
 		SDKHook(entity, SDKHook_UsePost, UsePost);
+	}
+}
+
+public void Frame_HookTrigger(any data)
+{
+	int entity = EntRefToEntIndex(data);
+
+	if(entity == INVALID_ENT_REFERENCE)
+	{
+		return;
+	}
+
+	char[] sName = new char[32];
+	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
+
+	if(StrContains(sName, "mod_zone_") == -1)
+	{
+		return;
+	}
+
+	int zone = -1;
+	int track = Track_Main;
+
+	if(StrContains(sName, "start") != -1)
+	{
+		zone = Zone_Start;
+	}
+
+	else if(StrContains(sName, "end") != -1)
+	{
+		zone = Zone_End;
+	}
+
+	if(StrContains(sName, "bonus") != -1)
+	{
+		track = Track_Bonus;
+	}
+
+	if(zone != -1)
+	{
+		gI_KZButtons[track][zone] = entity;
+		Shavit_MarkKZMap();
+
+		if(zone == Zone_Start)
+		{
+			float maxs[3];
+			GetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
+
+			float origin[3];
+			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+
+			origin[2] -= (maxs[2] - 2.0); // so you don't get stuck in the ground
+
+			gF_CustomSpawn[track] = origin;
+		}
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			gB_InsideZone[i][zone][track] = false;
+		}
+
+		SDKHook(entity, SDKHook_StartTouchPost, StartTouchPost_Trigger);
+		SDKHook(entity, SDKHook_EndTouchPost, EndTouchPost_Trigger);
+		SDKHook(entity, SDKHook_TouchPost, TouchPost_Trigger);
 	}
 }
 
@@ -752,9 +819,11 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 		if(type == Zone_CustomSpawn)
 		{
-			gF_CustomSpawn[0] = results.FetchFloat(7);
-			gF_CustomSpawn[1] = results.FetchFloat(8);
-			gF_CustomSpawn[2] = results.FetchFloat(9);
+			int track = results.FetchInt(10);
+
+			gF_CustomSpawn[track][0] = results.FetchFloat(7);
+			gF_CustomSpawn[track][1] = results.FetchFloat(8);
+			gF_CustomSpawn[track][2] = results.FetchFloat(9);
 		}
 
 		else
@@ -849,7 +918,7 @@ public Action Command_Modifier(int client, int args)
 	return Plugin_Handled;
 }
 
-//Krypt Custom Spawn Functions (https://github.com/Kryptanyte)
+// Krypt Custom Spawn Functions (https://github.com/Kryptanyte)
 public Action Command_AddSpawn(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -864,7 +933,7 @@ public Action Command_AddSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!EmptyVector(gF_CustomSpawn))
+	if(!EmptyVector(gF_CustomSpawn[Track_Main]))
 	{
 		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnExists", client);
 
@@ -917,9 +986,12 @@ public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, co
 
 void ClearCustomSpawn()
 {
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		gF_CustomSpawn[i] = 0.0;
+		for(int j = 0; j < 3; j++)
+		{
+			gF_CustomSpawn[i][j] = 0.0;
+		}
 	}
 }
 
@@ -1426,6 +1498,22 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
+float[] SnapToGrid(float pos[3], int grid, bool third)
+{
+	float origin[3];
+	origin = pos;
+
+	origin[0] = float(RoundToNearest(pos[0] / grid) * grid);
+	origin[1] = float(RoundToNearest(pos[1] / grid) * grid);
+	
+	if(third)
+	{
+		origin[2] = float(RoundToNearest(pos[2] / grid) * grid);
+	}
+
+	return origin;
+}
+
 bool SnapToWall(float pos[3], int client, float final[3])
 {
 	bool hit = false;
@@ -1455,10 +1543,7 @@ bool SnapToWall(float pos[3], int client, float final[3])
 
 	if(hit && GetVectorDistance(prefinal, pos) <= gI_GridSnap[client])
 	{
-		prefinal[0] = float(RoundToNearest(prefinal[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		prefinal[1] = float(RoundToNearest(prefinal[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
-
-		final = prefinal;
+		final = SnapToGrid(prefinal, gI_GridSnap[client], false);
 
 		return true;
 	}
@@ -1486,14 +1571,7 @@ float[] GetAimPosition(int client)
 		float end[3];
 		TR_GetEndPosition(end);
 
-		float final[3];
-		final = end;
-		
-		final[0] = float(RoundToNearest(end[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		final[1] = float(RoundToNearest(end[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		final[2] = float(RoundToNearest(end[2] / gI_GridSnap[client]) * gI_GridSnap[client]);
-
-		return final;
+		return SnapToGrid(end, gI_GridSnap[client], true);
 	}
 
 	return pos;
@@ -1526,8 +1604,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 				else if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
 				{
-					origin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-					origin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+					origin = SnapToGrid(vPlayerOrigin, gI_GridSnap[client], false);
 				}
 
 				else
@@ -1956,8 +2033,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 	else if(!(gB_SnapToWall[client] && SnapToWall(vPlayerOrigin, client, origin)))
 	{
-		origin[0] = float(RoundToNearest(vPlayerOrigin[0] / gI_GridSnap[client]) * gI_GridSnap[client]);
-		origin[1] = float(RoundToNearest(vPlayerOrigin[1] / gI_GridSnap[client]) * gI_GridSnap[client]);
+		origin = SnapToGrid(vPlayerOrigin, gI_GridSnap[client], false);
 	}
 
 	else
@@ -2003,6 +2079,22 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
 		TE_SendToAll(0.0);
+
+		// visualize grid snap
+		float snap1[3];
+		float snap2[3];
+
+		for(int i = 0; i < 3; i++)
+		{
+			snap1 = origin;
+			snap1[i] -= (gI_GridSnap[client] / 2);
+
+			snap2 = origin;
+			snap2[i] += (gI_GridSnap[client] / 2);
+
+			TE_SetupBeamPoints(snap1, snap2, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
+			TE_SendToAll(0.0);
+		}
 	}
 
 	return Plugin_Continue;
@@ -2248,9 +2340,9 @@ public void Shavit_OnRestart(int client, int track)
 {
 	if(gB_TeleportToStart)
 	{
-		if(track == Track_Main && !EmptyVector(gF_CustomSpawn))
+		if(!EmptyVector(gF_CustomSpawn[track]))
 		{
-			TeleportEntity(client, gF_CustomSpawn, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, gF_CustomSpawn[track], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		else if(Shavit_IsKZMap() && !EmptyVector(gF_ClimbButtonCache[client][track][0]) && !EmptyVector(gF_ClimbButtonCache[client][track][1]))
@@ -2559,6 +2651,23 @@ public void TouchPost(int entity, int other)
 	}
 }
 
+void GetButtonInfo(int entity, int &zone, int &track)
+{
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		for(int j = 0; j < 2; j++)
+		{
+			if(gI_KZButtons[i][j] == entity)
+			{
+				zone = j;
+				track = i;
+
+				return;
+			}
+		}
+	}
+}
+
 public void UsePost(int entity, int activator, int caller, UseType type, float value)
 {
 	if(activator < 1 || activator > MaxClients || IsFakeClient(activator) || GetEntPropEnt(activator, Prop_Send, "m_hGroundEntity") == -1)
@@ -2569,19 +2678,7 @@ public void UsePost(int entity, int activator, int caller, UseType type, float v
 	int zone = -1;
 	int track = Track_Main;
 
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		for(int j = 0; j < 2; j++)
-		{
-			if(gI_KZButtons[i][j] == entity)
-			{
-				zone = j;
-				track = i;
-
-				break;
-			}
-		}
-	}
+	GetButtonInfo(entity, zone, track);
 
 	if(zone == Zone_Start)
 	{
@@ -2594,5 +2691,92 @@ public void UsePost(int entity, int activator, int caller, UseType type, float v
 	if(zone == Zone_End && Shavit_GetTimerStatus(activator) == Timer_Running && Shavit_GetClientTrack(activator) == track)
 	{
 		Shavit_FinishMap(activator, track);
+	}
+}
+
+public void StartTouchPost_Trigger(int entity, int other)
+{
+	if(other < 1 || other > MaxClients || IsFakeClient(other))
+	{
+		return;
+	}
+
+	int zone = -1;
+	int track = Track_Main;
+
+	GetButtonInfo(entity, zone, track);
+
+	if(zone == -1)
+	{
+		return;
+	}
+
+	TimerStatus status = Shavit_GetTimerStatus(other);
+
+	if(zone == Zone_End && status != Timer_Stopped && Shavit_GetClientTrack(other) == track)
+	{
+		Shavit_FinishMap(other, track);
+	}
+
+	gB_InsideZone[other][zone][track] = true;
+
+	Call_StartForward(gH_Forwards_EnterZone);
+	Call_PushCell(other);
+	Call_PushCell(zone);
+	Call_PushCell(track);
+	Call_PushCell(0);
+	Call_PushCell(entity);
+	Call_Finish();
+}
+
+public void EndTouchPost_Trigger(int entity, int other)
+{
+	if(other < 1 || other > MaxClients || IsFakeClient(other))
+	{
+		return;
+	}
+
+	int zone = -1;
+	int track = Track_Main;
+
+	GetButtonInfo(entity, zone, track);
+
+	if(zone != -1)
+	{
+		gB_InsideZone[other][zone][track] = false;
+
+		Call_StartForward(gH_Forwards_LeaveZone);
+		Call_PushCell(other);
+		Call_PushCell(zone);
+		Call_PushCell(track);
+		Call_PushCell(0);
+		Call_PushCell(entity);
+		Call_Finish();
+	}
+}
+
+public void TouchPost_Trigger(int entity, int other)
+{
+	if(other < 1 || other > MaxClients || IsFakeClient(other))
+	{
+		return;
+	}
+
+	int zone = -1;
+	int track = Track_Main;
+
+	GetButtonInfo(entity, zone, track);
+
+	if(zone == Zone_Start)
+	{
+		if(Shavit_GetTimerStatus(other) == Timer_Stopped || Shavit_GetClientTrack(other) != Track_Main)
+		{
+			Shavit_StartTimer(other, track);
+		}
+
+		else if(track == Track_Main)
+		{
+			Shavit_StartTimer(other, Track_Main);
+		}
 	}
 }
