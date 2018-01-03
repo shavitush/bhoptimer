@@ -286,29 +286,26 @@ public void OnMapStart()
 	GetCurrentMap(gS_Map, 160);
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
-	if(gH_SQL != null)
+	UpdateWRCache();
+
+	char[] sLowerCase = new char[160];
+	strcopy(sLowerCase, 160, gS_Map);
+
+	for(int i = 0; i < strlen(sLowerCase); i++)
 	{
-		UpdateWRCache();
-
-		char[] sLowerCase = new char[160];
-		strcopy(sLowerCase, 160, gS_Map);
-
-		for(int i = 0; i < strlen(sLowerCase); i++)
+		if(!IsCharUpper(sLowerCase[i]))
 		{
-			if(!IsCharUpper(sLowerCase[i]))
-			{
-				sLowerCase[i] = CharToLower(sLowerCase[i]);
-			}
+			sLowerCase[i] = CharToLower(sLowerCase[i]);
 		}
-
-		gA_ValidMaps.Clear();
-		gA_ValidMaps.PushString(sLowerCase);
-		gI_ValidMaps = 1;
-
-		char sQuery[128];
-		FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
-		gH_SQL.Query(SQL_UpdateMaps_Callback, sQuery, 0, DBPrio_Low);
 	}
+
+	gA_ValidMaps.Clear();
+	gA_ValidMaps.PushString(sLowerCase);
+	gI_ValidMaps = 1;
+
+	char sQuery[128];
+	FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_UpdateMaps_Callback, sQuery, 0, DBPrio_Low);
 
 	if(gB_Late)
 	{
@@ -779,7 +776,6 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND track = %d;", gS_MySQLPrefix, gS_Map, gI_LastTrack[param1]);
-
 		gH_SQL.Query(DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
 
@@ -1141,7 +1137,6 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;", gS_MySQLPrefix, iRecordID);
-
 		gH_SQL.Query(DeleteConfirm_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
 
@@ -1877,26 +1872,23 @@ void SQL_SetPrefix()
 
 void SQL_DBConnect()
 {
-	if(gH_SQL != null)
+	char[] sDriver = new char[8];
+	gH_SQL.Driver.GetIdentifier(sDriver, 8);
+	gB_MySQL = StrEqual(sDriver, "mysql", false);
+
+	char[] sQuery = new char[512];
+
+	if(gB_MySQL)
 	{
-		char[] sDriver = new char[8];
-		gH_SQL.Driver.GetIdentifier(sDriver, 8);
-		gB_MySQL = StrEqual(sDriver, "mysql", false);
-
-		char[] sQuery = new char[512];
-
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `auth` (`auth`), INDEX `points` (`points`), INDEX `time` (`time`), INDEX `style` (`style`), INDEX `track` (`track`), INDEX `date` (`date`), FULLTEXT INDEX `map` (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
-		}
-
-		else
-		{
-			FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
-		}
-
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `auth` (`auth`, `map`, `time`, `style`, `date`, `points`, `track`)) ENGINE=INNODB;", gS_MySQLPrefix);
 	}
+
+	else
+	{
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+	}
+
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
