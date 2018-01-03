@@ -1231,14 +1231,21 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		return;
 	}
 
+	if(!gB_Enabled || (gF_TimeLimit > 0.0 && time > gF_TimeLimit))
+	{
+		ClearFrames(client);
+
+		return;
+	}
+
 	gB_Record[client] = false;
 
-	float fWR = 0.0;
-	Shavit_GetWRTime(style, fWR, track);
+	bool newformat = view_as<bool>(gA_FrameCache[style][track][2]);
+	float length = GetReplayLength(style, track);
 
-	if(!view_as<bool>(gA_FrameCache[style][track][2]))
+	if(newformat)
 	{
-		if(view_as<int>(gA_FrameCache[style][track][0]) != 0 && gI_PlayerFrames[client] > gA_FrameCache[style][track][0])
+		if(length > 0.0 && time > length)
 		{
 			return;
 		}
@@ -1246,9 +1253,10 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	else
 	{
-		float fReplayTime = view_as<float>(gA_FrameCache[style][track][1]);
+		float wrtime = 0.0;
+		Shavit_GetWRTime(style, wrtime, track);
 
-		if(fReplayTime != 0.0 && time >= fReplayTime)
+		if(wrtime != 0.0 && time > wrtime)
 		{
 			return;
 		}
@@ -1256,13 +1264,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	if(gI_PlayerFrames[client] == 0)
 	{
-		return;
-	}
-
-	if(!gB_Enabled || (gF_TimeLimit > 0.0 && time > gF_TimeLimit))
-	{
-		ClearFrames(client);
-
 		return;
 	}
 
