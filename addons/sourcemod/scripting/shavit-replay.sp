@@ -64,6 +64,8 @@ enum
 EngineVersion gEV_Type = Engine_Unknown;
 
 // cache
+char gS_ReplayFolder[PLATFORM_MAX_PATH];
+
 int gI_ReplayTick[STYLE_LIMIT];
 int gI_ReplayBotClient[STYLE_LIMIT];
 ArrayList gA_Frames[STYLE_LIMIT][TRACKS_SIZE];
@@ -557,7 +559,18 @@ bool LoadStyling()
 	kv.GetString("centralstyletag", gS_ReplayStrings[sReplayCentralStyleTag], MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLETAG>");
 	kv.GetString("unloaded", gS_ReplayStrings[sReplayUnloaded], MAX_NAME_LENGTH, "<EMPTY UNLOADED>");
 
+	char[] sFolder = new char[PLATFORM_MAX_PATH];
+	kv.GetString("replayfolder", sFolder, PLATFORM_MAX_PATH, "{SM}/data/replaybot");
+
 	delete kv;
+
+	if(StrContains(sFolder, "{SM}") != -1)
+	{
+		ReplaceString(sFolder, PLATFORM_MAX_PATH, "{SM}/", "");
+		BuildPath(Path_SM, sFolder, PLATFORM_MAX_PATH, "%s", sFolder);
+	}
+	
+	strcopy(gS_ReplayFolder, PLATFORM_MAX_PATH, sFolder);
 
 	return true;
 }
@@ -678,12 +691,9 @@ public void OnMapStart()
 
 	gI_ExpectedBots = 0;
 
-	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot");
-
-	if(!DirExists(sPath))
+	if(!DirExists(gS_ReplayFolder))
 	{
-		CreateDirectory(sPath, 511);
+		CreateDirectory(gS_ReplayFolder, 511);
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -697,7 +707,8 @@ public void OnMapStart()
 			continue;
 		}
 
-		BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d", i);
+		char[] sPath = new char[PLATFORM_MAX_PATH];
+		FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d", gS_ReplayFolder, i);
 
 		if(!DirExists(sPath))
 		{
@@ -772,7 +783,7 @@ bool DefaultLoadReplay(int style, int track)
 	FormatEx(sTrack, 4, "_%d", track);
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s%s.replay", style, gS_Map, (track > 0)? sTrack:"");
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	return LoadReplay(style, track, sPath);
 }
@@ -911,7 +922,7 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
 	FormatEx(sTrack, 4, "_%d", track);
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s%s.replay", style, gS_Map, (track > 0)? sTrack:"");
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	if(FileExists(sPath))
 	{
@@ -953,7 +964,7 @@ bool DeleteReplay(int style, int track)
 	FormatEx(sTrack, 4, "_%d", track);
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s%s.replay", style, gS_Map, (track > 0)? sTrack:"");
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	if(!FileExists(sPath) || !DeleteFile(sPath))
 	{
