@@ -1178,19 +1178,29 @@ public Action Command_Spec(int client, int args)
 
 	CleanSwitchTeam(client, 1, false);
 
+	int target = -1;
+
 	if(args > 0)
 	{
 		char[] sArgs = new char[MAX_TARGET_LENGTH];
 		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
 
-		int iTarget = FindTarget(client, sArgs, false, false);
+		target = FindTarget(client, sArgs, false, false);
 
-		if(iTarget == -1)
+		if(target == -1)
 		{
 			return Plugin_Handled;
 		}
+	}
 
-		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", iTarget);
+	else if(gB_Replay)
+	{
+		target = Shavit_GetReplayBotIndex(0);
+	}
+
+	if(IsValidClient(target, true))
+	{
+		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", target);
 	}
 
 	return Plugin_Handled;

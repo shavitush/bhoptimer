@@ -250,6 +250,11 @@ public int Native_GetReplayBotCurrentFrame(Handle handler, int numParams)
 
 public int Native_GetReplayBotIndex(Handle handler, int numParams)
 {
+	if(gB_CentralBot)
+	{
+		return gA_CentralCache[iCentralClient];
+	}
+
 	return gI_ReplayBotClient[GetNativeCell(1)];
 }
 
