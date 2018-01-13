@@ -44,7 +44,7 @@
 
 // for reference, not used anymore
 // game types
-enum ServerGame(+=1)
+enum ServerGame
 {
 	Game_CSS = 0,
 	Game_CSGO,
@@ -52,19 +52,25 @@ enum ServerGame(+=1)
 };
 
 // status
-enum TimerStatus(+=1)
+enum TimerStatus
 {
 	Timer_Stopped = 0,
 	Timer_Running,
 	Timer_Paused
 };
 
-enum ReplayStatus(+=1)
+enum ReplayStatus
 {
 	Replay_Start = 0,
 	Replay_Running,
 	Replay_End,
 	Replay_Idle
+};
+
+enum ReplayBotType
+{
+	Replay_Central = 0,
+	Replay_Legacy
 };
 
 enum
@@ -787,6 +793,13 @@ native int Shavit_GetReplayBotStyle(int client);
 native int Shavit_GetReplayBotTrack(int client);
 
 /**
+ * Gets the replay bot type setting of the server.
+ *
+ * @return							See ReplayBotType enum.
+ */
+native ReplayBotType Shavit_GetReplayBotType();
+
+/**
  * Retrieve the replay bot's current played frame.
  *
  * @param style						Style.
@@ -1125,6 +1138,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetReplayBotStyle");
 	MarkNativeAsOptional("Shavit_GetReplayBotTrack");
+	MarkNativeAsOptional("Shavit_GetReplayBotType");
 	MarkNativeAsOptional("Shavit_GetReplayData");
 	MarkNativeAsOptional("Shavit_GetReplayFrameCount");
 	MarkNativeAsOptional("Shavit_GetReplayLength");

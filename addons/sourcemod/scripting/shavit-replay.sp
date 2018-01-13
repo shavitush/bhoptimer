@@ -140,6 +140,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
+	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
@@ -419,6 +420,11 @@ public int Native_GetReplayBotStyle(Handle handler, int numParams)
 public int Native_GetReplayBotTrack(Handle handler, int numParams)
 {
 	return GetReplayTrack(GetNativeCell(1));
+}
+
+public int Native_GetReplayBotType(Handle handler, int numParams)
+{
+	return view_as<int>((gB_CentralBot)? Replay_Central:Replay_Legacy);
 }
 
 public void Shavit_OnDatabaseLoaded()
