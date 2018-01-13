@@ -4,39 +4,57 @@
 	"AddMapZone"
 	{
 		"en"		"Add map zone"
+		"pt"		"Adicionar zona do mapa"
+		"pt_p"		"Adicionar zona do mapa"
 	}
 	"DeleteAllMapZone"
 	{
 		"en"		"Delete ALL map zones"
+		"pt"		"Apagar TODAS as zonas do mapa"
+		"pt_p"		"Apagar TODAS as zonas do mapa"
 	}
 	"DeleteMapZone"
 	{
 		"en"		"Delete map zone"
+		"pt"		"Apagar zona do mapa"
+		"pt_p"		"Apagar zona do mapa"
 	}
 	"TimerCommands"
 	{
 		"en"		"Timer Commands"
+		"pt"		"Comandos do Timer"
+		"pt_p"		"Comandos do Timer"
 	}
 	// ---------- Commands ---------- //
 	"ModifierCommandNoArgs"
 	{
 		"en"		"Usage: sm_modifier <decimal number>"
+		"pt"		"Uso: sm_modifier <número decimal>"
+		"pt_p"		"Utilização: sm_modifier <número decimal>"
 	}
 	"ModifierTooLow"
 	{
 		"en"		"Modifier must be higher than 0."
+		"pt"		"Modificador deve ser maior que 0."
+		"pt_p"		"Modificador deve ser maior que 0."
 	}
 	"ModifierSet"
 	{
 		"en"		"Modifier set to"
+		"pt"		"Modificador definido a"
+		"pt_p"		"Modificador definido a"
 	}
 	"ZonesCommand"
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}cannot{2} setup mapzones when you're dead."
+		"pt"		"Você {1}não pode{2} definir zonas do mapa enquanto estiver morto."
+		"pt_p"		"{1}Não podes{2} definir zonas do mapa enquanto estiveres morto."
 	}
 	"ZoneCustomSpawnExists"
 	{
+		"en"		"Custom Spawn already exists. Please delete it before placing a new one."
+		"en"		"Spawn customizado Custom Spawn already exists. Please delete it before placing a new one."
 		"en"		"Custom Spawn already exists. Please delete it before placing a new one."
 	}
 	"ZoneCustomSpawnDelete"
