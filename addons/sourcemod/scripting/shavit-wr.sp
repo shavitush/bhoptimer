@@ -1449,7 +1449,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		else
 		{
-			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, gI_RecordAmount[gBS_LastWR[client]]);
+			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
 		}
 
 		char[] sTrack = new char[32];
