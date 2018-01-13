@@ -1942,7 +1942,7 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 	}
 }
 
-public void Shavit_OnRestart(int client)
+public void Shavit_OnRestart(int client, int track)
 {
 	if(!gB_RespawnOnRestart)
 	{
@@ -1969,13 +1969,18 @@ public void Shavit_OnRestart(int client)
 			}
 		}
 
-		CreateTimer(0.1, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+		DataPack pack;
+		CreateDataTimer(0.1, Respawn, pack, TIMER_FLAG_NO_MAPCHANGE);
+		pack.WriteCell(GetClientSerial(client));
+		pack.WriteCell(track);
 	}
 }
 
-public Action Respawn(Handle Timer, any data)
+public Action Respawn(Handle Timer, DataPack pack)
 {
-	int client = GetClientFromSerial(data);
+	pack.Reset();
+	int client = GetClientFromSerial(pack.ReadCell());
+	int track = pack.ReadCell();
 
 	if(IsValidClient(client) && !IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
@@ -1991,18 +1996,18 @@ public Action Respawn(Handle Timer, any data)
 
 		if(gB_RespawnOnRestart)
 		{
-			RestartTimer(client);
+			RestartTimer(client, track);
 		}
 	}
 
 	return Plugin_Handled;
 }
 
-void RestartTimer(int client)
+void RestartTimer(int client, int track)
 {
-	if(Shavit_ZoneExists(Zone_Start, Track_Main))
+	if(Shavit_ZoneExists(Zone_Start, track))
 	{
-		Shavit_RestartTimer(client, Track_Main);
+		Shavit_RestartTimer(client, track);
 	}
 }
 
@@ -2021,7 +2026,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 		if(gB_StartOnSpawn)
 		{
-			RestartTimer(client);
+			RestartTimer(client, Track_Main);
 		}
 
 		if(gB_SaveStates[client])
