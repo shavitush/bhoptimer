@@ -2077,7 +2077,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	{
 		origin[2] -= gF_Height;
 
-		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 		TE_SendToAll(0.0);
 
 		// visualize grid snap
@@ -2092,7 +2092,7 @@ public Action Timer_Draw(Handle Timer, any data)
 			snap2 = origin;
 			snap2[i] += (gI_GridSnap[client] / 2);
 
-			TE_SetupBeamPoints(snap1, snap2, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
+			TE_SetupBeamPoints(snap1, snap2, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 			TE_SendToAll(0.0);
 		}
 	}
