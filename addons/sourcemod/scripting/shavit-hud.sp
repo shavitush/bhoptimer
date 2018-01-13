@@ -1022,20 +1022,20 @@ void UpdateTopLeftHUD(int client, bool wait)
 			char[] sPBTime = new char[16];
 			FormatSeconds(fPBTime, sPBTime, MAX_NAME_LENGTH);
 
-			char[] sTopLeft = new char[64];
+			char[] sTopLeft = new char[128];
 
 			if(fPBTime != 0.0)
 			{
-				FormatEx(sTopLeft, 64, "WR: %s (%s)\n%T: %s (#%d)", sWRTime, sWRName, "HudBestText", client, sPBTime, (Shavit_GetRankForTime(style, fPBTime, track) - 1));
+				FormatEx(sTopLeft, 128, "WR: %s (%s)\n%T: %s (#%d)", sWRTime, sWRName, "HudBestText", client, sPBTime, (Shavit_GetRankForTime(style, fPBTime, track) - 1));
 			}
 
 			else
 			{
-				FormatEx(sTopLeft, 64, "WR: %s (%s)", sWRTime, sWRName);
+				FormatEx(sTopLeft, 128, "WR: %s (%s)", sWRTime, sWRName);
 			}
 
 			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255);
-			ShowSyncHudText(client, gH_HUD, sTopLeft);
+			ShowSyncHudText(client, gH_HUD, "%s", sTopLeft);
 		}
 	}
 }
