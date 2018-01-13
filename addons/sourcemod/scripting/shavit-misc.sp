@@ -1969,7 +1969,7 @@ public void Shavit_OnRestart(int client, int track)
 			}
 		}
 
-		DataPack pack;
+		DataPack pack = null;
 		CreateDataTimer(0.1, Respawn, pack, TIMER_FLAG_NO_MAPCHANGE);
 		pack.WriteCell(GetClientSerial(client));
 		pack.WriteCell(track);
