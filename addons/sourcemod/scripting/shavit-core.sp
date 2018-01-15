@@ -60,24 +60,24 @@ Handle gH_Forwards_OnChatConfigLoaded = null;
 Handle gH_Forwards_OnUserCmdPre = null;
 
 // Timer variables
-bool gB_TimerEnabled[MAXPLAYERS + 1];
-float gF_StartTime[MAXPLAYERS + 1];
-float gF_PauseStartTime[MAXPLAYERS + 1];
-float gF_PauseTotalTime[MAXPLAYERS + 1];
-bool gB_ClientPaused[MAXPLAYERS + 1];
-int gI_Jumps[MAXPLAYERS + 1];
-int gBS_Style[MAXPLAYERS + 1];
-bool gB_Auto[MAXPLAYERS + 1];
-int gI_ButtonCache[MAXPLAYERS + 1];
-int gI_Strafes[MAXPLAYERS + 1];
-float gF_AngleCache[MAXPLAYERS + 1];
-int gI_TotalMeasures[MAXPLAYERS + 1];
-int gI_GoodGains[MAXPLAYERS + 1];
-bool gB_DoubleSteps[MAXPLAYERS + 1];
-float gF_StrafeWarning[MAXPLAYERS + 1];
-bool gB_PracticeMode[MAXPLAYERS + 1];
-int gI_SHSW_FirstCombination[MAXPLAYERS + 1];
-int gI_Track[MAXPLAYERS + 1];
+bool gB_TimerEnabled[MAXPLAYERS+1];
+float gF_StartTime[MAXPLAYERS+1];
+float gF_PauseStartTime[MAXPLAYERS+1];
+float gF_PauseTotalTime[MAXPLAYERS+1];
+bool gB_ClientPaused[MAXPLAYERS+1];
+int gI_Jumps[MAXPLAYERS+1];
+int gBS_Style[MAXPLAYERS+1];
+bool gB_Auto[MAXPLAYERS+1];
+int gI_ButtonCache[MAXPLAYERS+1];
+int gI_Strafes[MAXPLAYERS+1];
+float gF_AngleCache[MAXPLAYERS+1];
+int gI_TotalMeasures[MAXPLAYERS+1];
+int gI_GoodGains[MAXPLAYERS+1];
+bool gB_DoubleSteps[MAXPLAYERS+1];
+float gF_StrafeWarning[MAXPLAYERS+1];
+bool gB_PracticeMode[MAXPLAYERS+1];
+int gI_SHSW_FirstCombination[MAXPLAYERS+1];
+int gI_Track[MAXPLAYERS+1];
 
 StringMap gSM_StyleCommands = null;
 
@@ -135,7 +135,7 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 
-// Kz support
+// KZ support
 bool gB_KZMap = false;
 
 public Plugin myinfo =
@@ -1668,9 +1668,9 @@ void SQL_SetPrefix()
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
 
-	char[] sLine = new char[PLATFORM_MAX_PATH * 2];
+	char[] sLine = new char[PLATFORM_MAX_PATH*2];
 
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
 		TrimString(sLine);
 		strcopy(gS_MySQLPrefix, 32, sLine);
@@ -1935,9 +1935,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	return Plugin_Continue;
 }
 
-void TF2_EnableBhop(int client, int buttons, int iGroundEntity)
+void TF2_EnableBhop(int client, int &buttons, int groundentity)
 {
-	if(gEV_Type == Engine_TF2 && gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping] && (buttons & IN_JUMP) > 0 && iGroundEntity != -1)
+	if(gEV_Type == Engine_TF2 && gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping] && (buttons & IN_JUMP) > 0 && groundentity != -1)
 	{
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
@@ -1947,7 +1947,7 @@ void TF2_EnableBhop(int client, int buttons, int iGroundEntity)
 	}
 }
 
-void DetectPossibleCheats(int client, int buttons, float vel[3], bool bInStart)
+void DetectPossibleCheats(int client, int &buttons, float vel[3], bool instart)
 {
 	if(!gB_TimerEnabled[client] && gB_ClientPaused[client])
 	{
@@ -1957,7 +1957,7 @@ void DetectPossibleCheats(int client, int buttons, float vel[3], bool bInStart)
 	char[] sCheatDetected = new char[64];
 
 	// Block +left/right
-	if(gB_LeftRight && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] &&
+	if(gB_LeftRight && (!gB_Zones || !instart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] &&
 		(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
 	{
 		FormatEx(sCheatDetected, 64, "%T", "LeftRightCheat", client);
@@ -1981,9 +1981,9 @@ void DetectPossibleCheats(int client, int buttons, float vel[3], bool bInStart)
 	}
 }
 
-void HandleVelocityLimit(int client, int iGroundEntity)
+void HandleVelocityLimit(int client, int groundentity)
 {
-	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) &&
+	if(groundentity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) &&
 		(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit, -1)))
 	{
 		float fSpeed[3];
@@ -2004,7 +2004,7 @@ void HandleVelocityLimit(int client, int iGroundEntity)
 	}
 }
 
-void GetStrafingSync(int client, float vel[3], float angles[3], int iGroundEntity)
+void GetStrafingSync(int client, float vel[3], float angles[3], int groundentity)
 {
 	float fAngle = (angles[1] - gF_AngleCache[client]);
 
@@ -2018,7 +2018,7 @@ void GetStrafingSync(int client, float vel[3], float angles[3], int iGroundEntit
 		fAngle += 360.0;
 	}
 
-	if(iGroundEntity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
+	if(groundentity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
 	{
 		float fAbsVelocity[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
@@ -2066,7 +2066,7 @@ void GetStrafingSync(int client, float vel[3], float angles[3], int iGroundEntit
 	}
 }
 
-void CountStrafes(int client, int buttons)
+void CountStrafes(int client, int &buttons)
 {
 	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountW] && !gA_StyleSettings[gBS_Style[client]][bBlockW] &&
 		(gI_ButtonCache[client] & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
@@ -2106,7 +2106,7 @@ void Debug_CheckVelocity(int client, float vel[3])
 }
 #endif
 
-void BlockButtons(int client, int buttons, float vel[3], int iGroundEntity)
+void BlockButtons(int client, int &buttons, float vel[3], int groundentity)
 {
 	// Block E (+USE)
 	if(gA_StyleSettings[gBS_Style[client]][bBlockUse] && (buttons & IN_USE) > 0)
@@ -2114,7 +2114,7 @@ void BlockButtons(int client, int buttons, float vel[3], int iGroundEntity)
 		buttons &= ~IN_USE;
 	}
 
-	if(iGroundEntity == -1)
+	if(groundentity == -1)
 	{
 		if(gA_StyleSettings[gBS_Style[client]][bBlockW] && ((buttons & IN_FORWARD) > 0 || vel[0] > 0.0))
 		{
@@ -2142,14 +2142,14 @@ void BlockButtons(int client, int buttons, float vel[3], int iGroundEntity)
 	}
 }
 
-void HandleHSWStyles(int client, int buttons, float vel[3], int iGroundEntity, bool bInStart)
+void HandleHSWStyles(int client, int &buttons, float vel[3], int groundentity, bool instart)
 {
 	if(gA_StyleSettings[gBS_Style[client]][iForceHSW] == 0)
 	{
 		return;
 	}
 
-	if(iGroundEntity != -1)
+	if(groundentity != -1)
 	{
 		return;
 	}
@@ -2158,7 +2158,7 @@ void HandleHSWStyles(int client, int buttons, float vel[3], int iGroundEntity, b
 	// Block S and W without A or D.
 	// Block A and D without S or W.
 
-	bool bSHSW = (gA_StyleSettings[gBS_Style[client]][iForceHSW] == 2) && !bInStart; // Don't decide on the first valid input until out of start zone!
+	bool bSHSW = (gA_StyleSettings[gBS_Style[client]][iForceHSW] == 2) && !instart; // Don't decide on the first valid input until out of start zone!
 	int iCombination = -1;
 
 	bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] >= 200.0);
@@ -2178,7 +2178,7 @@ void HandleHSWStyles(int client, int buttons, float vel[3], int iGroundEntity, b
 			iCombination = 1;
 		}
 
-		// int gI_SHSW_FirstCombination[MAXPLAYERS + 1]; // 0 - W/A S/D | 1 - W/D S/A
+		// int gI_SHSW_FirstCombination[MAXPLAYERS+1]; // 0 - W/A S/D | 1 - W/D S/A
 		if(gI_SHSW_FirstCombination[client] == -1 && iCombination != -1)
 		{
 			Shavit_PrintToChat(client, "%T", (iCombination == 0)? "SHSWCombination0":"SHSWCombination1", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
