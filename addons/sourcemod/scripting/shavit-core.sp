@@ -37,7 +37,7 @@
 // #define DEBUG
 
 // Game type (CS:S/CS:GO/TF2)
-ServerGame gSG_Type = Game_Unknown; // Deperecated and here for backwards compatibility.
+ServerGame gSG_Type = Game_Unknown; // Deprecated and here for backwards compatibility.
 EngineVersion gEV_Type = Engine_Unknown;
 
 // Database handle
