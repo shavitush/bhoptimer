@@ -33,15 +33,33 @@
 #undef REQUIRE_PLUGIN
 #include <shavit>
 
+// this one is here because enum structs don't work with new syntax
+enum CheckpointsCache
+{
+	Float:fCPPosition[3],
+	Float:fCPAngles[3],
+	Float:fCPVelocity[3],
+	MoveType:mtCPMoveType,
+	Float:fCPGravity,
+	Float:fCPSpeed,
+	Float:fCPStamina,
+	bool:bCPDucking,
+	iCPFlags,
+	any:aCPSnapshot[TIMERSNAPSHOT_SIZE],
+	String:sCPTargetname[32],
+	PCPCACHE_SIZE
+}
+
 #pragma newdecls required
 #pragma semicolon 1
+#pragma dynamic 131072
 
 #define CP_ANGLES				(1 << 0)
 #define CP_VELOCITY				(1 << 1)
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
 
-#define CP_MAX					64 // this is the amount i'm willing to go for
+#define CP_MAX					1000 // segmented runs shouldn't even reach 1k jumps on any map anyways
 
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
@@ -50,24 +68,6 @@ int gI_Ammo = -1;
 char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "followme", "takingfire", "go", "fallback", "sticktog",
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
 	"getout", "negative", "enemydown", "compliment", "thanks", "cheer"};
-
-// enums
-enum
-{
-	iCheckpoints,
-	iCurrentCheckpoint,
-	CHECKPOINTSCACHE_SIZE
-};
-
-enum
-{
-	iCPMoveType,
-	fCPGravity,
-	fCPSpeed,
-	fCPStamina,
-	bCPDucking,
-	PCHECKPOINTSCACHE_SIZE
-};
 
 // cache
 ConVar sv_disable_immunity_alpha = null;
@@ -84,12 +84,16 @@ int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
 int gBS_Style[MAXPLAYERS+1];
 
-float gF_Checkpoints[MAXPLAYERS+1][CP_MAX][3][3]; // 3 - position, angles, velocity
+enum
+{
+	iCheckpoints,
+	iCurrentCheckpoint,
+	CPCACHE_SIZE
+};
+
+int gI_CheckpointsCache[MAXPLAYERS+1][CPCACHE_SIZE];
 int gI_CheckpointsSettings[MAXPLAYERS+1];
-any gA_PlayerCheckPointsCache[MAXPLAYERS+1][CP_MAX][PCHECKPOINTSCACHE_SIZE];
-any gA_CheckpointsSnapshots[MAXPLAYERS+1][CP_MAX][TIMERSNAPSHOT_SIZE];
-any gA_CheckpointsCache[MAXPLAYERS+1][CHECKPOINTSCACHE_SIZE];
-char gS_CheckpointsTargetname[MAXPLAYERS+1][CP_MAX][32];
+StringMap gSM_Checkpoints = null;
 
 // save states
 float gF_SaveStateData[MAXPLAYERS+1][3][3];
@@ -232,6 +236,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint (default: 1). Usage: sm_save [number]");
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint (default: 1). Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
+	gSM_Checkpoints = new StringMap();
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
@@ -503,6 +508,8 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
+	gSM_Checkpoints.Clear();
+
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
 
@@ -987,42 +994,24 @@ public void OnClientPutInServer(int client)
 	}
 }
 
+public void OnClientDisconnect(int client)
+{
+	ResetCheckpoints(client);
+}
+
 void ResetCheckpoints(int client)
 {
-	for(int i = 0; i < sizeof(gF_Checkpoints[]); i++)
+	int serial = GetClientSerial(client);
+	char[] key = new char[32];
+
+	for(int i = 0; i < gI_CheckpointsCache[client][iCheckpoints]; i++)
 	{
-		for(int j = 0; j < sizeof(gF_Checkpoints[][]); j++)
-		{
-			gF_Checkpoints[client][i][j] = NULL_VECTOR;
-		}
+		FormatEx(key, 32, "%d_%d", serial, i);
+		gSM_Checkpoints.Remove(key);
 	}
 
-	for(int i = 0; i < CP_MAX; i++)
-	{
-		gA_CheckpointsSnapshots[client][i][bTimerEnabled] = false;
-		gA_CheckpointsSnapshots[client][i][fStartTime] = 0.0;
-		gA_CheckpointsSnapshots[client][i][fCurrentTime] = 0.0;
-		gA_CheckpointsSnapshots[client][i][fPauseStartTime] = 0.0;
-		gA_CheckpointsSnapshots[client][i][fPauseTotalTime] = 0.0;
-		gA_CheckpointsSnapshots[client][i][bClientPaused] = false;
-		gA_CheckpointsSnapshots[client][i][iJumps] = 0;
-		gA_CheckpointsSnapshots[client][i][bsStyle] = 0;
-		gA_CheckpointsSnapshots[client][i][iStrafes] = 0;
-		gA_CheckpointsSnapshots[client][i][iTotalMeasures] = 0;
-		gA_CheckpointsSnapshots[client][i][iGoodGains] = 0;
-		gA_CheckpointsSnapshots[client][i][iSHSWCombination] = -1;
-
-		gA_PlayerCheckPointsCache[client][i][iCPMoveType] = MOVETYPE_WALK;
-		gA_PlayerCheckPointsCache[client][i][fCPGravity] = 1.0;
-		gA_PlayerCheckPointsCache[client][i][fCPSpeed] = 1.0;
-		gA_PlayerCheckPointsCache[client][i][fCPStamina] = 1.0;
-		gA_PlayerCheckPointsCache[client][i][bCPDucking] = false;
-
-		strcopy(gS_CheckpointsTargetname[client][i], 32, "");
-	}
-
-	gA_CheckpointsCache[client][iCheckpoints] = 0;
-	gA_CheckpointsCache[client][iCurrentCheckpoint] = 1;
+	gI_CheckpointsCache[client][iCheckpoints] = 0;
+	gI_CheckpointsCache[client][iCurrentCheckpoint] = 1;
 }
 
 public Action OnTakeDamage(int victim, int attacker)
@@ -1444,11 +1433,11 @@ public Action Command_Save(int client, int args)
 	{
 		bool bSaved = false;
 
-		if(gA_CheckpointsCache[client][iCheckpoints] < CP_MAX)
+		if(gI_CheckpointsCache[client][iCheckpoints] < CP_MAX)
 		{
-			if((bSaved = SaveCheckpoint(client, gA_CheckpointsCache[client][iCheckpoints])))
+			if((bSaved = SaveCheckpoint(client, gI_CheckpointsCache[client][iCheckpoints])))
 			{
-				gA_CheckpointsCache[client][iCurrentCheckpoint] = ++gA_CheckpointsCache[client][iCheckpoints];
+				gI_CheckpointsCache[client][iCurrentCheckpoint] = ++gI_CheckpointsCache[client][iCheckpoints];
 			}
 		}
 
@@ -1456,13 +1445,13 @@ public Action Command_Save(int client, int args)
 		{
 			if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
 			{
-				gA_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
+				gI_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
 			}
 		}
 
 		if(bSaved)
 		{
-			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client][iCurrentCheckpoint],
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CheckpointsCache[client][iCurrentCheckpoint],
 				gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 		}
 	}
@@ -1486,7 +1475,7 @@ public Action Command_Tele(int client, int args)
 		return Plugin_Handled;
 	}
 
-	int index = (gA_CheckpointsCache[client][iCurrentCheckpoint] - 1);
+	int index = (gI_CheckpointsCache[client][iCurrentCheckpoint] - 1);
 
 	if(args > 0)
 	{
@@ -1501,7 +1490,13 @@ public Action Command_Tele(int client, int args)
 		}
 	}
 
-	if(IsNullVector(gF_Checkpoints[client][index][0]))
+	CheckpointsCache cpcache[PCPCACHE_SIZE];
+	GetCheckpoint(client, index, cpcache);
+
+	float pos[3];
+	CopyArray(cpcache[fCPPosition], pos, 3);
+
+	if(IsNullVector(pos))
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, (index + 1), gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
@@ -1526,12 +1521,12 @@ public Action OpenCheckpointsMenu(int client, int item)
 	menu.SetTitle("%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
 
 	char[] sDisplay = new char[64];
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_CheckpointsCache[client][iCheckpoints] + 1));
-	menu.AddItem("save", sDisplay, (gA_CheckpointsCache[client][iCheckpoints] < CP_MAX)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gI_CheckpointsCache[client][iCheckpoints] + 1));
+	menu.AddItem("save", sDisplay, (gI_CheckpointsCache[client][iCheckpoints] < CP_MAX)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	if(gA_CheckpointsCache[client][iCheckpoints] > 0)
+	if(gI_CheckpointsCache[client][iCheckpoints] > 0)
 	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gA_CheckpointsCache[client][iCurrentCheckpoint]);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gI_CheckpointsCache[client][iCurrentCheckpoint]);
 		menu.AddItem("tele", sDisplay, ITEMDRAW_DEFAULT);
 	}
 
@@ -1570,20 +1565,20 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
-		int current = gA_CheckpointsCache[param1][iCurrentCheckpoint];
+		int current = gI_CheckpointsCache[param1][iCurrentCheckpoint];
 
 		switch(param2)
 		{
 			case 0:
 			{
 				// fight an exploit
-				if(gA_CheckpointsCache[param1][iCheckpoints] >= CP_MAX)
+				if(gI_CheckpointsCache[param1][iCheckpoints] >= CP_MAX)
 				{
 					return 0;
 				}
 
-				SaveCheckpoint(param1, gA_CheckpointsCache[param1][iCheckpoints]);
-				gA_CheckpointsCache[param1][iCurrentCheckpoint] = ++gA_CheckpointsCache[param1][iCheckpoints];
+				SaveCheckpoint(param1, gI_CheckpointsCache[param1][iCheckpoints]);
+				gI_CheckpointsCache[param1][iCurrentCheckpoint] = ++gI_CheckpointsCache[param1][iCheckpoints];
 			}
 
 			case 1:
@@ -1595,15 +1590,21 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			{
 				if(current > 1)
 				{
-					gA_CheckpointsCache[param1][iCurrentCheckpoint]--;
+					gI_CheckpointsCache[param1][iCurrentCheckpoint]--;
 				}
 			}
 
 			case 3:
 			{
-				if(current < CP_MAX && !IsNullVector(gF_Checkpoints[param1][current][0]))
+				CheckpointsCache cpcache[PCPCACHE_SIZE];
+				GetCheckpoint(param1, current, cpcache);
+
+				float pos[3];
+				CopyArray(cpcache[fCPPosition], pos, 3);
+
+				if(current < CP_MAX && !IsNullVector(pos))
 				{
-					gA_CheckpointsCache[param1][iCurrentCheckpoint]++;
+					gI_CheckpointsCache[param1][iCurrentCheckpoint]++;
 				}
 			}
 
@@ -1667,25 +1668,50 @@ bool SaveCheckpoint(int client, int index)
 		return false;
 	}
 
-	GetClientAbsOrigin(target, gF_Checkpoints[client][index][0]);
-	GetClientEyeAngles(target, gF_Checkpoints[client][index][1]);
-	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", gF_Checkpoints[client][index][2]);
-	GetEntPropString(target, Prop_Data, "m_iName", gS_CheckpointsTargetname[client][index], 32);
+	CheckpointsCache cpcache[PCPCACHE_SIZE];
+	float temp[3];
 
-	gA_PlayerCheckPointsCache[client][index][iCPMoveType] = GetEntityMoveType(target);
-	gA_PlayerCheckPointsCache[client][index][fCPGravity] = GetEntityGravity(target);
-	gA_PlayerCheckPointsCache[client][index][fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
-	gA_PlayerCheckPointsCache[client][index][fCPStamina] = GetEntPropFloat(target, Prop_Send, "m_flStamina");
-	gA_PlayerCheckPointsCache[client][index][bCPDucking] = (GetClientButtons(target) & IN_DUCK) > 0;
+	GetClientAbsOrigin(target, temp);
+	CopyArray(temp, cpcache[fCPPosition], 3);
 
-	Shavit_SaveSnapshot(target, gA_CheckpointsSnapshots[client][index]);
+	GetClientEyeAngles(target, temp);
+	CopyArray(temp, cpcache[fCPAngles], 3);
+
+	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", temp);
+	CopyArray(temp, cpcache[fCPVelocity], 3);
+
+	GetEntPropString(target, Prop_Data, "m_iName", cpcache[sCPTargetname], 32);
+
+	cpcache[mtCPMoveType] = GetEntityMoveType(target);
+	cpcache[fCPGravity] = GetEntityGravity(target);
+	cpcache[fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
+	cpcache[fCPStamina] = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
+	cpcache[bCPDucking] = (GetClientButtons(target) & IN_DUCK) > 0;
+	cpcache[iCPFlags] = GetEntityFlags(target);
+
+	any snapshot[TIMERSNAPSHOT_SIZE];
+	Shavit_SaveSnapshot(target, snapshot);
+	CopyArray(snapshot, cpcache[aCPSnapshot], TIMERSNAPSHOT_SIZE);
+
+	SetCheckpoint(client, index, cpcache);
 
 	return true;
 }
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
-	if(index < 0 || index >= CP_MAX || IsNullVector(gF_Checkpoints[client][index][0]))
+	if(index < 0 || index >= CP_MAX)
+	{
+		return;
+	}
+
+	CheckpointsCache cpcache[PCPCACHE_SIZE];
+	GetCheckpoint(client, index, cpcache);
+
+	float pos[3];
+	CopyArray(cpcache[fCPPosition], pos, 3);
+
+	if(IsNullVector(pos))
 	{
 		return;
 	}
@@ -1699,7 +1725,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	bool bDucking = (GetClientButtons(client) & IN_DUCK) > 0;
 
-	if(gA_PlayerCheckPointsCache[client][index][bCPDucking] != bDucking)
+	if(cpcache[bCPDucking] != bDucking)
 	{
 		Shavit_PrintToChat(client, "%T", (bDucking)? "MiscCheckpointsCrouchOff":"MiscCheckpointsCrouchOn", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
@@ -1714,17 +1740,38 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	}
 
 	Shavit_SetPracticeMode(client, true, !bInStart);
-	Shavit_LoadSnapshot(client, gA_CheckpointsSnapshots[client][index]);
 
-	TeleportEntity(client, gF_Checkpoints[client][index][0],
-		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? gF_Checkpoints[client][index][1]:NULL_VECTOR,
-		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0)? gF_Checkpoints[client][index][2]:NULL_VECTOR);
+	any snapshot[TIMERSNAPSHOT_SIZE];
+	CopyArray(cpcache[aCPSnapshot], snapshot, TIMERSNAPSHOT_SIZE);
+	Shavit_LoadSnapshot(client, snapshot);
 
-	SetEntityMoveType(client, view_as<MoveType>(gA_PlayerCheckPointsCache[client][index][iCPMoveType]));
-	SetEntityGravity(client, view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPGravity]));
-	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPSpeed]));
-	SetEntPropFloat(client, Prop_Send, "m_flStamina", view_as<float>(gA_PlayerCheckPointsCache[client][index][fCPStamina]));
-	DispatchKeyValue(client, "targetname", gS_CheckpointsTargetname[client][index]);
+	float ang[3];
+	CopyArray(cpcache[fCPAngles], ang, 3);
+
+	float vel[3];
+	CopyArray(cpcache[fCPVelocity], vel, 3);
+
+	TeleportEntity(client, pos,
+		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? ang:NULL_VECTOR,
+		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0)? vel:NULL_VECTOR);
+
+	MoveType mt = cpcache[mtCPMoveType];
+
+	if(mt == MOVETYPE_LADDER || mt == MOVETYPE_WALK)
+	{
+		SetEntityMoveType(client, mt);
+	}
+
+	SetEntityGravity(client, cpcache[fCPGravity]);
+	SetEntityFlags(client, cpcache[iCPFlags]);
+
+	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", cpcache[fCPSpeed]);
+	DispatchKeyValue(client, "targetname", cpcache[sCPTargetname]);
+
+	if(gEV_Type != Engine_TF2)
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flStamina", cpcache[fCPStamina]);
+	}
 	
 	if(!suppressMessage)
 	{
@@ -2223,7 +2270,7 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 	{
 		TE_WriteNum("m_weapon", TE_ReadNum("m_weapon"));
 	}
-        
+		
 	TE_WriteNum("m_iMode", TE_ReadNum("m_iMode"));
 	TE_WriteNum("m_iSeed", TE_ReadNum("m_iSeed"));
 	TE_WriteNum("m_iPlayer", (client - 1));
@@ -2412,6 +2459,22 @@ void SaveState(int client)
 	gB_SaveStates[client] = true;
 }
 
+bool GetCheckpoint(int client, int index, CheckpointsCache cpcache[PCPCACHE_SIZE])
+{
+	char[] sKey = new char[32];
+	FormatEx(sKey, 32, "%d_%d", GetClientSerial(client), index);
+
+	return gSM_Checkpoints.GetArray(sKey, cpcache[0], view_as<int>(PCPCACHE_SIZE));
+}
+
+bool SetCheckpoint(int client, int index, CheckpointsCache cpcache[PCPCACHE_SIZE])
+{
+	char[] sKey = new char[32];
+	FormatEx(sKey, 32, "%d_%d", GetClientSerial(client), index);
+
+	return gSM_Checkpoints.SetArray(sKey, cpcache[0], view_as<int>(PCPCACHE_SIZE));
+}
+
 void UpdateFootsteps(int client)
 {
 	if(sv_footsteps != null)
@@ -2419,6 +2482,14 @@ void UpdateFootsteps(int client)
 		char[] sFootsteps = new char[4];
 		IntToString((gB_Hide[client])? 0:sv_footsteps.IntValue, sFootsteps, 4);
 		sv_footsteps.ReplicateToClient(client, sFootsteps);
+	}
+}
+
+void CopyArray(const any[] from, any[] to, int size)
+{
+	for(int i = 0; i < size; i++)
+	{
+		to[i] = from[i];
 	}
 }
 
