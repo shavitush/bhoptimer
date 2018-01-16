@@ -360,9 +360,10 @@ forward Action Shavit_OnFinishPre(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
  * @param strafes					Amount of strafes.
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @param track						Timer track.
+ * @param oldtime					The player's best time on the map before this finish.
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track);
+forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime);
 
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.

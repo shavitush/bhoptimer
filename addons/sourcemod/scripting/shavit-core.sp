@@ -193,7 +193,7 @@ public void OnPluginStart()
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
-	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
@@ -1035,25 +1035,37 @@ public int Native_FinishMap(Handle handler, int numParams)
 	Call_StartForward(gH_Forwards_Finish);
 	Call_PushCell(client);
 
+	int style = 0;
+	int track = Track_Main;
+
 	if(result == Plugin_Continue)
 	{
-		Call_PushCell(gBS_Style[client]);
+		Call_PushCell(style = gBS_Style[client]);
 		Call_PushCell(CalculateTime(client));
 		Call_PushCell(gI_Jumps[client]);
 		Call_PushCell(gI_Strafes[client]);
 		Call_PushCell((gA_StyleSettings[gBS_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
+		Call_PushCell(track = gI_Track[client]);
 	}
 
 	else
 	{
-		Call_PushCell(snapshot[bsStyle]);
+		Call_PushCell(style = snapshot[bsStyle]);
 		Call_PushCell(snapshot[fCurrentTime]);
 		Call_PushCell(snapshot[iJumps]);
 		Call_PushCell(snapshot[iStrafes]);
 		Call_PushCell((gA_StyleSettings[snapshot[bsStyle]][bSync])? (snapshot[iGoodGains] == 0)? 0.0:(snapshot[iGoodGains] / float(snapshot[iTotalMeasures]) * 100.0):-1.0);
+		Call_PushCell(track = snapshot[iTimerTrack]);
 	}
 
-	Call_PushCell(gI_Track[client]);
+	float oldtime = 0.0;
+
+	if(gB_WR)
+	{
+		Shavit_GetPlayerPB(client, style, oldtime, track);
+	}
+
+	Call_PushCell(oldtime);
 	Call_Finish();
 
 	StopTimer(client);

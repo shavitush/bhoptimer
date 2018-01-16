@@ -755,8 +755,8 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 	int serial = data.ReadCell();
 	int size = data.ReadCell();
 
-	char[] sMap = new char[size + 1];
-	ReadPackString(data, sMap, size + 1);
+	char[] sMap = new char[size+1];
+	data.ReadString(sMap, size+1);
 
 	int track = data.ReadCell();
 	int style = data.ReadCell();
