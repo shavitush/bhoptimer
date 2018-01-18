@@ -876,7 +876,20 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	int buttons = gI_Buttons[target];
 
 	char[] sPanelLine = new char[128];
-	FormatEx(sPanelLine, 128, "［%s］　［%s］\n　　 %s\n%s　 %s 　%s", 
+
+	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+
+	if(style < 0 || style > gI_Styles)
+	{
+		style = 0;
+	}
+
+	if(gB_BhopStats && !gA_StyleSettings[style][bAutobhop])
+	{
+		FormatEx(sPanelLine, 64, " %d%s%d\n", gI_ScrollCount[target], (gI_ScrollCount[target] > 9)? "   ":"     ", gI_LastScrollCount[target]);
+	}
+
+	Format(sPanelLine, 128, "%s［%s］　［%s］\n　　 %s\n%s　 %s 　%s", sPanelLine,
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
 		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
 		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
