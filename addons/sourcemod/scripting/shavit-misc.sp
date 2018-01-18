@@ -160,7 +160,7 @@ int gI_NoclipMe = true;
 float gF_AdvertisementInterval = 600.0;
 bool gB_Checkpoints = true;
 int gI_RemoveRagdolls = 1;
-char gS_ClanTag[32] = "{styletag} :: {time}";
+char gS_ClanTag[32] = "{tr}{styletag} :: {time}";
 bool gB_DropAll = true;
 bool gB_ResetTargetname = false;
 bool gB_RestoreStates = false;
@@ -306,7 +306,7 @@ public void OnPluginStart()
 	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 	gCV_Checkpoints = CreateConVar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RemoveRagdolls = CreateConVar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
-	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style settings from shavit-styles.cfg.\n{style} - style name.\n{time} - formatted time.", 0);
+	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style settings from shavit-styles.cfg.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track, if not default.", 0);
 	gCV_DropAll = CreateConVar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -878,11 +878,20 @@ void UpdateClanTag(int client)
 		}
 	}
 
+	int track = Shavit_GetClientTrack(client);
+	char[] sTrack = new char[3];
+
+	if(track != Track_Main)
+	{
+		GetTrackName(client, track, sTrack, 3);
+	}
+
 	char[] sCustomTag = new char[32];
 	strcopy(sCustomTag, 32, gS_ClanTag);
 	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gBS_Style[client]][sStyleName]);
 	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gBS_Style[client]][sClanTag]);
 	ReplaceString(sCustomTag, 32, "{time}", sTime);
+	ReplaceString(sCustomTag, 32, "{tr}", sTrack);
 
 	CS_SetClientClanTag(client, sCustomTag);
 }
@@ -2275,7 +2284,7 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 	{
 		TE_WriteNum("m_weapon", TE_ReadNum("m_weapon"));
 	}
-		
+
 	TE_WriteNum("m_iMode", TE_ReadNum("m_iMode"));
 	TE_WriteNum("m_iSeed", TE_ReadNum("m_iSeed"));
 	TE_WriteNum("m_iPlayer", (client - 1));
