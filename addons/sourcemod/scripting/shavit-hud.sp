@@ -46,6 +46,7 @@ int gI_Cycle = 0;
 int gI_GradientColors[3];
 int gI_GradientDirection = -1;
 int gI_Styles = 0;
+int gI_Tickrate = 0;
 
 Handle gH_HUDCookie = null;
 int gI_HUDSettings[MAXPLAYERS+1];
@@ -63,9 +64,11 @@ Handle gH_HUD = null;
 
 // plugin cvars
 ConVar gCV_GradientStepSize = null;
+ConVar gCV_TicksPerUpdate = null;
 
 // cached cvars
 int gI_GradientStepSize = 5;
+int gI_TicksPerUpdate = 20;
 
 // timer settings
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
@@ -101,6 +104,7 @@ public void OnPluginStart()
 
 	// game-specific
 	gEV_Type = GetEngineVersion();
+	gI_Tickrate = RoundToZero(1.0 / GetTickInterval());
 
 	if(IsSource2013(gEV_Type))
 	{
@@ -130,12 +134,12 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
+	gCV_TicksPerUpdate = CreateConVar("shavit_hud_ticksperupdate", "20", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, float(gI_Tickrate));
+
 	gCV_GradientStepSize.AddChangeHook(OnConVarChanged);
+	gCV_TicksPerUpdate.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
-
-	// cron
-	CreateTimer(0.05, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 
 	// commands
 	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu");
@@ -164,6 +168,7 @@ public void OnPluginStart()
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	gI_GradientStepSize = gCV_GradientStepSize.IntValue;
+	gI_TicksPerUpdate = gCV_TicksPerUpdate.IntValue;
 }
 
 public void OnMapStart()
@@ -476,7 +481,15 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public Action UpdateHUD_Timer(Handle Timer)
+public void OnGameFrame()
+{
+	if(GetGameTickCount() % (gI_Tickrate / gI_TicksPerUpdate) == 0)
+	{
+		Cron();
+	}
+}
+
+void Cron()
 {
 	if(++gI_Cycle >= 65535)
 	{
@@ -567,8 +580,6 @@ public Action UpdateHUD_Timer(Handle Timer)
 
 		TriggerHUDUpdate(i);
 	}
-
-	return Plugin_Continue;
 }
 
 void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:S lags when you send too many usermessages
