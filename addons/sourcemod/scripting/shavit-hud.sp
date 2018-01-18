@@ -135,7 +135,7 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	// cron
-	CreateTimer(0.10, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
+	CreateTimer(0.05, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 
 	// commands
 	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu");
@@ -635,7 +635,7 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"38\" color=\"#%06X\">%T</font>\n\t%T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client, "HudSpeedText", client, iSpeed);
+				FormatEx(sHintText, 128, "       <font size='34' color='#%06X'>%T</font>\n\t  %T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client, "HudSpeedText", client, iSpeed);
 			}
 
 			else
@@ -649,7 +649,7 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"38\" color=\"#%06X\">%T</font>\n\t%T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client, "HudSpeedText", client, iSpeed);
+				FormatEx(sHintText, 128, "       <font size='34' color='#%06X'>%T</font>\n\t  %T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client, "HudSpeedText", client, iSpeed);
 			}
 
 			else
@@ -667,6 +667,8 @@ void UpdateHUD(int client)
 	else if((gI_HUDSettings[client] & HUD_CENTER) > 0)
 	{
 		int track = Shavit_GetClientTrack(target);
+		char[] sTrack = new char[32];
+		GetTrackName(client, track, sTrack, 32);
 
 		if(!IsFakeClient(target))
 		{
@@ -690,7 +692,7 @@ void UpdateHUD(int client)
 
 			if(gEV_Type == Engine_CSGO)
 			{
-				strcopy(sHintText, 512, "<font size=\"18\" face=\"Stratum2\">");
+				strcopy(sHintText, 512, "<font size='18' face=''>");
 
 				if(status >= Timer_Running)
 				{
@@ -698,7 +700,7 @@ void UpdateHUD(int client)
 
 					if(status == Timer_Paused)
 					{
-						strcopy(sColor, 8, "FF0000");
+						strcopy(sColor, 8, "A9C5E8");
 					}
 
 					else if(time < fWR || fWR == 0.0)
@@ -716,16 +718,15 @@ void UpdateHUD(int client)
 						strcopy(sColor, 8, "FF0000");
 					}
 
-					char[] sPauseItem = new char[64];
-					FormatEx(sPauseItem, 64, "%T\t</font>", "HudPaused", client);
+					if(track != Track_Main)
+					{
+						Format(sHintText, 512, "%s[<font color='#FFFFFF'>%s</font>] ", sHintText, sTrack);
+					}
 
-					char[] sUnpausedItem = new char[64];
-					FormatEx(sUnpausedItem, 64, "%s</font> (%d)\t", sTime, rank);
-					
-					Format(sHintText, 512, "%s%T: <font color='#%s'>%s", sHintText, "HudTimeText", client, sColor, (status == Timer_Paused)? sPauseItem:sUnpausedItem);
+					Format(sHintText, 512, "%s<font color='#%s'>%s</font> (%d)", sHintText, sColor, sTime, rank);
 				}
 
-				if(fPB > 0.0)
+				else if(fPB > 0.0)
 				{
 					Format(sHintText, 512, "%s%T: %s (#%d)", sHintText, "HudBestText", client, sPB, (Shavit_GetRankForTime(style, fPB, track) - 1));
 				}
@@ -754,8 +755,6 @@ void UpdateHUD(int client)
 						Format(sHintText, 512, "%s%s\t%T: %d", sHintText, (iSpeed < 1000)? "\t":"", "HudStrafeText", client, strafes);
 					}
 				}
-
-				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
 			else
@@ -782,9 +781,6 @@ void UpdateHUD(int client)
 
 					if(track != Track_Main)
 					{
-						char[] sTrack = new char[32];
-						GetTrackName(client, track, sTrack, 32);
-
 						Format(sHintText, 512, "%s\n%s", sHintText, sTrack);
 					}
 				}
@@ -825,11 +821,8 @@ void UpdateHUD(int client)
 			char[] sReplayLength = new char[32];
 			FormatSeconds(fReplayLength, sReplayLength, 32, false);
 
-			char[] sTrack = new char[32];
-
 			if(track != Track_Main)
 			{
-				GetTrackName(client, track, sTrack, 32);
 				Format(sTrack, 32, "(%s) ", sTrack);
 			}
 
@@ -839,7 +832,6 @@ void UpdateHUD(int client)
 				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s %T</font></u>", sHintText, gS_StyleStrings[style][sHTMLColor], gS_StyleStrings[style][sStyleName], "ReplayText", client);
 				Format(sHintText, 512, "%s\n\t%T: <font color='#00FF00'>%s</font> / %s", sHintText, "HudTimeText", client, sReplayTime, sReplayLength);
 				Format(sHintText, 512, "%s\n\t%T: %d", sHintText, "HudSpeedText", client, iSpeed);
-				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
 			else
