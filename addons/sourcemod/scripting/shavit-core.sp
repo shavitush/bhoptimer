@@ -760,7 +760,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	StopTimer(client);
 
-	if(gB_AllowTimerWithoutZone || (gB_Zones && Shavit_ZoneExists(Zone_Start, Track_Main)))
+	if(gB_AllowTimerWithoutZone || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gI_Track[client]) || gB_KZMap)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);

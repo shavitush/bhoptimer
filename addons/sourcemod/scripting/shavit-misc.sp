@@ -172,6 +172,7 @@ Handle gH_GetPlayerMaxSpeed = null;
 // modules
 bool gB_Rankings = false;
 bool gB_Replay = false;
+bool gB_Zones = false;
 
 // timer settings
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
@@ -391,6 +392,7 @@ public void OnPluginStart()
 	// modules
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Replay = LibraryExists("shavit-replay");
+	gB_Zones = LibraryExists("shavit-zones");
 }
 
 public void OnClientCookiesCached(int client)
@@ -605,6 +607,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Replay = true;
 	}
+
+	else if(StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -617,6 +624,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-replay"))
 	{
 		gB_Replay = false;
+	}
+
+	else if(StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = false;
 	}
 }
 
@@ -2071,7 +2083,7 @@ public Action Respawn(Handle Timer, DataPack pack)
 
 void RestartTimer(int client, int track)
 {
-	if(Shavit_ZoneExists(Zone_Start, track))
+	if((gB_Zones && Shavit_ZoneExists(Zone_Start, track)) || Shavit_IsKZMap())
 	{
 		Shavit_RestartTimer(client, track);
 	}
