@@ -679,7 +679,6 @@ void UpdateHUD(int client)
 	{
 		int track = Shavit_GetClientTrack(target);
 		char[] sTrack = new char[32];
-		GetTrackName(client, track, sTrack, 32);
 
 		if(!IsFakeClient(target))
 		{
@@ -731,6 +730,7 @@ void UpdateHUD(int client)
 
 					if(track != Track_Main)
 					{
+						GetTrackName(client, track, sTrack, 32);
 						Format(sHintText, 512, "%s[<font color='#FFFFFF'>%s</font>] ", sHintText, sTrack);
 					}
 
@@ -834,12 +834,13 @@ void UpdateHUD(int client)
 
 			if(track != Track_Main)
 			{
+				GetTrackName(client, track, sTrack, 32);
 				Format(sTrack, 32, "(%s) ", sTrack);
 			}
 
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 512, "<font face='Stratum2'>");
+				FormatEx(sHintText, 512, "<font face=''>");
 				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s %T</font></u>", sHintText, gS_StyleStrings[style][sHTMLColor], gS_StyleStrings[style][sStyleName], "ReplayText", client);
 				Format(sHintText, 512, "%s\n\t%T: <font color='#00FF00'>%s</font> / %s", sHintText, "HudTimeText", client, sReplayTime, sReplayLength);
 				Format(sHintText, 512, "%s\n\t%T: %d", sHintText, "HudSpeedText", client, iSpeed);
