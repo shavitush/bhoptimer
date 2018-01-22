@@ -88,7 +88,7 @@ float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 bool gB_InsideZoneID[MAXPLAYERS+1][MAX_ZONES];
-float gF_CustomSpawn[TRACKS_SIZE][3];
+float gF_CustomSpawns[TRACKS_SIZE][2][3];
 int gI_ZoneTrack[MAXPLAYERS+1];
 int gI_ZoneDatabaseID[MAXPLAYERS+1];
 
@@ -667,18 +667,15 @@ public void Frame_HookTrigger(any data)
 		gI_KZButtons[track][zone] = entity;
 		Shavit_MarkKZMap();
 
-		if(zone == Zone_Start)
-		{
-			float maxs[3];
-			GetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
+		float maxs[3];
+		GetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
 
-			float origin[3];
-			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+		float origin[3];
+		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
 
-			origin[2] -= (maxs[2] - 2.0); // so you don't get stuck in the ground
-
-			gF_CustomSpawn[track] = origin;
-		}
+		origin[2] -= (maxs[2] - 2.0); // so you don't get stuck in the ground
+		
+		gF_CustomSpawns[track][zone] = origin;
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -821,9 +818,9 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		{
 			int track = results.FetchInt(10);
 
-			gF_CustomSpawn[track][0] = results.FetchFloat(7);
-			gF_CustomSpawn[track][1] = results.FetchFloat(8);
-			gF_CustomSpawn[track][2] = results.FetchFloat(9);
+			gF_CustomSpawns[track][Zone_Start][0] = results.FetchFloat(7);
+			gF_CustomSpawns[track][Zone_Start][1] = results.FetchFloat(8);
+			gF_CustomSpawns[track][Zone_Start][2] = results.FetchFloat(9);
 		}
 
 		else
@@ -933,7 +930,7 @@ public Action Command_AddSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!EmptyVector(gF_CustomSpawn[Track_Main]))
+	if(!EmptyVector(gF_CustomSpawns[Track_Main][Zone_Start]))
 	{
 		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnExists", client);
 
@@ -990,7 +987,8 @@ void ClearCustomSpawn()
 	{
 		for(int j = 0; j < 3; j++)
 		{
-			gF_CustomSpawn[i][j] = 0.0;
+			gF_CustomSpawns[i][Zone_Start][j] = 0.0;
+			gF_CustomSpawns[i][Zone_End][j] = 0.0;
 		}
 	}
 }
@@ -2345,9 +2343,9 @@ public void Shavit_OnRestart(int client, int track)
 {
 	if(gB_TeleportToStart)
 	{
-		if(!EmptyVector(gF_CustomSpawn[track]))
+		if(!EmptyVector(gF_CustomSpawns[track][Zone_Start]))
 		{
-			TeleportEntity(client, gF_CustomSpawn[track], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, gF_CustomSpawns[track][Zone_Start], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		else if(Shavit_IsKZMap() && !EmptyVector(gF_ClimbButtonCache[client][track][0]) && !EmptyVector(gF_ClimbButtonCache[client][track][1]))
@@ -2382,6 +2380,13 @@ public void Shavit_OnEnd(int client, int track)
 {
 	if(gB_TeleportToEnd)
 	{
+		if(!EmptyVector(gF_CustomSpawns[track][Zone_End]))
+		{
+			TeleportEntity(client, gF_CustomSpawns[track][Zone_End], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+
+			return;
+		}
+
 		int index = GetZoneIndex(Zone_End, track);
 
 		if(index == -1)

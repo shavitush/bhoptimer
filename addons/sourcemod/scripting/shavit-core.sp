@@ -251,13 +251,14 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_r", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
 
-	RegConsoleCmd("sm_b", Command_StartTimer_Bonus, "Start your timer on the bonus track.");
-	RegConsoleCmd("sm_bonus", Command_StartTimer_Bonus, "Start your timer on the bonus track.");
+	RegConsoleCmd("sm_b", Command_StartTimer, "Start your timer on the bonus track.");
+	RegConsoleCmd("sm_bonus", Command_StartTimer, "Start your timer on the bonus track.");
 
 	// teleport to end
 	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
-	RegConsoleCmd("sm_bend", Command_TeleportEnd_Bonus, "Teleport to endzone of the bonus track.");
-	RegConsoleCmd("sm_bonusend", Command_TeleportEnd_Bonus, "Teleport to endzone of the bonus track.");
+
+	RegConsoleCmd("sm_bend", Command_TeleportEnd, "Teleport to endzone of the bonus track.");
+	RegConsoleCmd("sm_bonusend", Command_TeleportEnd, "Teleport to endzone of the bonus track.");
 
 	// timer stop
 	RegConsoleCmd("sm_stop", Command_StopTimer, "Stop your timer.");
@@ -438,70 +439,36 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
+	char[] sCommand = new char[16];
+	GetCmdArg(0, sCommand, 16);
+
 	if(!gB_Restart)
 	{
 		if(args != -1)
 		{
-			char[] sCommand = new char[16];
-			GetCmdArg(0, sCommand, 16);
-
 			Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
 		}
 
 		return Plugin_Handled;
 	}
 
-	if(gB_AllowTimerWithoutZone || (gB_Zones && (Shavit_ZoneExists(Zone_Start, Track_Main) || gB_KZMap)))
+	int track = Track_Main;
+
+	if(StrContains(sCommand, "sm_b", false) == 0)
+	{
+		track = Track_Bonus;
+	}
+
+	if(gB_AllowTimerWithoutZone || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
-		Call_PushCell(Track_Main);
+		Call_PushCell(track);
 		Call_Finish();
 
 		if(gB_AllowTimerWithoutZone)
 		{
-			StartTimer(client, Track_Main);
-		}
-	}
-
-	else
-	{
-		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-	}
-
-	return Plugin_Handled;
-}
-
-public Action Command_StartTimer_Bonus(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	if(!gB_Restart)
-	{
-		if(args != -1)
-		{
-			char[] sCommand = new char[16];
-			GetCmdArg(0, sCommand, 16);
-
-			Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
-		}
-
-		return Plugin_Handled;
-	}
-
-	if(gB_AllowTimerWithoutZone || (gB_Zones && (Shavit_ZoneExists(Zone_Start, Track_Bonus) || gB_KZMap)))
-	{
-		Call_StartForward(gH_Forwards_OnRestart);
-		Call_PushCell(client);
-		Call_PushCell(Track_Bonus);
-		Call_Finish();
-
-		if(gB_AllowTimerWithoutZone)
-		{
-			StartTimer(client, Track_Bonus);
+			StartTimer(client, track);
 		}
 	}
 
@@ -520,38 +487,23 @@ public Action Command_TeleportEnd(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gB_Zones && Shavit_ZoneExists(Zone_End, Track_Main))
+	char[] sCommand = new char[16];
+	GetCmdArg(0, sCommand, 16);
+
+	int track = Track_Main;
+
+	if(StrContains(sCommand, "sm_b", false) == 0)
+	{
+		track = Track_Bonus;
+	}
+
+	if(gB_Zones && (Shavit_ZoneExists(Zone_End, track) || gB_KZMap))
 	{
 		Shavit_StopTimer(client);
 		
 		Call_StartForward(gH_Forwards_OnEnd);
 		Call_PushCell(client);
-		Call_PushCell(Track_Main); // sm_bend will be bonus end
-		Call_Finish();
-	}
-
-	else
-	{
-		Shavit_PrintToChat(client, "%T", "EndZoneUndefined", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-	}
-
-	return Plugin_Handled;
-}
-
-public Action Command_TeleportEnd_Bonus(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	if(gB_Zones && Shavit_ZoneExists(Zone_End, Track_Bonus))
-	{
-		Shavit_StopTimer(client);
-		
-		Call_StartForward(gH_Forwards_OnEnd);
-		Call_PushCell(client);
-		Call_PushCell(Track_Bonus);
+		Call_PushCell(track);
 		Call_Finish();
 	}
 
@@ -1005,7 +957,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	any snapshot[TIMERSNAPSHOT_SIZE];
+	any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
 	snapshot[bTimerEnabled] = gB_TimerEnabled[client];
 	snapshot[fStartTime] = gF_StartTime[client];
 	snapshot[fPauseStartTime] = gF_PauseStartTime[client];
