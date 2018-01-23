@@ -19,8 +19,8 @@
 */
 
 // Design idea:
-// Rank 1 per map/style/track gets ((points per tier * tier) * 1.5) + ((amount of records * (tier / 10.0) * 0.25)) + (rank 1 time in seconds / 15.0) points.
-// Records below rank 1 get points% relative to their time in comparison to rank 1 and a final multiplier of 0.85% to promote rank 1 hunting.
+// Rank 1 per map/style/track gets ((points per tier * tier) * 1.5) + (rank 1 time in seconds / 15.0) points.
+// Records below rank 1 get points% relative to their time in comparison to rank 1 and a final multiplier of 85% to promote rank 1 hunting.
 //
 // Bonus track gets a 0.25* final mutliplier for points and is treated as tier 1.
 //
@@ -68,7 +68,6 @@ float gF_PointsPerTier = 50.0;
 
 int gI_Rank[MAXPLAYERS+1];
 float gF_Points[MAXPLAYERS+1];
-int gI_Progress[MAXPLAYERS+1];
 
 int gI_RankedPlayers = 0;
 Menu gH_Top100Menu = null;
@@ -82,7 +81,6 @@ char gS_TrackNames[TRACKS_SIZE][32];
 
 any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
 int gI_Styles = 0;
-int gI_RankedStyles = 0;
 
 public Plugin myinfo =
 {
@@ -179,17 +177,10 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		gI_Styles = Shavit_GetStyleCount();
 	}
 
-	gI_RankedStyles = 0;
-
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleNames[i], 64);
-
-		if(!gA_StyleSettings[i][bUnranked])
-		{
-			gI_RankedStyles++;
-		}
 	}
 }
 
@@ -305,9 +296,11 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	SQL_FastQuery(gH_SQL, "DELIMITER ;;");
 	SQL_FastQuery(gH_SQL, "DROP PROCEDURE IF EXISTS UpdateAllPoints;;"); // old (and very slow) deprecated method
 	SQL_FastQuery(gH_SQL, "DROP FUNCTION IF EXISTS GetWeightedPoints;;"); // this is here, just in case we ever choose to modify or optimize the calculation
+	SQL_FastQuery(gH_SQL, "DROP FUNCTION IF EXISTS GetRecordPoints;;");
 
-	char[] sQuery = new char[1024];
-	FormatEx(sQuery, 1024,
+	bool bSuccess = true;
+
+	RunLongFastQuery(bSuccess, "CREATE GetWeightedPoints",
 		"CREATE FUNCTION GetWeightedPoints(authid CHAR(32)) " ...
 		"RETURNS FLOAT " ...
 		"BEGIN " ...
@@ -330,20 +323,21 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		"RETURN total; " ...
 		"END;;", gS_MySQLPrefix);
 
-	#if defined DEBUG
-	LogError("%s", sQuery);
-	#endif
-
-	bool bSuccess = true;
-
-	if(!SQL_FastQuery(gH_SQL, sQuery))
-	{
-		char[] sError = new char[255];
-		SQL_GetError(gH_SQL, sError, 255);
-		LogError("Timer (rankings, create GetWeightedPoints function) error! Reason: %s", sError);
-
-		bSuccess = false;
-	}
+	RunLongFastQuery(bSuccess, "CREATE GetRecordPoints",
+		"CREATE FUNCTION GetRecordPoints(rstyle INT, rtrack INT, rtime FLOAT, rmap CHAR(128), pointspertier FLOAT, stylemultiplier FLOAT) " ...
+		"RETURNS FLOAT " ...
+		"BEGIN " ...
+		"DECLARE pwr, ppoints FLOAT DEFAULT 0.0; " ...
+		"DECLARE ptier INT DEFAULT 1; " ...
+		"SELECT tier FROM %smaptiers WHERE map = rmap INTO ptier; " ...
+		"SELECT MIN(time) FROM %splayertimes WHERE map = rmap AND style = rstyle AND track = rtrack INTO pwr; " ...
+		"IF rtrack > 0 THEN SET ptier = 1; END IF; " ...
+		"SET ppoints = ((pointspertier * ptier) * 1.5) + (pwr / 15.0); " ...
+		"IF rtime > pwr THEN SET ppoints = ppoints * (pwr / rtime); END IF; " ...
+		"SET ppoints = ppoints * stylemultiplier; " ...
+		"IF rtrack > 0 THEN SET ppoints = ppoints * 0.25; END IF; " ...
+		"RETURN ppoints; " ...
+		"END;;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 
 	SQL_FastQuery(gH_SQL, "DELIMITER ;");
 	SQL_UnlockDatabase(gH_SQL);
@@ -361,6 +355,21 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		{
 			OnClientConnected(i);
 		}
+	}
+}
+
+void RunLongFastQuery(bool &success, const char[] func, const char[] query, any ...)
+{
+	char[] sQuery = new char[2048];
+	VFormat(sQuery, 2048, query, 4);
+
+	if(!SQL_FastQuery(gH_SQL, sQuery))
+	{
+		char[] sError = new char[255];
+		SQL_GetError(gH_SQL, sError, 255);
+		LogError("Timer (rankings, %s) error! Reason: %s", func, sError);
+
+		success = false;
 	}
 }
 
@@ -437,7 +446,7 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 		PrintToServer("DEBUG: 3 (tier: %d) (SQL_GetMapTier_Callback)", gI_Tier);
 		#endif
 
-		RecalculateAll(gS_Map, gI_Tier);
+		RecalculateAll(gS_Map);
 		UpdateAllPoints();
 
 		#if defined DEBUG
@@ -515,7 +524,7 @@ void GuessBestMapName(const char[] input, char[] output, int size)
 
 public void OnMapEnd()
 {
-	RecalculateAll(gS_Map, gI_Tier);
+	RecalculateAll(gS_Map);
 }
 
 public Action Command_Tier(int client, int args)
@@ -624,7 +633,7 @@ public Action Command_SetTier(int client, int args)
 	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, tier);
 
-	gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, tier, DBPrio_Low);
+	gH_SQL.Query(SQL_SetMapTier_Callback, sQuery);
 
 	return Plugin_Handled;
 }
@@ -638,12 +647,12 @@ public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	RecalculateAll(gS_Map, data);
+	RecalculateAll(gS_Map);
 }
 
 public Action Command_RecalcMap(int client, int args)
 {
-	RecalculateAll(gS_Map, gI_Tier);
+	RecalculateAll(gS_Map);
 	UpdateAllPoints();
 
 	ReplyToCommand(client, "Done.");
@@ -653,33 +662,63 @@ public Action Command_RecalcMap(int client, int args)
 
 public Action Command_RecalcAll(int client, int args)
 {
-	ReplyToCommand(client, "Check your console for information.\nDatabase related queries might not work until this is done.");
-	ReplyToCommand(client, "- [0.0%%] Started recalculating points for all maps.");
+	ReplyToCommand(client, "- Started recalculating points for all maps. Check console for output.");
 
-	gI_Progress[client] = 0;
+	Transaction trans = new Transaction();
 
-	int serial = (client == 0)? 0:GetClientSerial(client);
-	int size = gA_ValidMaps.Length;
-
-	for(int i = 0; i < size; i++)
+	for(int i = 0; i < gI_Styles; i++)
 	{
-		char[] sMap = new char[160];
-		gA_ValidMaps.GetString(i, sMap, 160);
+		char[] sQuery = new char[192];
 
-		int tier = 1;
-		gA_MapTiers.GetValue(sMap, tier);
+		if(gA_StyleSettings[i][bUnranked] || view_as<float>(gA_StyleSettings[i][fRankingMultiplier]) == 0.0)
+		{
+			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = 0 WHERE style = %d;", gS_MySQLPrefix, i);
+		}
 
-		RecalculateAll(sMap, tier, serial, true);
+		else
+		{
+			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gF_PointsPerTier, view_as<float>(gA_StyleSettings[i][fRankingMultiplier]), i);
+		}
 
-		#if defined DEBUG
-		PrintToConsole(client, "size: %d | %d | %s", size, i, sMap);
-		#endif
+		trans.AddQuery(sQuery);
 	}
+
+	gH_SQL.Execute(trans, Trans_OnRecalcSuccess, Trans_OnRecalcFail, (client == 0)? 0:GetClientSerial(client));
 
 	return Plugin_Handled;
 }
 
-void RecalculateAll(const char[] map, const int tier, int serial = 0, bool print = false)
+public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	int client = (data == 0)? 0:GetClientFromSerial(data);
+
+	if(client != 0)
+	{
+		SetCmdReplySource(SM_REPLY_TO_CONSOLE);
+	}
+
+	ReplyToCommand(client, "- Finished recalculating all points. Recalculating user points, top 100 and user cache.");
+
+	UpdateAllPoints();
+	UpdateTop100();
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientInGame(i) && IsClientAuthorized(i))
+		{
+			UpdatePlayerRank(i);
+		}
+	}
+
+	ReplyToCommand(client, "- Done.");
+}
+
+public void Trans_OnRecalcFail(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (rankings) error! Recalculation failed. Reason: %s", error);
+}
+
+void RecalculateAll(const char[] map)
 {
 	#if defined DEBUG
 	LogError("DEBUG: 5 (RecalculateAll)");
@@ -694,55 +733,26 @@ void RecalculateAll(const char[] map, const int tier, int serial = 0, bool print
 				continue;
 			}
 
-			RecalculateMap(map, i, j, tier, serial, print);
+			RecalculateMap(map, i, j);
 		}
 	}
 }
 
 public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
 {
-	RecalculateMap(gS_Map, track, style, gI_Tier);
+	RecalculateMap(gS_Map, track, style);
 }
 
-void RecalculateMap(const char[] map, const int track, const int style, const int tier, int serial = -1, bool print = false)
+void RecalculateMap(const char[] map, const int track, const int style)
 {
 	#if defined DEBUG
-	PrintToServer("Recalculating points. (%s, %d, %d, %d)", map, track, style, tier);
+	PrintToServer("Recalculating points. (%s, %d, %d)", map, track, style);
 	#endif
 
-	char[] sQuery = new char[2048];
-	FormatEx(sQuery, 2048, "UPDATE %splayertimes t LEFT JOIN " ...
-		"(SELECT MIN(time) mintime, MAP, track, style FROM %splayertimes GROUP BY MAP, track, style) minjoin " ...
-			"ON t.time = minjoin.mintime AND t.MAP = minjoin.MAP AND t.track = minjoin.track AND t.style = minjoin.style " ...
-		"JOIN (SELECT ((%.01f * %d) * 1.5) points) best " ...
-		"JOIN (SELECT (COUNT(*) * (%d / 10.0)) points, MAP, track, style FROM %splayertimes GROUP BY MAP, track, style) additive " ...
-			"ON t.MAP = additive.MAP AND t.track = additive.track AND t.style = additive.style " ...
-		"JOIN (SELECT MIN(time) lowest, (MIN(time) / 15.0) points, MAP, track, style FROM %splayertimes GROUP BY MAP, track, style) FINAL " ...
-			"ON t.MAP = FINAL.MAP AND t.track = FINAL.track AND t.style = FINAL.style JOIN (SELECT (%.03f) style, (%.03f) track) multipliers " ...
+	char[] sQuery = new char[192];
+	FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';", gS_MySQLPrefix, style, track, map, gF_PointsPerTier, gA_StyleSettings[style][fRankingMultiplier], style, track, map);
 
-		"SET t.points = (CASE " ...
-			"WHEN minjoin.mintime IS NOT NULL THEN (((best.points + additive.points + FINAL.points) * multipliers.style) * multipliers.track) " ...
-			"ELSE (((((best.points + additive.points + FINAL.points) * multipliers.style) * multipliers.track) * (FINAL.lowest / t.time)) * 0.85) " ...
-		"END) " ...
-
-		"WHERE t.MAP = '%s' " ...
-			"AND t.track = %d " ...
-			"AND t.style = %d;",
-			gS_MySQLPrefix, gS_MySQLPrefix,
-			gF_PointsPerTier, (track == Track_Main)? tier:1, (track == Track_Main)? tier:1,
-			gS_MySQLPrefix, gS_MySQLPrefix,
-			gA_StyleSettings[style][fRankingMultiplier], (track == Track_Main)? 1.0:0.25,
-			map, track, style);
-
-	DataPack pack = new DataPack();
-	pack.WriteCell(serial);
-	pack.WriteCell(strlen(map));
-	pack.WriteString(map);
-	pack.WriteCell(track);
-	pack.WriteCell(style);
-	pack.WriteCell(print);
-
-	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, pack, DBPrio_High);
+	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
 
 	#if defined DEBUG
 	PrintToServer("Sent query.");
@@ -751,38 +761,11 @@ void RecalculateMap(const char[] map, const int track, const int style, const in
 
 public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	data.Reset();
-	int serial = data.ReadCell();
-	int size = data.ReadCell();
-
-	char[] sMap = new char[size+1];
-	data.ReadString(sMap, size+1);
-
-	int track = data.ReadCell();
-	int style = data.ReadCell();
-	bool print = view_as<bool>(data.ReadCell());
-	delete data;
-
 	if(results == null)
 	{
 		LogError("Timer (rankings, recalculate map points) error! Reason: %s", error);
 
 		return;
-	}
-
-	if(print && serial != -1)
-	{
-		int client = (serial == 0)? 0:GetClientFromSerial(serial);
-
-		if(serial != 0 && client == 0)
-		{
-			return;
-		}
-
-		int max = ((gA_ValidMaps.Length * TRACKS_SIZE) * gI_RankedStyles);
-		float current = ((float(++gI_Progress[client]) / max) * 100.0);
-
-		PrintToConsole(client, "- [%.01f%%] Recalculated \"%s\" (%s | %s).", current, sMap, gS_TrackNames[track], gS_StyleNames[style]);
 	}
 
 	#if defined DEBUG
