@@ -515,7 +515,7 @@ public void OnMapStart()
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
 
-	if(gI_CreateSpawnPoints > 0)
+	if(gI_CreateSpawnPoints > 0 && gEV_Type != Engine_TF2)
 	{
 		int iEntity = -1;
 		float fOrigin[3];
@@ -1008,11 +1008,7 @@ public void OnClientPutInServer(int client)
 
 	gB_SaveStates[client] = false;
 
-	if(gA_SaveFrames[client] != null)
-	{
-		delete gA_SaveFrames[client];
-		gA_SaveFrames[client] = null;
-	}
+	delete gA_SaveFrames[client];
 }
 
 public void OnClientDisconnect(int client)
@@ -1914,7 +1910,7 @@ public Action Command_Specs(int client, int args)
 		iObserverTarget = iNewTarget;
 	}
 
-	int iCount;
+	int iCount = 0;
 	char[] sSpecs = new char[192];
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -2047,34 +2043,26 @@ public void Shavit_OnRestart(int client, int track)
 			}
 		}
 
-		DataPack pack = new DataPack();
-		pack.WriteCell(GetClientSerial(client));
-		pack.WriteCell(track);
-		view_as<int>(pack) |= (1 << 24);
+		if(gEV_Type == Engine_TF2)
+		{
+			TF2_RespawnPlayer(client);
+		}
 
-		CreateTimer(0.1, Respawn, pack, TIMER_FLAG_NO_MAPCHANGE);
+		else
+		{
+			CS_RespawnPlayer(client);
+		}
+
+		if(gB_RespawnOnRestart)
+		{
+			RestartTimer(client, track);
+		}
 	}
 }
 
 public Action Respawn(Handle Timer, any data)
 {
-	int track = Track_Main;
-	int client = 0;
-	
-	if(data & (1 << 24) > 0)
-	{
-		data &= ~(1 << 24);
-		DataPack pack = data;
-		pack.Reset();
-		client = GetClientFromSerial(pack.ReadCell());
-		track = pack.ReadCell();
-		delete pack;
-	}
-
-	else
-	{
-		client = GetClientFromSerial(data);
-	}
+	int client = GetClientFromSerial(data);
 
 	if(IsValidClient(client) && !IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
@@ -2090,7 +2078,7 @@ public Action Respawn(Handle Timer, any data)
 
 		if(gB_RespawnOnRestart)
 		{
-			RestartTimer(client, track);
+			RestartTimer(client, Track_Main);
 		}
 	}
 
