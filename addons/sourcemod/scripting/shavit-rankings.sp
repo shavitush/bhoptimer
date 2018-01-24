@@ -20,7 +20,7 @@
 
 // Design idea:
 // Rank 1 per map/style/track gets ((points per tier * tier) * 1.5) + (rank 1 time in seconds / 15.0) points.
-// Records below rank 1 get points% relative to their time in comparison to rank 1 and a final multiplier of 85% to promote rank 1 hunting.
+// Records below rank 1 get points% relative to their time in comparison to rank 1.
 //
 // Bonus track gets a 0.25* final mutliplier for points and is treated as tier 1.
 //

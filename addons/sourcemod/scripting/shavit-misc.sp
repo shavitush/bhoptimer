@@ -2047,18 +2047,34 @@ public void Shavit_OnRestart(int client, int track)
 			}
 		}
 
-		DataPack pack = null;
-		CreateDataTimer(0.1, Respawn, pack, TIMER_FLAG_NO_MAPCHANGE);
+		DataPack pack = new DataPack();
 		pack.WriteCell(GetClientSerial(client));
 		pack.WriteCell(track);
+		view_as<int>(pack) |= (1 << 24);
+
+		CreateTimer(0.1, Respawn, pack, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
-public Action Respawn(Handle Timer, DataPack pack)
+public Action Respawn(Handle Timer, any data)
 {
-	pack.Reset();
-	int client = GetClientFromSerial(pack.ReadCell());
-	int track = pack.ReadCell();
+	int track = Track_Main;
+	int client = 0;
+	
+	if(data & (1 << 24) > 0)
+	{
+		data &= ~(1 << 24);
+		DataPack pack = data;
+		pack.Reset();
+		client = GetClientFromSerial(pack.ReadCell());
+		track = pack.ReadCell();
+		delete pack;
+	}
+
+	else
+	{
+		client = GetClientFromSerial(data);
+	}
 
 	if(IsValidClient(client) && !IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
