@@ -1180,6 +1180,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_Strafes[client] = view_as<int>(snapshot[iStrafes]);
 	gI_TotalMeasures[client] = view_as<int>(snapshot[iTotalMeasures]);
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
+	gF_PlayerTimer[client] = snapshot[fCurrentTime];
 	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
 }
 
@@ -1232,6 +1233,7 @@ void StartTimer(int client, int track)
 			gB_TimerEnabled[client] = true;
 			gI_SHSW_FirstCombination[client] = -1;
 			gF_PlayerTimer[client] = 0.0;
+			gB_PracticeMode[client] = false;
 
 			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
 			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
