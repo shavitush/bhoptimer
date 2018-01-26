@@ -134,10 +134,7 @@ enum
 enum
 {
 	bTimerEnabled,
-	fStartTime,
 	fCurrentTime,
-	fPauseStartTime,
-	fPauseTotalTime,
 	bClientPaused,
 	iJumps,
 	bsStyle,
@@ -303,6 +300,32 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * @return							Plugin_Continue to let shavit-core keep doing what it does, Plugin_Changed to pass different values.
  */
 forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE]);
+
+/**
+ * Called just before shavit-core adds time to a player's timer.
+ * This is the forward you should use to modify the player's timer smoothly.
+ * A good example use case is timescaling.
+ *
+ * @param client					Client index.
+ * @param snapshot					A snapshot with the player's current timer. You cannot manipulate it here.
+ * @param time						The time to be added to the player's timer.
+ * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @noreturn
+ */
+forward void Shavit_OnTimeIncrement(int client, any snapshot[TIMERSNAPSHOT_SIZE], float &time, any stylesettings[STYLESETTINGS_SIZE]);
+
+/**
+ * Called just before shavit-core adds time to a player's timer.
+ * This is the forward you should use to modify the player's timer smoothly.
+ * A good example use case is timescaling.
+ *
+ * @param client					Client index.
+ * @param snapshot					A snapshot with the player's current timer. Read above in shavit.inc for more information.
+ * @param time						The time to be added to the player's timer.
+ * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @noreturn
+ */
+forward void Shavit_OnTimeIncrementPost(int client, float time, any stylesettings[STYLESETTINGS_SIZE]);
 
 /**
  * Called when a player's timer starts.

@@ -58,12 +58,13 @@ Handle gH_Forwards_OnStyleConfigLoaded = null;
 Handle gH_Forwards_OnDatabaseLoaded = null;
 Handle gH_Forwards_OnChatConfigLoaded = null;
 Handle gH_Forwards_OnUserCmdPre = null;
+Handle gH_Forwards_OnTimerIncrement = null;
+Handle gH_Forwards_OnTimerIncrementPost = null;
 
 // timer variables
 bool gB_TimerEnabled[MAXPLAYERS+1];
-float gF_StartTime[MAXPLAYERS+1];
-float gF_PauseStartTime[MAXPLAYERS+1];
-float gF_PauseTotalTime[MAXPLAYERS+1];
+float gF_PlayerTimer[MAXPLAYERS+1];
+float gF_PausePosition[MAXPLAYERS+1][3][3];
 bool gB_ClientPaused[MAXPLAYERS+1];
 int gI_Jumps[MAXPLAYERS+1];
 int gBS_Style[MAXPLAYERS+1];
@@ -203,6 +204,8 @@ public void OnPluginStart()
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array);
+	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
+	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 
 	LoadTranslations("shavit-core.phrases");
 
@@ -567,13 +570,20 @@ public Action Command_TogglePause(int client, int args)
 
 	if(gB_ClientPaused[client])
 	{
+		TeleportEntity(client, gF_PausePosition[client][0], gF_PausePosition[client][1], gF_PausePosition[client][2]);
 		ResumeTimer(client);
+
 		Shavit_PrintToChat(client, "%T", "MessageUnpause", client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
 	else
 	{
+		GetClientAbsOrigin(client, gF_PausePosition[client][0]);
+		GetClientEyeAngles(client, gF_PausePosition[client][1]);
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PausePosition[client][2]);
+
 		PauseTimer(client);
+
 		Shavit_PrintToChat(client, "%T", "MessagePause", client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
@@ -899,8 +909,7 @@ public int Native_GetTimer(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 
 	// 2 - time
-	float time = CalculateTime(client);
-	SetNativeCellRef(2, time);
+	SetNativeCellRef(2, gF_PlayerTimer[client]);
 	SetNativeCellRef(3, gI_Jumps[client]);
 	SetNativeCellRef(4, gBS_Style[client]);
 	SetNativeCellRef(5, gB_TimerEnabled[client]);
@@ -908,7 +917,7 @@ public int Native_GetTimer(Handle handler, int numParams)
 
 public int Native_GetClientTime(Handle handler, int numParams)
 {
-	return view_as<int>(CalculateTime(GetNativeCell(1)));
+	return view_as<int>(gF_PlayerTimer[GetNativeCell(1)]);
 }
 
 public int Native_GetClientTrack(Handle handler, int numParams)
@@ -959,9 +968,6 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
 	snapshot[bTimerEnabled] = gB_TimerEnabled[client];
-	snapshot[fStartTime] = gF_StartTime[client];
-	snapshot[fPauseStartTime] = gF_PauseStartTime[client];
-	snapshot[fPauseTotalTime] = gF_PauseTotalTime[client];
 	snapshot[bClientPaused] = gB_ClientPaused[client];
 	snapshot[iJumps] = gI_Jumps[client];
 	snapshot[bsStyle] = gBS_Style[client];
@@ -969,7 +975,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot[iTotalMeasures] = gI_TotalMeasures[client];
 	snapshot[iGoodGains] = gI_GoodGains[client];
 	snapshot[fServerTime] = GetEngineTime();
-	snapshot[fCurrentTime] = CalculateTime(client);
+	snapshot[fCurrentTime] = gF_PlayerTimer[client];
 	snapshot[iSHSWCombination] = gI_SHSW_FirstCombination[client];
 	snapshot[iTimerTrack] = gI_Track[client];
 
@@ -993,7 +999,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	if(result == Plugin_Continue)
 	{
 		Call_PushCell(style = gBS_Style[client]);
-		Call_PushCell(CalculateTime(client));
+		Call_PushCell(gF_PlayerTimer[client]);
 		Call_PushCell(gI_Jumps[client]);
 		Call_PushCell(gI_Strafes[client]);
 		Call_PushCell((gA_StyleSettings[gBS_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
@@ -1139,9 +1145,6 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 
 	any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
 	snapshot[bTimerEnabled] = gB_TimerEnabled[client];
-	snapshot[fStartTime] = gF_StartTime[client];
-	snapshot[fPauseStartTime] = gF_PauseStartTime[client];
-	snapshot[fPauseTotalTime] = gF_PauseTotalTime[client];
 	snapshot[bClientPaused] = gB_ClientPaused[client];
 	snapshot[iJumps] = gI_Jumps[client];
 	snapshot[bsStyle] = gBS_Style[client];
@@ -1149,7 +1152,7 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot[iTotalMeasures] = gI_TotalMeasures[client];
 	snapshot[iGoodGains] = gI_GoodGains[client];
 	snapshot[fServerTime] = GetEngineTime();
-	snapshot[fCurrentTime] = CalculateTime(client);
+	snapshot[fCurrentTime] = gF_PlayerTimer[client];
 	snapshot[iSHSWCombination] = gI_SHSW_FirstCombination[client];
 	snapshot[iTimerTrack] = gI_Track[client];
 
@@ -1171,16 +1174,13 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	}
 
 	gB_TimerEnabled[client] = view_as<bool>(snapshot[bTimerEnabled]);
-	gF_PauseStartTime[client] = view_as<float>(snapshot[fPauseStartTime]);
-	gF_PauseTotalTime[client] = view_as<float>(snapshot[fPauseTotalTime]);
-	gB_ClientPaused[client] = false; // Pausing is disabled in practice mode.
+	gB_ClientPaused[client] = view_as<bool>(snapshot[bClientPaused]);
 	gI_Jumps[client] = view_as<int>(snapshot[iJumps]);
 	gBS_Style[client] = snapshot[bsStyle];
 	gI_Strafes[client] = view_as<int>(snapshot[iStrafes]);
 	gI_TotalMeasures[client] = view_as<int>(snapshot[iTotalMeasures]);
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
-	gF_StartTime[client] = GetEngineTime() - view_as<float>(snapshot[fCurrentTime]);
-	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);\
+	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
 }
 
 public int Native_MarkKZMap(Handle handler, int numParams)
@@ -1215,13 +1215,6 @@ void StartTimer(int client, int track)
 
 	if(!gB_NoZAxisSpeed || gA_StyleSettings[gBS_Style[client]][bPrespeed] || (fSpeed[2] == 0.0 && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0))
 	{
-		gI_Strafes[client] = 0;
-		gI_Jumps[client] = 0;
-		gI_TotalMeasures[client] = 0;
-		gI_GoodGains[client] = 0;
-		gF_StartTime[client] = GetEngineTime();
-		gI_Track[client] = track;
-
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
 		Call_PushCell(client);
@@ -1230,12 +1223,15 @@ void StartTimer(int client, int track)
 
 		if(result == Plugin_Continue)
 		{
+			gI_Strafes[client] = 0;
+			gI_Jumps[client] = 0;
+			gI_TotalMeasures[client] = 0;
+			gI_GoodGains[client] = 0;
+			gF_PlayerTimer[client] = 0.0;
+			gI_Track[client] = track;
 			gB_TimerEnabled[client] = true;
 			gI_SHSW_FirstCombination[client] = -1;
-
-			gF_PauseTotalTime[client] = 0.0;
-			gB_ClientPaused[client] = false;
-			gB_PracticeMode[client] = false;
+			gF_PlayerTimer[client] = 0.0;
 
 			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
 			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
@@ -1257,8 +1253,7 @@ void StopTimer(int client)
 
 	gB_TimerEnabled[client] = false;
 	gI_Jumps[client] = 0;
-	gF_StartTime[client] = 0.0;
-	gF_PauseTotalTime[client] = 0.0;
+	gF_PlayerTimer[client] = 0.0;
 	gB_ClientPaused[client] = false;
 	gI_Strafes[client] = 0;
 	gI_TotalMeasures[client] = 0;
@@ -1277,7 +1272,6 @@ void PauseTimer(int client)
 	Call_PushCell(gI_Track[client]);
 	Call_Finish();
 
-	gF_PauseStartTime[client] = GetEngineTime();
 	gB_ClientPaused[client] = true;
 }
 
@@ -1293,30 +1287,7 @@ void ResumeTimer(int client)
 	Call_PushCell(gI_Track[client]);
 	Call_Finish();
 
-	gF_PauseTotalTime[client] += (GetEngineTime() - gF_PauseStartTime[client]);
 	gB_ClientPaused[client] = false;
-}
-
-float CalculateTime(int client)
-{
-	float time = 0.0;
-
-	if(!gB_ClientPaused[client])
-	{
-		time = (GetEngineTime() - gF_StartTime[client] - gF_PauseTotalTime[client]);
-	}
-
-	else
-	{
-		time = (gF_PauseStartTime[client] - gF_StartTime[client] - gF_PauseTotalTime[client]);
-	}
-
-	if(gA_StyleSettings[gBS_Style[client]][bHalftime])
-	{
-		time /= 2.0;
-	}
-
-	return time;
 }
 
 public void OnClientDisconnect(int client)
@@ -1800,6 +1771,54 @@ public void PreThinkPost(int client)
 	}
 }
 
+public void OnGameFrame()
+{
+	float frametime = GetGameFrameTime();
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(gB_ClientPaused[i] || !gB_TimerEnabled[i])
+		{
+			continue;
+		}
+
+		float time = frametime;
+
+		if(gA_StyleSettings[gBS_Style[i]][bHalftime])
+		{
+			time /= 2.0;
+		}
+
+		any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
+		snapshot[bTimerEnabled] = gB_TimerEnabled[i];
+		snapshot[bClientPaused] = gB_ClientPaused[i];
+		snapshot[iJumps] = gI_Jumps[i];
+		snapshot[bsStyle] = gBS_Style[i];
+		snapshot[iStrafes] = gI_Strafes[i];
+		snapshot[iTotalMeasures] = gI_TotalMeasures[i];
+		snapshot[iGoodGains] = gI_GoodGains[i];
+		snapshot[fServerTime] = GetEngineTime();
+		snapshot[fCurrentTime] = gF_PlayerTimer[i];
+		snapshot[iSHSWCombination] = gI_SHSW_FirstCombination[i];
+		snapshot[iTimerTrack] = gI_Track[i];
+
+		Call_StartForward(gH_Forwards_OnTimerIncrement);
+		Call_PushCell(i);
+		Call_PushArray(snapshot, TIMERSNAPSHOT_SIZE);
+		Call_PushCellRef(time);
+		Call_PushArray(gA_StyleSettings[gBS_Style[i]], STYLESETTINGS_SIZE);
+		Call_Finish();
+
+		gF_PlayerTimer[i] += time;
+
+		Call_StartForward(gH_Forwards_OnTimerIncrementPost);
+		Call_PushCell(i);
+		Call_PushCell(time);
+		Call_PushArray(gA_StyleSettings[gBS_Style[i]], STYLESETTINGS_SIZE);
+		Call_Finish();
+	}
+}
+
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
 	if(!IsPlayerAlive(client) || IsFakeClient(client))
@@ -1807,13 +1826,19 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Continue;
 	}
 
+	int flags = GetEntityFlags(client);
+
 	if(gB_ClientPaused[client])
 	{
 		buttons = 0;
 		vel = view_as<float>({0.0, 0.0, 0.0});
 
+		SetEntityFlags(client, (flags | FL_ATCONTROLS));
+
 		return Plugin_Changed;
 	}
+
+	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnUserCmdPre);
