@@ -772,22 +772,19 @@ void UpdateHUD(int client)
 			{
 				if(status != Timer_Stopped)
 				{
-					if(Shavit_GetTimerStatus(target) == Timer_Running)
+					char[] sFirstLine = new char[64];
+					strcopy(sFirstLine, 64, gS_StyleStrings[style][sStyleName]);
+
+					if(Shavit_IsPracticeMode(target))
 					{
-						char[] sFirstLine = new char[64];
-						strcopy(sFirstLine, 64, gS_StyleStrings[style][sStyleName]);
-
-						if(Shavit_IsPracticeMode(target))
-						{
-							Format(sFirstLine, 64, "%s %T", sFirstLine, "HudPracticeMode", client);
-						}
-
-						FormatEx(sHintText, 512, "%s\n%T: %s (%d)\n%T: %d\n%T: %d\n%T: %d%s", sFirstLine, "HudTimeText", client, sTime, rank, "HudJumpsText", client, jumps, "HudStrafeText", client, strafes, "HudSpeedText", client, iSpeed, (gA_StyleSettings[style][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit, -1))? "\nNo Speed Limit":"");
+						Format(sFirstLine, 64, "%s %T", sFirstLine, "HudPracticeMode", client);
 					}
 
-					else
+					FormatEx(sHintText, 512, "%s\n%T: %s (%d)\n%T: %d\n%T: %d\n%T: %d%s", sFirstLine, "HudTimeText", client, sTime, rank, "HudJumpsText", client, jumps, "HudStrafeText", client, strafes, "HudSpeedText", client, iSpeed, (gA_StyleSettings[style][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit, -1))? "\nNo Speed Limit":"");
+					
+					if(Shavit_GetTimerStatus(target) == Timer_Paused)
 					{
-						FormatEx(sHintText, 16, "%T", "HudPaused", client);
+						Format(sHintText, 512, "%s\n%T", sHintText, "HudPaused", client);
 					}
 
 					if(track != Track_Main)
