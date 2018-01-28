@@ -107,7 +107,7 @@ enum
 	iForceHSW,
 	bBlockPLeft,
 	bBlockPRight,
-	bBlockPStrafe,
+	iBlockPStrafe,
 	bUnranked,
 	bNoReplay,
 	bSync,

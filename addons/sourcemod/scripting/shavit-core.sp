@@ -1460,7 +1460,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][iForceHSW] = kv.GetNum("force_hsw", 0);
 		gA_StyleSettings[i][bBlockPLeft] = view_as<bool>(kv.GetNum("block_pleft", 0));
 		gA_StyleSettings[i][bBlockPRight] = view_as<bool>(kv.GetNum("block_pright", 0));
-		gA_StyleSettings[i][bBlockPStrafe] = view_as<bool>(kv.GetNum("block_pstrafe", 0));
+		gA_StyleSettings[i][iBlockPStrafe] = kv.GetNum("block_pstrafe", 0);
 		gA_StyleSettings[i][bUnranked] = view_as<bool>(kv.GetNum("unranked", 0));
 		gA_StyleSettings[i][bNoReplay] = view_as<bool>(kv.GetNum("noreplay", 0));
 		gA_StyleSettings[i][bSync] = view_as<bool>(kv.GetNum("sync", 1));
@@ -1869,19 +1869,25 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 
 		// +strafe block
-		if(gA_StyleSettings[gBS_Style[client]][bBlockPStrafe] &&
+		if(gA_StyleSettings[gBS_Style[client]][iBlockPStrafe] > 0 &&
 			((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) ||
 			(vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0)))
 		{
-			float fTime = GetEngineTime();
-
-			if(gF_StrafeWarning[client] < fTime)
+			if(gF_StrafeWarning[client] < gF_PlayerTimer[client])
 			{
-				FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
-				StopTimer_Cheat(client, sCheatDetected);
+				if(gA_StyleSettings[gBS_Style[client]][iBlockPStrafe] >= 2)
+				{
+					FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
+					StopTimer_Cheat(client, sCheatDetected);
+				}
+
+				vel[0] = 0.0;
+				vel[1] = 0.0;
+
+				return Plugin_Changed;
 			}
 
-			gF_StrafeWarning[client] = fTime + 0.20;
+			gF_StrafeWarning[client] = gF_PlayerTimer[client] + 0.3;
 		}
 	}
 
