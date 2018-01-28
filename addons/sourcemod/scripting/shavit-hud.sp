@@ -1046,7 +1046,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 				FormatEx(sTopLeft, 128, "WR: %s (%s)", sWRTime, sWRName);
 			}
 
-			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255);
+			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
 			ShowSyncHudText(client, gH_HUD, "%s", sTopLeft);
 		}
 	}
