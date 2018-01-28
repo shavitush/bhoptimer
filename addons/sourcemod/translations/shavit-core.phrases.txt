@@ -105,11 +105,6 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"Timer has been {1}paused{2}."
 	}
-	"PausePractice"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"You {1}are not{2} allowed to pause while in practice mode."
-	}
 	// ---------- Zones ---------- //
 	"StartZoneUndefined"
 	{

@@ -561,13 +561,6 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gB_PracticeMode[client])
-	{
-		Shavit_PrintToChat(client, "%T", "PausePractice", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-
-		return Plugin_Handled;
-	}
-
 	if(gB_ClientPaused[client])
 	{
 		TeleportEntity(client, gF_PausePosition[client][0], gF_PausePosition[client][1], gF_PausePosition[client][2]);
