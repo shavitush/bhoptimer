@@ -67,7 +67,7 @@ ConVar gCV_TicksPerUpdate = null;
 
 // cached cvars
 int gI_GradientStepSize = 5;
-int gI_TicksPerUpdate = 20;
+int gI_TicksPerUpdate = 5;
 
 // timer settings
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
@@ -132,7 +132,7 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
-	gCV_TicksPerUpdate = CreateConVar("shavit_hud_ticksperupdate", "20", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
+	gCV_TicksPerUpdate = CreateConVar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 
 	gCV_GradientStepSize.AddChangeHook(OnConVarChanged);
 	gCV_TicksPerUpdate.AddChangeHook(OnConVarChanged);
