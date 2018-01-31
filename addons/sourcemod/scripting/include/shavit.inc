@@ -297,9 +297,10 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * @param track						The player's timer track.
  * @param style						The player's bhop style.
  * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @param mouse						Mouse direction (x, y).
  * @return							Plugin_Continue to let shavit-core keep doing what it does, Plugin_Changed to pass different values.
  */
-forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE]);
+forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE], int mouse[2]);
 
 /**
  * Called just before shavit-core adds time to a player's timer.
