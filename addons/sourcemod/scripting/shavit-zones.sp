@@ -736,6 +736,14 @@ void KillZoneEntity(int index)
 			gB_InsideZoneID[i][index] = false;
 		}
 
+		char[] sTargetname = new char[32];
+		GetEntPropString(entity, Prop_Data, "m_iName", sTargetname, 32);
+
+		if(StrContains(sTargetname, "shavit_zones_") == -1)
+		{
+			return;
+		}
+
 		UnhookEntity(entity);
 		AcceptEntityInput(entity, "Kill");
 	}
@@ -769,21 +777,17 @@ void UnloadZones(int zone)
 		{
 			gB_ZonesCreated = false;
 
-			int iMaxEntities = GetMaxEntities();
-
-			char[] sClassname = new char[32];
 			char[] sTargetname = new char[32];
+			int iEntity = INVALID_ENT_REFERENCE;
 
-			for(int i = (MaxClients + 1); i < iMaxEntities; i++)
+			while((iEntity = FindEntityByClassname(iEntity, "trigger_multiple")) != INVALID_ENT_REFERENCE)
 			{
-				if(!IsValidEntity(i) 
-					|| !GetEntityClassname(i, sClassname, 32) || !StrEqual(sClassname, "trigger_multiple")
-					|| GetEntPropString(i, Prop_Data, "m_iName", sTargetname, 32) == 0 || StrContains(sTargetname, "shavit_zones_") == -1)
-				{
-					continue;
-				}
+				GetEntPropString(iEntity, Prop_Data, "m_iName", sTargetname, 32);
 
-				AcceptEntityInput(i, "Kill");
+				if(StrContains(sTargetname, "shavit_zones_") != -1)
+				{
+					AcceptEntityInput(iEntity, "Kill");
+				}
 			}
 		}
 
