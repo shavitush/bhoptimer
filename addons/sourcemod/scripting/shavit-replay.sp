@@ -1359,6 +1359,19 @@ public void Shavit_OnResume(int client)
 	gB_Record[client] = true;
 }
 
+void ModifyFlags(int &flags, int flag, bool add)
+{
+	if(add)
+	{
+		flags |= flag;
+	}
+
+	else
+	{
+		flags &= flag;
+	}
+}
+
 // OnPlayerRunCmd instead of Shavit_OnUserCmdPre because bots are also used here.
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
@@ -1465,22 +1478,29 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			buttons = gA_Frames[style][track].Get(gI_ReplayTick[style], 5);
 
+			MoveType mt = MOVETYPE_NOCLIP;
+
 			if(gA_FrameCache[style][track][3] >= 0x02)
 			{
-				SetEntityFlags(client, gA_Frames[style][track].Get(gI_ReplayTick[style], 6));
+				int iReplayFlags = gA_Frames[style][track].Get(gI_ReplayTick[style], 6);
+				int iEntityFlags = GetEntityFlags(client);
+
+				ModifyFlags(iEntityFlags, FL_ONGROUND, (iReplayFlags & FL_ONGROUND) > 0);
+				ModifyFlags(iEntityFlags, FL_PARTIALGROUND, (iReplayFlags & FL_PARTIALGROUND) > 0);
+				ModifyFlags(iEntityFlags, FL_INWATER, (iReplayFlags & FL_INWATER) > 0);
+				ModifyFlags(iEntityFlags, FL_SWIM, (iReplayFlags & FL_SWIM) > 0);
+
+				SetEntityFlags(client, iEntityFlags);
 				
-				MoveType mt = gA_Frames[style][track].Get(gI_ReplayTick[style], 7);
+				MoveType movetype = gA_Frames[style][track].Get(gI_ReplayTick[style], 7);
 
-				if(mt == MOVETYPE_WALK || mt == MOVETYPE_LADDER)
+				if(movetype == MOVETYPE_WALK || movetype == MOVETYPE_LADDER)
 				{
-					SetEntityMoveType(client, mt);
-				}
-
-				else
-				{
-					SetEntityMoveType(client, MOVETYPE_NOCLIP);
+					mt = movetype;
 				}
 			}
+
+			SetEntityMoveType(client, mt);
 
 			float vecVelocity[3];
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
