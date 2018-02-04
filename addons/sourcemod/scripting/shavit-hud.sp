@@ -63,9 +63,11 @@ Handle gH_HUD = null;
 
 // plugin cvars
 ConVar gCV_GradientStepSize = null;
+ConVar gCV_TicksPerUpdate = null;
 
 // cached cvars
 int gI_GradientStepSize = 5;
+int gI_TicksPerUpdate = 5;
 
 // timer settings
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
@@ -130,12 +132,12 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
+	gCV_TicksPerUpdate = CreateConVar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
+
 	gCV_GradientStepSize.AddChangeHook(OnConVarChanged);
+	gCV_TicksPerUpdate.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
-
-	// cron
-	CreateTimer(0.10, UpdateHUD_Timer, INVALID_HANDLE, TIMER_REPEAT);
 
 	// commands
 	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu");
@@ -164,6 +166,7 @@ public void OnPluginStart()
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	gI_GradientStepSize = gCV_GradientStepSize.IntValue;
+	gI_TicksPerUpdate = gCV_TicksPerUpdate.IntValue;
 }
 
 public void OnMapStart()
@@ -476,7 +479,15 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public Action UpdateHUD_Timer(Handle Timer)
+public void OnGameFrame()
+{
+	if(GetGameTickCount() % gI_TicksPerUpdate == 0)
+	{
+		Cron();
+	}
+}
+
+void Cron()
 {
 	if(++gI_Cycle >= 65535)
 	{
@@ -567,8 +578,6 @@ public Action UpdateHUD_Timer(Handle Timer)
 
 		TriggerHUDUpdate(i);
 	}
-
-	return Plugin_Continue;
 }
 
 void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:S lags when you send too many usermessages
@@ -635,7 +644,7 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"38\" color=\"#%06X\">%T</font>\n\t%T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client, "HudSpeedText", client, iSpeed);
+				FormatEx(sHintText, 128, "       <font size='34' color='#%06X'>%T</font>\n\t  %T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudStartZone", client, "HudSpeedText", client, iSpeed);
 			}
 
 			else
@@ -649,7 +658,7 @@ void UpdateHUD(int client)
 		{
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 64, "<font size=\"38\" color=\"#%06X\">%T</font>\n\t%T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client, "HudSpeedText", client, iSpeed);
+				FormatEx(sHintText, 128, "       <font size='34' color='#%06X'>%T</font>\n\t  %T: %d", ((gI_GradientColors[0] << 16) + (gI_GradientColors[1] << 8) + (gI_GradientColors[2])), "HudEndZone", client, "HudSpeedText", client, iSpeed);
 			}
 
 			else
@@ -667,6 +676,7 @@ void UpdateHUD(int client)
 	else if((gI_HUDSettings[client] & HUD_CENTER) > 0)
 	{
 		int track = Shavit_GetClientTrack(target);
+		char[] sTrack = new char[32];
 
 		if(!IsFakeClient(target))
 		{
@@ -690,7 +700,7 @@ void UpdateHUD(int client)
 
 			if(gEV_Type == Engine_CSGO)
 			{
-				strcopy(sHintText, 512, "<font size=\"18\" face=\"Stratum2\">");
+				strcopy(sHintText, 512, "<font size='18' face=''>");
 
 				if(status >= Timer_Running)
 				{
@@ -698,7 +708,7 @@ void UpdateHUD(int client)
 
 					if(status == Timer_Paused)
 					{
-						strcopy(sColor, 8, "FF0000");
+						strcopy(sColor, 8, "A9C5E8");
 					}
 
 					else if(time < fWR || fWR == 0.0)
@@ -716,16 +726,16 @@ void UpdateHUD(int client)
 						strcopy(sColor, 8, "FF0000");
 					}
 
-					char[] sPauseItem = new char[64];
-					FormatEx(sPauseItem, 64, "%T\t</font>", "HudPaused", client);
+					if(track != Track_Main)
+					{
+						GetTrackName(client, track, sTrack, 32);
+						Format(sHintText, 512, "%s[<font color='#FFFFFF'>%s</font>] ", sHintText, sTrack);
+					}
 
-					char[] sUnpausedItem = new char[64];
-					FormatEx(sUnpausedItem, 64, "%s</font> (%d)\t", sTime, rank);
-					
-					Format(sHintText, 512, "%s%T: <font color='#%s'>%s", sHintText, "HudTimeText", client, sColor, (status == Timer_Paused)? sPauseItem:sUnpausedItem);
+					Format(sHintText, 512, "%s<font color='#%s'>%s</font> (%d)", sHintText, sColor, sTime, rank);
 				}
 
-				if(fPB > 0.0)
+				else if(fPB > 0.0)
 				{
 					Format(sHintText, 512, "%s%T: %s (#%d)", sHintText, "HudBestText", client, sPB, (Shavit_GetRankForTime(style, fPB, track) - 1));
 				}
@@ -754,37 +764,29 @@ void UpdateHUD(int client)
 						Format(sHintText, 512, "%s%s\t%T: %d", sHintText, (iSpeed < 1000)? "\t":"", "HudStrafeText", client, strafes);
 					}
 				}
-
-				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
 			else
 			{
 				if(status != Timer_Stopped)
 				{
-					if(Shavit_GetTimerStatus(target) == Timer_Running)
+					char[] sFirstLine = new char[64];
+					strcopy(sFirstLine, 64, gS_StyleStrings[style][sStyleName]);
+
+					if(Shavit_IsPracticeMode(target))
 					{
-						char[] sFirstLine = new char[64];
-						strcopy(sFirstLine, 64, gS_StyleStrings[style][sStyleName]);
-
-						if(Shavit_IsPracticeMode(target))
-						{
-							Format(sFirstLine, 64, "%s %T", sFirstLine, "HudPracticeMode", client);
-						}
-
-						FormatEx(sHintText, 512, "%s\n%T: %s (%d)\n%T: %d\n%T: %d\n%T: %d%s", sFirstLine, "HudTimeText", client, sTime, rank, "HudJumpsText", client, jumps, "HudStrafeText", client, strafes, "HudSpeedText", client, iSpeed, (gA_StyleSettings[style][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit, -1))? "\nNo Speed Limit":"");
+						Format(sFirstLine, 64, "%s %T", sFirstLine, "HudPracticeMode", client);
 					}
 
-					else
+					FormatEx(sHintText, 512, "%s\n%T: %s (%d)\n%T: %d\n%T: %d\n%T: %d%s", sFirstLine, "HudTimeText", client, sTime, rank, "HudJumpsText", client, jumps, "HudStrafeText", client, strafes, "HudSpeedText", client, iSpeed, (gA_StyleSettings[style][fVelocityLimit] > 0.0 && Shavit_InsideZone(target, Zone_NoVelLimit, -1))? "\nNo Speed Limit":"");
+					
+					if(Shavit_GetTimerStatus(target) == Timer_Paused)
 					{
-						FormatEx(sHintText, 16, "%T", "HudPaused", client);
+						Format(sHintText, 512, "%s\n%T", sHintText, "HudPaused", client);
 					}
 
 					if(track != Track_Main)
 					{
-						char[] sTrack = new char[32];
-						GetTrackName(client, track, sTrack, 32);
-
 						Format(sHintText, 512, "%s\n%s", sHintText, sTrack);
 					}
 				}
@@ -825,8 +827,6 @@ void UpdateHUD(int client)
 			char[] sReplayLength = new char[32];
 			FormatSeconds(fReplayLength, sReplayLength, 32, false);
 
-			char[] sTrack = new char[32];
-
 			if(track != Track_Main)
 			{
 				GetTrackName(client, track, sTrack, 32);
@@ -835,11 +835,10 @@ void UpdateHUD(int client)
 
 			if(gEV_Type == Engine_CSGO)
 			{
-				FormatEx(sHintText, 512, "<font face='Stratum2'>");
+				FormatEx(sHintText, 512, "<font face=''>");
 				Format(sHintText, 512, "%s\t<u><font color='#%s'>%s %T</font></u>", sHintText, gS_StyleStrings[style][sHTMLColor], gS_StyleStrings[style][sStyleName], "ReplayText", client);
 				Format(sHintText, 512, "%s\n\t%T: <font color='#00FF00'>%s</font> / %s", sHintText, "HudTimeText", client, sReplayTime, sReplayLength);
 				Format(sHintText, 512, "%s\n\t%T: %d", sHintText, "HudSpeedText", client, iSpeed);
-				Format(sHintText, 512, "%s</font>", sHintText);
 			}
 
 			else
@@ -876,7 +875,20 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	int buttons = gI_Buttons[target];
 
 	char[] sPanelLine = new char[128];
-	FormatEx(sPanelLine, 128, "［%s］　［%s］\n　　 %s\n%s　 %s 　%s", 
+
+	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+
+	if(style < 0 || style > gI_Styles)
+	{
+		style = 0;
+	}
+
+	if(gB_BhopStats && !gA_StyleSettings[style][bAutobhop])
+	{
+		FormatEx(sPanelLine, 64, " %d%s%d\n", gI_ScrollCount[target], (gI_ScrollCount[target] > 9)? "   ":"     ", gI_LastScrollCount[target]);
+	}
+
+	Format(sPanelLine, 128, "%s［%s］　［%s］\n　　 %s\n%s　 %s 　%s", sPanelLine,
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
 		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
 		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
@@ -1034,7 +1046,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 				FormatEx(sTopLeft, 128, "WR: %s (%s)", sWRTime, sWRName);
 			}
 
-			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255);
+			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
 			ShowSyncHudText(client, gH_HUD, "%s", sTopLeft);
 		}
 	}

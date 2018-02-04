@@ -18,10 +18,10 @@ Including a records system, map zones (start/end marks etc), bonuses, HUD with u
 
 # Requirements:
 * Steam version of Counter-Strike: Source or Counter-Strike: Global Offensive.
-* [SourceMod 1.8 or above](http://www.sourcemod.net/downloads.php)
+* [SourceMod 1.9 or above](http://www.sourcemod.net/downloads.php)
 
 # Optional requirements:
-* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.0/) - required for 250/260 runspeed for all weapons.
+* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.1/) - required for 250/260 runspeed for all weapons.
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135) - to show amount of scrolls for non-auto styles in the key display. Required for TF2 servers.
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) - for the `{serverip}` advertisement variable.
 * [Chat-Processor](https://github.com/Drixevel/Chat-Processor) - if you're enabling the `shavit-chat` module.

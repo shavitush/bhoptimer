@@ -1,6 +1,3 @@
-# i have no idea AT ALL on how to use travis,
-# stolen from splewis: https://raw.githubusercontent.com/splewis/csgo-pug-setup/master/.travis.yml
-# i'll fail anyways, right? :(
 sudo: false
 
 addons:
@@ -8,7 +5,7 @@ addons:
         - lib32stdc++6  # needed for spcomp
 
 env:
-    - SMVERSION=1.8
+    - SMVERSION=1.9
 
 before_script:
     # install smbuilder
@@ -26,7 +23,6 @@ before_script:
     - chmod +x spcomp
     - PATH+=":$PWD"
 
-    # - cp ../../../scripting/include/* include/ # i don't think this is necessary anymore
     - cd ../../..
 
 script:

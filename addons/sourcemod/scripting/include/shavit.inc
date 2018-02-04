@@ -107,7 +107,7 @@ enum
 	iForceHSW,
 	bBlockPLeft,
 	bBlockPRight,
-	bBlockPStrafe,
+	iBlockPStrafe,
 	bUnranked,
 	bNoReplay,
 	bSync,
@@ -134,10 +134,7 @@ enum
 enum
 {
 	bTimerEnabled,
-	fStartTime,
 	fCurrentTime,
-	fPauseStartTime,
-	fPauseTotalTime,
 	bClientPaused,
 	iJumps,
 	bsStyle,
@@ -300,9 +297,36 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * @param track						The player's timer track.
  * @param style						The player's bhop style.
  * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @param mouse						Mouse direction (x, y).
  * @return							Plugin_Continue to let shavit-core keep doing what it does, Plugin_Changed to pass different values.
  */
-forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE]);
+forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE], int mouse[2]);
+
+/**
+ * Called just before shavit-core adds time to a player's timer.
+ * This is the forward you should use to modify the player's timer smoothly.
+ * A good example use case is timescaling.
+ *
+ * @param client					Client index.
+ * @param snapshot					A snapshot with the player's current timer. You cannot manipulate it here.
+ * @param time						The time to be added to the player's timer.
+ * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @noreturn
+ */
+forward void Shavit_OnTimeIncrement(int client, any snapshot[TIMERSNAPSHOT_SIZE], float &time, any stylesettings[STYLESETTINGS_SIZE]);
+
+/**
+ * Called just before shavit-core adds time to a player's timer.
+ * This is the forward you should use to modify the player's timer smoothly.
+ * A good example use case is timescaling.
+ *
+ * @param client					Client index.
+ * @param snapshot					A snapshot with the player's current timer. Read above in shavit.inc for more information.
+ * @param time						The time to be added to the player's timer.
+ * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @noreturn
+ */
+forward void Shavit_OnTimeIncrementPost(int client, float time, any stylesettings[STYLESETTINGS_SIZE]);
 
 /**
  * Called when a player's timer starts.
@@ -360,9 +384,10 @@ forward Action Shavit_OnFinishPre(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
  * @param strafes					Amount of strafes.
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @param track						Timer track.
+ * @param oldtime					The player's best time on the map before this finish.
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track);
+forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime);
 
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.
