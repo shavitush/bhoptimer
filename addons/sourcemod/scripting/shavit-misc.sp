@@ -2172,6 +2172,14 @@ void RestoreState(any data)
 		return;
 	}
 
+	if(gA_SaveStates[client][bsStyle] != Shavit_GetBhopStyle(client) ||
+		gA_SaveStates[client][iTimerTrack] != Shavit_GetClientTrack(client))
+	{
+		gB_SaveStates[client] = false;
+
+		return;
+	}
+
 	LoadState(client);
 }
 
@@ -2451,17 +2459,12 @@ void LoadState(int client)
 
 	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
 
-	if(gA_SaveFrames[client] != null)
+	if(gB_Replay && gA_SaveFrames[client] != null)
 	{
-		if(gB_Replay)
-		{
-			Shavit_SetReplayData(client, gA_SaveFrames[client]);
-		}
-
-		delete gA_SaveFrames[client];
-		gA_SaveFrames[client] = null;
+		Shavit_SetReplayData(client, gA_SaveFrames[client]);
 	}
 
+	delete gA_SaveFrames[client];
 	gB_SaveStates[client] = false;
 }
 
