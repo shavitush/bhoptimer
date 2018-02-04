@@ -31,8 +31,8 @@
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x01 // for compatibility, if i ever update this code again
-#define CELLS_PER_FRAME 6 // origin[3], angles[2], buttons
+#define REPLAY_FORMAT_SUBVERSION 0x02
+#define CELLS_PER_FRAME 8 // origin[3], angles[2], buttons, flags, movetype
 
 // #define DEBUG
 
@@ -64,12 +64,14 @@ enum
 EngineVersion gEV_Type = Engine_Unknown;
 
 // cache
+char gS_ReplayFolder[PLATFORM_MAX_PATH];
+
 int gI_ReplayTick[STYLE_LIMIT];
 int gI_ReplayBotClient[STYLE_LIMIT];
 ArrayList gA_Frames[STYLE_LIMIT][TRACKS_SIZE];
 float gF_StartTick[STYLE_LIMIT];
 ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
-any gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE][3]; // int frame_count, float time, bool new_format
+any gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE][4]; // int frame_count, float time, bool new_format, int replay_version
 char gS_ReplayNames[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
 bool gB_ForciblyStopped = false;
 
@@ -138,6 +140,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
+	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
@@ -247,6 +250,11 @@ public int Native_GetReplayBotCurrentFrame(Handle handler, int numParams)
 
 public int Native_GetReplayBotIndex(Handle handler, int numParams)
 {
+	if(gB_CentralBot)
+	{
+		return gA_CentralCache[iCentralClient];
+	}
+
 	return gI_ReplayBotClient[GetNativeCell(1)];
 }
 
@@ -419,6 +427,11 @@ public int Native_GetReplayBotTrack(Handle handler, int numParams)
 	return GetReplayTrack(GetNativeCell(1));
 }
 
+public int Native_GetReplayBotType(Handle handler, int numParams)
+{
+	return view_as<int>((gB_CentralBot)? Replay_Central:Replay_Legacy);
+}
+
 public void Shavit_OnDatabaseLoaded()
 {
 	gH_SQL = Shavit_GetDatabase();
@@ -557,7 +570,18 @@ bool LoadStyling()
 	kv.GetString("centralstyletag", gS_ReplayStrings[sReplayCentralStyleTag], MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLETAG>");
 	kv.GetString("unloaded", gS_ReplayStrings[sReplayUnloaded], MAX_NAME_LENGTH, "<EMPTY UNLOADED>");
 
+	char[] sFolder = new char[PLATFORM_MAX_PATH];
+	kv.GetString("replayfolder", sFolder, PLATFORM_MAX_PATH, "{SM}/data/replaybot");
+
 	delete kv;
+
+	if(StrContains(sFolder, "{SM}") != -1)
+	{
+		ReplaceString(sFolder, PLATFORM_MAX_PATH, "{SM}/", "");
+		BuildPath(Path_SM, sFolder, PLATFORM_MAX_PATH, "%s", sFolder);
+	}
+	
+	strcopy(gS_ReplayFolder, PLATFORM_MAX_PATH, sFolder);
 
 	return true;
 }
@@ -678,12 +702,9 @@ public void OnMapStart()
 
 	gI_ExpectedBots = 0;
 
-	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot");
-
-	if(!DirExists(sPath))
+	if(!DirExists(gS_ReplayFolder))
 	{
-		CreateDirectory(sPath, 511);
+		CreateDirectory(gS_ReplayFolder, 511);
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -697,7 +718,8 @@ public void OnMapStart()
 			continue;
 		}
 
-		BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d", i);
+		char[] sPath = new char[PLATFORM_MAX_PATH];
+		FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d", gS_ReplayFolder, i);
 
 		if(!DirExists(sPath))
 		{
@@ -772,7 +794,7 @@ bool DefaultLoadReplay(int style, int track)
 	FormatEx(sTrack, 4, "_%d", track);
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s%s.replay", style, gS_Map, (track > 0)? sTrack:"");
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	return LoadReplay(style, track, sPath);
 }
@@ -796,8 +818,7 @@ bool LoadReplay(int style, int track, const char[] path)
 
 		if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_FINAL)) // hopefully, the last of them
 		{
-			// uncomment if ever needed
-			// int iSubVersion = StringToInt(sExplodedHeader[0]);
+			gA_FrameCache[style][track][3] = StringToInt(sExplodedHeader[0]);
 
 			int iTemp = 0;
 			fFile.ReadInt32(iTemp);
@@ -828,11 +849,19 @@ bool LoadReplay(int style, int track, const char[] path)
 				gH_SQL.Query(SQL_GetUserName_Callback, sQuery, pack, DBPrio_High);
 			}
 
-			any[] aReplayData = new any[CELLS_PER_FRAME];
+			int cells = 8;
+
+			// backwards compatibility
+			if(gA_FrameCache[style][track][3] == 0x01)
+			{
+				cells = 6;
+			}
+
+			any[] aReplayData = new any[cells];
 
 			for(int i = 0; i < gA_FrameCache[style][track][0]; i++)
 			{
-				if(fFile.Read(aReplayData, CELLS_PER_FRAME, 4) >= 0)
+				if(fFile.Read(aReplayData, cells, 4) >= 0)
 				{
 					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
 					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
@@ -840,6 +869,12 @@ bool LoadReplay(int style, int track, const char[] path)
 					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
 					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
 					gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
+
+					if(gA_FrameCache[style][track][3] >= 0x02)
+					{
+						gA_Frames[style][track].Set(i, view_as<int>(aReplayData[6]), 6);
+						gA_Frames[style][track].Set(i, view_as<int>(aReplayData[7]), 7);
+					}
 				}
 			}
 
@@ -911,7 +946,7 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
 	FormatEx(sTrack, 4, "_%d", track);
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s%s.replay", style, gS_Map, (track > 0)? sTrack:"");
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	if(FileExists(sPath))
 	{
@@ -953,7 +988,7 @@ bool DeleteReplay(int style, int track)
 	FormatEx(sTrack, 4, "_%d", track);
 
 	char[] sPath = new char[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "data/replaybot/%d/%s%s.replay", style, gS_Map, (track > 0)? sTrack:"");
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	if(!FileExists(sPath) || !DeleteFile(sPath))
 	{
@@ -1324,6 +1359,19 @@ public void Shavit_OnResume(int client)
 	gB_Record[client] = true;
 }
 
+void ModifyFlags(int &flags, int flag, bool add)
+{
+	if(add)
+	{
+		flags |= flag;
+	}
+
+	else
+	{
+		flags &= flag;
+	}
+}
+
 // OnPlayerRunCmd instead of Shavit_OnUserCmdPre because bots are also used here.
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
@@ -1430,6 +1478,30 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			buttons = gA_Frames[style][track].Get(gI_ReplayTick[style], 5);
 
+			MoveType mt = MOVETYPE_NOCLIP;
+
+			if(gA_FrameCache[style][track][3] >= 0x02)
+			{
+				int iReplayFlags = gA_Frames[style][track].Get(gI_ReplayTick[style], 6);
+				int iEntityFlags = GetEntityFlags(client);
+
+				ModifyFlags(iEntityFlags, FL_ONGROUND, (iReplayFlags & FL_ONGROUND) > 0);
+				ModifyFlags(iEntityFlags, FL_PARTIALGROUND, (iReplayFlags & FL_PARTIALGROUND) > 0);
+				ModifyFlags(iEntityFlags, FL_INWATER, (iReplayFlags & FL_INWATER) > 0);
+				ModifyFlags(iEntityFlags, FL_SWIM, (iReplayFlags & FL_SWIM) > 0);
+
+				SetEntityFlags(client, iEntityFlags);
+				
+				MoveType movetype = gA_Frames[style][track].Get(gI_ReplayTick[style], 7);
+
+				if(movetype == MOVETYPE_WALK || movetype == MOVETYPE_LADDER)
+				{
+					mt = movetype;
+				}
+			}
+
+			SetEntityMoveType(client, mt);
+
 			float vecVelocity[3];
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
@@ -1473,6 +1545,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
 
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityFlags(client), 6);
+		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityMoveType(client), 7);
 
 		gI_PlayerFrames[client]++;
 	}

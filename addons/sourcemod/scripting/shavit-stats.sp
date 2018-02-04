@@ -84,7 +84,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// natives
 	CreateNative("Shavit_OpenStatsMenu", Native_OpenStatsMenu);
-	CreateNative("Shavit_GetWRCount", Native_GetWRConut);
+	CreateNative("Shavit_GetWRCount", Native_GetWRCount);
 
 	RegPluginLibrary("shavit-stats");
 
@@ -843,7 +843,7 @@ public int Native_OpenStatsMenu(Handle handler, int numParams)
 	OpenStatsMenu(client, gS_TargetAuth[client]);
 }
 
-public int Native_GetWRConut(Handle handler, int numParams)
+public int Native_GetWRCount(Handle handler, int numParams)
 {
 	return gI_WRAmount[GetNativeCell(1)];
 }

@@ -88,7 +88,7 @@ float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 bool gB_InsideZoneID[MAXPLAYERS+1][MAX_ZONES];
-float gF_CustomSpawn[TRACKS_SIZE][3];
+float gF_CustomSpawns[TRACKS_SIZE][2][3];
 int gI_ZoneTrack[MAXPLAYERS+1];
 int gI_ZoneDatabaseID[MAXPLAYERS+1];
 
@@ -667,18 +667,15 @@ public void Frame_HookTrigger(any data)
 		gI_KZButtons[track][zone] = entity;
 		Shavit_MarkKZMap();
 
-		if(zone == Zone_Start)
-		{
-			float maxs[3];
-			GetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
+		float maxs[3];
+		GetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
 
-			float origin[3];
-			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+		float origin[3];
+		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
 
-			origin[2] -= (maxs[2] - 2.0); // so you don't get stuck in the ground
-
-			gF_CustomSpawn[track] = origin;
-		}
+		origin[2] -= (maxs[2] - 2.0); // so you don't get stuck in the ground
+		
+		gF_CustomSpawns[track][zone] = origin;
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -739,6 +736,14 @@ void KillZoneEntity(int index)
 			gB_InsideZoneID[i][index] = false;
 		}
 
+		char[] sTargetname = new char[32];
+		GetEntPropString(entity, Prop_Data, "m_iName", sTargetname, 32);
+
+		if(StrContains(sTargetname, "shavit_zones_") == -1)
+		{
+			return;
+		}
+
 		UnhookEntity(entity);
 		AcceptEntityInput(entity, "Kill");
 	}
@@ -772,21 +777,17 @@ void UnloadZones(int zone)
 		{
 			gB_ZonesCreated = false;
 
-			int iMaxEntities = GetMaxEntities();
-
-			char[] sClassname = new char[32];
 			char[] sTargetname = new char[32];
+			int iEntity = INVALID_ENT_REFERENCE;
 
-			for(int i = (MaxClients + 1); i < iMaxEntities; i++)
+			while((iEntity = FindEntityByClassname(iEntity, "trigger_multiple")) != INVALID_ENT_REFERENCE)
 			{
-				if(!IsValidEntity(i) 
-					|| !GetEntityClassname(i, sClassname, 32) || !StrEqual(sClassname, "trigger_multiple")
-					|| GetEntPropString(i, Prop_Data, "m_iName", sTargetname, 32) == 0 || StrContains(sTargetname, "shavit_zones_") == -1)
-				{
-					continue;
-				}
+				GetEntPropString(iEntity, Prop_Data, "m_iName", sTargetname, 32);
 
-				AcceptEntityInput(i, "Kill");
+				if(StrContains(sTargetname, "shavit_zones_") != -1)
+				{
+					AcceptEntityInput(iEntity, "Kill");
+				}
 			}
 		}
 
@@ -821,9 +822,9 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		{
 			int track = results.FetchInt(10);
 
-			gF_CustomSpawn[track][0] = results.FetchFloat(7);
-			gF_CustomSpawn[track][1] = results.FetchFloat(8);
-			gF_CustomSpawn[track][2] = results.FetchFloat(9);
+			gF_CustomSpawns[track][Zone_Start][0] = results.FetchFloat(7);
+			gF_CustomSpawns[track][Zone_Start][1] = results.FetchFloat(8);
+			gF_CustomSpawns[track][Zone_Start][2] = results.FetchFloat(9);
 		}
 
 		else
@@ -933,7 +934,7 @@ public Action Command_AddSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!EmptyVector(gF_CustomSpawn[Track_Main]))
+	if(!EmptyVector(gF_CustomSpawns[Track_Main][Zone_Start]))
 	{
 		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnExists", client);
 
@@ -990,7 +991,8 @@ void ClearCustomSpawn()
 	{
 		for(int j = 0; j < 3; j++)
 		{
-			gF_CustomSpawn[i][j] = 0.0;
+			gF_CustomSpawns[i][Zone_Start][j] = 0.0;
+			gF_CustomSpawns[i][Zone_End][j] = 0.0;
 		}
 	}
 }
@@ -2077,7 +2079,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	{
 		origin[2] -= gF_Height;
 
-		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 		TE_SendToAll(0.0);
 
 		// visualize grid snap
@@ -2092,7 +2094,7 @@ public Action Timer_Draw(Handle Timer, any data)
 			snap2 = origin;
 			snap2[i] += (gI_GridSnap[client] / 2);
 
-			TE_SetupBeamPoints(snap1, snap2, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 230}, 0);
+			TE_SetupBeamPoints(snap1, snap2, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 			TE_SendToAll(0.0);
 		}
 	}
@@ -2143,31 +2145,36 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 	}
 }
 
-// by blacky
+// original by blacky
 // creates 3d box from 2 points
 void CreateZonePoints(float point[8][3], float offset = 0.0)
 {
-	float center[2];
-	center[0] = ((point[0][0] + point[7][0]) / 2);
-	center[1] = ((point[0][1] + point[7][1]) / 2);
-
-	for(int i = 0; i < 8; i++)
+	// calculate all zone edges
+	for(int i = 1; i < 7; i++)
 	{
 		for(int j = 0; j < 3; j++)
 		{
-			if(i > 0 && i < 7)
-			{
-				point[i][j] = point[((i >> (2 - j)) & 1) * 7][j];
-			}
+			point[i][j] = point[((i >> (2 - j)) & 1) * 7][j];
+		}
+	}
 
-			if(offset != 0.0 && j < 2)
+	// apply beam offset
+	if(offset != 0.0)
+	{
+		float center[2];
+		center[0] = ((point[0][0] + point[7][0]) / 2);
+		center[1] = ((point[0][1] + point[7][1]) / 2);
+
+		for(int i = 0; i < 8; i++)
+		{
+			for(int j = 0; j < 2; j++)
 			{
 				if(point[i][j] < center[j])
 				{
 					point[i][j] += offset;
 				}
 
-				else
+				else if(point[i][j] > center[j])
 				{
 					point[i][j] -= offset;
 				}
@@ -2340,9 +2347,9 @@ public void Shavit_OnRestart(int client, int track)
 {
 	if(gB_TeleportToStart)
 	{
-		if(!EmptyVector(gF_CustomSpawn[track]))
+		if(!EmptyVector(gF_CustomSpawns[track][Zone_Start]))
 		{
-			TeleportEntity(client, gF_CustomSpawn[track], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, gF_CustomSpawns[track][Zone_Start], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		else if(Shavit_IsKZMap() && !EmptyVector(gF_ClimbButtonCache[client][track][0]) && !EmptyVector(gF_ClimbButtonCache[client][track][1]))
@@ -2377,6 +2384,13 @@ public void Shavit_OnEnd(int client, int track)
 {
 	if(gB_TeleportToEnd)
 	{
+		if(!EmptyVector(gF_CustomSpawns[track][Zone_End]))
+		{
+			TeleportEntity(client, gF_CustomSpawns[track][Zone_End], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+
+			return;
+		}
+
 		int index = GetZoneIndex(Zone_End, track);
 
 		if(index == -1)
