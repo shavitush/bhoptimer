@@ -1449,7 +1449,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		else
 		{
-			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, gI_RecordAmount[gBS_LastWR[client]]);
+			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
 		}
 
 		char[] sTrack = new char[32];
@@ -1880,12 +1880,12 @@ void SQL_DBConnect()
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `auth` (`auth`, `map`, `time`, `style`, `date`, `points`, `track`)) ENGINE=INNODB;", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`)) ENGINE=INNODB;", gS_MySQLPrefix);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` INT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
 	}
 
 	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);

@@ -363,6 +363,7 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 		// proper colors with rtler
 		if(gB_RTLer && RTLify(sTemp, MAXLENGTH_MESSAGE, message) > 0)
 		{
+			TrimString(message);
 			Format(message, MAXLENGTH_MESSAGE, "%s%s", message, gS_CustomMessage[author]);
 		}
 
