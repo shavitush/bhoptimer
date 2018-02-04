@@ -1965,7 +1965,7 @@ void DetectPossibleCheats(int client, int &buttons, float vel[3], bool instart)
 			vel[0] = 0.0;
 			vel[1] = 0.0;
 
-			return Plugin_Changed;
+			return;
 		}
 
 		gF_StrafeWarning[client] = gF_PlayerTimer[client] + 0.3;
