@@ -1934,7 +1934,7 @@ void TF2_EnableBhop(int client, int &buttons, int groundentity)
 
 void DetectPossibleCheats(int client, int &buttons, float vel[3], bool instart)
 {
-	if(!gB_TimerEnabled[client] && gB_ClientPaused[client])
+	if(!gB_TimerEnabled[client] || gB_ClientPaused[client])
 	{
 		return;
 	}
@@ -1950,19 +1950,25 @@ void DetectPossibleCheats(int client, int &buttons, float vel[3], bool instart)
 	}
 
 	// Block +strafe
-	if(gA_StyleSettings[gBS_Style[client]][iBlockPStrafe] &&
+	if(gA_StyleSettings[gBS_Style[client]][iBlockPStrafe] > 0 &&
 		((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) ||
 		(vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0)))
 	{
-		float fTime = GetEngineTime();
-
-		if(gF_StrafeWarning[client] < fTime)
+		if(gF_StrafeWarning[client] < gF_PlayerTimer[client])
 		{
-			FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
-			StopTimer_Cheat(client, sCheatDetected);
+			if(gA_StyleSettings[gBS_Style[client]][iBlockPStrafe] >= 2)
+			{
+				FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
+				StopTimer_Cheat(client, sCheatDetected);
+			}
+
+			vel[0] = 0.0;
+			vel[1] = 0.0;
+
+			return Plugin_Changed;
 		}
 
-		gF_StrafeWarning[client] = fTime + 0.20;
+		gF_StrafeWarning[client] = gF_PlayerTimer[client] + 0.3;
 	}
 }
 
