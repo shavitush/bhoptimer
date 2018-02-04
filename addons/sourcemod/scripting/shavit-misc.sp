@@ -534,7 +534,7 @@ public void OnMapStart()
 			{
 				for(int iTeam = 1; iTeam <= 2; iTeam++)
 				{
-					int iSpawnPoint = CreateEntityByName((iTeam == 1)? "info_player_terrorist":"info_player_counterterrorist");
+					int iSpawnPoint = CreateEntityByName((gEV_Type == Engine_TF2)? "info_player_teamspawn":((iTeam == 1)? "info_player_terrorist":"info_player_counterterrorist"));
 
 					if(DispatchSpawn(iSpawnPoint))
 					{

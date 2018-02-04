@@ -1217,6 +1217,7 @@ void StartTimer(int client, int track)
 
 		if(result == Plugin_Continue)
 		{
+			gB_ClientPaused[client] = false;
 			gI_Strafes[client] = 0;
 			gI_Jumps[client] = 0;
 			gI_TotalMeasures[client] = 0;
