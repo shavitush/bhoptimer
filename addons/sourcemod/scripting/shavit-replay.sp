@@ -1556,7 +1556,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 public Action Timer_EndReplay(Handle Timer, any data)
 {
-	gB_ForciblyStopped = false;
+	if(gB_CentralBot && gB_ForciblyStopped)
+	{
+		gB_ForciblyStopped = false;
+
+		return Plugin_Stop;
+	}
+
 	gI_ReplayTick[data] = 0;
 
 	if(gI_ReplayBotClient[data] != gA_CentralCache[iCentralClient])
@@ -1684,9 +1690,17 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		return Plugin_Continue;
 	}
 
+	// caching usermessage type rather than call it every time
+	static UserMessageType um = view_as<UserMessageType>(-1);
+
+	if(um == view_as<UserMessageType>(-1))
+	{
+		um = GetUserMessageType();
+	}
+
 	char[] sMessage = new char[24];
 
-	if(GetUserMessageType() == UM_Protobuf)
+	if(um == UM_Protobuf)
 	{
 		Protobuf pbmsg = msg;
 		pbmsg.ReadString("msg_name", sMessage, 24);
