@@ -1461,12 +1461,9 @@ public Action Command_Save(int client, int args)
 			}
 		}
 
-		else
+		else if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
 		{
-			if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
-			{
-				gI_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
-			}
+			gI_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
 		}
 
 		if(bSaved)
@@ -1676,7 +1673,7 @@ bool SaveCheckpoint(int client, int index)
 	int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
 	int iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
 
-	if(IsClientObserver(client) && !IsFakeClient(iObserverTarget) && IsValidClient(iObserverTarget) && iObserverMode >= 3 && iObserverMode <= 5)
+	if(IsClientObserver(client) && IsValidClient(iObserverTarget) && iObserverMode >= 3 && iObserverMode <= 5)
 	{
 		target = iObserverTarget;
 	}
@@ -1710,9 +1707,32 @@ bool SaveCheckpoint(int client, int index)
 	cpcache[iCPFlags] = GetEntityFlags(target);
 
 	any snapshot[TIMERSNAPSHOT_SIZE];
-	Shavit_SaveSnapshot(target, snapshot);
-	CopyArray(snapshot, cpcache[aCPSnapshot], TIMERSNAPSHOT_SIZE);
 
+	if(IsFakeClient(target))
+	{
+		// unfortunately replay bots don't have a snapshot, so we can generate a fake one
+		int style = Shavit_GetReplayBotStyle(target);
+		int track = Shavit_GetReplayBotTrack(target);
+
+		snapshot[bTimerEnabled] = true;
+		snapshot[fCurrentTime] = Shavit_GetReplayTime(style, track);
+		snapshot[bClientPaused] = false;
+		snapshot[bsStyle] = style;
+		snapshot[iJumps] = 0;
+		snapshot[iStrafes] = 0;
+		snapshot[iTotalMeasures] = 0;
+		snapshot[iGoodGains] = 0;
+		snapshot[fServerTime] = GetEngineTime();
+		snapshot[iSHSWCombination] = -1;
+		snapshot[iTimerTrack] = track;
+	}
+
+	else
+	{
+		Shavit_SaveSnapshot(target, snapshot);
+	}
+
+	CopyArray(snapshot, cpcache[aCPSnapshot], TIMERSNAPSHOT_SIZE);
 	SetCheckpoint(client, index, cpcache);
 
 	return true;
