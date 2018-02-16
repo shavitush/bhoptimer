@@ -1095,7 +1095,7 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 		return;
 	}
 
-	SetEntProp(client, Prop_Data, "m_CollisionGroup", 1);
+	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
 	bool central = (gA_CentralCache[iCentralClient] == client);
