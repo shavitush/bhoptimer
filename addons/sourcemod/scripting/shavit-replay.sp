@@ -527,28 +527,6 @@ public Action Cron(Handle Timer)
 	return Plugin_Continue;
 }
 
-public void OnEntityCreated(int entity, const char[] classname)
-{
-	// trigger_once | trigger_multiple.. etc
-	// func_door | func_door_rotating
-	if(StrContains(classname, "trigger_") != -1 || StrContains(classname, "_door") != -1)
-	{
-		SDKHook(entity, SDKHook_StartTouch, HookTriggers);
-		SDKHook(entity, SDKHook_EndTouch, HookTriggers);
-		SDKHook(entity, SDKHook_Touch, HookTriggers);
-	}
-}
-
-public Action HookTriggers(int entity, int other)
-{
-	if(other >= 1 && other <= MaxClients && IsFakeClient(other))
-	{
-		return Plugin_Handled;
-	}
-
-	return Plugin_Continue;
-}
-
 bool LoadStyling()
 {
 	char[] sPath = new char[PLATFORM_MAX_PATH];
