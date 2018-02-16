@@ -86,7 +86,7 @@ int gI_DefaultTeamSlots = 0;
 
 // server specific
 float gF_Tickrate = 0.0;
-char gS_Map[192];
+char gS_Map[160];
 int gI_ExpectedBots = 0;
 ConVar bot_quota = null;
 any gA_CentralCache[CENTRALBOTCACHE_SIZE];
@@ -584,8 +584,8 @@ public void OnMapStart()
 
 	gB_ForciblyStopped = false;
 
-	GetCurrentMap(gS_Map, 192);
-	GetMapDisplayName(gS_Map, gS_Map, 192);
+	GetCurrentMap(gS_Map, 160);
+	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	if(!gB_Enabled)
 	{
