@@ -1472,9 +1472,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				
 				MoveType movetype = gA_Frames[style][track].Get(gI_ReplayTick[style], 7);
 
-				if(movetype == MOVETYPE_WALK || movetype == MOVETYPE_LADDER)
+				if(movetype == MOVETYPE_LADDER)
 				{
-					mt = movetype;
+					mt = MOVETYPE_LADDER;
 				}
 			}
 
