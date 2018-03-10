@@ -1935,10 +1935,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				bool bSHSW = (gA_StyleSettings[gBS_Style[client]][iForceHSW] == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
 				int iCombination = -1;
 
-				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] >= 200.0);
-				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 && vel[1] <= -200.0);
-				bool bBack = ((buttons & IN_BACK) > 0 && vel[0] <= -200.0);
-				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 && vel[1] >= 200.0);
+				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] >= 100.0);
+				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 && vel[1] <= -100.0);
+				bool bBack = ((buttons & IN_BACK) > 0 && vel[0] <= -100.0);
+				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 && vel[1] >= 100.0);
 
 				if(bSHSW)
 				{
@@ -2119,7 +2119,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				gI_TotalMeasures[client]++;
 
-				if((fAngle > 0.0 && vel[1] < 0.0) || (fAngle < 0.0 && vel[1] > 0.0))
+				if((fAngle > 0.0 && vel[1] <= -100.0) || (fAngle < 0.0 && vel[1] >= 100.0))
 				{
 					gI_GoodGains[client]++;
 				}
@@ -2129,7 +2129,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				gI_TotalMeasures[client]++;
 
-				if(vel[0] != 0.0)
+				if(vel[0] <= -100.0 || vel[0] >= 100.0)
 				{
 					gI_GoodGains[client]++;
 				}
