@@ -1979,7 +1979,7 @@ public Action Shavit_OnStart(int client)
 		return Plugin_Stop;
 	}
 
-	if(gB_ResetTargetname)
+	if(gB_ResetTargetname || Shavit_IsPracticeMode(client)) // practice mode can be abused to break map triggers
 	{
 		DispatchKeyValue(client, "targetname", "");
 	}
