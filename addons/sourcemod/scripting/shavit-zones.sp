@@ -2409,7 +2409,7 @@ public void Shavit_OnEnd(int client, int track)
 
 bool EmptyVector(float vec[3])
 {
-	return (vec[0] == 0.0 && vec[1] == 0.0 && vec[2] == 0.0);
+	return (IsNullVector(vec) || (vec[0] == 0.0 && vec[1] == 0.0 && vec[2] == 0.0));
 }
 
 // returns -1 if there's no zone
