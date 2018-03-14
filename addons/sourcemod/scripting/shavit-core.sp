@@ -1181,7 +1181,7 @@ public int Native_LogMessage(Handle plugin, int numParams)
 	char[] sBuffer = new char[300];
 	FormatNativeString(0, 1, 2, 300, iWritten, sBuffer);
 	
-	LogToFileEx(gS_LogPath, "%s", sBuffer);
+	LogToFileEx(gS_LogPath, "[%s] %s", sPlugin, sBuffer);
 }
 
 public int Native_MarkKZMap(Handle handler, int numParams)
