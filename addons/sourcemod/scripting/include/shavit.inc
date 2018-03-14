@@ -1102,7 +1102,7 @@ native StringMap Shavit_GetMapTiers();
  * This native will auto-assign colors and a chat prefix.
  *
  * @param client					Client index.
- * @param format					Formattiing rules.
+ * @param format					Formatting rules.
  * @param any						Variable number of format parameters.
  * @return							PrintToChat()
  */
