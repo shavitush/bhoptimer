@@ -1108,6 +1108,16 @@ native StringMap Shavit_GetMapTiers();
  */
 native int Shavit_PrintToChat(int client, const char[] format, any ...);
 
+/**
+ * Logs an entry to bhoptimer's log file.
+ * (addons/sourcemod/logs/shavit.log)
+ *
+ * @param format					Formatting rules.
+ * @param any						Variable number of format parameters.
+ * @noreturn
+ */
+native void Shavit_LogMessage(const char[] format, any ...);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)

@@ -129,6 +129,7 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 // misc cache
 bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
+char gS_LogPath[PLATFORM_MAX_PATH];
 
 // kz support
 bool gB_KZMap = false;
@@ -163,6 +164,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
 	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
 	CreateNative("Shavit_LoadSnapshot", Native_LoadSnapshot);
+	CreateNative("Shavit_LogMessage", Native_LogMessage);
 	CreateNative("Shavit_MarkKZMap", Native_MarkKZMap);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
@@ -276,11 +278,14 @@ public void OnPluginStart()
 
 	// style commands
 	gSM_StyleCommands = new StringMap();
-	// commands END
 
 	#if defined DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
 	#endif
+	// commands END
+
+	// logs
+	BuildPath(Path_SM, gS_LogPath, PLATFORM_MAX_PATH, "logs/shavit.log");
 
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", (FCVAR_NOTIFY | FCVAR_DONTRECORD));
 
@@ -1025,11 +1030,11 @@ public int Native_StopChatSound(Handle handler, int numParams)
 public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
-	static int written = 0; // useless?
+	static int iWritten = 0; // useless?
 
-	char[] buffer = new char[300];
-	FormatNativeString(0, 2, 3, 300, written, buffer);
-	Format(buffer, 300, "%s %s%s", gS_ChatStrings[sMessagePrefix], gS_ChatStrings[sMessageText], buffer);
+	char[] sBuffer = new char[300];
+	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
+	Format(sBuffer, 300, "%s %s%s", gS_ChatStrings[sMessagePrefix], gS_ChatStrings[sMessageText], sBuffer);
 
 	if(IsSource2013(gEV_Type))
 	{
@@ -1039,7 +1044,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 		{
 			BfWriteByte(hSayText2, 0);
 			BfWriteByte(hSayText2, !gB_StopChatSound);
-			BfWriteString(hSayText2, buffer);
+			BfWriteString(hSayText2, sBuffer);
 		}
 
 		EndMessage();
@@ -1047,7 +1052,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 	else
 	{
-		PrintToChat(client, " %s", buffer);
+		PrintToChat(client, " %s", sBuffer);
 	}
 
 	gB_StopChatSound = false;
@@ -1160,6 +1165,23 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
 	gF_PlayerTimer[client] = snapshot[fCurrentTime];
 	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
+}
+
+public int Native_LogMessage(Handle plugin, int numParams)
+{
+	char[] sPlugin = new char[32];
+
+	if(!GetPluginInfo(plugin, PlInfo_Name, sPlugin, 32))
+	{
+		GetPluginFilename(plugin, sPlugin, 32);
+	}
+
+	static int iWritten = 0;
+
+	char[] sBuffer = new char[300];
+	FormatNativeString(0, 1, 2, 300, iWritten, sBuffer);
+	
+	LogToFileEx(gS_LogPath, "%s", sBuffer);
 }
 
 public int Native_MarkKZMap(Handle handler, int numParams)
