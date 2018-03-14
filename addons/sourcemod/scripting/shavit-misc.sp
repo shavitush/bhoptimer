@@ -71,7 +71,6 @@ char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "foll
 
 // cache
 ConVar sv_disable_immunity_alpha = null;
-ConVar sv_footsteps = null;
 ConVar hostname = null;
 ConVar hostport = null;
 
@@ -203,9 +202,6 @@ public void OnPluginStart()
 	gEV_Type = GetEngineVersion();
 
 	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
-
-	sv_footsteps = FindConVar("sv_footsteps");
-	sv_footsteps.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
@@ -415,8 +411,6 @@ public void OnClientCookiesCached(int client)
 	{
 		gB_Hide[client] = view_as<bool>(StringToInt(sSetting));
 	}
-
-	UpdateFootsteps(client);
 
 	GetClientCookie(client, gH_CheckpointsCookie, sSetting, 8);
 
@@ -998,8 +992,6 @@ public void OnClientPutInServer(int client)
 		gBS_Style[client] = Shavit_GetBhopStyle(client);
 		gB_Hide[client] = false;
 		gI_CheckpointsSettings[client] = CP_DEFAULT;
-
-		UpdateFootsteps(client);
 	}
 
 	if(gH_GetPlayerMaxSpeed != null)
@@ -1159,7 +1151,6 @@ public Action Command_Hide(int client, int args)
 	}
 
 	gB_Hide[client] = !gB_Hide[client];
-	UpdateFootsteps(client);
 
 	char[] sCookie = new char[4];
 	IntToString(view_as<int>(gB_Hide[client]), sCookie, 4);
@@ -2529,16 +2520,6 @@ bool SetCheckpoint(int client, int index, CheckpointsCache cpcache[PCPCACHE_SIZE
 	FormatEx(sKey, 32, "%d_%d", GetClientSerial(client), index);
 
 	return gSM_Checkpoints.SetArray(sKey, cpcache[0], view_as<int>(PCPCACHE_SIZE));
-}
-
-void UpdateFootsteps(int client)
-{
-	if(sv_footsteps != null)
-	{
-		char[] sFootsteps = new char[4];
-		IntToString((gB_Hide[client])? 0:sv_footsteps.IntValue, sFootsteps, 4);
-		sv_footsteps.ReplicateToClient(client, sFootsteps);
-	}
 }
 
 void CopyArray(const any[] from, any[] to, int size)
