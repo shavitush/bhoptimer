@@ -34,20 +34,21 @@
 
 enum ChatRanksCache
 {
-	iCRRangeType, // 0 - flat, 1 - percent
+	iCRRangeType, // 0 - flat, 1 - percent, 2 - point range
 	Float:fCRFrom,
 	Float:fCRTo,
 	bool:bCRFree,
 	String:sCRName[MAXLENGTH_NAME],
 	String:sCRMessage[MAXLENGTH_MESSAGE],
-	String:sCRDisplay[128],
+	String:sCRDisplay[192],
 	CRCACHE_SIZE
 }
 
 enum
 {
 	Rank_Flat,
-	Rank_Percentage
+	Rank_Percentage,
+	Rank_Points
 }
 
 #pragma newdecls required
@@ -181,7 +182,17 @@ bool LoadChatConfig()
 		char[] sRanks = new char[32];
 		kv.GetString("ranks", sRanks, MAXLENGTH_NAME, "0");
 
-		aChatTitle[iCRRangeType] = (StrContains(sRanks, "%%") == -1)? Rank_Flat:Rank_Percentage;
+		if(sRanks[0] == 'p')
+		{	
+			aChatTitle[iCRRangeType] = Rank_Points;
+		}
+
+		else
+		{
+			aChatTitle[iCRRangeType] = (StrContains(sRanks, "%%") == -1)? Rank_Flat:Rank_Percentage;
+		}
+		
+		ReplaceString(sRanks, 32, "p", "");
 		ReplaceString(sRanks, 32, "%%", "");
 
 		if(StrContains(sRanks, "-") != -1)
@@ -197,14 +208,14 @@ bool LoadChatConfig()
 			float fRank = StringToFloat(sRanks);
 
 			aChatTitle[fCRFrom] = fRank;
-			aChatTitle[fCRTo] = fRank;
+			aChatTitle[fCRTo] = (aChatTitle[iCRRangeType] != Rank_Points)? fRank:2147483648.0;
 		}
 		
 		aChatTitle[bCRFree] = view_as<bool>(kv.GetNum("free", false));
 
 		kv.GetString("name", aChatTitle[sCRName], MAXLENGTH_NAME, "{name}");
 		kv.GetString("message", aChatTitle[sCRMessage], MAXLENGTH_MESSAGE, "");
-		kv.GetString("display", aChatTitle[sCRDisplay], 128, "");
+		kv.GetString("display", aChatTitle[sCRDisplay], 192, "");
 
 		if(strlen(aChatTitle[sCRDisplay]) > 0)
 		{
@@ -577,11 +588,11 @@ bool HasRankAccess(int client, int rank)
 		return false;
 	}
 
-	int iRank = Shavit_GetRank(client);
+	float fRank = (aCache[iCRRangeType] != Rank_Points)? float(Shavit_GetRank(client)):Shavit_GetPoints(client);
 
-	if(aCache[iCRRangeType] == Rank_Flat)
+	if(aCache[iCRRangeType] == Rank_Flat || aCache[iCRRangeType] == Rank_Points)
 	{
-		if(aCache[fCRFrom] <= iRank <= aCache[fCRTo])
+		if(aCache[fCRFrom] <= fRank <= aCache[fCRTo])
 		{
 			return true;
 		}
@@ -597,7 +608,7 @@ bool HasRankAccess(int client, int rank)
 			iRanked = 1;
 		}
 
-		float fPercentile = (float(iRank) / iRanked) * 100.0;
+		float fPercentile = (fRank / iRanked) * 100.0;
 		
 		if(aCache[fCRFrom] <= fPercentile <= aCache[fCRTo])
 		{
