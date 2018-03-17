@@ -702,7 +702,7 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 	{
 		if(gEV_Type == Engine_CSGO)
 		{
-			Format(name, MAXLENGTH_NAME, " %s", name);
+			FormatEx(name, MAXLENGTH_NAME, " %s", sName);
 		}
 
 		else
