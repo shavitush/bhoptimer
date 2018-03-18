@@ -135,7 +135,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players."); // The rewrite of rankings will not have the ability to show over 100 entries. Dynamic fetching can be exploited and overload the database.
 
 	RegAdminCmd("sm_settier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_settier <tier>");
-	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Prints the map's tier to chat. Usage: sm_setmaptier <tier> (sm_settier alias)");
+	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_setmaptier <tier> (sm_settier alias)");
 
 	RegAdminCmd("sm_recalcmap", Command_RecalcMap, ADMFLAG_RCON, "Recalculate the current map's records' points.");
 

@@ -61,7 +61,7 @@ forward Action CP_OnChatMessage(int& author, ArrayList recipients, char[] flagst
 forward void CP_OnChatMessagePost(int author, ArrayList recipients, const char[] flagstring, const char[] formatstring, const char[] name, const char[] message, bool processcolors, bool removecolors);
 
 #if !defined REQUIRE_PLUGIN
-public __pl_chat_processor_SetNTVOptional()
+public void __pl_chat_processor_SetNTVOptional()
 {
 	MarkNativeAsOptional("ChatProcessor_GetFlagFormatString");
 }

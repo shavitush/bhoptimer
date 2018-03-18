@@ -23,7 +23,8 @@ It also contains support for built-in map timers (KZ) and the [Fly](https://gith
 The chat plugin manipulates chat messages sent by players.  
 It includes custom chat names, tags, colors and all can be defined by the players/admins.  
 Admins need the chat flag, or the "shavit_chat" override (good for a donator perk).  
-There's a user-friendly command named !cchelp so the users can easily understand what's going on.
+There's a user-friendly command named !cchelp so the users can easily understand what's going on.  
+In addition, it integrates with rankings and allows you to have titles for players according to their ranking, relative ranking or points in the server using !chatranks.
 
 #### shavit-hud
 The HUD plugin is `bhoptimer`'s OSD frontend.  

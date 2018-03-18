@@ -71,7 +71,6 @@ char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "foll
 
 // cache
 ConVar sv_disable_immunity_alpha = null;
-ConVar sv_footsteps = null;
 ConVar hostname = null;
 ConVar hostport = null;
 
@@ -204,9 +203,6 @@ public void OnPluginStart()
 
 	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
 
-	sv_footsteps = FindConVar("sv_footsteps");
-	sv_footsteps.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
-
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
 	RegConsoleCmd("sm_spectators", Command_Specs, "Show a list of spectators.");
@@ -285,7 +281,7 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
-	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to shavit_misc_prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to shavit_misc_prestrafelimit and block bunnyhopping.", 0, true, 0.0, true, 3.0);
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding.", 0, true, 0.0, true, 4.0);
 	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -416,8 +412,6 @@ public void OnClientCookiesCached(int client)
 		gB_Hide[client] = view_as<bool>(StringToInt(sSetting));
 	}
 
-	UpdateFootsteps(client);
-
 	GetClientCookie(client, gH_CheckpointsCookie, sSetting, 8);
 
 	if(strlen(sSetting) == 0)
@@ -534,7 +528,7 @@ public void OnMapStart()
 			{
 				for(int iTeam = 1; iTeam <= 2; iTeam++)
 				{
-					int iSpawnPoint = CreateEntityByName((iTeam == 1)? "info_player_terrorist":"info_player_counterterrorist");
+					int iSpawnPoint = CreateEntityByName((gEV_Type == Engine_TF2)? "info_player_teamspawn":((iTeam == 1)? "info_player_terrorist":"info_player_counterterrorist"));
 
 					if(DispatchSpawn(iSpawnPoint))
 					{
@@ -941,18 +935,23 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			return Plugin_Continue;
 		}
 
-		if(gI_PreSpeed == 1 || gI_PreSpeed == 3)
+		if(gI_PreSpeed == 1 || gI_PreSpeed >= 3)
 		{
+			float fLimit = gF_PrestrafeLimit;
+
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
-			float fLimit = view_as<float>(gA_StyleSettings[gBS_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
-
-			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
-			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
-			if(fSpeed[2] > 0.0)
+			if(gI_PreSpeed < 4)
 			{
-				fLimit /= 3.0;
+				fLimit = view_as<float>(gA_StyleSettings[gBS_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
+
+				// if trying to jump, add a very low limit to stop prespeeding in an elegant way
+				// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
+				if(fSpeed[2] > 0.0)
+				{
+					fLimit /= 3.0;
+				}
 			}
 
 			float fSpeedXY = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
@@ -993,8 +992,6 @@ public void OnClientPutInServer(int client)
 		gBS_Style[client] = Shavit_GetBhopStyle(client);
 		gB_Hide[client] = false;
 		gI_CheckpointsSettings[client] = CP_DEFAULT;
-
-		UpdateFootsteps(client);
 	}
 
 	if(gH_GetPlayerMaxSpeed != null)
@@ -1154,7 +1151,6 @@ public Action Command_Hide(int client, int args)
 	}
 
 	gB_Hide[client] = !gB_Hide[client];
-	UpdateFootsteps(client);
 
 	char[] sCookie = new char[4];
 	IntToString(view_as<int>(gB_Hide[client]), sCookie, 4);
@@ -1456,12 +1452,9 @@ public Action Command_Save(int client, int args)
 			}
 		}
 
-		else
+		else if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
 		{
-			if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
-			{
-				gI_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
-			}
+			gI_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
 		}
 
 		if(bSaved)
@@ -1671,14 +1664,14 @@ bool SaveCheckpoint(int client, int index)
 	int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
 	int iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
 
-	if(IsClientObserver(client) && !IsFakeClient(iObserverTarget) && IsValidClient(iObserverTarget) && iObserverMode >= 3 && iObserverMode <= 5)
+	if(IsClientObserver(client) && IsValidClient(iObserverTarget) && iObserverMode >= 3 && iObserverMode <= 5)
 	{
 		target = iObserverTarget;
 	}
 
 	else if(!IsPlayerAlive(client))
 	{
-		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 		return false;
 	}
@@ -1705,9 +1698,32 @@ bool SaveCheckpoint(int client, int index)
 	cpcache[iCPFlags] = GetEntityFlags(target);
 
 	any snapshot[TIMERSNAPSHOT_SIZE];
-	Shavit_SaveSnapshot(target, snapshot);
-	CopyArray(snapshot, cpcache[aCPSnapshot], TIMERSNAPSHOT_SIZE);
 
+	if(IsFakeClient(target))
+	{
+		// unfortunately replay bots don't have a snapshot, so we can generate a fake one
+		int style = Shavit_GetReplayBotStyle(target);
+		int track = Shavit_GetReplayBotTrack(target);
+
+		snapshot[bTimerEnabled] = true;
+		snapshot[fCurrentTime] = Shavit_GetReplayTime(style, track);
+		snapshot[bClientPaused] = false;
+		snapshot[bsStyle] = style;
+		snapshot[iJumps] = 0;
+		snapshot[iStrafes] = 0;
+		snapshot[iTotalMeasures] = 0;
+		snapshot[iGoodGains] = 0;
+		snapshot[fServerTime] = GetEngineTime();
+		snapshot[iSHSWCombination] = -1;
+		snapshot[iTimerTrack] = track;
+	}
+
+	else
+	{
+		Shavit_SaveSnapshot(target, snapshot);
+	}
+
+	CopyArray(snapshot, cpcache[aCPSnapshot], TIMERSNAPSHOT_SIZE);
 	SetCheckpoint(client, index, cpcache);
 
 	return true;
@@ -1954,7 +1970,7 @@ public Action Shavit_OnStart(int client)
 		return Plugin_Stop;
 	}
 
-	if(gB_ResetTargetname)
+	if(gB_ResetTargetname || Shavit_IsPracticeMode(client)) // practice mode can be abused to break map triggers
 	{
 		DispatchKeyValue(client, "targetname", "");
 	}
@@ -2504,16 +2520,6 @@ bool SetCheckpoint(int client, int index, CheckpointsCache cpcache[PCPCACHE_SIZE
 	FormatEx(sKey, 32, "%d_%d", GetClientSerial(client), index);
 
 	return gSM_Checkpoints.SetArray(sKey, cpcache[0], view_as<int>(PCPCACHE_SIZE));
-}
-
-void UpdateFootsteps(int client)
-{
-	if(sv_footsteps != null)
-	{
-		char[] sFootsteps = new char[4];
-		IntToString((gB_Hide[client])? 0:sv_footsteps.IntValue, sFootsteps, 4);
-		sv_footsteps.ReplicateToClient(client, sFootsteps);
-	}
 }
 
 void CopyArray(const any[] from, any[] to, int size)
