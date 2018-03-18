@@ -700,7 +700,7 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 
 		if(gB_MessageEnabled[author])
 		{
-			strcopy(sMessage, MAXLENGTH_MESSAGE, gS_CustomName[author]);
+			strcopy(sMessage, MAXLENGTH_MESSAGE, gS_CustomMessage[author]);
 		}
 	}
 
