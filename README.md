@@ -7,8 +7,7 @@
 
 [Download](https://github.com/shavitush/bhoptimer/releases)
 
-# shavit's simple bhop timer
-*a bhop server should be simple*
+# shavit's bhop timer
 
 This is (nearly) an all-in-one server plugin for Counter-Strike: Source, Counter-Strike: Global Offensive and Team Fortress 2 that adds a timer system and many other utilities, so you can install it and have a proper bunnyhop server running.
 
