@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "1.5b"
+#define SHAVIT_VERSION "2.0.0"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 
@@ -1102,11 +1102,21 @@ native StringMap Shavit_GetMapTiers();
  * This native will auto-assign colors and a chat prefix.
  *
  * @param client					Client index.
- * @param format					Formattiing rules.
+ * @param format					Formatting rules.
  * @param any						Variable number of format parameters.
  * @return							PrintToChat()
  */
 native int Shavit_PrintToChat(int client, const char[] format, any ...);
+
+/**
+ * Logs an entry to bhoptimer's log file.
+ * (addons/sourcemod/logs/shavit.log)
+ *
+ * @param format					Formatting rules.
+ * @param any						Variable number of format parameters.
+ * @noreturn
+ */
+native void Shavit_LogMessage(const char[] format, any ...);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file

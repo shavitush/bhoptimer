@@ -956,6 +956,8 @@ public Action Command_DelSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
+	Shavit_LogMessage("%L - deleted custom spawn from map `%s`.", client, gS_Map);
+
 	char[] sQuery = new char[256];
 	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE type = '%d' AND map = '%s';", gS_MySQLPrefix, Zone_CustomSpawn, gS_Map);
 
@@ -1227,6 +1229,8 @@ public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int 
 
 			default:
 			{
+				Shavit_LogMessage("%L - deleted %s (id %d) from map `%s`.", param1, gS_ZoneNames[gA_ZoneCache[id][iZoneType]], gA_ZoneCache[id][iDatabaseID], gS_Map);
+
 				char[] sQuery = new char[256];
 				FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE %s = %d;", gS_MySQLPrefix, (gB_MySQL)? "id":"rowid", gA_ZoneCache[id][iDatabaseID]);
 
@@ -1320,6 +1324,8 @@ public int DeleteAllZones_MenuHandler(Menu menu, MenuAction action, int param1, 
 		{
 			return;
 		}
+
+		Shavit_LogMessage("%L - deleted all zones from map `%s`.", param1, gS_Map);
 
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
@@ -1901,11 +1907,15 @@ void InsertZone(int client)
 
 	if(type == Zone_CustomSpawn)
 	{
+		Shavit_LogMessage("%L - added custom spawn {%.2f, %.2f, %.2f} to map `%s`.", client, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gS_Map);
+
 		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
 	}
 
 	else if(insert) // insert
 	{
+		Shavit_LogMessage("%L - added %s to map `%s`.", client, gS_ZoneNames[type], gS_Map);
+
 		if(type != Zone_Teleport)
 		{
 			FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, track) VALUES ('%s', '%d', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%d');", gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gI_ZoneTrack[client]);
@@ -1919,6 +1929,8 @@ void InsertZone(int client)
 
 	else // update
 	{
+		Shavit_LogMessage("%L - updated %s in map `%s`.", client, gS_ZoneNames[type], gS_Map);
+
 		if(gI_ZoneDatabaseID[client] == -1)
 		{
 			for(int i = 0; i < gI_MapZones; i++)
@@ -2409,7 +2421,7 @@ public void Shavit_OnEnd(int client, int track)
 
 bool EmptyVector(float vec[3])
 {
-	return (vec[0] == 0.0 && vec[1] == 0.0 && vec[2] == 0.0);
+	return (IsNullVector(vec) || (vec[0] == 0.0 && vec[1] == 0.0 && vec[2] == 0.0));
 }
 
 // returns -1 if there's no zone

@@ -774,8 +774,14 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 			return 0;
 		}
 
+		char[] sTrack = new char[32];
+		GetTrackName(LANG_SERVER, gI_LastTrack[param1], sTrack, 32);
+
+		Shavit_LogMessage("%L - deleted all %s track records from map `%s`.", param1, sTrack, gS_Map);
+
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND track = %d;", gS_MySQLPrefix, gS_Map, gI_LastTrack[param1]);
+
 		gH_SQL.Query(DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
 
@@ -902,6 +908,8 @@ public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, 
 
 			return 0;
 		}
+
+		Shavit_LogMessage("%L - deleted all %s style records from map `%s`.", param1, gS_StyleStrings[style][sStyleName], gS_Map);
 
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, gS_Map, style);
@@ -1135,8 +1143,12 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 			}
 		}
 
+		// TODO:  display record details here (map name, player name/authid, time, rank on map) without dropping threaded queries
+		Shavit_LogMessage("%L - deleted record id %d.", param1, iRecordID);
+
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;", gS_MySQLPrefix, iRecordID);
+
 		gH_SQL.Query(DeleteConfirm_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
 

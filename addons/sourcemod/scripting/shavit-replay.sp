@@ -86,7 +86,7 @@ int gI_DefaultTeamSlots = 0;
 
 // server specific
 float gF_Tickrate = 0.0;
-char gS_Map[192];
+char gS_Map[160];
 int gI_ExpectedBots = 0;
 ConVar bot_quota = null;
 any gA_CentralCache[CENTRALBOTCACHE_SIZE];
@@ -527,28 +527,6 @@ public Action Cron(Handle Timer)
 	return Plugin_Continue;
 }
 
-public void OnEntityCreated(int entity, const char[] classname)
-{
-	// trigger_once | trigger_multiple.. etc
-	// func_door | func_door_rotating
-	if(StrContains(classname, "trigger_") != -1 || StrContains(classname, "_door") != -1)
-	{
-		SDKHook(entity, SDKHook_StartTouch, HookTriggers);
-		SDKHook(entity, SDKHook_EndTouch, HookTriggers);
-		SDKHook(entity, SDKHook_Touch, HookTriggers);
-	}
-}
-
-public Action HookTriggers(int entity, int other)
-{
-	if(other >= 1 && other <= MaxClients && IsFakeClient(other))
-	{
-		return Plugin_Handled;
-	}
-
-	return Plugin_Continue;
-}
-
 bool LoadStyling()
 {
 	char[] sPath = new char[PLATFORM_MAX_PATH];
@@ -606,8 +584,8 @@ public void OnMapStart()
 
 	gB_ForciblyStopped = false;
 
-	GetCurrentMap(gS_Map, 192);
-	GetMapDisplayName(gS_Map, gS_Map, 192);
+	GetCurrentMap(gS_Map, 160);
+	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	if(!gB_Enabled)
 	{
@@ -1117,7 +1095,7 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 		return;
 	}
 
-	SetEntProp(client, Prop_Data, "m_CollisionGroup", 1);
+	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
 	bool central = (gA_CentralCache[iCentralClient] == client);
@@ -1494,9 +1472,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				
 				MoveType movetype = gA_Frames[style][track].Get(gI_ReplayTick[style], 7);
 
-				if(movetype == MOVETYPE_WALK || movetype == MOVETYPE_LADDER)
+				if(movetype == MOVETYPE_LADDER)
 				{
-					mt = movetype;
+					mt = MOVETYPE_LADDER;
 				}
 			}
 
@@ -1556,7 +1534,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 public Action Timer_EndReplay(Handle Timer, any data)
 {
-	gB_ForciblyStopped = false;
+	if(gB_CentralBot && gB_ForciblyStopped)
+	{
+		gB_ForciblyStopped = false;
+
+		return Plugin_Stop;
+	}
+
 	gI_ReplayTick[data] = 0;
 
 	if(gI_ReplayBotClient[data] != gA_CentralCache[iCentralClient])
@@ -1684,9 +1668,17 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		return Plugin_Continue;
 	}
 
+	// caching usermessage type rather than call it every time
+	static UserMessageType um = view_as<UserMessageType>(-1);
+
+	if(um == view_as<UserMessageType>(-1))
+	{
+		um = GetUserMessageType();
+	}
+
 	char[] sMessage = new char[24];
 
-	if(GetUserMessageType() == UM_Protobuf)
+	if(um == UM_Protobuf)
 	{
 		Protobuf pbmsg = msg;
 		pbmsg.ReadString("msg_name", sMessage, 24);

@@ -94,22 +94,16 @@ bool gB_Zones = false;
 bool gB_WR = false;
 
 // cvars
-ConVar gCV_Autobhop = null;
-ConVar gCV_LeftRight = null;
 ConVar gCV_Restart = null;
 ConVar gCV_Pause = null;
-ConVar gCV_NoStaminaReset = null;
 ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
 ConVar gCV_VelocityTeleport = null;
 
 // cached cvars
-bool gB_Autobhop = true;
-bool gB_LeftRight = true;
 bool gB_Restart = true;
 bool gB_Pause = true;
-bool gB_NoStaminaReset = true;
 bool gB_AllowTimerWithoutZone = false;
 bool gB_BlockPreJump = false;
 bool gB_NoZAxisSpeed = true;
@@ -135,6 +129,7 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 // misc cache
 bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
+char gS_LogPath[PLATFORM_MAX_PATH];
 
 // kz support
 bool gB_KZMap = false;
@@ -169,6 +164,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
 	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
 	CreateNative("Shavit_LoadSnapshot", Native_LoadSnapshot);
+	CreateNative("Shavit_LogMessage", Native_LogMessage);
 	CreateNative("Shavit_MarkKZMap", Native_MarkKZMap);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
@@ -282,29 +278,26 @@ public void OnPluginStart()
 
 	// style commands
 	gSM_StyleCommands = new StringMap();
-	// commands END
 
 	#if defined DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
 	#endif
+	// commands END
+
+	// logs
+	BuildPath(Path_SM, gS_LogPath, PLATFORM_MAX_PATH, "logs/shavit.log");
 
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", (FCVAR_NOTIFY | FCVAR_DONTRECORD));
 
-	gCV_Autobhop = CreateConVar("shavit_core_autobhop", "1", "Enable autobhop?\nWill be forced to not work if STYLE_AUTOBHOP is not defined for a style!", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	gCV_LeftRight = CreateConVar("shavit_core_blockleftright", "1", "Block +left/right?", 0, true, 0.0, true, 1.0);
 	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
 	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
-	gCV_NoStaminaReset = CreateConVar("shavit_core_nostaminareset", "1", "Disables the built-in stamina reset.\nAlso known as 'easybhop'.\nWill be forced to not work if STYLE_EASYBHOP is not defined for a style!", 0, true, 0.0, true, 1.0);
 	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
 	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 
-	gCV_Autobhop.AddChangeHook(OnConVarChanged);
-	gCV_LeftRight.AddChangeHook(OnConVarChanged);
 	gCV_Restart.AddChangeHook(OnConVarChanged);
 	gCV_Pause.AddChangeHook(OnConVarChanged);
-	gCV_NoStaminaReset.AddChangeHook(OnConVarChanged);
 	gCV_AllowTimerWithoutZone.AddChangeHook(OnConVarChanged);
 	gCV_BlockPreJump.AddChangeHook(OnConVarChanged);
 	gCV_NoZAxisSpeed.AddChangeHook(OnConVarChanged);
@@ -342,11 +335,8 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gB_Autobhop = gCV_Autobhop.BoolValue;
-	gB_LeftRight = gCV_LeftRight.BoolValue;
 	gB_Restart = gCV_Restart.BoolValue;
 	gB_Pause = gCV_Pause.BoolValue;
-	gB_NoStaminaReset = gCV_NoStaminaReset.BoolValue;
 	gB_AllowTimerWithoutZone = gCV_AllowTimerWithoutZone.BoolValue;
 	gB_BlockPreJump = gCV_BlockPreJump.BoolValue;
 	gB_NoZAxisSpeed = gCV_NoZAxisSpeed.BoolValue;
@@ -801,7 +791,7 @@ void DoJump(int client)
 	}
 
 	// TF2 doesn't use stamina
-	if(gEV_Type != Engine_TF2 && (gB_NoStaminaReset && gA_StyleSettings[gBS_Style[client]][bEasybhop]) || Shavit_InsideZone(client, Zone_Easybhop, gI_Track[client]))
+	if(gEV_Type != Engine_TF2 && (gA_StyleSettings[gBS_Style[client]][bEasybhop]) || Shavit_InsideZone(client, Zone_Easybhop, gI_Track[client]))
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
@@ -1040,11 +1030,11 @@ public int Native_StopChatSound(Handle handler, int numParams)
 public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
-	static int written = 0; // useless?
+	static int iWritten = 0; // useless?
 
-	char[] buffer = new char[300];
-	FormatNativeString(0, 2, 3, 300, written, buffer);
-	Format(buffer, 300, "%s %s%s", gS_ChatStrings[sMessagePrefix], gS_ChatStrings[sMessageText], buffer);
+	char[] sBuffer = new char[300];
+	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
+	Format(sBuffer, 300, "%s %s%s", gS_ChatStrings[sMessagePrefix], gS_ChatStrings[sMessageText], sBuffer);
 
 	if(IsSource2013(gEV_Type))
 	{
@@ -1054,7 +1044,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 		{
 			BfWriteByte(hSayText2, 0);
 			BfWriteByte(hSayText2, !gB_StopChatSound);
-			BfWriteString(hSayText2, buffer);
+			BfWriteString(hSayText2, sBuffer);
 		}
 
 		EndMessage();
@@ -1062,7 +1052,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 	else
 	{
-		PrintToChat(client, " %s", buffer);
+		PrintToChat(client, " %s", sBuffer);
 	}
 
 	gB_StopChatSound = false;
@@ -1177,6 +1167,23 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
 }
 
+public int Native_LogMessage(Handle plugin, int numParams)
+{
+	char[] sPlugin = new char[32];
+
+	if(!GetPluginInfo(plugin, PlInfo_Name, sPlugin, 32))
+	{
+		GetPluginFilename(plugin, sPlugin, 32);
+	}
+
+	static int iWritten = 0;
+
+	char[] sBuffer = new char[300];
+	FormatNativeString(0, 1, 2, 300, iWritten, sBuffer);
+	
+	LogToFileEx(gS_LogPath, "[%s] %s", sPlugin, sBuffer);
+}
+
 public int Native_MarkKZMap(Handle handler, int numParams)
 {
 	gB_KZMap = true;
@@ -1217,6 +1224,7 @@ void StartTimer(int client, int track)
 
 		if(result == Plugin_Continue)
 		{
+			gB_ClientPaused[client] = false;
 			gI_Strafes[client] = 0;
 			gI_Jumps[client] = 0;
 			gI_TotalMeasures[client] = 0;
@@ -1862,7 +1870,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		char[] sCheatDetected = new char[64];
 
 		// +left/right block
-		if(gB_LeftRight && (!gB_Zones || !bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] &&
+		if(!gB_Zones || (!bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] &&
 			(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
 		{
 			FormatEx(sCheatDetected, 64, "%T", "LeftRightCheat", client);
@@ -1949,10 +1957,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				bool bSHSW = (gA_StyleSettings[gBS_Style[client]][iForceHSW] == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
 				int iCombination = -1;
 
-				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] >= 200.0);
-				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 && vel[1] <= -200.0);
-				bool bBack = ((buttons & IN_BACK) > 0 && vel[0] <= -200.0);
-				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 && vel[1] >= 200.0);
+				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] >= 100.0);
+				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 && vel[1] <= -100.0);
+				bool bBack = ((buttons & IN_BACK) > 0 && vel[0] <= -100.0);
+				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 && vel[1] >= 100.0);
 
 				if(bSHSW)
 				{
@@ -2055,7 +2063,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client] && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
+	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Auto[client] && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
 	{
 		int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
 		SetEntProp(client, Prop_Data, "m_nOldButtons", iOldButtons & ~IN_JUMP);
@@ -2133,7 +2141,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				gI_TotalMeasures[client]++;
 
-				if((fAngle > 0.0 && vel[1] < 0.0) || (fAngle < 0.0 && vel[1] > 0.0))
+				if((fAngle > 0.0 && vel[1] <= -100.0) || (fAngle < 0.0 && vel[1] >= 100.0))
 				{
 					gI_GoodGains[client]++;
 				}
@@ -2143,7 +2151,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				gI_TotalMeasures[client]++;
 
-				if(vel[0] != 0.0)
+				if(vel[0] <= -100.0 || vel[0] >= 100.0)
 				{
 					gI_GoodGains[client]++;
 				}
@@ -2167,7 +2175,7 @@ void UpdateAutoBhop(int client)
 {
 	if(sv_autobunnyhopping != null)
 	{
-		sv_autobunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Autobhop && gB_Auto[client])? "1":"0");
+		sv_autobunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Auto[client])? "1":"0");
 	}
 }
 
