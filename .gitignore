@@ -1,7 +1,0 @@
-# SourcePawn
-*.smx
-*.dll
-*.so
-
-# Atom
-*.atom-build.json
