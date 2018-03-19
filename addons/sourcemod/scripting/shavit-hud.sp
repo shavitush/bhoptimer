@@ -677,6 +677,7 @@ void UpdateHUD(int client)
 	{
 		int track = Shavit_GetClientTrack(target);
 		char[] sTrack = new char[32];
+		GetTrackName(client, track, sTrack, 32);
 
 		if(!IsFakeClient(target))
 		{
@@ -728,7 +729,6 @@ void UpdateHUD(int client)
 
 					if(track != Track_Main)
 					{
-						GetTrackName(client, track, sTrack, 32);
 						Format(sHintText, 512, "%s[<font color='#FFFFFF'>%s</font>] ", sHintText, sTrack);
 					}
 
