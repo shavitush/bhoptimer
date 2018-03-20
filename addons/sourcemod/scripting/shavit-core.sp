@@ -400,23 +400,10 @@ public void OnMapStart()
 		SetFailState("Could not load the styles configuration file. Make sure it exists (addons/sourcemod/configs/shavit-styles.cfg) and follows the proper syntax!");
 	}
 
-	else
-	{
-		Call_StartForward(gH_Forwards_OnStyleConfigLoaded);
-		Call_PushCell(gI_Styles);
-		Call_Finish();
-	}
-
 	// messages
 	if(!LoadMessages())
 	{
 		SetFailState("Could not load the chat messages configuration file. Make sure it exists (addons/sourcemod/configs/shavit-messages.cfg) and follows the proper syntax!");
-	}
-
-	else
-	{
-		Call_StartForward(gH_Forwards_OnChatConfigLoaded);
-		Call_Finish();
 	}
 }
 
@@ -1511,6 +1498,10 @@ bool LoadStyles()
 	gI_Styles = i;
 	gB_Registered = true;
 
+	Call_StartForward(gH_Forwards_OnStyleConfigLoaded);
+	Call_PushCell(gI_Styles);
+	Call_Finish();
+
 	return true;
 }
 
@@ -1571,6 +1562,9 @@ bool LoadMessages()
 		ReplaceString(gS_ChatStrings[i], 128, "{RGB}", "\x07");
 		ReplaceString(gS_ChatStrings[i], 128, "{RGBA}", "\x08");
 	}
+
+	Call_StartForward(gH_Forwards_OnChatConfigLoaded);
+	Call_Finish();
 
 	return true;
 }
