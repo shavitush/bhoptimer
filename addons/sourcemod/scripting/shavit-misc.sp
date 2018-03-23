@@ -1498,19 +1498,6 @@ public Action Command_Tele(int client, int args)
 		}
 	}
 
-	CheckpointsCache cpcache[PCPCACHE_SIZE];
-	GetCheckpoint(client, index, cpcache);
-
-	float pos[3];
-	CopyArray(cpcache[fCPPosition], pos, 3);
-
-	if(IsNullVector(pos))
-	{
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, (index + 1), gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-
-		return Plugin_Handled;
-	}
-
 	TeleportToCheckpoint(client, index, false);
 
 	return Plugin_Handled;
@@ -1737,7 +1724,13 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	}
 
 	CheckpointsCache cpcache[PCPCACHE_SIZE];
-	GetCheckpoint(client, index, cpcache);
+	
+	if(!GetCheckpoint(client, index, cpcache))
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, (index + 1), gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+
+		return;
+	}
 
 	float pos[3];
 	CopyArray(cpcache[fCPPosition], pos, 3);
