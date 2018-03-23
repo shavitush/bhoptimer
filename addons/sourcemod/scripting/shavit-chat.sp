@@ -81,8 +81,6 @@ Handle gH_ChatCookie = null;
 int gI_ChatSelection[MAXPLAYERS+1];
 ArrayList gA_ChatRanks = null;
 
-bool gB_AllowCustom[MAXPLAYERS+1];
-
 bool gB_NameEnabled[MAXPLAYERS+1];
 char gS_CustomName[MAXPLAYERS+1][128];
 
@@ -140,8 +138,6 @@ public void OnPluginStart()
 	{
 		if(IsClientInGame(i) && !IsFakeClient(i))
 		{
-			OnClientPostAdminCheck(i);
-			
 			if(AreClientCookiesCached(i))
 			{
 				OnClientCookiesCached(i);
@@ -334,15 +330,8 @@ public void OnClientCookiesCached(int client)
 	}
 }
 
-public void OnClientDisconnect(int client)
-{
-	gB_AllowCustom[client] = false;
-}
-
 public void OnClientPutInServer(int client)
 {
-	gB_AllowCustom[client] = false;
-
 	gB_NameEnabled[client] = false;
 	strcopy(gS_CustomName[client], 128, "");
 
@@ -352,8 +341,6 @@ public void OnClientPutInServer(int client)
 
 public void OnClientPostAdminCheck(int client)
 {
-	gB_AllowCustom[client] = gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2);
-
 	if(gH_SQL != null)
 	{
 		LoadFromDatabase(client);
@@ -400,7 +387,7 @@ public Action Command_CCName(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gB_AllowCustom[client])
+	if(!(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)))
 	{
 		Shavit_PrintToChat(client, "%T", "NoCommandAccess", client);
 
@@ -448,7 +435,7 @@ public Action Command_CCMessage(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gB_AllowCustom[client])
+	if(!(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)))
 	{
 		Shavit_PrintToChat(client, "%T", "NoCommandAccess", client);
 
@@ -506,7 +493,7 @@ Action ShowChatRanksMenu(int client, int item)
 	FormatEx(sDisplay, 128, "%T\n ", "AutoAssign", client);
 	menu.AddItem("-2", sDisplay, (gI_ChatSelection[client] == -2)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
-	if(gB_AllowCustom[client])
+	if(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
 	{
 		FormatEx(sDisplay, 128, "%T\n ", "CustomChat", client);
 		menu.AddItem("-1", sDisplay, (gI_ChatSelection[client] == -1)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
@@ -564,8 +551,10 @@ public int MenuHandler_ChatRanks(Menu menu, MenuAction action, int param1, int p
 
 bool HasRankAccess(int client, int rank)
 {
+	bool bAllowCustom = gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2);
+
 	if(rank == -2 ||
-		(rank == -1 && gB_AllowCustom[client]))
+		(rank == -1 && bAllowCustom))
 	{
 		return true;
 	}
@@ -662,7 +651,12 @@ public Action Command_CCList(int client, int args)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(gB_AllowCustom[i])
+		if(!IsClientInGame(i))
+		{
+			continue;
+		}
+
+		if(gI_CustomChat > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
 		{
 			PrintToConsole(client, "%N (%d/#%d) (name: \"%s\"; message: \"%s\")", i, i, GetClientUserId(i), gS_CustomName[i], gS_CustomMessage[i]);
 		}
@@ -691,7 +685,7 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 	char[] sName = new char[MAXLENGTH_NAME];
 	char[] sMessage = new char[MAXLENGTH_MESSAGE];
 
-	if(gB_AllowCustom[author] && gI_ChatSelection[author] == -1)
+	if((gI_CustomChat > 0 && (CheckCommandAccess(author, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)) && gI_ChatSelection[author] == -1)
 	{
 		if(gB_NameEnabled[author])
 		{
@@ -882,7 +876,12 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(gB_AllowCustom[i])
+		if(!IsClientInGame(i))
+		{
+			continue;
+		}
+
+		if(gI_CustomChat > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
 		{
 			LoadFromDatabase(i);
 		}
