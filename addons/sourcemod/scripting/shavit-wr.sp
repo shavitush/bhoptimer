@@ -173,15 +173,6 @@ public void OnPluginStart()
 	// cache
 	gA_ValidMaps = new ArrayList(192);
 
-	for(int i = 0; i < STYLE_LIMIT; i++)
-	{
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			gA_Leaderboard[i][j] = new ArrayList();
-			gI_RecordAmount[i][j] = 0;
-		}
-	}
-
 	SQL_SetPrefix();
 }
 
@@ -370,7 +361,13 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		{
 			if(i < styles)
 			{
+				if(gA_Leaderboard[i][j] == null)
+				{
+					gA_Leaderboard[i][j] = new ArrayList();
+				}
+
 				gA_Leaderboard[i][j].Clear();
+				gI_RecordAmount[i][j] = 0;
 			}
 
 			else
@@ -544,7 +541,7 @@ public int Native_GetRankForTime(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(3);
 
-	if(gA_Leaderboard[style][track].Length == 0)
+	if(gA_Leaderboard[style][track] == null || gA_Leaderboard[style][track].Length == 0)
 	{
 		return 1;
 	}
