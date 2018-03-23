@@ -401,6 +401,11 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(2);
 
+	if(style < 0 || track < 0)
+	{
+		return view_as<int>(0.0);
+	}
+
 	if(gB_CentralBot)
 	{
 		if(gA_CentralCache[iCentralReplayStatus] == Replay_End)

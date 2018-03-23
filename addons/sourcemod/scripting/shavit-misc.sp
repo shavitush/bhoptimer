@@ -1692,6 +1692,13 @@ bool SaveCheckpoint(int client, int index)
 		int style = Shavit_GetReplayBotStyle(target);
 		int track = Shavit_GetReplayBotTrack(target);
 
+		if(style < 0 || track < 0)
+		{
+			Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+			
+			return false;
+		}
+
 		snapshot[bTimerEnabled] = true;
 		snapshot[fCurrentTime] = Shavit_GetReplayTime(style, track);
 		snapshot[bClientPaused] = false;
