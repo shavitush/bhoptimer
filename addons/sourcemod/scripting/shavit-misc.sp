@@ -1592,12 +1592,8 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			case 3:
 			{
 				CheckpointsCache cpcache[PCPCACHE_SIZE];
-				GetCheckpoint(param1, current, cpcache);
-
-				float pos[3];
-				CopyArray(cpcache[fCPPosition], pos, 3);
-
-				if(current < CP_MAX && !IsNullVector(pos))
+				
+				if(current < CP_MAX && GetCheckpoint(param1, current, cpcache))
 				{
 					gI_CheckpointsCache[param1][iCurrentCheckpoint]++;
 				}
