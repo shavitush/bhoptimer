@@ -676,11 +676,16 @@ void UpdateHUD(int client)
 	else if((gI_HUDSettings[client] & HUD_CENTER) > 0)
 	{
 		int track = Shavit_GetClientTrack(target);
-		char[] sTrack = new char[32];
-		GetTrackName(client, track, sTrack, 32);
 
 		if(!IsFakeClient(target))
 		{
+			char[] sTrack = new char[32];
+
+			if(track != Track_Main)
+			{
+				GetTrackName(client, track, sTrack, 32);
+			}
+
 			float time = Shavit_GetClientTime(target);
 			int jumps = Shavit_GetClientJumps(target);
 			TimerStatus status = Shavit_GetTimerStatus(target);
@@ -826,6 +831,8 @@ void UpdateHUD(int client)
 
 			char[] sReplayLength = new char[32];
 			FormatSeconds(fReplayLength, sReplayLength, 32, false);
+
+			char[] sTrack = new char[32];
 
 			if(track != Track_Main)
 			{
