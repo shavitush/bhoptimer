@@ -508,15 +508,15 @@ Action ShowChatRanksMenu(int client, int item)
 			continue;
 		}
 
-		char[] sInfo = new char[8];
-		IntToString(i, sInfo, 8);
-
 		any[] aCache = new any[CRCACHE_SIZE];
 		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
 
 		strcopy(sDisplay, 192, aCache[sCRDisplay]);
 		ReplaceString(sDisplay, 192, "<n>", "\n");
 		StrCat(sDisplay, 192, "\n "); // to add spacing between each entry
+
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
 
 		menu.AddItem(sInfo, sDisplay, (gI_ChatSelection[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
