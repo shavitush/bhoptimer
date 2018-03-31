@@ -43,7 +43,10 @@ enum CheckpointsCache
 	Float:fCPGravity,
 	Float:fCPSpeed,
 	Float:fCPStamina,
+	bool:bCPDucked,
 	bool:bCPDucking,
+	Float:fCPDucktime,
+	bool:bCPDuckButton,
 	iCPFlags,
 	any:aCPSnapshot[TIMERSNAPSHOT_SIZE],
 	String:sCPTargetname[32],
@@ -1677,8 +1680,16 @@ bool SaveCheckpoint(int client, int index)
 	cpcache[fCPGravity] = GetEntityGravity(target);
 	cpcache[fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
 	cpcache[fCPStamina] = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
-	cpcache[bCPDucking] = (GetClientButtons(target) & IN_DUCK) > 0;
+	cpcache[bCPDuckButton] = (GetClientButtons(target) & IN_DUCK) > 0;
 	cpcache[iCPFlags] = GetEntityFlags(target);
+
+	// TODO: CS:GO version of this
+	if(gEV_Type == Engine_CSS)
+	{
+		cpcache[bCPDucked] = view_as<bool>(GetEntProp(target, Prop_Send, "m_bDucked"));
+		cpcache[bCPDucking] = view_as<bool>(GetEntProp(target, Prop_Send, "m_bDucking"));
+		cpcache[fCPDucktime] = GetEntPropFloat(target, Prop_Send, "m_flDucktime");
+	}
 
 	any snapshot[TIMERSNAPSHOT_SIZE];
 
@@ -1752,7 +1763,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	bool bDucking = (GetClientButtons(client) & IN_DUCK) > 0;
 
-	if(cpcache[bCPDucking] != bDucking)
+	if(cpcache[bCPDuckButton] != bDucking)
 	{
 		Shavit_PrintToChat(client, "%T", (bDucking)? "MiscCheckpointsCrouchOff":"MiscCheckpointsCrouchOn", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
@@ -1798,6 +1809,14 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	if(gEV_Type != Engine_TF2)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", cpcache[fCPStamina]);
+	}
+
+	// TODO: CS:GO version of this
+	if(gEV_Type == Engine_CSS)
+	{
+		SetEntProp(client, Prop_Send, "m_bDucked", cpcache[bCPDucked]);
+		SetEntProp(client, Prop_Send, "m_bDucking", cpcache[bCPDucking]);
+		SetEntPropFloat(client, Prop_Send, "m_flDucktime", cpcache[fCPDucktime]);
 	}
 	
 	if(!suppressMessage)
