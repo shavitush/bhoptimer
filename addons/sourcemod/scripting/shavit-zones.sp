@@ -989,6 +989,11 @@ public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, co
 
 void ClearCustomSpawn()
 {
+	if(Shavit_IsKZMap())
+	{
+		return;
+	}
+
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
 		for(int j = 0; j < 3; j++)
