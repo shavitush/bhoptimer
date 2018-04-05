@@ -187,7 +187,7 @@ public Plugin myinfo =
 {
 	name = "[shavit] Miscellaneous",
 	author = "shavit",
-	description = "Miscellaneous stuff for shavit's bhop timer.",
+	description = "Miscellaneous features for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
 }
