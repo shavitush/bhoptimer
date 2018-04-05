@@ -45,8 +45,8 @@ enum CheckpointsCache
 	Float:fCPStamina,
 	bool:bCPDucked,
 	bool:bCPDucking,
-	Float:fCPDucktime,
-	bool:bCPDuckButton,
+	Float:fCPDucktime, // m_flDuckAmount in csgo
+	Float:fCPDuckSpeed, // m_flDuckSpeed in csgo, doesn't exist in css
 	iCPFlags,
 	any:aCPSnapshot[TIMERSNAPSHOT_SIZE],
 	String:sCPTargetname[32],
@@ -1680,15 +1680,19 @@ bool SaveCheckpoint(int client, int index)
 	cpcache[fCPGravity] = GetEntityGravity(target);
 	cpcache[fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
 	cpcache[fCPStamina] = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
-	cpcache[bCPDuckButton] = (GetClientButtons(target) & IN_DUCK) > 0;
 	cpcache[iCPFlags] = GetEntityFlags(target);
 
-	// TODO: CS:GO version of this
 	if(gEV_Type == Engine_CSS)
 	{
 		cpcache[bCPDucked] = view_as<bool>(GetEntProp(target, Prop_Send, "m_bDucked"));
 		cpcache[bCPDucking] = view_as<bool>(GetEntProp(target, Prop_Send, "m_bDucking"));
 		cpcache[fCPDucktime] = GetEntPropFloat(target, Prop_Send, "m_flDucktime");
+	}
+
+	else if(gEV_Type == Engine_CSGO)
+	{
+		cpcache[fCPDucktime] = GetEntPropFloat(target, Prop_Send, "m_flDuckAmount");
+		cpcache[fCPDuckSpeed] = GetEntPropFloat(target, Prop_Send, "m_flDuckSpeed");
 	}
 
 	any snapshot[TIMERSNAPSHOT_SIZE];
@@ -1761,15 +1765,6 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
-	bool bDucking = (GetClientButtons(client) & IN_DUCK) > 0;
-
-	if(cpcache[bCPDuckButton] != bDucking)
-	{
-		Shavit_PrintToChat(client, "%T", (bDucking)? "MiscCheckpointsCrouchOff":"MiscCheckpointsCrouchOn", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-
-		return;
-	}
-
 	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
 
 	if(bInStart)
@@ -1811,12 +1806,17 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", cpcache[fCPStamina]);
 	}
 
-	// TODO: CS:GO version of this
 	if(gEV_Type == Engine_CSS)
 	{
 		SetEntProp(client, Prop_Send, "m_bDucked", cpcache[bCPDucked]);
 		SetEntProp(client, Prop_Send, "m_bDucking", cpcache[bCPDucking]);
 		SetEntPropFloat(client, Prop_Send, "m_flDucktime", cpcache[fCPDucktime]);
+	}
+
+	else if(gEV_Type == Engine_CSGO)
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", cpcache[fCPDucktime]);
+		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache[fCPDuckSpeed]);
 	}
 	
 	if(!suppressMessage)
