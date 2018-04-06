@@ -1682,10 +1682,14 @@ bool SaveCheckpoint(int client, int index)
 	cpcache[fCPStamina] = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
 	cpcache[iCPFlags] = GetEntityFlags(target);
 
-	if(gEV_Type == Engine_CSS)
+	if(gEV_Type != Engine_TF2)
 	{
 		cpcache[bCPDucked] = view_as<bool>(GetEntProp(target, Prop_Send, "m_bDucked"));
 		cpcache[bCPDucking] = view_as<bool>(GetEntProp(target, Prop_Send, "m_bDucking"));
+	}
+
+	if(gEV_Type == Engine_CSS)
+	{
 		cpcache[fCPDucktime] = GetEntPropFloat(target, Prop_Send, "m_flDucktime");
 	}
 
@@ -1804,12 +1808,12 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	if(gEV_Type != Engine_TF2)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", cpcache[fCPStamina]);
+		SetEntProp(client, Prop_Send, "m_bDucked", cpcache[bCPDucked]);
+		SetEntProp(client, Prop_Send, "m_bDucking", cpcache[bCPDucking]);
 	}
 
 	if(gEV_Type == Engine_CSS)
 	{
-		SetEntProp(client, Prop_Send, "m_bDucked", cpcache[bCPDucked]);
-		SetEntProp(client, Prop_Send, "m_bDucking", cpcache[bCPDucking]);
 		SetEntPropFloat(client, Prop_Send, "m_flDucktime", cpcache[fCPDucktime]);
 	}
 
