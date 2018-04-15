@@ -204,7 +204,7 @@ bool LoadChatConfig()
 			float fRank = StringToFloat(sRanks);
 
 			aChatTitle[fCRFrom] = fRank;
-			aChatTitle[fCRTo] = (aChatTitle[iCRRangeType] != Rank_Points)? fRank:2147483648.0;
+			aChatTitle[fCRTo] = (aChatTitle[iCRRangeType] == Rank_Flat)? fRank:2147483648.0;
 		}
 		
 		aChatTitle[bCRFree] = view_as<bool>(kv.GetNum("free", false));
