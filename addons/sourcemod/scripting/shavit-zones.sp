@@ -1310,7 +1310,6 @@ public Action Command_DeleteAllZones(int client, int args)
 	}
 
 	menu.ExitButton = true;
-
 	menu.Display(client, 20);
 
 	return Plugin_Handled;

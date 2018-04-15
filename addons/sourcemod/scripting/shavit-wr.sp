@@ -1544,8 +1544,8 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		return;
 	}
 
-	Menu m = new Menu(RRMenu_Handler);
-	m.SetTitle("%T:", "RecentRecords", client, gI_RecentLimit);
+	Menu menu = new Menu(RRMenu_Handler);
+	menu.SetTitle("%T:", "RecentRecords", client, gI_RecentLimit);
 
 	while(results.FetchRow())
 	{
@@ -1586,18 +1586,18 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		char[] sInfo = new char[192];
 		FormatEx(sInfo, 192, "%d;%s", results.FetchInt(0), sMap);
 
-		m.AddItem(sInfo, sDisplay);
+		menu.AddItem(sInfo, sDisplay);
 	}
 
-	if(m.ItemCount == 0)
+	if(menu.ItemCount == 0)
 	{
 		char[] sMenuItem = new char[64];
 		FormatEx(sMenuItem, 64, "%T", "WRMapNoRecords", client);
-		m.AddItem("-1", sMenuItem);
+		menu.AddItem("-1", sMenuItem);
 	}
 
-	m.ExitButton = true;
-	m.Display(client, 60);
+	menu.ExitButton = true;
+	menu.Display(client, 60);
 }
 
 public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
