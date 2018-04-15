@@ -266,11 +266,7 @@ public void OnPluginStart()
 	AddCommandListener(Command_Drop, "drop");
 	AddTempEntHook("EffectDispatch", EffectDispatch);
 	AddTempEntHook("World Decal", WorldDecal);
-
-	if(gEV_Type != Engine_TF2)
-	{
-		AddTempEntHook("Shotgun Shot", Shotgun_Shot);
-	}
+	AddTempEntHook((gEV_Type != Engine_TF2)? "Shotgun Shot":"Fire Bullets", Shotgun_Shot);
 
 	// phrases
 	LoadTranslations("common.phrases");
@@ -2303,20 +2299,15 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || i == client || gB_Hide[i])
+		if(!IsClientInGame(i) || i == client)
 		{
 			continue;
 		}
 
-		if(IsClientObserver(i) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client)
+		if(!gB_Hide[i] ||
+			(IsClientObserver(i) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client && 3 <= GetEntProp(i, Prop_Send, "m_iObserverMode") <= 5))
 		{
-			// recycling code from shavit-hud~
-			int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
-
-			if(iObserverMode >= 3 && iObserverMode <= 5)
-			{
-				clients[count++] = i;
-			}
+			clients[count++] = i;
 		}
 	}
 
@@ -2325,28 +2316,42 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 		return Plugin_Continue;
 	}
 
+	TE_Start((gEV_Type != Engine_TF2)? "Shotgun Shot":"Fire Bullets");
+
 	float temp[3];
-	TE_Start("Shotgun Shot");
 	TE_ReadVector("m_vecOrigin", temp);
 	TE_WriteVector("m_vecOrigin", temp);
+
 	TE_WriteFloat("m_vecAngles[0]", TE_ReadFloat("m_vecAngles[0]"));
 	TE_WriteFloat("m_vecAngles[1]", TE_ReadFloat("m_vecAngles[1]"));
-	
-	if(IsSource2013(gEV_Type))
-	{
-		TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
-	}
-
-	else
-	{
-		TE_WriteNum("m_weapon", TE_ReadNum("m_weapon"));
-	}
-
 	TE_WriteNum("m_iMode", TE_ReadNum("m_iMode"));
 	TE_WriteNum("m_iSeed", TE_ReadNum("m_iSeed"));
 	TE_WriteNum("m_iPlayer", (client - 1));
-	TE_WriteFloat("m_fInaccuracy", TE_ReadFloat("m_fInaccuracy"));
-	TE_WriteFloat("m_fSpread", TE_ReadFloat("m_fSpread"));
+
+	if(gEV_Type == Engine_CSS)
+	{
+		TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
+		TE_WriteFloat("m_fInaccuracy", TE_ReadFloat("m_fInaccuracy"));
+		TE_WriteFloat("m_fSpread", TE_ReadFloat("m_fSpread"));
+	}
+
+	else if(gEV_Type == Engine_CSGO)
+	{
+		TE_WriteNum("m_weapon", TE_ReadNum("m_weapon"));
+		TE_WriteFloat("m_fInaccuracy", TE_ReadFloat("m_fInaccuracy"));
+		TE_WriteFloat("m_flRecoilIndex", TE_ReadFloat("m_flRecoilIndex"));
+		TE_WriteFloat("m_fSpread", TE_ReadFloat("m_fSpread"));
+		TE_WriteNum("m_nItemDefIndex", TE_ReadNum("m_nItemDefIndex"));
+		TE_WriteNum("m_iSoundType", TE_ReadNum("m_iSoundType"));
+	}
+
+	else if(gEV_Type == Engine_TF2)
+	{
+		TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
+		TE_WriteFloat("m_flSpread", TE_ReadFloat("m_flSpread"));
+		TE_WriteNum("m_bCritical", TE_ReadNum("m_bCritical"));
+	}
+	
 	TE_Send(clients, count, delay);
 
 	return Plugin_Stop;
