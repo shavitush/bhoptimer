@@ -83,16 +83,6 @@
 		"#format"	"{1:d},{2:s},{3:s}"
 		"en"		"Checkpoint {1} is {2}empty{3}."
 	}
-	"MiscCheckpointsCrouchOn"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"You must {1}duck{2} while teleporting to this checkpoint."
-	}
-	"MiscCheckpointsCrouchOff"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"You must {1}stop ducking{2} while teleporting to this checkpoint."
-	}
 	// ---------- Menus ---------- //
 	"TeleportMenuTitle"
 	{

@@ -43,7 +43,10 @@ enum CheckpointsCache
 	Float:fCPGravity,
 	Float:fCPSpeed,
 	Float:fCPStamina,
+	bool:bCPDucked,
 	bool:bCPDucking,
+	Float:fCPDucktime, // m_flDuckAmount in csgo
+	Float:fCPDuckSpeed, // m_flDuckSpeed in csgo, doesn't exist in css
 	iCPFlags,
 	any:aCPSnapshot[TIMERSNAPSHOT_SIZE],
 	String:sCPTargetname[32],
@@ -184,7 +187,7 @@ public Plugin myinfo =
 {
 	name = "[shavit] Miscellaneous",
 	author = "shavit",
-	description = "Miscellaneous stuff for shavit's bhop timer.",
+	description = "Miscellaneous features for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
 }
@@ -263,11 +266,7 @@ public void OnPluginStart()
 	AddCommandListener(Command_Drop, "drop");
 	AddTempEntHook("EffectDispatch", EffectDispatch);
 	AddTempEntHook("World Decal", WorldDecal);
-
-	if(gEV_Type != Engine_TF2)
-	{
-		AddTempEntHook("Shotgun Shot", Shotgun_Shot);
-	}
+	AddTempEntHook((gEV_Type != Engine_TF2)? "Shotgun Shot":"Fire Bullets", Shotgun_Shot);
 
 	// phrases
 	LoadTranslations("common.phrases");
@@ -1592,12 +1591,8 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			case 3:
 			{
 				CheckpointsCache cpcache[PCPCACHE_SIZE];
-				GetCheckpoint(param1, current, cpcache);
-
-				float pos[3];
-				CopyArray(cpcache[fCPPosition], pos, 3);
-
-				if(current < CP_MAX && !IsNullVector(pos))
+				
+				if(current < CP_MAX && GetCheckpoint(param1, current, cpcache))
 				{
 					gI_CheckpointsCache[param1][iCurrentCheckpoint]++;
 				}
@@ -1681,8 +1676,24 @@ bool SaveCheckpoint(int client, int index)
 	cpcache[fCPGravity] = GetEntityGravity(target);
 	cpcache[fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
 	cpcache[fCPStamina] = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
-	cpcache[bCPDucking] = (GetClientButtons(target) & IN_DUCK) > 0;
 	cpcache[iCPFlags] = GetEntityFlags(target);
+
+	if(gEV_Type != Engine_TF2)
+	{
+		cpcache[bCPDucked] = view_as<bool>(GetEntProp(target, Prop_Send, "m_bDucked"));
+		cpcache[bCPDucking] = view_as<bool>(GetEntProp(target, Prop_Send, "m_bDucking"));
+	}
+
+	if(gEV_Type == Engine_CSS)
+	{
+		cpcache[fCPDucktime] = GetEntPropFloat(target, Prop_Send, "m_flDucktime");
+	}
+
+	else if(gEV_Type == Engine_CSGO)
+	{
+		cpcache[fCPDucktime] = GetEntPropFloat(target, Prop_Send, "m_flDuckAmount");
+		cpcache[fCPDuckSpeed] = GetEntPropFloat(target, Prop_Send, "m_flDuckSpeed");
+	}
 
 	any snapshot[TIMERSNAPSHOT_SIZE];
 
@@ -1754,15 +1765,6 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
-	bool bDucking = (GetClientButtons(client) & IN_DUCK) > 0;
-
-	if(cpcache[bCPDucking] != bDucking)
-	{
-		Shavit_PrintToChat(client, "%T", (bDucking)? "MiscCheckpointsCrouchOff":"MiscCheckpointsCrouchOn", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
-
-		return;
-	}
-
 	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
 
 	if(bInStart)
@@ -1802,6 +1804,19 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	if(gEV_Type != Engine_TF2)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", cpcache[fCPStamina]);
+		SetEntProp(client, Prop_Send, "m_bDucked", cpcache[bCPDucked]);
+		SetEntProp(client, Prop_Send, "m_bDucking", cpcache[bCPDucking]);
+	}
+
+	if(gEV_Type == Engine_CSS)
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flDucktime", cpcache[fCPDucktime]);
+	}
+
+	else if(gEV_Type == Engine_CSGO)
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", cpcache[fCPDucktime]);
+		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache[fCPDuckSpeed]);
 	}
 	
 	if(!suppressMessage)
@@ -2284,20 +2299,15 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || i == client || gB_Hide[i])
+		if(!IsClientInGame(i) || i == client)
 		{
 			continue;
 		}
 
-		if(IsClientObserver(i) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client)
+		if(!gB_Hide[i] ||
+			(IsClientObserver(i) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client && 3 <= GetEntProp(i, Prop_Send, "m_iObserverMode") <= 5))
 		{
-			// recycling code from shavit-hud~
-			int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
-
-			if(iObserverMode >= 3 && iObserverMode <= 5)
-			{
-				clients[count++] = i;
-			}
+			clients[count++] = i;
 		}
 	}
 
@@ -2306,28 +2316,42 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 		return Plugin_Continue;
 	}
 
+	TE_Start((gEV_Type != Engine_TF2)? "Shotgun Shot":"Fire Bullets");
+
 	float temp[3];
-	TE_Start("Shotgun Shot");
 	TE_ReadVector("m_vecOrigin", temp);
 	TE_WriteVector("m_vecOrigin", temp);
+
 	TE_WriteFloat("m_vecAngles[0]", TE_ReadFloat("m_vecAngles[0]"));
 	TE_WriteFloat("m_vecAngles[1]", TE_ReadFloat("m_vecAngles[1]"));
-	
-	if(IsSource2013(gEV_Type))
-	{
-		TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
-	}
-
-	else
-	{
-		TE_WriteNum("m_weapon", TE_ReadNum("m_weapon"));
-	}
-
 	TE_WriteNum("m_iMode", TE_ReadNum("m_iMode"));
 	TE_WriteNum("m_iSeed", TE_ReadNum("m_iSeed"));
 	TE_WriteNum("m_iPlayer", (client - 1));
-	TE_WriteFloat("m_fInaccuracy", TE_ReadFloat("m_fInaccuracy"));
-	TE_WriteFloat("m_fSpread", TE_ReadFloat("m_fSpread"));
+
+	if(gEV_Type == Engine_CSS)
+	{
+		TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
+		TE_WriteFloat("m_fInaccuracy", TE_ReadFloat("m_fInaccuracy"));
+		TE_WriteFloat("m_fSpread", TE_ReadFloat("m_fSpread"));
+	}
+
+	else if(gEV_Type == Engine_CSGO)
+	{
+		TE_WriteNum("m_weapon", TE_ReadNum("m_weapon"));
+		TE_WriteFloat("m_fInaccuracy", TE_ReadFloat("m_fInaccuracy"));
+		TE_WriteFloat("m_flRecoilIndex", TE_ReadFloat("m_flRecoilIndex"));
+		TE_WriteFloat("m_fSpread", TE_ReadFloat("m_fSpread"));
+		TE_WriteNum("m_nItemDefIndex", TE_ReadNum("m_nItemDefIndex"));
+		TE_WriteNum("m_iSoundType", TE_ReadNum("m_iSoundType"));
+	}
+
+	else if(gEV_Type == Engine_TF2)
+	{
+		TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
+		TE_WriteFloat("m_flSpread", TE_ReadFloat("m_flSpread"));
+		TE_WriteNum("m_bCritical", TE_ReadNum("m_bCritical"));
+	}
+	
 	TE_Send(clients, count, delay);
 
 	return Plugin_Stop;

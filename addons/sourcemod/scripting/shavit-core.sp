@@ -67,7 +67,7 @@ float gF_PlayerTimer[MAXPLAYERS+1];
 float gF_PausePosition[MAXPLAYERS+1][3][3];
 bool gB_ClientPaused[MAXPLAYERS+1];
 int gI_Jumps[MAXPLAYERS+1];
-int gBS_Style[MAXPLAYERS+1];
+int gI_Style[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
 int gI_ButtonCache[MAXPLAYERS+1];
 int gI_Strafes[MAXPLAYERS+1];
@@ -100,6 +100,7 @@ ConVar gCV_AllowTimerWithoutZone = null;
 ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
 ConVar gCV_VelocityTeleport = null;
+ConVar gCV_DefaultStyle = null;
 
 // cached cvars
 bool gB_Restart = true;
@@ -108,6 +109,8 @@ bool gB_AllowTimerWithoutZone = false;
 bool gB_BlockPreJump = false;
 bool gB_NoZAxisSpeed = true;
 bool gB_VelocityTeleport = false;
+int gI_DefaultStyle = 0;
+bool gB_StyleCookies = true;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -295,6 +298,7 @@ public void OnPluginStart()
 	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
 	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
+	gCV_DefaultStyle = CreateConVar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
 
 	gCV_Restart.AddChangeHook(OnConVarChanged);
 	gCV_Pause.AddChangeHook(OnConVarChanged);
@@ -302,6 +306,7 @@ public void OnPluginStart()
 	gCV_BlockPreJump.AddChangeHook(OnConVarChanged);
 	gCV_NoZAxisSpeed.AddChangeHook(OnConVarChanged);
 	gCV_VelocityTeleport.AddChangeHook(OnConVarChanged);
+	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -341,6 +346,12 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_BlockPreJump = gCV_BlockPreJump.BoolValue;
 	gB_NoZAxisSpeed = gCV_NoZAxisSpeed.BoolValue;
 	gB_VelocityTeleport = gCV_VelocityTeleport.BoolValue;
+
+	if(convar == gCV_DefaultStyle)
+	{
+		gB_StyleCookies = newValue[0] != '!';
+		gI_DefaultStyle = StringToInt(newValue[1]);
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -649,7 +660,7 @@ public Action Command_Style(int client, int args)
 			}
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gBS_Style[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+		menu.AddItem(sInfo, sDisplay, (gI_Style[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	// should NEVER happen
@@ -704,7 +715,7 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
 	Call_PushCell(manual);
 	Call_Finish();
 
-	gBS_Style[client] = newstyle;
+	gI_Style[client] = newstyle;
 
 	UpdateAutoBhop(client);
 	UpdateAiraccelerate(client);
@@ -728,7 +739,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 		Shavit_PrintToChat(client, "%T", "UnrankedWarning", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
-	int aa_old = RoundToZero(gA_StyleSettings[gBS_Style[client]][fAiraccelerate]);
+	int aa_old = RoundToZero(gA_StyleSettings[gI_Style[client]][fAiraccelerate]);
 	int aa_new = RoundToZero(gA_StyleSettings[style][fAiraccelerate]);
 
 	if(aa_old != aa_new)
@@ -736,7 +747,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 		Shavit_PrintToChat(client, "%T", "NewAiraccelerate", client, aa_old, gS_ChatStrings[sMessageVariable], aa_new, gS_ChatStrings[sMessageText]);
 	}
 
-	CallOnStyleChanged(client, gBS_Style[client], style, manual);
+	CallOnStyleChanged(client, gI_Style[client], style, manual);
 
 	StopTimer(client);
 
@@ -778,7 +789,7 @@ void DoJump(int client)
 	}
 
 	// TF2 doesn't use stamina
-	if(gEV_Type != Engine_TF2 && (gA_StyleSettings[gBS_Style[client]][bEasybhop]) || Shavit_InsideZone(client, Zone_Easybhop, gI_Track[client]))
+	if(gEV_Type != Engine_TF2 && (gA_StyleSettings[gI_Style[client]][bEasybhop]) || Shavit_InsideZone(client, Zone_Easybhop, gI_Track[client]))
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
@@ -795,14 +806,14 @@ void VelocityChanges(int data)
 		return;
 	}
 
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]) != 1.0)
+	if(view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]) != 1.0)
 	{
-		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
+		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
 	}
 
-	if(view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]) != 1.0)
+	if(view_as<float>(gA_StyleSettings[gI_Style[client]][fSpeedMultiplier]) != 1.0)
 	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gI_Style[client]][fSpeedMultiplier]));
 	}
 
 	float fAbsVelocity[3];
@@ -815,9 +826,9 @@ void VelocityChanges(int data)
 		return;
 	}
 
-	float fVelocityMultiplier = view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocity]);
-	float fVelocityBonus = view_as<float>(gA_StyleSettings[gBS_Style[client]][fBonusVelocity]);
-	float fMin = view_as<float>(gA_StyleSettings[gBS_Style[client]][fMinVelocity]);
+	float fVelocityMultiplier = view_as<float>(gA_StyleSettings[gI_Style[client]][fVelocity]);
+	float fVelocityBonus = view_as<float>(gA_StyleSettings[gI_Style[client]][fBonusVelocity]);
+	float fMin = view_as<float>(gA_StyleSettings[gI_Style[client]][fMinVelocity]);
 
 	if(fVelocityMultiplier != 0.0)
 	{
@@ -881,7 +892,7 @@ public int Native_GetTimer(Handle handler, int numParams)
 	// 2 - time
 	SetNativeCellRef(2, gF_PlayerTimer[client]);
 	SetNativeCellRef(3, gI_Jumps[client]);
-	SetNativeCellRef(4, gBS_Style[client]);
+	SetNativeCellRef(4, gI_Style[client]);
 	SetNativeCellRef(5, gB_TimerEnabled[client]);
 }
 
@@ -902,7 +913,7 @@ public int Native_GetClientJumps(Handle handler, int numParams)
 
 public int Native_GetBhopStyle(Handle handler, int numParams)
 {
-	return gBS_Style[GetNativeCell(1)];
+	return gI_Style[GetNativeCell(1)];
 }
 
 public int Native_GetTimerStatus(Handle handler, int numParams)
@@ -940,7 +951,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot[bTimerEnabled] = gB_TimerEnabled[client];
 	snapshot[bClientPaused] = gB_ClientPaused[client];
 	snapshot[iJumps] = gI_Jumps[client];
-	snapshot[bsStyle] = gBS_Style[client];
+	snapshot[bsStyle] = gI_Style[client];
 	snapshot[iStrafes] = gI_Strafes[client];
 	snapshot[iTotalMeasures] = gI_TotalMeasures[client];
 	snapshot[iGoodGains] = gI_GoodGains[client];
@@ -968,11 +979,11 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	if(result == Plugin_Continue)
 	{
-		Call_PushCell(style = gBS_Style[client]);
+		Call_PushCell(style = gI_Style[client]);
 		Call_PushCell(gF_PlayerTimer[client]);
 		Call_PushCell(gI_Jumps[client]);
 		Call_PushCell(gI_Strafes[client]);
-		Call_PushCell((gA_StyleSettings[gBS_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
+		Call_PushCell((gA_StyleSettings[gI_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 		Call_PushCell(track = gI_Track[client]);
 	}
 
@@ -1067,7 +1078,7 @@ public int Native_GetSync(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	return view_as<int>((gA_StyleSettings[gBS_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
+	return view_as<int>((gA_StyleSettings[gI_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 }
 
 public int Native_GetStyleCount(Handle handler, int numParams)
@@ -1117,7 +1128,7 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot[bTimerEnabled] = gB_TimerEnabled[client];
 	snapshot[bClientPaused] = gB_ClientPaused[client];
 	snapshot[iJumps] = gI_Jumps[client];
-	snapshot[bsStyle] = gBS_Style[client];
+	snapshot[bsStyle] = gI_Style[client];
 	snapshot[iStrafes] = gI_Strafes[client];
 	snapshot[iTotalMeasures] = gI_TotalMeasures[client];
 	snapshot[iGoodGains] = gI_GoodGains[client];
@@ -1138,15 +1149,15 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 
 	gI_Track[client] = view_as<int>(snapshot[iTimerTrack]);
 
-	if(gBS_Style[client] != snapshot[bsStyle])
+	if(gI_Style[client] != snapshot[bsStyle])
 	{
-		CallOnStyleChanged(client, gBS_Style[client], snapshot[bsStyle], false);
+		CallOnStyleChanged(client, gI_Style[client], snapshot[bsStyle], false);
 	}
 
 	gB_TimerEnabled[client] = view_as<bool>(snapshot[bTimerEnabled]);
 	gB_ClientPaused[client] = view_as<bool>(snapshot[bClientPaused]);
 	gI_Jumps[client] = view_as<int>(snapshot[iJumps]);
-	gBS_Style[client] = snapshot[bsStyle];
+	gI_Style[client] = snapshot[bsStyle];
 	gI_Strafes[client] = view_as<int>(snapshot[iStrafes]);
 	gI_TotalMeasures[client] = view_as<int>(snapshot[iTotalMeasures]);
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
@@ -1201,7 +1212,7 @@ void StartTimer(int client, int track)
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if(!gB_NoZAxisSpeed || gA_StyleSettings[gBS_Style[client]][bPrespeed] || (fSpeed[2] == 0.0 && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0))
+	if(!gB_NoZAxisSpeed || gA_StyleSettings[gI_Style[client]][bPrespeed] || (fSpeed[2] == 0.0 && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0))
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
@@ -1223,8 +1234,8 @@ void StartTimer(int client, int track)
 			gF_PlayerTimer[client] = 0.0;
 			gB_PracticeMode[client] = false;
 
-			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gBS_Style[client]][fGravityMultiplier]));
-			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gBS_Style[client]][fSpeedMultiplier]));
+			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
+			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gI_Style[client]][fSpeedMultiplier]));
 		}
 
 		else if(result == Plugin_Handled || result == Plugin_Stop)
@@ -1300,16 +1311,17 @@ public void OnClientCookiesCached(int client)
 	}
 
 	gB_Auto[client] = (strlen(sCookie) > 0)? view_as<bool>(StringToInt(sCookie)):true;
-	int style = 0;
 
-	if(gH_StyleCookie != null)
+	int style = gI_DefaultStyle;
+
+	if(gB_StyleCookies && gH_StyleCookie != null)
 	{
 		GetClientCookie(client, gH_StyleCookie, sCookie, 4);
 		style = StringToInt(sCookie);
 	}
 
-	int newstyle = (style >= 0 && style < gI_Styles)? style:0;
-	CallOnStyleChanged(client, gBS_Style[client], newstyle, false);
+	int newstyle = (style >= 0 && style < gI_Styles)? style:gI_DefaultStyle;
+	CallOnStyleChanged(client, gI_Style[client], newstyle, false);
 }
 
 public void OnClientPutInServer(int client)
@@ -1335,7 +1347,7 @@ public void OnClientPutInServer(int client)
 
 	else
 	{
-		CallOnStyleChanged(client, 0, 0, false);
+		CallOnStyleChanged(client, 0, gI_DefaultStyle, false);
 	}
 
 	if(gH_SQL == null)
@@ -1759,11 +1771,11 @@ public void PreThinkPost(int client)
 {
 	if(IsPlayerAlive(client))
 	{
-		sv_airaccelerate.FloatValue = view_as<float>(gA_StyleSettings[gBS_Style[client]][fAiraccelerate]);
+		sv_airaccelerate.FloatValue = view_as<float>(gA_StyleSettings[gI_Style[client]][fAiraccelerate]);
 
 		if(sv_enablebunnyhopping != null)
 		{
-			sv_enablebunnyhopping.BoolValue = view_as<bool>(gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping]);
+			sv_enablebunnyhopping.BoolValue = view_as<bool>(gA_StyleSettings[gI_Style[client]][bEnableBunnyhopping]);
 		}
 	}
 }
@@ -1781,7 +1793,7 @@ public void OnGameFrame()
 
 		float time = frametime;
 
-		if(gA_StyleSettings[gBS_Style[i]][bHalftime])
+		if(gA_StyleSettings[gI_Style[i]][bHalftime])
 		{
 			time /= 2.0;
 		}
@@ -1790,7 +1802,7 @@ public void OnGameFrame()
 		snapshot[bTimerEnabled] = gB_TimerEnabled[i];
 		snapshot[bClientPaused] = gB_ClientPaused[i];
 		snapshot[iJumps] = gI_Jumps[i];
-		snapshot[bsStyle] = gBS_Style[i];
+		snapshot[bsStyle] = gI_Style[i];
 		snapshot[iStrafes] = gI_Strafes[i];
 		snapshot[iTotalMeasures] = gI_TotalMeasures[i];
 		snapshot[iGoodGains] = gI_GoodGains[i];
@@ -1803,7 +1815,7 @@ public void OnGameFrame()
 		Call_PushCell(i);
 		Call_PushArray(snapshot, TIMERSNAPSHOT_SIZE);
 		Call_PushCellRef(time);
-		Call_PushArray(gA_StyleSettings[gBS_Style[i]], STYLESETTINGS_SIZE);
+		Call_PushArray(gA_StyleSettings[gI_Style[i]], STYLESETTINGS_SIZE);
 		Call_Finish();
 
 		gF_PlayerTimer[i] += time;
@@ -1811,7 +1823,7 @@ public void OnGameFrame()
 		Call_StartForward(gH_Forwards_OnTimerIncrementPost);
 		Call_PushCell(i);
 		Call_PushCell(time);
-		Call_PushArray(gA_StyleSettings[gBS_Style[i]], STYLESETTINGS_SIZE);
+		Call_PushArray(gA_StyleSettings[gI_Style[i]], STYLESETTINGS_SIZE);
 		Call_Finish();
 	}
 }
@@ -1846,8 +1858,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	Call_PushArrayEx(angles, 3, SM_PARAM_COPYBACK);
 	Call_PushCell(GetTimerStatus(client));
 	Call_PushCell(gI_Track[client]);
-	Call_PushCell(gBS_Style[client]);
-	Call_PushArray(gA_StyleSettings[gBS_Style[client]], STYLESETTINGS_SIZE);
+	Call_PushCell(gI_Style[client]);
+	Call_PushArray(gA_StyleSettings[gI_Style[client]], STYLESETTINGS_SIZE);
 	Call_PushArrayEx(mouse, 2, SM_PARAM_COPYBACK);
 	Call_Finish(result);
 	
@@ -1864,21 +1876,21 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		char[] sCheatDetected = new char[64];
 
 		// +left/right block
-		if(!gB_Zones || (!bInStart && ((gA_StyleSettings[gBS_Style[client]][bBlockPLeft] &&
-			(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gBS_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
+		if(!gB_Zones || (!bInStart && ((gA_StyleSettings[gI_Style[client]][bBlockPLeft] &&
+			(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gI_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
 		{
 			FormatEx(sCheatDetected, 64, "%T", "LeftRightCheat", client);
 			StopTimer_Cheat(client, sCheatDetected);
 		}
 
 		// +strafe block
-		if(gA_StyleSettings[gBS_Style[client]][iBlockPStrafe] > 0 &&
+		if(gA_StyleSettings[gI_Style[client]][iBlockPStrafe] > 0 &&
 			((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) ||
 			(vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0)))
 		{
 			if(gF_StrafeWarning[client] < gF_PlayerTimer[client])
 			{
-				if(gA_StyleSettings[gBS_Style[client]][iBlockPStrafe] >= 2)
+				if(gA_StyleSettings[gI_Style[client]][iBlockPStrafe] >= 2)
 				{
 					FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
 					StopTimer_Cheat(client, sCheatDetected);
@@ -1911,32 +1923,32 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(!bOnLadder && !Shavit_InsideZone(client, Zone_Freestyle, -1))
 	{
 		// block E
-		if(gA_StyleSettings[gBS_Style[client]][bBlockUse] && (buttons & IN_USE) > 0)
+		if(gA_StyleSettings[gI_Style[client]][bBlockUse] && (buttons & IN_USE) > 0)
 		{
 			buttons &= ~IN_USE;
 		}
 
 		if(iGroundEntity == -1)
 		{
-			if(gA_StyleSettings[gBS_Style[client]][bBlockW] && ((buttons & IN_FORWARD) > 0 || vel[0] > 0.0))
+			if(gA_StyleSettings[gI_Style[client]][bBlockW] && ((buttons & IN_FORWARD) > 0 || vel[0] > 0.0))
 			{
 				vel[0] = 0.0;
 				buttons &= ~IN_FORWARD;
 			}
 
-			if(gA_StyleSettings[gBS_Style[client]][bBlockA] && ((buttons & IN_MOVELEFT) > 0 || vel[1] < 0.0))
+			if(gA_StyleSettings[gI_Style[client]][bBlockA] && ((buttons & IN_MOVELEFT) > 0 || vel[1] < 0.0))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;
 			}
 
-			if(gA_StyleSettings[gBS_Style[client]][bBlockS] && ((buttons & IN_BACK) > 0 || vel[0] < 0.0))
+			if(gA_StyleSettings[gI_Style[client]][bBlockS] && ((buttons & IN_BACK) > 0 || vel[0] < 0.0))
 			{
 				vel[0] = 0.0;
 				buttons &= ~IN_BACK;
 			}
 
-			if(gA_StyleSettings[gBS_Style[client]][bBlockD] && ((buttons & IN_MOVERIGHT) > 0 || vel[1] > 0.0))
+			if(gA_StyleSettings[gI_Style[client]][bBlockD] && ((buttons & IN_MOVERIGHT) > 0 || vel[1] > 0.0))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVERIGHT;
@@ -1946,9 +1958,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			// Theory about blocking non-HSW strafes while playing HSW:
 			// Block S and W without A or D.
 			// Block A and D without S or W.
-			if(gA_StyleSettings[gBS_Style[client]][iForceHSW] > 0)
+			if(gA_StyleSettings[gI_Style[client]][iForceHSW] > 0)
 			{
-				bool bSHSW = (gA_StyleSettings[gBS_Style[client]][iForceHSW] == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
+				bool bSHSW = (gA_StyleSettings[gI_Style[client]][iForceHSW] == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
 				int iCombination = -1;
 
 				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] >= 100.0);
@@ -2021,26 +2033,26 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountW] && !gA_StyleSettings[gBS_Style[client]][bBlockW] &&
+	if(gA_StyleSettings[gI_Style[client]][bStrafeCountW] && !gA_StyleSettings[gI_Style[client]][bBlockW] &&
 		(gI_ButtonCache[client] & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountA] && !gA_StyleSettings[gBS_Style[client]][bBlockA] && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 &&
-		(buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gBS_Style[client]][iForceHSW] > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	if(gA_StyleSettings[gI_Style[client]][bStrafeCountA] && !gA_StyleSettings[gI_Style[client]][bBlockA] && (gI_ButtonCache[client] & IN_MOVELEFT) == 0 &&
+		(buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gI_Style[client]][iForceHSW] > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountS] && !gA_StyleSettings[gBS_Style[client]][bBlockS] &&
+	if(gA_StyleSettings[gI_Style[client]][bStrafeCountS] && !gA_StyleSettings[gI_Style[client]][bBlockS] &&
 		(gI_ButtonCache[client] & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
 	{
 		gI_Strafes[client]++;
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bStrafeCountD] && !gA_StyleSettings[gBS_Style[client]][bBlockD] && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 &&
-		(buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gBS_Style[client]][iForceHSW] > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	if(gA_StyleSettings[gI_Style[client]][bStrafeCountD] && !gA_StyleSettings[gI_Style[client]][bBlockD] && (gI_ButtonCache[client] & IN_MOVERIGHT) == 0 &&
+		(buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gI_Style[client]][iForceHSW] > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gI_Strafes[client]++;
 	}
@@ -2048,7 +2060,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
 
 	// enable duck-jumping/bhop in tf2
-	if(gEV_Type == Engine_TF2 && gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping] && (buttons & IN_JUMP) > 0 && iGroundEntity != -1)
+	if(gEV_Type == Engine_TF2 && gA_StyleSettings[gI_Style[client]][bEnableBunnyhopping] && (buttons & IN_JUMP) > 0 && iGroundEntity != -1)
 	{
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
@@ -2057,7 +2069,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 	}
 
-	if(gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Auto[client] && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
+	if(gA_StyleSettings[gI_Style[client]][bAutobhop] && gB_Auto[client] && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
 	{
 		int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
 		SetEntProp(client, Prop_Data, "m_nOldButtons", iOldButtons & ~IN_JUMP);
@@ -2068,14 +2080,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		buttons |= IN_JUMP;
 	}
 
-	if(bInStart && gB_BlockPreJump && !gA_StyleSettings[gBS_Style[client]][bPrespeed] && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
+	if(bInStart && gB_BlockPreJump && !gA_StyleSettings[gI_Style[client]][bPrespeed] && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
 	{
 		vel[2] = 0.0;
 		buttons &= ~IN_JUMP;
 	}
 
 	// velocity limit
-	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit] > 0.0) &&
+	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gI_Style[client]][fVelocityLimit] > 0.0) &&
 		(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit, -1)))
 	{
 		float fSpeed[3];
@@ -2085,7 +2097,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 		if(fSpeed_New > 0.0)
 		{
-			float fScale = view_as<float>(gA_StyleSettings[gBS_Style[client]][fVelocityLimit]) / fSpeed_New;
+			float fScale = view_as<float>(gA_StyleSettings[gI_Style[client]][fVelocityLimit]) / fSpeed_New;
 
 			if(fScale < 1.0)
 			{
@@ -2169,14 +2181,14 @@ void UpdateAutoBhop(int client)
 {
 	if(sv_autobunnyhopping != null)
 	{
-		sv_autobunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gBS_Style[client]][bAutobhop] && gB_Auto[client])? "1":"0");
+		sv_autobunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gI_Style[client]][bAutobhop] && gB_Auto[client])? "1":"0");
 	}
 }
 
 void UpdateAiraccelerate(int client)
 {
 	char[] sAiraccelerate = new char[8];
-	FloatToString(gA_StyleSettings[gBS_Style[client]][fAiraccelerate], sAiraccelerate, 8);
+	FloatToString(gA_StyleSettings[gI_Style[client]][fAiraccelerate], sAiraccelerate, 8);
 	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
 }
 
@@ -2184,6 +2196,6 @@ void UpdateBunnyhopping(int client)
 {
 	if(sv_enablebunnyhopping != null)
 	{
-		sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gBS_Style[client]][bEnableBunnyhopping])? "1":"0");
+		sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gI_Style[client]][bEnableBunnyhopping])? "1":"0");
 	}
 }

@@ -989,6 +989,11 @@ public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, co
 
 void ClearCustomSpawn()
 {
+	if(Shavit_IsKZMap())
+	{
+		return;
+	}
+
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
 		for(int j = 0; j < 3; j++)
@@ -1305,7 +1310,6 @@ public Action Command_DeleteAllZones(int client, int args)
 	}
 
 	menu.ExitButton = true;
-
 	menu.Display(client, 20);
 
 	return Plugin_Handled;

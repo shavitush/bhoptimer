@@ -3,5 +3,6 @@
 *.dll
 *.so
 
-# Atom
+# editors
 *.atom-build.json
+.vscode/tasks.json
