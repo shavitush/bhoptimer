@@ -1101,6 +1101,8 @@ native StringMap Shavit_GetMapTiers();
 /**
  * Retrieves style access for a player.
  *
+ * @param client					Client index.
+ * @param style						Style.
  * @return							Boolean value.
  */
 native bool Shavit_HasStyleAccess(int client, int style);
