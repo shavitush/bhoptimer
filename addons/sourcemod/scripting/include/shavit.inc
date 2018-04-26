@@ -81,6 +81,7 @@ enum
 	sChangeCommand,
 	sClanTag,
 	sSpecialString,
+	sStylePermission,
 	STYLESTRINGS_SIZE
 };
 
@@ -1098,6 +1099,13 @@ native int Shavit_GetMapTier(const char[] map);
 native StringMap Shavit_GetMapTiers();
 
 /**
+ * Retrieves style access for a player.
+ *
+ * @return							Boolean value.
+ */
+native bool Shavit_HasStyleAccess(int client, int style);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -1191,6 +1199,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRTime");
+	MarkNativeAsOptional("Shavit_HasStyleAccess");
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_IsKZMap");
