@@ -44,7 +44,9 @@ public void OnPluginStart() {
 	gCV_WorldDamage.AddChangeHook(OnConVarChanged);
 	gCV_FragsOnEvents.AddChangeHook(OnConVarChanged);
 	gCV_AutoRespawn.AddChangeHook(OnConVarChanged);
+	gCV_AutoRespawn_Time.AddChangeHook(OnConVarChanged);
 	gCV_SlayOnFinish.AddChangeHook(OnConVarChanged);
+	gCV_SlayOnFinish_Time.AddChangeHook(OnConVarChanged);
 	gCV_HideDeaths.AddChangeHook(OnConVarChanged);
 	AutoExecConfig(true);
 	// Events Hooks
