@@ -291,7 +291,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * @param client					Client index.
  * @param buttons					Buttons sent in the usercmd.
  * @param impulse					Impulse sent in the usercmd.
- * @param vel						A vector that contain's the player's desired movement. vel[0] is forwardmove, vel[1] is sidemove.
+ * @param vel						A vector that contains the player's desired movement. vel[0] is forwardmove, vel[1] is sidemove.
  * @param angles					The player's requested viewangles. They will not necessarily be applied as SRCDS itself won't accept every value.
  * @param status					The player's timer status.
  * @param track						The player's timer track.
@@ -491,7 +491,7 @@ forward void Shavit_OnChatConfigLoaded();
  * @param type						Zone type.
  * @param track						Zone track.
  * @param id						Zone ID. 0 for native zones.
- * @param entity					Zone entity iD.
+ * @param entity					Zone trigger entity index.
  * @noreturn
  */
 forward void Shavit_OnEnterZone(int client, int type, int track, int id, int entity);
@@ -503,7 +503,7 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
  * @param type						Zone type.
  * @param track						Zone track.
  * @param id						Zone ID. 0 for native zones.
- * @param entity					Zone entity iD.
+ * @param entity					Zone trigger entity index.
  * @noreturn
  */
 forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity);
@@ -983,7 +983,7 @@ native int Shavit_GetHUDSettings(int client);
  * Intended to be used by checkpoints.
  *
  * @param client					Client index.
- * @param practice					Enable or disable practice modce.
+ * @param practice					Enable or disable practice mode.
  * @param alert						Alert the client about practice mode?
  * @noreturn
  */
