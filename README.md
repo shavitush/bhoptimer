@@ -30,6 +30,6 @@ Including a records system, map zones (start/end marks etc), bonuses, HUD with u
 Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installation).
 
 # Required plugins:
-`shavit-core` - compeletely required.  
-`shavit-zones` - compeletely required.  
+`shavit-core` - completely required.  
+`shavit-zones` - completely required.  
 `shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-rankings` and `shavit-sounds`.

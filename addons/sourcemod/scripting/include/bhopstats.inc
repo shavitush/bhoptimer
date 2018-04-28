@@ -37,7 +37,7 @@ enum CheatType(+=1)
  *
  * @param client					Client index.
  * @param onground					True if the jump key will do anything for the player when tapped.
- * @param perfcct					Was the jump perfectly timed?
+ * @param perfect					Was the jump perfectly timed?
  * @noreturn
  */
 forward void Bunnyhop_OnJumpPressed(int client, bool onground, bool perfect);
