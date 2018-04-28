@@ -182,12 +182,8 @@ public void OnMapStart()
 				gSM_RankSounds.SetString(sRank, sExploded[1]);
 			}
 
-			// thanks TotallyMehis for this workaround
-			// make sure to star his amazing StandUp plugin! https://github.com/TotallyMehis/StandUp
-			if(gEV_Type == Engine_CSGO || PrecacheSound(sExploded[1]))
+			if(PrecacheSoundAny(sExploded[1]))
 			{
-				PrefetchSound(sExploded[1]);
-
 				FormatEx(sDownloadString, PLATFORM_MAX_PATH, "sound/%s", sExploded[1]);
 				AddFileToDownloadsTable(sDownloadString);
 			}
@@ -200,6 +196,28 @@ public void OnMapStart()
 	}
 
 	delete fFile;
+}
+
+bool PrecacheSoundAny(const char[] path)
+{
+	if(gEV_Type == Engine_CSGO)
+	{
+		char[] sCSGOPath = new char[PLATFORM_MAX_PATH];
+		FormatEx(sCSGOPath, PLATFORM_MAX_PATH, "*%s", path);
+
+		static int table = INVALID_STRING_TABLE;
+
+		if(table == INVALID_STRING_TABLE)
+		{
+			table = FindStringTable("soundprecache");
+		}
+
+		AddToStringTable(table, sCSGOPath);
+
+		return true;
+	}
+
+	return PrecacheSound(path, true);
 }
 
 public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
@@ -255,7 +273,7 @@ public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, i
 	}
 }
 
-void PlayEventSound(int client, bool everyone, const char[] sound)
+void PlayEventSound(int client, bool everyone, char[] sound)
 {
 	int[] clients = new int[MaxClients];
 	int count = 0;
@@ -287,18 +305,9 @@ void PlayEventSound(int client, bool everyone, const char[] sound)
 	{
 		if(gEV_Type == Engine_CSGO)
 		{
-			char[] sPlay = new char[PLATFORM_MAX_PATH+8];
-			FormatEx(sPlay, PLATFORM_MAX_PATH+8, "play */%s", sound);
-
-			for(int i = 0; i < count; i++)
-			{
-				ClientCommand(clients[i], sPlay);
-			}
+			Format(sound, PLATFORM_MAX_PATH, "*%s", sound);
 		}
 
-		else
-		{
-			EmitSound(clients, count, sound);
-		}
+		EmitSound(clients, count, sound);
 	}
 }
