@@ -60,6 +60,12 @@ enum
 	REPLAYSTRINGS_SIZE
 };
 
+enum
+{
+	iBotShooting_Attack1 = (1 << 0),
+	iBotShooting_Attack2 = (1 << 1)
+}
+
 // game type
 EngineVersion gEV_Type = Engine_Unknown;
 
@@ -101,6 +107,7 @@ ConVar gCV_ReplayDelay = null;
 ConVar gCV_TimeLimit = null;
 ConVar gCV_DefaultTeam = null;
 ConVar gCV_CentralBot = null;
+ConVar gCV_BotShooting = null;
 
 // cached cvars
 bool gB_Enabled = true;
@@ -108,6 +115,7 @@ float gF_ReplayDelay = 5.0;
 float gF_TimeLimit = 5400.0;
 int gI_DefaultTeam = 3;
 bool gB_CentralBot = true;
+int gI_BotShooting = 3;
 
 // timer settings
 int gI_Styles = 0;
@@ -196,12 +204,14 @@ public void OnPluginStart()
 	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
 	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
 	gCV_CentralBot = CreateConVar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_BotShooting = CreateConVar("shavit_replay_botshooting", "3", "Attacking buttons to allow for bots.\n0 - none\1 - +attack\n2 - +attack2\n3 - both", 0, true, 0.0, true, 3.0);
 
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
 	gCV_ReplayDelay.AddChangeHook(OnConVarChanged);
 	gCV_TimeLimit.AddChangeHook(OnConVarChanged);
 	gCV_DefaultTeam.AddChangeHook(OnConVarChanged);
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
+	gCV_BotShooting.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -231,6 +241,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gF_TimeLimit = gCV_TimeLimit.FloatValue;
 	gI_DefaultTeam = gCV_DefaultTeam.IntValue;
 	gB_CentralBot = gCV_CentralBot.BoolValue;
+	gI_BotShooting = gCV_BotShooting.IntValue;
 
 	if(convar == gCV_CentralBot)
 	{
@@ -1460,6 +1471,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			vecAngles[1] = gA_Frames[style][track].Get(gI_ReplayTick[style], 4);
 
 			buttons = gA_Frames[style][track].Get(gI_ReplayTick[style], 5);
+
+			if((gI_BotShooting & iBotShooting_Attack1) == 0)
+			{
+				buttons &= ~IN_ATTACK;
+			}
+
+			if((gI_BotShooting & iBotShooting_Attack2) == 0)
+			{
+				buttons &= ~IN_ATTACK2;
+			}
 
 			MoveType mt = MOVETYPE_NOCLIP;
 
