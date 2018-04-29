@@ -103,7 +103,7 @@
 	}
 	"ZoneDeleteAllSuccessful"
 	{
-		"en"		"Deleted all map zones succesfully"
+		"en"		"Deleted all map zones successfully"
 	}
 	"ZoneFirst"
 	{
