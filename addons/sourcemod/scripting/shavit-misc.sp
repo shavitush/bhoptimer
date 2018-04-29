@@ -511,18 +511,15 @@ public void OnMapStart()
 	if(gI_CreateSpawnPoints > 0)
 	{
 		int iEntity = -1;
-		float fOrigin[3];
 
-		if((iEntity = FindEntityByClassname(iEntity, "info_player_terrorist")) != INVALID_ENT_REFERENCE || // CS:S/CS:GO T
-			(iEntity = FindEntityByClassname(iEntity, "info_player_counterterrorist")) != INVALID_ENT_REFERENCE || // CS:S/CS:GO CT
-			(iEntity = FindEntityByClassname(iEntity, "info_player_teamspawn")) != INVALID_ENT_REFERENCE || // TF2 spawn point
-			(iEntity = FindEntityByClassname(iEntity, "info_player_start")) != INVALID_ENT_REFERENCE)
+		if((iEntity = FindEntityByClassname(iEntity, "info_player_terrorist")) != -1 || // CS:S/CS:GO T
+			(iEntity = FindEntityByClassname(iEntity, "info_player_counterterrorist")) != -1 || // CS:S/CS:GO CT
+			(iEntity = FindEntityByClassname(iEntity, "info_player_teamspawn")) != -1 || // TF2 spawn point
+			(iEntity = FindEntityByClassname(iEntity, "info_player_start")) != -1)
 		{
+			float fOrigin[3];
 			GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", fOrigin);
-		}
 
-		if(iEntity != -1)
-		{
 			for(int i = 1; i <= gI_CreateSpawnPoints; i++)
 			{
 				for(int iTeam = 1; iTeam <= 2; iTeam++)

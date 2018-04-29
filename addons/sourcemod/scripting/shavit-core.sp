@@ -134,6 +134,10 @@ bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
 
+// flags
+int gI_StyleFlag[STYLE_LIMIT];
+char gS_StyleOverride[STYLE_LIMIT][32];
+
 // kz support
 bool gB_KZMap = false;
 
@@ -164,6 +168,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
+	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
 	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
 	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
 	CreateNative("Shavit_LoadSnapshot", Native_LoadSnapshot);
@@ -660,7 +665,7 @@ public Action Command_Style(int client, int args)
 			}
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gI_Style[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+		menu.AddItem(sInfo, sDisplay, (gI_Style[client] == i || !Shavit_HasStyleAccess(client, i))? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	// should NEVER happen
@@ -726,6 +731,16 @@ void ChangeClientStyle(int client, int style, bool manual)
 {
 	if(!IsValidClient(client))
 	{
+		return;
+	}
+
+	if(!Shavit_HasStyleAccess(client, style))
+	{
+		if(manual)
+		{
+			Shavit_PrintToChat(client, "%T", "StyleNoAccess", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		}
+
 		return;
 	}
 
@@ -919,6 +934,13 @@ public int Native_GetBhopStyle(Handle handler, int numParams)
 public int Native_GetTimerStatus(Handle handler, int numParams)
 {
 	return GetTimerStatus(GetNativeCell(1));
+}
+
+public int Native_HasStyleAccess(Handle handler, int numParams)
+{
+	int style = GetNativeCell(2);
+
+	return CheckCommandAccess(GetNativeCell(1), (strlen(gS_StyleOverride[style]) > 0)? gS_StyleOverride[style]:"<none>", gI_StyleFlag[style]);
 }
 
 public int Native_IsKZMap(Handle handler, int numParams)
@@ -1149,7 +1171,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 
 	gI_Track[client] = view_as<int>(snapshot[iTimerTrack]);
 
-	if(gI_Style[client] != snapshot[bsStyle])
+	if(gI_Style[client] != snapshot[bsStyle] && Shavit_HasStyleAccess(client, snapshot[bsStyle]))
 	{
 		CallOnStyleChanged(client, gI_Style[client], snapshot[bsStyle], false);
 	}
@@ -1321,7 +1343,11 @@ public void OnClientCookiesCached(int client)
 	}
 
 	int newstyle = (style >= 0 && style < gI_Styles)? style:gI_DefaultStyle;
-	CallOnStyleChanged(client, gI_Style[client], newstyle, false);
+
+	if(Shavit_HasStyleAccess(client, newstyle))
+	{
+		CallOnStyleChanged(client, gI_Style[client], newstyle, false);
+	}
 }
 
 public void OnClientPutInServer(int client)
@@ -1345,6 +1371,7 @@ public void OnClientPutInServer(int client)
 		OnClientCookiesCached(client);
 	}
 
+	// not adding style permission check here for obvious reasons
 	else
 	{
 		CallOnStyleChanged(client, 0, gI_DefaultStyle, false);
@@ -1445,6 +1472,7 @@ bool LoadStyles()
 		kv.GetString("command", gS_StyleStrings[i][sChangeCommand], 128, "");
 		kv.GetString("clantag", gS_StyleStrings[i][sClanTag], 128, "<MISSING STYLE CLAN TAG>");
 		kv.GetString("specialstring", gS_StyleStrings[i][sSpecialString], 128, "");
+		kv.GetString("permission", gS_StyleStrings[i][sStylePermission], 128, "");
 
 		gA_StyleSettings[i][bAutobhop] = view_as<bool>(kv.GetNum("autobhop", 1));
 		gA_StyleSettings[i][bEasybhop] = view_as<bool>(kv.GetNum("easybhop", 1));
@@ -1498,6 +1526,21 @@ bool LoadStyles()
 
 				RegConsoleCmd(sCommand, Command_StyleChange, sDescription);
 			}
+		}
+
+		if(StrContains(gS_StyleStrings[i][sStylePermission], ";") != -1)
+		{
+			char[][] sText = new char[2][32];
+			int iCount = ExplodeString(gS_StyleStrings[i][sStylePermission], ";", sText, 2, 32);
+
+			AdminFlag flag = Admin_Reservation;
+
+			if(FindFlagByChar(sText[0][0], flag))
+			{
+				gI_StyleFlag[i] = FlagToBit(flag);
+			}
+
+			strcopy(gS_StyleOverride[i], 32, (iCount >= 2)? sText[1]:"");
 		}
 
 		i++;

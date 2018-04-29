@@ -21,6 +21,11 @@
 		"#format" 	"{1:s},{2:s},{3:s}"
 		"en"		"The command ({1}{2}{3}) is disabled."
 	}
+	"StyleNoAccess"
+	{
+		"#format" 	"{1:s},{2:s}"
+		"en"		"You lack the {1}permissions{2} for this style."
+	}
 	// ---------- Errors ---------- //
 	"VerificationFailed"
 	{

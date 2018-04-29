@@ -806,7 +806,7 @@ void UpdatePlayerRank(int client)
 		// if there's any issue with this query,
 		// add "ORDER BY points DESC " before "LIMIT 1"
 		char[] sQuery = new char[512];
-		FormatEx(sQuery, 512, "SELECT COUNT(*) rank, p.points FROM %susers u JOIN (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) p WHERE u.points >= p.points LIMIT 1;",
+		FormatEx(sQuery, 512, "SELECT p.points, COUNT(*) rank FROM %susers u JOIN (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) p WHERE u.points >= p.points LIMIT 1;",
 			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
 		gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
@@ -831,8 +831,8 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 
 	if(results.FetchRow())
 	{
-		gI_Rank[client] = results.FetchInt(0);
-		gF_Points[client] = results.FetchFloat(1);
+		gF_Points[client] = results.FetchFloat(0);
+		gI_Rank[client] = (gF_Points[client] > 0.0)? results.FetchInt(1):0;
 	}
 }
 

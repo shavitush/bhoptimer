@@ -112,6 +112,7 @@ Handle gH_AdminMenu = INVALID_HANDLE;
 
 // misc cache
 bool gB_Late = false;
+ConVar sv_gravity = null;
 
 // cvars
 ConVar gCV_FlatZones = null;
@@ -250,6 +251,9 @@ public void OnPluginStart()
 	gCV_EnforceTracks.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
+
+	// misc cvars
+	sv_gravity = FindConVar("sv_gravity");
 
 	for(int i = 0; i < ZONETYPES_SIZE; i++)
 	{
@@ -1656,19 +1660,19 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 	if(InsideZone(client, Zone_Slide, (gB_EnforceTracks)? track:-1) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
 	{
-		// raytrace down, see if there's 5 distance or less to ground
+		// trace down, see if there's 8 distance or less to ground
 		float fPosition[3];
 		GetClientAbsOrigin(client, fPosition);
 		TR_TraceRayFilter(fPosition, view_as<float>({90.0, 0.0, 0.0}), MASK_PLAYERSOLID, RayType_Infinite, TRFilter_NoPlayers, client);
 
 		float fGroundPosition[3];
 
-		if(TR_DidHit() && TR_GetEndPosition(fGroundPosition) && GetVectorDistance(fPosition, fGroundPosition) <= 5.0)
+		if(TR_DidHit() && TR_GetEndPosition(fGroundPosition) && GetVectorDistance(fPosition, fGroundPosition) <= 8.0)
 		{
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
-			fSpeed[2] = 5.0;
+			fSpeed[2] = 8.0 * GetEntityGravity(client) * GetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue") * (sv_gravity.FloatValue / 800);
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
 		}
 	}
