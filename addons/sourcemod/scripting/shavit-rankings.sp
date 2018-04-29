@@ -22,7 +22,7 @@
 // Rank 1 per map/style/track gets ((points per tier * tier) * 1.5) + (rank 1 time in seconds / 15.0) points.
 // Records below rank 1 get points% relative to their time in comparison to rank 1.
 //
-// Bonus track gets a 0.25* final mutliplier for points and is treated as tier 1.
+// Bonus track gets a 0.25* final multiplier for points and is treated as tier 1.
 //
 // Points for all styles are combined to promote competitive and fair gameplay.
 // A player that gets good times at all styles should be ranked high.
