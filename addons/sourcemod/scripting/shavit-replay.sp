@@ -1567,6 +1567,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][0], 3);
 			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][1], 4);
+
+			gB_HijackFrame[client] = false;
 		}
 
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
