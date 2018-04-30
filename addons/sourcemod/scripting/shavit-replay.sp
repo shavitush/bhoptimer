@@ -378,6 +378,11 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	delete frames;
 
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
+
+	if(gI_PlayerFrames[client] > 0)
+	{
+		gB_Record[client] = true;
+	}
 }
 
 public int Native_GetReplayData(Handle handler, int numParams)
