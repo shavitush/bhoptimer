@@ -100,6 +100,8 @@ any gA_CentralCache[CENTRALBOTCACHE_SIZE];
 // how do i call this
 bool gB_HideNameChange = false;
 bool gB_DontCallTimer = false;
+bool gB_HijackFrame[MAXPLAYERS+1];
+float gF_HijackedAngles[MAXPLAYERS+1][2];
 
 // plugin cvars
 ConVar gCV_Enabled = null;
@@ -154,6 +156,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
 	CreateNative("Shavit_GetReplayTime", Native_GetReplayTime);
+	CreateNative("Shavit_HijackAngles", Native_HijackAngles);
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
 	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
@@ -431,6 +434,15 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 	}
 
 	return view_as<int>(float(gI_ReplayTick[style]) / gF_Tickrate);
+}
+
+public int Native_HijackAngles(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	gB_HijackFrame[client] = true;
+	gF_HijackedAngles[client][0] = view_as<float>(GetNativeCell(2));
+	gF_HijackedAngles[client][1] = view_as<float>(GetNativeCell(3));
 }
 
 public int Native_GetReplayBotStyle(Handle handler, int numParams)
@@ -1545,8 +1557,17 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
 
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+		if(!gB_HijackFrame[client])
+		{
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+		}
+
+		else
+		{
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][0], 3);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][1], 4);
+		}
 
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityFlags(client), 6);

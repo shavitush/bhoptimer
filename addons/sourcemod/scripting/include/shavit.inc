@@ -872,6 +872,17 @@ native float Shavit_GetReplayTime(int style, int track);
 native void Shavit_GetReplayName(int style, int track, char[] buffer, int length);
 
 /**
+ * Hijack the replay data so that this view angle will be used for the next tick.
+ * Use case is to make segmented runs look smoother.
+ *
+ * @param client					Client index.
+ * @param pitch						Vertical view angle.
+ * @param yaw						Horizontal view angle.
+ * @noreturn
+ */
+native void Shavit_HijackAngles(int client, float pitch, float yaw);
+
+/**
  * Checks if there's loaded replay data for a bhop style or not.
  *
  * @param style						Style.
@@ -1202,6 +1213,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRTime");
 	MarkNativeAsOptional("Shavit_HasStyleAccess");
+	MarkNativeAsOptional("Shavit_HijackAngles");
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_IsKZMap");
