@@ -1441,12 +1441,16 @@ public Action Command_Save(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gB_Checkpoints)
+	bool bSegmented = CanSegment(client);
+
+	if(!gB_Checkpoints && !bSegmented)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
+
+	int iMaxCPs = GetMaxCPs(client);
 	
 	if(args > 0)
 	{
@@ -1457,7 +1461,7 @@ public Action Command_Save(int client, int args)
 
 		int parsed = StringToInt(arg);
 
-		if(parsed > 0 && parsed <= CP_MAX)
+		if(parsed > 0 && parsed <= iMaxCPs)
 		{
 			index = (parsed - 1);
 		}
@@ -1472,7 +1476,7 @@ public Action Command_Save(int client, int args)
 	{
 		bool bSaved = false;
 
-		if(gI_CheckpointsCache[client][iCheckpoints] < CP_MAX)
+		if(gI_CheckpointsCache[client][iCheckpoints] < iMaxCPs)
 		{
 			if((bSaved = SaveCheckpoint(client, gI_CheckpointsCache[client][iCheckpoints])))
 			{
@@ -1480,9 +1484,9 @@ public Action Command_Save(int client, int args)
 			}
 		}
 
-		else if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
+		else if((bSaved = SaveCheckpoint(client, (iMaxCPs - 1), true)))
 		{
-			gI_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
+			gI_CheckpointsCache[client][iCurrentCheckpoint] = iMaxCPs;
 		}
 
 		if(bSaved)
@@ -1710,6 +1714,18 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		return false;
 	}
 
+	char[] sKey = new char[32];
+	int iSerial = GetClientSerial(client);
+	FormatEx(sKey, 32, "%d_%d", iSerial, index);
+
+	CheckpointsCache cpcacheprev[PCPCACHE_SIZE];
+
+	if(gSM_Checkpoints.GetArray(sKey, cpcacheprev[0], view_as<int>(PCPCACHE_SIZE)))
+	{
+		delete cpcacheprev[aCPFrames];
+		gSM_Checkpoints.SetArray(sKey, cpcacheprev[0], view_as<int>(PCPCACHE_SIZE));
+	}
+
 	CheckpointsCache cpcache[PCPCACHE_SIZE];
 	float temp[3];
 
@@ -1800,10 +1816,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 	if(overflow)
 	{
-		int iSerial = GetClientSerial(client);
 		int iMaxCPs = GetMaxCPs(client);
-
-		char[] sKey = new char[32];
 
 		for(int i = 0; i < iMaxCPs; i++)
 		{
