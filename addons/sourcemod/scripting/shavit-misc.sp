@@ -66,7 +66,7 @@ enum CheckpointsCache
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
 
 #define CP_MAX					1000 // shouldn't even reach 1k jumps on any map when routing anyways
-#define CP_MAX_SEGMENTED		25
+#define CP_MAX_SEGMENTED		10
 
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
