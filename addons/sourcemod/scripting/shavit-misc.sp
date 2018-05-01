@@ -1945,11 +1945,19 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if(cpcache[bCPSegmented] && gB_Replay)
 	{
-		Shavit_SetReplayData(client, cpcache[aCPFrames]);
-
-		if((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)
+		if(cpcache[aCPFrames] == null)
 		{
-			Shavit_HijackAngles(client, ang[0], ang[1]);
+			LogError("SetReplayData for %L failed, recorded frames are null.", client);
+		}
+
+		else
+		{
+			Shavit_SetReplayData(client, cpcache[aCPFrames]);
+
+			if((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)
+			{
+				Shavit_HijackAngles(client, ang[0], ang[1]);
+			}
 		}
 	}
 	
