@@ -374,6 +374,7 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 
 	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2), handler));
+	delete gA_PlayerFrames[client];
 	gA_PlayerFrames[client] = frames.Clone();
 	delete frames;
 
