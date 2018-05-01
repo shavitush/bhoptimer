@@ -1583,14 +1583,17 @@ public Action OpenCheckpointsMenu(int client, int item)
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
 	menu.AddItem("reset", sDisplay);
 
-	char[] sInfo = new char[16];
-	IntToString(CP_ANGLES, sInfo, 16);
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseAngles", client);
-	menu.AddItem(sInfo, sDisplay);
+	if(!bSegmented)
+	{
+		char[] sInfo = new char[16];
+		IntToString(CP_ANGLES, sInfo, 16);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseAngles", client);
+		menu.AddItem(sInfo, sDisplay);
 
-	IntToString(CP_VELOCITY, sInfo, 16);
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseVelocity", client);
-	menu.AddItem(sInfo, sDisplay);
+		IntToString(CP_VELOCITY, sInfo, 16);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseVelocity", client);
+		menu.AddItem(sInfo, sDisplay);
+	}
 
 	menu.Pagination = MENU_NO_PAGINATION;
 	menu.ExitButton = true;
@@ -1903,8 +1906,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	CopyArray(cpcache[fCPVelocity], vel, 3);
 
 	TeleportEntity(client, pos,
-		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? ang:NULL_VECTOR,
-		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0)? vel:NULL_VECTOR);
+		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache[bCPSegmented])? ang:NULL_VECTOR,
+		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache[bCPSegmented])? vel:NULL_VECTOR);
 
 	MoveType mt = cpcache[mtCPMoveType];
 
