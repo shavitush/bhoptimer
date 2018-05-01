@@ -52,6 +52,7 @@ enum CheckpointsCache
 	String:sCPTargetname[32],
 	ArrayList:aCPFrames,
 	bool:bCPSegmented,
+	bool:bCPSpectated,
 	PCPCACHE_SIZE
 }
 
@@ -1801,11 +1802,11 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 	CopyArray(snapshot, cpcache[aCPSnapshot], TIMERSNAPSHOT_SIZE);
 
-	if(CanSegment(client))
+	if(CanSegment(target))
 	{
 		if(gB_Replay)
 		{
-			cpcache[aCPFrames] = Shavit_GetReplayData(client);
+			cpcache[aCPFrames] = Shavit_GetReplayData(target);
 		}
 
 		cpcache[bCPSegmented] = true;
@@ -1816,6 +1817,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		cpcache[aCPFrames] = null;
 		cpcache[bCPSegmented] = false;
 	}
+
+	cpcache[bCPSpectated] = (client != target);
 
 	if(overflow)
 	{
@@ -1890,7 +1893,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		Shavit_StopTimer(client);
 	}
 
-	if(!cpcache[bCPSegmented])
+	if(!cpcache[bCPSegmented] || cpcache[bCPSpectated])
 	{
 		Shavit_SetPracticeMode(client, true, !bInStart);
 	}
