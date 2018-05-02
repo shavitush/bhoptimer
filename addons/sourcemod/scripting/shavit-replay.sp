@@ -88,7 +88,6 @@ bool gB_Record[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 
 bool gB_Late = false;
-int gI_DefaultTeamSlots = 0;
 
 // server specific
 float gF_Tickrate = 0.0;
@@ -224,7 +223,6 @@ public void OnPluginStart()
 	HookEvent("player_connect", BotEvents, EventHookMode_Pre);
 	HookEvent("player_disconnect", BotEvents, EventHookMode_Pre);
 	HookEventEx("player_connect_client", BotEvents, EventHookMode_Pre);
-	HookEvent("round_start", Round_Start);
 
 	// name change suppression
 	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
@@ -1214,7 +1212,7 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 		}
 	}
 
-	if(gI_DefaultTeamSlots >= gI_Styles && GetClientTeam(client) != gI_DefaultTeam)
+	if(GetClientTeam(client) != gI_DefaultTeam)
 	{
 		if(gEV_Type == Engine_TF2)
 		{
@@ -1689,30 +1687,6 @@ public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 				UpdateReplayInfo(client, style, -1.0, GetReplayTrack(client));
 			}
 		}
-	}
-}
-
-public void Round_Start(Event event, const char[] name, bool dontBroadcast)
-{
-	gI_DefaultTeamSlots = 0;
-
-	char[] sEntity = new char[32];
-
-	if(gEV_Type == Engine_TF2)
-	{
-		strcopy(sEntity, 32, "info_player_teamspawn");
-	}
-
-	else
-	{
-		strcopy(sEntity, 32, (gI_DefaultTeam == 2)? "info_player_terrorist":"info_player_counterterrorist");
-	}
-
-	int iEntity = -1;
-
-	while((iEntity = FindEntityByClassname(iEntity, sEntity)) != INVALID_ENT_REFERENCE)
-	{
-		gI_DefaultTeamSlots++;
 	}
 }
 
