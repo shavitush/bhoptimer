@@ -1081,7 +1081,7 @@ void RemoveWeapon(any data)
 {
 	if(IsValidEntity(data))
 	{
-		RemoveEntity(data);
+		AcceptEntityInput(data, "Kill");
 	}
 }
 
@@ -1164,7 +1164,7 @@ public void OnWeaponDrop(int client, int entity)
 {
 	if(gB_NoWeaponDrops && IsValidEntity(entity))
 	{
-		RemoveEntity(entity);
+		AcceptEntityInput(entity, "Kill");
 	}
 }
 
