@@ -687,7 +687,12 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	char[] arg1 = new char[8];
 	GetCmdArg(1, arg1, 8);
 
-	int iTeam = (gI_HumanTeam == 0)? StringToInt(arg1):gI_HumanTeam;
+	int iTeam = StringToInt(arg1);
+
+	if(gI_HumanTeam == 0 && !(0 <= iTeam <= 1))
+	{
+		iTeam = gI_HumanTeam;
+	}
 
 	bool bRespawn = false;
 
