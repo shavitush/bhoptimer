@@ -145,6 +145,8 @@ enum
 	fServerTime,
 	iSHSWCombination,
 	iTimerTrack,
+	iMeasuredJumps,
+	iPerfectJumps,
 	TIMERSNAPSHOT_SIZE
 };
 
@@ -386,9 +388,10 @@ forward Action Shavit_OnFinishPre(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @param track						Timer track.
  * @param oldtime					The player's best time on the map before this finish.
+ * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime);
+forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs);
 
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.
@@ -403,9 +406,11 @@ forward void Shavit_OnFinish(int client, int style, float time, int jumps, int s
  * @param rank						Rank on map.
  * @param overwrite					1 - brand new record. 2 - update.
  * @param track						Timer track.
+ * @param oldtime					The player's best time on the map before this finish.
+ * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
  * @noreturn
  */
-forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track);
+forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track, float oldtime, float perfs);
 
 /**
  * Called when there's a new WR on the map.
@@ -418,9 +423,11 @@ forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, 
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @param track						Timer track.
  * @param oldwr						Time of the old WR. 0.0 if there's none.
+ * @param oldtime					The player's best time on the map before this finish.
+ * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
  * @noreturn
  */
-forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldwr);
+forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldwr, float oldtime, float perfs);
 
 /**
  * Called when an admin deletes a WR.
@@ -520,9 +527,11 @@ forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int ent
  * @param strafes					Amount of strafes.
  * @param sync						Sync percentage (0.0 to 100.0) or -1.0 when not measured.
  * @param track						Timer track.
+ * @param oldtime					The player's best time on the map before this finish.
+ * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
  * @noreturn
  */
-forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync, int track);
+forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs);
 
 /**
  * Gets called when a map's tier is assigned.
@@ -660,6 +669,15 @@ native TimerStatus Shavit_GetTimerStatus(int client);
  * @return                          Amount of strafes since timer start.
  */
 native int Shavit_GetStrafeCount(int client);
+
+/**
+ * Retrieve the perfect jumps percentage for the player.
+ * Will return 100.0 if no jumps were measured.
+ *
+ * @param client					Client index.
+ * @return                          Perfect jump percentage.
+ */
+native float Shavit_GetPerfectJumps(int client);
 
 /**
  * Retrieve strafe sync since timer start.
@@ -1183,6 +1201,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetHUDSettings");
 	MarkNativeAsOptional("Shavit_GetMapTier");
 	MarkNativeAsOptional("Shavit_GetMapTiers");
+	MarkNativeAsOptional("Shavit_GetPerfectJumps");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");
 	MarkNativeAsOptional("Shavit_GetRank");

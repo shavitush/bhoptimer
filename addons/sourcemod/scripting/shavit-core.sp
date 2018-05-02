@@ -78,6 +78,8 @@ float gF_StrafeWarning[MAXPLAYERS+1];
 bool gB_PracticeMode[MAXPLAYERS+1];
 int gI_SHSW_FirstCombination[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
+int gI_MeasuredJumps[MAXPLAYERS+1];
+int gI_PerfectJumps[MAXPLAYERS+1];
 
 StringMap gSM_StyleCommands = null;
 
@@ -132,6 +134,7 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
+int gI_GroundTicks[MAXPLAYERS+1];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -160,6 +163,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetDatabase", Native_GetDatabase);
 	CreateNative("Shavit_GetDB", Native_GetDB);
 	CreateNative("Shavit_GetGameType", Native_GetGameType);
+	CreateNative("Shavit_GetPerfectJumps", Native_GetPerfectJumps);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
@@ -197,7 +201,7 @@ public void OnPluginStart()
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
-	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
@@ -955,6 +959,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot[fCurrentTime] = gF_PlayerTimer[client];
 	snapshot[iSHSWCombination] = gI_SHSW_FirstCombination[client];
 	snapshot[iTimerTrack] = gI_Track[client];
+	snapshot[iMeasuredJumps] = gI_MeasuredJumps[client];
+	snapshot[iPerfectJumps] = gI_PerfectJumps[client];
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -972,6 +978,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	int style = 0;
 	int track = Track_Main;
+	float perfs = 100.0;
 
 	if(result == Plugin_Continue)
 	{
@@ -981,6 +988,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 		Call_PushCell(gI_Strafes[client]);
 		Call_PushCell((gA_StyleSettings[gI_Style[client]][bSync])? (gI_GoodGains[client] == 0)? 0.0:(gI_GoodGains[client] / float(gI_TotalMeasures[client]) * 100.0):-1.0);
 		Call_PushCell(track = gI_Track[client]);
+		perfs = (gI_MeasuredJumps[client] == 0)? 100.0:(gI_PerfectJumps[client] / float(gI_MeasuredJumps[client]) * 100.0);
 	}
 
 	else
@@ -991,6 +999,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 		Call_PushCell(snapshot[iStrafes]);
 		Call_PushCell((gA_StyleSettings[snapshot[bsStyle]][bSync])? (snapshot[iGoodGains] == 0)? 0.0:(snapshot[iGoodGains] / float(snapshot[iTotalMeasures]) * 100.0):-1.0);
 		Call_PushCell(track = snapshot[iTimerTrack]);
+		perfs = (snapshot[iMeasuredJumps] == 0)? 100.0:(snapshot[iPerfectJumps] / float(snapshot[iMeasuredJumps]) * 100.0);
 	}
 
 	float oldtime = 0.0;
@@ -1001,6 +1010,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	}
 
 	Call_PushCell(oldtime);
+	Call_PushCell(perfs);
 	Call_Finish();
 
 	StopTimer(client);
@@ -1063,6 +1073,13 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	Call_Finish();
 
 	StartTimer(client, track);
+}
+
+public int Native_GetPerfectJumps(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	return view_as<int>((gI_MeasuredJumps[client] == 0)? 100.0:(gI_PerfectJumps[client] / float(gI_MeasuredJumps[client]) * 100.0));
 }
 
 public int Native_GetStrafeCount(Handle handler, int numParams)
@@ -1132,6 +1149,8 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot[fCurrentTime] = gF_PlayerTimer[client];
 	snapshot[iSHSWCombination] = gI_SHSW_FirstCombination[client];
 	snapshot[iTimerTrack] = gI_Track[client];
+	snapshot[iMeasuredJumps] = gI_MeasuredJumps[client];
+	snapshot[iPerfectJumps] = gI_PerfectJumps[client];
 
 	return SetNativeArray(2, snapshot, TIMERSNAPSHOT_SIZE);
 }
@@ -1159,6 +1178,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gI_GoodGains[client] = view_as<int>(snapshot[iGoodGains]);
 	gF_PlayerTimer[client] = snapshot[fCurrentTime];
 	gI_SHSW_FirstCombination[client] = view_as<int>(snapshot[iSHSWCombination]);
+	gI_MeasuredJumps[client] = view_as<int>(snapshot[iMeasuredJumps]);
+	gI_PerfectJumps[client] = view_as<int>(snapshot[iPerfectJumps]);
 }
 
 public int Native_LogMessage(Handle plugin, int numParams)
@@ -1229,6 +1250,8 @@ void StartTimer(int client, int track)
 			gI_SHSW_FirstCombination[client] = -1;
 			gF_PlayerTimer[client] = 0.0;
 			gB_PracticeMode[client] = false;
+			gI_MeasuredJumps[client] = 0;
+			gI_PerfectJumps[client] = 0;
 
 			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
 			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gI_Style[client]][fSpeedMultiplier]));
@@ -2086,15 +2109,40 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 	}
 
+	int iPButtons = buttons;
+
 	if(gA_StyleSettings[gI_Style[client]][bAutobhop] && gB_Auto[client] && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
 	{
 		int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
-		SetEntProp(client, Prop_Data, "m_nOldButtons", iOldButtons & ~IN_JUMP);
+		SetEntProp(client, Prop_Data, "m_nOldButtons", (iOldButtons & ~IN_JUMP));
+		iPButtons &= ~IN_JUMP;
 	}
 
 	else if(gB_DoubleSteps[client] && (buttons & IN_JUMP) == 0)
 	{
-		buttons |= IN_JUMP;
+		iPButtons = buttons |= IN_JUMP;
+	}
+
+	// perf jump measuring
+	if(!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1)
+	{
+		gI_GroundTicks[client]++;
+
+		if((((gI_ButtonCache[client] & IN_JUMP) == 0 && (iPButtons & IN_JUMP) > 0) || iPButtons != buttons) &&
+			1 <= gI_GroundTicks[client] <= 8)
+		{
+			gI_MeasuredJumps[client]++;
+
+			if(gI_GroundTicks[client] == 1)
+			{
+				gI_PerfectJumps[client]++;
+			}
+		}
+	}
+
+	else
+	{
+		gI_GroundTicks[client] = 0;
 	}
 
 	if(bInStart && gB_BlockPreJump && !gA_StyleSettings[gI_Style[client]][bPrespeed] && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
@@ -2182,7 +2230,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	gI_ButtonCache[client] = buttons;
+	gI_ButtonCache[client] = iPButtons;
 	gF_AngleCache[client] = angles[1];
 
 	return Plugin_Continue;

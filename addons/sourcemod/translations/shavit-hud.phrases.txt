@@ -56,6 +56,10 @@
 	{
 		"en"		"Sync"
 	}
+	"HudPerfs"
+	{
+		"en"		"Perfect jumps"
+	}
 	"HudPracticeMode"
 	{
 		"en"		"[PRACTICE]"
