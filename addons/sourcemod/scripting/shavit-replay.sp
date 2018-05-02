@@ -24,6 +24,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+#include <adminmenu>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
@@ -129,6 +130,10 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 // replay settings
 char gS_ReplayStrings[REPLAYSTRINGS_SIZE][MAX_NAME_LENGTH];
 
+// admin menu
+TopMenu gH_AdminMenu = null;
+TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
+
 // database related things
 Database gH_SQL = null;
 char gS_MySQLPrefix[32];
@@ -217,6 +222,12 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
+	// admin menu
+	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	{
+		OnAdminMenuReady(gH_AdminMenu);
+	}
+
 	// hooks
 	HookEvent("player_spawn", Player_Event, EventHookMode_Pre);
 	HookEvent("player_death", Player_Event, EventHookMode_Pre);
@@ -247,6 +258,60 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	if(convar == gCV_CentralBot)
 	{
 		OnMapStart();
+	}
+}
+
+public void OnAdminMenuCreated(Handle topmenu)
+{
+	if(gH_AdminMenu == null || (topmenu == gH_AdminMenu && gH_TimerCommands != INVALID_TOPMENUOBJECT))
+	{
+		return;
+	}
+
+	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
+}
+
+public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayTitle)
+	{
+		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
+	}
+
+	else if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
+	}
+}
+
+public void OnAdminMenuReady(Handle topmenu)
+{
+	if((gH_AdminMenu = GetAdminTopMenu()) != null)
+	{
+		if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
+		{
+			gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands");
+
+			if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
+			{
+				OnAdminMenuCreated(topmenu);
+			}
+		}
+		
+		gH_AdminMenu.AddItem("sm_deletereplay", AdminMenu_DeleteReplay, gH_TimerCommands, "sm_deletereplay", ADMFLAG_RCON);
+	}
+}
+
+public void AdminMenu_DeleteReplay(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%t", "DeleteReplayAdminMenu");
+	}
+
+	else if(action == TopMenuAction_SelectOption)
+	{
+		Command_DeleteReplay(param, 0);
 	}
 }
 

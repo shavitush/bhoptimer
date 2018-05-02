@@ -116,7 +116,6 @@ public void OnAllPluginsLoaded()
 {
 	if(gH_SQL == null)
 	{
-		
 		Shavit_OnDatabaseLoaded();
 	}
 }
