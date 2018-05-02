@@ -31,6 +31,10 @@
 		"#format"	"{1:s}"
 		"en"		"Usage: {1}"
 	}
+	"TimerCommands"
+	{
+		"en"		"Timer Commands"
+	}
 	// ---------- Timelimit ---------- //
 	"Minutes"
 	{

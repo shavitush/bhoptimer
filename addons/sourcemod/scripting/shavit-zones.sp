@@ -108,7 +108,8 @@ int gI_BeamSprite = -1;
 int gI_HaloSprite = -1;
 
 // admin menu
-Handle gH_AdminMenu = INVALID_HANDLE;
+TopMenu gH_AdminMenu = null;
+TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // misc cache
 bool gB_Late = false;
@@ -177,11 +178,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-	if(gB_Late)
-	{
-		OnAdminMenuReady(null);
-	}
-
 	if(gH_SQL == null)
 	{
 		Shavit_OnDatabaseLoaded();
@@ -251,6 +247,12 @@ public void OnPluginStart()
 	gCV_EnforceTracks.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
+
+	// admin menu
+	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	{
+		OnAdminMenuReady(gH_AdminMenu);
+	}
 
 	// misc cvars
 	sv_gravity = FindConVar("sv_gravity");
@@ -322,20 +324,14 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 }
 
-public void OnAdminMenuReady(Handle topmenu)
+public void OnAdminMenuCreated(Handle topmenu)
 {
-	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	if(gH_AdminMenu == null || (topmenu == gH_AdminMenu && gH_TimerCommands != INVALID_TOPMENUOBJECT))
 	{
-		TopMenuObject tmoTimer = FindTopMenuCategory(gH_AdminMenu, "Timer Commands");
-
-		if(tmoTimer != INVALID_TOPMENUOBJECT)
-		{
-			AddToTopMenu(gH_AdminMenu, "sm_zones", TopMenuObject_Item, AdminMenu_Zones, tmoTimer, "sm_zones", ADMFLAG_RCON);
-			AddToTopMenu(gH_AdminMenu, "sm_deletezone", TopMenuObject_Item, AdminMenu_DeleteZone, tmoTimer, "sm_deletezone", ADMFLAG_RCON);
-			AddToTopMenu(gH_AdminMenu, "sm_deleteallzones", TopMenuObject_Item, AdminMenu_DeleteAllZones, tmoTimer, "sm_deleteallzones", ADMFLAG_RCON);
-			AddToTopMenu(gH_AdminMenu, "sm_zoneedit", TopMenuObject_Item, AdminMenu_ZoneEdit, tmoTimer, "sm_zoneedit", ADMFLAG_RCON);
-		}
+		return;
 	}
+
+	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
 }
 
 public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
@@ -351,7 +347,28 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 	}
 }
 
-public void AdminMenu_Zones(Handle topmenu,  TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+public void OnAdminMenuReady(Handle topmenu)
+{
+	if((gH_AdminMenu = GetAdminTopMenu()) != null)
+	{
+		if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
+		{
+			gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands");
+
+			if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
+			{
+				OnAdminMenuCreated(topmenu);
+			}
+		}
+
+		gH_AdminMenu.AddItem("sm_zones", AdminMenu_Zones, gH_TimerCommands, "sm_zones", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_deletezone", AdminMenu_DeleteZone, gH_TimerCommands, "sm_deletezone", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_deleteallzones", AdminMenu_DeleteAllZones, gH_TimerCommands, "sm_deleteallzones", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_zoneedit", AdminMenu_ZoneEdit, gH_TimerCommands, "sm_zoneedit", ADMFLAG_RCON);
+	}
+}
+
+public void AdminMenu_Zones(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
@@ -364,7 +381,7 @@ public void AdminMenu_Zones(Handle topmenu,  TopMenuAction action, TopMenuObject
 	}
 }
 
-public void AdminMenu_DeleteZone(Handle topmenu,  TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+public void AdminMenu_DeleteZone(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
 {
 	if(action == TopMenuAction_DisplayOption)
 	{
@@ -390,7 +407,7 @@ public void AdminMenu_DeleteAllZones(Handle topmenu,  TopMenuAction action, TopM
 	}
 }
 
-public void AdminMenu_ZoneEdit(Handle topmenu,  TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+public void AdminMenu_ZoneEdit(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
 {
 	if(action == TopMenuAction_DisplayOption)
 	{

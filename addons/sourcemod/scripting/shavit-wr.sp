@@ -62,7 +62,8 @@ ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 
 // admin menu
-Handle gH_AdminMenu = null;
+TopMenu gH_AdminMenu = null;
+TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -115,6 +116,7 @@ public void OnAllPluginsLoaded()
 {
 	if(gH_SQL == null)
 	{
+		
 		Shavit_OnDatabaseLoaded();
 	}
 }
@@ -164,7 +166,10 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	// admin menu
-	OnAdminMenuReady(null);
+	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	{
+		OnAdminMenuReady(gH_AdminMenu);
+	}
 
 	// modules
 	gB_Rankings = LibraryExists("shavit-rankings");
@@ -182,18 +187,46 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_RecentLimit = gCV_RecentLimit.IntValue;
 }
 
+public void OnAdminMenuCreated(Handle topmenu)
+{
+	if(gH_AdminMenu == null || (topmenu == gH_AdminMenu && gH_TimerCommands != INVALID_TOPMENUOBJECT))
+	{
+		return;
+	}
+
+	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
+}
+
+public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayTitle)
+	{
+		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
+	}
+
+	else if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
+	}
+}
+
 public void OnAdminMenuReady(Handle topmenu)
 {
-	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	if((gH_AdminMenu = GetAdminTopMenu()) != null)
 	{
-		TopMenuObject tmoTimer = FindTopMenuCategory(gH_AdminMenu, "Timer Commands");
-
-		if(tmoTimer != INVALID_TOPMENUOBJECT)
+		if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
 		{
-			AddToTopMenu(gH_AdminMenu, "sm_deleteall", TopMenuObject_Item, AdminMenu_DeleteAll, tmoTimer, "sm_deleteall", ADMFLAG_RCON);
-			AddToTopMenu(gH_AdminMenu, "sm_delete", TopMenuObject_Item, AdminMenu_Delete, tmoTimer, "sm_delete", ADMFLAG_RCON);
-			AddToTopMenu(gH_AdminMenu, "sm_deletestylerecords", TopMenuObject_Item, AdminMenu_DeleteStyleRecords, tmoTimer, "sm_deletestylerecords", ADMFLAG_RCON);
+			gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands");
+
+			if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
+			{
+				OnAdminMenuCreated(topmenu);
+			}
 		}
+		
+		gH_AdminMenu.AddItem("sm_deleteall", AdminMenu_DeleteAll, gH_TimerCommands, "sm_deleteall", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_delete", AdminMenu_Delete, gH_TimerCommands, "sm_delete", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_deletestylerecords", AdminMenu_DeleteStyleRecords, gH_TimerCommands, "sm_deletestylerecords", ADMFLAG_RCON);
 	}
 }
 
@@ -263,7 +296,7 @@ public void OnLibraryRemoved(const char[] name)
 
 	else if(StrEqual(name, "adminmenu"))
 	{
-		gH_AdminMenu = null;
+		delete gH_AdminMenu;
 	}
 }
 

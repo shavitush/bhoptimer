@@ -13,10 +13,6 @@
 	{
 		"en"		"Delete map zone"
 	}
-	"TimerCommands"
-	{
-		"en"		"Timer Commands"
-	}
 	// ---------- Commands ---------- //
 	"ModifierCommandNoArgs"
 	{

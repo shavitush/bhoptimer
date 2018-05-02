@@ -25,7 +25,6 @@
 #include <clientprefs>
 
 #undef REQUIRE_PLUGIN
-#include <adminmenu>
 #include <bhopstats>
 
 #define USES_CHAT_COLORS
@@ -328,8 +327,6 @@ public void OnPluginStart()
 	// late
 	if(gB_Late)
 	{
-		OnAdminMenuReady(null);
-
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			if(IsValidClient(i))
@@ -382,29 +379,6 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-wr"))
 	{
 		gB_WR = false;
-	}
-}
-
-public void OnAdminMenuReady(Handle topmenu)
-{
-	Handle hTopMenu = INVALID_HANDLE;
-
-	if(LibraryExists("adminmenu") && ((hTopMenu = GetAdminTopMenu()) != INVALID_HANDLE))
-	{
-		AddToTopMenu(hTopMenu, "Timer Commands", TopMenuObject_Category, CategoryHandler, INVALID_TOPMENUOBJECT);
-	}
-}
-
-public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
-{
-	if(action == TopMenuAction_DisplayTitle)
-	{
-		strcopy(buffer, maxlength, "Timer Commands:");
-	}
-
-	else if(action == TopMenuAction_DisplayOption)
-	{
-		strcopy(buffer, maxlength, "Timer Commands");
 	}
 }
 
