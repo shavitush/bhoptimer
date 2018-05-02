@@ -1,6 +1,10 @@
 "Phrases"
 {
 	// ---------- Menus ---------- //
+	"DeleteReplayAdminMenu"
+	{
+		"en"		"Delete replay"
+	}
 	"DeleteReplayMenuTitle"
 	{
 		"en"		"Delete a replay:"

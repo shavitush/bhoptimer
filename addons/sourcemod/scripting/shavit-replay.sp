@@ -24,6 +24,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+#include <adminmenu>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
@@ -60,6 +61,12 @@ enum
 	REPLAYSTRINGS_SIZE
 };
 
+enum
+{
+	iBotShooting_Attack1 = (1 << 0),
+	iBotShooting_Attack2 = (1 << 1)
+}
+
 // game type
 EngineVersion gEV_Type = Engine_Unknown;
 
@@ -82,7 +89,6 @@ bool gB_Record[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 
 bool gB_Late = false;
-int gI_DefaultTeamSlots = 0;
 
 // server specific
 float gF_Tickrate = 0.0;
@@ -94,6 +100,8 @@ any gA_CentralCache[CENTRALBOTCACHE_SIZE];
 // how do i call this
 bool gB_HideNameChange = false;
 bool gB_DontCallTimer = false;
+bool gB_HijackFrame[MAXPLAYERS+1];
+float gF_HijackedAngles[MAXPLAYERS+1][2];
 
 // plugin cvars
 ConVar gCV_Enabled = null;
@@ -101,6 +109,7 @@ ConVar gCV_ReplayDelay = null;
 ConVar gCV_TimeLimit = null;
 ConVar gCV_DefaultTeam = null;
 ConVar gCV_CentralBot = null;
+ConVar gCV_BotShooting = null;
 
 // cached cvars
 bool gB_Enabled = true;
@@ -108,6 +117,7 @@ float gF_ReplayDelay = 5.0;
 float gF_TimeLimit = 5400.0;
 int gI_DefaultTeam = 3;
 bool gB_CentralBot = true;
+int gI_BotShooting = 3;
 
 // timer settings
 int gI_Styles = 0;
@@ -119,6 +129,10 @@ char gS_ChatStrings[CHATSETTINGS_SIZE][128];
 
 // replay settings
 char gS_ReplayStrings[REPLAYSTRINGS_SIZE][MAX_NAME_LENGTH];
+
+// admin menu
+TopMenu gH_AdminMenu = null;
+TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // database related things
 Database gH_SQL = null;
@@ -146,6 +160,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
 	CreateNative("Shavit_GetReplayTime", Native_GetReplayTime);
+	CreateNative("Shavit_HijackAngles", Native_HijackAngles);
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
 	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
@@ -196,14 +211,22 @@ public void OnPluginStart()
 	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
 	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
 	gCV_CentralBot = CreateConVar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_BotShooting = CreateConVar("shavit_replay_botshooting", "3", "Attacking buttons to allow for bots.\n0 - none\1 - +attack\n2 - +attack2\n3 - both", 0, true, 0.0, true, 3.0);
 
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
 	gCV_ReplayDelay.AddChangeHook(OnConVarChanged);
 	gCV_TimeLimit.AddChangeHook(OnConVarChanged);
 	gCV_DefaultTeam.AddChangeHook(OnConVarChanged);
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
+	gCV_BotShooting.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
+
+	// admin menu
+	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	{
+		OnAdminMenuReady(gH_AdminMenu);
+	}
 
 	// hooks
 	HookEvent("player_spawn", Player_Event, EventHookMode_Pre);
@@ -211,7 +234,6 @@ public void OnPluginStart()
 	HookEvent("player_connect", BotEvents, EventHookMode_Pre);
 	HookEvent("player_disconnect", BotEvents, EventHookMode_Pre);
 	HookEventEx("player_connect_client", BotEvents, EventHookMode_Pre);
-	HookEvent("round_start", Round_Start);
 
 	// name change suppression
 	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
@@ -231,10 +253,65 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gF_TimeLimit = gCV_TimeLimit.FloatValue;
 	gI_DefaultTeam = gCV_DefaultTeam.IntValue;
 	gB_CentralBot = gCV_CentralBot.BoolValue;
+	gI_BotShooting = gCV_BotShooting.IntValue;
 
 	if(convar == gCV_CentralBot)
 	{
 		OnMapStart();
+	}
+}
+
+public void OnAdminMenuCreated(Handle topmenu)
+{
+	if(gH_AdminMenu == null || (topmenu == gH_AdminMenu && gH_TimerCommands != INVALID_TOPMENUOBJECT))
+	{
+		return;
+	}
+
+	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
+}
+
+public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayTitle)
+	{
+		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
+	}
+
+	else if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
+	}
+}
+
+public void OnAdminMenuReady(Handle topmenu)
+{
+	if((gH_AdminMenu = GetAdminTopMenu()) != null)
+	{
+		if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
+		{
+			gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands");
+
+			if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
+			{
+				OnAdminMenuCreated(topmenu);
+			}
+		}
+		
+		gH_AdminMenu.AddItem("sm_deletereplay", AdminMenu_DeleteReplay, gH_TimerCommands, "sm_deletereplay", ADMFLAG_RCON);
+	}
+}
+
+public void AdminMenu_DeleteReplay(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%t", "DeleteReplayAdminMenu");
+	}
+
+	else if(action == TopMenuAction_SelectOption)
+	{
+		Command_DeleteReplay(param, 0);
 	}
 }
 
@@ -360,10 +437,16 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 
 	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2), handler));
+	delete gA_PlayerFrames[client];
 	gA_PlayerFrames[client] = frames.Clone();
 	delete frames;
 
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
+
+	if(gI_PlayerFrames[client] > 0)
+	{
+		gB_Record[client] = true;
+	}
 }
 
 public int Native_GetReplayData(Handle handler, int numParams)
@@ -420,6 +503,15 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 	}
 
 	return view_as<int>(float(gI_ReplayTick[style]) / gF_Tickrate);
+}
+
+public int Native_HijackAngles(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	gB_HijackFrame[client] = true;
+	gF_HijackedAngles[client][0] = view_as<float>(GetNativeCell(2));
+	gF_HijackedAngles[client][1] = view_as<float>(GetNativeCell(3));
 }
 
 public int Native_GetReplayBotStyle(Handle handler, int numParams)
@@ -1185,7 +1277,7 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 		}
 	}
 
-	if(gI_DefaultTeamSlots >= gI_Styles && GetClientTeam(client) != gI_DefaultTeam)
+	if(GetClientTeam(client) != gI_DefaultTeam)
 	{
 		if(gEV_Type == Engine_TF2)
 		{
@@ -1461,6 +1553,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			buttons = gA_Frames[style][track].Get(gI_ReplayTick[style], 5);
 
+			if((gI_BotShooting & iBotShooting_Attack1) == 0)
+			{
+				buttons &= ~IN_ATTACK;
+			}
+
+			if((gI_BotShooting & iBotShooting_Attack2) == 0)
+			{
+				buttons &= ~IN_ATTACK2;
+			}
+
 			MoveType mt = MOVETYPE_NOCLIP;
 
 			if(gA_FrameCache[style][track][3] >= 0x02)
@@ -1524,8 +1626,19 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
 
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+		if(!gB_HijackFrame[client])
+		{
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+		}
+
+		else
+		{
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][0], 3);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][1], 4);
+
+			gB_HijackFrame[client] = false;
+		}
 
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityFlags(client), 6);
@@ -1639,30 +1752,6 @@ public void BotEvents(Event event, const char[] name, bool dontBroadcast)
 				UpdateReplayInfo(client, style, -1.0, GetReplayTrack(client));
 			}
 		}
-	}
-}
-
-public void Round_Start(Event event, const char[] name, bool dontBroadcast)
-{
-	gI_DefaultTeamSlots = 0;
-
-	char[] sEntity = new char[32];
-
-	if(gEV_Type == Engine_TF2)
-	{
-		strcopy(sEntity, 32, "info_player_teamspawn");
-	}
-
-	else
-	{
-		strcopy(sEntity, 32, (gI_DefaultTeam == 2)? "info_player_terrorist":"info_player_counterterrorist");
-	}
-
-	int iEntity = -1;
-
-	while((iEntity = FindEntityByClassname(iEntity, sEntity)) != INVALID_ENT_REFERENCE)
-	{
-		gI_DefaultTeamSlots++;
 	}
 }
 

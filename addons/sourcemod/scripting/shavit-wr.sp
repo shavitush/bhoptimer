@@ -62,7 +62,8 @@ ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 
 // admin menu
-Handle gH_AdminMenu = null;
+TopMenu gH_AdminMenu = null;
+TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -130,10 +131,10 @@ public void OnPluginStart()
 	#endif
 
 	// forwards
-	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// player commands
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
@@ -164,7 +165,10 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	// admin menu
-	OnAdminMenuReady(null);
+	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	{
+		OnAdminMenuReady(gH_AdminMenu);
+	}
 
 	// modules
 	gB_Rankings = LibraryExists("shavit-rankings");
@@ -182,18 +186,46 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_RecentLimit = gCV_RecentLimit.IntValue;
 }
 
+public void OnAdminMenuCreated(Handle topmenu)
+{
+	if(gH_AdminMenu == null || (topmenu == gH_AdminMenu && gH_TimerCommands != INVALID_TOPMENUOBJECT))
+	{
+		return;
+	}
+
+	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
+}
+
+public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayTitle)
+	{
+		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
+	}
+
+	else if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
+	}
+}
+
 public void OnAdminMenuReady(Handle topmenu)
 {
-	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	if((gH_AdminMenu = GetAdminTopMenu()) != null)
 	{
-		TopMenuObject tmoTimer = FindTopMenuCategory(gH_AdminMenu, "Timer Commands");
-
-		if(tmoTimer != INVALID_TOPMENUOBJECT)
+		if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
 		{
-			AddToTopMenu(gH_AdminMenu, "sm_deleteall", TopMenuObject_Item, AdminMenu_DeleteAll, tmoTimer, "sm_deleteall", ADMFLAG_RCON);
-			AddToTopMenu(gH_AdminMenu, "sm_delete", TopMenuObject_Item, AdminMenu_Delete, tmoTimer, "sm_delete", ADMFLAG_RCON);
-			AddToTopMenu(gH_AdminMenu, "sm_deletestylerecords", TopMenuObject_Item, AdminMenu_DeleteStyleRecords, tmoTimer, "sm_deletestylerecords", ADMFLAG_RCON);
+			gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands");
+
+			if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
+			{
+				OnAdminMenuCreated(topmenu);
+			}
 		}
+		
+		gH_AdminMenu.AddItem("sm_deleteall", AdminMenu_DeleteAll, gH_TimerCommands, "sm_deleteall", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_delete", AdminMenu_Delete, gH_TimerCommands, "sm_delete", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_deletestylerecords", AdminMenu_DeleteStyleRecords, gH_TimerCommands, "sm_deletestylerecords", ADMFLAG_RCON);
 	}
 }
 
@@ -263,7 +295,7 @@ public void OnLibraryRemoved(const char[] name)
 
 	else if(StrEqual(name, "adminmenu"))
 	{
-		gH_AdminMenu = null;
+		delete gH_AdminMenu;
 	}
 }
 
@@ -668,7 +700,7 @@ void DeleteSubmenu(int client)
 		char[] sDisplay = new char[64];
 		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i][sStyleName], "WRRecord", client, gI_RecordAmount[i][gI_LastTrack[client]]);
 
-		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][gI_LastTrack[client]] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	menu.ExitButton = true;
@@ -1639,7 +1671,7 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 void OpenSubMenu(int client, int id)
 {
 	char[] sQuery = new char[512];
-	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.points, p.track FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
+	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.perfs, p.points, p.track FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 
 	DataPack datapack = new DataPack();
 	datapack.WriteCell(GetClientSerial(client));
@@ -1690,19 +1722,30 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		menu.AddItem("-1", sDisplay);
 
 		// 2 - jumps
+		int style = results.FetchInt(3);
 		int jumps = results.FetchInt(2);
-		FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, jumps);
+
+		if(gA_StyleSettings[style][bAutobhop])
+		{
+			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, jumps);
+		}
+
+		else
+		{
+			float perfs = results.FetchFloat(9);
+			FormatEx(sDisplay, 128, "%T: %d (%.2f%%)", "WRJumps", client, jumps, perfs);
+		}
+
 		menu.AddItem("-1", sDisplay);
 
 		// 3 - style
-		int style = results.FetchInt(3);
 		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[style][sStyleName]);
 		menu.AddItem("-1", sDisplay);
 
 		// 6 - map
 		results.FetchString(6, sMap, 192);
 		
-		float fPoints = results.FetchFloat(9);
+		float fPoints = results.FetchFloat(10);
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
@@ -1752,7 +1795,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			menu.AddItem(sInfo, sMenuItem);
 		}
 
-		GetTrackName(client, results.FetchInt(10), sTrack, 32);
+		GetTrackName(client, results.FetchInt(11), sTrack, 32);
 	}
 
 	else
@@ -1889,12 +1932,12 @@ void SQL_DBConnect()
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`)) ENGINE=INNODB;", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`)) ENGINE=INNODB;", gS_MySQLPrefix);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0);", gS_MySQLPrefix);
 	}
 
 	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
@@ -1934,6 +1977,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	FormatEx(sQuery, 64, "SELECT track FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration4_Callback, sQuery);
+
+	FormatEx(sQuery, 64, "SELECT perfs FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigration5_Callback, sQuery);
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1964,8 +2010,6 @@ public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer (WR module) error! Times' table migration (1) failed. Reason: %s", error);
-
-		return;
 	}
 }
 
@@ -1974,8 +2018,6 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer (WR module) error! Times' table migration (2) failed. Reason: %s", error);
-
-		return;
 	}
 }
 
@@ -1994,8 +2036,6 @@ public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer (WR module) error! Times' table migration (3) failed. Reason: %s", error);
-
-		return;
 	}
 }
 
@@ -2006,11 +2046,7 @@ public void SQL_TableMigration4_Callback(Database db, DBResultSet results, const
 		char[] sQuery = new char[256];
 		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`track` INT NOT NULL DEFAULT 0)":"COLUMN `track` INT NOT NULL DEFAULT 0");
 		gH_SQL.Query(SQL_AlterTable4_Callback, sQuery);
-
-		return;
 	}
-
-	OnMapStart();
 }
 
 public void SQL_AlterTable4_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2018,6 +2054,26 @@ public void SQL_AlterTable4_Callback(Database db, DBResultSet results, const cha
 	if(results == null)
 	{
 		LogError("Timer (WR module) error! Times' table migration (4) failed. Reason: %s", error);
+	}
+}
+
+public void SQL_TableMigration5_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		char[] sQuery = new char[256];
+
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD (`perfs` FLOAT DEFAULT 0);", gS_MySQLPrefix);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD COLUMN `perfs` FLOAT DEFAULT 0;", gS_MySQLPrefix);
+		}
+
+		gH_SQL.Query(SQL_AlterTable5_Callback, sQuery);
 
 		return;
 	}
@@ -2025,7 +2081,19 @@ public void SQL_AlterTable4_Callback(Database db, DBResultSet results, const cha
 	OnMapStart();
 }
 
-public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
+public void SQL_AlterTable5_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR module) error! Times' table migration (5) failed. Reason: %s", error);
+
+		return;
+	}
+
+	OnMapStart();
+}
+
+public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs)
 {
 	char[] sTime = new char[32];
 	FormatSeconds(time, sTime, 32);
@@ -2067,6 +2135,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(sync);
 		Call_PushCell(track);
 		Call_PushCell(oldwr);
+		Call_PushCell(oldtime);
+		Call_PushCell(perfs);
 		Call_Finish();
 
 		#if defined DEBUG
@@ -2086,6 +2156,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(strafes);
 		Call_PushCell(sync);
 		Call_PushCell(track);
+		Call_PushCell(oldtime);
+		Call_PushCell(perfs);
 		Call_Finish();
 	}
 
@@ -2118,14 +2190,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				return;
 			}
 
-			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track) VALUES ('%s', '%s', %.03f, %d, %d, %d, %d, %.2f, 0.0, %d);", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track);
+			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES ('%s', '%s', %.03f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
 		}
 
 		else // update
 		{
 			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings[sMessageVariable], sTrack, gS_ChatStrings[sMessageText], "NotFirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
 
-			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0 WHERE map = '%s' AND auth = '%s' AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, gS_Map, sAuthID, style, track);
+			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = '%s' AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, sAuthID, style, track);
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -2140,6 +2212,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(iRank);
 		Call_PushCell(overwrite);
 		Call_PushCell(track);
+		Call_PushCell(oldtime);
+		Call_PushCell(perfs);
 		Call_Finish();
 
 		gF_PlayerRecord[client][style][track] = time;

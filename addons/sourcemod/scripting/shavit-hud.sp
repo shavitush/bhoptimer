@@ -761,7 +761,7 @@ void UpdateHUD(int client)
 				{
 					if(gA_StyleSettings[style][bSync])
 					{
-						Format(sHintText, 512, "%s%s\t%T: %d (%.02f%%)", sHintText, (iSpeed < 1000)? "\t":"", "HudStrafeText", client, strafes, Shavit_GetSync(target));
+						Format(sHintText, 512, "%s%s\t%T: %d (%.01f%%)", sHintText, (iSpeed < 1000)? "\t":"", "HudStrafeText", client, strafes, Shavit_GetSync(target));
 					}
 
 					else
@@ -1075,9 +1075,16 @@ void UpdateKeyHint(int client)
 
 		if(IsValidClient(target) && (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0))
 		{
-			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && gA_StyleSettings[Shavit_GetBhopStyle(target)][bSync] && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, -1)))
+			int style = Shavit_GetBhopStyle(target);
+
+			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && gA_StyleSettings[style][bSync] && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, -1)))
 			{
-				Format(sMessage, 256, "%s%s%T: %.02f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
+				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
+
+				if(!gA_StyleSettings[style][bAutobhop])
+				{	
+					Format(sMessage, 256, "%s\n%T: %.1f", sMessage, "HudPerfs", client, Shavit_GetPerfectJumps(target));
+				}
 			}
 
 			if((gI_HUDSettings[client] & HUD_SPECTATORS) > 0)

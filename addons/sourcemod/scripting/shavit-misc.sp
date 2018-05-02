@@ -50,19 +50,23 @@ enum CheckpointsCache
 	iCPFlags,
 	any:aCPSnapshot[TIMERSNAPSHOT_SIZE],
 	String:sCPTargetname[32],
+	ArrayList:aCPFrames,
+	bool:bCPSegmented,
+	bool:bCPSpectated,
 	PCPCACHE_SIZE
 }
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 131072
+#pragma dynamic 524288
 
 #define CP_ANGLES				(1 << 0)
 #define CP_VELOCITY				(1 << 1)
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
 
-#define CP_MAX					1000 // segmented runs shouldn't even reach 1k jumps on any map anyways
+#define CP_MAX					1000 // shouldn't even reach 1k jumps on any map when routing anyways
+#define CP_MAX_SEGMENTED		10
 
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
@@ -74,6 +78,7 @@ char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "foll
 
 // cache
 ConVar sv_disable_immunity_alpha = null;
+ConVar mp_humanteam = null;
 ConVar hostname = null;
 ConVar hostport = null;
 
@@ -84,7 +89,7 @@ int gI_LastShot[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
-int gBS_Style[MAXPLAYERS+1];
+int gI_Style[MAXPLAYERS+1];
 
 enum
 {
@@ -167,6 +172,7 @@ bool gB_DropAll = true;
 bool gB_ResetTargetname = false;
 bool gB_RestoreStates = false;
 bool gB_JointeamHook = true;
+int gI_HumanTeam = 0;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -277,6 +283,12 @@ public void OnPluginStart()
 	gA_Advertisements = new ArrayList(300);
 	hostname = FindConVar("hostname");
 	hostport = FindConVar("hostport");
+	mp_humanteam = FindConVar("mp_humanteam");
+
+	if(mp_humanteam == null)
+	{
+		mp_humanteam = FindConVar("mp_humans_must_join_team");
+	}
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
@@ -336,6 +348,7 @@ public void OnPluginStart()
 	gCV_ResetTargetname.AddChangeHook(OnConVarChanged);
 	gCV_RestoreStates.AddChangeHook(OnConVarChanged);
 	gCV_JointeamHook.AddChangeHook(OnConVarChanged);
+	mp_humanteam.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -425,7 +438,7 @@ public void OnClientCookiesCached(int client)
 		gI_CheckpointsSettings[client] = StringToInt(sSetting);
 	}
 
-	gBS_Style[client] = Shavit_GetBhopStyle(client);
+	gI_Style[client] = Shavit_GetBhopStyle(client);
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -440,6 +453,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
 		Shavit_GetStyleStrings(i, sClanTag, gS_StyleStrings[i][sClanTag], 128);
+		Shavit_GetStyleStrings(i, sSpecialString, gS_StyleStrings[i][sSpecialString], 128);
 	}
 }
 
@@ -458,7 +472,14 @@ public void Shavit_OnChatConfigLoaded()
 
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
-	gBS_Style[client] = newstyle;
+	gI_Style[client] = newstyle;
+
+	if(StrContains(gS_StyleStrings[oldstyle][sSpecialString], "segments") == -1 &&
+		StrContains(gS_StyleStrings[newstyle][sSpecialString], "segments") != -1)
+	{
+		OpenCheckpointsMenu(client, 0);
+		Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -491,6 +512,24 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_ResetTargetname = gCV_ResetTargetname.BoolValue;
 	gB_RestoreStates = gCV_RestoreStates.BoolValue;
 	gB_JointeamHook = gCV_JointeamHook.BoolValue;
+
+	if(convar == mp_humanteam)
+	{
+		if(StrEqual(newValue, "t", false) || StrEqual(newValue, "red", false))
+		{
+			gI_HumanTeam = 2;
+		}
+		
+		else if(StrEqual(newValue, "ct", false) || StrEqual(newValue, "blue", false))
+		{
+			gI_HumanTeam = 3;
+		}
+
+		else
+		{
+			gI_HumanTeam = 0;
+		}
+	}
 }
 
 public void OnConfigsExecuted()
@@ -503,6 +542,11 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		ResetCheckpoints(i);
+	}
+
 	gSM_Checkpoints.Clear();
 
 	GetCurrentMap(gS_CurrentMap, 192);
@@ -544,6 +588,14 @@ public void OnMapStart()
 	if(gF_AdvertisementInterval > 0.0)
 	{
 		CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+public void OnMapEnd()
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		ResetCheckpoints(i);
 	}
 }
 
@@ -637,6 +689,11 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 	int iTeam = StringToInt(arg1);
 
+	if(gI_HumanTeam == 0 && !(0 <= iTeam <= 1))
+	{
+		iTeam = gI_HumanTeam;
+	}
+
 	bool bRespawn = false;
 
 	switch(iTeam)
@@ -727,7 +784,7 @@ public MRESReturn DHook_GetPlayerMaxSpeed(int pThis, Handle hReturn)
 		return MRES_Ignored;
 	}
 
-	DHookSetReturn(hReturn, view_as<float>(gA_StyleSettings[gBS_Style[pThis]][fRunspeed]));
+	DHookSetReturn(hReturn, view_as<float>(gA_StyleSettings[gI_Style[pThis]][fRunspeed]));
 
 	return MRES_Override;
 }
@@ -888,8 +945,8 @@ void UpdateClanTag(int client)
 
 	char[] sCustomTag = new char[32];
 	strcopy(sCustomTag, 32, gS_ClanTag);
-	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gBS_Style[client]][sStyleName]);
-	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gBS_Style[client]][sClanTag]);
+	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gI_Style[client]][sStyleName]);
+	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gI_Style[client]][sClanTag]);
 	ReplaceString(sCustomTag, 32, "{time}", sTime);
 	ReplaceString(sCustomTag, 32, "{tr}", sTrack);
 
@@ -919,7 +976,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!bNoclip && !gA_StyleSettings[gBS_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, track))
+	if(!bNoclip && !gA_StyleSettings[gI_Style[client]][bPrespeed] && Shavit_InsideZone(client, Zone_Start, track))
 	{
 		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
@@ -940,7 +997,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 			if(gI_PreSpeed < 4)
 			{
-				fLimit = view_as<float>(gA_StyleSettings[gBS_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
+				fLimit = view_as<float>(gA_StyleSettings[gI_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
 
 				// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 				// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
@@ -985,7 +1042,7 @@ public void OnClientPutInServer(int client)
 
 	if(!AreClientCookiesCached(client))
 	{
-		gBS_Style[client] = Shavit_GetBhopStyle(client);
+		gI_Style[client] = Shavit_GetBhopStyle(client);
 		gB_Hide[client] = false;
 		gI_CheckpointsSettings[client] = CP_DEFAULT;
 	}
@@ -1004,7 +1061,28 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect(int client)
 {
+	if(gB_NoWeaponDrops)
+	{
+		int entity = -1;
+
+		while((entity = FindEntityByClassname(entity, "weapon_*")) != -1)
+		{
+			if(GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
+			{
+				RequestFrame(RemoveWeapon, EntIndexToEntRef(entity));
+			}
+		}
+	}
+
 	ResetCheckpoints(client);
+}
+
+void RemoveWeapon(any data)
+{
+	if(IsValidEntity(data))
+	{
+		AcceptEntityInput(data, "Kill");
+	}
 }
 
 void ResetCheckpoints(int client)
@@ -1015,6 +1093,14 @@ void ResetCheckpoints(int client)
 	for(int i = 0; i < gI_CheckpointsCache[client][iCheckpoints]; i++)
 	{
 		FormatEx(key, 32, "%d_%d", serial, i);
+		
+		CheckpointsCache cpcache[PCPCACHE_SIZE];
+		
+		if(gSM_Checkpoints.GetArray(key, cpcache[0], view_as<int>(PCPCACHE_SIZE)))
+		{
+			delete cpcache[aCPFrames]; // free up replay frames if there are any
+		}
+
 		gSM_Checkpoints.Remove(key);
 	}
 
@@ -1099,7 +1185,7 @@ public void OnPreThink(int client)
 	if(IsPlayerAlive(client))
 	{
 		// not the best method, but only one i found for tf2
-		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", view_as<float>(gA_StyleSettings[gBS_Style[client]][fRunspeed]));
+		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", view_as<float>(gA_StyleSettings[gI_Style[client]][fRunspeed]));
 	}
 }
 
@@ -1409,12 +1495,16 @@ public Action Command_Save(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gB_Checkpoints)
+	bool bSegmented = CanSegment(client);
+
+	if(!gB_Checkpoints && !bSegmented)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
+
+	int iMaxCPs = GetMaxCPs(client);
 	
 	if(args > 0)
 	{
@@ -1425,7 +1515,7 @@ public Action Command_Save(int client, int args)
 
 		int parsed = StringToInt(arg);
 
-		if(parsed > 0 && parsed <= CP_MAX)
+		if(parsed > 0 && parsed <= iMaxCPs)
 		{
 			index = (parsed - 1);
 		}
@@ -1440,7 +1530,7 @@ public Action Command_Save(int client, int args)
 	{
 		bool bSaved = false;
 
-		if(gI_CheckpointsCache[client][iCheckpoints] < CP_MAX)
+		if(gI_CheckpointsCache[client][iCheckpoints] < iMaxCPs)
 		{
 			if((bSaved = SaveCheckpoint(client, gI_CheckpointsCache[client][iCheckpoints])))
 			{
@@ -1448,9 +1538,9 @@ public Action Command_Save(int client, int args)
 			}
 		}
 
-		else if((bSaved = SaveCheckpoint(client, (CP_MAX - 1))))
+		else if((bSaved = SaveCheckpoint(client, (iMaxCPs - 1), true)))
 		{
-			gI_CheckpointsCache[client][iCurrentCheckpoint] = CP_MAX;
+			gI_CheckpointsCache[client][iCurrentCheckpoint] = iMaxCPs;
 		}
 
 		if(bSaved)
@@ -1501,7 +1591,9 @@ public Action Command_Tele(int client, int args)
 
 public Action OpenCheckpointsMenu(int client, int item)
 {
-	if(!gB_Checkpoints)
+	bool bSegmented = CanSegment(client);
+
+	if(!gB_Checkpoints && !bSegmented)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
@@ -1509,7 +1601,16 @@ public Action OpenCheckpointsMenu(int client, int item)
 	}
 
 	Menu menu = new Menu(MenuHandler_Checkpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	menu.SetTitle("%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
+
+	if(!bSegmented)
+	{
+		menu.SetTitle("%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
+	}
+
+	else
+	{
+		menu.SetTitle("%T\n ", "MiscCheckpointMenuSegmented", client);
+	}
 
 	char[] sDisplay = new char[64];
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gI_CheckpointsCache[client][iCheckpoints] + 1));
@@ -1536,14 +1637,17 @@ public Action OpenCheckpointsMenu(int client, int item)
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
 	menu.AddItem("reset", sDisplay);
 
-	char[] sInfo = new char[16];
-	IntToString(CP_ANGLES, sInfo, 16);
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseAngles", client);
-	menu.AddItem(sInfo, sDisplay);
+	if(!bSegmented)
+	{
+		char[] sInfo = new char[16];
+		IntToString(CP_ANGLES, sInfo, 16);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseAngles", client);
+		menu.AddItem(sInfo, sDisplay);
 
-	IntToString(CP_VELOCITY, sInfo, 16);
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseVelocity", client);
-	menu.AddItem(sInfo, sDisplay);
+		IntToString(CP_VELOCITY, sInfo, 16);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseVelocity", client);
+		menu.AddItem(sInfo, sDisplay);
+	}
 
 	menu.Pagination = MENU_NO_PAGINATION;
 	menu.ExitButton = true;
@@ -1556,30 +1660,42 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
-		int current = gI_CheckpointsCache[param1][iCurrentCheckpoint];
+		bool bSegmenting = CanSegment(param1);
+		int iMaxCPs = GetMaxCPs(param1);
+		int iCurrent = gI_CheckpointsCache[param1][iCurrentCheckpoint];
 
 		switch(param2)
 		{
 			case 0:
 			{
-				// fight an exploit
-				if(gI_CheckpointsCache[param1][iCheckpoints] >= CP_MAX)
+				if(!bSegmenting)
 				{
-					return 0;
-				}
+					// fight an exploit
+					if(gI_CheckpointsCache[param1][iCheckpoints] >= iMaxCPs)
+					{
+						return 0;
+					}
 
-				SaveCheckpoint(param1, gI_CheckpointsCache[param1][iCheckpoints]);
-				gI_CheckpointsCache[param1][iCurrentCheckpoint] = ++gI_CheckpointsCache[param1][iCheckpoints];
+					SaveCheckpoint(param1, gI_CheckpointsCache[param1][iCheckpoints]);
+					gI_CheckpointsCache[param1][iCurrentCheckpoint] = ++gI_CheckpointsCache[param1][iCheckpoints];
+				}
+				
+				else
+				{
+					bool bOverflow = gI_CheckpointsCache[param1][iCheckpoints] >= iMaxCPs;
+					SaveCheckpoint(param1, gI_CheckpointsCache[param1][iCheckpoints], bOverflow);
+					gI_CheckpointsCache[param1][iCurrentCheckpoint] = (bOverflow)? iMaxCPs:++gI_CheckpointsCache[param1][iCheckpoints];
+				}
 			}
 
 			case 1:
 			{
-				TeleportToCheckpoint(param1, current - 1, true);
+				TeleportToCheckpoint(param1, iCurrent - 1, true);
 			}
 
 			case 2:
 			{
-				if(current > 1)
+				if(iCurrent > 1)
 				{
 					gI_CheckpointsCache[param1][iCurrentCheckpoint]--;
 				}
@@ -1589,7 +1705,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			{
 				CheckpointsCache cpcache[PCPCACHE_SIZE];
 				
-				if(current < CP_MAX && GetCheckpoint(param1, current, cpcache))
+				if(iCurrent < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
 				{
 					gI_CheckpointsCache[param1][iCurrentCheckpoint]++;
 				}
@@ -1636,7 +1752,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 	return 0;
 }
 
-bool SaveCheckpoint(int client, int index)
+bool SaveCheckpoint(int client, int index, bool overflow = false)
 {
 	int target = client;
 
@@ -1653,6 +1769,18 @@ bool SaveCheckpoint(int client, int index)
 		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 
 		return false;
+	}
+
+	char[] sKey = new char[32];
+	int iSerial = GetClientSerial(client);
+	FormatEx(sKey, 32, "%d_%d", iSerial, index);
+
+	CheckpointsCache cpcacheprev[PCPCACHE_SIZE];
+
+	if(gSM_Checkpoints.GetArray(sKey, cpcacheprev[0], view_as<int>(PCPCACHE_SIZE)))
+	{
+		delete cpcacheprev[aCPFrames];
+		gSM_Checkpoints.SetArray(sKey, cpcacheprev[0], view_as<int>(PCPCACHE_SIZE));
 	}
 
 	CheckpointsCache cpcache[PCPCACHE_SIZE];
@@ -1726,6 +1854,55 @@ bool SaveCheckpoint(int client, int index)
 	}
 
 	CopyArray(snapshot, cpcache[aCPSnapshot], TIMERSNAPSHOT_SIZE);
+
+	if(CanSegment(target))
+	{
+		if(gB_Replay)
+		{
+			cpcache[aCPFrames] = Shavit_GetReplayData(target);
+		}
+
+		cpcache[bCPSegmented] = true;
+	}
+
+	else
+	{
+		cpcache[aCPFrames] = null;
+		cpcache[bCPSegmented] = false;
+	}
+
+	cpcache[bCPSpectated] = (client != target);
+
+	if(overflow)
+	{
+		int iMaxCPs = GetMaxCPs(client);
+
+		for(int i = 0; i < iMaxCPs; i++)
+		{
+			CheckpointsCache cpcacheold[PCPCACHE_SIZE];
+			FormatEx(sKey, 32, "%d_%d", iSerial, i);
+
+			if(!gSM_Checkpoints.GetArray(sKey, cpcacheold[0], view_as<int>(PCPCACHE_SIZE)))
+			{
+				continue; // ???
+			}
+
+			if(i == 0)
+			{
+				delete cpcacheold[aCPFrames];
+				gSM_Checkpoints.Remove(sKey);
+
+				continue;
+			}
+
+			gSM_Checkpoints.Remove(sKey);
+			FormatEx(sKey, 32, "%d_%d", iSerial, (i - 1)); // set cp index to one less
+			gSM_Checkpoints.SetArray(sKey, cpcacheold[0], view_as<int>(PCPCACHE_SIZE));
+		}
+
+		index = (iMaxCPs - 1);
+	}
+
 	SetCheckpoint(client, index, cpcache);
 
 	return true;
@@ -1733,7 +1910,7 @@ bool SaveCheckpoint(int client, int index)
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
-	if(index < 0 || index >= CP_MAX)
+	if(index < 0 || index >= CP_MAX || (!gB_Checkpoints && !CanSegment(client)))
 	{
 		return;
 	}
@@ -1769,7 +1946,10 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		Shavit_StopTimer(client);
 	}
 
-	Shavit_SetPracticeMode(client, true, !bInStart);
+	if(!cpcache[bCPSegmented] || cpcache[bCPSpectated])
+	{
+		Shavit_SetPracticeMode(client, true, !bInStart);
+	}
 
 	any snapshot[TIMERSNAPSHOT_SIZE];
 	CopyArray(cpcache[aCPSnapshot], snapshot, TIMERSNAPSHOT_SIZE);
@@ -1782,8 +1962,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	CopyArray(cpcache[fCPVelocity], vel, 3);
 
 	TeleportEntity(client, pos,
-		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)? ang:NULL_VECTOR,
-		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0)? vel:NULL_VECTOR);
+		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache[bCPSegmented])? ang:NULL_VECTOR,
+		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache[bCPSegmented])? vel:NULL_VECTOR);
 
 	MoveType mt = cpcache[mtCPMoveType];
 
@@ -1814,6 +1994,24 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", cpcache[fCPDucktime]);
 		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache[fCPDuckSpeed]);
+	}
+
+	if(cpcache[bCPSegmented] && gB_Replay)
+	{
+		if(cpcache[aCPFrames] == null)
+		{
+			LogError("SetReplayData for %L failed, recorded frames are null.", client);
+		}
+
+		else
+		{
+			Shavit_SetReplayData(client, cpcache[aCPFrames]);
+
+			if((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)
+			{
+				Shavit_HijackAngles(client, ang[0], ang[1]);
+			}
+		}
 	}
 	
 	if(!suppressMessage)
@@ -1977,7 +2175,7 @@ public Action Command_Specs(int client, int args)
 
 public Action Shavit_OnStart(int client)
 {
-	if(!gA_StyleSettings[gBS_Style[client]][bPrespeed] && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	if(!gA_StyleSettings[gI_Style[client]][bPrespeed] && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
 	}
@@ -2499,6 +2697,7 @@ void LoadState(int client)
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{
 		Shavit_SetReplayData(client, gA_SaveFrames[client]);
+		Shavit_HijackAngles(client, gF_SaveStateData[client][1][0], gF_SaveStateData[client][1][1]);
 	}
 
 	delete gA_SaveFrames[client];
@@ -2549,4 +2748,14 @@ void CopyArray(const any[] from, any[] to, int size)
 	{
 		to[i] = from[i];
 	}
+}
+
+bool CanSegment(int client)
+{
+	return StrContains(gS_StyleStrings[gI_Style[client]][sSpecialString], "segments") != -1;
+}
+
+int GetMaxCPs(int client)
+{
+	return CanSegment(client)? CP_MAX_SEGMENTED:CP_MAX;
 }
