@@ -1724,15 +1724,15 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		// 2 - jumps
 		int style = results.FetchInt(3);
 		int jumps = results.FetchInt(2);
+		float perfs = results.FetchFloat(9);
 
-		if(gA_StyleSettings[style][bAutobhop])
+		if(gA_StyleSettings[style][bAutobhop] && perfs > 0.0)
 		{
 			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, jumps);
 		}
 
 		else
 		{
-			float perfs = results.FetchFloat(9);
 			FormatEx(sDisplay, 128, "%T: %d (%.2f%%)", "WRJumps", client, jumps, perfs);
 		}
 
