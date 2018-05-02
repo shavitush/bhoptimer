@@ -1061,7 +1061,28 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect(int client)
 {
+	if(gB_NoWeaponDrops)
+	{
+		int entity = -1;
+
+		while((entity = FindEntityByClassname(entity, "weapon_*")) != -1)
+		{
+			if(GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
+			{
+				RequestFrame(RemoveWeapon, EntIndexToEntRef(entity));
+			}
+		}
+	}
+
 	ResetCheckpoints(client);
+}
+
+void RemoveWeapon(any data)
+{
+	if(IsValidEntity(data))
+	{
+		RemoveEntity(data);
+	}
 }
 
 void ResetCheckpoints(int client)
@@ -1143,7 +1164,7 @@ public void OnWeaponDrop(int client, int entity)
 {
 	if(gB_NoWeaponDrops && IsValidEntity(entity))
 	{
-		AcceptEntityInput(entity, "Kill");
+		RemoveEntity(entity);
 	}
 }
 
