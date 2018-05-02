@@ -78,6 +78,7 @@ char gS_RadioCommands[][] = {"coverme", "takepoint", "holdpos", "regroup", "foll
 
 // cache
 ConVar sv_disable_immunity_alpha = null;
+ConVar mp_humanteam = null;
 ConVar hostname = null;
 ConVar hostport = null;
 
@@ -171,6 +172,7 @@ bool gB_DropAll = true;
 bool gB_ResetTargetname = false;
 bool gB_RestoreStates = false;
 bool gB_JointeamHook = true;
+int gI_HumanTeam = 0;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -281,6 +283,12 @@ public void OnPluginStart()
 	gA_Advertisements = new ArrayList(300);
 	hostname = FindConVar("hostname");
 	hostport = FindConVar("hostport");
+	mp_humanteam = FindConVar("mp_humanteam");
+
+	if(mp_humanteam == null)
+	{
+		mp_humanteam = FindConVar("mp_humans_must_join_team");
+	}
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
@@ -340,6 +348,7 @@ public void OnPluginStart()
 	gCV_ResetTargetname.AddChangeHook(OnConVarChanged);
 	gCV_RestoreStates.AddChangeHook(OnConVarChanged);
 	gCV_JointeamHook.AddChangeHook(OnConVarChanged);
+	mp_humanteam.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -503,6 +512,24 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_ResetTargetname = gCV_ResetTargetname.BoolValue;
 	gB_RestoreStates = gCV_RestoreStates.BoolValue;
 	gB_JointeamHook = gCV_JointeamHook.BoolValue;
+
+	if(convar == mp_humanteam)
+	{
+		if(StrEqual(newValue, "t", false) || StrEqual(newValue, "red", false))
+		{
+			gI_HumanTeam = 2;
+		}
+		
+		else if(StrEqual(newValue, "ct", false) || StrEqual(newValue, "blue", false))
+		{
+			gI_HumanTeam = 3;
+		}
+
+		else
+		{
+			gI_HumanTeam = 0;
+		}
+	}
 }
 
 public void OnConfigsExecuted()
@@ -660,7 +687,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	char[] arg1 = new char[8];
 	GetCmdArg(1, arg1, 8);
 
-	int iTeam = StringToInt(arg1);
+	int iTeam = (gI_HumanTeam == 0)? StringToInt(arg1):gI_HumanTeam;
 
 	bool bRespawn = false;
 
