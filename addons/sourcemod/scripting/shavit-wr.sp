@@ -700,7 +700,7 @@ void DeleteSubmenu(int client)
 		char[] sDisplay = new char[64];
 		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i][sStyleName], "WRRecord", client, gI_RecordAmount[i][gI_LastTrack[client]]);
 
-		menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][gI_LastTrack[client]] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	menu.ExitButton = true;
