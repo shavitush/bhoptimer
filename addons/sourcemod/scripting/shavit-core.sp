@@ -1673,9 +1673,6 @@ void SQL_DBConnect()
 	// support unicode names
 	gH_SQL.SetCharset("utf8");
 
-	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
-	Call_Finish();
-
 	char[] sDriver = new char[8];
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
 	gB_MySQL = StrEqual(sDriver, "mysql", false);
@@ -1727,6 +1724,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_MySQLPrefix, sTables[i]);
 		gH_SQL.Query(SQL_TableMigration3_Callback, sQuery, dp, DBPrio_Low);
 	}
+
+	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
+	Call_Finish();
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)

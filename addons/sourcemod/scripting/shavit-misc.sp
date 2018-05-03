@@ -1801,7 +1801,16 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	cpcache[fCPGravity] = GetEntityGravity(target);
 	cpcache[fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
 	cpcache[fCPStamina] = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
-	cpcache[iCPFlags] = GetEntityFlags(target);
+
+	int iFlags = GetEntityFlags(target);
+
+	if(IsFakeClient(target))
+	{
+		iFlags |= FL_CLIENT;
+		iFlags |= FL_AIMTARGET;
+	}
+
+	cpcache[iCPFlags] = iFlags;
 
 	if(gEV_Type != Engine_TF2)
 	{
