@@ -474,8 +474,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 {
 	gI_Style[client] = newstyle;
 
-	if(StrContains(gS_StyleStrings[oldstyle][sSpecialString], "segments") == -1 &&
-		StrContains(gS_StyleStrings[newstyle][sSpecialString], "segments") != -1)
+	if(StrContains(gS_StyleStrings[newstyle][sSpecialString], "segments") != -1)
 	{
 		OpenCheckpointsMenu(client, 0);
 		Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
