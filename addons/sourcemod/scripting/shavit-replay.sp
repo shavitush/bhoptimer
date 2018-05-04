@@ -1435,16 +1435,16 @@ public void Shavit_OnResume(int client)
 	gB_Record[client] = true;
 }
 
-void ModifyFlags(int &flags, int flag, bool add)
+void ApplyFlags(int &flags1, int flags2, int flag)
 {
-	if(add)
+	if((flags2 & flag) > 0)
 	{
-		flags |= flag;
+		flags1 |= flag;
 	}
 
 	else
 	{
-		flags &= flag;
+		flags2 &= ~flag;
 	}
 }
 
@@ -1571,10 +1571,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				int iReplayFlags = gA_Frames[style][track].Get(gI_ReplayTick[style], 6);
 				int iEntityFlags = GetEntityFlags(client);
 
-				ModifyFlags(iEntityFlags, FL_ONGROUND, (iReplayFlags & FL_ONGROUND) > 0);
-				ModifyFlags(iEntityFlags, FL_PARTIALGROUND, (iReplayFlags & FL_PARTIALGROUND) > 0);
-				ModifyFlags(iEntityFlags, FL_INWATER, (iReplayFlags & FL_INWATER) > 0);
-				ModifyFlags(iEntityFlags, FL_SWIM, (iReplayFlags & FL_SWIM) > 0);
+				ApplyFlags(iEntityFlags, iReplayFlags, FL_ONGROUND);
+				ApplyFlags(iEntityFlags, iReplayFlags, FL_PARTIALGROUND);
+				ApplyFlags(iEntityFlags, iReplayFlags, FL_INWATER);
+				ApplyFlags(iEntityFlags, iReplayFlags, FL_SWIM);
 
 				SetEntityFlags(client, iEntityFlags);
 				
