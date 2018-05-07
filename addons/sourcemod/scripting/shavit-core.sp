@@ -586,7 +586,7 @@ public Action Command_AutoBhop(int client, int args)
 	IntToString(view_as<int>(gB_Auto[client]), sAutoBhop, 4);
 	SetClientCookie(client, gH_AutoBhopCookie, sAutoBhop);
 
-	UpdateAutoBhop(client);
+	UpdateStyleSettings(client);
 
 	return Plugin_Handled;
 }
@@ -700,9 +700,7 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
 
 	gI_Style[client] = newstyle;
 
-	UpdateAutoBhop(client);
-	UpdateAiraccelerate(client);
-	UpdateBunnyhopping(client);
+	UpdateStyleSettings(client);
 }
 
 void ChangeClientStyle(int client, int style, bool manual)
@@ -1325,7 +1323,7 @@ public void OnClientDisconnect(int client)
 
 public void OnClientCookiesCached(int client)
 {
-	if(IsFakeClient(client))
+	if(IsFakeClient(client) || !IsClientInGame(client))
 	{
 		return;
 	}
@@ -1344,14 +1342,17 @@ public void OnClientCookiesCached(int client)
 	if(gB_StyleCookies && gH_StyleCookie != null)
 	{
 		GetClientCookie(client, gH_StyleCookie, sCookie, 4);
-		style = StringToInt(sCookie);
+		int newstyle = StringToInt(sCookie);
+	
+		if(0 <= newstyle < gI_Styles)
+		{
+			style = newstyle;
+		}
 	}
 
-	int newstyle = (style >= 0 && style < gI_Styles)? style:gI_DefaultStyle;
-
-	if(Shavit_HasStyleAccess(client, newstyle))
+	if(Shavit_HasStyleAccess(client, style))
 	{
-		CallOnStyleChanged(client, gI_Style[client], newstyle, false);
+		CallOnStyleChanged(client, gI_Style[client], style, false);
 	}
 }
 
@@ -1359,7 +1360,7 @@ public void OnClientPutInServer(int client)
 {
 	StopTimer(client);
 
-	if(IsClientConnected(client) && IsFakeClient(client))
+	if(!IsClientConnected(client) || IsFakeClient(client))
 	{
 		return;
 	}
@@ -1370,6 +1371,7 @@ public void OnClientPutInServer(int client)
 	gB_PracticeMode[client] = false;
 	gI_SHSW_FirstCombination[client] = -1;
 	gI_Track[client] = 0;
+	gI_Style[client] = 0;
 
 	if(AreClientCookiesCached(client))
 	{
@@ -2256,25 +2258,19 @@ void StopTimer_Cheat(int client, const char[] message)
 	Shavit_PrintToChat(client, "%T", "CheatTimerStop", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], message);
 }
 
-void UpdateAutoBhop(int client)
+void UpdateStyleSettings(int client)
 {
 	if(sv_autobunnyhopping != null)
 	{
 		sv_autobunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gI_Style[client]][bAutobhop] && gB_Auto[client])? "1":"0");
 	}
-}
 
-void UpdateAiraccelerate(int client)
-{
-	char[] sAiraccelerate = new char[8];
-	FloatToString(gA_StyleSettings[gI_Style[client]][fAiraccelerate], sAiraccelerate, 8);
-	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
-}
-
-void UpdateBunnyhopping(int client)
-{
 	if(sv_enablebunnyhopping != null)
 	{
 		sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gI_Style[client]][bEnableBunnyhopping])? "1":"0");
 	}
+
+	char[] sAiraccelerate = new char[8];
+	FloatToString(gA_StyleSettings[gI_Style[client]][fAiraccelerate], sAiraccelerate, 8);
+	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
 }
