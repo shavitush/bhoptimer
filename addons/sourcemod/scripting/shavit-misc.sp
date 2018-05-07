@@ -2728,6 +2728,7 @@ void SaveState(int client)
 
 	if(gB_Replay)
 	{
+		delete gA_SaveFrames[client];
 		gA_SaveFrames[client] = Shavit_GetReplayData(client);
 	}
 
