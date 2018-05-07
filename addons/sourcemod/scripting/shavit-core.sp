@@ -586,7 +586,7 @@ public Action Command_AutoBhop(int client, int args)
 	IntToString(view_as<int>(gB_Auto[client]), sAutoBhop, 4);
 	SetClientCookie(client, gH_AutoBhopCookie, sAutoBhop);
 
-	UpdateAutoBhop(client);
+	UpdateStyleSettings(client);
 
 	return Plugin_Handled;
 }
@@ -700,9 +700,7 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
 
 	gI_Style[client] = newstyle;
 
-	UpdateAutoBhop(client);
-	UpdateAiraccelerate(client);
-	UpdateBunnyhopping(client);
+	UpdateStyleSettings(client);
 }
 
 void ChangeClientStyle(int client, int style, bool manual)
@@ -1034,6 +1032,14 @@ public int Native_StopChatSound(Handle handler, int numParams)
 public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+
+	if(!IsClientInGame(client))
+	{
+		gB_StopChatSound = false;
+		
+		return;
+	}
+
 	static int iWritten = 0; // useless?
 
 	char[] sBuffer = new char[300];
@@ -1317,7 +1323,7 @@ public void OnClientDisconnect(int client)
 
 public void OnClientCookiesCached(int client)
 {
-	if(IsFakeClient(client))
+	if(IsFakeClient(client) || !IsClientInGame(client))
 	{
 		return;
 	}
@@ -1336,14 +1342,17 @@ public void OnClientCookiesCached(int client)
 	if(gB_StyleCookies && gH_StyleCookie != null)
 	{
 		GetClientCookie(client, gH_StyleCookie, sCookie, 4);
-		style = StringToInt(sCookie);
+		int newstyle = StringToInt(sCookie);
+	
+		if(0 <= newstyle < gI_Styles)
+		{
+			style = newstyle;
+		}
 	}
 
-	int newstyle = (style >= 0 && style < gI_Styles)? style:gI_DefaultStyle;
-
-	if(Shavit_HasStyleAccess(client, newstyle))
+	if(Shavit_HasStyleAccess(client, style))
 	{
-		CallOnStyleChanged(client, gI_Style[client], newstyle, false);
+		CallOnStyleChanged(client, gI_Style[client], style, false);
 	}
 }
 
@@ -1351,7 +1360,7 @@ public void OnClientPutInServer(int client)
 {
 	StopTimer(client);
 
-	if(IsClientConnected(client) && IsFakeClient(client))
+	if(!IsClientConnected(client) || IsFakeClient(client))
 	{
 		return;
 	}
@@ -1362,6 +1371,7 @@ public void OnClientPutInServer(int client)
 	gB_PracticeMode[client] = false;
 	gI_SHSW_FirstCombination[client] = -1;
 	gI_Track[client] = 0;
+	gI_Style[client] = 0;
 
 	if(AreClientCookiesCached(client))
 	{
@@ -1490,8 +1500,8 @@ bool LoadStyles()
 		gA_StyleSettings[i][bBlockD] = view_as<bool>(kv.GetNum("block_d", 0));
 		gA_StyleSettings[i][bBlockUse] = view_as<bool>(kv.GetNum("block_use", 0));
 		gA_StyleSettings[i][iForceHSW] = kv.GetNum("force_hsw", 0);
-		gA_StyleSettings[i][bBlockPLeft] = view_as<bool>(kv.GetNum("block_pleft", 0));
-		gA_StyleSettings[i][bBlockPRight] = view_as<bool>(kv.GetNum("block_pright", 0));
+		gA_StyleSettings[i][iBlockPLeft] = kv.GetNum("block_pleft", 0);
+		gA_StyleSettings[i][iBlockPRight] = kv.GetNum("block_pright", 0);
 		gA_StyleSettings[i][iBlockPStrafe] = kv.GetNum("block_pstrafe", 0);
 		gA_StyleSettings[i][bUnranked] = view_as<bool>(kv.GetNum("unranked", 0));
 		gA_StyleSettings[i][bNoReplay] = view_as<bool>(kv.GetNum("noreplay", 0));
@@ -1913,14 +1923,19 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(gB_TimerEnabled[client] && !gB_ClientPaused[client])
 	{
-		char[] sCheatDetected = new char[64];
-
 		// +left/right block
-		if(!gB_Zones || (!bInStart && ((gA_StyleSettings[gI_Style[client]][bBlockPLeft] &&
-			(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gI_Style[client]][bBlockPRight] && (buttons & IN_RIGHT) > 0))))
+		if(!gB_Zones || (!bInStart && ((gA_StyleSettings[gI_Style[client]][iBlockPLeft] > 0 &&
+			(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gI_Style[client]][iBlockPRight] > 0 && (buttons & IN_RIGHT) > 0))))
 		{
-			FormatEx(sCheatDetected, 64, "%T", "LeftRightCheat", client);
-			StopTimer_Cheat(client, sCheatDetected);
+			vel[0] = 0.0;
+			vel[1] = 0.0;
+
+			if(gA_StyleSettings[gI_Style[client]][iBlockPRight] >= 2)
+			{
+				char[] sCheatDetected = new char[64];
+				FormatEx(sCheatDetected, 64, "%T", "LeftRightCheat", client);
+				StopTimer_Cheat(client, sCheatDetected);
+			}
 		}
 
 		// +strafe block
@@ -1932,6 +1947,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				if(gA_StyleSettings[gI_Style[client]][iBlockPStrafe] >= 2)
 				{
+					char[] sCheatDetected = new char[64];
 					FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
 					StopTimer_Cheat(client, sCheatDetected);
 				}
@@ -2242,25 +2258,19 @@ void StopTimer_Cheat(int client, const char[] message)
 	Shavit_PrintToChat(client, "%T", "CheatTimerStop", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], message);
 }
 
-void UpdateAutoBhop(int client)
+void UpdateStyleSettings(int client)
 {
 	if(sv_autobunnyhopping != null)
 	{
 		sv_autobunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gI_Style[client]][bAutobhop] && gB_Auto[client])? "1":"0");
 	}
-}
 
-void UpdateAiraccelerate(int client)
-{
-	char[] sAiraccelerate = new char[8];
-	FloatToString(gA_StyleSettings[gI_Style[client]][fAiraccelerate], sAiraccelerate, 8);
-	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
-}
-
-void UpdateBunnyhopping(int client)
-{
 	if(sv_enablebunnyhopping != null)
 	{
 		sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gI_Style[client]][bEnableBunnyhopping])? "1":"0");
 	}
+
+	char[] sAiraccelerate = new char[8];
+	FloatToString(gA_StyleSettings[gI_Style[client]][fAiraccelerate], sAiraccelerate, 8);
+	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
 }

@@ -85,7 +85,6 @@ bool gB_ForciblyStopped = false;
 bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
-bool gB_Record[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 
 bool gB_Late = false;
@@ -442,11 +441,6 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	delete frames;
 
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
-
-	if(gI_PlayerFrames[client] > 0)
-	{
-		gB_Record[client] = true;
-	}
 }
 
 public int Native_GetReplayData(Handle handler, int numParams)
@@ -1325,7 +1319,6 @@ public void OnClientDisconnect(int client)
 public Action Shavit_OnStart(int client)
 {
 	ClearFrames(client);
-	gB_Record[client] = true;
 
 	return Plugin_Continue;
 }
@@ -1348,8 +1341,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		return;
 	}
-
-	gB_Record[client] = false;
 
 	bool newformat = view_as<bool>(gA_FrameCache[style][track][2]);
 	float length = GetReplayLength(style, track);
@@ -1425,26 +1416,16 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	ClearFrames(client);
 }
 
-public void Shavit_OnPause(int client)
+void ApplyFlags(int &flags1, int flags2, int flag)
 {
-	gB_Record[client] = false;
-}
-
-public void Shavit_OnResume(int client)
-{
-	gB_Record[client] = true;
-}
-
-void ModifyFlags(int &flags, int flag, bool add)
-{
-	if(add)
+	if((flags2 & flag) > 0)
 	{
-		flags |= flag;
+		flags1 |= flag;
 	}
 
 	else
 	{
-		flags &= flag;
+		flags2 &= ~flag;
 	}
 }
 
@@ -1571,10 +1552,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				int iReplayFlags = gA_Frames[style][track].Get(gI_ReplayTick[style], 6);
 				int iEntityFlags = GetEntityFlags(client);
 
-				ModifyFlags(iEntityFlags, FL_ONGROUND, (iReplayFlags & FL_ONGROUND) > 0);
-				ModifyFlags(iEntityFlags, FL_PARTIALGROUND, (iReplayFlags & FL_PARTIALGROUND) > 0);
-				ModifyFlags(iEntityFlags, FL_INWATER, (iReplayFlags & FL_INWATER) > 0);
-				ModifyFlags(iEntityFlags, FL_SWIM, (iReplayFlags & FL_SWIM) > 0);
+				ApplyFlags(iEntityFlags, iReplayFlags, FL_ONGROUND);
+				ApplyFlags(iEntityFlags, iReplayFlags, FL_PARTIALGROUND);
+				ApplyFlags(iEntityFlags, iReplayFlags, FL_INWATER);
+				ApplyFlags(iEntityFlags, iReplayFlags, FL_SWIM);
 
 				SetEntityFlags(client, iEntityFlags);
 				
@@ -1619,7 +1600,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if(gB_Record[client] && ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
+	else if(Shavit_GetTimerStatus(client) == Timer_Running && ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
