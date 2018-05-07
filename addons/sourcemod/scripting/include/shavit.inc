@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.1.1"
+#define SHAVIT_VERSION "2.1.2"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 
