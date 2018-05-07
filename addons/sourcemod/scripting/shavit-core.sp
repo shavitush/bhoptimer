@@ -1034,6 +1034,14 @@ public int Native_StopChatSound(Handle handler, int numParams)
 public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+
+	if(!IsClientInGame(client))
+	{
+		gB_StopChatSound = false;
+		
+		return;
+	}
+
 	static int iWritten = 0; // useless?
 
 	char[] sBuffer = new char[300];
