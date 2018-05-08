@@ -31,7 +31,7 @@
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 
-#define MAXLENGTH_NAME 128
+#define MAXLENGTH_NAME 192
 #define MAXLENGTH_TEXT 192
 #define MAXLENGTH_MESSAGE 255
 #define MAXLENGTH_CMESSAGE 16
@@ -76,7 +76,7 @@ ConVar gCV_Colon = null;
 // cached cvars
 bool gB_RankingsIntegration = true;
 int gI_CustomChat = 1;
-char gS_Colon[MAXLENGTH_CMESSAGE];
+char gS_Colon[MAXLENGTH_CMESSAGE] = ":";
 
 // cache
 EngineVersion gEV_Type = Engine_Unknown;
