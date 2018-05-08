@@ -96,7 +96,9 @@ char gS_CustomMessage[MAXPLAYERS+1][16];
 
 // chat procesor
 bool gB_Protobuf = false;
+bool gB_NewMessage[MAXPLAYERS+1];
 StringMap gSM_Messages = null;
+
 char gS_ControlCharacters[][] = { "\n", "\t", "\r",
 	"\x01", "\x02", "\x03", "\x04", "\x05", "\x06", "\x07", "\x08", "\x09",
 	"\x0A", "\x0B", "\x0C", "\x0D", "\x0E", "\x0F", "\x10" };
@@ -302,6 +304,16 @@ bool LoadChatSettings()
 	return true;
 }
 
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
+{
+	if(1 <= client <= MaxClients)
+	{
+		gB_NewMessage[client] = true;
+	}
+
+	return Plugin_Continue;
+}
+
 public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	int client = 0;
@@ -329,6 +341,18 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		bfmsg.ReadString(sOriginalText, MAXLENGTH_TEXT);
 		delete bfmsg;
 	}
+
+	if(client == 0)
+	{
+		return Plugin_Continue;
+	}
+
+	if(!gB_NewMessage[client])
+	{
+		return Plugin_Stop;
+	}
+
+	gB_NewMessage[client] = false;
 
 	char[] sTextFormatting = new char[MAXLENGTH_BUFFER];
 
