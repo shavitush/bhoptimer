@@ -901,7 +901,7 @@ void UpdateClanTag(int client)
 
 	float fTime = Shavit_GetClientTime(client);
 
-	if(Shavit_GetTimerStatus(client) == Timer_Stopped || fTime <= 0.0)
+	if(Shavit_GetTimerStatus(client) == Timer_Stopped || fTime < 1.0)
 	{
 		strcopy(sTime, 16, "N/A");
 	}
