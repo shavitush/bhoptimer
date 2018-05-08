@@ -321,7 +321,7 @@ public void OnPluginStart()
 	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_JointeamHook = CreateConVar("shavit_misc_jointeamhook", "1", "Hook `jointeam`?\n0 - Disabled\n1 - Enabled, players can instantly change teams.", 0, true, 0.0, true, 1.0);
-	gCV_SpectatorList = CreateConVar("shavit_misc_speclist", "1", "Who to show in !specs?\n0 - everyone\n1 - all admins (admin_speclisthide override shavit_misc_speclist to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
+	gCV_SpectatorList = CreateConVar("shavit_misc_speclist", "1", "Who to show in !specs?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -2150,7 +2150,7 @@ public Action Command_Specs(int client, int args)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i))
+		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1)
 		{
 			continue;
 		}
