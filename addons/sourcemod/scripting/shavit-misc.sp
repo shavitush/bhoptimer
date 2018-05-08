@@ -142,6 +142,7 @@ ConVar gCV_DropAll = null;
 ConVar gCV_ResetTargetname = null;
 ConVar gCV_RestoreStates = null;
 ConVar gCV_JointeamHook = null;
+ConVar gCV_SpectatorList = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -173,6 +174,7 @@ bool gB_ResetTargetname = false;
 bool gB_RestoreStates = false;
 bool gB_JointeamHook = true;
 int gI_HumanTeam = 0;
+int gI_SpectatorList = 1;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -319,6 +321,7 @@ public void OnPluginStart()
 	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_JointeamHook = CreateConVar("shavit_misc_jointeamhook", "1", "Hook `jointeam`?\n0 - Disabled\n1 - Enabled, players can instantly change teams.", 0, true, 0.0, true, 1.0);
+	gCV_SpectatorList = CreateConVar("shavit_misc_speclist", "1", "Who to show in !specs?\n0 - everyone\n1 - all admins (admin_speclisthide override shavit_misc_speclist to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -348,6 +351,8 @@ public void OnPluginStart()
 	gCV_ResetTargetname.AddChangeHook(OnConVarChanged);
 	gCV_RestoreStates.AddChangeHook(OnConVarChanged);
 	gCV_JointeamHook.AddChangeHook(OnConVarChanged);
+	gCV_SpectatorList.AddChangeHook(OnConVarChanged);
+
 	mp_humanteam.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
@@ -511,6 +516,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_ResetTargetname = gCV_ResetTargetname.BoolValue;
 	gB_RestoreStates = gCV_RestoreStates.BoolValue;
 	gB_JointeamHook = gCV_JointeamHook.BoolValue;
+	gI_SpectatorList = gCV_SpectatorList.IntValue;
 
 	if(convar == mp_humanteam)
 	{
@@ -2139,11 +2145,18 @@ public Action Command_Specs(int client, int args)
 	}
 
 	int iCount = 0;
+	bool bIsAdmin = CheckCommandAccess(client, "admin_speclisthide", ADMFLAG_KICK);
 	char[] sSpecs = new char[192];
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK))
+		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i))
+		{
+			continue;
+		}
+
+		if((gI_SpectatorList == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
+			(gI_SpectatorList == 2 && !CanUserTarget(client, i)))
 		{
 			continue;
 		}
