@@ -1779,7 +1779,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	if(gSM_Checkpoints.GetArray(sKey, cpcacheprev[0], view_as<int>(PCPCACHE_SIZE)))
 	{
 		delete cpcacheprev[aCPFrames];
-		gSM_Checkpoints.SetArray(sKey, cpcacheprev[0], view_as<int>(PCPCACHE_SIZE));
+		gSM_Checkpoints.Remove(sKey);
 	}
 
 	CheckpointsCache cpcache[PCPCACHE_SIZE];
@@ -2014,11 +2014,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		else
 		{
 			Shavit_SetReplayData(client, cpcache[aCPFrames]);
-
-			if((gI_CheckpointsSettings[client] & CP_ANGLES) > 0)
-			{
-				Shavit_HijackAngles(client, ang[0], ang[1]);
-			}
+			Shavit_HijackAngles(client, ang[0], ang[1]);
 		}
 	}
 	
