@@ -7,10 +7,16 @@ It includes a records system, map zones (start/end marks and such), bonuses, HUD
 
 ## Requirements
 
-* [Metamod: Source](http://sourcemm.net/downloads.php?branch=stable) and [SourceMod 1.9 or above](hthttp://www.sourcemod.net/downloads.php?branch=dev).
-* [DHooks](http://users.alliedmods.net/%7Edrifter/builds/dhooks/2.1/) (unless TF2).
-* [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135) (required for TF2, optional for scroll gamemode).
-* [Chat-Processor](https://github.com/Drixevel/Chat-Processor), this is only necessary if you run the `shavit-chat` module.
+* Legal copy of either CS:S, CS:GO or TF2.
+* [Metamod: Source](http://sourcemm.net/downloads.php?branch=stable)
+* [SourceMod 1.9 or above](hthttp://www.sourcemod.net/downloads.php?branch=dev)
+
+# Optional Requirements
+
+Install these for the best experience.
+
+* [DHooks](http://users.alliedmods.net/%7Edrifter/builds/dhooks/2.1/)
+* [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135)
 
 ## Installation
 
