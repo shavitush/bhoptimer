@@ -1766,7 +1766,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		BfRead bfmsg = msg;
 		bfmsg.ReadByte();
 		bfmsg.ReadByte();
-		bfmsg.ReadString(sMessage, 24, false);
+		bfmsg.ReadString(sMessage, 24);
 		delete bfmsg;
 	}
 
