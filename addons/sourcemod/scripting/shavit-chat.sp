@@ -212,7 +212,7 @@ bool LoadChatConfig()
 
 		else
 		{
-			aChatTitle[iCRRangeType] = (StrContains(sRanks, "%%") == -1)? Rank_Flat:Rank_Percentage;
+			aChatTitle[iCRRangeType] = (StrContains(sRanks, "%") == -1)? Rank_Flat:Rank_Percentage;
 		}
 		
 		ReplaceString(sRanks, 32, "p", "");
@@ -894,8 +894,6 @@ bool HasRankAccess(int client, int rank)
 		
 		if(aCache[fCRFrom] <= fPercentile <= aCache[fCRTo])
 		{
-			PrintToServer("%.1f <= %.2f <= %.2f", aCache[fCRFrom], fPercentile, aCache[fCRTo]);
-
 			return true;
 		}
 	}
