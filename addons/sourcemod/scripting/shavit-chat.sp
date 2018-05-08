@@ -705,6 +705,8 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 
 	if(strlen(sName) > 0)
 	{
+		FormatChat(author, sName, MAXLENGTH_NAME);
+		
 		if(gEV_Type == Engine_CSGO)
 		{
 			FormatEx(name, MAXLENGTH_NAME, " %s", sName);
@@ -714,12 +716,12 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 		{
 			strcopy(name, MAXLENGTH_NAME, sName);
 		}
-
-		FormatChat(author, name, MAXLENGTH_NAME);
 	}
 
 	if(strlen(sMessage) > 0)
 	{
+		FormatChat(author, sMessage, MAXLENGTH_MESSAGE);
+
 		char[] sTemp = new char[MAXLENGTH_MESSAGE];
 
 		// proper colors with rtler
@@ -733,8 +735,6 @@ public Action CP_OnChatMessage(int &author, ArrayList recipients, char[] flagstr
 		{
 			Format(message, MAXLENGTH_MESSAGE, "%s%s", sMessage, message);
 		}
-
-		FormatChat(author, message, MAXLENGTH_NAME);
 	}
 
 	#if defined DEBUG
