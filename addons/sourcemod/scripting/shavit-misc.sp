@@ -67,9 +67,6 @@ enum CheckpointsCache
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
 
-#define CP_MAX					1000 // shouldn't even reach 1k jumps on any map when routing anyways
-#define CP_MAX_SEGMENTED		10
-
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
 int gI_Ammo = -1;
@@ -147,6 +144,8 @@ ConVar gCV_ResetTargetname = null;
 ConVar gCV_RestoreStates = null;
 ConVar gCV_JointeamHook = null;
 ConVar gCV_SpectatorList = null;
+ConVar gCV_MaxCP = null;
+ConVar gCV_MaxCP_Segmented = null;
 
 // cached cvars
 int gI_GodMode = 3;
@@ -179,6 +178,8 @@ bool gB_RestoreStates = false;
 bool gB_JointeamHook = true;
 int gI_HumanTeam = 0;
 int gI_SpectatorList = 1;
+int gI_MaxCP = 1000;
+int gI_MaxCP_Segmented = 10;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -328,6 +329,8 @@ public void OnPluginStart()
 	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_JointeamHook = CreateConVar("shavit_misc_jointeamhook", "1", "Hook `jointeam`?\n0 - Disabled\n1 - Enabled, players can instantly change teams.", 0, true, 0.0, true, 1.0);
 	gCV_SpectatorList = CreateConVar("shavit_misc_speclist", "1", "Who to show in !specs?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
+	gCV_MaxCP = CreateConVar("shavit_misc_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
+	gCV_MaxCP_Segmented = CreateConVar("shavit_misc_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_misc_maxcp.\nNote: Very high values will result in HUGE memory usage!", 0, true, 1.0, true, 50.0);
 
 	gCV_GodMode.AddChangeHook(OnConVarChanged);
 	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
@@ -358,6 +361,8 @@ public void OnPluginStart()
 	gCV_RestoreStates.AddChangeHook(OnConVarChanged);
 	gCV_JointeamHook.AddChangeHook(OnConVarChanged);
 	gCV_SpectatorList.AddChangeHook(OnConVarChanged);
+	gCV_MaxCP.AddChangeHook(OnConVarChanged);
+	gCV_MaxCP_Segmented.AddChangeHook(OnConVarChanged);
 
 	mp_humanteam.AddChangeHook(OnConVarChanged);
 
@@ -523,6 +528,8 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gB_RestoreStates = gCV_RestoreStates.BoolValue;
 	gB_JointeamHook = gCV_JointeamHook.BoolValue;
 	gI_SpectatorList = gCV_SpectatorList.IntValue;
+	gI_MaxCP = gCV_MaxCP.IntValue;
+	gI_MaxCP_Segmented = gCV_MaxCP_Segmented.IntValue;
 
 	if(convar == mp_humanteam)
 	{
@@ -1591,7 +1598,7 @@ public Action Command_Tele(int client, int args)
 
 		int parsed = StringToInt(arg);
 
-		if(parsed > 0 && parsed <= CP_MAX)
+		if(parsed > 0 && parsed <= gI_MaxCP)
 		{
 			index = (parsed - 1);
 		}
@@ -1627,7 +1634,7 @@ public Action OpenCheckpointsMenu(int client, int item)
 
 	char[] sDisplay = new char[64];
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gI_CheckpointsCache[client][iCheckpoints] + 1));
-	menu.AddItem("save", sDisplay, (gI_CheckpointsCache[client][iCheckpoints] < CP_MAX)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	menu.AddItem("save", sDisplay, (gI_CheckpointsCache[client][iCheckpoints] < gI_MaxCP)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	if(gI_CheckpointsCache[client][iCheckpoints] > 0)
 	{
@@ -1951,7 +1958,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
-	if(index < 0 || index >= CP_MAX || (!gB_Checkpoints && !CanSegment(client)))
+	if(index < 0 || index >= gI_MaxCP || (!gB_Checkpoints && !CanSegment(client)))
 	{
 		return;
 	}
@@ -2822,5 +2829,5 @@ bool CanSegment(int client)
 
 int GetMaxCPs(int client)
 {
-	return CanSegment(client)? CP_MAX_SEGMENTED:CP_MAX;
+	return CanSegment(client)? gI_MaxCP_Segmented:gI_MaxCP;
 }
