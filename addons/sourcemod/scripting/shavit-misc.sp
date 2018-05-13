@@ -1774,6 +1774,13 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 bool SaveCheckpoint(int client, int index, bool overflow = false)
 {
+	// ???
+	// nairda somehow triggered an error that requires this
+	if(!IsValidClient(client))
+	{
+		return false;
+	}
+
 	int target = client;
 
 	int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
