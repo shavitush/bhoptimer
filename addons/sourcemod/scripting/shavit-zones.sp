@@ -37,6 +37,7 @@
 EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
+bool gB_Connected = false;
 bool gB_MySQL = false;
 
 char gS_Map[160];
@@ -553,7 +554,7 @@ void LoadZoneSettings()
 
 public void OnMapStart()
 {
-	if(gH_SQL == null)
+	if(gH_SQL == null || !gB_Connected)
 	{
 		return;
 	}
@@ -2005,7 +2006,7 @@ public Action Timer_DrawEverything(Handle Timer)
 	}
 
 	static int iCycle = 0;
-	int iMaxZonesPerFrame = (gB_FlatZones)? 16:5;
+	static int iMaxZonesPerFrame = 5;
 
 	if(iCycle >= gI_MapZones)
 	{
@@ -2307,7 +2308,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
 
 	FormatEx(sQuery, 64, "SELECT track FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery);
+	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2367,6 +2368,7 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 		return;
 	}
 
+	gB_Connected = true;
 	OnMapStart();
 }
 
@@ -2380,6 +2382,7 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
+	gB_Connected = true;
 	OnMapStart();
 }
 
