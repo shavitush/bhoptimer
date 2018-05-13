@@ -1610,8 +1610,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 		if(!gB_HijackFrame[client])
 		{
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+			float vecEyes[3];
+			GetClientEyeAngles(client, vecEyes);
+
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[0], 3);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[1], 4);
 		}
 
 		else
