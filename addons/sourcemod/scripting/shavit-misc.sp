@@ -1013,7 +1013,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			float fLimit = gF_PrestrafeLimit;
 
 			float fSpeed[3];
-			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
 			if(gI_PreSpeed < 4)
 			{
