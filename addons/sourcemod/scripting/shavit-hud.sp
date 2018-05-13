@@ -890,7 +890,7 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
-	if(style < 0 || style > gI_Styles)
+	if(!(0 <= style < gI_Styles))
 	{
 		style = 0;
 	}
@@ -944,7 +944,7 @@ void UpdateCenterKeys(int client)
 
 	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
-	if(style < 0 || style > gI_Styles)
+	if(!(0 <= style < gI_Styles))
 	{
 		style = 0;
 	}
@@ -977,7 +977,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != client)
+		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != client)
 		{
 			continue;
 		}
@@ -1118,18 +1118,18 @@ void UpdateKeyHint(int client)
 
 				for(int i = 1; i <= MaxClients; i++)
 				{
-					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target
-						|| GetClientTeam(i) < 1 || (!bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)))
+					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != client)
 					{
 						continue;
 					}
 
-					int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
-
-					if(iObserverMode >= 3 && iObserverMode <= 5)
+					if((gI_SpectatorList == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
+						(gI_SpectatorList == 2 && !CanUserTarget(client, i)))
 					{
-						iSpectatorClients[iSpectators++] = i;
+						continue;
 					}
+
+					iSpectatorClients[iSpectators++] = i;
 				}
 
 				if(iSpectators > 0)
