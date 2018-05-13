@@ -495,13 +495,27 @@ bool LoadZonesConfig()
 
 	do
 	{
-		// don't count custom spawns
+		// retroactively don't respect custom spawn settings
+		char[] sSection = new char[32];
+		kv.GetSectionName(sSection, 32);
+
+		if(StrContains(sSection, "SPAWN POINT", false) != -1)
+		{
+			continue;
+		}
+
 		if((i % ZONETYPES_SIZE) == Zone_CustomSpawn)
 		{
 			i++;
 		}
 
 		int track = (i / ZONETYPES_SIZE);
+
+		if(track >= TRACKS_SIZE)
+		{
+			break;
+		}
+
 		int index = (i % ZONETYPES_SIZE);
 
 		gA_ZoneSettings[index][track][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
