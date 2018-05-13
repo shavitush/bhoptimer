@@ -495,14 +495,14 @@ bool LoadZonesConfig()
 
 	do
 	{
-		int track = (i / ZONETYPES_SIZE);
-		int index = (i % ZONETYPES_SIZE);
-
 		// don't count custom spawns
-		if(index == Zone_CustomSpawn)
+		if((i % ZONETYPES_SIZE) == Zone_CustomSpawn)
 		{
 			i++;
 		}
+
+		int track = (i / ZONETYPES_SIZE);
+		int index = (i % ZONETYPES_SIZE);
 
 		gA_ZoneSettings[index][track][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
 		gA_ZoneSettings[index][track][iRed] = kv.GetNum("red", 255);
