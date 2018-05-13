@@ -1026,8 +1026,26 @@ void UpdateTopLeftHUD(int client, bool wait)
 	if((!wait || gI_Cycle % 25 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
 	{
 		int target = GetHUDTarget(client);
-		int track = Shavit_GetClientTrack(target);
-		int style = Shavit_GetBhopStyle(target);
+
+		int track = 0;
+		int style = 0;
+
+		if(!IsFakeClient(target))
+		{
+			style = Shavit_GetBhopStyle(target);
+			track = Shavit_GetClientTrack(target);
+		}
+
+		else
+		{
+			style = Shavit_GetReplayBotStyle(target);
+			track = Shavit_GetReplayBotTrack(target);
+		}
+
+		if(!(0 <= style < gI_Styles) || !(0 <= track <= TRACKS_SIZE))
+		{
+			return;
+		}
 
 		float fWRTime = 0.0;
 		Shavit_GetWRTime(style, fWRTime, track);
