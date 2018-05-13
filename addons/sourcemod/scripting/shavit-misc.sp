@@ -2081,7 +2081,6 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		else
 		{
 			Shavit_SetReplayData(client, cpcache[aCPFrames]);
-			Shavit_HijackAngles(client, ang[0], ang[1]);
 		}
 	}
 	
@@ -2775,7 +2774,6 @@ void LoadState(int client)
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{
 		Shavit_SetReplayData(client, gA_SaveFrames[client]);
-		Shavit_HijackAngles(client, gF_SaveStateData[client][1][0], gF_SaveStateData[client][1][1]);
 	}
 
 	delete gA_SaveFrames[client];
