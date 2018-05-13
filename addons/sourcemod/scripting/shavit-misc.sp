@@ -49,10 +49,12 @@ enum CheckpointsCache
 	Float:fCPDuckSpeed, // m_flDuckSpeed in csgo, doesn't exist in css
 	iCPFlags,
 	any:aCPSnapshot[TIMERSNAPSHOT_SIZE],
-	String:sCPTargetname[32],
+	iCPTargetname,
+	iCPClassname,
 	ArrayList:aCPFrames,
 	bool:bCPSegmented,
 	bool:bCPSpectated,
+	iCPGroundEntity,
 	PCPCACHE_SIZE
 }
 
@@ -101,6 +103,8 @@ enum
 int gI_CheckpointsCache[MAXPLAYERS+1][CPCACHE_SIZE];
 int gI_CheckpointsSettings[MAXPLAYERS+1];
 StringMap gSM_Checkpoints = null;
+ArrayList gA_Targetnames = null;
+ArrayList gA_Classnames = null;
 
 // save states
 float gF_SaveStateData[MAXPLAYERS+1][3][3];
@@ -245,6 +249,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint (default: 1). Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gSM_Checkpoints = new StringMap();
+	gA_Targetnames = new ArrayList(32);
+	gA_Classnames = new ArrayList(32);
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
@@ -553,6 +559,8 @@ public void OnMapStart()
 	}
 
 	gSM_Checkpoints.Clear();
+	gA_Targetnames.Clear();
+	gA_Classnames.Clear();
 
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
@@ -1764,7 +1772,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
 	int iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
 
-	if(IsClientObserver(client) && IsValidClient(iObserverTarget) && iObserverMode >= 3 && iObserverMode <= 5)
+	if(IsClientObserver(client) && IsValidClient(iObserverTarget) && 3 <= iObserverMode <= 5)
 	{
 		target = iObserverTarget;
 	}
@@ -1797,15 +1805,34 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetClientEyeAngles(target, temp);
 	CopyArray(temp, cpcache[fCPAngles], 3);
 
-	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", temp);
+	GetEntPropVector(target, Prop_Data, "m_vecVelocity", temp);
 	CopyArray(temp, cpcache[fCPVelocity], 3);
 
-	GetEntPropString(target, Prop_Data, "m_iName", cpcache[sCPTargetname], 32);
+	char[] sTargetname = new char[32];
+	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 32);
+
+	int iTargetname = gA_Targetnames.FindString(sTargetname);
+
+	if(iTargetname == -1)
+	{
+		iTargetname = gA_Targetnames.PushString(sTargetname);
+	}
+
+	char[] sClassname = new char[32];
+	GetEntityClassname(target, sClassname, 32);
+
+	int iClassname = gA_Classnames.FindString(sTargetname);
+
+	if(iClassname == -1)
+	{
+		iClassname = gA_Classnames.PushString(sTargetname);
+	}
 
 	cpcache[mtCPMoveType] = GetEntityMoveType(target);
 	cpcache[fCPGravity] = GetEntityGravity(target);
 	cpcache[fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
 	cpcache[fCPStamina] = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
+	cpcache[iCPGroundEntity] = GetEntPropEnt(target, Prop_Data, "m_hGroundEntity");
 
 	int iFlags = GetEntityFlags(target);
 
@@ -1989,8 +2016,28 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	SetEntityGravity(client, cpcache[fCPGravity]);
 	SetEntityFlags(client, cpcache[iCPFlags]);
 
-	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", cpcache[fCPSpeed]);
-	DispatchKeyValue(client, "targetname", cpcache[sCPTargetname]);
+	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", cpcache[fCPSpeed]);
+	SetEntPropEnt(client, Prop_Data, "m_hGroundEntity", cpcache[iCPGroundEntity]);
+
+	int iTargetname = gA_Targetnames.FindValue(cpcache[iCPTargetname]);
+
+	if(iTargetname != -1)
+	{
+		char[] sTargetname = new char[32];
+		gA_Targetnames.GetString(iTargetname, sTargetname, 32);
+
+		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
+	}
+
+	int iClassname = gA_Classnames.FindValue(cpcache[iCPClassname]);
+
+	if(iClassname != -1)
+	{
+		char[] sClassname = new char[32];
+		gA_Classnames.GetString(iClassname, sClassname, 32);
+
+		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
+	}
 
 	if(gEV_Type != Engine_TF2)
 	{
@@ -2730,7 +2777,7 @@ void SaveState(int client)
 	
 	GetClientAbsOrigin(client, gF_SaveStateData[client][0]);
 	GetClientEyeAngles(client, gF_SaveStateData[client][1]);
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_SaveStateData[client][2]);
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", gF_SaveStateData[client][2]);
 	GetEntPropString(client, Prop_Data, "m_iName", gS_SaveStateTargetname[client], 32);
 
 	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
