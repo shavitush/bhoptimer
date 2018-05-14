@@ -39,6 +39,7 @@ enum CheckpointsCache
 	Float:fCPPosition[3],
 	Float:fCPAngles[3],
 	Float:fCPVelocity[3],
+	Float:fCPBaseVelocity[3],
 	MoveType:mtCPMoveType,
 	Float:fCPGravity,
 	Float:fCPSpeed,
@@ -1822,6 +1823,9 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", temp);
 	CopyArray(temp, cpcache[fCPVelocity], 3);
 
+	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", temp);
+	CopyArray(temp, cpcache[fCPBaseVelocity], 3);
+
 	char[] sTargetname = new char[32];
 	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 32);
 
@@ -2013,12 +2017,20 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	float ang[3];
 	CopyArray(cpcache[fCPAngles], ang, 3);
 
-	float vel[3];
-	CopyArray(cpcache[fCPVelocity], vel, 3);
-
 	TeleportEntity(client, pos,
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache[bCPSegmented])? ang:NULL_VECTOR,
-		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache[bCPSegmented])? vel:NULL_VECTOR);
+		NULL_VECTOR);
+
+	if((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache[bCPSegmented])
+	{
+		float basevel[3];
+		CopyArray(cpcache[fCPBaseVelocity], basevel, 3);
+		SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", basevel);
+
+		float vel[3];
+		CopyArray(cpcache[fCPVelocity], vel, 3);
+		SetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
+	}
 
 	MoveType mt = cpcache[mtCPMoveType];
 
