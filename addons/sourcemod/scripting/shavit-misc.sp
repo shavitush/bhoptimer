@@ -250,8 +250,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint (default: 1). Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gSM_Checkpoints = new StringMap();
-	gA_Targetnames = new ArrayList(32);
-	gA_Classnames = new ArrayList(32);
+	gA_Targetnames = new ArrayList(ByteCountToCells(32));
+	gA_Classnames = new ArrayList(ByteCountToCells(32));
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
