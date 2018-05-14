@@ -435,11 +435,10 @@ public int Native_SetReplayData(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2)));
 	delete gA_PlayerFrames[client];
-	gA_PlayerFrames[client] = frames.Clone();
-	delete frames;
 
+	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2)));
+	gA_PlayerFrames[client] = frames.Clone();
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
 }
 
