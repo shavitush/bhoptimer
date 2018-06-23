@@ -1516,6 +1516,13 @@ public Action Command_Save(int client, int args)
 		return Plugin_Handled;
 	}
 
+	int iMaxCPs = GetMaxCPs(client);
+	
+	if(gI_CheckpointsCache[client][iCheckpoints] >= iMaxCPs)
+	{
+		return Plugin_Handled;
+	}
+
 	bool bSegmented = CanSegment(client);
 
 	if(!gB_Checkpoints && !bSegmented)
@@ -1525,12 +1532,10 @@ public Action Command_Save(int client, int args)
 		return Plugin_Handled;
 	}
 
-	int iMaxCPs = GetMaxCPs(client);
+	int index = gI_CheckpointsCache[client][iCheckpoints];
 	
 	if(args > 0)
 	{
-		int index = 0;
-
 		char[] arg = new char[4];
 		GetCmdArg(1, arg, 4);
 
@@ -1540,35 +1545,27 @@ public Action Command_Save(int client, int args)
 		{
 			index = (parsed - 1);
 		}
-
-		if(SaveCheckpoint(client, index))
-		{
-			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
-		}
 	}
 
+	bool bSegmenting = CanSegment(client);
+	bool bSaved = false;
+
+	if(!bSegmenting)
+	{
+		bSaved = SaveCheckpoint(client, gI_CheckpointsCache[client][iCheckpoints]);
+		gI_CheckpointsCache[client][iCurrentCheckpoint] = ++gI_CheckpointsCache[client][iCheckpoints];
+	}
+	
 	else
 	{
-		bool bSaved = false;
+		bool bOverflow = gI_CheckpointsCache[client][iCheckpoints] >= iMaxCPs;
+		bSaved = SaveCheckpoint(client, gI_CheckpointsCache[client][iCheckpoints], bOverflow);
+		gI_CheckpointsCache[client][iCurrentCheckpoint] = (bOverflow)? iMaxCPs:++gI_CheckpointsCache[client][iCheckpoints];
+	}
 
-		if(gI_CheckpointsCache[client][iCheckpoints] < iMaxCPs)
-		{
-			if((bSaved = SaveCheckpoint(client, gI_CheckpointsCache[client][iCheckpoints])))
-			{
-				gI_CheckpointsCache[client][iCurrentCheckpoint] = ++gI_CheckpointsCache[client][iCheckpoints];
-			}
-		}
-
-		else if((bSaved = SaveCheckpoint(client, (iMaxCPs - 1), true)))
-		{
-			gI_CheckpointsCache[client][iCurrentCheckpoint] = iMaxCPs;
-		}
-
-		if(bSaved)
-		{
-			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CheckpointsCache[client][iCurrentCheckpoint],
-				gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
-		}
+	if(bSaved)
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 	}
 
 	return Plugin_Handled;
