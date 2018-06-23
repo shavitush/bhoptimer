@@ -435,11 +435,10 @@ public int Native_SetReplayData(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2), handler));
 	delete gA_PlayerFrames[client];
-	gA_PlayerFrames[client] = frames.Clone();
-	delete frames;
 
+	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2)));
+	gA_PlayerFrames[client] = frames.Clone();
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
 }
 
@@ -1610,8 +1609,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 		if(!gB_HijackFrame[client])
 		{
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[0], 3);
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], angles[1], 4);
+			float vecEyes[3];
+			GetClientEyeAngles(client, vecEyes);
+
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[0], 3);
+			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[1], 4);
 		}
 
 		else
@@ -1766,7 +1768,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		BfRead bfmsg = msg;
 		bfmsg.ReadByte();
 		bfmsg.ReadByte();
-		bfmsg.ReadString(sMessage, 24, false);
+		bfmsg.ReadString(sMessage, 24);
 		delete bfmsg;
 	}
 

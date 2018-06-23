@@ -64,10 +64,12 @@ Handle gH_HUD = null;
 // plugin cvars
 ConVar gCV_GradientStepSize = null;
 ConVar gCV_TicksPerUpdate = null;
+ConVar gCV_SpectatorList = null;
 
 // cached cvars
 int gI_GradientStepSize = 5;
 int gI_TicksPerUpdate = 5;
+int gI_SpectatorList = 1;
 
 // timer settings
 char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
@@ -133,9 +135,11 @@ public void OnPluginStart()
 	// plugin convars
 	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
 	gCV_TicksPerUpdate = CreateConVar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
+	gCV_SpectatorList = CreateConVar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 
 	gCV_GradientStepSize.AddChangeHook(OnConVarChanged);
 	gCV_TicksPerUpdate.AddChangeHook(OnConVarChanged);
+	gCV_SpectatorList.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -167,6 +171,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 {
 	gI_GradientStepSize = gCV_GradientStepSize.IntValue;
 	gI_TicksPerUpdate = gCV_TicksPerUpdate.IntValue;
+	gI_SpectatorList = gCV_SpectatorList.IntValue;
 }
 
 public void OnMapStart()
@@ -885,7 +890,7 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
-	if(style < 0 || style > gI_Styles)
+	if(!(0 <= style < gI_Styles))
 	{
 		style = 0;
 	}
@@ -939,7 +944,7 @@ void UpdateCenterKeys(int client)
 
 	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
-	if(style < 0 || style > gI_Styles)
+	if(!(0 <= style < gI_Styles))
 	{
 		style = 0;
 	}
@@ -972,18 +977,18 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target || GetClientTeam(i) < 1
-			|| (!bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)))
+		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != client)
 		{
 			continue;
 		}
 
-		int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
-
-		if(iObserverMode >= 3 && iObserverMode <= 5)
+		if((gI_SpectatorList == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
+			(gI_SpectatorList == 2 && !CanUserTarget(client, i)))
 		{
-			iSpectatorClients[iSpectators++] = i;
+			continue;
 		}
+
+		iSpectatorClients[iSpectators++] = i;
 	}
 
 	if(iSpectators > 0)
@@ -1021,8 +1026,26 @@ void UpdateTopLeftHUD(int client, bool wait)
 	if((!wait || gI_Cycle % 25 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
 	{
 		int target = GetHUDTarget(client);
-		int track = Shavit_GetClientTrack(target);
-		int style = Shavit_GetBhopStyle(target);
+
+		int track = 0;
+		int style = 0;
+
+		if(!IsFakeClient(target))
+		{
+			style = Shavit_GetBhopStyle(target);
+			track = Shavit_GetClientTrack(target);
+		}
+
+		else
+		{
+			style = Shavit_GetReplayBotStyle(target);
+			track = Shavit_GetReplayBotTrack(target);
+		}
+
+		if(!(0 <= style < gI_Styles) || !(0 <= track <= TRACKS_SIZE))
+		{
+			return;
+		}
 
 		float fWRTime = 0.0;
 		Shavit_GetWRTime(style, fWRTime, track);
@@ -1095,18 +1118,18 @@ void UpdateKeyHint(int client)
 
 				for(int i = 1; i <= MaxClients; i++)
 				{
-					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") != target
-						|| GetClientTeam(i) < 1 || (!bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)))
+					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != client)
 					{
 						continue;
 					}
 
-					int iObserverMode = GetEntProp(i, Prop_Send, "m_iObserverMode");
-
-					if(iObserverMode >= 3 && iObserverMode <= 5)
+					if((gI_SpectatorList == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
+						(gI_SpectatorList == 2 && !CanUserTarget(client, i)))
 					{
-						iSpectatorClients[iSpectators++] = i;
+						continue;
 					}
+
+					iSpectatorClients[iSpectators++] = i;
 				}
 
 				if(iSpectators > 0)

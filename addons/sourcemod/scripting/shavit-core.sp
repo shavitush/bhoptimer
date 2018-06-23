@@ -1973,10 +1973,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	#endif
 
 	MoveType mtMoveType = GetEntityMoveType(client);
-	bool bOnLadder = (mtMoveType == MOVETYPE_LADDER);
 
 	// key blocking
-	if(!bOnLadder && !Shavit_InsideZone(client, Zone_Freestyle, -1))
+	if(mtMoveType != MOVETYPE_NOCLIP && mtMoveType != MOVETYPE_LADDER && !Shavit_InsideZone(client, Zone_Freestyle, -1))
 	{
 		// block E
 		if(gA_StyleSettings[gI_Style[client]][bBlockUse] && (buttons & IN_USE) > 0)

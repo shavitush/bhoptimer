@@ -37,6 +37,7 @@
 EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
+bool gB_Connected = false;
 bool gB_MySQL = false;
 
 char gS_Map[160];
@@ -64,6 +65,7 @@ enum
 	iBlue,
 	iAlpha,
 	fWidth,
+	bFlatZone,
 	ZONESETTINGS_SIZE
 }
 
@@ -116,7 +118,6 @@ bool gB_Late = false;
 ConVar sv_gravity = null;
 
 // cvars
-ConVar gCV_FlatZones = null;
 ConVar gCV_Interval = null;
 ConVar gCV_TeleportToStart = null;
 ConVar gCV_TeleportToEnd = null;
@@ -126,7 +127,6 @@ ConVar gCV_Offset = null;
 ConVar gCV_EnforceTracks = null;
 
 // cached cvars
-bool gB_FlatZones = false;
 float gF_Interval = 1.0;
 bool gB_TeleportToStart = true;
 bool gB_TeleportToEnd = true;
@@ -228,7 +228,6 @@ public void OnPluginStart()
 	gH_Forwards_LeaveZone = CreateGlobalForward("Shavit_OnLeaveZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// cvars and stuff
-	gCV_FlatZones = CreateConVar("shavit_zones_flat", "0", "Should zones be drawn as flat instead of a 3D box?", 0, true, 0.0, true, 1.0);
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
 	gCV_TeleportToStart = CreateConVar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = CreateConVar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -237,7 +236,6 @@ public void OnPluginStart()
 	gCV_Offset = CreateConVar("shavit_zones_offset", "0.5", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
 	gCV_EnforceTracks = CreateConVar("shavit_zones_enforcetracks", "1", "Enforce zone tracks upon entry?\n0 - allow every zone except for start/end to affect users on every zone.\n1- require the user's track to match the zone's track.", 0, true, 0.0, true, 1.0);
 
-	gCV_FlatZones.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToStart.AddChangeHook(OnConVarChanged);
 	gCV_TeleportToEnd.AddChangeHook(OnConVarChanged);
@@ -267,6 +265,7 @@ public void OnPluginStart()
 			gA_ZoneSettings[i][j][iBlue] = 255;
 			gA_ZoneSettings[i][j][iAlpha] = 255;
 			gA_ZoneSettings[i][j][fWidth] = 2.0;
+			gA_ZoneSettings[i][j][bFlatZone] = false;
 		}
 	}
 
@@ -283,7 +282,6 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gB_FlatZones = gCV_FlatZones.BoolValue;
 	gF_Interval = gCV_Interval.FloatValue;
 	gB_TeleportToStart = gCV_TeleportToStart.BoolValue;
 	gB_UseCustomSprite = gCV_UseCustomSprite.BoolValue;
@@ -497,7 +495,27 @@ bool LoadZonesConfig()
 
 	do
 	{
+		// retroactively don't respect custom spawn settings
+		char[] sSection = new char[32];
+		kv.GetSectionName(sSection, 32);
+
+		if(StrContains(sSection, "SPAWN POINT", false) != -1)
+		{
+			continue;
+		}
+
+		if((i % ZONETYPES_SIZE) == Zone_CustomSpawn)
+		{
+			i++;
+		}
+
 		int track = (i / ZONETYPES_SIZE);
+
+		if(track >= TRACKS_SIZE)
+		{
+			break;
+		}
+
 		int index = (i % ZONETYPES_SIZE);
 
 		gA_ZoneSettings[index][track][bVisible] = view_as<bool>(kv.GetNum("visible", 1));
@@ -506,6 +524,7 @@ bool LoadZonesConfig()
 		gA_ZoneSettings[index][track][iBlue] = kv.GetNum("blue", 255);
 		gA_ZoneSettings[index][track][iAlpha] = kv.GetNum("alpha", 255);
 		gA_ZoneSettings[index][track][fWidth] = kv.GetFloat("width", 2.0);
+		gA_ZoneSettings[index][track][bFlatZone] = view_as<bool>(kv.GetNum("flat", false));
 
 		i++;
 	}
@@ -549,7 +568,7 @@ void LoadZoneSettings()
 
 public void OnMapStart()
 {
-	if(gH_SQL == null)
+	if(gH_SQL == null || !gB_Connected)
 	{
 		return;
 	}
@@ -2001,7 +2020,7 @@ public Action Timer_DrawEverything(Handle Timer)
 	}
 
 	static int iCycle = 0;
-	int iMaxZonesPerFrame = (gB_FlatZones)? 16:5;
+	static int iMaxZonesPerFrame = 5;
 
 	if(iCycle >= gI_MapZones)
 	{
@@ -2017,7 +2036,12 @@ public Action Timer_DrawEverything(Handle Timer)
 
 			if(gA_ZoneSettings[type][track][bVisible])
 			{
-				DrawZone(gV_MapZones_Visual[i], GetZoneColors(type, track), RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gF_Interval, gA_ZoneSettings[type][track][fWidth], gB_FlatZones, gV_ZoneCenter[i]);
+				DrawZone(gV_MapZones_Visual[i],
+						GetZoneColors(type, track),
+						RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gF_Interval,
+						gA_ZoneSettings[type][track][fWidth],
+						gA_ZoneSettings[type][track][bFlatZone],
+						gV_ZoneCenter[i]);
 			}
 		}
 
@@ -2298,7 +2322,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
 
 	FormatEx(sQuery, 64, "SELECT track FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery);
+	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2358,6 +2382,7 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 		return;
 	}
 
+	gB_Connected = true;
 	OnMapStart();
 }
 
@@ -2371,6 +2396,7 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
+	gB_Connected = true;
 	OnMapStart();
 }
 

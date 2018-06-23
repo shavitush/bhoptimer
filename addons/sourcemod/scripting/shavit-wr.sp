@@ -41,6 +41,7 @@ Handle gH_OnWorstRecord = null;
 
 // database handle
 Database gH_SQL = null;
+bool gB_Connected = false;
 bool gB_MySQL = false;
 
 // cache
@@ -301,7 +302,7 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnMapStart()
 {
-	if(gH_SQL == null)
+	if(gH_SQL == null || !gB_Connected)
 	{
 		return;
 	}
@@ -1979,7 +1980,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	gH_SQL.Query(SQL_TableMigration4_Callback, sQuery);
 
 	FormatEx(sQuery, 64, "SELECT perfs FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration5_Callback, sQuery);
+	gH_SQL.Query(SQL_TableMigration5_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2078,6 +2079,7 @@ public void SQL_TableMigration5_Callback(Database db, DBResultSet results, const
 		return;
 	}
 
+	gB_Connected = true;
 	OnMapStart();
 }
 
@@ -2090,6 +2092,7 @@ public void SQL_AlterTable5_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
+	gB_Connected = true;
 	OnMapStart();
 }
 
