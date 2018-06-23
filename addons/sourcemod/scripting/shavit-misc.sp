@@ -1839,11 +1839,11 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	char[] sClassname = new char[32];
 	GetEntityClassname(target, sClassname, 32);
 
-	int iClassname = gA_Classnames.FindString(sTargetname);
+	int iClassname = gA_Classnames.FindString(sClassname);
 
 	if(iClassname == -1)
 	{
-		iClassname = gA_Classnames.PushString(sTargetname);
+		iClassname = gA_Classnames.PushString(sClassname);
 	}
 
 	cpcache[mtCPMoveType] = GetEntityMoveType(target);
