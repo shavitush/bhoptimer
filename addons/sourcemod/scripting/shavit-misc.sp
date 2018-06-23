@@ -1014,7 +1014,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			float fLimit = gF_PrestrafeLimit;
 
 			float fSpeed[3];
-			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
 			if(gI_PreSpeed < 4)
 			{
@@ -1820,7 +1820,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetClientEyeAngles(target, temp);
 	CopyArray(temp, cpcache[fCPAngles], 3);
 
-	GetEntPropVector(target, Prop_Data, "m_vecVelocity", temp);
+	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", temp);
 	CopyArray(temp, cpcache[fCPVelocity], 3);
 
 	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", temp);
@@ -2029,7 +2029,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 		float vel[3];
 		CopyArray(cpcache[fCPVelocity], vel, 3);
-		SetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
+		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", vel);
 	}
 
 	MoveType mt = cpcache[mtCPMoveType];
@@ -2801,7 +2801,7 @@ void SaveState(int client)
 	
 	GetClientAbsOrigin(client, gF_SaveStateData[client][0]);
 	GetClientEyeAngles(client, gF_SaveStateData[client][1]);
-	GetEntPropVector(client, Prop_Data, "m_vecVelocity", gF_SaveStateData[client][2]);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_SaveStateData[client][2]);
 	GetEntPropString(client, Prop_Data, "m_iName", gS_SaveStateTargetname[client], 32);
 
 	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
