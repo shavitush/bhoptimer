@@ -1599,7 +1599,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if(Shavit_GetTimerStatus(client) == Timer_Running && ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
+	else if(ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
