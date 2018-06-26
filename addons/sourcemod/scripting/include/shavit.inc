@@ -26,6 +26,7 @@
 #define SHAVIT_VERSION "2.2.0"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
+#define MAX_NAME_LENGTH_SQL 32
 
 // HUD
 #define HUD_NONE				(0)
