@@ -9,11 +9,11 @@
 
 # shavit's bhop timer
 
-This is (nearly) an all-in-one server plugin for Counter-Strike: Source, Counter-Strike: Global Offensive and Team Fortress 2 that adds a timer system and many other utilities, so you can install it and have a proper bunnyhop server running.
+This is (nearly) an all-in-one server plugin for Counter-Strike: Source, Counter-Strike: Global Offensive and Team Fortress 2 that adds a timer system and many other utilities, so you can install it and run a proper bunnyhop server.
 
-Including a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, segmented running, a fair & competitive rankings system and more!
+Includes a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, segmented running, a fair & competitive rankings system and more!
 
-[Mapzones' setup demonstration](https://youtu.be/OXFMGm40F6c)
+[Mapzones Setup Demonstration](https://youtu.be/OXFMGm40F6c)
 
 # Requirements:
 * Steam version of Counter-Strike: Source or Counter-Strike: Global Offensive.
