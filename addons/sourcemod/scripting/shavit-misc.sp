@@ -1667,7 +1667,6 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
-		bool bSegmenting = CanSegment(param1);
 		int iMaxCPs = GetMaxCPs(param1);
 		int iCurrent = gI_CheckpointsCache[param1][iCurrentCheckpoint];
 
@@ -1675,6 +1674,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		{
 			case 0:
 			{
+				bool bSegmenting = CanSegment(param1);
 				bool bOverflow = gI_CheckpointsCache[param1][iCheckpoints] >= iMaxCPs;
 
 				if(!bSegmenting)
@@ -1685,7 +1685,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 						return 0;
 					}
 
-					SaveCheckpoint(param1, gI_CheckpointsCache[param1][iCheckpoints]);
+					SaveCheckpoint(param1, ++gI_CheckpointsCache[param1][iCheckpoints]);
 					gI_CheckpointsCache[param1][iCurrentCheckpoint] = gI_CheckpointsCache[param1][iCheckpoints];
 				}
 				
@@ -1956,7 +1956,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
-	if(index < 0 || index >= gI_MaxCP || (!gB_Checkpoints && !CanSegment(client)))
+	if(index < 0 || index > gI_MaxCP || (!gB_Checkpoints && !CanSegment(client)))
 	{
 		return;
 	}
