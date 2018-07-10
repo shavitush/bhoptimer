@@ -2308,7 +2308,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 int GetRankForTime(int style, float time, int track)
 {
-	if(time < gF_WRTime[style][track] || gI_RecordAmount[style][track] <= 0)
+	if(time <= gF_WRTime[style][track] || gI_RecordAmount[style][track] <= 0)
 	{
 		return 1;
 	}
