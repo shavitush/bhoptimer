@@ -623,6 +623,14 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 	}
 }
 
+void FixCSGOText(char[] buffer, int maxlen)
+{
+	if(gEV_Type == Engine_CSGO)
+	{
+		Format(buffer, maxlen, "<pre>%s</pre>", buffer);
+	}
+}
+
 void UpdateHUD(int client)
 {
 	int target = GetHUDTarget(client);
@@ -675,7 +683,8 @@ void UpdateHUD(int client)
 
 	if(strlen(sHintText) > 0)
 	{
-		PrintHintText(client, sHintText);
+		FixCSGOText(sHintText, 512);
+		PrintHintText(client, "%s", sHintText);
 	}
 
 	else if((gI_HUDSettings[client] & HUD_CENTER) > 0)
@@ -807,6 +816,7 @@ void UpdateHUD(int client)
 				}
 			}
 
+			FixCSGOText(sHintText, 512);
 			PrintHintText(client, "%s", sHintText);
 		}
 
@@ -816,6 +826,7 @@ void UpdateHUD(int client)
 
 			if(style == -1)
 			{
+				FixCSGOText(sHintText, 512);
 				PrintHintText(client, "%T", (gEV_Type != Engine_TF2)? "NoReplayData":"NoReplayDataTF2", client);
 
 				return;
@@ -864,6 +875,7 @@ void UpdateHUD(int client)
 				Format(sHintText, 512, "%s\n%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 			}
 
+			FixCSGOText(sHintText, 512);
 			PrintHintText(client, "%s", sHintText);
 		}
 	}
