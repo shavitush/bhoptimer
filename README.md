@@ -26,7 +26,7 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
 
 #  Installation:
-Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installation).
+Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installation-(from-source)).
 
 # Required plugins:
 `shavit-core` - completely required.  
