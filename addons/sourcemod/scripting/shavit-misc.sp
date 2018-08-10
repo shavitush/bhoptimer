@@ -1914,7 +1914,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		cpcache[bCPSegmented] = false;
 	}
 
-	cpcache[bCPSpectated] = (client != target);
+	cpcache[bCPSpectated] = (client != target || bCPSegmented); // spoof a segmented cp to avoid abuse(? my brain is melting rn)
 
 	if(overflow)
 	{
