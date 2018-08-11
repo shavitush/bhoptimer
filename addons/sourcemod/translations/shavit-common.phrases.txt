@@ -4,32 +4,46 @@
 	"Track"
 	{
 		"en"		"Track"
+		"pt"		"Pista"
+		"pt_p"		"Pista"
 	}
 	"Track_Unknown"
 	{
 		"en"		"UNKNOWN TRACK"
+		"pt"		"PISTA DESCONH."
+		"pt_p"		"PISTA DESCONH."
 	}
 	"Track_0"
 	{
 		"en"		"Main"
+		"pt"		"Principal"
+		"pt_p"		"Principal"
 	}
 	"Track_1"
 	{
 		"en"		"Bonus"
+		"pt"		"Bónus"
+		"pt_p"		"Bónus"
 	}
 	// ---------- Commands ---------- //
 	"NoCommandAccess"
 	{
 		"en"		"You do not have access to this command."
+		"pt"		"Você não tem acesso a esse comando."
+		"pt_p"		"Não tens acesso a este comando."
 	}
 	"NoConsole"
 	{
 		"en"		"Run this command from inside the game."
+		"pt"		"Execute este comando dentro do jogo."
+		"pt_p"		"Executa este comando dentro do jogo."
 	}
 	"ArgumentsMissing"
 	{
 		"#format"	"{1:s}"
 		"en"		"Usage: {1}"
+		"pt"		"Uso: {1}"
+		"pt_p"		"Utilização: {1}"
 	}
 	"TimerCommands"
 	{
@@ -40,10 +54,14 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"{1} minutes remaining."
+		"pt"		"{1} minutos restantes."
+		"pt_p"		"{1} minutos restantes."
 	}	
 	"Seconds"
 	{
 		"#format"	"{1:s}"
 		"en"		"{1} seconds remaining."
+		"pt"		"{1} segundos restantes."
+		"pt_p"		"{1} segundos restantes."
 	}
 }
