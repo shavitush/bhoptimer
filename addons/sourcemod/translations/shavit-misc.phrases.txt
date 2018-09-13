@@ -83,6 +83,10 @@
 		"#format"	"{1:d},{2:s},{3:s}"
 		"en"		"Checkpoint {1} is {2}empty{3}."
 	}
+	"MiscCheckpointsOverflow"
+	{
+		"en"		"Unable to save due to checkpoint overflow."
+	}
 	"MiscSegmentedCommand"
 	{
 		"#format"	"{1:s},{2:s}"
