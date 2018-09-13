@@ -301,7 +301,7 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
-	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding.", 0, true, 0.0, true, 4.0);
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding. Combine with shavit_core_nozaxisspeed 1 for SourceCode timer's behavior.", 0, true, 0.0, true, 4.0);
 	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -1010,15 +1010,13 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 		if(gI_PreSpeed == 1 || gI_PreSpeed >= 3)
 		{
-			float fLimit = gF_PrestrafeLimit;
-
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
+			float fLimit = view_as<float>(gA_StyleSettings[gI_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
+
 			if(gI_PreSpeed < 4)
 			{
-				fLimit = view_as<float>(gA_StyleSettings[gI_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
-
 				// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 				// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
 				if(fSpeed[2] > 0.0)
