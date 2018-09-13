@@ -135,6 +135,7 @@ bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
 int gI_GroundTicks[MAXPLAYERS+1];
+MoveType gMT_MoveType[MAXPLAYERS+1];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -795,11 +796,6 @@ void VelocityChanges(int data)
 	if(client == 0)
 	{
 		return;
-	}
-
-	if(view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]) != 1.0)
-	{
-		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
 	}
 
 	if(view_as<float>(gA_StyleSettings[gI_Style[client]][fSpeedMultiplier]) != 1.0)
@@ -1827,6 +1823,17 @@ public void PreThinkPost(int client)
 		{
 			sv_enablebunnyhopping.BoolValue = view_as<bool>(gA_StyleSettings[gI_Style[client]][bEnableBunnyhopping]);
 		}
+
+		MoveType mtMoveType = GetEntityMoveType(client);
+
+		if(view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]) != 1.0 &&
+			(mtMoveType == MOVETYPE_WALK || mtMoveType == MOVETYPE_ISOMETRIC) &&
+			(gMT_MoveType[client] == MOVETYPE_LADDER || GetEntityGravity(client) == 1.0))
+		{
+			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
+		}
+
+		gMT_MoveType[client] = mtMoveType;
 	}
 }
 
@@ -2272,4 +2279,6 @@ void UpdateStyleSettings(int client)
 	char[] sAiraccelerate = new char[8];
 	FloatToString(gA_StyleSettings[gI_Style[client]][fAiraccelerate], sAiraccelerate, 8);
 	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+
+	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
 }
