@@ -832,6 +832,7 @@ void UpdateHUD(int client)
 				return;
 			}
 
+			iSpeed = RoundToNearest(float(iSpeed) / view_as<float>(gA_StyleSettings[style][fSpeedMultiplier]));			
 			track = Shavit_GetReplayBotTrack(target);
 
 			float fReplayTime = Shavit_GetReplayTime(style, track);
