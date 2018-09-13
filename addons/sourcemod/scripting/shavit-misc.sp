@@ -1525,17 +1525,16 @@ public Action Command_Save(int client, int args)
 		return Plugin_Handled;
 	}
 
-	int index = gI_CheckpointsCache[client][iCheckpoints] + 1;
-
-	if(index > iMaxCPs)
-	{
-		index = iMaxCPs;
-	}
-
 	bool bOverflow = gI_CheckpointsCache[client][iCheckpoints] >= iMaxCPs;
+	int index = gI_CheckpointsCache[client][iCheckpoints] + 1;
 
 	if(!bSegmenting)
 	{
+		if(index > iMaxCPs)
+		{
+			index = iMaxCPs;
+		}
+
 		if(bOverflow)
 		{
 			Shavit_PrintToChat(client, "%T", "MiscCheckpointsOverflow", client, index, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
@@ -1550,10 +1549,13 @@ public Action Command_Save(int client, int args)
 		}
 	}
 	
-	else if(SaveCheckpoint(client, index, bOverflow))
+	else
 	{
-		gI_CheckpointsCache[client][iCurrentCheckpoint] = (bOverflow)? iMaxCPs:++gI_CheckpointsCache[client][iCheckpoints];
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CheckpointsCache[client][iCurrentCheckpoint], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		if(SaveCheckpoint(client, index, bOverflow))
+		{
+			gI_CheckpointsCache[client][iCurrentCheckpoint] = (bOverflow)? iMaxCPs:++gI_CheckpointsCache[client][iCheckpoints];
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CheckpointsCache[client][iCurrentCheckpoint], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		}
 	}
 
 	return Plugin_Handled;
@@ -1929,7 +1931,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 				continue; // ???
 			}
 
-			if(i == 0)
+			if(i == 1)
 			{
 				delete cpcacheold[aCPFrames];
 				gSM_Checkpoints.Remove(sKey);
