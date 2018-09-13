@@ -1549,7 +1549,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				buttons &= ~IN_ATTACK2;
 			}
 
-			if(gB_BotPlusUse)
+			if(!gB_BotPlusUse)
 			{
 				buttons &= ~IN_USE;
 			}
