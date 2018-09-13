@@ -1984,16 +1984,9 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
-	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
-
-	if(bInStart)
+	if(Shavit_InsideZone(client, Zone_Start, -1))
 	{
 		Shavit_StopTimer(client);
-	}
-	
-	if(!cpcache[bCPSegmented] || GetClientSerial(client) != cpcache[iCPSerial])
-	{
-		Shavit_SetPracticeMode(client, true, !bInStart);
 	}
 
 	any snapshot[TIMERSNAPSHOT_SIZE];
@@ -2018,6 +2011,11 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	TeleportEntity(client, pos,
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache[bCPSegmented])? ang:NULL_VECTOR,
 		vel);
+
+	if(!cpcache[bCPSegmented] || GetClientSerial(client) != cpcache[iCPSerial])
+	{
+		Shavit_SetPracticeMode(client, true, true);
+	}
 
 	MoveType mt = cpcache[mtCPMoveType];
 
