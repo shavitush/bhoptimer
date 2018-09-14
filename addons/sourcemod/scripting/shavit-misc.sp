@@ -54,6 +54,7 @@ enum CheckpointsCache
 	ArrayList:aCPFrames,
 	bool:bCPSegmented,
 	iCPSerial,
+	bool:bCPPractice,
 	iCPGroundEntity,
 	PCPCACHE_SIZE
 }
@@ -1914,6 +1915,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	}
 
 	cpcache[iCPSerial] = GetClientSerial(target);
+	cpcache[bCPPractice] = Shavit_IsPracticeMode(target);
 
 	if(overflow)
 	{
@@ -2012,7 +2014,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache[bCPSegmented])? ang:NULL_VECTOR,
 		vel);
 
-	if(!cpcache[bCPSegmented] || GetClientSerial(client) != cpcache[iCPSerial])
+	if(cpcache[bCPPractice] || !cpcache[bCPSegmented] || GetClientSerial(client) != cpcache[iCPSerial])
 	{
 		Shavit_SetPracticeMode(client, true, true);
 	}
