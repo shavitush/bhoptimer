@@ -1096,8 +1096,39 @@ bool HasRankAccess(int client, int rank)
 		return false;
 	}
 
-	static any aCache[view_as<int>(bCRFree)+1];
-	gA_ChatRanks.GetArray(rank, aCache[0], sizeof(aCache)); // a hack to only retrieve up to what we want
+	any[] aCache = new any[CRCACHE_SIZE];
+	gA_ChatRanks.GetArray(rank, aCache, view_as<int>(CRCACHE_SIZE));
+
+	char[] sFlag = new char[32];
+	strcopy(sFlag, 32, aCache[sCRAdminFlag]);
+
+	bool bFlagAccess = false;
+	int iSize = strlen(sFlag);
+
+	if(iSize == 0)
+	{
+		bFlagAccess = true;
+	}
+
+	else if(iSize == 1)
+	{
+		AdminFlag afFlag = view_as<AdminFlag>(0);
+		
+		if(FindFlagByChar(sFlag[0], afFlag))
+		{
+			bFlagAccess = GetAdminFlag(GetUserAdmin(client), afFlag);
+		}
+	}
+
+	else
+	{
+		bFlagAccess = CheckCommandAccess(client, sFlag, 0, true);
+	}
+
+	if(!bFlagAccess)
+	{
+		return false;
+	}
 
 	if(aCache[bCRFree])
 	{
