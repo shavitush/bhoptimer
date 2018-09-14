@@ -39,7 +39,6 @@ enum CheckpointsCache
 	Float:fCPPosition[3],
 	Float:fCPAngles[3],
 	Float:fCPVelocity[3],
-	Float:fCPBaseVelocity[3],
 	MoveType:mtCPMoveType,
 	Float:fCPGravity,
 	Float:fCPSpeed,
@@ -54,7 +53,8 @@ enum CheckpointsCache
 	iCPClassname,
 	ArrayList:aCPFrames,
 	bool:bCPSegmented,
-	bool:bCPSpectated,
+	iCPSerial,
+	bool:bCPPractice,
 	iCPGroundEntity,
 	PCPCACHE_SIZE
 }
@@ -247,8 +247,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_cp", Command_Checkpoints, "Opens the checkpoints menu. Alias for sm_cpmenu.");
 	RegConsoleCmd("sm_checkpoint", Command_Checkpoints, "Opens the checkpoints menu. Alias for sm_cpmenu.");
 	RegConsoleCmd("sm_checkpoints", Command_Checkpoints, "Opens the checkpoints menu. Alias for sm_cpmenu.");
-	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint (default: 1). Usage: sm_save [number]");
-	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint (default: 1). Usage: sm_tele [number]");
+	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint.");
+	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint. Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gSM_Checkpoints = new StringMap();
 	gA_Targetnames = new ArrayList(ByteCountToCells(32));
@@ -302,7 +302,7 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
-	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding.", 0, true, 0.0, true, 4.0);
+	gCV_PreSpeed = CreateConVar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding. Combine with shavit_core_nozaxisspeed 1 for SourceCode timer's behavior.", 0, true, 0.0, true, 4.0);
 	gCV_HideTeamChanges = CreateConVar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = CreateConVar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = CreateConVar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -1011,15 +1011,13 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 		if(gI_PreSpeed == 1 || gI_PreSpeed >= 3)
 		{
-			float fLimit = gF_PrestrafeLimit;
-
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
+			float fLimit = view_as<float>(gA_StyleSettings[gI_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
+
 			if(gI_PreSpeed < 4)
 			{
-				fLimit = view_as<float>(gA_StyleSettings[gI_Style[client]][fRunspeed]) + gF_PrestrafeLimit;
-
 				// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 				// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
 				if(fSpeed[2] > 0.0)
@@ -1517,55 +1515,46 @@ public Action Command_Save(int client, int args)
 	}
 
 	int iMaxCPs = GetMaxCPs(client);
-	
-	if(gI_CheckpointsCache[client][iCheckpoints] >= iMaxCPs)
-	{
-		return Plugin_Handled;
-	}
+	bool bSegmenting = CanSegment(client);
 
-	bool bSegmented = CanSegment(client);
-
-	if(!gB_Checkpoints && !bSegmented)
+	if(!gB_Checkpoints && !bSegmenting)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return Plugin_Handled;
 	}
 
-	int index = gI_CheckpointsCache[client][iCheckpoints];
-	
-	if(args > 0)
-	{
-		char[] arg = new char[4];
-		GetCmdArg(1, arg, 4);
-
-		int parsed = StringToInt(arg);
-
-		if(parsed > 0 && parsed <= iMaxCPs)
-		{
-			index = (parsed - 1);
-		}
-	}
-
-	bool bSegmenting = CanSegment(client);
-	bool bSaved = false;
+	bool bOverflow = gI_CheckpointsCache[client][iCheckpoints] >= iMaxCPs;
+	int index = gI_CheckpointsCache[client][iCheckpoints] + 1;
 
 	if(!bSegmenting)
 	{
-		bSaved = SaveCheckpoint(client, gI_CheckpointsCache[client][iCheckpoints]);
-		gI_CheckpointsCache[client][iCurrentCheckpoint] = ++gI_CheckpointsCache[client][iCheckpoints];
+		if(index > iMaxCPs)
+		{
+			index = iMaxCPs;
+		}
+
+		if(bOverflow)
+		{
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsOverflow", client, index, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+
+			return Plugin_Handled;
+		}
+
+		if(SaveCheckpoint(client, index))
+		{
+			gI_CheckpointsCache[client][iCurrentCheckpoint] = ++gI_CheckpointsCache[client][iCheckpoints];
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CheckpointsCache[client][iCurrentCheckpoint], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		}
 	}
 	
 	else
 	{
-		bool bOverflow = gI_CheckpointsCache[client][iCheckpoints] >= iMaxCPs;
-		bSaved = SaveCheckpoint(client, gI_CheckpointsCache[client][iCheckpoints], bOverflow);
-		gI_CheckpointsCache[client][iCurrentCheckpoint] = (bOverflow)? iMaxCPs:++gI_CheckpointsCache[client][iCheckpoints];
-	}
-
-	if(bSaved)
-	{
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		if(SaveCheckpoint(client, index, bOverflow))
+		{
+			gI_CheckpointsCache[client][iCurrentCheckpoint] = (bOverflow)? iMaxCPs:++gI_CheckpointsCache[client][iCheckpoints];
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CheckpointsCache[client][iCurrentCheckpoint], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		}
 	}
 
 	return Plugin_Handled;
@@ -1587,7 +1576,7 @@ public Action Command_Tele(int client, int args)
 		return Plugin_Handled;
 	}
 
-	int index = (gI_CheckpointsCache[client][iCurrentCheckpoint] - 1);
+	int index = gI_CheckpointsCache[client][iCurrentCheckpoint];
 
 	if(args > 0)
 	{
@@ -1596,9 +1585,9 @@ public Action Command_Tele(int client, int args)
 
 		int parsed = StringToInt(arg);
 
-		if(parsed > 0 && parsed <= gI_MaxCP)
+		if(0 < parsed <= gI_MaxCP)
 		{
-			index = (parsed - 1);
+			index = parsed;
 		}
 	}
 
@@ -1678,7 +1667,6 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
-		bool bSegmenting = CanSegment(param1);
 		int iMaxCPs = GetMaxCPs(param1);
 		int iCurrent = gI_CheckpointsCache[param1][iCurrentCheckpoint];
 
@@ -1686,29 +1674,31 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		{
 			case 0:
 			{
+				bool bSegmenting = CanSegment(param1);
+				bool bOverflow = gI_CheckpointsCache[param1][iCheckpoints] >= iMaxCPs;
+
 				if(!bSegmenting)
 				{
 					// fight an exploit
-					if(gI_CheckpointsCache[param1][iCheckpoints] >= iMaxCPs)
+					if(bOverflow)
 					{
 						return 0;
 					}
 
-					SaveCheckpoint(param1, gI_CheckpointsCache[param1][iCheckpoints]);
-					gI_CheckpointsCache[param1][iCurrentCheckpoint] = ++gI_CheckpointsCache[param1][iCheckpoints];
+					SaveCheckpoint(param1, ++gI_CheckpointsCache[param1][iCheckpoints]);
+					gI_CheckpointsCache[param1][iCurrentCheckpoint] = gI_CheckpointsCache[param1][iCheckpoints];
 				}
 				
 				else
 				{
-					bool bOverflow = gI_CheckpointsCache[param1][iCheckpoints] >= iMaxCPs;
-					SaveCheckpoint(param1, gI_CheckpointsCache[param1][iCheckpoints], bOverflow);
+					SaveCheckpoint(param1, gI_CheckpointsCache[param1][iCheckpoints] + 1, bOverflow);
 					gI_CheckpointsCache[param1][iCurrentCheckpoint] = (bOverflow)? iMaxCPs:++gI_CheckpointsCache[param1][iCheckpoints];
 				}
 			}
 
 			case 1:
 			{
-				TeleportToCheckpoint(param1, iCurrent - 1, true);
+				TeleportToCheckpoint(param1, iCurrent, true);
 			}
 
 			case 2:
@@ -1820,9 +1810,6 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", temp);
 	CopyArray(temp, cpcache[fCPVelocity], 3);
 
-	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", temp);
-	CopyArray(temp, cpcache[fCPBaseVelocity], 3);
-
 	char[] sTargetname = new char[32];
 	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 32);
 
@@ -1927,13 +1914,14 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		cpcache[bCPSegmented] = false;
 	}
 
-	cpcache[bCPSpectated] = (client != target);
+	cpcache[iCPSerial] = GetClientSerial(target);
+	cpcache[bCPPractice] = Shavit_IsPracticeMode(target);
 
 	if(overflow)
 	{
 		int iMaxCPs = GetMaxCPs(client);
-
-		for(int i = 0; i < iMaxCPs; i++)
+		
+		for(int i = 1; i <= iMaxCPs; i++)
 		{
 			CheckpointsCache cpcacheold[PCPCACHE_SIZE];
 			FormatEx(sKey, 32, "%d_%d", iSerial, i);
@@ -1943,7 +1931,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 				continue; // ???
 			}
 
-			if(i == 0)
+			if(i == 1)
 			{
 				delete cpcacheold[aCPFrames];
 				gSM_Checkpoints.Remove(sKey);
@@ -1956,17 +1944,20 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 			gSM_Checkpoints.SetArray(sKey, cpcacheold[0], view_as<int>(PCPCACHE_SIZE));
 		}
 
-		index = (iMaxCPs - 1);
+		SetCheckpoint(client, iMaxCPs, cpcache);
 	}
 
-	SetCheckpoint(client, index, cpcache);
+	else
+	{
+		SetCheckpoint(client, index, cpcache);
+	}
 
 	return true;
 }
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
-	if(index < 0 || index >= gI_MaxCP || (!gB_Checkpoints && !CanSegment(client)))
+	if(index < 0 || index > gI_MaxCP || (!gB_Checkpoints && !CanSegment(client)))
 	{
 		return;
 	}
@@ -1975,7 +1966,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	
 	if(!GetCheckpoint(client, index, cpcache))
 	{
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, (index + 1), gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, index, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 
 		return;
 	}
@@ -1995,16 +1986,9 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
-	bool bInStart = Shavit_InsideZone(client, Zone_Start, -1);
-
-	if(bInStart)
+	if(Shavit_InsideZone(client, Zone_Start, -1))
 	{
 		Shavit_StopTimer(client);
-	}
-
-	if(!cpcache[bCPSegmented] || cpcache[bCPSpectated])
-	{
-		Shavit_SetPracticeMode(client, true, !bInStart);
 	}
 
 	any snapshot[TIMERSNAPSHOT_SIZE];
@@ -2014,19 +1998,25 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	float ang[3];
 	CopyArray(cpcache[fCPAngles], ang, 3);
 
-	TeleportEntity(client, pos,
-		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache[bCPSegmented])? ang:NULL_VECTOR,
-		NULL_VECTOR);
+	float vel[3];
 
 	if((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache[bCPSegmented])
 	{
-		float basevel[3];
-		CopyArray(cpcache[fCPBaseVelocity], basevel, 3);
-		SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", basevel);
-
-		float vel[3];
 		CopyArray(cpcache[fCPVelocity], vel, 3);
-		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", vel);
+	}
+
+	else
+	{
+		vel = NULL_VECTOR;
+	}
+
+	TeleportEntity(client, pos,
+		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache[bCPSegmented])? ang:NULL_VECTOR,
+		vel);
+
+	if(cpcache[bCPPractice] || !cpcache[bCPSegmented] || GetClientSerial(client) != cpcache[iCPSerial])
+	{
+		Shavit_SetPracticeMode(client, true, true);
 	}
 
 	MoveType mt = cpcache[mtCPMoveType];
@@ -2095,7 +2085,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	
 	if(!suppressMessage)
 	{
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, (index + 1), gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, index, gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
 	}
 }
 

@@ -135,6 +135,7 @@ bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
 int gI_GroundTicks[MAXPLAYERS+1];
+MoveType gMT_MoveType[MAXPLAYERS+1];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -797,11 +798,6 @@ void VelocityChanges(int data)
 		return;
 	}
 
-	if(view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]) != 1.0)
-	{
-		SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
-	}
-
 	if(view_as<float>(gA_StyleSettings[gI_Style[client]][fSpeedMultiplier]) != 1.0)
 	{
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gI_Style[client]][fSpeedMultiplier]));
@@ -1400,9 +1396,9 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	char[] sName = new char[MAX_NAME_LENGTH];
-	GetClientName(client, sName, MAX_NAME_LENGTH);
-	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
+	char[] sName = new char[MAX_NAME_LENGTH_SQL];
+	GetClientName(client, sName, MAX_NAME_LENGTH_SQL);
+	ReplaceString(sName, MAX_NAME_LENGTH_SQL, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
 
 	int iLength = ((strlen(sName) * 2) + 1);
 	char[] sEscapedName = new char[iLength];
@@ -1827,6 +1823,17 @@ public void PreThinkPost(int client)
 		{
 			sv_enablebunnyhopping.BoolValue = view_as<bool>(gA_StyleSettings[gI_Style[client]][bEnableBunnyhopping]);
 		}
+
+		MoveType mtMoveType = GetEntityMoveType(client);
+
+		if(view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]) != 1.0 &&
+			(mtMoveType == MOVETYPE_WALK || mtMoveType == MOVETYPE_ISOMETRIC) &&
+			(gMT_MoveType[client] == MOVETYPE_LADDER || GetEntityGravity(client) == 1.0))
+		{
+			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
+		}
+
+		gMT_MoveType[client] = mtMoveType;
 	}
 }
 
@@ -2272,4 +2279,6 @@ void UpdateStyleSettings(int client)
 	char[] sAiraccelerate = new char[8];
 	FloatToString(gA_StyleSettings[gI_Style[client]][fAiraccelerate], sAiraccelerate, 8);
 	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+
+	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gI_Style[client]][fGravityMultiplier]));
 }

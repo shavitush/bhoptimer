@@ -623,6 +623,14 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 	}
 }
 
+void FixCSGOText(char[] buffer, int maxlen)
+{
+	if(gEV_Type == Engine_CSGO)
+	{
+		Format(buffer, maxlen, "<pre>%s</pre>", buffer);
+	}
+}
+
 void UpdateHUD(int client)
 {
 	int target = GetHUDTarget(client);
@@ -675,7 +683,8 @@ void UpdateHUD(int client)
 
 	if(strlen(sHintText) > 0)
 	{
-		PrintHintText(client, sHintText);
+		FixCSGOText(sHintText, 512);
+		PrintHintText(client, "%s", sHintText);
 	}
 
 	else if((gI_HUDSettings[client] & HUD_CENTER) > 0)
@@ -807,6 +816,7 @@ void UpdateHUD(int client)
 				}
 			}
 
+			FixCSGOText(sHintText, 512);
 			PrintHintText(client, "%s", sHintText);
 		}
 
@@ -816,11 +826,13 @@ void UpdateHUD(int client)
 
 			if(style == -1)
 			{
+				FixCSGOText(sHintText, 512);
 				PrintHintText(client, "%T", (gEV_Type != Engine_TF2)? "NoReplayData":"NoReplayDataTF2", client);
 
 				return;
 			}
 
+			iSpeed = RoundToNearest(float(iSpeed) / view_as<float>(gA_StyleSettings[style][fSpeedMultiplier]));			
 			track = Shavit_GetReplayBotTrack(target);
 
 			float fReplayTime = Shavit_GetReplayTime(style, track);
@@ -864,6 +876,7 @@ void UpdateHUD(int client)
 				Format(sHintText, 512, "%s\n%T: %d", sHintText, "HudSpeedText", client, iSpeed);
 			}
 
+			FixCSGOText(sHintText, 512);
 			PrintHintText(client, "%s", sHintText);
 		}
 	}
@@ -977,7 +990,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != client)
+		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != target)
 		{
 			continue;
 		}
@@ -1118,7 +1131,7 @@ void UpdateKeyHint(int client)
 
 				for(int i = 1; i <= MaxClients; i++)
 				{
-					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != client)
+					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != target)
 					{
 						continue;
 					}

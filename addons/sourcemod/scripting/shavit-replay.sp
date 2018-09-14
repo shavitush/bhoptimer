@@ -109,6 +109,8 @@ ConVar gCV_TimeLimit = null;
 ConVar gCV_DefaultTeam = null;
 ConVar gCV_CentralBot = null;
 ConVar gCV_BotShooting = null;
+ConVar gCV_BotPlusUse = null;
+ConVar gCV_BotWeapon = null;
 
 // cached cvars
 bool gB_Enabled = true;
@@ -117,6 +119,8 @@ float gF_TimeLimit = 5400.0;
 int gI_DefaultTeam = 3;
 bool gB_CentralBot = true;
 int gI_BotShooting = 3;
+bool gB_BotPlusUse = true;
+char gS_BotWeapon[32] = "";
 
 // timer settings
 int gI_Styles = 0;
@@ -211,6 +215,8 @@ public void OnPluginStart()
 	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
 	gCV_CentralBot = CreateConVar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_BotShooting = CreateConVar("shavit_replay_botshooting", "3", "Attacking buttons to allow for bots.\n0 - none\1 - +attack\n2 - +attack2\n3 - both", 0, true, 0.0, true, 3.0);
+	gCV_BotPlusUse = CreateConVar("shavit_replay_botplususe", "1", "Allow bots to use +use?", 0, true, 0.0, true, 1.0);
+	gCV_BotWeapon = CreateConVar("shavit_replay_botweapon", "", "Choose which weapon the bot will hold.\nLeave empty to use the default.\nSet to \"none\" to have none.\nExample: weapon_usp");
 
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
 	gCV_ReplayDelay.AddChangeHook(OnConVarChanged);
@@ -218,6 +224,8 @@ public void OnPluginStart()
 	gCV_DefaultTeam.AddChangeHook(OnConVarChanged);
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 	gCV_BotShooting.AddChangeHook(OnConVarChanged);
+	gCV_BotPlusUse.AddChangeHook(OnConVarChanged);
+	gCV_BotWeapon.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -253,6 +261,8 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_DefaultTeam = gCV_DefaultTeam.IntValue;
 	gB_CentralBot = gCV_CentralBot.BoolValue;
 	gI_BotShooting = gCV_BotShooting.IntValue;
+	gB_BotPlusUse = gCV_BotPlusUse.BoolValue;
+	gCV_BotWeapon.GetString(gS_BotWeapon, 32);
 
 	if(convar == gCV_CentralBot)
 	{
@@ -1264,10 +1274,39 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 			}
 		}
 
-		// Spectating is laggy if the player has no weapons
-		if(gEV_Type != Engine_TF2 && GetPlayerWeaponSlot(client, CS_SLOT_KNIFE) == -1)
+		if(gEV_Type != Engine_TF2 && strlen(gS_BotWeapon) > 0)
 		{
-			GivePlayerItem(client, "weapon_knife");
+			int iWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+
+			if(StrEqual(gS_BotWeapon, "none"))
+			{
+				if(iWeapon != -1 && IsValidEntity(iWeapon))
+				{
+					CS_DropWeapon(client, iWeapon, false);
+					AcceptEntityInput(iWeapon, "Kill");
+				}
+			}
+
+			else
+			{
+				char[] sClassname = new char[32];
+
+				if(iWeapon != -1 && IsValidEntity(iWeapon))
+				{
+					GetEntityClassname(iWeapon, sClassname, 32);
+
+					if(!StrEqual(gS_BotWeapon, sClassname))
+					{
+						CS_DropWeapon(client, iWeapon, false);
+						AcceptEntityInput(iWeapon, "Kill");
+					}
+				}
+
+				else
+				{
+					GivePlayerItem(client, gS_BotWeapon);
+				}
+			}
 		}
 	}
 
@@ -1544,6 +1583,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				buttons &= ~IN_ATTACK2;
 			}
 
+			if(!gB_BotPlusUse)
+			{
+				buttons &= ~IN_USE;
+			}
+
 			MoveType mt = MOVETYPE_NOCLIP;
 
 			if(gA_FrameCache[style][track][3] >= 0x02)
@@ -1599,7 +1643,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if(Shavit_GetTimerStatus(client) == Timer_Running && ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
+	else if(ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
