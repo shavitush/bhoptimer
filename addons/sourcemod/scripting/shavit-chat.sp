@@ -44,6 +44,8 @@ enum ChatRanksCache
 	Float:fCRFrom,
 	Float:fCRTo,
 	bool:bCRFree,
+	bool:bCREasterEgg,
+	String:sCRAdminFlag[32],
 	String:sCRName[MAXLENGTH_NAME],
 	String:sCRMessage[MAXLENGTH_MESSAGE],
 	String:sCRDisplay[MAXLENGTH_DISPLAY],
@@ -237,10 +239,12 @@ bool LoadChatConfig()
 		}
 		
 		aChatTitle[bCRFree] = view_as<bool>(kv.GetNum("free", false));
-
+		aChatTitle[bCREasterEgg] = view_as<bool>(kv.GetNum("easteregg", false));
+		
 		kv.GetString("name", aChatTitle[sCRName], MAXLENGTH_NAME, "{name}");
 		kv.GetString("message", aChatTitle[sCRMessage], MAXLENGTH_MESSAGE, "");
 		kv.GetString("display", aChatTitle[sCRDisplay], MAXLENGTH_DISPLAY, "");
+		kv.GetString("flag", aChatTitle[sCRAdminFlag], 32, "");
 
 		if(strlen(aChatTitle[sCRDisplay]) > 0)
 		{
@@ -865,7 +869,36 @@ Action ShowRanksMenu(int client, int item)
 		any[] aCache = new any[CRCACHE_SIZE];
 		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
 
-		// TODO: skip ranks with admin flags
+		char[] sFlag = new char[32];
+		strcopy(sFlag, 32, aCache[sCRAdminFlag]);
+
+		bool bFlagAccess = false;
+		int iSize = strlen(sFlag);
+
+		if(iSize == 0)
+		{
+			bFlagAccess = true;
+		}
+
+		else if(iSize == 1)
+		{
+			AdminFlag afFlag = view_as<AdminFlag>(0);
+			
+			if(FindFlagByChar(sFlag[0], afFlag))
+			{
+				bFlagAccess = GetAdminFlag(GetUserAdmin(client), afFlag);
+			}
+		}
+
+		else
+		{
+			bFlagAccess = CheckCommandAccess(client, sFlag, 0, true);
+		}
+
+		if(aCache[bCREasterEgg] || !bFlagAccess)
+		{
+			continue;
+		}
 
 		char[] sDisplay = new char[MAXLENGTH_DISPLAY];
 		strcopy(sDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
