@@ -59,4 +59,42 @@
 	{
 		"en"		"Custom\nUse custom chat settings. See !cchelp for more information."
 	}
+	"ChatRanksMenu"
+	{
+		"en"		"Obtainable chat ranks:\nSelect an entry to preview.\n"
+	}
+	"ChatRanksMenu_Unranked"
+	{
+		"en"		"Unranked"
+	}
+	"ChatRanksMenu_Points"
+	{
+		"#format"	"{1:d}"
+		"en"		"Have {1} points"
+	}
+	"ChatRanksMenu_Points_Ranged"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"Have between {1} and {2} points"
+	}
+	"ChatRanksMenu_Flat"
+	{
+		"#format"	"{1:d}"
+		"en"		"Ranked #{1} or better"
+	}
+	"ChatRanksMenu_Flat_Ranged"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"Ranked between #{1} and #{2}"
+	}
+	"ChatRanksMenu_Percentage"
+	{
+		"#format"	"{1:.1f},{2:c}"
+		"en"		"Top {1}{2}"
+	}
+	"ChatRanksMenu_Percentage_Ranged"
+	{
+		"#format"	"{1:.1f},{2:c},{3:.1f},{4:c}"
+		"en"		"Between top {1}{2} and {3}{4}"
+	}
 }

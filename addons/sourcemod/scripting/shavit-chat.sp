@@ -34,6 +34,7 @@
 #define MAXLENGTH_NAME 192
 #define MAXLENGTH_TEXT 192
 #define MAXLENGTH_MESSAGE 255
+#define MAXLENGTH_DISPLAY 192
 #define MAXLENGTH_CMESSAGE 16
 #define MAXLENGTH_BUFFER 255
 
@@ -45,7 +46,7 @@ enum ChatRanksCache
 	bool:bCRFree,
 	String:sCRName[MAXLENGTH_NAME],
 	String:sCRMessage[MAXLENGTH_MESSAGE],
-	String:sCRDisplay[192],
+	String:sCRDisplay[MAXLENGTH_DISPLAY],
 	CRCACHE_SIZE
 }
 
@@ -135,6 +136,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_ccmessage", Command_CCMessage, "Toggles/sets a custom chat message color. Usage: sm_ccmessage <color> or sm_ccmessage \"off\" to disable.");
 	RegConsoleCmd("sm_chatrank", Command_ChatRanks, "View a menu with the chat ranks available to you.");
 	RegConsoleCmd("sm_chatranks", Command_ChatRanks, "View a menu with the chat ranks available to you.");
+	RegConsoleCmd("sm_ranks", Command_Ranks, "View a menu with all the obtainable chat ranks.");
 
 	RegAdminCmd("sm_cclist", Command_CCList, ADMFLAG_CHAT, "Print the custom chat setting of all online players.");
 	RegAdminCmd("sm_reloadchatranks", Command_ReloadChatRanks, ADMFLAG_ROOT, "Reloads the chatranks config file.");
@@ -238,7 +240,7 @@ bool LoadChatConfig()
 
 		kv.GetString("name", aChatTitle[sCRName], MAXLENGTH_NAME, "{name}");
 		kv.GetString("message", aChatTitle[sCRMessage], MAXLENGTH_MESSAGE, "");
-		kv.GetString("display", aChatTitle[sCRDisplay], 192, "");
+		kv.GetString("display", aChatTitle[sCRDisplay], MAXLENGTH_DISPLAY, "");
 
 		if(strlen(aChatTitle[sCRDisplay]) > 0)
 		{
@@ -512,8 +514,6 @@ void Frame_SendText(DataPack pack)
 	}
 
 	EndMessage();
-
-	return;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -782,13 +782,13 @@ Action ShowChatRanksMenu(int client, int item)
 	Menu menu = new Menu(MenuHandler_ChatRanks);
 	menu.SetTitle("%T\n ", "SelectChatRank", client);
 
-	char[] sDisplay = new char[128];
-	FormatEx(sDisplay, 128, "%T\n ", "AutoAssign", client);
+	char[] sDisplay = new char[MAXLENGTH_DISPLAY];
+	FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "AutoAssign", client);
 	menu.AddItem("-2", sDisplay, (gI_ChatSelection[client] == -2)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
 	if(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
 	{
-		FormatEx(sDisplay, 128, "%T\n ", "CustomChat", client);
+		FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "CustomChat", client);
 		menu.AddItem("-1", sDisplay, (gI_ChatSelection[client] == -1)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
@@ -804,14 +804,15 @@ Action ShowChatRanksMenu(int client, int item)
 		any[] aCache = new any[CRCACHE_SIZE];
 		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
 
-		strcopy(sDisplay, 192, aCache[sCRDisplay]);
-		ReplaceString(sDisplay, 192, "<n>", "\n");
-		StrCat(sDisplay, 192, "\n "); // to add spacing between each entry
+		char[] sMenuDisplay = new char[MAXLENGTH_DISPLAY];
+		strcopy(sMenuDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
+		ReplaceString(sMenuDisplay, MAXLENGTH_DISPLAY, "<n>", "\n");
+		StrCat(sMenuDisplay, MAXLENGTH_DISPLAY, "\n "); // to add spacing between each entry
 
 		char[] sInfo = new char[8];
 		IntToString(i, sInfo, 8);
 
-		menu.AddItem(sInfo, sDisplay, (gI_ChatSelection[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+		menu.AddItem(sInfo, sMenuDisplay, (gI_ChatSelection[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	menu.ExitButton = true;
@@ -840,6 +841,211 @@ public int MenuHandler_ChatRanks(Menu menu, MenuAction action, int param1, int p
 	{
 		delete menu;
 	}
+}
+
+public Action Command_Ranks(int client, int args)
+{
+	if(client == 0)
+	{
+		return Plugin_Handled;
+	}
+
+	return ShowRanksMenu(client, 0);
+}
+
+Action ShowRanksMenu(int client, int item)
+{
+	Menu menu = new Menu(MenuHandler_Ranks);
+	menu.SetTitle("%T\n ", "ChatRanksMenu", client);
+
+	int iLength = gA_ChatRanks.Length;
+
+	for(int i = 0; i < iLength; i++)
+	{
+		any[] aCache = new any[CRCACHE_SIZE];
+		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
+
+		// TODO: skip ranks with admin flags
+
+		char[] sDisplay = new char[MAXLENGTH_DISPLAY];
+		strcopy(sDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
+		ReplaceString(sDisplay, MAXLENGTH_DISPLAY, "<n>", "\n");
+
+		char[][] sExplodedString = new char[2][32];
+		ExplodeString(sDisplay, "\n", sExplodedString, 2, 64);
+
+		FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%s\n ", sExplodedString[0]);
+
+		char[] sRequirements = new char[64];
+
+		if(!aCache[bCRFree])
+		{
+			if(aCache[fCRFrom] == 0)
+			{
+				FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Unranked", client);
+			}
+
+			else
+			{
+				// this is really ugly
+				bool bRanged = (aCache[fCRFrom] != aCache[fCRTo] && aCache[fCRTo] != 2147483648.0);
+
+				if(aCache[iCRRangeType] == Rank_Flat)
+				{
+					if(bRanged)
+					{
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat_Ranged", client, RoundToZero(aCache[fCRFrom]), RoundToZero(aCache[fCRTo]));
+					}
+
+					else
+					{
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat", client, RoundToZero(aCache[fCRFrom]));
+					}
+				}
+
+				else if(aCache[iCRRangeType] == Rank_Percentage)
+				{
+					if(bRanged)
+					{
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage_Ranged", client, aCache[fCRFrom], '%', aCache[fCRTo], '%');
+					}
+
+					else
+					{
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage", client, aCache[fCRFrom], '%');
+					}
+				}
+
+				else if(aCache[iCRRangeType] == Rank_Points)
+				{
+					if(bRanged)
+					{
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points_Ranged", client, RoundToZero(aCache[fCRFrom]), RoundToZero(aCache[fCRTo]));
+					}
+
+					else
+					{
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points", client, RoundToZero(aCache[fCRFrom]));
+					}
+				}
+			}
+		}
+
+		StrCat(sDisplay, MAXLENGTH_DISPLAY, sRequirements);
+		StrCat(sDisplay, MAXLENGTH_DISPLAY, "\n ");
+
+		char[] sInfo = new char[8];
+		IntToString(i, sInfo, 8);
+
+		menu.AddItem(sInfo, sDisplay);
+	}
+
+	// why even
+	if(menu.ItemCount == 0)
+	{
+		menu.AddItem("-1", "Nothing");
+	}
+
+	menu.ExitButton = true;
+	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_Ranks(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char[] sInfo = new char[8];
+		menu.GetItem(param2, sInfo, 8);
+
+		PreviewChat(param1, StringToInt(sInfo));
+		ShowRanksMenu(param1, GetMenuSelectionPosition());
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+}
+
+void PreviewChat(int client, int rank)
+{
+	char[] sTextFormatting = new char[MAXLENGTH_BUFFER];
+	gSM_Messages.GetString((gEV_Type != Engine_TF2)? "Cstrike_Chat_All":"TF_Chat_All", sTextFormatting, MAXLENGTH_BUFFER);
+	Format(sTextFormatting, MAXLENGTH_BUFFER, "\x01%s", sTextFormatting);
+
+	char[] sOriginalName = new char[MAXLENGTH_NAME];
+	GetClientName(client, sOriginalName, MAXLENGTH_NAME);
+
+	// remove control characters
+	for(int i = 0; i < sizeof(gS_ControlCharacters); i++)
+	{
+		ReplaceString(sOriginalName, MAXLENGTH_NAME, gS_ControlCharacters[i], "");
+	}
+
+	any[] aCache = new any[CRCACHE_SIZE];
+	gA_ChatRanks.GetArray(rank, aCache, view_as<int>(CRCACHE_SIZE));
+
+	char[] sName = new char[MAXLENGTH_NAME];
+	strcopy(sName, MAXLENGTH_NAME, aCache[sCRName]);
+
+	char[] sCMessage = new char[MAXLENGTH_CMESSAGE];
+	strcopy(sCMessage, MAXLENGTH_CMESSAGE, aCache[sCRMessage]);
+
+	FormatChat(client, sName, MAXLENGTH_NAME);
+
+	if(gEV_Type == Engine_CSGO)
+	{
+		FormatEx(sOriginalName, MAXLENGTH_NAME, " %s", sName);
+	}
+
+	else
+	{
+		strcopy(sOriginalName, MAXLENGTH_NAME, sName);
+	}
+
+	FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
+
+	char[] sSampleText = new char[MAXLENGTH_MESSAGE];
+	strcopy(sSampleText, MAXLENGTH_MESSAGE, "The quick brown fox jumps over the lazy dog");
+	Format(sSampleText, MAXLENGTH_MESSAGE, "%s%s", sCMessage, sSampleText);
+
+	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{name}", sOriginalName);
+	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{def}", "\x01");
+	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{colon}", gS_Colon);
+	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{msg}", sSampleText);
+
+	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
+
+	if(hSayText2 != null)
+	{
+		if(gB_Protobuf)
+		{
+			Protobuf pbmsg = view_as<any>(hSayText2);
+			pbmsg.SetInt("ent_idx", client);
+			pbmsg.SetBool("chat", true);
+			pbmsg.SetString("msg_name", sTextFormatting);
+			
+			for(int i = 1; i <= 4; i++)
+			{
+				pbmsg.AddString("params", "");
+			}
+			
+			delete pbmsg;
+		}
+
+		else
+		{
+			BfWrite bfmsg = view_as<any>(hSayText2);
+			bfmsg.WriteByte(client);
+			bfmsg.WriteByte(true);
+			bfmsg.WriteString(sTextFormatting);
+			delete bfmsg;
+		}
+	}
+
+	EndMessage();
 }
 
 bool HasRankAccess(int client, int rank)
