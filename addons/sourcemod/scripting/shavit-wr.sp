@@ -104,6 +104,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
 	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
+	CreateNative("Shavit_WR_DeleteMap", Native_WR_DeleteMap);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
@@ -603,6 +604,36 @@ public int Native_GetTimeForRank(Handle handler, int numParams)
 	}
 
 	return view_as<int>(gA_Leaderboard[style][track].Get(rank - 1));
+}
+
+public int Native_WR_DeleteMap(Handle handler, int numParams)
+{
+	char[] sMap = new char[160];
+	GetNativeString(1, sMap, 160);
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, sMap);
+	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+}
+
+public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR deletemap) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	if(view_as<bool>(data))
+	{
+		OnMapStart();
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			OnClientPutInServer(i);
+		}
+	}
 }
 
 #if defined DEBUG

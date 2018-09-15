@@ -93,6 +93,8 @@ bool gB_Late = false;
 // modules
 bool gB_Zones = false;
 bool gB_WR = false;
+bool gB_Replay = false;
+bool gB_Rankings = false;
 
 // cvars
 ConVar gCV_Restart = null;
@@ -136,6 +138,7 @@ bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
 int gI_GroundTicks[MAXPLAYERS+1];
 MoveType gMT_MoveType[MAXPLAYERS+1];
+char gS_DeleteMap[MAXPLAYERS+1][160];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -294,6 +297,9 @@ public void OnPluginStart()
 	#if defined DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
 	#endif
+
+	// admin
+	RegAdminCmd("sm_deletemap", Command_DeleteMap, ADMFLAG_ROOT, "Deletes all map data. Usage: sm_deletemap <map>");
 	// commands END
 
 	// logs
@@ -343,6 +349,8 @@ public void OnPluginStart()
 
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_WR = LibraryExists("shavit-wr");
+	gB_Replay = LibraryExists("shavit-replay");
+	gB_Rankings = LibraryExists("shavit-rankings");
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -372,6 +380,16 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_WR = true;
 	}
+
+	else if(StrEqual(name, "shavit-replay"))
+	{
+		gB_Replay = true;
+	}
+
+	else if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -384,6 +402,16 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-wr"))
 	{
 		gB_WR = false;
+	}
+	
+	else if(StrEqual(name, "shavit-replay"))
+	{
+		gB_Replay = false;
+	}
+	
+	else if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = false;
 	}
 }
 
@@ -563,6 +591,57 @@ public Action Command_FinishTest(int client, int args)
 	return Plugin_Handled;
 }
 #endif
+
+public Action Command_DeleteMap(int client, int args)
+{
+	if(args == 0)
+	{
+		ReplyToCommand(client, "Usage: sm_deletemap <map>\nOnce a map is chosen, \"sm_deletemap confirm\" to run the deletion.");
+
+		return Plugin_Handled;
+	}
+
+	char[] sArgs = new char[160];
+	GetCmdArgString(sArgs, 160);
+
+	if(StrEqual(sArgs, "confirm") && strlen(gS_DeleteMap[client]) > 0)
+	{
+		if(gB_WR)
+		{
+			Shavit_WR_DeleteMap(gS_DeleteMap[client]);
+			ReplyToCommand(client, "Deleted all records for %s.", gS_DeleteMap[client]);
+		}
+
+		if(gB_Zones)
+		{
+			Shavit_Zones_DeleteMap(gS_DeleteMap[client]);
+			ReplyToCommand(client, "Deleted all zones for %s.", gS_DeleteMap[client]);
+		}
+
+		if(gB_Replay)
+		{
+			Shavit_Replay_DeleteMap(gS_DeleteMap[client]);
+			ReplyToCommand(client, "Deleted all replay data for %s.", gS_DeleteMap[client]);
+		}
+
+		if(gB_Rankings)
+		{
+			Shavit_Rankings_DeleteMap(gS_DeleteMap[client]);
+			ReplyToCommand(client, "Deleted all rankings for %s.", gS_DeleteMap[client]);
+		}
+
+		ReplyToCommand(client, "Finished deleting data for %s.", gS_DeleteMap[client]);
+		strcopy(gS_DeleteMap[client], 160, "");
+	}
+
+	else
+	{
+		strcopy(gS_DeleteMap[client], 160, sArgs);
+		ReplyToCommand(client, "Map to delete is now %s.\nRun \"sm_deletemap confirm\" to delete all data regarding the map %s.", gS_DeleteMap[client], gS_DeleteMap[client]);
+	}
+
+	return Plugin_Handled;
+}
 
 public Action Command_AutoBhop(int client, int args)
 {
@@ -1368,6 +1447,7 @@ public void OnClientPutInServer(int client)
 	gI_SHSW_FirstCombination[client] = -1;
 	gI_Track[client] = 0;
 	gI_Style[client] = 0;
+	strcopy(gS_DeleteMap[client], 160, "");
 
 	if(AreClientCookiesCached(client))
 	{

@@ -164,9 +164,10 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	// zone natives
-	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
+	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
+	CreateNative("Shavit_Zones_DeleteMap", Native_Zones_DeleteMap);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-zones");
@@ -427,6 +428,31 @@ public int Native_ZoneExists(Handle handler, int numParams)
 public int Native_InsideZone(Handle handler, int numParams)
 {
 	return InsideZone(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3));
+}
+
+public int Native_Zones_DeleteMap(Handle handler, int numParams)
+{
+	char[] sMap = new char[160];
+	GetNativeString(1, sMap, 160);
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, sMap);
+	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+}
+
+public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (zones deletemap) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	if(view_as<bool>(data))
+	{
+		OnMapStart();
+	}
 }
 
 bool InsideZone(int client, int type, int track)

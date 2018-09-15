@@ -167,6 +167,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
 	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
+	CreateNative("Shavit_Replay_DeleteMap", Native_Replay_DeleteMap);
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
@@ -530,6 +531,39 @@ public int Native_GetReplayBotTrack(Handle handler, int numParams)
 public int Native_GetReplayBotType(Handle handler, int numParams)
 {
 	return view_as<int>((gB_CentralBot)? Replay_Central:Replay_Legacy);
+}
+
+public int Native_Replay_DeleteMap(Handle handler, int numParams)
+{
+	char[] sMap = new char[160];
+	GetNativeString(1, sMap, 160);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		if(!ReplayEnabled(i))
+		{
+			continue;
+		}
+
+		for(int j = 0; j < ((gB_CentralBot)? TRACKS_SIZE:1); j++)
+		{
+			char[] sTrack = new char[4];
+			FormatEx(sTrack, 4, "_%d", j);
+
+			char[] sPath = new char[PLATFORM_MAX_PATH];
+			FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, i, sMap, (j > 0)? sTrack:"");
+
+			if(FileExists(sPath))
+			{
+				DeleteFile(sPath);
+			}
+		}
+	}
+
+	if(StrEqual(gS_Map, sMap, false))
+	{
+		OnMapStart();
+	}
 }
 
 public void Shavit_OnDatabaseLoaded()

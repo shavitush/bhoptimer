@@ -98,6 +98,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetPoints", Native_GetPoints);
 	CreateNative("Shavit_GetRank", Native_GetRank);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
+	CreateNative("Shavit_Rankings_DeleteMap", Native_Rankings_DeleteMap);
 
 	RegPluginLibrary("shavit-rankings");
 
@@ -963,4 +964,32 @@ public int Native_GetRank(Handle handler, int numParams)
 public int Native_GetRankedPlayers(Handle handler, int numParams)
 {
 	return gI_RankedPlayers;
+}
+
+public int Native_Rankings_DeleteMap(Handle handler, int numParams)
+{
+	char[] sMap = new char[160];
+	GetNativeString(1, sMap, 160);
+
+	char[] sQuery = new char[256];
+	FormatEx(sQuery, 256, "DELETE FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, sMap);
+	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+}
+
+public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (rankings deletemap) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	if(view_as<bool>(data))
+	{
+		gI_Tier = 1;
+		
+		UpdateAllPoints();
+		UpdateRankedPlayers();
+	}
 }
