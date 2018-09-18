@@ -184,8 +184,10 @@ public void OnMapStart()
 
 			if(PrecacheSoundAny(sExploded[1]))
 			{
+				// Add custom sounds to the downloadables table.
 				FormatEx(sDownloadString, PLATFORM_MAX_PATH, "sound/%s", sExploded[1]);
-				AddFileToDownloadsTable(sDownloadString);
+				if(FileExists(sDownloadString))
+					AddFileToDownloadsTable(sDownloadString);
 			}
 
 			else
