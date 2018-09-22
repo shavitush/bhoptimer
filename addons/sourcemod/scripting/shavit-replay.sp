@@ -115,7 +115,7 @@ ConVar gCV_BotWeapon = null;
 // cached cvars
 bool gB_Enabled = true;
 float gF_ReplayDelay = 5.0;
-float gF_TimeLimit = 5400.0;
+float gF_TimeLimit = 7200.0;
 int gI_DefaultTeam = 3;
 bool gB_CentralBot = true;
 int gI_BotShooting = 3;
@@ -212,7 +212,7 @@ public void OnPluginStart()
 	// plugin convars
 	gCV_Enabled = CreateConVar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
-	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
+	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "7200.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 7200 (2 hours)\n0 - Disabled");
 	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
 	gCV_CentralBot = CreateConVar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_BotShooting = CreateConVar("shavit_replay_botshooting", "3", "Attacking buttons to allow for bots.\n0 - none\1 - +attack\n2 - +attack2\n3 - both", 0, true, 0.0, true, 3.0);
