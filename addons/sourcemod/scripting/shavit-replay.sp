@@ -1682,6 +1682,17 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	else if(ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
+		if((gI_PlayerFrames[client] / gF_Tickrate) > gF_TimeLimit)
+		{
+			// in case of bad timing
+			if(gB_HijackFrame[client])
+			{
+				gB_HijackFrame[client] = false;
+			}
+
+			return Plugin_Continue;
+		}
+
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
