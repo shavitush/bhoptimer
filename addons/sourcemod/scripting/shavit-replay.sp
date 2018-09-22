@@ -450,6 +450,8 @@ public int Native_SetReplayData(Handle handler, int numParams)
 
 	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2)));
 	gA_PlayerFrames[client] = frames.Clone();
+	delete frames;
+
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
 }
 
@@ -1441,6 +1443,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		return;
 	}
 
+	delete gA_Frames[style][track];
 	gA_Frames[style][track] = gA_PlayerFrames[client].Clone();
 
 	char[] sAuthID = new char[32];
