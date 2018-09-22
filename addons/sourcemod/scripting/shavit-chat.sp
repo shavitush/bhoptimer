@@ -31,6 +31,7 @@
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 
+#define MAGIC_NUMBER 2147483648.0
 #define MAXLENGTH_NAME 192
 #define MAXLENGTH_TEXT 192
 #define MAXLENGTH_MESSAGE 255
@@ -235,7 +236,7 @@ bool LoadChatConfig()
 			float fRank = StringToFloat(sRanks);
 
 			aChatTitle[fCRFrom] = fRank;
-			aChatTitle[fCRTo] = (aChatTitle[iCRRangeType] == Rank_Flat)? fRank:2147483648.0;
+			aChatTitle[fCRTo] = (aChatTitle[iCRRangeType] == Rank_Flat)? fRank:MAGIC_NUMBER;
 		}
 		
 		aChatTitle[bCRFree] = view_as<bool>(kv.GetNum("free", false));
@@ -913,7 +914,7 @@ Action ShowRanksMenu(int client, int item)
 
 		if(!aCache[bCRFree])
 		{
-			if(aCache[fCRFrom] == 0)
+			if(aCache[fCRFrom] == 0.0 && (aCache[fCRFrom] == aCache[fCRTo] || aCache[fCRTo] == MAGIC_NUMBER))
 			{
 				FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Unranked", client);
 			}
@@ -921,7 +922,7 @@ Action ShowRanksMenu(int client, int item)
 			else
 			{
 				// this is really ugly
-				bool bRanged = (aCache[fCRFrom] != aCache[fCRTo] && aCache[fCRTo] != 2147483648.0);
+				bool bRanged = (aCache[fCRFrom] != aCache[fCRTo] && aCache[fCRTo] != MAGIC_NUMBER);
 
 				if(aCache[iCRRangeType] == Rank_Flat)
 				{
@@ -1336,7 +1337,7 @@ int RealRandomInt(int min, int max)
 		random++;
 	}
 
-	return (RoundToCeil(float(random) / (float(2147483647) / float(max - min + 1))) + min - 1);
+	return (RoundToCeil(float(random) / (2147483647.0 / float(max - min + 1))) + min - 1);
 }
 
 void SQL_DBConnect()

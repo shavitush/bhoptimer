@@ -115,7 +115,7 @@ ConVar gCV_BotWeapon = null;
 // cached cvars
 bool gB_Enabled = true;
 float gF_ReplayDelay = 5.0;
-float gF_TimeLimit = 5400.0;
+float gF_TimeLimit = 7200.0;
 int gI_DefaultTeam = 3;
 bool gB_CentralBot = true;
 int gI_BotShooting = 3;
@@ -167,6 +167,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
 	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
+	CreateNative("Shavit_Replay_DeleteMap", Native_Replay_DeleteMap);
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
@@ -211,7 +212,7 @@ public void OnPluginStart()
 	// plugin convars
 	gCV_Enabled = CreateConVar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
 	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
-	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "5400.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 5400.0 (1:30 hours)\n0 - Disabled");
+	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "7200.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 7200 (2 hours)\n0 - Disabled");
 	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
 	gCV_CentralBot = CreateConVar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_BotShooting = CreateConVar("shavit_replay_botshooting", "3", "Attacking buttons to allow for bots.\n0 - none\1 - +attack\n2 - +attack2\n3 - both", 0, true, 0.0, true, 3.0);
@@ -449,6 +450,8 @@ public int Native_SetReplayData(Handle handler, int numParams)
 
 	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2)));
 	gA_PlayerFrames[client] = frames.Clone();
+	delete frames;
+
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
 }
 
@@ -530,6 +533,39 @@ public int Native_GetReplayBotTrack(Handle handler, int numParams)
 public int Native_GetReplayBotType(Handle handler, int numParams)
 {
 	return view_as<int>((gB_CentralBot)? Replay_Central:Replay_Legacy);
+}
+
+public int Native_Replay_DeleteMap(Handle handler, int numParams)
+{
+	char[] sMap = new char[160];
+	GetNativeString(1, sMap, 160);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		if(!ReplayEnabled(i))
+		{
+			continue;
+		}
+
+		for(int j = 0; j < ((gB_CentralBot)? TRACKS_SIZE:1); j++)
+		{
+			char[] sTrack = new char[4];
+			FormatEx(sTrack, 4, "_%d", j);
+
+			char[] sPath = new char[PLATFORM_MAX_PATH];
+			FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, i, sMap, (j > 0)? sTrack:"");
+
+			if(FileExists(sPath))
+			{
+				DeleteFile(sPath);
+			}
+		}
+	}
+
+	if(StrEqual(gS_Map, sMap, false))
+	{
+		OnMapStart();
+	}
 }
 
 public void Shavit_OnDatabaseLoaded()
@@ -1407,6 +1443,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		return;
 	}
 
+	delete gA_Frames[style][track];
 	gA_Frames[style][track] = gA_PlayerFrames[client].Clone();
 
 	char[] sAuthID = new char[32];
@@ -1645,6 +1682,17 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	else if(ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
 	{
+		if((gI_PlayerFrames[client] / gF_Tickrate) > gF_TimeLimit)
+		{
+			// in case of bad timing
+			if(gB_HijackFrame[client])
+			{
+				gB_HijackFrame[client] = false;
+			}
+
+			return Plugin_Continue;
+		}
+
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
 		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);

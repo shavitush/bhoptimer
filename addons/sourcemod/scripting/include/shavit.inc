@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.3.0"
+#define SHAVIT_VERSION "2.3.1"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -598,6 +598,42 @@ native void Shavit_RestartTimer(int client, int track);
  * @noreturn
  */
 native void Shavit_StopTimer(int client);
+
+/**
+ * Deletes all map records for the specified map.
+ * Plugin will refresh if map is currently on.
+ *
+ * @param map						Map name.
+ * @noreturn
+ */
+native void Shavit_WR_DeleteMap(const char[] map);
+
+/**
+ * Deletes all map zones for the specified map.
+ * Plugin will refresh if map is currently on.
+ *
+ * @param map						Map name.
+ * @noreturn
+ */
+native void Shavit_Zones_DeleteMap(const char[] map);
+
+/**
+ * Deletes all replays for the specified map.
+ * Plugin will refresh if map is currently on.
+ *
+ * @param map						Map name.
+ * @noreturn
+ */
+native void Shavit_Replay_DeleteMap(const char[] map);
+
+/**
+ * Deletes tier setting for the specified map.
+ * Points recalculation will run right after this is finished.
+ *
+ * @param map						Map name.
+ * @noreturn
+ */
+native void Shavit_Rankings_DeleteMap(const char[] map);
 
 /**
  * Finishes the map for a player, with their current timer stats.
@@ -1244,8 +1280,10 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_OpenStatsMenu");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
+	MarkNativeAsOptional("Shavit_Rankings_DeleteMap");
 	MarkNativeAsOptional("Shavit_ReloadReplay");
 	MarkNativeAsOptional("Shavit_ReloadReplays");
+	MarkNativeAsOptional("Shavit_Replay_DeleteMap");
 	MarkNativeAsOptional("Shavit_RestartTimer");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
 	MarkNativeAsOptional("Shavit_SaveSnapshot");
@@ -1254,6 +1292,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_StartTimer");
 	MarkNativeAsOptional("Shavit_StopChatSound");
 	MarkNativeAsOptional("Shavit_StopTimer");
+	MarkNativeAsOptional("Shavit_WR_DeleteMap");
 	MarkNativeAsOptional("Shavit_ZoneExists");
+	MarkNativeAsOptional("Shavit_Zones_DeleteMap");
 }
 #endif
