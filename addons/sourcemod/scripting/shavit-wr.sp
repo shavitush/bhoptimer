@@ -313,7 +313,7 @@ public void OnMapStart()
 
 	UpdateWRCache();
 
-	char[] sLowerCase = new char[160];
+	char sLowerCase[160];
 	strcopy(sLowerCase, 160, gS_Map);
 
 	for(int i = 0; i < strlen(sLowerCase); i++)
@@ -350,10 +350,10 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 
 	while(results.FetchRow())
 	{
-		char[] sMap = new char[192];
+		char sMap[192];
 		results.FetchString(0, sMap, 192);
 
-		char[] sLowerCase = new char[128];
+		char sLowerCase[128];
 		strcopy(sLowerCase, 128, sMap);
 
 		for(int i = 0; i < strlen(sLowerCase); i++)
@@ -608,10 +608,10 @@ public int Native_GetTimeForRank(Handle handler, int numParams)
 
 public int Native_WR_DeleteMap(Handle handler, int numParams)
 {
-	char[] sMap = new char[160];
+	char sMap[160];
 	GetNativeString(1, sMap, 160);
 
-	char[] sQuery = new char[256];
+	char sQuery[256];
 	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, sMap);
 	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 }
@@ -640,9 +640,9 @@ public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[
 // debug
 public Action Command_Junk(int client, int args)
 {
-	char[] sQuery = new char[256];
+	char sQuery[256];
 
-	char[] sAuth = new char[32];
+	char sAuth[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
 	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES ('%s', '%s', %.03f, %d, %d, 0, %d, %.02f);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
 
@@ -678,12 +678,12 @@ public Action Command_Delete(int client, int args)
 
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
 		int records = GetTrackRecordCount(i);
 
-		char[] sTrack = new char[64];
+		char sTrack[64];
 		GetTrackName(client, i, sTrack, 64);
 
 		if(records > 0)
@@ -704,7 +704,7 @@ public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, in
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 		gI_LastTrack[param1] = StringToInt(info);
 
@@ -726,10 +726,10 @@ void DeleteSubmenu(int client)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
-		char[] sDisplay = new char[64];
+		char sDisplay[64];
 		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i][sStyleName], "WRRecord", client, gI_RecordAmount[i][gI_LastTrack[client]]);
 
 		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][gI_LastTrack[client]] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -751,12 +751,12 @@ public Action Command_DeleteAll(int client, int args)
 
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
 		int records = GetTrackRecordCount(i);
 
-		char[] sTrack = new char[64];
+		char sTrack[64];
 		GetTrackName(client, i, sTrack, 64);
 
 		if(records > 0)
@@ -777,7 +777,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 		gI_LastTrack[param1] = StringToInt(info);
 
@@ -794,13 +794,13 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 
 void DeleteAllSubmenu(int client)
 {
-	char[] sTrack = new char[32];
+	char sTrack[32];
 	GetTrackName(client, gI_LastTrack[client], sTrack, 32);
 
 	Menu menu = new Menu(MenuHandler_DeleteAll);
 	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, gS_Map, sTrack);
 
-	char[] sMenuItem = new char[64];
+	char sMenuItem[64];
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
@@ -825,7 +825,7 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 
 		if(StringToInt(info) == -1)
@@ -835,12 +835,12 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 			return 0;
 		}
 
-		char[] sTrack = new char[32];
+		char sTrack[32];
 		GetTrackName(LANG_SERVER, gI_LastTrack[param1], sTrack, 32);
 
 		Shavit_LogMessage("%L - deleted all %s track records from map `%s`.", param1, sTrack, gS_Map);
 
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND track = %d;", gS_MySQLPrefix, gS_Map, gI_LastTrack[param1]);
 
 		gH_SQL.Query(DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
@@ -871,10 +871,10 @@ public Action Command_DeleteStyleRecords(int client, int args)
 			continue;
 		}
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
-		char[] sDisplay = new char[64];
+		char sDisplay[64];
 		FormatEx(sDisplay, 64, "%s (%d %T)", gS_StyleStrings[i][sStyleName], gI_RecordAmount[i], "WRRecord", client);
 
 		int iTotalAmount = 0;
@@ -889,7 +889,7 @@ public Action Command_DeleteStyleRecords(int client, int args)
 
 	if(menu.ItemCount == 0)
 	{
-		char[] sNoRecords = new char[64];
+		char sNoRecords[64];
 		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
 		menu.AddItem("-1", sNoRecords);
 	}
@@ -904,7 +904,7 @@ public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int para
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 
 		int style = StringToInt(info);
@@ -920,7 +920,7 @@ public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int para
 			return 0;
 		}
 
-		char[] sMenuItem = new char[128];
+		char sMenuItem[128];
 
 		Menu submenu = new Menu(MenuHandler_DeleteStyleRecords_Confirm);
 		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style][sStyleName]);
@@ -958,7 +958,7 @@ public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, 
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 
 		int style = StringToInt(info);
@@ -972,7 +972,7 @@ public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, 
 
 		Shavit_LogMessage("%L - deleted all %s style records from map `%s`.", param1, gS_StyleStrings[style][sStyleName], gS_Map);
 
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, gS_Map, style);
 
 		DataPack pack = new DataPack();
@@ -1025,7 +1025,7 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 
 		OpenDelete(param1, StringToInt(info));
@@ -1043,7 +1043,7 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 
 void OpenDelete(int client, int style)
 {
-	char[] sQuery = new char[512];
+	char sQuery[512];
 
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style, gI_LastTrack[client]);
 	DataPack datapack = new DataPack();
@@ -1083,30 +1083,30 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 
 		// 0 - record id, for statistic purposes.
 		int id = results.FetchInt(0);
-		char[] sID = new char[8];
+		char sID[8];
 		IntToString(id, sID, 8);
 
 		// 1 - player name
-		char[] sName = new char[MAX_NAME_LENGTH];
+		char sName[MAX_NAME_LENGTH];
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
 		ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
 		// 2 - time
 		float time = results.FetchFloat(2);
-		char[] sTime = new char[16];
+		char sTime[16];
 		FormatSeconds(time, sTime, 16);
 
 		// 3 - jumps
 		int jumps = results.FetchInt(3);
 
-		char[] sDisplay = new char[128];
+		char sDisplay[128];
 		FormatEx(sDisplay, 128, "#%d - %s - %s (%d jump%s)", iCount, sName, sTime, jumps, (jumps != 1)? "s":"");
 		menu.AddItem(sID, sDisplay);
 	}
 
 	if(iCount == 0)
 	{
-		char[] sNoRecords = new char[64];
+		char sNoRecords[64];
 		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
 		menu.AddItem("-1", sNoRecords);
 	}
@@ -1119,7 +1119,7 @@ public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int para
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 
 		int id = StringToInt(info);
@@ -1140,7 +1140,7 @@ public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int para
 
 void OpenDeleteMenu(int client, int id)
 {
-	char[] sMenuItem = new char[64];
+	char sMenuItem[64];
 
 	Menu menu = new Menu(DeleteConfirm_Handler);
 	menu.SetTitle("%T\n ", "DeleteConfirm", client);
@@ -1153,7 +1153,7 @@ void OpenDeleteMenu(int client, int id)
 
 	FormatEx(sMenuItem, 64, "%T", "MenuResponseYesSingle", client);
 
-	char[] info = new char[16];
+	char info[16];
 	IntToString(id, info, 16);
 	menu.AddItem(info, sMenuItem);
 
@@ -1171,7 +1171,7 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 		int iRecordID = StringToInt(info);
 
@@ -1207,7 +1207,7 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 		// TODO:  display record details here (map name, player name/authid, time, rank on map) without dropping threaded queries
 		Shavit_LogMessage("%L - deleted record id %d.", param1, iRecordID);
 
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;", gS_MySQLPrefix, iRecordID);
 
 		gH_SQL.Query(DeleteConfirm_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
@@ -1343,14 +1343,14 @@ Action ShowWRStyleMenu(int client, int track)
 			continue;
 		}
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
-		char[] sDisplay = new char[64];
+		char sDisplay[64];
 
 		if(StrEqual(gS_ClientMap[client], gS_Map) && gF_WRTime[i][track] > 0.0)
 		{
-			char[] sTime = new char[32];
+			char sTime[32];
 			FormatSeconds(gF_WRTime[i][track], sTime, 32, false);
 
 			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i][sStyleName], sTime);
@@ -1367,7 +1367,7 @@ Action ShowWRStyleMenu(int client, int track)
 	// should NEVER happen
 	if(menu.ItemCount == 0)
 	{
-		char[] sMenuItem = new char[64];
+		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "WRStyleNothing", client);
 		menu.AddItem("-1", sMenuItem);
 	}
@@ -1387,7 +1387,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 			return 0;
 		}
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		menu.GetItem(param2, sInfo, 8);
 
 		int iStyle = StringToInt(sInfo);
@@ -1423,7 +1423,7 @@ void StartWRMenu(int client, const char[] map, int style, int track)
 	char[] sEscapedMap = new char[iLength];
 	gH_SQL.Escape(map, sEscapedMap, iLength);
 
-	char[] sQuery = new char[512];
+	char sQuery[512];
 	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style, track);
 	gH_SQL.Query(SQL_WR_Callback, sQuery, dp);
 }
@@ -1434,7 +1434,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	int serial = data.ReadCell();
 	int track = data.ReadCell();
 
-	char[] sMap = new char[192];
+	char sMap[192];
 	data.ReadString(sMap, 192);
 
 	delete data;
@@ -1453,7 +1453,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		return;
 	}
 
-	char[] sAuth = new char[32];
+	char sAuth[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
 
 	Menu menu = new Menu(WRMenu_Handler);
@@ -1467,28 +1467,28 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		{
 			// 0 - record id, for statistic purposes.
 			int id = results.FetchInt(0);
-			char[] sID = new char[8];
+			char sID[8];
 			IntToString(id, sID, 8);
 
 			// 1 - player name
-			char[] sName = new char[MAX_NAME_LENGTH];
+			char sName[MAX_NAME_LENGTH];
 			results.FetchString(1, sName, MAX_NAME_LENGTH);
 
 			// 2 - time
 			float time = results.FetchFloat(2);
-			char[] sTime = new char[16];
+			char sTime[16];
 			FormatSeconds(time, sTime, 16);
 
 			// 3 - jumps
 			int jumps = results.FetchInt(3);
 
-			char[] sDisplay = new char[128];
+			char sDisplay[128];
 			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", iCount, sName, sTime, jumps, "WRJumps", client);
 			menu.AddItem(sID, sDisplay);
 		}
 
 		// check if record exists in the map's top X
-		char[] sQueryAuth = new char[32];
+		char sQueryAuth[32];
 		results.FetchString(4, sQueryAuth, 32);
 
 		if(StrEqual(sQueryAuth, sAuth))
@@ -1497,12 +1497,12 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		}
 	}
 
-	char[] sFormattedTitle = new char[256];
+	char sFormattedTitle[256];
 
 	if(menu.ItemCount == 0)
 	{
 		menu.SetTitle("%T", "WRMap", client, sMap);
-		char[] sNoRecords = new char[64];
+		char sNoRecords[64];
 		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
 
 		menu.AddItem("-1", sNoRecords);
@@ -1513,7 +1513,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		int iRecords = results.RowCount;
 
 		// [32] just in case there are 150k records on a map and you're ranked 100k or something
-		char[] sRanks = new char[32];
+		char sRanks[32];
 
 		if(gF_PlayerRecord[client][gBS_LastWR[client]][track] == 0.0 || iMyRank == 0)
 		{
@@ -1525,7 +1525,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
 		}
 
-		char[] sTrack = new char[32];
+		char sTrack[32];
 		GetTrackName(client, track, sTrack, 32);
 
 		FormatEx(sFormattedTitle, 192, "%T %s: [%s]\n%s", "WRRecordFor", client, sMap, sTrack, sRanks);
@@ -1540,7 +1540,7 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[16];
+		char sInfo[16];
 		menu.GetItem(param2, sInfo, 16);
 		int id = StringToInt(sInfo);
 
@@ -1575,7 +1575,7 @@ public Action Command_RecentRecords(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sQuery = new char[512];
+	char sQuery[512];
 
 	FormatEx(sQuery, 512,
 		"SELECT a.id, a.map, u.name, a.time, a.jumps, a.style, a.points, a.track FROM %splayertimes a " ...
@@ -1613,10 +1613,10 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 	while(results.FetchRow())
 	{
-		char[] sMap = new char[192];
+		char sMap[192];
 		results.FetchString(1, sMap, 192);
 		
-		char[] sName = new char[MAX_NAME_LENGTH];
+		char sName[MAX_NAME_LENGTH];
 		results.FetchString(2, sName, 10);
 
 		if(strlen(sName) == 9)
@@ -1624,7 +1624,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 			Format(sName, MAX_NAME_LENGTH, "%s...", sName);
 		}
 
-		char[] sTime = new char[16];
+		char sTime[16];
 		float time = results.FetchFloat(3);
 		FormatSeconds(time, sTime, 16);
 
@@ -1632,10 +1632,10 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		int style = results.FetchInt(5);
 		float fPoints = results.FetchFloat(6);
 
-		char[] sTrack = new char[32];
+		char sTrack[32];
 		GetTrackName(client, results.FetchInt(7), sTrack, 32);
 
-		char[] sDisplay = new char[192];
+		char sDisplay[192];
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
@@ -1647,7 +1647,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack[0], sMap, sName, sTime, jumps, "WRJumps", client);
 		}
 
-		char[] sInfo = new char[192];
+		char sInfo[192];
 		FormatEx(sInfo, 192, "%d;%s", results.FetchInt(0), sMap);
 
 		menu.AddItem(sInfo, sDisplay);
@@ -1655,7 +1655,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 	if(menu.ItemCount == 0)
 	{
-		char[] sMenuItem = new char[64];
+		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "WRMapNoRecords", client);
 		menu.AddItem("-1", sMenuItem);
 	}
@@ -1668,12 +1668,12 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[128];
+		char sInfo[128];
 		m.GetItem(param2, sInfo, 128);
 
 		if(StringToInt(sInfo) != -1)
 		{
-			char[][] sExploded = new char[2][128];
+			char sExploded[2][128];
 			ExplodeString(sInfo, ";", sExploded, 2, 128, true);
 
 			strcopy(gS_ClientMap[param1], 128, sExploded[1]);
@@ -1702,7 +1702,7 @@ public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 void OpenSubMenu(int client, int id)
 {
-	char[] sQuery = new char[512];
+	char sQuery[512];
 	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.perfs, p.points, p.track FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
 
 	DataPack datapack = new DataPack();
@@ -1733,11 +1733,11 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	Menu menu = new Menu(SubMenu_Handler);
 
-	char[] sFormattedTitle = new char[256];
-	char[] sName = new char[MAX_NAME_LENGTH];
-	char[] sAuthID = new char[32];
-	char[] sTrack = new char[32];
-	char[] sMap = new char[192];
+	char sFormattedTitle[256];
+	char sName[MAX_NAME_LENGTH];
+	char sAuthID[32];
+	char sTrack[32];
+	char sMap[192];
 
 	if(results.FetchRow())
 	{
@@ -1746,10 +1746,10 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		// 1 - time
 		float time = results.FetchFloat(1);
-		char[] sTime = new char[16];
+		char sTime[16];
 		FormatSeconds(time, sTime, 16);
 
-		char[] sDisplay = new char[128];
+		char sDisplay[128];
 		FormatEx(sDisplay, 128, "%T: %s", "WRTime", client, sTime);
 		menu.AddItem("-1", sDisplay);
 
@@ -1789,7 +1789,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		results.FetchString(4, sAuthID, 32);
 
 		// 5 - date
-		char[] sDate = new char[32];
+		char sDate[32];
 		results.FetchString(5, sDate, 32);
 
 		if(sDate[4] != '-')
@@ -1809,10 +1809,10 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			menu.AddItem("-1", sDisplay);
 		}
 
-		char[] sMenuItem = new char[64];
+		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "WRPlayerStats", client);
 
-		char[] sInfo = new char[32];
+		char sInfo[32];
 		FormatEx(sInfo, 32, "0;%s", sAuthID);
 
 		if(gB_Stats)
@@ -1832,7 +1832,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	else
 	{
-		char[] sMenuItem = new char[64];
+		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "DatabaseError", client);
 		menu.AddItem("-1", sMenuItem);
 	}
@@ -1856,12 +1856,12 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[32];
+		char sInfo[32];
 		m.GetItem(param2, sInfo, 32);
 
 		if(gB_Stats && StringToInt(sInfo) != -1)
 		{
-			char[][] sExploded = new char[2][32];
+			char sExploded[2][32];
 			ExplodeString(sInfo, ";", sExploded, 2, 32, true);
 
 			int first = StringToInt(sExploded[0]);
@@ -1931,7 +1931,7 @@ Action SetSQLInfo()
 
 void SQL_SetPrefix()
 {
-	char[] sFile = new char[PLATFORM_MAX_PATH];
+	char sFile[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
 
 	File fFile = OpenFile(sFile, "r");
@@ -1941,7 +1941,7 @@ void SQL_SetPrefix()
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
 	
-	char[] sLine = new char[PLATFORM_MAX_PATH*2];
+	char sLine[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
@@ -1956,11 +1956,11 @@ void SQL_SetPrefix()
 
 void SQL_DBConnect()
 {
-	char[] sDriver = new char[8];
+	char sDriver[8];
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
 	gB_MySQL = StrEqual(sDriver, "mysql", false);
 
-	char[] sQuery = new char[512];
+	char sQuery[512];
 
 	if(gB_MySQL)
 	{
@@ -1994,7 +1994,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		gB_Late = false;
 	}
 
-	char[] sQuery = new char[64];
+	char sQuery[64];
 	FormatEx(sQuery, 64, "SELECT strafes FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
 
@@ -2018,7 +2018,7 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 {
 	if(results == null)
 	{
-		char[] sQuery = new char[256];
+		char sQuery[256];
 
 		if(gB_MySQL)
 		{
@@ -2057,7 +2057,7 @@ public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const
 {
 	if(results == null)
 	{
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
 		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery);
 	}
@@ -2075,7 +2075,7 @@ public void SQL_TableMigration4_Callback(Database db, DBResultSet results, const
 {
 	if(results == null)
 	{
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`track` INT NOT NULL DEFAULT 0)":"COLUMN `track` INT NOT NULL DEFAULT 0");
 		gH_SQL.Query(SQL_AlterTable4_Callback, sQuery);
 	}
@@ -2093,7 +2093,7 @@ public void SQL_TableMigration5_Callback(Database db, DBResultSet results, const
 {
 	if(results == null)
 	{
-		char[] sQuery = new char[256];
+		char sQuery[256];
 
 		if(gB_MySQL)
 		{
@@ -2129,10 +2129,10 @@ public void SQL_AlterTable5_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs)
 {
-	char[] sTime = new char[32];
+	char sTime[32];
 	FormatSeconds(time, sTime, 32);
 
-	char[] sTrack = new char[32];
+	char sTrack[32];
 	GetTrackName(LANG_SERVER, track, sTrack, 32);
 
 	// 0 - no query
@@ -2202,18 +2202,18 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		fDifference = -fDifference;
 	}
 
-	char[] sDifference = new char[16];
+	char sDifference[16];
 	FormatSeconds(fDifference, sDifference, 16, true);
 
-	char[] sSync = new char[32]; // 32 because colors
+	char sSync[32]; // 32 because colors
 	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_ChatStrings[sMessageVariable], sync);
 
 	if(overwrite > 0)
 	{
-		char[] sAuthID = new char[32];
+		char sAuthID[32];
 		GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
-		char[] sQuery = new char[512];
+		char sQuery[512];
 
 		if(overwrite == 1) // insert
 		{
@@ -2286,7 +2286,7 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 
 void UpdateLeaderboards()
 {
-	char[] sQuery = new char[192];
+	char sQuery[192];
 	FormatEx(sQuery, 192, "SELECT style, time, track FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery, 0);
 }
@@ -2367,7 +2367,7 @@ void GuessBestMapName(const char[] input, char[] output, int size)
 		return;
 	}
 
-	char[] sCache = new char[128];
+	char sCache[128];
 
 	for(int i = 0; i < gI_ValidMaps; i++)
 	{

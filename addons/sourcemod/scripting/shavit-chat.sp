@@ -190,7 +190,7 @@ public void OnMapStart()
 
 bool LoadChatConfig()
 {
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-chat.cfg");
 
 	KeyValues kv = new KeyValues("shavit-chat");
@@ -207,7 +207,7 @@ bool LoadChatConfig()
 	do
 	{
 		any[] aChatTitle = new any[CRCACHE_SIZE];
-		char[] sRanks = new char[32];
+		char sRanks[32];
 		kv.GetString("ranks", sRanks, MAXLENGTH_NAME, "0");
 
 		if(sRanks[0] == 'p')
@@ -225,7 +225,7 @@ bool LoadChatConfig()
 
 		if(StrContains(sRanks, "-") != -1)
 		{
-			char[][] sExplodedString = new char[2][16];
+			char sExplodedString[2][16];
 			ExplodeString(sRanks, "-", sExplodedString, 2, 64);
 			aChatTitle[fCRFrom] = StringToFloat(sExplodedString[0]);
 			aChatTitle[fCRTo] = StringToFloat(sExplodedString[1]);
@@ -262,7 +262,7 @@ bool LoadChatConfig()
 
 bool LoadChatSettings()
 {
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-chatsettings.cfg");
 
 	KeyValues kv = new KeyValues("shavit-chat");
@@ -295,10 +295,10 @@ bool LoadChatSettings()
 
 	do
 	{
-		char[] sSection = new char[32];
+		char sSection[32];
 		kv.GetSectionName(sSection, 32);
 
-		char[] sText = new char[MAXLENGTH_BUFFER];
+		char sText[MAXLENGTH_BUFFER];
 		kv.GetString(NULL_STRING, sText, MAXLENGTH_BUFFER);
 
 		gSM_Messages.SetString(sSection, sText);
@@ -324,9 +324,9 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	int client = 0;
-	char[] sMessage = new char[32];
-	char[] sOriginalName = new char[MAXLENGTH_NAME];
-	char[] sOriginalText = new char[MAXLENGTH_TEXT];
+	char sMessage[32];
+	char sOriginalName[MAXLENGTH_NAME];
+	char sOriginalText[MAXLENGTH_TEXT];
 
 	if(gB_Protobuf)
 	{
@@ -361,7 +361,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 
 	gB_NewMessage[client] = false;
 
-	char[] sTextFormatting = new char[MAXLENGTH_BUFFER];
+	char sTextFormatting[MAXLENGTH_BUFFER];
 
 	// not a hooked message
 	if(!gSM_Messages.GetString(sMessage, sTextFormatting, MAXLENGTH_BUFFER))
@@ -378,8 +378,8 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		ReplaceString(sOriginalText, MAXLENGTH_TEXT, gS_ControlCharacters[i], "");
 	}
 
-	char[] sName = new char[MAXLENGTH_NAME];
-	char[] sCMessage = new char[MAXLENGTH_CMESSAGE];
+	char sName[MAXLENGTH_NAME];
+	char sCMessage[MAXLENGTH_CMESSAGE];
 	
 	if((gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)) && gI_ChatSelection[client] == -1)
 	{
@@ -418,7 +418,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	{
 		FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
 
-		char[] sTemp = new char[MAXLENGTH_CMESSAGE];
+		char sTemp[MAXLENGTH_CMESSAGE];
 
 		// support RTL messages
 		if(gB_RTLer && RTLify(sTemp, MAXLENGTH_CMESSAGE, sOriginalText) > 0)
@@ -452,7 +452,7 @@ void Frame_SendText(DataPack pack)
 	pack.Reset();
 	int serial = pack.ReadCell();
 	bool allchat = pack.ReadCell();
-	char[] sText = new char[MAXLENGTH_BUFFER];
+	char sText[MAXLENGTH_BUFFER];
 	pack.ReadString(sText, MAXLENGTH_BUFFER);
 	delete pack;
 
@@ -560,7 +560,7 @@ Action SetSQLInfo()
 
 void SQL_SetPrefix()
 {
-	char[] sFile = new char[PLATFORM_MAX_PATH];
+	char sFile[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
 
 	File fFile = OpenFile(sFile, "r");
@@ -570,7 +570,7 @@ void SQL_SetPrefix()
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
 	
-	char[] sLine = new char[PLATFORM_MAX_PATH*2];
+	char sLine[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
@@ -611,7 +611,7 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnClientCookiesCached(int client)
 {
-	char[] sChatSettings = new char[8];
+	char sChatSettings[8];
 	GetClientCookie(client, gH_ChatCookie, sChatSettings, 8);
 
 	if(strlen(sChatSettings) == 0)
@@ -690,7 +690,7 @@ public Action Command_CCName(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sArgs = new char[128];
+	char sArgs[128];
 	GetCmdArgString(sArgs, 128);
 	TrimString(sArgs);
 
@@ -739,7 +739,7 @@ public Action Command_CCMessage(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sArgs = new char[32];
+	char sArgs[32];
 	GetCmdArgString(sArgs, 32);
 	TrimString(sArgs);
 
@@ -787,7 +787,7 @@ Action ShowChatRanksMenu(int client, int item)
 	Menu menu = new Menu(MenuHandler_ChatRanks);
 	menu.SetTitle("%T\n ", "SelectChatRank", client);
 
-	char[] sDisplay = new char[MAXLENGTH_DISPLAY];
+	char sDisplay[MAXLENGTH_DISPLAY];
 	FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "AutoAssign", client);
 	menu.AddItem("-2", sDisplay, (gI_ChatSelection[client] == -2)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
@@ -809,12 +809,12 @@ Action ShowChatRanksMenu(int client, int item)
 		any[] aCache = new any[CRCACHE_SIZE];
 		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
 
-		char[] sMenuDisplay = new char[MAXLENGTH_DISPLAY];
+		char sMenuDisplay[MAXLENGTH_DISPLAY];
 		strcopy(sMenuDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
 		ReplaceString(sMenuDisplay, MAXLENGTH_DISPLAY, "<n>", "\n");
 		StrCat(sMenuDisplay, MAXLENGTH_DISPLAY, "\n "); // to add spacing between each entry
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
 		menu.AddItem(sInfo, sMenuDisplay, (gI_ChatSelection[client] == i)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
@@ -830,7 +830,7 @@ public int MenuHandler_ChatRanks(Menu menu, MenuAction action, int param1, int p
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		menu.GetItem(param2, sInfo, 8);
 
 		int iChoice = StringToInt(sInfo);
@@ -870,7 +870,7 @@ Action ShowRanksMenu(int client, int item)
 		any[] aCache = new any[CRCACHE_SIZE];
 		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
 
-		char[] sFlag = new char[32];
+		char sFlag[32];
 		strcopy(sFlag, 32, aCache[sCRAdminFlag]);
 
 		bool bFlagAccess = false;
@@ -901,16 +901,16 @@ Action ShowRanksMenu(int client, int item)
 			continue;
 		}
 
-		char[] sDisplay = new char[MAXLENGTH_DISPLAY];
+		char sDisplay[MAXLENGTH_DISPLAY];
 		strcopy(sDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
 		ReplaceString(sDisplay, MAXLENGTH_DISPLAY, "<n>", "\n");
 
-		char[][] sExplodedString = new char[2][32];
+		char sExplodedString[2][32];
 		ExplodeString(sDisplay, "\n", sExplodedString, 2, 64);
 
 		FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%s\n ", sExplodedString[0]);
 
-		char[] sRequirements = new char[64];
+		char sRequirements[64];
 
 		if(!aCache[bCRFree])
 		{
@@ -968,7 +968,7 @@ Action ShowRanksMenu(int client, int item)
 		StrCat(sDisplay, MAXLENGTH_DISPLAY, sRequirements);
 		StrCat(sDisplay, MAXLENGTH_DISPLAY, "\n ");
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
 		menu.AddItem(sInfo, sDisplay);
@@ -990,7 +990,7 @@ public int MenuHandler_Ranks(Menu menu, MenuAction action, int param1, int param
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		menu.GetItem(param2, sInfo, 8);
 
 		PreviewChat(param1, StringToInt(sInfo));
@@ -1005,11 +1005,11 @@ public int MenuHandler_Ranks(Menu menu, MenuAction action, int param1, int param
 
 void PreviewChat(int client, int rank)
 {
-	char[] sTextFormatting = new char[MAXLENGTH_BUFFER];
+	char sTextFormatting[MAXLENGTH_BUFFER];
 	gSM_Messages.GetString((gEV_Type != Engine_TF2)? "Cstrike_Chat_All":"TF_Chat_All", sTextFormatting, MAXLENGTH_BUFFER);
 	Format(sTextFormatting, MAXLENGTH_BUFFER, "\x01%s", sTextFormatting);
 
-	char[] sOriginalName = new char[MAXLENGTH_NAME];
+	char sOriginalName[MAXLENGTH_NAME];
 	GetClientName(client, sOriginalName, MAXLENGTH_NAME);
 
 	// remove control characters
@@ -1021,10 +1021,10 @@ void PreviewChat(int client, int rank)
 	any[] aCache = new any[CRCACHE_SIZE];
 	gA_ChatRanks.GetArray(rank, aCache, view_as<int>(CRCACHE_SIZE));
 
-	char[] sName = new char[MAXLENGTH_NAME];
+	char sName[MAXLENGTH_NAME];
 	strcopy(sName, MAXLENGTH_NAME, aCache[sCRName]);
 
-	char[] sCMessage = new char[MAXLENGTH_CMESSAGE];
+	char sCMessage[MAXLENGTH_CMESSAGE];
 	strcopy(sCMessage, MAXLENGTH_CMESSAGE, aCache[sCRMessage]);
 
 	FormatChat(client, sName, MAXLENGTH_NAME);
@@ -1041,7 +1041,7 @@ void PreviewChat(int client, int rank)
 
 	FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
 
-	char[] sSampleText = new char[MAXLENGTH_MESSAGE];
+	char sSampleText[MAXLENGTH_MESSAGE];
 	strcopy(sSampleText, MAXLENGTH_MESSAGE, "The quick brown fox jumps over the lazy dog");
 	Format(sSampleText, MAXLENGTH_MESSAGE, "%s%s", sCMessage, sSampleText);
 
@@ -1100,7 +1100,7 @@ bool HasRankAccess(int client, int rank)
 	any[] aCache = new any[CRCACHE_SIZE];
 	gA_ChatRanks.GetArray(rank, aCache, view_as<int>(CRCACHE_SIZE));
 
-	char[] sFlag = new char[32];
+	char sFlag[32];
 	strcopy(sFlag, 32, aCache[sCRAdminFlag]);
 
 	bool bFlagAccess = false;
@@ -1270,7 +1270,7 @@ void FormatChat(int client, char[] buffer, int size)
 {
 	FormatColors(buffer, size, true, true);
 
-	char[] temp = new char[8];
+	char temp[8];
 
 	do
 	{
@@ -1293,7 +1293,7 @@ void FormatChat(int client, char[] buffer, int size)
 
 	if(gEV_Type != Engine_TF2)
 	{
-		char[] sTag = new char[32];
+		char sTag[32];
 		CS_GetClientClanTag(client, sTag, 32);
 		ReplaceString(buffer, size, "{clan}", sTag);
 	}
@@ -1301,7 +1301,7 @@ void FormatChat(int client, char[] buffer, int size)
 	if(gB_Rankings)
 	{
 		int iRank = Shavit_GetRank(client);
-		char[] sRank = new char[16];
+		char sRank[16];
 		IntToString(iRank, sRank, 16);
 		ReplaceString(buffer, size, "{rank}", sRank);
 
@@ -1323,7 +1323,7 @@ void FormatChat(int client, char[] buffer, int size)
 		ReplaceString(buffer, size, "{rank3}", sRank);
 	}
 
-	char[] sName = new char[MAX_NAME_LENGTH];
+	char sName[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(buffer, size, "{name}", sName);
 }
@@ -1344,11 +1344,11 @@ void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
-		char[] sDriver = new char[8];
+		char sDriver[8];
 		gH_SQL.Driver.GetIdentifier(sDriver, 8);
 		bool bMySQL = StrEqual(sDriver, "mysql", false);
 
-		char[] sQuery = new char[512];
+		char sQuery[512];
 		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` CHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` CHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` CHAR(16), PRIMARY KEY (`auth`))%s;", gS_MySQLPrefix, (bMySQL)? " ENGINE=INNODB":"");
 		
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
@@ -1380,7 +1380,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 void SaveToDatabase(int client)
 {
-	char[] sAuthID3 = new char[32];
+	char sAuthID3[32];
 
 	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
 	{
@@ -1395,7 +1395,7 @@ void SaveToDatabase(int client)
 	char[] sEscapedMessage = new char[iLength];
 	gH_SQL.Escape(gS_CustomMessage[client], sEscapedMessage, iLength);
 
-	char[] sQuery = new char[512];
+	char sQuery[512];
 	FormatEx(sQuery, 512, "REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES ('%s', %d, '%s', %d, '%s');", gS_MySQLPrefix, sAuthID3, gB_NameEnabled[client], sEscapedName, gB_MessageEnabled[client], sEscapedMessage);
 
 	gH_SQL.Query(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_High);
@@ -1413,7 +1413,7 @@ public void SQL_UpdateUser_Callback(Database db, DBResultSet results, const char
 
 void LoadFromDatabase(int client)
 {
-	char[] sAuthID3 = new char[32];
+	char sAuthID3[32];
 
 	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
 	{

@@ -233,7 +233,7 @@ Action SetSQLInfo()
 
 void SQL_SetPrefix()
 {
-	char[] sFile = new char[PLATFORM_MAX_PATH];
+	char sFile[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
 
 	File fFile = OpenFile(sFile, "r");
@@ -243,7 +243,7 @@ void SQL_SetPrefix()
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
 	
-	char[] sLine = new char[PLATFORM_MAX_PATH*2];
+	char sLine[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
@@ -260,7 +260,7 @@ void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
-		char[] sDriver = new char[8];
+		char sDriver[8];
 		gH_SQL.Driver.GetIdentifier(sDriver, 8);
 
 		if(!StrEqual(sDriver, "mysql", false))
@@ -268,7 +268,7 @@ void SQL_DBConnect()
 			SetFailState("MySQL is the only supported database engine for shavit-rankings.");
 		}
 
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` CHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
@@ -361,12 +361,12 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 void RunLongFastQuery(bool &success, const char[] func, const char[] query, any ...)
 {
-	char[] sQuery = new char[2048];
+	char sQuery[2048];
 	VFormat(sQuery, 2048, query, 4);
 
 	if(!SQL_FastQuery(gH_SQL, sQuery))
 	{
-		char[] sError = new char[255];
+		char sError[255];
 		SQL_GetError(gH_SQL, sError, 255);
 		LogError("Timer (rankings, %s) error! Reason: %s", func, sError);
 
@@ -413,7 +413,7 @@ public void OnMapStart()
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
 	gI_Tier = 1;
 
-	char[] sDriver = new char[8];
+	char sDriver[8];
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
 	
 	if(!StrEqual(sDriver, "mysql", false))
@@ -421,7 +421,7 @@ public void OnMapStart()
 		SetFailState("Rankings will only support MySQL for the moment. Sorry.");
 	}
 
-	char[] sQuery = new char[256];
+	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -454,14 +454,14 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 		PrintToServer("DEBUG: 4 (SQL_GetMapTier_Callback)");
 		#endif
 
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix, gS_Map);
 		gH_SQL.Query(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
 	}
 
 	else
 	{
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
 		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, gI_Tier, DBPrio_High);
 	}
@@ -481,7 +481,7 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 
 	while(results.FetchRow())
 	{
-		char[] sMap = new char[160];
+		char sMap[160];
 		results.FetchString(0, sMap, 160);
 
 		int tier = results.FetchInt(1);
@@ -508,7 +508,7 @@ void GuessBestMapName(const char[] input, char[] output, int size)
 		return;
 	}
 
-	char[] sCache = new char[128];
+	char sCache[128];
 
 	for(int i = 0; i < gI_ValidMaps; i++)
 	{
@@ -532,7 +532,7 @@ public Action Command_Tier(int client, int args)
 {
 	int tier = gI_Tier;
 
-	char[] sMap = new char[128];
+	char sMap[128];
 	strcopy(sMap, 128, gS_Map);
 
 	if(args > 0)
@@ -557,7 +557,7 @@ public Action Command_Rank(int client, int args)
 
 	if(args > 0)
 	{
-		char[] sArgs = new char[MAX_TARGET_LENGTH];
+		char sArgs[MAX_TARGET_LENGTH];
 		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
 
 		target = FindTarget(client, sArgs, true, false);
@@ -595,7 +595,7 @@ public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[32];
+		char sInfo[32];
 		menu.GetItem(param2, sInfo, 32);
 
 		if(gB_Stats && !StrEqual(sInfo, "-1"))
@@ -609,7 +609,7 @@ public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
 
 public Action Command_SetTier(int client, int args)
 {
-	char[] sArg = new char[8];
+	char sArg[8];
 	GetCmdArg(1, sArg, 8);
 	
 	int tier = StringToInt(sArg);
@@ -631,7 +631,7 @@ public Action Command_SetTier(int client, int args)
 
 	Shavit_PrintToChat(client, "%T", "SetTier", client, gS_ChatStrings[sMessageVariable2], tier, gS_ChatStrings[sMessageText]);
 
-	char[] sQuery = new char[256];
+	char sQuery[256];
 	FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, tier);
 
 	gH_SQL.Query(SQL_SetMapTier_Callback, sQuery);
@@ -669,7 +669,7 @@ public Action Command_RecalcAll(int client, int args)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		char[] sQuery = new char[192];
+		char sQuery[192];
 
 		if(gA_StyleSettings[i][bUnranked] || view_as<float>(gA_StyleSettings[i][fRankingMultiplier]) == 0.0)
 		{
@@ -750,7 +750,7 @@ void RecalculateMap(const char[] map, const int track, const int style)
 	PrintToServer("Recalculating points. (%s, %d, %d)", map, track, style);
 	#endif
 
-	char[] sQuery = new char[192];
+	char sQuery[192];
 	FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';", gS_MySQLPrefix, style, track, map, gF_PointsPerTier, gA_StyleSettings[style][fRankingMultiplier], style, track, map);
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
@@ -780,7 +780,7 @@ void UpdateAllPoints()
 	LogError("DEBUG: 6 (UpdateAllPoints)");
 	#endif
 
-	char[] sQuery = new char[128];
+	char sQuery[128];
 	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth);", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);
 }
@@ -800,13 +800,13 @@ void UpdatePlayerRank(int client)
 	gI_Rank[client] = 0;
 	gF_Points[client] = 0.0;
 
-	char[] sAuthID = new char[32];
+	char sAuthID[32];
 
 	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
 	{
 		// if there's any issue with this query,
 		// add "ORDER BY points DESC " before "LIMIT 1"
-		char[] sQuery = new char[512];
+		char sQuery[512];
 		FormatEx(sQuery, 512, "SELECT p.points, COUNT(*) rank FROM %susers u JOIN (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) p WHERE u.points >= p.points LIMIT 1;",
 			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
@@ -839,7 +839,7 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 
 void UpdateRankedPlayers()
 {
-	char[] sQuery = new char[512];
+	char sQuery[512];
 	FormatEx(sQuery, 512, "SELECT COUNT(*) count FROM %susers WHERE points > 0.0;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateRankedPlayers_Callback, sQuery, 0, DBPrio_High);
 }
@@ -863,7 +863,7 @@ public void SQL_UpdateRankedPlayers_Callback(Database db, DBResultSet results, c
 
 void UpdateTop100()
 {
-	char[] sQuery = new char[512];
+	char sQuery[512];
 	FormatEx(sQuery, 512, "SELECT auth, name, FORMAT(points, 2) FROM %susers WHERE points > 0.0 ORDER BY points DESC LIMIT 100;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateTop100_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -893,23 +893,23 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 			break;
 		}
 
-		char[] sAuthID = new char[32];
+		char sAuthID[32];
 		results.FetchString(0, sAuthID, 32);
 
-		char[] sName = new char[MAX_NAME_LENGTH];
+		char sName[MAX_NAME_LENGTH];
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
 
-		char[] sPoints = new char[16];
+		char sPoints[16];
 		results.FetchString(2, sPoints, 16);
 
-		char[] sDisplay = new char[96];
+		char sDisplay[96];
 		FormatEx(sDisplay, 96, "#%d - %s (%s)", (++row), sName, sPoints);
 		gH_Top100Menu.AddItem(sAuthID, sDisplay);
 	}
 
 	if(gH_Top100Menu.ItemCount == 0)
 	{
-		char[] sDisplay = new char[64];
+		char sDisplay[64];
 		FormatEx(sDisplay, 64, "%t", "NoRankedPlayers");
 		gH_Top100Menu.AddItem("-1", sDisplay);
 	}
@@ -935,7 +935,7 @@ public int Native_GetMapTier(Handle handler, int numParams)
 {
 	int tier = 0;
 
-	char[] sMap = new char[128];
+	char sMap[128];
 	GetNativeString(1, sMap, 128);
 
 	if(!gA_MapTiers.GetValue(sMap, tier))
@@ -968,10 +968,10 @@ public int Native_GetRankedPlayers(Handle handler, int numParams)
 
 public int Native_Rankings_DeleteMap(Handle handler, int numParams)
 {
-	char[] sMap = new char[160];
+	char sMap[160];
 	GetNativeString(1, sMap, 160);
 
-	char[] sQuery = new char[256];
+	char sQuery[256];
 	FormatEx(sQuery, 256, "DELETE FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, sMap);
 	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 }

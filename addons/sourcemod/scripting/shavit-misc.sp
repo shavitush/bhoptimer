@@ -427,7 +427,7 @@ public void OnClientCookiesCached(int client)
 		return;
 	}
 
-	char[] sSetting = new char[8];
+	char sSetting[8];
 	GetClientCookie(client, gH_HideCookie, sSetting, 8);
 
 	if(strlen(sSetting) == 0)
@@ -624,7 +624,7 @@ bool LoadAdvertisementsConfig()
 {
 	gA_Advertisements.Clear();
 
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-advertisements.cfg");
 
 	KeyValues kv = new KeyValues("shavit-advertisements");
@@ -638,7 +638,7 @@ bool LoadAdvertisementsConfig()
 
 	do
 	{
-		char[] sTempMessage = new char[300];
+		char sTempMessage[300];
 		kv.GetString(NULL_STRING, sTempMessage, 300, "<EMPTY ADVERTISEMENT>");
 
 		ReplaceString(sTempMessage, 300, "{text}", gS_ChatStrings[sMessageText]);
@@ -705,7 +705,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		SaveState(client);
 	}
 
-	char[] arg1 = new char[8];
+	char arg1[8];
 	GetCmdArg(1, arg1, 8);
 
 	int iTeam = StringToInt(arg1);
@@ -832,18 +832,18 @@ public Action Timer_Scoreboard(Handle Timer)
 
 public Action Timer_Advertisement(Handle Timer)
 {
-	char[] sHostname = new char[128];
+	char sHostname[128];
 	hostname.GetString(sHostname, 128);
 
-	char[] sTimeLeft = new char[32];
+	char sTimeLeft[32];
 	int iTimeLeft = 0;
 	GetMapTimeLeft(iTimeLeft);
 	FormatSeconds(view_as<float>(iTimeLeft), sTimeLeft, 32, false);
 
-	char[] sTimeLeftRaw = new char[8];
+	char sTimeLeftRaw[8];
 	IntToString(iTimeLeft, sTimeLeftRaw, 8);
 
-	char[] sIPAddress = new char[64];
+	char sIPAddress[64];
 	strcopy(sIPAddress, 64, "");
 
 	if(GetFeatureStatus(FeatureType_Native, "SteamWorks_GetPublicIP") == FeatureStatus_Available)
@@ -858,10 +858,10 @@ public Action Timer_Advertisement(Handle Timer)
 	{
 		if(IsClientConnected(i) && IsClientInGame(i))
 		{
-			char[] sTempMessage = new char[300];
+			char sTempMessage[300];
 			gA_Advertisements.GetString(gI_AdvertisementsCycle, sTempMessage, 300);
 
-			char[] sName = new char[MAX_NAME_LENGTH];
+			char sName[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
 			ReplaceString(sTempMessage, 300, "{name}", sName);
 			ReplaceString(sTempMessage, 300, "{map}", gS_CurrentMap);
@@ -919,7 +919,7 @@ void UpdateClanTag(int client)
 		return;
 	}
 
-	char[] sTime = new char[16];
+	char sTime[16];
 
 	float fTime = Shavit_GetClientTime(client);
 
@@ -957,14 +957,14 @@ void UpdateClanTag(int client)
 	}
 
 	int track = Shavit_GetClientTrack(client);
-	char[] sTrack = new char[3];
+	char sTrack[3];
 
 	if(track != Track_Main)
 	{
 		GetTrackName(client, track, sTrack, 3);
 	}
 
-	char[] sCustomTag = new char[32];
+	char sCustomTag[32];
 	strcopy(sCustomTag, 32, gS_ClanTag);
 	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gI_Style[client]][sStyleName]);
 	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gI_Style[client]][sClanTag]);
@@ -1107,7 +1107,7 @@ void RemoveWeapon(any data)
 void ResetCheckpoints(int client)
 {
 	int serial = GetClientSerial(client);
-	char[] key = new char[32];
+	char key[32];
 
 	for(int i = 0; i < gI_CheckpointsCache[client][iCheckpoints]; i++)
 	{
@@ -1232,7 +1232,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 		if(bUpper)
 		{
-			char[] sCopy = new char[32];
+			char sCopy[32];
 			strcopy(sCopy, 32, sArgs[1]);
 
 			FakeClientCommandEx(client, "sm_%s", sCopy);
@@ -1253,7 +1253,7 @@ public Action Command_Hide(int client, int args)
 
 	gB_Hide[client] = !gB_Hide[client];
 
-	char[] sCookie = new char[4];
+	char sCookie[4];
 	IntToString(view_as<int>(gB_Hide[client]), sCookie, 4);
 	SetClientCookie(client, gH_HideCookie, sCookie);
 
@@ -1283,7 +1283,7 @@ public Action Command_Spec(int client, int args)
 
 	if(args > 0)
 	{
-		char[] sArgs = new char[MAX_TARGET_LENGTH];
+		char sArgs[MAX_TARGET_LENGTH];
 		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
 
 		target = FindTarget(client, sArgs, false, false);
@@ -1323,7 +1323,7 @@ public Action Command_Teleport(int client, int args)
 
 	if(args > 0)
 	{
-		char[] sArgs = new char[MAX_TARGET_LENGTH];
+		char sArgs[MAX_TARGET_LENGTH];
 		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
 
 		int iTarget = FindTarget(client, sArgs, false, false);
@@ -1348,10 +1348,10 @@ public Action Command_Teleport(int client, int args)
 				continue;
 			}
 
-			char[] serial = new char[16];
+			char serial[16];
 			IntToString(GetClientSerial(i), serial, 16);
 
-			char[] sName = new char[MAX_NAME_LENGTH];
+			char sName[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
 
 			menu.AddItem(serial, sName);
@@ -1368,7 +1368,7 @@ public int MenuHandler_Teleport(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[16];
+		char sInfo[16];
 		menu.GetItem(param2, sInfo, 16);
 
 		if(!Teleport(param1, StringToInt(sInfo)))
@@ -1441,11 +1441,11 @@ public Action Command_Weapon(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sCommand = new char[16];
+	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
 
 	int iSlot = CS_SLOT_SECONDARY;
-	char[] sWeapon = new char[32];
+	char sWeapon[32];
 
 	if(StrContains(sCommand, "usp", false) != -1)
 	{
@@ -1580,7 +1580,7 @@ public Action Command_Tele(int client, int args)
 
 	if(args > 0)
 	{
-		char[] arg = new char[4];
+		char arg[4];
 		GetCmdArg(1, arg, 4);
 
 		int parsed = StringToInt(arg);
@@ -1619,7 +1619,7 @@ public Action OpenCheckpointsMenu(int client, int item)
 		menu.SetTitle("%T\n ", "MiscCheckpointMenuSegmented", client);
 	}
 
-	char[] sDisplay = new char[64];
+	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gI_CheckpointsCache[client][iCheckpoints] + 1));
 	menu.AddItem("save", sDisplay, (gI_CheckpointsCache[client][iCheckpoints] < gI_MaxCP)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
@@ -1646,7 +1646,7 @@ public Action OpenCheckpointsMenu(int client, int item)
 
 	if(!bSegmented)
 	{
-		char[] sInfo = new char[16];
+		char sInfo[16];
 		IntToString(CP_ANGLES, sInfo, 16);
 		FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseAngles", client);
 		menu.AddItem(sInfo, sDisplay);
@@ -1726,10 +1726,10 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 			default:
 			{
-				char[] sInfo = new char[8];
+				char sInfo[8];
 				menu.GetItem(param2, sInfo, 8);
 				
-				char[] sCookie = new char[8];
+				char sCookie[8];
 				gI_CheckpointsSettings[param1] ^= StringToInt(sInfo);
 				IntToString(gI_CheckpointsSettings[param1], sCookie, 16);
 
@@ -1742,8 +1742,8 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 	else if(action == MenuAction_DisplayItem && param2 >= 5)
 	{
-		char[] sInfo = new char[16];
-		char[] sDisplay = new char[64];
+		char sInfo[16];
+		char sDisplay[64];
 		int style = 0;
 		menu.GetItem(param2, sInfo, 16, style, sDisplay, 64);
 
@@ -1786,7 +1786,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		return false;
 	}
 
-	char[] sKey = new char[32];
+	char sKey[32];
 	int iSerial = GetClientSerial(client);
 	FormatEx(sKey, 32, "%d_%d", iSerial, index);
 
@@ -1810,7 +1810,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", temp);
 	CopyArray(temp, cpcache[fCPVelocity], 3);
 
-	char[] sTargetname = new char[32];
+	char sTargetname[32];
 	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 32);
 
 	int iTargetname = gA_Targetnames.FindString(sTargetname);
@@ -1820,7 +1820,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		iTargetname = gA_Targetnames.PushString(sTargetname);
 	}
 
-	char[] sClassname = new char[32];
+	char sClassname[32];
 	GetEntityClassname(target, sClassname, 32);
 
 	int iClassname = gA_Classnames.FindString(sClassname);
@@ -2036,7 +2036,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if(iTargetname != -1)
 	{
-		char[] sTargetname = new char[32];
+		char sTargetname[32];
 		gA_Targetnames.GetString(iTargetname, sTargetname, 32);
 
 		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
@@ -2046,7 +2046,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if(iClassname != -1)
 	{
-		char[] sClassname = new char[32];
+		char sClassname[32];
 		gA_Classnames.GetString(iClassname, sClassname, 32);
 
 		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
@@ -2183,7 +2183,7 @@ public Action Command_Specs(int client, int args)
 
 	if(args > 0)
 	{
-		char[] sTarget = new char[MAX_TARGET_LENGTH];
+		char sTarget[MAX_TARGET_LENGTH];
 		GetCmdArgString(sTarget, MAX_TARGET_LENGTH);
 
 		int iNewTarget = FindTarget(client, sTarget, false, false);
@@ -2205,7 +2205,7 @@ public Action Command_Specs(int client, int args)
 
 	int iCount = 0;
 	bool bIsAdmin = CheckCommandAccess(client, "admin_speclisthide", ADMFLAG_KICK);
-	char[] sSpecs = new char[192];
+	char sSpecs[192];
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -2280,7 +2280,7 @@ void GetTrackName(int client, int track, char[] output, int size)
 
 public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track)
 {
-	char[] sUpperCase = new char[64];
+	char sUpperCase[64];
 	strcopy(sUpperCase, 64, gS_StyleStrings[style][sStyleName]);
 
 	for(int i = 0; i < strlen(sUpperCase); i++)
@@ -2298,7 +2298,7 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 			continue;
 		}
 
-		char[] sTrack = new char[32];
+		char sTrack[32];
 		GetTrackName(i, track, sTrack, 32);
 
 		for(int j = 1; j <= 3; j++)
@@ -2543,7 +2543,7 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 		return;
 	}
 
-	char[] sWeapon = new char[16];
+	char sWeapon[16];
 	event.GetString("weapon", sWeapon, 16);
 
 	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hpk") != -1 || StrContains(sWeapon, "glock") != -1)
@@ -2638,7 +2638,7 @@ public Action EffectDispatch(const char[] te_name, const Players[], int numClien
 	int iEffectIndex = TE_ReadNum("m_iEffectName");
 	int nHitBox = TE_ReadNum("m_nHitBox");
 
-	char[] sEffectName = new char[32];
+	char sEffectName[32];
 	GetEffectName(iEffectIndex, sEffectName, 32);
 
 	if(StrEqual(sEffectName, "csblood"))
@@ -2648,7 +2648,7 @@ public Action EffectDispatch(const char[] te_name, const Players[], int numClien
 
 	if(StrEqual(sEffectName, "ParticleEffect"))
 	{
-		char[] sParticleEffectName = new char[32];
+		char sParticleEffectName[32];
 		GetParticleEffectName(nHitBox, sParticleEffectName, 32);
 
 		if(StrEqual(sParticleEffectName, "impact_helmet_headshot") || StrEqual(sParticleEffectName, "impact_physics_dust"))
@@ -2672,7 +2672,7 @@ public Action WorldDecal(const char[] te_name, const Players[], int numClients, 
 
 	int nIndex = TE_ReadNum("m_nIndex");
 
-	char[] sDecalName = new char[32];
+	char sDecalName[32];
 	GetDecalName(nIndex, sDecalName, 32);
 
 	if(StrContains(sDecalName, "decals/blood") == 0 && StrContains(sDecalName, "_subrect") != -1)
@@ -2804,7 +2804,7 @@ void SaveState(int client)
 
 bool GetCheckpoint(int client, int index, CheckpointsCache cpcache[PCPCACHE_SIZE])
 {
-	char[] sKey = new char[32];
+	char sKey[32];
 	FormatEx(sKey, 32, "%d_%d", GetClientSerial(client), index);
 
 	return gSM_Checkpoints.GetArray(sKey, cpcache[0], view_as<int>(PCPCACHE_SIZE));
@@ -2812,7 +2812,7 @@ bool GetCheckpoint(int client, int index, CheckpointsCache cpcache[PCPCACHE_SIZE
 
 bool SetCheckpoint(int client, int index, CheckpointsCache cpcache[PCPCACHE_SIZE])
 {
-	char[] sKey = new char[32];
+	char sKey[32];
 	FormatEx(sKey, 32, "%d_%d", GetClientSerial(client), index);
 
 	return gSM_Checkpoints.SetArray(sKey, cpcache[0], view_as<int>(PCPCACHE_SIZE));

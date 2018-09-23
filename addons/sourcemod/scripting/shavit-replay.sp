@@ -369,7 +369,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 	int track = GetNativeCell(2);
 	bool restart = view_as<bool>(GetNativeCell(3));
 
-	char[] path = new char[PLATFORM_MAX_PATH];
+	char path[PLATFORM_MAX_PATH];
 	GetNativeString(4, path, PLATFORM_MAX_PATH);
 
 	delete gA_Frames[style][track];
@@ -537,7 +537,7 @@ public int Native_GetReplayBotType(Handle handler, int numParams)
 
 public int Native_Replay_DeleteMap(Handle handler, int numParams)
 {
-	char[] sMap = new char[160];
+	char sMap[160];
 	GetNativeString(1, sMap, 160);
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -549,10 +549,10 @@ public int Native_Replay_DeleteMap(Handle handler, int numParams)
 
 		for(int j = 0; j < ((gB_CentralBot)? TRACKS_SIZE:1); j++)
 		{
-			char[] sTrack = new char[4];
+			char sTrack[4];
 			FormatEx(sTrack, 4, "_%d", j);
 
-			char[] sPath = new char[PLATFORM_MAX_PATH];
+			char sPath[PLATFORM_MAX_PATH];
 			FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, i, sMap, (j > 0)? sTrack:"");
 
 			if(FileExists(sPath))
@@ -598,7 +598,7 @@ Action SetSQLInfo()
 
 void SQL_SetPrefix()
 {
-	char[] sFile = new char[PLATFORM_MAX_PATH];
+	char sFile[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
 
 	File fFile = OpenFile(sFile, "r");
@@ -608,7 +608,7 @@ void SQL_SetPrefix()
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
 	
-	char[] sLine = new char[PLATFORM_MAX_PATH*2];
+	char sLine[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
@@ -665,7 +665,7 @@ public Action Cron(Handle Timer)
 
 bool LoadStyling()
 {
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-replay.cfg");
 
 	KeyValues kv = new KeyValues("shavit-replay");
@@ -684,7 +684,7 @@ bool LoadStyling()
 	kv.GetString("centralstyletag", gS_ReplayStrings[sReplayCentralStyleTag], MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLETAG>");
 	kv.GetString("unloaded", gS_ReplayStrings[sReplayUnloaded], MAX_NAME_LENGTH, "<EMPTY UNLOADED>");
 
-	char[] sFolder = new char[PLATFORM_MAX_PATH];
+	char sFolder[PLATFORM_MAX_PATH];
 	kv.GetString("replayfolder", sFolder, PLATFORM_MAX_PATH, "{SM}/data/replaybot");
 
 	delete kv;
@@ -735,7 +735,7 @@ public void OnMapStart()
 		bot_quota.Flags &= ~FCVAR_NOTIFY;
 	}
 
-	char[] sTempMap = new char[PLATFORM_MAX_PATH];
+	char sTempMap[PLATFORM_MAX_PATH];
 	FormatEx(sTempMap, PLATFORM_MAX_PATH, "maps/%s.nav", gS_Map);
 
 	if(!FileExists(sTempMap))
@@ -832,7 +832,7 @@ public void OnMapStart()
 			continue;
 		}
 
-		char[] sPath = new char[PLATFORM_MAX_PATH];
+		char sPath[PLATFORM_MAX_PATH];
 		FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d", gS_ReplayFolder, i);
 
 		if(!DirExists(sPath))
@@ -905,10 +905,10 @@ public void Shavit_OnChatConfigLoaded()
 
 bool DefaultLoadReplay(int style, int track)
 {
-	char[] sTrack = new char[4];
+	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
 
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	return LoadReplay(style, track, sPath);
@@ -920,7 +920,7 @@ bool LoadReplay(int style, int track, const char[] path)
 	{
 		File fFile = OpenFile(path, "rb");
 
-		char[] sHeader = new char[64];
+		char sHeader[64];
 
 		if(!fFile.ReadLine(sHeader, 64))
 		{
@@ -928,7 +928,7 @@ bool LoadReplay(int style, int track, const char[] path)
 		}
 
 		TrimString(sHeader);
-		char[][] sExplodedHeader = new char[2][64];
+		char sExplodedHeader[2][64];
 		ExplodeString(sHeader, ":", sExplodedHeader, 2, 64);
 
 		if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_FINAL)) // hopefully, the last of them
@@ -949,12 +949,12 @@ bool LoadReplay(int style, int track, const char[] path)
 			fFile.ReadInt32(iTemp);
 			gA_FrameCache[style][track][1] = iTemp;
 
-			char[] sAuthID = new char[32];
+			char sAuthID[32];
 			fFile.ReadString(sAuthID, 32);
 
 			if(gH_SQL != null)
 			{
-				char[] sQuery = new char[192];
+				char sQuery[192];
 				FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = '%s';", gS_MySQLPrefix, sAuthID);
 
 				DataPack pack = new DataPack();
@@ -1024,8 +1024,8 @@ bool LoadReplay(int style, int track, const char[] path)
 
 		else // old, outdated and slow - only used for ancient replays
 		{
-			char[] sLine = new char[320];
-			char[][] sExplodedLine = new char[6][64];
+			char sLine[320];
+			char sExplodedLine[6][64];
 
 			for(int i = 0; !fFile.EndOfFile(); i++)
 			{
@@ -1057,10 +1057,10 @@ bool LoadReplay(int style, int track, const char[] path)
 
 bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
 {
-	char[] sTrack = new char[4];
+	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
 
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	if(FileExists(sPath))
@@ -1099,10 +1099,10 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
 
 bool DeleteReplay(int style, int track)
 {
-	char[] sTrack = new char[4];
+	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
 
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
 	if(!FileExists(sPath) || !DeleteFile(sPath))
@@ -1192,10 +1192,10 @@ void FormatStyle(const char[] source, int style, bool central, float time, int t
 {
 	float fWRTime = GetReplayLength(style, track);
 
-	char[] sTime = new char[16];
+	char sTime[16];
 	FormatSeconds((time == -1.0)? fWRTime:time, sTime, 16);
 
-	char[] sName = new char[MAX_NAME_LENGTH];
+	char sName[MAX_NAME_LENGTH];
 	GetReplayName(style, track, sName, MAX_NAME_LENGTH);
 	
 	char[] temp = new char[size];
@@ -1218,7 +1218,7 @@ void FormatStyle(const char[] source, int style, bool central, float time, int t
 	ReplaceString(temp, size, "{time}", sTime);
 	ReplaceString(temp, size, "{player}", sName);
 
-	char[] sTrack = new char[32];
+	char sTrack[32];
 	GetTrackName(LANG_SERVER, track, sTrack, 32);
 	ReplaceString(temp, size, "{track}", sTrack);
 
@@ -1240,12 +1240,12 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 
 	if(gEV_Type != Engine_TF2)
 	{
-		char[] sTag = new char[MAX_NAME_LENGTH];
+		char sTag[MAX_NAME_LENGTH];
 		FormatStyle(gS_ReplayStrings[sReplayClanTag], style, central, time, track, sTag, MAX_NAME_LENGTH);
 		CS_SetClientClanTag(client, sTag);
 	}
 
-	char[] sName = new char[MAX_NAME_LENGTH];
+	char sName[MAX_NAME_LENGTH];
 	int iFrameCount = view_as<int>(gA_FrameCache[style][track][0]);
 	
 	if(central || iFrameCount > 0)
@@ -1325,7 +1325,7 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 
 			else
 			{
-				char[] sClassname = new char[32];
+				char sClassname[32];
 
 				if(iWeapon != -1 && IsValidEntity(iWeapon))
 				{
@@ -1446,10 +1446,10 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	delete gA_Frames[style][track];
 	gA_Frames[style][track] = gA_PlayerFrames[client].Clone();
 
-	char[] sAuthID = new char[32];
+	char sAuthID[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
 
-	char[] sName = new char[MAX_NAME_LENGTH];
+	char sName[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
@@ -1846,7 +1846,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		um = GetUserMessageType();
 	}
 
-	char[] sMessage = new char[24];
+	char sMessage[24];
 
 	if(um == UM_Protobuf)
 	{
@@ -1915,19 +1915,19 @@ public Action Command_DeleteReplay(int client, int args)
 				continue;
 			}
 
-			char[] sInfo = new char[8];
+			char sInfo[8];
 			FormatEx(sInfo, 8, "%d;%d", i, j);
 
 			float time = GetReplayLength(i, j);
 
-			char[] sTrack = new char[32];
+			char sTrack[32];
 			GetTrackName(client, j, sTrack, 32);
 
-			char[] sDisplay = new char[64];
+			char sDisplay[64];
 
 			if(time > 0.0)
 			{
-				char[] sTime = new char[32];
+				char sTime[32];
 				FormatSeconds(time, sTime, 32, false);
 
 				FormatEx(sDisplay, 64, "%s (%s) - %s", gS_StyleStrings[i][sStyleName], sTrack, sTime);
@@ -1944,7 +1944,7 @@ public Action Command_DeleteReplay(int client, int args)
 
 	if(menu.ItemCount == 0)
 	{
-		char[] sMenuItem = new char[64];
+		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "ReplaysUnavailable", client);
 		menu.AddItem("-1", sMenuItem);
 	}
@@ -1959,10 +1959,10 @@ public int DeleteReplay_Callback(Menu menu, MenuAction action, int param1, int p
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		menu.GetItem(param2, sInfo, 8);
 
-		char[][] sExploded = new char[2][4];
+		char sExploded[2][4];
 		ExplodeString(sInfo, ";", sExploded, 2, 4);
 		
 		int style = StringToInt(sExploded[0]);
@@ -1977,7 +1977,7 @@ public int DeleteReplay_Callback(Menu menu, MenuAction action, int param1, int p
 		Menu submenu = new Menu(DeleteConfirmation_Callback);
 		submenu.SetTitle("%T", "ReplayDeletionConfirmation", param1, gS_StyleStrings[style][sStyleName]);
 
-		char[] sMenuItem = new char[64];
+		char sMenuItem[64];
 
 		for(int i = 1; i <= GetRandomInt(2, 4); i++)
 		{
@@ -2010,13 +2010,13 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[4];
+		char sInfo[4];
 		menu.GetItem(param2, sInfo, 4);
 		int style = StringToInt(sInfo);
 
 		if(DeleteReplay(style, gI_Track[param1]))
 		{
-			char[] sTrack = new char[32];
+			char sTrack[32];
 			GetTrackName(param1, gI_Track[param1], sTrack, 32);
 
 			LogAction(param1, param1, "Deleted replay for %s on map %s. (Track: %s)", gS_StyleStrings[style][sStyleName], gS_Map, sTrack);
@@ -2054,7 +2054,7 @@ public Action Command_Replay(int client, int args)
 
 	if(CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON))
 	{
-		char[] arg = new char[8];
+		char arg[8];
 		GetCmdArg(1, arg, 8);
 
 		if(StrEqual(arg, "stop"))
@@ -2087,10 +2087,10 @@ Action OpenReplayMenu(int client)
 			}
 		}
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
-		char[] sTrack = new char[32];
+		char sTrack[32];
 		GetTrackName(client, i, sTrack, 32);
 
 		menu.AddItem(sInfo, sTrack, (records)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -2125,7 +2125,7 @@ void OpenReplaySubMenu(int client, int track)
 {
 	gI_Track[client] = track;
 
-	char[] sTrack = new char[32];
+	char sTrack[32];
 	GetTrackName(client, track, sTrack, 32);
 
 	Menu menu = new Menu(MenuHandler_ReplaySubmenu);
@@ -2133,7 +2133,7 @@ void OpenReplaySubMenu(int client, int track)
 
 	if(CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON))
 	{
-		char[] sDisplay = new char[64];
+		char sDisplay[64];
 		FormatEx(sDisplay, 64, "%T", "CentralReplayStop", client);
 
 		menu.AddItem("stop", sDisplay, (gA_CentralCache[iCentralReplayStatus] != Replay_Idle)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -2146,16 +2146,16 @@ void OpenReplaySubMenu(int client, int track)
 			continue;
 		}
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
 		float time = GetReplayLength(i, track);
 
-		char[] sDisplay = new char[64];
+		char sDisplay[64];
 
 		if(time > 0.0)
 		{
-			char[] sTime = new char[32];
+			char sTime[32];
 			FormatSeconds(time, sTime, 32, false);
 
 			FormatEx(sDisplay, 64, "%s - %s", gS_StyleStrings[i][sStyleName], sTime);
@@ -2187,7 +2187,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 
 		if(StrEqual(info, "stop"))

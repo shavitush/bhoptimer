@@ -442,7 +442,7 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sCommand = new char[16];
+	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
 
 	if(!gB_Restart)
@@ -490,7 +490,7 @@ public Action Command_TeleportEnd(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sCommand = new char[16];
+	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
 
 	int track = Track_Main;
@@ -546,7 +546,7 @@ public Action Command_TogglePause(int client, int args)
 
 	if(!gB_Pause)
 	{
-		char[] sCommand = new char[16];
+		char sCommand[16];
 		GetCmdArg(0, sCommand, 16);
 
 		Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings[sMessageVariable], sCommand, gS_ChatStrings[sMessageText]);
@@ -601,7 +601,7 @@ public Action Command_DeleteMap(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sArgs = new char[160];
+	char sArgs[160];
 	GetCmdArgString(sArgs, 160);
 
 	if(StrEqual(sArgs, "confirm") && strlen(gS_DeleteMap[client]) > 0)
@@ -662,7 +662,7 @@ public Action Command_AutoBhop(int client, int args)
 		Shavit_PrintToChat(client, "%T", "AutobhopDisabled", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
 
-	char[] sAutoBhop = new char[4];
+	char sAutoBhop[4];
 	IntToString(view_as<int>(gB_Auto[client]), sAutoBhop, 4);
 	SetClientCookie(client, gH_AutoBhopCookie, sAutoBhop);
 
@@ -690,10 +690,10 @@ public Action Command_Style(int client, int args)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
-		char[] sDisplay = new char[64];
+		char sDisplay[64];
 
 		if(gA_StyleSettings[i][bUnranked])
 		{
@@ -711,7 +711,7 @@ public Action Command_Style(int client, int args)
 
 			if(time > 0.0)
 			{
-				char[] sTime = new char[32];
+				char sTime[32];
 				FormatSeconds(time, sTime, 32, false);
 
 				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i][sStyleName], sTime);
@@ -747,7 +747,7 @@ public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[16];
+		char info[16];
 		menu.GetItem(param2, info, 16);
 
 		int style = StringToInt(info);
@@ -830,7 +830,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 		Call_Finish();
 	}
 
-	char[] sStyle = new char[4];
+	char sStyle[4];
 	IntToString(style, sStyle, 4);
 
 	SetClientCookie(client, gH_StyleCookie, sStyle);
@@ -1117,7 +1117,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 	static int iWritten = 0; // useless?
 
-	char[] sBuffer = new char[300];
+	char sBuffer[300];
 	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
 	Format(sBuffer, 300, "%s %s%s", gS_ChatStrings[sMessagePrefix], gS_ChatStrings[sMessageText], sBuffer);
 
@@ -1265,7 +1265,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 
 public int Native_LogMessage(Handle plugin, int numParams)
 {
-	char[] sPlugin = new char[32];
+	char sPlugin[32];
 
 	if(!GetPluginInfo(plugin, PlInfo_Name, sPlugin, 32))
 	{
@@ -1274,7 +1274,7 @@ public int Native_LogMessage(Handle plugin, int numParams)
 
 	static int iWritten = 0;
 
-	char[] sBuffer = new char[300];
+	char sBuffer[300];
 	FormatNativeString(0, 1, 2, 300, iWritten, sBuffer);
 	
 	LogToFileEx(gS_LogPath, "[%s] %s", sPlugin, sBuffer);
@@ -1403,7 +1403,7 @@ public void OnClientCookiesCached(int client)
 		return;
 	}
 
-	char[] sCookie = new char[4];
+	char sCookie[4];
 
 	if(gH_AutoBhopCookie != null)
 	{
@@ -1467,7 +1467,7 @@ public void OnClientPutInServer(int client)
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
 
-	char[] sAuthID3 = new char[32];
+	char sAuthID3[32];
 
 	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
 	{
@@ -1476,7 +1476,7 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	char[] sName = new char[MAX_NAME_LENGTH_SQL];
+	char sName[MAX_NAME_LENGTH_SQL];
 	GetClientName(client, sName, MAX_NAME_LENGTH_SQL);
 	ReplaceString(sName, MAX_NAME_LENGTH_SQL, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
 
@@ -1484,10 +1484,10 @@ public void OnClientPutInServer(int client)
 	char[] sEscapedName = new char[iLength];
 	gH_SQL.Escape(sName, sEscapedName, iLength);
 
-	char[] sIP = new char[64];
+	char sIP[64];
 	GetClientIP(client, sIP, 64);
 
-	char[] sCountry = new char[128];
+	char sCountry[128];
 
 	if(!GeoipCountry(sIP, sCountry, 128))
 	{
@@ -1496,7 +1496,7 @@ public void OnClientPutInServer(int client)
 
 	int iTime = GetTime();
 
-	char[] sQuery = new char[512];
+	char sQuery[512];
 
 	if(gB_MySQL)
 	{
@@ -1533,7 +1533,7 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 
 bool LoadStyles()
 {
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-styles.cfg");
 
 	KeyValues kv = new KeyValues("shavit-styles");
@@ -1591,10 +1591,10 @@ bool LoadStyles()
 
 		if(!gB_Registered && strlen(gS_StyleStrings[i][sChangeCommand]) > 0)
 		{
-			char[][] sStyleCommands = new char[32][32];
+			char sStyleCommands[32][32];
 			int iCommands = ExplodeString(gS_StyleStrings[i][sChangeCommand], ";", sStyleCommands, 32, 32, false);
 
-			char[] sDescription = new char[128];
+			char sDescription[128];
 			FormatEx(sDescription, 128, "Change style to %s.", gS_StyleStrings[i][sStyleName]);
 
 			for(int x = 0; x < iCommands; x++)
@@ -1602,7 +1602,7 @@ bool LoadStyles()
 				TrimString(sStyleCommands[x]);
 				StripQuotes(sStyleCommands[x]);
 
-				char[] sCommand = new char[32];
+				char sCommand[32];
 				FormatEx(sCommand, 32, "sm_%s", sStyleCommands[x]);
 
 				gSM_StyleCommands.SetValue(sCommand, i);
@@ -1613,7 +1613,7 @@ bool LoadStyles()
 
 		if(StrContains(gS_StyleStrings[i][sStylePermission], ";") != -1)
 		{
-			char[][] sText = new char[2][32];
+			char sText[2][32];
 			int iCount = ExplodeString(gS_StyleStrings[i][sStylePermission], ";", sText, 2, 32);
 
 			AdminFlag flag = Admin_Reservation;
@@ -1645,7 +1645,7 @@ bool LoadStyles()
 
 public Action Command_StyleChange(int client, int args)
 {
-	char[] sCommand = new char[128];
+	char sCommand[128];
 	GetCmdArg(0, sCommand, 128);
 
 	int style = 0;
@@ -1662,7 +1662,7 @@ public Action Command_StyleChange(int client, int args)
 
 bool LoadMessages()
 {
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-messages.cfg");
 
 	KeyValues kv = new KeyValues("shavit-messages");
@@ -1709,7 +1709,7 @@ bool LoadMessages()
 
 void SQL_SetPrefix()
 {
-	char[] sFile = new char[PLATFORM_MAX_PATH];
+	char sFile[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
 
 	File fFile = OpenFile(sFile, "r");
@@ -1719,7 +1719,7 @@ void SQL_SetPrefix()
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
 	
-	char[] sLine = new char[PLATFORM_MAX_PATH*2];
+	char sLine[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
@@ -1739,7 +1739,7 @@ void SQL_DBConnect()
 		delete gH_SQL;
 	}
 
-	char[] sError = new char[255];
+	char sError[255];
 
 	if(SQL_CheckConfig("shavit")) // can't be asynced as we have modules that require this database connection instantly
 	{
@@ -1759,11 +1759,11 @@ void SQL_DBConnect()
 	// support unicode names
 	gH_SQL.SetCharset("utf8");
 
-	char[] sDriver = new char[8];
+	char sDriver[8];
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
 	gB_MySQL = StrEqual(sDriver, "mysql", false);
 
-	char[] sQuery = new char[512];
+	char sQuery[512];
 
 	if(gB_MySQL)
 	{
@@ -1788,7 +1788,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	char[] sQuery = new char[192];
+	char sQuery[192];
 	FormatEx(sQuery, 192, "SELECT lastlogin FROM %susers LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery, 0, DBPrio_High);
 
@@ -1819,7 +1819,7 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 {
 	if(results == null)
 	{
-		char[] sQuery = new char[128];
+		char sQuery[128];
 		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`lastlogin` INT NOT NULL DEFAULT -1)":"COLUMN `lastlogin` INTEGER NOT NULL DEFAULT -1");
 		gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
 	}
@@ -1839,7 +1839,7 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 {
 	if(results == null)
 	{
-		char[] sQuery = new char[128];
+		char sQuery[128];
 		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
@@ -1857,7 +1857,7 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	char[] sTable = new char[16];
+	char sTable[16];
 
 	data.Reset();
 	data.ReadString(sTable, 16);
@@ -1871,13 +1871,13 @@ public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const
 
 	while(results.FetchRow())
 	{
-		char[] sMap = new char[160];
+		char sMap[160];
 		results.FetchString(0, sMap, 160);
 
-		char[] sDisplayMap = new char[160];
+		char sDisplayMap[160];
 		GetMapDisplayName(sMap, sDisplayMap, 160);
 
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "UPDATE %s%s SET map = '%s' WHERE map = '%s';", gS_MySQLPrefix, sTable, sDisplayMap, sMap);
 		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery, 0, DBPrio_High);
 	}
@@ -2019,7 +2019,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			if(gA_StyleSettings[gI_Style[client]][iBlockPRight] >= 2)
 			{
-				char[] sCheatDetected = new char[64];
+				char sCheatDetected[64];
 				FormatEx(sCheatDetected, 64, "%T", "LeftRightCheat", client);
 				StopTimer_Cheat(client, sCheatDetected);
 			}
@@ -2034,7 +2034,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			{
 				if(gA_StyleSettings[gI_Style[client]][iBlockPStrafe] >= 2)
 				{
-					char[] sCheatDetected = new char[64];
+					char sCheatDetected[64];
 					FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
 					StopTimer_Cheat(client, sCheatDetected);
 				}
@@ -2356,7 +2356,7 @@ void UpdateStyleSettings(int client)
 		sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gI_Style[client]][bEnableBunnyhopping])? "1":"0");
 	}
 
-	char[] sAiraccelerate = new char[8];
+	char sAiraccelerate[8];
 	FloatToString(gA_StyleSettings[gI_Style[client]][fAiraccelerate], sAiraccelerate, 8);
 	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
 

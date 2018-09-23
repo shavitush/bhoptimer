@@ -432,10 +432,10 @@ public int Native_InsideZone(Handle handler, int numParams)
 
 public int Native_Zones_DeleteMap(Handle handler, int numParams)
 {
-	char[] sMap = new char[160];
+	char sMap[160];
 	GetNativeString(1, sMap, 160);
 
-	char[] sQuery = new char[256];
+	char sQuery[256];
 	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, sMap);
 	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 }
@@ -483,7 +483,7 @@ public int Native_IsClientCreatingZone(Handle handler, int numParams)
 
 bool LoadZonesConfig()
 {
-	char[] sPath = new char[PLATFORM_MAX_PATH];
+	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-zones.cfg");
 
 	KeyValues kv = new KeyValues("shavit-zones");
@@ -498,10 +498,10 @@ bool LoadZonesConfig()
 	kv.JumpToKey("Sprites");
 	kv.GetString("beam", gS_BeamSprite, PLATFORM_MAX_PATH);
 
-	char[] sDownloads = new char[PLATFORM_MAX_PATH * 8];
+	char sDownloads[PLATFORM_MAX_PATH * 8];
 	kv.GetString("downloads", sDownloads, (PLATFORM_MAX_PATH * 8));
 
-	char[][] sDownloadsExploded = new char[PLATFORM_MAX_PATH][PLATFORM_MAX_PATH];
+	char sDownloadsExploded[PLATFORM_MAX_PATH][PLATFORM_MAX_PATH];
 	int iDownloads = ExplodeString(sDownloads, ";", sDownloadsExploded, PLATFORM_MAX_PATH, PLATFORM_MAX_PATH, false);
 
 	for(int i = 0; i < iDownloads; i++)
@@ -522,7 +522,7 @@ bool LoadZonesConfig()
 	do
 	{
 		// retroactively don't respect custom spawn settings
-		char[] sSection = new char[32];
+		char sSection[32];
 		kv.GetSectionName(sSection, 32);
 
 		if(StrContains(sSection, "SPAWN POINT", false) != -1)
@@ -658,7 +658,7 @@ public void Frame_HookButton(any data)
 		return;
 	}
 
-	char[] sName = new char[32];
+	char sName[32];
 	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
 
 	if(StrContains(sName, "climb_") == -1)
@@ -702,7 +702,7 @@ public void Frame_HookTrigger(any data)
 		return;
 	}
 
-	char[] sName = new char[32];
+	char sName[32];
 	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
 
 	if(StrContains(sName, "mod_zone_") == -1)
@@ -802,7 +802,7 @@ void KillZoneEntity(int index)
 			gB_InsideZoneID[i][index] = false;
 		}
 
-		char[] sTargetname = new char[32];
+		char sTargetname[32];
 		GetEntPropString(entity, Prop_Data, "m_iName", sTargetname, 32);
 
 		if(StrContains(sTargetname, "shavit_zones_") == -1)
@@ -843,7 +843,7 @@ void UnloadZones(int zone)
 		{
 			gB_ZonesCreated = false;
 
-			char[] sTargetname = new char[32];
+			char sTargetname[32];
 			int iEntity = INVALID_ENT_REFERENCE;
 
 			while((iEntity = FindEntityByClassname(iEntity, "trigger_multiple")) != INVALID_ENT_REFERENCE)
@@ -863,7 +863,7 @@ void UnloadZones(int zone)
 
 void RefreshZones()
 {
-	char[] sQuery = new char[512];
+	char sQuery[512];
 	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s FROM %smapzones WHERE map = '%s';", (gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
@@ -966,7 +966,7 @@ public Action Command_Modifier(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char[] sArg1 = new char[16];
+	char sArg1[16];
 	GetCmdArg(1, sArg1, 16);
 
 	float fArg1 = StringToFloat(sArg1);
@@ -1024,7 +1024,7 @@ public Action Command_DelSpawn(int client, int args)
 
 	Shavit_LogMessage("%L - deleted custom spawn from map `%s`.", client, gS_Map);
 
-	char[] sQuery = new char[256];
+	char sQuery[256];
 	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE type = '%d' AND map = '%s';", gS_MySQLPrefix, Zone_CustomSpawn, gS_Map);
 
 	gH_SQL.Query(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(client));
@@ -1117,7 +1117,7 @@ public Action Command_Zones(int client, int args)
 			continue;
 		}
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
 		menu.AddItem(sInfo, gS_ZoneNames[i]);
@@ -1134,7 +1134,7 @@ Action OpenEditMenu(int client)
 	Menu menu = new Menu(ZoneEdit_MenuHandler);
 	menu.SetTitle("%T\n ", "ZoneEditTitle", client);
 
-	char[] sDisplay = new char[64];
+	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "ZoneEditRefresh", client);
 	menu.AddItem("-2", sDisplay);
 
@@ -1145,10 +1145,10 @@ Action OpenEditMenu(int client)
 			continue;
 		}
 
-		char[] sInfo = new char[8];
+		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
-		char[] sTrack = new char[32];
+		char sTrack[32];
 		GetTrackName(client, gA_ZoneCache[i][iZoneTrack], sTrack, 32);
 
 		FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i][iZoneType]], sTrack);
@@ -1177,7 +1177,7 @@ public int ZoneEdit_MenuHandler(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[8];
+		char info[8];
 		menu.GetItem(param2, info, 8);
 
 		int id = StringToInt(info);
@@ -1239,7 +1239,7 @@ Action OpenDeleteMenu(int client)
 	Menu menu = new Menu(DeleteZone_MenuHandler);
 	menu.SetTitle("%T\n ", "ZoneMenuDeleteTitle", client);
 
-	char[] sDisplay = new char[64];
+	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "ZoneEditRefresh", client);
 	menu.AddItem("-2", sDisplay);
 
@@ -1247,12 +1247,12 @@ Action OpenDeleteMenu(int client)
 	{
 		if(gA_ZoneCache[i][bZoneInitialized])
 		{
-			char[] sTrack = new char[32];
+			char sTrack[32];
 			GetTrackName(client, gA_ZoneCache[i][iZoneTrack], sTrack, 32);
 
 			FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i][iZoneType]], sTrack);
 
-			char[] sInfo = new char[8];
+			char sInfo[8];
 			IntToString(i, sInfo, 8);
 			
 			if(gB_InsideZoneID[client][i])
@@ -1266,7 +1266,7 @@ Action OpenDeleteMenu(int client)
 
 	if(menu.ItemCount == 0)
 	{
-		char[] sMenuItem = new char[64];
+		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "ZonesMenuNoneFound", client);
 		menu.AddItem("-1", sMenuItem);
 	}
@@ -1281,7 +1281,7 @@ public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int 
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[8];
+		char info[8];
 		menu.GetItem(param2, info, 8);
 
 		int id = StringToInt(info);
@@ -1302,7 +1302,7 @@ public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int 
 			{
 				Shavit_LogMessage("%L - deleted %s (id %d) from map `%s`.", param1, gS_ZoneNames[gA_ZoneCache[id][iZoneType]], gA_ZoneCache[id][iDatabaseID], gS_Map);
 
-				char[] sQuery = new char[256];
+				char sQuery[256];
 				FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE %s = %d;", gS_MySQLPrefix, (gB_MySQL)? "id":"rowid", gA_ZoneCache[id][iDatabaseID]);
 
 				DataPack hDatapack = new DataPack();
@@ -1358,7 +1358,7 @@ public Action Command_DeleteAllZones(int client, int args)
 	Menu menu = new Menu(DeleteAllZones_MenuHandler);
 	menu.SetTitle("%T", "ZoneMenuDeleteALLTitle", client);
 
-	char[] sMenuItem = new char[64];
+	char sMenuItem[64];
 
 	for(int i = 1; i <= GetRandomInt(1, 4); i++)
 	{
@@ -1385,7 +1385,7 @@ public int DeleteAllZones_MenuHandler(Menu menu, MenuAction action, int param1, 
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[8];
+		char info[8];
 		menu.GetItem(param2, info, 8);
 
 		int iInfo = StringToInt(info);
@@ -1397,7 +1397,7 @@ public int DeleteAllZones_MenuHandler(Menu menu, MenuAction action, int param1, 
 
 		Shavit_LogMessage("%L - deleted all zones from map `%s`.", param1, gS_Map);
 
-		char[] sQuery = new char[256];
+		char sQuery[256];
 		FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
 		gH_SQL.Query(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
@@ -1434,7 +1434,7 @@ public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[8];
+		char info[8];
 		menu.GetItem(param2, info, 8);
 
 		gI_ZoneType[param1] = StringToInt(info);
@@ -1480,9 +1480,9 @@ void ShowPanel(int client, int step)
 
 	Panel pPanel = new Panel();
 
-	char[] sPanelText = new char[128];
-	char[] sFirst = new char[64];
-	char[] sSecond = new char[64];
+	char sPanelText[128];
+	char sFirst[64];
+	char sSecond[64];
 	FormatEx(sFirst, 64, "%T", "ZoneFirst", client);
 	FormatEx(sSecond, 64, "%T", "ZoneSecond", client);
 
@@ -1497,11 +1497,11 @@ void ShowPanel(int client, int step)
 	}
 
 	pPanel.DrawItem(sPanelText, ITEMDRAW_RAWLINE);
-	char[] sPanelItem = new char[64];
+	char sPanelItem[64];
 	FormatEx(sPanelItem, 64, "%T", "AbortZoneCreation", client);
 	pPanel.DrawItem(sPanelItem);
 
-	char[] sDisplay = new char[64];
+	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "GridSnap", client, gI_GridSnap[client]);
 	pPanel.DrawItem(sDisplay);
 
@@ -1751,7 +1751,7 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 {
 	if(action == MenuAction_Select)
 	{
-		char[] info = new char[8];
+		char info[8];
 		menu.GetItem(param2, info, 8);
 
 		if(StrEqual(info, "yes"))
@@ -1846,13 +1846,13 @@ void UpdateTeleportZone(int client)
 
 void CreateEditMenu(int client)
 {
-	char[] sTrack = new char[32];
+	char sTrack[32];
 	GetTrackName(client, gI_ZoneTrack[client], sTrack, 32);
 
 	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
 	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
 
-	char[] sMenuItem = new char[64];
+	char sMenuItem[64];
 
 	if(gI_ZoneType[client] == Zone_Teleport)
 	{
@@ -1892,7 +1892,7 @@ void CreateEditMenu(int client)
 void CreateAdjustMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneAdjuster_Handler);
-	char[] sMenuItem = new char[64];
+	char sMenuItem[64];
 	hMenu.SetTitle("%T", "ZoneAdjustPosition", client);
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
@@ -1900,11 +1900,11 @@ void CreateAdjustMenu(int client, int page)
 	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustCancel", client);
 	hMenu.AddItem("cancel", sMenuItem);
 
-	char[] sAxis = new char[4];
+	char sAxis[4];
 	strcopy(sAxis, 4, "XYZ");
 
-	char[] sDisplay = new char[32];
-	char[] sInfo = new char[16];
+	char sDisplay[32];
+	char sInfo[16];
 
 	for(int iPoint = 1; iPoint <= 2; iPoint++)
 	{
@@ -1927,7 +1927,7 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[16];
+		char sInfo[16];
 		menu.GetItem(param2, sInfo, 16);
 
 		if(StrEqual(sInfo, "done"))
@@ -1942,10 +1942,10 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 
 		else
 		{
-			char[] sAxis = new char[4];
+			char sAxis[4];
 			strcopy(sAxis, 4, "XYZ");
 
-			char[][] sExploded = new char[3][8];
+			char sExploded[3][8];
 			ExplodeString(sInfo, ";", sExploded, 3, 8);
 
 			int iPoint = StringToInt(sExploded[0]);
@@ -1973,7 +1973,7 @@ void InsertZone(int client)
 	int index = GetZoneIndex(type, gI_ZoneTrack[client]);
 	bool insert = (gI_ZoneDatabaseID[client] == -1 && (index == -1 || type >= Zone_Respawn));
 
-	char[] sQuery = new char[512];
+	char sQuery[512];
 
 	if(type == Zone_CustomSpawn)
 	{
@@ -2296,7 +2296,7 @@ Action SetSQLInfo()
 
 void SQL_SetPrefix()
 {
-	char[] sFile = new char[PLATFORM_MAX_PATH];
+	char sFile[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
 
 	File fFile = OpenFile(sFile, "r");
@@ -2306,7 +2306,7 @@ void SQL_SetPrefix()
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
 	
-	char[] sLine = new char[PLATFORM_MAX_PATH*2];
+	char sLine[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
@@ -2323,11 +2323,11 @@ void SQL_DBConnect()
 {
 	if(gH_SQL != null)
 	{
-		char[] sDriver = new char[8];
+		char sDriver[8];
 		gH_SQL.Driver.GetIdentifier(sDriver, 8);
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
-		char[] sQuery = new char[1024];
+		char sQuery[1024];
 		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` CHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;", gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
@@ -2343,7 +2343,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	char[] sQuery = new char[64];
+	char sQuery[64];
 	FormatEx(sQuery, 64, "SELECT destination_x FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
 
@@ -2355,7 +2355,7 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 {
 	if(results == null)
 	{
-		char[] sQuery = new char[256];
+		char sQuery[256];
 
 		if(gB_MySQL)
 		{
@@ -2365,7 +2365,7 @@ public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const
 
 		else
 		{
-			char[] sAxis = new char[4];
+			char sAxis[4];
 			strcopy(sAxis, 4, "xyz");
 
 			for(int i = 0; i < 3; i++)
@@ -2391,7 +2391,7 @@ public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const
 {
 	if(results == null)
 	{
-		char[] sQuery = new char[256];
+		char sQuery[256];
 
 		if(gB_MySQL)
 		{
@@ -2630,7 +2630,7 @@ public void CreateZoneEntities()
 		gI_EntityZone[entity] = i;
 		gA_ZoneCache[i][iEntityID] = entity;
 
-		char[] sTargetname = new char[32];
+		char sTargetname[32];
 		FormatEx(sTargetname, 32, "shavit_zones_%d_%d", gA_ZoneCache[i][iZoneTrack], gA_ZoneCache[i][iZoneType]);
 		DispatchKeyValue(entity, "targetname", sTargetname);
 

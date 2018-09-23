@@ -120,7 +120,7 @@ public void OnMapStart()
 	gA_WorstSounds.Clear();
 	gSM_RankSounds.Clear();
 
-	char[] sFile = new char[PLATFORM_MAX_PATH];
+	char sFile[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-sounds.cfg");
 
 	File fFile = OpenFile(sFile, "r"); // readonly, unless i implement in-game editing
@@ -132,8 +132,8 @@ public void OnMapStart()
 
 	else
 	{
-		char[] sLine = new char[PLATFORM_MAX_PATH*2];
-		char[] sDownloadString = new char[PLATFORM_MAX_PATH];
+		char sLine[PLATFORM_MAX_PATH*2];
+		char sDownloadString[PLATFORM_MAX_PATH];
 
 		while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 		{
@@ -176,7 +176,7 @@ public void OnMapStart()
 
 			else
 			{
-				char[] sRank = new char[8];
+				char sRank[8];
 				IntToString(StringToInt(sExploded[0]), sRank, 8);
 
 				gSM_RankSounds.SetString(sRank, sExploded[1]);
@@ -202,7 +202,7 @@ bool PrecacheSoundAny(const char[] path)
 {
 	if(gEV_Type == Engine_CSGO)
 	{
-		char[] sCSGOPath = new char[PLATFORM_MAX_PATH];
+		char sCSGOPath[PLATFORM_MAX_PATH];
 		FormatEx(sCSGOPath, PLATFORM_MAX_PATH, "*%s", path);
 
 		static int table = INVALID_STRING_TABLE;
@@ -225,10 +225,10 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	float fOldTime = 0.0;
 	Shavit_GetPlayerPB(client, style, fOldTime, track);
 
-	char[] sSound = new char[PLATFORM_MAX_PATH];
+	char sSound[PLATFORM_MAX_PATH];
 	bool bEveryone = false;
 
-	char[] sRank = new char[8];
+	char sRank[8];
 	IntToString(rank, sRank, 8);
 
 	if((time < fOldTime || fOldTime == 0.0) && gSM_RankSounds.GetString(sRank, sSound, PLATFORM_MAX_PATH))
@@ -263,7 +263,7 @@ public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, i
 {
 	if(gA_WorstSounds.Length != 0 && Shavit_GetRecordAmount(style, track) >= gI_MinimumWorst)
 	{
-		char[] sSound = new char[PLATFORM_MAX_PATH];
+		char sSound[PLATFORM_MAX_PATH];
 		gA_WorstSounds.GetString(GetRandomInt(0, gA_WorstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 
 		if(StrContains(sSound, ".") != -1)
