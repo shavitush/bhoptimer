@@ -1214,7 +1214,8 @@ stock void Shavit_PrintToChatAll(const char[] format, any ...)
 public SharedPlugin __pl_shavit =
 {
 	name = "shavit",
-	file = "shavit-core.smx",
+	// SM bug? commented until it's fixed
+	// file = "shavit-core.smx",
 #if defined REQUIRE_PLUGIN
 	required = 1
 #else

@@ -25,8 +25,6 @@
 #include <clientprefs>
 
 #undef REQUIRE_PLUGIN
-#include <bhopstats>
-
 #define USES_CHAT_COLORS
 #include <shavit>
 
