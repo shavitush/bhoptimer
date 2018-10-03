@@ -302,7 +302,7 @@ public void PostThinkPost(int client)
 
 public void OnClientCookiesCached(int client)
 {
-	char[] sHUDSettings = new char[8];
+	char sHUDSettings[8];
 	GetClientCookie(client, gH_HUDCookie, sHUDSettings, 8);
 
 	if(strlen(sHUDSettings) == 0)
@@ -381,8 +381,8 @@ Action ShowHUDMenu(int client, int item)
 	Menu menu = new Menu(MenuHandler_HUD, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
 	menu.SetTitle("%T", "HUDMenuTitle", client);
 
-	char[] sInfo = new char[16];
-	char[] sHudItem = new char[64];
+	char sInfo[16];
+	char sHudItem[64];
 	IntToString(HUD_MASTER, sInfo, 16);
 	FormatEx(sHudItem, 64, "%T", "HudMaster", client);
 	menu.AddItem(sInfo, sHudItem);
@@ -447,7 +447,7 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sCookie = new char[16];
+		char sCookie[16];
 		menu.GetItem(param2, sCookie, 16);
 		int iSelection = StringToInt(sCookie);
 
@@ -466,8 +466,8 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 
 	else if(action == MenuAction_DisplayItem)
 	{
-		char[] sInfo = new char[16];
-		char[] sDisplay = new char[64];
+		char sInfo[16];
+		char sDisplay[64];
 		int style = 0;
 		menu.GetItem(param2, sInfo, 16, style, sDisplay, 64);
 
@@ -648,7 +648,7 @@ void UpdateHUD(int client)
 
 	int iSpeed = RoundToNearest(((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
 
-	char[] sHintText = new char[512];
+	char sHintText[512];
 	strcopy(sHintText, 512, "");
 
 	if(!IsFakeClient(target) && (gI_HUDSettings[client] & HUD_ZONEHUD) > 0)
@@ -693,7 +693,7 @@ void UpdateHUD(int client)
 
 		if(!IsFakeClient(target))
 		{
-			char[] sTrack = new char[32];
+			char sTrack[32];
 
 			if(track != Track_Main)
 			{
@@ -712,10 +712,10 @@ void UpdateHUD(int client)
 			float fPB = 0.0;
 			Shavit_GetPlayerPB(target, style, fPB, track);
 
-			char[] sPB = new char[32];
+			char sPB[32];
 			FormatSeconds(fPB, sPB, 32);
 
-			char[] sTime = new char[32];
+			char sTime[32];
 			FormatSeconds(time, sTime, 32, false);
 
 			if(gEV_Type == Engine_CSGO)
@@ -724,7 +724,7 @@ void UpdateHUD(int client)
 
 				if(status >= Timer_Running)
 				{
-					char[] sColor = new char[8];
+					char sColor[8];
 
 					if(status == Timer_Paused)
 					{
@@ -789,7 +789,7 @@ void UpdateHUD(int client)
 			{
 				if(status != Timer_Stopped)
 				{
-					char[] sFirstLine = new char[64];
+					char sFirstLine[64];
 					strcopy(sFirstLine, 64, gS_StyleStrings[style][sStyleName]);
 
 					if(Shavit_IsPracticeMode(target))
@@ -843,13 +843,13 @@ void UpdateHUD(int client)
 				return;
 			}
 
-			char[] sReplayTime = new char[32];
+			char sReplayTime[32];
 			FormatSeconds(fReplayTime, sReplayTime, 32, false);
 
-			char[] sReplayLength = new char[32];
+			char sReplayLength[32];
 			FormatSeconds(fReplayLength, sReplayLength, 32, false);
 
-			char[] sTrack = new char[32];
+			char sTrack[32];
 
 			if(track != Track_Main)
 			{
@@ -867,7 +867,7 @@ void UpdateHUD(int client)
 
 			else
 			{
-				char[] sPlayerName = new char[MAX_NAME_LENGTH];
+				char sPlayerName[MAX_NAME_LENGTH];
 				Shavit_GetReplayName(style, track, sPlayerName, MAX_NAME_LENGTH);
 
 				FormatEx(sHintText, 512, "%s %s%T", gS_StyleStrings[style][sStyleName], sTrack, "ReplayText", client);
@@ -899,7 +899,7 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	// to make it shorter
 	int buttons = gI_Buttons[target];
 
-	char[] sPanelLine = new char[128];
+	char sPanelLine[128];
 
 	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
@@ -949,7 +949,7 @@ void UpdateCenterKeys(int client)
 
 	int buttons = gI_Buttons[target];
 
-	char[] sCenterText = new char[64];
+	char sCenterText[64];
 	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s　 %s 　%s", 
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
 		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
@@ -1006,9 +1006,9 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 	if(iSpectators > 0)
 	{
-		char[] sSpectators = new char[32];
-		char[] sSpectatorsPersonal = new char[64];
-		char[] sSpectatorWatching = new char[64];
+		char sSpectators[32];
+		char sSpectatorsPersonal[64];
+		char sSpectatorWatching[64];
 		FormatEx(sSpectatorsPersonal, 32, "%T", "SpectatorPersonal", client);
 		FormatEx(sSpectatorWatching, 32, "%T", "SpectatorWatching", client);
 		FormatEx(sSpectators, 32, "%s (%d):", (client == target)? sSpectatorsPersonal:sSpectatorWatching, iSpectators);
@@ -1065,19 +1065,19 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 		if(fWRTime != 0.0)
 		{
-			char[] sWRTime = new char[16];
+			char sWRTime[16];
 			FormatSeconds(fWRTime, sWRTime, 16);
 
-			char[] sWRName = new char[MAX_NAME_LENGTH];
+			char sWRName[MAX_NAME_LENGTH];
 			Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH, track);
 
 			float fPBTime = 0.0;
 			Shavit_GetPlayerPB(target, style, fPBTime, track);
 
-			char[] sPBTime = new char[16];
+			char sPBTime[16];
 			FormatSeconds(fPBTime, sPBTime, MAX_NAME_LENGTH);
 
-			char[] sTopLeft = new char[128];
+			char sTopLeft[128];
 
 			if(fPBTime != 0.0)
 			{
@@ -1099,7 +1099,7 @@ void UpdateKeyHint(int client)
 {
 	if((gI_Cycle % 10) == 0 && ((gI_HUDSettings[client] & HUD_SYNC) > 0 || (gI_HUDSettings[client] & HUD_TIMELEFT) > 0))
 	{
-		char[] sMessage = new char[256];
+		char sMessage[256];
 		int iTimeLeft = -1;
 
 		if((gI_HUDSettings[client] & HUD_TIMELEFT) > 0 && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)

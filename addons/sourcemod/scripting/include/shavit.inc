@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.3.1"
+#define SHAVIT_VERSION "2.3.2"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -1214,7 +1214,8 @@ stock void Shavit_PrintToChatAll(const char[] format, any ...)
 public SharedPlugin __pl_shavit =
 {
 	name = "shavit",
-	file = "shavit-core.smx",
+	// SM bug? commented until it's fixed
+	// file = "shavit-core.smx",
 #if defined REQUIRE_PLUGIN
 	required = 1
 #else

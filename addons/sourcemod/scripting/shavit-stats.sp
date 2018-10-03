@@ -246,7 +246,7 @@ Action SetSQLInfo()
 
 void SQL_SetPrefix()
 {
-	char[] sFile = new char[PLATFORM_MAX_PATH];
+	char sFile[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
 
 	File fFile = OpenFile(sFile, "r");
@@ -256,7 +256,7 @@ void SQL_SetPrefix()
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
 	
-	char[] sLine = new char[PLATFORM_MAX_PATH*2];
+	char sLine[PLATFORM_MAX_PATH*2];
 
 	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
 	{
@@ -291,11 +291,11 @@ void UpdateWRs(int client)
 		return;
 	}
 
-	char[] sAuthID = new char[32];
+	char sAuthID[32];
 
 	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
 	{
-		char[] sQuery = new char[256];
+		char sQuery[256];
 
 		if(gI_MVPRankOnes == 2)
 		{
@@ -348,7 +348,7 @@ public Action Command_Profile(int client, int args)
 
 	if(args > 0)
 	{
-		char[] sArgs = new char[64];
+		char sArgs[64];
 		GetCmdArgString(sArgs, 64);
 
 		target = FindTarget(client, sArgs, true, false);
@@ -373,7 +373,7 @@ Action OpenStatsMenu(int client, const char[] authid)
 	}
 
 	// big ass query, looking for optimizations
-	char[] sQuery = new char[2048];
+	char sQuery[2048];
 
 	if(gB_Rankings)
 	{
@@ -428,16 +428,16 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		results.FetchString(3, gS_TargetName[client], MAX_NAME_LENGTH);
 		ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
 
-		char[] sCountry = new char[64];
+		char sCountry[64];
 		results.FetchString(4, sCountry, 64);
 
 		int iLastLogin = results.FetchInt(5);
-		char[] sLastLogin = new char[32];
+		char sLastLogin[32];
 		FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
 		Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
 
-		char[] sPoints = new char[16];
-		char[] sRank = new char[16];
+		char sPoints[16];
+		char sRank[16];
 
 		if(gB_Rankings)
 		{
@@ -445,7 +445,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			results.FetchString(7, sRank, 16);
 		}
 
-		char[] sRankingString = new char[64];
+		char sRankingString[64];
 
 		if(gB_Rankings)
 		{
@@ -465,7 +465,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			iClears = iTotalMaps;
 		}
 
-		char[] sClearString = new char[128];
+		char sClearString[128];
 		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
@@ -478,7 +478,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 				continue;
 			}
 
-			char[] sInfo = new char[4];
+			char sInfo[4];
 			IntToString(i, sInfo, 4);
 
 			menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
@@ -487,7 +487,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		// should NEVER happen
 		if(menu.ItemCount == 0)
 		{
-			char[] sMenuItem = new char[64];
+			char sMenuItem[64];
 			FormatEx(sMenuItem, 64, "%T", "NoRecords", client);
 			menu.AddItem("-1", sMenuItem);
 		}
@@ -506,7 +506,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[32];
+		char sInfo[32];
 
 		menu.GetItem(param2, sInfo, 32);
 		gBS_Style[param1] = StringToInt(sInfo);
@@ -516,13 +516,13 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			char[] sTrack = new char[32];
+			char sTrack[32];
 			GetTrackName(param1, j, sTrack, 32);
 
-			char[] sMenuItem = new char[64];
+			char sMenuItem[64];
 			FormatEx(sMenuItem, 64, "%T (%s)", "MapsDone", param1, sTrack);
 
-			char[] sNewInfo = new char[32];
+			char sNewInfo[32];
 			FormatEx(sNewInfo, 32, "%d;0", j);
 			submenu.AddItem(sNewInfo, sMenuItem);
 
@@ -547,10 +547,10 @@ public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[32];
+		char sInfo[32];
 		menu.GetItem(param2, sInfo, 32);
 
-		char[][] sExploded = new char[2][4];
+		char sExploded[2][4];
 		ExplodeString(sInfo, ";", sExploded, 2, 4);
 
 		gI_Track[param1] = StringToInt(sExploded[0]);
@@ -596,7 +596,7 @@ void ShowMaps(int client)
 		return;
 	}
 
-	char[] sQuery = new char[512];
+	char sQuery[512];
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
@@ -629,7 +629,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	int rows = results.RowCount;
 
-	char[] sTrack = new char[32];
+	char sTrack[32];
 	GetTrackName(client, gI_Track[client], sTrack, 32);
 
 	Menu menu = new Menu(MenuHandler_ShowMaps);
@@ -646,11 +646,11 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	while(results.FetchRow())
 	{
-		char[] sMap = new char[192];
+		char sMap[192];
 		results.FetchString(0, sMap, 192);
 
-		char[] sRecordID = new char[16];
-		char[] sDisplay = new char[256];
+		char sRecordID[16];
+		char sDisplay[256];
 
 		if(gI_MapType[client] == MAPSDONE)
 		{
@@ -658,7 +658,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 			int jumps = results.FetchInt(2);
 			int rank = results.FetchInt(4);
 
-			char[] sTime = new char[32];
+			char sTime[32];
 			FormatSeconds(time, sTime, 32);
 
 			float points = results.FetchFloat(5);
@@ -688,7 +688,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(menu.ItemCount == 0)
 	{
-		char[] sMenuItem = new char[64];
+		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "NoResults", client);
 		menu.AddItem("nope", sMenuItem);
 	}
@@ -701,7 +701,7 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char[] sInfo = new char[16];
+		char sInfo[16];
 		menu.GetItem(param2, sInfo, 16);
 
 		if(StrEqual(sInfo, "nope"))
@@ -711,7 +711,7 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 			return 0;
 		}
 
-		char[] sQuery = new char[512];
+		char sQuery[512];
 		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%s' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sInfo);
 
 		gH_SQL.Query(SQL_SubMenu_Callback, sQuery, GetClientSerial(param1));
@@ -748,9 +748,9 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	Menu menu = new Menu(SubMenu_Handler);
 
-	char[] sName = new char[MAX_NAME_LENGTH];
-	char[] sAuthID = new char[32];
-	char[] sMap = new char[192];
+	char sName[MAX_NAME_LENGTH];
+	char sAuthID[32];
+	char sMap[192];
 
 	if(results.FetchRow())
 	{
@@ -759,10 +759,10 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		// 1 - time
 		float time = results.FetchFloat(1);
-		char[] sTime = new char[16];
+		char sTime[16];
 		FormatSeconds(time, sTime, 16);
 
-		char[] sDisplay = new char[128];
+		char sDisplay[128];
 		FormatEx(sDisplay, 128, "%T: %s", "Time", client, sTime);
 		menu.AddItem("-1", sDisplay);
 
@@ -791,7 +791,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 
 		// 5 - date
-		char[] sDate = new char[32];
+		char sDate[32];
 		results.FetchString(5, sDate, 32);
 
 		if(sDate[4] != '-')
@@ -812,7 +812,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 	}
 
-	char[] sFormattedTitle = new char[256];
+	char sFormattedTitle[256];
 	FormatEx(sFormattedTitle, 256, "%s %s\n--- %s:", sName, sAuthID, sMap);
 
 	menu.SetTitle(sFormattedTitle);
