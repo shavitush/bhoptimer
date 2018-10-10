@@ -29,8 +29,6 @@
 
 bool gB_HUD;
 
-EngineVersion gEV_Type = Engine_Unknown;
-
 ArrayList gA_FirstSounds = null;
 ArrayList gA_PersonalSounds = null;
 ArrayList gA_WorldSounds = null;
@@ -70,9 +68,6 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-	// game specific
-	gEV_Type = GetEngineVersion();
-
 	// cache
 	gA_FirstSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
@@ -182,7 +177,7 @@ public void OnMapStart()
 				gSM_RankSounds.SetString(sRank, sExploded[1]);
 			}
 
-			if(PrecacheSoundAny(sExploded[1]))
+			if(PrecacheSound(sExploded[1], true))
 			{
 				FormatEx(sDownloadString, PLATFORM_MAX_PATH, "sound/%s", sExploded[1]);
 				AddFileToDownloadsTable(sDownloadString);
@@ -196,28 +191,6 @@ public void OnMapStart()
 	}
 
 	delete fFile;
-}
-
-bool PrecacheSoundAny(const char[] path)
-{
-	if(gEV_Type == Engine_CSGO)
-	{
-		char sCSGOPath[PLATFORM_MAX_PATH];
-		FormatEx(sCSGOPath, PLATFORM_MAX_PATH, "*%s", path);
-
-		static int table = INVALID_STRING_TABLE;
-
-		if(table == INVALID_STRING_TABLE)
-		{
-			table = FindStringTable("soundprecache");
-		}
-
-		AddToStringTable(table, sCSGOPath);
-
-		return true;
-	}
-
-	return PrecacheSound(path, true);
 }
 
 public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
@@ -303,11 +276,6 @@ void PlayEventSound(int client, bool everyone, char[] sound)
 
 	if(count > 0)
 	{
-		if(gEV_Type == Engine_CSGO)
-		{
-			Format(sound, PLATFORM_MAX_PATH, "*%s", sound);
-		}
-
 		EmitSound(clients, count, sound);
 	}
 }
