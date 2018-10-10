@@ -89,6 +89,10 @@ int gI_Track[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
+// forwards
+Handle gH_OnReplayStart = null;
+Handle gH_OnReplayEnd = null;
+
 // server specific
 float gF_Tickrate = 0.0;
 char gS_Map[160];
@@ -195,6 +199,10 @@ public void OnPluginStart()
 {
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-replay.phrases");
+
+	// forwards
+	gH_OnReplayStart = CreateGlobalForward("Shavit_OnReplayStart", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnReplayEnd = CreateGlobalForward("Shavit_OnReplayEnd", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// game specific
 	gEV_Type = GetEngineVersion();
@@ -1737,6 +1745,10 @@ public Action Timer_EndReplay(Handle Timer, any data)
 
 	gI_ReplayTick[data] = 0;
 
+	Call_StartForward(gH_OnReplayEnd);
+	Call_PushCell(gI_ReplayBotClient[data]);
+	Call_Finish();
+
 	if(gI_ReplayBotClient[data] != gA_CentralCache[iCentralClient])
 	{
 		gRS_ReplayStatus[data] = Replay_Start;
@@ -1759,6 +1771,10 @@ public Action Timer_StartReplay(Handle Timer, any data)
 	{
 		return Plugin_Stop;
 	}
+
+	Call_StartForward(gH_OnReplayStart);
+	Call_PushCell(gI_ReplayBotClient[data]);
+	Call_Finish();
 
 	gRS_ReplayStatus[data] = gA_CentralCache[iCentralReplayStatus] = Replay_Running;
 

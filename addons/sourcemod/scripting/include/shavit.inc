@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.3.2"
+#define SHAVIT_VERSION "2.3.3"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -544,6 +544,22 @@ forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, 
  * @noreturn
  */
 forward void Shavit_OnTierAssigned(const char[] map, int tier);
+
+/**
+ * Called when replay playback starts.
+ *
+ * @param client					Client index for the bot.
+ * @noreturn
+ */
+forward void Shavit_OnReplayStart(int client);
+
+/**
+ * Called when replay playback ends.
+ *
+ * @param client					Client index for the bot.
+ * @noreturn
+ */
+forward void Shavit_OnReplayEnd(int client);
 
 /**
  * Returns the game type the server is running.
