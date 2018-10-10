@@ -127,9 +127,9 @@ public void OnPluginStart()
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-wr.phrases");
 
-	// debug because I was making this all by myself and no one wanted to help me *sniff*
 	#if defined DEBUG
 	RegConsoleCmd("sm_junk", Command_Junk);
+	RegConsoleCmd("sm_printleaderboards", Command_PrintLeaderboards);
 	#endif
 
 	// forwards
@@ -649,6 +649,21 @@ public Action Command_Junk(int client, int args)
 	SQL_LockDatabase(gH_SQL);
 	SQL_FastQuery(gH_SQL, sQuery);
 	SQL_UnlockDatabase(gH_SQL);
+
+	return Plugin_Handled;
+}
+
+public Action Command_PrintLeaderboards(int client, int args)
+{
+	ReplyToCommand(client, "Track: Main - Style: 0");
+	ReplyToCommand(client, "Current PB: %f", gF_PlayerRecord[client][0][0]);
+	ReplyToCommand(client, "Count: %d", gI_RecordAmount[0][0]);
+	ReplyToCommand(client, "Rank: %d", Shavit_GetRankForTime(0, gF_PlayerRecord[client][0][0], 0));
+
+	for(int i = 0; i < gI_RecordAmount[0][0]; i++)
+	{
+		ReplyToCommand(client, "#%d: %f", i, gA_Leaderboard[0][0].Get(i));
+	}
 
 	return Plugin_Handled;
 }
@@ -2348,7 +2363,7 @@ int GetRankForTime(int style, float time, int track)
 	{
 		for(int i = 0; i < gI_RecordAmount[style][track]; i++)
 		{
-			if(time < gA_Leaderboard[style][track].Get(i))
+			if(time <= gA_Leaderboard[style][track].Get(i))
 			{
 				return ++i;
 			}
