@@ -756,7 +756,7 @@ void UpdateHUD(int client)
 
 				else if(fPB > 0.0)
 				{
-					Format(sHintText, 512, "%s%T: %s (#%d)", sHintText, "HudBestText", client, sPB, (Shavit_GetRankForTime(style, fPB, track) - 1));
+					Format(sHintText, 512, "%s%T: %s (#%d)", sHintText, "HudBestText", client, sPB, Shavit_GetRankForTime(style, fPB, track));
 				}
 
 				if(status >= Timer_Running)
@@ -1081,7 +1081,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 			if(fPBTime != 0.0)
 			{
-				FormatEx(sTopLeft, 128, "WR: %s (%s)\n%T: %s (#%d)", sWRTime, sWRName, "HudBestText", client, sPBTime, (Shavit_GetRankForTime(style, fPBTime, track) - 1));
+				FormatEx(sTopLeft, 128, "WR: %s (%s)\n%T: %s (#%d)", sWRTime, sWRName, "HudBestText", client, sPBTime, Shavit_GetRankForTime(style, fPBTime, track));
 			}
 
 			else
