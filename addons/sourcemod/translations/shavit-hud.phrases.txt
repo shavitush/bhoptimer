@@ -109,6 +109,10 @@
 	{
 		"en"		"Disable record sounds"
 	}
+	"HudPracticeModeAlert"
+	{
+		"en"		"Disable practice mode alert"
+	}
 	// ---------- Record Bots ---------- //
 	"ReplayText"
 	{

@@ -93,6 +93,7 @@ bool gB_Zones = false;
 bool gB_WR = false;
 bool gB_Replay = false;
 bool gB_Rankings = false;
+bool gB_HUD = false;
 
 // cvars
 ConVar gCV_Restart = null;
@@ -349,6 +350,7 @@ public void OnPluginStart()
 	gB_WR = LibraryExists("shavit-wr");
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Rankings = LibraryExists("shavit-rankings");
+	gB_HUD = LibraryExists("shavit-hud");
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -388,6 +390,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
+
+	else if(StrEqual(name, "shavit-hud"))
+	{
+		gB_HUD = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -410,6 +417,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
+	}
+
+	else if(StrEqual(name, "shavit-hud"))
+	{
+		gB_HUD = false;
 	}
 }
 
@@ -1199,7 +1211,7 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	bool practice = view_as<bool>(GetNativeCell(2));
 	bool alert = view_as<bool>(GetNativeCell(3));
 
-	if(alert && practice && !gB_PracticeMode[client])
+	if(alert && practice && !gB_PracticeMode[client] && (!gB_HUD || (Shavit_GetHUDSettings(client) & HUD_NOPRACALERT) == 0))
 	{
 		Shavit_PrintToChat(client, "%T", "PracticeModeAlert", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}

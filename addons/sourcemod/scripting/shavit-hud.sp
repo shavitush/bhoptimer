@@ -437,6 +437,10 @@ Action ShowHUDMenu(int client, int item)
 		menu.AddItem(sInfo, sHudItem);
 	}
 
+	IntToString(HUD_NOPRACALERT, sInfo, 16);
+	FormatEx(sHudItem, 64, "%T", "HudPracticeModeAlert", client);
+	menu.AddItem(sInfo, sHudItem);
+
 	menu.ExitButton = true;
 	menu.DisplayAt(client, item, 60);
 
