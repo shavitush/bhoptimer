@@ -1713,7 +1713,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			{
 				CheckpointsCache cpcache[PCPCACHE_SIZE];
 				
-				if(iCurrent < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
+				if(iCurrent++ < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
 				{
 					gI_CheckpointsCache[param1][iCurrentCheckpoint]++;
 				}
