@@ -847,6 +847,8 @@ void UpdateHUD(int client)
 				return;
 			}
 
+			fReplayTime *= view_as<float>(gA_StyleSettings[style][fTimescale]);
+
 			char sReplayTime[32];
 			FormatSeconds(fReplayTime, sReplayTime, 32, false);
 
