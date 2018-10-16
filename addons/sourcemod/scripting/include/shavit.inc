@@ -98,7 +98,7 @@ enum
 	fRunspeed,
 	fGravityMultiplier,
 	fSpeedMultiplier,
-	bHalftime,
+	fTimescale,
 	fVelocity,
 	fBonusVelocity,
 	fMinVelocity,

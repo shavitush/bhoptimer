@@ -1576,7 +1576,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][fRunspeed] = kv.GetFloat("runspeed", 260.00);
 		gA_StyleSettings[i][fGravityMultiplier] = kv.GetFloat("gravity", 1.0);
 		gA_StyleSettings[i][fSpeedMultiplier] = kv.GetFloat("speed", 1.0);
-		gA_StyleSettings[i][bHalftime] = view_as<bool>(kv.GetNum("halftime", 0));
+		gA_StyleSettings[i][fTimescale] = view_as<bool>(kv.GetNum("halftime", 0))? 0.5:kv.GetFloat("timescale", 1.0); // backwards compat for old halftime setting
 		gA_StyleSettings[i][fVelocity] = kv.GetFloat("velocity", 1.0);
 		gA_StyleSettings[i][fBonusVelocity] = kv.GetFloat("bonus_velocity", 0.0);
 		gA_StyleSettings[i][fMinVelocity] = kv.GetFloat("min_velocity", 0.0);
@@ -1938,12 +1938,7 @@ public void OnGameFrame()
 			continue;
 		}
 
-		float time = frametime;
-
-		if(gA_StyleSettings[gI_Style[i]][bHalftime])
-		{
-			time /= 2.0;
-		}
+		float time = frametime * view_as<float>(gA_StyleSettings[gI_Style[i]][fTimescale]);
 
 		any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
 		snapshot[bTimerEnabled] = gB_TimerEnabled[i];
