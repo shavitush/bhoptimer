@@ -130,6 +130,7 @@ enum EHTTPMethod
 	k_EHTTPMethodPUT,
 	k_EHTTPMethodDELETE,
 	k_EHTTPMethodOPTIONS,
+	k_EHTTPMethodPATCH,
 
 	// The remaining HTTP methods are not yet supported, per rfc2616 section 5.1.1 only GET and HEAD are required for 
 	// a compliant general purpose server.  We'll likely add more as we find uses for them.
@@ -215,7 +216,9 @@ native bool:SteamWorks_IsVACEnabled();
 native bool:SteamWorks_GetPublicIP(ipaddr[4]);
 native SteamWorks_GetPublicIPCell();
 native bool:SteamWorks_IsLoaded();
-native bool:SteamWorks_SetGameDescription(String:sDesc[]);
+native bool:SteamWorks_SetGameData(const String:sData[]);
+native bool:SteamWorks_SetGameDescription(const String:sDesc[]);
+native bool:SteamWorks_SetMapName(const String:sMapName[]);
 native bool:SteamWorks_IsConnected();
 native bool:SteamWorks_SetRule(const String:sKey[], const String:sValue[]);
 native bool:SteamWorks_ClearRules();
@@ -239,6 +242,40 @@ native bool:SteamWorks_SetHTTPRequestContextValue(Handle:hHandle, any:data1, any
 native bool:SteamWorks_SetHTTPRequestNetworkActivityTimeout(Handle:hHandle, timeout);
 native bool:SteamWorks_SetHTTPRequestHeaderValue(Handle:hHandle, const String:sName[], const String:sValue[]);
 native bool:SteamWorks_SetHTTPRequestGetOrPostParameter(Handle:hHandle, const String:sName[], const String:sValue[]);
+native bool:SteamWorks_SetHTTPRequestUserAgentInfo(Handle:hHandle, const String:sUserAgentInfo[]);
+native bool:SteamWorks_SetHTTPRequestRequiresVerifiedCertificate(Handle:hHandle, bool:bRequireVerifiedCertificate);
+native bool:SteamWorks_SetHTTPRequestAbsoluteTimeoutMS(Handle:hHandle, unMilliseconds);
+
+#if SOURCEMOD_V_MAJOR >= 1 && SOURCEMOD_V_MINOR >= 9
+typeset SteamWorksHTTPRequestCompleted
+{
+	function void (Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode);
+	function void (Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, any data1);
+	function void (Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, any data1, any data2);
+};
+
+typeset SteamWorksHTTPHeadersReceived
+{
+	function void (Handle hRequest, bool bFailure);
+	function void (Handle hRequest, bool bFailure, any data1);
+	function void (Handle hRequest, bool bFailure, any data1, any data2);
+};
+
+typeset SteamWorksHTTPDataReceived
+{
+	function void (Handle hRequest, bool bFailure, int offset, int bytesreceived);
+	function void (Handle hRequest, bool bFailure, int offset, int bytesreceived, any data1);
+	function void (Handle hRequest, bool bFailure, int offset, int bytesreceived, any data1, any data2);
+};
+
+typeset SteamWorksHTTPBodyCallback
+{
+	function void (const char sData[]);
+	function void (const char sData[], any value);
+	function void (const int data[], any value, int datalen);
+};
+
+#else
 
 funcenum SteamWorksHTTPRequestCompleted
 {
@@ -261,6 +298,15 @@ funcenum SteamWorksHTTPDataReceived
 	public(Handle:hRequest, bool:bFailure, offset, bytesreceived, any:data1, any:data2)
 };
 
+funcenum SteamWorksHTTPBodyCallback
+{
+	public(const String:sData[]),
+	public(const String:sData[], any:value),
+	public(const data[], any:value, datalen)
+};
+
+#endif
+
 native bool:SteamWorks_SetHTTPCallbacks(Handle:hHandle, SteamWorksHTTPRequestCompleted:fCompleted = INVALID_FUNCTION, SteamWorksHTTPHeadersReceived:fHeaders = INVALID_FUNCTION, SteamWorksHTTPDataReceived:fData = INVALID_FUNCTION, Handle:hCalling = INVALID_HANDLE);
 native bool:SteamWorks_SendHTTPRequest(Handle:hRequest);
 native bool:SteamWorks_SendHTTPRequestAndStreamResponse(Handle:hRequest);
@@ -272,16 +318,11 @@ native bool:SteamWorks_GetHTTPResponseBodySize(Handle:hRequest, &size);
 native bool:SteamWorks_GetHTTPResponseBodyData(Handle:hRequest, String:sBody[], length);
 native bool:SteamWorks_GetHTTPStreamingResponseBodyData(Handle:hRequest, cOffset, String:sBody[], length);
 native bool:SteamWorks_GetHTTPDownloadProgressPct(Handle:hRequest, &Float:percent);
+native bool:SteamWorks_GetHTTPRequestWasTimedOut(Handle:hRequest, &bool:bWasTimedOut);
 native bool:SteamWorks_SetHTTPRequestRawPostBody(Handle:hRequest, const String:sContentType[], const String:sBody[], bodylen);
+native bool:SteamWorks_SetHTTPRequestRawPostBodyFromFile(Handle:hRequest, const String:sContentType[], const String:sFileName[]);
 
-funcenum SteamWorksHTTPBodyCallback
-{
-	public(const String:sData[]),
-	public(const String:sData[], any:value),
-	public(const data[], any:value, datalen)
-};
-
-native bool:SteamWorks_GetHTTPResponseBodyCallback(Handle:hRequest, SteamWorksHTTPBodyCallback:fCallback, any:data = 0, Handle:hPlugin = INVALID_HANDLE);
+native bool:SteamWorks_GetHTTPResponseBodyCallback(Handle:hRequest, SteamWorksHTTPBodyCallback:fCallback, any:data = 0, Handle:hPlugin = INVALID_HANDLE); /* Look up, moved definition for 1.7+ compat. */
 native bool:SteamWorks_WriteHTTPResponseBodyToFile(Handle:hRequest, const String:sFileName[]);
 
 forward SW_OnValidateClient(ownerauthid, authid);
@@ -324,6 +365,7 @@ public __ext_SteamWorks_SetNTVOptional()
 	MarkNativeAsOptional("SteamWorks_GetPublicIP");
 	MarkNativeAsOptional("SteamWorks_GetPublicIPCell");
 	MarkNativeAsOptional("SteamWorks_IsLoaded");
+	MarkNativeAsOptional("SteamWorks_SetGameData");
 	MarkNativeAsOptional("SteamWorks_SetGameDescription");
 	MarkNativeAsOptional("SteamWorks_IsConnected");
 	MarkNativeAsOptional("SteamWorks_SetRule");
@@ -363,6 +405,7 @@ public __ext_SteamWorks_SetNTVOptional()
 	MarkNativeAsOptional("SteamWorks_GetHTTPStreamingResponseBodyData");
 	MarkNativeAsOptional("SteamWorks_GetHTTPDownloadProgressPct");
 	MarkNativeAsOptional("SteamWorks_SetHTTPRequestRawPostBody");
+	MarkNativeAsOptional("SteamWorks_SetHTTPRequestRawPostBodyFromFile");
 
 	MarkNativeAsOptional("SteamWorks_GetHTTPResponseBodyCallback");
 	MarkNativeAsOptional("SteamWorks_WriteHTTPResponseBodyToFile");
