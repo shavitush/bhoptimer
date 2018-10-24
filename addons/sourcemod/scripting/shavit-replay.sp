@@ -1225,7 +1225,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 
 public Action HookTriggers(int entity, int other)
 {
-	if(gB_Enabled && other >= 1 && other <= MaxClients && IsFakeClient(other))
+	if(gB_Enabled && 1 <= other <= MaxClients && IsFakeClient(other))
 	{
 		return Plugin_Handled;
 	}
