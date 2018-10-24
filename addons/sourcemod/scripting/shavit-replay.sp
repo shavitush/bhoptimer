@@ -34,6 +34,7 @@
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
 #define REPLAY_FORMAT_SUBVERSION 0x02
 #define CELLS_PER_FRAME 8 // origin[3], angles[2], buttons, flags, movetype
+#define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
 // #define DEBUG
 
@@ -972,7 +973,7 @@ bool LoadReplay(int style, int track, const char[] path)
 				gH_SQL.Query(SQL_GetUserName_Callback, sQuery, pack, DBPrio_High);
 			}
 
-			int cells = 8;
+			int cells = CELLS_PER_FRAME;
 
 			// backwards compatibility
 			if(gA_FrameCache[style][track][3] == 0x01)
@@ -1087,12 +1088,25 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
 
 	// if REPLAY_FORMAT_SUBVERSION is over 0x01 i'll add variables here
 
-	any[] aFrameData = new any[CELLS_PER_FRAME];
+	any aFrameData[CELLS_PER_FRAME];
+	any aWriteData[CELLS_PER_FRAME * FRAMES_PER_WRITE];
+	int iFramesWritten = 0;
 
 	for(int i = 0; i < iSize; i++)
 	{
 		gA_Frames[style][track].GetArray(i, aFrameData, CELLS_PER_FRAME);
-		fFile.Write(aFrameData, CELLS_PER_FRAME, 4);
+
+		for(int j = 0; j < CELLS_PER_FRAME; j++)
+		{
+			aWriteData[(CELLS_PER_FRAME * iFramesWritten) + j] = aFrameData[j];
+		}
+
+		if(++iFramesWritten == FRAMES_PER_WRITE || i == iSize - 1)
+		{
+			fFile.Write(aWriteData, CELLS_PER_FRAME * iFramesWritten, 4);
+
+			iFramesWritten = 0;
+		}
 	}
 
 	delete fFile;
