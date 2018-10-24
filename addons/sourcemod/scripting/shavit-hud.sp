@@ -839,15 +839,13 @@ void UpdateHUD(int client)
 			iSpeed = RoundToNearest(float(iSpeed) / view_as<float>(gA_StyleSettings[style][fSpeedMultiplier]));			
 			track = Shavit_GetReplayBotTrack(target);
 
-			float fReplayTime = Shavit_GetReplayTime(style, track);
+			float fReplayTime = Shavit_GetReplayTime(style, track) * view_as<float>(gA_StyleSettings[style][fTimescale]);
 			float fReplayLength = Shavit_GetReplayLength(style, track);
 
 			if(fReplayTime < 0.0 || fReplayTime > fReplayLength || !Shavit_IsReplayDataLoaded(style, track))
 			{
 				return;
 			}
-
-			fReplayTime *= view_as<float>(gA_StyleSettings[style][fTimescale]);
 
 			char sReplayTime[32];
 			FormatSeconds(fReplayTime, sReplayTime, 32, false);
