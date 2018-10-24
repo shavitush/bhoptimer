@@ -1196,6 +1196,29 @@ public void OnClientPutInServer(int client)
 	}
 }
 
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	// trigger_once | trigger_multiple.. etc
+	// func_door | func_door_rotating
+	if(StrContains(classname, "trigger_") != -1 || StrContains(classname, "_door") != -1)
+	{
+		SDKHook(entity, SDKHook_StartTouch, HookTriggers);
+		SDKHook(entity, SDKHook_EndTouch, HookTriggers);
+		SDKHook(entity, SDKHook_Touch, HookTriggers);
+		SDKHook(entity, SDKHook_Use, HookTriggers);
+	}
+}
+
+public Action HookTriggers(int entity, int other)
+{
+	if(gB_Enabled && other >= 1 && other <= MaxClients && IsFakeClient(other))
+	{
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
 void FormatStyle(const char[] source, int style, bool central, float time, int track, char[] dest, int size)
 {
 	float fWRTime = GetReplayLength(style, track);
@@ -1661,12 +1684,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
 
-			if((gI_ReplayTick[style] % RoundToFloor(gF_Tickrate * 1.5)) == 0)
+			if(gI_ReplayTick[style] > 1)
 			{
 				float vecLastPosition[3];
 				vecLastPosition[0] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 0);
 				vecLastPosition[1] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 1);
 				vecLastPosition[2] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 2);
+
+				// fix for replay not syncing
+				if(GetVectorDistance(vecLastPosition, vecCurrentPosition) >= 100.0 && IsWallBetween(vecLastPosition, vecCurrentPosition, client))
+				{
+					TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
+					
+					return Plugin_Handled;
+				}
 
 				#if defined DEBUG
 				PrintToChatAll("vecVelocity: %.02f | dist %.02f", GetVectorLength(vecVelocity), GetVectorDistance(vecLastPosition, vecPosition) * gF_Tickrate);
@@ -1732,6 +1763,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	return Plugin_Continue;
+}
+
+public bool Filter_Clients(int entity, int contentsMask, any data)
+{
+	return (1 <= entity <= MaxClients && entity != data);
+}
+
+bool IsWallBetween(float pos1[3], float pos2[3], int bot)
+{
+	TR_TraceRayFilter(pos1, pos2, MASK_SOLID, RayType_EndPoint, Filter_Clients, bot);
+	
+	return !TR_DidHit();
 }
 
 public Action Timer_EndReplay(Handle Timer, any data)
