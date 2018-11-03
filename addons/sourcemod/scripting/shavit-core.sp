@@ -1767,7 +1767,10 @@ void SQL_DBConnect()
 	}
 
 	// support unicode names
-	gH_SQL.SetCharset("utf8");
+	if(!gH_SQL.SetCharset("utf8mb4"))
+	{
+		gH_SQL.SetCharset("utf8");
+	}
 
 	char sDriver[8];
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
