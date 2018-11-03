@@ -34,6 +34,7 @@
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
 #define REPLAY_FORMAT_SUBVERSION 0x02
 #define CELLS_PER_FRAME 8 // origin[3], angles[2], buttons, flags, movetype
+#define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
 // #define DEBUG
 
@@ -972,7 +973,7 @@ bool LoadReplay(int style, int track, const char[] path)
 				gH_SQL.Query(SQL_GetUserName_Callback, sQuery, pack, DBPrio_High);
 			}
 
-			int cells = 8;
+			int cells = CELLS_PER_FRAME;
 
 			// backwards compatibility
 			if(gA_FrameCache[style][track][3] == 0x01)
@@ -1087,12 +1088,25 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
 
 	// if REPLAY_FORMAT_SUBVERSION is over 0x01 i'll add variables here
 
-	any[] aFrameData = new any[CELLS_PER_FRAME];
+	any aFrameData[CELLS_PER_FRAME];
+	any aWriteData[CELLS_PER_FRAME * FRAMES_PER_WRITE];
+	int iFramesWritten = 0;
 
 	for(int i = 0; i < iSize; i++)
 	{
 		gA_Frames[style][track].GetArray(i, aFrameData, CELLS_PER_FRAME);
-		fFile.Write(aFrameData, CELLS_PER_FRAME, 4);
+
+		for(int j = 0; j < CELLS_PER_FRAME; j++)
+		{
+			aWriteData[(CELLS_PER_FRAME * iFramesWritten) + j] = aFrameData[j];
+		}
+
+		if(++iFramesWritten == FRAMES_PER_WRITE || i == iSize - 1)
+		{
+			fFile.Write(aWriteData, CELLS_PER_FRAME * iFramesWritten, 4);
+
+			iFramesWritten = 0;
+		}
 	}
 
 	delete fFile;
@@ -1194,6 +1208,29 @@ public void OnClientPutInServer(int client)
 			gA_CentralCache[iCentralClient] = client;
 		}
 	}
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	// trigger_once | trigger_multiple.. etc
+	// func_door | func_door_rotating
+	if(StrContains(classname, "trigger_") != -1 || StrContains(classname, "_door") != -1)
+	{
+		SDKHook(entity, SDKHook_StartTouch, HookTriggers);
+		SDKHook(entity, SDKHook_EndTouch, HookTriggers);
+		SDKHook(entity, SDKHook_Touch, HookTriggers);
+		SDKHook(entity, SDKHook_Use, HookTriggers);
+	}
+}
+
+public Action HookTriggers(int entity, int other)
+{
+	if(gB_Enabled && 1 <= other <= MaxClients && IsFakeClient(other))
+	{
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
 }
 
 void FormatStyle(const char[] source, int style, bool central, float time, int track, char[] dest, int size)
@@ -1370,6 +1407,11 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 
 public void OnClientDisconnect(int client)
 {
+	if(IsClientSourceTV(client))
+	{
+		return;
+	}
+
 	if(!IsFakeClient(client))
 	{
 		if(gA_PlayerFrames[client] != null)
@@ -1661,12 +1703,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
 
-			if((gI_ReplayTick[style] % RoundToFloor(gF_Tickrate * 1.5)) == 0)
+			if(gI_ReplayTick[style] > 1)
 			{
 				float vecLastPosition[3];
 				vecLastPosition[0] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 0);
 				vecLastPosition[1] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 1);
 				vecLastPosition[2] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 2);
+
+				// fix for replay not syncing
+				if(GetVectorDistance(vecLastPosition, vecCurrentPosition) >= 100.0 && IsWallBetween(vecLastPosition, vecCurrentPosition, client))
+				{
+					TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
+					
+					return Plugin_Handled;
+				}
 
 				#if defined DEBUG
 				PrintToChatAll("vecVelocity: %.02f | dist %.02f", GetVectorLength(vecVelocity), GetVectorDistance(vecLastPosition, vecPosition) * gF_Tickrate);
@@ -1732,6 +1782,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	return Plugin_Continue;
+}
+
+public bool Filter_Clients(int entity, int contentsMask, any data)
+{
+	return (1 <= entity <= MaxClients && entity != data);
+}
+
+bool IsWallBetween(float pos1[3], float pos2[3], int bot)
+{
+	TR_TraceRayFilter(pos1, pos2, MASK_SOLID, RayType_EndPoint, Filter_Clients, bot);
+	
+	return !TR_DidHit();
 }
 
 public Action Timer_EndReplay(Handle Timer, any data)
@@ -2300,7 +2362,7 @@ void StopCentralReplay(int client)
 
 int GetReplayStyle(int client)
 {
-	if(!IsFakeClient(client))
+	if(!IsFakeClient(client) || IsClientSourceTV(client))
 	{
 		return -1;
 	}
@@ -2328,7 +2390,7 @@ int GetReplayStyle(int client)
 
 int GetReplayTrack(int client)
 {
-	if(!IsFakeClient(client))
+	if(!IsFakeClient(client) || IsClientSourceTV(client))
 	{
 		return -1;
 	}

@@ -93,6 +93,7 @@ bool gB_Zones = false;
 bool gB_WR = false;
 bool gB_Replay = false;
 bool gB_Rankings = false;
+bool gB_HUD = false;
 
 // cvars
 ConVar gCV_Restart = null;
@@ -349,6 +350,7 @@ public void OnPluginStart()
 	gB_WR = LibraryExists("shavit-wr");
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Rankings = LibraryExists("shavit-rankings");
+	gB_HUD = LibraryExists("shavit-hud");
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -388,6 +390,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
+
+	else if(StrEqual(name, "shavit-hud"))
+	{
+		gB_HUD = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -410,6 +417,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
+	}
+
+	else if(StrEqual(name, "shavit-hud"))
+	{
+		gB_HUD = false;
 	}
 }
 
@@ -1199,7 +1211,7 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	bool practice = view_as<bool>(GetNativeCell(2));
 	bool alert = view_as<bool>(GetNativeCell(3));
 
-	if(alert && practice && !gB_PracticeMode[client])
+	if(alert && practice && !gB_PracticeMode[client] && (!gB_HUD || (Shavit_GetHUDSettings(client) & HUD_NOPRACALERT) == 0))
 	{
 		Shavit_PrintToChat(client, "%T", "PracticeModeAlert", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
 	}
@@ -1564,7 +1576,7 @@ bool LoadStyles()
 		gA_StyleSettings[i][fRunspeed] = kv.GetFloat("runspeed", 260.00);
 		gA_StyleSettings[i][fGravityMultiplier] = kv.GetFloat("gravity", 1.0);
 		gA_StyleSettings[i][fSpeedMultiplier] = kv.GetFloat("speed", 1.0);
-		gA_StyleSettings[i][bHalftime] = view_as<bool>(kv.GetNum("halftime", 0));
+		gA_StyleSettings[i][fTimescale] = view_as<bool>(kv.GetNum("halftime", 0))? 0.5:kv.GetFloat("timescale", 1.0); // backwards compat for old halftime setting
 		gA_StyleSettings[i][fVelocity] = kv.GetFloat("velocity", 1.0);
 		gA_StyleSettings[i][fBonusVelocity] = kv.GetFloat("bonus_velocity", 0.0);
 		gA_StyleSettings[i][fMinVelocity] = kv.GetFloat("min_velocity", 0.0);
@@ -1755,7 +1767,10 @@ void SQL_DBConnect()
 	}
 
 	// support unicode names
-	gH_SQL.SetCharset("utf8");
+	if(!gH_SQL.SetCharset("utf8mb4"))
+	{
+		gH_SQL.SetCharset("utf8");
+	}
 
 	char sDriver[8];
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
@@ -1765,7 +1780,7 @@ void SQL_DBConnect()
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL, `name` VARCHAR(32), `country` CHAR(32), `ip` CHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`)) ENGINE=INNODB;", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_unicode_ci', `country` CHAR(32), `ip` CHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`)) ENGINE=INNODB;", gS_MySQLPrefix);
 	}
 
 	else
@@ -1926,12 +1941,7 @@ public void OnGameFrame()
 			continue;
 		}
 
-		float time = frametime;
-
-		if(gA_StyleSettings[gI_Style[i]][bHalftime])
-		{
-			time /= 2.0;
-		}
+		float time = frametime * view_as<float>(gA_StyleSettings[gI_Style[i]][fTimescale]);
 
 		any[] snapshot = new any[TIMERSNAPSHOT_SIZE];
 		snapshot[bTimerEnabled] = gB_TimerEnabled[i];

@@ -1349,7 +1349,7 @@ void SQL_DBConnect()
 		bool bMySQL = StrEqual(sDriver, "mysql", false);
 
 		char sQuery[512];
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` CHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` CHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` CHAR(16), PRIMARY KEY (`auth`))%s;", gS_MySQLPrefix, (bMySQL)? " ENGINE=INNODB":"");
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` CHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` CHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` CHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`))%s;", gS_MySQLPrefix, (bMySQL)? " ENGINE=INNODB":"");
 		
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 	}

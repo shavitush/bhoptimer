@@ -490,7 +490,7 @@ void UpdateWRCache()
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "SELECT p.style, p.id, TRUNCATE(LEAST(s.time, p.time), 3), u.name, p.track FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track ORDER BY date ASC) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track ORDER BY date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "SELECT p.style, p.id, TRUNCATE(LEAST(s.time, p.time), 3), u.name, p.track FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track, map ORDER BY date ASC) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track, p.id, p.time, s.time, u.name ORDER BY date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 	}
 
 	// sorry, LEAST() isn't available for SQLITE!

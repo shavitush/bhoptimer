@@ -437,6 +437,10 @@ Action ShowHUDMenu(int client, int item)
 		menu.AddItem(sInfo, sHudItem);
 	}
 
+	IntToString(HUD_NOPRACALERT, sInfo, 16);
+	FormatEx(sHudItem, 64, "%T", "HudPracticeModeAlert", client);
+	menu.AddItem(sInfo, sHudItem);
+
 	menu.ExitButton = true;
 	menu.DisplayAt(client, item, 60);
 
@@ -835,7 +839,7 @@ void UpdateHUD(int client)
 			iSpeed = RoundToNearest(float(iSpeed) / view_as<float>(gA_StyleSettings[style][fSpeedMultiplier]));			
 			track = Shavit_GetReplayBotTrack(target);
 
-			float fReplayTime = Shavit_GetReplayTime(style, track);
+			float fReplayTime = Shavit_GetReplayTime(style, track) * view_as<float>(gA_StyleSettings[style][fTimescale]);
 			float fReplayLength = Shavit_GetReplayLength(style, track);
 
 			if(fReplayTime < 0.0 || fReplayTime > fReplayLength || !Shavit_IsReplayDataLoaded(style, track))

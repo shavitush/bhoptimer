@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.3.3"
+#define SHAVIT_VERSION "2.3.4"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -42,6 +42,7 @@
 #define HUD_TIMELEFT			(1 << 9) // shows time left at right tside of the screen (css only)
 #define HUD_2DVEL				(1 << 10) // shows 2d velocity
 #define HUD_NOSOUNDS			(1 << 11) // disables sounds on personal best, world record etc
+#define HUD_NOPRACALERT			(1 << 12) // hides practice mode chat alert
 
 // for reference, not used anymore
 // game types
@@ -97,7 +98,7 @@ enum
 	fRunspeed,
 	fGravityMultiplier,
 	fSpeedMultiplier,
-	bHalftime,
+	fTimescale,
 	fVelocity,
 	fBonusVelocity,
 	fMinVelocity,
