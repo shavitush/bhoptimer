@@ -1407,6 +1407,11 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 
 public void OnClientDisconnect(int client)
 {
+	if(IsClientSourceTV(client))
+	{
+		return;
+	}
+
 	if(!IsFakeClient(client))
 	{
 		if(gA_PlayerFrames[client] != null)
@@ -2357,7 +2362,7 @@ void StopCentralReplay(int client)
 
 int GetReplayStyle(int client)
 {
-	if(!IsFakeClient(client))
+	if(!IsFakeClient(client) || IsClientSourceTV(client))
 	{
 		return -1;
 	}
@@ -2385,7 +2390,7 @@ int GetReplayStyle(int client)
 
 int GetReplayTrack(int client)
 {
-	if(!IsFakeClient(client))
+	if(!IsFakeClient(client) || IsClientSourceTV(client))
 	{
 		return -1;
 	}
