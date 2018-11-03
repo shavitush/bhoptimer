@@ -1780,7 +1780,7 @@ void SQL_DBConnect()
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL, `name` VARCHAR(32), `country` CHAR(32), `ip` CHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`)) ENGINE=INNODB;", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_unicode_ci', `country` CHAR(32), `ip` CHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`)) ENGINE=INNODB;", gS_MySQLPrefix);
 	}
 
 	else
