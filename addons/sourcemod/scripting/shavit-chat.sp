@@ -321,6 +321,16 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	return Plugin_Continue;
 }
 
+void ReplaceFormats(char[] formatting, int maxlen, char[] name, char[] colon, char[] text)
+{
+	FormatColors(formatting, maxlen, true, false);
+	FormatRandom(formatting, maxlen);
+	ReplaceString(formatting, maxlen, "{name}", name);
+	ReplaceString(formatting, maxlen, "{def}", "\x01");
+	ReplaceString(formatting, maxlen, "{colon}", colon);
+	ReplaceString(formatting, maxlen, "{msg}", text);
+}
+
 public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	int client = 0;
@@ -433,10 +443,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		}
 	}
 
-	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{name}", sOriginalName);
-	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{def}", "\x01");
-	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{colon}", gS_Colon);
-	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{msg}", sOriginalText);
+	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, gS_Colon, sOriginalText);
 
 	DataPack pack = new DataPack();
 	pack.WriteCell(GetClientSerial(client)); // client serial
@@ -1042,13 +1049,9 @@ void PreviewChat(int client, int rank)
 	FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
 
 	char sSampleText[MAXLENGTH_MESSAGE];
-	strcopy(sSampleText, MAXLENGTH_MESSAGE, "The quick brown fox jumps over the lazy dog");
-	Format(sSampleText, MAXLENGTH_MESSAGE, "%s%s", sCMessage, sSampleText);
+	FormatEx(sSampleText, MAXLENGTH_MESSAGE, "%sThe quick brown fox jumps over the lazy dog", sCMessage);
 
-	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{name}", sOriginalName);
-	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{def}", "\x01");
-	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{colon}", gS_Colon);
-	ReplaceString(sTextFormatting, MAXLENGTH_BUFFER, "{msg}", sSampleText);
+	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, gS_Colon, sSampleText);
 
 	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
@@ -1266,10 +1269,8 @@ void FormatColors(char[] buffer, int size, bool colors, bool escape)
 	}
 }
 
-void FormatChat(int client, char[] buffer, int size)
+void FormatRandom(char[] buffer, int size)
 {
-	FormatColors(buffer, size, true, true);
-
 	char temp[8];
 
 	do
@@ -1290,6 +1291,12 @@ void FormatChat(int client, char[] buffer, int size)
 	}
 
 	while(ReplaceStringEx(buffer, size, "{rand}", temp) > 0);
+}
+
+void FormatChat(int client, char[] buffer, int size)
+{
+	FormatColors(buffer, size, true, true);
+	FormatRandom(buffer, size);
 
 	if(gEV_Type != Engine_TF2)
 	{
