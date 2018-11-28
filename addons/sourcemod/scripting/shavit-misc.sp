@@ -251,8 +251,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint. Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gSM_Checkpoints = new StringMap();
-	gA_Targetnames = new ArrayList(ByteCountToCells(32));
-	gA_Classnames = new ArrayList(ByteCountToCells(32));
+	gA_Targetnames = new ArrayList(ByteCountToCells(64));
+	gA_Classnames = new ArrayList(ByteCountToCells(64));
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
@@ -1830,6 +1830,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		iClassname = gA_Classnames.PushString(sClassname);
 	}
 
+	cpcache[iCPTargetname] = iTargetname;
+	cpcache[iCPClassname] = iClassname;
 	cpcache[mtCPMoveType] = GetEntityMoveType(target);
 	cpcache[fCPGravity] = GetEntityGravity(target);
 	cpcache[fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
