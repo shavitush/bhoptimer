@@ -1810,8 +1810,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", temp);
 	CopyArray(temp, cpcache[fCPVelocity], 3);
 
-	char sTargetname[32];
-	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 32);
+	char sTargetname[64];
+	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 64);
 
 	int iTargetname = gA_Targetnames.FindString(sTargetname);
 
@@ -1820,8 +1820,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		iTargetname = gA_Targetnames.PushString(sTargetname);
 	}
 
-	char sClassname[32];
-	GetEntityClassname(target, sClassname, 32);
+	char sClassname[64];
+	GetEntityClassname(target, sClassname, 64);
 
 	int iClassname = gA_Classnames.FindString(sClassname);
 
@@ -2038,8 +2038,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if(iTargetname != -1)
 	{
-		char sTargetname[32];
-		gA_Targetnames.GetString(iTargetname, sTargetname, 32);
+		char sTargetname[64];
+		gA_Targetnames.GetString(iTargetname, sTargetname, 64);
 
 		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
 	}
@@ -2048,8 +2048,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if(iClassname != -1)
 	{
-		char sClassname[32];
-		gA_Classnames.GetString(iClassname, sClassname, 32);
+		char sClassname[64];
+		gA_Classnames.GetString(iClassname, sClassname, 64);
 
 		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
 	}
