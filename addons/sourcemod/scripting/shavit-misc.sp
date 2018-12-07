@@ -251,8 +251,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint. Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gSM_Checkpoints = new StringMap();
-	gA_Targetnames = new ArrayList(ByteCountToCells(32));
-	gA_Classnames = new ArrayList(ByteCountToCells(32));
+	gA_Targetnames = new ArrayList(ByteCountToCells(64));
+	gA_Classnames = new ArrayList(ByteCountToCells(64));
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
@@ -380,16 +380,16 @@ public void OnPluginStart()
 
 			if(hGameData != null)
 			{
-				int iOffset = GameConfGetOffset(hGameData, "GetPlayerMaxSpeed");
+				int iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed");
 
 				if(iOffset != -1)
 				{
-					gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetPlayerMaxSpeed);
+					gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, CCSPlayer__GetPlayerMaxSpeed);
 				}
 
 				else
 				{
-					SetFailState("Couldn't get the offset for \"GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+					SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
 				}
 			}
 
@@ -798,7 +798,7 @@ public Action Command_Radio(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
-public MRESReturn DHook_GetPlayerMaxSpeed(int pThis, Handle hReturn)
+public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 {
 	if(!gB_StaticPrestrafe || !IsValidClient(pThis, true))
 	{
@@ -1810,8 +1810,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", temp);
 	CopyArray(temp, cpcache[fCPVelocity], 3);
 
-	char sTargetname[32];
-	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 32);
+	char sTargetname[64];
+	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 64);
 
 	int iTargetname = gA_Targetnames.FindString(sTargetname);
 
@@ -1820,8 +1820,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		iTargetname = gA_Targetnames.PushString(sTargetname);
 	}
 
-	char sClassname[32];
-	GetEntityClassname(target, sClassname, 32);
+	char sClassname[64];
+	GetEntityClassname(target, sClassname, 64);
 
 	int iClassname = gA_Classnames.FindString(sClassname);
 
@@ -1830,6 +1830,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		iClassname = gA_Classnames.PushString(sClassname);
 	}
 
+	cpcache[iCPTargetname] = iTargetname;
+	cpcache[iCPClassname] = iClassname;
 	cpcache[mtCPMoveType] = GetEntityMoveType(target);
 	cpcache[fCPGravity] = GetEntityGravity(target);
 	cpcache[fCPSpeed] = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
@@ -2036,8 +2038,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if(iTargetname != -1)
 	{
-		char sTargetname[32];
-		gA_Targetnames.GetString(iTargetname, sTargetname, 32);
+		char sTargetname[64];
+		gA_Targetnames.GetString(iTargetname, sTargetname, 64);
 
 		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
 	}
@@ -2046,8 +2048,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if(iClassname != -1)
 	{
-		char sClassname[32];
-		gA_Classnames.GetString(iClassname, sClassname, 32);
+		char sClassname[64];
+		gA_Classnames.GetString(iClassname, sClassname, 64);
 
 		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
 	}
@@ -2259,6 +2261,7 @@ public Action Shavit_OnStart(int client)
 	if(gB_ResetTargetname || Shavit_IsPracticeMode(client)) // practice mode can be abused to break map triggers
 	{
 		DispatchKeyValue(client, "targetname", "");
+		SetEntPropString(client, Prop_Data, "m_iClassname", "player");
 	}
 
 	return Plugin_Continue;
