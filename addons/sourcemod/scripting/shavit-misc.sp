@@ -380,16 +380,16 @@ public void OnPluginStart()
 
 			if(hGameData != null)
 			{
-				int iOffset = GameConfGetOffset(hGameData, "GetPlayerMaxSpeed");
+				int iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed");
 
 				if(iOffset != -1)
 				{
-					gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, DHook_GetPlayerMaxSpeed);
+					gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, CCSPlayer__GetPlayerMaxSpeed);
 				}
 
 				else
 				{
-					SetFailState("Couldn't get the offset for \"GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+					SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
 				}
 			}
 
@@ -798,7 +798,7 @@ public Action Command_Radio(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
-public MRESReturn DHook_GetPlayerMaxSpeed(int pThis, Handle hReturn)
+public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 {
 	if(!gB_StaticPrestrafe || !IsValidClient(pThis, true))
 	{

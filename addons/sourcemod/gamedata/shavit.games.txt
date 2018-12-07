@@ -4,7 +4,7 @@
 	{
 		"Offsets"
 		{
-			"GetPlayerMaxSpeed"
+			"CCSPlayer::GetPlayerMaxSpeed"
 			{
 				"windows"	"438"
 				"linux"		"439"
@@ -17,11 +17,11 @@
 	{
 		"Offsets"
 		{
-			"GetPlayerMaxSpeed"
+			"CCSPlayer::GetPlayerMaxSpeed"
 			{
-				"windows"	"498"
-				"linux"		"499"
-				"mac"		"499"
+				"windows"	"504"
+				"linux"		"505"
+				"mac"		"505"
 			}
 		}
 	}
