@@ -2261,6 +2261,7 @@ public Action Shavit_OnStart(int client)
 	if(gB_ResetTargetname || Shavit_IsPracticeMode(client)) // practice mode can be abused to break map triggers
 	{
 		DispatchKeyValue(client, "targetname", "");
+		SetEntPropString(client, Prop_Data, "m_iClassname", "player");
 	}
 
 	return Plugin_Continue;
