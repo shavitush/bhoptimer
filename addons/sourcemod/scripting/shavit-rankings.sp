@@ -75,12 +75,11 @@ Menu gH_Top100Menu = null;
 Handle gH_Forwards_OnTierAssigned = null;
 
 // Timer settings.
-char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+chatstrings_t gS_ChatStrings;
+int gI_Styles = 0;
+stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 char gS_StyleNames[STYLE_LIMIT][64];
 char gS_TrackNames[TRACKS_SIZE][32];
-
-any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
-int gI_Styles = 0;
 
 public Plugin myinfo =
 {
@@ -165,10 +164,12 @@ public void OnPluginStart()
 
 public void Shavit_OnChatConfigLoaded()
 {
-	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
-	{
-		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
-	}
+	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
+	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
+	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
+	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
+	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
+	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -548,7 +549,7 @@ public Action Command_Tier(int client, int args)
 		}
 	}
 
-	Shavit_PrintToChat(client, "%T", "CurrentTier", client, gS_ChatStrings[sMessageVariable], sMap, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], tier, gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "CurrentTier", client, gS_ChatStrings.sVariable, sMap, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
 
 	return Plugin_Handled;
 }
@@ -572,15 +573,15 @@ public Action Command_Rank(int client, int args)
 
 	if(gF_Points[target] == 0.0)
 	{
-		Shavit_PrintToChat(client, "%T", "Unranked", client, gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "Unranked", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings[sMessageVariable2], target, gS_ChatStrings[sMessageText],
-		gS_ChatStrings[sMessageVariable], (gI_Rank[target] > gI_RankedPlayers)? gI_RankedPlayers:gI_Rank[target], gS_ChatStrings[sMessageText],
+	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
+		gS_ChatStrings.sVariable, (gI_Rank[target] > gI_RankedPlayers)? gI_RankedPlayers:gI_Rank[target], gS_ChatStrings.sText,
 		gI_RankedPlayers,
-		gS_ChatStrings[sMessageVariable], gF_Points[target], gS_ChatStrings[sMessageText]);
+		gS_ChatStrings.sVariable, gF_Points[target], gS_ChatStrings.sText);
 
 	return Plugin_Handled;
 }
@@ -631,7 +632,7 @@ public Action Command_SetTier(int client, int args)
 	Call_PushCell(tier);
 	Call_Finish();
 
-	Shavit_PrintToChat(client, "%T", "SetTier", client, gS_ChatStrings[sMessageVariable2], tier, gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "SetTier", client, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
 
 	char sQuery[256];
 	FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, tier);
@@ -673,14 +674,14 @@ public Action Command_RecalcAll(int client, int args)
 	{
 		char sQuery[192];
 
-		if(gA_StyleSettings[i][bUnranked] || view_as<float>(gA_StyleSettings[i][fRankingMultiplier]) == 0.0)
+		if(gA_StyleSettings[i].bUnranked || gA_StyleSettings[i].fRankingMultiplier == 0.0)
 		{
 			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = 0 WHERE style = %d;", gS_MySQLPrefix, i);
 		}
 
 		else
 		{
-			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gF_PointsPerTier, view_as<float>(gA_StyleSettings[i][fRankingMultiplier]), i);
+			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gF_PointsPerTier, gA_StyleSettings[i].fRankingMultiplier, i);
 		}
 
 		trans.AddQuery(sQuery);
@@ -731,7 +732,7 @@ void RecalculateAll(const char[] map)
 	{
 		for(int j = 0; j < gI_Styles; j++)
 		{
-			if(gA_StyleSettings[j][bUnranked])
+			if(gA_StyleSettings[j].bUnranked)
 			{
 				continue;
 			}
@@ -753,7 +754,8 @@ void RecalculateMap(const char[] map, const int track, const int style)
 	#endif
 
 	char sQuery[192];
-	FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';", gS_MySQLPrefix, style, track, map, gF_PointsPerTier, gA_StyleSettings[style][fRankingMultiplier], style, track, map);
+	FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
+		gS_MySQLPrefix, style, track, map, gF_PointsPerTier, gA_StyleSettings[style].fRankingMultiplier, style, track, map);
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
 

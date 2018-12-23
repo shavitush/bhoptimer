@@ -65,11 +65,11 @@ bool gB_MVPRankOnes_Main = true;
 
 // timer settings
 int gI_Styles = 0;
-char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
-any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
+stylestrings_t gS_StyleStrings[STYLE_LIMIT];
+stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
-char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+chatstrings_t gS_ChatStrings;
 
 public Plugin myinfo =
 {
@@ -167,8 +167,8 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
-		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i][sShortName], 128);
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
+		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
 	}
 
 	gI_Styles = styles;
@@ -176,10 +176,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public void Shavit_OnChatConfigLoaded()
 {
-	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
-	{
-		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
-	}
+	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
+	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
+	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
+	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
+	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
+	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -469,11 +471,13 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
-		menu.SetTitle("%s's %T. %s\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n", gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString, gS_StyleStrings[0][sStyleName], "WorldRecords", client, iWRs, sRankingString);
+		menu.SetTitle("%s's %T. %s\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n",
+			gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString,
+			gS_StyleStrings[0].sStyleName, "WorldRecords", client, iWRs, sRankingString);
 
 		for(int i = 0; i < gI_Styles; i++)
 		{
-			if(gA_StyleSettings[i][bUnranked])
+			if(gA_StyleSettings[i].bUnranked)
 			{
 				continue;
 			}
@@ -481,7 +485,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			char sInfo[4];
 			IntToString(i, sInfo, 4);
 
-			menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+			menu.AddItem(sInfo, gS_StyleStrings[i].sStyleName);
 		}
 
 		// should NEVER happen
@@ -498,7 +502,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 	else
 	{
-		Shavit_PrintToChat(client, "%T", "StatsMenuFailure", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "StatsMenuFailure", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 	}
 }
 
@@ -512,7 +516,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 		gBS_Style[param1] = StringToInt(sInfo);
 
 		Menu submenu = new Menu(MenuHandler_TypeHandler);
-		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]][sShortName]);
+		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]].sShortName);
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
@@ -636,12 +640,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gBS_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	else
 	{
-		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gBS_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	while(results.FetchRow())
@@ -773,7 +777,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		// 3 - style
 		int style = results.FetchInt(3);
-		FormatEx(sDisplay, 128, "%T: %s", "Style", client, gS_StyleStrings[style][sStyleName]);
+		FormatEx(sDisplay, 128, "%T: %s", "Style", client, gS_StyleStrings[style].sStyleName);
 		menu.AddItem("-1", sDisplay);
 
 		// 4 - steamid3

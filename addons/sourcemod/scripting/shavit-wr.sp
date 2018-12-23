@@ -79,11 +79,11 @@ int gI_RecentLimit = 50;
 
 // timer settings
 int gI_Styles = 0;
-char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
-any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
+stylestrings_t gS_StyleStrings[STYLE_LIMIT];
+stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
-char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+chatstrings_t gS_ChatStrings;
 
 public Plugin myinfo =
 {
@@ -384,8 +384,8 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
-		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i][sShortName], 128);
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
+		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
 	}
 
 	// arrays
@@ -416,10 +416,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public void Shavit_OnChatConfigLoaded()
 {
-	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
-	{
-		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
-	}
+	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
+	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
+	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
+	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
+	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
+	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
 }
 
 public void OnClientPutInServer(int client)
@@ -534,7 +536,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	{
 		int style = results.FetchInt(0);
 
-		if(style >= gI_Styles || style < 0 || gA_StyleSettings[style][bUnranked])
+		if(style >= gI_Styles || style < 0 || gA_StyleSettings[style].bUnranked)
 		{
 			continue;
 		}
@@ -745,7 +747,7 @@ void DeleteSubmenu(int client)
 		IntToString(i, sInfo, 8);
 
 		char sDisplay[64];
-		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i][sStyleName], "WRRecord", client, gI_RecordAmount[i][gI_LastTrack[client]]);
+		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i].sStyleName, "WRRecord", client, gI_RecordAmount[i][gI_LastTrack[client]]);
 
 		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][gI_LastTrack[client]] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
@@ -881,7 +883,7 @@ public Action Command_DeleteStyleRecords(int client, int args)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(gA_StyleSettings[i][bUnranked])
+		if(gA_StyleSettings[i].bUnranked)
 		{
 			continue;
 		}
@@ -890,7 +892,7 @@ public Action Command_DeleteStyleRecords(int client, int args)
 		IntToString(i, sInfo, 8);
 
 		char sDisplay[64];
-		FormatEx(sDisplay, 64, "%s (%d %T)", gS_StyleStrings[i][sStyleName], gI_RecordAmount[i], "WRRecord", client);
+		FormatEx(sDisplay, 64, "%s (%d %T)", gS_StyleStrings[i].sStyleName, gI_RecordAmount[i], "WRRecord", client);
 
 		int iTotalAmount = 0;
 
@@ -938,7 +940,7 @@ public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int para
 		char sMenuItem[128];
 
 		Menu submenu = new Menu(MenuHandler_DeleteStyleRecords_Confirm);
-		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style][sStyleName]);
+		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style].sStyleName);
 
 		for(int i = 1; i <= GetRandomInt(1, 4); i++)
 		{
@@ -946,7 +948,7 @@ public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int para
 			submenu.AddItem("-1", sMenuItem);
 		}
 
-		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style][sStyleName]);
+		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style].sStyleName);
 
 		IntToString(style, info, 16);
 		submenu.AddItem(info, sMenuItem);
@@ -985,7 +987,7 @@ public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, 
 			return 0;
 		}
 
-		Shavit_LogMessage("%L - deleted all %s style records from map `%s`.", param1, gS_StyleStrings[style][sStyleName], gS_Map);
+		Shavit_LogMessage("%L - deleted all %s style records from map `%s`.", param1, gS_StyleStrings[style].sStyleName, gS_Map);
 
 		char sQuery[256];
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, gS_Map, style);
@@ -1033,7 +1035,7 @@ public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const 
 		return;
 	}
 
-	Shavit_PrintToChat(client, "%T", "DeletedRecordsStyle", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "DeletedRecordsStyle", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 }
 
 public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int param2)
@@ -1088,7 +1090,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 	}
 
 	Menu menu = new Menu(OpenDelete_Handler);
-	menu.SetTitle("%t", "ListClientRecords", gS_Map, gS_StyleStrings[style][sStyleName]);
+	menu.SetTitle("%t", "ListClientRecords", gS_Map, gS_StyleStrings[style].sStyleName);
 
 	int iCount = 0;
 
@@ -1199,7 +1201,7 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 
 		for(int i = 0; i < gI_Styles; i++)
 		{
-			if(gA_StyleSettings[i][bUnranked])
+			if(gA_StyleSettings[i].bUnranked)
 			{
 				continue;
 			}
@@ -1287,7 +1289,7 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(gA_StyleSettings[i][bUnranked])
+		if(gA_StyleSettings[i].bUnranked)
 		{
 			continue;
 		}
@@ -1299,7 +1301,7 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		Call_Finish();
 	}
 
-	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings[sMessageVariable], gS_Map, gS_ChatStrings[sMessageText]);
+	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings.sVariable, gS_Map, gS_ChatStrings.sText);
 }
 
 public Action Command_WorldRecord(int client, int args)
@@ -1353,7 +1355,7 @@ Action ShowWRStyleMenu(int client, int track)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(gA_StyleSettings[i][bUnranked])
+		if(gA_StyleSettings[i].bUnranked)
 		{
 			continue;
 		}
@@ -1368,12 +1370,12 @@ Action ShowWRStyleMenu(int client, int track)
 			char sTime[32];
 			FormatSeconds(gF_WRTime[i][track], sTime, 32, false);
 
-			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i][sStyleName], sTime);
+			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i].sStyleName, sTime);
 		}
 
 		else
 		{
-			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
+			strcopy(sDisplay, 64, gS_StyleStrings[i].sStyleName);
 		}
 
 		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][track] > 0 || !StrEqual(gS_ClientMap[client], gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -1409,7 +1411,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 
 		if(iStyle == -1)
 		{
-			Shavit_PrintToChat(param1, "%T", "NoStyles", param1, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T", "NoStyles", param1, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
 			return 0;
 		}
@@ -1654,12 +1656,12 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 		if(gB_Rankings && fPoints > 0.0)
 		{
-			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style][sShortName], sTrack[0], sMap, sName, sTime, fPoints, "WRPoints", client);
+			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style].sShortName, sTrack[0], sMap, sName, sTime, fPoints, "WRPoints", client);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%d %T)", gS_StyleStrings[style][sShortName], sTrack[0], sMap, sName, sTime, jumps, "WRJumps", client);
+			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%d %T)", gS_StyleStrings[style].sShortName, sTrack[0], sMap, sName, sTime, jumps, "WRJumps", client);
 		}
 
 		char sInfo[192];
@@ -1773,7 +1775,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int jumps = results.FetchInt(2);
 		float perfs = results.FetchFloat(9);
 
-		if(gA_StyleSettings[style][bAutobhop] && perfs > 0.0)
+		if(gA_StyleSettings[style].bAutobhop && perfs > 0.0)
 		{
 			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, jumps);
 		}
@@ -1786,7 +1788,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		menu.AddItem("-1", sDisplay);
 
 		// 3 - style
-		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[style][sStyleName]);
+		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[style].sStyleName);
 		menu.AddItem("-1", sDisplay);
 
 		// 6 - map
@@ -2155,7 +2157,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	// 2 - update
 	int overwrite = 0;
 
-	if(gA_StyleSettings[style][bUnranked] || Shavit_IsPracticeMode(client))
+	if(gA_StyleSettings[style].bUnranked || Shavit_IsPracticeMode(client))
 	{
 		overwrite = 0; // ugly way of not writing to database
 	}
@@ -2221,7 +2223,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	FormatSeconds(fDifference, sDifference, 16, true);
 
 	char sSync[32]; // 32 because colors
-	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_ChatStrings[sMessageVariable], sync);
+	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_ChatStrings.sVariable, sync);
 
 	if(overwrite > 0)
 	{
@@ -2232,7 +2234,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		if(overwrite == 1) // insert
 		{
-			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings[sMessageVariable], sTrack, gS_ChatStrings[sMessageText], "FirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
 
 			if(gH_SQL == null)
 			{
@@ -2244,7 +2246,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		else // update
 		{
-			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings[sMessageVariable], sTrack, gS_ChatStrings[sMessageText], "NotFirstCompletion", LANG_SERVER, gS_ChatStrings[sMessageVariable2], client, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], iRank, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageWarning], sDifference);
+			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
 			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = '%s' AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, sAuthID, style, track);
 		}
@@ -2268,14 +2270,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		gF_PlayerRecord[client][style][track] = time;
 	}
 
-	else if(overwrite == 0 && !gA_StyleSettings[style][bUnranked])
+	else if(overwrite == 0 && !gA_StyleSettings[style].bUnranked)
 	{
-		Shavit_PrintToChat(client, "%s[%s]%s %T", gS_ChatStrings[sMessageVariable], sTrack, gS_ChatStrings[sMessageText], "WorseTime", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText], sDifference);
+		Shavit_PrintToChat(client, "%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "%s[%s]%s] %T", gS_ChatStrings[sMessageVariable], sTrack, gS_ChatStrings[sMessageText], "UnrankedTime", client, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable2], sTime, gS_ChatStrings[sMessageText], jumps, strafes, sSync, gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%s[%s]%s] %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "UnrankedTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
 	}
 }
 
@@ -2329,7 +2331,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		int style = results.FetchInt(0);
 		int track = results.FetchInt(2);
 
-		if(style >= gI_Styles || gA_StyleSettings[style][bUnranked] || track >= TRACKS_SIZE)
+		if(style >= gI_Styles || gA_StyleSettings[style].bUnranked || track >= TRACKS_SIZE)
 		{
 			continue;
 		}
@@ -2339,7 +2341,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(i >= gI_Styles || gA_StyleSettings[i][bUnranked])
+		if(i >= gI_Styles || gA_StyleSettings[i].bUnranked)
 		{
 			continue;
 		}

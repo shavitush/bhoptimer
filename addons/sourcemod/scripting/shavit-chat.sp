@@ -39,18 +39,17 @@
 #define MAXLENGTH_CMESSAGE 16
 #define MAXLENGTH_BUFFER 255
 
-enum ChatRanksCache
+enum struct chatranks_cache_t
 {
-	iCRRangeType, // 0 - flat, 1 - percent, 2 - point range
-	Float:fCRFrom,
-	Float:fCRTo,
-	bool:bCRFree,
-	bool:bCREasterEgg,
-	String:sCRAdminFlag[32],
-	String:sCRName[MAXLENGTH_NAME],
-	String:sCRMessage[MAXLENGTH_MESSAGE],
-	String:sCRDisplay[MAXLENGTH_DISPLAY],
-	CRCACHE_SIZE
+	int iRangeType; // 0 - flat, 1 - percent, 2 - point range
+	float fFrom;
+	float fTo;
+	bool bFree;
+	bool bEasterEgg;
+	char sAdminFlag[32];
+	char sName[MAXLENGTH_NAME];
+	char sMessage[MAXLENGTH_MESSAGE];
+	char sDisplay[MAXLENGTH_DISPLAY];
 }
 
 enum
@@ -159,7 +158,7 @@ public void OnPluginStart()
 	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
 
 	gH_ChatCookie = RegClientCookie("shavit_chat_selection", "Chat settings", CookieAccess_Protected);
-	gA_ChatRanks = new ArrayList(view_as<int>(CRCACHE_SIZE));
+	gA_ChatRanks = new ArrayList(sizeof(chatranks_cache_t));
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -206,18 +205,18 @@ bool LoadChatConfig()
 
 	do
 	{
-		any[] aChatTitle = new any[CRCACHE_SIZE];
+		chatranks_cache_t chat_title;
 		char sRanks[32];
 		kv.GetString("ranks", sRanks, MAXLENGTH_NAME, "0");
 
 		if(sRanks[0] == 'p')
 		{	
-			aChatTitle[iCRRangeType] = Rank_Points;
+			chat_title.iRangeType = Rank_Points;
 		}
 
 		else
 		{
-			aChatTitle[iCRRangeType] = (StrContains(sRanks, "%") == -1)? Rank_Flat:Rank_Percentage;
+			chat_title.iRangeType = (StrContains(sRanks, "%") == -1)? Rank_Flat:Rank_Percentage;
 		}
 		
 		ReplaceString(sRanks, 32, "p", "");
@@ -227,29 +226,29 @@ bool LoadChatConfig()
 		{
 			char sExplodedString[2][16];
 			ExplodeString(sRanks, "-", sExplodedString, 2, 64);
-			aChatTitle[fCRFrom] = StringToFloat(sExplodedString[0]);
-			aChatTitle[fCRTo] = StringToFloat(sExplodedString[1]);
+			chat_title.fFrom = StringToFloat(sExplodedString[0]);
+			chat_title.fTo = StringToFloat(sExplodedString[1]);
 		}
 
 		else
 		{
 			float fRank = StringToFloat(sRanks);
 
-			aChatTitle[fCRFrom] = fRank;
-			aChatTitle[fCRTo] = (aChatTitle[iCRRangeType] == Rank_Flat)? fRank:MAGIC_NUMBER;
+			chat_title.fFrom = fRank;
+			chat_title.fTo = (chat_title.iRangeType == Rank_Flat)? fRank:MAGIC_NUMBER;
 		}
 		
-		aChatTitle[bCRFree] = view_as<bool>(kv.GetNum("free", false));
-		aChatTitle[bCREasterEgg] = view_as<bool>(kv.GetNum("easteregg", false));
+		chat_title.bFree = view_as<bool>(kv.GetNum("free", false));
+		chat_title.bEasterEgg = view_as<bool>(kv.GetNum("easteregg", false));
 		
-		kv.GetString("name", aChatTitle[sCRName], MAXLENGTH_NAME, "{name}");
-		kv.GetString("message", aChatTitle[sCRMessage], MAXLENGTH_MESSAGE, "");
-		kv.GetString("display", aChatTitle[sCRDisplay], MAXLENGTH_DISPLAY, "");
-		kv.GetString("flag", aChatTitle[sCRAdminFlag], 32, "");
+		kv.GetString("name", chat_title.sName, MAXLENGTH_NAME, "{name}");
+		kv.GetString("message", chat_title.sMessage, MAXLENGTH_MESSAGE, "");
+		kv.GetString("display", chat_title.sDisplay, MAXLENGTH_DISPLAY, "");
+		kv.GetString("flag", chat_title.sAdminFlag, 32, "");
 
-		if(strlen(aChatTitle[sCRDisplay]) > 0)
+		if(strlen(chat_title.sDisplay) > 0)
 		{
-			gA_ChatRanks.PushArray(aChatTitle);
+			gA_ChatRanks.PushArray(chat_title);
 		}
 	}
 
@@ -813,11 +812,11 @@ Action ShowChatRanksMenu(int client, int item)
 			continue;
 		}
 
-		any[] aCache = new any[CRCACHE_SIZE];
-		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
+		chatranks_cache_t cache;
+		gA_ChatRanks.GetArray(i, cache, sizeof(chatranks_cache_t));
 
 		char sMenuDisplay[MAXLENGTH_DISPLAY];
-		strcopy(sMenuDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
+		strcopy(sMenuDisplay, MAXLENGTH_DISPLAY, cache.sDisplay);
 		ReplaceString(sMenuDisplay, MAXLENGTH_DISPLAY, "<n>", "\n");
 		StrCat(sMenuDisplay, MAXLENGTH_DISPLAY, "\n "); // to add spacing between each entry
 
@@ -874,11 +873,11 @@ Action ShowRanksMenu(int client, int item)
 
 	for(int i = 0; i < iLength; i++)
 	{
-		any[] aCache = new any[CRCACHE_SIZE];
-		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
+		chatranks_cache_t cache;
+		gA_ChatRanks.GetArray(i, cache, sizeof(chatranks_cache_t));
 
 		char sFlag[32];
-		strcopy(sFlag, 32, aCache[sCRAdminFlag]);
+		strcopy(sFlag, 32, cache.sAdminFlag);
 
 		bool bFlagAccess = false;
 		int iSize = strlen(sFlag);
@@ -903,13 +902,13 @@ Action ShowRanksMenu(int client, int item)
 			bFlagAccess = CheckCommandAccess(client, sFlag, 0, true);
 		}
 
-		if(aCache[bCREasterEgg] || !bFlagAccess)
+		if(cache.bEasterEgg || !bFlagAccess)
 		{
 			continue;
 		}
 
 		char sDisplay[MAXLENGTH_DISPLAY];
-		strcopy(sDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
+		strcopy(sDisplay, MAXLENGTH_DISPLAY, cache.sDisplay);
 		ReplaceString(sDisplay, MAXLENGTH_DISPLAY, "<n>", "\n");
 
 		char sExplodedString[2][32];
@@ -919,9 +918,9 @@ Action ShowRanksMenu(int client, int item)
 
 		char sRequirements[64];
 
-		if(!aCache[bCRFree])
+		if(!cache.bFree)
 		{
-			if(aCache[fCRFrom] == 0.0 && (aCache[fCRFrom] == aCache[fCRTo] || aCache[fCRTo] == MAGIC_NUMBER))
+			if(cache.fFrom == 0.0 && (cache.fFrom == cache.fTo || cache.fTo == MAGIC_NUMBER))
 			{
 				FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Unranked", client);
 			}
@@ -929,44 +928,44 @@ Action ShowRanksMenu(int client, int item)
 			else
 			{
 				// this is really ugly
-				bool bRanged = (aCache[fCRFrom] != aCache[fCRTo] && aCache[fCRTo] != MAGIC_NUMBER);
+				bool bRanged = (cache.fFrom != cache.fTo && cache.fTo != MAGIC_NUMBER);
 
-				if(aCache[iCRRangeType] == Rank_Flat)
+				if(cache.iRangeType == Rank_Flat)
 				{
 					if(bRanged)
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat_Ranged", client, RoundToZero(aCache[fCRFrom]), RoundToZero(aCache[fCRTo]));
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat_Ranged", client, RoundToZero(cache.fFrom), RoundToZero(cache.fTo));
 					}
 
 					else
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat", client, RoundToZero(aCache[fCRFrom]));
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat", client, RoundToZero(cache.fFrom));
 					}
 				}
 
-				else if(aCache[iCRRangeType] == Rank_Percentage)
+				else if(cache.iRangeType == Rank_Percentage)
 				{
 					if(bRanged)
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage_Ranged", client, aCache[fCRFrom], '%', aCache[fCRTo], '%');
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage_Ranged", client, cache.fFrom, '%', cache.fTo, '%');
 					}
 
 					else
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage", client, aCache[fCRFrom], '%');
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage", client, cache.fFrom, '%');
 					}
 				}
 
-				else if(aCache[iCRRangeType] == Rank_Points)
+				else if(cache.iRangeType == Rank_Points)
 				{
 					if(bRanged)
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points_Ranged", client, RoundToZero(aCache[fCRFrom]), RoundToZero(aCache[fCRTo]));
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points_Ranged", client, RoundToZero(cache.fFrom), RoundToZero(cache.fTo));
 					}
 
 					else
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points", client, RoundToZero(aCache[fCRFrom]));
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points", client, RoundToZero(cache.fFrom));
 					}
 				}
 			}
@@ -1025,14 +1024,14 @@ void PreviewChat(int client, int rank)
 		ReplaceString(sOriginalName, MAXLENGTH_NAME, gS_ControlCharacters[i], "");
 	}
 
-	any[] aCache = new any[CRCACHE_SIZE];
-	gA_ChatRanks.GetArray(rank, aCache, view_as<int>(CRCACHE_SIZE));
+	chatranks_cache_t cache;
+	gA_ChatRanks.GetArray(rank, cache, sizeof(chatranks_cache_t));
 
 	char sName[MAXLENGTH_NAME];
-	strcopy(sName, MAXLENGTH_NAME, aCache[sCRName]);
+	strcopy(sName, MAXLENGTH_NAME, cache.sName);
 
 	char sCMessage[MAXLENGTH_CMESSAGE];
-	strcopy(sCMessage, MAXLENGTH_CMESSAGE, aCache[sCRMessage]);
+	strcopy(sCMessage, MAXLENGTH_CMESSAGE, cache.sMessage);
 
 	FormatChat(client, sName, MAXLENGTH_NAME);
 
@@ -1100,11 +1099,11 @@ bool HasRankAccess(int client, int rank)
 		return false;
 	}
 
-	any[] aCache = new any[CRCACHE_SIZE];
-	gA_ChatRanks.GetArray(rank, aCache, view_as<int>(CRCACHE_SIZE));
+	chatranks_cache_t cache;
+	gA_ChatRanks.GetArray(rank, cache, sizeof(chatranks_cache_t));
 
 	char sFlag[32];
-	strcopy(sFlag, 32, aCache[sCRAdminFlag]);
+	strcopy(sFlag, 32, cache.sAdminFlag);
 
 	bool bFlagAccess = false;
 	int iSize = strlen(sFlag);
@@ -1134,7 +1133,7 @@ bool HasRankAccess(int client, int rank)
 		return false;
 	}
 
-	if(aCache[bCRFree])
+	if(cache.bFree)
 	{
 		return true;
 	}
@@ -1144,11 +1143,11 @@ bool HasRankAccess(int client, int rank)
 		return false;
 	}
 
-	float fRank = (aCache[iCRRangeType] != Rank_Points)? float(Shavit_GetRank(client)):Shavit_GetPoints(client);
+	float fRank = (cache.iRangeType != Rank_Points)? float(Shavit_GetRank(client)):Shavit_GetPoints(client);
 
-	if(aCache[iCRRangeType] == Rank_Flat || aCache[iCRRangeType] == Rank_Points)
+	if(cache.iRangeType == Rank_Flat || cache.iRangeType == Rank_Points)
 	{
-		if(aCache[fCRFrom] <= fRank <= aCache[fCRTo])
+		if(cache.fFrom <= fRank <= cache.fTo)
 		{
 			return true;
 		}
@@ -1166,7 +1165,7 @@ bool HasRankAccess(int client, int rank)
 
 		float fPercentile = (fRank / iRanked) * 100.0;
 		
-		if(aCache[fCRFrom] <= fPercentile <= aCache[fCRTo])
+		if(cache.fFrom <= fPercentile <= cache.fTo)
 		{
 			return true;
 		}
@@ -1202,11 +1201,11 @@ void GetPlayerChatSettings(int client, char[] name, char[] message)
 
 	if(0 <= iRank <= (iLength - 1))
 	{
-		any[] aCache = new any[CRCACHE_SIZE];
-		gA_ChatRanks.GetArray(iRank, aCache, view_as<int>(CRCACHE_SIZE));
+		chatranks_cache_t cache;
+		gA_ChatRanks.GetArray(iRank, cache, sizeof(chatranks_cache_t));
 
-		strcopy(name, MAXLENGTH_NAME, aCache[sCRName]);
-		strcopy(message, MAXLENGTH_NAME, aCache[sCRMessage]);
+		strcopy(name, MAXLENGTH_NAME, cache.sName);
+		strcopy(message, MAXLENGTH_NAME, cache.sMessage);
 	}
 }
 

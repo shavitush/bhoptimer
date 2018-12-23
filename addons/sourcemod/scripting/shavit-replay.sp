@@ -42,25 +42,23 @@
 #pragma semicolon 1
 #pragma dynamic 131072
 
-enum
+enum struct centralbot_cache_t
 {
-	iCentralClient,
-	iCentralStyle,
-	iCentralReplayStatus,
-	iCentralTrack,
-	CENTRALBOTCACHE_SIZE
-};
+	int iClient;
+	int iStyle;
+	ReplayStatus iReplayStatus;
+	int iTrack;
+}
 
-enum
+enum struct replaystrings_t
 {
-	sReplayClanTag,
-	sReplayNameStyle,
-	sReplayCentralName,
-	sReplayCentralStyle,
-	sReplayCentralStyleTag,
-	sReplayUnloaded,
-	REPLAYSTRINGS_SIZE
-};
+	char sClanTag[MAX_NAME_LENGTH];
+	char sNameStyle[MAX_NAME_LENGTH];
+	char sCentralName[MAX_NAME_LENGTH];
+	char sCentralStyle[MAX_NAME_LENGTH];
+	char sCentralStyleTag[MAX_NAME_LENGTH];
+	char sUnloaded[MAX_NAME_LENGTH];
+}
 
 enum
 {
@@ -99,7 +97,7 @@ float gF_Tickrate = 0.0;
 char gS_Map[160];
 int gI_ExpectedBots = 0;
 ConVar bot_quota = null;
-any gA_CentralCache[CENTRALBOTCACHE_SIZE];
+centralbot_cache_t gA_CentralCache;
 
 // how do i call this
 bool gB_HideNameChange = false;
@@ -129,14 +127,14 @@ char gS_BotWeapon[32] = "";
 
 // timer settings
 int gI_Styles = 0;
-char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
-any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
+stylestrings_t gS_StyleStrings[STYLE_LIMIT];
+stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
-char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+chatstrings_t gS_ChatStrings;
 
 // replay settings
-char gS_ReplayStrings[REPLAYSTRINGS_SIZE][MAX_NAME_LENGTH];
+replaystrings_t gS_ReplayStrings;
 
 // admin menu
 TopMenu gH_AdminMenu = null;
@@ -348,7 +346,7 @@ public int Native_GetReplayBotIndex(Handle handler, int numParams)
 {
 	if(gB_CentralBot)
 	{
-		return gA_CentralCache[iCentralClient];
+		return gA_CentralCache.iClient;
 	}
 
 	return gI_ReplayBotClient[GetNativeCell(1)];
@@ -361,7 +359,7 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 
 	if(gB_CentralBot)
 	{
-		return (gA_CentralCache[iCentralClient] != -1 && gA_CentralCache[iCentralClient] != Replay_Idle && view_as<int>(gA_FrameCache[style][track][0]) > 0);
+		return (gA_CentralCache.iClient != -1 && gA_CentralCache.iReplayStatus != Replay_Idle && view_as<int>(gA_FrameCache[style][track][0]) > 0);
 	}
 
 	return view_as<int>(ReplayEnabled(style) && gA_FrameCache[style][Track_Main][0] > 0);
@@ -402,7 +400,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 
 	if(gB_CentralBot)
 	{
-		if(gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
+		if(gA_CentralCache.iStyle == style && gA_CentralCache.iTrack == track)
 		{
 			StopCentralReplay(0);
 		}
@@ -506,7 +504,7 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 
 	if(gB_CentralBot)
 	{
-		if(gA_CentralCache[iCentralReplayStatus] == Replay_End)
+		if(gA_CentralCache.iReplayStatus == Replay_End)
 		{
 			return view_as<int>(GetReplayLength(style, track));
 		}
@@ -531,7 +529,7 @@ public int Native_HijackAngles(Handle handler, int numParams)
 
 public int Native_GetReplayBotStyle(Handle handler, int numParams)
 {
-	return (gB_CentralBot && gA_CentralCache[iCentralReplayStatus] == Replay_Idle)? -1:GetReplayStyle(GetNativeCell(1));
+	return (gB_CentralBot && gA_CentralCache.iReplayStatus == Replay_Idle)? -1:GetReplayStyle(GetNativeCell(1));
 }
 
 public int Native_GetReplayBotTrack(Handle handler, int numParams)
@@ -656,16 +654,16 @@ public Action Cron(Handle Timer)
 		}
 	}
 
-	if(gB_CentralBot && gA_CentralCache[iCentralClient] != -1)
+	if(gB_CentralBot && gA_CentralCache.iClient != -1)
 	{
-		if(gA_CentralCache[iCentralStyle] != -1)
+		if(gA_CentralCache.iStyle != -1)
 		{
-			UpdateReplayInfo(gA_CentralCache[iCentralClient], gA_CentralCache[iCentralStyle], -1.0, gA_CentralCache[iCentralTrack]);
+			UpdateReplayInfo(gA_CentralCache.iClient, gA_CentralCache.iStyle, -1.0, gA_CentralCache.iTrack);
 		}
 
 		else
 		{
-			UpdateReplayInfo(gA_CentralCache[iCentralClient], 0, 0.0, 0);
+			UpdateReplayInfo(gA_CentralCache.iClient, 0, 0.0, 0);
 		}
 	}
 
@@ -686,12 +684,12 @@ bool LoadStyling()
 		return false;
 	}
 
-	kv.GetString("clantag", gS_ReplayStrings[sReplayClanTag], MAX_NAME_LENGTH, "<EMPTY CLANTAG>");
-	kv.GetString("namestyle", gS_ReplayStrings[sReplayNameStyle], MAX_NAME_LENGTH, "<EMPTY NAMESTYLE>");
-	kv.GetString("centralname", gS_ReplayStrings[sReplayCentralName], MAX_NAME_LENGTH, "<EMPTY CENTRALNAME>");
-	kv.GetString("centralstyle", gS_ReplayStrings[sReplayCentralStyle], MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLE>");
-	kv.GetString("centralstyletag", gS_ReplayStrings[sReplayCentralStyleTag], MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLETAG>");
-	kv.GetString("unloaded", gS_ReplayStrings[sReplayUnloaded], MAX_NAME_LENGTH, "<EMPTY UNLOADED>");
+	kv.GetString("clantag", gS_ReplayStrings.sClanTag, MAX_NAME_LENGTH, "<EMPTY CLANTAG>");
+	kv.GetString("namestyle", gS_ReplayStrings.sNameStyle, MAX_NAME_LENGTH, "<EMPTY NAMESTYLE>");
+	kv.GetString("centralname", gS_ReplayStrings.sCentralName, MAX_NAME_LENGTH, "<EMPTY CENTRALNAME>");
+	kv.GetString("centralstyle", gS_ReplayStrings.sCentralStyle, MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLE>");
+	kv.GetString("centralstyletag", gS_ReplayStrings.sCentralStyleTag, MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLETAG>");
+	kv.GetString("unloaded", gS_ReplayStrings.sUnloaded, MAX_NAME_LENGTH, "<EMPTY UNLOADED>");
 
 	char sFolder[PLATFORM_MAX_PATH];
 	kv.GetString("replayfolder", sFolder, PLATFORM_MAX_PATH, "{SM}/data/replaybot");
@@ -722,10 +720,10 @@ public void OnMapStart()
 		Shavit_OnChatConfigLoaded();
 	}
 
-	gA_CentralCache[iCentralClient] = -1;
-	gA_CentralCache[iCentralStyle] = -1;
-	gA_CentralCache[iCentralReplayStatus] = Replay_Idle;
-	gA_CentralCache[iCentralTrack] = Track_Main;
+	gA_CentralCache.iClient = -1;
+	gA_CentralCache.iStyle = -1;
+	gA_CentralCache.iReplayStatus = Replay_Idle;
+	gA_CentralCache.iTrack = Track_Main;
 
 	gB_ForciblyStopped = false;
 
@@ -896,9 +894,9 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(i, sClanTag, gS_StyleStrings[i][sClanTag], 128);
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
-		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i][sShortName], 128);
+		Shavit_GetStyleStrings(i, sClanTag, gS_StyleStrings[i].sClanTag, sizeof(stylestrings_t::sClanTag));
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
+		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
 	}
 
 	gI_Styles = styles;
@@ -906,10 +904,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public void Shavit_OnChatConfigLoaded()
 {
-	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
-	{
-		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
-	}
+	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
+	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
+	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
+	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
+	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
+	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
 }
 
 bool DefaultLoadReplay(int style, int track)
@@ -1132,7 +1132,7 @@ bool DeleteReplay(int style, int track)
 		return false;
 	}
 
-	if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
+	if(gB_CentralBot && gA_CentralCache.iStyle == style && gA_CentralCache.iTrack == track)
 	{
 		StopCentralReplay(0);
 	}
@@ -1202,10 +1202,10 @@ public void OnClientPutInServer(int client)
 			}
 		}
 
-		else if(gA_CentralCache[iCentralClient] == -1)
+		else if(gA_CentralCache.iClient == -1)
 		{
 			UpdateReplayInfo(client, 0, 0.0, Track_Main);
-			gA_CentralCache[iCentralClient] = client;
+			gA_CentralCache.iClient = client;
 		}
 	}
 }
@@ -1248,16 +1248,16 @@ void FormatStyle(const char[] source, int style, bool central, float time, int t
 
 	ReplaceString(temp, size, "{map}", gS_Map);
 
-	if(central && gA_CentralCache[iCentralReplayStatus] == Replay_Idle)
+	if(central && gA_CentralCache.iReplayStatus == Replay_Idle)
 	{
-		ReplaceString(temp, size, "{style}", gS_ReplayStrings[sReplayCentralStyle]);
-		ReplaceString(temp, size, "{styletag}", gS_ReplayStrings[sReplayCentralStyleTag]);
+		ReplaceString(temp, size, "{style}", gS_ReplayStrings.sCentralStyle);
+		ReplaceString(temp, size, "{styletag}", gS_ReplayStrings.sCentralStyleTag);
 	}
 
 	else
 	{
-		ReplaceString(temp, size, "{style}", gS_StyleStrings[style][sStyleName]);
-		ReplaceString(temp, size, "{styletag}", gS_StyleStrings[style][sClanTag]);
+		ReplaceString(temp, size, "{style}", gS_StyleStrings[style].sStyleName);
+		ReplaceString(temp, size, "{styletag}", gS_StyleStrings[style].sClanTag);
 	}
 	
 	ReplaceString(temp, size, "{time}", sTime);
@@ -1280,13 +1280,13 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
-	bool central = (gA_CentralCache[iCentralClient] == client);
-	bool idle = (central && gA_CentralCache[iCentralReplayStatus] == Replay_Idle);
+	bool central = (gA_CentralCache.iClient == client);
+	bool idle = (central && gA_CentralCache.iReplayStatus == Replay_Idle);
 
 	if(gEV_Type != Engine_TF2)
 	{
 		char sTag[MAX_NAME_LENGTH];
-		FormatStyle(gS_ReplayStrings[sReplayClanTag], style, central, time, track, sTag, MAX_NAME_LENGTH);
+		FormatStyle(gS_ReplayStrings.sClanTag, style, central, time, track, sTag, MAX_NAME_LENGTH);
 		CS_SetClientClanTag(client, sTag);
 	}
 
@@ -1295,18 +1295,26 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 	
 	if(central || iFrameCount > 0)
 	{
-		FormatStyle(gS_ReplayStrings[(idle)? sReplayCentralName:sReplayNameStyle], style, central, time, track, sName, MAX_NAME_LENGTH);
+		if(idle)
+		{
+			FormatStyle(gS_ReplayStrings.sCentralName, style, central, time, track, sName, MAX_NAME_LENGTH);
+		}
+		
+		else
+		{
+			FormatStyle(gS_ReplayStrings.sNameStyle, style, central, time, track, sName, MAX_NAME_LENGTH);
+		}
 	}
 
 	else
 	{
-		FormatStyle(gS_ReplayStrings[sReplayUnloaded], style, central, time, track, sName, MAX_NAME_LENGTH);
+		FormatStyle(gS_ReplayStrings.sUnloaded, style, central, time, track, sName, MAX_NAME_LENGTH);
 	}
 
 	gB_HideNameChange = true;
 	SetClientName(client, sName);
 
-	int iScore = (iFrameCount > 0 || client == gA_CentralCache[iCentralClient])? 2000:-2000;
+	int iScore = (iFrameCount > 0 || client == gA_CentralCache.iClient)? 2000:-2000;
 
 	if(gEV_Type == Engine_CSGO)
 	{
@@ -1422,9 +1430,9 @@ public void OnClientDisconnect(int client)
 		return;
 	}
 
-	if(gA_CentralCache[iCentralClient] == client)
+	if(gA_CentralCache.iClient == client)
 	{
-		gA_CentralCache[iCentralClient] = -1;
+		gA_CentralCache.iClient = -1;
 
 		return;
 	}
@@ -1507,7 +1515,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	if(ReplayEnabled(style))
 	{
-		if(gB_CentralBot && gA_CentralCache[iCentralStyle] == style && gA_CentralCache[iCentralTrack] == track)
+		if(gB_CentralBot && gA_CentralCache.iStyle == style && gA_CentralCache.iTrack == track)
 		{
 			StopCentralReplay(0);
 		}
@@ -1566,7 +1574,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		if((buttons & IN_USE) > 0)
 		{
-			if(!gB_Button[client] && GetSpectatorTarget(client) == gA_CentralCache[iCentralClient])
+			if(!gB_Button[client] && GetSpectatorTarget(client) == gA_CentralCache.iClient)
 			{
 				OpenReplayMenu(client);
 			}
@@ -1639,7 +1647,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			if(++gI_ReplayTick[style] >= iFrameCount)
 			{
 				gI_ReplayTick[style] = 0;
-				gRS_ReplayStatus[style] = gA_CentralCache[iCentralReplayStatus] = Replay_End;
+				gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_End;
 
 				CreateTimer((gF_ReplayDelay / 2.0), Timer_EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
@@ -1811,7 +1819,7 @@ public Action Timer_EndReplay(Handle Timer, any data)
 	Call_PushCell(gI_ReplayBotClient[data]);
 	Call_Finish();
 
-	if(gI_ReplayBotClient[data] != gA_CentralCache[iCentralClient])
+	if(gI_ReplayBotClient[data] != gA_CentralCache.iClient)
 	{
 		gRS_ReplayStatus[data] = Replay_Start;
 
@@ -1820,7 +1828,7 @@ public Action Timer_EndReplay(Handle Timer, any data)
 
 	else
 	{
-		gRS_ReplayStatus[data] = gA_CentralCache[iCentralReplayStatus] = Replay_Idle;
+		gRS_ReplayStatus[data] = gA_CentralCache.iReplayStatus = Replay_Idle;
 		gI_ReplayBotClient[data] = 0;
 	}
 
@@ -1838,14 +1846,14 @@ public Action Timer_StartReplay(Handle Timer, any data)
 	Call_PushCell(gI_ReplayBotClient[data]);
 	Call_Finish();
 
-	gRS_ReplayStatus[data] = gA_CentralCache[iCentralReplayStatus] = Replay_Running;
+	gRS_ReplayStatus[data] = gA_CentralCache.iReplayStatus = Replay_Running;
 
 	return Plugin_Stop;
 }
 
 bool ReplayEnabled(any style)
 {
-	return (!gA_StyleSettings[style][bUnranked] && !gA_StyleSettings[style][bNoReplay]);
+	return (!gA_StyleSettings[style].bUnranked && !gA_StyleSettings[style].bNoReplay);
 }
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
@@ -2008,12 +2016,12 @@ public Action Command_DeleteReplay(int client, int args)
 				char sTime[32];
 				FormatSeconds(time, sTime, 32, false);
 
-				FormatEx(sDisplay, 64, "%s (%s) - %s", gS_StyleStrings[i][sStyleName], sTrack, sTime);
+				FormatEx(sDisplay, 64, "%s (%s) - %s", gS_StyleStrings[i].sStyleName, sTrack, sTime);
 			}
 
 			else
 			{
-				FormatEx(sDisplay, 64, "%s (%s)", gS_StyleStrings[i][sStyleName], sTrack);
+				FormatEx(sDisplay, 64, "%s (%s)", gS_StyleStrings[i].sStyleName, sTrack);
 			}
 
 			menu.AddItem(sInfo, sDisplay);
@@ -2053,7 +2061,7 @@ public int DeleteReplay_Callback(Menu menu, MenuAction action, int param1, int p
 		gI_Track[param1] = StringToInt(sExploded[1]);
 
 		Menu submenu = new Menu(DeleteConfirmation_Callback);
-		submenu.SetTitle("%T", "ReplayDeletionConfirmation", param1, gS_StyleStrings[style][sStyleName]);
+		submenu.SetTitle("%T", "ReplayDeletionConfirmation", param1, gS_StyleStrings[style].sStyleName);
 
 		char sMenuItem[64];
 
@@ -2097,14 +2105,14 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 			char sTrack[32];
 			GetTrackName(param1, gI_Track[param1], sTrack, 32);
 
-			LogAction(param1, param1, "Deleted replay for %s on map %s. (Track: %s)", gS_StyleStrings[style][sStyleName], gS_Map, sTrack);
+			LogAction(param1, param1, "Deleted replay for %s on map %s. (Track: %s)", gS_StyleStrings[style].sStyleName, gS_Map, sTrack);
 
-			Shavit_PrintToChat(param1, "%T (%s%s%s)", "ReplayDeleted", param1, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], sTrack, gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T (%s%s%s)", "ReplayDeleted", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText);
 		}
 
 		else
 		{
-			Shavit_PrintToChat(param1, "%T", "ReplayDeleteFailure", param1, gS_ChatStrings[sMessageStyle], gS_StyleStrings[style][sStyleName], gS_ChatStrings[sMessageText]);
+			Shavit_PrintToChat(param1, "%T", "ReplayDeleteFailure", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 		}
 	}
 
@@ -2118,14 +2126,14 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 
 public Action Command_Replay(int client, int args)
 {
-	if(!IsValidClient(client) || !gB_CentralBot || gA_CentralCache[iCentralClient] == -1)
+	if(!IsValidClient(client) || !gB_CentralBot || gA_CentralCache.iClient == -1)
 	{
 		return Plugin_Handled;
 	}
 
-	if(GetClientTeam(client) != 1 || GetSpectatorTarget(client) != gA_CentralCache[iCentralClient])
+	if(GetClientTeam(client) != 1 || GetSpectatorTarget(client) != gA_CentralCache.iClient)
 	{
-		Shavit_PrintToChat(client, "%T", "CentralReplaySpectator", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText], gS_ChatStrings[sMessageVariable], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "CentralReplaySpectator", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
 	}
@@ -2214,7 +2222,7 @@ void OpenReplaySubMenu(int client, int track)
 		char sDisplay[64];
 		FormatEx(sDisplay, 64, "%T", "CentralReplayStop", client);
 
-		menu.AddItem("stop", sDisplay, (gA_CentralCache[iCentralReplayStatus] != Replay_Idle)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem("stop", sDisplay, (gA_CentralCache.iReplayStatus != Replay_Idle)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -2236,12 +2244,12 @@ void OpenReplaySubMenu(int client, int track)
 			char sTime[32];
 			FormatSeconds(time, sTime, 32, false);
 
-			FormatEx(sDisplay, 64, "%s - %s", gS_StyleStrings[i][sStyleName], sTime);
+			FormatEx(sDisplay, 64, "%s - %s", gS_StyleStrings[i].sStyleName, sTime);
 		}
 
 		else
 		{
-			strcopy(sDisplay, 64, gS_StyleStrings[i][sStyleName]);
+			strcopy(sDisplay, 64, gS_StyleStrings[i].sStyleName);
 		}
 
 		menu.AddItem(sInfo, sDisplay, (view_as<int>(gA_FrameCache[i][track][0]) > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -2278,12 +2286,12 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 
 		int style = StringToInt(info);
 
-		if(style == -1 || !ReplayEnabled(style) || view_as<int>(gA_FrameCache[style][gI_Track[param1]][0]) == 0 || gA_CentralCache[iCentralClient] <= 0)
+		if(style == -1 || !ReplayEnabled(style) || view_as<int>(gA_FrameCache[style][gI_Track[param1]][0]) == 0 || gA_CentralCache.iClient <= 0)
 		{
 			return 0;
 		}
 
-		if(gA_CentralCache[iCentralReplayStatus] != Replay_Idle)
+		if(gA_CentralCache.iReplayStatus != Replay_Idle)
 		{
 			Shavit_PrintToChat(param1, "%T", "CentralReplayPlaying", param1);
 
@@ -2293,16 +2301,16 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 		else
 		{
 			gI_ReplayTick[style] = 0;
-			gA_CentralCache[iCentralStyle] = style;
-			gA_CentralCache[iCentralTrack] = gI_Track[param1];
-			gI_ReplayBotClient[style] = gA_CentralCache[iCentralClient];
-			gRS_ReplayStatus[style] = gA_CentralCache[iCentralReplayStatus] = Replay_Start;
-			TeleportToStart(gA_CentralCache[iCentralClient], style, gI_Track[param1]);
+			gA_CentralCache.iStyle = style;
+			gA_CentralCache.iTrack = gI_Track[param1];
+			gI_ReplayBotClient[style] = gA_CentralCache.iClient;
+			gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_Start;
+			TeleportToStart(gA_CentralCache.iClient, style, gI_Track[param1]);
 			gB_ForciblyStopped = false;
 
-			float time = GetReplayLength(gA_CentralCache[iCentralStyle], gI_Track[param1]);
+			float time = GetReplayLength(gA_CentralCache.iStyle, gI_Track[param1]);
 
-			UpdateReplayInfo(gA_CentralCache[iCentralClient], style, time, gI_Track[param1]);
+			UpdateReplayInfo(gA_CentralCache.iClient, style, time, gI_Track[param1]);
 
 			CreateTimer((gF_ReplayDelay / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 		}
@@ -2347,17 +2355,17 @@ void StopCentralReplay(int client)
 		Shavit_PrintToChat(client, "%T", "CentralReplayStopped", client);
 	}
 
-	int style = gA_CentralCache[iCentralStyle];
+	int style = gA_CentralCache.iStyle;
 
-	gRS_ReplayStatus[style] = gA_CentralCache[iCentralReplayStatus] = Replay_Idle;
+	gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_Idle;
 	gI_ReplayTick[style] = 0;
 	gI_ReplayBotClient[style] = 0;
 	gF_StartTick[style] = -65535.0;
-	TeleportToStart(gA_CentralCache[iCentralClient], style, GetReplayTrack(gA_CentralCache[iCentralClient]));
-	gA_CentralCache[iCentralStyle] = 0;
+	TeleportToStart(gA_CentralCache.iClient, style, GetReplayTrack(gA_CentralCache.iClient));
+	gA_CentralCache.iStyle = 0;
 	gB_ForciblyStopped = true;
 
-	UpdateReplayInfo(client, 0, 0.0, gA_CentralCache[iCentralTrack]);
+	UpdateReplayInfo(client, 0, 0.0, gA_CentralCache.iTrack);
 }
 
 int GetReplayStyle(int client)
@@ -2369,12 +2377,12 @@ int GetReplayStyle(int client)
 
 	if(gB_CentralBot)
 	{
-		if(gA_CentralCache[iCentralStyle] == -1)
+		if(gA_CentralCache.iStyle == -1)
 		{
 			return 0;
 		}
 
-		return gA_CentralCache[iCentralStyle];
+		return gA_CentralCache.iStyle;
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -2395,7 +2403,7 @@ int GetReplayTrack(int client)
 		return -1;
 	}
 
-	return (gB_CentralBot)? gA_CentralCache[iCentralTrack]:Track_Main;
+	return (gB_CentralBot)? gA_CentralCache.iTrack:Track_Main;
 }
 
 int GetSpectatorTarget(int client)

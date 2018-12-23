@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.3.6"
+#define SHAVIT_VERSION "2.4.0"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -44,26 +44,17 @@
 #define HUD_NOSOUNDS			(1 << 11) // disables sounds on personal best, world record etc
 #define HUD_NOPRACALERT			(1 << 12) // hides practice mode chat alert
 
-// for reference, not used anymore
-// game types
-enum ServerGame
-{
-	Game_CSS = 0,
-	Game_CSGO,
-	Game_Unknown
-};
-
 // status
 enum TimerStatus
 {
-	Timer_Stopped = 0,
+	Timer_Stopped,
 	Timer_Running,
 	Timer_Paused
 };
 
 enum ReplayStatus
 {
-	Replay_Start = 0,
+	Replay_Start,
 	Replay_Running,
 	Replay_End,
 	Replay_Idle
@@ -71,10 +62,34 @@ enum ReplayStatus
 
 enum ReplayBotType
 {
-	Replay_Central = 0,
+	Replay_Central,
 	Replay_Legacy
 };
 
+enum
+{
+	Zone_Start,
+	Zone_End,
+	Zone_Respawn,
+	Zone_Stop,
+	Zone_Slay,
+	Zone_Freestyle,
+	Zone_NoVelLimit,
+	Zone_Teleport,
+	Zone_CustomSpawn,
+	Zone_Easybhop,
+	Zone_Slide,
+	ZONETYPES_SIZE
+};
+
+enum
+{
+	Track_Main,
+	Track_Bonus,
+	TRACKS_SIZE
+};
+
+// for Shavit_GetStyleStrings
 enum
 {
 	sStyleName,
@@ -83,46 +98,10 @@ enum
 	sChangeCommand,
 	sClanTag,
 	sSpecialString,
-	sStylePermission,
-	STYLESTRINGS_SIZE
+	sStylePermission
 };
 
-enum
-{
-	bAutobhop,
-	bEasybhop,
-	bPrespeed,
-	fVelocityLimit,
-	bEnableBunnyhopping,
-	fAiraccelerate,
-	fRunspeed,
-	fGravityMultiplier,
-	fSpeedMultiplier,
-	fTimescale,
-	fVelocity,
-	fBonusVelocity,
-	fMinVelocity,
-	bBlockW,
-	bBlockA,
-	bBlockS,
-	bBlockD,
-	bBlockUse,
-	iForceHSW,
-	iBlockPLeft,
-	iBlockPRight,
-	iBlockPStrafe,
-	bUnranked,
-	bNoReplay,
-	bSync,
-	bStrafeCountW,
-	bStrafeCountA,
-	bStrafeCountS,
-	bStrafeCountD,
-	fRankingMultiplier,
-	iSpecial,
-	STYLESETTINGS_SIZE
-};
-
+// for Shavit_GetChatStrings
 enum
 {
 	sMessagePrefix,
@@ -130,26 +109,80 @@ enum
 	sMessageWarning,
 	sMessageVariable,
 	sMessageVariable2,
-	sMessageStyle,
-	CHATSETTINGS_SIZE
+	sMessageStyle
 };
 
-enum
+enum struct stylestrings_t
 {
-	bTimerEnabled,
-	fCurrentTime,
-	bClientPaused,
-	iJumps,
-	bsStyle,
-	iStrafes,
-	iTotalMeasures,
-	iGoodGains,
-	fServerTime,
-	iSHSWCombination,
-	iTimerTrack,
-	iMeasuredJumps,
-	iPerfectJumps,
-	TIMERSNAPSHOT_SIZE
+	char sStyleName[64];
+	char sShortName[32];
+	char sHTMLColor[32];
+	char sChangeCommand[128];
+	char sClanTag[32];
+	char sSpecialString[128];
+	char sStylePermission[64];
+};
+
+enum struct stylesettings_t
+{
+	bool bAutobhop;
+	bool bEasybhop;
+	bool bPrespeed;
+	float fVelocityLimit;
+	bool bEnableBunnyhopping;
+	float fAiraccelerate;
+	float fRunspeed;
+	float fGravityMultiplier;
+	float fSpeedMultiplier;
+	float fTimescale;
+	float fVelocity;
+	float fBonusVelocity;
+	float fMinVelocity;
+	bool bBlockW;
+	bool bBlockA;
+	bool bBlockS;
+	bool bBlockD;
+	bool bBlockUse;
+	int iForceHSW;
+	int iBlockPLeft;
+	int iBlockPRight;
+	int iBlockPStrafe;
+	bool bUnranked;
+	bool bNoReplay;
+	bool bSync;
+	bool bStrafeCountW;
+	bool bStrafeCountA;
+	bool bStrafeCountS;
+	bool bStrafeCountD;
+	float fRankingMultiplier;
+	int iSpecial;
+};
+
+enum struct chatstrings_t
+{
+	char sPrefix[64];
+	char sText[16];
+	char sWarning[16];
+	char sVariable[16];
+	char sVariable2[16];
+	char sStyle[16];
+};
+
+enum struct timer_snapshot_t
+{
+	bool bTimerEnabled;
+	float fCurrentTime;
+	bool bClientPaused;
+	int iJumps;
+	int bsStyle;
+	int iStrafes;
+	int iTotalMeasures;
+	int iGoodGains;
+	float fServerTime;
+	int iSHSWCombination;
+	int iTimerTrack;
+	int iMeasuredJumps;
+	int iPerfectJumps;
 };
 
 #if defined USES_CHAT_COLORS
@@ -202,39 +235,6 @@ char gS_CSGOColors[][] =
 	"\x07"
 };
 #endif
-
-enum(+=1)
-{
-	Zone_Start = 0,
-	Zone_End,
-	Zone_Respawn,
-	Zone_Stop,
-	Zone_Slay,
-	Zone_Freestyle,
-	Zone_NoVelLimit,
-	Zone_Teleport,
-	Zone_CustomSpawn,
-	Zone_Easybhop,
-	Zone_Slide,
-	ZONETYPES_SIZE
-};
-
-enum
-{
-	bZoneInitialized,
-	iZoneType,
-	iZoneTrack, // 0 - main, 1 - bonus
-	iEntityID,
-	iDatabaseID,
-	ZONECACHE_SIZE
-};
-
-enum
-{
-	Track_Main,
-	Track_Bonus,
-	TRACKS_SIZE
-};
 
 stock bool IsValidClient(int client, bool bAlive = false)
 {
@@ -301,11 +301,11 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
  * @param status					The player's timer status.
  * @param track						The player's timer track.
  * @param style						The player's bhop style.
- * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @param stylesettings				A stylesettings_t struct that contains the player's bhop style's settings.
  * @param mouse						Mouse direction (x, y).
  * @return							Plugin_Continue to let shavit-core keep doing what it does, Plugin_Changed to pass different values.
  */
-forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, any stylesettings[STYLESETTINGS_SIZE], int mouse[2]);
+forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings, int mouse[2]);
 
 /**
  * Called just before shavit-core adds time to a player's timer.
@@ -315,10 +315,10 @@ forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float
  * @param client					Client index.
  * @param snapshot					A snapshot with the player's current timer. You cannot manipulate it here.
  * @param time						The time to be added to the player's timer.
- * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @param stylesettings				A stylesettings_t struct that contains the player's bhop style's settings.
  * @noreturn
  */
-forward void Shavit_OnTimeIncrement(int client, any snapshot[TIMERSNAPSHOT_SIZE], float &time, any stylesettings[STYLESETTINGS_SIZE]);
+forward void Shavit_OnTimeIncrement(int client, any snapshot[sizeof(timer_snapshot_t)], float &time, stylesettings_t stylesettings);
 
 /**
  * Called just before shavit-core adds time to a player's timer.
@@ -328,10 +328,10 @@ forward void Shavit_OnTimeIncrement(int client, any snapshot[TIMERSNAPSHOT_SIZE]
  * @param client					Client index.
  * @param snapshot					A snapshot with the player's current timer. Read above in shavit.inc for more information.
  * @param time						The time to be added to the player's timer.
- * @param stylesettings				An array that contains the player's bhop style's settings.
+ * @param stylesettings				A stylesettings_t struct that contains the player's bhop style's settings.
  * @noreturn
  */
-forward void Shavit_OnTimeIncrementPost(int client, float time, any stylesettings[STYLESETTINGS_SIZE]);
+forward void Shavit_OnTimeIncrementPost(int client, float time, stylesettings_t stylesettings);
 
 /**
  * Called when a player's timer starts.
@@ -377,7 +377,7 @@ forward void Shavit_OnStop(int client, int track);
  * @param snapshot					A snapshot of the player's timer.
  * @return							Plugin_Continue to do nothing, Plugin_Changed to change the variables or anything else to stop the timer from finishing.
  */
-forward Action Shavit_OnFinishPre(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
+forward Action Shavit_OnFinishPre(int client, any snapshot[sizeof(timer_snapshot_t)]);
 
 /**
  * Called when a player finishes a map. (touches the end zone)
@@ -568,7 +568,7 @@ forward void Shavit_OnReplayEnd(int client);
  * @return							Game type. (See "enum ServerGame")
  */
 #pragma deprecated Use GetEngineVersion() instead.
-native ServerGame Shavit_GetGameType();
+native EngineVersion Shavit_GetGameType();
 
 /**
  * Returns the database handle the timer is using.
@@ -1022,7 +1022,7 @@ native int Shavit_GetWRCount(int client);
 * @param StyleSettings				Reference to the settings array.
 * @return							SP_ERROR_NONE on success, anything else on failure.
 */
-native int Shavit_GetStyleSettings(int style, any StyleSettings[STYLESETTINGS_SIZE]);
+native int Shavit_GetStyleSettings(int style, any StyleSettings[sizeof(stylesettings_t)]);
 
 /**
  * Saves the style related strings on string references.
@@ -1083,13 +1083,13 @@ native bool Shavit_IsPracticeMode(int client);
 
 /**
  * Save a client's timer into a snapshot.
- * See the enumeration that ends with TIMERSNAPSHOT_SIZE.
+ * See the timer_snapshot_t enum struct.
  *
  * @param client					Client index.
  * @param snapshot					Full snapshot of the client's timer.
  * @noreturn
  */
-native void Shavit_SaveSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
+native void Shavit_SaveSnapshot(int client, any snapshot[sizeof(timer_snapshot_t)]);
 
 /**
  * Restores the client's timer from a snapshot.
@@ -1098,7 +1098,7 @@ native void Shavit_SaveSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
  * @param snapshot					Full snapshot of the client's timer.
  * @noreturn
  */
-native void Shavit_LoadSnapshot(int client, any snapshot[TIMERSNAPSHOT_SIZE]);
+native void Shavit_LoadSnapshot(int client, any snapshot[sizeof(timer_snapshot_t)]);
 
 /**
  * Sets a player's replay recording frames from a provided ArrayList.
