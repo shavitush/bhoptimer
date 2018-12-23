@@ -2559,6 +2559,12 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numClients, float delay)
 {
 	int client = (TE_ReadNum("m_iPlayer") + 1);
+
+	if(!(1 <= client <= MaxClients) || !IsClientInGame(client))
+	{
+		return Plugin_Continue;
+	}
+
 	int ticks = GetGameTickCount();
 
 	if(gI_LastShot[client] == ticks)
