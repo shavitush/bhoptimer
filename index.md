@@ -9,7 +9,7 @@ It includes a records system, map zones (start/end marks and such), bonuses, HUD
 
 * Legal copy of either CS:S, CS:GO or TF2.
 * [Metamod: Source](http://sourcemm.net/downloads.php?branch=stable)
-* [SourceMod 1.9 or above](hthttp://www.sourcemod.net/downloads.php?branch=dev)
+* [SourceMod 1.10 or above](http://www.sourcemod.net/downloads.php?branch=dev)
 
 # Optional Requirements
 
