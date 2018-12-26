@@ -59,6 +59,7 @@ enum struct playertimer_t
 
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
+bool gB_Protobuf = false;
 
 // database handle
 Database gH_SQL = null;
@@ -229,6 +230,7 @@ public void OnPluginStart()
 
 	// game types
 	gEV_Type = GetEngineVersion();
+	gB_Protobuf = (GetUserMessageType() == UM_Protobuf);
 
 	if(gEV_Type == Engine_CSGO)
 	{
@@ -1132,24 +1134,34 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
 	Format(sBuffer, 300, "%s %s%s", gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sBuffer);
 
-	if(IsSource2013(gEV_Type))
+	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
+
+	if(gB_Protobuf)
 	{
-		Handle hSayText2 = StartMessageOne("SayText2", client);
-
-		if(hSayText2 != null)
+		Protobuf pbmsg = view_as<Protobuf>(CloneHandle(hSayText2));
+		pbmsg.SetInt("ent_idx", client);
+		pbmsg.SetBool("chat", !gB_StopChatSound);
+		pbmsg.SetString("msg_name", sBuffer);
+		
+		// needed to not crash
+		for(int i = 1; i <= 4; i++)
 		{
-			BfWriteByte(hSayText2, 0);
-			BfWriteByte(hSayText2, !gB_StopChatSound);
-			BfWriteString(hSayText2, sBuffer);
+			pbmsg.AddString("params", "");
 		}
-
-		EndMessage();
+		
+		delete pbmsg;
 	}
 
 	else
 	{
-		PrintToChat(client, " %s", sBuffer);
+		BfWrite bfmsg = view_as<BfWrite>(CloneHandle(hSayText2));
+		bfmsg.WriteByte(client);
+		bfmsg.WriteByte(!gB_StopChatSound);
+		bfmsg.WriteString(sBuffer);
+		delete bfmsg;
 	}
+
+	EndMessage();
 
 	gB_StopChatSound = false;
 }

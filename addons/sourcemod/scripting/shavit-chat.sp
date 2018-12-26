@@ -411,16 +411,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	if(strlen(sName) > 0)
 	{
 		FormatChat(client, sName, MAXLENGTH_NAME);
-
-		if(gEV_Type == Engine_CSGO)
-		{
-			FormatEx(sOriginalName, MAXLENGTH_NAME, " %s", sName);
-		}
-
-		else
-		{
-			strcopy(sOriginalName, MAXLENGTH_NAME, sName);
-		}
+		strcopy(sOriginalName, MAXLENGTH_NAME, sName);
 	}
 
 	if(strlen(sMessage) > 0)
@@ -502,11 +493,12 @@ void Frame_SendText(DataPack pack)
 
 	if(gB_Protobuf)
 	{
-		Protobuf pbmsg = view_as<any>(hSayText2);
+		Protobuf pbmsg = view_as<Protobuf>(hSayText2);
 		pbmsg.SetInt("ent_idx", client);
 		pbmsg.SetBool("chat", true);
 		pbmsg.SetString("msg_name", sText);
 		
+		// needed to not crash
 		for(int i = 1; i <= 4; i++)
 		{
 			pbmsg.AddString("params", "");
@@ -517,7 +509,7 @@ void Frame_SendText(DataPack pack)
 
 	else
 	{
-		BfWrite bfmsg = view_as<any>(hSayText2);
+		BfWrite bfmsg = view_as<BfWrite>(hSayText2);
 		bfmsg.WriteByte(client);
 		bfmsg.WriteByte(true);
 		bfmsg.WriteString(sText);
@@ -1034,16 +1026,7 @@ void PreviewChat(int client, int rank)
 	strcopy(sCMessage, MAXLENGTH_CMESSAGE, cache.sMessage);
 
 	FormatChat(client, sName, MAXLENGTH_NAME);
-
-	if(gEV_Type == Engine_CSGO)
-	{
-		FormatEx(sOriginalName, MAXLENGTH_NAME, " %s", sName);
-	}
-
-	else
-	{
-		strcopy(sOriginalName, MAXLENGTH_NAME, sName);
-	}
+	strcopy(sOriginalName, MAXLENGTH_NAME, sName);
 
 	FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
 
