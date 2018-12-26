@@ -29,6 +29,14 @@
 
 // #define DEBUG
 
+enum struct wrcache_t
+{
+	int iLastStyle;
+	int iLastTrack;
+	bool bPendingMenu;
+	char sClientMap[128];
+};
+
 bool gB_Late = false;
 bool gB_Rankings = false;
 bool gB_Stats = false;
@@ -45,10 +53,7 @@ bool gB_Connected = false;
 bool gB_MySQL = false;
 
 // cache
-int gBS_LastWR[MAXPLAYERS+1];
-char gS_ClientMap[MAXPLAYERS+1][128];
-int gI_LastTrack[MAXPLAYERS+1];
-bool gB_PendingMenu[MAXPLAYERS+1];
+wrcache_t gA_WRCache[MAXPLAYERS+1];
 
 char gS_Map[160]; // blame workshop paths being so fucking long
 ArrayList gA_ValidMaps = null;
@@ -97,10 +102,12 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	// natives
+	CreateNative("Shavit_GetClientPB", Native_GetClientPB);
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
 	CreateNative("Shavit_GetRecordAmount", Native_GetRecordAmount);
 	CreateNative("Shavit_GetTimeForRank", Native_GetTimeForRank);
+	CreateNative("Shavit_GetWorldRecord", Native_GetWorldRecord);
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
 	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
@@ -426,7 +433,7 @@ public void Shavit_OnChatConfigLoaded()
 
 public void OnClientPutInServer(int client)
 {
-	gB_PendingMenu[client] = false;
+	gA_WRCache[client].bPendingMenu = false;
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -552,6 +559,11 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	UpdateLeaderboards();
 }
 
+public int Native_GetWorldRecord(Handle handler, int numParams)
+{
+	return view_as<int>(gF_WRTime[GetNativeCell(1)][GetNativeCell(2)]);
+}
+
 public int Native_GetWRTime(Handle handler, int numParams)
 {
 	SetNativeCellRef(2, gF_WRTime[GetNativeCell(1)][GetNativeCell(3)]);
@@ -565,6 +577,11 @@ public int Native_GetWRRecordID(Handle handler, int numParams)
 public int Native_GetWRName(Handle handler, int numParams)
 {
 	SetNativeString(2, gS_WRName[GetNativeCell(1)][GetNativeCell(4)], GetNativeCell(3));
+}
+
+public int Native_GetClientPB(Handle handler, int numParams)
+{
+	return view_as<int>(gF_PlayerRecord[GetNativeCell(1)][GetNativeCell(2)][GetNativeCell(3)]);
 }
 
 public int Native_GetPlayerPB(Handle handler, int numParams)
@@ -723,7 +740,7 @@ public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, in
 	{
 		char info[16];
 		menu.GetItem(param2, info, 16);
-		gI_LastTrack[param1] = StringToInt(info);
+		gA_WRCache[param1].iLastTrack = StringToInt(info);
 
 		DeleteSubmenu(param1);
 	}
@@ -747,9 +764,9 @@ void DeleteSubmenu(int client)
 		IntToString(i, sInfo, 8);
 
 		char sDisplay[64];
-		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i].sStyleName, "WRRecord", client, gI_RecordAmount[i][gI_LastTrack[client]]);
+		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i].sStyleName, "WRRecord", client, gI_RecordAmount[i][gA_WRCache[client].iLastTrack]);
 
-		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][gI_LastTrack[client]] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][gA_WRCache[client].iLastTrack] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	menu.ExitButton = true;
@@ -796,7 +813,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 	{
 		char info[16];
 		menu.GetItem(param2, info, 16);
-		gI_LastTrack[param1] = StringToInt(info);
+		gA_WRCache[param1].iLastTrack = StringToInt(info);
 
 		DeleteAllSubmenu(param1);
 	}
@@ -812,7 +829,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 void DeleteAllSubmenu(int client)
 {
 	char sTrack[32];
-	GetTrackName(client, gI_LastTrack[client], sTrack, 32);
+	GetTrackName(client, gA_WRCache[client].iLastTrack, sTrack, 32);
 
 	Menu menu = new Menu(MenuHandler_DeleteAll);
 	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, gS_Map, sTrack);
@@ -853,12 +870,12 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 		}
 
 		char sTrack[32];
-		GetTrackName(LANG_SERVER, gI_LastTrack[param1], sTrack, 32);
+		GetTrackName(LANG_SERVER, gA_WRCache[param1].iLastTrack, sTrack, 32);
 
 		Shavit_LogMessage("%L - deleted all %s track records from map `%s`.", param1, sTrack, gS_Map);
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND track = %d;", gS_MySQLPrefix, gS_Map, gI_LastTrack[param1]);
+		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND track = %d;", gS_MySQLPrefix, gS_Map, gA_WRCache[param1].iLastTrack);
 
 		gH_SQL.Query(DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
@@ -1062,7 +1079,7 @@ void OpenDelete(int client, int style)
 {
 	char sQuery[512];
 
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style, gI_LastTrack[client]);
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style, gA_WRCache[client].iLastTrack);
 	DataPack datapack = new DataPack();
 	datapack.WriteCell(GetClientSerial(client));
 	datapack.WriteCell(style);
@@ -1297,7 +1314,7 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		Call_StartForward(gH_OnWRDeleted);
 		Call_PushCell(i);
 		Call_PushCell(-1);
-		Call_PushCell(gI_LastTrack[client]);
+		Call_PushCell(gA_WRCache[client].iLastTrack);
 		Call_Finish();
 	}
 
@@ -1313,13 +1330,13 @@ public Action Command_WorldRecord(int client, int args)
 
 	if(args == 0)
 	{
-		strcopy(gS_ClientMap[client], 128, gS_Map);
+		strcopy(gA_WRCache[client].sClientMap, 128, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(gS_ClientMap[client], 128);
-		GuessBestMapName(gS_ClientMap[client], gS_ClientMap[client], 128);
+		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
+		GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128);
 	}
 
 	return ShowWRStyleMenu(client, Track_Main);
@@ -1334,13 +1351,13 @@ public Action Command_WorldRecord_Bonus(int client, int args)
 
 	if(args == 0)
 	{
-		strcopy(gS_ClientMap[client], 128, gS_Map);
+		strcopy(gA_WRCache[client].sClientMap, 128, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(gS_ClientMap[client], 128);
-		GuessBestMapName(gS_ClientMap[client], gS_ClientMap[client], 128);
+		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
+		GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128);
 	}
 
 	return ShowWRStyleMenu(client, Track_Bonus);
@@ -1348,7 +1365,7 @@ public Action Command_WorldRecord_Bonus(int client, int args)
 
 Action ShowWRStyleMenu(int client, int track)
 {
-	gI_LastTrack[client] = track;
+	gA_WRCache[client].iLastTrack = track;
 
 	Menu menu = new Menu(MenuHandler_StyleChooser);
 	menu.SetTitle("%T", "WRMenuTitle", client);
@@ -1365,7 +1382,7 @@ Action ShowWRStyleMenu(int client, int track)
 
 		char sDisplay[64];
 
-		if(StrEqual(gS_ClientMap[client], gS_Map) && gF_WRTime[i][track] > 0.0)
+		if(StrEqual(gA_WRCache[client].sClientMap, gS_Map) && gF_WRTime[i][track] > 0.0)
 		{
 			char sTime[32];
 			FormatSeconds(gF_WRTime[i][track], sTime, 32, false);
@@ -1378,7 +1395,7 @@ Action ShowWRStyleMenu(int client, int track)
 			strcopy(sDisplay, 64, gS_StyleStrings[i].sStyleName);
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][track] > 0 || !StrEqual(gS_ClientMap[client], gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][track] > 0 || !StrEqual(gA_WRCache[client].sClientMap, gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	// should NEVER happen
@@ -1416,9 +1433,9 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 			return 0;
 		}
 
-		gBS_LastWR[param1] = iStyle;
+		gA_WRCache[param1].iLastStyle = iStyle;
 
-		StartWRMenu(param1, gS_ClientMap[param1], iStyle, gI_LastTrack[param1]);
+		StartWRMenu(param1, gA_WRCache[param1].sClientMap, iStyle, gA_WRCache[param1].iLastTrack);
 	}
 
 	else if(action == MenuAction_End)
@@ -1527,12 +1544,13 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	else
 	{
+		int iStyle = gA_WRCache[client].iLastStyle;
 		int iRecords = results.RowCount;
 
 		// [32] just in case there are 150k records on a map and you're ranked 100k or something
 		char sRanks[32];
 
-		if(gF_PlayerRecord[client][gBS_LastWR[client]][track] == 0.0 || iMyRank == 0)
+		if(gF_PlayerRecord[client][iStyle][track] == 0.0 || iMyRank == 0)
 		{
 			FormatEx(sRanks, 32, "(%d %T)", iRecords, "WRRecord", client);
 		}
@@ -1568,13 +1586,13 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 		else
 		{
-			ShowWRStyleMenu(param1, gI_LastTrack[param1]);
+			ShowWRStyleMenu(param1, gA_WRCache[param1].iLastTrack);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		ShowWRStyleMenu(param1, gI_LastTrack[param1]);
+		ShowWRStyleMenu(param1, gA_WRCache[param1].iLastTrack);
 	}
 
 	else if(action == MenuAction_End)
@@ -1587,7 +1605,7 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 public Action Command_RecentRecords(int client, int args)
 {
-	if(gB_PendingMenu[client] || !IsValidClient(client))
+	if(gA_WRCache[client].bPendingMenu || !IsValidClient(client))
 	{
 		return Plugin_Handled;
 	}
@@ -1602,7 +1620,7 @@ public Action Command_RecentRecords(int client, int args)
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 
-	gB_PendingMenu[client] = true;
+	gA_WRCache[client].bPendingMenu = true;
 
 	return Plugin_Handled;
 }
@@ -1611,7 +1629,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 {
 	int client = GetClientFromSerial(data);
 
-	gB_PendingMenu[client] = false;
+	gA_WRCache[client].bPendingMenu = false;
 
 	if(results == null)
 	{
@@ -1681,37 +1699,37 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	menu.Display(client, 60);
 }
 
-public int RRMenu_Handler(Menu m, MenuAction action, int param1, int param2)
+public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char sInfo[128];
-		m.GetItem(param2, sInfo, 128);
+		menu.GetItem(param2, sInfo, 128);
 
 		if(StringToInt(sInfo) != -1)
 		{
 			char sExploded[2][128];
 			ExplodeString(sInfo, ";", sExploded, 2, 128, true);
 
-			strcopy(gS_ClientMap[param1], 128, sExploded[1]);
+			strcopy(gA_WRCache[param1].sClientMap, 128, sExploded[1]);
 
 			OpenSubMenu(param1, StringToInt(sExploded[0]));
 		}
 
 		else
 		{
-			ShowWRStyleMenu(param1, gI_LastTrack[param1]);
+			ShowWRStyleMenu(param1, gA_WRCache[param1].iLastTrack);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		ShowWRStyleMenu(param1, gI_LastTrack[param1]);
+		ShowWRStyleMenu(param1, gA_WRCache[param1].iLastTrack);
 	}
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;
@@ -1869,12 +1887,12 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	menu.Display(client, 20);
 }
 
-public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
+public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		char sInfo[32];
-		m.GetItem(param2, sInfo, 32);
+		menu.GetItem(param2, sInfo, 32);
 
 		if(gB_Stats && StringToInt(sInfo) != -1)
 		{
@@ -1899,18 +1917,18 @@ public int SubMenu_Handler(Menu m, MenuAction action, int param1, int param2)
 
 		else
 		{
-			StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], gI_LastTrack[param1]);
+			StartWRMenu(param1, gA_WRCache[param1].sClientMap, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		StartWRMenu(param1, gS_ClientMap[param1], gBS_LastWR[param1], gI_LastTrack[param1]);
+		StartWRMenu(param1, gA_WRCache[param1].sClientMap, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack);
 	}
 
 	else if(action == MenuAction_End)
 	{
-		delete m;
+		delete menu;
 	}
 
 	return 0;

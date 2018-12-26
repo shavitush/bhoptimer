@@ -750,7 +750,17 @@ native float Shavit_GetSync(int client);
  * @param track						Timer track.
  * @noreturn
  */
+#pragma deprecated Use Shavit_GetWorldRecord() instead.
 native void Shavit_GetWRTime(int style, float &time, int track);
+
+/**
+ * Retrieves the world record for the given style/track.
+ *
+ * @param style						Style to get the WR for.
+ * @param track						Timer track.
+ * @return							World record for the specified settings.
+ */
+native float Shavit_GetWorldRecord(int style, int track);
 
 /**
  * Saves the WR's record ID for the current map on a variable.
@@ -783,7 +793,18 @@ native void Shavit_GetWRName(int style, char[] wrname, int wrmaxlength, int trac
  * @param track						Timer track.
  * @noreturn
  */
+#pragma deprecated Use Shavit_GetClientPB() instead.
 native void Shavit_GetPlayerPB(int client, int style, float &time, int track);
+
+/**
+ * Retrieves the best time of a player.
+ *
+ * @param client					Client index.
+ * @param style						Style to get the PB for.
+ * @param track						Timer track.
+ * @return							Floating number of the player's best time for given style/track.
+ */
+native float Shavit_GetClientPB(int client, int style, int track);
 
 /**
  * Get the amount of records on the current map/style on a track.
@@ -1249,6 +1270,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetBhopStyle");
 	MarkNativeAsOptional("Shavit_GetChatStrings");
 	MarkNativeAsOptional("Shavit_GetClientJumps");
+	MarkNativeAsOptional("Shavit_GetClientPB");
 	MarkNativeAsOptional("Shavit_GetClientTime");
 	MarkNativeAsOptional("Shavit_GetClientTrack");
 	MarkNativeAsOptional("Shavit_GetDatabase");
@@ -1282,6 +1304,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetTimeForRank");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
+	MarkNativeAsOptional("Shavit_GetWorldRecord");
 	MarkNativeAsOptional("Shavit_GetWRCount");
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
