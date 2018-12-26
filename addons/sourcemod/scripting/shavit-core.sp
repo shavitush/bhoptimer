@@ -1138,7 +1138,10 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 	if(gB_Protobuf)
 	{
-		Protobuf pbmsg = view_as<Protobuf>(CloneHandle(hSayText2));
+		// show colors in cs:go
+		Format(sBuffer, 300, " %s", sBuffer);
+
+		Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 		pbmsg.SetInt("ent_idx", client);
 		pbmsg.SetBool("chat", !gB_StopChatSound);
 		pbmsg.SetString("msg_name", sBuffer);
@@ -1148,17 +1151,14 @@ public int Native_PrintToChat(Handle handler, int numParams)
 		{
 			pbmsg.AddString("params", "");
 		}
-		
-		delete pbmsg;
 	}
 
 	else
 	{
-		BfWrite bfmsg = view_as<BfWrite>(CloneHandle(hSayText2));
+		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
 		bfmsg.WriteByte(client);
 		bfmsg.WriteByte(!gB_StopChatSound);
 		bfmsg.WriteString(sBuffer);
-		delete bfmsg;
 	}
 
 	EndMessage();

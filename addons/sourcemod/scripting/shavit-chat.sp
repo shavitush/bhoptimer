@@ -339,23 +339,21 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 
 	if(gB_Protobuf)
 	{
-		Protobuf pbmsg = msg;
+		Protobuf pbmsg = UserMessageToProtobuf(msg);
 		client = pbmsg.ReadInt("ent_idx");
 		pbmsg.ReadString("msg_name", sMessage, 32);
 		pbmsg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
 		pbmsg.ReadString("params", sOriginalText, MAXLENGTH_TEXT, 1);
-		delete pbmsg;
 	}
 
 	else
 	{
-		BfRead bfmsg = msg;
+		BfRead bfmsg = UserMessageToBfRead(msg);
 		client = bfmsg.ReadByte();
 		bfmsg.ReadByte(); // chat parameter
 		bfmsg.ReadString(sMessage, 32);
 		bfmsg.ReadString(sOriginalName, MAXLENGTH_NAME);
 		bfmsg.ReadString(sOriginalText, MAXLENGTH_TEXT);
-		delete bfmsg;
 	}
 
 	if(client == 0)
@@ -493,7 +491,10 @@ void Frame_SendText(DataPack pack)
 
 	if(gB_Protobuf)
 	{
-		Protobuf pbmsg = view_as<Protobuf>(hSayText2);
+		// show colors in cs:go
+		Format(sText, MAXLENGTH_BUFFER, " %s", sText);
+
+		Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 		pbmsg.SetInt("ent_idx", client);
 		pbmsg.SetBool("chat", true);
 		pbmsg.SetString("msg_name", sText);
@@ -503,17 +504,14 @@ void Frame_SendText(DataPack pack)
 		{
 			pbmsg.AddString("params", "");
 		}
-		
-		delete pbmsg;
 	}
 
 	else
 	{
-		BfWrite bfmsg = view_as<BfWrite>(hSayText2);
+		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
 		bfmsg.WriteByte(client);
 		bfmsg.WriteByte(true);
 		bfmsg.WriteString(sText);
-		delete bfmsg;
 	}
 
 	EndMessage();
@@ -1041,7 +1039,10 @@ void PreviewChat(int client, int rank)
 	{
 		if(gB_Protobuf)
 		{
-			Protobuf pbmsg = view_as<any>(hSayText2);
+			// show colors in cs:go
+			Format(sTextFormatting, MAXLENGTH_BUFFER, " %s", sTextFormatting);
+
+			Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 			pbmsg.SetInt("ent_idx", client);
 			pbmsg.SetBool("chat", true);
 			pbmsg.SetString("msg_name", sTextFormatting);
@@ -1050,17 +1051,14 @@ void PreviewChat(int client, int rank)
 			{
 				pbmsg.AddString("params", "");
 			}
-			
-			delete pbmsg;
 		}
 
 		else
 		{
-			BfWrite bfmsg = view_as<any>(hSayText2);
+			BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
 			bfmsg.WriteByte(client);
 			bfmsg.WriteByte(true);
 			bfmsg.WriteString(sTextFormatting);
-			delete bfmsg;
 		}
 	}
 
