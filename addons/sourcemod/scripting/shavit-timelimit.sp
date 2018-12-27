@@ -53,15 +53,6 @@ ConVar gCV_MinimumTimes = null;
 ConVar gCV_PlayerAmount = null;
 ConVar gCV_Style = null;
 
-// cached cvars
-bool gB_Config = true;
-float gF_DefaultLimit = 60.0;
-bool gB_DynamicTimelimits = true;
-bool gB_ForceMapEnd = true;
-int gI_MinimumTimes = 5;
-int gI_PlayerAmount = 25;
-bool gB_Style = true;
-
 // misc cache
 Handle gH_Timer = null;
 EngineVersion gEV_Type = Engine_Unknown;
@@ -117,13 +108,7 @@ public void OnPluginStart()
 	gCV_PlayerAmount = CreateConVar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!\nSet to 0 to have it \"unlimited\".", 0);
 	gCV_Style = CreateConVar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 0.0, true, 1.0);
 
-	gCV_Config.AddChangeHook(OnConVarChanged);
-	gCV_DefaultLimit.AddChangeHook(OnConVarChanged);
-	gCV_DynamicTimelimits.AddChangeHook(OnConVarChanged);
 	gCV_ForceMapEnd.AddChangeHook(OnConVarChanged);
-	gCV_MinimumTimes.AddChangeHook(OnConVarChanged);
-	gCV_PlayerAmount.AddChangeHook(OnConVarChanged);
-	gCV_Style.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -132,31 +117,20 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gB_Config = gCV_Config.BoolValue;
-	gF_DefaultLimit = gCV_DefaultLimit.FloatValue;
-	gB_DynamicTimelimits = gCV_DynamicTimelimits.BoolValue;
-	gB_ForceMapEnd = gCV_ForceMapEnd.BoolValue;
-	gI_MinimumTimes = gCV_MinimumTimes.IntValue;
-	gI_PlayerAmount = gCV_PlayerAmount.IntValue;
-	gB_Style = gCV_Style.BoolValue;
-
-	if(convar == gCV_ForceMapEnd)
+	if(view_as<bool>(StringToInt(newValue)) && gEV_Type != Engine_TF2)
 	{
-		if(gB_ForceMapEnd && gEV_Type != Engine_TF2)
-		{
-			gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
-		}
+		gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
+	}
 
-		else
-		{
-			delete gH_Timer;
-		}
+	else
+	{
+		delete gH_Timer;
 	}
 }
 
 public void OnConfigsExecuted()
 {
-	if(gB_Config)
+	if(gCV_Config.BoolValue)
 	{
 		if(mp_do_warmup_period != null)
 		{
@@ -182,17 +156,17 @@ public void OnMapStart()
 		return;
 	}
 
-	if(gB_DynamicTimelimits)
+	if(gCV_DynamicTimelimits.BoolValue)
 	{
 		StartCalculating();
 	}
 
 	else
 	{
-		SetLimit(RoundToNearest(gF_DefaultLimit));
+		SetLimit(RoundToNearest(gCV_DefaultLimit.FloatValue));
 	}
 
-	if(gB_ForceMapEnd && gH_Timer == null && gEV_Type != Engine_TF2)
+	if(gCV_ForceMapEnd.BoolValue && gH_Timer == null && gEV_Type != Engine_TF2)
 	{
 		gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
 	}
@@ -262,7 +236,7 @@ void StartCalculating()
 		GetMapDisplayName(sMap, sMap, 160);
 
 		char sQuery[512];
-		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' AND r.track = 0 %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gB_Style)? "AND style = 0 ":"", gI_PlayerAmount);
+		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' AND r.track = 0 %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gCV_Style.BoolValue)? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);
 
 		#if defined DEBUG
 		PrintToServer("%s", sQuery);
@@ -284,7 +258,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 	results.FetchRow();
 	int iRows = results.FetchInt(0);
 
-	if(iRows >= gI_MinimumTimes)
+	if(iRows >= gCV_MinimumTimes.IntValue)
 	{
 		float fTimeSum = results.FetchFloat(1);
 		float fAverage = (fTimeSum / 60 / iRows);
@@ -331,7 +305,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 	else
 	{
-		SetLimit(RoundToNearest(gF_DefaultLimit));
+		SetLimit(RoundToNearest(gCV_DefaultLimit.FloatValue));
 	}
 }
 

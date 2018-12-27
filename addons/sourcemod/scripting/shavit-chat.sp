@@ -76,11 +76,6 @@ ConVar gCV_RankingsIntegration = null;
 ConVar gCV_CustomChat = null;
 ConVar gCV_Colon = null;
 
-// cached cvars
-bool gB_RankingsIntegration = true;
-int gI_CustomChat = 1;
-char gS_Colon[MAXLENGTH_CMESSAGE] = ":";
-
 // cache
 EngineVersion gEV_Type = Engine_Unknown;
 
@@ -146,10 +141,6 @@ public void OnPluginStart()
 	gCV_RankingsIntegration = CreateConVar("shavit_chat_rankings", "1", "Integrate with rankings?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_CustomChat = CreateConVar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
 	gCV_Colon = CreateConVar("shavit_chat_colon", ":", "String to use as the colon when messaging.");
-
-	gCV_RankingsIntegration.AddChangeHook(OnConVarChanged);
-	gCV_CustomChat.AddChangeHook(OnConVarChanged);
-	gCV_Colon.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -388,7 +379,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	char sName[MAXLENGTH_NAME];
 	char sCMessage[MAXLENGTH_CMESSAGE];
 	
-	if((gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)) && gI_ChatSelection[client] == -1)
+	if((gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)) && gI_ChatSelection[client] == -1)
 	{
 		if(gB_NameEnabled[client])
 		{
@@ -431,7 +422,10 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		}
 	}
 
-	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, gS_Colon, sOriginalText);
+	char sColon[MAXLENGTH_CMESSAGE];
+	gCV_Colon.GetString(sColon, MAXLENGTH_CMESSAGE);
+
+	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, sColon, sOriginalText);
 
 	DataPack pack = new DataPack();
 	pack.WriteCell(GetClientSerial(client)); // client serial
@@ -515,13 +509,6 @@ void Frame_SendText(DataPack pack)
 	}
 
 	EndMessage();
-}
-
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	gB_RankingsIntegration = gCV_RankingsIntegration.BoolValue;
-	gI_CustomChat = gCV_CustomChat.IntValue;
-	gCV_Colon.GetString(gS_Colon, MAXLENGTH_CMESSAGE);
 }
 
 public void Shavit_OnDatabaseLoaded()
@@ -679,7 +666,7 @@ public Action Command_CCName(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)))
+	if(!(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)))
 	{
 		Shavit_PrintToChat(client, "%T", "NoCommandAccess", client);
 
@@ -728,7 +715,7 @@ public Action Command_CCMessage(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)))
+	if(!(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)))
 	{
 		Shavit_PrintToChat(client, "%T", "NoCommandAccess", client);
 
@@ -787,7 +774,7 @@ Action ShowChatRanksMenu(int client, int item)
 	FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "AutoAssign", client);
 	menu.AddItem("-2", sDisplay, (gI_ChatSelection[client] == -2)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
-	if(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
+	if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
 	{
 		FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "CustomChat", client);
 		menu.AddItem("-1", sDisplay, (gI_ChatSelection[client] == -1)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
@@ -1031,7 +1018,10 @@ void PreviewChat(int client, int rank)
 	char sSampleText[MAXLENGTH_MESSAGE];
 	FormatEx(sSampleText, MAXLENGTH_MESSAGE, "%sThe quick brown fox jumps over the lazy dog", sCMessage);
 
-	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, gS_Colon, sSampleText);
+	char sColon[MAXLENGTH_CMESSAGE];
+	gCV_Colon.GetString(sColon, MAXLENGTH_CMESSAGE);
+
+	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, sColon, sSampleText);
 
 	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
@@ -1067,7 +1057,7 @@ void PreviewChat(int client, int rank)
 
 bool HasRankAccess(int client, int rank)
 {
-	bool bAllowCustom = gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2);
+	bool bAllowCustom = gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2);
 
 	if(rank == -2 ||
 		(rank == -1 && bAllowCustom))
@@ -1119,7 +1109,7 @@ bool HasRankAccess(int client, int rank)
 		return true;
 	}
 
-	if(!gB_Rankings || !gB_RankingsIntegration)
+	if(!gB_Rankings || !gCV_RankingsIntegration.BoolValue)
 	{
 		return false;
 	}
@@ -1201,7 +1191,7 @@ public Action Command_CCList(int client, int args)
 			continue;
 		}
 
-		if(gI_CustomChat > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
+		if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
 		{
 			PrintToConsole(client, "%N (%d/#%d) (name: \"%s\"; message: \"%s\")", i, i, GetClientUserId(i), gS_CustomName[i], gS_CustomMessage[i]);
 		}
@@ -1358,7 +1348,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 			continue;
 		}
 
-		if(gI_CustomChat > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
+		if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
 		{
 			LoadFromDatabase(i);
 		}

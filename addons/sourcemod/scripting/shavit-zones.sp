@@ -135,15 +135,6 @@ ConVar gCV_Height = null;
 ConVar gCV_Offset = null;
 ConVar gCV_EnforceTracks = null;
 
-// cached cvars
-float gF_Interval = 1.0;
-bool gB_TeleportToStart = true;
-bool gB_TeleportToEnd = true;
-bool gB_UseCustomSprite = true;
-float gF_Height = 128.0;
-float gF_Offset = 0.5;
-bool gB_EnforceTracks = true;
-
 // handles
 Handle gH_DrawEverything = null;
 
@@ -247,12 +238,8 @@ public void OnPluginStart()
 	gCV_EnforceTracks = CreateConVar("shavit_zones_enforcetracks", "1", "Enforce zone tracks upon entry?\n0 - allow every zone except for start/end to affect users on every zone.\n1- require the user's track to match the zone's track.", 0, true, 0.0, true, 1.0);
 
 	gCV_Interval.AddChangeHook(OnConVarChanged);
-	gCV_TeleportToStart.AddChangeHook(OnConVarChanged);
-	gCV_TeleportToEnd.AddChangeHook(OnConVarChanged);
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
-	gCV_Height.AddChangeHook(OnConVarChanged);
 	gCV_Offset.AddChangeHook(OnConVarChanged);
-	gCV_EnforceTracks.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -292,18 +279,10 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gF_Interval = gCV_Interval.FloatValue;
-	gB_TeleportToStart = gCV_TeleportToStart.BoolValue;
-	gB_UseCustomSprite = gCV_UseCustomSprite.BoolValue;
-	gB_TeleportToEnd = gCV_TeleportToEnd.BoolValue;
-	gF_Height = gCV_Height.FloatValue;
-	gF_Offset = gCV_Offset.FloatValue;
-	gB_EnforceTracks = gCV_EnforceTracks.BoolValue;
-
 	if(convar == gCV_Interval)
 	{
 		delete gH_DrawEverything;
-		gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		gH_DrawEverything = CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 
 	else if(convar == gCV_Offset && gI_MapZones > 0)
@@ -322,7 +301,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 			gV_MapZones_Visual[i][7][1] = gV_MapZones[i][1][1];
 			gV_MapZones_Visual[i][7][2] = gV_MapZones[i][1][2];
 
-			CreateZonePoints(gV_MapZones_Visual[i], gF_Offset);
+			CreateZonePoints(gV_MapZones_Visual[i], gCV_Offset.FloatValue);
 		}
 	}
 
@@ -578,7 +557,7 @@ void LoadZoneSettings()
 		SetFailState("Cannot open \"configs/shavit-zones.cfg\". Make sure this file exists and that the server has read permissions to it.");
 	}
 
-	if(gB_UseCustomSprite)
+	if(gCV_UseCustomSprite.BoolValue)
 	{
 		gI_BeamSprite = PrecacheModel(gS_BeamSprite, true);
 		gI_HaloSprite = 0;
@@ -632,7 +611,7 @@ public void OnMapStart()
 	// start drawing mapzones here
 	if(gH_DrawEverything == null)
 	{
-		gH_DrawEverything = CreateTimer(gF_Interval, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		gH_DrawEverything = CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 
 	if(gB_Late)
@@ -911,7 +890,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gV_MapZones[gI_MapZones][1][1] = gV_MapZones_Visual[gI_MapZones][7][1] = results.FetchFloat(5);
 			gV_MapZones[gI_MapZones][1][2] = gV_MapZones_Visual[gI_MapZones][7][2] = results.FetchFloat(6);
 
-			CreateZonePoints(gV_MapZones_Visual[gI_MapZones], gF_Offset);
+			CreateZonePoints(gV_MapZones_Visual[gI_MapZones], gCV_Offset.FloatValue);
 
 			gV_ZoneCenter[gI_MapZones][0] = (gV_MapZones[gI_MapZones][0][0] + gV_MapZones[gI_MapZones][1][0]) / 2.0;
 			gV_ZoneCenter[gI_MapZones][1] = (gV_MapZones[gI_MapZones][0][1] + gV_MapZones[gI_MapZones][1][1]) / 2.0;
@@ -1708,7 +1687,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 				else if(gI_MapStep[client] == 2)
 				{
-					origin[2] += gF_Height;
+					origin[2] += gCV_Height.FloatValue;
 					gV_Point2[client] = origin;
 
 					gI_MapStep[client]++;
@@ -1726,7 +1705,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		}
 	}
 
-	if(InsideZone(client, Zone_Slide, (gB_EnforceTracks)? track:-1) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
+	if(InsideZone(client, Zone_Slide, (gCV_EnforceTracks.BoolValue)? track:-1) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
 	{
 		// trace down, see if there's 8 distance or less to ground
 		float fPosition[3];
@@ -2070,7 +2049,7 @@ public Action Timer_DrawEverything(Handle Timer)
 			{
 				DrawZone(gV_MapZones_Visual[i],
 						GetZoneColors(type, track),
-						RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gF_Interval,
+						RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gCV_Interval.FloatValue,
 						gA_ZoneSettings[type][track].fWidth,
 						gA_ZoneSettings[type][track].bFlatZone,
 						gV_ZoneCenter[i]);
@@ -2132,7 +2111,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 	if(gI_MapStep[client] == 1 || gV_Point2[client][0] == 0.0)
 	{
-		origin[2] = (vPlayerOrigin[2] + gF_Height);
+		origin[2] = (vPlayerOrigin[2] + gCV_Height.FloatValue);
 	}
 
 	else
@@ -2145,7 +2124,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		float points[8][3];
 		points[0] = gV_Point1[client];
 		points[7] = origin;
-		CreateZonePoints(points, gF_Offset);
+		CreateZonePoints(points, gCV_Offset.FloatValue);
 
 		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
 		origin = points[7];
@@ -2164,7 +2143,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 	if(gI_MapStep[client] != 3 && !EmptyVector(origin))
 	{
-		origin[2] -= gF_Height;
+		origin[2] -= gCV_Height.FloatValue;
 
 		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 		TE_SendToAll(0.0);
@@ -2434,7 +2413,7 @@ public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnRestart(int client, int track)
 {
-	if(gB_TeleportToStart)
+	if(gCV_TeleportToStart.BoolValue)
 	{
 		// custom spawns
 		if(!EmptyVector(gF_CustomSpawn[track]))
@@ -2480,7 +2459,7 @@ public void Shavit_OnRestart(int client, int track)
 
 public void Shavit_OnEnd(int client, int track)
 {
-	if(gB_TeleportToEnd)
+	if(gCV_TeleportToEnd.BoolValue)
 	{
 		int index = GetZoneIndex(Zone_End, track);
 
@@ -2649,7 +2628,7 @@ public void CreateZoneEntities()
 public void StartTouchPost(int entity, int other)
 {
 	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || !gA_ZoneCache[gI_EntityZone[entity]].bZoneInitialized || IsFakeClient(other) ||
-		(gB_EnforceTracks && gA_ZoneCache[gI_EntityZone[entity]].iZoneType > Zone_End && gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack != Shavit_GetClientTrack(other)))
+		(gCV_EnforceTracks.BoolValue && gA_ZoneCache[gI_EntityZone[entity]].iZoneType > Zone_End && gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack != Shavit_GetClientTrack(other)))
 	{
 		return;
 	}
@@ -2731,7 +2710,7 @@ public void EndTouchPost(int entity, int other)
 public void TouchPost(int entity, int other)
 {
 	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || IsFakeClient(other) ||
-		(gB_EnforceTracks && gA_ZoneCache[gI_EntityZone[entity]].iZoneType > Zone_End && gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack != Shavit_GetClientTrack(other)))
+		(gCV_EnforceTracks.BoolValue && gA_ZoneCache[gI_EntityZone[entity]].iZoneType > Zone_End && gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack != Shavit_GetClientTrack(other)))
 	{
 		return;
 	}

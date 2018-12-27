@@ -116,12 +116,6 @@ ConVar gCV_VelocityTeleport = null;
 ConVar gCV_DefaultStyle = null;
 
 // cached cvars
-bool gB_Restart = true;
-bool gB_Pause = true;
-bool gB_AllowTimerWithoutZone = false;
-bool gB_BlockPreJump = false;
-bool gB_NoZAxisSpeed = true;
-bool gB_VelocityTeleport = false;
 int gI_DefaultStyle = 0;
 bool gB_StyleCookies = true;
 
@@ -317,12 +311,6 @@ public void OnPluginStart()
 	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle = CreateConVar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
 
-	gCV_Restart.AddChangeHook(OnConVarChanged);
-	gCV_Pause.AddChangeHook(OnConVarChanged);
-	gCV_AllowTimerWithoutZone.AddChangeHook(OnConVarChanged);
-	gCV_BlockPreJump.AddChangeHook(OnConVarChanged);
-	gCV_NoZAxisSpeed.AddChangeHook(OnConVarChanged);
-	gCV_VelocityTeleport.AddChangeHook(OnConVarChanged);
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
@@ -358,18 +346,8 @@ public void OnPluginStart()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gB_Restart = gCV_Restart.BoolValue;
-	gB_Pause = gCV_Pause.BoolValue;
-	gB_AllowTimerWithoutZone = gCV_AllowTimerWithoutZone.BoolValue;
-	gB_BlockPreJump = gCV_BlockPreJump.BoolValue;
-	gB_NoZAxisSpeed = gCV_NoZAxisSpeed.BoolValue;
-	gB_VelocityTeleport = gCV_VelocityTeleport.BoolValue;
-
-	if(convar == gCV_DefaultStyle)
-	{
-		gB_StyleCookies = newValue[0] != '!';
-		gI_DefaultStyle = StringToInt(newValue[1]);
-	}
+	gB_StyleCookies = (newValue[0] != '!');
+	gI_DefaultStyle = StringToInt(newValue[1]);
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -458,7 +436,7 @@ public Action Command_StartTimer(int client, int args)
 	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
 
-	if(!gB_Restart)
+	if(!gCV_Restart.BoolValue)
 	{
 		if(args != -1)
 		{
@@ -475,14 +453,14 @@ public Action Command_StartTimer(int client, int args)
 		track = Track_Bonus;
 	}
 
-	if(gB_AllowTimerWithoutZone || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
+	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_PushCell(track);
 		Call_Finish();
 
-		if(gB_AllowTimerWithoutZone)
+		if(gCV_AllowTimerWithoutZone.BoolValue)
 		{
 			StartTimer(client, track);
 		}
@@ -557,7 +535,7 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gB_Pause)
+	if(!gCV_Pause.BoolValue)
 	{
 		char sCommand[16];
 		GetCmdArg(0, sCommand, 16);
@@ -719,7 +697,7 @@ public Action Command_Style(int client, int args)
 
 			if(gB_WR)
 			{
-				Shavit_GetWRTime(i, time, Track_Main);
+				time = Shavit_GetWorldRecord(i, Track_Main);
 			}
 
 			if(time > 0.0)
@@ -835,7 +813,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	StopTimer(client);
 
-	if(gB_AllowTimerWithoutZone || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTrack) || gB_KZMap)))
+	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTrack) || gB_KZMap)))
 	{
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
@@ -929,7 +907,7 @@ void VelocityChanges(int data)
 		fAbsVelocity[1] /= x;
 	}
 
-	if(!gB_VelocityTeleport)
+	if(!gCV_VelocityTeleport.BoolValue)
 	{
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 	}
@@ -1092,7 +1070,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	if(gB_WR)
 	{
-		Shavit_GetPlayerPB(client, style, oldtime, track);
+		oldtime = Shavit_GetClientPB(client, style, track);
 	}
 
 	Call_PushCell(oldtime);
@@ -1361,7 +1339,7 @@ void StartTimer(int client, int track)
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if(!gB_NoZAxisSpeed || gA_StyleSettings[gA_Timers[client].iStyle].bPrespeed || (fSpeed[2] == 0.0 && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0))
+	if(!gCV_NoZAxisSpeed.BoolValue || gA_StyleSettings[gA_Timers[client].iStyle].bPrespeed || (fSpeed[2] == 0.0 && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0))
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
@@ -2302,7 +2280,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gA_Timers[client].iGroundTicks = 0;
 	}
 
-	if(bInStart && gB_BlockPreJump && !gA_StyleSettings[gA_Timers[client].iStyle].bPrespeed && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
+	if(bInStart && gCV_BlockPreJump.BoolValue && !gA_StyleSettings[gA_Timers[client].iStyle].bPrespeed && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
 	{
 		vel[2] = 0.0;
 		buttons &= ~IN_JUMP;

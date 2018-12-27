@@ -59,10 +59,6 @@ bool gB_Late = false;
 ConVar gCV_MVPRankOnes = null;
 ConVar gCV_MVPRankOnes_Main = null;
 
-// cached cvars
-int gI_MVPRankOnes = 2;
-bool gB_MVPRankOnes_Main = true;
-
 // timer settings
 int gI_Styles = 0;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -127,9 +123,6 @@ public void OnPluginStart()
 	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
 	gCV_MVPRankOnes_Main = CreateConVar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
 
-	gCV_MVPRankOnes.AddChangeHook(OnConVarChanged);
-	gCV_MVPRankOnes_Main.AddChangeHook(OnConVarChanged);
-
 	AutoExecConfig();
 
 	gB_Rankings = LibraryExists("shavit-rankings");
@@ -182,12 +175,6 @@ public void Shavit_OnChatConfigLoaded()
 	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
 	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
 	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
-}
-
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	gI_MVPRankOnes = gCV_MVPRankOnes.IntValue;
-	gB_MVPRankOnes_Main = gCV_MVPRankOnes_Main.BoolValue;
 }
 
 public void OnClientPutInServer(int client)
@@ -273,7 +260,7 @@ void SQL_SetPrefix()
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	if(gI_MVPRankOnes == 0)
+	if(gCV_MVPRankOnes.IntValue == 0)
 	{
 		return;
 	}
@@ -299,14 +286,14 @@ void UpdateWRs(int client)
 	{
 		char sQuery[256];
 
-		if(gI_MVPRankOnes == 2)
+		if(gCV_MVPRankOnes.IntValue == 2)
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gB_MVPRankOnes_Main)? "AND track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
 		}
 
 		else
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gB_MVPRankOnes_Main)? "WHERE track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "WHERE track = 0 ":"", sAuthID);
 		}
 
 		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
@@ -331,7 +318,7 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 
 	int iWRs = results.FetchInt(0);
 
-	if(gI_MVPRankOnes > 0 && gEV_Type != Engine_TF2)
+	if(gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2)
 	{
 		CS_SetMVPCount(client, iWRs);
 	}

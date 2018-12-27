@@ -64,10 +64,7 @@ ArrayList gA_ValidMaps = null;
 StringMap gA_MapTiers = null;
 
 ConVar gCV_PointsPerTier = null;
-float gF_PointsPerTier = 50.0;
-
 ConVar gCV_WeightingMultiplier = null;
-float gF_WeightingMultiplier = 0.975;
 
 int gI_Rank[MAXPLAYERS+1];
 float gF_Points[MAXPLAYERS+1];
@@ -145,10 +142,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_recalcall", Command_RecalcAll, ADMFLAG_ROOT, "Recalculate the points for every map on the server. Run this after you change the ranking multiplier for a style or after you install the plugin.");
 
 	gCV_PointsPerTier = CreateConVar("shavit_rankings_pointspertier", "50.0", "Base points to use for per-tier scaling.\nRead the design idea to see how it works: https://github.com/shavitush/bhoptimer/issues/465", 0, true, 1.0);
-	gCV_PointsPerTier.AddChangeHook(OnConVarChanged);
-
 	gCV_WeightingMultiplier = CreateConVar("shavit_rankings_weighting", "0.975", "Weighing multiplier. 1.0 to disable weighting.\nFormula: p[1] * this^0 + p[2] * this^1 + p[3] * this^2 + ... + p[n] * this^(n-1)\nRestart server to apply.", 0, true, 0.01, true, 1.0);
-	gCV_WeightingMultiplier.AddChangeHook(OnConVarChanged);
 
 	AutoExecConfig();
 
@@ -330,7 +324,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		"END LOOP; " ...
 		"CLOSE cur; " ...
 		"RETURN total; " ...
-		"END;;", gS_MySQLPrefix, gF_WeightingMultiplier);
+		"END;;", gS_MySQLPrefix, gCV_WeightingMultiplier.FloatValue);
 
 	RunLongFastQuery(bSuccess, "CREATE GetRecordPoints",
 		"CREATE FUNCTION GetRecordPoints(rstyle INT, rtrack INT, rtime FLOAT, rmap CHAR(128), pointspertier FLOAT, stylemultiplier FLOAT) " ...
@@ -381,12 +375,6 @@ void RunLongFastQuery(bool &success, const char[] func, const char[] query, any 
 
 		success = false;
 	}
-}
-
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	gF_PointsPerTier = gCV_PointsPerTier.FloatValue;
-	gF_WeightingMultiplier = gCV_WeightingMultiplier.FloatValue;
 }
 
 public void OnClientConnected(int client)
@@ -688,7 +676,7 @@ public Action Command_RecalcAll(int client, int args)
 
 		else
 		{
-			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gF_PointsPerTier, gA_StyleSettings[i].fRankingMultiplier, i);
+			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gCV_PointsPerTier.FloatValue, gA_StyleSettings[i].fRankingMultiplier, i);
 		}
 
 		trans.AddQuery(sQuery);
@@ -762,7 +750,7 @@ void RecalculateMap(const char[] map, const int track, const int style)
 
 	char sQuery[192];
 	FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
-		gS_MySQLPrefix, style, track, map, gF_PointsPerTier, gA_StyleSettings[style].fRankingMultiplier, style, track, map);
+		gS_MySQLPrefix, style, track, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, track, map);
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
 

@@ -78,10 +78,6 @@ char gS_MySQLPrefix[32];
 ConVar gCV_RecordsLimit = null;
 ConVar gCV_RecentLimit = null;
 
-// cached cvars
-int gI_RecordsLimit = 50;
-int gI_RecentLimit = 50;
-
 // timer settings
 int gI_Styles = 0;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -168,9 +164,6 @@ public void OnPluginStart()
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
 	gCV_RecentLimit = CreateConVar("shavit_wr_recentlimit", "50", "Limit of records shown in the RR menu.", 0, true, 1.0);
 
-	gCV_RecordsLimit.AddChangeHook(OnConVarChanged);
-	gCV_RecentLimit.AddChangeHook(OnConVarChanged);
-
 	AutoExecConfig();
 
 	// admin menu
@@ -187,12 +180,6 @@ public void OnPluginStart()
 	gA_ValidMaps = new ArrayList(192);
 
 	SQL_SetPrefix();
-}
-
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	gI_RecordsLimit = gCV_RecordsLimit.IntValue;
-	gI_RecentLimit = gCV_RecentLimit.IntValue;
 }
 
 public void OnAdminMenuCreated(Handle topmenu)
@@ -1497,7 +1484,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	while(results.FetchRow())
 	{
-		if(++iCount <= gI_RecordsLimit)
+		if(++iCount <= gCV_RecordsLimit.IntValue)
 		{
 			// 0 - record id, for statistic purposes.
 			int id = results.FetchInt(0);
@@ -1644,7 +1631,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	Menu menu = new Menu(RRMenu_Handler);
-	menu.SetTitle("%T:", "RecentRecords", client, gI_RecentLimit);
+	menu.SetTitle("%T:", "RecentRecords", client, gCV_RecentLimit.IntValue);
 
 	while(results.FetchRow())
 	{

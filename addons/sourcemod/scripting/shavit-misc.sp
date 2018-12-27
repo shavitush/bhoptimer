@@ -146,38 +146,7 @@ ConVar gCV_MaxCP = null;
 ConVar gCV_MaxCP_Segmented = null;
 
 // cached cvars
-int gI_GodMode = 3;
-int gI_PreSpeed = 1;
-bool gB_HideTeamChanges = true;
-bool gB_RespawnOnTeam = true;
-bool gB_RespawnOnRestart = true;
-bool gB_StartOnSpawn = true;
-float gF_PrestrafeLimit = 30.00;
-bool gB_HideRadar = true;
-bool gB_TeleportCommands = true;
-bool gB_NoWeaponDrops = true;
-bool gB_NoBlock = true;
-bool gB_NoBlood = false;
-float gF_AutoRespawn = 1.5;
-int gI_CreateSpawnPoints = 6;
-bool gB_DisableRadio = false;
-bool gB_Scoreboard = true;
-int gI_WeaponCommands = 2;
-int gI_PlayerOpacity = -1;
-bool gB_StaticPrestrafe = true;
-int gI_NoclipMe = true;
-float gF_AdvertisementInterval = 600.0;
-bool gB_Checkpoints = true;
-int gI_RemoveRagdolls = 1;
-char gS_ClanTag[32] = "{tr}{styletag} :: {time}";
-bool gB_DropAll = true;
-bool gB_ResetTargetname = false;
-bool gB_RestoreStates = false;
-bool gB_JointeamHook = true;
 int gI_HumanTeam = 0;
-int gI_SpectatorList = 1;
-int gI_MaxCP = 1000;
-int gI_MaxCP_Segmented = 10;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -290,12 +259,6 @@ public void OnPluginStart()
 	gA_Advertisements = new ArrayList(300);
 	hostname = FindConVar("hostname");
 	hostport = FindConVar("hostport");
-	mp_humanteam = FindConVar("mp_humanteam");
-
-	if(mp_humanteam == null)
-	{
-		mp_humanteam = FindConVar("mp_humans_must_join_team");
-	}
 
 	// cvars and stuff
 	gCV_GodMode = CreateConVar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
@@ -330,41 +293,16 @@ public void OnPluginStart()
 	gCV_MaxCP = CreateConVar("shavit_misc_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = CreateConVar("shavit_misc_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_misc_maxcp.\nNote: Very high values will result in HUGE memory usage!", 0, true, 1.0, true, 50.0);
 
-	gCV_GodMode.AddChangeHook(OnConVarChanged);
-	gCV_PreSpeed.AddChangeHook(OnConVarChanged);
-	gCV_HideTeamChanges.AddChangeHook(OnConVarChanged);
-	gCV_RespawnOnTeam.AddChangeHook(OnConVarChanged);
-	gCV_RespawnOnRestart.AddChangeHook(OnConVarChanged);
-	gCV_StartOnSpawn.AddChangeHook(OnConVarChanged);
-	gCV_PrestrafeLimit.AddChangeHook(OnConVarChanged);
-	gCV_HideRadar.AddChangeHook(OnConVarChanged);
-	gCV_TeleportCommands.AddChangeHook(OnConVarChanged);
-	gCV_NoWeaponDrops.AddChangeHook(OnConVarChanged);
-	gCV_NoBlock.AddChangeHook(OnConVarChanged);
-	gCV_NoBlood.AddChangeHook(OnConVarChanged);
-	gCV_AutoRespawn.AddChangeHook(OnConVarChanged);
-	gCV_CreateSpawnPoints.AddChangeHook(OnConVarChanged);
-	gCV_DisableRadio.AddChangeHook(OnConVarChanged);
-	gCV_Scoreboard.AddChangeHook(OnConVarChanged);
-	gCV_WeaponCommands.AddChangeHook(OnConVarChanged);
-	gCV_PlayerOpacity.AddChangeHook(OnConVarChanged);
-	gCV_StaticPrestrafe.AddChangeHook(OnConVarChanged);
-	gCV_NoclipMe.AddChangeHook(OnConVarChanged);
-	gCV_AdvertisementInterval.AddChangeHook(OnConVarChanged);
-	gCV_Checkpoints.AddChangeHook(OnConVarChanged);
-	gCV_RemoveRagdolls.AddChangeHook(OnConVarChanged);
-	gCV_ClanTag.AddChangeHook(OnConVarChanged);
-	gCV_DropAll.AddChangeHook(OnConVarChanged);
-	gCV_ResetTargetname.AddChangeHook(OnConVarChanged);
-	gCV_RestoreStates.AddChangeHook(OnConVarChanged);
-	gCV_JointeamHook.AddChangeHook(OnConVarChanged);
-	gCV_SpectatorList.AddChangeHook(OnConVarChanged);
-	gCV_MaxCP.AddChangeHook(OnConVarChanged);
-	gCV_MaxCP_Segmented.AddChangeHook(OnConVarChanged);
+	AutoExecConfig();
+
+	mp_humanteam = FindConVar("mp_humanteam");
+
+	if(mp_humanteam == null)
+	{
+		mp_humanteam = FindConVar("mp_humans_must_join_team");
+	}
 
 	mp_humanteam.AddChangeHook(OnConVarChanged);
-
-	AutoExecConfig();
 
 	// crons
 	if(gEV_Type != Engine_TF2)
@@ -499,38 +437,6 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	gI_GodMode = gCV_GodMode.IntValue;
-	gI_PreSpeed = gCV_PreSpeed.IntValue;
-	gB_HideTeamChanges = gCV_HideTeamChanges.BoolValue;
-	gB_RespawnOnTeam = gCV_RespawnOnTeam.BoolValue;
-	gB_RespawnOnRestart = gCV_RespawnOnRestart.BoolValue;
-	gB_StartOnSpawn = gCV_StartOnSpawn.BoolValue;
-	gF_PrestrafeLimit = gCV_PrestrafeLimit.FloatValue;
-	gB_HideRadar = gCV_HideRadar.BoolValue;
-	gB_TeleportCommands = gCV_TeleportCommands.BoolValue;
-	gB_NoWeaponDrops = gCV_NoWeaponDrops.BoolValue;
-	gB_NoBlock = gCV_NoBlock.BoolValue;
-	gB_NoBlood = gCV_NoBlood.BoolValue;
-	gF_AutoRespawn = gCV_AutoRespawn.FloatValue;
-	gI_CreateSpawnPoints = gCV_CreateSpawnPoints.IntValue;
-	gB_DisableRadio = gCV_DisableRadio.BoolValue;
-	gB_Scoreboard = gCV_Scoreboard.BoolValue;
-	gI_WeaponCommands = gCV_WeaponCommands.IntValue;
-	gI_PlayerOpacity = gCV_PlayerOpacity.IntValue;
-	gB_StaticPrestrafe = gCV_StaticPrestrafe.BoolValue;
-	gI_NoclipMe = gCV_NoclipMe.IntValue;
-	gF_AdvertisementInterval = gCV_AdvertisementInterval.FloatValue;
-	gB_Checkpoints = gCV_Checkpoints.BoolValue;
-	gI_RemoveRagdolls = gCV_RemoveRagdolls.IntValue;
-	gCV_ClanTag.GetString(gS_ClanTag, 32);
-	gB_DropAll = gCV_DropAll.BoolValue;
-	gB_ResetTargetname = gCV_ResetTargetname.BoolValue;
-	gB_RestoreStates = gCV_RestoreStates.BoolValue;
-	gB_JointeamHook = gCV_JointeamHook.BoolValue;
-	gI_SpectatorList = gCV_SpectatorList.IntValue;
-	gI_MaxCP = gCV_MaxCP.IntValue;
-	gI_MaxCP_Segmented = gCV_MaxCP_Segmented.IntValue;
-
 	if(convar == mp_humanteam)
 	{
 		if(StrEqual(newValue, "t", false) || StrEqual(newValue, "red", false))
@@ -572,7 +478,7 @@ public void OnMapStart()
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
 
-	if(gI_CreateSpawnPoints > 0)
+	if(gCV_CreateSpawnPoints.IntValue > 0)
 	{
 		int iEntity = -1;
 
@@ -584,7 +490,7 @@ public void OnMapStart()
 			float fOrigin[3];
 			GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", fOrigin);
 
-			for(int i = 1; i <= gI_CreateSpawnPoints; i++)
+			for(int i = 1; i <= gCV_CreateSpawnPoints.IntValue; i++)
 			{
 				for(int iTeam = 1; iTeam <= 2; iTeam++)
 				{
@@ -605,9 +511,9 @@ public void OnMapStart()
 		Shavit_OnChatConfigLoaded();
 	}
 
-	if(gF_AdvertisementInterval > 0.0)
+	if(gCV_AdvertisementInterval.FloatValue > 0.0)
 	{
-		CreateTimer(gF_AdvertisementInterval, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(gCV_AdvertisementInterval.FloatValue, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
@@ -694,7 +600,7 @@ public void OnLibraryRemoved(const char[] name)
 
 public Action Command_Jointeam(int client, const char[] command, int args)
 {
-	if(!IsValidClient(client) || !gB_JointeamHook)
+	if(!IsValidClient(client) || !gCV_JointeamHook.BoolValue)
 	{
 		return Plugin_Continue;
 	}
@@ -751,7 +657,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		}
 	}
 
-	if(gB_RespawnOnTeam && bRespawn)
+	if(gCV_RespawnOnTeam.BoolValue && bRespawn)
 	{
 		if(gEV_Type == Engine_TF2)
 		{
@@ -789,7 +695,7 @@ void CleanSwitchTeam(int client, int team, bool change = false)
 
 public Action Command_Radio(int client, const char[] command, int args)
 {
-	if(gB_DisableRadio)
+	if(gCV_DisableRadio.BoolValue)
 	{
 		return Plugin_Handled;
 	}
@@ -799,7 +705,7 @@ public Action Command_Radio(int client, const char[] command, int args)
 
 public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 {
-	if(!gB_StaticPrestrafe || !IsValidClient(pThis, true))
+	if(!gCV_StaticPrestrafe.BoolValue || !IsValidClient(pThis, true))
 	{
 		return MRES_Ignored;
 	}
@@ -818,7 +724,7 @@ public Action Timer_Scoreboard(Handle Timer)
 			continue;
 		}
 
-		if(gB_Scoreboard)
+		if(gCV_Scoreboard.BoolValue)
 		{
 			UpdateScoreboard(i);
 		}
@@ -889,8 +795,7 @@ void UpdateScoreboard(int client)
 		return;
 	}
 
-	float fPB = 0.0;
-	Shavit_GetPlayerPB(client, 0, fPB, Track_Main);
+	float fPB = Shavit_GetClientPB(client, 0, Track_Main);
 
 	int iScore = (fPB != 0.0 && fPB < 2000)? -RoundToFloor(fPB):-2000;
 
@@ -913,7 +818,10 @@ void UpdateScoreboard(int client)
 void UpdateClanTag(int client)
 {
 	// no clan tags in tf2
-	if(gEV_Type == Engine_TF2 || StrEqual(gS_ClanTag, "0"))
+	char sTag[32];
+	gCV_ClanTag.GetString(sTag, 32);
+
+	if(gEV_Type == Engine_TF2 || StrEqual(sTag, "0"))
 	{
 		return;
 	}
@@ -964,7 +872,7 @@ void UpdateClanTag(int client)
 	}
 
 	char sCustomTag[32];
-	strcopy(sCustomTag, 32, gS_ClanTag);
+	strcopy(sCustomTag, 32, sTag);
 	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gI_Style[client]].sStyleName);
 	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gI_Style[client]].sClanTag);
 	ReplaceString(sCustomTag, 32, "{time}", sTime);
@@ -998,7 +906,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	// prespeed
 	if(!bNoclip && !gA_StyleSettings[gI_Style[client]].bPrespeed && Shavit_InsideZone(client, Zone_Start, track))
 	{
-		if((gI_PreSpeed == 2 || gI_PreSpeed == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
+		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
@@ -1008,14 +916,14 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			return Plugin_Continue;
 		}
 
-		if(gI_PreSpeed == 1 || gI_PreSpeed >= 3)
+		if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue >= 3)
 		{
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
-			float fLimit = (gA_StyleSettings[gI_Style[client]].fRunspeed + gF_PrestrafeLimit);
+			float fLimit = (gA_StyleSettings[gI_Style[client]].fRunspeed + gCV_PrestrafeLimit.FloatValue);
 
-			if(gI_PreSpeed < 4)
+			if(gCV_PreSpeed.IntValue < 4)
 			{
 				// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 				// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
@@ -1079,7 +987,7 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect(int client)
 {
-	if(gB_NoWeaponDrops)
+	if(gCV_NoWeaponDrops.BoolValue)
 	{
 		int entity = -1;
 
@@ -1144,7 +1052,7 @@ public Action OnTakeDamage(int victim, int attacker)
 		}
 	}
 
-	switch(gI_GodMode)
+	switch(gCV_GodMode.IntValue)
 	{
 		case 0:
 		{
@@ -1180,7 +1088,7 @@ public Action OnTakeDamage(int victim, int attacker)
 
 public void OnWeaponDrop(int client, int entity)
 {
-	if(gB_NoWeaponDrops && IsValidEntity(entity))
+	if(gCV_NoWeaponDrops.BoolValue && IsValidEntity(entity))
 	{
 		AcceptEntityInput(entity, "Kill");
 	}
@@ -1313,7 +1221,7 @@ public Action Command_Teleport(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gB_TeleportCommands)
+	if(!gCV_TeleportCommands.BoolValue)
 	{
 		Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -1426,7 +1334,7 @@ public Action Command_Weapon(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gI_WeaponCommands == 0)
+	if(gCV_WeaponCommands.IntValue == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "CommandDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -1516,7 +1424,7 @@ public Action Command_Save(int client, int args)
 	int iMaxCPs = GetMaxCPs(client);
 	bool bSegmenting = CanSegment(client);
 
-	if(!gB_Checkpoints && !bSegmenting)
+	if(!gCV_Checkpoints.BoolValue && !bSegmenting)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -1568,7 +1476,7 @@ public Action Command_Tele(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!gB_Checkpoints)
+	if(!gCV_Checkpoints.BoolValue)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -1584,7 +1492,7 @@ public Action Command_Tele(int client, int args)
 
 		int parsed = StringToInt(arg);
 
-		if(0 < parsed <= gI_MaxCP)
+		if(0 < parsed <= gCV_MaxCP.IntValue)
 		{
 			index = parsed;
 		}
@@ -1599,7 +1507,7 @@ public Action OpenCheckpointsMenu(int client, int item)
 {
 	bool bSegmented = CanSegment(client);
 
-	if(!gB_Checkpoints && !bSegmented)
+	if(!gCV_Checkpoints.BoolValue && !bSegmented)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -1620,7 +1528,7 @@ public Action OpenCheckpointsMenu(int client, int item)
 
 	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_CheckpointsCache[client].iCheckpoints + 1));
-	menu.AddItem("save", sDisplay, (gA_CheckpointsCache[client].iCheckpoints < gI_MaxCP)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	menu.AddItem("save", sDisplay, (gA_CheckpointsCache[client].iCheckpoints < gCV_MaxCP.IntValue)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	if(gA_CheckpointsCache[client].iCheckpoints > 0)
 	{
@@ -1958,7 +1866,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
-	if(index < 0 || index > gI_MaxCP || (!gB_Checkpoints && !CanSegment(client)))
+	if(index < 0 || index > gCV_MaxCP.IntValue || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
 	{
 		return;
 	}
@@ -2097,14 +2005,14 @@ public Action Command_Noclip(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gI_NoclipMe == 0)
+	if(gCV_NoclipMe.IntValue == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
 	}
 
-	else if(gI_NoclipMe == 2 && !CheckCommandAccess(client, "admin_noclipme", ADMFLAG_CHEATS))
+	else if(gCV_NoclipMe.IntValue == 2 && !CheckCommandAccess(client, "admin_noclipme", ADMFLAG_CHEATS))
 	{
 		Shavit_PrintToChat(client, "%T", "LackingAccess", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -2143,7 +2051,7 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 		return Plugin_Handled;
 	}
 
-	if((gI_NoclipMe == 1 || (gI_NoclipMe == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
+	if((gCV_NoclipMe.IntValue == 1 || (gCV_NoclipMe.IntValue == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
 	{
 		if(Shavit_GetTimerStatus(client) != Timer_Stopped)
 		{
@@ -2215,8 +2123,8 @@ public Action Command_Specs(int client, int args)
 			continue;
 		}
 
-		if((gI_SpectatorList == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
-			(gI_SpectatorList == 2 && !CanUserTarget(client, i)))
+		if((gCV_SpectatorList.IntValue == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
+			(gCV_SpectatorList.IntValue == 2 && !CanUserTarget(client, i)))
 		{
 			continue;
 		}
@@ -2257,7 +2165,7 @@ public Action Shavit_OnStart(int client)
 		return Plugin_Stop;
 	}
 
-	if(gB_ResetTargetname || Shavit_IsPracticeMode(client)) // practice mode can be abused to break map triggers
+	if(gCV_ResetTargetname.BoolValue || Shavit_IsPracticeMode(client)) // practice mode can be abused to break map triggers
 	{
 		DispatchKeyValue(client, "targetname", "");
 		SetEntPropString(client, Prop_Data, "m_iClassname", "player");
@@ -2320,7 +2228,7 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 
 public void Shavit_OnRestart(int client, int track)
 {
-	if(!gB_RespawnOnRestart)
+	if(!gCV_RespawnOnRestart.BoolValue)
 	{
 		return;
 	}
@@ -2355,7 +2263,7 @@ public void Shavit_OnRestart(int client, int track)
 			CS_RespawnPlayer(client);
 		}
 
-		if(gB_RespawnOnRestart)
+		if(gCV_RespawnOnRestart.BoolValue)
 		{
 			RestartTimer(client, track);
 		}
@@ -2378,7 +2286,7 @@ public Action Respawn(Handle Timer, any data)
 			CS_RespawnPlayer(client);
 		}
 
-		if(gB_RespawnOnRestart)
+		if(gCV_RespawnOnRestart.BoolValue)
 		{
 			RestartTimer(client, Track_Main);
 		}
@@ -2403,19 +2311,19 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	{
 		int serial = GetClientSerial(client);
 
-		if(gB_HideRadar)
+		if(gCV_HideRadar.BoolValue)
 		{
 			RequestFrame(RemoveRadar, serial);
 		}
 
-		if(gB_StartOnSpawn)
+		if(gCV_StartOnSpawn.BoolValue)
 		{
 			RestartTimer(client, Track_Main);
 		}
 
 		if(gB_SaveStates[client])
 		{
-			if(gB_RestoreStates)
+			if(gCV_RestoreStates.BoolValue)
 			{
 				RequestFrame(RestoreState, serial);
 			}
@@ -2426,7 +2334,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			}
 		}
 
-		if(gB_Scoreboard)
+		if(gCV_Scoreboard.BoolValue)
 		{
 			UpdateScoreboard(client);
 		}
@@ -2434,15 +2342,15 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		UpdateClanTag(client);
 	}
 
-	if(gB_NoBlock)
+	if(gCV_NoBlock.BoolValue)
 	{
 		SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	}
 
-	if(gI_PlayerOpacity != -1)
+	if(gCV_PlayerOpacity.IntValue != -1)
 	{
 		SetEntityRenderMode(client, RENDER_TRANSCOLOR);
-		SetEntityRenderColor(client, 255, 255, 255, gI_PlayerOpacity);
+		SetEntityRenderColor(client, 255, 255, 255, gCV_PlayerOpacity.IntValue);
 	}
 }
 
@@ -2489,7 +2397,7 @@ void RestoreState(any data)
 
 public Action Player_Notifications(Event event, const char[] name, bool dontBroadcast)
 {
-	if(gB_HideTeamChanges)
+	if(gCV_HideTeamChanges.BoolValue)
 	{
 		event.BroadcastDisabled = true;
 	}
@@ -2503,13 +2411,13 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 			SaveState(client);
 		}
 
-		if(gF_AutoRespawn > 0.0 && StrEqual(name, "player_death"))
+		if(gCV_AutoRespawn.FloatValue > 0.0 && StrEqual(name, "player_death"))
 		{
-			CreateTimer(gF_AutoRespawn, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+			CreateTimer(gCV_AutoRespawn.FloatValue, Respawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 
-	switch(gI_RemoveRagdolls)
+	switch(gCV_RemoveRagdolls.IntValue)
 	{
 		case 0:
 		{
@@ -2540,7 +2448,7 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 
 public void Weapon_Fire(Event event, const char[] name, bool dB)
 {
-	if(gI_WeaponCommands < 2)
+	if(gCV_WeaponCommands.IntValue < 2)
 	{
 		return;
 	}
@@ -2638,7 +2546,7 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 
 public Action EffectDispatch(const char[] te_name, const Players[], int numClients, float delay)
 {
-	if(!gB_NoBlood)
+	if(!gCV_NoBlood.BoolValue)
 	{
 		return Plugin_Continue;
 	}
@@ -2670,7 +2578,7 @@ public Action EffectDispatch(const char[] te_name, const Players[], int numClien
 
 public Action WorldDecal(const char[] te_name, const Players[], int numClients, float delay)
 {
-	if(!gB_NoBlood)
+	if(!gCV_NoBlood.BoolValue)
 	{
 		return Plugin_Continue;
 	}
@@ -2729,7 +2637,7 @@ int GetDecalName(int index, char[] sDecalName, int maxlen)
 
 public void Shavit_OnFinish(int client)
 {
-	if(!gB_Scoreboard)
+	if(!gCV_Scoreboard.BoolValue)
 	{
 		return;
 	}
@@ -2756,7 +2664,7 @@ public void Shavit_OnResume(int client, int track)
 
 public Action Command_Drop(int client, const char[] command, int argc)
 {
-	if(!gB_DropAll || !IsValidClient(client) || gEV_Type == Engine_TF2)
+	if(!gCV_DropAll.BoolValue || !IsValidClient(client) || gEV_Type == Engine_TF2)
 	{
 		return Plugin_Continue;
 	}
@@ -2841,5 +2749,5 @@ bool CanSegment(int client)
 
 int GetMaxCPs(int client)
 {
-	return CanSegment(client)? gI_MaxCP_Segmented:gI_MaxCP;
+	return CanSegment(client)? gCV_MaxCP_Segmented.IntValue:gCV_MaxCP.IntValue;
 }
