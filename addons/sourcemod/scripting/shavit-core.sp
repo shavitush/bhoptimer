@@ -114,6 +114,7 @@ ConVar gCV_BlockPreJump = null;
 ConVar gCV_NoZAxisSpeed = null;
 ConVar gCV_VelocityTeleport = null;
 ConVar gCV_DefaultStyle = null;
+ConVar gCV_NoChatSound = null;
 
 // cached cvars
 int gI_DefaultStyle = 0;
@@ -310,6 +311,7 @@ public void OnPluginStart()
 	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
 	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle = CreateConVar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
+	gCV_NoChatSound = CreateConVar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
 
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
@@ -1121,7 +1123,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 		Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 		pbmsg.SetInt("ent_idx", client);
-		pbmsg.SetBool("chat", !gB_StopChatSound);
+		pbmsg.SetBool("chat", !(gB_StopChatSound || gCV_NoChatSound.BoolValue));
 		pbmsg.SetString("msg_name", sBuffer);
 		
 		// needed to not crash
@@ -1135,7 +1137,7 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	{
 		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
 		bfmsg.WriteByte(client);
-		bfmsg.WriteByte(!gB_StopChatSound);
+		bfmsg.WriteByte(!(gB_StopChatSound || gCV_NoChatSound.BoolValue));
 		bfmsg.WriteString(sBuffer);
 	}
 

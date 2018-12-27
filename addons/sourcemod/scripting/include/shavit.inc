@@ -29,7 +29,7 @@
 #define MAX_NAME_LENGTH_SQL 32
 
 // HUD
-#define HUD_NONE				(0)
+#define HUD_NONE				0
 #define HUD_MASTER				(1 << 0) // master setting
 #define HUD_CENTER				(1 << 1) // show hud as hint text
 #define HUD_ZONEHUD				(1 << 2) // show start/end zone hud

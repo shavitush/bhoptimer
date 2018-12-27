@@ -923,14 +923,11 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 			float fLimit = (gA_StyleSettings[gI_Style[client]].fRunspeed + gCV_PrestrafeLimit.FloatValue);
 
-			if(gCV_PreSpeed.IntValue < 4)
+			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
+			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
+			if(gCV_PreSpeed.IntValue < 4 && fSpeed[2] > 0.0)
 			{
-				// if trying to jump, add a very low limit to stop prespeeding in an elegant way
-				// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
-				if(fSpeed[2] > 0.0)
-				{
-					fLimit /= 3.0;
-				}
+				fLimit /= 3.0;
 			}
 
 			float fSpeedXY = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
