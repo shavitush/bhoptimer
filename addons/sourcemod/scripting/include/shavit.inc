@@ -1162,8 +1162,9 @@ native bool Shavit_ReloadReplay(int style, int track, bool restart, char[] path 
 native int Shavit_ReloadReplays(bool restart);
 
 /**
- * Use this native to stop the chat tick sound that happens in CS:S.
- * Call it before each Shavit_PrintToChat() or Shavit_PrintToChatAll().
+ * Use this native to stop the click sound that plays upon chat messages.
+ * Call it before each Shavit_PrintToChat().
+ * Shavit_PrintToChatAll() is not guaranteed to disable the sound from playing.
  *
  * @noreturn
  */
@@ -1236,7 +1237,7 @@ native void Shavit_LogMessage(const char[] format, any ...);
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
 {
-	char[] buffer = new char[300];
+	char buffer[300];
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
