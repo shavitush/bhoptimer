@@ -11,6 +11,11 @@
 		"#format"	"{1:d}"
 		"en"		"In Start Zone\n\n{1}"
 	}
+	"HudInStartZoneCSGO"
+	{
+		"#format"	"{1:d}"
+		"en"		"In Start Zone\n\n\t\t\t{1}"
+	}
 	"HudEndZone"
 	{
 		"en"		"End Zone"
@@ -19,6 +24,11 @@
 	{
 		"#format"	"{1:d}"
 		"en"		"In End Zone\n\n{1}"
+	}
+	"HudInEndZoneCSGO"
+	{
+		"#format"	"{1:d}"
+		"en"		"In End Zone\n\n\t\t\t{1}"
 	}
 	"HudPaused"
 	{
@@ -112,6 +122,14 @@
 	"HudPracticeModeAlert"
 	{
 		"en"		"Disable practice mode alert"
+	}
+	"HudRankText"
+	{
+		"en"		"Expected rank"
+	}
+	"HudTrackText"
+	{
+		"en"		"Timer track"
 	}
 	// ---------- Record Bots ---------- //
 	"ReplayText"
