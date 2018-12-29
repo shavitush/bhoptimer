@@ -1728,7 +1728,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		if((gI_PlayerFrames[client] / gF_Tickrate) > gCV_TimeLimit.FloatValue)
 		{
-			Shavit_PrintToChat(client, "stopped recording: %d", gI_PlayerFrames[client]);
 			// in case of bad timing
 			if(gB_HijackFrame[client])
 			{
