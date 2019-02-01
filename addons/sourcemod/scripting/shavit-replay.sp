@@ -2338,9 +2338,13 @@ void StopCentralReplay(int client)
 	gI_ReplayTick[style] = 0;
 	gI_ReplayBotClient[style] = 0;
 	gF_StartTick[style] = -65535.0;
-	TeleportToStart(gA_CentralCache.iClient, style, GetReplayTrack(gA_CentralCache.iClient));
 	gA_CentralCache.iStyle = 0;
 	gB_ForciblyStopped = true;
+
+	if(gA_CentralCache.iClient != -1)
+	{
+		TeleportToStart(gA_CentralCache.iClient, style, GetReplayTrack(gA_CentralCache.iClient));
+	}
 
 	UpdateReplayInfo(client, 0, 0.0, gA_CentralCache.iTrack);
 }
