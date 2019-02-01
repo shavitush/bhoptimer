@@ -1739,13 +1739,9 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		iClassname = gA_Classnames.PushString(sClassname);
 	}
 
-	cpcache.iTargetname = iTargetname;
-	cpcache.iClassname = iClassname;
 	cpcache.iMoveType = GetEntityMoveType(target);
 	cpcache.fGravity = GetEntityGravity(target);
 	cpcache.fSpeed = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
-	cpcache.fStamina = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
-	cpcache.iGroundEntity = GetEntPropEnt(target, Prop_Data, "m_hGroundEntity");
 
 	int iFlags = GetEntityFlags(target);
 
@@ -1753,6 +1749,21 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	{
 		iFlags |= FL_CLIENT;
 		iFlags |= FL_AIMTARGET;
+		iFlags &= ~FL_ATCONTROLS;
+		iFlags &= ~FL_FAKECLIENT;
+
+		cpcache.fStamina = 0.0;
+		cpcache.iGroundEntity = -1;
+		cpcache.iTargetname = -1;
+		cpcache.iClassname = -1;
+	}
+
+	else
+	{
+		cpcache.fStamina = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
+		cpcache.iGroundEntity = GetEntPropEnt(target, Prop_Data, "m_hGroundEntity");
+		cpcache.iTargetname = iTargetname;
+		cpcache.iClassname = iClassname;
 	}
 
 	cpcache.iFlags = iFlags;

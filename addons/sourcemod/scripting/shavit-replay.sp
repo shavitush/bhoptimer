@@ -1338,7 +1338,7 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 
 			if((iFlags & FL_ATCONTROLS) == 0)
 			{
-				SetEntityFlags(client, (iFlags|FL_ATCONTROLS));
+				SetEntityFlags(client, (iFlags | FL_ATCONTROLS));
 			}
 		}
 
