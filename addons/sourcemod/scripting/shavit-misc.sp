@@ -103,6 +103,7 @@ ArrayList gA_Targetnames = null;
 ArrayList gA_Classnames = null;
 
 // save states
+bool gB_SaveStatesSegmented[MAXPLAYERS+1];
 float gF_SaveStateData[MAXPLAYERS+1][3][3];
 timer_snapshot_t gA_SaveStates[MAXPLAYERS+1];
 bool gB_SaveStates[MAXPLAYERS+1];
@@ -2690,6 +2691,7 @@ void LoadState(int client)
 	DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
 
 	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
+	Shavit_SetPracticeMode(client, gB_SaveStatesSegmented[client], false);
 
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{
@@ -2713,6 +2715,7 @@ void SaveState(int client)
 	GetEntPropString(client, Prop_Data, "m_iName", gS_SaveStateTargetname[client], 32);
 
 	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
+	gB_SaveStatesSegmented[client] = Shavit_IsPracticeMode(client);
 
 	if(gB_Replay)
 	{
