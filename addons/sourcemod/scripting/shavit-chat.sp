@@ -32,8 +32,8 @@
 #include <cstrike>
 
 #define MAGIC_NUMBER 2147483648.0
-#define MAXLENGTH_NAME 192
-#define MAXLENGTH_TEXT 192
+#define MAXLENGTH_NAME 128
+#define MAXLENGTH_TEXT 128
 #define MAXLENGTH_MESSAGE 255
 #define MAXLENGTH_DISPLAY 192
 #define MAXLENGTH_CMESSAGE 16
@@ -375,6 +375,9 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		ReplaceString(sOriginalName, MAXLENGTH_NAME, gS_ControlCharacters[i], "");
 		ReplaceString(sOriginalText, MAXLENGTH_TEXT, gS_ControlCharacters[i], "");
 	}
+
+	// fix an exploit that breaks chat colors in cs:s
+	while(ReplaceString(sOriginalText, MAXLENGTH_TEXT, "   ", " ") > 0) { }
 
 	char sName[MAXLENGTH_NAME];
 	char sCMessage[MAXLENGTH_CMESSAGE];
