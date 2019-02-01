@@ -410,13 +410,13 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	{
 		FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
 
-		char sTemp[MAXLENGTH_CMESSAGE];
+		char sFixedMessage[MAXLENGTH_MESSAGE];
 
 		// support RTL messages
-		if(gB_RTLer && RTLify(sTemp, MAXLENGTH_CMESSAGE, sOriginalText) > 0)
+		if(gB_RTLer && RTLify(sFixedMessage, MAXLENGTH_MESSAGE, sOriginalText) > 0)
 		{
 			TrimString(sOriginalText);
-			Format(sOriginalText, MAXLENGTH_MESSAGE, "%s%s", sOriginalText, sCMessage);
+			Format(sOriginalText, MAXLENGTH_MESSAGE, "%s%s", sFixedMessage, sCMessage);
 		}
 
 		else
