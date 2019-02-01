@@ -47,6 +47,7 @@ enum struct cp_cache_t
 	float fPosition[3];
 	float fAngles[3];
 	float fVelocity[3];
+	float fBaseVelocity[3];
 	MoveType iMoveType;
 	float fGravity;
 	float fSpeed;
@@ -1711,8 +1712,11 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetClientEyeAngles(target, temp);
 	CopyArray(temp, cpcache.fAngles, 3);
 
-	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", temp);
+	GetEntPropVector(target, Prop_Data, "m_vecVelocity", temp);
 	CopyArray(temp, cpcache.fVelocity, 3);
+
+	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", temp);
+	CopyArray(temp, cpcache.fBaseVelocity, 3);
 
 	char sTargetname[64];
 	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 64);
@@ -1908,7 +1912,11 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented)
 	{
+		float basevel[3];
 		CopyArray(cpcache.fVelocity, vel, 3);
+		CopyArray(cpcache.fBaseVelocity, basevel, 3);
+
+		AddVectors(vel, basevel, vel);
 	}
 
 	else
