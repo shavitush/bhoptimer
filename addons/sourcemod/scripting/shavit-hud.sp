@@ -969,6 +969,12 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 				AddHUDLine(buffer, maxlen, sLine);
 				iLines++;
 			}
+
+			if((gI_HUD2Settings[client] & HUD2_SPEED) == 0)
+			{
+				FormatEx(sLine, 128, "%d u/s", data.iSpeed);
+				AddHUDLine(buffer, maxlen, sLine);
+			}
 		}
 
 		else
