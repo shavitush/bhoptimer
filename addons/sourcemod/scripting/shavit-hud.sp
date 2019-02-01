@@ -155,7 +155,8 @@ public void OnPluginStart()
 
 	else
 	{
-		gI_NameLength = 14; // 14 because long names will make it look spammy in CS:GO due to the font
+		// long names make it look bad in CS:GO due to the font size
+		gI_NameLength = 14;
 	}
 
 	if(gEV_Type == Engine_TF2)
@@ -576,12 +577,12 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 
 		if(type == 1)
 		{
-			Format(sDisplay, 64, "[%c] %s", ((gI_HUDSettings[param1] & StringToInt(sInfo)) > 0)? '+':' ', sDisplay);
+			Format(sDisplay, 64, "[%s] %s", ((gI_HUDSettings[param1] & StringToInt(sInfo)) > 0)? "＋":"－", sDisplay);
 		}
 
 		else
 		{
-			Format(sDisplay, 64, "[%c] %s", ((gI_HUD2Settings[param1] & StringToInt(sInfo)) > 0)? '-':' ', sDisplay);
+			Format(sDisplay, 64, "[%s] %s", ((gI_HUD2Settings[param1] & StringToInt(sInfo)) == 0)? "＋":"－", sDisplay);
 		}
 
 		return RedrawMenuItem(sDisplay);

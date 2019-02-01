@@ -577,7 +577,6 @@ void LoadZoneSettings()
 			gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
 		}
 	}
-
 }
 
 public void OnMapStart()
