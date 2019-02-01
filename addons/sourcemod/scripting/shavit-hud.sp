@@ -116,6 +116,7 @@ ConVar gCV_SpectatorList = null;
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 stylesettings_t gA_StyleSettings[STYLE_LIMIT];
+chatstrings_t gS_ChatStrings;
 
 public Plugin myinfo =
 {
@@ -183,8 +184,29 @@ public void OnPluginStart()
 	AutoExecConfig();
 
 	// commands
-	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu");
-	RegConsoleCmd("sm_options", Command_HUD, "Opens the HUD settings menu (alias for sm_hud");
+	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu.");
+	RegConsoleCmd("sm_options", Command_HUD, "Opens the HUD settings menu. (alias for sm_hud)");
+
+	// hud togglers
+	RegConsoleCmd("sm_keys", Command_Keys, "Toggles key display.");
+	RegConsoleCmd("sm_showkeys", Command_Keys, "Toggles key display. (alias for sm_keys)");
+	RegConsoleCmd("sm_showmykeys", Command_Keys, "Toggles key display. (alias for sm_keys)");
+
+	RegConsoleCmd("sm_master", Command_Master, "Toggles HUD.");
+	RegConsoleCmd("sm_masterhud", Command_Master, "Toggles HUD. (alias for sm_master)");
+
+	RegConsoleCmd("sm_center", Command_Center, "Toggles center text HUD.");
+	RegConsoleCmd("sm_centerhud", Command_Center, "Toggles center text HUD. (alias for sm_center)");
+
+	RegConsoleCmd("sm_zonehud", Command_ZoneHUD, "Toggles zone HUD.");
+
+	RegConsoleCmd("sm_hideweapon", Command_HideWeapon, "Toggles weapon hiding.");
+	RegConsoleCmd("sm_hideweap", Command_HideWeapon, "Toggles weapon hiding. (alias for sm_hideweapon)");
+	RegConsoleCmd("sm_hidewep", Command_HideWeapon, "Toggles weapon hiding. (alias for sm_hideweapon)");
+
+	RegConsoleCmd("sm_truevel", Command_TrueVel, "Toggles 2D ('true') velocity.");
+	RegConsoleCmd("sm_truvel", Command_TrueVel, "Toggles 2D ('true') velocity. (alias for sm_truevel)");
+	RegConsoleCmd("sm_2dvel", Command_TrueVel, "Toggles 2D ('true') velocity. (alias for sm_truevel)");
 
 	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
@@ -212,6 +234,7 @@ public void OnMapStart()
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnChatConfigLoaded();
 	}
 }
 
@@ -301,6 +324,16 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	}
 
 	return Plugin_Continue;
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
+	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
+	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
+	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
+	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
+	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
 }
 
 public void OnClientPutInServer(int client)
@@ -413,6 +446,95 @@ void FillerHintText(int client)
 	PrintHintText(client, "...");
 	gF_ConnectTime[client] = GetEngineTime();
 	gB_FirstPrint[client] = true;
+}
+
+void ToggleHUD(int client, int hud, bool chat)
+{
+	if(!(1 <= client <= MaxClients))
+	{
+		return;
+	}
+
+	char sCookie[16];
+	gI_HUDSettings[client] ^= hud;
+	IntToString(gI_HUDSettings[client], sCookie, 16);
+	SetClientCookie(client, gH_HUDCookie, sCookie);
+
+	if(chat)
+	{
+		char sHUDSetting[64];
+
+		switch(hud)
+		{
+			case HUD_MASTER: FormatEx(sHUDSetting, 64, "%T", "HudMaster", client);
+			case HUD_CENTER: FormatEx(sHUDSetting, 64, "%T", "HudCenter", client);
+			case HUD_ZONEHUD: FormatEx(sHUDSetting, 64, "%T", "HudZoneHud", client);
+			case HUD_OBSERVE: FormatEx(sHUDSetting, 64, "%T", "HudObserve", client);
+			case HUD_SPECTATORS: FormatEx(sHUDSetting, 64, "%T", "HudSpectators", client);
+			case HUD_KEYOVERLAY: FormatEx(sHUDSetting, 64, "%T", "HudKeyOverlay", client);
+			case HUD_HIDEWEAPON: FormatEx(sHUDSetting, 64, "%T", "HudHideWeapon", client);
+			case HUD_TOPLEFT: FormatEx(sHUDSetting, 64, "%T", "HudTopLeft", client);
+			case HUD_SYNC: FormatEx(sHUDSetting, 64, "%T", "HudSync", client);
+			case HUD_TIMELEFT: FormatEx(sHUDSetting, 64, "%T", "HudTimeLeft", client);
+			case HUD_2DVEL: FormatEx(sHUDSetting, 64, "%T", "Hud2dVel", client);
+			case HUD_NOSOUNDS: FormatEx(sHUDSetting, 64, "%T", "HudNoRecordSounds", client);
+			case HUD_NOPRACALERT: FormatEx(sHUDSetting, 64, "%T", "HudPracticeModeAlert", client);
+		}
+
+		if((gI_HUDSettings[client] & hud) > 0)
+		{
+			Shavit_PrintToChat(client, "%T", "HudEnabledComponent", client,
+				gS_ChatStrings.sVariable, sHUDSetting, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
+		}
+
+		else
+		{
+			Shavit_PrintToChat(client, "%T", "HudDisabledComponent", client,
+				gS_ChatStrings.sVariable, sHUDSetting, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		}
+	}
+}
+
+public Action Command_Master(int client, int args)
+{
+	ToggleHUD(client, HUD_MASTER, true);
+
+	return Plugin_Handled;
+}
+
+public Action Command_Center(int client, int args)
+{
+	ToggleHUD(client, HUD_CENTER, true);
+
+	return Plugin_Handled;
+}
+
+public Action Command_ZoneHUD(int client, int args)
+{
+	ToggleHUD(client, HUD_ZONEHUD, true);
+
+	return Plugin_Handled;
+}
+
+public Action Command_HideWeapon(int client, int args)
+{
+	ToggleHUD(client, HUD_HIDEWEAPON, true);
+
+	return Plugin_Handled;
+}
+
+public Action Command_TrueVel(int client, int args)
+{
+	ToggleHUD(client, HUD_2DVEL, true);
+
+	return Plugin_Handled;
+}
+
+public Action Command_Keys(int client, int args)
+{
+	ToggleHUD(client, HUD_KEYOVERLAY, true);
+
+	return Plugin_Handled;
 }
 
 public Action Command_HUD(int client, int args)
