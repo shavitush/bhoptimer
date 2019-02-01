@@ -93,7 +93,7 @@
 	}
 	"HudObserve"
 	{
-		"en"		"Shows the HUD of the player you spectate"
+		"en"		"Spectate HUD"
 	}
 	"HudSpectators"
 	{
@@ -101,7 +101,7 @@
 	}
 	"HudKeyOverlay"
 	{
-		"en"		"Key overlay"
+		"en"		"Key display"
 	}
 	"HudHideWeapon"
 	{
@@ -117,11 +117,11 @@
 	}
 	"HudNoRecordSounds"
 	{
-		"en"		"Disable record sounds"
+		"en"		"No record sounds"
 	}
 	"HudPracticeModeAlert"
 	{
-		"en"		"Disable practice mode alert"
+		"en"		"No practice mode alert"
 	}
 	"HudRankText"
 	{
