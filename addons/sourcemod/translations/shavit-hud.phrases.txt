@@ -11,6 +11,11 @@
 		"#format"	"{1:d}"
 		"en"		"In Start Zone\n\n{1}"
 	}
+	"HudInStartZoneCSGO"
+	{
+		"#format"	"{1:d}"
+		"en"		"In Start Zone\n\n\t\t\t{1}"
+	}
 	"HudEndZone"
 	{
 		"en"		"End Zone"
@@ -19,6 +24,11 @@
 	{
 		"#format"	"{1:d}"
 		"en"		"In End Zone\n\n{1}"
+	}
+	"HudInEndZoneCSGO"
+	{
+		"#format"	"{1:d}"
+		"en"		"In End Zone\n\n\t\t\t{1}"
 	}
 	"HudPaused"
 	{
@@ -83,7 +93,7 @@
 	}
 	"HudObserve"
 	{
-		"en"		"Shows the HUD of the player you spectate"
+		"en"		"Spectate HUD"
 	}
 	"HudSpectators"
 	{
@@ -91,7 +101,7 @@
 	}
 	"HudKeyOverlay"
 	{
-		"en"		"Key overlay"
+		"en"		"Key display"
 	}
 	"HudHideWeapon"
 	{
@@ -107,11 +117,19 @@
 	}
 	"HudNoRecordSounds"
 	{
-		"en"		"Disable record sounds"
+		"en"		"No record sounds"
 	}
 	"HudPracticeModeAlert"
 	{
-		"en"		"Disable practice mode alert"
+		"en"		"No practice mode alert"
+	}
+	"HudRankText"
+	{
+		"en"		"Expected rank"
+	}
+	"HudTrackText"
+	{
+		"en"		"Timer track"
 	}
 	// ---------- Record Bots ---------- //
 	"ReplayText"
@@ -134,5 +152,16 @@
 	"SpectatorWatching"
 	{
 		"en"		"Other Spectators"
+	}
+	// ---------- Commands ---------- //
+	"HudEnabledComponent"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s}"
+		"en"		"{1}{2} {3}HUD setting {4}enabled{5}."
+	}
+	"HudDisabledComponent"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s}"
+		"en"		"{1}{2} {3}HUD setting {4}disabled{5}."
 	}
 }

@@ -59,17 +59,13 @@ bool gB_Late = false;
 ConVar gCV_MVPRankOnes = null;
 ConVar gCV_MVPRankOnes_Main = null;
 
-// cached cvars
-int gI_MVPRankOnes = 2;
-bool gB_MVPRankOnes_Main = true;
-
 // timer settings
 int gI_Styles = 0;
-char gS_StyleStrings[STYLE_LIMIT][STYLESTRINGS_SIZE][128];
-any gA_StyleSettings[STYLE_LIMIT][STYLESETTINGS_SIZE];
+stylestrings_t gS_StyleStrings[STYLE_LIMIT];
+stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
-char gS_ChatStrings[CHATSETTINGS_SIZE][128];
+chatstrings_t gS_ChatStrings;
 
 public Plugin myinfo =
 {
@@ -127,9 +123,6 @@ public void OnPluginStart()
 	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
 	gCV_MVPRankOnes_Main = CreateConVar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
 
-	gCV_MVPRankOnes.AddChangeHook(OnConVarChanged);
-	gCV_MVPRankOnes_Main.AddChangeHook(OnConVarChanged);
-
 	AutoExecConfig();
 
 	gB_Rankings = LibraryExists("shavit-rankings");
@@ -167,8 +160,8 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i][sStyleName], 128);
-		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i][sShortName], 128);
+		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
+		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
 	}
 
 	gI_Styles = styles;
@@ -176,16 +169,12 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public void Shavit_OnChatConfigLoaded()
 {
-	for(int i = 0; i < CHATSETTINGS_SIZE; i++)
-	{
-		Shavit_GetChatStrings(i, gS_ChatStrings[i], 128);
-	}
-}
-
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	gI_MVPRankOnes = gCV_MVPRankOnes.IntValue;
-	gB_MVPRankOnes_Main = gCV_MVPRankOnes_Main.BoolValue;
+	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
+	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
+	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
+	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
+	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
+	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
 }
 
 public void OnClientPutInServer(int client)
@@ -271,7 +260,7 @@ void SQL_SetPrefix()
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	if(gI_MVPRankOnes == 0)
+	if(gCV_MVPRankOnes.IntValue == 0)
 	{
 		return;
 	}
@@ -297,14 +286,14 @@ void UpdateWRs(int client)
 	{
 		char sQuery[256];
 
-		if(gI_MVPRankOnes == 2)
+		if(gCV_MVPRankOnes.IntValue == 2)
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gB_MVPRankOnes_Main)? "AND track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
 		}
 
 		else
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gB_MVPRankOnes_Main)? "WHERE track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "WHERE track = 0 ":"", sAuthID);
 		}
 
 		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
@@ -329,7 +318,7 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 
 	int iWRs = results.FetchInt(0);
 
-	if(gI_MVPRankOnes > 0 && gEV_Type != Engine_TF2)
+	if(gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2)
 	{
 		CS_SetMVPCount(client, iWRs);
 	}
@@ -469,11 +458,13 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
-		menu.SetTitle("%s's %T. %s\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n", gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString, gS_StyleStrings[0][sStyleName], "WorldRecords", client, iWRs, sRankingString);
+		menu.SetTitle("%s's %T. %s\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n",
+			gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString,
+			gS_StyleStrings[0].sStyleName, "WorldRecords", client, iWRs, sRankingString);
 
 		for(int i = 0; i < gI_Styles; i++)
 		{
-			if(gA_StyleSettings[i][bUnranked])
+			if(gA_StyleSettings[i].bUnranked)
 			{
 				continue;
 			}
@@ -481,7 +472,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			char sInfo[4];
 			IntToString(i, sInfo, 4);
 
-			menu.AddItem(sInfo, gS_StyleStrings[i][sStyleName]);
+			menu.AddItem(sInfo, gS_StyleStrings[i].sStyleName);
 		}
 
 		// should NEVER happen
@@ -498,7 +489,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 	else
 	{
-		Shavit_PrintToChat(client, "%T", "StatsMenuFailure", client, gS_ChatStrings[sMessageWarning], gS_ChatStrings[sMessageText]);
+		Shavit_PrintToChat(client, "%T", "StatsMenuFailure", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 	}
 }
 
@@ -512,7 +503,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 		gBS_Style[param1] = StringToInt(sInfo);
 
 		Menu submenu = new Menu(MenuHandler_TypeHandler);
-		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]][sShortName]);
+		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]].sShortName);
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
@@ -636,12 +627,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gBS_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	else
 	{
-		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gBS_Style[client]][sShortName], gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gBS_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	while(results.FetchRow())
@@ -773,7 +764,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		// 3 - style
 		int style = results.FetchInt(3);
-		FormatEx(sDisplay, 128, "%T: %s", "Style", client, gS_StyleStrings[style][sStyleName]);
+		FormatEx(sDisplay, 128, "%T: %s", "Style", client, gS_StyleStrings[style].sStyleName);
 		menu.AddItem("-1", sDisplay);
 
 		// 4 - steamid3

@@ -32,25 +32,24 @@
 #include <cstrike>
 
 #define MAGIC_NUMBER 2147483648.0
-#define MAXLENGTH_NAME 192
-#define MAXLENGTH_TEXT 192
+#define MAXLENGTH_NAME 128
+#define MAXLENGTH_TEXT 128
 #define MAXLENGTH_MESSAGE 255
 #define MAXLENGTH_DISPLAY 192
 #define MAXLENGTH_CMESSAGE 16
 #define MAXLENGTH_BUFFER 255
 
-enum ChatRanksCache
+enum struct chatranks_cache_t
 {
-	iCRRangeType, // 0 - flat, 1 - percent, 2 - point range
-	Float:fCRFrom,
-	Float:fCRTo,
-	bool:bCRFree,
-	bool:bCREasterEgg,
-	String:sCRAdminFlag[32],
-	String:sCRName[MAXLENGTH_NAME],
-	String:sCRMessage[MAXLENGTH_MESSAGE],
-	String:sCRDisplay[MAXLENGTH_DISPLAY],
-	CRCACHE_SIZE
+	int iRangeType; // 0 - flat, 1 - percent, 2 - point range
+	float fFrom;
+	float fTo;
+	bool bFree;
+	bool bEasterEgg;
+	char sAdminFlag[32];
+	char sName[MAXLENGTH_NAME];
+	char sMessage[MAXLENGTH_MESSAGE];
+	char sDisplay[MAXLENGTH_DISPLAY];
 }
 
 enum
@@ -76,11 +75,6 @@ bool gB_RTLer = false;
 ConVar gCV_RankingsIntegration = null;
 ConVar gCV_CustomChat = null;
 ConVar gCV_Colon = null;
-
-// cached cvars
-bool gB_RankingsIntegration = true;
-int gI_CustomChat = 1;
-char gS_Colon[MAXLENGTH_CMESSAGE] = ":";
 
 // cache
 EngineVersion gEV_Type = Engine_Unknown;
@@ -148,10 +142,6 @@ public void OnPluginStart()
 	gCV_CustomChat = CreateConVar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
 	gCV_Colon = CreateConVar("shavit_chat_colon", ":", "String to use as the colon when messaging.");
 
-	gCV_RankingsIntegration.AddChangeHook(OnConVarChanged);
-	gCV_CustomChat.AddChangeHook(OnConVarChanged);
-	gCV_Colon.AddChangeHook(OnConVarChanged);
-
 	AutoExecConfig();
 
 	gSM_Messages = new StringMap();
@@ -159,7 +149,7 @@ public void OnPluginStart()
 	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
 
 	gH_ChatCookie = RegClientCookie("shavit_chat_selection", "Chat settings", CookieAccess_Protected);
-	gA_ChatRanks = new ArrayList(view_as<int>(CRCACHE_SIZE));
+	gA_ChatRanks = new ArrayList(sizeof(chatranks_cache_t));
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -206,18 +196,18 @@ bool LoadChatConfig()
 
 	do
 	{
-		any[] aChatTitle = new any[CRCACHE_SIZE];
+		chatranks_cache_t chat_title;
 		char sRanks[32];
 		kv.GetString("ranks", sRanks, MAXLENGTH_NAME, "0");
 
 		if(sRanks[0] == 'p')
 		{	
-			aChatTitle[iCRRangeType] = Rank_Points;
+			chat_title.iRangeType = Rank_Points;
 		}
 
 		else
 		{
-			aChatTitle[iCRRangeType] = (StrContains(sRanks, "%") == -1)? Rank_Flat:Rank_Percentage;
+			chat_title.iRangeType = (StrContains(sRanks, "%") == -1)? Rank_Flat:Rank_Percentage;
 		}
 		
 		ReplaceString(sRanks, 32, "p", "");
@@ -227,29 +217,29 @@ bool LoadChatConfig()
 		{
 			char sExplodedString[2][16];
 			ExplodeString(sRanks, "-", sExplodedString, 2, 64);
-			aChatTitle[fCRFrom] = StringToFloat(sExplodedString[0]);
-			aChatTitle[fCRTo] = StringToFloat(sExplodedString[1]);
+			chat_title.fFrom = StringToFloat(sExplodedString[0]);
+			chat_title.fTo = StringToFloat(sExplodedString[1]);
 		}
 
 		else
 		{
 			float fRank = StringToFloat(sRanks);
 
-			aChatTitle[fCRFrom] = fRank;
-			aChatTitle[fCRTo] = (aChatTitle[iCRRangeType] == Rank_Flat)? fRank:MAGIC_NUMBER;
+			chat_title.fFrom = fRank;
+			chat_title.fTo = (chat_title.iRangeType == Rank_Flat)? fRank:MAGIC_NUMBER;
 		}
 		
-		aChatTitle[bCRFree] = view_as<bool>(kv.GetNum("free", false));
-		aChatTitle[bCREasterEgg] = view_as<bool>(kv.GetNum("easteregg", false));
+		chat_title.bFree = view_as<bool>(kv.GetNum("free", false));
+		chat_title.bEasterEgg = view_as<bool>(kv.GetNum("easteregg", false));
 		
-		kv.GetString("name", aChatTitle[sCRName], MAXLENGTH_NAME, "{name}");
-		kv.GetString("message", aChatTitle[sCRMessage], MAXLENGTH_MESSAGE, "");
-		kv.GetString("display", aChatTitle[sCRDisplay], MAXLENGTH_DISPLAY, "");
-		kv.GetString("flag", aChatTitle[sCRAdminFlag], 32, "");
+		kv.GetString("name", chat_title.sName, MAXLENGTH_NAME, "{name}");
+		kv.GetString("message", chat_title.sMessage, MAXLENGTH_MESSAGE, "");
+		kv.GetString("display", chat_title.sDisplay, MAXLENGTH_DISPLAY, "");
+		kv.GetString("flag", chat_title.sAdminFlag, 32, "");
 
-		if(strlen(aChatTitle[sCRDisplay]) > 0)
+		if(strlen(chat_title.sDisplay) > 0)
 		{
-			gA_ChatRanks.PushArray(aChatTitle);
+			gA_ChatRanks.PushArray(chat_title);
 		}
 	}
 
@@ -340,23 +330,21 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 
 	if(gB_Protobuf)
 	{
-		Protobuf pbmsg = msg;
+		Protobuf pbmsg = UserMessageToProtobuf(msg);
 		client = pbmsg.ReadInt("ent_idx");
 		pbmsg.ReadString("msg_name", sMessage, 32);
 		pbmsg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
 		pbmsg.ReadString("params", sOriginalText, MAXLENGTH_TEXT, 1);
-		delete pbmsg;
 	}
 
 	else
 	{
-		BfRead bfmsg = msg;
+		BfRead bfmsg = UserMessageToBfRead(msg);
 		client = bfmsg.ReadByte();
 		bfmsg.ReadByte(); // chat parameter
 		bfmsg.ReadString(sMessage, 32);
 		bfmsg.ReadString(sOriginalName, MAXLENGTH_NAME);
 		bfmsg.ReadString(sOriginalText, MAXLENGTH_TEXT);
-		delete bfmsg;
 	}
 
 	if(client == 0)
@@ -388,10 +376,13 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		ReplaceString(sOriginalText, MAXLENGTH_TEXT, gS_ControlCharacters[i], "");
 	}
 
+	// fix an exploit that breaks chat colors in cs:s
+	while(ReplaceString(sOriginalText, MAXLENGTH_TEXT, "   ", " ") > 0) { }
+
 	char sName[MAXLENGTH_NAME];
 	char sCMessage[MAXLENGTH_CMESSAGE];
 	
-	if((gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)) && gI_ChatSelection[client] == -1)
+	if((gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)) && gI_ChatSelection[client] == -1)
 	{
 		if(gB_NameEnabled[client])
 		{
@@ -412,29 +403,20 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	if(strlen(sName) > 0)
 	{
 		FormatChat(client, sName, MAXLENGTH_NAME);
-
-		if(gEV_Type == Engine_CSGO)
-		{
-			FormatEx(sOriginalName, MAXLENGTH_NAME, " %s", sName);
-		}
-
-		else
-		{
-			strcopy(sOriginalName, MAXLENGTH_NAME, sName);
-		}
+		strcopy(sOriginalName, MAXLENGTH_NAME, sName);
 	}
 
 	if(strlen(sMessage) > 0)
 	{
 		FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
 
-		char sTemp[MAXLENGTH_CMESSAGE];
+		char sFixedMessage[MAXLENGTH_MESSAGE];
 
 		// support RTL messages
-		if(gB_RTLer && RTLify(sTemp, MAXLENGTH_CMESSAGE, sOriginalText) > 0)
+		if(gB_RTLer && RTLify(sFixedMessage, MAXLENGTH_MESSAGE, sOriginalText) > 0)
 		{
 			TrimString(sOriginalText);
-			Format(sOriginalText, MAXLENGTH_MESSAGE, "%s%s", sOriginalText, sCMessage);
+			Format(sOriginalText, MAXLENGTH_MESSAGE, "%s%s", sFixedMessage, sCMessage);
 		}
 
 		else
@@ -443,7 +425,10 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		}
 	}
 
-	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, gS_Colon, sOriginalText);
+	char sColon[MAXLENGTH_CMESSAGE];
+	gCV_Colon.GetString(sColon, MAXLENGTH_CMESSAGE);
+
+	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, sColon, sOriginalText);
 
 	DataPack pack = new DataPack();
 	pack.WriteCell(GetClientSerial(client)); // client serial
@@ -503,36 +488,30 @@ void Frame_SendText(DataPack pack)
 
 	if(gB_Protobuf)
 	{
-		Protobuf pbmsg = view_as<any>(hSayText2);
+		// show colors in cs:go
+		Format(sText, MAXLENGTH_BUFFER, " %s", sText);
+
+		Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 		pbmsg.SetInt("ent_idx", client);
 		pbmsg.SetBool("chat", true);
 		pbmsg.SetString("msg_name", sText);
 		
+		// needed to not crash
 		for(int i = 1; i <= 4; i++)
 		{
 			pbmsg.AddString("params", "");
 		}
-		
-		delete pbmsg;
 	}
 
 	else
 	{
-		BfWrite bfmsg = view_as<any>(hSayText2);
+		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
 		bfmsg.WriteByte(client);
 		bfmsg.WriteByte(true);
 		bfmsg.WriteString(sText);
-		delete bfmsg;
 	}
 
 	EndMessage();
-}
-
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	gB_RankingsIntegration = gCV_RankingsIntegration.BoolValue;
-	gI_CustomChat = gCV_CustomChat.IntValue;
-	gCV_Colon.GetString(gS_Colon, MAXLENGTH_CMESSAGE);
 }
 
 public void Shavit_OnDatabaseLoaded()
@@ -690,7 +669,7 @@ public Action Command_CCName(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)))
+	if(!(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)))
 	{
 		Shavit_PrintToChat(client, "%T", "NoCommandAccess", client);
 
@@ -739,7 +718,7 @@ public Action Command_CCMessage(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2)))
+	if(!(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)))
 	{
 		Shavit_PrintToChat(client, "%T", "NoCommandAccess", client);
 
@@ -798,7 +777,7 @@ Action ShowChatRanksMenu(int client, int item)
 	FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "AutoAssign", client);
 	menu.AddItem("-2", sDisplay, (gI_ChatSelection[client] == -2)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
-	if(gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
+	if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
 	{
 		FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "CustomChat", client);
 		menu.AddItem("-1", sDisplay, (gI_ChatSelection[client] == -1)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
@@ -813,11 +792,11 @@ Action ShowChatRanksMenu(int client, int item)
 			continue;
 		}
 
-		any[] aCache = new any[CRCACHE_SIZE];
-		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
+		chatranks_cache_t cache;
+		gA_ChatRanks.GetArray(i, cache, sizeof(chatranks_cache_t));
 
 		char sMenuDisplay[MAXLENGTH_DISPLAY];
-		strcopy(sMenuDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
+		strcopy(sMenuDisplay, MAXLENGTH_DISPLAY, cache.sDisplay);
 		ReplaceString(sMenuDisplay, MAXLENGTH_DISPLAY, "<n>", "\n");
 		StrCat(sMenuDisplay, MAXLENGTH_DISPLAY, "\n "); // to add spacing between each entry
 
@@ -874,11 +853,11 @@ Action ShowRanksMenu(int client, int item)
 
 	for(int i = 0; i < iLength; i++)
 	{
-		any[] aCache = new any[CRCACHE_SIZE];
-		gA_ChatRanks.GetArray(i, aCache, view_as<int>(CRCACHE_SIZE));
+		chatranks_cache_t cache;
+		gA_ChatRanks.GetArray(i, cache, sizeof(chatranks_cache_t));
 
 		char sFlag[32];
-		strcopy(sFlag, 32, aCache[sCRAdminFlag]);
+		strcopy(sFlag, 32, cache.sAdminFlag);
 
 		bool bFlagAccess = false;
 		int iSize = strlen(sFlag);
@@ -903,13 +882,13 @@ Action ShowRanksMenu(int client, int item)
 			bFlagAccess = CheckCommandAccess(client, sFlag, 0, true);
 		}
 
-		if(aCache[bCREasterEgg] || !bFlagAccess)
+		if(cache.bEasterEgg || !bFlagAccess)
 		{
 			continue;
 		}
 
 		char sDisplay[MAXLENGTH_DISPLAY];
-		strcopy(sDisplay, MAXLENGTH_DISPLAY, aCache[sCRDisplay]);
+		strcopy(sDisplay, MAXLENGTH_DISPLAY, cache.sDisplay);
 		ReplaceString(sDisplay, MAXLENGTH_DISPLAY, "<n>", "\n");
 
 		char sExplodedString[2][32];
@@ -919,9 +898,9 @@ Action ShowRanksMenu(int client, int item)
 
 		char sRequirements[64];
 
-		if(!aCache[bCRFree])
+		if(!cache.bFree)
 		{
-			if(aCache[fCRFrom] == 0.0 && (aCache[fCRFrom] == aCache[fCRTo] || aCache[fCRTo] == MAGIC_NUMBER))
+			if(cache.fFrom == 0.0 && (cache.fFrom == cache.fTo || cache.fTo == MAGIC_NUMBER))
 			{
 				FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Unranked", client);
 			}
@@ -929,44 +908,44 @@ Action ShowRanksMenu(int client, int item)
 			else
 			{
 				// this is really ugly
-				bool bRanged = (aCache[fCRFrom] != aCache[fCRTo] && aCache[fCRTo] != MAGIC_NUMBER);
+				bool bRanged = (cache.fFrom != cache.fTo && cache.fTo != MAGIC_NUMBER);
 
-				if(aCache[iCRRangeType] == Rank_Flat)
+				if(cache.iRangeType == Rank_Flat)
 				{
 					if(bRanged)
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat_Ranged", client, RoundToZero(aCache[fCRFrom]), RoundToZero(aCache[fCRTo]));
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat_Ranged", client, RoundToZero(cache.fFrom), RoundToZero(cache.fTo));
 					}
 
 					else
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat", client, RoundToZero(aCache[fCRFrom]));
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat", client, RoundToZero(cache.fFrom));
 					}
 				}
 
-				else if(aCache[iCRRangeType] == Rank_Percentage)
+				else if(cache.iRangeType == Rank_Percentage)
 				{
 					if(bRanged)
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage_Ranged", client, aCache[fCRFrom], '%', aCache[fCRTo], '%');
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage_Ranged", client, cache.fFrom, '%', cache.fTo, '%');
 					}
 
 					else
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage", client, aCache[fCRFrom], '%');
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage", client, cache.fFrom, '%');
 					}
 				}
 
-				else if(aCache[iCRRangeType] == Rank_Points)
+				else if(cache.iRangeType == Rank_Points)
 				{
 					if(bRanged)
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points_Ranged", client, RoundToZero(aCache[fCRFrom]), RoundToZero(aCache[fCRTo]));
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points_Ranged", client, RoundToZero(cache.fFrom), RoundToZero(cache.fTo));
 					}
 
 					else
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points", client, RoundToZero(aCache[fCRFrom]));
+						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points", client, RoundToZero(cache.fFrom));
 					}
 				}
 			}
@@ -1025,33 +1004,27 @@ void PreviewChat(int client, int rank)
 		ReplaceString(sOriginalName, MAXLENGTH_NAME, gS_ControlCharacters[i], "");
 	}
 
-	any[] aCache = new any[CRCACHE_SIZE];
-	gA_ChatRanks.GetArray(rank, aCache, view_as<int>(CRCACHE_SIZE));
+	chatranks_cache_t cache;
+	gA_ChatRanks.GetArray(rank, cache, sizeof(chatranks_cache_t));
 
 	char sName[MAXLENGTH_NAME];
-	strcopy(sName, MAXLENGTH_NAME, aCache[sCRName]);
+	strcopy(sName, MAXLENGTH_NAME, cache.sName);
 
 	char sCMessage[MAXLENGTH_CMESSAGE];
-	strcopy(sCMessage, MAXLENGTH_CMESSAGE, aCache[sCRMessage]);
+	strcopy(sCMessage, MAXLENGTH_CMESSAGE, cache.sMessage);
 
 	FormatChat(client, sName, MAXLENGTH_NAME);
-
-	if(gEV_Type == Engine_CSGO)
-	{
-		FormatEx(sOriginalName, MAXLENGTH_NAME, " %s", sName);
-	}
-
-	else
-	{
-		strcopy(sOriginalName, MAXLENGTH_NAME, sName);
-	}
+	strcopy(sOriginalName, MAXLENGTH_NAME, sName);
 
 	FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
 
 	char sSampleText[MAXLENGTH_MESSAGE];
 	FormatEx(sSampleText, MAXLENGTH_MESSAGE, "%sThe quick brown fox jumps over the lazy dog", sCMessage);
 
-	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, gS_Colon, sSampleText);
+	char sColon[MAXLENGTH_CMESSAGE];
+	gCV_Colon.GetString(sColon, MAXLENGTH_CMESSAGE);
+
+	ReplaceFormats(sTextFormatting, MAXLENGTH_BUFFER, sName, sColon, sSampleText);
 
 	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
@@ -1059,7 +1032,10 @@ void PreviewChat(int client, int rank)
 	{
 		if(gB_Protobuf)
 		{
-			Protobuf pbmsg = view_as<any>(hSayText2);
+			// show colors in cs:go
+			Format(sTextFormatting, MAXLENGTH_BUFFER, " %s", sTextFormatting);
+
+			Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 			pbmsg.SetInt("ent_idx", client);
 			pbmsg.SetBool("chat", true);
 			pbmsg.SetString("msg_name", sTextFormatting);
@@ -1068,17 +1044,14 @@ void PreviewChat(int client, int rank)
 			{
 				pbmsg.AddString("params", "");
 			}
-			
-			delete pbmsg;
 		}
 
 		else
 		{
-			BfWrite bfmsg = view_as<any>(hSayText2);
+			BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
 			bfmsg.WriteByte(client);
 			bfmsg.WriteByte(true);
 			bfmsg.WriteString(sTextFormatting);
-			delete bfmsg;
 		}
 	}
 
@@ -1087,7 +1060,7 @@ void PreviewChat(int client, int rank)
 
 bool HasRankAccess(int client, int rank)
 {
-	bool bAllowCustom = gI_CustomChat > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2);
+	bool bAllowCustom = gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2);
 
 	if(rank == -2 ||
 		(rank == -1 && bAllowCustom))
@@ -1100,11 +1073,11 @@ bool HasRankAccess(int client, int rank)
 		return false;
 	}
 
-	any[] aCache = new any[CRCACHE_SIZE];
-	gA_ChatRanks.GetArray(rank, aCache, view_as<int>(CRCACHE_SIZE));
+	chatranks_cache_t cache;
+	gA_ChatRanks.GetArray(rank, cache, sizeof(chatranks_cache_t));
 
 	char sFlag[32];
-	strcopy(sFlag, 32, aCache[sCRAdminFlag]);
+	strcopy(sFlag, 32, cache.sAdminFlag);
 
 	bool bFlagAccess = false;
 	int iSize = strlen(sFlag);
@@ -1134,21 +1107,21 @@ bool HasRankAccess(int client, int rank)
 		return false;
 	}
 
-	if(aCache[bCRFree])
+	if(cache.bFree)
 	{
 		return true;
 	}
 
-	if(!gB_Rankings || !gB_RankingsIntegration)
+	if(!gB_Rankings || !gCV_RankingsIntegration.BoolValue)
 	{
 		return false;
 	}
 
-	float fRank = (aCache[iCRRangeType] != Rank_Points)? float(Shavit_GetRank(client)):Shavit_GetPoints(client);
+	float fRank = (cache.iRangeType != Rank_Points)? float(Shavit_GetRank(client)):Shavit_GetPoints(client);
 
-	if(aCache[iCRRangeType] == Rank_Flat || aCache[iCRRangeType] == Rank_Points)
+	if(cache.iRangeType == Rank_Flat || cache.iRangeType == Rank_Points)
 	{
-		if(aCache[fCRFrom] <= fRank <= aCache[fCRTo])
+		if(cache.fFrom <= fRank <= cache.fTo)
 		{
 			return true;
 		}
@@ -1166,7 +1139,7 @@ bool HasRankAccess(int client, int rank)
 
 		float fPercentile = (fRank / iRanked) * 100.0;
 		
-		if(aCache[fCRFrom] <= fPercentile <= aCache[fCRTo])
+		if(cache.fFrom <= fPercentile <= cache.fTo)
 		{
 			return true;
 		}
@@ -1202,11 +1175,11 @@ void GetPlayerChatSettings(int client, char[] name, char[] message)
 
 	if(0 <= iRank <= (iLength - 1))
 	{
-		any[] aCache = new any[CRCACHE_SIZE];
-		gA_ChatRanks.GetArray(iRank, aCache, view_as<int>(CRCACHE_SIZE));
+		chatranks_cache_t cache;
+		gA_ChatRanks.GetArray(iRank, cache, sizeof(chatranks_cache_t));
 
-		strcopy(name, MAXLENGTH_NAME, aCache[sCRName]);
-		strcopy(message, MAXLENGTH_NAME, aCache[sCRMessage]);
+		strcopy(name, MAXLENGTH_NAME, cache.sName);
+		strcopy(message, MAXLENGTH_NAME, cache.sMessage);
 	}
 }
 
@@ -1221,7 +1194,7 @@ public Action Command_CCList(int client, int args)
 			continue;
 		}
 
-		if(gI_CustomChat > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
+		if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
 		{
 			PrintToConsole(client, "%N (%d/#%d) (name: \"%s\"; message: \"%s\")", i, i, GetClientUserId(i), gS_CustomName[i], gS_CustomMessage[i]);
 		}
@@ -1378,7 +1351,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 			continue;
 		}
 
-		if(gI_CustomChat > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gI_CustomChat == 2))
+		if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
 		{
 			LoadFromDatabase(i);
 		}

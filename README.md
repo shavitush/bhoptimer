@@ -17,7 +17,7 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 
 # Requirements:
 * Steam version of Counter-Strike: Source or Counter-Strike: Global Offensive.
-* [SourceMod 1.9 or above](http://www.sourcemod.net/downloads.php)
+* [SourceMod 1.10 or above](http://www.sourcemod.net/downloads.php?branch=dev)
 * A MySQL database (preferably locally hosted) if your database is likely to grow big, or if you want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is highly recommended.
 
 # Optional requirements, for the best experience:
