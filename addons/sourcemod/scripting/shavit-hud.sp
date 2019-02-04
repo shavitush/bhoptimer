@@ -864,13 +864,12 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 	}
 }
 
-void AddHUDLine(char[] buffer, int maxlen, const char[] line)
+void AddHUDLine(char[] buffer, int maxlen, const char[] line, int lines)
 {
-	if(strlen(buffer) > 0)
+	if(lines > 0)
 	{
 		Format(buffer, maxlen, "%s\n%s", buffer, line);
 	}
-
 	else
 	{
 		StrCat(buffer, maxlen, line);
@@ -925,13 +924,13 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 			if((gI_HUD2Settings[client] & HUD2_STYLE) == 0)
 			{
 				FormatEx(sLine, 128, "%s %s%T", gS_StyleStrings[data.iStyle].sStyleName, sTrack, "ReplayText", client);
-				AddHUDLine(buffer, maxlen, sLine);
+				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
 
 			char sPlayerName[MAX_NAME_LENGTH];
 			Shavit_GetReplayName(data.iStyle, data.iTrack, sPlayerName, MAX_NAME_LENGTH);
-			AddHUDLine(buffer, maxlen, sPlayerName);
+			AddHUDLine(buffer, maxlen, sPlayerName, iLines);
 			iLines++;
 
 			if((gI_HUD2Settings[client] & HUD2_TIME) == 0)
@@ -943,14 +942,14 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 				FormatSeconds(data.fWR, sWR, 32, false);
 
 				FormatEx(sLine, 128, "%s / %s\n(%.1f％)", sTime, sWR, ((data.fTime / data.fWR) * 100));
-				AddHUDLine(buffer, maxlen, sLine);
+				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
 
 			if((gI_HUD2Settings[client] & HUD2_SPEED) == 0)
 			{
 				FormatEx(sLine, 128, "%d u/s", data.iSpeed);
-				AddHUDLine(buffer, maxlen, sLine);
+				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
 		}
@@ -958,7 +957,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		else
 		{
 			FormatEx(sLine, 128, "%T", (gEV_Type == Engine_TF2)? "NoReplayDataTF2":"NoReplayData", client);
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 
@@ -968,7 +967,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 	if((gI_HUDSettings[client] & HUD_ZONEHUD) > 0 && data.iZoneHUD != ZoneHUD_None)
 	{
 		FormatEx(sLine, 128, "%T ", (data.iZoneHUD == ZoneHUD_Start)? "HudInStartZone":"HudInEndZone", client, data.iSpeed);
-		AddHUDLine(buffer, maxlen, sLine);
+		AddHUDLine(buffer, maxlen, sLine, iLines);
 
 		return ++iLines;
 	}
@@ -977,14 +976,14 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 	{
 		if((gI_HUD2Settings[client] & HUD2_STYLE) == 0)
 		{
-			AddHUDLine(buffer, maxlen, gS_StyleStrings[data.iStyle].sStyleName);
+			AddHUDLine(buffer, maxlen, gS_StyleStrings[data.iStyle].sStyleName, iLines);
 			iLines++;
 		}
 
 		if(data.bPractice || data.iTimerStatus == Timer_Paused)
 		{
 			FormatEx(sLine, 128, "%T", (data.iTimerStatus == Timer_Paused)? "HudPaused":"HudPracticeMode", client);
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 
@@ -1003,21 +1002,21 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 				FormatEx(sLine, 128, "%T: %s", "HudTimeText", client, sTime);
 			}
 			
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 
 		if((gI_HUD2Settings[client] & HUD2_JUMPS) == 0)
 		{
 			FormatEx(sLine, 128, "%T: %d", "HudJumpsText", client, data.iJumps);
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 
 		if((gI_HUD2Settings[client] & HUD2_STRAFE) == 0)
 		{
 			FormatEx(sLine, 128, "%T: %d", "HudStrafeText", client, data.iStrafes);
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 	}
@@ -1036,7 +1035,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 			IntToString(data.iSpeed, sLine, 128);
 		}
 
-		AddHUDLine(buffer, maxlen, sLine);
+		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
 	}
 
@@ -1046,7 +1045,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		GetTrackName(client, data.iTrack, sTrack, 32);
 		Format(sTrack, 32, "%s", sTrack);
 
-		AddHUDLine(buffer, maxlen, sTrack);
+		AddHUDLine(buffer, maxlen, sTrack, iLines);
 		iLines++;
 	}
 
@@ -1076,7 +1075,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			}
 
 			FormatEx(sLine, 128, "<u><span color='#%s'>%s %s%T</span></u> <span color='#DB88C2'>%s</span>", gS_StyleStrings[data.iStyle].sHTMLColor, gS_StyleStrings[data.iStyle].sStyleName, sTrack, "ReplayText", client, sPlayerName);
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 
 			if((gI_HUD2Settings[client] & HUD2_TIME) == 0)
@@ -1088,21 +1087,21 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 				FormatSeconds(data.fWR, sWR, 32, false);
 
 				FormatEx(sLine, 128, "%s / %s (%.1f%%)", sTime, sWR, ((data.fTime / data.fWR) * 100));
-				AddHUDLine(buffer, maxlen, sLine);
+				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
 
 			if((gI_HUD2Settings[client] & HUD2_SPEED) == 0)
 			{
 				FormatEx(sLine, 128, "%d u/s", data.iSpeed);
-				AddHUDLine(buffer, maxlen, sLine);
+				AddHUDLine(buffer, maxlen, sLine, iLines);
 			}
 		}
 
 		else
 		{
 			FormatEx(sLine, 128, "%T", "NoReplayData", client);
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 
@@ -1130,7 +1129,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		if(data.bPractice || data.iTimerStatus == Timer_Paused)
 		{
 			FormatEx(sLine, 128, "%T", (data.iTimerStatus == Timer_Paused)? "HudPaused":"HudPracticeMode", client);
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 
@@ -1140,7 +1139,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			GetTrackName(client, data.iTrack, sTrack, 32);
 			Format(sTrack, 32, "%s", sTrack);
 
-			AddHUDLine(buffer, maxlen, sTrack);
+			AddHUDLine(buffer, maxlen, sTrack, iLines);
 			iLines++;
 		}
 
@@ -1165,7 +1164,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 				FormatEx(sLine, 128, "<span color='#%06X'>%s</span>", iColor, sTime);
 			}
 			
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 	}
@@ -1180,7 +1179,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		}
 
 		FormatEx(sLine, 128, "<span color='#%06X'>%d u/s</span>", iColor, data.iSpeed);
-		AddHUDLine(buffer, maxlen, sLine);
+		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
 	}
 
@@ -1189,7 +1188,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		if((gI_HUD2Settings[client] & HUD2_JUMPS) == 0)
 		{
 			FormatEx(sLine, 128, "%d %T", data.iJumps, "HudJumpsText", client);
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 
@@ -1205,7 +1204,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 				FormatEx(sLine, 128, "%d %T", data.iStrafes, "HudStrafeText", client);
 			}
 
-			AddHUDLine(buffer, maxlen, sLine);
+			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
 	}
@@ -1213,7 +1212,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 	if((gI_HUD2Settings[client] & HUD2_STYLE) == 0)
 	{
 		FormatEx(sLine, 128, "<span color='#%s'>%s</span>", gS_StyleStrings[data.iStyle].sHTMLColor, gS_StyleStrings[data.iStyle].sStyleName);
-		AddHUDLine(buffer, maxlen, sLine);
+		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
 	}
 
