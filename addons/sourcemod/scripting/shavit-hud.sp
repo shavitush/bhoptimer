@@ -67,14 +67,14 @@ enum struct huddata_t
 	bool bPractice;
 	TimerStatus iTimerStatus;
 	ZoneHUD iZoneHUD;
-};
+}
 
 enum struct color_t
 {
 	int r;
 	int g;
 	int b;
-};
+}
 
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;

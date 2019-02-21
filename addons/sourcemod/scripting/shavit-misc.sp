@@ -71,7 +71,7 @@ enum struct player_cpcache_t
 {
 	int iCheckpoints;
 	int iCurrentCheckpoint;
-};
+}
 
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
