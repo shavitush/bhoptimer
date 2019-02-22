@@ -1958,6 +1958,23 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		vel = NULL_VECTOR;
 	}
 
+	if(cpcache.iTargetname != -1)
+	{
+		char sTargetname[64];
+		gA_Targetnames.GetString(cpcache.iTargetname, sTargetname, 64);
+
+		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
+		Shavit_PrintToChat(client, "set name %s", sTargetname);
+	}
+
+	if(cpcache.iClassname != -1)
+	{
+		char sClassname[64];
+		gA_Classnames.GetString(cpcache.iClassname, sClassname, 64);
+
+		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
+	}
+
 	TeleportEntity(client, pos,
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache.bSegmented)? ang:NULL_VECTOR,
 		vel);
@@ -1979,26 +1996,6 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", cpcache.fSpeed);
 	SetEntPropEnt(client, Prop_Data, "m_hGroundEntity", cpcache.iGroundEntity);
-
-	int iTargetname = gA_Targetnames.FindValue(cpcache.iTargetname);
-
-	if(iTargetname != -1)
-	{
-		char sTargetname[64];
-		gA_Targetnames.GetString(iTargetname, sTargetname, 64);
-
-		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
-	}
-
-	int iClassname = gA_Classnames.FindValue(cpcache.iClassname);
-
-	if(iClassname != -1)
-	{
-		char sClassname[64];
-		gA_Classnames.GetString(iClassname, sClassname, 64);
-
-		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
-	}
 
 	if(gEV_Type != Engine_TF2)
 	{
