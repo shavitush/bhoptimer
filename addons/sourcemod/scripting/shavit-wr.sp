@@ -35,7 +35,7 @@ enum struct wrcache_t
 	int iLastTrack;
 	bool bPendingMenu;
 	char sClientMap[128];
-};
+}
 
 bool gB_Late = false;
 bool gB_Rankings = false;
