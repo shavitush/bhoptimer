@@ -121,7 +121,7 @@ enum struct stylestrings_t
 	char sClanTag[32];
 	char sSpecialString[128];
 	char sStylePermission[64];
-};
+}
 
 enum struct stylesettings_t
 {
@@ -156,7 +156,7 @@ enum struct stylesettings_t
 	bool bStrafeCountD;
 	float fRankingMultiplier;
 	int iSpecial;
-};
+}
 
 enum struct chatstrings_t
 {
@@ -166,7 +166,7 @@ enum struct chatstrings_t
 	char sVariable[16];
 	char sVariable2[16];
 	char sStyle[16];
-};
+}
 
 enum struct timer_snapshot_t
 {
@@ -183,7 +183,7 @@ enum struct timer_snapshot_t
 	int iTimerTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
-};
+}
 
 #if defined USES_CHAT_COLORS
 // hardcoded colors

@@ -48,7 +48,7 @@ enum struct centralbot_cache_t
 	int iStyle;
 	ReplayStatus iReplayStatus;
 	int iTrack;
-};
+}
 
 enum struct replaystrings_t
 {
@@ -58,7 +58,7 @@ enum struct replaystrings_t
 	char sCentralStyle[MAX_NAME_LENGTH];
 	char sCentralStyleTag[MAX_NAME_LENGTH];
 	char sUnloaded[MAX_NAME_LENGTH];
-};
+}
 
 enum struct framecache_t
 {
@@ -67,7 +67,7 @@ enum struct framecache_t
 	bool bNewFormat;
 	int iReplayVersion;
 	char sReplayName[MAX_NAME_LENGTH];
-};
+}
 
 enum
 {
