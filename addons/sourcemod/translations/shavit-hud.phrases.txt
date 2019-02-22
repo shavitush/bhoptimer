@@ -131,6 +131,10 @@
 	{
 		"en"		"Timer track"
 	}
+	"HudSplitPbText"
+	{
+		"en"		"Split PB"
+	}
 	// ---------- Record Bots ---------- //
 	"ReplayText"
 	{

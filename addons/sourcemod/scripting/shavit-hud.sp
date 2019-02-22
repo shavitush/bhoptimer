@@ -39,6 +39,7 @@
 #define HUD2_STYLE				(1 << 5)
 #define HUD2_RANK				(1 << 6)
 #define HUD2_TRACK				(1 << 7)
+#define HUD2_SPLITPB			(1 << 7)
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2			0
@@ -643,6 +644,10 @@ Action ShowHUDMenu(int client, int item)
 
 	FormatEx(sInfo, 16, "@%d", HUD2_TRACK);
 	FormatEx(sHudItem, 64, "%T", "HudTrackText", client);
+	menu.AddItem(sInfo, sHudItem);
+
+	FormatEx(sInfo, 16, "@%d", HUD2_SPLITPB);
+	FormatEx(sHudItem, 64, "%T", "HudSplitPbText", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	menu.ExitButton = true;
@@ -1493,21 +1498,35 @@ void UpdateTopLeftHUD(int client, bool wait)
 			char sWRName[MAX_NAME_LENGTH];
 			Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH, track);
 
-			float fPBTime = Shavit_GetClientPB(target, style, track);
-
-			char sPBTime[16];
-			FormatSeconds(fPBTime, sPBTime, MAX_NAME_LENGTH);
-
 			char sTopLeft[128];
+			FormatEx(sTopLeft, 128, "WR: %s (%s)", sWRTime, sWRName);
 
-			if(fPBTime != 0.0)
+			float fTargetPB = Shavit_GetClientPB(target, style, track);
+			char sTargetPB[64];
+			FormatSeconds(fTargetPB, sTargetPB, 64);
+			Format(sTargetPB, 64, "%T: %s", "HudBestText", client, sTargetPB);
+
+			float fSelfPB = Shavit_GetClientPB(client, style, track);
+			char sSelfPB[64];
+			FormatSeconds(fSelfPB, sSelfPB, 64);
+			Format(sSelfPB, 64, "%T: %s", "HudBestText", client, sSelfPB);
+
+			if((gI_HUD2Settings[client] & HUD2_SPLITPB) == 0 && target != client)
 			{
-				FormatEx(sTopLeft, 128, "WR: %s (%s)\n%T: %s (#%d)", sWRTime, sWRName, "HudBestText", client, sPBTime, Shavit_GetRankForTime(style, fPBTime, track));
+				if(fTargetPB != 0.0)
+				{
+					Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sTargetPB, target);
+				}
+
+				if(fSelfPB != 0.0)
+				{
+					Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sSelfPB, client);
+				}
 			}
 
-			else
+			else if(fSelfPB != 0.0)
 			{
-				FormatEx(sTopLeft, 128, "WR: %s (%s)", sWRTime, sWRName);
+				Format(sTopLeft, 128, "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
 			}
 
 			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
