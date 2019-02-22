@@ -223,6 +223,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 
 	LoadTranslations("shavit-core.phrases");
+	LoadTranslations("shavit-common.phrases");
 
 	// game types
 	gEV_Type = GetEngineVersion();
@@ -471,7 +472,10 @@ public Action Command_StartTimer(int client, int args)
 
 	else
 	{
-		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		char sTrack[32];
+		GetTrackName(client, track, sTrack, 32);
+
+		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTrack, gS_ChatStrings.sText);
 	}
 
 	return Plugin_Handled;
@@ -2402,4 +2406,18 @@ void UpdateStyleSettings(int client)
 	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
 
 	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
+}
+
+void GetTrackName(int client, int track, char[] output, int size)
+{
+	if(track < 0 || track >= TRACKS_SIZE)
+	{
+		FormatEx(output, size, "%T", "Track_Unknown", client);
+
+		return;
+	}
+
+	static char sTrack[16];
+	FormatEx(sTrack, 16, "Track_%d", track);
+	FormatEx(output, size, "%T", sTrack, client);
 }

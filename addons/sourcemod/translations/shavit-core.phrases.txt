@@ -113,8 +113,8 @@
 	// ---------- Zones ---------- //
 	"StartZoneUndefined"
 	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"Your timer {1}will not{2} start as a start zone for the map is not defined."
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s}"
+		"en"		"Your timer {1}will not{2} start because the {3}{4}{5} start zone is not set."
 	}
 	"EndZoneUndefined"
 	{
