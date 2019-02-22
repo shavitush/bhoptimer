@@ -1454,13 +1454,10 @@ public Action Command_Save(int client, int args)
 		}
 	}
 	
-	else
+	else if(SaveCheckpoint(client, index, bOverflow))
 	{
-		if(SaveCheckpoint(client, index, bOverflow))
-		{
-			gA_CheckpointsCache[client].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[client].iCheckpoints;
-			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client].iCurrentCheckpoint, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-		}
+		gA_CheckpointsCache[client].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[client].iCheckpoints;
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client].iCurrentCheckpoint, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
 
 	return Plugin_Handled;
@@ -1591,8 +1588,10 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 						return 0;
 					}
 
-					SaveCheckpoint(param1, ++gA_CheckpointsCache[param1].iCheckpoints);
-					gA_CheckpointsCache[param1].iCurrentCheckpoint = gA_CheckpointsCache[param1].iCheckpoints;
+					if(SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1))
+					{
+						gA_CheckpointsCache[param1].iCurrentCheckpoint = ++gA_CheckpointsCache[param1].iCheckpoints;
+					}
 				}
 				
 				else
@@ -1688,6 +1687,13 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	else if(!IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+		return false;
+	}
+
+	else if(Shavit_IsPaused(client) || Shavit_IsPaused(target))
+	{
+		Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 		return false;
 	}
@@ -1893,6 +1899,13 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
+	else if(Shavit_IsPaused(client))
+	{
+		Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+		return;
+	}
+
 	float pos[3];
 	CopyArray(cpcache.fPosition, pos, 3);
 
@@ -1916,6 +1929,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	timer_snapshot_t snapshot;
 	CopyArray(cpcache.aSnapshot, snapshot, sizeof(timer_snapshot_t));
 	Shavit_LoadSnapshot(client, snapshot);
+	Shavit_ResumeTimer(client);
 
 	float ang[3];
 	CopyArray(cpcache.fAngles, ang, 3);
@@ -2703,6 +2717,7 @@ void LoadState(int client)
 
 	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
 	Shavit_SetPracticeMode(client, gB_SaveStatesSegmented[client], false);
+	Shavit_ResumeTimer(client);
 
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{
