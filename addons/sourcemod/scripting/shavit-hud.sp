@@ -40,6 +40,7 @@
 #define HUD2_RANK				(1 << 6)
 #define HUD2_TRACK				(1 << 7)
 #define HUD2_SPLITPB			(1 << 8)
+#define HUD2_MAPTIER			(1 << 9)
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2			0
@@ -84,6 +85,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Replay = false;
 bool gB_Zones = false;
 bool gB_Sounds = false;
+bool gB_Rankings = false;
 bool gB_BhopStats = false;
 
 // cache
@@ -91,6 +93,7 @@ int gI_Cycle = 0;
 color_t gI_Gradient;
 int gI_GradientDirection = -1;
 int gI_Styles = 0;
+char gS_Map[160];
 
 Handle gH_HUDCookie = null;
 Handle gH_HUDCookieMain = null;
@@ -172,6 +175,7 @@ public void OnPluginStart()
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_Sounds = LibraryExists("shavit-sounds");
+	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_BhopStats = LibraryExists("bhopstats");
 
 	// HUD handle
@@ -232,6 +236,9 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
+	GetCurrentMap(gS_Map, 160);
+	GetMapDisplayName(gS_Map, gS_Map, 160);
+
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
@@ -256,6 +263,11 @@ public void OnLibraryAdded(const char[] name)
 		gB_Sounds = true;
 	}
 
+	else if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = true;
+	}
+
 	else if(StrEqual(name, "bhopstats"))
 	{
 		gB_BhopStats = true;
@@ -277,6 +289,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-sounds"))
 	{
 		gB_Sounds = false;
+	}
+
+	else if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = false;
 	}
 
 	else if(StrEqual(name, "bhopstats"))
@@ -650,6 +667,13 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudSplitPbText", client);
 	menu.AddItem(sInfo, sHudItem);
 
+	if(gB_Rankings)
+	{
+		FormatEx(sInfo, 16, "@%d", HUD2_MAPTIER);
+		FormatEx(sHudItem, 64, "%T", "HudMapTierText", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
+
 	menu.ExitButton = true;
 	menu.DisplayAt(client, item, 60);
 
@@ -971,7 +995,23 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 	if((gI_HUDSettings[client] & HUD_ZONEHUD) > 0 && data.iZoneHUD != ZoneHUD_None)
 	{
-		FormatEx(sLine, 128, "%T ", (data.iZoneHUD == ZoneHUD_Start)? "HudInStartZone":"HudInEndZone", client, data.iSpeed);
+		if(gB_Rankings && (gI_HUD2Settings[client] & HUD2_MAPTIER) == 0)
+		{
+			FormatEx(sLine, 128, "%T", "HudZoneTier", client, Shavit_GetMapTier(gS_Map));
+			AddHUDLine(buffer, maxlen, sLine, iLines);
+			iLines++;
+		}
+
+		if(data.iZoneHUD == ZoneHUD_Start)
+		{
+			FormatEx(sLine, 128, "%T ", "HudInStartZone", client, data.iSpeed);
+		}
+
+		else
+		{
+			FormatEx(sLine, 128, "%T ", "HudInEndZone", client, data.iSpeed);
+		}
+
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 
 		return ++iLines;
@@ -1100,6 +1140,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			{
 				FormatEx(sLine, 128, "%d u/s", data.iSpeed);
 				AddHUDLine(buffer, maxlen, sLine, iLines);
+				iLines++;
 			}
 		}
 
@@ -1120,8 +1161,24 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		char sZoneHUD[64];
 		FormatEx(sZoneHUD, 64, "<span class='fontSize-xxl' color='#%06X'>", ((gI_Gradient.r << 16) + (gI_Gradient.g << 8) + (gI_Gradient.b)));
 		StrCat(buffer, maxlen, sZoneHUD);
+
+		if(data.iZoneHUD == ZoneHUD_Start)
+		{
+			if(gB_Rankings && (gI_HUD2Settings[client] & HUD2_MAPTIER) == 0)
+			{
+				FormatEx(sZoneHUD, 32, "%T", "HudZoneTier", client, Shavit_GetMapTier(gS_Map));
+				AddHUDLine(buffer, maxlen, sZoneHUD, iLines);
+				iLines++;
+			}
+			
+			FormatEx(sZoneHUD, 64, "%T</span>", "HudInStartZoneCSGO", client, data.iSpeed);
+		}
+
+		else
+		{
+			FormatEx(sZoneHUD, 64, "%T</span>", "HudInEndZoneCSGO", client, data.iSpeed);
+		}
 		
-		FormatEx(sZoneHUD, 64, "%T</span>", (data.iZoneHUD == ZoneHUD_Start)? "HudInStartZoneCSGO":"HudInEndZoneCSGO", client, data.iSpeed);
 		StrCat(buffer, maxlen, sZoneHUD);
 
 		return ++iLines;
