@@ -180,6 +180,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
 	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
+	CreateNative("Shavit_IsPaused", Native_IsPaused);
 	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
 	CreateNative("Shavit_LoadSnapshot", Native_LoadSnapshot);
 	CreateNative("Shavit_LogMessage", Native_LogMessage);
@@ -1238,6 +1239,11 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	}
 
 	gA_Timers[client].bPracticeMode = practice;
+}
+
+public int Native_IsPaused(Handle handler, int numParams)
+{
+	return view_as<int>(gA_Timers[GetNativeCell(1)].bPaused);
 }
 
 public int Native_IsPracticeMode(Handle handler, int numParams)

@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.4.0"
+#define SHAVIT_VERSION "2.4.1"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -1213,6 +1213,14 @@ native StringMap Shavit_GetMapTiers();
 native bool Shavit_HasStyleAccess(int client, int style);
 
 /**
+ * Determines whether a client's timer is paused or not.
+ *
+ * @param client					Client index.
+ * @return							Boolean value.
+ */
+native bool Shavit_IsPaused(int client);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -1315,6 +1323,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_IsKZMap");
+	MarkNativeAsOptional("Shavit_IsPaused");
 	MarkNativeAsOptional("Shavit_IsPracticeMode");
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
 	MarkNativeAsOptional("Shavit_LoadSnapshot");
