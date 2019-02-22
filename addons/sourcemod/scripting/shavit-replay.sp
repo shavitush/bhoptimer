@@ -29,6 +29,7 @@
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 #include <tf2>
+#include <tf2_stocks>
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
@@ -2108,7 +2109,22 @@ public Action Command_Replay(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(GetClientTeam(client) != 1 || GetSpectatorTarget(client) != gA_CentralCache.iClient)
+	if(GetClientTeam(client) > 1)
+	{
+		if(gEV_Type == Engine_TF2)
+		{
+			TF2_ChangeClientTeam(client, TFTeam_Spectator);
+		}
+
+		else
+		{
+			ChangeClientTeam(client, CS_TEAM_SPECTATOR);
+		}
+
+		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", gA_CentralCache.iClient);
+	}
+
+	else if(GetSpectatorTarget(client) != gA_CentralCache.iClient)
 	{
 		Shavit_PrintToChat(client, "%T", "CentralReplaySpectator", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
