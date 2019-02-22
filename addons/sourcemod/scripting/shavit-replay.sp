@@ -495,7 +495,7 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 		return view_as<int>(GetReplayLength(Track_Main, track));
 	}
 
-	return view_as<int>(float(gI_ReplayTick[style]) / gF_Tickrate);
+	return view_as<int>(float(gI_ReplayTick[style]) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
 }
 
 public int Native_HijackAngles(Handle handler, int numParams)
@@ -2446,9 +2446,7 @@ float GetReplayLength(int style, int track)
 		return gA_FrameCache[style][track].fTime;
 	}
 
-	float fWRTime = Shavit_GetWorldRecord(style, track);
-
-	return fWRTime;
+	return Shavit_GetWorldRecord(style, track) * gA_StyleSettings[style].fTimescale;
 }
 
 void GetReplayName(int style, int track, char[] buffer, int length)
