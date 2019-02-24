@@ -2474,6 +2474,11 @@ void GetTrackName(int client, int track, char[] output, int size)
 
 float GetReplayLength(int style, int track)
 {
+	if(gA_FrameCache[style][track].iFrameCount == 0)
+	{
+		return 0.0;
+	}
+
 	if(gA_FrameCache[style][track].bNewFormat)
 	{
 		return gA_FrameCache[style][track].fTime;

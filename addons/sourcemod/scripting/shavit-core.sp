@@ -142,6 +142,8 @@ bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
 char gS_DeleteMap[MAXPLAYERS+1][160];
+char gS_WipePlayerID[MAXPLAYERS+1][32];
+char gS_Verification[MAXPLAYERS+1][16];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -299,6 +301,7 @@ public void OnPluginStart()
 
 	// admin
 	RegAdminCmd("sm_deletemap", Command_DeleteMap, ADMFLAG_ROOT, "Deletes all map data. Usage: sm_deletemap <map>");
+	RegAdminCmd("sm_wipeplayer", Command_WipePlayer, ADMFLAG_BAN, "Wipes all bhoptimer data for specified player. Usage: sm_wipeplayer <steamid3>");
 	// commands END
 
 	// logs
@@ -639,6 +642,214 @@ public Action Command_DeleteMap(int client, int args)
 	}
 
 	return Plugin_Handled;
+}
+
+public Action Command_WipePlayer(int client, int args)
+{
+	if(args == 0)
+	{
+		ReplyToCommand(client, "Usage: sm_wipeplayer <steamid3>\nAfter entering a SteamID, you will be prompted with a verification captcha.");
+
+		return Plugin_Handled;
+	}
+
+	char sArgString[32];
+	GetCmdArgString(sArgString, 32);
+
+	if(strlen(gS_Verification[client]) == 0 || !StrEqual(sArgString, gS_Verification[client]))
+	{
+		char sAlphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#";
+
+		for(int i = 0; i < GetRandomInt(5, 7); i++)
+		{
+			gS_Verification[client][i] = sAlphabet[GetRandomInt(0, sizeof(sAlphabet))];
+		}
+
+		strcopy(gS_WipePlayerID[client], 32, sArgString);
+
+		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s%s%s. To confirm, enter %s!wipeplayer %s",
+			gS_ChatStrings.sVariable, sArgString, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_Verification[client]);
+	}
+
+	else
+	{
+		int iLength = ((strlen(gS_WipePlayerID[client]) * 2) + 1);
+		char[] sEscapedAuthID = new char[iLength];
+		gH_SQL.Escape(gS_WipePlayerID[client], sEscapedAuthID, iLength);
+
+		Shavit_PrintToChat(client, "Deleting data for SteamID %s%s%s...",
+			gS_ChatStrings.sVariable, sEscapedAuthID, gS_ChatStrings.sText);
+
+		DeleteUserData(client, sEscapedAuthID);
+
+		strcopy(gS_Verification[client], 32, "");
+		strcopy(gS_WipePlayerID[client], 32, "");
+	}
+
+	return Plugin_Handled;
+}
+
+void DeleteUserData(int client, const char[] sAuthID3)
+{
+	if(gB_Replay)
+	{
+		char sQueryGetWorldRecords[256];
+		FormatEx(sQueryGetWorldRecords, 256,
+			"SELECT map, id, style, track FROM %splayertimes WHERE auth = '%s' GROUP BY map, style, track;",
+			gS_MySQLPrefix, sAuthID3);
+
+		DataPack pack = new DataPack();
+		pack.WriteCell(client);
+		pack.WriteString(sAuthID3);
+
+		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, pack, DBPrio_High);
+	}
+
+	else
+	{
+		char sQueryDeleteUserTimes[256];
+		FormatEx(sQueryDeleteUserTimes, 256,
+			"DELETE FROM %splayertimes WHERE auth = '%s';",
+			gS_MySQLPrefix, sAuthID3);
+
+		DataPack steamPack = new DataPack();
+		steamPack.WriteString(sAuthID3);
+		steamPack.WriteCell(client);
+
+		gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, steamPack, DBPrio_High);
+	}
+}
+
+public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack pack = view_as<DataPack>(data);
+	pack.Reset();
+	int client = pack.ReadCell();
+
+	char sAuthID3[32];
+	pack.ReadString(sAuthID3, 32);
+	delete pack;
+
+	if(results == null)
+	{
+		LogError("Timer error! Failed to wipe user data (wipe | get player records). Reason: %s", error);
+
+		return;
+	}
+
+	Transaction trans = new Transaction();
+
+	while(results.FetchRow())
+	{
+		char map[160];
+		results.FetchString(0, map, 160);
+
+		int id = results.FetchInt(1);
+		int style = results.FetchInt(2);
+		int track = results.FetchInt(3);
+
+		char sQueryGetWorldRecordID[256];
+		FormatEx(sQueryGetWorldRecordID, 256,
+			"SELECT id FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d ORDER BY time LIMIT 1;",
+			gS_MySQLPrefix, map, style, track);
+
+		DataPack transPack = new DataPack();
+		transPack.WriteString(map);
+		transPack.WriteCell(id);
+		transPack.WriteCell(style);
+		transPack.WriteCell(track);
+
+		trans.AddQuery(sQueryGetWorldRecordID, transPack);
+	}
+
+	DataPack steamPack = new DataPack();
+	steamPack.WriteString(sAuthID3);
+	steamPack.WriteCell(client);
+
+	gH_SQL.Execute(trans, Trans_OnRecordCompare, INVALID_FUNCTION, steamPack, DBPrio_High);
+}
+
+public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	DataPack pack = view_as<DataPack>(data);
+	pack.Reset();
+	char sAuthID3[32];
+	pack.ReadString(sAuthID3, 32);
+
+	for(int i = 0; i < numQueries; i++)
+	{
+		DataPack hQueryPack = view_as<DataPack>(queryData[i]);
+		hQueryPack.Reset();
+		char sMap[32];
+		hQueryPack.ReadString(sMap, 32);
+
+		int iRecordID = hQueryPack.ReadCell();
+		int iStyle = hQueryPack.ReadCell();
+		int iTrack = hQueryPack.ReadCell();
+		delete hQueryPack;
+
+		if(results[i] != null && results[i].FetchRow())
+		{
+			int iWR = results[i].FetchInt(0);
+
+			if(iWR == iRecordID)
+			{
+				Shavit_DeleteReplay(sMap, iStyle, iTrack);
+			}
+		}
+	}
+
+	char sQueryDeleteUserTimes[256];
+	FormatEx(sQueryDeleteUserTimes, 256,
+		"DELETE FROM %splayertimes WHERE auth = '%s';",
+		gS_MySQLPrefix, sAuthID3);
+
+	gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, pack, DBPrio_High);
+}
+
+public void SQL_DeleteUserTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack pack = view_as<DataPack>(data);
+	pack.Reset();
+	char sAuthID3[32];
+	pack.ReadString(sAuthID3, 32);
+
+	if(results == null)
+	{
+		LogError("Timer error! Failed to wipe user data (wipe | delete user times). Reason: %s", error);
+
+		delete pack;
+
+		return;
+	}
+
+	char sQueryDeleteUsers[256];
+	FormatEx(sQueryDeleteUsers, 256, "DELETE FROM %susers WHERE auth = '%s';",
+		gS_MySQLPrefix, sAuthID3);
+
+	gH_SQL.Query(SQL_DeleteUserData_Callback, sQueryDeleteUsers, pack, DBPrio_High);
+}
+
+public void SQL_DeleteUserData_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack pack = view_as<DataPack>(data);
+	pack.Reset();
+	char sAuthID3[32];
+	pack.ReadString(sAuthID3, 32);
+	int client = pack.ReadCell();
+	delete pack;
+
+	if(results == null)
+	{
+		LogError("Timer error! Failed to wipe user data (wipe | delete user data, id %s). Reason: %s", error, sAuthID3);
+
+		return;
+	}
+
+	Shavit_ReloadLeaderboards();
+	
+	Shavit_PrintToChat(client, "Finished wiping timer data for user %s%s%s.",
+		gS_ChatStrings.sVariable, sAuthID3, gS_ChatStrings.sText);
 }
 
 public Action Command_AutoBhop(int client, int args)
@@ -1116,14 +1327,14 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	{
 		PrintToServer("%s", sBuffer);
 
-		return 0;
+		return false;
 	}
 
 	if(!IsClientInGame(client))
 	{
 		gB_StopChatSound = false;
 		
-		return 0;
+		return false;
 	}
 
 	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
@@ -1156,6 +1367,8 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	EndMessage();
 
 	gB_StopChatSound = false;
+
+	return true;
 }
 
 public int Native_RestartTimer(Handle handler, int numParams)
