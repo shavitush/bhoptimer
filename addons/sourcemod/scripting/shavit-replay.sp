@@ -154,6 +154,7 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_DeleteReplay", Native_DeleteReplay);
 	CreateNative("Shavit_GetReplayBotCurrentFrame", Native_GetReplayBotIndex);
 	CreateNative("Shavit_GetReplayBotFirstFrame", Native_GetReplayBotFirstFrame);
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
@@ -310,6 +311,53 @@ public void AdminMenu_DeleteReplay(Handle topmenu, TopMenuAction action, TopMenu
 	{
 		Command_DeleteReplay(param, 0);
 	}
+}
+
+void UnloadReplay(int style, int track)
+{
+	if(gCV_CentralBot.BoolValue && gA_CentralCache.iStyle == style && gA_CentralCache.iTrack == track)
+	{
+		StopCentralReplay(0);
+	}
+
+	gA_Frames[style][track].Clear();
+	gA_FrameCache[style][track].iFrameCount = 0;
+	gA_FrameCache[style][track].fTime = 0.0;
+	gA_FrameCache[style][track].bNewFormat = false;
+	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+	gI_ReplayTick[style] = -1;
+
+	if(gI_ReplayBotClient[style] != 0)
+	{
+		UpdateReplayInfo(gI_ReplayBotClient[style], style, 0.0, track);
+	}
+}
+
+public int Native_DeleteReplay(Handle handler, int numParams)
+{
+	char sMap[160];
+	GetNativeString(1, sMap, 160);
+
+	int iStyle = GetNativeCell(2);
+	int iTrack = GetNativeCell(3);
+
+	char sTrack[4];
+	FormatEx(sTrack, 4, "_%d", iTrack);
+
+	char sPath[PLATFORM_MAX_PATH];
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, iStyle, gS_Map, (iTrack > 0)? sTrack:"");
+
+	if(!FileExists(sPath) || !DeleteFile(sPath))
+	{
+		return false;
+	}
+
+	if(StrEqual(sMap, gS_Map))
+	{
+		UnloadReplay(iStyle, iTrack);
+	}
+
+	return true;
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
@@ -1112,22 +1160,7 @@ bool DeleteReplay(int style, int track)
 		return false;
 	}
 
-	if(gCV_CentralBot.BoolValue && gA_CentralCache.iStyle == style && gA_CentralCache.iTrack == track)
-	{
-		StopCentralReplay(0);
-	}
-
-	gA_Frames[style][track].Clear();
-	gA_FrameCache[style][track].iFrameCount = 0;
-	gA_FrameCache[style][track].fTime = 0.0;
-	gA_FrameCache[style][track].bNewFormat = false;
-	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
-	gI_ReplayTick[style] = -1;
-
-	if(gI_ReplayBotClient[style] != 0)
-	{
-		UpdateReplayInfo(gI_ReplayBotClient[style], style, 0.0, track);
-	}
+	UnloadReplay(style, track);
 
 	return true;
 }

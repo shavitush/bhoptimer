@@ -879,6 +879,17 @@ native void Shavit_PauseTimer(int client);
 native void Shavit_ResumeTimer(int client);
 
 /**
+ * Deletes the specified replay file.
+ * Replay data will be unloaded if necessary.
+ *
+ * @param map						Map display name.
+ * @param style						Bhop style.
+ * @param track						Timer track.
+ * @return							true if replay existed, false otherwise.
+ */
+native bool Shavit_DeleteReplay(const char[] map, int style, int track);
+
+/**
  * Retrieves the engine time of the replay bot's first frame.
  *
  * @param style						Style.
@@ -1273,6 +1284,7 @@ public SharedPlugin __pl_shavit =
 #if !defined REQUIRE_PLUGIN
 public void __pl_shavit_SetNTVOptional()
 {
+	MarkNativeAsOptional("Shavit_DeleteReplay");
 	MarkNativeAsOptional("Shavit_FinishMap");
 	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
 	MarkNativeAsOptional("Shavit_FormatChat");
