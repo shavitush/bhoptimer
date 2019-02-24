@@ -1106,18 +1106,25 @@ public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	if(!IsClientInGame(client))
-	{
-		gB_StopChatSound = false;
-		
-		return;
-	}
-
 	static int iWritten = 0; // useless?
 
 	char sBuffer[300];
 	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
 	Format(sBuffer, 300, "%s %s%s", gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sBuffer);
+
+	if(client == 0)
+	{
+		PrintToServer("%s", sBuffer);
+
+		return 0;
+	}
+
+	if(!IsClientInGame(client))
+	{
+		gB_StopChatSound = false;
+		
+		return 0;
+	}
 
 	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
