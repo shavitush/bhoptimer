@@ -107,6 +107,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
 	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
+	CreateNative("Shavit_ReloadLeaderboards", Native_ReloadLeaderboards);
 	CreateNative("Shavit_WR_DeleteMap", Native_WR_DeleteMap);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
@@ -554,6 +555,12 @@ public int Native_GetWorldRecord(Handle handler, int numParams)
 public int Native_GetWRTime(Handle handler, int numParams)
 {
 	SetNativeCellRef(2, gF_WRTime[GetNativeCell(1)][GetNativeCell(3)]);
+}
+
+public int Native_ReloadLeaderboards(Handle handler, int numParams)
+{
+	UpdateLeaderboards();
+	UpdateWRCache();
 }
 
 public int Native_GetWRRecordID(Handle handler, int numParams)
@@ -2309,7 +2316,7 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 void UpdateLeaderboards()
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "SELECT style, time, track FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, 192, "SELECT style, time, track FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery, 0);
 }
 

@@ -763,6 +763,13 @@ native void Shavit_GetWRTime(int style, float &time, int track);
 native float Shavit_GetWorldRecord(int style, int track);
 
 /**
+ * Reloads WR leaderboards cache for the current map.
+ *
+ * @noreturn
+ */
+native void Shavit_ReloadLeaderboards();
+
+/**
  * Saves the WR's record ID for the current map on a variable.
  * Unused in base plugins, as of pre-1.4b.
  *
@@ -1330,6 +1337,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRTime");
+	MarkNativeAsOptional("Shavit_ReloadLeaderboards");
 	MarkNativeAsOptional("Shavit_HasStyleAccess");
 	MarkNativeAsOptional("Shavit_HijackAngles");
 	MarkNativeAsOptional("Shavit_InsideZone");
