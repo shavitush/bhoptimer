@@ -1166,7 +1166,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		{
 			if(gB_Rankings && (gI_HUD2Settings[client] & HUD2_MAPTIER) == 0)
 			{
-				FormatEx(sZoneHUD, 32, "%T", "HudZoneTier", client, Shavit_GetMapTier(gS_Map));
+				FormatEx(sZoneHUD, 32, "%T\n\n", "HudZoneTier", client, Shavit_GetMapTier(gS_Map));
 				AddHUDLine(buffer, maxlen, sZoneHUD, iLines);
 				iLines++;
 			}

@@ -1964,7 +1964,6 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		gA_Targetnames.GetString(cpcache.iTargetname, sTargetname, 64);
 
 		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
-		Shavit_PrintToChat(client, "set name %s", sTargetname);
 	}
 
 	if(cpcache.iClassname != -1)
