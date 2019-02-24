@@ -131,6 +131,7 @@ ConVar sv_enablebunnyhopping = null;
 // timer settings
 bool gB_Registered = false;
 int gI_Styles = 0;
+int gI_OrderedStyles[STYLE_LIMIT];
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
@@ -172,6 +173,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetDatabase", Native_GetDatabase);
 	CreateNative("Shavit_GetDB", Native_GetDB);
 	CreateNative("Shavit_GetGameType", Native_GetGameType);
+	CreateNative("Shavit_GetOrderedStyles", Native_GetOrderedStyles);
 	CreateNative("Shavit_GetPerfectJumps", Native_GetPerfectJumps);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
@@ -847,7 +849,7 @@ public void SQL_DeleteUserData_Callback(Database db, DBResultSet results, const 
 	}
 
 	Shavit_ReloadLeaderboards();
-	
+
 	Shavit_PrintToChat(client, "Finished wiping timer data for user %s%s%s.",
 		gS_ChatStrings.sVariable, sAuthID3, gS_ChatStrings.sText);
 }
@@ -899,14 +901,16 @@ public Action Command_Style(int client, int args)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
+		int iStyle = gI_OrderedStyles[i];
+
 		char sInfo[8];
-		IntToString(i, sInfo, 8);
+		IntToString(iStyle, sInfo, 8);
 
 		char sDisplay[64];
 
-		if(gA_StyleSettings[i].bUnranked)
+		if(gA_StyleSettings[iStyle].bUnranked)
 		{
-			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, gS_StyleStrings[i].sStyleName);
+			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, gS_StyleStrings[iStyle].sStyleName);
 		}
 
 		else
@@ -915,7 +919,7 @@ public Action Command_Style(int client, int args)
 
 			if(gB_WR)
 			{
-				time = Shavit_GetWorldRecord(i, Track_Main);
+				time = Shavit_GetWorldRecord(iStyle, Track_Main);
 			}
 
 			if(time > 0.0)
@@ -923,16 +927,16 @@ public Action Command_Style(int client, int args)
 				char sTime[32];
 				FormatSeconds(time, sTime, 32, false);
 
-				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i].sStyleName, sTime);
+				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[iStyle].sStyleName, sTime);
 			}
 
 			else
 			{
-				strcopy(sDisplay, 64, gS_StyleStrings[i].sStyleName);
+				strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
 			}
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gA_Timers[client].iStyle == i || !Shavit_HasStyleAccess(client, i))? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+		menu.AddItem(sInfo, sDisplay, (gA_Timers[client].iStyle == iStyle || !Shavit_HasStyleAccess(client, iStyle))? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	// should NEVER happen
@@ -1147,6 +1151,11 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 public int Native_GetGameType(Handle handler, int numParams)
 {
 	return view_as<int>(gEV_Type);
+}
+
+public int Native_GetOrderedStyles(Handle handler, int numParams)
+{
+	return SetNativeArray(1, gI_OrderedStyles, GetNativeCell(2));
 }
 
 public int Native_GetDatabase(Handle handler, int numParams)
@@ -1848,6 +1857,7 @@ bool LoadStyles()
 		gA_StyleSettings[i].bStrafeCountD = view_as<bool>(kv.GetNum("strafe_count_d", true));
 		gA_StyleSettings[i].fRankingMultiplier = kv.GetFloat("rankingmultiplier", 1.00);
 		gA_StyleSettings[i].iSpecial = kv.GetNum("special", 0);
+		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
 
 		if(!gB_Registered && strlen(gS_StyleStrings[i].sChangeCommand) > 0)
 		{
@@ -1886,7 +1896,7 @@ bool LoadStyles()
 			strcopy(gS_StyleOverride[i], 32, (iCount >= 2)? sText[1]:"");
 		}
 
-		i++;
+		gI_OrderedStyles[i] = i++;
 	}
 
 	while(kv.GotoNextKey());
@@ -1896,11 +1906,34 @@ bool LoadStyles()
 	gI_Styles = i;
 	gB_Registered = true;
 
+	SortCustom1D(gI_OrderedStyles, gI_Styles, SortAscending_StyleOrder);
+
 	Call_StartForward(gH_Forwards_OnStyleConfigLoaded);
 	Call_PushCell(gI_Styles);
 	Call_Finish();
 
 	return true;
+}
+
+public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)
+{
+	int order1 = gA_StyleSettings[index1].iOrdering;
+	int order2 = gA_StyleSettings[index2].iOrdering;
+
+	if(order1 < order2)
+	{
+		return -1;
+	}
+
+	else if(order1 == order2)
+	{
+		return 0;
+	}
+
+	else
+	{
+		return 1;
+	}
 }
 
 public Action Command_StyleChange(int client, int args)

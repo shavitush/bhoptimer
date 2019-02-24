@@ -508,13 +508,6 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		return;
 	}
 
-	// resultset structure
-	// FIELD 0: style
-	// FIELD 1: id
-	// FIELD 2: time - sorted
-	// FIELD 3: name
-	// FIELD 4: track
-
 	// reset cache
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -752,15 +745,20 @@ void DeleteSubmenu(int client)
 	Menu menu = new Menu(MenuHandler_Delete);
 	menu.SetTitle("%T\n ", "DeleteMenuTitle", client);
 
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
+		int iStyle = styles[i];
+
 		char sInfo[8];
-		IntToString(i, sInfo, 8);
+		IntToString(iStyle, sInfo, 8);
 
 		char sDisplay[64];
-		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[i].sStyleName, "WRRecord", client, gI_RecordAmount[i][gA_WRCache[client].iLastTrack]);
+		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[iStyle].sStyleName, "WRRecord", client, gI_RecordAmount[iStyle][gA_WRCache[client].iLastTrack]);
 
-		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][gA_WRCache[client].iLastTrack] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[iStyle][gA_WRCache[client].iLastTrack] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	menu.ExitButton = true;
@@ -815,14 +813,19 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		Menu subMenu = new Menu(MenuHandler_DeleteAll_Second);
 		subMenu.SetTitle("%T\n ", "DeleteTrackAllStyle", param1, sTrack);
 
+		int[] styles = new int[gI_Styles];
+		Shavit_GetOrderedStyles(styles, gI_Styles);
+
 		for(int i = 0; i < gI_Styles; i++)
 		{
+			int iStyle = styles[i];
+
 			char sStyle[64];
-			strcopy(sStyle, 64, gS_StyleStrings[i].sStyleName);
+			strcopy(sStyle, 64, gS_StyleStrings[iStyle].sStyleName);
 
-			IntToString(i, sInfo, 8);
+			IntToString(iStyle, sInfo, 8);
 
-			int iRecords = gI_RecordAmount[i][iTrack];
+			int iRecords = gI_RecordAmount[iStyle][iTrack];
 
 			if(iRecords > 0)
 			{
@@ -869,7 +872,7 @@ void DeleteAllSubmenu(int client)
 	GetTrackName(client, gA_WRCache[client].iLastTrack, sTrack, 32);
 
 	Menu menu = new Menu(MenuHandler_DeleteAll);
-	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, gS_Map, sTrack, gA_WRCache[client].iLastStyle);
+	menu.SetTitle("%T\n ", "DeleteAllRecordsMenuTitle", client, gS_Map, sTrack, gS_StyleStrings[gA_WRCache[client].iLastStyle].sStyleName);
 
 	char sMenuItem[64];
 
@@ -937,24 +940,29 @@ public Action Command_DeleteStyleRecords(int client, int args)
 	Menu menu = new Menu(MenuHandler_DeleteStyleRecords);
 	menu.SetTitle("%T\n ", "DeleteStyleRecordsRecordsMenuTitle", client, gS_Map);
 
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(gA_StyleSettings[i].bUnranked)
+		int iStyle = styles[i];
+
+		if(gA_StyleSettings[iStyle].bUnranked)
 		{
 			continue;
 		}
 
 		char sInfo[8];
-		IntToString(i, sInfo, 8);
+		IntToString(iStyle, sInfo, 8);
 
 		char sDisplay[64];
-		FormatEx(sDisplay, 64, "%s (%d %T)", gS_StyleStrings[i].sStyleName, gI_RecordAmount[i], "WRRecord", client);
+		FormatEx(sDisplay, 64, "%s (%d %T)", gS_StyleStrings[iStyle].sStyleName, gI_RecordAmount[iStyle], "WRRecord", client);
 
 		int iTotalAmount = 0;
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			iTotalAmount += gI_RecordAmount[i][j];
+			iTotalAmount += gI_RecordAmount[iStyle][j];
 		}
 
 		menu.AddItem(sInfo, sDisplay, (iTotalAmount > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -1409,32 +1417,37 @@ Action ShowWRStyleMenu(int client, int track)
 	Menu menu = new Menu(MenuHandler_StyleChooser);
 	menu.SetTitle("%T", "WRMenuTitle", client);
 
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(gA_StyleSettings[i].bUnranked)
+		int iStyle = styles[i];
+
+		if(gA_StyleSettings[iStyle].bUnranked)
 		{
 			continue;
 		}
 
 		char sInfo[8];
-		IntToString(i, sInfo, 8);
+		IntToString(iStyle, sInfo, 8);
 
 		char sDisplay[64];
 
-		if(StrEqual(gA_WRCache[client].sClientMap, gS_Map) && gF_WRTime[i][track] > 0.0)
+		if(StrEqual(gA_WRCache[client].sClientMap, gS_Map) && gF_WRTime[iStyle][track] > 0.0)
 		{
 			char sTime[32];
-			FormatSeconds(gF_WRTime[i][track], sTime, 32, false);
+			FormatSeconds(gF_WRTime[iStyle][track], sTime, 32, false);
 
-			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i].sStyleName, sTime);
+			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[iStyle].sStyleName, sTime);
 		}
 
 		else
 		{
-			strcopy(sDisplay, 64, gS_StyleStrings[i].sStyleName);
+			strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[i][track] > 0 || !StrEqual(gA_WRCache[client].sClientMap, gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[iStyle][track] > 0 || !StrEqual(gA_WRCache[client].sClientMap, gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	// should NEVER happen

@@ -156,6 +156,7 @@ enum struct stylesettings_t
 	bool bStrafeCountD;
 	float fRankingMultiplier;
 	int iSpecial;
+	int iOrdering;
 }
 
 enum struct chatstrings_t
@@ -1082,6 +1083,15 @@ native int Shavit_GetStyleStrings(int style, int stringtype, char[] StyleStrings
 native int Shavit_GetStyleCount();
 
 /**
+ * Gets an array with style IDs in their configured menu ordering as specified in the styles config.
+ *
+ * @param arr						Reference to array to fill with style IDs.
+ * @param size						Array size.
+ * @noreturn
+ */
+native void Shavit_GetOrderedStyles(int[] arr, int size);
+
+/**
  * Saves chat related strings on string references.
  *
  * @param stringtype				String type to grab.
@@ -1306,6 +1316,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetHUDSettings");
 	MarkNativeAsOptional("Shavit_GetMapTier");
 	MarkNativeAsOptional("Shavit_GetMapTiers");
+	MarkNativeAsOptional("Shavit_GetOrderedStyles");
 	MarkNativeAsOptional("Shavit_GetPerfectJumps");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");
@@ -1337,7 +1348,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRTime");
-	MarkNativeAsOptional("Shavit_ReloadLeaderboards");
 	MarkNativeAsOptional("Shavit_HasStyleAccess");
 	MarkNativeAsOptional("Shavit_HijackAngles");
 	MarkNativeAsOptional("Shavit_InsideZone");
@@ -1352,6 +1362,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
 	MarkNativeAsOptional("Shavit_Rankings_DeleteMap");
+	MarkNativeAsOptional("Shavit_ReloadLeaderboards");
 	MarkNativeAsOptional("Shavit_ReloadReplay");
 	MarkNativeAsOptional("Shavit_ReloadReplays");
 	MarkNativeAsOptional("Shavit_Replay_DeleteMap");

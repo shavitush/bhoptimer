@@ -1998,24 +1998,29 @@ public Action Command_DeleteReplay(int client, int args)
 	Menu menu = new Menu(DeleteReplay_Callback);
 	menu.SetTitle("%T", "DeleteReplayMenuTitle", client);
 
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(!ReplayEnabled(i))
+		int iStyle = styles[i];
+
+		if(!ReplayEnabled(iStyle))
 		{
 			continue;
 		}
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			if(gA_FrameCache[i][j].iFrameCount == 0)
+			if(gA_FrameCache[iStyle][j].iFrameCount == 0)
 			{
 				continue;
 			}
 
 			char sInfo[8];
-			FormatEx(sInfo, 8, "%d;%d", i, j);
+			FormatEx(sInfo, 8, "%d;%d", iStyle, j);
 
-			float time = GetReplayLength(i, j);
+			float time = GetReplayLength(iStyle, j);
 
 			char sTrack[32];
 			GetTrackName(client, j, sTrack, 32);
@@ -2027,12 +2032,12 @@ public Action Command_DeleteReplay(int client, int args)
 				char sTime[32];
 				FormatSeconds(time, sTime, 32, false);
 
-				FormatEx(sDisplay, 64, "%s (%s) - %s", gS_StyleStrings[i].sStyleName, sTrack, sTime);
+				FormatEx(sDisplay, 64, "%s (%s) - %s", gS_StyleStrings[iStyle].sStyleName, sTrack, sTime);
 			}
 
 			else
 			{
-				FormatEx(sDisplay, 64, "%s (%s)", gS_StyleStrings[i].sStyleName, sTrack);
+				FormatEx(sDisplay, 64, "%s (%s)", gS_StyleStrings[iStyle].sStyleName, sTrack);
 			}
 
 			menu.AddItem(sInfo, sDisplay);
@@ -2251,17 +2256,22 @@ void OpenReplaySubMenu(int client, int track)
 		menu.AddItem("stop", sDisplay, (gA_CentralCache.iReplayStatus != Replay_Idle)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(!ReplayEnabled(i))
+		int iStyle = styles[i];
+
+		if(!ReplayEnabled(iStyle))
 		{
 			continue;
 		}
 
 		char sInfo[8];
-		IntToString(i, sInfo, 8);
+		IntToString(iStyle, sInfo, 8);
 
-		float time = GetReplayLength(i, track);
+		float time = GetReplayLength(iStyle, track);
 
 		char sDisplay[64];
 
@@ -2270,15 +2280,15 @@ void OpenReplaySubMenu(int client, int track)
 			char sTime[32];
 			FormatSeconds(time, sTime, 32, false);
 
-			FormatEx(sDisplay, 64, "%s - %s", gS_StyleStrings[i].sStyleName, sTime);
+			FormatEx(sDisplay, 64, "%s - %s", gS_StyleStrings[iStyle].sStyleName, sTime);
 		}
 
 		else
 		{
-			strcopy(sDisplay, 64, gS_StyleStrings[i].sStyleName);
+			strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gA_FrameCache[i][track].iFrameCount > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (gA_FrameCache[iStyle][track].iFrameCount > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	if(menu.ItemCount == 0)
