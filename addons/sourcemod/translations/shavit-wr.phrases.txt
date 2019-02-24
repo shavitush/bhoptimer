@@ -53,8 +53,8 @@
 	}
 	"DeleteAllRecordsMenuTitle"
 	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"Delete ALL the records for '{1}'? (Track: {2})"
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Delete ALL the records for '{1}'? (Track: {2} | Style: {3})"
 	}
 	"DeleteConfirm"
 	{
@@ -106,6 +106,11 @@
 	"DeleteTrackAll"
 	{
 		"en"		"Choose a track to delete a ALL records from:"
+	}
+	"DeleteTrackAllStyle"
+	{
+		"#format"	"{1:s}"
+		"en"		"Choose a style to delete all the records for ({1}):"
 	}
 	// ---------- Errors ---------- //
 	"DatabaseError"
