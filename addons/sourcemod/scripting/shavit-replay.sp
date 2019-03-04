@@ -323,7 +323,7 @@ void UnloadReplay(int style, int track)
 	gA_Frames[style][track].Clear();
 	gA_FrameCache[style][track].iFrameCount = 0;
 	gA_FrameCache[style][track].fTime = 0.0;
-	gA_FrameCache[style][track].bNewFormat = false;
+	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
 	gI_ReplayTick[style] = -1;
 
@@ -411,7 +411,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 	gA_Frames[style][track] = new ArrayList(CELLS_PER_FRAME);
 	gA_FrameCache[style][track].iFrameCount = 0;
 	gA_FrameCache[style][track].fTime = 0.0;
-	gA_FrameCache[style][track].bNewFormat = false;
+	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
 
 	bool loaded = false;
@@ -883,7 +883,7 @@ public void OnMapStart()
 			gA_Frames[i][j] = new ArrayList(CELLS_PER_FRAME);
 			gA_FrameCache[i][j].iFrameCount = 0;
 			gA_FrameCache[i][j].fTime = 0.0;
-			gA_FrameCache[i][j].bNewFormat = false;
+			gA_FrameCache[i][j].bNewFormat = true;
 			strcopy(gA_FrameCache[i][j].sReplayName, MAX_NAME_LENGTH, "invalid");
 
 			loaded = DefaultLoadReplay(i, j);
