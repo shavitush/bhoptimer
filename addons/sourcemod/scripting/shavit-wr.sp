@@ -1351,19 +1351,12 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		return;
 	}
 
-	for(int i = 0; i < gI_Styles; i++)
-	{
-		if(gA_StyleSettings[i].bUnranked)
-		{
-			continue;
-		}
 
-		Call_StartForward(gH_OnWRDeleted);
-		Call_PushCell(i);
-		Call_PushCell(-1);
-		Call_PushCell(gA_WRCache[client].iLastTrack);
-		Call_Finish();
-	}
+	Call_StartForward(gH_OnWRDeleted);
+	Call_PushCell(gA_WRCache[client].iLastStyle);
+	Call_PushCell(-1);
+	Call_PushCell(gA_WRCache[client].iLastTrack);
+	Call_Finish();
 
 	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings.sVariable, gS_Map, gS_ChatStrings.sText);
 }
