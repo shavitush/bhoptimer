@@ -90,6 +90,7 @@ float gF_StartTick[STYLE_LIMIT];
 ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
 framecache_t gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE];
 bool gB_ForciblyStopped = false;
+Handle gH_ReplayTimers[STYLE_LIMIT];
 
 bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
@@ -452,7 +453,9 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 		{
 			gI_ReplayTick[style] = 0;
 			gRS_ReplayStatus[style] = Replay_Start;
-			CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+
+			delete gH_ReplayTimers[style];
+			gH_ReplayTimers[style] = CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 
@@ -748,6 +751,13 @@ public void OnMapStart()
 		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
 	}
 
+	// VERY RARE CASE
+	// this is required to not cause replays to break if we change map before playback starts, after it is requested
+	for(int i = 0; i < STYLE_LIMIT; i++)
+	{
+		gH_ReplayTimers[i] = null;
+	}
+
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(-1);
@@ -905,7 +915,9 @@ public void OnMapStart()
 			{
 				gI_ReplayTick[i] = 0;
 				gRS_ReplayStatus[i] = Replay_Start;
-				CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, i, TIMER_FLAG_NO_MAPCHANGE);
+
+				delete gH_ReplayTimers[i];
+				gH_ReplayTimers[i] = CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, i, TIMER_FLAG_NO_MAPCHANGE);
 			}
 		}
 	}
@@ -1668,7 +1680,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gI_ReplayTick[style] = 0;
 				gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_End;
 
-				CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+				delete gH_ReplayTimers[style];
+				gH_ReplayTimers[style] = CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 
 				return Plugin_Changed;
 			}
@@ -1825,6 +1838,8 @@ bool IsWallBetween(float pos1[3], float pos2[3], int bot)
 
 public Action Timer_EndReplay(Handle Timer, any data)
 {
+	gH_ReplayTimers[data] = null;
+
 	int client = GetClientFromSerial(gA_CentralCache.iPlaybackSerial);
 
 	if(client != 0)
@@ -1851,7 +1866,8 @@ public Action Timer_EndReplay(Handle Timer, any data)
 	{
 		gRS_ReplayStatus[data] = Replay_Start;
 
-		CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
+		delete gH_ReplayTimers[data];
+		gH_ReplayTimers[data] = CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, data, TIMER_FLAG_NO_MAPCHANGE);
 	}
 
 	else
@@ -1865,6 +1881,8 @@ public Action Timer_EndReplay(Handle Timer, any data)
 
 public Action Timer_StartReplay(Handle Timer, any data)
 {
+	gH_ReplayTimers[data] = null;
+
 	if(gRS_ReplayStatus[data] == Replay_Running || (gCV_CentralBot.BoolValue && gB_ForciblyStopped))
 	{
 		return Plugin_Stop;
@@ -2366,7 +2384,8 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 
 			UpdateReplayInfo(gA_CentralCache.iClient, style, time, gI_Track[param1]);
 
-			CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+			delete gH_ReplayTimers[style];
+			gH_ReplayTimers[style] = CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 
