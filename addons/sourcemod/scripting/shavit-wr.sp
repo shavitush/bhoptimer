@@ -1351,7 +1351,6 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		return;
 	}
 
-
 	Call_StartForward(gH_OnWRDeleted);
 	Call_PushCell(gA_WRCache[client].iLastStyle);
 	Call_PushCell(-1);

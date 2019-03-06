@@ -49,6 +49,7 @@ enum struct centralbot_cache_t
 	int iStyle;
 	ReplayStatus iReplayStatus;
 	int iTrack;
+	int iPlaybackSerial;
 }
 
 enum struct replaystrings_t
@@ -123,6 +124,7 @@ ConVar gCV_CentralBot = null;
 ConVar gCV_BotShooting = null;
 ConVar gCV_BotPlusUse = null;
 ConVar gCV_BotWeapon = null;
+ConVar gCV_PlaybackCanStop = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -225,6 +227,7 @@ public void OnPluginStart()
 	gCV_BotShooting = CreateConVar("shavit_replay_botshooting", "3", "Attacking buttons to allow for bots.\n0 - none\n1 - +attack\n2 - +attack2\n3 - both", 0, true, 0.0, true, 3.0);
 	gCV_BotPlusUse = CreateConVar("shavit_replay_botplususe", "1", "Allow bots to use +use?", 0, true, 0.0, true, 1.0);
 	gCV_BotWeapon = CreateConVar("shavit_replay_botweapon", "", "Choose which weapon the bot will hold.\nLeave empty to use the default.\nSet to \"none\" to have none.\nExample: weapon_usp");
+	gCV_PlaybackCanStop = CreateConVar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
@@ -752,6 +755,7 @@ public void OnMapStart()
 	gA_CentralCache.iStyle = -1;
 	gA_CentralCache.iReplayStatus = Replay_Idle;
 	gA_CentralCache.iTrack = Track_Main;
+	gA_CentralCache.iPlaybackSerial = 0;
 
 	gB_ForciblyStopped = false;
 
@@ -1818,6 +1822,8 @@ bool IsWallBetween(float pos1[3], float pos2[3], int bot)
 
 public Action Timer_EndReplay(Handle Timer, any data)
 {
+	gA_CentralCache.iPlaybackSerial = 0;
+
 	if(gCV_CentralBot.BoolValue && gB_ForciblyStopped)
 	{
 		gB_ForciblyStopped = false;
@@ -2169,7 +2175,7 @@ public Action Command_Replay(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON))
+	if(CanStopCentral(client))
 	{
 		char arg[8];
 		GetCmdArg(1, arg, 8);
@@ -2248,7 +2254,7 @@ void OpenReplaySubMenu(int client, int track)
 	Menu menu = new Menu(MenuHandler_ReplaySubmenu);
 	menu.SetTitle("%T (%s)\n ", "CentralReplayTitle", client, sTrack);
 
-	if(CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON))
+	if(CanStopCentral(client))
 	{
 		char sDisplay[64];
 		FormatEx(sDisplay, 64, "%T", "CentralReplayStop", client);
@@ -2312,7 +2318,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 		char info[16];
 		menu.GetItem(param2, info, 16);
 
-		if(StrEqual(info, "stop"))
+		if(StrEqual(info, "stop") && CanStopCentral(param1))
 		{
 			StopCentralReplay(param1);
 			OpenReplaySubMenu(param1, gI_Track[param1]);
@@ -2339,6 +2345,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 			gI_ReplayTick[style] = 0;
 			gA_CentralCache.iStyle = style;
 			gA_CentralCache.iTrack = gI_Track[param1];
+			gA_CentralCache.iPlaybackSerial = GetClientSerial(param1);
 			gI_ReplayBotClient[style] = gA_CentralCache.iClient;
 			gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_Start;
 			TeleportToStart(gA_CentralCache.iClient, style, gI_Track[param1]);
@@ -2363,6 +2370,11 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 	}
 
 	return 0;
+}
+
+bool CanStopCentral(int client)
+{
+	return CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON) || (gCV_PlaybackCanStop.BoolValue && GetClientSerial(client) == gA_CentralCache.iPlaybackSerial);
 }
 
 void TeleportToStart(int client, int style, int track)
@@ -2399,6 +2411,7 @@ void StopCentralReplay(int client)
 	gF_StartTick[style] = -65535.0;
 	gA_CentralCache.iStyle = 0;
 	gB_ForciblyStopped = true;
+	gA_CentralCache.iPlaybackSerial = 0;
 
 	if(gA_CentralCache.iClient != -1)
 	{
