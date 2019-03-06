@@ -95,6 +95,7 @@ bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
+float gF_LastInteraction[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -125,6 +126,7 @@ ConVar gCV_BotShooting = null;
 ConVar gCV_BotPlusUse = null;
 ConVar gCV_BotWeapon = null;
 ConVar gCV_PlaybackCanStop = null;
+ConVar gCV_PlaybackCooldown = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -228,6 +230,7 @@ public void OnPluginStart()
 	gCV_BotPlusUse = CreateConVar("shavit_replay_botplususe", "1", "Allow bots to use +use?", 0, true, 0.0, true, 1.0);
 	gCV_BotWeapon = CreateConVar("shavit_replay_botweapon", "", "Choose which weapon the bot will hold.\nLeave empty to use the default.\nSet to \"none\" to have none.\nExample: weapon_usp");
 	gCV_PlaybackCanStop = CreateConVar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
+	gCV_PlaybackCooldown = CreateConVar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
@@ -1822,6 +1825,13 @@ bool IsWallBetween(float pos1[3], float pos2[3], int bot)
 
 public Action Timer_EndReplay(Handle Timer, any data)
 {
+	int client = GetClientFromSerial(gA_CentralCache.iPlaybackSerial);
+
+	if(client != 0)
+	{
+		gF_LastInteraction[client] = GetEngineTime();
+	}
+
 	gA_CentralCache.iPlaybackSerial = 0;
 
 	if(gCV_CentralBot.BoolValue && gB_ForciblyStopped)
@@ -2346,6 +2356,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 			gA_CentralCache.iStyle = style;
 			gA_CentralCache.iTrack = gI_Track[param1];
 			gA_CentralCache.iPlaybackSerial = GetClientSerial(param1);
+			gF_LastInteraction[param1] = GetEngineTime();
 			gI_ReplayBotClient[style] = gA_CentralCache.iClient;
 			gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_Start;
 			TeleportToStart(gA_CentralCache.iClient, style, gI_Track[param1]);
@@ -2374,7 +2385,10 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 
 bool CanStopCentral(int client)
 {
-	return CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON) || (gCV_PlaybackCanStop.BoolValue && GetClientSerial(client) == gA_CentralCache.iPlaybackSerial);
+	return (CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON) ||
+			(gCV_PlaybackCanStop.BoolValue &&
+			GetClientSerial(client) == gA_CentralCache.iPlaybackSerial &&
+			GetEngineTime() - gF_LastInteraction[client] > gCV_PlaybackCooldown.FloatValue));
 }
 
 void TeleportToStart(int client, int style, int track)
@@ -2404,6 +2418,12 @@ void StopCentralReplay(int client)
 	}
 
 	int style = gA_CentralCache.iStyle;
+	int player = GetClientFromSerial(gA_CentralCache.iPlaybackSerial);
+
+	if(player != 0)
+	{
+		gF_LastInteraction[player] = GetEngineTime();
+	}
 
 	gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_Idle;
 	gI_ReplayTick[style] = 0;
