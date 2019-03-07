@@ -781,13 +781,6 @@ public void OnMapStart()
 		return;
 	}
 
-	bot_quota = FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota");
-
-	if(bot_quota != null)
-	{
-		bot_quota.Flags &= ~FCVAR_NOTIFY;
-	}
-
 	char sTempMap[PLATFORM_MAX_PATH];
 	FormatEx(sTempMap, PLATFORM_MAX_PATH, "maps/%s.nav", gS_Map);
 
@@ -810,60 +803,18 @@ public void OnMapStart()
 	if(bot_controllable != null)
 	{
 		bot_controllable.BoolValue = false;
-		delete bot_controllable;
 	}
 
-	ConVar bot_stop = FindConVar("bot_stop");
-
-	if(bot_stop != null)
-	{
-		bot_stop.BoolValue = true;
-		delete bot_stop;
-	}
-
-	ConVar bot_quota_mode = FindConVar((gEV_Type != Engine_TF2)? "bot_quota_mode":"tf_bot_quota_mode");
-
-	if(bot_quota_mode != null)
-	{
-		bot_quota_mode.SetString("normal");
-		delete bot_quota_mode;
-	}
-
-	ConVar mp_limitteams = FindConVar("mp_limitteams");
-
-	if(mp_limitteams != null)
-	{
-		mp_limitteams.IntValue = 0;
-		delete mp_limitteams;
-	}
-
-	ConVar bot_join_after_player = FindConVar((gEV_Type != Engine_TF2)? "bot_join_after_player":"tf_bot_join_after_player");
-
-	if(bot_join_after_player != null)
-	{
-		bot_join_after_player.BoolValue = false;
-		delete bot_join_after_player;
-	}
-
-	ConVar bot_chatter = FindConVar("bot_chatter");
-
-	if(bot_chatter != null)
-	{
-		bot_chatter.SetString("off");
-		delete bot_chatter;
-	}
-
-	ConVar bot_zombie = FindConVar("bot_zombie");
-
-	if(bot_zombie != null)
-	{
-		bot_zombie.BoolValue = true;
-		delete bot_zombie;
-	}
-
-	ConVar mp_autoteambalance = FindConVar("mp_autoteambalance");
-	mp_autoteambalance.BoolValue = false;
-	delete mp_autoteambalance;
+	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
+	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
+	FindConVar("bot_stop").BoolValue = true;
+	FindConVar((gEV_Type != Engine_TF2)? "bot_quota_mode":"tf_bot_quota_mode").SetString("normal");
+	FindConVar("mp_limitteams").IntValue = 0;
+	FindConVar((gEV_Type != Engine_TF2)? "bot_join_after_player":"tf_bot_join_after_player").BoolValue = false;
+	FindConVar("bot_chatter").SetString("off");
+	FindConVar("bot_flipout").BoolValue = true;
+	FindConVar("bot_zombie").BoolValue = true;
+	FindConVar("mp_autoteambalance").BoolValue = false;
 
 	ServerCommand((gEV_Type != Engine_TF2)? "bot_kick":"tf_bot_kick all");
 
@@ -1670,7 +1621,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					float vecVelocity[3];
 					MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 					ScaleVector(vecVelocity, gF_Tickrate);
-					TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
+					TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vecVelocity);
 				}
 
 				return Plugin_Changed;
