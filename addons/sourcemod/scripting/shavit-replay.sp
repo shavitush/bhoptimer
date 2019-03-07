@@ -89,6 +89,7 @@ ArrayList gA_Frames[STYLE_LIMIT][TRACKS_SIZE];
 float gF_StartTick[STYLE_LIMIT];
 ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
 framecache_t gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE];
+
 bool gB_ForciblyStopped = false;
 Handle gH_ReplayTimers[STYLE_LIMIT];
 
@@ -1682,6 +1683,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				delete gH_ReplayTimers[style];
 				gH_ReplayTimers[style] = CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_EndReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+				gA_CentralCache.iPlaybackSerial = 0;
 
 				return Plugin_Changed;
 			}
@@ -1731,9 +1733,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				
 				MoveType movetype = gA_Frames[style][track].Get(gI_ReplayTick[style], 7);
 
-				if(movetype == MOVETYPE_LADDER)
+				if(movetype == MOVETYPE_LADDER || (movetype == MOVETYPE_WALK && (iReplayFlags & FL_ONGROUND) > 0))
 				{
-					mt = MOVETYPE_LADDER;
+					mt = movetype;
 				}
 			}
 
@@ -1743,33 +1745,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			MakeVectorFromPoints(vecCurrentPosition, vecPosition, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
 
-			if(gI_ReplayTick[style] > 1)
+			if(gI_ReplayTick[style] > 1 &&
+				// replay is going above 50k speed, just teleport at this point
+				(GetVectorLength(vecVelocity) > 50000.0 ||
+				// bot is on ground.. if the distance between the previous position is much bigger (1.5x) than the expected according
+				// to the bot's velocity, teleport to avoid sync issues
+				(mt == MOVETYPE_WALK && GetVectorDistance(vecCurrentPosition, vecPosition) > GetVectorLength(vecVelocity) / gF_Tickrate * 1.5)))
 			{
-				float vecLastPosition[3];
-				vecLastPosition[0] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 0);
-				vecLastPosition[1] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 1);
-				vecLastPosition[2] = gA_Frames[style][track].Get(gI_ReplayTick[style] - 1, 2);
+				TeleportEntity(client, vecPosition, vecAngles, NULL_VECTOR);
 
-				// fix for replay not syncing
-				if(GetVectorDistance(vecLastPosition, vecCurrentPosition) >= 100.0 && IsWallBetween(vecLastPosition, vecCurrentPosition, client))
-				{
-					TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
-					
-					return Plugin_Handled;
-				}
-
-				#if defined DEBUG
-				PrintToChatAll("vecVelocity: %.02f | dist %.02f", GetVectorLength(vecVelocity), GetVectorDistance(vecLastPosition, vecPosition) * gF_Tickrate);
-				#endif
-
-				if(GetVectorLength(vecVelocity) / (GetVectorDistance(vecLastPosition, vecPosition) * gF_Tickrate) > 2.0)
-				{
-					MakeVectorFromPoints(vecLastPosition, vecPosition, vecVelocity);
-					ScaleVector(vecVelocity, gF_Tickrate);
-					TeleportEntity(client, vecLastPosition, vecAngles, vecVelocity);
-
-					return Plugin_Changed;
-				}
+				return Plugin_Changed;
 			}
 
 			TeleportEntity(client, NULL_VECTOR, vecAngles, vecVelocity);
@@ -1822,18 +1807,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	return Plugin_Continue;
-}
-
-public bool Filter_Clients(int entity, int contentsMask, any data)
-{
-	return (1 <= entity <= MaxClients && entity != data);
-}
-
-bool IsWallBetween(float pos1[3], float pos2[3], int bot)
-{
-	TR_TraceRayFilter(pos1, pos2, MASK_SOLID, RayType_EndPoint, Filter_Clients, bot);
-	
-	return !TR_DidHit();
 }
 
 public Action Timer_EndReplay(Handle Timer, any data)
