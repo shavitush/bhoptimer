@@ -462,17 +462,22 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString,
 			gS_StyleStrings[0].sStyleName, "WorldRecords", client, iWRs, sRankingString);
 
+		int[] styles = new int[gI_Styles];
+		Shavit_GetOrderedStyles(styles, gI_Styles);
+
 		for(int i = 0; i < gI_Styles; i++)
 		{
-			if(gA_StyleSettings[i].bUnranked)
+			int iStyle = styles[i];
+
+			if(gA_StyleSettings[iStyle].bUnranked)
 			{
 				continue;
 			}
 
 			char sInfo[4];
-			IntToString(i, sInfo, 4);
+			IntToString(iStyle, sInfo, 4);
 
-			menu.AddItem(sInfo, gS_StyleStrings[i].sStyleName);
+			menu.AddItem(sInfo, gS_StyleStrings[iStyle].sStyleName);
 		}
 
 		// should NEVER happen

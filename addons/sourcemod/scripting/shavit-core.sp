@@ -131,6 +131,7 @@ ConVar sv_enablebunnyhopping = null;
 // timer settings
 bool gB_Registered = false;
 int gI_Styles = 0;
+int gI_OrderedStyles[STYLE_LIMIT];
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
@@ -142,6 +143,8 @@ bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
 char gS_DeleteMap[MAXPLAYERS+1][160];
+char gS_WipePlayerID[MAXPLAYERS+1][32];
+char gS_Verification[MAXPLAYERS+1][16];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -161,6 +164,7 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_ChangeClientStyle", Native_ChangeClientStyle);
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
 	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
@@ -170,6 +174,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetDatabase", Native_GetDatabase);
 	CreateNative("Shavit_GetDB", Native_GetDB);
 	CreateNative("Shavit_GetGameType", Native_GetGameType);
+	CreateNative("Shavit_GetOrderedStyles", Native_GetOrderedStyles);
 	CreateNative("Shavit_GetPerfectJumps", Native_GetPerfectJumps);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
@@ -180,6 +185,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
 	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
+	CreateNative("Shavit_IsPaused", Native_IsPaused);
 	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
 	CreateNative("Shavit_LoadSnapshot", Native_LoadSnapshot);
 	CreateNative("Shavit_LogMessage", Native_LogMessage);
@@ -222,6 +228,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 
 	LoadTranslations("shavit-core.phrases");
+	LoadTranslations("shavit-common.phrases");
 
 	// game types
 	gEV_Type = GetEngineVersion();
@@ -297,6 +304,7 @@ public void OnPluginStart()
 
 	// admin
 	RegAdminCmd("sm_deletemap", Command_DeleteMap, ADMFLAG_ROOT, "Deletes all map data. Usage: sm_deletemap <map>");
+	RegAdminCmd("sm_wipeplayer", Command_WipePlayer, ADMFLAG_BAN, "Wipes all bhoptimer data for specified player. Usage: sm_wipeplayer <steamid3>");
 	// commands END
 
 	// logs
@@ -470,7 +478,10 @@ public Action Command_StartTimer(int client, int args)
 
 	else
 	{
-		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		char sTrack[32];
+		GetTrackName(client, track, sTrack, 32);
+
+		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTrack, gS_ChatStrings.sText);
 	}
 
 	return Plugin_Handled;
@@ -636,6 +647,214 @@ public Action Command_DeleteMap(int client, int args)
 	return Plugin_Handled;
 }
 
+public Action Command_WipePlayer(int client, int args)
+{
+	if(args == 0)
+	{
+		ReplyToCommand(client, "Usage: sm_wipeplayer <steamid3>\nAfter entering a SteamID, you will be prompted with a verification captcha.");
+
+		return Plugin_Handled;
+	}
+
+	char sArgString[32];
+	GetCmdArgString(sArgString, 32);
+
+	if(strlen(gS_Verification[client]) == 0 || !StrEqual(sArgString, gS_Verification[client]))
+	{
+		char sAlphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#";
+
+		for(int i = 0; i < GetRandomInt(5, 7); i++)
+		{
+			gS_Verification[client][i] = sAlphabet[GetRandomInt(0, sizeof(sAlphabet))];
+		}
+
+		strcopy(gS_WipePlayerID[client], 32, sArgString);
+
+		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s%s%s. To confirm, enter %s!wipeplayer %s",
+			gS_ChatStrings.sVariable, sArgString, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_Verification[client]);
+	}
+
+	else
+	{
+		int iLength = ((strlen(gS_WipePlayerID[client]) * 2) + 1);
+		char[] sEscapedAuthID = new char[iLength];
+		gH_SQL.Escape(gS_WipePlayerID[client], sEscapedAuthID, iLength);
+
+		Shavit_PrintToChat(client, "Deleting data for SteamID %s%s%s...",
+			gS_ChatStrings.sVariable, sEscapedAuthID, gS_ChatStrings.sText);
+
+		DeleteUserData(client, sEscapedAuthID);
+
+		strcopy(gS_Verification[client], 32, "");
+		strcopy(gS_WipePlayerID[client], 32, "");
+	}
+
+	return Plugin_Handled;
+}
+
+void DeleteUserData(int client, const char[] sAuthID3)
+{
+	if(gB_Replay)
+	{
+		char sQueryGetWorldRecords[256];
+		FormatEx(sQueryGetWorldRecords, 256,
+			"SELECT map, id, style, track FROM %splayertimes WHERE auth = '%s' GROUP BY map, style, track;",
+			gS_MySQLPrefix, sAuthID3);
+
+		DataPack pack = new DataPack();
+		pack.WriteCell(client);
+		pack.WriteString(sAuthID3);
+
+		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, pack, DBPrio_High);
+	}
+
+	else
+	{
+		char sQueryDeleteUserTimes[256];
+		FormatEx(sQueryDeleteUserTimes, 256,
+			"DELETE FROM %splayertimes WHERE auth = '%s';",
+			gS_MySQLPrefix, sAuthID3);
+
+		DataPack steamPack = new DataPack();
+		steamPack.WriteString(sAuthID3);
+		steamPack.WriteCell(client);
+
+		gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, steamPack, DBPrio_High);
+	}
+}
+
+public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack pack = view_as<DataPack>(data);
+	pack.Reset();
+	int client = pack.ReadCell();
+
+	char sAuthID3[32];
+	pack.ReadString(sAuthID3, 32);
+	delete pack;
+
+	if(results == null)
+	{
+		LogError("Timer error! Failed to wipe user data (wipe | get player records). Reason: %s", error);
+
+		return;
+	}
+
+	Transaction trans = new Transaction();
+
+	while(results.FetchRow())
+	{
+		char map[160];
+		results.FetchString(0, map, 160);
+
+		int id = results.FetchInt(1);
+		int style = results.FetchInt(2);
+		int track = results.FetchInt(3);
+
+		char sQueryGetWorldRecordID[256];
+		FormatEx(sQueryGetWorldRecordID, 256,
+			"SELECT id FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d ORDER BY time LIMIT 1;",
+			gS_MySQLPrefix, map, style, track);
+
+		DataPack transPack = new DataPack();
+		transPack.WriteString(map);
+		transPack.WriteCell(id);
+		transPack.WriteCell(style);
+		transPack.WriteCell(track);
+
+		trans.AddQuery(sQueryGetWorldRecordID, transPack);
+	}
+
+	DataPack steamPack = new DataPack();
+	steamPack.WriteString(sAuthID3);
+	steamPack.WriteCell(client);
+
+	gH_SQL.Execute(trans, Trans_OnRecordCompare, INVALID_FUNCTION, steamPack, DBPrio_High);
+}
+
+public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	DataPack pack = view_as<DataPack>(data);
+	pack.Reset();
+	char sAuthID3[32];
+	pack.ReadString(sAuthID3, 32);
+
+	for(int i = 0; i < numQueries; i++)
+	{
+		DataPack hQueryPack = view_as<DataPack>(queryData[i]);
+		hQueryPack.Reset();
+		char sMap[32];
+		hQueryPack.ReadString(sMap, 32);
+
+		int iRecordID = hQueryPack.ReadCell();
+		int iStyle = hQueryPack.ReadCell();
+		int iTrack = hQueryPack.ReadCell();
+		delete hQueryPack;
+
+		if(results[i] != null && results[i].FetchRow())
+		{
+			int iWR = results[i].FetchInt(0);
+
+			if(iWR == iRecordID)
+			{
+				Shavit_DeleteReplay(sMap, iStyle, iTrack);
+			}
+		}
+	}
+
+	char sQueryDeleteUserTimes[256];
+	FormatEx(sQueryDeleteUserTimes, 256,
+		"DELETE FROM %splayertimes WHERE auth = '%s';",
+		gS_MySQLPrefix, sAuthID3);
+
+	gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, pack, DBPrio_High);
+}
+
+public void SQL_DeleteUserTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack pack = view_as<DataPack>(data);
+	pack.Reset();
+	char sAuthID3[32];
+	pack.ReadString(sAuthID3, 32);
+
+	if(results == null)
+	{
+		LogError("Timer error! Failed to wipe user data (wipe | delete user times). Reason: %s", error);
+
+		delete pack;
+
+		return;
+	}
+
+	char sQueryDeleteUsers[256];
+	FormatEx(sQueryDeleteUsers, 256, "DELETE FROM %susers WHERE auth = '%s';",
+		gS_MySQLPrefix, sAuthID3);
+
+	gH_SQL.Query(SQL_DeleteUserData_Callback, sQueryDeleteUsers, pack, DBPrio_High);
+}
+
+public void SQL_DeleteUserData_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack pack = view_as<DataPack>(data);
+	pack.Reset();
+	char sAuthID3[32];
+	pack.ReadString(sAuthID3, 32);
+	int client = pack.ReadCell();
+	delete pack;
+
+	if(results == null)
+	{
+		LogError("Timer error! Failed to wipe user data (wipe | delete user data, id %s). Reason: %s", error, sAuthID3);
+
+		return;
+	}
+
+	Shavit_ReloadLeaderboards();
+
+	Shavit_PrintToChat(client, "Finished wiping timer data for user %s%s%s.",
+		gS_ChatStrings.sVariable, sAuthID3, gS_ChatStrings.sText);
+}
+
 public Action Command_AutoBhop(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -683,14 +902,16 @@ public Action Command_Style(int client, int args)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
+		int iStyle = gI_OrderedStyles[i];
+
 		char sInfo[8];
-		IntToString(i, sInfo, 8);
+		IntToString(iStyle, sInfo, 8);
 
 		char sDisplay[64];
 
-		if(gA_StyleSettings[i].bUnranked)
+		if(gA_StyleSettings[iStyle].bUnranked)
 		{
-			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, gS_StyleStrings[i].sStyleName);
+			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, gS_StyleStrings[iStyle].sStyleName);
 		}
 
 		else
@@ -699,7 +920,7 @@ public Action Command_Style(int client, int args)
 
 			if(gB_WR)
 			{
-				time = Shavit_GetWorldRecord(i, Track_Main);
+				time = Shavit_GetWorldRecord(iStyle, Track_Main);
 			}
 
 			if(time > 0.0)
@@ -707,16 +928,16 @@ public Action Command_Style(int client, int args)
 				char sTime[32];
 				FormatSeconds(time, sTime, 32, false);
 
-				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[i].sStyleName, sTime);
+				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[iStyle].sStyleName, sTime);
 			}
 
 			else
 			{
-				strcopy(sDisplay, 64, gS_StyleStrings[i].sStyleName);
+				strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
 			}
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gA_Timers[client].iStyle == i || !Shavit_HasStyleAccess(client, i))? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+		menu.AddItem(sInfo, sDisplay, (gA_Timers[client].iStyle == iStyle || !Shavit_HasStyleAccess(client, iStyle))? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 	}
 
 	// should NEVER happen
@@ -933,6 +1154,11 @@ public int Native_GetGameType(Handle handler, int numParams)
 	return view_as<int>(gEV_Type);
 }
 
+public int Native_GetOrderedStyles(Handle handler, int numParams)
+{
+	return SetNativeArray(1, gI_OrderedStyles, GetNativeCell(2));
+}
+
 public int Native_GetDatabase(Handle handler, int numParams)
 {
 	return view_as<int>(CloneHandle(gH_SQL, handler));
@@ -1007,6 +1233,34 @@ public int Native_StopTimer(Handle handler, int numParams)
 	Call_PushCell(client);
 	Call_PushCell(gA_Timers[client].iTrack);
 	Call_Finish();
+}
+
+public int Native_ChangeClientStyle(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	bool force = view_as<bool>(GetNativeCell(3));
+	bool manual = view_as<bool>(GetNativeCell(4));
+	bool noforward = view_as<bool>(GetNativeCell(5));
+
+	if(force || Shavit_HasStyleAccess(client, style))
+	{
+		if(noforward)
+		{
+			gA_Timers[client].iStyle = style;
+
+			UpdateStyleSettings(client);
+		}
+
+		else
+		{
+			CallOnStyleChanged(client, gA_Timers[client].iStyle, style, manual);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 public int Native_FinishMap(Handle handler, int numParams)
@@ -1101,18 +1355,25 @@ public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	if(!IsClientInGame(client))
-	{
-		gB_StopChatSound = false;
-		
-		return;
-	}
-
 	static int iWritten = 0; // useless?
 
 	char sBuffer[300];
 	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
 	Format(sBuffer, 300, "%s %s%s", gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sBuffer);
+
+	if(client == 0)
+	{
+		PrintToServer("%s", sBuffer);
+
+		return false;
+	}
+
+	if(!IsClientInGame(client))
+	{
+		gB_StopChatSound = false;
+		
+		return false;
+	}
 
 	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
@@ -1144,6 +1405,8 @@ public int Native_PrintToChat(Handle handler, int numParams)
 	EndMessage();
 
 	gB_StopChatSound = false;
+
+	return true;
 }
 
 public int Native_RestartTimer(Handle handler, int numParams)
@@ -1238,6 +1501,11 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	}
 
 	gA_Timers[client].bPracticeMode = practice;
+}
+
+public int Native_IsPaused(Handle handler, int numParams)
+{
+	return view_as<int>(gA_Timers[GetNativeCell(1)].bPaused);
 }
 
 public int Native_IsPracticeMode(Handle handler, int numParams)
@@ -1618,6 +1886,7 @@ bool LoadStyles()
 		gA_StyleSettings[i].bStrafeCountD = view_as<bool>(kv.GetNum("strafe_count_d", true));
 		gA_StyleSettings[i].fRankingMultiplier = kv.GetFloat("rankingmultiplier", 1.00);
 		gA_StyleSettings[i].iSpecial = kv.GetNum("special", 0);
+		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
 
 		if(!gB_Registered && strlen(gS_StyleStrings[i].sChangeCommand) > 0)
 		{
@@ -1656,7 +1925,7 @@ bool LoadStyles()
 			strcopy(gS_StyleOverride[i], 32, (iCount >= 2)? sText[1]:"");
 		}
 
-		i++;
+		gI_OrderedStyles[i] = i++;
 	}
 
 	while(kv.GotoNextKey());
@@ -1666,11 +1935,34 @@ bool LoadStyles()
 	gI_Styles = i;
 	gB_Registered = true;
 
+	SortCustom1D(gI_OrderedStyles, gI_Styles, SortAscending_StyleOrder);
+
 	Call_StartForward(gH_Forwards_OnStyleConfigLoaded);
 	Call_PushCell(gI_Styles);
 	Call_Finish();
 
 	return true;
+}
+
+public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)
+{
+	int order1 = gA_StyleSettings[index1].iOrdering;
+	int order2 = gA_StyleSettings[index2].iOrdering;
+
+	if(order1 < order2)
+	{
+		return -1;
+	}
+
+	else if(order1 == order2)
+	{
+		return 0;
+	}
+
+	else
+	{
+		return 1;
+	}
 }
 
 public Action Command_StyleChange(int client, int args)
@@ -2396,4 +2688,18 @@ void UpdateStyleSettings(int client)
 	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
 
 	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
+}
+
+void GetTrackName(int client, int track, char[] output, int size)
+{
+	if(track < 0 || track >= TRACKS_SIZE)
+	{
+		FormatEx(output, size, "%T", "Track_Unknown", client);
+
+		return;
+	}
+
+	static char sTrack[16];
+	FormatEx(sTrack, 16, "Track_%d", track);
+	FormatEx(output, size, "%T", sTrack, client);
 }

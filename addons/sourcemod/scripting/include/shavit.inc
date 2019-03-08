@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.4.0"
+#define SHAVIT_VERSION "2.4.1"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -156,6 +156,7 @@ enum struct stylesettings_t
 	bool bStrafeCountD;
 	float fRankingMultiplier;
 	int iSpecial;
+	int iOrdering;
 }
 
 enum struct chatstrings_t
@@ -547,6 +548,18 @@ forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, 
 forward void Shavit_OnTierAssigned(const char[] map, int tier);
 
 /**
+ * Gets called when the server acknowledges the client's ranking status.
+ * It is called after OnClientPostAdminCheck and at forced rank recalculations.
+ *
+ * @param client					Client index.
+ * @param rank						Client's rank. (0 if unranked or unassigned)
+ * @param points					Client's points. (0.0 if unranked or unassigned)
+ * @param first						True if the forward is called after the initial connection, false if it is caused by recalculation.
+ * @noreturn
+ */
+forward void Shavit_OnRankAssigned(int client, int rank, float points, bool first);
+
+/**
  * Called when replay playback starts.
  *
  * @param client					Client index for the bot.
@@ -651,6 +664,18 @@ native void Shavit_Replay_DeleteMap(const char[] map);
  * @noreturn
  */
 native void Shavit_Rankings_DeleteMap(const char[] map);
+
+/**
+ * Changes a player's bhop style.
+ *
+ * @param client					Client index.
+ * @param style						Style.
+ * @param force						Ignore style permissions.
+ * @param manual					Is it a manual style change? (Was it caused by user interaction?)
+ * @param noforward					Bypasses the call to `Shavit_OnStyleChanged`.
+ * @return							False if failed due to lack of access, true otherwise.
+ */
+native bool Shavit_ChangeClientStyle(int client, int style, bool force = false, bool manual = false, bool noforward = false);
 
 /**
  * Finishes the map for a player, with their current timer stats.
@@ -761,6 +786,13 @@ native void Shavit_GetWRTime(int style, float &time, int track);
  * @return							World record for the specified settings.
  */
 native float Shavit_GetWorldRecord(int style, int track);
+
+/**
+ * Reloads WR leaderboards cache for the current map.
+ *
+ * @noreturn
+ */
+native void Shavit_ReloadLeaderboards();
 
 /**
  * Saves the WR's record ID for the current map on a variable.
@@ -877,6 +909,17 @@ native void Shavit_PauseTimer(int client);
  * @noreturn
  */
 native void Shavit_ResumeTimer(int client);
+
+/**
+ * Deletes the specified replay file.
+ * Replay data will be unloaded if necessary.
+ *
+ * @param map						Map display name.
+ * @param style						Bhop style.
+ * @param track						Timer track.
+ * @return							true if replay existed, false otherwise.
+ */
+native bool Shavit_DeleteReplay(const char[] map, int style, int track);
 
 /**
  * Retrieves the engine time of the replay bot's first frame.
@@ -1064,6 +1107,15 @@ native int Shavit_GetStyleStrings(int style, int stringtype, char[] StyleStrings
 native int Shavit_GetStyleCount();
 
 /**
+ * Gets an array with style IDs in their configured menu ordering as specified in the styles config.
+ *
+ * @param arr						Reference to array to fill with style IDs.
+ * @param size						Array size.
+ * @noreturn
+ */
+native void Shavit_GetOrderedStyles(int[] arr, int size);
+
+/**
  * Saves chat related strings on string references.
  *
  * @param stringtype				String type to grab.
@@ -1213,6 +1265,14 @@ native StringMap Shavit_GetMapTiers();
 native bool Shavit_HasStyleAccess(int client, int style);
 
 /**
+ * Determines whether a client's timer is paused or not.
+ *
+ * @param client					Client index.
+ * @return							Boolean value.
+ */
+native bool Shavit_IsPaused(int client);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -1265,6 +1325,8 @@ public SharedPlugin __pl_shavit =
 #if !defined REQUIRE_PLUGIN
 public void __pl_shavit_SetNTVOptional()
 {
+	MarkNativeAsOptional("Shavit_ChangeClientStyle");
+	MarkNativeAsOptional("Shavit_DeleteReplay");
 	MarkNativeAsOptional("Shavit_FinishMap");
 	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
 	MarkNativeAsOptional("Shavit_FormatChat");
@@ -1279,6 +1341,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetHUDSettings");
 	MarkNativeAsOptional("Shavit_GetMapTier");
 	MarkNativeAsOptional("Shavit_GetMapTiers");
+	MarkNativeAsOptional("Shavit_GetOrderedStyles");
 	MarkNativeAsOptional("Shavit_GetPerfectJumps");
 	MarkNativeAsOptional("Shavit_GetPlayerPB");
 	MarkNativeAsOptional("Shavit_GetPoints");
@@ -1315,6 +1378,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_IsKZMap");
+	MarkNativeAsOptional("Shavit_IsPaused");
 	MarkNativeAsOptional("Shavit_IsPracticeMode");
 	MarkNativeAsOptional("Shavit_IsReplayDataLoaded");
 	MarkNativeAsOptional("Shavit_LoadSnapshot");
@@ -1323,6 +1387,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
 	MarkNativeAsOptional("Shavit_Rankings_DeleteMap");
+	MarkNativeAsOptional("Shavit_ReloadLeaderboards");
 	MarkNativeAsOptional("Shavit_ReloadReplay");
 	MarkNativeAsOptional("Shavit_ReloadReplays");
 	MarkNativeAsOptional("Shavit_Replay_DeleteMap");

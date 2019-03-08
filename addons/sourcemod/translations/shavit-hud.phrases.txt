@@ -6,6 +6,11 @@
 	{
 		"en"		"Start Zone"
 	}
+	"HudZoneTier"
+	{
+		"#format"	"{1:d}"
+		"en"		"Tier {1}"
+	}
 	"HudInStartZone"
 	{
 		"#format"	"{1:d}"
@@ -130,6 +135,14 @@
 	"HudTrackText"
 	{
 		"en"		"Timer track"
+	}
+	"HudSplitPbText"
+	{
+		"en"		"Split PB"
+	}
+	"HudMapTierText"
+	{
+		"en"		"Map tier"
 	}
 	// ---------- Record Bots ---------- //
 	"ReplayText"

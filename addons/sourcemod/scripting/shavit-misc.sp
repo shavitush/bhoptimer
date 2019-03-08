@@ -286,7 +286,7 @@ public void OnPluginStart()
 	gCV_AdvertisementInterval = CreateConVar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 	gCV_Checkpoints = CreateConVar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RemoveRagdolls = CreateConVar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
-	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style settings from shavit-styles.cfg.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track, if not default.", 0);
+	gCV_ClanTag = CreateConVar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style tag.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track.\n{rank} - player rank.", 0);
 	gCV_DropAll = CreateConVar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetname = CreateConVar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = CreateConVar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -873,12 +873,20 @@ void UpdateClanTag(int client)
 		GetTrackName(client, track, sTrack, 3);
 	}
 
+	char sRank[8];
+
+	if(gB_Rankings)
+	{
+		IntToString(Shavit_GetRank(client), sRank, 8);
+	}
+
 	char sCustomTag[32];
 	strcopy(sCustomTag, 32, sTag);
 	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gI_Style[client]].sStyleName);
 	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gI_Style[client]].sClanTag);
 	ReplaceString(sCustomTag, 32, "{time}", sTime);
 	ReplaceString(sCustomTag, 32, "{tr}", sTrack);
+	ReplaceString(sCustomTag, 32, "{rank}", sRank);
 
 	CS_SetClientClanTag(client, sCustomTag);
 }
@@ -1454,13 +1462,10 @@ public Action Command_Save(int client, int args)
 		}
 	}
 	
-	else
+	else if(SaveCheckpoint(client, index, bOverflow))
 	{
-		if(SaveCheckpoint(client, index, bOverflow))
-		{
-			gA_CheckpointsCache[client].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[client].iCheckpoints;
-			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client].iCurrentCheckpoint, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-		}
+		gA_CheckpointsCache[client].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[client].iCheckpoints;
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client].iCurrentCheckpoint, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
 
 	return Plugin_Handled;
@@ -1591,8 +1596,10 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 						return 0;
 					}
 
-					SaveCheckpoint(param1, ++gA_CheckpointsCache[param1].iCheckpoints);
-					gA_CheckpointsCache[param1].iCurrentCheckpoint = gA_CheckpointsCache[param1].iCheckpoints;
+					if(SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1))
+					{
+						gA_CheckpointsCache[param1].iCurrentCheckpoint = ++gA_CheckpointsCache[param1].iCheckpoints;
+					}
 				}
 				
 				else
@@ -1688,6 +1695,13 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	else if(!IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+		return false;
+	}
+
+	else if(Shavit_IsPaused(client) || Shavit_IsPaused(target))
+	{
+		Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 		return false;
 	}
@@ -1893,6 +1907,13 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
+	else if(Shavit_IsPaused(client))
+	{
+		Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+		return;
+	}
+
 	float pos[3];
 	CopyArray(cpcache.fPosition, pos, 3);
 
@@ -1916,6 +1937,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	timer_snapshot_t snapshot;
 	CopyArray(cpcache.aSnapshot, snapshot, sizeof(timer_snapshot_t));
 	Shavit_LoadSnapshot(client, snapshot);
+	Shavit_ResumeTimer(client);
 
 	float ang[3];
 	CopyArray(cpcache.fAngles, ang, 3);
@@ -1934,6 +1956,22 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	else
 	{
 		vel = NULL_VECTOR;
+	}
+
+	if(cpcache.iTargetname != -1)
+	{
+		char sTargetname[64];
+		gA_Targetnames.GetString(cpcache.iTargetname, sTargetname, 64);
+
+		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
+	}
+
+	if(cpcache.iClassname != -1)
+	{
+		char sClassname[64];
+		gA_Classnames.GetString(cpcache.iClassname, sClassname, 64);
+
+		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
 	}
 
 	TeleportEntity(client, pos,
@@ -1957,26 +1995,6 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", cpcache.fSpeed);
 	SetEntPropEnt(client, Prop_Data, "m_hGroundEntity", cpcache.iGroundEntity);
-
-	int iTargetname = gA_Targetnames.FindValue(cpcache.iTargetname);
-
-	if(iTargetname != -1)
-	{
-		char sTargetname[64];
-		gA_Targetnames.GetString(iTargetname, sTargetname, 64);
-
-		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
-	}
-
-	int iClassname = gA_Classnames.FindValue(cpcache.iClassname);
-
-	if(iClassname != -1)
-	{
-		char sClassname[64];
-		gA_Classnames.GetString(iClassname, sClassname, 64);
-
-		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
-	}
 
 	if(gEV_Type != Engine_TF2)
 	{
@@ -2703,6 +2721,7 @@ void LoadState(int client)
 
 	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
 	Shavit_SetPracticeMode(client, gB_SaveStatesSegmented[client], false);
+	Shavit_ResumeTimer(client);
 
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{

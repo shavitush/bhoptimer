@@ -73,6 +73,7 @@ int gI_RankedPlayers = 0;
 Menu gH_Top100Menu = null;
 
 Handle gH_Forwards_OnTierAssigned = null;
+Handle gH_Forwards_OnRankAssigned = null;
 
 // Timer settings.
 chatstrings_t gS_ChatStrings;
@@ -127,6 +128,7 @@ public void OnAllPluginsLoaded()
 public void OnPluginStart()
 {
 	gH_Forwards_OnTierAssigned = CreateGlobalForward("Shavit_OnTierAssigned", ET_Event, Param_String, Param_Cell);
+	gH_Forwards_OnRankAssigned = CreateGlobalForward("Shavit_OnRankAssigned", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	RegConsoleCmd("sm_tier", Command_Tier, "Prints the map's tier to chat.");
 	RegConsoleCmd("sm_maptier", Command_Tier, "Prints the map's tier to chat. (sm_tier alias)");
@@ -387,7 +389,7 @@ public void OnClientPostAdminCheck(int client)
 {
 	if(!IsFakeClient(client))
 	{
-		UpdatePlayerRank(client);
+		UpdatePlayerRank(client, true);
 	}
 }
 
@@ -705,7 +707,7 @@ public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResul
 	{
 		if(IsClientInGame(i) && IsClientAuthorized(i))
 		{
-			UpdatePlayerRank(i);
+			UpdatePlayerRank(i, false);
 		}
 	}
 
@@ -780,7 +782,9 @@ void UpdateAllPoints()
 	#endif
 
 	char sQuery[128];
-	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth);", gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth);",
+		gS_MySQLPrefix);
+	
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);
 }
 
@@ -794,7 +798,7 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 	}
 }
 
-void UpdatePlayerRank(int client)
+void UpdatePlayerRank(int client, bool first)
 {
 	gI_Rank[client] = 0;
 	gF_Points[client] = 0.0;
@@ -809,12 +813,23 @@ void UpdatePlayerRank(int client)
 		FormatEx(sQuery, 512, "SELECT p.points, COUNT(*) rank FROM %susers u JOIN (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) p WHERE u.points >= p.points LIMIT 1;",
 			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
-		gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(GetClientSerial(client));
+		hPack.WriteCell(first);
+
+		gH_SQL.Query(SQL_UpdatePlayerRank_Callback, sQuery, hPack, DBPrio_Low);
 	}
 }
 
 public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+
+	int iSerial = hPack.ReadCell();
+	bool bFirst = view_as<bool>(hPack.ReadCell());
+	delete hPack;
+
 	if(results == null)
 	{
 		LogError("Timer (rankings, update player rank) error! Reason: %s", error);
@@ -822,7 +837,7 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 		return;
 	}
 
-	int client = GetClientFromSerial(data);
+	int client = GetClientFromSerial(iSerial);
 
 	if(client == 0)
 	{
@@ -833,13 +848,22 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 	{
 		gF_Points[client] = results.FetchFloat(0);
 		gI_Rank[client] = (gF_Points[client] > 0.0)? results.FetchInt(1):0;
+
+		Call_StartForward(gH_Forwards_OnRankAssigned);
+		Call_PushCell(client);
+		Call_PushCell(gI_Rank[client]);
+		Call_PushCell(gF_Points[client]);
+		Call_PushCell(bFirst);
+		Call_Finish();
 	}
 }
 
 void UpdateRankedPlayers()
 {
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT COUNT(*) count FROM %susers WHERE points > 0.0;", gS_MySQLPrefix);
+	FormatEx(sQuery, 512, "SELECT COUNT(*) count FROM %susers WHERE points > 0.0;",
+		gS_MySQLPrefix);
+
 	gH_SQL.Query(SQL_UpdateRankedPlayers_Callback, sQuery, 0, DBPrio_High);
 }
 
