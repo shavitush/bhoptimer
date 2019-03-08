@@ -548,6 +548,18 @@ forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, 
 forward void Shavit_OnTierAssigned(const char[] map, int tier);
 
 /**
+ * Gets called when the server acknowledges the client's ranking status.
+ * It is called after OnClientPostAdminCheck and at forced rank recalculations.
+ *
+ * @param client					Client index.
+ * @param rank						Client's rank. (0 if unranked or unassigned)
+ * @param points					Client's points. (0.0 if unranked or unassigned)
+ * @param first						True if the forward is called after the initial connection, false if it is caused by recalculation.
+ * @noreturn
+ */
+forward void Shavit_OnRankAssigned(int client, int rank, float points, bool first);
+
+/**
  * Called when replay playback starts.
  *
  * @param client					Client index for the bot.
