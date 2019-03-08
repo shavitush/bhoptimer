@@ -1108,8 +1108,9 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 	{
 		char info[16];
 		menu.GetItem(param2, info, 16);
+		gA_WRCache[param1].iLastStyle = StringToInt(info);
 
-		OpenDelete(param1, StringToInt(info));
+		OpenDelete(param1);
 
 		UpdateLeaderboards();
 	}
@@ -1122,25 +1123,17 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 	return 0;
 }
 
-void OpenDelete(int client, int style)
+void OpenDelete(int client)
 {
 	char sQuery[512];
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC LIMIT 1000;",
+		gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gA_WRCache[client].iLastStyle, gA_WRCache[client].iLastTrack);
 
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, style, gA_WRCache[client].iLastTrack);
-	DataPack datapack = new DataPack();
-	datapack.WriteCell(GetClientSerial(client));
-	datapack.WriteCell(style);
-
-	gH_SQL.Query(SQL_OpenDelete_Callback, sQuery, datapack, DBPrio_High);
+	gH_SQL.Query(SQL_OpenDelete_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
-public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	data.Reset();
-	int client = GetClientFromSerial(data.ReadCell());
-	int style = data.ReadCell();
-	delete data;
-
 	if(results == null)
 	{
 		LogError("Timer (WR OpenDelete) SQL query failed. Reason: %s", error);
@@ -1148,13 +1141,17 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
+	int client = GetClientFromSerial(data);
+
 	if(client == 0)
 	{
 		return;
 	}
 
+	int iStyle = gA_WRCache[client].iLastStyle;
+
 	Menu menu = new Menu(OpenDelete_Handler);
-	menu.SetTitle("%t", "ListClientRecords", gS_Map, gS_StyleStrings[style].sStyleName);
+	menu.SetTitle("%t", "ListClientRecords", gS_Map, gS_StyleStrings[iStyle].sStyleName);
 
 	int iCount = 0;
 
@@ -1200,10 +1197,10 @@ public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int para
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
-		menu.GetItem(param2, info, 16);
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		int id = StringToInt(info);
+		int id = StringToInt(sInfo);
 
 		if(id != -1)
 		{
@@ -1234,9 +1231,9 @@ void OpenDeleteMenu(int client, int id)
 
 	FormatEx(sMenuItem, 64, "%T", "MenuResponseYesSingle", client);
 
-	char info[16];
-	IntToString(id, info, 16);
-	menu.AddItem(info, sMenuItem);
+	char sInfo[16];
+	IntToString(id, sInfo, 16);
+	menu.AddItem(sInfo, sMenuItem);
 
 	for(int i = 1; i <= GetRandomInt(1, 3); i++)
 	{
@@ -1252,9 +1249,10 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 {
 	if(action == MenuAction_Select)
 	{
-		char info[16];
-		menu.GetItem(param2, info, 16);
-		int iRecordID = StringToInt(info);
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, 16);
+
+		int iRecordID = StringToInt(sInfo);
 
 		if(iRecordID == -1)
 		{
@@ -1263,35 +1261,11 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 			return 0;
 		}
 
-		for(int i = 0; i < gI_Styles; i++)
-		{
-			if(gA_StyleSettings[i].bUnranked)
-			{
-				continue;
-			}
-
-			for(int j = 0; j < TRACKS_SIZE; j++)
-			{
-				if(gI_WRRecordID[i][j] != iRecordID)
-				{
-					continue;
-				}
-
-				Call_StartForward(gH_OnWRDeleted);
-				Call_PushCell(i);
-				Call_PushCell(iRecordID);
-				Call_PushCell(j);
-				Call_Finish();
-			}
-		}
-
-		// TODO:  display record details here (map name, player name/authid, time, rank on map) without dropping threaded queries
-		Shavit_LogMessage("%L - deleted record id %d.", param1, iRecordID);
-
 		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;", gS_MySQLPrefix, iRecordID);
+		FormatEx(sQuery, 256, "SELECT u.auth, u.name, p.map, p.time, p.sync, p.perfs, p.jumps, p.strafes, p.id, p.date FROM %susers u LEFT JOIN %splayertimes p ON u.auth = p.auth WHERE p.id = %d;",
+			gS_MySQLPrefix, gS_MySQLPrefix, iRecordID);
 
-		gH_SQL.Query(DeleteConfirm_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
+		gH_SQL.Query(GetRecordDetails_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
 
 	else if(action == MenuAction_End)
@@ -1302,13 +1276,115 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 	return 0;
 }
 
+public void GetRecordDetails_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR GetRecordDetails) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	if(results.FetchRow())
+	{
+		char sAuthID[32];
+		results.FetchString(0, sAuthID, 32);
+
+		char sName[MAX_NAME_LENGTH];
+		results.FetchString(1, sName, MAX_NAME_LENGTH);
+
+		char sMap[160];
+		results.FetchString(2, sMap, 160);
+
+		float fTime = results.FetchFloat(3);
+		float fSync = results.FetchFloat(4);
+		float fPerfectJumps = results.FetchFloat(5);
+
+		int iJumps = results.FetchInt(6);
+		int iStrafes = results.FetchInt(7);
+		int iRecordID = results.FetchInt(8);
+		int iTimestamp = results.FetchInt(9);
+		
+		int iStyle = gA_WRCache[client].iLastStyle;
+		int iTrack = gA_WRCache[client].iLastTrack;
+		bool bWRDeleted = (gI_WRRecordID[iStyle][iTrack] == iRecordID);
+
+		// that's a big datapack ya yeet
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(GetClientSerial(client));
+		hPack.WriteString(sAuthID);
+		hPack.WriteString(sName);
+		hPack.WriteString(sMap);
+		hPack.WriteCell(fTime);
+		hPack.WriteCell(fSync);
+		hPack.WriteCell(fPerfectJumps);
+		hPack.WriteCell(iJumps);
+		hPack.WriteCell(iStrafes);
+		hPack.WriteCell(iRecordID);
+		hPack.WriteCell(iTimestamp);
+		hPack.WriteCell(iStyle);
+		hPack.WriteCell(iTrack);
+		hPack.WriteCell(bWRDeleted);
+
+		char sQuery[256];
+		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;",
+			gS_MySQLPrefix, iRecordID);
+
+		gH_SQL.Query(DeleteConfirm_Callback, sQuery, hPack, DBPrio_High);
+	}
+}
+
 public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+
+	int iSerial = hPack.ReadCell();
+
+	char sAuthID[32];
+	hPack.ReadString(sAuthID, 32);
+
+	char sName[MAX_NAME_LENGTH];
+	hPack.ReadString(sName, MAX_NAME_LENGTH);
+
+	char sMap[160];
+	hPack.ReadString(sMap, 160);
+
+	float fTime = view_as<float>(hPack.ReadCell());
+	float fSync = view_as<float>(hPack.ReadCell());
+	float fPerfectJumps = view_as<float>(hPack.ReadCell());
+
+	int iJumps = hPack.ReadCell();
+	int iStrafes = hPack.ReadCell();
+	int iRecordID = hPack.ReadCell();
+	int iTimestamp = hPack.ReadCell();
+	int iStyle = hPack.ReadCell();
+	int iTrack = hPack.ReadCell();
+
+	bool bWRDeleted = view_as<bool>(hPack.ReadCell());
+	delete hPack;
+
 	if(results == null)
 	{
 		LogError("Timer (WR DeleteConfirm) SQL query failed. Reason: %s", error);
 
 		return;
+	}
+
+	if(bWRDeleted)
+	{
+		Call_StartForward(gH_OnWRDeleted);
+		Call_PushCell(iStyle);
+		Call_PushCell(iRecordID);
+		Call_PushCell(iTrack);
+		Call_Finish();
 	}
 
 	UpdateWRCache();
@@ -1318,7 +1394,17 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 		OnClientPutInServer(i);
 	}
 
-	int client = GetClientFromSerial(data);
+	int client = GetClientFromSerial(iSerial);
+
+	char sTrack[32];
+	GetTrackName(LANG_SERVER, iTrack, sTrack, 32);
+
+	char sDate[32];
+	FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", iTimestamp);
+
+	// above the client == 0 so log doesn't get lost if admin disconnects between deleting record and query execution
+	Shavit_LogMessage("%L - deleted record. Runner: %s (%s) | Map: %s | Style: %s | Track: %s | Time: %.2f (%s) | Strafes: %d (%.1f%%) | Jumps: %d (%.1f%%) | Run date: %s | Record ID: %d",
+		client, sName, sAuthID, sMap, gS_StyleStrings[iStyle].sStyleName, sTrack, fTime, (bWRDeleted)? "WR":"not WR", iStrafes, fSync, iJumps, fPerfectJumps, sDate, iRecordID);
 
 	if(client == 0)
 	{
