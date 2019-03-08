@@ -654,6 +654,18 @@ native void Shavit_Replay_DeleteMap(const char[] map);
 native void Shavit_Rankings_DeleteMap(const char[] map);
 
 /**
+ * Changes a player's bhop style.
+ *
+ * @param client					Client index.
+ * @param style						Style.
+ * @param force						Ignore style permissions.
+ * @param manual					Is it a manual style change? (Was it caused by user interaction?)
+ * @param noforward					Bypasses the call to `Shavit_OnStyleChanged`.
+ * @return							False if failed due to lack of access, true otherwise.
+ */
+native bool Shavit_ChangeClientStyle(int client, int style, bool force = false, bool manual = false, bool noforward = false);
+
+/**
  * Finishes the map for a player, with their current timer stats.
  * Will not teleport the player to anywhere, it's handled inside the mapzones plugin.
  *
@@ -1301,6 +1313,7 @@ public SharedPlugin __pl_shavit =
 #if !defined REQUIRE_PLUGIN
 public void __pl_shavit_SetNTVOptional()
 {
+	MarkNativeAsOptional("Shavit_ChangeClientStyle");
 	MarkNativeAsOptional("Shavit_DeleteReplay");
 	MarkNativeAsOptional("Shavit_FinishMap");
 	MarkNativeAsOptional("Shavit_ForceHUDUpdate");

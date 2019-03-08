@@ -164,6 +164,7 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_ChangeClientStyle", Native_ChangeClientStyle);
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
 	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
@@ -1232,6 +1233,34 @@ public int Native_StopTimer(Handle handler, int numParams)
 	Call_PushCell(client);
 	Call_PushCell(gA_Timers[client].iTrack);
 	Call_Finish();
+}
+
+public int Native_ChangeClientStyle(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	bool force = view_as<bool>(GetNativeCell(3));
+	bool manual = view_as<bool>(GetNativeCell(4));
+	bool noforward = view_as<bool>(GetNativeCell(5));
+
+	if(force || Shavit_HasStyleAccess(client, style))
+	{
+		if(noforward)
+		{
+			gA_Timers[client].iStyle = style;
+
+			UpdateStyleSettings(client);
+		}
+
+		else
+		{
+			CallOnStyleChanged(client, gA_Timers[client].iStyle, style, manual);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 public int Native_FinishMap(Handle handler, int numParams)
