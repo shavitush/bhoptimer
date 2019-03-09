@@ -1095,7 +1095,6 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 	{
 		char sTrack[32];
 		GetTrackName(client, data.iTrack, sTrack, 32);
-		Format(sTrack, 32, "%s", sTrack);
 
 		AddHUDLine(buffer, maxlen, sTrack, iLines);
 		iLines++;
@@ -1206,7 +1205,6 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		{
 			char sTrack[32];
 			GetTrackName(client, data.iTrack, sTrack, 32);
-			Format(sTrack, 32, "%s", sTrack);
 
 			AddHUDLine(buffer, maxlen, sTrack, iLines);
 			iLines++;
