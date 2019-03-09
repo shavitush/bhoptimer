@@ -576,6 +576,37 @@ forward void Shavit_OnReplayStart(int client);
 forward void Shavit_OnReplayEnd(int client);
 
 /**
+ * Called when top left HUD updates.
+ *
+ * @param client					Client index that recieves the hud.
+ * @param target					Client index that recieves the hud.
+ * @param topleft					Reference to the HUD buffer.
+ * @param topleftlength				Max length of the topleft buffer.
+ * @return							Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Anything else to pass along new values.
+ */
+forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, const int topleftlength);
+
+/**
+ * Called before clan tag variables are processed
+ *
+ * @param client					Client index.
+ * @param clantag					Reference to the clan tag buffer.
+ * @param clantaglength				Max length of the customtag buffer.
+ * @return							Plugin_Handled or Plugin_Stop to block the clan tag from changing. Anything else to pass along new values.
+ */
+forward Action Shavit_OnClanTagChangePre(int client, char[] clantag, int clantaglength);
+
+/**
+ * Called after clan tags are changed
+ *
+ * @param client					Client index.
+ * @param customtag					Reference to the custom clan tag buffer.
+ * @param customtaglength			Max length of the customtag buffer.
+ * @noreturn							
+ */
+forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int customtaglength);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")

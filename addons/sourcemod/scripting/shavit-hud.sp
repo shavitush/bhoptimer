@@ -81,6 +81,9 @@ enum struct color_t
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
 
+// forwards
+Handle gH_Forwards_OnTopLeftHUD = null;
+
 // modules
 bool gB_Replay = false;
 bool gB_Zones = false;
@@ -133,6 +136,10 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	// forwards
+	gH_Forwards_OnTopLeftHUD = CreateGlobalForward("Shavit_OnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
+
+
 	// natives
 	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
 	CreateNative("Shavit_GetHUDSettings", Native_GetHUDSettings);
@@ -1583,6 +1590,19 @@ void UpdateTopLeftHUD(int client, bool wait)
 			else if(fSelfPB != 0.0)
 			{
 				Format(sTopLeft, 128, "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
+			}
+
+			Action result = Plugin_Continue;
+			Call_StartForward(gH_Forwards_OnTopLeftHUD);
+			Call_PushCell(client);
+			Call_PushCell(target);
+			Call_PushStringEx(sTopLeft, 128, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+			Call_PushCell(128);
+			Call_Finish(result);
+			
+			if(result != Plugin_Continue && result != Plugin_Changed)
+			{
+				return;
 			}
 
 			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);

@@ -147,6 +147,10 @@ ConVar gCV_SpectatorList = null;
 ConVar gCV_MaxCP = null;
 ConVar gCV_MaxCP_Segmented = null;
 
+// forwards
+Handle gH_Forwards_OnClanTagChangePre = null;
+Handle gH_Forwards_OnClanTagChangePost = null;
+
 // cached cvars
 int gI_HumanTeam = 0;
 
@@ -176,6 +180,10 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	// forwards
+	gH_Forwards_OnClanTagChangePre = CreateGlobalForward("Shavit_OnClanTagChangePre", ET_Event, Param_Cell, Param_String, Param_Cell);
+	gH_Forwards_OnClanTagChangePost = CreateGlobalForward("Shavit_OnClanTagChangePost", ET_Event, Param_Cell, Param_String, Param_Cell);
+
 	gB_Late = late;
 
 	return APLRes_Success;
@@ -888,7 +896,25 @@ void UpdateClanTag(int client)
 	ReplaceString(sCustomTag, 32, "{tr}", sTrack);
 	ReplaceString(sCustomTag, 32, "{rank}", sRank);
 
+	Action result = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnClanTagChangePre);
+	Call_PushCell(client);
+	Call_PushStringEx(sTag, 32, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(32);
+	Call_Finish(result);
+	
+	if(result != Plugin_Continue && result != Plugin_Changed)
+	{
+		return;
+	}
+
 	CS_SetClientClanTag(client, sCustomTag);
+
+	Call_StartForward(gH_Forwards_OnClanTagChangePost);
+	Call_PushCell(client);
+	Call_PushStringEx(sCustomTag, 32, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(32);
+	Call_Finish();
 }
 
 void RemoveRagdoll(int client)
