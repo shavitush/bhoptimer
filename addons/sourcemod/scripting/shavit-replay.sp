@@ -77,6 +77,24 @@ enum
 	iBotShooting_Attack2 = (1 << 1)
 }
 
+// custom cvar settings
+char gS_ForcedCvars[][][] =
+{
+	{ "bot_quota", "{expected_bots}" },
+	{ "tf_bot_quota", "{expected_bots}" },
+	{ "bot_stop", "1" },
+	{ "bot_quota_mode", "normal" },
+	{ "tf_bot_quota_mode", "normal" },
+	{ "mp_limitteams", "0" },
+	{ "bot_join_after_player", "0" },
+	{ "tf_bot_join_after_player", "0" },
+	{ "bot_chatter", "off" },
+	{ "bot_flipout", "1" },
+	{ "bot_zombie", "1" },
+	{ "mp_autoteambalance", "0" },
+	{ "bot_controllable", "0" }
+};
+
 // game type
 EngineVersion gEV_Type = Engine_Unknown;
 
@@ -109,7 +127,6 @@ Handle gH_OnReplayEnd = null;
 float gF_Tickrate = 0.0;
 char gS_Map[160];
 int gI_ExpectedBots = 0;
-ConVar bot_quota = null;
 centralbot_cache_t gA_CentralCache;
 
 // how do i call this
@@ -213,6 +230,29 @@ public void OnPluginStart()
 	gEV_Type = GetEngineVersion();
 	gF_Tickrate = (1.0 / GetTickInterval());
 
+	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
+	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
+
+	for(int i = 0; i < sizeof(gS_ForcedCvars); i++)
+	{
+		ConVar hCvar = FindConVar(gS_ForcedCvars[i][0]);
+
+		if(hCvar != null)
+		{
+			if(StrEqual(gS_ForcedCvars[i][1], "{expected_bots}"))
+			{
+				UpdateBotQuota(0);
+			}	
+
+			else
+			{
+				hCvar.SetString(gS_ForcedCvars[i][1]);
+			}
+
+			hCvar.AddChangeHook(OnForcedConVarChanged);
+		}
+	}
+
 	// late load
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -265,6 +305,42 @@ public void OnPluginStart()
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	OnMapStart();
+}
+
+void UpdateBotQuota(int quota)
+{
+	ConVar hCvar = FindConVar("bot_quota");
+
+	if(hCvar == null)
+	{
+		hCvar = FindConVar("tf_bot_quota");
+	}
+
+	hCvar.IntValue = gI_ExpectedBots = quota;
+}
+
+public void OnForcedConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	char sName[32];
+	convar.GetName(sName, 32);
+
+	for(int i = 0; i < sizeof(gS_ForcedCvars); i++)
+	{
+		if(StrEqual(sName, gS_ForcedCvars[i][0]))
+		{
+			if(StrEqual(gS_ForcedCvars[i][1], "{expected_bots}"))
+			{
+				convar.IntValue = gI_ExpectedBots;
+			}
+
+			else if(!StrEqual(newValue, gS_ForcedCvars[i][1]))
+			{
+				convar.SetString(gS_ForcedCvars[i][1]);
+			}
+
+			break;
+		}
+	}
 }
 
 public void OnAdminMenuCreated(Handle topmenu)
@@ -447,7 +523,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 		if(gI_ReplayBotClient[style] == 0)
 		{
 			ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
-			gI_ExpectedBots++;
+			UpdateBotQuota(gI_ExpectedBots + 1);
 		}
 
 		if(loaded && restart)
@@ -670,15 +746,9 @@ public Action Cron(Handle Timer)
 {
 	if(!gCV_Enabled.BoolValue)
 	{
-		bot_quota.IntValue = 0;
+		UpdateBotQuota(0);
 
 		return Plugin_Continue;
-	}
-
-	// make sure there are enough bots
-	else if(bot_quota != null && bot_quota.IntValue != gI_ExpectedBots)
-	{
-		bot_quota.IntValue = gI_ExpectedBots;
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -798,27 +868,8 @@ public void OnMapStart()
 		return;
 	}
 
-	ConVar bot_controllable = FindConVar("bot_controllable");
-
-	if(bot_controllable != null)
-	{
-		bot_controllable.BoolValue = false;
-	}
-
-	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
-	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
-	FindConVar("bot_stop").BoolValue = true;
-	FindConVar((gEV_Type != Engine_TF2)? "bot_quota_mode":"tf_bot_quota_mode").SetString("normal");
-	FindConVar("mp_limitteams").IntValue = 0;
-	FindConVar((gEV_Type != Engine_TF2)? "bot_join_after_player":"tf_bot_join_after_player").BoolValue = false;
-	FindConVar("bot_chatter").SetString("off");
-	FindConVar("bot_flipout").BoolValue = true;
-	FindConVar("bot_zombie").BoolValue = true;
-	FindConVar("mp_autoteambalance").BoolValue = false;
-
 	ServerCommand((gEV_Type != Engine_TF2)? "bot_kick":"tf_bot_kick all");
-
-	gI_ExpectedBots = 0;
+	UpdateBotQuota(0);
 
 	if(!DirExists(gS_ReplayFolder))
 	{
@@ -861,7 +912,7 @@ public void OnMapStart()
 		if(!gCV_CentralBot.BoolValue)
 		{
 			ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
-			gI_ExpectedBots++;
+			UpdateBotQuota(gI_ExpectedBots + 1);
 
 			if(loaded)
 			{
@@ -876,7 +927,7 @@ public void OnMapStart()
 
 	if(gCV_CentralBot.BoolValue)
 	{
-		gI_ExpectedBots = 1;
+		UpdateBotQuota(1);
 		ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
 	}
 
