@@ -1089,6 +1089,14 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
+
+		if(gA_StyleSettings[data.iStyle].fVelocityLimit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_NoVelLimit, -1))
+		{
+			FormatEx(sLine, 128, "%T", "HudNoSpeedLimit", client);
+
+			AddHUDLine(buffer, maxlen, sLine, iLines);
+			iLines++;
+		}
 	}
 
 	if(data.iTimerStatus != Timer_Stopped && data.iTrack != Track_Main && (gI_HUD2Settings[client] & HUD2_TRACK) == 0)

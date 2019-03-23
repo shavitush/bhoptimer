@@ -79,6 +79,10 @@
 	{
 		"en"		"[PRACTICE]"
 	}
+	"HudNoSpeedLimit"
+	{
+		"en"		"No Speed Limit"
+	}
 	// ---------- Menus ---------- //
 	"HUDMenuTitle"
 	{
