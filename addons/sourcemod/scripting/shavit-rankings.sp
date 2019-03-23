@@ -49,6 +49,12 @@
 // uncomment when done
 // #define DEBUG
 
+enum struct ranking_t
+{
+	int iRank;
+	float fPoints;
+}
+
 char gS_MySQLPrefix[32];
 Database gH_SQL = null;	
 
@@ -66,8 +72,7 @@ StringMap gA_MapTiers = null;
 ConVar gCV_PointsPerTier = null;
 ConVar gCV_WeightingMultiplier = null;
 
-int gI_Rank[MAXPLAYERS+1];
-float gF_Points[MAXPLAYERS+1];
+ranking_t gA_Rankings[MAXPLAYERS+1];
 
 int gI_RankedPlayers = 0;
 Menu gH_Top100Menu = null;
@@ -381,8 +386,8 @@ void RunLongFastQuery(bool &success, const char[] func, const char[] query, any 
 
 public void OnClientConnected(int client)
 {
-	gI_Rank[client] = 0;
-	gF_Points[client] = 0.0;
+	gA_Rankings[client].iRank = 0;
+	gA_Rankings[client].fPoints = 0.0;
 }
 
 public void OnClientPostAdminCheck(int client)
@@ -568,7 +573,7 @@ public Action Command_Rank(int client, int args)
 		}
 	}
 
-	if(gF_Points[target] == 0.0)
+	if(gA_Rankings[target].fPoints == 0.0)
 	{
 		Shavit_PrintToChat(client, "%T", "Unranked", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText);
 
@@ -576,9 +581,9 @@ public Action Command_Rank(int client, int args)
 	}
 
 	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
-		gS_ChatStrings.sVariable, (gI_Rank[target] > gI_RankedPlayers)? gI_RankedPlayers:gI_Rank[target], gS_ChatStrings.sText,
+		gS_ChatStrings.sVariable, (gA_Rankings[target].iRank > gI_RankedPlayers)? gI_RankedPlayers:gA_Rankings[target].iRank, gS_ChatStrings.sText,
 		gI_RankedPlayers,
-		gS_ChatStrings.sVariable, gF_Points[target], gS_ChatStrings.sText);
+		gS_ChatStrings.sVariable, gA_Rankings[target].fPoints, gS_ChatStrings.sText);
 
 	return Plugin_Handled;
 }
@@ -800,8 +805,8 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 
 void UpdatePlayerRank(int client, bool first)
 {
-	gI_Rank[client] = 0;
-	gF_Points[client] = 0.0;
+	gA_Rankings[client].iRank = 0;
+	gA_Rankings[client].fPoints = 0.0;
 
 	char sAuthID[32];
 
@@ -846,13 +851,13 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 
 	if(results.FetchRow())
 	{
-		gF_Points[client] = results.FetchFloat(0);
-		gI_Rank[client] = (gF_Points[client] > 0.0)? results.FetchInt(1):0;
+		gA_Rankings[client].fPoints = results.FetchFloat(0);
+		gA_Rankings[client].iRank = (gA_Rankings[client].fPoints > 0.0)? results.FetchInt(1):0;
 
 		Call_StartForward(gH_Forwards_OnRankAssigned);
 		Call_PushCell(client);
-		Call_PushCell(gI_Rank[client]);
-		Call_PushCell(gF_Points[client]);
+		Call_PushCell(gA_Rankings[client].iRank);
+		Call_PushCell(gA_Rankings[client].fPoints);
 		Call_PushCell(bFirst);
 		Call_Finish();
 	}
@@ -976,12 +981,12 @@ public int Native_GetMapTiers(Handle handler, int numParams)
 
 public int Native_GetPoints(Handle handler, int numParams)
 {
-	return view_as<int>(gF_Points[GetNativeCell(1)]);
+	return view_as<int>(gA_Rankings[GetNativeCell(1)].fPoints);
 }
 
 public int Native_GetRank(Handle handler, int numParams)
 {
-	return gI_Rank[GetNativeCell(1)];
+	return gA_Rankings[GetNativeCell(1)].iRank;
 }
 
 public int Native_GetRankedPlayers(Handle handler, int numParams)
