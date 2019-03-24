@@ -752,6 +752,11 @@ void DeleteSubmenu(int client)
 	{
 		int iStyle = styles[i];
 
+		if(gA_StyleSettings[iStyle].iEnabled == -1)
+		{
+			continue;
+		}
+
 		char sInfo[8];
 		IntToString(iStyle, sInfo, 8);
 
@@ -819,6 +824,11 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		for(int i = 0; i < gI_Styles; i++)
 		{
 			int iStyle = styles[i];
+
+			if(gA_StyleSettings[iStyle].iEnabled == -1)
+			{
+				continue;
+			}
 
 			char sStyle[64];
 			strcopy(sStyle, 64, gS_StyleStrings[iStyle].sStyleName);
@@ -947,7 +957,7 @@ public Action Command_DeleteStyleRecords(int client, int args)
 	{
 		int iStyle = styles[i];
 
-		if(gA_StyleSettings[iStyle].bUnranked)
+		if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled == -1)
 		{
 			continue;
 		}
@@ -1502,7 +1512,7 @@ Action ShowWRStyleMenu(int client, int track)
 	{
 		int iStyle = styles[i];
 
-		if(gA_StyleSettings[iStyle].bUnranked)
+		if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled == -1)
 		{
 			continue;
 		}

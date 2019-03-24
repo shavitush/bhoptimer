@@ -157,6 +157,8 @@ enum struct stylesettings_t
 	float fRankingMultiplier;
 	int iSpecial;
 	int iOrdering;
+	bool bInaccessible;
+	int iEnabled;
 }
 
 enum struct chatstrings_t
@@ -701,7 +703,7 @@ native void Shavit_Rankings_DeleteMap(const char[] map);
  *
  * @param client					Client index.
  * @param style						Style.
- * @param force						Ignore style permissions.
+ * @param force						Ignore style permissions. This being true will bypass the `inaccessible` style setting as well.
  * @param manual					Is it a manual style change? (Was it caused by user interaction?)
  * @param noforward					Bypasses the call to `Shavit_OnStyleChanged`.
  * @return							False if failed due to lack of access, true otherwise.

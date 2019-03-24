@@ -904,6 +904,14 @@ public Action Command_Style(int client, int args)
 	{
 		int iStyle = gI_OrderedStyles[i];
 
+		// this logic will prevent the style from showing in !style menu if it's specifically inaccessible
+		// or just completely disabled
+		if((gA_StyleSettings[iStyle].bInaccessible && gA_StyleSettings[iStyle].iEnabled == 1) ||
+			gA_StyleSettings[iStyle].iEnabled == -1)
+		{
+			continue;
+		}
+
 		char sInfo[8];
 		IntToString(iStyle, sInfo, 8);
 
@@ -1209,6 +1217,11 @@ public int Native_GetTimerStatus(Handle handler, int numParams)
 public int Native_HasStyleAccess(Handle handler, int numParams)
 {
 	int style = GetNativeCell(2);
+
+	if(gA_StyleSettings[style].bInaccessible || gA_StyleSettings[style].iEnabled <= 0)
+	{
+		return false;
+	}
 
 	return CheckCommandAccess(GetNativeCell(1), (strlen(gS_StyleOverride[style]) > 0)? gS_StyleOverride[style]:"<none>", gI_StyleFlag[style]);
 }
@@ -1887,8 +1900,18 @@ bool LoadStyles()
 		gA_StyleSettings[i].fRankingMultiplier = kv.GetFloat("rankingmultiplier", 1.00);
 		gA_StyleSettings[i].iSpecial = kv.GetNum("special", 0);
 		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
+		gA_StyleSettings[i].bInaccessible = view_as<bool>(kv.GetNum("inaccessible", false));
+		gA_StyleSettings[i].iEnabled = kv.GetNum("enabled", 1);
 
-		if(!gB_Registered && strlen(gS_StyleStrings[i].sChangeCommand) > 0)
+		// if this style is disabled, we will force certain settings
+		if(gA_StyleSettings[i].iEnabled <= 0)
+		{
+			gA_StyleSettings[i].bNoReplay = true;
+			gA_StyleSettings[i].fRankingMultiplier = 0.0;
+			gA_StyleSettings[i].bInaccessible = true;
+		}
+
+		if(!gB_Registered && strlen(gS_StyleStrings[i].sChangeCommand) > 0 && !gA_StyleSettings[i].bInaccessible)
 		{
 			char sStyleCommands[32][32];
 			int iCommands = ExplodeString(gS_StyleStrings[i].sChangeCommand, ";", sStyleCommands, 32, 32, false);

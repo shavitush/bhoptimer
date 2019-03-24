@@ -469,7 +469,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		{
 			int iStyle = styles[i];
 
-			if(gA_StyleSettings[iStyle].bUnranked)
+			if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled <= 0)
 			{
 				continue;
 			}
