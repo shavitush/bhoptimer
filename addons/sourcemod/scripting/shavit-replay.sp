@@ -2247,7 +2247,7 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 	return 0;
 }
 
-void OpenReplaySubMenu(int client, int track)
+void OpenReplaySubMenu(int client, int track, int item = 0)
 {
 	gI_Track[client] = track;
 
@@ -2311,7 +2311,7 @@ void OpenReplaySubMenu(int client, int track)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 60);
+	menu.DisplayAt(client, item, 60);
 }
 
 public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, int param2)
@@ -2340,7 +2340,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 		{
 			Shavit_PrintToChat(param1, "%T", "CentralReplayPlaying", param1);
 
-			OpenReplaySubMenu(param1, gI_Track[param1]);
+			OpenReplaySubMenu(param1, gI_Track[param1], GetMenuSelectionPosition());
 		}
 
 		else

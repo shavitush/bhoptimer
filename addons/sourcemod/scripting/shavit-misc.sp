@@ -440,7 +440,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 
 	if(StrContains(gS_StyleStrings[newstyle].sSpecialString, "segments") != -1)
 	{
-		OpenCheckpointsMenu(client, 0);
+		OpenCheckpointsMenu(client);
 		Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
 }
@@ -1442,7 +1442,7 @@ public Action Command_Checkpoints(int client, int args)
 		return Plugin_Handled;
 	}
 
-	return OpenCheckpointsMenu(client, 0);
+	return OpenCheckpointsMenu(client);
 }
 
 public Action Command_Save(int client, int args)
@@ -1533,7 +1533,7 @@ public Action Command_Tele(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action OpenCheckpointsMenu(int client, int item)
+public Action OpenCheckpointsMenu(int client)
 {
 	bool bSegmented = CanSegment(client);
 
@@ -1676,7 +1676,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			}
 		}
 
-		OpenCheckpointsMenu(param1, GetMenuSelectionPosition());
+		OpenCheckpointsMenu(param1);
 	}
 
 	else if(action == MenuAction_DisplayItem && param2 >= 5)
