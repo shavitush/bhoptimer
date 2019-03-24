@@ -1437,7 +1437,7 @@ public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int
 void Reset(int client)
 {
 	gI_ZoneTrack[client] = Track_Main;
-	gF_Modifier[client] = 10.0;
+	gF_Modifier[client] = 16.0;
 	gI_MapStep[client] = 0;
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
