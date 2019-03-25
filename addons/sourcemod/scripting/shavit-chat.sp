@@ -1411,6 +1411,11 @@ public void SQL_UpdateUser_Callback(Database db, DBResultSet results, const char
 
 void LoadFromDatabase(int client)
 {
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+
 	char sAuthID3[32];
 
 	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
