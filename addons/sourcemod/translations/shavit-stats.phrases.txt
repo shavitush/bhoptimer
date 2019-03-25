@@ -37,7 +37,7 @@
 	"MapsLeftOnStyle"
 	{
 		"#format"	"{1:s}"
-		"en"		"Maps done for {1} on style:"
+		"en"		"Maps left for {1} on style:"
 	}
 	"MapsMenu"
 	{
