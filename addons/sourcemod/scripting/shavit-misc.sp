@@ -146,6 +146,7 @@ ConVar gCV_JointeamHook = null;
 ConVar gCV_SpectatorList = null;
 ConVar gCV_MaxCP = null;
 ConVar gCV_MaxCP_Segmented = null;
+ConVar gCV_HideChatCommands = null;
 
 // forwards
 Handle gH_Forwards_OnClanTagChangePre = null;
@@ -306,6 +307,7 @@ public void OnPluginStart()
 	gCV_SpectatorList = CreateConVar("shavit_misc_speclist", "1", "Who to show in !specs?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_MaxCP = CreateConVar("shavit_misc_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = CreateConVar("shavit_misc_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_misc_maxcp.\nNote: Very high values will result in HUGE memory usage!", 0, true, 1.0, true, 50.0);
+	gCV_HideChatCommands = CreateConVar("shavit_misc_hidechatcmds", "1", "Hide commands from chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 
 	AutoExecConfig();
 
@@ -1154,7 +1156,7 @@ public void OnPreThink(int client)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if(IsChatTrigger())
+	if(IsChatTrigger() && gCV_HideChatCommands.BoolValue)
 	{
 		// hide commands
 		return Plugin_Handled;
