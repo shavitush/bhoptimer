@@ -361,22 +361,21 @@ public Action Command_MapsDoneLeft(int client, int args)
 	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
 
-	char sName[MAX_NAME_LENGTH];
-	GetClientName(target, sName, MAX_NAME_LENGTH);
-	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
+	GetClientName(target, gS_TargetName[client], MAX_NAME_LENGTH);
+	ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
 
 	Menu menu = new Menu(MenuHandler_MapsDoneLeft);
 
 	if(StrEqual(sCommand, "sm_mapsdone"))
 	{
 		gI_MapType[client] = MAPSDONE;
-		menu.SetTitle("%T\n ", "MapsDoneOnStyle", client, sName);
+		menu.SetTitle("%T\n ", "MapsDoneOnStyle", client, gS_TargetName[client]);
 	}
 
 	else
 	{
 		gI_MapType[client] = MAPSLEFT;
-		menu.SetTitle("%T\n ", "MapsLeftOnStyle", client, sName);
+		menu.SetTitle("%T\n ", "MapsLeftOnStyle", client, gS_TargetName[client]);
 	}
 
 	int[] styles = new int[gI_Styles];
@@ -728,9 +727,19 @@ void ShowMaps(int client)
 
 	else
 	{
-		FormatEx(sQuery, 512,
-			"SELECT DISTINCT map FROM %smapzones WHERE type = 0 AND track = %d AND map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY map;",
-			gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
+		if(gB_Rankings)
+		{
+			FormatEx(sQuery, 512,
+				"SELECT DISTINCT m.map, t.tier FROM %smapzones m LEFT JOIN %smaptiers t ON m.map = t.map WHERE m.type = 0 AND m.track = %d AND m.map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY m.map;",
+				gS_MySQLPrefix, gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 512,
+				"SELECT DISTINCT map FROM %smapzones WHERE type = 0 AND track = %d AND map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY map;",
+				gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
+		}
 	}
 
 	gH_SQL.Query(ShowMapsCallback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -805,6 +814,19 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		else
 		{
 			strcopy(sDisplay, 192, sMap);
+
+			if(gB_Rankings)
+			{
+				int iTier = results.FetchInt(1);
+
+				if(results.IsFieldNull(1) || iTier == 0)
+				{
+					iTier = 1;
+				}
+
+				Format(sDisplay, 192, "%s (Tier %d)", sMap, iTier);
+			}
+
 			strcopy(sRecordID, 16, "nope");
 		}
 
