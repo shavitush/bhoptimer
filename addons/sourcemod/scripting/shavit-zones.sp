@@ -1486,7 +1486,10 @@ void ShowPanel(int client, int step)
 	pPanel.DrawItem(sPanelItem);
 
 	char sDisplay[64];
-	FormatEx(sDisplay, 64, "%T", "GridSnap", client, gI_GridSnap[client]);
+	FormatEx(sDisplay, 64, "%T", "GridSnapPlus", client, gI_GridSnap[client]);
+	pPanel.DrawItem(sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "GridSnapMinus", client);
 	pPanel.DrawItem(sDisplay);
 
 	FormatEx(sDisplay, 64, "%T", "WallSnap", client, (gB_SnapToWall[client])? "ZoneSetYes":"ZoneSetNo", client);
@@ -1525,6 +1528,16 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 
 			case 3:
 			{
+				gI_GridSnap[param1] /= 2;
+
+				if(gI_GridSnap[param1] < 1)
+				{
+					gI_GridSnap[param1] = 64;
+				}
+			}
+
+			case 4:
+			{
 				gB_SnapToWall[param1] = !gB_SnapToWall[param1];
 
 				if(gB_SnapToWall[param1])
@@ -1538,7 +1551,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 				}
 			}
 
-			case 4:
+			case 5:
 			{
 				gB_CursorTracing[param1] = !gB_CursorTracing[param1];
 

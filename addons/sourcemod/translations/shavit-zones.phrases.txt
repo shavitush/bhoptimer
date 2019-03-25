@@ -48,10 +48,14 @@
 	{
 		"en"		"Abort zone creation"
 	}
-	"GridSnap"
+	"GridSnapPlus"
 	{
 		"#format"	"{1:d}"
-		"en"		"Grid snap: x{1}"
+		"en"		"Grid snap + (x{1})"
+	}
+	"GridSnapMinus"
+	{
+		"en"		"Grid snap -"
 	}
 	"WallSnap"
 	{
