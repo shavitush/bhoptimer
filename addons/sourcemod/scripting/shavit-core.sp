@@ -1902,6 +1902,7 @@ bool LoadStyles()
 		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
 		gA_StyleSettings[i].bInaccessible = view_as<bool>(kv.GetNum("inaccessible", false));
 		gA_StyleSettings[i].iEnabled = kv.GetNum("enabled", 1);
+		gA_StyleSettings[i].bKZCheckpoints = view_as<bool>(kv.GetNum("kzcheckpoints", 0));
 
 		// if this style is disabled, we will force certain settings
 		if(gA_StyleSettings[i].iEnabled <= 0)
