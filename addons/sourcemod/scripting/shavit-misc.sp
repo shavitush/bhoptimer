@@ -1940,7 +1940,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	cp_cache_t cpcache;
 	
-	if(!GetCheckpoint(client, index, cpcache))
+	if(!GetCheckpoint(client, index, cpcache) || index > gA_CheckpointsCache[client].iCheckpoints)
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, index, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
