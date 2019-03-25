@@ -2140,14 +2140,14 @@ void SQL_DBConnect()
 	if(gB_MySQL)
 	{
 		FormatEx(sQuery, 1024,
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `pt_auth` FOREIGN KEY (`auth`) REFERENCES `users` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` VARCHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `pt_auth` FOREIGN KEY (`auth`) REFERENCES `users` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
 			gS_MySQLPrefix);
 	}
 
 	else
 	{
 		FormatEx(sQuery, 1024,
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0);",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` VARCHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0);",
 			gS_MySQLPrefix);
 	}
 
@@ -2179,7 +2179,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	if(gB_MySQL) // this isn't possible in sqlite
 	{
-		FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date CHAR(16);", gS_MySQLPrefix);
+		FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date VARCHAR(16);", gS_MySQLPrefix);
 		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
 	}
 
