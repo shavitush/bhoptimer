@@ -2327,86 +2327,8 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	char sQuery[64];
-	FormatEx(sQuery, 64, "SELECT destination_x FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
-
-	FormatEx(sQuery, 64, "SELECT track FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_Low);
-}
-
-public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[256];
-
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
-			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-		}
-
-		else
-		{
-			char sAxis[4];
-			strcopy(sAxis, 4, "xyz");
-
-			for(int i = 0; i < 3; i++)
-			{
-				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `destination_%c` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix, sAxis[i]);
-				gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-			}
-		}
-	}
-}
-
-public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (zones module) error! Map zones' table migration (1) failed. Reason: %s", error);
-
-		return;
-	}
-}
-
-public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[256];
-
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`track` INT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
-		}
-
-		else
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `track` INTEGER NOT NULL DEFAULT 0;", gS_MySQLPrefix);
-		}
-
-		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
-
-		return;
-	}
-
 	gB_Connected = true;
-	OnMapStart();
-}
-
-
-public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (zones module) error! Map zones' table migration (2) failed. Reason: %s", error);
-
-		return;
-	}
-
-	gB_Connected = true;
+	
 	OnMapStart();
 }
 

@@ -2144,13 +2144,6 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	char sQuery[192];
-	FormatEx(sQuery, 192, "SELECT lastlogin FROM %susers LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery, 0, DBPrio_High);
-
-	FormatEx(sQuery, 192, "SELECT points FROM %susers LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_High);
-
 	char sTables[][] =
 	{
 		"maptiers",
@@ -2163,58 +2156,18 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		DataPack dp = new DataPack();
 		dp.WriteString(sTables[i]);
 
+		char sQuery[192];
 		FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_MySQLPrefix, sTables[i]);
-		gH_SQL.Query(SQL_TableMigration3_Callback, sQuery, dp, DBPrio_Low);
+		gH_SQL.Query(SQL_TableMigration_Callback, sQuery, dp, DBPrio_High);
 	}
 
 	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
 	Call_Finish();
 }
 
-public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[128];
-		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`lastlogin` INT NOT NULL DEFAULT -1)":"COLUMN `lastlogin` INTEGER NOT NULL DEFAULT -1");
-		gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-	}
-}
-
-public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer error! Table alteration 1 (core) failed. Reason: %s", error);
-
-		return;
-	}
-}
-
-public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[128];
-		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
-		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
-	}
-}
-
-public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer error! Table alteration 2 (core) failed. Reason: %s", error);
-
-		return;
-	}
-}
-
-public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+public void SQL_TableMigration_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
 	char sTable[16];
-
 	data.Reset();
 	data.ReadString(sTable, 16);
 	delete data;
