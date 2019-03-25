@@ -787,8 +787,8 @@ void UpdateAllPoints()
 	#endif
 
 	char sQuery[128];
-	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth);",
-		gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT auth FROM %splayertimes GROUP BY auth);",
+		gS_MySQLPrefix, gS_MySQLPrefix);
 	
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);
 }
