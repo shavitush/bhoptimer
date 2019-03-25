@@ -284,16 +284,22 @@ void UpdateWRs(int client)
 
 	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
 	{
-		char sQuery[256];
+		char sQuery[512];
 
+		// default style only
 		if(gCV_MVPRankOnes.IntValue == 2)
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 512,
+				"SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 %sGROUP by map, track) b ON a.time = b.time AND a.map = b.map AND style = 0 %sWHERE auth = '%s';",
+				gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
 		}
 
+		// all styles
 		else
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "WHERE track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 512,
+				"SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time, map, style FROM %splayertimes %sGROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND a.style = b.style %sWHERE auth = '%s';",
+				gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "WHERE track = 0 ":"", (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
 		}
 
 		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
@@ -369,7 +375,7 @@ Action OpenStatsMenu(int client, const char[] authid)
 		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin, d.points, e.rank FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map) b ON a.time = b.time WHERE auth = '%s') c " ...
+				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = '%s') c " ...
 				"JOIN (SELECT name, country, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
 				"JOIN (SELECT FORMAT(COUNT(*), 0) rank FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC) e " ...
 			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid);
@@ -380,7 +386,7 @@ Action OpenStatsMenu(int client, const char[] authid)
 		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map) b ON a.time = b.time WHERE auth = '%s') c " ...
+				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = '%s') c " ...
 				"JOIN (SELECT name, country, lastlogin FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
 			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid);
 	}
