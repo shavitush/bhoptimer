@@ -150,6 +150,8 @@ ConVar gCV_MaxCP_Segmented = null;
 // forwards
 Handle gH_Forwards_OnClanTagChangePre = null;
 Handle gH_Forwards_OnClanTagChangePost = null;
+Handle gH_Forwards_OnSave = null;
+Handle gH_Forwards_OnTeleport = null;
 
 // cached cvars
 int gI_HumanTeam = 0;
@@ -180,10 +182,6 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	// forwards
-	gH_Forwards_OnClanTagChangePre = CreateGlobalForward("Shavit_OnClanTagChangePre", ET_Event, Param_Cell, Param_String, Param_Cell);
-	gH_Forwards_OnClanTagChangePost = CreateGlobalForward("Shavit_OnClanTagChangePost", ET_Event, Param_Cell, Param_String, Param_Cell);
-
 	gB_Late = late;
 
 	return APLRes_Success;
@@ -191,6 +189,12 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	// forwards
+	gH_Forwards_OnClanTagChangePre = CreateGlobalForward("Shavit_OnClanTagChangePre", ET_Event, Param_Cell, Param_String, Param_Cell);
+	gH_Forwards_OnClanTagChangePost = CreateGlobalForward("Shavit_OnClanTagChangePost", ET_Event, Param_Cell, Param_String, Param_Cell);
+	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Event, Param_Cell);
+	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Event, Param_Cell);
+
 	// cache
 	gEV_Type = GetEngineVersion();
 
@@ -1732,6 +1736,16 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		return false;
 	}
 
+	Action result = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnSave);
+	Call_PushCell(client);
+	Call_Finish(result);
+	
+	if(result != Plugin_Continue)
+	{
+		return false;
+	}
+
 	char sKey[32];
 	int iSerial = GetClientSerial(client);
 	FormatEx(sKey, 32, "%d_%d", iSerial, index);
@@ -1952,6 +1966,16 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	{
 		Shavit_PrintToChat(client, "%T", "CommandAlive", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
+		return;
+	}
+
+	Action result = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnTeleport);
+	Call_PushCell(client);
+	Call_Finish(result);
+	
+	if(result != Plugin_Continue)
+	{
 		return;
 	}
 

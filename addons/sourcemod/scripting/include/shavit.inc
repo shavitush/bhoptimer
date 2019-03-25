@@ -498,6 +498,20 @@ forward void Shavit_OnDatabaseLoaded();
 forward void Shavit_OnChatConfigLoaded();
 
 /**
+ * Called when a player teleports with checkpoints.
+ *
+ * @return							Plugin_Continue to allow teleporting, anything else to prevent.
+ */
+forward Action Shavit_OnTeleport(int client);
+
+/**
+ * Called when a player teleports with checkpoints.
+ *
+ * @return							Plugin_Continue to allow teleporting, anything else to prevent.
+ */
+forward Action Shavit_OnSave(int client);
+
+/**
  * Called when a player enters a zone.
  *
  * @param client					Client index.
