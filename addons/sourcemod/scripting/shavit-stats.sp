@@ -46,7 +46,7 @@ char gS_MySQLPrefix[32];
 // cache
 bool gB_AllowStats[MAXPLAYERS+1];
 int gI_MapType[MAXPLAYERS+1];
-int gBS_Style[MAXPLAYERS+1];
+int gI_Style[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 char gS_TargetAuth[MAXPLAYERS+1][32];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
@@ -109,6 +109,8 @@ public void OnPluginStart()
 	// player commands
 	RegConsoleCmd("sm_profile", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
+	RegConsoleCmd("sm_mapsdone", Command_MapsDoneLeft, "Show maps that the player has finished. Usage: sm_mapsdone [target]");
+	RegConsoleCmd("sm_mapsleft", Command_MapsDoneLeft, "Show maps that the player has not finished yet. Usage: sm_mapsleft [target]");
 
 	// translations
 	LoadTranslations("common.phrases");
@@ -332,9 +334,126 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 	gI_WRAmount[client] = iWRs;
 }
 
+public Action Command_MapsDoneLeft(int client, int args)
+{
+	if(client == 0)
+	{
+		return Plugin_Handled;
+	}
+
+	int target = client;
+
+	if(args > 0)
+	{
+		char sArgs[64];
+		GetCmdArgString(sArgs, 64);
+
+		target = FindTarget(client, sArgs, true, false);
+
+		if(target == -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	GetClientAuthId(target, AuthId_Steam3, gS_TargetAuth[client], 32);
+
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
+
+	char sName[MAX_NAME_LENGTH];
+	GetClientName(target, sName, MAX_NAME_LENGTH);
+	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
+
+	Menu menu = new Menu(MenuHandler_MapsDoneLeft);
+
+	if(StrEqual(sCommand, "sm_mapsdone"))
+	{
+		gI_MapType[client] = MAPSDONE;
+		menu.SetTitle("%T\n ", "MapsDoneOnStyle", client, sName);
+	}
+
+	else
+	{
+		gI_MapType[client] = MAPSLEFT;
+		menu.SetTitle("%T\n ", "MapsLeftOnStyle", client, sName);
+	}
+
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		int iStyle = styles[i];
+
+		if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled == -1)
+		{
+			continue;
+		}
+
+		char sInfo[8];
+		IntToString(iStyle, sInfo, 8);
+		menu.AddItem(sInfo, gS_StyleStrings[iStyle].sStyleName);
+	}
+
+	menu.Display(client, 30);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_MapsDoneLeft(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		gI_Style[param1] = StringToInt(sInfo);
+
+		Menu submenu = new Menu(MenuHandler_MapsDoneLeft_Track);
+		submenu.SetTitle("%T\n ", "SelectTrack", param1);
+
+		for(int i = 0; i < TRACKS_SIZE; i++)
+		{
+			IntToString(i, sInfo, 8);
+
+			char sTrack[32];
+			GetTrackName(param1, i, sTrack, 32);
+			submenu.AddItem(sInfo, sTrack);
+		}
+
+		submenu.Display(param1, 30);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public int MenuHandler_MapsDoneLeft_Track(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		gI_Track[param1] = StringToInt(sInfo);
+
+		ShowMaps(param1);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
 public Action Command_Profile(int client, int args)
 {
-	if(!IsValidClient(client))
+	if(client == 0)
 	{
 		return Plugin_Handled;
 	}
@@ -511,10 +630,10 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 		char sInfo[32];
 
 		menu.GetItem(param2, sInfo, 32);
-		gBS_Style[param1] = StringToInt(sInfo);
+		gI_Style[param1] = StringToInt(sInfo);
 
 		Menu submenu = new Menu(MenuHandler_TypeHandler);
-		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]].sShortName);
+		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gI_Style[param1]].sShortName);
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
@@ -604,14 +723,14 @@ void ShowMaps(int client)
 	{
 		FormatEx(sQuery, 512,
 			"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = '%s' AND a.style = %d AND a.track = %d GROUP BY a.map ORDER BY a.%s;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gBS_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
 	}
 
 	else
 	{
 		FormatEx(sQuery, 512,
 			"SELECT DISTINCT map FROM %smapzones WHERE type = 0 AND map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY map;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gBS_Style[client], gI_Track[client]);
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
 	}
 
 	gH_SQL.Query(ShowMapsCallback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -642,12 +761,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gBS_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	else
 	{
-		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gBS_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	while(results.FetchRow())
