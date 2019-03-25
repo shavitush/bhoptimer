@@ -729,8 +729,8 @@ void ShowMaps(int client)
 	else
 	{
 		FormatEx(sQuery, 512,
-			"SELECT DISTINCT map FROM %smapzones WHERE type = 0 AND map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY map;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
+			"SELECT DISTINCT map FROM %smapzones WHERE type = 0 AND track = %d AND map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY map;",
+			gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
 	}
 
 	gH_SQL.Query(ShowMapsCallback, sQuery, GetClientSerial(client), DBPrio_High);
