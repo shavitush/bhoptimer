@@ -1719,6 +1719,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				buttons &= ~IN_USE;
 			}
 
+			bool bWalk = false;
 			MoveType mt = MOVETYPE_NOCLIP;
 
 			if(gA_FrameCache[style][track].iReplayVersion >= 0x02)
@@ -1735,9 +1736,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				
 				MoveType movetype = gA_Frames[style][track].Get(gI_ReplayTick[style], 7);
 
-				if(movetype == MOVETYPE_LADDER || (movetype == MOVETYPE_WALK && (iReplayFlags & FL_ONGROUND) > 0))
+				if(movetype == MOVETYPE_LADDER)
 				{
 					mt = movetype;
+				}
+
+				else if(movetype == MOVETYPE_WALK && (iReplayFlags & FL_ONGROUND) > 0)
+				{
+					bWalk = true;
 				}
 			}
 
@@ -1752,7 +1758,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				(GetVectorLength(vecVelocity) > 50000.0 ||
 				// bot is on ground.. if the distance between the previous position is much bigger (1.5x) than the expected according
 				// to the bot's velocity, teleport to avoid sync issues
-				(mt == MOVETYPE_WALK && GetVectorDistance(vecCurrentPosition, vecPosition) > GetVectorLength(vecVelocity) / gF_Tickrate * 1.5)))
+				(bWalk && GetVectorDistance(vecCurrentPosition, vecPosition) > GetVectorLength(vecVelocity) / gF_Tickrate * 1.5)))
 			{
 				TeleportEntity(client, vecPosition, vecAngles, NULL_VECTOR);
 
