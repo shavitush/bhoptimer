@@ -928,7 +928,7 @@ public Action Command_Style(int client, int args)
 
 			if(gB_WR)
 			{
-				time = Shavit_GetWorldRecord(iStyle, Track_Main);
+				time = Shavit_GetWorldRecord(iStyle, gA_Timers[client].iTrack);
 			}
 
 			if(time > 0.0)
@@ -936,7 +936,15 @@ public Action Command_Style(int client, int args)
 				char sTime[32];
 				FormatSeconds(time, sTime, 32, false);
 
-				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[iStyle].sStyleName, sTime);
+				char sWR[8];
+				strcopy(sWR, 8, "WR");
+				
+				if(gA_Timers[client].iTrack == Track_Bonus)
+				{
+					strcopy(sWR, 8, "BWR");
+				}
+
+				FormatEx(sDisplay, 64, "%s - %s: %s", gS_StyleStrings[iStyle].sStyleName, sWR, sTime);
 			}
 
 			else
