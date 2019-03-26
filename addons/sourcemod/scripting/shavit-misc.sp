@@ -154,9 +154,6 @@ Handle gH_Forwards_OnClanTagChangePost = null;
 Handle gH_Forwards_OnSave = null;
 Handle gH_Forwards_OnTeleport = null;
 
-// cached cvars
-int gI_HumanTeam = 0;
-
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
 
@@ -318,8 +315,6 @@ public void OnPluginStart()
 		mp_humanteam = FindConVar("mp_humans_must_join_team");
 	}
 
-	mp_humanteam.AddChangeHook(OnConVarChanged);
-
 	// crons
 	if(gEV_Type != Engine_TF2)
 	{
@@ -448,27 +443,6 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	{
 		OpenCheckpointsMenu(client);
 		Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-	}
-}
-
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	if(convar == mp_humanteam)
-	{
-		if(StrEqual(newValue, "t", false) || StrEqual(newValue, "red", false))
-		{
-			gI_HumanTeam = 2;
-		}
-		
-		else if(StrEqual(newValue, "ct", false) || StrEqual(newValue, "blue", false))
-		{
-			gI_HumanTeam = 3;
-		}
-
-		else
-		{
-			gI_HumanTeam = 0;
-		}
 	}
 }
 
@@ -614,6 +588,24 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
+int GetHumanTeam()
+{
+	char sTeam[8];
+	mp_humanteam.GetString(sTeam, 8);
+
+	if(StrEqual(sTeam, "t", false) || StrEqual(sTeam, "red", false))
+	{
+		return 2;
+	}
+
+	else if(StrEqual(sTeam, "ct", false) || StrContains(sTeam, "blu", false) != -1)
+	{
+		return 3;
+	}
+
+	return 0;
+}
+
 public Action Command_Jointeam(int client, const char[] command, int args)
 {
 	if(!IsValidClient(client) || !gCV_JointeamHook.BoolValue)
@@ -630,10 +622,11 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	GetCmdArg(1, arg1, 8);
 
 	int iTeam = StringToInt(arg1);
+	int iHumanTeam = GetHumanTeam();
 
-	if(gI_HumanTeam == 0 && !(0 <= iTeam <= 1))
+	if(iHumanTeam != 0)
 	{
-		iTeam = gI_HumanTeam;
+		iTeam = iHumanTeam;
 	}
 
 	bool bRespawn = false;
