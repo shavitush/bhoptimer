@@ -80,10 +80,6 @@
 	{
 		"en"		"YES!!! DELETE ALL THE RECORDS!!! THIS ACTION IS IRREVERSIBLE!"
 	}
-	"DeleteStyleRecords"
-	{
-		"en"		"Delete ALL map records for a style"
-	}
 	"DeleteStyleRecordsRecordsMenuTitle"
 	{
 		"#format"	"{1:s}"
