@@ -145,6 +145,7 @@ char gS_LogPath[PLATFORM_MAX_PATH];
 char gS_DeleteMap[MAXPLAYERS+1][160];
 char gS_WipePlayerID[MAXPLAYERS+1][32];
 char gS_Verification[MAXPLAYERS+1][16];
+bool gB_CookiesRetrieved[MAXPLAYERS+1];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -1622,7 +1623,7 @@ int GetTimerStatus(int client)
 
 void StartTimer(int client, int track)
 {
-	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
+	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client) || !gB_CookiesRetrieved[client])
 	{
 		return;
 	}
@@ -1748,6 +1749,8 @@ public void OnClientCookiesCached(int client)
 	{
 		CallOnStyleChanged(client, gA_Timers[client].iStyle, style, false);
 	}
+
+	gB_CookiesRetrieved[client] = true;
 }
 
 public void OnClientPutInServer(int client)
@@ -1767,6 +1770,8 @@ public void OnClientPutInServer(int client)
 	gA_Timers[client].iTrack = 0;
 	gA_Timers[client].iStyle = 0;
 	strcopy(gS_DeleteMap[client], 160, "");
+
+	gB_CookiesRetrieved[client] = false;
 
 	if(AreClientCookiesCached(client))
 	{
