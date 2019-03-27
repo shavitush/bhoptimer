@@ -1678,7 +1678,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Changed;
 			}
 
-			if(++gI_ReplayTick[style] >= gA_FrameCache[style][track].iFrameCount)
+			if(++gI_ReplayTick[style] >= gA_FrameCache[style][track].iFrameCount - 1)
 			{
 				gI_ReplayTick[style] = 0;
 				gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_End;
