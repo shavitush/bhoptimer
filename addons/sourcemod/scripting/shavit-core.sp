@@ -1712,7 +1712,7 @@ void ResumeTimer(int client)
 
 public void OnClientDisconnect(int client)
 {
-	StopTimer(client);
+	RequestFrame(StopTimer, client);
 }
 
 public void OnClientCookiesCached(int client)

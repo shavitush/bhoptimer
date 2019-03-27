@@ -73,6 +73,21 @@ enum struct player_cpcache_t
 	int iCurrentCheckpoint;
 }
 
+enum struct persistent_data_t
+{
+	char sAuthID[32];
+	float fDisconnectTime;
+	float fPosition[3];
+	float fAngles[3];
+	MoveType iMoveType;
+	float fGravity;
+	float fSpeed;
+	timer_snapshot_t aSnapshot;
+	int iTargetname;
+	int iClassname;
+	ArrayList aFrames;
+}
+
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
 int gI_Ammo = -1;
@@ -109,6 +124,7 @@ timer_snapshot_t gA_SaveStates[MAXPLAYERS+1];
 bool gB_SaveStates[MAXPLAYERS+1];
 char gS_SaveStateTargetname[MAXPLAYERS+1][32];
 ArrayList gA_SaveFrames[MAXPLAYERS+1];
+ArrayList gA_PersistentData = null;
 
 // cookies
 Handle gH_HideCookie = null;
@@ -147,6 +163,7 @@ ConVar gCV_SpectatorList = null;
 ConVar gCV_MaxCP = null;
 ConVar gCV_MaxCP_Segmented = null;
 ConVar gCV_HideChatCommands = null;
+ConVar gCV_PersistData = null;
 
 // forwards
 Handle gH_Forwards_OnClanTagChangePre = null;
@@ -231,6 +248,7 @@ public void OnPluginStart()
 	gSM_Checkpoints = new StringMap();
 	gA_Targetnames = new ArrayList(ByteCountToCells(64));
 	gA_Classnames = new ArrayList(ByteCountToCells(64));
+	gA_PersistentData = new ArrayList(sizeof(persistent_data_t));
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 
@@ -305,6 +323,7 @@ public void OnPluginStart()
 	gCV_MaxCP = CreateConVar("shavit_misc_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = CreateConVar("shavit_misc_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_misc_maxcp.\nNote: Very high values will result in HUGE memory usage!", 0, true, 1.0, true, 50.0);
 	gCV_HideChatCommands = CreateConVar("shavit_misc_hidechatcmds", "1", "Hide commands from chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_PersistData = CreateConVar("shavit_misc_persistdata", "300", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled");
 
 	AutoExecConfig();
 
@@ -316,6 +335,8 @@ public void OnPluginStart()
 	}
 
 	// crons
+	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
+
 	if(gEV_Type != Engine_TF2)
 	{
 		CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
@@ -461,9 +482,20 @@ public void OnMapStart()
 		ResetCheckpoints(i);
 	}
 
+	int iLength = gA_PersistentData.Length;
+
+	for(int i = iLength - 1; i >= 0; i--)
+	{
+		persistent_data_t aData;
+		gA_PersistentData.GetArray(i, aData);
+
+		delete aData.aFrames;
+	}
+
 	gSM_Checkpoints.Clear();
 	gA_Targetnames.Clear();
 	gA_Classnames.Clear();
+	gA_PersistentData.Clear();
 
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
@@ -722,6 +754,25 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 	DHookSetReturn(hReturn, view_as<float>(gA_StyleSettings[gI_Style[pThis]].fRunspeed));
 
 	return MRES_Override;
+}
+
+public Action Timer_Cron(Handle Timer)
+{
+	int iLength = gA_PersistentData.Length;
+	float fTime = GetEngineTime();
+
+	for(int i = iLength - 1; i >= 0; i--)
+	{
+		persistent_data_t aData;
+		gA_PersistentData.GetArray(i, aData);
+
+		if(fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue)
+		{
+			DeletePersistentData(i, aData);
+		}
+	}
+
+	return Plugin_Continue;
 }
 
 public Action Timer_Scoreboard(Handle Timer)
@@ -1013,7 +1064,6 @@ public void OnClientPutInServer(int client)
 	ResetCheckpoints(client);
 
 	gB_SaveStates[client] = false;
-
 	delete gA_SaveFrames[client];
 }
 
@@ -1032,7 +1082,159 @@ public void OnClientDisconnect(int client)
 		}
 	}
 
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+
 	ResetCheckpoints(client);
+
+	gB_SaveStates[client] = false;
+	delete gA_SaveFrames[client];
+
+	PersistData(client);
+}
+
+void PersistData(int client)
+{
+	persistent_data_t aData;
+
+	if(!IsPlayerAlive(client) ||
+		!GetClientAuthId(client, AuthId_Steam3, aData.sAuthID, 32) ||
+		Shavit_GetTimerStatus(client) == Timer_Stopped ||
+		gCV_PersistData.IntValue == 0)
+	{
+		return;
+	}
+
+	if(gB_Replay)
+	{
+		aData.aFrames = Shavit_GetReplayData(client);
+	}
+
+	aData.fDisconnectTime = GetEngineTime();
+	aData.iMoveType = GetEntityMoveType(client);
+	aData.fGravity = GetEntityGravity(client);
+	aData.fSpeed = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
+
+	float fPosition[3];
+	GetClientAbsOrigin(client, fPosition);
+	CopyArray(fPosition, aData.fPosition, 3);
+
+	float fAngles[3];
+	GetClientEyeAngles(client, fAngles);
+	CopyArray(fAngles, aData.fAngles, 3);
+
+	timer_snapshot_t aSnapshot;
+	Shavit_SaveSnapshot(client, aSnapshot);
+	CopyArray(aSnapshot, aData.aSnapshot, sizeof(timer_snapshot_t));
+
+	char sTargetname[64];
+	GetEntPropString(client, Prop_Data, "m_iName", sTargetname, 64);
+
+	aData.iTargetname = gA_Targetnames.FindString(sTargetname);
+
+	if(aData.iTargetname == -1)
+	{
+		aData.iTargetname = gA_Targetnames.PushString(sTargetname);
+	}
+
+	char sClassname[64];
+	GetEntityClassname(client, sClassname, 64);
+
+	aData.iClassname = gA_Classnames.FindString(sClassname);
+
+	if(aData.iClassname == -1)
+	{
+		aData.iClassname = gA_Classnames.PushString(sClassname);
+	}
+
+	gA_PersistentData.PushArray(aData);
+}
+
+void DeletePersistentData(int index, persistent_data_t data)
+{
+	delete data.aFrames;
+	gA_PersistentData.Erase(index);
+}
+
+public Action Timer_LoadPersistentData(Handle Timer, any data)
+{
+	char sAuthID[32];
+	int client = GetClientFromSerial(data);
+
+	if(client == 0 ||
+		!GetClientAuthId(client, AuthId_Steam3, sAuthID, 32) ||
+		GetClientTeam(client) < 2 ||
+		!IsPlayerAlive(client))
+	{
+		return Plugin_Stop;
+	}
+
+	persistent_data_t aData;
+	int iIndex = -1;
+	int iLength = gA_PersistentData.Length;
+
+	for(int i = 0; i < iLength; i++)
+	{
+		gA_PersistentData.GetArray(i, aData);
+
+		if(StrEqual(sAuthID, aData.sAuthID))
+		{
+			iIndex = i;
+
+			break;
+		}
+	}
+
+	if(iIndex == -1)
+	{
+		return Plugin_Stop;
+	}
+
+	Shavit_StopTimer(client);
+
+	float fPosition[3];
+	CopyArray(aData.fPosition, fPosition, 3);
+
+	float fAngles[3];
+	CopyArray(aData.fAngles, fAngles, 3);
+
+	SetEntityMoveType(client, aData.iMoveType);
+	SetEntityGravity(client, aData.fGravity);
+	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", aData.fSpeed);
+
+	timer_snapshot_t aSnapshot;
+	CopyArray(aData.aSnapshot, aSnapshot, sizeof(timer_snapshot_t));
+	Shavit_LoadSnapshot(client, aSnapshot);
+
+	if(aData.iTargetname != -1)
+	{
+		char sTargetname[64];
+		gA_Targetnames.GetString(aData.iTargetname, sTargetname, 64);
+
+		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
+	}
+
+	if(aData.iClassname != -1)
+	{
+		char sClassname[64];
+		gA_Classnames.GetString(aData.iClassname, sClassname, 64);
+
+		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
+	}
+
+	if(gB_Replay && aData.aFrames != null)
+	{
+		Shavit_SetReplayData(client, aData.aFrames);
+	}
+
+	TeleportEntity(client, fPosition, fAngles, view_as<float>({ 0.0, 0.0, 0.0 }));
+
+	delete aData.aFrames;
+	gA_PersistentData.Erase(iIndex);
+
+	return Plugin_Stop;
 }
 
 void RemoveWeapon(any data)
@@ -2555,6 +2757,11 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			{
 				gB_SaveStates[client] = false;
 			}
+		}
+
+		else
+		{
+			CreateTimer(0.10, Timer_LoadPersistentData, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
 
 		if(gCV_Scoreboard.BoolValue)
