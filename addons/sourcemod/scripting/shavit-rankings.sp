@@ -787,7 +787,7 @@ void UpdateAllPoints()
 	#endif
 
 	char sQuery[128];
-	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT auth FROM %splayertimes GROUP BY auth);",
+	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT DISTINCT auth FROM %splayertimes);",
 		gS_MySQLPrefix, gS_MySQLPrefix);
 	
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);
@@ -815,7 +815,7 @@ void UpdatePlayerRank(int client, bool first)
 		// if there's any issue with this query,
 		// add "ORDER BY points DESC " before "LIMIT 1"
 		char sQuery[512];
-		FormatEx(sQuery, 512, "SELECT p.points, COUNT(*) rank FROM %susers u JOIN (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) p WHERE u.points >= p.points LIMIT 1;",
+		FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = '%s') u2 WHERE u1.points >= u2.points;",
 			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
 
 		DataPack hPack = new DataPack();

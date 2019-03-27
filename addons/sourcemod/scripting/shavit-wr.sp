@@ -467,18 +467,22 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 void UpdateWRCache()
 {
 	char sQuery[512];
-	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
-	// was a bit confused with this one :s
-
+	
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "SELECT p.style, p.id, TRUNCATE(LEAST(s.time, p.time), 3), u.name, p.track FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track ORDER BY date ASC) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track ORDER BY date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+		FormatEx(sQuery, 512,
+			"SELECT p1.id, p1.style, p1.track, p1.time, u.name FROM %splayertimes p1 " ...
+				"JOIN (SELECT style, track, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style, track) p2 " ...
+				"JOIN %susers u ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time AND u.auth = p1.auth " ...
+				"WHERE p1.map = '%s';",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix, gS_Map);
 	}
 
-	// sorry, LEAST() isn't available for SQLITE!
 	else
 	{
-		FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name, p.track FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+		FormatEx(sQuery, 512,
+			"SELECT p.id, p.style, p.track, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 	}
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
@@ -507,19 +511,18 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	// setup cache again, dynamically and not hardcoded
 	while(results.FetchRow())
 	{
-		int style = results.FetchInt(0);
+		int iStyle = results.FetchInt(1);
+		int iTrack = results.FetchInt(2);
 
-		if(style >= gI_Styles || style < 0 || gA_StyleSettings[style].bUnranked)
+		if(iStyle >= gI_Styles || iStyle < 0 || gA_StyleSettings[iStyle].bUnranked)
 		{
 			continue;
 		}
 
-		int track = results.FetchInt(4);
-
-		gI_WRRecordID[style][track] = results.FetchInt(1);
-		gF_WRTime[style][track] = results.FetchFloat(2);
-		results.FetchString(3, gS_WRName[style][track], MAX_NAME_LENGTH);
-		ReplaceString(gS_WRName[style][track], MAX_NAME_LENGTH, "#", "?");
+		gI_WRRecordID[iStyle][iTrack] = results.FetchInt(0);
+		gF_WRTime[iStyle][iTrack] = results.FetchFloat(3);
+		results.FetchString(4, gS_WRName[iStyle][iTrack], MAX_NAME_LENGTH);
+		ReplaceString(gS_WRName[iStyle][iTrack], MAX_NAME_LENGTH, "#", "?");
 	}
 
 	UpdateLeaderboards();
@@ -635,7 +638,7 @@ public Action Command_Junk(int client, int args)
 
 	char sAuth[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
-	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES ('%s', '%s', %.03f, %d, %d, 0, %d, %.02f);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
+	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES ('%s', '%s', %f, %d, %d, 0, %d, %.02f);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
 
 	SQL_LockDatabase(gH_SQL);
 	SQL_FastQuery(gH_SQL, sQuery);
@@ -1566,10 +1569,10 @@ public Action Command_RecentRecords(int client, int args)
 	char sQuery[512];
 
 	FormatEx(sQuery, 512,
-		"SELECT a.id, a.map, u.name, a.time, a.jumps, a.style, a.points, a.track FROM %splayertimes a " ...
-		"JOIN (SELECT MIN(time) time, map, style, track FROM %splayertimes GROUP by map, style, track) b " ...
-		"JOIN %susers u ON a.time = b.time AND a.auth = u.auth AND a.map = b.map AND a.style = b.style AND a.track = b.track " ...
-		"ORDER BY date DESC LIMIT 100;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+			"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %splayertimes a " ...
+			"JOIN (SELECT MIN(time) time, map, style, track FROM %splayertimes GROUP by map, style, track ORDER BY date DESC) b " ...
+			"JOIN %susers u ON a.time = b.time AND a.auth = u.auth AND a.map = b.map AND a.style = b.style AND a.track = b.track " ...
+			"LIMIT 100;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 
@@ -1607,33 +1610,27 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		char sName[MAX_NAME_LENGTH];
 		results.FetchString(2, sName, 10);
 
-		if(strlen(sName) == 9)
+		if(strlen(sName) >= 9)
 		{
 			Format(sName, MAX_NAME_LENGTH, "%s...", sName);
 		}
 
 		char sTime[16];
-		float time = results.FetchFloat(3);
-		FormatSeconds(time, sTime, 16);
+		float fTime = results.FetchFloat(3);
+		FormatSeconds(fTime, sTime, 16);
 
-		int jumps = results.FetchInt(4);
-		int style = results.FetchInt(5);
-		float fPoints = results.FetchFloat(6);
+		int iStyle = results.FetchInt(4);
+
+		if(iStyle >= gI_Styles || iStyle < 0 || gA_StyleSettings[iStyle].bUnranked)
+		{
+			continue;
+		}
 
 		char sTrack[32];
-		GetTrackName(client, results.FetchInt(7), sTrack, 32);
+		GetTrackName(client, results.FetchInt(5), sTrack, 32);
 
 		char sDisplay[192];
-
-		if(gB_Rankings && fPoints > 0.0)
-		{
-			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style].sShortName, sTrack[0], sMap, sName, sTime, fPoints, "WRPoints", client);
-		}
-
-		else
-		{
-			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%d %T)", gS_StyleStrings[style].sShortName, sTrack[0], sMap, sName, sTime, jumps, "WRJumps", client);
-		}
+		FormatEx(sDisplay, 192, "[%s/%c] %s - %s @ %s", gS_StyleStrings[iStyle].sShortName, sTrack[0], sMap, sName, sTime);
 
 		char sInfo[192];
 		FormatEx(sInfo, 192, "%d;%s", results.FetchInt(0), sMap);
@@ -1964,7 +1961,7 @@ void SQL_DBConnect()
 			gS_MySQLPrefix);
 	}
 
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2088,14 +2085,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				return;
 			}
 
-			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES ('%s', '%s', %.03f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
+			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES ('%s', '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
 		}
 
 		else // update
 		{
 			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
-			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = '%s' AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, sAuthID, style, track);
+			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = '%s' AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, sAuthID, style, track);
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);

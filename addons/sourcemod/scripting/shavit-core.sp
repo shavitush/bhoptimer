@@ -698,14 +698,14 @@ void DeleteUserData(int client, const char[] sAuthID3)
 	{
 		char sQueryGetWorldRecords[256];
 		FormatEx(sQueryGetWorldRecords, 256,
-			"SELECT map, id, style, track FROM %splayertimes WHERE auth = '%s' GROUP BY map, style, track;",
+			"SELECT map, id, style, track FROM %splayertimes WHERE auth = '%s';",
 			gS_MySQLPrefix, sAuthID3);
 
-		DataPack pack = new DataPack();
-		pack.WriteCell(client);
-		pack.WriteString(sAuthID3);
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(client);
+		hPack.WriteString(sAuthID3);
 
-		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, pack, DBPrio_High);
+		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, hPack, DBPrio_High);
 	}
 
 	else
@@ -725,13 +725,13 @@ void DeleteUserData(int client, const char[] sAuthID3)
 
 public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	DataPack pack = view_as<DataPack>(data);
-	pack.Reset();
-	int client = pack.ReadCell();
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+	int client = hPack.ReadCell();
 
 	char sAuthID3[32];
-	pack.ReadString(sAuthID3, 32);
-	delete pack;
+	hPack.ReadString(sAuthID3, 32);
+	delete hPack;
 
 	if(results == null)
 	{
@@ -740,7 +740,7 @@ public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet resu
 		return;
 	}
 
-	Transaction trans = new Transaction();
+	Transaction hTransaction = new Transaction();
 
 	while(results.FetchRow())
 	{
@@ -756,20 +756,20 @@ public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet resu
 			"SELECT id FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d ORDER BY time LIMIT 1;",
 			gS_MySQLPrefix, map, style, track);
 
-		DataPack transPack = new DataPack();
-		transPack.WriteString(map);
-		transPack.WriteCell(id);
-		transPack.WriteCell(style);
-		transPack.WriteCell(track);
+		DataPack hTransPack = new DataPack();
+		hTransPack.WriteString(map);
+		hTransPack.WriteCell(id);
+		hTransPack.WriteCell(style);
+		hTransPack.WriteCell(track);
 
-		trans.AddQuery(sQueryGetWorldRecordID, transPack);
+		hTransaction.AddQuery(sQueryGetWorldRecordID, hTransPack);
 	}
 
 	DataPack steamPack = new DataPack();
 	steamPack.WriteString(sAuthID3);
 	steamPack.WriteCell(client);
 
-	gH_SQL.Execute(trans, Trans_OnRecordCompare, INVALID_FUNCTION, steamPack, DBPrio_High);
+	gH_SQL.Execute(hTransaction, Trans_OnRecordCompare, INVALID_FUNCTION, steamPack, DBPrio_High);
 }
 
 public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
@@ -2139,8 +2139,7 @@ void SQL_DBConnect()
 		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL PRIMARY KEY, `name` VARCHAR(32), `country` VARCHAR(32), `ip` VARCHAR(64), `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
 	}
 
-	// CREATE TABLE IF NOT EXISTS
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)

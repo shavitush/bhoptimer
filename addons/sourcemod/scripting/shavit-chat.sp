@@ -1347,7 +1347,7 @@ void SQL_DBConnect()
 				gS_MySQLPrefix);
 		}
 		
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}
 }
 
