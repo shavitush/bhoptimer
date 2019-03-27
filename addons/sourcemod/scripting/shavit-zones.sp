@@ -1091,20 +1091,18 @@ public Action Command_Zones(int client, int args)
 
 	Reset(client);
 
-	Menu menu = new Menu(Select_Type_MenuHandler);
-	menu.SetTitle("%T", "ZoneMenuTitle", client);
+	Menu menu = new Menu(MenuHandler_SelectZoneTrack);
+	menu.SetTitle("%T", "ZoneMenuTrack", client);
 
-	for(int i = 0; i < sizeof(gS_ZoneNames); i++)
+	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		if(i == Zone_CustomSpawn)
-		{
-			continue;
-		}
-
 		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
-		menu.AddItem(sInfo, gS_ZoneNames[i]);
+		char sDisplay[16];
+		GetTrackName(client, i, sDisplay, 16);
+
+		menu.AddItem(sInfo, sDisplay);
 	}
 
 	menu.ExitButton = true;
@@ -1113,9 +1111,46 @@ public Action Command_Zones(int client, int args)
 	return Plugin_Handled;
 }
 
+public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		gI_ZoneTrack[param1] = StringToInt(sInfo);
+
+		char sTrack[16];
+		GetTrackName(param1, gI_ZoneTrack[param1], sTrack, 16);
+
+		Menu submenu = new Menu(MenuHandler_SelectZoneType);
+		submenu.SetTitle("%T", "ZoneMenuTitle", param1, sTrack);
+
+		for(int i = 0; i < sizeof(gS_ZoneNames); i++)
+		{
+			if(i == Zone_CustomSpawn)
+			{
+				continue;
+			}
+
+			IntToString(i, sInfo, 8);
+			submenu.AddItem(sInfo, gS_ZoneNames[i]);
+		}
+
+		submenu.ExitButton = true;
+		submenu.Display(param1, 20);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+	
+	return 0;
+}
+
 Action OpenEditMenu(int client)
 {
-	Menu menu = new Menu(ZoneEdit_MenuHandler);
+	Menu menu = new Menu(MenuHandler_ZoneEdit);
 	menu.SetTitle("%T\n ", "ZoneEditTitle", client);
 
 	char sDisplay[64];
@@ -1157,7 +1192,7 @@ Action OpenEditMenu(int client)
 	return Plugin_Handled;
 }
 
-public int ZoneEdit_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -1220,7 +1255,7 @@ public Action Command_DeleteZone(int client, int args)
 
 Action OpenDeleteMenu(int client)
 {
-	Menu menu = new Menu(DeleteZone_MenuHandler);
+	Menu menu = new Menu(MenuHandler_DeleteZone);
 	menu.SetTitle("%T\n ", "ZoneMenuDeleteTitle", client);
 
 	char sDisplay[64];
@@ -1261,7 +1296,7 @@ Action OpenDeleteMenu(int client)
 	return Plugin_Handled;
 }
 
-public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_DeleteZone(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -1339,7 +1374,7 @@ public Action Command_DeleteAllZones(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Menu menu = new Menu(DeleteAllZones_MenuHandler);
+	Menu menu = new Menu(MenuHandler_DeleteAllZones);
 	menu.SetTitle("%T", "ZoneMenuDeleteALLTitle", client);
 
 	char sMenuItem[64];
@@ -1365,7 +1400,7 @@ public Action Command_DeleteAllZones(int client, int args)
 	return Plugin_Handled;
 }
 
-public int DeleteAllZones_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_DeleteAllZones(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -1414,7 +1449,7 @@ public void SQL_DeleteAllZones_Callback(Database db, DBResultSet results, const 
 	Shavit_PrintToChat(client, "%T", "ZoneDeleteAllSuccessful", client);
 }
 
-public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -1772,12 +1807,6 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 			UpdateTeleportZone(param1);
 			CreateEditMenu(param1);
 		}
-
-		else if(StrEqual(info, "track"))
-		{
-			gI_ZoneTrack[param1] = CycleTracks(gI_ZoneTrack[param1]);
-			CreateEditMenu(param1);
-		}
 	}
 
 	else if(action == MenuAction_End)
@@ -1786,16 +1815,6 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 	}
 
 	return 0;
-}
-
-int CycleTracks(int track)
-{
-	if(++track >= TRACKS_SIZE)
-	{
-		return 0;
-	}
-
-	return track;
 }
 
 void GetTrackName(int client, int track, char[] output, int size)
@@ -1877,10 +1896,9 @@ void CreateEditMenu(int client)
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetNo", client);
 	menu.AddItem("no", sMenuItem);
+
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
 	menu.AddItem("adjust", sMenuItem);
-	FormatEx(sMenuItem, 64, "%T", "ZoneChangeTrack", client);
-	menu.AddItem("track", sMenuItem);
 
 	menu.ExitButton = true;
 	menu.Display(client, 600);

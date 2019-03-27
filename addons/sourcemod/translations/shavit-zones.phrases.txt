@@ -129,9 +129,14 @@
 	{
 		"en"		"No zones found."
 	}
+	"ZoneMenuTrack"
+	{
+		"en"		"Select a track:"
+	}
 	"ZoneMenuTitle"
 	{
-		"en"		"Select a zone type:"
+		"#format"	"{1:s}"
+		"en"		"Select a zone type: ({1})"
 	}
 	"ZoneMenuYes"
 	{
@@ -198,10 +203,6 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"Zone track: {1}"
-	}
-	"ZoneChangeTrack"
-	{
-		"en"		"Change zone track"
 	}
 	"ZoneEdit"
 	{
