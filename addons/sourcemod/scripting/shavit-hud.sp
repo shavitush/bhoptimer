@@ -1320,6 +1320,7 @@ void UpdateMainHUD(int client)
 	float fSpeed[3];
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
+	float fSpeedHUD = ((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
 	bool bReplay = (gB_Replay && IsFakeClient(target));
 	ZoneHUD iZoneHUD = ZoneHUD_None;
 	int iReplayStyle = 0;
@@ -1349,12 +1350,17 @@ void UpdateMainHUD(int client)
 		{
 			fReplayTime = Shavit_GetReplayTime(iReplayStyle, iReplayTrack);
 			fReplayLength = Shavit_GetReplayLength(iReplayStyle, iReplayTrack);
+
+			if(gA_StyleSettings[iReplayStyle].fSpeedMultiplier != 1.0)
+			{
+				fSpeedHUD /= gA_StyleSettings[iReplayStyle].fSpeedMultiplier;
+			}
 		}
 	}
 
 	huddata_t huddata;
 	huddata.iTarget = target;
-	huddata.iSpeed = RoundToNearest(((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
+	huddata.iSpeed = RoundToNearest(fSpeedHUD);
 	huddata.iZoneHUD = iZoneHUD;
 	huddata.iStyle = (bReplay)? iReplayStyle:Shavit_GetBhopStyle(target);
 	huddata.iTrack = (bReplay)? iReplayTrack:Shavit_GetClientTrack(target);
