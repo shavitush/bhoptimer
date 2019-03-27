@@ -31,9 +31,23 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}cannot{2} setup mapzones when you're dead."
 	}
+	"ZoneCustomSpawnMenuTitle"
+	{
+		"en"		"Add custom spawn for track:"
+	}
+	"ZoneCustomSpawnMenuDeleteTitle"
+	{
+		"en"		"Delete custom spawn for track:"
+	}
 	"ZoneCustomSpawnExists"
 	{
-		"en"		"Custom Spawn already exists. Please delete it before placing a new one."
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Custom Spawn for track {1}{2}{3} already exists. Please delete it before placing a new one."
+	}
+	"ZoneCustomSpawnMissing"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Custom Spawn for track {1}{2}{3} is missing."
 	}
 	"ZoneCustomSpawnDelete"
 	{
