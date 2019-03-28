@@ -1089,13 +1089,20 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
+
+		if(gA_StyleSettings[data.iStyle].fVelocityLimit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_NoVelLimit, -1))
+		{
+			FormatEx(sLine, 128, "%T", "HudNoSpeedLimit", client);
+
+			AddHUDLine(buffer, maxlen, sLine, iLines);
+			iLines++;
+		}
 	}
 
 	if(data.iTimerStatus != Timer_Stopped && data.iTrack != Track_Main && (gI_HUD2Settings[client] & HUD2_TRACK) == 0)
 	{
 		char sTrack[32];
 		GetTrackName(client, data.iTrack, sTrack, 32);
-		Format(sTrack, 32, "%s", sTrack);
 
 		AddHUDLine(buffer, maxlen, sTrack, iLines);
 		iLines++;
@@ -1216,7 +1223,6 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		{
 			char sTrack[32];
 			GetTrackName(client, data.iTrack, sTrack, 32);
-			Format(sTrack, 32, "%s", sTrack);
 
 			AddHUDLine(buffer, maxlen, sTrack, iLines);
 			iLines++;
@@ -1314,6 +1320,7 @@ void UpdateMainHUD(int client)
 	float fSpeed[3];
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
+	float fSpeedHUD = ((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
 	bool bReplay = (gB_Replay && IsFakeClient(target));
 	ZoneHUD iZoneHUD = ZoneHUD_None;
 	int iReplayStyle = 0;
@@ -1343,12 +1350,17 @@ void UpdateMainHUD(int client)
 		{
 			fReplayTime = Shavit_GetReplayTime(iReplayStyle, iReplayTrack);
 			fReplayLength = Shavit_GetReplayLength(iReplayStyle, iReplayTrack);
+
+			if(gA_StyleSettings[iReplayStyle].fSpeedMultiplier != 1.0)
+			{
+				fSpeedHUD /= gA_StyleSettings[iReplayStyle].fSpeedMultiplier;
+			}
 		}
 	}
 
 	huddata_t huddata;
 	huddata.iTarget = target;
-	huddata.iSpeed = RoundToNearest(((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
+	huddata.iSpeed = RoundToNearest(fSpeedHUD);
 	huddata.iZoneHUD = iZoneHUD;
 	huddata.iStyle = (bReplay)? iReplayStyle:Shavit_GetBhopStyle(target);
 	huddata.iTrack = (bReplay)? iReplayTrack:Shavit_GetClientTrack(target);

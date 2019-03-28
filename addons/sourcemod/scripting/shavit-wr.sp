@@ -159,7 +159,6 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deleterecord", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
 	RegAdminCmd("sm_deleterecords", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
 	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records for this map.");
-	RegAdminCmd("sm_deletestylerecords", Command_DeleteStyleRecords, ADMFLAG_RCON, "Deletes all the records for a style.");
 
 	// cvars
 	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
@@ -222,7 +221,6 @@ public void OnAdminMenuReady(Handle topmenu)
 		
 		gH_AdminMenu.AddItem("sm_deleteall", AdminMenu_DeleteAll, gH_TimerCommands, "sm_deleteall", ADMFLAG_RCON);
 		gH_AdminMenu.AddItem("sm_delete", AdminMenu_Delete, gH_TimerCommands, "sm_delete", ADMFLAG_RCON);
-		gH_AdminMenu.AddItem("sm_deletestylerecords", AdminMenu_DeleteStyleRecords, gH_TimerCommands, "sm_deletestylerecords", ADMFLAG_RCON);
 	}
 }
 
@@ -249,19 +247,6 @@ public void AdminMenu_DeleteAll(Handle topmenu,  TopMenuAction action, TopMenuOb
 	else if(action == TopMenuAction_SelectOption)
 	{
 		Command_DeleteAll(param, 0);
-	}
-}
-
-public void AdminMenu_DeleteStyleRecords(Handle topmenu,  TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
-{
-	if(action == TopMenuAction_DisplayOption)
-	{
-		FormatEx(buffer, maxlength, "%t", "DeleteStyleRecords");
-	}
-
-	else if(action == TopMenuAction_SelectOption)
-	{
-		Command_DeleteStyleRecords(param, 0);
 	}
 }
 
@@ -482,18 +467,22 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 void UpdateWRCache()
 {
 	char sQuery[512];
-	// thanks Ollie Jones from stackoverflow! http://stackoverflow.com/a/36239523/5335680
-	// was a bit confused with this one :s
-
+	
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "SELECT p.style, p.id, TRUNCATE(LEAST(s.time, p.time), 3), u.name, p.track FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track ORDER BY date ASC) s ON p.style = s.style AND p.time = s.time AND p.map = s.map JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track ORDER BY date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+		FormatEx(sQuery, 512,
+			"SELECT p1.id, p1.style, p1.track, p1.time, u.name FROM %splayertimes p1 " ...
+				"JOIN (SELECT style, track, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style, track) p2 " ...
+				"JOIN %susers u ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time AND u.auth = p1.auth " ...
+				"WHERE p1.map = '%s';",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix, gS_Map);
 	}
 
-	// sorry, LEAST() isn't available for SQLITE!
 	else
 	{
-		FormatEx(sQuery, 512, "SELECT p.style, p.id, s.time, u.name, p.track FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
+		FormatEx(sQuery, 512,
+			"SELECT p.id, p.style, p.track, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 	}
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
@@ -522,19 +511,18 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	// setup cache again, dynamically and not hardcoded
 	while(results.FetchRow())
 	{
-		int style = results.FetchInt(0);
+		int iStyle = results.FetchInt(1);
+		int iTrack = results.FetchInt(2);
 
-		if(style >= gI_Styles || style < 0 || gA_StyleSettings[style].bUnranked)
+		if(iStyle >= gI_Styles || iStyle < 0 || gA_StyleSettings[iStyle].bUnranked)
 		{
 			continue;
 		}
 
-		int track = results.FetchInt(4);
-
-		gI_WRRecordID[style][track] = results.FetchInt(1);
-		gF_WRTime[style][track] = results.FetchFloat(2);
-		results.FetchString(3, gS_WRName[style][track], MAX_NAME_LENGTH);
-		ReplaceString(gS_WRName[style][track], MAX_NAME_LENGTH, "#", "?");
+		gI_WRRecordID[iStyle][iTrack] = results.FetchInt(0);
+		gF_WRTime[iStyle][iTrack] = results.FetchFloat(3);
+		results.FetchString(4, gS_WRName[iStyle][iTrack], MAX_NAME_LENGTH);
+		ReplaceString(gS_WRName[iStyle][iTrack], MAX_NAME_LENGTH, "#", "?");
 	}
 
 	UpdateLeaderboards();
@@ -650,7 +638,7 @@ public Action Command_Junk(int client, int args)
 
 	char sAuth[32];
 	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
-	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES ('%s', '%s', %.03f, %d, %d, 0, %d, %.02f);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
+	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES ('%s', '%s', %f, %d, %d, 0, %d, %.02f);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
 
 	SQL_LockDatabase(gH_SQL);
 	SQL_FastQuery(gH_SQL, sQuery);
@@ -752,6 +740,11 @@ void DeleteSubmenu(int client)
 	{
 		int iStyle = styles[i];
 
+		if(gA_StyleSettings[iStyle].iEnabled == -1)
+		{
+			continue;
+		}
+
 		char sInfo[8];
 		IntToString(iStyle, sInfo, 8);
 
@@ -819,6 +812,11 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		for(int i = 0; i < gI_Styles; i++)
 		{
 			int iStyle = styles[i];
+
+			if(gA_StyleSettings[iStyle].iEnabled == -1)
+			{
+				continue;
+			}
 
 			char sStyle[64];
 			strcopy(sStyle, 64, gS_StyleStrings[iStyle].sStyleName);
@@ -928,178 +926,6 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 	}
 
 	return 0;
-}
-
-public Action Command_DeleteStyleRecords(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	Menu menu = new Menu(MenuHandler_DeleteStyleRecords);
-	menu.SetTitle("%T\n ", "DeleteStyleRecordsRecordsMenuTitle", client, gS_Map);
-
-	int[] styles = new int[gI_Styles];
-	Shavit_GetOrderedStyles(styles, gI_Styles);
-
-	for(int i = 0; i < gI_Styles; i++)
-	{
-		int iStyle = styles[i];
-
-		if(gA_StyleSettings[iStyle].bUnranked)
-		{
-			continue;
-		}
-
-		char sInfo[8];
-		IntToString(iStyle, sInfo, 8);
-
-		char sDisplay[64];
-		FormatEx(sDisplay, 64, "%s (%d %T)", gS_StyleStrings[iStyle].sStyleName, gI_RecordAmount[iStyle], "WRRecord", client);
-
-		int iTotalAmount = 0;
-
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			iTotalAmount += gI_RecordAmount[iStyle][j];
-		}
-
-		menu.AddItem(sInfo, sDisplay, (iTotalAmount > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
-	}
-
-	if(menu.ItemCount == 0)
-	{
-		char sNoRecords[64];
-		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
-		menu.AddItem("-1", sNoRecords);
-	}
-
-	menu.ExitButton = true;
-	menu.Display(client, 20);
-
-	return Plugin_Handled;
-}
-
-public int MenuHandler_DeleteStyleRecords(Menu menu, MenuAction action, int param1, int param2)
-{
-	if(action == MenuAction_Select)
-	{
-		char info[16];
-		menu.GetItem(param2, info, 16);
-
-		int style = StringToInt(info);
-		int iTotalAmount = 0;
-
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			iTotalAmount += gI_RecordAmount[style][j];
-		}
-
-		if(iTotalAmount == 0)
-		{
-			return 0;
-		}
-
-		char sMenuItem[128];
-
-		Menu submenu = new Menu(MenuHandler_DeleteStyleRecords_Confirm);
-		submenu.SetTitle("%T\n ", "DeleteConfirmStyle", param1, gS_StyleStrings[style].sStyleName);
-
-		for(int i = 1; i <= GetRandomInt(1, 4); i++)
-		{
-			FormatEx(sMenuItem, 128, "%T", "MenuResponseNo", param1);
-			submenu.AddItem("-1", sMenuItem);
-		}
-
-		FormatEx(sMenuItem, 128, "%T", "MenuResponseYesStyle", param1, gS_StyleStrings[style].sStyleName);
-
-		IntToString(style, info, 16);
-		submenu.AddItem(info, sMenuItem);
-
-		for(int i = 1; i <= GetRandomInt(1, 3); i++)
-		{
-			FormatEx(sMenuItem, 128, "%T", "MenuResponseNo", param1);
-			submenu.AddItem("-1", sMenuItem);
-		}
-
-		submenu.ExitButton = true;
-		submenu.Display(param1, 20);
-	}
-
-	else if(action == MenuAction_End)
-	{
-		delete menu;
-	}
-
-	return 0;
-}
-
-public int MenuHandler_DeleteStyleRecords_Confirm(Menu menu, MenuAction action, int param1, int param2)
-{
-	if(action == MenuAction_Select)
-	{
-		char info[16];
-		menu.GetItem(param2, info, 16);
-
-		int style = StringToInt(info);
-
-		if(style == -1)
-		{
-			Shavit_PrintToChat(param1, "%T", "DeletionAborted", param1);
-
-			return 0;
-		}
-
-		Shavit_LogMessage("%L - deleted all %s style records from map `%s`.", param1, gS_StyleStrings[style].sStyleName, gS_Map);
-
-		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d;", gS_MySQLPrefix, gS_Map, style);
-
-		DataPack pack = new DataPack();
-		pack.WriteCell(GetClientSerial(param1));
-		pack.WriteCell(style);
-
-		gH_SQL.Query(DeleteStyleRecords_Callback, sQuery, pack, DBPrio_High);
-	}
-
-	else if(action == MenuAction_End)
-	{
-		delete menu;
-	}
-
-	return 0;
-}
-
-public void DeleteStyleRecords_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
-{
-	data.Reset();
-	int serial = data.ReadCell();
-	int style = data.ReadCell();
-	delete data;
-
-	if(results == null)
-	{
-		LogError("Timer (WR DeleteStyleRecords) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
-	UpdateWRCache();
-
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		OnClientPutInServer(i);
-	}
-
-	int client = GetClientFromSerial(serial);
-
-	if(client == 0)
-	{
-		return;
-	}
-
-	Shavit_PrintToChat(client, "%T", "DeletedRecordsStyle", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 }
 
 public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int param2)
@@ -1502,7 +1328,7 @@ Action ShowWRStyleMenu(int client, int track)
 	{
 		int iStyle = styles[i];
 
-		if(gA_StyleSettings[iStyle].bUnranked)
+		if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled == -1)
 		{
 			continue;
 		}
@@ -1743,10 +1569,10 @@ public Action Command_RecentRecords(int client, int args)
 	char sQuery[512];
 
 	FormatEx(sQuery, 512,
-		"SELECT a.id, a.map, u.name, a.time, a.jumps, a.style, a.points, a.track FROM %splayertimes a " ...
-		"JOIN (SELECT MIN(time) time, map, style, track FROM %splayertimes GROUP by map, style, track) b " ...
-		"JOIN %susers u ON a.time = b.time AND a.auth = u.auth AND a.map = b.map AND a.style = b.style AND a.track = b.track " ...
-		"ORDER BY date DESC LIMIT 100;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+			"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %splayertimes a " ...
+			"JOIN (SELECT MIN(time) time, map, style, track FROM %splayertimes GROUP by map, style, track ORDER BY date DESC) b " ...
+			"JOIN %susers u ON a.time = b.time AND a.auth = u.auth AND a.map = b.map AND a.style = b.style AND a.track = b.track " ...
+			"LIMIT 100;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 
@@ -1784,33 +1610,27 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		char sName[MAX_NAME_LENGTH];
 		results.FetchString(2, sName, 10);
 
-		if(strlen(sName) == 9)
+		if(strlen(sName) >= 9)
 		{
 			Format(sName, MAX_NAME_LENGTH, "%s...", sName);
 		}
 
 		char sTime[16];
-		float time = results.FetchFloat(3);
-		FormatSeconds(time, sTime, 16);
+		float fTime = results.FetchFloat(3);
+		FormatSeconds(fTime, sTime, 16);
 
-		int jumps = results.FetchInt(4);
-		int style = results.FetchInt(5);
-		float fPoints = results.FetchFloat(6);
+		int iStyle = results.FetchInt(4);
+
+		if(iStyle >= gI_Styles || iStyle < 0 || gA_StyleSettings[iStyle].bUnranked)
+		{
+			continue;
+		}
 
 		char sTrack[32];
-		GetTrackName(client, results.FetchInt(7), sTrack, 32);
+		GetTrackName(client, results.FetchInt(5), sTrack, 32);
 
 		char sDisplay[192];
-
-		if(gB_Rankings && fPoints > 0.0)
-		{
-			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%.03f %T)", gS_StyleStrings[style].sShortName, sTrack[0], sMap, sName, sTime, fPoints, "WRPoints", client);
-		}
-
-		else
-		{
-			FormatEx(sDisplay, 192, "[%s, %c] %s - %s @ %s (%d %T)", gS_StyleStrings[style].sShortName, sTrack[0], sMap, sName, sTime, jumps, "WRJumps", client);
-		}
+		FormatEx(sDisplay, 192, "[%s/%c] %s - %s @ %s", gS_StyleStrings[iStyle].sShortName, sTrack[0], sMap, sName, sTime);
 
 		char sInfo[192];
 		FormatEx(sInfo, 192, "%d;%s", results.FetchInt(0), sMap);
@@ -2125,19 +1945,23 @@ void SQL_DBConnect()
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
 	gB_MySQL = StrEqual(sDriver, "mysql", false);
 
-	char sQuery[512];
+	char sQuery[1024];
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`)) ENGINE=INNODB;", gS_MySQLPrefix);
+		FormatEx(sQuery, 1024,
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` VARCHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `pt_auth` FOREIGN KEY (`auth`) REFERENCES `users` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+			gS_MySQLPrefix);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` CHAR(32), `map` CHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` CHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0);", gS_MySQLPrefix);
+		FormatEx(sQuery, 1024,
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` VARCHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0);",
+			gS_MySQLPrefix);
 	}
 
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2159,136 +1983,8 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		gB_Late = false;
 	}
 
-	char sQuery[64];
-	FormatEx(sQuery, 64, "SELECT strafes FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
-
-	if(gB_MySQL) // this isn't possible in sqlite
-	{
-		FormatEx(sQuery, 64, "ALTER TABLE %splayertimes MODIFY date CHAR(16);", gS_MySQLPrefix);
-		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
-	}
-
-	FormatEx(sQuery, 64, "SELECT points FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration3_Callback, sQuery);
-
-	FormatEx(sQuery, 64, "SELECT track FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration4_Callback, sQuery);
-
-	FormatEx(sQuery, 64, "SELECT perfs FROM %splayertimes LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration5_Callback, sQuery, 0, DBPrio_Low);
-}
-
-public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[256];
-
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD (`strafes` INT NOT NULL DEFAULT 0, `sync` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
-			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-		}
-
-		else
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD COLUMN `strafes` INT NOT NULL DEFAULT 0;", gS_MySQLPrefix);
-			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-
-			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD COLUMN `sync` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix);
-			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-		}
-	}
-}
-
-public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (WR module) error! Times' table migration (1) failed. Reason: %s", error);
-	}
-}
-
-public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (WR module) error! Times' table migration (2) failed. Reason: %s", error);
-	}
-}
-
-public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[256];
-		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
-		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery);
-	}
-}
-
-public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (WR module) error! Times' table migration (3) failed. Reason: %s", error);
-	}
-}
-
-public void SQL_TableMigration4_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[256];
-		FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`track` INT NOT NULL DEFAULT 0)":"COLUMN `track` INT NOT NULL DEFAULT 0");
-		gH_SQL.Query(SQL_AlterTable4_Callback, sQuery);
-	}
-}
-
-public void SQL_AlterTable4_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (WR module) error! Times' table migration (4) failed. Reason: %s", error);
-	}
-}
-
-public void SQL_TableMigration5_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[256];
-
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD (`perfs` FLOAT DEFAULT 0);", gS_MySQLPrefix);
-		}
-
-		else
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%splayertimes` ADD COLUMN `perfs` FLOAT DEFAULT 0;", gS_MySQLPrefix);
-		}
-
-		gH_SQL.Query(SQL_AlterTable5_Callback, sQuery);
-
-		return;
-	}
-
 	gB_Connected = true;
-	OnMapStart();
-}
-
-public void SQL_AlterTable5_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (WR module) error! Times' table migration (5) failed. Reason: %s", error);
-
-		return;
-	}
-
-	gB_Connected = true;
+	
 	OnMapStart();
 }
 
@@ -2389,14 +2085,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				return;
 			}
 
-			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES ('%s', '%s', %.03f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
+			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES ('%s', '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
 		}
 
 		else // update
 		{
 			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
-			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %.03f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = '%s' AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, sAuthID, style, track);
+			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = '%s' AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, sAuthID, style, track);
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);

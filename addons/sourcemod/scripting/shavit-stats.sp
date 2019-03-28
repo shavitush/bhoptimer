@@ -46,7 +46,7 @@ char gS_MySQLPrefix[32];
 // cache
 bool gB_AllowStats[MAXPLAYERS+1];
 int gI_MapType[MAXPLAYERS+1];
-int gBS_Style[MAXPLAYERS+1];
+int gI_Style[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 char gS_TargetAuth[MAXPLAYERS+1][32];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
@@ -109,6 +109,8 @@ public void OnPluginStart()
 	// player commands
 	RegConsoleCmd("sm_profile", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
+	RegConsoleCmd("sm_mapsdone", Command_MapsDoneLeft, "Show maps that the player has finished. Usage: sm_mapsdone [target]");
+	RegConsoleCmd("sm_mapsleft", Command_MapsDoneLeft, "Show maps that the player has not finished yet. Usage: sm_mapsleft [target]");
 
 	// translations
 	LoadTranslations("common.phrases");
@@ -284,16 +286,22 @@ void UpdateWRs(int client)
 
 	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
 	{
-		char sQuery[256];
+		char sQuery[512];
 
+		// default style only
 		if(gCV_MVPRankOnes.IntValue == 2)
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 512,
+				"SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 %sGROUP by map, track) b ON a.time = b.time AND a.map = b.map AND style = 0 %sWHERE auth = '%s';",
+				gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
 		}
 
+		// all styles
 		else
 		{
-			FormatEx(sQuery, 256, "SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes %sGROUP by map) b ON a.time = b.time WHERE auth = '%s';", gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "WHERE track = 0 ":"", sAuthID);
+			FormatEx(sQuery, 512,
+				"SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time, map, style FROM %splayertimes %sGROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND a.style = b.style %sWHERE auth = '%s';",
+				gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "WHERE track = 0 ":"", (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
 		}
 
 		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
@@ -326,9 +334,125 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 	gI_WRAmount[client] = iWRs;
 }
 
+public Action Command_MapsDoneLeft(int client, int args)
+{
+	if(client == 0)
+	{
+		return Plugin_Handled;
+	}
+
+	int target = client;
+
+	if(args > 0)
+	{
+		char sArgs[64];
+		GetCmdArgString(sArgs, 64);
+
+		target = FindTarget(client, sArgs, true, false);
+
+		if(target == -1)
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	GetClientAuthId(target, AuthId_Steam3, gS_TargetAuth[client], 32);
+
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
+
+	GetClientName(target, gS_TargetName[client], MAX_NAME_LENGTH);
+	ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
+
+	Menu menu = new Menu(MenuHandler_MapsDoneLeft);
+
+	if(StrEqual(sCommand, "sm_mapsdone"))
+	{
+		gI_MapType[client] = MAPSDONE;
+		menu.SetTitle("%T\n ", "MapsDoneOnStyle", client, gS_TargetName[client]);
+	}
+
+	else
+	{
+		gI_MapType[client] = MAPSLEFT;
+		menu.SetTitle("%T\n ", "MapsLeftOnStyle", client, gS_TargetName[client]);
+	}
+
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		int iStyle = styles[i];
+
+		if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled == -1)
+		{
+			continue;
+		}
+
+		char sInfo[8];
+		IntToString(iStyle, sInfo, 8);
+		menu.AddItem(sInfo, gS_StyleStrings[iStyle].sStyleName);
+	}
+
+	menu.Display(client, 30);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_MapsDoneLeft(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		gI_Style[param1] = StringToInt(sInfo);
+
+		Menu submenu = new Menu(MenuHandler_MapsDoneLeft_Track);
+		submenu.SetTitle("%T\n ", "SelectTrack", param1);
+
+		for(int i = 0; i < TRACKS_SIZE; i++)
+		{
+			IntToString(i, sInfo, 8);
+
+			char sTrack[32];
+			GetTrackName(param1, i, sTrack, 32);
+			submenu.AddItem(sInfo, sTrack);
+		}
+
+		submenu.Display(param1, 30);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public int MenuHandler_MapsDoneLeft_Track(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		gI_Track[param1] = StringToInt(sInfo);
+
+		ShowMaps(param1);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
 public Action Command_Profile(int client, int args)
 {
-	if(!IsValidClient(client))
+	if(client == 0)
 	{
 		return Plugin_Handled;
 	}
@@ -367,21 +491,21 @@ Action OpenStatsMenu(int client, const char[] authid)
 	if(gB_Rankings)
 	{
 		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin, d.points, e.rank FROM " ...
-				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
-				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map) b ON a.time = b.time WHERE auth = '%s') c " ...
-				"JOIN (SELECT name, country, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
-				"JOIN (SELECT FORMAT(COUNT(*), 0) rank FROM %susers WHERE points >= (SELECT points FROM %susers WHERE auth = '%s' LIMIT 1) ORDER BY points DESC) e " ...
+				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
+				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
+				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = '%s') c " ...
+				"JOIN (SELECT name, country, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = '%s') d " ...
+				"JOIN (SELECT COUNT(*) rank FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = '%s') u2 WHERE u1.points >= u2.points) e " ...
 			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid);
 	}
 
 	else
 	{
 		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin FROM " ...
-				"(SELECT COUNT(*) clears FROM (SELECT id FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
-				"JOIN (SELECT COUNT(*) maps FROM (SELECT id FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map) b ON a.time = b.time WHERE auth = '%s') c " ...
-				"JOIN (SELECT name, country, lastlogin FROM %susers WHERE auth = '%s' LIMIT 1) d " ...
+				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
+				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
+				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = '%s') c " ...
+				"JOIN (SELECT name, country, lastlogin FROM %susers WHERE auth = '%s') d " ...
 			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid);
 	}
 
@@ -469,7 +593,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		{
 			int iStyle = styles[i];
 
-			if(gA_StyleSettings[iStyle].bUnranked)
+			if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled <= 0)
 			{
 				continue;
 			}
@@ -505,10 +629,10 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 		char sInfo[32];
 
 		menu.GetItem(param2, sInfo, 32);
-		gBS_Style[param1] = StringToInt(sInfo);
+		gI_Style[param1] = StringToInt(sInfo);
 
 		Menu submenu = new Menu(MenuHandler_TypeHandler);
-		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gBS_Style[param1]].sShortName);
+		submenu.SetTitle("%T", "MapsMenu", param1, gS_StyleStrings[gI_Style[param1]].sShortName);
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
@@ -596,12 +720,26 @@ void ShowMaps(int client)
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sQuery, 512, "SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = '%s' AND a.style = %d AND a.track = %d GROUP BY a.map ORDER BY a.%s;", gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gBS_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
+		FormatEx(sQuery, 512,
+			"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = '%s' AND a.style = %d AND a.track = %d GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.%s;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
 	}
 
 	else
 	{
-		FormatEx(sQuery, 512, "SELECT DISTINCT m.map FROM %smapzones m LEFT JOIN %splayertimes r ON r.map = m.map AND r.auth = '%s' AND r.style = %d AND m.track = %d WHERE r.map IS NULL AND m.track = %d ORDER BY m.map;", gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gBS_Style[client], gI_Track[client], gI_Track[client]);
+		if(gB_Rankings)
+		{
+			FormatEx(sQuery, 512,
+				"SELECT DISTINCT m.map, t.tier FROM %smapzones m LEFT JOIN %smaptiers t ON m.map = t.map WHERE m.type = 0 AND m.track = %d AND m.map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY m.map;",
+				gS_MySQLPrefix, gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 512,
+				"SELECT DISTINCT map FROM %smapzones WHERE type = 0 AND track = %d AND map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY map;",
+				gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
+		}
 	}
 
 	gH_SQL.Query(ShowMapsCallback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -632,12 +770,12 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gBS_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	else
 	{
-		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gBS_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	while(results.FetchRow())
@@ -676,6 +814,19 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		else
 		{
 			strcopy(sDisplay, 192, sMap);
+
+			if(gB_Rankings)
+			{
+				int iTier = results.FetchInt(1);
+
+				if(results.IsFieldNull(1) || iTier == 0)
+				{
+					iTier = 1;
+				}
+
+				Format(sDisplay, 192, "%s (Tier %d)", sMap, iTier);
+			}
+
 			strcopy(sRecordID, 16, "nope");
 		}
 

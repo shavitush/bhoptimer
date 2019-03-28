@@ -810,7 +810,7 @@ void UnloadZones(int zone)
 {
 	if(zone == Zone_CustomSpawn)
 	{
-		ClearCustomSpawn();
+		ClearCustomSpawn(-1);
 	}
 
 	else
@@ -824,7 +824,7 @@ void UnloadZones(int zone)
 			}
 		}
 
-		ClearCustomSpawn();
+		ClearCustomSpawn(-1);
 
 		if(zone == 0)
 		{
@@ -980,26 +980,69 @@ public Action Command_AddSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!IsPlayerAlive(client))
-	{
-		Shavit_PrintToChat(client, "%T", "ZoneDead", client);
+	return DisplayCustomSpawnMenu(client);
+}
 
-		return Plugin_Handled;
+Action DisplayCustomSpawnMenu(int client)
+{
+	Menu menu = new Menu(MenuHandler_AddCustomSpawn);
+	menu.SetTitle("%T\n ", "ZoneCustomSpawnMenuTitle", client);
+
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		char sInfo[8];
+		IntToString(i, sInfo, 8);
+
+		char sTrack[32];
+		GetTrackName(client, i, sTrack, 32);
+
+		menu.AddItem(sInfo, sTrack);
 	}
 
-	if(!EmptyVector(gF_CustomSpawn[Track_Main]))
-	{
-		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnExists", client);
-
-		return Plugin_Handled;
-	}
-
-	gI_ZoneType[client] = Zone_CustomSpawn;
-
-	GetClientAbsOrigin(client, gV_Point1[client]);
-	InsertZone(client);
+	menu.ExitButton = true;
+	menu.Display(client, 60);
 
 	return Plugin_Handled;
+}
+
+public int MenuHandler_AddCustomSpawn(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		if(!IsPlayerAlive(param1))
+		{
+			Shavit_PrintToChat(param1, "%T", "ZoneDead", param1);
+
+			return 0;
+		}
+
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		int iTrack = StringToInt(sInfo);
+
+		if(!EmptyVector(gF_CustomSpawn[iTrack]))
+		{
+			char sTrack[32];
+			GetTrackName(param1, iTrack, sTrack, 32);
+
+			Shavit_PrintToChat(param1, "%T", "ZoneCustomSpawnExists", param1, gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText);
+
+			return 0;
+		}
+
+		gI_ZoneType[param1] = Zone_CustomSpawn;
+		gI_ZoneTrack[param1] = iTrack;
+		GetClientAbsOrigin(param1, gV_Point1[param1]);
+
+		InsertZone(param1);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
 }
 
 public Action Command_DelSpawn(int client, int args)
@@ -1009,14 +1052,66 @@ public Action Command_DelSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Shavit_LogMessage("%L - deleted custom spawn from map `%s`.", client, gS_Map);
+	return DisplayCustomSpawnDeleteMenu(client);
+}
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE type = '%d' AND map = '%s';", gS_MySQLPrefix, Zone_CustomSpawn, gS_Map);
+Action DisplayCustomSpawnDeleteMenu(int client)
+{
+	Menu menu = new Menu(MenuHandler_DeleteCustomSpawn);
+	menu.SetTitle("%T\n ", "ZoneCustomSpawnMenuDeleteTitle", client);
 
-	gH_SQL.Query(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(client));
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		char sInfo[8];
+		IntToString(i, sInfo, 8);
+
+		char sTrack[32];
+		GetTrackName(client, i, sTrack, 32);
+
+		menu.AddItem(sInfo, sTrack, (EmptyVector(gF_CustomSpawn[i]))? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, 60);
 
 	return Plugin_Handled;
+}
+
+public int MenuHandler_DeleteCustomSpawn(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		int iTrack = StringToInt(sInfo);
+
+		if(EmptyVector(gF_CustomSpawn[iTrack]))
+		{
+			char sTrack[32];
+			GetTrackName(param1, iTrack, sTrack, 32);
+
+			Shavit_PrintToChat(param1, "%T", "ZoneCustomSpawnMissing", param1, gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText);
+
+			return 0;
+		}
+
+		gI_ZoneTrack[param1] = iTrack;
+		Shavit_LogMessage("%L - deleted custom spawn from map `%s`.", param1, gS_Map);
+
+		char sQuery[256];
+		FormatEx(sQuery, 256,
+			"DELETE FROM %smapzones WHERE type = '%d' AND map = '%s' AND track = %d;",
+			gS_MySQLPrefix, Zone_CustomSpawn, gS_Map, iTrack);
+
+		gH_SQL.Query(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(param1));
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
 }
 
 public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1035,14 +1130,23 @@ public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, co
 		return;
 	}
 
-	ClearCustomSpawn();
-
+	ClearCustomSpawn(gI_ZoneTrack[client]);
 	Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnDelete", client);
 }
 
-void ClearCustomSpawn()
+void ClearCustomSpawn(int track)
 {
-	gF_CustomSpawn[Track_Main] = NULL_VECTOR;
+	if(track != -1)
+	{
+		gF_CustomSpawn[track] = NULL_VECTOR;
+
+		return;
+	}
+	
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		gF_CustomSpawn[i] = NULL_VECTOR;
+	}
 }
 
 void ClearPrebuiltZones()
@@ -1091,20 +1195,18 @@ public Action Command_Zones(int client, int args)
 
 	Reset(client);
 
-	Menu menu = new Menu(Select_Type_MenuHandler);
-	menu.SetTitle("%T", "ZoneMenuTitle", client);
+	Menu menu = new Menu(MenuHandler_SelectZoneTrack);
+	menu.SetTitle("%T", "ZoneMenuTrack", client);
 
-	for(int i = 0; i < sizeof(gS_ZoneNames); i++)
+	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		if(i == Zone_CustomSpawn)
-		{
-			continue;
-		}
-
 		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
-		menu.AddItem(sInfo, gS_ZoneNames[i]);
+		char sDisplay[16];
+		GetTrackName(client, i, sDisplay, 16);
+
+		menu.AddItem(sInfo, sDisplay);
 	}
 
 	menu.ExitButton = true;
@@ -1113,9 +1215,46 @@ public Action Command_Zones(int client, int args)
 	return Plugin_Handled;
 }
 
+public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		gI_ZoneTrack[param1] = StringToInt(sInfo);
+
+		char sTrack[16];
+		GetTrackName(param1, gI_ZoneTrack[param1], sTrack, 16);
+
+		Menu submenu = new Menu(MenuHandler_SelectZoneType);
+		submenu.SetTitle("%T", "ZoneMenuTitle", param1, sTrack);
+
+		for(int i = 0; i < sizeof(gS_ZoneNames); i++)
+		{
+			if(i == Zone_CustomSpawn)
+			{
+				continue;
+			}
+
+			IntToString(i, sInfo, 8);
+			submenu.AddItem(sInfo, gS_ZoneNames[i]);
+		}
+
+		submenu.ExitButton = true;
+		submenu.Display(param1, 20);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+	
+	return 0;
+}
+
 Action OpenEditMenu(int client)
 {
-	Menu menu = new Menu(ZoneEdit_MenuHandler);
+	Menu menu = new Menu(MenuHandler_ZoneEdit);
 	menu.SetTitle("%T\n ", "ZoneEditTitle", client);
 
 	char sDisplay[64];
@@ -1157,7 +1296,7 @@ Action OpenEditMenu(int client)
 	return Plugin_Handled;
 }
 
-public int ZoneEdit_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -1220,7 +1359,7 @@ public Action Command_DeleteZone(int client, int args)
 
 Action OpenDeleteMenu(int client)
 {
-	Menu menu = new Menu(DeleteZone_MenuHandler);
+	Menu menu = new Menu(MenuHandler_DeleteZone);
 	menu.SetTitle("%T\n ", "ZoneMenuDeleteTitle", client);
 
 	char sDisplay[64];
@@ -1261,7 +1400,7 @@ Action OpenDeleteMenu(int client)
 	return Plugin_Handled;
 }
 
-public int DeleteZone_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_DeleteZone(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -1339,7 +1478,7 @@ public Action Command_DeleteAllZones(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Menu menu = new Menu(DeleteAllZones_MenuHandler);
+	Menu menu = new Menu(MenuHandler_DeleteAllZones);
 	menu.SetTitle("%T", "ZoneMenuDeleteALLTitle", client);
 
 	char sMenuItem[64];
@@ -1365,7 +1504,7 @@ public Action Command_DeleteAllZones(int client, int args)
 	return Plugin_Handled;
 }
 
-public int DeleteAllZones_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_DeleteAllZones(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -1414,7 +1553,7 @@ public void SQL_DeleteAllZones_Callback(Database db, DBResultSet results, const 
 	Shavit_PrintToChat(client, "%T", "ZoneDeleteAllSuccessful", client);
 }
 
-public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
@@ -1437,7 +1576,7 @@ public int Select_Type_MenuHandler(Menu menu, MenuAction action, int param1, int
 void Reset(int client)
 {
 	gI_ZoneTrack[client] = Track_Main;
-	gF_Modifier[client] = 10.0;
+	gF_Modifier[client] = 16.0;
 	gI_MapStep[client] = 0;
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
@@ -1486,7 +1625,10 @@ void ShowPanel(int client, int step)
 	pPanel.DrawItem(sPanelItem);
 
 	char sDisplay[64];
-	FormatEx(sDisplay, 64, "%T", "GridSnap", client, gI_GridSnap[client]);
+	FormatEx(sDisplay, 64, "%T", "GridSnapPlus", client, gI_GridSnap[client]);
+	pPanel.DrawItem(sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "GridSnapMinus", client);
 	pPanel.DrawItem(sDisplay);
 
 	FormatEx(sDisplay, 64, "%T", "WallSnap", client, (gB_SnapToWall[client])? "ZoneSetYes":"ZoneSetNo", client);
@@ -1525,6 +1667,16 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 
 			case 3:
 			{
+				gI_GridSnap[param1] /= 2;
+
+				if(gI_GridSnap[param1] < 1)
+				{
+					gI_GridSnap[param1] = 64;
+				}
+			}
+
+			case 4:
+			{
 				gB_SnapToWall[param1] = !gB_SnapToWall[param1];
 
 				if(gB_SnapToWall[param1])
@@ -1538,7 +1690,7 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 				}
 			}
 
-			case 4:
+			case 5:
 			{
 				gB_CursorTracing[param1] = !gB_CursorTracing[param1];
 
@@ -1759,12 +1911,6 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 			UpdateTeleportZone(param1);
 			CreateEditMenu(param1);
 		}
-
-		else if(StrEqual(info, "track"))
-		{
-			gI_ZoneTrack[param1] = CycleTracks(gI_ZoneTrack[param1]);
-			CreateEditMenu(param1);
-		}
 	}
 
 	else if(action == MenuAction_End)
@@ -1773,16 +1919,6 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 	}
 
 	return 0;
-}
-
-int CycleTracks(int track)
-{
-	if(++track >= TRACKS_SIZE)
-	{
-		return 0;
-	}
-
-	return track;
 }
 
 void GetTrackName(int client, int track, char[] output, int size)
@@ -1864,10 +2000,9 @@ void CreateEditMenu(int client)
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetNo", client);
 	menu.AddItem("no", sMenuItem);
+
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
 	menu.AddItem("adjust", sMenuItem);
-	FormatEx(sMenuItem, 64, "%T", "ZoneChangeTrack", client);
-	menu.AddItem("track", sMenuItem);
 
 	menu.ExitButton = true;
 	menu.Display(client, 600);
@@ -1963,14 +2098,17 @@ void InsertZone(int client)
 	{
 		Shavit_LogMessage("%L - added custom spawn {%.2f, %.2f, %.2f} to map `%s`.", client, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gS_Map);
 
-		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f');", gS_MySQLPrefix, gS_Map, Zone_CustomSpawn, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2]);
+		FormatEx(sQuery, 512, 
+			"INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z, track) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', %d);",
+			gS_MySQLPrefix, gS_Map, Zone_CustomSpawn, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gI_ZoneTrack[client]);
 	}
 
 	else if(insert) // insert
 	{
 		Shavit_LogMessage("%L - added %s to map `%s`.", client, gS_ZoneNames[type], gS_Map);
 
-		FormatEx(sQuery, 512, "INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d);",
+		FormatEx(sQuery, 512,
+			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d);",
 			gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client]);
 	}
 
@@ -1989,7 +2127,8 @@ void InsertZone(int client)
 			}
 		}
 
-		FormatEx(sQuery, 512, "UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d WHERE %s = %d;",
+		FormatEx(sQuery, 512,
+			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d WHERE %s = %d;",
 			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}
 
@@ -2312,7 +2451,7 @@ void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char sQuery[1024];
-		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` CHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;", gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
+		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;", gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}
@@ -2327,86 +2466,8 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	char sQuery[64];
-	FormatEx(sQuery, 64, "SELECT destination_x FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery);
-
-	FormatEx(sQuery, 64, "SELECT track FROM %smapzones LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_Low);
-}
-
-public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[256];
-
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
-			gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-		}
-
-		else
-		{
-			char sAxis[4];
-			strcopy(sAxis, 4, "xyz");
-
-			for(int i = 0; i < 3; i++)
-			{
-				FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `destination_%c` FLOAT NOT NULL DEFAULT 0;", gS_MySQLPrefix, sAxis[i]);
-				gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-			}
-		}
-	}
-}
-
-public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (zones module) error! Map zones' table migration (1) failed. Reason: %s", error);
-
-		return;
-	}
-}
-
-public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[256];
-
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD (`track` INT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
-		}
-
-		else
-		{
-			FormatEx(sQuery, 256, "ALTER TABLE `%smapzones` ADD COLUMN `track` INTEGER NOT NULL DEFAULT 0;", gS_MySQLPrefix);
-		}
-
-		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
-
-		return;
-	}
-
 	gB_Connected = true;
-	OnMapStart();
-}
-
-
-public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (zones module) error! Map zones' table migration (2) failed. Reason: %s", error);
-
-		return;
-	}
-
-	gB_Connected = true;
+	
 	OnMapStart();
 }
 

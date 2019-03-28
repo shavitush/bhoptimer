@@ -382,7 +382,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	char sName[MAXLENGTH_NAME];
 	char sCMessage[MAXLENGTH_CMESSAGE];
 	
-	if((gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)) && gI_ChatSelection[client] == -1)
+	if(HasCustomChat(client) && gI_ChatSelection[client] == -1)
 	{
 		if(gB_NameEnabled[client])
 		{
@@ -614,11 +614,19 @@ public void OnClientCookiesCached(int client)
 
 public void OnClientPutInServer(int client)
 {
-	gB_NameEnabled[client] = false;
-	strcopy(gS_CustomName[client], 128, "");
+	gB_NameEnabled[client] = true;
+	strcopy(gS_CustomName[client], 128, "{team}{name}");
 
-	gB_MessageEnabled[client] = false;
-	strcopy(gS_CustomMessage[client], 128, "");
+	gB_MessageEnabled[client] = true;
+	strcopy(gS_CustomMessage[client], 128, "{default}");
+}
+
+public void OnClientDisconnect(int client)
+{
+	if(HasCustomChat(client))
+	{
+		SaveToDatabase(client);
+	}
 }
 
 public void OnClientPostAdminCheck(int client)
@@ -669,7 +677,7 @@ public Action Command_CCName(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)))
+	if(!HasCustomChat(client))
 	{
 		Shavit_PrintToChat(client, "%T", "NoCommandAccess", client);
 
@@ -694,8 +702,6 @@ public Action Command_CCName(int client, int args)
 
 		gB_NameEnabled[client] = false;
 
-		SaveToDatabase(client);
-
 		return Plugin_Handled;
 	}
 
@@ -703,8 +709,6 @@ public Action Command_CCName(int client, int args)
 
 	gB_NameEnabled[client] = true;
 	strcopy(gS_CustomName[client], 128, sArgs);
-
-	SaveToDatabase(client);
 
 	return Plugin_Handled;
 }
@@ -718,7 +722,7 @@ public Action Command_CCMessage(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2)))
+	if(!HasCustomChat(client))
 	{
 		Shavit_PrintToChat(client, "%T", "NoCommandAccess", client);
 
@@ -743,8 +747,6 @@ public Action Command_CCMessage(int client, int args)
 
 		gB_MessageEnabled[client] = false;
 
-		SaveToDatabase(client);
-
 		return Plugin_Handled;
 	}
 
@@ -752,8 +754,6 @@ public Action Command_CCMessage(int client, int args)
 
 	gB_MessageEnabled[client] = true;
 	strcopy(gS_CustomMessage[client], 16, sArgs);
-
-	SaveToDatabase(client);
 
 	return Plugin_Handled;
 }
@@ -777,7 +777,7 @@ Action ShowChatRanksMenu(int client, int item)
 	FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "AutoAssign", client);
 	menu.AddItem("-2", sDisplay, (gI_ChatSelection[client] == -2)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 
-	if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
+	if(HasCustomChat(client))
 	{
 		FormatEx(sDisplay, MAXLENGTH_DISPLAY, "%T\n ", "CustomChat", client);
 		menu.AddItem("-1", sDisplay, (gI_ChatSelection[client] == -1)? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
@@ -1058,12 +1058,15 @@ void PreviewChat(int client, int rank)
 	EndMessage();
 }
 
+bool HasCustomChat(int client)
+{
+	return (gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2));
+}
+
 bool HasRankAccess(int client, int rank)
 {
-	bool bAllowCustom = gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2);
-
 	if(rank == -2 ||
-		(rank == -1 && bAllowCustom))
+		(rank == -1 && HasCustomChat(client)))
 	{
 		return true;
 	}
@@ -1329,9 +1332,22 @@ void SQL_DBConnect()
 		bool bMySQL = StrEqual(sDriver, "mysql", false);
 
 		char sQuery[512];
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%schat` (`auth` CHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` CHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` CHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`))%s;", gS_MySQLPrefix, (bMySQL)? " ENGINE=INNODB":"");
+
+		if(bMySQL)
+		{
+			FormatEx(sQuery, 512,
+				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` VARCHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`), CONSTRAINT `ch_auth` FOREIGN KEY (`auth`) REFERENCES `users` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+				gS_MySQLPrefix);
+		}
+
+		else
+		{
+			FormatEx(sQuery, 512,
+				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` VARCHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`), CONSTRAINT `ch_auth` FOREIGN KEY (`auth`) REFERENCES `users` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
+				gS_MySQLPrefix);
+		}
 		
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}
 }
 
@@ -1376,9 +1392,11 @@ void SaveToDatabase(int client)
 	gH_SQL.Escape(gS_CustomMessage[client], sEscapedMessage, iLength);
 
 	char sQuery[512];
-	FormatEx(sQuery, 512, "REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES ('%s', %d, '%s', %d, '%s');", gS_MySQLPrefix, sAuthID3, gB_NameEnabled[client], sEscapedName, gB_MessageEnabled[client], sEscapedMessage);
+	FormatEx(sQuery, 512,
+		"REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES ('%s', %d, '%s', %d, '%s');",
+		gS_MySQLPrefix, sAuthID3, gB_NameEnabled[client], sEscapedName, gB_MessageEnabled[client], sEscapedMessage);
 
-	gH_SQL.Query(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_UpdateUser_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1393,6 +1411,11 @@ public void SQL_UpdateUser_Callback(Database db, DBResultSet results, const char
 
 void LoadFromDatabase(int client)
 {
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+
 	char sAuthID3[32];
 
 	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))

@@ -77,6 +77,24 @@ enum
 	iBotShooting_Attack2 = (1 << 1)
 }
 
+// custom cvar settings
+char gS_ForcedCvars[][][] =
+{
+	{ "bot_quota", "{expected_bots}" },
+	{ "tf_bot_quota", "{expected_bots}" },
+	{ "bot_stop", "1" },
+	{ "bot_quota_mode", "normal" },
+	{ "tf_bot_quota_mode", "normal" },
+	{ "mp_limitteams", "0" },
+	{ "bot_join_after_player", "0" },
+	{ "tf_bot_join_after_player", "0" },
+	{ "bot_chatter", "off" },
+	{ "bot_flipout", "1" },
+	{ "bot_zombie", "1" },
+	{ "mp_autoteambalance", "0" },
+	{ "bot_controllable", "0" }
+};
+
 // game type
 EngineVersion gEV_Type = Engine_Unknown;
 
@@ -109,7 +127,6 @@ Handle gH_OnReplayEnd = null;
 float gF_Tickrate = 0.0;
 char gS_Map[160];
 int gI_ExpectedBots = 0;
-ConVar bot_quota = null;
 centralbot_cache_t gA_CentralCache;
 
 // how do i call this
@@ -213,6 +230,29 @@ public void OnPluginStart()
 	gEV_Type = GetEngineVersion();
 	gF_Tickrate = (1.0 / GetTickInterval());
 
+	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
+	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
+
+	for(int i = 0; i < sizeof(gS_ForcedCvars); i++)
+	{
+		ConVar hCvar = FindConVar(gS_ForcedCvars[i][0]);
+
+		if(hCvar != null)
+		{
+			if(StrEqual(gS_ForcedCvars[i][1], "{expected_bots}"))
+			{
+				UpdateBotQuota(0);
+			}	
+
+			else
+			{
+				hCvar.SetString(gS_ForcedCvars[i][1]);
+			}
+
+			hCvar.AddChangeHook(OnForcedConVarChanged);
+		}
+	}
+
 	// late load
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -265,6 +305,42 @@ public void OnPluginStart()
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	OnMapStart();
+}
+
+void UpdateBotQuota(int quota)
+{
+	ConVar hCvar = FindConVar("bot_quota");
+
+	if(hCvar == null)
+	{
+		hCvar = FindConVar("tf_bot_quota");
+	}
+
+	hCvar.IntValue = gI_ExpectedBots = quota;
+}
+
+public void OnForcedConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	char sName[32];
+	convar.GetName(sName, 32);
+
+	for(int i = 0; i < sizeof(gS_ForcedCvars); i++)
+	{
+		if(StrEqual(sName, gS_ForcedCvars[i][0]))
+		{
+			if(StrEqual(gS_ForcedCvars[i][1], "{expected_bots}"))
+			{
+				convar.IntValue = gI_ExpectedBots;
+			}
+
+			else if(!StrEqual(newValue, gS_ForcedCvars[i][1]))
+			{
+				convar.SetString(gS_ForcedCvars[i][1]);
+			}
+
+			break;
+		}
+	}
 }
 
 public void OnAdminMenuCreated(Handle topmenu)
@@ -447,7 +523,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 		if(gI_ReplayBotClient[style] == 0)
 		{
 			ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
-			gI_ExpectedBots++;
+			UpdateBotQuota(gI_ExpectedBots + 1);
 		}
 
 		if(loaded && restart)
@@ -670,15 +746,9 @@ public Action Cron(Handle Timer)
 {
 	if(!gCV_Enabled.BoolValue)
 	{
-		bot_quota.IntValue = 0;
+		UpdateBotQuota(0);
 
 		return Plugin_Continue;
-	}
-
-	// make sure there are enough bots
-	else if(bot_quota != null && bot_quota.IntValue != gI_ExpectedBots)
-	{
-		bot_quota.IntValue = gI_ExpectedBots;
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -798,27 +868,8 @@ public void OnMapStart()
 		return;
 	}
 
-	ConVar bot_controllable = FindConVar("bot_controllable");
-
-	if(bot_controllable != null)
-	{
-		bot_controllable.BoolValue = false;
-	}
-
-	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
-	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
-	FindConVar("bot_stop").BoolValue = true;
-	FindConVar((gEV_Type != Engine_TF2)? "bot_quota_mode":"tf_bot_quota_mode").SetString("normal");
-	FindConVar("mp_limitteams").IntValue = 0;
-	FindConVar((gEV_Type != Engine_TF2)? "bot_join_after_player":"tf_bot_join_after_player").BoolValue = false;
-	FindConVar("bot_chatter").SetString("off");
-	FindConVar("bot_flipout").BoolValue = true;
-	FindConVar("bot_zombie").BoolValue = true;
-	FindConVar("mp_autoteambalance").BoolValue = false;
-
 	ServerCommand((gEV_Type != Engine_TF2)? "bot_kick":"tf_bot_kick all");
-
-	gI_ExpectedBots = 0;
+	UpdateBotQuota(0);
 
 	if(!DirExists(gS_ReplayFolder))
 	{
@@ -861,7 +912,7 @@ public void OnMapStart()
 		if(!gCV_CentralBot.BoolValue)
 		{
 			ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
-			gI_ExpectedBots++;
+			UpdateBotQuota(gI_ExpectedBots + 1);
 
 			if(loaded)
 			{
@@ -876,7 +927,7 @@ public void OnMapStart()
 
 	if(gCV_CentralBot.BoolValue)
 	{
-		gI_ExpectedBots = 1;
+		UpdateBotQuota(1);
 		ServerCommand((gEV_Type != Engine_TF2)? "bot_add":"tf_bot_add");
 	}
 
@@ -1409,10 +1460,7 @@ public void OnClientDisconnect(int client)
 
 	if(!IsFakeClient(client))
 	{
-		if(gA_PlayerFrames[client] != null)
-		{
-			delete gA_PlayerFrames[client];
-		}
+		RequestFrame(DeleteFrames, client);
 
 		return;
 	}
@@ -1433,6 +1481,11 @@ public void OnClientDisconnect(int client)
 			break;
 		}
 	}
+}
+
+public void DeleteFrames(int client)
+{
+	delete gA_PlayerFrames[client];
 }
 
 public Action Shavit_OnStart(int client)
@@ -1627,7 +1680,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Changed;
 			}
 
-			if(++gI_ReplayTick[style] >= gA_FrameCache[style][track].iFrameCount)
+			if(++gI_ReplayTick[style] >= gA_FrameCache[style][track].iFrameCount - 1)
 			{
 				gI_ReplayTick[style] = 0;
 				gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_End;
@@ -1668,6 +1721,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				buttons &= ~IN_USE;
 			}
 
+			bool bWalk = false;
 			MoveType mt = MOVETYPE_NOCLIP;
 
 			if(gA_FrameCache[style][track].iReplayVersion >= 0x02)
@@ -1684,9 +1738,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				
 				MoveType movetype = gA_Frames[style][track].Get(gI_ReplayTick[style], 7);
 
-				if(movetype == MOVETYPE_LADDER || (movetype == MOVETYPE_WALK && (iReplayFlags & FL_ONGROUND) > 0))
+				if(movetype == MOVETYPE_LADDER)
 				{
 					mt = movetype;
+				}
+
+				else if(movetype == MOVETYPE_WALK && (iReplayFlags & FL_ONGROUND) > 0)
+				{
+					bWalk = true;
 				}
 			}
 
@@ -1701,7 +1760,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				(GetVectorLength(vecVelocity) > 50000.0 ||
 				// bot is on ground.. if the distance between the previous position is much bigger (1.5x) than the expected according
 				// to the bot's velocity, teleport to avoid sync issues
-				(mt == MOVETYPE_WALK && GetVectorDistance(vecCurrentPosition, vecPosition) > GetVectorLength(vecVelocity) / gF_Tickrate * 1.5)))
+				(bWalk && GetVectorDistance(vecCurrentPosition, vecPosition) > GetVectorLength(vecVelocity) / gF_Tickrate * 1.5)))
 			{
 				TeleportEntity(client, vecPosition, vecAngles, NULL_VECTOR);
 
@@ -2196,7 +2255,7 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 	return 0;
 }
 
-void OpenReplaySubMenu(int client, int track)
+void OpenReplaySubMenu(int client, int track, int item = 0)
 {
 	gI_Track[client] = track;
 
@@ -2260,7 +2319,7 @@ void OpenReplaySubMenu(int client, int track)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 60);
+	menu.DisplayAt(client, item, 60);
 }
 
 public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, int param2)
@@ -2289,7 +2348,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 		{
 			Shavit_PrintToChat(param1, "%T", "CentralReplayPlaying", param1);
 
-			OpenReplaySubMenu(param1, gI_Track[param1]);
+			OpenReplaySubMenu(param1, gI_Track[param1], GetMenuSelectionPosition());
 		}
 
 		else

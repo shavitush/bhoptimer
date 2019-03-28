@@ -145,6 +145,7 @@ char gS_LogPath[PLATFORM_MAX_PATH];
 char gS_DeleteMap[MAXPLAYERS+1][160];
 char gS_WipePlayerID[MAXPLAYERS+1][32];
 char gS_Verification[MAXPLAYERS+1][16];
+bool gB_CookiesRetrieved[MAXPLAYERS+1];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -698,14 +699,14 @@ void DeleteUserData(int client, const char[] sAuthID3)
 	{
 		char sQueryGetWorldRecords[256];
 		FormatEx(sQueryGetWorldRecords, 256,
-			"SELECT map, id, style, track FROM %splayertimes WHERE auth = '%s' GROUP BY map, style, track;",
+			"SELECT map, id, style, track FROM %splayertimes WHERE auth = '%s';",
 			gS_MySQLPrefix, sAuthID3);
 
-		DataPack pack = new DataPack();
-		pack.WriteCell(client);
-		pack.WriteString(sAuthID3);
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(client);
+		hPack.WriteString(sAuthID3);
 
-		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, pack, DBPrio_High);
+		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, hPack, DBPrio_High);
 	}
 
 	else
@@ -725,13 +726,13 @@ void DeleteUserData(int client, const char[] sAuthID3)
 
 public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	DataPack pack = view_as<DataPack>(data);
-	pack.Reset();
-	int client = pack.ReadCell();
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+	int client = hPack.ReadCell();
 
 	char sAuthID3[32];
-	pack.ReadString(sAuthID3, 32);
-	delete pack;
+	hPack.ReadString(sAuthID3, 32);
+	delete hPack;
 
 	if(results == null)
 	{
@@ -740,7 +741,7 @@ public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet resu
 		return;
 	}
 
-	Transaction trans = new Transaction();
+	Transaction hTransaction = new Transaction();
 
 	while(results.FetchRow())
 	{
@@ -756,20 +757,20 @@ public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet resu
 			"SELECT id FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d ORDER BY time LIMIT 1;",
 			gS_MySQLPrefix, map, style, track);
 
-		DataPack transPack = new DataPack();
-		transPack.WriteString(map);
-		transPack.WriteCell(id);
-		transPack.WriteCell(style);
-		transPack.WriteCell(track);
+		DataPack hTransPack = new DataPack();
+		hTransPack.WriteString(map);
+		hTransPack.WriteCell(id);
+		hTransPack.WriteCell(style);
+		hTransPack.WriteCell(track);
 
-		trans.AddQuery(sQueryGetWorldRecordID, transPack);
+		hTransaction.AddQuery(sQueryGetWorldRecordID, hTransPack);
 	}
 
 	DataPack steamPack = new DataPack();
 	steamPack.WriteString(sAuthID3);
 	steamPack.WriteCell(client);
 
-	gH_SQL.Execute(trans, Trans_OnRecordCompare, INVALID_FUNCTION, steamPack, DBPrio_High);
+	gH_SQL.Execute(hTransaction, Trans_OnRecordCompare, INVALID_FUNCTION, steamPack, DBPrio_High);
 }
 
 public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
@@ -904,6 +905,14 @@ public Action Command_Style(int client, int args)
 	{
 		int iStyle = gI_OrderedStyles[i];
 
+		// this logic will prevent the style from showing in !style menu if it's specifically inaccessible
+		// or just completely disabled
+		if((gA_StyleSettings[iStyle].bInaccessible && gA_StyleSettings[iStyle].iEnabled == 1) ||
+			gA_StyleSettings[iStyle].iEnabled == -1)
+		{
+			continue;
+		}
+
 		char sInfo[8];
 		IntToString(iStyle, sInfo, 8);
 
@@ -920,7 +929,7 @@ public Action Command_Style(int client, int args)
 
 			if(gB_WR)
 			{
-				time = Shavit_GetWorldRecord(iStyle, Track_Main);
+				time = Shavit_GetWorldRecord(iStyle, gA_Timers[client].iTrack);
 			}
 
 			if(time > 0.0)
@@ -928,7 +937,15 @@ public Action Command_Style(int client, int args)
 				char sTime[32];
 				FormatSeconds(time, sTime, 32, false);
 
-				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[iStyle].sStyleName, sTime);
+				char sWR[8];
+				strcopy(sWR, 8, "WR");
+				
+				if(gA_Timers[client].iTrack == Track_Bonus)
+				{
+					strcopy(sWR, 8, "BWR");
+				}
+
+				FormatEx(sDisplay, 64, "%s - %s: %s", gS_StyleStrings[iStyle].sStyleName, sWR, sTime);
 			}
 
 			else
@@ -1209,6 +1226,11 @@ public int Native_GetTimerStatus(Handle handler, int numParams)
 public int Native_HasStyleAccess(Handle handler, int numParams)
 {
 	int style = GetNativeCell(2);
+
+	if(gA_StyleSettings[style].bInaccessible || gA_StyleSettings[style].iEnabled <= 0)
+	{
+		return false;
+	}
 
 	return CheckCommandAccess(GetNativeCell(1), (strlen(gS_StyleOverride[style]) > 0)? gS_StyleOverride[style]:"<none>", gI_StyleFlag[style]);
 }
@@ -1601,7 +1623,7 @@ int GetTimerStatus(int client)
 
 void StartTimer(int client, int track)
 {
-	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client))
+	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client) || !gB_CookiesRetrieved[client])
 	{
 		return;
 	}
@@ -1691,7 +1713,7 @@ void ResumeTimer(int client)
 
 public void OnClientDisconnect(int client)
 {
-	StopTimer(client);
+	RequestFrame(StopTimer, client);
 }
 
 public void OnClientCookiesCached(int client)
@@ -1727,6 +1749,8 @@ public void OnClientCookiesCached(int client)
 	{
 		CallOnStyleChanged(client, gA_Timers[client].iStyle, style, false);
 	}
+
+	gB_CookiesRetrieved[client] = true;
 }
 
 public void OnClientPutInServer(int client)
@@ -1746,6 +1770,8 @@ public void OnClientPutInServer(int client)
 	gA_Timers[client].iTrack = 0;
 	gA_Timers[client].iStyle = 0;
 	strcopy(gS_DeleteMap[client], 160, "");
+
+	gB_CookiesRetrieved[client] = false;
 
 	if(AreClientCookiesCached(client))
 	{
@@ -1887,8 +1913,19 @@ bool LoadStyles()
 		gA_StyleSettings[i].fRankingMultiplier = kv.GetFloat("rankingmultiplier", 1.00);
 		gA_StyleSettings[i].iSpecial = kv.GetNum("special", 0);
 		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
+		gA_StyleSettings[i].bInaccessible = view_as<bool>(kv.GetNum("inaccessible", false));
+		gA_StyleSettings[i].iEnabled = kv.GetNum("enabled", 1);
+		gA_StyleSettings[i].bKZCheckpoints = view_as<bool>(kv.GetNum("kzcheckpoints", 0));
 
-		if(!gB_Registered && strlen(gS_StyleStrings[i].sChangeCommand) > 0)
+		// if this style is disabled, we will force certain settings
+		if(gA_StyleSettings[i].iEnabled <= 0)
+		{
+			gA_StyleSettings[i].bNoReplay = true;
+			gA_StyleSettings[i].fRankingMultiplier = 0.0;
+			gA_StyleSettings[i].bInaccessible = true;
+		}
+
+		if(!gB_Registered && strlen(gS_StyleStrings[i].sChangeCommand) > 0 && !gA_StyleSettings[i].bInaccessible)
 		{
 			char sStyleCommands[32][32];
 			int iCommands = ExplodeString(gS_StyleStrings[i].sChangeCommand, ";", sStyleCommands, 32, 32, false);
@@ -2099,16 +2136,15 @@ void SQL_DBConnect()
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_general_ci', `country` CHAR(32), `ip` CHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`)) ENGINE=INNODB;", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_general_ci', `country` VARCHAR(32), `ip` VARCHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`)) ENGINE=INNODB;", gS_MySQLPrefix);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` CHAR(32) NOT NULL PRIMARY KEY, `name` VARCHAR(32), `country` CHAR(32), `ip` CHAR(64), `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
+		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL PRIMARY KEY, `name` VARCHAR(32), `country` VARCHAR(32), `ip` VARCHAR(64), `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
 	}
 
-	// CREATE TABLE IF NOT EXISTS
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2119,13 +2155,6 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 		return;
 	}
-
-	char sQuery[192];
-	FormatEx(sQuery, 192, "SELECT lastlogin FROM %susers LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration1_Callback, sQuery, 0, DBPrio_High);
-
-	FormatEx(sQuery, 192, "SELECT points FROM %susers LIMIT 1;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigration2_Callback, sQuery, 0, DBPrio_High);
 
 	char sTables[][] =
 	{
@@ -2139,58 +2168,18 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		DataPack dp = new DataPack();
 		dp.WriteString(sTables[i]);
 
+		char sQuery[192];
 		FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_MySQLPrefix, sTables[i]);
-		gH_SQL.Query(SQL_TableMigration3_Callback, sQuery, dp, DBPrio_Low);
+		gH_SQL.Query(SQL_TableMigration_Callback, sQuery, dp, DBPrio_High);
 	}
 
 	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
 	Call_Finish();
 }
 
-public void SQL_TableMigration1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[128];
-		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`lastlogin` INT NOT NULL DEFAULT -1)":"COLUMN `lastlogin` INTEGER NOT NULL DEFAULT -1");
-		gH_SQL.Query(SQL_AlterTable1_Callback, sQuery);
-	}
-}
-
-public void SQL_AlterTable1_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer error! Table alteration 1 (core) failed. Reason: %s", error);
-
-		return;
-	}
-}
-
-public void SQL_TableMigration2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		char sQuery[128];
-		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD %s;", gS_MySQLPrefix, (gB_MySQL)? "(`points` FLOAT NOT NULL DEFAULT 0)":"COLUMN `points` FLOAT NOT NULL DEFAULT 0");
-		gH_SQL.Query(SQL_AlterTable2_Callback, sQuery);
-	}
-}
-
-public void SQL_AlterTable2_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer error! Table alteration 2 (core) failed. Reason: %s", error);
-
-		return;
-	}
-}
-
-public void SQL_TableMigration3_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+public void SQL_TableMigration_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
 	char sTable[16];
-
 	data.Reset();
 	data.ReadString(sTable, 16);
 	delete data;
@@ -2386,6 +2375,32 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 	#endif
 
+	int iPButtons = buttons;
+
+	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountW && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockW &&
+		(gA_Timers[client].iLastButtons & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
+	{
+		gA_Timers[client].iStrafes++;
+	}
+
+	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountA && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockA && (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 &&
+		(buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	{
+		gA_Timers[client].iStrafes++;
+	}
+
+	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountS && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockS &&
+		(gA_Timers[client].iLastButtons & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
+	{
+		gA_Timers[client].iStrafes++;
+	}
+
+	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountD && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockD && (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 &&
+		(buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	{
+		gA_Timers[client].iStrafes++;
+	}
+
 	MoveType mtMoveType = GetEntityMoveType(client);
 
 	// key blocking
@@ -2502,30 +2517,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountW && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockW &&
-		(gA_Timers[client].iLastButtons & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
-	{
-		gA_Timers[client].iStrafes++;
-	}
-
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountA && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockA && (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 &&
-		(buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
-	{
-		gA_Timers[client].iStrafes++;
-	}
-
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountS && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockS &&
-		(gA_Timers[client].iLastButtons & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
-	{
-		gA_Timers[client].iStrafes++;
-	}
-
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountD && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockD && (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 &&
-		(buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
-	{
-		gA_Timers[client].iStrafes++;
-	}
-
 	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
 
 	// enable duck-jumping/bhop in tf2
@@ -2537,8 +2528,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		fSpeed[2] = 271.0;
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 	}
-
-	int iPButtons = buttons;
 
 	if(gA_StyleSettings[gA_Timers[client].iStyle].bAutobhop && gA_Timers[client].bAuto && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
 	{

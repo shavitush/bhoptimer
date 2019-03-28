@@ -7,6 +7,10 @@
 		"en"		"{1}ERROR: {2}Could not open the stats menu."
 	}
 	// ---------- Map Completions ---------- //
+	"SelectTrack"
+	{
+		"en"		"Select timer track:"
+	}
 	"MapsDone"
 	{
 		"en"		"Maps done"
@@ -16,6 +20,11 @@
 		"#format"	"{1:s},{2:s},{3:d}"
 		"en"		"[{1}] Maps done for {2}: ({3})"
 	}
+	"MapsDoneOnStyle"
+	{
+		"#format"	"{1:s}"
+		"en"		"Maps done for {1} on style:"
+	}
 	"MapsLeft"
 	{
 		"en"		"Maps left"
@@ -24,6 +33,11 @@
 	{
 		"#format"	"{1:s},{2:s},{3:d}"
 		"en"		"[{1}] Maps left for {2}: ({3})"
+	}
+	"MapsLeftOnStyle"
+	{
+		"#format"	"{1:s}"
+		"en"		"Maps left for {1} on style:"
 	}
 	"MapsMenu"
 	{

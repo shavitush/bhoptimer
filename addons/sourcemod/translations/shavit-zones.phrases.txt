@@ -31,9 +31,23 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}cannot{2} setup mapzones when you're dead."
 	}
+	"ZoneCustomSpawnMenuTitle"
+	{
+		"en"		"Add custom spawn for track:"
+	}
+	"ZoneCustomSpawnMenuDeleteTitle"
+	{
+		"en"		"Delete custom spawn for track:"
+	}
 	"ZoneCustomSpawnExists"
 	{
-		"en"		"Custom Spawn already exists. Please delete it before placing a new one."
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Custom Spawn for track {1}{2}{3} already exists. Please delete it before placing a new one."
+	}
+	"ZoneCustomSpawnMissing"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"Custom Spawn for track {1}{2}{3} is missing."
 	}
 	"ZoneCustomSpawnDelete"
 	{
@@ -48,10 +62,14 @@
 	{
 		"en"		"Abort zone creation"
 	}
-	"GridSnap"
+	"GridSnapPlus"
 	{
 		"#format"	"{1:d}"
-		"en"		"Grid snap: x{1}"
+		"en"		"Grid snap + (x{1})"
+	}
+	"GridSnapMinus"
+	{
+		"en"		"Grid snap -"
 	}
 	"WallSnap"
 	{
@@ -125,9 +143,14 @@
 	{
 		"en"		"No zones found."
 	}
+	"ZoneMenuTrack"
+	{
+		"en"		"Select a track:"
+	}
 	"ZoneMenuTitle"
 	{
-		"en"		"Select a zone type:"
+		"#format"	"{1:s}"
+		"en"		"Select a zone type: ({1})"
 	}
 	"ZoneMenuYes"
 	{
@@ -194,10 +217,6 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"Zone track: {1}"
-	}
-	"ZoneChangeTrack"
-	{
-		"en"		"Change zone track"
 	}
 	"ZoneEdit"
 	{

@@ -11,6 +11,14 @@
 		"#format"	"{1:s},{2:s},{3:s},{4:s}"
 		"en"		"You have to be {1}alive{2} or {3}spectate a player{4} to use this command."
 	}
+	"CommandSaveCPKZInvalid"
+	{
+		"en"		"You cannot perform this when airborne or while watching another player."
+	}
+	"CommandTeleCPInvalid"
+	{
+		"en"		"You may not teleport to this checkpoint due to setting mismatch."
+	}
 	"CommandNoPause"
 	{
 		"#format"	"{1:s},{2:s}"
