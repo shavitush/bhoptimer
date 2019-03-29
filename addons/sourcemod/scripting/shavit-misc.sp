@@ -86,6 +86,7 @@ enum struct persistent_data_t
 	int iTargetname;
 	int iClassname;
 	ArrayList aFrames;
+	bool bPractice;
 }
 
 // game specific
@@ -1116,6 +1117,7 @@ void PersistData(int client)
 	aData.iMoveType = GetEntityMoveType(client);
 	aData.fGravity = GetEntityGravity(client);
 	aData.fSpeed = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
+	aData.bPractice = Shavit_IsPracticeMode(client);
 
 	float fPosition[3];
 	GetClientAbsOrigin(client, fPosition);
@@ -1224,12 +1226,17 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
 	}
 
+	TeleportEntity(client, fPosition, fAngles, view_as<float>({ 0.0, 0.0, 0.0 }));
+
 	if(gB_Replay && aData.aFrames != null)
 	{
 		Shavit_SetReplayData(client, aData.aFrames);
 	}
 
-	TeleportEntity(client, fPosition, fAngles, view_as<float>({ 0.0, 0.0, 0.0 }));
+	if(aData.bPractice)
+	{
+		Shavit_SetPracticeMode(client, true, false);
+	}
 
 	delete aData.aFrames;
 	gA_PersistentData.Erase(iIndex);
