@@ -1100,7 +1100,7 @@ void PersistData(int client)
 {
 	persistent_data_t aData;
 
-	if(!IsPlayerAlive(client) ||
+	if(!IsClientInGame(client) || !IsPlayerAlive(client) ||
 		!GetClientAuthId(client, AuthId_Steam3, aData.sAuthID, 32) ||
 		Shavit_GetTimerStatus(client) == Timer_Stopped ||
 		gCV_PersistData.IntValue == 0)
