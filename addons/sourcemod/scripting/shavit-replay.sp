@@ -33,7 +33,7 @@
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x02
+#define REPLAY_FORMAT_SUBVERSION 0x03
 #define CELLS_PER_FRAME 8 // origin[3], angles[2], buttons, flags, movetype
 #define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
@@ -990,9 +990,32 @@ bool LoadReplay(int style, int track, const char[] path)
 		char sExplodedHeader[2][64];
 		ExplodeString(sHeader, ":", sExplodedHeader, 2, 64);
 
+		// TODO: split this piece of shit to different functions. cbf to keep it like this
 		if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_FINAL)) // hopefully, the last of them
 		{
 			gA_FrameCache[style][track].iReplayVersion = StringToInt(sExplodedHeader[0]);
+
+			// replay file integrity and preframes
+			if(gA_FrameCache[style][track].iReplayVersion >= 0x03)
+			{
+				char sMap[160];
+				fFile.ReadString(sMap, 160);
+
+				int iStyle = 0;
+				fFile.ReadUint8(iStyle);
+
+				int iTrack = 0;
+				fFile.ReadUint8(iTrack);
+
+				if(!StrEqual(sMap, gS_Map, false) || iStyle != style || iTrack != track)
+				{
+					return false;
+				}
+
+				// whenever this is implemented
+				// fFile.ReadInt32(gA_FrameCache[style][track].iPreframes);
+				fFile.Seek(4, SEEK_CUR);
+			}
 
 			int iTemp = 0;
 			fFile.ReadInt32(iTemp);
@@ -1114,7 +1137,7 @@ bool LoadReplay(int style, int track, const char[] path)
 	return false;
 }
 
-bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
+bool SaveReplay(int style, int track, float time, char[] authid, char[] name, int preframes = 0)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1130,13 +1153,15 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name)
 	File fFile = OpenFile(sPath, "wb");
 	fFile.WriteLine("%d:" ... REPLAY_FORMAT_FINAL, REPLAY_FORMAT_SUBVERSION);
 
-	int iSize = gA_Frames[style][track].Length;
+	fFile.WriteString(gS_Map, true);
+	fFile.WriteInt8(style);
+	fFile.WriteInt8(track);
+	fFile.WriteInt32(preframes);
 
+	int iSize = gA_Frames[style][track].Length;
 	fFile.WriteInt32(iSize);
 	fFile.WriteInt32(view_as<int>(time));
 	fFile.WriteString(authid, true);
-
-	// if REPLAY_FORMAT_SUBVERSION is over 0x01 i'll add variables here
 
 	any aFrameData[CELLS_PER_FRAME];
 	any aWriteData[CELLS_PER_FRAME * FRAMES_PER_WRITE];
@@ -2311,11 +2336,6 @@ void OpenReplaySubMenu(int client, int track, int item = 0)
 	if(menu.ItemCount == 0)
 	{
 		menu.AddItem("-1", "ERROR");
-	}
-
-	else if(menu.ItemCount <= ((gEV_Type == Engine_CSS)? 8:7))
-	{
-		menu.Pagination = MENU_NO_PAGINATION;
 	}
 
 	menu.ExitBackButton = true;
