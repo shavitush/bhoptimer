@@ -983,6 +983,8 @@ bool LoadReplay(int style, int track, const char[] path)
 
 		if(!fFile.ReadLine(sHeader, 64))
 		{
+			delete fFile;
+
 			return false;
 		}
 
@@ -1009,6 +1011,8 @@ bool LoadReplay(int style, int track, const char[] path)
 
 				if(!StrEqual(sMap, gS_Map, false) || iStyle != style || iTrack != track)
 				{
+					delete fFile;
+					
 					return false;
 				}
 
