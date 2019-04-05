@@ -2011,7 +2011,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		overwrite = 1;
 	}
 
-	else if(time <= gF_PlayerRecord[client][style][track])
+	else if(time < gF_PlayerRecord[client][style][track])
 	{
 		overwrite = 2;
 	}
