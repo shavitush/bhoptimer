@@ -1,3 +1,5 @@
+
+
 [![Discord server](https://discordapp.com/api/guilds/389675819959844865/widget.png?style=shield)](https://discord.gg/jyA9q5k)
 
 ### Build status
@@ -8,6 +10,7 @@
 [Download](https://github.com/shavitush/bhoptimer/releases)
 
 # shavit's bhop timer
+# !!! SOURCEMOD 1.10 OR ABOVE REQUIRED !!!
 
 This is (nearly) an all-in-one server plugin for Counter-Strike: Source, Counter-Strike: Global Offensive and Team Fortress 2 that adds a timer system and many other utilities, so you can install it and run a proper bunnyhop server.
 
