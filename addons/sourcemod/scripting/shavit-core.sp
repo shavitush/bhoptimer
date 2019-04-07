@@ -277,6 +277,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
 
 	RegConsoleCmd("sm_bend", Command_TeleportEnd, "Teleport to endzone of the bonus track.");
+	RegConsoleCmd("sm_endb", Command_TeleportEnd, "Teleport to endzone of the bonus track.");
 	RegConsoleCmd("sm_bonusend", Command_TeleportEnd, "Teleport to endzone of the bonus track.");
 
 	// timer stop
