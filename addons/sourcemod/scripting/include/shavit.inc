@@ -68,6 +68,14 @@ enum ReplayBotType
 
 enum
 {
+	CPR_ByConVar = (1 << 0),
+	CPR_NoTimer = (1 << 1),
+	CPR_InStartZone = (1 << 2),
+	CPR_NotOnGround = (1 << 3),
+};
+
+enum
+{
 	Zone_Start,
 	Zone_End,
 	Zone_Respawn,
@@ -1321,6 +1329,14 @@ native bool Shavit_HasStyleAccess(int client, int style);
 native bool Shavit_IsPaused(int client);
 
 /**
+ * Determines whether a client is able to pause their timer or not.
+ *
+ * @param client					Client index.
+ * @return							Flags which are reasons to allow pausing or not, see CPR enum. 0 if toggling pause is allowed.
+ */
+native int Shavit_CanPause(int client);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -1373,6 +1389,7 @@ public SharedPlugin __pl_shavit =
 #if !defined REQUIRE_PLUGIN
 public void __pl_shavit_SetNTVOptional()
 {
+	MarkNativeAsOptional("Shavit_CanPause");
 	MarkNativeAsOptional("Shavit_ChangeClientStyle");
 	MarkNativeAsOptional("Shavit_DeleteReplay");
 	MarkNativeAsOptional("Shavit_FinishMap");

@@ -165,6 +165,7 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_CanPause", Native_CanPause);
 	CreateNative("Shavit_ChangeClientStyle", Native_ChangeClientStyle);
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
@@ -537,19 +538,26 @@ public Action Command_StopTimer(int client, int args)
 
 public Action Command_TogglePause(int client, int args)
 {
-	if(!IsValidClient(client) || !gA_Timers[client].bEnabled)
+	if(!(1 <= client <= MaxClients) || !IsClientInGame(client))
 	{
 		return Plugin_Handled;
 	}
 
-	if(Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
+	int iFlags = Shavit_CanPause(client);
+
+	if((iFlags & CPR_NoTimer) > 0)
+	{
+		return Plugin_Handled;
+	}
+
+	if((iFlags & CPR_InStartZone) > 0)
 	{
 		Shavit_PrintToChat(client, "%T", "PauseStartZone", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
 	}
 
-	if(!gCV_Pause.BoolValue)
+	if((iFlags & CPR_ByConVar) > 0)
 	{
 		char sCommand[16];
 		GetCmdArg(0, sCommand, 16);
@@ -559,7 +567,7 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
+	if((iFlags & CPR_NotOnGround) > 0)
 	{
 		Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -1255,6 +1263,34 @@ public int Native_StopTimer(Handle handler, int numParams)
 	Call_PushCell(client);
 	Call_PushCell(gA_Timers[client].iTrack);
 	Call_Finish();
+}
+
+public int Native_CanPause(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int iFlags = 0;
+
+	if(!gCV_Pause.BoolValue)
+	{
+		iFlags |= CPR_ByConVar;
+	}
+
+	if(!gA_Timers[client].bEnabled)
+	{
+		iFlags |= CPR_NoTimer;
+	}
+
+	if(Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
+	{
+		iFlags |= CPR_InStartZone;
+	}
+
+	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
+	{
+		iFlags |= CPR_NotOnGround;
+	}
+
+	return iFlags;
 }
 
 public int Native_ChangeClientStyle(Handle handler, int numParams)
