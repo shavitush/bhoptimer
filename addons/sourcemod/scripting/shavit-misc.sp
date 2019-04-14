@@ -97,12 +97,6 @@ char gS_RadioCommands[][] = { "coverme", "takepoint", "holdpos", "regroup", "fol
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
 	"getout", "negative", "enemydown", "compliment", "thanks", "cheer" };
 
-// cache
-ConVar sv_disable_immunity_alpha = null;
-ConVar mp_humanteam = null;
-ConVar hostname = null;
-ConVar hostport = null;
-
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
 int gI_GroundEntity[MAXPLAYERS+1];
@@ -165,6 +159,12 @@ ConVar gCV_MaxCP = null;
 ConVar gCV_MaxCP_Segmented = null;
 ConVar gCV_HideChatCommands = null;
 ConVar gCV_PersistData = null;
+
+// external cvars
+ConVar sv_disable_immunity_alpha = null;
+ConVar mp_humanteam = null;
+ConVar hostname = null;
+ConVar hostport = null;
 
 // forwards
 Handle gH_Forwards_OnClanTagChangePre = null;
@@ -1792,6 +1792,12 @@ void OpenKZCPMenu(int client)
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointNext", client);
 	menu.AddItem("next", sDisplay);
 
+	if((Shavit_CanPause(client) & CPR_ByConVar) == 0)
+	{
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointPause", client);
+		menu.AddItem("pause", sDisplay);
+	}
+
 	menu.ExitButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
@@ -1840,6 +1846,22 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 			if(iCurrent++ < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
 			{
 				gA_CheckpointsCache[param1].iCurrentCheckpoint++;
+			}
+		}
+
+		else if(StrEqual(sInfo, "pause"))
+		{
+			if(Shavit_CanPause(param1) == 0)
+			{
+				if(Shavit_IsPaused(param1))
+				{
+					Shavit_ResumeTimer(param1, true);
+				}
+
+				else
+				{
+					Shavit_PauseTimer(param1);
+				}
 			}
 		}
 

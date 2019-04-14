@@ -149,6 +149,10 @@
 	{
 		"en"		"Reset checkpoints"
 	}
+	"MiscCheckpointPause"
+	{
+		"en"		"Pause"
+	}
 	"MiscCheckpointUseAngles"
 	{
 		"en"		"Use angles"
