@@ -510,12 +510,13 @@ public Action Command_TeleportEnd(int client, int args)
 
 	if(gB_Zones && (Shavit_ZoneExists(Zone_End, track) || gB_KZMap))
 	{
-		Shavit_StopTimer(client);
-		
-		Call_StartForward(gH_Forwards_OnEnd);
-		Call_PushCell(client);
-		Call_PushCell(track);
-		Call_Finish();
+		if(Shavit_StopTimer(client, false))
+		{
+			Call_StartForward(gH_Forwards_OnEnd);
+			Call_PushCell(client);
+			Call_PushCell(track);
+			Call_Finish();
+		}
 	}
 
 	else
@@ -533,7 +534,7 @@ public Action Command_StopTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Shavit_StopTimer(client);
+	Shavit_StopTimer(client, false);
 
 	return Plugin_Handled;
 }
@@ -1043,6 +1044,11 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	if(manual)
 	{
+		if(!Shavit_StopTimer(client, false))
+		{
+			return;
+		}
+		
 		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 	}
 
@@ -1060,8 +1066,6 @@ void ChangeClientStyle(int client, int style, bool manual)
 	}
 
 	CallOnStyleChanged(client, gA_Timers[client].iStyle, style, manual);
-
-	StopTimer(client);
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTrack) || gB_KZMap)))
 	{
