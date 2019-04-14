@@ -42,7 +42,6 @@ ConVar mp_freezetime = null;
 ConVar mp_ignore_round_win_conditions = null;
 ConVar mp_timelimit = null;
 ConVar mp_roundtime = null;
-ConVar mp_restartgame = null;
 
 // cvars
 ConVar gCV_Config = null;
@@ -91,7 +90,6 @@ public void OnPluginStart()
 	mp_do_warmup_period = FindConVar("mp_do_warmup_period");
 	mp_freezetime = FindConVar("mp_freezetime");
 	mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
-	mp_restartgame = FindConVar("mp_restartgame");
 	mp_timelimit = FindConVar("mp_timelimit");
 	mp_roundtime = FindConVar("mp_roundtime");
 	
@@ -312,7 +310,6 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 void SetLimit(int time)
 {
 	mp_timelimit.IntValue = time;
-	mp_restartgame.IntValue = 1;
 
 	if(mp_roundtime != null)
 	{

@@ -68,6 +68,7 @@ bool gB_MySQL = false;
 // forwards
 Handle gH_Forwards_Start = null;
 Handle gH_Forwards_Stop = null;
+Handle gH_Forwards_StopPre = null;
 Handle gH_Forwards_FinishPre = null;
 Handle gH_Forwards_Finish = null;
 Handle gH_Forwards_OnRestart = null;
@@ -165,6 +166,7 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_CanPause", Native_CanPause);
 	CreateNative("Shavit_ChangeClientStyle", Native_ChangeClientStyle);
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
@@ -214,6 +216,7 @@ public void OnPluginStart()
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
 	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
@@ -507,12 +510,13 @@ public Action Command_TeleportEnd(int client, int args)
 
 	if(gB_Zones && (Shavit_ZoneExists(Zone_End, track) || gB_KZMap))
 	{
-		Shavit_StopTimer(client);
-		
-		Call_StartForward(gH_Forwards_OnEnd);
-		Call_PushCell(client);
-		Call_PushCell(track);
-		Call_Finish();
+		if(Shavit_StopTimer(client, false))
+		{
+			Call_StartForward(gH_Forwards_OnEnd);
+			Call_PushCell(client);
+			Call_PushCell(track);
+			Call_Finish();
+		}
 	}
 
 	else
@@ -530,26 +534,33 @@ public Action Command_StopTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Shavit_StopTimer(client);
+	Shavit_StopTimer(client, false);
 
 	return Plugin_Handled;
 }
 
 public Action Command_TogglePause(int client, int args)
 {
-	if(!IsValidClient(client) || !gA_Timers[client].bEnabled)
+	if(!(1 <= client <= MaxClients) || !IsClientInGame(client))
 	{
 		return Plugin_Handled;
 	}
 
-	if(Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
+	int iFlags = Shavit_CanPause(client);
+
+	if((iFlags & CPR_NoTimer) > 0)
+	{
+		return Plugin_Handled;
+	}
+
+	if((iFlags & CPR_InStartZone) > 0)
 	{
 		Shavit_PrintToChat(client, "%T", "PauseStartZone", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
 	}
 
-	if(!gCV_Pause.BoolValue)
+	if((iFlags & CPR_ByConVar) > 0)
 	{
 		char sCommand[16];
 		GetCmdArg(0, sCommand, 16);
@@ -559,7 +570,7 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
+	if((iFlags & CPR_NotOnGround) > 0)
 	{
 		Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -1033,6 +1044,11 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	if(manual)
 	{
+		if(!Shavit_StopTimer(client, false))
+		{
+			return;
+		}
+		
 		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 	}
 
@@ -1050,8 +1066,6 @@ void ChangeClientStyle(int client, int style, bool manual)
 	}
 
 	CallOnStyleChanged(client, gA_Timers[client].iStyle, style, manual);
-
-	StopTimer(client);
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTrack) || gB_KZMap)))
 	{
@@ -1248,6 +1262,21 @@ public int Native_StartTimer(Handle handler, int numParams)
 public int Native_StopTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	bool bBypass = (numParams < 2 || view_as<bool>(GetNativeCell(2)));
+
+	if(!bBypass)
+	{
+		bool bResult = true;
+		Call_StartForward(gH_Forwards_StopPre);
+		Call_PushCell(client);
+		Call_PushCell(gA_Timers[client].iTrack);
+		Call_Finish(bResult);
+
+		if(!bResult)
+		{
+			return false;
+		}
+	}
 
 	StopTimer(client);
 
@@ -1255,6 +1284,36 @@ public int Native_StopTimer(Handle handler, int numParams)
 	Call_PushCell(client);
 	Call_PushCell(gA_Timers[client].iTrack);
 	Call_Finish();
+
+	return true;
+}
+
+public int Native_CanPause(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int iFlags = 0;
+
+	if(!gCV_Pause.BoolValue)
+	{
+		iFlags |= CPR_ByConVar;
+	}
+
+	if(!gA_Timers[client].bEnabled)
+	{
+		iFlags |= CPR_NoTimer;
+	}
+
+	if(Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
+	{
+		iFlags |= CPR_InStartZone;
+	}
+
+	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
+	{
+		iFlags |= CPR_NotOnGround;
+	}
+
+	return iFlags;
 }
 
 public int Native_ChangeClientStyle(Handle handler, int numParams)
@@ -1360,12 +1419,25 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 public int Native_PauseTimer(Handle handler, int numParams)
 {
-	PauseTimer(GetNativeCell(1));
+	int client = GetNativeCell(1);
+
+	GetClientAbsOrigin(client, gF_PauseOrigin[client]);
+	GetClientEyeAngles(client, gF_PauseAngles[client]);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
+
+	PauseTimer(client);
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
 {
-	ResumeTimer(GetNativeCell(1));
+	int client = GetNativeCell(1);
+
+	ResumeTimer(client);
+
+	if(numParams >= 2 && view_as<bool>(GetNativeCell(2))) // teleport?
+	{
+		TeleportEntity(client, gF_PauseOrigin[client], gF_PauseAngles[client], gF_PauseVelocity[client]);
+	}
 }
 
 public int Native_StopChatSound(Handle handler, int numParams)

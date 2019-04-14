@@ -89,6 +89,8 @@ enum struct persistent_data_t
 	bool bPractice;
 }
 
+typedef StopTimerCallback = function void (int data);
+
 // game specific
 EngineVersion gEV_Type = Engine_Unknown;
 int gI_Ammo = -1;
@@ -96,12 +98,6 @@ int gI_Ammo = -1;
 char gS_RadioCommands[][] = { "coverme", "takepoint", "holdpos", "regroup", "followme", "takingfire", "go", "fallback", "sticktog",
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
 	"getout", "negative", "enemydown", "compliment", "thanks", "cheer" };
-
-// cache
-ConVar sv_disable_immunity_alpha = null;
-ConVar mp_humanteam = null;
-ConVar hostname = null;
-ConVar hostport = null;
 
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
@@ -111,6 +107,7 @@ ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
 int gI_Style[MAXPLAYERS+1];
+Function gH_AfterWarningMenu[MAXPLAYERS+1];
 
 player_cpcache_t gA_CheckpointsCache[MAXPLAYERS+1];
 int gI_CheckpointsSettings[MAXPLAYERS+1];
@@ -165,6 +162,13 @@ ConVar gCV_MaxCP = null;
 ConVar gCV_MaxCP_Segmented = null;
 ConVar gCV_HideChatCommands = null;
 ConVar gCV_PersistData = null;
+ConVar gCV_StopTimerWarning = null;
+
+// external cvars
+ConVar sv_disable_immunity_alpha = null;
+ConVar mp_humanteam = null;
+ConVar hostname = null;
+ConVar hostport = null;
 
 // forwards
 Handle gH_Forwards_OnClanTagChangePre = null;
@@ -325,6 +329,7 @@ public void OnPluginStart()
 	gCV_MaxCP_Segmented = CreateConVar("shavit_misc_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_misc_maxcp.\nNote: Very high values will result in HUGE memory usage!", 0, true, 1.0, true, 50.0);
 	gCV_HideChatCommands = CreateConVar("shavit_misc_hidechatcmds", "1", "Hide commands from chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_PersistData = CreateConVar("shavit_misc_persistdata", "300", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled");
+	gCV_StopTimerWarning = CreateConVar("shavit_misc_stoptimerwarning", "900", "Time in seconds to display a warning before stopping the timer with noclip or !stop.\n0 - Disabled");
 
 	AutoExecConfig();
 
@@ -337,6 +342,7 @@ public void OnPluginStart()
 
 	// crons
 	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
+	CreateTimer(1.0, Timer_PersistKZCP, 0, TIMER_REPEAT);
 
 	if(gEV_Type != Engine_TF2)
 	{
@@ -770,6 +776,19 @@ public Action Timer_Cron(Handle Timer)
 		if(fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue)
 		{
 			DeletePersistentData(i, aData);
+		}
+	}
+
+	return Plugin_Continue;
+}
+
+public Action Timer_PersistKZCP(Handle Timer)
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(gA_StyleSettings[gI_Style[i]].bKZCheckpoints && GetClientMenu(i) == MenuSource_None)
+		{
+			OpenKZCPMenu(i);
 		}
 	}
 
@@ -1792,7 +1811,13 @@ void OpenKZCPMenu(int client)
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointNext", client);
 	menu.AddItem("next", sDisplay);
 
-	menu.ExitButton = true;
+	if((Shavit_CanPause(client) & CPR_ByConVar) == 0)
+	{
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointPause", client);
+		menu.AddItem("pause", sDisplay, (Shavit_GetTimerStatus(client) != Timer_Stopped)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	}
+
+	menu.ExitButton = false;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
@@ -1840,6 +1865,22 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 			if(iCurrent++ < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
 			{
 				gA_CheckpointsCache[param1].iCurrentCheckpoint++;
+			}
+		}
+
+		else if(StrEqual(sInfo, "pause"))
+		{
+			if(Shavit_CanPause(param1) == 0)
+			{
+				if(Shavit_IsPaused(param1))
+				{
+					Shavit_ResumeTimer(param1, true);
+				}
+
+				else
+				{
+					Shavit_PauseTimer(param1);
+				}
 			}
 		}
 
@@ -2421,6 +2462,75 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	}
 }
 
+bool ShouldDisplayStopWarning(int client)
+{
+	return (gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue);
+}
+
+void DoNoclip(int client)
+{
+	Shavit_StopTimer(client);
+	SetEntityMoveType(client, MOVETYPE_NOCLIP);
+}
+
+void DoStopTimer(int client)
+{
+	Shavit_StopTimer(client);
+}
+
+void OpenStopWarningMenu(int client, StopTimerCallback after)
+{
+	gH_AfterWarningMenu[client] = after;
+
+	Menu hMenu = new Menu(MenuHandler_StopWarning);
+	hMenu.SetTitle("%T\n", "StopTimerWarning", client);
+
+	char sDisplay[64];
+	FormatEx(sDisplay, 64, "%T", "StopTimerYes", client);
+	hMenu.AddItem("yes", sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "StopTimerNo", client);
+	hMenu.AddItem("no", sDisplay);
+
+	hMenu.ExitButton = true;
+	hMenu.Display(client, 30);
+}
+
+public int MenuHandler_StopWarning(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+
+		if(StrEqual(sInfo, "yes"))
+		{
+			Call_StartFunction(null, gH_AfterWarningMenu[param1]);
+			Call_PushCell(param1);
+			Call_Finish();
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public bool Shavit_OnStopPre(int client, int track)
+{
+	if(ShouldDisplayStopWarning(client))
+	{
+		OpenStopWarningMenu(client, DoStopTimer);
+
+		return false;
+	}
+
+	return true;
+}
+
 public Action Command_Noclip(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -2451,12 +2561,16 @@ public Action Command_Noclip(int client, int args)
 
 	if(GetEntityMoveType(client) != MOVETYPE_NOCLIP)
 	{
-		if(Shavit_GetTimerStatus(client) != Timer_Stopped)
+		if(!ShouldDisplayStopWarning(client))
 		{
 			Shavit_StopTimer(client);
+			SetEntityMoveType(client, MOVETYPE_NOCLIP);
 		}
 
-		SetEntityMoveType(client, MOVETYPE_NOCLIP);
+		else
+		{
+			OpenStopWarningMenu(client, DoNoclip);
+		}
 	}
 
 	else
@@ -2476,12 +2590,16 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 
 	if((gCV_NoclipMe.IntValue == 1 || (gCV_NoclipMe.IntValue == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
 	{
-		if(Shavit_GetTimerStatus(client) != Timer_Stopped)
+		if(!ShouldDisplayStopWarning(client))
 		{
 			Shavit_StopTimer(client);
+			SetEntityMoveType(client, MOVETYPE_NOCLIP);
 		}
-		
-		SetEntityMoveType(client, MOVETYPE_NOCLIP);
+
+		else
+		{
+			OpenStopWarningMenu(client, DoNoclip);
+		}
 	}
 
 	else if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)

@@ -106,6 +106,18 @@
 		"en"		"Use {1}!cp{2} to re-open the segmented checkpoints menu."
 	}
 	// ---------- Menus ---------- //
+	"StopTimerWarning"
+	{
+		"en"		"Are you sure you want to stop your timer?"
+	}
+	"StopTimerYes"
+	{
+		"en"		"Yes, stop my timer."
+	}
+	"StopTimerNo"
+	{
+		"en"		"No, keep my timer running."
+	}
 	"TeleportMenuTitle"
 	{
 		"en"		"Teleport to:"
@@ -148,6 +160,10 @@
 	"MiscCheckpointReset"
 	{
 		"en"		"Reset checkpoints"
+	}
+	"MiscCheckpointPause"
+	{
+		"en"		"Pause"
 	}
 	"MiscCheckpointUseAngles"
 	{

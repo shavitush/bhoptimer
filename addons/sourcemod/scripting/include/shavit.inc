@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.5.2"
+#define SHAVIT_VERSION "2.5.3"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -64,6 +64,14 @@ enum ReplayBotType
 {
 	Replay_Central,
 	Replay_Legacy
+};
+
+enum
+{
+	CPR_ByConVar = (1 << 0),
+	CPR_NoTimer = (1 << 1),
+	CPR_InStartZone = (1 << 2),
+	CPR_NotOnGround = (1 << 3)
 };
 
 enum
@@ -364,6 +372,15 @@ forward void Shavit_OnRestart(int client, int track);
  * @noreturn
  */
 forward void Shavit_OnEnd(int client, int track);
+
+/**
+ * Called before a player's timer is stopped. (stop =/= finish a map)
+ *
+ * @param client					Client index.
+ * @param track						Timer track.
+ * @return							False to prevent the timer from stopping.
+ */
+forward bool Shavit_OnStopPre(int client, int track);
 
 /**
  * Called when a player's timer stops. (stop =/= finish a map)
@@ -673,9 +690,10 @@ native void Shavit_RestartTimer(int client, int track);
  * Will not teleport the player to anywhere, it's handled inside the mapzones plugin.
  *
  * @param client					Client index.
- * @noreturn
+ * @param bypass					Bypass call to Shavit_OnStopPre?
+ * @return							True if the operation went through.
  */
-native void Shavit_StopTimer(int client);
+native bool Shavit_StopTimer(int client, bool bypass = true);
 
 /**
  * Deletes all map records for the specified map.
@@ -954,9 +972,10 @@ native void Shavit_PauseTimer(int client);
  * Resumes a player's timer.
  *
  * @param client					Client index.
+ * @param teleport					Should the player be teleported to their location prior to saving?
  * @noreturn
  */
-native void Shavit_ResumeTimer(int client);
+native void Shavit_ResumeTimer(int client, bool teleport = false);
 
 /**
  * Deletes the specified replay file.
@@ -1321,6 +1340,14 @@ native bool Shavit_HasStyleAccess(int client, int style);
 native bool Shavit_IsPaused(int client);
 
 /**
+ * Determines whether a client is able to pause their timer or not.
+ *
+ * @param client					Client index.
+ * @return							Flags which are reasons to allow pausing or not, see CPR enum. 0 if toggling pause is allowed.
+ */
+native int Shavit_CanPause(int client);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
@@ -1373,6 +1400,7 @@ public SharedPlugin __pl_shavit =
 #if !defined REQUIRE_PLUGIN
 public void __pl_shavit_SetNTVOptional()
 {
+	MarkNativeAsOptional("Shavit_CanPause");
 	MarkNativeAsOptional("Shavit_ChangeClientStyle");
 	MarkNativeAsOptional("Shavit_DeleteReplay");
 	MarkNativeAsOptional("Shavit_FinishMap");
