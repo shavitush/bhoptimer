@@ -337,6 +337,7 @@ public void OnPluginStart()
 
 	// crons
 	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
+	CreateTimer(1.0, Timer_PersistKZCP, 0, TIMER_REPEAT);
 
 	if(gEV_Type != Engine_TF2)
 	{
@@ -770,6 +771,19 @@ public Action Timer_Cron(Handle Timer)
 		if(fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue)
 		{
 			DeletePersistentData(i, aData);
+		}
+	}
+
+	return Plugin_Continue;
+}
+
+public Action Timer_PersistKZCP(Handle Timer)
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(gA_StyleSettings[gI_Style[i]].bKZCheckpoints && GetClientMenu(i) == MenuSource_None)
+		{
+			OpenKZCPMenu(i);
 		}
 	}
 
@@ -1798,7 +1812,7 @@ void OpenKZCPMenu(int client)
 		menu.AddItem("pause", sDisplay);
 	}
 
-	menu.ExitButton = true;
+	menu.ExitButton = false;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
