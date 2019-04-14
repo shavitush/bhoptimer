@@ -1580,7 +1580,7 @@ void Reset(int client)
 	gI_MapStep[client] = 0;
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
-	gB_CursorTracing[client] = false;
+	gB_CursorTracing[client] = true;
 	gI_ZoneDatabaseID[client] = -1;
 
 	for(int i = 0; i < 3; i++)
