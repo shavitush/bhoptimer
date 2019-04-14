@@ -962,9 +962,10 @@ native void Shavit_PauseTimer(int client);
  * Resumes a player's timer.
  *
  * @param client					Client index.
+ * @param teleport					Should the player be teleported to their location prior to saving?
  * @noreturn
  */
-native void Shavit_ResumeTimer(int client);
+native void Shavit_ResumeTimer(int client, bool teleport = false);
 
 /**
  * Deletes the specified replay file.

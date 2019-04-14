@@ -1396,12 +1396,25 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 public int Native_PauseTimer(Handle handler, int numParams)
 {
-	PauseTimer(GetNativeCell(1));
+	int client = GetNativeCell(1);
+
+	GetClientAbsOrigin(client, gF_PauseOrigin[client]);
+	GetClientEyeAngles(client, gF_PauseAngles[client]);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
+
+	PauseTimer(client);
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
 {
-	ResumeTimer(GetNativeCell(1));
+	int client = GetNativeCell(1);
+
+	ResumeTimer(client);
+
+	if(numParams >= 2 && view_as<bool>(GetNativeCell(2))) // teleport?
+	{
+		TeleportEntity(client, gF_PauseOrigin[client], gF_PauseAngles[client], gF_PauseVelocity[client]);
+	}
 }
 
 public int Native_StopChatSound(Handle handler, int numParams)
