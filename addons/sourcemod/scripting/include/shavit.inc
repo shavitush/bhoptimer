@@ -71,7 +71,7 @@ enum
 	CPR_ByConVar = (1 << 0),
 	CPR_NoTimer = (1 << 1),
 	CPR_InStartZone = (1 << 2),
-	CPR_NotOnGround = (1 << 3),
+	CPR_NotOnGround = (1 << 3)
 };
 
 enum

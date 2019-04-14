@@ -33,6 +33,7 @@ ArrayList gA_FirstSounds = null;
 ArrayList gA_PersonalSounds = null;
 ArrayList gA_WorldSounds = null;
 ArrayList gA_WorstSounds = null;
+ArrayList gA_NoImprovementSounds = null;
 StringMap gSM_RankSounds = null;
 
 // cvars
@@ -70,6 +71,7 @@ public void OnPluginStart()
 	gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gA_WorstSounds = new ArrayList(PLATFORM_MAX_PATH);
+	gA_NoImprovementSounds = new ArrayList(PLATFORM_MAX_PATH);
 	gSM_RankSounds = new StringMap();
 
 	// modules
@@ -103,6 +105,7 @@ public void OnMapStart()
 	gA_PersonalSounds.Clear();
 	gA_WorldSounds.Clear();
 	gA_WorstSounds.Clear();
+	gA_NoImprovementSounds.Clear();
 	gSM_RankSounds.Clear();
 
 	char sFile[PLATFORM_MAX_PATH];
@@ -154,9 +157,9 @@ public void OnMapStart()
 				gA_WorstSounds.PushString(sExploded[1]);
 			}
 
-			else if(StrEqual(sExploded[0], "worse"))
+			else if(StrEqual(sExploded[0], "worse") || StrEqual(sExploded[0], "noimprovement"))
 			{
-				LogError("\"worse\" sounds are not supported anymore.");
+				gA_NoImprovementSounds.PushString(sExploded[1]);
 			}
 
 			else
@@ -181,6 +184,17 @@ public void OnMapStart()
 	}
 
 	delete fFile;
+}
+
+public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs)
+{
+	if(oldtime != 0.0 && time > oldtime)
+	{
+		char sSound[PLATFORM_MAX_PATH];
+		gA_NoImprovementSounds.GetString(GetRandomInt(0, gA_NoImprovementSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
+
+		PlayEventSound(client, false, sSound);
+	}
 }
 
 public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
