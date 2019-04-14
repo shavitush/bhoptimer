@@ -374,6 +374,15 @@ forward void Shavit_OnRestart(int client, int track);
 forward void Shavit_OnEnd(int client, int track);
 
 /**
+ * Called before a player's timer is stopped. (stop =/= finish a map)
+ *
+ * @param client					Client index.
+ * @param track						Timer track.
+ * @return							False to prevent the timer from stopping.
+ */
+forward bool Shavit_OnStopPre(int client, int track);
+
+/**
  * Called when a player's timer stops. (stop =/= finish a map)
  *
  * @param client					Client index.
@@ -681,9 +690,10 @@ native void Shavit_RestartTimer(int client, int track);
  * Will not teleport the player to anywhere, it's handled inside the mapzones plugin.
  *
  * @param client					Client index.
- * @noreturn
+ * @param bypass					Bypass call to Shavit_OnStopPre?
+ * @return							True if the operation went through.
  */
-native void Shavit_StopTimer(int client);
+native bool Shavit_StopTimer(int client, bool bypass = true);
 
 /**
  * Deletes all map records for the specified map.

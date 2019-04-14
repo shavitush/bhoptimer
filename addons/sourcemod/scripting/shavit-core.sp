@@ -68,6 +68,7 @@ bool gB_MySQL = false;
 // forwards
 Handle gH_Forwards_Start = null;
 Handle gH_Forwards_Stop = null;
+Handle gH_Forwards_StopPre = null;
 Handle gH_Forwards_FinishPre = null;
 Handle gH_Forwards_Finish = null;
 Handle gH_Forwards_OnRestart = null;
@@ -215,6 +216,7 @@ public void OnPluginStart()
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
 	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
@@ -1256,6 +1258,21 @@ public int Native_StartTimer(Handle handler, int numParams)
 public int Native_StopTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	bool bBypass = (numParams < 2 || view_as<bool>(GetNativeCell(2)));
+
+	if(!bBypass)
+	{
+		bool bResult = true;
+		Call_StartForward(gH_Forwards_StopPre);
+		Call_PushCell(client);
+		Call_PushCell(gA_Timers[client].iTrack);
+		Call_Finish(bResult);
+
+		if(!bResult)
+		{
+			return false;
+		}
+	}
 
 	StopTimer(client);
 
@@ -1263,6 +1280,8 @@ public int Native_StopTimer(Handle handler, int numParams)
 	Call_PushCell(client);
 	Call_PushCell(gA_Timers[client].iTrack);
 	Call_Finish();
+
+	return true;
 }
 
 public int Native_CanPause(Handle handler, int numParams)
