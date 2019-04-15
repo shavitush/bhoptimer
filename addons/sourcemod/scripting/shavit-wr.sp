@@ -1570,8 +1570,9 @@ public Action Command_RecentRecords(int client, int args)
 
 	FormatEx(sQuery, 512,
 			"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %splayertimes a " ...
-			"JOIN (SELECT MIN(time) time, map, style, track FROM %splayertimes GROUP by map, style, track ORDER BY date DESC) b " ...
+			"JOIN (SELECT MIN(time) time, map, style, track FROM %splayertimes GROUP by map, style, track) b " ...
 			"JOIN %susers u ON a.time = b.time AND a.auth = u.auth AND a.map = b.map AND a.style = b.style AND a.track = b.track " ...
+			"ORDER BY a.date DESC " ...
 			"LIMIT 100;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
@@ -1743,7 +1744,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int jumps = results.FetchInt(2);
 		float perfs = results.FetchFloat(9);
 
-		if(gA_StyleSettings[style].bAutobhop && perfs > 0.0)
+		if(gA_StyleSettings[style].bAutobhop)
 		{
 			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, jumps);
 		}

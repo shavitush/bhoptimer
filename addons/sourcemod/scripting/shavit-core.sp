@@ -469,6 +469,11 @@ public Action Command_StartTimer(int client, int args)
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
 	{
+		if(!Shavit_StopTimer(client, false))
+		{
+			return Plugin_Handled;
+		}
+
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_PushCell(track);
@@ -1988,6 +1993,7 @@ bool LoadStyles()
 		gA_StyleSettings[i].bInaccessible = view_as<bool>(kv.GetNum("inaccessible", false));
 		gA_StyleSettings[i].iEnabled = kv.GetNum("enabled", 1);
 		gA_StyleSettings[i].bKZCheckpoints = view_as<bool>(kv.GetNum("kzcheckpoints", 0));
+		gA_StyleSettings[i].bForceKeysOnGround = view_as<bool>(kv.GetNum("force_groundkeys", 0));
 
 		// if this style is disabled, we will force certain settings
 		if(gA_StyleSettings[i].iEnabled <= 0)
@@ -2484,7 +2490,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			buttons &= ~IN_USE;
 		}
 
-		if(iGroundEntity == -1)
+		if(iGroundEntity == -1 || gA_StyleSettings[gA_Timers[client].iStyle].bForceKeysOnGround)
 		{
 			if(gA_StyleSettings[gA_Timers[client].iStyle].bBlockW && ((buttons & IN_FORWARD) > 0 || vel[0] > 0.0))
 			{
