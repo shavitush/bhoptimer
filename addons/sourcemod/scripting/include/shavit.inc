@@ -168,6 +168,7 @@ enum struct stylesettings_t
 	bool bInaccessible;
 	int iEnabled;
 	bool bKZCheckpoints;
+	bool bForceKeysOnGround;
 }
 
 enum struct chatstrings_t
