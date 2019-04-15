@@ -2828,7 +2828,7 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 
 public void Shavit_OnRestart(int client, int track)
 {
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints && GetClientMenu(client, null) == MenuSource_None)
+	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints && GetClientMenu(client, null) == MenuSource_None && IsPlayerAlive(client))
 	{
 		OpenKZCPMenu(client);
 	}
