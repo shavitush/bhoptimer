@@ -108,6 +108,7 @@ int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
 int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
+bool gB_ClosedKZCP[MAXPLAYERS+1];
 
 player_cpcache_t gA_CheckpointsCache[MAXPLAYERS+1];
 int gI_CheckpointsSettings[MAXPLAYERS+1];
@@ -342,7 +343,7 @@ public void OnPluginStart()
 
 	// crons
 	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
-	CreateTimer(1.0, Timer_PersistKZCP, 0, TIMER_REPEAT);
+	CreateTimer(0.5, Timer_PersistKZCP, 0, TIMER_REPEAT);
 
 	if(gEV_Type != Engine_TF2)
 	{
@@ -786,7 +787,10 @@ public Action Timer_PersistKZCP(Handle Timer)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(gA_StyleSettings[gI_Style[i]].bKZCheckpoints && GetClientMenu(i) == MenuSource_None && IsClientInGame(i) && IsPlayerAlive(i))
+		if(!gB_ClosedKZCP[i] &&
+			gA_StyleSettings[gI_Style[i]].bKZCheckpoints
+			&& GetClientMenu(i) == MenuSource_None &&
+			IsClientInGame(i) && IsPlayerAlive(i))
 		{
 			OpenKZCPMenu(i);
 		}
@@ -1085,6 +1089,8 @@ public void OnClientPutInServer(int client)
 
 	gB_SaveStates[client] = false;
 	delete gA_SaveFrames[client];
+
+	gB_ClosedKZCP[client] = false;
 }
 
 public void OnClientDisconnect(int client)
@@ -1814,10 +1820,10 @@ void OpenKZCPMenu(int client)
 	if((Shavit_CanPause(client) & CPR_ByConVar) == 0)
 	{
 		FormatEx(sDisplay, 64, "%T", "MiscCheckpointPause", client);
-		menu.AddItem("pause", sDisplay, (Shavit_GetTimerStatus(client) != Timer_Stopped)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem("pause", sDisplay);
 	}
 
-	menu.ExitButton = false;
+	menu.ExitButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
@@ -1885,6 +1891,14 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 		}
 
 		OpenCheckpointsMenu(param1);
+	}
+
+	else if(action == MenuAction_Cancel)
+	{
+		if(param2 == MenuCancel_Exit)
+		{
+			gB_ClosedKZCP[param1] = true;
+		}
 	}
 
 	else if(action == MenuAction_End)
@@ -2828,7 +2842,10 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 
 public void Shavit_OnRestart(int client, int track)
 {
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints && GetClientMenu(client, null) == MenuSource_None && IsPlayerAlive(client))
+	if(!gB_ClosedKZCP[client] &&
+		gA_StyleSettings[gI_Style[client]].bKZCheckpoints &&
+		GetClientMenu(client, null) == MenuSource_None &&
+		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
 		OpenKZCPMenu(client);
 	}
@@ -2952,7 +2969,10 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		UpdateClanTag(client);
 
 		// refreshes kz cp menu if there is nothing open
-		if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints && GetClientMenu(client, null) == MenuSource_None)
+		if(!gB_ClosedKZCP[client] &&
+			gA_StyleSettings[gI_Style[client]].bKZCheckpoints &&
+			GetClientMenu(client, null) == MenuSource_None &&
+			IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 		{
 			OpenKZCPMenu(client);
 		}
