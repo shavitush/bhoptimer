@@ -1253,11 +1253,7 @@ void FormatRandom(char[] buffer, int size)
 	{
 		if(IsSource2013(gEV_Type))
 		{
-			int color = ((RealRandomInt(0, 255) & 0xFF) << 16);
-			color |= ((RealRandomInt(0, 255) & 0xFF) << 8);
-			color |= (RealRandomInt(0, 255) & 0xFF);
-
-			FormatEx(temp, 8, "\x07%06X", color);
+			FormatEx(temp, 8, "\x07%06X", RealRandomInt(0, 0xFFFFFF));
 		}
 
 		else
