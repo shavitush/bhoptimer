@@ -1937,8 +1937,10 @@ void OpenNormalCPMenu(int client)
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointPrevious", client);
 	menu.AddItem("prev", sDisplay);
 
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointNext", client);
+	FormatEx(sDisplay, 64, "%T\n ", "MiscCheckpointNext", client);
 	menu.AddItem("next", sDisplay);
+
+	menu.AddItem("spacer", "", ITEMDRAW_NOTEXT);
 
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
 	menu.AddItem("reset", sDisplay);
@@ -1964,91 +1966,134 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, 16);
+
 		int iMaxCPs = GetMaxCPs(param1);
 		int iCurrent = gA_CheckpointsCache[param1].iCurrentCheckpoint;
 
-		switch(param2)
+		if(StrEqual(sInfo, "save"))
 		{
-			case 0:
+			bool bSegmenting = CanSegment(param1);
+			bool bOverflow = gA_CheckpointsCache[param1].iCheckpoints >= iMaxCPs;
+
+			if(!bSegmenting)
 			{
-				bool bSegmenting = CanSegment(param1);
-				bool bOverflow = gA_CheckpointsCache[param1].iCheckpoints >= iMaxCPs;
-
-				if(!bSegmenting)
+				// fight an exploit
+				if(bOverflow)
 				{
-					// fight an exploit
-					if(bOverflow)
-					{
-						return 0;
-					}
-
-					if(SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1))
-					{
-						gA_CheckpointsCache[param1].iCurrentCheckpoint = ++gA_CheckpointsCache[param1].iCheckpoints;
-					}
+					return 0;
 				}
-				
-				else
+
+				if(SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1))
 				{
-					SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1, bOverflow);
-					gA_CheckpointsCache[param1].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[param1].iCheckpoints;
+					gA_CheckpointsCache[param1].iCurrentCheckpoint = ++gA_CheckpointsCache[param1].iCheckpoints;
 				}
 			}
-
-			case 1:
+			
+			else
 			{
-				TeleportToCheckpoint(param1, iCurrent, true);
+				SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1, bOverflow);
+				gA_CheckpointsCache[param1].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[param1].iCheckpoints;
 			}
+		}
 
-			case 2:
+		else if(StrEqual(sInfo, "tele"))
+		{
+			TeleportToCheckpoint(param1, iCurrent, true);
+		}
+
+		else if(StrEqual(sInfo, "prev"))
+		{
+			if(iCurrent > 1)
 			{
-				if(iCurrent > 1)
-				{
-					gA_CheckpointsCache[param1].iCurrentCheckpoint--;
-				}
+				gA_CheckpointsCache[param1].iCurrentCheckpoint--;
 			}
+		}
 
-			case 3:
+		else if(StrEqual(sInfo, "next"))
+		{
+			cp_cache_t cpcache;
+			
+			if(iCurrent++ < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
 			{
-				cp_cache_t cpcache;
-				
-				if(iCurrent++ < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
-				{
-					gA_CheckpointsCache[param1].iCurrentCheckpoint++;
-				}
+				gA_CheckpointsCache[param1].iCurrentCheckpoint++;
 			}
+		}
 
-			case 4:
-			{
-				ResetCheckpoints(param1);
-			}
+		else if(StrEqual(sInfo, "reset"))
+		{
+			ConfirmCheckpointsDeleteMenu(param1);
 
-			default:
-			{
-				char sInfo[8];
-				menu.GetItem(param2, sInfo, 8);
-				
-				char sCookie[8];
-				gI_CheckpointsSettings[param1] ^= StringToInt(sInfo);
-				IntToString(gI_CheckpointsSettings[param1], sCookie, 16);
+			return 0;
+		}
 
-				SetClientCookie(param1, gH_CheckpointsCookie, sCookie);
-			}
+		else if(!StrEqual(sInfo, "spacer"))
+		{
+			char sCookie[8];
+			gI_CheckpointsSettings[param1] ^= StringToInt(sInfo);
+			IntToString(gI_CheckpointsSettings[param1], sCookie, 16);
+
+			SetClientCookie(param1, gH_CheckpointsCookie, sCookie);
 		}
 
 		OpenCheckpointsMenu(param1);
 	}
 
-	else if(action == MenuAction_DisplayItem && param2 >= 5)
+	else if(action == MenuAction_DisplayItem)
 	{
 		char sInfo[16];
 		char sDisplay[64];
 		int style = 0;
 		menu.GetItem(param2, sInfo, 16, style, sDisplay, 64);
 
+		if(StringToInt(sInfo) == 0)
+		{
+			return 0;
+		}
+
 		Format(sDisplay, 64, "[%s] %s", ((gI_CheckpointsSettings[param1] & StringToInt(sInfo)) > 0)? "x":" ", sDisplay);
 
 		return RedrawMenuItem(sDisplay);
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void ConfirmCheckpointsDeleteMenu(int client)
+{
+	Menu hMenu = new Menu(MenuHandler_CheckpointsDelete);
+	hMenu.SetTitle("%T\n ", "ClearCPWarning", client);
+
+	char sDisplay[64];
+	FormatEx(sDisplay, 64, "%T", "ClearCPYes", client);
+	hMenu.AddItem("yes", sDisplay);
+
+	FormatEx(sDisplay, 64, "%T", "ClearCPNo", client);
+	hMenu.AddItem("no", sDisplay);
+
+	hMenu.ExitButton = true;
+	hMenu.Display(client, 60);
+}
+
+public int MenuHandler_CheckpointsDelete(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+
+		if(StrEqual(sInfo, "yes"))
+		{
+			ResetCheckpoints(param1);
+		}
+
+		OpenCheckpointsMenu(param1);
 	}
 
 	else if(action == MenuAction_End)

@@ -118,6 +118,18 @@
 	{
 		"en"		"No, keep my timer running."
 	}
+	"ClearCPWarning"
+	{
+		"en"		"Are you sure you want to clear your checkpoints?"
+	}
+	"ClearCPYes"
+	{
+		"en"		"Yes, and I know this action cannot be reversed."
+	}
+	"ClearCPNo"
+	{
+		"en"		"No."
+	}
 	"TeleportMenuTitle"
 	{
 		"en"		"Teleport to:"
