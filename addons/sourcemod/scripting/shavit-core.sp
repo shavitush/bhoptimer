@@ -469,6 +469,11 @@ public Action Command_StartTimer(int client, int args)
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
 	{
+		if(!Shavit_StopTimer(client, false))
+		{
+			return Plugin_Handled;
+		}
+
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_PushCell(track);
