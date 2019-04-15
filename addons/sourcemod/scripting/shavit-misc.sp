@@ -786,7 +786,7 @@ public Action Timer_PersistKZCP(Handle Timer)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(gA_StyleSettings[gI_Style[i]].bKZCheckpoints && GetClientMenu(i) == MenuSource_None)
+		if(gA_StyleSettings[gI_Style[i]].bKZCheckpoints && GetClientMenu(i) == MenuSource_None && IsClientInGame(i) && IsPlayerAlive(i))
 		{
 			OpenKZCPMenu(i);
 		}
@@ -2138,12 +2138,21 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		return false;
 	}
 
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints &&
-		((iFlags & FL_ONGROUND) == 0 || client != target))
+	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints)
 	{
-		Shavit_PrintToChat(client, "%T", "CommandSaveCPKZInvalid", client);
+		if((iFlags & FL_ONGROUND) == 0 || client != target)
+		{
+			Shavit_PrintToChat(client, "%T", "CommandSaveCPKZInvalid", client);
 
-		return false;
+			return false;
+		}
+
+		else if(Shavit_InsideZone(client, Zone_Start, -1))
+		{
+			Shavit_PrintToChat(client, "%T", "CommandSaveCPKZZone", client);
+			
+			return false;
+		}
 	}
 
 	Action result = Plugin_Continue;
@@ -2528,7 +2537,7 @@ void OpenStopWarningMenu(int client, StopTimerCallback after)
 	gH_AfterWarningMenu[client] = after;
 
 	Menu hMenu = new Menu(MenuHandler_StopWarning);
-	hMenu.SetTitle("%T\n", "StopTimerWarning", client);
+	hMenu.SetTitle("%T\n ", "StopTimerWarning", client);
 
 	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "StopTimerYes", client);

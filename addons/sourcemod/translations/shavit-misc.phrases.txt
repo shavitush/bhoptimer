@@ -13,7 +13,11 @@
 	}
 	"CommandSaveCPKZInvalid"
 	{
-		"en"		"You cannot perform this when airborne or while watching another player."
+		"en"		"You cannot perform this action when airborne or while watching another player."
+	}
+	"CommandSaveCPKZZone"
+	{
+		"en"		"You cannot perform this action while in the start zone."
 	}
 	"CommandTeleCPInvalid"
 	{
