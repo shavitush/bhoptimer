@@ -1743,7 +1743,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int jumps = results.FetchInt(2);
 		float perfs = results.FetchFloat(9);
 
-		if(gA_StyleSettings[style].bAutobhop && perfs > 0.0)
+		if(gA_StyleSettings[style].bAutobhop)
 		{
 			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, jumps);
 		}
