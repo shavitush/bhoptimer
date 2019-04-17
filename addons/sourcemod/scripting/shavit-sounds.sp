@@ -188,7 +188,7 @@ public void OnMapStart()
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs)
 {
-	if(oldtime != 0.0 && time > oldtime)
+	if(oldtime != 0.0 && time > oldtime && gA_NoImprovementSounds.Length != 0)
 	{
 		char sSound[PLATFORM_MAX_PATH];
 		gA_NoImprovementSounds.GetString(GetRandomInt(0, gA_NoImprovementSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
