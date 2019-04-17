@@ -1014,7 +1014,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!bNoclip && !gA_StyleSettings[gI_Style[client]].bPrespeed && Shavit_InsideZone(client, Zone_Start, track))
+	if(!bNoclip && gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && Shavit_InsideZone(client, Zone_Start, track))
 	{
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
@@ -2769,7 +2769,7 @@ public Action Command_Specs(int client, int args)
 
 public Action Shavit_OnStart(int client)
 {
-	if(!gA_StyleSettings[gI_Style[client]].bPrespeed && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	if(gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
 	}

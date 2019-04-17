@@ -135,7 +135,7 @@ enum struct stylesettings_t
 {
 	bool bAutobhop;
 	bool bEasybhop;
-	bool bPrespeed;
+	int iPrespeed;
 	float fVelocityLimit;
 	bool bEnableBunnyhopping;
 	float fAiraccelerate;

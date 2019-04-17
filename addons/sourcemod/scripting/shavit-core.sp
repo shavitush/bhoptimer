@@ -1708,7 +1708,9 @@ void StartTimer(int client, int track)
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
-	if(!gCV_NoZAxisSpeed.BoolValue || gA_StyleSettings[gA_Timers[client].iStyle].bPrespeed || (fSpeed[2] == 0.0 && SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0))
+	if(!gCV_NoZAxisSpeed.BoolValue ||
+		gA_StyleSettings[gA_Timers[client].iStyle].iPrespeed == 1 ||
+		(fSpeed[2] == 0.0 && (gA_StyleSettings[gA_Timers[client].iStyle].iPrespeed == 2 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0)))
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
@@ -1960,7 +1962,7 @@ bool LoadStyles()
 
 		gA_StyleSettings[i].bAutobhop = view_as<bool>(kv.GetNum("autobhop", 1));
 		gA_StyleSettings[i].bEasybhop = view_as<bool>(kv.GetNum("easybhop", 1));
-		gA_StyleSettings[i].bPrespeed = view_as<bool>(kv.GetNum("prespeed", 0));
+		gA_StyleSettings[i].iPrespeed = view_as<bool>(kv.GetNum("prespeed", 0));
 		gA_StyleSettings[i].fVelocityLimit = kv.GetFloat("velocity_limit", 0.0);
 		gA_StyleSettings[i].fAiraccelerate = kv.GetFloat("airaccelerate", 1000.0);
 		gA_StyleSettings[i].bEnableBunnyhopping = view_as<bool>(kv.GetNum("bunnyhopping", 1));
@@ -2641,7 +2643,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gA_Timers[client].iGroundTicks = 0;
 	}
 
-	if(bInStart && gCV_BlockPreJump.BoolValue && !gA_StyleSettings[gA_Timers[client].iStyle].bPrespeed && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
+	if(bInStart && gCV_BlockPreJump.BoolValue && gA_StyleSettings[gA_Timers[client].iStyle].iPrespeed == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
 	{
 		vel[2] = 0.0;
 		buttons &= ~IN_JUMP;
