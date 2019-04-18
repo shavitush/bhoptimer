@@ -649,14 +649,19 @@ public Action Command_Junk(int client, int args)
 
 public Action Command_PrintLeaderboards(int client, int args)
 {
-	ReplyToCommand(client, "Track: Main - Style: 0");
-	ReplyToCommand(client, "Current PB: %f", gF_PlayerRecord[client][0][0]);
-	ReplyToCommand(client, "Count: %d", gI_RecordAmount[0][0]);
-	ReplyToCommand(client, "Rank: %d", Shavit_GetRankForTime(0, gF_PlayerRecord[client][0][0], 0));
+	char sArg[8];
+	GetCmdArg(1, sArg, 8);
 
-	for(int i = 0; i < gI_RecordAmount[0][0]; i++)
+	int iStyle = StringToInt(sArg);
+
+	ReplyToCommand(client, "Track: Main - Style: %d", iStyle);
+	ReplyToCommand(client, "Current PB: %f", gF_PlayerRecord[client][iStyle][0]);
+	ReplyToCommand(client, "Count: %d", gI_RecordAmount[iStyle][0]);
+	ReplyToCommand(client, "Rank: %d", Shavit_GetRankForTime(iStyle, gF_PlayerRecord[client][iStyle][0], iStyle));
+
+	for(int i = 0; i < gI_RecordAmount[iStyle][0]; i++)
 	{
-		ReplyToCommand(client, "#%d: %f", i, gA_Leaderboard[0][0].Get(i));
+		ReplyToCommand(client, "#%d: %f", i, gA_Leaderboard[iStyle][0].Get(i));
 	}
 
 	return Plugin_Handled;
@@ -2149,7 +2154,7 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 void UpdateLeaderboards()
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "SELECT style, time, track FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC LIMIT 1000;", gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, 192, "SELECT style, track, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery, 0);
 }
 
@@ -2174,14 +2179,14 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	while(results.FetchRow())
 	{
 		int style = results.FetchInt(0);
-		int track = results.FetchInt(2);
+		int track = results.FetchInt(1);
 
 		if(style >= gI_Styles || gA_StyleSettings[style].bUnranked || track >= TRACKS_SIZE)
 		{
 			continue;
 		}
 
-		gA_Leaderboard[style][track].Push(results.FetchFloat(1));
+		gA_Leaderboard[style][track].Push(results.FetchFloat(2));
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
