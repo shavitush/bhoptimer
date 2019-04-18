@@ -1676,6 +1676,11 @@ public Action Command_Checkpoints(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints)
+	{
+		gB_ClosedKZCP[client] = false;
+	}
+
 	return OpenCheckpointsMenu(client);
 }
 
