@@ -758,8 +758,8 @@ void RecalculateMap(const char[] map, const int track, const int style)
 	PrintToServer("Recalculating points. (%s, %d, %d)", map, track, style);
 	#endif
 
-	char sQuery[192];
-	FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
+	char sQuery[256];
+	FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
 		gS_MySQLPrefix, style, track, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, track, map);
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
@@ -789,8 +789,8 @@ void UpdateAllPoints()
 	LogError("DEBUG: 6 (UpdateAllPoints)");
 	#endif
 
-	char sQuery[128];
-	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT DISTINCT auth FROM %splayertimes);",
+	char sQuery[256];
+	FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT DISTINCT auth FROM %splayertimes);",
 		gS_MySQLPrefix, gS_MySQLPrefix);
 	
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);
