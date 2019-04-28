@@ -1266,7 +1266,7 @@ void FormatRandom(char[] buffer, int size)
 		}
 	}
 
-	while(ReplaceStringEx(buffer, size, "{rand}", temp) > 0 || ReplaceStringEx(buffer, size, "{rng}", temp) > 0)
+	while(ReplaceStringEx(buffer, size, "{rand}", temp) > 0 || ReplaceStringEx(buffer, size, "{r}", temp) > 0)
 }
 
 void FormatChat(int client, char[] buffer, int size)
