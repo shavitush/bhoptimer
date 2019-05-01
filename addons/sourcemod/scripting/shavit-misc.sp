@@ -97,7 +97,7 @@ int gI_Ammo = -1;
 
 char gS_RadioCommands[][] = { "coverme", "takepoint", "holdpos", "regroup", "followme", "takingfire", "go", "fallback", "sticktog",
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
-	"getout", "negative", "enemydown", "compliment", "thanks", "cheer" };
+	"getout", "negative", "enemydown", "compliment", "thanks", "cheer", "go_a", "go_b", "sorry", "needrop" };
 
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
