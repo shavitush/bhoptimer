@@ -973,6 +973,164 @@ bool DefaultLoadReplay(int style, int track)
 	return LoadReplay(style, track, sPath);
 }
 
+bool LoadCurrentReplayFormat(File file, int version, int style, int track)
+{
+	gA_FrameCache[style][track].iReplayVersion = version;
+
+	// replay file integrity and preframes
+	if(gA_FrameCache[style][track].iReplayVersion >= 0x03)
+	{
+		char sMap[160];
+		file.ReadString(sMap, 160);
+
+		int iStyle = 0;
+		file.ReadUint8(iStyle);
+
+		int iTrack = 0;
+		file.ReadUint8(iTrack);
+
+		if(!StrEqual(sMap, gS_Map, false) || iStyle != style || iTrack != track)
+		{
+			delete file;
+			
+			return false;
+		}
+
+		// whenever this is implemented
+		// file.ReadInt32(gA_FrameCache[style][track].iPreframes);
+		file.Seek(4, SEEK_CUR);
+	}
+
+	int iTemp = 0;
+	file.ReadInt32(iTemp);
+	gA_FrameCache[style][track].iFrameCount = iTemp;
+
+	if(gA_Frames[style][track] == null)
+	{
+		gA_Frames[style][track] = new ArrayList(CELLS_PER_FRAME);
+	}
+
+	gA_Frames[style][track].Resize(iTemp);
+
+	file.ReadInt32(iTemp);
+	gA_FrameCache[style][track].fTime = view_as<float>(iTemp);
+
+	char sAuthID[32];
+	file.ReadString(sAuthID, 32);
+
+	if(gH_SQL != null)
+	{
+		char sQuery[192];
+		FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = '%s';", gS_MySQLPrefix, sAuthID);
+
+		DataPack pack = new DataPack();
+		pack.WriteCell(style);
+		pack.WriteCell(track);
+
+		gH_SQL.Query(SQL_GetUserName_Callback, sQuery, pack, DBPrio_High);
+	}
+
+	int cells = CELLS_PER_FRAME;
+
+	if(gA_FrameCache[style][track].iReplayVersion == 0x01)
+	{
+		cells = 6;
+	}
+
+	any[] aReplayData = new any[cells];
+
+	for(int i = 0; i < gA_FrameCache[style][track].iFrameCount; i++)
+	{
+		if(file.Read(aReplayData, cells, 4) >= 0)
+		{
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[2]), 2);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
+			gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
+
+			if(gA_FrameCache[style][track].iReplayVersion >= 0x02)
+			{
+				gA_Frames[style][track].Set(i, view_as<int>(aReplayData[6]), 6);
+				gA_Frames[style][track].Set(i, view_as<int>(aReplayData[7]), 7);
+			}
+		}
+	}
+
+	gA_FrameCache[style][track].bNewFormat = true; // not wr-based
+
+	delete file;
+
+	return true;
+}
+
+bool LoadV2ReplayFormat(File file, int frames, int style, int track)
+{
+	int iReplaySize = gA_FrameCache[style][track].iFrameCount = frames;
+	gA_Frames[style][track].Resize(iReplaySize);
+
+	gA_FrameCache[style][track].fTime = 0.0; // N/A at this version
+
+	any[] aReplayData = new any[6];
+
+	for(int i = 0; i < iReplaySize; i++)
+	{
+		if(file.Read(aReplayData, 6, 4) >= 0)
+		{
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[2]), 2);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
+			gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
+		}
+	}
+
+	gA_FrameCache[style][track].bNewFormat = false;
+	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+
+	delete file;
+
+	return true;
+}
+
+bool LoadOldReplayFormat(File file, int style, int track)
+{
+	char sLine[320];
+	char sExplodedLine[6][64];
+
+	if(!file.Seek(0, SEEK_SET))
+	{
+		delete file;
+
+		return false;
+	}
+
+	for(int i = 0; !file.EndOfFile(); i++)
+	{
+		file.ReadLine(sLine, 320);
+		int iStrings = ExplodeString(sLine, "|", sExplodedLine, 6, 64);
+
+		gA_Frames[style][track].Resize(i + 1);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[0]), 0);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[1]), 1);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[2]), 2);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[3]), 3);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[4]), 4);
+		gA_Frames[style][track].Set(i, (iStrings == 6)? StringToInt(sExplodedLine[5]):0, 5);
+	}
+
+	gA_FrameCache[style][track].iFrameCount = gA_Frames[style][track].Length;
+	gA_FrameCache[style][track].fTime = 0.0; // N/A at this version
+	gA_FrameCache[style][track].bNewFormat = false; // wr-based
+	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+
+	delete file;
+
+	return true;
+}
+
 bool LoadReplay(int style, int track, const char[] path)
 {
 	if(FileExists(path))
@@ -992,150 +1150,20 @@ bool LoadReplay(int style, int track, const char[] path)
 		char sExplodedHeader[2][64];
 		ExplodeString(sHeader, ":", sExplodedHeader, 2, 64);
 
-		// TODO: split this piece of shit to different functions. cbf to keep it like this
 		if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_FINAL)) // hopefully, the last of them
 		{
-			gA_FrameCache[style][track].iReplayVersion = StringToInt(sExplodedHeader[0]);
-
-			// replay file integrity and preframes
-			if(gA_FrameCache[style][track].iReplayVersion >= 0x03)
-			{
-				char sMap[160];
-				fFile.ReadString(sMap, 160);
-
-				int iStyle = 0;
-				fFile.ReadUint8(iStyle);
-
-				int iTrack = 0;
-				fFile.ReadUint8(iTrack);
-
-				if(!StrEqual(sMap, gS_Map, false) || iStyle != style || iTrack != track)
-				{
-					delete fFile;
-					
-					return false;
-				}
-
-				// whenever this is implemented
-				// fFile.ReadInt32(gA_FrameCache[style][track].iPreframes);
-				fFile.Seek(4, SEEK_CUR);
-			}
-
-			int iTemp = 0;
-			fFile.ReadInt32(iTemp);
-			gA_FrameCache[style][track].iFrameCount = iTemp;
-
-			if(gA_Frames[style][track] == null)
-			{
-				gA_Frames[style][track] = new ArrayList(CELLS_PER_FRAME);
-			}
-
-			gA_Frames[style][track].Resize(iTemp);
-
-			fFile.ReadInt32(iTemp);
-			gA_FrameCache[style][track].fTime = view_as<float>(iTemp);
-
-			char sAuthID[32];
-			fFile.ReadString(sAuthID, 32);
-
-			if(gH_SQL != null)
-			{
-				char sQuery[192];
-				FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = '%s';", gS_MySQLPrefix, sAuthID);
-
-				DataPack pack = new DataPack();
-				pack.WriteCell(style);
-				pack.WriteCell(track);
-
-				gH_SQL.Query(SQL_GetUserName_Callback, sQuery, pack, DBPrio_High);
-			}
-
-			int cells = CELLS_PER_FRAME;
-
-			// backwards compatibility
-			if(gA_FrameCache[style][track].iReplayVersion == 0x01)
-			{
-				cells = 6;
-			}
-
-			any[] aReplayData = new any[cells];
-
-			for(int i = 0; i < gA_FrameCache[style][track].iFrameCount; i++)
-			{
-				if(fFile.Read(aReplayData, cells, 4) >= 0)
-				{
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[2]), 2);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
-					gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
-
-					if(gA_FrameCache[style][track].iReplayVersion >= 0x02)
-					{
-						gA_Frames[style][track].Set(i, view_as<int>(aReplayData[6]), 6);
-						gA_Frames[style][track].Set(i, view_as<int>(aReplayData[7]), 7);
-					}
-				}
-			}
-
-			gA_FrameCache[style][track].bNewFormat = true; // not wr-based
+			return LoadCurrentReplayFormat(fFile, StringToInt(sExplodedHeader[0]), style, track);
 		}
 
 		else if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_V2))
 		{
-			int iReplaySize = gA_FrameCache[style][track].iFrameCount = StringToInt(sExplodedHeader[0]);
-			gA_Frames[style][track].Resize(iReplaySize);
-
-			gA_FrameCache[style][track].fTime = 0.0; // N/A at this version
-
-			any[] aReplayData = new any[6];
-
-			for(int i = 0; i < iReplaySize; i++)
-			{
-				if(fFile.Read(aReplayData, 6, 4) >= 0)
-				{
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[2]), 2);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
-					gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
-				}
-			}
-
-			gA_FrameCache[style][track].bNewFormat = false;
-			strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+			return LoadV2ReplayFormat(fFile, StringToInt(sExplodedHeader[0]), style, track);
 		}
 
 		else // old, outdated and slow - only used for ancient replays
 		{
-			char sLine[320];
-			char sExplodedLine[6][64];
-
-			for(int i = 0; !fFile.EndOfFile(); i++)
-			{
-				fFile.ReadLine(sLine, 320);
-				int iStrings = ExplodeString(sLine, "|", sExplodedLine, 6, 64);
-
-				gA_Frames[style][track].Resize(i + 1);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[0]), 0);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[1]), 1);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[2]), 2);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[3]), 3);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[4]), 4);
-				gA_Frames[style][track].Set(i, (iStrings == 6)? StringToInt(sExplodedLine[5]):0, 5);
-			}
-
-			gA_FrameCache[style][track].iFrameCount = gA_Frames[style][track].Length;
-			gA_FrameCache[style][track].fTime = 0.0; // N/A at this version
-			gA_FrameCache[style][track].bNewFormat = false; // wr-based
-			strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+			return LoadOldReplayFormat(fFile, style, track);
 		}
-
-		delete fFile;
-
-		return true;
 	}
 
 	return false;
