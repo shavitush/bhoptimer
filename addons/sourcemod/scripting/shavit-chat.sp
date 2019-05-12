@@ -86,6 +86,8 @@ Handle gH_ChatCookie = null;
 int gI_ChatSelection[MAXPLAYERS+1];
 ArrayList gA_ChatRanks = null;
 
+bool gB_ChangedSinceLogin[MAXPLAYERS+1];
+
 bool gB_NameEnabled[MAXPLAYERS+1];
 char gS_CustomName[MAXPLAYERS+1][128];
 
@@ -707,6 +709,11 @@ public Action Command_CCName(int client, int args)
 
 	Shavit_PrintToChat(client, "%T", "ChatUpdated", client);
 
+	if(!StrEqual(gS_CustomName[client], sArgs))
+	{
+		gB_ChangedSinceLogin[client] = true;
+	}
+
 	gB_NameEnabled[client] = true;
 	strcopy(gS_CustomName[client], 128, sArgs);
 
@@ -751,6 +758,11 @@ public Action Command_CCMessage(int client, int args)
 	}
 
 	Shavit_PrintToChat(client, "%T", "ChatUpdated", client);
+
+	if(!StrEqual(gS_CustomMessage[client], sArgs))
+	{
+		gB_ChangedSinceLogin[client] = true;
+	}
 
 	gB_MessageEnabled[client] = true;
 	strcopy(gS_CustomMessage[client], 16, sArgs);
@@ -1372,7 +1384,10 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 void SaveToDatabase(int client)
 {
-	char sAuthID3[32];
+	if(!gB_ChangedSinceLogin[client])
+	{
+		return;
+	}
 
 	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
 	{
@@ -1440,6 +1455,8 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 	{
 		return;
 	}
+
+	gB_ChangedSinceLogin[client] = false;
 
 	while(results.FetchRow())
 	{
