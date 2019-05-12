@@ -2344,17 +2344,8 @@ public void SQL_TableMigrationIPAddresses_Callback(Database db, DBResultSet resu
 		char sIPAddress[32];
 		results.FetchString(0, sIPAddress, 32);
 
-		char sExplodedAddress[4][4];
-		ExplodeString(sIPAddress, ".", sExplodedAddress, 4, 4, false);
-
-		int iIPAddress =
-				(StringToInt(sExplodedAddress[0]) << 24) |
-				(StringToInt(sExplodedAddress[1]) << 16) |
-				(StringToInt(sExplodedAddress[2]) << 8) |
-				StringToInt(sExplodedAddress[3]);
-
 		char sQuery[256];
-		FormatEx(sQuery, 256, "UPDATE %susers SET ip = %d WHERE ip = '%s';", gS_MySQLPrefix, iIPAddress, sIPAddress);
+		FormatEx(sQuery, 256, "UPDATE %susers SET ip = %d WHERE ip = '%s';", gS_MySQLPrefix, IPStringToAddress(sIPAddress), sIPAddress);
 
 		hTransaction.AddQuery(sQuery);
 	}
@@ -2423,16 +2414,13 @@ void ApplyMigration_RemoveWorkshopPath(int migration)
 		"playertimes"
 	};
 
-	for(int i = 0; i < sizeof(sTables); i++)
-	{
-		DataPack hPack = new DataPack();
-		hPack.WriteCell(migration);
-		hPack.WriteString(sTables[i]);
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(migration);
+	hPack.WriteString(sTables[migration]);
 
-		char sQuery[192];
-		FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_MySQLPrefix, sTables[i]);
-		gH_SQL.Query(SQL_TableMigrationWorkshop_Callback, sQuery, hPack, DBPrio_High);
-	}
+	char sQuery[192];
+	FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_MySQLPrefix, sTables[migration]);
+	gH_SQL.Query(SQL_TableMigrationWorkshop_Callback, sQuery, hPack, DBPrio_High);
 }
 
 public void SQL_TableMigrationWorkshop_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
