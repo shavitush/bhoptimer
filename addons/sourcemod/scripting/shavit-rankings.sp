@@ -71,6 +71,7 @@ StringMap gA_MapTiers = null;
 
 ConVar gCV_PointsPerTier = null;
 ConVar gCV_WeightingMultiplier = null;
+ConVar gCV_LastLoginRecalculate = null;
 
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
@@ -150,6 +151,7 @@ public void OnPluginStart()
 
 	gCV_PointsPerTier = CreateConVar("shavit_rankings_pointspertier", "50.0", "Base points to use for per-tier scaling.\nRead the design idea to see how it works: https://github.com/shavitush/bhoptimer/issues/465", 0, true, 1.0);
 	gCV_WeightingMultiplier = CreateConVar("shavit_rankings_weighting", "0.975", "Weighing multiplier. 1.0 to disable weighting.\nFormula: p[1] * this^0 + p[2] * this^1 + p[3] * this^2 + ... + p[n] * this^(n-1)\nRestart server to apply.", 0, true, 0.01, true, 1.0);
+	gCV_LastLoginRecalculate = CreateConVar("shavit_rankings_llrecalc", "10080", "Maximum amount of time (in minutes) since last login to recalculate points for a player.\nsm_recalcall does not respect this setting.\n0 - disabled, don't filter anyone", 0, true, 0.0);
 
 	AutoExecConfig();
 
@@ -708,7 +710,7 @@ public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResul
 
 	ReplyToCommand(client, "- Finished recalculating all points. Recalculating user points, top 100 and user cache.");
 
-	UpdateAllPoints();
+	UpdateAllPoints(true);
 	UpdateTop100();
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -783,15 +785,25 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 	#endif
 }
 
-void UpdateAllPoints()
+void UpdateAllPoints(bool recalcall = false)
 {
 	#if defined DEBUG
 	LogError("DEBUG: 6 (UpdateAllPoints)");
 	#endif
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT DISTINCT auth FROM %splayertimes);",
-		gS_MySQLPrefix, gS_MySQLPrefix);
+
+	if(recalcall || gCV_LastLoginRecalculate.IntValue == 0)
+	{
+		FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT DISTINCT auth FROM %splayertimes);",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE %d - lastlogin < %d AND auth IN (SELECT DISTINCT auth FROM %splayertimes);",
+			gS_MySQLPrefix, GetTime(), (gCV_LastLoginRecalculate.IntValue * 60), gS_MySQLPrefix);
+	}
 	
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);
 }
