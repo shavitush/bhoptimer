@@ -312,7 +312,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	bool bSuccess = true;
 
 	RunLongFastQuery(bSuccess, "CREATE GetWeightedPoints",
-		"CREATE FUNCTION GetWeightedPoints(authid VARCHAR(32)) " ...
+		"CREATE FUNCTION GetWeightedPoints(steamid INT) " ...
 		"RETURNS FLOAT " ...
 		"READS SQL DATA " ...
 		"BEGIN " ...
@@ -320,7 +320,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		"DECLARE total FLOAT DEFAULT 0.0; " ...
 		"DECLARE mult FLOAT DEFAULT 1.0; " ...
 		"DECLARE done INT DEFAULT 0; " ...
-		"DECLARE cur CURSOR FOR SELECT points FROM %splayertimes WHERE auth = authid AND points > 0.0 ORDER BY points DESC; " ...
+		"DECLARE cur CURSOR FOR SELECT points FROM %splayertimes WHERE auth = steamid AND points > 0.0 ORDER BY points DESC; " ...
 		"DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1; " ...
 		"OPEN cur; " ...
 		"iter: LOOP " ...
@@ -610,7 +610,7 @@ public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
 
 		if(gB_Stats && !StrEqual(sInfo, "-1"))
 		{
-			Shavit_OpenStatsMenu(param1, sInfo);
+			Shavit_OpenStatsMenu(param1, StringToInt(sInfo));
 		}
 	}
 
@@ -823,15 +823,15 @@ void UpdatePlayerRank(int client, bool first)
 	gA_Rankings[client].iRank = 0;
 	gA_Rankings[client].fPoints = 0.0;
 
-	char sAuthID[32];
+	int iSteamID = 0;
 
-	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
+	if((iSteamID = GetSteamAccountID(client)) != 0)
 	{
 		// if there's any issue with this query,
 		// add "ORDER BY points DESC " before "LIMIT 1"
 		char sQuery[512];
-		FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = '%s') u2 WHERE u1.points >= u2.points;",
-			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
+		FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points;",
+			gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
 
 		DataPack hPack = new DataPack();
 		hPack.WriteCell(GetClientSerial(client));
@@ -936,8 +936,8 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 			break;
 		}
 
-		char sAuthID[32];
-		results.FetchString(0, sAuthID, 32);
+		char sSteamID[32];
+		results.FetchString(0, sSteamID, 32);
 
 		char sName[MAX_NAME_LENGTH];
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
@@ -947,7 +947,7 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 
 		char sDisplay[96];
 		FormatEx(sDisplay, 96, "#%d - %s (%s)", (++row), sName, sPoints);
-		gH_Top100Menu.AddItem(sAuthID, sDisplay);
+		gH_Top100Menu.AddItem(sSteamID, sDisplay);
 	}
 
 	if(gH_Top100Menu.ItemCount == 0)

@@ -75,7 +75,7 @@ enum struct player_cpcache_t
 
 enum struct persistent_data_t
 {
-	char sAuthID[32];
+	int iSteamID;
 	float fDisconnectTime;
 	float fPosition[3];
 	float fAngles[3];
@@ -1127,7 +1127,7 @@ void PersistData(int client)
 
 	if(!IsClientInGame(client) ||
 		!IsPlayerAlive(client) ||
-		!GetClientAuthId(client, AuthId_Steam3, aData.sAuthID, 32) ||
+		(aData.iSteamID = GetSteamAccountID((client))) == 0 ||
 		Shavit_GetTimerStatus(client) == Timer_Stopped ||
 		gCV_PersistData.IntValue == 0)
 	{
@@ -1188,11 +1188,11 @@ void DeletePersistentData(int index, persistent_data_t data)
 
 public Action Timer_LoadPersistentData(Handle Timer, any data)
 {
-	char sAuthID[32];
+	int iSteamID = 0;
 	int client = GetClientFromSerial(data);
 
 	if(client == 0 ||
-		!GetClientAuthId(client, AuthId_Steam3, sAuthID, 32) ||
+		(iSteamID = GetSteamAccountID(client)) == 0 ||
 		GetClientTeam(client) < 2 ||
 		!IsPlayerAlive(client))
 	{
@@ -1207,7 +1207,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	{
 		gA_PersistentData.GetArray(i, aData);
 
-		if(StrEqual(sAuthID, aData.sAuthID))
+		if(iSteamID == aData.iSteamID)
 		{
 			iIndex = i;
 

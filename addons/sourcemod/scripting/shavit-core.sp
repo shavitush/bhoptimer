@@ -711,16 +711,23 @@ public Action Command_WipePlayer(int client, int args)
 
 void DeleteUserData(int client, const char[] sAuthID3)
 {
+	char sAuthID[32];
+	strcopy(sAuthID, 32, sAuthID3);
+	ReplaceString(sAuthID, 32, "[U:1:", "");
+	ReplaceString(sAuthID, 32, "]", "");
+
+	int iSteamID = StringToInt(sAuthID);
+
 	if(gB_Replay)
 	{
 		char sQueryGetWorldRecords[256];
 		FormatEx(sQueryGetWorldRecords, 256,
-			"SELECT map, id, style, track FROM %splayertimes WHERE auth = '%s';",
-			gS_MySQLPrefix, sAuthID3);
+			"SELECT map, id, style, track FROM %splayertimes WHERE auth = %d;",
+			gS_MySQLPrefix, iSteamID);
 
 		DataPack hPack = new DataPack();
 		hPack.WriteCell(client);
-		hPack.WriteString(sAuthID3);
+		hPack.WriteCell(iSteamID);
 
 		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, hPack, DBPrio_High);
 	}
@@ -729,14 +736,14 @@ void DeleteUserData(int client, const char[] sAuthID3)
 	{
 		char sQueryDeleteUserTimes[256];
 		FormatEx(sQueryDeleteUserTimes, 256,
-			"DELETE FROM %splayertimes WHERE auth = '%s';",
-			gS_MySQLPrefix, sAuthID3);
+			"DELETE FROM %splayertimes WHERE auth = %d;",
+			gS_MySQLPrefix, iSteamID);
 
-		DataPack steamPack = new DataPack();
-		steamPack.WriteString(sAuthID3);
-		steamPack.WriteCell(client);
+		DataPack hSteamPack = new DataPack();
+		hSteamPack.WriteCell(iSteamID);
+		hSteamPack.WriteCell(client);
 
-		gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, steamPack, DBPrio_High);
+		gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, hSteamPack, DBPrio_High);
 	}
 }
 
@@ -745,9 +752,7 @@ public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet resu
 	DataPack hPack = view_as<DataPack>(data);
 	hPack.Reset();
 	int client = hPack.ReadCell();
-
-	char sAuthID3[32];
-	hPack.ReadString(sAuthID3, 32);
+	int iSteamID = hPack.ReadCell();
 	delete hPack;
 
 	if(results == null)
@@ -782,19 +787,18 @@ public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet resu
 		hTransaction.AddQuery(sQueryGetWorldRecordID, hTransPack);
 	}
 
-	DataPack steamPack = new DataPack();
-	steamPack.WriteString(sAuthID3);
-	steamPack.WriteCell(client);
+	DataPack hSteamPack = new DataPack();
+	hSteamPack.WriteCell(iSteamID);
+	hSteamPack.WriteCell(client);
 
-	gH_SQL.Execute(hTransaction, Trans_OnRecordCompare, INVALID_FUNCTION, steamPack, DBPrio_High);
+	gH_SQL.Execute(hTransaction, Trans_OnRecordCompare, INVALID_FUNCTION, hSteamPack, DBPrio_High);
 }
 
 public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	DataPack pack = view_as<DataPack>(data);
-	pack.Reset();
-	char sAuthID3[32];
-	pack.ReadString(sAuthID3, 32);
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+	int iSteamID = hPack.ReadCell();
 
 	for(int i = 0; i < numQueries; i++)
 	{
@@ -821,55 +825,53 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 
 	char sQueryDeleteUserTimes[256];
 	FormatEx(sQueryDeleteUserTimes, 256,
-		"DELETE FROM %splayertimes WHERE auth = '%s';",
-		gS_MySQLPrefix, sAuthID3);
+		"DELETE FROM %splayertimes WHERE auth = %d;",
+		gS_MySQLPrefix, iSteamID);
 
-	gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, pack, DBPrio_High);
+	gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, hPack, DBPrio_High);
 }
 
 public void SQL_DeleteUserTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	DataPack pack = view_as<DataPack>(data);
-	pack.Reset();
-	char sAuthID3[32];
-	pack.ReadString(sAuthID3, 32);
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+	int iSteamID = hPack.ReadCell();
 
 	if(results == null)
 	{
 		LogError("Timer error! Failed to wipe user data (wipe | delete user times). Reason: %s", error);
 
-		delete pack;
+		delete hPack;
 
 		return;
 	}
 
 	char sQueryDeleteUsers[256];
-	FormatEx(sQueryDeleteUsers, 256, "DELETE FROM %susers WHERE auth = '%s';",
-		gS_MySQLPrefix, sAuthID3);
+	FormatEx(sQueryDeleteUsers, 256, "DELETE FROM %susers WHERE auth = %d;",
+		gS_MySQLPrefix, iSteamID);
 
-	gH_SQL.Query(SQL_DeleteUserData_Callback, sQueryDeleteUsers, pack, DBPrio_High);
+	gH_SQL.Query(SQL_DeleteUserData_Callback, sQueryDeleteUsers, hPack, DBPrio_High);
 }
 
 public void SQL_DeleteUserData_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	DataPack pack = view_as<DataPack>(data);
-	pack.Reset();
-	char sAuthID3[32];
-	pack.ReadString(sAuthID3, 32);
-	int client = pack.ReadCell();
-	delete pack;
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+	int iSteamID = hPack.ReadCell();
+	int client = hPack.ReadCell();
+	delete hPack;
 
 	if(results == null)
 	{
-		LogError("Timer error! Failed to wipe user data (wipe | delete user data, id %s). Reason: %s", error, sAuthID3);
+		LogError("Timer error! Failed to wipe user data (wipe | delete user data, id [U:1:%d]). Reason: %s", error, iSteamID);
 
 		return;
 	}
 
 	Shavit_ReloadLeaderboards();
 
-	Shavit_PrintToChat(client, "Finished wiping timer data for user %s%s%s.",
-		gS_ChatStrings.sVariable, sAuthID3, gS_ChatStrings.sText);
+	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.",
+		gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
 }
 
 public Action Command_AutoBhop(int client, int args)
@@ -1870,9 +1872,9 @@ public void OnClientPutInServer(int client)
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
 
-	char sAuthID3[32];
+	int iSteamID = GetSteamAccountID(client);
 
-	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+	if(iSteamID == 0)
 	{
 		KickClient(client, "%T", "VerificationFailed", client);
 
@@ -1887,15 +1889,9 @@ public void OnClientPutInServer(int client)
 	char[] sEscapedName = new char[iLength];
 	gH_SQL.Escape(sName, sEscapedName, iLength);
 
-	char sIP[64];
-	GetClientIP(client, sIP, 64);
-
-	char sCountry[128];
-
-	if(!GeoipCountry(sIP, sCountry, 128))
-	{
-		strcopy(sCountry, 128, "Local Area Network");
-	}
+	char sIPAddress[64];
+	GetClientIP(client, sIPAddress, 64);
+	int iIPAddress = IPStringToAddress(sIPAddress);
 
 	int iTime = GetTime();
 
@@ -1903,12 +1899,16 @@ public void OnClientPutInServer(int client)
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "INSERT INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d) ON DUPLICATE KEY UPDATE name = '%s', country = '%s', ip = '%s', lastlogin = %d;", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, iTime, sEscapedName, sCountry, sIP, iTime);
+		FormatEx(sQuery, 512,
+			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
+			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 512, "REPLACE INTO %susers (auth, name, country, ip, lastlogin) VALUES ('%s', '%s', '%s', '%s', %d);", gS_MySQLPrefix, sAuthID3, sEscapedName, sCountry, sIP, iTime);
+		FormatEx(sQuery, 512,
+			"REPLACE INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d);",
+			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime);
 	}
 
 	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
@@ -2212,30 +2212,210 @@ void SQL_DBConnect()
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
 	gB_MySQL = StrEqual(sDriver, "mysql", false);
 
-	char sQuery[512];
-
+	// migrations will only exist for mysql. sorry sqlite users
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_general_ci', `country` VARCHAR(32), `ip` VARCHAR(64), `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`)) ENGINE=INNODB;", gS_MySQLPrefix);
+		char sQuery[128];
+		FormatEx(sQuery, 128, "CREATE TABLE IF NOT EXISTS `%smigrations` (`code` TINYINT NOT NULL, UNIQUE INDEX `code` (`code`));", gS_MySQLPrefix);
+
+		gH_SQL.Query(SQL_CreateMigrationsTable_Callback, sQuery, 0, DBPrio_High);
 	}
 
-	else
-	{
-		FormatEx(sQuery, 512, "CREATE TABLE IF NOT EXISTS `%susers` (`auth` VARCHAR(32) NOT NULL PRIMARY KEY, `name` VARCHAR(32), `country` VARCHAR(32), `ip` VARCHAR(64), `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);", gS_MySQLPrefix);
-	}
-
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0, DBPrio_High);
+	CreateUsersTable();
 }
 
-public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_CreateMigrationsTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
 	{
-		LogError("Timer error! Users' data table creation failed. Reason: %s", error);
+		LogError("Timer error! Migrations table creation failed. Reason: %s", error);
 
 		return;
 	}
 
+	char sQuery[128];
+	FormatEx(sQuery, 128, "SELECT code FROM %smigrations;", gS_MySQLPrefix);
+
+	gH_SQL.Query(SQL_SelectMigrations_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_SelectMigrations_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer error! Migrations selection failed. Reason: %s", error);
+
+		return;
+	}
+
+	// this is ugly, i know. but it works and is more elegant than previous solutions so.. let it be =)
+	bool bMigrationApplied[255] = { false, ... };
+
+	while(results.FetchRow())
+	{
+		bMigrationApplied[results.FetchInt(0)] = true;
+	}
+
+	for(int i = 0; i < MIGRATIONS_END; i++)
+	{
+		if(!bMigrationApplied[i])
+		{
+			PrintToServer("--- Applying database migration %d ---", i);
+			ApplyMigration(i);
+		}
+	}
+}
+
+void ApplyMigration(int migration)
+{
+	switch(migration)
+	{
+		case Migration_RemoveWorkshopMaptiers, Migration_RemoveWorkshopMapzones, Migration_RemoveWorkshopPlayertimes: ApplyMigration_RemoveWorkshopPath(migration);
+		case Migration_LastLoginIndex: ApplyMigration_LastLoginIndex();
+		case Migration_RemoveCountry: ApplyMigration_RemoveCountry();
+		case Migration_ConvertIPAddresses: ApplyMigration_ConvertIPAddresses();
+		case Migration_ConvertSteamIDsUsers: ApplyMigration_ConvertSteamIDs();
+		case Migration_ConvertSteamIDsPlayertimes, Migration_ConvertSteamIDsChat: return; // this is confusing, but the above case handles all of them
+		case Migration_PlayertimesDateToInt: ApplyMigration_PlayertimesDateToInt();
+	}
+}
+
+void ApplyMigration_LastLoginIndex()
+{
+	char sQuery[128];
+	FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD INDEX `lastlogin` (`lastlogin`);", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_LastLoginIndex, DBPrio_High);
+}
+
+void ApplyMigration_RemoveCountry()
+{
+	char sQuery[128];
+	FormatEx(sQuery, 128, "ALTER TABLE `%susers` DROP COLUMN `country`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_RemoveCountry, DBPrio_High);
+}
+
+void ApplyMigration_PlayertimesDateToInt()
+{
+	char sQuery[128];
+	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` CHANGE COLUMN `date` `date` INT;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_PlayertimesDateToInt, DBPrio_High);
+}
+
+public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	InsertMigration(data);
+
+	// i hate hardcoding REEEEEEEE
+	if(data == Migration_ConvertSteamIDsChat)
+	{
+		char sQuery[256];
+		FormatEx(sQuery, 256,
+			"ALTER TABLE `%splayertimes` ADD CONSTRAINT `pt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+		gH_SQL.Query(SQL_TableMigrationConstraints_Callback, sQuery, 0, DBPrio_High);
+
+		FormatEx(sQuery, 256,
+			"ALTER TABLE `%schat` ADD CONSTRAINT `ch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+		gH_SQL.Query(SQL_TableMigrationConstraints_Callback, sQuery, 0, DBPrio_High);
+	}
+}
+
+void ApplyMigration_ConvertIPAddresses()
+{
+	char sQuery[128];
+	FormatEx(sQuery, 128, "SELECT DISTINCT ip FROM %susers WHERE ip LIKE \"\%%.\%%\";", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationIPAddresses_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_TableMigrationIPAddresses_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if(results == null || results.RowCount == 0)
+	{
+		InsertMigration(Migration_ConvertIPAddresses);
+
+		return;
+	}
+
+	Transaction hTransaction = new Transaction();
+
+	while(results.FetchRow())
+	{
+		char sIPAddress[32];
+		results.FetchString(0, sIPAddress, 32);
+
+		char sExplodedAddress[4][4];
+		ExplodeString(sIPAddress, ".", sExplodedAddress, 4, 4, false);
+
+		int iIPAddress =
+				(StringToInt(sExplodedAddress[0]) << 24) |
+				(StringToInt(sExplodedAddress[1]) << 16) |
+				(StringToInt(sExplodedAddress[2]) << 8) |
+				StringToInt(sExplodedAddress[3]);
+
+		char sQuery[256];
+		FormatEx(sQuery, 256, "UPDATE %susers SET ip = %d WHERE ip = '%s';", gS_MySQLPrefix, iIPAddress, sIPAddress);
+
+		hTransaction.AddQuery(sQuery);
+	}
+
+	gH_SQL.Execute(hTransaction, Trans_IPAddressMigration);
+}
+
+public void Trans_IPAddressMigration(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	char sQuery[128];
+	FormatEx(sQuery, 128, "ALTER TABLE `%susers` CHANGE COLUMN `ip` `ip` INT;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_ConvertIPAddresses, DBPrio_High);
+}
+
+void ApplyMigration_ConvertSteamIDs()
+{
+	char sTables[][] =
+	{
+		"users",
+		"playertimes",
+		"chat"
+	};
+
+	char sQuery[128];
+	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` DROP CONSTRAINT `pt_auth`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationConstraints_Callback, sQuery, 0, DBPrio_High);
+
+	FormatEx(sQuery, 128, "ALTER TABLE `%schat` DROP CONSTRAINT `ch_auth`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationConstraints_Callback, sQuery, 0, DBPrio_High);
+
+	for(int i = 0; i < sizeof(sTables); i++)
+	{
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(Migration_ConvertSteamIDsUsers + i);
+		hPack.WriteString(sTables[i]);
+
+		FormatEx(sQuery, 128, "UPDATE %s%s SET auth = REPLACE(REPLACE(auth, \"[U:1:\", \"\"), \"]\", \"\") WHERE auth LIKE '[%%';", sTables[i], gS_MySQLPrefix);
+		gH_SQL.Query(SQL_TableMigrationSteamIDs_Callback, sQuery, hPack, DBPrio_High);
+	}
+}
+
+public void SQL_TableMigrationConstraints_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	// nothing
+}
+
+public void SQL_TableMigrationSteamIDs_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	data.Reset();
+	int iMigration = data.ReadCell();
+	char sTable[16];
+	data.ReadString(sTable, 16);
+	delete data;
+
+	char sQuery[128];
+	FormatEx(sQuery, 128, "ALTER TABLE `%s%s` CHANGE COLUMN `auth` `auth` INT;", gS_MySQLPrefix, sTable);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, iMigration, DBPrio_High);
+}
+
+void ApplyMigration_RemoveWorkshopPath(int migration)
+{
 	char sTables[][] =
 	{
 		"maptiers",
@@ -2245,30 +2425,33 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	for(int i = 0; i < sizeof(sTables); i++)
 	{
-		DataPack dp = new DataPack();
-		dp.WriteString(sTables[i]);
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(migration);
+		hPack.WriteString(sTables[i]);
 
 		char sQuery[192];
 		FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_MySQLPrefix, sTables[i]);
-		gH_SQL.Query(SQL_TableMigration_Callback, sQuery, dp, DBPrio_High);
+		gH_SQL.Query(SQL_TableMigrationWorkshop_Callback, sQuery, hPack, DBPrio_High);
 	}
-
-	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
-	Call_Finish();
 }
 
-public void SQL_TableMigration_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+public void SQL_TableMigrationWorkshop_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	char sTable[16];
 	data.Reset();
+	int iMigration = data.ReadCell();
+	char sTable[16];
 	data.ReadString(sTable, 16);
 	delete data;
 
 	if(results == null || results.RowCount == 0)
 	{
 		// no error logging here because not everyone runs the rankings/wr modules
+		InsertMigration(iMigration);
+
 		return;
 	}
+
+	Transaction hTransaction = new Transaction();
 
 	while(results.FetchRow())
 	{
@@ -2280,18 +2463,62 @@ public void SQL_TableMigration_Callback(Database db, DBResultSet results, const 
 
 		char sQuery[256];
 		FormatEx(sQuery, 256, "UPDATE %s%s SET map = '%s' WHERE map = '%s';", gS_MySQLPrefix, sTable, sDisplayMap, sMap);
-		gH_SQL.Query(SQL_AlterTable3_Callback, sQuery, 0, DBPrio_High);
+
+		hTransaction.AddQuery(sQuery);
 	}
+
+	gH_SQL.Execute(hTransaction, Trans_WorkshopMigration, INVALID_FUNCTION, iMigration);
 }
 
-public void SQL_AlterTable3_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void Trans_WorkshopMigration(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	InsertMigration(data);
+}
+
+void InsertMigration(int migration)
+{
+	char sQuery[128];
+	FormatEx(sQuery, 128, "INSERT INTO %smigrations (code) VALUES (%d);", gS_MySQLPrefix, migration);
+	gH_SQL.Query(SQL_MigrationApplied_Callback, sQuery, migration);
+}
+
+public void SQL_MigrationApplied_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	// nothing
+}
+
+void CreateUsersTable()
+{
+	char sQuery[512];
+
+	if(gB_MySQL)
+	{
+		FormatEx(sQuery, 512,
+			"CREATE TABLE IF NOT EXISTS `%susers` (`auth` INT NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_general_ci', `ip` INT, `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`), INDEX `lastlogin` (`lastlogin`)) ENGINE=INNODB;",
+			gS_MySQLPrefix);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 512,
+			"CREATE TABLE IF NOT EXISTS `%susers` (`auth` INT NOT NULL PRIMARY KEY, `name` VARCHAR(32), `ip` INT, `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0);",
+			gS_MySQLPrefix);
+	}
+
+	gH_SQL.Query(SQL_CreateUsersTable_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_CreateUsersTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
 	{
-		LogError("Timer error! Table alteration 3 (core) failed. Reason: %s", error);
+		LogError("Timer error! Users' data table creation failed. Reason: %s", error);
 
 		return;
 	}
+
+	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
+	Call_Finish();
 }
 
 public void PreThinkPost(int client)

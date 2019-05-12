@@ -48,7 +48,7 @@ bool gB_AllowStats[MAXPLAYERS+1];
 int gI_MapType[MAXPLAYERS+1];
 int gI_Style[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
-char gS_TargetAuth[MAXPLAYERS+1][32];
+int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 int gI_WRAmount[MAXPLAYERS+1];
 EngineVersion gEV_Type = Engine_Unknown;
@@ -282,9 +282,9 @@ void UpdateWRs(int client)
 		return;
 	}
 
-	char sAuthID[32];
+	int iSteamID = 0;
 
-	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
+	if((iSteamID = GetSteamAccountID(client)) != 0)
 	{
 		char sQuery[512];
 
@@ -292,16 +292,16 @@ void UpdateWRs(int client)
 		if(gCV_MVPRankOnes.IntValue == 2)
 		{
 			FormatEx(sQuery, 512,
-				"SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 %sGROUP by map, track) b ON a.time = b.time AND a.map = b.map AND style = 0 %sWHERE auth = '%s';",
-				gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
+				"SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 %sGROUP by map, track) b ON a.time = b.time AND a.map = b.map AND style = 0 %sWHERE auth = %d;",
+				gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", iSteamID);
 		}
 
 		// all styles
 		else
 		{
 			FormatEx(sQuery, 512,
-				"SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time, map, style FROM %splayertimes %sGROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND a.style = b.style %sWHERE auth = '%s';",
-				gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "WHERE track = 0 ":"", (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", sAuthID);
+				"SELECT COUNT(*) FROM %splayertimes a JOIN (SELECT MIN(time) time, map, style FROM %splayertimes %sGROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND a.style = b.style %sWHERE auth = %d;",
+				gS_MySQLPrefix, gS_MySQLPrefix, (gCV_MVPRankOnes_Main.BoolValue)? "WHERE track = 0 ":"", (gCV_MVPRankOnes_Main.BoolValue)? "AND track = 0 ":"", iSteamID);
 		}
 
 		gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
@@ -356,7 +356,7 @@ public Action Command_MapsDoneLeft(int client, int args)
 		}
 	}
 
-	GetClientAuthId(target, AuthId_Steam3, gS_TargetAuth[client], 32);
+	gI_TargetSteamID[client] = GetSteamAccountID(target);
 
 	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
@@ -472,12 +472,12 @@ public Action Command_Profile(int client, int args)
 		}
 	}
 
-	GetClientAuthId(target, AuthId_Steam3, gS_TargetAuth[client], 32);
+	gI_TargetSteamID[client] = GetSteamAccountID(target);
 
-	return OpenStatsMenu(client, gS_TargetAuth[client]);
+	return OpenStatsMenu(client, gI_TargetSteamID[client]);
 }
 
-Action OpenStatsMenu(int client, const char[] authid)
+Action OpenStatsMenu(int client, int steamid)
 {
 	// no spam please
 	if(!gB_AllowStats[client])
@@ -490,23 +490,23 @@ Action OpenStatsMenu(int client, const char[] authid)
 
 	if(gB_Rankings)
 	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin, d.points, e.rank FROM " ...
-				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
+		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, d.points, e.rank FROM " ...
+				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = '%s') c " ...
-				"JOIN (SELECT name, country, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = '%s') d " ...
-				"JOIN (SELECT COUNT(*) rank FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = '%s') u2 WHERE u1.points >= u2.points) e " ...
-			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, authid);
+				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = %d) c " ...
+				"JOIN (SELECT name, ip, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = %d) d " ...
+				"JOIN (SELECT COUNT(*) rank FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points) e " ...
+			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid);
 	}
 
 	else
 	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.country, d.lastlogin FROM " ...
-				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = '%s' AND track = 0 GROUP BY map) s) a " ...
+		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin FROM " ...
+				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = '%s') c " ...
-				"JOIN (SELECT name, country, lastlogin FROM %susers WHERE auth = '%s') d " ...
-			"LIMIT 1;", gS_MySQLPrefix, authid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, authid, gS_MySQLPrefix, authid);
+				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = %d) c " ...
+				"JOIN (SELECT name, ip, lastlogin FROM %susers WHERE auth = %d) d " ...
+			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid);
 	}
 
 	gB_AllowStats[client] = false;
@@ -541,8 +541,16 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		results.FetchString(3, gS_TargetName[client], MAX_NAME_LENGTH);
 		ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
 
+		int iIPAddress = results.FetchInt(4);
+		char sIPAddress[32];
+		IPAddressToString(iIPAddress, sIPAddress, 32);
+
 		char sCountry[64];
-		results.FetchString(4, sCountry, 64);
+
+		if(!GeoipCountry(sIPAddress, sCountry, 64))
+		{
+			strcopy(sCountry, 64, "Local Area Network");
+		}
 
 		int iLastLogin = results.FetchInt(5);
 		char sLastLogin[32];
@@ -582,8 +590,8 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
-		menu.SetTitle("%s's %T. %s\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n",
-			gS_TargetName[client], "Profile", client, gS_TargetAuth[client], "Country", client, sCountry, sLastLogin, sClearString,
+		menu.SetTitle("%s's %T. [U:1:%d]\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n",
+			gS_TargetName[client], "Profile", client, gI_TargetSteamID[client], "Country", client, sCountry, sLastLogin, sClearString,
 			gS_StyleStrings[0].sStyleName, "WorldRecords", client, iWRs, sRankingString);
 
 		int[] styles = new int[gI_Styles];
@@ -681,7 +689,7 @@ public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		OpenStatsMenu(param1, gS_TargetAuth[param1]);
+		OpenStatsMenu(param1, gI_TargetSteamID[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -721,8 +729,8 @@ void ShowMaps(int client)
 	if(gI_MapType[client] == MAPSDONE)
 	{
 		FormatEx(sQuery, 512,
-			"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = '%s' AND a.style = %d AND a.track = %d GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.%s;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
+			"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = %d AND a.style = %d AND a.track = %d GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.%s;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
 	}
 
 	else
@@ -730,15 +738,15 @@ void ShowMaps(int client)
 		if(gB_Rankings)
 		{
 			FormatEx(sQuery, 512,
-				"SELECT DISTINCT m.map, t.tier FROM %smapzones m LEFT JOIN %smaptiers t ON m.map = t.map WHERE m.type = 0 AND m.track = %d AND m.map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY m.map;",
-				gS_MySQLPrefix, gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
+				"SELECT DISTINCT m.map, t.tier FROM %smapzones m LEFT JOIN %smaptiers t ON m.map = t.map WHERE m.type = 0 AND m.track = %d AND m.map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = %d AND style = %d AND track = %d) ORDER BY m.map;",
+				gS_MySQLPrefix, gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client]);
 		}
 
 		else
 		{
 			FormatEx(sQuery, 512,
-				"SELECT DISTINCT map FROM %smapzones WHERE type = 0 AND track = %d AND map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = '%s' AND style = %d AND track = %d) ORDER BY map;",
-				gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gS_TargetAuth[client], gI_Style[client], gI_Track[client]);
+				"SELECT DISTINCT map FROM %smapzones WHERE type = 0 AND track = %d AND map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = %d AND style = %d AND track = %d) ORDER BY map;",
+				gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client]);
 		}
 	}
 
@@ -853,7 +861,7 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 
 		if(StrEqual(sInfo, "nope"))
 		{
-			OpenStatsMenu(param1, gS_TargetAuth[param1]);
+			OpenStatsMenu(param1, gI_TargetSteamID[param1]);
 
 			return 0;
 		}
@@ -866,7 +874,7 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		OpenStatsMenu(param1, gS_TargetAuth[param1]);
+		OpenStatsMenu(param1, gI_TargetSteamID[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -893,10 +901,10 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		return;
 	}
 
-	Menu menu = new Menu(SubMenu_Handler);
+	Menu hMenu = new Menu(SubMenu_Handler);
 
 	char sName[MAX_NAME_LENGTH];
-	char sAuthID[32];
+	int iSteamID = 0;
 	char sMap[192];
 
 	if(results.FetchRow())
@@ -911,20 +919,20 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		char sDisplay[128];
 		FormatEx(sDisplay, 128, "%T: %s", "Time", client, sTime);
-		menu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay);
 
 		// 2 - jumps
 		int jumps = results.FetchInt(2);
 		FormatEx(sDisplay, 128, "%T: %d", "Jumps", client, jumps);
-		menu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay);
 
 		// 3 - style
 		int style = results.FetchInt(3);
 		FormatEx(sDisplay, 128, "%T: %s", "Style", client, gS_StyleStrings[style].sStyleName);
-		menu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay);
 
 		// 4 - steamid3
-		results.FetchString(4, sAuthID, 32);
+		iSteamID = results.FetchInt(4);
 
 		// 6 - map
 		results.FetchString(6, sMap, 192);
@@ -934,7 +942,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		if(gB_Rankings && points > 0.0)
 		{
 			FormatEx(sDisplay, 192, "%T: %.03f", "Points", client, points);
-			menu.AddItem("-1", sDisplay);
+			hMenu.AddItem("-1", sDisplay);
 		}
 
 		// 5 - date
@@ -947,7 +955,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 
 		FormatEx(sDisplay, 128, "%T: %s", "Date", client, sDate);
-		menu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay);
 
 		int strafes = results.FetchInt(7);
 		float sync = results.FetchFloat(8);
@@ -955,16 +963,16 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		if(jumps > 0 || strafes > 0)
 		{
 			FormatEx(sDisplay, 128, (sync > 0.0)? "%T: %d (%.02f%%)":"%T: %d", "Strafes", client, strafes, sync, "Strafes", client, strafes);
-			menu.AddItem("-1", sDisplay);
+			hMenu.AddItem("-1", sDisplay);
 		}
 	}
 
 	char sFormattedTitle[256];
-	FormatEx(sFormattedTitle, 256, "%s %s\n--- %s:", sName, sAuthID, sMap);
+	FormatEx(sFormattedTitle, 256, "%s [U:1:%d]\n--- %s:", sName, iSteamID, sMap);
 
-	menu.SetTitle(sFormattedTitle);
-	menu.ExitBackButton = true;
-	menu.Display(client, 20);
+	hMenu.SetTitle(sFormattedTitle);
+	hMenu.ExitBackButton = true;
+	hMenu.Display(client, 20);
 }
 
 public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -985,9 +993,9 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 public int Native_OpenStatsMenu(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
-	GetNativeString(2, gS_TargetAuth[client], 32);
+	gI_TargetSteamID[client] = GetNativeCell(2);
 
-	OpenStatsMenu(client, gS_TargetAuth[client]);
+	OpenStatsMenu(client, gI_TargetSteamID[client]);
 }
 
 public int Native_GetWRCount(Handle handler, int numParams)

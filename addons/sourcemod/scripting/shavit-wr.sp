@@ -426,11 +426,15 @@ public void OnClientPutInServer(int client)
 
 void UpdateClientCache(int client)
 {
-	char sAuthID[32];
-	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+	int iSteamID = GetSteamAccountID(client);
+	
+	if(iSteamID == 0)
+	{
+		return;
+	}
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT time, style, track FROM %splayertimes WHERE map = '%s' AND auth = '%s';", gS_MySQLPrefix, gS_Map, sAuthID);
+	FormatEx(sQuery, 256, "SELECT time, style, track FROM %splayertimes WHERE map = '%s' AND auth = %d;", gS_MySQLPrefix, gS_Map, iSteamID);
 	gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
@@ -635,10 +639,9 @@ public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[
 public Action Command_Junk(int client, int args)
 {
 	char sQuery[256];
-
-	char sAuth[32];
-	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
-	FormatEx(sQuery, 256, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES ('%s', '%s', %f, %d, %d, 0, %d, %.02f);", gS_MySQLPrefix, sAuth, gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
+	FormatEx(sQuery, 256,
+		"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES (%d, '%s', %f, %d, %d, 0, %d, %.02f);",
+		gS_MySQLPrefix, GetSteamAccountID(client), gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
 
 	SQL_LockDatabase(gH_SQL);
 	SQL_FastQuery(gH_SQL, sQuery);
@@ -1125,8 +1128,7 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 
 	if(results.FetchRow())
 	{
-		char sAuthID[32];
-		results.FetchString(0, sAuthID, 32);
+		int iSteamID = results.FetchInt(0);
 
 		char sName[MAX_NAME_LENGTH];
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
@@ -1150,7 +1152,7 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		// that's a big datapack ya yeet
 		DataPack hPack = new DataPack();
 		hPack.WriteCell(GetClientSerial(client));
-		hPack.WriteString(sAuthID);
+		hPack.WriteCell(iSteamID);
 		hPack.WriteString(sName);
 		hPack.WriteString(sMap);
 		hPack.WriteCell(fTime);
@@ -1178,9 +1180,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 	hPack.Reset();
 
 	int iSerial = hPack.ReadCell();
-
-	char sAuthID[32];
-	hPack.ReadString(sAuthID, 32);
+	int iSteamID = hPack.ReadCell();
 
 	char sName[MAX_NAME_LENGTH];
 	hPack.ReadString(sName, MAX_NAME_LENGTH);
@@ -1234,8 +1234,8 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 	FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", iTimestamp);
 
 	// above the client == 0 so log doesn't get lost if admin disconnects between deleting record and query execution
-	Shavit_LogMessage("%L - deleted record. Runner: %s (%s) | Map: %s | Style: %s | Track: %s | Time: %.2f (%s) | Strafes: %d (%.1f%%) | Jumps: %d (%.1f%%) | Run date: %s | Record ID: %d",
-		client, sName, sAuthID, sMap, gS_StyleStrings[iStyle].sStyleName, sTrack, fTime, (bWRDeleted)? "WR":"not WR", iStrafes, fSync, iJumps, fPerfectJumps, sDate, iRecordID);
+	Shavit_LogMessage("%L - deleted record. Runner: %s ([U:1:%d]) | Map: %s | Style: %s | Track: %s | Time: %.2f (%s) | Strafes: %d (%.1f%%) | Jumps: %d (%.1f%%) | Run date: %s | Record ID: %d",
+		client, sName, iSteamID, sMap, gS_StyleStrings[iStyle].sStyleName, sTrack, fTime, (bWRDeleted)? "WR":"not WR", iStrafes, fSync, iJumps, fPerfectJumps, sDate, iRecordID);
 
 	if(client == 0)
 	{
@@ -1448,10 +1448,9 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		return;
 	}
 
-	char sAuth[32];
-	GetClientAuthId(client, AuthId_Steam3, sAuth, 32);
+	int iSteamID = GetSteamAccountID(client);
 
-	Menu menu = new Menu(WRMenu_Handler);
+	Menu hMenu = new Menu(WRMenu_Handler);
 
 	int iCount = 0;
 	int iMyRank = 0;
@@ -1479,14 +1478,13 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 			char sDisplay[128];
 			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %T)", iCount, sName, sTime, jumps, "WRJumps", client);
-			menu.AddItem(sID, sDisplay);
+			hMenu.AddItem(sID, sDisplay);
 		}
 
 		// check if record exists in the map's top X
-		char sQueryAuth[32];
-		results.FetchString(4, sQueryAuth, 32);
+		int iQuerySteamID = results.FetchInt(4);
 
-		if(StrEqual(sQueryAuth, sAuth))
+		if(iQuerySteamID == iSteamID)
 		{
 			iMyRank = iCount;
 		}
@@ -1494,13 +1492,13 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 	char sFormattedTitle[256];
 
-	if(menu.ItemCount == 0)
+	if(hMenu.ItemCount == 0)
 	{
-		menu.SetTitle("%T", "WRMap", client, sMap);
+		hMenu.SetTitle("%T", "WRMap", client, sMap);
 		char sNoRecords[64];
 		FormatEx(sNoRecords, 64, "%T", "WRMapNoRecords", client);
 
-		menu.AddItem("-1", sNoRecords);
+		hMenu.AddItem("-1", sNoRecords);
 	}
 
 	else
@@ -1525,11 +1523,11 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		GetTrackName(client, track, sTrack, 32);
 
 		FormatEx(sFormattedTitle, 192, "%T %s: [%s]\n%s", "WRRecordFor", client, sMap, sTrack, sRanks);
-		menu.SetTitle(sFormattedTitle);
+		hMenu.SetTitle(sFormattedTitle);
 	}
 
-	menu.ExitBackButton = true;
-	menu.Display(client, 20);
+	hMenu.ExitBackButton = true;
+	hMenu.Display(client, 20);
 }
 
 public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -1722,11 +1720,11 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		return;
 	}
 
-	Menu menu = new Menu(SubMenu_Handler);
+	Menu hMenu = new Menu(SubMenu_Handler);
 
 	char sFormattedTitle[256];
 	char sName[MAX_NAME_LENGTH];
-	char sAuthID[32];
+	int iSteamID = 0;
 	char sTrack[32];
 	char sMap[192];
 
@@ -1742,7 +1740,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		char sDisplay[128];
 		FormatEx(sDisplay, 128, "%T: %s", "WRTime", client, sTime);
-		menu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay);
 
 		// 2 - jumps
 		int style = results.FetchInt(3);
@@ -1759,11 +1757,11 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatEx(sDisplay, 128, "%T: %d (%.2f%%)", "WRJumps", client, jumps, perfs);
 		}
 
-		menu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay);
 
 		// 3 - style
 		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[style].sStyleName);
-		menu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay);
 
 		// 6 - map
 		results.FetchString(6, sMap, 192);
@@ -1773,11 +1771,11 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		if(gB_Rankings && fPoints > 0.0)
 		{
 			FormatEx(sDisplay, 128, "%T: %.03f", "WRPointsCap", client, fPoints);
-			menu.AddItem("-1", sDisplay);
+			hMenu.AddItem("-1", sDisplay);
 		}
 
 		// 4 - steamid3
-		results.FetchString(4, sAuthID, 32);
+		iSteamID = results.FetchInt(4);
 
 		// 5 - date
 		char sDate[32];
@@ -1789,7 +1787,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 
 		FormatEx(sDisplay, 128, "%T: %s", "WRDate", client, sDate);
-		menu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay);
 
 		int strafes = results.FetchInt(7);
 		float sync = results.FetchFloat(8);
@@ -1797,25 +1795,25 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		if(jumps > 0 || strafes > 0)
 		{
 			FormatEx(sDisplay, 128, (sync != -1.0)? "%T: %d (%.02f%%)":"%T: %d", "WRStrafes", client, strafes, sync);
-			menu.AddItem("-1", sDisplay);
+			hMenu.AddItem("-1", sDisplay);
 		}
 
 		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "WRPlayerStats", client);
 
 		char sInfo[32];
-		FormatEx(sInfo, 32, "0;%s", sAuthID);
+		FormatEx(sInfo, 32, "0;%d", iSteamID);
 
 		if(gB_Stats)
 		{
-			menu.AddItem(sInfo, sMenuItem);
+			hMenu.AddItem(sInfo, sMenuItem);
 		}
 
 		if(CheckCommandAccess(client, "sm_delete", ADMFLAG_RCON))
 		{
 			FormatEx(sMenuItem, 64, "%T", "WRDeleteRecord", client);
 			FormatEx(sInfo, 32, "1;%d", id);
-			menu.AddItem(sInfo, sMenuItem);
+			hMenu.AddItem(sInfo, sMenuItem);
 		}
 
 		GetTrackName(client, results.FetchInt(11), sTrack, 32);
@@ -1825,12 +1823,12 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	{
 		char sMenuItem[64];
 		FormatEx(sMenuItem, 64, "%T", "DatabaseError", client);
-		menu.AddItem("-1", sMenuItem);
+		hMenu.AddItem("-1", sMenuItem);
 	}
 
 	if(strlen(sName) > 0)
 	{
-		FormatEx(sFormattedTitle, 256, "%s %s\n--- %s: [%s]", sName, sAuthID, sMap, sTrack);
+		FormatEx(sFormattedTitle, 256, "%s [U:1:%d]\n--- %s: [%s]", sName, iSteamID, sMap, sTrack);
 	}
 
 	else
@@ -1838,9 +1836,9 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatEx(sFormattedTitle, 256, "%T", "Error", client);
 	}
 
-	menu.SetTitle(sFormattedTitle);
-	menu.ExitBackButton = true;
-	menu.Display(client, 20);
+	hMenu.SetTitle(sFormattedTitle);
+	hMenu.ExitBackButton = true;
+	hMenu.Display(client, 20);
 }
 
 public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -1861,7 +1859,7 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 			{
 				case 0:
 				{
-					Shavit_OpenStatsMenu(param1, sExploded[1]);
+					Shavit_OpenStatsMenu(param1, StringToInt(sExploded[1]));
 				}
 
 				case 1:
@@ -1956,14 +1954,14 @@ void SQL_DBConnect()
 	if(gB_MySQL)
 	{
 		FormatEx(sQuery, 1024,
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` VARCHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 
 	else
 	{
 		FormatEx(sQuery, 1024,
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` VARCHAR(32), `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` VARCHAR(16), `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 
@@ -2077,8 +2075,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	if(iOverwrite > 0)
 	{
-		char sAuthID[32];
-		GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+		int iSteamID = GetSteamAccountID(client);
 
 		char sQuery[512];
 
@@ -2091,14 +2088,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				return;
 			}
 
-			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES ('%s', '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);", gS_MySQLPrefix, sAuthID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
+			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);", gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
 		}
 
 		else // update
 		{
 			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
-			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = '%s' AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, sAuthID, style, track);
+			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, iSteamID, style, track);
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);

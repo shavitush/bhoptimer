@@ -76,6 +76,21 @@ enum
 
 enum
 {
+	Migration_RemoveWorkshopMaptiers,
+	Migration_RemoveWorkshopMapzones,
+	Migration_RemoveWorkshopPlayertimes,
+	Migration_LastLoginIndex,
+	Migration_RemoveCountry,
+	Migration_ConvertIPAddresses,
+	Migration_ConvertSteamIDsUsers,
+	Migration_ConvertSteamIDsPlayertimes,
+	Migration_ConvertSteamIDsChat,
+	Migration_PlayertimesDateToInt,
+	MIGRATIONS_END
+};
+
+enum
+{
 	Zone_Start,
 	Zone_End,
 	Zone_Respawn,
@@ -257,6 +272,25 @@ stock bool IsValidClient(int client, bool bAlive = false)
 stock bool IsSource2013(EngineVersion ev)
 {
 	return (ev == Engine_CSS || ev == Engine_TF2);
+}
+
+stock void IPAddressToString(int ip, char[] buffer, int maxlen)
+{
+	FormatEx(buffer, maxlen, "%d.%d.%d.%d", ((ip >> 24) & 0xFF), ((ip >> 16) & 0xFF), ((ip >> 8) & 0xFF), (ip & 0xFF));
+}
+
+stock int IPStringToAddress(const char[] ip)
+{
+	char sExplodedAddress[4][4];
+	ExplodeString(ip, ".", sExplodedAddress, 4, 4, false);
+
+	int iIPAddress =
+			(StringToInt(sExplodedAddress[0]) << 24) |
+			(StringToInt(sExplodedAddress[1]) << 16) |
+			(StringToInt(sExplodedAddress[2]) << 8) |
+			StringToInt(sExplodedAddress[3]);
+
+	return iIPAddress;
 }
 
 // time formatting!
@@ -1132,10 +1166,10 @@ native int Shavit_ForceHUDUpdate(int client, bool spectators);
  * Opens the stats menu for a client.
  *
  * @param client					Client index.
- * @param authid					Target SteamID3 to use.
+ * @param steamid					Target Steam account ID to use.
  * @noreturn
  */
-native void Shavit_OpenStatsMenu(int client, const char[] authid);
+native void Shavit_OpenStatsMenu(int client, int steamid);
 
 /**
  * Retrieves the amount of #1 records a player has.

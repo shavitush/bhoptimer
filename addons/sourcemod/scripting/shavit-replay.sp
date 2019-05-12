@@ -33,7 +33,7 @@
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x03
+#define REPLAY_FORMAT_SUBVERSION 0x04
 #define CELLS_PER_FRAME 8 // origin[3], angles[2], buttons, flags, movetype
 #define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
@@ -1015,19 +1015,32 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 	file.ReadInt32(iTemp);
 	gA_FrameCache[style][track].fTime = view_as<float>(iTemp);
 
-	char sAuthID[32];
-	file.ReadString(sAuthID, 32);
+	int iSteamID = 0;
+
+	if(gA_FrameCache[style][track].iReplayVersion >= 0x04)
+	{
+		file.ReadInt32(iSteamID);
+	}
+	
+	else
+	{
+		char sAuthID[32];
+		file.ReadString(sAuthID, 32);
+		ReplaceString(sAuthID, 32, "[U:1:", "");
+		ReplaceString(sAuthID, 32, "]", "");
+		iSteamID = StringToInt(sAuthID);
+	}
 
 	if(gH_SQL != null)
 	{
 		char sQuery[192];
-		FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = '%s';", gS_MySQLPrefix, sAuthID);
+		FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 
-		DataPack pack = new DataPack();
-		pack.WriteCell(style);
-		pack.WriteCell(track);
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(style);
+		hPack.WriteCell(track);
 
-		gH_SQL.Query(SQL_GetUserName_Callback, sQuery, pack, DBPrio_High);
+		gH_SQL.Query(SQL_GetUserName_Callback, sQuery, hPack, DBPrio_High);
 	}
 
 	int cells = CELLS_PER_FRAME;
@@ -1169,7 +1182,7 @@ bool LoadReplay(int style, int track, const char[] path)
 	return false;
 }
 
-bool SaveReplay(int style, int track, float time, char[] authid, char[] name, int preframes = 0)
+bool SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes = 0)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1193,7 +1206,7 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name, in
 	int iSize = gA_Frames[style][track].Length;
 	fFile.WriteInt32(iSize);
 	fFile.WriteInt32(view_as<int>(time));
-	fFile.WriteString(authid, true);
+	fFile.WriteInt32(steamid);
 
 	any aFrameData[CELLS_PER_FRAME];
 	any aWriteData[CELLS_PER_FRAME * FRAMES_PER_WRITE];
@@ -1599,14 +1612,13 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	delete gA_Frames[style][track];
 	gA_Frames[style][track] = gA_PlayerFrames[client].Clone();
 
-	char sAuthID[32];
-	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+	int iSteamID = GetSteamAccountID(client);
 
 	char sName[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
-	SaveReplay(style, track, time, sAuthID, sName);
+	SaveReplay(style, track, time, iSteamID, sName);
 
 	if(ReplayEnabled(style))
 	{

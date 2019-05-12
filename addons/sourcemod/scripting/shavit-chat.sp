@@ -1344,14 +1344,14 @@ void SQL_DBConnect()
 		if(bMySQL)
 		{
 			FormatEx(sQuery, 512,
-				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` VARCHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
 				gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 		}
 
 		else
 		{
 			FormatEx(sQuery, 512,
-				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` VARCHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
+				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
 				gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 		}
 		
@@ -1389,7 +1389,9 @@ void SaveToDatabase(int client)
 		return;
 	}
 
-	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+	int iSteamID = GetSteamAccountID(client);
+
+	if(iSteamID == 0)
 	{
 		return;
 	}
@@ -1404,8 +1406,8 @@ void SaveToDatabase(int client)
 
 	char sQuery[512];
 	FormatEx(sQuery, 512,
-		"REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES ('%s', %d, '%s', %d, '%s');",
-		gS_MySQLPrefix, sAuthID3, gB_NameEnabled[client], sEscapedName, gB_MessageEnabled[client], sEscapedMessage);
+		"REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES (%d, %d, '%s', %d, '%s');",
+		gS_MySQLPrefix, iSteamID, gB_NameEnabled[client], sEscapedName, gB_MessageEnabled[client], sEscapedMessage);
 
 	gH_SQL.Query(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -1427,15 +1429,15 @@ void LoadFromDatabase(int client)
 		return;
 	}
 
-	char sAuthID3[32];
+	int iSteamID = GetSteamAccountID(client);
 
-	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+	if(iSteamID == 0)
 	{
 		return;
 	}
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT name, ccname, message, ccmessage FROM %schat WHERE auth = '%s';", gS_MySQLPrefix, sAuthID3);
+	FormatEx(sQuery, 256, "SELECT name, ccname, message, ccmessage FROM %schat WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 
 	gH_SQL.Query(SQL_GetChat_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
