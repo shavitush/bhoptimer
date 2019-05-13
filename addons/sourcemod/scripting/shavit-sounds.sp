@@ -164,10 +164,7 @@ public void OnMapStart()
 
 			else
 			{
-				char sRank[8];
-				IntToString(StringToInt(sExploded[0]), sRank, 8);
-
-				gSM_RankSounds.SetString(sRank, sExploded[1]);
+				gSM_RankSounds.SetString(sExploded[0], sExploded[1]);
 			}
 
 			if(PrecacheSound(sExploded[1], true))
