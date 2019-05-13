@@ -2309,23 +2309,41 @@ public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet resu
 	if(data == Migration_ConvertSteamIDsChat)
 	{
 		char sQuery[256];
+		// deleting rows that cause data integrity issues
+		FormatEx(sQuery, 256,
+			"DELETE t1 FROM %splayertimes t1 LEFT JOIN %susers t2 ON t1.auth = t2.auth WHERE t2.auth IS NULL;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+
 		FormatEx(sQuery, 256,
 			"ALTER TABLE `%splayertimes` ADD CONSTRAINT `pt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
 			gS_MySQLPrefix, gS_MySQLPrefix);
-		gH_SQL.Query(SQL_TableMigrationConstraints_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
+
+		FormatEx(sQuery, 256,
+			"DELETE t1 FROM %schat t1 LEFT JOIN %susers t2 ON t1.auth = t2.auth WHERE t2.auth IS NULL;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 		FormatEx(sQuery, 256,
 			"ALTER TABLE `%schat` ADD CONSTRAINT `ch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
 			gS_MySQLPrefix, gS_MySQLPrefix);
-		gH_SQL.Query(SQL_TableMigrationConstraints_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
 	}
 }
 
-void ApplyMigration_ConvertIPAddresses()
+void ApplyMigration_ConvertIPAddresses(bool index = true)
 {
 	char sQuery[128];
-	FormatEx(sQuery, 128, "SELECT DISTINCT ip FROM %susers WHERE ip LIKE \"\%%.\%%\";", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationIPAddresses_Callback, sQuery, 0, DBPrio_High);
+
+	if(index)
+	{
+		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD INDEX `ip` (`ip`);", gS_MySQLPrefix);
+		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+	}
+
+	FormatEx(sQuery, 128, "SELECT DISTINCT ip FROM %susers WHERE ip LIKE '%%.%%';", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationIPAddresses_Callback, sQuery);
 }
 
 public void SQL_TableMigrationIPAddresses_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -2338,6 +2356,7 @@ public void SQL_TableMigrationIPAddresses_Callback(Database db, DBResultSet resu
 	}
 
 	Transaction hTransaction = new Transaction();
+	int iQueries = 0;
 
 	while(results.FetchRow())
 	{
@@ -2348,16 +2367,37 @@ public void SQL_TableMigrationIPAddresses_Callback(Database db, DBResultSet resu
 		FormatEx(sQuery, 256, "UPDATE %susers SET ip = %d WHERE ip = '%s';", gS_MySQLPrefix, IPStringToAddress(sIPAddress), sIPAddress);
 
 		hTransaction.AddQuery(sQuery);
+
+		if(++iQueries >= 10000)
+		{
+			break;
+		}
 	}
 
-	gH_SQL.Execute(hTransaction, Trans_IPAddressMigration);
+	gH_SQL.Execute(hTransaction, Trans_IPAddressMigrationSuccess, Trans_IPAddressMigrationFailed, iQueries);
 }
 
-public void Trans_IPAddressMigration(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+public void Trans_IPAddressMigrationSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
+	// too many queries, don't do all at once to avoid server crash due to too many queries in the transaction
+	if(data >= 10000)
+	{
+		ApplyMigration_ConvertIPAddresses(false);
+
+		return;
+	}
+
 	char sQuery[128];
+	FormatEx(sQuery, 128, "ALTER TABLE `%susers` DROP INDEX `ip`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+
 	FormatEx(sQuery, 128, "ALTER TABLE `%susers` CHANGE COLUMN `ip` `ip` INT;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_ConvertIPAddresses, DBPrio_High);
+}
+
+public void Trans_IPAddressMigrationFailed(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (core) error! IP address migration failed. Reason: %s", error);
 }
 
 void ApplyMigration_ConvertSteamIDs()
@@ -2371,10 +2411,10 @@ void ApplyMigration_ConvertSteamIDs()
 
 	char sQuery[128];
 	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` DROP CONSTRAINT `pt_auth`;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationConstraints_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 	FormatEx(sQuery, 128, "ALTER TABLE `%schat` DROP CONSTRAINT `ch_auth`;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationConstraints_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 	for(int i = 0; i < sizeof(sTables); i++)
 	{
@@ -2387,7 +2427,7 @@ void ApplyMigration_ConvertSteamIDs()
 	}
 }
 
-public void SQL_TableMigrationConstraints_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+public void SQL_TableMigrationIndexing_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
 	// nothing
 }
