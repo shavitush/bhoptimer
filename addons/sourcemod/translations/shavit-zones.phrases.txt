@@ -181,7 +181,7 @@
 	}
 	"ZoneForceRender"
 	{
-		"#format"	"{1:c}"
+		"#format"	"{1:s}"
 		"en"		"[{1}] Force zone drawing"
 	}
 	"ZoneSetAiraccelerate"
@@ -193,6 +193,11 @@
 	{
 		"#format"	"{1:d}"
 		"en"		"Custom speed limit: {1}"
+	}
+	"ZoneSetSpeedLimitUnlimited"
+	{
+		"#format"	"{1:d}"
+		"en"		"Custom speed limit: {1} (No Limit)"
 	}
 	"ZoneEnterDataChat"
 	{

@@ -2095,7 +2095,7 @@ void CreateEditMenu(int client)
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
 	menu.AddItem("adjust", sMenuItem);
 
-	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gI_ZoneFlags[client] & ZF_ForceRender) > 0)? 'x':' ');
+	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gI_ZoneFlags[client] & ZF_ForceRender) > 0)? "＋":"－");
 	menu.AddItem("forcerender", sMenuItem);
 
 	if(gI_ZoneType[client] == Zone_Airaccelerate)
@@ -2106,7 +2106,16 @@ void CreateEditMenu(int client)
 
 	else if(gI_ZoneType[client] == Zone_CustomSpeedLimit)
 	{
-		FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimit", client, gI_ZoneData[client]);
+		if(gI_ZoneData[client] == 0)
+		{
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimitUnlimited", client, gI_ZoneData[client]);
+		}
+
+		else
+		{
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimit", client, gI_ZoneData[client]);
+		}
+		
 		menu.AddItem("datafromchat", sMenuItem);
 	}
 
