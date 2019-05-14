@@ -109,6 +109,7 @@ int gI_Buttons[MAXPLAYERS+1];
 float gF_ConnectTime[MAXPLAYERS+1];
 bool gB_FirstPrint[MAXPLAYERS+1];
 int gI_PreviousSpeed[MAXPLAYERS+1];
+int gI_ZoneSpeedLimit[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -940,6 +941,15 @@ int GetGradient(int start, int end, int steps)
 	return GetHex(aColorGradient);
 }
 
+public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity)
+{
+	if(type == Zone_CustomSpeedLimit)
+	{
+		gI_ZoneSpeedLimit[client] = Shavit_GetZoneData(id);
+	}
+}
+
+
 int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int maxlen)
 {
 	int iLines = 0;
@@ -1090,9 +1100,17 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
 
-		if(gA_StyleSettings[data.iStyle].fVelocityLimit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_NoVelLimit, -1))
+		if(gA_StyleSettings[data.iStyle].fVelocityLimit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, -1))
 		{
-			FormatEx(sLine, 128, "%T", "HudNoSpeedLimit", client);
+			if(gI_ZoneSpeedLimit[data.iTarget] == 0)
+			{
+				FormatEx(sLine, 128, "%T", "HudNoSpeedLimit", data.iTarget);
+			}
+
+			else
+			{
+				FormatEx(sLine, 128, "%T", "HudCustomSpeedLimit", client, gI_ZoneSpeedLimit[data.iTarget]);
+			}
 
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;

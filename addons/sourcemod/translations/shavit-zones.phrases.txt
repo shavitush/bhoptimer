@@ -189,6 +189,11 @@
 		"#format"	"{1:d}"
 		"en"		"Airaccelerate: {1}"
 	}
+	"ZoneSetSpeedLimit"
+	{
+		"#format"	"{1:d}"
+		"en"		"Custom speed limit: {1}"
+	}
 	"ZoneEnterDataChat"
 	{
 		"en"		"Input your desired data in chat."

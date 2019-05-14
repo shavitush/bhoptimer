@@ -50,7 +50,7 @@ char gS_ZoneNames[][] =
 	"Glitch Zone (Stop Timer)", // stops the player's timer
 	"Slay Player", // slays (kills) players which come to this zone
 	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
-	"No Speed Limit", // ignores velocity limit in that zone
+	"Custom Speed Limit", // overwrites velocity limit in the zone
 	"Teleport Zone", // teleports to a defined point
 	"SPAWN POINT", // << unused
 	"Easybhop Zone", // forces easybhop whether if the player is in non-easy styles or if the server has different settings
@@ -1278,7 +1278,7 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 		GetTrackName(param1, gI_ZoneTrack[param1], sTrack, 16);
 
 		Menu submenu = new Menu(MenuHandler_SelectZoneType);
-		submenu.SetTitle("%T", "ZoneMenuTitle", param1, sTrack);
+		submenu.SetTitle("%T\n ", "ZoneMenuTitle", param1, sTrack);
 
 		for(int i = 0; i < sizeof(gS_ZoneNames); i++)
 		{
@@ -2101,6 +2101,12 @@ void CreateEditMenu(int client)
 	if(gI_ZoneType[client] == Zone_Airaccelerate)
 	{
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetAiraccelerate", client, gI_ZoneData[client]);
+		menu.AddItem("datafromchat", sMenuItem);
+	}
+
+	else if(gI_ZoneType[client] == Zone_CustomSpeedLimit)
+	{
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimit", client, gI_ZoneData[client]);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
 

@@ -148,6 +148,7 @@ char gS_WipePlayerID[MAXPLAYERS+1][32];
 char gS_Verification[MAXPLAYERS+1][16];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
+float gF_ZoneSpeedLimit[MAXPLAYERS+1];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -2566,6 +2567,11 @@ public void Shavit_OnEnterZone(int client, int type, int track, int id, int enti
 
 		UpdateAiraccelerate(client, gF_ZoneAiraccelerate[client]);
 	}
+
+	else if(type == Zone_CustomSpeedLimit)
+	{
+		gF_ZoneSpeedLimit[client] = float(Shavit_GetZoneData(id));
+	}
 }
 
 public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
@@ -2940,17 +2946,23 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// velocity limit
-	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocityLimit > 0.0) &&
-		(!gB_Zones || !Shavit_InsideZone(client, Zone_NoVelLimit, -1)))
+	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocityLimit > 0.0))
 	{
+		float fSpeedLimit = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocityLimit);
+
+		if(gB_Zones && Shavit_InsideZone(client, Zone_CustomSpeedLimit, -1))
+		{
+			fSpeedLimit = gF_ZoneSpeedLimit[client];
+		}
+
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
 		float fSpeed_New = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
 
-		if(fSpeed_New > 0.0)
+		if(fSpeedLimit != 0.0 && fSpeed_New > 0.0)
 		{
-			float fScale = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocityLimit) / fSpeed_New;
+			float fScale = fSpeedLimit / fSpeed_New;
 
 			if(fScale < 1.0)
 			{

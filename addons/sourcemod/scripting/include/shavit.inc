@@ -98,7 +98,7 @@ enum
 	Zone_Stop,
 	Zone_Slay,
 	Zone_Freestyle,
-	Zone_NoVelLimit,
+	Zone_CustomSpeedLimit,
 	Zone_Teleport,
 	Zone_CustomSpawn,
 	Zone_Easybhop,
