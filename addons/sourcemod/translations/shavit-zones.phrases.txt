@@ -179,6 +179,11 @@
 	{
 		"en"		"Adjust position"
 	}
+	"ZoneForceRender"
+	{
+		"#format"	"{1:c}"
+		"en"		"[{1}] Force zone drawing"
+	}
 	"ZoneSetNo"
 	{
 		"en"		"No"

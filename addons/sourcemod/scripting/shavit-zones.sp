@@ -79,6 +79,11 @@ enum struct zone_settings_t
 	bool bFlatZone;
 }
 
+enum
+{
+	ZF_ForceRender = (1 << 0)
+};
+
 int gI_ZoneType[MAXPLAYERS+1];
 
 // 0 - nothing
@@ -91,6 +96,8 @@ float gF_Modifier[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
 bool gB_SnapToWall[MAXPLAYERS+1];
 bool gB_CursorTracing[MAXPLAYERS+1];
+int gI_ZoneFlags[MAXPLAYERS+1];
+int gI_ZoneData[MAXPLAYERS+1];
 
 // cache
 float gV_Point1[MAXPLAYERS+1][3];
@@ -1335,6 +1342,8 @@ public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int pa
 				gI_ZoneTrack[param1] = gA_ZoneCache[id].iZoneTrack;
 				gV_Teleport[param1] = gV_Destinations[id];
 				gI_ZoneDatabaseID[param1] = gA_ZoneCache[id].iDatabaseID;
+				gI_ZoneFlags[param1] = gA_ZoneCache[id].iZoneFlags;
+				gI_ZoneData[param1] = gA_ZoneCache[id].iZoneData;
 
 				// to stop the original zone from drawing
 				gA_ZoneCache[id].bZoneInitialized = false;
@@ -1589,6 +1598,8 @@ void Reset(int client)
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
 	gB_CursorTracing[client] = true;
+	gI_ZoneFlags[client] = 0;
+	gI_ZoneData[client] = 0;
 	gI_ZoneDatabaseID[client] = -1;
 
 	for(int i = 0; i < 3; i++)
@@ -1895,30 +1906,42 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 {
 	if(action == MenuAction_Select)
 	{
-		char info[8];
-		menu.GetItem(param2, info, 8);
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(info, "yes"))
+		if(StrEqual(sInfo, "yes"))
 		{
 			InsertZone(param1);
 			gI_MapStep[param1] = 0;
+
+			return 0;
 		}
 
-		else if(StrEqual(info, "no"))
+		else if(StrEqual(sInfo, "no"))
 		{
 			Reset(param1);
+
+			return 0;
 		}
 
-		else if(StrEqual(info, "adjust"))
+		else if(StrEqual(sInfo, "adjust"))
 		{
 			CreateAdjustMenu(param1, 0);
+
+			return 0;
 		}
 
-		else if(StrEqual(info, "tpzone"))
+		else if(StrEqual(sInfo, "tpzone"))
 		{
 			UpdateTeleportZone(param1);
-			CreateEditMenu(param1);
 		}
+
+		else if(StrEqual(sInfo, "forcerender"))
+		{
+			gI_ZoneFlags[param1] ^= ZF_ForceRender;
+		}
+
+		CreateEditMenu(param1);
 	}
 
 	else if(action == MenuAction_End)
@@ -1977,7 +2000,7 @@ void CreateEditMenu(int client)
 	char sTrack[32];
 	GetTrackName(client, gI_ZoneTrack[client], sTrack, 32);
 
-	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
+	Menu menu = new Menu(CreateZoneConfirm_Handler);
 	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
 
 	char sMenuItem[64];
@@ -2011,6 +2034,9 @@ void CreateEditMenu(int client)
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
 	menu.AddItem("adjust", sMenuItem);
+
+	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gI_ZoneFlags[client] & ZF_ForceRender) > 0)? 'x':' ');
+	menu.AddItem("forcerender", sMenuItem);
 
 	menu.ExitButton = true;
 	menu.Display(client, 600);
@@ -2096,13 +2122,13 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 
 void InsertZone(int client)
 {
-	int type = gI_ZoneType[client];
-	int index = GetZoneIndex(type, gI_ZoneTrack[client]);
-	bool insert = (gI_ZoneDatabaseID[client] == -1 && (index == -1 || type >= Zone_Respawn));
+	int iType = gI_ZoneType[client];
+	int iIndex = GetZoneIndex(iType, gI_ZoneTrack[client]);
+	bool bInsert = (gI_ZoneDatabaseID[client] == -1 && (iIndex == -1 || iType >= Zone_Respawn));
 
 	char sQuery[512];
 
-	if(type == Zone_CustomSpawn)
+	if(iType == Zone_CustomSpawn)
 	{
 		Shavit_LogMessage("%L - added custom spawn {%.2f, %.2f, %.2f} to map `%s`.", client, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gS_Map);
 
@@ -2111,24 +2137,24 @@ void InsertZone(int client)
 			gS_MySQLPrefix, gS_Map, Zone_CustomSpawn, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gI_ZoneTrack[client]);
 	}
 
-	else if(insert) // insert
+	else if(bInsert) // insert
 	{
-		Shavit_LogMessage("%L - added %s to map `%s`.", client, gS_ZoneNames[type], gS_Map);
+		Shavit_LogMessage("%L - added %s to map `%s`.", client, gS_ZoneNames[iType], gS_Map);
 
 		FormatEx(sQuery, 512,
-			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d);",
-			gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client]);
+			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, flags, data) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d, %d, %d);",
+			gS_MySQLPrefix, gS_Map, iType, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client]);
 	}
 
 	else // update
 	{
-		Shavit_LogMessage("%L - updated %s in map `%s`.", client, gS_ZoneNames[type], gS_Map);
+		Shavit_LogMessage("%L - updated %s in map `%s`.", client, gS_ZoneNames[iType], gS_Map);
 
 		if(gI_ZoneDatabaseID[client] == -1)
 		{
 			for(int i = 0; i < gI_MapZones; i++)
 			{
-				if(gA_ZoneCache[i].bZoneInitialized && gA_ZoneCache[i].iZoneType == type && gA_ZoneCache[i].iZoneTrack == gI_ZoneTrack[client])
+				if(gA_ZoneCache[i].bZoneInitialized && gA_ZoneCache[i].iZoneType == iType && gA_ZoneCache[i].iZoneTrack == gI_ZoneTrack[client])
 				{
 					gI_ZoneDatabaseID[client] = gA_ZoneCache[i].iDatabaseID;
 				}
@@ -2136,8 +2162,8 @@ void InsertZone(int client)
 		}
 
 		FormatEx(sQuery, 512,
-			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d WHERE %s = %d;",
-			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
+			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d, flags = %d, data = %d WHERE %s = %d;",
+			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}
 
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
@@ -2191,7 +2217,7 @@ public Action Timer_DrawEverything(Handle Timer)
 			int type = gA_ZoneCache[i].iZoneType;
 			int track = gA_ZoneCache[i].iZoneTrack;
 
-			if(gA_ZoneSettings[type][track].bVisible)
+			if(gA_ZoneSettings[type][track].bVisible || (gA_ZoneCache[i].iZoneFlags & ZF_ForceRender) > 0)
 			{
 				DrawZone(gV_MapZones_Visual[i],
 						GetZoneColors(type, track),
