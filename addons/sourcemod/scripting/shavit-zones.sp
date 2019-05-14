@@ -61,9 +61,11 @@ enum struct zone_cache_t
 {
 	bool bZoneInitialized;
 	int iZoneType;
-	int iZoneTrack; // 0 - main, 1 - bonus
+	int iZoneTrack; // 0 - main, 1 - bonus etc
 	int iEntityID;
 	int iDatabaseID;
+	int iZoneFlags;
+	int iZoneData;
 }
 
 enum struct zone_settings_t
@@ -767,6 +769,8 @@ void ClearZone(int index)
 	gA_ZoneCache[index].iZoneTrack = -1;
 	gA_ZoneCache[index].iEntityID = -1;
 	gA_ZoneCache[index].iDatabaseID = -1;
+	gA_ZoneCache[index].iZoneFlags = 0;
+	gA_ZoneCache[index].iZoneData = 0;
 }
 
 void UnhookEntity(int entity)
@@ -851,7 +855,9 @@ void UnloadZones(int zone)
 void RefreshZones()
 {
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s FROM %smapzones WHERE map = '%s';", (gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, 512,
+		"SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s, flags, data FROM %smapzones WHERE map = '%s';",
+		(gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
 }
@@ -906,6 +912,8 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gA_ZoneCache[gI_MapZones].iZoneType = type;
 			gA_ZoneCache[gI_MapZones].iZoneTrack = results.FetchInt(10);
 			gA_ZoneCache[gI_MapZones].iDatabaseID = results.FetchInt(11);
+			gA_ZoneCache[gI_MapZones].iZoneFlags = results.FetchInt(12);
+			gA_ZoneCache[gI_MapZones].iZoneData = results.FetchInt(13);
 			gA_ZoneCache[gI_MapZones].iEntityID = -1;
 
 			gI_MapZones++;
@@ -2451,7 +2459,9 @@ void SQL_DBConnect()
 		gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 		char sQuery[1024];
-		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;", gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
+		FormatEx(sQuery, 1024,
+			"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;",
+			gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 
 		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 	}

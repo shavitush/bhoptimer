@@ -2277,6 +2277,7 @@ void ApplyMigration(int migration)
 		case Migration_ConvertSteamIDsUsers: ApplyMigration_ConvertSteamIDs();
 		case Migration_ConvertSteamIDsPlayertimes, Migration_ConvertSteamIDsChat: return; // this is confusing, but the above case handles all of them
 		case Migration_PlayertimesDateToInt: ApplyMigration_PlayertimesDateToInt();
+		case Migration_AddZonesFlagsAndData: ApplyMigration_AddZonesFlagsAndData();
 	}
 }
 
@@ -2299,6 +2300,13 @@ void ApplyMigration_PlayertimesDateToInt()
 	char sQuery[128];
 	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` CHANGE COLUMN `date` `date` INT;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_PlayertimesDateToInt, DBPrio_High);
+}
+
+void ApplyMigration_AddZonesFlagsAndData()
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "ALTER TABLE `%smapzones` ADD COLUMN `flags` INT NULL AFTER `track`, ADD COLUMN `data` INT NULL AFTER `flags`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddZonesFlagsAndData, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
