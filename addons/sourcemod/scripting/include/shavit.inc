@@ -103,6 +103,7 @@ enum
 	Zone_CustomSpawn,
 	Zone_Easybhop,
 	Zone_Slide,
+	Zone_Airaccelerate,
 	ZONETYPES_SIZE
 };
 
@@ -571,7 +572,7 @@ forward Action Shavit_OnSave(int client);
  * @param client					Client index.
  * @param type						Zone type.
  * @param track						Zone track.
- * @param id						Zone ID. 0 for native zones.
+ * @param id						Zone ID.
  * @param entity					Zone trigger entity index.
  * @noreturn
  */
@@ -583,7 +584,7 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
  * @param client					Client index.
  * @param type						Zone type.
  * @param track						Zone track.
- * @param id						Zone ID. 0 for native zones.
+ * @param id						Zone ID.
  * @param entity					Zone trigger entity index.
  * @noreturn
  */
@@ -979,7 +980,7 @@ native float Shavit_GetTimeForRank(int style, int rank, int track);
 native bool Shavit_ZoneExists(int type, int track);
 
 /**
- * Checks if a player is inside a mapzone
+ * Checks if a player is inside a mapzone.
  *
  * @param client					Client index.
  * @param type						Mapzone type.
@@ -987,6 +988,33 @@ native bool Shavit_ZoneExists(int type, int track);
  * @return							Boolean value.
  */
 native bool Shavit_InsideZone(int client, int type, int track);
+
+/**
+ * Gets the specified zone's data.
+ *
+ * @param zoneid					ID of the zone we query the data of.
+ * @return							Zone data. 0 if none is specified.
+ */
+native int Shavit_GetZoneData(int zoneid);
+
+/**
+ * Gets the specified zone's flags.
+ *
+ * @param zoneid					ID of the zone we query the flags of.
+ * @return							Zone flags. 0 if none is specified.
+ */
+native int Shavit_GetZoneFlags(int zoneid);
+
+/**
+ * Checks if a player is inside a mapzone.
+ *
+ * @param client					Client index.
+ * @param type						Mapzone type.
+ * @param track						Mapzone track, -1 to ignore track.
+ * @param zoneid					Reference to variable that will hold the zone's ID.
+ * @return							Boolean value.
+ */
+native bool Shavit_InsideZoneGetID(int client, int type, int track, int &zoneid);
 
 /**
  * Checks if a player is in the process of creating a mapzone.
@@ -1485,9 +1513,12 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRTime");
+	MarkNativeAsOptional("Shavit_GetZoneData");
+	MarkNativeAsOptional("Shavit_GetZoneFlags");
 	MarkNativeAsOptional("Shavit_HasStyleAccess");
 	MarkNativeAsOptional("Shavit_HijackAngles");
 	MarkNativeAsOptional("Shavit_InsideZone");
+	MarkNativeAsOptional("Shavit_InsideZoneGetID");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_IsKZMap");
 	MarkNativeAsOptional("Shavit_IsPaused");

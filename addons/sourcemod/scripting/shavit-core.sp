@@ -147,6 +147,7 @@ char gS_DeleteMap[MAXPLAYERS+1][160];
 char gS_WipePlayerID[MAXPLAYERS+1][32];
 char gS_Verification[MAXPLAYERS+1][16];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
+float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -2557,11 +2558,37 @@ public void SQL_CreateUsersTable_Callback(Database db, DBResultSet results, cons
 	Call_Finish();
 }
 
+public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity)
+{
+	if(type == Zone_Airaccelerate)
+	{
+		gF_ZoneAiraccelerate[client] = float(Shavit_GetZoneData(id));
+
+		UpdateAiraccelerate(client, gF_ZoneAiraccelerate[client]);
+	}
+}
+
+public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
+{
+	if(type == Zone_Airaccelerate)
+	{
+		UpdateAiraccelerate(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate));
+	}
+}
+
 public void PreThinkPost(int client)
 {
 	if(IsPlayerAlive(client))
 	{
-		sv_airaccelerate.FloatValue = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate);
+		if(!gB_Zones || !Shavit_InsideZone(client, Zone_Airaccelerate, -1))
+		{
+			sv_airaccelerate.FloatValue = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate);
+		}
+
+		else
+		{
+			sv_airaccelerate.FloatValue = gF_ZoneAiraccelerate[client];
+		}
 
 		if(sv_enablebunnyhopping != null)
 		{
@@ -3003,6 +3030,13 @@ void StopTimer_Cheat(int client, const char[] message)
 	Shavit_PrintToChat(client, "%T", "CheatTimerStop", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, message);
 }
 
+void UpdateAiraccelerate(int client, float airaccelerate)
+{
+	char sAiraccelerate[8];
+	FloatToString(airaccelerate, sAiraccelerate, 8);
+	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+}
+
 void UpdateStyleSettings(int client)
 {
 	if(sv_autobunnyhopping != null)
@@ -3015,9 +3049,7 @@ void UpdateStyleSettings(int client)
 		sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gA_Timers[client].iStyle].bEnableBunnyhopping)? "1":"0");
 	}
 
-	char sAiraccelerate[8];
-	FloatToString(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate, sAiraccelerate, 8);
-	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+	UpdateAiraccelerate(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate));
 
 	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
 }

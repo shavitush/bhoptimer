@@ -184,6 +184,15 @@
 		"#format"	"{1:c}"
 		"en"		"[{1}] Force zone drawing"
 	}
+	"ZoneSetAiraccelerate"
+	{
+		"#format"	"{1:d}"
+		"en"		"Airaccelerate: {1}"
+	}
+	"ZoneEnterDataChat"
+	{
+		"en"		"Input your desired data in chat."
+	}
 	"ZoneSetNo"
 	{
 		"en"		"No"

@@ -54,7 +54,8 @@ char gS_ZoneNames[][] =
 	"Teleport Zone", // teleports to a defined point
 	"SPAWN POINT", // << unused
 	"Easybhop Zone", // forces easybhop whether if the player is in non-easy styles or if the server has different settings
-	"Slide Zone" // allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
+	"Slide Zone", // allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
+	"Custom Airaccelerate" // custom sv_airaccelerate inside this
 };
 
 enum struct zone_cache_t
@@ -98,6 +99,7 @@ bool gB_SnapToWall[MAXPLAYERS+1];
 bool gB_CursorTracing[MAXPLAYERS+1];
 int gI_ZoneFlags[MAXPLAYERS+1];
 int gI_ZoneData[MAXPLAYERS+1];
+bool gB_WaitingForChatInput[MAXPLAYERS+1];
 
 // cache
 float gV_Point1[MAXPLAYERS+1][3];
@@ -173,7 +175,10 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	// zone natives
+	CreateNative("Shavit_GetZoneData", Native_GetZoneData);
+	CreateNative("Shavit_GetZoneFlags", Native_GetZoneFlags);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
+	CreateNative("Shavit_InsideZoneGetID", Native_InsideZoneGetID);
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
 	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_Zones_DeleteMap", Native_Zones_DeleteMap);
@@ -422,9 +427,40 @@ public int Native_ZoneExists(Handle handler, int numParams)
 	return (GetZoneIndex(GetNativeCell(1), GetNativeCell(2)) != -1);
 }
 
+public int Native_GetZoneData(Handle handler, int numParams)
+{
+	return gA_ZoneCache[GetNativeCell(1)].iZoneData;
+}
+
+public int Native_GetZoneFlags(Handle handler, int numParams)
+{
+	return gA_ZoneCache[GetNativeCell(1)].iZoneFlags;
+}
+
 public int Native_InsideZone(Handle handler, int numParams)
 {
 	return InsideZone(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3));
+}
+
+public int Native_InsideZoneGetID(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int iType = GetNativeCell(2);
+	int iTrack = GetNativeCell(3);
+
+	for(int i = 0; i < MAX_ZONES; i++)
+	{
+		if(gB_InsideZoneID[client][i] &&
+			gA_ZoneCache[i].iZoneType == iType &&
+			(gA_ZoneCache[i].iZoneTrack == iTrack || iTrack == -1))
+		{
+			SetNativeCellRef(4, i);
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 public int Native_Zones_DeleteMap(Handle handler, int numParams)
@@ -1601,6 +1637,7 @@ void Reset(int client)
 	gI_ZoneFlags[client] = 0;
 	gI_ZoneData[client] = 0;
 	gI_ZoneDatabaseID[client] = -1;
+	gB_WaitingForChatInput[client] = false;
 
 	for(int i = 0; i < 3; i++)
 	{
@@ -1936,6 +1973,16 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 			UpdateTeleportZone(param1);
 		}
 
+		else if(StrEqual(sInfo, "datafromchat"))
+		{
+			gI_ZoneData[param1] = 0;
+			gB_WaitingForChatInput[param1] = true;
+
+			Shavit_PrintToChat(param1, "%T", "ZoneEnterDataChat", param1);
+
+			return 0;
+		}
+
 		else if(StrEqual(sInfo, "forcerender"))
 		{
 			gI_ZoneFlags[param1] ^= ZF_ForceRender;
@@ -1950,6 +1997,19 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 	}
 
 	return 0;
+}
+
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
+{
+	if(gB_WaitingForChatInput[client] && gI_MapStep[client] == 3)
+	{
+		gI_ZoneData[client] = StringToInt(sArgs);
+		CreateEditMenu(client);
+
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
 }
 
 void GetTrackName(int client, int track, char[] output, int size)
@@ -2037,6 +2097,12 @@ void CreateEditMenu(int client)
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gI_ZoneFlags[client] & ZF_ForceRender) > 0)? 'x':' ');
 	menu.AddItem("forcerender", sMenuItem);
+
+	if(gI_ZoneType[client] == Zone_Airaccelerate)
+	{
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetAiraccelerate", client, gI_ZoneData[client]);
+		menu.AddItem("datafromchat", sMenuItem);
+	}
 
 	menu.ExitButton = true;
 	menu.Display(client, 600);
