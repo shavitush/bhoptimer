@@ -2714,25 +2714,24 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				}
 			}
 
-		    else if((fDirectionAngle > 67.5 && fDirectionAngle < 112.5) || (fDirectionAngle > 247.5 && fDirectionAngle < 292.5))
-		    {
-			gA_Timers[client].iTotalMeasures++;
-
-			if(vel[0] <= -100.0 || vel[0] >= 100.0)
+			else if((fDirectionAngle > 67.5 && fDirectionAngle < 112.5) || (fDirectionAngle > 247.5 && fDirectionAngle < 292.5))
 			{
-			    if(gA_Timers[client].iSHSWCombination)
-			    {
-				if(vel[1] <= -100.0 || vel[1] >= 100.0)
+				gA_Timers[client].iTotalMeasures++;
+				if(vel[0] <= -100.0 || vel[0] >= 100.0)
 				{
-				    gA_Timers[client].iGoodGains++;
+					if(gA_Timers[client].iSHSWCombination)
+					{
+						if(vel[1] <= -100.0 || vel[1] >= 100.0)
+						{
+							gA_Timers[client].iGoodGains++;
+						}
+					}
+					else
+					{
+						gA_Timers[client].iGoodGains++;
+					}
 				}
-			    }
-			    else
-			    {
-				gA_Timers[client].iGoodGains++;
-			    }
 			}
-		    }
 		}
 	}
 
