@@ -2720,7 +2720,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				
 				if(vel[0] <= -100.0 || vel[0] >= 100.0)
 				{
-					if(gA_Timers[client].iSHSWCombination != -1)
+					if(gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW == 1 || gA_Timers[client].iSHSWCombination != -1)
 					{
 						if(vel[1] <= -100.0 || vel[1] >= 100.0)
 						{
