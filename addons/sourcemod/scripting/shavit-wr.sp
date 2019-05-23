@@ -63,7 +63,6 @@ int gI_ValidMaps = 1;
 float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
 int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
 char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
-int gI_RecordAmount[STYLE_LIMIT][TRACKS_SIZE];
 ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 
@@ -381,7 +380,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 				}
 
 				gA_Leaderboard[i][j].Clear();
-				gI_RecordAmount[i][j] = 0;
 			}
 
 			else
@@ -489,7 +487,7 @@ void UpdateWRCache()
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 	}
 
-	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
+	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery);
 }
 
 public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -508,7 +506,6 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		{
 			strcopy(gS_WRName[i][j], MAX_NAME_LENGTH, "invalid");
 			gF_WRTime[i][j] = 0.0;
-			gI_RecordAmount[i][j] = 0;
 		}
 	}
 
@@ -583,7 +580,7 @@ public int Native_GetRankForTime(Handle handler, int numParams)
 
 public int Native_GetRecordAmount(Handle handler, int numParams)
 {
-	return gI_RecordAmount[GetNativeCell(1)][GetNativeCell(2)];
+	return GetRecordAmount(GetNativeCell(1), GetNativeCell(2));
 }
 
 public int Native_GetTimeForRank(Handle handler, int numParams)
@@ -593,10 +590,10 @@ public int Native_GetTimeForRank(Handle handler, int numParams)
 	int track = GetNativeCell(3);
 
 	#if defined DEBUG
-	Shavit_PrintToChatAll("style %d | rank %d | track %d | amount %d", style, rank, track, gI_RecordAmount[style][track]);
+	Shavit_PrintToChatAll("style %d | rank %d | track %d | amount %d", style, rank, track, GetRecordAmount(style, track));
 	#endif
 
-	if(rank > gI_RecordAmount[style][track])
+	if(rank > GetRecordAmount(style, track))
 	{
 		return view_as<int>(0.0);
 	}
@@ -656,13 +653,14 @@ public Action Command_PrintLeaderboards(int client, int args)
 	GetCmdArg(1, sArg, 8);
 
 	int iStyle = StringToInt(sArg);
+	int iRecords = GetRecordAmount(iStyle, Track_Main);
 
 	ReplyToCommand(client, "Track: Main - Style: %d", iStyle);
 	ReplyToCommand(client, "Current PB: %f", gF_PlayerRecord[client][iStyle][0]);
-	ReplyToCommand(client, "Count: %d", gI_RecordAmount[iStyle][0]);
+	ReplyToCommand(client, "Count: %d", iRecords);
 	ReplyToCommand(client, "Rank: %d", Shavit_GetRankForTime(iStyle, gF_PlayerRecord[client][iStyle][0], iStyle));
 
-	for(int i = 0; i < gI_RecordAmount[iStyle][0]; i++)
+	for(int i = 0; i < iRecords; i++)
 	{
 		ReplyToCommand(client, "#%d: %f", i, gA_Leaderboard[iStyle][0].Get(i));
 	}
@@ -677,7 +675,7 @@ int GetTrackRecordCount(int track)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		count += gI_RecordAmount[i][track];
+		count += GetRecordAmount(i, track);
 	}
 
 	return count;
@@ -757,9 +755,9 @@ void DeleteSubmenu(int client)
 		IntToString(iStyle, sInfo, 8);
 
 		char sDisplay[64];
-		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[iStyle].sStyleName, "WRRecord", client, gI_RecordAmount[iStyle][gA_WRCache[client].iLastTrack]);
+		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[iStyle].sStyleName, "WRRecord", client, GetRecordAmount(iStyle, gA_WRCache[client].iLastTrack));
 
-		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[iStyle][gA_WRCache[client].iLastTrack] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (GetRecordAmount(iStyle, gA_WRCache[client].iLastTrack) > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	menu.ExitButton = true;
@@ -831,7 +829,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 
 			IntToString(iStyle, sInfo, 8);
 
-			int iRecords = gI_RecordAmount[iStyle][iTrack];
+			int iRecords = GetRecordAmount(iStyle, iTrack);
 
 			if(iRecords > 0)
 			{
@@ -1356,7 +1354,7 @@ Action ShowWRStyleMenu(int client, int track)
 			strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[iStyle][track] > 0 || !StrEqual(gA_WRCache[client].sClientMap, gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (GetRecordAmount(iStyle, track) > 0 || !StrEqual(gA_WRCache[client].sClientMap, gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	// should NEVER happen
@@ -2045,7 +2043,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	int iRank = GetRankForTime(style, time, track);
 
-	if(iRank >= gI_RecordAmount[style][track])
+	if(iRank >= GetRecordAmount(style, track))
 	{
 		Call_StartForward(gH_OnWorstRecord);
 		Call_PushCell(client);
@@ -2152,7 +2150,7 @@ void UpdateLeaderboards()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "SELECT style, track, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
-	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery, 0);
+	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery);
 }
 
 public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2168,7 +2166,6 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			gI_RecordAmount[i][j] = 0;
 			gA_Leaderboard[i][j].Clear();
 		}
 	}
@@ -2196,21 +2193,32 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			SortADTArray(gA_Leaderboard[i][j], Sort_Ascending, Sort_Float);
-			gI_RecordAmount[i][j] = gA_Leaderboard[i][j].Length;
 		}
 	}
 }
 
+int GetRecordAmount(int style, int track)
+{
+	if(gA_Leaderboard[style][track] == null)
+	{
+		return 0;
+	}
+
+	return gA_Leaderboard[style][track].Length;
+}
+
 int GetRankForTime(int style, float time, int track)
 {
-	if(time <= gF_WRTime[style][track] || gI_RecordAmount[style][track] <= 0)
+	int iRecords = GetRecordAmount(style, track);
+
+	if(time <= gF_WRTime[style][track] || iRecords <= 0)
 	{
 		return 1;
 	}
 
 	if(gA_Leaderboard[style][track] != null && gA_Leaderboard[style][track].Length > 0)
 	{
-		for(int i = 0; i < gI_RecordAmount[style][track]; i++)
+		for(int i = 0; i < iRecords; i++)
 		{
 			if(time <= gA_Leaderboard[style][track].Get(i))
 			{
@@ -2219,7 +2227,7 @@ int GetRankForTime(int style, float time, int track)
 		}
 	}
 
-	return (gI_RecordAmount[style][track] + 1);
+	return (iRecords + 1);
 }
 
 void GuessBestMapName(const char[] input, char[] output, int size)
