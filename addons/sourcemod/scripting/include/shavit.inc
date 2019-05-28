@@ -87,6 +87,7 @@ enum
 	Migration_ConvertSteamIDsChat,
 	Migration_PlayertimesDateToInt,
 	Migration_AddZonesFlagsAndData,
+	Migration_AddPlayertimesCompletions,
 	MIGRATIONS_END
 };
 
