@@ -3327,7 +3327,6 @@ void LoadState(int client)
 
 	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
 	Shavit_SetPracticeMode(client, gB_SaveStatesSegmented[client], false);
-	Shavit_ResumeTimer(client);
 
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{
