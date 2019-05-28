@@ -55,6 +55,7 @@ enum struct playertimer_t
 	int iPerfectJumps;
 	int iGroundTicks;
 	MoveType iMoveType;
+	bool bCanUseAllKeys;
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -116,6 +117,7 @@ ConVar gCV_NoZAxisSpeed = null;
 ConVar gCV_VelocityTeleport = null;
 ConVar gCV_DefaultStyle = null;
 ConVar gCV_NoChatSound = null;
+ConVar gCV_SimplerLadders = null;
 
 // cached cvars
 int gI_DefaultStyle = 0;
@@ -326,6 +328,7 @@ public void OnPluginStart()
 	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle = CreateConVar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
 	gCV_NoChatSound = CreateConVar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
+	gCV_SimplerLadders = CreateConVar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
@@ -1736,6 +1739,7 @@ void StartTimer(int client, int track)
 			gA_Timers[client].bPracticeMode = false;
 			gA_Timers[client].iMeasuredJumps = 0;
 			gA_Timers[client].iPerfectJumps = 0;
+			gA_Timers[client].bCanUseAllKeys = false;
 
 			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
 			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
@@ -2787,8 +2791,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	MoveType mtMoveType = GetEntityMoveType(client);
 
+	if(mtMoveType == MOVETYPE_LADDER && gCV_SimplerLadders.BoolValue)
+	{
+		gA_Timers[client].bCanUseAllKeys = true;
+	}
+
+	else if(iGroundEntity != -1)
+	{
+		gA_Timers[client].bCanUseAllKeys = false;
+	}
+
 	// key blocking
-	if(mtMoveType != MOVETYPE_NOCLIP && mtMoveType != MOVETYPE_LADDER && !Shavit_InsideZone(client, Zone_Freestyle, -1))
+	if(!gA_Timers[client].bCanUseAllKeys && mtMoveType != MOVETYPE_NOCLIP && mtMoveType != MOVETYPE_LADDER && !Shavit_InsideZone(client, Zone_Freestyle, -1))
 	{
 		// block E
 		if(gA_StyleSettings[gA_Timers[client].iStyle].bBlockUse && (buttons & IN_USE) > 0)
