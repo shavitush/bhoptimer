@@ -3310,11 +3310,11 @@ public Action Command_Drop(int client, const char[] command, int argc)
 		return Plugin_Continue;
 	}
 
-	int weapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+	int iWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
 
-	if(weapon != -1 && IsValidEntity(weapon))
+	if(iWeapon != -1 && IsValidEntity(iWeapon) && GetEntPropEnt(client, Prop_Data, "m_hOwnerEntity") == client)
 	{
-		CS_DropWeapon(client, weapon, true);
+		CS_DropWeapon(client, iWeapon, true);
 	}
 
 	return Plugin_Handled;
