@@ -254,7 +254,6 @@ public void OnPluginStart()
 	}
 
 	// database connections
-	SQL_SetPrefix();
 	SQL_DBConnect();
 
 	// hooks
@@ -2159,33 +2158,10 @@ bool LoadMessages()
 	return true;
 }
 
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 void SQL_DBConnect()
 {
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	
 	if(gH_SQL != null)
 	{
 		delete gH_SQL;

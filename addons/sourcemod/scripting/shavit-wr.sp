@@ -177,8 +177,6 @@ public void OnPluginStart()
 
 	// cache
 	gA_ValidMaps = new ArrayList(192);
-
-	SQL_SetPrefix();
 }
 
 public void OnAdminMenuCreated(Handle topmenu)
@@ -1914,33 +1912,10 @@ Action SetSQLInfo()
 	return Plugin_Continue;
 }
 
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 void SQL_DBConnect()
 {
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+
 	char sDriver[8];
 	gH_SQL.Driver.GetIdentifier(sDriver, 8);
 	gB_MySQL = StrEqual(sDriver, "mysql", false);

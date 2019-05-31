@@ -297,9 +297,6 @@ public void OnPluginStart()
 	// commands
 	RegAdminCmd("sm_deletereplay", Command_DeleteReplay, ADMFLAG_RCON, "Open replay deletion menu.");
 	RegConsoleCmd("sm_replay", Command_Replay, "Opens the central bot menu. For admins: 'sm_replay stop' to stop the playback.");
-
-	// database
-	SQL_SetPrefix();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -711,35 +708,12 @@ Action SetSQLInfo()
 
 	else
 	{
+		GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+		
 		return Plugin_Stop;
 	}
 
 	return Plugin_Continue;
-}
-
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
 }
 
 public Action Cron(Handle Timer)

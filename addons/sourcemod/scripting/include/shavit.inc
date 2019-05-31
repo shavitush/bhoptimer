@@ -267,6 +267,30 @@ char gS_CSGOColors[][] =
 };
 #endif
 
+// retrieves the table prefix defined in configs/shavit-prefix.txt
+stock void GetTimerSQLPrefix(char[] buffer, int maxlen)
+{
+	char sFile[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
+
+	File fFile = OpenFile(sFile, "r");
+
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
+	}
+	
+	char sLine[PLATFORM_MAX_PATH * 2];
+
+	if(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+	{
+		TrimString(sLine);
+		strcopy(buffer, maxlen, sLine);
+	}
+
+	delete fFile;
+}
+
 stock bool IsValidClient(int client, bool bAlive = false)
 {
 	return (client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsClientSourceTV(client) && (!bAlive || IsPlayerAlive(client)));
