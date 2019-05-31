@@ -60,6 +60,7 @@ Database gH_SQL = null;
 
 bool gB_Stats = false;
 bool gB_Late = false;
+bool gB_TierQueried = false;
 
 int gI_Tier = 1; // No floating numbers for tiers, sorry.
 
@@ -402,7 +403,8 @@ public void OnClientPostAdminCheck(int client)
 
 public void OnMapStart()
 {
-	if(gH_SQL == null)
+	// do NOT keep running this more than once per map, as UpdateAllPoints() is called after this eventually and locks up the database while it is running
+	if(gH_SQL == null || gB_TierQueried)
 	{
 		return;
 	}
@@ -411,8 +413,6 @@ public void OnMapStart()
 	PrintToServer("DEBUG: 1 (OnMapStart)");
 	#endif
 
-	UpdateRankedPlayers();
-
 	GetCurrentMap(gS_Map, 160);
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
@@ -420,17 +420,11 @@ public void OnMapStart()
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
 	gI_Tier = 1;
 
-	char sDriver[8];
-	gH_SQL.Driver.GetIdentifier(sDriver, 8);
-	
-	if(!StrEqual(sDriver, "mysql", false))
-	{
-		SetFailState("Rankings will only support MySQL for the moment. Sorry.");
-	}
-
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
-	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_Low);
+	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery);
+
+	gB_TierQueried = true;
 }
 
 public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -533,6 +527,7 @@ void GuessBestMapName(const char[] input, char[] output, int size)
 public void OnMapEnd()
 {
 	RecalculateAll(gS_Map);
+	gB_TierQueried = false;
 }
 
 public Action Command_Tier(int client, int args)
@@ -816,6 +811,8 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 
 		return;
 	}
+
+	UpdateRankedPlayers();
 }
 
 void UpdatePlayerRank(int client, bool first)
