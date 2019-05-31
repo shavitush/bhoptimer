@@ -39,12 +39,10 @@ bool gB_Rankings = false;
 
 // database handle
 Database gH_SQL = null;
-
-// table prefix
 char gS_MySQLPrefix[32];
 
 // cache
-bool gB_AllowStats[MAXPLAYERS+1];
+bool gB_CanOpenMenu[MAXPLAYERS+1];
 int gI_MapType[MAXPLAYERS+1];
 int gI_Style[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
@@ -95,11 +93,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
 }
 
 public void OnPluginStart()
@@ -139,6 +132,10 @@ public void OnPluginStart()
 			}
 		}
 	}
+
+	// database
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
 }
 
 public void OnMapStart()
@@ -184,7 +181,7 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	gB_AllowStats[client] = true;
+	gB_CanOpenMenu[client] = true;
 	gI_WRAmount[client] = 0;
 	UpdateWRs(client);
 }
@@ -205,36 +202,6 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-		
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	if(gCV_MVPRankOnes.IntValue == 0)
@@ -252,11 +219,6 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 
 void UpdateWRs(int client)
 {
-	if(gH_SQL == null)
-	{
-		return;
-	}
-
 	int iSteamID = 0;
 
 	if((iSteamID = GetSteamAccountID(client)) != 0)
@@ -455,7 +417,7 @@ public Action Command_Profile(int client, int args)
 Action OpenStatsMenu(int client, int steamid)
 {
 	// no spam please
-	if(!gB_AllowStats[client])
+	if(!gB_CanOpenMenu[client])
 	{
 		return Plugin_Handled;
 	}
@@ -484,7 +446,7 @@ Action OpenStatsMenu(int client, int steamid)
 			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid);
 	}
 
-	gB_AllowStats[client] = false;
+	gB_CanOpenMenu[client] = false;
 	gH_SQL.Query(OpenStatsMenuCallback, sQuery, GetClientSerial(client), DBPrio_Low);
 
 	return Plugin_Handled;
@@ -493,7 +455,7 @@ Action OpenStatsMenu(int client, int steamid)
 public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[] error, any data)
 {
 	int client = GetClientFromSerial(data);
-	gB_AllowStats[client] = true;
+	gB_CanOpenMenu[client] = true;
 
 	if(results == null)
 	{
@@ -675,27 +637,10 @@ public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int
 	return 0;
 }
 
-public Action Timer_DBFailure(Handle timer, any data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return Plugin_Stop;
-	}
-
-	ShowMaps(client);
-
-	return Plugin_Stop;
-}
-
 void ShowMaps(int client)
 {
-	// database not found, display with a 3 seconds delay
-	if(gH_SQL == null)
+	if(!gB_CanOpenMenu[client])
 	{
-		CreateTimer(3.0, Timer_DBFailure, GetClientSerial(client));
-
 		return;
 	}
 
@@ -725,6 +670,8 @@ void ShowMaps(int client)
 		}
 	}
 
+	gB_CanOpenMenu[client] = false;
+	
 	gH_SQL.Query(ShowMapsCallback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
@@ -743,6 +690,8 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 	{
 		return;
 	}
+
+	gB_CanOpenMenu[client] = true;
 
 	int rows = results.RowCount;
 

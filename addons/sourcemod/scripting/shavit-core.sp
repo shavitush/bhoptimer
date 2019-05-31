@@ -253,9 +253,6 @@ public void OnPluginStart()
 		SetFailState("This plugin was meant to be used in CS:S, CS:GO and TF2 *only*.");
 	}
 
-	// database connections
-	SQL_DBConnect();
-
 	// hooks
 	gB_HookedJump = HookEventEx("player_jump", Player_Jump);
 	HookEvent("player_death", Player_Death);
@@ -360,6 +357,9 @@ public void OnPluginStart()
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_HUD = LibraryExists("shavit-hud");
+
+	// database connections
+	SQL_DBConnect();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1870,11 +1870,6 @@ public void OnClientPutInServer(int client)
 		CallOnStyleChanged(client, 0, gI_DefaultStyle, false);
 	}
 
-	if(gH_SQL == null)
-	{
-		return;
-	}
-
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
 
 	int iSteamID = GetSteamAccountID(client);
@@ -2161,38 +2156,14 @@ bool LoadMessages()
 void SQL_DBConnect()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	
-	if(gH_SQL != null)
-	{
-		delete gH_SQL;
-	}
-
-	char sError[255];
-
-	if(SQL_CheckConfig("shavit")) // can't be asynced as we have modules that require this database connection instantly
-	{
-		gH_SQL = SQL_Connect("shavit", true, sError, 255);
-
-		if(gH_SQL == null)
-		{
-			SetFailState("Timer startup failed. Reason: %s", sError);
-		}
-	}
-
-	else
-	{
-		gH_SQL = SQLite_UseDatabase("shavit", sError, 255);
-	}
+	gH_SQL = GetTimerDatabaseHandle();
+	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	// support unicode names
 	if(!gH_SQL.SetCharset("utf8mb4"))
 	{
 		gH_SQL.SetCharset("utf8");
 	}
-
-	char sDriver[8];
-	gH_SQL.Driver.GetIdentifier(sDriver, 8);
-	gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 	// migrations will only exist for mysql. sorry sqlite users
 	if(gB_MySQL)

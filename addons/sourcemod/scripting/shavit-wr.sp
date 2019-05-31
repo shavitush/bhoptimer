@@ -117,14 +117,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public void OnAllPluginsLoaded()
-{
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
-}
-
 public void OnPluginStart()
 {
 	LoadTranslations("shavit-common.phrases");
@@ -177,6 +169,9 @@ public void OnPluginStart()
 
 	// cache
 	gA_ValidMaps = new ArrayList(192);
+
+	// database
+	SQL_DBConnect();
 }
 
 public void OnAdminMenuCreated(Handle topmenu)
@@ -280,7 +275,7 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnMapStart()
 {
-	if(gH_SQL == null || !gB_Connected)
+	if(!gB_Connected)
 	{
 		return;
 	}
@@ -412,7 +407,7 @@ public void OnClientPutInServer(int client)
 		}
 	}
 
-	if(!IsClientConnected(client) || IsFakeClient(client) || gH_SQL == null)
+	if(!IsClientConnected(client) || IsFakeClient(client))
 	{
 		return;
 	}
@@ -1882,43 +1877,11 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
 void SQL_DBConnect()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-
-	char sDriver[8];
-	gH_SQL.Driver.GetIdentifier(sDriver, 8);
-	gB_MySQL = StrEqual(sDriver, "mysql", false);
+	gH_SQL = GetTimerDatabaseHandle();
+	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	char sQuery[1024];
 
@@ -2055,11 +2018,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		if(iOverwrite == 1) // insert
 		{
 			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
-
-			if(gH_SQL == null)
-			{
-				return;
-			}
 
 			FormatEx(sQuery, 512,
 				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);",

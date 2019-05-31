@@ -267,6 +267,38 @@ char gS_CSGOColors[][] =
 };
 #endif
 
+// connects synchronously to the bhoptimer database
+// calls errors if needed
+stock Database GetTimerDatabaseHandle()
+{
+	Database db = null;
+	char sError[255];
+
+	if(SQL_CheckConfig("shavit"))
+	{
+		if((db = SQL_Connect("shavit", true, sError, 255)) == null)
+		{
+			SetFailState("Timer startup failed. Reason: %s", sError);
+		}
+	}
+
+	else
+	{
+		db = SQLite_UseDatabase("shavit", sError, 255);
+	}
+
+	return db
+}
+
+// figures out if the database is a mysql database
+stock bool IsMySQLDatabase(Database db)
+{
+	char sDriver[8];
+	db.Driver.GetIdentifier(sDriver, 8);
+
+	return StrEqual(sDriver, "mysql", false);
+}
+
 // retrieves the table prefix defined in configs/shavit-prefix.txt
 stock void GetTimerSQLPrefix(char[] buffer, int maxlen)
 {
@@ -564,7 +596,8 @@ forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int t
 forward void Shavit_OnStyleConfigLoaded(int styles);
 
 /**
- * Called when there's a successful connection to the database.
+ * Called when there's a successful connection to the database and it is ready to be used.
+ * Called through shavit-core after migrations have been applied, and after the attempt to create the default `users` table.
  *
  * @noreturn
  */

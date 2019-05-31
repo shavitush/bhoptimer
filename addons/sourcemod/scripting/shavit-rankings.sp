@@ -120,16 +120,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
-
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		GetTrackName(LANG_SERVER, i, gS_TrackNames[i], 32);
-	}
 }
 
 public void OnPluginStart()
@@ -141,7 +131,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_maptier", Command_Tier, "Prints the map's tier to chat. (sm_tier alias)");
 
 	RegConsoleCmd("sm_rank", Command_Rank, "Show your or someone else's rank. Usage: sm_rank [name]");
-	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players."); // The rewrite of rankings will not have the ability to show over 100 entries. Dynamic fetching can be exploited and overload the database.
+	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players.");
 
 	RegAdminCmd("sm_settier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_settier <tier>");
 	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_setmaptier <tier> (sm_settier alias)");
@@ -168,6 +158,13 @@ public void OnPluginStart()
 	{
 		Shavit_OnChatConfigLoaded();
 	}
+
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		GetTrackName(LANG_SERVER, i, gS_TrackNames[i], 32);
+	}
+
+	SQL_DBConnect();
 }
 
 public void Shavit_OnChatConfigLoaded()
@@ -210,55 +207,20 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
 void SQL_DBConnect()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	
-	if(gH_SQL != null)
+	gH_SQL = GetTimerDatabaseHandle();
+
+	if(!IsMySQLDatabase(gH_SQL))
 	{
-		char sDriver[8];
-		gH_SQL.Driver.GetIdentifier(sDriver, 8);
-
-		if(!StrEqual(sDriver, "mysql", false))
-		{
-			SetFailState("MySQL is the only supported database engine for shavit-rankings.");
-		}
-
-		char sQuery[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
-
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
+		SetFailState("MySQL is the only supported database engine for shavit-rankings.");
 	}
+
+	char sQuery[256];
+	FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
+
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -379,7 +341,7 @@ public void OnClientPostAdminCheck(int client)
 public void OnMapStart()
 {
 	// do NOT keep running this more than once per map, as UpdateAllPoints() is called after this eventually and locks up the database while it is running
-	if(gH_SQL == null || gB_TierQueried)
+	if(gB_TierQueried)
 	{
 		return;
 	}

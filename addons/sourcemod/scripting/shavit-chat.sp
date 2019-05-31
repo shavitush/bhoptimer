@@ -112,16 +112,6 @@ public Plugin myinfo =
 	url = "https://github.com/shavitush/bhoptimer"
 }
 
-public void OnAllPluginsLoaded()
-{
-	gB_RTLer = LibraryExists("rtler");
-
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
-}
-
 public void OnPluginStart()
 {
 	gEV_Type = GetEngineVersion();
@@ -163,6 +153,10 @@ public void OnPluginStart()
 			}
 		}
 	}
+
+	gB_RTLer = LibraryExists("rtler");
+
+	SQL_DBConnect();
 }
 
 public void OnMapStart()
@@ -514,36 +508,6 @@ void Frame_SendText(DataPack pack)
 	EndMessage();
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
 public void OnLibraryAdded(const char[] name)
 {
 	if(StrEqual(name, "rtler"))
@@ -606,10 +570,7 @@ public void OnClientDisconnect(int client)
 
 public void OnClientPostAdminCheck(int client)
 {
-	if(gH_SQL != null)
-	{
-		LoadFromDatabase(client);
-	}
+	LoadFromDatabase(client);
 }
 
 public Action Command_CCHelp(int client, int args)
@@ -1307,31 +1268,25 @@ int RealRandomInt(int min, int max)
 void SQL_DBConnect()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	
-	if(gH_SQL != null)
+	gH_SQL = GetTimerDatabaseHandle();
+
+	char sQuery[512];
+
+	if(IsMySQLDatabase(gH_SQL))
 	{
-		char sDriver[8];
-		gH_SQL.Driver.GetIdentifier(sDriver, 8);
-		bool bMySQL = StrEqual(sDriver, "mysql", false);
-
-		char sQuery[512];
-
-		if(bMySQL)
-		{
-			FormatEx(sQuery, 512,
-				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
-				gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
-		}
-
-		else
-		{
-			FormatEx(sQuery, 512,
-				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
-				gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
-		}
-		
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+		FormatEx(sQuery, 512,
+			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
+
+	else
+	{
+		FormatEx(sQuery, 512,
+			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+	}
+	
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
