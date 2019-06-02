@@ -3310,11 +3310,11 @@ public Action Command_Drop(int client, const char[] command, int argc)
 		return Plugin_Continue;
 	}
 
-	int weapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+	int iWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
 
-	if(weapon != -1 && IsValidEntity(weapon))
+	if(iWeapon != -1 && IsValidEntity(iWeapon) && GetEntPropEnt(iWeapon, Prop_Send, "m_hOwnerEntity") == client)
 	{
-		CS_DropWeapon(client, weapon, true);
+		CS_DropWeapon(client, iWeapon, true);
 	}
 
 	return Plugin_Handled;
@@ -3327,7 +3327,6 @@ void LoadState(int client)
 
 	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
 	Shavit_SetPracticeMode(client, gB_SaveStatesSegmented[client], false);
-	Shavit_ResumeTimer(client);
 
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{

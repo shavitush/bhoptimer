@@ -210,11 +210,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
 }
 
 public void OnPluginStart()
@@ -299,7 +294,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_replay", Command_Replay, "Opens the central bot menu. For admins: 'sm_replay stop' to stop the playback.");
 
 	// database
-	SQL_SetPrefix();
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -689,59 +685,6 @@ public int Native_Replay_DeleteMap(Handle handler, int numParams)
 	}
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 public Action Cron(Handle Timer)
 {
 	if(!gCV_Enabled.BoolValue)
@@ -1031,17 +974,14 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 		iSteamID = StringToInt(sAuthID);
 	}
 
-	if(gH_SQL != null)
-	{
-		char sQuery[192];
-		FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	char sQuery[192];
+	FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 
-		DataPack hPack = new DataPack();
-		hPack.WriteCell(style);
-		hPack.WriteCell(track);
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(style);
+	hPack.WriteCell(track);
 
-		gH_SQL.Query(SQL_GetUserName_Callback, sQuery, hPack, DBPrio_High);
-	}
+	gH_SQL.Query(SQL_GetUserName_Callback, sQuery, hPack, DBPrio_High);
 
 	int cells = CELLS_PER_FRAME;
 

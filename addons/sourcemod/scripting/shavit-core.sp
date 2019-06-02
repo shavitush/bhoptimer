@@ -55,6 +55,7 @@ enum struct playertimer_t
 	int iPerfectJumps;
 	int iGroundTicks;
 	MoveType iMoveType;
+	bool bCanUseAllKeys;
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -116,6 +117,7 @@ ConVar gCV_NoZAxisSpeed = null;
 ConVar gCV_VelocityTeleport = null;
 ConVar gCV_DefaultStyle = null;
 ConVar gCV_NoChatSound = null;
+ConVar gCV_SimplerLadders = null;
 
 // cached cvars
 int gI_DefaultStyle = 0;
@@ -251,10 +253,6 @@ public void OnPluginStart()
 		SetFailState("This plugin was meant to be used in CS:S, CS:GO and TF2 *only*.");
 	}
 
-	// database connections
-	SQL_SetPrefix();
-	SQL_DBConnect();
-
 	// hooks
 	gB_HookedJump = HookEventEx("player_jump", Player_Jump);
 	HookEvent("player_death", Player_Death);
@@ -326,6 +324,7 @@ public void OnPluginStart()
 	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle = CreateConVar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
 	gCV_NoChatSound = CreateConVar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
+	gCV_SimplerLadders = CreateConVar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
@@ -358,6 +357,9 @@ public void OnPluginStart()
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_HUD = LibraryExists("shavit-hud");
+
+	// database connections
+	SQL_DBConnect();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1736,6 +1738,7 @@ void StartTimer(int client, int track)
 			gA_Timers[client].bPracticeMode = false;
 			gA_Timers[client].iMeasuredJumps = 0;
 			gA_Timers[client].iPerfectJumps = 0;
+			gA_Timers[client].bCanUseAllKeys = false;
 
 			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
 			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
@@ -1865,11 +1868,6 @@ public void OnClientPutInServer(int client)
 	else
 	{
 		CallOnStyleChanged(client, 0, gI_DefaultStyle, false);
-	}
-
-	if(gH_SQL == null)
-	{
-		return;
 	}
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
@@ -2155,64 +2153,17 @@ bool LoadMessages()
 	return true;
 }
 
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 void SQL_DBConnect()
 {
-	if(gH_SQL != null)
-	{
-		delete gH_SQL;
-	}
-
-	char sError[255];
-
-	if(SQL_CheckConfig("shavit")) // can't be asynced as we have modules that require this database connection instantly
-	{
-		gH_SQL = SQL_Connect("shavit", true, sError, 255);
-
-		if(gH_SQL == null)
-		{
-			SetFailState("Timer startup failed. Reason: %s", sError);
-		}
-	}
-
-	else
-	{
-		gH_SQL = SQLite_UseDatabase("shavit", sError, 255);
-	}
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
+	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	// support unicode names
 	if(!gH_SQL.SetCharset("utf8mb4"))
 	{
 		gH_SQL.SetCharset("utf8");
 	}
-
-	char sDriver[8];
-	gH_SQL.Driver.GetIdentifier(sDriver, 8);
-	gB_MySQL = StrEqual(sDriver, "mysql", false);
 
 	// migrations will only exist for mysql. sorry sqlite users
 	if(gB_MySQL)
@@ -2280,6 +2231,7 @@ void ApplyMigration(int migration)
 		case Migration_ConvertSteamIDsPlayertimes, Migration_ConvertSteamIDsChat: return; // this is confusing, but the above case handles all of them
 		case Migration_PlayertimesDateToInt: ApplyMigration_PlayertimesDateToInt();
 		case Migration_AddZonesFlagsAndData: ApplyMigration_AddZonesFlagsAndData();
+		case Migration_AddPlayertimesCompletions: ApplyMigration_AddPlayertimesCompletions();
 	}
 }
 
@@ -2309,6 +2261,13 @@ void ApplyMigration_AddZonesFlagsAndData()
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%smapzones` ADD COLUMN `flags` INT NULL AFTER `track`, ADD COLUMN `data` INT NULL AFTER `flags`;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddZonesFlagsAndData, DBPrio_High);
+}
+
+void ApplyMigration_AddPlayertimesCompletions()
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `completions` SMALLINT DEFAULT 1 AFTER `perfs`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesCompletions, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2779,8 +2738,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	MoveType mtMoveType = GetEntityMoveType(client);
 
+	if(mtMoveType == MOVETYPE_LADDER && gCV_SimplerLadders.BoolValue)
+	{
+		gA_Timers[client].bCanUseAllKeys = true;
+	}
+
+	else if(iGroundEntity != -1)
+	{
+		gA_Timers[client].bCanUseAllKeys = false;
+	}
+
 	// key blocking
-	if(mtMoveType != MOVETYPE_NOCLIP && mtMoveType != MOVETYPE_LADDER && !Shavit_InsideZone(client, Zone_Freestyle, -1))
+	if(!gA_Timers[client].bCanUseAllKeys && mtMoveType != MOVETYPE_NOCLIP && mtMoveType != MOVETYPE_LADDER && !Shavit_InsideZone(client, Zone_Freestyle, -1))
 	{
 		// block E
 		if(gA_StyleSettings[gA_Timers[client].iStyle].bBlockUse && (buttons & IN_USE) > 0)

@@ -74,11 +74,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
 }
 
 public void OnPluginStart()
@@ -110,7 +105,8 @@ public void OnPluginStart()
 
 	AutoExecConfig();
 
-	SQL_SetPrefix();
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -149,11 +145,6 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
-	if(gH_SQL == null)
-	{
-		return;
-	}
-
 	if(gCV_DynamicTimelimits.BoolValue)
 	{
 		StartCalculating();
@@ -170,78 +161,20 @@ public void OnMapStart()
 	}
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		OnMapStart();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 void StartCalculating()
 {
-	if(gH_SQL != null)
-	{
-		char sMap[160];
-		GetCurrentMap(sMap, 160);
-		GetMapDisplayName(sMap, sMap, 160);
+	char sMap[160];
+	GetCurrentMap(sMap, 160);
+	GetMapDisplayName(sMap, sMap, 160);
 
-		char sQuery[512];
-		FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' AND r.track = 0 %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gCV_Style.BoolValue)? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);
+	char sQuery[512];
+	FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' AND r.track = 0 %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gCV_Style.BoolValue)? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);
 
-		#if defined DEBUG
-		PrintToServer("%s", sQuery);
-		#endif
+	#if defined DEBUG
+	PrintToServer("%s", sQuery);
+	#endif
 
-		gH_SQL.Query(SQL_GetMapTimes, sQuery, 0, DBPrio_Low);
-	}
+	gH_SQL.Query(SQL_GetMapTimes, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error, any data)

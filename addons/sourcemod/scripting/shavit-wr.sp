@@ -63,7 +63,6 @@ int gI_ValidMaps = 1;
 float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
 int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
 char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
-int gI_RecordAmount[STYLE_LIMIT][TRACKS_SIZE];
 ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 
@@ -116,14 +115,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	gB_Late = late;
 
 	return APLRes_Success;
-}
-
-public void OnAllPluginsLoaded()
-{
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
 }
 
 public void OnPluginStart()
@@ -179,7 +170,8 @@ public void OnPluginStart()
 	// cache
 	gA_ValidMaps = new ArrayList(192);
 
-	SQL_SetPrefix();
+	// database
+	SQL_DBConnect();
 }
 
 public void OnAdminMenuCreated(Handle topmenu)
@@ -283,7 +275,7 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnMapStart()
 {
-	if(gH_SQL == null || !gB_Connected)
+	if(!gB_Connected)
 	{
 		return;
 	}
@@ -381,7 +373,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 				}
 
 				gA_Leaderboard[i][j].Clear();
-				gI_RecordAmount[i][j] = 0;
 			}
 
 			else
@@ -416,7 +407,7 @@ public void OnClientPutInServer(int client)
 		}
 	}
 
-	if(!IsClientConnected(client) || IsFakeClient(client) || gH_SQL == null)
+	if(!IsClientConnected(client) || IsFakeClient(client))
 	{
 		return;
 	}
@@ -489,7 +480,7 @@ void UpdateWRCache()
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 	}
 
-	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, 0, DBPrio_Low);
+	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery);
 }
 
 public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -508,7 +499,6 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		{
 			strcopy(gS_WRName[i][j], MAX_NAME_LENGTH, "invalid");
 			gF_WRTime[i][j] = 0.0;
-			gI_RecordAmount[i][j] = 0;
 		}
 	}
 
@@ -583,7 +573,7 @@ public int Native_GetRankForTime(Handle handler, int numParams)
 
 public int Native_GetRecordAmount(Handle handler, int numParams)
 {
-	return gI_RecordAmount[GetNativeCell(1)][GetNativeCell(2)];
+	return GetRecordAmount(GetNativeCell(1), GetNativeCell(2));
 }
 
 public int Native_GetTimeForRank(Handle handler, int numParams)
@@ -593,10 +583,10 @@ public int Native_GetTimeForRank(Handle handler, int numParams)
 	int track = GetNativeCell(3);
 
 	#if defined DEBUG
-	Shavit_PrintToChatAll("style %d | rank %d | track %d | amount %d", style, rank, track, gI_RecordAmount[style][track]);
+	Shavit_PrintToChatAll("style %d | rank %d | track %d | amount %d", style, rank, track, GetRecordAmount(style, track));
 	#endif
 
-	if(rank > gI_RecordAmount[style][track])
+	if(rank > GetRecordAmount(style, track))
 	{
 		return view_as<int>(0.0);
 	}
@@ -656,13 +646,14 @@ public Action Command_PrintLeaderboards(int client, int args)
 	GetCmdArg(1, sArg, 8);
 
 	int iStyle = StringToInt(sArg);
+	int iRecords = GetRecordAmount(iStyle, Track_Main);
 
 	ReplyToCommand(client, "Track: Main - Style: %d", iStyle);
 	ReplyToCommand(client, "Current PB: %f", gF_PlayerRecord[client][iStyle][0]);
-	ReplyToCommand(client, "Count: %d", gI_RecordAmount[iStyle][0]);
+	ReplyToCommand(client, "Count: %d", iRecords);
 	ReplyToCommand(client, "Rank: %d", Shavit_GetRankForTime(iStyle, gF_PlayerRecord[client][iStyle][0], iStyle));
 
-	for(int i = 0; i < gI_RecordAmount[iStyle][0]; i++)
+	for(int i = 0; i < iRecords; i++)
 	{
 		ReplyToCommand(client, "#%d: %f", i, gA_Leaderboard[iStyle][0].Get(i));
 	}
@@ -677,7 +668,7 @@ int GetTrackRecordCount(int track)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		count += gI_RecordAmount[i][track];
+		count += GetRecordAmount(i, track);
 	}
 
 	return count;
@@ -757,9 +748,9 @@ void DeleteSubmenu(int client)
 		IntToString(iStyle, sInfo, 8);
 
 		char sDisplay[64];
-		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[iStyle].sStyleName, "WRRecord", client, gI_RecordAmount[iStyle][gA_WRCache[client].iLastTrack]);
+		FormatEx(sDisplay, 64, "%s (%T: %d)", gS_StyleStrings[iStyle].sStyleName, "WRRecord", client, GetRecordAmount(iStyle, gA_WRCache[client].iLastTrack));
 
-		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[iStyle][gA_WRCache[client].iLastTrack] > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (GetRecordAmount(iStyle, gA_WRCache[client].iLastTrack) > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	menu.ExitButton = true;
@@ -831,7 +822,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 
 			IntToString(iStyle, sInfo, 8);
 
-			int iRecords = gI_RecordAmount[iStyle][iTrack];
+			int iRecords = GetRecordAmount(iStyle, iTrack);
 
 			if(iRecords > 0)
 			{
@@ -1356,7 +1347,7 @@ Action ShowWRStyleMenu(int client, int track)
 			strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
 		}
 
-		menu.AddItem(sInfo, sDisplay, (gI_RecordAmount[iStyle][track] > 0 || !StrEqual(gA_WRCache[client].sClientMap, gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (GetRecordAmount(iStyle, track) > 0 || !StrEqual(gA_WRCache[client].sClientMap, gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	// should NEVER happen
@@ -1692,7 +1683,9 @@ public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 void OpenSubMenu(int client, int id)
 {
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.perfs, p.points, p.track FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, id);
+	FormatEx(sQuery, 512,
+		"SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.perfs, p.points, p.track, p.completions FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = %d LIMIT 1;",
+		gS_MySQLPrefix, gS_MySQLPrefix, id);
 
 	DataPack datapack = new DataPack();
 	datapack.WriteCell(GetClientSerial(client));
@@ -1730,40 +1723,38 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	if(results.FetchRow())
 	{
-		// 0 - name
 		results.FetchString(0, sName, MAX_NAME_LENGTH);
 
-		// 1 - time
-		float time = results.FetchFloat(1);
+		float fTime = results.FetchFloat(1);
 		char sTime[16];
-		FormatSeconds(time, sTime, 16);
+		FormatSeconds(fTime, sTime, 16);
 
 		char sDisplay[128];
 		FormatEx(sDisplay, 128, "%T: %s", "WRTime", client, sTime);
 		hMenu.AddItem("-1", sDisplay);
 
-		// 2 - jumps
-		int style = results.FetchInt(3);
-		int jumps = results.FetchInt(2);
-		float perfs = results.FetchFloat(9);
+		int iStyle = results.FetchInt(3);
+		int iJumps = results.FetchInt(2);
+		float fPerfs = results.FetchFloat(9);
 
-		if(gA_StyleSettings[style].bAutobhop)
+		if(gA_StyleSettings[iStyle].bAutobhop)
 		{
-			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, jumps);
+			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, iJumps);
 		}
 
 		else
 		{
-			FormatEx(sDisplay, 128, "%T: %d (%.2f%%)", "WRJumps", client, jumps, perfs);
+			FormatEx(sDisplay, 128, "%T: %d (%.2f%%)", "WRJumps", client, iJumps, fPerfs);
 		}
 
 		hMenu.AddItem("-1", sDisplay);
 
-		// 3 - style
-		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[style].sStyleName);
+		FormatEx(sDisplay, 128, "%T: %d", "WRCompletions", client, results.FetchInt(12));
 		hMenu.AddItem("-1", sDisplay);
 
-		// 6 - map
+		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[iStyle].sStyleName);
+		hMenu.AddItem("-1", sDisplay);
+
 		results.FetchString(6, sMap, 192);
 		
 		float fPoints = results.FetchFloat(10);
@@ -1774,10 +1765,8 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			hMenu.AddItem("-1", sDisplay);
 		}
 
-		// 4 - steamid3
 		iSteamID = results.FetchInt(4);
 
-		// 5 - date
 		char sDate[32];
 		results.FetchString(5, sDate, 32);
 
@@ -1792,7 +1781,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int strafes = results.FetchInt(7);
 		float sync = results.FetchFloat(8);
 
-		if(jumps > 0 || strafes > 0)
+		if(iJumps > 0 || strafes > 0)
 		{
 			FormatEx(sDisplay, 128, (sync != -1.0)? "%T: %d (%.02f%%)":"%T: %d", "WRStrafes", client, strafes, sync);
 			hMenu.AddItem("-1", sDisplay);
@@ -1888,80 +1877,25 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 void SQL_DBConnect()
 {
-	char sDriver[8];
-	gH_SQL.Driver.GetIdentifier(sDriver, 8);
-	gB_MySQL = StrEqual(sDriver, "mysql", false);
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
+	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	char sQuery[1024];
 
 	if(gB_MySQL)
 	{
 		FormatEx(sQuery, 1024,
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 
 	else
 	{
 		FormatEx(sQuery, 1024,
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 
@@ -2003,11 +1937,13 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	// 0 - no query
 	// 1 - insert
 	// 2 - update
+	bool bIncrementCompletions = true;
 	int iOverwrite = 0;
 
 	if(gA_StyleSettings[style].bUnranked || Shavit_IsPracticeMode(client))
 	{
 		iOverwrite = 0; // ugly way of not writing to database
+		bIncrementCompletions = false;
 	}
 
 	else if(gF_PlayerRecord[client][style][track] == 0.0)
@@ -2045,7 +1981,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	int iRank = GetRankForTime(style, time, track);
 
-	if(iRank >= gI_RecordAmount[style][track])
+	if(iRank >= GetRecordAmount(style, track))
 	{
 		Call_StartForward(gH_OnWorstRecord);
 		Call_PushCell(client);
@@ -2073,29 +2009,28 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	char sSync[32]; // 32 because colors
 	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_ChatStrings.sVariable, sync);
 
+	int iSteamID = GetSteamAccountID(client);
+
 	if(iOverwrite > 0)
 	{
-		int iSteamID = GetSteamAccountID(client);
-
 		char sQuery[512];
 
 		if(iOverwrite == 1) // insert
 		{
 			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
 
-			if(gH_SQL == null)
-			{
-				return;
-			}
-
-			FormatEx(sQuery, 512, "INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);", gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
+			FormatEx(sQuery, 512,
+				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);",
+				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
 		}
 
 		else // update
 		{
 			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
-			FormatEx(sQuery, 512, "UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;", gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, iSteamID, style, track);
+			FormatEx(sQuery, 512,
+				"UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
+				gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, iSteamID, style, track);
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -2117,6 +2052,16 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		gF_PlayerRecord[client][style][track] = time;
 	}
 
+	if(bIncrementCompletions)
+	{
+		char sQuery[256];
+		FormatEx(sQuery, 256,
+			"UPDATE %splayertimes SET completions = completions + 1 WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
+			gS_MySQLPrefix, gS_Map, iSteamID, style, track);
+
+		gH_SQL.Query(SQL_OnIncrementCompletions_Callback, sQuery, 0, DBPrio_Low);
+	}
+
 	else if(iOverwrite == 0 && !gA_StyleSettings[style].bUnranked)
 	{
 		Shavit_PrintToChat(client, "%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
@@ -2125,6 +2070,16 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	else
 	{
 		Shavit_PrintToChat(client, "%s[%s]%s] %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "UnrankedTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
+	}
+}
+
+public void SQL_OnIncrementCompletions_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR OnIncrementCompletions) SQL query failed. Reason: %s", error);
+
+		return;
 	}
 }
 
@@ -2152,7 +2107,7 @@ void UpdateLeaderboards()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "SELECT style, track, time FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
-	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery, 0);
+	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery);
 }
 
 public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2168,7 +2123,6 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			gI_RecordAmount[i][j] = 0;
 			gA_Leaderboard[i][j].Clear();
 		}
 	}
@@ -2196,21 +2150,32 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			SortADTArray(gA_Leaderboard[i][j], Sort_Ascending, Sort_Float);
-			gI_RecordAmount[i][j] = gA_Leaderboard[i][j].Length;
 		}
 	}
 }
 
+int GetRecordAmount(int style, int track)
+{
+	if(gA_Leaderboard[style][track] == null)
+	{
+		return 0;
+	}
+
+	return gA_Leaderboard[style][track].Length;
+}
+
 int GetRankForTime(int style, float time, int track)
 {
-	if(time <= gF_WRTime[style][track] || gI_RecordAmount[style][track] <= 0)
+	int iRecords = GetRecordAmount(style, track);
+
+	if(time <= gF_WRTime[style][track] || iRecords <= 0)
 	{
 		return 1;
 	}
 
 	if(gA_Leaderboard[style][track] != null && gA_Leaderboard[style][track].Length > 0)
 	{
-		for(int i = 0; i < gI_RecordAmount[style][track]; i++)
+		for(int i = 0; i < iRecords; i++)
 		{
 			if(time <= gA_Leaderboard[style][track].Get(i))
 			{
@@ -2219,7 +2184,7 @@ int GetRankForTime(int style, float time, int track)
 		}
 	}
 
-	return (gI_RecordAmount[style][track] + 1);
+	return (iRecords + 1);
 }
 
 void GuessBestMapName(const char[] input, char[] output, int size)

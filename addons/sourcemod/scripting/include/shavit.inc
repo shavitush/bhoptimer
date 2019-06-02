@@ -87,6 +87,7 @@ enum
 	Migration_ConvertSteamIDsChat,
 	Migration_PlayertimesDateToInt,
 	Migration_AddZonesFlagsAndData,
+	Migration_AddPlayertimesCompletions,
 	MIGRATIONS_END
 };
 
@@ -265,6 +266,62 @@ char gS_CSGOColors[][] =
 	"\x07"
 };
 #endif
+
+// connects synchronously to the bhoptimer database
+// calls errors if needed
+stock Database GetTimerDatabaseHandle()
+{
+	Database db = null;
+	char sError[255];
+
+	if(SQL_CheckConfig("shavit"))
+	{
+		if((db = SQL_Connect("shavit", true, sError, 255)) == null)
+		{
+			SetFailState("Timer startup failed. Reason: %s", sError);
+		}
+	}
+
+	else
+	{
+		db = SQLite_UseDatabase("shavit", sError, 255);
+	}
+
+	return db
+}
+
+// figures out if the database is a mysql database
+stock bool IsMySQLDatabase(Database db)
+{
+	char sDriver[8];
+	db.Driver.GetIdentifier(sDriver, 8);
+
+	return StrEqual(sDriver, "mysql", false);
+}
+
+// retrieves the table prefix defined in configs/shavit-prefix.txt
+stock void GetTimerSQLPrefix(char[] buffer, int maxlen)
+{
+	char sFile[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
+
+	File fFile = OpenFile(sFile, "r");
+
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
+	}
+	
+	char sLine[PLATFORM_MAX_PATH * 2];
+
+	if(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+	{
+		TrimString(sLine);
+		strcopy(buffer, maxlen, sLine);
+	}
+
+	delete fFile;
+}
 
 stock bool IsValidClient(int client, bool bAlive = false)
 {
@@ -539,7 +596,8 @@ forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int t
 forward void Shavit_OnStyleConfigLoaded(int styles);
 
 /**
- * Called when there's a successful connection to the database.
+ * Called when there's a successful connection to the database and it is ready to be used.
+ * Called through shavit-core after migrations have been applied, and after the attempt to create the default `users` table.
  *
  * @noreturn
  */
