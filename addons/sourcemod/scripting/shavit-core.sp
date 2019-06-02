@@ -2988,12 +2988,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				}
 			}
 
-			// Half-SideWays || Backwards Half-SideWays
-			else if((fDirectionAngle > 22.5 && fDirectionAngle < 67.5) || (fDirectionAngle > 202.5 && fDirectionAngle < 247.5))
+			// Half-SideWays
+			else if((fDirectionAngle > 22.5 && fDirectionAngle < 67.5))
 			{
 				gA_Timers[client].iTotalMeasures++;
 
-				if((fAngle != 0.0) && (vel[0] >= 100.0 || vel[0] >= -100.0) && (vel[1] >= 100.0 || vel[1] >= -100.0))
+				if((fAngle != 0.0) && (vel[0] >= 100.0 || vel[1] >= 100.0) && (vel[0] >= -100.0 || vel[1] >= -100.0))
 				{
 					gA_Timers[client].iGoodGains++;
 				}
