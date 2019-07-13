@@ -2970,32 +2970,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				fTempAngle += 360.0;
 			}
 
-			float fDirectionAngle = (fTempAngle - fAngles[1]);
-
-			if(fDirectionAngle < 0.0)
-			{
-				fDirectionAngle = -fDirectionAngle;
-			}
-
-			if(fDirectionAngle < 22.5 || fDirectionAngle > 337.5)
-			{
-				gA_Timers[client].iTotalMeasures++;
-
-				if((fAngle > 0.0 && vel[1] <= -100.0) || (fAngle < 0.0 && vel[1] >= 100.0))
-				{
-					gA_Timers[client].iGoodGains++;
-				}
-			}
-
-			else if((fDirectionAngle > 67.5 && fDirectionAngle < 112.5) || (fDirectionAngle > 247.5 && fDirectionAngle < 292.5))
-			{
-				gA_Timers[client].iTotalMeasures++;
-
-				if(vel[0] <= -100.0 || vel[0] >= 100.0)
-				{
-					gA_Timers[client].iGoodGains++;
-				}
-			}
+			TestAngles(client, (fTempAngle - fAngles[1]), fAngle, vel);
 		}
 	}
 
@@ -3003,6 +2978,47 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	gA_Timers[client].fLastAngle = angles[1];
 
 	return Plugin_Continue;
+}
+
+void TestAngles(int client, float dirangle, float yawdelta, float vel[3])
+{
+	if(dirangle < 0.0)
+	{
+		dirangle = -dirangle;
+	}
+
+	// normal
+	if(dirangle < 22.5 || dirangle > 337.5)
+	{
+		gA_Timers[client].iTotalMeasures++;
+
+		if((yawdelta > 0.0 && vel[1] <= -100.0) || (yawdelta < 0.0 && vel[1] >= 100.0))
+		{
+			gA_Timers[client].iGoodGains++;
+		}
+	}
+
+	// hsw (thanks nairda!)
+	else if((dirangle > 22.5 && dirangle < 67.5))
+	{
+		gA_Timers[client].iTotalMeasures++;
+
+		if((yawdelta != 0.0) && (vel[0] >= 100.0 || vel[1] >= 100.0) && (vel[0] >= -100.0 || vel[1] >= -100.0))
+		{
+			gA_Timers[client].iGoodGains++;
+		}
+	}
+
+	// sw
+	else if((dirangle > 67.5 && dirangle < 112.5) || (dirangle > 247.5 && dirangle < 292.5))
+	{
+		gA_Timers[client].iTotalMeasures++;
+
+		if(vel[0] <= -100.0 || vel[0] >= 100.0)
+		{
+			gA_Timers[client].iGoodGains++;
+		}
+	}
 }
 
 void StopTimer_Cheat(int client, const char[] message)
