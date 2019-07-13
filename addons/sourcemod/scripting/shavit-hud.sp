@@ -223,7 +223,7 @@ public void OnPluginStart()
 
 	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
-	gH_HUDCookieMain = RegClientCookie("shavit_hud_settingmain", "HUD settings for main ", CookieAccess_Protected);
+	gH_HUDCookieMain = RegClientCookie("shavit_hud_settingmain", "HUD settings for hint text.", CookieAccess_Protected);
 
 	if(gB_Late)
 	{
@@ -233,7 +233,7 @@ public void OnPluginStart()
 			{
 				OnClientPutInServer(i);
 
-				if(AreClientCookiesCached(i))
+				if(AreClientCookiesCached(i) && !IsFakeClient(i))
 				{
 					OnClientCookiesCached(i);
 				}
@@ -410,20 +410,19 @@ public void OnClientCookiesCached(int client)
 		gI_HUDSettings[client] = StringToInt(sHUDSettings);
 	}
 
-	char sHUDSettingsMain[8];
-	GetClientCookie(client, gH_HUDCookieMain, sHUDSettingsMain, 8);
+	GetClientCookie(client, gH_HUDCookieMain, sHUDSettings, 8);
 
-	if(strlen(sHUDSettingsMain) == 0)
+	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT2, sHUDSettingsMain, 8);
+		IntToString(HUD_DEFAULT2, sHUDSettings, 8);
 
-		SetClientCookie(client, gH_HUDCookieMain, sHUDSettingsMain);
+		SetClientCookie(client, gH_HUDCookieMain, sHUDSettings);
 		gI_HUD2Settings[client] = HUD_DEFAULT2;
 	}
 
 	else
 	{
-		gI_HUD2Settings[client] = StringToInt(sHUDSettingsMain);
+		gI_HUD2Settings[client] = StringToInt(sHUDSettings);
 	}
 }
 
