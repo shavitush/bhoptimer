@@ -60,6 +60,7 @@ Database gH_SQL = null;
 
 bool gB_Stats = false;
 bool gB_Late = false;
+bool gB_TierQueried = false;
 
 int gI_Tier = 1; // No floating numbers for tiers, sorry.
 
@@ -71,6 +72,7 @@ StringMap gA_MapTiers = null;
 
 ConVar gCV_PointsPerTier = null;
 ConVar gCV_WeightingMultiplier = null;
+ConVar gCV_LastLoginRecalculate = null;
 
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
@@ -118,16 +120,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
-
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		GetTrackName(LANG_SERVER, i, gS_TrackNames[i], 32);
-	}
 }
 
 public void OnPluginStart()
@@ -139,7 +131,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_maptier", Command_Tier, "Prints the map's tier to chat. (sm_tier alias)");
 
 	RegConsoleCmd("sm_rank", Command_Rank, "Show your or someone else's rank. Usage: sm_rank [name]");
-	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players."); // The rewrite of rankings will not have the ability to show over 100 entries. Dynamic fetching can be exploited and overload the database.
+	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players.");
 
 	RegAdminCmd("sm_settier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_settier <tier>");
 	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_setmaptier <tier> (sm_settier alias)");
@@ -150,6 +142,7 @@ public void OnPluginStart()
 
 	gCV_PointsPerTier = CreateConVar("shavit_rankings_pointspertier", "50.0", "Base points to use for per-tier scaling.\nRead the design idea to see how it works: https://github.com/shavitush/bhoptimer/issues/465", 0, true, 1.0);
 	gCV_WeightingMultiplier = CreateConVar("shavit_rankings_weighting", "0.975", "Weighing multiplier. 1.0 to disable weighting.\nFormula: p[1] * this^0 + p[2] * this^1 + p[3] * this^2 + ... + p[n] * this^(n-1)\nRestart server to apply.", 0, true, 0.01, true, 1.0);
+	gCV_LastLoginRecalculate = CreateConVar("shavit_rankings_llrecalc", "10080", "Maximum amount of time (in minutes) since last login to recalculate points for a player.\nsm_recalcall does not respect this setting.\n0 - disabled, don't filter anyone", 0, true, 0.0);
 
 	AutoExecConfig();
 
@@ -160,13 +153,18 @@ public void OnPluginStart()
 	// tier cache
 	gA_ValidMaps = new ArrayList(128);
 	gA_MapTiers = new StringMap();
-	
-	SQL_SetPrefix();
 
 	if(gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
 	}
+
+	for(int i = 0; i < TRACKS_SIZE; i++)
+	{
+		GetTrackName(LANG_SERVER, i, gS_TrackNames[i], 32);
+	}
+
+	SQL_DBConnect();
 }
 
 public void Shavit_OnChatConfigLoaded()
@@ -209,78 +207,20 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 void SQL_DBConnect()
 {
-	if(gH_SQL != null)
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
+
+	if(!IsMySQLDatabase(gH_SQL))
 	{
-		char sDriver[8];
-		gH_SQL.Driver.GetIdentifier(sDriver, 8);
-
-		if(!StrEqual(sDriver, "mysql", false))
-		{
-			SetFailState("MySQL is the only supported database engine for shavit-rankings.");
-		}
-
-		char sQuery[256];
-		FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
-
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
+		SetFailState("MySQL is the only supported database engine for shavit-rankings.");
 	}
+
+	char sQuery[256];
+	FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
+
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -310,7 +250,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	bool bSuccess = true;
 
 	RunLongFastQuery(bSuccess, "CREATE GetWeightedPoints",
-		"CREATE FUNCTION GetWeightedPoints(authid VARCHAR(32)) " ...
+		"CREATE FUNCTION GetWeightedPoints(steamid INT) " ...
 		"RETURNS FLOAT " ...
 		"READS SQL DATA " ...
 		"BEGIN " ...
@@ -318,7 +258,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		"DECLARE total FLOAT DEFAULT 0.0; " ...
 		"DECLARE mult FLOAT DEFAULT 1.0; " ...
 		"DECLARE done INT DEFAULT 0; " ...
-		"DECLARE cur CURSOR FOR SELECT points FROM %splayertimes WHERE auth = authid AND points > 0.0 ORDER BY points DESC; " ...
+		"DECLARE cur CURSOR FOR SELECT points FROM %splayertimes WHERE auth = steamid AND points > 0.0 ORDER BY points DESC; " ...
 		"DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1; " ...
 		"OPEN cur; " ...
 		"iter: LOOP " ...
@@ -400,7 +340,8 @@ public void OnClientPostAdminCheck(int client)
 
 public void OnMapStart()
 {
-	if(gH_SQL == null)
+	// do NOT keep running this more than once per map, as UpdateAllPoints() is called after this eventually and locks up the database while it is running
+	if(gB_TierQueried)
 	{
 		return;
 	}
@@ -409,8 +350,6 @@ public void OnMapStart()
 	PrintToServer("DEBUG: 1 (OnMapStart)");
 	#endif
 
-	UpdateRankedPlayers();
-
 	GetCurrentMap(gS_Map, 160);
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
@@ -418,17 +357,11 @@ public void OnMapStart()
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
 	gI_Tier = 1;
 
-	char sDriver[8];
-	gH_SQL.Driver.GetIdentifier(sDriver, 8);
-	
-	if(!StrEqual(sDriver, "mysql", false))
-	{
-		SetFailState("Rankings will only support MySQL for the moment. Sorry.");
-	}
-
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
-	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery, 0, DBPrio_Low);
+	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery);
+
+	gB_TierQueried = true;
 }
 
 public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -531,6 +464,7 @@ void GuessBestMapName(const char[] input, char[] output, int size)
 public void OnMapEnd()
 {
 	RecalculateAll(gS_Map);
+	gB_TierQueried = false;
 }
 
 public Action Command_Tier(int client, int args)
@@ -608,7 +542,7 @@ public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
 
 		if(gB_Stats && !StrEqual(sInfo, "-1"))
 		{
-			Shavit_OpenStatsMenu(param1, sInfo);
+			Shavit_OpenStatsMenu(param1, StringToInt(sInfo));
 		}
 	}
 
@@ -708,7 +642,7 @@ public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResul
 
 	ReplyToCommand(client, "- Finished recalculating all points. Recalculating user points, top 100 and user cache.");
 
-	UpdateAllPoints();
+	UpdateAllPoints(true);
 	UpdateTop100();
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -758,8 +692,8 @@ void RecalculateMap(const char[] map, const int track, const int style)
 	PrintToServer("Recalculating points. (%s, %d, %d)", map, track, style);
 	#endif
 
-	char sQuery[192];
-	FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
+	char sQuery[256];
+	FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
 		gS_MySQLPrefix, style, track, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, track, map);
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
@@ -783,15 +717,25 @@ public void SQL_Recalculate_Callback(Database db, DBResultSet results, const cha
 	#endif
 }
 
-void UpdateAllPoints()
+void UpdateAllPoints(bool recalcall = false)
 {
 	#if defined DEBUG
 	LogError("DEBUG: 6 (UpdateAllPoints)");
 	#endif
 
-	char sQuery[128];
-	FormatEx(sQuery, 128, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT DISTINCT auth FROM %splayertimes);",
-		gS_MySQLPrefix, gS_MySQLPrefix);
+	char sQuery[256];
+
+	if(recalcall || gCV_LastLoginRecalculate.IntValue == 0)
+	{
+		FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT DISTINCT auth FROM %splayertimes);",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE %d - lastlogin < %d AND auth IN (SELECT DISTINCT auth FROM %splayertimes);",
+			gS_MySQLPrefix, GetTime(), (gCV_LastLoginRecalculate.IntValue * 60), gS_MySQLPrefix);
+	}
 	
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);
 }
@@ -804,6 +748,8 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 
 		return;
 	}
+
+	UpdateRankedPlayers();
 }
 
 void UpdatePlayerRank(int client, bool first)
@@ -811,15 +757,15 @@ void UpdatePlayerRank(int client, bool first)
 	gA_Rankings[client].iRank = 0;
 	gA_Rankings[client].fPoints = 0.0;
 
-	char sAuthID[32];
+	int iSteamID = 0;
 
-	if(GetClientAuthId(client, AuthId_Steam3, sAuthID, 32))
+	if((iSteamID = GetSteamAccountID(client)) != 0)
 	{
 		// if there's any issue with this query,
 		// add "ORDER BY points DESC " before "LIMIT 1"
 		char sQuery[512];
-		FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = '%s') u2 WHERE u1.points >= u2.points;",
-			gS_MySQLPrefix, gS_MySQLPrefix, sAuthID);
+		FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points;",
+			gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
 
 		DataPack hPack = new DataPack();
 		hPack.WriteCell(GetClientSerial(client));
@@ -924,8 +870,8 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 			break;
 		}
 
-		char sAuthID[32];
-		results.FetchString(0, sAuthID, 32);
+		char sSteamID[32];
+		results.FetchString(0, sSteamID, 32);
 
 		char sName[MAX_NAME_LENGTH];
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
@@ -935,7 +881,7 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 
 		char sDisplay[96];
 		FormatEx(sDisplay, 96, "#%d - %s (%s)", (++row), sName, sPoints);
-		gH_Top100Menu.AddItem(sAuthID, sDisplay);
+		gH_Top100Menu.AddItem(sSteamID, sDisplay);
 	}
 
 	if(gH_Top100Menu.ItemCount == 0)

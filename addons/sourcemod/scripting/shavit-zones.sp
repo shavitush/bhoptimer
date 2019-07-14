@@ -50,20 +50,23 @@ char gS_ZoneNames[][] =
 	"Glitch Zone (Stop Timer)", // stops the player's timer
 	"Slay Player", // slays (kills) players which come to this zone
 	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
-	"No Speed Limit", // ignores velocity limit in that zone
+	"Custom Speed Limit", // overwrites velocity limit in the zone
 	"Teleport Zone", // teleports to a defined point
 	"SPAWN POINT", // << unused
 	"Easybhop Zone", // forces easybhop whether if the player is in non-easy styles or if the server has different settings
-	"Slide Zone" // allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
+	"Slide Zone", // allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
+	"Custom Airaccelerate" // custom sv_airaccelerate inside this
 };
 
 enum struct zone_cache_t
 {
 	bool bZoneInitialized;
 	int iZoneType;
-	int iZoneTrack; // 0 - main, 1 - bonus
+	int iZoneTrack; // 0 - main, 1 - bonus etc
 	int iEntityID;
 	int iDatabaseID;
+	int iZoneFlags;
+	int iZoneData;
 }
 
 enum struct zone_settings_t
@@ -77,6 +80,11 @@ enum struct zone_settings_t
 	bool bFlatZone;
 }
 
+enum
+{
+	ZF_ForceRender = (1 << 0)
+};
+
 int gI_ZoneType[MAXPLAYERS+1];
 
 // 0 - nothing
@@ -89,6 +97,9 @@ float gF_Modifier[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
 bool gB_SnapToWall[MAXPLAYERS+1];
 bool gB_CursorTracing[MAXPLAYERS+1];
+int gI_ZoneFlags[MAXPLAYERS+1];
+int gI_ZoneData[MAXPLAYERS+1];
+bool gB_WaitingForChatInput[MAXPLAYERS+1];
 
 // cache
 float gV_Point1[MAXPLAYERS+1][3];
@@ -164,7 +175,10 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	// zone natives
+	CreateNative("Shavit_GetZoneData", Native_GetZoneData);
+	CreateNative("Shavit_GetZoneFlags", Native_GetZoneFlags);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
+	CreateNative("Shavit_InsideZoneGetID", Native_InsideZoneGetID);
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
 	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_Zones_DeleteMap", Native_Zones_DeleteMap);
@@ -175,14 +189,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	gB_Late = late;
 
 	return APLRes_Success;
-}
-
-public void OnAllPluginsLoaded()
-{
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
 }
 
 public void OnPluginStart()
@@ -274,7 +280,7 @@ public void OnPluginStart()
 		}
 	}
 
-	SQL_SetPrefix();
+	SQL_DBConnect();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -413,9 +419,40 @@ public int Native_ZoneExists(Handle handler, int numParams)
 	return (GetZoneIndex(GetNativeCell(1), GetNativeCell(2)) != -1);
 }
 
+public int Native_GetZoneData(Handle handler, int numParams)
+{
+	return gA_ZoneCache[GetNativeCell(1)].iZoneData;
+}
+
+public int Native_GetZoneFlags(Handle handler, int numParams)
+{
+	return gA_ZoneCache[GetNativeCell(1)].iZoneFlags;
+}
+
 public int Native_InsideZone(Handle handler, int numParams)
 {
 	return InsideZone(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3));
+}
+
+public int Native_InsideZoneGetID(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int iType = GetNativeCell(2);
+	int iTrack = GetNativeCell(3);
+
+	for(int i = 0; i < MAX_ZONES; i++)
+	{
+		if(gB_InsideZoneID[client][i] &&
+			gA_ZoneCache[i].iZoneType == iType &&
+			(gA_ZoneCache[i].iZoneTrack == iTrack || iTrack == -1))
+		{
+			SetNativeCellRef(4, i);
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 public int Native_Zones_DeleteMap(Handle handler, int numParams)
@@ -581,7 +618,7 @@ void LoadZoneSettings()
 
 public void OnMapStart()
 {
-	if(gH_SQL == null || !gB_Connected)
+	if(!gB_Connected)
 	{
 		return;
 	}
@@ -767,6 +804,8 @@ void ClearZone(int index)
 	gA_ZoneCache[index].iZoneTrack = -1;
 	gA_ZoneCache[index].iEntityID = -1;
 	gA_ZoneCache[index].iDatabaseID = -1;
+	gA_ZoneCache[index].iZoneFlags = 0;
+	gA_ZoneCache[index].iZoneData = 0;
 }
 
 void UnhookEntity(int entity)
@@ -851,7 +890,9 @@ void UnloadZones(int zone)
 void RefreshZones()
 {
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s FROM %smapzones WHERE map = '%s';", (gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, 512,
+		"SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s, flags, data FROM %smapzones WHERE map = '%s';",
+		(gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
 }
@@ -906,6 +947,8 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gA_ZoneCache[gI_MapZones].iZoneType = type;
 			gA_ZoneCache[gI_MapZones].iZoneTrack = results.FetchInt(10);
 			gA_ZoneCache[gI_MapZones].iDatabaseID = results.FetchInt(11);
+			gA_ZoneCache[gI_MapZones].iZoneFlags = results.FetchInt(12);
+			gA_ZoneCache[gI_MapZones].iZoneData = results.FetchInt(13);
 			gA_ZoneCache[gI_MapZones].iEntityID = -1;
 
 			gI_MapZones++;
@@ -1227,7 +1270,7 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 		GetTrackName(param1, gI_ZoneTrack[param1], sTrack, 16);
 
 		Menu submenu = new Menu(MenuHandler_SelectZoneType);
-		submenu.SetTitle("%T", "ZoneMenuTitle", param1, sTrack);
+		submenu.SetTitle("%T\n ", "ZoneMenuTitle", param1, sTrack);
 
 		for(int i = 0; i < sizeof(gS_ZoneNames); i++)
 		{
@@ -1327,6 +1370,8 @@ public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int pa
 				gI_ZoneTrack[param1] = gA_ZoneCache[id].iZoneTrack;
 				gV_Teleport[param1] = gV_Destinations[id];
 				gI_ZoneDatabaseID[param1] = gA_ZoneCache[id].iDatabaseID;
+				gI_ZoneFlags[param1] = gA_ZoneCache[id].iZoneFlags;
+				gI_ZoneData[param1] = gA_ZoneCache[id].iZoneData;
 
 				// to stop the original zone from drawing
 				gA_ZoneCache[id].bZoneInitialized = false;
@@ -1581,7 +1626,10 @@ void Reset(int client)
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
 	gB_CursorTracing[client] = true;
+	gI_ZoneFlags[client] = 0;
+	gI_ZoneData[client] = 0;
 	gI_ZoneDatabaseID[client] = -1;
+	gB_WaitingForChatInput[client] = false;
 
 	for(int i = 0; i < 3; i++)
 	{
@@ -1887,30 +1935,52 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 {
 	if(action == MenuAction_Select)
 	{
-		char info[8];
-		menu.GetItem(param2, info, 8);
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(info, "yes"))
+		if(StrEqual(sInfo, "yes"))
 		{
 			InsertZone(param1);
 			gI_MapStep[param1] = 0;
+
+			return 0;
 		}
 
-		else if(StrEqual(info, "no"))
+		else if(StrEqual(sInfo, "no"))
 		{
 			Reset(param1);
+
+			return 0;
 		}
 
-		else if(StrEqual(info, "adjust"))
+		else if(StrEqual(sInfo, "adjust"))
 		{
 			CreateAdjustMenu(param1, 0);
+
+			return 0;
 		}
 
-		else if(StrEqual(info, "tpzone"))
+		else if(StrEqual(sInfo, "tpzone"))
 		{
 			UpdateTeleportZone(param1);
-			CreateEditMenu(param1);
 		}
+
+		else if(StrEqual(sInfo, "datafromchat"))
+		{
+			gI_ZoneData[param1] = 0;
+			gB_WaitingForChatInput[param1] = true;
+
+			Shavit_PrintToChat(param1, "%T", "ZoneEnterDataChat", param1);
+
+			return 0;
+		}
+
+		else if(StrEqual(sInfo, "forcerender"))
+		{
+			gI_ZoneFlags[param1] ^= ZF_ForceRender;
+		}
+
+		CreateEditMenu(param1);
 	}
 
 	else if(action == MenuAction_End)
@@ -1919,6 +1989,19 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 	}
 
 	return 0;
+}
+
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
+{
+	if(gB_WaitingForChatInput[client] && gI_MapStep[client] == 3)
+	{
+		gI_ZoneData[client] = StringToInt(sArgs);
+		CreateEditMenu(client);
+
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
 }
 
 void GetTrackName(int client, int track, char[] output, int size)
@@ -1969,7 +2052,7 @@ void CreateEditMenu(int client)
 	char sTrack[32];
 	GetTrackName(client, gI_ZoneTrack[client], sTrack, 32);
 
-	Menu menu = new Menu(CreateZoneConfirm_Handler, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
+	Menu menu = new Menu(CreateZoneConfirm_Handler);
 	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
 
 	char sMenuItem[64];
@@ -2003,6 +2086,30 @@ void CreateEditMenu(int client)
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
 	menu.AddItem("adjust", sMenuItem);
+
+	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gI_ZoneFlags[client] & ZF_ForceRender) > 0)? "＋":"－");
+	menu.AddItem("forcerender", sMenuItem);
+
+	if(gI_ZoneType[client] == Zone_Airaccelerate)
+	{
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetAiraccelerate", client, gI_ZoneData[client]);
+		menu.AddItem("datafromchat", sMenuItem);
+	}
+
+	else if(gI_ZoneType[client] == Zone_CustomSpeedLimit)
+	{
+		if(gI_ZoneData[client] == 0)
+		{
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimitUnlimited", client, gI_ZoneData[client]);
+		}
+
+		else
+		{
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimit", client, gI_ZoneData[client]);
+		}
+		
+		menu.AddItem("datafromchat", sMenuItem);
+	}
 
 	menu.ExitButton = true;
 	menu.Display(client, 600);
@@ -2088,13 +2195,13 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 
 void InsertZone(int client)
 {
-	int type = gI_ZoneType[client];
-	int index = GetZoneIndex(type, gI_ZoneTrack[client]);
-	bool insert = (gI_ZoneDatabaseID[client] == -1 && (index == -1 || type >= Zone_Respawn));
+	int iType = gI_ZoneType[client];
+	int iIndex = GetZoneIndex(iType, gI_ZoneTrack[client]);
+	bool bInsert = (gI_ZoneDatabaseID[client] == -1 && (iIndex == -1 || iType >= Zone_Respawn));
 
 	char sQuery[512];
 
-	if(type == Zone_CustomSpawn)
+	if(iType == Zone_CustomSpawn)
 	{
 		Shavit_LogMessage("%L - added custom spawn {%.2f, %.2f, %.2f} to map `%s`.", client, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gS_Map);
 
@@ -2103,24 +2210,24 @@ void InsertZone(int client)
 			gS_MySQLPrefix, gS_Map, Zone_CustomSpawn, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gI_ZoneTrack[client]);
 	}
 
-	else if(insert) // insert
+	else if(bInsert) // insert
 	{
-		Shavit_LogMessage("%L - added %s to map `%s`.", client, gS_ZoneNames[type], gS_Map);
+		Shavit_LogMessage("%L - added %s to map `%s`.", client, gS_ZoneNames[iType], gS_Map);
 
 		FormatEx(sQuery, 512,
-			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d);",
-			gS_MySQLPrefix, gS_Map, type, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client]);
+			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, flags, data) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d, %d, %d);",
+			gS_MySQLPrefix, gS_Map, iType, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client]);
 	}
 
 	else // update
 	{
-		Shavit_LogMessage("%L - updated %s in map `%s`.", client, gS_ZoneNames[type], gS_Map);
+		Shavit_LogMessage("%L - updated %s in map `%s`.", client, gS_ZoneNames[iType], gS_Map);
 
 		if(gI_ZoneDatabaseID[client] == -1)
 		{
 			for(int i = 0; i < gI_MapZones; i++)
 			{
-				if(gA_ZoneCache[i].bZoneInitialized && gA_ZoneCache[i].iZoneType == type && gA_ZoneCache[i].iZoneTrack == gI_ZoneTrack[client])
+				if(gA_ZoneCache[i].bZoneInitialized && gA_ZoneCache[i].iZoneType == iType && gA_ZoneCache[i].iZoneTrack == gI_ZoneTrack[client])
 				{
 					gI_ZoneDatabaseID[client] = gA_ZoneCache[i].iDatabaseID;
 				}
@@ -2128,8 +2235,8 @@ void InsertZone(int client)
 		}
 
 		FormatEx(sQuery, 512,
-			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d WHERE %s = %d;",
-			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
+			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d, flags = %d, data = %d WHERE %s = %d;",
+			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}
 
 	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
@@ -2183,7 +2290,7 @@ public Action Timer_DrawEverything(Handle Timer)
 			int type = gA_ZoneCache[i].iZoneType;
 			int track = gA_ZoneCache[i].iZoneTrack;
 
-			if(gA_ZoneSettings[type][track].bVisible)
+			if(gA_ZoneSettings[type][track].bVisible || (gA_ZoneCache[i].iZoneFlags & ZF_ForceRender) > 0)
 			{
 				DrawZone(gV_MapZones_Visual[i],
 						GetZoneColors(type, track),
@@ -2387,74 +2494,18 @@ void CreateZonePoints(float point[8][3], float offset = 0.0)
 	}
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 void SQL_DBConnect()
 {
-	if(gH_SQL != null)
-	{
-		char sDriver[8];
-		gH_SQL.Driver.GetIdentifier(sDriver, 8);
-		gB_MySQL = StrEqual(sDriver, "mysql", false);
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
+	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
-		char sQuery[1024];
-		FormatEx(sQuery, 1024, "CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;", gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
+	char sQuery[1024];
+	FormatEx(sQuery, 1024,
+		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;",
+		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
-	}
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)

@@ -86,6 +86,8 @@ Handle gH_ChatCookie = null;
 int gI_ChatSelection[MAXPLAYERS+1];
 ArrayList gA_ChatRanks = null;
 
+bool gB_ChangedSinceLogin[MAXPLAYERS+1];
+
 bool gB_NameEnabled[MAXPLAYERS+1];
 char gS_CustomName[MAXPLAYERS+1][128];
 
@@ -108,16 +110,6 @@ public Plugin myinfo =
 	description = "Custom chat privileges (custom name/message colors), chat processor, and rankings integration.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
-}
-
-public void OnAllPluginsLoaded()
-{
-	gB_RTLer = LibraryExists("rtler");
-
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
 }
 
 public void OnPluginStart()
@@ -161,8 +153,10 @@ public void OnPluginStart()
 			}
 		}
 	}
-	
-	SQL_SetPrefix();
+
+	gB_RTLer = LibraryExists("rtler");
+
+	SQL_DBConnect();
 }
 
 public void OnMapStart()
@@ -514,61 +508,6 @@ void Frame_SendText(DataPack pack)
 	EndMessage();
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		SQL_DBConnect();
-
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 public void OnLibraryAdded(const char[] name)
 {
 	if(StrEqual(name, "rtler"))
@@ -631,10 +570,7 @@ public void OnClientDisconnect(int client)
 
 public void OnClientPostAdminCheck(int client)
 {
-	if(gH_SQL != null)
-	{
-		LoadFromDatabase(client);
-	}
+	LoadFromDatabase(client);
 }
 
 public Action Command_CCHelp(int client, int args)
@@ -707,6 +643,11 @@ public Action Command_CCName(int client, int args)
 
 	Shavit_PrintToChat(client, "%T", "ChatUpdated", client);
 
+	if(!StrEqual(gS_CustomName[client], sArgs))
+	{
+		gB_ChangedSinceLogin[client] = true;
+	}
+
 	gB_NameEnabled[client] = true;
 	strcopy(gS_CustomName[client], 128, sArgs);
 
@@ -751,6 +692,11 @@ public Action Command_CCMessage(int client, int args)
 	}
 
 	Shavit_PrintToChat(client, "%T", "ChatUpdated", client);
+
+	if(!StrEqual(gS_CustomMessage[client], sArgs))
+	{
+		gB_ChangedSinceLogin[client] = true;
+	}
 
 	gB_MessageEnabled[client] = true;
 	strcopy(gS_CustomMessage[client], 16, sArgs);
@@ -1321,30 +1267,26 @@ int RealRandomInt(int min, int max)
 
 void SQL_DBConnect()
 {
-	if(gH_SQL != null)
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
+
+	char sQuery[512];
+
+	if(IsMySQLDatabase(gH_SQL))
 	{
-		char sDriver[8];
-		gH_SQL.Driver.GetIdentifier(sDriver, 8);
-		bool bMySQL = StrEqual(sDriver, "mysql", false);
-
-		char sQuery[512];
-
-		if(bMySQL)
-		{
-			FormatEx(sQuery, 512,
-				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` VARCHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`), CONSTRAINT `ch_auth` FOREIGN KEY (`auth`) REFERENCES `users` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
-				gS_MySQLPrefix);
-		}
-
-		else
-		{
-			FormatEx(sQuery, 512,
-				"CREATE TABLE IF NOT EXISTS `%schat` (`auth` VARCHAR(32) NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`), CONSTRAINT `ch_auth` FOREIGN KEY (`auth`) REFERENCES `users` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
-				gS_MySQLPrefix);
-		}
-		
-		gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+		FormatEx(sQuery, 512,
+			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
+
+	else
+	{
+		FormatEx(sQuery, 512,
+			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+	}
+	
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1372,9 +1314,14 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 void SaveToDatabase(int client)
 {
-	char sAuthID3[32];
+	if(!gB_ChangedSinceLogin[client])
+	{
+		return;
+	}
 
-	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+	int iSteamID = GetSteamAccountID(client);
+
+	if(iSteamID == 0)
 	{
 		return;
 	}
@@ -1389,8 +1336,8 @@ void SaveToDatabase(int client)
 
 	char sQuery[512];
 	FormatEx(sQuery, 512,
-		"REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES ('%s', %d, '%s', %d, '%s');",
-		gS_MySQLPrefix, sAuthID3, gB_NameEnabled[client], sEscapedName, gB_MessageEnabled[client], sEscapedMessage);
+		"REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES (%d, %d, '%s', %d, '%s');",
+		gS_MySQLPrefix, iSteamID, gB_NameEnabled[client], sEscapedName, gB_MessageEnabled[client], sEscapedMessage);
 
 	gH_SQL.Query(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -1412,15 +1359,15 @@ void LoadFromDatabase(int client)
 		return;
 	}
 
-	char sAuthID3[32];
+	int iSteamID = GetSteamAccountID(client);
 
-	if(!GetClientAuthId(client, AuthId_Steam3, sAuthID3, 32))
+	if(iSteamID == 0)
 	{
 		return;
 	}
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT name, ccname, message, ccmessage FROM %schat WHERE auth = '%s';", gS_MySQLPrefix, sAuthID3);
+	FormatEx(sQuery, 256, "SELECT name, ccname, message, ccmessage FROM %schat WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 
 	gH_SQL.Query(SQL_GetChat_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
@@ -1440,6 +1387,8 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 	{
 		return;
 	}
+
+	gB_ChangedSinceLogin[client] = false;
 
 	while(results.FetchRow())
 	{

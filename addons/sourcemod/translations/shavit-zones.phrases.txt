@@ -179,6 +179,30 @@
 	{
 		"en"		"Adjust position"
 	}
+	"ZoneForceRender"
+	{
+		"#format"	"{1:s}"
+		"en"		"[{1}] Force zone drawing"
+	}
+	"ZoneSetAiraccelerate"
+	{
+		"#format"	"{1:d}"
+		"en"		"Airaccelerate: {1}"
+	}
+	"ZoneSetSpeedLimit"
+	{
+		"#format"	"{1:d}"
+		"en"		"Custom speed limit: {1}"
+	}
+	"ZoneSetSpeedLimitUnlimited"
+	{
+		"#format"	"{1:d}"
+		"en"		"Custom speed limit: {1} (No Limit)"
+	}
+	"ZoneEnterDataChat"
+	{
+		"en"		"Input your desired data in chat."
+	}
 	"ZoneSetNo"
 	{
 		"en"		"No"

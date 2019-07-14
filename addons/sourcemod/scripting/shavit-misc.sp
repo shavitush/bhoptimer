@@ -75,7 +75,7 @@ enum struct player_cpcache_t
 
 enum struct persistent_data_t
 {
-	char sAuthID[32];
+	int iSteamID;
 	float fDisconnectTime;
 	float fPosition[3];
 	float fAngles[3];
@@ -97,7 +97,7 @@ int gI_Ammo = -1;
 
 char gS_RadioCommands[][] = { "coverme", "takepoint", "holdpos", "regroup", "followme", "takingfire", "go", "fallback", "sticktog",
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
-	"getout", "negative", "enemydown", "compliment", "thanks", "cheer" };
+	"getout", "negative", "enemydown", "compliment", "thanks", "cheer", "go_a", "go_b", "sorry", "needrop" };
 
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_Late = false;
@@ -1014,7 +1014,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!bNoclip && !gA_StyleSettings[gI_Style[client]].bPrespeed && Shavit_InsideZone(client, Zone_Start, track))
+	if(!bNoclip && gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && Shavit_InsideZone(client, Zone_Start, track))
 	{
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
@@ -1127,7 +1127,7 @@ void PersistData(int client)
 
 	if(!IsClientInGame(client) ||
 		!IsPlayerAlive(client) ||
-		!GetClientAuthId(client, AuthId_Steam3, aData.sAuthID, 32) ||
+		(aData.iSteamID = GetSteamAccountID((client))) == 0 ||
 		Shavit_GetTimerStatus(client) == Timer_Stopped ||
 		gCV_PersistData.IntValue == 0)
 	{
@@ -1188,11 +1188,11 @@ void DeletePersistentData(int index, persistent_data_t data)
 
 public Action Timer_LoadPersistentData(Handle Timer, any data)
 {
-	char sAuthID[32];
+	int iSteamID = 0;
 	int client = GetClientFromSerial(data);
 
 	if(client == 0 ||
-		!GetClientAuthId(client, AuthId_Steam3, sAuthID, 32) ||
+		(iSteamID = GetSteamAccountID(client)) == 0 ||
 		GetClientTeam(client) < 2 ||
 		!IsPlayerAlive(client))
 	{
@@ -1207,7 +1207,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	{
 		gA_PersistentData.GetArray(i, aData);
 
-		if(StrEqual(sAuthID, aData.sAuthID))
+		if(iSteamID == aData.iSteamID)
 		{
 			iIndex = i;
 
@@ -1674,6 +1674,11 @@ public Action Command_Checkpoints(int client, int args)
 		ReplyToCommand(client, "This command may be only performed in-game.");
 
 		return Plugin_Handled;
+	}
+
+	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints)
+	{
+		gB_ClosedKZCP[client] = false;
 	}
 
 	return OpenCheckpointsMenu(client);
@@ -2769,7 +2774,7 @@ public Action Command_Specs(int client, int args)
 
 public Action Shavit_OnStart(int client)
 {
-	if(!gA_StyleSettings[gI_Style[client]].bPrespeed && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	if(gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
 	}
@@ -3305,11 +3310,11 @@ public Action Command_Drop(int client, const char[] command, int argc)
 		return Plugin_Continue;
 	}
 
-	int weapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+	int iWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
 
-	if(weapon != -1 && IsValidEntity(weapon))
+	if(iWeapon != -1 && IsValidEntity(iWeapon) && GetEntPropEnt(iWeapon, Prop_Send, "m_hOwnerEntity") == client)
 	{
-		CS_DropWeapon(client, weapon, true);
+		CS_DropWeapon(client, iWeapon, true);
 	}
 
 	return Plugin_Handled;
@@ -3322,7 +3327,6 @@ void LoadState(int client)
 
 	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
 	Shavit_SetPracticeMode(client, gB_SaveStatesSegmented[client], false);
-	Shavit_ResumeTimer(client);
 
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{

@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.5.4"
+#define SHAVIT_VERSION "2.5.5"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -76,17 +76,35 @@ enum
 
 enum
 {
+	Migration_RemoveWorkshopMaptiers,
+	Migration_RemoveWorkshopMapzones,
+	Migration_RemoveWorkshopPlayertimes,
+	Migration_LastLoginIndex,
+	Migration_RemoveCountry,
+	Migration_ConvertIPAddresses,
+	Migration_ConvertSteamIDsUsers,
+	Migration_ConvertSteamIDsPlayertimes,
+	Migration_ConvertSteamIDsChat,
+	Migration_PlayertimesDateToInt,
+	Migration_AddZonesFlagsAndData,
+	Migration_AddPlayertimesCompletions,
+	MIGRATIONS_END
+};
+
+enum
+{
 	Zone_Start,
 	Zone_End,
 	Zone_Respawn,
 	Zone_Stop,
 	Zone_Slay,
 	Zone_Freestyle,
-	Zone_NoVelLimit,
+	Zone_CustomSpeedLimit,
 	Zone_Teleport,
 	Zone_CustomSpawn,
 	Zone_Easybhop,
 	Zone_Slide,
+	Zone_Airaccelerate,
 	ZONETYPES_SIZE
 };
 
@@ -135,7 +153,7 @@ enum struct stylesettings_t
 {
 	bool bAutobhop;
 	bool bEasybhop;
-	bool bPrespeed;
+	int iPrespeed;
 	float fVelocityLimit;
 	bool bEnableBunnyhopping;
 	float fAiraccelerate;
@@ -249,6 +267,62 @@ char gS_CSGOColors[][] =
 };
 #endif
 
+// connects synchronously to the bhoptimer database
+// calls errors if needed
+stock Database GetTimerDatabaseHandle()
+{
+	Database db = null;
+	char sError[255];
+
+	if(SQL_CheckConfig("shavit"))
+	{
+		if((db = SQL_Connect("shavit", true, sError, 255)) == null)
+		{
+			SetFailState("Timer startup failed. Reason: %s", sError);
+		}
+	}
+
+	else
+	{
+		db = SQLite_UseDatabase("shavit", sError, 255);
+	}
+
+	return db
+}
+
+// figures out if the database is a mysql database
+stock bool IsMySQLDatabase(Database db)
+{
+	char sDriver[8];
+	db.Driver.GetIdentifier(sDriver, 8);
+
+	return StrEqual(sDriver, "mysql", false);
+}
+
+// retrieves the table prefix defined in configs/shavit-prefix.txt
+stock void GetTimerSQLPrefix(char[] buffer, int maxlen)
+{
+	char sFile[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
+
+	File fFile = OpenFile(sFile, "r");
+
+	if(fFile == null)
+	{
+		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
+	}
+	
+	char sLine[PLATFORM_MAX_PATH * 2];
+
+	if(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
+	{
+		TrimString(sLine);
+		strcopy(buffer, maxlen, sLine);
+	}
+
+	delete fFile;
+}
+
 stock bool IsValidClient(int client, bool bAlive = false)
 {
 	return (client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsClientSourceTV(client) && (!bAlive || IsPlayerAlive(client)));
@@ -257,6 +331,25 @@ stock bool IsValidClient(int client, bool bAlive = false)
 stock bool IsSource2013(EngineVersion ev)
 {
 	return (ev == Engine_CSS || ev == Engine_TF2);
+}
+
+stock void IPAddressToString(int ip, char[] buffer, int maxlen)
+{
+	FormatEx(buffer, maxlen, "%d.%d.%d.%d", ((ip >> 24) & 0xFF), ((ip >> 16) & 0xFF), ((ip >> 8) & 0xFF), (ip & 0xFF));
+}
+
+stock int IPStringToAddress(const char[] ip)
+{
+	char sExplodedAddress[4][4];
+	ExplodeString(ip, ".", sExplodedAddress, 4, 4, false);
+
+	int iIPAddress =
+			(StringToInt(sExplodedAddress[0]) << 24) |
+			(StringToInt(sExplodedAddress[1]) << 16) |
+			(StringToInt(sExplodedAddress[2]) << 8) |
+			StringToInt(sExplodedAddress[3]);
+
+	return iIPAddress;
 }
 
 // time formatting!
@@ -503,7 +596,8 @@ forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int t
 forward void Shavit_OnStyleConfigLoaded(int styles);
 
 /**
- * Called when there's a successful connection to the database.
+ * Called when there's a successful connection to the database and it is ready to be used.
+ * Called through shavit-core after migrations have been applied, and after the attempt to create the default `users` table.
  *
  * @noreturn
  */
@@ -536,7 +630,7 @@ forward Action Shavit_OnSave(int client);
  * @param client					Client index.
  * @param type						Zone type.
  * @param track						Zone track.
- * @param id						Zone ID. 0 for native zones.
+ * @param id						Zone ID.
  * @param entity					Zone trigger entity index.
  * @noreturn
  */
@@ -548,7 +642,7 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
  * @param client					Client index.
  * @param type						Zone type.
  * @param track						Zone track.
- * @param id						Zone ID. 0 for native zones.
+ * @param id						Zone ID.
  * @param entity					Zone trigger entity index.
  * @noreturn
  */
@@ -944,7 +1038,7 @@ native float Shavit_GetTimeForRank(int style, int rank, int track);
 native bool Shavit_ZoneExists(int type, int track);
 
 /**
- * Checks if a player is inside a mapzone
+ * Checks if a player is inside a mapzone.
  *
  * @param client					Client index.
  * @param type						Mapzone type.
@@ -952,6 +1046,33 @@ native bool Shavit_ZoneExists(int type, int track);
  * @return							Boolean value.
  */
 native bool Shavit_InsideZone(int client, int type, int track);
+
+/**
+ * Gets the specified zone's data.
+ *
+ * @param zoneid					ID of the zone we query the data of.
+ * @return							Zone data. 0 if none is specified.
+ */
+native int Shavit_GetZoneData(int zoneid);
+
+/**
+ * Gets the specified zone's flags.
+ *
+ * @param zoneid					ID of the zone we query the flags of.
+ * @return							Zone flags. 0 if none is specified.
+ */
+native int Shavit_GetZoneFlags(int zoneid);
+
+/**
+ * Checks if a player is inside a mapzone.
+ *
+ * @param client					Client index.
+ * @param type						Mapzone type.
+ * @param track						Mapzone track, -1 to ignore track.
+ * @param zoneid					Reference to variable that will hold the zone's ID.
+ * @return							Boolean value.
+ */
+native bool Shavit_InsideZoneGetID(int client, int type, int track, int &zoneid);
 
 /**
  * Checks if a player is in the process of creating a mapzone.
@@ -1132,10 +1253,10 @@ native int Shavit_ForceHUDUpdate(int client, bool spectators);
  * Opens the stats menu for a client.
  *
  * @param client					Client index.
- * @param authid					Target SteamID3 to use.
+ * @param steamid					Target Steam account ID to use.
  * @noreturn
  */
-native void Shavit_OpenStatsMenu(int client, const char[] authid);
+native void Shavit_OpenStatsMenu(int client, int steamid);
 
 /**
  * Retrieves the amount of #1 records a player has.
@@ -1450,9 +1571,12 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRTime");
+	MarkNativeAsOptional("Shavit_GetZoneData");
+	MarkNativeAsOptional("Shavit_GetZoneFlags");
 	MarkNativeAsOptional("Shavit_HasStyleAccess");
 	MarkNativeAsOptional("Shavit_HijackAngles");
 	MarkNativeAsOptional("Shavit_InsideZone");
+	MarkNativeAsOptional("Shavit_InsideZoneGetID");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");
 	MarkNativeAsOptional("Shavit_IsKZMap");
 	MarkNativeAsOptional("Shavit_IsPaused");

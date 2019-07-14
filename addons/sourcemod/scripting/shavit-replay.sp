@@ -33,7 +33,7 @@
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x03
+#define REPLAY_FORMAT_SUBVERSION 0x04
 #define CELLS_PER_FRAME 8 // origin[3], angles[2], buttons, flags, movetype
 #define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
@@ -210,11 +210,6 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
-
-	if(gH_SQL == null)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
 }
 
 public void OnPluginStart()
@@ -299,7 +294,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_replay", Command_Replay, "Opens the central bot menu. For admins: 'sm_replay stop' to stop the playback.");
 
 	// database
-	SQL_SetPrefix();
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -689,59 +685,6 @@ public int Native_Replay_DeleteMap(Handle handler, int numParams)
 	}
 }
 
-public void Shavit_OnDatabaseLoaded()
-{
-	gH_SQL = Shavit_GetDatabase();
-	SetSQLInfo();
-}
-
-public Action CheckForSQLInfo(Handle Timer)
-{
-	return SetSQLInfo();
-}
-
-Action SetSQLInfo()
-{
-	if(gH_SQL == null)
-	{
-		gH_SQL = Shavit_GetDatabase();
-
-		CreateTimer(0.5, CheckForSQLInfo);
-	}
-
-	else
-	{
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
-void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, PLATFORM_MAX_PATH, "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-	
-	char sLine[PLATFORM_MAX_PATH*2];
-
-	while(fFile.ReadLine(sLine, PLATFORM_MAX_PATH*2))
-	{
-		TrimString(sLine);
-		strcopy(gS_MySQLPrefix, 32, sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 public Action Cron(Handle Timer)
 {
 	if(!gCV_Enabled.BoolValue)
@@ -973,6 +916,174 @@ bool DefaultLoadReplay(int style, int track)
 	return LoadReplay(style, track, sPath);
 }
 
+bool LoadCurrentReplayFormat(File file, int version, int style, int track)
+{
+	gA_FrameCache[style][track].iReplayVersion = version;
+
+	// replay file integrity and preframes
+	if(gA_FrameCache[style][track].iReplayVersion >= 0x03)
+	{
+		char sMap[160];
+		file.ReadString(sMap, 160);
+
+		int iStyle = 0;
+		file.ReadUint8(iStyle);
+
+		int iTrack = 0;
+		file.ReadUint8(iTrack);
+
+		if(!StrEqual(sMap, gS_Map, false) || iStyle != style || iTrack != track)
+		{
+			delete file;
+			
+			return false;
+		}
+
+		// whenever this is implemented
+		// file.ReadInt32(gA_FrameCache[style][track].iPreframes);
+		file.Seek(4, SEEK_CUR);
+	}
+
+	int iTemp = 0;
+	file.ReadInt32(iTemp);
+	gA_FrameCache[style][track].iFrameCount = iTemp;
+
+	if(gA_Frames[style][track] == null)
+	{
+		gA_Frames[style][track] = new ArrayList(CELLS_PER_FRAME);
+	}
+
+	gA_Frames[style][track].Resize(iTemp);
+
+	file.ReadInt32(iTemp);
+	gA_FrameCache[style][track].fTime = view_as<float>(iTemp);
+
+	int iSteamID = 0;
+
+	if(gA_FrameCache[style][track].iReplayVersion >= 0x04)
+	{
+		file.ReadInt32(iSteamID);
+	}
+	
+	else
+	{
+		char sAuthID[32];
+		file.ReadString(sAuthID, 32);
+		ReplaceString(sAuthID, 32, "[U:1:", "");
+		ReplaceString(sAuthID, 32, "]", "");
+		iSteamID = StringToInt(sAuthID);
+	}
+
+	char sQuery[192];
+	FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(style);
+	hPack.WriteCell(track);
+
+	gH_SQL.Query(SQL_GetUserName_Callback, sQuery, hPack, DBPrio_High);
+
+	int cells = CELLS_PER_FRAME;
+
+	if(gA_FrameCache[style][track].iReplayVersion == 0x01)
+	{
+		cells = 6;
+	}
+
+	any[] aReplayData = new any[cells];
+
+	for(int i = 0; i < gA_FrameCache[style][track].iFrameCount; i++)
+	{
+		if(file.Read(aReplayData, cells, 4) >= 0)
+		{
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[2]), 2);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
+			gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
+
+			if(gA_FrameCache[style][track].iReplayVersion >= 0x02)
+			{
+				gA_Frames[style][track].Set(i, view_as<int>(aReplayData[6]), 6);
+				gA_Frames[style][track].Set(i, view_as<int>(aReplayData[7]), 7);
+			}
+		}
+	}
+
+	gA_FrameCache[style][track].bNewFormat = true; // not wr-based
+
+	delete file;
+
+	return true;
+}
+
+bool LoadV2ReplayFormat(File file, int frames, int style, int track)
+{
+	int iReplaySize = gA_FrameCache[style][track].iFrameCount = frames;
+	gA_Frames[style][track].Resize(iReplaySize);
+
+	gA_FrameCache[style][track].fTime = 0.0; // N/A at this version
+
+	any[] aReplayData = new any[6];
+
+	for(int i = 0; i < iReplaySize; i++)
+	{
+		if(file.Read(aReplayData, 6, 4) >= 0)
+		{
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[2]), 2);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
+			gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
+			gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
+		}
+	}
+
+	gA_FrameCache[style][track].bNewFormat = false;
+	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+
+	delete file;
+
+	return true;
+}
+
+bool LoadOldReplayFormat(File file, int style, int track)
+{
+	char sLine[320];
+	char sExplodedLine[6][64];
+
+	if(!file.Seek(0, SEEK_SET))
+	{
+		delete file;
+
+		return false;
+	}
+
+	for(int i = 0; !file.EndOfFile(); i++)
+	{
+		file.ReadLine(sLine, 320);
+		int iStrings = ExplodeString(sLine, "|", sExplodedLine, 6, 64);
+
+		gA_Frames[style][track].Resize(i + 1);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[0]), 0);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[1]), 1);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[2]), 2);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[3]), 3);
+		gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[4]), 4);
+		gA_Frames[style][track].Set(i, (iStrings == 6)? StringToInt(sExplodedLine[5]):0, 5);
+	}
+
+	gA_FrameCache[style][track].iFrameCount = gA_Frames[style][track].Length;
+	gA_FrameCache[style][track].fTime = 0.0; // N/A at this version
+	gA_FrameCache[style][track].bNewFormat = false; // wr-based
+	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+
+	delete file;
+
+	return true;
+}
+
 bool LoadReplay(int style, int track, const char[] path)
 {
 	if(FileExists(path))
@@ -992,156 +1103,26 @@ bool LoadReplay(int style, int track, const char[] path)
 		char sExplodedHeader[2][64];
 		ExplodeString(sHeader, ":", sExplodedHeader, 2, 64);
 
-		// TODO: split this piece of shit to different functions. cbf to keep it like this
 		if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_FINAL)) // hopefully, the last of them
 		{
-			gA_FrameCache[style][track].iReplayVersion = StringToInt(sExplodedHeader[0]);
-
-			// replay file integrity and preframes
-			if(gA_FrameCache[style][track].iReplayVersion >= 0x03)
-			{
-				char sMap[160];
-				fFile.ReadString(sMap, 160);
-
-				int iStyle = 0;
-				fFile.ReadUint8(iStyle);
-
-				int iTrack = 0;
-				fFile.ReadUint8(iTrack);
-
-				if(!StrEqual(sMap, gS_Map, false) || iStyle != style || iTrack != track)
-				{
-					delete fFile;
-					
-					return false;
-				}
-
-				// whenever this is implemented
-				// fFile.ReadInt32(gA_FrameCache[style][track].iPreframes);
-				fFile.Seek(4, SEEK_CUR);
-			}
-
-			int iTemp = 0;
-			fFile.ReadInt32(iTemp);
-			gA_FrameCache[style][track].iFrameCount = iTemp;
-
-			if(gA_Frames[style][track] == null)
-			{
-				gA_Frames[style][track] = new ArrayList(CELLS_PER_FRAME);
-			}
-
-			gA_Frames[style][track].Resize(iTemp);
-
-			fFile.ReadInt32(iTemp);
-			gA_FrameCache[style][track].fTime = view_as<float>(iTemp);
-
-			char sAuthID[32];
-			fFile.ReadString(sAuthID, 32);
-
-			if(gH_SQL != null)
-			{
-				char sQuery[192];
-				FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = '%s';", gS_MySQLPrefix, sAuthID);
-
-				DataPack pack = new DataPack();
-				pack.WriteCell(style);
-				pack.WriteCell(track);
-
-				gH_SQL.Query(SQL_GetUserName_Callback, sQuery, pack, DBPrio_High);
-			}
-
-			int cells = CELLS_PER_FRAME;
-
-			// backwards compatibility
-			if(gA_FrameCache[style][track].iReplayVersion == 0x01)
-			{
-				cells = 6;
-			}
-
-			any[] aReplayData = new any[cells];
-
-			for(int i = 0; i < gA_FrameCache[style][track].iFrameCount; i++)
-			{
-				if(fFile.Read(aReplayData, cells, 4) >= 0)
-				{
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[2]), 2);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
-					gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
-
-					if(gA_FrameCache[style][track].iReplayVersion >= 0x02)
-					{
-						gA_Frames[style][track].Set(i, view_as<int>(aReplayData[6]), 6);
-						gA_Frames[style][track].Set(i, view_as<int>(aReplayData[7]), 7);
-					}
-				}
-			}
-
-			gA_FrameCache[style][track].bNewFormat = true; // not wr-based
+			return LoadCurrentReplayFormat(fFile, StringToInt(sExplodedHeader[0]), style, track);
 		}
 
 		else if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_V2))
 		{
-			int iReplaySize = gA_FrameCache[style][track].iFrameCount = StringToInt(sExplodedHeader[0]);
-			gA_Frames[style][track].Resize(iReplaySize);
-
-			gA_FrameCache[style][track].fTime = 0.0; // N/A at this version
-
-			any[] aReplayData = new any[6];
-
-			for(int i = 0; i < iReplaySize; i++)
-			{
-				if(fFile.Read(aReplayData, 6, 4) >= 0)
-				{
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[0]), 0);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[1]), 1);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[2]), 2);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[3]), 3);
-					gA_Frames[style][track].Set(i, view_as<float>(aReplayData[4]), 4);
-					gA_Frames[style][track].Set(i, view_as<int>(aReplayData[5]), 5);
-				}
-			}
-
-			gA_FrameCache[style][track].bNewFormat = false;
-			strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+			return LoadV2ReplayFormat(fFile, StringToInt(sExplodedHeader[0]), style, track);
 		}
 
 		else // old, outdated and slow - only used for ancient replays
 		{
-			char sLine[320];
-			char sExplodedLine[6][64];
-
-			for(int i = 0; !fFile.EndOfFile(); i++)
-			{
-				fFile.ReadLine(sLine, 320);
-				int iStrings = ExplodeString(sLine, "|", sExplodedLine, 6, 64);
-
-				gA_Frames[style][track].Resize(i + 1);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[0]), 0);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[1]), 1);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[2]), 2);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[3]), 3);
-				gA_Frames[style][track].Set(i, StringToFloat(sExplodedLine[4]), 4);
-				gA_Frames[style][track].Set(i, (iStrings == 6)? StringToInt(sExplodedLine[5]):0, 5);
-			}
-
-			gA_FrameCache[style][track].iFrameCount = gA_Frames[style][track].Length;
-			gA_FrameCache[style][track].fTime = 0.0; // N/A at this version
-			gA_FrameCache[style][track].bNewFormat = false; // wr-based
-			strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+			return LoadOldReplayFormat(fFile, style, track);
 		}
-
-		delete fFile;
-
-		return true;
 	}
 
 	return false;
 }
 
-bool SaveReplay(int style, int track, float time, char[] authid, char[] name, int preframes = 0)
+bool SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes = 0)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1165,7 +1146,7 @@ bool SaveReplay(int style, int track, float time, char[] authid, char[] name, in
 	int iSize = gA_Frames[style][track].Length;
 	fFile.WriteInt32(iSize);
 	fFile.WriteInt32(view_as<int>(time));
-	fFile.WriteString(authid, true);
+	fFile.WriteInt32(steamid);
 
 	any aFrameData[CELLS_PER_FRAME];
 	any aWriteData[CELLS_PER_FRAME * FRAMES_PER_WRITE];
@@ -1571,14 +1552,13 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	delete gA_Frames[style][track];
 	gA_Frames[style][track] = gA_PlayerFrames[client].Clone();
 
-	char sAuthID[32];
-	GetClientAuthId(client, AuthId_Steam3, sAuthID, 32);
+	int iSteamID = GetSteamAccountID(client);
 
 	char sName[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
-	SaveReplay(style, track, time, sAuthID, sName);
+	SaveReplay(style, track, time, iSteamID, sName);
 
 	if(ReplayEnabled(style))
 	{

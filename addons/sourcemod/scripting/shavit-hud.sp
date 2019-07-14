@@ -109,6 +109,7 @@ int gI_Buttons[MAXPLAYERS+1];
 float gF_ConnectTime[MAXPLAYERS+1];
 bool gB_FirstPrint[MAXPLAYERS+1];
 int gI_PreviousSpeed[MAXPLAYERS+1];
+int gI_ZoneSpeedLimit[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -222,7 +223,7 @@ public void OnPluginStart()
 
 	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
-	gH_HUDCookieMain = RegClientCookie("shavit_hud_settingmain", "HUD settings for main ", CookieAccess_Protected);
+	gH_HUDCookieMain = RegClientCookie("shavit_hud_settingmain", "HUD settings for hint text.", CookieAccess_Protected);
 
 	if(gB_Late)
 	{
@@ -232,7 +233,7 @@ public void OnPluginStart()
 			{
 				OnClientPutInServer(i);
 
-				if(AreClientCookiesCached(i))
+				if(AreClientCookiesCached(i) && !IsFakeClient(i))
 				{
 					OnClientCookiesCached(i);
 				}
@@ -409,20 +410,19 @@ public void OnClientCookiesCached(int client)
 		gI_HUDSettings[client] = StringToInt(sHUDSettings);
 	}
 
-	char sHUDSettingsMain[8];
-	GetClientCookie(client, gH_HUDCookieMain, sHUDSettingsMain, 8);
+	GetClientCookie(client, gH_HUDCookieMain, sHUDSettings, 8);
 
-	if(strlen(sHUDSettingsMain) == 0)
+	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT2, sHUDSettingsMain, 8);
+		IntToString(HUD_DEFAULT2, sHUDSettings, 8);
 
-		SetClientCookie(client, gH_HUDCookieMain, sHUDSettingsMain);
+		SetClientCookie(client, gH_HUDCookieMain, sHUDSettings);
 		gI_HUD2Settings[client] = HUD_DEFAULT2;
 	}
 
 	else
 	{
-		gI_HUD2Settings[client] = StringToInt(sHUDSettingsMain);
+		gI_HUD2Settings[client] = StringToInt(sHUDSettings);
 	}
 }
 
@@ -940,6 +940,15 @@ int GetGradient(int start, int end, int steps)
 	return GetHex(aColorGradient);
 }
 
+public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity)
+{
+	if(type == Zone_CustomSpeedLimit)
+	{
+		gI_ZoneSpeedLimit[client] = Shavit_GetZoneData(id);
+	}
+}
+
+
 int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int maxlen)
 {
 	int iLines = 0;
@@ -1090,9 +1099,17 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
 
-		if(gA_StyleSettings[data.iStyle].fVelocityLimit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_NoVelLimit, -1))
+		if(gA_StyleSettings[data.iStyle].fVelocityLimit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, -1))
 		{
-			FormatEx(sLine, 128, "%T", "HudNoSpeedLimit", client);
+			if(gI_ZoneSpeedLimit[data.iTarget] == 0)
+			{
+				FormatEx(sLine, 128, "%T", "HudNoSpeedLimit", data.iTarget);
+			}
+
+			else
+			{
+				FormatEx(sLine, 128, "%T", "HudCustomSpeedLimit", client, gI_ZoneSpeedLimit[data.iTarget]);
+			}
 
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
