@@ -53,9 +53,11 @@ enum struct playertimer_t
 	int iTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
-	int iGroundTicks;
 	MoveType iMoveType;
 	bool bCanUseAllKeys;
+	bool bJumped; // not exactly a timer variable but still
+	int iLandingTick;
+	bool bOnGround;
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -151,6 +153,7 @@ char gS_Verification[MAXPLAYERS+1][16];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
+int gI_TickCount = 0;
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -1101,11 +1104,15 @@ public void Bunnyhop_OnLeaveGround(int client, bool jumped, bool ladder)
 	}
 
 	DoJump(client);
+	gA_Timers[client].bJumped = true;
 }
 
 public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 {
-	DoJump(GetClientOfUserId(event.GetInt("userid")));
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	DoJump(client);
+	gA_Timers[client].bJumped = true;
 }
 
 void DoJump(int client)
@@ -2575,6 +2582,7 @@ public void PreThinkPost(int client)
 
 public void OnGameFrame()
 {
+	gI_TickCount = GetGameTickCount();
 	float frametime = GetGameFrameTime();
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -2878,34 +2886,29 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
 		SetEntProp(client, Prop_Data, "m_nOldButtons", (iOldButtons & ~IN_JUMP));
-		iPButtons &= ~IN_JUMP;
-	}
-
-	else if(gA_Timers[client].bDoubleSteps && (buttons & IN_JUMP) == 0)
-	{
-		iPButtons = buttons |= IN_JUMP;
 	}
 
 	// perf jump measuring
-	if(!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1)
-	{
-		gA_Timers[client].iGroundTicks++;
+	bool bOnGround = (!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1);
 
-		if((((gA_Timers[client].iLastButtons & IN_JUMP) == 0 && (iPButtons & IN_JUMP) > 0) || iPButtons != buttons) &&
-			1 <= gA_Timers[client].iGroundTicks <= 8)
+	if(bOnGround && !gA_Timers[client].bOnGround)
+	{
+		gA_Timers[client].iLandingTick = gI_TickCount;
+	}
+
+	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
+	{
+		int iDifference = (gI_TickCount - gA_Timers[client].iLandingTick);
+
+		if(1 <= iDifference <= 8)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
-			if(gA_Timers[client].iGroundTicks == 1)
+			if(iDifference == 1)
 			{
 				gA_Timers[client].iPerfectJumps++;
 			}
 		}
-	}
-
-	else
-	{
-		gA_Timers[client].iGroundTicks = 0;
 	}
 
 	if(bInStart && gCV_BlockPreJump.BoolValue && gA_StyleSettings[gA_Timers[client].iStyle].iPrespeed == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
@@ -2976,6 +2979,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	gA_Timers[client].iLastButtons = iPButtons;
 	gA_Timers[client].fLastAngle = angles[1];
+	gA_Timers[client].bJumped = false;
+	gA_Timers[client].bOnGround = bOnGround;
 
 	return Plugin_Continue;
 }
