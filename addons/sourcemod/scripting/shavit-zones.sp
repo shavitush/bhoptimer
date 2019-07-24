@@ -627,7 +627,7 @@ public void OnMapStart()
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	gI_MapZones = 0;
-	ClearPrebuiltZones();
+	ReloadPrebuiltZones();
 	UnloadZones(0);
 	RefreshZones();
 
@@ -1192,12 +1192,25 @@ void ClearCustomSpawn(int track)
 	}
 }
 
-void ClearPrebuiltZones()
+void ReloadPrebuiltZones()
 {
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
 		gF_PrebuiltZones[i][Zone_Start] = NULL_VECTOR;
 		gF_PrebuiltZones[i][Zone_End] = NULL_VECTOR;
+	}
+
+	char sTargetname[32];
+	int iEntity = INVALID_ENT_REFERENCE;
+
+	while((iEntity = FindEntityByClassname(iEntity, "trigger_multiple")) != INVALID_ENT_REFERENCE)
+	{
+		GetEntPropString(iEntity, Prop_Data, "m_iName", sTargetname, 32);
+
+		if(StrContains(sTargetname, "mod_zone_") != -1)
+		{
+			Frame_HookTrigger(EntIndexToEntRef(iEntity));
+		}
 	}
 }
 
