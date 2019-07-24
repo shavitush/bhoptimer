@@ -424,7 +424,7 @@ forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float
  * @param stylesettings				A stylesettings_t struct that contains the player's bhop style's settings.
  * @noreturn
  */
-forward void Shavit_OnTimeIncrement(int client, any snapshot[sizeof(timer_snapshot_t)], float &time, stylesettings_t stylesettings);
+forward void Shavit_OnTimeIncrement(int client, timer_snapshot_t snapshot, float &time, stylesettings_t stylesettings);
 
 /**
  * Called just before shavit-core adds time to a player's timer.
@@ -492,7 +492,7 @@ forward void Shavit_OnStop(int client, int track);
  * @param snapshot					A snapshot of the player's timer.
  * @return							Plugin_Continue to do nothing, Plugin_Changed to change the variables or anything else to stop the timer from finishing.
  */
-forward Action Shavit_OnFinishPre(int client, any snapshot[sizeof(timer_snapshot_t)]);
+forward Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot);
 
 /**
  * Called when a player finishes a map. (touches the end zone)
@@ -713,10 +713,10 @@ forward void Shavit_OnReplayEnd(int client);
  * @param topleftlength				Max length of the topleft buffer.
  * @return							Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Anything else to pass along new values.
  */
-forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, const int topleftlength);
+forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, int topleftlength);
 
 /**
- * Called before clan tag variables are processed
+ * Called before clan tag variables are processed.
  *
  * @param client					Client index.
  * @param clantag					Reference to the clan tag buffer.
@@ -726,7 +726,7 @@ forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, const
 forward Action Shavit_OnClanTagChangePre(int client, char[] clantag, int clantaglength);
 
 /**
- * Called after clan tags are changed
+ * Called after clan tags are changed.
  *
  * @param client					Client index.
  * @param customtag					Reference to the custom clan tag buffer.
@@ -734,6 +734,18 @@ forward Action Shavit_OnClanTagChangePre(int client, char[] clantag, int clantag
  * @noreturn							
  */
 forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int customtaglength);
+
+/**
+ * Called before the timer finish message is printed to the users.
+ *
+ * @param client					Client index.
+ * @param everyone					Is the message printed to everyone, or just the client?
+ * @param snapshot					A snapshot of the client's timer when printing the message.
+ * @param overwrite					Modify the database? 0 - no. 1 - brand new record. 2 - new personal best.
+ * @param rank						Rank on map.
+ * @return							Plugin_Handled or _Stop to stop the message. Anything else to use new values.
+ */
+forward Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_t snapshot, int overwrite, int rank, char[] message, int maxlen);
 
 /**
  * Returns the game type the server is running.
