@@ -34,6 +34,7 @@ enum struct wrcache_t
 	int iLastStyle;
 	int iLastTrack;
 	bool bPendingMenu;
+	bool bLoadedCache;
 	char sClientMap[128];
 }
 
@@ -400,6 +401,7 @@ public void Shavit_OnChatConfigLoaded()
 public void OnClientPutInServer(int client)
 {
 	gA_WRCache[client].bPendingMenu = false;
+	gA_WRCache[client].bLoadedCache = false;
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -459,6 +461,8 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 
 		gF_PlayerRecord[client][style][track] = results.FetchFloat(0);
 	}
+
+	gA_WRCache[client].bLoadedCache = true;
 }
 
 void UpdateWRCache()
@@ -1930,6 +1934,12 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs)
 {
+	// do not risk overwriting the player's data if their PB isn't loaded to cache yet
+	if(!gA_WRCache[client].bLoadedCache)
+	{
+		return;
+	}
+
 	char sTime[32];
 	FormatSeconds(time, sTime, 32);
 
