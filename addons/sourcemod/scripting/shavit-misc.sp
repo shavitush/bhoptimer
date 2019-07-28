@@ -164,6 +164,7 @@ ConVar gCV_MaxCP_Segmented = null;
 ConVar gCV_HideChatCommands = null;
 ConVar gCV_PersistData = null;
 ConVar gCV_StopTimerWarning = null;
+ConVar gCV_WRMessages = null;
 
 // external cvars
 ConVar sv_disable_immunity_alpha = null;
@@ -331,6 +332,7 @@ public void OnPluginStart()
 	gCV_HideChatCommands = CreateConVar("shavit_misc_hidechatcmds", "1", "Hide commands from chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_PersistData = CreateConVar("shavit_misc_persistdata", "300", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled");
 	gCV_StopTimerWarning = CreateConVar("shavit_misc_stoptimerwarning", "900", "Time in seconds to display a warning before stopping the timer with noclip or !stop.\n0 - Disabled");
+	gCV_WRMessages = CreateConVar("shavit_misc_wrmessages", "3", "How many \"NEW <style> WR!!!\" messages to print?\n0 - Disabled", 0,  true, 0.0, true, 100.0);
 
 	AutoExecConfig();
 
@@ -2820,27 +2822,19 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 		}
 	}
 
-	for(int i = 1; i <= MaxClients; i++)
+	char sTrack[32];
+	GetTrackName(LANG_SERVER, track, sTrack, 32);
+
+	for(int i = 1; i <= gCV_WRMessages.IntValue; i++)
 	{
-		if(!IsValidClient(i))
+		if(track == Track_Main)
 		{
-			continue;
+			Shavit_PrintToChatAll("%t", "WRNotice", gS_ChatStrings.sWarning, sUpperCase);
 		}
 
-		char sTrack[32];
-		GetTrackName(i, track, sTrack, 32);
-
-		for(int j = 1; j <= 3; j++)
+		else
 		{
-			if(track == Track_Main)
-			{
-				Shavit_PrintToChat(i, "%T", "WRNotice", i, gS_ChatStrings.sWarning, sUpperCase);
-			}
-
-			else
-			{
-				Shavit_PrintToChat(i, "%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WRNotice", i, gS_ChatStrings.sWarning, sUpperCase);
-			}
+			Shavit_PrintToChatAll("%s[%s]%s %t", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WRNotice", gS_ChatStrings.sWarning, sUpperCase);
 		}
 	}
 }
