@@ -287,7 +287,7 @@ stock Database GetTimerDatabaseHandle()
 		db = SQLite_UseDatabase("shavit", sError, 255);
 	}
 
-	return db
+	return db;
 }
 
 // figures out if the database is a mysql database
