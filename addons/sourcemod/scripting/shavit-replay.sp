@@ -1930,29 +1930,33 @@ public Action DelayedUpdate(Handle Timer, any data)
 	return Plugin_Stop;
 }
 
-public void BotEvents(Event event, const char[] name, bool dontBroadcast)
+public Action BotEvents(Event event, const char[] name, bool dontBroadcast)
 {
 	if(!gCV_Enabled.BoolValue)
 	{
-		return;
+		return Plugin_Continue;
 	}
 
 	if(event.GetBool("bot"))
 	{
-		event.BroadcastDisabled = true;
-
 		int client = GetClientOfUserId(event.GetInt("userid"));
 
-		if(IsValidClient(client))
+		if(1 <= client <= MaxClients && IsClientInGame(client) && IsFakeClient(client) && !IsClientSourceTV(client))
 		{
-			int style = GetReplayStyle(client);
+			int iStyle = GetReplayStyle(client);
 
-			if(style != -1)
+			if(iStyle != -1)
 			{
-				UpdateReplayInfo(client, style, -1.0, GetReplayTrack(client));
+				UpdateReplayInfo(client, iStyle, -1.0, GetReplayTrack(client));
 			}
 		}
+
+		event.BroadcastDisabled = true;
+
+		return Plugin_Changed;
 	}
+
+	return Plugin_Continue;
 }
 
 public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
