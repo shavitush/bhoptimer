@@ -312,6 +312,7 @@ public void OnPluginStart()
 	// admin
 	RegAdminCmd("sm_deletemap", Command_DeleteMap, ADMFLAG_ROOT, "Deletes all map data. Usage: sm_deletemap <map>");
 	RegAdminCmd("sm_wipeplayer", Command_WipePlayer, ADMFLAG_BAN, "Wipes all bhoptimer data for specified player. Usage: sm_wipeplayer <steamid3>");
+	RegAdminCmd("sm_migration", Command_Migration, ADMFLAG_ROOT, "Force a database migration to run. Usage: sm_migration <migration id> or \"all\" to run all migrations.");
 	// commands END
 
 	// logs
@@ -666,6 +667,50 @@ public Action Command_DeleteMap(int client, int args)
 	{
 		strcopy(gS_DeleteMap[client], 160, sArgs);
 		ReplyToCommand(client, "Map to delete is now %s.\nRun \"sm_deletemap confirm\" to delete all data regarding the map %s.", gS_DeleteMap[client], gS_DeleteMap[client]);
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_Migration(int client, int args)
+{
+	if(args == 0)
+	{
+		ReplyToCommand(client, "Usage: sm_migration <migration id or \"all\" to run all migrationsd>.");
+
+		return Plugin_Handled;
+	}
+
+	char sArg[16];
+	GetCmdArg(1, sArg, 16);
+
+	bool bApplyMigration[MIGRATIONS_END];
+
+	if(StrEqual(sArg, "all"))
+	{
+		for(int i = 0; i < MIGRATIONS_END; i++)
+		{
+			bApplyMigration[i] = true;
+		}
+	}
+
+	else
+	{
+		int iMigration = StringToInt(sArg);
+
+		if(0 <= iMigration < MIGRATIONS_END)
+		{
+			bApplyMigration[iMigration] = true;
+		}
+	}
+
+	for(int i = 0; i < MIGRATIONS_END; i++)
+	{
+		if(bApplyMigration[i])
+		{
+			ReplyToCommand(client, "Applying database migration %d", i);
+			ApplyMigration(i);
+		}
 	}
 
 	return Plugin_Handled;
