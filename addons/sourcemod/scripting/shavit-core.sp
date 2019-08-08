@@ -148,8 +148,8 @@ bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
 char gS_DeleteMap[MAXPLAYERS+1][160];
-char gS_WipePlayerID[MAXPLAYERS+1][32];
-char gS_Verification[MAXPLAYERS+1][16];
+int gI_WipePlayerID[MAXPLAYERS+1];
+char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
@@ -730,46 +730,46 @@ public Action Command_WipePlayer(int client, int args)
 
 	if(strlen(gS_Verification[client]) == 0 || !StrEqual(sArgString, gS_Verification[client]))
 	{
-		char sAlphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#";
+		ReplaceString(sArgString, 32, "[U:1:", "");
+		ReplaceString(sArgString, 32, "]", "");
 
-		for(int i = 0; i < GetRandomInt(5, 7); i++)
+		gI_WipePlayerID[client] = StringToInt(sArgString);
+
+		if(gI_WipePlayerID[client] <= 0)
 		{
-			gS_Verification[client][i] = sAlphabet[GetRandomInt(0, sizeof(sAlphabet))];
+			Shavit_PrintToChat(client, "Entered SteamID ([U:1:%s]) is invalid. The range for valid SteamIDs is [U:1:1] to [U:1:2147483647].", sArgString);
+
+			return Plugin_Handled;
 		}
 
-		strcopy(gS_WipePlayerID[client], 32, sArgString);
+		char sAlphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#";
+		strcopy(gS_Verification[client], 8, "");
 
-		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s%s%s. To confirm, enter %s!wipeplayer %s",
-			gS_ChatStrings.sVariable, sArgString, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_Verification[client]);
+		for(int i = 0; i < 5; i++)
+		{
+			gS_Verification[client][i] = sAlphabet[GetRandomInt(0, sizeof(sAlphabet) - 1)];
+		}
+
+		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s[U:1:%d]%s. To confirm, enter %s!wipeplayer %s",
+			gS_ChatStrings.sVariable, gI_WipePlayerID[client], gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_Verification[client]);
 	}
 
 	else
 	{
-		int iLength = ((strlen(gS_WipePlayerID[client]) * 2) + 1);
-		char[] sEscapedAuthID = new char[iLength];
-		gH_SQL.Escape(gS_WipePlayerID[client], sEscapedAuthID, iLength);
+		Shavit_PrintToChat(client, "Deleting data for SteamID %s[U:1:%d]%s...",
+			gS_ChatStrings.sVariable, gI_WipePlayerID[client], gS_ChatStrings.sText);
 
-		Shavit_PrintToChat(client, "Deleting data for SteamID %s%s%s...",
-			gS_ChatStrings.sVariable, sEscapedAuthID, gS_ChatStrings.sText);
+		DeleteUserData(client, gI_WipePlayerID[client]);
 
-		DeleteUserData(client, sEscapedAuthID);
-
-		strcopy(gS_Verification[client], 32, "");
-		strcopy(gS_WipePlayerID[client], 32, "");
+		strcopy(gS_Verification[client], 8, "");
+		gI_WipePlayerID[client] = -1;
 	}
 
 	return Plugin_Handled;
 }
 
-void DeleteUserData(int client, const char[] sAuthID3)
+void DeleteUserData(int client, const int iSteamID)
 {
-	char sAuthID[32];
-	strcopy(sAuthID, 32, sAuthID3);
-	ReplaceString(sAuthID, 32, "[U:1:", "");
-	ReplaceString(sAuthID, 32, "]", "");
-
-	int iSteamID = StringToInt(sAuthID);
-
 	if(gB_Replay)
 	{
 		char sQueryGetWorldRecords[256];
@@ -920,10 +920,9 @@ public void SQL_DeleteUserData_Callback(Database db, DBResultSet results, const 
 		return;
 	}
 
+	Shavit_LogMessage("%L - wiped user data for [U:1:%d].", client, iSteamID);
 	Shavit_ReloadLeaderboards();
-
-	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.",
-		gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
+	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
 }
 
 public Action Command_AutoBhop(int client, int args)
@@ -2115,15 +2114,15 @@ bool LoadStyles()
 
 public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)
 {
-	int order1 = gA_StyleSettings[index1].iOrdering;
-	int order2 = gA_StyleSettings[index2].iOrdering;
+	int iOrder1 = gA_StyleSettings[index1].iOrdering;
+	int iOrder2 = gA_StyleSettings[index2].iOrdering;
 
-	if(order1 < order2)
+	if(iOrder1 < iOrder2)
 	{
 		return -1;
 	}
 
-	else if(order1 == order2)
+	else if(iOrder1 == iOrder2)
 	{
 		return 0;
 	}
