@@ -627,7 +627,7 @@ public void OnMapStart()
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	gI_MapZones = 0;
-	ClearPrebuiltZones();
+	ReloadPrebuiltZones();
 	UnloadZones(0);
 	RefreshZones();
 
@@ -1192,12 +1192,25 @@ void ClearCustomSpawn(int track)
 	}
 }
 
-void ClearPrebuiltZones()
+void ReloadPrebuiltZones()
 {
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
 		gF_PrebuiltZones[i][Zone_Start] = NULL_VECTOR;
 		gF_PrebuiltZones[i][Zone_End] = NULL_VECTOR;
+	}
+
+	char sTargetname[32];
+	int iEntity = INVALID_ENT_REFERENCE;
+
+	while((iEntity = FindEntityByClassname(iEntity, "trigger_multiple")) != INVALID_ENT_REFERENCE)
+	{
+		GetEntPropString(iEntity, Prop_Data, "m_iName", sTargetname, 32);
+
+		if(StrContains(sTargetname, "mod_zone_") != -1)
+		{
+			Frame_HookTrigger(EntIndexToEntRef(iEntity));
+		}
 	}
 }
 
@@ -2526,6 +2539,8 @@ public void Shavit_OnRestart(int client, int track)
 {
 	if(gCV_TeleportToStart.BoolValue)
 	{
+		int iIndex = -1;
+
 		// custom spawns
 		if(!EmptyVector(gF_CustomSpawn[track]))
 		{
@@ -2533,21 +2548,14 @@ public void Shavit_OnRestart(int client, int track)
 		}
 
 		// standard zoning
-		else if(GetZoneIndex(Zone_Start, track) != -1)
+		else if((iIndex = GetZoneIndex(Zone_Start, track)) != -1)
 		{
-			int index = GetZoneIndex(Zone_Start, track);
+			float fCenter[3];
+			fCenter[0] = gV_ZoneCenter[iIndex][0];
+			fCenter[1] = gV_ZoneCenter[iIndex][1];
+			fCenter[2] = gV_MapZones[iIndex][0][2];
 
-			if(index == -1)
-			{
-				return;
-			}
-
-			float center[3];
-			center[0] = gV_ZoneCenter[index][0];
-			center[1] = gV_ZoneCenter[index][1];
-			center[2] = gV_MapZones[index][0][2];
-
-			TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		// prebuilt map zones
@@ -2572,19 +2580,22 @@ public void Shavit_OnEnd(int client, int track)
 {
 	if(gCV_TeleportToEnd.BoolValue)
 	{
-		int index = GetZoneIndex(Zone_End, track);
+		int iIndex = -1;
 
-		if(index == -1)
+		if((iIndex = GetZoneIndex(Zone_End, track)) != -1)
 		{
-			return;
+			float fCenter[3];
+			fCenter[0] = gV_ZoneCenter[iIndex][0];
+			fCenter[1] = gV_ZoneCenter[iIndex][1];
+			fCenter[2] = gV_MapZones[iIndex][0][2];
+
+			TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
-		float center[3];
-		center[0] = gV_ZoneCenter[index][0];
-		center[1] = gV_ZoneCenter[index][1];
-		center[2] = gV_MapZones[index][0][2];
-
-		TeleportEntity(client, center, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		else if(!EmptyVector(gF_PrebuiltZones[track][Zone_End]))
+		{
+			TeleportEntity(client, gF_PrebuiltZones[track][Zone_End], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		}
 	}
 }
 

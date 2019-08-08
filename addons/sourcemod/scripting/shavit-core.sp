@@ -53,9 +53,11 @@ enum struct playertimer_t
 	int iTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
-	int iGroundTicks;
 	MoveType iMoveType;
 	bool bCanUseAllKeys;
+	bool bJumped; // not exactly a timer variable but still
+	int iLandingTick;
+	bool bOnGround;
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -146,11 +148,12 @@ bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
 char gS_DeleteMap[MAXPLAYERS+1][160];
-char gS_WipePlayerID[MAXPLAYERS+1][32];
-char gS_Verification[MAXPLAYERS+1][16];
+int gI_WipePlayerID[MAXPLAYERS+1];
+char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
+int gI_TickCount = 0;
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -309,6 +312,7 @@ public void OnPluginStart()
 	// admin
 	RegAdminCmd("sm_deletemap", Command_DeleteMap, ADMFLAG_ROOT, "Deletes all map data. Usage: sm_deletemap <map>");
 	RegAdminCmd("sm_wipeplayer", Command_WipePlayer, ADMFLAG_BAN, "Wipes all bhoptimer data for specified player. Usage: sm_wipeplayer <steamid3>");
+	RegAdminCmd("sm_migration", Command_Migration, ADMFLAG_ROOT, "Force a database migration to run. Usage: sm_migration <migration id> or \"all\" to run all migrations.");
 	// commands END
 
 	// logs
@@ -668,6 +672,50 @@ public Action Command_DeleteMap(int client, int args)
 	return Plugin_Handled;
 }
 
+public Action Command_Migration(int client, int args)
+{
+	if(args == 0)
+	{
+		ReplyToCommand(client, "Usage: sm_migration <migration id or \"all\" to run all migrationsd>.");
+
+		return Plugin_Handled;
+	}
+
+	char sArg[16];
+	GetCmdArg(1, sArg, 16);
+
+	bool bApplyMigration[MIGRATIONS_END];
+
+	if(StrEqual(sArg, "all"))
+	{
+		for(int i = 0; i < MIGRATIONS_END; i++)
+		{
+			bApplyMigration[i] = true;
+		}
+	}
+
+	else
+	{
+		int iMigration = StringToInt(sArg);
+
+		if(0 <= iMigration < MIGRATIONS_END)
+		{
+			bApplyMigration[iMigration] = true;
+		}
+	}
+
+	for(int i = 0; i < MIGRATIONS_END; i++)
+	{
+		if(bApplyMigration[i])
+		{
+			ReplyToCommand(client, "Applying database migration %d", i);
+			ApplyMigration(i);
+		}
+	}
+
+	return Plugin_Handled;
+}
+
 public Action Command_WipePlayer(int client, int args)
 {
 	if(args == 0)
@@ -682,46 +730,46 @@ public Action Command_WipePlayer(int client, int args)
 
 	if(strlen(gS_Verification[client]) == 0 || !StrEqual(sArgString, gS_Verification[client]))
 	{
-		char sAlphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#";
+		ReplaceString(sArgString, 32, "[U:1:", "");
+		ReplaceString(sArgString, 32, "]", "");
 
-		for(int i = 0; i < GetRandomInt(5, 7); i++)
+		gI_WipePlayerID[client] = StringToInt(sArgString);
+
+		if(gI_WipePlayerID[client] <= 0)
 		{
-			gS_Verification[client][i] = sAlphabet[GetRandomInt(0, sizeof(sAlphabet))];
+			Shavit_PrintToChat(client, "Entered SteamID ([U:1:%s]) is invalid. The range for valid SteamIDs is [U:1:1] to [U:1:2147483647].", sArgString);
+
+			return Plugin_Handled;
 		}
 
-		strcopy(gS_WipePlayerID[client], 32, sArgString);
+		char sAlphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#";
+		strcopy(gS_Verification[client], 8, "");
 
-		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s%s%s. To confirm, enter %s!wipeplayer %s",
-			gS_ChatStrings.sVariable, sArgString, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_Verification[client]);
+		for(int i = 0; i < 5; i++)
+		{
+			gS_Verification[client][i] = sAlphabet[GetRandomInt(0, sizeof(sAlphabet) - 1)];
+		}
+
+		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s[U:1:%d]%s. To confirm, enter %s!wipeplayer %s",
+			gS_ChatStrings.sVariable, gI_WipePlayerID[client], gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_Verification[client]);
 	}
 
 	else
 	{
-		int iLength = ((strlen(gS_WipePlayerID[client]) * 2) + 1);
-		char[] sEscapedAuthID = new char[iLength];
-		gH_SQL.Escape(gS_WipePlayerID[client], sEscapedAuthID, iLength);
+		Shavit_PrintToChat(client, "Deleting data for SteamID %s[U:1:%d]%s...",
+			gS_ChatStrings.sVariable, gI_WipePlayerID[client], gS_ChatStrings.sText);
 
-		Shavit_PrintToChat(client, "Deleting data for SteamID %s%s%s...",
-			gS_ChatStrings.sVariable, sEscapedAuthID, gS_ChatStrings.sText);
+		DeleteUserData(client, gI_WipePlayerID[client]);
 
-		DeleteUserData(client, sEscapedAuthID);
-
-		strcopy(gS_Verification[client], 32, "");
-		strcopy(gS_WipePlayerID[client], 32, "");
+		strcopy(gS_Verification[client], 8, "");
+		gI_WipePlayerID[client] = -1;
 	}
 
 	return Plugin_Handled;
 }
 
-void DeleteUserData(int client, const char[] sAuthID3)
+void DeleteUserData(int client, const int iSteamID)
 {
-	char sAuthID[32];
-	strcopy(sAuthID, 32, sAuthID3);
-	ReplaceString(sAuthID, 32, "[U:1:", "");
-	ReplaceString(sAuthID, 32, "]", "");
-
-	int iSteamID = StringToInt(sAuthID);
-
 	if(gB_Replay)
 	{
 		char sQueryGetWorldRecords[256];
@@ -872,10 +920,9 @@ public void SQL_DeleteUserData_Callback(Database db, DBResultSet results, const 
 		return;
 	}
 
+	Shavit_LogMessage("%L - wiped user data for [U:1:%d].", client, iSteamID);
 	Shavit_ReloadLeaderboards();
-
-	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.",
-		gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
+	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
 }
 
 public Action Command_AutoBhop(int client, int args)
@@ -1101,11 +1148,15 @@ public void Bunnyhop_OnLeaveGround(int client, bool jumped, bool ladder)
 	}
 
 	DoJump(client);
+	gA_Timers[client].bJumped = true;
 }
 
 public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 {
-	DoJump(GetClientOfUserId(event.GetInt("userid")));
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	DoJump(client);
+	gA_Timers[client].bJumped = true;
 }
 
 void DoJump(int client)
@@ -2063,15 +2114,15 @@ bool LoadStyles()
 
 public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)
 {
-	int order1 = gA_StyleSettings[index1].iOrdering;
-	int order2 = gA_StyleSettings[index2].iOrdering;
+	int iOrder1 = gA_StyleSettings[index1].iOrdering;
+	int iOrder2 = gA_StyleSettings[index2].iOrdering;
 
-	if(order1 < order2)
+	if(iOrder1 < iOrder2)
 	{
 		return -1;
 	}
 
-	else if(order1 == order2)
+	else if(iOrder1 == iOrder2)
 	{
 		return 0;
 	}
@@ -2285,8 +2336,8 @@ public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet resu
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 		FormatEx(sQuery, 256,
-			"ALTER TABLE `%splayertimes` ADD CONSTRAINT `pt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
-			gS_MySQLPrefix, gS_MySQLPrefix);
+			"ALTER TABLE `%splayertimes` ADD CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
 
 		FormatEx(sQuery, 256,
@@ -2295,8 +2346,8 @@ public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet resu
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 		FormatEx(sQuery, 256,
-			"ALTER TABLE `%schat` ADD CONSTRAINT `ch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
-			gS_MySQLPrefix, gS_MySQLPrefix);
+			"ALTER TABLE `%schat` ADD CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
 	}
 }
@@ -2379,10 +2430,10 @@ void ApplyMigration_ConvertSteamIDs()
 	};
 
 	char sQuery[128];
-	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` DROP CONSTRAINT `pt_auth`;", gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` DROP CONSTRAINT `%spt_auth`;", gS_MySQLPrefix, gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
-	FormatEx(sQuery, 128, "ALTER TABLE `%schat` DROP CONSTRAINT `ch_auth`;", gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "ALTER TABLE `%schat` DROP CONSTRAINT `%sch_auth`;", gS_MySQLPrefix, gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 	for(int i = 0; i < sizeof(sTables); i++)
@@ -2575,6 +2626,7 @@ public void PreThinkPost(int client)
 
 public void OnGameFrame()
 {
+	gI_TickCount = GetGameTickCount();
 	float frametime = GetGameFrameTime();
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -2878,34 +2930,29 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
 		SetEntProp(client, Prop_Data, "m_nOldButtons", (iOldButtons & ~IN_JUMP));
-		iPButtons &= ~IN_JUMP;
-	}
-
-	else if(gA_Timers[client].bDoubleSteps && (buttons & IN_JUMP) == 0)
-	{
-		iPButtons = buttons |= IN_JUMP;
 	}
 
 	// perf jump measuring
-	if(!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1)
-	{
-		gA_Timers[client].iGroundTicks++;
+	bool bOnGround = (!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1);
 
-		if((((gA_Timers[client].iLastButtons & IN_JUMP) == 0 && (iPButtons & IN_JUMP) > 0) || iPButtons != buttons) &&
-			1 <= gA_Timers[client].iGroundTicks <= 8)
+	if(bOnGround && !gA_Timers[client].bOnGround)
+	{
+		gA_Timers[client].iLandingTick = gI_TickCount;
+	}
+
+	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
+	{
+		int iDifference = (gI_TickCount - gA_Timers[client].iLandingTick);
+
+		if(1 <= iDifference <= 8)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
-			if(gA_Timers[client].iGroundTicks == 1)
+			if(iDifference == 1)
 			{
 				gA_Timers[client].iPerfectJumps++;
 			}
 		}
-	}
-
-	else
-	{
-		gA_Timers[client].iGroundTicks = 0;
 	}
 
 	if(bInStart && gCV_BlockPreJump.BoolValue && gA_StyleSettings[gA_Timers[client].iStyle].iPrespeed == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
@@ -2976,6 +3023,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	gA_Timers[client].iLastButtons = iPButtons;
 	gA_Timers[client].fLastAngle = angles[1];
+	gA_Timers[client].bJumped = false;
+	gA_Timers[client].bOnGround = bOnGround;
 
 	return Plugin_Continue;
 }

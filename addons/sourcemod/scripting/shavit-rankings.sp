@@ -733,8 +733,8 @@ void UpdateAllPoints(bool recalcall = false)
 
 	else
 	{
-		FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE %d - lastlogin < %d AND auth IN (SELECT DISTINCT auth FROM %splayertimes);",
-			gS_MySQLPrefix, GetTime(), (gCV_LastLoginRecalculate.IntValue * 60), gS_MySQLPrefix);
+		FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE lastlogin > %d AND auth IN (SELECT DISTINCT auth FROM %splayertimes);",
+			gS_MySQLPrefix, (GetTime() - gCV_LastLoginRecalculate.IntValue * 60), gS_MySQLPrefix);
 	}
 	
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);

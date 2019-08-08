@@ -34,6 +34,7 @@ enum struct wrcache_t
 	int iLastStyle;
 	int iLastTrack;
 	bool bPendingMenu;
+	bool bLoadedCache;
 	char sClientMap[128];
 }
 
@@ -46,6 +47,7 @@ Handle gH_OnWorldRecord = null;
 Handle gH_OnFinish_Post = null;
 Handle gH_OnWRDeleted = null;
 Handle gH_OnWorstRecord = null;
+Handle gH_OnFinishMessage = null;
 
 // database handle
 Database gH_SQL = null;
@@ -132,6 +134,7 @@ public void OnPluginStart()
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnFinishMessage = CreateGlobalForward("Shavit_OnFinishMessage", ET_Event, Param_Cell, Param_CellByRef, Param_Array, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
 	// player commands
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
@@ -398,6 +401,7 @@ public void Shavit_OnChatConfigLoaded()
 public void OnClientPutInServer(int client)
 {
 	gA_WRCache[client].bPendingMenu = false;
+	gA_WRCache[client].bLoadedCache = false;
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -457,6 +461,8 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 
 		gF_PlayerRecord[client][style][track] = results.FetchFloat(0);
 	}
+
+	gA_WRCache[client].bLoadedCache = true;
 }
 
 void UpdateWRCache()
@@ -1928,6 +1934,12 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs)
 {
+	// do not risk overwriting the player's data if their PB isn't loaded to cache yet
+	if(!gA_WRCache[client].bLoadedCache)
+	{
+		return;
+	}
+
 	char sTime[32];
 	FormatSeconds(time, sTime, 32);
 
@@ -1956,9 +1968,12 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		iOverwrite = 2;
 	}
 
+	bool bEveryone = (iOverwrite > 0);
+	char sMessage[255];
+
 	if(iOverwrite > 0 && (time < gF_WRTime[style][track] || gF_WRTime[style][track] == 0.0)) // WR?
 	{
-		float oldwr = gF_WRTime[style][track];
+		float fOldWR = gF_WRTime[style][track];
 		gF_WRTime[style][track] = time;
 
 		Call_StartForward(gH_OnWorldRecord);
@@ -1969,13 +1984,13 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(strafes);
 		Call_PushCell(sync);
 		Call_PushCell(track);
-		Call_PushCell(oldwr);
+		Call_PushCell(fOldWR);
 		Call_PushCell(oldtime);
 		Call_PushCell(perfs);
 		Call_Finish();
 
 		#if defined DEBUG
-		Shavit_PrintToChat(client, "old: %.01f new: %.01f", oldwr, time);
+		Shavit_PrintToChat(client, "old: %.01f new: %.01f", fOldWR, time);
 		#endif
 	}
 
@@ -2017,7 +2032,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		if(iOverwrite == 1) // insert
 		{
-			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
+			FormatEx(sMessage, 255, "%s[%s]%s %T",
+				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
 
 			FormatEx(sQuery, 512,
 				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);",
@@ -2026,7 +2042,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		else // update
 		{
-			Shavit_PrintToChatAll("%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
+			FormatEx(sMessage, 255, "%s[%s]%s %T",
+				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
 			FormatEx(sQuery, 512,
 				"UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
@@ -2048,8 +2065,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(oldtime);
 		Call_PushCell(perfs);
 		Call_Finish();
-
-		gF_PlayerRecord[client][style][track] = time;
 	}
 
 	if(bIncrementCompletions)
@@ -2060,16 +2075,51 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			gS_MySQLPrefix, gS_Map, iSteamID, style, track);
 
 		gH_SQL.Query(SQL_OnIncrementCompletions_Callback, sQuery, 0, DBPrio_Low);
-	}
 
-	else if(iOverwrite == 0 && !gA_StyleSettings[style].bUnranked)
-	{
-		Shavit_PrintToChat(client, "%s[%s]%s %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
+		if(iOverwrite == 0 && !gA_StyleSettings[style].bUnranked)
+		{
+			FormatEx(sMessage, 255, "%s[%s]%s %T",
+				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
+		}
 	}
 
 	else
 	{
-		Shavit_PrintToChat(client, "%s[%s]%s] %T", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "UnrankedTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
+		FormatEx(sMessage, 255, "%s[%s]%s] %T",
+			gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "UnrankedTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
+	}
+
+	timer_snapshot_t aSnapshot;
+	Shavit_SaveSnapshot(client, aSnapshot);
+
+	Action aResult = Plugin_Continue;
+	Call_StartForward(gH_OnFinishMessage);
+	Call_PushCell(client);
+	Call_PushCellRef(bEveryone);
+	Call_PushArrayEx(aSnapshot, sizeof(timer_snapshot_t), SM_PARAM_COPYBACK);
+	Call_PushCell(iOverwrite);
+	Call_PushCell(iRank);
+	Call_PushStringEx(sMessage, 255, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(255);
+	Call_Finish(aResult);
+
+	if(aResult < Plugin_Handled)
+	{
+		if(bEveryone)
+		{
+			Shavit_PrintToChatAll("%s", sMessage);
+		}
+
+		else
+		{
+			Shavit_PrintToChat(client, "%s", sMessage);
+		}
+	}
+
+	// update pb cache only after sending the message so we can grab the old one inside the Shavit_OnFinishMessage forward
+	if(iOverwrite > 0)
+	{
+		gF_PlayerRecord[client][style][track] = time;
 	}
 }
 
