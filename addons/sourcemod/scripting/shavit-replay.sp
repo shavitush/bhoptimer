@@ -179,12 +179,14 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	CreateNative("Shavit_DeleteReplay", Native_DeleteReplay);
 	CreateNative("Shavit_GetReplayBotCurrentFrame", Native_GetReplayBotIndex);
+	CreateNative("Shavit_GetClientFrameCount", Native_GetClientFrameCount);
 	CreateNative("Shavit_GetReplayBotFirstFrame", Native_GetReplayBotFirstFrame);
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
 	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
+	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
@@ -587,9 +589,30 @@ public int Native_GetReplayData(Handle handler, int numParams)
 	return view_as<int>(frames);
 }
 
+public int Native_GetReplayFrames(Handle handler, int numParams)
+{
+	int track = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	ArrayList frames = null;
+
+	if(gA_Frames[track][style] != null)
+	{
+		ArrayList temp = gA_Frames[track][style].Clone();
+		frames = view_as<ArrayList>(CloneHandle(temp, handler));
+		delete temp;
+	}
+
+	return view_as<int>(frames);
+}
+
 public int Native_GetReplayFrameCount(Handle handler, int numParams)
 {
 	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].iFrameCount;
+}
+
+public int Native_GetClientFrameCount(Handle handler, int numParams)
+{
+	return gA_PlayerFrames[GetNativeCell(1)].Length;
 }
 
 public int Native_GetReplayLength(Handle handler, int numParams)

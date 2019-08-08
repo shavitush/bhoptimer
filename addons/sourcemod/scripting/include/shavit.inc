@@ -1180,6 +1180,23 @@ native int Shavit_GetReplayBotCurrentFrame(int style);
 native int Shavit_GetReplayFrameCount(int style, int track);
 
 /**
+ * Retrieves the replay data for the given style and track.
+ *
+ * @param style						Style.
+ * @param track						Track.
+ * @return							ArrayList with proper replay data, or null if there is no recorded data.
+ */
+native ArrayList Shavit_GetReplayFrames(int style, int track);
+
+/**
+ * Retrieves a client's frame count.
+ *
+ * @param client					Client Index.
+ * @return							Current number of frames.
+ */
+native int Shavit_GetClientFrameCount(int client);
+
+/**
  * Retrieves a replay's total length in seconds.
  *
  * @param style						Style.
@@ -1560,6 +1577,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetRankForTime");
 	MarkNativeAsOptional("Shavit_GetRecordAmount");
 	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
+	MarkNativeAsOptional("Shavit_GetClientFrameCount");
 	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetReplayBotStyle");
@@ -1567,6 +1585,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotType");
 	MarkNativeAsOptional("Shavit_GetReplayData");
 	MarkNativeAsOptional("Shavit_GetReplayFrameCount");
+	MarkNativeAsOptional("Shavit_GetReplayFrames");
 	MarkNativeAsOptional("Shavit_GetReplayLength");
 	MarkNativeAsOptional("Shavit_GetReplayName");
 	MarkNativeAsOptional("Shavit_GetReplayTime");
