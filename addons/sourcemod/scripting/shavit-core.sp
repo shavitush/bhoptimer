@@ -2292,8 +2292,8 @@ public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet resu
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 		FormatEx(sQuery, 256,
-			"ALTER TABLE `%splayertimes` ADD CONSTRAINT `pt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
-			gS_MySQLPrefix, gS_MySQLPrefix);
+			"ALTER TABLE `%splayertimes` ADD CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
 
 		FormatEx(sQuery, 256,
@@ -2302,8 +2302,8 @@ public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet resu
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 		FormatEx(sQuery, 256,
-			"ALTER TABLE `%schat` ADD CONSTRAINT `ch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
-			gS_MySQLPrefix, gS_MySQLPrefix);
+			"ALTER TABLE `%schat` ADD CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
 	}
 }
@@ -2386,10 +2386,10 @@ void ApplyMigration_ConvertSteamIDs()
 	};
 
 	char sQuery[128];
-	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` DROP CONSTRAINT `pt_auth`;", gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` DROP CONSTRAINT `%spt_auth`;", gS_MySQLPrefix, gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
-	FormatEx(sQuery, 128, "ALTER TABLE `%schat` DROP CONSTRAINT `ch_auth`;", gS_MySQLPrefix);
+	FormatEx(sQuery, 128, "ALTER TABLE `%schat` DROP CONSTRAINT `%sch_auth`;", gS_MySQLPrefix, gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 	for(int i = 0; i < sizeof(sTables); i++)
