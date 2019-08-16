@@ -2085,7 +2085,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	else
 	{
-		FormatEx(sMessage, 255, "%s[%s]%s] %T",
+		FormatEx(sMessage, 255, "%s[%s]%s %T",
 			gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "UnrankedTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
 	}
 
