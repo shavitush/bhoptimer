@@ -1401,14 +1401,14 @@ void UpdateMainHUD(int client)
 
 	else
 	{
-		StrCat(sBuffer, 512, "<pre>");
+		StrCat(sBuffer, 512, "#SFUI_Notice_NewWaveBegun_\n<pre>");
 		iLines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, 512);
 		StrCat(sBuffer, 512, "</pre>");
 	}
 
 	if(iLines > 0)
 	{
-		PrintHintText(client, "%s", sBuffer);
+		PrintCenterText(client, "%s", sBuffer);
 	}
 }
 
