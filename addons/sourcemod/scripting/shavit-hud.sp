@@ -1391,7 +1391,7 @@ void UpdateMainHUD(int client)
 	huddata.bReplay = bReplay;
 	huddata.bPractice = (bReplay)? false:Shavit_IsPracticeMode(target);
 
-	char sBuffer[512];
+	char sBuffer[2048];
 	int iLines = 0;
 
 	if(IsSource2013(gEV_Type))
@@ -1401,14 +1401,23 @@ void UpdateMainHUD(int client)
 
 	else
 	{
-		StrCat(sBuffer, 512, "#SFUI_Notice_NewWaveBegun_\n<pre>");
-		iLines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, 512);
-		StrCat(sBuffer, 512, "</pre>");
+		StrCat(sBuffer, sizeof(sBuffer), "</font><pre>");
+		iLines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, sizeof(sBuffer));
+		StrCat(sBuffer, sizeof(sBuffer), "</pre>\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 	}
 
 	if(iLines > 0)
 	{
-		PrintCenterText(client, "%s", sBuffer);
+		Protobuf hMessage = view_as<Protobuf>(StartMessageOne("TextMsg", client));
+		hMessage.SetInt("msg_dst", 4);
+		hMessage.AddString("params", "#SFUI_ContractKillStart");
+		hMessage.AddString("params", sBuffer);
+		hMessage.AddString("params", NULL_STRING);
+		hMessage.AddString("params", NULL_STRING);
+		hMessage.AddString("params", NULL_STRING);
+		hMessage.AddString("params", NULL_STRING);
+		
+		EndMessage();
 	}
 }
 
