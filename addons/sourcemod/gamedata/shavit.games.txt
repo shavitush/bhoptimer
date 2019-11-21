@@ -19,9 +19,9 @@
 		{
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
-				"windows"	"504"
-				"linux"		"505"
-				"mac"		"505"
+				"windows"	"505"
+				"linux"		"506"
+				"mac"		"506"
 			}
 		}
 	}
