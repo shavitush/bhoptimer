@@ -214,8 +214,8 @@ public void OnPluginStart()
 	// forwards
 	gH_Forwards_OnClanTagChangePre = CreateGlobalForward("Shavit_OnClanTagChangePre", ET_Event, Param_Cell, Param_String, Param_Cell);
 	gH_Forwards_OnClanTagChangePost = CreateGlobalForward("Shavit_OnClanTagChangePost", ET_Event, Param_Cell, Param_String, Param_Cell);
-	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Event, Param_Cell);
-	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Event, Param_Cell);
+	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Event, Param_Cell, Param_Cell);
 
 	// cache
 	gEV_Type = GetEngineVersion();
@@ -2179,6 +2179,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnSave);
 	Call_PushCell(client);
+	Call_PushCell(index);
 	Call_Finish(result);
 	
 	if(result != Plugin_Continue)
@@ -2420,6 +2421,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnTeleport);
 	Call_PushCell(client);
+	Call_PushCell(index);
 	Call_Finish(result);
 	
 	if(result != Plugin_Continue)
