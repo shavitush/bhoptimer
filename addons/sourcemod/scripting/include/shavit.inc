@@ -216,6 +216,31 @@ enum struct timer_snapshot_t
 	int iPerfectJumps;
 }
 
+enum struct cp_cache_t
+{
+	float fPosition[3];
+	float fAngles[3];
+	float fVelocity[3];
+	float fBaseVelocity[3];
+	MoveType iMoveType;
+	float fGravity;
+	float fSpeed;
+	float fStamina;
+	bool bDucked;
+	bool bDucking;
+	float fDucktime; // m_flDuckAmount in csgo
+	float fDuckSpeed; // m_flDuckSpeed in csgo; doesn't exist in css
+	int iFlags;
+	timer_snapshot_t aSnapshot;
+	int iTargetname;
+	int iClassname;
+	ArrayList aFrames;
+	bool bSegmented;
+	int iSerial;
+	bool bPractice;
+	int iGroundEntity;
+}
+
 #if defined USES_CHAT_COLORS
 // hardcoded colors
 char gS_GlobalColorNames[][] =
@@ -1523,6 +1548,66 @@ native int Shavit_PrintToChat(int client, const char[] format, any ...);
  */
 native void Shavit_LogMessage(const char[] format, any ...);
 
+/**
+ * Gets the total number of CPs that a client has saved
+ *
+ * @param client					Client index
+ *
+ * @return							Total number of checkpoints
+ */
+ native int Shavit_GetTotalCheckpoints(int client);
+
+/**
+ * Gets CP data for a client at specified index
+ *
+ * @param client					Client index
+ * @param index						Index of CP to get
+ * @param cpcache					Buffer to store cp data in
+ *
+ * @noreturn
+ */
+native bool Shavit_GetCheckpoint(int client, int index, any cpcache[sizeof(cp_cache_t)]);
+
+/**
+ * Sets checkpoint data at the given index for the given client
+ *
+ * @param client					Client index
+ * @param index						Index of CP to set, or -1 to push cp as last
+ * @param cpcache					Buffer with cp data
+ *
+ * @noreturn
+ */
+native void Shavit_SetCheckpoint(int client, int index, any cpcache[sizeof(cp_cache_t)]);
+
+/**
+ * Teleports client to the checkpoint at given index
+ *
+ * @param client					Client index
+ * @param index						Index of CP to teleport to
+ * @param suppress					Supress checkpoint message
+ *
+ * @noreturn
+ */
+native void Shavit_TeleportToCheckpoint(int client, int index, bool suppress = false);
+
+/**
+ * Clears all saved checkpoints for the specified client
+ *
+ * @param client					Client index
+ *
+ * @noreturn
+ */
+native void Shavit_ClearCheckpoints(int client);
+
+/**
+ * Opens checkpoint menu for a client
+ *
+ * @param client					Client index
+ *
+ * @noreturn
+ */
+native void Shavit_OpenCheckpointMenu(int client);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -1638,5 +1723,11 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_WR_DeleteMap");
 	MarkNativeAsOptional("Shavit_ZoneExists");
 	MarkNativeAsOptional("Shavit_Zones_DeleteMap");
+	MarkNativeAsOptional("Shavit_GetTotalCheckpoints");
+	MarkNativeAsOptional("Shavit_GetCheckpoint");
+	MarkNativeAsOptional("Shavit_SetCheckpoint");
+	MarkNativeAsOptional("Shavit_TeleportToCheckpoint");
+	MarkNativeAsOptional("Shavit_ClearCheckpoints");
+	MarkNativeAsOptional("Shavit_OpenCheckpointMenu");
 }
 #endif

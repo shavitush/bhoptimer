@@ -42,30 +42,6 @@
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
 
-enum struct cp_cache_t
-{
-	float fPosition[3];
-	float fAngles[3];
-	float fVelocity[3];
-	float fBaseVelocity[3];
-	MoveType iMoveType;
-	float fGravity;
-	float fSpeed;
-	float fStamina;
-	bool bDucked;
-	bool bDucking;
-	float fDucktime; // m_flDuckAmount in csgo
-	float fDuckSpeed; // m_flDuckSpeed in csgo; doesn't exist in css
-	int iFlags;
-	timer_snapshot_t aSnapshot;
-	int iTargetname;
-	int iClassname;
-	ArrayList aFrames;
-	bool bSegmented;
-	int iSerial;
-	bool bPractice;
-	int iGroundEntity;
-}
 
 enum struct player_cpcache_t
 {
@@ -204,6 +180,13 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_GetCheckpoint", Native_GetCheckpoint);
+	CreateNative("Shavit_SetCheckpoint", Native_SetCheckpoint);
+	CreateNative("Shavit_ClearCheckpoints", Native_ClearCheckpoints);
+	CreateNative("Shavit_TeleportToCheckpoint", Native_TeleportToCheckpoint);
+	CreateNative("Shavit_GetTotalCheckpoints", Native_GetTotalCheckpoints);
+	CreateNative("Shavit_OpenCheckpointMenu", Native_OpenCheckpointMenu);
+
 	gB_Late = late;
 
 	return APLRes_Success;
@@ -3389,4 +3372,68 @@ bool CanSegment(int client)
 int GetMaxCPs(int client)
 {
 	return CanSegment(client)? gCV_MaxCP_Segmented.IntValue:gCV_MaxCP.IntValue;
+}
+
+public any Native_GetCheckpoint(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int index = GetNativeCell(2);
+
+	cp_cache_t cpcache;
+	if(GetCheckpoint(client, index, cpcache))
+	{
+		SetNativeArray(3, cpcache, sizeof(cp_cache_t));
+		return true;
+	}
+
+	return false;
+}
+
+public any Native_SetCheckpoint(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int position = GetNativeCell(2);
+
+	cp_cache_t cpcache;
+	GetNativeArray(3, cpcache, sizeof(cp_cache_t));
+
+	if(position == -1)
+	{
+		position = gA_CheckpointsCache[client].iCurrentCheckpoint;
+	}
+
+	if(SetCheckpoint(client, position, cpcache))
+	{
+		gA_CheckpointsCache[client].iCurrentCheckpoint = ++gA_CheckpointsCache[client].iCheckpoints;
+		return true;
+	}
+	
+	return false;
+}
+
+public any Native_ClearCheckpoints(Handle plugin, int numParams)
+{
+	ResetCheckpoints(GetNativeCell(1));
+	return 0;
+}
+
+public any Native_TeleportToCheckpoint(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int position = GetNativeCell(2);
+	bool suppress = GetNativeCell(3);
+
+	TeleportToCheckpoint(client, position, suppress);
+	return 0;
+}
+
+public any Native_GetTotalCheckpoints(Handle plugin, int numParams)
+{
+	return gA_CheckpointsCache[GetNativeCell(1)].iCheckpoints;
+}
+
+public any Native_OpenCheckpointMenu(Handle plugin, int numParams)
+{
+	OpenNormalCPMenu(GetNativeCell(1));
+	return 0;
 }
