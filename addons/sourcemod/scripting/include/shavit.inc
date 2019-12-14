@@ -649,9 +649,10 @@ forward Action Shavit_OnTeleport(int client, int index);
  *
  * @param client					Client index.
  * @param index						Checkpoint that was saved to.
+ * @param overflow					Does this checkpoint shift the rest.
  * @return							Plugin_Continue to allow teleporting, anything else to prevent.
  */
-forward Action Shavit_OnSave(int client, int index);
+forward Action Shavit_OnSave(int client, int index, bool overflow);
 
 /**
  * Called when a player enters a zone.

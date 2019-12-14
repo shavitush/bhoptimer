@@ -197,7 +197,7 @@ public void OnPluginStart()
 	// forwards
 	gH_Forwards_OnClanTagChangePre = CreateGlobalForward("Shavit_OnClanTagChangePre", ET_Event, Param_Cell, Param_String, Param_Cell);
 	gH_Forwards_OnClanTagChangePost = CreateGlobalForward("Shavit_OnClanTagChangePost", ET_Event, Param_Cell, Param_String, Param_Cell);
-	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Event, Param_Cell, Param_Cell);
 
 	// cache
@@ -2163,6 +2163,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	Call_StartForward(gH_Forwards_OnSave);
 	Call_PushCell(client);
 	Call_PushCell(index);
+	Call_PushCell(overflow);
 	Call_Finish(result);
 	
 	if(result != Plugin_Continue)
