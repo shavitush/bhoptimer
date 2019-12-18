@@ -613,6 +613,16 @@ forward void Shavit_OnResume(int client, int track);
 forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual);
 
 /**
+ * Called when a player changes their bhop track.
+ *
+ * @param client					Client index.
+ * @param oldtrack					Old bhop track.
+ * @param newtrack					New bhop track.
+ * @noreturn
+ */
+forward void Shavit_OnTrackChanged(int client, int oldtrack, int newtrack);
+
+/**
  * Called when the styles configuration finishes loading and it's ready to load everything into the cache.
  *
  * @param styles					Amount of styles loaded.
@@ -733,6 +743,13 @@ forward void Shavit_OnReplayStart(int client);
  * @noreturn
  */
 forward void Shavit_OnReplayEnd(int client);
+
+/**
+ * Called when all replays files have been loaded.
+ *
+ * @noreturn
+ */
+forward void Shavit_OnReplaysLoaded();
 
 /**
  * Called when top left HUD updates.
