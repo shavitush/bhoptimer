@@ -795,6 +795,16 @@ forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int custom
 forward Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_t snapshot, int overwrite, int rank, char[] message, int maxlen);
 
 /**
+ * Called when a clients dynamic timescale has been changed.
+ *
+ * @param client					Client index.
+ * @param oldtimescale				The old timescale value
+ * @param newtimescale				The new timescale value
+ * @noreturn
+ */
+forward void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newtimescale);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
@@ -1626,6 +1636,26 @@ native void Shavit_ClearCheckpoints(int client);
  */
 native void Shavit_OpenCheckpointMenu(int client);
 
+/**
+ * Sets the clients dynamic timescale. -1.0 to use the timescale of the client's style.
+ * Note: Values above 1.0 won't scale into the replay bot.
+ *
+ * @param client					Client index
+ * @param scale						New timescale
+ *
+ * @noreturn
+ */
+native void Shavit_SetClientTimescale(int client, float scale);
+
+/**
+ * Gets the clients dynamic timescale, or -1.0 if unset.
+ *
+ * @param client					Client index
+ *
+ * @return							Client's dynamic timescale
+ */
+native float Shavit_GetClientTimescale(int client);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -1747,5 +1777,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_TeleportToCheckpoint");
 	MarkNativeAsOptional("Shavit_ClearCheckpoints");
 	MarkNativeAsOptional("Shavit_OpenCheckpointMenu");
+	MarkNativeAsOptional("Shavit_GetClientTimescale");
+	MarkNativeAsOptional("Shavit_SetClientTimescale");
 }
 #endif

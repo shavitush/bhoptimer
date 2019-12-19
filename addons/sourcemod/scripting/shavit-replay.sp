@@ -116,6 +116,7 @@ int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
+float gF_NextFrameTime[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -1637,6 +1638,11 @@ void ApplyFlags(int &flags1, int flags2, int flag)
 	}
 }
 
+public void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newtimescale)
+{
+	gF_NextFrameTime[client] = 0.0;
+}
+
 // OnPlayerRunCmd instead of Shavit_OnUserCmdPre because bots are also used here.
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
@@ -1823,34 +1829,47 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			return Plugin_Continue;
 		}
 
-		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
-
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
-
-		if(!gB_HijackFrame[client])
+		if(Shavit_GetClientTimescale(client) != 0.0)
 		{
-			float vecEyes[3];
-			GetClientEyeAngles(client, vecEyes);
+			if(gF_NextFrameTime[client] <= 0.0)
+			{
+				gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[0], 3);
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[1], 4);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
+
+				if(!gB_HijackFrame[client])
+				{
+					float vecEyes[3];
+					GetClientEyeAngles(client, vecEyes);
+
+					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[0], 3);
+					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[1], 4);
+				}
+
+				else
+				{
+					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][0], 3);
+					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][1], 4);
+
+					gB_HijackFrame[client] = false;
+				}
+
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityFlags(client), 6);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityMoveType(client), 7);
+
+				gI_PlayerFrames[client]++;
+				
+				gF_NextFrameTime[client] += (1.0 - Shavit_GetClientTimescale(client));
+			}
+
+			else
+			{
+				gF_NextFrameTime[client] -= Shavit_GetClientTimescale(client);
+			}
 		}
-
-		else
-		{
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][0], 3);
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][1], 4);
-
-			gB_HijackFrame[client] = false;
-		}
-
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityFlags(client), 6);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityMoveType(client), 7);
-
-		gI_PlayerFrames[client]++;
 	}
 
 	return Plugin_Continue;
@@ -2034,6 +2053,7 @@ void ClearFrames(int client)
 {
 	gA_PlayerFrames[client].Clear();
 	gI_PlayerFrames[client] = 0;
+	gF_NextFrameTime[client] = 0.0;
 }
 
 public void Shavit_OnWRDeleted(int style, int id, int track)
