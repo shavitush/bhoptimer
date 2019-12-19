@@ -715,7 +715,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		char sMap[192];
 		results.FetchString(0, sMap, 192);
 
-		char sRecordID[16];
+		char sRecordID[192];
 		char sDisplay[256];
 
 		if(gI_MapType[client] == MAPSDONE)
@@ -740,7 +740,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 			}
 
 			int iRecordID = results.FetchInt(3);
-			IntToString(iRecordID, sRecordID, 16);
+			IntToString(iRecordID, sRecordID, 192);
 		}
 
 		else
@@ -759,7 +759,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 				Format(sDisplay, 192, "%s (Tier %d)", sMap, iTier);
 			}
 
-			strcopy(sRecordID, 16, "nope");
+			strcopy(sRecordID, 192, sMap);
 		}
 
 		menu.AddItem(sRecordID, sDisplay);
@@ -780,8 +780,8 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char sInfo[16];
-		menu.GetItem(param2, sInfo, 16);
+		char sInfo[192];
+		menu.GetItem(param2, sInfo, 192);
 
 		if(StrEqual(sInfo, "nope"))
 		{
@@ -789,6 +789,14 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 
 			return 0;
 		}
+
+		else if(StringToInt(sInfo) == 0)
+		{
+			FakeClientCommand(param1, "sm_nominate %s", sInfo);
+
+			return 0;
+		}
+		
 
 		char sQuery[512];
 		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%s' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sInfo);
