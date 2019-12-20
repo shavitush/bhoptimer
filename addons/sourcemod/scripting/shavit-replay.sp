@@ -1829,7 +1829,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			return Plugin_Continue;
 		}
 
-		if(Shavit_GetClientTimescale(client) != 0.0)
+		float fTimescale = Shavit_GetClientTimescale(client);
+
+		if(fTimescale != 0.0)
 		{
 			if(gF_NextFrameTime[client] <= 0.0)
 			{
@@ -1862,12 +1864,15 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				gI_PlayerFrames[client]++;
 				
-				gF_NextFrameTime[client] += (1.0 - Shavit_GetClientTimescale(client));
+				if(fTimescale != -1.0)
+				{
+					gF_NextFrameTime[client] += (1.0 - fTimescale);
+				}
 			}
 
-			else
+			else if(fTimescale != -1.0)
 			{
-				gF_NextFrameTime[client] -= Shavit_GetClientTimescale(client);
+				gF_NextFrameTime[client] -= fTimescale;
 			}
 		}
 	}
