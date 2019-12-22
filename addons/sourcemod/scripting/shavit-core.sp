@@ -351,6 +351,15 @@ public void OnPluginStart()
 		sv_enablebunnyhopping.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 	}
 
+	gB_Zones = LibraryExists("shavit-zones");
+	gB_WR = LibraryExists("shavit-wr");
+	gB_Replay = LibraryExists("shavit-replay");
+	gB_Rankings = LibraryExists("shavit-rankings");
+	gB_HUD = LibraryExists("shavit-hud");
+
+	// database connections
+	SQL_DBConnect();
+
 	// late
 	if(gB_Late)
 	{
@@ -362,15 +371,6 @@ public void OnPluginStart()
 			}
 		}
 	}
-
-	gB_Zones = LibraryExists("shavit-zones");
-	gB_WR = LibraryExists("shavit-wr");
-	gB_Replay = LibraryExists("shavit-replay");
-	gB_Rankings = LibraryExists("shavit-rankings");
-	gB_HUD = LibraryExists("shavit-hud");
-
-	// database connections
-	SQL_DBConnect();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -2171,6 +2171,16 @@ bool LoadStyles()
 			}
 
 			strcopy(gS_StyleOverride[i], 32, (iCount >= 2)? sText[1]:"");
+		}
+
+		else if(strlen(gS_StyleStrings[i].sStylePermission) > 0)
+		{
+			AdminFlag flag = Admin_Reservation;
+
+			if(FindFlagByChar(gS_StyleStrings[i].sStylePermission[0], flag))
+			{
+				gI_StyleFlag[i] = FlagToBit(flag);
+			}
 		}
 
 		gI_OrderedStyles[i] = i++;
