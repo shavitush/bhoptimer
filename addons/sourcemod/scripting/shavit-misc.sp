@@ -141,6 +141,7 @@ ConVar gCV_HideChatCommands = null;
 ConVar gCV_PersistData = null;
 ConVar gCV_StopTimerWarning = null;
 ConVar gCV_WRMessages = null;
+ConVar gCV_BhopSounds = null;
 
 // external cvars
 ConVar sv_disable_immunity_alpha = null;
@@ -269,6 +270,7 @@ public void OnPluginStart()
 	AddTempEntHook("EffectDispatch", EffectDispatch);
 	AddTempEntHook("World Decal", WorldDecal);
 	AddTempEntHook((gEV_Type != Engine_TF2)? "Shotgun Shot":"Fire Bullets", Shotgun_Shot);
+	AddNormalSoundHook(NormalSound);
 
 	// phrases
 	LoadTranslations("common.phrases");
@@ -316,6 +318,7 @@ public void OnPluginStart()
 	gCV_PersistData = CreateConVar("shavit_misc_persistdata", "300", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled");
 	gCV_StopTimerWarning = CreateConVar("shavit_misc_stoptimerwarning", "900", "Time in seconds to display a warning before stopping the timer with noclip or !stop.\n0 - Disabled");
 	gCV_WRMessages = CreateConVar("shavit_misc_wrmessages", "3", "How many \"NEW <style> WR!!!\" messages to print?\n0 - Disabled", 0,  true, 0.0, true, 100.0);
+	gCV_BhopSounds = CreateConVar("shavit_misc_bhopsounds", "0", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 3.0);
 
 	AutoExecConfig();
 
@@ -3217,6 +3220,43 @@ public Action WorldDecal(const char[] te_name, const Players[], int numClients, 
 		return Plugin_Handled;
 	}
 
+	return Plugin_Continue;
+}
+
+public Action NormalSound(int clients[MAXPLAYERS], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags, char soundEntry[PLATFORM_MAX_PATH], int &seed)
+{
+	if(!gCV_BhopSounds.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
+	if(StrContains(sample, "physics") != -1 || StrContains(sample, "footsteps") != -1 || StrContains(sample, "land") != -1 || StrContains(sample, "jump") != -1)
+	{
+		if(gCV_BhopSounds.IntValue == 2)
+		{
+			numClients = 0;
+		}
+
+		else
+		{
+			for(int i = 0; i < numClients; ++i)
+			{
+				if(IsValidClient(clients[i]) && gB_Hide[clients[i]])
+				{
+					for (int j = i; j < numClients-1; j++)
+					{
+						clients[j] = clients[j+1];
+					}
+					
+					numClients--;
+					i--;
+				}
+			}
+		}
+
+		return Plugin_Changed;
+	}
+   
 	return Plugin_Continue;
 }
 
