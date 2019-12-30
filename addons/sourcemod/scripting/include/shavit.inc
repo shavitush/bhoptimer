@@ -105,6 +105,7 @@ enum
 	Zone_Easybhop,
 	Zone_Slide,
 	Zone_Airaccelerate,
+	Zone_Stage,
 	ZONETYPES_SIZE
 };
 
@@ -672,9 +673,10 @@ forward Action Shavit_OnSave(int client, int index, bool overflow);
  * @param track						Zone track.
  * @param id						Zone ID.
  * @param entity					Zone trigger entity index.
+ * @param data						Zone data if any.
  * @noreturn
  */
-forward void Shavit_OnEnterZone(int client, int type, int track, int id, int entity);
+forward void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data);
 
 /**
  * Called when a player leaves a zone.
@@ -684,9 +686,10 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
  * @param track						Zone track.
  * @param id						Zone ID.
  * @param entity					Zone trigger entity index.
+ * @param data						Zone data if any.
  * @noreturn
  */
-forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity);
+forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data);
 
 /**
  * Called when a player gets the worst record in the server for the style.

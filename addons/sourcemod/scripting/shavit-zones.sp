@@ -55,7 +55,8 @@ char gS_ZoneNames[][] =
 	"SPAWN POINT", // << unused
 	"Easybhop Zone", // forces easybhop whether if the player is in non-easy styles or if the server has different settings
 	"Slide Zone", // allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
-	"Custom Airaccelerate" // custom sv_airaccelerate inside this
+	"Custom Airaccelerate", // custom sv_airaccelerate inside this,
+	"Stage Zone" // shows time when entering zone
 };
 
 enum struct zone_cache_t
@@ -158,6 +159,7 @@ chatstrings_t gS_ChatStrings;
 // forwards
 Handle gH_Forwards_EnterZone = null;
 Handle gH_Forwards_LeaveZone = null;
+Handle gH_Forwards_StageMessage = null;
 
 // kz support
 float gF_ClimbButtonCache[MAXPLAYERS+1][TRACKS_SIZE][2][3]; // 0 - location, 1 - angles
@@ -208,14 +210,17 @@ public void OnPluginStart()
 
 	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
 
-	RegAdminCmd("sm_addspawn", Command_AddSpawn,  ADMFLAG_RCON, "Adds a custom spawn location");
-	RegAdminCmd("sm_delspawn", Command_DelSpawn,  ADMFLAG_RCON, "Deletes a custom spawn location");
+	RegAdminCmd("sm_addspawn", Command_AddSpawn, ADMFLAG_RCON, "Adds a custom spawn location");
+	RegAdminCmd("sm_delspawn", Command_DelSpawn, ADMFLAG_RCON, "Deletes a custom spawn location");
 
 	RegAdminCmd("sm_zoneedit", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone.");
 	RegAdminCmd("sm_editzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
 	RegAdminCmd("sm_modifyzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
 	
 	RegAdminCmd("sm_reloadzonesettings", Command_ReloadZoneSettings, ADMFLAG_ROOT, "Reloads the zone settings.");
+
+	RegConsoleCmd("sm_stages", Command_Stages, "Opens the stage menu. Usage: sm_stages [stage #]");
+	RegConsoleCmd("sm_stage", Command_Stages, "Opens the stage menu. Usage: sm_stage [stage #]");
 
 	// events
 	if(gEV_Type == Engine_TF2)
@@ -231,8 +236,9 @@ public void OnPluginStart()
 	HookEvent("player_spawn", Player_Spawn);
 
 	// forwards
-	gH_Forwards_EnterZone = CreateGlobalForward("Shavit_OnEnterZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_LeaveZone = CreateGlobalForward("Shavit_OnLeaveZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_EnterZone = CreateGlobalForward("Shavit_OnEnterZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_LeaveZone = CreateGlobalForward("Shavit_OnLeaveZone", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_StageMessage = CreateGlobalForward("Shavit_OnStageMessage", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
 	// cvars and stuff
 	gCV_Interval = CreateConVar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
@@ -936,7 +942,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			gV_ZoneCenter[gI_MapZones][1] = (gV_MapZones[gI_MapZones][0][1] + gV_MapZones[gI_MapZones][1][1]) / 2.0;
 			gV_ZoneCenter[gI_MapZones][2] = (gV_MapZones[gI_MapZones][0][2] + gV_MapZones[gI_MapZones][1][2]) / 2.0;
 
-			if(type == Zone_Teleport)
+			if(type == Zone_Teleport || type == Zone_Stage)
 			{
 				gV_Destinations[gI_MapZones][0] = results.FetchFloat(7);
 				gV_Destinations[gI_MapZones][1] = results.FetchFloat(8);
@@ -1235,6 +1241,104 @@ public Action Command_ReloadZoneSettings(int client, int args)
 	return Plugin_Handled;
 }
 
+public Action Command_Stages(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "%T", "StageCommandAlive", client, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
+
+		return Plugin_Handled;
+	}
+
+	if(args > 0)
+	{
+		char arg1[8];
+		GetCmdArg(1, arg1, 8);
+
+		int iStage = StringToInt(arg1);
+
+		for(int i = 0; i < gI_MapZones; i++)
+		{
+			if(gA_ZoneCache[i].bZoneInitialized && gA_ZoneCache[i].iZoneData == iStage)
+			{
+				Shavit_StopTimer(client);
+				if(!EmptyVector(gV_Destinations[i]))
+				{
+					TeleportEntity(client, gV_Destinations[i], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+				}
+
+				else
+				{
+					TeleportEntity(client, gV_ZoneCenter[i], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+				}
+			}
+		}
+	}
+
+	else
+	{
+		Menu menu = new Menu(MenuHandler_SelectStage);
+		menu.SetTitle("%T", "ZoneMenuStage", client);
+
+		char sDisplay[64];
+	
+		for(int i = 0; i < gI_MapZones; i++)
+		{
+			if(gA_ZoneCache[i].bZoneInitialized && gA_ZoneCache[i].iZoneType == Zone_Stage)
+			{
+				char sTrack[32];
+				GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
+	
+				FormatEx(sDisplay, 64, "#%d - %T (%s)", (i + 1), "ZoneSetStage", client, gA_ZoneCache[i].iZoneData, sTrack);
+	
+				char sInfo[8];
+				IntToString(i, sInfo, 8);
+	
+				menu.AddItem(sInfo, sDisplay);
+			}
+		}
+
+		menu.ExitButton = true;
+		menu.Display(client, MENU_TIME_FOREVER);
+	}
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_SelectStage(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		int iIndex = StringToInt(sInfo);
+		
+		Shavit_StopTimer(param1);
+
+		if(!EmptyVector(gV_Destinations[iIndex]))
+		{
+			TeleportEntity(param1, gV_Destinations[iIndex], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		}
+
+		else
+		{
+			TeleportEntity(param1, gV_ZoneCenter[iIndex], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+		}
+	}
+
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+	
+	return 0;
+}
+
 public Action Command_Zones(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -1317,7 +1421,7 @@ Action OpenEditMenu(int client)
 	FormatEx(sDisplay, 64, "%T", "ZoneEditRefresh", client);
 	menu.AddItem("-2", sDisplay);
 
-	for(int i = 0; i < sizeof(gS_ZoneNames); i++)
+	for(int i = 0; i < gI_MapZones; i++)
 	{
 		if(!gA_ZoneCache[i].bZoneInitialized)
 		{
@@ -1330,7 +1434,15 @@ Action OpenEditMenu(int client)
 		char sTrack[32];
 		GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
 
-		FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack);
+		if(gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
+		{
+			FormatEx(sDisplay, 64, "#%d - %s %d (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack);
+		}
+
+		else
+		{
+			FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack);
+		}
 
 		if(gB_InsideZoneID[client][i])
 		{
@@ -1431,8 +1543,15 @@ Action OpenDeleteMenu(int client)
 			char sTrack[32];
 			GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
 
-			FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack);
-
+			if(gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
+			{
+				FormatEx(sDisplay, 64, "#%d - %s %d (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack);
+			}
+			
+			else
+			{
+				FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack);
+			}
 			char sInfo[8];
 			IntToString(i, sInfo, 8);
 			
@@ -2037,26 +2156,36 @@ void UpdateTeleportZone(int client)
 	GetClientAbsOrigin(client, vTeleport);
 	vTeleport[2] += 2.0;
 
-	bool bInside = true;
-
-	for(int i = 0; i < 3; i++)
-	{
-		if(gV_Point1[client][i] >= vTeleport[i] == gV_Point2[client][i] >= vTeleport[i])
-		{
-			bInside = false;
-		}
-	}
-
-	if(bInside)
-	{
-		Shavit_PrintToChat(client, "%T", "ZoneTeleportInsideZone", client);
-	}
-
-	else
+	if(gI_ZoneType[client] == Zone_Stage)
 	{
 		gV_Teleport[client] = vTeleport;
 
 		Shavit_PrintToChat(client, "%T", "ZoneTeleportUpdated", client);
+	}
+
+	else
+	{
+		bool bInside = true;
+
+		for(int i = 0; i < 3; i++)
+		{
+			if(gV_Point1[client][i] >= vTeleport[i] == gV_Point2[client][i] >= vTeleport[i])
+			{
+				bInside = false;
+			}
+		}
+
+		if(bInside)
+		{
+			Shavit_PrintToChat(client, "%T", "ZoneTeleportInsideZone", client);
+		}
+
+		else
+		{
+			gV_Teleport[client] = vTeleport;
+
+			Shavit_PrintToChat(client, "%T", "ZoneTeleportUpdated", client);
+		}
 	}
 }
 
@@ -2088,6 +2217,15 @@ void CreateEditMenu(int client)
 		menu.AddItem("tpzone", sMenuItem);
 	}
 
+	else if(gI_ZoneType[client] == Zone_Stage)
+	{
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
+		menu.AddItem("yes", sMenuItem);
+
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetTPZone", client);
+		menu.AddItem("tpzone", sMenuItem);
+	}
+
 	else
 	{
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
@@ -2103,7 +2241,13 @@ void CreateEditMenu(int client)
 	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gI_ZoneFlags[client] & ZF_ForceRender) > 0)? "＋":"－");
 	menu.AddItem("forcerender", sMenuItem);
 
-	if(gI_ZoneType[client] == Zone_Airaccelerate)
+	if(gI_ZoneType[client] == Zone_Stage)
+	{
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetStage", client, gI_ZoneData[client]);
+		menu.AddItem("datafromchat", sMenuItem);
+	}
+
+	else if(gI_ZoneType[client] == Zone_Airaccelerate)
 	{
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetAiraccelerate", client, gI_ZoneData[client]);
 		menu.AddItem("datafromchat", sMenuItem);
@@ -2792,6 +2936,31 @@ public void StartTouchPost(int entity, int other)
 				Shavit_FinishMap(other, gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack);
 			}
 		}
+
+		case Zone_Stage:
+		{
+			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack)
+			{
+				char sTime[32];
+				FormatSeconds(Shavit_GetClientTime(other), sTime, 32, true);
+
+				char sMessage[255];
+				FormatEx(sMessage, 255, "%T", "ZoneStageEnter", other, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gA_ZoneCache[gI_EntityZone[entity]].iZoneData, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText);
+
+				Action aResult = Plugin_Continue;
+				Call_StartForward(gH_Forwards_StageMessage);
+				Call_PushCell(other);
+				Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]].iZoneData);
+				Call_PushStringEx(sMessage, 255, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+				Call_PushCell(255);
+				Call_Finish(aResult);
+
+				if(aResult < Plugin_Handled)
+				{
+					Shavit_PrintToChat(other, "%s", sMessage);
+				}
+			}
+		}
 	}
 
 	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]].iZoneType][gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack] = true;
@@ -2803,6 +2972,7 @@ public void StartTouchPost(int entity, int other)
 	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack);
 	Call_PushCell(gI_EntityZone[entity]);
 	Call_PushCell(entity);
+	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]].iZoneData);
 	Call_Finish();
 }
 
@@ -2826,6 +2996,7 @@ public void EndTouchPost(int entity, int other)
 	Call_PushCell(track);
 	Call_PushCell(entityzone);
 	Call_PushCell(entity);
+	Call_PushCell(gA_ZoneCache[entityzone].iZoneData);
 	Call_Finish();
 }
 
