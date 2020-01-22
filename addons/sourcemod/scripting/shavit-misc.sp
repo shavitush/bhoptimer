@@ -1755,7 +1755,7 @@ public Action Command_Tele(int client, int args)
 		}
 	}
 
-	TeleportToCheckpoint(client, index, false);
+	TeleportToCheckpoint(client, index, true);
 
 	return Plugin_Handled;
 }
