@@ -1217,10 +1217,10 @@ void VelocityChanges(int data)
 
 	if(gA_Timers[client].fTimescale != -1.0)
 	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale));
 	}
 
-	if(view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier) != 1.0 || gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier)
+	else
 	{
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
 	}
@@ -1866,7 +1866,7 @@ void StartTimer(int client, int track)
 				SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_Timers[client].fTimescale);
 			}
 			
-			else if(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier != 1.0)
+			else
 			{
 				SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
 			}
