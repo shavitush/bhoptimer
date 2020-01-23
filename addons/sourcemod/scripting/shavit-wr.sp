@@ -19,6 +19,7 @@
 */
 
 #include <sourcemod>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -76,8 +77,8 @@ TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 char gS_MySQLPrefix[32];
 
 // cvars
-ConVar gCV_RecordsLimit = null;
-ConVar gCV_RecentLimit = null;
+Convar gCV_RecordsLimit = null;
+Convar gCV_RecentLimit = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -155,10 +156,10 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deleteall", Command_DeleteAll, ADMFLAG_RCON, "Deletes all the records for this map.");
 
 	// cvars
-	gCV_RecordsLimit = CreateConVar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
-	gCV_RecentLimit = CreateConVar("shavit_wr_recentlimit", "50", "Limit of records shown in the RR menu.", 0, true, 1.0);
+	gCV_RecordsLimit = new Convar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
+	gCV_RecentLimit = new Convar("shavit_wr_recentlimit", "50", "Limit of records shown in the RR menu.", 0, true, 1.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	// admin menu
 	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))

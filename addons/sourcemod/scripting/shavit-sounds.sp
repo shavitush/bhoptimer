@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -37,7 +38,7 @@ ArrayList gA_NoImprovementSounds = null;
 StringMap gSM_RankSounds = null;
 
 // cvars
-ConVar gCV_MinimumWorst = null;
+Convar gCV_MinimumWorst = null;
 
 public Plugin myinfo =
 {
@@ -78,9 +79,9 @@ public void OnPluginStart()
 	gB_HUD = LibraryExists("shavit-hud");
 
 	// cvars
-	gCV_MinimumWorst = CreateConVar("shavit_sounds_minimumworst", "10", "Minimum amount of records to be saved for a \"worst\" sound to play.", 0, true, 1.0);
+	gCV_MinimumWorst = new Convar("shavit_sounds_minimumworst", "10", "Minimum amount of records to be saved for a \"worst\" sound to play.", 0, true, 1.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 }
 
 public void OnLibraryAdded(const char[] name)

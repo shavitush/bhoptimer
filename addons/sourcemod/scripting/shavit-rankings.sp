@@ -39,6 +39,7 @@
 // Heavily inspired by pp (performance points) from osu!, written by Tom94. https://github.com/ppy/osu-performance
 
 #include <sourcemod>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -70,9 +71,9 @@ int gI_ValidMaps = 0;
 ArrayList gA_ValidMaps = null;
 StringMap gA_MapTiers = null;
 
-ConVar gCV_PointsPerTier = null;
-ConVar gCV_WeightingMultiplier = null;
-ConVar gCV_LastLoginRecalculate = null;
+Convar gCV_PointsPerTier = null;
+Convar gCV_WeightingMultiplier = null;
+Convar gCV_LastLoginRecalculate = null;
 
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
@@ -140,11 +141,11 @@ public void OnPluginStart()
 
 	RegAdminCmd("sm_recalcall", Command_RecalcAll, ADMFLAG_ROOT, "Recalculate the points for every map on the server. Run this after you change the ranking multiplier for a style or after you install the plugin.");
 
-	gCV_PointsPerTier = CreateConVar("shavit_rankings_pointspertier", "50.0", "Base points to use for per-tier scaling.\nRead the design idea to see how it works: https://github.com/shavitush/bhoptimer/issues/465", 0, true, 1.0);
-	gCV_WeightingMultiplier = CreateConVar("shavit_rankings_weighting", "0.975", "Weighing multiplier. 1.0 to disable weighting.\nFormula: p[1] * this^0 + p[2] * this^1 + p[3] * this^2 + ... + p[n] * this^(n-1)\nRestart server to apply.", 0, true, 0.01, true, 1.0);
-	gCV_LastLoginRecalculate = CreateConVar("shavit_rankings_llrecalc", "10080", "Maximum amount of time (in minutes) since last login to recalculate points for a player.\nsm_recalcall does not respect this setting.\n0 - disabled, don't filter anyone", 0, true, 0.0);
+	gCV_PointsPerTier = new Convar("shavit_rankings_pointspertier", "50.0", "Base points to use for per-tier scaling.\nRead the design idea to see how it works: https://github.com/shavitush/bhoptimer/issues/465", 0, true, 1.0);
+	gCV_WeightingMultiplier = new Convar("shavit_rankings_weighting", "0.975", "Weighing multiplier. 1.0 to disable weighting.\nFormula: p[1] * this^0 + p[2] * this^1 + p[3] * this^2 + ... + p[n] * this^(n-1)\nRestart server to apply.", 0, true, 0.01, true, 1.0);
+	gCV_LastLoginRecalculate = new Convar("shavit_rankings_llrecalc", "10080", "Maximum amount of time (in minutes) since last login to recalculate points for a player.\nsm_recalcall does not respect this setting.\n0 - disabled, don't filter anyone", 0, true, 0.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	LoadTranslations("common.phrases");
 	LoadTranslations("shavit-common.phrases");

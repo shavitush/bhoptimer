@@ -22,6 +22,7 @@
 
 #include <sourcemod>
 #include <clientprefs>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
@@ -72,9 +73,9 @@ bool gB_Rankings = false;
 bool gB_RTLer = false;
 
 // cvars
-ConVar gCV_RankingsIntegration = null;
-ConVar gCV_CustomChat = null;
-ConVar gCV_Colon = null;
+Convar gCV_RankingsIntegration = null;
+Convar gCV_CustomChat = null;
+Convar gCV_Colon = null;
 
 // cache
 EngineVersion gEV_Type = Engine_Unknown;
@@ -130,11 +131,11 @@ public void OnPluginStart()
 	RegAdminCmd("sm_cclist", Command_CCList, ADMFLAG_CHAT, "Print the custom chat setting of all online players.");
 	RegAdminCmd("sm_reloadchatranks", Command_ReloadChatRanks, ADMFLAG_ROOT, "Reloads the chatranks config file.");
 
-	gCV_RankingsIntegration = CreateConVar("shavit_chat_rankings", "1", "Integrate with rankings?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_CustomChat = CreateConVar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
-	gCV_Colon = CreateConVar("shavit_chat_colon", ":", "String to use as the colon when messaging.");
+	gCV_RankingsIntegration = new Convar("shavit_chat_rankings", "1", "Integrate with rankings?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_CustomChat = new Convar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
+	gCV_Colon = new Convar("shavit_chat_colon", ":", "String to use as the colon when messaging.");
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	gSM_Messages = new StringMap();
 	gB_Protobuf = (GetUserMessageType() == UM_Protobuf);

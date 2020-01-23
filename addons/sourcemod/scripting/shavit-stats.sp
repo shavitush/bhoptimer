@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <geoip>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -54,8 +55,8 @@ EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Late = false;
 
 // cvars
-ConVar gCV_MVPRankOnes = null;
-ConVar gCV_MVPRankOnes_Main = null;
+Convar gCV_MVPRankOnes = null;
+Convar gCV_MVPRankOnes_Main = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -115,10 +116,10 @@ public void OnPluginStart()
 	HookEvent("player_team", Player_Event);
 
 	// cvars
-	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
-	gCV_MVPRankOnes_Main = CreateConVar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
+	gCV_MVPRankOnes = new Convar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
+	gCV_MVPRankOnes_Main = new Convar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	gB_Rankings = LibraryExists("shavit-rankings");
 
