@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <geoip>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -54,8 +55,8 @@ EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Late = false;
 
 // cvars
-ConVar gCV_MVPRankOnes = null;
-ConVar gCV_MVPRankOnes_Main = null;
+Convar gCV_MVPRankOnes = null;
+Convar gCV_MVPRankOnes_Main = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -115,10 +116,10 @@ public void OnPluginStart()
 	HookEvent("player_team", Player_Event);
 
 	// cvars
-	gCV_MVPRankOnes = CreateConVar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
-	gCV_MVPRankOnes_Main = CreateConVar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
+	gCV_MVPRankOnes = new Convar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
+	gCV_MVPRankOnes_Main = new Convar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	gB_Rankings = LibraryExists("shavit-rankings");
 
@@ -715,7 +716,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		char sMap[192];
 		results.FetchString(0, sMap, 192);
 
-		char sRecordID[16];
+		char sRecordID[192];
 		char sDisplay[256];
 
 		if(gI_MapType[client] == MAPSDONE)
@@ -740,7 +741,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 			}
 
 			int iRecordID = results.FetchInt(3);
-			IntToString(iRecordID, sRecordID, 16);
+			IntToString(iRecordID, sRecordID, 192);
 		}
 
 		else
@@ -759,7 +760,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 				Format(sDisplay, 192, "%s (Tier %d)", sMap, iTier);
 			}
 
-			strcopy(sRecordID, 16, "nope");
+			strcopy(sRecordID, 192, sMap);
 		}
 
 		menu.AddItem(sRecordID, sDisplay);
@@ -780,8 +781,8 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char sInfo[16];
-		menu.GetItem(param2, sInfo, 16);
+		char sInfo[192];
+		menu.GetItem(param2, sInfo, 192);
 
 		if(StrEqual(sInfo, "nope"))
 		{
@@ -789,6 +790,14 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 
 			return 0;
 		}
+
+		else if(StringToInt(sInfo) == 0)
+		{
+			FakeClientCommand(param1, "sm_nominate %s", sInfo);
+
+			return 0;
+		}
+		
 
 		char sQuery[512];
 		FormatEx(sQuery, 512, "SELECT u.name, p.time, p.jumps, p.style, u.auth, p.date, p.map, p.strafes, p.sync, p.points FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE p.id = '%s' LIMIT 1;", gS_MySQLPrefix, gS_MySQLPrefix, sInfo);

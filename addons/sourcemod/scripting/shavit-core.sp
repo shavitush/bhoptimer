@@ -23,6 +23,7 @@
 #include <sdktools>
 #include <geoip>
 #include <clientprefs>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
@@ -58,6 +59,7 @@ enum struct playertimer_t
 	bool bJumped; // not exactly a timer variable but still
 	int iLandingTick;
 	bool bOnGround;
+	float fTimescale;
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -79,12 +81,14 @@ Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
 Handle gH_Forwards_OnStyleChanged = null;
+Handle gH_Forwards_OnTrackChanged = null;
 Handle gH_Forwards_OnStyleConfigLoaded = null;
 Handle gH_Forwards_OnDatabaseLoaded = null;
 Handle gH_Forwards_OnChatConfigLoaded = null;
 Handle gH_Forwards_OnUserCmdPre = null;
 Handle gH_Forwards_OnTimerIncrement = null;
 Handle gH_Forwards_OnTimerIncrementPost = null;
+Handle gH_Forwards_OnTimescaleChanged = null;
 
 StringMap gSM_StyleCommands = null;
 
@@ -111,15 +115,15 @@ bool gB_Rankings = false;
 bool gB_HUD = false;
 
 // cvars
-ConVar gCV_Restart = null;
-ConVar gCV_Pause = null;
-ConVar gCV_AllowTimerWithoutZone = null;
-ConVar gCV_BlockPreJump = null;
-ConVar gCV_NoZAxisSpeed = null;
-ConVar gCV_VelocityTeleport = null;
-ConVar gCV_DefaultStyle = null;
-ConVar gCV_NoChatSound = null;
-ConVar gCV_SimplerLadders = null;
+Convar gCV_Restart = null;
+Convar gCV_Pause = null;
+Convar gCV_AllowTimerWithoutZone = null;
+Convar gCV_BlockPreJump = null;
+Convar gCV_NoZAxisSpeed = null;
+Convar gCV_VelocityTeleport = null;
+Convar gCV_DefaultStyle = null;
+Convar gCV_NoChatSound = null;
+Convar gCV_SimplerLadders = null;
 
 // cached cvars
 int gI_DefaultStyle = 0;
@@ -209,6 +213,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StartTimer", Native_StartTimer);
 	CreateNative("Shavit_StopChatSound", Native_StopChatSound);
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
+	CreateNative("Shavit_GetClientTimescale", Native_GetClientTimescale);
+	CreateNative("Shavit_SetClientTimescale", Native_SetClientTimescale);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -231,12 +237,14 @@ public void OnPluginStart()
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnTrackChanged = CreateGlobalForward("Shavit_OnTrackChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array, Param_Array);
 	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
+	gH_Forwards_OnTimescaleChanged = CreateGlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 
 	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
@@ -320,19 +328,19 @@ public void OnPluginStart()
 
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", (FCVAR_NOTIFY | FCVAR_DONTRECORD));
 
-	gCV_Restart = CreateConVar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
-	gCV_Pause = CreateConVar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
-	gCV_AllowTimerWithoutZone = CreateConVar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
-	gCV_BlockPreJump = CreateConVar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
-	gCV_NoZAxisSpeed = CreateConVar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
-	gCV_VelocityTeleport = CreateConVar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
-	gCV_DefaultStyle = CreateConVar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
-	gCV_NoChatSound = CreateConVar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
-	gCV_SimplerLadders = CreateConVar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
+	gCV_Restart = new Convar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
+	gCV_Pause = new Convar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
+	gCV_AllowTimerWithoutZone = new Convar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
+	gCV_BlockPreJump = new Convar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
+	gCV_NoZAxisSpeed = new Convar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
+	gCV_VelocityTeleport = new Convar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
+	gCV_DefaultStyle = new Convar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
+	gCV_NoChatSound = new Convar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
+	gCV_SimplerLadders = new Convar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	sv_airaccelerate = FindConVar("sv_airaccelerate");
 	sv_airaccelerate.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
@@ -343,6 +351,15 @@ public void OnPluginStart()
 	{
 		sv_enablebunnyhopping.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 	}
+
+	gB_Zones = LibraryExists("shavit-zones");
+	gB_WR = LibraryExists("shavit-wr");
+	gB_Replay = LibraryExists("shavit-replay");
+	gB_Rankings = LibraryExists("shavit-rankings");
+	gB_HUD = LibraryExists("shavit-hud");
+
+	// database connections
+	SQL_DBConnect();
 
 	// late
 	if(gB_Late)
@@ -355,15 +372,6 @@ public void OnPluginStart()
 			}
 		}
 	}
-
-	gB_Zones = LibraryExists("shavit-zones");
-	gB_WR = LibraryExists("shavit-wr");
-	gB_Replay = LibraryExists("shavit-replay");
-	gB_Rankings = LibraryExists("shavit-rankings");
-	gB_HUD = LibraryExists("shavit-hud");
-
-	// database connections
-	SQL_DBConnect();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1068,6 +1076,15 @@ public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param
 	return 0;
 }
 
+void CallOnTrackChanged(int client, int oldtrack, int newtrack)
+{
+	Call_StartForward(gH_Forwards_OnTrackChanged);
+	Call_PushCell(client);
+	Call_PushCell(oldtrack);
+	Call_PushCell(newtrack);	
+	Call_Finish();
+}
+
 void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
 {
 	Call_StartForward(gH_Forwards_OnStyleChanged);
@@ -1080,7 +1097,22 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
 
 	gA_Timers[client].iStyle = newstyle;
 
+	if(gA_Timers[client].fTimescale != -1.0)
+	{
+		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, -1.0);
+		gA_Timers[client].fTimescale = -1.0;
+	}
+
 	UpdateStyleSettings(client);
+}
+
+void CallOnTimescaleChanged(int client, float oldtimescale, float newtimescale)
+{
+	Call_StartForward(gH_Forwards_OnTimescaleChanged);
+	Call_PushCell(client);
+	Call_PushCell(oldtimescale);
+	Call_PushCell(newtimescale);
+	Call_Finish();
 }
 
 void ChangeClientStyle(int client, int style, bool manual)
@@ -1184,7 +1216,12 @@ void VelocityChanges(int data)
 		return;
 	}
 
-	if(view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier) != 1.0)
+	if(gA_Timers[client].fTimescale != -1.0)
+	{
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale));
+	}
+
+	else
 	{
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
 	}
@@ -1391,7 +1428,13 @@ public int Native_ChangeClientStyle(Handle handler, int numParams)
 		if(noforward)
 		{
 			gA_Timers[client].iStyle = style;
-
+			
+			if(gA_Timers[client].fTimescale != -1.0)
+			{
+				CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, -1.0);
+				gA_Timers[client].fTimescale = -1.0;
+			}
+			
 			UpdateStyleSettings(client);
 		}
 
@@ -1698,6 +1741,11 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	timer_snapshot_t snapshot;
 	GetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 
+	if(gA_Timers[client].iTrack != snapshot.iTimerTrack)
+	{
+		CallOnTrackChanged(client, gA_Timers[client].iTrack, snapshot.iTimerTrack);
+	}
+
 	gA_Timers[client].iTrack = snapshot.iTimerTrack;
 
 	if(gA_Timers[client].iStyle != snapshot.bsStyle && Shavit_HasStyleAccess(client, snapshot.bsStyle))
@@ -1738,6 +1786,23 @@ public int Native_LogMessage(Handle plugin, int numParams)
 public int Native_MarkKZMap(Handle handler, int numParams)
 {
 	gB_KZMap = true;
+}
+
+public int Native_GetClientTimescale(Handle handler, int numParams)
+{
+	return view_as<int>(gA_Timers[GetNativeCell(1)].fTimescale);
+}
+
+public int Native_SetClientTimescale(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	float timescale = GetNativeCell(2);
+
+	if(timescale != gA_Timers[client].fTimescale)
+	{
+		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, timescale);
+		gA_Timers[client].fTimescale = timescale;
+	}
 }
 
 int GetTimerStatus(int client)
@@ -1782,6 +1847,12 @@ void StartTimer(int client, int track)
 			gA_Timers[client].iJumps = 0;
 			gA_Timers[client].iTotalMeasures = 0;
 			gA_Timers[client].iGoodGains = 0;
+			
+			if(gA_Timers[client].iTrack != track)
+			{
+				CallOnTrackChanged(client, gA_Timers[client].iTrack, track);
+			}
+
 			gA_Timers[client].iTrack = track;
 			gA_Timers[client].bEnabled = true;
 			gA_Timers[client].iSHSWCombination = -1;
@@ -1791,8 +1862,17 @@ void StartTimer(int client, int track)
 			gA_Timers[client].iPerfectJumps = 0;
 			gA_Timers[client].bCanUseAllKeys = false;
 
+			if(gA_Timers[client].fTimescale != -1.0)
+			{
+				SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_Timers[client].fTimescale);
+			}
+			
+			else
+			{
+				SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
+			}
+
 			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
-			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
 		}
 
 		else if(result == Plugin_Handled || result == Plugin_Stop)
@@ -1906,6 +1986,7 @@ public void OnClientPutInServer(int client)
 	gA_Timers[client].iSHSWCombination = -1;
 	gA_Timers[client].iTrack = 0;
 	gA_Timers[client].iStyle = 0;
+	gA_Timers[client].fTimescale = -1.0;
 	strcopy(gS_DeleteMap[client], 160, "");
 
 	gB_CookiesRetrieved[client] = false;
@@ -2091,6 +2172,16 @@ bool LoadStyles()
 			}
 
 			strcopy(gS_StyleOverride[i], 32, (iCount >= 2)? sText[1]:"");
+		}
+
+		else if(strlen(gS_StyleStrings[i].sStylePermission) > 0)
+		{
+			AdminFlag flag = Admin_Reservation;
+
+			if(FindFlagByChar(gS_StyleStrings[i].sStylePermission[0], flag))
+			{
+				gI_StyleFlag[i] = FlagToBit(flag);
+			}
 		}
 
 		gI_OrderedStyles[i] = i++;
@@ -2636,7 +2727,16 @@ public void OnGameFrame()
 			continue;
 		}
 
-		float time = frametime * view_as<float>(gA_StyleSettings[gA_Timers[i].iStyle].fTimescale);
+		float time;
+		if(gA_Timers[i].fTimescale != -1.0)
+		{
+			time = frametime * gA_Timers[i].fTimescale;
+		}
+
+		else
+		{
+			time = frametime * view_as<float>(gA_StyleSettings[gA_Timers[i].iStyle].fTimescale);
+		}
 
 		timer_snapshot_t snapshot;
 		snapshot.bTimerEnabled = gA_Timers[i].bEnabled;

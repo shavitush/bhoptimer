@@ -22,6 +22,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <clientprefs>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -117,9 +118,9 @@ bool gB_Late = false;
 Handle gH_HUD = null;
 
 // plugin cvars
-ConVar gCV_GradientStepSize = null;
-ConVar gCV_TicksPerUpdate = null;
-ConVar gCV_SpectatorList = null;
+Convar gCV_GradientStepSize = null;
+Convar gCV_TicksPerUpdate = null;
+Convar gCV_SpectatorList = null;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -189,11 +190,11 @@ public void OnPluginStart()
 	gH_HUD = CreateHudSynchronizer();
 
 	// plugin convars
-	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
-	gCV_TicksPerUpdate = CreateConVar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
-	gCV_SpectatorList = CreateConVar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
+	gCV_GradientStepSize = new Convar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
+	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
+	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	// commands
 	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu.");

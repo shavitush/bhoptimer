@@ -14,6 +14,11 @@
 		"en"		"Delete map zone"
 	}
 	// ---------- Commands ---------- //
+	"StageCommandAlive"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"You have to be {1}alive{2} to use this command."
+	}
 	"ModifierCommandNoArgs"
 	{
 		"en"		"Usage: sm_modifier <decimal number>"
@@ -143,6 +148,10 @@
 	{
 		"en"		"No zones found."
 	}
+	"ZoneMenuStage"
+	{
+		"en"		"Select A Stage:"
+	}
 	"ZoneMenuTrack"
 	{
 		"en"		"Select a track:"
@@ -199,6 +208,11 @@
 		"#format"	"{1:d}"
 		"en"		"Custom speed limit: {1} (No Limit)"
 	}
+	"ZoneSetStage"
+	{
+		"#format"	"{1:d}"
+		"en"		"Stage: {1}"
+	}
 	"ZoneEnterDataChat"
 	{
 		"en"		"Input your desired data in chat."
@@ -231,11 +245,11 @@
 	}
 	"ZoneTeleportUpdated"
 	{
-		"en"		"Teleport zone destination updated."
+		"en"		"Teleport destination updated."
 	}
 	"ZoneTeleportInsideZone"
 	{
-		"en"		"You may not place a destination inside the teleport zone."
+		"en"		"You may not place the destination inside the zone."
 	}
 	"ZoneEditTrack"
 	{
@@ -268,5 +282,10 @@
 	{
 		"#format"	"{1:s},{2:s},{3:s}"
 		"en"		"{1}Your timer has been stopped for entering a {2}glitch zone{3}."
+	}
+	"ZoneStageEnter"
+	{
+		"#format"	"{1:s},{2:s},{3:d},{4:s},{5:s},{6:s}{7:s}"
+		"en"		"{1}You have reached stage {2}{3}{4} with a time of {5}{6}{7}."
 	}
 }

@@ -21,6 +21,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -116,12 +117,14 @@ int gI_PlayerFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
+float gF_NextFrameTime[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
 // forwards
 Handle gH_OnReplayStart = null;
 Handle gH_OnReplayEnd = null;
+Handle gH_OnReplaysLoaded = null;
 
 // server specific
 float gF_Tickrate = 0.0;
@@ -136,16 +139,16 @@ bool gB_HijackFrame[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
 
 // plugin cvars
-ConVar gCV_Enabled = null;
-ConVar gCV_ReplayDelay = null;
-ConVar gCV_TimeLimit = null;
-ConVar gCV_DefaultTeam = null;
-ConVar gCV_CentralBot = null;
-ConVar gCV_BotShooting = null;
-ConVar gCV_BotPlusUse = null;
-ConVar gCV_BotWeapon = null;
-ConVar gCV_PlaybackCanStop = null;
-ConVar gCV_PlaybackCooldown = null;
+Convar gCV_Enabled = null;
+Convar gCV_ReplayDelay = null;
+Convar gCV_TimeLimit = null;
+Convar gCV_DefaultTeam = null;
+Convar gCV_CentralBot = null;
+Convar gCV_BotShooting = null;
+Convar gCV_BotPlusUse = null;
+Convar gCV_BotWeapon = null;
+Convar gCV_PlaybackCanStop = null;
+Convar gCV_PlaybackCooldown = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -178,7 +181,7 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	CreateNative("Shavit_DeleteReplay", Native_DeleteReplay);
-	CreateNative("Shavit_GetReplayBotCurrentFrame", Native_GetReplayBotIndex);
+	CreateNative("Shavit_GetReplayBotCurrentFrame", Native_GetReplayBotCurrentFrame);
 	CreateNative("Shavit_GetClientFrameCount", Native_GetClientFrameCount);
 	CreateNative("Shavit_GetReplayBotFirstFrame", Native_GetReplayBotFirstFrame);
 	CreateNative("Shavit_GetReplayBotIndex", Native_GetReplayBotIndex);
@@ -222,6 +225,7 @@ public void OnPluginStart()
 	// forwards
 	gH_OnReplayStart = CreateGlobalForward("Shavit_OnReplayStart", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnReplayEnd = CreateGlobalForward("Shavit_OnReplayEnd", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnReplaysLoaded = CreateGlobalForward("Shavit_OnReplaysLoaded", ET_Event);
 
 	// game specific
 	gEV_Type = GetEngineVersion();
@@ -260,20 +264,20 @@ public void OnPluginStart()
 	}
 
 	// plugin convars
-	gCV_Enabled = CreateConVar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
-	gCV_ReplayDelay = CreateConVar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
-	gCV_TimeLimit = CreateConVar("shavit_replay_timelimit", "7200.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 7200 (2 hours)\n0 - Disabled");
-	gCV_DefaultTeam = CreateConVar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
-	gCV_CentralBot = CreateConVar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_BotShooting = CreateConVar("shavit_replay_botshooting", "3", "Attacking buttons to allow for bots.\n0 - none\n1 - +attack\n2 - +attack2\n3 - both", 0, true, 0.0, true, 3.0);
-	gCV_BotPlusUse = CreateConVar("shavit_replay_botplususe", "1", "Allow bots to use +use?", 0, true, 0.0, true, 1.0);
-	gCV_BotWeapon = CreateConVar("shavit_replay_botweapon", "", "Choose which weapon the bot will hold.\nLeave empty to use the default.\nSet to \"none\" to have none.\nExample: weapon_usp");
-	gCV_PlaybackCanStop = CreateConVar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
-	gCV_PlaybackCooldown = CreateConVar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
+	gCV_Enabled = new Convar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
+	gCV_ReplayDelay = new Convar("shavit_replay_delay", "5.0", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
+	gCV_TimeLimit = new Convar("shavit_replay_timelimit", "7200.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 7200 (2 hours)\n0 - Disabled");
+	gCV_DefaultTeam = new Convar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
+	gCV_CentralBot = new Convar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_BotShooting = new Convar("shavit_replay_botshooting", "3", "Attacking buttons to allow for bots.\n0 - none\n1 - +attack\n2 - +attack2\n3 - both", 0, true, 0.0, true, 3.0);
+	gCV_BotPlusUse = new Convar("shavit_replay_botplususe", "1", "Allow bots to use +use?", 0, true, 0.0, true, 1.0);
+	gCV_BotWeapon = new Convar("shavit_replay_botweapon", "", "Choose which weapon the bot will hold.\nLeave empty to use the default.\nSet to \"none\" to have none.\nExample: weapon_usp");
+	gCV_PlaybackCanStop = new Convar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
+	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	// admin menu
 	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
@@ -874,6 +878,9 @@ public void OnMapStart()
 
 			loaded = DefaultLoadReplay(i, j);
 		}
+
+		Call_StartForward(gH_OnReplaysLoaded);
+		Call_Finish();
 
 		if(!gCV_CentralBot.BoolValue)
 		{
@@ -1632,6 +1639,11 @@ void ApplyFlags(int &flags1, int flags2, int flag)
 	}
 }
 
+public void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newtimescale)
+{
+	gF_NextFrameTime[client] = 0.0;
+}
+
 // OnPlayerRunCmd instead of Shavit_OnUserCmdPre because bots are also used here.
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
 {
@@ -1818,34 +1830,52 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			return Plugin_Continue;
 		}
 
-		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
+		float fTimescale = Shavit_GetClientTimescale(client);
 
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
-
-		if(!gB_HijackFrame[client])
+		if(fTimescale != 0.0)
 		{
-			float vecEyes[3];
-			GetClientEyeAngles(client, vecEyes);
+			if(gF_NextFrameTime[client] <= 0.0)
+			{
+				gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[0], 3);
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[1], 4);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
+
+				if(!gB_HijackFrame[client])
+				{
+					float vecEyes[3];
+					GetClientEyeAngles(client, vecEyes);
+
+					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[0], 3);
+					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[1], 4);
+				}
+
+				else
+				{
+					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][0], 3);
+					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][1], 4);
+
+					gB_HijackFrame[client] = false;
+				}
+
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityFlags(client), 6);
+				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityMoveType(client), 7);
+
+				gI_PlayerFrames[client]++;
+				
+				if(fTimescale != -1.0)
+				{
+					gF_NextFrameTime[client] += (1.0 - fTimescale);
+				}
+			}
+
+			else if(fTimescale != -1.0)
+			{
+				gF_NextFrameTime[client] -= fTimescale;
+			}
 		}
-
-		else
-		{
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][0], 3);
-			gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][1], 4);
-
-			gB_HijackFrame[client] = false;
-		}
-
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityFlags(client), 6);
-		gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityMoveType(client), 7);
-
-		gI_PlayerFrames[client]++;
 	}
 
 	return Plugin_Continue;
@@ -2029,6 +2059,7 @@ void ClearFrames(int client)
 {
 	gA_PlayerFrames[client].Clear();
 	gI_PlayerFrames[client] = 0;
+	gF_NextFrameTime[client] = 0.0;
 }
 
 public void Shavit_OnWRDeleted(int style, int id, int track)

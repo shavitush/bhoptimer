@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.5.5a"
+#define SHAVIT_VERSION "2.5.6"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -105,6 +105,7 @@ enum
 	Zone_Easybhop,
 	Zone_Slide,
 	Zone_Airaccelerate,
+	Zone_Stage,
 	ZONETYPES_SIZE
 };
 
@@ -214,6 +215,31 @@ enum struct timer_snapshot_t
 	int iTimerTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
+}
+
+enum struct cp_cache_t
+{
+	float fPosition[3];
+	float fAngles[3];
+	float fVelocity[3];
+	float fBaseVelocity[3];
+	MoveType iMoveType;
+	float fGravity;
+	float fSpeed;
+	float fStamina;
+	bool bDucked;
+	bool bDucking;
+	float fDucktime; // m_flDuckAmount in csgo
+	float fDuckSpeed; // m_flDuckSpeed in csgo; doesn't exist in css
+	int iFlags;
+	timer_snapshot_t aSnapshot;
+	int iTargetname;
+	int iClassname;
+	ArrayList aFrames;
+	bool bSegmented;
+	int iSerial;
+	bool bPractice;
+	int iGroundEntity;
 }
 
 #if defined USES_CHAT_COLORS
@@ -588,6 +614,16 @@ forward void Shavit_OnResume(int client, int track);
 forward void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual);
 
 /**
+ * Called when a player changes their bhop track.
+ *
+ * @param client					Client index.
+ * @param oldtrack					Old bhop track.
+ * @param newtrack					New bhop track.
+ * @noreturn
+ */
+forward void Shavit_OnTrackChanged(int client, int oldtrack, int newtrack);
+
+/**
  * Called when the styles configuration finishes loading and it's ready to load everything into the cache.
  *
  * @param styles					Amount of styles loaded.
@@ -613,16 +649,21 @@ forward void Shavit_OnChatConfigLoaded();
 /**
  * Called when a player teleports with checkpoints.
  *
+ * @param client					Client index.
+ * @param index						Checkpoint that was teleported to.
  * @return							Plugin_Continue to allow teleporting, anything else to prevent.
  */
-forward Action Shavit_OnTeleport(int client);
+forward Action Shavit_OnTeleport(int client, int index);
 
 /**
  * Called when a player teleports with checkpoints.
  *
+ * @param client					Client index.
+ * @param index						Checkpoint that was saved to.
+ * @param overflow					Does this checkpoint shift the rest.
  * @return							Plugin_Continue to allow teleporting, anything else to prevent.
  */
-forward Action Shavit_OnSave(int client);
+forward Action Shavit_OnSave(int client, int index, bool overflow);
 
 /**
  * Called when a player enters a zone.
@@ -632,9 +673,10 @@ forward Action Shavit_OnSave(int client);
  * @param track						Zone track.
  * @param id						Zone ID.
  * @param entity					Zone trigger entity index.
+ * @param data						Zone data if any.
  * @noreturn
  */
-forward void Shavit_OnEnterZone(int client, int type, int track, int id, int entity);
+forward void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data);
 
 /**
  * Called when a player leaves a zone.
@@ -644,9 +686,10 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
  * @param track						Zone track.
  * @param id						Zone ID.
  * @param entity					Zone trigger entity index.
+ * @param data						Zone data if any.
  * @noreturn
  */
-forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity);
+forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data);
 
 /**
  * Called when a player gets the worst record in the server for the style.
@@ -705,6 +748,13 @@ forward void Shavit_OnReplayStart(int client);
 forward void Shavit_OnReplayEnd(int client);
 
 /**
+ * Called when all replays files have been loaded.
+ *
+ * @noreturn
+ */
+forward void Shavit_OnReplaysLoaded();
+
+/**
  * Called when top left HUD updates.
  *
  * @param client					Client index that recieves the hud.
@@ -746,6 +796,16 @@ forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int custom
  * @return							Plugin_Handled or _Stop to stop the message. Anything else to use new values.
  */
 forward Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_t snapshot, int overwrite, int rank, char[] message, int maxlen);
+
+/**
+ * Called when a clients dynamic timescale has been changed.
+ *
+ * @param client					Client index.
+ * @param oldtimescale				The old timescale value
+ * @param newtimescale				The new timescale value
+ * @noreturn
+ */
+forward void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newtimescale);
 
 /**
  * Returns the game type the server is running.
@@ -1519,6 +1579,86 @@ native int Shavit_PrintToChat(int client, const char[] format, any ...);
  */
 native void Shavit_LogMessage(const char[] format, any ...);
 
+/**
+ * Gets the total number of CPs that a client has saved
+ *
+ * @param client					Client index
+ *
+ * @return							Total number of checkpoints
+ */
+ native int Shavit_GetTotalCheckpoints(int client);
+
+/**
+ * Gets CP data for a client at specified index
+ *
+ * @param client					Client index
+ * @param index						Index of CP to get
+ * @param cpcache					Buffer to store cp data in
+ *
+ * @noreturn
+ */
+native bool Shavit_GetCheckpoint(int client, int index, any cpcache[sizeof(cp_cache_t)]);
+
+/**
+ * Sets checkpoint data at the given index for the given client
+ *
+ * @param client					Client index
+ * @param index						Index of CP to set, or -1 to push cp as last
+ * @param cpcache					Buffer with cp data
+ *
+ * @noreturn
+ */
+native void Shavit_SetCheckpoint(int client, int index, any cpcache[sizeof(cp_cache_t)]);
+
+/**
+ * Teleports client to the checkpoint at given index
+ *
+ * @param client					Client index
+ * @param index						Index of CP to teleport to
+ * @param suppress					Supress checkpoint message
+ *
+ * @noreturn
+ */
+native void Shavit_TeleportToCheckpoint(int client, int index, bool suppress = false);
+
+/**
+ * Clears all saved checkpoints for the specified client
+ *
+ * @param client					Client index
+ *
+ * @noreturn
+ */
+native void Shavit_ClearCheckpoints(int client);
+
+/**
+ * Opens checkpoint menu for a client
+ *
+ * @param client					Client index
+ *
+ * @noreturn
+ */
+native void Shavit_OpenCheckpointMenu(int client);
+
+/**
+ * Sets the clients dynamic timescale. -1.0 to use the timescale of the client's style.
+ * Note: Values above 1.0 won't scale into the replay bot.
+ *
+ * @param client					Client index
+ * @param scale						New timescale
+ *
+ * @noreturn
+ */
+native void Shavit_SetClientTimescale(int client, float scale);
+
+/**
+ * Gets the clients dynamic timescale, or -1.0 if unset.
+ *
+ * @param client					Client index
+ *
+ * @return							Client's dynamic timescale
+ */
+native float Shavit_GetClientTimescale(int client);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -1634,5 +1774,13 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_WR_DeleteMap");
 	MarkNativeAsOptional("Shavit_ZoneExists");
 	MarkNativeAsOptional("Shavit_Zones_DeleteMap");
+	MarkNativeAsOptional("Shavit_GetTotalCheckpoints");
+	MarkNativeAsOptional("Shavit_GetCheckpoint");
+	MarkNativeAsOptional("Shavit_SetCheckpoint");
+	MarkNativeAsOptional("Shavit_TeleportToCheckpoint");
+	MarkNativeAsOptional("Shavit_ClearCheckpoints");
+	MarkNativeAsOptional("Shavit_OpenCheckpointMenu");
+	MarkNativeAsOptional("Shavit_GetClientTimescale");
+	MarkNativeAsOptional("Shavit_SetClientTimescale");
 }
 #endif
