@@ -46,6 +46,8 @@
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2			0
 
+#define MAX_HINT_SIZE 225
+
 enum ZoneHUD
 {
 	ZoneHUD_None,
@@ -121,6 +123,7 @@ Handle gH_HUD = null;
 Convar gCV_GradientStepSize = null;
 Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
+Convar gCV_UseHUDFix = null;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -193,6 +196,7 @@ public void OnPluginStart()
 	gCV_GradientStepSize = new Convar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
 	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
+	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
@@ -1393,23 +1397,32 @@ void UpdateMainHUD(int client)
 	huddata.bPractice = (bReplay)? false:Shavit_IsPracticeMode(target);
 
 	char sBuffer[512];
-	int iLines = 0;
-
+	
 	if(IsSource2013(gEV_Type))
 	{
-		iLines = AddHUDToBuffer_Source2013(client, huddata, sBuffer, 512);
+		if(AddHUDToBuffer_Source2013(client, huddata, sBuffer, 512) > 0)
+		{
+			PrintHintText(client, "%s", sBuffer);
+		}
 	}
-
+	
 	else
 	{
 		StrCat(sBuffer, 512, "<pre>");
-		iLines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, 512);
+		int iLines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, 512);
 		StrCat(sBuffer, 512, "</pre>");
-	}
 
-	if(iLines > 0)
-	{
-		PrintHintText(client, "%s", sBuffer);
+		if(iLines > 0)
+		{
+			if(gCV_UseHUDFix.BoolValue)
+			{
+				PrintCSGOHUDText(client, "%s", sBuffer);
+			}
+			else
+			{
+				PrintHintText(client, "%s", sBuffer);
+			}
+		}
 	}
 }
 
@@ -1831,4 +1844,25 @@ void GetTrackName(int client, int track, char[] output, int size)
 	static char sTrack[16];
 	FormatEx(sTrack, 16, "Track_%d", track);
 	FormatEx(output, size, "%T", sTrack, client);
+}
+
+void PrintCSGOHUDText(int client, const char[] format, any ...)
+{
+    char buff[MAX_HINT_SIZE];
+    VFormat(buff, sizeof(buff), format, 3);
+    Format(buff, sizeof(buff), "</font>%s ", buff);
+    
+    for(int i = strlen(buff); i < sizeof(buff); i++)
+        buff[i] = '\n';
+    
+    Protobuf pb = view_as<Protobuf>(StartMessageOne("TextMsg", client, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS));
+    pb.SetInt("msg_dst", 4);
+    pb.AddString("params", "#SFUI_ContractKillStart");
+    pb.AddString("params", buff);
+    pb.AddString("params", NULL_STRING);
+    pb.AddString("params", NULL_STRING);
+    pb.AddString("params", NULL_STRING);
+    pb.AddString("params", NULL_STRING);
+    
+    EndMessage();
 }
