@@ -42,7 +42,7 @@
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 262144
+#pragma dynamic 2621440
 
 enum struct centralbot_cache_t
 {
