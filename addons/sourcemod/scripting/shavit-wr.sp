@@ -161,12 +161,6 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
-	// admin menu
-	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
-	{
-		OnAdminMenuReady(gH_AdminMenu);
-	}
-
 	// modules
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Stats = LibraryExists("shavit-stats");
@@ -176,6 +170,16 @@ public void OnPluginStart()
 
 	// database
 	SQL_DBConnect();
+}
+
+
+public void OnAllPluginsLoaded()
+{
+	// admin menu
+	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	{
+		OnAdminMenuReady(gH_AdminMenu);
+	}
 }
 
 public void OnAdminMenuCreated(Handle topmenu)
@@ -257,6 +261,14 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Stats = true;
 	}
+	
+	else if (StrEqual(name, "adminmenu"))
+	{
+		if ((gH_AdminMenu = GetAdminTopMenu()) != null)
+		{
+			OnAdminMenuReady(gH_AdminMenu);
+		}
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -271,9 +283,10 @@ public void OnLibraryRemoved(const char[] name)
 		gB_Stats = false;
 	}
 
-	else if(StrEqual(name, "adminmenu"))
+	else if (StrEqual(name, "adminmenu"))
 	{
-		delete gH_AdminMenu;
+		gH_AdminMenu = null;
+		gH_TimerCommands = INVALID_TOPMENUOBJECT;
 	}
 }
 
