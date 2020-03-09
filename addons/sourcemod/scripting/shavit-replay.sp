@@ -42,7 +42,6 @@
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 262144
 
 enum struct centralbot_cache_t
 {
@@ -1856,34 +1855,34 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			if(gF_NextFrameTime[client] <= 0.0)
 			{
-				gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
-
-				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
-				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[1], 1);
-				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[2], 2);
+				any[] aRecordData = new any[CELLS_PER_FRAME];
+				aRecordData[0] = vecCurrentPosition[0];
+				aRecordData[1] = vecCurrentPosition[1];
+				aRecordData[2] = vecCurrentPosition[2];
 
 				if(!gB_HijackFrame[client])
 				{
 					float vecEyes[3];
 					GetClientEyeAngles(client, vecEyes);
 
-					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[0], 3);
-					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecEyes[1], 4);
+					aRecordData[3] = vecEyes[0];
+					aRecordData[4] = vecEyes[1];
 				}
 
 				else
 				{
-					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][0], 3);
-					gA_PlayerFrames[client].Set(gI_PlayerFrames[client], gF_HijackedAngles[client][1], 4);
+					aRecordData[3] = gF_HijackedAngles[client][0];
+					aRecordData[4] = gF_HijackedAngles[client][1];
 
 					gB_HijackFrame[client] = false;
 				}
 
-				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], buttons, 5);
-				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityFlags(client), 6);
-				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityMoveType(client), 7);
+				aRecordData[5] = buttons;
+				aRecordData[6] = GetEntityFlags(client);
+				aRecordData[7] = GetEntityMoveType(client);
 
-				gI_PlayerFrames[client]++;
+				gA_PlayerFrames[client].PushArray(aRecordData, CELLS_PER_FRAME);
+				gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
 				
 				if(fTimescale != -1.0)
 				{
