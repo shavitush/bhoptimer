@@ -1659,6 +1659,15 @@ native void Shavit_SetClientTimescale(int client, float scale);
  */
 native float Shavit_GetClientTimescale(int client);
 
+/**
+ * Gets the replay status
+ *
+ * @param style						Replay style
+ *
+ * @return							Replay's status
+ */
+native ReplayStatus Shavit_GetReplayStatus(int style);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -1728,6 +1737,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayFrames");
 	MarkNativeAsOptional("Shavit_GetReplayLength");
 	MarkNativeAsOptional("Shavit_GetReplayName");
+	MarkNativeAsOptional("Shavit_GetReplayStatus");
 	MarkNativeAsOptional("Shavit_GetReplayTime");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
