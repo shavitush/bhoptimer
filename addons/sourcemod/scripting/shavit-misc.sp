@@ -2001,7 +2001,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			
 			else
 			{
-				if(SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1, bOverflow)
+				if(SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1, bOverflow))
 				{
 					gA_CheckpointsCache[param1].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[param1].iCheckpoints;
 				}
