@@ -215,6 +215,12 @@ public void OnAllPluginsLoaded()
 	{
 		SetFailState("shavit-wr is required for the plugin to work.");
 	}
+
+	// admin menu
+	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	{
+		OnAdminMenuReady(gH_AdminMenu);
+	}
 }
 
 public void OnPluginStart()
@@ -279,12 +285,6 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
-	// admin menu
-	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
-	{
-		OnAdminMenuReady(gH_AdminMenu);
-	}
-
 	// hooks
 	HookEvent("player_spawn", Player_Event, EventHookMode_Pre);
 	HookEvent("player_death", Player_Event, EventHookMode_Pre);
@@ -302,6 +302,26 @@ public void OnPluginStart()
 	// database
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle();
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if (strcmp(name, "adminmenu") == 0)
+	{
+		if ((gH_AdminMenu = GetAdminTopMenu()) != null)
+		{
+			OnAdminMenuReady(gH_AdminMenu);
+		}
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if (strcmp(name, "adminmenu") == 0)
+	{
+		gH_AdminMenu = null;
+		gH_TimerCommands = INVALID_TOPMENUOBJECT;
+	}
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)

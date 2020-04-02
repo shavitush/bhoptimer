@@ -256,12 +256,6 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
-	// admin menu
-	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
-	{
-		OnAdminMenuReady(gH_AdminMenu);
-	}
-
 	// misc cvars
 	sv_gravity = FindConVar("sv_gravity");
 
@@ -289,6 +283,35 @@ public void OnPluginStart()
 
 	SQL_DBConnect();
 }
+
+public void OnAllPluginsLoaded()
+{
+	// admin menu
+	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
+	{
+		OnAdminMenuReady(gH_AdminMenu);
+	}
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if (strcmp(name, "adminmenu") == 0)
+	{
+		if ((gH_AdminMenu = GetAdminTopMenu()) != null)
+		{
+			OnAdminMenuReady(gH_AdminMenu);
+		}
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if (strcmp(name, "adminmenu") == 0)
+	{
+		gH_AdminMenu = null;
+		gH_TimerCommands = INVALID_TOPMENUOBJECT;
+	}
+} 
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
