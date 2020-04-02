@@ -22,6 +22,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <clientprefs>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -44,6 +45,8 @@
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2			0
+
+#define MAX_HINT_SIZE 225
 
 enum ZoneHUD
 {
@@ -109,6 +112,7 @@ int gI_Buttons[MAXPLAYERS+1];
 float gF_ConnectTime[MAXPLAYERS+1];
 bool gB_FirstPrint[MAXPLAYERS+1];
 int gI_PreviousSpeed[MAXPLAYERS+1];
+int gI_ZoneSpeedLimit[MAXPLAYERS+1];
 
 bool gB_Late = false;
 
@@ -116,9 +120,10 @@ bool gB_Late = false;
 Handle gH_HUD = null;
 
 // plugin cvars
-ConVar gCV_GradientStepSize = null;
-ConVar gCV_TicksPerUpdate = null;
-ConVar gCV_SpectatorList = null;
+Convar gCV_GradientStepSize = null;
+Convar gCV_TicksPerUpdate = null;
+Convar gCV_SpectatorList = null;
+Convar gCV_UseHUDFix = null;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -138,7 +143,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// forwards
 	gH_Forwards_OnTopLeftHUD = CreateGlobalForward("Shavit_OnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
-
 
 	// natives
 	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
@@ -189,11 +193,12 @@ public void OnPluginStart()
 	gH_HUD = CreateHudSynchronizer();
 
 	// plugin convars
-	gCV_GradientStepSize = CreateConVar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
-	gCV_TicksPerUpdate = CreateConVar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
-	gCV_SpectatorList = CreateConVar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
+	gCV_GradientStepSize = new Convar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
+	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
+	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
+	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 
 	// commands
 	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu.");
@@ -222,7 +227,7 @@ public void OnPluginStart()
 
 	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
-	gH_HUDCookieMain = RegClientCookie("shavit_hud_settingmain", "HUD settings for main ", CookieAccess_Protected);
+	gH_HUDCookieMain = RegClientCookie("shavit_hud_settingmain", "HUD settings for hint text.", CookieAccess_Protected);
 
 	if(gB_Late)
 	{
@@ -232,7 +237,7 @@ public void OnPluginStart()
 			{
 				OnClientPutInServer(i);
 
-				if(AreClientCookiesCached(i))
+				if(AreClientCookiesCached(i) && !IsFakeClient(i))
 				{
 					OnClientCookiesCached(i);
 				}
@@ -409,20 +414,19 @@ public void OnClientCookiesCached(int client)
 		gI_HUDSettings[client] = StringToInt(sHUDSettings);
 	}
 
-	char sHUDSettingsMain[8];
-	GetClientCookie(client, gH_HUDCookieMain, sHUDSettingsMain, 8);
+	GetClientCookie(client, gH_HUDCookieMain, sHUDSettings, 8);
 
-	if(strlen(sHUDSettingsMain) == 0)
+	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT2, sHUDSettingsMain, 8);
+		IntToString(HUD_DEFAULT2, sHUDSettings, 8);
 
-		SetClientCookie(client, gH_HUDCookieMain, sHUDSettingsMain);
+		SetClientCookie(client, gH_HUDCookieMain, sHUDSettings);
 		gI_HUD2Settings[client] = HUD_DEFAULT2;
 	}
 
 	else
 	{
-		gI_HUD2Settings[client] = StringToInt(sHUDSettingsMain);
+		gI_HUD2Settings[client] = StringToInt(sHUDSettings);
 	}
 }
 
@@ -940,6 +944,15 @@ int GetGradient(int start, int end, int steps)
 	return GetHex(aColorGradient);
 }
 
+public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity)
+{
+	if(type == Zone_CustomSpeedLimit)
+	{
+		gI_ZoneSpeedLimit[client] = Shavit_GetZoneData(id);
+	}
+}
+
+
 int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int maxlen)
 {
 	int iLines = 0;
@@ -1090,9 +1103,17 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
 
-		if(gA_StyleSettings[data.iStyle].fVelocityLimit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_NoVelLimit, -1))
+		if(gA_StyleSettings[data.iStyle].fVelocityLimit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, -1))
 		{
-			FormatEx(sLine, 128, "%T", "HudNoSpeedLimit", client);
+			if(gI_ZoneSpeedLimit[data.iTarget] == 0)
+			{
+				FormatEx(sLine, 128, "%T", "HudNoSpeedLimit", data.iTarget);
+			}
+
+			else
+			{
+				FormatEx(sLine, 128, "%T", "HudCustomSpeedLimit", client, gI_ZoneSpeedLimit[data.iTarget]);
+			}
 
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
@@ -1376,23 +1397,32 @@ void UpdateMainHUD(int client)
 	huddata.bPractice = (bReplay)? false:Shavit_IsPracticeMode(target);
 
 	char sBuffer[512];
-	int iLines = 0;
-
+	
 	if(IsSource2013(gEV_Type))
 	{
-		iLines = AddHUDToBuffer_Source2013(client, huddata, sBuffer, 512);
+		if(AddHUDToBuffer_Source2013(client, huddata, sBuffer, 512) > 0)
+		{
+			PrintHintText(client, "%s", sBuffer);
+		}
 	}
-
+	
 	else
 	{
 		StrCat(sBuffer, 512, "<pre>");
-		iLines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, 512);
+		int iLines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, 512);
 		StrCat(sBuffer, 512, "</pre>");
-	}
 
-	if(iLines > 0)
-	{
-		PrintHintText(client, "%s", sBuffer);
+		if(iLines > 0)
+		{
+			if(gCV_UseHUDFix.BoolValue)
+			{
+				PrintCSGOHUDText(client, "%s", sBuffer);
+			}
+			else
+			{
+				PrintHintText(client, "%s", sBuffer);
+			}
+		}
 	}
 }
 
@@ -1814,4 +1844,25 @@ void GetTrackName(int client, int track, char[] output, int size)
 	static char sTrack[16];
 	FormatEx(sTrack, 16, "Track_%d", track);
 	FormatEx(output, size, "%T", sTrack, client);
+}
+
+void PrintCSGOHUDText(int client, const char[] format, any ...)
+{
+    char buff[MAX_HINT_SIZE];
+    VFormat(buff, sizeof(buff), format, 3);
+    Format(buff, sizeof(buff), "</font>%s ", buff);
+    
+    for(int i = strlen(buff); i < sizeof(buff); i++)
+        buff[i] = '\n';
+    
+    Protobuf pb = view_as<Protobuf>(StartMessageOne("TextMsg", client, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS));
+    pb.SetInt("msg_dst", 4);
+    pb.AddString("params", "#SFUI_ContractKillStart");
+    pb.AddString("params", buff);
+    pb.AddString("params", NULL_STRING);
+    pb.AddString("params", NULL_STRING);
+    pb.AddString("params", NULL_STRING);
+    pb.AddString("params", NULL_STRING);
+    
+    EndMessage();
 }

@@ -181,6 +181,10 @@
 	{
 		"en"		"Strafes"
 	}
+	"WRCompletions"
+	{
+		"en"		"Completions"
+	}
 	"WRStyle"
 	{
 		"en"		"Style"

@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <convar_class>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -37,7 +38,7 @@ ArrayList gA_NoImprovementSounds = null;
 StringMap gSM_RankSounds = null;
 
 // cvars
-ConVar gCV_MinimumWorst = null;
+Convar gCV_MinimumWorst = null;
 
 public Plugin myinfo =
 {
@@ -78,9 +79,9 @@ public void OnPluginStart()
 	gB_HUD = LibraryExists("shavit-hud");
 
 	// cvars
-	gCV_MinimumWorst = CreateConVar("shavit_sounds_minimumworst", "10", "Minimum amount of records to be saved for a \"worst\" sound to play.", 0, true, 1.0);
+	gCV_MinimumWorst = new Convar("shavit_sounds_minimumworst", "10", "Minimum amount of records to be saved for a \"worst\" sound to play.", 0, true, 1.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -164,10 +165,7 @@ public void OnMapStart()
 
 			else
 			{
-				char sRank[8];
-				IntToString(StringToInt(sExploded[0]), sRank, 8);
-
-				gSM_RankSounds.SetString(sRank, sExploded[1]);
+				gSM_RankSounds.SetString(sExploded[0], sExploded[1]);
 			}
 
 			if(PrecacheSound(sExploded[1], true))
@@ -188,7 +186,7 @@ public void OnMapStart()
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs)
 {
-	if(oldtime != 0.0 && time > oldtime)
+	if(oldtime != 0.0 && time > oldtime && gA_NoImprovementSounds.Length != 0)
 	{
 		char sSound[PLATFORM_MAX_PATH];
 		gA_NoImprovementSounds.GetString(GetRandomInt(0, gA_NoImprovementSounds.Length - 1), sSound, PLATFORM_MAX_PATH);

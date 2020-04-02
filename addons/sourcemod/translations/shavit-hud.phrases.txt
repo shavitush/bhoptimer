@@ -81,7 +81,12 @@
 	}
 	"HudNoSpeedLimit"
 	{
-		"en"		"No Speed Limit"
+		"en"		"(No Speed Limit)"
+	}
+	"HudCustomSpeedLimit"
+	{
+		"#format"	"{1:d}"
+		"en"		"(Speed Limit: {1})"
 	}
 	// ---------- Menus ---------- //
 	"HUDMenuTitle"
