@@ -70,6 +70,7 @@ enum struct framecache_t
 	bool bNewFormat;
 	int iReplayVersion;
 	char sReplayName[MAX_NAME_LENGTH];
+	int iPreframes;
 }
 
 enum
@@ -103,6 +104,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 char gS_ReplayFolder[PLATFORM_MAX_PATH];
 
 int gI_ReplayTick[STYLE_LIMIT];
+int gI_TimerTick[STYLE_LIMIT];
 int gI_ReplayBotClient[STYLE_LIMIT];
 ArrayList gA_Frames[STYLE_LIMIT][TRACKS_SIZE];
 float gF_StartTick[STYLE_LIMIT];
@@ -114,6 +116,8 @@ Handle gH_ReplayTimers[STYLE_LIMIT];
 
 bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
+int gI_PlayerPrerunFrames[MAXPLAYERS+1];
+int gI_PlayerTimerStartFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
@@ -149,6 +153,8 @@ Convar gCV_BotPlusUse = null;
 Convar gCV_BotWeapon = null;
 Convar gCV_PlaybackCanStop = null;
 Convar gCV_PlaybackCooldown = null;
+Convar gCV_PlaybackPreRunTime = null;
+Convar gCV_MaxRecordLengthInStart = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -193,6 +199,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
+	CreateNative("Shavit_GetReplayStatus", Native_GetReplayStatus);
 	CreateNative("Shavit_GetReplayTime", Native_GetReplayTime);
 	CreateNative("Shavit_HijackAngles", Native_HijackAngles);
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
@@ -280,6 +287,8 @@ public void OnPluginStart()
 	gCV_BotWeapon = new Convar("shavit_replay_botweapon", "", "Choose which weapon the bot will hold.\nLeave empty to use the default.\nSet to \"none\" to have none.\nExample: weapon_usp");
 	gCV_PlaybackCanStop = new Convar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
 	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
+	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.0", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
+	gCV_MaxRecordLengthInStart = new Convar("shavit_replay_maxlength_instart", "30.0", "Time (in seconds) to record when a player in start zone.", 0, true, 0.0);
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
@@ -431,6 +440,7 @@ void UnloadReplay(int style, int track)
 	gA_FrameCache[style][track].fTime = 0.0;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+	gA_FrameCache[style][track].iPreframes = 0;
 	gI_ReplayTick[style] = -1;
 
 	if(gI_ReplayBotClient[style] != 0)
@@ -519,6 +529,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 	gA_FrameCache[style][track].fTime = 0.0;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
+	gA_FrameCache[style][track].iPreframes = 0;
 
 	bool loaded = false;
 
@@ -649,6 +660,20 @@ public int Native_GetReplayName(Handle handler, int numParams)
 	return SetNativeString(3, gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].sReplayName, GetNativeCell(4));
 }
 
+public int Native_GetReplayStatus(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	if(gCV_CentralBot.BoolValue)
+	{
+		return view_as<int>(gA_CentralCache.iReplayStatus);
+	}
+	else 
+	{
+		return view_as<int>(gRS_ReplayStatus[style]);
+	}
+}
+
 public int Native_GetReplayTime(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
@@ -672,7 +697,14 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 		return view_as<int>(GetReplayLength(Track_Main, track));
 	}
 
-	return view_as<int>(float(gI_ReplayTick[style]) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
+	if(gI_ReplayTick[style] < gA_FrameCache[style][track].iPreframes)
+	{
+		return view_as<int>(float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreframes) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
+	}
+	else
+	{
+		return view_as<int>(float(gI_TimerTick[style]) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
+	}
 }
 
 public int Native_HijackAngles(Handle handler, int numParams)
@@ -895,6 +927,7 @@ public void OnMapStart()
 			gA_FrameCache[i][j].fTime = 0.0;
 			gA_FrameCache[i][j].bNewFormat = true;
 			strcopy(gA_FrameCache[i][j].sReplayName, MAX_NAME_LENGTH, "invalid");
+			gA_FrameCache[i][j].iPreframes = 0;
 
 			loaded = DefaultLoadReplay(i, j);
 		}
@@ -988,10 +1021,8 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 			
 			return false;
 		}
-
-		// whenever this is implemented
-		// file.ReadInt32(gA_FrameCache[style][track].iPreframes);
-		file.Seek(4, SEEK_CUR);
+		
+		file.ReadInt32(gA_FrameCache[style][track].iPreframes);
 	}
 
 	int iTemp = 0;
@@ -1172,7 +1203,7 @@ bool LoadReplay(int style, int track, const char[] path)
 	return false;
 }
 
-bool SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes = 0)
+bool SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList player_recording, int timerstartframe)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1191,9 +1222,9 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	fFile.WriteString(gS_Map, true);
 	fFile.WriteInt8(style);
 	fFile.WriteInt8(track);
-	fFile.WriteInt32(preframes);
+	fFile.WriteInt32(preframes < 0 ? timerstartframe : timerstartframe - preframes);
 
-	int iSize = gA_Frames[style][track].Length;
+	int iSize = player_recording.Length;
 	fFile.WriteInt32(iSize);
 	fFile.WriteInt32(view_as<int>(time));
 	fFile.WriteInt32(steamid);
@@ -1202,9 +1233,11 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	any aWriteData[CELLS_PER_FRAME * FRAMES_PER_WRITE];
 	int iFramesWritten = 0;
 
-	for(int i = 0; i < iSize; i++)
+	gA_Frames[style][track].Clear();
+	for(int i = (preframes < 0 ? 0 : preframes); i < iSize; i++)
 	{
-		gA_Frames[style][track].GetArray(i, aFrameData, CELLS_PER_FRAME);
+		player_recording.GetArray(i, aFrameData, CELLS_PER_FRAME);
+		gA_Frames[style][track].PushArray(aFrameData);
 
 		for(int j = 0; j < CELLS_PER_FRAME; j++)
 		{
@@ -1221,10 +1254,11 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	delete fFile;
 
-	gA_FrameCache[style][track].iFrameCount = iSize;
+	gA_FrameCache[style][track].iFrameCount = iSize - (preframes < 0 ? 0 : preframes);
 	gA_FrameCache[style][track].fTime = time;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
+	gA_FrameCache[style][track].iPreframes = preframes < 0 ? timerstartframe : (timerstartframe - preframes);
 
 	return true;
 }
@@ -1549,8 +1583,14 @@ public void DeleteFrames(int client)
 }
 
 public Action Shavit_OnStart(int client)
-{
-	ClearFrames(client);
+{	
+	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale);
+	gI_PlayerTimerStartFrames[client] = gA_PlayerFrames[client].Length;
+	
+	if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_MaxRecordLengthInStart.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+	{
+		ClearFrames(client);
+	}
 
 	return Plugin_Continue;
 }
@@ -1598,17 +1638,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	{
 		return;
 	}
-
-	delete gA_Frames[style][track];
-	gA_Frames[style][track] = gA_PlayerFrames[client].Clone();
-
+	
 	int iSteamID = GetSteamAccountID(client);
 
 	char sName[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
-	SaveReplay(style, track, time, iSteamID, sName);
+	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerTimerStartFrames[client]);
 
 	if(ReplayEnabled(style))
 	{
@@ -1633,6 +1670,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 			gRS_ReplayStatus[style] = Replay_Running;
 			gI_ReplayTick[style] = 0;
+			gI_TimerTick[style] = 0;
 
 			float vecPosition[3];
 			vecPosition[0] = gA_Frames[style][track].Get(0, 0);
@@ -1744,9 +1782,15 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Changed;
 			}
 
+			if(gI_ReplayTick[style] >= gA_FrameCache[style][track].iPreframes)
+			{
+				++gI_TimerTick[style];
+			}			
+
 			if(++gI_ReplayTick[style] >= gA_FrameCache[style][track].iFrameCount - 1)
 			{
 				gI_ReplayTick[style] = 0;
+				gI_TimerTick[style] = 0;
 				gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_End;
 
 				delete gH_ReplayTimers[style];
@@ -1856,6 +1900,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			if(gF_NextFrameTime[client] <= 0.0)
 			{
+				
 				gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
 
 				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], vecCurrentPosition[0], 0);
@@ -1884,7 +1929,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gA_PlayerFrames[client].Set(gI_PlayerFrames[client], GetEntityMoveType(client), 7);
 
 				gI_PlayerFrames[client]++;
-				
+
 				if(fTimescale != -1.0)
 				{
 					gF_NextFrameTime[client] += (1.0 - fTimescale);
@@ -2080,6 +2125,8 @@ void ClearFrames(int client)
 	gA_PlayerFrames[client].Clear();
 	gI_PlayerFrames[client] = 0;
 	gF_NextFrameTime[client] = 0.0;
+	gI_PlayerPrerunFrames[client] = 0;
+	gI_PlayerTimerStartFrames[client] = 0;
 }
 
 public void Shavit_OnWRDeleted(int style, int id, int track)
@@ -2436,6 +2483,7 @@ public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, i
 		else
 		{
 			gI_ReplayTick[style] = 0;
+			gI_TimerTick[style] = 0;
 			gA_CentralCache.iStyle = style;
 			gA_CentralCache.iTrack = gI_Track[param1];
 			gA_CentralCache.iPlaybackSerial = GetClientSerial(param1);
