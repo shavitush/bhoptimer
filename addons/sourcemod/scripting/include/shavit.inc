@@ -1704,9 +1704,19 @@ native int Shavit_SaveCheckpoint(int client);
  *
  * @param client					Client index
  *
- * @return							The new current checkpoint
+ * @return							The current checkpoint
  */
-native int GetCurrentCheckpoint(int client);
+native int Shavit_GetCurrentCheckpoint(int client);
+
+/**
+ * Sets the current checkpoint index.
+ *
+ * @param client					Client index
+ * @param index						New index to use
+ *
+ * @noreturn
+ */
+native void Shavit_SetCurrentCheckpoint(int client, int index);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
@@ -1834,5 +1844,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetClientTimescale");
 	MarkNativeAsOptional("Shavit_SaveCheckpoint");
 	MarkNativeAsOptional("Shavit_GetCurrentCheckpoint");
+	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 }
 #endif

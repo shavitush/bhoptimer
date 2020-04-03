@@ -192,6 +192,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_OpenCheckpointMenu", Native_OpenCheckpointMenu);
 	CreateNative("Shavit_SaveCheckpoint", Native_SaveCheckpoint);
 	CreateNative("Shavit_GetCurrentCheckpoint", Native_GetCurrentCheckpoint);
+	CreateNative("Shavit_SetCurrentCheckpoint", Native_SetCurrentCheckpoint);
 
 	gB_Late = late;
 
