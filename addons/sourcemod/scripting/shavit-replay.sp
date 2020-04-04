@@ -207,6 +207,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
 	CreateNative("Shavit_Replay_DeleteMap", Native_Replay_DeleteMap);
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
+	CreateNative("Shavit_GetPlayerPreframe", Native_GetPreframe);
+	CreateNative("Shavit_GetPlayerTimerframe", Native_GetTimerframe);
+	CreateNative("Shavit_SetPlayerPreframe", Native_SetPreframe);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -762,6 +765,26 @@ public int Native_Replay_DeleteMap(Handle handler, int numParams)
 	{
 		OnMapStart();
 	}
+}
+
+public int Native_GetPreframe(Handle handler, int numParams)
+{
+	return gI_PlayerPrerunFrames[GetNativeCell(1)];
+}
+
+public int Native_GetTimerframe(Handle handler, int numParams)
+{
+	return gI_PlayerTimerStartFrames[GetNativeCell(1)];
+}
+
+public int Native_SetPreframe(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int preframe = GetNativeCell(2);
+	int timereframe = GetNativeCell(3);
+
+	gI_PlayerPrerunFrames[client] = preframe;
+	gI_PlayerTimerStartFrames[client] = timereframe;
 }
 
 public Action Cron(Handle Timer)
