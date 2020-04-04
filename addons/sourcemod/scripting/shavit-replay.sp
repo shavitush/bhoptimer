@@ -700,14 +700,8 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 		return view_as<int>(GetReplayLength(Track_Main, track));
 	}
 
-	if(gI_ReplayTick[style] < gA_FrameCache[style][track].iPreFrames)
-	{
-		return view_as<int>(float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreFrames) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
-	}
-	else
-	{
-		return view_as<int>(float(gI_TimerTick[style]) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
-	}
+
+	return view_as<int>(float(gI_TimerTick[style]) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
 }
 
 public int Native_HijackAngles(Handle handler, int numParams)
