@@ -63,6 +63,8 @@ enum struct persistent_data_t
 	int iTargetname;
 	int iClassname;
 	ArrayList aFrames;
+	int iPreFrames;
+	int iTimerPreFrames;
 	bool bPractice;
 }
 
@@ -155,6 +157,8 @@ Handle gH_Forwards_OnClanTagChangePre = null;
 Handle gH_Forwards_OnClanTagChangePost = null;
 Handle gH_Forwards_OnSave = null;
 Handle gH_Forwards_OnTeleport = null;
+Handle gH_Forwards_OnCheckpointMenuMade = null;
+Handle gH_Forwards_OnCheckpointMenuSelect = null;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
@@ -188,6 +192,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_TeleportToCheckpoint", Native_TeleportToCheckpoint);
 	CreateNative("Shavit_GetTotalCheckpoints", Native_GetTotalCheckpoints);
 	CreateNative("Shavit_OpenCheckpointMenu", Native_OpenCheckpointMenu);
+	CreateNative("Shavit_SaveCheckpoint", Native_SaveCheckpoint);
+	CreateNative("Shavit_GetCurrentCheckpoint", Native_GetCurrentCheckpoint);
+	CreateNative("Shavit_SetCurrentCheckpoint", Native_SetCurrentCheckpoint);
 
 	gB_Late = late;
 
@@ -201,6 +208,8 @@ public void OnPluginStart()
 	gH_Forwards_OnClanTagChangePost = CreateGlobalForward("Shavit_OnClanTagChangePost", ET_Event, Param_Cell, Param_String, Param_Cell);
 	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnCheckpointMenuMade = CreateGlobalForward("Shavit_OnCheckpointMenuMade", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
 
 	// cache
 	gEV_Type = GetEngineVersion();
@@ -1126,6 +1135,8 @@ void PersistData(int client)
 	if(gB_Replay)
 	{
 		aData.aFrames = Shavit_GetReplayData(client);
+		aData.iPreFrames = Shavit_GetPlayerPreFrame(client);
+		aData.iTimerPreFrames = Shavit_GetPlayerTimerframe(client);
 	}
 
 	aData.fDisconnectTime = GetEngineTime();
@@ -1246,6 +1257,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	if(gB_Replay && aData.aFrames != null)
 	{
 		Shavit_SetReplayData(client, aData.aFrames);
+		Shavit_SetPlayerPreFrame(client, aData.iPreFrames, aData.iTimerPreFrames);
 	}
 
 	if(aData.bPractice)
@@ -1967,6 +1979,19 @@ void OpenNormalCPMenu(int client)
 
 	menu.Pagination = MENU_NO_PAGINATION;
 	menu.ExitButton = true;
+
+	Call_StartForward(gH_Forwards_OnCheckpointMenuMade);
+	Call_PushCell(client);
+	Call_PushCell(bSegmented);
+
+	Action result = Plugin_Continue;
+	Call_Finish(result);
+
+	if(result != Plugin_Continue && result != Plugin_Changed)
+	{
+		return;
+	}
+
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
@@ -1979,6 +2004,22 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		int iMaxCPs = GetMaxCPs(param1);
 		int iCurrent = gA_CheckpointsCache[param1].iCurrentCheckpoint;
+
+		Call_StartForward(gH_Forwards_OnCheckpointMenuSelect);
+		Call_PushCell(param1);
+		Call_PushCell(param2);
+		Call_PushStringEx(sInfo, 16, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+		Call_PushCell(16); 
+		Call_PushCell(iCurrent);
+		Call_PushCell(iMaxCPs);
+
+		Action result = Plugin_Continue;
+		Call_Finish(result);
+
+		if(result != Plugin_Continue)
+		{
+			return 0;
+		}
 
 		if(StrEqual(sInfo, "save"))
 		{
@@ -2308,6 +2349,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		if(gB_Replay)
 		{
 			cpcache.aFrames = Shavit_GetReplayData(target);
+			cpcache.iPreFrames = Shavit_GetPlayerPreFrame(target);
+			cpcache.iTimerPreFrames = Shavit_GetPlayerTimerframe(target);
 		}
 
 		cpcache.bSegmented = true;
@@ -2520,6 +2563,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		else
 		{
 			Shavit_SetReplayData(client, cpcache.aFrames);
+			Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames, cpcache.iTimerPreFrames);
 		}
 	}
 	
@@ -3476,8 +3520,55 @@ public any Native_GetTotalCheckpoints(Handle plugin, int numParams)
 	return gA_CheckpointsCache[GetNativeCell(1)].iCheckpoints;
 }
 
+public any Native_GetCurrentCheckpoint(Handle plugin, int numParams)
+{
+	return gA_CheckpointsCache[GetNativeCell(1)].iCurrentCheckpoint;
+}
+
+public any Native_SetCurrentCheckpoint(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int index = GetNativeCell(2);
+	
+	gA_CheckpointsCache[client].iCurrentCheckpoint = index;
+	return 0;
+}
+
 public any Native_OpenCheckpointMenu(Handle plugin, int numParams)
 {
 	OpenNormalCPMenu(GetNativeCell(1));
 	return 0;
+}
+
+public any Native_SaveCheckpoint(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int iMaxCPs = GetMaxCPs(client);
+
+	bool bSegmenting = CanSegment(client);
+	bool bOverflow = gA_CheckpointsCache[client].iCheckpoints >= iMaxCPs;
+
+	if(!bSegmenting)
+	{
+		// fight an exploit
+		if(bOverflow)
+		{
+			return -1;
+		}
+
+		if(SaveCheckpoint(client, gA_CheckpointsCache[client].iCheckpoints + 1))
+		{
+			gA_CheckpointsCache[client].iCurrentCheckpoint = ++gA_CheckpointsCache[client].iCheckpoints;
+		}
+	}
+	
+	else
+	{
+		if(SaveCheckpoint(client, gA_CheckpointsCache[client].iCheckpoints + 1, bOverflow))
+		{
+			gA_CheckpointsCache[client].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[client].iCheckpoints;
+		}
+	}
+
+	return gA_CheckpointsCache[client].iCurrentCheckpoint;
 }

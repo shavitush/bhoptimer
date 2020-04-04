@@ -960,7 +960,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 	if(data.bReplay)
 	{
-		if(data.iStyle != -1 && data.fTime > 0.0 && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
+		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iStyle) != Replay_Idle && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
 		{
 			char sTrack[32];
 
@@ -987,10 +987,15 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 				char sTime[32];
 				FormatSeconds(data.fTime, sTime, 32, false);
 
+				if(data.fTime < 0.0)
+				{
+					Format(sTime, 32, "-%s", sTime);
+				}
+
 				char sWR[32];
 				FormatSeconds(data.fWR, sWR, 32, false);
 
-				FormatEx(sLine, 128, "%s / %s\n(%.1f％)", sTime, sWR, ((data.fTime / data.fWR) * 100));
+				FormatEx(sLine, 128, "%s / %s\n(%.1f％)", sTime, sWR, ((data.fTime <= 0.0 ? 0.0 : data.fTime / data.fWR) * 100));
 				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
@@ -1141,7 +1146,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 	{
 		StrCat(buffer, maxlen, "<span class='fontSize-l'>");
 
-		if(data.iStyle != -1 && data.fTime > 0.0 && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
+		if(data.iStyle != -1 && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
 		{
 			char sPlayerName[MAX_NAME_LENGTH];
 			Shavit_GetReplayName(data.iStyle, data.iTrack, sPlayerName, MAX_NAME_LENGTH);
