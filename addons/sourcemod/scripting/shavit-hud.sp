@@ -1146,7 +1146,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 	{
 		StrCat(buffer, maxlen, "<span class='fontSize-l'>");
 
-		if(data.iStyle != -1 && data.fTime > 0.0 && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
+		if(data.iStyle != -1 && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
 		{
 			char sPlayerName[MAX_NAME_LENGTH];
 			Shavit_GetReplayName(data.iStyle, data.iTrack, sPlayerName, MAX_NAME_LENGTH);
