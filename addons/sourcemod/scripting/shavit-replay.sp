@@ -70,7 +70,7 @@ enum struct framecache_t
 	bool bNewFormat;
 	int iReplayVersion;
 	char sReplayName[MAX_NAME_LENGTH];
-	int iPreframes;
+	int iPreFrames;
 }
 
 enum
@@ -207,9 +207,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
 	CreateNative("Shavit_Replay_DeleteMap", Native_Replay_DeleteMap);
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
-	CreateNative("Shavit_GetPlayerPreframe", Native_GetPreframe);
+	CreateNative("Shavit_GetPlayerPreFrame", Native_GetPreFrame);
 	CreateNative("Shavit_GetPlayerTimerframe", Native_GetTimerframe);
-	CreateNative("Shavit_SetPlayerPreframe", Native_SetPreframe);
+	CreateNative("Shavit_SetPlayerPreFrame", Native_SetPreFrame);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -443,7 +443,7 @@ void UnloadReplay(int style, int track)
 	gA_FrameCache[style][track].fTime = 0.0;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
-	gA_FrameCache[style][track].iPreframes = 0;
+	gA_FrameCache[style][track].iPreFrames = 0;
 	gI_ReplayTick[style] = -1;
 
 	if(gI_ReplayBotClient[style] != 0)
@@ -532,7 +532,7 @@ public int Native_ReloadReplay(Handle handler, int numParams)
 	gA_FrameCache[style][track].fTime = 0.0;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
-	gA_FrameCache[style][track].iPreframes = 0;
+	gA_FrameCache[style][track].iPreFrames = 0;
 
 	bool loaded = false;
 
@@ -700,9 +700,9 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 		return view_as<int>(GetReplayLength(Track_Main, track));
 	}
 
-	if(gI_ReplayTick[style] < gA_FrameCache[style][track].iPreframes)
+	if(gI_ReplayTick[style] < gA_FrameCache[style][track].iPreFrames)
 	{
-		return view_as<int>(float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreframes) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
+		return view_as<int>(float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreFrames) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
 	}
 	else
 	{
@@ -767,7 +767,7 @@ public int Native_Replay_DeleteMap(Handle handler, int numParams)
 	}
 }
 
-public int Native_GetPreframe(Handle handler, int numParams)
+public int Native_GetPreFrame(Handle handler, int numParams)
 {
 	return gI_PlayerPrerunFrames[GetNativeCell(1)];
 }
@@ -777,13 +777,13 @@ public int Native_GetTimerframe(Handle handler, int numParams)
 	return gI_PlayerTimerStartFrames[GetNativeCell(1)];
 }
 
-public int Native_SetPreframe(Handle handler, int numParams)
+public int Native_SetPreFrame(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
-	int preframe = GetNativeCell(2);
+	int PreFrame = GetNativeCell(2);
 	int timereframe = GetNativeCell(3);
 
-	gI_PlayerPrerunFrames[client] = preframe;
+	gI_PlayerPrerunFrames[client] = PreFrame;
 	gI_PlayerTimerStartFrames[client] = timereframe;
 }
 
@@ -950,7 +950,7 @@ public void OnMapStart()
 			gA_FrameCache[i][j].fTime = 0.0;
 			gA_FrameCache[i][j].bNewFormat = true;
 			strcopy(gA_FrameCache[i][j].sReplayName, MAX_NAME_LENGTH, "invalid");
-			gA_FrameCache[i][j].iPreframes = 0;
+			gA_FrameCache[i][j].iPreFrames = 0;
 
 			loaded = DefaultLoadReplay(i, j);
 		}
@@ -1026,7 +1026,7 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 {
 	gA_FrameCache[style][track].iReplayVersion = version;
 
-	// replay file integrity and preframes
+	// replay file integrity and PreFrames
 	if(gA_FrameCache[style][track].iReplayVersion >= 0x03)
 	{
 		char sMap[160];
@@ -1045,7 +1045,7 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 			return false;
 		}
 		
-		file.ReadInt32(gA_FrameCache[style][track].iPreframes);
+		file.ReadInt32(gA_FrameCache[style][track].iPreFrames);
 	}
 
 	int iTemp = 0;
@@ -1226,7 +1226,7 @@ bool LoadReplay(int style, int track, const char[] path)
 	return false;
 }
 
-bool SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList player_recording, int timerstartframe)
+bool SaveReplay(int style, int track, float time, int steamid, char[] name, int PreFrames, ArrayList player_recording, int timerstartframe)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1245,7 +1245,7 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	fFile.WriteString(gS_Map, true);
 	fFile.WriteInt8(style);
 	fFile.WriteInt8(track);
-	fFile.WriteInt32(preframes < 0 ? timerstartframe : timerstartframe - preframes);
+	fFile.WriteInt32(PreFrames < 0 ? timerstartframe : timerstartframe - PreFrames);
 
 	int iSize = player_recording.Length;
 	fFile.WriteInt32(iSize);
@@ -1257,7 +1257,7 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	int iFramesWritten = 0;
 
 	gA_Frames[style][track].Clear();
-	for(int i = (preframes < 0 ? 0 : preframes); i < iSize; i++)
+	for(int i = (PreFrames < 0 ? 0 : PreFrames); i < iSize; i++)
 	{
 		player_recording.GetArray(i, aFrameData, CELLS_PER_FRAME);
 		gA_Frames[style][track].PushArray(aFrameData);
@@ -1277,11 +1277,11 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	delete fFile;
 
-	gA_FrameCache[style][track].iFrameCount = iSize - (preframes < 0 ? 0 : preframes);
+	gA_FrameCache[style][track].iFrameCount = iSize - (PreFrames < 0 ? 0 : PreFrames);
 	gA_FrameCache[style][track].fTime = time;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
-	gA_FrameCache[style][track].iPreframes = preframes < 0 ? timerstartframe : (timerstartframe - preframes);
+	gA_FrameCache[style][track].iPreFrames = PreFrames < 0 ? timerstartframe : (timerstartframe - PreFrames);
 
 	return true;
 }
@@ -1805,7 +1805,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Changed;
 			}
 
-			if(gI_ReplayTick[style] >= gA_FrameCache[style][track].iPreframes)
+			if(gI_ReplayTick[style] >= gA_FrameCache[style][track].iPreFrames)
 			{
 				++gI_TimerTick[style];
 			}			
