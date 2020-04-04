@@ -1231,34 +1231,46 @@ void VelocityChanges(int data)
 
 	float fSpeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
 
-	if(fSpeed == 0.0)
+	if(fSpeed != 0.0)
 	{
-		return;
+		float fVelocityMultiplier = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocity);
+		float fVelocityBonus = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fBonusVelocity);
+		float fMin = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fMinVelocity);
+
+		if(fVelocityMultiplier != 0.0)
+		{
+			fAbsVelocity[0] *= fVelocityMultiplier;
+			fAbsVelocity[1] *= fVelocityMultiplier;
+		}
+
+		if(fVelocityBonus != 0.0)
+		{
+			float x = fSpeed / (fSpeed + fVelocityBonus);
+			fAbsVelocity[0] /= x;
+			fAbsVelocity[1] /= x;
+		}
+
+		if(fMin != 0.0 && fSpeed < fMin)
+		{
+			float x = (fSpeed / fMin);
+			fAbsVelocity[0] /= x;
+			fAbsVelocity[1] /= x;
+		}
 	}
 
-	float fVelocityMultiplier = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocity);
-	float fVelocityBonus = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fBonusVelocity);
-	float fMin = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fMinVelocity);
+	float fJumpMultiplier = gA_StyleSettings[gA_Timers[client].iStyle].fJumpMultiplier;
+	float fJumpBonus = gA_StyleSettings[gA_Timers[client].iStyle].fJumpBonus;
 
-	if(fVelocityMultiplier != 0.0)
+	if(fJumpMultiplier != 0.0)
 	{
-		fAbsVelocity[0] *= fVelocityMultiplier;
-		fAbsVelocity[1] *= fVelocityMultiplier;
+		fAbsVelocity[2] *= fJumpMultiplier;
 	}
 
-	if(fVelocityBonus != 0.0)
+	if(fJumpBonus != 0.0)
 	{
-		float x = fSpeed / (fSpeed + fVelocityBonus);
-		fAbsVelocity[0] /= x;
-		fAbsVelocity[1] /= x;
+		fAbsVelocity[2] += fJumpBonus;
 	}
 
-	if(fMin != 0.0 && fSpeed < fMin)
-	{
-		float x = (fSpeed / fMin);
-		fAbsVelocity[0] /= x;
-		fAbsVelocity[1] /= x;
-	}
 
 	if(!gCV_VelocityTeleport.BoolValue)
 	{
@@ -2105,6 +2117,8 @@ bool LoadStyles()
 		gA_StyleSettings[i].fVelocity = kv.GetFloat("velocity", 1.0);
 		gA_StyleSettings[i].fBonusVelocity = kv.GetFloat("bonus_velocity", 0.0);
 		gA_StyleSettings[i].fMinVelocity = kv.GetFloat("min_velocity", 0.0);
+		gA_StyleSettings[i].fJumpMultiplier = kv.GetFloat("jump_multiplier", 0.0);
+		gA_StyleSettings[i].fJumpBonus = kv.GetFloat("jump_bonus", 0.0);
 		gA_StyleSettings[i].bBlockW = view_as<bool>(kv.GetNum("block_w", 0));
 		gA_StyleSettings[i].bBlockA = view_as<bool>(kv.GetNum("block_a", 0));
 		gA_StyleSettings[i].bBlockS = view_as<bool>(kv.GetNum("block_s", 0));

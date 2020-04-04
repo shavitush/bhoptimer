@@ -188,6 +188,8 @@ enum struct stylesettings_t
 	int iEnabled;
 	bool bKZCheckpoints;
 	bool bForceKeysOnGround;
+	float fJumpMultiplier;
+	float fJumpBonus;
 }
 
 enum struct chatstrings_t
