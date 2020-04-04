@@ -208,7 +208,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_Replay_DeleteMap", Native_Replay_DeleteMap);
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_GetPlayerPreFrame", Native_GetPreFrame);
-	CreateNative("Shavit_GetPlayerTimerframe", Native_GetTimerframe);
+	CreateNative("Shavit_GetPlayerTimerframe", Native_GetTimerFrame);
 	CreateNative("Shavit_SetPlayerPreFrame", Native_SetPreFrame);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
@@ -766,7 +766,7 @@ public int Native_GetPreFrame(Handle handler, int numParams)
 	return gI_PlayerPrerunFrames[GetNativeCell(1)];
 }
 
-public int Native_GetTimerframe(Handle handler, int numParams)
+public int Native_GetTimerFrame(Handle handler, int numParams)
 {
 	return gI_PlayerTimerStartFrames[GetNativeCell(1)];
 }
@@ -774,11 +774,11 @@ public int Native_GetTimerframe(Handle handler, int numParams)
 public int Native_SetPreFrame(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
-	int PreFrame = GetNativeCell(2);
-	int timereframe = GetNativeCell(3);
+	int preframes = GetNativeCell(2);
+	int timerframes = GetNativeCell(3);
 
-	gI_PlayerPrerunFrames[client] = PreFrame;
-	gI_PlayerTimerStartFrames[client] = timereframe;
+	gI_PlayerPrerunFrames[client] = preframes;
+	gI_PlayerTimerStartFrames[client] = timerframes;
 }
 
 public Action Cron(Handle Timer)
@@ -1220,7 +1220,7 @@ bool LoadReplay(int style, int track, const char[] path)
 	return false;
 }
 
-bool SaveReplay(int style, int track, float time, int steamid, char[] name, int PreFrames, ArrayList player_recording, int timerstartframe)
+bool SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int timerstartframe)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1239,9 +1239,9 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	fFile.WriteString(gS_Map, true);
 	fFile.WriteInt8(style);
 	fFile.WriteInt8(track);
-	fFile.WriteInt32(PreFrames < 0 ? timerstartframe : timerstartframe - PreFrames);
+	fFile.WriteInt32(preframes < 0 ? timerstartframe : timerstartframe - preframes);
 
-	int iSize = player_recording.Length;
+	int iSize = playerrecording.Length;
 	fFile.WriteInt32(iSize);
 	fFile.WriteInt32(view_as<int>(time));
 	fFile.WriteInt32(steamid);
@@ -1251,9 +1251,9 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	int iFramesWritten = 0;
 
 	gA_Frames[style][track].Clear();
-	for(int i = (PreFrames < 0 ? 0 : PreFrames); i < iSize; i++)
+	for(int i = (preframes < 0 ? 0 : preframes); i < iSize; i++)
 	{
-		player_recording.GetArray(i, aFrameData, CELLS_PER_FRAME);
+		playerrecording.GetArray(i, aFrameData, CELLS_PER_FRAME);
 		gA_Frames[style][track].PushArray(aFrameData);
 
 		for(int j = 0; j < CELLS_PER_FRAME; j++)
@@ -1271,11 +1271,11 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	delete fFile;
 
-	gA_FrameCache[style][track].iFrameCount = iSize - (PreFrames < 0 ? 0 : PreFrames);
+	gA_FrameCache[style][track].iFrameCount = iSize - (preframes < 0 ? 0 : preframes);
 	gA_FrameCache[style][track].fTime = time;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
-	gA_FrameCache[style][track].iPreFrames = PreFrames < 0 ? timerstartframe : (timerstartframe - PreFrames);
+	gA_FrameCache[style][track].iPreFrames = preframes < 0 ? timerstartframe : (timerstartframe - preframes);
 
 	return true;
 }
@@ -1606,7 +1606,8 @@ public Action Shavit_OnStart(int client)
 	
 	if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_MaxRecordLengthInStart.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
 	{
-		ClearFrames(client);
+		gA_PlayerFrames[client].Erase(0);
+		gI_PlayerFrames[client]--;
 	}
 
 	return Plugin_Continue;
