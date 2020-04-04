@@ -193,7 +193,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
+	CreateNative("Shavit_SetStyleSettings", Native_SetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
+	CreateNative("Shavit_SetStyleStrings", Native_SetStyleStrings);
 	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
@@ -215,6 +217,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_GetClientTimescale", Native_GetClientTimescale);
 	CreateNative("Shavit_SetClientTimescale", Native_SetClientTimescale);
+
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -1659,45 +1662,59 @@ public int Native_GetStyleCount(Handle handler, int numParams)
 
 public int Native_GetStyleSettings(Handle handler, int numParams)
 {
-	return SetNativeArray(2, gA_StyleSettings[GetNativeCell(1)], sizeof(stylesettings_t));
+	int style = GetNativeCell(1);
+
+	stylesettings_t settings;
+	settings = gA_StyleSettings[style];
+	
+	SetNativeArray(2, settings, sizeof(stylesettings_t));
+
+	return 0;
+}
+
+public int Native_SetStyleSettings(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	stylesettings_t settings;
+	
+	GetNativeArray(2, settings, sizeof(stylesettings_t));
+
+	gA_StyleSettings[style] = settings;
+
+	return 0;
 }
 
 public int Native_GetStyleStrings(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
-	int type = GetNativeCell(2);
-	int size = GetNativeCell(4);
 
-	switch(type)
-	{
-		case sStyleName: return SetNativeString(3, gS_StyleStrings[style].sStyleName, size);
-		case sShortName: return SetNativeString(3, gS_StyleStrings[style].sShortName, size);
-		case sHTMLColor: return SetNativeString(3, gS_StyleStrings[style].sHTMLColor, size);
-		case sChangeCommand: return SetNativeString(3, gS_StyleStrings[style].sChangeCommand, size);
-		case sClanTag: return SetNativeString(3, gS_StyleStrings[style].sClanTag, size);
-		case sSpecialString: return SetNativeString(3, gS_StyleStrings[style].sSpecialString, size);
-		case sStylePermission: return SetNativeString(3, gS_StyleStrings[style].sStylePermission, size);
-	}
+	stylestrings_t strings;
+	strings = gS_StyleStrings[style];
 
-	return -1;
+	SetNativeArray(2, strings, sizeof(stylestrings_t));
+
+	return 0;
+}
+
+public int Native_SetStyleStrings(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	stylestrings_t strings;
+	
+	GetNativeArray(2, strings, sizeof(stylestrings_t));
+	
+	gS_StyleStrings[style] = strings;
+
+	return 0;
 }
 
 public int Native_GetChatStrings(Handle handler, int numParams)
 {
-	int type = GetNativeCell(1);
-	int size = GetNativeCell(3);
+	SetNativeArray(1, gS_ChatStrings, sizeof(chatstrings_t));
 
-	switch(type)
-	{
-		case sMessagePrefix: return SetNativeString(2, gS_ChatStrings.sPrefix, size);
-		case sMessageText: return SetNativeString(2, gS_ChatStrings.sText, size);
-		case sMessageWarning: return SetNativeString(2, gS_ChatStrings.sWarning, size);
-		case sMessageVariable: return SetNativeString(2, gS_ChatStrings.sVariable, size);
-		case sMessageVariable2: return SetNativeString(2, gS_ChatStrings.sVariable2, size);
-		case sMessageStyle: return SetNativeString(2, gS_ChatStrings.sStyle, size);
-	}
-
-	return -1;
+	return 0;
 }
 
 public int Native_SetPracticeMode(Handle handler, int numParams)

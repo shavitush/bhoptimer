@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.5.7"
+#define SHAVIT_VERSION "2.6.0"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -1384,24 +1384,42 @@ native void Shavit_OpenStatsMenu(int client, int steamid);
 native int Shavit_GetWRCount(int client);
 
 /**
-* Saves the style settings on `any` references.
+* Retrieves a copy of the style settings and strings.
+* As of version 2.7 this no longer returns a value and the parameters are no longer by reference.
 *
 * @param style						Style index.
-* @param StyleSettings				Reference to the settings array.
-* @return							SP_ERROR_NONE on success, anything else on failure.
+* @param stylesettings				Copy of the style settings array.
+* @noreturn
 */
-native int Shavit_GetStyleSettings(int style, any StyleSettings[sizeof(stylesettings_t)]);
+native void Shavit_GetStyleSettings(int style, any stylesettings[sizeof(stylesettings_t)]);
 
 /**
- * Saves the style related strings on string references.
+ * Sets the style settings for the given style.
  *
  * @param style						Style index.
- * @param stringtype				String type to grab.
- * @param StyleStrings				Reference to the string buffer.
- * @param size						Max length for the buffer.
- * @return							SP_ERROR_NONE on success, anything else on failure.
+ * @param stylestrings				stylesettings_t enum struct with new values.
+ * @noreturn
  */
-native int Shavit_GetStyleStrings(int style, int stringtype, char[] StyleStrings, int size);
+native void Shavit_SetStyleSettings(int style, any stylesettings[sizeof(stylesettings_t)]);
+
+/**
+ * Saves the style related strings into a stylestrings_t enum struct.
+ * As of version 2.7 this no longer returns a value and the parameters are no longer by reference.
+ *
+ * @param style						Style index.
+ * @param stylestrings				Copy of the style strings array.
+ * @noreturn
+ */
+native void Shavit_GetStyleStrings(int style, any stylestrings[sizeof(stylestrings_t)]);
+
+/**
+ * Sets the style strings for the given style.
+ *
+ * @param style						Style index.
+ * @param stylestrings				stylestrings_t enum struct with new values.
+ * @noreturn
+ */
+native void Shavit_SetStyleStrings(int style, any stylestrings[sizeof(stylestrings_t)]);
 
 /**
  * Retrieves the amount of styles in the server.
@@ -1420,14 +1438,21 @@ native int Shavit_GetStyleCount();
 native void Shavit_GetOrderedStyles(int[] arr, int size);
 
 /**
- * Saves chat related strings on string references.
+ * Gets a copy of the chat strings array.
+ * As of version 2.7 this no longer returns a value and the parameters are no longer by reference.
  *
- * @param stringtype				String type to grab.
- * @param ChatStrings				Reference to the string buffer.
- * @param size						Max length for the buffer.
- * @return							SP_ERROR_NONE on success, anything else on failure.
+ * @param chatstrings				copy of the chatstrings_t array.
+ * @noreturn
  */
-native int Shavit_GetChatStrings(int stringtype, char[] ChatStrings, int size);
+native void Shavit_GetChatStrings(any chatstrings[sizeof(chatstrings_t)]);
+
+/**
+ * Sets the chat strings array.
+ *
+ * @param chatstrings				chatstrings_t with the new values.
+ * @noreturn
+ */
+native void Shavit_SetChatStrings(any chatstrings[sizeof(chatstrings_t)]);
 
 /**
  * Gets the HUD settings of a player.
