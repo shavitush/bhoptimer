@@ -63,8 +63,8 @@ enum struct persistent_data_t
 	int iTargetname;
 	int iClassname;
 	ArrayList aFrames;
-	int iPreframes;
-	int iTimerPreframes;
+	int iPreFrames;
+	int iTimerPreFrames;
 	bool bPractice;
 }
 
@@ -1135,8 +1135,8 @@ void PersistData(int client)
 	if(gB_Replay)
 	{
 		aData.aFrames = Shavit_GetReplayData(client);
-		aData.iPreframes = Shavit_GetPlayerPreframe(client);
-		aData.iTimerPreframes = Shavit_GetPlayerTimerframe(client);
+		aData.iPreFrames = Shavit_GetPlayerPreFrame(client);
+		aData.iTimerPreFrames = Shavit_GetPlayerTimerframe(client);
 	}
 
 	aData.fDisconnectTime = GetEngineTime();
@@ -1257,7 +1257,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	if(gB_Replay && aData.aFrames != null)
 	{
 		Shavit_SetReplayData(client, aData.aFrames);
-		Shavit_SetPlayerPreframe(client, aData.iPreframes, aData.iTimerPreframes);
+		Shavit_SetPlayerPreFrame(client, aData.iPreFrames, aData.iTimerPreFrames);
 	}
 
 	if(aData.bPractice)
@@ -2349,8 +2349,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		if(gB_Replay)
 		{
 			cpcache.aFrames = Shavit_GetReplayData(target);
-			cpcache.iPreframes = Shavit_GetPlayerPreframe(target);
-			cpcache.iTimerPreframes = Shavit_GetPlayerTimerframe(target);
+			cpcache.iPreFrames = Shavit_GetPlayerPreFrame(target);
+			cpcache.iTimerPreFrames = Shavit_GetPlayerTimerframe(target);
 		}
 
 		cpcache.bSegmented = true;
@@ -2563,7 +2563,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		else
 		{
 			Shavit_SetReplayData(client, cpcache.aFrames);
-			Shavit_SetPlayerPreframe(client, cpcache.iPreframes, cpcache.iTimerPreframes);
+			Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames, cpcache.iTimerPreFrames);
 		}
 	}
 	
