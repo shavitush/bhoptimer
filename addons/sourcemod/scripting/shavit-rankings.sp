@@ -87,7 +87,6 @@ Handle gH_Forwards_OnRankAssigned = null;
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 stylesettings_t gA_StyleSettings[STYLE_LIMIT];
-char gS_StyleNames[STYLE_LIMIT][64];
 char gS_TrackNames[TRACKS_SIZE][32];
 
 public Plugin myinfo =
@@ -170,12 +169,7 @@ public void OnPluginStart()
 
 public void Shavit_OnChatConfigLoaded()
 {
-	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
-	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
-	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
-	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
-	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
-	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
+	Shavit_GetChatStrings(gS_ChatStrings);
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -188,7 +182,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleNames[i], 64);
 	}
 }
 

@@ -985,9 +985,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(i, sClanTag, gS_StyleStrings[i].sClanTag, sizeof(stylestrings_t::sClanTag));
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
-		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
+		Shavit_GetStyleStrings(i, gS_StyleStrings[i]);
 	}
 
 	gI_Styles = styles;
@@ -995,12 +993,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public void Shavit_OnChatConfigLoaded()
 {
-	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
-	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
-	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
-	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
-	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
-	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
+	Shavit_GetChatStrings(gS_ChatStrings);
 }
 
 bool DefaultLoadReplay(int style, int track)
