@@ -23,14 +23,15 @@
 #include <sourcemod>
 #include <clientprefs>
 #include <convar_class>
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
+#include <dhooks>
 
 #undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
 #include <shavit>
 #include <rtler>
 
-#undef REQUIRE_EXTENSIONS
-#include <cstrike>
 
 #define MAGIC_NUMBER 2147483648.0
 #define MAXLENGTH_NAME 128

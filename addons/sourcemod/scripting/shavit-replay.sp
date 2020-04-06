@@ -22,15 +22,17 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <convar_class>
+#undef REQUIRE_EXTENSIONS
+#include <dhooks>
+#include <cstrike>
+#include <tf2>
+#include <tf2_stocks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
 #include <adminmenu>
 
-#undef REQUIRE_EXTENSIONS
-#include <cstrike>
-#include <tf2>
-#include <tf2_stocks>
+
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"

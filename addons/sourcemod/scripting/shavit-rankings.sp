@@ -40,6 +40,8 @@
 
 #include <sourcemod>
 #include <convar_class>
+#undef REQUIRE_EXTENSIONS
+#include <dhooks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>

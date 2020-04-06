@@ -22,14 +22,13 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <convar_class>
-
+#undef REQUIRE_EXTENSIONS
+#include <dhooks>
+#include <cstrike>
+#include <tf2>
 #undef REQUIRE_PLUGIN
 #include <shavit>
 #include <adminmenu>
-
-#undef REQUIRE_EXTENSIONS
-#include <cstrike>
-#include <tf2>
 
 #pragma semicolon 1
 #pragma dynamic 131072

@@ -221,7 +221,7 @@ enum struct chatstrings_t
 enum struct timer_snapshot_t
 {
 	bool bTimerEnabled;
-	float fCurrentTime;
+	any dCurrentTime[2];
 	bool bClientPaused;
 	int iJumps;
 	int bsStyle;
@@ -485,7 +485,7 @@ forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float
  * @param stylesettings				A stylesettings_t struct that contains the player's bhop style's settings.
  * @noreturn
  */
-forward void Shavit_OnTimeIncrement(int client, timer_snapshot_t snapshot, float &time, stylesettings_t stylesettings);
+forward void Shavit_OnTimeIncrement(int client, timer_snapshot_t snapshot, any time[2], stylesettings_t stylesettings);
 
 /**
  * Called just before shavit-core adds time to a player's timer.
@@ -498,7 +498,7 @@ forward void Shavit_OnTimeIncrement(int client, timer_snapshot_t snapshot, float
  * @param stylesettings				A stylesettings_t struct that contains the player's bhop style's settings.
  * @noreturn
  */
-forward void Shavit_OnTimeIncrementPost(int client, float time, stylesettings_t stylesettings);
+forward void Shavit_OnTimeIncrementPost(int client, any time[2], stylesettings_t stylesettings);
 
 /**
  * Called when a player's timer starts.
@@ -569,7 +569,7 @@ forward Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot);
  * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs);
+forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, any dTime[2]);
 
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.
@@ -1013,9 +1013,10 @@ native void Shavit_GetTimer(int client, float &time, int &jumps, int &style, boo
  * Retrieve a client's current time.
  *
  * @param client					Client index.
+ * @param time						Array containing the time as a double
  * @return                          Current time.
  */
-native float Shavit_GetClientTime(int client);
+native float Shavit_GetClientTime(int client, any time[2] = {});
 
 /**
  * Retrieve the client's track. (Track_Main/Track_Bonus etc..)

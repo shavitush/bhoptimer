@@ -24,6 +24,8 @@
 #include <geoip>
 #include <clientprefs>
 #include <convar_class>
+
+#undef REQUIRE_EXTENSIONS
 #include <dhooks>
 
 #undef REQUIRE_PLUGIN
@@ -38,7 +40,7 @@
 enum struct playertimer_t
 {
 	bool bEnabled;
-	float fTimer;
+	any dTimer[2];
 	bool bPaused;
 	int iJumps;
 	int iStyle;
@@ -239,7 +241,7 @@ public void OnPluginStart()
 	gH_Forwards_Stop = new GlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = new GlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = new GlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
-	gH_Forwards_Finish = new GlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_Finish = new GlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Array);
 	gH_Forwards_OnRestart = new GlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnEnd = new GlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = new GlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
@@ -1385,19 +1387,14 @@ public int Native_GetDB(Handle handler, int numParams)
 
 public int Native_GetTimer(Handle handler, int numParams)
 {
-	// 1 - client
-	int client = GetNativeCell(1);
-
-	// 2 - time
-	SetNativeCellRef(2, gA_Timers[client].fTimer);
-	SetNativeCellRef(3, gA_Timers[client].iJumps);
-	SetNativeCellRef(4, gA_Timers[client].iStyle);
-	SetNativeCellRef(5, gA_Timers[client].bEnabled);
+	return ThrowNativeError(234, "Shavit_GetTimer is deprecated use different natives or Shavit_SaveSnapshot instead.");
 }
 
-public int Native_GetClientTime(Handle handler, int numParams)
+public any Native_GetClientTime(Handle handler, int numParams)
 {
-	return view_as<int>(gA_Timers[GetNativeCell(1)].fTimer);
+	int client = GetNativeCell(1);
+	SetNativeArray(2, gA_Timers[client].dTimer, 2);
+	return Double_ToFloat(gA_Timers[client].dTimer);
 }
 
 public int Native_GetClientTrack(Handle handler, int numParams)
@@ -1546,7 +1543,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
 	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
 	snapshot.fServerTime = GetEngineTime();
-	snapshot.fCurrentTime = gA_Timers[client].fTimer;
+	snapshot.dCurrentTime = gA_Timers[client].dTimer;
 	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
@@ -1573,7 +1570,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	if(result == Plugin_Continue)
 	{
 		Call_PushCell(style = gA_Timers[client].iStyle);
-		Call_PushCell(gA_Timers[client].fTimer);
+		Call_PushCell(Double_ToFloat(gA_Timers[client].dTimer));
 		Call_PushCell(gA_Timers[client].iJumps);
 		Call_PushCell(gA_Timers[client].iStrafes);
 		Call_PushCell((gA_StyleSettings[gA_Timers[client].iStyle].bSync)? (gA_Timers[client].iGoodGains == 0)? 0.0:(gA_Timers[client].iGoodGains / float(gA_Timers[client].iTotalMeasures) * 100.0):-1.0);
@@ -1584,7 +1581,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	else
 	{
 		Call_PushCell(style = snapshot.bsStyle);
-		Call_PushCell(snapshot.fCurrentTime);
+		Call_PushCell(Double_ToFloat(gA_Timers[client].dTimer));
 		Call_PushCell(snapshot.iJumps);
 		Call_PushCell(snapshot.iStrafes);
 		Call_PushCell((gA_StyleSettings[snapshot.bsStyle].bSync)? (snapshot.iGoodGains == 0)? 0.0:(snapshot.iGoodGains / float(snapshot.iTotalMeasures) * 100.0):-1.0);
@@ -1601,6 +1598,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	Call_PushCell(oldtime);
 	Call_PushCell(perfs);
+	Call_PushArray(gA_Timers[client].dTimer, 2);
 	Call_Finish();
 
 	StopTimer(client);
@@ -1823,7 +1821,7 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
 	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
 	snapshot.fServerTime = GetEngineTime();
-	snapshot.fCurrentTime = gA_Timers[client].fTimer;
+	snapshot.dCurrentTime = gA_Timers[client].dTimer;
 	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
@@ -1858,7 +1856,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iStrafes = snapshot.iStrafes;
 	gA_Timers[client].iTotalMeasures = snapshot.iTotalMeasures;
 	gA_Timers[client].iGoodGains = snapshot.iGoodGains;
-	gA_Timers[client].fTimer = snapshot.fCurrentTime;
+	gA_Timers[client].dTimer = snapshot.dCurrentTime;
 	gA_Timers[client].iSHSWCombination = snapshot.iSHSWCombination;
 	gA_Timers[client].iMeasuredJumps = snapshot.iMeasuredJumps;
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
@@ -1954,7 +1952,7 @@ void StartTimer(int client, int track)
 			gA_Timers[client].iTrack = track;
 			gA_Timers[client].bEnabled = true;
 			gA_Timers[client].iSHSWCombination = -1;
-			gA_Timers[client].fTimer = 0.0;
+			gA_Timers[client].dTimer = [0, 0];
 			gA_Timers[client].bPracticeMode = false;
 			gA_Timers[client].iMeasuredJumps = 0;
 			gA_Timers[client].iPerfectJumps = 0;
@@ -1989,7 +1987,7 @@ void StopTimer(int client)
 
 	gA_Timers[client].bEnabled = false;
 	gA_Timers[client].iJumps = 0;
-	gA_Timers[client].fTimer = 0.0;
+	gA_Timers[client].dTimer = [0, 0];
 	gA_Timers[client].bPaused = false;
 	gA_Timers[client].iStrafes = 0;
 	gA_Timers[client].iTotalMeasures = 0;
@@ -2858,7 +2856,64 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_PushArray(pMove, sizeof(movedata_t));
 	Call_Finish();
 
+
+	
+	if(gA_Timers[client].bPaused || !gA_Timers[client].bEnabled)
+	{
+		return MRES_Ignored;
+	}
+
+	any frametime[2];
+	Double_FromFloat(GetGameFrameTime(), frametime);
+
+	any timescale[2];
+	if(gA_Timers[client].fTimescale != -1.0)
+	{
+		Double_FromFloat(gA_Timers[client].fTimescale, timescale)
+	}
+	
+	else
+	{
+		Double_FromFloat(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale, timescale)
+	}
+
+	any time[2];
+	Double_Multiply(frametime, timescale, time);
+
+	Double_Add(gA_Timers[client].dTimer, time, gA_Timers[client].dTimer);
+
+	timer_snapshot_t snapshot;
+	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
+	snapshot.bClientPaused = gA_Timers[client].bPaused;
+	snapshot.iJumps = gA_Timers[client].iJumps;
+	snapshot.bsStyle = gA_Timers[client].iStyle;
+	snapshot.iStrafes = gA_Timers[client].iStrafes;
+	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
+	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
+	snapshot.fServerTime = GetEngineTime();
+	snapshot.dCurrentTime = gA_Timers[client].dTimer;
+	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
+	snapshot.iTimerTrack = gA_Timers[client].iTrack;
+
+	Call_StartForward(gH_Forwards_OnTimerIncrement);
+	Call_PushCell(client);
+	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
+	Call_PushArrayEx(time, 2, SM_PARAM_COPYBACK);
+	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
+	Call_Finish();
+
+	Call_StartForward(gH_Forwards_OnTimerIncrementPost);
+	Call_PushCell(client);
+	Call_PushArray(time, 2);
+	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
+	Call_Finish();
+
 	return MRES_Ignored;
+}
+
+public void OnGameFrame()
+{
+	gI_TickCount = GetGameTickCount();
 }
 
 public void PreThinkPost(int client)
@@ -2890,59 +2945,6 @@ public void PreThinkPost(int client)
 		}
 
 		gA_Timers[client].iMoveType = mtMoveType;
-	}
-}
-
-public void OnGameFrame()
-{
-	gI_TickCount = GetGameTickCount();
-	float frametime = GetGameFrameTime();
-
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(gA_Timers[i].bPaused || !gA_Timers[i].bEnabled)
-		{
-			continue;
-		}
-
-		float time;
-		if(gA_Timers[i].fTimescale != -1.0)
-		{
-			time = frametime * gA_Timers[i].fTimescale;
-		}
-
-		else
-		{
-			time = frametime * view_as<float>(gA_StyleSettings[gA_Timers[i].iStyle].fTimescale);
-		}
-
-		timer_snapshot_t snapshot;
-		snapshot.bTimerEnabled = gA_Timers[i].bEnabled;
-		snapshot.bClientPaused = gA_Timers[i].bPaused;
-		snapshot.iJumps = gA_Timers[i].iJumps;
-		snapshot.bsStyle = gA_Timers[i].iStyle;
-		snapshot.iStrafes = gA_Timers[i].iStrafes;
-		snapshot.iTotalMeasures = gA_Timers[i].iTotalMeasures;
-		snapshot.iGoodGains = gA_Timers[i].iGoodGains;
-		snapshot.fServerTime = GetEngineTime();
-		snapshot.fCurrentTime = gA_Timers[i].fTimer;
-		snapshot.iSHSWCombination = gA_Timers[i].iSHSWCombination;
-		snapshot.iTimerTrack = gA_Timers[i].iTrack;
-
-		Call_StartForward(gH_Forwards_OnTimerIncrement);
-		Call_PushCell(i);
-		Call_PushArray(snapshot, sizeof(timer_snapshot_t));
-		Call_PushCellRef(time);
-		Call_PushArray(gA_StyleSettings[gA_Timers[i].iStyle], sizeof(stylesettings_t));
-		Call_Finish();
-
-		gA_Timers[i].fTimer += time;
-
-		Call_StartForward(gH_Forwards_OnTimerIncrementPost);
-		Call_PushCell(i);
-		Call_PushCell(time);
-		Call_PushArray(gA_StyleSettings[gA_Timers[i].iStyle], sizeof(stylesettings_t));
-		Call_Finish();
 	}
 }
 
@@ -3011,7 +3013,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) ||
 			(vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0)))
 		{
-			if(gA_Timers[client].fStrafeWarning < gA_Timers[client].fTimer)
+			if(gA_Timers[client].fStrafeWarning < Double_ToFloat(gA_Timers[client].dTimer))
 			{
 				if(gA_StyleSettings[gA_Timers[client].iStyle].iBlockPStrafe >= 2)
 				{
@@ -3026,7 +3028,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				return Plugin_Changed;
 			}
 
-			gA_Timers[client].fStrafeWarning = gA_Timers[client].fTimer + 0.3;
+			gA_Timers[client].fStrafeWarning = Double_ToFloat(gA_Timers[client].dTimer) + 0.3;
 		}
 	}
 

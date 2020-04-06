@@ -22,12 +22,11 @@
 
 #include <sourcemod>
 #include <convar_class>
-
+#undef REQUIRE_EXTENSIONS
+#include <dhooks>
+#include <cstrike>
 #undef REQUIRE_PLUGIN
 #include <shavit>
-
-#undef REQUIRE_EXTENSIONS
-#include <cstrike>
 
 #pragma newdecls required
 #pragma semicolon 1
