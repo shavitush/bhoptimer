@@ -139,6 +139,22 @@ enum
 	sMessageStyle
 };
 
+enum
+{
+	MoveData_ImpulseCommand = 8,
+	MoveData_ViewAngles = 12,
+	MoveData_AbsViewAngles = 24,
+	MoveData_Buttons = 36,
+	MoveData_OldButtons = 40,
+	MoveData_ForwardMove = 44,
+	MoveData_SideMove = 48,
+	MoveData_UpMove = 52,
+	MoveData_MaxSpeed = 56,
+	MoveData_ClientMaxSpeed = 60,
+	MoveData_Velocity = 64,
+	MOVEDATA_SIZE
+}
+
 enum struct stylestrings_t
 {
 	char sStyleName[64];
@@ -244,6 +260,21 @@ enum struct cp_cache_t
 	int iSerial;
 	bool bPractice;
 	int iGroundEntity;
+}
+
+enum struct movedata_t
+{
+	int m_nImpulseCommand;
+	float m_vecViewAngles[3];
+	float m_vecAbsViewAngles[3];
+	int m_nButtons;
+	int m_nOldButtons;
+	float m_flForwardMove;
+	float m_flSideMove;
+	float m_flUpMove;
+	float m_flMaxSpeed;
+	float m_flClientMaxSpeed;
+	float m_vecVelocity[3];
 }
 
 #if defined USES_CHAT_COLORS
@@ -832,6 +863,25 @@ forward Action Shavit_OnCheckPointMenuMade(int client, bool segmented);
  * @return							Plugin_Continue to continue the callback.
  */
 forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info, int maxlength, int currentCheckpoint, int maxCPs);
+
+
+/**
+ * Called before CGameMovement::ProcessMovement is processed, movedata will be copied back if returned changed.
+ *
+ * @param client					Client index.
+ * @param pMove						Reference copy of the pMove data.
+ * @return							MRES_ChangedHandled, or MRES_ChangedOverride to override the given values.
+ */
+forward MRESReturn Shavit_OnProcessMovement(int client, movedata_t pMove);
+
+/**
+ * Called after CGameMovement::ProcessMovement has been processed.
+ *
+ * @param client					Client index.
+ * @param pMove						Copy of the pMove data.
+ * @noreturn
+ */
+forward void Shavit_OnProcessMovementPost(int client, movedata_t pMove); 
 
 /**
  * Returns the game type the server is running.

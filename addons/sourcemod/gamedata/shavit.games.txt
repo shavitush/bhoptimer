@@ -1,5 +1,32 @@
 "Games"
 {
+	"#default"
+	{
+		"Keys"
+		{
+			"IGameMovement"		"GameMovement001"
+		}
+
+		"Signatures"
+		{
+			"CreateInterface"
+			{
+				"library"		"server"
+				"windows"		"@CreateInterface"
+				"linux"			"@CreateInterface"
+			}
+		}
+
+		"Offsets"
+		{
+			"ProcessMovement"
+			{
+				"windows"		"1"
+				"linux"			"2"
+			}
+		}
+	}
+
 	"cstrike"
 	{
 		"Offsets"

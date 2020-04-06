@@ -24,6 +24,7 @@
 #include <geoip>
 #include <clientprefs>
 #include <convar_class>
+#include <dhooks>
 
 #undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
@@ -89,6 +90,8 @@ Handle gH_Forwards_OnUserCmdPre = null;
 Handle gH_Forwards_OnTimerIncrement = null;
 Handle gH_Forwards_OnTimerIncrementPost = null;
 Handle gH_Forwards_OnTimescaleChanged = null;
+Handle gH_OnProcessMovement = null;
+Handle gH_OnProcessMovementPost = null;
 
 StringMap gSM_StyleCommands = null;
 
@@ -229,25 +232,29 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadDHooks();
+
 	// forwards
-	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
-	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnTrackChanged = CreateGlobalForward("Shavit_OnTrackChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
-	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
-	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
-	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array, Param_Array);
-	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
-	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
-	gH_Forwards_OnTimescaleChanged = CreateGlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_Start = new GlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_Stop = new GlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_StopPre = new GlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_FinishPre = new GlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
+	gH_Forwards_Finish = new GlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnRestart = new GlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnEnd = new GlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnPause = new GlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnResume = new GlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnStyleChanged = new GlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnTrackChanged = new GlobalForward("Shavit_OnTrackChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnStyleConfigLoaded = new GlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
+	gH_Forwards_OnDatabaseLoaded = new GlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
+	gH_Forwards_OnChatConfigLoaded = new GlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
+	gH_Forwards_OnUserCmdPre = new GlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array, Param_Array);
+	gH_Forwards_OnTimerIncrement = new GlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
+	gH_Forwards_OnTimerIncrementPost = new GlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
+	gH_Forwards_OnTimescaleChanged = new GlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnProcessMovement = new GlobalForward("Shavit_OnProcessMovement", ET_Event, Param_Cell, Param_Array);
+	gH_OnProcessMovementPost = new GlobalForward("Shavit_OnProcessMovementPost", ET_Event, Param_Cell, Param_Array);
 
 	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
@@ -375,6 +382,68 @@ public void OnPluginStart()
 			}
 		}
 	}
+}
+
+void LoadDHooks()
+{
+	GameData gamedata = new GameData("KiD-TAS.games");
+
+	if(gamedata == null)
+	{
+		SetFailState("Failed to load shavit.games gamedata");
+	}
+	
+	StartPrepSDKCall(SDKCall_Static);
+	if(!PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CreateInterface"))
+	{
+		SetFailState("Failed to get CreateInterface");
+	}
+
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	Handle CreateInterface = EndPrepSDKCall();
+
+	if(CreateInterface == null)
+	{
+		SetFailState("Unable to prepare SDKCall for CreateInterface");
+	}
+
+	char interfaceName[64];
+
+	// ProcessMovement
+	if(!GameConfGetKeyValue(gamedata, "IGameMovement", interfaceName, sizeof(interfaceName)))
+	{
+		SetFailState("Failed to get IGameMovement interface name");
+	}
+
+	Address IGameMovement = SDKCall(CreateInterface, interfaceName, 0);
+
+	if(!IGameMovement)
+	{
+		SetFailState("Failed to get IGameMovement pointer");
+	}
+
+	int offset = gamedata.GetOffset("ProcessMovement");
+	if(offset == -1)
+	{
+		SetFailState("Failed to get ProcessMovement offset");
+	}
+
+	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPre);
+	DHookAddParam(processMovement, HookParamType_CBaseEntity);
+	DHookAddParam(processMovement, HookParamType_ObjectPtr, _, DHookPass_ByRef);
+	DHookRaw(processMovement, false, IGameMovement);
+
+	Handle processMovementPost = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
+	DHookAddParam(processMovementPost, HookParamType_CBaseEntity);
+	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
+	DHookRaw(processMovementPost, true, IGameMovement);
+
+
+
+	delete CreateInterface;
+	delete gamedata;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -2712,6 +2781,84 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	{
 		UpdateAiraccelerate(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate));
 	}
+}
+
+
+public MRESReturn DHook_ProcessMovementPre(Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+	movedata_t pMove;
+
+
+	pMove.m_nImpulseCommand = DHookGetParamObjectPtrVar(hParams, 2, MoveData_ImpulseCommand, ObjectValueType_Int);
+	
+	DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_ViewAngles, ObjectValueType_Vector, pMove.m_vecViewAngles);
+	DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_AbsViewAngles, ObjectValueType_Vector, pMove.m_vecAbsViewAngles);
+	
+	pMove.m_nButtons = DHookGetParamObjectPtrVar(hParams, 2, MoveData_Buttons, ObjectValueType_Int);
+	pMove.m_nOldButtons = DHookGetParamObjectPtrVar(hParams, 2, MoveData_OldButtons, ObjectValueType_Int);
+	pMove.m_flForwardMove = DHookGetParamObjectPtrVar(hParams, 2, MoveData_ForwardMove, ObjectValueType_Float);
+	pMove.m_flSideMove = DHookGetParamObjectPtrVar(hParams, 2, MoveData_SideMove, ObjectValueType_Float);
+	pMove.m_flUpMove = DHookGetParamObjectPtrVar(hParams, 2, MoveData_UpMove, ObjectValueType_Float);
+	pMove.m_flMaxSpeed = DHookGetParamObjectPtrVar(hParams, 2, MoveData_MaxSpeed, ObjectValueType_Float);
+	pMove.m_flClientMaxSpeed = DHookGetParamObjectPtrVar(hParams, 2, MoveData_ClientMaxSpeed, ObjectValueType_Float);
+
+	DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_Velocity, ObjectValueType_Vector, pMove.m_vecVelocity);
+	
+	Call_StartForward(gH_OnProcessMovement);
+	Call_PushCell(client);
+	Call_PushArrayEx(pMove, sizeof(movedata_t), SM_PARAM_COPYBACK);
+	MRESReturn result = MRES_Ignored;
+	Call_Finish(result);
+
+	if(result == MRES_ChangedOverride || result == MRES_ChangedHandled)
+	{
+		DHookSetParamObjectPtrVar(hParams, 2, MoveData_ImpulseCommand, ObjectValueType_Int, pMove.m_nImpulseCommand);
+		
+		DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_ViewAngles, ObjectValueType_Vector, pMove.m_vecViewAngles);
+		DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_AbsViewAngles, ObjectValueType_Vector, pMove.m_vecAbsViewAngles);
+		
+		DHookSetParamObjectPtrVar(hParams, 2, MoveData_Buttons, ObjectValueType_Int, pMove.m_nButtons);
+		DHookSetParamObjectPtrVar(hParams, 2, MoveData_OldButtons, ObjectValueType_Int, pMove.m_nOldButtons);
+		DHookSetParamObjectPtrVar(hParams, 2, MoveData_ForwardMove, ObjectValueType_Float, pMove.m_flForwardMove);
+		DHookSetParamObjectPtrVar(hParams, 2, MoveData_SideMove, ObjectValueType_Float, pMove.m_flSideMove);
+		DHookSetParamObjectPtrVar(hParams, 2, MoveData_UpMove, ObjectValueType_Float, pMove.m_flUpMove);
+		DHookSetParamObjectPtrVar(hParams, 2, MoveData_MaxSpeed, ObjectValueType_Float, pMove.m_flMaxSpeed);
+		DHookSetParamObjectPtrVar(hParams, 2, MoveData_ClientMaxSpeed, ObjectValueType_Float, pMove.m_flClientMaxSpeed);
+
+		DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_Velocity, ObjectValueType_Vector, pMove.m_vecVelocity);
+	}
+
+	return result;
+}
+
+public MRESReturn DHook_ProcessMovementPost(Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+
+	movedata_t pMove;
+
+	pMove.m_nImpulseCommand = DHookGetParamObjectPtrVar(hParams, 2, MoveData_ImpulseCommand, ObjectValueType_Int);
+	
+	DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_ViewAngles, ObjectValueType_Vector, pMove.m_vecViewAngles);
+	DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_AbsViewAngles, ObjectValueType_Vector, pMove.m_vecAbsViewAngles);
+	
+	pMove.m_nButtons = DHookGetParamObjectPtrVar(hParams, 2, MoveData_Buttons, ObjectValueType_Int);
+	pMove.m_nOldButtons = DHookGetParamObjectPtrVar(hParams, 2, MoveData_OldButtons, ObjectValueType_Int);
+	pMove.m_flForwardMove = DHookGetParamObjectPtrVar(hParams, 2, MoveData_ForwardMove, ObjectValueType_Float);
+	pMove.m_flSideMove = DHookGetParamObjectPtrVar(hParams, 2, MoveData_SideMove, ObjectValueType_Float);
+	pMove.m_flUpMove = DHookGetParamObjectPtrVar(hParams, 2, MoveData_UpMove, ObjectValueType_Float);
+	pMove.m_flMaxSpeed = DHookGetParamObjectPtrVar(hParams, 2, MoveData_MaxSpeed, ObjectValueType_Float);
+	pMove.m_flClientMaxSpeed = DHookGetParamObjectPtrVar(hParams, 2, MoveData_ClientMaxSpeed, ObjectValueType_Float);
+
+	DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_Velocity, ObjectValueType_Vector, pMove.m_vecVelocity);
+
+	Call_StartForward(gH_OnProcessMovementPost);
+	Call_PushCell(client);
+	Call_PushArray(pMove, sizeof(movedata_t));
+	Call_Finish();
+
+	return MRES_Ignored;
 }
 
 public void PreThinkPost(int client)
