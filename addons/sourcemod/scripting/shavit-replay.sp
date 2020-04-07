@@ -292,7 +292,7 @@ public void OnPluginStart()
 	gCV_PlaybackCanStop = new Convar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
 	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.0", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
-	gCV_ClearPreRun = new Convar("shavit_replay_clearprefrunframe", "0.0", "Clear prerun frame when entering start zone?", 0, true, 0.0, true, 1.0);
+	gCV_ClearPreRun = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
@@ -1607,7 +1607,7 @@ public Action Shavit_OnStart(int client)
 
 	if(!gB_ClearFrame[client])
 	{
-		if(gCV_ClearPreRun.BoolValue)
+		if(!gCV_ClearPreRun.BoolValue)
 		{
 			ClearFrames(client);
 		}
