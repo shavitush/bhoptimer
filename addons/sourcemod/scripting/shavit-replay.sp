@@ -118,6 +118,7 @@ bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
 int gI_PlayerPrerunFrames[MAXPLAYERS+1];
 int gI_PlayerTimerStartFrames[MAXPLAYERS+1];
+bool gB_CleanFrame[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
@@ -1601,11 +1602,20 @@ public Action Shavit_OnStart(int client)
 {	
 	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale);
 	gI_PlayerTimerStartFrames[client] = gA_PlayerFrames[client].Length;
-	
-	if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+
+	if(!gB_CleanFrame[client])
 	{
-		gA_PlayerFrames[client].Erase(0);
-		gI_PlayerFrames[client]--;
+		ClearFrames(client);
+		gB_CleanFrame[client] = true;
+	}
+
+	else 
+	{
+		if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+		{
+			gA_PlayerFrames[client].Erase(0);
+			gI_PlayerFrames[client]--;
+		}
 	}
 
 	return Plugin_Continue;
@@ -1614,6 +1624,14 @@ public Action Shavit_OnStart(int client)
 public void Shavit_OnStop(int client)
 {
 	ClearFrames(client);
+}
+
+public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
+{
+	if(type == Zone_Start)
+	{
+		gB_CleanFrame[client] = false;
+	}
 }
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
