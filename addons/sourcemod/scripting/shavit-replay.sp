@@ -118,6 +118,7 @@ bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
 int gI_PlayerPrerunFrames[MAXPLAYERS+1];
 int gI_PlayerTimerStartFrames[MAXPLAYERS+1];
+bool gB_ClearFrame[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
@@ -154,6 +155,7 @@ Convar gCV_BotWeapon = null;
 Convar gCV_PlaybackCanStop = null;
 Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
+Convar gCV_ClearPreRun = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -290,6 +292,7 @@ public void OnPluginStart()
 	gCV_PlaybackCanStop = new Convar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
 	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.0", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
+	gCV_ClearPreRun = new Convar("shavit_replay_clearprefrunframe", "0.0", "Clear prerun frame when entering start zone?", 0, true, 0.0, true, 1.0);
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
@@ -1601,11 +1604,23 @@ public Action Shavit_OnStart(int client)
 {	
 	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale);
 	gI_PlayerTimerStartFrames[client] = gA_PlayerFrames[client].Length;
-	
-	if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+
+	if(!gB_ClearFrame[client])
 	{
-		gA_PlayerFrames[client].Erase(0);
-		gI_PlayerFrames[client]--;
+		if(gCV_ClearPreRun.BoolValue)
+		{
+			ClearFrames(client);
+		}
+		gB_ClearFrame[client] = true;
+	}
+
+	else 
+	{
+		if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+		{
+			gA_PlayerFrames[client].Erase(0);
+			gI_PlayerFrames[client]--;
+		}
 	}
 
 	return Plugin_Continue;
@@ -1614,6 +1629,14 @@ public Action Shavit_OnStart(int client)
 public void Shavit_OnStop(int client)
 {
 	ClearFrames(client);
+}
+
+public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
+{
+	if(type == Zone_Start)
+	{
+		gB_ClearFrame[client] = false;
+	}
 }
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
@@ -1625,8 +1648,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	if(!gCV_Enabled.BoolValue || (gCV_TimeLimit.FloatValue > 0.0 && time > gCV_TimeLimit.FloatValue))
 	{
-		ClearFrames(client);
-
 		return;
 	}
 
