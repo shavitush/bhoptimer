@@ -1630,6 +1630,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 {
 	if(Shavit_IsPracticeMode(client))
 	{
+		ClearFrames(client);
+
 		return;
 	}
 
@@ -1644,6 +1646,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	{
 		if(length > 0.0 && time > length)
 		{
+			ClearFrames(client);
+
 			return;
 		}
 	}
@@ -1654,12 +1658,16 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		if(wrtime != 0.0 && time > wrtime)
 		{
+			ClearFrames(client);
+
 			return;
 		}
 	}
 
 	if(gI_PlayerFrames[client] == 0)
 	{
+		ClearFrames(client);
+
 		return;
 	}
 	
