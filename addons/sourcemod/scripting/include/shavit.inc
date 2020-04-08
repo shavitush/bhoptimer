@@ -884,6 +884,15 @@ forward MRESReturn Shavit_OnProcessMovement(int client, movedata_t pMove);
 forward void Shavit_OnProcessMovementPost(int client, movedata_t pMove); 
 
 /**
+ * Called after CGameMovement::ProcessMovement has been processed.
+ *
+ * @param client					Client index.
+ * @param pMove						Copy of the pMove data.
+ * @noreturn
+ */
+forward void Shavit_OnReplayLoading(int version, int style, int track, const char[] path, int pathlength, const char[] format, int formatlength); 
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
@@ -1814,10 +1823,10 @@ native int Shavit_GetPlayerPreFrame(int client);
  *
  * @return Timer start frame
  */
- native int Shavit_GetPlayerTimerframe(int client);
+native int Shavit_GetPlayerTimerframe(int client);
 
 /*
- * Sets player's preeframe length
+ * Sets player's preframe length
  *
  * @param client					Client index
  * @param PreFrame					PreFrame length
@@ -1826,6 +1835,16 @@ native int Shavit_GetPlayerPreFrame(int client);
  * @noreturn
  */
 native void Shavit_SetPlayerPreFrame(int client, int PreFrame, int timereframe);
+
+/*
+ * Get's the replay bot folder
+ *
+ * @param buffer					buffer to store the path in
+ * @param maxlength					size of the buffer
+ *
+ * @return							true if the the replay folder has been set, false if the buffer is empty
+ */
+native bool Shavit_GetReplayBotFolder(char[] buffer, int maxlength);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file

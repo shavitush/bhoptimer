@@ -220,6 +220,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetPlayerPreFrame", Native_GetPreFrame);
 	CreateNative("Shavit_GetPlayerTimerframe", Native_GetTimerFrame);
 	CreateNative("Shavit_SetPlayerPreFrame", Native_SetPreFrame);
+	CreateNative("Shavit_GetReplayBotFolder", Native_GetReplayBotFolder);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -735,6 +736,12 @@ public int Native_GetReplayBotTrack(Handle handler, int numParams)
 public int Native_GetReplayBotType(Handle handler, int numParams)
 {
 	return view_as<int>((gCV_CentralBot.BoolValue)? Replay_Central:Replay_Legacy);
+}
+
+public int Native_GetReplayBotFolder(Handle handler, int numParams)
+{
+	SetNativeString(1, gS_ReplayFolder, GetNativeCell(2));
+	return gS_ReplayFolder[0] != '\0';
 }
 
 public int Native_Replay_DeleteMap(Handle handler, int numParams)
