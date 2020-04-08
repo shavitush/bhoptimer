@@ -911,12 +911,12 @@ public void OnMapStart()
 
 	if(!FileExists(sTempMap))
 	{
-
 		File file = OpenFile(sTempMap, "wb");
 		
 		if(file != null)
 		{
 			file.Write(gA_DefaultNavMesh, 51, 4);
+			delete file;
 		}
 
 		ForceChangeLevel(gS_Map, ".nav file generate");
