@@ -1042,7 +1042,7 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 		int iTrack = 0;
 		file.ReadUint8(iTrack);
 
-		if(!StrEqual(sMap, gS_Map, false) || iStyle != style || iTrack != track)
+		if(!StrEqual(sMap, "VALIDITY_BYPASS") && (!StrEqual(sMap, gS_Map, false) || iStyle != style || iTrack != track))
 		{
 			delete file;
 			
