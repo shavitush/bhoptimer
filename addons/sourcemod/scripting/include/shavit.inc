@@ -239,7 +239,6 @@ enum struct cp_cache_t
 	int iClassname;
 	ArrayList aFrames;
 	int iPreFrames;
-	int iTimerPreFrames;
 	bool bSegmented;
 	int iSerial;
 	bool bPractice;
@@ -1732,24 +1731,14 @@ native void Shavit_SetCurrentCheckpoint(int client, int index);
 native int Shavit_GetPlayerPreFrame(int client);
 
 /*
- * Gets player's timer frame 
- *
- * @param client					Client index
- *
- * @return Timer start frame
- */
- native int Shavit_GetPlayerTimerframe(int client);
-
-/*
  * Sets player's preeframe length
  *
  * @param client					Client index
- * @param PreFrame					PreFrame length
- * @param timerPreFrame				Timer start frame length
+ * @param preframe					preframe length
  *
  * @noreturn
  */
-native void Shavit_SetPlayerPreFrame(int client, int PreFrame, int timereframe);
+native void Shavit_SetPlayerPreFrame(int client, int preframe);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
