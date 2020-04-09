@@ -700,6 +700,13 @@ public int Native_GetReplayTime(Handle handler, int numParams)
 		return view_as<int>(GetReplayLength(Track_Main, track));
 	}
 
+	if(FindConVar("shavit_hud_prerun_countdown").BoolValue)
+	{
+		if(gI_ReplayTick[style] < gA_FrameCache[style][track].iPreFrames)
+		{
+			return view_as<int>(float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreFrames) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
+		}
+	}
 
 	return view_as<int>(float(gI_TimerTick[style]) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
 }
