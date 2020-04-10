@@ -394,8 +394,8 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	int iRounded = RoundToFloor(fTempTime);
 	float fSeconds = (iRounded % 60) + fTempTime - iRounded;
 
-	char[] sSeconds = new char[8];
-	FormatEx(sSeconds, 8, precise? "%s%.03f":"%s%.01f", (fSeconds < 0.0)? "-":"", fSeconds);
+	char sSeconds[8];
+	FormatEx(sSeconds, 8, precise? "%s%.03f":"%s%.01f", (time < 0.0)? "-":"", fSeconds);
 
 	if(fTempTime < 60.0)
 	{
