@@ -156,6 +156,7 @@ Convar gCV_PlaybackCanStop = null;
 Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
 Convar gCV_ClearPreRun = null;
+ConVar gCV_PrerunCountdown = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -249,6 +250,7 @@ public void OnPluginStart()
 
 	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
 	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
+	gCV_PrerunCountdown = FindConVar("shavit_hud_prerun_countdown");
 
 	for(int i = 0; i < sizeof(gS_ForcedCvars); i++)
 	{
