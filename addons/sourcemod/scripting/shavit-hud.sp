@@ -124,6 +124,7 @@ Convar gCV_GradientStepSize = null;
 Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_UseHUDFix = null;
+Convar gCV_PrerunCountDown = null;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -197,6 +198,7 @@ public void OnPluginStart()
 	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
+	gCV_PrerunCountDown = new Convar("shavit_hud_prerun_countdown", "1", "Display prerun countdown to the replay hud?", 0, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
@@ -987,7 +989,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 				char sTime[32];
 				FormatSeconds(data.fTime, sTime, 32, false);
 
-				if(data.fTime < 0.0)
+				if(data.fTime < 0.0 && gCV_PrerunCountDown.BoolValue)
 				{
 					Format(sTime, 32, "-%s", sTime);
 				}
@@ -995,7 +997,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 				char sWR[32];
 				FormatSeconds(data.fWR, sWR, 32, false);
 
-				FormatEx(sLine, 128, "%s / %s\n(%.1f％)", sTime, sWR, ((data.fTime <= 0.0 ? 0.0 : data.fTime / data.fWR) * 100));
+				FormatEx(sLine, 128, "%s / %s\n(%.1f％)", sTime, sWR, ((data.fTime < 0.0 ? 0.0 : data.fTime / data.fWR) * 100));
 				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
@@ -1168,10 +1170,15 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 				char sTime[32];
 				FormatSeconds(data.fTime, sTime, 32, false);
 
+				if(data.fTime < 0.0 && gCV_PrerunCountDown.BoolValue)
+				{
+					Format(sTime, 32, "-%s", sTime);
+				}
+
 				char sWR[32];
 				FormatSeconds(data.fWR, sWR, 32, false);
 
-				FormatEx(sLine, 128, "%s / %s (%.1f%%)", sTime, sWR, ((data.fTime / data.fWR) * 100));
+				FormatEx(sLine, 128, "%s / %s (%.1f%%)", sTime, sWR, ((data.fTime < 0.0 ? 0.0 : data.fTime / data.fWR) * 100));
 				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
