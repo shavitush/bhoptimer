@@ -2318,7 +2318,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		}
 
 		snapshot.bTimerEnabled = true;
-		snapshot.fCurrentTime = Shavit_GetReplayTime(style, track);
+		// snapshot.fCurrentTime = Shavit_GetReplayTime(style, track);
 		snapshot.bClientPaused = false;
 		snapshot.bsStyle = style;
 		snapshot.iJumps = 0;

@@ -24,6 +24,7 @@
 #include <geoip>
 #include <clientprefs>
 #include <convar_class>
+#include <double>
 
 #undef REQUIRE_EXTENSIONS
 #include <dhooks>
@@ -63,6 +64,11 @@ enum struct playertimer_t
 	int iLandingTick;
 	bool bOnGround;
 	float fTimescale;
+	float fPauseOrigin[3];
+	float fPauseAngles[3];
+	float fPauseVelocity[3];
+	float fLastOrigin[3];
+	float fOrigin[3];
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -99,11 +105,6 @@ StringMap gSM_StyleCommands = null;
 
 // player timer variables
 playertimer_t gA_Timers[MAXPLAYERS+1];
-
-// these are here until the compiler bug is fixed
-float gF_PauseOrigin[MAXPLAYERS+1][3];
-float gF_PauseAngles[MAXPLAYERS+1][3];
-float gF_PauseVelocity[MAXPLAYERS+1][3];
 
 // cookies
 Handle gH_StyleCookie = null;
@@ -252,8 +253,8 @@ public void OnPluginStart()
 	gH_Forwards_OnDatabaseLoaded = new GlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
 	gH_Forwards_OnChatConfigLoaded = new GlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 	gH_Forwards_OnUserCmdPre = new GlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array, Param_Array);
-	gH_Forwards_OnTimerIncrement = new GlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
-	gH_Forwards_OnTimerIncrementPost = new GlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
+	gH_Forwards_OnTimerIncrement = new GlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_Array, Param_Array);
+	gH_Forwards_OnTimerIncrementPost = new GlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Array, Param_Array);
 	gH_Forwards_OnTimescaleChanged = new GlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnProcessMovement = new GlobalForward("Shavit_OnProcessMovement", ET_Event, Param_Cell, Param_Array);
 	gH_OnProcessMovementPost = new GlobalForward("Shavit_OnProcessMovementPost", ET_Event, Param_Cell, Param_Array);
@@ -674,7 +675,7 @@ public Action Command_TogglePause(int client, int args)
 
 	if(gA_Timers[client].bPaused)
 	{
-		TeleportEntity(client, gF_PauseOrigin[client], gF_PauseAngles[client], gF_PauseVelocity[client]);
+		TeleportEntity(client, gA_Timers[client].fPauseOrigin, gA_Timers[client].fPauseAngles, gA_Timers[client].fPauseVelocity);
 		ResumeTimer(client);
 
 		Shavit_PrintToChat(client, "%T", "MessageUnpause", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
@@ -682,9 +683,9 @@ public Action Command_TogglePause(int client, int args)
 
 	else
 	{
-		GetClientAbsOrigin(client, gF_PauseOrigin[client]);
-		GetClientEyeAngles(client, gF_PauseAngles[client]);
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
+		GetClientAbsOrigin(client, gA_Timers[client].fPauseOrigin);
+		GetClientEyeAngles(client, gA_Timers[client].fPauseAngles);
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gA_Timers[client].fPauseVelocity);
 
 		PauseTimer(client);
 
@@ -1608,9 +1609,9 @@ public int Native_PauseTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	GetClientAbsOrigin(client, gF_PauseOrigin[client]);
-	GetClientEyeAngles(client, gF_PauseAngles[client]);
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
+	GetClientAbsOrigin(client, gA_Timers[client].fPauseOrigin);
+	GetClientEyeAngles(client, gA_Timers[client].fPauseAngles);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gA_Timers[client].fPauseVelocity);
 
 	PauseTimer(client);
 }
@@ -1623,7 +1624,7 @@ public int Native_ResumeTimer(Handle handler, int numParams)
 
 	if(numParams >= 2 && view_as<bool>(GetNativeCell(2))) // teleport?
 	{
-		TeleportEntity(client, gF_PauseOrigin[client], gF_PauseAngles[client], gF_PauseVelocity[client]);
+		TeleportEntity(client, gA_Timers[client].fPauseOrigin, gA_Timers[client].fPauseAngles, gA_Timers[client].fPauseVelocity);
 	}
 }
 
@@ -1952,7 +1953,7 @@ void StartTimer(int client, int track)
 			gA_Timers[client].iTrack = track;
 			gA_Timers[client].bEnabled = true;
 			gA_Timers[client].iSHSWCombination = -1;
-			gA_Timers[client].dTimer = [0, 0];
+			gA_Timers[client].dTimer = {0, 0};
 			gA_Timers[client].bPracticeMode = false;
 			gA_Timers[client].iMeasuredJumps = 0;
 			gA_Timers[client].iPerfectJumps = 0;
@@ -1987,7 +1988,7 @@ void StopTimer(int client)
 
 	gA_Timers[client].bEnabled = false;
 	gA_Timers[client].iJumps = 0;
-	gA_Timers[client].dTimer = [0, 0];
+	gA_Timers[client].dTimer = {0, 0};
 	gA_Timers[client].bPaused = false;
 	gA_Timers[client].iStrafes = 0;
 	gA_Timers[client].iTotalMeasures = 0;
@@ -2099,6 +2100,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
+	SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
 
 	int iSteamID = GetSteamAccountID(client);
 
@@ -2771,6 +2773,14 @@ public void Shavit_OnEnterZone(int client, int type, int track, int id, int enti
 	{
 		gF_ZoneSpeedLimit[client] = float(Shavit_GetZoneData(id));
 	}
+
+	float flOrigin[3];
+	GetClientAbsOrigin(client, flOrigin);
+
+	PrintToConsole(client, "[%f, %f] [%f, %f] [%f, %f]",
+		gA_Timers[client].fOrigin[0], gA_Timers[client].fOrigin[1],
+		gA_Timers[client].fLastOrigin[0], gA_Timers[client].fLastOrigin[1],
+		flOrigin[0], flOrigin[1]);
 }
 
 public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
@@ -2785,8 +2795,11 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
-	movedata_t pMove;
 
+	GetClientAbsOrigin(client, gA_Timers[client].fLastOrigin);
+	
+
+	movedata_t pMove;
 
 	pMove.m_nImpulseCommand = DHookGetParamObjectPtrVar(hParams, 2, MoveData_ImpulseCommand, ObjectValueType_Int);
 	
@@ -2833,6 +2846,15 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
+	if(client <= 0 && client < MAXPLAYERS)
+	{
+		return MRES_Ignored;
+	}
+
+	float flOrigin[3];
+	GetClientAbsOrigin(client, flOrigin);
+
+	// PrintToConsole(client, "[%f, %f] [%f, %f]", gA_Timers[client].fLastOrigin[0], gA_Timers[client].fLastOrigin[1], flOrigin[0], flOrigin[1]);
 
 	movedata_t pMove;
 
@@ -2850,7 +2872,7 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	pMove.m_flClientMaxSpeed = DHookGetParamObjectPtrVar(hParams, 2, MoveData_ClientMaxSpeed, ObjectValueType_Float);
 
 	DHookGetParamObjectPtrVarVector(hParams, 2, MoveData_Velocity, ObjectValueType_Vector, pMove.m_vecVelocity);
-
+	
 	Call_StartForward(gH_OnProcessMovementPost);
 	Call_PushCell(client);
 	Call_PushArray(pMove, sizeof(movedata_t));
@@ -2869,12 +2891,12 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	any timescale[2];
 	if(gA_Timers[client].fTimescale != -1.0)
 	{
-		Double_FromFloat(gA_Timers[client].fTimescale, timescale)
+		Double_FromFloat(gA_Timers[client].fTimescale, timescale);
 	}
 	
 	else
 	{
-		Double_FromFloat(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale, timescale)
+		Double_FromFloat(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale, timescale);
 	}
 
 	any time[2];
@@ -2898,7 +2920,7 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
 	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
-	Call_PushArrayEx(time, 2, SM_PARAM_COPYBACK);
+	Call_PushArray(time, 2);
 	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
 	Call_Finish();
 
@@ -3347,6 +3369,16 @@ void TestAngles(int client, float dirangle, float yawdelta, float vel[3])
 		{
 			gA_Timers[client].iGoodGains++;
 		}
+	}
+}
+
+public void PostThinkPost(int client)
+{
+	if(IsPlayerAlive(client))
+	{
+		GetClientAbsOrigin(client, gA_Timers[client].fOrigin);
+
+		// PrintToConsole(client, "[%f, %f] [%f, %f]", gA_Timers[client].fLastOrigin[0], gA_Timers[client].fLastOrigin[1], flOrigin[0], flOrigin[1]);
 	}
 }
 

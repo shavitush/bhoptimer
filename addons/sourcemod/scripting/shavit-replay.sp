@@ -137,10 +137,10 @@ float gF_NextFrameTime[MAXPLAYERS+1];
 bool gB_Late = false;
 
 // forwards
-Handle gH_OnReplayStart = null;
-Handle gH_OnReplayEnd = null;
-Handle gH_OnReplaysLoaded = null;
-
+GlobalForward gH_OnReplayStart = null;
+GlobalForward gH_OnReplayEnd = null;
+GlobalForward gH_OnReplaysLoaded = null;
+GlobalForward gH_OnReplayLoad = null;
 // server specific
 float gF_Tickrate = 0.0;
 char gS_Map[160];
@@ -250,9 +250,10 @@ public void OnPluginStart()
 	LoadTranslations("shavit-replay.phrases");
 
 	// forwards
-	gH_OnReplayStart = CreateGlobalForward("Shavit_OnReplayStart", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnReplayEnd = CreateGlobalForward("Shavit_OnReplayEnd", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnReplaysLoaded = CreateGlobalForward("Shavit_OnReplaysLoaded", ET_Event);
+	gH_OnReplayStart = new GlobalForward("Shavit_OnReplayStart", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnReplayEnd = new GlobalForward("Shavit_OnReplayEnd", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnReplaysLoaded = new GlobalForward("Shavit_OnReplaysLoaded", ET_Event);
+	gH_OnReplayLoad = new GlobalForward("Shavit_OnReplayLoading", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_String);
 
 	// game specific
 	gEV_Type = GetEngineVersion();
@@ -1210,6 +1211,34 @@ bool LoadReplay(int style, int track, const char[] path)
 		TrimString(sHeader);
 		char sExplodedHeader[2][64];
 		ExplodeString(sHeader, ":", sExplodedHeader, 2, 64);
+
+		// ensure no conflicts if someone modifies the file before we do.
+		delete fFile;
+
+		Call_StartForward(gH_OnReplayLoad);
+
+		Call_PushCell(StringToInt(sExplodedHeader[0]));
+		Call_PushCell(style);
+		Call_PushCell(track);
+		Call_PushString(path);
+		Call_PushCell(PLATFORM_MAX_PATH);
+		Call_PushString(sExplodedHeader[1]);
+		Call_PushCell(64);
+		Call_Finish();
+
+		fFile = OpenFile(path, "rb");
+
+		if(!fFile.ReadLine(sHeader, 64))
+		{
+			delete fFile;
+
+			return false;
+		}
+
+		TrimString(sHeader);
+		ExplodeString(sHeader, ":", sExplodedHeader, 2, 64);
+
+
 
 		if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_FINAL)) // hopefully, the last of them
 		{
