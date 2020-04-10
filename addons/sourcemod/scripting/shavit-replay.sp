@@ -156,7 +156,6 @@ Convar gCV_PlaybackCanStop = null;
 Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
 Convar gCV_ClearPreRun = null;
-ConVar gCV_PrerunCountdown = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -250,7 +249,6 @@ public void OnPluginStart()
 
 	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
 	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
-	gCV_PrerunCountdown = FindConVar("shavit_hud_prerun_countdown");
 
 	for(int i = 0; i < sizeof(gS_ForcedCvars); i++)
 	{
@@ -679,38 +677,30 @@ public int Native_GetReplayStatus(Handle handler, int numParams)
 	}
 }
 
-public int Native_GetReplayTime(Handle handler, int numParams)
+public any Native_GetReplayTime(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(2);
 
 	if(style < 0 || track < 0)
 	{
-		return view_as<int>(0.0);
+		return ThrowNativeError(200, "Style/Track out of range");
 	}
 
 	if(gCV_CentralBot.BoolValue)
 	{
 		if(gA_CentralCache.iReplayStatus == Replay_End)
 		{
-			return view_as<int>(GetReplayLength(style, track));
+			return GetReplayLength(style, track);
 		}
 	}
 
 	else if(gRS_ReplayStatus[style] == Replay_End)
 	{
-		return view_as<int>(GetReplayLength(Track_Main, track));
+		return GetReplayLength(Track_Main, track);
 	}
 
-	if(gCV_PrerunCountdown.BoolValue)
-	{
-		if(gI_ReplayTick[style] < gA_FrameCache[style][track].iPreFrames)
-		{
-			return view_as<int>(float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreFrames) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
-		}
-	}
-
-	return view_as<int>(float(gI_TimerTick[style]) / gF_Tickrate * gA_StyleSettings[style].fTimescale);
+	return float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreFrames) / gF_Tickrate * gA_StyleSettings[style].fTimescale;
 }
 
 public int Native_HijackAngles(Handle handler, int numParams)
