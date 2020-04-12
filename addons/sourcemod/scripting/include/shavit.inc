@@ -820,7 +820,7 @@ forward void Shavit_OnTimescaleChanged(int client, float oldtimescale, float new
 forward Action Shavit_OnCheckPointMenuMade(int client, bool segmented);
 
 /**
- * Called after the checkpoint menu has been made and before it's sent to the client.
+ * Called when before a selection is processed in the main checkpoint menu.
  *
  * @param client					Client index.
  * @param param2					Second parameter in the callback, usually the item selected.
@@ -1722,16 +1722,16 @@ native int Shavit_GetCurrentCheckpoint(int client);
 native void Shavit_SetCurrentCheckpoint(int client, int index);
 
 /*
- * Gets player's PreFrame 
+ * returns the number of preframes in the players current run.
  *
  * @param client					Client index
  *
- * @return PreFrame
+ * @return 							Preframe count
  */
 native int Shavit_GetPlayerPreFrame(int client);
 
 /*
- * Sets player's preeframe length
+ * Sets player's preframe length.
  *
  * @param client					Client index
  * @param preframe					preframe length
