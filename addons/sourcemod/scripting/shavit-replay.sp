@@ -2771,9 +2771,6 @@ float GetCurrentFrameTime(int client, int style, int track)
 	// TimerStartFrame = FrameAfterLeavingStartZone - PreFrames
 	// TotalTimerFrame = FrameCount - PreFrames
 	return float(GetClosetFrameForPlayer(client, style, track) - gA_FrameCache[style][track].iPreFrames) / float(gA_FrameCache[style][track].iFrameCount - gA_FrameCache[style][track].iPreFrames) * GetReplayLength(style, track);
-
-	//Kamay's 
-	//return (1 - (gA_FrameCache[style][track].iFrameCount - (GetClosetFrameForPlayer(client, style, track) + gA_FrameCache[style][track].iPreFrames)) / gA_FrameCache[style][track].iFrameCount) * GetReplayLength(style, track);
 }
 
 /*

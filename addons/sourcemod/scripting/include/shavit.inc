@@ -1749,6 +1749,10 @@ native void Shavit_SetPlayerPreFrame(int client, int preframe);
  */
 native int Shavit_GetReplayPreFrameCount(int style, int track);
 
+// I need a native English speaker to polish these two natives >_>  ---- deadwinter
+native int Shavit_GetClientCurrentFrame(int client, int style, int track);
+native float Shavit_GetClientCurrentFrameTime(int client, int style, int track);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -1880,5 +1884,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetPlayerTimerframe");
 	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetReplayPreFrameCount");
+	MarkNativeAsOptional("Shavit_GetClientCurrentFrame");
+	MarkNativeAsOptional("Shavit_GetClientCurrentFrameTime");
 }
 #endif
