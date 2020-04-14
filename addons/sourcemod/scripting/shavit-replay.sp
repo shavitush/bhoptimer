@@ -156,7 +156,6 @@ Convar gCV_PlaybackCanStop = null;
 Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
 Convar gCV_ClearPreRun = null;
-ConVar gCV_PrerunCountdown = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -211,6 +210,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_GetPlayerPreFrame", Native_GetPreFrame);
 	CreateNative("Shavit_SetPlayerPreFrame", Native_SetPreFrame);
+	CreateNative("Shavit_GetReplayPreFrameCount", Native_GetReplayPreFrameCount);
+	CreateNative("Shavit_GetClientCurrentFrame", Native_GetClientCurrentFrame);
+	CreateNative("Shavit_GetClientCurrentFrameTime", Native_GetClientCurrentFrameTime);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -250,7 +252,6 @@ public void OnPluginStart()
 
 	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
 	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
-	gCV_PrerunCountdown = FindConVar("shavit_hud_prerun_countdown");
 
 	for(int i = 0; i < sizeof(gS_ForcedCvars); i++)
 	{
@@ -631,13 +632,13 @@ public int Native_GetReplayData(Handle handler, int numParams)
 
 public int Native_GetReplayFrames(Handle handler, int numParams)
 {
-	int track = GetNativeCell(1);
-	int style = GetNativeCell(2);
+	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
 	ArrayList frames = null;
 
-	if(gA_Frames[track][style] != null)
+	if(gA_Frames[style][track] != null)
 	{
-		ArrayList temp = gA_Frames[track][style].Clone();
+		ArrayList temp = gA_Frames[style][track].Clone();
 		frames = view_as<ArrayList>(CloneHandle(temp, handler));
 		delete temp;
 	}
@@ -770,6 +771,21 @@ public int Native_GetPreFrame(Handle handler, int numParams)
 public int Native_SetPreFrame(Handle handler, int numParams)
 {
 	gI_PlayerPrerunFrames[GetNativeCell(1)] = GetNativeCell(2);
+}
+
+public int Native_GetReplayPreFrameCount(Handle handler, int numParams)
+{
+	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].iPreFrames;
+}
+
+public int Native_GetClientCurrentFrame(Handle handler, int numParams)
+{
+	return GetClosetFrameForPlayer(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3));
+}
+
+public int Native_GetClientCurrentFrameTime(Handle handler, int numParams)
+{
+	return view_as<int>(GetCurrentFrameTime(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3)));
 }
 
 public Action Cron(Handle Timer)
@@ -1599,8 +1615,22 @@ public Action Shavit_OnStart(int client)
 		if(!gCV_ClearPreRun.BoolValue)
 		{
 			ClearFrames(client);
+			gB_ClearFrame[client] = true;
 		}
-		gB_ClearFrame[client] = true;
+		
+		else
+		{
+			for(int i = 0; i < gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale); i++)
+			{
+				gA_PlayerFrames[client].Erase(0);
+				gI_PlayerFrames[client]--;
+			}
+
+			if(gA_PlayerFrames[client].Length <= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+			{
+				gB_ClearFrame[client] = true;
+			}
+		}
 	}
 
 	else 
@@ -2698,6 +2728,52 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 	}
 
 	Shavit_GetWRName(style, buffer, length, track);
+}
+
+int GetClosetFrameForPlayer(int client, int style, int track)
+{
+	if(!gA_Frames[style][track])
+	{
+		return -1;
+	}
+
+	float vecPlayerOrigin[3], vecFrameOrigin[3];
+	GetClientAbsOrigin(client, vecPlayerOrigin);
+
+	float flLastDistance = 500.1;
+	int iFrame = -1;
+
+	for(int i = gA_FrameCache[style][track].iPreFrames; i < gA_Frames[style][track].Length; i++)
+	{
+		vecFrameOrigin[0] = gA_Frames[style][track].Get(i, 0);
+		vecFrameOrigin[1] = gA_Frames[style][track].Get(i, 1);
+		vecFrameOrigin[2] = gA_Frames[style][track].Get(i, 2);
+
+		float flDistance = GetVectorDistance(vecPlayerOrigin, vecFrameOrigin);
+		if(flDistance < flLastDistance && flDistance != 0.0)
+		{
+			flLastDistance = flDistance;
+			iFrame = i;
+		}
+	}
+
+	if(flLastDistance > 500.0)
+	{
+		return -1;
+	}
+
+	return iFrame;
+}
+
+float GetCurrentFrameTime(int client, int style, int track)
+{
+	// TimerStartFrame / TotalTimerFrame * WRTime
+	// TimerStartFrame = FrameAfterLeavingStartZone - PreFrames
+	// TotalTimerFrame = FrameCount - PreFrames
+	return float(GetClosetFrameForPlayer(client, style, track) - gA_FrameCache[style][track].iPreFrames) / float(gA_FrameCache[style][track].iFrameCount - gA_FrameCache[style][track].iPreFrames) * GetReplayLength(style, track);
+
+	//Kamay's 
+	//return (1 - (gA_FrameCache[style][track].iFrameCount - (GetClosetFrameForPlayer(client, style, track) + gA_FrameCache[style][track].iPreFrames)) / gA_FrameCache[style][track].iFrameCount) * GetReplayLength(style, track);
 }
 
 /*

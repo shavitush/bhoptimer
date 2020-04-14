@@ -1057,14 +1057,20 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
 
+			char sTimeDifference[32];
+			if(Shavit_GetClientCurrentFrame(client, data.iStyle, data.iTrack) != -1)
+			{
+				FormatSeconds(data.fTime - Shavit_GetClientCurrentFrameTime(client, data.iStyle, data.iTrack), sTimeDifference, 32, false);
+			}
+
 			if((gI_HUD2Settings[client] & HUD2_RANK) == 0)
 			{
-				FormatEx(sLine, 128, "%T: %s (%d)", "HudTimeText", client, sTime, data.iRank);
+				FormatEx(sLine, 128, "%T: %s (%s) (%d)", "HudTimeText", client, sTime, sTimeDifference, data.iRank);
 			}
 
 			else
 			{
-				FormatEx(sLine, 128, "%T: %s", "HudTimeText", client, sTime);
+				FormatEx(sLine, 128, "%T: %s (%s)", "HudTimeText", client, sTime, sTimeDifference);
 			}
 			
 			AddHUDLine(buffer, maxlen, sLine, iLines);
@@ -1260,14 +1266,21 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
 
+			char sTimeDifference[32];
+			if(Shavit_GetClientCurrentFrame(client, data.iStyle, data.iTrack) != -1)
+			{
+				FormatSeconds(data.fTime - Shavit_GetClientCurrentFrameTime(client, data.iStyle, data.iTrack), sTimeDifference, 32, false);
+			}
+			//PrintToConsole(client, "Difference: %.2f, ClosetFrame: %d", GetCurrentFrameTime(client, data), GetClosetFrameForPlayer(client, data));
+
 			if((gI_HUD2Settings[client] & HUD2_RANK) == 0)
 			{
-				FormatEx(sLine, 128, "<span color='#%06X'>%s</span> (#%d)", iColor, sTime, data.iRank);
+				FormatEx(sLine, 128, "<span color='#%06X'>%s (%s)</span> (#%d)", iColor, sTime, sTimeDifference, data.iRank);
 			}
 
 			else
 			{
-				FormatEx(sLine, 128, "<span color='#%06X'>%s</span>", iColor, sTime);
+				FormatEx(sLine, 128, "<span color='#%06X'>%s (%s)</span>", iColor, sTime, sTimeDifference);
 			}
 			
 			AddHUDLine(buffer, maxlen, sLine, iLines);

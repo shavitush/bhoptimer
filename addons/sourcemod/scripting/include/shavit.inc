@@ -1740,6 +1740,15 @@ native int Shavit_GetPlayerPreFrame(int client);
  */
 native void Shavit_SetPlayerPreFrame(int client, int preframe);
 
+/*
+ * Get preframe length from specific replay
+ * @param stlye						Style
+ * @param track						Track 
+ *
+ * @return Replay preframe 
+ */
+native int Shavit_GetReplayPreFrameCount(int style, int track);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -1869,6 +1878,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_GetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetPlayerTimerframe");
-	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");  
+	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
+	MarkNativeAsOptional("Shavit_GetReplayPreFrameCount");
 }
 #endif
