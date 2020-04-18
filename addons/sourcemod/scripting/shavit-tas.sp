@@ -13,7 +13,7 @@ public Plugin myinfo =
 	name = "TAS Style",
 	author = "Charles_(hypnos)",
 	description = "TAS Style",
-	version = "1.9",
+	version = "1.9.2",
 	url = "https://hyps.dev/"
 }
 
@@ -47,7 +47,11 @@ float AngDiff[MAXPLAYERS + 1];
 
 bool g_bTAS[MAXPLAYERS + 1];
 
+EngineVersion g_Engine = Engine_Unknown;
+
 public void OnPluginStart() {
+	g_Engine = GetEngineVersion();
+
 	for (int i = 1; i <= MaxClients; i++) {
 		if(IsClientInGame(i)) {
 			OnClientPutInServer(i);
@@ -308,13 +312,21 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					{
 						angles[1] += yaw_change;
 						//buttons |= IN_MOVERIGHT;
-						vel[1] = 400.0;
+						if(g_Engine == Engine_CSS) {
+							vel[1] = 400.0;
+						} else if(g_Engine == Engine_CSGO){
+							vel[1] = 450.0;
+						}
 					}
 					else if(mouse[0] < 0)
 					{
 						angles[1] -= yaw_change;
 						//buttons |= IN_MOVELEFT;
-						vel[1] = -400.0;
+						if(g_Engine == Engine_CSS) {
+							vel[1] = -400.0;
+						} else if(g_Engine == Engine_CSGO){
+							vel[1] = -450.0;
+						}
 					}
 				}
 				/*
@@ -330,10 +342,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						//Don't subtract 1 from gf_TimescaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
 
 						if(AngDiff[client] < AutoStrafeTrigger * -1) {
-							vel[StrafeAxis[client]] = -400.0;
+							if(g_Engine == Engine_CSS) {
+								vel[StrafeAxis[client]] = -400.0;
+							} else if(g_Engine == Engine_CSGO){
+								vel[StrafeAxis[client]] = -450.0;
+							}
 						}
 						else if(AngDiff[client] > AutoStrafeTrigger) {
-							vel[StrafeAxis[client]] = 400.0;
+							if(g_Engine == Engine_CSS) {
+								vel[StrafeAxis[client]] = 400.0;
+							} else if(g_Engine == Engine_CSGO){
+								vel[StrafeAxis[client]] = 450.0;
+							}
 						} else if (!(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP)) {
 							if (!(truevel[client] == 0.0)) {
 								flYawBhop[client] = 0.0;
@@ -348,13 +368,21 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 								angles[1] += flYawBhop[client];
 								//buttons |= ~IN_MOVERIGHT;
 								DirIsRight[client] = false;
-								vel[StrafeAxis[client]] = 400.0;
+								if(g_Engine == Engine_CSS) {
+									vel[StrafeAxis[client]] = 400.0;
+								} else if(g_Engine == Engine_CSGO){
+									vel[StrafeAxis[client]] = 450.0;
+								}
 							}
 							else {
 								angles[1] -= flYawBhop[client];
 								//buttons |= ~IN_MOVELEFT;
 								DirIsRight[client] = true;
-								vel[StrafeAxis[client]] = -400.0;
+								if(g_Engine == Engine_CSS) {
+									vel[StrafeAxis[client]] = -400.0;
+								} else if(g_Engine == Engine_CSGO){
+									vel[StrafeAxis[client]] = -450.0;
+								}
 							}
 						}
 					}
