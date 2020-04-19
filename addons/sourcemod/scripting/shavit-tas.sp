@@ -10,7 +10,7 @@
 public Plugin myinfo = 
 {
 	name = "TAS Style",
-	author = "Charles_(hypnos) // Wigglehack by Kamay",
+	author = "Charles_(hypnos), SilentStrafe by Kamay",
 	description = "TAS Style",
 	version = "1.9.6",
 	url = "https://hyps.dev/"
@@ -351,7 +351,7 @@ public void OnClientPutInServer(int client)
 	gF_Power[client] = 1.0;
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelocity[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
 	if (IsValidClient(client, true) && gB_TAS[client])
 	{
@@ -387,15 +387,15 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelo
 				/*
 							AUTO STRAFER START
 														*/
-				if(buttons & IN_FORWARD && fVelocity[0] <= 50.0)
+				if(buttons & IN_FORWARD && vel[0] <= 50.0)
 				{
-					fVelocity[0] = 450.0;
+					vel[0] = 450.0;
 				}
 
 				float yaw_change = 0.0;
-				if(fVelocity[0] > 50.0)
+				if(vel[0] > 50.0)
 				{
-					yaw_change = 30.0 * FloatAbs(30.0 / fVelocity[0]);
+					yaw_change = 30.0 * FloatAbs(30.0 / vel[0]);
 				}
 
 				if (gB_AutoStrafeEnabled[client] == true && Shavit_GetTimerStatus(client) == Timer_Running && gB_TAS[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
@@ -403,17 +403,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelo
 					if(diff < 0)
 					{
 						angles[1] += yaw_change;
-
 						//buttons |= IN_MOVERIGHT;
-						fVelocity[1] = gF_MaxMove;
+						vel[1] = gF_MaxMove;
 					}
 					else if(diff > 0)
 					{
 						angles[1] -= yaw_change;
-
 						//buttons |= IN_MOVELEFT;
-						fVelocity[1] = gF_MaxMove * -1.0;
-
+						vel[1] = gF_MaxMove * -1.0;
 					}
 				}
 				/*
@@ -483,29 +480,29 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelo
 							if (fAngleDifference < 0.0)
 							{
 								float fMaxDelta = GetMaxDeltaInAir(fVelocity2D, fMaxSpeed, fSurfaceFriction, true);
-								
-								fVelocity[1] = gF_MaxMove;
+								vel[1] = gF_MaxMove;
+
 								if (fCurrentAngles <= fMaxDelta * gF_Power[client])
 								{
-									fVelocity[0] = fFowardMove * gF_MaxMove;
-									fVelocity[1] = fSideMove * gF_MaxMove;
+									vel[0] = fFowardMove * gF_MaxMove;
+									vel[1] = fSideMove * gF_MaxMove;
 								}
 							}
 							else if (fAngleDifference > 0.0)
 							{
 								float fMaxDelta = GetMaxDeltaInAir(fVelocity2D, fMaxSpeed, fSurfaceFriction, false);
+								vel[1] = -gF_MaxMove;
 
-								fVelocity[1] = -gF_MaxMove;
 								if (fCurrentAngles <= fMaxDelta * gF_Power[client])
 								{
-									fVelocity[0] = fFowardMove * gF_MaxMove;
-									fVelocity[1] = fSideMove * gF_MaxMove;
+									vel[0] = fFowardMove * gF_MaxMove;
+									vel[1] = fSideMove * gF_MaxMove;
 								}
 							}
 							else
 							{
-								fVelocity[0] = fFowardMove * gF_MaxMove;
-								fVelocity[1] = fSideMove * gF_MaxMove;
+								vel[0] = fFowardMove * gF_MaxMove;
+								vel[1] = fSideMove * gF_MaxMove;
 							}
 						}
 					}
@@ -552,8 +549,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelo
 				}
 				else if(!(GetEntityFlags(client) & FL_ONGROUND))
 				{
-					fVelocity[0] = 0.0;
-					fVelocity[1] = 0.0;
+					vel[0] = 0.0;
+					vel[1] = 0.0;
 				}
 
 				// Fix boosters
@@ -579,9 +576,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelo
 				}
 				else
 				{
-					fVelocity[0] = 0.0;
-					fVelocity[1] = 0.0;
-					fVelocity[2] = 0.0;
+					vel[0] = 0.0;
+					vel[1] = 0.0;
+					vel[2] = 0.0;
 					int iFrameSize = GetArraySize(gA_Frames[client]);
 					int iFrameNumber = gI_IndexCounter[client];
 					if(iFrameSize > 1 && iFrameNumber > 1)
@@ -622,9 +619,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelo
 			}
 			else if(gI_Status[client] == BACKWARD)
 			{
-				fVelocity[0] = 0.0;
-				fVelocity[1] = 0.0;
-				fVelocity[2] = 0.0;
+				vel[0] = 0.0;
+				vel[1] = 0.0;
+				vel[2] = 0.0;
 				int iFrameSize = GetArraySize(gA_Frames[client]);
 				int iFrameNumber = gI_IndexCounter[client];
 				if(iFrameSize > 1 && iFrameNumber > 2)
@@ -668,9 +665,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelo
 			}
 			else if(gI_Status[client] == FORWARD)
 			{
-				fVelocity[0] = 0.0;
-				fVelocity[1] = 0.0;
-				fVelocity[2] = 0.0;
+				vel[0] = 0.0;
+				vel[1] = 0.0;
+				vel[2] = 0.0;
 				int iFrameSize = GetArraySize(gA_Frames[client]);
 				int iFrameNumber = gI_IndexCounter[client];
 				if(iFrameSize > 1 && iFrameNumber < iFrameSize-1)
@@ -714,9 +711,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float fVelo
 			}
 			else
 			{
-				fVelocity[0] = 0.0;
-				fVelocity[1] = 0.0;
-				fVelocity[2] = 0.0;
+				vel[0] = 0.0;
+				vel[1] = 0.0;
+				vel[2] = 0.0;
 				gI_Status[client] = PAUSED;
 			}
 		}
@@ -757,11 +754,10 @@ bool DrawPanel(int client)
 	DrawPanelText(hPanel, " ");
 
 	SetPanelCurrentKey(hPanel, 5);
-	// match current timer menu standards
-	FormatEx(sBuffer, sizeof(sBuffer), "Toggle autostrafe %s", gB_AutoStrafeEnabled[client]?"[x]":"[ ]");
+	FormatEx(sBuffer, sizeof(sBuffer), "Toggle autostrafe %s", gB_AutoStrafeEnabled[client]?"[ON]":"[OFF]");
 	DrawPanelItem(hPanel, sBuffer);
 	
-	FormatEx(sBuffer, sizeof(sBuffer), "Toggle wigglehack %s", gB_Strafing[client]?"[x]":"[ ]");
+	FormatEx(sBuffer, sizeof(sBuffer), "Toggle wigglehack %s", gB_Strafing[client]?"[ON]":"[OFF]");
 	DrawPanelItem(hPanel, sBuffer);
 	
 	DrawPanelText(hPanel, " ");
@@ -1046,15 +1042,15 @@ float Vec2DToYaw(float vec[2])
 	return fYaw;
 }
 
-void Solve2DMovementsVars(float vWishDir[2], float vForward[2], float vRight[2], float &fForwardMove, float &fSideMove)
+void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRight[2], float &fForwardMove, float &fSideMove)
 {
 
-	float v = vWishDir[0];
-	float w = vWishDir[1];
-	float a = vForward[0];
-	float c = vRight[0];
-	float e = vForward[1];
-	float f = vRight[1];
+	float v = vecWishDir[0];
+	float w = vecWishDir[1];
+	float a = vecForward[0];
+	float c = vecRight[0];
+	float e = vecForward[1];
+	float f = vecRight[1];
 
 	float fDivide = (c * e - a * f);
 	if(fDivide == 0.0)
@@ -1171,19 +1167,19 @@ float GetMaxDeltaInAir(float fVelocity[2], float fMaxSpeed, float fSurfaceFricti
 
 	GetAngleVectors(fTemp, vBestRight3D, NULL_VECTOR, NULL_VECTOR);
 
-	float vecBestRight[2], vecBestLeft[2];
+	float vBestRight[2], vBestLeft[2];
 
-	vecBestRight[0] = vBestRight3D[0];
-	vecBestRight[1] = vBestRight3D[1];
+	vBestRight[0] = vBestRight3D[0];
+	vBestRight[1] = vBestRight3D[1];
 
-	vecBestLeft[0] = vBestLeft3D[0];
-	vecBestLeft[1] = vBestLeft3D[1];
+	vBestLeft[0] = vBestLeft3D[0];
+	vBestLeft[1] = vBestLeft3D[1];
 
 	float fCalculateVelocityLeft[2], fCalculateVelocityRight[2];
 
 	// Simulate air accelerate function in order to get the new max gain possible on both side.
-	SimulateAirAccelerate(fVelocity, vecBestLeft, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityLeft);
-	SimulateAirAccelerate(fVelocity, vecBestRight, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityRight);
+	SimulateAirAccelerate(fVelocity, vBestLeft, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityLeft);
+	SimulateAirAccelerate(fVelocity, vBestRight, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityRight);
 
 	float fNewBestYawLeft = Vec2DToYaw(fCalculateVelocityLeft);
 	float fNewBestYawRight = Vec2DToYaw(fCalculateVelocityRight);
