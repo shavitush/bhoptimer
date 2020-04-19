@@ -1775,7 +1775,7 @@ native bool Shavit_GetTASStrafe(int client);
  *
  * @noreturn				
  */
-native void SHavit_SetTASStrafeType(int client, int value);
+native void Shavit_SetTASStrafeType(int client, int value);
 
 /**
  * Retrieves the current TAS strafehack type for the given client index.
