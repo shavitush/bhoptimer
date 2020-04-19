@@ -132,6 +132,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
 	{ //on
 		gB_TAS[client] = true;
 		Shavit_PrintToChat(client, "This is a TAS style. Type !tashelp for more information.");
+		DrawPanel(client);
 	}
 }
 
@@ -268,6 +269,10 @@ public Action Command_MinusOne(int client, int args)
 public Action Command_TASMenu(int client, int args)
 {
 	gB_TASMenu[client] = !gB_TASMenu[client];
+	if(gB_TASMenu[client])
+	{
+		DrawPanel(client);
+	}
 	return Plugin_Handled;
 }
 
@@ -280,6 +285,7 @@ public Action Command_TASHelp(int client, int args)
 public Action CommandListener_TAS(int client, const char[] command, int args)
 {
 	gB_TASMenu[client] = true;
+	DrawPanel(client);
 	return Plugin_Continue;
 }
 
@@ -352,12 +358,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 {
 	if (IsValidClient(client, true) && gB_TAS[client])
 	{
-		DrawPanel(client);
-	
+
 		if(!gB_TAS[client])
 		{
 			return Plugin_Continue;
 		}
+
+		DrawPanel(client);
 
 		if(Shavit_GetTimerStatus(client) != Timer_Running)
 		{
@@ -764,6 +771,8 @@ bool DrawPanel(int client)
 	DrawPanelItem(hPanel, "Restart");
 	DrawPanelItem(hPanel, "Exit");
 	SendPanelToClient(hPanel, client, Panel_Handler, 1);
+
+	delete hPanel;
 	return true;
 }
 
@@ -800,7 +809,9 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 				case 2:
 				{
 					if(Shavit_InsideZone(param1, Zone_Start, -1))
+					{
 						return;
+					}
 
 					if(gI_Status[param1] != BACKWARD)
 					{
@@ -808,8 +819,6 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 					}
 					else
 					{
-						//ResumePlayer(param1);
-						//gI_Status[param1] = RUN;
 						gI_Status[param1] = PAUSED;
 					}
 				}
@@ -826,8 +835,6 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 					}
 					else
 					{
-						//ResumePlayer(param1);
-						//gI_Status[param1] = RUN;
 						gI_Status[param1] = PAUSED;
 					}
 				}
@@ -876,6 +883,7 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 				{
 					gB_TASMenu[param1] = false;
 					Shavit_PrintToChat(param1, "Type !tasmenu to reopen the menu.");
+					delete menu;
 				}
 			}
 		}
