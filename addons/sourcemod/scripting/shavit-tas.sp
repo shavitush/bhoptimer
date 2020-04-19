@@ -10,7 +10,7 @@
 public Plugin myinfo = 
 {
 	name = "TAS Style",
-	author = "Charles_(hypnos)",
+	author = "Charles_(hypnos), SilentStrafe by Kamay",
 	description = "TAS Style",
 	version = "1.9.6",
 	url = "https://hyps.dev/"
@@ -1153,33 +1153,33 @@ float GetMaxDeltaInAir(float fVelocity[2], float fMaxSpeed, float fSurfaceFricti
 	// Get the best yaw direction on the left.
 	float fBestYawLeft = AngleNormalize(fYawVelocity - fTheta);
 
-	float fTemp[3], VectorBestLeft3D[3], VectorBestRight3D[3];
+	float fTemp[3], vBestLeft3D[3], vBestRight3D[3];
 
 	fTemp[0] = 0.0;
 	fTemp[1] = fBestYawLeft;
 	fTemp[2] = 0.0;
 
-	GetAngleVectors(fTemp, VectorBestLeft3D, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(fTemp, vBestLeft3D, NULL_VECTOR, NULL_VECTOR);
 
 	fTemp[0] = 0.0;
 	fTemp[1] = fBestYawRight;
 	fTemp[2] = 0.0;
 
-	GetAngleVectors(fTemp, VectorBestRight3D, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(fTemp, vBestRight3D, NULL_VECTOR, NULL_VECTOR);
 
-	float vecBestRight[2], vecBestLeft[2];
+	float vBestRight[2], vBestLeft[2];
 
-	vecBestRight[0] = VectorBestRight3D[0];
-	vecBestRight[1] = VectorBestRight3D[1];
+	vBestRight[0] = vBestRight3D[0];
+	vBestRight[1] = vBestRight3D[1];
 
-	vecBestLeft[0] = VectorBestLeft3D[0];
-	vecBestLeft[1] = VectorBestLeft3D[1];
+	vBestLeft[0] = vBestLeft3D[0];
+	vBestLeft[1] = vBestLeft3D[1];
 
 	float fCalculateVelocityLeft[2], fCalculateVelocityRight[2];
 
 	// Simulate air accelerate function in order to get the new max gain possible on both side.
-	SimulateAirAccelerate(fVelocity, vecBestLeft, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityLeft);
-	SimulateAirAccelerate(fVelocity, vecBestRight, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityRight);
+	SimulateAirAccelerate(fVelocity, vBestLeft, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityLeft);
+	SimulateAirAccelerate(fVelocity, vBestRight, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityRight);
 
 	float fNewBestYawLeft = Vec2DToYaw(fCalculateVelocityLeft);
 	float fNewBestYawRight = Vec2DToYaw(fCalculateVelocityRight);
@@ -1259,24 +1259,24 @@ void GetIdealMovementsInAir(float fYawWantedDirection, float fVelocity[2], float
 		}
 	}
 
-	float vecForwardWantedDir3D[3], vecRightWantedDir3D[3];
-	float vecForwardWantedDir[2], vecRightWantedDir[2];
+	float vForwardWantedDirection3D[3], vRightWantedDirection3D[3];
+	float vForwardWantedDirection[2], vRightWantedDirection[2];
 
 	TemporaryAngle[0] = 0.0;
 	TemporaryAngle[1] = fYawWantedDirection;
 	TemporaryAngle[2] = 0.0;
 
 	// Convert our yaw wanted direction to vectors.
-	GetAngleVectors(TemporaryAngle, vecForwardWantedDir3D, vecRightWantedDir3D, NULL_VECTOR);
+	GetAngleVectors(TemporaryAngle, vForwardWantedDirection3D, vRightWantedDirection3D, NULL_VECTOR);
 
-	vecForwardWantedDir[0] = vecForwardWantedDir3D[0];
-	vecForwardWantedDir[1] = vecForwardWantedDir3D[1];
+	vForwardWantedDirection[0] = vForwardWantedDirection3D[0];
+	vForwardWantedDirection[1] = vForwardWantedDirection3D[1];
 
-	vecRightWantedDir[0] = vecRightWantedDir3D[0];
-	vecRightWantedDir[1] = vecRightWantedDir3D[1];
+	vRightWantedDirection[0] = vRightWantedDirection3D[0];
+	vRightWantedDirection[1] = vRightWantedDirection3D[1];
 
 	// Solve the movement variables from our wanted direction and the best gain direction.
-	Solve2DMovementsVars(vBestVectorDirection, vecForwardWantedDir, vecRightWantedDir, fForwardMove, fSideMove);
+	Solve2DMovementsVars(vBestVectorDirection, vForwardWantedDirection, vRightWantedDirection, fForwardMove, fSideMove);
 
 	float fLengthMovements = SquareRoot(fForwardMove * fForwardMove + fSideMove * fSideMove);
 
