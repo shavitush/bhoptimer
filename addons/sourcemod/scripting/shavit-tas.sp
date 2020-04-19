@@ -37,7 +37,6 @@ float gF_IndexCounter[MAXPLAYERS+1];
 float gF_LastAngle[MAXPLAYERS];
 float gF_MaxMove;
 float gF_Power[MAXPLAYERS + 1] = {1.0, ...};
-float gF_SideMove;
 float gF_TASTime[MAXPLAYERS+1];
 float gF_TickRate;
 float gF_TimeScaleTicksPassed[MAXPLAYERS+1];
@@ -56,12 +55,10 @@ public void OnPluginStart()
 	
 	if(g_Game != Engine_CSGO)
 	{
-		gF_SideMove = 400.0;
 		gF_MaxMove = 400.0;
 	}
 	else
 	{
-		gF_SideMove = 450.0;
 		gF_MaxMove = 450.0;
 		ConVar sv_air_max_wishspeed = FindConVar("sv_air_max_wishspeed");
 		sv_air_max_wishspeed.AddChangeHook(OnWishSpeedChanged);
@@ -407,13 +404,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					{
 						angles[1] += yaw_change;
 						//buttons |= IN_MOVERIGHT;
-						vel[1] = gF_SideMove;
+						vel[1] = gF_MaxMove;
 					}
 					else if(diff > 0)
 					{
 						angles[1] -= yaw_change;
 						//buttons |= IN_MOVELEFT;
-						vel[1] = gF_SideMove * -1.0;
+						vel[1] = gF_MaxMove * -1.0;
 					}
 				}
 				/*
