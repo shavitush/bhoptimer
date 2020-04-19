@@ -1934,6 +1934,12 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_GetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetPlayerTimerframe");
-	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");  
+	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
+	MarkNativeAsOptional("Shavit_GetTASStrafePower");
+	MarkNativeAsOptional("Shavit_SetTASStrafePower");
+	MarkNativeAsOptional("Shavit_GetTASStrafeType");
+	MarkNativeAsOptional("Shavit_SetTASStrafeType");
+	MarkNativeAsOptional("Shavit_GetTASStrafe");
+	MarkNativeAsOptional("Shavit_SetTASStrafe");
 }
 #endif
