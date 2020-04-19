@@ -22,7 +22,7 @@ public Plugin myinfo =
 #define FORWARD 3
 
 ArrayList gA_Frames[MAXPLAYERS+1];
-ConVar gC_sv_airaccelerate;
+ConVar gCV_AirAccelerate;
 EngineVersion g_Game;
 
 
@@ -76,7 +76,7 @@ public void OnPluginStart()
 		}
 	}
 
-	gC_sv_airaccelerate = FindConVar("sv_airaccelerate");
+	gCV_AirAccelerate = FindConVar("sv_airaccelerate");
 
 	GameData gamedata = new GameData("tas.games");
 
@@ -444,29 +444,29 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 								}
 							}
 
-							float flFowardMove, flSideMove;
-							float flMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
-							float flSurfaceFriction = 1.0;
+							float flFowardMove, fSideMove;
+							float fMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
+							float fSurfaceFriction = 1.0;
 							if(gI_SurfaceFrictionOffset > 0)
 							{
-								flSurfaceFriction = GetEntDataFloat(client, gI_SurfaceFrictionOffset);
-								if(!(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
+								fSurfaceFriction = GetEntDataFloat(client, gI_SurfaceFrictionOffset);
+								if(!(fSurfaceFriction == 0.25 || fSurfaceFriction == 1.0))
 								{
 									FindNewFrictionOffset(client);
 								}
 							}
 
 
-							float flVelocity[3], flVelocity2D[2];
+							float fVelocity[3], flVelocity2D[2];
 
-							GetEntPropVector(client, Prop_Data, "m_vecVelocity", flVelocity);
+							GetEntPropVector(client, Prop_Data, "m_vecVelocity", fVelocity);
 
-							flVelocity2D[0] = flVelocity[0];
-							flVelocity2D[1] = flVelocity[1];
+							flVelocity2D[0] = fVelocity[0];
+							flVelocity2D[1] = fVelocity[1];
 
 							// PrintToChat(client, "%f", SquareRoot(flVelocity2D[0] * flVelocity2D[0] + flVelocity2D[1] * flVelocity2D[1]));
 
-							GetIdealMovementsInAir(angles[1], flVelocity2D, flMaxSpeed, flSurfaceFriction, flFowardMove, flSideMove);
+							GetIdealMovementsInAir(angles[1], flVelocity2D, fMaxSpeed, fSurfaceFriction, flFowardMove, fSideMove);
 
 							float flAngleDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
 							float flCurrentAngles = FloatAbs(flAngleDifference);
@@ -475,30 +475,30 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 							// Right
 							if (flAngleDifference < 0.0)
 							{
-								float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, flMaxSpeed, flSurfaceFriction, true);
+								float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, fMaxSpeed, fSurfaceFriction, true);
 								vel[1] = gF_MaxMove;
 
 								if (flCurrentAngles <= flMaxDelta * gF_Power[client])
 								{
 									vel[0] = flFowardMove * gF_MaxMove;
-									vel[1] = flSideMove * gF_MaxMove;
+									vel[1] = fSideMove * gF_MaxMove;
 								}
 							}
 							else if (flAngleDifference > 0.0)
 							{
-								float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, flMaxSpeed, flSurfaceFriction, false);
+								float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, fMaxSpeed, fSurfaceFriction, false);
 								vel[1] = -gF_MaxMove;
 
 								if (flCurrentAngles <= flMaxDelta * gF_Power[client])
 								{
 									vel[0] = flFowardMove * gF_MaxMove;
-									vel[1] = flSideMove * gF_MaxMove;
+									vel[1] = fSideMove * gF_MaxMove;
 								}
 							}
 							else
 							{
 								vel[0] = flFowardMove * gF_MaxMove;
-								vel[1] = flSideMove * gF_MaxMove;
+								vel[1] = fSideMove * gF_MaxMove;
 							}
 						}
 					}
@@ -1018,7 +1018,7 @@ float AngleNormalize(float fAngle)
 
 float Vec2DToYaw(float vec[2])
 {
-	float flYaw = 0.0;
+	float fYaw = 0.0;
 
 	if (vec[0] != 0.0 || vec[1] != 0.0)
 	{
@@ -1030,15 +1030,14 @@ float Vec2DToYaw(float vec[2])
 		vecNormalized[1] = vec[1] / flLength;
 
 		// Credits to Valve.
-		flYaw = ArcTangent2(vecNormalized[1], vecNormalized[0]) * (180.0 / FLOAT_PI);
-
-		flYaw = AngleNormalize(flYaw);
+		fYaw = ArcTangent2(vecNormalized[1], vecNormalized[0]) * (180.0 / FLOAT_PI);
+		fYaw = AngleNormalize(fYaw);
 	}
 
-	return flYaw;
+	return fYaw;
 }
 
-void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRight[2], float &flForwardMove, float &flSideMove)
+void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRight[2], float &fForwardMove, float &fSideMove)
 {
 
 	float v = vecWishDir[0];
@@ -1048,34 +1047,34 @@ void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRig
 	float e = vecForward[1];
 	float f = vecRight[1];
 
-	float flDivide = (c * e - a * f);
-	if(flDivide == 0.0)
+	float fDivide = (c * e - a * f);
+	if(fDivide == 0.0)
 	{
-		flForwardMove = gF_MaxMove;
-		flSideMove = 0.0;
+		fForwardMove = gF_MaxMove;
+		fSideMove = 0.0;
 	}
 	else
 	{
-		flForwardMove = (c * w - f * v) / flDivide;
-		flSideMove = (e * v - a * w) / flDivide;
+		fForwardMove = (c * w - f * v) / fDivide;
+		fSideMove = (e * v - a * w) / fDivide;
 	}
 }
 
-float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime)
+float GetThetaAngleInAir(float fVelocity[2], float fAirAccelerate, float fMaxSpeed, float fSurfaceFriction, float fFrameTime)
 {
 
-	float flAccelSpeed = flAirAccelerate * flMaxSpeed * flSurfaceFriction * flFrametime;
+	float fAccelerationSpeed = fAirAccelerate * fMaxSpeed * fSurfaceFriction * fFrameTime;
 
-	float flWantedDotProduct = gF_AirSpeedCap - flAccelSpeed;
+	float fWantedDotProduct = gF_AirSpeedCap - fAccelerationSpeed;
 
-	if (flWantedDotProduct > 0.0)
+	if (fWantedDotProduct > 0.0)
 	{
-		float flVelLength2D = SquareRoot(flVelocity[0] * flVelocity[0] + flVelocity[1] * flVelocity[1]);
-		if(flVelLength2D == 0.0)
+		float fVelLength2D = SquareRoot(fVelocity[0] * fVelocity[0] + fVelocity[1] * fVelocity[1]);
+		if(fVelLength2D == 0.0)
 		{
 			return 90.0;
 		}
-		float flCosTheta = flWantedDotProduct / flVelLength2D;
+		float flCosTheta = fWantedDotProduct / fVelLength2D;
 
 		if (flCosTheta > 1.0)
 		{
@@ -1087,9 +1086,9 @@ float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float flMax
 		}
 
 
-		float flTheta = ArcCosine(flCosTheta) * (180.0 / FLOAT_PI);
+		float fTheta = ArcCosine(flCosTheta) * (180.0 / FLOAT_PI);
 
-		return flTheta;
+		return fTheta;
 	}
 	else
 	{
@@ -1097,171 +1096,173 @@ float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float flMax
 	}
 }
 
-float SimulateAirAccelerate(float flVelocity[2], float flWishDir[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, float flVelocityOutput[2])
+float SimulateAirAccelerate(float fVelocity[2], float fWishedDirection[2], float fAirAccelerate, float fMaxSpeed, float fSurfaceFriction, float fFrameTime, float fVelocityOutput[2])
 {
-	float flWishSpeedCapped = flMaxSpeed;
+	float fCapWishSpeed = fMaxSpeed;
 
 	// Cap speed
-	if( flWishSpeedCapped > gF_AirSpeedCap )
-		flWishSpeedCapped = gF_AirSpeedCap;
+	if(fCapWishSpeed > gF_AirSpeedCap)
+	{
+		fCapWishSpeed = gF_AirSpeedCap;
+	}
 
 	// Determine veer amount
-	float flCurrentSpeed = flVelocity[0] * flWishDir[0] + flVelocity[1] * flWishDir[1];
+	float flCurrentSpeed = fVelocity[0] * fWishedDirection[0] + fVelocity[1] * fWishedDirection[1];
 
 	// See how much to add
-	float flAddSpeed = flWishSpeedCapped - flCurrentSpeed;
+	float fAddSpeed = fCapWishSpeed - flCurrentSpeed;
 
 	// If not adding any, done.
-	if( flAddSpeed <= 0.0 )
+	if(fAddSpeed <= 0.0)
 	{
 		return;
 	}
 
 	// Determine acceleration speed after acceleration
-	float flAccelSpeed = flAirAccelerate * flMaxSpeed * flFrametime * flSurfaceFriction;
+	float fAccelerationSpeed = fAirAccelerate * fMaxSpeed * fFrameTime * fSurfaceFriction;
 
 	// Cap it
-	if( flAccelSpeed > flAddSpeed )
+	if(fAccelerationSpeed > fAddSpeed)
 	{
-		flAccelSpeed = flAddSpeed;
+		fAccelerationSpeed = fAddSpeed;
 	}
 
-	flVelocityOutput[0] = flVelocity[0] + flAccelSpeed * flWishDir[0];
-	flVelocityOutput[1] = flVelocity[1] + flAccelSpeed * flWishDir[1];
+	fVelocityOutput[0] = fVelocity[0] + fAccelerationSpeed * fWishedDirection[0];
+	fVelocityOutput[1] = fVelocity[1] + fAccelerationSpeed * fWishedDirection[1];
 }
 
 // The idea is to get the maximum angle
-float GetMaxDeltaInAir(float flVelocity[2], float flMaxSpeed, float flSurfaceFriction, bool bLeft)
+float GetMaxDeltaInAir(float fVelocity[2], float fMaxSpeed, float fSurfaceFriction, bool bLeft)
 {
-	float flFrametime = GetTickInterval();
-	float flAirAccelerate = gC_sv_airaccelerate.FloatValue;
+	float fFrameTime = GetTickInterval();
+	float fAirAccelerate = gCV_AirAccelerate.FloatValue;
 
-	float flTheta = GetThetaAngleInAir(flVelocity, flAirAccelerate, flMaxSpeed, flSurfaceFriction, flFrametime);
+	float fTheta = GetThetaAngleInAir(fVelocity, fAirAccelerate, fMaxSpeed, fSurfaceFriction, fFrameTime);
 
 	// Convert velocity 2D to angle.
-	float flYawVelocity = Vec2DToYaw(flVelocity);
+	float fYawVelocity = Vec2DToYaw(fVelocity);
 
 	// Get the best yaw direction on the right.
-	float flBestYawRight = AngleNormalize(flYawVelocity + flTheta);
+	float fBestYawRight = AngleNormalize(fYawVelocity + fTheta);
 
 	// Get the best yaw direction on the left.
-	float flBestYawLeft = AngleNormalize(flYawVelocity - flTheta);
+	float fBestYawLeft = AngleNormalize(fYawVelocity - fTheta);
 
-	float flTemp[3], vecBestLeft3D[3], vecBestRight3D[3];
+	float fTemp[3], VectorBestLeft3D[3], VectorBestRight3D[3];
 
-	flTemp[0] = 0.0;
-	flTemp[1] = flBestYawLeft;
-	flTemp[2] = 0.0;
+	fTemp[0] = 0.0;
+	fTemp[1] = fBestYawLeft;
+	fTemp[2] = 0.0;
 
-	GetAngleVectors(flTemp, vecBestLeft3D, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(fTemp, VectorBestLeft3D, NULL_VECTOR, NULL_VECTOR);
 
-	flTemp[0] = 0.0;
-	flTemp[1] = flBestYawRight;
-	flTemp[2] = 0.0;
+	fTemp[0] = 0.0;
+	fTemp[1] = fBestYawRight;
+	fTemp[2] = 0.0;
 
-	GetAngleVectors(flTemp, vecBestRight3D, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(fTemp, VectorBestRight3D, NULL_VECTOR, NULL_VECTOR);
 
 	float vecBestRight[2], vecBestLeft[2];
 
-	vecBestRight[0] = vecBestRight3D[0];
-	vecBestRight[1] = vecBestRight3D[1];
+	vecBestRight[0] = VectorBestRight3D[0];
+	vecBestRight[1] = VectorBestRight3D[1];
 
-	vecBestLeft[0] = vecBestLeft3D[0];
-	vecBestLeft[1] = vecBestLeft3D[1];
+	vecBestLeft[0] = VectorBestLeft3D[0];
+	vecBestLeft[1] = VectorBestLeft3D[1];
 
-	float flCalcVelocityLeft[2], flCalcVelocityRight[2];
+	float fCalculateVelocityLeft[2], fCalculateVelocityRight[2];
 
 	// Simulate air accelerate function in order to get the new max gain possible on both side.
-	SimulateAirAccelerate(flVelocity, vecBestLeft, flAirAccelerate, flMaxSpeed, flFrametime, flSurfaceFriction, flCalcVelocityLeft);
-	SimulateAirAccelerate(flVelocity, vecBestRight, flAirAccelerate, flMaxSpeed, flFrametime, flSurfaceFriction, flCalcVelocityRight);
+	SimulateAirAccelerate(fVelocity, vecBestLeft, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityLeft);
+	SimulateAirAccelerate(fVelocity, vecBestRight, fAirAccelerate, fMaxSpeed, fFrameTime, fSurfaceFriction, fCalculateVelocityRight);
 
-	float flNewBestYawLeft = Vec2DToYaw(flCalcVelocityLeft);
-	float flNewBestYawRight = Vec2DToYaw(flCalcVelocityRight);
+	float fNewBestYawLeft = Vec2DToYaw(fCalculateVelocityLeft);
+	float fNewBestYawRight = Vec2DToYaw(fCalculateVelocityRight);
 
 	// Then get the difference in order to find the maximum angle.
 	if (bLeft)
 	{
-		return FloatAbs(AngleNormalize(flYawVelocity - flNewBestYawLeft));
+		return FloatAbs(AngleNormalize(fYawVelocity - fNewBestYawLeft));
 	}
 	else
 	{
-		return FloatAbs(AngleNormalize(flYawVelocity - flNewBestYawRight));
+		return FloatAbs(AngleNormalize(fYawVelocity - fNewBestYawRight));
 	}
 
 	// Do an estimate otherwhise.
-	// return FloatAbs(AngleNormalize(flNewBestYawLeft - flNewBestYawRight) / 2.0);
+	// return FloatAbs(AngleNormalize(fNewBestYawLeft - fNewBestYawRight) / 2.0);
 }
 
-void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], float flMaxSpeed, float flSurfaceFriction, float &flForwardMove, float &flSideMove, bool bPreferRight = true)
+void GetIdealMovementsInAir(float fYawWantedDirection, float fVelocity[2], float fMaxSpeed, float fSurfaceFriction, float &fForwardMove, float &fSideMove, bool bPreferRight = true)
 {
-	float flAirAccelerate = gC_sv_airaccelerate.FloatValue;
-	float flFrametime = GetTickInterval();
-	float flYawVelocity = Vec2DToYaw(flVelocity);
+	float fAirAccelerate = gCV_AirAccelerate.FloatValue;
+	float fFrameTime = GetTickInterval();
+	float fYawVelocity = Vec2DToYaw(fVelocity);
 
 	// Get theta angle
-	float flTheta = GetThetaAngleInAir(flVelocity, flAirAccelerate, flMaxSpeed, flSurfaceFriction, flFrametime);
+	float fTheta = GetThetaAngleInAir(fVelocity, fAirAccelerate, fMaxSpeed, fSurfaceFriction, fFrameTime);
 
 	// Get the best yaw direction on the right.
-	float flBestYawRight = AngleNormalize(flYawVelocity + flTheta);
+	float fBestYawRight = AngleNormalize(fYawVelocity + fTheta);
 
 	// Get the best yaw direction on the left.
-	float flBestYawLeft = AngleNormalize(flYawVelocity - flTheta);
+	float fBestYawLeft = AngleNormalize(fYawVelocity - fTheta);
 
-	float vecBestDirLeft[3], vecBestDirRight[3];
-	float tempAngle[3];
+	float vBestLeftDirection[3], vBestRightDirection[3];
+	float TemporaryAngle[3];
 
-	tempAngle[0] = 0.0;
-	tempAngle[1] = flBestYawRight;
-	tempAngle[2] = 0.0;
+	TemporaryAngle[0] = 0.0;
+	TemporaryAngle[1] = fBestYawRight;
+	TemporaryAngle[2] = 0.0;
 
-	GetAngleVectors(tempAngle, vecBestDirRight, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(TemporaryAngle, vBestRightDirection, NULL_VECTOR, NULL_VECTOR);
 
-	tempAngle[0] = 0.0;
-	tempAngle[1] = flBestYawLeft;
-	tempAngle[2] = 0.0;
+	TemporaryAngle[0] = 0.0;
+	TemporaryAngle[1] = fBestYawLeft;
+	TemporaryAngle[2] = 0.0;
 
-	GetAngleVectors(tempAngle, vecBestDirLeft, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(TemporaryAngle, vBestLeftDirection, NULL_VECTOR, NULL_VECTOR);
 
 	// Our wanted direction.
-	float vecBestDir[2];
+	float vBestVectorDirection[2];
 
 	// Let's follow the most the wanted direction now with max possible gain.
-	float flDiffYaw = AngleNormalize(flYawWantedDir - flYawVelocity);
+	float fYawDifference = AngleNormalize(fYawWantedDirection - fYawVelocity);
 
-	if (flDiffYaw > 0.0)
+	if (fYawDifference > 0.0)
 	{
-		vecBestDir[0] = vecBestDirRight[0];
-		vecBestDir[1] = vecBestDirRight[1];
+		vBestVectorDirection[0] = vBestRightDirection[0];
+		vBestVectorDirection[1] = vBestRightDirection[1];
 	}
-	else if(flDiffYaw < 0.0)
+	else if(fYawDifference < 0.0)
 	{
-		vecBestDir[0] = vecBestDirLeft[0];
-		vecBestDir[1] = vecBestDirLeft[1];
+		vBestVectorDirection[0] = vBestLeftDirection[0];
+		vBestVectorDirection[1] = vBestLeftDirection[1];
 	}
 	else
 	{
 		// Going straight.
 		if (bPreferRight)
 		{
-			vecBestDir[0] = vecBestDirRight[0];
-			vecBestDir[1] = vecBestDirRight[1];
+			vBestVectorDirection[0] = vBestRightDirection[0];
+			vBestVectorDirection[1] = vBestRightDirection[1];
 		}
 		else
 		{
-			vecBestDir[0] = vecBestDirLeft[0];
-			vecBestDir[1] = vecBestDirLeft[1];
+			vBestVectorDirection[0] = vBestLeftDirection[0];
+			vBestVectorDirection[1] = vBestLeftDirection[1];
 		}
 	}
 
 	float vecForwardWantedDir3D[3], vecRightWantedDir3D[3];
 	float vecForwardWantedDir[2], vecRightWantedDir[2];
 
-	tempAngle[0] = 0.0;
-	tempAngle[1] = flYawWantedDir;
-	tempAngle[2] = 0.0;
+	TemporaryAngle[0] = 0.0;
+	TemporaryAngle[1] = fYawWantedDirection;
+	TemporaryAngle[2] = 0.0;
 
 	// Convert our yaw wanted direction to vectors.
-	GetAngleVectors(tempAngle, vecForwardWantedDir3D, vecRightWantedDir3D, NULL_VECTOR);
+	GetAngleVectors(TemporaryAngle, vecForwardWantedDir3D, vecRightWantedDir3D, NULL_VECTOR);
 
 	vecForwardWantedDir[0] = vecForwardWantedDir3D[0];
 	vecForwardWantedDir[1] = vecForwardWantedDir3D[1];
@@ -1270,14 +1271,14 @@ void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], float flM
 	vecRightWantedDir[1] = vecRightWantedDir3D[1];
 
 	// Solve the movement variables from our wanted direction and the best gain direction.
-	Solve2DMovementsVars(vecBestDir, vecForwardWantedDir, vecRightWantedDir, flForwardMove, flSideMove);
+	Solve2DMovementsVars(vBestVectorDirection, vecForwardWantedDir, vecRightWantedDir, fForwardMove, fSideMove);
 
-	float flLengthMovements = SquareRoot(flForwardMove * flForwardMove + flSideMove * flSideMove);
+	float fLengthMovements = SquareRoot(fForwardMove * fForwardMove + fSideMove * fSideMove);
 
-	if(flLengthMovements != 0.0)
+	if(fLengthMovements != 0.0)
 	{
-		flForwardMove /= flLengthMovements;
-		flSideMove /= flLengthMovements;
+		fForwardMove /= fLengthMovements;
+		fSideMove /= fLengthMovements;
 	}
 }
 
@@ -1301,12 +1302,14 @@ public any Native_SetAutostrafe(Handle plugin, int numParams)
 	int client = GetNativeCell(1);
 	bool value = GetNativeCell(2);
 	gB_Strafing[client] = value;
+	
 	return 0;
 }
 
 public any Native_GetAutostrafe(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
+
 	return gB_Strafing[client];
 }
 
@@ -1315,12 +1318,14 @@ public any Native_SetType(Handle plugin, int numParams)
 	int client = GetNativeCell(1);
 	int value = GetNativeCell(2);
 	gI_Type[client] = value;
+
 	return 0;
 }
 
 public any Native_GetType(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
+
 	return gI_Type[client];
 }
 
@@ -1329,6 +1334,7 @@ public any Native_SetPower(Handle plugin, int numParams)
 	int client = GetNativeCell(1);
 	float value = GetNativeCell(2);
 	gF_Power[client] = value;
+
 	return 0;
 }
 
