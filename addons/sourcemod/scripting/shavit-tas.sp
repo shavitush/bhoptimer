@@ -523,11 +523,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					
 					float fPosition[3];
 					float fEyeAngles[3];
-					float fVelocityocity[3];
+					float fVelocity[3];
 
 					GetEntPropVector(client, Prop_Send, "m_vecOrigin", fPosition);
 					GetClientEyeAngles(client, fEyeAngles);
-					GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fVelocityocity);
+					GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fVelocity);
 
 					SetArrayCell(gA_Frames[client], iFrameNumber-1, fPosition[0], 0);
 					SetArrayCell(gA_Frames[client], iFrameNumber-1, fPosition[1], 1);
@@ -537,9 +537,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					SetArrayCell(gA_Frames[client], iFrameNumber-1, buttons, 5);
 					SetArrayCell(gA_Frames[client], iFrameNumber-1, GetEntityFlags(client), 6);
 					SetArrayCell(gA_Frames[client], iFrameNumber-1, GetEntityMoveType(client), 7);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocityocity[0], 8);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocityocity[1], 9);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocityocity[2], 10);
+					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocity[0], 8);
+					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocity[1], 9);
+					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocity[2], 10);
 					gI_IndexCounter[client] = iFrameNumber-1;
 					gF_IndexCounter[client] = iFrameNumber-1.0;
 				}
