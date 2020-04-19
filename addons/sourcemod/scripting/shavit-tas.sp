@@ -461,39 +461,39 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 							}
 
 
-							float fVelocity[3], flVelocity2D[2];
+							float fVelocity[3], fVelocity2D[2];
 
 							GetEntPropVector(client, Prop_Data, "m_vecVelocity", fVelocity);
 
-							flVelocity2D[0] = fVelocity[0];
-							flVelocity2D[1] = fVelocity[1];
+							fVelocity2D[0] = fVelocity[0];
+							fVelocity2D[1] = fVelocity[1];
 
-							// PrintToChat(client, "%f", SquareRoot(flVelocity2D[0] * flVelocity2D[0] + flVelocity2D[1] * flVelocity2D[1]));
+							// PrintToChat(client, "%f", SquareRoot(fVelocity2D[0] * fVelocity2D[0] + fVelocity2D[1] * fVelocity2D[1]));
 
-							GetIdealMovementsInAir(angles[1], flVelocity2D, fMaxSpeed, fSurfaceFriction, fFowardMove, fSideMove);
+							GetIdealMovementsInAir(angles[1], fVelocity2D, fMaxSpeed, fSurfaceFriction, fFowardMove, fSideMove);
 
-							float flAngleDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
-							float flCurrentAngles = FloatAbs(flAngleDifference);
+							float fAngleDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
+							float fCurrentAngles = FloatAbs(fAngleDifference);
 
 
 							// Right
-							if (flAngleDifference < 0.0)
+							if (fAngleDifference < 0.0)
 							{
-								float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, fMaxSpeed, fSurfaceFriction, true);
+								float fMaxDelta = GetMaxDeltaInAir(fVelocity2D, fMaxSpeed, fSurfaceFriction, true);
 								vel[1] = gF_MaxMove;
 
-								if (flCurrentAngles <= flMaxDelta * gF_Power[client])
+								if (fCurrentAngles <= fMaxDelta * gF_Power[client])
 								{
 									vel[0] = fFowardMove * gF_MaxMove;
 									vel[1] = fSideMove * gF_MaxMove;
 								}
 							}
-							else if (flAngleDifference > 0.0)
+							else if (fAngleDifference > 0.0)
 							{
-								float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, fMaxSpeed, fSurfaceFriction, false);
+								float fMaxDelta = GetMaxDeltaInAir(fVelocity2D, fMaxSpeed, fSurfaceFriction, false);
 								vel[1] = -gF_MaxMove;
 
-								if (flCurrentAngles <= flMaxDelta * gF_Power[client])
+								if (fCurrentAngles <= fMaxDelta * gF_Power[client])
 								{
 									vel[0] = fFowardMove * gF_MaxMove;
 									vel[1] = fSideMove * gF_MaxMove;
@@ -1029,10 +1029,10 @@ float Vec2DToYaw(float vec[2])
 	{
 		float vecNormalized[2];
 
-		float flLength = SquareRoot(vec[0] * vec[0] + vec[1] * vec[1]);
+		float fLength = SquareRoot(vec[0] * vec[0] + vec[1] * vec[1]);
 
-		vecNormalized[0] = vec[0] / flLength;
-		vecNormalized[1] = vec[1] / flLength;
+		vecNormalized[0] = vec[0] / fLength;
+		vecNormalized[1] = vec[1] / fLength;
 
 		// Credits to Valve.
 		fYaw = ArcTangent2(vecNormalized[1], vecNormalized[0]) * (180.0 / FLOAT_PI);
@@ -1079,19 +1079,19 @@ float GetThetaAngleInAir(float fVelocity[2], float fAirAccelerate, float fMaxSpe
 		{
 			return 90.0;
 		}
-		float flCosTheta = fWantedDotProduct / fVelLength2D;
+		float fCosTheta = fWantedDotProduct / fVelLength2D;
 
-		if (flCosTheta > 1.0)
+		if (fCosTheta > 1.0)
 		{
-			flCosTheta = 1.0;
+			fCosTheta = 1.0;
 		}
-		else if(flCosTheta < -1.0)
+		else if(fCosTheta < -1.0)
 		{
-			flCosTheta = -1.0;
+			fCosTheta = -1.0;
 		}
 
 
-		float fTheta = ArcCosine(flCosTheta) * (180.0 / FLOAT_PI);
+		float fTheta = ArcCosine(fCosTheta) * (180.0 / FLOAT_PI);
 
 		return fTheta;
 	}
@@ -1112,10 +1112,10 @@ float SimulateAirAccelerate(float fVelocity[2], float fWishedDirection[2], float
 	}
 
 	// Determine veer amount
-	float flCurrentSpeed = fVelocity[0] * fWishedDirection[0] + fVelocity[1] * fWishedDirection[1];
+	float fCurrentSpeed = fVelocity[0] * fWishedDirection[0] + fVelocity[1] * fWishedDirection[1];
 
 	// See how much to add
-	float fAddSpeed = fCapWishSpeed - flCurrentSpeed;
+	float fAddSpeed = fCapWishSpeed - fCurrentSpeed;
 
 	// If not adding any, done.
 	if(fAddSpeed <= 0.0)
