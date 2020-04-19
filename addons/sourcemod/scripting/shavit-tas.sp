@@ -444,7 +444,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 								}
 							}
 
-							float flFowardMove, fSideMove;
+							float fFowardMove, fSideMove;
 							float fMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
 							float fSurfaceFriction = 1.0;
 							if(gI_SurfaceFrictionOffset > 0)
@@ -466,7 +466,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 							// PrintToChat(client, "%f", SquareRoot(flVelocity2D[0] * flVelocity2D[0] + flVelocity2D[1] * flVelocity2D[1]));
 
-							GetIdealMovementsInAir(angles[1], flVelocity2D, fMaxSpeed, fSurfaceFriction, flFowardMove, fSideMove);
+							GetIdealMovementsInAir(angles[1], flVelocity2D, fMaxSpeed, fSurfaceFriction, fFowardMove, fSideMove);
 
 							float flAngleDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
 							float flCurrentAngles = FloatAbs(flAngleDifference);
@@ -480,7 +480,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 								if (flCurrentAngles <= flMaxDelta * gF_Power[client])
 								{
-									vel[0] = flFowardMove * gF_MaxMove;
+									vel[0] = fFowardMove * gF_MaxMove;
 									vel[1] = fSideMove * gF_MaxMove;
 								}
 							}
@@ -491,13 +491,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 								if (flCurrentAngles <= flMaxDelta * gF_Power[client])
 								{
-									vel[0] = flFowardMove * gF_MaxMove;
+									vel[0] = fFowardMove * gF_MaxMove;
 									vel[1] = fSideMove * gF_MaxMove;
 								}
 							}
 							else
 							{
-								vel[0] = flFowardMove * gF_MaxMove;
+								vel[0] = fFowardMove * gF_MaxMove;
 								vel[1] = fSideMove * gF_MaxMove;
 							}
 						}
