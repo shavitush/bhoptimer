@@ -139,6 +139,15 @@ enum
 	sMessageStyle
 };
 
+// for TAS wiggle hack
+enum
+{
+	Type_Normal, // only w/s disables autostrafe
+	Type_SurfOverride, // w/s always disables, a/d only over surf ramps
+	Type_Override, // all keys disable
+	Type_Size // size
+};
+
 enum struct stylestrings_t
 {
 	char sStyleName[64];
@@ -1739,6 +1748,62 @@ native int Shavit_GetPlayerPreFrame(int client);
  * @noreturn
  */
 native void Shavit_SetPlayerPreFrame(int client, int preframe);
+
+/**
+ * Sets the new value of the TAS strafehack on the given client index.
+ *
+ * @param client		Client index of the player to set the strafehack on.
+ * @param value			New value to set the strafehack to.
+ *
+ * @noreturn				
+ */
+native void Shavit_SetTASStrafe(int client, bool value);
+
+/**
+ * Retrieves the current TAS strafehack setting for the given client index.
+ *
+ * @param client		Client index of the player to get the strafehack value from.
+ * @return				The current strafehack value.
+ */
+native bool Shavit_GetTASStrafe(int client);
+
+/**
+ * Sets the TAS strafehack type on the given client index.
+ *
+ * @param client		Client index of the player to set the strafehack on.
+ * @param value			New type to set the strafehack to.
+ *
+ * @noreturn				
+ */
+native void SHavit_SetTASStrafeType(int client, int value);
+
+/**
+ * Retrieves the current TAS strafehack type for the given client index.
+ *
+ * @param client		Client index of the player to get the strafehack type from.
+
+ * @return				The current strafehack type.
+ */
+native int Shavit_GetTASStrafeType(int client);
+
+/**
+ * Sets the TAS strafehack power on the given client index. Power is the cut off point before it will turn into an autostrafe. 1.0 is the default.
+ *
+ * @param client		Client index of the player to set the power on.
+ * @param value			New power setting.
+ *
+ * @noreturn				
+ */
+native void Shavit_SetTASStrafePower(int client, float value);
+
+/**
+ * Retrieves the current TAS strafehack power for the given client index. Default is 1.0
+ *
+ * @param client		Client index of the player to get the strafehack power.
+
+ * @return				The current strafehack power.
+ */
+native float Shavit_GetTASStrafePower(int client);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
