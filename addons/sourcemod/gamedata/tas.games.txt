@@ -1,0 +1,25 @@
+"Games"
+{
+	"csgo"
+	{
+		"Offsets"
+		{
+			"m_surfaceFriction"
+			{
+				"windows"	"4660"
+				"linux"		"4684"
+			}
+		}
+	}
+
+	"cstrike"
+	{
+		"Offsets"
+		{
+			"m_surfaceFriction"
+			{
+				"linux"		"3852"
+			}
+		}
+	}
+}
