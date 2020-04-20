@@ -12,7 +12,7 @@ public Plugin myinfo =
 	name = "TAS Style",
 	author = "Charles_(hypnos), SilentStrafe by Kamay",
 	description = "TAS Style",
-	version = "1.9.6",
+	version = "1.9.6.1",
 	url = "https://hyps.dev/"
 }
 
@@ -753,11 +753,12 @@ bool DrawPanel(int client)
 
 	DrawPanelText(hPanel, " ");
 
+	// match current timer panel "standards"
 	SetPanelCurrentKey(hPanel, 5);
-	FormatEx(sBuffer, sizeof(sBuffer), "Toggle autostrafe %s", gB_AutoStrafeEnabled[client]?"[ON]":"[OFF]");
+	FormatEx(sBuffer, sizeof(sBuffer), "Toggle autostrafe %s", gB_AutoStrafeEnabled[client]?"[x]":"[ ]");
 	DrawPanelItem(hPanel, sBuffer);
 	
-	FormatEx(sBuffer, sizeof(sBuffer), "Toggle wigglehack %s", gB_Strafing[client]?"[ON]":"[OFF]");
+	FormatEx(sBuffer, sizeof(sBuffer), "Toggle wigglehack %s", gB_Strafing[client]?"[x]":"[ ]");
 	DrawPanelItem(hPanel, sBuffer);
 	
 	DrawPanelText(hPanel, " ");
