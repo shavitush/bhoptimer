@@ -293,6 +293,7 @@ public Action CommandListener_JoinTeam(int client, const char[] command, int arg
 		gI_Status[client] = RUN;
 		gF_TASTime[client] = 0.0;
 		gI_IndexCounter[client] = 0;
+		ClearArray(gA_Frames[client]);
 		FakeClientCommandEx(client, "sm_r");
 	}
 	return Plugin_Continue;
@@ -857,8 +858,9 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 					{
 						gF_Timescale[param1] = 0.1;
 					}
-		
-					//SetEntPropFloat(param1, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[param1]);
+					
+					// Two methods are used because for some odd reason the second one doesn't always work immediately, although it is necessary for movement in start zone to not be choppy on non-default timescales
+					SetEntPropFloat(param1, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[param1]);
 					Shavit_SetClientTimescale(param1, gF_Timescale[param1]);
 				}
 				case 5:
@@ -937,17 +939,6 @@ bool IsRound(float num)
 	return RoundToFloor(num) == num;
 }
 
-public void Shavit_OnRestart(int client, int track)
-{
-	if(gB_TAS[client])
-	{
-		gI_Status[client] = RUN;
-		gF_TASTime[client] = 0.0;
-		gI_IndexCounter[client] = 0;
-	}
-}
-
-
 public Action Shavit_OnStart(int client)
 {
 	if(gI_Status[client] == RUN && gB_TAS[client])
@@ -962,7 +953,8 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 {
 	if(gB_TAS[client])
 	{
-		//SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[client]);
+		// Two methods are used because for some odd reason the second one doesn't always work immediately, although it is necessary for movement in start zone to not be choppy on non-default timescales
+		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[client]);
 		Shavit_SetClientTimescale(client, gF_Timescale[client]);
 	}
 }
