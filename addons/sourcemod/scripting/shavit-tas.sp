@@ -275,7 +275,15 @@ public Action Command_TASMenu(int client, int args)
 
 public Action Command_TASHelp(int client, int args)
 {
-	PrintToChat(client, "TAS Guide:\nRecommended Binds:\nbind mwheelup sm_minusone\nbind mwheeldown sm_plusone\nbind mouse1 +rewind\nbind mouse2 +fastforward\n\nOther Commands:\n+autostrafer - When bound hold to use wigglehack\n!tasmenu - Toggles TAS Menu");
+	Shavit_PrintToChat(client, "TAS Guide:");
+	Shavit_PrintToChat(client, "Recommended Binds:");
+	Shavit_PrintToChat(client, "bind mwheelup sm_minusone");
+	Shavit_PrintToChat(client, "bind mwheeldown sm_plusone");
+	Shavit_PrintToChat(client, "bind mouse1 +rewind");
+	Shavit_PrintToChat(client, "bind mouse2 +fastforward");
+	Shavit_PrintToChat(client, "Other Commands:");
+	Shavit_PrintToChat(client, "+autostrafer - When bound hold to use wigglehack");
+	Shavit_PrintToChat(client, "!tasmenu - Toggles TAS Menu");
 	return Plugin_Handled;
 }
 
