@@ -375,14 +375,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				float fTimescale = GetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue");
 				gF_TimeScaleTicksPassed[client] += fTimescale;
 
-				float diff = angles[1] - gF_LastAngle[client];
-				if (diff > 180)
+				float fDifference = angles[1] - gF_LastAngle[client];
+				if (fDifference > 180.0)
 				{
-					diff -= 360;
+					fDifference -= 360.0;
 				}
-				else if(diff < -180)
+				else if(fDifference < -180.0)
 				{
-					diff += 360;
+					fDifference += 360.0;
 				}
 				/*
 							AUTO STRAFER START
@@ -400,13 +400,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				if (gB_AutoStrafeEnabled[client] == true && Shavit_GetTimerStatus(client) == Timer_Running && gB_TAS[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
 				{
-					if(diff < 0)
+					if(fDifference < 0.0)
 					{
 						angles[1] += yaw_change;
 						//buttons |= IN_MOVERIGHT;
 						vel[1] = gF_MaxMove;
 					}
-					else if(diff > 0)
+					else if(fDifference > 0.0)
 					{
 						angles[1] -= yaw_change;
 						//buttons |= IN_MOVELEFT;
@@ -520,7 +520,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					int iFrameNumber = GetArraySize(gA_Frames[client])+1;
 					if(gI_IndexCounter[client] != iFrameNumber-2)
 					{
-						//UnPaused in diff tick
+						//UnPaused in different tick
 						iFrameNumber = gI_IndexCounter[client]+1;
 					}
 					ResizeArray(gA_Frames[client], iFrameNumber);
