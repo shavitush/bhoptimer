@@ -372,8 +372,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			if(gI_Status[client] == RUN)
 			{ // Record Frames
 				//SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_TimeScale[client]);
-				float fTimescale = GetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue");
-				gF_TimeScaleTicksPassed[client] += fTimescale;
+				float fTimeScale = GetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue");
+				gF_TimeScaleTicksPassed[client] += fTimeScale;
 
 				float fDifference = angles[1] - gF_LastAngle[client];
 				if (fDifference > 180.0)
