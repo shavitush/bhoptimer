@@ -39,8 +39,8 @@ float gF_MaxMove;
 float gF_Power[MAXPLAYERS + 1] = {1.0, ...};
 float gF_TASTime[MAXPLAYERS+1];
 float gF_TickRate;
-float gF_TimeScaleTicksPassed[MAXPLAYERS+1];
-float gF_TimeScale[MAXPLAYERS+1];
+float gF_TimescaleTicksPassed[MAXPLAYERS+1];
+float gF_Timescale[MAXPLAYERS+1];
 
 int gI_IndexCounter[MAXPLAYERS+1];
 int gI_LastButtons[MAXPLAYERS+1];
@@ -342,7 +342,7 @@ public void OnClientPutInServer(int client)
 
 	gF_CounterSpeed[client] = 1.0;
 	gF_TASTime[client] = 0.0;
-	gF_TimeScale[client] = 1.0;
+	gF_Timescale[client] = 1.0;
 	gI_Status[client] = RUN;
 	gB_TASMenu[client] = true;
 	gB_AutoStrafeEnabled[client] = false;
@@ -371,9 +371,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			if(gI_Status[client] == RUN)
 			{ // Record Frames
-				//SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_TimeScale[client]);
+				//SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[client]);
 				float fTimeScale = GetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue");
-				gF_TimeScaleTicksPassed[client] += fTimeScale;
+				gF_TimescaleTicksPassed[client] += fTimeScale;
 
 				float fDifference = angles[1] - gF_LastAngle[client];
 				if (fDifference > 180.0)
@@ -424,9 +424,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 																		*/
 				if (gB_SilentStrafe[client] == true && Shavit_GetTimerStatus(client) == Timer_Running && gB_TAS[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
 				{
-					if(gF_TimeScaleTicksPassed[client] >= 1.0)
+					if(gF_TimescaleTicksPassed[client] >= 1.0)
 					{
-						//Don't subtract 1 from gF_TimeScaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
+						//Don't subtract 1 from gF_TimescaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
 						bool bOnGround = !(buttons & IN_JUMP) && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
 						
 						if (IsPlayerAlive(client) && !bOnGround && !(GetEntityMoveType(client) & MOVETYPE_LADDER) && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
@@ -511,9 +511,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 							WIGGLEHACK END
 														*/
 
-				if(gF_TimeScaleTicksPassed[client] >= 1.0)
+				if(gF_TimescaleTicksPassed[client] >= 1.0)
 				{
-					gF_TimeScaleTicksPassed[client] -= 1.0;
+					gF_TimescaleTicksPassed[client] -= 1.0;
 
 					gF_TASTime[client] += GetTickInterval();
 
@@ -746,7 +746,7 @@ bool DrawPanel(int client)
 		DrawPanelItem(hPanel, "-fastforward");
 
 	char sBuffer[256];
-	FormatEx(sBuffer, sizeof(sBuffer), "Timescale: %.01f", gF_TimeScale[client]);
+	FormatEx(sBuffer, sizeof(sBuffer), "Timescale: %.01f", gF_Timescale[client]);
 	DrawPanelItem(hPanel, sBuffer);
 	/* FormatEx(sBuffer, sizeof(sBuffer), "Edit Speed: %.01f", gF_CounterSpeed[client]);
 	DrawPanelItem(hPanel, sBuffer); */
@@ -852,14 +852,14 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 						return;
 					}
 
-					gF_TimeScale[param1] += 0.1;
-					if(gF_TimeScale[param1] >= 1.1)
+					gF_Timescale[param1] += 0.1;
+					if(gF_Timescale[param1] >= 1.1)
 					{
-						gF_TimeScale[param1] = 0.1;
+						gF_Timescale[param1] = 0.1;
 					}
 		
-					//SetEntPropFloat(param1, Prop_Send, "m_flLaggedMovementValue", gF_TimeScale[param1]);
-					Shavit_SetClientTimescale(param1, gF_TimeScale[param1]);
+					//SetEntPropFloat(param1, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[param1]);
+					Shavit_SetClientTimescale(param1, gF_Timescale[param1]);
 				}
 				case 5:
 				{
@@ -962,8 +962,8 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 {
 	if(gB_TAS[client])
 	{
-		//SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_TimeScale[client]);
-		Shavit_SetClientTimescale(client, gF_TimeScale[client]);
+		//SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[client]);
+		Shavit_SetClientTimescale(client, gF_Timescale[client]);
 	}
 }
 
