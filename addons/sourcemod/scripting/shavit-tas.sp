@@ -27,7 +27,7 @@ EngineVersion g_Game;
 
 
 bool gB_AutoStrafeEnabled[MAXPLAYERS+1] = {false,...};
-bool gB_Strafing[MAXPLAYERS+1];
+bool gB_SilentStrafe[MAXPLAYERS+1];
 bool gB_TASMenu[MAXPLAYERS+1];
 bool gB_TAS[MAXPLAYERS + 1];
 
@@ -135,13 +135,13 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
 
 public Action Command_PlusStrafer(int client, int args)
 {
-	gB_Strafing[client] = true;
+	gB_SilentStrafe[client] = true;
 	return;
 }
 
 public Action Command_MinusStrafer(int client, int args)
 {
-	gB_Strafing[client] = false;
+	gB_SilentStrafe[client] = false;
 	return;
 }
 
@@ -346,7 +346,7 @@ public void OnClientPutInServer(int client)
 	gI_Status[client] = RUN;
 	gB_TASMenu[client] = true;
 	gB_AutoStrafeEnabled[client] = false;
-	gB_Strafing[client] = false;
+	gB_SilentStrafe[client] = false;
 	gI_Type[client] = Type_SurfOverride;
 	gF_Power[client] = 1.0;
 }
@@ -422,7 +422,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						Huge amounts of credit to Kamay for this code!
 						https://steamcommunity.com/id/xutaxkamay/
 																		*/
-				if (gB_Strafing[client] == true && Shavit_GetTimerStatus(client) == Timer_Running && gB_TAS[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
+				if (gB_SilentStrafe[client] == true && Shavit_GetTimerStatus(client) == Timer_Running && gB_TAS[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
 				{
 					if(gF_TimeScaleTicksPassed[client] >= 1.0)
 					{
@@ -757,7 +757,7 @@ bool DrawPanel(int client)
 	FormatEx(sBuffer, sizeof(sBuffer), "Toggle autostrafe %s", gB_AutoStrafeEnabled[client]?"[ON]":"[OFF]");
 	DrawPanelItem(hPanel, sBuffer);
 	
-	FormatEx(sBuffer, sizeof(sBuffer), "Toggle wigglehack %s", gB_Strafing[client]?"[ON]":"[OFF]");
+	FormatEx(sBuffer, sizeof(sBuffer), "Toggle wigglehack %s", gB_SilentStrafe[client]?"[ON]":"[OFF]");
 	DrawPanelItem(hPanel, sBuffer);
 	
 	DrawPanelText(hPanel, " ");
@@ -867,7 +867,7 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 				}
 				case 6:
 				{
-					gB_Strafing[param1] = !gB_Strafing[param1];
+					gB_SilentStrafe[param1] = !gB_SilentStrafe[param1];
 				}
 				case 8:
 				{
@@ -1306,7 +1306,7 @@ public any Native_SetAutostrafe(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	bool value = GetNativeCell(2);
-	gB_Strafing[client] = value;
+	gB_SilentStrafe[client] = value;
 	
 	return 0;
 }
@@ -1315,7 +1315,7 @@ public any Native_GetAutostrafe(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	return gB_Strafing[client];
+	return gB_SilentStrafe[client];
 }
 
 public any Native_SetType(Handle plugin, int numParams)
