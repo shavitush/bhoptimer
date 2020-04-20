@@ -520,7 +520,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					int iFrameNumber = GetArraySize(gA_Frames[client])+1;
 					if(gI_IndexCounter[client] != iFrameNumber-2)
 					{
-						//UnPaused in iDifference tick
+						//UnPaused in different tick
 						iFrameNumber = gI_IndexCounter[client]+1;
 					}
 					ResizeArray(gA_Frames[client], iFrameNumber);
