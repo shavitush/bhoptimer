@@ -89,7 +89,6 @@ public void OnPluginStart()
 	AddCommandListener(CommandListener_PlusForward, "+forward");
 	AddCommandListener(CommandListener_MinusRewindOrForward, "-rewind");
 	AddCommandListener(CommandListener_MinusRewindOrForward, "-forward");
-	AddCommandListener(CommandListener_JoinTeam, "jointeam");
 	AddCommandListener(CommandListener_TAS, "sm_tas");
 	RegConsoleCmd("sm_tasmenu", Command_TASMenu);
 	RegConsoleCmd("sm_tashelp", Command_TASHelp);
@@ -99,8 +98,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_plusone", Command_PlusOne, "TAS adjustment +1 tick");
 	RegConsoleCmd("sm_minusone", Command_MinusOne, "TAS adjustment -1 tick");
 	
-	RegConsoleCmd("+autostrafer", Command_PlusStrafer, "");
-	RegConsoleCmd("-autostrafer", Command_MinusStrafer, "");
+	RegConsoleCmd("+autostrafer", Command_PlusStrafer, "Toggle wigglehack");
+	RegConsoleCmd("-autostrafer", Command_MinusStrafer, "Toggle wigglehack");
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -112,7 +111,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetTASStrafePower", Native_SetPower);
 	CreateNative("Shavit_GetTASStrafePower", Native_GetPower);
 
-	RegPluginLibrary("tas");
+	RegPluginLibrary("shavit-tas");
 	return APLRes_Success;
 }
 
@@ -136,13 +135,13 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
 public Action Command_PlusStrafer(int client, int args)
 {
 	gB_SilentStrafe[client] = true;
-	return;
+	return Plugin_Handled;
 }
 
 public Action Command_MinusStrafer(int client, int args)
 {
 	gB_SilentStrafe[client] = false;
-	return;
+	return Plugin_Handled;
 }
 
 public Action Command_PlusOne(int client, int args)
@@ -173,7 +172,7 @@ public Action Command_PlusOne(int client, int args)
 
 			for (int i = 0; i < 3; i++)
 			{
-				fVelocity[i] *= RoundToFloor(gF_TickRate);
+				fVelocity[i] *= gF_TickRate;
 			}
 
 			TeleportEntity(client, fPosition2, fAngle, fVelocity);
@@ -232,7 +231,7 @@ public Action Command_MinusOne(int client, int args)
 
 			for (int i = 0; i < 3; i++)
 			{
-				fVelocity[i] *= RoundToFloor(gF_TickRate);
+				fVelocity[i] *= gF_TickRate;
 			}
 
 			TeleportEntity(client, fPosition, fAngle, fVelocity);
@@ -294,24 +293,11 @@ public Action CommandListener_TAS(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
-public Action CommandListener_JoinTeam(int client, const char[] command, int args)
-{
-	if(gB_TAS[client])
-	{
-		gI_Status[client] = RUN;
-		gF_TASTime[client] = 0.0;
-		gI_IndexCounter[client] = 0;
-		ClearArray(gA_Frames[client]);
-		FakeClientCommandEx(client, "sm_r");
-	}
-	return Plugin_Continue;
-}
-
 public Action CommandListener_PlusRewind(int client, const char[] command, int args)
 {
 	if(!gB_TAS[client])
 	{
-		return Plugin_Continue;
+		return Plugin_Handled;
 	}
 	gI_Status[client] = BACKWARD;
 	return Plugin_Handled;
@@ -321,7 +307,7 @@ public Action CommandListener_PlusForward(int client, const char[] command, int 
 {
 	if(!gB_TAS[client])
 	{
-		return Plugin_Continue;
+		return Plugin_Handled;
 	}
 	gI_Status[client] = FORWARD;
 	return Plugin_Handled;
@@ -331,7 +317,7 @@ public Action CommandListener_MinusRewindOrForward(int client, const char[] comm
 {
 	if(!gB_TAS[client])
 	{
-		return Plugin_Continue;
+		return Plugin_Handled;
 	}
 	gI_Status[client] = PAUSED;
 	return Plugin_Handled;
@@ -339,7 +325,6 @@ public Action CommandListener_MinusRewindOrForward(int client, const char[] comm
 
 public void OnClientPutInServer(int client)
 {
-	
 	if(gA_Frames[client] != INVALID_HANDLE)
 	{
 		ClearArray(gA_Frames[client]);
@@ -362,24 +347,19 @@ public void OnClientPutInServer(int client)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
-	if (IsValidClient(client, true) && gB_TAS[client])
+	if(gB_TAS[client] && IsValidClient(client, true))
 	{
-
-		if(!gB_TAS[client])
-		{
-			return Plugin_Continue;
-		}
-
 		DrawPanel(client);
 
 		if(Shavit_GetTimerStatus(client) != Timer_Running)
 		{
 			return Plugin_Continue;
 		}
-		else if(IsPlayerAlive(client) && !IsFakeClient(client))
+		else
 		{
 			if(gI_Status[client] == RUN)
-			{ // Record Frames
+			{
+				// Record Frames
 				//SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[client]);
 				float fTimeScale = GetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue");
 				gF_TimescaleTicksPassed[client] += fTimeScale;
@@ -398,28 +378,28 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 														*/
 				if(buttons & IN_FORWARD && vel[0] <= 50.0)
 				{
-					vel[0] = 450.0;
+					vel[0] = gF_MaxMove;
 				}
 
-				float yaw_change = 0.0;
+				float fYawChange = 0.0;
 				if(vel[0] > 50.0)
 				{
-					yaw_change = 30.0 * FloatAbs(30.0 / vel[0]);
+					fYawChange = 30.0 * FloatAbs(30.0 / vel[0]);
 				}
 
-				if (gB_AutoStrafeEnabled[client] == true && Shavit_GetTimerStatus(client) == Timer_Running && gB_TAS[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
+				if (gB_AutoStrafeEnabled[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
 				{
 					if(fDifference < 0.0)
 					{
-						angles[1] += yaw_change;
+						angles[1] += fYawChange;
 						//buttons |= IN_MOVERIGHT;
 						vel[1] = gF_MaxMove;
 					}
 					else if(fDifference > 0.0)
 					{
-						angles[1] -= yaw_change;
+						angles[1] -= fYawChange;
 						//buttons |= IN_MOVELEFT;
-						vel[1] = gF_MaxMove * -1.0;
+						vel[1] = -gF_MaxMove;
 					}
 				}
 				/*
@@ -431,14 +411,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						Huge amounts of credit to Kamay for this code!
 						https://steamcommunity.com/id/xutaxkamay/
 																		*/
-				if (gB_SilentStrafe[client] == true && Shavit_GetTimerStatus(client) == Timer_Running && gB_TAS[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
+				if (gB_SilentStrafe[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
 				{
 					if(gF_TimescaleTicksPassed[client] >= 1.0)
 					{
 						//Don't subtract 1 from gF_TimescaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
 						bool bOnGround = !(buttons & IN_JUMP) && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
 						
-						if (IsPlayerAlive(client) && !bOnGround && !(GetEntityMoveType(client) & MOVETYPE_LADDER) && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
+						if (!bOnGround && !(GetEntityMoveType(client) & MOVETYPE_LADDER) && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
 						{
 							if(!!(buttons & (IN_FORWARD | IN_BACK)))
 							{
@@ -563,6 +543,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				}
 
 				// Fix boosters
+				// Credit to bTimes 2.0 by blacky ;)
 				if(GetEntityFlags(client) & FL_BASEVELOCITY)
 				{
 					float vBaseVel[3];
@@ -655,7 +636,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 					for (int i = 0; i < 3; i++)
 					{
-						fVelocity[i] *= RoundToFloor(gF_TickRate);
+						fVelocity[i] *= gF_TickRate;
 					}
 
 					TeleportEntity(client, fPosition, fAngle, fVelocity);
@@ -701,7 +682,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 					for (int i = 0; i < 3; i++)
 					{
-						fVelocity[i] *= RoundToFloor(gF_TickRate);
+						fVelocity[i] *= gF_TickRate;
 					}
 
 					TeleportEntity(client, fPosition2, fAngle, fVelocity);
@@ -735,24 +716,38 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 bool DrawPanel(int client)
 {
 	if(!gB_TASMenu[client] || !gB_TAS[client])
+	{
 		return false;
+	}
 	Handle hPanel = CreatePanel();
 
 	DrawPanelText(hPanel, "Tool Assisted Speedrun:\n ");
 	if(gI_Status[client] == PAUSED)
+	{
 		DrawPanelItem(hPanel, "Resume");
+	}
 	else
+	{
 		DrawPanelItem(hPanel, "Pause");
+	}
 
 	if(gI_Status[client] != BACKWARD)
+	{
 		DrawPanelItem(hPanel, "+rewind");
+	}
 	else
+	{
 		DrawPanelItem(hPanel, "-rewind");
+	}
 
 	if(gI_Status[client] != FORWARD)
+	{
 		DrawPanelItem(hPanel, "+fastforward");
+	}
 	else
+	{
 		DrawPanelItem(hPanel, "-fastforward");
+	}
 
 	char sBuffer[256];
 	FormatEx(sBuffer, sizeof(sBuffer), "Timescale: %.01f", gF_Timescale[client]);
@@ -890,14 +885,13 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 				{
 					gB_TASMenu[param1] = false;
 					Shavit_PrintToChat(param1, "Type !tasmenu to reopen the menu.");
-					delete menu;
 				}
 			}
 		}
 	}
 }
 
-public void ResumePlayer(int client)
+void ResumePlayer(int client)
 {
 	int iFrameSize = GetArraySize(gA_Frames[client]);
 	int iFrameNumber = gI_IndexCounter[client];
@@ -985,9 +979,10 @@ public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 		snapshot.fCurrentTime = gF_TASTime[client];
 
 		//Overwrite Replay Data with gA_Frames[client]
-		Shavit_SetReplayData(client, view_as<ArrayList>(gA_Frames[client]));
+		Shavit_SetReplayData(client, gA_Frames[client]);
+		return Plugin_Changed;
 	}
-	return Plugin_Changed;
+	return Plugin_Continue;
 }
 
 public void Shavit_OnTimeIncrement(int client, timer_snapshot_t snapshot, float &time, stylesettings_t stylesettings)
@@ -1014,9 +1009,13 @@ public void OnWishSpeedChanged(ConVar convar, const char[] oldValue, const char[
 float AngleNormalize(float fAngle)
 {
 	if (fAngle > 180.0)
+	{
 		fAngle -= 360.0;
-	else if (fAngle < -180.0)
+	}
+	else if(fAngle < -180.0)
+	{
 		fAngle += 360.0;
+	}
 
 	return fAngle;
 }
@@ -1044,7 +1043,6 @@ float Vec2DToYaw(float vec[2])
 
 void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRight[2], float &fForwardMove, float &fSideMove)
 {
-
 	float v = vecWishDir[0];
 	float w = vecWishDir[1];
 	float a = vecForward[0];
@@ -1067,7 +1065,6 @@ void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRig
 
 float GetThetaAngleInAir(float fVelocity[2], float fAirAccelerate, float fMaxSpeed, float fSurfaceFriction, float fFrameTime)
 {
-
 	float fAccelerationSpeed = fAirAccelerate * fMaxSpeed * fSurfaceFriction * fFrameTime;
 
 	float fWantedDotProduct = gF_AirSpeedCap - fAccelerationSpeed;
