@@ -3057,12 +3057,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
 	{
 		int iDifference = (gI_TickCount - gA_Timers[client].iLandingTick);
-
-		if(1 <= iDifference <= 8)
+		// debug
+		// Shavit_PrintToChat(client, "Jump tick: %i", iDifference);
+		
+		if(0 <= iDifference <= 10)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
-			if(iDifference == 1)
+			if(iDifference <= 1)
 			{
 				gA_Timers[client].iPerfectJumps++;
 			}
