@@ -177,7 +177,7 @@ public Action Command_PlusOne(int client, int args)
 
 			TeleportEntity(client, fPosition2, fAngle, fVelocity);
 
-			if(GetArrayCell(gA_Frames[client], iFrameNumber, 5) & IN_DUCK)
+			if((GetArrayCell(gA_Frames[client], iFrameNumber, 5) & IN_DUCK) > 0)
 			{
 				SetEntProp(client, Prop_Send, "m_bDucked", true);
 				SetEntProp(client, Prop_Send, "m_bDucking", true);
@@ -236,7 +236,7 @@ public Action Command_MinusOne(int client, int args)
 
 			TeleportEntity(client, fPosition, fAngle, fVelocity);
 
-			if(GetArrayCell(gA_Frames[client], iFrameNumber, 5) & IN_DUCK)
+			if((GetArrayCell(gA_Frames[client], iFrameNumber, 5) & IN_DUCK) > 0)
 			{
 				SetEntProp(client, Prop_Send, "m_bDucked", true);
 				SetEntProp(client, Prop_Send, "m_bDucking", true);
@@ -376,7 +376,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				/*
 							AUTO STRAFER START
 														*/
-				if(buttons & IN_FORWARD && vel[0] <= 50.0)
+				if((buttons & IN_FORWARD) > 0 && vel[0] <= 50.0)
 				{
 					vel[0] = gF_MaxMove;
 				}
@@ -387,7 +387,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					fYawChange = 30.0 * FloatAbs(30.0 / vel[0]);
 				}
 
-				if (gB_AutoStrafeEnabled[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
+				if (gB_AutoStrafeEnabled[client] && (GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && (buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0 && (buttons & IN_MOVELEFT) == 0 && (buttons & IN_MOVERIGHT) == 0)
 				{
 					if(fDifference < 0.0)
 					{
@@ -411,7 +411,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						Huge amounts of credit to Kamay for this code!
 						https://steamcommunity.com/id/xutaxkamay/
 																		*/
-				if (gB_SilentStrafe[client] && !(GetEntityFlags(client) & FL_ONGROUND) && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && !(buttons & IN_FORWARD) && !(buttons & IN_BACK) && !(buttons & IN_MOVELEFT) && !(buttons & IN_MOVERIGHT))
+				if (gB_SilentStrafe[client] && (GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && (buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0 && (buttons & IN_MOVELEFT) == 0 && (buttons & IN_MOVERIGHT) == 0)
 				{
 					if(gF_TimescaleTicksPassed[client] >= 1.0)
 					{
@@ -536,7 +536,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					gI_IndexCounter[client] = iFrameNumber-1;
 					gF_IndexCounter[client] = iFrameNumber-1.0;
 				}
-				else if(!(GetEntityFlags(client) & FL_ONGROUND))
+				else if((GetEntityFlags(client) & FL_ONGROUND) == 0)
 				{
 					vel[0] = 0.0;
 					vel[1] = 0.0;
@@ -544,7 +544,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				// Fix boosters
 				// Credit to bTimes 2.0 by blacky ;)
-				if(GetEntityFlags(client) & FL_BASEVELOCITY)
+				if((GetEntityFlags(client) & FL_BASEVELOCITY) > 0)
 				{
 					float vBaseVel[3];
 					GetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", vBaseVel);
@@ -586,7 +586,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						TeleportEntity(client, fPosition, fAngle, view_as<float>({0.0, 0.0, 0.0}));
 						//gF_TASTime[client] -= GetTickInterval();
 
-						if(GetArrayCell(gA_Frames[client], iFrameNumber, 6) & FL_DUCKING)
+						if((GetArrayCell(gA_Frames[client], iFrameNumber, 6) & FL_DUCKING) > 0)
 						{
 							SetEntProp(client, Prop_Send, "m_bDucked", true);
 							SetEntProp(client, Prop_Send, "m_bDucking", true);
@@ -601,7 +601,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						SetEntityFlags(client, GetArrayCell(gA_Frames[client], iFrameNumber, 6));
 					}
 
-					if(GetEntityFlags(client) & FL_ONGROUND)
+					if((GetEntityFlags(client) & FL_ONGROUND) > 0)
 					{
 						buttons &= ~IN_JUMP;
 					}
@@ -879,12 +879,13 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 					gI_Status[param1] = RUN;
 					gF_TASTime[param1] = 0.0;
 					gI_IndexCounter[param1] = 0;
-					FakeClientCommandEx(param1, "sm_r"); //TODO: Check track, if bonus use sm_b
+					Shavit_RestartTimer(param1, Shavit_GetClientTrack(param1));
 				}
 				case 9:
 				{
 					gB_TASMenu[param1] = false;
 					Shavit_PrintToChat(param1, "Type !tasmenu to reopen the menu.");
+					delete menu;
 				}
 			}
 		}
@@ -921,7 +922,7 @@ void ResumePlayer(int client)
 
 		TeleportEntity(client, fPosition2, fAngle, fVelocity);
 
-		if(GetArrayCell(gA_Frames[client], iFrameNumber, 6) & FL_DUCKING)
+		if((GetArrayCell(gA_Frames[client], iFrameNumber, 6) & FL_DUCKING) > 0)
 		{
 			SetEntProp(client, Prop_Send, "m_bDucked", true);
 			SetEntProp(client, Prop_Send, "m_bDucking", true);
