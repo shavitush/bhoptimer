@@ -364,10 +364,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				float fYawChange = 0.0;
 				if(vel[0] > 50.0)
 				{
-					fYawChange = 30.0 * FloatAbs(30.0 / vel[0]);
+					fYawChange = gF_AirSpeedCap * FloatAbs(gF_AirSpeedCap / vel[0]);
 				}
 
-				if (gB_AutoStrafeEnabled[client] && (GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && (buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0 && (buttons & IN_MOVELEFT) == 0 && (buttons & IN_MOVERIGHT) == 0)
+				if (gB_AutoStrafeEnabled[client] && (GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP)
+					&& (buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0 && (buttons & IN_MOVELEFT) == 0 && (buttons & IN_MOVERIGHT) == 0)
 				{
 					if(fDifference < 0.0)
 					{
@@ -391,7 +392,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						Huge amounts of credit to Kamay for this code!
 						https://steamcommunity.com/id/xutaxkamay/
 																		*/
-				if (gB_SilentStrafe[client] && (GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP) && (buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0 && (buttons & IN_MOVELEFT) == 0 && (buttons & IN_MOVERIGHT) == 0)
+				if (gB_SilentStrafe[client] && (GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP)
+					&& (buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0 && (buttons & IN_MOVELEFT) == 0 && (buttons & IN_MOVERIGHT) == 0)
 				{
 					if(gF_TimescaleTicksPassed[client] >= 1.0)
 					{
@@ -578,7 +580,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 							SetEntProp(client, Prop_Send, "m_bDucking", false);
 						}
 
-						SetEntityFlags(client, GetArrayCell(gA_Frames[client], iFrameNumber, 6));
+						int iFlags = GetArrayCell(gA_Frames[client], iFrameNumber, 6);
+						SetEntityFlags(client, iFlags);
 					}
 
 					if((GetEntityFlags(client) & FL_ONGROUND) > 0)
@@ -751,20 +754,20 @@ bool DrawPanel(int client)
 	panel.CurrentKey = 8;
 	panel.DrawItem("Restart");
 	panel.DrawItem("Exit");
-	panel.Send(client, Panel_Handler, 1);
+	panel.Send(client, PanelHandler, 1);
 
 	delete panel;
 	return true;
 }
 
-public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
+public int PanelHandler(Handle menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
 		if(!gB_TAS[param1])
 		{
 			gB_TASMenu[param1] = false;
-			return;
+			return 0;
 		}
 		if(Shavit_GetTimerStatus(param1) == Timer_Running)
 		{
@@ -781,7 +784,7 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 					{
 						if(Shavit_InsideZone(param1, Zone_Start, -1))
 						{
-							return;
+							return 0;
 						}
 
 						gI_Status[param1] = PAUSED;
@@ -791,7 +794,7 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 				{
 					if(Shavit_InsideZone(param1, Zone_Start, -1))
 					{
-						return;
+						return 0;
 					}
 
 					if(gI_Status[param1] != BACKWARD)
@@ -807,7 +810,7 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 				{
 					if(Shavit_InsideZone(param1, Zone_Start, -1))
 					{
-						return;
+						return 0;
 					}
 
 					if(gI_Status[param1] != FORWARD)
@@ -833,7 +836,7 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 					if(!Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
 					{
 						Shavit_PrintToChat(param1, "Timescale can only be updated when paused or inside the start zone!");
-						return;
+						return 0;
 					}
 
 					gF_Timescale[param1] += 0.1;
@@ -869,6 +872,7 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 			}
 		}
 	}
+	return 0;
 }
 
 void ResumePlayer(int client)
@@ -912,7 +916,8 @@ void ResumePlayer(int client)
 			SetEntProp(client, Prop_Send, "m_bDucking", false);
 		}
 
-		SetEntityFlags(client, GetArrayCell(gA_Frames[client], iFrameNumber, 6));
+		int iFlags = GetArrayCell(gA_Frames[client], iFrameNumber, 6);
+		SetEntityFlags(client, iFlags);
 	}
 }
 
