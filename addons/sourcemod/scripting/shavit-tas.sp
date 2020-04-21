@@ -12,7 +12,7 @@ public Plugin myinfo =
 	name = "TAS Style",
 	author = "Charles_(hypnos), SilentStrafe by Kamay",
 	description = "TAS Style",
-	version = "1.9.6",
+	version = "1.9.7",
 	url = "https://hyps.dev/"
 }
 
@@ -69,7 +69,7 @@ public void OnPluginStart()
 	{
 		if(IsClientInGame(i))
 		{
-			OnClientPutInServer(i);
+			ResetTASData(i);
 		}
 	}
 
@@ -129,6 +129,8 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
 		gB_TAS[client] = true;
 		Shavit_PrintToChat(client, "This is a TAS style. Type !tashelp for more information.");
 		DrawPanel(client);
+
+		ResetTASData(client);
 	}
 }
 
@@ -321,28 +323,6 @@ public Action CommandListener_MinusRewindOrForward(int client, const char[] comm
 	}
 	gI_Status[client] = PAUSED;
 	return Plugin_Handled;
-}
-
-public void OnClientPutInServer(int client)
-{
-	if(gA_Frames[client] != INVALID_HANDLE)
-	{
-		ClearArray(gA_Frames[client]);
-	}
-	else
-	{
-		gA_Frames[client] = CreateArray(11, 0);
-	}
-
-	gF_CounterSpeed[client] = 1.0;
-	gF_TASTime[client] = 0.0;
-	gF_Timescale[client] = 1.0;
-	gI_Status[client] = RUN;
-	gB_TASMenu[client] = true;
-	gB_AutoStrafeEnabled[client] = false;
-	gB_SilentStrafe[client] = false;
-	gI_Type[client] = Type_SurfOverride;
-	gF_Power[client] = 1.0;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
@@ -719,61 +699,61 @@ bool DrawPanel(int client)
 	{
 		return false;
 	}
-	Handle hPanel = CreatePanel();
+	Panel panel = new Panel();
+	panel.SetTitle("Tool Assisted Speedrun:");
 
-	DrawPanelText(hPanel, "Tool Assisted Speedrun:\n ");
 	if(gI_Status[client] == PAUSED)
 	{
-		DrawPanelItem(hPanel, "Resume");
+		panel.DrawItem("Resume");
 	}
 	else
 	{
-		DrawPanelItem(hPanel, "Pause");
+		panel.DrawItem("Pause");
 	}
 
 	if(gI_Status[client] != BACKWARD)
 	{
-		DrawPanelItem(hPanel, "+rewind");
+		panel.DrawItem("+rewind");
 	}
 	else
 	{
-		DrawPanelItem(hPanel, "-rewind");
+		panel.DrawItem("-rewind");
 	}
 
 	if(gI_Status[client] != FORWARD)
 	{
-		DrawPanelItem(hPanel, "+fastforward");
+		panel.DrawItem("+fastforward");
 	}
 	else
 	{
-		DrawPanelItem(hPanel, "-fastforward");
+		panel.DrawItem("-fastforward");
 	}
 
 	char sBuffer[256];
 	FormatEx(sBuffer, sizeof(sBuffer), "Timescale: %.01f", gF_Timescale[client]);
-	DrawPanelItem(hPanel, sBuffer);
+	panel.DrawItem(sBuffer);
 	/* FormatEx(sBuffer, sizeof(sBuffer), "Edit Speed: %.01f", gF_CounterSpeed[client]);
-	DrawPanelItem(hPanel, sBuffer); */
+	panel.DrawItem(sBuffer); */
 
-	DrawPanelText(hPanel, " ");
+	panel.DrawText(" ");
 
-	SetPanelCurrentKey(hPanel, 5);
+	panel.CurrentKey = 5;
 	FormatEx(sBuffer, sizeof(sBuffer), "Toggle autostrafe %s", gB_AutoStrafeEnabled[client]?"[ON]":"[OFF]");
-	DrawPanelItem(hPanel, sBuffer);
+	panel.DrawItem(sBuffer);
 	
 	FormatEx(sBuffer, sizeof(sBuffer), "Toggle wigglehack %s", gB_SilentStrafe[client]?"[ON]":"[OFF]");
-	DrawPanelItem(hPanel, sBuffer);
+	panel.DrawItem(sBuffer);
 	
-	DrawPanelText(hPanel, " ");
-	DrawPanelText(hPanel, "----------------------------");
-	DrawPanelText(hPanel, " ");
+	panel.DrawText(" ");
+	panel.DrawText("----------------------------");
+	panel.DrawText(" ");
 
-	SetPanelCurrentKey(hPanel, 8);
-	DrawPanelItem(hPanel, "Restart");
-	DrawPanelItem(hPanel, "Exit");
-	SendPanelToClient(hPanel, client, Panel_Handler, 1);
+	panel.CurrentKey = 8;
+	panel.DrawItem("Restart");
+	panel.DrawItem("Exit");
+	panel.Send(client, Panel_Handler, 1);
 
-	delete hPanel;
+	delete panel;
 	return true;
 }
 
@@ -885,7 +865,6 @@ public int Panel_Handler(Handle menu, MenuAction action, int param1, int param2)
 				{
 					gB_TASMenu[param1] = false;
 					Shavit_PrintToChat(param1, "Type !tasmenu to reopen the menu.");
-					delete menu;
 				}
 			}
 		}
@@ -942,7 +921,29 @@ bool IsRound(float num)
 	return RoundToFloor(num) == num;
 }
 
-public Action Shavit_OnStart(int client)
+void ResetTASData(int client)
+{
+	if(gA_Frames[client] != INVALID_HANDLE)
+	{
+		ClearArray(gA_Frames[client]);
+	}
+	else
+	{
+		gA_Frames[client] = CreateArray(11, 0);
+	}
+
+	gF_CounterSpeed[client] = 1.0;
+	gF_TASTime[client] = 0.0;
+	gF_Timescale[client] = 1.0;
+	gI_Status[client] = RUN;
+	gB_TASMenu[client] = true;
+	gB_AutoStrafeEnabled[client] = false;
+	gB_SilentStrafe[client] = false;
+	gI_Type[client] = Type_SurfOverride;
+	gF_Power[client] = 1.0;
+}
+
+/* public Action Shavit_OnStart(int client)
 {
 	if(gI_Status[client] == RUN && gB_TAS[client])
 	{
@@ -950,12 +951,23 @@ public Action Shavit_OnStart(int client)
 		gI_IndexCounter[client] = 0;
 		ClearArray(gA_Frames[client]);
 	}
-}
+} */
 
 public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
 {
 	if(gB_TAS[client])
 	{
+		if(type == Zone_Start)
+		{
+			if(gI_Status[client] == RUN)
+			{
+				gF_TASTime[client] = 0.0;
+				gI_IndexCounter[client] = 0;
+				ClearArray(gA_Frames[client]);
+			}
+		}
+
+
 		// Two methods are used because for some odd reason the second one doesn't always work immediately, although it is necessary for movement in start zone to not be choppy on non-default timescales
 		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[client]);
 		Shavit_SetClientTimescale(client, gF_Timescale[client]);
