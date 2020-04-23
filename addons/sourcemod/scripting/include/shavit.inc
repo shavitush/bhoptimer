@@ -1499,7 +1499,7 @@ native ArrayList Shavit_GetReplayData(int client);
  * Start the replay bot.
  * Replay data needs to be loaded seperately.
  *
- * @param client					Client index.
+ * @param client						Client index.
  * @param style						Bhop style.
  * @param track						Timer track.
  * @noreturn							
