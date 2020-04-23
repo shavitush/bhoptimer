@@ -204,6 +204,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayTime", Native_GetReplayTime);
 	CreateNative("Shavit_HijackAngles", Native_HijackAngles);
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
+	CreateNative("Shavit_StartReplay", Native_StartReplay);
 	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
 	CreateNative("Shavit_Replay_DeleteMap", Native_Replay_DeleteMap);
@@ -510,6 +511,34 @@ public int Native_IsReplayDataLoaded(Handle handler, int numParams)
 	}
 
 	return view_as<int>(ReplayEnabled(style) && gA_FrameCache[style][Track_Main].iFrameCount > 0);
+}
+
+public int Native_StartReplay(Handle handler, int numParams)
+{
+	
+	int client = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	int track = GetNativeCell(3);
+
+	gI_ReplayTick[style] = 0;
+	gI_TimerTick[style] = 0;
+	gA_CentralCache.iStyle = style;
+	gA_CentralCache.iTrack = track;
+	gA_CentralCache.iPlaybackSerial = GetClientSerial(client);
+	gF_LastInteraction[client] = GetEngineTime();
+	gI_ReplayBotClient[style] = gA_CentralCache.iClient;
+	gRS_ReplayStatus[style] = gA_CentralCache.iReplayStatus = Replay_Start;
+	TeleportToStart(gA_CentralCache.iClient, style, track);
+	gB_ForciblyStopped = false;
+
+	float time = GetReplayLength(gA_CentralCache.iStyle, track);
+
+	UpdateReplayInfo(gA_CentralCache.iClient, style, time, track);
+
+	delete gH_ReplayTimers[style];
+	gH_ReplayTimers[style] = CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_StartReplay, style, TIMER_FLAG_NO_MAPCHANGE);
+	
+	return 0;
 }
 
 public int Native_ReloadReplay(Handle handler, int numParams)
