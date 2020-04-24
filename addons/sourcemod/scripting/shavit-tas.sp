@@ -48,7 +48,6 @@ int gI_Status[MAXPLAYERS+1];
 int gI_SurfaceFrictionOffset;
 int gI_Type[MAXPLAYERS + 1];
 
-
 public void OnPluginStart()
 {
 	g_Game = GetEngineVersion();
@@ -398,16 +397,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					if(gF_TimescaleTicksPassed[client] >= 1.0)
 					{
 						//Don't subtract 1 from gF_TimescaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
-						bool bOnGround = !(buttons & IN_JUMP) && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
+						bool bOnGround = (buttons & IN_JUMP) == 0 && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
 						
-						if (!bOnGround && !(GetEntityMoveType(client) & MOVETYPE_LADDER) && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
+						if (!bOnGround && (GetEntityMoveType(client) & MOVETYPE_LADDER) == 0 && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
 						{
-							if(!!(buttons & (IN_FORWARD | IN_BACK)))
+							if((buttons & (IN_FORWARD | IN_BACK)) != 0)
 							{
 								return Plugin_Continue;
 							}
 
-							if(!!(buttons & (IN_MOVERIGHT | IN_MOVELEFT)))
+							if((buttons & (IN_MOVERIGHT | IN_MOVELEFT)) != 0)
 							{
 								if(gI_Type[client] == Type_Override)
 								{
@@ -541,7 +540,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 			else if(gI_Status[client] == PAUSED)
 			{
-				if(!(gI_LastButtons[client] & IN_JUMP) && (buttons & IN_JUMP))
+				if((gI_LastButtons[client] & IN_JUMP) == 0 && (buttons & IN_JUMP))
 				{
 					gI_Status[client] = RUN;
 					ResumePlayer(client);
@@ -969,6 +968,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 				gF_TASTime[client] = 0.0;
 				gI_IndexCounter[client] = 0;
 				ClearArray(gA_Frames[client]);
+				Shavit_SetPlayerPreFrame(client, 0);
 			}
 		}
 
