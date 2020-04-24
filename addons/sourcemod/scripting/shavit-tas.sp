@@ -357,15 +357,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				float fTimeScale = GetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue");
 				gF_TimescaleTicksPassed[client] += fTimeScale;
 
-				float fDifference = angles[1] - gF_LastAngle[client];
-				if (fDifference > 180.0)
-				{
-					fDifference -= 360.0;
-				}
-				else if(fDifference < -180.0)
-				{
-					fDifference += 360.0;
-				}
+				float fDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
 				/*
 							AUTO STRAFER START
 														*/
@@ -380,120 +372,118 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					fYawChange = gF_AirSpeedCap * FloatAbs(gF_AirSpeedCap / vel[0]);
 				}
 
-				if (gB_AutoStrafeEnabled[client] && (GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP)
+				if((GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP)
 					&& (buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0 && (buttons & IN_MOVELEFT) == 0 && (buttons & IN_MOVERIGHT) == 0)
 				{
-					if(fDifference < 0.0)
-					{
-						angles[1] += fYawChange;
-						//buttons |= IN_MOVERIGHT;
-						vel[1] = gF_MaxMove;
-					}
-					else if(fDifference > 0.0)
-					{
-						angles[1] -= fYawChange;
-						//buttons |= IN_MOVELEFT;
-						vel[1] = -gF_MaxMove;
-					}
-				}
-				/*
-							AUTO STRAFER END
-														*/
 
-				/*
-						WIGGLEHACK START
-						Huge amounts of credit to Kamay for this code!
-						https://steamcommunity.com/id/xutaxkamay/
-																		*/
-				if (gB_SilentStrafe[client] && (GetEntityFlags(client) & FL_ONGROUND) == 0 && (GetEntityMoveType(client) != MOVETYPE_NOCLIP)
-					&& (buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0 && (buttons & IN_MOVELEFT) == 0 && (buttons & IN_MOVERIGHT) == 0)
-				{
-					if(gF_TimescaleTicksPassed[client] >= 1.0)
+					if (gB_AutoStrafeEnabled[client])
 					{
-						//Don't subtract 1 from gF_TimescaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
-						bool bOnGround = (buttons & IN_JUMP) == 0 && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
-						
-						if (!bOnGround && GetEntityMoveType(client) != MOVETYPE_LADDER && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
+						if(fDifference < 0.0)
 						{
-							if((buttons & (IN_FORWARD | IN_BACK)) != 0)
-							{
-								return Plugin_Continue;
-							}
+							angles[1] += fYawChange;
+							//buttons |= IN_MOVERIGHT;
+							vel[1] = gF_MaxMove;
+						}
+						else if(fDifference > 0.0)
+						{
+							angles[1] -= fYawChange;
+							//buttons |= IN_MOVELEFT;
+							vel[1] = -gF_MaxMove;
+						}
+					}
+					/*
+								AUTO STRAFER END
+															*/
 
-							if((buttons & (IN_MOVERIGHT | IN_MOVELEFT)) != 0)
+					/*
+							WIGGLEHACK START
+							Huge amounts of credit to Kamay for this code!
+							https://steamcommunity.com/id/xutaxkamay/
+																			*/
+					if (gB_SilentStrafe[client])
+					{
+						if(gF_TimescaleTicksPassed[client] >= 1.0)
+						{
+							//Don't subtract 1 from gF_TimescaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
+							bool bOnGround = (buttons & IN_JUMP) == 0 && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
+							
+							if (!bOnGround && GetEntityMoveType(client) != MOVETYPE_LADDER && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
 							{
-								if(gI_Type[client] == Type_Override)
+								if((buttons & (IN_MOVERIGHT | IN_MOVELEFT)) != 0)
 								{
-									return Plugin_Continue;
+									if(gI_Type[client] == Type_Override)
+									{
+										return Plugin_Continue;
+									}
+									else if(gI_Type[client] == Type_SurfOverride && IsSurfing(client))
+									{
+										return Plugin_Continue;
+									}
 								}
-								else if(gI_Type[client] == Type_SurfOverride && IsSurfing(client))
+
+								float fFowardMove, fSideMove;
+								float fMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
+								float fSurfaceFriction = 1.0;
+								if(gI_SurfaceFrictionOffset > 0)
 								{
-									return Plugin_Continue;
+									fSurfaceFriction = GetEntDataFloat(client, gI_SurfaceFrictionOffset);
+									if(gCV_AutoFind_Offset.BoolValue && !(fSurfaceFriction == 0.25 || fSurfaceFriction == 1.0))
+									{
+										FindNewFrictionOffset(client);
+									}
 								}
-							}
 
-							float fFowardMove, fSideMove;
-							float fMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
-							float fSurfaceFriction = 1.0;
-							if(gI_SurfaceFrictionOffset > 0)
-							{
-								fSurfaceFriction = GetEntDataFloat(client, gI_SurfaceFrictionOffset);
-								if(gCV_AutoFind_Offset.BoolValue && !(fSurfaceFriction == 0.25 || fSurfaceFriction == 1.0))
+
+								float fVelocity[3], fVelocity2D[2];
+
+								GetEntPropVector(client, Prop_Data, "m_vecVelocity", fVelocity);
+
+								fVelocity2D[0] = fVelocity[0];
+								fVelocity2D[1] = fVelocity[1];
+
+								// PrintToChat(client, "%f", SquareRoot(fVelocity2D[0] * fVelocity2D[0] + fVelocity2D[1] * fVelocity2D[1]));
+
+								GetIdealMovementsInAir(angles[1], fVelocity2D, fMaxSpeed, fSurfaceFriction, fFowardMove, fSideMove);
+
+								float fCurrentAngleDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
+								float fCurrentAngles = FloatAbs(fCurrentAngleDifference);
+
+
+								// Right
+								if (fCurrentAngleDifference < 0.0)
 								{
-									FindNewFrictionOffset(client);
+									float fMaxDelta = GetMaxDeltaInAir(fVelocity2D, fMaxSpeed, fSurfaceFriction, true);
+									vel[1] = gF_MaxMove;
+
+									if (fCurrentAngles <= fMaxDelta * gF_Power[client])
+									{
+										vel[0] = fFowardMove * gF_MaxMove;
+										vel[1] = fSideMove * gF_MaxMove;
+									}
 								}
-							}
+								else if (fCurrentAngleDifference > 0.0)
+								{
+									float fMaxDelta = GetMaxDeltaInAir(fVelocity2D, fMaxSpeed, fSurfaceFriction, false);
+									vel[1] = -gF_MaxMove;
 
-
-							float fVelocity[3], fVelocity2D[2];
-
-							GetEntPropVector(client, Prop_Data, "m_vecVelocity", fVelocity);
-
-							fVelocity2D[0] = fVelocity[0];
-							fVelocity2D[1] = fVelocity[1];
-
-							// PrintToChat(client, "%f", SquareRoot(fVelocity2D[0] * fVelocity2D[0] + fVelocity2D[1] * fVelocity2D[1]));
-
-							GetIdealMovementsInAir(angles[1], fVelocity2D, fMaxSpeed, fSurfaceFriction, fFowardMove, fSideMove);
-
-							float fAngleDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
-							float fCurrentAngles = FloatAbs(fAngleDifference);
-
-
-							// Right
-							if (fAngleDifference < 0.0)
-							{
-								float fMaxDelta = GetMaxDeltaInAir(fVelocity2D, fMaxSpeed, fSurfaceFriction, true);
-								vel[1] = gF_MaxMove;
-
-								if (fCurrentAngles <= fMaxDelta * gF_Power[client])
+									if (fCurrentAngles <= fMaxDelta * gF_Power[client])
+									{
+										vel[0] = fFowardMove * gF_MaxMove;
+										vel[1] = fSideMove * gF_MaxMove;
+									}
+								}
+								else
 								{
 									vel[0] = fFowardMove * gF_MaxMove;
 									vel[1] = fSideMove * gF_MaxMove;
 								}
-							}
-							else if (fAngleDifference > 0.0)
-							{
-								float fMaxDelta = GetMaxDeltaInAir(fVelocity2D, fMaxSpeed, fSurfaceFriction, false);
-								vel[1] = -gF_MaxMove;
-
-								if (fCurrentAngles <= fMaxDelta * gF_Power[client])
-								{
-									vel[0] = fFowardMove * gF_MaxMove;
-									vel[1] = fSideMove * gF_MaxMove;
-								}
-							}
-							else
-							{
-								vel[0] = fFowardMove * gF_MaxMove;
-								vel[1] = fSideMove * gF_MaxMove;
 							}
 						}
 					}
+					/*
+								WIGGLEHACK END
+															*/
 				}
-				/*
-							WIGGLEHACK END
-														*/
 
 				if(gF_TimescaleTicksPassed[client] >= 1.0)
 				{
@@ -517,7 +507,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					frame.fEyeAngles[1] = fAngles[1];
 
 					GetEntPropVector(client, Prop_Send, "m_vecOrigin", frame.fPosition);
-					GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", frame.fVelocity);
+					GetEntPropVector(client, Prop_Data, "m_vecVelocity", frame.fVelocity);
 					frame.buttons = buttons;
 					frame.iFlags = GetEntityFlags(client);
 					frame.movetype = GetEntityMoveType(client);
@@ -538,11 +528,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 					gI_IndexCounter[client] = iFrameNumber-1;
 					gF_IndexCounter[client] = iFrameNumber-1.0;
-				}
-				else if((GetEntityFlags(client) & FL_ONGROUND) == 0)
-				{
-					vel[0] = 0.0;
-					vel[1] = 0.0;
 				}
 
 				// Fix boosters
@@ -619,7 +604,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				vel[0] = 0.0;
 				vel[1] = 0.0;
 				vel[2] = 0.0;
-				int iFrameSize = GetArraySize(gA_Frames[client]);
+				int iFrameSize = gA_Frames[client].Length;
 				int iFrameNumber = gI_IndexCounter[client];
 				if(iFrameSize > 1 && iFrameNumber > 2)
 				{
