@@ -92,7 +92,7 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
-	GameData gamedata = new GameData("tas.games");
+	GameData gamedata = new GameData("shavit.games");
 
 	gI_SurfaceFrictionOffset = gamedata.GetOffset("m_surfaceFriction");
 	delete gamedata;

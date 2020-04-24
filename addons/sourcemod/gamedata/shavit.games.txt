@@ -10,6 +10,10 @@
 				"linux"		"439"
 				"mac"		"439"
 			}
+			"m_surfaceFriction"
+			{
+				"linux"		"3852"
+			}
 		}
 	}
 
@@ -22,6 +26,11 @@
 				"windows"	"505"
 				"linux"		"506"
 				"mac"		"506"
+			}
+			"m_surfaceFriction"
+			{
+				"windows"	"4660"
+				"linux"		"4684"
 			}
 		}
 	}
