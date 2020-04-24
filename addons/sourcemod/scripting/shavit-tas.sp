@@ -4,6 +4,7 @@
 #include <cstrike>
 #include <sdktools>
 #include <shavit>
+#include <convar_class>
 
 #pragma newdecls required
 
@@ -24,7 +25,7 @@ public Plugin myinfo =
 ArrayList gA_Frames[MAXPLAYERS+1];
 ConVar gCV_AirAccelerate;
 EngineVersion g_Game;
-
+Convar gCV_AutoFind_Offset;
 
 bool gB_AutoStrafeEnabled[MAXPLAYERS+1] = {false,...};
 bool gB_SilentStrafe[MAXPLAYERS+1];
@@ -83,6 +84,9 @@ public void OnPluginStart()
 	}
 
 	gCV_AirAccelerate = FindConVar("sv_airaccelerate");
+	gCV_AutoFind_Offset = new Convar("tas_find_offsets", "1", "Attempt to autofind offsets", _, true, 0.0, true, 1.0);
+
+	Convar.AutoExecConfig();
 
 	GameData gamedata = new GameData("tas.games");
 
@@ -426,7 +430,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 							if(gI_SurfaceFrictionOffset > 0)
 							{
 								fSurfaceFriction = GetEntDataFloat(client, gI_SurfaceFrictionOffset);
-								if(!(fSurfaceFriction == 0.25 || fSurfaceFriction == 1.0))
+								if(gCV_AutoFind_Offset.BoolValue && !(fSurfaceFriction == 0.25 || fSurfaceFriction == 1.0))
 								{
 									FindNewFrictionOffset(client);
 								}
