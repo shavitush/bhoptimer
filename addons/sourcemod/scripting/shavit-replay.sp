@@ -2739,7 +2739,7 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 
 int GetClosetFrameForPlayer(int client, int style, int track)
 {
-	if(!gA_Frames[style][track])
+	if(!gA_Frames[style][track] || gA_Frames[style][track].Length == 0)
 	{
 		return -1;
 	}
