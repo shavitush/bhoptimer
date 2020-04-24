@@ -11,7 +11,7 @@
 
 This is (nearly) an all-in-one server plugin for Counter-Strike: Source, Counter-Strike: Global Offensive and Team Fortress 2 that adds a timer system and many other utilities, so you can install it and run a proper bunnyhop server.
 
-Includes a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, segmented running, a fair & competitive rankings system and more!
+Includes a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, segmented/TAS running, a fair & competitive rankings system and more!
 
 [Mapzones Setup Demonstration](https://youtu.be/OXFMGm40F6c)
 
@@ -21,7 +21,7 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 * A MySQL database (preferably locally hosted) if your database is likely to grow big, or if you want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is highly recommended.
 
 # Optional requirements, for the best experience:
-* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.1/)
+* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.1/) - required for `shavit-tas` (Although the TAS plugin is optional)
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135)
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
 

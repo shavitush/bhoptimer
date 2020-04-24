@@ -5,6 +5,7 @@
 #include <sdktools>
 #include <shavit>
 #include <convar_class>
+#include <dhooks>
 
 #pragma newdecls required
 
@@ -13,9 +14,11 @@ public Plugin myinfo =
 	name = "TAS Style",
 	author = "Charles_(hypnos), SilentStrafe by Kamay",
 	description = "TAS Style",
-	version = "1.9.9.1",
+	version = "2.0",
 	url = "https://hyps.dev/"
 }
+
+// #define REAL_VERSION 2.0
 
 #define RUN 0
 #define PAUSED 1
@@ -26,10 +29,12 @@ ArrayList gA_Frames[MAXPLAYERS+1];
 ConVar gCV_AirAccelerate;
 EngineVersion g_Game;
 Convar gCV_AutoFind_Offset;
+MoveType gMT_LastMoveType[MAXPLAYERS+1];
 
 bool gB_AutoStrafeEnabled[MAXPLAYERS+1] = {false,...};
 bool gB_SilentStrafe[MAXPLAYERS+1];
 bool gB_TASMenu[MAXPLAYERS+1];
+bool gB_ProcessFrame[MAXPLAYERS+1];
 bool gB_TAS[MAXPLAYERS + 1];
 
 float gF_AirSpeedCap = 30.0;
@@ -40,8 +45,8 @@ float gF_MaxMove;
 float gF_Power[MAXPLAYERS + 1] = {1.0, ...};
 float gF_TASTime[MAXPLAYERS+1];
 float gF_TickRate;
-float gF_TimescaleTicksPassed[MAXPLAYERS+1];
 float gF_Timescale[MAXPLAYERS+1];
+float gF_NextFrameTime[MAXPLAYERS+1];
 
 int gI_IndexCounter[MAXPLAYERS+1];
 int gI_LastButtons[MAXPLAYERS+1];
@@ -65,6 +70,9 @@ enum struct framedata_t
 
 public void OnPluginStart()
 {
+	//For Timescale
+	LoadDHooks();
+
 	g_Game = GetEngineVersion();
 	
 	if(g_Game != Engine_CSGO)
@@ -130,6 +138,71 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 	RegPluginLibrary("shavit-tas");
 	return APLRes_Success;
+}
+
+//Thanks to KiD Fearless for the Timescale Method
+void LoadDHooks()
+{
+	// totally not ripped from rngfix :)
+	Handle gamedataConf = LoadGameConfigFile("shavit.games");
+
+	if(gamedataConf == null)
+	{
+		SetFailState("Failed to load shavit gamedata");
+	}
+
+	// CreateInterface
+	// Thanks SlidyBat and ici
+	StartPrepSDKCall(SDKCall_Static);
+	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "CreateInterface"))
+	{
+		SetFailState("Failed to get CreateInterface");
+	}
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	Handle CreateInterface = EndPrepSDKCall();
+
+	if(CreateInterface == null)
+	{
+		SetFailState("Unable to prepare SDKCall for CreateInterface");
+	}
+
+	char interfaceName[64];
+
+	// ProcessMovement
+	if(!GameConfGetKeyValue(gamedataConf, "IGameMovement", interfaceName, sizeof(interfaceName)))
+	{
+		SetFailState("Failed to get IGameMovement interface name");
+	}
+
+	Address IGameMovement = SDKCall(CreateInterface, interfaceName, 0);
+
+	if(!IGameMovement)
+	{
+		SetFailState("Failed to get IGameMovement pointer");
+	}
+
+	int offset = GameConfGetOffset(gamedataConf, "ProcessMovement");
+	if(offset == -1)
+	{
+		SetFailState("Failed to get ProcessMovement offset");
+	}
+
+	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPre);
+	DHookAddParam(processMovement, HookParamType_CBaseEntity);
+	DHookAddParam(processMovement, HookParamType_ObjectPtr);
+	DHookRaw(processMovement, false, IGameMovement);
+
+	Handle processMovementPost = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
+	DHookAddParam(processMovementPost, HookParamType_CBaseEntity);
+	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
+	DHookRaw(processMovementPost, true, IGameMovement);
+
+
+
+	delete CreateInterface;
+	delete gamedataConf;
 }
 
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
@@ -338,6 +411,48 @@ public Action CommandListener_MinusRewindOrForward(int client, const char[] comm
 	return Plugin_Handled;
 }
 
+
+//Thanks to KiD Fearless for the timescale method
+public MRESReturn DHook_ProcessMovementPre(Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+	if(!gB_TAS[client])
+	{
+		gB_ProcessFrame[client] = true;
+		return MRES_Ignored;
+	}
+
+	if(gF_NextFrameTime[client] <= 0.0)
+	{
+		gF_NextFrameTime[client] += (1.0 - gF_Timescale[client]);
+		gMT_LastMoveType[client] = GetEntityMoveType(client);
+		gB_ProcessFrame[client] = (gF_NextFrameTime[client] <= 0.0);
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 1.0);
+		Shavit_SetClientTimescale(client, 1.0);
+		return MRES_Ignored;
+	}
+	else
+	{
+		gF_NextFrameTime[client] -= gF_Timescale[client];
+		SetEntityMoveType(client, MOVETYPE_NONE);
+		gB_ProcessFrame[client] = (gF_NextFrameTime[client] <= 0.0);
+
+		return MRES_Ignored;
+	}
+}
+
+public MRESReturn DHook_ProcessMovementPost(Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+
+	if(gB_TAS[client])
+	{
+		SetEntityMoveType(client, gMT_LastMoveType[client]);
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gF_Timescale[client]);
+		Shavit_SetClientTimescale(client, gF_Timescale[client]);
+	}
+}
+
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
 	if(gB_TAS[client] && IsValidClient(client, true))
@@ -353,9 +468,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			if(gI_Status[client] == RUN)
 			{
 				// Record Frames
-				//SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[client]);
-				float fTimeScale = GetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue");
-				gF_TimescaleTicksPassed[client] += fTimeScale;
 
 				float fDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
 				/*
@@ -402,9 +514,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 																			*/
 					if (gB_SilentStrafe[client])
 					{
-						if(gF_TimescaleTicksPassed[client] >= 1.0)
+						if(gB_ProcessFrame[client])
 						{
-							//Don't subtract 1 from gF_TimescaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
 							bool bOnGround = (buttons & IN_JUMP) == 0 && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
 							
 							if (!bOnGround && GetEntityMoveType(client) != MOVETYPE_LADDER && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
@@ -440,8 +551,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 								fVelocity2D[0] = fVelocity[0];
 								fVelocity2D[1] = fVelocity[1];
-
-								// PrintToChat(client, "%f", SquareRoot(fVelocity2D[0] * fVelocity2D[0] + fVelocity2D[1] * fVelocity2D[1]));
 
 								GetIdealMovementsInAir(angles[1], fVelocity2D, fMaxSpeed, fSurfaceFriction, fFowardMove, fSideMove);
 
@@ -485,10 +594,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 															*/
 				}
 
-				if(gF_TimescaleTicksPassed[client] >= 1.0)
+				if(gB_ProcessFrame[client])
 				{
-					gF_TimescaleTicksPassed[client] -= 1.0;
-
 					gF_TASTime[client] += GetTickInterval();
 
 					int iFrameNumber = gA_Frames[client].Length+1;
@@ -845,10 +952,6 @@ public int PanelHandler(Handle menu, MenuAction action, int param1, int param2)
 					{
 						gF_Timescale[param1] = 0.1;
 					}
-					
-					// Two methods are used because for some odd reason the second one doesn't always work immediately, although it is necessary for movement in start zone to not be choppy on non-default timescales
-					SetEntPropFloat(param1, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[param1]);
-					Shavit_SetClientTimescale(param1, gF_Timescale[param1]);
 				}
 				case 5:
 				{
@@ -953,11 +1056,6 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 				Shavit_SetPlayerPreFrame(client, 0);
 			}
 		}
-
-
-		// Two methods are used because for some odd reason the second one doesn't always work immediately, although it is necessary for movement in start zone to not be choppy on non-default timescales
-		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", gF_Timescale[client]);
-		Shavit_SetClientTimescale(client, gF_Timescale[client]);
 	}
 }
 
