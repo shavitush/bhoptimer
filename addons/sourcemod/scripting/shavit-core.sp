@@ -157,7 +157,6 @@ char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
-int gI_TickCount = 0;
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -2731,7 +2730,6 @@ public void PreThinkPost(int client)
 
 public void OnGameFrame()
 {
-	gI_TickCount = GetGameTickCount();
 	float frametime = GetGameFrameTime();
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -3051,18 +3049,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
-		gA_Timers[client].iLandingTick = gI_TickCount;
+		gA_Timers[client].iLandingTick = tickcount;
 	}
 
 	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
 	{
-		int iDifference = (gI_TickCount - gA_Timers[client].iLandingTick);
+		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
 		
-		if(0 <= iDifference <= 10)
+
+		PrintToChat(client, "tick diff: %d", iDifference);
+		if(iDifference < 10)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
-			if(iDifference <= 1)
+			if(iDifference == 1)
 			{
 				gA_Timers[client].iPerfectJumps++;
 			}
