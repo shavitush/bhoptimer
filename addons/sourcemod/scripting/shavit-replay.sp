@@ -1606,9 +1606,16 @@ public void DeleteFrames(int client)
 	delete gA_PlayerFrames[client];
 }
 
+int g_iLoopFrame[MAXPLAYERS+1];
+
 public Action Shavit_OnStart(int client)
 {	
 	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length;
+
+	if(gA_Frames[Shavit_GetBhopStyle(client)][Shavit_GetClientTrack(client)].Length > RoundToFloor(gF_Tickrate * 60))
+		g_iLoopFrame[client] = gA_Frames[Shavit_GetBhopStyle(client)][Shavit_GetClientTrack(client)].Length / 25;
+	else 
+		g_iLoopFrame[client] = gA_Frames[Shavit_GetBhopStyle(client)][Shavit_GetClientTrack(client)].Length;
 
 	if(!gB_ClearFrame[client])
 	{
@@ -2742,13 +2749,38 @@ int GetClosetFrameForPlayer(int client, int style, int track)
 
 	float flLastDistance = 500.1;
 	int iFrame = -1;
+	int iLastFrame = -1;
 
-	for(int i = gA_FrameCache[style][track].iPreFrames; i < gA_Frames[style][track].Length; i++)
+	for(int i = gA_FrameCache[style][track].iPreFrames; i < g_iLoopFrame[client]; i++)
 	{
 		vecFrameOrigin[0] = gA_Frames[style][track].Get(i, 0);
 		vecFrameOrigin[1] = gA_Frames[style][track].Get(i, 1);
 		vecFrameOrigin[2] = gA_Frames[style][track].Get(i, 2);
 
+		float flDistance = GetVectorDistance(vecPlayerOrigin, vecFrameOrigin);
+		if(flDistance < flLastDistance && flDistance != 0.0)
+		{
+			flLastDistance = flDistance;
+			iFrame = i + 10;
+			iLastFrame = i - 10;
+		}
+	}
+
+	if(iFrame > g_iLoopFrame[client])
+		g_iLoopFrame[client] += g_iLoopFrame[client];
+
+	if(g_iLoopFrame[client] > gA_Frames[style][track].Length)
+		g_iLoopFrame[client] = gA_Frames[style][track].Length;
+
+	if (iFrame > gA_Frames[style][track].Length)
+		iFrame = gA_Frames[style][track].Length;
+
+	for(int i = iLastFrame; i < iFrame; i++)
+	{
+		vecFrameOrigin[0] = gA_Frames[style][track].Get(i, 0);
+		vecFrameOrigin[1] = gA_Frames[style][track].Get(i, 1);
+		vecFrameOrigin[2] = gA_Frames[style][track].Get(i, 2);
+	
 		float flDistance = GetVectorDistance(vecPlayerOrigin, vecFrameOrigin);
 		if(flDistance < flLastDistance && flDistance != 0.0)
 		{
