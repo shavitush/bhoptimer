@@ -12,7 +12,7 @@ public Plugin myinfo =
 	name = "TAS Style",
 	author = "Charles_(hypnos), SilentStrafe by Kamay",
 	description = "TAS Style",
-	version = "1.9.7",
+	version = "1.9.9",
 	url = "https://hyps.dev/"
 }
 
@@ -47,6 +47,16 @@ int gI_LastButtons[MAXPLAYERS+1];
 int gI_Status[MAXPLAYERS+1];
 int gI_SurfaceFrictionOffset;
 int gI_Type[MAXPLAYERS + 1];
+
+enum struct framedata_t
+{
+	float fPosition[3];
+	float fEyeAngles[2];
+	int buttons;
+	int iFlags;
+	MoveType movetype;
+	float fVelocity[3];
+}
 
 public void OnPluginStart()
 {
@@ -149,36 +159,32 @@ public Action Command_PlusOne(int client, int args)
 {
 	if(gI_Status[client] == PAUSED)
 	{
-		int iFrameSize = GetArraySize(gA_Frames[client]);
+		int iFrameSize = gA_Frames[client].Length;
 		int iFrameNumber = gI_IndexCounter[client];
 		if(iFrameSize > 1 && iFrameNumber < iFrameSize-1)
 		{
-			float fAngle[3];
-			fAngle[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 3);
-			fAngle[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 4);
-			fAngle[2] = 0.0;
-			
-			float fPosition2[3];
-			fPosition2[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 0);
-			fPosition2[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 1);
-			fPosition2[2] = GetArrayCell(gA_Frames[client], iFrameNumber, 2);
+			framedata_t frame;
+			gA_Frames[client].GetArray(iFrameNumber, frame);
 
-			float fPosition[3];
-			fPosition[0] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 0);
-			fPosition[1] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 1);
-			fPosition[2] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 2);
+			framedata_t frame2;
+			gA_Frames[client].GetArray(iFrameNumber-1, frame2);
 
 			float fVelocity[3];
-			MakeVectorFromPoints(fPosition, fPosition2, fVelocity);
+			MakeVectorFromPoints(frame2.fPosition, frame.fPosition, fVelocity);
 
 			for (int i = 0; i < 3; i++)
 			{
 				fVelocity[i] *= gF_TickRate;
 			}
 
-			TeleportEntity(client, fPosition2, fAngle, fVelocity);
+			float fAngles[3];
+			fAngles[0] = frame.fEyeAngles[0];
+			fAngles[1] = frame.fEyeAngles[1];
+			fAngles[2] = 0.0;
 
-			if((GetArrayCell(gA_Frames[client], iFrameNumber, 5) & IN_DUCK) > 0)
+			TeleportEntity(client, frame.fPosition, fAngles, fVelocity);
+
+			if((frame.buttons & IN_DUCK) > 0)
 			{
 				SetEntProp(client, Prop_Send, "m_bDucked", true);
 				SetEntProp(client, Prop_Send, "m_bDucking", true);
@@ -208,36 +214,32 @@ public Action Command_MinusOne(int client, int args)
 {
 	if(gI_Status[client] == PAUSED)
 	{
-		int iFrameSize = GetArraySize(gA_Frames[client]);
+		int iFrameSize = gA_Frames[client].Length;
 		int iFrameNumber = gI_IndexCounter[client];
 		if(iFrameSize > 1 && iFrameNumber > 2)
 		{
-			float fAngle[3];
-			fAngle[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 3);
-			fAngle[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 4);
-			fAngle[2] = 0.0;
-			
-			float fPosition2[3];
-			fPosition2[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 0);
-			fPosition2[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 1);
-			fPosition2[2] = GetArrayCell(gA_Frames[client], iFrameNumber, 2);
+			framedata_t frame;
+			gA_Frames[client].GetArray(iFrameNumber, frame);
 
-			float fPosition[3];
-			fPosition[0] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 0);
-			fPosition[1] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 1);
-			fPosition[2] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 2);
+			framedata_t frame2;
+			gA_Frames[client].GetArray(iFrameNumber-1, frame2);
 
 			float fVelocity[3];
-			MakeVectorFromPoints(fPosition2, fPosition, fVelocity);
+			MakeVectorFromPoints(frame.fPosition, frame2.fPosition, fVelocity);
 
 			for (int i = 0; i < 3; i++)
 			{
 				fVelocity[i] *= gF_TickRate;
 			}
 
-			TeleportEntity(client, fPosition, fAngle, fVelocity);
+			float fAngles[3];
+			fAngles[0] = frame.fEyeAngles[0];
+			fAngles[1] = frame.fEyeAngles[1];
+			fAngles[2] = 0.0;
 
-			if((GetArrayCell(gA_Frames[client], iFrameNumber, 5) & IN_DUCK) > 0)
+			TeleportEntity(client, frame2.fPosition, fAngles, fVelocity);
+
+			if((frame.buttons & IN_DUCK) > 0)
 			{
 				SetEntProp(client, Prop_Send, "m_bDucked", true);
 				SetEntProp(client, Prop_Send, "m_bDucking", true);
@@ -399,7 +401,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						//Don't subtract 1 from gF_TimescaleTicksPassed[client] because it happens later and this code won't always run depending on if wiggle hack is on.
 						bool bOnGround = (buttons & IN_JUMP) == 0 && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
 						
-						if (!bOnGround && (GetEntityMoveType(client) & MOVETYPE_LADDER) == 0 && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
+						if (!bOnGround && GetEntityMoveType(client) != MOVETYPE_LADDER && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
 						{
 							if((buttons & (IN_FORWARD | IN_BACK)) != 0)
 							{
@@ -487,33 +489,29 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 					gF_TASTime[client] += GetTickInterval();
 
-					int iFrameNumber = GetArraySize(gA_Frames[client])+1;
+					int iFrameNumber = gA_Frames[client].Length+1;
 					if(gI_IndexCounter[client] != iFrameNumber-2)
 					{
 						//UnPaused in different tick
 						iFrameNumber = gI_IndexCounter[client]+1;
 					}
-					ResizeArray(gA_Frames[client], iFrameNumber);
-					
-					float fPosition[3];
-					float fEyeAngles[3];
-					float fVelocity[3];
+					gA_Frames[client].Resize(iFrameNumber);
 
-					GetEntPropVector(client, Prop_Send, "m_vecOrigin", fPosition);
-					GetClientEyeAngles(client, fEyeAngles);
-					GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fVelocity);
+					framedata_t frame;
 
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fPosition[0], 0);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fPosition[1], 1);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fPosition[2], 2);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fEyeAngles[0], 3);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fEyeAngles[1], 4);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, buttons, 5);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, GetEntityFlags(client), 6);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, GetEntityMoveType(client), 7);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocity[0], 8);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocity[1], 9);
-					SetArrayCell(gA_Frames[client], iFrameNumber-1, fVelocity[2], 10);
+					float fAngles[3];
+					GetClientEyeAngles(client, fAngles);
+					frame.fEyeAngles[0] = fAngles[0];
+					frame.fEyeAngles[1] = fAngles[1];
+
+					GetEntPropVector(client, Prop_Send, "m_vecOrigin", frame.fPosition);
+					GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", frame.fVelocity);
+					frame.buttons = buttons;
+					frame.iFlags = GetEntityFlags(client);
+					frame.movetype = GetEntityMoveType(client);
+
+					gA_Frames[client].SetArray(iFrameNumber-1, frame);
+
 					gI_IndexCounter[client] = iFrameNumber-1;
 					gF_IndexCounter[client] = iFrameNumber-1.0;
 				}
@@ -550,24 +548,22 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					vel[0] = 0.0;
 					vel[1] = 0.0;
 					vel[2] = 0.0;
-					int iFrameSize = GetArraySize(gA_Frames[client]);
+					int iFrameSize = gA_Frames[client].Length;
 					int iFrameNumber = gI_IndexCounter[client];
 					if(iFrameSize > 1 && iFrameNumber > 1)
 					{
-						float fAngle[3];
-						fAngle[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 3);
-						fAngle[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 4);
-						fAngle[2] = 0.0;
-						
-						float fPosition[3];
-						fPosition[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 0);
-						fPosition[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 1);
-						fPosition[2] = GetArrayCell(gA_Frames[client], iFrameNumber, 2);
+						framedata_t frame;
+						gA_Frames[client].GetArray(iFrameNumber, frame);
 
-						TeleportEntity(client, fPosition, fAngle, view_as<float>({0.0, 0.0, 0.0}));
+						float fAngles[3];
+						fAngles[0] = frame.fEyeAngles[0];
+						fAngles[1] = frame.fEyeAngles[1];
+						fAngles[2] = 0.0;
+
+						TeleportEntity(client, frame.fPosition, fAngles, view_as<float>({0.0, 0.0, 0.0}));
 						//gF_TASTime[client] -= GetTickInterval();
 
-						if((GetArrayCell(gA_Frames[client], iFrameNumber, 6) & FL_DUCKING) > 0)
+						if((frame.iFlags & FL_DUCKING) > 0)
 						{
 							SetEntProp(client, Prop_Send, "m_bDucked", true);
 							SetEntProp(client, Prop_Send, "m_bDucking", true);
@@ -579,8 +575,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 							SetEntProp(client, Prop_Send, "m_bDucking", false);
 						}
 
-						int iFlags = GetArrayCell(gA_Frames[client], iFrameNumber, 6);
-						SetEntityFlags(client, iFlags);
+						SetEntityFlags(client, frame.iFlags);
 					}
 
 					if((GetEntityFlags(client) & FL_ONGROUND) > 0)
@@ -598,30 +593,26 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				int iFrameNumber = gI_IndexCounter[client];
 				if(iFrameSize > 1 && iFrameNumber > 2)
 				{
-					float fAngle[3];
-					fAngle[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 3);
-					fAngle[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 4);
-					fAngle[2] = 0.0;
-					
-					float fPosition2[3];
-					fPosition2[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 0);
-					fPosition2[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 1);
-					fPosition2[2] = GetArrayCell(gA_Frames[client], iFrameNumber, 2);
+					framedata_t frame;
+					gA_Frames[client].GetArray(iFrameNumber, frame);
 
-					float fPosition[3];
-					fPosition[0] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 0);
-					fPosition[1] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 1);
-					fPosition[2] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 2);
+					framedata_t frame2;
+					gA_Frames[client].GetArray(iFrameNumber-1, frame2);
 
 					float fVelocity[3];
-					MakeVectorFromPoints(fPosition2, fPosition, fVelocity);
+					MakeVectorFromPoints(frame.fPosition, frame2.fPosition, fVelocity);
 
 					for (int i = 0; i < 3; i++)
 					{
 						fVelocity[i] *= gF_TickRate;
 					}
 
-					TeleportEntity(client, fPosition, fAngle, fVelocity);
+					float fAngles[3];
+					fAngles[0] = frame.fEyeAngles[0];
+					fAngles[1] = frame.fEyeAngles[1];
+					fAngles[2] = 0.0;
+
+					TeleportEntity(client, frame2.fPosition, fAngles, fVelocity);
 
 					gF_IndexCounter[client] -= gF_CounterSpeed[client];
 					if(IsRound(gF_IndexCounter[client]))
@@ -640,34 +631,30 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				vel[0] = 0.0;
 				vel[1] = 0.0;
 				vel[2] = 0.0;
-				int iFrameSize = GetArraySize(gA_Frames[client]);
+				int iFrameSize = gA_Frames[client].Length;
 				int iFrameNumber = gI_IndexCounter[client];
 				if(iFrameSize > 1 && iFrameNumber < iFrameSize-1)
 				{
-					float fAngle[3];
-					fAngle[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 3);
-					fAngle[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 4);
-					fAngle[2] = 0.0;
-					
-					float fPosition2[3];
-					fPosition2[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 0);
-					fPosition2[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 1);
-					fPosition2[2] = GetArrayCell(gA_Frames[client], iFrameNumber, 2);
+					framedata_t frame;
+					gA_Frames[client].GetArray(iFrameNumber, frame);
 
-					float fPosition[3];
-					fPosition[0] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 0);
-					fPosition[1] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 1);
-					fPosition[2] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 2);
+					framedata_t frame2;
+					gA_Frames[client].GetArray(iFrameNumber-1, frame2);
 
 					float fVelocity[3];
-					MakeVectorFromPoints(fPosition, fPosition2, fVelocity);
+					MakeVectorFromPoints(frame2.fPosition, frame.fPosition, fVelocity);
 
 					for (int i = 0; i < 3; i++)
 					{
 						fVelocity[i] *= gF_TickRate;
 					}
 
-					TeleportEntity(client, fPosition2, fAngle, fVelocity);
+					float fAngles[3];
+					fAngles[0] = frame.fEyeAngles[0];
+					fAngles[1] = frame.fEyeAngles[1];
+					fAngles[2] = 0.0;
+
+					TeleportEntity(client, frame.fPosition, fAngles, fVelocity);
 
 					gF_IndexCounter[client] += gF_CounterSpeed[client];
 					if(IsRound(gF_IndexCounter[client]))
@@ -876,35 +863,23 @@ public int PanelHandler(Handle menu, MenuAction action, int param1, int param2)
 
 void ResumePlayer(int client)
 {
-	int iFrameSize = GetArraySize(gA_Frames[client]);
+	int iFrameSize = gA_Frames[client].Length;
 	int iFrameNumber = gI_IndexCounter[client];
 	if(iFrameSize > 1 && iFrameNumber > 1)
 	{
 		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 
-		float fAngle[3];
-		fAngle[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 3);
-		fAngle[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 4);
-		fAngle[2] = 0.0;
-		
-		float fPosition2[3];
-		fPosition2[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 0);
-		fPosition2[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 1);
-		fPosition2[2] = GetArrayCell(gA_Frames[client], iFrameNumber, 2);
+		framedata_t frame;
+		gA_Frames[client].GetArray(iFrameNumber, frame);
 
-		float fPosition[3];
-		fPosition[0] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 0);
-		fPosition[1] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 1);
-		fPosition[2] = GetArrayCell(gA_Frames[client], iFrameNumber-1, 2);
-		
-		float fVelocity[3];
-		fVelocity[0] = GetArrayCell(gA_Frames[client], iFrameNumber, 8);
-		fVelocity[1] = GetArrayCell(gA_Frames[client], iFrameNumber, 9);
-		fVelocity[2] = GetArrayCell(gA_Frames[client], iFrameNumber, 10);
+		float fAngles[3];
+		fAngles[0] = frame.fEyeAngles[0];
+		fAngles[1] = frame.fEyeAngles[1];
+		fAngles[2] = 0.0;
 
-		TeleportEntity(client, fPosition2, fAngle, fVelocity);
+		TeleportEntity(client, frame.fPosition, fAngles, frame.fVelocity);
 
-		if((GetArrayCell(gA_Frames[client], iFrameNumber, 6) & FL_DUCKING) > 0)
+		if((frame.iFlags & FL_DUCKING) > 0)
 		{
 			SetEntProp(client, Prop_Send, "m_bDucked", true);
 			SetEntProp(client, Prop_Send, "m_bDucking", true);
@@ -915,8 +890,7 @@ void ResumePlayer(int client)
 			SetEntProp(client, Prop_Send, "m_bDucking", false);
 		}
 
-		int iFlags = GetArrayCell(gA_Frames[client], iFrameNumber, 6);
-		SetEntityFlags(client, iFlags);
+		SetEntityFlags(client, frame.iFlags);
 	}
 }
 
@@ -929,11 +903,11 @@ void ResetTASData(int client)
 {
 	if(gA_Frames[client] != INVALID_HANDLE)
 	{
-		ClearArray(gA_Frames[client]);
+		gA_Frames[client].Clear();
 	}
 	else
 	{
-		gA_Frames[client] = CreateArray(11, 0);
+		gA_Frames[client] = new ArrayList(sizeof(framedata_t));
 	}
 
 	gF_CounterSpeed[client] = 1.0;
@@ -947,16 +921,6 @@ void ResetTASData(int client)
 	gF_Power[client] = 1.0;
 }
 
-/* public Action Shavit_OnStart(int client)
-{
-	if(gI_Status[client] == RUN && gB_TAS[client])
-	{
-		gF_TASTime[client] = 0.0;
-		gI_IndexCounter[client] = 0;
-		ClearArray(gA_Frames[client]);
-	}
-} */
-
 public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
 {
 	if(gB_TAS[client])
@@ -967,7 +931,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 			{
 				gF_TASTime[client] = 0.0;
 				gI_IndexCounter[client] = 0;
-				ClearArray(gA_Frames[client]);
+				gA_Frames[client].Clear();
 				Shavit_SetPlayerPreFrame(client, 0);
 			}
 		}
