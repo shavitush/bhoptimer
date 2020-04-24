@@ -13,7 +13,7 @@ public Plugin myinfo =
 	name = "TAS Style",
 	author = "Charles_(hypnos), SilentStrafe by Kamay",
 	description = "TAS Style",
-	version = "1.9.9",
+	version = "1.9.9.1",
 	url = "https://hyps.dev/"
 }
 
@@ -57,6 +57,10 @@ enum struct framedata_t
 	int iFlags;
 	MoveType movetype;
 	float fVelocity[3];
+	bool bDucked;
+	bool bDucking;
+	float fDuckTime; // m_flDuckAmount in csgo
+	float fDuckSpeed; // m_flDuckSpeed in csgo; doesn't exist in css
 }
 
 public void OnPluginStart()
@@ -188,15 +192,17 @@ public Action Command_PlusOne(int client, int args)
 
 			TeleportEntity(client, frame.fPosition, fAngles, fVelocity);
 
-			if((frame.buttons & IN_DUCK) > 0)
+			SetEntProp(client, Prop_Send, "m_bDucked", frame.bDucked);
+			SetEntProp(client, Prop_Send, "m_bDucking", frame.bDucking);
+
+			if(g_Game == Engine_CSGO)
 			{
-				SetEntProp(client, Prop_Send, "m_bDucked", true);
-				SetEntProp(client, Prop_Send, "m_bDucking", true);
+				SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", frame.fDuckTime);
+				SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", frame.fDuckSpeed);
 			}
 			else
 			{
-				SetEntProp(client, Prop_Send, "m_bDucked", false);
-				SetEntProp(client, Prop_Send, "m_bDucking", false);
+				SetEntPropFloat(client, Prop_Send, "m_flDuckTime", frame.fDuckTime);
 			}
 
 			gF_IndexCounter[client] += gF_CounterSpeed[client];
@@ -243,15 +249,17 @@ public Action Command_MinusOne(int client, int args)
 
 			TeleportEntity(client, frame2.fPosition, fAngles, fVelocity);
 
-			if((frame.buttons & IN_DUCK) > 0)
+			SetEntProp(client, Prop_Send, "m_bDucked", frame2.bDucked);
+			SetEntProp(client, Prop_Send, "m_bDucking", frame2.bDucking);
+
+			if(g_Game == Engine_CSGO)
 			{
-				SetEntProp(client, Prop_Send, "m_bDucked", true);
-				SetEntProp(client, Prop_Send, "m_bDucking", true);
+				SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", frame2.fDuckTime);
+				SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", frame2.fDuckSpeed);
 			}
 			else
 			{
-				SetEntProp(client, Prop_Send, "m_bDucked", false);
-				SetEntProp(client, Prop_Send, "m_bDucking", false);
+				SetEntPropFloat(client, Prop_Send, "m_flDuckTime", frame2.fDuckTime);
 			}
 
 			gF_IndexCounter[client] -= gF_CounterSpeed[client];
@@ -514,6 +522,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					frame.iFlags = GetEntityFlags(client);
 					frame.movetype = GetEntityMoveType(client);
 
+					frame.bDucked = GetEntProp(client, Prop_Data, "m_bDucked") != 0;
+					frame.bDucking = GetEntProp(client, Prop_Data, "m_bDucking") != 0;
+					if(g_Game == Engine_CSGO)
+					{
+						frame.fDuckTime = GetEntPropFloat(client, Prop_Data, "m_flDuckAmount");
+						frame.fDuckSpeed = GetEntPropFloat(client, Prop_Data, "m_flDuckSpeed");
+					}
+					else
+					{
+						frame.fDuckTime = GetEntPropFloat(client, Prop_Data, "m_flDuckTime");
+					}
+
 					gA_Frames[client].SetArray(iFrameNumber-1, frame);
 
 					gI_IndexCounter[client] = iFrameNumber-1;
@@ -569,14 +589,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 						if((frame.iFlags & FL_DUCKING) > 0)
 						{
-							SetEntProp(client, Prop_Send, "m_bDucked", true);
-							SetEntProp(client, Prop_Send, "m_bDucking", true);
 							buttons |= IN_DUCK;
+						}
+						
+						SetEntProp(client, Prop_Send, "m_bDucked", frame.bDucked);
+						SetEntProp(client, Prop_Send, "m_bDucking", frame.bDucking);
+
+						if(g_Game == Engine_CSGO)
+						{
+							SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", frame.fDuckTime);
+							SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", frame.fDuckSpeed);
 						}
 						else
 						{
-							SetEntProp(client, Prop_Send, "m_bDucked", false);
-							SetEntProp(client, Prop_Send, "m_bDucking", false);
+							SetEntPropFloat(client, Prop_Send, "m_flDuckTime", frame.fDuckTime);
 						}
 
 						SetEntityFlags(client, frame.iFlags);
@@ -883,15 +909,18 @@ void ResumePlayer(int client)
 
 		TeleportEntity(client, frame.fPosition, fAngles, frame.fVelocity);
 
-		if((frame.iFlags & FL_DUCKING) > 0)
+		
+		SetEntProp(client, Prop_Send, "m_bDucked", frame.bDucked);
+		SetEntProp(client, Prop_Send, "m_bDucking", frame.bDucking);
+
+		if(g_Game == Engine_CSGO)
 		{
-			SetEntProp(client, Prop_Send, "m_bDucked", true);
-			SetEntProp(client, Prop_Send, "m_bDucking", true);
+			SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", frame.fDuckTime);
+			SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", frame.fDuckSpeed);
 		}
 		else
 		{
-			SetEntProp(client, Prop_Send, "m_bDucked", false);
-			SetEntProp(client, Prop_Send, "m_bDucking", false);
+			SetEntPropFloat(client, Prop_Send, "m_flDuckTime", frame.fDuckTime);
 		}
 
 		SetEntityFlags(client, frame.iFlags);
