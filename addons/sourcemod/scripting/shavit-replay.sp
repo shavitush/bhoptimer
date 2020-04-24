@@ -1627,16 +1627,14 @@ public Action Shavit_OnStart(int client)
 		
 		else
 		{
-			for(int i = 0; i < gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale); i++)
+			while(gA_PlayerFrames[client].Length > RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
 			{
 				gA_PlayerFrames[client].Erase(0);
 				gI_PlayerFrames[client]--;
 			}
 
-			if(gA_PlayerFrames[client].Length <= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
-			{
-				gB_ClearFrame[client] = true;
-			}
+			gB_ClearFrame[client] = true;
+
 		}
 	}
 
