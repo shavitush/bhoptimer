@@ -1081,7 +1081,6 @@ public void Shavit_OnFinish_Post(int client)
 	if(gB_TAS[client])
 	{
 		gI_Status[client] = RUN;
-		gF_TASTime[client] = 0.0;
 	}
 }
 
