@@ -395,11 +395,12 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	float fSeconds = (iRounded % 60) + fTempTime - iRounded;
 
 	char sSeconds[8];
-	FormatEx(sSeconds, 8, precise? "%s%.03f":"%s%.01f", (time < 0.0)? "-":"", fSeconds);
+	FormatEx(sSeconds, 8, precise? "%.03f":"%.01f", fSeconds);
 
 	if(fTempTime < 60.0)
 	{
 		strcopy(newtime, newtimesize, sSeconds);
+		FormatEx(newtime, newtimesize, "%s%s", (fSeconds < 0.0) ? "-":"", sSeconds);
 	}
 
 	else
@@ -1740,6 +1741,38 @@ native int Shavit_GetPlayerPreFrame(int client);
  */
 native void Shavit_SetPlayerPreFrame(int client, int preframe);
 
+/*
+ * Get preframe length from specific replay
+ *
+ * @param stlye						Style
+ * @param track						Track 
+ *
+ * @return Replay preframe 
+ */
+native int Shavit_GetReplayPreFrameCount(int style, int track);
+
+// I need a native English speaker to polish these two natives >_>  ---- deadwinter
+
+/* description here
+ * 
+ * @param clinet					Client index
+ * @param stlye						Style
+ * @param track						Track 
+ *
+ * @return Frame
+ */
+native int Shavit_GetClientCurrentFrame(int client, int style, int track);
+
+/* description here
+ * 
+ * @param clinet					Client index
+ * @param stlye						Style
+ * @param track						Track 
+ *
+ * @return Frame Time
+ */
+native float Shavit_GetClientCurrentFrameTime(int client, int style, int track);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -1869,6 +1902,9 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_GetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetPlayerTimerframe");
-	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");  
+	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
+	MarkNativeAsOptional("Shavit_GetReplayPreFrameCount");
+	MarkNativeAsOptional("Shavit_GetClientCurrentFrame");
+	MarkNativeAsOptional("Shavit_GetClientCurrentFrameTime");
 }
 #endif

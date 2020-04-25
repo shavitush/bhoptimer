@@ -210,6 +210,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_GetPlayerPreFrame", Native_GetPreFrame);
 	CreateNative("Shavit_SetPlayerPreFrame", Native_SetPreFrame);
+	CreateNative("Shavit_GetReplayPreFrameCount", Native_GetReplayPreFrameCount);
+	CreateNative("Shavit_GetClientCurrentFrame", Native_GetClientCurrentFrame);
+	CreateNative("Shavit_GetClientCurrentFrameTime", Native_GetClientCurrentFrameTime);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -629,13 +632,13 @@ public int Native_GetReplayData(Handle handler, int numParams)
 
 public int Native_GetReplayFrames(Handle handler, int numParams)
 {
-	int track = GetNativeCell(1);
-	int style = GetNativeCell(2);
+	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
 	ArrayList frames = null;
 
-	if(gA_Frames[track][style] != null)
+	if(gA_Frames[style][track] != null)
 	{
-		ArrayList temp = gA_Frames[track][style].Clone();
+		ArrayList temp = gA_Frames[style][track].Clone();
 		frames = view_as<ArrayList>(CloneHandle(temp, handler));
 		delete temp;
 	}
@@ -768,6 +771,21 @@ public int Native_GetPreFrame(Handle handler, int numParams)
 public int Native_SetPreFrame(Handle handler, int numParams)
 {
 	gI_PlayerPrerunFrames[GetNativeCell(1)] = GetNativeCell(2);
+}
+
+public int Native_GetReplayPreFrameCount(Handle handler, int numParams)
+{
+	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].iPreFrames;
+}
+
+public int Native_GetClientCurrentFrame(Handle handler, int numParams)
+{
+	return GetClosetFrameForPlayer(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3));
+}
+
+public int Native_GetClientCurrentFrameTime(Handle handler, int numParams)
+{
+	return view_as<int>(GetCurrentFrameTime(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3)));
 }
 
 public Action Cron(Handle Timer)
@@ -1588,17 +1606,55 @@ public void DeleteFrames(int client)
 	delete gA_PlayerFrames[client];
 }
 
+static int sI_LoopFrame[MAXPLAYERS+1];
+static int sI_Divisor[MAXPLAYERS+1];
+
 public Action Shavit_OnStart(int client)
 {	
 	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length;
+
+	int style = Shavit_GetBhopStyle(client);
+	int track = Shavit_GetClientTrack(client);
+
+	if(gA_Frames[style][track].Length > RoundToFloor(gF_Tickrate * 60))
+	{
+		if(gA_Frames[style][track].Length > RoundToFloor(gF_Tickrate * 3600))
+		{
+			sI_Divisor[client] = 75;
+		}
+		else 
+		{
+			sI_Divisor[client] = 25;
+		}
+
+		sI_LoopFrame[client] = gA_Frames[style][track].Length / sI_Divisor[client];
+	}
+
+	else
+	{
+		sI_Divisor[client] = 1;
+		sI_LoopFrame[client] = gA_Frames[style][track].Length;
+	}
 
 	if(!gB_ClearFrame[client])
 	{
 		if(!gCV_ClearPreRun.BoolValue)
 		{
 			ClearFrames(client);
+			gB_ClearFrame[client] = true;
 		}
-		gB_ClearFrame[client] = true;
+		
+		else
+		{
+			while(gA_PlayerFrames[client].Length > RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+			{
+				gA_PlayerFrames[client].Erase(0);
+				gI_PlayerFrames[client]--;
+			}
+
+			gB_ClearFrame[client] = true;
+
+		}
 	}
 
 	else 
@@ -2696,6 +2752,85 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 	}
 
 	Shavit_GetWRName(style, buffer, length, track);
+}
+
+int GetClosetFrameForPlayer(int client, int style, int track)
+{
+	if(gA_Frames[style][track] == null || gA_Frames[style][track].Length == 0)
+	{
+		return -1;
+	}
+
+	float vecPlayerOrigin[3], vecFrameOrigin[3];
+	GetClientAbsOrigin(client, vecPlayerOrigin);
+
+	float flLastDistance = 500.1;
+	int iFrame = -1;
+	int iLastFrame = -1;
+
+	for(int i = gA_FrameCache[style][track].iPreFrames; i < sI_LoopFrame[client]; i++)
+	{
+		vecFrameOrigin[0] = gA_Frames[style][track].Get(i, 0);
+		vecFrameOrigin[1] = gA_Frames[style][track].Get(i, 1);
+		vecFrameOrigin[2] = gA_Frames[style][track].Get(i, 2);
+
+		float flDistance = GetVectorDistance(vecPlayerOrigin, vecFrameOrigin);
+		if(flDistance < flLastDistance && flDistance != 0.0)
+		{
+			flLastDistance = flDistance;
+			iFrame = i + 5;
+			iLastFrame = i - 5;
+		}
+	}
+
+	if(iFrame >= sI_LoopFrame[client] - 1)
+	{
+		sI_LoopFrame[client] += gA_Frames[Shavit_GetBhopStyle(client)][Shavit_GetClientTrack(client)].Length / 25;
+	}
+
+	if(sI_LoopFrame[client] > gA_Frames[style][track].Length)
+	{
+		sI_LoopFrame[client] = gA_Frames[style][track].Length;
+	}
+
+	if (iFrame > gA_Frames[style][track].Length)
+	{
+		iFrame = gA_Frames[style][track].Length;
+	}
+
+	if(iLastFrame < 0)
+	{
+		iLastFrame = 0;
+	}
+
+	for(int i = iLastFrame; i < iFrame; i++)
+	{
+		vecFrameOrigin[0] = gA_Frames[style][track].Get(i, 0);
+		vecFrameOrigin[1] = gA_Frames[style][track].Get(i, 1);
+		vecFrameOrigin[2] = gA_Frames[style][track].Get(i, 2);
+
+		float flDistance = GetVectorDistance(vecPlayerOrigin, vecFrameOrigin);
+		if(flDistance < flLastDistance && flDistance != 0.0)
+		{
+			flLastDistance = flDistance;
+			iFrame = i;
+		}
+	}
+
+	if(flLastDistance > 500.0)
+	{
+		return -1;
+	}
+
+	return iFrame;
+}
+
+float GetCurrentFrameTime(int client, int style, int track)
+{
+	// TimerStartFrame / TotalTimerFrame * WRTime
+	// TimerStartFrame = FrameAfterLeavingStartZone - PreFrames
+	// TotalTimerFrame = FrameCount - PreFrames
+	return float(GetClosetFrameForPlayer(client, style, track) - gA_FrameCache[style][track].iPreFrames) / float(gA_FrameCache[style][track].iFrameCount - gA_FrameCache[style][track].iPreFrames) * GetReplayLength(style, track);
 }
 
 /*
