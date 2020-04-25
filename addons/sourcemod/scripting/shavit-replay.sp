@@ -1613,10 +1613,14 @@ public Action Shavit_OnStart(int client)
 	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length;
 
 	if(gA_Frames[Shavit_GetBhopStyle(client)][Shavit_GetClientTrack(client)].Length > RoundToFloor(gF_Tickrate * 60))
+	{
 		g_iLoopFrame[client] = gA_Frames[Shavit_GetBhopStyle(client)][Shavit_GetClientTrack(client)].Length / 25;
-	else 
+	}
+	else
+	{ 
 		g_iLoopFrame[client] = gA_Frames[Shavit_GetBhopStyle(client)][Shavit_GetClientTrack(client)].Length;
-
+	}
+	
 	if(!gB_ClearFrame[client])
 	{
 		if(!gCV_ClearPreRun.BoolValue)
@@ -2783,7 +2787,7 @@ int GetClosetFrameForPlayer(int client, int style, int track)
 	{
 		iLastFrame = 0;
 	}
-	
+
 	for(int i = iLastFrame; i < iFrame; i++)
 	{
 		vecFrameOrigin[0] = gA_Frames[style][track].Get(i, 0);
