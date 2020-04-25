@@ -11,14 +11,14 @@
 
 public Plugin myinfo = 
 {
-	name = "TAS Style",
+	name = "[shavit] TAS Style",
 	author = "Charles_(hypnos), SilentStrafe by Kamay",
-	description = "TAS Style",
-	version = "2.0",
+	description = "TAS Style for shavit's bhop timer.",
+	version = SHAVIT_VERSION,
 	url = "https://hyps.dev/"
 }
 
-// #define REAL_VERSION 2.0
+// #define REAL_VERSION 2.1 // This real version is for hypnos ;) b/c KiD wants to take away my version number ;(
 
 #define RUN 0
 #define PAUSED 1
@@ -52,7 +52,8 @@ int gI_IndexCounter[MAXPLAYERS+1];
 int gI_LastButtons[MAXPLAYERS+1];
 int gI_Status[MAXPLAYERS+1];
 int gI_SurfaceFrictionOffset;
-int gI_Type[MAXPLAYERS + 1];
+int gI_Type[MAXPLAYERS+1];
+int gI_Track[MAXPLAYERS+1];
 
 enum struct framedata_t
 {
@@ -393,7 +394,7 @@ public Action CommandListener_PlusRewind(int client, const char[] command, int a
 
 public Action CommandListener_PlusForward(int client, const char[] command, int args)
 {
-	if(!gB_TAS[client])
+	if(!gB_TAS[client] || Shavit_GetTimerStatus(client) != Timer_Running)
 	{
 		return Plugin_Handled;
 	}
@@ -403,7 +404,7 @@ public Action CommandListener_PlusForward(int client, const char[] command, int 
 
 public Action CommandListener_MinusRewindOrForward(int client, const char[] command, int args)
 {
-	if(!gB_TAS[client])
+	if(!gB_TAS[client] || Shavit_GetTimerStatus(client) != Timer_Running)
 	{
 		return Plugin_Handled;
 	}
@@ -458,9 +459,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(gB_TAS[client] && IsValidClient(client, true))
 	{
 		DrawPanel(client);
-
-		if(Shavit_GetTimerStatus(client) != Timer_Running)
+		
+		if(Shavit_GetTimerStatus(client) != Timer_Running && (gI_Status[client] == RUN || gI_Status[client] == PAUSED))
 		{
+			gI_Status[client] = RUN; //in the event they fastfowarded into the endzone and paused on the edge of the zone.
 			return Plugin_Continue;
 		}
 		else
@@ -708,6 +710,17 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 			else if(gI_Status[client] == BACKWARD)
 			{
+				if(Shavit_GetTimerStatus(client) != Timer_Running)
+				{
+					if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+					{
+						gI_Status[client] = RUN;
+						Shavit_PrintToChat(client, "Please disable noclip before rewinding!");
+						return Plugin_Continue;
+					}
+
+					Shavit_StartTimer(client, gI_Track[client]);
+				}
 				vel[0] = 0.0;
 				vel[1] = 0.0;
 				vel[2] = 0.0;
@@ -877,11 +890,12 @@ public int PanelHandler(Handle menu, MenuAction action, int param1, int param2)
 			gB_TASMenu[param1] = false;
 			return 0;
 		}
-		if(Shavit_GetTimerStatus(param1) == Timer_Running)
+
+		switch(param2)
 		{
-			switch(param2)
+			case 1:
 			{
-				case 1:
+				if(Shavit_GetTimerStatus(param1) == Timer_Running)
 				{
 					if(gI_Status[param1] == PAUSED)
 					{
@@ -890,7 +904,7 @@ public int PanelHandler(Handle menu, MenuAction action, int param1, int param2)
 					}
 					else
 					{
-						if(Shavit_InsideZone(param1, Zone_Start, -1))
+						if(Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
 						{
 							return 0;
 						}
@@ -898,25 +912,28 @@ public int PanelHandler(Handle menu, MenuAction action, int param1, int param2)
 						gI_Status[param1] = PAUSED;
 					}
 				}
-				case 2:
+			}
+			case 2:
+			{
+				if(Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
 				{
-					if(Shavit_InsideZone(param1, Zone_Start, -1))
-					{
-						return 0;
-					}
-
-					if(gI_Status[param1] != BACKWARD)
-					{
-						gI_Status[param1] = BACKWARD;
-					}
-					else
-					{
-						gI_Status[param1] = PAUSED;
-					}
+					return 0;
 				}
-				case 3:
+
+				if(gI_Status[param1] != BACKWARD)
 				{
-					if(Shavit_InsideZone(param1, Zone_Start, -1))
+					gI_Status[param1] = BACKWARD;
+				}
+				else
+				{
+					gI_Status[param1] = PAUSED;
+				}
+			}
+			case 3:
+			{
+				if(Shavit_GetTimerStatus(param1) == Timer_Running)
+				{
+					if(Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
 					{
 						return 0;
 					}
@@ -930,49 +947,49 @@ public int PanelHandler(Handle menu, MenuAction action, int param1, int param2)
 						gI_Status[param1] = PAUSED;
 					}
 				}
-				/* case 4:
+			}
+			/* case 4:
+			{
+				gF_IndexCounter[param1] = 1.0 * RoundToFloor(gF_IndexCounter[param1]);
+				gF_CounterSpeed[param1] += 1.0;
+				if(gF_CounterSpeed[param1] >= 4.0)
 				{
-					gF_IndexCounter[param1] = 1.0 * RoundToFloor(gF_IndexCounter[param1]);
-					gF_CounterSpeed[param1] += 1.0;
-					if(gF_CounterSpeed[param1] >= 4.0)
-					{
-						gF_CounterSpeed[param1] = 1.0;
-					}
-				} */
-				case 4:
+					gF_CounterSpeed[param1] = 1.0;
+				}
+			} */
+			case 4:
+			{
+				if(!Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
 				{
-					if(!Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
-					{
-						Shavit_PrintToChat(param1, "Timescale can only be updated when paused or inside the start zone!");
-						return 0;
-					}
+					Shavit_PrintToChat(param1, "Timescale can only be updated when paused or inside the start zone!");
+					return 0;
+				}
 
-					gF_Timescale[param1] += 0.1;
-					if(gF_Timescale[param1] >= 1.1)
-					{
-						gF_Timescale[param1] = 0.1;
-					}
-				}
-				case 5:
+				gF_Timescale[param1] += 0.1;
+				if(gF_Timescale[param1] >= 1.1)
 				{
-					gB_AutoStrafeEnabled[param1] = !gB_AutoStrafeEnabled[param1];
+					gF_Timescale[param1] = 0.1;
 				}
-				case 6:
-				{
-					gB_SilentStrafe[param1] = !gB_SilentStrafe[param1];
-				}
-				case 8:
-				{
-					gI_Status[param1] = RUN;
-					gF_TASTime[param1] = 0.0;
-					gI_IndexCounter[param1] = 0;
-					Shavit_RestartTimer(param1, Shavit_GetClientTrack(param1));
-				}
-				case 9:
-				{
-					gB_TASMenu[param1] = false;
-					Shavit_PrintToChat(param1, "Type !tasmenu to reopen the menu.");
-				}
+			}
+			case 5:
+			{
+				gB_AutoStrafeEnabled[param1] = !gB_AutoStrafeEnabled[param1];
+			}
+			case 6:
+			{
+				gB_SilentStrafe[param1] = !gB_SilentStrafe[param1];
+			}
+			case 8:
+			{
+				gI_Status[param1] = RUN;
+				gF_TASTime[param1] = 0.0;
+				gI_IndexCounter[param1] = 0;
+				Shavit_RestartTimer(param1, Shavit_GetClientTrack(param1));
+			}
+			case 9:
+			{
+				gB_TASMenu[param1] = false;
+				Shavit_PrintToChat(param1, "Type !tasmenu to reopen the menu.");
 			}
 		}
 	}
@@ -1042,21 +1059,21 @@ void ResetTASData(int client)
 	gF_Power[client] = 1.0;
 }
 
-public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
+public Action Shavit_OnStart(int client, int track)
 {
+	gI_Track[client] = track;
+
 	if(gB_TAS[client])
 	{
-		if(type == Zone_Start)
+		if(gI_Status[client] == RUN)
 		{
-			if(gI_Status[client] == RUN)
-			{
-				gF_TASTime[client] = 0.0;
-				gI_IndexCounter[client] = 0;
-				gA_Frames[client].Clear();
-				Shavit_SetPlayerPreFrame(client, 0);
-			}
+			gF_TASTime[client] = 0.0;
+			gI_IndexCounter[client] = 0;
+			gA_Frames[client].Clear();
+			Shavit_SetPlayerPreFrame(client, 0);
 		}
 	}
+	return Plugin_Continue;
 }
 
 public void Shavit_OnFinish_Post(int client)
@@ -1065,7 +1082,6 @@ public void Shavit_OnFinish_Post(int client)
 	{
 		gI_Status[client] = RUN;
 		gF_TASTime[client] = 0.0;
-		gI_IndexCounter[client] = 0;
 	}
 }
 
