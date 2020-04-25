@@ -2765,14 +2765,25 @@ int GetClosetFrameForPlayer(int client, int style, int track)
 	}
 
 	if(iFrame > g_iLoopFrame[client])
+	{
 		g_iLoopFrame[client] += g_iLoopFrame[client];
+	}
 
 	if(g_iLoopFrame[client] > gA_Frames[style][track].Length)
+	{
 		g_iLoopFrame[client] = gA_Frames[style][track].Length;
+	}
 
 	if (iFrame > gA_Frames[style][track].Length)
+	{
 		iFrame = gA_Frames[style][track].Length;
+	}
 
+	if(iLastFrame < 0)
+	{
+		iLastFrame = 0;
+	}
+	
 	for(int i = iLastFrame; i < iFrame; i++)
 	{
 		vecFrameOrigin[0] = gA_Frames[style][track].Get(i, 0);
