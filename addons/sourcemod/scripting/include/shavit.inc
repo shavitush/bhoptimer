@@ -1743,6 +1743,7 @@ native void Shavit_SetPlayerPreFrame(int client, int preframe);
 
 /*
  * Get preframe length from specific replay
+ *
  * @param stlye						Style
  * @param track						Track 
  *
@@ -1751,7 +1752,25 @@ native void Shavit_SetPlayerPreFrame(int client, int preframe);
 native int Shavit_GetReplayPreFrameCount(int style, int track);
 
 // I need a native English speaker to polish these two natives >_>  ---- deadwinter
+
+/* description here
+ * 
+ * @param clinet					Client index
+ * @param stlye						Style
+ * @param track						Track 
+ *
+ * @return Frame
+ */
 native int Shavit_GetClientCurrentFrame(int client, int style, int track);
+
+/* description here
+ * 
+ * @param clinet					Client index
+ * @param stlye						Style
+ * @param track						Track 
+ *
+ * @return Frame Time
+ */
 native float Shavit_GetClientCurrentFrameTime(int client, int style, int track);
 
 // same as Shavit_PrintToChat() but loops through the whole server

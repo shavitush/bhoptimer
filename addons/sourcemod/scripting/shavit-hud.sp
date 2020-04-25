@@ -1065,9 +1065,9 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 			char sTimeDifference[32];
 			if((gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
 			{
-				if(Shavit_GetClientCurrentFrame(client, data.iStyle, data.iTrack) != -1)
+				if(Shavit_GetClientCurrentFrame(data.iTarget, data.iStyle, data.iTrack) != -1)
 				{
-					float flDelta = data.fTime - Shavit_GetClientCurrentFrameTime(client, data.iStyle, data.iTrack);
+					float flDelta = data.fTime - Shavit_GetClientCurrentFrameTime(data.iTarget, data.iStyle, data.iTrack);
 					FormatSeconds(flDelta, sTimeDifference, 32, false);
 					Format(sTimeDifference, 32, " (%s%s)", flDelta > 0 ? "+" : "", sTimeDifference);
 				}
