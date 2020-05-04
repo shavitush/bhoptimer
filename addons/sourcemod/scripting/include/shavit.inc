@@ -239,6 +239,7 @@ enum struct cp_cache_t
 	int iClassname;
 	ArrayList aFrames;
 	int iPreFrames;
+	int iTimerPreFrames;
 	bool bSegmented;
 	int iSerial;
 	bool bPractice;
