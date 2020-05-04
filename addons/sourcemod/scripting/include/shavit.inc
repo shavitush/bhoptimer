@@ -1734,11 +1734,21 @@ native int Shavit_GetPlayerPreFrame(int client);
  * Sets player's preframe length.
  *
  * @param client					Client index
- * @param preframe					preframe length
+ * @param PreFrame					PreFrame length
+ * @param TimerPreFrame				Timer start frame length
  *
  * @noreturn
  */
-native void Shavit_SetPlayerPreFrame(int client, int preframe);
+native void Shavit_SetPlayerPreFrame(int client, int PreFrame, int TimerPreFrame);
+
+/*
+ * Gets player's timer frame 
+ *
+ * @param client					Client index
+ *
+ * @return Timer start frame
+ */
+native int Shavit_GetPlayerTimerframe(int client);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
