@@ -18,7 +18,7 @@ public Plugin myinfo =
 	url = "https://hyps.dev/"
 }
 
-// #define REAL_VERSION 2.1 // This real version is for hypnos ;) b/c KiD wants to take away my version number ;(
+// #define REAL_VERSION 2.3 // This real version is for hypnos ;) b/c KiD wants to take away my version number ;(
 
 #define RUN 0
 #define PAUSED 1
@@ -35,20 +35,21 @@ bool gB_AutoStrafeEnabled[MAXPLAYERS+1] = {false,...};
 bool gB_SilentStrafe[MAXPLAYERS+1];
 bool gB_TASMenu[MAXPLAYERS+1];
 bool gB_ProcessFrame[MAXPLAYERS+1];
-bool gB_TAS[MAXPLAYERS + 1];
+bool gB_TAS[MAXPLAYERS+1];
 
 float gF_AirSpeedCap = 30.0;
 float gF_CounterSpeed[MAXPLAYERS+1];
 float gF_IndexCounter[MAXPLAYERS+1];
 float gF_LastAngle[MAXPLAYERS];
 float gF_MaxMove;
-float gF_Power[MAXPLAYERS + 1] = {1.0, ...};
+float gF_Power[MAXPLAYERS+1] = {1.0, ...};
 float gF_TASTime[MAXPLAYERS+1];
 float gF_TickRate;
 float gF_Timescale[MAXPLAYERS+1];
 float gF_NextFrameTime[MAXPLAYERS+1];
 
 int gI_IndexCounter[MAXPLAYERS+1];
+int gI_CPIndex[MAXPLAYERS+1];
 int gI_LastButtons[MAXPLAYERS+1];
 int gI_Status[MAXPLAYERS+1];
 int gI_SurfaceFrictionOffset;
@@ -67,6 +68,7 @@ enum struct framedata_t
 	bool bDucking;
 	float fDuckTime; // m_flDuckAmount in csgo
 	float fDuckSpeed; // m_flDuckSpeed in csgo; doesn't exist in css
+	float fTime; //Really only used for checkpoints...
 }
 
 public void OnPluginStart()
@@ -126,6 +128,10 @@ public void OnPluginStart()
 	
 	RegConsoleCmd("+autostrafer", Command_PlusStrafer, "Toggle wigglehack");
 	RegConsoleCmd("-autostrafer", Command_MinusStrafer, "Toggle wigglehack");
+
+	RegConsoleCmd("sm_tascpadd", Command_CPAdd, "TAS add checkpoint");
+	RegConsoleCmd("sm_tascpdelete", Command_CPDelete, "TAS delete checkpoint");
+	RegConsoleCmd("sm_tascptp", Command_CPTP, "TAS teleport to checkpoint");
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -276,7 +282,7 @@ public Action Command_PlusOne(int client, int args)
 			}
 			else
 			{
-				SetEntPropFloat(client, Prop_Send, "m_flDuckTime", frame.fDuckTime);
+				SetEntPropFloat(client, Prop_Send, "m_flDucktime", frame.fDuckTime);
 			}
 
 			gF_IndexCounter[client] += gF_CounterSpeed[client];
@@ -333,7 +339,7 @@ public Action Command_MinusOne(int client, int args)
 			}
 			else
 			{
-				SetEntPropFloat(client, Prop_Send, "m_flDuckTime", frame2.fDuckTime);
+				SetEntPropFloat(client, Prop_Send, "m_flDucktime", frame2.fDuckTime);
 			}
 
 			gF_IndexCounter[client] -= gF_CounterSpeed[client];
@@ -371,7 +377,63 @@ public Action Command_TASHelp(int client, int args)
 	Shavit_PrintToChat(client, "bind mouse2 +fastforward");
 	Shavit_PrintToChat(client, "Other Commands:");
 	Shavit_PrintToChat(client, "+autostrafer - When bound hold to use wigglehack");
+	Shavit_PrintToChat(client, "!tascpadd, !tascpdelete, !tascptp - Manage TAS Checkpoint");
 	Shavit_PrintToChat(client, "!tasmenu - Toggles TAS Menu");
+	return Plugin_Handled;
+}
+
+public Action Command_CPAdd(int client, int args)
+{
+	if(!gB_TAS[client])
+	{
+		return Plugin_Handled;
+	}
+
+	gI_CPIndex[client] = gI_IndexCounter[client];
+	return Plugin_Handled;
+}
+
+public Action Command_CPDelete(int client, int args)
+{
+	if(!gB_TAS[client] && gI_CPIndex[client] != 0)
+	{
+		return Plugin_Handled;
+	}
+
+	gI_CPIndex[client] = 0;
+	return Plugin_Handled;
+}
+
+public Action Command_CPTP(int client, int args)
+{
+	if(!gB_TAS[client] || gI_CPIndex[client] == 0)
+	{
+		return Plugin_Handled;
+	}
+
+	if(gI_CPIndex[client] >= gA_Frames[client].Length)
+	{
+		gI_CPIndex[client] = 0;
+		return Plugin_Handled;
+	}
+
+	gI_Status[client] = PAUSED;
+	gI_IndexCounter[client] = gI_CPIndex[client];
+
+	int iFrameNumber = gI_IndexCounter[client];
+
+	framedata_t frame;
+	gA_Frames[client].GetArray(iFrameNumber, frame);
+
+	float fAngles[3];
+	fAngles[0] = frame.fEyeAngles[0];
+	fAngles[1] = frame.fEyeAngles[1];
+	fAngles[2] = 0.0;
+
+	gF_TASTime[client] = frame.fTime;
+
+	TeleportEntity(client, frame.fPosition, fAngles, view_as<float>({0.0, 0.0, 0.0}));
+
 	return Plugin_Handled;
 }
 
@@ -610,6 +672,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 					framedata_t frame;
 
+					//For checkpoints
+					frame.fTime = gF_TASTime[client];
+
 					float fAngles[3];
 					GetClientEyeAngles(client, fAngles);
 					frame.fEyeAngles[0] = fAngles[0];
@@ -630,7 +695,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					}
 					else
 					{
-						frame.fDuckTime = GetEntPropFloat(client, Prop_Data, "m_flDuckTime");
+						frame.fDuckTime = GetEntPropFloat(client, Prop_Data, "m_flDucktime");
 					}
 
 					gA_Frames[client].SetArray(iFrameNumber-1, frame);
@@ -696,7 +761,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						}
 						else
 						{
-							SetEntPropFloat(client, Prop_Send, "m_flDuckTime", frame.fDuckTime);
+							SetEntPropFloat(client, Prop_Send, "m_flDucktime", frame.fDuckTime);
 						}
 
 						SetEntityFlags(client, frame.iFlags);
@@ -1025,7 +1090,7 @@ void ResumePlayer(int client)
 		}
 		else
 		{
-			SetEntPropFloat(client, Prop_Send, "m_flDuckTime", frame.fDuckTime);
+			SetEntPropFloat(client, Prop_Send, "m_flDucktime", frame.fDuckTime);
 		}
 
 		SetEntityFlags(client, frame.iFlags);
@@ -1057,6 +1122,7 @@ void ResetTASData(int client)
 	gB_SilentStrafe[client] = false;
 	gI_Type[client] = Type_SurfOverride;
 	gF_Power[client] = 1.0;
+	gI_CPIndex[client] = 0;
 }
 
 public Action Shavit_OnStart(int client, int track)
@@ -1065,10 +1131,15 @@ public Action Shavit_OnStart(int client, int track)
 
 	if(gB_TAS[client])
 	{
+		if(gI_Status[client] == PAUSED)
+		{
+			gI_Status[client] = RUN;
+		}
 		if(gI_Status[client] == RUN)
 		{
 			gF_TASTime[client] = 0.0;
 			gI_IndexCounter[client] = 0;
+			gI_CPIndex[client] = 0;
 			gA_Frames[client].Clear();
 			Shavit_SetPlayerPreFrame(client, 0);
 		}
