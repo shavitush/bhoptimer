@@ -2640,7 +2640,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 			char sDisplay[128];
 			FormatEx(sDisplay, 128, "#%d - %s - %s (%d %s)", iCount, sName, sTime, jumps, "Jumps");
 			gI_IDforRecord[iCount] = playerAuth;
-			hMenu.AddItem(sID, sDisplay, CheckReplayExistence(client, track)?ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+			hMenu.AddItem(sID, sDisplay, CheckReplayExistence(client, playerAuth, track)?ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 		}
 	}
 	
@@ -2669,12 +2669,13 @@ public int Menu_PBReplay_Sub(Menu menu, MenuAction action, int client, int param
 	{	
 		char sInfo[128];	
 		menu.GetItem(param2, sInfo, sizeof(sInfo));	
+		int ID = StringToInt(sInfo);
 		
-		if(CheckReplayExistence(client, gI_Track[client])) 
+		if(CheckReplayExistence(client, gI_IDforRecord[ID], gI_Track[client])) 
 		{
 			if(Shavit_GetReplayStatus(gI_Style[client]) == Replay_Idle)
 			{
-				LoadReplay(gI_Style[client], gI_Track[client], GetPBReplayPath(client));
+				LoadReplay(gI_Style[client], gI_Track[client], GetPBReplayPath(client, gI_IDforRecord[ID]));
 				Shavit_StartReplay(client, gI_Style[client], gI_Track[client]);
 			} else {
 				Shavit_PrintToChat(client, "%t", "CentralReplayPlaying");
@@ -2694,28 +2695,25 @@ public int Menu_PBReplay_Sub(Menu menu, MenuAction action, int client, int param
 	return 0;	
 }	
 
-char GetPBReplayPath(int client) 
+char GetPBReplayPath(int client, int authid) 
 {
-	int iAccountID = GetSteamAccountID(client, false);
-	
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", gI_Track[client]);
 	
 	char sFileName[160];
-	FormatEx(sFileName, 160, "%d%s%s", iAccountID, "_", gS_Map);
+	FormatEx(sFileName, 160, "%d%s%s", authid, "_", gS_Map);
 	char sPath[PLATFORM_MAX_PATH];
 	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s/%s%s.replay", gS_ReplayFolder, gI_Style[client], "pb", sFileName, (gI_Track[client] > 0)? sTrack:"");
 	
 	return sPath;
 }
 
-bool CheckReplayExistence(int client, int track) {
+bool CheckReplayExistence(int client, int authid, int track) {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
 	
-	int iAccountID = GetSteamAccountID(client, false);
 	char sFileName[160];
-	FormatEx(sFileName, 160, "%d%s%s", iAccountID, "_", gS_Map);
+	FormatEx(sFileName, 160, "%d%s%s", authid, "_", gS_Map);
 	
 	char sPath[PLATFORM_MAX_PATH];
 	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s/%s%s.replay", gS_ReplayFolder, gI_Style[client], "pb", sFileName, (track > 0)? sTrack:"");
