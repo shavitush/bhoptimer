@@ -1218,7 +1218,7 @@ void VelocityChanges(int data)
 
 	if(gA_Timers[client].fTimescale != -1.0)
 	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale));
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_Timers[client].fTimescale));
 	}
 
 	else
