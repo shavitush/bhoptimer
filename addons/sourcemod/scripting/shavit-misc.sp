@@ -3279,7 +3279,7 @@ public Action NormalSound(int clients[MAXPLAYERS], int &numClients, char sample[
 		return Plugin_Continue;
 	}
 
-	if(StrContains(sample, "physics") != -1 || StrContains(sample, "footsteps") != -1 || StrContains(sample, "land") != -1 || StrContains(sample, "jump") != -1)
+	if(StrContains(sample, "physics/") != -1 || StrContains(sample, "weapons/") != -1 || StrContains(sample, "player/") != -1 || StrContains(sample, "items/") != -1)
 	{
 		if(gCV_BhopSounds.IntValue == 2)
 		{
