@@ -1578,8 +1578,8 @@ public void OnClientDisconnect(int client)
 
 	if(!IsFakeClient(client))
 	{
-		RequestFrame(DeleteFrames, client);
 		ClearFrames(client);
+		RequestFrame(DeleteFrames, client);
 
 		return;
 	}
