@@ -1263,9 +1263,9 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 		playerrecording.GetArray(i, aFrameData, CELLS_PER_FRAME);
 		gA_Frames[style][track].PushArray(aFrameData);
 
-		for(int i = 0; i < CELLS_PER_FRAME; i++)
+		for(int j = 0; j < CELLS_PER_FRAME; j++)
 		{
-			aWriteData[(CELLS_PER_FRAME * iFramesWritten) + i] = aFrameData[i];
+			aWriteData[(CELLS_PER_FRAME * iFramesWritten) + j] = aFrameData[j];
 		}
 
 		if(++iFramesWritten == FRAMES_PER_WRITE || i == iSize - 1)
