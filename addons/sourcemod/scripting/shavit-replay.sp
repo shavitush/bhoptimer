@@ -1263,9 +1263,9 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 		playerrecording.GetArray(i, aFrameData, CELLS_PER_FRAME);
 		gA_Frames[style][track].PushArray(aFrameData);
 
-		for(int j = 0; j < CELLS_PER_FRAME; j++)
+		for(int i = 0; i < CELLS_PER_FRAME; i++)
 		{
-			aWriteData[(CELLS_PER_FRAME * iFramesWritten) + j] = aFrameData[j];
+			aWriteData[(CELLS_PER_FRAME * iFramesWritten) + i] = aFrameData[i];
 		}
 
 		if(++iFramesWritten == FRAMES_PER_WRITE || i == iSize - 1)
@@ -1278,11 +1278,11 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	delete fFile;
 
-	gA_FrameCache[style][track].iFrameCount = iSize;
+	gA_FrameCache[style][track].iFrameCount = preframes <= 0 ? iSize : iSize - preframes;
 	gA_FrameCache[style][track].fTime = time;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
-	gA_FrameCache[style][track].iPreFrames = preframes <= 0 ? timerstartframe : (timerstartframe - preframes);
+	gA_FrameCache[style][track].iPreFrames = preframes <= 0 ? timerstartframe : timerstartframe - preframes;
 
 	return true;
 }
