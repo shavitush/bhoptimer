@@ -2166,7 +2166,10 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 
 void ClearFrames(int client)
 {
-	gA_PlayerFrames[client].Clear();
+	if(gA_PlayerFrames[client])
+	{
+		gA_PlayerFrames[client].Clear();
+	}
 	gI_PlayerFrames[client] = 0;
 	gF_NextFrameTime[client] = 0.0;
 	gI_PlayerPrerunFrames[client] = 0;
