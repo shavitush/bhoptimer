@@ -239,6 +239,7 @@ enum struct cp_cache_t
 	int iClassname;
 	ArrayList aFrames;
 	int iPreFrames;
+	int iTimerPreFrames;
 	bool bSegmented;
 	int iSerial;
 	bool bPractice;
@@ -395,12 +396,11 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	float fSeconds = (iRounded % 60) + fTempTime - iRounded;
 
 	char sSeconds[8];
-	FormatEx(sSeconds, 8, precise? "%.03f":"%.01f", fSeconds);
+	FormatEx(sSeconds, 8, precise? "%s%.03f":"%s%.01f", (time < 0.0)? "-":"", fSeconds);
 
 	if(fTempTime < 60.0)
 	{
 		strcopy(newtime, newtimesize, sSeconds);
-		FormatEx(newtime, newtimesize, "%s%s", (fSeconds < 0.0) ? "-":"", sSeconds);
 	}
 
 	else
@@ -1732,46 +1732,34 @@ native void Shavit_SetCurrentCheckpoint(int client, int index);
 native int Shavit_GetPlayerPreFrame(int client);
 
 /*
+ * returns the number of timer preframes in the players current run.
+ *
+ * @param client					Client index
+ *
+ * @return 							Timer preframe count
+ */
+ native int Shavit_GetPlayerTimerframe(int client);
+
+/*
  * Sets player's preframe length.
  *
  * @param client					Client index
- * @param preframe					preframe length
+ * @param PreFrame					PreFrame length
+ * @param TimerPreFrame				Timer start frame length
  *
  * @noreturn
  */
-native void Shavit_SetPlayerPreFrame(int client, int preframe);
+native void Shavit_SetPlayerPreFrame(int client, int PreFrame);
 
 /*
- * Get preframe length from specific replay
+ * Sets player's timer preframe length.
  *
- * @param stlye						Style
- * @param track						Track 
+ * @param client					Client index
+ * @param TimerPreFrame				Timer start frame length
  *
- * @return Replay preframe 
+ * @noreturn
  */
-native int Shavit_GetReplayPreFrameCount(int style, int track);
-
-// I need a native English speaker to polish these two natives >_>  ---- deadwinter
-
-/* description here
- * 
- * @param clinet					Client index
- * @param stlye						Style
- * @param track						Track 
- *
- * @return Frame
- */
-native int Shavit_GetClientCurrentFrame(int client, int style, int track);
-
-/* description here
- * 
- * @param clinet					Client index
- * @param stlye						Style
- * @param track						Track 
- *
- * @return Frame Time
- */
-native float Shavit_GetClientCurrentFrameTime(int client, int style, int track);
+ native void Shavit_SetPlayerTimerPreFrame(int client, int TimerPreFrame);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
@@ -1902,9 +1890,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_GetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetPlayerTimerframe");
-	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
-	MarkNativeAsOptional("Shavit_GetReplayPreFrameCount");
-	MarkNativeAsOptional("Shavit_GetClientCurrentFrame");
-	MarkNativeAsOptional("Shavit_GetClientCurrentFrameTime");
+	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");  
 }
 #endif
