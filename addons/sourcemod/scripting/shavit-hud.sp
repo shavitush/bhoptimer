@@ -1278,15 +1278,29 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
+			
+			char sTimeDiff[32];
+			
+			if(Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			{
+				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
+
+				if(fClosestReplayTime != -1.0)
+				{
+					float fDifference = data.fTime - fClosestReplayTime;
+					FormatSeconds(fDifference, sTimeDiff, 32, false);
+					Format(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
+				}
+			}
 
 			if((gI_HUD2Settings[client] & HUD2_RANK) == 0)
 			{
-				FormatEx(sLine, 128, "<span color='#%06X'>%s</span> (#%d)", iColor, sTime, data.iRank);
+				FormatEx(sLine, 128, "<span color='#%06X'>%s%s</span> (#%d)", iColor, sTime, sTimeDiff, data.iRank);
 			}
 
 			else
 			{
-				FormatEx(sLine, 128, "<span color='#%06X'>%s</span>", iColor, sTime);
+				FormatEx(sLine, 128, "<span color='#%06X'>%s%s</span>", iColor, sTime, sTimeDiff);
 			}
 			
 			AddHUDLine(buffer, maxlen, sLine, iLines);
