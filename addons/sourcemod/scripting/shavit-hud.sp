@@ -1063,7 +1063,6 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 			FormatSeconds(data.fTime, sTime, 32, false);
 
 			char sTimeDiff[32];
-			FormatSeconds(fDifference, sTimeDiff, 32, false);
 			
 			if(Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
 			{
@@ -1072,6 +1071,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 				if(fClosestReplayTime != -1.0)
 				{
 					float fDifference = data.fTime - fClosestReplayTime;
+					FormatSeconds(fDifference, sTimeDiff, 32, false);
 					FormatEx(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
 				}
 			}
