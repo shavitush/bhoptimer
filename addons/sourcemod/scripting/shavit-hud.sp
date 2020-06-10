@@ -42,6 +42,7 @@
 #define HUD2_TRACK				(1 << 7)
 #define HUD2_SPLITPB			(1 << 8)
 #define HUD2_MAPTIER			(1 << 9)
+#define HUD2_TIMEDIFFERENCE		(1 << 10)
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2			0
@@ -646,6 +647,10 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudTimeText", client);
 	menu.AddItem(sInfo, sHudItem);
 
+	FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
+	FormatEx(sHudItem, 64, "%T", "HudTimeDiffText", client);
+	menu.AddItem(sInfo, sHudItem);
+
 	FormatEx(sInfo, 16, "@%d", HUD2_SPEED);
 	FormatEx(sHudItem, 64, "%T", "HudSpeedText", client);
 	menu.AddItem(sInfo, sHudItem);
@@ -1057,14 +1062,28 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
 
+			char sTimeDiff[32];
+			FormatSeconds(fDifference, sTimeDiff, 32, false);
+			
+			if(Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			{
+				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
+
+				if(fClosestReplayTime != -1.0)
+				{
+					float fDifference = data.fTime - fClosestReplayTime;
+					FormatEx(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
+				}
+			}
+
 			if((gI_HUD2Settings[client] & HUD2_RANK) == 0)
 			{
-				FormatEx(sLine, 128, "%T: %s (%d)", "HudTimeText", client, sTime, data.iRank);
+				FormatEx(sLine, 128, "%T: %s%s (%d)", "HudTimeText", client, sTime, sTimeDiff, data.iRank);
 			}
 
 			else
 			{
-				FormatEx(sLine, 128, "%T: %s", "HudTimeText", client, sTime);
+				FormatEx(sLine, 128, "%T: %s%s", "HudTimeText", client, sTime, sTimeDiff);
 			}
 			
 			AddHUDLine(buffer, maxlen, sLine, iLines);
