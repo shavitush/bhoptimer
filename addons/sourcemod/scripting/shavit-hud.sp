@@ -1072,7 +1072,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 				{
 					float fDifference = data.fTime - fClosestReplayTime;
 					FormatSeconds(fDifference, sTimeDiff, 32, false);
-					FormatEx(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
+					Format(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
 				}
 			}
 
