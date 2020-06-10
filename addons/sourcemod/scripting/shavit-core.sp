@@ -3056,8 +3056,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
 		
-
-		PrintToChat(client, "tick diff: %d", iDifference);
 		if(iDifference < 10)
 		{
 			gA_Timers[client].iMeasuredJumps++;

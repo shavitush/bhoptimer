@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.5.7"
+#define SHAVIT_VERSION "2.5.7a"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -1518,6 +1518,16 @@ native bool Shavit_ReloadReplay(int style, int track, bool restart, char[] path 
 native int Shavit_ReloadReplays(bool restart);
 
 /**
+ * Gets time from replay frame that is closest to client.
+ *
+ * @param 				Client index.
+ * @param				Client style.
+ * @param				Client track.
+ * @return				Replay time.
+ */
+native float Shavit_GetClosestReplayTime(int client, int style, int track);
+
+/**
  * Use this native to stop the click sound that plays upon chat messages.
  * Call it before each Shavit_PrintToChat().
  * Shavit_PrintToChatAll() is not guaranteed to disable the sound from playing.
@@ -1890,6 +1900,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_GetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetPlayerTimerframe");
-	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");  
+	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
+	MarkNativeAsOptional("Shavit_GetClosestReplayTime");
 }
 #endif
