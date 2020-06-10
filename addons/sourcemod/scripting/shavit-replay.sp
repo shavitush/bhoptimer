@@ -2768,7 +2768,7 @@ float GetClosestReplayTime(int client, int style, int track)
 
 	for(int frame = firstFrame; frame <= lastFrame; frame++)
 	{
-		GetArrayArray(gA_SortedFrames[style][track], frame, data, 4);
+		gA_SortedFrames[style][track].GetArray(frame, data, 4);
 
 		fReplayPos[0] = view_as<float>(data[0]);
 		fReplayPos[1] = view_as<float>(data[1]);
@@ -2806,7 +2806,7 @@ void SortReplayFrames(int style, int track)
 
 	for(int frame = iPreframes; frame < iSize; frame++)
 	{
-		GetArrayArray(gA_Frames[style][track], frame, replayData, CELLS_PER_FRAME);
+		gA_Frames[style][track].GetArray(frame, replayData, CELLS_PER_FRAME);
 		sortedData[0] = view_as<float>(replayData[0]);
 		sortedData[1] = view_as<float>(replayData[1]);
 		sortedData[2] = view_as<float>(replayData[2]);
@@ -2829,7 +2829,7 @@ int FindClosestIndex(int client, float target)
 	any data_comp[CELLS_PER_FRAME];
 
 	// first frame
-	GetArrayArray(gA_SortedFrames[style][track], 0, data, CELLS_PER_FRAME);
+	gA_SortedFrames[style][track].GetArray(0, data, CELLS_PER_FRAME);
 	posX[0] = view_as<float>(data[0]);
 	if(target <= posX[0])
 	{
@@ -2837,7 +2837,7 @@ int FindClosestIndex(int client, float target)
 	}
 
 	// last frame
-	GetArrayArray(gA_SortedFrames[style][track], length - 1, data, CELLS_PER_FRAME);
+	gA_SortedFrames[style][track].GetArray(length - 1, data, CELLS_PER_FRAME);
 	posX[0] = view_as<float>(data[0]);
 	if(target >= posX[0])
 	{
@@ -2849,7 +2849,7 @@ int FindClosestIndex(int client, float target)
 	while(i < j)
 	{
 		mid = (i + j) / 2;
-		GetArrayArray(gA_SortedFrames[style][track], mid, data, CELLS_PER_FRAME);
+		gA_SortedFrames[style][track].GetArray(mid, data, CELLS_PER_FRAME);
 		posX[0] = view_as<float>(data[0]);
 
 		if(posX[0] == target)
@@ -2859,7 +2859,7 @@ int FindClosestIndex(int client, float target)
 
 		if(target < posX[0])
 		{
-			GetArrayArray(gA_SortedFrames[style][track], mid - 1, data_comp, CELLS_PER_FRAME);
+			gA_SortedFrames[style][track].GetArray(mid - 1, data_comp, CELLS_PER_FRAME);
 			posX_comp[0] = view_as<float>(data_comp[0]);
 			if(mid > 0 && target > posX_comp[0])
 			{
@@ -2870,7 +2870,7 @@ int FindClosestIndex(int client, float target)
 		}
 		else 
 		{
-			GetArrayArray(gA_SortedFrames[style][track], mid + 1, data_comp, CELLS_PER_FRAME);
+			gA_SortedFrames[style][track].GetArray(mid + 1, data_comp, CELLS_PER_FRAME);
 			posX_comp[0] = view_as<float>(data_comp[0]);
 			if(mid < length - 1 && target < posX_comp[0])
 			{
