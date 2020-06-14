@@ -396,11 +396,12 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	float fSeconds = (iRounded % 60) + fTempTime - iRounded;
 
 	char sSeconds[8];
-	FormatEx(sSeconds, 8, precise? "%s%.03f":"%s%.01f", (time < 0.0)? "-":"", fSeconds);
+	FormatEx(sSeconds, 8, precise? "%.03f":"%.01f", fSeconds);
 
 	if(fTempTime < 60.0)
 	{
 		strcopy(newtime, newtimesize, sSeconds);
+		FormatEx(newtime, newtimesize, "%s%s", (time < 0.0) ? "-":"", sSeconds);
 	}
 
 	else
