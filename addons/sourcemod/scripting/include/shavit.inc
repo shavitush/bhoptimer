@@ -401,7 +401,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	if(fTempTime < 60.0)
 	{
 		strcopy(newtime, newtimesize, sSeconds);
-		FormatEx(newtime, newtimesize, "%s%s", (fSeconds < 0.0) ? "-":"", sSeconds);
+		FormatEx(newtime, newtimesize, "%s%s", (time < 0.0) ? "-":"", sSeconds);
 	}
 
 	else
