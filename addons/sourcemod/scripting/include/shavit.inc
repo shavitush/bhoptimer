@@ -1760,16 +1760,7 @@ native int Shavit_GetPlayerPreFrame(int client);
  *
  * @noreturn
  */
-native void Shavit_SetPlayerPreFrame(int client, int PreFrame, int TimerPreFrame);
-
-/*
- * Gets player's timer frame 
- *
- * @param client					Client index
- *
- * @return Timer start frame
- */
-native int Shavit_GetPlayerTimerframe(int client);
+native void Shavit_SetPlayerPreFrame(int client, int PreFrame);
 
 /*
  * Sets player's timer preframe length.
