@@ -1257,7 +1257,8 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	if(gB_Replay && aData.aFrames != null)
 	{
 		Shavit_SetReplayData(client, aData.aFrames);
-		Shavit_SetPlayerPreFrame(client, aData.iPreFrames, aData.iTimerPreFrames);
+		Shavit_SetPlayerPreFrame(client, aData.iPreFrames);
+		Shavit_SetPlayerTimerPreFrame(client, aData.iTimerPreFrames);
 	}
 
 	if(aData.bPractice)
@@ -2563,7 +2564,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		else
 		{
 			Shavit_SetReplayData(client, cpcache.aFrames);
-			Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames, cpcache.iTimerPreFrames);
+			Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames);
+			Shavit_SetPlayerTimerPreFrame(client, cpcache.iTimerPreFrames);
 		}
 	}
 	
@@ -3277,7 +3279,7 @@ public Action NormalSound(int clients[MAXPLAYERS], int &numClients, char sample[
 		return Plugin_Continue;
 	}
 
-	if(StrContains(sample, "physics") != -1 || StrContains(sample, "footsteps") != -1 || StrContains(sample, "land") != -1 || StrContains(sample, "jump") != -1)
+	if(StrContains(sample, "physics/") != -1 || StrContains(sample, "weapons/") != -1 || StrContains(sample, "player/") != -1 || StrContains(sample, "items/") != -1)
 	{
 		if(gCV_BhopSounds.IntValue == 2)
 		{
