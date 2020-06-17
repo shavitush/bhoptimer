@@ -1240,7 +1240,7 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	fFile.WriteString(gS_Map, true);
 	fFile.WriteInt8(style);
 	fFile.WriteInt8(track);
-	fFile.WriteInt32(preframes < 0 ? timerstartframe : timerstartframe - preframes);
+	fFile.WriteInt32(timerstartframe - preframes);
 
 	int iSize = playerrecording.Length;
 	fFile.WriteInt32(iSize);
@@ -1252,11 +1252,11 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	int iFramesWritten = 0;
 
 	gA_Frames[style][track].Clear();
-	for(int i = (preframes < 0 ? 0 : preframes); i < iSize; i++)
+
+	for(int i = preframes; i < iSize; i++)
 	{
 		playerrecording.GetArray(i, aFrameData, CELLS_PER_FRAME);
 		gA_Frames[style][track].PushArray(aFrameData);
-
 		for(int j = 0; j < CELLS_PER_FRAME; j++)
 		{
 			aWriteData[(CELLS_PER_FRAME * iFramesWritten) + j] = aFrameData[j];
@@ -1276,7 +1276,7 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	gA_FrameCache[style][track].fTime = time;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
-	gA_FrameCache[style][track].iPreFrames = preframes < 0 ? timerstartframe : (timerstartframe - preframes);
+	gA_FrameCache[style][track].iPreFrames = timerstartframe - preframes;
 
 	return true;
 }
@@ -1604,6 +1604,10 @@ public void DeleteFrames(int client)
 public Action Shavit_OnStart(int client)
 {	
 	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale);
+	if(gI_PlayerPrerunFrames[client] < 0)
+	{
+		gI_PlayerPrerunFrames[client] = 0;
+	}
 	gI_PlayerTimerStartFrames[client] = gA_PlayerFrames[client].Length;
 
 	if(!gB_ClearFrame[client])
