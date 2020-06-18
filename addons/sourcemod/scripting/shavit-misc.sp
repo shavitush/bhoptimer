@@ -145,6 +145,7 @@ Convar gCV_PersistData = null;
 Convar gCV_StopTimerWarning = null;
 Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
+Convar gCV_RestrictNoclip = null;
 
 // external cvars
 ConVar sv_disable_immunity_alpha = null;
@@ -329,6 +330,7 @@ public void OnPluginStart()
 	gCV_StopTimerWarning = new Convar("shavit_misc_stoptimerwarning", "900", "Time in seconds to display a warning before stopping the timer with noclip or !stop.\n0 - Disabled");
 	gCV_WRMessages = new Convar("shavit_misc_wrmessages", "3", "How many \"NEW <style> WR!!!\" messages to print?\n0 - Disabled", 0,  true, 0.0, true, 100.0);
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "0", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 3.0);
+	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "1", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 
 	Convar.AutoExecConfig();
 
@@ -1002,17 +1004,35 @@ void RemoveRagdoll(int client)
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings)
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
+	bool bInStart = Shavit_InsideZone(client, Zone_Start, track);
 
 	// i will not be adding a setting to toggle this off
-	if(bNoclip && status == Timer_Running)
+	if(bNoclip)
 	{
-		Shavit_StopTimer(client);
+		if(status == Timer_Running)
+		{
+			Shavit_StopTimer(client);
+		}
+		if(bInStart && gCV_RestrictNoclip.BoolValue)
+		{
+			if(gCV_RestrictNoclip.IntValue == 1)
+			{
+				float fSpeed[3];
+				GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+				fSpeed[2] = 0.0;
+				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+			}
+			else if(gCV_RestrictNoclip.IntValue == 2)
+			{
+				SetEntityMoveType(client, MOVETYPE_ISOMETRIC);
+			}
+		}
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!bNoclip && gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && Shavit_InsideZone(client, Zone_Start, track))
+	if(!bNoclip && gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && bInStart)
 	{
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
