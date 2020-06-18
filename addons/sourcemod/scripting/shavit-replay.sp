@@ -1263,7 +1263,7 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	fFile.WriteInt32(timerstartframe - preframes);
 
 	int iSize = playerrecording.Length;
-	fFile.WriteInt32(iSize);
+	fFile.WriteInt32(iSize - preframes);
 	fFile.WriteInt32(view_as<int>(time));
 	fFile.WriteInt32(steamid);
 
@@ -1292,7 +1292,7 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	delete fFile;
 
-	gA_FrameCache[style][track].iFrameCount = preframes <= 0 ? iSize : iSize - preframes;
+	gA_FrameCache[style][track].iFrameCount = iSize - preframes;
 	gA_FrameCache[style][track].fTime = time;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
