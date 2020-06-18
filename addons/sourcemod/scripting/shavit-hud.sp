@@ -648,7 +648,7 @@ Action ShowHUDMenu(int client, int item)
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
-	FormatEx(sHudItem, 64, "%T", "HudTimeDiffText", client);
+	FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SPEED);
