@@ -29,18 +29,18 @@
 #define MAX_NAME_LENGTH_SQL 32
 
 // HUD
-#define HUD_NONE				0
-#define HUD_MASTER				(1 << 0) // master setting
-#define HUD_CENTER				(1 << 1) // show hud as hint text
-#define HUD_ZONEHUD				(1 << 2) // show start/end zone hud
-#define HUD_OBSERVE				(1 << 3) // show the HUD of the player you spectate
+#define HUD_NONE			0
+#define HUD_MASTER			(1 << 0) // master setting
+#define HUD_CENTER			(1 << 1) // show hud as hint text
+#define HUD_ZONEHUD			(1 << 2) // show start/end zone hud
+#define HUD_OBSERVE			(1 << 3) // show the HUD of the player you spectate
 #define HUD_SPECTATORS			(1 << 4) // show list of spectators
 #define HUD_KEYOVERLAY			(1 << 5) // show a key overlay
 #define HUD_HIDEWEAPON			(1 << 6) // hide the player's weapon
-#define HUD_TOPLEFT				(1 << 7) // show top left white HUD with WR/PB times
-#define HUD_SYNC				(1 << 8) // shows sync at right side of the screen (css only)
+#define HUD_TOPLEFT			(1 << 7) // show top left white HUD with WR/PB times
+#define HUD_SYNC			(1 << 8) // shows sync at right side of the screen (css only)
 #define HUD_TIMELEFT			(1 << 9) // shows time left at right tside of the screen (css only)
-#define HUD_2DVEL				(1 << 10) // shows 2d velocity
+#define HUD_2DVEL			(1 << 10) // shows 2d velocity
 #define HUD_NOSOUNDS			(1 << 11) // disables sounds on personal best, world record etc
 #define HUD_NOPRACALERT			(1 << 12) // hides practice mode chat alert
 
