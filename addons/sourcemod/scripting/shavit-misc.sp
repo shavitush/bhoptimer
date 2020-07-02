@@ -3486,6 +3486,11 @@ int GetMaxCPs(int client)
 
 public any Native_GetCheckpoint(Handle plugin, int numParams)
 {
+	if(GetNativeCell(4) != sizeof(cp_cache_t))
+	{
+		return ThrowNativeError(200, "cp_cache_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(4), sizeof(cp_cache_t));
+	}
 	int client = GetNativeCell(1);
 	int index = GetNativeCell(2);
 
@@ -3501,6 +3506,11 @@ public any Native_GetCheckpoint(Handle plugin, int numParams)
 
 public any Native_SetCheckpoint(Handle plugin, int numParams)
 {
+	if(GetNativeCell(4) != sizeof(cp_cache_t))
+	{
+		return ThrowNativeError(200, "cp_cache_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(4), sizeof(cp_cache_t));
+	}
 	int client = GetNativeCell(1);
 	int position = GetNativeCell(2);
 

@@ -1389,9 +1389,10 @@ native int Shavit_GetWRCount(int client);
 *
 * @param style						Style index.
 * @param StyleSettings				Reference to the settings array.
+* @param size						Size of the StyleSettings buffer, e.g sizeof(stylesettings_t)
 * @return							SP_ERROR_NONE on success, anything else on failure.
 */
-native int Shavit_GetStyleSettings(int style, any StyleSettings[sizeof(stylesettings_t)]);
+native int Shavit_GetStyleSettings(int style, any[] StyleSettings, int size = sizeof(stylesettings_t));
 
 /**
  * Saves the style related strings on string references.
@@ -1465,18 +1466,20 @@ native bool Shavit_IsPracticeMode(int client);
  *
  * @param client					Client index.
  * @param snapshot					Full snapshot of the client's timer.
+ * @param size						Size of the snapshot buffer, e.g sizeof(timer_snapshot_t)
  * @noreturn
  */
-native void Shavit_SaveSnapshot(int client, any snapshot[sizeof(timer_snapshot_t)]);
+native void Shavit_SaveSnapshot(int client, any[] snapshot, int size = sizeof(timer_snapshot_t));
 
 /**
  * Restores the client's timer from a snapshot.
  *
  * @param client					Client index.
  * @param snapshot					Full snapshot of the client's timer.
+ * @param size						Size of the snapshot buffer, e.g sizeof(timer_snapshot_t)
  * @noreturn
  */
-native void Shavit_LoadSnapshot(int client, any snapshot[sizeof(timer_snapshot_t)]);
+native void Shavit_LoadSnapshot(int client, any[] snapshot, int size = sizeof(timer_snapshot_t));
 
 /**
  * Sets a player's replay recording frames from a provided ArrayList.
@@ -1630,22 +1633,25 @@ native void Shavit_LogMessage(const char[] format, any ...);
  *
  * @param client					Client index
  * @param index						Index of CP to get
- * @param cpcache					Buffer to store cp data in
+ * @param cpcache					Buffer to store cp data in sizeof(cp_cache_t)
+ * @param size						Size of the cpcache buffer, e.g sizeof(cp_cache_t)
  *
  * @noreturn
  */
-native bool Shavit_GetCheckpoint(int client, int index, any cpcache[sizeof(cp_cache_t)]);
+native bool Shavit_GetCheckpoint(int client, int index, any[] cpcache, int size = sizeof(cp_cache_t));
 
 /**
  * Sets checkpoint data at the given index for the given client
  *
  * @param client					Client index
  * @param index						Index of CP to set, or -1 to push cp as last
+ * @param cpcache					Buffer to store cp data in sizeof(cp_cache_t)
+ * @param size						Size of the cpcache buffer, e.g sizeof(cp_cache_t)
  * @param cpcache					Buffer with cp data
  *
  * @noreturn
  */
-native void Shavit_SetCheckpoint(int client, int index, any cpcache[sizeof(cp_cache_t)]);
+native void Shavit_SetCheckpoint(int client, int index, any[] cpcache, int size = sizeof(cp_cache_t));
 
 /**
  * Teleports client to the checkpoint at given index
