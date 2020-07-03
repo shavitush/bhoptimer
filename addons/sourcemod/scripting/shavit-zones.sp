@@ -2887,14 +2887,14 @@ public void CreateZoneEntities()
 		float height = ((IsSource2013(gEV_Type))? 62.0:72.0) / 2;
 
 		float min[3];
-		min[0] = -distance_x + 16.0;
-		min[1] = -distance_y + 16.0;
+		min[0] = -distance_x;
+		min[1] = -distance_y;
 		min[2] = -distance_z + height;
 		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
 
 		float max[3];
-		max[0] = distance_x - 16.0;
-		max[1] = distance_y - 16.0;
+		max[0] = distance_x;
+		max[1] = distance_y;
 		max[2] = distance_z - height;
 		SetEntPropVector(entity, Prop_Send, "m_vecMaxs", max);
 
