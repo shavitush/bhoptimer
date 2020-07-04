@@ -157,7 +157,6 @@ char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
-int gI_TickCount = 0;
 
 // flags
 int gI_StyleFlag[STYLE_LIMIT];
@@ -1218,7 +1217,7 @@ void VelocityChanges(int data)
 
 	if(gA_Timers[client].fTimescale != -1.0)
 	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale));
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_Timers[client].fTimescale));
 	}
 
 	else
@@ -1659,6 +1658,11 @@ public int Native_GetStyleCount(Handle handler, int numParams)
 
 public int Native_GetStyleSettings(Handle handler, int numParams)
 {
+	if(GetNativeCell(3) != sizeof(stylesettings_t))
+	{
+		return ThrowNativeError(200, "stylesettings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(3), sizeof(stylesettings_t));
+	}
 	return SetNativeArray(2, gA_StyleSettings[GetNativeCell(1)], sizeof(stylesettings_t));
 }
 
@@ -1726,6 +1730,12 @@ public int Native_IsPracticeMode(Handle handler, int numParams)
 
 public int Native_SaveSnapshot(Handle handler, int numParams)
 {
+	if(GetNativeCell(3) != sizeof(timer_snapshot_t))
+	{
+		return ThrowNativeError(200, "timer_snapshot_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(3), sizeof(timer_snapshot_t));
+	}
+
 	int client = GetNativeCell(1);
 
 	timer_snapshot_t snapshot;
@@ -1748,6 +1758,11 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 
 public int Native_LoadSnapshot(Handle handler, int numParams)
 {
+	if(GetNativeCell(3) != sizeof(timer_snapshot_t))
+	{
+		return ThrowNativeError(200, "timer_snapshot_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(3), sizeof(timer_snapshot_t));
+	}
 	int client = GetNativeCell(1);
 
 	timer_snapshot_t snapshot;
@@ -1776,6 +1791,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iSHSWCombination = snapshot.iSHSWCombination;
 	gA_Timers[client].iMeasuredJumps = snapshot.iMeasuredJumps;
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
+	
+	return 0;
 }
 
 public int Native_LogMessage(Handle plugin, int numParams)
@@ -2731,7 +2748,6 @@ public void PreThinkPost(int client)
 
 public void OnGameFrame()
 {
-	gI_TickCount = GetGameTickCount();
 	float frametime = GetGameFrameTime();
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -3051,14 +3067,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
-		gA_Timers[client].iLandingTick = gI_TickCount;
+		gA_Timers[client].iLandingTick = tickcount;
 	}
 
 	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
 	{
-		int iDifference = (gI_TickCount - gA_Timers[client].iLandingTick);
-
-		if(1 <= iDifference <= 8)
+		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
+		
+		if(iDifference < 10)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
