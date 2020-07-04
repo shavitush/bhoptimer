@@ -103,6 +103,8 @@ bool gB_SaveStates[MAXPLAYERS+1];
 char gS_SaveStateTargetname[MAXPLAYERS+1][32];
 ArrayList gA_SaveFrames[MAXPLAYERS+1];
 ArrayList gA_PersistentData = null;
+int gI_SavePreFrames[MAXPLAYERS+1];
+int gI_TimerFrames[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -1156,7 +1158,7 @@ void PersistData(int client)
 	{
 		aData.aFrames = Shavit_GetReplayData(client);
 		aData.iPreFrames = Shavit_GetPlayerPreFrame(client);
-		aData.iTimerPreFrames = Shavit_GetPlayerTimerframe(client);
+		aData.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
 	}
 
 	aData.fDisconnectTime = GetEngineTime();
@@ -1278,7 +1280,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	{
 		Shavit_SetReplayData(client, aData.aFrames);
 		Shavit_SetPlayerPreFrame(client, aData.iPreFrames);
-		Shavit_SetPlayerTimerPreFrame(client, aData.iTimerPreFrames);
+		Shavit_SetPlayerTimerFrame(client, aData.iTimerPreFrames);
 	}
 
 	if(aData.bPractice)
@@ -2371,7 +2373,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		{
 			cpcache.aFrames = Shavit_GetReplayData(target);
 			cpcache.iPreFrames = Shavit_GetPlayerPreFrame(target);
-			cpcache.iTimerPreFrames = Shavit_GetPlayerTimerframe(target);
+			cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(target);
 		}
 
 		cpcache.bSegmented = true;
@@ -2585,7 +2587,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		{
 			Shavit_SetReplayData(client, cpcache.aFrames);
 			Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames);
-			Shavit_SetPlayerTimerPreFrame(client, cpcache.iTimerPreFrames);
+			Shavit_SetPlayerTimerFrame(client, cpcache.iTimerPreFrames);
 		}
 	}
 	
@@ -3420,6 +3422,8 @@ void LoadState(int client)
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{
 		Shavit_SetReplayData(client, gA_SaveFrames[client]);
+		Shavit_SetPlayerPreFrame(client, gI_SavePreFrames[client]);
+		Shavit_SetPlayerTimerFrame(client, gI_TimerFrames[client]);
 	}
 
 	delete gA_SaveFrames[client];
@@ -3445,6 +3449,8 @@ void SaveState(int client)
 	{
 		delete gA_SaveFrames[client];
 		gA_SaveFrames[client] = Shavit_GetReplayData(client);
+		gI_SavePreFrames[client] = Shavit_GetPlayerPreFrame(client);
+		gI_TimerFrames[client] = Shavit_GetPlayerTimerFrame(client);
 	}
 
 	gB_SaveStates[client] = true;
