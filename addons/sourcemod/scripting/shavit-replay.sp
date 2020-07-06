@@ -110,6 +110,7 @@ ArrayList gA_Frames[STYLE_LIMIT][TRACKS_SIZE];
 float gF_StartTick[STYLE_LIMIT];
 ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
 framecache_t gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE];
+ArrayList gA_SortedFrames[STYLE_LIMIT][TRACKS_SIZE];
 
 bool gB_ForciblyStopped = false;
 Handle gH_ReplayTimers[STYLE_LIMIT];
@@ -210,7 +211,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_GetPlayerPreFrame", Native_GetPreFrame);
 	CreateNative("Shavit_SetPlayerPreFrame", Native_SetPreFrame);
-	CreateNative("Shavit_GetPlayerTimerframe", Native_GetTimerFrame);
+	CreateNative("Shavit_SetPlayerTimerFrame", Native_SetTimerFrame);
+	CreateNative("Shavit_GetPlayerTimerFrame", Native_GetTimerFrame);
+	CreateNative("Shavit_GetClosestReplayTime", Native_GetClosestReplayTime);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -775,11 +778,25 @@ public int Native_SetPreFrame(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	int preframes = GetNativeCell(2);
-	int timerframes = GetNativeCell(3);
 
 	gI_PlayerPrerunFrames[client] = preframes;
+}
+
+public int Native_SetTimerFrame(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int timerframes = GetNativeCell(2);
+
 	gI_PlayerTimerStartFrames[client] = timerframes;
-	gI_PlayerPrerunFrames[GetNativeCell(1)] = GetNativeCell(2);
+}
+
+public int Native_GetClosestReplayTime(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	int track = GetNativeCell(3);
+	
+	return view_as<int>(GetClosestReplayTime(client, style, track));
 }
 
 public Action Cron(Handle Timer)
@@ -1113,6 +1130,7 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 	gA_FrameCache[style][track].bNewFormat = true; // not wr-based
 
 	delete file;
+	SortReplayFrames(style, track);
 
 	return true;
 }
@@ -1143,6 +1161,7 @@ bool LoadV2ReplayFormat(File file, int frames, int style, int track)
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
 
 	delete file;
+	SortReplayFrames(style, track);
 
 	return true;
 }
@@ -1179,6 +1198,7 @@ bool LoadOldReplayFormat(File file, int style, int track)
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
 
 	delete file;
+	SortReplayFrames(style, track);
 
 	return true;
 }
@@ -1240,10 +1260,10 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	fFile.WriteString(gS_Map, true);
 	fFile.WriteInt8(style);
 	fFile.WriteInt8(track);
-	fFile.WriteInt32(preframes < 0 ? timerstartframe : timerstartframe - preframes);
+	fFile.WriteInt32(timerstartframe - preframes);
 
 	int iSize = playerrecording.Length;
-	fFile.WriteInt32(iSize);
+	fFile.WriteInt32(iSize - preframes);
 	fFile.WriteInt32(view_as<int>(time));
 	fFile.WriteInt32(steamid);
 
@@ -1251,12 +1271,21 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	any aWriteData[CELLS_PER_FRAME * FRAMES_PER_WRITE];
 	int iFramesWritten = 0;
 
-	gA_Frames[style][track].Clear();
-	for(int i = (preframes < 0 ? 0 : preframes); i < iSize; i++)
+	// How did I trigger this?
+	if(gA_Frames[style][track] == null)
+	{
+		gA_Frames[style][track] = new ArrayList(CELLS_PER_FRAME);
+	}
+	else
+	{
+		gA_Frames[style][track].Clear();
+	}
+
+
+	for(int i = preframes; i < iSize; i++)
 	{
 		playerrecording.GetArray(i, aFrameData, CELLS_PER_FRAME);
 		gA_Frames[style][track].PushArray(aFrameData);
-
 		for(int j = 0; j < CELLS_PER_FRAME; j++)
 		{
 			aWriteData[(CELLS_PER_FRAME * iFramesWritten) + j] = aFrameData[j];
@@ -1272,12 +1301,14 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	delete fFile;
 
-	gA_FrameCache[style][track].iFrameCount = iSize;
+	gA_FrameCache[style][track].iFrameCount = iSize - preframes;
 	gA_FrameCache[style][track].fTime = time;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
-	gA_FrameCache[style][track].iPreFrames = preframes < 0 ? timerstartframe : (timerstartframe - preframes);
+	gA_FrameCache[style][track].iPreFrames = timerstartframe - preframes;
 
+	SortReplayFrames(style, track);
+	
 	return true;
 }
 
@@ -1572,6 +1603,7 @@ public void OnClientDisconnect(int client)
 
 	if(!IsFakeClient(client))
 	{
+		ClearFrames(client);
 		RequestFrame(DeleteFrames, client);
 		ClearFrames(client);
 
@@ -1604,6 +1636,10 @@ public void DeleteFrames(int client)
 public Action Shavit_OnStart(int client)
 {	
 	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale);
+	if(gI_PlayerPrerunFrames[client] < 0)
+	{
+		gI_PlayerPrerunFrames[client] = 0;
+	}
 	gI_PlayerTimerStartFrames[client] = gA_PlayerFrames[client].Length;
 
 	if(!gB_ClearFrame[client])
@@ -2160,7 +2196,10 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 
 void ClearFrames(int client)
 {
-	gA_PlayerFrames[client].Clear();
+	if(gA_PlayerFrames[client])
+	{
+		gA_PlayerFrames[client].Clear();
+	}
 	gI_PlayerFrames[client] = 0;
 	gF_NextFrameTime[client] = 0.0;
 	gI_PlayerPrerunFrames[client] = 0;
@@ -2710,6 +2749,153 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 	}
 
 	Shavit_GetWRName(style, buffer, length, track);
+}
+
+float GetClosestReplayTime(int client, int style, int track)
+{
+	int iFramesCount = gA_FrameCache[style][track].iFrameCount;
+	int iClosestFrame;
+	float fReplayPos[3];
+	float fClientPos[3];
+	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fClientPos);
+
+	float fMinDist = 100000.0;
+
+	any data[4];
+	int iLength = gA_SortedFrames[style][track].Length;
+	int iPreframes = gA_FrameCache[style][track].iPreFrames;
+
+	// find closest index for X
+	int iClosestSortedIndex = FindClosestIndex(client, fClientPos[0]);
+
+	int firstFrame = iClosestSortedIndex - 1600;
+	if(firstFrame < 0) 
+	{
+		firstFrame = 0;
+	}
+
+	int lastFrame = iClosestSortedIndex + 1600;
+	if(lastFrame > iLength - 1) 
+	{
+		lastFrame = iLength - 1;
+	}
+
+	for(int frame = firstFrame; frame <= lastFrame; frame++)
+	{
+		gA_SortedFrames[style][track].GetArray(frame, data, 4);
+
+		fReplayPos[0] = view_as<float>(data[0]);
+		fReplayPos[1] = view_as<float>(data[1]);
+		fReplayPos[2] = view_as<float>(data[2]);
+
+		float dist = GetVectorDistance(fClientPos, fReplayPos, false);
+		if(dist < fMinDist)
+		{
+			fMinDist = dist;
+			iClosestFrame = view_as<int>(data[3]);
+		}
+	}
+
+	if(fMinDist > 1000) 
+	{
+		return -1.0;
+	}
+
+	else
+	{
+		return float(iClosestFrame - iPreframes) / float(iFramesCount - iPreframes) * GetReplayLength(style, track);
+	}
+}
+
+void SortReplayFrames(int style, int track)
+{
+	gA_SortedFrames[style][track] = new ArrayList(4);
+	gA_SortedFrames[style][track].Clear();
+	
+	any replayData[CELLS_PER_FRAME];
+	any sortedData[4];
+	
+	int iPreframes = gA_FrameCache[style][track].iPreFrames;
+	int iSize = gA_Frames[style][track].Length;
+
+	for(int frame = iPreframes; frame < iSize; frame++)
+	{
+		gA_Frames[style][track].GetArray(frame, replayData, CELLS_PER_FRAME);
+		sortedData[0] = view_as<float>(replayData[0]);
+		sortedData[1] = view_as<float>(replayData[1]);
+		sortedData[2] = view_as<float>(replayData[2]);
+		sortedData[3] = frame;
+		
+		gA_SortedFrames[style][track].PushArray(sortedData, 4);
+	}
+	SortADTArray(gA_SortedFrames[style][track], Sort_Ascending, Sort_Float);
+}
+
+int FindClosestIndex(int client, float target)
+{
+	int style = Shavit_GetBhopStyle(client);
+	int track = Shavit_GetClientTrack(client);
+	int length = gA_SortedFrames[style][track].Length;
+
+	float posX[3];
+	float posX_comp[3];
+	any data[CELLS_PER_FRAME];
+	any data_comp[CELLS_PER_FRAME];
+
+	// first frame
+	gA_SortedFrames[style][track].GetArray(0, data, CELLS_PER_FRAME);
+	posX[0] = view_as<float>(data[0]);
+	if(target <= posX[0])
+	{
+		return 0;
+	}
+
+	// last frame
+	gA_SortedFrames[style][track].GetArray(length - 1, data, CELLS_PER_FRAME);
+	posX[0] = view_as<float>(data[0]);
+	if(target >= posX[0])
+	{
+		return length - 1;
+	}
+
+	// search
+	int i = 0, j = length, mid = 0;
+	while(i < j)
+	{
+		mid = (i + j) / 2;
+		gA_SortedFrames[style][track].GetArray(mid, data, CELLS_PER_FRAME);
+		posX[0] = view_as<float>(data[0]);
+
+		if(posX[0] == target)
+		{
+			return mid;
+		}
+
+		if(target < posX[0])
+		{
+			gA_SortedFrames[style][track].GetArray(mid - 1, data_comp, CELLS_PER_FRAME);
+			posX_comp[0] = view_as<float>(data_comp[0]);
+			if(mid > 0 && target > posX_comp[0])
+			{
+				return mid;
+			}
+
+			j = mid;
+		}
+		else 
+		{
+			gA_SortedFrames[style][track].GetArray(mid + 1, data_comp, CELLS_PER_FRAME);
+			posX_comp[0] = view_as<float>(data_comp[0]);
+			if(mid < length - 1 && target < posX_comp[0])
+			{
+				return mid;
+			}
+
+			i = mid + 1;
+		}
+	}
+	
+	return mid;
 }
 
 /*
