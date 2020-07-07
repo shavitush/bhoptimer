@@ -43,10 +43,6 @@
 	{
 		"en"		"Time"
 	}
-	"HudTimeDiffText"
-	{
-		"en"		"Time difference"
-	}
 	"HudBestText"
 	{
 		"en"		"Best"

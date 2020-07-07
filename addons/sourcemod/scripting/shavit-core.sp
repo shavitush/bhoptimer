@@ -1658,6 +1658,11 @@ public int Native_GetStyleCount(Handle handler, int numParams)
 
 public int Native_GetStyleSettings(Handle handler, int numParams)
 {
+	if(GetNativeCell(3) != sizeof(stylesettings_t))
+	{
+		return ThrowNativeError(200, "stylesettings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(3), sizeof(stylesettings_t));
+	}
 	return SetNativeArray(2, gA_StyleSettings[GetNativeCell(1)], sizeof(stylesettings_t));
 }
 
@@ -1725,6 +1730,12 @@ public int Native_IsPracticeMode(Handle handler, int numParams)
 
 public int Native_SaveSnapshot(Handle handler, int numParams)
 {
+	if(GetNativeCell(3) != sizeof(timer_snapshot_t))
+	{
+		return ThrowNativeError(200, "timer_snapshot_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(3), sizeof(timer_snapshot_t));
+	}
+
 	int client = GetNativeCell(1);
 
 	timer_snapshot_t snapshot;
@@ -1747,6 +1758,11 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 
 public int Native_LoadSnapshot(Handle handler, int numParams)
 {
+	if(GetNativeCell(3) != sizeof(timer_snapshot_t))
+	{
+		return ThrowNativeError(200, "timer_snapshot_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(3), sizeof(timer_snapshot_t));
+	}
 	int client = GetNativeCell(1);
 
 	timer_snapshot_t snapshot;
@@ -1775,6 +1791,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iSHSWCombination = snapshot.iSHSWCombination;
 	gA_Timers[client].iMeasuredJumps = snapshot.iMeasuredJumps;
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
+	
+	return 0;
 }
 
 public int Native_LogMessage(Handle plugin, int numParams)

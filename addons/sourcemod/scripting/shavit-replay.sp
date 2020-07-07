@@ -211,8 +211,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_GetPlayerPreFrame", Native_GetPreFrame);
 	CreateNative("Shavit_SetPlayerPreFrame", Native_SetPreFrame);
-	CreateNative("Shavit_SetPlayerTimerPreFrame", Native_SetTimerPreFrame);
-	CreateNative("Shavit_GetPlayerTimerframe", Native_GetTimerFrame);
+	CreateNative("Shavit_SetPlayerTimerFrame", Native_SetTimerFrame);
+	CreateNative("Shavit_GetPlayerTimerFrame", Native_GetTimerFrame);
 	CreateNative("Shavit_GetClosestReplayTime", Native_GetClosestReplayTime);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
@@ -782,7 +782,7 @@ public int Native_SetPreFrame(Handle handler, int numParams)
 	gI_PlayerPrerunFrames[client] = preframes;
 }
 
-public int Native_SetTimerPreFrame(Handle handler, int numParams)
+public int Native_SetTimerFrame(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	int timerframes = GetNativeCell(2);
@@ -1271,7 +1271,16 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	any aWriteData[CELLS_PER_FRAME * FRAMES_PER_WRITE];
 	int iFramesWritten = 0;
 
-	gA_Frames[style][track].Clear();
+	// How did I trigger this?
+	if(gA_Frames[style][track] == null)
+	{
+		gA_Frames[style][track] = new ArrayList(CELLS_PER_FRAME);
+	}
+	else
+	{
+		gA_Frames[style][track].Clear();
+	}
+
 
 	for(int i = preframes; i < iSize; i++)
 	{

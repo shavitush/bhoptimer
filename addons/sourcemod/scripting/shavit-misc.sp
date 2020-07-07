@@ -103,6 +103,8 @@ bool gB_SaveStates[MAXPLAYERS+1];
 char gS_SaveStateTargetname[MAXPLAYERS+1][32];
 ArrayList gA_SaveFrames[MAXPLAYERS+1];
 ArrayList gA_PersistentData = null;
+int gI_SavePreFrames[MAXPLAYERS+1];
+int gI_TimerFrames[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -145,6 +147,7 @@ Convar gCV_PersistData = null;
 Convar gCV_StopTimerWarning = null;
 Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
+Convar gCV_RestrictNoclip = null;
 
 // external cvars
 ConVar sv_disable_immunity_alpha = null;
@@ -329,6 +332,7 @@ public void OnPluginStart()
 	gCV_StopTimerWarning = new Convar("shavit_misc_stoptimerwarning", "900", "Time in seconds to display a warning before stopping the timer with noclip or !stop.\n0 - Disabled");
 	gCV_WRMessages = new Convar("shavit_misc_wrmessages", "3", "How many \"NEW <style> WR!!!\" messages to print?\n0 - Disabled", 0,  true, 0.0, true, 100.0);
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "0", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 3.0);
+	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "1", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 
 	Convar.AutoExecConfig();
 
@@ -1002,17 +1006,35 @@ void RemoveRagdoll(int client)
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings)
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
+	bool bInStart = Shavit_InsideZone(client, Zone_Start, track);
 
 	// i will not be adding a setting to toggle this off
-	if(bNoclip && status == Timer_Running)
+	if(bNoclip)
 	{
-		Shavit_StopTimer(client);
+		if(status == Timer_Running)
+		{
+			Shavit_StopTimer(client);
+		}
+		if(bInStart && gCV_RestrictNoclip.BoolValue)
+		{
+			if(gCV_RestrictNoclip.IntValue == 1)
+			{
+				float fSpeed[3];
+				GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+				fSpeed[2] = 0.0;
+				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+			}
+			else if(gCV_RestrictNoclip.IntValue == 2)
+			{
+				SetEntityMoveType(client, MOVETYPE_ISOMETRIC);
+			}
+		}
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!bNoclip && gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && Shavit_InsideZone(client, Zone_Start, track))
+	if(!bNoclip && gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && bInStart)
 	{
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
@@ -1136,7 +1158,7 @@ void PersistData(int client)
 	{
 		aData.aFrames = Shavit_GetReplayData(client);
 		aData.iPreFrames = Shavit_GetPlayerPreFrame(client);
-		aData.iTimerPreFrames = Shavit_GetPlayerTimerframe(client);
+		aData.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
 	}
 
 	aData.fDisconnectTime = GetEngineTime();
@@ -1258,7 +1280,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	{
 		Shavit_SetReplayData(client, aData.aFrames);
 		Shavit_SetPlayerPreFrame(client, aData.iPreFrames);
-		Shavit_SetPlayerTimerPreFrame(client, aData.iTimerPreFrames);
+		Shavit_SetPlayerTimerFrame(client, aData.iTimerPreFrames);
 	}
 
 	if(aData.bPractice)
@@ -2351,7 +2373,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		{
 			cpcache.aFrames = Shavit_GetReplayData(target);
 			cpcache.iPreFrames = Shavit_GetPlayerPreFrame(target);
-			cpcache.iTimerPreFrames = Shavit_GetPlayerTimerframe(target);
+			cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(target);
 		}
 
 		cpcache.bSegmented = true;
@@ -2565,7 +2587,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		{
 			Shavit_SetReplayData(client, cpcache.aFrames);
 			Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames);
-			Shavit_SetPlayerTimerPreFrame(client, cpcache.iTimerPreFrames);
+			Shavit_SetPlayerTimerFrame(client, cpcache.iTimerPreFrames);
 		}
 	}
 	
@@ -3400,6 +3422,8 @@ void LoadState(int client)
 	if(gB_Replay && gA_SaveFrames[client] != null)
 	{
 		Shavit_SetReplayData(client, gA_SaveFrames[client]);
+		Shavit_SetPlayerPreFrame(client, gI_SavePreFrames[client]);
+		Shavit_SetPlayerTimerFrame(client, gI_TimerFrames[client]);
 	}
 
 	delete gA_SaveFrames[client];
@@ -3425,6 +3449,8 @@ void SaveState(int client)
 	{
 		delete gA_SaveFrames[client];
 		gA_SaveFrames[client] = Shavit_GetReplayData(client);
+		gI_SavePreFrames[client] = Shavit_GetPlayerPreFrame(client);
+		gI_TimerFrames[client] = Shavit_GetPlayerTimerFrame(client);
 	}
 
 	gB_SaveStates[client] = true;
@@ -3466,6 +3492,11 @@ int GetMaxCPs(int client)
 
 public any Native_GetCheckpoint(Handle plugin, int numParams)
 {
+	if(GetNativeCell(4) != sizeof(cp_cache_t))
+	{
+		return ThrowNativeError(200, "cp_cache_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(4), sizeof(cp_cache_t));
+	}
 	int client = GetNativeCell(1);
 	int index = GetNativeCell(2);
 
@@ -3481,6 +3512,11 @@ public any Native_GetCheckpoint(Handle plugin, int numParams)
 
 public any Native_SetCheckpoint(Handle plugin, int numParams)
 {
+	if(GetNativeCell(4) != sizeof(cp_cache_t))
+	{
+		return ThrowNativeError(200, "cp_cache_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
+			GetNativeCell(4), sizeof(cp_cache_t));
+	}
 	int client = GetNativeCell(1);
 	int position = GetNativeCell(2);
 
