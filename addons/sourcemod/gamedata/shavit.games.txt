@@ -5,8 +5,6 @@
 		"Keys"
 		{
 			"IGameMovement"		"GameMovement001"
-
-			"IServerGameEnts"	"ServerGameEnts001"
 		}
 
 		"Signatures"
@@ -33,32 +31,6 @@
 	{
 		"Offsets"
 		{
-			// applies to trigger_vphysics_motion and trigger_wind
-			"CBaseVPhysicsTrigger::PassesTriggerFilters"
-			{
-				"windows"	"199"
-				"linux"		"200"
-			}
-
-			// applies to all other triggers
-			"CBaseTrigger::PassesTriggerFilters"
-			{
-				"windows"	"209"
-				"linux"		"210"
-			}
-
-			"IServerGameEnts::MarkEntitiesAsTouching"
-			{
-				"windows"	"1"
-				"linux"		"2"
-			}
-
-			"m_surfaceFriction"
-			{
-				"windows"	"4660"
-				"linux"		"4684"
-			}
-
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
 				"windows"	"505"
@@ -72,35 +44,11 @@
 	{
 		"Offsets"
 		{
-			// applies to trigger_vphysics_motion and trigger_wind
-			"CBaseVPhysicsTrigger::PassesTriggerFilters"
-			{
-				"windows"	"188"
-				"linux"		"189"
-			}
-
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
 				"windows"	"438"
 				"linux"		"439"
 				"mac"		"439"
-			}
-
-			// applies to all other triggers
-			"CBaseTrigger::PassesTriggerFilters"
-			{
-				"windows"	"197"
-				"linux"		"198"
-			}
-
-			"IServerGameEnts::MarkEntitiesAsTouching"
-			{
-				"windows"	"2"
-				"linux"		"3"
-			}
-			"m_surfaceFriction"
-			{
-				"linux"		"3852"
 			}
 		}
 	}
