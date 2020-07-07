@@ -1501,6 +1501,15 @@ native void Shavit_SetReplayData(int client, ArrayList data);
 native ArrayList Shavit_GetReplayData(int client);
 
 /**
+ * Starts a replay given a style and track. 
+ * @param client					Client index.
+ * @param style						Bhop style.
+ * @param track						Timer track.
+ * @noreturn							
+ */
+native void Shavit_StartReplay(int style, int track, float delay, int client = 1);
+
+/**
  * Reloads a specific replay into the replay bot cache.
  * Note: Not guaranteed to work with legacy replay bots.
  *
@@ -1509,7 +1518,7 @@ native ArrayList Shavit_GetReplayData(int client);
  * @param restart					Restart the playback of the replay bot if it's playing?
  * @param path						Path to the replay file. Use `BuildPath(Path_SM, ...)` to generate one. Leave as empty to use default.
  * @return							Was the replay loaded?
- */
+ */ 
 native bool Shavit_ReloadReplay(int style, int track, bool restart, char[] path = "");
 
 /**
@@ -1888,6 +1897,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SaveSnapshot");
 	MarkNativeAsOptional("Shavit_SetPracticeMode");
 	MarkNativeAsOptional("Shavit_SetReplayData");
+	MarkNativeAsOptional("Shavit_StartReplay");
 	MarkNativeAsOptional("Shavit_StartTimer");
 	MarkNativeAsOptional("Shavit_StopChatSound");
 	MarkNativeAsOptional("Shavit_StopTimer");
