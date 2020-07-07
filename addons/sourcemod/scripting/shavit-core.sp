@@ -2795,7 +2795,6 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	{
 		if(gCV_UseOffsets.BoolValue)
 		{
-			PrintToChat(client, "track: %i", track);
 			float offset = CalculateTickIntervalOffset(client, type);
 			gA_Timers[client].fTimer += offset;
 			
