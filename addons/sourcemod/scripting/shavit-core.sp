@@ -24,6 +24,7 @@
 #include <geoip>
 #include <clientprefs>
 #include <convar_class>
+#include <dhooks>
 
 #undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
@@ -100,6 +101,10 @@ float gF_PauseOrigin[MAXPLAYERS+1][3];
 float gF_PauseAngles[MAXPLAYERS+1][3];
 float gF_PauseVelocity[MAXPLAYERS+1][3];
 
+// used for offsets
+float gF_PreviousOrigin[MAXPLAYERS + 1][2][3];
+float gF_SmallestDist[MAXPLAYERS + 1];
+
 // cookies
 Handle gH_StyleCookie = null;
 Handle gH_AutoBhopCookie = null;
@@ -124,6 +129,8 @@ Convar gCV_VelocityTeleport = null;
 Convar gCV_DefaultStyle = null;
 Convar gCV_NoChatSound = null;
 Convar gCV_SimplerLadders = null;
+Convar gCV_UseOffsets = null;
+Convar gCV_DebugOffsets = null;
 
 // cached cvars
 int gI_DefaultStyle = 0;
@@ -225,6 +232,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadDHooks();
+	
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
@@ -244,10 +253,10 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 	gH_Forwards_OnTimescaleChanged = CreateGlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-
+	
 	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
-
+	
 	// game types
 	gEV_Type = GetEngineVersion();
 	gB_Protobuf = (GetUserMessageType() == UM_Protobuf);
@@ -336,7 +345,8 @@ public void OnPluginStart()
 	gCV_DefaultStyle = new Convar("shavit_core_defaultstyle", "0", "Default style ID.\nAdd the '!' prefix to disable style cookies - i.e. \"!3\" to *force* scroll to be the default style.", 0, true, 0.0);
 	gCV_NoChatSound = new Convar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
 	gCV_SimplerLadders = new Convar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
-
+	gCV_UseOffsets = new Convar("shavit_core_useoffsets", "1", "Calculates more accurate times by subtracting/adding tick offsets from the time the server uses to register that a player has left or entered a trigger", 0, true, 0.0, true, 1.0);
+	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
@@ -371,6 +381,60 @@ public void OnPluginStart()
 			}
 		}
 	}
+}
+
+void LoadDHooks()
+{
+	Handle gamedataConf = LoadGameConfigFile("shavit.games");
+
+	if(gamedataConf == null)
+	{
+		SetFailState("Failed to load shavit gamedata");
+	}
+	
+	StartPrepSDKCall(SDKCall_Static);
+	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "CreateInterface"))
+	{
+		SetFailState("Failed to get CreateInterface");
+	}
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	Handle CreateInterface = EndPrepSDKCall();
+
+	if(CreateInterface == null)
+	{
+		SetFailState("Unable to prepare SDKCall for CreateInterface");
+	}
+
+	char interfaceName[64];
+
+	// ProcessMovement
+	if(!GameConfGetKeyValue(gamedataConf, "IGameMovement", interfaceName, sizeof(interfaceName)))
+	{
+		SetFailState("Failed to get IGameMovement interface name");
+	}
+
+	Address IGameMovement = SDKCall(CreateInterface, interfaceName, 0);
+
+	if(!IGameMovement)
+	{
+		SetFailState("Failed to get IGameMovement pointer");
+	}
+
+	int offset = GameConfGetOffset(gamedataConf, "ProcessMovement");
+	if(offset == -1)
+	{
+		SetFailState("Failed to get ProcessMovement offset");
+	}
+
+	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovement);
+	DHookAddParam(processMovement, HookParamType_CBaseEntity);
+	DHookAddParam(processMovement, HookParamType_ObjectPtr);
+	DHookRaw(processMovement, false, IGameMovement);
+
+	delete CreateInterface;
+	delete gamedataConf;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1464,6 +1528,19 @@ public int Native_FinishMap(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
+	if(gCV_UseOffsets.BoolValue)
+	{
+		float offset = CalculateTickIntervalOffset(client, Zone_End);
+		gA_Timers[client].fTimer -= offset;
+		
+		if(gCV_DebugOffsets.BoolValue)
+		{
+			char sOffsetMessage[64];
+			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, offset);
+			Shavit_PrintToChat(client, "%s", sOffsetMessage);
+		}
+	}
+
 	timer_snapshot_t snapshot;
 	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
 	snapshot.bClientPaused = gA_Timers[client].bPaused;
@@ -1478,7 +1555,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-
+	
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
 	Call_PushCell(client);
@@ -2032,6 +2109,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
+	SDKHook(client, SDKHook_PostThink, PostThink);
 
 	int iSteamID = GetSteamAccountID(client);
 
@@ -2712,6 +2790,23 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	{
 		UpdateAiraccelerate(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate));
 	}
+	
+	if(type == Zone_Start && track == gA_Timers[client].iTrack)
+	{
+		if(gCV_UseOffsets.BoolValue)
+		{
+			PrintToChat(client, "track: %i", track);
+			float offset = CalculateTickIntervalOffset(client, type);
+			gA_Timers[client].fTimer += offset;
+			
+			if(gCV_DebugOffsets.BoolValue)
+			{
+				char sOffsetMessage[64];
+				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, offset);
+				Shavit_PrintToChat(client, "%s", sOffsetMessage);
+			}
+		}
+	}
 }
 
 public void PreThinkPost(int client)
@@ -2746,56 +2841,189 @@ public void PreThinkPost(int client)
 	}
 }
 
-public void OnGameFrame()
+public void PostThink(int client)
 {
+	//we need to add height to the players origin since the zones are not on the ground
+	float height = ((IsSource2013(GetEngineVersion()))? 62.0:72.0) / 2;
+	gF_PreviousOrigin[client][1] = gF_PreviousOrigin[client][0];
+	GetEntPropVector(client, Prop_Data, "m_vecAbsOrigin", gF_PreviousOrigin[client][0]);
+	gF_PreviousOrigin[client][0][2] += height; 
+}
+
+public MRESReturn DHook_ProcessMovement(Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+	
 	float frametime = GetGameFrameTime();
-
-	for(int i = 1; i <= MaxClients; i++)
+	
+	if(gA_Timers[client].bPaused || !gA_Timers[client].bEnabled)
 	{
-		if(gA_Timers[i].bPaused || !gA_Timers[i].bEnabled)
-		{
-			continue;
-		}
+		return MRES_Ignored;
+	}
+	
+	float time;
+	if(gA_Timers[client].fTimescale != -1.0)
+	{
+		time = frametime * gA_Timers[client].fTimescale;
+	}
+	
+	else
+	{
+		time = frametime * view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale);
+	}
+	
+	timer_snapshot_t snapshot;
+	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
+	snapshot.bClientPaused = gA_Timers[client].bPaused;
+	snapshot.iJumps = gA_Timers[client].iJumps;
+	snapshot.bsStyle = gA_Timers[client].iStyle;
+	snapshot.iStrafes = gA_Timers[client].iStrafes;
+	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
+	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
+	snapshot.fServerTime = GetEngineTime();
+	snapshot.fCurrentTime = gA_Timers[client].fTimer;
+	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
+	snapshot.iTimerTrack = gA_Timers[client].iTrack;
+	
+	Call_StartForward(gH_Forwards_OnTimerIncrement);
+	Call_PushCell(client);
+	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
+	Call_PushCellRef(time);
+	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
+	Call_Finish();
 
-		float time;
-		if(gA_Timers[i].fTimescale != -1.0)
-		{
-			time = frametime * gA_Timers[i].fTimescale;
-		}
+	gA_Timers[client].fTimer += time;
+	
+	Call_StartForward(gH_Forwards_OnTimerIncrementPost);
+	Call_PushCell(client);
+	Call_PushCell(time);
+	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
+	Call_Finish();
+	
+	return MRES_Ignored;
+}
 
+// reference: https://github.com/momentum-mod/game/blob/5e2d1995ca7c599907980ee5b5da04d7b5474c61/mp/src/game/server/momentum/mom_timer.cpp#L388
+float CalculateTickIntervalOffset(int client, int zonetype)
+{
+	float newPos[3];
+	float tracepoint[3];
+	
+	float maxs[3];
+	float mins[3];
+	float vel[3];
+	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
+	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
+	
+	for (int i = 0; i < 8; i++)
+	{
+		switch (i)
+		{
+			case 0:
+			{
+				AddVectors(gF_PreviousOrigin[client][0], mins, tracepoint);
+			}
+			case 1:
+			{
+				newPos[0] = mins[0];
+				newPos[1] = maxs[1];
+				newPos[2] = mins[2];
+				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+			}
+			case 2:
+			{
+				newPos[0] = mins[0];
+				newPos[1] = mins[1];
+				newPos[2] = maxs[2];
+				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+			}
+			case 3:
+			{
+				newPos[0] = mins[0];
+				newPos[1] = maxs[1];
+				newPos[2] = maxs[2];
+				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+			}
+			case 4:
+			{
+				newPos[0] = maxs[0];
+				newPos[1] = mins[1];
+				newPos[2] = maxs[2];
+				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+			}
+			case 5:
+			{
+				newPos[0] = maxs[0];
+				newPos[1] = mins[1];
+				newPos[2] = mins[2];
+				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+			}
+			case 6:
+			{
+				newPos[0] = maxs[0];
+				newPos[1] = maxs[1];
+				newPos[2] = mins[2];
+				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+			}
+			case 7:
+			{
+				AddVectors(gF_PreviousOrigin[client][0], maxs, tracepoint);
+			}
+		}
+		
+		if (zonetype == Zone_Start)
+		{
+			gF_SmallestDist[client] = -1.0;
+			TR_EnumerateEntities(tracepoint, gF_PreviousOrigin[client][1], PARTITION_TRIGGER_EDICTS, RayType_EndPoint,  TREnumTrigger, client);
+		}
 		else
 		{
-			time = frametime * view_as<float>(gA_StyleSettings[gA_Timers[i].iStyle].fTimescale);
+			gF_SmallestDist[client] = -1.0;
+			TR_EnumerateEntities(gF_PreviousOrigin[client][0], tracepoint, PARTITION_TRIGGER_EDICTS, RayType_EndPoint, TREnumTrigger, client);
 		}
-
-		timer_snapshot_t snapshot;
-		snapshot.bTimerEnabled = gA_Timers[i].bEnabled;
-		snapshot.bClientPaused = gA_Timers[i].bPaused;
-		snapshot.iJumps = gA_Timers[i].iJumps;
-		snapshot.bsStyle = gA_Timers[i].iStyle;
-		snapshot.iStrafes = gA_Timers[i].iStrafes;
-		snapshot.iTotalMeasures = gA_Timers[i].iTotalMeasures;
-		snapshot.iGoodGains = gA_Timers[i].iGoodGains;
-		snapshot.fServerTime = GetEngineTime();
-		snapshot.fCurrentTime = gA_Timers[i].fTimer;
-		snapshot.iSHSWCombination = gA_Timers[i].iSHSWCombination;
-		snapshot.iTimerTrack = gA_Timers[i].iTrack;
-
-		Call_StartForward(gH_Forwards_OnTimerIncrement);
-		Call_PushCell(i);
-		Call_PushArray(snapshot, sizeof(timer_snapshot_t));
-		Call_PushCellRef(time);
-		Call_PushArray(gA_StyleSettings[gA_Timers[i].iStyle], sizeof(stylesettings_t));
-		Call_Finish();
-
-		gA_Timers[i].fTimer += time;
-
-		Call_StartForward(gH_Forwards_OnTimerIncrementPost);
-		Call_PushCell(i);
-		Call_PushCell(time);
-		Call_PushArray(gA_StyleSettings[gA_Timers[i].iStyle], sizeof(stylesettings_t));
-		Call_Finish();
 	}
+	
+	float offset = gF_SmallestDist[client] / GetVectorLength(vel);
+	
+	// This should never happen under normal circumstances, but you can glitch the offset by getting affected by the jump penalty from zones
+	// We will return 0 if this happens as its an invalid offset.
+	if(FloatAbs(offset) > GetTickInterval())
+	{
+		offset = 0.0;
+	}
+	return FloatAbs(offset);
+}
+
+bool TREnumTrigger(int entity, int client) {
+	
+	if (entity <= MaxClients) {
+		return true;
+	}
+
+	char classname[32];
+	GetEntityClassname(entity, classname, sizeof(classname));
+
+	//the entity is a zone
+	if(StrContains(classname, "trigger_multiple") > -1)
+	{
+		TR_ClipCurrentRayToEntity(PARTITION_TRIGGER_EDICTS, entity);
+		
+		float start[3];
+		TR_GetStartPosition(INVALID_HANDLE, start);
+		
+		float end[3];
+		TR_GetEndPosition(end);
+		
+		float distance = GetVectorDistance(start, end);
+		
+		if(gF_SmallestDist[client] > distance)
+		{
+			gF_SmallestDist[client] = distance;
+		}
+		return false;
+	}
+	return true;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
