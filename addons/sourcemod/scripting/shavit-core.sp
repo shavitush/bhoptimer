@@ -428,10 +428,10 @@ void LoadDHooks()
 		SetFailState("Failed to get ProcessMovement offset");
 	}
 
-	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovement);
+	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
 	DHookAddParam(processMovement, HookParamType_CBaseEntity);
 	DHookAddParam(processMovement, HookParamType_ObjectPtr);
-	DHookRaw(processMovement, false, IGameMovement);
+	DHookRaw(processMovement, true, IGameMovement);
 
 	delete CreateInterface;
 	delete gamedataConf;
@@ -2849,7 +2849,7 @@ public void PostThink(int client)
 	gF_PreviousOrigin[client][0][2] += height; 
 }
 
-public MRESReturn DHook_ProcessMovement(Handle hParams)
+public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
 	
