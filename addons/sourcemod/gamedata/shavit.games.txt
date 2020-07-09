@@ -1,14 +1,28 @@
 "Games"
 {
-	"cstrike"
+	"#default"
 	{
+		"Keys"
+		{
+			"IGameMovement"		"GameMovement001"
+		}
+
+		"Signatures"
+		{
+			"CreateInterface"
+			{
+				"library"		"server"
+				"windows"		"@CreateInterface"
+				"linux"			"@CreateInterface"
+			}
+		}
+
 		"Offsets"
 		{
-			"CCSPlayer::GetPlayerMaxSpeed"
+			"ProcessMovement"
 			{
-				"windows"	"438"
-				"linux"		"439"
-				"mac"		"439"
+				"windows"		"1"
+				"linux"			"2"
 			}
 		}
 	}
@@ -22,6 +36,19 @@
 				"windows"	"505"
 				"linux"		"506"
 				"mac"		"506"
+			}
+		}
+	}
+
+	"cstrike"
+	{
+		"Offsets"
+		{
+			"CCSPlayer::GetPlayerMaxSpeed"
+			{
+				"windows"	"438"
+				"linux"		"439"
+				"mac"		"439"
 			}
 		}
 	}
