@@ -32,18 +32,18 @@
 #pragma semicolon 1
 
 // HUD2 - these settings will *disable* elements for the main hud
-#define HUD2_TIME				(1 << 0)
-#define HUD2_SPEED				(1 << 1)
-#define HUD2_JUMPS				(1 << 2)
-#define HUD2_STRAFE				(1 << 3)
-#define HUD2_SYNC				(1 << 4)
-#define HUD2_STYLE				(1 << 5)
-#define HUD2_RANK				(1 << 6)
-#define HUD2_TRACK				(1 << 7)
+#define HUD2_TIME			(1 << 0)
+#define HUD2_SPEED			(1 << 1)
+#define HUD2_JUMPS			(1 << 2)
+#define HUD2_STRAFE			(1 << 3)
+#define HUD2_SYNC			(1 << 4)
+#define HUD2_STYLE			(1 << 5)
+#define HUD2_RANK			(1 << 6)
+#define HUD2_TRACK			(1 << 7)
 #define HUD2_SPLITPB			(1 << 8)
 #define HUD2_MAPTIER			(1 << 9)
-#define HUD2_TIMEDIFFERENCE		(1 << 10)
-#define HUD2_PERFS				(1 << 11)
+#define HUD2_TIMEDIFFERENCE			(1 << 10)
+#define HUD2_PERFS			(1 << 11)
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS|HUD_PERFS)
 #define HUD_DEFAULT2			0
@@ -506,7 +506,7 @@ void ToggleHUD(int client, int hud, bool chat)
 			case HUD_HIDEWEAPON: FormatEx(sHUDSetting, 64, "%T", "HudHideWeapon", client);
 			case HUD_TOPLEFT: FormatEx(sHUDSetting, 64, "%T", "HudTopLeft", client);
 			case HUD_SYNC: FormatEx(sHUDSetting, 64, "%T", "HudSync", client);
-			case HUD_SYNC: FormatEx(sHUDSetting, 64, "%T", "HudPerfs", client);
+			case HUD_PERFS: FormatEx(sHUDSetting, 64, "%T", "HudPerfs", client);
 			case HUD_TIMELEFT: FormatEx(sHUDSetting, 64, "%T", "HudTimeLeft", client);
 			case HUD_2DVEL: FormatEx(sHUDSetting, 64, "%T", "Hud2dVel", client);
 			case HUD_NOSOUNDS: FormatEx(sHUDSetting, 64, "%T", "HudNoRecordSounds", client);
