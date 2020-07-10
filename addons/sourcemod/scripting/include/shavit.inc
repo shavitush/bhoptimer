@@ -800,7 +800,7 @@ forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int custom
  * @param customtaglength			Max length of the customtag buffer.
  * @noreturn							
  */
-forward void Shavit_OnTimeOffsetCalculated(int client, int zonetype, float offset);
+forward void Shavit_OnTimeOffsetCalculated(int client, int zonetype, float offset, float distance);
 
 /**
  * Called before the timer finish message is printed to the users.

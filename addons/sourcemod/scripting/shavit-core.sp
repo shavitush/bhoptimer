@@ -258,8 +258,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 	gH_Forwards_OnTimescaleChanged = CreateGlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnTimeOffsetCalculated = CreateGlobalForward("Shavit_OnTimeOffsetCalculated", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	
+	gH_Forwards_OnTimeOffsetCalculated = CreateGlobalForward("Shavit_OnTimeOffsetCalculated", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
 	
@@ -2986,13 +2985,14 @@ void CalculateTickIntervalOffset(int client, int zonetype)
 	gA_Timers[client].fOffset[zonetype] = offset;
 	gA_Timers[client].fOffsetDistance[zonetype] = gF_SmallestDist[client];
 	
-	gF_SmallestDist[client] = 0.0;
-	
 	Call_StartForward(gH_Forwards_OnTimeOffsetCalculated);
 	Call_PushCell(client);
 	Call_PushCell(zonetype);
 	Call_PushCell(offset);
+	Call_PushCell(gF_SmallestDist[client]);
 	Call_Finish();
+	
+	gF_SmallestDist[client] = 0.0;
 }
 
 bool TREnumTrigger(int entity, int client) {
