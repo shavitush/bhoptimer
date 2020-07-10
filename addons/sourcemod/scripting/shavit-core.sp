@@ -105,6 +105,7 @@ float gF_PauseVelocity[MAXPLAYERS+1][3];
 
 // used for offsets
 float gF_SmallestDist[MAXPLAYERS + 1];
+float gF_Origin[MAXPLAYERS + 1][2][3];
 
 // cookies
 Handle gH_StyleCookie = null;
@@ -2135,6 +2136,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
+	SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
 
 	int iSteamID = GetSteamAccountID(client);
 
@@ -2879,6 +2881,12 @@ public void PreThinkPost(int client)
 	}
 }
 
+public void PostThinkPost(int client)
+{
+	gF_Origin[client][1] = gF_Origin[client][0];
+	GetEntPropVector(client, Prop_Data, "m_vecOrigin", gF_Origin[client][0]);
+}
+
 public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
@@ -2932,25 +2940,10 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	return MRES_Ignored;
 }
 
-public void GetPrevOrigin(int client, float cur[3], float buffer[3])
-{
-	float vel[3];
-	GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
-	
-	buffer[0] = cur[0] - (vel[0] * GetTickInterval());
-	buffer[1] = cur[1] - (vel[1] * GetTickInterval());
-	buffer[2] = cur[2] - (vel[2] * GetTickInterval());
-}
-
 // reference: https://github.com/momentum-mod/game/blob/5e2d1995ca7c599907980ee5b5da04d7b5474c61/mp/src/game/server/momentum/mom_timer.cpp#L388
 void CalculateTickIntervalOffset(int client, int zonetype)
 {
-	float height = ((IsSource2013(GetEngineVersion()))? 62.0:72.0) / 2;
-	float newPos[3];
-	float tracepoint[3];
 	float localOrigin[3];
-	
-	localOrigin[2] += height;
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", localOrigin);
 	float maxs[3];
 	float mins[3];
@@ -2962,74 +2955,13 @@ void CalculateTickIntervalOffset(int client, int zonetype)
 	
 	gF_SmallestDist[client] = 0.0;
 	
-	for (int i = 0; i < 8; i++)
+	if (zonetype == Zone_Start)
 	{
-		switch (i)
-		{
-			case 0:
-			{
-				AddVectors(localOrigin, mins, tracepoint);
-			}
-			case 1:
-			{
-				newPos[0] = mins[0];
-				newPos[1] = maxs[1];
-				newPos[2] = mins[2];
-				AddVectors(localOrigin, newPos, tracepoint);
-			}
-			case 2:
-			{
-				newPos[0] = mins[0];
-				newPos[1] = mins[1];
-				newPos[2] = maxs[2];
-				AddVectors(localOrigin, newPos, tracepoint);
-			}
-			case 3:
-			{
-				newPos[0] = mins[0];
-				newPos[1] = maxs[1];
-				newPos[2] = maxs[2];
-				AddVectors(localOrigin, newPos, tracepoint);
-			}
-			case 4:
-			{
-				newPos[0] = maxs[0];
-				newPos[1] = mins[1];
-				newPos[2] = maxs[2];
-				AddVectors(localOrigin, newPos, tracepoint);
-			}
-			case 5:
-			{
-				newPos[0] = maxs[0];
-				newPos[1] = mins[1];
-				newPos[2] = mins[2];
-				AddVectors(localOrigin, newPos, tracepoint);
-			}
-			case 6:
-			{
-				newPos[0] = maxs[0];
-				newPos[1] = maxs[1];
-				newPos[2] = mins[2];
-				AddVectors(localOrigin, newPos, tracepoint);
-			}
-			case 7:
-			{
-				AddVectors(localOrigin, maxs, tracepoint);
-			}
-		}
-		
-		if (zonetype == Zone_Start)
-		{
-			float prevOrigin[3];
-			GetPrevOrigin(client, tracepoint, prevOrigin);
-			TR_EnumerateEntities(tracepoint, prevOrigin, PARTITION_TRIGGER_EDICTS, RayType_EndPoint,  TREnumTrigger, client);
-		}
-		else
-		{
-			float prevOrigin[3];
-			GetPrevOrigin(client, tracepoint, prevOrigin);
-			TR_EnumerateEntities(prevOrigin, tracepoint, PARTITION_TRIGGER_EDICTS, RayType_EndPoint, TREnumTrigger, client);
-		}
+		TR_EnumerateEntitiesHull(localOrigin, gF_Origin[client][1], mins, maxs, PARTITION_TRIGGER_EDICTS, TREnumTrigger, client);
+	}
+	else
+	{
+		TR_EnumerateEntitiesHull(gF_Origin[client][0], localOrigin, mins, maxs, PARTITION_TRIGGER_EDICTS, TREnumTrigger, client);
 	}
 	
 	float offset = gF_SmallestDist[client] / GetVectorLength(vel);
@@ -3061,16 +2993,7 @@ bool TREnumTrigger(int entity, int client) {
 		TR_GetEndPosition(end);
 		
 		float distance = GetVectorDistance(start, end);
-		
-		if(gF_SmallestDist[client] <= 0.0)
-		{
-			gF_SmallestDist[client] = distance;
-		}
-		
-		if(distance < gF_SmallestDist[client])
-		{
-			gF_SmallestDist[client] = distance;
-		}
+		gF_SmallestDist[client] = distance;
 		
 		return false;
 	}
