@@ -116,6 +116,10 @@ StringMap gSM_Checkpoints = null;
 ArrayList gA_Targetnames = null;
 ArrayList gA_Classnames = null;
 
+// checkpoint files
+char gS_CPData[PLATFORM_MAX_PATH];
+char gS_MapPath[PLATFORM_MAX_PATH];
+
 // save states
 bool gB_SaveStatesSegmented[MAXPLAYERS+1];
 float gF_SaveStateData[MAXPLAYERS+1][3][3];
@@ -251,6 +255,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_checkpoints", Command_Checkpoints, "Opens the checkpoints menu. Alias for sm_cpmenu.");
 	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint.");
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint. Usage: sm_tele [number]");
+	RegConsoleCmd("sm_savecps", Command_SaveCPs, "Saves all your checkpoints data on disk");
+	RegConsoleCmd("sm_loadcps", Command_LoadCPs, "Loads your checkpoint data from disk");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gSM_Checkpoints = new StringMap();
 	gA_Targetnames = new ArrayList(ByteCountToCells(64));
@@ -395,6 +401,13 @@ public void OnPluginStart()
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
+
+	BuildPath(Path_SM, gS_CPData, PLATFORM_MAX_PATH, "data/checkpoints");
+
+	if(!DirExists(gS_CPData))
+	{
+		CreateDirectory(gS_CPData, 511);
+	}
 }
 
 public void OnClientCookiesCached(int client)
@@ -547,6 +560,8 @@ public void OnMapStart()
 	{
 		CreateTimer(gCV_AdvertisementInterval.FloatValue, Timer_Advertisement, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
+
+	FormatEx(gS_MapPath, PLATFORM_MAX_PATH, "%s/%s.cp", gS_CPData, gS_CurrentMap);
 }
 
 public void OnMapEnd()
@@ -1736,6 +1751,184 @@ public Action Command_Save(int client, int args)
 	}
 
 	return Plugin_Handled;
+}
+
+void WriteArrayToFile(File pFile, any[] aVec, int nSize)
+{
+	for(int i = 0; i < nSize; i++)
+	{
+		pFile.WriteInt32(view_as<int>(aVec[i]));
+	}
+}
+
+void WriteCheckpointToFile(File pFile, int client, int nCheckpoint)
+{
+	cp_cache_t aCache;
+	GetCheckpoint(client, nCheckpoint, aCache);
+
+	WriteArrayToFile(pFile, aCache.fPosition, 3);
+	WriteArrayToFile(pFile, aCache.fAngles, 3);
+	WriteArrayToFile(pFile, aCache.fVelocity, 3);
+	WriteArrayToFile(pFile, aCache.fBaseVelocity, 3);
+	pFile.WriteInt32(view_as<int>(aCache.iMoveType));
+	pFile.WriteInt32(view_as<int>(aCache.fGravity));
+	pFile.WriteInt32(view_as<int>(aCache.fSpeed));
+	pFile.WriteInt32(view_as<int>(aCache.fStamina));
+	pFile.WriteInt8(view_as<int>(aCache.bDucked));
+	pFile.WriteInt8(view_as<int>(aCache.bDucking));
+	pFile.WriteInt32(view_as<int>(aCache.fDucktime));
+	pFile.WriteInt32(view_as<int>(aCache.fDuckSpeed));
+	pFile.WriteInt32(view_as<int>(aCache.iFlags));
+	pFile.WriteInt8(view_as<int>(aCache.aSnapshot.bTimerEnabled));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.fCurrentTime));
+	pFile.WriteInt8(view_as<int>(aCache.aSnapshot.bClientPaused));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.iJumps));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.bsStyle));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.iStrafes));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.iTotalMeasures));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.iGoodGains));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.fServerTime));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.iSHSWCombination));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.iTimerTrack));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.iMeasuredJumps));
+	pFile.WriteInt32(view_as<int>(aCache.aSnapshot.iPerfectJumps));
+	pFile.WriteInt8(view_as<int>(aCache.bSegmented));
+	pFile.WriteInt8(view_as<int>(aCache.bPractice));
+	pFile.WriteInt32(view_as<int>(aCache.iGroundEntity));
+
+	int nLength = aCache.aFrames != null ? aCache.aFrames.Length : 0;
+	pFile.WriteInt32(nLength);
+
+	any aData[CELLS_PER_FRAME];
+
+	for(int i = 0; i < nLength; i++)
+	{
+		aCache.aFrames.GetArray(i, aData, CELLS_PER_FRAME);
+		pFile.Write(aData, CELLS_PER_FRAME, 4);
+	}
+}
+
+public Action Command_SaveCPs(int client, int args)
+{
+	if(client == 0)
+	{
+		return Plugin_Handled;
+	}
+
+	if(FileExists(gS_MapPath))
+	{
+		DeleteFile(gS_MapPath);
+	}
+
+	File fFile = OpenFile(gS_MapPath, "wb");
+	fFile.WriteInt32(gA_CheckpointsCache[client].iCheckpoints);
+
+	for(int i = 1; i <= gA_CheckpointsCache[client].iCheckpoints; i++)
+	{
+		WriteCheckpointToFile(fFile, client, i);
+	}
+
+	delete fFile;
+
+	ReplyToCommand(client, "Saved CPs to %s", gS_MapPath);
+
+	return Plugin_Handled;
+}
+
+void ReadArrayFromFile(File pFile, any[] aVec, int nSize)
+{
+	for(int i = 0; i < nSize; i++)
+	{
+		pFile.ReadInt32(aVec[i]);
+	}
+}
+
+void ReadCheckpointFromFile(File pFile, int client, int nCheckpoint)
+{
+	cp_cache_t aCache;
+	ReadArrayFromFile(pFile, aCache.fPosition, 3);
+	ReadArrayFromFile(pFile, aCache.fAngles, 3);
+	ReadArrayFromFile(pFile, aCache.fVelocity, 3);
+	ReadArrayFromFile(pFile, aCache.fBaseVelocity, 3);
+	pFile.ReadInt32(view_as<int>(aCache.iMoveType));
+	pFile.ReadInt32(view_as<int>(aCache.fGravity));
+	pFile.ReadInt32(view_as<int>(aCache.fSpeed));
+	pFile.ReadInt32(view_as<int>(aCache.fStamina));
+	pFile.ReadInt8(aCache.bDucked);
+	pFile.ReadInt8(aCache.bDucking);
+	pFile.ReadInt32(view_as<int>(aCache.fDucktime));
+	pFile.ReadInt32(view_as<int>(aCache.fDuckSpeed));
+	pFile.ReadInt32(aCache.iFlags);
+	pFile.ReadInt8(aCache.aSnapshot.bTimerEnabled);
+	pFile.ReadInt32(view_as<int>(aCache.aSnapshot.fCurrentTime));
+	pFile.ReadInt8(aCache.aSnapshot.bClientPaused);
+	pFile.ReadInt32(aCache.aSnapshot.iJumps);
+	pFile.ReadInt32(aCache.aSnapshot.bsStyle);
+	pFile.ReadInt32(aCache.aSnapshot.iStrafes);
+	pFile.ReadInt32(aCache.aSnapshot.iTotalMeasures);
+	pFile.ReadInt32(aCache.aSnapshot.iGoodGains);
+	pFile.ReadInt32(view_as<int>(aCache.aSnapshot.fServerTime));
+	pFile.ReadInt32(aCache.aSnapshot.iSHSWCombination);
+	pFile.ReadInt32(aCache.aSnapshot.iTimerTrack);
+	pFile.ReadInt32(aCache.aSnapshot.iMeasuredJumps);
+	pFile.ReadInt32(aCache.aSnapshot.iPerfectJumps);
+	pFile.ReadInt8(aCache.bSegmented);
+	pFile.ReadInt8(aCache.bPractice);
+	pFile.ReadInt32(aCache.iGroundEntity);
+
+	aCache.iTargetname = -1;
+	aCache.iClassname = -1;
+	aCache.iSerial = GetClientSerial(client);
+	aCache.aFrames = null;
+
+	int nLength;
+	pFile.ReadInt32(nLength);
+
+	if(nLength > 0)
+	{
+		aCache.aFrames = new ArrayList(CELLS_PER_FRAME, nLength);
+		any aData[CELLS_PER_FRAME];
+
+		for(int i = 0; i < nLength; i++)
+		{
+			pFile.Read(aData, CELLS_PER_FRAME, 4);
+			aCache.aFrames.SetArray(i, aData, CELLS_PER_FRAME);
+		}
+	}
+
+	SetCheckpoint(client, nCheckpoint, aCache);
+}
+
+public Action Command_LoadCPs(int client, int args)
+{
+	if(client == 0)
+	{
+		return Plugin_Handled;
+	}
+
+	if(!FileExists(gS_MapPath))
+	{
+		ReplyToCommand(client, "No CP data saved. Use !savecps");
+
+		return Plugin_Handled;
+	}
+
+	ResetCheckpoints(client);
+
+	File fFile = OpenFile(gS_MapPath, "rb");
+	fFile.ReadInt32(gA_CheckpointsCache[client].iCheckpoints);
+	gA_CheckpointsCache[client].iCurrentCheckpoint = gA_CheckpointsCache[client].iCheckpoints;
+
+	for(int i = 0; i < gA_CheckpointsCache[client].iCheckpoints; i++)
+	{
+		ReadCheckpointFromFile(fFile, client, i + 1);
+	}
+
+	delete fFile;
+
+	ReplyToCommand(client, "Loaded CP data uwu");
+
+	return OpenCheckpointsMenu(client);
 }
 
 public Action Command_Tele(int client, int args)

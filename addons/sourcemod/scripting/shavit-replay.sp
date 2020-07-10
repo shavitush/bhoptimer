@@ -34,7 +34,6 @@
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
 #define REPLAY_FORMAT_SUBVERSION 0x04
-#define CELLS_PER_FRAME 8 // origin[3], angles[2], buttons, flags, movetype
 #define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
 // #define DEBUG
