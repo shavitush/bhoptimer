@@ -1631,29 +1631,29 @@ public int Native_PauseTimer(Handle handler, int numParams)
 	PauseTimer(client);
 }
 
-public int Native_GetTimeOffset(Handle handler, int numParams)
+public any Native_GetTimeOffset(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	int zonetype = GetNativeCell(2);
 	
-	if(zonetype < 1)
+	if(zonetype > 1)
 	{
-		return 0;
+		return ThrowNativeError(32, "ZoneType is out of bounds");
 	}
-	return view_as<int>(gA_Timers[client].fOffset[zonetype]);
+	return gA_Timers[client].fOffset[zonetype];
 }
 
-public int Native_GetTimeOffsetDistance(Handle handler, int numParams)
+public any Native_GetTimeOffsetDistance(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	int zonetype = GetNativeCell(2);
 	
-	if(zonetype < 1)
+	if(zonetype > 1)
 	{
-		return 0;
+		return ThrowNativeError(32, "ZoneType is out of bounds");
 	}
 	
-	return view_as<int>(gA_Timers[client].fOffsetDistance[zonetype]);
+	return gA_Timers[client].fOffsetDistance[zonetype];
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
