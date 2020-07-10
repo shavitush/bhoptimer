@@ -1199,6 +1199,24 @@ native void Shavit_PauseTimer(int client);
 native void Shavit_ResumeTimer(int client, bool teleport = false);
 
 /**
+ * Gets a players time offset given a zone.
+ *
+ * @param client					Client index.
+ * @param teleport					Zone type.
+ * @noreturn
+ */
+native float Shavit_GetTimeOffset(int client, int zonetype);
+
+/**
+ * Gets distance of a players time offset given a zone.
+ *
+ * @param client					Client index.
+ * @param teleport					Zone type.
+ * @noreturn
+ */
+native float Shavit_GetTimeOffsetDistance(int client, int zonetype);
+
+/**
  * Deletes the specified replay file.
  * Replay data will be unloaded if necessary.
  *
@@ -1863,6 +1881,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");
+	MarkNativeAsOptional("Shavit_GetTimeOffset");
+	MarkNativeAsOptional("Shavit_GetTimeOffsetDistance");
 	MarkNativeAsOptional("Shavit_GetTimeForRank");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");

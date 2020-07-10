@@ -61,6 +61,8 @@ enum struct playertimer_t
 	int iLandingTick;
 	bool bOnGround;
 	float fTimescale;
+	float fOffset[2];
+	float fOffsetDistance[2];
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -102,7 +104,6 @@ float gF_PauseAngles[MAXPLAYERS+1][3];
 float gF_PauseVelocity[MAXPLAYERS+1][3];
 
 // used for offsets
-float gF_PreviousOrigin[MAXPLAYERS + 1][2][3];
 float gF_SmallestDist[MAXPLAYERS + 1];
 
 // cookies
@@ -201,6 +202,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetSync", Native_GetSync);
+	CreateNative("Shavit_GetTimeOffset", Native_GetTimeOffset);
+	CreateNative("Shavit_GetTimeOffsetDistance", Native_GetTimeOffsetDistance);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
@@ -1530,14 +1533,17 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	if(gCV_UseOffsets.BoolValue)
 	{
-		float offset = CalculateTickIntervalOffset(client, Zone_End);
-		gA_Timers[client].fTimer -= offset;
+		CalculateTickIntervalOffset(client, Zone_End);
+		gA_Timers[client].fTimer += gA_Timers[client].fOffset[Zone_Start];
+		gA_Timers[client].fTimer -= gA_Timers[client].fOffset[Zone_End];
 		
 		if(gCV_DebugOffsets.BoolValue)
 		{
 			char sOffsetMessage[64];
-			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, offset);
-			Shavit_PrintToChat(client, "%s", sOffsetMessage);
+			char sOffsetDistance[8];
+			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fOffsetDistance[Zone_End]);
+			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fOffset[Zone_End], sOffsetDistance);
+			PrintToConsole(client, "%s", sOffsetMessage);
 		}
 	}
 
@@ -1619,6 +1625,22 @@ public int Native_PauseTimer(Handle handler, int numParams)
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
 
 	PauseTimer(client);
+}
+
+public int Native_GetTimeOffset(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int zonetype = GetNativeCell(2);
+	
+	return view_as<int>(gA_Timers[client].fOffset[zonetype]);
+}
+
+public int Native_GetTimeOffsetDistance(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int zonetype = GetNativeCell(2);
+	
+	return view_as<int>(gA_Timers[client].fOffsetDistance[zonetype]);
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
@@ -1967,6 +1989,10 @@ void StartTimer(int client, int track)
 			gA_Timers[client].iMeasuredJumps = 0;
 			gA_Timers[client].iPerfectJumps = 0;
 			gA_Timers[client].bCanUseAllKeys = false;
+			gA_Timers[client].fOffset[Zone_Start] = 0.0;
+			gA_Timers[client].fOffset[Zone_End] = 0.0;
+			gA_Timers[client].fOffsetDistance[Zone_Start] = 0.0;
+			gA_Timers[client].fOffsetDistance[Zone_End] = 0.0;
 
 			if(gA_Timers[client].fTimescale != -1.0)
 			{
@@ -2109,7 +2135,6 @@ public void OnClientPutInServer(int client)
 	}
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
-	SDKHook(client, SDKHook_PostThink, PostThink);
 
 	int iSteamID = GetSteamAccountID(client);
 
@@ -2793,16 +2818,30 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	
 	if(type == Zone_Start && track == gA_Timers[client].iTrack)
 	{
+		float vel[3];
+		GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
+		
 		if(gCV_UseOffsets.BoolValue)
 		{
-			float offset = CalculateTickIntervalOffset(client, type);
-			gA_Timers[client].fTimer += offset;
+			if(!gCV_NoZAxisSpeed.BoolValue)
+			{
+				if(vel[2] == 0.0)
+				{
+					CalculateTickIntervalOffset(client, type);	
+				}
+			}
+			else
+			{
+				CalculateTickIntervalOffset(client, type);	
+			}
 			
 			if(gCV_DebugOffsets.BoolValue)
 			{
 				char sOffsetMessage[64];
-				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, offset);
-				Shavit_PrintToChat(client, "%s", sOffsetMessage);
+				char sOffsetDistance[8];
+				FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fOffsetDistance[type]);
+				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fOffset[type], sOffsetDistance);
+				PrintToConsole(client, "%s", sOffsetMessage);
 			}
 		}
 	}
@@ -2838,15 +2877,6 @@ public void PreThinkPost(int client)
 
 		gA_Timers[client].iMoveType = mtMoveType;
 	}
-}
-
-public void PostThink(int client)
-{
-	//we need to add height to the players origin since the zones are not on the ground
-	float height = ((IsSource2013(GetEngineVersion()))? 62.0:72.0) / 2;
-	gF_PreviousOrigin[client][1] = gF_PreviousOrigin[client][0];
-	GetEntPropVector(client, Prop_Data, "m_vecAbsOrigin", gF_PreviousOrigin[client][0]);
-	gF_PreviousOrigin[client][0][2] += height; 
 }
 
 public MRESReturn DHook_ProcessMovementPost(Handle hParams)
@@ -2902,12 +2932,26 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	return MRES_Ignored;
 }
 
-// reference: https://github.com/momentum-mod/game/blob/5e2d1995ca7c599907980ee5b5da04d7b5474c61/mp/src/game/server/momentum/mom_timer.cpp#L388
-float CalculateTickIntervalOffset(int client, int zonetype)
+public void GetPrevOrigin(int client, float cur[3], float buffer[3])
 {
+	float vel[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
+	
+	buffer[0] = cur[0] - (vel[0] * GetTickInterval());
+	buffer[1] = cur[1] - (vel[1] * GetTickInterval());
+	buffer[2] = cur[2] - (vel[2] * GetTickInterval());
+}
+
+// reference: https://github.com/momentum-mod/game/blob/5e2d1995ca7c599907980ee5b5da04d7b5474c61/mp/src/game/server/momentum/mom_timer.cpp#L388
+void CalculateTickIntervalOffset(int client, int zonetype)
+{
+	float height = ((IsSource2013(GetEngineVersion()))? 62.0:72.0) / 2;
 	float newPos[3];
 	float tracepoint[3];
+	float localOrigin[3];
 	
+	localOrigin[2] += height;
+	GetEntPropVector(client, Prop_Send, "m_vecOrigin", localOrigin);
 	float maxs[3];
 	float mins[3];
 	float vel[3];
@@ -2915,83 +2959,85 @@ float CalculateTickIntervalOffset(int client, int zonetype)
 	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
 	
+	
+	gF_SmallestDist[client] = 0.0;
+	
 	for (int i = 0; i < 8; i++)
 	{
 		switch (i)
 		{
 			case 0:
 			{
-				AddVectors(gF_PreviousOrigin[client][0], mins, tracepoint);
+				AddVectors(localOrigin, mins, tracepoint);
 			}
 			case 1:
 			{
 				newPos[0] = mins[0];
 				newPos[1] = maxs[1];
 				newPos[2] = mins[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+				AddVectors(localOrigin, newPos, tracepoint);
 			}
 			case 2:
 			{
 				newPos[0] = mins[0];
 				newPos[1] = mins[1];
 				newPos[2] = maxs[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+				AddVectors(localOrigin, newPos, tracepoint);
 			}
 			case 3:
 			{
 				newPos[0] = mins[0];
 				newPos[1] = maxs[1];
 				newPos[2] = maxs[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+				AddVectors(localOrigin, newPos, tracepoint);
 			}
 			case 4:
 			{
 				newPos[0] = maxs[0];
 				newPos[1] = mins[1];
 				newPos[2] = maxs[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+				AddVectors(localOrigin, newPos, tracepoint);
 			}
 			case 5:
 			{
 				newPos[0] = maxs[0];
 				newPos[1] = mins[1];
 				newPos[2] = mins[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+				AddVectors(localOrigin, newPos, tracepoint);
 			}
 			case 6:
 			{
 				newPos[0] = maxs[0];
 				newPos[1] = maxs[1];
 				newPos[2] = mins[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
+				AddVectors(localOrigin, newPos, tracepoint);
 			}
 			case 7:
 			{
-				AddVectors(gF_PreviousOrigin[client][0], maxs, tracepoint);
+				AddVectors(localOrigin, maxs, tracepoint);
 			}
 		}
 		
 		if (zonetype == Zone_Start)
 		{
-			gF_SmallestDist[client] = -1.0;
-			TR_EnumerateEntities(tracepoint, gF_PreviousOrigin[client][1], PARTITION_TRIGGER_EDICTS, RayType_EndPoint,  TREnumTrigger, client);
+			float prevOrigin[3];
+			GetPrevOrigin(client, tracepoint, prevOrigin);
+			TR_EnumerateEntities(tracepoint, prevOrigin, PARTITION_TRIGGER_EDICTS, RayType_EndPoint,  TREnumTrigger, client);
 		}
 		else
 		{
-			gF_SmallestDist[client] = -1.0;
-			TR_EnumerateEntities(gF_PreviousOrigin[client][0], tracepoint, PARTITION_TRIGGER_EDICTS, RayType_EndPoint, TREnumTrigger, client);
+			float prevOrigin[3];
+			GetPrevOrigin(client, tracepoint, prevOrigin);
+			TR_EnumerateEntities(prevOrigin, tracepoint, PARTITION_TRIGGER_EDICTS, RayType_EndPoint, TREnumTrigger, client);
 		}
 	}
 	
 	float offset = gF_SmallestDist[client] / GetVectorLength(vel);
 	
-	// This should never happen under normal circumstances, but you can glitch the offset by getting affected by the jump penalty from zones
-	// We will return 0 if this happens as its an invalid offset.
-	if(FloatAbs(offset) > GetTickInterval())
-	{
-		offset = 0.0;
-	}
-	return FloatAbs(offset);
+	gA_Timers[client].fOffset[zonetype] = offset;
+	gA_Timers[client].fOffsetDistance[zonetype] = gF_SmallestDist[client];
+	
+	gF_SmallestDist[client] = 0.0;
 }
 
 bool TREnumTrigger(int entity, int client) {
@@ -3006,7 +3052,7 @@ bool TREnumTrigger(int entity, int client) {
 	//the entity is a zone
 	if(StrContains(classname, "trigger_multiple") > -1)
 	{
-		TR_ClipCurrentRayToEntity(PARTITION_TRIGGER_EDICTS, entity);
+		TR_ClipCurrentRayToEntity(MASK_ALL, entity);
 		
 		float start[3];
 		TR_GetStartPosition(INVALID_HANDLE, start);
@@ -3016,10 +3062,16 @@ bool TREnumTrigger(int entity, int client) {
 		
 		float distance = GetVectorDistance(start, end);
 		
-		if(gF_SmallestDist[client] > distance)
+		if(gF_SmallestDist[client] <= 0.0)
 		{
 			gF_SmallestDist[client] = distance;
 		}
+		
+		if(distance < gF_SmallestDist[client])
+		{
+			gF_SmallestDist[client] = distance;
+		}
+		
 		return false;
 	}
 	return true;
