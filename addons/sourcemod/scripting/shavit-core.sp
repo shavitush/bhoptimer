@@ -92,6 +92,7 @@ Handle gH_Forwards_OnUserCmdPre = null;
 Handle gH_Forwards_OnTimerIncrement = null;
 Handle gH_Forwards_OnTimerIncrementPost = null;
 Handle gH_Forwards_OnTimescaleChanged = null;
+Handle gH_Forwards_OnTimeOffsetCalculated = null;
 
 StringMap gSM_StyleCommands = null;
 
@@ -257,6 +258,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 	gH_Forwards_OnTimescaleChanged = CreateGlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnTimeOffsetCalculated = CreateGlobalForward("Shavit_OnTimeOffsetCalculated", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	
 	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
@@ -1562,6 +1564,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
+	snapshot.fOffset = gA_Timers[client].fOffset;
+	snapshot.fOffsetDistance = gA_Timers[client].fOffsetDistance;
 	
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -1633,6 +1637,10 @@ public int Native_GetTimeOffset(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	int zonetype = GetNativeCell(2);
 	
+	if(zonetype < 1)
+	{
+		return 0;
+	}
 	return view_as<int>(gA_Timers[client].fOffset[zonetype]);
 }
 
@@ -1640,6 +1648,11 @@ public int Native_GetTimeOffsetDistance(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	int zonetype = GetNativeCell(2);
+	
+	if(zonetype < 1)
+	{
+		return 0;
+	}
 	
 	return view_as<int>(gA_Timers[client].fOffsetDistance[zonetype]);
 }
@@ -1852,7 +1865,8 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-
+	snapshot.fOffset = gA_Timers[client].fOffset;
+	snapshot.fOffsetDistance = gA_Timers[client].fOffsetDistance;
 	return SetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 }
 
@@ -1891,6 +1905,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iSHSWCombination = snapshot.iSHSWCombination;
 	gA_Timers[client].iMeasuredJumps = snapshot.iMeasuredJumps;
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
+	gA_Timers[client].fOffset = snapshot.fOffset;
+	gA_Timers[client].fOffsetDistance = snapshot.fOffsetDistance;
 	
 	return 0;
 }
@@ -2921,6 +2937,8 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	snapshot.fCurrentTime = gA_Timers[client].fTimer;
 	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
+	snapshot.fOffset = gA_Timers[client].fOffset;
+	snapshot.fOffsetDistance = gA_Timers[client].fOffsetDistance;
 	
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
@@ -2952,7 +2970,6 @@ void CalculateTickIntervalOffset(int client, int zonetype)
 	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
 	
-	
 	gF_SmallestDist[client] = 0.0;
 	
 	if (zonetype == Zone_Start)
@@ -2970,6 +2987,12 @@ void CalculateTickIntervalOffset(int client, int zonetype)
 	gA_Timers[client].fOffsetDistance[zonetype] = gF_SmallestDist[client];
 	
 	gF_SmallestDist[client] = 0.0;
+	
+	Call_StartForward(gH_Forwards_OnTimeOffsetCalculated);
+	Call_PushCell(client);
+	Call_PushCell(zonetype);
+	Call_PushCell(offset);
+	Call_Finish();
 }
 
 bool TREnumTrigger(int entity, int client) {
@@ -3020,7 +3043,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
-
+	
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnUserCmdPre);
 	Call_PushCell(client);

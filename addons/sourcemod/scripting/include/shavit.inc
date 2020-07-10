@@ -217,6 +217,8 @@ enum struct timer_snapshot_t
 	int iTimerTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
+	float fOffset[2];
+	float fOffsetDistance[2];
 }
 
 enum struct cp_cache_t
@@ -789,6 +791,16 @@ forward Action Shavit_OnClanTagChangePre(int client, char[] clantag, int clantag
  * @noreturn							
  */
 forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int customtaglength);
+
+/**
+ * Called when a time offset is calculated
+ *
+ * @param client					Client index.
+ * @param customtag					Reference to the custom clan tag buffer.
+ * @param customtaglength			Max length of the customtag buffer.
+ * @noreturn							
+ */
+forward void Shavit_OnTimeOffsetCalculated(int client, int zonetype, float offset);
 
 /**
  * Called before the timer finish message is printed to the users.
