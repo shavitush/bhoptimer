@@ -33,7 +33,7 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-// #define DEBUG
+// #define DEBUG 1
 
 enum struct playertimer_t
 {
@@ -133,8 +133,9 @@ Convar gCV_DefaultStyle = null;
 Convar gCV_NoChatSound = null;
 Convar gCV_SimplerLadders = null;
 Convar gCV_UseOffsets = null;
+#if DEBUG
 Convar gCV_DebugOffsets = null;
-
+#endif
 // cached cvars
 int gI_DefaultStyle = 0;
 bool gB_StyleCookies = true;
@@ -351,7 +352,9 @@ public void OnPluginStart()
 	gCV_NoChatSound = new Convar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
 	gCV_SimplerLadders = new Convar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 	gCV_UseOffsets = new Convar("shavit_core_useoffsets", "1", "Calculates more accurate times by subtracting/adding tick offsets from the time the server uses to register that a player has left or entered a trigger", 0, true, 0.0, true, 1.0);
+	#if DEBUG
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
+	#endif
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
@@ -1539,7 +1542,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 		gA_Timers[client].fTimer += gA_Timers[client].fOffset[Zone_Start];
 		gA_Timers[client].fTimer -= GetTickInterval();
 		gA_Timers[client].fTimer += gA_Timers[client].fOffset[Zone_End];
-		
+		#if DEBUG
 		if(gCV_DebugOffsets.BoolValue)
 		{
 			char sOffsetMessage[64];
@@ -1548,6 +1551,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fOffset[Zone_End], sOffsetDistance);
 			PrintToConsole(client, "%s", sOffsetMessage);
 		}
+		#endif
 	}
 
 	timer_snapshot_t snapshot;
@@ -2852,7 +2856,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 			{
 				CalculateTickIntervalOffset(client, type);	
 			}
-			
+			#if DEBUG
 			if(gCV_DebugOffsets.BoolValue)
 			{
 				char sOffsetMessage[64];
@@ -2861,6 +2865,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fOffset[type], sOffsetDistance);
 				PrintToConsole(client, "%s", sOffsetMessage);
 			}
+			#endif
 		}
 	}
 }
