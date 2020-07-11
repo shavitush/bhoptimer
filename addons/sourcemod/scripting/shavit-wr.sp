@@ -2100,7 +2100,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		gH_SQL.Query(SQL_OnIncrementCompletions_Callback, sQuery, 0, DBPrio_Low);
 		
-		gI_PlayerCompletion[client][style][track] = gI_PlayerCompletion[client][style][track]+ 1;
+		gI_PlayerCompletion[client][style][track]++;
 		
 		if(iOverwrite == 0 && !gA_StyleSettings[style].bUnranked)
 		{
