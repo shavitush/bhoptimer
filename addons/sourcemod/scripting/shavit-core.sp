@@ -33,7 +33,7 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-// #define DEBUG
+#define DEBUG 0
 
 enum struct playertimer_t
 {
@@ -61,6 +61,8 @@ enum struct playertimer_t
 	int iLandingTick;
 	bool bOnGround;
 	float fTimescale;
+	float fTimeOffset[2];
+	float fDistanceOffset[2];
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -90,6 +92,7 @@ Handle gH_Forwards_OnUserCmdPre = null;
 Handle gH_Forwards_OnTimerIncrement = null;
 Handle gH_Forwards_OnTimerIncrementPost = null;
 Handle gH_Forwards_OnTimescaleChanged = null;
+Handle gH_Forwards_OnTimeOffsetCalculated = null;
 
 StringMap gSM_StyleCommands = null;
 
@@ -102,8 +105,8 @@ float gF_PauseAngles[MAXPLAYERS+1][3];
 float gF_PauseVelocity[MAXPLAYERS+1][3];
 
 // used for offsets
-float gF_PreviousOrigin[MAXPLAYERS + 1][2][3];
 float gF_SmallestDist[MAXPLAYERS + 1];
+float gF_Origin[MAXPLAYERS + 1][2][3];
 
 // cookies
 Handle gH_StyleCookie = null;
@@ -130,8 +133,9 @@ Convar gCV_DefaultStyle = null;
 Convar gCV_NoChatSound = null;
 Convar gCV_SimplerLadders = null;
 Convar gCV_UseOffsets = null;
+#if DEBUG
 Convar gCV_DebugOffsets = null;
-
+#endif
 // cached cvars
 int gI_DefaultStyle = 0;
 bool gB_StyleCookies = true;
@@ -201,6 +205,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetSync", Native_GetSync);
+	CreateNative("Shavit_GetTimeOffset", Native_GetTimeOffset);
+	CreateNative("Shavit_GetDistanceOffset", Native_GetTimeOffsetDistance);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
@@ -253,7 +259,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 	gH_Forwards_OnTimescaleChanged = CreateGlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	
+	gH_Forwards_OnTimeOffsetCalculated = CreateGlobalForward("Shavit_OnTimeOffsetCalculated", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
 	
@@ -321,7 +327,7 @@ public void OnPluginStart()
 	// style commands
 	gSM_StyleCommands = new StringMap();
 
-	#if defined DEBUG
+	#if DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
 	#endif
 
@@ -346,7 +352,9 @@ public void OnPluginStart()
 	gCV_NoChatSound = new Convar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
 	gCV_SimplerLadders = new Convar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 	gCV_UseOffsets = new Convar("shavit_core_useoffsets", "1", "Calculates more accurate times by subtracting/adding tick offsets from the time the server uses to register that a player has left or entered a trigger", 0, true, 0.0, true, 1.0);
+	#if DEBUG
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
+	#endif
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
@@ -683,7 +691,7 @@ public Action Command_TogglePause(int client, int args)
 	return Plugin_Handled;
 }
 
-#if defined DEBUG
+#if DEBUG
 public Action Command_FinishTest(int client, int args)
 {
 	Shavit_FinishMap(client, gA_Timers[client].iTrack);
@@ -1530,15 +1538,21 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	if(gCV_UseOffsets.BoolValue)
 	{
-		float offset = CalculateTickIntervalOffset(client, Zone_End);
-		gA_Timers[client].fTimer -= offset;
-		
+		CalculateTickIntervalOffset(client, Zone_End);
+		gA_Timers[client].fTimer += gA_Timers[client].fTimeOffset[Zone_Start];
+		gA_Timers[client].fTimer -= GetTickInterval();
+		gA_Timers[client].fTimer += gA_Timers[client].fTimeOffset[Zone_End];
+
+		#if DEBUG
 		if(gCV_DebugOffsets.BoolValue)
 		{
 			char sOffsetMessage[64];
-			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, offset);
-			Shavit_PrintToChat(client, "%s", sOffsetMessage);
+			char sOffsetDistance[8];
+			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_End]);
+			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_End], sOffsetDistance);
+			PrintToConsole(client, "%s", sOffsetMessage);
 		}
+		#endif
 	}
 
 	timer_snapshot_t snapshot;
@@ -1555,6 +1569,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
+	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
+	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
 	
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -1619,6 +1635,31 @@ public int Native_PauseTimer(Handle handler, int numParams)
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
 
 	PauseTimer(client);
+}
+
+public any Native_GetTimeOffset(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int zonetype = GetNativeCell(2);
+	
+	if(zonetype > 1 || zonetype < 0)
+	{
+		return ThrowNativeError(32, "ZoneType is out of bounds");
+	}
+	return gA_Timers[client].fTimeOffset[zonetype];
+}
+
+public any Native_GetTimeOffsetDistance(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int zonetype = GetNativeCell(2);
+	
+	if(zonetype > 1 || zonetype < 0)
+	{
+		return ThrowNativeError(32, "ZoneType is out of bounds");
+	}
+	
+	return gA_Timers[client].fDistanceOffset[zonetype];
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
@@ -1829,7 +1870,8 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-
+	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
+	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
 	return SetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 }
 
@@ -1868,6 +1910,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iSHSWCombination = snapshot.iSHSWCombination;
 	gA_Timers[client].iMeasuredJumps = snapshot.iMeasuredJumps;
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
+	gA_Timers[client].fTimeOffset = snapshot.fTimeOffset;
+	gA_Timers[client].fDistanceOffset = snapshot.fDistanceOffset;
 	
 	return 0;
 }
@@ -1967,6 +2011,10 @@ void StartTimer(int client, int track)
 			gA_Timers[client].iMeasuredJumps = 0;
 			gA_Timers[client].iPerfectJumps = 0;
 			gA_Timers[client].bCanUseAllKeys = false;
+			gA_Timers[client].fTimeOffset[Zone_Start] = 0.0;
+			gA_Timers[client].fTimeOffset[Zone_End] = 0.0;
+			gA_Timers[client].fDistanceOffset[Zone_Start] = 0.0;
+			gA_Timers[client].fDistanceOffset[Zone_End] = 0.0;
 
 			if(gA_Timers[client].fTimescale != -1.0)
 			{
@@ -2109,7 +2157,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
-	SDKHook(client, SDKHook_PostThink, PostThink);
+	SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
 
 	int iSteamID = GetSteamAccountID(client);
 
@@ -2793,17 +2841,32 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	
 	if(type == Zone_Start && track == gA_Timers[client].iTrack)
 	{
+		float vel[3];
+		GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
+		
 		if(gCV_UseOffsets.BoolValue)
 		{
-			float offset = CalculateTickIntervalOffset(client, type);
-			gA_Timers[client].fTimer += offset;
-			
+			if(!gCV_NoZAxisSpeed.BoolValue)
+			{
+				if(vel[2] == 0.0)
+				{
+					CalculateTickIntervalOffset(client, type);	
+				}
+			}
+			else
+			{
+				CalculateTickIntervalOffset(client, type);	
+			}
+			#if DEBUG
 			if(gCV_DebugOffsets.BoolValue)
 			{
 				char sOffsetMessage[64];
-				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, offset);
-				Shavit_PrintToChat(client, "%s", sOffsetMessage);
+				char sOffsetDistance[8];
+				FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[type]);
+				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[type], sOffsetDistance);
+				PrintToConsole(client, "%s", sOffsetMessage);
 			}
+			#endif
 		}
 	}
 }
@@ -2840,13 +2903,10 @@ public void PreThinkPost(int client)
 	}
 }
 
-public void PostThink(int client)
+public void PostThinkPost(int client)
 {
-	//we need to add height to the players origin since the zones are not on the ground
-	float height = ((IsSource2013(GetEngineVersion()))? 62.0:72.0) / 2;
-	gF_PreviousOrigin[client][1] = gF_PreviousOrigin[client][0];
-	GetEntPropVector(client, Prop_Data, "m_vecAbsOrigin", gF_PreviousOrigin[client][0]);
-	gF_PreviousOrigin[client][0][2] += height; 
+	gF_Origin[client][1] = gF_Origin[client][0];
+	GetEntPropVector(client, Prop_Data, "m_vecOrigin", gF_Origin[client][0]);
 }
 
 public MRESReturn DHook_ProcessMovementPost(Handle hParams)
@@ -2883,6 +2943,8 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	snapshot.fCurrentTime = gA_Timers[client].fTimer;
 	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
+	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
+	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
 	
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
@@ -2903,11 +2965,10 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 }
 
 // reference: https://github.com/momentum-mod/game/blob/5e2d1995ca7c599907980ee5b5da04d7b5474c61/mp/src/game/server/momentum/mom_timer.cpp#L388
-float CalculateTickIntervalOffset(int client, int zonetype)
+void CalculateTickIntervalOffset(int client, int zonetype)
 {
-	float newPos[3];
-	float tracepoint[3];
-	
+	float localOrigin[3];
+	GetEntPropVector(client, Prop_Send, "m_vecOrigin", localOrigin);
 	float maxs[3];
 	float mins[3];
 	float vel[3];
@@ -2915,83 +2976,30 @@ float CalculateTickIntervalOffset(int client, int zonetype)
 	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
 	
-	for (int i = 0; i < 8; i++)
+	gF_SmallestDist[client] = 0.0;
+	
+	if (zonetype == Zone_Start)
 	{
-		switch (i)
-		{
-			case 0:
-			{
-				AddVectors(gF_PreviousOrigin[client][0], mins, tracepoint);
-			}
-			case 1:
-			{
-				newPos[0] = mins[0];
-				newPos[1] = maxs[1];
-				newPos[2] = mins[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
-			}
-			case 2:
-			{
-				newPos[0] = mins[0];
-				newPos[1] = mins[1];
-				newPos[2] = maxs[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
-			}
-			case 3:
-			{
-				newPos[0] = mins[0];
-				newPos[1] = maxs[1];
-				newPos[2] = maxs[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
-			}
-			case 4:
-			{
-				newPos[0] = maxs[0];
-				newPos[1] = mins[1];
-				newPos[2] = maxs[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
-			}
-			case 5:
-			{
-				newPos[0] = maxs[0];
-				newPos[1] = mins[1];
-				newPos[2] = mins[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
-			}
-			case 6:
-			{
-				newPos[0] = maxs[0];
-				newPos[1] = maxs[1];
-				newPos[2] = mins[2];
-				AddVectors(gF_PreviousOrigin[client][0], newPos, tracepoint);
-			}
-			case 7:
-			{
-				AddVectors(gF_PreviousOrigin[client][0], maxs, tracepoint);
-			}
-		}
-		
-		if (zonetype == Zone_Start)
-		{
-			gF_SmallestDist[client] = -1.0;
-			TR_EnumerateEntities(tracepoint, gF_PreviousOrigin[client][1], PARTITION_TRIGGER_EDICTS, RayType_EndPoint,  TREnumTrigger, client);
-		}
-		else
-		{
-			gF_SmallestDist[client] = -1.0;
-			TR_EnumerateEntities(gF_PreviousOrigin[client][0], tracepoint, PARTITION_TRIGGER_EDICTS, RayType_EndPoint, TREnumTrigger, client);
-		}
+		TR_EnumerateEntitiesHull(localOrigin, gF_Origin[client][1], mins, maxs, PARTITION_TRIGGER_EDICTS, TREnumTrigger, client);
+	}
+	else
+	{
+		TR_EnumerateEntitiesHull(gF_Origin[client][0], localOrigin, mins, maxs, PARTITION_TRIGGER_EDICTS, TREnumTrigger, client);
 	}
 	
 	float offset = gF_SmallestDist[client] / GetVectorLength(vel);
 	
-	// This should never happen under normal circumstances, but you can glitch the offset by getting affected by the jump penalty from zones
-	// We will return 0 if this happens as its an invalid offset.
-	if(FloatAbs(offset) > GetTickInterval())
-	{
-		offset = 0.0;
-	}
-	return FloatAbs(offset);
+	gA_Timers[client].fTimeOffset[zonetype] = offset;
+	gA_Timers[client].fDistanceOffset[zonetype] = gF_SmallestDist[client];
+	
+	Call_StartForward(gH_Forwards_OnTimeOffsetCalculated);
+	Call_PushCell(client);
+	Call_PushCell(zonetype);
+	Call_PushCell(offset);
+	Call_PushCell(gF_SmallestDist[client]);
+	Call_Finish();
+	
+	gF_SmallestDist[client] = 0.0;
 }
 
 bool TREnumTrigger(int entity, int client) {
@@ -3006,7 +3014,7 @@ bool TREnumTrigger(int entity, int client) {
 	//the entity is a zone
 	if(StrContains(classname, "trigger_multiple") > -1)
 	{
-		TR_ClipCurrentRayToEntity(PARTITION_TRIGGER_EDICTS, entity);
+		TR_ClipCurrentRayToEntity(MASK_ALL, entity);
 		
 		float start[3];
 		TR_GetStartPosition(INVALID_HANDLE, start);
@@ -3015,11 +3023,8 @@ bool TREnumTrigger(int entity, int client) {
 		TR_GetEndPosition(end);
 		
 		float distance = GetVectorDistance(start, end);
+		gF_SmallestDist[client] = distance;
 		
-		if(gF_SmallestDist[client] > distance)
-		{
-			gF_SmallestDist[client] = distance;
-		}
 		return false;
 	}
 	return true;
@@ -3045,7 +3050,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
-
+	
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnUserCmdPre);
 	Call_PushCell(client);
@@ -3109,7 +3114,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	#if defined DEBUG
+	#if DEBUG
 	static int cycle = 0;
 
 	if(++cycle % 50 == 0)
