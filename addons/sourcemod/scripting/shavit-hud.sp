@@ -45,8 +45,8 @@
 #define HUD2_TIMEDIFFERENCE		(1 << 10)
 #define HUD2_PERFS				(1 << 11)
 
-#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS|HUD_PERFS)
-#define HUD_DEFAULT2			0
+#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
+#define HUD_DEFAULT2			(HUD2_PERFS)
 
 #define MAX_HINT_SIZE 225
 
@@ -126,6 +126,8 @@ Convar gCV_GradientStepSize = null;
 Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_UseHUDFix = null;
+Convar gCV_DefaultHUD = null;
+Convar gCV_DefaultHUD2 = null;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -199,6 +201,38 @@ public void OnPluginStart()
 	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
+
+	char defaultHUD[8];
+	IntToString(HUD_DEFAULT, defaultHUD, 8);
+	gCV_DefaultHUD = new Convar("shavit_hud_default", defaultHUD, "Default HUD settings as a bitflag\n"
+		..."HUD_MASTER				1\n"
+		..."HUD_CENTER				2\n"
+		..."HUD_ZONEHUD				4\n"
+		..."HUD_OBSERVE				8\n"
+		..."HUD_SPECTATORS			16\n"
+		..."HUD_KEYOVERLAY			32\n"
+		..."HUD_HIDEWEAPON			64\n"
+		..."HUD_TOPLEFT				128\n"
+		..."HUD_SYNC					256\n"
+		..."HUD_TIMELEFT				512\n"
+		..."HUD_2DVEL				1024\n"
+		..."HUD_NOSOUNDS				2048\n"
+		..."HUD_NOPRACALERT			4096\n");
+		
+	IntToString(HUD_DEFAULT2, defaultHUD, 8);
+	gCV_DefaultHUD2 = new Convar("shavit_hud2_default", defaultHUD, "Default HUD2 settings as a bitflag\n"
+		..."HUD2_TIME				1\n"
+		..."HUD2_SPEED				2\n"
+		..."HUD2_JUMPS				4\n"
+		..."HUD2_STRAFE				8\n"
+		..."HUD2_SYNC				16\n"
+		..."HUD2_STYLE				32\n"
+		..."HUD2_RANK				64\n"
+		..."HUD2_TRACK				128\n"
+		..."HUD2_SPLITPB				256\n"
+		..."HUD2_MAPTIER				512\n"
+		..."HUD2_TIMEDIFFERENCE		1024\n"
+		..."HUD2_PERFS				2048");
 
 	Convar.AutoExecConfig();
 
@@ -405,10 +439,10 @@ public void OnClientCookiesCached(int client)
 
 	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT, sHUDSettings, 8);
+		gCV_DefaultHUD.GetString(sHUDSettings, 8);
 
 		SetClientCookie(client, gH_HUDCookie, sHUDSettings);
-		gI_HUDSettings[client] = HUD_DEFAULT;
+		gI_HUDSettings[client] = gCV_DefaultHUD.IntValue;
 	}
 
 	else
@@ -420,10 +454,10 @@ public void OnClientCookiesCached(int client)
 
 	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT2, sHUDSettings, 8);
+		gCV_DefaultHUD2.GetString(sHUDSettings, 8);
 
 		SetClientCookie(client, gH_HUDCookieMain, sHUDSettings);
-		gI_HUD2Settings[client] = HUD_DEFAULT2;
+		gI_HUD2Settings[client] = gCV_DefaultHUD2.IntValue;
 	}
 
 	else
@@ -506,7 +540,6 @@ void ToggleHUD(int client, int hud, bool chat)
 			case HUD_HIDEWEAPON: FormatEx(sHUDSetting, 64, "%T", "HudHideWeapon", client);
 			case HUD_TOPLEFT: FormatEx(sHUDSetting, 64, "%T", "HudTopLeft", client);
 			case HUD_SYNC: FormatEx(sHUDSetting, 64, "%T", "HudSync", client);
-			case HUD_PERFS: FormatEx(sHUDSetting, 64, "%T", "HudPerfs", client);
 			case HUD_TIMELEFT: FormatEx(sHUDSetting, 64, "%T", "HudTimeLeft", client);
 			case HUD_2DVEL: FormatEx(sHUDSetting, 64, "%T", "Hud2dVel", client);
 			case HUD_NOSOUNDS: FormatEx(sHUDSetting, 64, "%T", "HudNoRecordSounds", client);
@@ -1724,7 +1757,7 @@ void UpdateKeyHint(int client)
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
-				if(!gA_StyleSettings[style].bAutobhop && (gI_HUDSettings[client] & HUD_PERFS) > 0)
+				if(!gA_StyleSettings[style].bAutobhop && (gI_HUDSettings[client] & HUD2_PERFS) > 0)
 				{	
 					Format(sMessage, 256, "%s\n%T: %.1f", sMessage, "HudPerfs", client, Shavit_GetPerfectJumps(target));
 				}
