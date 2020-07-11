@@ -43,8 +43,9 @@
 #define HUD2_SPLITPB			(1 << 8)
 #define HUD2_MAPTIER			(1 << 9)
 #define HUD2_TIMEDIFFERENCE		(1 << 10)
+#define HUD2_PERFS				(1 << 11)
 
-#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
+#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS|HUD_PERFS)
 #define HUD_DEFAULT2			0
 
 #define MAX_HINT_SIZE 225
@@ -505,6 +506,7 @@ void ToggleHUD(int client, int hud, bool chat)
 			case HUD_HIDEWEAPON: FormatEx(sHUDSetting, 64, "%T", "HudHideWeapon", client);
 			case HUD_TOPLEFT: FormatEx(sHUDSetting, 64, "%T", "HudTopLeft", client);
 			case HUD_SYNC: FormatEx(sHUDSetting, 64, "%T", "HudSync", client);
+			case HUD_PERFS: FormatEx(sHUDSetting, 64, "%T", "HudPerfs", client);
 			case HUD_TIMELEFT: FormatEx(sHUDSetting, 64, "%T", "HudTimeLeft", client);
 			case HUD_2DVEL: FormatEx(sHUDSetting, 64, "%T", "Hud2dVel", client);
 			case HUD_NOSOUNDS: FormatEx(sHUDSetting, 64, "%T", "HudNoRecordSounds", client);
@@ -665,6 +667,10 @@ Action ShowHUDMenu(int client, int item)
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SYNC);
 	FormatEx(sHudItem, 64, "%T", "HudSync", client);
+	menu.AddItem(sInfo, sHudItem);
+	
+	FormatEx(sInfo, 16, "@%d", HUD2_PERFS);
+	FormatEx(sHudItem, 64, "%T", "HudPerfs", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_STYLE);
@@ -1718,7 +1724,7 @@ void UpdateKeyHint(int client)
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
-				if(!gA_StyleSettings[style].bAutobhop)
+				if(!gA_StyleSettings[style].bAutobhop && (gI_HUDSettings[client] & HUD_PERFS) > 0)
 				{	
 					Format(sMessage, 256, "%s\n%T: %.1f", sMessage, "HudPerfs", client, Shavit_GetPerfectJumps(target));
 				}
