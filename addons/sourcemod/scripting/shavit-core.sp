@@ -1537,7 +1537,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	{
 		CalculateTickIntervalOffset(client, Zone_End);
 		gA_Timers[client].fTimer += gA_Timers[client].fOffset[Zone_Start];
-		gA_Timers[client].fTimer -= gA_Timers[client].fOffset[Zone_End];
+		gA_Timers[client].fTimer -= GetTickInterval();
+		gA_Timers[client].fTimer += gA_Timers[client].fOffset[Zone_End];
 		
 		if(gCV_DebugOffsets.BoolValue)
 		{
