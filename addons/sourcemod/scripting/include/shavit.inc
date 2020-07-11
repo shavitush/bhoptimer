@@ -217,8 +217,8 @@ enum struct timer_snapshot_t
 	int iTimerTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
-	float fOffset[2];
-	float fOffsetDistance[2];
+	float fTimeOffset[2];
+	float fDistanceOffset[2];
 }
 
 enum struct cp_cache_t
@@ -796,8 +796,9 @@ forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int custom
  * Called when a time offset is calculated
  *
  * @param client					Client index.
- * @param customtag					Reference to the custom clan tag buffer.
- * @param customtaglength			Max length of the customtag buffer.
+ * @param zonetype					Zone type (Zone_Start or Zone_End).
+ * @param offset					Time offset from the given zone.
+ * @param distance					Distance used in time offset.
  * @noreturn							
  */
 forward void Shavit_OnTimeOffsetCalculated(int client, int zonetype, float offset, float distance);
@@ -1214,19 +1215,19 @@ native void Shavit_ResumeTimer(int client, bool teleport = false);
  * Gets a players time offset given a zone.
  *
  * @param client					Client index.
- * @param teleport					Zone type.
- * @noreturn
+ * @param teleport					Zone type (Zone_Start or Zone_End).
+ * @return							Time offset if any for the given zone type.
  */
 native float Shavit_GetTimeOffset(int client, int zonetype);
 
 /**
- * Gets distance of a players time offset given a zone.
+ * Gets distance of a players distance offset given a zone.
  *
  * @param client					Client index.
- * @param teleport					Zone type.
- * @noreturn
+ * @param teleport					Zone type  (Zone_Start or Zone_End).
+ * @return 							Distance offset if any for the given zone type/
  */
-native float Shavit_GetTimeOffsetDistance(int client, int zonetype);
+native float Shavit_GetDistanceOffset(int client, int zonetype);
 
 /**
  * Deletes the specified replay file.
@@ -1894,7 +1895,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");
 	MarkNativeAsOptional("Shavit_GetTimeOffset");
-	MarkNativeAsOptional("Shavit_GetTimeOffsetDistance");
+	MarkNativeAsOptional("Shavit_GetDistanceOffset");
 	MarkNativeAsOptional("Shavit_GetTimeForRank");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");

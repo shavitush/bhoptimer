@@ -33,7 +33,7 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-// #define DEBUG 1
+#define DEBUG 0
 
 enum struct playertimer_t
 {
@@ -61,8 +61,8 @@ enum struct playertimer_t
 	int iLandingTick;
 	bool bOnGround;
 	float fTimescale;
-	float fOffset[2];
-	float fOffsetDistance[2];
+	float fTimeOffset[2];
+	float fDistanceOffset[2];
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -206,7 +206,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetTimeOffset", Native_GetTimeOffset);
-	CreateNative("Shavit_GetTimeOffsetDistance", Native_GetTimeOffsetDistance);
+	CreateNative("Shavit_GetDistanceOffset", Native_GetTimeOffsetDistance);
 	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
@@ -327,7 +327,7 @@ public void OnPluginStart()
 	// style commands
 	gSM_StyleCommands = new StringMap();
 
-	#if defined DEBUG
+	#if DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
 	#endif
 
@@ -691,7 +691,7 @@ public Action Command_TogglePause(int client, int args)
 	return Plugin_Handled;
 }
 
-#if defined DEBUG
+#if DEBUG
 public Action Command_FinishTest(int client, int args)
 {
 	Shavit_FinishMap(client, gA_Timers[client].iTrack);
@@ -1539,16 +1539,17 @@ public int Native_FinishMap(Handle handler, int numParams)
 	if(gCV_UseOffsets.BoolValue)
 	{
 		CalculateTickIntervalOffset(client, Zone_End);
-		gA_Timers[client].fTimer += gA_Timers[client].fOffset[Zone_Start];
+		gA_Timers[client].fTimer += gA_Timers[client].fTimeOffset[Zone_Start];
 		gA_Timers[client].fTimer -= GetTickInterval();
-		gA_Timers[client].fTimer += gA_Timers[client].fOffset[Zone_End];
+		gA_Timers[client].fTimer += gA_Timers[client].fTimeOffset[Zone_End];
+
 		#if DEBUG
 		if(gCV_DebugOffsets.BoolValue)
 		{
 			char sOffsetMessage[64];
 			char sOffsetDistance[8];
-			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fOffsetDistance[Zone_End]);
-			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fOffset[Zone_End], sOffsetDistance);
+			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_End]);
+			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_End], sOffsetDistance);
 			PrintToConsole(client, "%s", sOffsetMessage);
 		}
 		#endif
@@ -1568,8 +1569,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-	snapshot.fOffset = gA_Timers[client].fOffset;
-	snapshot.fOffsetDistance = gA_Timers[client].fOffsetDistance;
+	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
+	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
 	
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -1641,11 +1642,11 @@ public any Native_GetTimeOffset(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	int zonetype = GetNativeCell(2);
 	
-	if(zonetype > 1)
+	if(zonetype > 1 || zonetype < 0)
 	{
 		return ThrowNativeError(32, "ZoneType is out of bounds");
 	}
-	return gA_Timers[client].fOffset[zonetype];
+	return gA_Timers[client].fTimeOffset[zonetype];
 }
 
 public any Native_GetTimeOffsetDistance(Handle handler, int numParams)
@@ -1653,12 +1654,12 @@ public any Native_GetTimeOffsetDistance(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	int zonetype = GetNativeCell(2);
 	
-	if(zonetype > 1)
+	if(zonetype > 1 || zonetype < 0)
 	{
 		return ThrowNativeError(32, "ZoneType is out of bounds");
 	}
 	
-	return gA_Timers[client].fOffsetDistance[zonetype];
+	return gA_Timers[client].fDistanceOffset[zonetype];
 }
 
 public int Native_ResumeTimer(Handle handler, int numParams)
@@ -1869,8 +1870,8 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-	snapshot.fOffset = gA_Timers[client].fOffset;
-	snapshot.fOffsetDistance = gA_Timers[client].fOffsetDistance;
+	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
+	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
 	return SetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 }
 
@@ -1909,8 +1910,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iSHSWCombination = snapshot.iSHSWCombination;
 	gA_Timers[client].iMeasuredJumps = snapshot.iMeasuredJumps;
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
-	gA_Timers[client].fOffset = snapshot.fOffset;
-	gA_Timers[client].fOffsetDistance = snapshot.fOffsetDistance;
+	gA_Timers[client].fTimeOffset = snapshot.fTimeOffset;
+	gA_Timers[client].fDistanceOffset = snapshot.fDistanceOffset;
 	
 	return 0;
 }
@@ -2010,10 +2011,10 @@ void StartTimer(int client, int track)
 			gA_Timers[client].iMeasuredJumps = 0;
 			gA_Timers[client].iPerfectJumps = 0;
 			gA_Timers[client].bCanUseAllKeys = false;
-			gA_Timers[client].fOffset[Zone_Start] = 0.0;
-			gA_Timers[client].fOffset[Zone_End] = 0.0;
-			gA_Timers[client].fOffsetDistance[Zone_Start] = 0.0;
-			gA_Timers[client].fOffsetDistance[Zone_End] = 0.0;
+			gA_Timers[client].fTimeOffset[Zone_Start] = 0.0;
+			gA_Timers[client].fTimeOffset[Zone_End] = 0.0;
+			gA_Timers[client].fDistanceOffset[Zone_Start] = 0.0;
+			gA_Timers[client].fDistanceOffset[Zone_End] = 0.0;
 
 			if(gA_Timers[client].fTimescale != -1.0)
 			{
@@ -2861,8 +2862,8 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 			{
 				char sOffsetMessage[64];
 				char sOffsetDistance[8];
-				FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fOffsetDistance[type]);
-				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fOffset[type], sOffsetDistance);
+				FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[type]);
+				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[type], sOffsetDistance);
 				PrintToConsole(client, "%s", sOffsetMessage);
 			}
 			#endif
@@ -2942,8 +2943,8 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	snapshot.fCurrentTime = gA_Timers[client].fTimer;
 	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
-	snapshot.fOffset = gA_Timers[client].fOffset;
-	snapshot.fOffsetDistance = gA_Timers[client].fOffsetDistance;
+	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
+	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
 	
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
@@ -2988,8 +2989,8 @@ void CalculateTickIntervalOffset(int client, int zonetype)
 	
 	float offset = gF_SmallestDist[client] / GetVectorLength(vel);
 	
-	gA_Timers[client].fOffset[zonetype] = offset;
-	gA_Timers[client].fOffsetDistance[zonetype] = gF_SmallestDist[client];
+	gA_Timers[client].fTimeOffset[zonetype] = offset;
+	gA_Timers[client].fDistanceOffset[zonetype] = gF_SmallestDist[client];
 	
 	Call_StartForward(gH_Forwards_OnTimeOffsetCalculated);
 	Call_PushCell(client);
@@ -3113,7 +3114,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	#if defined DEBUG
+	#if DEBUG
 	static int cycle = 0;
 
 	if(++cycle % 50 == 0)
