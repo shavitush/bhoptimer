@@ -1112,6 +1112,16 @@ native void Shavit_GetPlayerPB(int client, int style, float &time, int track);
 native float Shavit_GetClientPB(int client, int style, int track);
 
 /**
+ * Retrieves the completions of a player.
+ *
+ * @param client					Client index.
+ * @param style						Style to get the Completions for.
+ * @param track						Timer track.
+ * @return							Number of the player's Completions for given style/track.
+ */
+native int Shavit_GetClientCompletions(int client, int style, int track);
+
+/**
  * Get the amount of records on the current map/style on a track.
  *
  * @param style						Style.
