@@ -1092,6 +1092,12 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 		}
 		
 		file.ReadInt32(gA_FrameCache[style][track].iPreFrames);
+
+		// In case the replay was from when there could still be negative preframes
+		if(gA_FrameCache[style][track].iPreFrames < 0)
+		{
+			gA_FrameCache[style][track].iPreFrames = 0;
+		}
 	}
 
 	int iTemp = 0;
