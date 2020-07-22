@@ -25,12 +25,12 @@
 
 #define BHOPSTATS_VERSION "1.2.0"
 
-enum CheatType(+=1)
+enum CheatType
 {
 	Cheat_HighPerfects = 0,
 	Cheat_Auto,
 	Cheat_JumpSpam
-};
+}
 
 /**
  * Called when the jump key is pressed.
