@@ -93,6 +93,8 @@ Handle gH_Forwards_OnTimerIncrement = null;
 Handle gH_Forwards_OnTimerIncrementPost = null;
 Handle gH_Forwards_OnTimescaleChanged = null;
 Handle gH_Forwards_OnTimeOffsetCalculated = null;
+Handle gH_Forwards_OnProcessMovement = null;
+Handle gH_Forwards_OnProcessMovementPost = null;
 
 StringMap gSM_StyleCommands = null;
 
@@ -260,6 +262,8 @@ public void OnPluginStart()
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 	gH_Forwards_OnTimescaleChanged = CreateGlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnTimeOffsetCalculated = CreateGlobalForward("Shavit_OnTimeOffsetCalculated", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnProcessMovement = CreateGlobalForward("Shavit_OnProcessMovement", ET_Event, Param_Cell);
+	gH_Forwards_OnProcessMovementPost = CreateGlobalForward("Shavit_OnProcessMovementPre", ET_Event, Param_Cell);
 	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
 	
@@ -436,10 +440,15 @@ void LoadDHooks()
 		SetFailState("Failed to get ProcessMovement offset");
 	}
 
-	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
+	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovement);
 	DHookAddParam(processMovement, HookParamType_CBaseEntity);
 	DHookAddParam(processMovement, HookParamType_ObjectPtr);
-	DHookRaw(processMovement, true, IGameMovement);
+	DHookRaw(processMovement, false, IGameMovement);
+
+	Handle processMovementPost = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
+	DHookAddParam(processMovementPost, HookParamType_CBaseEntity);
+	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
+	DHookRaw(processMovementPost, true, IGameMovement);
 
 	delete CreateInterface;
 	delete gamedataConf;
@@ -2909,9 +2918,24 @@ public void PostThinkPost(int client)
 	GetEntPropVector(client, Prop_Data, "m_vecOrigin", gF_Origin[client][0]);
 }
 
+public MRESReturn DHook_ProcessMovement(Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+
+	Call_StartForward(gH_Forwards_OnProcessMovement);
+	Call_PushCell(client);
+	Call_Finish();
+
+	return MRES_Ignored;
+}
+
 public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
+
+	Call_StartForward(gH_Forwards_OnProcessMovementPost);
+	Call_PushCell(client);
+	Call_Finish();
 	
 	float frametime = GetGameFrameTime();
 	
