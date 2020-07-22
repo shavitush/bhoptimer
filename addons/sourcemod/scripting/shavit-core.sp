@@ -63,6 +63,8 @@ enum struct playertimer_t
 	float fTimescale;
 	float fTimeOffset[2];
 	float fDistanceOffset[2];
+	// convert to array for per zone offsets
+	int iZoneIncrement;
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -2001,6 +2003,7 @@ void StartTimer(int client, int track)
 
 		if(result == Plugin_Continue)
 		{
+			gA_Timers[client].iZoneIncrement = 0;
 			gA_Timers[client].bPaused = false;
 			gA_Timers[client].iStrafes = 0;
 			gA_Timers[client].iJumps = 0;
@@ -2847,37 +2850,6 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	{
 		UpdateAiraccelerate(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate));
 	}
-	
-	if(type == Zone_Start && track == gA_Timers[client].iTrack)
-	{
-		float vel[3];
-		GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
-		
-		if(gCV_UseOffsets.BoolValue)
-		{
-			if(!gCV_NoZAxisSpeed.BoolValue)
-			{
-				if(vel[2] == 0.0)
-				{
-					CalculateTickIntervalOffset(client, type);	
-				}
-			}
-			else
-			{
-				CalculateTickIntervalOffset(client, type);	
-			}
-			#if DEBUG
-			if(gCV_DebugOffsets.BoolValue)
-			{
-				char sOffsetMessage[64];
-				char sOffsetDistance[8];
-				FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[type]);
-				FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[type], sOffsetDistance);
-				PrintToConsole(client, "%s", sOffsetMessage);
-			}
-			#endif
-		}
-	}
 }
 
 public void PreThinkPost(int client)
@@ -2916,6 +2888,21 @@ public void PostThinkPost(int client)
 {
 	gF_Origin[client][1] = gF_Origin[client][0];
 	GetEntPropVector(client, Prop_Data, "m_vecOrigin", gF_Origin[client][0]);
+	if(gA_Timers[client].iZoneIncrement == 1 && gCV_UseOffsets.BoolValue)
+	{		
+		CalculateTickIntervalOffset(client, Zone_Start);	
+		
+		#if DEBUG
+		if(gCV_DebugOffsets.BoolValue)
+		{
+			char sOffsetMessage[64];
+			char sOffsetDistance[8];
+			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[type]);
+			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[type], sOffsetDistance);
+			PrintToConsole(client, "%s", sOffsetMessage);
+		}
+		#endif
+	}
 }
 
 public MRESReturn DHook_ProcessMovement(Handle hParams)
@@ -2954,7 +2941,9 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	{
 		time = frametime * view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale);
 	}
-	
+
+	gA_Timers[client].iZoneIncrement++;
+
 	timer_snapshot_t snapshot;
 	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
 	snapshot.bClientPaused = gA_Timers[client].bPaused;
