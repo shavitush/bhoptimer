@@ -110,7 +110,6 @@ ArrayList gA_Frames[STYLE_LIMIT][TRACKS_SIZE];
 float gF_StartTick[STYLE_LIMIT];
 ReplayStatus gRS_ReplayStatus[STYLE_LIMIT];
 framecache_t gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE];
-ArrayList gA_SortedFrames[STYLE_LIMIT][TRACKS_SIZE];
 
 bool gB_ForciblyStopped = false;
 Handle gH_ReplayTimers[STYLE_LIMIT];
@@ -1170,7 +1169,6 @@ bool LoadCurrentReplayFormat(File file, int version, int style, int track)
 	gA_FrameCache[style][track].bNewFormat = true; // not wr-based
 
 	delete file;
-	SortReplayFrames(style, track);
 
 	return true;
 }
@@ -1201,7 +1199,6 @@ bool LoadV2ReplayFormat(File file, int frames, int style, int track)
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
 
 	delete file;
-	SortReplayFrames(style, track);
 
 	return true;
 }
@@ -1238,7 +1235,6 @@ bool LoadOldReplayFormat(File file, int style, int track)
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
 
 	delete file;
-	SortReplayFrames(style, track);
 
 	return true;
 }
@@ -1346,8 +1342,6 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
 	gA_FrameCache[style][track].iPreFrames = timerstartframe - preframes;
-
-	SortReplayFrames(style, track);
 	
 	return true;
 }
@@ -2770,7 +2764,7 @@ float GetReplayLength(int style, int track)
 	{
 		return 0.0;
 	}
-
+	
 	if(gA_FrameCache[style][track].bNewFormat)
 	{
 		return gA_FrameCache[style][track].fTime;
@@ -2793,25 +2787,19 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 
 float GetClosestReplayTime(int client, int style, int track)
 {
-	int iFramesCount = gA_FrameCache[style][track].iFrameCount;
-	int iClosestFrame;
-	float fReplayPos[3];
-	float fClientPos[3];
-	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fClientPos);
-
-	float fMinDist = 100000.0;
-
-	any data[4];
-	int iLength = gA_SortedFrames[style][track].Length;
+	int iLength = gA_Frames[style][track].Length;
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
 
-	// find closest index for X
-	int iClosestSortedIndex = FindClosestIndex(client, fClientPos[0]);
+	int iClosestSortedIndex = gI_PlayerPrerunFrames[client];
+	if(iClosestSortedIndex < 0)
+	{
+		iClosestSortedIndex = 0;
+	}
 
 	int firstFrame = iClosestSortedIndex - 1600;
 	if(firstFrame < 0) 
 	{
-		firstFrame = 0;
+		firstFrame = iClosestSortedIndex;
 	}
 
 	int lastFrame = iClosestSortedIndex + 1600;
@@ -2819,123 +2807,35 @@ float GetClosestReplayTime(int client, int style, int track)
 	{
 		lastFrame = iLength - 1;
 	}
+	
+	float fReplayPos[3];
+	int iClosestFrame;
+	float fMinDist = 1000000.0;
+
+	float fClientPos[3];
+	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fClientPos);
 
 	for(int frame = firstFrame; frame <= lastFrame; frame++)
 	{
-		gA_SortedFrames[style][track].GetArray(frame, data, 4);
+		gA_Frames[style][track].GetArray(frame, fReplayPos, 2);
 
-		fReplayPos[0] = view_as<float>(data[0]);
-		fReplayPos[1] = view_as<float>(data[1]);
-		fReplayPos[2] = view_as<float>(data[2]);
-
-		float dist = GetVectorDistance(fClientPos, fReplayPos, false);
+		float dist = GetVectorDistance(fClientPos, fReplayPos, true);
 		if(dist < fMinDist)
 		{
 			fMinDist = dist;
-			iClosestFrame = view_as<int>(data[3]);
+			iClosestFrame = frame;
 		}
 	}
 
-	if(fMinDist > 1000) 
+	if(fMinDist > 1000000.0) 
 	{
 		return -1.0;
 	}
 
 	else
 	{
-		return float(iClosestFrame - iPreframes) / float(iFramesCount - iPreframes) * GetReplayLength(style, track);
+		return float(iClosestFrame - iPreframes) / float(gA_FrameCache[style][track].iFrameCount - iPreframes) * GetReplayLength(style, track);
 	}
-}
-
-void SortReplayFrames(int style, int track)
-{
-	gA_SortedFrames[style][track] = new ArrayList(4);
-	gA_SortedFrames[style][track].Clear();
-	
-	any replayData[CELLS_PER_FRAME];
-	any sortedData[4];
-	
-	int iPreframes = gA_FrameCache[style][track].iPreFrames;
-	int iSize = gA_Frames[style][track].Length;
-
-	for(int frame = iPreframes; frame < iSize; frame++)
-	{
-		gA_Frames[style][track].GetArray(frame, replayData, CELLS_PER_FRAME);
-		sortedData[0] = view_as<float>(replayData[0]);
-		sortedData[1] = view_as<float>(replayData[1]);
-		sortedData[2] = view_as<float>(replayData[2]);
-		sortedData[3] = frame;
-		
-		gA_SortedFrames[style][track].PushArray(sortedData, 4);
-	}
-	SortADTArray(gA_SortedFrames[style][track], Sort_Ascending, Sort_Float);
-}
-
-int FindClosestIndex(int client, float target)
-{
-	int style = Shavit_GetBhopStyle(client);
-	int track = Shavit_GetClientTrack(client);
-	int length = gA_SortedFrames[style][track].Length;
-
-	float posX[3];
-	float posX_comp[3];
-	any data[CELLS_PER_FRAME];
-	any data_comp[CELLS_PER_FRAME];
-
-	// first frame
-	gA_SortedFrames[style][track].GetArray(0, data, CELLS_PER_FRAME);
-	posX[0] = view_as<float>(data[0]);
-	if(target <= posX[0])
-	{
-		return 0;
-	}
-
-	// last frame
-	gA_SortedFrames[style][track].GetArray(length - 1, data, CELLS_PER_FRAME);
-	posX[0] = view_as<float>(data[0]);
-	if(target >= posX[0])
-	{
-		return length - 1;
-	}
-
-	// search
-	int i = 0, j = length, mid = 0;
-	while(i < j)
-	{
-		mid = (i + j) / 2;
-		gA_SortedFrames[style][track].GetArray(mid, data, CELLS_PER_FRAME);
-		posX[0] = view_as<float>(data[0]);
-
-		if(posX[0] == target)
-		{
-			return mid;
-		}
-
-		if(target < posX[0])
-		{
-			gA_SortedFrames[style][track].GetArray(mid - 1, data_comp, CELLS_PER_FRAME);
-			posX_comp[0] = view_as<float>(data_comp[0]);
-			if(mid > 0 && target > posX_comp[0])
-			{
-				return mid;
-			}
-
-			j = mid;
-		}
-		else 
-		{
-			gA_SortedFrames[style][track].GetArray(mid + 1, data_comp, CELLS_PER_FRAME);
-			posX_comp[0] = view_as<float>(data_comp[0]);
-			if(mid < length - 1 && target < posX_comp[0])
-			{
-				return mid;
-			}
-
-			i = mid + 1;
-		}
-	}
-	
-	return mid;
 }
 
 /*
