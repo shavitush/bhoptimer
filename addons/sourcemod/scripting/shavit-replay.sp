@@ -156,6 +156,7 @@ Convar gCV_PlaybackCanStop = null;
 Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
 Convar gCV_ClearPreRun = null;
+Convar gCV_DynamicTimeSearch = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -296,6 +297,7 @@ public void OnPluginStart()
 	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.0", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
 	gCV_ClearPreRun = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
+	gCV_DynamicTimeSearch = new Convar("shavit_replay_dynamictimedifference_search", "10.0", "Time in seconds to search ahead and behind the players current frame for dynamic time differences\nNote: Higher values will result in worse performance", 0, true, 0.0);
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
@@ -2789,6 +2791,7 @@ float GetClosestReplayTime(int client, int style, int track)
 {
 	int iLength = gA_Frames[style][track].Length;
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
+	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
 
 	int iClosestSortedIndex = gI_PlayerPrerunFrames[client];
 	if(iClosestSortedIndex < 0)
@@ -2796,13 +2799,13 @@ float GetClosestReplayTime(int client, int style, int track)
 		iClosestSortedIndex = 0;
 	}
 
-	int firstFrame = iClosestSortedIndex - 1600;
+	int firstFrame = iClosestSortedIndex - iSearch;
 	if(firstFrame < 0) 
 	{
 		firstFrame = iClosestSortedIndex;
 	}
 
-	int lastFrame = iClosestSortedIndex + 1600;
+	int lastFrame = iClosestSortedIndex + iSearch;
 	if(lastFrame > iLength - 1) 
 	{
 		lastFrame = iLength - 1;
