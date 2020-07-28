@@ -177,6 +177,10 @@
 	{
 		"en"		"Reset checkpoints"
 	}
+	"MiscCheckpointDeleteCurrentCheckpoint"
+	{
+		"en"		"Delete current checkpoint"
+	}
 	"MiscCheckpointPause"
 	{
 		"en"		"Pause"
