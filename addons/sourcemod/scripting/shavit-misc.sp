@@ -2058,7 +2058,6 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		else if(StrEqual(sInfo, "tele"))
 		{
-			PrintToServer("a: %i b: %i b-1: %i c:%i", gA_Checkpoints[param1].Length, gI_CurrentCheckpoint[param1], gI_CurrentCheckpoint[param1]-1, iCurrent);
 			TeleportToCheckpoint(param1, iCurrent, true);
 		}
 
@@ -2078,8 +2077,6 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 				gI_CurrentCheckpoint[param1]--;
 			}
 			
-			PrintToServer("a: %i b: %i b-1: %i", gA_Checkpoints[param1].Length, gI_CurrentCheckpoint[param1], gI_CurrentCheckpoint[param1]-1);
-
 			gA_Checkpoints[param1].Erase(gI_CurrentCheckpoint[param1] - 1);
 		}
 
