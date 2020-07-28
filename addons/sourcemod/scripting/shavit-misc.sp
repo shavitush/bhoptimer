@@ -43,13 +43,6 @@
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
 
-
-enum struct player_cpcache_t
-{
-	int iCheckpoints;
-	int iCurrentCheckpoint;
-}
-
 enum struct persistent_data_t
 {
 	int iSteamID;
@@ -89,9 +82,10 @@ int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
 bool gB_ClosedKZCP[MAXPLAYERS+1];
 
-player_cpcache_t gA_CheckpointsCache[MAXPLAYERS+1];
+ArrayList gA_Checkpoints[MAXPLAYERS+1];
+int gI_CurrentCheckpoint[MAXPLAYERS+1];
+
 int gI_CheckpointsSettings[MAXPLAYERS+1];
-StringMap gSM_Checkpoints = null;
 ArrayList gA_Targetnames = null;
 ArrayList gA_Classnames = null;
 
@@ -249,7 +243,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint.");
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint. Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
-	gSM_Checkpoints = new StringMap();
 	gA_Targetnames = new ArrayList(ByteCountToCells(64));
 	gA_Classnames = new ArrayList(ByteCountToCells(64));
 	gA_PersistentData = new ArrayList(sizeof(persistent_data_t));
@@ -502,7 +495,6 @@ public void OnMapStart()
 		delete aData.aFrames;
 	}
 
-	gSM_Checkpoints.Clear();
 	gA_Targetnames.Clear();
 	gA_Classnames.Clear();
 	gA_PersistentData.Clear();
@@ -1105,7 +1097,14 @@ public void OnClientPutInServer(int client)
 		DHookEntity(gH_GetPlayerMaxSpeed, true, client);
 	}
 
-	ResetCheckpoints(client);
+	if(gA_Checkpoints[client] == null)
+	{
+		gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));	
+	}
+	else 
+	{
+		gA_Checkpoints[client].Clear();
+	}
 
 	gB_SaveStates[client] = false;
 	delete gA_SaveFrames[client];
@@ -1134,6 +1133,7 @@ public void OnClientDisconnect(int client)
 	}
 
 	ResetCheckpoints(client);
+	delete gA_Checkpoints[client];
 
 	gB_SaveStates[client] = false;
 	delete gA_SaveFrames[client];
@@ -1304,25 +1304,12 @@ void RemoveWeapon(any data)
 
 void ResetCheckpoints(int client)
 {
-	int serial = GetClientSerial(client);
-	char key[32];
-
-	for(int i = 0; i < gA_CheckpointsCache[client].iCheckpoints; i++)
+	if(gA_Checkpoints[client])
 	{
-		FormatEx(key, 32, "%d_%d", serial, i);
-		
-		cp_cache_t cpcache;
-		
-		if(gSM_Checkpoints.GetArray(key, cpcache, sizeof(cp_cache_t)))
-		{
-			delete cpcache.aFrames; // free up replay frames if there are any
-		}
-
-		gSM_Checkpoints.Remove(key);
+		gA_Checkpoints[client].Clear();
 	}
 
-	gA_CheckpointsCache[client].iCheckpoints = 0;
-	gA_CheckpointsCache[client].iCurrentCheckpoint = 1;
+	gI_CurrentCheckpoint[client] = 0;
 }
 
 public Action OnTakeDamage(int victim, int attacker)
@@ -1727,8 +1714,8 @@ public Action Command_Save(int client, int args)
 		return Plugin_Handled;
 	}
 
-	bool bOverflow = gA_CheckpointsCache[client].iCheckpoints >= iMaxCPs;
-	int index = gA_CheckpointsCache[client].iCheckpoints + 1;
+	bool bOverflow = gA_Checkpoints[client].Length >= iMaxCPs;
+	int index = gI_CurrentCheckpoint[client];
 
 	if(!bSegmenting)
 	{
@@ -1746,15 +1733,15 @@ public Action Command_Save(int client, int args)
 
 		if(SaveCheckpoint(client, index))
 		{
-			gA_CheckpointsCache[client].iCurrentCheckpoint = ++gA_CheckpointsCache[client].iCheckpoints;
-			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client].iCurrentCheckpoint, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length + 1;
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CurrentCheckpoint[client], gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 		}
 	}
 	
 	else if(SaveCheckpoint(client, index, bOverflow))
 	{
-		gA_CheckpointsCache[client].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[client].iCheckpoints;
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gA_CheckpointsCache[client].iCurrentCheckpoint, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+		gI_CurrentCheckpoint[client] = (bOverflow)? iMaxCPs: gA_Checkpoints[client].Length + 1;
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CurrentCheckpoint[client], gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
 
 	return Plugin_Handled;
@@ -1776,7 +1763,7 @@ public Action Command_Tele(int client, int args)
 		return Plugin_Handled;
 	}
 
-	int index = gA_CheckpointsCache[client].iCurrentCheckpoint;
+	int index = gI_CurrentCheckpoint[client];
 
 	if(args > 0)
 	{
@@ -1820,17 +1807,16 @@ void OpenKZCPMenu(int client)
 
 		return;
 	}
-
 	Menu menu = new Menu(MenuHandler_KZCheckpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
 	menu.SetTitle("%T\n", "MiscCheckpointMenu", client);
 
 	char sDisplay[64];
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_CheckpointsCache[client].iCheckpoints + 1));
-	menu.AddItem("save", sDisplay, (gA_CheckpointsCache[client].iCheckpoints < gCV_MaxCP.IntValue)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1));
+	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	if(gA_CheckpointsCache[client].iCheckpoints > 0)
+	if(gA_Checkpoints[client].Length > 0)
 	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gA_CheckpointsCache[client].iCurrentCheckpoint);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gI_CurrentCheckpoint[client]);
 		menu.AddItem("tele", sDisplay, ITEMDRAW_DEFAULT);
 	}
 
@@ -1865,7 +1851,7 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 			return 0;
 		}
 
-		int iCurrent = gA_CheckpointsCache[param1].iCurrentCheckpoint;
+		int iCurrent = gI_CurrentCheckpoint[param1];
 		int iMaxCPs = GetMaxCPs(param1);
 
 		char sInfo[8];
@@ -1873,10 +1859,10 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 
 		if(StrEqual(sInfo, "save"))
 		{
-			if(gA_CheckpointsCache[param1].iCheckpoints < iMaxCPs &&
-				SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1))
+			if(gA_Checkpoints[param1].Length < iMaxCPs &&
+				SaveCheckpoint(param1, gA_Checkpoints[param1].Length + 1))
 			{
-				gA_CheckpointsCache[param1].iCurrentCheckpoint = ++gA_CheckpointsCache[param1].iCheckpoints;
+				gI_CurrentCheckpoint[param1] = gA_Checkpoints[param1].Length;
 			}
 		}
 
@@ -1889,18 +1875,14 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 		{
 			if(iCurrent > 1)
 			{
-				gA_CheckpointsCache[param1].iCurrentCheckpoint--;
+				gI_CurrentCheckpoint[param1]--;
 			}
 		}
 
 		else if(StrEqual(sInfo, "next"))
 		{
-			cp_cache_t cpcache;
-			
-			if(iCurrent++ < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
-			{
-				gA_CheckpointsCache[param1].iCurrentCheckpoint++;
-			}
+			if(iCurrent++ < gA_Checkpoints[param1].Length - 1)
+				gI_CurrentCheckpoint[param1]++;
 		}
 
 		else if(StrEqual(sInfo, "pause"))
@@ -1962,12 +1944,12 @@ void OpenNormalCPMenu(int client)
 	}
 
 	char sDisplay[64];
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_CheckpointsCache[client].iCheckpoints + 1));
-	menu.AddItem("save", sDisplay, (gA_CheckpointsCache[client].iCheckpoints < gCV_MaxCP.IntValue)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1));
+	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	if(gA_CheckpointsCache[client].iCheckpoints > 0)
+	if(gA_Checkpoints[client].Length > 0)
 	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gA_CheckpointsCache[client].iCurrentCheckpoint);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gI_CurrentCheckpoint[client]);
 		menu.AddItem("tele", sDisplay, ITEMDRAW_DEFAULT);
 	}
 
@@ -1978,16 +1960,18 @@ void OpenNormalCPMenu(int client)
 	}
 
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointPrevious", client);
-	menu.AddItem("prev", sDisplay);
+	menu.AddItem("prev", sDisplay, (gI_CurrentCheckpoint[client] > 1)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	FormatEx(sDisplay, 64, "%T\n ", "MiscCheckpointNext", client);
-	menu.AddItem("next", sDisplay);
+	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[client].Length)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	menu.AddItem("spacer", "", ITEMDRAW_NOTEXT);
 
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrentCheckpoint", client);
+	menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
 	menu.AddItem("reset", sDisplay);
-
 	if(!bSegmented)
 	{
 		char sInfo[16];
@@ -2026,7 +2010,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		menu.GetItem(param2, sInfo, 16);
 
 		int iMaxCPs = GetMaxCPs(param1);
-		int iCurrent = gA_CheckpointsCache[param1].iCurrentCheckpoint;
+		int iCurrent = gI_CurrentCheckpoint[param1];
 
 		Call_StartForward(gH_Forwards_OnCheckpointMenuSelect);
 		Call_PushCell(param1);
@@ -2047,7 +2031,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		if(StrEqual(sInfo, "save"))
 		{
 			bool bSegmenting = CanSegment(param1);
-			bool bOverflow = gA_CheckpointsCache[param1].iCheckpoints >= iMaxCPs;
+			bool bOverflow = gA_Checkpoints[param1].Length >= iMaxCPs;
 
 			if(!bSegmenting)
 			{
@@ -2057,42 +2041,46 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 					return 0;
 				}
 
-				if(SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1))
+				if(SaveCheckpoint(param1, gA_Checkpoints[param1].Length + 1))
 				{
-					gA_CheckpointsCache[param1].iCurrentCheckpoint = ++gA_CheckpointsCache[param1].iCheckpoints;
+					gI_CurrentCheckpoint[param1] = gA_Checkpoints[param1].Length;
 				}
 			}
 			
 			else
 			{
-				if(SaveCheckpoint(param1, gA_CheckpointsCache[param1].iCheckpoints + 1, bOverflow))
+				if(SaveCheckpoint(param1, gA_Checkpoints[param1].Length + 1, bOverflow))
 				{
-					gA_CheckpointsCache[param1].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[param1].iCheckpoints;
+					gI_CurrentCheckpoint[param1] = (bOverflow)? iMaxCPs: gA_Checkpoints[param1].Length;
 				}
 			}
 		}
 
 		else if(StrEqual(sInfo, "tele"))
 		{
+			PrintToServer("a: %i b: %i b-1: %i c:%i", gA_Checkpoints[param1].Length, gI_CurrentCheckpoint[param1], gI_CurrentCheckpoint[param1]-1, iCurrent);
 			TeleportToCheckpoint(param1, iCurrent, true);
 		}
 
 		else if(StrEqual(sInfo, "prev"))
 		{
-			if(iCurrent > 1)
-			{
-				gA_CheckpointsCache[param1].iCurrentCheckpoint--;
-			}
+			gI_CurrentCheckpoint[param1]--;
 		}
 
 		else if(StrEqual(sInfo, "next"))
 		{
-			cp_cache_t cpcache;
-			
-			if(iCurrent++ < iMaxCPs && GetCheckpoint(param1, iCurrent, cpcache))
+			gI_CurrentCheckpoint[param1]++;
+		}
+		else if(StrEqual(sInfo, "del"))
+		{
+			if(gA_Checkpoints[param1].Length == gI_CurrentCheckpoint[param1] - 1)
 			{
-				gA_CheckpointsCache[param1].iCurrentCheckpoint++;
+				gI_CurrentCheckpoint[param1]--;
 			}
+			
+			PrintToServer("a: %i b: %i b-1: %i", gA_Checkpoints[param1].Length, gI_CurrentCheckpoint[param1], gI_CurrentCheckpoint[param1]-1);
+
+			gA_Checkpoints[param1].Erase(gI_CurrentCheckpoint[param1] - 1);
 		}
 
 		else if(StrEqual(sInfo, "reset"))
@@ -2240,18 +2228,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	{
 		return false;
 	}
-
-	char sKey[32];
-	int iSerial = GetClientSerial(client);
-	FormatEx(sKey, 32, "%d_%d", iSerial, index);
-
-	cp_cache_t cpcacheprev;
-
-	if(gSM_Checkpoints.GetArray(sKey, cpcacheprev, sizeof(cp_cache_t)))
-	{
-		delete cpcacheprev.aFrames;
-		gSM_Checkpoints.Remove(sKey);
-	}
+	
+	gI_CurrentCheckpoint[client] = index - 1;
 
 	cp_cache_t cpcache;
 	float temp[3];
@@ -2388,39 +2366,24 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	cpcache.iSerial = GetClientSerial(target);
 	cpcache.bPractice = Shavit_IsPracticeMode(target);
 
+
 	if(overflow)
 	{
 		int iMaxCPs = GetMaxCPs(client);
-		
-		for(int i = 1; i <= iMaxCPs; i++)
+
+		if(gA_Checkpoints[client].Length >= iMaxCPs)
 		{
-			cp_cache_t cpcacheold;
-			FormatEx(sKey, 32, "%d_%d", iSerial, i);
-
-			if(!gSM_Checkpoints.GetArray(sKey, cpcacheold, sizeof(cp_cache_t)))
-			{
-				continue; // ???
-			}
-
-			if(i == 1)
-			{
-				delete cpcacheold.aFrames;
-				gSM_Checkpoints.Remove(sKey);
-
-				continue;
-			}
-
-			gSM_Checkpoints.Remove(sKey);
-			FormatEx(sKey, 32, "%d_%d", iSerial, (i - 1)); // set cp index to one less
-			gSM_Checkpoints.SetArray(sKey, cpcacheold, sizeof(cp_cache_t));
+			gA_Checkpoints[client].Erase(0);
+			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
 		}
 
-		SetCheckpoint(client, iMaxCPs, cpcache);
+		gA_Checkpoints[client].Push(0);
+		gA_Checkpoints[client].SetArray(gI_CurrentCheckpoint[client], cpcache);
 	}
-
-	else
+	else 
 	{
-		SetCheckpoint(client, index, cpcache);
+		gA_Checkpoints[client].Push(0);
+		gA_Checkpoints[client].SetArray(gI_CurrentCheckpoint[client], cpcache);
 	}
 
 	return true;
@@ -2433,20 +2396,28 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
-	cp_cache_t cpcache;
-	
-	if(!GetCheckpoint(client, index, cpcache) || index > gA_CheckpointsCache[client].iCheckpoints)
-	{
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, index, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
-
-		return;
-	}
-
-	else if(Shavit_IsPaused(client))
+	if(Shavit_IsPaused(client))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandNoPause", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 		return;
+	}
+
+	cp_cache_t cpcache;
+
+	// Ghetto yes!
+	if(index - gA_Checkpoints[client].Length >= 1)
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, index, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		return;
+	}
+	else if(index > gA_Checkpoints[client].Length)
+	{
+		gA_Checkpoints[client].GetArray(index - 2, cpcache, sizeof(cp_cache_t));
+	}
+	else 
+	{
+		gA_Checkpoints[client].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
 	}
 
 	timer_snapshot_t snapshot;
@@ -3456,21 +3427,6 @@ void SaveState(int client)
 	gB_SaveStates[client] = true;
 }
 
-bool GetCheckpoint(int client, int index, cp_cache_t cpcache)
-{
-	char sKey[32];
-	FormatEx(sKey, 32, "%d_%d", GetClientSerial(client), index);
-
-	return gSM_Checkpoints.GetArray(sKey, cpcache, sizeof(cp_cache_t));
-}
-
-bool SetCheckpoint(int client, int index, cp_cache_t cpcache)
-{
-	char sKey[32];
-	FormatEx(sKey, 32, "%d_%d", GetClientSerial(client), index);
-
-	return gSM_Checkpoints.SetArray(sKey, cpcache, sizeof(cp_cache_t));
-}
 
 void CopyArray(const any[] from, any[] to, int size)
 {
@@ -3501,7 +3457,7 @@ public any Native_GetCheckpoint(Handle plugin, int numParams)
 	int index = GetNativeCell(2);
 
 	cp_cache_t cpcache;
-	if(GetCheckpoint(client, index, cpcache))
+	if(gA_Checkpoints[client].GetArray(index, cpcache, sizeof(cp_cache_t)))
 	{
 		SetNativeArray(3, cpcache, sizeof(cp_cache_t));
 		return true;
@@ -3525,16 +3481,17 @@ public any Native_SetCheckpoint(Handle plugin, int numParams)
 
 	if(position == -1)
 	{
-		position = gA_CheckpointsCache[client].iCurrentCheckpoint;
+		position = gI_CurrentCheckpoint[client];
 	}
 
-	if(SetCheckpoint(client, position, cpcache))
+	if(position >= gA_Checkpoints[client].Length)
 	{
-		gA_CheckpointsCache[client].iCurrentCheckpoint = ++gA_CheckpointsCache[client].iCheckpoints;
-		return true;
+		position = gA_Checkpoints[client].Length - 1;
 	}
+
+	gA_Checkpoints[client].SetArray(position, cpcache, sizeof(cp_cache_t));
 	
-	return false;
+	return true;
 }
 
 public any Native_ClearCheckpoints(Handle plugin, int numParams)
@@ -3555,12 +3512,12 @@ public any Native_TeleportToCheckpoint(Handle plugin, int numParams)
 
 public any Native_GetTotalCheckpoints(Handle plugin, int numParams)
 {
-	return gA_CheckpointsCache[GetNativeCell(1)].iCheckpoints;
+	return gA_Checkpoints[GetNativeCell(1)].Length;
 }
 
 public any Native_GetCurrentCheckpoint(Handle plugin, int numParams)
 {
-	return gA_CheckpointsCache[GetNativeCell(1)].iCurrentCheckpoint;
+	return gI_CurrentCheckpoint[GetNativeCell(1)];
 }
 
 public any Native_SetCurrentCheckpoint(Handle plugin, int numParams)
@@ -3568,7 +3525,7 @@ public any Native_SetCurrentCheckpoint(Handle plugin, int numParams)
 	int client = GetNativeCell(1);
 	int index = GetNativeCell(2);
 	
-	gA_CheckpointsCache[client].iCurrentCheckpoint = index;
+	gI_CurrentCheckpoint[client] = index;
 	return 0;
 }
 
@@ -3584,7 +3541,7 @@ public any Native_SaveCheckpoint(Handle plugin, int numParams)
 	int iMaxCPs = GetMaxCPs(client);
 
 	bool bSegmenting = CanSegment(client);
-	bool bOverflow = gA_CheckpointsCache[client].iCheckpoints >= iMaxCPs;
+	bool bOverflow = gA_Checkpoints[client].Length >= iMaxCPs;
 
 	if(!bSegmenting)
 	{
@@ -3594,19 +3551,19 @@ public any Native_SaveCheckpoint(Handle plugin, int numParams)
 			return -1;
 		}
 
-		if(SaveCheckpoint(client, gA_CheckpointsCache[client].iCheckpoints + 1))
+		if(SaveCheckpoint(client, gA_Checkpoints[client].Length + 1))
 		{
-			gA_CheckpointsCache[client].iCurrentCheckpoint = ++gA_CheckpointsCache[client].iCheckpoints;
+			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
 		}
 	}
 	
 	else
 	{
-		if(SaveCheckpoint(client, gA_CheckpointsCache[client].iCheckpoints + 1, bOverflow))
+		if(SaveCheckpoint(client, gA_Checkpoints[client].Length + 1, bOverflow))
 		{
-			gA_CheckpointsCache[client].iCurrentCheckpoint = (bOverflow)? iMaxCPs:++gA_CheckpointsCache[client].iCheckpoints;
+			gI_CurrentCheckpoint[client] = (bOverflow)? iMaxCPs:gA_Checkpoints[client].Length;
 		}
 	}
 
-	return gA_CheckpointsCache[client].iCurrentCheckpoint;
+	return gI_CurrentCheckpoint[client];
 }
