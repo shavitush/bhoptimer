@@ -1967,7 +1967,7 @@ void OpenNormalCPMenu(int client)
 
 	menu.AddItem("spacer", "", ITEMDRAW_NOTEXT);
 
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrentCheckpoint", client);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
 	menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
