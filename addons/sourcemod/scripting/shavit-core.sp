@@ -1560,7 +1560,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 			char sOffsetMessage[64];
 			char sOffsetDistance[8];
 			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_End]);
-			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_End], sOffsetDistance);
+			FormatEx(sOffsetMessage, 64, "[END]%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_End], sOffsetDistance);
 			PrintToConsole(client, "%s", sOffsetMessage);
 		}
 		#endif
@@ -2910,8 +2910,8 @@ public void PostThinkPost(int client)
 		{
 			char sOffsetMessage[64];
 			char sOffsetDistance[8];
-			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[type]);
-			FormatEx(sOffsetMessage, 64, "%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[type], sOffsetDistance);
+			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_Start]);
+			FormatEx(sOffsetMessage, 64, "[START]%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_Start], sOffsetDistance);
 			PrintToConsole(client, "%s", sOffsetMessage);
 		}
 		#endif
@@ -3013,7 +3013,13 @@ void CalculateTickIntervalOffset(int client, int zonetype)
 		TR_EnumerateEntitiesHull(gF_Origin[client][0], localOrigin, mins, maxs, PARTITION_TRIGGER_EDICTS, TREnumTrigger, client);
 	}
 
-	float offset = gF_SmallestDist[client] / GetVectorLength(vel);
+	float speed = GetVectorLength(vel);
+	float offset = 0.0;
+	if(speed != 0.0)
+	{
+		offset = gF_SmallestDist[client] / speed;
+	}
+
 
 	gA_Timers[client].fTimeOffset[zonetype] = offset;
 	gA_Timers[client].fDistanceOffset[zonetype] = gF_SmallestDist[client];
