@@ -126,6 +126,7 @@ float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
 int gI_EntityZone[4096];
 bool gB_ZonesCreated = false;
+int gI_StageZoneID;
 
 char gS_BeamSprite[PLATFORM_MAX_PATH];
 int gI_BeamSprite = -1;
@@ -181,6 +182,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// zone natives
 	CreateNative("Shavit_GetZoneData", Native_GetZoneData);
 	CreateNative("Shavit_GetZoneFlags", Native_GetZoneFlags);
+	CreateNative("Shavit_GetStageZone", Native_GetStageZone);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
 	CreateNative("Shavit_InsideZoneGetID", Native_InsideZoneGetID);
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
@@ -485,6 +487,50 @@ public int Native_InsideZoneGetID(Handle handler, int numParams)
 	}
 
 	return false;
+}
+
+public int Native_GetStageZone(Handle handler, int numParams)
+{
+	int iStageNumber = GetNativeCell(1);
+	
+	char sMap[160];
+	GetCurrentMap(sMap, 160);
+	
+	char sQuery[256];
+	FormatEx(sQuery, 256, "SELECT id FROM mapzones WHERE type = %i and data = %i and map = '%s'", Zone_Stage , iStageNumber, sMap);
+	PrintToChatAll("%s", sQuery);
+	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
+	
+	if(!(gI_StageZoneID == -1))
+	{
+		return gI_StageZoneID;	
+	} 
+	else
+	{
+		return ThrowNativeError(32, "Could not find Zone ID for stage! Make sure that there aren't multiple zones for one stage.");
+	}
+}
+
+public void SQL_GetStageZone_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		gI_StageZoneID = -1;
+		LogError("Timer (zones GetStageZone) SQL query failed. Reason: %s", error);
+		return;
+	}
+	
+	if(!(results.RowCount > 1))
+	{
+		while(results.FetchRow())
+		{
+			gI_StageZoneID = results.FetchInt(0);
+		}
+	} 
+	else
+	{
+		gI_StageZoneID = -1;
+	}
 }
 
 public int Native_Zones_DeleteMap(Handle handler, int numParams)
