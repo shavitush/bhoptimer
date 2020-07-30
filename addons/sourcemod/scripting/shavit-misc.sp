@@ -1733,14 +1733,14 @@ public Action Command_Save(int client, int args)
 
 		if(SaveCheckpoint(client, index))
 		{
-			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length + 1;
+			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
 			Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CurrentCheckpoint[client], gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 		}
 	}
 	
 	else if(SaveCheckpoint(client, index, bOverflow))
 	{
-		gI_CurrentCheckpoint[client] = (bOverflow)? iMaxCPs: gA_Checkpoints[client].Length + 1;
+		gI_CurrentCheckpoint[client] = (bOverflow)? iMaxCPs: gA_Checkpoints[client].Length;
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CurrentCheckpoint[client], gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
 
@@ -1860,7 +1860,7 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 		if(StrEqual(sInfo, "save"))
 		{
 			if(gA_Checkpoints[param1].Length < iMaxCPs &&
-				SaveCheckpoint(param1, gA_Checkpoints[param1].Length + 1))
+				SaveCheckpoint(param1, gA_Checkpoints[param1].Length))
 			{
 				gI_CurrentCheckpoint[param1] = gA_Checkpoints[param1].Length;
 			}
@@ -2041,7 +2041,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 					return 0;
 				}
 
-				if(SaveCheckpoint(param1, gA_Checkpoints[param1].Length + 1))
+				if(SaveCheckpoint(param1, gA_Checkpoints[param1].Length))
 				{
 					gI_CurrentCheckpoint[param1] = gA_Checkpoints[param1].Length;
 				}
@@ -2049,7 +2049,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			
 			else
 			{
-				if(SaveCheckpoint(param1, gA_Checkpoints[param1].Length + 1, bOverflow))
+				if(SaveCheckpoint(param1, gA_Checkpoints[param1].Length, bOverflow))
 				{
 					gI_CurrentCheckpoint[param1] = (bOverflow)? iMaxCPs: gA_Checkpoints[param1].Length;
 				}
@@ -2072,14 +2072,12 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		}
 		else if(StrEqual(sInfo, "del"))
 		{
-			if(gA_Checkpoints[param1].Length == gI_CurrentCheckpoint[param1] - 1)
+			gA_Checkpoints[param1].Erase(gI_CurrentCheckpoint[param1] - 1);
+			if(gI_CurrentCheckpoint[param1] > gA_Checkpoints[param1].Length)
 			{
 				gI_CurrentCheckpoint[param1]--;
 			}
-			
-			gA_Checkpoints[param1].Erase(gI_CurrentCheckpoint[param1] - 1);
 		}
-
 		else if(StrEqual(sInfo, "reset"))
 		{
 			ConfirmCheckpointsDeleteMenu(param1);
@@ -2225,8 +2223,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	{
 		return false;
 	}
-	
-	gI_CurrentCheckpoint[client] = index - 1;
+
+	gI_CurrentCheckpoint[client] = index;
 
 	cp_cache_t cpcache;
 	float temp[3];
@@ -2380,7 +2378,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	else 
 	{
 		gA_Checkpoints[client].Push(0);
-		gA_Checkpoints[client].SetArray(gI_CurrentCheckpoint[client], cpcache);
+		gA_Checkpoints[client].SetArray(index, cpcache);
 	}
 
 	return true;
@@ -2402,20 +2400,13 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	cp_cache_t cpcache;
 
-	// Ghetto yes!
-	if(index - gA_Checkpoints[client].Length >= 1)
+	if(index > gA_Checkpoints[client].Length)
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, index, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return;
 	}
-	else if(index > gA_Checkpoints[client].Length)
-	{
-		gA_Checkpoints[client].GetArray(index - 2, cpcache, sizeof(cp_cache_t));
-	}
-	else 
-	{
-		gA_Checkpoints[client].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
-	}
+
+	gA_Checkpoints[client].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
 
 	timer_snapshot_t snapshot;
 	CopyArray(cpcache.aSnapshot, snapshot, sizeof(timer_snapshot_t));
@@ -3550,7 +3541,7 @@ public any Native_SaveCheckpoint(Handle plugin, int numParams)
 
 		if(SaveCheckpoint(client, gA_Checkpoints[client].Length + 1))
 		{
-			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
+			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length + 1;
 		}
 	}
 	
@@ -3558,7 +3549,7 @@ public any Native_SaveCheckpoint(Handle plugin, int numParams)
 	{
 		if(SaveCheckpoint(client, gA_Checkpoints[client].Length + 1, bOverflow))
 		{
-			gI_CurrentCheckpoint[client] = (bOverflow)? iMaxCPs:gA_Checkpoints[client].Length;
+			gI_CurrentCheckpoint[client] = (bOverflow)? iMaxCPs:gA_Checkpoints[client].Length + 1;
 		}
 	}
 
