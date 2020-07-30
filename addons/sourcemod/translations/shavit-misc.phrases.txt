@@ -177,7 +177,7 @@
 	{
 		"en"		"Reset checkpoints"
 	}
-	"MiscCheckpointDeleteCurrentCheckpoint"
+	"MiscCheckpointDeleteCurrent"
 	{
 		"en"		"Delete current checkpoint"
 	}
