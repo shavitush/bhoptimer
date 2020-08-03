@@ -2769,6 +2769,7 @@ float GetReplayLength(int style, int track)
 	
 	if(gA_FrameCache[style][track].bNewFormat)
 	{
+		// PrintToConsoleAll("ftime: %f", gA_FrameCache[style][track].fTime);
 		return gA_FrameCache[style][track].fTime;
 	}
 
@@ -2792,33 +2793,30 @@ float GetClosestReplayTime(int client, int style, int track)
 	int iLength = gA_Frames[style][track].Length;
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
+	int iPlayerFrames = gA_PlayerFrames[client].Length;
 
-	int iClosestSortedIndex = gI_PlayerPrerunFrames[client];
-	if(iClosestSortedIndex < 0)
+	int iStartFrame = iPlayerFrames - iSearch;
+	if(iStartFrame < 0)
 	{
-		iClosestSortedIndex = 0;
-	}
-
-	int firstFrame = iClosestSortedIndex - iSearch;
-	if(firstFrame < 0) 
-	{
-		firstFrame = iClosestSortedIndex;
-	}
-
-	int lastFrame = iClosestSortedIndex + iSearch;
-	if(lastFrame > iLength - 1) 
-	{
-		lastFrame = iLength - 1;
+		iStartFrame = 0;
 	}
 	
+	int iEndFrame = iPlayerFrames + iSearch;
+	if(iEndFrame >= iLength)
+	{
+		iEndFrame = iLength - 1;
+	}
+
+
 	float fReplayPos[3];
 	int iClosestFrame;
-	float fMinDist = 1000000.0;
+	// Single.MaxValue
+	float fMinDist = view_as<float>(0x7f7fffff);
 
 	float fClientPos[3];
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fClientPos);
 
-	for(int frame = firstFrame; frame <= lastFrame; frame++)
+	for(int frame = iStartFrame; frame < iEndFrame; frame++)
 	{
 		gA_Frames[style][track].GetArray(frame, fReplayPos, 2);
 
@@ -2830,15 +2828,20 @@ float GetClosestReplayTime(int client, int style, int track)
 		}
 	}
 
-	if(fMinDist > 1000000.0) 
+	// out of bounds
+	if(iClosestFrame == 0)
 	{
 		return -1.0;
 	}
-
-	else
+	
+	// inside start zone
+	if(iClosestFrame < iPreframes)
 	{
-		return float(iClosestFrame - iPreframes) / float(gA_FrameCache[style][track].iFrameCount - iPreframes) * GetReplayLength(style, track);
+		return 0.0;
 	}
+	
+	float frametime = GetReplayLength(style, track) / float(gA_FrameCache[style][track].iFrameCount - iPreframes);
+	return (iClosestFrame - iPreframes)  * frametime;
 }
 
 /*
