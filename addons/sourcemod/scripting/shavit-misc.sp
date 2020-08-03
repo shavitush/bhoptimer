@@ -154,7 +154,7 @@ Handle gH_Forwards_OnClanTagChangePre = null;
 Handle gH_Forwards_OnClanTagChangePost = null;
 Handle gH_Forwards_OnSave = null;
 Handle gH_Forwards_OnTeleport = null;
-Handle gH_Forwards_OnCheckpointDeleted = null;
+Handle gH_Forwards_OnDelete = null;
 Handle gH_Forwards_OnCheckpointMenuMade = null;
 Handle gH_Forwards_OnCheckpointMenuSelect = null;
 
@@ -208,7 +208,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuMade = CreateGlobalForward("Shavit_OnCheckpointMenuMade", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnCheckpointDeleted = CreateGlobalForward("Shavit_OnCheckpointDeleted", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnDelete = CreateGlobalForward("Shavit_OnDelete", ET_Event, Param_Cell, Param_Cell);
 
 	// cache
 	gEV_Type = GetEngineVersion();
@@ -2074,16 +2074,12 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		}
 		else if(StrEqual(sInfo, "del"))
 		{
-			gA_Checkpoints[param1].Erase(gI_CurrentCheckpoint[param1] - 1);
-
-			Call_StartForward(gH_Forwards_OnCheckpointDeleted);
-			Call_PushCell(param1);
-			Call_PushCell(gI_CurrentCheckpoint[param1] - 1);
-			Call_Finish();
-			
-			if(gI_CurrentCheckpoint[param1] > gA_Checkpoints[param1].Length)
-			{
-				gI_CurrentCheckpoint[param1]--;
+			if(DeleteCheckpoint(param1, gI_CurrentCheckpoint[param1] - 1))
+			{				
+				if(gI_CurrentCheckpoint[param1] > gA_Checkpoints[param1].Length)
+				{
+					gI_CurrentCheckpoint[param1]--;
+				}
 			}
 		}
 		else if(StrEqual(sInfo, "reset"))
@@ -2562,6 +2558,25 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, index, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
+}
+
+bool DeleteCheckpoint(int client, int index)
+{
+	Action result = Plugin_Continue;
+
+	Call_StartForward(gH_Forwards_OnDelete);
+	Call_PushCell(client);
+	Call_PushCell(index);
+	Call_Finish(result);
+
+	if(result != Plugin_Continue)
+	{
+		return false;
+	}
+
+	gA_Checkpoints[client].Erase(index);
+
+	return true;
 }
 
 bool ShouldDisplayStopWarning(int client)

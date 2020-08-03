@@ -673,6 +673,15 @@ forward Action Shavit_OnTeleport(int client, int index);
 forward Action Shavit_OnSave(int client, int index, bool overflow);
 
 /**
+ * Called when a player deletes a checkpoint.
+ *
+ * @param client					Client index.
+ * @param index						Checkpoint that will be deleted.
+ * @return							Plugin_Continue to continue deletion, anything else to prevent.
+ */
+forward Action Shavit_OnDelete(int client, int index);
+
+/**
  * Called when a player enters a zone.
  *
  * @param client					Client index.
