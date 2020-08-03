@@ -2444,7 +2444,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnTeleport);
 	Call_PushCell(client);
-	Call_PushCell(index);
+	Call_PushCell(index - 1);
 	Call_Finish(result);
 	
 	if(result != Plugin_Continue)
