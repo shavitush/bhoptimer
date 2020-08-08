@@ -1102,15 +1102,9 @@ public void OnClientPutInServer(int client)
 		DHookEntity(gH_GetPlayerMaxSpeed, true, client);
 	}
 
-	if(gA_Checkpoints[client] == null)
-	{
-		gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));	
-	}
-	else 
-	{
-		gA_Checkpoints[client].Clear();
-	}
-
+	delete gA_Checkpoints[client];
+	gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));	
+	
 	gB_SaveStates[client] = false;
 	delete gA_SaveFrames[client];
 
@@ -1296,6 +1290,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	{
 		delete gA_Checkpoints[client];
 		gA_Checkpoints[client] = aData.aCheckpoints.Clone();
+		OpenCheckpointsMenu(client);
 	}
 
 	Shavit_SetPracticeMode(client, aData.bPractice, false);
@@ -2543,9 +2538,11 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache.bSegmented)? ang:NULL_VECTOR,
 		vel);
 
-	// can someone fix this? after loading the persistentdata it will set the player in practice mode
-	// because it triggers this statement ---> GetClientSerial(client) != cpcache.iSerial
-	// 																								---- deadwinter
+	if(CanSegment(client))
+	{
+		Shavit_SetPracticeMode(client, false, true);
+	}
+	else
 	if(cpcache.bPractice || !cpcache.bSegmented || GetClientSerial(client) != cpcache.iSerial)
 	{
 		Shavit_SetPracticeMode(client, true, true);
