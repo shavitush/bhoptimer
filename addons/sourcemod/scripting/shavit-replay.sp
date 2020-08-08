@@ -1393,7 +1393,7 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	if(!IsFakeClient(client))
+	if(!IsFakeClient(client) && !Shavit_ClientHasPersistentData(client))
 	{
 		delete gA_PlayerFrames[client];
 		gA_PlayerFrames[client] = new ArrayList(CELLS_PER_FRAME);
@@ -1671,31 +1671,36 @@ public void DeleteFrames(int client)
 
 public Action Shavit_OnStart(int client)
 {	
-	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale);
-	if(gI_PlayerPrerunFrames[client] < 0)
+	if(gA_PlayerFrames[client])
 	{
-		gI_PlayerPrerunFrames[client] = 0;
-	}
-	gI_PlayerTimerStartFrames[client] = gA_PlayerFrames[client].Length;
-
-	if(!gB_ClearFrame[client])
-	{
-		if(!gCV_ClearPreRun.BoolValue)
+		gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale);
+		
+		if(gI_PlayerPrerunFrames[client] < 0)
 		{
-			ClearFrames(client);
+			gI_PlayerPrerunFrames[client] = 0;
 		}
-		gB_ClearFrame[client] = true;
-	}
 
-	else 
-	{
-		if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+		gI_PlayerTimerStartFrames[client] = gA_PlayerFrames[client].Length;
+	
+
+		if(!gB_ClearFrame[client])
 		{
-			gA_PlayerFrames[client].Erase(0);
-			gI_PlayerFrames[client]--;
+			if(!gCV_ClearPreRun.BoolValue)
+			{
+				ClearFrames(client);
+			}
+			gB_ClearFrame[client] = true;
+		}
+
+		else 
+		{
+			if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+			{
+				gA_PlayerFrames[client].Erase(0);
+				gI_PlayerFrames[client]--;
+			}
 		}
 	}
-
 	return Plugin_Continue;
 }
 
@@ -1991,7 +1996,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if(ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
+	else if(ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running && gA_PlayerFrames[client])
 	{
 		if((gI_PlayerFrames[client] / gF_Tickrate) > gCV_TimeLimit.FloatValue)
 		{
@@ -2520,6 +2525,13 @@ void OpenReplaySubMenu(int client, int track, int item = 0)
 		menu.AddItem("stop", sDisplay, (gA_CentralCache.iReplayStatus != Replay_Idle)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
+	if(CheckCommandAccess(client, "sm_deletereplays", ADMFLAG_RCON))
+	{
+		char sDisplay[64];
+		Format(sDisplay, 64, "Control current bot");
+		menu.AddItem("control", sDisplay, (gA_CentralCache.iReplayStatus != Replay_Idle)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	}
+
 	int[] styles = new int[gI_Styles];
 	Shavit_GetOrderedStyles(styles, gI_Styles);
 
@@ -2769,7 +2781,6 @@ float GetReplayLength(int style, int track)
 	
 	if(gA_FrameCache[style][track].bNewFormat)
 	{
-		// PrintToConsoleAll("ftime: %f", gA_FrameCache[style][track].fTime);
 		return gA_FrameCache[style][track].fTime;
 	}
 
@@ -2793,30 +2804,33 @@ float GetClosestReplayTime(int client, int style, int track)
 	int iLength = gA_Frames[style][track].Length;
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
-	int iPlayerFrames = gA_PlayerFrames[client].Length;
 
-	int iStartFrame = iPlayerFrames - iSearch;
-	if(iStartFrame < 0)
+	int iClosestSortedIndex = gI_PlayerPrerunFrames[client];
+	if(iClosestSortedIndex < 0)
 	{
-		iStartFrame = 0;
+		iClosestSortedIndex = 0;
+	}
+
+	int firstFrame = iClosestSortedIndex - iSearch;
+	if(firstFrame < 0) 
+	{
+		firstFrame = iClosestSortedIndex;
+	}
+
+	int lastFrame = iClosestSortedIndex + iSearch;
+	if(lastFrame > iLength - 1) 
+	{
+		lastFrame = iLength - 1;
 	}
 	
-	int iEndFrame = iPlayerFrames + iSearch;
-	if(iEndFrame >= iLength)
-	{
-		iEndFrame = iLength - 1;
-	}
-
-
 	float fReplayPos[3];
 	int iClosestFrame;
-	// Single.MaxValue
-	float fMinDist = view_as<float>(0x7f7fffff);
+	float fMinDist = 1000000.0;
 
 	float fClientPos[3];
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fClientPos);
 
-	for(int frame = iStartFrame; frame < iEndFrame; frame++)
+	for(int frame = firstFrame; frame <= lastFrame; frame++)
 	{
 		gA_Frames[style][track].GetArray(frame, fReplayPos, 2);
 
@@ -2828,20 +2842,15 @@ float GetClosestReplayTime(int client, int style, int track)
 		}
 	}
 
-	// out of bounds
-	if(iClosestFrame == 0)
+	if(fMinDist > 1000000.0) 
 	{
 		return -1.0;
 	}
-	
-	// inside start zone
-	if(iClosestFrame < iPreframes)
+
+	else
 	{
-		return 0.0;
+		return float(iClosestFrame - iPreframes) / float(gA_FrameCache[style][track].iFrameCount - iPreframes) * GetReplayLength(style, track);
 	}
-	
-	float frametime = GetReplayLength(style, track) / float(gA_FrameCache[style][track].iFrameCount - iPreframes);
-	return (iClosestFrame - iPreframes)  * frametime;
 }
 
 /*
