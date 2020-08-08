@@ -844,7 +844,7 @@ forward void Shavit_OnTimescaleChanged(int client, float oldtimescale, float new
 forward Action Shavit_OnCheckPointMenuMade(int client, bool segmented);
 
 /**
- * Called before a selection is processed in the main checkpoint menu.
+ * Called when before a selection is processed in the main checkpoint menu.
  *
  * @param client					Client index.
  * @param param2					Second parameter in the callback, usually the item selected.
@@ -855,18 +855,6 @@ forward Action Shavit_OnCheckPointMenuMade(int client, bool segmented);
  * @return							Plugin_Continue to continue the callback.
  */
 forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info, int maxlength, int currentCheckpoint, int maxCPs);
-
-/**
- * Called before a sound is played by shavit-sounds.
- *
- * @param client					Index of the client that triggered the sound event.
- * @param sound						Reference to the sound that will be played.
- * @param maxlength					Length of the sound buffer, always PLATFORM_MAX_PATH.
- * @param clients					Reference to the array of clients to receive the sound, maxsize of MaxClients.
- * @param count						Reference to the number of clients to receive the sound.
- * @return							Plugin_Handled or Plugin_Stop to block the sound from being played. Anything else to continue the operation.
- */
-forward Action Shavit_OnPlaySound(int client, char[] sound, int maxlength, int[] clients, int &count);
 
 /**
  * Returns the game type the server is running.
@@ -1847,7 +1835,16 @@ native void Shavit_SetPlayerPreFrame(int client, int PreFrame);
  *
  * @noreturn
  */
- native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
+native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
+
+/*
+ * placeholder #1
+ *
+ * @param client					Client index
+ *
+ * @return							Bool value
+ */
+native bool Shavit_ClientHasPersistentData(int client);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
@@ -1984,5 +1981,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetClosestReplayTime");
 	MarkNativeAsOptional("Shavit_SetPlayerTimerFrame");
+	MarkNativeAsOptional("Shavit_ClientHasPersistentData");
 }
 #endif
