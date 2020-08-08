@@ -59,6 +59,7 @@ enum struct persistent_data_t
 	int iPreFrames;
 	int iTimerPreFrames;
 	bool bPractice;
+	ArrayList aCheckpoints;
 }
 
 typedef StopTimerCallback = function void (int data);
@@ -193,6 +194,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SaveCheckpoint", Native_SaveCheckpoint);
 	CreateNative("Shavit_GetCurrentCheckpoint", Native_GetCurrentCheckpoint);
 	CreateNative("Shavit_SetCurrentCheckpoint", Native_SetCurrentCheckpoint);
+	CreateNative("Shavit_ClientHasPersistentData", Native_ClientHasPersistentData);
 
 	gB_Late = late;
 
@@ -495,6 +497,7 @@ public void OnMapStart()
 		gA_PersistentData.GetArray(i, aData);
 
 		delete aData.aFrames;
+		delete aData.aCheckpoints;
 	}
 
 	gA_Targetnames.Clear();
@@ -1134,9 +1137,6 @@ public void OnClientDisconnect(int client)
 		return;
 	}
 
-	ResetCheckpoints(client);
-	delete gA_Checkpoints[client];
-
 	gB_SaveStates[client] = false;
 	delete gA_SaveFrames[client];
 
@@ -1199,6 +1199,13 @@ void PersistData(int client)
 	if(aData.iClassname == -1)
 	{
 		aData.iClassname = gA_Classnames.PushString(sClassname);
+	}
+
+	if(gA_Checkpoints[client] != null && gA_Checkpoints[client].Length > 0)
+	{
+		ArrayList temp = gA_Checkpoints[client].Clone();
+		aData.aCheckpoints = view_as<ArrayList>( CloneHandle( temp ) );
+		delete temp;
 	}
 
 	gA_PersistentData.PushArray(aData);
@@ -1285,12 +1292,16 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 		Shavit_SetPlayerTimerFrame(client, aData.iTimerPreFrames);
 	}
 
-	if(aData.bPractice)
+	if(aData.aCheckpoints != null)
 	{
-		Shavit_SetPracticeMode(client, true, false);
+		delete gA_Checkpoints[client];
+		gA_Checkpoints[client] = aData.aCheckpoints.Clone();
 	}
 
+	Shavit_SetPracticeMode(client, aData.bPractice, false);
+
 	delete aData.aFrames;
+	delete aData.aCheckpoints;
 	gA_PersistentData.Erase(iIndex);
 
 	return Plugin_Stop;
@@ -2060,7 +2071,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		else if(StrEqual(sInfo, "tele"))
 		{
-			TeleportToCheckpoint(param1, iCurrent, true);
+			TeleportToCheckpoint(param1, gI_CurrentCheckpoint[param1], true);
 		}
 
 		else if(StrEqual(sInfo, "prev"))
@@ -2532,6 +2543,9 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache.bSegmented)? ang:NULL_VECTOR,
 		vel);
 
+	// can someone fix this? after loading the persistentdata it will set the player in practice mode
+	// because it triggers this statement ---> GetClientSerial(client) != cpcache.iSerial
+	// 																								---- deadwinter
 	if(cpcache.bPractice || !cpcache.bSegmented || GetClientSerial(client) != cpcache.iSerial)
 	{
 		Shavit_SetPracticeMode(client, true, true);
@@ -3577,4 +3591,30 @@ public any Native_SaveCheckpoint(Handle plugin, int numParams)
 	}
 
 	return gI_CurrentCheckpoint[client];
+}
+
+public any Native_ClientHasPersistentData(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	int iSteamID = GetSteamAccountID(client);
+	if(client == 0 || iSteamID == 0)
+	{
+		return false;
+	}
+
+	persistent_data_t aData;
+	int iLength = gA_PersistentData.Length;
+
+	for(int i = 0; i < iLength; i++)
+	{
+		gA_PersistentData.GetArray(i, aData);
+
+		if(iSteamID == aData.iSteamID)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
