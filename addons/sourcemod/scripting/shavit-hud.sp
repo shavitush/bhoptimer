@@ -684,9 +684,12 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudTimeText", client);
 	menu.AddItem(sInfo, sHudItem);
 
-	FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
-	FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
-	menu.AddItem(sInfo, sHudItem);
+	if(gB_Replay)
+	{
+		FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
+		FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SPEED);
 	FormatEx(sHudItem, 64, "%T", "HudSpeedText", client);
@@ -1098,7 +1101,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 			iLines++;
 		}
 
-		if((gI_HUD2Settings[client] & HUD2_TIME) == 0)
+		if((gI_HUD2Settings[client] & HUD2_TIME) == 0 && gB_Replay)
 		{
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
@@ -1309,7 +1312,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			iLines++;
 		}
 
-		if((gI_HUD2Settings[client] & HUD2_TIME) == 0)
+		if((gI_HUD2Settings[client] & HUD2_TIME) == 0 && gB_Replay)
 		{
 			int iColor = 0xFF0000; // red, worse than both pb and wr
 			
