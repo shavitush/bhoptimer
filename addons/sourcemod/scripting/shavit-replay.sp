@@ -73,6 +73,15 @@ enum struct framecache_t
 	int iPreFrames;
 }
 
+enum struct persistent_data_t
+{
+	int iSteamID;
+	float fDisconnectTime;
+	ArrayList aFrames;
+	int iPreFrames;
+	int iTimerPreFrames;
+}
+
 enum
 {
 	iBotShooting_Attack1 = (1 << 0),
@@ -123,6 +132,7 @@ ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
 float gF_NextFrameTime[MAXPLAYERS+1];
+ArrayList gA_PersistentData = null;
 
 bool gB_Late = false;
 
@@ -157,6 +167,7 @@ Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
 Convar gCV_ClearPreRun = null;
 Convar gCV_DynamicTimeSearch = null;
+Convar gCV_PersistData = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -298,14 +309,15 @@ public void OnPluginStart()
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.0", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
 	gCV_ClearPreRun = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
 	gCV_DynamicTimeSearch = new Convar("shavit_replay_dynamictimedifference_search", "10.0", "Time in seconds to search ahead and behind the players current frame for dynamic time differences\nNote: Higher values will result in worse performance", 0, true, 0.0);
+	gCV_PersistData = new Convar("shavit_replay_persistdata", "300", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled");
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
 
 	// hooks
-	HookEvent("player_spawn", Player_Event, EventHookMode_Pre);
-	HookEvent("player_death", Player_Event, EventHookMode_Pre);
+	HookEvent("player_spawn", Player_Spawn, EventHookMode_Pre);
+	HookEvent("player_death", Player_Death, EventHookMode_Pre);
 	HookEvent("player_connect", BotEvents, EventHookMode_Pre);
 	HookEvent("player_disconnect", BotEvents, EventHookMode_Pre);
 	HookEventEx("player_connect_client", BotEvents, EventHookMode_Pre);
@@ -320,6 +332,9 @@ public void OnPluginStart()
 	// database
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle();
+
+
+	gA_PersistentData = new ArrayList(sizeof(persistent_data_t));
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -867,6 +882,20 @@ public Action Cron(Handle Timer)
 		}
 	}
 
+	int iLength = gA_PersistentData.Length;
+	float fTime = GetEngineTime();
+
+	for(int i = iLength - 1; i >= 0; i--)
+	{
+		persistent_data_t aData;
+		gA_PersistentData.GetArray(i, aData);
+
+		if(fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue)
+		{
+			DeletePersistentData(i, aData);
+		}
+	}
+
 	return Plugin_Continue;
 }
 
@@ -920,6 +949,18 @@ public void OnMapStart()
 	{
 		gH_ReplayTimers[i] = null;
 	}
+
+	int iLength = gA_PersistentData.Length;
+
+	for(int i = iLength - 1; i >= 0; i--)
+	{
+		persistent_data_t aData;
+		gA_PersistentData.GetArray(i, aData);
+
+		delete aData.aFrames;
+	}
+
+	gA_PersistentData.Clear();
 
 	if(gB_Late)
 	{
@@ -1639,9 +1680,15 @@ public void OnClientDisconnect(int client)
 
 	if(!IsFakeClient(client))
 	{
-		ClearFrames(client);
-		RequestFrame(DeleteFrames, client);
-		ClearFrames(client);
+		if(gCV_PersistData.BoolValue)
+		{
+			PersistData(client);
+		}
+
+		else
+		{
+			ClearFrames(client);
+		}
 
 		return;
 	}
@@ -1662,6 +1709,84 @@ public void OnClientDisconnect(int client)
 			break;
 		}
 	}
+}
+
+void PersistData(int client)
+{
+	persistent_data_t aData;
+
+	if(!IsClientInGame(client) ||
+		!IsPlayerAlive(client) ||
+		(aData.iSteamID = GetSteamAccountID((client))) == 0 ||
+		Shavit_GetTimerStatus(client) == Timer_Stopped ||
+		gCV_PersistData.IntValue == 0)
+	{
+		return;
+	}
+
+	aData.aFrames = Shavit_GetReplayData(client);
+	aData.iPreFrames = Shavit_GetPlayerPreFrame(client);
+	aData.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
+	
+	aData.fDisconnectTime = GetEngineTime();
+
+	gA_PersistentData.PushArray(aData);
+}
+
+
+void DeletePersistentData(int index, persistent_data_t data)
+{
+	delete data.aFrames;
+	gA_PersistentData.Erase(index);
+}
+
+public Action Timer_LoadPersistentData(Handle Timer, any data)
+{
+	int iSteamID = 0;
+	int client = GetClientFromSerial(data);
+
+	if(client == 0 ||
+		(iSteamID = GetSteamAccountID(client)) == 0 ||
+		GetClientTeam(client) < 2 ||
+		!IsPlayerAlive(client))
+	{
+		return Plugin_Stop;
+	}
+
+	persistent_data_t aData;
+	int iIndex = -1;
+	int iLength = gA_PersistentData.Length;
+
+	for(int i = 0; i < iLength; i++)
+	{
+		gA_PersistentData.GetArray(i, aData);
+
+		if(iSteamID == aData.iSteamID)
+		{
+			iIndex = i;
+
+			break;
+		}
+	}
+
+	if(iIndex == -1)
+	{
+		return Plugin_Stop;
+	}
+
+	Shavit_StopTimer(client);
+
+	if(aData.aFrames != null)
+	{
+		Shavit_SetReplayData(client, aData.aFrames);
+		Shavit_SetPlayerPreFrame(client, aData.iPreFrames);
+		Shavit_SetPlayerTimerFrame(client, aData.iTimerPreFrames);
+	}
+
+	delete aData.aFrames;
+	gA_PersistentData.Erase(iIndex);
+
+	return Plugin_Stop;
 }
 
 public void DeleteFrames(int client)
@@ -2122,7 +2247,34 @@ bool ReplayEnabled(any style)
 	return (!gA_StyleSettings[style].bUnranked && !gA_StyleSettings[style].bNoReplay);
 }
 
-public void Player_Event(Event event, const char[] name, bool dontBroadcast)
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+{
+	if(!gCV_Enabled.BoolValue)
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if(IsFakeClient(client))
+	{
+		event.BroadcastDisabled = true;
+
+		if(!gB_DontCallTimer)
+		{
+			CreateTimer(0.10, DelayedUpdate, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+		}
+
+		gB_DontCallTimer = false;
+	}
+
+	else
+	{
+		CreateTimer(0.10, Timer_LoadPersistentData, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 {
 	if(!gCV_Enabled.BoolValue)
 	{
