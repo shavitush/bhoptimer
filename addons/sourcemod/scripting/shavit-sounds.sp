@@ -87,7 +87,8 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
-	gH_OnPlaySound = CreateGlobalForward("Shavit_OnPlaySound", ET_Event, Param_Cell, Param_String, Param_Cell, Param_Array, Param_CellByRef);
+	gH_OnPlaySound = CreateGlobalForward("Shavit_OnPlaySound", ET_Event, Param_Cell, Param_String, Param_Array, Param_CellByRef);
+	
 }
 
 public void OnLibraryAdded(const char[] name)
