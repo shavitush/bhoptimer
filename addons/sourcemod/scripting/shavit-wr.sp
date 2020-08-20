@@ -587,7 +587,6 @@ public int Native_SetClientPB(Handle handler, int numParams)
 	float time = GetNativeCell(4);
 
 	gF_PlayerRecord[client][style][track] = time;
-
 }
 
 public int Native_GetPlayerPB(Handle handler, int numParams)
