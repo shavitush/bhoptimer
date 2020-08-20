@@ -948,10 +948,7 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 	{
 		if(IsValidClient(index) && !IsFakeClient(index))
 		{
-			GetClientAuthId(index, AuthId_Steam3, szSteamid, 32);
-			ReplaceString(szSteamid, 32, "[U:1:", "");
-			ReplaceString(szSteamid, 32, "]", "");
-			if(iSteamID == StringToInt(szSteamid))
+			if(iSteamID == GetSteamAccountID(index))
 			{
 				client = index;
 				break;
