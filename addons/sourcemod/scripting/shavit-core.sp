@@ -942,6 +942,23 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 	hPack.Reset();
 	int iSteamID = hPack.ReadCell();
 
+	int client = 0;
+	char szSteamid[32];
+	for(int index = 1; index < MaxClients+1; index++)
+	{
+		if(IsValidClient(index) && !IsFakeClient(index))
+		{
+			GetClientAuthId(index, AuthId_Steam3, szSteamid, 32);
+			ReplaceString(szSteamid, 32, "[U:1:", "");
+			ReplaceString(szSteamid, 32, "]", "");
+			if(iSteamID == StringToInt(szSteamid))
+			{
+				client = index;
+				break;
+			}
+		}
+	}
+
 	for(int i = 0; i < numQueries; i++)
 	{
 		DataPack hQueryPack = view_as<DataPack>(queryData[i]);
@@ -954,13 +971,18 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 		int iTrack = hQueryPack.ReadCell();
 		delete hQueryPack;
 
+		if(client > 0)
+		{
+			Shavit_SetClientPB(client, iStyle, iTrack, 0.0);
+		}
+
 		if(results[i] != null && results[i].FetchRow())
 		{
 			int iWR = results[i].FetchInt(0);
 
 			if(iWR == iRecordID)
 			{
-				Shavit_DeleteReplay(sMap, iStyle, iTrack);
+				Shavit_DeleteReplay(sMap, iStyle, iTrack, iSteamID);
 			}
 		}
 	}

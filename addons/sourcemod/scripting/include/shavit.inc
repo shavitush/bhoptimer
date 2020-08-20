@@ -585,9 +585,10 @@ forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, 
  * @param style						Style the record was done on.
  * @param id						Record ID. -1 if mass deletion.
  * @param track						Timer track.
+ * @param steamid					The steamid of wr holder
  * @noreturn
  */
-forward void Shavit_OnWRDeleted(int style, int id, int track);
+forward void Shavit_OnWRDeleted(int style, int id, int track, int steamid);
 
 /**
  * Called when a player's timer paused.
@@ -1133,6 +1134,17 @@ native void Shavit_GetPlayerPB(int client, int style, float &time, int track);
 native float Shavit_GetClientPB(int client, int style, int track);
 
 /**
+ * can someone make a description of this? thanks
+ *
+ * @param client					Client index.
+ * @param style						Style to get the PB for.
+ * @param track						Timer track.
+ * @param time						Time to set
+ * @noreturn
+ */
+native void Shavit_SetClientPB(int client, int style, int track, float time);
+
+/**
  * Retrieves the completions of a player.
  *
  * @param client					Client index.
@@ -1269,7 +1281,7 @@ native float Shavit_GetDistanceOffset(int client, int zonetype);
  * @param track						Timer track.
  * @return							true if replay existed, false otherwise.
  */
-native bool Shavit_DeleteReplay(const char[] map, int style, int track);
+native bool Shavit_DeleteReplay(const char[] map, int style, int track, int steamid = 0);
 
 /**
  * Retrieves the engine time of the replay bot's first frame.

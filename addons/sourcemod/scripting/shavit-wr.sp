@@ -102,6 +102,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// natives
 	CreateNative("Shavit_GetClientPB", Native_GetClientPB);
+	CreateNative("Shavit_SetClientPB", Native_SetClientPB);
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetClientCompletions", Native_GetClientCompletions);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
@@ -135,7 +136,7 @@ public void OnPluginStart()
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinishMessage = CreateGlobalForward("Shavit_OnFinishMessage", ET_Event, Param_Cell, Param_CellByRef, Param_Array, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
@@ -576,6 +577,17 @@ public int Native_GetWRName(Handle handler, int numParams)
 public int Native_GetClientPB(Handle handler, int numParams)
 {
 	return view_as<int>(gF_PlayerRecord[GetNativeCell(1)][GetNativeCell(2)][GetNativeCell(3)]);
+}
+
+public int Native_SetClientPB(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	int track = GetNativeCell(3);
+	float time = GetNativeCell(4);
+
+	gF_PlayerRecord[client][style][track] = time;
+
 }
 
 public int Native_GetPlayerPB(Handle handler, int numParams)
@@ -1236,6 +1248,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 		Call_PushCell(iStyle);
 		Call_PushCell(iRecordID);
 		Call_PushCell(iTrack);
+		Call_PushCell(iSteamID);
 		Call_Finish();
 	}
 

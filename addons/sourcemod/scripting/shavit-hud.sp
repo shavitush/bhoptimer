@@ -1704,12 +1704,12 @@ void UpdateTopLeftHUD(int client, bool wait)
 			{
 				if(fTargetPB != 0.0)
 				{
-					Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sTargetPB, target);
+					Format(sTopLeft, 128, "%s\n (#%d) %s (%N)", sTopLeft, Shavit_GetRankForTime(style, fTargetPB, track), sTargetPB, target);
 				}
 
 				if(fSelfPB != 0.0)
 				{
-					Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sSelfPB, client);
+					Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, Shavit_GetRankForTime(style, fSelfPB, track), sSelfPB, client);
 				}
 			}
 
@@ -1759,7 +1759,7 @@ void UpdateKeyHint(int client)
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
-				if(!gA_StyleSettings[style].bAutobhop && (gI_HUD2Settings[client] & HUD2_PERFS) == 0)
+				if(!gA_StyleSettings[style].bAutobhop && (gI_HUDSettings[client] & HUD2_PERFS) > 0)
 				{	
 					Format(sMessage, 256, "%s\n%T: %.1f", sMessage, "HudPerfs", client, Shavit_GetPerfectJumps(target));
 				}
