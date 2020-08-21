@@ -62,7 +62,14 @@
 			
 			"m_surfaceFriction"
 			{
-				"linux"		"3852"
+				"windows"	"104"
+				"linux"		"104"
+			}
+			
+			"PlayerRoughLandingEffects"
+			{
+				"windows"	"45"
+				"linux"		"46"
 			}
 		}
 	}
@@ -100,8 +107,14 @@
 
 			"m_surfaceFriction"
 			{
-				"windows"	"4660"
-				"linux"		"4684"
+				"windows"	"8"
+				"linux"		"8"
+			}
+			
+			"PlayerRoughLandingEffects"
+			{
+				"windows"	"55"
+				"linux"		"56"
 			}
 		}
 	}

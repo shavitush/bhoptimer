@@ -1,11 +1,13 @@
 #pragma semicolon 1
 
 #include <sourcemod>
-#include <cstrike>
 #include <sdktools>
 #include <shavit>
 #include <convar_class>
 #include <dhooks>
+
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
 
 #pragma newdecls required
 
@@ -18,7 +20,7 @@ public Plugin myinfo =
 	url = "https://hyps.dev/"
 }
 
-// #define REAL_VERSION 2.3 // This real version is for hypnos ;) b/c KiD wants to take away my version number ;(
+// #define REAL_VERSION 2.7 // This real version is for hypnos ;) b/c KiD wants to take away my version number ;(
 
 #define RUN 0
 #define PAUSED 1
@@ -26,14 +28,16 @@ public Plugin myinfo =
 #define FORWARD 3
 
 ArrayList gA_Frames[MAXPLAYERS+1];
+//ArrayList gA_PreFrames[MAXPLAYERS+1];
+
 ConVar gCV_AirAccelerate;
 EngineVersion g_Game;
 Convar gCV_AutoFind_Offset;
+ConVar sv_client_predict = null;
 MoveType gMT_LastMoveType[MAXPLAYERS+1];
 
 bool gB_AutoStrafeEnabled[MAXPLAYERS+1] = {false,...};
 bool gB_SilentStrafe[MAXPLAYERS+1];
-bool gB_TASMenu[MAXPLAYERS+1];
 bool gB_ProcessFrame[MAXPLAYERS+1];
 bool gB_TAS[MAXPLAYERS+1];
 
@@ -55,6 +59,7 @@ int gI_Status[MAXPLAYERS+1];
 int gI_SurfaceFrictionOffset;
 int gI_Type[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
+int gI_PreFrameCount[MAXPLAYERS+1];
 
 enum struct framedata_t
 {
@@ -73,7 +78,7 @@ enum struct framedata_t
 
 public void OnPluginStart()
 {
-	//For Timescale
+	//For Timescale & SupressViewpunch
 	LoadDHooks();
 
 	g_Game = GetEngineVersion();
@@ -98,6 +103,9 @@ public void OnPluginStart()
 		}
 	}
 
+	sv_client_predict = FindConVar("sv_client_predict");
+	sv_client_predict.IntValue = -1;
+
 	gCV_AirAccelerate = FindConVar("sv_airaccelerate");
 	gCV_AutoFind_Offset = new Convar("tas_find_offsets", "1", "Attempt to autofind offsets", _, true, 0.0, true, 1.0);
 
@@ -108,9 +116,24 @@ public void OnPluginStart()
 	gI_SurfaceFrictionOffset = gamedata.GetOffset("m_surfaceFriction");
 	delete gamedata;
 
-	if(gI_SurfaceFrictionOffset <= 0)
+	if(gI_SurfaceFrictionOffset == -1)
 	{
 		LogError("[TAS] Invalid offset supplied, defaulting friction values");
+	}
+	else
+	{
+		if(g_Game == Engine_CSGO)
+		{		
+			gI_SurfaceFrictionOffset = FindSendPropInfo("CBasePlayer", "m_ubEFNoInterpParity") - gI_SurfaceFrictionOffset;
+		}
+		else if(g_Game == Engine_CSS)
+		{
+			gI_SurfaceFrictionOffset += FindSendPropInfo("CBasePlayer", "m_szLastPlaceName");
+		}
+		else
+		{
+			SetFailState("This plugin is for CSGO/CSS only.");
+		}
 	}
 
 	AddCommandListener(CommandListener_PlusRewind, "+rewind");
@@ -190,26 +213,40 @@ void LoadDHooks()
 		SetFailState("Failed to get IGameMovement pointer");
 	}
 
-	int offset = GameConfGetOffset(gamedataConf, "ProcessMovement");
-	if(offset == -1)
+	int iOffset = GameConfGetOffset(gamedataConf, "ProcessMovement");
+	if(iOffset == -1)
 	{
 		SetFailState("Failed to get ProcessMovement offset");
 	}
 
-	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPre);
+	int iOffsetRoughLanding = GameConfGetOffset(gamedataConf, "PlayerRoughLandingEffects");
+	if(iOffset == -1)
+	{
+		SetFailState("Failed to get ProcessMovement offset");
+	}
+
+	Handle processMovement = DHookCreate(iOffset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPre);
 	DHookAddParam(processMovement, HookParamType_CBaseEntity);
 	DHookAddParam(processMovement, HookParamType_ObjectPtr);
 	DHookRaw(processMovement, false, IGameMovement);
 
-	Handle processMovementPost = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
+	Handle processMovementPost = DHookCreate(iOffset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
 	DHookAddParam(processMovementPost, HookParamType_CBaseEntity);
 	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
 	DHookRaw(processMovementPost, true, IGameMovement);
 
-
+	Handle playerRoughLandingEffects = DHookCreate(iOffsetRoughLanding, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_PlayerRoughLandingEffects);
+	DHookAddParam(playerRoughLandingEffects, HookParamType_Float);
+	DHookRaw(playerRoughLandingEffects, false, IGameMovement);
 
 	delete CreateInterface;
 	delete gamedataConf;
+}
+
+//https://github.com/xen-000/SuppressViewpunch
+public MRESReturn DHook_PlayerRoughLandingEffects(Handle hParams)
+{
+	return MRES_Supercede;
 }
 
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
@@ -223,11 +260,13 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
 	}
 	else
 	{ //on
-		gB_TAS[client] = true;
-		Shavit_PrintToChat(client, "This is a TAS style. Type !tashelp for more information.");
-		DrawPanel(client);
-
-		ResetTASData(client);
+		if(GetClientTeam(client) != 1)
+		{
+			gB_TAS[client] = true;
+			Shavit_PrintToChat(client, "This is a TAS style. Type !tashelp for more information.");
+			DrawPanel(client);
+			ResetTASData(client);
+		}
 	}
 }
 
@@ -247,9 +286,9 @@ public Action Command_PlusOne(int client, int args)
 {
 	if(gI_Status[client] == PAUSED)
 	{
-		int iFrameSize = gA_Frames[client].Length;
-		int iFrameNumber = gI_IndexCounter[client];
-		if(iFrameSize > 1 && iFrameNumber < iFrameSize-1)
+		int iFrameSize = gA_Frames[client].Length - gI_PreFrameCount[client];
+		int iFrameNumber = gI_IndexCounter[client] + gI_PreFrameCount[client];
+		if(iFrameSize > 1 && iFrameNumber < iFrameSize - 1 + gI_PreFrameCount[client])
 		{
 			framedata_t frame;
 			gA_Frames[client].GetArray(iFrameNumber, frame);
@@ -304,9 +343,9 @@ public Action Command_MinusOne(int client, int args)
 {
 	if(gI_Status[client] == PAUSED)
 	{
-		int iFrameSize = gA_Frames[client].Length;
-		int iFrameNumber = gI_IndexCounter[client];
-		if(iFrameSize > 1 && iFrameNumber > 2)
+		int iFrameSize = gA_Frames[client].Length - gI_PreFrameCount[client];
+		int iFrameNumber = gI_IndexCounter[client] + gI_PreFrameCount[client];
+		if(iFrameSize > 1 && iFrameNumber > 2 + gI_PreFrameCount[client])
 		{
 			framedata_t frame;
 			gA_Frames[client].GetArray(iFrameNumber, frame);
@@ -359,11 +398,7 @@ public Action Command_MinusOne(int client, int args)
 
 public Action Command_TASMenu(int client, int args)
 {
-	gB_TASMenu[client] = !gB_TASMenu[client];
-	if(gB_TASMenu[client])
-	{
-		DrawPanel(client);
-	}
+	DrawPanel(client);
 	return Plugin_Handled;
 }
 
@@ -420,7 +455,7 @@ public Action Command_CPTP(int client, int args)
 	gI_Status[client] = PAUSED;
 	gI_IndexCounter[client] = gI_CPIndex[client];
 
-	int iFrameNumber = gI_IndexCounter[client];
+	int iFrameNumber = gI_IndexCounter[client] + gI_PreFrameCount[client];
 
 	framedata_t frame;
 	gA_Frames[client].GetArray(iFrameNumber, frame);
@@ -439,7 +474,6 @@ public Action Command_CPTP(int client, int args)
 
 public Action CommandListener_TAS(int client, const char[] command, int args)
 {
-	gB_TASMenu[client] = true;
 	DrawPanel(client);
 	return Plugin_Continue;
 }
@@ -520,7 +554,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 {
 	if(gB_TAS[client] && IsValidClient(client, true))
 	{
-		DrawPanel(client);
+		//DrawPanel(client);
 		
 		if(Shavit_GetTimerStatus(client) != Timer_Running && (gI_Status[client] == RUN || gI_Status[client] == PAUSED))
 		{
@@ -532,6 +566,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			if(gI_Status[client] == RUN)
 			{
 				// Record Frames
+				if(sv_client_predict != null)
+				{
+					sv_client_predict.ReplicateToClient(client, "-1"); //Fix bug
+				}
 
 				float fDifference = AngleNormalize(angles[1] - gF_LastAngle[client]);
 				/*
@@ -580,9 +618,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					{
 						if(gB_ProcessFrame[client])
 						{
-							bool bOnGround = (buttons & IN_JUMP) == 0 && (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1);
+							static int s_iOnGroundCount[MAXPLAYERS+1] = {1, ...};
+
+							if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
+							{
+								s_iOnGroundCount[client]++;
+							}
+							else
+							{
+								s_iOnGroundCount[client] = 0;
+							}
 							
-							if (!bOnGround && GetEntityMoveType(client) != MOVETYPE_LADDER && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
+							if (IsPlayerAlive(client) && s_iOnGroundCount[client] <= 1 && !(GetEntityMoveType(client) & MOVETYPE_LADDER) && (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
 							{
 								if((buttons & (IN_MOVERIGHT | IN_MOVELEFT)) != 0)
 								{
@@ -602,7 +649,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 								if(gI_SurfaceFrictionOffset > 0)
 								{
 									fSurfaceFriction = GetEntDataFloat(client, gI_SurfaceFrictionOffset);
-									if(gCV_AutoFind_Offset.BoolValue && !(fSurfaceFriction == 0.25 || fSurfaceFriction == 1.0))
+									if(gCV_AutoFind_Offset.BoolValue && s_iOnGroundCount[client] == 0 && !(fSurfaceFriction == 0.25 || fSurfaceFriction == 1.0))
 									{
 										FindNewFrictionOffset(client);
 									}
@@ -662,17 +709,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				{
 					gF_TASTime[client] += GetTickInterval();
 
-					int iFrameNumber = gA_Frames[client].Length+1;
-					if(gI_IndexCounter[client] != iFrameNumber-2)
+					int iFrameNumber = gA_Frames[client].Length + 1;
+					if(gI_IndexCounter[client] + gI_PreFrameCount[client] != iFrameNumber-2)
 					{
 						//UnPaused in different tick
-						iFrameNumber = gI_IndexCounter[client]+1;
+						iFrameNumber = gI_IndexCounter[client] + 1 + gI_PreFrameCount[client];
 					}
 					gA_Frames[client].Resize(iFrameNumber);
 
 					framedata_t frame;
 
-					//For checkpoints
 					frame.fTime = gF_TASTime[client];
 
 					float fAngles[3];
@@ -700,8 +746,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 					gA_Frames[client].SetArray(iFrameNumber-1, frame);
 
-					gI_IndexCounter[client] = iFrameNumber-1;
-					gF_IndexCounter[client] = iFrameNumber-1.0;
+					gI_IndexCounter[client] = iFrameNumber - 1 - gI_PreFrameCount[client];
+					gF_IndexCounter[client] = iFrameNumber - 1.0 - view_as<float>(gI_PreFrameCount[client]);
 				}
 
 				// Fix boosters
@@ -721,6 +767,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 			else if(gI_Status[client] == PAUSED)
 			{
+				if(sv_client_predict != null)
+				{
+					sv_client_predict.ReplicateToClient(client, "0"); //Fix bug
+				}
+
 				if((gI_LastButtons[client] & IN_JUMP) == 0 && (buttons & IN_JUMP))
 				{
 					gI_Status[client] = RUN;
@@ -731,8 +782,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					vel[0] = 0.0;
 					vel[1] = 0.0;
 					vel[2] = 0.0;
-					int iFrameSize = gA_Frames[client].Length;
-					int iFrameNumber = gI_IndexCounter[client];
+					int iFrameSize = gA_Frames[client].Length - gI_PreFrameCount[client];
+					int iFrameNumber = gI_IndexCounter[client] + gI_PreFrameCount[client];
 					if(iFrameSize > 1 && iFrameNumber > 1)
 					{
 						framedata_t frame;
@@ -744,7 +795,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						fAngles[2] = 0.0;
 
 						TeleportEntity(client, frame.fPosition, fAngles, view_as<float>({0.0, 0.0, 0.0}));
-						//gF_TASTime[client] -= GetTickInterval();
+						gF_TASTime[client] = frame.fTime;
 
 						if((frame.iFlags & FL_DUCKING) > 0)
 						{
@@ -775,6 +826,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 			else if(gI_Status[client] == BACKWARD)
 			{
+				if(sv_client_predict != null)
+				{
+					sv_client_predict.ReplicateToClient(client, "0"); //Fix bug
+				}
+
 				if(Shavit_GetTimerStatus(client) != Timer_Running)
 				{
 					if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
@@ -789,9 +845,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				vel[0] = 0.0;
 				vel[1] = 0.0;
 				vel[2] = 0.0;
-				int iFrameSize = gA_Frames[client].Length;
-				int iFrameNumber = gI_IndexCounter[client];
-				if(iFrameSize > 1 && iFrameNumber > 2)
+				int iFrameSize = gA_Frames[client].Length - gI_PreFrameCount[client];
+				int iFrameNumber = gI_IndexCounter[client] + gI_PreFrameCount[client];
+				if(iFrameSize > 1 && iFrameNumber > 2 + gI_PreFrameCount[client])
 				{
 					framedata_t frame;
 					gA_Frames[client].GetArray(iFrameNumber, frame);
@@ -819,7 +875,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					{
 						gI_IndexCounter[client]--;
 					}
-					gF_TASTime[client] -= GetTickInterval() * gF_CounterSpeed[client];
+					gF_TASTime[client] = frame2.fTime;
 				}
 				else if(iFrameSize > 1)
 				{
@@ -831,9 +887,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				vel[0] = 0.0;
 				vel[1] = 0.0;
 				vel[2] = 0.0;
-				int iFrameSize = gA_Frames[client].Length;
-				int iFrameNumber = gI_IndexCounter[client];
-				if(iFrameSize > 1 && iFrameNumber < iFrameSize-1)
+				int iFrameSize = gA_Frames[client].Length - gI_PreFrameCount[client];
+				int iFrameNumber = gI_IndexCounter[client] + gI_PreFrameCount[client];
+				if(iFrameSize > 1 && iFrameNumber < iFrameSize - 1 + gI_PreFrameCount[client])
 				{
 					framedata_t frame;
 					gA_Frames[client].GetArray(iFrameNumber, frame);
@@ -861,7 +917,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					{
 						gI_IndexCounter[client]++;
 					}
-					gF_TASTime[client] += GetTickInterval() * gF_CounterSpeed[client];
+					gF_TASTime[client] = frame.fTime;
 				}
 				else if(iFrameSize > 1)
 				{
@@ -884,8 +940,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 bool DrawPanel(int client)
 {
-	if(!gB_TASMenu[client] || !gB_TAS[client])
+	if(!gB_TAS[client])
 	{
+		Shavit_PrintToChat(client, "TASMenu can only be used when playing a TAS style!");
 		return false;
 	}
 	Panel panel = new Panel();
@@ -940,132 +997,139 @@ bool DrawPanel(int client)
 	panel.CurrentKey = 8;
 	panel.DrawItem("Restart");
 	panel.DrawItem("Exit");
-	panel.Send(client, PanelHandler, 1);
+	panel.Send(client, PanelHandler, MENU_TIME_FOREVER);
 
 	delete panel;
 	return true;
 }
 
-public int PanelHandler(Handle menu, MenuAction action, int param1, int param2)
+public int PanelHandler(Handle menu, MenuAction action, int client, int selection)
 {
 	if(action == MenuAction_Select)
 	{
-		if(!gB_TAS[param1])
+		if(!gB_TAS[client])
 		{
-			gB_TASMenu[param1] = false;
 			return 0;
 		}
 
-		switch(param2)
+		switch(selection)
 		{
 			case 1:
 			{
-				if(Shavit_GetTimerStatus(param1) == Timer_Running)
+				if(Shavit_GetTimerStatus(client) == Timer_Running)
 				{
-					if(gI_Status[param1] == PAUSED)
+					if(gI_Status[client] == PAUSED)
 					{
-						gI_Status[param1] = RUN;
-						ResumePlayer(param1);
+						gI_Status[client] = RUN;
+						ResumePlayer(client);
 					}
 					else
 					{
-						if(Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
+						if(Shavit_InsideZone(client, Zone_Start, -1) && gI_Status[client] == RUN)
 						{
+							DrawPanel(client);
 							return 0;
 						}
 
-						gI_Status[param1] = PAUSED;
+						gI_Status[client] = PAUSED;
 					}
 				}
 			}
 			case 2:
 			{
-				if(Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
+				if(Shavit_InsideZone(client, Zone_Start, -1) && gI_Status[client] == RUN)
 				{
+
+					DrawPanel(client);
 					return 0;
 				}
 
-				if(gI_Status[param1] != BACKWARD)
+				if(gI_Status[client] != BACKWARD)
 				{
-					gI_Status[param1] = BACKWARD;
+					gI_Status[client] = BACKWARD;
 				}
 				else
 				{
-					gI_Status[param1] = PAUSED;
+					gI_Status[client] = PAUSED;
 				}
 			}
 			case 3:
 			{
-				if(Shavit_GetTimerStatus(param1) == Timer_Running)
+				if(Shavit_GetTimerStatus(client) == Timer_Running)
 				{
-					if(Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
+					if(Shavit_InsideZone(client, Zone_Start, -1) && gI_Status[client] == RUN)
 					{
+						DrawPanel(client);
 						return 0;
 					}
 
-					if(gI_Status[param1] != FORWARD)
+					if(gI_Status[client] != FORWARD)
 					{
-						gI_Status[param1] = FORWARD;
+						gI_Status[client] = FORWARD;
 					}
 					else
 					{
-						gI_Status[param1] = PAUSED;
+						gI_Status[client] = PAUSED;
 					}
 				}
 			}
 			/* case 4:
 			{
-				gF_IndexCounter[param1] = 1.0 * RoundToFloor(gF_IndexCounter[param1]);
-				gF_CounterSpeed[param1] += 1.0;
-				if(gF_CounterSpeed[param1] >= 4.0)
+				gF_IndexCounter[client] = 1.0 * RoundToFloor(gF_IndexCounter[client]);
+				gF_CounterSpeed[client] += 1.0;
+				if(gF_CounterSpeed[client] >= 4.0)
 				{
-					gF_CounterSpeed[param1] = 1.0;
+					gF_CounterSpeed[client] = 1.0;
 				}
 			} */
 			case 4:
 			{
-				if(!Shavit_InsideZone(param1, Zone_Start, -1) && gI_Status[param1] == RUN)
+				if(!Shavit_InsideZone(client, Zone_Start, -1) && gI_Status[client] == RUN)
 				{
-					Shavit_PrintToChat(param1, "Timescale can only be updated when paused or inside the start zone!");
+					Shavit_PrintToChat(client, "Timescale can only be updated when paused or inside the start zone!");
+					DrawPanel(client);
 					return 0;
 				}
 
-				gF_Timescale[param1] += 0.1;
-				if(gF_Timescale[param1] >= 1.1)
+				gF_Timescale[client] += 0.1;
+				if(gF_Timescale[client] >= 1.1)
 				{
-					gF_Timescale[param1] = 0.1;
+					gF_Timescale[client] = 0.1;
 				}
 			}
 			case 5:
 			{
-				gB_AutoStrafeEnabled[param1] = !gB_AutoStrafeEnabled[param1];
+				gB_AutoStrafeEnabled[client] = !gB_AutoStrafeEnabled[client];
 			}
 			case 6:
 			{
-				gB_SilentStrafe[param1] = !gB_SilentStrafe[param1];
+				gB_SilentStrafe[client] = !gB_SilentStrafe[client];
 			}
 			case 8:
 			{
-				gI_Status[param1] = RUN;
-				gF_TASTime[param1] = 0.0;
-				gI_IndexCounter[param1] = 0;
-				Shavit_RestartTimer(param1, Shavit_GetClientTrack(param1));
+				gI_Status[client] = RUN;
+
+				FakeClientCommand(client, "sm_r");
+				/* idk why but this causes a crash???
+				gF_TASTime[client] = 0.0;
+				gI_IndexCounter[client] = 0;
+				Shavit_RestartTimer(client, Shavit_GetClientTrack(client)); */
 			}
 			case 9:
 			{
-				gB_TASMenu[param1] = false;
-				Shavit_PrintToChat(param1, "Type !tasmenu to reopen the menu.");
+				Shavit_PrintToChat(client, "Type !tasmenu to reopen the menu.");
 			}
 		}
 	}
+	DrawPanel(client);
 	return 0;
 }
 
 void ResumePlayer(int client)
 {
-	int iFrameSize = gA_Frames[client].Length;
-	int iFrameNumber = gI_IndexCounter[client];
-	if(iFrameSize > 1 && iFrameNumber > 1)
+	int iFrameSize = gA_Frames[client].Length - gI_PreFrameCount[client];
+	int iFrameNumber = gI_IndexCounter[client] + gI_PreFrameCount[client];
+	if(iFrameSize > 1 && iFrameNumber > 1 + gI_PreFrameCount[client])
 	{
 		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 
@@ -1117,7 +1181,6 @@ void ResetTASData(int client)
 	gF_TASTime[client] = 0.0;
 	gF_Timescale[client] = 1.0;
 	gI_Status[client] = RUN;
-	gB_TASMenu[client] = true;
 	gB_AutoStrafeEnabled[client] = false;
 	gB_SilentStrafe[client] = false;
 	gI_Type[client] = Type_SurfOverride;
@@ -1129,7 +1192,7 @@ public Action Shavit_OnStart(int client, int track)
 {
 	gI_Track[client] = track;
 
-	if(gB_TAS[client])
+	if(gB_TAS[client] && IsValidClient(client, true))
 	{
 		if(gI_Status[client] == PAUSED)
 		{
@@ -1137,11 +1200,61 @@ public Action Shavit_OnStart(int client, int track)
 		}
 		if(gI_Status[client] == RUN)
 		{
-			gF_TASTime[client] = 0.0;
-			gI_IndexCounter[client] = 0;
-			gI_CPIndex[client] = 0;
-			gA_Frames[client].Clear();
-			Shavit_SetPlayerPreFrame(client, 0);
+			timer_snapshot_t snapshot;
+			Shavit_SaveSnapshot(client, snapshot);
+
+			framedata_t frame;
+			gA_Frames[client].GetArray(gI_IndexCounter[client] + gI_PreFrameCount[client], frame);
+
+			if(gA_Frames[client] != INVALID_HANDLE && frame.fTime > 0.01 && snapshot.fCurrentTime == 0.0)
+			{
+				gF_TASTime[client] = frame.fTime;
+			}
+			else
+			{
+				gF_TASTime[client] = 0.0;
+				gI_IndexCounter[client] = 0;
+				gI_CPIndex[client] = 0;
+				gA_Frames[client].Clear();
+
+				ArrayList frames = Shavit_GetReplayData(client);
+				gI_PreFrameCount[client] = Shavit_GetPlayerPreFrame(client);
+				frames.Resize(gI_PreFrameCount[client]);
+
+				for(int i = 0; i < frames.Length; i++)
+				{
+					gA_Frames[client].Resize(i + 1);
+
+					framedata_t newframe;
+
+					newframe.fTime = 0.0;
+
+					newframe.fEyeAngles[0] = frames.Get(i, 3);
+					newframe.fEyeAngles[1] = frames.Get(i, 4);
+
+					newframe.fPosition[0] = frames.Get(i, 0);
+					newframe.fPosition[1] = frames.Get(i, 1);
+					newframe.fPosition[2] = frames.Get(i, 2);
+					
+					//GetEntPropVector(client, Prop_Data, "m_vecVelocity", frame.fVelocity);
+					newframe.buttons = frames.Get(i, 5);
+					newframe.iFlags = frames.Get(i, 6);
+					newframe.movetype = frames.Get(i, 7);
+
+					// Timer Replays do not track duck info. Doesn't matter since it's just preframes.
+					newframe.bDucked = false;
+					newframe.bDucking = false;
+					newframe.fDuckTime = 0.0;
+					if(g_Game == Engine_CSGO)
+					{
+						newframe.fDuckSpeed = 0.0;
+					}
+
+					gA_Frames[client].SetArray(i, newframe);
+				}
+
+				delete frames;
+			}
 		}
 	}
 	return Plugin_Continue;
@@ -1164,6 +1277,7 @@ public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 
 		//Overwrite Replay Data with gA_Frames[client]
 		Shavit_SetReplayData(client, gA_Frames[client]);
+		Shavit_SetPlayerPreFrame(client, gI_PreFrameCount[client]);
 		return Plugin_Changed;
 	}
 	return Plugin_Continue;
@@ -1470,15 +1584,30 @@ void GetIdealMovementsInAir(float fYawWantedDirection, float fVelocity[2], float
 
 void FindNewFrictionOffset(int client)
 {
-	for(int i = 1; i <= 128; ++i)
+	if(g_Game == Engine_CSGO)
 	{
-		float friction = GetEntDataFloat(client, gI_SurfaceFrictionOffset + i);
-		if(friction == 0.25 || friction == 1.0)
+		int iStartingOffset = FindSendPropInfo("CBasePlayer", "m_ubEFNoInterpParity");
+		for(int i = 16; i >= -128; --i)
 		{
-			gI_SurfaceFrictionOffset += i;
-
-			LogError("[TAS] Current friction offset is out of date. Please update to new offset: %i", gI_SurfaceFrictionOffset);
-			break;
+			float fFriction = GetEntDataFloat(client, iStartingOffset + i);
+			if(fFriction == 0.25 || fFriction == 1.0)
+			{
+				gI_SurfaceFrictionOffset = iStartingOffset - i;
+				LogError("[TAS] Current friction offset is out of date. Please update to new offset: %i", i * -1);
+			}
+		}
+	}
+	else
+	{
+		int iStartingOffset = FindSendPropInfo("CBasePlayer", "m_szLastPlaceName");
+		for(int i = 1; i <= 128; ++i)
+		{
+			float fFriction = GetEntDataFloat(client, iStartingOffset + i);
+			if(fFriction == 0.25 || fFriction == 1.0)
+			{
+				gI_SurfaceFrictionOffset = iStartingOffset + i;
+				LogError("[TAS] Current friction offset is out of date. Please update to new offset: %i", i);
+			}
 		}
 	}
 }
