@@ -68,6 +68,7 @@ int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
 char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
 ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
+int gI_PlayerCompletion[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 
 // admin menu
 TopMenu gH_AdminMenu = null;
@@ -102,6 +103,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// natives
 	CreateNative("Shavit_GetClientPB", Native_GetClientPB);
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
+	CreateNative("Shavit_GetClientCompletions", Native_GetClientCompletions);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
 	CreateNative("Shavit_GetRecordAmount", Native_GetRecordAmount);
 	CreateNative("Shavit_GetTimeForRank", Native_GetTimeForRank);
@@ -422,6 +424,7 @@ public void OnClientPutInServer(int client)
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			gF_PlayerRecord[client][i][j] = 0.0;
+			gI_PlayerCompletion[client][i][j] = 0;
 		}
 	}
 
@@ -443,7 +446,7 @@ void UpdateClientCache(int client)
 	}
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT time, style, track FROM %splayertimes WHERE map = '%s' AND auth = %d;", gS_MySQLPrefix, gS_Map, iSteamID);
+	FormatEx(sQuery, 256, "SELECT time, style, track, completions FROM %splayertimes WHERE map = '%s' AND auth = %d;", gS_MySQLPrefix, gS_Map, iSteamID);
 	gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
@@ -474,6 +477,8 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 		}
 
 		gF_PlayerRecord[client][style][track] = results.FetchFloat(0);
+		gI_PlayerCompletion[client][style][track] = results.FetchInt(3);
+		
 	}
 
 	gA_WRCache[client].bLoadedCache = true;
@@ -576,6 +581,11 @@ public int Native_GetClientPB(Handle handler, int numParams)
 public int Native_GetPlayerPB(Handle handler, int numParams)
 {
 	SetNativeCellRef(3, gF_PlayerRecord[GetNativeCell(1)][GetNativeCell(2)][GetNativeCell(4)]);
+}
+
+public int Native_GetClientCompletions(Handle handler, int numParams)
+{
+	return gI_PlayerCompletion[GetNativeCell(1)][GetNativeCell(2)][GetNativeCell(3)];
 }
 
 public int Native_GetRankForTime(Handle handler, int numParams)
@@ -2089,7 +2099,9 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			gS_MySQLPrefix, gS_Map, iSteamID, style, track);
 
 		gH_SQL.Query(SQL_OnIncrementCompletions_Callback, sQuery, 0, DBPrio_Low);
-
+		
+		gI_PlayerCompletion[client][style][track]++;
+		
 		if(iOverwrite == 0 && !gA_StyleSettings[style].bUnranked)
 		{
 			FormatEx(sMessage, 255, "%s[%s]%s %T",

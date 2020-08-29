@@ -42,9 +42,11 @@
 #define HUD2_TRACK				(1 << 7)
 #define HUD2_SPLITPB			(1 << 8)
 #define HUD2_MAPTIER			(1 << 9)
+#define HUD2_TIMEDIFFERENCE		(1 << 10)
+#define HUD2_PERFS				(1 << 11)
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
-#define HUD_DEFAULT2			0
+#define HUD_DEFAULT2			(HUD2_PERFS)
 
 #define MAX_HINT_SIZE 225
 
@@ -124,6 +126,9 @@ Convar gCV_GradientStepSize = null;
 Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_UseHUDFix = null;
+Convar gCV_DefaultHUD = null;
+Convar gCV_DefaultHUD2 = null;
+Convar gCV_EnableDynamicTimeDifference = null;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -197,6 +202,39 @@ public void OnPluginStart()
 	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
+	gCV_EnableDynamicTimeDifference = new Convar("shavit_hud_dynamictimedifference", "1", "Enabled dynamic time differences in the hud", 0, true, 0.0, true, 1.0);
+
+	char defaultHUD[8];
+	IntToString(HUD_DEFAULT, defaultHUD, 8);
+	gCV_DefaultHUD = new Convar("shavit_hud_default", defaultHUD, "Default HUD settings as a bitflag\n"
+		..."HUD_MASTER				1\n"
+		..."HUD_CENTER				2\n"
+		..."HUD_ZONEHUD				4\n"
+		..."HUD_OBSERVE				8\n"
+		..."HUD_SPECTATORS			16\n"
+		..."HUD_KEYOVERLAY			32\n"
+		..."HUD_HIDEWEAPON			64\n"
+		..."HUD_TOPLEFT				128\n"
+		..."HUD_SYNC					256\n"
+		..."HUD_TIMELEFT				512\n"
+		..."HUD_2DVEL				1024\n"
+		..."HUD_NOSOUNDS				2048\n"
+		..."HUD_NOPRACALERT			4096\n");
+		
+	IntToString(HUD_DEFAULT2, defaultHUD, 8);
+	gCV_DefaultHUD2 = new Convar("shavit_hud2_default", defaultHUD, "Default HUD2 settings as a bitflag\n"
+		..."HUD2_TIME				1\n"
+		..."HUD2_SPEED				2\n"
+		..."HUD2_JUMPS				4\n"
+		..."HUD2_STRAFE				8\n"
+		..."HUD2_SYNC				16\n"
+		..."HUD2_STYLE				32\n"
+		..."HUD2_RANK				64\n"
+		..."HUD2_TRACK				128\n"
+		..."HUD2_SPLITPB				256\n"
+		..."HUD2_MAPTIER				512\n"
+		..."HUD2_TIMEDIFFERENCE		1024\n"
+		..."HUD2_PERFS				2048");
 
 	Convar.AutoExecConfig();
 
@@ -403,10 +441,10 @@ public void OnClientCookiesCached(int client)
 
 	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT, sHUDSettings, 8);
+		gCV_DefaultHUD.GetString(sHUDSettings, 8);
 
 		SetClientCookie(client, gH_HUDCookie, sHUDSettings);
-		gI_HUDSettings[client] = HUD_DEFAULT;
+		gI_HUDSettings[client] = gCV_DefaultHUD.IntValue;
 	}
 
 	else
@@ -418,10 +456,10 @@ public void OnClientCookiesCached(int client)
 
 	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT2, sHUDSettings, 8);
+		gCV_DefaultHUD2.GetString(sHUDSettings, 8);
 
 		SetClientCookie(client, gH_HUDCookieMain, sHUDSettings);
-		gI_HUD2Settings[client] = HUD_DEFAULT2;
+		gI_HUD2Settings[client] = gCV_DefaultHUD2.IntValue;
 	}
 
 	else
@@ -646,6 +684,10 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudTimeText", client);
 	menu.AddItem(sInfo, sHudItem);
 
+	FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
+	FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
+	menu.AddItem(sInfo, sHudItem);
+
 	FormatEx(sInfo, 16, "@%d", HUD2_SPEED);
 	FormatEx(sHudItem, 64, "%T", "HudSpeedText", client);
 	menu.AddItem(sInfo, sHudItem);
@@ -660,6 +702,10 @@ Action ShowHUDMenu(int client, int item)
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SYNC);
 	FormatEx(sHudItem, 64, "%T", "HudSync", client);
+	menu.AddItem(sInfo, sHudItem);
+	
+	FormatEx(sInfo, 16, "@%d", HUD2_PERFS);
+	FormatEx(sHudItem, 64, "%T", "HudPerfs", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_STYLE);
@@ -861,7 +907,7 @@ void Cron()
 			GetEntPropVector(GetHUDTarget(i), Prop_Data, "m_vecVelocity", fSpeed);
 			gI_PreviousSpeed[i] = RoundToNearest(((gI_HUDSettings[i] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
 		}
-
+		
 		TriggerHUDUpdate(i);
 	}
 }
@@ -990,7 +1036,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 				char sWR[32];
 				FormatSeconds(data.fWR, sWR, 32, false);
 
-				FormatEx(sLine, 128, "%s / %s\n(%.1f%%)", sTime, sWR, ((data.fTime < 0.0 ? 0.0 : data.fTime / data.fWR) * 100));
+				FormatEx(sLine, 128, "%s / %s\n(%.1f％)", sTime, sWR, ((data.fTime < 0.0 ? 0.0 : data.fTime / data.fWR) * 100));
 				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
@@ -1057,14 +1103,28 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
 
+			char sTimeDiff[32];
+			
+			if(gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			{
+				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
+
+				if(fClosestReplayTime != -1.0)
+				{
+					float fDifference = data.fTime - fClosestReplayTime;
+					FormatSeconds(fDifference, sTimeDiff, 32, false);
+					Format(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
+				}
+			}
+
 			if((gI_HUD2Settings[client] & HUD2_RANK) == 0)
 			{
-				FormatEx(sLine, 128, "%T: %s (%d)", "HudTimeText", client, sTime, data.iRank);
+				FormatEx(sLine, 128, "%T: %s%s (%d)", "HudTimeText", client, sTime, sTimeDiff, data.iRank);
 			}
 
 			else
 			{
-				FormatEx(sLine, 128, "%T: %s", "HudTimeText", client, sTime);
+				FormatEx(sLine, 128, "%T: %s%s", "HudTimeText", client, sTime, sTimeDiff);
 			}
 			
 			AddHUDLine(buffer, maxlen, sLine, iLines);
@@ -1166,7 +1226,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 				char sWR[32];
 				FormatSeconds(data.fWR, sWR, 32, false);
 
-				FormatEx(sLine, 128, "%s / %s (%.1f%%)", sTime, sWR, ((data.fTime < 0.0 ? 0.0 : data.fTime / data.fWR) * 100));
+				FormatEx(sLine, 128, "%s / %s (%.1f％)", sTime, sWR, ((data.fTime < 0.0 ? 0.0 : data.fTime / data.fWR) * 100));
 				AddHUDLine(buffer, maxlen, sLine, iLines);
 				iLines++;
 			}
@@ -1259,15 +1319,29 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
+			
+			char sTimeDiff[32];
+			
+			if(gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			{
+				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
+
+				if(fClosestReplayTime != -1.0)
+				{
+					float fDifference = data.fTime - fClosestReplayTime;
+					FormatSeconds(fDifference, sTimeDiff, 32, false);
+					Format(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
+				}
+			}
 
 			if((gI_HUD2Settings[client] & HUD2_RANK) == 0)
 			{
-				FormatEx(sLine, 128, "<span color='#%06X'>%s</span> (#%d)", iColor, sTime, data.iRank);
+				FormatEx(sLine, 128, "<span color='#%06X'>%s%s</span> (#%d)", iColor, sTime, sTimeDiff, data.iRank);
 			}
 
 			else
 			{
-				FormatEx(sLine, 128, "<span color='#%06X'>%s</span>", iColor, sTime);
+				FormatEx(sLine, 128, "<span color='#%06X'>%s%s</span>", iColor, sTime, sTimeDiff);
 			}
 			
 			AddHUDLine(buffer, maxlen, sLine, iLines);
@@ -1685,7 +1759,7 @@ void UpdateKeyHint(int client)
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
-				if(!gA_StyleSettings[style].bAutobhop)
+				if(!gA_StyleSettings[style].bAutobhop && (gI_HUD2Settings[client] & HUD2_PERFS) == 0)
 				{	
 					Format(sMessage, 256, "%s\n%T: %.1f", sMessage, "HudPerfs", client, Shavit_GetPerfectJumps(target));
 				}
@@ -1848,21 +1922,23 @@ void GetTrackName(int client, int track, char[] output, int size)
 
 void PrintCSGOHUDText(int client, const char[] format, any ...)
 {
-    char buff[MAX_HINT_SIZE];
-    VFormat(buff, sizeof(buff), format, 3);
-    Format(buff, sizeof(buff), "</font>%s ", buff);
-    
-    for(int i = strlen(buff); i < sizeof(buff); i++)
-        buff[i] = '\n';
-    
-    Protobuf pb = view_as<Protobuf>(StartMessageOne("TextMsg", client, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS));
-    pb.SetInt("msg_dst", 4);
-    pb.AddString("params", "#SFUI_ContractKillStart");
-    pb.AddString("params", buff);
-    pb.AddString("params", NULL_STRING);
-    pb.AddString("params", NULL_STRING);
-    pb.AddString("params", NULL_STRING);
-    pb.AddString("params", NULL_STRING);
-    
-    EndMessage();
+	char buff[MAX_HINT_SIZE];
+	VFormat(buff, sizeof(buff), format, 3);
+	Format(buff, sizeof(buff), "</font>%s ", buff);
+	
+	for(int i = strlen(buff); i < sizeof(buff); i++)
+	{
+		buff[i] = '\n';
+	}
+	
+	Protobuf pb = view_as<Protobuf>(StartMessageOne("TextMsg", client, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS));
+	pb.SetInt("msg_dst", 4);
+	pb.AddString("params", "#SFUI_ContractKillStart");
+	pb.AddString("params", buff);
+	pb.AddString("params", NULL_STRING);
+	pb.AddString("params", NULL_STRING);
+	pb.AddString("params", NULL_STRING);
+	pb.AddString("params", NULL_STRING);
+	
+	EndMessage();
 }
