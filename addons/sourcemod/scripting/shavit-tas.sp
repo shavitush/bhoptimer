@@ -20,7 +20,7 @@ public Plugin myinfo =
 	url = "https://hyps.dev/"
 }
 
-// #define REAL_VERSION 2.7 // This real version is for hypnos ;) b/c KiD wants to take away my version number ;(
+// #define REAL_VERSION 2.7.2 // This real version is for hypnos ;) b/c KiD wants to take away my version number ;(
 
 #define RUN 0
 #define PAUSED 1
@@ -136,11 +136,15 @@ public void OnPluginStart()
 		}
 	}
 
+	HookEvent("player_spawn", Player_Spawn);
+
 	AddCommandListener(CommandListener_PlusRewind, "+rewind");
 	AddCommandListener(CommandListener_PlusForward, "+forward");
 	AddCommandListener(CommandListener_MinusRewindOrForward, "-rewind");
 	AddCommandListener(CommandListener_MinusRewindOrForward, "-forward");
 	AddCommandListener(CommandListener_TAS, "sm_tas");
+	AddCommandListener(CommandListener_Spec, "sm_spectate");
+	AddCommandListener(CommandListener_Spec, "sm_spec");
 	RegConsoleCmd("sm_tasmenu", Command_TASMenu);
 	RegConsoleCmd("sm_tashelp", Command_TASHelp);
 
@@ -247,6 +251,20 @@ void LoadDHooks()
 public MRESReturn DHook_PlayerRoughLandingEffects(Handle hParams)
 {
 	return MRES_Supercede;
+}
+
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if(IsValidClient(client, true) && gB_TAS[client])
+	{
+		//fix 0 second retry bug
+		if(gA_Frames[client].Length == 0)
+		{
+			FakeClientCommand(client, "sm_r");
+		}
+	}
 }
 
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle)
@@ -472,6 +490,16 @@ public Action Command_CPTP(int client, int args)
 	return Plugin_Handled;
 }
 
+public Action CommandListener_Spec(int client, const char[] command, int args)
+{
+	if(!gB_TAS[client])
+	{
+		return Plugin_Handled;
+	}
+	ResumePlayer(client); //Fix a few bug ;)
+	return Plugin_Continue;
+}
+
 public Action CommandListener_TAS(int client, const char[] command, int args)
 {
 	DrawPanel(client);
@@ -552,6 +580,20 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
+	//Not only for TAS since it doesn't hurt to apply this to all players. Only benefit... Just very important for TAS...
+	//https://github.com/hermansimensen/NoViewPunch/blob/master/addons/sourcemod/scripting/noviewpunch.sp
+	if(g_Game == Engine_CSGO && IsValidClient(client, true))
+	{
+		float punch[3] = {0.75, 0.0, 0.0};
+		SetEntPropVector(client, Prop_Send, "m_viewPunchAngle", punch);
+	}
+	else if(g_Game == Engine_CSS && IsValidClient(client, true))
+	{
+		float punch[3] = {0.0, 0.0, 0.0};
+		SetEntPropVector(client, Prop_Send, "m_vecPunchAngle", punch);
+		SetEntPropVector(client, Prop_Send, "m_vecPunchAngleVel", punch);
+	}
+
 	if(gB_TAS[client] && IsValidClient(client, true))
 	{
 		//DrawPanel(client);
@@ -1084,12 +1126,12 @@ public int PanelHandler(Handle menu, MenuAction action, int client, int selectio
 			} */
 			case 4:
 			{
-				if(!Shavit_InsideZone(client, Zone_Start, -1) && gI_Status[client] == RUN)
+				/* if(!Shavit_InsideZone(client, Zone_Start, -1) && gI_Status[client] == RUN)
 				{
 					Shavit_PrintToChat(client, "Timescale can only be updated when paused or inside the start zone!");
 					DrawPanel(client);
 					return 0;
-				}
+				} */
 
 				gF_Timescale[client] += 0.1;
 				if(gF_Timescale[client] >= 1.1)
@@ -1121,7 +1163,11 @@ public int PanelHandler(Handle menu, MenuAction action, int client, int selectio
 			}
 		}
 	}
-	DrawPanel(client);
+
+	if(selection != 9)
+	{
+		DrawPanel(client);
+	}
 	return 0;
 }
 
@@ -1203,10 +1249,25 @@ public Action Shavit_OnStart(int client, int track)
 			timer_snapshot_t snapshot;
 			Shavit_SaveSnapshot(client, snapshot);
 
-			framedata_t frame;
-			gA_Frames[client].GetArray(gI_IndexCounter[client] + gI_PreFrameCount[client], frame);
+			gI_PreFrameCount[client] = Shavit_GetPlayerPreFrame(client);
 
-			if(gA_Frames[client] != INVALID_HANDLE && frame.fTime > 0.01 && snapshot.fCurrentTime == 0.0)
+			bool run = false;
+
+			framedata_t frame;
+			if(gA_Frames[client].Length > gI_IndexCounter[client] + gI_PreFrameCount[client])
+			{
+				run = true;
+				gA_Frames[client].GetArray(gI_IndexCounter[client] + gI_PreFrameCount[client], frame);
+			}
+			else
+			{
+				if(!Shavit_InsideZone(client, Zone_Start, -1))
+				{
+					return Plugin_Continue;
+				}
+			}
+
+			if(gA_Frames[client] != INVALID_HANDLE && run && frame.fTime > 0.01 && snapshot.fCurrentTime == 0.0)
 			{
 				gF_TASTime[client] = frame.fTime;
 			}
@@ -1218,7 +1279,6 @@ public Action Shavit_OnStart(int client, int track)
 				gA_Frames[client].Clear();
 
 				ArrayList frames = Shavit_GetReplayData(client);
-				gI_PreFrameCount[client] = Shavit_GetPlayerPreFrame(client);
 				frames.Resize(gI_PreFrameCount[client]);
 
 				for(int i = 0; i < frames.Length; i++)
