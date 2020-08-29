@@ -1189,12 +1189,12 @@ public Action Shavit_OnStart(int client, int track)
 
 			gI_PreFrameCount[client] = Shavit_GetPlayerPreFrame(client);
 
-			bool run = false;
+			bool bRun = false;
 
 			framedata_t frame;
 			if(gA_Frames[client].Length > gI_IndexCounter[client] + gI_PreFrameCount[client])
 			{
-				run = true;
+				bRun = true;
 				gA_Frames[client].GetArray(gI_IndexCounter[client] + gI_PreFrameCount[client], frame);
 			}
 			else
@@ -1205,7 +1205,7 @@ public Action Shavit_OnStart(int client, int track)
 				}
 			}
 
-			if(gA_Frames[client] != INVALID_HANDLE && run && frame.fTime > 0.01 && snapshot.fCurrentTime == 0.0)
+			if(gA_Frames[client] != INVALID_HANDLE && bRun && frame.fTime > 0.01 && snapshot.fCurrentTime == 0.0)
 			{
 				gF_TASTime[client] = frame.fTime;
 			}
