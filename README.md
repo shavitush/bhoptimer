@@ -21,7 +21,7 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 * A MySQL database (preferably locally hosted) if your database is likely to grow big, or if you want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is highly recommended.
 
 # Optional requirements, for the best experience:
-* [DHooks](http://users.alliedmods.net/~drifter/builds/dhooks/2.1/) - required for `shavit-tas` (Although the TAS plugin is optional)
+* [DHooks v2.2.0-detours14a](https://github.com/peace-maker/DHooks2/releases/tag/v2.2.0-detours14a) - required for `shavit-tas` (Although the TAS plugin is optional)
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135)
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
 
