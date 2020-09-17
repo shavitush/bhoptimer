@@ -1712,7 +1712,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 				{
 					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
 					{
-						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, Shavit_GetRankForTime(style, fTargetPB, track), sTargetPB, target);
+						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), target);
 					}
 					else 
 					{
@@ -1724,11 +1724,11 @@ void UpdateTopLeftHUD(int client, bool wait)
 				{
 					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
 					{
-						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, Shavit_GetRankForTime(style, fSelfPB, track), sSelfPB, client);
+						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
 					}
 					else 
 					{
-						Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, Shavit_GetRankForTime(style, fSelfPB, track), sSelfPB, client);
+						Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sSelfPB, client);
 					}
 				}
 			}
