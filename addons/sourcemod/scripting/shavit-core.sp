@@ -111,6 +111,7 @@ float gF_PauseVelocity[MAXPLAYERS+1][3];
 // used for offsets
 float gF_SmallestDist[MAXPLAYERS + 1];
 float gF_Origin[MAXPLAYERS + 1][2][3];
+float gF_Fraction[MAXPLAYERS + 1];
 
 // cookies
 Handle gH_StyleCookie = null;
@@ -3013,13 +3014,7 @@ void CalculateTickIntervalOffset(int client, int zonetype)
 		TR_EnumerateEntitiesHull(gF_Origin[client][0], localOrigin, mins, maxs, PARTITION_TRIGGER_EDICTS, TREnumTrigger, client);
 	}
 
-	float speed = GetVectorLength(vel);
-	float offset = 0.0;
-	if(speed != 0.0)
-	{
-		offset = gF_SmallestDist[client] / speed;
-	}
-
+	float offset = gF_Fraction[client] * GetTickInterval();
 
 	gA_Timers[client].fTimeOffset[zonetype] = offset;
 	gA_Timers[client].fDistanceOffset[zonetype] = gF_SmallestDist[client];
@@ -3056,6 +3051,7 @@ bool TREnumTrigger(int entity, int client) {
 
 		float distance = GetVectorDistance(start, end);
 		gF_SmallestDist[client] = distance;
+		gF_Fraction[client] = TR_GetFraction();
 
 		return false;
 	}

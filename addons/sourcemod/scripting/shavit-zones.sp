@@ -124,6 +124,7 @@ float gV_MapZones[MAX_ZONES][2][3];
 float gV_MapZones_Visual[MAX_ZONES][8][3];
 float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
+int gI_StageZoneID[MAX_ZONES];
 int gI_EntityZone[4096];
 bool gB_ZonesCreated = false;
 
@@ -181,6 +182,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// zone natives
 	CreateNative("Shavit_GetZoneData", Native_GetZoneData);
 	CreateNative("Shavit_GetZoneFlags", Native_GetZoneFlags);
+	CreateNative("Shavit_GetStageZone", Native_GetStageZone);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
 	CreateNative("Shavit_InsideZoneGetID", Native_InsideZoneGetID);
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
@@ -487,6 +489,13 @@ public int Native_InsideZoneGetID(Handle handler, int numParams)
 	return false;
 }
 
+public int Native_GetStageZone(Handle handler, int numParams)
+{
+	int iStageNumber = GetNativeCell(1);
+	
+	return gI_StageZoneID[iStageNumber];
+}
+
 public int Native_Zones_DeleteMap(Handle handler, int numParams)
 {
 	char sMap[160];
@@ -662,7 +671,8 @@ public void OnMapStart()
 	ReloadPrebuiltZones();
 	UnloadZones(0);
 	RefreshZones();
-
+	LoadStageZones();
+	
 	LoadZoneSettings();
 	
 	if(gEV_Type == Engine_TF2)
@@ -686,6 +696,30 @@ public void OnMapStart()
 	{
 		Shavit_OnChatConfigLoaded();
 	}
+}
+
+public void LoadStageZones()
+{
+	char sQuery[256];
+	FormatEx(sQuery, 256, "SELECT id, data FROM mapzones WHERE type = %i and map = '%s'", Zone_Stage, gS_Map);
+	PrintToChatAll("%s", sQuery);
+	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
+}
+
+public void SQL_GetStageZone_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (zones GetStageZone) SQL query failed. Reason: %s", error);
+		return;
+	}
+	
+	while(results.FetchRow())
+	{
+		int iZoneID = results.FetchInt(0);
+		int iStageNumber = results.FetchInt(1);
+		gI_StageZoneID[iStageNumber] = iZoneID;
+	} 
 }
 
 public void OnMapEnd()

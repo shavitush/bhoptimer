@@ -1035,6 +1035,15 @@ native int Shavit_GetBhopStyle(int client);
 native TimerStatus Shavit_GetTimerStatus(int client);
 
 /**
+ * Retrieve the zone ID for a given stage number.
+ * Will return exception if stagenumber doesn't have a zone.
+ *
+ * @param client					Stage number.
+ * @return                          Zone ID of stage.
+ */
+native int Shavit_GetStageZone(int stage);
+
+/**
  * Retrieve the amount of strafes done since the timer started.
  * Will return 0 if timer isn't running.
  *
@@ -1920,6 +1929,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayName");
 	MarkNativeAsOptional("Shavit_GetReplayStatus");
 	MarkNativeAsOptional("Shavit_GetReplayTime");
+	MarkNativeAsOptional("Shavit_GetStageZone");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
