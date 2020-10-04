@@ -1717,7 +1717,7 @@ public Action Command_Save(int client, int args)
 	}
 
 	bool bOverflow = gA_Checkpoints[client].Length >= iMaxCPs;
-	int index = gI_CurrentCheckpoint[client];
+	int index = gA_Checkpoints[client].Length;
 
 	if(!bSegmenting)
 	{
