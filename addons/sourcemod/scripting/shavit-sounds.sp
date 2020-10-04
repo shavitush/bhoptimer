@@ -301,6 +301,7 @@ void PlayEventSound(int client, bool everyone, char sound[PLATFORM_MAX_PATH])
 	Call_StartForward(gH_OnPlaySound);
 	Call_PushCell(client);
 	Call_PushStringEx(sound, PLATFORM_MAX_PATH, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(PLATFORM_MAX_PATH);
 	Call_PushArrayEx(clients, MaxClients, SM_PARAM_COPYBACK);
 	Call_PushCellRef(count);
 	Call_Finish(result);
