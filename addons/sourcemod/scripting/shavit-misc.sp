@@ -55,6 +55,9 @@ enum struct persistent_data_t
 	timer_snapshot_t aSnapshot;
 	int iTargetname;
 	int iClassname;
+	ArrayList aFrames;
+	int iPreFrames;
+	int iTimerPreFrames;
 	bool bPractice;
 }
 
@@ -1153,6 +1156,13 @@ void PersistData(int client)
 		return;
 	}
 
+	if(gB_Replay)
+	{
+		aData.aFrames = Shavit_GetReplayData(client);
+		aData.iPreFrames = Shavit_GetPlayerPreFrame(client);
+		aData.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
+	}
+
 	aData.fDisconnectTime = GetEngineTime();
 	aData.iMoveType = GetEntityMoveType(client);
 	aData.fGravity = GetEntityGravity(client);
@@ -1268,11 +1278,19 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 
 	TeleportEntity(client, fPosition, fAngles, view_as<float>({ 0.0, 0.0, 0.0 }));
 
+	if(gB_Replay && aData.aFrames != null)
+	{
+		Shavit_SetReplayData(client, aData.aFrames);
+		Shavit_SetPlayerPreFrame(client, aData.iPreFrames);
+		Shavit_SetPlayerTimerFrame(client, aData.iTimerPreFrames);
+	}
+
 	if(aData.bPractice)
 	{
 		Shavit_SetPracticeMode(client, true, false);
 	}
 
+	delete aData.aFrames;
 	gA_PersistentData.Erase(iIndex);
 
 	return Plugin_Stop;
