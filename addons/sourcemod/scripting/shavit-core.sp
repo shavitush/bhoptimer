@@ -3060,14 +3060,14 @@ bool TREnumTrigger(int entity, int client) {
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
-	if(!IsPlayerAlive(client) || IsFakeClient(client))
+	if(IsFakeClient(client))
 	{
 		return Plugin_Continue;
 	}
 
 	int flags = GetEntityFlags(client);
 
-	if(gA_Timers[client].bPaused)
+	if(gA_Timers[client].bPaused && IsPlayerAlive(client))
 	{
 		buttons = 0;
 		vel = view_as<float>({0.0, 0.0, 0.0});
@@ -3078,6 +3078,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
+
+	// Wait till now to return so spectators can free-cam while paused...
+	if(!IsPlayerAlive(client))
+	{
+		return Plugin_Continue;
+	}
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnUserCmdPre);

@@ -2422,16 +2422,9 @@ public Action Command_Replay(int client, int args)
 		{
 			ChangeClientTeam(client, CS_TEAM_SPECTATOR);
 		}
-
-		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", gA_CentralCache.iClient);
 	}
 
-	else if(GetSpectatorTarget(client) != gA_CentralCache.iClient)
-	{
-		Shavit_PrintToChat(client, "%T", "CentralReplaySpectator", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-
-		return Plugin_Handled;
-	}
+	SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", gA_CentralCache.iClient);
 
 	if(CanStopCentral(client))
 	{

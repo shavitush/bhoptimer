@@ -771,6 +771,11 @@ public Action Timer_Cron(Handle Timer)
 				RemoveRadarBase(i);
 			}
 		}
+
+	if(gCV_PersistData.FloatValue < 0.0)
+	{
+		return Plugin_Continue;
+
 	}
 
 	int iLength = gA_PersistentData.Length;
@@ -2401,7 +2406,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
-	if(index < 0 || index > gCV_MaxCP.IntValue || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
+	if(index < 1 || index > gCV_MaxCP.IntValue || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
 	{
 		return;
 	}
@@ -2894,6 +2899,11 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 
 public void Shavit_OnRestart(int client, int track)
 {
+	if(gEV_Type != Engine_TF2)
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+	}
+
 	if(!gB_ClosedKZCP[client] &&
 		gA_StyleSettings[gI_Style[client]].bKZCheckpoints &&
 		GetClientMenu(client, null) == MenuSource_None &&
