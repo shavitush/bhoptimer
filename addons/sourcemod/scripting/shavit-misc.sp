@@ -771,6 +771,7 @@ public Action Timer_Cron(Handle Timer)
 				RemoveRadarBase(i);
 			}
 		}
+	}
 
 	if(gCV_PersistData.FloatValue < 0.0)
 	{
