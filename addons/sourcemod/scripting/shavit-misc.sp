@@ -762,6 +762,11 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 
 public Action Timer_Cron(Handle Timer)
 {
+	if(gCV_PersistData.FloatValue < 0.0)
+	{
+		return Plugin_Continue;
+	}
+
 	int iLength = gA_PersistentData.Length;
 	float fTime = GetEngineTime();
 
