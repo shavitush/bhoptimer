@@ -762,6 +762,11 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 
 public Action Timer_Cron(Handle Timer)
 {
+	if(gCV_HideRadar.BoolValue)
+		for (int i = 1; i <= MaxClients; i++)
+			if (IsValidClient(i))
+				RemoveRadarBase(i);
+
 	int iLength = gA_PersistentData.Length;
 	float fTime = GetEngineTime();
 
@@ -3031,10 +3036,8 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-void RemoveRadar(any data)
+void RemoveRadarBase(int client)
 {
-	int client = GetClientFromSerial(data);
-
 	if(client == 0 || !IsPlayerAlive(client))
 	{
 		return;
@@ -3047,9 +3050,15 @@ void RemoveRadar(any data)
 
 	else if(gEV_Type == Engine_CSS)
 	{
-		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 3600.0);
+		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 3600.0 + GetURandomFloat());
 		SetEntPropFloat(client, Prop_Send, "m_flFlashMaxAlpha", 0.5);
 	}
+}
+
+void RemoveRadar(any data)
+{
+	int client = GetClientFromSerial(data);
+	RemoveRadarBase(client);
 }
 
 void RestoreState(any data)
