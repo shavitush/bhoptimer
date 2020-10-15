@@ -763,9 +763,15 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 public Action Timer_Cron(Handle Timer)
 {
 	if(gCV_HideRadar.BoolValue)
-		for (int i = 1; i <= MaxClients; i++)
-			if (IsValidClient(i))
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i))
+			{
 				RemoveRadarBase(i);
+			}
+		}
+	}
 
 	int iLength = gA_PersistentData.Length;
 	float fTime = GetEngineTime();
