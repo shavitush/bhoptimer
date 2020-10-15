@@ -1583,13 +1583,6 @@ bool Teleport(int client, int targetserial)
 
 	int iTarget = GetClientFromSerial(targetserial);
 
-	if(Shavit_InsideZone(client, Zone_Start, -1) || Shavit_InsideZone(client, Zone_End, -1))
-	{
-		Shavit_PrintToChat(client, "%T", "TeleportInZone", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-
-		return false;
-	}
-
 	if(iTarget == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "TeleportInvalidTarget", client);
