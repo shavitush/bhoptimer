@@ -2390,7 +2390,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 {
-	if(index < 0 || index > gCV_MaxCP.IntValue || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
+	if(index < 1 || index > gCV_MaxCP.IntValue || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
 	{
 		return;
 	}
