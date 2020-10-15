@@ -2884,7 +2884,9 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 public void Shavit_OnRestart(int client, int track)
 {
 	if(gEV_Type != Engine_TF2)
+	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+	}
 
 	if(!gB_ClosedKZCP[client] &&
 		gA_StyleSettings[gI_Style[client]].bKZCheckpoints &&
