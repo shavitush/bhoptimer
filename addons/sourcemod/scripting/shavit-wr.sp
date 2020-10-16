@@ -143,9 +143,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
 	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
 
-	RegConsoleCmd("sm_bwr", Command_WorldRecord_Bonus, "View the leaderboard of a map. Usage: sm_bwr [map]");
-	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord_Bonus, "View the leaderboard of a map. Usage: sm_bworldrecord [map]");
-	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord_Bonus, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map]");
+	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map]");
+	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map]");
+	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map]");
 
 	RegConsoleCmd("sm_recent", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
@@ -1313,31 +1313,24 @@ public Action Command_WorldRecord(int client, int args)
 	else
 	{
 		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
-		GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128);
+		if (!GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
+		{
+			Shavit_PrintToChat(client, "Map not found");
+			return Plugin_Handled;
+		}
 	}
 
-	return ShowWRStyleMenu(client, Track_Main);
-}
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
 
-public Action Command_WorldRecord_Bonus(int client, int args)
-{
-	if(!IsValidClient(client))
+	int track = Track_Main;
+
+	if(StrContains(sCommand, "sm_b", false) == 0)
 	{
-		return Plugin_Handled;
+		track = Track_Bonus;
 	}
 
-	if(args == 0)
-	{
-		strcopy(gA_WRCache[client].sClientMap, 128, gS_Map);
-	}
-
-	else
-	{
-		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
-		GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128);
-	}
-
-	return ShowWRStyleMenu(client, Track_Bonus);
+	return ShowWRStyleMenu(client, track);
 }
 
 Action ShowWRStyleMenu(int client, int track)
@@ -2263,13 +2256,13 @@ int GetRankForTime(int style, float time, int track)
 	return (iRecords + 1);
 }
 
-void GuessBestMapName(const char[] input, char[] output, int size)
+bool GuessBestMapName(const char[] input, char[] output, int size)
 {
 	if(gA_ValidMaps.FindString(input) != -1)
 	{
 		strcopy(output, size, input);
 
-		return;
+		return true;
 	}
 
 	char sCache[128];
@@ -2282,9 +2275,11 @@ void GuessBestMapName(const char[] input, char[] output, int size)
 		{
 			strcopy(output, size, sCache);
 
-			return;
+			return true;
 		}
 	}
+
+	return false;
 }
 
 void GetTrackName(int client, int track, char[] output, int size)
