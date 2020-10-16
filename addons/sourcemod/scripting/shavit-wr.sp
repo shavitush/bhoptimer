@@ -124,6 +124,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("common.phrases");
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-wr.phrases");
 
@@ -1315,7 +1316,7 @@ public Action Command_WorldRecord(int client, int args)
 		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
 		if (!GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
 		{
-			Shavit_PrintToChat(client, "Map not found");
+			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
 			return Plugin_Handled;
 		}
 	}
