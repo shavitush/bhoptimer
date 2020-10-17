@@ -2786,7 +2786,7 @@ float GetClosestReplayTime(int client, int style, int track)
 	int iLength = gA_Frames[style][track].Length;
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
-	int iPlayerFrames = gA_PlayerFrames[client].Length;
+	int iPlayerFrames = gA_PlayerFrames[client].Length - gI_PlayerPrerunFrames[client];
 
 	int iStartFrame = iPlayerFrames - iSearch;
 	if(iStartFrame < 0)
