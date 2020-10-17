@@ -60,7 +60,6 @@ wrcache_t gA_WRCache[MAXPLAYERS+1];
 
 char gS_Map[160]; // blame workshop paths being so fucking long
 ArrayList gA_ValidMaps = null;
-int gI_ValidMaps = 1;
 
 // current wr stats
 float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
@@ -318,7 +317,6 @@ public void OnMapStart()
 
 	gA_ValidMaps.Clear();
 	gA_ValidMaps.PushString(sLowerCase);
-	gI_ValidMaps = 1;
 
 	char sQuery[128];
 	FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
@@ -359,7 +357,6 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 		if(gA_ValidMaps.FindString(sLowerCase) == -1)
 		{
 			gA_ValidMaps.PushString(sLowerCase);
-			gI_ValidMaps++;
 		}
 	}
 
@@ -1314,7 +1311,7 @@ public Action Command_WorldRecord(int client, int args)
 	else
 	{
 		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
-		if (!GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
+		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
 		{
 			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
 			return Plugin_Handled;
@@ -2255,32 +2252,6 @@ int GetRankForTime(int style, float time, int track)
 	}
 
 	return (iRecords + 1);
-}
-
-bool GuessBestMapName(const char[] input, char[] output, int size)
-{
-	if(gA_ValidMaps.FindString(input) != -1)
-	{
-		strcopy(output, size, input);
-
-		return true;
-	}
-
-	char sCache[128];
-
-	for(int i = 0; i < gI_ValidMaps; i++)
-	{
-		gA_ValidMaps.GetString(i, sCache, 128);
-
-		if(StrContains(sCache, input) != -1)
-		{
-			strcopy(output, size, sCache);
-
-			return true;
-		}
-	}
-
-	return false;
 }
 
 void GetTrackName(int client, int track, char[] output, int size)

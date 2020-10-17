@@ -425,6 +425,32 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	}
 }
 
+stock bool GuessBestMapName(ArrayList &maps, const char[] input, char[] output, int size)
+{
+	if(maps.FindString(input) != -1)
+	{
+		strcopy(output, size, input);
+
+		return true;
+	}
+
+	char sCache[128];
+
+	for(int i = 0; i < maps.Length; i++)
+	{
+		maps.GetString(i, sCache, 128);
+
+		if(StrContains(sCache, input) != -1)
+		{
+			strcopy(output, size, sCache);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /**
  * Called before shavit-core processes the client's usercmd.
  * Before this is called, safety checks (fake/dead clients) happen.

@@ -67,7 +67,6 @@ int gI_Tier = 1; // No floating numbers for tiers, sorry.
 
 char gS_Map[160];
 
-int gI_ValidMaps = 0;
 ArrayList gA_ValidMaps = null;
 StringMap gA_MapTiers = null;
 
@@ -434,32 +433,7 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 		Call_Finish();
 	}
 
-	gI_ValidMaps = gA_ValidMaps.Length;
 	SortADTArray(gA_ValidMaps, Sort_Ascending, Sort_String);
-}
-
-void GuessBestMapName(const char[] input, char[] output, int size)
-{
-	if(gA_ValidMaps.FindString(input) != -1)
-	{
-		strcopy(output, size, input);
-
-		return;
-	}
-
-	char sCache[128];
-
-	for(int i = 0; i < gI_ValidMaps; i++)
-	{
-		gA_ValidMaps.GetString(i, sCache, 128);
-
-		if(StrContains(sCache, input) != -1)
-		{
-			strcopy(output, size, sCache);
-
-			return;
-		}
-	}
 }
 
 public void OnMapEnd()
@@ -473,16 +447,19 @@ public Action Command_Tier(int client, int args)
 	int tier = gI_Tier;
 
 	char sMap[128];
-	strcopy(sMap, 128, gS_Map);
 
-	if(args > 0)
+	if(args == 0)
+	{
+		strcopy(sMap, 128, gS_Map);
+	}
+	
+	else
 	{
 		GetCmdArgString(sMap, 128);
-		GuessBestMapName(sMap, sMap, 128);
-		
-		if(!gA_MapTiers.GetValue(sMap, tier))
+		if(!GuessBestMapName(gA_ValidMaps, sMap, sMap, 128) || !gA_MapTiers.GetValue(sMap, tier))
 		{
-			strcopy(sMap, 128, gS_Map);
+			Shavit_PrintToChat(client, "%t", "Map was not found", sMap);
+			return Plugin_Handled;
 		}
 	}
 
