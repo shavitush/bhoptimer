@@ -2818,7 +2818,7 @@ float GetClosestReplayTime(int client, int style, int track)
 
 	for(int frame = iStartFrame; frame < iEndFrame; frame++)
 	{
-		gA_Frames[style][track].GetArray(frame, fReplayPos, 2);
+		gA_Frames[style][track].GetArray(frame, fReplayPos, 3);
 
 		float dist = GetVectorDistance(fClientPos, fReplayPos, true);
 		if(dist < fMinDist)
