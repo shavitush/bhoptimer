@@ -425,7 +425,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	}
 }
 
-stock bool GuessBestMapName(ArrayList &maps, const char[] input, char[] output, int size)
+stock bool GuessBestMapName(ArrayList maps, const char[] input, char[] output, int size)
 {
 	if(maps.FindString(input) != -1)
 	{
