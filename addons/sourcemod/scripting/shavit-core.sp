@@ -2277,7 +2277,7 @@ bool LoadStyles()
 		gA_StyleSettings[i].fJumpBonus = kv.GetFloat("jump_bonus", 0.0);
 		gA_StyleSettings[i].bBlockW = view_as<bool>(kv.GetNum("block_w", 0));
 		gA_StyleSettings[i].bBlockA = view_as<bool>(kv.GetNum("block_a", 0));
-		gA_StyleSettings[i].bBlockS = view_as<bool>(kv.GetNum("block_s", 0)) || kv.GetNum("force_hsw", 0) == 1;
+		gA_StyleSettings[i].bBlockS = view_as<bool>(kv.GetNum("block_s", 0));
 		gA_StyleSettings[i].bBlockD = view_as<bool>(kv.GetNum("block_d", 0));
 		gA_StyleSettings[i].bBlockUse = view_as<bool>(kv.GetNum("block_use", 0));
 		gA_StyleSettings[i].iForceHSW = kv.GetNum("force_hsw", 0);
@@ -3284,7 +3284,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				else
 				{
-					if((bForward || bBack) && !(bMoveLeft || bMoveRight))
+					if(bBack && (bMoveLeft || bMoveRight))
+					{
+						vel[0] = 0.0;
+
+						buttons &= ~IN_BACK;
+					}
+
+					if(bForward && !(bMoveLeft || bMoveRight))
 					{
 						vel[0] = 0.0;
 
@@ -3292,7 +3299,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						buttons &= ~IN_BACK;
 					}
 
-					if((bMoveLeft || bMoveRight) && !(bForward || bBack))
+					if((bMoveLeft || bMoveRight) && !bForward)
 					{
 						vel[1] = 0.0;
 
