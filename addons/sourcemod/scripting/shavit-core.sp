@@ -3288,6 +3288,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					{
 						vel[0] = 0.0;
 
+						buttons &= ~IN_FORWARD;
 						buttons &= ~IN_BACK;
 					}
 
