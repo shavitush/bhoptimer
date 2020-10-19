@@ -1631,11 +1631,9 @@ native int Shavit_ReloadReplays(bool restart);
  * Gets time from replay frame that is closest to client.
  *
  * @param 				Client index.
- * @param				Client style.
- * @param				Client track.
  * @return				Replay time.
  */
-native float Shavit_GetClosestReplayTime(int client, int style, int track);
+native float Shavit_GetClosestReplayTime(int client);
 
 /**
  * Gets velocity from replay frame that is closest to client.
