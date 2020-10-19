@@ -124,6 +124,10 @@ int gI_Track[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
 float gF_NextFrameTime[MAXPLAYERS+1];
 
+float gF_TimeDifference[MAXPLAYERS + 1];
+float gF_VelocityDifference2D[MAXPLAYERS+1];
+float gF_VelocityDifference3D[MAXPLAYERS+1];
+
 bool gB_Late = false;
 
 // forwards
@@ -157,6 +161,8 @@ Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
 Convar gCV_ClearPreRun = null;
 Convar gCV_DynamicTimeSearch = null;
+Convar gCV_DynamicTimeTick = null;
+ConVar gCV_EnableDynamicTimeDifference = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -215,6 +221,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetPlayerTimerFrame", Native_SetTimerFrame);
 	CreateNative("Shavit_GetPlayerTimerFrame", Native_GetTimerFrame);
 	CreateNative("Shavit_GetClosestReplayTime", Native_GetClosestReplayTime);
+	CreateNative("Shavit_GetClosestReplayVelocityDifference", Native_GetClosestReplayVelocityDifference);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -236,6 +243,8 @@ public void OnAllPluginsLoaded()
 	{
 		OnAdminMenuReady(gH_AdminMenu);
 	}
+
+	gCV_EnableDynamicTimeDifference = FindConVar("shavit_hud_dynamictimedifference");
 }
 
 public void OnPluginStart()
@@ -298,6 +307,7 @@ public void OnPluginStart()
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.0", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
 	gCV_ClearPreRun = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
 	gCV_DynamicTimeSearch = new Convar("shavit_replay_dynamictimedifference_search", "10.0", "Time in seconds to search ahead and behind the players current frame for dynamic time differences\nNote: Higher values will result in worse performance", 0, true, 0.0);
+	gCV_DynamicTimeTick = new Convar("shavit_replay_dynamictimedifference_tick", "10", "How often (in ticks) should the time difference update.\nYou should probably keep this around 1/10 of a second worth of ticks.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
@@ -828,10 +838,16 @@ public int Native_SetTimerFrame(Handle handler, int numParams)
 public int Native_GetClosestReplayTime(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	int style = GetNativeCell(2);
-	int track = GetNativeCell(3);
-	
-	return view_as<int>(GetClosestReplayTime(client, style, track));
+	return view_as<int>(gF_TimeDifference[client]);
+}
+
+public int Native_GetClosestReplayVelocityDifference(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	if (GetNativeCell(2))
+		return view_as<int>(gF_VelocityDifference3D[client]);
+	else
+		return view_as<int>(gF_VelocityDifference2D[client]);
 }
 
 public Action Cron(Handle Timer)
@@ -2781,9 +2797,34 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 	Shavit_GetWRName(style, buffer, length, track);
 }
 
-float GetClosestReplayTime(int client, int style, int track)
+public void OnGameFrame()
 {
+	if (!gCV_EnableDynamicTimeDifference.BoolValue)
+		return;
+
+	int valid = 0;
+	int modtick = GetGameTickCount() % gCV_DynamicTimeTick.IntValue;
+	for (int client = 1; client <= MaxClients; client++)
+		if (IsValidClient(client, true) && !IsFakeClient(client))
+			if ((++valid % gCV_DynamicTimeTick.IntValue) == modtick)
+				GetClosestReplayInfo(client);
+}
+
+void GetClosestReplayInfo(int client)
+{
+	int style = Shavit_GetBhopStyle(client);
+	int track = Shavit_GetClientTrack(client);
+
 	int iLength = gA_Frames[style][track].Length;
+
+	if (iLength < 1)
+	{
+		gF_TimeDifference[client] = 0.0;
+		gF_VelocityDifference2D[client] = 0.0;
+		gF_VelocityDifference3D[client] = 0.0;
+		return;
+	}
+
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
 	int iPlayerFrames = gA_PlayerFrames[client].Length - gI_PlayerPrerunFrames[client];
@@ -2799,7 +2840,6 @@ float GetClosestReplayTime(int client, int style, int track)
 	{
 		iEndFrame = iLength - 1;
 	}
-
 
 	float fReplayPos[3];
 	int iClosestFrame;
@@ -2820,21 +2860,28 @@ float GetClosestReplayTime(int client, int style, int track)
 			iClosestFrame = frame;
 		}
 	}
-
-	// out of bounds
-	if(iClosestFrame == 0)
-	{
-		return -1.0;
-	}
 	
-	// inside start zone
 	if(iClosestFrame < iPreframes)
 	{
-		return 0.0;
+		gF_TimeDifference[client] = 0.0;
 	}
-	
-	float frametime = GetReplayLength(style, track) / float(gA_FrameCache[style][track].iFrameCount - iPreframes);
-	return (iClosestFrame - iPreframes)  * frametime;
+	else
+	{
+		float frametime = GetReplayLength(style, track) / float(gA_FrameCache[style][track].iFrameCount - iPreframes);
+		gF_TimeDifference[client] = (iClosestFrame - iPreframes) * frametime;
+	}
+
+	float clientvel[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", clientvel);
+
+	float prevbot[3], curbot[3], replayvel[3];
+	gA_Frames[style][track].GetArray(iClosestFrame, curbot, 3);
+	gA_Frames[style][track].GetArray(iClosestFrame == 0 ? 0 : iClosestFrame-1, prevbot, 3);
+	MakeVectorFromPoints(curbot, prevbot, replayvel);
+	ScaleVector(replayvel, gF_Tickrate);
+
+	gF_VelocityDifference2D[client] = (SquareRoot(Pow(clientvel[0], 2.0) + Pow(clientvel[1], 2.0))) - (SquareRoot(Pow(replayvel[0], 2.0) + Pow(replayvel[1], 2.0)));
+	gF_VelocityDifference3D[client] = GetVectorLength(clientvel) - GetVectorLength(replayvel);
 }
 
 /*
