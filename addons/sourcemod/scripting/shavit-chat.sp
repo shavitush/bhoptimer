@@ -259,23 +259,27 @@ bool LoadChatSettings()
 	}
 
 	gSM_Messages.Clear();
+	bool failed;
 
 	if(gEV_Type == Engine_CSS)
 	{
-		kv.JumpToKey("CS:S");
+		failed = !kv.JumpToKey("CS:S");
 	}
 
 	else if(gEV_Type == Engine_CSGO)
 	{
-		kv.JumpToKey("CS:GO");
+		failed = !kv.JumpToKey("CS:GO");
 	}
 
 	if(gEV_Type == Engine_TF2)
 	{
-		kv.JumpToKey("TF2");
+		failed = !kv.JumpToKey("TF2");
 	}
 
-	kv.GotoFirstSubKey(false);
+	if(failed || !kv.GotoFirstSubKey(false))
+	{
+		SetFailState("Invalid \"configs/shavit-chatsettings.cfg\" file, or the game section is missing");
+	}
 
 	do
 	{
