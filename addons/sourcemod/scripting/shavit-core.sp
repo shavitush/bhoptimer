@@ -3258,19 +3258,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						gA_Timers[client].iSHSWCombination = iCombination;
 					}
 
-					bool bStop = false;
-
 					// W/A S/D
 					if((gA_Timers[client].iSHSWCombination == 0 && iCombination != 0) ||
 					// W/D S/A
 						(gA_Timers[client].iSHSWCombination == 1 && iCombination != 1) ||
 					// no valid combination & no valid input
 						(gA_Timers[client].iSHSWCombination == -1 && iCombination == -1))
-					{
-						bStop = true;
-					}
-
-					if(bStop)
 					{
 						vel[0] = 0.0;
 						vel[1] = 0.0;
