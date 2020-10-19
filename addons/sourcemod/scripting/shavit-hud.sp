@@ -107,7 +107,6 @@ Handle gH_HUDCookie = null;
 Handle gH_HUDCookieMain = null;
 int gI_HUDSettings[MAXPLAYERS+1];
 int gI_HUD2Settings[MAXPLAYERS+1];
-int gI_NameLength = MAX_NAME_LENGTH;
 int gI_LastScrollCount[MAXPLAYERS+1];
 int gI_ScrollCount[MAXPLAYERS+1];
 int gI_Buttons[MAXPLAYERS+1];
@@ -126,6 +125,7 @@ Convar gCV_GradientStepSize = null;
 Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_UseHUDFix = null;
+Convar gCV_SpecNameSymbolLength = null;
 Convar gCV_DefaultHUD = null;
 Convar gCV_DefaultHUD2 = null;
 Convar gCV_EnableDynamicTimeDifference = null;
@@ -169,17 +169,6 @@ public void OnPluginStart()
 	// game-specific
 	gEV_Type = GetEngineVersion();
 
-	if(IsSource2013(gEV_Type))
-	{
-		gI_NameLength = MAX_NAME_LENGTH;
-	}
-
-	else
-	{
-		// long names make it look bad in CS:GO due to the font size
-		gI_NameLength = 14;
-	}
-
 	if(gEV_Type == Engine_TF2)
 	{
 		HookEvent("player_changeclass", Player_ChangeClass);
@@ -203,6 +192,7 @@ public void OnPluginStart()
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
 	gCV_EnableDynamicTimeDifference = new Convar("shavit_hud_dynamictimedifference", "1", "Enabled dynamic time differences in the hud", 0, true, 0.0, true, 1.0);
+	gCV_SpecNameSymbolLength = new Convar("shavit_hud_specnamesymbollength", "32", "Maximum player name length that should be displayed in spectators panel", 0, true, 0.0, true, float(MAX_NAME_LENGTH));
 
 	char defaultHUD[8];
 	IntToString(HUD_DEFAULT, defaultHUD, 8);
@@ -1626,9 +1616,10 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 	if(iSpectators > 0)
 	{
+		char sName[MAX_NAME_LENGTH];
 		char sSpectators[32];
-		char sSpectatorsPersonal[64];
-		char sSpectatorWatching[64];
+		char sSpectatorsPersonal[32];
+		char sSpectatorWatching[32];
 		FormatEx(sSpectatorsPersonal, 32, "%T", "SpectatorPersonal", client);
 		FormatEx(sSpectatorWatching, 32, "%T", "SpectatorWatching", client);
 		FormatEx(sSpectators, 32, "%s (%d):", (client == target)? sSpectatorsPersonal:sSpectatorWatching, iSpectators);
@@ -1643,9 +1634,9 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 				break;
 			}
 
-			char[] sName = new char[gI_NameLength];
-			GetClientName(iSpectatorClients[i], sName, gI_NameLength);
-			ReplaceString(sName, gI_NameLength, "#", "?");
+			GetClientName(iSpectatorClients[i], sName, sizeof(sName));
+			ReplaceString(sName, sizeof(sName), "#", "?");
+			TrimPlayerName(sName, sName, sizeof(sName));
 
 			panel.DrawItem(sName, ITEMDRAW_RAWLINE);
 		}
@@ -1793,7 +1784,8 @@ void UpdateKeyHint(int client)
 				if(iSpectators > 0)
 				{
 					Format(sMessage, 256, "%s%s%spectators (%d):", sMessage, (strlen(sMessage) > 0)? "\n\n":"", (client == target)? "S":"Other S", iSpectators);
-
+					char sName[MAX_NAME_LENGTH];
+					
 					for(int i = 0; i < iSpectators; i++)
 					{
 						if(i == 7)
@@ -1803,9 +1795,9 @@ void UpdateKeyHint(int client)
 							break;
 						}
 
-						char[] sName = new char[gI_NameLength];
-						GetClientName(iSpectatorClients[i], sName, gI_NameLength);
-						ReplaceString(sName, gI_NameLength, "#", "?");
+						GetClientName(iSpectatorClients[i], sName, sizeof(sName));
+						ReplaceString(sName, sizeof(sName), "#", "?");
+						TrimPlayerName(sName, sName, sizeof(sName));
 						Format(sMessage, 256, "%s\n%s", sMessage, sName);
 					}
 				}
@@ -1944,4 +1936,25 @@ void PrintCSGOHUDText(int client, const char[] format, any ...)
 	pb.AddString("params", NULL_STRING);
 	
 	EndMessage();
+}
+
+// https://forums.alliedmods.net/showthread.php?t=216841
+void TrimPlayerName(const char[] name, char[] outname, int len)
+{
+	int count, finallen;
+	for(int i = 0; name[i]; i++)
+	{
+		count += ((name[i] & 0xc0) != 0x80) ? 1 : 0;
+		
+		if(count <= gCV_SpecNameSymbolLength.IntValue)
+		{
+			outname[i] = name[i];
+			finallen = i;
+		}
+	}
+	
+	outname[finallen + 1] = '\0';
+	
+	if(count > gCV_SpecNameSymbolLength.IntValue)
+		Format(outname, len, "%s...", outname);
 }
