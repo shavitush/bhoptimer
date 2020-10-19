@@ -2804,10 +2804,15 @@ public void OnGameFrame()
 
 	int valid = 0;
 	int modtick = GetGameTickCount() % gCV_DynamicTimeTick.IntValue;
+
 	for (int client = 1; client <= MaxClients; client++)
-		if (IsValidClient(client, true) && !IsFakeClient(client))
-			if ((++valid % gCV_DynamicTimeTick.IntValue) == modtick)
-				GetClosestReplayInfo(client);
+	{
+		// Use modtick & valid to spread out client updates across different ticks.
+		if (IsValidClient(client, true) && !IsFakeClient(client) && (++valid % gCV_DynamicTimeTick.IntValue) == modtick)
+		{
+			GetClosestReplayInfo(client);
+		}
+	}
 }
 
 void GetClosestReplayInfo(int client)
