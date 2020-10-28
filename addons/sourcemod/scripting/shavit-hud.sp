@@ -1533,10 +1533,11 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 		FormatEx(sPanelLine, 64, " %d%s%d\n", gI_ScrollCount[target], (gI_ScrollCount[target] > 9)? "   ":"     ", gI_LastScrollCount[target]);
 	}
 
-	Format(sPanelLine, 128, "%s［%s］　［%s］\n　　 %s\n%s　 %s 　%s", sPanelLine,
+	Format(sPanelLine, 128, "%s［%s］　［%s］\n　　 %s\n%s %s　 %s 　%s %s", sPanelLine,
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
-		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
-		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
+		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_LEFT) > 0? "Ｌ":"ｰ",
+		(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ",
+		(buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ", (buttons & IN_RIGHT) > 0? "Ｒ":"ｰ");
 
 	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
 
@@ -1570,10 +1571,11 @@ void UpdateCenterKeys(int client)
 	int buttons = gI_Buttons[target];
 
 	char sCenterText[64];
-	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s　 %s 　%s", 
+	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s %s　 %s 　%s %s", 
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
-		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
-		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
+		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_LEFT) > 0? "Ｌ":"ｰ",
+		(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ",
+		(buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ", (buttons & IN_RIGHT) > 0? "Ｒ":"ｰ");
 
 	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
