@@ -1923,20 +1923,6 @@ public int Native_GetHUDSettings(Handle handler, int numParams)
 	return gI_HUDSettings[client];
 }
 
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
-}
-
 void PrintCSGOHUDText(int client, const char[] format, any ...)
 {
 	char buff[MAX_HINT_SIZE];

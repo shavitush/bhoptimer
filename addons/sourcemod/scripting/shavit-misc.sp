@@ -961,11 +961,15 @@ void UpdateClanTag(int client)
 	}
 
 	int track = Shavit_GetClientTrack(client);
-	char sTrack[3];
+	char sTrack[4];
 
 	if(track != Track_Main)
 	{
-		GetTrackName(client, track, sTrack, 3);
+		sTrack[0] = 'B';
+		if (track > Track_Bonus)
+		{
+			FormatEx(sTrack, sizeof(sTrack), "B%d", track);
+		}
 	}
 
 	char sRank[8];
@@ -2852,20 +2856,6 @@ public Action Shavit_OnStart(int client)
 	}
 
 	return Plugin_Continue;
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }
 
 public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track)

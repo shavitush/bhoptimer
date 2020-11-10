@@ -2781,20 +2781,6 @@ int GetSpectatorTarget(int client)
 	return target;
 }
 
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
-}
-
 float GetReplayLength(int style, int track)
 {
 	if(gA_FrameCache[style][track].iFrameCount == 0)

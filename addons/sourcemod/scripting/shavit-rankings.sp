@@ -86,8 +86,6 @@ Handle gH_Forwards_OnRankAssigned = null;
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 stylesettings_t gA_StyleSettings[STYLE_LIMIT];
-char gS_StyleNames[STYLE_LIMIT][64];
-char gS_TrackNames[TRACKS_SIZE][32];
 
 public Plugin myinfo =
 {
@@ -159,11 +157,6 @@ public void OnPluginStart()
 		Shavit_OnChatConfigLoaded();
 	}
 
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		GetTrackName(LANG_SERVER, i, gS_TrackNames[i], 32);
-	}
-
 	SQL_DBConnect();
 }
 
@@ -187,7 +180,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleNames[i], 64);
 	}
 }
 
@@ -870,20 +862,6 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 	}
 
 	gH_Top100Menu.ExitButton = true;
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }
 
 public int Native_GetMapTier(Handle handler, int numParams)

@@ -1338,6 +1338,18 @@ public Action Command_WorldRecord(int client, int args)
 	if(StrContains(sCommand, "sm_b", false) == 0)
 	{
 		track = Track_Bonus;
+
+		if (args > 1)
+		{
+			char arg[6];
+			GetCmdArg(1, arg, sizeof(arg));
+			track = StringToInt(arg);
+
+			if (track < Track_Bonus)
+			{
+				track = Track_Bonus;
+			}
+		}
 	}
 
 	return ShowWRStyleMenu(client, track);
@@ -2264,18 +2276,4 @@ int GetRankForTime(int style, float time, int track)
 	}
 
 	return (iRecords + 1);
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }

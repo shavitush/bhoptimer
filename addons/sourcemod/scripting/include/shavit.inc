@@ -451,6 +451,16 @@ stock bool GuessBestMapName(ArrayList maps, const char[] input, char[] output, i
 	return false;
 }
 
+stock void GetTrackName(int client, int track, char[] output, int size)
+{
+	if (track == Track_Main)
+		FormatEx(output, size, "%T", "Track_Main", sTrack, client);
+	else if (track >= Track_Bonus)
+		FormatEx(output, size, "%T", "Track_Bonus", sTrack, client);
+	else //if (track < Track_Main)
+		FormatEx(output, size, "%T", "Track_Unknown", client);
+}
+
 /**
  * Called before shavit-core processes the client's usercmd.
  * Before this is called, safety checks (fake/dead clients) happen.
