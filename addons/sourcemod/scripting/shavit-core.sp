@@ -943,6 +943,21 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 	hPack.Reset();
 	int iSteamID = hPack.ReadCell();
 
+	int client = 0;
+	char szSteamid[32];
+	// Just use the client index in the pack?
+	for(int index = 1; index <= MaxClients; index++)
+	{
+		if(IsValidClient(index) && !IsFakeClient(index))
+		{
+			if(iSteamID == GetSteamAccountID(index))
+			{
+				client = index;
+				break;
+			}
+		}
+	}
+
 	for(int i = 0; i < numQueries; i++)
 	{
 		DataPack hQueryPack = view_as<DataPack>(queryData[i]);
@@ -955,13 +970,18 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 		int iTrack = hQueryPack.ReadCell();
 		delete hQueryPack;
 
+		if(client > 0)
+		{
+			Shavit_SetClientPB(client, iStyle, iTrack, 0.0);
+		}
+
 		if(results[i] != null && results[i].FetchRow())
 		{
 			int iWR = results[i].FetchInt(0);
 
 			if(iWR == iRecordID)
 			{
-				Shavit_DeleteReplay(sMap, iStyle, iTrack);
+				Shavit_DeleteReplay(sMap, iStyle, iTrack, iSteamID);
 			}
 		}
 	}

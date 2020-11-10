@@ -44,6 +44,7 @@
 #define HUD2_MAPTIER			(1 << 9)
 #define HUD2_TIMEDIFFERENCE		(1 << 10)
 #define HUD2_PERFS				(1 << 11)
+#define HUD2_TOPLEFT_RANK		(1 << 12)
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2			(HUD2_PERFS)
@@ -234,7 +235,8 @@ public void OnPluginStart()
 		..."HUD2_SPLITPB				256\n"
 		..."HUD2_MAPTIER				512\n"
 		..."HUD2_TIMEDIFFERENCE		1024\n"
-		..."HUD2_PERFS				2048");
+		..."HUD2_PERFS				2048\n"
+		..."HUD2_TOPLEFT_RANK				4096");
 
 	Convar.AutoExecConfig();
 
@@ -725,6 +727,10 @@ Action ShowHUDMenu(int client, int item)
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SPLITPB);
 	FormatEx(sHudItem, 64, "%T", "HudSplitPbText", client);
+	menu.AddItem(sInfo, sHudItem);
+
+	FormatEx(sInfo, 16, "@%d", HUD2_TOPLEFT_RANK);
+	FormatEx(sHudItem, 64, "%T", "HudTopLeftRankText", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	if(gB_Rankings)
@@ -1709,12 +1715,26 @@ void UpdateTopLeftHUD(int client, bool wait)
 			{
 				if(fTargetPB != 0.0)
 				{
-					Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sTargetPB, target);
+					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
+					{
+						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), target);
+					}
+					else 
+					{
+						Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sTargetPB, target);
+					}
 				}
 
 				if(fSelfPB != 0.0)
 				{
-					Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sSelfPB, client);
+					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
+					{
+						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
+					}
+					else 
+					{
+						Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sSelfPB, client);
+					}
 				}
 			}
 

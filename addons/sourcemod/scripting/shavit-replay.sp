@@ -465,6 +465,7 @@ public int Native_DeleteReplay(Handle handler, int numParams)
 
 	int iStyle = GetNativeCell(2);
 	int iTrack = GetNativeCell(3);
+	int iSteamID = GetNativeCell(4);
 
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", iTrack);
@@ -472,14 +473,9 @@ public int Native_DeleteReplay(Handle handler, int numParams)
 	char sPath[PLATFORM_MAX_PATH];
 	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, iStyle, gS_Map, (iTrack > 0)? sTrack:"");
 
-	if(!FileExists(sPath) || !DeleteFile(sPath))
+	if(!DeleteReplay(iStyle, iTrack, StrEqual(sMap, gS_Map), iSteamID))
 	{
 		return false;
-	}
-
-	if(StrEqual(sMap, gS_Map))
-	{
-		UnloadReplay(iStyle, iTrack);
 	}
 
 	return true;
@@ -1348,7 +1344,7 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	return true;
 }
 
-bool DeleteReplay(int style, int track)
+bool DeleteReplay(int style, int track, bool unload_replay = false, int accountid = 0)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1356,12 +1352,58 @@ bool DeleteReplay(int style, int track)
 	char sPath[PLATFORM_MAX_PATH];
 	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 
-	if(!FileExists(sPath) || !DeleteFile(sPath))
+	if(!FileExists(sPath))
 	{
 		return false;
 	}
 
-	UnloadReplay(style, track);
+	if(accountid != 0)
+	{
+		File file = OpenFile(sPath, "wb");
+
+		char szTemp[160];
+		file.ReadString(szTemp, 160);
+
+		int iTemp = 0;
+		file.ReadUint8(iTemp);
+		file.ReadUint8(iTemp);
+		file.ReadInt32(iTemp);
+		file.ReadInt32(iTemp);
+		int iSteamID = 0;
+
+		if(gA_FrameCache[style][track].iReplayVersion >= 0x04)
+		{
+			file.ReadInt32(iSteamID);
+		}
+
+		else
+		{
+			char sAuthID[32];
+			file.ReadString(sAuthID, 32);
+			ReplaceString(sAuthID, 32, "[U:1:", "");
+			ReplaceString(sAuthID, 32, "]", "");
+			iSteamID = StringToInt(sAuthID);
+		}
+
+		delete file;
+		
+		if(accountid == iSteamID && !DeleteFile(sPath))
+		{
+			return false;
+		}
+	}
+	else 
+	{
+		if(!DeleteFile(sPath))
+		{
+			return false;
+		}
+	}
+
+	if(unload_replay)
+	{
+		UnloadReplay(style, track);
+	}
 
 	return true;
 }
@@ -2242,13 +2284,13 @@ void ClearFrames(int client)
 	gI_PlayerTimerStartFrames[client] = 0;
 }
 
-public void Shavit_OnWRDeleted(int style, int id, int track)
+public void Shavit_OnWRDeleted(int style, int id, int track, int accountid)
 {
 	float time = Shavit_GetWorldRecord(style, track);
 
 	if(gA_FrameCache[style][track].iFrameCount > 0 && GetReplayLength(style, track) - gF_Tickrate <= time) // -0.1 to fix rounding issues
 	{
-		DeleteReplay(style, track);
+		DeleteReplay(style, track, true, accountid);
 	}
 }
 

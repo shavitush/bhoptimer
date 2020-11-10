@@ -611,9 +611,10 @@ forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, 
  * @param style						Style the record was done on.
  * @param id						Record ID. -1 if mass deletion.
  * @param track						Timer track.
+ * @param accountid					The account ID of the wr holder
  * @noreturn
  */
-forward void Shavit_OnWRDeleted(int style, int id, int track);
+forward void Shavit_OnWRDeleted(int style, int id, int track, int accountid);
 
 /**
  * Called when a player's timer paused.
@@ -1168,6 +1169,17 @@ native void Shavit_GetPlayerPB(int client, int style, float &time, int track);
 native float Shavit_GetClientPB(int client, int style, int track);
 
 /**
+ * Sets the cached pb directly for the given client, style and track.
+ *
+ * @param client					Client index.
+ * @param style						Style to get the PB for.
+ * @param track						Timer track.
+ * @param time						Time to set
+ * @noreturn
+ */
+native void Shavit_SetClientPB(int client, int style, int track, float time);
+
+/**
  * Retrieves the completions of a player.
  *
  * @param client					Client index.
@@ -1302,9 +1314,10 @@ native float Shavit_GetDistanceOffset(int client, int zonetype);
  * @param map						Map display name.
  * @param style						Bhop style.
  * @param track						Timer track.
- * @return							true if replay existed, false otherwise.
+ * @param accountid					Account ID to validate against, 0 to skip validation.
+ * @return							true if replay existed, false if the steam id didn't match or the file didn't exist.
  */
-native bool Shavit_DeleteReplay(const char[] map, int style, int track);
+native bool Shavit_DeleteReplay(const char[] map, int style, int track, int accountid = 0);
 
 /**
  * Retrieves the engine time of the replay bot's first frame.
