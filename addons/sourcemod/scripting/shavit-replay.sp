@@ -1344,7 +1344,7 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	return true;
 }
 
-bool DeleteReplay(int style, int track, bool unload_replay = false, int steamid = 0)
+bool DeleteReplay(int style, int track, bool unload_replay = false, int accountid = 0)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1357,7 +1357,7 @@ bool DeleteReplay(int style, int track, bool unload_replay = false, int steamid 
 		return false;
 	}
 
-	if(steamid != 0)
+	if(accountid != 0)
 	{
 		File file = OpenFile(sPath, "wb");
 
@@ -1384,16 +1384,13 @@ bool DeleteReplay(int style, int track, bool unload_replay = false, int steamid 
 			ReplaceString(sAuthID, 32, "]", "");
 			iSteamID = StringToInt(sAuthID);
 		}
-		
-		if(steamid == iSteamID)
-		{
-			if(!DeleteFile(sPath))
-			{
-				delete file;
-				return false;
-			}
-		}
+
 		delete file;
+		
+		if(accountid == iSteamID && !DeleteFile(sPath))
+		{
+			return false;
+		}
 	}
 	else 
 	{
@@ -2287,13 +2284,13 @@ void ClearFrames(int client)
 	gI_PlayerTimerStartFrames[client] = 0;
 }
 
-public void Shavit_OnWRDeleted(int style, int id, int track, int steamid)
+public void Shavit_OnWRDeleted(int style, int id, int track, int accountid)
 {
 	float time = Shavit_GetWorldRecord(style, track);
 
 	if(gA_FrameCache[style][track].iFrameCount > 0 && GetReplayLength(style, track) - gF_Tickrate <= time) // -0.1 to fix rounding issues
 	{
-		DeleteReplay(style, track, true, steamid);
+		DeleteReplay(style, track, true, accountid);
 	}
 }
 

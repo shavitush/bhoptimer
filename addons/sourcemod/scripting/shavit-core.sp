@@ -944,7 +944,8 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 
 	int client = 0;
 	char szSteamid[32];
-	for(int index = 1; index < MaxClients+1; index++)
+	// Just use the client index in the pack?
+	for(int index = 1; index <= MaxClients; index++)
 	{
 		if(IsValidClient(index) && !IsFakeClient(index))
 		{
