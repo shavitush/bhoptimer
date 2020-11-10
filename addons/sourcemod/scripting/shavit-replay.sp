@@ -845,9 +845,13 @@ public int Native_GetClosestReplayVelocityDifference(Handle plugin, int numParam
 {
 	int client = GetNativeCell(1);
 	if (GetNativeCell(2))
+	{
 		return view_as<int>(gF_VelocityDifference3D[client]);
+	}
 	else
+	{
 		return view_as<int>(gF_VelocityDifference2D[client]);
+	}
 }
 
 public Action Cron(Handle Timer)
@@ -2800,7 +2804,9 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 public void OnGameFrame()
 {
 	if (!gCV_EnableDynamicTimeDifference.BoolValue)
+	{
 		return;
+	}
 
 	int valid = 0;
 	int modtick = GetGameTickCount() % gCV_DynamicTimeTick.IntValue;
