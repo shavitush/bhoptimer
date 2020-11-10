@@ -5,6 +5,8 @@
 		"Keys"
 		{
 			"IGameMovement"		"GameMovement001"
+
+			"IServerGameEnts"	"ServerGameEnts001"
 		}
 
 		"Signatures"
@@ -26,6 +28,51 @@
 			}
 		}
 	}
+	
+	"cstrike"
+	{
+		"Offsets"
+		{
+			"CCSPlayer::GetPlayerMaxSpeed"
+			{
+				"windows"	"438"
+				"linux"		"439"
+				"mac"		"439"
+			}
+			
+			// applies to trigger_vphysics_motion and trigger_wind
+			"CBaseVPhysicsTrigger::PassesTriggerFilters"
+			{
+				"windows"	"188"
+				"linux"		"189"
+			}
+
+			// applies to all other triggers
+			"CBaseTrigger::PassesTriggerFilters"
+			{
+				"windows"	"197"
+				"linux"		"198"
+			}
+
+			"IServerGameEnts::MarkEntitiesAsTouching"
+			{
+				"windows"	"2"
+				"linux"		"3"
+			}
+			
+			"m_surfaceFriction"
+			{
+				"windows"	"104"
+				"linux"		"104"
+			}
+			
+			"PlayerRoughLandingEffects"
+			{
+				"windows"	"45"
+				"linux"		"46"
+			}
+		}
+	}
 
 	"csgo"
 	{
@@ -37,18 +84,37 @@
 				"linux"		"506"
 				"mac"		"506"
 			}
-		}
-	}
-
-	"cstrike"
-	{
-		"Offsets"
-		{
-			"CCSPlayer::GetPlayerMaxSpeed"
+			
+			// applies to trigger_vphysics_motion and trigger_wind
+			"CBaseVPhysicsTrigger::PassesTriggerFilters"
 			{
-				"windows"	"438"
-				"linux"		"439"
-				"mac"		"439"
+				"windows"	"199"
+				"linux"		"200"
+			}
+
+			// applies to all other triggers
+			"CBaseTrigger::PassesTriggerFilters"
+			{
+				"windows"	"209"
+				"linux"		"210"
+			}
+
+			"IServerGameEnts::MarkEntitiesAsTouching"
+			{
+				"windows"	"1"
+				"linux"		"2"
+			}
+
+			"m_surfaceFriction"
+			{
+				"windows"	"8"
+				"linux"		"8"
+			}
+			
+			"PlayerRoughLandingEffects"
+			{
+				"windows"	"55"
+				"linux"		"56"
 			}
 		}
 	}
