@@ -816,7 +816,16 @@ public void Frame_HookTrigger(any data)
 
 	if(StrContains(sName, "bonus") != -1)
 	{
-		track = Track_Bonus;
+		// Parse out the X in mod_zone_bonus_X_start and mod_zone_bonus_X_end
+		char sections[8][8];
+		ExplodeString(sName, "_", sections, 8, 8, false);
+		track = StringToInt(sections[3]); // 0 on failure to parse. 0 is less than Track_Bonus
+
+		if (track < Track_Bonus || track > Track_Bonus_Last)
+		{
+			// Just ignore because there's either too many bonuses or X can be 0 and nobody told me
+			return;
+		}
 	}
 
 	if(zone != -1)

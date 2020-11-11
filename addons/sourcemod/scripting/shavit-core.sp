@@ -574,7 +574,7 @@ public Action Command_StartTimer(int client, int args)
 			track = StringToInt(arg);
 		}
 
-		if (track < Track_Bonus)
+		if (track < Track_Bonus || track > Track_Bonus_Last)
 		{
 			track = Track_Bonus;
 		}
@@ -634,7 +634,7 @@ public Action Command_TeleportEnd(int client, int args)
 			track = StringToInt(arg);
 		}
 
-		if (track < Track_Bonus)
+		if (track < Track_Bonus || track > Track_Bonus_Last)
 		{
 			track = Track_Bonus;
 		}

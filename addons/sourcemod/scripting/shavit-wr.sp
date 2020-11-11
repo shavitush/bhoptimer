@@ -1345,7 +1345,7 @@ public Action Command_WorldRecord(int client, int args)
 			GetCmdArg(1, arg, sizeof(arg));
 			track = StringToInt(arg);
 
-			if (track < Track_Bonus)
+			if (track < Track_Bonus || track > Track_Bonus_Last)
 			{
 				track = Track_Bonus;
 			}

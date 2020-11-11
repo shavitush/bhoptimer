@@ -717,7 +717,7 @@ public any Native_GetReplayTime(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(2);
 
-	if(style < 0 || track < 0)
+	if(style < 0 || track < 0 || track >= TRACKS_SIZE)
 	{
 		return ThrowNativeError(200, "Style/Track out of range");
 	}
