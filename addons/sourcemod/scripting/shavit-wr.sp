@@ -1315,40 +1315,44 @@ public Action Command_WorldRecord(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(args == 0)
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
+
+	int track = Track_Main;
+	bool havemap = false;
+
+	if(StrContains(sCommand, "sm_b", false) == 0)
+	{
+		if (args >= 1)
+		{
+			char arg[6];
+			GetCmdArg((args > 1) ? 2 : 1, arg, sizeof(arg));
+			track = StringToInt(arg);
+
+			if (args > 1 || (track < Track_Bonus || track > Track_Bonus_Last))
+			{
+				havemap = true;
+			}
+		}
+
+		if (track < Track_Bonus || track > Track_Bonus_Last)
+		{
+			track = Track_Bonus;
+		}
+	}
+
+	if(!havemap)
 	{
 		strcopy(gA_WRCache[client].sClientMap, 128, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
+		GetCmdArg(1, gA_WRCache[client].sClientMap, 128);
 		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
 		{
 			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
 			return Plugin_Handled;
-		}
-	}
-
-	char sCommand[16];
-	GetCmdArg(0, sCommand, 16);
-
-	int track = Track_Main;
-
-	if(StrContains(sCommand, "sm_b", false) == 0)
-	{
-		track = Track_Bonus;
-
-		if (args > 1)
-		{
-			char arg[6];
-			GetCmdArg(1, arg, sizeof(arg));
-			track = StringToInt(arg);
-
-			if (track < Track_Bonus || track > Track_Bonus_Last)
-			{
-				track = Track_Bonus;
-			}
 		}
 	}
 
