@@ -179,7 +179,7 @@ bool LoadChatConfig()
 
 	KeyValues kv = new KeyValues("shavit-chat");
 	
-	if(!kv.ImportFromFile(sPath))
+	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
 	{
 		delete kv;
 
@@ -251,7 +251,7 @@ bool LoadChatSettings()
 
 	KeyValues kv = new KeyValues("shavit-chat");
 	
-	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
+	if(!kv.ImportFromFile(sPath))
 	{
 		delete kv;
 
