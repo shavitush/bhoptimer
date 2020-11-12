@@ -801,6 +801,11 @@ public void Frame_HookTrigger(any data)
 		return;
 	}
 
+	if (StrContains(sName, "checkpoint") != -1)
+	{
+		return; // TODO
+	}
+
 	int zone = -1;
 	int track = Track_Main;
 
