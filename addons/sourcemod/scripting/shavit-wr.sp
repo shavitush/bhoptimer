@@ -1329,6 +1329,7 @@ public Action Command_WorldRecord(int client, int args)
 			GetCmdArg((args > 1) ? 2 : 1, arg, sizeof(arg));
 			track = StringToInt(arg);
 
+			// if the track doesn't fit in the bonus track range then assume it's a map name
 			if (args > 1 || (track < Track_Bonus || track > Track_Bonus_Last))
 			{
 				havemap = true;
@@ -1339,6 +1340,11 @@ public Action Command_WorldRecord(int client, int args)
 		{
 			track = Track_Bonus;
 		}
+	}
+
+	else
+	{
+		havemap = (args >= 1);
 	}
 
 	if(!havemap)
