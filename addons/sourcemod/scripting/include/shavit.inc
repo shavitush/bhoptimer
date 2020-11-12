@@ -455,9 +455,9 @@ stock bool GuessBestMapName(ArrayList maps, const char[] input, char[] output, i
 stock void GetTrackName(int client, int track, char[] output, int size)
 {
 	if (track == Track_Main)
-		FormatEx(output, size, "%T", "Track_Main", track, client);
+		FormatEx(output, size, "%T", "Track_Main", client, track);
 	else if (track >= Track_Bonus)
-		FormatEx(output, size, "%T", "Track_Bonus", track, client);
+		FormatEx(output, size, "%T", "Track_Bonus", client, track);
 	else //if (track < Track_Main)
 		FormatEx(output, size, "%T", "Track_Unknown", client);
 }
