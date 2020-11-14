@@ -60,7 +60,6 @@ wrcache_t gA_WRCache[MAXPLAYERS+1];
 
 char gS_Map[160]; // blame workshop paths being so fucking long
 ArrayList gA_ValidMaps = null;
-int gI_ValidMaps = 1;
 
 // current wr stats
 float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
@@ -102,6 +101,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// natives
 	CreateNative("Shavit_GetClientPB", Native_GetClientPB);
+	CreateNative("Shavit_SetClientPB", Native_SetClientPB);
 	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetClientCompletions", Native_GetClientCompletions);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
@@ -124,6 +124,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("common.phrases");
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-wr.phrases");
 
@@ -135,7 +136,7 @@ public void OnPluginStart()
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinishMessage = CreateGlobalForward("Shavit_OnFinishMessage", ET_Event, Param_Cell, Param_CellByRef, Param_Array, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
@@ -143,9 +144,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
 	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
 
-	RegConsoleCmd("sm_bwr", Command_WorldRecord_Bonus, "View the leaderboard of a map. Usage: sm_bwr [map]");
-	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord_Bonus, "View the leaderboard of a map. Usage: sm_bworldrecord [map]");
-	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord_Bonus, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map]");
+	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map]");
+	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map]");
+	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map]");
 
 	RegConsoleCmd("sm_recent", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
@@ -317,7 +318,6 @@ public void OnMapStart()
 
 	gA_ValidMaps.Clear();
 	gA_ValidMaps.PushString(sLowerCase);
-	gI_ValidMaps = 1;
 
 	char sQuery[128];
 	FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
@@ -358,7 +358,6 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 		if(gA_ValidMaps.FindString(sLowerCase) == -1)
 		{
 			gA_ValidMaps.PushString(sLowerCase);
-			gI_ValidMaps++;
 		}
 	}
 
@@ -576,6 +575,16 @@ public int Native_GetWRName(Handle handler, int numParams)
 public int Native_GetClientPB(Handle handler, int numParams)
 {
 	return view_as<int>(gF_PlayerRecord[GetNativeCell(1)][GetNativeCell(2)][GetNativeCell(3)]);
+}
+
+public int Native_SetClientPB(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	int track = GetNativeCell(3);
+	float time = GetNativeCell(4);
+
+	gF_PlayerRecord[client][style][track] = time;
 }
 
 public int Native_GetPlayerPB(Handle handler, int numParams)
@@ -1236,6 +1245,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 		Call_PushCell(iStyle);
 		Call_PushCell(iRecordID);
 		Call_PushCell(iTrack);
+		Call_PushCell(iSteamID);
 		Call_Finish();
 	}
 
@@ -1313,31 +1323,24 @@ public Action Command_WorldRecord(int client, int args)
 	else
 	{
 		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
-		GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128);
+		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
+		{
+			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
+			return Plugin_Handled;
+		}
 	}
 
-	return ShowWRStyleMenu(client, Track_Main);
-}
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
 
-public Action Command_WorldRecord_Bonus(int client, int args)
-{
-	if(!IsValidClient(client))
+	int track = Track_Main;
+
+	if(StrContains(sCommand, "sm_b", false) == 0)
 	{
-		return Plugin_Handled;
+		track = Track_Bonus;
 	}
 
-	if(args == 0)
-	{
-		strcopy(gA_WRCache[client].sClientMap, 128, gS_Map);
-	}
-
-	else
-	{
-		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
-		GuessBestMapName(gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128);
-	}
-
-	return ShowWRStyleMenu(client, Track_Bonus);
+	return ShowWRStyleMenu(client, track);
 }
 
 Action ShowWRStyleMenu(int client, int track)
@@ -2261,30 +2264,6 @@ int GetRankForTime(int style, float time, int track)
 	}
 
 	return (iRecords + 1);
-}
-
-void GuessBestMapName(const char[] input, char[] output, int size)
-{
-	if(gA_ValidMaps.FindString(input) != -1)
-	{
-		strcopy(output, size, input);
-
-		return;
-	}
-
-	char sCache[128];
-
-	for(int i = 0; i < gI_ValidMaps; i++)
-	{
-		gA_ValidMaps.GetString(i, sCache, 128);
-
-		if(StrContains(sCache, input) != -1)
-		{
-			strcopy(output, size, sCache);
-
-			return;
-		}
-	}
 }
 
 void GetTrackName(int client, int track, char[] output, int size)

@@ -52,6 +52,8 @@ Convar gCV_ForceMapEnd = null;
 Convar gCV_MinimumTimes = null;
 Convar gCV_PlayerAmount = null;
 Convar gCV_Style = null;
+Convar gCV_GameStartFix = null;
+Convar gCV_Enabled = null;
 
 // misc cache
 Handle gH_Timer = null;
@@ -101,8 +103,11 @@ public void OnPluginStart()
 	gCV_MinimumTimes = new Convar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 5.0);
 	gCV_PlayerAmount = new Convar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!\nSet to 0 to have it \"unlimited\".", 0);
 	gCV_Style = new Convar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 0.0, true, 1.0);
+	gCV_GameStartFix = new Convar("shavit_timelimit_gamestartfix", "1", "If set to 1, will block the round from ending because another player joined. Useful for single round servers.", 0, true, 0.0, true, 1.0);
+	gCV_Enabled = new Convar("shavit_timelimit_enabled", "1", "Enables/Disables functionality of the plugin.", 0, true, 0.0, true, 1.0);
 
 	gCV_ForceMapEnd.AddChangeHook(OnConVarChanged);
+	gCV_Enabled.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
 
@@ -114,7 +119,8 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 {
 	if(view_as<bool>(StringToInt(newValue)) && gEV_Type != Engine_TF2)
 	{
-		gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
+		delete gH_Timer;
+		gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 
 	else
@@ -125,6 +131,11 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 public void OnConfigsExecuted()
 {
+	if(!gCV_Enabled.BoolValue)
+	{
+		return;
+	}
+
 	if(gCV_Config.BoolValue)
 	{
 		if(mp_do_warmup_period != null)
@@ -142,15 +153,12 @@ public void OnConfigsExecuted()
 			mp_ignore_round_win_conditions.BoolValue = true;
 		}
 	}
-}
 
-public void OnMapStart()
-{
 	if(gCV_DynamicTimelimits.BoolValue)
 	{
 		StartCalculating();
 	}
-
+	
 	else
 	{
 		SetLimit(RoundToNearest(gCV_DefaultLimit.FloatValue));
@@ -251,8 +259,13 @@ void SetLimit(int time)
 	}
 }
 
-public Action Timer_PrintToChat(Handle Timer)
+public Action Timer_PrintToChat(Handle timer)
 {
+	if(!gCV_Enabled.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
 	int timelimit = 0;
 
 	if(!GetMapTimeLimit(timelimit) || timelimit == 0)
@@ -306,5 +319,10 @@ public Action Timer_PrintToChat(Handle Timer)
 
 public Action CS_OnTerminateRound(float &fDelay, CSRoundEndReason &iReason)
 {
+	if(gCV_Enabled.BoolValue && gCV_GameStartFix.BoolValue && iReason == CSRoundEnd_GameStart)
+	{
+		return Plugin_Handled;
+	}
+	
 	return Plugin_Continue;
 }

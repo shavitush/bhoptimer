@@ -943,6 +943,21 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 	hPack.Reset();
 	int iSteamID = hPack.ReadCell();
 
+	int client = 0;
+	char szSteamid[32];
+	// Just use the client index in the pack?
+	for(int index = 1; index <= MaxClients; index++)
+	{
+		if(IsValidClient(index) && !IsFakeClient(index))
+		{
+			if(iSteamID == GetSteamAccountID(index))
+			{
+				client = index;
+				break;
+			}
+		}
+	}
+
 	for(int i = 0; i < numQueries; i++)
 	{
 		DataPack hQueryPack = view_as<DataPack>(queryData[i]);
@@ -955,13 +970,18 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 		int iTrack = hQueryPack.ReadCell();
 		delete hQueryPack;
 
+		if(client > 0)
+		{
+			Shavit_SetClientPB(client, iStyle, iTrack, 0.0);
+		}
+
 		if(results[i] != null && results[i].FetchRow())
 		{
 			int iWR = results[i].FetchInt(0);
 
 			if(iWR == iRecordID)
 			{
-				Shavit_DeleteReplay(sMap, iStyle, iTrack);
+				Shavit_DeleteReplay(sMap, iStyle, iTrack, iSteamID);
 			}
 		}
 	}
@@ -3060,14 +3080,14 @@ bool TREnumTrigger(int entity, int client) {
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
-	if(!IsPlayerAlive(client) || IsFakeClient(client))
+	if(IsFakeClient(client))
 	{
 		return Plugin_Continue;
 	}
 
 	int flags = GetEntityFlags(client);
 
-	if(gA_Timers[client].bPaused)
+	if(gA_Timers[client].bPaused && IsPlayerAlive(client))
 	{
 		buttons = 0;
 		vel = view_as<float>({0.0, 0.0, 0.0});
@@ -3078,6 +3098,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
+
+	// Wait till now to return so spectators can free-cam while paused...
+	if(!IsPlayerAlive(client))
+	{
+		return Plugin_Continue;
+	}
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnUserCmdPre);
