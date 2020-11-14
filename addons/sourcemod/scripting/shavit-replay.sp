@@ -157,6 +157,7 @@ Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
 Convar gCV_ClearPreRun = null;
 Convar gCV_DynamicTimeSearch = null;
+Convar gCV_DynamicTimeCheap = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -297,8 +298,8 @@ public void OnPluginStart()
 	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.0", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
 	gCV_ClearPreRun = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
-	gCV_DynamicTimeSearch = new Convar("shavit_replay_dynamictimedifference_search", "10.0", "Time in seconds to search ahead and behind the players current frame for dynamic time differences\nNote: Higher values will result in worse performance", 0, true, 0.0);
-
+	gCV_DynamicTimeCheap = new Convar("shavit_replay_timedifference_cheap", "0.0", "0 - Disabled\n1 - only clip the search ahead to shavit_replay_timedifference_search\n2 - only clip the search behind to players current frame\n3 - clip the search to +/- shavit_replay_timedifference_search seconds to the players current frame", 0, true, 0.0, true, 3.0);
+	gCV_DynamicTimeSearch = new Convar("shavit_replay_timedifference_search", "0.0", "Time in seconds to search the players current frame for dynamic time differences\n0 - Full Scan\nNote: Higher values will result in worse performance", 0, true, 0.0);
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
@@ -2829,17 +2830,29 @@ float GetClosestReplayTime(int client, int style, int track)
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
 	int iPlayerFrames = gA_PlayerFrames[client].Length - gI_PlayerPrerunFrames[client];
-
+	
 	int iStartFrame = iPlayerFrames - iSearch;
-	if(iStartFrame < 0)
+	int iEndFrame = iPlayerFrames + iSearch;
+	
+	if(iSearch == 0)
 	{
 		iStartFrame = 0;
-	}
-	
-	int iEndFrame = iPlayerFrames + iSearch;
-	if(iEndFrame >= iLength)
-	{
 		iEndFrame = iLength - 1;
+	}
+
+	else
+	{
+		// Check if the search behind flag is off
+		if(iStartFrame < 0 || gCV_DynamicTimeCheap.IntValue & 2 == 0)
+		{
+			iStartFrame = 0;
+		}
+		
+		// check if the search ahead flag is off
+		if(iEndFrame >= iLength || gCV_DynamicTimeCheap.IntValue & 1 == 0)
+		{
+			iEndFrame = iLength - 1;
+		}
 	}
 
 
@@ -2863,8 +2876,9 @@ float GetClosestReplayTime(int client, int style, int track)
 		}
 	}
 
+
 	// out of bounds
-	if(iClosestFrame == 0)
+	if(iClosestFrame == 0 || iClosestFrame == iEndFrame)
 	{
 		return -1.0;
 	}
@@ -2874,9 +2888,21 @@ float GetClosestReplayTime(int client, int style, int track)
 	{
 		return 0.0;
 	}
-	
+
 	float frametime = GetReplayLength(style, track) / float(gA_FrameCache[style][track].iFrameCount - iPreframes);
-	return (iClosestFrame - iPreframes)  * frametime;
+	float timeDifference = (iClosestFrame - iPreframes)  * frametime;
+
+	// Hides the hud if we are using the cheap search method and too far behind to be accurate
+	if(iSearch > 0 && gCV_DynamicTimeCheap.BoolValue)
+	{
+		float preframes = float(gI_PlayerTimerStartFrames[client] - gI_PlayerPrerunFrames[client]) / (1.0 / GetTickInterval());
+		if(Shavit_GetClientTime(client) - timeDifference >= gCV_DynamicTimeSearch.FloatValue - preframes)
+		{
+			return -1.0;
+		}
+	}
+
+	return timeDifference;
 }
 
 /*
