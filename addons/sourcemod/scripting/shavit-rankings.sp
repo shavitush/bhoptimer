@@ -637,7 +637,7 @@ void RecalculateAll(const char[] map)
 	LogError("DEBUG: 5 (RecalculateAll)");
 	#endif
 
-	for(int i = 0; i < TRACKS_SIZE; i++)
+	for(int i = 0; i < 3; i++)
 	{
 		for(int j = 0; j < gI_Styles; j++)
 		{
@@ -646,7 +646,7 @@ void RecalculateAll(const char[] map)
 				continue;
 			}
 
-			RecalculateMap(map, i, j);
+			RecalculateMap(map, i, j, (i > Track_Bonus));
 		}
 	}
 }
@@ -656,15 +656,23 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	RecalculateMap(gS_Map, track, style);
 }
 
-void RecalculateMap(const char[] map, const int track, const int style)
+void RecalculateMap(const char[] map, const int track, const int style, bool restOfTheBonuses=false)
 {
 	#if defined DEBUG
 	PrintToServer("Recalculating points. (%s, %d, %d)", map, track, style);
 	#endif
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
+	if (restOfTheBonuses)
+	{
+		FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, '%s', %.1f, %.3f) WHERE style = %d AND track > 1 AND map = '%s';",
+		gS_MySQLPrefix, style, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, map);
+	}
+	else
+	{
+		FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
 		gS_MySQLPrefix, style, track, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, track, map);
+	}
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
 
