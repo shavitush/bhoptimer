@@ -942,21 +942,7 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 	DataPack hPack = view_as<DataPack>(data);
 	hPack.Reset();
 	int iSteamID = hPack.ReadCell();
-
-	int client = 0;
-	char szSteamid[32];
-	// Just use the client index in the pack?
-	for(int index = 1; index <= MaxClients; index++)
-	{
-		if(IsValidClient(index) && !IsFakeClient(index))
-		{
-			if(iSteamID == GetSteamAccountID(index))
-			{
-				client = index;
-				break;
-			}
-		}
-	}
+	int client = hPack.ReadCell();
 
 	for(int i = 0; i < numQueries; i++)
 	{
