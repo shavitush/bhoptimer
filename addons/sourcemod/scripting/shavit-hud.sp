@@ -43,9 +43,11 @@
 #define HUD2_SPLITPB			(1 << 8)
 #define HUD2_MAPTIER			(1 << 9)
 #define HUD2_TIMEDIFFERENCE		(1 << 10)
+#define HUD2_PERFS				(1 << 11)
+#define HUD2_TOPLEFT_RANK		(1 << 12)
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
-#define HUD_DEFAULT2			0
+#define HUD_DEFAULT2			(HUD2_PERFS)
 
 #define MAX_HINT_SIZE 225
 
@@ -106,7 +108,6 @@ Handle gH_HUDCookie = null;
 Handle gH_HUDCookieMain = null;
 int gI_HUDSettings[MAXPLAYERS+1];
 int gI_HUD2Settings[MAXPLAYERS+1];
-int gI_NameLength = MAX_NAME_LENGTH;
 int gI_LastScrollCount[MAXPLAYERS+1];
 int gI_ScrollCount[MAXPLAYERS+1];
 int gI_Buttons[MAXPLAYERS+1];
@@ -125,6 +126,10 @@ Convar gCV_GradientStepSize = null;
 Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_UseHUDFix = null;
+Convar gCV_SpecNameSymbolLength = null;
+Convar gCV_DefaultHUD = null;
+Convar gCV_DefaultHUD2 = null;
+Convar gCV_EnableDynamicTimeDifference = null;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -165,17 +170,6 @@ public void OnPluginStart()
 	// game-specific
 	gEV_Type = GetEngineVersion();
 
-	if(IsSource2013(gEV_Type))
-	{
-		gI_NameLength = MAX_NAME_LENGTH;
-	}
-
-	else
-	{
-		// long names make it look bad in CS:GO due to the font size
-		gI_NameLength = 14;
-	}
-
 	if(gEV_Type == Engine_TF2)
 	{
 		HookEvent("player_changeclass", Player_ChangeClass);
@@ -198,6 +192,41 @@ public void OnPluginStart()
 	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
+	gCV_EnableDynamicTimeDifference = new Convar("shavit_hud_timedifference", "0", "Enabled dynamic time differences in the hud", 0, true, 0.0, true, 1.0);
+	gCV_SpecNameSymbolLength = new Convar("shavit_hud_specnamesymbollength", "32", "Maximum player name length that should be displayed in spectators panel", 0, true, 0.0, true, float(MAX_NAME_LENGTH));
+
+	char defaultHUD[8];
+	IntToString(HUD_DEFAULT, defaultHUD, 8);
+	gCV_DefaultHUD = new Convar("shavit_hud_default", defaultHUD, "Default HUD settings as a bitflag\n"
+		..."HUD_MASTER				1\n"
+		..."HUD_CENTER				2\n"
+		..."HUD_ZONEHUD				4\n"
+		..."HUD_OBSERVE				8\n"
+		..."HUD_SPECTATORS			16\n"
+		..."HUD_KEYOVERLAY			32\n"
+		..."HUD_HIDEWEAPON			64\n"
+		..."HUD_TOPLEFT				128\n"
+		..."HUD_SYNC					256\n"
+		..."HUD_TIMELEFT				512\n"
+		..."HUD_2DVEL				1024\n"
+		..."HUD_NOSOUNDS				2048\n"
+		..."HUD_NOPRACALERT			4096\n");
+		
+	IntToString(HUD_DEFAULT2, defaultHUD, 8);
+	gCV_DefaultHUD2 = new Convar("shavit_hud2_default", defaultHUD, "Default HUD2 settings as a bitflag\n"
+		..."HUD2_TIME				1\n"
+		..."HUD2_SPEED				2\n"
+		..."HUD2_JUMPS				4\n"
+		..."HUD2_STRAFE				8\n"
+		..."HUD2_SYNC				16\n"
+		..."HUD2_STYLE				32\n"
+		..."HUD2_RANK				64\n"
+		..."HUD2_TRACK				128\n"
+		..."HUD2_SPLITPB				256\n"
+		..."HUD2_MAPTIER				512\n"
+		..."HUD2_TIMEDIFFERENCE		1024\n"
+		..."HUD2_PERFS				2048\n"
+		..."HUD2_TOPLEFT_RANK				4096");
 
 	Convar.AutoExecConfig();
 
@@ -404,10 +433,10 @@ public void OnClientCookiesCached(int client)
 
 	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT, sHUDSettings, 8);
+		gCV_DefaultHUD.GetString(sHUDSettings, 8);
 
 		SetClientCookie(client, gH_HUDCookie, sHUDSettings);
-		gI_HUDSettings[client] = HUD_DEFAULT;
+		gI_HUDSettings[client] = gCV_DefaultHUD.IntValue;
 	}
 
 	else
@@ -419,10 +448,10 @@ public void OnClientCookiesCached(int client)
 
 	if(strlen(sHUDSettings) == 0)
 	{
-		IntToString(HUD_DEFAULT2, sHUDSettings, 8);
+		gCV_DefaultHUD2.GetString(sHUDSettings, 8);
 
 		SetClientCookie(client, gH_HUDCookieMain, sHUDSettings);
-		gI_HUD2Settings[client] = HUD_DEFAULT2;
+		gI_HUD2Settings[client] = gCV_DefaultHUD2.IntValue;
 	}
 
 	else
@@ -647,9 +676,12 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudTimeText", client);
 	menu.AddItem(sInfo, sHudItem);
 
-	FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
-	FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
-	menu.AddItem(sInfo, sHudItem);
+	if(gB_Replay)
+	{
+		FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
+		FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SPEED);
 	FormatEx(sHudItem, 64, "%T", "HudSpeedText", client);
@@ -666,6 +698,10 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sInfo, 16, "@%d", HUD2_SYNC);
 	FormatEx(sHudItem, 64, "%T", "HudSync", client);
 	menu.AddItem(sInfo, sHudItem);
+	
+	FormatEx(sInfo, 16, "@%d", HUD2_PERFS);
+	FormatEx(sHudItem, 64, "%T", "HudPerfs", client);
+	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_STYLE);
 	FormatEx(sHudItem, 64, "%T", "HudStyleText", client);
@@ -681,6 +717,10 @@ Action ShowHUDMenu(int client, int item)
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SPLITPB);
 	FormatEx(sHudItem, 64, "%T", "HudSplitPbText", client);
+	menu.AddItem(sInfo, sHudItem);
+
+	FormatEx(sInfo, 16, "@%d", HUD2_TOPLEFT_RANK);
+	FormatEx(sHudItem, 64, "%T", "HudTopLeftRankText", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	if(gB_Rankings)
@@ -866,7 +906,7 @@ void Cron()
 			GetEntPropVector(GetHUDTarget(i), Prop_Data, "m_vecVelocity", fSpeed);
 			gI_PreviousSpeed[i] = RoundToNearest(((gI_HUDSettings[i] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
 		}
-
+		
 		TriggerHUDUpdate(i);
 	}
 }
@@ -1064,7 +1104,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 			char sTimeDiff[32];
 			
-			if(Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
 			{
 				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
 
@@ -1281,7 +1321,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			
 			char sTimeDiff[32];
 			
-			if(Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
 			{
 				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
 
@@ -1489,10 +1529,11 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 		FormatEx(sPanelLine, 64, " %d%s%d\n", gI_ScrollCount[target], (gI_ScrollCount[target] > 9)? "   ":"     ", gI_LastScrollCount[target]);
 	}
 
-	Format(sPanelLine, 128, "%s［%s］　［%s］\n　　 %s\n%s　 %s 　%s", sPanelLine,
+	Format(sPanelLine, 128, "%s［%s］　［%s］\n　　 %s\n%s　 %s 　%s\n　%s　　%s", sPanelLine,
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
 		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
-		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
+		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
+		(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
 
 	panel.DrawItem(sPanelLine, ITEMDRAW_RAWLINE);
 
@@ -1526,10 +1567,11 @@ void UpdateCenterKeys(int client)
 	int buttons = gI_Buttons[target];
 
 	char sCenterText[64];
-	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s　 %s 　%s", 
+	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s　 %s 　%s\n　%s　　%s",
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
 		(buttons & IN_FORWARD) > 0? "Ｗ":"ｰ", (buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ",
-		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ");
+		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
+		(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
 
 	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
@@ -1582,9 +1624,10 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 	if(iSpectators > 0)
 	{
+		char sName[MAX_NAME_LENGTH];
 		char sSpectators[32];
-		char sSpectatorsPersonal[64];
-		char sSpectatorWatching[64];
+		char sSpectatorsPersonal[32];
+		char sSpectatorWatching[32];
 		FormatEx(sSpectatorsPersonal, 32, "%T", "SpectatorPersonal", client);
 		FormatEx(sSpectatorWatching, 32, "%T", "SpectatorWatching", client);
 		FormatEx(sSpectators, 32, "%s (%d):", (client == target)? sSpectatorsPersonal:sSpectatorWatching, iSpectators);
@@ -1599,9 +1642,9 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 				break;
 			}
 
-			char[] sName = new char[gI_NameLength];
-			GetClientName(iSpectatorClients[i], sName, gI_NameLength);
-			ReplaceString(sName, gI_NameLength, "#", "?");
+			GetClientName(iSpectatorClients[i], sName, sizeof(sName));
+			ReplaceString(sName, sizeof(sName), "#", "?");
+			TrimPlayerName(sName, sName, sizeof(sName));
 
 			panel.DrawItem(sName, ITEMDRAW_RAWLINE);
 		}
@@ -1663,12 +1706,26 @@ void UpdateTopLeftHUD(int client, bool wait)
 			{
 				if(fTargetPB != 0.0)
 				{
-					Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sTargetPB, target);
+					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
+					{
+						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), target);
+					}
+					else 
+					{
+						Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sTargetPB, target);
+					}
 				}
 
 				if(fSelfPB != 0.0)
 				{
-					Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sSelfPB, client);
+					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
+					{
+						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
+					}
+					else 
+					{
+						Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sSelfPB, client);
+					}
 				}
 			}
 
@@ -1718,7 +1775,7 @@ void UpdateKeyHint(int client)
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
-				if(!gA_StyleSettings[style].bAutobhop)
+				if(!gA_StyleSettings[style].bAutobhop && (gI_HUD2Settings[client] & HUD2_PERFS) == 0)
 				{	
 					Format(sMessage, 256, "%s\n%T: %.1f", sMessage, "HudPerfs", client, Shavit_GetPerfectJumps(target));
 				}
@@ -1749,7 +1806,8 @@ void UpdateKeyHint(int client)
 				if(iSpectators > 0)
 				{
 					Format(sMessage, 256, "%s%s%spectators (%d):", sMessage, (strlen(sMessage) > 0)? "\n\n":"", (client == target)? "S":"Other S", iSpectators);
-
+					char sName[MAX_NAME_LENGTH];
+					
 					for(int i = 0; i < iSpectators; i++)
 					{
 						if(i == 7)
@@ -1759,9 +1817,9 @@ void UpdateKeyHint(int client)
 							break;
 						}
 
-						char[] sName = new char[gI_NameLength];
-						GetClientName(iSpectatorClients[i], sName, gI_NameLength);
-						ReplaceString(sName, gI_NameLength, "#", "?");
+						GetClientName(iSpectatorClients[i], sName, sizeof(sName));
+						ReplaceString(sName, sizeof(sName), "#", "?");
+						TrimPlayerName(sName, sName, sizeof(sName));
 						Format(sMessage, 256, "%s\n%s", sMessage, sName);
 					}
 				}
@@ -1900,4 +1958,25 @@ void PrintCSGOHUDText(int client, const char[] format, any ...)
 	pb.AddString("params", NULL_STRING);
 	
 	EndMessage();
+}
+
+// https://forums.alliedmods.net/showthread.php?t=216841
+void TrimPlayerName(const char[] name, char[] outname, int len)
+{
+	int count, finallen;
+	for(int i = 0; name[i]; i++)
+	{
+		count += ((name[i] & 0xc0) != 0x80) ? 1 : 0;
+		
+		if(count <= gCV_SpecNameSymbolLength.IntValue)
+		{
+			outname[i] = name[i];
+			finallen = i;
+		}
+	}
+	
+	outname[finallen + 1] = '\0';
+	
+	if(count > gCV_SpecNameSymbolLength.IntValue)
+		Format(outname, len, "%s...", outname);
 }

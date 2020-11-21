@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.5.7a"
+#define SHAVIT_VERSION "2.6.0"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -217,6 +217,8 @@ enum struct timer_snapshot_t
 	int iTimerTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
+	float fTimeOffset[2];
+	float fDistanceOffset[2];
 }
 
 enum struct cp_cache_t
@@ -423,6 +425,32 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	}
 }
 
+stock bool GuessBestMapName(ArrayList maps, const char[] input, char[] output, int size)
+{
+	if(maps.FindString(input) != -1)
+	{
+		strcopy(output, size, input);
+
+		return true;
+	}
+
+	char sCache[128];
+
+	for(int i = 0; i < maps.Length; i++)
+	{
+		maps.GetString(i, sCache, 128);
+
+		if(StrContains(sCache, input) != -1)
+		{
+			strcopy(output, size, sCache);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /**
  * Called before shavit-core processes the client's usercmd.
  * Before this is called, safety checks (fake/dead clients) happen.
@@ -583,9 +611,10 @@ forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, 
  * @param style						Style the record was done on.
  * @param id						Record ID. -1 if mass deletion.
  * @param track						Timer track.
+ * @param accountid					The account ID of the wr holder
  * @noreturn
  */
-forward void Shavit_OnWRDeleted(int style, int id, int track);
+forward void Shavit_OnWRDeleted(int style, int id, int track, int accountid);
 
 /**
  * Called when a player's timer paused.
@@ -669,6 +698,15 @@ forward Action Shavit_OnTeleport(int client, int index);
  * @return							Plugin_Continue to allow teleporting, anything else to prevent.
  */
 forward Action Shavit_OnSave(int client, int index, bool overflow);
+
+/**
+ * Called when a player deletes a checkpoint.
+ *
+ * @param client					Client index.
+ * @param index						Checkpoint that will be deleted.
+ * @return							Plugin_Continue to continue deletion, anything else to prevent.
+ */
+forward Action Shavit_OnDelete(int client, int index);
 
 /**
  * Called when a player enters a zone.
@@ -791,6 +829,17 @@ forward Action Shavit_OnClanTagChangePre(int client, char[] clantag, int clantag
 forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int customtaglength);
 
 /**
+ * Called when a time offset is calculated
+ *
+ * @param client					Client index.
+ * @param zonetype					Zone type (Zone_Start or Zone_End).
+ * @param offset					Time offset from the given zone.
+ * @param distance					Distance used in time offset.
+ * @noreturn							
+ */
+forward void Shavit_OnTimeOffsetCalculated(int client, int zonetype, float offset, float distance);
+
+/**
  * Called before the timer finish message is printed to the users.
  *
  * @param client					Client index.
@@ -822,7 +871,7 @@ forward void Shavit_OnTimescaleChanged(int client, float oldtimescale, float new
 forward Action Shavit_OnCheckPointMenuMade(int client, bool segmented);
 
 /**
- * Called when before a selection is processed in the main checkpoint menu.
+ * Called before a selection is processed in the main checkpoint menu.
  *
  * @param client					Client index.
  * @param param2					Second parameter in the callback, usually the item selected.
@@ -833,6 +882,18 @@ forward Action Shavit_OnCheckPointMenuMade(int client, bool segmented);
  * @return							Plugin_Continue to continue the callback.
  */
 forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info, int maxlength, int currentCheckpoint, int maxCPs);
+
+/**
+ * Called before a sound is played by shavit-sounds.
+ *
+ * @param client					Index of the client that triggered the sound event.
+ * @param sound						Reference to the sound that will be played.
+ * @param maxlength					Length of the sound buffer, always PLATFORM_MAX_PATH.
+ * @param clients					Reference to the array of clients to receive the sound, maxsize of MaxClients.
+ * @param count						Reference to the number of clients to receive the sound.
+ * @return							Plugin_Handled or Plugin_Stop to block the sound from being played. Anything else to continue the operation.
+ */
+forward Action Shavit_OnPlaySound(int client, char[] sound, int maxlength, int[] clients, int &count);
 
 /**
  * Returns the game type the server is running.
@@ -1001,6 +1062,15 @@ native int Shavit_GetBhopStyle(int client);
 native TimerStatus Shavit_GetTimerStatus(int client);
 
 /**
+ * Retrieve the zone ID for a given stage number.
+ * Will return exception if stagenumber doesn't have a zone.
+ *
+ * @param client					Stage number.
+ * @return                          Zone ID of stage.
+ */
+native int Shavit_GetStageZone(int stage);
+
+/**
  * Retrieve the amount of strafes done since the timer started.
  * Will return 0 if timer isn't running.
  *
@@ -1097,6 +1167,27 @@ native void Shavit_GetPlayerPB(int client, int style, float &time, int track);
  * @return							Floating number of the player's best time for given style/track.
  */
 native float Shavit_GetClientPB(int client, int style, int track);
+
+/**
+ * Sets the cached pb directly for the given client, style and track.
+ *
+ * @param client					Client index.
+ * @param style						Style to get the PB for.
+ * @param track						Timer track.
+ * @param time						Time to set
+ * @noreturn
+ */
+native void Shavit_SetClientPB(int client, int style, int track, float time);
+
+/**
+ * Retrieves the completions of a player.
+ *
+ * @param client					Client index.
+ * @param style						Style to get the Completions for.
+ * @param track						Timer track.
+ * @return							Number of the player's Completions for given style/track.
+ */
+native int Shavit_GetClientCompletions(int client, int style, int track);
 
 /**
  * Get the amount of records on the current map/style on a track.
@@ -1199,15 +1290,34 @@ native void Shavit_PauseTimer(int client);
 native void Shavit_ResumeTimer(int client, bool teleport = false);
 
 /**
+ * Gets a players time offset given a zone.
+ *
+ * @param client					Client index.
+ * @param teleport					Zone type (Zone_Start or Zone_End).
+ * @return							Time offset if any for the given zone type.
+ */
+native float Shavit_GetTimeOffset(int client, int zonetype);
+
+/**
+ * Gets distance of a players distance offset given a zone.
+ *
+ * @param client					Client index.
+ * @param teleport					Zone type  (Zone_Start or Zone_End).
+ * @return 							Distance offset if any for the given zone type/
+ */
+native float Shavit_GetDistanceOffset(int client, int zonetype);
+
+/**
  * Deletes the specified replay file.
  * Replay data will be unloaded if necessary.
  *
  * @param map						Map display name.
  * @param style						Bhop style.
  * @param track						Timer track.
- * @return							true if replay existed, false otherwise.
+ * @param accountid					Account ID to validate against, 0 to skip validation.
+ * @return							true if replay existed, false if the steam id didn't match or the file didn't exist.
  */
-native bool Shavit_DeleteReplay(const char[] map, int style, int track);
+native bool Shavit_DeleteReplay(const char[] map, int style, int track, int accountid = 0);
 
 /**
  * Retrieves the engine time of the replay bot's first frame.
@@ -1501,6 +1611,15 @@ native void Shavit_SetReplayData(int client, ArrayList data);
 native ArrayList Shavit_GetReplayData(int client);
 
 /**
+ * Starts a replay given a style and track. 
+ * @param client					Client index.
+ * @param style						Bhop style.
+ * @param track						Timer track.
+ * @noreturn							
+ */
+native void Shavit_StartReplay(int style, int track, float delay, int client = 1);
+
+/**
  * Reloads a specific replay into the replay bot cache.
  * Note: Not guaranteed to work with legacy replay bots.
  *
@@ -1509,7 +1628,7 @@ native ArrayList Shavit_GetReplayData(int client);
  * @param restart					Restart the playback of the replay bot if it's playing?
  * @param path						Path to the replay file. Use `BuildPath(Path_SM, ...)` to generate one. Leave as empty to use default.
  * @return							Was the replay loaded?
- */
+ */ 
 native bool Shavit_ReloadReplay(int style, int track, bool restart, char[] path = "");
 
 /**
@@ -1849,11 +1968,14 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayName");
 	MarkNativeAsOptional("Shavit_GetReplayStatus");
 	MarkNativeAsOptional("Shavit_GetReplayTime");
+	MarkNativeAsOptional("Shavit_GetStageZone");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");
+	MarkNativeAsOptional("Shavit_GetTimeOffset");
+	MarkNativeAsOptional("Shavit_GetDistanceOffset");
 	MarkNativeAsOptional("Shavit_GetTimeForRank");
 	MarkNativeAsOptional("Shavit_GetTimer");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
@@ -1888,6 +2010,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SaveSnapshot");
 	MarkNativeAsOptional("Shavit_SetPracticeMode");
 	MarkNativeAsOptional("Shavit_SetReplayData");
+	MarkNativeAsOptional("Shavit_StartReplay");
 	MarkNativeAsOptional("Shavit_StartTimer");
 	MarkNativeAsOptional("Shavit_StopChatSound");
 	MarkNativeAsOptional("Shavit_StopTimer");
