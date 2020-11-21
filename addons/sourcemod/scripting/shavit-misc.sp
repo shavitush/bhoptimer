@@ -467,6 +467,13 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 
 	if(StrContains(gS_StyleStrings[newstyle].sSpecialString, "segments") != -1)
 	{
+		// Gammacase somehow had this callback fire before OnClientPutInServer.
+		// OnClientPutInServer will still fire but we need a valid arraylist in the mean time.
+		if(gA_Checkpoints[client] == null)
+		{
+			gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));	
+		}
+
 		OpenCheckpointsMenu(client);
 		Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
