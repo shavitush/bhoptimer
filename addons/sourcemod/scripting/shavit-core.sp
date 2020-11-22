@@ -944,8 +944,7 @@ public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResul
 	int iSteamID = hPack.ReadCell();
 
 	int client = 0;
-	char szSteamid[32];
-	// Just use the client index in the pack?
+	// Check if the target is in game
 	for(int index = 1; index <= MaxClients; index++)
 	{
 		if(IsValidClient(index) && !IsFakeClient(index))
