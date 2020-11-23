@@ -896,6 +896,22 @@ forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info
 forward Action Shavit_OnPlaySound(int client, char[] sound, int maxlength, int[] clients, int &count);
 
 /**
+ * Called before the server & timer handle the ProcessMovement method.
+ *
+ * @param client					Client Index.
+ * @noreturn
+ */
+forward void Shavit_OnProcessMovement(int client);
+
+/**
+ * Called After the server handles the ProcessMovement method, but before the timer handles the method.
+ *
+ * @param client					Client Index.
+ * @noreturn
+ */
+forward void Shavit_OnProcessMovementPost(int client);
+
+/**
  * Returns the game type the server is running.
  *
  * @return							Game type. (See "enum ServerGame")
