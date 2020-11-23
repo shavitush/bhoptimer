@@ -3595,17 +3595,17 @@ public any Native_SaveCheckpoint(Handle plugin, int numParams)
 			return -1;
 		}
 
-		if(SaveCheckpoint(client, gA_Checkpoints[client].Length + 1))
+		if(SaveCheckpoint(client, gA_Checkpoints[client].Length))
 		{
-			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length + 1;
+			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
 		}
 	}
 	
 	else
 	{
-		if(SaveCheckpoint(client, gA_Checkpoints[client].Length + 1, bOverflow))
+		if(SaveCheckpoint(client, gA_Checkpoints[client].Length, bOverflow))
 		{
-			gI_CurrentCheckpoint[client] = (bOverflow)? iMaxCPs:gA_Checkpoints[client].Length + 1;
+			gI_CurrentCheckpoint[client] = (bOverflow)? iMaxCPs:gA_Checkpoints[client].Length;
 		}
 	}
 
