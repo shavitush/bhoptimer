@@ -509,6 +509,15 @@ forward void Shavit_OnTimeIncrementPost(int client, float time, stylesettings_t 
 forward Action Shavit_OnStart(int client, int track);
 
 /**
+ * Called when a player uses the !set or !setstart command.
+ *
+ * @param client					Client index.
+ * @param track						Timer track.
+ * @noreturn
+ */
+forward void Shavit_OnSetStart(int client, int track);
+
+/**
  * Called when a player uses the restart command.
  *
  * @param client					Client index.
@@ -945,6 +954,15 @@ native Database Shavit_GetDatabase();
  * @noreturn
  */
 native void Shavit_StartTimer(int client, int track);
+
+/**
+ * Sets the player's current location as the spawn location in the track's start zone.
+ * Player must be in the start zone!
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+native bool Shavit_SetStart(int client);
 
 /**
  * Restarts the timer for a player.
@@ -2028,6 +2046,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetReplayData");
 	MarkNativeAsOptional("Shavit_StartReplay");
 	MarkNativeAsOptional("Shavit_StartTimer");
+	MarkNativeAsOptional("Shavit_SetStart");
 	MarkNativeAsOptional("Shavit_StopChatSound");
 	MarkNativeAsOptional("Shavit_StopTimer");
 	MarkNativeAsOptional("Shavit_WR_DeleteMap");
