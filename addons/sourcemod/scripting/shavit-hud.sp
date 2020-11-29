@@ -1104,7 +1104,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 			char sTimeDiff[32];
 			
-			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0 && data.fTime != 0.0)
 			{
 				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
 
@@ -1321,7 +1321,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			
 			char sTimeDiff[32];
 			
-			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0 && data.fTime != 0.0)
 			{
 				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
 
