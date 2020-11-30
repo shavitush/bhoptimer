@@ -127,6 +127,7 @@ float gV_ZoneCenter[MAX_ZONES][3];
 int gI_StageZoneID[MAX_ZONES];
 int gI_EntityZone[4096];
 bool gB_ZonesCreated = false;
+int gI_LastStage[MAXPLAYERS+1];
 
 char gS_BeamSprite[PLATFORM_MAX_PATH];
 int gI_BeamSprite = -1;
@@ -2741,6 +2742,8 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 public void Shavit_OnRestart(int client, int track)
 {
+	gI_LastStage[client] = 0;
+
 	if(gCV_TeleportToStart.BoolValue)
 	{
 		int iIndex = -1;
@@ -2999,18 +3002,23 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_Stage:
 		{
-			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack)
+			int num = gA_ZoneCache[gI_EntityZone[entity]].iZoneData;
+			char special[sizeof(stylestrings_t::sSpecialString)];
+			Shavit_GetStyleStrings(Shavit_GetBhopStyle(other), sSpecialString, special, sizeof(special));
+
+			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack && (num > gI_LastStage[other] || StrContains(special, "segments") != -1))
 			{
+				gI_LastStage[other] = num;
 				char sTime[32];
 				FormatSeconds(Shavit_GetClientTime(other), sTime, 32, true);
 
 				char sMessage[255];
-				FormatEx(sMessage, 255, "%T", "ZoneStageEnter", other, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gA_ZoneCache[gI_EntityZone[entity]].iZoneData, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText);
+				FormatEx(sMessage, 255, "%T", "ZoneStageEnter", other, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, num, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText);
 
 				Action aResult = Plugin_Continue;
 				Call_StartForward(gH_Forwards_StageMessage);
 				Call_PushCell(other);
-				Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]].iZoneData);
+				Call_PushCell(num);
 				Call_PushStringEx(sMessage, 255, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 				Call_PushCell(255);
 				Call_Finish(aResult);
