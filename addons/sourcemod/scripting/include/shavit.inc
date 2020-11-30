@@ -509,15 +509,6 @@ forward void Shavit_OnTimeIncrementPost(int client, float time, stylesettings_t 
 forward Action Shavit_OnStart(int client, int track);
 
 /**
- * Called when a player uses the !set or !setstart command.
- *
- * @param client					Client index.
- * @param track						Timer track.
- * @noreturn
- */
-forward void Shavit_OnSetStart(int client, int track);
-
-/**
  * Called when a player uses the restart command.
  *
  * @param client					Client index.
@@ -962,7 +953,7 @@ native void Shavit_StartTimer(int client, int track);
  * @param client					Client index.
  * @noreturn
  */
-native bool Shavit_SetStart(int client);
+native void Shavit_SetStart(int client);
 
 /**
  * Restarts the timer for a player.
