@@ -563,7 +563,21 @@ public Action Command_StartTimer(int client, int args)
 
 	if(StrContains(sCommand, "sm_b", false) == 0)
 	{
-		track = Track_Bonus;
+		if (args < 1)
+		{
+			track = Shavit_GetClientTrack(client);
+		}
+		else
+		{
+			char arg[6];
+			GetCmdArg(1, arg, sizeof(arg));
+			track = StringToInt(arg);
+		}
+
+		if (track < Track_Bonus || track > Track_Bonus_Last)
+		{
+			track = Track_Bonus;
+		}
 	}
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
@@ -609,7 +623,21 @@ public Action Command_TeleportEnd(int client, int args)
 
 	if(StrContains(sCommand, "sm_b", false) == 0)
 	{
-		track = Track_Bonus;
+		if (args < 1)
+		{
+			track = Shavit_GetClientTrack(client);
+		}
+		else
+		{
+			char arg[6];
+			GetCmdArg(1, arg, sizeof(arg));
+			track = StringToInt(arg);
+		}
+
+		if (track < Track_Bonus || track > Track_Bonus_Last)
+		{
+			track = Track_Bonus;
+		}
 	}
 
 	if(gB_Zones && (Shavit_ZoneExists(Zone_End, track) || gB_KZMap))
@@ -1126,7 +1154,7 @@ public Action Command_Style(int client, int args)
 				char sWR[8];
 				strcopy(sWR, 8, "WR");
 
-				if(gA_Timers[client].iTrack == Track_Bonus)
+				if(gA_Timers[client].iTrack >= Track_Bonus)
 				{
 					strcopy(sWR, 8, "BWR");
 				}
@@ -3527,18 +3555,4 @@ void UpdateStyleSettings(int client)
 	UpdateAiraccelerate(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate));
 
 	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }

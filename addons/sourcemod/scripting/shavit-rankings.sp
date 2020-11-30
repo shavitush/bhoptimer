@@ -86,8 +86,6 @@ Handle gH_Forwards_OnRankAssigned = null;
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 stylesettings_t gA_StyleSettings[STYLE_LIMIT];
-char gS_StyleNames[STYLE_LIMIT][64];
-char gS_TrackNames[TRACKS_SIZE][32];
 
 public Plugin myinfo =
 {
@@ -159,11 +157,6 @@ public void OnPluginStart()
 		Shavit_OnChatConfigLoaded();
 	}
 
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		GetTrackName(LANG_SERVER, i, gS_TrackNames[i], 32);
-	}
-
 	SQL_DBConnect();
 }
 
@@ -187,7 +180,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleNames[i], 64);
 	}
 }
 
@@ -645,7 +637,7 @@ void RecalculateAll(const char[] map)
 	LogError("DEBUG: 5 (RecalculateAll)");
 	#endif
 
-	for(int i = 0; i < TRACKS_SIZE; i++)
+	for(int i = 0; i < 3; i++)
 	{
 		for(int j = 0; j < gI_Styles; j++)
 		{
@@ -654,7 +646,7 @@ void RecalculateAll(const char[] map)
 				continue;
 			}
 
-			RecalculateMap(map, i, j);
+			RecalculateMap(map, i, j, (i > Track_Bonus));
 		}
 	}
 }
@@ -664,15 +656,23 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	RecalculateMap(gS_Map, track, style);
 }
 
-void RecalculateMap(const char[] map, const int track, const int style)
+void RecalculateMap(const char[] map, const int track, const int style, bool restOfTheBonuses=false)
 {
 	#if defined DEBUG
 	PrintToServer("Recalculating points. (%s, %d, %d)", map, track, style);
 	#endif
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
+	if (restOfTheBonuses)
+	{
+		FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, '%s', %.1f, %.3f) WHERE style = %d AND track > 1 AND map = '%s';",
+		gS_MySQLPrefix, style, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, map);
+	}
+	else
+	{
+		FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
 		gS_MySQLPrefix, style, track, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, track, map);
+	}
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
 
@@ -870,20 +870,6 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 	}
 
 	gH_Top100Menu.ExitButton = true;
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }
 
 public int Native_GetMapTier(Handle handler, int numParams)

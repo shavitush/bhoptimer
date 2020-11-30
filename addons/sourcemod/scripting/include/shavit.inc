@@ -114,6 +114,7 @@ enum
 {
 	Track_Main,
 	Track_Bonus,
+	Track_Bonus_Last = 8,
 	TRACKS_SIZE
 };
 
@@ -450,6 +451,16 @@ stock bool GuessBestMapName(ArrayList maps, const char[] input, char[] output, i
 	}
 
 	return false;
+}
+
+stock void GetTrackName(int client, int track, char[] output, int size)
+{
+	if (track == Track_Main)
+		FormatEx(output, size, "%T", "Track_Main", client, track);
+	else if (track >= Track_Bonus)
+		FormatEx(output, size, "%T", "Track_Bonus", client, track);
+	else //if (track < Track_Main)
+		FormatEx(output, size, "%T", "Track_Unknown", client);
 }
 
 /**

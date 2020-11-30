@@ -144,9 +144,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
 	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
 
-	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map]");
-	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map]");
-	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map]");
+	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map] [bonus number]");
+	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map] [bonus number]");
+	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map] [bonus number]");
 
 	RegConsoleCmd("sm_recent", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
@@ -1315,29 +1315,51 @@ public Action Command_WorldRecord(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(args == 0)
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
+
+	int track = Track_Main;
+	bool havemap = false;
+
+	if(StrContains(sCommand, "sm_b", false) == 0)
+	{
+		if (args >= 1)
+		{
+			char arg[6];
+			GetCmdArg((args > 1) ? 2 : 1, arg, sizeof(arg));
+			track = StringToInt(arg);
+
+			// if the track doesn't fit in the bonus track range then assume it's a map name
+			if (args > 1 || (track < Track_Bonus || track > Track_Bonus_Last))
+			{
+				havemap = true;
+			}
+		}
+
+		if (track < Track_Bonus || track > Track_Bonus_Last)
+		{
+			track = Track_Bonus;
+		}
+	}
+
+	else
+	{
+		havemap = (args >= 1);
+	}
+
+	if(!havemap)
 	{
 		strcopy(gA_WRCache[client].sClientMap, 128, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
+		GetCmdArg(1, gA_WRCache[client].sClientMap, 128);
 		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
 		{
 			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
 			return Plugin_Handled;
 		}
-	}
-
-	char sCommand[16];
-	GetCmdArg(0, sCommand, 16);
-
-	int track = Track_Main;
-
-	if(StrContains(sCommand, "sm_b", false) == 0)
-	{
-		track = Track_Bonus;
 	}
 
 	return ShowWRStyleMenu(client, track);
@@ -2264,18 +2286,4 @@ int GetRankForTime(int style, float time, int track)
 	}
 
 	return (iRecords + 1);
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }
