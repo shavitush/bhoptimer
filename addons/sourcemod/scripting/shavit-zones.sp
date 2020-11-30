@@ -111,6 +111,9 @@ float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 bool gB_InsideZoneID[MAXPLAYERS+1][MAX_ZONES];
+bool gB_HasSetStart[MAXPLAYERS+1][TRACKS_SIZE];
+float gF_StartPos[MAXPLAYERS+1][TRACKS_SIZE][3];
+float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][3];
 float gF_PrebuiltZones[TRACKS_SIZE][2][3];
 float gF_CustomSpawn[TRACKS_SIZE][3];
 int gI_ZoneTrack[MAXPLAYERS+1];
@@ -276,6 +279,8 @@ public void OnPluginStart()
 			gA_ZoneSettings[i][j].bFlatZone = false;
 		}
 	}
+	
+	SQL_DBConnect();
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -284,8 +289,6 @@ public void OnPluginStart()
 			OnClientPutInServer(i);
 		}
 	}
-
-	SQL_DBConnect();
 }
 
 public void OnAllPluginsLoaded()
@@ -702,7 +705,7 @@ public void LoadStageZones()
 {
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT id, data FROM mapzones WHERE type = %i and map = '%s'", Zone_Stage, gS_Map);
-	PrintToChatAll("%s", sQuery);
+	//PrintToChatAll("%s", sQuery);
 	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
 }
 
@@ -720,6 +723,61 @@ public void SQL_GetStageZone_Callback(Database db, DBResultSet results, const ch
 		int iStageNumber = results.FetchInt(1);
 		gI_StageZoneID[iStageNumber] = iZoneID;
 	} 
+}
+
+void GetStartPosition(int client)
+{
+	int steamID = GetSteamAccountID(client);
+	
+	if(steamID == 0 || client == 0)
+	{
+		return;
+	}
+	
+	//Getting map name again, because if plugin is late, clients will be in the server before OnMapStart
+	char mapName[160];
+	GetCurrentMap(mapName, 160);
+	GetMapDisplayName(mapName, mapName, 160);
+	
+	char query[512];
+	
+	FormatEx(query, 512,
+		"SELECT track, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z FROM %sstartpositions WHERE auth = %d AND map = '%s'",
+		gS_MySQLPrefix, steamID, mapName);
+	
+	gH_SQL.Query(SQL_GetStartPosition_Callback, query, GetClientSerial(client));
+}
+
+public void SQL_GetStartPosition_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (get start position) SQL query failed. Reason: %s", error);
+		return;
+	}
+	
+	int client = GetClientFromSerial(data);
+	
+	if(client == 0 || !results.FetchRow())
+	{
+		return;
+	}
+	
+	do
+	{
+		int track = results.FetchInt(0);
+		
+		gF_StartPos[client][track][0] = results.FetchFloat(1);
+		gF_StartPos[client][track][1] = results.FetchFloat(2);
+		gF_StartPos[client][track][2] = results.FetchFloat(3);
+		
+		gF_StartAng[client][track][0] = results.FetchFloat(4);
+		gF_StartAng[client][track][1] = results.FetchFloat(5);
+		gF_StartAng[client][track][2] = results.FetchFloat(6);
+		
+		gB_HasSetStart[client][track] = true;
+	
+	} while(results.FetchRow());
 }
 
 public void OnMapEnd()
@@ -1038,12 +1096,20 @@ public void OnClientPutInServer(int client)
 			gF_ClimbButtonCache[client][i][0][j] = 0.0;
 			gF_ClimbButtonCache[client][i][1][j] = 0.0;
 		}
+		
+		gF_StartPos[client][i] = view_as<float>({0.0, 0.0, 0.0});
+		gF_StartAng[client][i] = view_as<float>({0.0, 0.0, 0.0});
+
+		gB_HasSetStart[client][i] = false;
 	}
 
 	for(int i = 0; i < MAX_ZONES; i++)
 	{
 		gB_InsideZoneID[client][i] = false;
 	}
+	
+	//Get user's start position if they have one
+	GetStartPosition(client);
 
 	Reset(client);
 }
@@ -2722,21 +2788,80 @@ void SQL_DBConnect()
 		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;",
 		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 
+	char sQuery2[1024];
+	FormatEx(sQuery2, 1024,
+		"CREATE TABLE IF NOT EXISTS `%sstartpositions` (`auth` INTEGER NOT NULL, `track` INTEGER NOT NULL, `map` VARCHAR(128) NOT NULL, `pos_x` FLOAT, `pos_y` FLOAT, `pos_z` FLOAT, `ang_x` FLOAT, `ang_y` FLOAT, `ang_z` FLOAT, PRIMARY KEY (`auth`, `track`, `map`))%s;",
+		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
+
 	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+	gH_SQL.Query(SQL_CreateTable_Callback, sQuery2, true);
 }
 
 public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
 	{
-		LogError("Timer (zones module) error! Map zones' table creation failed. Reason: %s", error);
-
+		if(!view_as<bool>(data))
+		{
+			LogError("Timer (zones module) error! Map zones' table creation failed. Reason: %s", error);
+		}
+		else
+		{
+			LogError("Timer (zones module) error! Start positions' table creation failed. Reason: %s", error);
+		}
+		
 		return;
 	}
+	else if(view_as<bool>(data))
+	{
+		gB_Connected = true;
+		OnMapStart();
+	}
+}
 
-	gB_Connected = true;
+public void Shavit_OnSetStart(int client, int track)
+{
+	GetClientAbsOrigin(client, gF_StartPos[client][track]);
+	GetClientEyeAngles(client, gF_StartAng[client][track]);
 	
-	OnMapStart();
+	char query[512];
+	
+	FormatEx(query, 512,
+		"REPLACE INTO %sstartpositions (auth, track, map, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z) VALUES (%d, %d, '%s', %.03f, %.03f, %.03f, %.03f, %.03f, %.03f);",
+		gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map,
+		gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
+		gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2]);
+	
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(GetClientSerial(client));
+	hPack.WriteCell(track);
+	
+	gH_SQL.Query(SQL_InsertStartPosition_Callback, query, hPack);
+}
+
+public void SQL_InsertStartPosition_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+	
+	int client = GetClientFromSerial(hPack.ReadCell());
+	int track = hPack.ReadCell();
+	
+	if(results == null)
+	{
+		if(client == 0)
+		{
+			LogError("Timer (zones module) error! Failed to insert a disconnected player's start position to the table. Reason: %s", error);
+		}
+		else
+		{
+			LogError("Timer (zones module) error! Failed to insert \"%N\"'s data to the table. Reason: %s", client, error);
+		}
+		
+		return;
+	}
+	
+	gB_HasSetStart[client][track] = true;
 }
 
 public void Shavit_OnRestart(int client, int track)
@@ -2758,8 +2883,16 @@ public void Shavit_OnRestart(int client, int track)
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
 			fCenter[2] = gV_MapZones[iIndex][0][2];
-
-			TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			
+			if(gB_HasSetStart[client][track])
+			{
+				//RequestFrame to prevent teleporting player to their set start location without proper eye angles
+				RequestFrame(TeleportPlayerToSetStart, client);
+			}
+			else
+			{
+				TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			}
 		}
 
 		// prebuilt map zones
@@ -2778,6 +2911,12 @@ public void Shavit_OnRestart(int client, int track)
 
 		Shavit_StartTimer(client, track);
 	}
+}
+
+void TeleportPlayerToSetStart(int client)
+{
+	int track = Shavit_GetClientTrack(client);
+	TeleportEntity(client, gF_StartPos[client][track], gF_StartAng[client][track], view_as<float>({0.0, 0.0, 0.0}));
 }
 
 public void Shavit_OnEnd(int client, int track)
