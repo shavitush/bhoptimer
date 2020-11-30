@@ -1839,14 +1839,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 void ApplyFlags(int &flags1, int flags2, int flag)
 {
-	if((flags2 & flag) > 0)
+	if((flags2 & flag) != 0)
 	{
 		flags1 |= flag;
 	}
 
 	else
 	{
-		flags2 &= ~flag;
+		flags1 &= ~flag;
 	}
 }
 
