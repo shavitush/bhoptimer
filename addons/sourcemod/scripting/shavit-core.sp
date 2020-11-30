@@ -77,7 +77,6 @@ bool gB_MySQL = false;
 
 // forwards
 Handle gH_Forwards_Start = null;
-Handle gH_Forwards_SetStart = null;
 Handle gH_Forwards_Stop = null;
 Handle gH_Forwards_StopPre = null;
 Handle gH_Forwards_FinishPre = null;
@@ -229,7 +228,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
 	CreateNative("Shavit_SetPracticeMode", Native_SetPracticeMode);
 	CreateNative("Shavit_StartTimer", Native_StartTimer);
-	CreateNative("Shavit_SetStart", Native_SetStart);
 	CreateNative("Shavit_StopChatSound", Native_StopChatSound);
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_GetClientTimescale", Native_GetClientTimescale);
@@ -249,7 +247,6 @@ public void OnPluginStart()
 
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_SetStart = CreateGlobalForward("Shavit_OnSetStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
@@ -310,10 +307,6 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_b", Command_StartTimer, "Start your timer on the bonus track.");
 	RegConsoleCmd("sm_bonus", Command_StartTimer, "Start your timer on the bonus track.");
-	
-	// set spawn location
-	RegConsoleCmd("sm_set", Command_SetStart, "Set current position as spawn location in start zone.");
-	RegConsoleCmd("sm_setstart", Command_SetStart, "Set current position as spawn location in start zone.");
 
 	// teleport to end
 	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
@@ -572,10 +565,6 @@ public Action Command_StartTimer(int client, int args)
 	{
 		track = Track_Bonus;
 	}
-	else if(StrContains(sCommand, "sm_r", false) == 0 || StrContains(sCommand, "sm_restart", false) == 0)
-	{
-		track = gA_Timers[client].iTrack;
-	}
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
 	{
@@ -603,35 +592,6 @@ public Action Command_StartTimer(int client, int args)
 		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTrack, gS_ChatStrings.sText);
 	}
 
-	return Plugin_Handled;
-}
-
-public Action Command_SetStart(int client, int args)
-{
-	if(!IsValidClient(client) || IsClientObserver(client))
-	{
-		return Plugin_Handled;
-	}
-	
-	int iFlags = Shavit_CanPause(client);
-	
-	if(gB_Zones && !Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
-	{
-		Shavit_PrintToChat(client, "%T", "SetStartNotInStartZone", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-		
-		return Plugin_Handled;
-	}
-	else if((iFlags & CPR_NotOnGround) > 0)
-	{
-		Shavit_PrintToChat(client, "%T", "SetStartNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
-		
-		return Plugin_Handled;
-	}
-	
-	SetStart(client);
-	
-	Shavit_PrintToChat(client, "%T", "SetStart", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
-	
 	return Plugin_Handled;
 }
 
@@ -1512,11 +1472,6 @@ public int Native_StartTimer(Handle handler, int numParams)
 	StartTimer(GetNativeCell(1), GetNativeCell(2));
 }
 
-public int Native_SetStart(Handle handler, int numParams)
-{
-	SetStart(GetNativeCell(1));
-}
-
 public int Native_StopTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
@@ -2111,19 +2066,6 @@ void StartTimer(int client, int track)
 			gA_Timers[client].bEnabled = false;
 		}
 	}
-}
-
-void SetStart(int client)
-{
-	if(!IsValidClient(client) || IsFakeClient(client))
-	{
-		return;
-	}
-	
-	Call_StartForward(gH_Forwards_SetStart);
-	Call_PushCell(client);
-	Call_PushCell(gA_Timers[client].iTrack);
-	Call_Finish();
 }
 
 void StopTimer(int client)
