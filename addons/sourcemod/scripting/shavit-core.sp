@@ -674,13 +674,6 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if((iFlags & CPR_NotOnGround) > 0)
-	{
-		Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
-
-		return Plugin_Handled;
-	}
-
 	if(gA_Timers[client].bPaused)
 	{
 		TeleportEntity(client, gF_PauseOrigin[client], gF_PauseAngles[client], gF_PauseVelocity[client]);
@@ -691,6 +684,20 @@ public Action Command_TogglePause(int client, int args)
 
 	else
 	{
+		if((iFlags & CPR_NotOnGround) > 0)
+		{
+			Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+			return Plugin_Handled;
+		}
+
+		if((iFlags & CPR_Moving) > 0)
+		{
+			Shavit_PrintToChat(client, "%T", "PauseMoving", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+			return Plugin_Handled;
+		}
+
 		GetClientAbsOrigin(client, gF_PauseOrigin[client]);
 		GetClientEyeAngles(client, gF_PauseAngles[client]);
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
@@ -1524,6 +1531,13 @@ public int Native_CanPause(Handle handler, int numParams)
 	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
 	{
 		iFlags |= CPR_NotOnGround;
+	}
+
+	float vel[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
+	if (vel[0] != 0.0 || vel[1] != 0.0 || vel[2] != 0.0)
+	{
+		iFlags |= CPR_Moving;
 	}
 
 	return iFlags;
