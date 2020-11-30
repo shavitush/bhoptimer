@@ -608,13 +608,14 @@ public Action Command_StartTimer(int client, int args)
 
 public Action Command_SetStart(int client, int args)
 {
-	int iFlags = Shavit_CanPause(client);
-	
 	if(!IsValidClient(client) || IsClientObserver(client))
 	{
 		return Plugin_Handled;
 	}
-	else if(gB_Zones && !Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
+	
+	int iFlags = Shavit_CanPause(client);
+	
+	if(gB_Zones && !Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
 	{
 		Shavit_PrintToChat(client, "%T", "SetStartNotInStartZone", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 		
