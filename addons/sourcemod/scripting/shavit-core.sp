@@ -159,6 +159,8 @@ int gI_Styles = 0;
 int gI_OrderedStyles[STYLE_LIMIT];
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 stylesettings_t gA_StyleSettings[STYLE_LIMIT];
+StringMap gSM_StyleKeys[STYLE_LIMIT];
+int gI_CurrentParserIndex = 0;
 
 // chat settings
 chatstrings_t gS_ChatStrings;
@@ -207,6 +209,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetPerfectJumps", Native_GetPerfectJumps);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
+	CreateNative("Shavit_GetStyleSetting", Native_GetStyleSetting);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetSync", Native_GetSync);
@@ -2028,6 +2031,22 @@ public int Native_SetClientTimescale(Handle handler, int numParams)
 	}
 }
 
+public int Native_GetStyleSetting(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	int maxlength = GetNativeCell(4);
+	
+	char sValue[256];
+	bool ret = gSM_StyleKeys[style].GetString(sKey, sValue, maxlength);
+
+	SetNativeString(3, sValue, maxlength);
+	return ret;
+}
+
 int GetTimerStatus(int client)
 {
 	if(!gA_Timers[client].bEnabled)
@@ -2300,6 +2319,12 @@ bool LoadStyles()
 	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-styles.cfg");
 
+	SMCParser parser = new SMCParser();
+	parser.OnEnterSection = OnStyleEnterSection;
+	parser.OnKeyValue = OnStyleKeyValue;
+	parser.ParseFile(sPath);
+	delete parser;
+
 	KeyValues kv = new KeyValues("shavit-styles");
 
 	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
@@ -2312,7 +2337,7 @@ bool LoadStyles()
 	int i = 0;
 
 	do
-	{
+	{		
 		kv.GetString("name", gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName), "<MISSING STYLE NAME>");
 		kv.GetString("shortname", gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName), "<MISSING SHORT STYLE NAME>");
 		kv.GetString("htmlcolor", gS_StyleStrings[i].sHTMLColor, sizeof(stylestrings_t::sHTMLColor), "<MISSING STYLE HTML COLOR>");
@@ -2432,6 +2457,28 @@ bool LoadStyles()
 	Call_Finish();
 
 	return true;
+}
+
+public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_quotes)
+{
+	// styles key
+	if(!IsCharNumeric(name[0]))
+	{
+		return SMCParse_Continue;
+	}
+
+	// Technically can lead to a small memory leak if a style is removed mid game.
+	// TODO: replace hard coded values with SMCParser logic.
+	gI_CurrentParserIndex = StringToInt(name);
+	delete gSM_StyleKeys[gI_CurrentParserIndex];
+	gSM_StyleKeys[gI_CurrentParserIndex] = new StringMap();
+
+	return SMCParse_Continue;
+}
+
+public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
+{
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString(key, value);
 }
 
 public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)

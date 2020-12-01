@@ -1533,6 +1533,19 @@ native void Shavit_OpenStatsMenu(int client, int steamid);
  */
 native int Shavit_GetWRCount(int client);
 
+/*
+ * Gets a value from the style config for the given style
+ * e.g. Shavit_GetStyleSetting(Shavit_GetBhopStyle(client), "TAS", sBuffer, 2);
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ * @param value						Value buffer to store the return value in.
+ * @param maxlength					Max length of the value buffer, cannot exceed 256.
+ *
+ * @return 							True if key was found, false otherwise.
+ */
+native bool Shavit_GetStyleSetting(int style, const char[] key, char[] value, int maxlength);
+
 /**
 * Saves the style settings on `any` references.
 *
@@ -1541,6 +1554,7 @@ native int Shavit_GetWRCount(int client);
 * @param size						Size of the StyleSettings buffer, e.g sizeof(stylesettings_t)
 * @return							SP_ERROR_NONE on success, anything else on failure.
 */
+#pragma deprecated Use different natives or Shavit_GetStyleSetting instead.
 native int Shavit_GetStyleSettings(int style, any[] StyleSettings, int size = sizeof(stylesettings_t));
 
 /**
@@ -1913,7 +1927,7 @@ native int Shavit_GetPlayerPreFrame(int client);
  *
  * @return 							Timer preframe count
  */
- native int Shavit_GetPlayerTimerFrame(int client);
+native int Shavit_GetPlayerTimerFrame(int client);
 
 /*
  * Sets player's preframe length.
@@ -1934,7 +1948,7 @@ native void Shavit_SetPlayerPreFrame(int client, int PreFrame);
  *
  * @noreturn
  */
- native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
+native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
@@ -2010,6 +2024,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStageZone");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
+	MarkNativeAsOptional("Shavit_GetStyleSetting");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");
