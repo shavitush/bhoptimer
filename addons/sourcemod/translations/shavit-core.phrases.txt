@@ -79,22 +79,6 @@
 		"#format"	"{1:d},{2:s},{3:d},{4:s}"
 		"en"		"Your airacceleration has been changed from {1} to {2}{3}{4}."
 	}
-	// --------- Set Start --------- //
-	"SetStart"
-	{
-		"#format"	"{1:s},{2:s},{3:s}"
-		"en"		"{1}Start position has been {2}set{3}."
-	}
-	"SetStartNotInStartZone"
-	{
-		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s}"
-		"en"		"{1}You {2}must{3} be in the {4}start zone{5}."
-	}
-	"SetStartNotOnGround"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"You {1}are not{2} allowed to set start when not on ground."
-	}
 	// ---------- Pauses ---------- //
 	"MessagePause"
 	{
