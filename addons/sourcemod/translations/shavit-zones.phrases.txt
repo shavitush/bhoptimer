@@ -13,6 +13,22 @@
 	{
 		"en"		"Delete map zone"
 	}
+	// --------- Set Start --------- //
+	"SetStart"
+	{
+		"#format"	"{1:s},{2:s},{3:s}"
+		"en"		"{1}Start position has been {2}set{3}."
+	}
+	"SetStartNotInStartZone"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s}"
+		"en"		"{1}You {2}must{3} be in the {4}start zone{5} to use set start."
+	}
+	"SetStartNotOnGround"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"You {1}are not{2} allowed to use set start when not on ground."
+	}
 	// ---------- Commands ---------- //
 	"StageCommandAlive"
 	{
