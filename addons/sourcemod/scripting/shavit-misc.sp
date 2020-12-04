@@ -1867,7 +1867,7 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 {
 	if(action == MenuAction_Select)
 	{
-		if(CanSegment(param1) || !Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
+		if(CanSegment(param1) || !Shavit_GetStyleSettingInt(gI_Style[param1], "kzcheckpoints"))
 		{
 			return 0;
 		}

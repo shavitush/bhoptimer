@@ -1998,7 +1998,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	bool bIncrementCompletions = true;
 	int iOverwrite = 0;
 
-	if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_IsPracticeMode(client))
+	if(Shavit_GetStyleSettingInt(style, "unranked") || Shavit_IsPracticeMode(client))
 	{
 		iOverwrite = 0; // ugly way of not writing to database
 		bIncrementCompletions = false;
@@ -2124,7 +2124,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		
 		gI_PlayerCompletion[client][style][track]++;
 		
-		if(iOverwrite == 0 && !Shavit_GetStyleSettingInt(iStyle, "unranked"))
+		if(iOverwrite == 0 && !Shavit_GetStyleSettingInt(style, "unranked"))
 		{
 			FormatEx(sMessage, 255, "%s[%s]%s %T",
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
@@ -2230,7 +2230,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		int style = results.FetchInt(0);
 		int track = results.FetchInt(1);
 
-		if(style >= gI_Styles || Shavit_GetStyleSettingInt(iStyle, "unranked") || track >= TRACKS_SIZE)
+		if(style >= gI_Styles || Shavit_GetStyleSettingInt(style, "unranked") || track >= TRACKS_SIZE)
 		{
 			continue;
 		}
