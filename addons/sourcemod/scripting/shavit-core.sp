@@ -210,6 +210,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
 	CreateNative("Shavit_GetStyleSetting", Native_GetStyleSetting);
+	CreateNative("Shavit_GetStyleSettingInt", Native_GetStyleSettingInt);
+	CreateNative("Shavit_GetStyleSettingFloat", Native_GetStyleSettingFloat);
+	CreateNative("Shavit_HasStyleSetting", Native_HasStyleSetting);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetSync", Native_GetSync);
@@ -2045,6 +2048,46 @@ public int Native_GetStyleSetting(Handle handler, int numParams)
 
 	SetNativeString(3, sValue, maxlength);
 	return ret;
+}
+
+public int Native_GetStyleSettingInt(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	char sValue[16];
+	gSM_StyleKeys[style].GetString(sKey, sValue, 16);
+
+	return StringToInt(sValue);
+}
+
+public any Native_GetStyleSettingFloat(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	char sValue[16];
+	gSM_StyleKeys[style].GetString(sKey, sValue, 16);
+
+	return StringToFloat(sValue);
+}
+
+public any Native_HasStyleSetting(Handle handler, int numParams)
+{
+	// TODO: replace with sm 1.11 StringMap.ContainsKey
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	char sValue[1];
+	gSM_StyleKeys[style].GetString(sKey, sValue, 1);
+
+	return gSM_StyleKeys[style].GetString(sKey, sValue, 1);
 }
 
 int GetTimerStatus(int client)

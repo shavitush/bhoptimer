@@ -1546,6 +1546,42 @@ native int Shavit_GetWRCount(int client);
  */
 native bool Shavit_GetStyleSetting(int style, const char[] key, char[] value, int maxlength);
 
+
+/*
+ * Gets an int value from the style config for the given style. Returns 0 if key is not found.
+ * e.g. Shavit_GetStyleSettingInt(Shavit_GetBhopStyle(client), "TAS");
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ *
+ * @return 							Integer value if found, 0 if key is missing.
+ */
+native int Shavit_GetStyleSettingInt(int style, const char[] key);
+
+
+/*
+ * Gets a float value from the style config for the given style. Returns 0.0 if key is not found
+ * e.g. Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "speed");
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ *
+ * @return 							Float value if found, 0.0 if key is missing.
+ */
+native float Shavit_GetStyleSettingFloat(int style, const char[] key);
+
+
+/*
+ * Checks if the given key exists for that style
+ * e.g. Shavit_HasStyleSetting(Shavit_GetBhopStyle(client), "tas");
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ *
+ * @return 							True if found.
+ */
+native bool Shavit_HasStyleSetting(int style, const char[] key);
+
 /**
 * Saves the style settings on `any` references.
 *
@@ -2025,6 +2061,9 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSetting");
+	MarkNativeAsOptional("Shavit_GetStyleSettingInt");
+	MarkNativeAsOptional("Shavit_GetStyleSettingFloat");
+	MarkNativeAsOptional("Shavit_HasStyleSetting");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");
