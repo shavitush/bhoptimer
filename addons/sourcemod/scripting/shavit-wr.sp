@@ -83,7 +83,6 @@ Convar gCV_RecentLimit = null;
 // timer settings
 int gI_Styles = 0;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
-stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
 chatstrings_t gS_ChatStrings;
@@ -373,7 +372,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
 		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
 	}
@@ -532,7 +530,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		int iStyle = results.FetchInt(1);
 		int iTrack = results.FetchInt(2);
 
-		if(iStyle >= gI_Styles || iStyle < 0 || gA_StyleSettings[iStyle].bUnranked)
+		if(iStyle >= gI_Styles || iStyle < 0 || Shavit_GetStyleSettingInt(iStyle, "unranked"))
 		{
 			continue;
 		}
@@ -778,7 +776,7 @@ void DeleteSubmenu(int client)
 	{
 		int iStyle = styles[i];
 
-		if(gA_StyleSettings[iStyle].iEnabled == -1)
+		if(Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
 		{
 			continue;
 		}
@@ -851,7 +849,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		{
 			int iStyle = styles[i];
 
-			if(gA_StyleSettings[iStyle].iEnabled == -1)
+			if(Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
 			{
 				continue;
 			}
@@ -1379,7 +1377,7 @@ Action ShowWRStyleMenu(int client, int track)
 	{
 		int iStyle = styles[i];
 
-		if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled == -1)
+		if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
 		{
 			continue;
 		}
@@ -1670,8 +1668,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		FormatSeconds(fTime, sTime, 16);
 
 		int iStyle = results.FetchInt(4);
-
-		if(iStyle >= gI_Styles || iStyle < 0 || gA_StyleSettings[iStyle].bUnranked)
+		if(iStyle >= gI_Styles || iStyle < 0 || Shavit_GetStyleSettingInt(iStyle, "unranked"))
 		{
 			continue;
 		}
@@ -1792,7 +1789,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int iJumps = results.FetchInt(2);
 		float fPerfs = results.FetchFloat(9);
 
-		if(gA_StyleSettings[iStyle].bAutobhop)
+		if(Shavit_GetStyleSettingInt(iStyle, "autobhop"))
 		{
 			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, iJumps);
 		}
@@ -2001,7 +1998,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	bool bIncrementCompletions = true;
 	int iOverwrite = 0;
 
-	if(gA_StyleSettings[style].bUnranked || Shavit_IsPracticeMode(client))
+	if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_IsPracticeMode(client))
 	{
 		iOverwrite = 0; // ugly way of not writing to database
 		bIncrementCompletions = false;
@@ -2127,7 +2124,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		
 		gI_PlayerCompletion[client][style][track]++;
 		
-		if(iOverwrite == 0 && !gA_StyleSettings[style].bUnranked)
+		if(iOverwrite == 0 && !Shavit_GetStyleSettingInt(iStyle, "unranked"))
 		{
 			FormatEx(sMessage, 255, "%s[%s]%s %T",
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
@@ -2233,7 +2230,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		int style = results.FetchInt(0);
 		int track = results.FetchInt(1);
 
-		if(style >= gI_Styles || gA_StyleSettings[style].bUnranked || track >= TRACKS_SIZE)
+		if(style >= gI_Styles || Shavit_GetStyleSettingInt(iStyle, "unranked") || track >= TRACKS_SIZE)
 		{
 			continue;
 		}
@@ -2243,7 +2240,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(i >= gI_Styles || gA_StyleSettings[i].bUnranked)
+		if(i >= gI_Styles || Shavit_GetStyleSettingInt(i, "unranked"))
 		{
 			continue;
 		}
