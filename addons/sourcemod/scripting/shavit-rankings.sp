@@ -85,7 +85,6 @@ Handle gH_Forwards_OnRankAssigned = null;
 // Timer settings.
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
-stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 public Plugin myinfo =
 {
@@ -175,11 +174,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	if(styles == -1)
 	{
 		gI_Styles = Shavit_GetStyleCount();
-	}
-
-	for(int i = 0; i < gI_Styles; i++)
-	{
-		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 	}
 }
 
@@ -583,14 +577,21 @@ public Action Command_RecalcAll(int client, int args)
 	{
 		char sQuery[192];
 
-		if(gA_StyleSettings[i].bUnranked || gA_StyleSettings[i].fRankingMultiplier == 0.0)
+		char unranked[4];
+		Shavit_GetStyleSetting(i, "unranked", unranked, 16);
+
+		char multiplier[16];
+		Shavit_GetStyleSetting(i, "rankingmultiplier", multiplier, 16);
+		float fMultiplier = StringToFloat(multiplier);
+
+		if(StringToInt(unranked) || fMultiplier == 0.0)
 		{
 			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = 0 WHERE style = %d;", gS_MySQLPrefix, i);
 		}
 
 		else
 		{
-			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gCV_PointsPerTier.FloatValue, gA_StyleSettings[i].fRankingMultiplier, i);
+			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gCV_PointsPerTier.FloatValue, fMultiplier, i);
 		}
 
 		trans.AddQuery(sQuery);
@@ -641,7 +642,9 @@ void RecalculateAll(const char[] map)
 	{
 		for(int j = 0; j < gI_Styles; j++)
 		{
-			if(gA_StyleSettings[j].bUnranked)
+			char unranked[4];
+			Shavit_GetStyleSetting(j, "unranked", unranked, 4);
+			if(StringToInt(unranked))
 			{
 				continue;
 			}
@@ -663,15 +666,17 @@ void RecalculateMap(const char[] map, const int track, const int style, bool res
 	#endif
 
 	char sQuery[256];
+	char multiplier[16];
+	Shavit_GetStyleSetting(style, "rankingmultiplier", multiplier, 16);
 	if (restOfTheBonuses)
 	{
 		FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, '%s', %.1f, %.3f) WHERE style = %d AND track > 1 AND map = '%s';",
-		gS_MySQLPrefix, style, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, map);
+		gS_MySQLPrefix, style, map, gCV_PointsPerTier.FloatValue, StringToFloat(multiplier), style, map);
 	}
 	else
 	{
 		FormatEx(sQuery, 256, "UPDATE %splayertimes SET points = GetRecordPoints(%d, %d, time, '%s', %.1f, %.3f) WHERE style = %d AND track = %d AND map = '%s';",
-		gS_MySQLPrefix, style, track, map, gCV_PointsPerTier.FloatValue, gA_StyleSettings[style].fRankingMultiplier, style, track, map);
+		gS_MySQLPrefix, style, track, map, gCV_PointsPerTier.FloatValue, StringToFloat(multiplier), style, track, map);
 	}
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
