@@ -2316,6 +2316,11 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 
 bool LoadStyles()
 {
+	for(int i = 0; i < STYLE_LIMIT; i++)
+	{
+		delete gSM_StyleKeys[i];
+	}
+
 	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-styles.cfg");
 
@@ -2325,129 +2330,6 @@ bool LoadStyles()
 	parser.ParseFile(sPath);
 	delete parser;
 
-	KeyValues kv = new KeyValues("shavit-styles");
-
-	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
-	{
-		delete kv;
-
-		return false;
-	}
-
-	int i = 0;
-
-	do
-	{		
-		kv.GetString("name", gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName), "<MISSING STYLE NAME>");
-		kv.GetString("shortname", gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName), "<MISSING SHORT STYLE NAME>");
-		kv.GetString("htmlcolor", gS_StyleStrings[i].sHTMLColor, sizeof(stylestrings_t::sHTMLColor), "<MISSING STYLE HTML COLOR>");
-		kv.GetString("command", gS_StyleStrings[i].sChangeCommand, sizeof(stylestrings_t::sChangeCommand), "");
-		kv.GetString("clantag", gS_StyleStrings[i].sClanTag, sizeof(stylestrings_t::sClanTag), "<MISSING STYLE CLAN TAG>");
-		kv.GetString("specialstring", gS_StyleStrings[i].sSpecialString, sizeof(stylestrings_t::sSpecialString), "");
-		kv.GetString("permission", gS_StyleStrings[i].sStylePermission, sizeof(stylestrings_t::sStylePermission), "");
-
-		gA_StyleSettings[i].bAutobhop = view_as<bool>(kv.GetNum("autobhop", 1));
-		gA_StyleSettings[i].bEasybhop = view_as<bool>(kv.GetNum("easybhop", 1));
-		gA_StyleSettings[i].iPrespeed = view_as<bool>(kv.GetNum("prespeed", 0));
-		gA_StyleSettings[i].fVelocityLimit = kv.GetFloat("velocity_limit", 0.0);
-		gA_StyleSettings[i].fAiraccelerate = kv.GetFloat("airaccelerate", 1000.0);
-		gA_StyleSettings[i].bEnableBunnyhopping = view_as<bool>(kv.GetNum("bunnyhopping", 1));
-		gA_StyleSettings[i].fRunspeed = kv.GetFloat("runspeed", 260.00);
-		gA_StyleSettings[i].fGravityMultiplier = kv.GetFloat("gravity", 1.0);
-		gA_StyleSettings[i].fSpeedMultiplier = kv.GetFloat("speed", 1.0);
-		gA_StyleSettings[i].fTimescale = view_as<bool>(kv.GetNum("halftime", 0))? 0.5:kv.GetFloat("timescale", 1.0); // backwards compat for old halftime settig
-		gA_StyleSettings[i].fVelocity = kv.GetFloat("velocity", 1.0);
-		gA_StyleSettings[i].fBonusVelocity = kv.GetFloat("bonus_velocity", 0.0);
-		gA_StyleSettings[i].fMinVelocity = kv.GetFloat("min_velocity", 0.0);
-		gA_StyleSettings[i].fJumpMultiplier = kv.GetFloat("jump_multiplier", 0.0);
-		gA_StyleSettings[i].fJumpBonus = kv.GetFloat("jump_bonus", 0.0);
-		gA_StyleSettings[i].bBlockW = view_as<bool>(kv.GetNum("block_w", 0));
-		gA_StyleSettings[i].bBlockA = view_as<bool>(kv.GetNum("block_a", 0));
-		gA_StyleSettings[i].bBlockS = view_as<bool>(kv.GetNum("block_s", 0));
-		gA_StyleSettings[i].bBlockD = view_as<bool>(kv.GetNum("block_d", 0));
-		gA_StyleSettings[i].bBlockUse = view_as<bool>(kv.GetNum("block_use", 0));
-		gA_StyleSettings[i].iForceHSW = kv.GetNum("force_hsw", 0);
-		gA_StyleSettings[i].iBlockPLeft = kv.GetNum("block_pleft", 0);
-		gA_StyleSettings[i].iBlockPRight = kv.GetNum("block_pright", 0);
-		gA_StyleSettings[i].iBlockPStrafe = kv.GetNum("block_pstrafe", 0);
-		gA_StyleSettings[i].bUnranked = view_as<bool>(kv.GetNum("unranked", 0));
-		gA_StyleSettings[i].bNoReplay = view_as<bool>(kv.GetNum("noreplay", 0));
-		gA_StyleSettings[i].bSync = view_as<bool>(kv.GetNum("sync", 1));
-		gA_StyleSettings[i].bStrafeCountW = view_as<bool>(kv.GetNum("strafe_count_w", false));
-		gA_StyleSettings[i].bStrafeCountA = view_as<bool>(kv.GetNum("strafe_count_a", true));
-		gA_StyleSettings[i].bStrafeCountS = view_as<bool>(kv.GetNum("strafe_count_s", false));
-		gA_StyleSettings[i].bStrafeCountD = view_as<bool>(kv.GetNum("strafe_count_d", true));
-		gA_StyleSettings[i].fRankingMultiplier = kv.GetFloat("rankingmultiplier", 1.00);
-		gA_StyleSettings[i].iSpecial = kv.GetNum("special", 0);
-		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
-		gA_StyleSettings[i].bInaccessible = view_as<bool>(kv.GetNum("inaccessible", false));
-		gA_StyleSettings[i].iEnabled = kv.GetNum("enabled", 1);
-		gA_StyleSettings[i].bKZCheckpoints = view_as<bool>(kv.GetNum("kzcheckpoints", 0));
-		gA_StyleSettings[i].bForceKeysOnGround = view_as<bool>(kv.GetNum("force_groundkeys", 0));
-
-		// if this style is disabled, we will force certain settings
-		if(gA_StyleSettings[i].iEnabled <= 0)
-		{
-			gA_StyleSettings[i].bNoReplay = true;
-			gA_StyleSettings[i].fRankingMultiplier = 0.0;
-			gA_StyleSettings[i].bInaccessible = true;
-		}
-
-		if(!gB_Registered && strlen(gS_StyleStrings[i].sChangeCommand) > 0 && !gA_StyleSettings[i].bInaccessible)
-		{
-			char sStyleCommands[32][32];
-			int iCommands = ExplodeString(gS_StyleStrings[i].sChangeCommand, ";", sStyleCommands, 32, 32, false);
-
-			char sDescription[128];
-			FormatEx(sDescription, 128, "Change style to %s.", gS_StyleStrings[i].sStyleName);
-
-			for(int x = 0; x < iCommands; x++)
-			{
-				TrimString(sStyleCommands[x]);
-				StripQuotes(sStyleCommands[x]);
-
-				char sCommand[32];
-				FormatEx(sCommand, 32, "sm_%s", sStyleCommands[x]);
-
-				gSM_StyleCommands.SetValue(sCommand, i);
-
-				RegConsoleCmd(sCommand, Command_StyleChange, sDescription);
-			}
-		}
-
-		if(StrContains(gS_StyleStrings[i].sStylePermission, ";") != -1)
-		{
-			char sText[2][32];
-			int iCount = ExplodeString(gS_StyleStrings[i].sStylePermission, ";", sText, 2, 32);
-
-			AdminFlag flag = Admin_Reservation;
-
-			if(FindFlagByChar(sText[0][0], flag))
-			{
-				gI_StyleFlag[i] = FlagToBit(flag);
-			}
-
-			strcopy(gS_StyleOverride[i], 32, (iCount >= 2)? sText[1]:"");
-		}
-
-		else if(strlen(gS_StyleStrings[i].sStylePermission) > 0)
-		{
-			AdminFlag flag = Admin_Reservation;
-
-			if(FindFlagByChar(gS_StyleStrings[i].sStylePermission[0], flag))
-			{
-				gI_StyleFlag[i] = FlagToBit(flag);
-			}
-		}
-
-		gI_OrderedStyles[i] = i++;
-	}
-
-	while(kv.GotoNextKey());
-
-	delete kv;
-
-	gI_Styles = i;
 	gB_Registered = true;
 
 	SortCustom1D(gI_OrderedStyles, gI_Styles, SortAscending_StyleOrder);
@@ -2467,11 +2349,174 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 		return SMCParse_Continue;
 	}
 
-	// Technically can lead to a small memory leak if a style is removed mid game.
-	// TODO: replace hard coded values with SMCParser logic.
 	gI_CurrentParserIndex = StringToInt(name);
+
+	if(gI_Styles <= gI_CurrentParserIndex)
+	{
+		gI_Styles = gI_CurrentParserIndex + 1;
+	}
+
 	delete gSM_StyleKeys[gI_CurrentParserIndex];
 	gSM_StyleKeys[gI_CurrentParserIndex] = new StringMap();
+
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("name", "<MISSING STYLE NAME>");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("shortname", "<MISSING SHORT STYLE NAME>");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("htmlcolor", "<MISSING STYLE HTML COLOR>");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("command", "");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("clantag", "<MISSING STYLE CLAN TAG>");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("specialstring", "");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("permission", "");
+
+	gS_StyleStrings[gI_CurrentParserIndex].sStyleName = "<MISSING STYLE NAME>";
+	gS_StyleStrings[gI_CurrentParserIndex].sShortName = "<MISSING SHORT STYLE NAME>";
+	gS_StyleStrings[gI_CurrentParserIndex].sHTMLColor = "<MISSING STYLE HTML COLOR>";
+	gS_StyleStrings[gI_CurrentParserIndex].sChangeCommand = "";
+	gS_StyleStrings[gI_CurrentParserIndex].sClanTag = "<MISSING STYLE CLAN TAG>";
+	gS_StyleStrings[gI_CurrentParserIndex].sSpecialString = "";
+	gS_StyleStrings[gI_CurrentParserIndex].sStylePermission = "";
+
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("autobhop", 1);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("easybhop", 1);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("prespeed", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("velocity_limit", 0.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("airaccelerate", 1000.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("bunnyhopping", 1);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("runspeed", 260.00);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("gravity", 1.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("speed", 1.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("halftime", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("timescale", 1.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("velocity", 1.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("bonus_velocity", 0.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("min_velocity", 0.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("jump_multiplier", 0.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("jump_bonus", 0.0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_w", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_a", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_s", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_d", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_use", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("force_hsw", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_pleft", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_pright", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_pstrafe", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("unranked", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("noreplay", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("sync", 1);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("strafe_count_w", false);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("strafe_count_a", true);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("strafe_count_s", false);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("strafe_count_d", true);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("rankingmultiplier", 1.00);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("special", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("ordering", gI_CurrentParserIndex);
+
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("inaccessible", false);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("enabled", 1);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("kzcheckpoints", 0);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("force_groundkeys", 0);
+
+	gA_StyleSettings[gI_CurrentParserIndex].bAutobhop           =  true;
+	gA_StyleSettings[gI_CurrentParserIndex].bEasybhop           =  true;
+	gA_StyleSettings[gI_CurrentParserIndex].iPrespeed           =  0;
+	gA_StyleSettings[gI_CurrentParserIndex].fVelocityLimit      =  0.0;
+	gA_StyleSettings[gI_CurrentParserIndex].fAiraccelerate      =  1000.0;
+	gA_StyleSettings[gI_CurrentParserIndex].bEnableBunnyhopping =  true;
+	gA_StyleSettings[gI_CurrentParserIndex].fRunspeed           =  260.00;
+	gA_StyleSettings[gI_CurrentParserIndex].fGravityMultiplier  =  1.0;
+	gA_StyleSettings[gI_CurrentParserIndex].fSpeedMultiplier    =  1.0;
+	gA_StyleSettings[gI_CurrentParserIndex].fTimescale          =  1.0;
+	gA_StyleSettings[gI_CurrentParserIndex].fVelocity           =  1.0;
+	gA_StyleSettings[gI_CurrentParserIndex].fBonusVelocity      =  0.0;
+	gA_StyleSettings[gI_CurrentParserIndex].fMinVelocity        =  0.0;
+	gA_StyleSettings[gI_CurrentParserIndex].fJumpMultiplier     =  0.0;
+	gA_StyleSettings[gI_CurrentParserIndex].fJumpBonus          =  0.0;
+	gA_StyleSettings[gI_CurrentParserIndex].bBlockW             =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bBlockA             =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bBlockS             =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bBlockD             =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bBlockUse           =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].iForceHSW           =  0;
+	gA_StyleSettings[gI_CurrentParserIndex].iBlockPLeft         =  0;
+	gA_StyleSettings[gI_CurrentParserIndex].iBlockPRight        =  0;
+	gA_StyleSettings[gI_CurrentParserIndex].iBlockPStrafe       =  0;
+	gA_StyleSettings[gI_CurrentParserIndex].bUnranked           =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bNoReplay           =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bSync               =  true;
+	gA_StyleSettings[gI_CurrentParserIndex].bStrafeCountW       =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bStrafeCountA       =  true;
+	gA_StyleSettings[gI_CurrentParserIndex].bStrafeCountS       =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bStrafeCountD       =  true;
+	gA_StyleSettings[gI_CurrentParserIndex].fRankingMultiplier  =  1.00;
+	gA_StyleSettings[gI_CurrentParserIndex].iSpecial            =  0;
+	gA_StyleSettings[gI_CurrentParserIndex].iOrdering           =  gI_CurrentParserIndex;
+	gA_StyleSettings[gI_CurrentParserIndex].bInaccessible       =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].iEnabled            =  1;
+	gA_StyleSettings[gI_CurrentParserIndex].bKZCheckpoints      =  false;
+	gA_StyleSettings[gI_CurrentParserIndex].bForceKeysOnGround  =  false;
+
+	// if this style is disabled, we will force certain settings
+	if(gA_StyleSettings[gI_CurrentParserIndex].iEnabled <= 0)
+	{
+		gA_StyleSettings[gI_CurrentParserIndex].bNoReplay = true;
+		gA_StyleSettings[gI_CurrentParserIndex].fRankingMultiplier = 0.0;
+		gA_StyleSettings[gI_CurrentParserIndex].bInaccessible = true;
+		
+		gSM_StyleKeys[gI_CurrentParserIndex].SetValue("noreplay", true);
+		gSM_StyleKeys[gI_CurrentParserIndex].SetValue("rankingmultiplier", 0);
+		gSM_StyleKeys[gI_CurrentParserIndex].SetValue("inaccessible", true);
+	}
+
+	if(!gB_Registered && strlen(gS_StyleStrings[gI_CurrentParserIndex].sChangeCommand) > 0 && !gA_StyleSettings[gI_CurrentParserIndex].bInaccessible)
+	{
+		char sStyleCommands[32][32];
+		int iCommands = ExplodeString(gS_StyleStrings[gI_CurrentParserIndex].sChangeCommand, ";", sStyleCommands, 32, 32, false);
+
+		char sDescription[128];
+		FormatEx(sDescription, 128, "Change style to %s.", gS_StyleStrings[gI_CurrentParserIndex].sStyleName);
+
+		for(int x = 0; x < iCommands; x++)
+		{
+			TrimString(sStyleCommands[x]);
+			StripQuotes(sStyleCommands[x]);
+
+			char sCommand[32];
+			FormatEx(sCommand, 32, "sm_%s", sStyleCommands[x]);
+
+			gSM_StyleCommands.SetValue(sCommand, gI_CurrentParserIndex);
+
+			RegConsoleCmd(sCommand, Command_StyleChange, sDescription);
+		}
+	}
+
+	if(StrContains(gS_StyleStrings[gI_CurrentParserIndex].sStylePermission, ";") != -1)
+	{
+		char sText[2][32];
+		int iCount = ExplodeString(gS_StyleStrings[gI_CurrentParserIndex].sStylePermission, ";", sText, 2, 32);
+
+		AdminFlag flag = Admin_Reservation;
+
+		if(FindFlagByChar(sText[0][0], flag))
+		{
+			gI_StyleFlag[gI_CurrentParserIndex] = FlagToBit(flag);
+		}
+
+		strcopy(gS_StyleOverride[gI_CurrentParserIndex], 32, (iCount >= 2)? sText[1]:"");
+	}
+
+	else if(strlen(gS_StyleStrings[gI_CurrentParserIndex].sStylePermission) > 0)
+	{
+		AdminFlag flag = Admin_Reservation;
+
+		if(FindFlagByChar(gS_StyleStrings[gI_CurrentParserIndex].sStylePermission[0], flag))
+		{
+			gI_StyleFlag[gI_CurrentParserIndex] = FlagToBit(flag);
+		}
+	}
+
+	gI_OrderedStyles[gI_CurrentParserIndex] = gI_CurrentParserIndex;
+
+
 
 	return SMCParse_Continue;
 }
