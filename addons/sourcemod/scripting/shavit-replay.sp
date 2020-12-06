@@ -1090,14 +1090,14 @@ void WriteReplayToCache(int style, int track)
 	static float buff[3];
 	gReplayCacheLength[style][track] = 0;
 	
-	for(int i = 0; 
-		i < gA_Frames[style][track].Length && i < sizeof(gReplayCache[][]);
-		i += (i < RoundToNearest(gCV_DynamicTimePreciseTime.FloatValue * (1 / GetTickInterval())) ? 1 : TIMEDIFF_STEP), gReplayCacheLength[style][track]++)
+	for(int i = 0, j = 0;
+		i < gA_Frames[style][track].Length && j < sizeof(gReplayCache[][]);
+		i += (i < RoundToNearest(gCV_DynamicTimePreciseTime.FloatValue * (1 / GetTickInterval())) ? 1 : TIMEDIFF_STEP), j++, gReplayCacheLength[style][track]++)
 	{
 		gA_Frames[style][track].GetArray(i, buff, 3);
-		gReplayCache[style][track][i][0] = buff[0];
-		gReplayCache[style][track][i][1] = buff[1];
-		gReplayCache[style][track][i][2] = buff[2];
+		gReplayCache[style][track][j][0] = buff[0];
+		gReplayCache[style][track][j][1] = buff[1];
+		gReplayCache[style][track][j][2] = buff[2];
 	}
 }
 
@@ -1317,7 +1317,7 @@ bool LoadReplay(int style, int track, const char[] path)
 	return false;
 }
 
-bool SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int timerstartframe)
+bool SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1769,10 +1769,27 @@ public Action Shavit_OnStart(int client)
 	}
 	else 
 	{
-		while(gA_PlayerFrames[client].Length >= preframe_amount)
+		// GAMMACASE: It's a lot faster to just copy needed frames instead of looping through all the garbage data
+		// that is mostly true for large player buffers
+		if(gA_PlayerFrames[client].Length > preframe_amount * 2.0)
 		{
-			gA_PlayerFrames[client].Erase(0);
-			gI_PlayerFrames[client]--;
+			int buff[CELLS_PER_FRAME];
+			for(int i = gA_PlayerFrames[client].Length - preframe_amount - 1, j = 0; i < gA_PlayerFrames[client].Length; i++, j++)
+			{
+				gA_PlayerFrames[client].GetArray(i, buff);
+				gA_PlayerFrames[client].SetArray(j, buff);
+			}
+			
+			gA_PlayerFrames[client].Resize(preframe_amount);
+			gI_PlayerFrames[client] = preframe_amount;
+		}
+		else
+		{
+			while(gA_PlayerFrames[client].Length > preframe_amount && gA_PlayerFrames[client].Length != 0)
+			{
+				gA_PlayerFrames[client].Erase(0);
+				gI_PlayerFrames[client]--;
+			}
 		}
 	}
 	
@@ -1838,7 +1855,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
-	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerTimerStartFrames[client]);
+	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client]);
 
 	if(ReplayEnabled(style))
 	{
@@ -2959,7 +2976,8 @@ float GetClosestReplayTime(int client, int style, int track)
 	}
 	
 	float frametime = GetReplayLength(style, track) / float(gA_FrameCache[style][track].iFrameCount - iPreframes);
-	float timeDifference = (iClosestFrame - iPreframes)  * frametime;
+	int start_frames = RoundToNearest(gCV_DynamicTimePreciseTime.FloatValue * (1 / GetTickInterval()));
+	float timeDifference = ((iClosestFrame <= start_frames ? iClosestFrame : (iClosestFrame + ((iClosestFrame - start_frames) * TIMEDIFF_STEP))) - iPreframes) * frametime;
 	
 	// Hides the hud if we are using the cheap search method and too far behind to be accurate
 	if(iSearch > 0 && gCV_DynamicTimeCheap.BoolValue)
