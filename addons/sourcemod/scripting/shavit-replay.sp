@@ -2888,7 +2888,8 @@ float GetClosestReplayTime(int client, int style, int track)
 	int iLength = has_cache ? gReplayCacheLength[style][track] : gA_Frames[style][track].Length;
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
-	int iPlayerFrames = gA_PlayerFrames[client].Length - gI_PlayerPrerunFrames[client];
+	//int iPlayerFrames = gA_PlayerFrames[client].Length - gI_PlayerPrerunFrames[client];
+	int iPlayerFrames = RoundToNearest(Shavit_GetClientTime(client) / GetTickInterval());
 	int offset = RoundToNearest(float(iLength) * gCV_DynamicTimeOffsetPct.FloatValue);
 	
 	static int prevframe[MAXPLAYERS];
