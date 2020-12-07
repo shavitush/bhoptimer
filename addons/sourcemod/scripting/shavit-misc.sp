@@ -1838,7 +1838,8 @@ void OpenKZCPMenu(int client)
 
 	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1));
-	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue)? ITEM
+	_DEFAULT:ITEMDRAW_DISABLED);
 
 	if(gA_Checkpoints[client].Length > 0)
 	{
@@ -1991,7 +1992,8 @@ void OpenNormalCPMenu(int client)
 	FormatEx(sDisplay, 64, "%T\n ", "MiscCheckpointNext", client);
 	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[client].Length)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	menu.AddItem("spacer", "", ITEMDRAW_RAWLINE);
+	// apparently this is the fix
+	// menu.AddItem("spacer", "", ITEMDRAW_RAWLINE);
 
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
 	menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
