@@ -1991,7 +1991,8 @@ void OpenNormalCPMenu(int client)
 	FormatEx(sDisplay, 64, "%T\n ", "MiscCheckpointNext", client);
 	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[client].Length)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	menu.AddItem("spacer", "", ITEMDRAW_NOTEXT);
+	// apparently this is the fix
+	// menu.AddItem("spacer", "", ITEMDRAW_RAWLINE);
 
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
 	menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
