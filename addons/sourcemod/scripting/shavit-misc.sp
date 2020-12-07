@@ -1838,8 +1838,7 @@ void OpenKZCPMenu(int client)
 
 	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1));
-	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue)? ITEM
-	_DEFAULT:ITEMDRAW_DISABLED);
+	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue)? ITEM_DEFAULT:ITEMDRAW_DISABLED);
 
 	if(gA_Checkpoints[client].Length > 0)
 	{
