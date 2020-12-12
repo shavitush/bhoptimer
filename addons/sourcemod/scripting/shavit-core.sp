@@ -1358,7 +1358,17 @@ void VelocityChanges(int data)
 	{
 		return;
 	}
+	/*
+	if(gA_Timers[client].fTimescale != -1.0)
+	{
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_Timers[client].fTimescale));
+	}
 
+	else
+	{
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
+	}
+	*/
 	float fAbsVelocity[3];
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 
