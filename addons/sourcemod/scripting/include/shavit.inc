@@ -152,6 +152,7 @@ enum struct stylestrings_t
 	char sStylePermission[64];
 }
 
+//TODO:REMOVE IN 3.0
 enum struct stylesettings_t
 {
 	bool bAutobhop;
@@ -1557,6 +1558,18 @@ native bool Shavit_GetStyleSetting(int style, const char[] key, char[] value, in
  * @return 							Integer value if found, 0 if key is missing.
  */
 native int Shavit_GetStyleSettingInt(int style, const char[] key);
+
+
+/*
+ * Gets the bool value from the style config for the given style. Returns false if key is not found.
+ * e.g. if(Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(client), "TAS"))
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ *
+ * @return 							bool value if found, false if key is missing.
+ */
+native bool Shavit_GetStyleSettingBool(int style, const char[] key);
 
 
 /*

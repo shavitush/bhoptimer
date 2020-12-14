@@ -211,6 +211,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleCount", Native_GetStyleCount);
 	CreateNative("Shavit_GetStyleSetting", Native_GetStyleSetting);
 	CreateNative("Shavit_GetStyleSettingInt", Native_GetStyleSettingInt);
+	CreateNative("Shavit_GetStyleSettingBool", Native_GetStyleSettingBool);
 	CreateNative("Shavit_GetStyleSettingFloat", Native_GetStyleSettingFloat);
 	CreateNative("Shavit_HasStyleSetting", Native_HasStyleSetting);
 	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
@@ -1127,8 +1128,8 @@ public Action Command_Style(int client, int args)
 
 		// this logic will prevent the style from showing in !style menu if it's specifically inaccessible
 		// or just completely disabled
-		if((gA_StyleSettings[iStyle].bInaccessible && gA_StyleSettings[iStyle].iEnabled == 1) ||
-			gA_StyleSettings[iStyle].iEnabled == -1)
+		if((GetStyleSettingBool(iStyle, "inaccessible") && GetStyleSettingInt(iStyle, "enabled") == 1) ||
+		GetStyleSettingInt(iStyle, "enabled") == -1)
 		{
 			continue;
 		}
@@ -1138,7 +1139,7 @@ public Action Command_Style(int client, int args)
 
 		char sDisplay[64];
 
-		if(gA_StyleSettings[iStyle].bUnranked)
+		if(GetStyleSettingBool(iStyle, "unranked"))
 		{
 			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, gS_StyleStrings[iStyle].sStyleName);
 		}
@@ -1285,13 +1286,13 @@ void ChangeClientStyle(int client, int style, bool manual)
 		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 	}
 
-	if(gA_StyleSettings[style].bUnranked)
+	if(GetStyleSettingBool(style, "unranked"))
 	{
 		Shavit_PrintToChat(client, "%T", "UnrankedWarning", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 	}
 
-	int aa_old = RoundToZero(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate);
-	int aa_new = RoundToZero(gA_StyleSettings[style].fAiraccelerate);
+	int aa_old = RoundToZero(GetStyleSettingFloat(gA_Timers[client].iStyle, "airaccelerate"));
+	int aa_new = RoundToZero(GetStyleSettingFloat(style, "airaccelerate"));
 
 	if(aa_old != aa_new)
 	{
@@ -1342,7 +1343,7 @@ void DoJump(int client)
 	}
 
 	// TF2 doesn't use stamina
-	if(gEV_Type != Engine_TF2 && (gA_StyleSettings[gA_Timers[client].iStyle].bEasybhop) || Shavit_InsideZone(client, Zone_Easybhop, gA_Timers[client].iTrack))
+	if(gEV_Type != Engine_TF2 && (GetStyleSettingBool(gA_Timers[client].iStyle, "easybhop")) || Shavit_InsideZone(client, Zone_Easybhop, gA_Timers[client].iTrack))
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
@@ -1359,14 +1360,19 @@ void VelocityChanges(int data)
 		return;
 	}
 
-	if(gA_Timers[client].fTimescale != -1.0)
-	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_Timers[client].fTimescale));
-	}
+	int style = gA_Timers[client].iStyle;
 
-	else
+	if(GetStyleSettingBool(style, "force_timescale"))
 	{
-		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
+		if(gA_Timers[client].fTimescale != -1.0)
+		{
+			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_Timers[client].fTimescale);
+		}
+		
+		else if(GetStyleSettingFloat(style, "speed") != 1.0)
+		{
+			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", GetStyleSettingFloat(style, "speed"));
+		}
 	}
 
 	float fAbsVelocity[3];
@@ -1376,9 +1382,9 @@ void VelocityChanges(int data)
 
 	if(fSpeed != 0.0)
 	{
-		float fVelocityMultiplier = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocity);
-		float fVelocityBonus = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fBonusVelocity);
-		float fMin = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fMinVelocity);
+		float fVelocityMultiplier = GetStyleSettingFloat(style, "velocity");
+		float fVelocityBonus = GetStyleSettingFloat(style, "bonus_velocity");
+		float fMin = GetStyleSettingFloat(style, "min_velocity");
 
 		if(fVelocityMultiplier != 0.0)
 		{
@@ -1401,8 +1407,8 @@ void VelocityChanges(int data)
 		}
 	}
 
-	float fJumpMultiplier = gA_StyleSettings[gA_Timers[client].iStyle].fJumpMultiplier;
-	float fJumpBonus = gA_StyleSettings[gA_Timers[client].iStyle].fJumpBonus;
+	float fJumpMultiplier = GetStyleSettingFloat(style, "jump_multiplier");
+	float fJumpBonus = GetStyleSettingFloat(style, "jump_bonus");
 
 	if(fJumpMultiplier != 0.0)
 	{
@@ -1495,7 +1501,7 @@ public int Native_HasStyleAccess(Handle handler, int numParams)
 {
 	int style = GetNativeCell(2);
 
-	if(gA_StyleSettings[style].bInaccessible || gA_StyleSettings[style].iEnabled <= 0)
+	if(GetStyleSettingBool(style, "inaccessible") || GetStyleSettingInt(style, "enabled") <= 0)
 	{
 		return false;
 	}
@@ -1675,7 +1681,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 		Call_PushCell(gA_Timers[client].fTimer);
 		Call_PushCell(gA_Timers[client].iJumps);
 		Call_PushCell(gA_Timers[client].iStrafes);
-		Call_PushCell((gA_StyleSettings[gA_Timers[client].iStyle].bSync)? (gA_Timers[client].iGoodGains == 0)? 0.0:(gA_Timers[client].iGoodGains / float(gA_Timers[client].iTotalMeasures) * 100.0):-1.0);
+		//gross
+		Call_PushCell((GetStyleSettingBool(gA_Timers[client].iStyle, "sync"))? (gA_Timers[client].iGoodGains == 0)? 0.0:(gA_Timers[client].iGoodGains / float(gA_Timers[client].iTotalMeasures) * 100.0):-1.0);
 		Call_PushCell(track = gA_Timers[client].iTrack);
 		perfs = (gA_Timers[client].iMeasuredJumps == 0)? 100.0:(gA_Timers[client].iPerfectJumps / float(gA_Timers[client].iMeasuredJumps) * 100.0);
 	}
@@ -1686,7 +1693,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 		Call_PushCell(snapshot.fCurrentTime);
 		Call_PushCell(snapshot.iJumps);
 		Call_PushCell(snapshot.iStrafes);
-		Call_PushCell((gA_StyleSettings[snapshot.bsStyle].bSync)? (snapshot.iGoodGains == 0)? 0.0:(snapshot.iGoodGains / float(snapshot.iTotalMeasures) * 100.0):-1.0);
+		// gross
+		Call_PushCell((GetStyleSettingBool(snapshot.bsStyle, "sync"))? (snapshot.iGoodGains == 0)? 0.0:(snapshot.iGoodGains / float(snapshot.iTotalMeasures) * 100.0):-1.0);
 		Call_PushCell(track = snapshot.iTimerTrack);
 		perfs = (snapshot.iMeasuredJumps == 0)? 100.0:(snapshot.iPerfectJumps / float(snapshot.iMeasuredJumps) * 100.0);
 	}
@@ -1845,7 +1853,7 @@ public int Native_GetSync(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	return view_as<int>((gA_StyleSettings[gA_Timers[client].iStyle].bSync)? (gA_Timers[client].iGoodGains == 0)? 0.0:(gA_Timers[client].iGoodGains / float(gA_Timers[client].iTotalMeasures) * 100.0):-1.0);
+	return view_as<int>((GetStyleSettingBool(gA_Timers[client].iStyle, "sync")? (gA_Timers[client].iGoodGains == 0)? 0.0:(gA_Timers[client].iGoodGains / float(gA_Timers[client].iTotalMeasures) * 100.0):-1.0));
 }
 
 public int Native_GetStyleCount(Handle handler, int numParams)
@@ -1855,11 +1863,14 @@ public int Native_GetStyleCount(Handle handler, int numParams)
 
 public int Native_GetStyleSettings(Handle handler, int numParams)
 {
+	LogError("Shavit_GetStyleSettings is deprecated and will be removed in 3.0. Use Shavit_GetStyleSetting instead");
+
 	if(GetNativeCell(3) != sizeof(stylesettings_t))
 	{
 		return ThrowNativeError(200, "stylesettings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
 			GetNativeCell(3), sizeof(stylesettings_t));
 	}
+	
 	return SetNativeArray(2, gA_StyleSettings[GetNativeCell(1)], sizeof(stylesettings_t));
 }
 
@@ -2057,10 +2068,29 @@ public int Native_GetStyleSettingInt(Handle handler, int numParams)
 	char sKey[256];
 	GetNativeString(2, sKey, 256);
 
-	char sValue[16];
-	gSM_StyleKeys[style].GetString(sKey, sValue, 16);
+	return GetStyleSettingInt(style, sKey);
+}
 
+int GetStyleSettingInt(int style, char[] key)
+{
+	char sValue[16];
+	gSM_StyleKeys[style].GetString(key, sValue, 16);
 	return StringToInt(sValue);
+}
+
+public int Native_GetStyleSettingBool(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	return GetStyleSettingBool(style, sKey);
+}
+
+bool GetStyleSettingBool(int style, char[] key)
+{
+	return GetStyleSettingInt(style, key) != 0;
 }
 
 public any Native_GetStyleSettingFloat(Handle handler, int numParams)
@@ -2070,9 +2100,13 @@ public any Native_GetStyleSettingFloat(Handle handler, int numParams)
 	char sKey[256];
 	GetNativeString(2, sKey, 256);
 
-	char sValue[16];
-	gSM_StyleKeys[style].GetString(sKey, sValue, 16);
+	return GetStyleSettingFloat(style, sKey);
+}
 
+float GetStyleSettingFloat(int style, char[] key)
+{
+	char sValue[16];
+	gSM_StyleKeys[style].GetString(key, sValue, 16);
 	return StringToFloat(sValue);
 }
 
@@ -2084,10 +2118,15 @@ public any Native_HasStyleSetting(Handle handler, int numParams)
 	char sKey[256];
 	GetNativeString(2, sKey, 256);
 
-	char sValue[1];
-	gSM_StyleKeys[style].GetString(sKey, sValue, 1);
+	return HasStyleSetting(style, sKey);
+}
 
-	return gSM_StyleKeys[style].GetString(sKey, sValue, 1);
+bool HasStyleSetting(int style, char[] key)
+{
+	char sValue[1];
+	gSM_StyleKeys[style].GetString(key, sValue, 1);
+
+	return gSM_StyleKeys[style].GetString(key, sValue, 1);
 }
 
 int GetTimerStatus(int client)
@@ -2116,8 +2155,8 @@ void StartTimer(int client, int track)
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 
 	if(!gCV_NoZAxisSpeed.BoolValue ||
-		gA_StyleSettings[gA_Timers[client].iStyle].iPrespeed == 1 ||
-		(fSpeed[2] == 0.0 && (gA_StyleSettings[gA_Timers[client].iStyle].iPrespeed == 2 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0)))
+		GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 1 ||
+		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 2 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0)))
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
@@ -2159,10 +2198,10 @@ void StartTimer(int client, int track)
 
 			else
 			{
-				SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fSpeedMultiplier));
+				SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", GetStyleSettingFloat(gA_Timers[client].iStyle, "speed"));
 			}
 
-			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
+			SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "gravity"));
 		}
 
 		else if(result == Plugin_Handled || result == Plugin_Stop)
@@ -2369,9 +2408,79 @@ bool LoadStyles()
 
 	SMCParser parser = new SMCParser();
 	parser.OnEnterSection = OnStyleEnterSection;
+	parser.OnLeaveSection = OnStyleLeaveSection;
 	parser.OnKeyValue = OnStyleKeyValue;
 	parser.ParseFile(sPath);
 	delete parser;
+
+
+	// TODO: REMOVE IN 3.0
+	// These are being left in as a backwards compatibility for the forwards using the style settings struct.
+	// Forwards seem to be fairly safe but will eventually be deprecated in favor of removing enum struct api usage.
+	KeyValues kv = new KeyValues("shavit-styles");
+
+	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
+	{
+		delete kv;
+
+		return false;
+	}
+
+	int i = 0;
+
+	do
+	{		
+		gA_StyleSettings[i].bAutobhop = view_as<bool>(kv.GetNum("autobhop", 1));
+		gA_StyleSettings[i].bEasybhop = view_as<bool>(kv.GetNum("easybhop", 1));
+		gA_StyleSettings[i].iPrespeed = view_as<bool>(kv.GetNum("prespeed", 0));
+		gA_StyleSettings[i].fVelocityLimit = kv.GetFloat("velocity_limit", 0.0);
+		gA_StyleSettings[i].fAiraccelerate = kv.GetFloat("airaccelerate", 1000.0);
+		gA_StyleSettings[i].bEnableBunnyhopping = view_as<bool>(kv.GetNum("bunnyhopping", 1));
+		gA_StyleSettings[i].fRunspeed = kv.GetFloat("runspeed", 260.00);
+		gA_StyleSettings[i].fGravityMultiplier = kv.GetFloat("gravity", 1.0);
+		gA_StyleSettings[i].fSpeedMultiplier = kv.GetFloat("speed", 1.0);
+		gA_StyleSettings[i].fTimescale = view_as<bool>(kv.GetNum("halftime", 0))? 0.5:kv.GetFloat("timescale", 1.0); // backwards compat for old halftime settig
+		gA_StyleSettings[i].fVelocity = kv.GetFloat("velocity", 1.0);
+		gA_StyleSettings[i].fBonusVelocity = kv.GetFloat("bonus_velocity", 0.0);
+		gA_StyleSettings[i].fMinVelocity = kv.GetFloat("min_velocity", 0.0);
+		gA_StyleSettings[i].fJumpMultiplier = kv.GetFloat("jump_multiplier", 0.0);
+		gA_StyleSettings[i].fJumpBonus = kv.GetFloat("jump_bonus", 0.0);
+		gA_StyleSettings[i].bBlockW = view_as<bool>(kv.GetNum("block_w", 0));
+		gA_StyleSettings[i].bBlockA = view_as<bool>(kv.GetNum("block_a", 0));
+		gA_StyleSettings[i].bBlockS = view_as<bool>(kv.GetNum("block_s", 0));
+		gA_StyleSettings[i].bBlockD = view_as<bool>(kv.GetNum("block_d", 0));
+		gA_StyleSettings[i].bBlockUse = view_as<bool>(kv.GetNum("block_use", 0));
+		gA_StyleSettings[i].iForceHSW = kv.GetNum("force_hsw", 0);
+		gA_StyleSettings[i].iBlockPLeft = kv.GetNum("block_pleft", 0);
+		gA_StyleSettings[i].iBlockPRight = kv.GetNum("block_pright", 0);
+		gA_StyleSettings[i].iBlockPStrafe = kv.GetNum("block_pstrafe", 0);
+		gA_StyleSettings[i].bUnranked = view_as<bool>(kv.GetNum("unranked", 0));
+		gA_StyleSettings[i].bNoReplay = view_as<bool>(kv.GetNum("noreplay", 0));
+		gA_StyleSettings[i].bSync = view_as<bool>(kv.GetNum("sync", 1));
+		gA_StyleSettings[i].bStrafeCountW = view_as<bool>(kv.GetNum("strafe_count_w", false));
+		gA_StyleSettings[i].bStrafeCountA = view_as<bool>(kv.GetNum("strafe_count_a", true));
+		gA_StyleSettings[i].bStrafeCountS = view_as<bool>(kv.GetNum("strafe_count_s", false));
+		gA_StyleSettings[i].bStrafeCountD = view_as<bool>(kv.GetNum("strafe_count_d", true));
+		gA_StyleSettings[i].fRankingMultiplier = kv.GetFloat("rankingmultiplier", 1.00);
+		gA_StyleSettings[i].iSpecial = kv.GetNum("special", 0);
+		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
+		gA_StyleSettings[i].bInaccessible = view_as<bool>(kv.GetNum("inaccessible", false));
+		gA_StyleSettings[i].iEnabled = kv.GetNum("enabled", 1);
+		gA_StyleSettings[i].bKZCheckpoints = view_as<bool>(kv.GetNum("kzcheckpoints", 0));
+		gA_StyleSettings[i].bForceKeysOnGround = view_as<bool>(kv.GetNum("force_groundkeys", 0));
+
+		// if this style is disabled, we will force certain settings
+		if(gA_StyleSettings[i].iEnabled <= 0)
+		{
+			gA_StyleSettings[i].bNoReplay = true;
+			gA_StyleSettings[i].fRankingMultiplier = 0.0;
+			gA_StyleSettings[i].bInaccessible = true;
+		}
+	}
+
+	while(kv.GotoNextKey());
+
+	delete kv;
 
 	gB_Registered = true;
 
@@ -2418,96 +2527,68 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	gS_StyleStrings[gI_CurrentParserIndex].sSpecialString = "";
 	gS_StyleStrings[gI_CurrentParserIndex].sStylePermission = "";
 
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("autobhop", 1);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("easybhop", 1);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("prespeed", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("velocity_limit", 0.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("airaccelerate", 1000.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("bunnyhopping", 1);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("runspeed", 260.00);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("gravity", 1.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("speed", 1.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("halftime", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("timescale", 1.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("velocity", 1.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("bonus_velocity", 0.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("min_velocity", 0.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("jump_multiplier", 0.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("jump_bonus", 0.0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_w", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_a", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_s", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_d", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_use", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("force_hsw", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_pleft", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_pright", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("block_pstrafe", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("unranked", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("noreplay", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("sync", 1);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("strafe_count_w", false);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("strafe_count_a", true);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("strafe_count_s", false);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("strafe_count_d", true);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("rankingmultiplier", 1.00);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("special", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("ordering", gI_CurrentParserIndex);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("autobhop", "1");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("easybhop", "1");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("prespeed", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("velocity_limit", "0.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("airaccelerate", "1000.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("bunnyhopping", "1");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("runspeed", "260.00");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("gravity", "1.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("speed", "1.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("halftime", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("timescale", "1.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("velocity", "1.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("bonus_velocity", "0.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("min_velocity", "0.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("jump_multiplier", "0.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("jump_bonus", "0.0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_w", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_a", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_s", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_d", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_use", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("force_hsw", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_pleft", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_pright", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_pstrafe", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("unranked", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("noreplay", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("sync", "1");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("strafe_count_w", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("strafe_count_a", "1");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("strafe_count_s", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("strafe_count_d", "1");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("rankingmultiplier", "1.00");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("special", "0");
 
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("inaccessible", false);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("enabled", 1);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("kzcheckpoints", 0);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetValue("force_groundkeys", 0);
+	char sOrder[4];
+	IntToString(gI_CurrentParserIndex, sOrder, 4);
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("ordering", sOrder);
 
-	gA_StyleSettings[gI_CurrentParserIndex].bAutobhop           =  true;
-	gA_StyleSettings[gI_CurrentParserIndex].bEasybhop           =  true;
-	gA_StyleSettings[gI_CurrentParserIndex].iPrespeed           =  0;
-	gA_StyleSettings[gI_CurrentParserIndex].fVelocityLimit      =  0.0;
-	gA_StyleSettings[gI_CurrentParserIndex].fAiraccelerate      =  1000.0;
-	gA_StyleSettings[gI_CurrentParserIndex].bEnableBunnyhopping =  true;
-	gA_StyleSettings[gI_CurrentParserIndex].fRunspeed           =  260.00;
-	gA_StyleSettings[gI_CurrentParserIndex].fGravityMultiplier  =  1.0;
-	gA_StyleSettings[gI_CurrentParserIndex].fSpeedMultiplier    =  1.0;
-	gA_StyleSettings[gI_CurrentParserIndex].fTimescale          =  1.0;
-	gA_StyleSettings[gI_CurrentParserIndex].fVelocity           =  1.0;
-	gA_StyleSettings[gI_CurrentParserIndex].fBonusVelocity      =  0.0;
-	gA_StyleSettings[gI_CurrentParserIndex].fMinVelocity        =  0.0;
-	gA_StyleSettings[gI_CurrentParserIndex].fJumpMultiplier     =  0.0;
-	gA_StyleSettings[gI_CurrentParserIndex].fJumpBonus          =  0.0;
-	gA_StyleSettings[gI_CurrentParserIndex].bBlockW             =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bBlockA             =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bBlockS             =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bBlockD             =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bBlockUse           =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].iForceHSW           =  0;
-	gA_StyleSettings[gI_CurrentParserIndex].iBlockPLeft         =  0;
-	gA_StyleSettings[gI_CurrentParserIndex].iBlockPRight        =  0;
-	gA_StyleSettings[gI_CurrentParserIndex].iBlockPStrafe       =  0;
-	gA_StyleSettings[gI_CurrentParserIndex].bUnranked           =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bNoReplay           =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bSync               =  true;
-	gA_StyleSettings[gI_CurrentParserIndex].bStrafeCountW       =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bStrafeCountA       =  true;
-	gA_StyleSettings[gI_CurrentParserIndex].bStrafeCountS       =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bStrafeCountD       =  true;
-	gA_StyleSettings[gI_CurrentParserIndex].fRankingMultiplier  =  1.00;
-	gA_StyleSettings[gI_CurrentParserIndex].iSpecial            =  0;
-	gA_StyleSettings[gI_CurrentParserIndex].iOrdering           =  gI_CurrentParserIndex;
-	gA_StyleSettings[gI_CurrentParserIndex].bInaccessible       =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].iEnabled            =  1;
-	gA_StyleSettings[gI_CurrentParserIndex].bKZCheckpoints      =  false;
-	gA_StyleSettings[gI_CurrentParserIndex].bForceKeysOnGround  =  false;
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("inaccessible", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("enabled", "1");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("kzcheckpoints", "0");
+	gSM_StyleKeys[gI_CurrentParserIndex].SetString("force_groundkeys", "0");
 
+	gI_OrderedStyles[gI_CurrentParserIndex] = gI_CurrentParserIndex;
+
+	return SMCParse_Continue;
+}
+
+public SMCResult OnStyleLeaveSection(SMCParser smc)
+{
 	// if this style is disabled, we will force certain settings
-	if(gA_StyleSettings[gI_CurrentParserIndex].iEnabled <= 0)
+	if(GetStyleSettingInt(gI_CurrentParserIndex, "enabled") <= 0)
 	{
-		gA_StyleSettings[gI_CurrentParserIndex].bNoReplay = true;
-		gA_StyleSettings[gI_CurrentParserIndex].fRankingMultiplier = 0.0;
-		gA_StyleSettings[gI_CurrentParserIndex].bInaccessible = true;
-		
-		gSM_StyleKeys[gI_CurrentParserIndex].SetValue("noreplay", true);
-		gSM_StyleKeys[gI_CurrentParserIndex].SetValue("rankingmultiplier", 0);
-		gSM_StyleKeys[gI_CurrentParserIndex].SetValue("inaccessible", true);
+		gSM_StyleKeys[gI_CurrentParserIndex].SetString("noreplay", "1");
+		gSM_StyleKeys[gI_CurrentParserIndex].SetString("rankingmultiplier", "0");
+		gSM_StyleKeys[gI_CurrentParserIndex].SetString("inaccessible", "1");
+	}
+
+	if(GetStyleSettingBool(gI_CurrentParserIndex, "halftime"))
+	{
+		gSM_StyleKeys[gI_CurrentParserIndex].SetString("timescale", "0.5");
 	}
 
 	if(!gB_Registered && strlen(gS_StyleStrings[gI_CurrentParserIndex].sChangeCommand) > 0 && !gA_StyleSettings[gI_CurrentParserIndex].bInaccessible)
@@ -2556,12 +2637,6 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 			gI_StyleFlag[gI_CurrentParserIndex] = FlagToBit(flag);
 		}
 	}
-
-	gI_OrderedStyles[gI_CurrentParserIndex] = gI_CurrentParserIndex;
-
-
-
-	return SMCParse_Continue;
 }
 
 public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
@@ -2571,8 +2646,8 @@ public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] v
 
 public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)
 {
-	int iOrder1 = gA_StyleSettings[index1].iOrdering;
-	int iOrder2 = gA_StyleSettings[index2].iOrdering;
+	int iOrder1 = GetStyleSettingInt(index1, "ordering");
+	int iOrder2 = GetStyleSettingInt(index2, "ordering");
 
 	if(iOrder1 < iOrder2)
 	{
@@ -3045,7 +3120,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 {
 	if(type == Zone_Airaccelerate)
 	{
-		UpdateAiraccelerate(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate));
+		UpdateAiraccelerate(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "airaccelerate"));
 	}
 }
 
@@ -3055,7 +3130,7 @@ public void PreThinkPost(int client)
 	{
 		if(!gB_Zones || !Shavit_InsideZone(client, Zone_Airaccelerate, -1))
 		{
-			sv_airaccelerate.FloatValue = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate);
+			sv_airaccelerate.FloatValue = GetStyleSettingFloat(gA_Timers[client].iStyle, "airaccelerate");
 		}
 
 		else
@@ -3065,16 +3140,16 @@ public void PreThinkPost(int client)
 
 		if(sv_enablebunnyhopping != null)
 		{
-			sv_enablebunnyhopping.BoolValue = view_as<bool>(gA_StyleSettings[gA_Timers[client].iStyle].bEnableBunnyhopping);
+			sv_enablebunnyhopping.BoolValue = GetStyleSettingBool(gA_Timers[client].iStyle, "bunnyhopping");
 		}
 
 		MoveType mtMoveType = GetEntityMoveType(client);
 
-		if(view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier) != 1.0 &&
+		if(GetStyleSettingFloat(gA_Timers[client].iStyle, "gravity") != 1.0 &&
 			(mtMoveType == MOVETYPE_WALK || mtMoveType == MOVETYPE_ISOMETRIC) &&
 			(gA_Timers[client].iMoveType == MOVETYPE_LADDER || GetEntityGravity(client) == 1.0))
 		{
-			SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
+			SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "gravity"));
 		}
 
 		gA_Timers[client].iMoveType = mtMoveType;
@@ -3149,7 +3224,7 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 
 	else
 	{
-		time = frametime * view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fTimescale);
+		time = frametime * GetStyleSettingFloat(gA_Timers[client].iStyle, "timescale");
 	}
 
 	gA_Timers[client].iZoneIncrement++;
@@ -3173,7 +3248,9 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_PushCell(client);
 	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
 	Call_PushCellRef(time);
+	//TODO:REMOVE IN 3.0
 	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
+	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
 	Call_Finish();
 
 	gA_Timers[client].fTimer += time;
@@ -3181,6 +3258,8 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_StartForward(gH_Forwards_OnTimerIncrementPost);
 	Call_PushCell(client);
 	Call_PushCell(time);
+	//TODO:REMOVE IN 3.0
+	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
 	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
 	Call_Finish();
 
@@ -3291,7 +3370,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	Call_PushCell(GetTimerStatus(client));
 	Call_PushCell(gA_Timers[client].iTrack);
 	Call_PushCell(gA_Timers[client].iStyle);
+	//TODO:REMOVE IN 3.0
 	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
+	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
 	Call_PushArrayEx(mouse, 2, SM_PARAM_COPYBACK);
 	Call_Finish(result);
 
@@ -3306,13 +3387,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(gA_Timers[client].bEnabled && !gA_Timers[client].bPaused)
 	{
 		// +left/right block
-		if(!gB_Zones || (!bInStart && ((gA_StyleSettings[gA_Timers[client].iStyle].iBlockPLeft > 0 &&
-			(buttons & IN_LEFT) > 0) || (gA_StyleSettings[gA_Timers[client].iStyle].iBlockPRight > 0 && (buttons & IN_RIGHT) > 0))))
+		if(!gB_Zones || (!bInStart && ((GetStyleSettingInt(gA_Timers[client].iStyle, "block_pleft") > 0 &&
+			(buttons & IN_LEFT) > 0) || (GetStyleSettingInt(gA_Timers[client].iStyle, "block_pright") > 0 && (buttons & IN_RIGHT) > 0))))
 		{
 			vel[0] = 0.0;
 			vel[1] = 0.0;
 
-			if(gA_StyleSettings[gA_Timers[client].iStyle].iBlockPRight >= 2)
+			if(GetStyleSettingInt(gA_Timers[client].iStyle, "block_pright") >= 2)
 			{
 				char sCheatDetected[64];
 				FormatEx(sCheatDetected, 64, "%T", "LeftRightCheat", client);
@@ -3321,13 +3402,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 
 		// +strafe block
-		if(gA_StyleSettings[gA_Timers[client].iStyle].iBlockPStrafe > 0 &&
+		if(GetStyleSettingInt(gA_Timers[client].iStyle, "block_pstrafe") > 0 &&
 			((vel[0] > 0.0 && (buttons & IN_FORWARD) == 0) || (vel[0] < 0.0 && (buttons & IN_BACK) == 0) ||
 			(vel[1] > 0.0 && (buttons & IN_MOVERIGHT) == 0) || (vel[1] < 0.0 && (buttons & IN_MOVELEFT) == 0)))
 		{
 			if(gA_Timers[client].fStrafeWarning < gA_Timers[client].fTimer)
 			{
-				if(gA_StyleSettings[gA_Timers[client].iStyle].iBlockPStrafe >= 2)
+				if(GetStyleSettingInt(gA_Timers[client].iStyle, "block_pstrafe") >= 2)
 				{
 					char sCheatDetected[64];
 					FormatEx(sCheatDetected, 64, "%T", "Inconsistencies", client);
@@ -3356,26 +3437,26 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	int iPButtons = buttons;
 
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountW && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockW &&
+	if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_w") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_w") &&
 		(gA_Timers[client].iLastButtons & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
 	{
 		gA_Timers[client].iStrafes++;
 	}
 
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountA && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockA && (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 &&
-		(buttons & IN_MOVELEFT) > 0 && (gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_a") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_a") && (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 &&
+		(buttons & IN_MOVELEFT) > 0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gA_Timers[client].iStrafes++;
 	}
 
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountS && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockS &&
+	if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_s") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_s") &&
 		(gA_Timers[client].iLastButtons & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
 	{
 		gA_Timers[client].iStrafes++;
 	}
 
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bStrafeCountD && !gA_StyleSettings[gA_Timers[client].iStyle].bBlockD && (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 &&
-		(buttons & IN_MOVERIGHT) > 0 && (gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+	if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_d") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_d") && (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 &&
+		(buttons & IN_MOVERIGHT) > 0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
 	{
 		gA_Timers[client].iStrafes++;
 	}
@@ -3396,32 +3477,32 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(!gA_Timers[client].bCanUseAllKeys && mtMoveType != MOVETYPE_NOCLIP && mtMoveType != MOVETYPE_LADDER && !Shavit_InsideZone(client, Zone_Freestyle, -1))
 	{
 		// block E
-		if(gA_StyleSettings[gA_Timers[client].iStyle].bBlockUse && (buttons & IN_USE) > 0)
+		if(GetStyleSettingBool(gA_Timers[client].iStyle, "block_use") && (buttons & IN_USE) > 0)
 		{
 			buttons &= ~IN_USE;
 		}
 
-		if(iGroundEntity == -1 || gA_StyleSettings[gA_Timers[client].iStyle].bForceKeysOnGround)
+		if(iGroundEntity == -1 || GetStyleSettingBool(gA_Timers[client].iStyle, "force_groundkeys"))
 		{
-			if(gA_StyleSettings[gA_Timers[client].iStyle].bBlockW && ((buttons & IN_FORWARD) > 0 || vel[0] > 0.0))
+			if(GetStyleSettingBool(gA_Timers[client].iStyle, "block_w") && ((buttons & IN_FORWARD) > 0 || vel[0] > 0.0))
 			{
 				vel[0] = 0.0;
 				buttons &= ~IN_FORWARD;
 			}
 
-			if(gA_StyleSettings[gA_Timers[client].iStyle].bBlockA && ((buttons & IN_MOVELEFT) > 0 || vel[1] < 0.0))
+			if(GetStyleSettingBool(gA_Timers[client].iStyle, "block_a") && ((buttons & IN_MOVELEFT) > 0 || vel[1] < 0.0))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVELEFT;
 			}
 
-			if(gA_StyleSettings[gA_Timers[client].iStyle].bBlockS && ((buttons & IN_BACK) > 0 || vel[0] < 0.0))
+			if(GetStyleSettingBool(gA_Timers[client].iStyle, "block_s") && ((buttons & IN_BACK) > 0 || vel[0] < 0.0))
 			{
 				vel[0] = 0.0;
 				buttons &= ~IN_BACK;
 			}
 
-			if(gA_StyleSettings[gA_Timers[client].iStyle].bBlockD && ((buttons & IN_MOVERIGHT) > 0 || vel[1] > 0.0))
+			if(GetStyleSettingBool(gA_Timers[client].iStyle, "block_d") && ((buttons & IN_MOVERIGHT) > 0 || vel[1] > 0.0))
 			{
 				vel[1] = 0.0;
 				buttons &= ~IN_MOVERIGHT;
@@ -3431,9 +3512,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			// Theory about blocking non-HSW strafes while playing HSW:
 			// Block S and W without A or D.
 			// Block A and D without S or W.
-			if(gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW > 0)
+			if(GetStyleSettingInt(gA_Timers[client].iStyle, "force_hsw") > 0)
 			{
-				bool bSHSW = (gA_StyleSettings[gA_Timers[client].iStyle].iForceHSW == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
+				bool bSHSW = (GetStyleSettingInt(gA_Timers[client].iStyle, "force_hsw") == 2) && !bInStart; // don't decide on the first valid input until out of start zone!
 				int iCombination = -1;
 
 				bool bForward = ((buttons & IN_FORWARD) > 0 && vel[0] >= 100.0);
@@ -3509,7 +3590,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
 
 	// enable duck-jumping/bhop in tf2
-	if(gEV_Type == Engine_TF2 && gA_StyleSettings[gA_Timers[client].iStyle].bEnableBunnyhopping && (buttons & IN_JUMP) > 0 && iGroundEntity != -1)
+	if(gEV_Type == Engine_TF2 && GetStyleSettingBool(gA_Timers[client].iStyle, "bunnyhopping") && (buttons & IN_JUMP) > 0 && iGroundEntity != -1)
 	{
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
@@ -3518,7 +3599,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 	}
 
-	if(gA_StyleSettings[gA_Timers[client].iStyle].bAutobhop && gA_Timers[client].bAuto && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
+	if(GetStyleSettingBool(gA_Timers[client].iStyle, "autobhop") && gA_Timers[client].bAuto && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
 	{
 		int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
 		SetEntProp(client, Prop_Data, "m_nOldButtons", (iOldButtons & ~IN_JUMP));
@@ -3547,16 +3628,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if(bInStart && gCV_BlockPreJump.BoolValue && gA_StyleSettings[gA_Timers[client].iStyle].iPrespeed == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
+	if(bInStart && gCV_BlockPreJump.BoolValue && GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
 	{
 		vel[2] = 0.0;
 		buttons &= ~IN_JUMP;
 	}
 
 	// velocity limit
-	if(iGroundEntity != -1 && view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocityLimit > 0.0))
+	if(iGroundEntity != -1 && GetStyleSettingFloat(gA_Timers[client].iStyle, "velocity_limit") > 0.0)
 	{
-		float fSpeedLimit = view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fVelocityLimit);
+		float fSpeedLimit = GetStyleSettingFloat(gA_Timers[client].iStyle, "velocity_limit");
 
 		if(gB_Zones && Shavit_InsideZone(client, Zone_CustomSpeedLimit, -1))
 		{
@@ -3679,15 +3760,15 @@ void UpdateStyleSettings(int client)
 {
 	if(sv_autobunnyhopping != null)
 	{
-		sv_autobunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gA_Timers[client].iStyle].bAutobhop && gA_Timers[client].bAuto)? "1":"0");
+		sv_autobunnyhopping.ReplicateToClient(client, (GetStyleSettingBool(gA_Timers[client].iStyle, "autobhop") && gA_Timers[client].bAuto)? "1":"0");
 	}
 
 	if(sv_enablebunnyhopping != null)
 	{
-		sv_enablebunnyhopping.ReplicateToClient(client, (gA_StyleSettings[gA_Timers[client].iStyle].bEnableBunnyhopping)? "1":"0");
+		sv_enablebunnyhopping.ReplicateToClient(client, (GetStyleSettingBool(gA_Timers[client].iStyle, "bunnyhopping"))? "1":"0");
 	}
 
-	UpdateAiraccelerate(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fAiraccelerate));
+	UpdateAiraccelerate(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "airaccelerate"));
 
-	SetEntityGravity(client, view_as<float>(gA_StyleSettings[gA_Timers[client].iStyle].fGravityMultiplier));
+	SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "gravity"));
 }
