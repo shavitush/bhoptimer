@@ -2591,6 +2591,20 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		gSM_StyleKeys[gI_CurrentParserIndex].SetString("timescale", "0.5");
 	}
 
+	// Setting it here so that we can reference the timescale setting.
+	if(!HasStyleSetting(gI_CurrentParserIndex, "force_timescale"))
+	{
+		if(GetStyleSettingFloat(gI_CurrentParserIndex, "timescale") == 1.0)
+		{
+			gSM_StyleKeys[gI_CurrentParserIndex].SetString("force_timescale", "0");
+		}
+		
+		else
+		{
+			gSM_StyleKeys[gI_CurrentParserIndex].SetString("force_timescale", "1");
+		}
+	}
+
 	if(!gB_Registered && strlen(gS_StyleStrings[gI_CurrentParserIndex].sChangeCommand) > 0 && !gA_StyleSettings[gI_CurrentParserIndex].bInaccessible)
 	{
 		char sStyleCommands[32][32];
