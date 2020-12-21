@@ -61,6 +61,13 @@ enum struct persistent_data_t
 	bool bPractice;
 }
 
+enum struct savestate_t
+{
+	float Angles[3];
+	float Origin[3];
+	float Velocity[3];
+}
+
 typedef StopTimerCallback = function void (int data);
 
 // game specific
@@ -91,7 +98,7 @@ ArrayList gA_Classnames = null;
 
 // save states
 bool gB_SaveStatesSegmented[MAXPLAYERS+1];
-float gF_SaveStateData[MAXPLAYERS+1][3][3];
+savestate_t gA_SaveStateData[MAXPLAYERS+1];
 timer_snapshot_t gA_SaveStates[MAXPLAYERS+1];
 bool gB_SaveStates[MAXPLAYERS+1];
 char gS_SaveStateTargetname[MAXPLAYERS+1][32];
@@ -261,6 +268,7 @@ public void OnPluginStart()
 
 	// hook teamjoins
 	AddCommandListener(Command_Jointeam, "jointeam");
+	AddCommandListener(Command_Spectate, "spectate");
 
 	// hook radio commands instead of a global listener
 	for(int i = 0; i < sizeof(gS_RadioCommands); i++)
@@ -645,6 +653,16 @@ int GetHumanTeam()
 	}
 
 	return 0;
+}
+public Action Command_Spectate(int client, const char[] command, int args)
+{
+	if(!IsValidClient(client) || !gCV_JointeamHook.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
+	CleanSwitchTeam(client, 2, true);
+	return Plugin_Handled;
 }
 
 public Action Command_Jointeam(int client, const char[] command, int args)
@@ -1986,7 +2004,8 @@ void OpenNormalCPMenu(int client)
 	FormatEx(sDisplay, 64, "%T\n ", "MiscCheckpointNext", client);
 	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[client].Length)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	menu.AddItem("spacer", "", ITEMDRAW_NOTEXT);
+	// apparently this is the fix
+	// menu.AddItem("spacer", "", ITEMDRAW_RAWLINE);
 
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
 	menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -3376,17 +3395,17 @@ public void Shavit_OnFinish(int client)
 
 public void Shavit_OnPause(int client, int track)
 {
-	if(!GetClientEyeAngles(client, gF_SaveStateData[client][1]))
+	if(!GetClientEyeAngles(client, gA_SaveStateData[client].Angles))
 	{
-		gF_SaveStateData[client][1] = NULL_VECTOR;
+		gA_SaveStateData[client].Angles = NULL_VECTOR;
 	}
 }
 
 public void Shavit_OnResume(int client, int track)
 {
-	if(!IsNullVector(gF_SaveStateData[client][1]))
+	if(!IsNullVector(gA_SaveStateData[client].Angles))
 	{
-		TeleportEntity(client, NULL_VECTOR, gF_SaveStateData[client][1], NULL_VECTOR);
+		TeleportEntity(client, NULL_VECTOR, gA_SaveStateData[client].Angles, NULL_VECTOR);
 	}
 }
 
@@ -3409,7 +3428,7 @@ public Action Command_Drop(int client, const char[] command, int argc)
 
 void LoadState(int client)
 {
-	TeleportEntity(client, gF_SaveStateData[client][0], gF_SaveStateData[client][1], gF_SaveStateData[client][2]);
+	TeleportEntity(client, gA_SaveStateData[client].Origin, gA_SaveStateData[client].Angles, gA_SaveStateData[client].Velocity);
 	DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
 
 	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
@@ -3433,9 +3452,9 @@ void SaveState(int client)
 		return;
 	}
 	
-	GetClientAbsOrigin(client, gF_SaveStateData[client][0]);
-	GetClientEyeAngles(client, gF_SaveStateData[client][1]);
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_SaveStateData[client][2]);
+	GetClientAbsOrigin(client, gA_SaveStateData[client].Origin);
+	GetClientEyeAngles(client, gA_SaveStateData[client].Angles);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gA_SaveStateData[client].Velocity);
 	GetEntPropString(client, Prop_Data, "m_iName", gS_SaveStateTargetname[client], 32);
 
 	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
