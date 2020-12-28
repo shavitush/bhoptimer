@@ -162,7 +162,6 @@ Convar gCV_DynamicTimeCheap = null;
 // timer settings
 int gI_Styles = 0;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
-stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
 chatstrings_t gS_ChatStrings;
@@ -718,7 +717,7 @@ public any Native_GetReplayTime(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(2);
 
-	if(style < 0 || track < 0)
+	if(style < 0 || track < 0 || track >= TRACKS_SIZE)
 	{
 		return ThrowNativeError(200, "Style/Track out of range");
 	}
@@ -736,7 +735,10 @@ public any Native_GetReplayTime(Handle handler, int numParams)
 		return GetReplayLength(Track_Main, track);
 	}
 
-	return float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreFrames) / gF_Tickrate * gA_StyleSettings[style].fTimescale;
+	char sSpeed[16];
+	Shavit_GetStyleSetting(style, "speed", sSpeed, 16);
+
+	return float(gI_ReplayTick[style] - gA_FrameCache[style][track].iPreFrames) / gF_Tickrate * StringToFloat(sSpeed);
 }
 
 public int Native_HijackAngles(Handle handler, int numParams)
@@ -1036,7 +1038,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(i, sClanTag, gS_StyleStrings[i].sClanTag, sizeof(stylestrings_t::sClanTag));
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
 		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
@@ -1714,7 +1715,11 @@ public void DeleteFrames(int client)
 
 public Action Shavit_OnStart(int client)
 {	
-	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale);
+	char sSpeed[16];
+	Shavit_GetStyleSetting(Shavit_GetBhopStyle(client), "speed", sSpeed, 16);
+	float fSpeed = StringToFloat(sSpeed);
+
+	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / fSpeed);
 	if(gI_PlayerPrerunFrames[client] < 0)
 	{
 		gI_PlayerPrerunFrames[client] = 0;
@@ -1732,7 +1737,8 @@ public Action Shavit_OnStart(int client)
 
 	else 
 	{
-		if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / gA_StyleSettings[Shavit_GetBhopStyle(client)].fTimescale))
+		
+		if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / fSpeed))
 		{
 			gA_PlayerFrames[client].Erase(0);
 			gI_PlayerFrames[client]--;
@@ -1839,14 +1845,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 void ApplyFlags(int &flags1, int flags2, int flag)
 {
-	if((flags2 & flag) > 0)
+	if((flags2 & flag) != 0)
 	{
 		flags1 |= flag;
 	}
 
 	else
 	{
-		flags2 &= ~flag;
+		flags1 &= ~flag;
 	}
 }
 
@@ -2162,7 +2168,11 @@ public Action Timer_StartReplay(Handle Timer, any data)
 
 bool ReplayEnabled(any style)
 {
-	return (!gA_StyleSettings[style].bUnranked && !gA_StyleSettings[style].bNoReplay);
+	char unranked[4];
+	char noreplay[4];
+	Shavit_GetStyleSetting(style, "unranked", unranked, 4);
+	Shavit_GetStyleSetting(style, "noreplay", noreplay, 4);
+	return (!StringToInt(unranked) && !StringToInt(noreplay));
 }
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
@@ -2782,20 +2792,6 @@ int GetSpectatorTarget(int client)
 	return target;
 }
 
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
-}
-
 float GetReplayLength(int style, int track)
 {
 	if(gA_FrameCache[style][track].iFrameCount == 0)
@@ -2809,7 +2805,11 @@ float GetReplayLength(int style, int track)
 		return gA_FrameCache[style][track].fTime;
 	}
 
-	return Shavit_GetWorldRecord(style, track) * gA_StyleSettings[style].fTimescale;
+	char speed[16];
+	Shavit_GetStyleSetting(style, "speed", speed, 16);
+
+
+	return Shavit_GetWorldRecord(style, track) * StringToFloat(speed);
 }
 
 void GetReplayName(int style, int track, char[] buffer, int length)

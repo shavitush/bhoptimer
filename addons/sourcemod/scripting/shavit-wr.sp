@@ -83,7 +83,6 @@ Convar gCV_RecentLimit = null;
 // timer settings
 int gI_Styles = 0;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
-stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
 chatstrings_t gS_ChatStrings;
@@ -144,9 +143,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
 	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
 
-	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map]");
-	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map]");
-	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map]");
+	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map] [bonus number]");
+	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map] [bonus number]");
+	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map] [bonus number]");
 
 	RegConsoleCmd("sm_recent", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
@@ -373,7 +372,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
 		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
 	}
@@ -532,7 +530,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		int iStyle = results.FetchInt(1);
 		int iTrack = results.FetchInt(2);
 
-		if(iStyle >= gI_Styles || iStyle < 0 || gA_StyleSettings[iStyle].bUnranked)
+		if(iStyle >= gI_Styles || iStyle < 0 || Shavit_GetStyleSettingInt(iStyle, "unranked"))
 		{
 			continue;
 		}
@@ -778,7 +776,7 @@ void DeleteSubmenu(int client)
 	{
 		int iStyle = styles[i];
 
-		if(gA_StyleSettings[iStyle].iEnabled == -1)
+		if(Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
 		{
 			continue;
 		}
@@ -851,7 +849,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		{
 			int iStyle = styles[i];
 
-			if(gA_StyleSettings[iStyle].iEnabled == -1)
+			if(Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
 			{
 				continue;
 			}
@@ -1315,29 +1313,51 @@ public Action Command_WorldRecord(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(args == 0)
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
+
+	int track = Track_Main;
+	bool havemap = false;
+
+	if(StrContains(sCommand, "sm_b", false) == 0)
+	{
+		if (args >= 1)
+		{
+			char arg[6];
+			GetCmdArg((args > 1) ? 2 : 1, arg, sizeof(arg));
+			track = StringToInt(arg);
+
+			// if the track doesn't fit in the bonus track range then assume it's a map name
+			if (args > 1 || (track < Track_Bonus || track > Track_Bonus_Last))
+			{
+				havemap = true;
+			}
+		}
+
+		if (track < Track_Bonus || track > Track_Bonus_Last)
+		{
+			track = Track_Bonus;
+		}
+	}
+
+	else
+	{
+		havemap = (args >= 1);
+	}
+
+	if(!havemap)
 	{
 		strcopy(gA_WRCache[client].sClientMap, 128, gS_Map);
 	}
 
 	else
 	{
-		GetCmdArgString(gA_WRCache[client].sClientMap, 128);
+		GetCmdArg(1, gA_WRCache[client].sClientMap, 128);
 		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
 		{
 			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
 			return Plugin_Handled;
 		}
-	}
-
-	char sCommand[16];
-	GetCmdArg(0, sCommand, 16);
-
-	int track = Track_Main;
-
-	if(StrContains(sCommand, "sm_b", false) == 0)
-	{
-		track = Track_Bonus;
 	}
 
 	return ShowWRStyleMenu(client, track);
@@ -1357,7 +1377,7 @@ Action ShowWRStyleMenu(int client, int track)
 	{
 		int iStyle = styles[i];
 
-		if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled == -1)
+		if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
 		{
 			continue;
 		}
@@ -1648,8 +1668,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		FormatSeconds(fTime, sTime, 16);
 
 		int iStyle = results.FetchInt(4);
-
-		if(iStyle >= gI_Styles || iStyle < 0 || gA_StyleSettings[iStyle].bUnranked)
+		if(iStyle >= gI_Styles || iStyle < 0 || Shavit_GetStyleSettingInt(iStyle, "unranked"))
 		{
 			continue;
 		}
@@ -1770,7 +1789,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int iJumps = results.FetchInt(2);
 		float fPerfs = results.FetchFloat(9);
 
-		if(gA_StyleSettings[iStyle].bAutobhop)
+		if(Shavit_GetStyleSettingInt(iStyle, "autobhop"))
 		{
 			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, iJumps);
 		}
@@ -1979,7 +1998,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	bool bIncrementCompletions = true;
 	int iOverwrite = 0;
 
-	if(gA_StyleSettings[style].bUnranked || Shavit_IsPracticeMode(client))
+	if(Shavit_GetStyleSettingInt(style, "unranked") || Shavit_IsPracticeMode(client))
 	{
 		iOverwrite = 0; // ugly way of not writing to database
 		bIncrementCompletions = false;
@@ -2105,7 +2124,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		
 		gI_PlayerCompletion[client][style][track]++;
 		
-		if(iOverwrite == 0 && !gA_StyleSettings[style].bUnranked)
+		if(iOverwrite == 0 && !Shavit_GetStyleSettingInt(style, "unranked"))
 		{
 			FormatEx(sMessage, 255, "%s[%s]%s %T",
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
@@ -2211,7 +2230,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		int style = results.FetchInt(0);
 		int track = results.FetchInt(1);
 
-		if(style >= gI_Styles || gA_StyleSettings[style].bUnranked || track >= TRACKS_SIZE)
+		if(style >= gI_Styles || Shavit_GetStyleSettingInt(style, "unranked") || track >= TRACKS_SIZE)
 		{
 			continue;
 		}
@@ -2221,7 +2240,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(i >= gI_Styles || gA_StyleSettings[i].bUnranked)
+		if(i >= gI_Styles || Shavit_GetStyleSettingInt(i, "unranked"))
 		{
 			continue;
 		}
@@ -2264,18 +2283,4 @@ int GetRankForTime(int style, float time, int track)
 	}
 
 	return (iRecords + 1);
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }
