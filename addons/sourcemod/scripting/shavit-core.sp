@@ -157,7 +157,6 @@ ConVar sv_enablebunnyhopping = null;
 bool gB_Registered = false;
 int gI_Styles = 0;
 int gI_OrderedStyles[STYLE_LIMIT];
-stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 StringMap gSM_StyleKeys[STYLE_LIMIT];
 int gI_CurrentParserIndex = 0;
@@ -1141,7 +1140,9 @@ public Action Command_Style(int client, int args)
 
 		if(GetStyleSettingBool(iStyle, "unranked"))
 		{
-			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, gS_StyleStrings[iStyle].sStyleName);
+			char sName[64];
+			gSM_StyleKeys[iStyle].GetString("name", sName, 64);
+			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, sName);
 		}
 
 		else
@@ -1166,12 +1167,14 @@ public Action Command_Style(int client, int args)
 					strcopy(sWR, 8, "BWR");
 				}
 
-				FormatEx(sDisplay, 64, "%s - %s: %s", gS_StyleStrings[iStyle].sStyleName, sWR, sTime);
+				char sName[64];
+				gSM_StyleKeys[iStyle].GetString("name", sName, 64);
+				FormatEx(sDisplay, 64, "%s - %s: %s", sName, sWR, sTime);
 			}
 
 			else
 			{
-				strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
+				gSM_StyleKeys[iStyle].GetString("name", sDisplay, 64);
 			}
 		}
 
@@ -1283,7 +1286,10 @@ void ChangeClientStyle(int client, int style, bool manual)
 			return;
 		}
 
-		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
+		char sName[64];
+		gSM_StyleKeys[style].GetString("name", sName, 64);
+
+		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings.sStyle, sName, gS_ChatStrings.sText);
 	}
 
 	if(GetStyleSettingBool(style, "unranked"))
@@ -1879,16 +1885,52 @@ public int Native_GetStyleStrings(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int type = GetNativeCell(2);
 	int size = GetNativeCell(4);
+	char sValue[128];
 
 	switch(type)
 	{
-		case sStyleName: return SetNativeString(3, gS_StyleStrings[style].sStyleName, size);
-		case sShortName: return SetNativeString(3, gS_StyleStrings[style].sShortName, size);
-		case sHTMLColor: return SetNativeString(3, gS_StyleStrings[style].sHTMLColor, size);
-		case sChangeCommand: return SetNativeString(3, gS_StyleStrings[style].sChangeCommand, size);
-		case sClanTag: return SetNativeString(3, gS_StyleStrings[style].sClanTag, size);
-		case sSpecialString: return SetNativeString(3, gS_StyleStrings[style].sSpecialString, size);
-		case sStylePermission: return SetNativeString(3, gS_StyleStrings[style].sStylePermission, size);
+		case sStyleName:
+		{
+			gSM_StyleKeys[style].GetString("name", sValue, size);
+
+			return SetNativeString(3, sValue, size);
+		}
+		case sShortName:
+		{
+			gSM_StyleKeys[style].GetString("shortname", sValue, size);
+
+			return SetNativeString(3, sValue, size);
+		}
+		case sHTMLColor:
+		{
+			gSM_StyleKeys[style].GetString("htmlcolor", sValue, size);
+
+			return SetNativeString(3, sValue, size);
+		}
+		case sChangeCommand:
+		{
+			gSM_StyleKeys[style].GetString("command", sValue, size);
+
+			return SetNativeString(3, sValue, size);
+		}
+		case sClanTag:
+		{
+			gSM_StyleKeys[style].GetString("clantag", sValue, size);
+
+			return SetNativeString(3, sValue, size);
+		}
+		case sSpecialString:
+		{
+			gSM_StyleKeys[style].GetString("specialstring", sValue, size);
+
+			return SetNativeString(3, sValue, size);
+		}
+		case sStylePermission:
+		{
+			gSM_StyleKeys[style].GetString("permission", sValue, size);
+
+			return SetNativeString(3, sValue, size);
+		}
 	}
 
 	return -1;
@@ -2519,14 +2561,6 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	gSM_StyleKeys[gI_CurrentParserIndex].SetString("specialstring", "");
 	gSM_StyleKeys[gI_CurrentParserIndex].SetString("permission", "");
 
-	gS_StyleStrings[gI_CurrentParserIndex].sStyleName = "<MISSING STYLE NAME>";
-	gS_StyleStrings[gI_CurrentParserIndex].sShortName = "<MISSING SHORT STYLE NAME>";
-	gS_StyleStrings[gI_CurrentParserIndex].sHTMLColor = "<MISSING STYLE HTML COLOR>";
-	gS_StyleStrings[gI_CurrentParserIndex].sChangeCommand = "";
-	gS_StyleStrings[gI_CurrentParserIndex].sClanTag = "<MISSING STYLE CLAN TAG>";
-	gS_StyleStrings[gI_CurrentParserIndex].sSpecialString = "";
-	gS_StyleStrings[gI_CurrentParserIndex].sStylePermission = "";
-
 	gSM_StyleKeys[gI_CurrentParserIndex].SetString("autobhop", "1");
 	gSM_StyleKeys[gI_CurrentParserIndex].SetString("easybhop", "1");
 	gSM_StyleKeys[gI_CurrentParserIndex].SetString("prespeed", "0");
@@ -2605,13 +2639,18 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		}
 	}
 
-	if(!gB_Registered && strlen(gS_StyleStrings[gI_CurrentParserIndex].sChangeCommand) > 0 && !gA_StyleSettings[gI_CurrentParserIndex].bInaccessible)
+	char sStyleCommand[128];
+	gSM_StyleKeys[gI_CurrentParserIndex].GetString("command", sStyleCommand, 128);
+	char sName[64];
+	gSM_StyleKeys[gI_CurrentParserIndex].GetString("name", sName, 64);
+
+	if(!gB_Registered && strlen(sStyleCommand) > 0 && !gA_StyleSettings[gI_CurrentParserIndex].bInaccessible)
 	{
 		char sStyleCommands[32][32];
-		int iCommands = ExplodeString(gS_StyleStrings[gI_CurrentParserIndex].sChangeCommand, ";", sStyleCommands, 32, 32, false);
+		int iCommands = ExplodeString(sStyleCommand, ";", sStyleCommands, 32, 32, false);
 
 		char sDescription[128];
-		FormatEx(sDescription, 128, "Change style to %s.", gS_StyleStrings[gI_CurrentParserIndex].sStyleName);
+		FormatEx(sDescription, 128, "Change style to %s.", sName);
 
 		for(int x = 0; x < iCommands; x++)
 		{
@@ -2627,10 +2666,13 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		}
 	}
 
-	if(StrContains(gS_StyleStrings[gI_CurrentParserIndex].sStylePermission, ";") != -1)
+	char sPermission[64];
+	gSM_StyleKeys[gI_CurrentParserIndex].GetString("permission", sPermission, 64);
+
+	if(StrContains(sPermission, ";") != -1)
 	{
 		char sText[2][32];
-		int iCount = ExplodeString(gS_StyleStrings[gI_CurrentParserIndex].sStylePermission, ";", sText, 2, 32);
+		int iCount = ExplodeString(sPermission, ";", sText, 2, 32);
 
 		AdminFlag flag = Admin_Reservation;
 
@@ -2642,11 +2684,11 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		strcopy(gS_StyleOverride[gI_CurrentParserIndex], 32, (iCount >= 2)? sText[1]:"");
 	}
 
-	else if(strlen(gS_StyleStrings[gI_CurrentParserIndex].sStylePermission) > 0)
+	else if(strlen(sPermission) > 0)
 	{
 		AdminFlag flag = Admin_Reservation;
 
-		if(FindFlagByChar(gS_StyleStrings[gI_CurrentParserIndex].sStylePermission[0], flag))
+		if(FindFlagByChar(sPermission[0], flag))
 		{
 			gI_StyleFlag[gI_CurrentParserIndex] = FlagToBit(flag);
 		}
