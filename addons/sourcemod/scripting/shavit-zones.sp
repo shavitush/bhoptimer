@@ -3093,6 +3093,31 @@ public void TouchPost(int entity, int other)
 				Shavit_StartTimer(other, Track_Main);
 			}
 		}
+		case Zone_Respawn:
+		{
+			CS_RespawnPlayer(other);
+		}
+
+		case Zone_Teleport:
+		{
+			TeleportEntity(other, gV_Destinations[gI_EntityZone[entity]], NULL_VECTOR, NULL_VECTOR);
+		}
+
+		case Zone_Slay:
+		{
+			Shavit_StopTimer(other);
+			ForcePlayerSuicide(other);
+			Shavit_PrintToChat(other, "%T", "ZoneSlayEnter", other, gS_ChatStrings.sWarning, gS_ChatStrings.sVariable2, gS_ChatStrings.sWarning);
+		}
+
+		case Zone_Stop:
+		{
+			if(Shavit_GetTimerStatus(other) != Timer_Stopped)
+			{
+				Shavit_StopTimer(other);
+				Shavit_PrintToChat(other, "%T", "ZoneStopEnter", other, gS_ChatStrings.sWarning, gS_ChatStrings.sVariable2, gS_ChatStrings.sWarning);
+			}
+		}
 	}
 }
 
