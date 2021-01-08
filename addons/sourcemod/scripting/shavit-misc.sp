@@ -2391,6 +2391,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 		if(gA_Checkpoints[client].Length >= iMaxCPs)
 		{
+			delete view_as<ArrayList>(gA_Checkpoints[client].Get(0, cp_cache_t::aFrames));
 			gA_Checkpoints[client].Erase(0);
 			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
 		}
