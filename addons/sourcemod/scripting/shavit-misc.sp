@@ -1334,6 +1334,11 @@ void ResetCheckpoints(int client)
 {
 	if(gA_Checkpoints[client])
 	{
+		for(int i = 0; i < gA_Checkpoints[client].Length; i++)
+		{
+			delete view_as<ArrayList>(gA_Checkpoints[client].Get(i, cp_cache_t::aFrames));
+		}
+		
 		gA_Checkpoints[client].Clear();
 	}
 
@@ -2594,6 +2599,7 @@ bool DeleteCheckpoint(int client, int index)
 		return false;
 	}
 
+	delete view_as<ArrayList>(gA_Checkpoints[client].Get(index, cp_cache_t::aFrames));
 	gA_Checkpoints[client].Erase(index);
 
 	return true;
