@@ -1131,7 +1131,7 @@ public void OnClientPutInServer(int client)
 	}
 	else 
 	{
-		gA_Checkpoints[client].Clear();
+		ResetCheckpoints(client);
 	}
 
 	gB_SaveStates[client] = false;
