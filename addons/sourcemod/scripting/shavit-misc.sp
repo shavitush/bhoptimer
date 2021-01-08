@@ -1149,7 +1149,7 @@ public void OnClientPutInServer(int client)
 	}
 	else 
 	{
-		gA_Checkpoints[client].Clear();
+		ResetCheckpoints(client);
 	}
 
 	gB_SaveStates[client] = false;
@@ -1352,6 +1352,11 @@ void ResetCheckpoints(int client)
 {
 	if(gA_Checkpoints[client])
 	{
+		for(int i = 0; i < gA_Checkpoints[client].Length; i++)
+		{
+			delete view_as<ArrayList>(gA_Checkpoints[client].Get(i, cp_cache_t::aFrames));
+		}
+		
 		gA_Checkpoints[client].Clear();
 	}
 
@@ -2410,6 +2415,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 		if(gA_Checkpoints[client].Length >= iMaxCPs)
 		{
+			delete view_as<ArrayList>(gA_Checkpoints[client].Get(0, cp_cache_t::aFrames));
 			gA_Checkpoints[client].Erase(0);
 			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
 		}
@@ -2612,6 +2618,7 @@ bool DeleteCheckpoint(int client, int index)
 		return false;
 	}
 
+	delete view_as<ArrayList>(gA_Checkpoints[client].Get(index, cp_cache_t::aFrames));
 	gA_Checkpoints[client].Erase(index);
 
 	return true;
