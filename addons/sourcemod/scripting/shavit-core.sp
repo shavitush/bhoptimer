@@ -152,6 +152,7 @@ char gS_MySQLPrefix[32];
 ConVar sv_airaccelerate = null;
 ConVar sv_autobunnyhopping = null;
 ConVar sv_enablebunnyhopping = null;
+ConVar sv_clockcorrection_msecs = null;
 
 // timer settings
 bool gB_Registered = false;
@@ -380,6 +381,13 @@ public void OnPluginStart()
 	if(sv_enablebunnyhopping != null)
 	{
 		sv_enablebunnyhopping.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
+	}
+	
+	sv_clockcorrection_msecs = FindConVar("sv_clockcorrection_msecs");
+
+	if(sv_clockcorrection_msecs != null)
+	{
+		sv_clockcorrection_msecs = null;
 	}
 
 	gB_Zones = LibraryExists("shavit-zones");
