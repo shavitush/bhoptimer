@@ -336,6 +336,7 @@ public void OnPluginStart()
 
 	#if DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
+	RegConsoleCmd("sm_fling", Command_Fling);
 	#endif
 
 	// admin
@@ -708,6 +709,15 @@ public Action Command_FinishTest(int client, int args)
 {
 	Shavit_FinishMap(client, gA_Timers[client].iTrack);
 
+	return Plugin_Handled;
+}
+
+public Action Command_Fling(int client, int args)
+{
+	float up[3];
+	up[2] = 1000.0;
+	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", up);
+	
 	return Plugin_Handled;
 }
 #endif
@@ -1930,6 +1940,12 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 		CallOnStyleChanged(client, gA_Timers[client].iStyle, snapshot.bsStyle, false);
 	}
 
+	// no longer paused, reset their movement
+	if(gA_Timers[client].bPaused && !snapshot.bClientPaused)
+	{
+		SetEntityMoveType(client, MOVETYPE_WALK);
+	}
+
 	gA_Timers[client].bEnabled = snapshot.bTimerEnabled;
 	gA_Timers[client].bPaused = snapshot.bClientPaused;
 	gA_Timers[client].iJumps = snapshot.iJumps;
@@ -2023,6 +2039,11 @@ void StartTimer(int client, int track)
 
 		if(result == Plugin_Continue)
 		{
+			if(gA_Timers[client].bPaused)
+			{
+				SetEntityMoveType(client, MOVETYPE_WALK);
+			}
+
 			gA_Timers[client].iZoneIncrement = 0;
 			gA_Timers[client].bPaused = false;
 			gA_Timers[client].iStrafes = 0;
@@ -2075,6 +2096,11 @@ void StopTimer(int client)
 		return;
 	}
 
+	if(gA_Timers[client].bPaused)
+	{
+		SetEntityMoveType(client, MOVETYPE_WALK);
+	}
+
 	gA_Timers[client].bEnabled = false;
 	gA_Timers[client].iJumps = 0;
 	gA_Timers[client].fTimer = 0.0;
@@ -2112,6 +2138,8 @@ void ResumeTimer(int client)
 	Call_Finish();
 
 	gA_Timers[client].bPaused = false;
+	// setting is handled in usercmd
+	SetEntityMoveType(client, MOVETYPE_WALK);
 }
 
 public void OnClientDisconnect(int client)
@@ -3092,6 +3120,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		vel = view_as<float>({0.0, 0.0, 0.0});
 
 		SetEntityFlags(client, (flags | FL_ATCONTROLS));
+
+		SetEntityMoveType(client, MOVETYPE_NONE);
 
 		return Plugin_Changed;
 	}
