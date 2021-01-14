@@ -1180,13 +1180,13 @@ public void OnClientDisconnect(int client)
 		return;
 	}
 
+	PersistData(client);
+
 	ResetCheckpoints(client);
 	delete gA_Checkpoints[client];
 
 	gB_SaveStates[client] = false;
 	delete gA_SaveFrames[client];
-
-	PersistData(client);
 }
 
 void PersistData(int client)
