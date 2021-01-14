@@ -1339,8 +1339,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 
 	if(aData.aCheckpoint != null)
 	{
-		ArrayList cache = aData.aCheckpoint.Clone();
-		for(int i = 0; i < cache.Length; i++)
+		for(int i = 0; i < aData.aCheckpoint.Length; i++)
 		{
 			cp_cache_t cpcache;
 
