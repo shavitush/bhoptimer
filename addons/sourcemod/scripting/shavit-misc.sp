@@ -59,6 +59,8 @@ enum struct persistent_data_t
 	int iPreFrames;
 	int iTimerPreFrames;
 	bool bPractice;
+	ArrayList aCheckpoints;
+	int iCurrentCheckpoint;
 }
 
 enum struct savestate_t
@@ -1207,6 +1209,12 @@ void PersistData(int client)
 		aData.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
 	}
 
+	if(gA_Checkpoints[client].Length > 0)
+	{
+		aData.aCheckpoints = gA_Checkpoints[client].Clone();
+		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
+	}
+
 	aData.fDisconnectTime = GetEngineTime();
 	aData.iMoveType = GetEntityMoveType(client);
 	aData.fGravity = GetEntityGravity(client);
@@ -1329,12 +1337,32 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 		Shavit_SetPlayerTimerFrame(client, aData.iTimerPreFrames);
 	}
 
+	if(aData.aCheckpoint != null)
+	{
+		ArrayList cache = aData.aCheckpoint.Clone();
+		for(int i = 0; i < cache.Length; i++)
+		{
+			cp_cache_t cpcache;
+
+			if(cache.GetArray(i, cpcache, sizeof(cp_cache_t)))
+			{
+				gA_Checkpoints[client].Push(0);
+				gA_Checkpoints[client].SetArray(i, cpcache);
+			}
+		}
+
+		gI_CurrentCheckpoint[client] = aData.iCurrentCheckpoint;
+
+		delete cache;
+	}
+
 	if(aData.bPractice)
 	{
 		Shavit_SetPracticeMode(client, true, false);
 	}
 
 	delete aData.aFrames;
+	delete aData.aCheckpoints;
 	gA_PersistentData.Erase(iIndex);
 
 	return Plugin_Stop;
