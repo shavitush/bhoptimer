@@ -659,6 +659,7 @@ public int Native_SetReplayData(Handle handler, int numParams)
 
 	ArrayList frames = view_as<ArrayList>(CloneHandle(GetNativeCell(2)));
 	gA_PlayerFrames[client] = frames.Clone();
+	
 	delete frames;
 
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
@@ -2883,7 +2884,7 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 
 float GetClosestReplayTime(int client, int style, int track)
 {
-	bool has_cache = (style < sizeof(gReplayCache) || track < sizeof(gReplayCache[])) && gCV_DynamicTimeUseCache.BoolValue;
+	bool has_cache = style < sizeof(gReplayCache) && track < sizeof(gReplayCache[]) && gCV_DynamicTimeUseCache.BoolValue;
 	
 	int iLength = has_cache ? gReplayCacheLength[style][track] : gA_Frames[style][track].Length;
 	int iPreframes = gA_FrameCache[style][track].iPreFrames;
@@ -2899,11 +2900,12 @@ float GetClosestReplayTime(int client, int style, int track)
 		prevframe[client] = 0;
 	}
 	
-	if(iPlayerFrames > gA_Frames[style][track].Length)
+	if(iPlayerFrames >= gA_Frames[style][track].Length - iPreframes)
 		return -1.0;
 	
 	int iStartFrame = iPlayerFrames - iSearch;
 	int iEndFrame = iPlayerFrames + iSearch;
+	int start_frames = RoundToNearest(gCV_DynamicTimePreciseTime.FloatValue * (1 / GetTickInterval()));
 	
 	if(offset == 0)
 	{
@@ -2936,7 +2938,7 @@ float GetClosestReplayTime(int client, int style, int track)
 	static float fReplayPos[3], fClientPos[3], dist;
 	float fMinDist = view_as<float>(0x7f7fffff);
 	int iClosestFrame, add_amount = has_cache ? 1 : TIMEDIFF_STEP;
-
+	
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fClientPos);
 	
 	for(int frame = iStartFrame; frame < iEndFrame; frame += add_amount)
@@ -2977,8 +2979,12 @@ float GetClosestReplayTime(int client, int style, int track)
 	}
 	
 	float frametime = GetReplayLength(style, track) / float(gA_FrameCache[style][track].iFrameCount - iPreframes);
-	int start_frames = RoundToNearest(gCV_DynamicTimePreciseTime.FloatValue * (1 / GetTickInterval()));
-	float timeDifference = ((iClosestFrame <= start_frames ? iClosestFrame : (iClosestFrame + ((iClosestFrame - start_frames) * TIMEDIFF_STEP))) - iPreframes) * frametime;
+	float timeDifference;
+	
+	if(has_cache)
+		timeDifference = ((iClosestFrame <= start_frames ? iClosestFrame : (start_frames + ((iClosestFrame - start_frames) * TIMEDIFF_STEP))) - iPreframes) * frametime;
+	else
+		timeDifference = (iClosestFrame - iPreframes) * frametime;
 	
 	// Hides the hud if we are using the cheap search method and too far behind to be accurate
 	if(iSearch > 0 && gCV_DynamicTimeCheap.BoolValue)
