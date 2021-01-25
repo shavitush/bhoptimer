@@ -1312,9 +1312,20 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		{
 			int iColor = 0xFF0000; // red, worse than both pb and wr
 			
-			if(data.iTimerStatus == Timer_Paused) iColor = 0xA9C5E8; // blue sky
-			else if(data.fTime < data.fWR || data.fWR == 0.0) iColor = GetGradient(0x00FF00, 0x96172C, RoundToZero((data.fTime / data.fWR) * 100));
-			else if(data.fPB != 0.0 && data.fTime < data.fPB) iColor = 0xFFA500; // orange
+			if(data.iTimerStatus == Timer_Paused) 
+			{
+				iColor = 0xA9C5E8; // blue sky
+			}
+
+			else if(data.fTime < data.fWR || data.fWR == 0.0)
+			{
+				iColor = GetGradient(0x00FF00, 0x96172C, RoundToZero((data.fTime / data.fWR) * 100));
+			}
+
+			else if(data.fPB != 0.0 && data.fTime < data.fPB)
+			{
+				iColor = 0xFFA500; // orange
+			}
 
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
@@ -1980,3 +1991,4 @@ void TrimPlayerName(const char[] name, char[] outname, int len)
 	if(count > gCV_SpecNameSymbolLength.IntValue)
 		Format(outname, len, "%s...", outname);
 }
+
