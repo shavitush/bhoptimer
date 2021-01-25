@@ -1316,10 +1316,12 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			{
 				iColor = 0xA9C5E8; // blue sky
 			}
+
 			else if(data.fTime < data.fWR || data.fWR == 0.0)
 			{
 				iColor = GetGradient(0x00FF00, 0x96172C, RoundToZero((data.fTime / data.fWR) * 100));
 			}
+
 			else if(data.fPB != 0.0 && data.fTime < data.fPB)
 			{
 				iColor = 0xFFA500; // orange
@@ -1989,3 +1991,4 @@ void TrimPlayerName(const char[] name, char[] outname, int len)
 	if(count > gCV_SpecNameSymbolLength.IntValue)
 		Format(outname, len, "%s...", outname);
 }
+
