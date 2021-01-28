@@ -969,7 +969,7 @@ void PreviewChat(int client, int rank)
 	FormatChat(client, sCMessage, MAXLENGTH_CMESSAGE);
 
 	char sSampleText[MAXLENGTH_MESSAGE];
-	FormatEx(sSampleText, MAXLENGTH_MESSAGE, "%sThe quick brown fox jumps over the lazy dog", sCMessage);
+	FormatEx(sSampleText, MAXLENGTH_MESSAGE, "%sKjøttboller.", sCMessage);
 
 	char sColon[MAXLENGTH_CMESSAGE];
 	gCV_Colon.GetString(sColon, MAXLENGTH_CMESSAGE);
