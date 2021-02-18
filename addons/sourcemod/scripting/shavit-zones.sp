@@ -35,6 +35,8 @@
 #pragma dynamic 131072
 #pragma newdecls required
 
+#define DEBUG 0
+
 EngineVersion gEV_Type = Engine_Unknown;
 
 Database gH_SQL = null;
