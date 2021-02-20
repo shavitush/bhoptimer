@@ -1960,6 +1960,15 @@ native int Shavit_GetCurrentCheckpoint(int client);
  */
 native void Shavit_SetCurrentCheckpoint(int client, int index);
 
+/**
+ * Gets how many times the client has teleported to checkpoints.
+ *
+ * @param client					Client index
+ *
+ * @return							The number of times the client has teleported to checkpoints.
+ */
+native int Shavit_GetTimesTeleported(int client);
+
 /*
  * returns the number of preframes in the players current run.
  *
