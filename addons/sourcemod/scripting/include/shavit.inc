@@ -2143,6 +2143,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SaveCheckpoint");
 	MarkNativeAsOptional("Shavit_GetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
+	MarkNativeAsOptional("Shavit_GetTimesTeleported");
 	MarkNativeAsOptional("Shavit_GetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetPlayerTimerFrame");
 	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
