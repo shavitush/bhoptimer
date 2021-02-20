@@ -567,37 +567,47 @@ public Action Command_RecalcMap(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action Command_RecalcAll(int client, int args)
+int gI_RecalcAllStyle = -1;
+void QueueNextRecalc(int client)
 {
-	ReplyToCommand(client, "- Started recalculating points for all maps. Check console for output.");
-
+	int i = gI_RecalcAllStyle;
 	Transaction trans = new Transaction();
+	char sQuery[192];
 
-	for(int i = 0; i < gI_Styles; i++)
+	ReplyToCommand(client, "- Recalc style %d/%d", i, gI_Styles);
+
+	char unranked[4];
+	Shavit_GetStyleSetting(i, "unranked", unranked, 16);
+
+	char multiplier[16];
+	Shavit_GetStyleSetting(i, "rankingmultiplier", multiplier, 16);
+	float fMultiplier = StringToFloat(multiplier);
+
+	if(StringToInt(unranked) || fMultiplier == 0.0)
 	{
-		char sQuery[192];
-
-		char unranked[4];
-		Shavit_GetStyleSetting(i, "unranked", unranked, 16);
-
-		char multiplier[16];
-		Shavit_GetStyleSetting(i, "rankingmultiplier", multiplier, 16);
-		float fMultiplier = StringToFloat(multiplier);
-
-		if(StringToInt(unranked) || fMultiplier == 0.0)
-		{
-			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = 0 WHERE style = %d;", gS_MySQLPrefix, i);
-		}
-
-		else
-		{
-			FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gCV_PointsPerTier.FloatValue, fMultiplier, i);
-		}
-
-		trans.AddQuery(sQuery);
+		FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = 0 WHERE style = %d;", gS_MySQLPrefix, i);
 	}
 
+	else
+	{
+		FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gCV_PointsPerTier.FloatValue, fMultiplier, i);
+	}
+
+	trans.AddQuery(sQuery);
 	gH_SQL.Execute(trans, Trans_OnRecalcSuccess, Trans_OnRecalcFail, (client == 0)? 0:GetClientSerial(client));
+}
+
+public Action Command_RecalcAll(int client, int args)
+{
+	if (gI_RecalcAllStyle != -1)
+	{
+		ReplyToCommand(client, "- Currently in recalc already. Style %d/%d", gI_RecalcAllStyle, gI_Styles);
+		return Plugin_Handled;
+	}
+
+	ReplyToCommand(client, "- Started recalculating points for all maps. Check console for output.");
+	gI_RecalcAllStyle = 0;
+	QueueNextRecalc(client);
 
 	return Plugin_Handled;
 }
@@ -609,6 +619,12 @@ public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResul
 	if(client != 0)
 	{
 		SetCmdReplySource(SM_REPLY_TO_CONSOLE);
+	}
+
+	if (gI_RecalcAllStyle++ < gI_Styles)
+	{
+		QueueNextRecalc(client);
+		return;
 	}
 
 	ReplyToCommand(client, "- Finished recalculating all points. Recalculating user points, top 100 and user cache.");
@@ -629,6 +645,7 @@ public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResul
 
 public void Trans_OnRecalcFail(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
 {
+	gI_RecalcAllStyle = -1;
 	LogError("Timer (rankings) error! Recalculation failed. Reason: %s", error);
 }
 
