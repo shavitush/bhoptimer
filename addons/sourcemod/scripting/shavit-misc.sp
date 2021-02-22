@@ -2494,7 +2494,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
-	gI_TimesTeleported[client] += 1;
+	gI_TimesTeleported[client]++;
 
 	if(Shavit_InsideZone(client, Zone_Start, -1))
 	{
