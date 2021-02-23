@@ -457,7 +457,7 @@ stock bool GuessBestMapName(ArrayList maps, const char[] input, char[] output, i
 stock void GetTrackName(int client, int track, char[] output, int size)
 {
 	if (track == Track_Main)
-		FormatEx(output, size, "%T", "Track_Main", client, track);
+		FormatEx(output, size, "%T", "Track_Main", client);
 	else if (track >= Track_Bonus)
 		FormatEx(output, size, "%T", "Track_Bonus", client, track);
 	else //if (track < Track_Main)
@@ -1839,6 +1839,18 @@ native int Shavit_PrintToChat(int client, const char[] format, any ...);
  * @noreturn
  */
 native void Shavit_LogMessage(const char[] format, any ...);
+
+/**
+ * Gets the average and max velocity of a player's jumps.
+ * Velocity is calculated as a 2d vector (GetVectorLength(fSpeed)).
+ * Average calculation: avg += (vel - avg) / jumps
+ *
+ * @param client					Client index
+ * @param avg						Variable to recieve the average velocity
+ * @param max						Variable to receive the max velocity
+ * @noreturn
+ */
+native void Shavit_GetAvgMaxVelocity(int client, float &avg, float &max);
 
 /**
  * Gets the total number of CPs that a client has saved

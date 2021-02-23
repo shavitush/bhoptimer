@@ -65,6 +65,8 @@ enum struct playertimer_t
 	float fDistanceOffset[2];
 	// convert to array for per zone offsets
 	int iZoneIncrement;
+	float fAvgVelocity;
+	float fMaxVelocity;
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -238,6 +240,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_GetClientTimescale", Native_GetClientTimescale);
 	CreateNative("Shavit_SetClientTimescale", Native_SetClientTimescale);
+	CreateNative("Shavit_GetAvgMaxVelocity", Native_GetAvgMaxVelocity);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -1436,6 +1439,15 @@ void VelocityChanges(int data)
 	{
 		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
 	}
+
+	if (GetTimerStatus(client) == Timer_Running)
+	{
+		float curVel = GetVectorLength(fAbsVelocity);
+		float maxVel = gA_Timers[client].fMaxVelocity;
+		gA_Timers[client].fMaxVelocity = (curVel > maxVel) ? curVel : maxVel;
+		// STOLEN from Epic/Disrevoid. Thx :)
+		gA_Timers[client].fAvgVelocity += (curVel - gA_Timers[client].fAvgVelocity) / gA_Timers[client].iJumps;
+	}
 }
 
 public void Player_Death(Event event, const char[] name, bool dontBroadcast)
@@ -2163,6 +2175,14 @@ public any Native_HasStyleSetting(Handle handler, int numParams)
 	return HasStyleSetting(style, sKey);
 }
 
+
+public any Native_GetAvgMaxVelocity(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	SetNativeCellRef(2, gF_AvgVelocity[client]);
+	SetNativeCellRef(3, gF_MaxVelocity[client]);
+}
+
 bool HasStyleSetting(int style, char[] key)
 {
 	char sValue[1];
@@ -2232,6 +2252,8 @@ void StartTimer(int client, int track)
 			gA_Timers[client].fTimeOffset[Zone_End] = 0.0;
 			gA_Timers[client].fDistanceOffset[Zone_Start] = 0.0;
 			gA_Timers[client].fDistanceOffset[Zone_End] = 0.0;
+			gA_Timers[client].fAvgVelocity = 0.0;
+			gA_Timers[client].fMaxVelocity = 0.0;
 
 			if(gA_Timers[client].fTimescale != -1.0)
 			{
