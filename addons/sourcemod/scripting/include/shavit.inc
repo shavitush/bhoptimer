@@ -625,9 +625,10 @@ forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, 
  * @param id						Record ID. -1 if mass deletion.
  * @param track						Timer track.
  * @param accountid					The account ID of the wr holder
+ * @param mapname					Hey KidFearless please do me a favor
  * @noreturn
  */
-forward void Shavit_OnWRDeleted(int style, int id, int track, int accountid);
+forward void Shavit_OnWRDeleted(int style, int id, int track, int accountid, const char[] mapname);
 
 /**
  * Called when a player's timer paused.
