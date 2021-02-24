@@ -467,13 +467,7 @@ public int Native_DeleteReplay(Handle handler, int numParams)
 	int iTrack = GetNativeCell(3);
 	int iSteamID = GetNativeCell(4);
 
-	char sTrack[4];
-	FormatEx(sTrack, 4, "_%d", iTrack);
-
-	char sPath[PLATFORM_MAX_PATH];
-	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, iStyle, gS_Map, (iTrack > 0)? sTrack:"");
-
-	if(!DeleteReplay(iStyle, iTrack, StrEqual(sMap, gS_Map), iSteamID))
+	if(!DeleteReplay(iStyle, iTrack, StrEqual(sMap, gS_Map), iSteamID, sMap))
 	{
 		return false;
 	}
@@ -1346,13 +1340,13 @@ bool SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	return true;
 }
 
-bool DeleteReplay(int style, int track, bool unload_replay = false, int accountid = 0)
+bool DeleteReplay(int style, int track, bool unload_replay = false, int accountid = 0, char[] mapname = gS_Map)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
 
 	char sPath[PLATFORM_MAX_PATH];
-	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, map_name, (track > 0)? sTrack:"");
 
 	if(!FileExists(sPath))
 	{
