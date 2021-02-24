@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.6.0"
+#define SHAVIT_VERSION "2.6.0.DEV"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_NAME_LENGTH_SQL 32
@@ -71,7 +71,8 @@ enum
 	CPR_ByConVar = (1 << 0),
 	CPR_NoTimer = (1 << 1),
 	CPR_InStartZone = (1 << 2),
-	CPR_NotOnGround = (1 << 3)
+	CPR_NotOnGround = (1 << 3),
+	CPR_Moving = (1 << 4)
 };
 
 enum
@@ -113,6 +114,7 @@ enum
 {
 	Track_Main,
 	Track_Bonus,
+	Track_Bonus_Last = 8,
 	TRACKS_SIZE
 };
 
@@ -150,6 +152,7 @@ enum struct stylestrings_t
 	char sStylePermission[64];
 }
 
+//TODO:REMOVE IN 3.0
 enum struct stylesettings_t
 {
 	bool bAutobhop;
@@ -451,6 +454,16 @@ stock bool GuessBestMapName(ArrayList maps, const char[] input, char[] output, i
 	return false;
 }
 
+stock void GetTrackName(int client, int track, char[] output, int size)
+{
+	if (track == Track_Main)
+		FormatEx(output, size, "%T", "Track_Main", client, track);
+	else if (track >= Track_Bonus)
+		FormatEx(output, size, "%T", "Track_Bonus", client, track);
+	else //if (track < Track_Main)
+		FormatEx(output, size, "%T", "Track_Unknown", client);
+}
+
 /**
  * Called before shavit-core processes the client's usercmd.
  * Before this is called, safety checks (fake/dead clients) happen.
@@ -733,6 +746,17 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
  * @noreturn
  */
 forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data);
+
+/**
+ * Called when a player leaves a zone.
+ *
+ * @param client					Client index.
+ * @param stageNumber				Stage number.
+ * @param message					The stage time message that will be printed.
+ * @param maxlen					The buffer size of message.
+ * @return							Plugin_Handled to block the timer from printing msg to the client. Plugin_Continue to let the timer print msg.
+ */
+forward Action Shavit_OnStageMessage(int client, int stageNumber, char[] message, int maxlen);
 
 /**
  * Called when a player gets the worst record in the server for the style.
@@ -1510,6 +1534,67 @@ native void Shavit_OpenStatsMenu(int client, int steamid);
  */
 native int Shavit_GetWRCount(int client);
 
+/*
+ * Gets a value from the style config for the given style
+ * e.g. Shavit_GetStyleSetting(Shavit_GetBhopStyle(client), "TAS", sBuffer, 2);
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ * @param value						Value buffer to store the return value in.
+ * @param maxlength					Max length of the value buffer, cannot exceed 256.
+ *
+ * @return 							True if key was found, false otherwise.
+ */
+native bool Shavit_GetStyleSetting(int style, const char[] key, char[] value, int maxlength);
+
+
+/*
+ * Gets an int value from the style config for the given style. Returns 0 if key is not found.
+ * e.g. Shavit_GetStyleSettingInt(Shavit_GetBhopStyle(client), "TAS");
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ *
+ * @return 							Integer value if found, 0 if key is missing.
+ */
+native int Shavit_GetStyleSettingInt(int style, const char[] key);
+
+
+/*
+ * Gets the bool value from the style config for the given style. Returns false if key is not found.
+ * e.g. if(Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(client), "TAS"))
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ *
+ * @return 							bool value if found, false if key is missing.
+ */
+native bool Shavit_GetStyleSettingBool(int style, const char[] key);
+
+
+/*
+ * Gets a float value from the style config for the given style. Returns 0.0 if key is not found
+ * e.g. Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "speed");
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ *
+ * @return 							Float value if found, 0.0 if key is missing.
+ */
+native float Shavit_GetStyleSettingFloat(int style, const char[] key);
+
+
+/*
+ * Checks if the given key exists for that style
+ * e.g. Shavit_HasStyleSetting(Shavit_GetBhopStyle(client), "tas");
+ *
+ * @param style						Style index.
+ * @param key						Style key to retreive.
+ *
+ * @return 							True if found.
+ */
+native bool Shavit_HasStyleSetting(int style, const char[] key);
+
 /**
 * Saves the style settings on `any` references.
 *
@@ -1518,6 +1603,7 @@ native int Shavit_GetWRCount(int client);
 * @param size						Size of the StyleSettings buffer, e.g sizeof(stylesettings_t)
 * @return							SP_ERROR_NONE on success, anything else on failure.
 */
+#pragma deprecated Use different natives or Shavit_GetStyleSetting instead.
 native int Shavit_GetStyleSettings(int style, any[] StyleSettings, int size = sizeof(stylesettings_t));
 
 /**
@@ -1890,7 +1976,7 @@ native int Shavit_GetPlayerPreFrame(int client);
  *
  * @return 							Timer preframe count
  */
- native int Shavit_GetPlayerTimerFrame(int client);
+native int Shavit_GetPlayerTimerFrame(int client);
 
 /*
  * Sets player's preframe length.
@@ -1911,7 +1997,7 @@ native void Shavit_SetPlayerPreFrame(int client, int PreFrame);
  *
  * @noreturn
  */
- native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
+native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
 
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
@@ -1987,6 +2073,10 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStageZone");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
+	MarkNativeAsOptional("Shavit_GetStyleSetting");
+	MarkNativeAsOptional("Shavit_GetStyleSettingInt");
+	MarkNativeAsOptional("Shavit_GetStyleSettingFloat");
+	MarkNativeAsOptional("Shavit_HasStyleSetting");
 	MarkNativeAsOptional("Shavit_GetStyleSettings");
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetSync");

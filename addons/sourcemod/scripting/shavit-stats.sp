@@ -61,7 +61,6 @@ Convar gCV_MVPRankOnes_Main = null;
 // timer settings
 int gI_Styles = 0;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
-stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
 chatstrings_t gS_ChatStrings;
@@ -157,7 +156,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
 		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
 	}
@@ -323,7 +321,7 @@ public Action Command_MapsDoneLeft(int client, int args)
 	{
 		int iStyle = styles[i];
 
-		if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled == -1)
+		if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
 		{
 			continue;
 		}
@@ -539,7 +537,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		{
 			int iStyle = styles[i];
 
-			if(gA_StyleSettings[iStyle].bUnranked || gA_StyleSettings[iStyle].iEnabled <= 0)
+			if(Shavit_GetStyleSettingInt(iStyle, "unranked") || Shavit_GetStyleSettingInt(iStyle, "enabled") <= 0)
 			{
 				continue;
 			}
@@ -934,18 +932,4 @@ public int Native_OpenStatsMenu(Handle handler, int numParams)
 public int Native_GetWRCount(Handle handler, int numParams)
 {
 	return gI_WRAmount[GetNativeCell(1)];
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }
