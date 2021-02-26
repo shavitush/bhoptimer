@@ -249,6 +249,8 @@ enum struct cp_cache_t
 	int iSerial;
 	bool bPractice;
 	int iGroundEntity;
+	float fAvgVelocity;
+	float fMaxVelocity;
 }
 
 #if defined USES_CHAT_COLORS
@@ -1846,7 +1848,6 @@ native void Shavit_LogMessage(const char[] format, any ...);
  *
  * @param client					Client index
  * @return							Client's average velocity
- * @noreturn
  */
 native float Shavit_GetAvgVelocity(int client);
 
@@ -1857,6 +1858,24 @@ native float Shavit_GetAvgVelocity(int client);
  * @return							Client's highest velocity
  */
 native float Shavit_GetMaxVelocity(int client);
+
+/**
+ * Sets the average velocity of a player.
+ *
+ * @param client					Client index
+ * @param vel						Average velocity
+ * @noreturn
+ */
+native void Shavit_SetAvgVelocity(int client, float vel);
+
+/**
+ * Gets the max velocity of a player.
+ *
+ * @param client					Client index
+ * @param vel						Max velocity
+ * @noreturn
+ */
+native void Shavit_SetMaxVelocity(int client, float vel);
 
 /**
  * Gets the total number of CPs that a client has saved
