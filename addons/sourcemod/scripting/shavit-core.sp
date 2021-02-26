@@ -3802,7 +3802,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if (GetTimerStatus(client) == view_as<int>(Timer_Running) && gA_Timers[client].fTimer != 0.0)
 	{
 		float frameCount = gB_Replay
-			? float(Shavit_GetClientFrameCount(client) - Shavit_GetPlayerTimerFrame(client))
+			? float(Shavit_GetClientFrameCount(client) - Shavit_GetPlayerTimerFrame(client)) + 1
 			: (gA_Timers[client].fTimer / GetTickInterval());
 		float fAbsVelocity[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
