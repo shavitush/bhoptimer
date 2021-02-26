@@ -1841,16 +1841,22 @@ native int Shavit_PrintToChat(int client, const char[] format, any ...);
 native void Shavit_LogMessage(const char[] format, any ...);
 
 /**
- * Gets the average and max velocity of a player's jumps.
- * Velocity is calculated as a 2d vector.
- * Average calculation: avg += (vel - avg) / jumps
+ * Gets the average velocity of a player.
+ * Average calculation: avg += (vel - avg) / frames
  *
  * @param client					Client index
- * @param avg						Variable to recieve the average velocity
- * @param max						Variable to receive the max velocity
+ * @return							Client's average velocity
  * @noreturn
  */
-native void Shavit_GetAvgMaxVelocity(int client, float &avg, float &max);
+native float Shavit_GetAvgVelocity(int client);
+
+/**
+ * Gets the max velocity of a player.
+ *
+ * @param client					Client index
+ * @return							Client's highest velocity
+ */
+native float Shavit_GetMaxVelocity(int client);
 
 /**
  * Gets the total number of CPs that a client has saved
