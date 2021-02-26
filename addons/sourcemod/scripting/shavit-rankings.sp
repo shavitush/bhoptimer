@@ -86,6 +86,9 @@ Handle gH_Forwards_OnRankAssigned = null;
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 
+int gI_RecalcAllStyle = -1;
+
+
 public Plugin myinfo =
 {
 	name = "[shavit] Rankings",
@@ -567,36 +570,6 @@ public Action Command_RecalcMap(int client, int args)
 	return Plugin_Handled;
 }
 
-int gI_RecalcAllStyle = -1;
-void QueueNextRecalc(int client)
-{
-	int i = gI_RecalcAllStyle;
-	Transaction trans = new Transaction();
-	char sQuery[192];
-
-	ReplyToCommand(client, "- Recalc style %d/%d", i, gI_Styles);
-
-	char unranked[4];
-	Shavit_GetStyleSetting(i, "unranked", unranked, 16);
-
-	char multiplier[16];
-	Shavit_GetStyleSetting(i, "rankingmultiplier", multiplier, 16);
-	float fMultiplier = StringToFloat(multiplier);
-
-	if(StringToInt(unranked) || fMultiplier == 0.0)
-	{
-		FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = 0 WHERE style = %d;", gS_MySQLPrefix, i);
-	}
-
-	else
-	{
-		FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, i, gCV_PointsPerTier.FloatValue, fMultiplier, i);
-	}
-
-	trans.AddQuery(sQuery);
-	gH_SQL.Execute(trans, Trans_OnRecalcSuccess, Trans_OnRecalcFail, (client == 0)? 0:GetClientSerial(client));
-}
-
 public Action Command_RecalcAll(int client, int args)
 {
 	if (gI_RecalcAllStyle != -1)
@@ -612,9 +585,33 @@ public Action Command_RecalcAll(int client, int args)
 	return Plugin_Handled;
 }
 
+void QueueNextRecalc(int client)
+{
+	Transaction trans = new Transaction();
+	char sQuery[192];
+
+	ReplyToCommand(client, "- Recalc style %d/%d", gI_RecalcAllStyle, gI_Styles);
+
+	bool isUnranked = Shavit_GetStyleSettingBool(gI_RecalcAllStyle, "unranked");
+	float fMultiplier = Shavit_GetStyleSettingFloat(gI_RecalcAllStyle, "rankingmultiplier");
+
+	if(isUnranked || fMultiplier == 0.0)
+	{
+		FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = 0 WHERE style = %d;", gS_MySQLPrefix, gI_RecalcAllStyle);
+	}
+
+	else
+	{
+		FormatEx(sQuery, 192, "UPDATE %splayertimes SET points = GetRecordPoints(%d, track, time, map, %.1f, %.3f) WHERE style = %d;", gS_MySQLPrefix, gI_RecalcAllStyle, gCV_PointsPerTier.FloatValue, fMultiplier, gI_RecalcAllStyle);
+	}
+
+	trans.AddQuery(sQuery);
+	gH_SQL.Execute(trans, Trans_OnRecalcSuccess, Trans_OnRecalcFail, (client == 0) ? 0: GetClientSerial(client));
+}
+
 public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	int client = (data == 0)? 0:GetClientFromSerial(data);
+	int client = (data == 0) ? 0 : GetClientFromSerial(data);
 
 	if(client != 0)
 	{
@@ -626,6 +623,8 @@ public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResul
 		QueueNextRecalc(client);
 		return;
 	}
+
+	gI_RecalcAllStyle = -1;
 
 	ReplyToCommand(client, "- Finished recalculating all points. Recalculating user points, top 100 and user cache.");
 
