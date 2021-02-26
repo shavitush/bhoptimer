@@ -222,6 +222,8 @@ enum struct timer_snapshot_t
 	int iPerfectJumps;
 	float fTimeOffset[2];
 	float fDistanceOffset[2];
+	float fAvgVelocity;
+	float fMaxVelocity;
 }
 
 enum struct cp_cache_t
@@ -580,9 +582,11 @@ forward Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot);
  * @param track						Timer track.
  * @param oldtime					The player's best time on the map before this finish.
  * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
+ * @param avgvel					Player's average velocity throughout the run.
+ * @param maxvel					Player's highest reached velocity.
  * @noreturn
  */
-forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs);
+forward void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel);
 
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.
@@ -599,9 +603,11 @@ forward void Shavit_OnFinish(int client, int style, float time, int jumps, int s
  * @param track						Timer track.
  * @param oldtime					The player's best time on the map before this finish.
  * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
+ * @param avgvel					Player's average velocity throughout the run.
+ * @param maxvel					Player's highest reached velocity.
  * @noreturn
  */
-forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track, float oldtime, float perfs);
+forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track, float oldtime, float perfs, float avgvel, float maxvel);
 
 /**
  * Called when there's a new WR on the map.
@@ -616,9 +622,11 @@ forward void Shavit_OnFinish_Post(int client, int style, float time, int jumps, 
  * @param oldwr						Time of the old WR. 0.0 if there's none.
  * @param oldtime					The player's best time on the map before this finish.
  * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
+ * @param avgvel					Player's average velocity throughout the run.
+ * @param maxvel					Player's highest reached velocity.
  * @noreturn
  */
-forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldwr, float oldtime, float perfs);
+forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldwr, float oldtime, float perfs, float avgvel, float maxvel);
 
 /**
  * Called when an admin deletes a WR.
@@ -773,9 +781,11 @@ forward Action Shavit_OnStageMessage(int client, int stageNumber, char[] message
  * @param track						Timer track.
  * @param oldtime					The player's best time on the map before this finish.
  * @param perfs						Perfect jump percentage (0.0 to 100.0) or 100.0 when not measured.
+ * @param avgvel					Player's average velocity throughout the run.
+ * @param maxvel					Player's highest reached velocity.
  * @noreturn
  */
-forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs);
+forward void Shavit_OnWorstRecord(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel);
 
 /**
  * Gets called when a map's tier is assigned.

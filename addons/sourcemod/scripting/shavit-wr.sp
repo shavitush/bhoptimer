@@ -133,10 +133,10 @@ public void OnPluginStart()
 	#endif
 
 	// forwards
-	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinishMessage = CreateGlobalForward("Shavit_OnFinishMessage", ET_Event, Param_Cell, Param_CellByRef, Param_Array, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
 	// player commands
@@ -1978,7 +1978,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	OnMapStart();
 }
 
-public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs)
+public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel)
 {
 	// do not risk overwriting the player's data if their PB isn't loaded to cache yet
 	if(!gA_WRCache[client].bLoadedCache)
@@ -2033,6 +2033,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(fOldWR);
 		Call_PushCell(oldtime);
 		Call_PushCell(perfs);
+		Call_PushCell(avgvel);
+		Call_PushCell(maxvel);
 		Call_Finish();
 
 		#if defined DEBUG
@@ -2054,6 +2056,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(track);
 		Call_PushCell(oldtime);
 		Call_PushCell(perfs);
+		Call_PushCell(avgvel);
+		Call_PushCell(maxvel);
 		Call_Finish();
 	}
 
@@ -2110,6 +2114,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(track);
 		Call_PushCell(oldtime);
 		Call_PushCell(perfs);
+		Call_PushCell(avgvel);
+		Call_PushCell(maxvel);
 		Call_Finish();
 	}
 

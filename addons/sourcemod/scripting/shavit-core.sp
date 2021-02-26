@@ -1668,6 +1668,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -1720,6 +1722,18 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	Call_PushCell(oldtime);
 	Call_PushCell(perfs);
+
+	if(result == Plugin_Continue)
+	{
+		Call_PushCell(gA_Timers[client].fAvgVelocity);
+		Call_PushCell(gA_Timers[client].fMaxVelocity);
+	}
+	else
+	{
+		Call_PushCell(snapshot.fAvgVelocity);
+		Call_PushCell(snapshot.fMaxVelocity);
+	}
+
 	Call_Finish();
 
 	StopTimer(client);
@@ -2010,6 +2024,8 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 	return SetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 }
 
@@ -2050,6 +2066,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
 	gA_Timers[client].fTimeOffset = snapshot.fTimeOffset;
 	gA_Timers[client].fDistanceOffset = snapshot.fDistanceOffset;
+	gA_Timers[client].fAvgVelocity = snapshot.fAvgVelocity;
+	gA_Timers[client].fMaxVelocity = snapshot.fMaxVelocity;
 
 	return 0;
 }
@@ -3328,6 +3346,8 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
@@ -3781,13 +3801,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if (GetTimerStatus(client) == view_as<int>(Timer_Running) && gA_Timers[client].fTimer != 0.0)
 	{
+		float frameCount = gB_Replay
+			? float(Shavit_GetClientFrameCount(client))
+			: (gA_Timers[client].fTimer / GetTickInterval());
 		float fAbsVelocity[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 		float curVel = SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0));
 		float maxVel = gA_Timers[client].fMaxVelocity;
 		gA_Timers[client].fMaxVelocity = (curVel > maxVel) ? curVel : maxVel;
 		// STOLEN from Epic/Disrevoid. Thx :)
-		gA_Timers[client].fAvgVelocity += (curVel - gA_Timers[client].fAvgVelocity) / Shavit_GetClientFrameCount(client);
+		gA_Timers[client].fAvgVelocity += (curVel - gA_Timers[client].fAvgVelocity) / frameCount;
 	}
 
 	gA_Timers[client].iLastButtons = iPButtons;
