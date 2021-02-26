@@ -1842,7 +1842,7 @@ native void Shavit_LogMessage(const char[] format, any ...);
 
 /**
  * Gets the average and max velocity of a player's jumps.
- * Velocity is calculated as a 2d vector (GetVectorLength(fSpeed)).
+ * Velocity is calculated as a 2d vector.
  * Average calculation: avg += (vel - avg) / jumps
  *
  * @param client					Client index

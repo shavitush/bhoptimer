@@ -1440,9 +1440,9 @@ void VelocityChanges(int data)
 		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
 	}
 
-	if (GetTimerStatus(client) == Timer_Running)
+	if (GetTimerStatus(client) == view_as<int>(Timer_Running))
 	{
-		float curVel = GetVectorLength(fAbsVelocity);
+		float curVel = SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0));
 		float maxVel = gA_Timers[client].fMaxVelocity;
 		gA_Timers[client].fMaxVelocity = (curVel > maxVel) ? curVel : maxVel;
 		// STOLEN from Epic/Disrevoid. Thx :)
@@ -2179,8 +2179,8 @@ public any Native_HasStyleSetting(Handle handler, int numParams)
 public any Native_GetAvgMaxVelocity(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	SetNativeCellRef(2, gF_AvgVelocity[client]);
-	SetNativeCellRef(3, gF_MaxVelocity[client]);
+	SetNativeCellRef(2, gA_Timers[client].fAvgVelocity);
+	SetNativeCellRef(3, gA_Timers[client].fMaxVelocity);
 }
 
 bool HasStyleSetting(int style, char[] key)
