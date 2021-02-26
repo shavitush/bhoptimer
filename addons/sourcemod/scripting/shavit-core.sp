@@ -233,6 +233,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
 	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
 	CreateNative("Shavit_SetPracticeMode", Native_SetPracticeMode);
+	CreateNative("Shavit_SetStyleSetting", Native_SetStyleSetting);
+	CreateNative("Shavit_SetStyleSettingFloat", Native_SetStyleSettingFloat);
+	CreateNative("Shavit_SetStyleSettingBool", Native_SetStyleSettingBool);
+	CreateNative("Shavit_SetStyleSettingInt", Native_SetStyleSettingInt);
 	CreateNative("Shavit_StartTimer", Native_StartTimer);
 	CreateNative("Shavit_StopChatSound", Native_StopChatSound);
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
@@ -2167,8 +2171,72 @@ bool HasStyleSetting(int style, char[] key)
 {
 	char sValue[1];
 	gSM_StyleKeys[style].GetString(key, sValue, 1);
+	
 
 	return gSM_StyleKeys[style].GetString(key, sValue, 1);
+}
+
+public any Native_SetStyleSetting(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	char sValue[256];
+	GetNativeString(3, sValue, 256);
+
+	bool replace = GetNativeCell(4);
+
+	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
+}
+
+public any Native_SetStyleSettingFloat(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	float fValue = GetNativeCell(3);
+
+	char sValue[16];
+	FloatToString(fValue, sValue, 16);
+
+	bool replace = GetNativeCell(4);
+
+	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
+}
+
+public any Native_SetStyleSettingBool(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	bool value = GetNativeCell(3);
+
+	bool replace = GetNativeCell(4);
+
+	return gSM_StyleKeys[style].SetString(sKey, value ? "1" : "0", replace);
+}
+
+public any Native_SetStyleSettingInt(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	int value = GetNativeCell(3);
+
+	char sValue[16];
+	IntToString(value, sValue, 16);
+
+	bool replace = GetNativeCell(4);
+
+	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
 }
 
 int GetTimerStatus(int client)

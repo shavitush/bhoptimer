@@ -1547,7 +1547,6 @@ native int Shavit_GetWRCount(int client);
  */
 native bool Shavit_GetStyleSetting(int style, const char[] key, char[] value, int maxlength);
 
-
 /*
  * Gets an int value from the style config for the given style. Returns 0 if key is not found.
  * e.g. Shavit_GetStyleSettingInt(Shavit_GetBhopStyle(client), "TAS");
@@ -1558,7 +1557,6 @@ native bool Shavit_GetStyleSetting(int style, const char[] key, char[] value, in
  * @return 							Integer value if found, 0 if key is missing.
  */
 native int Shavit_GetStyleSettingInt(int style, const char[] key);
-
 
 /*
  * Gets the bool value from the style config for the given style. Returns false if key is not found.
@@ -1571,7 +1569,6 @@ native int Shavit_GetStyleSettingInt(int style, const char[] key);
  */
 native bool Shavit_GetStyleSettingBool(int style, const char[] key);
 
-
 /*
  * Gets a float value from the style config for the given style. Returns 0.0 if key is not found
  * e.g. Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "speed");
@@ -1583,7 +1580,6 @@ native bool Shavit_GetStyleSettingBool(int style, const char[] key);
  */
 native float Shavit_GetStyleSettingFloat(int style, const char[] key);
 
-
 /*
  * Checks if the given key exists for that style
  * e.g. Shavit_HasStyleSetting(Shavit_GetBhopStyle(client), "tas");
@@ -1594,6 +1590,42 @@ native float Shavit_GetStyleSettingFloat(int style, const char[] key);
  * @return 							True if found.
  */
 native bool Shavit_HasStyleSetting(int style, const char[] key);
+
+/*
+ * Set the style setting to the given float value
+ *
+ * @param style						Style index.
+ * @param key						Style key to set.
+ * @param value						Value to set the style key to.
+ * @param replace					Should the value be set if the given key already exists.
+ *
+ * @return 							True on success, false on failure. .
+ */
+native bool Shavit_SetStyleSettingFloat(int style, const char[] key, float value, bool replace = true);
+
+/*
+ * Set the style setting to the given bool value
+ *
+ * @param style						Style index.
+ * @param key						Style key to set.
+ * @param value						Value to set the style key to.
+ * @param replace					Should the value be set if the given key already exists.
+ *
+ * @return 							True on success, false on failure. .
+ */
+native bool Shavit_SetStyleSettingBool(int style, const char[] key, bool value, bool replace = true);
+
+/*
+ * Set the style setting to the given int value
+ *
+ * @param style						Style index.
+ * @param key						Style key to set.
+ * @param value						Value to set the style key to.
+ * @param replace					Should the value be set if the given key already exists.
+ *
+ * @return 							True on success, false on failure. .
+ */
+native bool Shavit_SetStyleSettingInt(int style, const char[] key, int value, bool replace = true);
 
 /**
 * Saves the style settings on `any` references.
@@ -2149,5 +2181,9 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
 	MarkNativeAsOptional("Shavit_GetClosestReplayTime");
 	MarkNativeAsOptional("Shavit_SetPlayerTimerFrame");
+	MarkNativeAsOptional("Shavit_SetStyleSetting");
+	MarkNativeAsOptional("Shavit_SetStyleSettingFloat");
+	MarkNativeAsOptional("Shavit_SetStyleSettingBool");
+	MarkNativeAsOptional("Shavit_SetStyleSettingInt");
 }
 #endif
