@@ -59,6 +59,8 @@ enum struct persistent_data_t
 	int iPreFrames;
 	int iTimerPreFrames;
 	bool bPractice;
+	float fAvgVelocity;
+	float fMaxVelocity;
 }
 
 enum struct savestate_t
@@ -1214,6 +1216,8 @@ void PersistData(int client)
 	aData.fGravity = GetEntityGravity(client);
 	aData.fSpeed = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
 	aData.bPractice = Shavit_IsPracticeMode(client);
+	aData.fAvgVelocity = Shavit_GetAvgVelocity(client);
+	aData.fMaxVelocity = Shavit_GetMaxVelocity(client);
 
 	float fPosition[3];
 	GetClientAbsOrigin(client, fPosition);
@@ -1335,6 +1339,9 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	{
 		Shavit_SetPracticeMode(client, true, false);
 	}
+
+	Shavit_SetAvgVelocity(client, aData.fAvgVelocity);
+	Shavit_SetMaxVelocity(client, aData.fMaxVelocity);
 
 	delete aData.aFrames;
 	gA_PersistentData.Erase(iIndex);
@@ -2409,7 +2416,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 	cpcache.iSerial = GetClientSerial(target);
 	cpcache.bPractice = Shavit_IsPracticeMode(target);
-
+	cpcache.fAvgVelocity = Shavit_GetAvgVelocity(target);
+	cpcache.fMaxVelocity = Shavit_GetMaxVelocity(target);
 
 	if(overflow)
 	{
@@ -2529,6 +2537,9 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", cpcache.fDucktime);
 		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache.fDuckSpeed);
 	}
+
+	Shavit_SetAvgVelocity(client, cpcache.fAvgVelocity);
+	Shavit_SetMaxVelocity(client, cpcache.fMaxVelocity);
 
 	float ang[3];
 	CopyArray(cpcache.fAngles, ang, 3);

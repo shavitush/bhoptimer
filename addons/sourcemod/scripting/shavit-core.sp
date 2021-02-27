@@ -65,6 +65,8 @@ enum struct playertimer_t
 	float fDistanceOffset[2];
 	// convert to array for per zone offsets
 	int iZoneIncrement;
+	float fAvgVelocity;
+	float fMaxVelocity;
 }
 
 // game type (CS:S/CS:GO/TF2)
@@ -242,6 +244,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_GetClientTimescale", Native_GetClientTimescale);
 	CreateNative("Shavit_SetClientTimescale", Native_SetClientTimescale);
+	CreateNative("Shavit_GetAvgVelocity", Native_GetAvgVelocity);
+	CreateNative("Shavit_GetMaxVelocity", Native_GetMaxVelocity);
+	CreateNative("Shavit_SetAvgVelocity", Native_SetAvgVelocity);
+	CreateNative("Shavit_SetMaxVelocity", Native_SetMaxVelocity);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -260,7 +266,7 @@ public void OnPluginStart()
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
-	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
@@ -1666,6 +1672,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -1718,6 +1726,18 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	Call_PushCell(oldtime);
 	Call_PushCell(perfs);
+
+	if(result == Plugin_Continue)
+	{
+		Call_PushCell(gA_Timers[client].fAvgVelocity);
+		Call_PushCell(gA_Timers[client].fMaxVelocity);
+	}
+	else
+	{
+		Call_PushCell(snapshot.fAvgVelocity);
+		Call_PushCell(snapshot.fMaxVelocity);
+	}
+
 	Call_Finish();
 
 	StopTimer(client);
@@ -2008,6 +2028,8 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 	return SetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 }
 
@@ -2048,6 +2070,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
 	gA_Timers[client].fTimeOffset = snapshot.fTimeOffset;
 	gA_Timers[client].fDistanceOffset = snapshot.fDistanceOffset;
+	gA_Timers[client].fAvgVelocity = snapshot.fAvgVelocity;
+	gA_Timers[client].fMaxVelocity = snapshot.fMaxVelocity;
 
 	return 0;
 }
@@ -2167,6 +2191,26 @@ public any Native_HasStyleSetting(Handle handler, int numParams)
 	return HasStyleSetting(style, sKey);
 }
 
+public any Native_GetAvgVelocity(Handle plugin, int numParams)
+{
+	return gA_Timers[GetNativeCell(1)].fAvgVelocity;
+}
+
+public any Native_GetMaxVelocity(Handle plugin, int numParams)
+{
+	return gA_Timers[GetNativeCell(1)].fMaxVelocity;
+}
+
+public any Native_SetAvgVelocity(Handle plugin, int numParams)
+{
+	gA_Timers[GetNativeCell(1)].fAvgVelocity = GetNativeCell(2);
+}
+
+public any Native_SetMaxVelocity(Handle plugin, int numParams)
+{
+	gA_Timers[GetNativeCell(1)].fMaxVelocity = GetNativeCell(2);
+}
+
 bool HasStyleSetting(int style, char[] key)
 {
 	char sValue[1];
@@ -2263,10 +2307,11 @@ void StartTimer(int client, int track)
 
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+	float curVel = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 
 	if(!gCV_NoZAxisSpeed.BoolValue ||
 		GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 1 ||
-		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 2 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0)))
+		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 2 || curVel <= 290.0)))
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
@@ -2300,6 +2345,8 @@ void StartTimer(int client, int track)
 			gA_Timers[client].fTimeOffset[Zone_End] = 0.0;
 			gA_Timers[client].fDistanceOffset[Zone_Start] = 0.0;
 			gA_Timers[client].fDistanceOffset[Zone_End] = 0.0;
+			gA_Timers[client].fAvgVelocity = curVel;
+			gA_Timers[client].fMaxVelocity = curVel;
 
 			if(gA_Timers[client].fTimescale != -1.0)
 			{
@@ -3367,6 +3414,8 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
@@ -3817,6 +3866,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			TestAngles(client, (fTempAngle - fAngles[1]), fAngle, vel);
 		}
+	}
+
+	if (GetTimerStatus(client) == view_as<int>(Timer_Running) && gA_Timers[client].fTimer != 0.0)
+	{
+		float frameCount = gB_Replay
+			? float(Shavit_GetClientFrameCount(client) - Shavit_GetPlayerTimerFrame(client)) + 1
+			: (gA_Timers[client].fTimer / GetTickInterval());
+		float fAbsVelocity[3];
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+		float curVel = SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0));
+		float maxVel = gA_Timers[client].fMaxVelocity;
+		gA_Timers[client].fMaxVelocity = (curVel > maxVel) ? curVel : maxVel;
+		// STOLEN from Epic/Disrevoid. Thx :)
+		gA_Timers[client].fAvgVelocity += (curVel - gA_Timers[client].fAvgVelocity) / frameCount;
 	}
 
 	gA_Timers[client].iLastButtons = iPButtons;
