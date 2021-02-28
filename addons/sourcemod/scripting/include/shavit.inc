@@ -882,10 +882,10 @@ forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, in
  * @param isWR						If the time is the new WR.
  * @param isTooLong					If the time is too long to save a replay if the time is a WR.
  * @param isCopy					If the path points to a copy of the replay.
- * @param path						Path to the saved replay.
+ * @param sPath						Path to the saved replay.
  * @noreturn
  */
-forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isWR, bool isTooLong, bool isCopy, const char[] path);
+forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isWR, bool isTooLong, bool isCopy, const char[] sPath);
 
 /**
  * Called when top left HUD updates.

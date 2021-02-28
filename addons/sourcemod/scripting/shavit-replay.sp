@@ -1301,7 +1301,7 @@ void WriteReplayHeader(File fFile, int style, int track, float time, int steamid
 	fFile.WriteInt32(steamid);
 }
 
-void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int timerstartframe, int timestamp, bool saveCopy, bool saveWR, char[] outPath, int outPathLen)
+void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int timerstartframe, int timestamp, bool saveCopy, bool saveWR, char[] sPath, int sPathLen)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1311,16 +1311,16 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	if (saveWR)
 	{
-		FormatEx(outPath, outPathLen, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
-		DeleteFile(outPath);
-		fWR = OpenFile(outPath, "wb");
+		FormatEx(sPath, sPathLen, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
+		DeleteFile(sPath);
+		fWR = OpenFile(sPath, "wb");
 	}
 
 	if (saveCopy)
 	{
-		FormatEx(outPath, outPathLen, "%s/copy/%d_%d_%s.replay", gS_ReplayFolder, timestamp, steamid, gS_Map);
-		DeleteFile(outPath);
-		fCopy = OpenFile(outPath, "wb");
+		FormatEx(sPath, sPathLen, "%s/copy/%d_%d_%s.replay", gS_ReplayFolder, timestamp, steamid, gS_Map);
+		DeleteFile(sPath);
+		fCopy = OpenFile(sPath, "wb");
 	}
 
 	int iSize = playerrecording.Length;
@@ -1369,6 +1369,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 			{
 				fWR.Write(aWriteData, CELLS_PER_FRAME * iFramesWritten, 4);
 			}
+
 			if (saveCopy)
 			{
 				fCopy.Write(aWriteData, CELLS_PER_FRAME * iFramesWritten, 4);
@@ -1869,8 +1870,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
-	char path[PLATFORM_MAX_PATH];
-	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerTimerStartFrames[client], timestamp, makeCopy, makeWR, path, sizeof(path));
+	char sPath[PLATFORM_MAX_PATH];
+	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerTimerStartFrames[client], timestamp, makeCopy, makeWR, sPath, sizeof(sPath));
 
 	Call_StartForward(gH_OnReplaySaved);
 	Call_PushCell(client);
@@ -1888,7 +1889,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	Call_PushCell(isTooLong);
 	Call_PushCell(isWR);
 	Call_PushCell(makeCopy);
-	Call_PushString(path);
+	Call_PushString(sPath);
 	Call_Finish();
 
 	if(makeWR && ReplayEnabled(style))
