@@ -1252,6 +1252,16 @@ void FormatChat(int client, char[] buffer, int size)
 		ReplaceString(buffer, size, "{rank3}", sRank);
 	}
 
+	char sHour24[3], sHour12[3], sMinute[3], sSecond[3];
+	FormatTime(sHour24, sizeof(sHour24), "%H");
+	FormatTime(sHour12, sizeof(sHour12), "%I");
+	FormatTime(sMinute, sizeof(sMinute), "%M");
+	FormatTime(sSecond, sizeof(sSecond), "%S");
+	ReplaceString(buffer, size, "{h24}", sHour24);
+	ReplaceString(buffer, size, "{h12}", sHour12);
+	ReplaceString(buffer, size, "{min}", sMinute);
+	ReplaceString(buffer, size, "{sec}", sSecond);
+
 	char sName[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(buffer, size, "{name}", sName);
