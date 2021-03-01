@@ -1175,7 +1175,6 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		
 		int iStyle = gA_WRCache[client].iLastStyle;
 		int iTrack = gA_WRCache[client].iLastTrack;
-		bool bWRDeleted = (gI_WRRecordID[iStyle][iTrack] == iRecordID);
 
 		// that's a big datapack ya yeet
 		DataPack hPack = new DataPack();
@@ -1192,13 +1191,28 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		hPack.WriteCell(iTimestamp);
 		hPack.WriteCell(iStyle);
 		hPack.WriteCell(iTrack);
-		hPack.WriteCell(bWRDeleted);
 
-		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;",
-			gS_MySQLPrefix, iRecordID);
+		if(StrEqual(sMap, gS_Map))
+		{
+			bool bWRDeleted = gI_WRRecordID[iStyle][iTrack] == iRecordID;
+			hPack.WriteCell(bWRDeleted);
 
-		gH_SQL.Query(DeleteConfirm_Callback, sQuery, hPack, DBPrio_High);
+			char sQuery[256];
+			FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;",
+				gS_MySQLPrefix, iRecordID);
+
+			gH_SQL.Query(DeleteConfirm_Callback, sQuery, hPack, DBPrio_High);
+		}
+		else 
+		{
+			char sQuery[512];
+			FormatEx(sQuery, 512, "SELECT id "...
+				"FROM %splayertimes "... 
+				"WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC LIMIT 1;",
+					gS_MySQLPrefix, sMap, iStyle, iTrack);
+
+			gH_SQL.Query(GetWolrdRecordDetail_Callback, sQuery, hPack, DBPrio_High);
+		}
 	}
 }
 
@@ -1273,6 +1287,65 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 	}
 
 	Shavit_PrintToChat(client, "%T", "DeletedRecord", client);
+}
+
+public void GetWolrdRecordDetail_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+
+	int iSerial = hPack.ReadCell();
+	int iSteamID = hPack.ReadCell();
+
+	char sName[MAX_NAME_LENGTH];
+	hPack.ReadString(sName, MAX_NAME_LENGTH);
+
+	char sMap[160];
+	hPack.ReadString(sMap, 160);
+
+	float fTime = view_as<float>(hPack.ReadCell());
+	float fSync = view_as<float>(hPack.ReadCell());
+	float fPerfectJumps = view_as<float>(hPack.ReadCell());
+
+	int iJumps = hPack.ReadCell();
+	int iStrafes = hPack.ReadCell();
+	int iRecordID = hPack.ReadCell();
+	int iTimestamp = hPack.ReadCell();
+	int iStyle = hPack.ReadCell();
+	int iTrack = hPack.ReadCell();
+
+	if(results == null)
+	{
+		LogError("Timer (GetWRDetail) SQL query failed. Reason: %s", error);
+		delete hPack;
+		return;
+	}
+
+	int rRecordID = results.FetchInt(0);
+
+	bool bWRDeleted = iRecordID == rRecordID;
+
+	// another big datapack 
+	DataPack pack = new DataPack();
+	pack.WriteCell(iSerial);
+	pack.WriteCell(iSteamID);
+	pack.WriteString(sName);
+	pack.WriteString(sMap);
+	pack.WriteCell(fTime);
+	pack.WriteCell(fSync);
+	pack.WriteCell(fPerfectJumps);
+	pack.WriteCell(iJumps);
+	pack.WriteCell(iStrafes);
+	pack.WriteCell(iRecordID);
+	pack.WriteCell(iTimestamp);
+	pack.WriteCell(iStyle);
+	pack.WriteCell(iTrack);
+	pack.WriteCell(bWRDeleted);
+
+	char sQuery[256];
+	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE id = %d;",
+		gS_MySQLPrefix, iRecordID);
+	gH_SQL.Query(DeleteConfirm_Callback, sQuery, pack, DBPrio_High);
 }
 
 public void DeleteAll_Callback(Database db, DBResultSet results, const char[] error, any data)
