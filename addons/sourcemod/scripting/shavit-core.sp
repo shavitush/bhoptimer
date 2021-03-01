@@ -342,7 +342,6 @@ public void OnPluginStart()
 
 	#if DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
-	RegConsoleCmd("sm_fling", Command_Fling);
 	#endif
 
 	// admin
@@ -750,15 +749,6 @@ public Action Command_FinishTest(int client, int args)
 {
 	Shavit_FinishMap(client, gA_Timers[client].iTrack);
 
-	return Plugin_Handled;
-}
-
-public Action Command_Fling(int client, int args)
-{
-	float up[3];
-	up[2] = 1000.0;
-	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", up);
-	
 	return Plugin_Handled;
 }
 #endif
