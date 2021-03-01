@@ -133,10 +133,10 @@ public void OnPluginStart()
 	#endif
 
 	// forwards
-	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinishMessage = CreateGlobalForward("Shavit_OnFinishMessage", ET_Event, Param_Cell, Param_CellByRef, Param_Array, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
 	// player commands
@@ -1978,7 +1978,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	OnMapStart();
 }
 
-public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel)
+public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
 {
 	// do not risk overwriting the player's data if their PB isn't loaded to cache yet
 	if(!gA_WRCache[client].bLoadedCache)
@@ -2035,6 +2035,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(perfs);
 		Call_PushCell(avgvel);
 		Call_PushCell(maxvel);
+		Call_PushCell(timestamp);
 		Call_Finish();
 
 		#if defined DEBUG
@@ -2058,6 +2059,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(perfs);
 		Call_PushCell(avgvel);
 		Call_PushCell(maxvel);
+		Call_PushCell(timestamp);
 		Call_Finish();
 	}
 
@@ -2087,7 +2089,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 			FormatEx(sQuery, 512,
 				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);",
-				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, GetTime(), style, strafes, sync, track, perfs);
+				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, timestamp, style, strafes, sync, track, perfs);
 		}
 
 		else // update
@@ -2097,7 +2099,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 			FormatEx(sQuery, 512,
 				"UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
-				gS_MySQLPrefix, time, jumps, GetTime(), strafes, sync, perfs, gS_Map, iSteamID, style, track);
+				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, perfs, gS_Map, iSteamID, style, track);
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -2116,6 +2118,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_PushCell(perfs);
 		Call_PushCell(avgvel);
 		Call_PushCell(maxvel);
+		Call_PushCell(timestamp);
 		Call_Finish();
 	}
 
