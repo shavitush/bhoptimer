@@ -250,8 +250,7 @@ public void OnPluginStart()
 
 	// game specific
 	gEV_Type = GetEngineVersion();
-	gF_Tickrate = (1.0 / GetTickInterval());
-
+	
 	FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota").Flags &= ~FCVAR_NOTIFY;
 	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
 
@@ -1534,6 +1533,8 @@ void UpdateReplayInfo(int client, int style, float time, int track)
 	{
 		return;
 	}
+	
+	gF_Tickrate = (1.0 / GetTickInterval());
 
 	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	SetEntityMoveType(client, MOVETYPE_NOCLIP);
