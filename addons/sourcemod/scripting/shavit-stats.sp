@@ -431,7 +431,7 @@ Action OpenStatsMenu(int client, int steamid)
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
 				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = %d) c " ...
 				"JOIN (SELECT name, ip, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = %d) d " ...
-				"JOIN (SELECT COUNT(*) rank FROM %susers as u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points) e " ...
+				"JOIN (SELECT COUNT(*) as 'rank' FROM %susers as u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points) e " ...
 			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid);
 	}
 
@@ -648,7 +648,7 @@ void ShowMaps(int client)
 	if(gI_MapType[client] == MAPSDONE)
 	{
 		FormatEx(sQuery, 512,
-			"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 rank, a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = %d AND a.style = %d AND a.track = %d GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.%s;",
+			"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 as 'rank', a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = %d AND a.style = %d AND a.track = %d GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.%s;",
 			gS_MySQLPrefix, gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
 	}
 

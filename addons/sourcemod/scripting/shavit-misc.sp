@@ -59,6 +59,8 @@ enum struct persistent_data_t
 	int iPreFrames;
 	int iTimerPreFrames;
 	bool bPractice;
+	float fAvgVelocity;
+	float fMaxVelocity;
 	ArrayList aCheckpoints;
 	int iCurrentCheckpoint;
 }
@@ -93,6 +95,7 @@ bool gB_ClosedKZCP[MAXPLAYERS+1];
 
 ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
+int gI_TimesTeleported[MAXPLAYERS+1];
 
 int gI_CheckpointsSettings[MAXPLAYERS+1];
 ArrayList gA_Targetnames = null;
@@ -201,6 +204,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SaveCheckpoint", Native_SaveCheckpoint);
 	CreateNative("Shavit_GetCurrentCheckpoint", Native_GetCurrentCheckpoint);
 	CreateNative("Shavit_SetCurrentCheckpoint", Native_SetCurrentCheckpoint);
+	CreateNative("Shavit_GetTimesTeleported", Native_GetTimesTeleported);
 
 	gB_Late = late;
 
@@ -1220,6 +1224,8 @@ void PersistData(int client)
 	aData.fGravity = GetEntityGravity(client);
 	aData.fSpeed = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
 	aData.bPractice = Shavit_IsPracticeMode(client);
+	aData.fAvgVelocity = Shavit_GetAvgVelocity(client);
+	aData.fMaxVelocity = Shavit_GetMaxVelocity(client);
 
 	float fPosition[3];
 	GetClientAbsOrigin(client, fPosition);
@@ -1359,6 +1365,9 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 	{
 		Shavit_SetPracticeMode(client, true, false);
 	}
+
+	Shavit_SetAvgVelocity(client, aData.fAvgVelocity);
+	Shavit_SetMaxVelocity(client, aData.fMaxVelocity);
 
 	delete aData.aFrames;
 	delete aData.aCheckpoints;
@@ -2434,7 +2443,8 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 	cpcache.iSerial = GetClientSerial(target);
 	cpcache.bPractice = Shavit_IsPracticeMode(target);
-
+	cpcache.fAvgVelocity = Shavit_GetAvgVelocity(target);
+	cpcache.fMaxVelocity = Shavit_GetMaxVelocity(target);
 
 	if(overflow)
 	{
@@ -2519,6 +2529,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
+	gI_TimesTeleported[client]++;
+
 	if(Shavit_InsideZone(client, Zone_Start, -1))
 	{
 		Shavit_StopTimer(client);
@@ -2552,6 +2564,9 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", cpcache.fDucktime);
 		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache.fDuckSpeed);
 	}
+
+	Shavit_SetAvgVelocity(client, cpcache.fAvgVelocity);
+	Shavit_SetMaxVelocity(client, cpcache.fMaxVelocity);
 
 	float ang[3];
 	CopyArray(cpcache.fAngles, ang, 3);
@@ -2890,6 +2905,8 @@ public Action Command_Specs(int client, int args)
 
 public Action Shavit_OnStart(int client)
 {
+	gI_TimesTeleported[client] = 0;
+
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
@@ -3586,6 +3603,11 @@ public any Native_TeleportToCheckpoint(Handle plugin, int numParams)
 
 	TeleportToCheckpoint(client, position, suppress);
 	return 0;
+}
+
+public any Native_GetTimesTeleported(Handle plugin, int numParams)
+{
+	return gI_TimesTeleported[GetNativeCell(1)];
 }
 
 public any Native_GetTotalCheckpoints(Handle plugin, int numParams)
