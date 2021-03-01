@@ -1203,12 +1203,12 @@ void FormatRandom(char[] buffer, int size)
 	{
 		if(IsSource2013(gEV_Type))
 		{
-			FormatEx(temp, 8, "\x07%06X", RealRandomInt(0, 0xFFFFFF));
+			FormatEx(temp, 8, "\x07%06X", GetRandomInt(0, 0xFFFFFF));
 		}
 
 		else
 		{
-			strcopy(temp, 8, gS_CSGOColors[RealRandomInt(0, sizeof(gS_CSGOColors) - 1)]);
+			strcopy(temp, 8, gS_CSGOColors[GetRandomInt(0, sizeof(gS_CSGOColors) - 1)]);
 		}
 	}
 
@@ -1255,18 +1255,6 @@ void FormatChat(int client, char[] buffer, int size)
 	char sName[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(buffer, size, "{name}", sName);
-}
-
-int RealRandomInt(int min, int max)
-{
-	int random = GetURandomInt();
-
-	if(random == 0)
-	{
-		random++;
-	}
-
-	return (RoundToCeil(float(random) / (2147483647.0 / float(max - min + 1))) + min - 1);
 }
 
 void SQL_DBConnect()
