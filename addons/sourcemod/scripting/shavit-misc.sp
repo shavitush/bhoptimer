@@ -49,6 +49,7 @@ enum struct persistent_data_t
 	float fDisconnectTime;
 	float fPosition[3];
 	float fAngles[3];
+	float fVelocity[3];
 	MoveType iMoveType;
 	float fGravity;
 	float fSpeed;
@@ -59,13 +60,9 @@ enum struct persistent_data_t
 	int iPreFrames;
 	int iTimerPreFrames;
 	bool bPractice;
-}
-
-enum struct savestate_t
-{
-	float Angles[3];
-	float Origin[3];
-	float Velocity[3];
+	int iTimesTeleported;
+	ArrayList aCheckpoints;
+	int iCurrentCheckpoint;
 }
 
 typedef StopTimerCallback = function void (int data);
@@ -98,15 +95,9 @@ ArrayList gA_Targetnames = null;
 ArrayList gA_Classnames = null;
 
 // save states
-bool gB_SaveStatesSegmented[MAXPLAYERS+1];
-savestate_t gA_SaveStateData[MAXPLAYERS+1];
-timer_snapshot_t gA_SaveStates[MAXPLAYERS+1];
-bool gB_SaveStates[MAXPLAYERS+1];
-char gS_SaveStateTargetname[MAXPLAYERS+1][32];
-ArrayList gA_SaveFrames[MAXPLAYERS+1];
+bool gB_SaveStates[MAXPLAYERS+1]; // whether we have data for when player rejoins from spec
 ArrayList gA_PersistentData = null;
-int gI_SavePreFrames[MAXPLAYERS+1];
-int gI_TimerFrames[MAXPLAYERS+1];
+float gF_PauseEyeAngles[MAXPLAYERS+1][3];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -676,7 +667,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 	if(!gB_SaveStates[client])
 	{
-		SaveState(client);
+		PersistData(client, false);
 	}
 
 	char arg1[8];
@@ -815,6 +806,8 @@ public Action Timer_Cron(Handle Timer)
 		if(fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue)
 		{
 			DeletePersistentData(i, aData);
+			ResetCheckpointsInner(aData.aCheckpoints);
+			delete aData.aCheckpoints;
 		}
 	}
 
@@ -1155,8 +1148,6 @@ public void OnClientPutInServer(int client)
 	}
 
 	gB_SaveStates[client] = false;
-	delete gA_SaveFrames[client];
-
 	gB_ClosedKZCP[client] = false;
 }
 
@@ -1180,26 +1171,31 @@ public void OnClientDisconnect(int client)
 		return;
 	}
 
+	PersistData(client, true);
+
+	// if data wasn't persisted, then we have checkpoints to reset...
 	ResetCheckpoints(client);
 	delete gA_Checkpoints[client];
-
-	gB_SaveStates[client] = false;
-	delete gA_SaveFrames[client];
-
-	PersistData(client);
 }
 
-void PersistData(int client)
+void FillPersistentData(int client, persistent_data_t aData, bool disconnected)
 {
-	persistent_data_t aData;
+	aData.iSteamID = GetSteamAccountID(client);
+	aData.fDisconnectTime = GetEngineTime();
 
-	if(!IsClientInGame(client) ||
-		!IsPlayerAlive(client) ||
-		(aData.iSteamID = GetSteamAccountID((client))) == 0 ||
-		Shavit_GetTimerStatus(client) == Timer_Stopped ||
-		gCV_PersistData.IntValue == 0)
+	if (disconnected)
 	{
-		return;
+		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
+		if (gA_Checkpoints[client] != null)
+		{
+			aData.aCheckpoints = view_as<ArrayList>(CloneHandle(gA_Checkpoints[client]));
+			delete gA_Checkpoints[client];
+		}
+
+		if (gB_SaveStates[client])
+		{
+			return;
+		}
 	}
 
 	if(gB_Replay)
@@ -1209,23 +1205,16 @@ void PersistData(int client)
 		aData.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
 	}
 
-	aData.fDisconnectTime = GetEngineTime();
 	aData.iMoveType = GetEntityMoveType(client);
 	aData.fGravity = GetEntityGravity(client);
 	aData.fSpeed = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
 	aData.bPractice = Shavit_IsPracticeMode(client);
+	aData.iTimesTeleported = gI_TimesTeleported[client];
 
-	float fPosition[3];
-	GetClientAbsOrigin(client, fPosition);
-	CopyArray(fPosition, aData.fPosition, 3);
-
-	float fAngles[3];
-	GetClientEyeAngles(client, fAngles);
-	CopyArray(fAngles, aData.fAngles, 3);
-
-	timer_snapshot_t aSnapshot;
-	Shavit_SaveSnapshot(client, aSnapshot);
-	CopyArray(aSnapshot, aData.aSnapshot, sizeof(timer_snapshot_t));
+	GetClientAbsOrigin(client, aData.fPosition);
+	GetClientEyeAngles(client, aData.fAngles);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", aData.fVelocity);
+	Shavit_SaveSnapshot(client, aData.aSnapshot);
 
 	char sTargetname[64];
 	GetEntPropString(client, Prop_Data, "m_iName", sTargetname, 64);
@@ -1246,8 +1235,63 @@ void PersistData(int client)
 	{
 		aData.iClassname = gA_Classnames.PushString(sClassname);
 	}
+}
 
-	gA_PersistentData.PushArray(aData);
+int FindPersistentData(int client, persistent_data_t aData)
+{
+	int iSteamID;
+
+	if(client == 0 || (iSteamID = GetSteamAccountID(client)) == 0)
+	{
+		return -1;
+	}
+
+	for(int i = 0; i < gA_PersistentData.Length; i++)
+	{
+		gA_PersistentData.GetArray(i, aData);
+
+		if(iSteamID == aData.iSteamID)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void PersistData(int client, bool disconnected)
+{
+	if(!IsClientInGame(client) ||
+		(!IsPlayerAlive(client) && !disconnected) ||
+		GetSteamAccountID(client) == 0 ||
+		//Shavit_GetTimerStatus(client) == Timer_Stopped ||
+		(!gCV_RestoreStates.BoolValue && !disconnected) ||
+		(gCV_PersistData.IntValue == 0 && disconnected))
+	{
+		return;
+	}
+
+	persistent_data_t aData;
+	int iIndex = FindPersistentData(client, aData);
+	FillPersistentData(client, aData, disconnected);
+
+	if (disconnected)
+	{
+		gB_SaveStates[client] = false;
+	}
+	else
+	{
+		gB_SaveStates[client] = true;
+	}
+
+	if (iIndex == -1)
+	{
+		gA_PersistentData.PushArray(aData);
+	}
+	else
+	{
+		gA_PersistentData.SetArray(iIndex, aData, sizeof(aData));
+	}
 }
 
 void DeletePersistentData(int index, persistent_data_t data)
@@ -1256,61 +1300,47 @@ void DeletePersistentData(int index, persistent_data_t data)
 	gA_PersistentData.Erase(index);
 }
 
-public Action Timer_LoadPersistentData(Handle Timer, any data)
+Action Timer_LoadPersistentData(Handle Timer, any data)
 {
-	int iSteamID = 0;
-	int client = GetClientFromSerial(data);
+	LoadPersistentData(data);
+	return Plugin_Stop;
+}
+
+void LoadPersistentData(int serial)
+{
+	int client = GetClientFromSerial(serial);
 
 	if(client == 0 ||
-		(iSteamID = GetSteamAccountID(client)) == 0 ||
+		GetSteamAccountID(client) == 0 ||
 		GetClientTeam(client) < 2 ||
 		!IsPlayerAlive(client))
 	{
-		return Plugin_Stop;
+		return;
 	}
 
 	persistent_data_t aData;
-	int iIndex = -1;
-	int iLength = gA_PersistentData.Length;
+	int iIndex = FindPersistentData(client, aData);
 
-	for(int i = 0; i < iLength; i++)
+	if (iIndex == -1)
 	{
-		gA_PersistentData.GetArray(i, aData);
-
-		if(iSteamID == aData.iSteamID)
-		{
-			iIndex = i;
-
-			break;
-		}
-	}
-
-	if(iIndex == -1)
-	{
-		return Plugin_Stop;
+		return;
 	}
 
 	Shavit_StopTimer(client);
-
-	float fPosition[3];
-	CopyArray(aData.fPosition, fPosition, 3);
-
-	float fAngles[3];
-	CopyArray(aData.fAngles, fAngles, 3);
 
 	SetEntityMoveType(client, aData.iMoveType);
 	SetEntityGravity(client, aData.fGravity);
 	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", aData.fSpeed);
 
-	timer_snapshot_t aSnapshot;
-	CopyArray(aData.aSnapshot, aSnapshot, sizeof(timer_snapshot_t));
-	Shavit_LoadSnapshot(client, aSnapshot);
+	Shavit_LoadSnapshot(client, aData.aSnapshot);
 
 	if(aData.iTargetname != -1)
 	{
 		char sTargetname[64];
 		gA_Targetnames.GetString(aData.iTargetname, sTargetname, 64);
 
+		// TODO: ?????????????? is it supposed to be targetname??????
+		//DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
 		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
 	}
 
@@ -1322,7 +1352,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
 	}
 
-	TeleportEntity(client, fPosition, fAngles, view_as<float>({ 0.0, 0.0, 0.0 }));
+	TeleportEntity(client, aData.fPosition, aData.fAngles, aData.fVelocity);
 
 	if(gB_Replay && aData.aFrames != null)
 	{
@@ -1336,10 +1366,16 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 		Shavit_SetPracticeMode(client, true, false);
 	}
 
-	delete aData.aFrames;
-	gA_PersistentData.Erase(iIndex);
+	gI_TimesTeleported[client] = aData.iTimesTeleported;
 
-	return Plugin_Stop;
+	if (aData.aCheckpoints != null)
+	{
+		gI_CurrentCheckpoint[client] = aData.iCurrentCheckpoint;
+		gA_Checkpoints[client] = view_as<ArrayList>(CloneHandle(aData.aCheckpoints));
+	}
+
+	gB_SaveStates[client] = false;
+	DeletePersistentData(iIndex, aData);
 }
 
 void RemoveWeapon(any data)
@@ -1350,18 +1386,22 @@ void RemoveWeapon(any data)
 	}
 }
 
-void ResetCheckpoints(int client)
+void ResetCheckpointsInner(ArrayList cps)
 {
-	if(gA_Checkpoints[client])
+	if (cps)
 	{
-		for(int i = 0; i < gA_Checkpoints[client].Length; i++)
+		for(int i = 0; i < cps.Length; i++)
 		{
-			delete view_as<ArrayList>(gA_Checkpoints[client].Get(i, cp_cache_t::aFrames));
+			delete view_as<ArrayList>(cps.Get(i, cp_cache_t::aFrames));
 		}
 		
-		gA_Checkpoints[client].Clear();
+		cps.Clear();
 	}
+}
 
+void ResetCheckpoints(int client)
+{
+	ResetCheckpointsInner(gA_Checkpoints[client]);
 	gI_CurrentCheckpoint[client] = 0;
 }
 
@@ -2276,19 +2316,11 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	gI_CurrentCheckpoint[client] = index;
 
 	cp_cache_t cpcache;
-	float temp[3];
 
-	GetClientAbsOrigin(target, temp);
-	CopyArray(temp, cpcache.fPosition, 3);
-
-	GetClientEyeAngles(target, temp);
-	CopyArray(temp, cpcache.fAngles, 3);
-
-	GetEntPropVector(target, Prop_Data, "m_vecVelocity", temp);
-	CopyArray(temp, cpcache.fVelocity, 3);
-
-	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", temp);
-	CopyArray(temp, cpcache.fBaseVelocity, 3);
+	GetClientAbsOrigin(target, cpcache.fPosition);
+	GetClientEyeAngles(target, cpcache.fAngles);
+	GetEntPropVector(target, Prop_Data, "m_vecVelocity", cpcache.fVelocity);
+	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", cpcache.fBaseVelocity);
 
 	char sTargetname[64];
 	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 64);
@@ -2387,7 +2419,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		Shavit_SaveSnapshot(target, snapshot);
 	}
 
-	CopyArray(snapshot, cpcache.aSnapshot, sizeof(timer_snapshot_t));
+	cpcache.aSnapshot = snapshot;
 
 	if(CanSegment(target))
 	{
@@ -2457,20 +2489,14 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	gA_Checkpoints[client].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
 
-	timer_snapshot_t snapshot;
-	CopyArray(cpcache.aSnapshot, snapshot, sizeof(timer_snapshot_t));
-
-	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") != Shavit_GetStyleSettingInt(snapshot.bsStyle, "kzcheckpoints"))
+	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") != Shavit_GetStyleSettingInt(cpcache.aSnapshot.bsStyle, "kzcheckpoints"))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandTeleCPInvalid", client);
 
 		return;
 	}
 
-	float pos[3];
-	CopyArray(cpcache.fPosition, pos, 3);
-
-	if(IsNullVector(pos))
+	if(IsNullVector(cpcache.fPosition))
 	{
 		return;
 	}
@@ -2529,31 +2555,23 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache.fDuckSpeed);
 	}
 
-	float ang[3];
-	CopyArray(cpcache.fAngles, ang, 3);
-
 	// this is basically the same as normal checkpoints except much less data is used
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
 	{
-		TeleportEntity(client, pos, ang, view_as<float>({ 0.0, 0.0, 0.0 }));
+		TeleportEntity(client, cpcache.fPosition, cpcache.fAngles, view_as<float>({ 0.0, 0.0, 0.0 }));
 
 		return;
 	}
 
-	Shavit_LoadSnapshot(client, snapshot);
+	Shavit_LoadSnapshot(client, cpcache.aSnapshot);
 	Shavit_ResumeTimer(client);
 
 	float vel[3];
 
 	if((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented)
 	{
-		float basevel[3];
-		CopyArray(cpcache.fVelocity, vel, 3);
-		CopyArray(cpcache.fBaseVelocity, basevel, 3);
-
-		AddVectors(vel, basevel, vel);
+		AddVectors(cpcache.fVelocity, cpcache.fBaseVelocity, vel);
 	}
-
 	else
 	{
 		vel = NULL_VECTOR;
@@ -2575,8 +2593,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
 	}
 
-	TeleportEntity(client, pos,
-		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache.bSegmented)? ang:NULL_VECTOR,
+	TeleportEntity(client, cpcache.fPosition,
+		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache.bSegmented)? cpcache.fAngles:NULL_VECTOR,
 		vel);
 
 	if(cpcache.bPractice || !cpcache.bSegmented || GetClientSerial(client) != cpcache.iSerial)
@@ -3029,15 +3047,9 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		{
 			if(gCV_RestoreStates.BoolValue)
 			{
-				RequestFrame(RestoreState, serial);
-			}
-
-			else
-			{
-				gB_SaveStates[client] = false;
+				RequestFrame(LoadPersistentData, serial);
 			}
 		}
-
 		else
 		{
 			CreateTimer(0.10, Timer_LoadPersistentData, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
@@ -3097,26 +3109,6 @@ void RemoveRadar(any data)
 	RemoveRadarBase(client);
 }
 
-void RestoreState(any data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(client == 0 || !IsPlayerAlive(client))
-	{
-		return;
-	}
-
-	if(gA_SaveStates[client].bsStyle != Shavit_GetBhopStyle(client) ||
-		gA_SaveStates[client].iTimerTrack != Shavit_GetClientTrack(client))
-	{
-		gB_SaveStates[client] = false;
-
-		return;
-	}
-
-	LoadState(client);
-}
-
 public Action Player_Notifications(Event event, const char[] name, bool dontBroadcast)
 {
 	if(gCV_HideTeamChanges.BoolValue)
@@ -3130,7 +3122,7 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 	{
 		if(!gB_SaveStates[client])
 		{
-			SaveState(client);
+			PersistData(client, false);
 		}
 
 		if(gCV_AutoRespawn.FloatValue > 0.0 && StrEqual(name, "player_death"))
@@ -3407,17 +3399,17 @@ public void Shavit_OnFinish(int client)
 
 public void Shavit_OnPause(int client, int track)
 {
-	if(!GetClientEyeAngles(client, gA_SaveStateData[client].Angles))
+	if(!GetClientEyeAngles(client, gF_PauseEyeAngles[client]))
 	{
-		gA_SaveStateData[client].Angles = NULL_VECTOR;
+		gF_PauseEyeAngles[client] = NULL_VECTOR;
 	}
 }
 
 public void Shavit_OnResume(int client, int track)
 {
-	if(!IsNullVector(gA_SaveStateData[client].Angles))
+	if(!IsNullVector(gF_PauseEyeAngles[client]))
 	{
-		TeleportEntity(client, NULL_VECTOR, gA_SaveStateData[client].Angles, NULL_VECTOR);
+		TeleportEntity(client, NULL_VECTOR, gF_PauseEyeAngles[client], NULL_VECTOR);
 	}
 }
 
@@ -3436,60 +3428,6 @@ public Action Command_Drop(int client, const char[] command, int argc)
 	}
 
 	return Plugin_Handled;
-}
-
-void LoadState(int client)
-{
-	TeleportEntity(client, gA_SaveStateData[client].Origin, gA_SaveStateData[client].Angles, gA_SaveStateData[client].Velocity);
-	DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
-
-	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
-	Shavit_SetPracticeMode(client, gB_SaveStatesSegmented[client], false);
-
-	if(gB_Replay && gA_SaveFrames[client] != null)
-	{
-		Shavit_SetReplayData(client, gA_SaveFrames[client]);
-		Shavit_SetPlayerPreFrame(client, gI_SavePreFrames[client]);
-		Shavit_SetPlayerTimerFrame(client, gI_TimerFrames[client]);
-	}
-
-	delete gA_SaveFrames[client];
-	gB_SaveStates[client] = false;
-}
-
-void SaveState(int client)
-{
-	if(Shavit_GetTimerStatus(client) == Timer_Stopped)
-	{
-		return;
-	}
-	
-	GetClientAbsOrigin(client, gA_SaveStateData[client].Origin);
-	GetClientEyeAngles(client, gA_SaveStateData[client].Angles);
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gA_SaveStateData[client].Velocity);
-	GetEntPropString(client, Prop_Data, "m_iName", gS_SaveStateTargetname[client], 32);
-
-	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
-	gB_SaveStatesSegmented[client] = Shavit_IsPracticeMode(client);
-
-	if(gB_Replay)
-	{
-		delete gA_SaveFrames[client];
-		gA_SaveFrames[client] = Shavit_GetReplayData(client);
-		gI_SavePreFrames[client] = Shavit_GetPlayerPreFrame(client);
-		gI_TimerFrames[client] = Shavit_GetPlayerTimerFrame(client);
-	}
-
-	gB_SaveStates[client] = true;
-}
-
-
-void CopyArray(const any[] from, any[] to, int size)
-{
-	for(int i = 0; i < size; i++)
-	{
-		to[i] = from[i];
-	}
 }
 
 bool CanSegment(int client)
