@@ -1732,9 +1732,7 @@ public void OnClientDisconnect(int client)
 
 	if(!IsFakeClient(client))
 	{
-		ClearFrames(client);
-		RequestFrame(DeleteFrames, client);
-		ClearFrames(client);
+		RequestFrame(ClearFrames, client);
 
 		return;
 	}
@@ -1755,11 +1753,6 @@ public void OnClientDisconnect(int client)
 			break;
 		}
 	}
-}
-
-public void DeleteFrames(int client)
-{
-	delete gA_PlayerFrames[client];
 }
 
 public Action Shavit_OnStart(int client)
