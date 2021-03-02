@@ -97,4 +97,8 @@
 		"#format"	"{1:.1f},{2:c},{3:.1f},{4:c}"
 		"en"		"Between top {1}{2} and {3}{4}"
 	}
+	"ChatRanksMenu_SampleText"
+	{
+		"en"		"The quick brown fox jumps over the lazy dog"
+	}
 }
