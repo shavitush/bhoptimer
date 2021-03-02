@@ -164,6 +164,7 @@ Handle gH_GetPlayerMaxSpeed = null;
 bool gB_Rankings = false;
 bool gB_Replay = false;
 bool gB_Zones = false;
+bool gB_Chat = false;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -314,7 +315,7 @@ public void OnPluginStart()
 	gCV_AdvertisementInterval = new Convar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 	gCV_Checkpoints = new Convar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RemoveRagdolls = new Convar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
-	gCV_ClanTag = new Convar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style tag.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track.\n{rank} - player rank.", 0);
+	gCV_ClanTag = new Convar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style tag.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track.\n{rank} - player rank.\n{cr} - player's chatrank from shavit-chat, trimmed, with no colors", 0);
 	gCV_DropAll = new Convar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetname = new Convar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = new Convar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -390,6 +391,7 @@ public void OnPluginStart()
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
+	gB_Chat = LibraryExists("shavit-chat");
 }
 
 public void OnClientCookiesCached(int client)
@@ -610,6 +612,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Zones = true;
 	}
+
+	else if(StrEqual(name, "shavit-chat"))
+	{
+		gB_Chat = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -627,6 +634,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-zones"))
 	{
 		gB_Zones = false;
+	}
+
+	else if(StrEqual(name, "shavit-chat"))
+	{
+		gB_Chat = false;
 	}
 }
 
@@ -933,10 +945,10 @@ void UpdateScoreboard(int client)
 void UpdateClanTag(int client)
 {
 	// no clan tags in tf2
-	char sTag[32];
-	gCV_ClanTag.GetString(sTag, 32);
+	char sCustomTag[32];
+	gCV_ClanTag.GetString(sCustomTag, 32);
 
-	if(gEV_Type == Engine_TF2 || StrEqual(sTag, "0"))
+	if(gEV_Type == Engine_TF2 || StrEqual(sCustomTag, "0"))
 	{
 		return;
 	}
@@ -997,18 +1009,23 @@ void UpdateClanTag(int client)
 		IntToString(Shavit_GetRank(client), sRank, 8);
 	}
 
-	char sCustomTag[32];
-	strcopy(sCustomTag, 32, sTag);
 	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gI_Style[client]].sStyleName);
 	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gI_Style[client]].sClanTag);
 	ReplaceString(sCustomTag, 32, "{time}", sTime);
 	ReplaceString(sCustomTag, 32, "{tr}", sTrack);
 	ReplaceString(sCustomTag, 32, "{rank}", sRank);
 
+	if(gB_Chat)
+	{
+		char sChatrank[32];
+		Shavit_GetPlainChatrank(client, sChatrank, sizeof(sChatrank), false);
+		ReplaceString(sCustomTag, 32, "{cr}", sChatrank);
+	}
+
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnClanTagChangePre);
 	Call_PushCell(client);
-	Call_PushStringEx(sTag, 32, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushStringEx(sCustomTag, 32, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushCell(32);
 	Call_Finish(result);
 	

@@ -2140,6 +2140,17 @@ native void Shavit_SetPlayerPreFrame(int client, int PreFrame);
  */
 native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
 
+/*
+ * Retrieves the player's chatrank trimmed and without colors.
+ *
+ * @param client					Client index
+ * @param buf						Buffer to put the put the chatrank into
+ * @param buflen					Size of buf
+ * @param includename				Include {name} in result.
+ * @noreturn
+ */
+native void Shavit_GetPlainChatrank(int client, char[] buf, int buflen, bool includename=false);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -2285,5 +2296,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetStyleSettingFloat");
 	MarkNativeAsOptional("Shavit_SetStyleSettingBool");
 	MarkNativeAsOptional("Shavit_SetStyleSettingInt");
+	MarkNativeAsOptional("Shavit_GetPlainChatrank");
 }
 #endif
