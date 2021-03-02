@@ -251,6 +251,7 @@ enum struct cp_cache_t
 	int iSerial;
 	bool bPractice;
 	int iGroundEntity;
+	int iSteamID;
 }
 
 #if defined USES_CHAT_COLORS

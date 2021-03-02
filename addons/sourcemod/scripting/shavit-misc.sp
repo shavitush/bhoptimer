@@ -2439,6 +2439,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		cpcache.bSegmented = false;
 	}
 
+	cpcache.iSteamID = GetSteamAccountID(target);
 	cpcache.iSerial = GetClientSerial(target);
 	cpcache.bPractice = Shavit_IsPracticeMode(target);
 
@@ -2597,7 +2598,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache.bSegmented)? cpcache.fAngles:NULL_VECTOR,
 		vel);
 
-	if(cpcache.bPractice || !cpcache.bSegmented || GetClientSerial(client) != cpcache.iSerial)
+	if(cpcache.bPractice || !cpcache.bSegmented || (GetClientSerial(client) != cpcache.iSerial && GetSteamAccountID(client) != cpcache.iSteamID))
 	{
 		Shavit_SetPracticeMode(client, true, true);
 	}
