@@ -920,180 +920,103 @@ public Action Command_WipePlayer(int client, int args)
 	return Plugin_Handled;
 }
 
-void DeleteUserData(int client, const int iSteamID)
+public void Trans_DeleteRestOfUserSuccess(Database db, DataPack hPack, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	if(gB_Replay)
-	{
-		char sQueryGetWorldRecords[256];
-		FormatEx(sQueryGetWorldRecords, 256,
-			"SELECT map, id, style, track FROM %splayertimes WHERE auth = %d;",
-			gS_MySQLPrefix, iSteamID);
-
-		DataPack hPack = new DataPack();
-		hPack.WriteCell(client);
-		hPack.WriteCell(iSteamID);
-
-		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, hPack, DBPrio_High);
-	}
-
-	else
-	{
-		char sQueryDeleteUserTimes[256];
-		FormatEx(sQueryDeleteUserTimes, 256,
-			"DELETE FROM %splayertimes WHERE auth = %d;",
-			gS_MySQLPrefix, iSteamID);
-
-		DataPack hSteamPack = new DataPack();
-		hSteamPack.WriteCell(iSteamID);
-		hSteamPack.WriteCell(client);
-
-		gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, hSteamPack, DBPrio_High);
-	}
-}
-
-public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	DataPack hPack = view_as<DataPack>(data);
 	hPack.Reset();
 	int client = hPack.ReadCell();
 	int iSteamID = hPack.ReadCell();
 	delete hPack;
+
+	if(gB_WR)
+	{
+		Shavit_ReloadLeaderboards();
+	}
+
+	Shavit_LogMessage("%L - wiped user data for [U:1:%d].", client, iSteamID);
+	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
+}
+
+public void Trans_DeleteRestOfUserFailed(Database db, DataPack hPack, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	hPack.Reset();
+	hPack.ReadCell();
+	int iSteamID = hPack.ReadCell();
+	delete hPack;
+	LogError("Timer error! Failed to wipe user data (wipe | delete user data/times, id [U:1:%d]). Reason: %s", iSteamID, error);
+}
+
+void DeleteRestOfUser(int iSteamID, DataPack hPack)
+{
+	Transaction hTransaction = new Transaction();
+	char sQuery[256];
+
+	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	hTransaction.AddQuery(sQuery);
+	FormatEx(sQuery, 256, "DELETE FROM %susers WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	hTransaction.AddQuery(sQuery);
+
+	gH_SQL.Execute(hTransaction, Trans_DeleteRestOfUserSuccess, Trans_DeleteRestOfUserFailed, hPack);
+}
+
+void DeleteUserData(int client, const int iSteamID)
+{
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(client);
+	hPack.WriteCell(iSteamID);
+	char sQuery[512];
+
+	if(gB_WR)
+	{
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 512,
+				"SELECT p1.id, p1.style, p1.track, p1.map FROM %splayertimes p1 " ...
+					"JOIN (SELECT map, style, track, MIN(time) time FROM %splayertimes GROUP BY map, style, track) p2 " ...
+					"ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time " ...
+					"WHERE p1.auth = %d;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
+		else
+		{
+			FormatEx(sQuery, 512,
+				"SELECT p.id, p.style, p.track, p.map FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes GROUP BY map, style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track GROUP BY p.map, p.style, p.track WHERE p.auth = %d;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
+
+		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
+	}
+	else
+	{
+		DeleteRestOfUser(iSteamID, hPack);
+	}
+}
+
+public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)
+{
+	hPack.Reset();
+	hPack.ReadCell(); /*int client = */
+	int iSteamID = hPack.ReadCell();
 
 	if(results == null)
 	{
 		LogError("Timer error! Failed to wipe user data (wipe | get player records). Reason: %s", error);
-
+		delete hPack;
 		return;
 	}
 
-	Transaction hTransaction = new Transaction();
+	char map[PLATFORM_MAX_PATH];
 
 	while(results.FetchRow())
 	{
-		char map[160];
-		results.FetchString(0, map, 160);
+		int id = results.FetchInt(0);
+		int style = results.FetchInt(1);
+		int track = results.FetchInt(2);
+		results.FetchString(3, map, sizeof(map));
 
-		int id = results.FetchInt(1);
-		int style = results.FetchInt(2);
-		int track = results.FetchInt(3);
-
-		char sQueryGetWorldRecordID[256];
-		FormatEx(sQueryGetWorldRecordID, 256,
-			"SELECT id FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d ORDER BY time LIMIT 1;",
-			gS_MySQLPrefix, map, style, track);
-
-		DataPack hTransPack = new DataPack();
-		hTransPack.WriteString(map);
-		hTransPack.WriteCell(id);
-		hTransPack.WriteCell(style);
-		hTransPack.WriteCell(track);
-
-		hTransaction.AddQuery(sQueryGetWorldRecordID, hTransPack);
+		Shavit_DeleteWR(style, track, map, iSteamID, id, false, false);
 	}
 
-	DataPack hSteamPack = new DataPack();
-	hSteamPack.WriteCell(iSteamID);
-	hSteamPack.WriteCell(client);
-
-	gH_SQL.Execute(hTransaction, Trans_OnRecordCompare, INVALID_FUNCTION, hSteamPack, DBPrio_High);
-}
-
-public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
-{
-	DataPack hPack = view_as<DataPack>(data);
-	hPack.Reset();
-	int iSteamID = hPack.ReadCell();
-
-	int client = 0;
-	// Check if the target is in game
-	for(int index = 1; index <= MaxClients; index++)
-	{
-		if(IsValidClient(index) && !IsFakeClient(index))
-		{
-			if(iSteamID == GetSteamAccountID(index))
-			{
-				client = index;
-				break;
-			}
-		}
-	}
-
-	for(int i = 0; i < numQueries; i++)
-	{
-		DataPack hQueryPack = view_as<DataPack>(queryData[i]);
-		hQueryPack.Reset();
-		char sMap[32];
-		hQueryPack.ReadString(sMap, 32);
-
-		int iRecordID = hQueryPack.ReadCell();
-		int iStyle = hQueryPack.ReadCell();
-		int iTrack = hQueryPack.ReadCell();
-		delete hQueryPack;
-
-		if(client > 0)
-		{
-			Shavit_SetClientPB(client, iStyle, iTrack, 0.0);
-		}
-
-		if(results[i] != null && results[i].FetchRow())
-		{
-			int iWR = results[i].FetchInt(0);
-
-			if(iWR == iRecordID)
-			{
-				Shavit_DeleteReplay(sMap, iStyle, iTrack, iSteamID);
-			}
-		}
-	}
-
-	char sQueryDeleteUserTimes[256];
-	FormatEx(sQueryDeleteUserTimes, 256,
-		"DELETE FROM %splayertimes WHERE auth = %d;",
-		gS_MySQLPrefix, iSteamID);
-
-	gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, hPack, DBPrio_High);
-}
-
-public void SQL_DeleteUserTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	DataPack hPack = view_as<DataPack>(data);
-	hPack.Reset();
-	int iSteamID = hPack.ReadCell();
-
-	if(results == null)
-	{
-		LogError("Timer error! Failed to wipe user data (wipe | delete user times). Reason: %s", error);
-
-		delete hPack;
-
-		return;
-	}
-
-	char sQueryDeleteUsers[256];
-	FormatEx(sQueryDeleteUsers, 256, "DELETE FROM %susers WHERE auth = %d;",
-		gS_MySQLPrefix, iSteamID);
-
-	gH_SQL.Query(SQL_DeleteUserData_Callback, sQueryDeleteUsers, hPack, DBPrio_High);
-}
-
-public void SQL_DeleteUserData_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	DataPack hPack = view_as<DataPack>(data);
-	hPack.Reset();
-	int iSteamID = hPack.ReadCell();
-	int client = hPack.ReadCell();
-	delete hPack;
-
-	if(results == null)
-	{
-		LogError("Timer error! Failed to wipe user data (wipe | delete user data, id [U:1:%d]). Reason: %s", error, iSteamID);
-
-		return;
-	}
-
-	Shavit_LogMessage("%L - wiped user data for [U:1:%d].", client, iSteamID);
-	Shavit_ReloadLeaderboards();
-	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
+	DeleteRestOfUser(iSteamID, hPack);
 }
 
 public Action Command_AutoBhop(int client, int args)

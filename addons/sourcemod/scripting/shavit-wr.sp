@@ -112,6 +112,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
 	CreateNative("Shavit_ReloadLeaderboards", Native_ReloadLeaderboards);
 	CreateNative("Shavit_WR_DeleteMap", Native_WR_DeleteMap);
+	CreateNative("Shavit_DeleteWR", Native_DeleteWR);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
@@ -326,6 +327,7 @@ public void OnMapStart()
 	{
 		Shavit_OnStyleConfigLoaded(-1);
 		Shavit_OnChatConfigLoaded();
+		gB_Late = false;
 	}
 }
 
@@ -481,8 +483,20 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 	gA_WRCache[client].bLoadedCache = true;
 }
 
-void UpdateWRCache()
+void UpdateWRCache(int client = -1)
 {
+	if (client == -1)
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			OnClientPutInServer(i);
+		}
+	}
+	else
+	{
+		OnClientPutInServer(client);
+	}
+
 	char sQuery[512];
 	
 	if(gB_MySQL)
@@ -502,7 +516,7 @@ void UpdateWRCache()
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
 	}
 
-	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery);
+	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, client);
 }
 
 public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -556,7 +570,7 @@ public int Native_GetWRTime(Handle handler, int numParams)
 
 public int Native_ReloadLeaderboards(Handle handler, int numParams)
 {
-	UpdateLeaderboards();
+	//UpdateLeaderboards(); // Called by UpdateWRCache->SQL_UpdateWRCache_Callback
 	UpdateWRCache();
 }
 
@@ -641,6 +655,115 @@ public int Native_WR_DeleteMap(Handle handler, int numParams)
 	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 }
 
+void DeleteWRFinal(int style, int track, const char[] map, int steamid, int recordid, bool update_cache)
+{
+	Call_StartForward(gH_OnWRDeleted);
+	Call_PushCell(style);
+	Call_PushCell(recordid);
+	Call_PushCell(track);
+	Call_PushCell(steamid);
+	Call_PushString(map);
+	Call_Finish();
+
+	if (update_cache)
+	{
+		UpdateWRCache();
+	}
+}
+
+public void DeleteWR_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)
+{
+	hPack.Reset();
+
+	int style = hPack.ReadCell();
+	int track = hPack.ReadCell();
+	char map[PLATFORM_MAX_PATH];
+	hPack.ReadString(map, sizeof(map));
+	int steamid = hPack.ReadCell();
+	int recordid = hPack.ReadCell();
+	bool update_cache = view_as<bool>(hPack.ReadCell());
+
+	delete hPack;
+
+	if(results == null)
+	{
+		LogError("Timer (WR DeleteWR) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	if (recordid == -1)
+	{
+		results.FetchRow();
+
+		if (results.IsFieldNull(0) || results.IsFieldNull(1))
+		{
+			LogError("Timer (WR DeleteWR) SQL query failed. Reason: @deletewrid or @deletewrauth is NULL");
+			return;
+		}
+
+		recordid = results.FetchInt(0);
+		steamid = results.FetchInt(1);
+	}
+
+	DeleteWRFinal(style, track, map, steamid, recordid, update_cache);
+}
+
+void DeleteWR(int style, int track, const char[] map, int steamid, int recordid, bool delete_sql, bool update_cache)
+{
+	if (delete_sql)
+	{
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(style);
+		hPack.WriteCell(track);
+		hPack.WriteString(map);
+		hPack.WriteCell(steamid);
+		hPack.WriteCell(recordid);
+		hPack.WriteCell(update_cache);
+
+		char sQuery[512];
+
+		if (recordid == -1) // missing WR recordid thing...
+		{
+			// TODO: probably doesn't work well with sqlite...
+			FormatEx(sQuery, sizeof(sQuery),
+				"SELECT p1.id, p1.auth INTO @deletewrid, @deletewrauth FROM %splayertimes p1 " ...
+				"JOIN (SELECT style, track, MIN(time) time FROM %splayertimes WHERE " ...
+				"map = '%s' AND style = %d AND track = %d) p2 " ...
+				"ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time; " ...
+				"DELETE FROM %splayertimes WHERE id = @deletewrid; " ...
+				"SELECT @deletewrid, @deletewrauth;",
+				gS_MySQLPrefix, gS_MySQLPrefix, map, style, track, gS_MySQLPrefix);
+		}
+		else
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"DELETE FROM %splayertimes WHERE id = %d;",
+				gS_MySQLPrefix, recordid);
+		}
+
+		gH_SQL.Query(DeleteWR_Callback, sQuery, hPack, DBPrio_High);
+	}
+	else
+	{
+		DeleteWRFinal(style, track, map, steamid, recordid, update_cache);
+	}
+}
+
+public int Native_DeleteWR(Handle handle, int numParams)
+{
+	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
+	char map[PLATFORM_MAX_PATH];
+	GetNativeString(3, map, sizeof(map));
+	int steamid = GetNativeCell(4);
+	int recordid = GetNativeCell(5);
+	bool delete_sql = view_as<bool>(GetNativeCell(6));
+	bool update_cache = view_as<bool>(GetNativeCell(7));
+
+	DeleteWR(style, track, map, steamid, recordid, delete_sql, update_cache);
+}
+
 public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(results == null)
@@ -653,11 +776,6 @@ public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[
 	if(view_as<bool>(data))
 	{
 		OnMapStart();
-
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			OnClientPutInServer(i);
-		}
 	}
 }
 
@@ -953,7 +1071,12 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d;",
 			gS_MySQLPrefix, gS_Map, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack);
 
-		gH_SQL.Query(DeleteAll_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(GetClientSerial(param1));
+		hPack.WriteCell(gA_WRCache[param1].iLastStyle);
+		hPack.WriteCell(gA_WRCache[param1].iLastTrack);
+
+		gH_SQL.Query(DeleteAll_Callback, sQuery, hPack, DBPrio_High);
 	}
 
 	else if(action == MenuAction_End)
@@ -1123,9 +1246,10 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 			return 0;
 		}
 
-		char sQuery[256];
-		FormatEx(sQuery, 256, "SELECT u.auth, u.name, p.map, p.time, p.sync, p.perfs, p.jumps, p.strafes, p.id, p.date, "...
-		"(SELECT id from %splayertimes where style = %d AND track = %d AND map = p.map) "...
+		char sQuery[512];
+		FormatEx(sQuery, sizeof(sQuery),
+		"SELECT u.auth, u.name, p.map, p.time, p.sync, p.perfs, p.jumps, p.strafes, p.id, p.date, "...
+		"(SELECT id FROM %splayertimes WHERE style = %d AND track = %d AND map = p.map ORDER BY time, date ASC LIMIT 1) "...
 		"FROM %susers u LEFT JOIN %splayertimes p ON u.auth = p.auth WHERE p.id = %d;",
 			gS_MySQLPrefix, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack, gS_MySQLPrefix, gS_MySQLPrefix, iRecordID);
 
@@ -1156,6 +1280,7 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 
+	// TODO: work DeleteWR() into here...
 	if(results.FetchRow())
 	{
 		int iSteamID = results.FetchInt(0);
@@ -1206,9 +1331,8 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 	}
 }
 
-public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)
 {
-	DataPack hPack = view_as<DataPack>(data);
 	hPack.Reset();
 
 	int iSerial = hPack.ReadCell();
@@ -1243,20 +1367,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 
 	if(bWRDeleted)
 	{
-		Call_StartForward(gH_OnWRDeleted);
-		Call_PushCell(iStyle);
-		Call_PushCell(iRecordID);
-		Call_PushCell(iTrack);
-		Call_PushCell(iSteamID);
-		Call_PushString(sMap);
-		Call_Finish();
-	}
-
-	UpdateWRCache();
-
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		OnClientPutInServer(i);
+		DeleteWR(iStyle, iTrack, sMap, iSteamID, iRecordID, false, true);
 	}
 
 	int client = GetClientFromSerial(iSerial);
@@ -1279,8 +1390,14 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 	Shavit_PrintToChat(client, "%T", "DeletedRecord", client);
 }
 
-public void DeleteAll_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void DeleteAll_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)
 {
+	hPack.Reset();
+	int client = GetClientFromSerial(hPack.ReadCell());
+	int style = hPack.ReadCell();
+	int track = hPack.ReadCell();
+	delete hPack;
+
 	if(results == null)
 	{
 		LogError("Timer (WR DeleteAll) SQL query failed. Reason: %s", error);
@@ -1288,25 +1405,7 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 		return;
 	}
 
-	UpdateWRCache();
-
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		OnClientPutInServer(i);
-	}
-
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
-	}
-
-	Call_StartForward(gH_OnWRDeleted);
-	Call_PushCell(gA_WRCache[client].iLastStyle);
-	Call_PushCell(-1);
-	Call_PushCell(gA_WRCache[client].iLastTrack);
-	Call_Finish();
+	DeleteWR(style, track, gS_Map, 0, -1, false, true);
 
 	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings.sVariable, gS_Map, gS_ChatStrings.sText);
 }
@@ -1968,18 +2067,8 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	if(gB_Late)
-	{
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			OnClientPutInServer(i);
-		}
-
-		gB_Late = false;
-	}
-
 	gB_Connected = true;
-	
+
 	OnMapStart();
 }
 
@@ -2211,8 +2300,7 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 		return;
 	}
 
-	UpdateWRCache();
-	UpdateClientCache(client);
+	UpdateWRCache(client);
 }
 
 void UpdateLeaderboards()

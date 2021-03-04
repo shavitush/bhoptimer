@@ -643,7 +643,7 @@ forward void Shavit_OnWorldRecord(int client, int style, float time, int jumps, 
  * @param id						Record ID. -1 if mass deletion.
  * @param track						Timer track.
  * @param accountid					The account ID of the wr holder
- * @param mapname					Hey KidFearless please do me a favor
+ * @param mapname					The map name.
  * @noreturn
  */
 forward void Shavit_OnWRDeleted(int style, int id, int track, int accountid, const char[] mapname);
@@ -2152,6 +2152,20 @@ native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
  */
 native void Shavit_GetPlainChatrank(int client, char[] buf, int buflen, bool includename=false);
 
+/*
+ * Used to delete a WR. Used to ensure Shavit_OnWRDeleted is ran.
+ *
+ * @param style						Record style.
+ * @param track						Record track.
+ * @param map						Record map.
+ * @param accountid					-1 if recordid is -1. Otherwise you need the WR holder's Steam account ID. ([U:1:x])
+ * @param recordid					-1 to pull ID & accountid from the database.
+ * @param delete_sql				If this function should delete the record from the database. False might be useful if you're deleting things in bulk like sm_wipeplayer does.
+ * @param update_cache				If this function should update the WR cache & record info. False might be useful if you're deleting things in bulk like sm_wipeplayer does.
+ * @noreturn
+ */
+native void Shavit_DeleteWR(int style, int track, const char[] map, int accountid, int recordid, bool delete_sql, bool update_cache);
+
 // same as Shavit_PrintToChat() but loops through the whole server
 // code stolen from the base halflife.inc file
 stock void Shavit_PrintToChatAll(const char[] format, any ...)
@@ -2187,11 +2201,13 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_CanPause");
 	MarkNativeAsOptional("Shavit_ChangeClientStyle");
 	MarkNativeAsOptional("Shavit_DeleteReplay");
+	MarkNativeAsOptional("Shavit_DeleteWR");
 	MarkNativeAsOptional("Shavit_FinishMap");
 	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
 	MarkNativeAsOptional("Shavit_FormatChat");
 	MarkNativeAsOptional("Shavit_GetBhopStyle");
 	MarkNativeAsOptional("Shavit_GetChatStrings");
+	MarkNativeAsOptional("Shavit_GetClientCompletions");
 	MarkNativeAsOptional("Shavit_GetClientJumps");
 	MarkNativeAsOptional("Shavit_GetClientPB");
 	MarkNativeAsOptional("Shavit_GetClientTime");
@@ -2267,6 +2283,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_RestartTimer");
 	MarkNativeAsOptional("Shavit_ResumeTimer");
 	MarkNativeAsOptional("Shavit_SaveSnapshot");
+	MarkNativeAsOptional("Shavit_SetClientPB");
 	MarkNativeAsOptional("Shavit_SetPracticeMode");
 	MarkNativeAsOptional("Shavit_SetReplayData");
 	MarkNativeAsOptional("Shavit_StartReplay");

@@ -470,12 +470,7 @@ public int Native_DeleteReplay(Handle handler, int numParams)
 	int iTrack = GetNativeCell(3);
 	int iSteamID = GetNativeCell(4);
 
-	if(!DeleteReplay(iStyle, iTrack, StrEqual(sMap, gS_Map), iSteamID, sMap))
-	{
-		return false;
-	}
-
-	return true;
+	return DeleteReplay(iStyle, iTrack, iSteamID, sMap);
 }
 
 public int Native_GetReplayBotFirstFrame(Handle handler, int numParams)
@@ -1387,7 +1382,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	gA_FrameCache[style][track].iPreFrames = timerstartframe - preframes;
 }
 
-bool DeleteReplay(int style, int track, bool unload_replay = false, int accountid = 0, const char[] mapname = gS_Map)
+bool DeleteReplay(int style, int track, int accountid = 0, const char[] mapname = gS_Map)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1443,7 +1438,7 @@ bool DeleteReplay(int style, int track, bool unload_replay = false, int accounti
 		}
 	}
 
-	if(unload_replay)
+	if(StrEqual(mapname, gS_Map))
 	{
 		UnloadReplay(style, track);
 	}
@@ -2371,12 +2366,7 @@ void ClearFrames(int client)
 
 public void Shavit_OnWRDeleted(int style, int id, int track, int accountid, const char[] mapname)
 {
-	float time = Shavit_GetWorldRecord(style, track);
-
-	if(gA_FrameCache[style][track].iFrameCount > 0 && GetReplayLength(style, track) - gF_Tickrate <= time) // -0.1 to fix rounding issues
-	{
-		DeleteReplay(style, track, StrEqual(gS_Map, mapname), accountid, mapname);
-	}
+	DeleteReplay(style, track, accountid, mapname);
 }
 
 public Action Command_DeleteReplay(int client, int args)
