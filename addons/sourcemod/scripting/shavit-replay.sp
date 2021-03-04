@@ -470,13 +470,7 @@ public int Native_DeleteReplay(Handle handler, int numParams)
 	int iTrack = GetNativeCell(3);
 	int iSteamID = GetNativeCell(4);
 
-	char sTrack[4];
-	FormatEx(sTrack, 4, "_%d", iTrack);
-
-	char sPath[PLATFORM_MAX_PATH];
-	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, iStyle, gS_Map, (iTrack > 0)? sTrack:"");
-
-	if(!DeleteReplay(iStyle, iTrack, StrEqual(sMap, gS_Map), iSteamID))
+	if(!DeleteReplay(iStyle, iTrack, StrEqual(sMap, gS_Map), iSteamID, sMap))
 	{
 		return false;
 	}
@@ -1393,13 +1387,13 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	gA_FrameCache[style][track].iPreFrames = timerstartframe - preframes;
 }
 
-bool DeleteReplay(int style, int track, bool unload_replay = false, int accountid = 0)
+bool DeleteReplay(int style, int track, bool unload_replay = false, int accountid = 0, const char[] mapname = gS_Map)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
 
 	char sPath[PLATFORM_MAX_PATH];
-	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, mapname, (track > 0)? sTrack:"");
 
 	if(!FileExists(sPath))
 	{
@@ -2375,13 +2369,13 @@ void ClearFrames(int client)
 	gI_PlayerTimerStartFrames[client] = 0;
 }
 
-public void Shavit_OnWRDeleted(int style, int id, int track, int accountid)
+public void Shavit_OnWRDeleted(int style, int id, int track, int accountid, const char[] mapname)
 {
 	float time = Shavit_GetWorldRecord(style, track);
 
 	if(gA_FrameCache[style][track].iFrameCount > 0 && GetReplayLength(style, track) - gF_Tickrate <= time) // -0.1 to fix rounding issues
 	{
-		DeleteReplay(style, track, true, accountid);
+		DeleteReplay(style, track, StrEqual(gS_Map, mapname), accountid, mapname);
 	}
 }
 

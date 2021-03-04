@@ -703,7 +703,9 @@ public void LoadStageZones()
 {
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT id, data FROM mapzones WHERE type = %i and map = '%s'", Zone_Stage, gS_Map);
+	#if DEBUG
 	PrintToChatAll("%s", sQuery);
+	#endif
 	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
 }
 
@@ -2994,7 +2996,7 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_End:
 		{
-			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack)
+			if(status != Timer_Stopped && !Shavit_IsPaused(other) && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack)
 			{
 				Shavit_FinishMap(other, gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack);
 			}
@@ -3158,7 +3160,7 @@ public void UsePost(int entity, int activator, int caller, UseType type, float v
 		Shavit_StartTimer(activator, track);
 	}
 
-	if(zone == Zone_End && Shavit_GetTimerStatus(activator) == Timer_Running && Shavit_GetClientTrack(activator) == track)
+	if(zone == Zone_End && !Shavit_IsPaused(activator) && Shavit_GetTimerStatus(activator) == Timer_Running && Shavit_GetClientTrack(activator) == track)
 	{
 		Shavit_FinishMap(activator, track);
 	}
@@ -3183,7 +3185,7 @@ public void StartTouchPost_Trigger(int entity, int other)
 
 	TimerStatus status = Shavit_GetTimerStatus(other);
 
-	if(zone == Zone_End && status != Timer_Stopped && Shavit_GetClientTrack(other) == track)
+	if(zone == Zone_End && !Shavit_IsPaused(other) && status != Timer_Stopped && Shavit_GetClientTrack(other) == track)
 	{
 		Shavit_FinishMap(other, track);
 	}

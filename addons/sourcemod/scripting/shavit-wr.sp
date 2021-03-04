@@ -135,7 +135,7 @@ public void OnPluginStart()
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinish_Post = CreateGlobalForward("Shavit_OnFinish_Post", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String);
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinishMessage = CreateGlobalForward("Shavit_OnFinishMessage", ET_Event, Param_Cell, Param_CellByRef, Param_Array, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
@@ -1124,8 +1124,10 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 		}
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "SELECT u.auth, u.name, p.map, p.time, p.sync, p.perfs, p.jumps, p.strafes, p.id, p.date FROM %susers u LEFT JOIN %splayertimes p ON u.auth = p.auth WHERE p.id = %d;",
-			gS_MySQLPrefix, gS_MySQLPrefix, iRecordID);
+		FormatEx(sQuery, 256, "SELECT u.auth, u.name, p.map, p.time, p.sync, p.perfs, p.jumps, p.strafes, p.id, p.date, "...
+		"(SELECT id from %splayertimes where style = %d AND track = %d AND map = p.map) "...
+		"FROM %susers u LEFT JOIN %splayertimes p ON u.auth = p.auth WHERE p.id = %d;",
+			gS_MySQLPrefix, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack, gS_MySQLPrefix, gS_MySQLPrefix, iRecordID);
 
 		gH_SQL.Query(GetRecordDetails_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
 	}
@@ -1172,10 +1174,10 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		int iStrafes = results.FetchInt(7);
 		int iRecordID = results.FetchInt(8);
 		int iTimestamp = results.FetchInt(9);
-		
+		int iWRRecordID = results.FetchInt(10);
+
 		int iStyle = gA_WRCache[client].iLastStyle;
 		int iTrack = gA_WRCache[client].iLastTrack;
-		bool bWRDeleted = (gI_WRRecordID[iStyle][iTrack] == iRecordID);
 
 		// that's a big datapack ya yeet
 		DataPack hPack = new DataPack();
@@ -1192,6 +1194,8 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		hPack.WriteCell(iTimestamp);
 		hPack.WriteCell(iStyle);
 		hPack.WriteCell(iTrack);
+
+		bool bWRDeleted = iWRRecordID == iRecordID;
 		hPack.WriteCell(bWRDeleted);
 
 		char sQuery[256];
@@ -1244,6 +1248,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 		Call_PushCell(iRecordID);
 		Call_PushCell(iTrack);
 		Call_PushCell(iSteamID);
+		Call_PushString(sMap);
 		Call_Finish();
 	}
 
