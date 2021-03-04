@@ -703,9 +703,6 @@ public void LoadStageZones()
 {
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT id, data FROM mapzones WHERE type = %i and map = '%s'", Zone_Stage, gS_Map);
-	#if DEBUG
-	PrintToChatAll("%s", sQuery);
-	#endif
 	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
 }
 
