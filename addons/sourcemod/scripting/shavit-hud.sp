@@ -27,6 +27,7 @@
 #undef REQUIRE_PLUGIN
 #include <shavit>
 #include <bhopstats>
+#include <DynamicChannels>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -96,6 +97,7 @@ bool gB_Zones = false;
 bool gB_Sounds = false;
 bool gB_Rankings = false;
 bool gB_BhopStats = false;
+bool gB_DynamicChannels = false;
 
 // cache
 int gI_Cycle = 0;
@@ -182,6 +184,7 @@ public void OnPluginStart()
 	gB_Sounds = LibraryExists("shavit-sounds");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_BhopStats = LibraryExists("bhopstats");
+	gB_DynamicChannels = LibraryExists("DynamicChannels");
 
 	// HUD handle
 	gH_HUD = CreateHudSynchronizer();
@@ -313,6 +316,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_BhopStats = true;
 	}
+
+	else if(StrEqual(name, "DynamicChannels"))
+	{
+		gB_DynamicChannels = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -340,6 +348,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "bhopstats"))
 	{
 		gB_BhopStats = false;
+	}
+
+	else if(StrEqual(name, "DynamicChannels"))
+	{
+		gB_DynamicChannels = false;
 	}
 }
 
@@ -1767,7 +1780,15 @@ void UpdateTopLeftHUD(int client, bool wait)
 			}
 
 			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
-			ShowSyncHudText(client, gH_HUD, "%s", sTopLeft);
+
+			if (gB_DynamicChannels)
+			{
+				ShowHudText(client, GetDynamicChannel(5), "%s", sTopLeft);
+			}
+			else
+			{
+				ShowSyncHudText(client, gH_HUD, "%s", sTopLeft);
+			}
 		}
 	}
 }
