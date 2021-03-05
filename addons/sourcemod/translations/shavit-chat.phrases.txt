@@ -82,6 +82,11 @@
 		"#format"	"{1:d}"
 		"en"		"Ranked #{1} or better"
 	}
+	"ChatRanksMenu_Flat_1"
+	{
+		"#format"	"{1:d}"
+		"en"		"Ranked #{1}"
+	}
 	"ChatRanksMenu_Flat_Ranged"
 	{
 		"#format"	"{1:d},{2:d}"

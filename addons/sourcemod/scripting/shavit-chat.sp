@@ -879,7 +879,9 @@ Action ShowRanksMenu(int client, int item)
 
 					else
 					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat", client, RoundToZero(cache.fFrom));
+						FormatEx(sRequirements, 64, "%T",
+							(cache.fFrom <= 1) ? "ChatRanksMenu_Flat_1" : "ChatRanksMenu_Flat",
+							client, RoundToZero(cache.fFrom));
 					}
 				}
 
