@@ -257,6 +257,7 @@ void UpdateWRs(int client)
 
 	char sQuery[1300];
 
+	// TODO: Replace with big sexy query that'll calc the stuff sql-side like below
 	FormatEx(sQuery, sizeof(sQuery),
 		"SELECT a.track, a.style FROM %splayertimes a JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style WHERE auth = %d;",
 		gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
@@ -290,45 +291,7 @@ void UpdateWRs(int client)
 	);
 
 	gH_SQL.Query(SQL_GetWRHolderRank_Callback, sQuery, GetClientSerial(client));
-
-	/*
-	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT x.track, x.style FROM (SELECT a.track, a.style, a.auth FROM %splayertimes a JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style AND a.auth = %d) x;",
-		gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
-
-	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT COUNT(DISTINCT a.auth) FROM %splayertimes a JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style %s %s;",
-		gS_MySQLPrefix, gS_MySQLPrefix,
-		gCV_MVPRankOnes.IntValue == 2  ? "AND a.style = 0" : "",
-		gCV_MVPRankOnes_Main.BoolValue ? "AND a.track = 0" : "");
-	*/
 }
-
-/*
-public void SQL_GetWRHolderRank_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (get WR amount) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
-	}
-
-	while (results.FetchRow())
-	{
-		int track = results.FetchInt(0);
-		int style = results.FetchInt(1);
-		gI_WRHolderRank[client][track][style] = results.FetchInt(2);
-	}
-}
-*/
 
 public void SQL_GetWRHolderRank_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
@@ -356,11 +319,17 @@ public void SQL_GetWRHolderRank_Callback(Database db, DBResultSet results, const
 		int type   = results.FetchInt(5);
 
 		if (type == 0)
+		{
 			gI_WRHolderRank[client][track][style] = total;
+		}
 		else if (type == 1)
+		{
 			gI_WRHolderRankAll[client] = wrrank;
+		}
 		else if (type == 2)
+		{
 			gI_WRHolderRankCvar[client] = wrrank;
+		}
 	}
 }
 
