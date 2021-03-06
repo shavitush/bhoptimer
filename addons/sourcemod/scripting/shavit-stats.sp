@@ -281,13 +281,13 @@ void UpdateWRs(int client)
 		" UNION SELECT *, 1 as type FROM hrankall WHERE auth = %d"...
 		" UNION SELECT *, 2 as type FROM %s WHERE auth = %d;",
 		gS_MySQLPrefix, gS_MySQLPrefix,
-		gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue ? "WHERE" : "",
-		gCV_MVPRankOnes.IntValue == 2  ? "style = 0" : "",
-		gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue ? "AND" : "",
-		gCV_MVPRankOnes_Main.BoolValue ? "track = 0" : "",
+		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
+		(gCV_MVPRankOnes.IntValue == 2)  ? "style = 0" : "",
+		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
+		(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : "",
 		iSteamID,
 		iSteamID,
-		gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue ? "hrankcvar" : "hrankall",
+		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "hrankcvar" : "hrankall",
 		iSteamID
 	);
 
@@ -1056,11 +1056,11 @@ void UpdateWRHolders()
 		" UNION SELECT *, 1 as type FROM myall"...
 		" UNION SELECT *, 2 as type FROM %s;",
 		gS_MySQLPrefix, gS_MySQLPrefix,
-		gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue ? "WHERE" : "",
-		gCV_MVPRankOnes.IntValue == 2  ? "style = 0" : "",
-		gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue ? "AND" : "",
-		gCV_MVPRankOnes_Main.BoolValue ? "track = 0" : "",
-		gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue ? "mycvar" : "myall"
+		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
+		(gCV_MVPRankOnes.IntValue == 2 ) ? "style = 0" : "",
+		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
+		(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : "",
+		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "mycvar" : "myall"
 	);
 
 	gH_SQL.Query(SQL_GetWRHolders_Callback, sQuery);
