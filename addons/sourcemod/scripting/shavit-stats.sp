@@ -1083,11 +1083,17 @@ public void SQL_GetWRHolders_Callback(Database db, DBResultSet results, const ch
 		int type  = results.FetchInt(3);
 
 		if (type == 0)
+		{
 			gI_WRHolders[track][style] = total;
+		}
 		else if (type == 1)
+		{
 			gI_WRHoldersAll = total;
+		}
 		else if (type == 2)
+		{
 			gI_WRHoldersCvar = total;
+		}
 	}
 }
 

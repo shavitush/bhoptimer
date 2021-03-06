@@ -1275,6 +1275,7 @@ bool LoadReplay(int style, int track, const char[] path)
 
 	return false;
 }
+
 void WriteReplayHeader(File fFile, int style, int track, float time, int steamid, int preframes, int timerstartframe, int iSize)
 {
 	fFile.WriteLine("%d:" ... REPLAY_FORMAT_FINAL, REPLAY_FORMAT_SUBVERSION);
