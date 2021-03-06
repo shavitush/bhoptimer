@@ -202,13 +202,14 @@ public void OnClientPutInServer(int client)
 		for (int j = 0; j < gI_Styles; j++)
 		{
 			gI_WRAmount[client][i][j] = 0;
-			gI_WRAmountAll[client] = 0;
-			gI_WRAmountCvar[client] = 0;
 			gI_WRHolderRank[client][i][j] = 0;
-			gI_WRHolderRankAll[client] = 0;
-			gI_WRHolderRankCvar[client] = 0;
 		}
 	}
+
+	gI_WRAmountAll[client] = 0;
+	gI_WRAmountCvar[client] = 0;
+	gI_WRHolderRankAll[client] = 0;
+	gI_WRHolderRankCvar[client] = 0;
 
 	UpdateWRs(client);
 }
