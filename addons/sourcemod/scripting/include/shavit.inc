@@ -1592,13 +1592,38 @@ native void Shavit_OpenStatsMenu(int client, int steamid);
 
 /**
  * Retrieves the amount of #1 records a player has.
- * Result will depend on the value of `shavit_stats_mvprankones`.
- * Called from shavit-stats.
+ * Requires shavit-stats.
  *
  * @param client					Client index.
+ * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
+ * @param style						Style to retrieve WRs from. -1 to use all styles.
+ * @param usecvars					Whether to depend on the value of `shavit_stats_mvprankones` and `shavit_stats_mvprankones_maintrack`.
  * @noreturn
  */
-native int Shavit_GetWRCount(int client);
+native int Shavit_GetWRCount(int client, int track = -1, int style = -1, bool usecvars = true);
+
+/**
+ * Retrieves the number of players who hold #1 records.
+ * Requires shavit-stats.
+ *
+ * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
+ * @param style						Style to retrieve WRs from. -1 to use all styles.
+ * @param usecvars					Whether to depend on the value of `shavit_stats_mvprankones` and `shavit_stats_mvprankones_maintrack`.
+ * @noreturn
+ */
+native int Shavit_GetWRHolders(int track = -1, int style = -1, bool usecvars = true);
+
+/**
+ * Retrieves the player's rank based on how many #1 records they hold.
+ * Requires shavit-stats.
+ *
+ * @param client					Client index.
+ * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
+ * @param style						Style to retrieve WRs from. -1 to use all styles.
+ * @param usecvars					Whether to depend on the value of `shavit_stats_mvprankones` and `shavit_stats_mvprankones_maintrack`.
+ * @noreturn
+ */
+native int Shavit_GetWRHolderRank(int client, int track = -1, int style = -1, bool usecvars = true);
 
 /*
  * Gets a value from the style config for the given style
@@ -2256,6 +2281,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
 	MarkNativeAsOptional("Shavit_GetWorldRecord");
 	MarkNativeAsOptional("Shavit_GetWRCount");
+	MarkNativeAsOptional("Shavit_GetWRHolders");
+	MarkNativeAsOptional("Shavit_GetWRHolderRank");
 	MarkNativeAsOptional("Shavit_GetWRName");
 	MarkNativeAsOptional("Shavit_GetWRRecordID");
 	MarkNativeAsOptional("Shavit_GetWRTime");

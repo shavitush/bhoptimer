@@ -42,11 +42,13 @@
 
 enum struct chatranks_cache_t
 {
-	int iRangeType; // 0 - flat, 1 - percent, 2 - point range
+	int iRequire;
 	float fFrom;
 	float fTo;
 	bool bFree;
 	bool bEasterEgg;
+	bool bRanged;
+	bool bPercent;
 	char sAdminFlag[32];
 	char sName[MAXLENGTH_NAME];
 	char sMessage[MAXLENGTH_MESSAGE];
@@ -55,10 +57,43 @@ enum struct chatranks_cache_t
 
 enum
 {
-	Rank_Flat,
-	Rank_Percentage,
-	Rank_Points
+	Require_Rank,
+	Require_Points,
+	Require_WR_Count,
+	Require_WR_Rank,
 }
+
+// percent, ranged, Require_*
+char gA_ChatRankMenuFormatStrings[2][2][4][] = {
+	{
+		{
+			"ChatRanksMenu_Flat",
+			"ChatRanksMenu_Points",
+			"ChatRanksMenu_WR_Count",
+			"ChatRanksMenu_WR_Rank",
+		},
+		{
+			"ChatRanksMenu_Flat_Ranged",
+			"ChatRanksMenu_Points_Ranged",
+			"ChatRanksMenu_WR_Count_Ranged",
+			"ChatRanksMenu_WR_Rank_Ranged",
+		}
+	},
+	{
+		{
+			"ChatRanksMenu_Percentage",
+			"",
+			"",
+			"ChatRanksMenu_WR_Rank_Percentage",
+		},
+		{
+			"ChatRanksMenu_Percentage_Ranged",
+			"",
+			"",
+			"ChatRanksMenu_WR_Rank_Ranged",
+		}
+	}
+};
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -202,18 +237,29 @@ bool LoadChatConfig()
 	{
 		chatranks_cache_t chat_title;
 		char sRanks[32];
-		kv.GetString("ranks", sRanks, MAXLENGTH_NAME, "0");
+		kv.GetString("ranks", sRanks, 32, "0");
 
 		if(sRanks[0] == 'p')
 		{	
-			chat_title.iRangeType = Rank_Points;
+			chat_title.iRequire = Require_Points;
 		}
-
+		else if(sRanks[0] == 'w')
+		{
+			chat_title.iRequire = Require_WR_Count;
+		}
+		else if(sRanks[0] == 'W')
+		{
+			chat_title.iRequire = Require_WR_Rank;
+		}
 		else
 		{
-			chat_title.iRangeType = (StrContains(sRanks, "%") == -1)? Rank_Flat:Rank_Percentage;
+			chat_title.iRequire = Require_Rank;
 		}
-		
+
+		chat_title.bPercent = (StrContains(sRanks, "%") != -1);
+
+		ReplaceString(sRanks, 32, "w", "");
+		ReplaceString(sRanks, 32, "W", "");
 		ReplaceString(sRanks, 32, "p", "");
 		ReplaceString(sRanks, 32, "%%", "");
 
@@ -223,14 +269,34 @@ bool LoadChatConfig()
 			ExplodeString(sRanks, "-", sExplodedString, 2, 64);
 			chat_title.fFrom = StringToFloat(sExplodedString[0]);
 			chat_title.fTo = StringToFloat(sExplodedString[1]);
+			chat_title.bRanged = true;
 		}
-
 		else
 		{
 			float fRank = StringToFloat(sRanks);
 
 			chat_title.fFrom = fRank;
-			chat_title.fTo = (chat_title.iRangeType == Rank_Flat)? fRank:MAGIC_NUMBER;
+
+			if (chat_title.iRequire == Require_WR_Count || chat_title.iRequire == Require_Points)
+			{
+				chat_title.fTo = MAGIC_NUMBER;
+			}
+			else
+			{
+				chat_title.fTo = fRank;
+			}
+		}
+
+		if(chat_title.bPercent)
+		{
+			if(chat_title.iRequire == Require_WR_Count)
+			{
+				LogError("shavit chatranks can't use WR count & percentage in the same tag"); // TODO: ???
+			}
+			else if(chat_title.iRequire == Require_Points)
+			{
+				LogError("shavit chatranks can't use points & percentage in the same tag"); // TODO: ???
+			}
 		}
 		
 		chat_title.bFree = view_as<bool>(kv.GetNum("free", false));
@@ -860,56 +926,21 @@ Action ShowRanksMenu(int client, int item)
 
 		if(!cache.bFree)
 		{
-			if(cache.fFrom == 0.0 && (cache.fFrom == cache.fTo || cache.fTo == MAGIC_NUMBER))
+			if(cache.fFrom == 0.0 && cache.fTo == 0.0)
 			{
 				FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Unranked", client);
 			}
-
 			else
 			{
-				// this is really ugly
-				bool bRanged = (cache.fFrom != cache.fTo && cache.fTo != MAGIC_NUMBER);
+				char sTranslation[64];
+				strcopy(sTranslation, sizeof(sTranslation), gA_ChatRankMenuFormatStrings[cache.bPercent][cache.bRanged][cache.iRequire]);
 
-				if(cache.iRangeType == Rank_Flat)
+				if (!cache.bRanged && !cache.bPercent && cache.fFrom == 1.0)
 				{
-					if(bRanged)
-					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Flat_Ranged", client, RoundToZero(cache.fFrom), RoundToZero(cache.fTo));
-					}
-
-					else
-					{
-						FormatEx(sRequirements, 64, "%T",
-							(cache.fFrom <= 1) ? "ChatRanksMenu_Flat_1" : "ChatRanksMenu_Flat",
-							client, RoundToZero(cache.fFrom));
-					}
+					StrCat(sTranslation, sizeof(sTranslation), "_1");
 				}
 
-				else if(cache.iRangeType == Rank_Percentage)
-				{
-					if(bRanged)
-					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage_Ranged", client, cache.fFrom, '%', cache.fTo, '%');
-					}
-
-					else
-					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Percentage", client, cache.fFrom, '%');
-					}
-				}
-
-				else if(cache.iRangeType == Rank_Points)
-				{
-					if(bRanged)
-					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points_Ranged", client, RoundToZero(cache.fFrom), RoundToZero(cache.fTo));
-					}
-
-					else
-					{
-						FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Points", client, RoundToZero(cache.fFrom));
-					}
-				}
+				FormatEx(sRequirements, 64, "%T", sTranslation, client, cache.fFrom, cache.fTo, '%', '%');
 			}
 		}
 
@@ -1082,27 +1113,45 @@ bool HasRankAccess(int client, int rank)
 		return false;
 	}
 
-	float fRank = (cache.iRangeType != Rank_Points)? float(Shavit_GetRank(client)):Shavit_GetPoints(client);
+	float fVal, fTotal;
 
-	if(cache.iRangeType == Rank_Flat || cache.iRangeType == Rank_Points)
+	switch (cache.iRequire)
 	{
-		if(cache.fFrom <= fRank <= cache.fTo)
+		case Require_Rank:
+		{
+			fVal = float(Shavit_GetRank(client));
+			fTotal = float(Shavit_GetRankedPlayers());
+		}
+		case Require_Points:
+		{
+			fVal = Shavit_GetPoints(client);
+		}
+		case Require_WR_Count:
+		{
+			fVal = float(Shavit_GetWRCount(client));
+		}
+		case Require_WR_Rank:
+		{
+			fVal = float(Shavit_GetWRHolderRank(client));
+			fTotal = float(Shavit_GetWRHolders());
+		}
+	}
+
+	if(!cache.bPercent)
+	{
+		if(cache.fFrom <= fVal <= cache.fTo)
 		{
 			return true;
 		}
 	}
-
 	else
 	{
-		int iRanked = Shavit_GetRankedPlayers();
-
-		// just in case..
-		if(iRanked == 0)
+		if(fTotal == 0.0)
 		{
-			iRanked = 1;
+			fTotal = 1.0;
 		}
 
-		float fPercentile = (fRank / iRanked) * 100.0;
+		float fPercentile = (fVal / fTotal) * 100.0;
 		
 		if(cache.fFrom <= fPercentile <= cache.fTo)
 		{
@@ -1262,6 +1311,15 @@ void FormatChat(int client, char[] buffer, int size)
 
 		FormatEx(sRank, 16, "%.03f", fPercentile);
 		ReplaceString(buffer, size, "{rank3}", sRank);
+
+		FormatEx(sRank, 16, "%d", Shavit_GetWRCount(client));
+		ReplaceString(buffer, size, "{wrs}", sRank);
+
+		FormatEx(sRank, 16, "%0.f", Shavit_GetPoints(client));
+		ReplaceString(buffer, size, "{pts}", sRank);
+
+		FormatEx(sRank, 16, "%d", Shavit_GetWRHolderRank(client));
+		ReplaceString(buffer, size, "{wrrank}", sRank);
 	}
 
 	char sName[MAX_NAME_LENGTH];
