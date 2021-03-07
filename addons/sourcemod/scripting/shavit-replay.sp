@@ -2542,8 +2542,6 @@ public Action Command_Replay(int client, int args)
 		}
 	}
 
-	SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", gA_CentralCache.iClient);
-
 	if(CanStopCentral(client))
 	{
 		char arg[8];
@@ -2556,6 +2554,8 @@ public Action Command_Replay(int client, int args)
 			return Plugin_Handled;
 		}
 	}
+
+	SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", gA_CentralCache.iClient);
 
 	return OpenReplayMenu(client);
 }
@@ -2833,28 +2833,6 @@ int GetReplayTrack(int client)
 	}
 
 	return (gCV_CentralBot.BoolValue)? gA_CentralCache.iTrack:Track_Main;
-}
-
-int GetSpectatorTarget(int client)
-{
-	int target = -1;
-
-	if(IsClientObserver(client))
-	{
-		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
-
-		if(iObserverMode >= 3 && iObserverMode <= 5)
-		{
-			int iTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
-
-			if(IsValidClient(iTarget, true))
-			{
-				target = iTarget;
-			}
-		}
-	}
-
-	return target;
 }
 
 float GetReplayLength(int style, int track)

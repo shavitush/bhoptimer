@@ -1458,7 +1458,7 @@ public Action OnTakeDamage(int victim, int attacker)
 
 		case 2:
 		{
-			if(IsValidClient(attacker, true))
+			if(IsValidClient(attacker))
 			{
 				return Plugin_Handled;
 			}
@@ -2276,18 +2276,10 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		return false;
 	}
 
-	int target = client;
-
-	int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
-	int iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
+	int target = GetSpectatorTarget(client, client);
 	int iFlags = GetEntityFlags(client);
 
-	if(IsClientObserver(client) && IsValidClient(iObserverTarget) && 3 <= iObserverMode <= 5)
-	{
-		target = iObserverTarget;
-	}
-
-	else if(!IsPlayerAlive(client))
+	if(target == client && !IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
@@ -2818,19 +2810,7 @@ public Action Command_Specs(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!IsPlayerAlive(client) && !IsClientObserver(client))
-	{
-		Shavit_PrintToChat(client, "%T", "SpectatorInvalid", client);
-
-		return Plugin_Handled;
-	}
-
-	int iObserverTarget = client;
-
-	if(IsClientObserver(client))
-	{
-		iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
-	}
+	int iObserverTarget = GetSpectatorTarget(client, client);
 
 	if(args > 0)
 	{
@@ -3213,7 +3193,7 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 
 	gI_LastShot[client] = ticks;
 
-	int[] clients = new int[MaxClients];
+	int clients[MAXPLAYERS+1];
 	int count = 0;
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -3223,8 +3203,7 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 			continue;
 		}
 
-		if(!gB_Hide[i] ||
-			(IsClientObserver(i) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client && 3 <= GetEntProp(i, Prop_Send, "m_iObserverMode") <= 5))
+		if(!gB_Hide[i] || GetSpectatorTarget(i) == client)
 		{
 			clients[count++] = i;
 		}

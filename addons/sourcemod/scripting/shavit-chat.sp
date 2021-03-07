@@ -530,7 +530,7 @@ void Frame_SendText(DataPack pack)
 	}
 
 	int team = GetClientTeam(client);
-	int[] clients = new int[MaxClients];
+	int clients[MAXPLAYERS+1];
 	int count = 0;
 
 	for(int i = 1; i <= MaxClients; i++)

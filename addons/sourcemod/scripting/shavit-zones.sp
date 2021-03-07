@@ -2648,7 +2648,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 		{ 7, 5 }
 	};
 
-	int[] clients = new int[MaxClients];
+	int clients[MAXPLAYERS+1];
 	int count = 0;
 
 	for(int i = 1; i <= MaxClients; i++)

@@ -1057,7 +1057,7 @@ void UpdateWRHolders()
 		" UNION SELECT *, 2 as type FROM %s;",
 		gS_MySQLPrefix, gS_MySQLPrefix,
 		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
-		(gCV_MVPRankOnes.IntValue == 2 ) ? "style = 0" : "",
+		(gCV_MVPRankOnes.IntValue == 2) ? "style = 0" : "",
 		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
 		(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : "",
 		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "mycvar" : "myall"
