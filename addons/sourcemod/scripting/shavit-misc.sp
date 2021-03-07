@@ -2665,7 +2665,9 @@ bool DeleteCheckpoint(int client, int index)
 
 bool ShouldDisplayStopWarning(int client)
 {
-	return (gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue);
+	char special[sizeof(stylestrings_t::sSpecialString)];
+	Shavit_GetStyleStrings(Shavit_GetBhopStyle(client), sSpecialString, special, sizeof(special));
+	return (gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue && StrContains(special, "segments") == -1);
 }
 
 void DoNoclip(int client)
