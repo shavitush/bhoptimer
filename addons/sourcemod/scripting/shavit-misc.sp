@@ -788,7 +788,7 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 	return MRES_Override;
 }
 
-public Action Timer_Cron(Handle Timer)
+public Action Timer_Cron(Handle timer)
 {
 	if(gCV_HideRadar.BoolValue)
 	{
@@ -826,7 +826,7 @@ public Action Timer_Cron(Handle Timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_PersistKZCP(Handle Timer)
+public Action Timer_PersistKZCP(Handle timer)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -842,7 +842,7 @@ public Action Timer_PersistKZCP(Handle Timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_Scoreboard(Handle Timer)
+public Action Timer_Scoreboard(Handle timer)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -862,7 +862,7 @@ public Action Timer_Scoreboard(Handle Timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_Advertisement(Handle Timer)
+public Action Timer_Advertisement(Handle timer)
 {
 	char sHostname[128];
 	hostname.GetString(sHostname, 128);
@@ -1328,7 +1328,7 @@ void DeletePersistentData(int index, persistent_data_t data)
 	gA_PersistentData.Erase(index);
 }
 
-Action Timer_LoadPersistentData(Handle Timer, any data)
+Action Timer_LoadPersistentData(Handle timer, any data)
 {
 	LoadPersistentData(data);
 	return Plugin_Stop;
@@ -3001,7 +3001,7 @@ public void Shavit_OnRestart(int client, int track)
 	}
 }
 
-public Action Respawn(Handle Timer, any data)
+public Action Respawn(Handle timer, any data)
 {
 	int client = GetClientFromSerial(data);
 
