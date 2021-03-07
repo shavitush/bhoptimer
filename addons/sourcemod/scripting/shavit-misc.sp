@@ -49,6 +49,7 @@ enum struct persistent_data_t
 	float fDisconnectTime;
 	float fPosition[3];
 	float fAngles[3];
+	float fVelocity[3];
 	MoveType iMoveType;
 	float fGravity;
 	float fSpeed;
@@ -59,13 +60,9 @@ enum struct persistent_data_t
 	int iPreFrames;
 	int iTimerPreFrames;
 	bool bPractice;
-}
-
-enum struct savestate_t
-{
-	float Angles[3];
-	float Origin[3];
-	float Velocity[3];
+	int iTimesTeleported;
+	ArrayList aCheckpoints;
+	int iCurrentCheckpoint;
 }
 
 typedef StopTimerCallback = function void (int data);
@@ -91,21 +88,16 @@ bool gB_ClosedKZCP[MAXPLAYERS+1];
 
 ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
+int gI_TimesTeleported[MAXPLAYERS+1];
 
 int gI_CheckpointsSettings[MAXPLAYERS+1];
 ArrayList gA_Targetnames = null;
 ArrayList gA_Classnames = null;
 
 // save states
-bool gB_SaveStatesSegmented[MAXPLAYERS+1];
-savestate_t gA_SaveStateData[MAXPLAYERS+1];
-timer_snapshot_t gA_SaveStates[MAXPLAYERS+1];
-bool gB_SaveStates[MAXPLAYERS+1];
-char gS_SaveStateTargetname[MAXPLAYERS+1][32];
-ArrayList gA_SaveFrames[MAXPLAYERS+1];
+bool gB_SaveStates[MAXPLAYERS+1]; // whether we have data for when player rejoins from spec
 ArrayList gA_PersistentData = null;
-int gI_SavePreFrames[MAXPLAYERS+1];
-int gI_TimerFrames[MAXPLAYERS+1];
+float gF_PauseEyeAngles[MAXPLAYERS+1][3];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -172,10 +164,10 @@ Handle gH_GetPlayerMaxSpeed = null;
 bool gB_Rankings = false;
 bool gB_Replay = false;
 bool gB_Zones = false;
+bool gB_Chat = false;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
-stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 
 // chat settings
 chatstrings_t gS_ChatStrings;
@@ -200,6 +192,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SaveCheckpoint", Native_SaveCheckpoint);
 	CreateNative("Shavit_GetCurrentCheckpoint", Native_GetCurrentCheckpoint);
 	CreateNative("Shavit_SetCurrentCheckpoint", Native_SetCurrentCheckpoint);
+	CreateNative("Shavit_GetTimesTeleported", Native_GetTimesTeleported);
 
 	gB_Late = late;
 
@@ -300,7 +293,7 @@ public void OnPluginStart()
 
 	// cvars and stuff
 	gCV_GodMode = new Convar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
-	gCV_PreSpeed = new Convar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding. Combine with shavit_core_nozaxisspeed 1 for SourceCode timer's behavior.", 0, true, 0.0, true, 4.0);
+	gCV_PreSpeed = new Convar("shavit_misc_prespeed", "1", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding. Combine with shavit_core_nozaxisspeed 1 for SourceCode timer's behavior.\n5 - Limit horizontal speed to prestrafe but allow prespeeding.", 0, true, 0.0, true, 5.0);
 	gCV_HideTeamChanges = new Convar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = new Convar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = new Convar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -322,7 +315,7 @@ public void OnPluginStart()
 	gCV_AdvertisementInterval = new Convar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 	gCV_Checkpoints = new Convar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RemoveRagdolls = new Convar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
-	gCV_ClanTag = new Convar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style tag.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track.\n{rank} - player rank.", 0);
+	gCV_ClanTag = new Convar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style tag.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track.\n{rank} - player rank.\n{cr} - player's chatrank from shavit-chat, trimmed, with no colors", 0);
 	gCV_DropAll = new Convar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetname = new Convar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = new Convar("shavit_misc_restorestates", "0", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -398,6 +391,7 @@ public void OnPluginStart()
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
+	gB_Chat = LibraryExists("shavit-chat");
 }
 
 public void OnClientCookiesCached(int client)
@@ -447,7 +441,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleSettings(i, gA_StyleSettings[i]);
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
 		Shavit_GetStyleStrings(i, sClanTag, gS_StyleStrings[i].sClanTag, sizeof(stylestrings_t::sClanTag));
 		Shavit_GetStyleStrings(i, sSpecialString, gS_StyleStrings[i].sSpecialString, sizeof(stylestrings_t::sSpecialString));
@@ -619,6 +612,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Zones = true;
 	}
+
+	else if(StrEqual(name, "shavit-chat"))
+	{
+		gB_Chat = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -636,6 +634,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-zones"))
 	{
 		gB_Zones = false;
+	}
+
+	else if(StrEqual(name, "shavit-chat"))
+	{
+		gB_Chat = false;
 	}
 }
 
@@ -676,7 +679,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 	if(!gB_SaveStates[client])
 	{
-		SaveState(client);
+		PersistData(client, false);
 	}
 
 	char arg1[8];
@@ -780,12 +783,12 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 		return MRES_Ignored;
 	}
 
-	DHookSetReturn(hReturn, view_as<float>(gA_StyleSettings[gI_Style[pThis]].fRunspeed));
+	DHookSetReturn(hReturn, Shavit_GetStyleSettingFloat(gI_Style[pThis], "runspeed"));
 
 	return MRES_Override;
 }
 
-public Action Timer_Cron(Handle Timer)
+public Action Timer_Cron(Handle timer)
 {
 	if(gCV_HideRadar.BoolValue)
 	{
@@ -815,18 +818,20 @@ public Action Timer_Cron(Handle Timer)
 		if(fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue)
 		{
 			DeletePersistentData(i, aData);
+			ResetCheckpointsInner(aData.aCheckpoints);
+			delete aData.aCheckpoints;
 		}
 	}
 
 	return Plugin_Continue;
 }
 
-public Action Timer_PersistKZCP(Handle Timer)
+public Action Timer_PersistKZCP(Handle timer)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(!gB_ClosedKZCP[i] &&
-			gA_StyleSettings[gI_Style[i]].bKZCheckpoints
+			Shavit_GetStyleSettingInt(gI_Style[i], "kzcheckpoints")
 			&& GetClientMenu(i) == MenuSource_None &&
 			IsClientInGame(i) && IsPlayerAlive(i))
 		{
@@ -837,7 +842,7 @@ public Action Timer_PersistKZCP(Handle Timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_Scoreboard(Handle Timer)
+public Action Timer_Scoreboard(Handle timer)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -857,7 +862,7 @@ public Action Timer_Scoreboard(Handle Timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_Advertisement(Handle Timer)
+public Action Timer_Advertisement(Handle timer)
 {
 	char sHostname[128];
 	hostname.GetString(sHostname, 128);
@@ -940,10 +945,10 @@ void UpdateScoreboard(int client)
 void UpdateClanTag(int client)
 {
 	// no clan tags in tf2
-	char sTag[32];
-	gCV_ClanTag.GetString(sTag, 32);
+	char sCustomTag[32];
+	gCV_ClanTag.GetString(sCustomTag, 32);
 
-	if(gEV_Type == Engine_TF2 || StrEqual(sTag, "0"))
+	if(gEV_Type == Engine_TF2 || StrEqual(sCustomTag, "0"))
 	{
 		return;
 	}
@@ -986,11 +991,15 @@ void UpdateClanTag(int client)
 	}
 
 	int track = Shavit_GetClientTrack(client);
-	char sTrack[3];
+	char sTrack[4];
 
 	if(track != Track_Main)
 	{
-		GetTrackName(client, track, sTrack, 3);
+		sTrack[0] = 'B';
+		if (track > Track_Bonus)
+		{
+			FormatEx(sTrack, sizeof(sTrack), "B%d", track);
+		}
 	}
 
 	char sRank[8];
@@ -1000,18 +1009,23 @@ void UpdateClanTag(int client)
 		IntToString(Shavit_GetRank(client), sRank, 8);
 	}
 
-	char sCustomTag[32];
-	strcopy(sCustomTag, 32, sTag);
 	ReplaceString(sCustomTag, 32, "{style}", gS_StyleStrings[gI_Style[client]].sStyleName);
 	ReplaceString(sCustomTag, 32, "{styletag}", gS_StyleStrings[gI_Style[client]].sClanTag);
 	ReplaceString(sCustomTag, 32, "{time}", sTime);
 	ReplaceString(sCustomTag, 32, "{tr}", sTrack);
 	ReplaceString(sCustomTag, 32, "{rank}", sRank);
 
+	if(gB_Chat)
+	{
+		char sChatrank[32];
+		Shavit_GetPlainChatrank(client, sChatrank, sizeof(sChatrank), false);
+		ReplaceString(sCustomTag, 32, "{cr}", sChatrank);
+	}
+
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnClanTagChangePre);
 	Call_PushCell(client);
-	Call_PushStringEx(sTag, 32, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushStringEx(sCustomTag, 32, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushCell(32);
 	Call_Finish(result);
 	
@@ -1070,7 +1084,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	// prespeed
-	if(!bNoclip && gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && bInStart)
+	if(!bNoclip && Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && bInStart)
 	{
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
@@ -1087,7 +1101,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
-			float fLimit = (gA_StyleSettings[gI_Style[client]].fRunspeed + gCV_PrestrafeLimit.FloatValue);
+			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
 
 			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
@@ -1101,7 +1115,18 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 			if(fScale < 1.0)
 			{
-				ScaleVector(fSpeed, fScale);
+				if(gCV_PreSpeed.IntValue == 5)
+				{
+					float zSpeed = fSpeed[2];
+					fSpeed[2] = 0.0;
+					
+					ScaleVector(fSpeed, fScale);
+					fSpeed[2] = zSpeed;
+				}
+				else
+				{
+					ScaleVector(fSpeed, fScale);
+				}
 			}
 
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
@@ -1151,8 +1176,6 @@ public void OnClientPutInServer(int client)
 	}
 
 	gB_SaveStates[client] = false;
-	delete gA_SaveFrames[client];
-
 	gB_ClosedKZCP[client] = false;
 }
 
@@ -1176,26 +1199,31 @@ public void OnClientDisconnect(int client)
 		return;
 	}
 
+	PersistData(client, true);
+
+	// if data wasn't persisted, then we have checkpoints to reset...
 	ResetCheckpoints(client);
 	delete gA_Checkpoints[client];
-
-	gB_SaveStates[client] = false;
-	delete gA_SaveFrames[client];
-
-	PersistData(client);
 }
 
-void PersistData(int client)
+void FillPersistentData(int client, persistent_data_t aData, bool disconnected)
 {
-	persistent_data_t aData;
+	aData.iSteamID = GetSteamAccountID(client);
+	aData.fDisconnectTime = GetEngineTime();
 
-	if(!IsClientInGame(client) ||
-		!IsPlayerAlive(client) ||
-		(aData.iSteamID = GetSteamAccountID((client))) == 0 ||
-		Shavit_GetTimerStatus(client) == Timer_Stopped ||
-		gCV_PersistData.IntValue == 0)
+	if (disconnected)
 	{
-		return;
+		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
+		if (gA_Checkpoints[client] != null)
+		{
+			aData.aCheckpoints = view_as<ArrayList>(CloneHandle(gA_Checkpoints[client]));
+			delete gA_Checkpoints[client];
+		}
+
+		if (gB_SaveStates[client])
+		{
+			return;
+		}
 	}
 
 	if(gB_Replay)
@@ -1205,23 +1233,16 @@ void PersistData(int client)
 		aData.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
 	}
 
-	aData.fDisconnectTime = GetEngineTime();
 	aData.iMoveType = GetEntityMoveType(client);
 	aData.fGravity = GetEntityGravity(client);
 	aData.fSpeed = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
 	aData.bPractice = Shavit_IsPracticeMode(client);
+	aData.iTimesTeleported = gI_TimesTeleported[client];
 
-	float fPosition[3];
-	GetClientAbsOrigin(client, fPosition);
-	CopyArray(fPosition, aData.fPosition, 3);
-
-	float fAngles[3];
-	GetClientEyeAngles(client, fAngles);
-	CopyArray(fAngles, aData.fAngles, 3);
-
-	timer_snapshot_t aSnapshot;
-	Shavit_SaveSnapshot(client, aSnapshot);
-	CopyArray(aSnapshot, aData.aSnapshot, sizeof(timer_snapshot_t));
+	GetClientAbsOrigin(client, aData.fPosition);
+	GetClientEyeAngles(client, aData.fAngles);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", aData.fVelocity);
+	Shavit_SaveSnapshot(client, aData.aSnapshot);
 
 	char sTargetname[64];
 	GetEntPropString(client, Prop_Data, "m_iName", sTargetname, 64);
@@ -1242,8 +1263,63 @@ void PersistData(int client)
 	{
 		aData.iClassname = gA_Classnames.PushString(sClassname);
 	}
+}
 
-	gA_PersistentData.PushArray(aData);
+int FindPersistentData(int client, persistent_data_t aData)
+{
+	int iSteamID;
+
+	if(client == 0 || (iSteamID = GetSteamAccountID(client)) == 0)
+	{
+		return -1;
+	}
+
+	for(int i = 0; i < gA_PersistentData.Length; i++)
+	{
+		gA_PersistentData.GetArray(i, aData);
+
+		if(iSteamID == aData.iSteamID)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void PersistData(int client, bool disconnected)
+{
+	if(!IsClientInGame(client) ||
+		(!IsPlayerAlive(client) && !disconnected) ||
+		GetSteamAccountID(client) == 0 ||
+		//Shavit_GetTimerStatus(client) == Timer_Stopped ||
+		(!gCV_RestoreStates.BoolValue && !disconnected) ||
+		(gCV_PersistData.IntValue == 0 && disconnected))
+	{
+		return;
+	}
+
+	persistent_data_t aData;
+	int iIndex = FindPersistentData(client, aData);
+	FillPersistentData(client, aData, disconnected);
+
+	if (disconnected)
+	{
+		gB_SaveStates[client] = false;
+	}
+	else
+	{
+		gB_SaveStates[client] = true;
+	}
+
+	if (iIndex == -1)
+	{
+		gA_PersistentData.PushArray(aData);
+	}
+	else
+	{
+		gA_PersistentData.SetArray(iIndex, aData, sizeof(aData));
+	}
 }
 
 void DeletePersistentData(int index, persistent_data_t data)
@@ -1252,61 +1328,47 @@ void DeletePersistentData(int index, persistent_data_t data)
 	gA_PersistentData.Erase(index);
 }
 
-public Action Timer_LoadPersistentData(Handle Timer, any data)
+Action Timer_LoadPersistentData(Handle timer, any data)
 {
-	int iSteamID = 0;
-	int client = GetClientFromSerial(data);
+	LoadPersistentData(data);
+	return Plugin_Stop;
+}
+
+void LoadPersistentData(int serial)
+{
+	int client = GetClientFromSerial(serial);
 
 	if(client == 0 ||
-		(iSteamID = GetSteamAccountID(client)) == 0 ||
+		GetSteamAccountID(client) == 0 ||
 		GetClientTeam(client) < 2 ||
 		!IsPlayerAlive(client))
 	{
-		return Plugin_Stop;
+		return;
 	}
 
 	persistent_data_t aData;
-	int iIndex = -1;
-	int iLength = gA_PersistentData.Length;
+	int iIndex = FindPersistentData(client, aData);
 
-	for(int i = 0; i < iLength; i++)
+	if (iIndex == -1)
 	{
-		gA_PersistentData.GetArray(i, aData);
-
-		if(iSteamID == aData.iSteamID)
-		{
-			iIndex = i;
-
-			break;
-		}
-	}
-
-	if(iIndex == -1)
-	{
-		return Plugin_Stop;
+		return;
 	}
 
 	Shavit_StopTimer(client);
-
-	float fPosition[3];
-	CopyArray(aData.fPosition, fPosition, 3);
-
-	float fAngles[3];
-	CopyArray(aData.fAngles, fAngles, 3);
 
 	SetEntityMoveType(client, aData.iMoveType);
 	SetEntityGravity(client, aData.fGravity);
 	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", aData.fSpeed);
 
-	timer_snapshot_t aSnapshot;
-	CopyArray(aData.aSnapshot, aSnapshot, sizeof(timer_snapshot_t));
-	Shavit_LoadSnapshot(client, aSnapshot);
+	Shavit_LoadSnapshot(client, aData.aSnapshot);
 
 	if(aData.iTargetname != -1)
 	{
 		char sTargetname[64];
 		gA_Targetnames.GetString(aData.iTargetname, sTargetname, 64);
 
+		// TODO: ?????????????? is it supposed to be targetname??????
+		//DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
 		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
 	}
 
@@ -1318,7 +1380,7 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
 	}
 
-	TeleportEntity(client, fPosition, fAngles, view_as<float>({ 0.0, 0.0, 0.0 }));
+	TeleportEntity(client, aData.fPosition, aData.fAngles, aData.fVelocity);
 
 	if(gB_Replay && aData.aFrames != null)
 	{
@@ -1332,10 +1394,16 @@ public Action Timer_LoadPersistentData(Handle Timer, any data)
 		Shavit_SetPracticeMode(client, true, false);
 	}
 
-	delete aData.aFrames;
-	gA_PersistentData.Erase(iIndex);
+	gI_TimesTeleported[client] = aData.iTimesTeleported;
 
-	return Plugin_Stop;
+	if (aData.aCheckpoints != null)
+	{
+		gI_CurrentCheckpoint[client] = aData.iCurrentCheckpoint;
+		gA_Checkpoints[client] = view_as<ArrayList>(CloneHandle(aData.aCheckpoints));
+	}
+
+	gB_SaveStates[client] = false;
+	DeletePersistentData(iIndex, aData);
 }
 
 void RemoveWeapon(any data)
@@ -1346,18 +1414,22 @@ void RemoveWeapon(any data)
 	}
 }
 
-void ResetCheckpoints(int client)
+void ResetCheckpointsInner(ArrayList cps)
 {
-	if(gA_Checkpoints[client])
+	if (cps)
 	{
-		for(int i = 0; i < gA_Checkpoints[client].Length; i++)
+		for(int i = 0; i < cps.Length; i++)
 		{
-			delete view_as<ArrayList>(gA_Checkpoints[client].Get(i, cp_cache_t::aFrames));
+			delete view_as<ArrayList>(cps.Get(i, cp_cache_t::aFrames));
 		}
 		
-		gA_Checkpoints[client].Clear();
+		cps.Clear();
 	}
+}
 
+void ResetCheckpoints(int client)
+{
+	ResetCheckpointsInner(gA_Checkpoints[client]);
 	gI_CurrentCheckpoint[client] = 0;
 }
 
@@ -1397,7 +1469,7 @@ public Action OnTakeDamage(int victim, int attacker)
 
 		case 2:
 		{
-			if(IsValidClient(attacker, true))
+			if(IsValidClient(attacker))
 			{
 				return Plugin_Handled;
 			}
@@ -1438,7 +1510,7 @@ public void OnPreThink(int client)
 	if(IsPlayerAlive(client))
 	{
 		// not the best method, but only one i found for tf2
-		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", gA_StyleSettings[gI_Style[client]].fRunspeed);
+		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed",  Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed"));
 	}
 }
 
@@ -1630,13 +1702,6 @@ bool Teleport(int client, int targetserial)
 
 	int iTarget = GetClientFromSerial(targetserial);
 
-	if(Shavit_InsideZone(client, Zone_Start, -1) || Shavit_InsideZone(client, Zone_End, -1))
-	{
-		Shavit_PrintToChat(client, "%T", "TeleportInZone", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-
-		return false;
-	}
-
 	if(iTarget == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "TeleportInvalidTarget", client);
@@ -1736,7 +1801,7 @@ public Action Command_Checkpoints(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints)
+	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
 	{
 		gB_ClosedKZCP[client] = false;
 	}
@@ -1834,7 +1899,7 @@ public Action Command_Tele(int client, int args)
 
 public Action OpenCheckpointsMenu(int client)
 {
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints)
+	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
 	{
 		OpenKZCPMenu(client);
 	}
@@ -1895,7 +1960,7 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 {
 	if(action == MenuAction_Select)
 	{
-		if(CanSegment(param1) || !gA_StyleSettings[gI_Style[param1]].bKZCheckpoints)
+		if(CanSegment(param1) || !Shavit_GetStyleSettingInt(gI_Style[param1], "kzcheckpoints"))
 		{
 			return 0;
 		}
@@ -2222,18 +2287,10 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		return false;
 	}
 
-	int target = client;
-
-	int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
-	int iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
+	int target = GetSpectatorTarget(client, client);
 	int iFlags = GetEntityFlags(client);
 
-	if(IsClientObserver(client) && IsValidClient(iObserverTarget) && 3 <= iObserverMode <= 5)
-	{
-		target = iObserverTarget;
-	}
-
-	else if(!IsPlayerAlive(client))
+	if(target == client && !IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
@@ -2247,7 +2304,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		return false;
 	}
 
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints)
+	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
 	{
 		if((iFlags & FL_ONGROUND) == 0 || client != target)
 		{
@@ -2279,19 +2336,11 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	gI_CurrentCheckpoint[client] = index;
 
 	cp_cache_t cpcache;
-	float temp[3];
 
-	GetClientAbsOrigin(target, temp);
-	CopyArray(temp, cpcache.fPosition, 3);
-
-	GetClientEyeAngles(target, temp);
-	CopyArray(temp, cpcache.fAngles, 3);
-
-	GetEntPropVector(target, Prop_Data, "m_vecVelocity", temp);
-	CopyArray(temp, cpcache.fVelocity, 3);
-
-	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", temp);
-	CopyArray(temp, cpcache.fBaseVelocity, 3);
+	GetClientAbsOrigin(target, cpcache.fPosition);
+	GetClientEyeAngles(target, cpcache.fAngles);
+	GetEntPropVector(target, Prop_Data, "m_vecVelocity", cpcache.fVelocity);
+	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", cpcache.fBaseVelocity);
 
 	char sTargetname[64];
 	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 64);
@@ -2390,7 +2439,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		Shavit_SaveSnapshot(target, snapshot);
 	}
 
-	CopyArray(snapshot, cpcache.aSnapshot, sizeof(timer_snapshot_t));
+	cpcache.aSnapshot = snapshot;
 
 	if(CanSegment(target))
 	{
@@ -2410,9 +2459,9 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		cpcache.bSegmented = false;
 	}
 
+	cpcache.iSteamID = GetSteamAccountID(target);
 	cpcache.iSerial = GetClientSerial(target);
 	cpcache.bPractice = Shavit_IsPracticeMode(target);
-
 
 	if(overflow)
 	{
@@ -2461,20 +2510,14 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	gA_Checkpoints[client].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
 
-	timer_snapshot_t snapshot;
-	CopyArray(cpcache.aSnapshot, snapshot, sizeof(timer_snapshot_t));
-
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints != gA_StyleSettings[snapshot.bsStyle].bKZCheckpoints)
+	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") != Shavit_GetStyleSettingInt(cpcache.aSnapshot.bsStyle, "kzcheckpoints"))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandTeleCPInvalid", client);
 
 		return;
 	}
 
-	float pos[3];
-	CopyArray(cpcache.fPosition, pos, 3);
-
-	if(IsNullVector(pos))
+	if(IsNullVector(cpcache.fPosition))
 	{
 		return;
 	}
@@ -2496,6 +2539,8 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	{
 		return;
 	}
+
+	gI_TimesTeleported[client]++;
 
 	if(Shavit_InsideZone(client, Zone_Start, -1))
 	{
@@ -2531,31 +2576,23 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache.fDuckSpeed);
 	}
 
-	float ang[3];
-	CopyArray(cpcache.fAngles, ang, 3);
-
 	// this is basically the same as normal checkpoints except much less data is used
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints)
+	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
 	{
-		TeleportEntity(client, pos, ang, view_as<float>({ 0.0, 0.0, 0.0 }));
+		TeleportEntity(client, cpcache.fPosition, cpcache.fAngles, view_as<float>({ 0.0, 0.0, 0.0 }));
 
 		return;
 	}
 
-	Shavit_LoadSnapshot(client, snapshot);
+	Shavit_LoadSnapshot(client, cpcache.aSnapshot);
 	Shavit_ResumeTimer(client);
 
 	float vel[3];
 
 	if((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented)
 	{
-		float basevel[3];
-		CopyArray(cpcache.fVelocity, vel, 3);
-		CopyArray(cpcache.fBaseVelocity, basevel, 3);
-
-		AddVectors(vel, basevel, vel);
+		AddVectors(cpcache.fVelocity, cpcache.fBaseVelocity, vel);
 	}
-
 	else
 	{
 		vel = NULL_VECTOR;
@@ -2577,11 +2614,11 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
 	}
 
-	TeleportEntity(client, pos,
-		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache.bSegmented)? ang:NULL_VECTOR,
+	TeleportEntity(client, cpcache.fPosition,
+		((gI_CheckpointsSettings[client] & CP_ANGLES) > 0 || cpcache.bSegmented)? cpcache.fAngles:NULL_VECTOR,
 		vel);
 
-	if(cpcache.bPractice || !cpcache.bSegmented || GetClientSerial(client) != cpcache.iSerial)
+	if(cpcache.bPractice || !cpcache.bSegmented || (GetClientSerial(client) != cpcache.iSerial && GetSteamAccountID(client) != cpcache.iSteamID))
 	{
 		Shavit_SetPracticeMode(client, true, true);
 	}
@@ -2631,7 +2668,7 @@ bool DeleteCheckpoint(int client, int index)
 
 bool ShouldDisplayStopWarning(int client)
 {
-	return (gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue);
+	return (gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue && !CanSegment(client));
 }
 
 void DoNoclip(int client)
@@ -2784,19 +2821,7 @@ public Action Command_Specs(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(!IsPlayerAlive(client) && !IsClientObserver(client))
-	{
-		Shavit_PrintToChat(client, "%T", "SpectatorInvalid", client);
-
-		return Plugin_Handled;
-	}
-
-	int iObserverTarget = client;
-
-	if(IsClientObserver(client))
-	{
-		iObserverTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
-	}
+	int iObserverTarget = GetSpectatorTarget(client, client);
 
 	if(args > 0)
 	{
@@ -2868,7 +2893,9 @@ public Action Command_Specs(int client, int args)
 
 public Action Shavit_OnStart(int client)
 {
-	if(gA_StyleSettings[gI_Style[client]].iPrespeed == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	gI_TimesTeleported[client] = 0;
+
+	if(Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
 	}
@@ -2879,26 +2906,12 @@ public Action Shavit_OnStart(int client)
 		SetEntPropString(client, Prop_Data, "m_iClassname", "player");
 	}
 
-	if(gA_StyleSettings[gI_Style[client]].bKZCheckpoints)
+	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
 	{
 		ResetCheckpoints(client);
 	}
 
 	return Plugin_Continue;
-}
-
-void GetTrackName(int client, int track, char[] output, int size)
-{
-	if(track < 0 || track >= TRACKS_SIZE)
-	{
-		FormatEx(output, size, "%T", "Track_Unknown", client);
-
-		return;
-	}
-
-	static char sTrack[16];
-	FormatEx(sTrack, 16, "Track_%d", track);
-	FormatEx(output, size, "%T", sTrack, client);
 }
 
 public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, int strafes, float sync, int track)
@@ -2939,7 +2952,7 @@ public void Shavit_OnRestart(int client, int track)
 	}
 
 	if(!gB_ClosedKZCP[client] &&
-		gA_StyleSettings[gI_Style[client]].bKZCheckpoints &&
+		Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
 		GetClientMenu(client, null) == MenuSource_None &&
 		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
@@ -2988,7 +3001,7 @@ public void Shavit_OnRestart(int client, int track)
 	}
 }
 
-public Action Respawn(Handle Timer, any data)
+public Action Respawn(Handle timer, any data)
 {
 	int client = GetClientFromSerial(data);
 
@@ -3043,15 +3056,9 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		{
 			if(gCV_RestoreStates.BoolValue)
 			{
-				RequestFrame(RestoreState, serial);
-			}
-
-			else
-			{
-				gB_SaveStates[client] = false;
+				RequestFrame(LoadPersistentData, serial);
 			}
 		}
-
 		else
 		{
 			CreateTimer(0.10, Timer_LoadPersistentData, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
@@ -3066,7 +3073,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 		// refreshes kz cp menu if there is nothing open
 		if(!gB_ClosedKZCP[client] &&
-			gA_StyleSettings[gI_Style[client]].bKZCheckpoints &&
+			Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
 			GetClientMenu(client, null) == MenuSource_None &&
 			IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 		{
@@ -3111,26 +3118,6 @@ void RemoveRadar(any data)
 	RemoveRadarBase(client);
 }
 
-void RestoreState(any data)
-{
-	int client = GetClientFromSerial(data);
-
-	if(client == 0 || !IsPlayerAlive(client))
-	{
-		return;
-	}
-
-	if(gA_SaveStates[client].bsStyle != Shavit_GetBhopStyle(client) ||
-		gA_SaveStates[client].iTimerTrack != Shavit_GetClientTrack(client))
-	{
-		gB_SaveStates[client] = false;
-
-		return;
-	}
-
-	LoadState(client);
-}
-
 public Action Player_Notifications(Event event, const char[] name, bool dontBroadcast)
 {
 	if(gCV_HideTeamChanges.BoolValue)
@@ -3144,7 +3131,7 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 	{
 		if(!gB_SaveStates[client])
 		{
-			SaveState(client);
+			PersistData(client, false);
 		}
 
 		if(gCV_AutoRespawn.FloatValue > 0.0 && StrEqual(name, "player_death"))
@@ -3217,7 +3204,7 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 
 	gI_LastShot[client] = ticks;
 
-	int[] clients = new int[MaxClients];
+	int clients[MAXPLAYERS+1];
 	int count = 0;
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -3227,8 +3214,7 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 			continue;
 		}
 
-		if(!gB_Hide[i] ||
-			(IsClientObserver(i) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client && 3 <= GetEntProp(i, Prop_Send, "m_iObserverMode") <= 5))
+		if(!gB_Hide[i] || GetSpectatorTarget(i) == client)
 		{
 			clients[count++] = i;
 		}
@@ -3421,17 +3407,17 @@ public void Shavit_OnFinish(int client)
 
 public void Shavit_OnPause(int client, int track)
 {
-	if(!GetClientEyeAngles(client, gA_SaveStateData[client].Angles))
+	if(!GetClientEyeAngles(client, gF_PauseEyeAngles[client]))
 	{
-		gA_SaveStateData[client].Angles = NULL_VECTOR;
+		gF_PauseEyeAngles[client] = NULL_VECTOR;
 	}
 }
 
 public void Shavit_OnResume(int client, int track)
 {
-	if(!IsNullVector(gA_SaveStateData[client].Angles))
+	if(!IsNullVector(gF_PauseEyeAngles[client]))
 	{
-		TeleportEntity(client, NULL_VECTOR, gA_SaveStateData[client].Angles, NULL_VECTOR);
+		TeleportEntity(client, NULL_VECTOR, gF_PauseEyeAngles[client], NULL_VECTOR);
 	}
 }
 
@@ -3450,60 +3436,6 @@ public Action Command_Drop(int client, const char[] command, int argc)
 	}
 
 	return Plugin_Handled;
-}
-
-void LoadState(int client)
-{
-	TeleportEntity(client, gA_SaveStateData[client].Origin, gA_SaveStateData[client].Angles, gA_SaveStateData[client].Velocity);
-	DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
-
-	Shavit_LoadSnapshot(client, gA_SaveStates[client]);
-	Shavit_SetPracticeMode(client, gB_SaveStatesSegmented[client], false);
-
-	if(gB_Replay && gA_SaveFrames[client] != null)
-	{
-		Shavit_SetReplayData(client, gA_SaveFrames[client]);
-		Shavit_SetPlayerPreFrame(client, gI_SavePreFrames[client]);
-		Shavit_SetPlayerTimerFrame(client, gI_TimerFrames[client]);
-	}
-
-	delete gA_SaveFrames[client];
-	gB_SaveStates[client] = false;
-}
-
-void SaveState(int client)
-{
-	if(Shavit_GetTimerStatus(client) == Timer_Stopped)
-	{
-		return;
-	}
-	
-	GetClientAbsOrigin(client, gA_SaveStateData[client].Origin);
-	GetClientEyeAngles(client, gA_SaveStateData[client].Angles);
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gA_SaveStateData[client].Velocity);
-	GetEntPropString(client, Prop_Data, "m_iName", gS_SaveStateTargetname[client], 32);
-
-	Shavit_SaveSnapshot(client, gA_SaveStates[client]);
-	gB_SaveStatesSegmented[client] = Shavit_IsPracticeMode(client);
-
-	if(gB_Replay)
-	{
-		delete gA_SaveFrames[client];
-		gA_SaveFrames[client] = Shavit_GetReplayData(client);
-		gI_SavePreFrames[client] = Shavit_GetPlayerPreFrame(client);
-		gI_TimerFrames[client] = Shavit_GetPlayerTimerFrame(client);
-	}
-
-	gB_SaveStates[client] = true;
-}
-
-
-void CopyArray(const any[] from, any[] to, int size)
-{
-	for(int i = 0; i < size; i++)
-	{
-		to[i] = from[i];
-	}
 }
 
 bool CanSegment(int client)
@@ -3578,6 +3510,11 @@ public any Native_TeleportToCheckpoint(Handle plugin, int numParams)
 
 	TeleportToCheckpoint(client, position, suppress);
 	return 0;
+}
+
+public any Native_GetTimesTeleported(Handle plugin, int numParams)
+{
+	return gI_TimesTeleported[GetNativeCell(1)];
 }
 
 public any Native_GetTotalCheckpoints(Handle plugin, int numParams)

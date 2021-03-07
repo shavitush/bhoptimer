@@ -24,6 +24,7 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 # Optional requirements, for the best experience:
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135)
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
+* [DynamicChannels](https://github.com/Vauff/DynamicChannels)
 
 #  Installation:
 Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installation-(from-source)).

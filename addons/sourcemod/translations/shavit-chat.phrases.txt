@@ -69,32 +69,86 @@
 	}
 	"ChatRanksMenu_Points"
 	{
-		"#format"	"{1:d}"
+		"#format"	"{1:.0f}"
 		"en"		"Have {1} points"
+	}
+	"ChatRanksMenu_Points_1"
+	{
+		"#format"	"{1:.0f}"
+		"en"		"Have {1} point"
 	}
 	"ChatRanksMenu_Points_Ranged"
 	{
-		"#format"	"{1:d},{2:d}"
+		"#format"	"{1:.0f},{2:.0f}"
 		"en"		"Have between {1} and {2} points"
 	}
 	"ChatRanksMenu_Flat"
 	{
-		"#format"	"{1:d}"
+		"#format"	"{1:.0f}"
 		"en"		"Ranked #{1} or better"
+	}
+	"ChatRanksMenu_Flat_1"
+	{
+		"#format"	"{1:.0f}"
+		"en"		"Ranked #{1}"
 	}
 	"ChatRanksMenu_Flat_Ranged"
 	{
-		"#format"	"{1:d},{2:d}"
+		"#format"	"{1:.0f},{2:.0f}"
 		"en"		"Ranked between #{1} and #{2}"
 	}
 	"ChatRanksMenu_Percentage"
 	{
-		"#format"	"{1:.1f},{2:c}"
-		"en"		"Top {1}{2}"
+		"#format"	"{1:.1f},{2:.0f},{3:c}"
+		"en"		"Top {1}{3}"
 	}
 	"ChatRanksMenu_Percentage_Ranged"
 	{
-		"#format"	"{1:.1f},{2:c},{3:.1f},{4:c}"
-		"en"		"Between top {1}{2} and {3}{4}"
+		"#format"	"{1:.1f},{2:.1f},{3:c},{4:c}"
+		"en"		"Between top {1}{3} and {2}{4}"
+	}
+	"ChatRanksMenu_WR_Count"
+	{
+		"#format"	"{1:.0f}"
+		"en"		"Have {1} WRs"
+	}
+	"ChatRanksMenu_WR_Count_1"
+	{
+		"#format"	"{1:.0f}"
+		"en"		"Have {1} WR"
+	}
+	"ChatRanksMenu_WR_Count_Ranged"
+	{
+		"#format"	"{1:.0f},{2:.0f}"
+		"en"		"Have between {1} and {2} WRs"
+	}
+	"ChatRanksMenu_WR_Rank"
+	{
+		"#format"	"{1:.0f}"
+		"en"		"Ranked #{1} or better from WR holders"
+	}
+	"ChatRanksMenu_WR_Rank_1"
+	{
+		"#format"	"{1:.0f}"
+		"en"		"Ranked #{1} out of WRs held"
+	}
+	"ChatRanksMenu_WR_Rank_Ranged"
+	{
+		"#format"	"{1:.0f},{2:.0f}"
+		"en"		"Ranked between #{1} and #{2} out of WRs held"
+	}
+	"ChatRanksMenu_WR_Rank_Percentage"
+	{
+		"#format"	"{1:.0f},{2:.0f},{3:c}"
+		"en"		"Top {1}{3} out of WRs held"
+	}
+	"ChatRanksMenu_WR_Rank_Percentage_Ranged"
+	{
+		"#format"	"{1:.0f},{2:.0f},{3:c},{4:c}"
+		"en"		"Between Top {1}{3} and {2}{4} out of WRs held"
+	}
+	"ChatRanksMenu_SampleText"
+	{
+		"en"		"The quick brown fox jumps over the lazy dog"
 	}
 }
