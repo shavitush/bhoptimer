@@ -2622,6 +2622,10 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	{
 		Shavit_SetPracticeMode(client, true, true);
 	}
+	else
+	{
+		Shavit_SetPracticeMode(client, false, true);
+	}
 
 	SetEntityGravity(client, cpcache.fGravity);
 
