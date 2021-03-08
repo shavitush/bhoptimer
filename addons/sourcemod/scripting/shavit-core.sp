@@ -3345,12 +3345,12 @@ public void OnEntityCreated(int entity, const char[] classname)
 {
 	if (StrEqual(classname, "player_speedmod"))
 	{
-		gH_AcceptInput.HookEntity(Hook_Pre, entity, player_speedmod_AcceptInput);
+		gH_AcceptInput.HookEntity(Hook_Pre, entity, DHook_AcceptInput_player_speedmod);
 	}
 }
 
 // bool CBaseEntity::AcceptInput(char  const*, CBaseEntity*, CBaseEntity*, variant_t, int)
-public MRESReturn player_speedmod_AcceptInput(int pThis, DHookReturn hReturn, DHookParam hParams)
+public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hReturn, DHookParam hParams)
 {
 	char buf[128];
 	hParams.GetString(1, buf, sizeof(buf));
