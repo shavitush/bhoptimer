@@ -73,6 +73,9 @@ enum struct playertimer_t
 EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Protobuf = false;
 
+// used for hooking player_speedmod's AcceptInput
+DynamicHook gH_AcceptInput;
+
 // database handle
 Database gH_SQL = null;
 bool gB_MySQL = false;
@@ -259,8 +262,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	LoadDHooks();
-
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
@@ -300,6 +301,8 @@ public void OnPluginStart()
 	{
 		SetFailState("This plugin was meant to be used in CS:S, CS:GO and TF2 *only*.");
 	}
+
+	LoadDHooks();
 
 	// hooks
 	gB_HookedJump = HookEventEx("player_jump", Player_Jump);
@@ -472,6 +475,31 @@ void LoadDHooks()
 
 	delete CreateInterface;
 	delete gamedataConf;
+
+	GameData AcceptInputGameData;
+
+	if (gEV_Type == Engine_CSS)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/game.cstrike");
+	}
+	else if (gEV_Type == Engine_TF2)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/game.tf");
+	}
+	else if (gEV_Type == Engine_CSGO)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/engine.csgo");
+	}
+
+	// Stolen from dhooks-test.sp
+	offset = AcceptInputGameData.GetOffset("AcceptInput");
+	delete AcceptInputGameData;
+	gH_AcceptInput = new DynamicHook(offset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_CharPtr);
+	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_Object, 20, DHookPass_ByVal|DHookPass_ODTOR|DHookPass_OCTOR|DHookPass_OASSIGNOP); //variant_t is a union of 12 (float[3]) plus two int type params 12 + 8 = 20
+	gH_AcceptInput.AddParam(HookParamType_Int);
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -3311,6 +3339,49 @@ public void PostThinkPost(int client)
 		}
 		#endif
 	}
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if (StrEqual(classname, "player_speedmod"))
+	{
+		gH_AcceptInput.HookEntity(Hook_Pre, entity, player_speedmod_AcceptInput);
+	}
+}
+
+// bool CBaseEntity::AcceptInput(char  const*, CBaseEntity*, CBaseEntity*, variant_t, int)
+public MRESReturn player_speedmod_AcceptInput(int pThis, DHookReturn hReturn, DHookParam hParams)
+{
+	char buf[128];
+	hParams.GetString(1, buf, sizeof(buf));
+
+	if (!StrEqual(buf, "ModifySpeed") || hParams.IsNull(2))
+	{
+		return MRES_Ignored;
+	}
+
+	int activator = hParams.Get(2);
+
+	if (!IsValidClient(activator, true))
+	{
+		return MRES_Ignored;
+	}
+
+	hParams.GetObjectVarString(4, 0, ObjectValueType_String, buf, sizeof(buf));
+
+	float speed = StringToFloat(buf);
+	int style = gA_Timers[activator].iStyle;
+
+	speed *= (gA_Timers[activator].fTimescale != -1.0) ? gA_Timers[activator].fTimescale : GetStyleSettingFloat(style, "speed");
+	SetEntPropFloat(activator, Prop_Data, "m_flLaggedMovementValue", speed);
+
+	#if DEBUG
+	int caller = hParams.Get(3);
+	PrintToServer("ModifySpeed activator = %d(%N), caller = %d, old_speed = %s, new_speed = %f", activator, activator, caller, buf, speed);
+	#endif
+
+	hReturn.Value = true;
+	return MRES_Supercede;
 }
 
 public MRESReturn DHook_ProcessMovement(Handle hParams)
