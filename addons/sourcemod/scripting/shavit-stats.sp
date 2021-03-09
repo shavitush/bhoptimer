@@ -256,7 +256,7 @@ void UpdateWRs(int client)
 		return;
 	}
 
-	char sQuery[1300];
+	char sQuery[1666];
 
 	// TODO: Replace with big sexy query that'll calc the stuff sql-side like below
 	FormatEx(sQuery, sizeof(sQuery),
@@ -266,25 +266,25 @@ void UpdateWRs(int client)
 	gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"WITH x AS ("...
-		"  SELECT a.track, a.style, a.auth FROM %splayertimes a"...
-		"  JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b"...
-		"  ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style"...
-		"), hrank AS ("...
-		"  SELECT track, style, auth, c, RANK() OVER(PARTITION BY style,track ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT sum(c) as c, auth, track, style FROM (SELECT track, style, auth, COUNT(auth) as c FROM x GROUP BY track, style, auth) a GROUP BY track, style, auth) z"...
-		"), hrankall AS ("...
-		"  SELECT -1 as track, -1 as style, auth, c, RANK() OVER(ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT COUNT(*) as c, auth FROM x GROUP BY auth) z"...
-		"), hrankcvar AS ("...
-		" SELECT -1 as track, -1 as style, auth, c, RANK() OVER(ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT COUNT(*) as c, auth FROM x %s %s %s %s GROUP BY auth) z"...
-		")"...
-		" SELECT *, 0 as type FROM hrank WHERE auth = %d"...
-		" UNION SELECT *, 1 as type FROM hrankall WHERE auth = %d"...
-		" UNION SELECT *, 2 as type FROM %s WHERE auth = %d;",
+		"WITH wrs AS ( \
+			SELECT a.track, a.style, a.auth FROM %splayertimes a \
+			JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b \
+			ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style \
+		), hrankall AS ( \
+			SELECT -1 as style, auth, c, RANK() OVER(ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT COUNT(*) as c, auth FROM wrs GROUP BY auth) z \
+		), hrankcvar AS ( \
+			SELECT -1 as style, auth, c, RANK() OVER(ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT COUNT(*) as c, auth FROM wrs %s %s %s %s GROUP BY auth) z \
+		) \
+		SELECT *, 0 as track, 0 as type FROM (SELECT style, auth, c, RANK() OVER(PARTITION BY style ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT sum(c) as c, auth, style FROM (SELECT style, auth, COUNT(auth) as c FROM wrs WHERE track = 0 GROUP BY style, auth) a GROUP BY style, auth) z) a WHERE auth = %d \
+		UNION SELECT *, 1 as track, 0 as type FROM (SELECT style, auth, c, RANK() OVER(PARTITION BY style ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT sum(c) as c, auth, style FROM (SELECT style, auth, COUNT(auth) as c FROM wrs WHERE track > 0 GROUP BY style, auth) a GROUP BY style, auth) z) a WHERE auth = %d \
+		UNION SELECT *, -1 as track, 1 as type FROM hrankall WHERE auth = %d \
+		UNION SELECT *, -1 as track, 2 as type FROM %s WHERE auth = %d;",
 		gS_MySQLPrefix, gS_MySQLPrefix,
 		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
 		(gCV_MVPRankOnes.IntValue == 2)  ? "style = 0" : "",
 		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
 		(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : "",
+		iSteamID,
 		iSteamID,
 		iSteamID,
 		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "hrankcvar" : "hrankall",
@@ -312,11 +312,11 @@ public void SQL_GetWRHolderRank_Callback(Database db, DBResultSet results, const
 
 	while (results.FetchRow())
 	{
-		int track  = results.FetchInt(0);
-		int style  = results.FetchInt(1);
-		results.FetchInt(2); // int auth
-		int total  = results.FetchInt(3);
-		int wrrank = results.FetchInt(4);
+		int style  = results.FetchInt(0);
+		results.FetchInt(1); // auth
+		int total  = results.FetchInt(2);
+		int wrrank = results.FetchInt(3);
+		int track  = results.FetchInt(4);
 		int type   = results.FetchInt(5);
 
 		if (type == 0)
