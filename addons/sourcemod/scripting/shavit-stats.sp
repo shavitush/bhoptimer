@@ -321,7 +321,7 @@ public void SQL_GetWRHolderRank_Callback(Database db, DBResultSet results, const
 
 		if (type == 0)
 		{
-			gI_WRHolderRank[client][track][style] = total;
+			gI_WRHolderRank[client][track > Track_Main][style] = total;
 		}
 		else if (type == 1)
 		{
