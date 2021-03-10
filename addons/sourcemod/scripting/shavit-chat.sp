@@ -105,6 +105,7 @@ char gS_MySQLPrefix[32];
 
 // modules
 bool gB_Rankings = false;
+bool gB_Stats = false;
 bool gB_RTLer = false;
 
 // cvars
@@ -599,6 +600,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
+
+	else if(StrEqual(name, "shavit-stats"))
+	{
+		gB_Stats = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -611,6 +617,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
+	}
+
+	else if(StrEqual(name, "shavit-stats"))
+	{
+		gB_Stats = false;
 	}
 }
 
@@ -1108,7 +1119,13 @@ bool HasRankAccess(int client, int rank)
 		return true;
 	}
 
-	if(!gB_Rankings || !gCV_RankingsIntegration.BoolValue)
+	if(/*!gB_Rankings ||*/ !gCV_RankingsIntegration.BoolValue)
+	{
+		return false;
+	}
+
+	if ((!gB_Rankings && (cache.iRequire == Require_Rank || cache.iRequire == Require_Points))
+	|| (!gB_Stats && (cache.iRequire == Require_WR_Count || cache.iRequire == Require_WR_Rank)))
 	{
 		return false;
 	}
@@ -1149,6 +1166,11 @@ bool HasRankAccess(int client, int rank)
 		if(fTotal == 0.0)
 		{
 			fTotal = 1.0;
+		}
+
+		if(fVal == 1.0 && (fTotal == 1.0 || cache.fFrom == cache.fTo))
+		{
+			return true;
 		}
 
 		float fPercentile = (fVal / fTotal) * 100.0;
@@ -1281,19 +1303,19 @@ void FormatChat(int client, char[] buffer, int size)
 	FormatColors(buffer, size, true, true);
 	FormatRandom(buffer, size);
 
+	char temp[32];
+
 	if(gEV_Type != Engine_TF2)
 	{
-		char sTag[32];
-		CS_GetClientClanTag(client, sTag, 32);
-		ReplaceString(buffer, size, "{clan}", sTag);
+		CS_GetClientClanTag(client, temp, 32);
+		ReplaceString(buffer, size, "{clan}", temp);
 	}
 
 	if(gB_Rankings)
 	{
 		int iRank = Shavit_GetRank(client);
-		char sRank[16];
-		IntToString(iRank, sRank, 16);
-		ReplaceString(buffer, size, "{rank}", sRank);
+		IntToString(iRank, temp, 32);
+		ReplaceString(buffer, size, "{rank}", temp);
 
 		int iRanked = Shavit_GetRankedPlayers();
 
@@ -1303,28 +1325,27 @@ void FormatChat(int client, char[] buffer, int size)
 		}
 
 		float fPercentile = (float(iRank) / iRanked) * 100.0;
-		FormatEx(sRank, 16, "%.01f", fPercentile);
-		ReplaceString(buffer, size, "{rank1}", sRank);
+		FormatEx(temp, 32, "%.01f", fPercentile);
+		ReplaceString(buffer, size, "{rank1}", temp);
 
-		FormatEx(sRank, 16, "%.02f", fPercentile);
-		ReplaceString(buffer, size, "{rank2}", sRank);
+		FormatEx(temp, 32, "%.02f", fPercentile);
+		ReplaceString(buffer, size, "{rank2}", temp);
 
-		FormatEx(sRank, 16, "%.03f", fPercentile);
-		ReplaceString(buffer, size, "{rank3}", sRank);
+		FormatEx(temp, 32, "%.03f", fPercentile);
+		ReplaceString(buffer, size, "{rank3}", temp);
 
-		FormatEx(sRank, 16, "%d", Shavit_GetWRCount(client));
-		ReplaceString(buffer, size, "{wrs}", sRank);
-
-		FormatEx(sRank, 16, "%0.f", Shavit_GetPoints(client));
-		ReplaceString(buffer, size, "{pts}", sRank);
-
-		FormatEx(sRank, 16, "%d", Shavit_GetWRHolderRank(client));
-		ReplaceString(buffer, size, "{wrrank}", sRank);
+		FormatEx(temp, 32, "%0.f", Shavit_GetPoints(client));
+		ReplaceString(buffer, size, "{pts}", temp);
 	}
 
-	char sName[MAX_NAME_LENGTH];
-	GetClientName(client, sName, MAX_NAME_LENGTH);
-	ReplaceString(buffer, size, "{name}", sName);
+	FormatEx(temp, 32, "%d", Shavit_GetWRHolderRank(client));
+	ReplaceString(buffer, size, "{wrrank}", temp);
+
+	FormatEx(temp, 32, "%d", Shavit_GetWRCount(client));
+	ReplaceString(buffer, size, "{wrs}", temp);
+
+	GetClientName(client, temp, 32);
+	ReplaceString(buffer, size, "{name}", temp);
 }
 
 void SQL_DBConnect()

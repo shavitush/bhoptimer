@@ -679,34 +679,42 @@ public void DeleteWR_Callback(Database db, DBResultSet results, const char[] err
 	int track = hPack.ReadCell();
 	char map[PLATFORM_MAX_PATH];
 	hPack.ReadString(map, sizeof(map));
+	bool update_cache = view_as<bool>(hPack.ReadCell());
 	int steamid = hPack.ReadCell();
 	int recordid = hPack.ReadCell();
-	bool update_cache = view_as<bool>(hPack.ReadCell());
 
 	delete hPack;
 
 	if(results == null)
 	{
 		LogError("Timer (WR DeleteWR) SQL query failed. Reason: %s", error);
-
 		return;
 	}
 
-	if (recordid == -1)
+	DeleteWRFinal(style, track, map, steamid, recordid, update_cache);
+}
+
+void DeleteWRInner(int recordid, int steamid, DataPack hPack)
+{
+	hPack.WriteCell(steamid);
+	hPack.WriteCell(recordid);
+
+	char sQuery[169];
+	FormatEx(sQuery, sizeof(sQuery),
+		"DELETE FROM %splayertimes WHERE id = %d;",
+		gS_MySQLPrefix, recordid);
+	gH_SQL.Query(DeleteWR_Callback, sQuery, hPack, DBPrio_High);
+}
+
+public void DeleteWRGetID_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)
+{
+	if(results == null || !results.FetchRow())
 	{
-		results.FetchRow();
-
-		if (results.IsFieldNull(0) || results.IsFieldNull(1))
-		{
-			LogError("Timer (WR DeleteWR) SQL query failed. Reason: @deletewrid or @deletewrauth is NULL");
-			return;
-		}
-
-		recordid = results.FetchInt(0);
-		steamid = results.FetchInt(1);
+		LogError("Timer (WR DeleteWRGetID) SQL query failed. Reason: %s", error);
+		return;
 	}
 
-	DeleteWRFinal(style, track, map, steamid, recordid, update_cache);
+	DeleteWRInner(results.FetchInt(0), results.FetchInt(1), hPack);
 }
 
 void DeleteWR(int style, int track, const char[] map, int steamid, int recordid, bool delete_sql, bool update_cache)
@@ -717,32 +725,21 @@ void DeleteWR(int style, int track, const char[] map, int steamid, int recordid,
 		hPack.WriteCell(style);
 		hPack.WriteCell(track);
 		hPack.WriteString(map);
-		hPack.WriteCell(steamid);
-		hPack.WriteCell(recordid);
 		hPack.WriteCell(update_cache);
 
 		char sQuery[512];
 
 		if (recordid == -1) // missing WR recordid thing...
 		{
-			// TODO: probably doesn't work well with sqlite...
 			FormatEx(sQuery, sizeof(sQuery),
-				"SELECT p1.id, p1.auth INTO @deletewrid, @deletewrauth FROM %splayertimes p1 " ...
-				"JOIN (SELECT style, track, MIN(time) time FROM %splayertimes WHERE " ...
-				"map = '%s' AND style = %d AND track = %d) p2 " ...
-				"ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time; " ...
-				"DELETE FROM %splayertimes WHERE id = @deletewrid; " ...
-				"SELECT @deletewrid, @deletewrauth;",
-				gS_MySQLPrefix, gS_MySQLPrefix, map, style, track, gS_MySQLPrefix);
+				"SELECT id, auth FROM %swrs WHERE map = '%s' AND style = %d AND track = %d;",
+				gS_MySQLPrefix, map, style, track, gS_MySQLPrefix, map, style, track);
+			gH_SQL.Query(DeleteWRGetID_Callback, sQuery, hPack, DBPrio_High);
 		}
 		else
 		{
-			FormatEx(sQuery, sizeof(sQuery),
-				"DELETE FROM %splayertimes WHERE id = %d;",
-				gS_MySQLPrefix, recordid);
+			DeleteWRInner(recordid, steamid, hPack);
 		}
-
-		gH_SQL.Query(DeleteWR_Callback, sQuery, hPack, DBPrio_High);
 	}
 	else
 	{
@@ -1280,7 +1277,6 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 
-	// TODO: work DeleteWR() into here...
 	if(results.FetchRow())
 	{
 		int iSteamID = results.FetchInt(0);
@@ -2040,6 +2036,7 @@ void SQL_DBConnect()
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	char sQuery[1024];
+	Transaction hTransaction = new Transaction();
 
 	if(gB_MySQL)
 	{
@@ -2055,21 +2052,27 @@ void SQL_DBConnect()
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+	hTransaction.AddQuery(sQuery);
+
+	FormatEx(sQuery, sizeof(sQuery),
+		"%s %swrs AS SELECT a.* FROM %splayertimes a JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style;",
+		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
+		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+	hTransaction.AddQuery(sQuery);
+
+	gH_SQL.Execute(hTransaction, Trans_CreateTable_Success, Trans_CreateTable_Error, 0, DBPrio_High);
 }
 
-public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void Trans_CreateTable_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	if(results == null)
-	{
-		LogError("Timer (WR module) error! Users' times table creation failed. Reason: %s", error);
-
-		return;
-	}
-
 	gB_Connected = true;
 
 	OnMapStart();
+}
+
+public void Trans_CreateTable_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (WR module) SQL query %d/%d failed. Reason: %s", failIndex, numQueries, error);
 }
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
