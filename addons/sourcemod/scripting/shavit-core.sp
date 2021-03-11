@@ -319,13 +319,20 @@ public void OnPluginStart()
 	gH_StyleCookie = RegClientCookie("shavit_style", "Style cookie", CookieAccess_Protected);
 
 	// timer start
-	RegConsoleCmd("sm_s", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_start", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_r", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
 
 	RegConsoleCmd("sm_b", Command_StartTimer, "Start your timer on the bonus track.");
 	RegConsoleCmd("sm_bonus", Command_StartTimer, "Start your timer on the bonus track.");
+
+	for (int i = Track_Bonus; i <= Track_Bonus_Last; i++)
+	{
+		char cmd[10], helptext[50];
+		FormatEx(cmd, sizeof(cmd), "sm_b%d", i);
+		FormatEx(helptext, sizeof(helptext), "Start your timer on the bonus %d track.", i);
+		RegConsoleCmd(cmd, Command_StartTimer, helptext);
+	}
 
 	// teleport to end
 	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
@@ -608,7 +615,12 @@ public Action Command_StartTimer(int client, int args)
 
 	if(StrContains(sCommand, "sm_b", false) == 0)
 	{
-		if (args < 1)
+		// Pull out bonus number for commands like sm_b1 and sm_b2.
+		if ('1' <= sCommand[4] <= ('0' + Track_Bonus_Last))
+		{
+			track = sCommand[4] - '0';
+		}
+		else if (args < 1)
 		{
 			track = Shavit_GetClientTrack(client);
 		}

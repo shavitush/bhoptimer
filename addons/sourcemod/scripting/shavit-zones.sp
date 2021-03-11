@@ -228,6 +228,15 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_stages", Command_Stages, "Opens the stage menu. Usage: sm_stages [stage #]");
 	RegConsoleCmd("sm_stage", Command_Stages, "Opens the stage menu. Usage: sm_stage [stage #]");
+	RegConsoleCmd("sm_s", Command_Stages, "Opens the stage menu. Usage: sm_s [stage #]");
+
+	for (int i = 0; i <= 9; i++)
+	{
+		char cmd[10], helptext[50];
+		FormatEx(cmd, sizeof(cmd), "sm_s%d", i);
+		FormatEx(helptext, sizeof(helptext), "Go to stage %d", i);
+		RegConsoleCmd(cmd, Command_Stages, helptext);
+	}
 
 	// events
 	if(gEV_Type == Engine_TF2)
@@ -1341,16 +1350,26 @@ public Action Command_Stages(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(args > 0)
+	int iStage = -1;
+	char sCommand[16];
+	GetCmdArg(0, sCommand, 16);
+
+	if ('0' <= sCommand[4] <= '9')
+	{
+		iStage = sCommand[4] - '0';
+	}
+	else if (args > 0)
 	{
 		char arg1[8];
 		GetCmdArg(1, arg1, 8);
+		iStage = StringToInt(arg1);
+	}
 
-		int iStage = StringToInt(arg1);
-
+	if (iStage > -1)
+	{
 		for(int i = 0; i < gI_MapZones; i++)
 		{
-			if(gA_ZoneCache[i].bZoneInitialized && gA_ZoneCache[i].iZoneData == iStage)
+			if(gA_ZoneCache[i].bZoneInitialized && gA_ZoneCache[i].iZoneType == Zone_Stage && gA_ZoneCache[i].iZoneData == iStage)
 			{
 				Shavit_StopTimer(client);
 				if(!EmptyVector(gV_Destinations[i]))
@@ -1365,7 +1384,6 @@ public Action Command_Stages(int client, int args)
 			}
 		}
 	}
-
 	else
 	{
 		Menu menu = new Menu(MenuHandler_SelectStage);
