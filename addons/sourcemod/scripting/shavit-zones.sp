@@ -1192,7 +1192,7 @@ public Action Command_SetStart(int client, int args)
 
 	int track = Shavit_GetClientTrack(client);
 
-	if(gB_ZonesCreated && !InsideZone(client, Zone_Start, track))
+	if(!gB_ZonesCreated || !InsideZone(client, Zone_Start, track))
 	{
 		Shavit_PrintToChat(client, "%T", "SetStartNotInStartZone", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
 		
