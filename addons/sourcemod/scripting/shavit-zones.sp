@@ -668,7 +668,7 @@ bool LoadZonesConfig()
 	delete kv;
 
 	// copy bonus#1 settings to the rest of the bonuses
-	for (; track < TRACKS_SIZE; track++)
+	for (++track; track < TRACKS_SIZE; track++)
 	{
 		for (int type = 0; type < ZONETYPES_SIZE; type++)
 		{
