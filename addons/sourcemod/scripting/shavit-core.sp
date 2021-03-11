@@ -636,6 +636,10 @@ public Action Command_StartTimer(int client, int args)
 			track = Track_Bonus;
 		}
 	}
+	else if(StrContains(sCommand, "sm_r", false) == 0)
+	{
+		track = gA_Timers[client].iTrack;
+	}
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
 	{
