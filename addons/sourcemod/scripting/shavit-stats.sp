@@ -1049,7 +1049,7 @@ void UpdateWRHolders()
 	hTransaction.AddQuery(sQuery);
 
 	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankall;");
-		FormatEx(sQuery, sizeof(sQuery),
+	FormatEx(sQuery, sizeof(sQuery),
 		IsMySQLDatabase(gH_SQL) ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
 		"wrhrankall", gS_MySQLPrefix, "", "", "", "");
 	hTransaction.AddQuery(sQuery);
