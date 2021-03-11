@@ -587,6 +587,7 @@ bool LoadZonesConfig()
 	kv.JumpToKey("Start"); // A stupid and hacky way to achieve what I want. It works though.
 
 	int i = 0;
+	int track;
 
 	do
 	{
@@ -604,7 +605,7 @@ bool LoadZonesConfig()
 			i++;
 		}
 
-		int track = (i / ZONETYPES_SIZE);
+		track = (i / ZONETYPES_SIZE);
 
 		if(track >= TRACKS_SIZE)
 		{
@@ -627,6 +628,15 @@ bool LoadZonesConfig()
 	while(kv.GotoNextKey(false));
 
 	delete kv;
+
+	// copy bonus#1 settings to the rest of the bonuses
+	for (; track < TRACKS_SIZE; track++)
+	{
+		for (int type = 0; type < ZONETYPES_SIZE; type++)
+		{
+			gA_ZoneSettings[type][track] = gA_ZoneSettings[type][Track_Bonus];
+		}
+	}
 
 	return true;
 }
