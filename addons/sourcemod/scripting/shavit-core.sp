@@ -655,7 +655,7 @@ public Action Command_StartTimer(int client, int args)
 		Call_PushCell(track);
 		Call_Finish();
 
-		if(gCV_AllowTimerWithoutZone.BoolValue)
+		if(gCV_AllowTimerWithoutZone.BoolValue || !gB_Zones)
 		{
 			StartTimer(client, track);
 		}
@@ -1298,6 +1298,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTrack) || gB_KZMap)))
 	{
+		Shavit_StopTimer(client, true);
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_PushCell(gA_Timers[client].iTrack);
@@ -1839,12 +1840,17 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	int track = GetNativeCell(2);
 
+	Shavit_StopTimer(client, true);
+
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
 	Call_PushCell(track);
 	Call_Finish();
 
-	StartTimer(client, track);
+	if(gCV_AllowTimerWithoutZone.BoolValue || !gB_Zones)
+	{
+		StartTimer(client, track);
+	}
 }
 
 public int Native_GetPerfectJumps(Handle handler, int numParams)

@@ -173,6 +173,7 @@ int gI_KZButtons[TRACKS_SIZE][2]; // 0 - start, 1 - end
 
 // set start
 bool gB_HasSetStart[MAXPLAYERS+1][TRACKS_SIZE];
+bool gB_StartAnglesOnly[MAXPLAYERS+1][TRACKS_SIZE];
 float gF_StartPos[MAXPLAYERS+1][TRACKS_SIZE][3];
 float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][3];
 
@@ -239,9 +240,14 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_set", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_setstart", Command_SetStart, "Set current position as spawn location in start zone.");
+	RegConsoleCmd("sm_ss", Command_SetStart, "Set current position as spawn location in start zone.");
+	RegConsoleCmd("sm_sp", Command_SetStart, "Set current position as spawn location in start zone.");
+	RegConsoleCmd("sm_startpoint", Command_SetStart, "Set current position as spawn location in start zone.");
 
 	RegConsoleCmd("sm_deletestart", Command_DeleteSetStart, "Deletes the custom set start position.");
 	RegConsoleCmd("sm_deletesetstart", Command_DeleteSetStart, "Deletes the custom set start position.");
+	RegConsoleCmd("sm_delss", Command_DeleteSetStart, "Deletes the custom set start position.");
+	RegConsoleCmd("sm_delsp", Command_DeleteSetStart, "Deletes the custom set start position.");
 
 	for (int i = 0; i <= 9; i++)
 	{
@@ -574,7 +580,7 @@ public int Native_IsClientCreatingZone(Handle handler, int numParams)
 
 public int Native_SetStart(Handle handler, int numParams)
 {
-	SetStart(GetNativeCell(1), GetNativeCell(2));
+	SetStart(GetNativeCell(1), GetNativeCell(2), view_as<bool>(GetNativeCell(3)));
 }
 
 public int Native_DeleteSetStart(Handle handler, int numParams)
@@ -740,6 +746,14 @@ public void OnMapStart()
 	if(gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
+	}
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i))
+		{
+			GetStartPosition(i);
+		}
 	}
 }
 
@@ -1108,8 +1122,10 @@ public void OnClientPutInServer(int client)
 		gB_InsideZoneID[client][i] = false;
 	}
 
-	//Get user's start positions
-	GetStartPosition(client);
+	if (gB_Connected && !IsFakeClient(client))
+	{
+		GetStartPosition(client);
+	}
 
 	Reset(client);
 }
@@ -1123,16 +1139,11 @@ void GetStartPosition(int client)
 		return;
 	}
 
-	//Getting map name again, because if plugin is late, clients will be in the server before OnMapStart
-	char mapName[160];
-	GetCurrentMap(mapName, 160);
-	GetMapDisplayName(mapName, mapName, 160);
-
 	char query[512];
 
 	FormatEx(query, 512,
-		"SELECT track, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z FROM %sstartpositions WHERE auth = %d AND map = '%s'",
-		gS_MySQLPrefix, steamID, mapName);
+		"SELECT track, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, angles_only FROM %sstartpositions WHERE auth = %d AND map = '%s'",
+		gS_MySQLPrefix, steamID, gS_Map);
 
 	gH_SQL.Query(SQL_GetStartPosition_Callback, query, GetClientSerial(client));
 }
@@ -1147,12 +1158,12 @@ public void SQL_GetStartPosition_Callback(Database db, DBResultSet results, cons
 
 	int client = GetClientFromSerial(data);
 
-	if(client == 0 || !results.FetchRow())
+	if(client == 0)
 	{
 		return;
 	}
 
-	do
+	while(results.FetchRow())
 	{
 		int track = results.FetchInt(0);
 
@@ -1164,9 +1175,10 @@ public void SQL_GetStartPosition_Callback(Database db, DBResultSet results, cons
 		gF_StartAng[client][track][1] = results.FetchFloat(5);
 		gF_StartAng[client][track][2] = results.FetchFloat(6);
 
+		gB_StartAnglesOnly[client][track] = results.FetchInt(7) > 0;
 		gB_HasSetStart[client][track] = true;
 
-	} while(results.FetchRow());
+	}
 }
 
 public Action Command_SetStart(int client, int args)
@@ -1177,40 +1189,46 @@ public Action Command_SetStart(int client, int args)
 
 		return Plugin_Handled;
 	}
-	else if(gB_ZonesCreated && !InsideZone(client, Zone_Start, -1))
+
+	int track = Shavit_GetClientTrack(client);
+
+	if(gB_ZonesCreated && !InsideZone(client, Zone_Start, track))
 	{
 		Shavit_PrintToChat(client, "%T", "SetStartNotInStartZone", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
-		
-		return Plugin_Handled;
-	}
-	else if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
-	{
-		Shavit_PrintToChat(client, "%T", "SetStartNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		
 		return Plugin_Handled;
 	}
 	
 	Shavit_PrintToChat(client, "%T", "SetStart", client, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
 
-	SetStart(client, Shavit_GetClientTrack(client));
+	SetStart(client, track, GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1);
 	
 	return Plugin_Handled;
 }
 
-void SetStart(int client, int track)
+void SetStart(int client, int track, bool anglesonly)
 {
 	gB_HasSetStart[client][track] = true;
+	gB_StartAnglesOnly[client][track] = anglesonly;
 
-	GetClientAbsOrigin(client, gF_StartPos[client][track]);
+	if (anglesonly)
+	{
+		gF_StartPos[client][track] = NULL_VECTOR;
+	}
+	else
+	{
+		GetClientAbsOrigin(client, gF_StartPos[client][track]);
+	}
+
 	GetClientEyeAngles(client, gF_StartAng[client][track]);
 	
 	char query[512];
 	
 	FormatEx(query, 512,
-		"REPLACE INTO %sstartpositions (auth, track, map, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z) VALUES (%d, %d, '%s', %.03f, %.03f, %.03f, %.03f, %.03f, %.03f);",
+		"REPLACE INTO %sstartpositions (auth, track, map, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, angles_only) VALUES (%d, %d, '%s', %.03f, %.03f, %.03f, %.03f, %.03f, %.03f, %d);",
 		gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map,
 		gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
-		gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2]);
+		gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2], anglesonly);
 	
 	gH_SQL.Query(SQL_InsertStartPosition_Callback, query);
 }
@@ -2928,26 +2946,33 @@ void SQL_DBConnect()
 	gH_SQL = GetTimerDatabaseHandle();
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
+	Transaction hTransaction = new Transaction();
+
 	char sQuery[1024];
 	FormatEx(sQuery, 1024,
 		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;",
 		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
+	hTransaction.AddQuery(sQuery);
+
+	FormatEx(sQuery, 1024,
+		"CREATE TABLE IF NOT EXISTS `%sstartpositions` (`auth` INTEGER NOT NULL, `track` INTEGER NOT NULL, `map` VARCHAR(128) NOT NULL, `pos_x` FLOAT, `pos_y` FLOAT, `pos_z` FLOAT, `ang_x` FLOAT, `ang_y` FLOAT, `ang_z` FLOAT, `angles_only` BOOL, PRIMARY KEY (`auth`, `track`, `map`))%s;",
+		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
+
+	hTransaction.AddQuery(sQuery);
+
+	gH_SQL.Execute(hTransaction, Trans_CreateTable_Success, Trans_CreateTable_Failed);
 }
 
-public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void Trans_CreateTable_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	if(results == null)
-	{
-		LogError("Timer (zones module) error! Map zones' table creation failed. Reason: %s", error);
-
-		return;
-	}
-
 	gB_Connected = true;
-	
 	OnMapStart();
+}
+
+public void Trans_CreateTable_Failed(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (zones module) error! Map zones' table creation failed %d/%d. Reason: %s", failIndex, numQueries, error);
 }
 
 public void Shavit_OnRestart(int client, int track)
@@ -2971,15 +2996,13 @@ public void Shavit_OnRestart(int client, int track)
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
 			fCenter[2] = gV_MapZones[iIndex][0][2];
-			
-			if(gB_HasSetStart[client][track])
+
+			if(gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track])
 			{
-				TeleportEntity(client, gF_StartPos[client][track], gF_StartAng[client][track], view_as<float>({0.0, 0.0, 0.0}));
+				fCenter = gF_StartPos[client][track];
 			}
-			else
-			{
-				TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
-			}
+
+			TeleportEntity(client, fCenter, gB_HasSetStart[client][track] ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		// prebuilt map zones
@@ -2996,7 +3019,12 @@ public void Shavit_OnRestart(int client, int track)
 			return;
 		}
 
-		Shavit_StartTimer(client, track);
+		// Just let TouchPost/TouchPost_Trigger handle it so setstarts outside of a start zone don't start.
+		// TODO: Just remove this Shavit_StartTimer altogether then and let TouchPost/TouchPost_Trigger do it?
+		if (!gB_HasSetStart[client][track])
+		{
+			Shavit_StartTimer(client, track);
+		}
 	}
 }
 

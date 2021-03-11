@@ -29,11 +29,6 @@
 		"#format"	"{1:s},{2:s},{3:s},{4:s}"
 		"en"		"You {1}must{2} be in the {3}start zone{4} to use set start."
 	}
-	"SetStartNotOnGround"
-	{
-		"#format"	"{1:s},{2:s}"
-		"en"		"You {1}are not{2} allowed to use set start when not on the ground."
-	}
 	"DeleteSetStart"
 	{
 		"#format"	"{1:s},{2:s}"

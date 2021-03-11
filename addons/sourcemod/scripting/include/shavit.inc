@@ -1063,9 +1063,10 @@ native void Shavit_StartTimer(int client, int track);
  *
  * @param client					Client index.
  * @param track 					Timer track.
+ * @param anglesonly 				Whether to save angles only.
  * @noreturn
  */
-native void Shavit_SetStart(int client, int track);
+native void Shavit_SetStart(int client, int track, bool anglesonly);
 
 /**
  * Deletes the player's current set start position for the specified track.
