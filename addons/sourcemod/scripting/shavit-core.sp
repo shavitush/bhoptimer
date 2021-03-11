@@ -322,6 +322,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_start", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_r", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
+	RegConsoleCmd("sm_m", Command_StartTimer, "Start your timer on the main track.");
+	RegConsoleCmd("sm_main", Command_StartTimer, "Start your timer on the main track.");
 
 	RegConsoleCmd("sm_b", Command_StartTimer, "Start your timer on the bonus track.");
 	RegConsoleCmd("sm_bonus", Command_StartTimer, "Start your timer on the bonus track.");
@@ -636,7 +638,7 @@ public Action Command_StartTimer(int client, int args)
 			track = Track_Bonus;
 		}
 	}
-	else if(StrContains(sCommand, "sm_r", false) == 0)
+	else if(StrContains(sCommand, "sm_r", false) == 0 || StrContains(sCommand, "sm_s", false) == 0)
 	{
 		track = gA_Timers[client].iTrack;
 	}
