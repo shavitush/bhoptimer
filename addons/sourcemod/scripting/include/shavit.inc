@@ -1059,6 +1059,24 @@ native Database Shavit_GetDatabase();
 native void Shavit_StartTimer(int client, int track);
 
 /**
+ * Sets the player's current location as their spawn location for the specified track.
+ *
+ * @param client					Client index.
+ * @param track 					Timer track.
+ * @noreturn
+ */
+native void Shavit_SetStart(int client);
+
+/**
+ * Deletes the player's current set start position for the specified track.
+ *
+ * @param client					Client index.
+ * @param track 					Timer track.
+ * @noreturn
+ */
+native void Shavit_DeleteSetStart(int client, int track);
+
+/**
  * Restarts the timer for a player.
  * Will work as if the player just used sm_r.
  *
@@ -2337,6 +2355,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetReplayData");
 	MarkNativeAsOptional("Shavit_StartReplay");
 	MarkNativeAsOptional("Shavit_StartTimer");
+	MarkNativeAsOptional("Shavit_SetStart");
+	MarkNativeAsOptional("Shavit_DeleteSetStart");
 	MarkNativeAsOptional("Shavit_StopChatSound");
 	MarkNativeAsOptional("Shavit_StopTimer");
 	MarkNativeAsOptional("Shavit_WR_DeleteMap");

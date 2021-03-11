@@ -191,6 +191,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
 	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_Zones_DeleteMap", Native_Zones_DeleteMap);
+	CreateNative("Shavit_SetStart", Native_SetStart);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-zones");
@@ -557,6 +558,16 @@ bool InsideZone(int client, int type, int track)
 public int Native_IsClientCreatingZone(Handle handler, int numParams)
 {
 	return (gI_MapStep[GetNativeCell(1)] != 0);
+}
+
+public int Native_SetStart(Handle handler, int numParams)
+{
+	SetStart(GetNativeCell(1), GetNativeCell(2));
+}
+
+public int Native_DeleteSetStart(Handle handler, int numParams)
+{
+	DeleteSetStart(GetNativeCell(1), GetNativeCell(2));
 }
 
 bool LoadZonesConfig()
