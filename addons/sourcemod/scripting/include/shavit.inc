@@ -1065,7 +1065,7 @@ native void Shavit_StartTimer(int client, int track);
  * @param track 					Timer track.
  * @noreturn
  */
-native void Shavit_SetStart(int client);
+native void Shavit_SetStart(int client, int track);
 
 /**
  * Deletes the player's current set start position for the specified track.
