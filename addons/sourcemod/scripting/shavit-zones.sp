@@ -171,6 +171,11 @@ Handle gH_Forwards_StageMessage = null;
 float gF_ClimbButtonCache[MAXPLAYERS+1][TRACKS_SIZE][2][3]; // 0 - location, 1 - angles
 int gI_KZButtons[TRACKS_SIZE][2]; // 0 - start, 1 - end
 
+// set start
+bool gB_HasSetStart[MAXPLAYERS+1][TRACKS_SIZE];
+float gF_StartPos[MAXPLAYERS+1][TRACKS_SIZE][3];
+float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][3];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
@@ -192,6 +197,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ZoneExists", Native_ZoneExists);
 	CreateNative("Shavit_Zones_DeleteMap", Native_Zones_DeleteMap);
 	CreateNative("Shavit_SetStart", Native_SetStart);
+	CreateNative("Shavit_DeleteSetStart", Native_DeleteSetStart);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-zones");
@@ -230,6 +236,12 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_stages", Command_Stages, "Opens the stage menu. Usage: sm_stages [stage #]");
 	RegConsoleCmd("sm_stage", Command_Stages, "Opens the stage menu. Usage: sm_stage [stage #]");
 	RegConsoleCmd("sm_s", Command_Stages, "Opens the stage menu. Usage: sm_s [stage #]");
+
+	RegConsoleCmd("sm_set", Command_SetStart, "Set current position as spawn location in start zone.");
+	RegConsoleCmd("sm_setstart", Command_SetStart, "Set current position as spawn location in start zone.");
+
+	RegConsoleCmd("sm_deletestart", Command_DeleteSetStart, "Deletes the custom set start position.");
+	RegConsoleCmd("sm_deletesetstart", Command_DeleteSetStart, "Deletes the custom set start position.");
 
 	for (int i = 0; i <= 9; i++)
 	{
@@ -1084,6 +1096,11 @@ public void OnClientPutInServer(int client)
 			gF_ClimbButtonCache[client][i][0][j] = 0.0;
 			gF_ClimbButtonCache[client][i][1][j] = 0.0;
 		}
+
+		gF_StartPos[client][i] = view_as<float>({0.0, 0.0, 0.0});
+		gF_StartAng[client][i] = view_as<float>({0.0, 0.0, 0.0});
+
+		gB_HasSetStart[client][i] = false;
 	}
 
 	for(int i = 0; i < MAX_ZONES; i++)
@@ -1091,7 +1108,160 @@ public void OnClientPutInServer(int client)
 		gB_InsideZoneID[client][i] = false;
 	}
 
+	//Get user's start positions
+	GetStartPosition(client);
+
 	Reset(client);
+}
+
+void GetStartPosition(int client)
+{
+	int steamID = GetSteamAccountID(client);
+
+	if(steamID == 0 || client == 0)
+	{
+		return;
+	}
+
+	//Getting map name again, because if plugin is late, clients will be in the server before OnMapStart
+	char mapName[160];
+	GetCurrentMap(mapName, 160);
+	GetMapDisplayName(mapName, mapName, 160);
+
+	char query[512];
+
+	FormatEx(query, 512,
+		"SELECT track, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z FROM %sstartpositions WHERE auth = %d AND map = '%s'",
+		gS_MySQLPrefix, steamID, mapName);
+
+	gH_SQL.Query(SQL_GetStartPosition_Callback, query, GetClientSerial(client));
+}
+
+public void SQL_GetStartPosition_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (get start position) SQL query failed. Reason: %s", error);
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0 || !results.FetchRow())
+	{
+		return;
+	}
+
+	do
+	{
+		int track = results.FetchInt(0);
+
+		gF_StartPos[client][track][0] = results.FetchFloat(1);
+		gF_StartPos[client][track][1] = results.FetchFloat(2);
+		gF_StartPos[client][track][2] = results.FetchFloat(3);
+
+		gF_StartAng[client][track][0] = results.FetchFloat(4);
+		gF_StartAng[client][track][1] = results.FetchFloat(5);
+		gF_StartAng[client][track][2] = results.FetchFloat(6);
+
+		gB_HasSetStart[client][track] = true;
+
+	} while(results.FetchRow());
+}
+
+public Action Command_SetStart(int client, int args)
+{
+	if(!IsValidClient(client, true))
+	{
+		Shavit_PrintToChat(client, "%T", "SetStartCommandAlive", client, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
+
+		return Plugin_Handled;
+	}
+	else if(gB_ZonesCreated && !InsideZone(client, Zone_Start, -1))
+	{
+		Shavit_PrintToChat(client, "%T", "SetStartNotInStartZone", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
+		
+		return Plugin_Handled;
+	}
+	else if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
+	{
+		Shavit_PrintToChat(client, "%T", "SetStartNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		
+		return Plugin_Handled;
+	}
+	
+	Shavit_PrintToChat(client, "%T", "SetStart", client, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
+
+	SetStart(client, Shavit_GetClientTrack(client));
+	
+	return Plugin_Handled;
+}
+
+void SetStart(int client, int track)
+{
+	gB_HasSetStart[client][track] = true;
+
+	GetClientAbsOrigin(client, gF_StartPos[client][track]);
+	GetClientEyeAngles(client, gF_StartAng[client][track]);
+	
+	char query[512];
+	
+	FormatEx(query, 512,
+		"REPLACE INTO %sstartpositions (auth, track, map, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z) VALUES (%d, %d, '%s', %.03f, %.03f, %.03f, %.03f, %.03f, %.03f);",
+		gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map,
+		gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
+		gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2]);
+	
+	gH_SQL.Query(SQL_InsertStartPosition_Callback, query);
+}
+
+public void SQL_InsertStartPosition_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if(!db || !results || error[0])
+	{
+		LogError("Timer (zones) InsertStartPosition_Callback SQL query failed! (%s)", error);
+
+		return;
+	}
+}
+
+public Action Command_DeleteSetStart(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	Shavit_PrintToChat(client, "%T", "DeleteSetStart", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+	DeleteSetStart(client, Shavit_GetClientTrack(client));
+
+	return Plugin_Handled;
+}
+
+void DeleteSetStart(int client, int track)
+{
+	gB_HasSetStart[client][track] = false;
+	gF_StartPos[client][track] = view_as<float>({0.0, 0.0, 0.0});
+	gF_StartAng[client][track] = view_as<float>({0.0, 0.0, 0.0});
+
+	char query[512];
+	
+	FormatEx(query, 512,
+		"DELETE FROM %sstartpositions WHERE auth = %d AND track = %d AND map = '%s';",
+		gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map);
+
+	gH_SQL.Query(SQL_DeleteSetStart_Callback, query);
+}
+
+public void SQL_DeleteSetStart_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if(!db || !results || error[0])
+	{
+		LogError("SQL_DeleteSetStart_Callback - Query failed! (%s)", error);
+
+		return;
+	}
 }
 
 public Action Command_Modifier(int client, int args)
@@ -2801,8 +2971,15 @@ public void Shavit_OnRestart(int client, int track)
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
 			fCenter[2] = gV_MapZones[iIndex][0][2];
-
-			TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			
+			if(gB_HasSetStart[client][track])
+			{
+				TeleportEntity(client, gF_StartPos[client][track], gF_StartAng[client][track], view_as<float>({0.0, 0.0, 0.0}));
+			}
+			else
+			{
+				TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			}
 		}
 
 		// prebuilt map zones
