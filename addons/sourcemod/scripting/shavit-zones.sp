@@ -3020,8 +3020,7 @@ public void Shavit_OnRestart(int client, int track)
 		}
 
 		// Just let TouchPost/TouchPost_Trigger handle it so setstarts outside of a start zone don't start.
-		// TODO: Just remove this Shavit_StartTimer altogether then and let TouchPost/TouchPost_Trigger do it?
-		if (!gB_HasSetStart[client][track])
+		if (!gB_HasSetStart[client][track] || gB_StartAnglesOnly[client][track])
 		{
 			Shavit_StartTimer(client, track);
 		}
@@ -3326,6 +3325,11 @@ public void TouchPost(int entity, int other)
 	{
 		case Zone_Start:
 		{
+			if(GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1)
+			{
+				return;
+			}
+
 			// start timer instantly for main track, but require bonuses to have the current timer stopped
 			// so you don't accidentally step on those while running
 			if(Shavit_GetTimerStatus(other) == Timer_Stopped || Shavit_GetClientTrack(other) != Track_Main)
@@ -3491,6 +3495,11 @@ public void TouchPost_Trigger(int entity, int other)
 
 	if(zone == Zone_Start)
 	{
+		if(GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1)
+		{
+			return;
+		}
+
 		if(Shavit_GetTimerStatus(other) == Timer_Stopped || Shavit_GetClientTrack(other) != Track_Main)
 		{
 			Shavit_StartTimer(other, track);
