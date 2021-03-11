@@ -1219,6 +1219,11 @@ void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 	Call_PushCell(oldtrack);
 	Call_PushCell(newtrack);
 	Call_Finish();
+
+	if (oldtrack == Track_Main && oldtrack != newtrack)
+	{
+		Shavit_PrintToChat(client, "%T", "TrackChangeFromMain", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+	}
 }
 
 void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
