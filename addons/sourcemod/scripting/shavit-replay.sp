@@ -978,12 +978,21 @@ public void OnMapStart()
 
 	if(!FileExists(sTempMap))
 	{
-		if(!FileExists("maps/base.nav"))
-		{
-			SetFailState("Plugin startup FAILED: \"maps/base.nav\" does not exist.");
-		}
+		File file = OpenFile(sTempMap, "wb");
 
-		File_Copy("maps/base.nav", sTempMap);
+		if(file != null)
+		{
+			int defaultNavMesh[51] = {
+				-17958194, 16, 1, 128600, 16777217, 1, 1, 0, -1007845376, 1112014848, 1107304447, -1035468800,
+				1139638272, 1107304447, 1107304447, 1107304447, 0, 0, 0, 0, 4, -415236096, 2046820547, 2096962, 
+				65858, 0, 49786, 536822394, 33636864, 0, 12745216, -12327104, 21102623, 3, -1008254976, 1139228672,
+				1107304447, 1, 0, 0, 0, 4386816, 4386816, 4161536, 4161536, 4161536, 20938752, 16777216, 33554432, 0, 0
+			};
+			file.Write(defaultNavMesh, 51, 4);
+			int zero[1] = {0};
+			file.Write(zero, 1, 1); // defaultNavMesh is missing one byte...
+			delete file;
+		}
 
 		ForceChangeLevel(gS_Map, ".nav file generate");
 
@@ -3041,7 +3050,7 @@ float GetClosestReplayTime(int client)
  * @param source		Input file
  * @param destination	Output file
  */
-bool File_Copy(const char[] source, const char[] destination)
+stock bool File_Copy(const char[] source, const char[] destination)
 {
 	File file_source = OpenFile(source, "rb");
 
