@@ -37,6 +37,7 @@ enum struct wrcache_t
 	bool bPendingMenu;
 	bool bLoadedCache;
 	char sClientMap[128];
+	float fWRs[STYLE_LIMIT];
 }
 
 bool gB_Late = false;
@@ -420,6 +421,7 @@ public void OnClientPutInServer(int client)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
+		gA_WRCache[client].fWRs[i] = 0.0;
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			gF_PlayerRecord[client][i][j] = 0.0;
@@ -1460,13 +1462,72 @@ public Action Command_WorldRecord(int client, int args)
 		}
 	}
 
-	return ShowWRStyleMenu(client, track);
-}
-
-Action ShowWRStyleMenu(int client, int track)
-{
 	gA_WRCache[client].iLastTrack = track;
 
+	RetrieveWRMenu(client, track);
+	return Plugin_Handled;
+}
+
+void RetrieveWRMenu(int client, int track)
+{
+	if (gA_WRCache[client].bPendingMenu)
+	{
+		return;
+	}
+
+	if (StrEqual(gA_WRCache[client].sClientMap, gS_Map))
+	{
+		for (int i = 0; i < gI_Styles; i++)
+		{
+			gA_WRCache[client].fWRs[i] = gF_WRTime[i][track];
+		}
+		ShowWRStyleMenu(client, track);
+	}
+	else
+	{
+		gA_WRCache[client].bPendingMenu = true;
+		char sQuery[512];
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT style, time FROM %swrs WHERE map = '%s' AND track = %d AND style < %d ORDER BY style;",
+			gS_MySQLPrefix, gA_WRCache[client].sClientMap, track, gI_Styles);
+		gH_SQL.Query(SQL_RetrieveWRMenu_Callback, sQuery, GetClientSerial(client));
+	}
+}
+
+public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (WR RetrieveWRMenu) SQL query failed. Reason: %s", error);
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	gA_WRCache[client].bPendingMenu = false;
+
+	for (int i = 0; i < gI_Styles; i++)
+	{
+		gA_WRCache[client].fWRs[i] = 0.0;
+	}
+
+	while (results.FetchRow())
+	{
+		int style  = results.FetchInt(0);
+		float time = results.FetchFloat(1);
+		gA_WRCache[client].fWRs[style] = time;
+	}
+
+	ShowWRStyleMenu(client, gA_WRCache[client].iLastTrack);
+}
+
+void ShowWRStyleMenu(int client, int track)
+{
 	Menu menu = new Menu(MenuHandler_StyleChooser);
 	menu.SetTitle("%T", "WRMenuTitle", client);
 
@@ -1487,20 +1548,19 @@ Action ShowWRStyleMenu(int client, int track)
 
 		char sDisplay[64];
 
-		if(StrEqual(gA_WRCache[client].sClientMap, gS_Map) && gF_WRTime[iStyle][track] > 0.0)
+		if (gA_WRCache[client].fWRs[iStyle] > 0.0)
 		{
 			char sTime[32];
-			FormatSeconds(gF_WRTime[iStyle][track], sTime, 32, false);
+			FormatSeconds(gA_WRCache[client].fWRs[iStyle], sTime, 32, false);
 
 			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[iStyle].sStyleName, sTime);
 		}
-
 		else
 		{
 			strcopy(sDisplay, 64, gS_StyleStrings[iStyle].sStyleName);
 		}
 
-		menu.AddItem(sInfo, sDisplay, (GetRecordAmount(iStyle, track) > 0 || !StrEqual(gA_WRCache[client].sClientMap, gS_Map))? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, (gA_WRCache[client].fWRs[iStyle] > 0.0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
 	// should NEVER happen
@@ -1513,8 +1573,6 @@ Action ShowWRStyleMenu(int client, int track)
 
 	menu.ExitButton = true;
 	menu.Display(client, 30);
-
-	return Plugin_Handled;
 }
 
 public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, int param2)
@@ -1815,13 +1873,13 @@ public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 		else
 		{
-			ShowWRStyleMenu(param1, gA_WRCache[param1].iLastTrack);
+			RetrieveWRMenu(param1, gA_WRCache[param1].iLastTrack);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		ShowWRStyleMenu(param1, gA_WRCache[param1].iLastTrack);
+		RetrieveWRMenu(param1, gA_WRCache[param1].iLastTrack);
 	}
 
 	else if(action == MenuAction_End)
@@ -1872,6 +1930,11 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	int iSteamID = 0;
 	char sTrack[32];
 	char sMap[192];
+	
+	for (int i = 0; i < gI_Styles; i++)
+	{
+		gA_WRCache[client].fWRs[i] = 0.0;
+	}
 
 	if(results.FetchRow())
 	{
@@ -1888,6 +1951,8 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int iStyle = results.FetchInt(3);
 		int iJumps = results.FetchInt(2);
 		float fPerfs = results.FetchFloat(9);
+
+		gA_WRCache[client].fWRs[iStyle] = fTime;
 
 		if(Shavit_GetStyleSettingInt(iStyle, "autobhop"))
 		{
