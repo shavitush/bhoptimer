@@ -1910,11 +1910,35 @@ native int Shavit_ReloadReplays(bool restart);
  * Gets time from replay frame that is closest to client.
  *
  * @param 				Client index.
- * @param				Client style.
- * @param				Client track.
  * @return				Replay time.
  */
-native float Shavit_GetClosestReplayTime(int client, int style, int track);
+native float Shavit_GetClosestReplayTime(int client);
+
+/**
+ * Gets the style the client is getting the closest replay time from.
+ *
+ * @param				Client index.
+ * @return				style
+ */
+native int Shavit_GetClosestReplayStyle(int client);
+
+/**
+ * Sets the style to grab the closest replay time from.
+ *
+ * @param				Client index.
+ * @param				Style to grab replay time from. -1 to use the client's current style.
+ * @noreturn
+ */
+native void Shavit_SetClosestReplayStyle(int client, int style);
+
+/**
+ * Gets velocity from replay frame that is closest to client.
+ *
+ * @param				Client index.
+ * @param				true for 3D velocity difference. false for 2D velocity difference.
+ * @return				Velocity difference from closest replay position.
+ */
+native float Shavit_GetClosestReplayVelocityDifference(int client, bool threeD);
 
 /**
  * Use this native to stop the click sound that plays upon chat messages.
