@@ -82,6 +82,11 @@ enum struct zone_settings_t
 	int iAlpha;
 	float fWidth;
 	bool bFlatZone;
+	bool bUseVanillaSprite;
+	bool bNoHalo;
+	int iBeam;
+	int iHalo;
+	char sBeam[PLATFORM_MAX_PATH];
 }
 
 enum
@@ -132,8 +137,6 @@ bool gB_ZonesCreated = false;
 int gI_LastStage[MAXPLAYERS+1];
 
 char gS_BeamSprite[PLATFORM_MAX_PATH];
-int gI_BeamSprite = -1;
-int gI_HaloSprite = -1;
 
 // admin menu
 TopMenu gH_AdminMenu = null;
@@ -659,6 +662,9 @@ bool LoadZonesConfig()
 		gA_ZoneSettings[index][track].iAlpha = kv.GetNum("alpha", 255);
 		gA_ZoneSettings[index][track].fWidth = kv.GetFloat("width", 2.0);
 		gA_ZoneSettings[index][track].bFlatZone = view_as<bool>(kv.GetNum("flat", false));
+		gA_ZoneSettings[index][track].bUseVanillaSprite = view_as<bool>(kv.GetNum("vanilla_sprite", false));
+		gA_ZoneSettings[index][track].bNoHalo = view_as<bool>(kv.GetNum("no_halo", false));
+		kv.GetString("beam", gA_ZoneSettings[index][track].sBeam, sizeof(zone_settings_t::sBeam), "");
 
 		i++;
 	}
@@ -686,24 +692,47 @@ void LoadZoneSettings()
 		SetFailState("Cannot open \"configs/shavit-zones.cfg\". Make sure this file exists and that the server has read permissions to it.");
 	}
 
-	if(gCV_UseCustomSprite.BoolValue)
-	{
-		gI_BeamSprite = PrecacheModel(gS_BeamSprite, true);
-		gI_HaloSprite = 0;
-	}
+	int defaultBeam;
+	int defaultHalo;
+	int customBeam;
 
+	if(IsSource2013(gEV_Type))
+	{
+		defaultBeam = PrecacheModel("sprites/laser.vmt", true);
+		defaultHalo = PrecacheModel("sprites/halo01.vmt", true);
+	}
 	else
 	{
-		if(IsSource2013(gEV_Type))
-		{
-			gI_BeamSprite = PrecacheModel("sprites/laser.vmt", true);
-			gI_HaloSprite = PrecacheModel("sprites/halo01.vmt", true);
-		}
+		defaultBeam = PrecacheModel("sprites/laserbeam.vmt", true);
+		defaultHalo = PrecacheModel("sprites/glow01.vmt", true);
+	}
 
-		else
+	if(gCV_UseCustomSprite.BoolValue)
+	{
+		customBeam = PrecacheModel(gS_BeamSprite, true);
+	}
+	else
+	{
+		customBeam = defaultBeam;
+	}
+
+	for (int i = 0; i < ZONETYPES_SIZE; i++)
+	{
+		for (int j = 0; j < TRACKS_SIZE; j++)
 		{
-			gI_BeamSprite = PrecacheModel("sprites/laserbeam.vmt", true);
-			gI_HaloSprite = PrecacheModel("sprites/glow01.vmt", true);
+
+			if (gA_ZoneSettings[i][j].bUseVanillaSprite)
+			{
+				gA_ZoneSettings[i][j].iBeam = defaultBeam;
+			}
+			else
+			{
+				gA_ZoneSettings[i][j].iBeam = (gA_ZoneSettings[i][j].sBeam[0] != 0)
+					? PrecacheModel(gA_ZoneSettings[i][j].sBeam, true)
+					: customBeam;
+			}
+
+			gA_ZoneSettings[i][j].iHalo = (gA_ZoneSettings[i][j].bNoHalo) ? 0 : defaultHalo;
 		}
 	}
 }
@@ -2743,7 +2772,9 @@ public Action Timer_DrawEverything(Handle Timer)
 						RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gCV_Interval.FloatValue,
 						gA_ZoneSettings[type][track].fWidth,
 						gA_ZoneSettings[type][track].bFlatZone,
-						gV_ZoneCenter[i]);
+						gV_ZoneCenter[i],
+						gA_ZoneSettings[type][track].iBeam,
+						gA_ZoneSettings[type][track].iHalo);
 			}
 		}
 
@@ -2810,6 +2841,9 @@ public Action Timer_Draw(Handle Timer, any data)
 		origin = gV_Point2[client];
 	}
 
+	int type = gI_ZoneType[client];
+	int track = gI_ZoneTrack[client];
+
 	if(!EmptyVector(gV_Point1[client]) || !EmptyVector(gV_Point2[client]))
 	{
 		float points[8][3];
@@ -2820,10 +2854,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
 		origin = points[7];
 
-		int type = gI_ZoneType[client];
-		int track = gI_ZoneTrack[client];
-
-		DrawZone(points, GetZoneColors(type, track, 125), 0.1, gA_ZoneSettings[type][track].fWidth, false, origin);
+		DrawZone(points, GetZoneColors(type, track, 125), 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gA_ZoneSettings[type][track].iBeam, gA_ZoneSettings[type][track].iHalo);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -2836,7 +2867,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	{
 		origin[2] -= gCV_Height.FloatValue;
 
-		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, origin, gA_ZoneSettings[type][track].iBeam, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 		TE_SendToAll(0.0);
 
 		// visualize grid snap
@@ -2851,7 +2882,7 @@ public Action Timer_Draw(Handle Timer, any data)
 			snap2 = origin;
 			snap2[i] += (gI_GridSnap[client] / 2);
 
-			TE_SetupBeamPoints(snap1, snap2, gI_BeamSprite, gI_HaloSprite, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
+			TE_SetupBeamPoints(snap1, snap2, gA_ZoneSettings[type][track].iBeam, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 			TE_SendToAll(0.0);
 		}
 	}
@@ -2859,7 +2890,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3])
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo)
 {
 	static int pairs[][] =
 	{
@@ -2897,7 +2928,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 	for(int i = 0; i < ((flat)? 4:12); i++)
 	{
-		TE_SetupBeamPoints(points[pairs[i][0]], points[pairs[i][1]], gI_BeamSprite, gI_HaloSprite, 0, 0, life, width, width, 0, 0.0, color, 0);
+		TE_SetupBeamPoints(points[pairs[i][0]], points[pairs[i][1]], beam, halo, 0, 0, life, width, width, 0, 0.0, color, 0);
 		TE_Send(clients, count, 0.0);
 	}
 }
