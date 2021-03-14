@@ -857,7 +857,7 @@ public Action Command_Delete(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -908,7 +908,7 @@ void DeleteSubmenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 }
 
 public Action Command_DeleteAll(int client, int args)
@@ -940,7 +940,7 @@ public Action Command_DeleteAll(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -987,7 +987,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		}
 
 		subMenu.ExitButton = true;
-		subMenu.Display(param1, 20);
+		subMenu.Display(param1, 300);
 	}
 
 	else if(action == MenuAction_End)
@@ -1043,7 +1043,7 @@ void DeleteAllSubmenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 }
 
 public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int param2)
@@ -1174,7 +1174,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 }
 
 public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -1226,7 +1226,7 @@ void OpenDeleteMenu(int client, int id)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 }
 
 public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -1572,7 +1572,7 @@ void ShowWRStyleMenu(int client, int track)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 30);
+	menu.Display(client, 300);
 }
 
 public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, int param2)
@@ -1729,7 +1729,7 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	hMenu.ExitBackButton = true;
-	hMenu.Display(client, 20);
+	hMenu.Display(client, 300);
 }
 
 public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -1851,7 +1851,7 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 60);
+	menu.Display(client, 300);
 }
 
 public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -2044,7 +2044,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	hMenu.SetTitle(sFormattedTitle);
 	hMenu.ExitBackButton = true;
-	hMenu.Display(client, 20);
+	hMenu.Display(client, 300);
 }
 
 public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)

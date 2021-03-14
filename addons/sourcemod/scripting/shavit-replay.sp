@@ -2487,7 +2487,7 @@ public Action Command_DeleteReplay(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -2532,7 +2532,7 @@ public int DeleteReplay_Callback(Menu menu, MenuAction action, int param1, int p
 		}
 
 		submenu.ExitButton = true;
-		submenu.Display(param1, 20);
+		submenu.Display(param1, 300);
 	}
 
 	else if(action == MenuAction_End)
@@ -2642,7 +2642,7 @@ Action OpenReplayMenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 60);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -2725,7 +2725,7 @@ void OpenReplaySubMenu(int client, int track, int item = 0)
 	}
 
 	menu.ExitBackButton = true;
-	menu.DisplayAt(client, item, 60);
+	menu.DisplayAt(client, item, 300);
 }
 
 public int MenuHandler_ReplaySubmenu(Menu menu, MenuAction action, int param1, int param2)

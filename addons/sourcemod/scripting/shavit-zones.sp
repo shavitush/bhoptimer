@@ -1343,7 +1343,7 @@ Action DisplayCustomSpawnMenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 60);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -1415,7 +1415,7 @@ Action DisplayCustomSpawnDeleteMenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 60);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -1673,7 +1673,7 @@ public Action Command_Zones(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -1704,7 +1704,7 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 		}
 
 		submenu.ExitButton = true;
-		submenu.Display(param1, 20);
+		submenu.Display(param1, 300);
 	}
 
 	else if(action == MenuAction_End)
@@ -1762,7 +1762,7 @@ Action OpenEditMenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 120);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -1875,7 +1875,7 @@ Action OpenDeleteMenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -1979,7 +1979,7 @@ public Action Command_DeleteAllZones(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
