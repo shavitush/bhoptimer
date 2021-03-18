@@ -1481,7 +1481,7 @@ void RetrieveWRMenu(int client, int track)
 		{
 			gA_WRCache[client].fWRs[i] = gF_WRTime[i][track];
 		}
-		ShowWRStyleMenu(client, track);
+		ShowWRStyleMenu(client);
 	}
 	else
 	{
@@ -1523,10 +1523,10 @@ public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const 
 		gA_WRCache[client].fWRs[style] = time;
 	}
 
-	ShowWRStyleMenu(client, gA_WRCache[client].iLastTrack);
+	ShowWRStyleMenu(client);
 }
 
-void ShowWRStyleMenu(int client, int track)
+void ShowWRStyleMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_StyleChooser);
 	menu.SetTitle("%T", "WRMenuTitle", client);
@@ -1747,13 +1747,13 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 		else
 		{
-			ShowWRStyleMenu(param1, gA_WRCache[param1].iLastTrack);
+			ShowWRStyleMenu(param1);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		ShowWRStyleMenu(param1, gA_WRCache[param1].iLastTrack);
+		ShowWRStyleMenu(param1);
 	}
 
 	else if(action == MenuAction_End)
