@@ -102,6 +102,7 @@ float gF_PauseEyeAngles[MAXPLAYERS+1][3];
 // cookies
 Handle gH_HideCookie = null;
 Handle gH_CheckpointsCookie = null;
+Cookie gH_BlockAdvertsCookie = null;
 
 // cvars
 Convar gCV_GodMode = null;
@@ -290,6 +291,8 @@ public void OnPluginStart()
 	gA_Advertisements = new ArrayList(300);
 	hostname = FindConVar("hostname");
 	hostport = FindConVar("hostport");
+	RegConsoleCmd("sm_toggleadverts", Command_ToggleAdverts, "Toggles visibility of advertisements");
+	gH_BlockAdvertsCookie = new Cookie("shavit-blockadverts", "whether to block shavit-misc advertisements", CookieAccess_Private);
 
 	// cvars and stuff
 	gCV_GodMode = new Convar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
@@ -890,6 +893,17 @@ public Action Timer_Advertisement(Handle timer)
 	{
 		if(IsClientConnected(i) && IsClientInGame(i))
 		{
+			if(AreClientCookiesCached(i))
+			{
+				char sCookie[2];
+				gH_BlockAdvertsCookie.Get(i, sCookie, sizeof(sCookie));
+
+				if (sCookie[0] == '1')
+				{
+					continue;
+				}
+			}
+
 			char sTempMessage[300];
 			gA_Advertisements.GetString(gI_AdvertisementsCycle, sTempMessage, 300);
 
@@ -1607,6 +1621,19 @@ public Action Command_Spec(int client, int args)
 	if(IsValidClient(target, true))
 	{
 		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", target);
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_ToggleAdverts(int client, int args)
+{
+	if (IsValidClient(client))
+	{
+		char sCookie[4];
+		gH_BlockAdvertsCookie.Get(client, sCookie, sizeof(sCookie));
+		gH_BlockAdvertsCookie.Set(client, (sCookie[0] == '1') ? "0" : "1");
+		Shavit_PrintToChat(client, "%T", (sCookie[0] == '1') ? "AdvertisementsEnabled" : "AdvertisementsDisabled", client);
 	}
 
 	return Plugin_Handled;

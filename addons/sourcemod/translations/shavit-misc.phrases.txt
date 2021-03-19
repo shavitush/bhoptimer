@@ -199,4 +199,12 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1}NEW {2} WR!!!"
 	}
+	"AdvertisementsEnabled"
+	{
+		"en"		"Advertisements enabled"
+	}
+	"AdvertisementsDisabled"
+	{
+		"en"		"Advertisements disabled"
+	}
 }
