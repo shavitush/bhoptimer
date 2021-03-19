@@ -2711,7 +2711,7 @@ void OpenReplayTypeMenu(int client)
 
 	FormatEx(sDisplay, sizeof(sDisplay), "%T", "Menu_Replay_Central", client);
 	IntToString(view_as<int>(Replay_Central), sInfo, sizeof(sInfo));
-	menu.AddItem(sInfo, sDisplay, (gCV_CentralBot.BoolValue && gA_BotInfo[gI_CentralBot].iStatus == Replay_Idle) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	menu.AddItem(sInfo, sDisplay, (gCV_CentralBot.BoolValue && IsValidClient(gI_CentralBot) && gA_BotInfo[gI_CentralBot].iStatus == Replay_Idle) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	FormatEx(sDisplay, sizeof(sDisplay), "%T", "Menu_Replay_Dynamic", client);
 	IntToString(view_as<int>(Replay_Dynamic), sInfo, sizeof(sInfo));
@@ -2772,7 +2772,7 @@ public int MenuHandler_ReplayType(Menu menu, MenuAction action, int param1, int 
 			return 0;
 		}
 
-		if ((type == Replay_Central && (!gCV_CentralBot.BoolValue || gA_BotInfo[gI_CentralBot].iStatus != Replay_Idle))
+		if ((type == Replay_Central && (!gCV_CentralBot.BoolValue || !IsValidClient(gI_CentralBot) || gA_BotInfo[gI_CentralBot].iStatus != Replay_Idle))
 		|| (type == Replay_Dynamic && (gCV_DynamicBotLimit.IntValue < 1 || gI_DynamicBots >= gCV_DynamicBotLimit.IntValue))
 		|| (type == Replay_Prop && (!gCV_AllowPropBots.BoolValue)))
 		{
@@ -2922,8 +2922,12 @@ public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int
 
 		if (type == Replay_Central)
 		{
-			StartReplay(gA_BotInfo[gI_CentralBot], gI_MenuTrack[param1], gI_MenuStyle[param1], param1, gCV_ReplayDelay.FloatValue);
-			SetEntPropEnt(param1, Prop_Send, "m_hObserverTarget", gI_CentralBot);
+			if (IsValidClient(gI_CentralBot))
+			{
+				StartReplay(gA_BotInfo[gI_CentralBot], gI_MenuTrack[param1], gI_MenuStyle[param1], param1, gCV_ReplayDelay.FloatValue);
+				SetEntPropEnt(param1, Prop_Send, "m_hObserverTarget", gI_CentralBot);
+			}
+			// TODO: error message if not valid
 		}
 		else if (type == Replay_Dynamic)
 		{
@@ -3202,6 +3206,11 @@ float GetClosestReplayTime(int client)
 {
 	int style = gI_TimeDifferenceStyle[client];
 	int track = Shavit_GetClientTrack(client);
+
+	if (gA_FrameCache[style][track].aFrames == null)
+	{
+		return -1.0;
+	}
 
 	int iLength = gA_FrameCache[style][track].aFrames.Length;
 
