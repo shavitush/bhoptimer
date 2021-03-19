@@ -33,3 +33,12 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
 `shavit-core` - completely required.  
 `shavit-zones` - completely required.  
 `shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-rankings` and `shavit-sounds`.
+
+# Recommened plugins:
+* [MomSurfFix](https://github.com/GAMMACASE/MomSurfFix)
+	- Makes surf ramps less likely to stop players. (Ramp bug / surf glitch)
+* [RNGFix](https://github.com/jason-e/rngfix)
+  - Makes slopes, teleporters, and more less random. Replaces `slopefix`
+* [eventqueuefix](https://github.com/hermansimensen/eventqueue-fix)
+  - Changes how events are sent to players. Makes boosters more consistent. Replaces `boosterfix`
+* TODO: `paint`, `mpbhops`, `showtriggers`, `showplayerclips`, `ssj`, `ljstats`, `shavit-mapchooser`, `NoViewPunch`, `bash2`
