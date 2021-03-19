@@ -26,7 +26,6 @@
 #define SHAVIT_VERSION "2.7.0"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
-#define MAX_NAME_LENGTH_SQL 32
 
 // HUD
 #define HUD_NONE				0
@@ -63,7 +62,10 @@ enum ReplayStatus
 enum ReplayBotType
 {
 	Replay_Central,
-	Replay_Legacy
+	Replay_Legacy,  // TODO: REMOVE
+	Replay_Looping, // these are the ones that loop styles, tracks, and (eventually) stages...
+	Replay_Dynamic, // these are bots that spawn on !replay when the central bot is taken
+	Replay_Prop,    // A prop entity that is being used as a replay...
 };
 
 enum
@@ -252,6 +254,31 @@ enum struct cp_cache_t
 	bool bPractice;
 	int iGroundEntity;
 	int iSteamID;
+}
+
+enum struct frame_t
+{
+	float pos[3];
+	float ang[2];
+	int buttons;
+	// iReplayVersion >= 0x02
+	int flags;
+	MoveType mt;
+	// iReplayVersion >= 0x05
+	//float vel[3];
+}
+
+enum struct framecache_t
+{
+	int iFrameCount;
+	float fTime;
+	bool bNewFormat;
+	int iReplayVersion;
+	char sReplayName[MAX_NAME_LENGTH];
+	int iPreFrames;
+	ArrayList aFrames;
+	// iReplayVersion >= 0x05
+	//int iPostFrames;
 }
 
 #if defined USES_CHAT_COLORS
@@ -485,7 +512,7 @@ stock int GetSpectatorTarget(int client, int fallback = -1)
 		{
 			int iTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
 
-			if(IsValidClient(iTarget, true))
+			if (IsValidEntity(iTarget))
 			{
 				target = iTarget;
 			}
@@ -845,18 +872,20 @@ forward void Shavit_OnRankAssigned(int client, int rank, float points, bool firs
 /**
  * Called when replay playback starts.
  *
- * @param client					Client index for the bot.
+ * @param ent						Entity index for the replay.
+ * @param type						The type of replay. Replay_Prop means `ent` is not a fakeclient, but instead a prop.
  * @noreturn
  */
-forward void Shavit_OnReplayStart(int client);
+forward void Shavit_OnReplayStart(int ent, ReplayBotType type);
 
 /**
  * Called when replay playback ends.
  *
- * @param client					Client index for the bot.
+ * @param client					Entity index for the replay.
+ * @param type						The type of replay. Replay_Prop means `ent` is not a fakeclient, but instead a prop.
  * @noreturn
  */
-forward void Shavit_OnReplayEnd(int client);
+forward void Shavit_OnReplayEnd(int ent, ReplayBotType type);
 
 /**
  * Called when all replays files have been loaded.
@@ -881,7 +910,7 @@ forward void Shavit_OnReplaysLoaded();
  * @param maxvel					Player's highest reached velocity.
  * @param timestamp					System time of when player finished.
  * @param iswr						If the time is the new WR.
- * @param istoolong					If the time is too long to save a replay if the time is a WR.
+ * @param istoolong					If the time is too long to save a replay if the time is a WR. Note: replays WON'T be full length if this is true.
  * @return							Return Plugin_Changed (or higher) to cause a copy of the replay to be saved. Return Plugin_Continue otherwise.
  */
 forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool iswr, bool istoolong);
@@ -902,7 +931,7 @@ forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, in
  * @param maxvel					Player's highest reached velocity.
  * @param timestamp					System time of when player finished.
  * @param iswr						If the time is the new WR.
- * @param istoolong					If the time is too long to save a replay if the time is a WR.
+ * @param istoolong					If the time is too long to save a replay if the time is a WR. Note: replays WON'T be full length if this is true.
  * @param iscopy					If the path points to a copy of the replay.
  * @param replaypath				Path to the saved replay.
  * @noreturn
@@ -1469,35 +1498,35 @@ native bool Shavit_DeleteReplay(const char[] map, int style, int track, int acco
 /**
  * Retrieves the engine time of the replay bot's first frame.
  *
- * @param style						Style.
- * @param time						Reference to save the time on.
- * @noreturn
+ * @param entity					Entity index.
+ * @return							The engine time of the replay bot's first frame.
  */
-native void Shavit_GetReplayBotFirstFrame(int style, float &time);
+native float Shavit_GetReplayBotFirstFrame(int entity);
 
 /**
- * Retrieve the replay bot's client index.
+ * Retrieve the replay bot's entity index.
  *
- * @param style						Style.
- * @return							Client index for the replay bot.
+ * @param track						Trakc you want. -1 if you want the central bot. If no central bot, the first bot it finds it used.
+ * @param style						Style you want. -1 if you want the central bot. If no central bot, the first bot it finds it used.
+ * @return							Client index for the replay bot. -1 if not found.
  */
-native int Shavit_GetReplayBotIndex(int style);
+native int Shavit_GetReplayBotIndex(int track, int style);
 
 /**
  * Retrieve the style being played by the replay bot.
  *
- * @param client					Client index.
- * @return							Style being played by the replay bot. -1 if it's a central replay bot that's idle.
+ * @param entity					Entity index.
+ * @return							Style being played by the replay bot. -1 if the replay bot is idle.
  */
-native int Shavit_GetReplayBotStyle(int client);
+native int Shavit_GetReplayBotStyle(int entity);
 
 /**
  * Retrieve the timer track being played by the replay bot.
  *
- * @param client					Client index.
- * @return							Timer track replayed by the bot. -1 if it's not a bot.
+ * @param entity					entity index.
+ * @return							Timer track replayed by the bot. -1 if the replay bot is idle.
  */
-native int Shavit_GetReplayBotTrack(int client);
+native int Shavit_GetReplayBotTrack(int entity);
 
 /**
  * Gets the replay bot type setting of the server.
@@ -1509,10 +1538,10 @@ native ReplayBotType Shavit_GetReplayBotType();
 /**
  * Retrieve the replay bot's current played frame.
  *
- * @param style						Style.
+ * @param entity						Entity index.
  * @return							Current played frame.
  */
-native int Shavit_GetReplayBotCurrentFrame(int style);
+native int Shavit_GetReplayBotCurrentFrame(int entity);
 
 /**
  * Retrieves a replay's frame count.
@@ -1552,11 +1581,10 @@ native float Shavit_GetReplayLength(int style, int track);
 /**
  * Retrieves an actively playing replay's time.
  *
- * @param style						Style.
- * @param track						Track. (ignored for non-central bots)
- * @noreturn
+ * @param entity					Entity index.
+ * @return							The bot's time in the replay.
  */
-native float Shavit_GetReplayTime(int style, int track);
+native float Shavit_GetReplayTime(int entity);
 
 /**
  * Retrieves a replay holder's name.
@@ -1877,13 +1905,50 @@ native void Shavit_SetReplayData(int client, ArrayList data);
 native ArrayList Shavit_GetReplayData(int client);
 
 /**
+ * Checks if the given entity is a replay bot (fakeclient) or replay prop.
+ *
+ * @param ent						The entity index to check.
+ */
+native bool Shavit_IsReplayEntity(int ent);
+
+/**
  * Starts a replay given a style and track. 
- * @param client					Client index.
+ *
  * @param style						Bhop style.
  * @param track						Timer track.
- * @noreturn							
+ * @param delay						Delay until starting.
+ * @param client					Client index.
+ * @param bot						Bot to play on. Should be of type Replay_Central or Replay_Dynamic. -1 to create new replay bot.
+ * @param type						ReplayBotType. Replay_Prop needs `bot` to be -1.
+ * @param ignorelimit				Ignore cvar limit.
+ * @return							true if things work and the replay should be starting...
  */
-native void Shavit_StartReplay(int style, int track, float delay, int client = 1);
+native bool Shavit_StartReplay(int style, int track, float delay, int client, int bot, bool ignorelimit = false);
+
+/**
+ * Starts a replay with a given set of frames.
+ * Useful for playing a replay downloaded from a global WR database...
+ *
+ * @param style						Bhop style. TODO
+ * @param track						Timer track. TODO
+ * @param delay						Delay until starting.
+ * @param client					Player who started the replay. 0 if created by the server or a plugin.
+ * @param cache						framecache_t filled with replay info and frames.
+ * @param size						sizeof(framecache_t). Used to throw errors at you if you don't recompile plugins.
+ * @noreturn
+ */
+//native void Shavit_StartReplayFromFrameCache(int style, int track, float delay, int client, any[] cache, int size = sizeof(framecache_t));
+
+/**
+ * Starts a replay from a replay file.
+ * Useful for playing a replay downloaded from a global WR database...
+ *
+ * @param delay						Delay until starting.
+ * @param client					Player who started the replay. 0 if created by the server or a plugin.
+ * @param path						File path to replay
+ * @noreturn
+ */
+//native void Shavit_StartReplayFromFile(float delay, int client, const char[] path);
 
 /**
  * Reloads a specific replay into the replay bot cache.
@@ -2149,11 +2214,11 @@ native float Shavit_GetClientTimescale(int client);
 /**
  * Gets the replay status
  *
- * @param style						Replay style
+ * @param ent						Replay bot (or prop) entity
  *
  * @return							Replay's status
  */
-native ReplayStatus Shavit_GetReplayStatus(int style);
+native ReplayStatus Shavit_GetReplayStatus(int ent);
 
 /**
  * Saves a new checkpoint and returns the new checkpoint index

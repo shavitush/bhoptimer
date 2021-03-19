@@ -58,4 +58,32 @@
 	{
 		"en"		"Select a track to play:"
 	}
+	"Replay_Central"
+	{
+		"en"		"!replay"
+	}
+	"Replay_Dynamic"
+	{
+		"en"		"Dynamic"
+	}
+	"Replay_Looping"
+	{
+		"en"		"Looping"
+	}
+	"Menu_ReplayBotType"
+	{
+		"en"		"Replay bot type:"
+	}
+	"Menu_Replay_Central"
+	{
+		"en"		"Central !replay bot"
+	}
+	"Menu_Replay_Dynamic"
+	{
+		"en"		"Spawn dynamic bot"
+	}
+	"Menu_Replay_Prop"
+	{
+		"en"		"Spawn physics prop bot"
+	}
 }

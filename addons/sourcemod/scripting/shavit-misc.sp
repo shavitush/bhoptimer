@@ -1599,10 +1599,9 @@ public Action Command_Spec(int client, int args)
 			return Plugin_Handled;
 		}
 	}
-
 	else if(gB_Replay)
 	{
-		target = Shavit_GetReplayBotIndex(0);
+		target = Shavit_GetReplayBotIndex(-1, -1);
 	}
 
 	if(IsValidClient(target, true))
@@ -2290,6 +2289,12 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	int target = GetSpectatorTarget(client, client);
 	int iFlags = GetEntityFlags(client);
 
+	if (target > MaxClients)
+	{
+		// TODO: Replay_Prop...
+		return false;
+	}
+
 	if(target == client && !IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
@@ -2422,7 +2427,7 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		}
 
 		snapshot.bTimerEnabled = true;
-		snapshot.fCurrentTime = Shavit_GetReplayTime(style, track);
+		snapshot.fCurrentTime = Shavit_GetReplayTime(target);
 		snapshot.bClientPaused = false;
 		snapshot.bsStyle = style;
 		snapshot.iJumps = 0;
@@ -2433,7 +2438,6 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		snapshot.iSHSWCombination = -1;
 		snapshot.iTimerTrack = track;
 	}
-
 	else
 	{
 		Shavit_SaveSnapshot(target, snapshot);

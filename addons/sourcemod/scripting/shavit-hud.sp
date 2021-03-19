@@ -1016,7 +1016,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 	if(data.bReplay)
 	{
-		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iStyle) != Replay_Idle && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
+		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iTarget) != Replay_Idle && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
 		{
 			char sTrack[32];
 
@@ -1456,7 +1456,7 @@ void UpdateMainHUD(int client)
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
 	float fSpeedHUD = ((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
-	bool bReplay = (gB_Replay && IsFakeClient(target));
+	bool bReplay = (gB_Replay && Shavit_IsReplayEntity(target));
 	ZoneHUD iZoneHUD = ZoneHUD_None;
 	int iReplayStyle = 0;
 	int iReplayTrack = 0;
@@ -1475,7 +1475,6 @@ void UpdateMainHUD(int client)
 			iZoneHUD = ZoneHUD_End;
 		}
 	}
-
 	else
 	{
 		iReplayStyle = Shavit_GetReplayBotStyle(target);
@@ -1483,12 +1482,11 @@ void UpdateMainHUD(int client)
 
 		if(iReplayStyle != -1)
 		{
-			fReplayTime = Shavit_GetReplayTime(iReplayStyle, iReplayTrack);
+			fReplayTime = Shavit_GetReplayTime(target);
 			fReplayLength = Shavit_GetReplayLength(iReplayStyle, iReplayTrack);
 
-			char sSpeed[16];
-			Shavit_GetStyleSetting(iReplayStyle, "speed", sSpeed, 16);
-			float fSpeed2 = StringToFloat(sSpeed);
+			float fSpeed2 = Shavit_GetStyleSettingFloat(iReplayStyle, "speed");
+
 			if(fSpeed2 != 1.0)
 			{
 				fSpeedHUD /= fSpeed2;
@@ -1559,7 +1557,7 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	// to make it shorter
 	int buttons = gI_Buttons[target];
-	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+	int style = (Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
 	{
@@ -1619,7 +1617,7 @@ void UpdateCenterKeys(int client)
 		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
 		(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
 
-	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+	int style = (Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
 	{
@@ -1710,11 +1708,13 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 		int track = 0;
 		int style = 0;
+		float fTargetPB = 0.0;
 
-		if(!IsFakeClient(target))
+		if(!Shavit_IsReplayEntity(target))
 		{
 			style = Shavit_GetBhopStyle(target);
 			track = Shavit_GetClientTrack(target);
+			fTargetPB = Shavit_GetClientPB(target, style, track);
 		}
 
 		else
@@ -1741,7 +1741,6 @@ void UpdateTopLeftHUD(int client, bool wait)
 			char sTopLeft[128];
 			FormatEx(sTopLeft, 128, "WR: %s (%s)", sWRTime, sWRName);
 
-			float fTargetPB = Shavit_GetClientPB(target, style, track);
 			char sTargetPB[64];
 			FormatSeconds(fTargetPB, sTargetPB, 64);
 			Format(sTargetPB, 64, "%T: %s", "HudBestText", client, sTargetPB);
@@ -1826,7 +1825,13 @@ void UpdateKeyHint(int client)
 
 		if(target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)
 		{
-			int style = Shavit_GetBhopStyle(target);
+			int bReplay = Shavit_IsReplayEntity(target);
+			int style = bReplay ? Shavit_GetReplayBotStyle(target) : Shavit_GetBhopStyle(target);
+
+			if(!(0 <= style < gI_Styles))
+			{
+				style = 0;
+			}
 
 			char sync[4];
 			Shavit_GetStyleSetting(style, "sync", sync, 4);
@@ -1834,7 +1839,7 @@ void UpdateKeyHint(int client)
 			char autobhop[4];
 			Shavit_GetStyleSetting(style, "autobhop", autobhop, 4);
 
-			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && StringToInt(sync) && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, -1)))
+			if(!bReplay && (gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && StringToInt(sync) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, -1)))
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
