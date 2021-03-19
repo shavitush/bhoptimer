@@ -1936,7 +1936,7 @@ public void OnClientDisconnect(int client)
 	}
 
 	if (gA_BotInfo[client].iEnt == client)
-	{		
+	{
 		UpdateBotQuota(gI_ExpectedBots - 1);
 		CancelReplay(gA_BotInfo[client], 0, false);
 
@@ -3106,10 +3106,7 @@ void KickReplay(bot_info_t info, int stopper = -1)
 
 	int starter = GetClientFromSerial(info.iStarterSerial);
 
-	if (info.iStatus != Replay_Idle)
-	{
-		CancelReplay(info, stopper, false);
-	}
+	CancelReplay(info, stopper, false);
 
 	if (1 <= info.iEnt <= MaxClients)
 	{
