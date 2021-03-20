@@ -3201,6 +3201,15 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 		}
 	}
 
+	if(gEV_Type == Engine_CSGO)
+	{
+		//close team menu
+		Event FakeEvent = CreateEvent("player_team");
+		FakeEvent.SetInt("userid", event.GetInt("userid"));
+		FakeEvent.FireToClient(client);
+		FakeEvent.Cancel();
+	}
+
 	return Plugin_Continue;
 }
 
