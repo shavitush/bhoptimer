@@ -2340,7 +2340,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 			for(int i = 1; i <= MaxClients; i++)
 			{
-				if(client != i && IsClientInGame(i) && GetSpectatorTarget(i) == client)
+				if(client != i && IsValidClient(i) && GetSpectatorTarget(i) == client)
 				{
 					FormatEx(sMessage, 255, "%s[%s]%s %T",
 						gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletionWorse", i, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sVariable, avgvel, maxvel, gS_ChatStrings.sText, sDifference);
