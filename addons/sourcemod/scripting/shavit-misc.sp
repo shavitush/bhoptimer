@@ -1690,7 +1690,7 @@ public Action Command_Teleport(int client, int args)
 		}
 
 		menu.ExitButton = true;
-		menu.Display(client, 300);
+		menu.Display(client, MENU_TIME_FOREVER);
 	}
 
 	return Plugin_Handled;
@@ -2278,7 +2278,7 @@ void ConfirmCheckpointsDeleteMenu(int client)
 	hMenu.AddItem("no", sDisplay);
 
 	hMenu.ExitButton = true;
-	hMenu.Display(client, 300);
+	hMenu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_CheckpointsDelete(Menu menu, MenuAction action, int param1, int param2)
@@ -2732,7 +2732,7 @@ void OpenStopWarningMenu(int client, StopTimerCallback after)
 	hMenu.AddItem("no", sDisplay);
 
 	hMenu.ExitButton = true;
-	hMenu.Display(client, 300);
+	hMenu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_StopWarning(Menu menu, MenuAction action, int param1, int param2)
