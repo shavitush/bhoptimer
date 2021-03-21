@@ -220,6 +220,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
 	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
 	CreateNative("Shavit_GetReplayStarter", Native_GetReplayStarter);
+	CreateNative("Shavit_GetReplayButtons", Native_GetReplayButtons);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
@@ -871,6 +872,20 @@ public int Native_GetReplayStarter(Handle handler, int numParams)
 {
 	int starter = gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].iStarterSerial;
 	return (starter > 0) ? GetClientFromSerial(starter) : 0;
+}
+
+public int Native_GetReplayButtons(Handle handler, int numParams)
+{
+	int bot = GetBotInfoIndex(GetNativeCell(1));
+
+	if (gA_BotInfo[bot].iStatus != Replay_Running)
+	{
+		return 0;
+	}
+
+	frame_t aFrame;
+	gA_BotInfo[bot].aCache.aFrames.GetArray(gA_BotInfo[bot].iTick, aFrame, 6);
+	return aFrame.buttons;
 }
 
 public int Native_Replay_DeleteMap(Handle handler, int numParams)

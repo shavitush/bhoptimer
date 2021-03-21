@@ -1550,13 +1550,24 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	int target = GetSpectatorTarget(client, client);
 
-	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) || IsClientObserver(target))
+	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target))
 	{
 		return;
 	}
 
-	// to make it shorter
-	int buttons = gI_Buttons[target];
+	if (IsValidClient(target))
+	{
+		if (IsClientObserver(target))
+		{
+			return;
+		}
+	}
+	else if (!Shavit_IsReplayEntity(target))
+	{
+		return;
+	}
+
+	int buttons = IsValidClient(target) ? gI_Buttons[target] : Shavit_GetReplayButtons(target);
 	int style = (Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
@@ -1603,12 +1614,24 @@ void UpdateCenterKeys(int client)
 
 	int target = GetSpectatorTarget(client, client);
 
-	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) || IsClientObserver(target))
+	if((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target)
 	{
 		return;
 	}
 
-	int buttons = gI_Buttons[target];
+	if (IsValidClient(target))
+	{
+		if (IsClientObserver(target))
+		{
+			return;
+		}
+	}
+	else if (!Shavit_IsReplayEntity(target))
+	{
+		return;
+	}
+
+	int buttons = IsValidClient(target) ? gI_Buttons[target] : Shavit_GetReplayButtons(target);
 
 	char sCenterText[64];
 	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s　 %s 　%s\n　%s　　%s",

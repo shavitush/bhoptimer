@@ -1552,6 +1552,15 @@ native int Shavit_GetReplayBotCurrentFrame(int entity);
 native int Shavit_GetReplayStarter(int ent);
 
 /**
+ * Retrieves the replay's buttons for its current tick.
+ * Really, this is only useful for things like replay props.
+ *
+ * @param ent						Replay entity.
+ * @return							buttons
+ */
+native int Shavit_GetReplayButtons(int ent);
+
+/**
  * Retrieves a replay's frame count.
  *
  * @param style						Style.
