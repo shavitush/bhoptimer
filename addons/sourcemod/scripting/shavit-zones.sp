@@ -2257,7 +2257,7 @@ bool SnapToWall(float pos[3], int client, float final[3])
 		int axis = (i / 2);
 		end[axis] += (((i % 2) == 1)? -gI_GridSnap[client]:gI_GridSnap[client]);
 
-		TR_TraceRayFilter(pos, end, MASK_SOLID, RayType_EndPoint, TraceFilter_NoClients, client);
+		TR_TraceRayFilter(pos, end, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_NoClients, client);
 
 		if(TR_DidHit())
 		{
@@ -2290,7 +2290,7 @@ float[] GetAimPosition(int client)
 	float angles[3];
 	GetClientEyeAngles(client, angles);
 
-	TR_TraceRayFilter(pos, angles, MASK_SHOT, RayType_Infinite, TraceFilter_NoClients, client);
+	TR_TraceRayFilter(pos, angles, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_NoClients, client);
 
 	if(TR_DidHit())
 	{
@@ -2919,7 +2919,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 			GetClientEyePosition(i, eyes);
 
 			if(GetVectorDistance(eyes, center) <= 1024.0 ||
-				(TR_TraceRayFilter(eyes, center, CONTENTS_SOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit()))
+				(TR_TraceRayFilter(eyes, center, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit()))
 			{
 				clients[count++] = i;
 			}
