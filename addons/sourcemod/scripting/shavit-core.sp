@@ -1182,7 +1182,7 @@ public Action Command_Style(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
