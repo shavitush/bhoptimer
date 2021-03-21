@@ -32,6 +32,9 @@
 #include <tf2>
 #include <tf2_stocks>
 
+//#include <TickRateControl>
+forward void TickRate_OnTickRateChanged(float fOld, float fNew);
+
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
 #define REPLAY_FORMAT_SUBVERSION 0x04
@@ -282,6 +285,7 @@ public void OnPluginStart()
 
 	// game specific
 	gEV_Type = GetEngineVersion();
+	gF_Tickrate = (1.0 / GetTickInterval());
 
 	gCV_BotQuota = FindConVar((gEV_Type != Engine_TF2)? "bot_quota":"tf_bot_quota");
 	gCV_BotQuota.Flags &= ~FCVAR_NOTIFY;
@@ -1851,8 +1855,6 @@ void UpdateReplayClient(int client)
 		return;
 	}
 
-	gF_Tickrate = (1.0 / GetTickInterval());
-
 	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
@@ -1958,9 +1960,9 @@ public void OnClientDisconnect(int client)
 
 public Action Shavit_OnStart(int client)
 {
-	float fSpeed = Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "speed");
+	int iMaxPreFrames = RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "speed"));
 
-	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / fSpeed);
+	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - iMaxPreFrames;
 	if(gI_PlayerPrerunFrames[client] < 0)
 	{
 		gI_PlayerPrerunFrames[client] = 0;
@@ -1977,7 +1979,7 @@ public Action Shavit_OnStart(int client)
 	}
 	else
 	{
-		if(gA_PlayerFrames[client].Length >= RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / fSpeed))
+		if(gA_PlayerFrames[client].Length >= iMaxPreFrames)
 		{
 			gA_PlayerFrames[client].Erase(0);
 			gI_PlayerFrames[client]--;
@@ -3160,6 +3162,11 @@ void GetReplayName(int style, int track, char[] buffer, int length)
 	}
 
 	Shavit_GetWRName(style, buffer, length, track);
+}
+
+public void TickRate_OnTickRateChanged(float fOld, float fNew)
+{
+	gF_Tickrate = fNew;
 }
 
 public void OnGameFrame()
