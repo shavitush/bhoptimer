@@ -71,7 +71,7 @@ enum struct bot_info_t
 	ReplayStatus iStatus; // Shavit_GetReplayStatus
 	ReplayBotType iType; // Shavit_GetReplayBotType
 	int iTrack; // Shavit_GetReplayBotTrack
-	int iStarterSerial; // TODO: Add Shavit_GetReplayStarter
+	int iStarterSerial; // Shavit_GetReplayStarter
 	int iTick; // Shavit_GetReplayBotCurrentFrame
 	int iLoopingConfig;
 	Handle hTimer;
@@ -216,6 +216,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotStyle", Native_GetReplayBotStyle);
 	CreateNative("Shavit_GetReplayBotTrack", Native_GetReplayBotTrack);
 	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
+	CreateNative("Shavit_GetReplayStarter", Native_GetReplayStarter);
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
@@ -860,6 +861,12 @@ public int Native_GetReplayBotTrack(Handle handler, int numParams)
 public int Native_GetReplayBotType(Handle handler, int numParams)
 {
 	return view_as<int>(gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].iType);
+}
+
+public int Native_GetReplayStarter(Handle handler, int numParams)
+{
+	int starter = gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].iStarterSerial;
+	return (starter > 0) ? GetClientFromSerial(starter) : 0;
 }
 
 public int Native_Replay_DeleteMap(Handle handler, int numParams)

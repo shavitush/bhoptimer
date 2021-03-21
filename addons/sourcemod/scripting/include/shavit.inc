@@ -1544,6 +1544,14 @@ native ReplayBotType Shavit_GetReplayBotType();
 native int Shavit_GetReplayBotCurrentFrame(int entity);
 
 /**
+ * Retrieves the client who started the replay.
+ *
+ * @param ent						Replay entity.
+ * @return							Client index of starter. Can be 0
+ */
+native int Shavit_GetReplayStarter(int ent);
+
+/**
  * Retrieves a replay's frame count.
  *
  * @param style						Style.
@@ -2387,6 +2395,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotStyle");
 	MarkNativeAsOptional("Shavit_GetReplayBotTrack");
 	MarkNativeAsOptional("Shavit_GetReplayBotType");
+	MarkNativeAsOptional("Shavit_GetReplayStarter");
 	MarkNativeAsOptional("Shavit_GetReplayData");
 	MarkNativeAsOptional("Shavit_GetReplayFrameCount");
 	MarkNativeAsOptional("Shavit_GetReplayFrames");
