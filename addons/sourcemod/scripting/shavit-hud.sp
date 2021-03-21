@@ -742,7 +742,7 @@ Action ShowHUDMenu(int client, int item)
 	}
 
 	menu.ExitButton = true;
-	menu.DisplayAt(client, item, 300);
+	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
