@@ -489,8 +489,9 @@ public Action Command_Top(int client, int args)
 {
 	if(gH_Top100Menu != null)
 	{
+		Menu gH_Top100Menu = new Menu(MenuHandler_Top, MENU_ACTIONS_ALL);
 		gH_Top100Menu.SetTitle("%T (%d)\n ", "Top100", client, gI_RankedPlayers);
-		gH_Top100Menu.Display(client, 300);
+		gH_Top100Menu.DisplayAt(client, MENU_TIME_FOREVER);
 	}
 
 	return Plugin_Handled;
