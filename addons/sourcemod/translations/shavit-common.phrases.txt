@@ -16,7 +16,7 @@
 	"Track_Bonus"
 	{
 		"#format"	"{1:d}"
-		"en"		"Bonus #{1}"
+		"en"		"Bonus {1}"
 	}
 	// ---------- Commands ---------- //
 	"NoCommandAccess"

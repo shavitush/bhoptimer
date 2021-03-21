@@ -270,7 +270,7 @@ public void Shavit_OnWorstRecord(int client, int style, float time, int jumps, i
 
 void PlayEventSound(int client, bool everyone, char sound[PLATFORM_MAX_PATH])
 {
-	int[] clients = new int[MaxClients];
+	int clients[MAXPLAYERS+1];
 	int count = 0;
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -295,7 +295,6 @@ void PlayEventSound(int client, bool everyone, char sound[PLATFORM_MAX_PATH])
 			clients[count++] = i;
 		}
 	}
-
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_OnPlaySound);

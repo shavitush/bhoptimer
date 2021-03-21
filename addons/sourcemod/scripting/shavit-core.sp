@@ -65,11 +65,16 @@ enum struct playertimer_t
 	float fDistanceOffset[2];
 	// convert to array for per zone offsets
 	int iZoneIncrement;
+	float fAvgVelocity;
+	float fMaxVelocity;
 }
 
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Protobuf = false;
+
+// used for hooking player_speedmod's AcceptInput
+DynamicHook gH_AcceptInput;
 
 // database handle
 Database gH_SQL = null;
@@ -233,11 +238,19 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
 	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
 	CreateNative("Shavit_SetPracticeMode", Native_SetPracticeMode);
+	CreateNative("Shavit_SetStyleSetting", Native_SetStyleSetting);
+	CreateNative("Shavit_SetStyleSettingFloat", Native_SetStyleSettingFloat);
+	CreateNative("Shavit_SetStyleSettingBool", Native_SetStyleSettingBool);
+	CreateNative("Shavit_SetStyleSettingInt", Native_SetStyleSettingInt);
 	CreateNative("Shavit_StartTimer", Native_StartTimer);
 	CreateNative("Shavit_StopChatSound", Native_StopChatSound);
 	CreateNative("Shavit_StopTimer", Native_StopTimer);
 	CreateNative("Shavit_GetClientTimescale", Native_GetClientTimescale);
 	CreateNative("Shavit_SetClientTimescale", Native_SetClientTimescale);
+	CreateNative("Shavit_GetAvgVelocity", Native_GetAvgVelocity);
+	CreateNative("Shavit_GetMaxVelocity", Native_GetMaxVelocity);
+	CreateNative("Shavit_SetAvgVelocity", Native_SetAvgVelocity);
+	CreateNative("Shavit_SetMaxVelocity", Native_SetMaxVelocity);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -249,14 +262,12 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	LoadDHooks();
-
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
-	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
@@ -291,6 +302,8 @@ public void OnPluginStart()
 		SetFailState("This plugin was meant to be used in CS:S, CS:GO and TF2 *only*.");
 	}
 
+	LoadDHooks();
+
 	// hooks
 	gB_HookedJump = HookEventEx("player_jump", Player_Jump);
 	HookEvent("player_death", Player_Death);
@@ -306,13 +319,22 @@ public void OnPluginStart()
 	gH_StyleCookie = RegClientCookie("shavit_style", "Style cookie", CookieAccess_Protected);
 
 	// timer start
-	RegConsoleCmd("sm_s", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_start", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_r", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
+	RegConsoleCmd("sm_m", Command_StartTimer, "Start your timer on the main track.");
+	RegConsoleCmd("sm_main", Command_StartTimer, "Start your timer on the main track.");
 
 	RegConsoleCmd("sm_b", Command_StartTimer, "Start your timer on the bonus track.");
 	RegConsoleCmd("sm_bonus", Command_StartTimer, "Start your timer on the bonus track.");
+
+	for (int i = Track_Bonus; i <= Track_Bonus_Last; i++)
+	{
+		char cmd[10], helptext[50];
+		FormatEx(cmd, sizeof(cmd), "sm_b%d", i);
+		FormatEx(helptext, sizeof(helptext), "Start your timer on the bonus %d track.", i);
+		RegConsoleCmd(cmd, Command_StartTimer, helptext);
+	}
 
 	// teleport to end
 	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
@@ -342,6 +364,7 @@ public void OnPluginStart()
 
 	#if DEBUG
 	RegConsoleCmd("sm_finishtest", Command_FinishTest);
+	RegConsoleCmd("sm_fling", Command_Fling);
 	#endif
 
 	// admin
@@ -461,6 +484,31 @@ void LoadDHooks()
 
 	delete CreateInterface;
 	delete gamedataConf;
+
+	GameData AcceptInputGameData;
+
+	if (gEV_Type == Engine_CSS)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/game.cstrike");
+	}
+	else if (gEV_Type == Engine_TF2)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/game.tf");
+	}
+	else if (gEV_Type == Engine_CSGO)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/engine.csgo");
+	}
+
+	// Stolen from dhooks-test.sp
+	offset = AcceptInputGameData.GetOffset("AcceptInput");
+	delete AcceptInputGameData;
+	gH_AcceptInput = new DynamicHook(offset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_CharPtr);
+	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_Object, 20, DHookPass_ByVal|DHookPass_ODTOR|DHookPass_OCTOR|DHookPass_OASSIGNOP); //variant_t is a union of 12 (float[3]) plus two int type params 12 + 8 = 20
+	gH_AcceptInput.AddParam(HookParamType_Int);
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -569,7 +617,12 @@ public Action Command_StartTimer(int client, int args)
 
 	if(StrContains(sCommand, "sm_b", false) == 0)
 	{
-		if (args < 1)
+		// Pull out bonus number for commands like sm_b1 and sm_b2.
+		if ('1' <= sCommand[4] <= ('0' + Track_Bonus_Last))
+		{
+			track = sCommand[4] - '0';
+		}
+		else if (args < 1)
 		{
 			track = Shavit_GetClientTrack(client);
 		}
@@ -585,6 +638,10 @@ public Action Command_StartTimer(int client, int args)
 			track = Track_Bonus;
 		}
 	}
+	else if(StrContains(sCommand, "sm_r", false) == 0 || StrContains(sCommand, "sm_s", false) == 0)
+	{
+		track = gA_Timers[client].iTrack;
+	}
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
 	{
@@ -598,7 +655,7 @@ public Action Command_StartTimer(int client, int args)
 		Call_PushCell(track);
 		Call_Finish();
 
-		if(gCV_AllowTimerWithoutZone.BoolValue)
+		if(gCV_AllowTimerWithoutZone.BoolValue || !gB_Zones)
 		{
 			StartTimer(client, track);
 		}
@@ -751,6 +808,15 @@ public Action Command_FinishTest(int client, int args)
 
 	return Plugin_Handled;
 }
+
+public Action Command_Fling(int client, int args)
+{
+	float up[3];
+	up[2] = 1000.0;
+	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", up);
+
+	return Plugin_Handled;
+}
 #endif
 
 public Action Command_DeleteMap(int client, int args)
@@ -900,180 +966,103 @@ public Action Command_WipePlayer(int client, int args)
 	return Plugin_Handled;
 }
 
-void DeleteUserData(int client, const int iSteamID)
+public void Trans_DeleteRestOfUserSuccess(Database db, DataPack hPack, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	if(gB_Replay)
-	{
-		char sQueryGetWorldRecords[256];
-		FormatEx(sQueryGetWorldRecords, 256,
-			"SELECT map, id, style, track FROM %splayertimes WHERE auth = %d;",
-			gS_MySQLPrefix, iSteamID);
-
-		DataPack hPack = new DataPack();
-		hPack.WriteCell(client);
-		hPack.WriteCell(iSteamID);
-
-		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQueryGetWorldRecords, hPack, DBPrio_High);
-	}
-
-	else
-	{
-		char sQueryDeleteUserTimes[256];
-		FormatEx(sQueryDeleteUserTimes, 256,
-			"DELETE FROM %splayertimes WHERE auth = %d;",
-			gS_MySQLPrefix, iSteamID);
-
-		DataPack hSteamPack = new DataPack();
-		hSteamPack.WriteCell(iSteamID);
-		hSteamPack.WriteCell(client);
-
-		gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, hSteamPack, DBPrio_High);
-	}
-}
-
-public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	DataPack hPack = view_as<DataPack>(data);
 	hPack.Reset();
 	int client = hPack.ReadCell();
 	int iSteamID = hPack.ReadCell();
 	delete hPack;
+
+	if(gB_WR)
+	{
+		Shavit_ReloadLeaderboards();
+	}
+
+	Shavit_LogMessage("%L - wiped user data for [U:1:%d].", client, iSteamID);
+	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
+}
+
+public void Trans_DeleteRestOfUserFailed(Database db, DataPack hPack, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	hPack.Reset();
+	hPack.ReadCell();
+	int iSteamID = hPack.ReadCell();
+	delete hPack;
+	LogError("Timer error! Failed to wipe user data (wipe | delete user data/times, id [U:1:%d]). Reason: %s", iSteamID, error);
+}
+
+void DeleteRestOfUser(int iSteamID, DataPack hPack)
+{
+	Transaction hTransaction = new Transaction();
+	char sQuery[256];
+
+	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	hTransaction.AddQuery(sQuery);
+	FormatEx(sQuery, 256, "DELETE FROM %susers WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	hTransaction.AddQuery(sQuery);
+
+	gH_SQL.Execute(hTransaction, Trans_DeleteRestOfUserSuccess, Trans_DeleteRestOfUserFailed, hPack);
+}
+
+void DeleteUserData(int client, const int iSteamID)
+{
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(client);
+	hPack.WriteCell(iSteamID);
+	char sQuery[512];
+
+	if(gB_WR)
+	{
+		if(gB_MySQL)
+		{
+			FormatEx(sQuery, 512,
+				"SELECT p1.id, p1.style, p1.track, p1.map FROM %splayertimes p1 " ...
+					"JOIN (SELECT map, style, track, MIN(time) time FROM %splayertimes GROUP BY map, style, track) p2 " ...
+					"ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time " ...
+					"WHERE p1.auth = %d;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
+		else
+		{
+			FormatEx(sQuery, 512,
+				"SELECT p.id, p.style, p.track, p.map FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes GROUP BY map, style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track GROUP BY p.map, p.style, p.track WHERE p.auth = %d;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
+
+		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
+	}
+	else
+	{
+		DeleteRestOfUser(iSteamID, hPack);
+	}
+}
+
+public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)
+{
+	hPack.Reset();
+	hPack.ReadCell(); /*int client = */
+	int iSteamID = hPack.ReadCell();
 
 	if(results == null)
 	{
 		LogError("Timer error! Failed to wipe user data (wipe | get player records). Reason: %s", error);
-
+		delete hPack;
 		return;
 	}
 
-	Transaction hTransaction = new Transaction();
+	char map[PLATFORM_MAX_PATH];
 
 	while(results.FetchRow())
 	{
-		char map[160];
-		results.FetchString(0, map, 160);
+		int id = results.FetchInt(0);
+		int style = results.FetchInt(1);
+		int track = results.FetchInt(2);
+		results.FetchString(3, map, sizeof(map));
 
-		int id = results.FetchInt(1);
-		int style = results.FetchInt(2);
-		int track = results.FetchInt(3);
-
-		char sQueryGetWorldRecordID[256];
-		FormatEx(sQueryGetWorldRecordID, 256,
-			"SELECT id FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d ORDER BY time LIMIT 1;",
-			gS_MySQLPrefix, map, style, track);
-
-		DataPack hTransPack = new DataPack();
-		hTransPack.WriteString(map);
-		hTransPack.WriteCell(id);
-		hTransPack.WriteCell(style);
-		hTransPack.WriteCell(track);
-
-		hTransaction.AddQuery(sQueryGetWorldRecordID, hTransPack);
+		Shavit_DeleteWR(style, track, map, iSteamID, id, false, false);
 	}
 
-	DataPack hSteamPack = new DataPack();
-	hSteamPack.WriteCell(iSteamID);
-	hSteamPack.WriteCell(client);
-
-	gH_SQL.Execute(hTransaction, Trans_OnRecordCompare, INVALID_FUNCTION, hSteamPack, DBPrio_High);
-}
-
-public void Trans_OnRecordCompare(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
-{
-	DataPack hPack = view_as<DataPack>(data);
-	hPack.Reset();
-	int iSteamID = hPack.ReadCell();
-
-	int client = 0;
-	// Check if the target is in game
-	for(int index = 1; index <= MaxClients; index++)
-	{
-		if(IsValidClient(index) && !IsFakeClient(index))
-		{
-			if(iSteamID == GetSteamAccountID(index))
-			{
-				client = index;
-				break;
-			}
-		}
-	}
-
-	for(int i = 0; i < numQueries; i++)
-	{
-		DataPack hQueryPack = view_as<DataPack>(queryData[i]);
-		hQueryPack.Reset();
-		char sMap[32];
-		hQueryPack.ReadString(sMap, 32);
-
-		int iRecordID = hQueryPack.ReadCell();
-		int iStyle = hQueryPack.ReadCell();
-		int iTrack = hQueryPack.ReadCell();
-		delete hQueryPack;
-
-		if(client > 0)
-		{
-			Shavit_SetClientPB(client, iStyle, iTrack, 0.0);
-		}
-
-		if(results[i] != null && results[i].FetchRow())
-		{
-			int iWR = results[i].FetchInt(0);
-
-			if(iWR == iRecordID)
-			{
-				Shavit_DeleteReplay(sMap, iStyle, iTrack, iSteamID);
-			}
-		}
-	}
-
-	char sQueryDeleteUserTimes[256];
-	FormatEx(sQueryDeleteUserTimes, 256,
-		"DELETE FROM %splayertimes WHERE auth = %d;",
-		gS_MySQLPrefix, iSteamID);
-
-	gH_SQL.Query(SQL_DeleteUserTimes_Callback, sQueryDeleteUserTimes, hPack, DBPrio_High);
-}
-
-public void SQL_DeleteUserTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	DataPack hPack = view_as<DataPack>(data);
-	hPack.Reset();
-	int iSteamID = hPack.ReadCell();
-
-	if(results == null)
-	{
-		LogError("Timer error! Failed to wipe user data (wipe | delete user times). Reason: %s", error);
-
-		delete hPack;
-
-		return;
-	}
-
-	char sQueryDeleteUsers[256];
-	FormatEx(sQueryDeleteUsers, 256, "DELETE FROM %susers WHERE auth = %d;",
-		gS_MySQLPrefix, iSteamID);
-
-	gH_SQL.Query(SQL_DeleteUserData_Callback, sQueryDeleteUsers, hPack, DBPrio_High);
-}
-
-public void SQL_DeleteUserData_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	DataPack hPack = view_as<DataPack>(data);
-	hPack.Reset();
-	int iSteamID = hPack.ReadCell();
-	int client = hPack.ReadCell();
-	delete hPack;
-
-	if(results == null)
-	{
-		LogError("Timer error! Failed to wipe user data (wipe | delete user data, id [U:1:%d]). Reason: %s", error, iSteamID);
-
-		return;
-	}
-
-	Shavit_LogMessage("%L - wiped user data for [U:1:%d].", client, iSteamID);
-	Shavit_ReloadLeaderboards();
-	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
+	DeleteRestOfUser(iSteamID, hPack);
 }
 
 public Action Command_AutoBhop(int client, int args)
@@ -1193,7 +1182,7 @@ public Action Command_Style(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, 300);
 
 	return Plugin_Handled;
 }
@@ -1230,6 +1219,11 @@ void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 	Call_PushCell(oldtrack);
 	Call_PushCell(newtrack);
 	Call_Finish();
+
+	if (oldtrack == Track_Main && oldtrack != newtrack)
+	{
+		Shavit_PrintToChat(client, "%T", "TrackChangeFromMain", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+	}
 }
 
 void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
@@ -1309,6 +1303,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTrack) || gB_KZMap)))
 	{
+		Shavit_StopTimer(client, true);
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_PushCell(gA_Timers[client].iTrack);
@@ -1662,6 +1657,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -1714,6 +1711,19 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	Call_PushCell(oldtime);
 	Call_PushCell(perfs);
+
+	if(result == Plugin_Continue)
+	{
+		Call_PushCell(gA_Timers[client].fAvgVelocity);
+		Call_PushCell(gA_Timers[client].fMaxVelocity);
+	}
+	else
+	{
+		Call_PushCell(snapshot.fAvgVelocity);
+		Call_PushCell(snapshot.fMaxVelocity);
+	}
+
+	Call_PushCell(GetTime());
 	Call_Finish();
 
 	StopTimer(client);
@@ -1835,12 +1845,17 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	int track = GetNativeCell(2);
 
+	Shavit_StopTimer(client, true);
+
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
 	Call_PushCell(track);
 	Call_Finish();
 
-	StartTimer(client, track);
+	if(gCV_AllowTimerWithoutZone.BoolValue || !gB_Zones)
+	{
+		StartTimer(client, track);
+	}
 }
 
 public int Native_GetPerfectJumps(Handle handler, int numParams)
@@ -2004,6 +2019,8 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 	return SetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 }
 
@@ -2031,6 +2048,12 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 		CallOnStyleChanged(client, gA_Timers[client].iStyle, snapshot.bsStyle, false);
 	}
 
+	// no longer paused, reset their movement
+	if(gA_Timers[client].bPaused && !snapshot.bClientPaused)
+	{
+		SetEntityMoveType(client, MOVETYPE_WALK);
+	}
+
 	gA_Timers[client].bEnabled = snapshot.bTimerEnabled;
 	gA_Timers[client].bPaused = snapshot.bClientPaused;
 	gA_Timers[client].iJumps = snapshot.iJumps;
@@ -2044,6 +2067,8 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].iPerfectJumps = snapshot.iPerfectJumps;
 	gA_Timers[client].fTimeOffset = snapshot.fTimeOffset;
 	gA_Timers[client].fDistanceOffset = snapshot.fDistanceOffset;
+	gA_Timers[client].fAvgVelocity = snapshot.fAvgVelocity;
+	gA_Timers[client].fMaxVelocity = snapshot.fMaxVelocity;
 
 	return 0;
 }
@@ -2163,12 +2188,96 @@ public any Native_HasStyleSetting(Handle handler, int numParams)
 	return HasStyleSetting(style, sKey);
 }
 
+public any Native_GetAvgVelocity(Handle plugin, int numParams)
+{
+	return gA_Timers[GetNativeCell(1)].fAvgVelocity;
+}
+
+public any Native_GetMaxVelocity(Handle plugin, int numParams)
+{
+	return gA_Timers[GetNativeCell(1)].fMaxVelocity;
+}
+
+public any Native_SetAvgVelocity(Handle plugin, int numParams)
+{
+	gA_Timers[GetNativeCell(1)].fAvgVelocity = GetNativeCell(2);
+}
+
+public any Native_SetMaxVelocity(Handle plugin, int numParams)
+{
+	gA_Timers[GetNativeCell(1)].fMaxVelocity = GetNativeCell(2);
+}
+
 bool HasStyleSetting(int style, char[] key)
 {
 	char sValue[1];
 	gSM_StyleKeys[style].GetString(key, sValue, 1);
+	
 
 	return gSM_StyleKeys[style].GetString(key, sValue, 1);
+}
+
+public any Native_SetStyleSetting(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	char sValue[256];
+	GetNativeString(3, sValue, 256);
+
+	bool replace = GetNativeCell(4);
+
+	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
+}
+
+public any Native_SetStyleSettingFloat(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	float fValue = GetNativeCell(3);
+
+	char sValue[16];
+	FloatToString(fValue, sValue, 16);
+
+	bool replace = GetNativeCell(4);
+
+	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
+}
+
+public any Native_SetStyleSettingBool(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	bool value = GetNativeCell(3);
+
+	bool replace = GetNativeCell(4);
+
+	return gSM_StyleKeys[style].SetString(sKey, value ? "1" : "0", replace);
+}
+
+public any Native_SetStyleSettingInt(Handle handler, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	char sKey[256];
+	GetNativeString(2, sKey, 256);
+
+	int value = GetNativeCell(3);
+
+	char sValue[16];
+	IntToString(value, sValue, 16);
+
+	bool replace = GetNativeCell(4);
+
+	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
 }
 
 int GetTimerStatus(int client)
@@ -2195,10 +2304,11 @@ void StartTimer(int client, int track)
 
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+	float curVel = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 
 	if(!gCV_NoZAxisSpeed.BoolValue ||
 		GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 1 ||
-		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 2 || SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)) <= 290.0)))
+		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 2 || curVel <= 290.0)))
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_Start);
@@ -2208,6 +2318,11 @@ void StartTimer(int client, int track)
 
 		if(result == Plugin_Continue)
 		{
+			if(gA_Timers[client].bPaused)
+			{
+				SetEntityMoveType(client, MOVETYPE_WALK);
+			}
+
 			gA_Timers[client].iZoneIncrement = 0;
 			gA_Timers[client].bPaused = false;
 			gA_Timers[client].iStrafes = 0;
@@ -2232,6 +2347,8 @@ void StartTimer(int client, int track)
 			gA_Timers[client].fTimeOffset[Zone_End] = 0.0;
 			gA_Timers[client].fDistanceOffset[Zone_Start] = 0.0;
 			gA_Timers[client].fDistanceOffset[Zone_End] = 0.0;
+			gA_Timers[client].fAvgVelocity = curVel;
+			gA_Timers[client].fMaxVelocity = curVel;
 
 			if(gA_Timers[client].fTimescale != -1.0)
 			{
@@ -2258,6 +2375,11 @@ void StopTimer(int client)
 	if(!IsValidClient(client) || IsFakeClient(client))
 	{
 		return;
+	}
+
+	if(gA_Timers[client].bPaused)
+	{
+		SetEntityMoveType(client, MOVETYPE_WALK);
 	}
 
 	gA_Timers[client].bEnabled = false;
@@ -2297,6 +2419,8 @@ void ResumeTimer(int client)
 	Call_Finish();
 
 	gA_Timers[client].bPaused = false;
+	// setting is handled in usercmd
+	SetEntityMoveType(client, MOVETYPE_WALK);
 }
 
 public void OnClientDisconnect(int client)
@@ -2385,9 +2509,9 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	char sName[MAX_NAME_LENGTH_SQL];
-	GetClientName(client, sName, MAX_NAME_LENGTH_SQL);
-	ReplaceString(sName, MAX_NAME_LENGTH_SQL, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
+	char sName[MAX_NAME_LENGTH];
+	GetClientName(client, sName, MAX_NAME_LENGTH);
+	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
 
 	int iLength = ((strlen(sName) * 2) + 1);
 	char[] sEscapedName = new char[iLength];
@@ -3246,6 +3370,49 @@ public void PostThinkPost(int client)
 	}
 }
 
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if (StrEqual(classname, "player_speedmod"))
+	{
+		gH_AcceptInput.HookEntity(Hook_Pre, entity, DHook_AcceptInput_player_speedmod);
+	}
+}
+
+// bool CBaseEntity::AcceptInput(char  const*, CBaseEntity*, CBaseEntity*, variant_t, int)
+public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hReturn, DHookParam hParams)
+{
+	char buf[128];
+	hParams.GetString(1, buf, sizeof(buf));
+
+	if (!StrEqual(buf, "ModifySpeed") || hParams.IsNull(2))
+	{
+		return MRES_Ignored;
+	}
+
+	int activator = hParams.Get(2);
+
+	if (!IsValidClient(activator, true))
+	{
+		return MRES_Ignored;
+	}
+
+	hParams.GetObjectVarString(4, 0, ObjectValueType_String, buf, sizeof(buf));
+
+	float speed = StringToFloat(buf);
+	int style = gA_Timers[activator].iStyle;
+
+	speed *= (gA_Timers[activator].fTimescale != -1.0) ? gA_Timers[activator].fTimescale : GetStyleSettingFloat(style, "speed");
+	SetEntPropFloat(activator, Prop_Data, "m_flLaggedMovementValue", speed);
+
+	#if DEBUG
+	int caller = hParams.Get(3);
+	PrintToServer("ModifySpeed activator = %d(%N), caller = %d, old_speed = %s, new_speed = %f", activator, activator, caller, buf, speed);
+	#endif
+
+	hReturn.Value = true;
+	return MRES_Supercede;
+}
+
 public MRESReturn DHook_ProcessMovement(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
@@ -3299,6 +3466,8 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	snapshot.iTimerTrack = gA_Timers[client].iTrack;
 	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
 
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
@@ -3404,6 +3573,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		vel = view_as<float>({0.0, 0.0, 0.0});
 
 		SetEntityFlags(client, (flags | FL_ATCONTROLS));
+
+		SetEntityMoveType(client, MOVETYPE_NONE);
 
 		return Plugin_Changed;
 	}
@@ -3597,19 +3768,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						gA_Timers[client].iSHSWCombination = iCombination;
 					}
 
-					bool bStop = false;
-
 					// W/A S/D
 					if((gA_Timers[client].iSHSWCombination == 0 && iCombination != 0) ||
 					// W/D S/A
 						(gA_Timers[client].iSHSWCombination == 1 && iCombination != 1) ||
 					// no valid combination & no valid input
 						(gA_Timers[client].iSHSWCombination == -1 && iCombination == -1))
-					{
-						bStop = true;
-					}
-
-					if(bStop)
 					{
 						vel[0] = 0.0;
 						vel[1] = 0.0;
@@ -3623,7 +3787,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 				else
 				{
-					if((bForward || bBack) && !(bMoveLeft || bMoveRight))
+					if(bBack && (bMoveLeft || bMoveRight))
 					{
 						vel[0] = 0.0;
 
@@ -3631,7 +3795,15 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 						buttons &= ~IN_BACK;
 					}
 
-					if((bMoveLeft || bMoveRight) && !(bForward || bBack))
+					if(bForward && !(bMoveLeft || bMoveRight))
+					{
+						vel[0] = 0.0;
+
+						buttons &= ~IN_FORWARD;
+						buttons &= ~IN_BACK;
+					}
+
+					if((bMoveLeft || bMoveRight) && !bForward)
 					{
 						vel[1] = 0.0;
 
@@ -3748,6 +3920,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			TestAngles(client, (fTempAngle - fAngles[1]), fAngle, vel);
 		}
+	}
+
+	if (GetTimerStatus(client) == view_as<int>(Timer_Running) && gA_Timers[client].fTimer != 0.0)
+	{
+		float frameCount = gB_Replay
+			? float(Shavit_GetClientFrameCount(client) - Shavit_GetPlayerTimerFrame(client)) + 1
+			: (gA_Timers[client].fTimer / GetTickInterval());
+		float fAbsVelocity[3];
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+		float curVel = SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0));
+		float maxVel = gA_Timers[client].fMaxVelocity;
+		gA_Timers[client].fMaxVelocity = (curVel > maxVel) ? curVel : maxVel;
+		// STOLEN from Epic/Disrevoid. Thx :)
+		gA_Timers[client].fAvgVelocity += (curVel - gA_Timers[client].fAvgVelocity) / frameCount;
 	}
 
 	gA_Timers[client].iLastButtons = iPButtons;

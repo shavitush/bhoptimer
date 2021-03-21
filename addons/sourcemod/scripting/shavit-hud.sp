@@ -27,6 +27,7 @@
 #undef REQUIRE_PLUGIN
 #include <shavit>
 #include <bhopstats>
+#include <DynamicChannels>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -96,6 +97,7 @@ bool gB_Zones = false;
 bool gB_Sounds = false;
 bool gB_Rankings = false;
 bool gB_BhopStats = false;
+bool gB_DynamicChannels = false;
 
 // cache
 int gI_Cycle = 0;
@@ -182,6 +184,7 @@ public void OnPluginStart()
 	gB_Sounds = LibraryExists("shavit-sounds");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_BhopStats = LibraryExists("bhopstats");
+	gB_DynamicChannels = LibraryExists("DynamicChannels");
 
 	// HUD handle
 	gH_HUD = CreateHudSynchronizer();
@@ -313,6 +316,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_BhopStats = true;
 	}
+
+	else if(StrEqual(name, "DynamicChannels"))
+	{
+		gB_DynamicChannels = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -340,6 +348,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "bhopstats"))
 	{
 		gB_BhopStats = false;
+	}
+
+	else if(StrEqual(name, "DynamicChannels"))
+	{
+		gB_DynamicChannels = false;
 	}
 }
 
@@ -375,7 +388,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(i == client || (IsValidClient(i) && GetHUDTarget(i) == client))
+		if(i == client || (IsValidClient(i) && GetSpectatorTarget(i, i) == client))
 		{
 			TriggerHUDUpdate(i, true);
 		}
@@ -416,7 +429,7 @@ public void PostThinkPost(int client)
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(i != client && (IsValidClient(i) && GetHUDTarget(i) == client))
+			if(i != client && (IsValidClient(i) && GetSpectatorTarget(i, i) == client))
 			{
 				TriggerHUDUpdate(i, true);
 			}
@@ -729,7 +742,7 @@ Action ShowHUDMenu(int client, int item)
 	}
 
 	menu.ExitButton = true;
-	menu.DisplayAt(client, item, 60);
+	menu.DisplayAt(client, item, 300);
 
 	return Plugin_Handled;
 }
@@ -901,7 +914,7 @@ void Cron()
 		if((gI_Cycle % 50) == 0)
 		{
 			float fSpeed[3];
-			GetEntPropVector(GetHUDTarget(i), Prop_Data, "m_vecVelocity", fSpeed);
+			GetEntPropVector(GetSpectatorTarget(i, i), Prop_Data, "m_vecVelocity", fSpeed);
 			gI_PreviousSpeed[i] = RoundToNearest(((gI_HUDSettings[i] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0))));
 		}
 		
@@ -1003,7 +1016,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 	if(data.bReplay)
 	{
-		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iStyle) != Replay_Idle && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
+		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iTarget) != Replay_Idle && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
 		{
 			char sTrack[32];
 
@@ -1102,9 +1115,9 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 			char sTimeDiff[32];
 			
-			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
 			{
-				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
+				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget);
 
 				if(fClosestReplayTime != -1.0)
 				{
@@ -1149,7 +1162,15 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		// no timer: straight up number
 		if(data.iTimerStatus != Timer_Stopped)
 		{
-			FormatEx(sLine, 128, "%T: %d", "HudSpeedText", client, data.iSpeed);
+			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0)
+			{
+				float res = Shavit_GetClosestReplayVelocityDifference(data.iTarget, (gI_HUDSettings[client] & HUD_2DVEL) == 0);
+				FormatEx(sLine, 128, "%T: %d (%s%.0f)", "HudSpeedText", client, data.iSpeed, (res >= 0.0) ? "+":"", res);
+			}
+			else
+			{
+				FormatEx(sLine, 128, "%T: %d", "HudSpeedText", client, data.iSpeed);
+			}
 		}
 
 		else
@@ -1312,18 +1333,29 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		{
 			int iColor = 0xFF0000; // red, worse than both pb and wr
 			
-			if(data.iTimerStatus == Timer_Paused) iColor = 0xA9C5E8; // blue sky
-			else if(data.fTime < data.fWR || data.fWR == 0.0) iColor = GetGradient(0x00FF00, 0x96172C, RoundToZero((data.fTime / data.fWR) * 100));
-			else if(data.fPB != 0.0 && data.fTime < data.fPB) iColor = 0xFFA500; // orange
+			if(data.iTimerStatus == Timer_Paused) 
+			{
+				iColor = 0xA9C5E8; // blue sky
+			}
+
+			else if(data.fTime < data.fWR || data.fWR == 0.0)
+			{
+				iColor = GetGradient(0x00FF00, 0x96172C, RoundToZero((data.fTime / data.fWR) * 100));
+			}
+
+			else if(data.fPB != 0.0 && data.fTime < data.fPB)
+			{
+				iColor = 0xFFA500; // orange
+			}
 
 			char sTime[32];
 			FormatSeconds(data.fTime, sTime, 32, false);
 			
 			char sTimeDiff[32];
 			
-			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(data.iStyle, data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if(gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
 			{
-				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget, data.iStyle, data.iTrack);
+				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget);
 
 				if(fClosestReplayTime != -1.0)
 				{
@@ -1357,7 +1389,16 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			iColor = 0xFFC966;
 		}
 
-		FormatEx(sLine, 128, "<span color='#%06X'>%d u/s</span>", iColor, data.iSpeed);
+		if(data.iTimerStatus != Timer_Stopped && gB_Replay && gCV_EnableDynamicTimeDifference.BoolValue && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0)
+		{
+			float res = Shavit_GetClosestReplayVelocityDifference(data.iTarget, (gI_HUDSettings[client] & HUD_2DVEL) == 0);
+			FormatEx(sLine, 128, "<span color='#%06X'>%d u/s (%s%.0f)</span>", iColor, data.iSpeed, (res >= 0.0) ? "+":"", res);
+		}
+		else
+		{
+			FormatEx(sLine, 128, "<span color='#%06X'>%d u/s</span>", iColor, data.iSpeed);
+		}
+
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
 	}
@@ -1402,7 +1443,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 
 void UpdateMainHUD(int client)
 {
-	int target = GetHUDTarget(client);
+	int target = GetSpectatorTarget(client, client);
 
 	if((gI_HUDSettings[client] & HUD_CENTER) == 0 ||
 		((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) ||
@@ -1415,7 +1456,7 @@ void UpdateMainHUD(int client)
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
 	float fSpeedHUD = ((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
-	bool bReplay = (gB_Replay && IsFakeClient(target));
+	bool bReplay = (gB_Replay && Shavit_IsReplayEntity(target));
 	ZoneHUD iZoneHUD = ZoneHUD_None;
 	int iReplayStyle = 0;
 	int iReplayTrack = 0;
@@ -1434,7 +1475,6 @@ void UpdateMainHUD(int client)
 			iZoneHUD = ZoneHUD_End;
 		}
 	}
-
 	else
 	{
 		iReplayStyle = Shavit_GetReplayBotStyle(target);
@@ -1442,12 +1482,11 @@ void UpdateMainHUD(int client)
 
 		if(iReplayStyle != -1)
 		{
-			fReplayTime = Shavit_GetReplayTime(iReplayStyle, iReplayTrack);
+			fReplayTime = Shavit_GetReplayTime(target);
 			fReplayLength = Shavit_GetReplayLength(iReplayStyle, iReplayTrack);
 
-			char sSpeed[16];
-			Shavit_GetStyleSetting(iReplayStyle, "speed", sSpeed, 16);
-			float fSpeed2 = StringToFloat(sSpeed);
+			float fSpeed2 = Shavit_GetStyleSettingFloat(iReplayStyle, "speed");
+
 			if(fSpeed2 != 1.0)
 			{
 				fSpeedHUD /= fSpeed2;
@@ -1509,16 +1548,27 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 		return;
 	}
 
-	int target = GetHUDTarget(client);
+	int target = GetSpectatorTarget(client, client);
 
-	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) || !IsValidClient(target) || IsClientObserver(target))
+	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target))
 	{
 		return;
 	}
 
-	// to make it shorter
-	int buttons = gI_Buttons[target];
-	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+	if (IsValidClient(target))
+	{
+		if (IsClientObserver(target))
+		{
+			return;
+		}
+	}
+	else if (!Shavit_IsReplayEntity(target))
+	{
+		return;
+	}
+
+	int buttons = IsValidClient(target) ? gI_Buttons[target] : Shavit_GetReplayButtons(target);
+	int style = (Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
 	{
@@ -1562,14 +1612,26 @@ void UpdateCenterKeys(int client)
 		return;
 	}
 
-	int target = GetHUDTarget(client);
+	int target = GetSpectatorTarget(client, client);
 
-	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) || !IsValidClient(target) || IsClientObserver(target))
+	if((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target)
 	{
 		return;
 	}
 
-	int buttons = gI_Buttons[target];
+	if (IsValidClient(target))
+	{
+		if (IsClientObserver(target))
+		{
+			return;
+		}
+	}
+	else if (!Shavit_IsReplayEntity(target))
+	{
+		return;
+	}
+
+	int buttons = IsValidClient(target) ? gI_Buttons[target] : Shavit_GetReplayButtons(target);
 
 	char sCenterText[64];
 	FormatEx(sCenterText, 64, "　%s　　%s\n　　 %s\n%s　 %s 　%s\n　%s　　%s",
@@ -1578,7 +1640,7 @@ void UpdateCenterKeys(int client)
 		(buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
 		(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
 
-	int style = (IsFakeClient(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+	int style = (Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
 	{
@@ -1603,20 +1665,20 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 		return;
 	}
 
-	int target = GetHUDTarget(client);
+	int target = GetSpectatorTarget(client, client);
 
-	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) || !IsValidClient(target))
+	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target))
 	{
 		return;
 	}
 
-	int[] iSpectatorClients = new int[MaxClients];
+	int iSpectatorClients[MAXPLAYERS+1];
 	int iSpectators = 0;
 	bool bIsAdmin = CheckCommandAccess(client, "admin_speclisthide", ADMFLAG_KICK);
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != target)
+		if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetSpectatorTarget(i, i) != target)
 		{
 			continue;
 		}
@@ -1665,15 +1727,17 @@ void UpdateTopLeftHUD(int client, bool wait)
 {
 	if((!wait || gI_Cycle % 25 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
 	{
-		int target = GetHUDTarget(client);
+		int target = GetSpectatorTarget(client, client);
 
 		int track = 0;
 		int style = 0;
+		float fTargetPB = 0.0;
 
-		if(!IsFakeClient(target))
+		if(!Shavit_IsReplayEntity(target))
 		{
 			style = Shavit_GetBhopStyle(target);
 			track = Shavit_GetClientTrack(target);
+			fTargetPB = Shavit_GetClientPB(target, style, track);
 		}
 
 		else
@@ -1700,7 +1764,6 @@ void UpdateTopLeftHUD(int client, bool wait)
 			char sTopLeft[128];
 			FormatEx(sTopLeft, 128, "WR: %s (%s)", sWRTime, sWRName);
 
-			float fTargetPB = Shavit_GetClientPB(target, style, track);
 			char sTargetPB[64];
 			FormatSeconds(fTargetPB, sTargetPB, 64);
 			Format(sTargetPB, 64, "%T: %s", "HudBestText", client, sTargetPB);
@@ -1756,7 +1819,15 @@ void UpdateTopLeftHUD(int client, bool wait)
 			}
 
 			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
-			ShowSyncHudText(client, gH_HUD, "%s", sTopLeft);
+
+			if (gB_DynamicChannels)
+			{
+				ShowHudText(client, GetDynamicChannel(5), "%s", sTopLeft);
+			}
+			else
+			{
+				ShowSyncHudText(client, gH_HUD, "%s", sTopLeft);
+			}
 		}
 	}
 }
@@ -1773,11 +1844,17 @@ void UpdateKeyHint(int client)
 			FormatEx(sMessage, 256, (iTimeLeft > 60)? "%T: %d minutes":"%T: <1 minute", "HudTimeLeft", client, (iTimeLeft / 60), "HudTimeLeft", client);
 		}
 
-		int target = GetHUDTarget(client);
+		int target = GetSpectatorTarget(client, client);
 
-		if(IsValidClient(target) && (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0))
+		if(target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)
 		{
-			int style = Shavit_GetBhopStyle(target);
+			int bReplay = Shavit_IsReplayEntity(target);
+			int style = bReplay ? Shavit_GetReplayBotStyle(target) : Shavit_GetBhopStyle(target);
+
+			if(!(0 <= style < gI_Styles))
+			{
+				style = 0;
+			}
 
 			char sync[4];
 			Shavit_GetStyleSetting(style, "sync", sync, 4);
@@ -1785,7 +1862,7 @@ void UpdateKeyHint(int client)
 			char autobhop[4];
 			Shavit_GetStyleSetting(style, "autobhop", autobhop, 4);
 
-			if((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && StringToInt(sync) && !IsFakeClient(target) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, -1)))
+			if(!bReplay && (gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && StringToInt(sync) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, -1)))
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
@@ -1797,13 +1874,13 @@ void UpdateKeyHint(int client)
 
 			if((gI_HUDSettings[client] & HUD_SPECTATORS) > 0)
 			{
-				int[] iSpectatorClients = new int[MaxClients];
+				int iSpectatorClients[MAXPLAYERS+1];
 				int iSpectators = 0;
 				bool bIsAdmin = CheckCommandAccess(client, "admin_speclisthide", ADMFLAG_KICK);
 
 				for(int i = 1; i <= MaxClients; i++)
 				{
-					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetHUDTarget(i) != target)
+					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetSpectatorTarget(i, i) != target)
 					{
 						continue;
 					}
@@ -1850,28 +1927,6 @@ void UpdateKeyHint(int client)
 	}
 }
 
-int GetHUDTarget(int client)
-{
-	int target = client;
-
-	if(IsClientObserver(client))
-	{
-		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
-
-		if(iObserverMode >= 3 && iObserverMode <= 5)
-		{
-			int iTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
-
-			if(IsValidClient(iTarget, true))
-			{
-				target = iTarget;
-			}
-		}
-	}
-
-	return target;
-}
-
 public int PanelHandler_Nothing(Menu m, MenuAction action, int param1, int param2)
 {
 	// i don't need anything here
@@ -1888,12 +1943,12 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 
 public int Native_ForceHUDUpdate(Handle handler, int numParams)
 {
-	int[] clients = new int[MaxClients];
+	int clients[MAXPLAYERS+1];
 	int count = 0;
 
 	int client = GetNativeCell(1);
 
-	if(client < 0 || client > MaxClients || !IsClientInGame(client))
+	if(!IsValidClient(client))
 	{
 		ThrowNativeError(200, "Invalid client index %d", client);
 
@@ -1906,7 +1961,7 @@ public int Native_ForceHUDUpdate(Handle handler, int numParams)
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(i == client || !IsValidClient(i) || GetHUDTarget(i) != client)
+			if(i == client || !IsValidClient(i) || GetSpectatorTarget(i, i) != client)
 			{
 				continue;
 			}
@@ -1927,7 +1982,7 @@ public int Native_GetHUDSettings(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	if(client < 0 || client > MaxClients)
+	if(!IsValidClient(client))
 	{
 		ThrowNativeError(200, "Invalid client index %d", client);
 
@@ -1980,3 +2035,4 @@ void TrimPlayerName(const char[] name, char[] outname, int len)
 	if(count > gCV_SpecNameSymbolLength.IntValue)
 		Format(outname, len, "%s...", outname);
 }
+
