@@ -91,6 +91,7 @@ enum
 	Migration_PlayertimesDateToInt,
 	Migration_AddZonesFlagsAndData,
 	Migration_AddPlayertimesCompletions,
+	Migration_AddCustomChatAccess,
 	MIGRATIONS_END
 };
 
