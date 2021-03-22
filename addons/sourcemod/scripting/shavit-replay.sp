@@ -71,7 +71,6 @@ enum struct replayfile_header_t
 {
 	char sReplayFormat[64];
 	int iReplayVersion;
-	bool bNewFormat;
 	char sMap[PLATFORM_MAX_PATH];
 	int iStyle;
 	int iTrack;
@@ -1442,8 +1441,8 @@ bool ReadReplayFrames(File file, replayfile_header_t header, framecache_t cache)
 	}
 
 	cache.fTime = header.fTime;
-	cache.bNewFormat = header.bNewFormat;
 	cache.iReplayVersion = header.iReplayVersion;
+	cache.bNewFormat = StrEqual(header.sReplayFormat, REPLAY_FORMAT_FINAL);
 	strcopy(cache.sReplayName, MAX_NAME_LENGTH, "invalid");
 	cache.iPreFrames = header.iPreFrames;
 
@@ -1543,7 +1542,7 @@ void WriteReplayHeader(File fFile, int style, int track, float time, int steamid
 	fFile.WriteInt32(steamid);
 }
 
-void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int timerstartframe, int timestamp, bool saveCopy, bool saveWR, char[] sPath, int sPathLen)
+void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int timerstartframe, int timestamp, bool saveCopy, bool saveReplay, char[] sPath, int sPathLen)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1551,7 +1550,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	File fWR = null;
 	File fCopy = null;
 
-	if (saveWR)
+	if (saveReplay)
 	{
 		FormatEx(sPath, sPathLen, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
 		DeleteFile(sPath);
@@ -1567,7 +1566,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	int iSize = playerrecording.Length;
 
-	if (saveWR)
+	if (saveReplay)
 	{
 		WriteReplayHeader(fWR, style, track, time, steamid, preframes, timerstartframe, iSize);
 
@@ -1588,7 +1587,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	{
 		playerrecording.GetArray(i, aFrameData, sizeof(frame_t));
 	
-		if (saveWR)
+		if (saveReplay)
 		{
 			gA_FrameCache[style][track].aFrames.SetArray(i-preframes, aFrameData);
 		}
@@ -1600,7 +1599,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 		if(++iFramesWritten == FRAMES_PER_WRITE || i == iSize - 1)
 		{
-			if (saveWR)
+			if (saveReplay)
 			{
 				fWR.Write(aWriteData, sizeof(frame_t) * iFramesWritten, 4);
 			}
@@ -1617,7 +1616,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	delete fWR;
 	delete fCopy;
 
-	if (!saveWR)
+	if (!saveReplay)
 	{
 		return;
 	}
@@ -2076,26 +2075,9 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	}
 
 	bool isTooLong = (gCV_TimeLimit.FloatValue > 0.0 && time > gCV_TimeLimit.FloatValue);
-	bool isWR = true;
-	
+
 	float length = GetReplayLength(style, track, gA_FrameCache[style][track]);
-
-	if(gA_FrameCache[style][track].bNewFormat)
-	{
-		if(length > 0.0 && time > length)
-		{
-			isWR = false;
-		}
-	}
-	else
-	{
-		float wrtime = Shavit_GetWorldRecord(style, track);
-
-		if(wrtime != 0.0 && time > wrtime)
-		{
-			isWR = false;
-		}
-	}
+	bool isBestReplay = (length == 0.0 || time < length);
 
 	Action action = Plugin_Continue;
 	Call_StartForward(gH_ShouldSaveReplayCopy);
@@ -2112,13 +2094,13 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	Call_PushCell(maxvel);
 	Call_PushCell(timestamp);
 	Call_PushCell(isTooLong);
-	Call_PushCell(isWR);
+	Call_PushCell(isBestReplay);
 	Call_Finish(action);
 
 	bool makeCopy = (action != Plugin_Continue);
-	bool makeWR = (isWR && !isTooLong);
+	bool makeReplay = (isBestReplay && !isTooLong);
 
-	if (!makeCopy && !makeWR)
+	if (!makeCopy && !makeReplay)
 	{
 		return;
 	}
@@ -2130,7 +2112,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
 	char sPath[PLATFORM_MAX_PATH];
-	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerTimerStartFrames[client], timestamp, makeCopy, makeWR, sPath, sizeof(sPath));
+	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerTimerStartFrames[client], timestamp, makeCopy, makeReplay, sPath, sizeof(sPath));
 
 	Call_StartForward(gH_OnReplaySaved);
 	Call_PushCell(client);
@@ -2146,12 +2128,12 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	Call_PushCell(maxvel);
 	Call_PushCell(timestamp);
 	Call_PushCell(isTooLong);
-	Call_PushCell(isWR);
+	Call_PushCell(isBestReplay);
 	Call_PushCell(makeCopy);
 	Call_PushString(sPath);
 	Call_Finish();
 
-	if(makeWR && ReplayEnabled(style))
+	if(makeReplay && ReplayEnabled(style))
 	{
 		StopOrRestartBots(style, track, false);
 	}
@@ -3205,7 +3187,7 @@ void KickReplay(bot_info_t info, int stopper = -1)
 
 float GetReplayLength(int style, int track, framecache_t aCache)
 {
-	if(aCache.iFrameCount == 0)
+	if(aCache.iFrameCount <= 0)
 	{
 		return 0.0;
 	}

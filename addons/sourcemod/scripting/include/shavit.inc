@@ -272,6 +272,7 @@ enum struct framecache_t
 {
 	int iFrameCount;
 	float fTime;
+	bool bNewFormat;
 	int iReplayVersion;
 	char sReplayName[MAX_NAME_LENGTH];
 	int iPreFrames;
@@ -908,11 +909,11 @@ forward void Shavit_OnReplaysLoaded();
  * @param avgvel					Player's average velocity throughout the run.
  * @param maxvel					Player's highest reached velocity.
  * @param timestamp					System time of when player finished.
- * @param iswr						If the time is the new WR.
+ * @param isbestreplay				If the time is the new replay.
  * @param istoolong					If the time is too long to save a replay if the time is a WR. Note: replays WON'T be full length if this is true.
  * @return							Return Plugin_Changed (or higher) to cause a copy of the replay to be saved. Return Plugin_Continue otherwise.
  */
-forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool iswr, bool istoolong);
+forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong);
 
 /**
  * Called when either a WR replay or a copy of a replay has been saved.
@@ -929,13 +930,13 @@ forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, in
  * @param avgvel					Player's average velocity throughout the run.
  * @param maxvel					Player's highest reached velocity.
  * @param timestamp					System time of when player finished.
- * @param iswr						If the time is the new WR.
+ * @param isbestreplay				If the time is the new replay.
  * @param istoolong					If the time is too long to save a replay if the time is a WR. Note: replays WON'T be full length if this is true.
  * @param iscopy					If the path points to a copy of the replay.
  * @param replaypath				Path to the saved replay.
  * @noreturn
  */
-forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool iswr, bool istoolong, bool iscopy, const char[] replaypath);
+forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath);
 
 /**
  * Called when top left HUD updates.
