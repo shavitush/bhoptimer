@@ -137,6 +137,8 @@ bool gB_ZonesCreated = false;
 int gI_LastStage[MAXPLAYERS+1];
 
 char gS_BeamSprite[PLATFORM_MAX_PATH];
+char gS_BeamSpriteIgnoreZ[PLATFORM_MAX_PATH];
+int gI_BeamSpriteIgnoreZ;
 
 // admin menu
 TopMenu gH_AdminMenu = null;
@@ -607,6 +609,7 @@ bool LoadZonesConfig()
 
 	kv.JumpToKey("Sprites");
 	kv.GetString("beam", gS_BeamSprite, PLATFORM_MAX_PATH);
+	kv.GetString("beam_ignorez", gS_BeamSpriteIgnoreZ, PLATFORM_MAX_PATH, gS_BeamSprite);
 
 	char sDownloads[PLATFORM_MAX_PATH * 8];
 	kv.GetString("downloads", sDownloads, (PLATFORM_MAX_PATH * 8));
@@ -715,6 +718,8 @@ void LoadZoneSettings()
 	{
 		customBeam = defaultBeam;
 	}
+
+	gI_BeamSpriteIgnoreZ = PrecacheModel(gS_BeamSpriteIgnoreZ, true);
 
 	for (int i = 0; i < ZONETYPES_SIZE; i++)
 	{
@@ -2854,7 +2859,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
 		origin = points[7];
 
-		DrawZone(points, GetZoneColors(type, track, 125), 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gA_ZoneSettings[type][track].iBeam, gA_ZoneSettings[type][track].iHalo);
+		DrawZone(points, GetZoneColors(type, track, 125), 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -2867,7 +2872,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	{
 		origin[2] -= gCV_Height.FloatValue;
 
-		TE_SetupBeamPoints(vPlayerOrigin, origin, gA_ZoneSettings[type][track].iBeam, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
+		TE_SetupBeamPoints(vPlayerOrigin, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 		TE_SendToAll(0.0);
 
 		// visualize grid snap
@@ -2882,7 +2887,7 @@ public Action Timer_Draw(Handle Timer, any data)
 			snap2 = origin;
 			snap2[i] += (gI_GridSnap[client] / 2);
 
-			TE_SetupBeamPoints(snap1, snap2, gA_ZoneSettings[type][track].iBeam, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
+			TE_SetupBeamPoints(snap1, snap2, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 			TE_SendToAll(0.0);
 		}
 	}
