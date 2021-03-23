@@ -1342,7 +1342,7 @@ void DeletePersistentData(int index, persistent_data_t data)
 	gA_PersistentData.Erase(index);
 }
 
-Action Timer_LoadPersistentData(Handle timer, any data)
+public Action Timer_LoadPersistentData(Handle timer, any data)
 {
 	LoadPersistentData(data);
 	return Plugin_Stop;

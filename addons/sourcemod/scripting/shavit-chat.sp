@@ -950,7 +950,7 @@ Action ShowRanksMenu(int client, int item)
 			else
 			{
 				char sTranslation[64];
-				strcopy(sTranslation, sizeof(sTranslation), gA_ChatRankMenuFormatStrings[cache.bPercent][cache.bRanged][cache.iRequire]);
+				strcopy(sTranslation, sizeof(sTranslation), gA_ChatRankMenuFormatStrings[cache.bPercent?1:0][cache.bRanged?1:0][cache.iRequire]);
 
 				if (!cache.bRanged && !cache.bPercent && cache.fFrom == 1.0)
 				{
