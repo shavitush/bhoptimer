@@ -3157,7 +3157,14 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 {
 	if(gCV_HideTeamChanges.BoolValue)
 	{
-		event.BroadcastDisabled = true;
+		if (StrEqual(name, "player_death"))
+		{
+			event.BroadcastDisabled = true;
+		}
+		else
+		{
+			event.SetBool("silent", true);
+		}
 	}
 
 	int client = GetClientOfUserId(event.GetInt("userid"));
