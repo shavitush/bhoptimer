@@ -167,7 +167,8 @@ ArrayList gA_BotEvents = null; // shitty fifo pipe
 int gI_DynamicBots = 0;
 // Replay_Prop: index with starter/watcher
 // Replay_ANYTHINGELSE: index with fakeclient index
-bot_info_t gA_BotInfo[MAXPLAYERS+1]; 
+bot_info_t gA_BotInfo[MAXPLAYERS+1];
+bool gB_KickedShouldDecreaseQuota[MAXPLAYERS+1];
 
 // how do i call this
 bool gB_HideNameChange = false;
@@ -401,7 +402,7 @@ void KickAllReplays()
 	{
 		if (IsValidEntity(gA_BotInfo[i].iEnt))
 		{
-			KickReplay(gA_BotInfo[i]);
+			KickReplay(gA_BotInfo[i], -1, false);
 		}
 	}
 
@@ -412,6 +413,8 @@ void KickAllReplays()
 		gA_BotEvents.Erase(0);
 		ClearBotInfo(info);
 	}
+
+	UpdateBotQuota(0);
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -441,7 +444,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 void UpdateBotQuota(int quota)
 {
-	gCV_BotQuota.IntValue = gI_ExpectedBots = quota;
+	gCV_BotQuota.IntValue = gI_ExpectedBots = ((quota < 0) ? 0 : quota);
 }
 
 public void OnForcedConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1224,9 +1227,6 @@ public void OnMapStart()
 		return;
 	}
 
-	ServerCommand((gEV_Type != Engine_TF2)? "bot_kick":"tf_bot_kick all");
-	UpdateBotQuota(0);
-
 	if(!DirExists(gS_ReplayFolder))
 	{
 		CreateDirectory(gS_ReplayFolder, 511);
@@ -1712,6 +1712,8 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
+	gB_KickedShouldDecreaseQuota[client] = false;
+
 	if(!IsFakeClient(client))
 	{
 		gA_BotInfo[client].iEnt = -1;
@@ -2014,6 +2016,12 @@ public void OnClientDisconnect(int client)
 			KickReplay(gA_BotInfo[client]);
 		}
 
+		return;
+	}
+
+	if (gB_KickedShouldDecreaseQuota[client])
+	{
+		UpdateBotQuota(gI_ExpectedBots - 1);
 		return;
 	}
 
@@ -2734,7 +2742,9 @@ int CreateReplayProp(int client)
 	// Make prop not collide (especially with the world)
 	DispatchKeyValue(ent, "Solid", "0");
 
-	SetEntProp(ent, Prop_Data, HACKY_CLIENT_IDX_PROP, client); // WHAT A FUCKING HACK
+	// Storing the client index in the prop's m_iTeamNum.
+	// Great way to get the starter without having array of MAXENTS
+	SetEntProp(ent, Prop_Data, HACKY_CLIENT_IDX_PROP, client);
 
 	gA_BotInfo[client].iEnt = ent;
 	gA_BotInfo[client].iType = Replay_Prop;
@@ -3162,7 +3172,7 @@ void CancelReplay(bot_info_t info, int client, bool update = true)
 	}
 }
 
-void KickReplay(bot_info_t info, int stopper = -1)
+void KickReplay(bot_info_t info, int stopper = -1, bool decreaseQuota = true)
 {
 	if (info.iEnt <= 0)
 	{
@@ -3175,8 +3185,8 @@ void KickReplay(bot_info_t info, int stopper = -1)
 
 	if (1 <= info.iEnt <= MaxClients)
 	{
-		UpdateBotQuota(gI_ExpectedBots - 1);
 		KickClient(info.iEnt);
+		gB_KickedShouldDecreaseQuota[info.iEnt] = decreaseQuota;
 	}
 	else // Replay_Prop
 	{
