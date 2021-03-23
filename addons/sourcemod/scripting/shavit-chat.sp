@@ -181,7 +181,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_ccdelete", Command_CCDelete, ADMFLAG_CHAT, "Remove access granted to a user with sm_ccadd. Usage: sm_ccdelete <steamid3>");
 
 	gCV_RankingsIntegration = new Convar("shavit_chat_rankings", "1", "Integrate with rankings?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_CustomChat = new Convar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
+	gCV_CustomChat = new Convar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override or granted access with sm_ccadd)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
 	gCV_Colon = new Convar("shavit_chat_colon", ":", "String to use as the colon when messaging.");
 
 	Convar.AutoExecConfig();
