@@ -61,6 +61,7 @@ enum struct replaystrings_t
 enum struct loopingbot_config_t
 {
 	bool bEnabled;
+	bool bSpawned;
 	int iTrackMask; // only 9 bits needed for tracks
 	int aStyleMask[8]; // all 256 bits needed for enabled styles
 	//bool bActive.... or something TODO;
@@ -1316,7 +1317,7 @@ void AddReplayBots()
 	}
 
 	// Load central bot if enabled...
-	if (gCV_CentralBot.BoolValue)
+	if (gCV_CentralBot.BoolValue && gI_CentralBot <= 0)
 	{
 		bot_info_t info;
 		info.iType = Replay_Central;
@@ -1326,7 +1327,7 @@ void AddReplayBots()
 	// Load all bots from looping config...
 	for (int i = 0; i < MAX_LOOPING_BOT_CONFIGS; i++)
 	{
-		if (!gA_LoopingBotConfig[i].bEnabled)
+		if (!gA_LoopingBotConfig[i].bEnabled || gA_LoopingBotConfig[i].bSpawned)
 		{
 			continue;
 		}
@@ -1756,6 +1757,10 @@ public void OnClientPutInServer(int client)
 			// Dead bots can't be spectated... so let's use this to spectate them when they spawn...
 			RequestFrame(SpectateMyDynamicBot, GetClientSerial(client));
 		}
+		else if (info.iType == Replay_Looping)
+		{
+			gA_LoopingBotConfig[info.iLoopingConfig].bSpawned = true;
+		}
 	}
 }
 
@@ -2032,6 +2037,11 @@ public void OnClientDisconnect(int client)
 
 		gA_BotInfo[client].iEnt = -1;
 
+		if (gA_BotInfo[client].iType == Replay_Looping)
+		{
+			gA_LoopingBotConfig[gA_BotInfo[client].iLoopingConfig].bSpawned = false;
+		}
+
 		if (gI_CentralBot == client)
 		{
 			gI_CentralBot = -1;
@@ -2152,6 +2162,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	if(makeReplay && ReplayEnabled(style))
 	{
 		StopOrRestartBots(style, track, false);
+		AddReplayBots(); // add missing looping bots
 	}
 
 	ClearFrames(client);
@@ -3187,6 +3198,11 @@ void KickReplay(bot_info_t info, int stopper = -1, bool decreaseQuota = true)
 	{
 		KickClient(info.iEnt);
 		gB_KickedShouldDecreaseQuota[info.iEnt] = decreaseQuota;
+
+		if (info.iType == Replay_Looping)
+		{
+			gA_LoopingBotConfig[info.iLoopingConfig].bSpawned = false;
+		}
 	}
 	else // Replay_Prop
 	{
