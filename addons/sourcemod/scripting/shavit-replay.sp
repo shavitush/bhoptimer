@@ -404,6 +404,14 @@ void KickAllReplays()
 			KickReplay(gA_BotInfo[i]);
 		}
 	}
+
+	while (gA_BotEvents.Length > 0)
+	{
+		bot_info_t info;
+		gA_BotEvents.GetArray(0, info);
+		gA_BotEvents.Erase(0);
+		ClearBotInfo(info);
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -1713,7 +1721,7 @@ public void OnClientPutInServer(int client)
 		SDKHook(client, SDKHook_PostThink, ForceObserveProp);
 
 		// The server kicks all the bots when it's hibernating... so let's add them back in...
-		if (GetClientCount() <= 1)
+		if (GetClientCount() <= 1 && gI_ExpectedBots <= 0)
 		{
 			AddReplayBots();
 		}
