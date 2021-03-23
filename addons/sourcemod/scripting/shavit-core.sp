@@ -3847,6 +3847,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
 		gA_Timers[client].iLandingTick = tickcount;
+
+		if(gEV_Type != Engine_TF2 && GetStyleSettingBool(gA_Timers[client].iStyle, "easybhop"))
+		{
+			SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+		}
 	}
 
 	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
