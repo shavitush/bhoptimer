@@ -64,7 +64,6 @@ enum struct loopingbot_config_t
 	bool bSpawned;
 	int iTrackMask; // only 9 bits needed for tracks
 	int aStyleMask[8]; // all 256 bits needed for enabled styles
-	//bool bActive.... or something TODO;
 	char sName[MAX_NAME_LENGTH];
 }
 
@@ -95,6 +94,7 @@ enum struct bot_info_t
 	Handle hTimer;
 	float fStartTick; // Shavit_GetReplayBotFirstFrame
 	bool bCustomFrames;
+	bool bIgnoreLimit;
 	framecache_t aCache;
 }
 
@@ -403,7 +403,7 @@ void KickAllReplays()
 	{
 		if (IsValidEntity(gA_BotInfo[i].iEnt))
 		{
-			KickReplay(gA_BotInfo[i], -1, false);
+			KickReplay(gA_BotInfo[i], false);
 		}
 	}
 
@@ -524,11 +524,11 @@ public void AdminMenu_DeleteReplay(Handle topmenu, TopMenuAction action, TopMenu
 	}
 }
 
-void FinishReplay(bot_info_t info, int stopper = -1)
+void FinishReplay(bot_info_t info)
 {
 	if (info.iType == Replay_Dynamic || info.iType == Replay_Prop)
 	{
-		KickReplay(info, stopper);
+		KickReplay(info);
 	}
 	else if (info.iType == Replay_Looping)
 	{
@@ -539,11 +539,11 @@ void FinishReplay(bot_info_t info, int stopper = -1)
 		if (hasFrames)
 		{
 			ClearBotInfo(info);
-			StartReplay(info, nexttrack, nextstyle, stopper, gCV_ReplayDelay.FloatValue);
+			StartReplay(info, nexttrack, nextstyle, 0, gCV_ReplayDelay.FloatValue);
 		}
 		else
 		{
-			KickReplay(info, stopper);
+			KickReplay(info);
 		}
 	}
 	else if (info.iType == Replay_Central)
@@ -566,7 +566,7 @@ void StopOrRestartBots(int style, int track, bool restart)
 			continue;
 		}
 
-		CancelReplay(gA_BotInfo[i], 0, false);
+		CancelReplay(gA_BotInfo[i], false);
 
 		if (restart)
 		{
@@ -735,7 +735,7 @@ int CreateReplay(int track, int style, float delay, int client, int bot, int typ
 		{
 			if (!ignorelimit)
 			{
-				if (gCV_DynamicBotLimit.IntValue < 1 || gI_DynamicBots >= gCV_DynamicBotLimit.IntValue)
+				if (gI_DynamicBots >= gCV_DynamicBotLimit.IntValue)
 				{
 					return 0;
 				}
@@ -748,6 +748,7 @@ int CreateReplay(int track, int style, float delay, int client, int bot, int typ
 			info.iStyle = style;
 			info.iTrack = track;
 			info.iStarterSerial = (client > 0) ? GetClientFromSerial(client) : 0;
+			info.bIgnoreLimit = ignorelimit;
 			SetupIfCustomFrames(info, cache);
 			QueueAddReplayBot(info);
 		}
@@ -768,7 +769,7 @@ int CreateReplay(int track, int style, float delay, int client, int bot, int typ
 			return 0;
 		}
 
-		CancelReplay(gA_BotInfo[index], 0, false);
+		CancelReplay(gA_BotInfo[index], false);
 		SetupIfCustomFrames(gA_BotInfo[index], cache);
 		StartReplay(gA_BotInfo[index], track, style, client, delay);
 	}
@@ -2033,7 +2034,7 @@ public void OnClientDisconnect(int client)
 	if (gA_BotInfo[client].iEnt == client)
 	{
 		UpdateBotQuota(gI_ExpectedBots - 1);
-		CancelReplay(gA_BotInfo[client], 0, false);
+		CancelReplay(gA_BotInfo[client], false);
 
 		gA_BotInfo[client].iEnt = -1;
 
@@ -2796,15 +2797,15 @@ void OpenReplayTypeMenu(int client)
 	char sInfo[8];
 
 	FormatEx(sDisplay, sizeof(sDisplay), "%T", "Menu_Replay_Central", client);
-	IntToString(view_as<int>(Replay_Central), sInfo, sizeof(sInfo));
+	IntToString(Replay_Central, sInfo, sizeof(sInfo));
 	menu.AddItem(sInfo, sDisplay, (gCV_CentralBot.BoolValue && IsValidClient(gI_CentralBot) && gA_BotInfo[gI_CentralBot].iStatus == Replay_Idle) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	FormatEx(sDisplay, sizeof(sDisplay), "%T", "Menu_Replay_Dynamic", client);
-	IntToString(view_as<int>(Replay_Dynamic), sInfo, sizeof(sInfo));
-	menu.AddItem(sInfo, sDisplay, (gCV_DynamicBotLimit.IntValue > 0 && gI_DynamicBots < gCV_DynamicBotLimit.IntValue) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	IntToString(Replay_Dynamic, sInfo, sizeof(sInfo));
+	menu.AddItem(sInfo, sDisplay, (gI_DynamicBots < gCV_DynamicBotLimit.IntValue) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	FormatEx(sDisplay, sizeof(sDisplay), "%T", "Menu_Replay_Prop", client);
-	IntToString(view_as<int>(Replay_Prop), sInfo, sizeof(sInfo));
+	IntToString(Replay_Prop, sInfo, sizeof(sInfo));
 	menu.AddItem(sInfo, sDisplay, (gCV_AllowPropBots.BoolValue) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	bool canstop = false;
@@ -2844,7 +2845,8 @@ public int MenuHandler_ReplayType(Menu menu, MenuAction action, int param1, int 
 
 				if ((gA_BotInfo[index].iStatus == Replay_Start || gA_BotInfo[index].iStatus == Replay_Running) && CanStopReplay(param1, gA_BotInfo[index]))
 				{
-					FinishReplay(gA_BotInfo[index], param1);
+					Shavit_PrintToChat(param1, "%T", "CentralReplayStopped", param1);
+					FinishReplay(gA_BotInfo[index]);
 				}
 			}
 
@@ -2859,10 +2861,9 @@ public int MenuHandler_ReplayType(Menu menu, MenuAction action, int param1, int 
 		}
 
 		if ((type == Replay_Central && (!gCV_CentralBot.BoolValue || !IsValidClient(gI_CentralBot) || gA_BotInfo[gI_CentralBot].iStatus != Replay_Idle))
-		|| (type == Replay_Dynamic && (gCV_DynamicBotLimit.IntValue < 1 || gI_DynamicBots >= gCV_DynamicBotLimit.IntValue))
+		|| (type == Replay_Dynamic && (gI_DynamicBots >= gCV_DynamicBotLimit.IntValue))
 		|| (type == Replay_Prop && (!gCV_AllowPropBots.BoolValue)))
 		{
-			PrintToChat(param1, "fuck off"); // TODO
 			return 0;
 		}
 
@@ -3008,24 +3009,44 @@ public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int
 
 		if (type == Replay_Central)
 		{
-			if (IsValidClient(gI_CentralBot))
+			if (!IsValidClient(gI_CentralBot))
 			{
-				StartReplay(gA_BotInfo[gI_CentralBot], gI_MenuTrack[param1], gI_MenuStyle[param1], param1, gCV_ReplayDelay.FloatValue);
-				SetEntPropEnt(param1, Prop_Send, "m_hObserverTarget", gI_CentralBot);
+				return 0;
 			}
-			// TODO: error message if not valid
+
+			if (gA_BotInfo[gI_CentralBot].iStatus != Replay_Idle)
+			{
+				Shavit_PrintToChat(param1, "%T", "CentralReplayPlaying", param1);
+				return 0;
+			}
+
+			StartReplay(gA_BotInfo[gI_CentralBot], gI_MenuTrack[param1], gI_MenuStyle[param1], param1, gCV_ReplayDelay.FloatValue);
+			SetEntPropEnt(param1, Prop_Send, "m_hObserverTarget", gI_CentralBot);
 		}
 		else if (type == Replay_Dynamic)
 		{
+			if (gI_DynamicBots >= gCV_DynamicBotLimit.IntValue)
+			{
+				Shavit_PrintToChat(param1, "%T", "TooManyDynamicBots", param1);
+				return 0;
+			}
+
+			++gI_DynamicBots;
 			bot_info_t info;
 			info.iType = Replay_Dynamic;
 			info.iStyle = gI_MenuStyle[param1];
 			info.iTrack = gI_MenuTrack[param1];
 			info.iStarterSerial = GetClientSerial(param1);
+			info.bIgnoreLimit = false;
 			QueueAddReplayBot(info);
 		}
 		else if (type == Replay_Prop)
 		{
+			if (!gCV_AllowPropBots.BoolValue)
+			{
+				return 0;
+			}
+
 			int ent = CreateReplayProp(param1);
 
 			if (IsValidEntity(ent))
@@ -3085,6 +3106,7 @@ void ClearBotInfo(bot_info_t info)
 	delete info.hTimer;
 	info.fStartTick = -1.0;
 	info.bCustomFrames = false;
+	//info.bIgnoreLimit
 
 	info.aCache.iFrameCount = -1;
 	info.aCache.fTime = -1.0;
@@ -3156,13 +3178,8 @@ bool FindNextLoop(int &track, int &style, int config)
 	return false;
 }
 
-void CancelReplay(bot_info_t info, int client, bool update = true)
+void CancelReplay(bot_info_t info, bool update = true)
 {
-	if(client > 0)
-	{
-		Shavit_PrintToChat(client, "%T", "CentralReplayStopped", client);
-	}
-
 	int starter = GetClientFromSerial(info.iStarterSerial);
 
 	if(starter != 0)
@@ -3183,16 +3200,21 @@ void CancelReplay(bot_info_t info, int client, bool update = true)
 	}
 }
 
-void KickReplay(bot_info_t info, int stopper = -1, bool decreaseQuota = true)
+void KickReplay(bot_info_t info, bool decreaseQuota = true)
 {
 	if (info.iEnt <= 0)
 	{
 		return;
 	}
 
+	if (info.iType == Replay_Dynamic && !info.bIgnoreLimit)
+	{
+		--gI_DynamicBots;
+	}
+
 	int starter = GetClientFromSerial(info.iStarterSerial);
 
-	CancelReplay(info, stopper, false);
+	CancelReplay(info, false);
 
 	if (1 <= info.iEnt <= MaxClients)
 	{

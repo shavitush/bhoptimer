@@ -86,4 +86,8 @@
 	{
 		"en"		"Spawn physics prop bot"
 	}
+	"TooManyDynamicBots"
+	{
+		"en"		"Too many dynamic bots are playing. Can't spawn more."
+	}
 }
