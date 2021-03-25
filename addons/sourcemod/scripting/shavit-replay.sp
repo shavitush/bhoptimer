@@ -240,7 +240,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
+	CreateNative("Shavit_GetReplayBotFrameCount", Native_GetReplayBotFrameCount);
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
+	CreateNative("Shavit_GetReplayBotLength", Native_GetReplayBotLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
 	CreateNative("Shavit_GetReplayStatus", Native_GetReplayStatus);
 	CreateNative("Shavit_GetReplayTime", Native_GetReplayTime);
@@ -889,6 +891,7 @@ public int Native_GetReplayData(Handle plugin, int numParams)
 	if(gA_PlayerFrames[client] != null)
 	{
 		ArrayList frames = gA_PlayerFrames[client].Clone();
+		frames.Resize(gI_PlayerFrames[client]);
 		cloned = CloneHandle(frames, plugin); // set the calling plugin as the handle owner
 		CloseHandle(frames);
 	}
@@ -912,23 +915,35 @@ public int Native_GetReplayFrames(Handle plugin, int numParams)
 	return view_as<int>(cloned);
 }
 
-// TODO: Add a native that'd return the frame count of a replay bot... because custom frames...
 public int Native_GetReplayFrameCount(Handle handler, int numParams)
 {
 	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].iFrameCount;
 }
 
-public int Native_GetClientFrameCount(Handle handler, int numParams)
+public int Native_GetReplayBotFrameCount(Handle handler, int numParams)
 {
-	return gA_PlayerFrames[GetNativeCell(1)].Length;
+	int bot = GetNativeCell(1);
+	int index = GetBotInfoIndex(bot);
+	return gA_BotInfo[index].aCache.iFrameCount;
 }
 
-// TODO: Add a native that'd return the replay length of a replay bot... because custom frames...
+public int Native_GetClientFrameCount(Handle handler, int numParams)
+{
+	return gI_PlayerFrames[GetNativeCell(1)];
+}
+
 public int Native_GetReplayLength(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(2);
 	return view_as<int>(GetReplayLength(style, track, gA_FrameCache[style][track]));
+}
+
+public int Native_GetReplayBotLength(Handle handler, int numParams)
+{
+	int bot = GetNativeCell(1);
+	int index = GetBotInfoIndex(bot);
+	return view_as<int>(GetReplayLength( gA_BotInfo[index].iStyle,  gA_BotInfo[index].iTrack, gA_BotInfo[index].aCache));
 }
 
 // TODO: Add a native that'd return the replay name of a replay bot... because custom frames...
@@ -1556,7 +1571,7 @@ void WriteReplayHeader(File fFile, int style, int track, float time, int steamid
 	fFile.WriteInt32(steamid);
 }
 
-void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int timerstartframe, int timestamp, bool saveCopy, bool saveReplay, char[] sPath, int sPathLen)
+void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int iSize, int timerstartframe, int timestamp, bool saveCopy, bool saveReplay, char[] sPath, int sPathLen)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1577,8 +1592,6 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 		DeleteFile(sPath);
 		fCopy = OpenFile(sPath, "wb");
 	}
-
-	int iSize = playerrecording.Length;
 
 	if (saveReplay)
 	{
@@ -2058,12 +2071,12 @@ public Action Shavit_OnStart(int client)
 {
 	int iMaxPreFrames = RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "speed"));
 
-	gI_PlayerPrerunFrames[client] = gA_PlayerFrames[client].Length - iMaxPreFrames;
+	gI_PlayerPrerunFrames[client] = gI_PlayerFrames[client] - iMaxPreFrames;
 	if(gI_PlayerPrerunFrames[client] < 0)
 	{
 		gI_PlayerPrerunFrames[client] = 0;
 	}
-	gI_PlayerTimerStartFrames[client] = gA_PlayerFrames[client].Length;
+	gI_PlayerTimerStartFrames[client] = gI_PlayerFrames[client];
 
 	if(!gB_ClearFrame[client])
 	{
@@ -2075,7 +2088,7 @@ public Action Shavit_OnStart(int client)
 	}
 	else
 	{
-		if(gA_PlayerFrames[client].Length >= iMaxPreFrames)
+		if(gI_PlayerFrames[client] >= iMaxPreFrames)
 		{
 			gA_PlayerFrames[client].Erase(0);
 			gI_PlayerFrames[client]--;
@@ -2143,7 +2156,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
 	char sPath[PLATFORM_MAX_PATH];
-	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerTimerStartFrames[client], timestamp, makeCopy, makeReplay, sPath, sizeof(sPath));
+	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], gI_PlayerTimerStartFrames[client], timestamp, makeCopy, makeReplay, sPath, sizeof(sPath));
 
 	Call_StartForward(gH_OnReplaySaved);
 	Call_PushCell(client);
@@ -2379,8 +2392,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			if(gF_NextFrameTime[client] <= 0.0)
 			{
-				// TODO: better resizing than this. Probably pre-allocating two seconds worth.
-				gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + 1);
+				if (gA_PlayerFrames[client].Length <= gI_PlayerFrames[client])
+				{
+					// Add about two seconds worth of frames so we don't have to resize so often
+					gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + (RoundToCeil(gF_Tickrate) * 2));
+					//PrintToChat(client, "resizing %d -> %d", gI_PlayerFrames[client], gA_PlayerFrames[client].Length);
+				}
 
 				frame_t aFrame;
 				GetClientAbsOrigin(client, aFrame.pos);
@@ -2404,9 +2421,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				aFrame.mt = GetEntityMoveType(client);
 				//GetEntPropVector(client, Prop_Data, "m_vecVelocity", aFrame.vel); // TODO: m_vecBaseVelocity? m_vecAbsVelocity?
 
-				// TODO: Change to pusharray
-				gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client], aFrame, sizeof(frame_t));
-				gI_PlayerFrames[client]++;
+				gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, aFrame, sizeof(frame_t));
 
 				if(fTimescale != -1.0)
 				{
@@ -3340,7 +3355,7 @@ float GetClosestReplayTime(int client)
 
 	int iPreFrames = gA_FrameCache[style][track].iPreFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
-	int iPlayerFrames = gA_PlayerFrames[client].Length - gI_PlayerPrerunFrames[client];
+	int iPlayerFrames = gI_PlayerFrames[client] - gI_PlayerPrerunFrames[client];
 
 	int iStartFrame = iPlayerFrames - iSearch;
 	int iEndFrame = iPlayerFrames + iSearch;

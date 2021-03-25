@@ -1566,9 +1566,17 @@ native int Shavit_GetReplayButtons(int ent);
  *
  * @param style						Style.
  * @param track						Track.
- * @noreturn
+ * @return							Frame count.
  */
 native int Shavit_GetReplayFrameCount(int style, int track);
+
+/**
+ * Retrieves a replay bot's frame count.
+ *
+ * @param bot						Replay bot entity.
+ * @return							Frame count.
+ */
+native int Shavit_GetReplayBotFrameCount(int bot);
 
 /**
  * Retrieves the replay data for the given style and track.
@@ -1592,15 +1600,23 @@ native int Shavit_GetClientFrameCount(int client);
  *
  * @param style						Style.
  * @param track						Track.
- * @noreturn
+ * @return							Replay length.
  */
 native float Shavit_GetReplayLength(int style, int track);
+
+/**
+ * Retrieves a replay bot's total length in seconds.
+ *
+ * @param bot						Replay bot entity.
+ * @return							Replay length.
+ */
+native float Shavit_GetReplayBotLength(int bot);
 
 /**
  * Retrieves an actively playing replay's time.
  *
  * @param entity					Entity index.
- * @return							The bot's time in the replay.
+ * @return							The bot's current time in the replay.
  */
 native float Shavit_GetReplayTime(int entity);
 
