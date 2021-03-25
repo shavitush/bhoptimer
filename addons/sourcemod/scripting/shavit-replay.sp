@@ -881,31 +881,35 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
 }
 
-public int Native_GetReplayData(Handle handler, int numParams)
+public int Native_GetReplayData(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	ArrayList frames = null;
+	Handle cloned = null;
 
 	if(gA_PlayerFrames[client] != null)
 	{
-		frames = gA_PlayerFrames[client].Clone();
+		ArrayList frames = gA_PlayerFrames[client].Clone();
+		cloned = CloneHandle(frames, plugin); // set the calling plugin as the handle owner
+		CloseHandle(frames);
 	}
 
-	return view_as<int>(frames);
+	return view_as<int>(cloned);
 }
 
-public int Native_GetReplayFrames(Handle handler, int numParams)
+public int Native_GetReplayFrames(Handle plugin, int numParams)
 {
 	int track = GetNativeCell(1);
 	int style = GetNativeCell(2);
-	ArrayList frames = null;
+	Handle cloned = null;
 
 	if(gA_FrameCache[style][track].aFrames != null)
 	{
-		frames = gA_FrameCache[style][track].aFrames.Clone();
+		ArrayList frames = gA_FrameCache[style][track].aFrames.Clone();
+		cloned = CloneHandle(frames, plugin); // set the calling plugin as the handle owner
+		CloseHandle(frames);
 	}
 
-	return view_as<int>(frames);
+	return view_as<int>(cloned);
 }
 
 // TODO: Add a native that'd return the frame count of a replay bot... because custom frames...
