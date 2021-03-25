@@ -78,7 +78,8 @@ enum struct replayfile_header_t
 	int iFrameCount;
 	float fTime;
 	int iSteamID;
-	//int iPostFrames;
+	int iPostFrames;
+	float fTickrate;
 }
 
 enum struct bot_info_t
@@ -1392,7 +1393,11 @@ bool LoadReplay(framecache_t cache, int style, int track, const char[] path, con
 
 	if (fFile != null)
 	{
-		if(header.iReplayVersion < 0x03 || (StrEqual(header.sMap, mapname, false) && header.iStyle == style && header.iTrack == track))
+		if (header.iReplayVersion > REPLAY_FORMAT_SUBVERSION)
+		{
+			// not going to try and read it
+		}
+		else if (header.iReplayVersion < 0x03 || (StrEqual(header.sMap, mapname, false) && header.iStyle == style && header.iTrack == track))
 		{
 			success = ReadReplayFrames(fFile, header, cache);
 		}
@@ -1540,6 +1545,12 @@ File ReadReplayHeader(const char[] path, replayfile_header_t header)
 			ReplaceString(sAuthID, 32, "[U:1:", "");
 			ReplaceString(sAuthID, 32, "]", "");
 			header.iSteamID = StringToInt(sAuthID);
+		}
+
+		if (version >= 0x05)
+		{
+			file.ReadInt32(header.iPostFrames);
+			file.ReadInt32(view_as<int>(header.fTickrate));
 		}
 
 		strcopy(header.sReplayFormat, sizeof(header.sReplayFormat), sExplodedHeader[1]);

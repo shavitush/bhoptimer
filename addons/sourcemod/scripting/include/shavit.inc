@@ -265,7 +265,7 @@ enum struct frame_t
 	// iReplayVersion >= 0x02
 	int flags;
 	MoveType mt;
-	// iReplayVersion >= 0x05
+	// iReplayVersion >= 0x05... maybe
 	//float vel[3];
 }
 
@@ -279,7 +279,8 @@ enum struct framecache_t
 	int iPreFrames;
 	ArrayList aFrames;
 	// iReplayVersion >= 0x05
-	//int iPostFrames;
+	int iPostFrames;
+	float fTickrate;
 }
 
 #if defined USES_CHAT_COLORS
