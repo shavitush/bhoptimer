@@ -2506,9 +2506,13 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		}
 		
 		if(gI_CurrentCheckpoint[client] >= gA_Checkpoints[client].Length)
+		{
 			gA_Checkpoints[client].Push(0);
+		}
 		else
+		{
 			gA_Checkpoints[client].ShiftUp(gI_CurrentCheckpoint[client]);
+		}
 		
 		gA_Checkpoints[client].SetArray(gI_CurrentCheckpoint[client], cpcache);
 	}
