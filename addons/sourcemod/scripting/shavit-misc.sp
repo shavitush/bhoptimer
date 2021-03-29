@@ -2931,6 +2931,16 @@ public Action Command_Specs(int client, int args)
 	return Plugin_Handled;
 }
 
+void ClearClientEventsFrame(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if (client > 0)
+	{
+		ClearClientEvents(client);
+	}
+}
+
 public Action Shavit_OnStart(int client)
 {
 	gI_TimesTeleported[client] = 0;
@@ -2944,6 +2954,14 @@ public Action Shavit_OnStart(int client)
 	{
 		DispatchKeyValue(client, "targetname", "");
 		SetEntPropString(client, Prop_Data, "m_iClassname", "player");
+	}
+
+	// Used to clear some (mainly basevelocity) events that can be used to boost out of the start zone.
+	if(gB_Eventqueuefix)
+	{
+		ClearClientEvents(client); // maybe unneeded?
+		// The RequestFrame is the on that's actually needed though...
+		RequestFrame(ClearClientEventsFrame, GetClientSerial(client));
 	}
 
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
