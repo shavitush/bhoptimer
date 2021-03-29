@@ -33,6 +33,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+#include <eventqueuefix>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -42,6 +43,8 @@
 #define CP_VELOCITY				(1 << 1)
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
+
+//#define DEBUG 1
 
 enum struct persistent_data_t
 {
@@ -54,8 +57,8 @@ enum struct persistent_data_t
 	float fGravity;
 	float fSpeed;
 	timer_snapshot_t aSnapshot;
-	int iTargetname;
-	int iClassname;
+	char sTargetname[64];
+	char sClassname[64];
 	ArrayList aFrames;
 	int iPreFrames;
 	int iTimerPreFrames;
@@ -91,8 +94,6 @@ int gI_CurrentCheckpoint[MAXPLAYERS+1];
 int gI_TimesTeleported[MAXPLAYERS+1];
 
 int gI_CheckpointsSettings[MAXPLAYERS+1];
-ArrayList gA_Targetnames = null;
-ArrayList gA_Classnames = null;
 
 // save states
 bool gB_SaveStates[MAXPLAYERS+1]; // whether we have data for when player rejoins from spec
@@ -162,6 +163,7 @@ Handle gH_Forwards_OnCheckpointMenuSelect = null;
 Handle gH_GetPlayerMaxSpeed = null;
 
 // modules
+bool gB_Eventqueuefix = false;
 bool gB_Rankings = false;
 bool gB_Replay = false;
 bool gB_Zones = false;
@@ -246,8 +248,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint.");
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint. Usage: sm_tele [number]");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
-	gA_Targetnames = new ArrayList(ByteCountToCells(64));
-	gA_Classnames = new ArrayList(ByteCountToCells(64));
 	gA_PersistentData = new ArrayList(sizeof(persistent_data_t));
 
 	gI_Ammo = FindSendPropInfo("CCSPlayer", "m_iAmmo");
@@ -391,6 +391,7 @@ public void OnPluginStart()
 	}
 
 	// modules
+	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
@@ -508,8 +509,6 @@ public void OnMapStart()
 		delete aData.aFrames;
 	}
 
-	gA_Targetnames.Clear();
-	gA_Classnames.Clear();
 	gA_PersistentData.Clear();
 
 	GetCurrentMap(gS_CurrentMap, 192);
@@ -620,6 +619,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Chat = true;
 	}
+
+	else if(StrEqual(name, "eventqueuefix"))
+	{
+		gB_Eventqueuefix = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -642,6 +646,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-chat"))
 	{
 		gB_Chat = false;
+	}
+
+	else if(StrEqual(name, "eventqueuefix"))
+	{
+		gB_Eventqueuefix = false;
 	}
 }
 
@@ -1199,6 +1208,7 @@ public void OnClientDisconnect(int client)
 	{
 		int entity = -1;
 
+		// TODO: better way to do this?
 		while((entity = FindEntityByClassname(entity, "weapon_*")) != -1)
 		{
 			if(GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
@@ -1257,26 +1267,8 @@ void FillPersistentData(int client, persistent_data_t aData, bool disconnected)
 	GetClientEyeAngles(client, aData.fAngles);
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", aData.fVelocity);
 	Shavit_SaveSnapshot(client, aData.aSnapshot);
-
-	char sTargetname[64];
-	GetEntPropString(client, Prop_Data, "m_iName", sTargetname, 64);
-
-	aData.iTargetname = gA_Targetnames.FindString(sTargetname);
-
-	if(aData.iTargetname == -1)
-	{
-		aData.iTargetname = gA_Targetnames.PushString(sTargetname);
-	}
-
-	char sClassname[64];
-	GetEntityClassname(client, sClassname, 64);
-
-	aData.iClassname = gA_Classnames.FindString(sClassname);
-
-	if(aData.iClassname == -1)
-	{
-		aData.iClassname = gA_Classnames.PushString(sClassname);
-	}
+	GetEntPropString(client, Prop_Data, "m_iName", aData.sTargetname, 64);
+	GetEntityClassname(client, aData.sClassname, 64);
 }
 
 int FindPersistentData(int client, persistent_data_t aData)
@@ -1376,22 +1368,16 @@ void LoadPersistentData(int serial)
 
 	Shavit_LoadSnapshot(client, aData.aSnapshot);
 
-	if(aData.iTargetname != -1)
+	if(aData.sTargetname[0] != 0)
 	{
-		char sTargetname[64];
-		gA_Targetnames.GetString(aData.iTargetname, sTargetname, 64);
-
 		// TODO: ?????????????? is it supposed to be targetname??????
 		//DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
-		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
+		SetEntPropString(client, Prop_Data, "m_iName", aData.sTargetname);
 	}
 
-	if(aData.iClassname != -1)
+	if(aData.sClassname[0] != 0)
 	{
-		char sClassname[64];
-		gA_Classnames.GetString(aData.iClassname, sClassname, 64);
-
-		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
+		SetEntPropString(client, Prop_Data, "m_iClassname", aData.sClassname);
 	}
 
 	TeleportEntity(client, aData.fPosition, aData.fAngles, aData.fVelocity);
@@ -1428,13 +1414,22 @@ void RemoveWeapon(any data)
 	}
 }
 
+void DeleteCheckpointCache(cp_cache_t cache)
+{
+	delete cache.aFrames;
+	delete cache.aEvents;
+	delete cache.aOutputWaits;
+}
+
 void ResetCheckpointsInner(ArrayList cps)
 {
 	if (cps)
 	{
 		for(int i = 0; i < cps.Length; i++)
 		{
-			delete view_as<ArrayList>(cps.Get(i, cp_cache_t::aFrames));
+			cp_cache_t cache;
+			cps.GetArray(i, cache);
+			DeleteCheckpointCache(cache);
 		}
 		
 		cps.Clear();
@@ -2374,25 +2369,11 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", cpcache.fVelocity);
 	GetEntPropVector(target, Prop_Data, "m_vecBaseVelocity", cpcache.fBaseVelocity);
 
-	char sTargetname[64];
-	GetEntPropString(target, Prop_Data, "m_iName", sTargetname, 64);
-
-	int iTargetname = gA_Targetnames.FindString(sTargetname);
-
-	if(iTargetname == -1)
-	{
-		iTargetname = gA_Targetnames.PushString(sTargetname);
-	}
-
-	char sClassname[64];
-	GetEntityClassname(target, sClassname, 64);
-
-	int iClassname = gA_Classnames.FindString(sClassname);
-
-	if(iClassname == -1)
-	{
-		iClassname = gA_Classnames.PushString(sClassname);
-	}
+	#if defined DEBUG
+	PrintToConsole(client, "m_vecVelocity %f %f %f --- m_vecBaseVelocity %f %f %f",
+		cpcache.fVelocity[0], cpcache.fVelocity[1], cpcache.fVelocity[2],
+		cpcache.fBaseVelocity[0], cpcache.fBaseVelocity[1], cpcache.fBaseVelocity[2]);
+	#endif
 
 	cpcache.iMoveType = GetEntityMoveType(target);
 	cpcache.fGravity = GetEntityGravity(target);
@@ -2407,16 +2388,14 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 		cpcache.fStamina = 0.0;
 		cpcache.iGroundEntity = -1;
-		cpcache.iTargetname = -1;
-		cpcache.iClassname = -1;
 	}
 
 	else
 	{
 		cpcache.fStamina = (gEV_Type != Engine_TF2)? GetEntPropFloat(target, Prop_Send, "m_flStamina"):0.0;
 		cpcache.iGroundEntity = GetEntPropEnt(target, Prop_Data, "m_hGroundEntity");
-		cpcache.iTargetname = iTargetname;
-		cpcache.iClassname = iClassname;
+		GetEntityClassname(target, cpcache.sClassname, 64);
+		GetEntPropString(target, Prop_Data, "m_iName", cpcache.sTargetname, 64);
 	}
 
 	cpcache.iFlags = iFlags;
@@ -2482,6 +2461,17 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 		}
 
 		cpcache.bSegmented = true;
+
+		if (gB_Eventqueuefix && !IsFakeClient(target))
+		{
+			eventpack_t ep;
+
+			if (GetClientEvents(target, ep))
+			{
+				cpcache.aEvents = ep.playerEvents;
+				cpcache.aOutputWaits = ep.outputWaits;
+			}
+		}
 	}
 
 	else
@@ -2500,7 +2490,9 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 
 		if(gA_Checkpoints[client].Length >= iMaxCPs)
 		{
-			delete view_as<ArrayList>(gA_Checkpoints[client].Get(0, cp_cache_t::aFrames));
+			cp_cache_t oldcache;
+			gA_Checkpoints[client].GetArray(0, oldcache);
+			DeleteCheckpointCache(oldcache);
 			gA_Checkpoints[client].Erase(0);
 			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
 		}
@@ -2622,27 +2614,21 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	if((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented)
 	{
-		AddVectors(cpcache.fVelocity, cpcache.fBaseVelocity, vel);
+		AddVectors(cpcache.fVelocity, /*cpcache.fBaseVelocity*/ NULL_VECTOR, vel);
 	}
 	else
 	{
 		vel = NULL_VECTOR;
 	}
 
-	if(cpcache.iTargetname != -1)
+	if(cpcache.sTargetname[0] != 0)
 	{
-		char sTargetname[64];
-		gA_Targetnames.GetString(cpcache.iTargetname, sTargetname, 64);
-
-		SetEntPropString(client, Prop_Data, "m_iName", sTargetname);
+		SetEntPropString(client, Prop_Data, "m_iName", cpcache.sTargetname);
 	}
 
-	if(cpcache.iClassname != -1)
+	if(cpcache.sClassname[0] != 0)
 	{
-		char sClassname[64];
-		gA_Classnames.GetString(cpcache.iClassname, sClassname, 64);
-
-		SetEntPropString(client, Prop_Data, "m_iClassname", sClassname);
+		SetEntPropString(client, Prop_Data, "m_iClassname", cpcache.sClassname);
 	}
 
 	TeleportEntity(client, cpcache.fPosition,
@@ -2673,6 +2659,25 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 			Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames);
 			Shavit_SetPlayerTimerFrame(client, cpcache.iTimerPreFrames);
 		}
+	}
+
+	if (gB_Eventqueuefix && cpcache.aEvents != null && cpcache.aOutputWaits != null)
+	{
+		eventpack_t ep;
+		ep.playerEvents = cpcache.aEvents;
+		ep.outputWaits = cpcache.aOutputWaits;
+		SetClientEvents(client, ep);
+
+		#if defined DEBUG
+		PrintToConsole(client, "targetname='%s'", cpcache.sTargetname);
+
+		for (int i = 0; i < cpcache.aEvents.Length; i++)
+		{
+			event_t e;
+			cpcache.aEvents.GetArray(i, e);
+			PrintToConsole(client, "%s %s %s %f %i %i %i", e.target, e.targetInput, e.variantValue, e.delay, e.activator, e.caller, e.outputID);
+		}
+		#endif
 	}
 	
 	if(!suppressMessage)

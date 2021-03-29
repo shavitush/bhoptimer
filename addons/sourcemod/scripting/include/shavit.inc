@@ -245,8 +245,8 @@ enum struct cp_cache_t
 	float fDuckSpeed; // m_flDuckSpeed in csgo; doesn't exist in css
 	int iFlags;
 	timer_snapshot_t aSnapshot;
-	int iTargetname;
-	int iClassname;
+	char sTargetname[64];
+	char sClassname[64];
 	ArrayList aFrames;
 	int iPreFrames;
 	int iTimerPreFrames;
@@ -255,6 +255,8 @@ enum struct cp_cache_t
 	bool bPractice;
 	int iGroundEntity;
 	int iSteamID;
+	ArrayList aEvents;
+	ArrayList aOutputWaits;
 }
 
 enum struct frame_t
