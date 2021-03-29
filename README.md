@@ -9,21 +9,25 @@
 
 # shavit's bhop timer
 
-This is (nearly) an all-in-one server plugin for Counter-Strike: Source, Counter-Strike: Global Offensive and Team Fortress 2 that adds a timer system and many other utilities, so you can install it and run a proper bunnyhop server.
+This is (nearly) an all-in-one server plugin for Counter-Strike: Source, Counter-Strike: Global Offensive, and Team Fortress 2 that adds a timer system and many other utilities, so you can install it and run a proper bunnyhop server.
 
 Includes a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, segmented running, a fair & competitive rankings system and more!
 
 [Mapzones Setup Demonstration](https://youtu.be/OXFMGm40F6c)
 
 # Requirements:
-* Steam version of Counter-Strike: Source or Counter-Strike: Global Offensive.
+* Steam version of Counter-Strike: Source, Counter-Strike: Global Offensive, or Team Fortress 2.
 * [SourceMod 1.10 or above](http://www.sourcemod.net/downloads.php?branch=dev)
 * A MySQL database (preferably locally hosted) if your database is likely to grow big, or if you want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is highly recommended.
 * [DHooks](https://github.com/peace-maker/DHooks2/releases)
 
 # Optional requirements, for the best experience:
+* [eventqueuefix](https://github.com/hermansimensen/eventqueue-fix)
+  * Some booster fixing and scaling booster delays by timescale. (Use this instead of `boosterfix`)
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135)
+  * Used for scroll styles and also required for TF2.
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
+  * Used to grab `{serverip}` in advertisements.
 * [DynamicChannels](https://github.com/Vauff/DynamicChannels)
 
 #  Installation:
@@ -36,9 +40,7 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
 
 # Recommened plugins:
 * [MomSurfFix](https://github.com/GAMMACASE/MomSurfFix)
-	- Makes surf ramps less likely to stop players. (Ramp bug / surf glitch)
+  - Makes surf ramps less likely to stop players. (Ramp bug / surf glitch)
 * [RNGFix](https://github.com/jason-e/rngfix)
   - Makes slopes, teleporters, and more less random. Replaces `slopefix`
-* [eventqueuefix](https://github.com/hermansimensen/eventqueue-fix)
-  - Changes how events are sent to players. Makes boosters more consistent. Replaces `boosterfix`
 * TODO: `paint`, `mpbhops`, `showtriggers`, `showplayerclips`, `ssj`, `ljstats`, `shavit-mapchooser`, `NoViewPunch`, `bash2`
