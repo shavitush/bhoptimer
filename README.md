@@ -38,7 +38,7 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
 `shavit-zones` - completely required.  
 `shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-rankings` and `shavit-sounds`.
 
-# Recommened plugins:
+# Recommended plugins:
 * [MomSurfFix](https://github.com/GAMMACASE/MomSurfFix)
   - Makes surf ramps less likely to stop players. (Ramp bug / surf glitch)
 * [RNGFix](https://github.com/jason-e/rngfix)
