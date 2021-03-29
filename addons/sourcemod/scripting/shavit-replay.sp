@@ -1214,31 +1214,13 @@ public void OnMapStart()
 	}
 
 	GetCurrentMap(gS_Map, 160);
+	bool bWorkshopWritten = WriteNavMesh(gS_Map); // write "maps/workshop/123123123/bhop_map.nav"
 	GetMapDisplayName(gS_Map, gS_Map, 160);
+	bool bDisplayWritten = WriteNavMesh(gS_Map); // write "maps/bhop_map.nav"
 
-	char sTempMap[PLATFORM_MAX_PATH];
-	FormatEx(sTempMap, PLATFORM_MAX_PATH, "maps/%s.nav", gS_Map);
-
-	if(!FileExists(sTempMap))
+	if (bWorkshopWritten || bDisplayWritten)
 	{
-		File file = OpenFile(sTempMap, "wb");
-
-		if(file != null)
-		{
-			int defaultNavMesh[51] = {
-				-17958194, 16, 1, 128600, 16777217, 1, 1, 0, -1007845376, 1112014848, 1107304447, -1035468800,
-				1139638272, 1107304447, 1107304447, 1107304447, 0, 0, 0, 0, 4, -415236096, 2046820547, 2096962, 
-				65858, 0, 49786, 536822394, 33636864, 0, 12745216, -12327104, 21102623, 3, -1008254976, 1139228672,
-				1107304447, 1, 0, 0, 0, 4386816, 4386816, 4161536, 4161536, 4161536, 20938752, 16777216, 33554432, 0, 0
-			};
-			file.Write(defaultNavMesh, 51, 4);
-			int zero[1] = {0};
-			file.Write(zero, 1, 1); // defaultNavMesh is missing one byte...
-			delete file;
-		}
-
 		ForceChangeLevel(gS_Map, ".nav file generate");
-
 		return;
 	}
 
@@ -3453,4 +3435,33 @@ float GetClosestReplayTime(int client)
 	gF_VelocityDifference3D[client] = GetVectorLength(clientVel) - GetVectorLength(replayVel);
 
 	return timeDifference;
+}
+
+bool WriteNavMesh(const char[] map)
+{
+	char sTempMap[PLATFORM_MAX_PATH];
+	FormatEx(sTempMap, PLATFORM_MAX_PATH, "maps/%s.nav", map);
+
+	if(!FileExists(sTempMap))
+	{
+		File file = OpenFile(sTempMap, "wb");
+
+		if(file != null)
+		{
+			int defaultNavMesh[51] = {
+				-17958194, 16, 1, 128600, 16777217, 1, 1, 0, -1007845376, 1112014848, 1107304447, -1035468800,
+				1139638272, 1107304447, 1107304447, 1107304447, 0, 0, 0, 0, 4, -415236096, 2046820547, 2096962, 
+				65858, 0, 49786, 536822394, 33636864, 0, 12745216, -12327104, 21102623, 3, -1008254976, 1139228672,
+				1107304447, 1, 0, 0, 0, 4386816, 4386816, 4161536, 4161536, 4161536, 20938752, 16777216, 33554432, 0, 0
+			};
+			file.Write(defaultNavMesh, 51, 4);
+			int zero[1] = {0};
+			file.Write(zero, 1, 1); // defaultNavMesh is missing one byte...
+			delete file;
+		}
+
+		return true;
+	}
+
+	return false;
 }
