@@ -1231,6 +1231,8 @@ public void OnMapStart()
 		return;
 	}
 
+	PrecacheModel((gEV_Type == Engine_TF2)? "models/error.mdl":"models/props/cs_office/vending_machine.mdl");
+
 	if(!DirExists(gS_ReplayFolder))
 	{
 		CreateDirectory(gS_ReplayFolder, 511);
@@ -2739,18 +2741,8 @@ int CreateReplayProp(int client)
 	{
 		return -1;
 	}
-	
-	char models[][] = {
-		"models/props_interiors/lightbulb02a.mdl",
-		"models/props/cs_office/vending_machine.mdl",
-		"models/props/cs_italy/bananna_bunch.mdl",
-		"models/player/t_leet.mdl",
-	};
 
-	int modelidx = 1;
-
-	PrecacheModel(models[modelidx]);
-	SetEntityModel(ent, models[modelidx]);
+	SetEntityModel(ent, (gEV_Type == Engine_TF2)? "models/error.mdl":"models/props/cs_office/vending_machine.mdl");
 
 	DispatchSpawn(ent);
 
