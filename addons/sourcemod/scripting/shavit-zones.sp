@@ -837,7 +837,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 
 public void OnEntityDestroyed(int entity)
 {
-	if (gI_EntityZone[entity] > -1)
+	if (entity > MaxClients && entity < 4096 && gI_EntityZone[entity] > -1)
 	{
 		KillZoneEntity(gI_EntityZone[entity]);
 		ClearZone(gI_EntityZone[entity]);
@@ -3180,11 +3180,6 @@ float Abs(float input)
 
 public void CreateZoneEntities()
 {
-	if(gB_ZonesCreated)
-	{
-		return;
-	}
-
 	for(int i = 0; i < gI_MapZones; i++)
 	{
 		if(gA_ZoneCache[i].bPrebuilt)
