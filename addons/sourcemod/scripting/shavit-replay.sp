@@ -2640,7 +2640,7 @@ public Action Command_DeleteReplay(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -2685,7 +2685,7 @@ public int DeleteReplay_Callback(Menu menu, MenuAction action, int param1, int p
 		}
 
 		submenu.ExitButton = true;
-		submenu.Display(param1, 300);
+		submenu.Display(param1, MENU_TIME_FOREVER);
 	}
 
 	else if(action == MenuAction_End)
@@ -2829,7 +2829,7 @@ void OpenReplayTypeMenu(int client)
 	menu.AddItem("stop", sDisplay, canstop ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	menu.ExitButton = true;
-	menu.DisplayAt(client, 0, 300);
+	menu.DisplayAt(client, 0, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_ReplayType(Menu menu, MenuAction action, int param1, int param2)
@@ -2911,7 +2911,7 @@ void OpenReplayTrackMenu(int client)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_ReplayTrack(Menu menu, MenuAction action, int param1, int param2)

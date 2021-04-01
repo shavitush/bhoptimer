@@ -378,7 +378,7 @@ public Action Command_MapsDoneLeft(int client, int args)
 		menu.AddItem(sInfo, gS_StyleStrings[iStyle].sStyleName);
 	}
 
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -403,7 +403,7 @@ public int MenuHandler_MapsDoneLeft(Menu menu, MenuAction action, int param1, in
 			submenu.AddItem(sInfo, sTrack);
 		}
 
-		submenu.Display(param1, 300);
+		submenu.Display(param1, MENU_TIME_FOREVER);
 	}
 
 	else if(action == MenuAction_End)
@@ -604,7 +604,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		}
 
 		menu.ExitButton = true;
-		menu.Display(client, 300);
+		menu.Display(client, MENU_TIME_FOREVER);
 	}
 
 	else
@@ -643,7 +643,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 		}
 
 		submenu.ExitBackButton = true;
-		submenu.Display(param1, 300);
+		submenu.Display(param1, MENU_TIME_FOREVER);
 	}
 
 	else if(action == MenuAction_End)
@@ -819,7 +819,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int param2)
@@ -950,7 +950,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	hMenu.SetTitle(sFormattedTitle);
 	hMenu.ExitBackButton = true;
-	hMenu.Display(client, 300);
+	hMenu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
