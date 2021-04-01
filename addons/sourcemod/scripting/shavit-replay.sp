@@ -1200,6 +1200,70 @@ bool LoadStyling()
 	return true;
 }
 
+void CreateAllNavFiles()
+{
+	StringMap mapList = new StringMap();
+	DirectoryListing dir = OpenDirectory("maps");
+
+	if (dir == null)
+	{
+		return;
+	}
+
+	char fileName[PLATFORM_MAX_PATH];
+	FileType type;
+
+	// Loop through maps folder.
+	// If .bsp, mark as need .nav
+	// If .nav, mark as have .nav
+	while (dir.GetNext(fileName, sizeof(fileName), type))
+	{
+		if (type != FileType_File)
+		{
+			continue;
+		}
+
+		int length = strlen(fileName);
+
+		if (length < 5 || fileName[length-4] != '.') // a.bsp
+		{
+			continue;
+		}
+
+		if (fileName[length-3] == 'b' && fileName[length-2] == 's' && fileName[length-1] == 'p')
+		{
+			fileName[length-4] = 0;
+			mapList.SetValue(fileName, false, false); // note: false for 'replace'
+		}
+		else if (fileName[length-3] == 'n' && fileName[length-2] == 'a' && fileName[length-1] == 'v')
+		{
+			fileName[length-4] = 0;
+			mapList.SetValue(fileName, true, true); // note: true for 'replace'
+		}
+	}
+
+	delete dir;
+
+	// StringMap shenanigans are used so we don't call FileExists() 2000 times
+	StringMapSnapshot snapshot = mapList.Snapshot();
+
+	for (int i = 0; i < snapshot.Length; i++)
+	{
+		snapshot.GetKey(i, fileName, sizeof(fileName));
+
+		bool hasNAV = false;
+		mapList.GetValue(fileName, hasNAV);
+
+		if (!hasNAV)
+		{
+			WriteNavMesh(fileName, true);
+		}
+	}
+
+	delete snapshot;
+	delete mapList;
+}
+
 public void OnMapStart()
 {
 	if(!LoadStyling())
@@ -1217,6 +1281,8 @@ public void OnMapStart()
 	bool bWorkshopWritten = WriteNavMesh(gS_Map); // write "maps/workshop/123123123/bhop_map.nav"
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 	bool bDisplayWritten = WriteNavMesh(gS_Map); // write "maps/bhop_map.nav"
+
+	CreateAllNavFiles();
 
 	if (bWorkshopWritten || bDisplayWritten)
 	{
@@ -3429,12 +3495,12 @@ float GetClosestReplayTime(int client)
 	return timeDifference;
 }
 
-bool WriteNavMesh(const char[] map)
+bool WriteNavMesh(const char[] map, bool skipExistsCheck = false)
 {
 	char sTempMap[PLATFORM_MAX_PATH];
 	FormatEx(sTempMap, PLATFORM_MAX_PATH, "maps/%s.nav", map);
 
-	if(!FileExists(sTempMap))
+	if(skipExistsCheck || !FileExists(sTempMap))
 	{
 		File file = OpenFile(sTempMap, "wb");
 
