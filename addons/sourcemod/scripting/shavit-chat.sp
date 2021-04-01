@@ -296,11 +296,13 @@ bool LoadChatConfig()
 		{
 			if(chat_title.iRequire == Require_WR_Count)
 			{
-				LogError("shavit chatranks can't use WR count & percentage in the same tag"); // TODO: ???
+				LogError("shavit chatranks can't use WR count & percentage in the same tag");
+				continue;
 			}
 			else if(chat_title.iRequire == Require_Points)
 			{
-				LogError("shavit chatranks can't use points & percentage in the same tag"); // TODO: ???
+				LogError("shavit chatranks can't use points & percentage in the same tag");
+				continue;
 			}
 		}
 		
@@ -317,7 +319,6 @@ bool LoadChatConfig()
 			gA_ChatRanks.PushArray(chat_title);
 		}
 	}
-
 	while(kv.GotoNextKey());
 
 	delete kv;

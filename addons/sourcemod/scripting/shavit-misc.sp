@@ -1370,8 +1370,6 @@ void LoadPersistentData(int serial)
 
 	if(aData.sTargetname[0] != 0)
 	{
-		// TODO: ?????????????? is it supposed to be targetname??????
-		//DispatchKeyValue(client, "targetname", gS_SaveStateTargetname[client]);
 		SetEntPropString(client, Prop_Data, "m_iName", aData.sTargetname);
 	}
 

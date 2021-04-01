@@ -39,8 +39,17 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
 `shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-rankings` and `shavit-sounds`.
 
 # Recommended plugins:
-* [MomSurfFix](https://github.com/GAMMACASE/MomSurfFix)
+* [MomSurfFix](https://forums.alliedmods.net/showthread.php?p=2680743) ([github](https://github.com/GAMMACASE/MomSurfFix))
   - Makes surf ramps less likely to stop players. (Ramp bug / surf glitch)
-* [RNGFix](https://github.com/jason-e/rngfix)
+* [RNGFix](https://forums.alliedmods.net/showthread.php?t=310825) ([github](https://github.com/jason-e/rngfix))
   - Makes slopes, teleporters, and more less random. Replaces `slopefix`
-* TODO: `paint`, `mpbhops`, `showtriggers`, `showplayerclips`, `ssj`, `ljstats`, `shavit-mapchooser`, `NoViewPunch`, `bash2`
+* [Showtriggers](https://forums.alliedmods.net/showthread.php?t=290356) ([github](https://github.com/1ci/showtriggers))
+  - Allows players to toggle trigger visibility.
+* [ShowPlayerClips](https://forums.alliedmods.net/showthread.php?p=2661942) ([github](https://github.com/GAMMACASE/ShowPlayerClips))
+  - Allows players to toggle player clip visibility.
+* [shavit-mapchooser](https://github.com/mbhound/shavit-mapchooser)
+  - Fancy map chooser plugin to add some timer specific options for the nominate and rtv menus.
+* TODO: `paint`, `mpbhops`, `ssj`, `ljstats`, `bash2`
+### CS:GO
+* [NoViewPunch](https://github.com/hermansimensen/NoViewPunch)
+  - Makes jumping look less cancer in CS:GO.

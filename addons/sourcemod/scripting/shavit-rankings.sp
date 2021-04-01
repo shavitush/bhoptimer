@@ -568,8 +568,6 @@ public Action Command_RecalcMap(int client, int args)
 
 void FormatRecalculate(const char[] map, int track, int style, char[] sQuery, int sQueryLen)
 {
-	// TODO: Use (VALUES (style, multiplier), (style, multiplier)) or lots of selects+unions...
-
 	char sTrack[30];
 	bool bHaveMap = strlen(map) != 0;
 
