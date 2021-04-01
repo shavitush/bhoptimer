@@ -839,8 +839,9 @@ public void OnEntityDestroyed(int entity)
 {
 	if (entity > MaxClients && entity < 4096 && gI_EntityZone[entity] > -1)
 	{
-		KillZoneEntity(gI_EntityZone[entity]);
-		ClearZone(gI_EntityZone[entity]);
+		int zone = gI_EntityZone[entity];
+		KillZoneEntity(zone);
+		ClearZone(zone);
 	}
 }
 
