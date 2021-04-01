@@ -1286,8 +1286,8 @@ public void OnMapStart()
 
 	if (bWorkshopWritten || bDisplayWritten)
 	{
-		ForceChangeLevel(gS_Map, ".nav file generate");
-		return;
+		SetCommandFlags("nav_load", GetCommandFlags("nav_load") & ~FCVAR_CHEAT);
+		ServerCommand("nav_load");
 	}
 
 	KickAllReplays();
