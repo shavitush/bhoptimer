@@ -470,6 +470,18 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 {
 	gI_Style[client] = newstyle;
 
+	if (gB_SaveStates[client] && manual)
+	{
+		persistent_data_t aData;
+		int iIndex = FindPersistentData(client, aData);
+
+		if (iIndex != -1)
+		{
+			gB_SaveStates[client] = false;
+			DeletePersistentData(iIndex, aData);
+		}
+	}
+
 	if(StrContains(gS_StyleStrings[newstyle].sSpecialString, "segments") != -1)
 	{
 		// Gammacase somehow had this callback fire before OnClientPutInServer.
