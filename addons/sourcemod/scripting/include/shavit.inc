@@ -1698,7 +1698,7 @@ native void Shavit_OpenStatsMenu(int client, int steamid);
 
 /**
  * Retrieves the amount of #1 records a player has.
- * Requires shavit-stats.
+ * Requires shavit-rankings.
  *
  * @param client					Client index.
  * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
@@ -1710,7 +1710,7 @@ native int Shavit_GetWRCount(int client, int track = -1, int style = -1, bool us
 
 /**
  * Retrieves the number of players who hold #1 records.
- * Requires shavit-stats.
+ * Requires shavit-rankings.
  *
  * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
  * @param style						Style to retrieve WRs from. -1 to use all styles.
@@ -1721,7 +1721,7 @@ native int Shavit_GetWRHolders(int track = -1, int style = -1, bool usecvars = t
 
 /**
  * Retrieves the player's rank based on how many #1 records they hold.
- * Requires shavit-stats.
+ * Requires shavit-rankings.
  *
  * @param client					Client index.
  * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
