@@ -22,6 +22,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <convar_class>
+#include <profiler>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
@@ -31,6 +32,7 @@
 #include <cstrike>
 #include <tf2>
 #include <tf2_stocks>
+#include <closestpos>
 
 //#include <TickRateControl>
 forward void TickRate_OnTickRateChanged(float fOld, float fNew);
@@ -42,7 +44,7 @@ forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 #define MAX_LOOPING_BOT_CONFIGS 24
 #define HACKY_CLIENT_IDX_PROP "m_iTeamNum" // I store the client owner idx in this for Replay_Prop. My brain is too powerful.
 
-// #define DEBUG
+#define DEBUG 0
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -217,6 +219,9 @@ TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 Database gH_SQL = null;
 char gS_MySQLPrefix[32];
 
+bool gB_ClosestPos;
+ClosestPos gH_ClosestPos[TRACKS_SIZE][STYLE_LIMIT];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Replay Bot",
@@ -285,6 +290,11 @@ public void OnAllPluginsLoaded()
 	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
 	{
 		OnAdminMenuReady(gH_AdminMenu);
+	}
+
+	if (LibraryExists("closestpos"))
+	{
+		gB_ClosestPos = true;
 	}
 
 	// I don't like doing this
@@ -430,6 +440,10 @@ public void OnLibraryAdded(const char[] name)
 			OnAdminMenuReady(gH_AdminMenu);
 		}
 	}
+	else if (strcmp(name, "closestpos") == 0)
+	{
+		gB_ClosestPos = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -438,6 +452,10 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gH_AdminMenu = null;
 		gH_TimerCommands = INVALID_TOPMENUOBJECT;
+	}
+	else if (strcmp(name, "closestpos") == 0)
+	{
+		gB_ClosestPos = false;
 	}
 }
 
@@ -1432,7 +1450,19 @@ bool DefaultLoadReplay(framecache_t cache, int style, int track)
 {
 	char sPath[PLATFORM_MAX_PATH];
 	GetReplayFilePath(style, track, gS_Map, sPath);
-	return LoadReplay(cache, style, track, sPath, gS_Map);
+
+	if (!LoadReplay(cache, style, track, sPath, gS_Map))
+	{
+		return false;
+	}
+
+	if (gB_ClosestPos)
+	{
+		delete gH_ClosestPos[track][style];
+		gH_ClosestPos[track][style] = new ClosestPos(cache.aFrames);
+	}
+
+	return true;
 }
 
 bool LoadReplay(framecache_t cache, int style, int track, const char[] path, const char[] mapname)
@@ -3379,7 +3409,7 @@ public void OnGameFrame()
 	for (int client = 1; client <= MaxClients; client++)
 	{
 		// Using modtick & valid to spread out client updates across different ticks.
-		if (IsValidClient(client, true) && !IsFakeClient(client) && Shavit_GetTimerStatus(client) == Timer_Running && (++valid % gCV_DynamicTimeTick.IntValue) == modtick)
+		if (IsValidClient(client, true) && !IsFakeClient(client) && Shavit_GetTimerStatus(client) == Timer_Running && !Shavit_InsideZone(client, Zone_Start, Shavit_GetClientTrack(client)) && (++valid % gCV_DynamicTimeTick.IntValue) == modtick)
 		{
 			gF_TimeDifference[client] = GetClosestReplayTime(client);
 		}
@@ -3408,51 +3438,73 @@ float GetClosestReplayTime(int client)
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
 	int iPlayerFrames = gI_PlayerFrames[client] - gI_PlayerPrerunFrames[client];
 
-	int iStartFrame = iPlayerFrames - iSearch;
-	int iEndFrame = iPlayerFrames + iSearch;
-	
-	if(iSearch == 0)
-	{
-		iStartFrame = 0;
-		iEndFrame = iLength - 1;
-	}
-	else
-	{
-		// Check if the search behind flag is off
-		if(iStartFrame < 0 || gCV_DynamicTimeCheap.IntValue & 2 == 0)
-		{
-			iStartFrame = 0;
-		}
-		
-		// check if the search ahead flag is off
-		if(iEndFrame >= iLength || gCV_DynamicTimeCheap.IntValue & 1 == 0)
-		{
-			iEndFrame = iLength - 1;
-		}
-	}
-
-	float fReplayPos[3];
-	int iClosestFrame;
-	// Single.MaxValue
-	float fMinDist = view_as<float>(0x7f7fffff);
-
 	float fClientPos[3];
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fClientPos);
 
-	for(int frame = iStartFrame; frame < iEndFrame; frame++)
-	{
-		gA_FrameCache[style][track].aFrames.GetArray(frame, fReplayPos, 3);
+	int iClosestFrame;
+	int iEndFrame;
 
-		float dist = GetVectorDistance(fClientPos, fReplayPos, true);
-		if(dist < fMinDist)
+#if DEBUG
+	Profiler profiler = new Profiler();
+	profiler.Start();
+#endif
+
+	if (gB_ClosestPos)
+	{
+		iClosestFrame = gH_ClosestPos[track][style].Find(fClientPos);
+		iEndFrame = iLength - 1;
+		iSearch = 0;
+	}
+	else
+	{
+		int iStartFrame = iPlayerFrames - iSearch;
+		iEndFrame = iPlayerFrames + iSearch;
+		
+		if(iSearch == 0)
 		{
-			fMinDist = dist;
-			iClosestFrame = frame;
+			iStartFrame = 0;
+			iEndFrame = iLength - 1;
+		}
+		else
+		{
+			// Check if the search behind flag is off
+			if(iStartFrame < 0 || gCV_DynamicTimeCheap.IntValue & 2 == 0)
+			{
+				iStartFrame = 0;
+			}
+			
+			// check if the search ahead flag is off
+			if(iEndFrame >= iLength || gCV_DynamicTimeCheap.IntValue & 1 == 0)
+			{
+				iEndFrame = iLength - 1;
+			}
+		}
+
+		float fReplayPos[3];
+		// Single.MaxValue
+		float fMinDist = view_as<float>(0x7f7fffff);
+
+		for(int frame = iStartFrame; frame < iEndFrame; frame++)
+		{
+			gA_FrameCache[style][track].aFrames.GetArray(frame, fReplayPos, 3);
+
+			float dist = GetVectorDistance(fClientPos, fReplayPos, true);
+			if(dist < fMinDist)
+			{
+				fMinDist = dist;
+				iClosestFrame = frame;
+			}
 		}
 	}
 
+#if DEBUG
+	profiler.Stop();
+	PrintToServer("client(%d) iClosestFrame(%fs) = %d", client, profiler.Time, iClosestFrame);
+	delete profiler;
+#endif
+
 	// out of bounds
-	if(iClosestFrame == 0 || iClosestFrame == iEndFrame)
+	if(/*iClosestFrame == 0 ||*/ iClosestFrame == iEndFrame)
 	{
 		return -1.0;
 	}
