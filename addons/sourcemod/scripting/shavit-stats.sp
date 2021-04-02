@@ -101,7 +101,7 @@ public void OnPluginStart()
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-stats.phrases");
 
-	Convar.AutoExecConfig();
+	//Convar.AutoExecConfig();
 
 	gB_Rankings = LibraryExists("shavit-rankings");
 

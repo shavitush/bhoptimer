@@ -24,3 +24,11 @@ public Extension __ext_closestpos =
 	required = 0,
 #endif
 };
+
+#if !defined REQUIRE_EXTENSIONS
+public void __ext_closestpos_SetNTVOptional()
+{
+	MarkNativeAsOptional("ClosestPos.ClosestPos");
+	MarkNativeAsOptional("ClosestPos.Find");
+}
+#endif
