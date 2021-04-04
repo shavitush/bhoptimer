@@ -2274,6 +2274,12 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	{
 		StopOrRestartBots(style, track, false);
 		AddReplayBots(); // add missing looping bots
+
+		if (gB_ClosestPos)
+		{
+			delete gH_ClosestPos[track][style];
+			gH_ClosestPos[track][style] = new ClosestPos(gA_FrameCache[style][track].aFrames);
+		}
 	}
 
 	ClearFrames(client);
