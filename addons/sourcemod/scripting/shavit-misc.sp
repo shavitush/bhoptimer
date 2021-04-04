@@ -161,6 +161,7 @@ Handle gH_Forwards_OnCheckpointMenuSelect = null;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
+DynamicHook gH_IsSpawnPointValid = null;
 
 // modules
 bool gB_Eventqueuefix = false;
@@ -362,10 +363,20 @@ public void OnPluginStart()
 				{
 					gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, CCSPlayer__GetPlayerMaxSpeed);
 				}
-
 				else
 				{
 					SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+				}
+
+				if ((iOffset = GameConfGetOffset(hGameData, "CGameRules::IsSpawnPointValid")) != -1)
+				{
+					gH_IsSpawnPointValid = new DynamicHook(iOffset, HookType_GameRules, ReturnType_Bool, ThisPointer_Ignore);
+					gH_IsSpawnPointValid.AddParam(HookParamType_CBaseEntity);
+					gH_IsSpawnPointValid.AddParam(HookParamType_CBaseEntity);
+				}
+				else
+				{
+					SetFailState("Couldn't get the offset for \"CGameRules::IsSpawnPointValid\" - make sure your gamedata is updated!");
 				}
 			}
 
@@ -396,6 +407,17 @@ public void OnPluginStart()
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_Chat = LibraryExists("shavit-chat");
+}
+
+public MRESReturn Detour_IsSpawnPointValid(Handle hReturn, Handle hParams)
+{
+	if (gCV_NoBlock.BoolValue)
+	{
+		DHookSetReturn(hReturn, true);
+		return MRES_Supercede;
+	}
+
+	return MRES_Ignored;
 }
 
 public void OnClientCookiesCached(int client)
@@ -506,6 +528,11 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
+	if (gH_IsSpawnPointValid != null)
+	{
+		gH_IsSpawnPointValid.HookGamerules(Hook_Post, Detour_IsSpawnPointValid);
+	}
+
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		ResetCheckpoints(i);
@@ -535,8 +562,9 @@ public void OnMapStart()
 			(iEntity = FindEntityByClassname(iEntity, "info_player_teamspawn")) != -1 || // TF2 spawn point
 			(iEntity = FindEntityByClassname(iEntity, "info_player_start")) != -1)
 		{
-			float fOrigin[3];
+			float fOrigin[3], fAngles[3];
 			GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", fOrigin);
+			GetEntPropVector(iEntity, Prop_Data, "m_angAbsRotation", fAngles);
 
 			for(int i = 1; i <= gCV_CreateSpawnPoints.IntValue; i++)
 			{
@@ -546,7 +574,7 @@ public void OnMapStart()
 
 					if(DispatchSpawn(iSpawnPoint))
 					{
-						TeleportEntity(iSpawnPoint, fOrigin, view_as<float>({0.0, 0.0, 0.0}), NULL_VECTOR);
+						TeleportEntity(iSpawnPoint, fOrigin, fAngles, NULL_VECTOR);
 					}
 				}
 			}

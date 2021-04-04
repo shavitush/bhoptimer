@@ -37,6 +37,12 @@
 				"linux"		"506"
 				"mac"		"506"
 			}
+			"CGameRules::IsSpawnPointValid"
+			{
+				"windows"   "77"
+				"linux"     "78"
+				"mac"       "78"
+			}
 		}
 	}
 
@@ -49,6 +55,12 @@
 				"windows"	"438"
 				"linux"		"439"
 				"mac"		"439"
+			}
+			"CGameRules::IsSpawnPointValid"
+			{
+				"windows"   "76"
+				"linux"     "77"
+				"mac"       "77"
 			}
 		}
 	}
