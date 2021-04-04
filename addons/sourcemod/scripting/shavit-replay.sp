@@ -2029,8 +2029,10 @@ void RemoveAllWeapons(int client)
 		if ((weapon = GetEntPropEnt(client, Prop_Send, "m_hMyWeapons", i)) == -1)
 			continue;
 
-		CS_DropWeapon(client, weapon, false, true);
-		AcceptEntityInput(weapon, "Kill");
+		if (RemovePlayerItem(client, weapon))
+		{
+			AcceptEntityInput(weapon, "Kill");
+		}
 	}
 }
 

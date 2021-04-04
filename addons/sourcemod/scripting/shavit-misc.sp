@@ -1214,19 +1214,28 @@ public void OnClientPutInServer(int client)
 	gB_ClosedKZCP[client] = false;
 }
 
+void RemoveAllWeapons(int client)
+{
+	int weapon = -1, max = GetEntPropArraySize(client, Prop_Send, "m_hMyWeapons");
+	for (int i = 0; i < max; i++)
+	{
+		if ((weapon = GetEntPropEnt(client, Prop_Send, "m_hMyWeapons", i)) == -1)
+			continue;
+
+		if (RemovePlayerItem(client, weapon))
+		{
+			AcceptEntityInput(weapon, "Kill");
+		}
+	}
+}
+
 public void OnClientDisconnect(int client)
 {
 	if(gCV_NoWeaponDrops.BoolValue)
 	{
-		int entity = -1;
-
-		// TODO: better way to do this?
-		while((entity = FindEntityByClassname(entity, "weapon_*")) != -1)
+		if (IsClientInGame(client))
 		{
-			if(GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
-			{
-				RequestFrame(RemoveWeapon, EntIndexToEntRef(entity));
-			}
+			RemoveAllWeapons(client);
 		}
 	}
 
@@ -1414,14 +1423,6 @@ void LoadPersistentData(int serial)
 
 	gB_SaveStates[client] = false;
 	DeletePersistentData(iIndex, aData);
-}
-
-void RemoveWeapon(any data)
-{
-	if(IsValidEntity(data))
-	{
-		AcceptEntityInput(data, "Kill");
-	}
 }
 
 void DeleteCheckpointCache(cp_cache_t cache)
