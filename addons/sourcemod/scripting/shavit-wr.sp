@@ -69,6 +69,8 @@ char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
 ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 int gI_PlayerCompletion[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
+ArrayList gA_WRStageTimes[STYLE_LIMIT][TRACKS_SIZE];
+ArrayList gA_StageTimes[MAXPLAYERS+1][STYLE_LIMIT];
 
 // admin menu
 TopMenu gH_AdminMenu = null;
@@ -174,8 +176,18 @@ public void OnPluginStart()
 
 	// database
 	SQL_DBConnect();
-}
 
+	if(gB_Late)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i))
+			{
+				OnClientPutInServer(i);
+			}
+		}
+	}
+}
 
 public void OnAllPluginsLoaded()
 {
@@ -392,11 +404,19 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 				}
 
 				gA_Leaderboard[i][j].Clear();
+
+				if(gA_WRStageTimes[i][j] == null)
+				{
+					gA_WRStageTimes[i][j] = new ArrayList();
+				}
+
+				gA_WRStageTimes[i][j].Clear();
 			}
 
 			else
 			{
 				delete gA_Leaderboard[i][j];
+				delete gA_WRStageTimes[i][j];
 			}
 		}
 	}
@@ -427,6 +447,13 @@ public void OnClientPutInServer(int client)
 			gF_PlayerRecord[client][i][j] = 0.0;
 			gI_PlayerCompletion[client][i][j] = 0;
 		}
+
+		if(gA_StageTimes[client][i] == null)
+		{
+			gA_StageTimes[client][i] = new ArrayList();
+		}
+
+		gA_StageTimes[client][i].Clear();
 	}
 
 	if(!IsClientConnected(client) || IsFakeClient(client))
@@ -519,6 +546,12 @@ void UpdateWRCache(int client = -1)
 	}
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, client);
+
+	FormatEx(sQuery, 512,
+		"SELECT style, track, time FROM `%sstagetimes` WHERE map = '%s';",
+		gS_MySQLPrefix, gS_Map);
+
+	gH_SQL.Query(SQL_UpdateWRStageTimes_Callback, sQuery);
 }
 
 public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -558,6 +591,41 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	}
 
 	UpdateLeaderboards();
+}
+
+public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(!db || !results || error[0])
+	{
+		LogError("Timer (WR stage times cache) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			gA_WRStageTimes[i][j].Clear();
+		}
+	}
+
+	while(results.FetchRow())
+	{
+		int style = results.FetchInt(0);
+		int track = results.FetchInt(1);
+
+		char temp[128];
+		results.FetchString(2, temp, sizeof(temp));
+
+		char[][] stageTimes = new char[Shavit_GetStageCount()][32];
+		int numStageTimes = ExplodeString(temp, ";", stageTimes, Shavit_GetStageCount(), 32);
+
+		for(int i = 0; i < numStageTimes; i++)
+		{
+			gA_WRStageTimes[style][track].Push(StringToFloat(stageTimes[i]));
+		}
+	}
 }
 
 public int Native_GetWorldRecord(Handle handler, int numParams)
@@ -2119,6 +2187,11 @@ void SQL_DBConnect()
 
 	hTransaction.AddQuery(sQuery);
 
+	FormatEx(sQuery, 1024,
+		"CREATE TABLE IF NOT EXISTS `%sstagetimes` (`auth` INTEGER NOT NULL, `style` TINYINT, `map` VARCHAR(128) NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `time` VARCHAR(128) NOT NULL, PRIMARY KEY (`auth`, `style`, `map`, `track`))%s;",
+		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
+	hTransaction.AddQuery(sQuery);
+
 	FormatEx(sQuery, sizeof(sQuery),
 		"%s %swrs_min AS SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style;",
 		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
@@ -2209,6 +2282,36 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		#if defined DEBUG
 		Shavit_PrintToChat(client, "old: %.01f new: %.01f", fOldWR, time);
 		#endif
+
+		int length = gA_StageTimes[client][style].Length;
+
+		if(length != 0)
+		{
+			char stageTimes[128];
+
+			for(int i = 0; i < length; i++)
+			{
+				char sStageTime[32];
+				FormatSeconds(gA_StageTimes[client][style].Get(i), sStageTime, 32);
+
+				if(i == 0)
+				{
+					FormatEx(stageTimes, sizeof(stageTimes), "%s", sStageTime);
+				}
+				else
+				{
+					FormatEx(stageTimes, sizeof(stageTimes), "%s;%s", stageTimes, sStageTime);
+				}
+			}
+
+			char query[512];
+
+			FormatEx(query, sizeof(query),
+				"REPLACE INTO `%sstagetimes` (`auth`, `style`, `map`, `track`, `time`) VALUES (%d, %d, '%s', %d, '%s');",
+				gS_MySQLPrefix, GetSteamAccountID(client), style, gS_Map, track, stageTimes);
+
+			gH_SQL.Query(SQL_InsertStageTimes_Callback, query);
+		}
 	}
 
 	int iRank = GetRankForTime(style, time, track);
@@ -2386,6 +2489,16 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 	UpdateWRCache(client);
 }
 
+public void SQL_InsertStageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(!db || !results || error[0])
+	{
+		LogError("Timer (InsertStageTimes) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+}
+
 void UpdateLeaderboards()
 {
 	char sQuery[192];
@@ -2434,6 +2547,71 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		{
 			SortADTArray(gA_Leaderboard[i][j], Sort_Ascending, Sort_Float);
 		}
+	}
+}
+
+public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message, int maxlen)
+{
+	int style = Shavit_GetBhopStyle(client);
+	int track = Shavit_GetClientTrack(client);
+
+	if(gA_StageTimes[client][style] == null)
+	{
+		gA_StageTimes[client][style] = new ArrayList();
+	}
+
+	float stageTime = Shavit_GetClientTime(client);
+
+	int idx = stageNumber - 2;
+	int length = gA_StageTimes[client][style].Length;
+
+	if(idx == length)
+	{
+		gA_StageTimes[client][style].Push(stageTime);
+	}
+	else if(idx < length)
+	{
+		gA_StageTimes[client][style].Set(idx, stageTime);
+		gA_StageTimes[client][style].Resize(idx + 1);
+	}
+	
+	if(gA_WRStageTimes[style][track].Length == 0)
+	{
+		return Plugin_Continue;
+	}
+	else if(idx != length || idx >= Shavit_GetStageCount())
+	{
+		return Plugin_Continue;
+	}
+
+	float stageTimeWR = gA_WRStageTimes[style][track].Get(idx);
+	float fDifference = (stageTime - stageTimeWR);
+
+	char sStageTime[16];
+	FormatSeconds(stageTime, sStageTime, 16);
+
+	char sDifference[16];
+	FormatSeconds(fDifference, sDifference, 16);
+
+	if(fDifference < 0.0)
+	{
+		Shavit_PrintToChat(client, "%T", "WRStageTimeAhead", client, gS_ChatStrings.sText, gS_ChatStrings.sVariable, stageNumber, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStageTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sDifference, gS_ChatStrings.sText);
+	}
+	else
+	{
+		Shavit_PrintToChat(client, "%T", "WRStageTimeBehind", client, gS_ChatStrings.sText, gS_ChatStrings.sVariable, stageNumber, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStageTime, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference, gS_ChatStrings.sText);
+	}
+
+	return Plugin_Handled;
+}
+
+public void Shavit_OnRestart(int client, int track)
+{
+	int style = Shavit_GetBhopStyle(client);
+
+	if(gA_StageTimes[client][style] != null)
+	{
+		gA_StageTimes[client][style].Clear();
 	}
 }
 
