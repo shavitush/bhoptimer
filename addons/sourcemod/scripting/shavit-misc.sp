@@ -774,16 +774,25 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 
 void CleanSwitchTeam(int client, int team, bool change = false)
 {
+	if (gEV_Type == Engine_CSGO && GetClientTeam(client) == team)
+	{
+		// Close the team menu when selecting your own team...
+		Event event = CreateEvent("player_team");
+		event.SetInt("userid", GetClientUserId(client));
+		event.SetInt("team", team);
+		event.SetBool("silent", true);
+		event.FireToClient(client);
+		event.Cancel();
+	}
+
 	if(gEV_Type == Engine_TF2)
 	{
 		TF2_ChangeClientTeam(client, view_as<TFTeam>(team));
 	}
-
 	else if(change)
 	{
 		CS_SwitchTeam(client, team);
 	}
-
 	else
 	{
 		ChangeClientTeam(client, team);
