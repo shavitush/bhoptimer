@@ -928,12 +928,22 @@ public void Frame_HookTrigger(any data)
 		if (StrContains(sName, "bonus") != -1)
 		{
 			iCheckpointIndex = 5; // mod_zone_bonus_X_checkpoint_X
-			track = StringToInt(sections[3]); // 0 on failure to parse. 0 is less than Track_Bonus
 
-			if (track < Track_Bonus || track > Track_Bonus_Last)
+			// check for BAD BAD BAD WRONG entities named "mod_zone_bonus_start" or "mod_zone_bonus_end" (bhop_somp_island does this)
+			if (StrEqual(sections[3], "start") || StrEqual(sections[3], "end") || StrEqual(sections[3], "checkpoint"))
 			{
-				LogError("invalid track in prebuilt map zone (%s) on %s", sName, gS_Map);
-				return;
+				track = Track_Bonus;
+				iCheckpointIndex = 4; // mod_zone_bonus_checkpoint_X
+			}
+			else
+			{
+				track = StringToInt(sections[3]); // 0 on failure to parse. 0 is less than Track_Bonus
+
+				if (track < Track_Bonus || track > Track_Bonus_Last)
+				{
+					LogError("invalid track in prebuilt map zone (%s) on %s", sName, gS_Map);
+					return;
+				}
 			}
 		}
 
