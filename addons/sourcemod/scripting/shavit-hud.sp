@@ -1607,9 +1607,9 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	float fAngleDiff = IsValidClient(target) ? gF_AngleDiff[target] : 0.0;
 
-	Format(sPanelLine, 128, "%s［%s］　［%s］\n%s　 %s 　%s\n%s　 %s 　%s\n　%s　　%s", sPanelLine,
+	Format(sPanelLine, 128, "%s［%s］　［%s］\n%s  %s  %s\n%s　 %s 　%s\n　%s　　%s", sPanelLine,
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
-		(fAngleDiff > 0) ? "←":" ", (buttons & IN_FORWARD) > 0 ? "Ｗ":"ｰ", (fAngleDiff < 0) ? "→":" ",
+		(fAngleDiff > 0) ? "←":"   ", (buttons & IN_FORWARD) > 0 ? "Ｗ":"ｰ", (fAngleDiff < 0) ? "→":"",
 		(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
 		(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
 
