@@ -544,11 +544,8 @@ public void OnMapStart()
 	{
 		persistent_data_t aData;
 		gA_PersistentData.GetArray(i, aData);
-
-		delete aData.aFrames;
+		DeletePersistentData(i, aData);
 	}
-
-	gA_PersistentData.Clear();
 
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
@@ -868,10 +865,9 @@ public Action Timer_Cron(Handle timer)
 
 	}
 
-	int iLength = gA_PersistentData.Length;
 	float fTime = GetEngineTime();
 
-	for(int i = iLength - 1; i >= 0; i--)
+	for(int i = 0; i < gA_PersistentData.Length; i++)
 	{
 		persistent_data_t aData;
 		gA_PersistentData.GetArray(i, aData);
@@ -879,8 +875,7 @@ public Action Timer_Cron(Handle timer)
 		if(fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue)
 		{
 			DeletePersistentData(i, aData);
-			ResetCheckpointsInner(aData.aCheckpoints);
-			delete aData.aCheckpoints;
+			--i;
 		}
 	}
 
@@ -1296,14 +1291,12 @@ void FillPersistentData(int client, persistent_data_t aData, bool disconnected)
 	if (disconnected)
 	{
 		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
-		if (gA_Checkpoints[client] != null)
-		{
-			aData.aCheckpoints = view_as<ArrayList>(CloneHandle(gA_Checkpoints[client]));
-			delete gA_Checkpoints[client];
-		}
+		aData.aCheckpoints = gA_Checkpoints[client];
+		gA_Checkpoints[client] = null;
 
 		if (gB_SaveStates[client])
 		{
+			// the rest of the data has already been filled
 			return;
 		}
 	}
@@ -1388,6 +1381,8 @@ void PersistData(int client, bool disconnected)
 
 void DeletePersistentData(int index, persistent_data_t data)
 {
+	ResetCheckpointsInner(data.aCheckpoints);
+	delete data.aCheckpoints;
 	delete data.aFrames;
 	gA_PersistentData.Erase(index);
 }
@@ -1440,9 +1435,10 @@ void LoadPersistentData(int serial)
 
 	if(gB_Replay && aData.aFrames != null)
 	{
-		Shavit_SetReplayData(client, aData.aFrames);
+		Shavit_SetReplayData(client, aData.aFrames, true /*cloneHandle*/);
 		Shavit_SetPlayerPreFrame(client, aData.iPreFrames);
 		Shavit_SetPlayerTimerFrame(client, aData.iTimerPreFrames);
+		delete aData.aFrames;
 	}
 
 	if(aData.bPractice)
@@ -1454,12 +1450,14 @@ void LoadPersistentData(int serial)
 
 	if (aData.aCheckpoints != null)
 	{
+		ResetCheckpointsInner(gA_Checkpoints[client]);
+		delete gA_Checkpoints[client];
 		gI_CurrentCheckpoint[client] = aData.iCurrentCheckpoint;
-		gA_Checkpoints[client] = view_as<ArrayList>(CloneHandle(aData.aCheckpoints));
+		gA_Checkpoints[client] = aData.aCheckpoints;
 	}
 
 	gB_SaveStates[client] = false;
-	DeletePersistentData(iIndex, aData);
+	gA_PersistentData.Erase(iIndex);
 }
 
 void DeleteCheckpointCache(cp_cache_t cache)

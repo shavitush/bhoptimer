@@ -1928,9 +1928,10 @@ native void Shavit_LoadSnapshot(int client, any[] snapshot, int size = sizeof(ti
  *
  * @param client					Client index.
  * @param data						ArrayList with proper replay data.
+ * @param cloneHandle				False means we duplicate the frames (ArrayList.Clone). True means we just clone the handle to the frames (CloneHandle).
  * @noreturn
  */
-native void Shavit_SetReplayData(int client, ArrayList data);
+native void Shavit_SetReplayData(int client, ArrayList data, bool cloneHandle=false);
 
 /**
  * Saves a player's replay recording frames (if exists) into an ArrayList.

@@ -896,9 +896,20 @@ public int Native_ReloadReplays(Handle handler, int numParams)
 public int Native_SetReplayData(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	ArrayList data = view_as<ArrayList>(GetNativeCell(2));
+	bool cloneHandle = view_as<bool>(GetNativeCell(3));
 
 	delete gA_PlayerFrames[client];
-	gA_PlayerFrames[client] = view_as<ArrayList>(GetNativeCell(2)).Clone();
+
+	if (cloneHandle)
+	{
+		gA_PlayerFrames[client] = view_as<ArrayList>(CloneHandle(data));
+	}
+	else
+	{
+		gA_PlayerFrames[client] = data.Clone();
+	}
+
 	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
 }
 
