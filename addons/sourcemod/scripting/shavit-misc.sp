@@ -149,6 +149,7 @@ ConVar sv_disable_immunity_alpha = null;
 ConVar mp_humanteam = null;
 ConVar hostname = null;
 ConVar hostport = null;
+ConVar sv_disable_radar = null;
 
 // forwards
 Handle gH_Forwards_OnClanTagChangePre = null;
@@ -292,6 +293,7 @@ public void OnPluginStart()
 	gA_Advertisements = new ArrayList(300);
 	hostname = FindConVar("hostname");
 	hostport = FindConVar("hostport");
+	sv_disable_radar = FindConVar("sv_disable_radar");
 	RegConsoleCmd("sm_toggleadverts", Command_ToggleAdverts, "Toggles visibility of advertisements");
 	gH_BlockAdvertsCookie = new Cookie("shavit-blockadverts", "whether to block shavit-misc advertisements", CookieAccess_Private);
 
@@ -334,6 +336,7 @@ public void OnPluginStart()
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "0", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 3.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 
+	gCV_HideRadar.AddChangeHook(OnConVarChanged);
 	Convar.AutoExecConfig();
 
 	mp_humanteam = FindConVar("mp_humanteam");
@@ -407,6 +410,14 @@ public void OnPluginStart()
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_Chat = LibraryExists("shavit-chat");
+}
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (sv_disable_radar != null)
+	{
+		sv_disable_radar.BoolValue = gCV_HideRadar.BoolValue;
+	}
 }
 
 public MRESReturn Detour_IsSpawnPointValid(Handle hReturn, Handle hParams)
@@ -523,6 +534,11 @@ public void OnConfigsExecuted()
 	if(sv_disable_immunity_alpha != null)
 	{
 		sv_disable_immunity_alpha.BoolValue = true;
+	}
+
+	if (sv_disable_radar != null && gCV_HideRadar.BoolValue)
+	{
+		sv_disable_radar.BoolValue = true;
 	}
 }
 
