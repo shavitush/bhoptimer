@@ -390,19 +390,8 @@ void MakeAngleDiff(int client, float newAngle)
 	gF_PreviousAngle[client] = gF_Angle[client];
 	gF_Angle[client] = newAngle;
 
-	// stolen from btimes
 	float fAngleDiff = newAngle - gF_PreviousAngle[client];
-
-	if (fAngleDiff > 180)
-	{
-		fAngleDiff -= 360;
-	}
-	else if(fAngleDiff < -180)
-	{
-		fAngleDiff += 360;
-	}
-
-	gF_AngleDiff[client] = fAngleDiff;
+	gF_AngleDiff[client] = fAngleDiff - 360.0 * RoundToFloor((fAngleDiff + 180.0) / 360.0);
 }
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylsettings)
