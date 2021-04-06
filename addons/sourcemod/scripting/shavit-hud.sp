@@ -50,7 +50,7 @@
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2			(HUD2_PERFS)
 
-#define MAX_HINT_SIZE 225
+#define MAX_HINT_SIZE 227
 
 enum ZoneHUD
 {
@@ -122,6 +122,7 @@ float gF_PreviousAngle[MAXPLAYERS+1];
 float gF_AngleDiff[MAXPLAYERS+1];
 
 bool gB_Late = false;
+char gS_HintPadding[MAX_HINT_SIZE];
 
 // hud handle
 Handle gH_HUD = null;
@@ -234,6 +235,11 @@ public void OnPluginStart()
 		..."HUD2_TOPLEFT_RANK				4096");
 
 	Convar.AutoExecConfig();
+
+	for (int i = 0; i < sizeof(gS_HintPadding) - 1; i++)
+	{
+		gS_HintPadding[i] = '\n';
+	}
 
 	// commands
 	RegConsoleCmd("sm_hud", Command_HUD, "Opens the HUD settings menu.");
@@ -1552,7 +1558,7 @@ void UpdateMainHUD(int client)
 		{
 			if(gCV_UseHUDFix.BoolValue)
 			{
-				PrintCSGOHUDText(client, "%s", sBuffer);
+				PrintCSGOHUDText(client, sBuffer);
 			}
 			else
 			{
@@ -2016,17 +2022,11 @@ public int Native_GetHUDSettings(Handle handler, int numParams)
 	return gI_HUDSettings[client];
 }
 
-void PrintCSGOHUDText(int client, const char[] format, any ...)
+void PrintCSGOHUDText(int client, const char[] str)
 {
 	char buff[MAX_HINT_SIZE];
-	VFormat(buff, sizeof(buff), format, 3);
-	Format(buff, sizeof(buff), "</font>%s ", buff);
-	
-	for(int i = strlen(buff); i < sizeof(buff); i++)
-	{
-		buff[i] = '\n';
-	}
-	
+	FormatEx(buff, sizeof(buff), "</font>%s%s", str, gS_HintPadding);
+
 	Protobuf pb = view_as<Protobuf>(StartMessageOne("TextMsg", client, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS));
 	pb.SetInt("msg_dst", 4);
 	pb.AddString("params", "#SFUI_ContractKillStart");
