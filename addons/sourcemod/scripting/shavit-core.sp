@@ -789,6 +789,13 @@ public Action Command_TogglePause(int client, int args)
 			return Plugin_Handled;
 		}
 
+		if((iFlags & CPR_Duck) > 0)
+		{
+			Shavit_PrintToChat(client, "%T", "PauseDuck", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+			return Plugin_Handled;
+		}
+
 		GetClientAbsOrigin(client, gF_PauseOrigin[client]);
 		GetClientEyeAngles(client, gF_PauseAngles[client]);
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
@@ -1579,6 +1586,32 @@ public int Native_CanPause(Handle handler, int numParams)
 	if (vel[0] != 0.0 || vel[1] != 0.0 || vel[2] != 0.0)
 	{
 		iFlags |= CPR_Moving;
+	}
+
+
+	float CS_PLAYER_DUCK_SPEED_IDEAL = 8.0;
+	bool bDucked, bDucking;
+	float fDucktime, fDuckSpeed = CS_PLAYER_DUCK_SPEED_IDEAL;
+
+	if(gEV_Type != Engine_TF2)
+	{
+		bDucked = view_as<bool>(GetEntProp(client, Prop_Send, "m_bDucked"));
+		bDucking = view_as<bool>(GetEntProp(client, Prop_Send, "m_bDucking"));
+
+		if(gEV_Type == Engine_CSS)
+		{
+			fDucktime = GetEntPropFloat(client, Prop_Send, "m_flDucktime");
+		}
+		else if(gEV_Type == Engine_CSGO)
+		{
+			fDucktime = GetEntPropFloat(client, Prop_Send, "m_flDuckAmount");
+			fDuckSpeed = GetEntPropFloat(client, Prop_Send, "m_flDuckSpeed");
+		}
+	}
+
+	if (bDucked || bDucking || fDucktime > 0.0 || fDuckSpeed < CS_PLAYER_DUCK_SPEED_IDEAL || GetClientButtons(client) & IN_DUCK)
+	{
+		iFlags |= CPR_Duck;
 	}
 
 	return iFlags;

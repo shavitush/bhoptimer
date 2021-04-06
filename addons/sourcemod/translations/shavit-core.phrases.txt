@@ -105,6 +105,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}are not{2} allowed to pause while moving."
 	}
+	"PauseDuck"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"You {1}are not{2} allowed to pause while crouching."
+	}
 	"TimerUnpaused"
 	{
 		"#format"	"{1:s},{2:s}"

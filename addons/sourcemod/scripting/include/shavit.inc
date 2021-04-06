@@ -74,7 +74,8 @@ enum
 	CPR_NoTimer = (1 << 1),
 	CPR_InStartZone = (1 << 2),
 	CPR_NotOnGround = (1 << 3),
-	CPR_Moving = (1 << 4)
+	CPR_Moving = (1 << 4),
+	CPR_Duck = (1 << 5), // quack
 };
 
 enum
