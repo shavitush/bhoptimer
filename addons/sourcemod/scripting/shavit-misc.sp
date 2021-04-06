@@ -2556,10 +2556,18 @@ bool SaveCheckpoint(int client, int index, bool overflow = false)
 			gA_Checkpoints[client].GetArray(0, oldcache);
 			DeleteCheckpointCache(oldcache);
 			gA_Checkpoints[client].Erase(0);
-			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
+			gI_CurrentCheckpoint[client] = iMaxCPs - 1;
 		}
-
-		gA_Checkpoints[client].Push(0);
+		
+		if(gI_CurrentCheckpoint[client] >= gA_Checkpoints[client].Length)
+		{
+			gA_Checkpoints[client].Push(0);
+		}
+		else
+		{
+			gA_Checkpoints[client].ShiftUp(gI_CurrentCheckpoint[client]);
+		}
+		
 		gA_Checkpoints[client].SetArray(gI_CurrentCheckpoint[client], cpcache);
 	}
 	else 
