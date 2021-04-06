@@ -98,7 +98,6 @@ int gI_CheckpointsSettings[MAXPLAYERS+1];
 // save states
 bool gB_SaveStates[MAXPLAYERS+1]; // whether we have data for when player rejoins from spec
 ArrayList gA_PersistentData = null;
-float gF_PauseEyeAngles[MAXPLAYERS+1][3];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -3538,22 +3537,6 @@ public void Shavit_OnFinish(int client)
 
 	UpdateScoreboard(client);
 	UpdateClanTag(client);
-}
-
-public void Shavit_OnPause(int client, int track)
-{
-	if(!GetClientEyeAngles(client, gF_PauseEyeAngles[client]))
-	{
-		gF_PauseEyeAngles[client] = NULL_VECTOR;
-	}
-}
-
-public void Shavit_OnResume(int client, int track)
-{
-	if(!IsNullVector(gF_PauseEyeAngles[client]))
-	{
-		TeleportEntity(client, NULL_VECTOR, gF_PauseEyeAngles[client], NULL_VECTOR);
-	}
 }
 
 public Action Command_Drop(int client, const char[] command, int argc)
