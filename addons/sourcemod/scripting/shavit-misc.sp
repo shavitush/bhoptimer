@@ -72,6 +72,7 @@ int gI_LastShot[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
+char gS_PreviousMap[PLATFORM_MAX_PATH];
 int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
 bool gB_ClosedKZCP[MAXPLAYERS+1];
@@ -528,6 +529,23 @@ public void OnMapStart()
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
 
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		ResetCheckpoints(i);
+	}
+
+	if (!StrEqual(gS_CurrentMap, gS_PreviousMap, false))
+	{
+		int iLength = gA_PersistentData.Length;
+
+		for(int i = iLength - 1; i >= 0; i--)
+		{
+			persistent_data_t aData;
+			gA_PersistentData.GetArray(i, aData);
+			DeletePersistentData(i, aData);
+		}
+	}
+
 	if(gCV_CreateSpawnPoints.IntValue > 0)
 	{
 		int iEntity = -1;
@@ -570,19 +588,7 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		ResetCheckpoints(i);
-	}
-
-	int iLength = gA_PersistentData.Length;
-
-	for(int i = iLength - 1; i >= 0; i--)
-	{
-		persistent_data_t aData;
-		gA_PersistentData.GetArray(i, aData);
-		DeletePersistentData(i, aData);
-	}
+	strcopy(gS_PreviousMap, sizeof(gS_PreviousMap), gS_CurrentMap);
 }
 
 bool LoadAdvertisementsConfig()
