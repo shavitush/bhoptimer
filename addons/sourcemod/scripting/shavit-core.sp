@@ -2084,7 +2084,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	// no longer paused, reset their movement
 	if(gA_Timers[client].bPaused && !snapshot.bClientPaused)
 	{
-		SetEntityMoveType(client, MOVETYPE_WALK);
+		//SetEntityMoveType(client, MOVETYPE_WALK);
 	}
 
 	gA_Timers[client].bEnabled = snapshot.bTimerEnabled;
@@ -2353,7 +2353,7 @@ void StartTimer(int client, int track)
 		{
 			if(gA_Timers[client].bPaused)
 			{
-				SetEntityMoveType(client, MOVETYPE_WALK);
+				//SetEntityMoveType(client, MOVETYPE_WALK);
 			}
 
 			gA_Timers[client].iZoneIncrement = 0;
@@ -2412,7 +2412,7 @@ void StopTimer(int client)
 
 	if(gA_Timers[client].bPaused)
 	{
-		SetEntityMoveType(client, MOVETYPE_WALK);
+		//SetEntityMoveType(client, MOVETYPE_WALK);
 	}
 
 	gA_Timers[client].bEnabled = false;
@@ -2453,7 +2453,7 @@ void ResumeTimer(int client)
 
 	gA_Timers[client].bPaused = false;
 	// setting is handled in usercmd
-	SetEntityMoveType(client, MOVETYPE_WALK);
+	//SetEntityMoveType(client, MOVETYPE_WALK);
 }
 
 public void OnClientDisconnect(int client)
@@ -3615,7 +3615,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 		SetEntityFlags(client, (flags | FL_ATCONTROLS));
 
-		SetEntityMoveType(client, MOVETYPE_NONE);
+		//SetEntityMoveType(client, MOVETYPE_NONE);
 
 		return Plugin_Changed;
 	}
