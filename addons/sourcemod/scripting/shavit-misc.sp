@@ -1477,6 +1477,11 @@ public void OnPreThink(int client)
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
+	if (!IsValidClient(client))
+	{
+		return Plugin_Continue;
+	}
+
 	if(IsChatTrigger() && gCV_HideChatCommands.BoolValue)
 	{
 		// hide commands
