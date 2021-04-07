@@ -1675,23 +1675,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	}
 
 	timer_snapshot_t snapshot;
-	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
-	snapshot.bClientPaused = gA_Timers[client].bPaused;
-	snapshot.iJumps = gA_Timers[client].iJumps;
-	snapshot.bsStyle = gA_Timers[client].iStyle;
-	snapshot.iStrafes = gA_Timers[client].iStrafes;
-	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
-	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
-	snapshot.fServerTime = GetEngineTime();
-	snapshot.fCurrentTime = gA_Timers[client].fTimer;
-	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
-	snapshot.iTimerTrack = gA_Timers[client].iTrack;
-	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
-	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
-	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
-	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
-	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
+	BuildSnapshot(client, snapshot);
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -2037,23 +2021,7 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 
 	timer_snapshot_t snapshot;
-	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
-	snapshot.bClientPaused = gA_Timers[client].bPaused;
-	snapshot.iJumps = gA_Timers[client].iJumps;
-	snapshot.bsStyle = gA_Timers[client].iStyle;
-	snapshot.iStrafes = gA_Timers[client].iStrafes;
-	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
-	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
-	snapshot.fServerTime = GetEngineTime();
-	snapshot.fCurrentTime = gA_Timers[client].fTimer;
-	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
-	snapshot.iTimerTrack = gA_Timers[client].iTrack;
-	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
-	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
-	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
-	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
-	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
+	BuildSnapshot(client, snapshot);
 	return SetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 }
 
@@ -2064,6 +2032,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 		return ThrowNativeError(200, "timer_snapshot_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
 			GetNativeCell(3), sizeof(timer_snapshot_t));
 	}
+
 	int client = GetNativeCell(1);
 
 	timer_snapshot_t snapshot;
@@ -2102,6 +2071,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].fDistanceOffset = snapshot.fDistanceOffset;
 	gA_Timers[client].fAvgVelocity = snapshot.fAvgVelocity;
 	gA_Timers[client].fMaxVelocity = snapshot.fMaxVelocity;
+	gA_Timers[client].fTimescale = snapshot.fTimescale;
 
 	return 0;
 }
@@ -3494,21 +3464,7 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	gA_Timers[client].iZoneIncrement++;
 
 	timer_snapshot_t snapshot;
-	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
-	snapshot.bClientPaused = gA_Timers[client].bPaused;
-	snapshot.iJumps = gA_Timers[client].iJumps;
-	snapshot.bsStyle = gA_Timers[client].iStyle;
-	snapshot.iStrafes = gA_Timers[client].iStrafes;
-	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
-	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
-	snapshot.fServerTime = GetEngineTime();
-	snapshot.fCurrentTime = gA_Timers[client].fTimer;
-	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
-	snapshot.iTimerTrack = gA_Timers[client].iTrack;
-	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
-	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
-	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
-	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
+	BuildSnapshot(client, snapshot);
 
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
@@ -3597,6 +3553,28 @@ bool TREnumTrigger(int entity, int client) {
 		return false;
 	}
 	return true;
+}
+
+void BuildSnapshot(int client, timer_snapshot_t snapshot)
+{
+	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
+	snapshot.bClientPaused = gA_Timers[client].bPaused;
+	snapshot.iJumps = gA_Timers[client].iJumps;
+	snapshot.bsStyle = gA_Timers[client].iStyle;
+	snapshot.iStrafes = gA_Timers[client].iStrafes;
+	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
+	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
+	snapshot.fServerTime = GetEngineTime();
+	snapshot.fCurrentTime = gA_Timers[client].fTimer;
+	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
+	snapshot.iTimerTrack = gA_Timers[client].iTrack;
+	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
+	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
+	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
+	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
+	snapshot.fTimescale = gA_Timers[client].fTimescale;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])

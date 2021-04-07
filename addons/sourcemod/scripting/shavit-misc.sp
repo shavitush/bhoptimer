@@ -2380,6 +2380,9 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool isPersistentData)
 		snapshot.fServerTime = GetEngineTime();
 		snapshot.iSHSWCombination = -1;
 		snapshot.iTimerTrack = Shavit_GetReplayBotTrack(target);
+		snapshot.fTimescale = Shavit_GetStyleSettingFloat(snapshot.bsStyle, "timescale");
+		cpcache.fSpeed = snapshot.fTimescale;
+		ScaleVector(cpcache.fVelocity, 1 / cpcache.fSpeed);
 	}
 	else
 	{

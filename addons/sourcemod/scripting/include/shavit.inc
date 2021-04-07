@@ -228,6 +228,7 @@ enum struct timer_snapshot_t
 	float fDistanceOffset[2];
 	float fAvgVelocity;
 	float fMaxVelocity;
+	float fTimescale;
 }
 
 enum struct cp_cache_t
