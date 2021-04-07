@@ -2529,5 +2529,13 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetStyleSettingBool");
 	MarkNativeAsOptional("Shavit_SetStyleSettingInt");
 	MarkNativeAsOptional("Shavit_GetPlainChatrank");
+	MarkNativeAsOptional("Shavit_GetClosestReplayVelocityDifference");
+	MarkNativeAsOptional("Shavit_IsReplayEntity");
+	MarkNativeAsOptional("Shavit_GetReplayButtons");
+	MarkNativeAsOptional("Shavit_GetClosestReplayStyle");
+	MarkNativeAsOptional("Shavit_SetClosestReplayStyle");
+	MarkNativeAsOptional("Shavit_GetReplayBotFrameCount");
+	MarkNativeAsOptional("Shavit_StartReplayFromFrameCache");
+	MarkNativeAsOptional("Shavit_StartReplayFromFile");
 }
 #endif

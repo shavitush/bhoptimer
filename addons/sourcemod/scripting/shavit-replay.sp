@@ -341,17 +341,6 @@ public void OnPluginStart()
 		}
 	}
 
-	// late load
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		ClearBotInfo(gA_BotInfo[i]);
-
-		if(IsValidClient(i) && !IsFakeClient(i))
-		{
-			OnClientPutInServer(i);
-		}
-	}
-
 	// plugin convars
 	gCV_Enabled = new Convar("shavit_replay_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
 	gCV_ReplayDelay = new Convar("shavit_replay_delay", "2.5", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
@@ -374,11 +363,22 @@ public void OnPluginStart()
 	IntToString(RoundToFloor(1.0 / GetTickInterval() / 10), tenth, sizeof(tenth));
 	gCV_DynamicTimeTick = new Convar("shavit_replay_timedifference_tick", tenth, "How often (in ticks) should the time difference update.\nYou should probably keep this around 0.1s worth of ticks.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 
+	Convar.AutoExecConfig();
+
+	// late load
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		ClearBotInfo(gA_BotInfo[i]);
+
+		if(IsValidClient(i) && !IsFakeClient(i))
+		{
+			OnClientPutInServer(i);
+		}
+	}
+
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 	gCV_DynamicBotLimit.AddChangeHook(OnConVarChanged);
 	gCV_AllowPropBots.AddChangeHook(OnConVarChanged);
-
-	Convar.AutoExecConfig();
 
 	// hooks
 	HookEvent("player_spawn", Player_Event, EventHookMode_Pre);

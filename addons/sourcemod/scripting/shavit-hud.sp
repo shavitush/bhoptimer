@@ -1589,13 +1589,13 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 			return;
 		}
 	}
-	else if (!Shavit_IsReplayEntity(target))
+	else if (!(gB_Replay && Shavit_IsReplayEntity(target)))
 	{
 		return;
 	}
 
 	int buttons = IsValidClient(target) ? gI_Buttons[target] : Shavit_GetReplayButtons(target);
-	int style = (Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+	int style = (gB_Replay && Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
 	{
@@ -1655,7 +1655,7 @@ void UpdateCenterKeys(int client)
 			return;
 		}
 	}
-	else if (!Shavit_IsReplayEntity(target))
+	else if (!(gB_Replay && Shavit_IsReplayEntity(target)))
 	{
 		return;
 	}
@@ -1670,7 +1670,7 @@ void UpdateCenterKeys(int client)
 		(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
 		(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
 
-	int style = (Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+	int style = (gB_Replay && Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
 	{
@@ -1763,13 +1763,12 @@ void UpdateTopLeftHUD(int client, bool wait)
 		int style = 0;
 		float fTargetPB = 0.0;
 
-		if(!Shavit_IsReplayEntity(target))
+		if(!(gB_Replay && Shavit_IsReplayEntity(target)))
 		{
 			style = Shavit_GetBhopStyle(target);
 			track = Shavit_GetClientTrack(target);
 			fTargetPB = Shavit_GetClientPB(target, style, track);
 		}
-
 		else
 		{
 			style = Shavit_GetReplayBotStyle(target);
@@ -1878,7 +1877,7 @@ void UpdateKeyHint(int client)
 
 		if(target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)
 		{
-			int bReplay = Shavit_IsReplayEntity(target);
+			int bReplay = gB_Replay && Shavit_IsReplayEntity(target);
 			int style = bReplay ? Shavit_GetReplayBotStyle(target) : Shavit_GetBhopStyle(target);
 
 			if(!(0 <= style < gI_Styles))
