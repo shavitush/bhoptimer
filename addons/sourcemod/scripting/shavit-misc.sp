@@ -1307,14 +1307,7 @@ void PersistData(int client, bool disconnected)
 	int iIndex = FindPersistentData(client, aData);
 	FillPersistentData(client, aData, disconnected);
 
-	if (disconnected)
-	{
-		gB_SaveStates[client] = false;
-	}
-	else
-	{
-		gB_SaveStates[client] = true;
-	}
+	gB_SaveStates[client] = true;
 
 	if (iIndex == -1)
 	{
