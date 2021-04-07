@@ -1663,8 +1663,8 @@ void UpdateCenterKeys(int client)
 	int buttons = IsValidClient(target) ? gI_Buttons[target] : Shavit_GetReplayButtons(target);
 	float fAngleDiff = IsValidClient(target) ? gF_AngleDiff[target] : 0.0;
 
-	char sCenterText[64];
-	FormatEx(sCenterText, 64, "　%s　　%s\n%s　 %s 　%s\n%s　 %s 　%s\n　%s　　%s",
+	char sCenterText[80];
+	FormatEx(sCenterText, sizeof(sCenterText), "　%s　　%s\n%s　 %s 　%s\n%s　 %s 　%s\n　%s　　%s",
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
 		(fAngleDiff > 0) ? "←":" ", (buttons & IN_FORWARD) > 0 ? "Ｗ":"ｰ", (fAngleDiff < 0) ? "→":" ",
 		(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
@@ -1682,7 +1682,7 @@ void UpdateCenterKeys(int client)
 
 	if(gB_BhopStats && !StringToInt(autobhop) && IsValidClient(target))
 	{
-		Format(sCenterText, 64, "%s\n　　%d　%d", sCenterText, gI_ScrollCount[target], gI_LastScrollCount[target]);
+		Format(sCenterText, sizeof(sCenterText), "%s\n　　%d　%d", sCenterText, gI_ScrollCount[target], gI_LastScrollCount[target]);
 	}
 
 	PrintCenterText(client, "%s", sCenterText);
