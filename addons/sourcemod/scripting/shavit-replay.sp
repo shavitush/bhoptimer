@@ -1503,7 +1503,7 @@ bool ReadReplayFrames(File file, replayfile_header_t header, framecache_t cache)
 {
 	int cells = 6;
 
-	if (header.iReplayVersion >= 0x01)
+	if (header.iReplayVersion > 0x01)
 	{
 		cells = 8;
 	}
