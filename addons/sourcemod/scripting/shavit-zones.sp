@@ -132,6 +132,7 @@ float gV_MapZones_Visual[MAX_ZONES][8][3];
 float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
 int gI_StageZoneID[MAX_ZONES];
+int gI_NumStageZones = 0;
 int gI_EntityZone[4096];
 bool gB_ZonesCreated = false;
 int gI_LastStage[MAXPLAYERS+1];
@@ -197,6 +198,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetZoneData", Native_GetZoneData);
 	CreateNative("Shavit_GetZoneFlags", Native_GetZoneFlags);
 	CreateNative("Shavit_GetStageZone", Native_GetStageZone);
+	CreateNative("Shavit_GetStageCount", Native_GetStageCount);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
 	CreateNative("Shavit_InsideZoneGetID", Native_InsideZoneGetID);
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
@@ -537,6 +539,11 @@ public int Native_GetStageZone(Handle handler, int numParams)
 	return gI_StageZoneID[iStageNumber];
 }
 
+public int Native_GetStageCount(Handle handler, int numParas)
+{
+	return gI_NumStageZones;
+}
+
 public int Native_Zones_DeleteMap(Handle handler, int numParams)
 {
 	char sMap[160];
@@ -758,6 +765,7 @@ public void OnMapStart()
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	gI_MapZones = 0;
+	gI_NumStageZones = 0;
 	UnloadZones(0);
 	RefreshZones();
 	LoadStageZones();
@@ -803,6 +811,8 @@ public void LoadStageZones()
 
 public void SQL_GetStageZone_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
+	gI_NumStageZones = 0;
+	
 	if(results == null)
 	{
 		LogError("Timer (zones GetStageZone) SQL query failed. Reason: %s", error);
@@ -814,6 +824,8 @@ public void SQL_GetStageZone_Callback(Database db, DBResultSet results, const ch
 		int iZoneID = results.FetchInt(0);
 		int iStageNumber = results.FetchInt(1);
 		gI_StageZoneID[iStageNumber] = iZoneID;
+
+		gI_NumStageZones++;
 	} 
 }
 
@@ -3176,6 +3188,7 @@ public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 		}
 	}
 
+	gI_MapZones = 0;
 	RequestFrame(CreateZoneEntities);
 }
 
@@ -3332,7 +3345,7 @@ public void StartTouchPost(int entity, int other)
 			char special[sizeof(stylestrings_t::sSpecialString)];
 			Shavit_GetStyleStrings(Shavit_GetBhopStyle(other), sSpecialString, special, sizeof(special));
 
-			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack && (num > gI_LastStage[other] || StrContains(special, "segments") != -1 || StrContains(special, "TAS") != -1))
+			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack && (num > gI_LastStage[other] || StrContains(special, "segments") != -1 || StrContains(special, "TAS") != -1 || Shavit_IsPracticeMode(other)))
 			{
 				gI_LastStage[other] = num;
 				char sTime[32];

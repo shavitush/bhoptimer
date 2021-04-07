@@ -1183,6 +1183,13 @@ native TimerStatus Shavit_GetTimerStatus(int client);
 native int Shavit_GetStageZone(int stage);
 
 /**
+ * Retrieve the number of stages for the current map.
+ *
+ * @return 							Number of stages.
+ */
+native int Shavit_GetStageCount();
+
+/**
  * Retrieve the amount of strafes done since the timer started.
  * Will return 0 if timer isn't running.
  *
@@ -2339,6 +2346,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayStatus");
 	MarkNativeAsOptional("Shavit_GetReplayTime");
 	MarkNativeAsOptional("Shavit_GetStageZone");
+	MarkNativeAsOptional("Shavit_GetStageCount");
 	MarkNativeAsOptional("Shavit_GetStrafeCount");
 	MarkNativeAsOptional("Shavit_GetStyleCount");
 	MarkNativeAsOptional("Shavit_GetStyleSetting");

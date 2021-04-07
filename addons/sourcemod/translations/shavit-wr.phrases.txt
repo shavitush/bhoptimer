@@ -202,4 +202,10 @@
 	{
 		"en"		"Time"
 	}
+	// ---------- Messages ---------- //
+	"WRStageTime"
+	{
+		"#format"	"{1:s},{2:s},{3:d},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s}"
+		"en"		"{1}You have reached stage {2}{3}{4} with a time of {5}{6}{7} (WR {8}{9}{10})."
+	}
 }
