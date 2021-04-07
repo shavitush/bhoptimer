@@ -438,7 +438,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 
 	if (nodecimal)
 	{
-		FormatEx(sSeconds, 8, "%d", iRounded);
+		FormatEx(sSeconds, 8, "%d", iRounded % 60);
 	}
 	else
 	{

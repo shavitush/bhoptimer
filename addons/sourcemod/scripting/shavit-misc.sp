@@ -1780,7 +1780,13 @@ void SetWeaponAmmo(int client, int weapon, bool setClip1)
 
 	if (gCV_WeaponCommands.IntValue >= 3 && setClip1)
 	{
-		int amount = GetEntProp(weapon, Prop_Send, "m_iClip1") + (GetEntProp(weapon, Prop_Send, "m_bBurstMode") ? 3 : 1);
+		int amount = GetEntProp(weapon, Prop_Send, "m_iClip1") + 1;
+
+		if (HasEntProp(weapon, Prop_Send, "m_bBurstMode") && GetEntProp(weapon, Prop_Send, "m_bBurstMode"))
+		{
+			amount += 2;
+		}
+
 		SetEntProp(weapon, Prop_Data, "m_iClip1", amount);
 	}
 }
