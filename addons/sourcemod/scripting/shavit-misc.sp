@@ -72,6 +72,7 @@ int gI_LastShot[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
 char gS_CurrentMap[192];
+char gS_PreviousMap[PLATFORM_MAX_PATH];
 int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
 bool gB_ClosedKZCP[MAXPLAYERS+1];
@@ -318,7 +319,7 @@ public void OnPluginStart()
 	gCV_PersistData = new Convar("shavit_misc_persistdata", "600", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled");
 	gCV_StopTimerWarning = new Convar("shavit_misc_stoptimerwarning", "180", "Time in seconds to display a warning before stopping the timer with noclip or !stop.\n0 - Disabled");
 	gCV_WRMessages = new Convar("shavit_misc_wrmessages", "3", "How many \"NEW <style> WR!!!\" messages to print?\n0 - Disabled", 0,  true, 0.0, true, 100.0);
-	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "0", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 3.0);
+	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "1", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 2.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
@@ -528,6 +529,23 @@ public void OnMapStart()
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
 
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		ResetCheckpoints(i);
+	}
+
+	if (!StrEqual(gS_CurrentMap, gS_PreviousMap, false))
+	{
+		int iLength = gA_PersistentData.Length;
+
+		for(int i = iLength - 1; i >= 0; i--)
+		{
+			persistent_data_t aData;
+			gA_PersistentData.GetArray(i, aData);
+			DeletePersistentData(i, aData);
+		}
+	}
+
 	if(gCV_CreateSpawnPoints.IntValue > 0)
 	{
 		int iEntity = -1;
@@ -570,19 +588,7 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		ResetCheckpoints(i);
-	}
-
-	int iLength = gA_PersistentData.Length;
-
-	for(int i = iLength - 1; i >= 0; i--)
-	{
-		persistent_data_t aData;
-		gA_PersistentData.GetArray(i, aData);
-		DeletePersistentData(i, aData);
-	}
+	strcopy(gS_PreviousMap, sizeof(gS_PreviousMap), gS_CurrentMap);
 }
 
 bool LoadAdvertisementsConfig()
@@ -1084,7 +1090,7 @@ void RemoveRagdoll(int client)
 	}
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
 	bool bInStart = Shavit_InsideZone(client, Zone_Start, track);
@@ -1360,7 +1366,11 @@ void LoadPersistentData(int serial)
 		delete gA_Checkpoints[client];
 		gI_CurrentCheckpoint[client] = aData.iCurrentCheckpoint;
 		gA_Checkpoints[client] = aData.aCheckpoints;
-		OpenCheckpointsMenu(client);
+
+		if (gA_Checkpoints[client].Length > 0)
+		{
+			OpenCheckpointsMenu(client);
+		}
 	}
 
 	gB_SaveStates[client] = false;
