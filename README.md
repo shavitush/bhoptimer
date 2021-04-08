@@ -1,6 +1,7 @@
 [![Discord server](https://discordapp.com/api/guilds/389675819959844865/widget.png?style=shield)](https://discord.gg/jyA9q5k)
 
-### !!! THIS IS A DEVELOPMENT VERSION, USE AT OWN RISK !!!
+# !!! THIS IS A DEVELOPMENT VERSION, USE AT OWN RISK !!!
+### If you're to use this DEV BRANCH, make sure to recompile all of the other external plugins you're using alongside bhoptimer with the newest includes from this version (scripting/include/shavit.inc). Otherwise you might (or will) end up getting your console spammed with errors and plugins being partially not functional or not working at all.
 
 ### Build status
 [![Build status](https://travis-ci.org/shavitush/bhoptimer.svg?branch=master)](https://travis-ci.org/shavitush/bhoptimer)
