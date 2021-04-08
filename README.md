@@ -56,7 +56,7 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
   - Speed of Sixth Jump + more, customisable settings with cookies remembering user prefered settings.
 * [shavit-jhud](https://github.com/blankbhop/jhud)
   - Jump HUD for bhoptimer. !jhud for settings.
- * [shavit-firstjumptick](https://github.com/Nairdaa/bhoptimer-firstjumptick)
+* [shavit-firstjumptick](https://github.com/Nairdaa/bhoptimer-firstjumptick)
   - Displays what tick the player first jumps at upon leaving the startzone. Very useful for strafe maps, where you tryhard to cut that tick or two. !fjt to enable.
 
 * TODO: `paint`, `mpbhops`, `ljstats`, `bash2`
