@@ -102,7 +102,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// natives
 	CreateNative("Shavit_GetClientPB", Native_GetClientPB);
 	CreateNative("Shavit_SetClientPB", Native_SetClientPB);
-	CreateNative("Shavit_GetPlayerPB", Native_GetPlayerPB);
 	CreateNative("Shavit_GetClientCompletions", Native_GetClientCompletions);
 	CreateNative("Shavit_GetRankForTime", Native_GetRankForTime);
 	CreateNative("Shavit_GetRecordAmount", Native_GetRecordAmount);
@@ -110,7 +109,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetWorldRecord", Native_GetWorldRecord);
 	CreateNative("Shavit_GetWRName", Native_GetWRName);
 	CreateNative("Shavit_GetWRRecordID", Native_GetWRRecordID);
-	CreateNative("Shavit_GetWRTime", Native_GetWRTime);
 	CreateNative("Shavit_ReloadLeaderboards", Native_ReloadLeaderboards);
 	CreateNative("Shavit_WR_DeleteMap", Native_WR_DeleteMap);
 	CreateNative("Shavit_DeleteWR", Native_DeleteWR);
@@ -563,11 +561,6 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 public int Native_GetWorldRecord(Handle handler, int numParams)
 {
 	return view_as<int>(gF_WRTime[GetNativeCell(1)][GetNativeCell(2)]);
-}
-
-public int Native_GetWRTime(Handle handler, int numParams)
-{
-	SetNativeCellRef(2, gF_WRTime[GetNativeCell(1)][GetNativeCell(3)]);
 }
 
 public int Native_ReloadLeaderboards(Handle handler, int numParams)

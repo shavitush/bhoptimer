@@ -2356,7 +2356,7 @@ public bool TraceFilter_World(int entity, int contentsMask)
 	return (entity == 0);
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylesettings)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	if(gI_MapStep[client] > 0 && gI_MapStep[client] != 3)
 	{

@@ -400,7 +400,7 @@ void MakeAngleDiff(int client, float newAngle)
 	gF_AngleDiff[client] = fAngleDiff - 360.0 * RoundToFloor((fAngleDiff + 180.0) / 360.0);
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, stylesettings_t stylsettings)
+public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	gI_Buttons[client] = buttons;
 	MakeAngleDiff(client, angles[1]);

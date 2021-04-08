@@ -162,7 +162,6 @@ ConVar sv_enablebunnyhopping = null;
 bool gB_Registered = false;
 int gI_Styles = 0;
 int gI_OrderedStyles[STYLE_LIMIT];
-stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 StringMap gSM_StyleKeys[STYLE_LIMIT];
 int gI_CurrentParserIndex = 0;
 
@@ -207,8 +206,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
 	CreateNative("Shavit_GetClientTrack", Native_GetClientTrack);
 	CreateNative("Shavit_GetDatabase", Native_GetDatabase);
-	CreateNative("Shavit_GetDB", Native_GetDB);
-	CreateNative("Shavit_GetGameType", Native_GetGameType);
 	CreateNative("Shavit_GetOrderedStyles", Native_GetOrderedStyles);
 	CreateNative("Shavit_GetPerfectJumps", Native_GetPerfectJumps);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
@@ -218,12 +215,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleSettingBool", Native_GetStyleSettingBool);
 	CreateNative("Shavit_GetStyleSettingFloat", Native_GetStyleSettingFloat);
 	CreateNative("Shavit_HasStyleSetting", Native_HasStyleSetting);
-	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetTimeOffset", Native_GetTimeOffset);
 	CreateNative("Shavit_GetDistanceOffset", Native_GetTimeOffsetDistance);
-	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
 	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
@@ -1448,11 +1443,6 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 	StopTimer(client);
 }
 
-public int Native_GetGameType(Handle handler, int numParams)
-{
-	return view_as<int>(gEV_Type);
-}
-
 public int Native_GetOrderedStyles(Handle handler, int numParams)
 {
 	return SetNativeArray(1, gI_OrderedStyles, GetNativeCell(2));
@@ -1461,23 +1451,6 @@ public int Native_GetOrderedStyles(Handle handler, int numParams)
 public int Native_GetDatabase(Handle handler, int numParams)
 {
 	return view_as<int>(CloneHandle(gH_SQL, handler));
-}
-
-public int Native_GetDB(Handle handler, int numParams)
-{
-	SetNativeCellRef(1, gH_SQL);
-}
-
-public int Native_GetTimer(Handle handler, int numParams)
-{
-	// 1 - client
-	int client = GetNativeCell(1);
-
-	// 2 - time
-	SetNativeCellRef(2, gA_Timers[client].fTimer);
-	SetNativeCellRef(3, gA_Timers[client].iJumps);
-	SetNativeCellRef(4, gA_Timers[client].iStyle);
-	SetNativeCellRef(5, gA_Timers[client].bEnabled);
 }
 
 public int Native_GetClientTime(Handle handler, int numParams)
@@ -1897,19 +1870,6 @@ public int Native_GetSync(Handle handler, int numParams)
 public int Native_GetStyleCount(Handle handler, int numParams)
 {
 	return (gI_Styles > 0)? gI_Styles:-1;
-}
-
-public int Native_GetStyleSettings(Handle handler, int numParams)
-{
-	LogError("Shavit_GetStyleSettings is deprecated and will be removed in 3.0. Use Shavit_GetStyleSetting instead");
-
-	if(GetNativeCell(3) != sizeof(stylesettings_t))
-	{
-		return ThrowNativeError(200, "stylesettings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
-			GetNativeCell(3), sizeof(stylesettings_t));
-	}
-	
-	return SetNativeArray(2, gA_StyleSettings[GetNativeCell(1)], sizeof(stylesettings_t));
 }
 
 public int Native_GetStyleStrings(Handle handler, int numParams)
@@ -2582,75 +2542,6 @@ bool LoadStyles()
 	parser.ParseFile(sPath);
 	delete parser;
 
-
-	// TODO: REMOVE IN 3.0
-	// These are being left in as a backwards compatibility for the forwards using the style settings struct.
-	// Forwards seem to be fairly safe but will eventually be deprecated in favor of removing enum struct api usage.
-	KeyValues kv = new KeyValues("shavit-styles");
-
-	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
-	{
-		delete kv;
-
-		return false;
-	}
-
-	int i = 0;
-
-	do
-	{		
-		gA_StyleSettings[i].bAutobhop = view_as<bool>(kv.GetNum("autobhop", 1));
-		gA_StyleSettings[i].bEasybhop = view_as<bool>(kv.GetNum("easybhop", 1));
-		gA_StyleSettings[i].iPrespeed = view_as<bool>(kv.GetNum("prespeed", 0));
-		gA_StyleSettings[i].fVelocityLimit = kv.GetFloat("velocity_limit", 0.0);
-		gA_StyleSettings[i].fAiraccelerate = kv.GetFloat("airaccelerate", 1000.0);
-		gA_StyleSettings[i].bEnableBunnyhopping = view_as<bool>(kv.GetNum("bunnyhopping", 1));
-		gA_StyleSettings[i].fRunspeed = kv.GetFloat("runspeed", 260.00);
-		gA_StyleSettings[i].fGravityMultiplier = kv.GetFloat("gravity", 1.0);
-		gA_StyleSettings[i].fSpeedMultiplier = kv.GetFloat("speed", 1.0);
-		gA_StyleSettings[i].fTimescale = view_as<bool>(kv.GetNum("halftime", 0))? 0.5:kv.GetFloat("timescale", 1.0); // backwards compat for old halftime settig
-		gA_StyleSettings[i].fVelocity = kv.GetFloat("velocity", 1.0);
-		gA_StyleSettings[i].fBonusVelocity = kv.GetFloat("bonus_velocity", 0.0);
-		gA_StyleSettings[i].fMinVelocity = kv.GetFloat("min_velocity", 0.0);
-		gA_StyleSettings[i].fJumpMultiplier = kv.GetFloat("jump_multiplier", 0.0);
-		gA_StyleSettings[i].fJumpBonus = kv.GetFloat("jump_bonus", 0.0);
-		gA_StyleSettings[i].bBlockW = view_as<bool>(kv.GetNum("block_w", 0));
-		gA_StyleSettings[i].bBlockA = view_as<bool>(kv.GetNum("block_a", 0));
-		gA_StyleSettings[i].bBlockS = view_as<bool>(kv.GetNum("block_s", 0));
-		gA_StyleSettings[i].bBlockD = view_as<bool>(kv.GetNum("block_d", 0));
-		gA_StyleSettings[i].bBlockUse = view_as<bool>(kv.GetNum("block_use", 0));
-		gA_StyleSettings[i].iForceHSW = kv.GetNum("force_hsw", 0);
-		gA_StyleSettings[i].iBlockPLeft = kv.GetNum("block_pleft", 0);
-		gA_StyleSettings[i].iBlockPRight = kv.GetNum("block_pright", 0);
-		gA_StyleSettings[i].iBlockPStrafe = kv.GetNum("block_pstrafe", 0);
-		gA_StyleSettings[i].bUnranked = view_as<bool>(kv.GetNum("unranked", 0));
-		gA_StyleSettings[i].bNoReplay = view_as<bool>(kv.GetNum("noreplay", 0));
-		gA_StyleSettings[i].bSync = view_as<bool>(kv.GetNum("sync", 1));
-		gA_StyleSettings[i].bStrafeCountW = view_as<bool>(kv.GetNum("strafe_count_w", false));
-		gA_StyleSettings[i].bStrafeCountA = view_as<bool>(kv.GetNum("strafe_count_a", true));
-		gA_StyleSettings[i].bStrafeCountS = view_as<bool>(kv.GetNum("strafe_count_s", false));
-		gA_StyleSettings[i].bStrafeCountD = view_as<bool>(kv.GetNum("strafe_count_d", true));
-		gA_StyleSettings[i].fRankingMultiplier = kv.GetFloat("rankingmultiplier", 1.00);
-		gA_StyleSettings[i].iSpecial = kv.GetNum("special", 0);
-		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
-		gA_StyleSettings[i].bInaccessible = view_as<bool>(kv.GetNum("inaccessible", false));
-		gA_StyleSettings[i].iEnabled = kv.GetNum("enabled", 1);
-		gA_StyleSettings[i].bKZCheckpoints = view_as<bool>(kv.GetNum("kzcheckpoints", 0));
-		gA_StyleSettings[i].bForceKeysOnGround = view_as<bool>(kv.GetNum("force_groundkeys", 0));
-
-		// if this style is disabled, we will force certain settings
-		if(gA_StyleSettings[i].iEnabled <= 0)
-		{
-			gA_StyleSettings[i].bNoReplay = true;
-			gA_StyleSettings[i].fRankingMultiplier = 0.0;
-			gA_StyleSettings[i].bInaccessible = true;
-		}
-	}
-
-	while(kv.GotoNextKey());
-
-	delete kv;
-
 	gB_Registered = true;
 
 	SortCustom1D(gI_OrderedStyles, gI_Styles, SortAscending_StyleOrder);
@@ -2779,7 +2670,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	char sName[64];
 	gSM_StyleKeys[gI_CurrentParserIndex].GetString("name", sName, 64);
 
-	if(!gB_Registered && strlen(sStyleCommand) > 0 && !gA_StyleSettings[gI_CurrentParserIndex].bInaccessible)
+	if(!gB_Registered && strlen(sStyleCommand) > 0 && !GetStyleSettingBool(gI_CurrentParserIndex, "inaccessible"))
 	{
 		char sStyleCommands[32][32];
 		int iCommands = ExplodeString(sStyleCommand, ";", sStyleCommands, 32, 32, false);
@@ -3480,9 +3371,6 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_PushCell(client);
 	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
 	Call_PushCellRef(time);
-	//TODO:REMOVE IN 3.0
-	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
-	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
 	Call_Finish();
 
 	gA_Timers[client].fTimer += time;
@@ -3490,9 +3378,6 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_StartForward(gH_Forwards_OnTimerIncrementPost);
 	Call_PushCell(client);
 	Call_PushCell(time);
-	//TODO:REMOVE IN 3.0
-	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
-	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
 	Call_Finish();
 
 	return MRES_Ignored;
@@ -3626,9 +3511,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	Call_PushCell(GetTimerStatus(client));
 	Call_PushCell(gA_Timers[client].iTrack);
 	Call_PushCell(gA_Timers[client].iStyle);
-	//TODO:REMOVE IN 3.0
-	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
-	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
 	Call_PushArrayEx(mouse, 2, SM_PARAM_COPYBACK);
 	Call_Finish(result);
 
