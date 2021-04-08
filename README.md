@@ -52,7 +52,14 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
   - Allows players to toggle player clip visibility.
 * [shavit-mapchooser](https://github.com/mbhound/shavit-mapchooser)
   - Fancy map chooser plugin to add some timer specific options for the nominate and rtv menus.
-* TODO: `paint`, `mpbhops`, `ssj`, `ljstats`, `bash2`
+* [shavit-ssj](https://github.com/Nairdaa/shavit-ssj)
+  - Speed of Sixth Jump + more, customisable settings with cookies remembering user prefered settings.
+* [shavit-jhud](https://github.com/blankbhop/jhud)
+  - Jump HUD for bhoptimer. !jhud for settings.
+* [shavit-firstjumptick](https://github.com/Nairdaa/bhoptimer-firstjumptick)
+  - Displays what tick the player first jumps at upon leaving the startzone. Very useful for strafe maps, where you tryhard to cut that tick or two. !fjt to enable.
+
+* TODO: `paint`, `mpbhops`, `ljstats`, `bash2`
 ### CS:GO
 * [NoViewPunch](https://github.com/hermansimensen/NoViewPunch)
   - Makes jumping look less cancer in CS:GO.
