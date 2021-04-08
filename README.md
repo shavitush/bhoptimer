@@ -54,7 +54,10 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
   - Fancy map chooser plugin to add some timer specific options for the nominate and rtv menus.
 * [shavit-ssj](https://github.com/Nairdaa/shavit-ssj)
   - Speed of Sixth Jump + more, customisable settings with cookies remembering user prefered settings.
-* TODO: `paint`, `mpbhops`, `ssj`, `ljstats`, `bash2`
+* [shavit-jhud](https://github.com/Nairdaa/jhud)
+  - Jump HUD for bhoptimer. !jhud for settings.
+
+* TODO: `paint`, `mpbhops`, `ljstats`, `bash2`
 ### CS:GO
 * [NoViewPunch](https://github.com/hermansimensen/NoViewPunch)
   - Makes jumping look less cancer in CS:GO.
