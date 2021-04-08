@@ -2806,7 +2806,9 @@ public Action Timer_DrawEverything(Handle Timer)
 		iCycle = 0;
 	}
 
-	for(int i = iCycle; i < gI_MapZones; i++)
+	int iDrawn = 0;
+
+	for(int i = iCycle; i < gI_MapZones; i++, iCycle++)
 	{
 		if(gA_ZoneCache[i].bZoneInitialized)
 		{
@@ -2823,9 +2825,10 @@ public Action Timer_DrawEverything(Handle Timer)
 						gV_ZoneCenter[i],
 						gA_ZoneSettings[type][track].iBeam,
 						gA_ZoneSettings[type][track].iHalo);
+				++iDrawn;
 			}
 
-			if(++iCycle % iMaxZonesPerFrame == 0)
+			if(++iDrawn % iMaxZonesPerFrame == 0)
 			{
 				return Plugin_Continue;
 			}
