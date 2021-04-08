@@ -2318,7 +2318,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			FormatEx(query, sizeof(query),
 				"REPLACE INTO `%sstagetimes` (`style`, `track`, `map`, `auth`, `time`) VALUES (%d, %d, `%s`, %d, `%s`);",
 				gS_MySQLPrefix, style, track, gS_Map, GetSteamAccountID(client), stageTimes);
-			gH_SQL.Query(SQL_StageTimes_Callback, query);
+			gH_SQL.Query(SQL_ReplaceStageTimes_Callback, query);
 		}
 	}
 
@@ -2497,11 +2497,11 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 	UpdateWRCache(client);
 }
 
-public void SQL_StageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_ReplaceStageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if(!db || !results || error[0])
 	{
-		LogError("Timer (DeleteStageTimes) SQL query failed. Reason: %s", error);
+		LogError("Timer (ReplaceStageTimes) SQL query failed. Reason: %s", error);
 
 		return;
 	}
