@@ -1366,7 +1366,11 @@ void LoadPersistentData(int serial)
 		delete gA_Checkpoints[client];
 		gI_CurrentCheckpoint[client] = aData.iCurrentCheckpoint;
 		gA_Checkpoints[client] = aData.aCheckpoints;
-		OpenCheckpointsMenu(client);
+
+		if (gA_Checkpoints[client].Length > 0)
+		{
+			OpenCheckpointsMenu(client);
+		}
 	}
 
 	gB_SaveStates[client] = false;
