@@ -2739,6 +2739,14 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 
 public SMCResult OnStyleLeaveSection(SMCParser smc)
 {
+	if (gI_CurrentParserIndex == -1)
+	{
+		// OnStyleLeaveSection can be called back to back.
+		// And does for when hitting the last style!
+		// So we set gI_CurrentParserIndex to -1 at the end of this function.
+		return;
+	}
+
 	// if this style is disabled, we will force certain settings
 	if(GetStyleSettingInt(gI_CurrentParserIndex, "enabled") <= 0)
 	{
@@ -2820,6 +2828,8 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 			gI_StyleFlag[gI_CurrentParserIndex] = FlagToBit(flag);
 		}
 	}
+
+	gI_CurrentParserIndex = -1;
 }
 
 public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
