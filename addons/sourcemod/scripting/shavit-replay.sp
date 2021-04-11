@@ -2293,7 +2293,16 @@ public void OnClientDisconnect(int client)
 	{
 		if (IsValidEntity(gA_BotInfo[client].iEnt))
 		{
-			KickReplay(gA_BotInfo[GetBotInfoIndex(gA_BotInfo[client].iEnt)]);
+			int index = GetBotInfoIndex(gA_BotInfo[client].iEnt);
+
+			if (gA_BotInfo[index].iType == Replay_Central)
+			{
+				CancelReplay(gA_BotInfo[index]);
+			}
+			else
+			{
+				KickReplay(gA_BotInfo[index]);
+			}
 		}
 
 		return;
@@ -2748,10 +2757,19 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 	{
 		event.BroadcastDisabled = true;
 	}
-	else
+	else if (IsValidEntity(gA_BotInfo[client].iEnt))
 	{
 		// Here to kill Replay_Prop s when the watcher/starter respawns.
-		KickReplay(gA_BotInfo[client]);
+		int index = GetBotInfoIndex(gA_BotInfo[client].iEnt);
+
+		if (gA_BotInfo[index].iType == Replay_Central)
+		{
+			//CancelReplay(gA_BotInfo[index]); // TODO: Is this worth doing? Might be a bit annoying until rewind/ff is added...
+		}
+		else
+		{
+			KickReplay(gA_BotInfo[index]);
+		}
 	}
 }
 
