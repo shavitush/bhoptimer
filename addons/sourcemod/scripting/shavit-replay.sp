@@ -1002,14 +1002,19 @@ public int Native_SetReplayData(Handle handler, int numParams)
 public int Native_GetReplayData(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
+	bool cloneHandle = view_as<bool>(GetNativeCell(2));
 	Handle cloned = null;
 
 	if(gA_PlayerFrames[client] != null)
 	{
-		ArrayList frames = gA_PlayerFrames[client].Clone();
+		ArrayList frames = cloneHandle ? gA_PlayerFrames[client] : gA_PlayerFrames[client].Clone();
 		frames.Resize(gI_PlayerFrames[client]);
 		cloned = CloneHandle(frames, plugin); // set the calling plugin as the handle owner
-		CloseHandle(frames);
+
+		if (!cloneHandle)
+		{
+			CloseHandle(frames);
+		}
 	}
 
 	return view_as<int>(cloned);
@@ -2286,8 +2291,6 @@ public void OnClientDisconnect(int client)
 
 	if(!IsFakeClient(client))
 	{
-		RequestFrame(ClearFrames, client);
-
 		if (IsValidEntity(gA_BotInfo[client].iEnt))
 		{
 			KickReplay(gA_BotInfo[GetBotInfoIndex(gA_BotInfo[client].iEnt)]);
@@ -2312,6 +2315,13 @@ public void OnClientDisconnect(int client)
 	{
 		gI_CentralBot = -1;
 	}
+}
+
+public void OnClientDisconnect_Post(int client)
+{
+	// This runs after shavit-misc has cloned the handle
+	//ClearFrames(client);
+	delete gA_PlayerFrames[client];
 }
 
 public Action Shavit_OnStart(int client)

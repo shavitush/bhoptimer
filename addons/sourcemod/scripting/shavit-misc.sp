@@ -2410,7 +2410,7 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool isPersistentData)
 	{
 		if(gB_Replay)
 		{
-			cpcache.aFrames = Shavit_GetReplayData(target);
+			cpcache.aFrames = Shavit_GetReplayData(target, isPersistentData);
 			cpcache.iPreFrames = Shavit_GetPlayerPreFrame(target);
 			cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(target);
 		}

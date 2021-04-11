@@ -1836,9 +1836,10 @@ native void Shavit_SetReplayData(int client, ArrayList data, bool cloneHandle=fa
  * To be used by save states/TAS etc.
  *
  * @param client					Client index.
+ * @param cloneHandle				False means we duplicate the frames (Arraylist.Clone). True means we just cloen the handle to the frames (CloneHandle). This is going to be used for peristent-data in shavit-misc so we don't duplicate buffers needlessly.
  * @return							ArrayList with proper replay data, or null if the player has no recorded data.
  */
-native ArrayList Shavit_GetReplayData(int client);
+native ArrayList Shavit_GetReplayData(int client, bool cloneHandle=false);
 
 /**
  * Checks if the given entity is a replay bot (fakeclient) or replay prop.
