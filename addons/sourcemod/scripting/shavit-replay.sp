@@ -179,7 +179,6 @@ int gI_LatestClient = -1;
 
 // how do i call this
 bool gB_HideNameChange = false;
-//bool gB_DontCallTimer = false;
 bool gB_HijackFrame[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
 
@@ -201,7 +200,7 @@ Convar gCV_ClearPreRun = null;
 Convar gCV_DynamicTimeSearch = null;
 Convar gCV_DynamicTimeCheap = null;
 Convar gCV_DynamicTimeTick = null;
-ConVar gCV_EnableDynamicTimeDifference = null;
+Convar gCV_EnableDynamicTimeDifference = null;
 ConVar sv_duplicate_playernames_ok = null;
 
 // timer settings
@@ -299,9 +298,6 @@ public void OnAllPluginsLoaded()
 	{
 		gB_ClosestPos = true;
 	}
-
-	// I don't like doing this
-	gCV_EnableDynamicTimeDifference = FindConVar("shavit_hud_timedifference");
 }
 
 public void OnPluginStart()
@@ -355,6 +351,7 @@ public void OnPluginStart()
 	gCV_ClearPreRun = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
 	gCV_DynamicTimeCheap = new Convar("shavit_replay_timedifference_cheap", "0.0", "0 - Disabled\n1 - only clip the search ahead to shavit_replay_timedifference_search\n2 - only clip the search behind to players current frame\n3 - clip the search to +/- shavit_replay_timedifference_search seconds to the players current frame", 0, true, 0.0, true, 3.0);
 	gCV_DynamicTimeSearch = new Convar("shavit_replay_timedifference_search", "0.0", "Time in seconds to search the players current frame for dynamic time differences\n0 - Full Scan\nNote: Higher values will result in worse performance", 0, true, 0.0);
+	gCV_EnableDynamicTimeDifference = new Convar("shavit_replay_timedifference", "0", "Enabled dynamic time/velocity differences for the hud", 0, true, 0.0, true, 1.0);
 
 	char tenth[6];
 	IntToString(RoundToFloor(1.0 / GetTickInterval() / 10), tenth, sizeof(tenth));
@@ -1184,6 +1181,11 @@ public int Native_SetTimerFrame(Handle handler, int numParams)
 
 public int Native_GetClosestReplayTime(Handle plugin, int numParams)
 {
+	if (!gCV_EnableDynamicTimeDifference.BoolValue)
+	{
+		return view_as<int>(-1.0);
+	}
+
 	int client = GetNativeCell(1);
 	return view_as<int>(gF_TimeDifference[client]);
 }
@@ -1506,11 +1508,11 @@ int InternalCreateReplayBot()
 	{
 		/*int ret =*/ SDKCall(
 			gH_BotAddCommand,
-			gCV_DefaultTeam.IntValue,  // team              // TEAM_TERRORIST
+			gCV_DefaultTeam.IntValue,  // team
 			false,                     // isFromConsole
 			0,                         // profileName       // unused
 			gI_WEAPONTYPE_UNKNOWN,     // CSWeaponType      // WEAPONTYPE_UNKNOWN
-			0                          // BotDifficultyType // unused -- BOT_EASY
+			0                          // BotDifficultyType // unused
 		);
 
 		//bool success = (0xFF & ret) != 0;
@@ -3291,7 +3293,6 @@ public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int
 
 		if (bot == 0)
 		{
-			// failed
 			Shavit_PrintToChat(param1, "%T", "FailedToCreateReplay", param1);
 			return 0;
 		}
@@ -3539,7 +3540,7 @@ public void OnGameFrame()
 		*/
 	}
 
-	if (!gCV_EnableDynamicTimeDifference || !gCV_EnableDynamicTimeDifference.BoolValue)
+	if (!gCV_EnableDynamicTimeDifference.BoolValue)
 	{
 		return;
 	}
