@@ -43,6 +43,43 @@
 				"linux"     "78"
 				"mac"       "78"
 			}
+			"WEAPONTYPE_UNKNOWN"
+			{
+				"windows"   "19"
+				"linux"     "19"
+				"mac"       "19"
+			}
+		}
+
+		"Addresses"
+		{
+			"BotManager::MaintainBotQuota"
+			{
+				"signature" "BotManager::MaintainBotQuota"
+			}
+			"CCSBotManager::BotAddCommand"
+			{
+				"signature" "CCSBotManager::BotAddCommand"
+			}
+		}
+
+		"Signatures"
+		{
+			// search string: "-nobots"
+			"BotManager::MaintainBotQuota"
+			{
+				"library"       "server"
+				"windows"       "\x55\x8B\xEC\x83\xEC\x18\x89\x4D\x2A\xFF\x15\x2A\x2A\x2A\x2A"
+				"linux"         "\x55\x89\xE5\x83\xEC\x78\x89\x7D\x2A\x8B\x7D\x2A\x89\x5D\x2A\x89\x75\x2A"
+			}
+
+			// search string: "Error - no profile for '%s' exists."
+			"CCSBotManager::BotAddCommand"
+			{
+				"library"       "server"
+				"windows"       "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x53\x56\x57\x80\x78\x2A\x00"
+				"linux"         "\x55\x89\xE5\x57\x56\x53\x83\xEC\x4C\x8B\x15\x2A\x2A\x2A\x2A\x8B\x7D\x2A\x8B\x75\x2A\x0F\xB6\x5D\x2A"
+			}
 		}
 	}
 
@@ -61,6 +98,43 @@
 				"windows"   "76"
 				"linux"     "77"
 				"mac"       "77"
+			}
+			"WEAPONTYPE_UNKNOWN"
+			{
+				"windows"   "9"
+				"linux"     "9"
+				"mac"       "9"
+			}
+		}
+
+		"Addresses"
+		{
+			"BotManager::MaintainBotQuota"
+			{
+				"signature" "BotManager::MaintainBotQuota"
+			}
+			"CCSBotManager::BotAddCommand"
+			{
+				"signature" "CCSBotManager::BotAddCommand"
+			}
+		}
+
+		"Signatures"
+		{
+			// search string: "-nobots"
+			"BotManager::MaintainBotQuota"
+			{
+				"library"       "server"
+				"windows"       "\x55\x8B\xEC\x83\xEC\x14\xFF\x15\x2A\x2A\x2A\x2A"
+				"linux"         "@_ZN13CCSBotManager16MaintainBotQuotaEv"
+			}
+
+			// search string: "Error - no profile for '%s' exists."
+			"CCSBotManager::BotAddCommand"
+			{
+				"library"       "server"
+				"windows"       "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x80\x78\x2A\x00\x75\x2A\x83\xB8\x2A\x2A\x2A\x2A\x00"
+				"linux"         "@_ZN13CCSBotManager13BotAddCommandEibPKc12CSWeaponType17BotDifficultyType"
 			}
 		}
 	}
