@@ -49,6 +49,12 @@
 				"linux"     "19"
 				"mac"       "19"
 			}
+			"BotAddCommand_ThisCall"
+			{
+				"windows"   "0"
+				"linux"     "1"
+				"mac"       "1"
+			}
 		}
 
 		"Addresses"
@@ -104,6 +110,12 @@
 				"windows"   "9"
 				"linux"     "9"
 				"mac"       "9"
+			}
+			"BotAddCommand_ThisCall"
+			{
+				"windows"   "0"
+				"linux"     "1"
+				"mac"       "1"
 			}
 		}
 

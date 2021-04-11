@@ -176,6 +176,7 @@ Handle gH_BotAddCommand = INVALID_HANDLE;
 DynamicDetour gH_MaintainBotQuota = null;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
+bool gB_BotAddCommand_ThisCall = false;
 
 // how do i call this
 bool gB_HideNameChange = false;
@@ -410,13 +411,15 @@ void LoadDHooks()
 		SetFailState("Failed to load shavit gamedata");
 	}
 
-	StartPrepSDKCall(SDKCall_Static);
+	gB_BotAddCommand_ThisCall = view_as<bool>(gamedata.GetOffset("BotAddCommand_ThisCall"));
+
+	StartPrepSDKCall(gB_BotAddCommand_ThisCall ? SDKCall_Raw : SDKCall_Static);
 
 	if (gEV_Type == Engine_TF2)
 	{
 		if (!PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "NextBotCreatePlayerBot<CTFBot>"))
 		{
-			SetFailState("Failed to get CCSBotManager::BotAddCommand");
+			SetFailState("Failed to get NextBotCreatePlayerBot<CTFBot>");
 		}
 
 		PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);       // const char *name
@@ -1506,14 +1509,29 @@ int InternalCreateReplayBot()
 	}
 	else
 	{
-		/*int ret =*/ SDKCall(
-			gH_BotAddCommand,
-			gCV_DefaultTeam.IntValue,  // team
-			false,                     // isFromConsole
-			0,                         // profileName       // unused
-			gI_WEAPONTYPE_UNKNOWN,     // CSWeaponType      // WEAPONTYPE_UNKNOWN
-			0                          // BotDifficultyType // unused
-		);
+		if (gB_BotAddCommand_ThisCall)
+		{
+			/*int ret =*/ SDKCall(
+				gH_BotAddCommand,
+				0x10000,                   // thisptr           // unused
+				gCV_DefaultTeam.IntValue,  // team
+				false,                     // isFromConsole
+				0,                         // profileName       // unused
+				gI_WEAPONTYPE_UNKNOWN,     // CSWeaponType      // WEAPONTYPE_UNKNOWN
+				0                          // BotDifficultyType // unused
+			);
+		}
+		else
+		{
+			/*int ret =*/ SDKCall(
+				gH_BotAddCommand,
+				gCV_DefaultTeam.IntValue,  // team
+				false,                     // isFromConsole
+				0,                         // profileName       // unused
+				gI_WEAPONTYPE_UNKNOWN,     // CSWeaponType      // WEAPONTYPE_UNKNOWN
+				0                          // BotDifficultyType // unused
+			);
+		}
 
 		//bool success = (0xFF & ret) != 0;
 	}
