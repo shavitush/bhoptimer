@@ -400,6 +400,8 @@ public void OnPluginStart()
 	gH_SQL = GetTimerDatabaseHandle();
 
 	LoadDHooks();
+
+	CreateAllNavFiles();
 }
 
 void LoadDHooks()
@@ -1407,8 +1409,7 @@ public void OnMapStart()
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 	bool bDisplayWritten = WriteNavMesh(gS_Map); // write "maps/bhop_map.nav"
 
-	CreateAllNavFiles();
-
+	// Likely won't run unless this is a workshop map since CreateAllNavFiles() is ran in OnPluginStart()
 	if (bWorkshopWritten || bDisplayWritten)
 	{
 		SetCommandFlags("nav_load", GetCommandFlags("nav_load") & ~FCVAR_CHEAT);
@@ -3746,7 +3747,7 @@ bool WriteNavMesh(const char[] map, bool skipExistsCheck = false)
 
 		if(file != null)
 		{
-			int defaultNavMesh[51] = {
+			static int defaultNavMesh[51] = {
 				-17958194, 16, 1, 128600, 16777217, 1, 1, 0, -1007845376, 1112014848, 1107304447, -1035468800,
 				1139638272, 1107304447, 1107304447, 1107304447, 0, 0, 0, 0, 4, -415236096, 2046820547, 2096962, 
 				65858, 0, 49786, 536822394, 33636864, 0, 12745216, -12327104, 21102623, 3, -1008254976, 1139228672,
