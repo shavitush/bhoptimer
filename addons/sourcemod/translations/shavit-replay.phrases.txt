@@ -90,4 +90,8 @@
 	{
 		"en"		"Too many dynamic bots are playing. Can't spawn more."
 	}
+	"FailedToCreateReplay"
+	{
+		"en"		"Failed to create replay"
+	}
 }

@@ -1778,9 +1778,12 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 	static int iWritten = 0; // useless?
 
-	char sBuffer[300];
-	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
-	Format(sBuffer, 300, "%s %s%s", gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sBuffer);
+	char sBuffer[256];
+	char sInput[300];
+	FormatNativeString(0, 2, 3, sizeof(sInput), iWritten, sInput);
+	// space before message needed show colors in cs:go
+	// strlen(sBuffer)>252 is when CSS stops printing the messages
+	FormatEx(sBuffer, (gB_Protobuf ? sizeof(sBuffer) : 253), "%s%s %s%s", (gB_Protobuf ? " ":""), gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sInput);
 
 	if(client == 0)
 	{
@@ -1800,9 +1803,6 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 	if(gB_Protobuf)
 	{
-		// show colors in cs:go
-		Format(sBuffer, 300, " %s", sBuffer);
-
 		Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 		pbmsg.SetInt("ent_idx", client);
 		pbmsg.SetBool("chat", !(gB_StopChatSound || gCV_NoChatSound.BoolValue));
@@ -1814,7 +1814,6 @@ public int Native_PrintToChat(Handle handler, int numParams)
 			pbmsg.AddString("params", "");
 		}
 	}
-
 	else
 	{
 		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);

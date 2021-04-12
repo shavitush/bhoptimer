@@ -1843,9 +1843,10 @@ native void Shavit_SetReplayData(int client, ArrayList data, bool cloneHandle=fa
  * To be used by save states/TAS etc.
  *
  * @param client					Client index.
+ * @param cloneHandle				False means we duplicate the frames (Arraylist.Clone). True means we just cloen the handle to the frames (CloneHandle). This is going to be used for peristent-data in shavit-misc so we don't duplicate buffers needlessly.
  * @return							ArrayList with proper replay data, or null if the player has no recorded data.
  */
-native ArrayList Shavit_GetReplayData(int client);
+native ArrayList Shavit_GetReplayData(int client, bool cloneHandle=false);
 
 /**
  * Checks if the given entity is a replay bot (fakeclient) or replay prop.
@@ -1859,14 +1860,14 @@ native bool Shavit_IsReplayEntity(int ent);
  *
  * @param style						Bhop style.
  * @param track						Timer track.
- * @param delay						Delay until starting.
+ * @param delay						Delay until starting. If -1.0, then uses shavit_replay_delay
  * @param client					Client index.
  * @param bot						Bot to play on. Should be of type Replay_Central or Replay_Dynamic. -1 to create new replay bot.
  * @param type						ReplayBotType. Replay_Prop needs `bot` to be -1.
  * @param ignorelimit				Ignore cvar limit for dynamic bots.
- * @return							true if things work and the replay should be starting...
+ * @return							Replay entity. 0 is returned if couldn't be created.
  */
-native bool Shavit_StartReplay(int style, int track, float delay, int client, int bot, bool ignorelimit = false);
+native int Shavit_StartReplay(int style, int track, float delay, int client, int bot, bool ignorelimit = false);
 
 /**
  * Starts a replay with a given set of frames.
@@ -1874,16 +1875,16 @@ native bool Shavit_StartReplay(int style, int track, float delay, int client, in
  *
  * @param style						Bhop style.
  * @param track						Timer track.
- * @param delay						Delay until starting.
+ * @param delay						Delay until starting. If -1.0, then uses shavit_replay_delay
  * @param client					Client index.
  * @param bot						Bot to play on. Should be of type Replay_Central or Replay_Dynamic. -1 to create new replay bot.
  * @param type						ReplayBotType. Replay_Prop needs `bot` to be -1.
  * @param ignorelimit				Ignore cvar limit for dynamic bots.
  * @param cache						framecache_t filled with replay info and frames.
  * @param size						sizeof(framecache_t). Used to throw errors at you if you don't recompile plugins.
- * @return							true if things work and the replay should be starting...
+ * @return							Replay entity. 0 is returned if couldn't be created.
  */
-native bool Shavit_StartReplayFromFrameCache(int style, int track, float delay, int client, int bot, bool ignorelimit = false, any[] cache, int size = sizeof(framecache_t));
+native int Shavit_StartReplayFromFrameCache(int style, int track, float delay, int client, int bot, bool ignorelimit = false, any[] cache, int size = sizeof(framecache_t));
 
 /**
  * Starts a replay from a replay file.
@@ -1891,15 +1892,15 @@ native bool Shavit_StartReplayFromFrameCache(int style, int track, float delay, 
  *
  * @param style						Bhop style.
  * @param track						Timer track.
- * @param delay						Delay until starting.
+ * @param delay						Delay until starting. If -1.0, then uses shavit_replay_delay
  * @param client					Client index.
  * @param bot						Bot to play on. Should be of type Replay_Central or Replay_Dynamic. -1 to create new replay bot.
  * @param type						ReplayBotType. Replay_Prop needs `bot` to be -1.
  * @param ignorelimit				Ignore cvar limit for dynamic bots.
  * @param path						File path to replay
- * @return							true if things work and the replay should be starting...
+ * @return							Replay entity. 0 is returned if couldn't be created.
  */
-native bool Shavit_StartReplayFromFile(int style, int track, float delay, int client, int bot, bool ignorelimit = false, const char[] path);
+native int Shavit_StartReplayFromFile(int style, int track, float delay, int client, int bot, bool ignorelimit = false, const char[] path);
 
 /**
  * Reloads a specific replay into the replay bot cache.
