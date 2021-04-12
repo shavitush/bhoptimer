@@ -489,7 +489,7 @@ void KickAllReplays()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsValidEntity(gA_BotInfo[i].iEnt))
+		if (gA_BotInfo[i].iEnt > 0)
 		{
 			KickReplay(gA_BotInfo[i]);
 		}
@@ -725,7 +725,7 @@ public int Native_GetReplayBotIndex(Handle handler, int numParams)
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsValidEntity(gA_BotInfo[i].iEnt) && gA_BotInfo[i].iType != Replay_Prop)
+		if (gA_BotInfo[i].iEnt > 0 && gA_BotInfo[i].iType != Replay_Prop)
 		{
 			if ((track == -1 || gA_BotInfo[i].iTrack == track) && (style == -1 || gA_BotInfo[i].iStyle == style))
 			{
@@ -799,7 +799,7 @@ void SetupIfCustomFrames(bot_info_t info, framecache_t cache)
 
 int CreateReplayEntity(int track, int style, float delay, int client, int bot, int type, bool ignorelimit, framecache_t cache, int loopingConfig)
 {
-	if (client > 0 && IsValidEntity(gA_BotInfo[client].iEnt))
+	if (client > 0 && gA_BotInfo[client].iEnt > 0)
 	{
 		return 0;
 	}
@@ -2292,7 +2292,7 @@ public void OnClientDisconnect(int client)
 
 	if(!IsFakeClient(client))
 	{
-		if (IsValidEntity(gA_BotInfo[client].iEnt))
+		if (gA_BotInfo[client].iEnt > 0)
 		{
 			int index = GetBotInfoIndex(gA_BotInfo[client].iEnt);
 
@@ -2330,8 +2330,25 @@ public void OnClientDisconnect(int client)
 public void OnClientDisconnect_Post(int client)
 {
 	// This runs after shavit-misc has cloned the handle
-	//ClearFrames(client);
 	delete gA_PlayerFrames[client];
+}
+
+public void OnEntityDestroyed(int entity)
+{
+	if (entity <= MaxClients)
+	{
+		return;
+	}
+
+	// Handle Replay_Props that mysteriously die.
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (gA_BotInfo[i].iEnt == entity)
+		{
+			KickReplay(gA_BotInfo[i]);
+			return;
+		}
+	}
 }
 
 public Action Shavit_OnStart(int client)
@@ -2758,7 +2775,7 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 	{
 		event.BroadcastDisabled = true;
 	}
-	else if (IsValidEntity(gA_BotInfo[client].iEnt))
+	else if (gA_BotInfo[client].iEnt > 0)
 	{
 		// Here to kill Replay_Prop s when the watcher/starter respawns.
 		int index = GetBotInfoIndex(gA_BotInfo[client].iEnt);
@@ -3019,7 +3036,7 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 
 int CreateReplayProp(int client)
 {
-	if (IsValidEntity(gA_BotInfo[client].iEnt))
+	if (gA_BotInfo[client].iEnt > 0)
 	{
 		return -1;
 	}
@@ -3088,7 +3105,7 @@ void OpenReplayTypeMenu(int client)
 
 	char sDisplay[64];
 	char sInfo[8];
-	bool alreadyHaveBot = IsValidEntity(gA_BotInfo[client].iEnt);
+	bool alreadyHaveBot = (gA_BotInfo[client].iEnt > 0);
 
 	FormatEx(sDisplay, sizeof(sDisplay), "%T", "Menu_Replay_Central", client);
 	IntToString(Replay_Central, sInfo, sizeof(sInfo));
@@ -3157,7 +3174,7 @@ public int MenuHandler_ReplayType(Menu menu, MenuAction action, int param1, int 
 		if ((type == Replay_Central && (!gCV_CentralBot.BoolValue || !IsValidClient(gI_CentralBot) || gA_BotInfo[gI_CentralBot].iStatus != Replay_Idle))
 		|| (type == Replay_Dynamic && (gI_DynamicBots >= gCV_DynamicBotLimit.IntValue))
 		|| (type == Replay_Prop && (!gCV_AllowPropBots.BoolValue))
-		|| IsValidEntity(gA_BotInfo[param1].iEnt))
+		|| (gA_BotInfo[param1].iEnt > 0))
 		{
 			return 0;
 		}
@@ -3292,7 +3309,7 @@ public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int
 
 		int style = StringToInt(sInfo);
 
-		if(style < 0 || style >= gI_Styles || !ReplayEnabled(style) || gA_FrameCache[style][gI_MenuTrack[param1]].iFrameCount == 0 || IsValidEntity(gA_BotInfo[param1].iEnt))
+		if(style < 0 || style >= gI_Styles || !ReplayEnabled(style) || gA_FrameCache[style][gI_MenuTrack[param1]].iFrameCount == 0 || gA_BotInfo[param1].iEnt > 0)
 		{
 			return 0;
 		}
