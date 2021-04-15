@@ -19,6 +19,12 @@
 
 		"Offsets"
 		{
+			"OS"
+			{
+				"windows"	"1"
+				"linux"		"2"
+			}
+
 			"ProcessMovement"
 			{
 				"windows"		"1"
@@ -71,6 +77,13 @@
 
 		"Signatures"
 		{
+			// search string: "silencer_detach"
+			"DoAnimationEvent"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x83\xE4\xF8\x83\xEC\x08\x56\x57\x8B\xF1"
+				"linux"		"\x55\x89\xE5\x83\xEC\x28\x89\x5D\xF4\x8B\x5D\x08\x89\x75\xF8\x8B\x75\x0C\x89\x7D\xFC\x8B\x7D\x10\x80\xBB\x44\x23\x00\x00\x00"
+			}
 			// search string: "-nobots"
 			"BotManager::MaintainBotQuota"
 			{
@@ -133,6 +146,13 @@
 
 		"Signatures"
 		{
+			"DoAnimationEvent"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x10\x89\x4D\xFC\x83\x7D\x08\x02"
+				"linux"		"@_ZN9CCSPlayer16DoAnimationEventE17PlayerAnimEvent_ti"
+			}
+
 			// search string: "-nobots"
 			"BotManager::MaintainBotQuota"
 			{

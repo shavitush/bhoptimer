@@ -108,6 +108,27 @@ enum
 	iBotShooting_Attack2 = (1 << 1)
 }
 
+enum
+{
+	CSS_ANIM_FIRE_GUN_PRIMARY,
+	CSS_ANIM_FIRE_GUN_SECONDARY,
+	CSS_ANIM_THROW_GRENADE,
+	CSS_ANIM_JUMP
+}
+
+enum
+{
+	CSGO_ANIM_FIRE_GUN_PRIMARY,
+	CSGO_ANIM_FIRE_GUN_PRIMARY_OPT,
+	CSGO_ANIM_FIRE_GUN_PRIMARY__SPECIAL,
+	CSGO_ANIM_FIRE_GUN_PRIMARY_OPT_SPECIAL,
+	CSGO_ANIM_FIRE_GUN_SECONDARY,
+	CSGO_ANIM_FIRE_GUN_SECONDARY_SPECIAL,
+	CSGO_ANIM_GRENADE_PULL_PIN,
+	CSGO_ANIM_THROW_GRENADE,
+	CSGO_ANIM_JUMP
+}
+
 // custom cvar settings
 char gS_ForcedCvars[][][] =
 {
@@ -127,6 +148,7 @@ char gS_ForcedCvars[][][] =
 
 // game type
 EngineVersion gEV_Type = Engine_Unknown;
+bool gB_Linux;
 
 // cache
 char gS_ReplayFolder[PLATFORM_MAX_PATH];
@@ -173,9 +195,11 @@ bot_info_t gA_BotInfo[MAXPLAYERS+1];
 
 // hooks and sdkcall stuff
 Handle gH_BotAddCommand = INVALID_HANDLE;
+Handle gH_DoAnimationEvent;
 DynamicDetour gH_MaintainBotQuota = null;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
+int g_iLastReplayFlags[MAXPLAYERS + 1];
 bool gB_BotAddCommand_ThisCall = false;
 
 // how do i call this
@@ -312,7 +336,7 @@ public void OnPluginStart()
 	gH_OnReplaysLoaded = CreateGlobalForward("Shavit_OnReplaysLoaded", ET_Event);
 	gH_ShouldSaveReplayCopy = CreateGlobalForward("Shavit_ShouldSaveReplayCopy", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnReplaySaved = CreateGlobalForward("Shavit_OnReplaySaved", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String);
-
+	
 	// game specific
 	gEV_Type = GetEngineVersion();
 	gF_Tickrate = (1.0 / GetTickInterval());
@@ -470,6 +494,26 @@ void LoadDHooks()
 	}
 
 	gH_MaintainBotQuota.Enable(Hook_Pre, Detour_MaintainBotQuota);
+	
+	int os = gamedata.GetOffset("OS");
+	
+	if(os == 2)
+	{
+		gB_Linux = true;
+		StartPrepSDKCall(SDKCall_Static);
+	}
+	else
+	{
+		StartPrepSDKCall(SDKCall_Player);
+	}
+	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "DoAnimationEvent");
+	if(gB_Linux)
+	{
+		PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_ByRef);
+	}
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue);
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue);
+	gH_DoAnimationEvent = EndPrepSDKCall();
 
 	delete gamedata;
 }
@@ -2585,6 +2629,21 @@ Action ReplayRunCmd(bot_info_t info, int &buttons, int &impulse, float vel[3])
 					ApplyFlags(iEntityFlags, iReplayFlags, FL_SWIM);
 
 					SetEntityFlags(info.iEnt, iEntityFlags);
+					
+					if((g_iLastReplayFlags[info.iEnt] & FL_ONGROUND) && !(iReplayFlags & FL_ONGROUND))
+					{
+						int jumpAnim = GetEngineVersion() == Engine_CSS ? CSS_ANIM_JUMP:CSGO_ANIM_JUMP;
+						
+						if(gB_Linux)
+						{
+							SDKCall(gH_DoAnimationEvent, EntIndexToEntRef(info.iEnt), jumpAnim, 0);
+						}
+						else
+						{
+							SDKCall(gH_DoAnimationEvent, info.iEnt, jumpAnim, 0);
+						}
+					}
+					
 				}
 
 				if(aFrame.mt == MOVETYPE_LADDER)
@@ -2599,6 +2658,7 @@ Action ReplayRunCmd(bot_info_t info, int &buttons, int &impulse, float vel[3])
 
 			if (isClient)
 			{
+				g_iLastReplayFlags[info.iEnt] = aFrame.flags; 
 				SetEntityMoveType(info.iEnt, mt);
 			}
 
