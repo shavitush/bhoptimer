@@ -195,7 +195,7 @@ bot_info_t gA_BotInfo[MAXPLAYERS+1];
 
 // hooks and sdkcall stuff
 Handle gH_BotAddCommand = INVALID_HANDLE;
-Handle gH_DoAnimationEvent;
+Handle gH_DoAnimationEvent = INVALID_HANDLE ;
 DynamicDetour gH_MaintainBotQuota = null;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
@@ -506,13 +506,17 @@ void LoadDHooks()
 	{
 		StartPrepSDKCall(SDKCall_Player);
 	}
-	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "DoAnimationEvent");
-	if(gB_Linux)
+
+	if (PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "DoAnimationEvent"))
 	{
-		PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_ByRef);
+		if(gB_Linux)
+		{
+			PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_ByRef);
+		}
+		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue);
+		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue);
 	}
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue);
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue);
+
 	gH_DoAnimationEvent = EndPrepSDKCall();
 
 	delete gamedata;
@@ -2630,7 +2634,7 @@ Action ReplayRunCmd(bot_info_t info, int &buttons, int &impulse, float vel[3])
 
 					SetEntityFlags(info.iEnt, iEntityFlags);
 					
-					if((g_iLastReplayFlags[info.iEnt] & FL_ONGROUND) && !(iReplayFlags & FL_ONGROUND))
+					if((g_iLastReplayFlags[info.iEnt] & FL_ONGROUND) && !(iReplayFlags & FL_ONGROUND) && gH_DoAnimationEvent != INVALID_HANDLE)
 					{
 						int jumpAnim = GetEngineVersion() == Engine_CSS ? CSS_ANIM_JUMP:CSGO_ANIM_JUMP;
 						
