@@ -2856,7 +2856,7 @@ void ClearClientEventsFrame(int serial)
 {
 	int client = GetClientFromSerial(serial);
 
-	if (client > 0)
+	if (client > 0 && gB_Eventqueuefix)
 	{
 		ClearClientEvents(client);
 	}
