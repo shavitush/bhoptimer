@@ -149,6 +149,7 @@ Handle gH_Forwards_OnCheckpointMenuSelect = null;
 
 // dhooks
 Handle gH_GetPlayerMaxSpeed = null;
+DynamicHook gH_UpdateStepSound = null;
 DynamicHook gH_IsSpawnPointValid = null;
 
 // modules
@@ -351,6 +352,18 @@ public void OnPluginStart()
 				else
 				{
 					SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+				}
+
+				if ((iOffset = GameConfGetOffset(hGameData, "CBasePlayer::UpdateStepSound")) != -1)
+				{
+					gH_UpdateStepSound = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
+					gH_UpdateStepSound.AddParam(HookParamType_Unknown);
+					gH_UpdateStepSound.AddParam(HookParamType_Unknown);
+					gH_UpdateStepSound.AddParam(HookParamType_Unknown);
+				}
+				else
+				{
+					SetFailState("Couldn't get the offset for \"CBasePlayer::UpdateStepSound\" - make sure your gamedata is updated!");
 				}
 
 				if ((iOffset = GameConfGetOffset(hGameData, "CGameRules::IsSpawnPointValid")) != -1)
@@ -840,6 +853,30 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 	return MRES_Override;
 }
 
+public MRESReturn Hook_UpdateStepSound_Pre(int pThis, Handle hReturn)
+{
+	if (GetEntityMoveType(pThis) == MOVETYPE_NOCLIP)
+	{
+		SetEntityMoveType(pThis, MOVETYPE_WALK);
+	}
+
+	SetEntityFlags(pThis, GetEntityFlags(pThis) & ~FL_ATCONTROLS);
+
+	return MRES_Ignored;
+}
+
+public MRESReturn Hook_UpdateStepSound_Post(int pThis, Handle hReturn)
+{
+	if (GetEntityMoveType(pThis) == MOVETYPE_WALK)
+	{
+		SetEntityMoveType(pThis, MOVETYPE_NOCLIP);
+	}
+
+	SetEntityFlags(pThis, GetEntityFlags(pThis) | FL_ATCONTROLS);
+
+	return MRES_Ignored;
+}
+
 public Action Timer_Cron(Handle timer)
 {
 	if(gCV_HideRadar.BoolValue && gEV_Type == Engine_CSS)
@@ -1188,6 +1225,8 @@ public void OnClientPutInServer(int client)
 
 	if(IsFakeClient(client))
 	{
+		gH_UpdateStepSound.HookEntity(Hook_Pre,  client, Hook_UpdateStepSound_Pre);
+		gH_UpdateStepSound.HookEntity(Hook_Post, client, Hook_UpdateStepSound_Post);
 		return;
 	}
 

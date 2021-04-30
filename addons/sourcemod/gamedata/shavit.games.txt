@@ -61,6 +61,10 @@
 				"linux"     "1"
 				"mac"       "1"
 			}
+			"CBasePlayer::UpdateStepSound"
+			{
+				"windows"   "408"
+			}
 		}
 
 		"Addresses"
