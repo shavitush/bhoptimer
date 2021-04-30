@@ -506,21 +506,9 @@ void UpdateWRCache(int client = -1)
 
 	char sQuery[512];
 
-	if(gB_MySQL)
-	{
-		FormatEx(sQuery, 512,
-			"SELECT p1.id, p1.auth, p1.style, p1.track, p1.time, u.name FROM %splayertimes p1 " ...
-				"JOIN (SELECT style, track, MIN(time) time FROM %splayertimes WHERE map = '%s' GROUP BY style, track) p2 " ...
-				"JOIN %susers u ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time AND u.auth = p1.auth " ...
-				"WHERE p1.map = '%s';",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix, gS_Map);
-	}
-	else
-	{
-		FormatEx(sQuery, 512,
-			"SELECT p.id, p.auth, p.style, p.track, s.time, u.name FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes WHERE map = '%s' GROUP BY style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track JOIN %susers u ON p.auth = u.auth GROUP BY p.style, p.track;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix);
-	}
+	FormatEx(sQuery, sizeof(sQuery),
+		"SELECT p.id, p.auth, p.style, p.track, p.time, u.name FROM %swrs p JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s';",
+		gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, client);
 
@@ -529,7 +517,7 @@ void UpdateWRCache(int client = -1)
 		return;
 	}
 
-	FormatEx(sQuery, 512,
+	FormatEx(sQuery, sizeof(sQuery),
 		"SELECT style, track, auth, stage, MIN(time), vel2d FROM `%sstagetimes` WHERE map = '%s' GROUP BY style, track, stage;",
 		gS_MySQLPrefix, gS_Map);
 
@@ -1821,12 +1809,9 @@ public Action Command_RecentRecords(int client, int args)
 
 	char sQuery[512];
 
-	FormatEx(sQuery, 512,
-			"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %splayertimes a " ...
-			"JOIN (SELECT MIN(time) time, map, style, track FROM %splayertimes GROUP by map, style, track) b " ...
-			"JOIN %susers u ON a.time = b.time AND a.auth = u.auth AND a.map = b.map AND a.style = b.style AND a.track = b.track " ...
-			"ORDER BY a.date DESC " ...
-			"LIMIT 100;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+	FormatEx(sQuery, sizeof(sQuery),
+		"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %swrs a JOIN %susers u on a.auth = u.auth ORDER BY a.date DESC LIMIT 100;",
+		gS_MySQLPrefix, gS_MySQLPrefix);
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 

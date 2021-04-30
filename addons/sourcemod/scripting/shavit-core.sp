@@ -1015,21 +1015,9 @@ void DeleteUserData(int client, const int iSteamID)
 
 	if(gB_WR)
 	{
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 512,
-				"SELECT p1.id, p1.style, p1.track, p1.map FROM %splayertimes p1 " ...
-					"JOIN (SELECT map, style, track, MIN(time) time FROM %splayertimes GROUP BY map, style, track) p2 " ...
-					"ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time " ...
-					"WHERE p1.auth = %d;",
-				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
-		}
-		else
-		{
-			FormatEx(sQuery, 512,
-				"SELECT p.id, p.style, p.track, p.map FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes GROUP BY map, style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track GROUP BY p.map, p.style, p.track WHERE p.auth = %d;",
-				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
-		}
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT id, style, track, map FROM %swrs WHERE auth = %d;",
+			gS_MySQLPrefix, iSteamID);
 
 		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
 	}
