@@ -3102,6 +3102,8 @@ public void Shavit_OnRestart(int client, int track)
 				fCenter = gF_StartPos[client][track];
 			}
 
+			fCenter[2] += 1.0; // no stuck in floor please
+
 			TeleportEntity(client, fCenter, gB_HasSetStart[client][track] ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
