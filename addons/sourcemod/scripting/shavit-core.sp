@@ -35,6 +35,8 @@
 
 #define DEBUG 0
 
+#define EFL_CHECK_UNTOUCH (1<<24)
+
 enum struct playertimer_t
 {
 	bool bEnabled;
@@ -73,8 +75,9 @@ enum struct playertimer_t
 EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Protobuf = false;
 
-// used for hooking player_speedmod's AcceptInput
-DynamicHook gH_AcceptInput;
+// hook stuff
+DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
+Handle gH_PhysicsCheckForEntityUntouch;
 
 // database handle
 Database gH_SQL = null;
@@ -476,6 +479,13 @@ void LoadDHooks()
 	DHookAddParam(processMovementPost, HookParamType_CBaseEntity);
 	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
 	DHookRaw(processMovementPost, true, IGameMovement);
+
+	StartPrepSDKCall(SDKCall_Entity);
+	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "PhysicsCheckForEntityUntouch"))
+	{
+		SetFailState("Failed to get PhysicsCheckForEntityUntouch");
+	}
+	gH_PhysicsCheckForEntityUntouch = EndPrepSDKCall();
 
 	delete CreateInterface;
 	delete gamedataConf;
@@ -3312,9 +3322,22 @@ public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hRetu
 	return MRES_Supercede;
 }
 
+bool GetCheckUntouch(int client)
+{
+	int flags = GetEntProp(client, Prop_Data, "m_iEFlags");
+	return (flags & EFL_CHECK_UNTOUCH) != 0;
+}
+
 public MRESReturn DHook_ProcessMovement(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
+
+	// Causes client to do zone touching in movement instead of server frames.
+	// From https://github.com/rumourA/End-Touch-Fix
+	if(GetCheckUntouch(client))
+	{
+		SDKCall(gH_PhysicsCheckForEntityUntouch, client);
+	}
 
 	Call_StartForward(gH_Forwards_OnProcessMovement);
 	Call_PushCell(client);
