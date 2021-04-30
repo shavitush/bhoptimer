@@ -131,8 +131,8 @@ float gV_MapZones[MAX_ZONES][2][3];
 float gV_MapZones_Visual[MAX_ZONES][8][3];
 float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
-int gI_StageZoneID[MAX_ZONES];
-int gI_NumStageZones = 0;
+int gI_StageZoneID[TRACKS_SIZE][MAX_ZONES];
+int gI_HighestStage[TRACKS_SIZE];
 int gI_EntityZone[4096];
 bool gB_ZonesCreated = false;
 int gI_LastStage[MAXPLAYERS+1];
@@ -535,13 +535,13 @@ public int Native_InsideZoneGetID(Handle handler, int numParams)
 public int Native_GetStageZone(Handle handler, int numParams)
 {
 	int iStageNumber = GetNativeCell(1);
-	
-	return gI_StageZoneID[iStageNumber];
+	int iTrack = GetNativeCell(2);
+	return gI_StageZoneID[iTrack][iStageNumber];
 }
 
 public int Native_GetStageCount(Handle handler, int numParas)
 {
-	return gI_NumStageZones;
+	return gI_HighestStage[GetNativeCell(1)];
 }
 
 public int Native_Zones_DeleteMap(Handle handler, int numParams)
@@ -765,7 +765,6 @@ public void OnMapStart()
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
 	gI_MapZones = 0;
-	gI_NumStageZones = 0;
 	UnloadZones(0);
 	RefreshZones();
 	LoadStageZones();
@@ -805,27 +804,34 @@ public void OnMapStart()
 public void LoadStageZones()
 {
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT id, data FROM mapzones WHERE type = %i and map = '%s'", Zone_Stage, gS_Map);
+	FormatEx(sQuery, 256, "SELECT id, data, track FROM mapzones WHERE type = %i and map = '%s'", Zone_Stage, gS_Map);
 	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
 }
 
 public void SQL_GetStageZone_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	gI_NumStageZones = 0;
-	
+	for (int i = 0; i < TRACKS_SIZE; i++)
+	{
+		gI_HighestStage[i] = 0;
+	}
+
 	if(results == null)
 	{
 		LogError("Timer (zones GetStageZone) SQL query failed. Reason: %s", error);
 		return;
 	}
-	
+
 	while(results.FetchRow())
 	{
 		int iZoneID = results.FetchInt(0);
 		int iStageNumber = results.FetchInt(1);
-		gI_StageZoneID[iStageNumber] = iZoneID;
+		int iTrack = results.FetchInt(2);
+		gI_StageZoneID[iTrack][iStageNumber] = iZoneID;
 
-		gI_NumStageZones++;
+		if (iStageNumber > gI_HighestStage[iTrack])
+		{
+			gI_HighestStage[iTrack] = iStageNumber;
+		}
 	} 
 }
 

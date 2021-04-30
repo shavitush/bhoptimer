@@ -26,6 +26,7 @@
 #define SHAVIT_VERSION "2.7.0"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
+#define MAX_STAGES 51 // 😐 kind of arbitrary but also some space between this and MAX_ZONES
 
 // HUD
 #define HUD_NONE				0
@@ -1178,16 +1179,18 @@ native TimerStatus Shavit_GetTimerStatus(int client);
  * Will return exception if stagenumber doesn't have a zone.
  *
  * @param client					Stage number.
+ * @param track                     Track number.
  * @return                          Zone ID of stage.
  */
-native int Shavit_GetStageZone(int stage);
+native int Shavit_GetStageZone(int stage, int track=Track_Main);
 
 /**
- * Retrieve the number of stages for the current map.
+ * Retrieve the highest stage number for a given track.
  *
+ * @param track						Track number.
  * @return 							Number of stages.
  */
-native int Shavit_GetStageCount();
+native int Shavit_GetHighestStage(int track);
 
 /**
  * Retrieve the amount of strafes done since the timer started.

@@ -40,6 +40,20 @@ enum struct wrcache_t
 	float fWRs[STYLE_LIMIT];
 }
 
+enum struct stagetimepb_t
+{
+	float fTime;
+	float fVel2D;
+}
+
+enum struct stagetimewr_t
+{
+	float fTime;
+	float fVel2D;
+	int iAuth;
+	char sName[MAX_NAME_LENGTH];
+}
+
 bool gB_Late = false;
 bool gB_Rankings = false;
 bool gB_Stats = false;
@@ -65,13 +79,11 @@ ArrayList gA_ValidMaps = null;
 // current wr stats
 float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
 int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
-int gI_WRSteamID[STYLE_LIMIT][TRACKS_SIZE];
+//int gI_WRSteamID[STYLE_LIMIT][TRACKS_SIZE];
 char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
 ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 int gI_PlayerCompletion[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
-ArrayList gA_WRStageTimes[STYLE_LIMIT][TRACKS_SIZE];
-ArrayList gA_StageTimes[MAXPLAYERS+1][STYLE_LIMIT];
 
 // admin menu
 TopMenu gH_AdminMenu = null;
@@ -90,6 +102,11 @@ stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 
 // chat settings
 chatstrings_t gS_ChatStrings;
+
+// stage times (wrs/pbs)
+stagetimewr_t gA_StageWR[STYLE_LIMIT][TRACKS_SIZE][MAX_STAGES];
+//ArrayList gA_StagePB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE]; // stagetimepb_t
+stagetimepb_t gA_StageTimes[MAXPLAYERS+1][MAX_STAGES];
 
 public Plugin myinfo =
 {
@@ -335,11 +352,10 @@ public void OnMapStart()
 	FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateMaps_Callback, sQuery, 0, DBPrio_Low);
 
-	if(gB_Late)
+	if (gI_Styles == 0)
 	{
-		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
-		gB_Late = false;
 	}
 }
 
@@ -379,44 +395,14 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
-	if(styles == -1)
-	{
-		styles = Shavit_GetStyleCount();
-	}
-
 	for(int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
 		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
-	}
 
-	// arrays
-	for(int i = 0; i < STYLE_LIMIT; i++)
-	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			if(i < styles)
-			{
-				if(gA_Leaderboard[i][j] == null)
-				{
-					gA_Leaderboard[i][j] = new ArrayList();
-				}
-
-				gA_Leaderboard[i][j].Clear();
-
-				if(gA_WRStageTimes[i][j] == null)
-				{
-					gA_WRStageTimes[i][j] = new ArrayList();
-				}
-
-				gA_WRStageTimes[i][j].Clear();
-			}
-
-			else
-			{
-				delete gA_Leaderboard[i][j];
-				delete gA_WRStageTimes[i][j];
-			}
+			gA_Leaderboard[i][j] = new ArrayList();
 		}
 	}
 
@@ -446,13 +432,6 @@ public void OnClientPutInServer(int client)
 			gF_PlayerRecord[client][i][j] = 0.0;
 			gI_PlayerCompletion[client][i][j] = 0;
 		}
-
-		if(gA_StageTimes[client][i] == null)
-		{
-			gA_StageTimes[client][i] = new ArrayList();
-		}
-
-		gA_StageTimes[client][i].Clear();
 	}
 
 	if(!IsClientConnected(client) || IsFakeClient(client))
@@ -536,7 +515,6 @@ void UpdateWRCache(int client = -1)
 				"WHERE p1.map = '%s';",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, gS_MySQLPrefix, gS_Map);
 	}
-
 	else
 	{
 		FormatEx(sQuery, 512,
@@ -546,8 +524,13 @@ void UpdateWRCache(int client = -1)
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, client);
 
+	if (client != -1)
+	{
+		return;
+	}
+
 	FormatEx(sQuery, 512,
-		"SELECT style, track, auth, time FROM `%sstagetimes` WHERE map = '%s';",
+		"SELECT style, track, auth, stage, MIN(time), vel2d FROM `%sstagetimes` WHERE map = '%s' GROUP BY style, track, stage;",
 		gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query(SQL_UpdateWRStageTimes_Callback, sQuery);
@@ -585,7 +568,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 
 		gI_WRRecordID[iStyle][iTrack] = results.FetchInt(0);
 		gF_WRTime[iStyle][iTrack] = results.FetchFloat(4);
-		gI_WRSteamID[iStyle][iTrack] = results.FetchInt(1);
+		//gI_WRSteamID[iStyle][iTrack] = results.FetchInt(1);
 		results.FetchString(5, gS_WRName[iStyle][iTrack], MAX_NAME_LENGTH);
 		ReplaceString(gS_WRName[iStyle][iTrack], MAX_NAME_LENGTH, "#", "?");
 	}
@@ -602,11 +585,16 @@ public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, co
 		return;
 	}
 
+	stagetimewr_t emptycache;
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			gA_WRStageTimes[i][j].Clear();
+			for(int k = 0; k < MAX_STAGES; k++) // 🤮
+			{
+				gA_StageWR[i][j][k] = emptycache;
+			}
 		}
 	}
 
@@ -614,20 +602,14 @@ public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, co
 	{
 		int style = results.FetchInt(0);
 		int track = results.FetchInt(1);
-		int steamID = results.FetchInt(2);
+		//gI_WRSteamID[style][track] = results.FetchInt(2);
+		int stage = results.FetchInt(3);
 
-		gI_WRSteamID[style][track] = steamID;
+		stagetimewr_t cache;
+		cache.fTime = results.FetchFloat(4);
+		cache.fVel2D = results.FetchFloat(5);
 
-		char temp[256];
-		results.FetchString(3, temp, sizeof(temp));
-
-		char stageTimes[MAX_ZONES][16];
-		int numStageTimes = ExplodeString(temp, ";", stageTimes, MAX_ZONES, 16);
-
-		for(int i = 0; i < numStageTimes; i++)
-		{
-			gA_WRStageTimes[style][track].Push(StringToFloat(stageTimes[i]));
-		}
+		gA_StageWR[style][track][stage] = cache;
 	}
 }
 
@@ -2177,7 +2159,6 @@ void SQL_DBConnect()
 			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
-
 	else
 	{
 		FormatEx(sQuery, 1024,
@@ -2187,8 +2168,8 @@ void SQL_DBConnect()
 
 	hTransaction.AddQuery(sQuery);
 
-	FormatEx(sQuery, 1024,
-		"CREATE TABLE IF NOT EXISTS `%sstagetimes` (`style` TINYINT NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `map` VARCHAR(128) NOT NULL, `auth` INT, `time` VARCHAR(256) NOT NULL, PRIMARY KEY (`style`, `track`, `map`))%s;",
+	FormatEx(sQuery, sizeof(sQuery),
+		"CREATE TABLE IF NOT EXISTS `%sstagetimes` (`style` TINYINT NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `map` VARCHAR(128) NOT NULL, `stage` TINYINT NOT NULL, `auth` INT NOT NULL, `time` FLOAT NOT NULL, `vel2d` FLOAT NOT NULL, PRIMARY KEY (`style`, `track`, `auth`, `map`, `stage`))%s;",
 		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 	hTransaction.AddQuery(sQuery);
 
@@ -2227,6 +2208,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		return;
 	}
 
+	int iSteamID = GetSteamAccountID(client);
+
 	char sTime[32];
 	FormatSeconds(time, sTime, 32);
 
@@ -2263,7 +2246,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		float fOldWR = gF_WRTime[style][track];
 		gF_WRTime[style][track] = time;
 
-		gI_WRSteamID[style][track] = GetSteamAccountID(client);
+		//gI_WRSteamID[style][track] = iSteamID;
 
 		Call_StartForward(gH_OnWorldRecord);
 		Call_PushCell(client);
@@ -2285,33 +2268,42 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Shavit_PrintToChat(client, "old: %.01f new: %.01f", fOldWR, time);
 		#endif
 
-		int length = gA_StageTimes[client][style].Length;
+		Transaction hTransaction = null;
 
-		if(length != 0)
+		for (int i = 0; i < MAX_STAGES; i++)
 		{
-			char stageTimes[256];
+			stagetimewr_t stagewr;
+			stagewr.fTime  = gA_StageTimes[client][i].fTime;
+			stagewr.fVel2D = gA_StageTimes[client][i].fVel2D;
+			stagewr.iAuth  = iSteamID;
+			gA_StageWR[style][track][i] = stagewr;
 
-			for(int i = 0; i < length; i++)
+			if (gA_StageTimes[client][i].fTime == 0.0)
 			{
-				char sStageTime[16];
-				FormatSeconds(gA_StageTimes[client][style].Get(i), sStageTime, 16);
+				continue;
+			}
 
-				if(i == 0)
-				{
-					Format(stageTimes, sizeof(stageTimes), "%s", sStageTime);
-				}
-				else
-				{
-					Format(stageTimes, sizeof(stageTimes), "%s;%s", stageTimes, sStageTime);
-				}
+			if (hTransaction == null)
+			{
+				hTransaction = new Transaction();
 			}
 
 			char query[512];
 
 			FormatEx(query, sizeof(query),
-				"REPLACE INTO `%sstagetimes` (`style`, `track`, `map`, `auth`, `time`) VALUES (%d, %d, `%s`, %d, `%s`);",
-				gS_MySQLPrefix, style, track, gS_Map, GetSteamAccountID(client), stageTimes);
-			gH_SQL.Query(SQL_ReplaceStageTimes_Callback, query);
+				"REPLACE INTO `%sstagetimes` (`style`, `track`, `map`, `auth`, `time`, `vel2d`, `stage`) VALUES (%d, %d, '%s', %d, %f, %f, %d);",
+				gS_MySQLPrefix, style, track, gS_Map, iSteamID,
+				gA_StageTimes[client][i].fTime,
+				gA_StageTimes[client][i].fVel2D,
+				i
+			);
+
+			hTransaction.AddQuery(query);
+		}
+
+		if (hTransaction != null)
+		{
+			gH_SQL.Execute(hTransaction, Trans_ReplaceStageTimes_Success, Trans_ReplaceStageTimes_Error, 0, DBPrio_Low);
 		}
 	}
 
@@ -2348,8 +2340,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	char sSync[32]; // 32 because colors
 	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_ChatStrings.sVariable, sync);
 
-	int iSteamID = GetSteamAccountID(client);
-
 	if(iOverwrite > 0)
 	{
 		char sQuery[512];
@@ -2363,7 +2353,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f);",
 				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, timestamp, style, strafes, sync, track, perfs);
 		}
-
 		else // update
 		{
 			FormatEx(sMessage, 255, "%s[%s]%s %T",
@@ -2411,7 +2400,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sVariable, avgvel, maxvel, gS_ChatStrings.sText, sDifference);
 		}
 	}
-
 	else
 	{
 		FormatEx(sMessage, 255, "%s[%s]%s %T",
@@ -2490,14 +2478,14 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 	UpdateWRCache(client);
 }
 
-public void SQL_ReplaceStageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void Trans_ReplaceStageTimes_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	if(!db || !results || error[0])
-	{
-		LogError("Timer (ReplaceStageTimes) SQL query failed. Reason: %s", error);
+	return;
+}
 
-		return;
-	}
+public void Trans_ReplaceStageTimes_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (ReplaceStageTimes) SQL query failed %d/%d. Reason: %s", failIndex, numQueries, error);
 }
 
 void UpdateLeaderboards()
@@ -2555,38 +2543,19 @@ public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message,
 {
 	int style = Shavit_GetBhopStyle(client);
 	int track = Shavit_GetClientTrack(client);
-
-	if(gA_StageTimes[client][style] == null)
-	{
-		gA_StageTimes[client][style] = new ArrayList();
-	}
-
 	float stageTime = Shavit_GetClientTime(client);
-
-	int idx = stageNumber - 2;
-	int length = gA_StageTimes[client][style].Length;
-
-	if(idx == length)
-	{
-		gA_StageTimes[client][style].Push(stageTime);
-	}
-	else if(idx < length)
-	{
-		gA_StageTimes[client][style].Set(idx, stageTime);
-		gA_StageTimes[client][style].Resize(idx + 1);
-	}
-
-	if(gA_WRStageTimes[style][track].Length == 0)
-	{
-		return Plugin_Continue;
-	}
-	else if(idx != length || idx >= Shavit_GetStageCount())
-	{
-		return Plugin_Continue;
-	}
-
-	float stageTimeWR = gA_WRStageTimes[style][track].Get(idx);
+	float stageTimeWR = gA_StageWR[style][track][stageNumber].fTime;
 	float fDifference = (stageTime - stageTimeWR);
+
+	float fSpeed[3];
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+	gA_StageTimes[client][stageNumber].fVel2D = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+	gA_StageTimes[client][stageNumber].fTime = stageTime;
+
+	if (stageTimeWR == 0.0)
+	{
+		fDifference = 0.0;
+	}
 
 	char sStageTime[16];
 	FormatSeconds(stageTime, sStageTime, 16);
@@ -2599,18 +2568,18 @@ public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message,
 		Format(sDifference, sizeof(sDifference), "+%s", sDifference);
 	}
 
-	Shavit_PrintToChat(client, "%T", "WRStageTime", client, gS_ChatStrings.sText, gS_ChatStrings.sVariable, stageNumber, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStageTime, gS_ChatStrings.sText, (fDifference < 0.0) ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, sDifference, gS_ChatStrings.sText);
+	Shavit_PrintToChat(client, "%T", "WRStageTime", client, gS_ChatStrings.sText, gS_ChatStrings.sVariable, stageNumber, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sStageTime, gS_ChatStrings.sText, (fDifference <= 0.0) ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, sDifference, gS_ChatStrings.sText);
 
 	return Plugin_Handled;
 }
 
 public void Shavit_OnRestart(int client, int track)
 {
-	int style = Shavit_GetBhopStyle(client);
+	stagetimepb_t emptycache;
 
-	if(gA_StageTimes[client][style] != null)
+	for (int i = 0; i < MAX_STAGES; i++)
 	{
-		gA_StageTimes[client][style].Clear();
+		gA_StageTimes[client][i] = emptycache;
 	}
 }
 
