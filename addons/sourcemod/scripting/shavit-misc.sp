@@ -841,20 +841,20 @@ public Action Command_Radio(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
-public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
+public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, DHookReturn hReturn)
 {
 	if(!gCV_StaticPrestrafe.BoolValue || !IsValidClient(pThis, true))
 	{
 		return MRES_Ignored;
 	}
 
-	DHookSetReturn(hReturn, Shavit_GetStyleSettingFloat(gI_Style[pThis], "runspeed"));
+	hReturn.Value = Shavit_GetStyleSettingFloat(gI_Style[pThis], "runspeed");
 
 	return MRES_Override;
 }
 
 // Remove flags from replay bots that cause CBasePlayer::UpdateStepSound to return without playing a footstep.
-public MRESReturn Hook_UpdateStepSound_Pre(int pThis, Handle hReturn)
+public MRESReturn Hook_UpdateStepSound_Pre(int pThis, DHookParam hParams)
 {
 	if (GetEntityMoveType(pThis) == MOVETYPE_NOCLIP)
 	{
@@ -867,7 +867,7 @@ public MRESReturn Hook_UpdateStepSound_Pre(int pThis, Handle hReturn)
 }
 
 // Readd flags to replay bots now that CBasePlayer::UpdateStepSound is done.
-public MRESReturn Hook_UpdateStepSound_Post(int pThis, Handle hReturn)
+public MRESReturn Hook_UpdateStepSound_Post(int pThis, DHookParam hParams)
 {
 	if (GetEntityMoveType(pThis) == MOVETYPE_WALK)
 	{
