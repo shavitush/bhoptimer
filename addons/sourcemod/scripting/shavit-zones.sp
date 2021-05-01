@@ -206,6 +206,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_Zones_DeleteMap", Native_Zones_DeleteMap);
 	CreateNative("Shavit_SetStart", Native_SetStart);
 	CreateNative("Shavit_DeleteSetStart", Native_DeleteSetStart);
+	CreateNative("Shavit_GetClientLastStage", Native_GetClientLastStage);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-zones");
@@ -603,6 +604,11 @@ public int Native_SetStart(Handle handler, int numParams)
 public int Native_DeleteSetStart(Handle handler, int numParams)
 {
 	DeleteSetStart(GetNativeCell(1), GetNativeCell(2));
+}
+
+public int Native_GetClientLastStage(Handle plugin, int numParams)
+{
+	return gI_LastStage[GetNativeCell(1)];
 }
 
 bool LoadZonesConfig()

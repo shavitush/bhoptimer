@@ -105,7 +105,7 @@ chatstrings_t gS_ChatStrings;
 
 // stage times (wrs/pbs)
 stagetimewr_t gA_StageWR[STYLE_LIMIT][TRACKS_SIZE][MAX_STAGES];
-//ArrayList gA_StagePB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE]; // stagetimepb_t
+ArrayList gA_StagePB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE]; // stagetimepb_t
 stagetimepb_t gA_StageTimes[MAXPLAYERS+1][MAX_STAGES];
 
 public Plugin myinfo =
@@ -132,6 +132,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ReloadLeaderboards", Native_ReloadLeaderboards);
 	CreateNative("Shavit_WR_DeleteMap", Native_WR_DeleteMap);
 	CreateNative("Shavit_DeleteWR", Native_DeleteWR);
+	CreateNative("Shavit_GetStageWR", Native_GetStageWR);
+	CreateNative("Shavit_GetStagePB", Native_GetStagePB);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-wr");
@@ -797,6 +799,30 @@ public int Native_DeleteWR(Handle handle, int numParams)
 	bool update_cache = view_as<bool>(GetNativeCell(7));
 
 	DeleteWR(style, track, map, steamid, recordid, delete_sql, update_cache);
+}
+
+public int Native_GetStageWR(Handle plugin, int numParams)
+{
+	int track = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	int stage = GetNativeCell(3);
+	return view_as<int>(gA_StageWR[style][track][stage].fTime);
+}
+
+public int Native_GetStagePB(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int track = GetNativeCell(2);
+	int style = GetNativeCell(3);
+	int stage = GetNativeCell(4);
+	stagetimepb_t pb;
+
+	if (gA_StagePB[client][style][track] != null)
+	{
+		gA_StagePB[client][style][track].GetArray(stage, pb);
+	}
+
+	return view_as<int>(pb.fTime);
 }
 
 public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[] error, any data)

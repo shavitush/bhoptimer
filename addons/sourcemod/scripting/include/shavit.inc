@@ -1178,7 +1178,7 @@ native TimerStatus Shavit_GetTimerStatus(int client);
  * Retrieve the zone ID for a given stage number.
  * Will return exception if stagenumber doesn't have a zone.
  *
- * @param client					Stage number.
+ * @param stage                     Stage number.
  * @param track                     Track number.
  * @return                          Zone ID of stage.
  */
@@ -1191,6 +1191,38 @@ native int Shavit_GetStageZone(int stage, int track=Track_Main);
  * @return 							Number of stages.
  */
 native int Shavit_GetHighestStage(int track);
+
+/**
+ * Retrieve the client's current stage number.
+ *
+ * @param client                    Client index.
+ * @return                          The client's current stage number.
+ */
+native int Shavit_GetClientLastStage(int client);
+
+/**
+ * Retrieve the WR's stage time.
+ *
+ * @param track                     Track index.
+ * @param style                     Style index.
+ * @param stage                     Stage number.
+ * @return                          The stage time of the WR run. Can be 0.0 if the WR run didn't hit the stage or if the stage doesn't exist.
+ */
+native float Shavit_GetStageWR(int track, int style, int stage);
+
+/**
+ * Retrieve the client's PB stage time.
+ *
+ * @param client                    Client index.
+ * @param track                     Track index.
+ * @param style                     Style index.
+ * @param stage                     Stage number.
+ * @return                          The stage time of the PB run. Can be 0.0 if the PB run didn't hit the stage or if the stage doesn't exist.
+ */
+native float Shavit_GetStagePB(int client, int track, int style, int stage);
+
+//native float Shavit_GetStageWRCP(int track, int style, int stage);
+//native float Shavit_GetStagePBCP(int client, int track, int style, int stage);
 
 /**
  * Retrieve the amount of strafes done since the timer started.
@@ -2434,5 +2466,8 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayBotFrameCount");
 	MarkNativeAsOptional("Shavit_StartReplayFromFrameCache");
 	MarkNativeAsOptional("Shavit_StartReplayFromFile");
+	MarkNativeAsOptional("Shavit_GetClientLastStage");
+	MarkNativeAsOptional("Shavit_GetStageWR");
+	MarkNativeAsOptional("Shavit_GetStagePB");
 }
 #endif
