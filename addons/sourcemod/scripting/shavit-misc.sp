@@ -357,13 +357,13 @@ public void OnPluginStart()
 				if ((iOffset = GameConfGetOffset(hGameData, "CBasePlayer::UpdateStepSound")) != -1)
 				{
 					gH_UpdateStepSound = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
-					gH_UpdateStepSound.AddParam(HookParamType_Unknown);
-					gH_UpdateStepSound.AddParam(HookParamType_Unknown);
-					gH_UpdateStepSound.AddParam(HookParamType_Unknown);
+					gH_UpdateStepSound.AddParam(HookParamType_ObjectPtr);
+					gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
+					gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
 				}
 				else
 				{
-					SetFailState("Couldn't get the offset for \"CBasePlayer::UpdateStepSound\" - make sure your gamedata is updated!");
+					LogError("Couldn't get the offset for \"CBasePlayer::UpdateStepSound\" - make sure your gamedata is updated!");
 				}
 
 				if ((iOffset = GameConfGetOffset(hGameData, "CGameRules::IsSpawnPointValid")) != -1)
@@ -853,6 +853,7 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, Handle hReturn)
 	return MRES_Override;
 }
 
+// Remove flags from replay bots that cause CBasePlayer::UpdateStepSound to return without playing a footstep.
 public MRESReturn Hook_UpdateStepSound_Pre(int pThis, Handle hReturn)
 {
 	if (GetEntityMoveType(pThis) == MOVETYPE_NOCLIP)
@@ -865,6 +866,7 @@ public MRESReturn Hook_UpdateStepSound_Pre(int pThis, Handle hReturn)
 	return MRES_Ignored;
 }
 
+// Readd flags to replay bots now that CBasePlayer::UpdateStepSound is done.
 public MRESReturn Hook_UpdateStepSound_Post(int pThis, Handle hReturn)
 {
 	if (GetEntityMoveType(pThis) == MOVETYPE_WALK)
@@ -1225,8 +1227,11 @@ public void OnClientPutInServer(int client)
 
 	if(IsFakeClient(client))
 	{
-		gH_UpdateStepSound.HookEntity(Hook_Pre,  client, Hook_UpdateStepSound_Pre);
-		gH_UpdateStepSound.HookEntity(Hook_Post, client, Hook_UpdateStepSound_Post);
+		if (gH_UpdateStepSound != null)
+		{
+			gH_UpdateStepSound.HookEntity(Hook_Pre,  client, Hook_UpdateStepSound_Pre);
+			gH_UpdateStepSound.HookEntity(Hook_Post, client, Hook_UpdateStepSound_Post);
+		}
 		return;
 	}
 

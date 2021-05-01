@@ -43,39 +43,26 @@
 				"linux"		"506"
 				"mac"		"506"
 			}
+			// add 1 to the css offset and hope it works
 			"CGameRules::IsSpawnPointValid"
 			{
 				"windows"   "77"
 				"linux"     "78"
 				"mac"       "78"
 			}
+			// can be found inside BotAddCommand
 			"WEAPONTYPE_UNKNOWN"
 			{
 				"windows"   "19"
 				"linux"     "19"
 				"mac"       "19"
 			}
-			"BotAddCommand_ThisCall"
-			{
-				"windows"   "0"
-				"linux"     "1"
-				"mac"       "1"
-			}
+			// search string: "Can't find specific footstep sound!" to find CBasePlayer::PlayStepSound.
+			// then find the vtable from references and CBasePlayer::UpdateStepSound is right before PlayStepSound
 			"CBasePlayer::UpdateStepSound"
 			{
 				"windows"   "408"
-			}
-		}
-
-		"Addresses"
-		{
-			"BotManager::MaintainBotQuota"
-			{
-				"signature" "BotManager::MaintainBotQuota"
-			}
-			"CCSBotManager::BotAddCommand"
-			{
-				"signature" "CCSBotManager::BotAddCommand"
+				"linux"     "409"
 			}
 		}
 
@@ -95,7 +82,6 @@
 				"windows"       "\x55\x8B\xEC\x83\xEC\x18\x89\x4D\x2A\xFF\x15\x2A\x2A\x2A\x2A"
 				"linux"         "\x55\x89\xE5\x83\xEC\x78\x89\x7D\x2A\x8B\x7D\x2A\x89\x5D\x2A\x89\x75\x2A"
 			}
-
 			// search string: "Error - no profile for '%s' exists."
 			"CCSBotManager::BotAddCommand"
 			{
@@ -103,8 +89,8 @@
 				"windows"       "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x53\x56\x57\x80\x78\x2A\x00"
 				"linux"         "\x55\x89\xE5\x57\x56\x53\x83\xEC\x4C\x8B\x15\x2A\x2A\x2A\x2A\x8B\x7D\x2A\x8B\x75\x2A\x0F\xB6\x5D\x2A"
 			}
-
-			// search string:
+			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
+			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
 			"PhysicsCheckForEntityUntouch"
 			{
 				"windows"	"\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x8B\x86\xD0\x00\x00\x00"
@@ -123,35 +109,25 @@
 				"linux"		"439"
 				"mac"		"439"
 			}
+			// https://asherkin.github.io/vtable/
 			"CGameRules::IsSpawnPointValid"
 			{
 				"windows"   "76"
 				"linux"     "77"
 				"mac"       "77"
 			}
+			// can be found inside BotAddCommand
 			"WEAPONTYPE_UNKNOWN"
 			{
 				"windows"   "9"
 				"linux"     "9"
 				"mac"       "9"
 			}
-			"BotAddCommand_ThisCall"
+			// https://asherkin.github.io/vtable/
+			"CBasePlayer::UpdateStepSound"
 			{
-				"windows"   "0"
-				"linux"     "1"
-				"mac"       "1"
-			}
-		}
-
-		"Addresses"
-		{
-			"BotManager::MaintainBotQuota"
-			{
-				"signature" "BotManager::MaintainBotQuota"
-			}
-			"CCSBotManager::BotAddCommand"
-			{
-				"signature" "CCSBotManager::BotAddCommand"
+				"windows"   "358"
+				"linux"     "359"
 			}
 		}
 
@@ -163,7 +139,6 @@
 				"windows"	"\x55\x8B\xEC\x83\xEC\x10\x89\x4D\xFC\x83\x7D\x08\x02"
 				"linux"		"@_ZN9CCSPlayer16DoAnimationEventE17PlayerAnimEvent_ti"
 			}
-
 			// search string: "-nobots"
 			"BotManager::MaintainBotQuota"
 			{
@@ -171,7 +146,6 @@
 				"windows"       "\x55\x8B\xEC\x83\xEC\x14\xFF\x15\x2A\x2A\x2A\x2A"
 				"linux"         "@_ZN13CCSBotManager16MaintainBotQuotaEv"
 			}
-
 			// search string: "Error - no profile for '%s' exists."
 			"CCSBotManager::BotAddCommand"
 			{
@@ -179,8 +153,8 @@
 				"windows"       "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x80\x78\x2A\x00\x75\x2A\x83\xB8\x2A\x2A\x2A\x2A\x00"
 				"linux"         "@_ZN13CCSBotManager13BotAddCommandEibPKc12CSWeaponType17BotDifficultyType"
 			}
-
-			// search string:
+			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
+			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
 			"PhysicsCheckForEntityUntouch"
 			{
 				"windows"	"\x55\x8B\xEC\x51\x56\x8B\xF1\x8B\x86\x38\x03\x00\x00"
