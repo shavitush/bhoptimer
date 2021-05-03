@@ -130,6 +130,7 @@ Convar gCV_StopTimerWarning = null;
 Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
 Convar gCV_RestrictNoclip = null;
+Convar gCV_BotFootsteps = null;
 
 // external cvars
 ConVar sv_disable_immunity_alpha = null;
@@ -322,6 +323,7 @@ public void OnPluginStart()
 	gCV_WRMessages = new Convar("shavit_misc_wrmessages", "3", "How many \"NEW <style> WR!!!\" messages to print?\n0 - Disabled", 0,  true, 0.0, true, 100.0);
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "1", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 2.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
+	gCV_BotFootsteps = new Convar("shavit_misc_botfootsteps", "1", "Enable footstep sounds for replay bots. Only works if shavit_misc_bhopsounds is less than 2.", 0, true, 0.0, true, 1.0);
 
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
 	Convar.AutoExecConfig();
@@ -1227,7 +1229,7 @@ public void OnClientPutInServer(int client)
 
 	if(IsFakeClient(client))
 	{
-		if (gH_UpdateStepSound != null)
+		if (gCV_BotFootsteps.BoolValue && gH_UpdateStepSound != null)
 		{
 			gH_UpdateStepSound.HookEntity(Hook_Pre,  client, Hook_UpdateStepSound_Pre);
 			gH_UpdateStepSound.HookEntity(Hook_Post, client, Hook_UpdateStepSound_Post);
@@ -3352,6 +3354,28 @@ public Action WorldDecal(const char[] te_name, const Players[], int numClients, 
 
 public Action NormalSound(int clients[MAXPLAYERS], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags, char soundEntry[PLATFORM_MAX_PATH], int &seed)
 {
+	if (gEV_Type != Engine_CSGO && IsValidClient(entity) && IsFakeClient(entity) && StrContains(sample, "footsteps/") != -1)
+	{
+		numClients = 0;
+
+		if (gCV_BhopSounds.IntValue < 2)
+		{
+			// The server removes recipients that are in the PVS because CS:S generates the footsteps clientside.
+			// UpdateStepSound clientside bails because of MOVETYPE_NOCLIP though.
+			// So fuck it, add all the clients xd.
+			// Alternatively and preferably you'd patch out the RemoveRecipientsByPVS call in PlayStepSound.
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (IsValidClient(i) && (!gB_Hide[i] || GetSpectatorTarget(i) == entity))
+				{
+					clients[numClients++] = i;
+				}
+			}
+		}
+
+		return Plugin_Changed;
+	}
+
 	if(!gCV_BhopSounds.BoolValue)
 	{
 		return Plugin_Continue;
