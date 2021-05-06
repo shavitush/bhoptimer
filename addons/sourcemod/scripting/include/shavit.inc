@@ -390,13 +390,14 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	}
 
 	int iRounded = RoundToFloor(fTempTime);
-	float fSeconds = (iRounded % 60) + fTempTime - iRounded;
+	int iSeconds = (iRounded % 60);
+	float fSeconds = iSeconds + fTempTime - iRounded;
 
 	char sSeconds[8];
 
 	if (nodecimal)
 	{
-		FormatEx(sSeconds, 8, "%d", iRounded % 60);
+		FormatEx(sSeconds, 8, "%d", iSeconds);
 	}
 	else
 	{
@@ -408,7 +409,6 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		strcopy(newtime, newtimesize, sSeconds);
 		FormatEx(newtime, newtimesize, "%s%s", (time < 0.0) ? "-":"", sSeconds);
 	}
-
 	else
 	{
 		int iMinutes = (iRounded / 60);
@@ -417,11 +417,10 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		{
 			FormatEx(newtime, newtimesize, "%s%d:%s%s", (time < 0.0)? "-":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
-
 		else
 		{
+			int iHours = (iMinutes / 60);
 			iMinutes %= 60;
-			int iHours = (iRounded / 3600);
 
 			FormatEx(newtime, newtimesize, "%s%d:%s%d:%s%s", (time < 0.0)? "-":"", iHours, (iMinutes < 10)? "0":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
