@@ -40,16 +40,9 @@ enum struct wrcache_t
 	float fWRs[STYLE_LIMIT];
 }
 
-enum struct stagetimepb_t
-{
-	float fTime;
-	float fVel2D;
-}
-
 enum struct stagetimewr_t
 {
 	float fTime;
-	float fVel2D;
 	int iAuth;
 	char sName[MAX_NAME_LENGTH];
 }
@@ -105,8 +98,8 @@ chatstrings_t gS_ChatStrings;
 
 // stage times (wrs/pbs)
 stagetimewr_t gA_StageWR[STYLE_LIMIT][TRACKS_SIZE][MAX_STAGES];
-ArrayList gA_StagePB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE]; // stagetimepb_t
-stagetimepb_t gA_StageTimes[MAXPLAYERS+1][MAX_STAGES];
+ArrayList gA_StagePB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
+float gA_StageTimes[MAXPLAYERS+1][MAX_STAGES];
 
 public Plugin myinfo =
 {
@@ -520,7 +513,7 @@ void UpdateWRCache(int client = -1)
 	}
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT style, track, auth, stage, MIN(time), vel2d FROM `%sstagetimes` WHERE map = '%s' GROUP BY style, track, stage;",
+		"SELECT style, track, auth, stage, time FROM `%sstagetimeswr` WHERE map = '%s';",
 		gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query(SQL_UpdateWRStageTimes_Callback, sQuery);
@@ -597,7 +590,6 @@ public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, co
 
 		stagetimewr_t cache;
 		cache.fTime = results.FetchFloat(4);
-		cache.fVel2D = results.FetchFloat(5);
 
 		gA_StageWR[style][track][stage] = cache;
 	}
@@ -815,14 +807,14 @@ public int Native_GetStagePB(Handle plugin, int numParams)
 	int track = GetNativeCell(2);
 	int style = GetNativeCell(3);
 	int stage = GetNativeCell(4);
-	stagetimepb_t pb;
+	float pb;
 
 	if (gA_StagePB[client][style][track] != null)
 	{
-		gA_StagePB[client][style][track].GetArray(stage, pb);
+		pb = gA_StagePB[client][style][track].Get(stage);
 	}
 
-	return view_as<int>(pb.fTime);
+	return view_as<int>(pb);
 }
 
 public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2166,13 +2158,13 @@ void SQL_DBConnect()
 
 	if(gB_MySQL)
 	{
-		FormatEx(sQuery, 1024,
+		FormatEx(sQuery, sizeof(sQuery),
 			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 	else
 	{
-		FormatEx(sQuery, 1024,
+		FormatEx(sQuery, sizeof(sQuery),
 			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` INT, `map` VARCHAR(128), `time` FLOAT, `jumps` INT, `style` TINYINT, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
@@ -2180,7 +2172,12 @@ void SQL_DBConnect()
 	hTransaction.AddQuery(sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE TABLE IF NOT EXISTS `%sstagetimes` (`style` TINYINT NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `map` VARCHAR(128) NOT NULL, `stage` TINYINT NOT NULL, `auth` INT NOT NULL, `time` FLOAT NOT NULL, `vel2d` FLOAT NOT NULL, PRIMARY KEY (`style`, `track`, `auth`, `map`, `stage`))%s;",
+		"CREATE TABLE IF NOT EXISTS `%sstagetimeswr` (`style` TINYINT NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `map` VARCHAR(128) NOT NULL, `stage` TINYINT NOT NULL, `auth` INT NOT NULL, `time` FLOAT NOT NULL, PRIMARY KEY (`style`, `track`, `map`, `stage`))%s;",
+		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
+	hTransaction.AddQuery(sQuery);
+
+	FormatEx(sQuery, sizeof(sQuery),
+		"CREATE TABLE IF NOT EXISTS `%sstagetimespb` (`style` TINYINT NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `map` VARCHAR(128) NOT NULL, `stage` TINYINT NOT NULL, `auth` INT NOT NULL, `time` FLOAT NOT NULL, PRIMARY KEY (`style`, `track`, `auth`, `map`, `stage`))%s;",
 		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 	hTransaction.AddQuery(sQuery);
 
@@ -2279,43 +2276,37 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Shavit_PrintToChat(client, "old: %.01f new: %.01f", fOldWR, time);
 		#endif
 
-		Transaction hTransaction = null;
+		Transaction hTransaction = new Transaction();
+		char query[512];
+
+		FormatEx(query, sizeof(query),
+			"DELETE FROM `%sstagetimeswr` WHERE style = %d AND track = %d AND map = '%s';",
+			gS_MySQLPrefix, style, track, gS_Map
+		);
+
+		hTransaction.AddQuery(query);
 
 		for (int i = 0; i < MAX_STAGES; i++)
 		{
 			stagetimewr_t stagewr;
-			stagewr.fTime  = gA_StageTimes[client][i].fTime;
-			stagewr.fVel2D = gA_StageTimes[client][i].fVel2D;
-			stagewr.iAuth  = iSteamID;
+			stagewr.fTime = gA_StageTimes[client][i];
+			stagewr.iAuth = iSteamID;
 			gA_StageWR[style][track][i] = stagewr;
 
-			if (gA_StageTimes[client][i].fTime == 0.0)
+			if (stagewr.fTime == 0.0)
 			{
 				continue;
 			}
 
-			if (hTransaction == null)
-			{
-				hTransaction = new Transaction();
-			}
-
-			char query[512];
-
 			FormatEx(query, sizeof(query),
-				"REPLACE INTO `%sstagetimes` (`style`, `track`, `map`, `auth`, `time`, `vel2d`, `stage`) VALUES (%d, %d, '%s', %d, %f, %f, %d);",
-				gS_MySQLPrefix, style, track, gS_Map, iSteamID,
-				gA_StageTimes[client][i].fTime,
-				gA_StageTimes[client][i].fVel2D,
-				i
+				"INSERT INTO `%sstagetimeswr` (`style`, `track`, `map`, `auth`, `time`, `stage`) VALUES (%d, %d, '%s', %d, %f, %d);",
+				gS_MySQLPrefix, style, track, gS_Map, iSteamID, stagewr.fTime, i
 			);
 
 			hTransaction.AddQuery(query);
 		}
 
-		if (hTransaction != null)
-		{
-			gH_SQL.Execute(hTransaction, Trans_ReplaceStageTimes_Success, Trans_ReplaceStageTimes_Error, 0, DBPrio_Low);
-		}
+		gH_SQL.Execute(hTransaction, Trans_ReplaceStageTimes_Success, Trans_ReplaceStageTimes_Error, 0, DBPrio_High);
 	}
 
 	int iRank = GetRankForTime(style, time, track);
@@ -2556,17 +2547,15 @@ public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message,
 	int track = Shavit_GetClientTrack(client);
 	float stageTime = Shavit_GetClientTime(client);
 	float stageTimeWR = gA_StageWR[style][track][stageNumber].fTime;
-	float fDifference = (stageTime - stageTimeWR);
 
-	float fSpeed[3];
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
-	gA_StageTimes[client][stageNumber].fVel2D = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
-	gA_StageTimes[client][stageNumber].fTime = stageTime;
+	gA_StageTimes[client][stageNumber] = stageTime;
 
 	if (stageTimeWR == 0.0)
 	{
-		fDifference = 0.0;
+		return Plugin_Continue;
 	}
+
+	float fDifference = (stageTime - stageTimeWR);
 
 	char sStageTime[16];
 	FormatSeconds(stageTime, sStageTime, 16);
@@ -2574,7 +2563,7 @@ public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message,
 	char sDifference[16];
 	FormatSeconds(fDifference, sDifference, 16);
 
-	if(fDifference > 0.0)
+	if(fDifference >= 0.0)
 	{
 		Format(sDifference, sizeof(sDifference), "+%s", sDifference);
 	}
@@ -2584,14 +2573,14 @@ public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message,
 	return Plugin_Handled;
 }
 
-public void Shavit_OnRestart(int client, int track)
+public Action Shavit_OnStart(int client, int track)
 {
-	stagetimepb_t emptycache;
-
 	for (int i = 0; i < MAX_STAGES; i++)
 	{
-		gA_StageTimes[client][i] = emptycache;
+		gA_StageTimes[client][i] = 0.0;
 	}
+
+	return Plugin_Continue;
 }
 
 int GetRecordAmount(int style, int track)
