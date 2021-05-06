@@ -40,11 +40,10 @@ enum struct wrcache_t
 	float fWRs[STYLE_LIMIT];
 }
 
-enum struct stagetimewr_t
+enum struct stagetimewrcp_t
 {
 	float fTime;
 	int iAuth;
-	char sName[MAX_NAME_LENGTH];
 }
 
 bool gB_Late = false;
@@ -72,8 +71,8 @@ ArrayList gA_ValidMaps = null;
 // current wr stats
 float gF_WRTime[STYLE_LIMIT][TRACKS_SIZE];
 int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
-//int gI_WRSteamID[STYLE_LIMIT][TRACKS_SIZE];
-char gS_WRName[STYLE_LIMIT][TRACKS_SIZE][MAX_NAME_LENGTH];
+int gI_WRSteamID[STYLE_LIMIT][TRACKS_SIZE];
+StringMap gSM_WRNames = null;
 ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 int gI_PlayerCompletion[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
@@ -97,9 +96,10 @@ stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 chatstrings_t gS_ChatStrings;
 
 // stage times (wrs/pbs)
-stagetimewr_t gA_StageWR[STYLE_LIMIT][TRACKS_SIZE][MAX_STAGES];
-ArrayList gA_StagePB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
-float gA_StageTimes[MAXPLAYERS+1][MAX_STAGES];
+float gA_StageWR[STYLE_LIMIT][TRACKS_SIZE][MAX_STAGES]; // WR run's stage times
+//stagetimewrcp_t gA_StageWRCP[STYLE_LIMIT][TRACKS_SIZE];
+ArrayList gA_StagePB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE]; // player's best WRCP times or something
+float gA_StageTimes[MAXPLAYERS+1][MAX_STAGES]; // player's current run stage times
 
 public Plugin myinfo =
 {
@@ -146,6 +146,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_junk", Command_Junk);
 	RegConsoleCmd("sm_printleaderboards", Command_PrintLeaderboards);
 	#endif
+
+	gSM_WRNames = new StringMap();
 
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
@@ -533,7 +535,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			strcopy(gS_WRName[i][j], MAX_NAME_LENGTH, "invalid");
+			gSM_WRNames.Clear();
 			gF_WRTime[i][j] = 0.0;
 		}
 	}
@@ -551,9 +553,15 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 
 		gI_WRRecordID[iStyle][iTrack] = results.FetchInt(0);
 		gF_WRTime[iStyle][iTrack] = results.FetchFloat(4);
-		//gI_WRSteamID[iStyle][iTrack] = results.FetchInt(1);
-		results.FetchString(5, gS_WRName[iStyle][iTrack], MAX_NAME_LENGTH);
-		ReplaceString(gS_WRName[iStyle][iTrack], MAX_NAME_LENGTH, "#", "?");
+		gI_WRSteamID[iStyle][iTrack] = results.FetchInt(1);
+
+		char sSteamID[20];
+		IntToString(gI_WRSteamID[iStyle][iTrack], sSteamID, sizeof(sSteamID));
+
+		char sName[MAX_NAME_LENGTH];
+		results.FetchString(5, sName, MAX_NAME_LENGTH);
+		ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
+		gSM_WRNames.SetString(sSteamID, sName, false);
 	}
 
 	UpdateLeaderboards();
@@ -568,15 +576,13 @@ public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, co
 		return;
 	}
 
-	stagetimewr_t emptycache;
-
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			for(int k = 0; k < MAX_STAGES; k++) // 🤮
 			{
-				gA_StageWR[i][j][k] = emptycache;
+				gA_StageWR[i][j][k] = 0.0;
 			}
 		}
 	}
@@ -585,13 +591,9 @@ public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, co
 	{
 		int style = results.FetchInt(0);
 		int track = results.FetchInt(1);
-		//gI_WRSteamID[style][track] = results.FetchInt(2);
 		int stage = results.FetchInt(3);
 
-		stagetimewr_t cache;
-		cache.fTime = results.FetchFloat(4);
-
-		gA_StageWR[style][track][stage] = cache;
+		gA_StageWR[style][track][stage] = results.FetchFloat(4);
 	}
 }
 
@@ -613,7 +615,23 @@ public int Native_GetWRRecordID(Handle handler, int numParams)
 
 public int Native_GetWRName(Handle handler, int numParams)
 {
-	SetNativeString(2, gS_WRName[GetNativeCell(1)][GetNativeCell(4)], GetNativeCell(3));
+	int iSteamID = gI_WRSteamID[GetNativeCell(1)][GetNativeCell(4)];
+	char sName[MAX_NAME_LENGTH];
+
+	if (iSteamID != 0)
+	{
+		char sSteamID[20];
+		IntToString(iSteamID, sSteamID, sizeof(sSteamID));
+
+		if (gSM_WRNames.GetString(sSteamID, sName, sizeof(sName)))
+		{
+			SetNativeString(2, sName, GetNativeCell(3));
+			return 0;
+		}
+	}
+
+	SetNativeString(2, "invalid", GetNativeCell(3));
+	return 0;
 }
 
 public int Native_GetClientPB(Handle handler, int numParams)
@@ -798,7 +816,7 @@ public int Native_GetStageWR(Handle plugin, int numParams)
 	int track = GetNativeCell(1);
 	int style = GetNativeCell(2);
 	int stage = GetNativeCell(3);
-	return view_as<int>(gA_StageWR[style][track][stage].fTime);
+	return view_as<int>(gA_StageWR[style][track][stage]);
 }
 
 public int Native_GetStagePB(Handle plugin, int numParams)
@@ -2254,7 +2272,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		float fOldWR = gF_WRTime[style][track];
 		gF_WRTime[style][track] = time;
 
-		//gI_WRSteamID[style][track] = iSteamID;
+		gI_WRSteamID[style][track] = iSteamID;
 
 		Call_StartForward(gH_OnWorldRecord);
 		Call_PushCell(client);
@@ -2288,19 +2306,17 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		for (int i = 0; i < MAX_STAGES; i++)
 		{
-			stagetimewr_t stagewr;
-			stagewr.fTime = gA_StageTimes[client][i];
-			stagewr.iAuth = iSteamID;
-			gA_StageWR[style][track][i] = stagewr;
+			float fTime = gA_StageTimes[client][i];
+			gA_StageWR[style][track][i] = fTime;
 
-			if (stagewr.fTime == 0.0)
+			if (fTime == 0.0)
 			{
 				continue;
 			}
 
 			FormatEx(query, sizeof(query),
 				"INSERT INTO `%sstagetimeswr` (`style`, `track`, `map`, `auth`, `time`, `stage`) VALUES (%d, %d, '%s', %d, %f, %d);",
-				gS_MySQLPrefix, style, track, gS_Map, iSteamID, stagewr.fTime, i
+				gS_MySQLPrefix, style, track, gS_Map, iSteamID, fTime, i
 			);
 
 			hTransaction.AddQuery(query);
@@ -2546,7 +2562,7 @@ public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message,
 	int style = Shavit_GetBhopStyle(client);
 	int track = Shavit_GetClientTrack(client);
 	float stageTime = Shavit_GetClientTime(client);
-	float stageTimeWR = gA_StageWR[style][track][stageNumber].fTime;
+	float stageTimeWR = gA_StageWR[style][track][stageNumber];
 
 	gA_StageTimes[client][stageNumber] = stageTime;
 
