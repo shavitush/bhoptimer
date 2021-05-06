@@ -112,6 +112,7 @@ bool gB_RTLer = false;
 Convar gCV_RankingsIntegration = null;
 Convar gCV_CustomChat = null;
 Convar gCV_Colon = null;
+ConVar gCV_TimeInMessages = null;
 
 // cache
 EngineVersion gEV_Type = Engine_Unknown;
@@ -207,6 +208,11 @@ public void OnPluginStart()
 	gB_RTLer = LibraryExists("rtler");
 
 	SQL_DBConnect();
+}
+
+public void OnAllPluginsLoaded()
+{
+	gCV_TimeInMessages = FindConVar("shavit_core_timeinmessages");
 }
 
 public void OnMapStart()
@@ -447,7 +453,14 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		return Plugin_Continue;
 	}
 
-	Format(sTextFormatting, MAXLENGTH_BUFFER, "\x01%s", sTextFormatting);
+	char sTime[50];
+
+	if (gCV_TimeInMessages.BoolValue)
+	{
+		FormatTime(sTime, sizeof(sTime), "%H:%M:%S ");
+	}
+
+	Format(sTextFormatting, MAXLENGTH_BUFFER, "\x01%s%s", sTime, sTextFormatting);
 
 	// remove control characters
 	for(int i = 0; i < sizeof(gS_ControlCharacters); i++)

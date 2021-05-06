@@ -146,6 +146,7 @@ Convar gCV_DefaultStyle = null;
 Convar gCV_NoChatSound = null;
 Convar gCV_SimplerLadders = null;
 Convar gCV_UseOffsets = null;
+Convar gCV_TimeInMessages;
 #if DEBUG
 Convar gCV_DebugOffsets = null;
 #endif
@@ -387,6 +388,7 @@ public void OnPluginStart()
 	gCV_NoChatSound = new Convar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
 	gCV_SimplerLadders = new Convar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 	gCV_UseOffsets = new Convar("shavit_core_useoffsets", "1", "Calculates more accurate times by subtracting/adding tick offsets from the time the server uses to register that a player has left or entered a trigger", 0, true, 0.0, true, 1.0);
+	gCV_TimeInMessages = new Convar("shavit_core_timeinmessages", "0", "Whether to prefix SayText2 messages with the time.", 0, true, 0.0, true, 1.0);
 	#if DEBUG
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
 	#endif
@@ -1798,9 +1800,17 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 	char sBuffer[256];
 	char sInput[300];
 	FormatNativeString(0, formatParam, formatParam+1, sizeof(sInput), iWritten, sInput);
+
+	char sTime[50];
+
+	if (gCV_TimeInMessages.BoolValue)
+	{
+		FormatTime(sTime, sizeof(sTime), "%H:%M:%S ");
+	}
+
 	// space before message needed show colors in cs:go
 	// strlen(sBuffer)>252 is when CSS stops printing the messages
-	FormatEx(sBuffer, (gB_Protobuf ? sizeof(sBuffer) : 253), "%s%s %s%s", (gB_Protobuf ? " ":""), gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sInput);
+	FormatEx(sBuffer, (gB_Protobuf ? sizeof(sBuffer) : 253), "%s%s%s %s%s", (gB_Protobuf ? " ":""), sTime, gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sInput);
 
 	if(client == 0)
 	{
