@@ -1684,6 +1684,12 @@ public int Native_GetPlainChatrank(Handle handler, int numParams)
 	
 		FormatEx(sRank, 16, "%.03f", fPercentile);
 		ReplaceString(buf, sizeof(buf), "{rank3}", sRank);
+
+		FormatEx(sRank, 16, "%d", Shavit_GetWRHolderRank(client));
+		ReplaceString(buf, sizeof(buf), "{wrrank}", sRank);
+
+		FormatEx(sRank, 16, "%d", Shavit_GetWRCount(client));
+		ReplaceString(buf, sizeof(buf), "{wrs}", sRank);
 	}
 
 	TrimString(buf);
