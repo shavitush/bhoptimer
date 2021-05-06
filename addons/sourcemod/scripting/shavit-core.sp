@@ -232,6 +232,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_MarkKZMap", Native_MarkKZMap);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
+	CreateNative("Shavit_PrintToChatAll", Native_PrintToChatAll);
 	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
 	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
@@ -1770,15 +1771,33 @@ public int Native_StopChatSound(Handle handler, int numParams)
 	gB_StopChatSound = true;
 }
 
+public int Native_PrintToChatAll(Handle plugin, int numParams)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			SetGlobalTransTarget(i);
+
+			bool previousStopChatSound = gB_StopChatSound;
+			SemiNative_PrintToChat(i, 1);
+			gB_StopChatSound = previousStopChatSound;
+		}
+	}
+}
+
 public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	return SemiNative_PrintToChat(client, 2);
+}
 
-	static int iWritten = 0; // useless?
-
+public int SemiNative_PrintToChat(int client, int formatParam)
+{
+	int iWritten;
 	char sBuffer[256];
 	char sInput[300];
-	FormatNativeString(0, 2, 3, sizeof(sInput), iWritten, sInput);
+	FormatNativeString(0, formatParam, formatParam+1, sizeof(sInput), iWritten, sInput);
 	// space before message needed show colors in cs:go
 	// strlen(sBuffer)>252 is when CSS stops printing the messages
 	FormatEx(sBuffer, (gB_Protobuf ? sizeof(sBuffer) : 253), "%s%s %s%s", (gB_Protobuf ? " ":""), gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sInput);

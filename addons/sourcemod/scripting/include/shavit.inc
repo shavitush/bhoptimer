@@ -1994,7 +1994,6 @@ native float Shavit_GetClosestReplayVelocityDifference(int client, bool threeD);
 /**
  * Use this native to stop the click sound that plays upon chat messages.
  * Call it before each Shavit_PrintToChat().
- * Shavit_PrintToChatAll() is not guaranteed to disable the sound from playing.
  *
  * @noreturn
  */
@@ -2068,6 +2067,16 @@ native int Shavit_CanPause(int client);
  * @return							PrintToChat()
  */
 native int Shavit_PrintToChat(int client, const char[] format, any ...);
+
+/**
+ * Use this native when printing anything in chat if it's related to the timer.
+ * This native will auto-assign colors and a chat prefix.
+ *
+ * @param format					Formatting rules.
+ * @param any						Variable number of format parameters.
+ * @noreturn
+ */
+native void Shavit_PrintToChatAll(const char[] format, any ...);
 
 /**
  * Logs an entry to bhoptimer's log file.
@@ -2307,23 +2316,6 @@ native void Shavit_GetPlainChatrank(int client, char[] buf, int buflen, bool inc
  */
 native void Shavit_DeleteWR(int style, int track, const char[] map, int accountid, int recordid, bool delete_sql, bool update_cache);
 
-// same as Shavit_PrintToChat() but loops through the whole server
-// code stolen from the base halflife.inc file
-stock void Shavit_PrintToChatAll(const char[] format, any ...)
-{
-	char buffer[300];
-
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsClientInGame(i))
-		{
-			SetGlobalTransTarget(i);
-			VFormat(buffer, 300, format, 2);
-			Shavit_PrintToChat(i, "%s", buffer);
-		}
-	}
-}
-
 public SharedPlugin __pl_shavit =
 {
 	name = "shavit",
@@ -2415,6 +2407,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_OpenStatsMenu");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
+	MarkNativeAsOptional("Shavit_PrintToChatAll");
 	MarkNativeAsOptional("Shavit_Rankings_DeleteMap");
 	MarkNativeAsOptional("Shavit_ReloadLeaderboards");
 	MarkNativeAsOptional("Shavit_ReloadReplay");
