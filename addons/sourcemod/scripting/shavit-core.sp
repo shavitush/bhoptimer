@@ -1786,6 +1786,8 @@ public int Native_PrintToChatAll(Handle plugin, int numParams)
 			gB_StopChatSound = previousStopChatSound;
 		}
 	}
+
+	gB_StopChatSound = false;
 }
 
 public int Native_PrintToChat(Handle handler, int numParams)
