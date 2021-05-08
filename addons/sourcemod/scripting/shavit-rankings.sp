@@ -180,28 +180,22 @@ public void OnPluginStart()
 
 	if(gB_Late)
 	{
-		Shavit_OnChatConfigLoaded();
+		chatstrings_t chatstrings;
+		Shavit_GetChatStringsStruct(chatstrings);
+		Shavit_OnChatConfigLoaded(chatstrings);
 	}
 
 	SQL_DBConnect();
 }
 
-public void Shavit_OnChatConfigLoaded()
+public void Shavit_OnChatConfigLoaded(chatstrings_t strings)
 {
-	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
-	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
-	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
-	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
-	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
-	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
+	gS_ChatStrings = strings;
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
-	if(styles == -1)
-	{
-		gI_Styles = Shavit_GetStyleCount();
-	}
+	gI_Styles = styles;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -251,7 +245,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	if(gI_Styles == 0)
 	{
-		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 	}
 
 	SQL_LockDatabase(gH_SQL);

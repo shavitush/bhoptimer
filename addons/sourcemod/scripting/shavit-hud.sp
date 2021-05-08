@@ -292,8 +292,10 @@ public void OnMapStart()
 
 	if(gB_Late)
 	{
-		Shavit_OnStyleConfigLoaded(-1);
-		Shavit_OnChatConfigLoaded();
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
+		chatstrings_t chatstrings;
+		Shavit_GetChatStringsStruct(chatstrings);
+		Shavit_OnChatConfigLoaded(chatstrings);
 	}
 }
 
@@ -375,17 +377,11 @@ public void OnConfigsExecuted()
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
-	if(styles == -1)
-	{
-		styles = Shavit_GetStyleCount();
-	}
-
 	gI_Styles = styles;
 
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
-		Shavit_GetStyleStrings(i, sHTMLColor, gS_StyleStrings[i].sHTMLColor, sizeof(stylestrings_t::sHTMLColor));
+		Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
 	}
 }
 
@@ -414,14 +410,9 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	return Plugin_Continue;
 }
 
-public void Shavit_OnChatConfigLoaded()
+public void Shavit_OnChatConfigLoaded(chatstrings_t strings)
 {
-	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
-	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
-	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
-	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
-	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
-	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
+	gS_ChatStrings = strings;
 }
 
 public void OnClientPutInServer(int client)

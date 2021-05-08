@@ -206,6 +206,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
 	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
+	CreateNative("Shavit_GetChatStringsStruct", Native_GetChatStringsStruct);
 	CreateNative("Shavit_GetClientJumps", Native_GetClientJumps);
 	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
 	CreateNative("Shavit_GetClientTrack", Native_GetClientTrack);
@@ -220,6 +221,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleSettingFloat", Native_GetStyleSettingFloat);
 	CreateNative("Shavit_HasStyleSetting", Native_HasStyleSetting);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
+	CreateNative("Shavit_GetStyleStringsStruct", Native_GetStyleStringsStruct);
 	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetTimeOffset", Native_GetTimeOffset);
 	CreateNative("Shavit_GetDistanceOffset", Native_GetTimeOffsetDistance);
@@ -276,7 +278,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTrackChanged = CreateGlobalForward("Shavit_OnTrackChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
-	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
+	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event, Param_Array);
 	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array, Param_Array);
 	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
 	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
@@ -1912,48 +1914,59 @@ public int Native_GetStyleStrings(Handle handler, int numParams)
 		case sStyleName:
 		{
 			gSM_StyleKeys[style].GetString("name", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sShortName:
 		{
 			gSM_StyleKeys[style].GetString("shortname", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sHTMLColor:
 		{
 			gSM_StyleKeys[style].GetString("htmlcolor", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sChangeCommand:
 		{
 			gSM_StyleKeys[style].GetString("command", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sClanTag:
 		{
 			gSM_StyleKeys[style].GetString("clantag", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sSpecialString:
 		{
 			gSM_StyleKeys[style].GetString("specialstring", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sStylePermission:
 		{
 			gSM_StyleKeys[style].GetString("permission", sValue, size);
-
-			return SetNativeString(3, sValue, size);
+		}
+		default:
+		{
+			return -1;
 		}
 	}
 
-	return -1;
+	return SetNativeString(3, sValue, size);
+}
+
+public int Native_GetStyleStringsStruct(Handle plugin, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	if (GetNativeCell(3) != sizeof(stylestrings_t))
+	{
+		return ThrowNativeError(200, "stylestrings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins", GetNativeCell(3), sizeof(stylestrings_t));
+	}
+
+	stylestrings_t strings;
+	gSM_StyleKeys[style].GetString("name", strings.sStyleName, sizeof(strings.sStyleName));
+	gSM_StyleKeys[style].GetString("shortname", strings.sShortName, sizeof(strings.sShortName));
+	gSM_StyleKeys[style].GetString("htmlcolor", strings.sHTMLColor, sizeof(strings.sHTMLColor));
+	gSM_StyleKeys[style].GetString("command", strings.sChangeCommand, sizeof(strings.sChangeCommand));
+	gSM_StyleKeys[style].GetString("clantag", strings.sClanTag, sizeof(strings.sClanTag));
+	gSM_StyleKeys[style].GetString("specialstring", strings.sSpecialString, sizeof(strings.sSpecialString));
+	gSM_StyleKeys[style].GetString("permission", strings.sStylePermission, sizeof(strings.sStylePermission));
+
+	return SetNativeArray(2, strings, sizeof(stylestrings_t));
 }
 
 public int Native_GetChatStrings(Handle handler, int numParams)
@@ -1972,6 +1985,16 @@ public int Native_GetChatStrings(Handle handler, int numParams)
 	}
 
 	return -1;
+}
+
+public int Native_GetChatStringsStruct(Handle plugin, int numParams)
+{
+	if (GetNativeCell(2) != sizeof(chatstrings_t))
+	{
+		return ThrowNativeError(200, "chatstrings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins", GetNativeCell(2), sizeof(chatstrings_t));
+	}
+
+	return SetNativeArray(1, gS_ChatStrings, sizeof(gS_ChatStrings));
 }
 
 public int Native_SetPracticeMode(Handle handler, int numParams)
@@ -2843,6 +2866,7 @@ bool LoadMessages()
 	ReplaceColors(gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
 
 	Call_StartForward(gH_Forwards_OnChatConfigLoaded);
+	Call_PushArray(gS_ChatStrings, sizeof(gS_ChatStrings));
 	Call_Finish();
 
 	return true;
