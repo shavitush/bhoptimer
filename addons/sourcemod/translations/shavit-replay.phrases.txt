@@ -94,4 +94,21 @@
 	{
 		"en"		"Failed to create replay"
 	}
+	"Menu_Replay"
+	{
+		"en"		"Replay"
+	}
+	"Menu_SpawnReplay"
+	{
+		"en"		"Spawn replay"
+	}
+	"Menu_Replay2X"
+	{
+		"#format"	"{1:s}"
+		"en"		"[{1}] Toggle 2x speed"
+	}
+	"Menu_RefreshReplay"
+	{
+		"en"		"Refresh"
+	}
 }
