@@ -291,7 +291,7 @@ public void OnPluginStart()
 	gCV_HideTeamChanges = new Convar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = new Convar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = new Convar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_StartOnSpawn = new Convar("shavit_misc_startonspawn", "0", "Restart the timer for a player after they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_StartOnSpawn = new Convar("shavit_misc_startonspawn", "1", "Restart the timer for a player after they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_PrestrafeLimit = new Convar("shavit_misc_prestrafelimit", "30", "Prestrafe limitation in startzone.\nThe value used internally is style run speed + this.\ni.e. run speed of 250 can prestrafe up to 278 (+28) with regular settings.", 0, true, 0.0, false);
 	gCV_HideRadar = new Convar("shavit_misc_hideradar", "1", "Should the plugin hide the in-game radar?", 0, true, 0.0, true, 1.0);
 	gCV_TeleportCommands = new Convar("shavit_misc_tpcmds", "1", "Enable teleport-related commands? (sm_goto/sm_tpto)\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -3084,16 +3084,14 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			RequestFrame(Frame_RemoveRadar, serial);
 		}
 
-		if(gCV_StartOnSpawn.BoolValue)
-		{
-			RestartTimer(client, Track_Main);
-		}
+		bool bCanStartOnSpawn = true;
 
 		if(gB_SaveStates[client])
 		{
 			if(gCV_RestoreStates.BoolValue)
 			{
 				RequestFrame(LoadPersistentData, serial);
+				bCanStartOnSpawn = false;
 			}
 		}
 		else
@@ -3105,7 +3103,13 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			{
 				gB_SaveStates[client] = true;
 				RequestFrame(LoadPersistentData, serial);
+				bCanStartOnSpawn = false;
 			}
+		}
+
+		if(gCV_StartOnSpawn.BoolValue && bCanStartOnSpawn)
+		{
+			RestartTimer(client, Track_Main);
 		}
 
 		if(gCV_Scoreboard.BoolValue)
