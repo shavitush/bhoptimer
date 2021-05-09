@@ -76,6 +76,25 @@ native bool ClearClientEvents(int client);
  */
 native bool SetEventsTimescale(int client, float timescale);
 
+/*
+ * Pauses or unpauses events for a given client.
+ *
+ * @param client					Client index.
+ * @param paused					Pause state.
+ *
+ * @return 							True if action was successful, false otherwise.
+ */
+native bool SetClientEventsPaused(int client, bool paused);
+
+/*
+ * Check if events is paused 
+ *
+ * @param client					Client index.
+ *
+ * @return 							True if events are paused for client, false otherwise. Will throw native error if client is invalid. 
+ */
+native bool IsClientEventsPaused(int client);
+
 #if !defined REQUIRE_PLUGIN
 public void __pl_eventqueuefix_SetNTVOptional()
 {
@@ -83,5 +102,7 @@ public void __pl_eventqueuefix_SetNTVOptional()
 	MarkNativeAsOptional("SetClientEvents");
 	MarkNativeAsOptional("ClearClientEvents");
 	MarkNativeAsOptional("SetEventsTimescale");
+	MarkNativeAsOptional("SetClientEventsPaused");
+	MarkNativeAsOptional("IsClientEventsPaused");
 }
 #endif

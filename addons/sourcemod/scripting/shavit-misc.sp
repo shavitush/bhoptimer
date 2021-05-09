@@ -1126,6 +1126,22 @@ void RemoveRagdoll(int client)
 	}
 }
 
+public void Shavit_OnPause(int client, int track)
+{
+	if (gB_Eventqueuefix)
+	{
+		SetClientEventsPaused(client, true);
+	}
+}
+
+public void Shavit_OnResume(int client, int track)
+{
+	if (gB_Eventqueuefix)
+	{
+		SetClientEventsPaused(client, false);
+	}
+}
+
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
