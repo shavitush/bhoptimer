@@ -79,6 +79,7 @@ Convar gCV_WeightingMultiplier = null;
 Convar gCV_LastLoginRecalculate = null;
 Convar gCV_MVPRankOnes = null;
 Convar gCV_MVPRankOnes_Main = null;
+Convar gCV_DefaultTier = null;
 
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
@@ -163,6 +164,7 @@ public void OnPluginStart()
 	gCV_LastLoginRecalculate = new Convar("shavit_rankings_llrecalc", "10080", "Maximum amount of time (in minutes) since last login to recalculate points for a player.\nsm_recalcall does not respect this setting.\n0 - disabled, don't filter anyone", 0, true, 0.0);
 	gCV_MVPRankOnes = new Convar("shavit_rankings_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
 	gCV_MVPRankOnes_Main = new Convar("shavit_rankings_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
+	gCV_DefaultTier = new Convar("shavit_rankings_default_tier", "1", "Sets the default tier for new maps added.", 0, true, 0.0, true, 10.0);
 
 	Convar.AutoExecConfig();
 
@@ -387,7 +389,7 @@ public void OnMapStart()
 
 	// Default tier.
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
-	gI_Tier = 1;
+	gI_Tier = gCV_DefaultTier.IntValue;
 
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
@@ -1284,7 +1286,7 @@ public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[
 
 	if(view_as<bool>(data))
 	{
-		gI_Tier = 1;
+		gI_Tier = gCV_DefaultTier.IntValue;
 		
 		UpdateAllPoints(true);
 		UpdateRankedPlayers();
