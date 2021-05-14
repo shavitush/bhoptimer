@@ -503,7 +503,7 @@ void LoadDHooks()
 		StartPrepSDKCall(SDKCall_Player);
 	}
 
-	if (PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "DoAnimationEvent"))
+	if (PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CCSPlayer::DoAnimationEvent"))
 	{
 		if(gB_Linux)
 		{

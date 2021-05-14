@@ -37,6 +37,7 @@
 	{
 		"Offsets"
 		{
+			// search string "#SFUI_Notice_SprayPaint_TooClose" to find IsAbleToApplySpray and then go to the next function to find GetPlayerMaxSpeed. Then calculate the vtable offset.
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
 				"windows"	"505"
@@ -68,8 +69,8 @@
 
 		"Signatures"
 		{
-			// search string: "silencer_detach"
-			"DoAnimationEvent"
+			// search string: "silencer_detach" and then check the function calls above it
+			"CCSPlayer::DoAnimationEvent"
 			{
 				"library"	"server"
 				"windows"	"\x55\x8B\xEC\x56\x8B\xF1\x57\x80\xBE\x2A\x2A\x2A\x2A\x00\x74\x2A\x51"
@@ -103,6 +104,7 @@
 	{
 		"Offsets"
 		{
+			// https://asherkin.github.io/vtable/
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
 				"windows"	"438"
@@ -133,7 +135,8 @@
 
 		"Signatures"
 		{
-			"DoAnimationEvent"
+			// search string: "ReloadEffect" to find CWeaponCSBase::SendReloadEvents and then DoAnimationEvent is probably the second to last function called there.
+			"CCSPlayer::DoAnimationEvent"
 			{
 				"library"	"server"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x10\x89\x4D\xFC\x83\x7D\x08\x02"
