@@ -119,6 +119,11 @@ enum
 
 enum
 {
+	TF2_ANIM_JUMP = 6
+}
+
+enum
+{
 	CSGO_ANIM_FIRE_GUN_PRIMARY,
 	CSGO_ANIM_FIRE_GUN_PRIMARY_OPT,
 	CSGO_ANIM_FIRE_GUN_PRIMARY__SPECIAL,
@@ -341,8 +346,15 @@ public void OnPluginStart()
 	gEV_Type = GetEngineVersion();
 	gF_Tickrate = (1.0 / GetTickInterval());
 
-	FindConVar("bot_stop").Flags &= ~FCVAR_CHEAT;
+	ConVar bot_stop = FindConVar("bot_stop");
+
+	if (bot_stop != null)
+	{
+		bot_stop.Flags &= ~FCVAR_CHEAT;
+	}
+
 	sv_duplicate_playernames_ok = FindConVar("sv_duplicate_playernames_ok");
+
 	if (sv_duplicate_playernames_ok != null)
 	{
 		sv_duplicate_playernames_ok.Flags &= ~FCVAR_REPLICATED;
@@ -475,11 +487,11 @@ void LoadDHooks()
 		{
 			SetFailState("Unable to prepare SDKCall for CCSBotManager::BotAddCommand");
 		}
-	}
 
-	if ((gI_WEAPONTYPE_UNKNOWN = gamedata.GetOffset("WEAPONTYPE_UNKNOWN")) == -1)
-	{
-		SetFailState("Failed to get WEAPONTYPE_UNKNOWN");
+		if ((gI_WEAPONTYPE_UNKNOWN = gamedata.GetOffset("WEAPONTYPE_UNKNOWN")) == -1)
+		{
+			SetFailState("Failed to get WEAPONTYPE_UNKNOWN");
+		}
 	}
 
 	if (!(gH_MaintainBotQuota = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_Address)))
@@ -494,16 +506,9 @@ void LoadDHooks()
 
 	gH_MaintainBotQuota.Enable(Hook_Pre, Detour_MaintainBotQuota);
 	
-	if(gB_Linux)
-	{
-		StartPrepSDKCall(SDKCall_Static);
-	}
-	else
-	{
-		StartPrepSDKCall(SDKCall_Player);
-	}
+	StartPrepSDKCall(gB_Linux ? SDKCall_Static : SDKCall_Player);
 
-	if (PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CCSPlayer::DoAnimationEvent"))
+	if (PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "Player::DoAnimationEvent"))
 	{
 		if(gB_Linux)
 		{
@@ -1546,11 +1551,18 @@ int InternalCreateReplayBot()
 
 	if (gEV_Type == Engine_TF2)
 	{
-		/*int bot =*/ SDKCall(
+		int bot = SDKCall(
 			gH_BotAddCommand,
 			"replaybot", // name
 			true // bReportFakeClient
 		);
+
+		if (IsValidClient(bot))
+		{
+			TF2_ChangeClientTeam(bot, TFTeam_Red);
+			TF2_SetPlayerClass(bot, TFClass_Sniper);
+			SetFakeClientConVar(bot, "name", "replaybot");
+		}
 	}
 	else
 	{
@@ -1558,7 +1570,7 @@ int InternalCreateReplayBot()
 		{
 			/*int ret =*/ SDKCall(
 				gH_BotAddCommand,
-				0x10000,                   // thisptr           // unused
+				0x10000,                   // thisptr           // unused (sourcemod needs > 0xFFFF though)
 				gCV_DefaultTeam.IntValue,  // team
 				false,                     // isFromConsole
 				0,                         // profileName       // unused
@@ -2643,7 +2655,8 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 					
 					if((g_iLastReplayFlags[info.iEnt] & FL_ONGROUND) && !(iReplayFlags & FL_ONGROUND) && gH_DoAnimationEvent != INVALID_HANDLE)
 					{
-						int jumpAnim = GetEngineVersion() == Engine_CSS ? CSS_ANIM_JUMP:CSGO_ANIM_JUMP;
+						int jumpAnim = (gEV_Type == Engine_CSS) ?
+							CSS_ANIM_JUMP : ((gEV_Type == Engine_TF2) ? TF2_ANIM_JUMP : CSGO_ANIM_JUMP);
 						
 						if(gB_Linux)
 						{

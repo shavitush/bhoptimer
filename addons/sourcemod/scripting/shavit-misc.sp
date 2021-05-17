@@ -335,53 +335,11 @@ public void OnPluginStart()
 	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
 	CreateTimer(0.5, Timer_PersistKZCP, 0, TIMER_REPEAT);
 
+	LoadDHooks();
+
 	if(gEV_Type != Engine_TF2)
 	{
 		CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
-
-		if(LibraryExists("dhooks"))
-		{
-			Handle hGameData = LoadGameConfigFile("shavit.games");
-
-			if(hGameData != null)
-			{
-				int iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed");
-
-				if(iOffset != -1)
-				{
-					gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, CCSPlayer__GetPlayerMaxSpeed);
-				}
-				else
-				{
-					SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
-				}
-
-				if ((iOffset = GameConfGetOffset(hGameData, "CBasePlayer::UpdateStepSound")) != -1)
-				{
-					gH_UpdateStepSound = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
-					gH_UpdateStepSound.AddParam(HookParamType_ObjectPtr);
-					gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
-					gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
-				}
-				else
-				{
-					LogError("Couldn't get the offset for \"CBasePlayer::UpdateStepSound\" - make sure your gamedata is updated!");
-				}
-
-				if ((iOffset = GameConfGetOffset(hGameData, "CGameRules::IsSpawnPointValid")) != -1)
-				{
-					gH_IsSpawnPointValid = new DynamicHook(iOffset, HookType_GameRules, ReturnType_Bool, ThisPointer_Ignore);
-					gH_IsSpawnPointValid.AddParam(HookParamType_CBaseEntity);
-					gH_IsSpawnPointValid.AddParam(HookParamType_CBaseEntity);
-				}
-				else
-				{
-					SetFailState("Couldn't get the offset for \"CGameRules::IsSpawnPointValid\" - make sure your gamedata is updated!");
-				}
-			}
-
-			delete hGameData;
-		}
 	}
 
 	// late load
@@ -407,6 +365,52 @@ public void OnPluginStart()
 	gB_Replay = LibraryExists("shavit-replay");
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_Chat = LibraryExists("shavit-chat");
+}
+
+void LoadDHooks()
+{
+	Handle hGameData = LoadGameConfigFile("shavit.games");
+
+	if(hGameData == null)
+	{
+		SetFailState("Failed to load shavit gamedata");
+	}
+
+	int iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed");
+
+	if(iOffset != -1)
+	{
+		gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, CCSPlayer__GetPlayerMaxSpeed);
+	}
+	else if (gEV_Type != Engine_TF2)
+	{
+		SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+	}
+
+	if ((iOffset = GameConfGetOffset(hGameData, "CBasePlayer::UpdateStepSound")) != -1)
+	{
+		gH_UpdateStepSound = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
+		gH_UpdateStepSound.AddParam(HookParamType_ObjectPtr);
+		gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
+		gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
+	}
+	else
+	{
+		LogError("Couldn't get the offset for \"CBasePlayer::UpdateStepSound\" - make sure your gamedata is updated!");
+	}
+
+	if ((iOffset = GameConfGetOffset(hGameData, "CGameRules::IsSpawnPointValid")) != -1)
+	{
+		gH_IsSpawnPointValid = new DynamicHook(iOffset, HookType_GameRules, ReturnType_Bool, ThisPointer_Ignore);
+		gH_IsSpawnPointValid.AddParam(HookParamType_CBaseEntity);
+		gH_IsSpawnPointValid.AddParam(HookParamType_CBaseEntity);
+	}
+	else
+	{
+		SetFailState("Couldn't get the offset for \"CGameRules::IsSpawnPointValid\" - make sure your gamedata is updated!");
+	}
+
+	delete hGameData;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1233,11 +1237,6 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 
-	if(gEV_Type == Engine_TF2)
-	{
-		SDKHook(client, SDKHook_PreThinkPost, OnPreThink);
-	}
-
 	if(IsFakeClient(client))
 	{
 		if (gCV_BotFootsteps.BoolValue && gH_UpdateStepSound != null)
@@ -1248,16 +1247,23 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
+	if(gEV_Type == Engine_TF2)
+	{
+		SDKHook(client, SDKHook_PreThinkPost, OnPreThink);
+	}
+	else
+	{
+		if(gH_GetPlayerMaxSpeed != null)
+		{
+			DHookEntity(gH_GetPlayerMaxSpeed, true, client);
+		}
+	}
+
 	if(!AreClientCookiesCached(client))
 	{
 		gI_Style[client] = Shavit_GetBhopStyle(client);
 		gB_Hide[client] = false;
 		gI_CheckpointsSettings[client] = CP_DEFAULT;
-	}
-
-	if(gH_GetPlayerMaxSpeed != null)
-	{
-		DHookEntity(gH_GetPlayerMaxSpeed, true, client);
 	}
 
 	if(gA_Checkpoints[client] == null)
