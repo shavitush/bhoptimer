@@ -152,6 +152,7 @@ Handle gH_Forwards_OnCheckpointMenuSelect = null;
 Handle gH_GetPlayerMaxSpeed = null;
 DynamicHook gH_UpdateStepSound = null;
 DynamicHook gH_IsSpawnPointValid = null;
+DynamicDetour gH_CalcPlayerScore = null;
 
 // modules
 bool gB_Eventqueuefix = false;
@@ -410,6 +411,21 @@ void LoadDHooks()
 		SetFailState("Couldn't get the offset for \"CGameRules::IsSpawnPointValid\" - make sure your gamedata is updated!");
 	}
 
+	if (null != (gH_CalcPlayerScore = DHookCreateDetour(Address_Null, CallConv_CDECL, ReturnType_Int, ThisPointer_Ignore)))
+	{
+		if (DHookSetFromConf(gH_CalcPlayerScore, hGameData, SDKConf_Signature, "CTFGameRules::CalcPlayerScore"))
+		{
+			gH_CalcPlayerScore.AddParam(HookParamType_Int);
+			gH_CalcPlayerScore.AddParam(HookParamType_CBaseEntity);
+			gH_CalcPlayerScore.Enable(Hook_Pre, Detour_CalcPlayerScore);
+		}
+		else
+		{
+			LogError("Couldn't get the address for \"CTFGameRules::CalcPlayerScore\" - make sure your gamedata is updated!");
+			delete gH_CalcPlayerScore;
+		}
+	}
+
 	delete hGameData;
 }
 
@@ -430,6 +446,21 @@ public MRESReturn Hook_IsSpawnPointValid(Handle hReturn, Handle hParams)
 	}
 
 	return MRES_Ignored;
+}
+
+MRESReturn Detour_CalcPlayerScore(DHookReturn hReturn, DHookParam hParams)
+{
+	if (!gCV_Scoreboard.BoolValue)
+	{
+		return MRES_Ignored;
+	}
+
+	int client = hParams.Get(2);
+	float fPB = Shavit_GetClientPB(client, 0, Track_Main);
+	int iScore = (fPB != 0.0 && fPB < 2000)? -RoundToFloor(fPB):-2000;
+
+	hReturn.Value = iScore;
+	return MRES_Supercede;
 }
 
 public void OnClientCookiesCached(int client)
@@ -1017,7 +1048,7 @@ public Action Timer_Advertisement(Handle timer)
 
 void UpdateScoreboard(int client)
 {
-	// this doesn't work on tf2 for some reason
+	// this doesn't work on tf2 probably because of CTFGameRules::CalcPlayerScore
 	if(gEV_Type == Engine_TF2)
 	{
 		return;
@@ -1031,7 +1062,6 @@ void UpdateScoreboard(int client)
 	{
 		CS_SetClientContributionScore(client, iScore);
 	}
-
 	else
 	{
 		SetEntProp(client, Prop_Data, "m_iFrags", iScore);
