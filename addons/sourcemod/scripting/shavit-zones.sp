@@ -813,7 +813,7 @@ public void OnMapStart()
 public void LoadStageZones()
 {
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT id, data, track FROM mapzones WHERE type = %i and map = '%s'", Zone_Stage, gS_Map);
+	FormatEx(sQuery, 256, "SELECT id, data, track FROM %smapzones WHERE type = %i and map = '%s'", gS_MySQLPrefix, Zone_Stage, gS_Map);
 	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
 }
 
