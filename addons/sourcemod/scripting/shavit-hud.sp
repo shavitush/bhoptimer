@@ -1786,17 +1786,17 @@ void UpdateTopLeftHUD(int client, bool wait)
 			char sWRName[MAX_NAME_LENGTH];
 			Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH, track);
 
-			char sTopLeft[128];
-			FormatEx(sTopLeft, 128, "WR: %s (%s)", sWRTime, sWRName);
+			char sTopLeft[512];
+			FormatEx(sTopLeft, sizeof(sTopLeft), "WR: %s (%s)", sWRTime, sWRName);
 
 			char sTargetPB[64];
-			FormatSeconds(fTargetPB, sTargetPB, 64);
-			Format(sTargetPB, 64, "%T: %s", "HudBestText", client, sTargetPB);
+			FormatSeconds(fTargetPB, sTargetPB, sizeof(sTargetPB));
+			Format(sTargetPB, sizeof(sTargetPB), "%T: %s", "HudBestText", client, sTargetPB);
 
 			float fSelfPB = Shavit_GetClientPB(client, style, track);
 			char sSelfPB[64];
-			FormatSeconds(fSelfPB, sSelfPB, 64);
-			Format(sSelfPB, 64, "%T: %s", "HudBestText", client, sSelfPB);
+			FormatSeconds(fSelfPB, sSelfPB, sizeof(fSelfPB));
+			Format(sSelfPB, sizeof(fSelfPB), "%T: %s", "HudBestText", client, sSelfPB);
 
 			if((gI_HUD2Settings[client] & HUD2_SPLITPB) == 0 && target != client)
 			{
@@ -1804,11 +1804,11 @@ void UpdateTopLeftHUD(int client, bool wait)
 				{
 					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
 					{
-						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), target);
+						Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d) (%N)", sTopLeft, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), target);
 					}
 					else 
 					{
-						Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sTargetPB, target);
+						Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (%N)", sTopLeft, sTargetPB, target);
 					}
 				}
 
@@ -1816,26 +1816,26 @@ void UpdateTopLeftHUD(int client, bool wait)
 				{
 					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
 					{
-						Format(sTopLeft, 128, "%s\n%s (#%d) (%N)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
+						Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d) (%N)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
 					}
 					else 
 					{
-						Format(sTopLeft, 128, "%s\n%s (%N)", sTopLeft, sSelfPB, client);
+						Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (%N)", sTopLeft, sSelfPB, client);
 					}
 				}
 			}
 
 			else if(fSelfPB != 0.0)
 			{
-				Format(sTopLeft, 128, "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
+				Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
 			}
 
 			Action result = Plugin_Continue;
 			Call_StartForward(gH_Forwards_OnTopLeftHUD);
 			Call_PushCell(client);
 			Call_PushCell(target);
-			Call_PushStringEx(sTopLeft, 128, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-			Call_PushCell(128);
+			Call_PushStringEx(sTopLeft, sizeof(sTopLeft), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+			Call_PushCell(sizeof(sTopLeft));
 			Call_Finish(result);
 			
 			if(result != Plugin_Continue && result != Plugin_Changed)
