@@ -1065,6 +1065,9 @@ void KillZoneEntity(int index)
 	
 	if(entity > MaxClients)
 	{
+		gA_ZoneCache[index].iEntityID = -1;
+		gI_EntityZone[entity] = -1;
+
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			for(int j = 0; j < TRACKS_SIZE; j++)
@@ -1074,8 +1077,6 @@ void KillZoneEntity(int index)
 
 			gB_InsideZoneID[i][index] = false;
 		}
-
-		gI_EntityZone[gA_ZoneCache[index].iEntityID] = -1;
 
 		if (!IsValidEntity(entity))
 		{
@@ -3244,8 +3245,6 @@ public void CreateZoneEntities()
 		if(gA_ZoneCache[i].iEntityID != -1)
 		{
 			KillZoneEntity(i);
-
-			gA_ZoneCache[i].iEntityID = -1;
 		}
 
 		if(!gA_ZoneCache[i].bZoneInitialized)
