@@ -2439,7 +2439,7 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool isPersistentData)
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
 	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", cpcache.fVelocity);
-	GetEntPropVector(target, Prop_Data, "m_vecLadderNormal", cpcache.fLadderNormal);
+	GetEntPropVector(target, Prop_Data, "m_vecLadderNormal", cpcache.vecLadderNormal);
 
 	cpcache.iMoveType = GetEntityMoveType(target);
 	cpcache.fGravity = GetEntityGravity(target);
@@ -2613,7 +2613,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 
 	if(gEV_Type != Engine_TF2)
 	{
-		SetEntPropVector(client, Prop_Data, "m_vecLadderNormal", cpcache.fLadderNormal);
+		SetEntPropVector(client, Prop_Data, "m_vecLadderNormal", cpcache.vecLadderNormal);
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", cpcache.fStamina);
 		SetEntProp(client, Prop_Send, "m_bDucked", cpcache.bDucked);
 		SetEntProp(client, Prop_Send, "m_bDucking", cpcache.bDucking);

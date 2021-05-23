@@ -214,7 +214,7 @@ enum struct cp_cache_t
 	int iSteamID;
 	ArrayList aEvents;
 	ArrayList aOutputWaits;
-	float fLadderNormal[3];
+	float vecLadderNormal[3];
 }
 
 enum struct frame_t
