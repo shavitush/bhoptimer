@@ -280,7 +280,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
 	CreateNative("Shavit_GetReplayCacheFrameCount", Native_GetReplayCacheFrameCount);
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
-	CreateNative("Shavit_GetReplayBotLength", Native_GetReplayBotLength);
+	CreateNative("Shavit_GetReplayCacheLength", Native_GetReplayCacheLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
 	CreateNative("Shavit_GetReplayStatus", Native_GetReplayStatus);
 	CreateNative("Shavit_GetReplayTime", Native_GetReplayTime);
@@ -1111,11 +1111,11 @@ public int Native_GetReplayLength(Handle handler, int numParams)
 	return view_as<int>(GetReplayLength(style, track, gA_FrameCache[style][track]));
 }
 
-public int Native_GetReplayBotLength(Handle handler, int numParams)
+public int Native_GetReplayCacheLength(Handle handler, int numParams)
 {
 	int bot = GetNativeCell(1);
 	int index = GetBotInfoIndex(bot);
-	return view_as<int>(GetReplayLength( gA_BotInfo[index].iStyle,  gA_BotInfo[index].iTrack, gA_BotInfo[index].aCache));
+	return view_as<int>(GetReplayLength(gA_BotInfo[index].iStyle,  gA_BotInfo[index].iTrack, gA_BotInfo[index].aCache));
 }
 
 // TODO: Add a native that'd return the replay name of a replay bot... because custom frames...

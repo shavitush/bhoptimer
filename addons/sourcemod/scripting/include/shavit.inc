@@ -1559,12 +1559,12 @@ native int Shavit_GetClientFrameCount(int client);
 native float Shavit_GetReplayLength(int style, int track);
 
 /**
- * Retrieves a replay bot's total length in seconds.
+ * Retrieves the replay's total length in seconds from the currently running replay bot's framecache_t.
  *
  * @param bot						Replay bot entity.
  * @return							Replay length.
  */
-native float Shavit_GetReplayBotLength(int bot);
+native float Shavit_GetReplayCacheLength(int bot);
 
 /**
  * Retrieves an actively playing replay's time.
@@ -2478,6 +2478,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClosestReplayStyle");
 	MarkNativeAsOptional("Shavit_SetClosestReplayStyle");
 	MarkNativeAsOptional("Shavit_GetReplayCacheFrameCount");
+	MarkNativeAsOptional("Shavit_GetReplayCacheLength");
 	MarkNativeAsOptional("Shavit_StartReplayFromFrameCache");
 	MarkNativeAsOptional("Shavit_StartReplayFromFile");
 	MarkNativeAsOptional("Shavit_GetClientLastStage");
