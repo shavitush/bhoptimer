@@ -372,20 +372,41 @@ void LoadDHooks()
 {
 	Handle hGameData = LoadGameConfigFile("shavit.games");
 
-	if(hGameData == null)
+	if (hGameData == null)
 	{
 		SetFailState("Failed to load shavit gamedata");
 	}
 
-	int iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed");
+	int iOffset;
 
-	if(iOffset != -1)
+	if (gEV_Type == Engine_TF2)
 	{
-		gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, CCSPlayer__GetPlayerMaxSpeed);
+		if (!(gH_CalcPlayerScore = DHookCreateDetour(Address_Null, CallConv_CDECL, ReturnType_Int, ThisPointer_Ignore)))
+		{
+			SetFailState("Failed to create detour for CTFGameRules::CalcPlayerScore");
+		}
+
+		if (DHookSetFromConf(gH_CalcPlayerScore, hGameData, SDKConf_Signature, "CTFGameRules::CalcPlayerScore"))
+		{
+			gH_CalcPlayerScore.AddParam(HookParamType_Int);
+			gH_CalcPlayerScore.AddParam(HookParamType_CBaseEntity);
+			gH_CalcPlayerScore.Enable(Hook_Pre, Detour_CalcPlayerScore);
+		}
+		else
+		{
+			LogError("Couldn't get the address for \"CTFGameRules::CalcPlayerScore\" - make sure your gamedata is updated!");
+		}
 	}
-	else if (gEV_Type != Engine_TF2)
+	else
 	{
-		SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+		iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed");
+
+		if ((iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed")) == -1)
+		{
+			SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+		}
+
+		gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, CCSPlayer__GetPlayerMaxSpeed);
 	}
 
 	if ((iOffset = GameConfGetOffset(hGameData, "CBasePlayer::UpdateStepSound")) != -1)
@@ -409,21 +430,6 @@ void LoadDHooks()
 	else
 	{
 		SetFailState("Couldn't get the offset for \"CGameRules::IsSpawnPointValid\" - make sure your gamedata is updated!");
-	}
-
-	if (null != (gH_CalcPlayerScore = DHookCreateDetour(Address_Null, CallConv_CDECL, ReturnType_Int, ThisPointer_Ignore)))
-	{
-		if (DHookSetFromConf(gH_CalcPlayerScore, hGameData, SDKConf_Signature, "CTFGameRules::CalcPlayerScore"))
-		{
-			gH_CalcPlayerScore.AddParam(HookParamType_Int);
-			gH_CalcPlayerScore.AddParam(HookParamType_CBaseEntity);
-			gH_CalcPlayerScore.Enable(Hook_Pre, Detour_CalcPlayerScore);
-		}
-		else
-		{
-			LogError("Couldn't get the address for \"CTFGameRules::CalcPlayerScore\" - make sure your gamedata is updated!");
-			delete gH_CalcPlayerScore;
-		}
 	}
 
 	delete hGameData;
