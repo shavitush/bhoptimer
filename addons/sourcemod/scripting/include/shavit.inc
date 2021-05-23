@@ -1461,11 +1461,11 @@ native float Shavit_GetReplayBotFirstFrame(int entity);
 /**
  * Retrieve the replay bot's entity index.
  *
- * @param track						Trakc you want. -1 if you want the central bot. If no central bot, the first bot it finds it used.
  * @param style						Style you want. -1 if you want the central bot. If no central bot, the first bot it finds it used.
+ * @param track						Track you want. -1 if you want the central bot. If no central bot, the first bot it finds it used.
  * @return							Client index for the replay bot. -1 if not found.
  */
-native int Shavit_GetReplayBotIndex(int track, int style);
+native int Shavit_GetReplayBotIndex(int style, int track);
 
 /**
  * Retrieve the style being played by the replay bot.

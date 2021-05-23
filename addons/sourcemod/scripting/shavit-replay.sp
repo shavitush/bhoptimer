@@ -764,8 +764,13 @@ public int Native_GetReplayBotCurrentFrame(Handle handler, int numParams)
 
 public int Native_GetReplayBotIndex(Handle handler, int numParams)
 {
-	int track = GetNativeCell(1);
-	int style = GetNativeCell(2);
+	int style = GetNativeCell(1);
+	int track = -1;
+
+	if (numParams > 1)
+	{
+		track = GetNativeCell(2);
+	}
 
 	if (track == -1 && style == -1 && gI_CentralBot > 0)
 	{
