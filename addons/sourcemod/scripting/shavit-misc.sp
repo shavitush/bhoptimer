@@ -1505,7 +1505,7 @@ void ResetCheckpoints(int client)
 	gI_CurrentCheckpoint[client] = 0;
 }
 
-public Action OnTakeDamage(int victim, int attacker)
+public Action OnTakeDamage(int victim, int& attacker)
 {
 	if(gB_Hide[victim] || gCV_GodMode.IntValue >= 2)
 	{
