@@ -1525,12 +1525,12 @@ native int Shavit_GetReplayButtons(int ent);
 native int Shavit_GetReplayFrameCount(int style, int track);
 
 /**
- * Retrieves a replay bot's frame count.
+ * Retrieves the frame count from the currently running replay bot's framecache_t.
  *
  * @param bot						Replay bot entity.
  * @return							Frame count.
  */
-native int Shavit_GetReplayBotFrameCount(int bot);
+native int Shavit_GetReplayCacheFrameCount(int bot);
 
 /**
  * Retrieves the replay data for the given style and track.
@@ -2477,7 +2477,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayButtons");
 	MarkNativeAsOptional("Shavit_GetClosestReplayStyle");
 	MarkNativeAsOptional("Shavit_SetClosestReplayStyle");
-	MarkNativeAsOptional("Shavit_GetReplayBotFrameCount");
+	MarkNativeAsOptional("Shavit_GetReplayCacheFrameCount");
 	MarkNativeAsOptional("Shavit_StartReplayFromFrameCache");
 	MarkNativeAsOptional("Shavit_StartReplayFromFile");
 	MarkNativeAsOptional("Shavit_GetClientLastStage");

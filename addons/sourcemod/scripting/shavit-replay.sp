@@ -278,7 +278,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
-	CreateNative("Shavit_GetReplayBotFrameCount", Native_GetReplayBotFrameCount);
+	CreateNative("Shavit_GetReplayCacheFrameCount", Native_GetReplayCacheFrameCount);
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
 	CreateNative("Shavit_GetReplayBotLength", Native_GetReplayBotLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
@@ -1092,7 +1092,7 @@ public int Native_GetReplayFrameCount(Handle handler, int numParams)
 	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].iFrameCount;
 }
 
-public int Native_GetReplayBotFrameCount(Handle handler, int numParams)
+public int Native_GetReplayCacheFrameCount(Handle handler, int numParams)
 {
 	int bot = GetNativeCell(1);
 	int index = GetBotInfoIndex(bot);
