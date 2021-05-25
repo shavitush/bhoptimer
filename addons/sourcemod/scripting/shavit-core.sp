@@ -1809,7 +1809,7 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 
 	if (gCV_TimeInMessages.BoolValue)
 	{
-		FormatTime(sTime, sizeof(sTime), "%H:%M:%S ");
+		FormatTime(sTime, sizeof(sTime), gB_Protobuf ? "%H:%M:%S " : "\x01%H:%M:%S ");
 	}
 
 	// space before message needed show colors in cs:go
