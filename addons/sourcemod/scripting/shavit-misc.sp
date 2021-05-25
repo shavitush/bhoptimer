@@ -243,11 +243,10 @@ public void OnPluginStart()
 	gA_PersistentData = new ArrayList(sizeof(persistent_data_t));
 
 	// noclip
-	RegConsoleCmd("sm_p", Command_Noclip, "Toggles noclip.");
-	RegConsoleCmd("sm_prac", Command_Noclip, "Toggles noclip. (sm_p alias)");
-	RegConsoleCmd("sm_practice", Command_Noclip, "Toggles noclip. (sm_p alias)");
-	RegConsoleCmd("sm_nc", Command_Noclip, "Toggles noclip. (sm_p alias)");
-	RegConsoleCmd("sm_noclipme", Command_Noclip, "Toggles noclip. (sm_p alias)");
+	RegConsoleCmd("sm_prac", Command_Noclip, "Toggles noclip. (sm_nc alias)");
+	RegConsoleCmd("sm_practice", Command_Noclip, "Toggles noclip. (sm_nc alias)");
+	RegConsoleCmd("sm_nc", Command_Noclip, "Toggles noclip.");
+	RegConsoleCmd("sm_noclipme", Command_Noclip, "Toggles noclip. (sm_nc alias)");
 	AddCommandListener(CommandListener_Noclip, "+noclip");
 	AddCommandListener(CommandListener_Noclip, "-noclip");
 
