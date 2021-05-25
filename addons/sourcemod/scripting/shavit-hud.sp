@@ -1795,8 +1795,8 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 			float fSelfPB = Shavit_GetClientPB(client, style, track);
 			char sSelfPB[64];
-			FormatSeconds(fSelfPB, sSelfPB, sizeof(fSelfPB));
-			Format(sSelfPB, sizeof(fSelfPB), "%T: %s", "HudBestText", client, sSelfPB);
+			FormatSeconds(fSelfPB, sSelfPB, sizeof(sSelfPB));
+			Format(sSelfPB, sizeof(sSelfPB), "%T: %s", "HudBestText", client, sSelfPB);
 
 			if((gI_HUD2Settings[client] & HUD2_SPLITPB) == 0 && target != client)
 			{
