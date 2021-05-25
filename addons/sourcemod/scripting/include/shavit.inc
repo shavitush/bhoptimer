@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "2.7.0"
+#define SHAVIT_VERSION "3.0.0"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_STAGES 51 // 😐 kind of arbitrary but also some space between this and MAX_ZONES
@@ -1219,7 +1219,7 @@ native float Shavit_GetStageWR(int track, int style, int stage);
  * @param stage                     Stage number.
  * @return                          The stage time of the PB run. Can be 0.0 if the PB run didn't hit the stage or if the stage doesn't exist.
  */
-native float Shavit_GetStagePB(int client, int track, int style, int stage);
+//native float Shavit_GetStagePB(int client, int track, int style, int stage);
 
 //native float Shavit_GetStageWRCP(int track, int style, int stage);
 //native float Shavit_GetStagePBCP(int client, int track, int style, int stage);
