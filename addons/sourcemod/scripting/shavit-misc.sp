@@ -1678,7 +1678,7 @@ public Action Command_Spec(int client, int args)
 	}
 	else if(gB_Replay)
 	{
-		target = Shavit_GetReplayBotIndex(-1, 0); // try to find normal bot
+		target = Shavit_GetReplayBotIndex(0, -1); // try to find normal bot
 
 		if (target < 1)
 		{
