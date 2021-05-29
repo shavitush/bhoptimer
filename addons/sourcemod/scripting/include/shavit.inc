@@ -723,10 +723,9 @@ forward void Shavit_OnDatabaseLoaded();
 /**
  * Called when the chat messages configuration finishes loading and it's ready to load everything into the cache.
  *
- * @param strings                   The chat strings
  * @noreturn
  */
-forward void Shavit_OnChatConfigLoaded(chatstrings_t strings);
+forward void Shavit_OnChatConfigLoaded();
 
 /**
  * Called when a player teleports with checkpoints.

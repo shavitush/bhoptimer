@@ -796,9 +796,7 @@ public void OnMapStart()
 
 	if(gB_Late)
 	{
-		chatstrings_t chatstrings;
-		Shavit_GetChatStringsStruct(chatstrings);
-		Shavit_OnChatConfigLoaded(chatstrings);
+		Shavit_OnChatConfigLoaded();
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -1027,9 +1025,9 @@ public void Frame_HookTrigger(any data)
 	}
 }
 
-public void Shavit_OnChatConfigLoaded(chatstrings_t strings)
+public void Shavit_OnChatConfigLoaded()
 {
-	gS_ChatStrings = strings;
+	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
 void ClearZone(int index)
