@@ -1580,10 +1580,18 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 
 void RemoveFromString(char[] buf, char[] thing, int extra)
 {
-	int index;
+	int index, len = strlen(buf);
 	extra += strlen(thing);
+	
 	while ((index = StrContains(buf, thing, true)) != -1)
 	{
+		// Search sequence is in the end of the string, so just cut it and exit
+		if(index + extra >= len)
+		{
+			buf[index] = '\0';
+			break;
+		}
+		
 		while (buf[index] != 0)
 		{
 			buf[index] = buf[index+extra];
