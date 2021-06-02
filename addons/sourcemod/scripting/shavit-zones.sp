@@ -924,9 +924,27 @@ public void Frame_HookTrigger(any data)
 	char sName[32];
 	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
 
+	// Please follow this naming scheme for this zones https://github.com/3331/fly#trigger_multiple
+	// mod_zone_start
+	// mod_zone_end
+	// mod_zone_checkpoint_X
+	// mod_zone_bonus_X_start
+	// mod_zone_bonus_X_end
+	// mod_zone_bonus_X_checkpoint_X
+
 	if(StrContains(sName, "mod_zone_") == -1)
 	{
 		return;
+	}
+
+	// Normalize some zone names that bhop_somp_island and bhop_overthinker use
+	if (StrEqual(sName, "mod_zone_start_bonus") || StrEqual(sName, "mod_zone_bonus_start"))
+	{
+		sName = "mod_zone_bonus_1_start";
+	}
+	else if (StrEqual(sName, "mod_zone_end_bonus") || StrEqual(sName, "mod_zone_bonus_end"))
+	{
+		sName = "mod_zone_bonus_1_end";
 	}
 
 	int zone = -1;
@@ -937,7 +955,6 @@ public void Frame_HookTrigger(any data)
 	{
 		zone = Zone_Start;
 	}
-
 	else if(StrContains(sName, "end") != -1)
 	{
 		zone = Zone_End;
@@ -954,21 +971,12 @@ public void Frame_HookTrigger(any data)
 		{
 			iCheckpointIndex = 5; // mod_zone_bonus_X_checkpoint_X
 
-			// check for BAD BAD BAD WRONG entities named "mod_zone_bonus_start" or "mod_zone_bonus_end" (bhop_somp_island does this)
-			if (StrEqual(sections[3], "start") || StrEqual(sections[3], "end") || StrEqual(sections[3], "checkpoint"))
-			{
-				track = Track_Bonus;
-				iCheckpointIndex = 4; // mod_zone_bonus_checkpoint_X
-			}
-			else
-			{
-				track = StringToInt(sections[3]); // 0 on failure to parse. 0 is less than Track_Bonus
+			track = StringToInt(sections[3]); // 0 on failure to parse. 0 is less than Track_Bonus
 
-				if (track < Track_Bonus || track > Track_Bonus_Last)
-				{
-					LogError("invalid track in prebuilt map zone (%s) on %s", sName, gS_Map);
-					return;
-				}
+			if (track < Track_Bonus || track > Track_Bonus_Last)
+			{
+				LogError("invalid track in prebuilt map zone (%s) on %s", sName, gS_Map);
+				return;
 			}
 		}
 
@@ -977,8 +985,7 @@ public void Frame_HookTrigger(any data)
 			zone = Zone_Stage;
 			zonedata = StringToInt(sections[iCheckpointIndex]);
 
-			// TODO stop hardcoding stage number limit
-			if (zonedata <= 0 || zonedata > 40)
+			if (zonedata <= 0 || zonedata > MAX_STAGES)
 			{
 				LogError("invalid stage number in prebuilt map zone (%s) on %s", sName, gS_Map);
 				return;
