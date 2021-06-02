@@ -56,8 +56,6 @@ enum struct replaystrings_t
 	char sClanTag[MAX_NAME_LENGTH];
 	char sNameStyle[MAX_NAME_LENGTH];
 	char sCentralName[MAX_NAME_LENGTH];
-	char sCentralStyle[MAX_NAME_LENGTH];
-	char sCentralStyleTag[MAX_NAME_LENGTH];
 	char sUnloaded[MAX_NAME_LENGTH];
 }
 
@@ -1310,8 +1308,6 @@ bool LoadStyling()
 	kv.GetString("clantag", gS_ReplayStrings.sClanTag, MAX_NAME_LENGTH, "<EMPTY CLANTAG>");
 	kv.GetString("namestyle", gS_ReplayStrings.sNameStyle, MAX_NAME_LENGTH, "<EMPTY NAMESTYLE>");
 	kv.GetString("centralname", gS_ReplayStrings.sCentralName, MAX_NAME_LENGTH, "<EMPTY CENTRALNAME>");
-	kv.GetString("centralstyle", gS_ReplayStrings.sCentralStyle, MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLE>");
-	kv.GetString("centralstyletag", gS_ReplayStrings.sCentralStyleTag, MAX_NAME_LENGTH, "<EMPTY CENTRALSTYLETAG>");
 	kv.GetString("unloaded", gS_ReplayStrings.sUnloaded, MAX_NAME_LENGTH, "<EMPTY UNLOADED>");
 
 	char sFolder[PLATFORM_MAX_PATH];
@@ -2126,13 +2122,13 @@ void FormatStyle(const char[] source, int style, bool central, int track, char d
 	{
 		FormatSeconds(0.0, sTime, 16);
 		sName = "you should never see this";
-		ReplaceString(temp, sizeof(temp), "{style}", gS_ReplayStrings.sCentralStyle);
 	}
 	else
 	{
 		FormatSeconds(GetReplayLength(style, track, aCache), sTime, 16);
 		GetReplayName(style, track, sName, sizeof(sName));
 		ReplaceString(temp, sizeof(temp), "{style}", gS_StyleStrings[style].sStyleName);
+		ReplaceString(temp, sizeof(temp), "{styletag}", gS_StyleStrings[style].sClanTag);
 	}
 
 	char sType[32];
