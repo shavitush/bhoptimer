@@ -35,6 +35,8 @@
 
 #define DEBUG 0
 
+#define EFL_CHECK_UNTOUCH (1<<24)
+
 enum struct playertimer_t
 {
 	bool bEnabled;
@@ -72,6 +74,10 @@ enum struct playertimer_t
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Protobuf = false;
+
+// hook stuff
+DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
+Handle gH_PhysicsCheckForEntityUntouch;
 
 // database handle
 Database gH_SQL = null;
@@ -140,6 +146,7 @@ Convar gCV_DefaultStyle = null;
 Convar gCV_NoChatSound = null;
 Convar gCV_SimplerLadders = null;
 Convar gCV_UseOffsets = null;
+Convar gCV_TimeInMessages;
 #if DEBUG
 Convar gCV_DebugOffsets = null;
 #endif
@@ -159,7 +166,6 @@ ConVar sv_enablebunnyhopping = null;
 bool gB_Registered = false;
 int gI_Styles = 0;
 int gI_OrderedStyles[STYLE_LIMIT];
-stylesettings_t gA_StyleSettings[STYLE_LIMIT];
 StringMap gSM_StyleKeys[STYLE_LIMIT];
 int gI_CurrentParserIndex = 0;
 
@@ -200,12 +206,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_FinishMap", Native_FinishMap);
 	CreateNative("Shavit_GetBhopStyle", Native_GetBhopStyle);
 	CreateNative("Shavit_GetChatStrings", Native_GetChatStrings);
+	CreateNative("Shavit_GetChatStringsStruct", Native_GetChatStringsStruct);
 	CreateNative("Shavit_GetClientJumps", Native_GetClientJumps);
 	CreateNative("Shavit_GetClientTime", Native_GetClientTime);
 	CreateNative("Shavit_GetClientTrack", Native_GetClientTrack);
 	CreateNative("Shavit_GetDatabase", Native_GetDatabase);
-	CreateNative("Shavit_GetDB", Native_GetDB);
-	CreateNative("Shavit_GetGameType", Native_GetGameType);
 	CreateNative("Shavit_GetOrderedStyles", Native_GetOrderedStyles);
 	CreateNative("Shavit_GetPerfectJumps", Native_GetPerfectJumps);
 	CreateNative("Shavit_GetStrafeCount", Native_GetStrafeCount);
@@ -215,12 +220,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetStyleSettingBool", Native_GetStyleSettingBool);
 	CreateNative("Shavit_GetStyleSettingFloat", Native_GetStyleSettingFloat);
 	CreateNative("Shavit_HasStyleSetting", Native_HasStyleSetting);
-	CreateNative("Shavit_GetStyleSettings", Native_GetStyleSettings);
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
+	CreateNative("Shavit_GetStyleStringsStruct", Native_GetStyleStringsStruct);
 	CreateNative("Shavit_GetSync", Native_GetSync);
 	CreateNative("Shavit_GetTimeOffset", Native_GetTimeOffset);
 	CreateNative("Shavit_GetDistanceOffset", Native_GetTimeOffsetDistance);
-	CreateNative("Shavit_GetTimer", Native_GetTimer);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
 	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
 	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
@@ -231,6 +235,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_MarkKZMap", Native_MarkKZMap);
 	CreateNative("Shavit_PauseTimer", Native_PauseTimer);
 	CreateNative("Shavit_PrintToChat", Native_PrintToChat);
+	CreateNative("Shavit_PrintToChatAll", Native_PrintToChatAll);
 	CreateNative("Shavit_RestartTimer", Native_RestartTimer);
 	CreateNative("Shavit_ResumeTimer", Native_ResumeTimer);
 	CreateNative("Shavit_SaveSnapshot", Native_SaveSnapshot);
@@ -259,8 +264,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	LoadDHooks();
-
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
@@ -301,6 +304,8 @@ public void OnPluginStart()
 		SetFailState("This plugin was meant to be used in CS:S, CS:GO and TF2 *only*.");
 	}
 
+	LoadDHooks();
+
 	// hooks
 	gB_HookedJump = HookEventEx("player_jump", Player_Jump);
 	HookEvent("player_death", Player_Death);
@@ -316,13 +321,22 @@ public void OnPluginStart()
 	gH_StyleCookie = RegClientCookie("shavit_style", "Style cookie", CookieAccess_Protected);
 
 	// timer start
-	RegConsoleCmd("sm_s", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_start", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_r", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
+	RegConsoleCmd("sm_m", Command_StartTimer, "Start your timer on the main track.");
+	RegConsoleCmd("sm_main", Command_StartTimer, "Start your timer on the main track.");
 
 	RegConsoleCmd("sm_b", Command_StartTimer, "Start your timer on the bonus track.");
 	RegConsoleCmd("sm_bonus", Command_StartTimer, "Start your timer on the bonus track.");
+
+	for (int i = Track_Bonus; i <= Track_Bonus_Last; i++)
+	{
+		char cmd[10], helptext[50];
+		FormatEx(cmd, sizeof(cmd), "sm_b%d", i);
+		FormatEx(helptext, sizeof(helptext), "Start your timer on the bonus %d track.", i);
+		RegConsoleCmd(cmd, Command_StartTimer, helptext);
+	}
 
 	// teleport to end
 	RegConsoleCmd("sm_end", Command_TeleportEnd, "Teleport to endzone.");
@@ -376,6 +390,7 @@ public void OnPluginStart()
 	gCV_NoChatSound = new Convar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
 	gCV_SimplerLadders = new Convar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 	gCV_UseOffsets = new Convar("shavit_core_useoffsets", "1", "Calculates more accurate times by subtracting/adding tick offsets from the time the server uses to register that a player has left or entered a trigger", 0, true, 0.0, true, 1.0);
+	gCV_TimeInMessages = new Convar("shavit_core_timeinmessages", "0", "Whether to prefix SayText2 messages with the time.", 0, true, 0.0, true, 1.0);
 	#if DEBUG
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
 	#endif
@@ -470,8 +485,40 @@ void LoadDHooks()
 	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
 	DHookRaw(processMovementPost, true, IGameMovement);
 
+	StartPrepSDKCall(SDKCall_Entity);
+	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "PhysicsCheckForEntityUntouch"))
+	{
+		SetFailState("Failed to get PhysicsCheckForEntityUntouch");
+	}
+	gH_PhysicsCheckForEntityUntouch = EndPrepSDKCall();
+
 	delete CreateInterface;
 	delete gamedataConf;
+
+	GameData AcceptInputGameData;
+
+	if (gEV_Type == Engine_CSS)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/game.cstrike");
+	}
+	else if (gEV_Type == Engine_TF2)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/game.tf");
+	}
+	else if (gEV_Type == Engine_CSGO)
+	{
+		AcceptInputGameData = new GameData("sdktools.games/engine.csgo");
+	}
+
+	// Stolen from dhooks-test.sp
+	offset = AcceptInputGameData.GetOffset("AcceptInput");
+	delete AcceptInputGameData;
+	gH_AcceptInput = new DynamicHook(offset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_CharPtr);
+	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
+	gH_AcceptInput.AddParam(HookParamType_Object, 20, DHookPass_ByVal|DHookPass_ODTOR|DHookPass_OCTOR|DHookPass_OASSIGNOP); //variant_t is a union of 12 (float[3]) plus two int type params 12 + 8 = 20
+	gH_AcceptInput.AddParam(HookParamType_Int);
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -580,7 +627,12 @@ public Action Command_StartTimer(int client, int args)
 
 	if(StrContains(sCommand, "sm_b", false) == 0)
 	{
-		if (args < 1)
+		// Pull out bonus number for commands like sm_b1 and sm_b2.
+		if ('1' <= sCommand[4] <= ('0' + Track_Bonus_Last))
+		{
+			track = sCommand[4] - '0';
+		}
+		else if (args < 1)
 		{
 			track = Shavit_GetClientTrack(client);
 		}
@@ -596,6 +648,10 @@ public Action Command_StartTimer(int client, int args)
 			track = Track_Bonus;
 		}
 	}
+	else if(StrContains(sCommand, "sm_r", false) == 0 || StrContains(sCommand, "sm_s", false) == 0)
+	{
+		track = gA_Timers[client].iTrack;
+	}
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
 	{
@@ -609,7 +665,7 @@ public Action Command_StartTimer(int client, int args)
 		Call_PushCell(track);
 		Call_Finish();
 
-		if(gCV_AllowTimerWithoutZone.BoolValue)
+		if(gCV_AllowTimerWithoutZone.BoolValue || !gB_Zones)
 		{
 			StartTimer(client, track);
 		}
@@ -739,6 +795,13 @@ public Action Command_TogglePause(int client, int args)
 		if((iFlags & CPR_Moving) > 0)
 		{
 			Shavit_PrintToChat(client, "%T", "PauseMoving", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+			return Plugin_Handled;
+		}
+
+		if((iFlags & CPR_Duck) > 0)
+		{
+			Shavit_PrintToChat(client, "%T", "PauseDuck", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
 			return Plugin_Handled;
 		}
@@ -967,21 +1030,9 @@ void DeleteUserData(int client, const int iSteamID)
 
 	if(gB_WR)
 	{
-		if(gB_MySQL)
-		{
-			FormatEx(sQuery, 512,
-				"SELECT p1.id, p1.style, p1.track, p1.map FROM %splayertimes p1 " ...
-					"JOIN (SELECT map, style, track, MIN(time) time FROM %splayertimes GROUP BY map, style, track) p2 " ...
-					"ON p1.style = p2.style AND p1.track = p2.track AND p1.time = p2.time " ...
-					"WHERE p1.auth = %d;",
-				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
-		}
-		else
-		{
-			FormatEx(sQuery, 512,
-				"SELECT p.id, p.style, p.track, p.map FROM %splayertimes p JOIN(SELECT style, MIN(time) time, map, track FROM %splayertimes GROUP BY map, style, track) s ON p.style = s.style AND p.time = s.time AND p.map = s.map AND s.track = p.track GROUP BY p.map, p.style, p.track WHERE p.auth = %d;",
-				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
-		}
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT id, style, track, map FROM %swrs WHERE auth = %d;",
+			gS_MySQLPrefix, iSteamID);
 
 		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
 	}
@@ -1136,7 +1187,7 @@ public Action Command_Style(int client, int args)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 20);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -1173,6 +1224,11 @@ void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 	Call_PushCell(oldtrack);
 	Call_PushCell(newtrack);
 	Call_Finish();
+
+	if (oldtrack == Track_Main && oldtrack != newtrack)
+	{
+		Shavit_PrintToChat(client, "%T", "TrackChangeFromMain", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+	}
 }
 
 void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
@@ -1252,6 +1308,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTrack) || gB_KZMap)))
 	{
+		Shavit_StopTimer(client, true);
 		Call_StartForward(gH_Forwards_OnRestart);
 		Call_PushCell(client);
 		Call_PushCell(gA_Timers[client].iTrack);
@@ -1389,11 +1446,6 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 	StopTimer(client);
 }
 
-public int Native_GetGameType(Handle handler, int numParams)
-{
-	return view_as<int>(gEV_Type);
-}
-
 public int Native_GetOrderedStyles(Handle handler, int numParams)
 {
 	return SetNativeArray(1, gI_OrderedStyles, GetNativeCell(2));
@@ -1402,23 +1454,6 @@ public int Native_GetOrderedStyles(Handle handler, int numParams)
 public int Native_GetDatabase(Handle handler, int numParams)
 {
 	return view_as<int>(CloneHandle(gH_SQL, handler));
-}
-
-public int Native_GetDB(Handle handler, int numParams)
-{
-	SetNativeCellRef(1, gH_SQL);
-}
-
-public int Native_GetTimer(Handle handler, int numParams)
-{
-	// 1 - client
-	int client = GetNativeCell(1);
-
-	// 2 - time
-	SetNativeCellRef(2, gA_Timers[client].fTimer);
-	SetNativeCellRef(3, gA_Timers[client].iJumps);
-	SetNativeCellRef(4, gA_Timers[client].iStyle);
-	SetNativeCellRef(5, gA_Timers[client].bEnabled);
 }
 
 public int Native_GetClientTime(Handle handler, int numParams)
@@ -1529,6 +1564,32 @@ public int Native_CanPause(Handle handler, int numParams)
 		iFlags |= CPR_Moving;
 	}
 
+
+	float CS_PLAYER_DUCK_SPEED_IDEAL = 8.0;
+	bool bDucked, bDucking;
+	float fDucktime, fDuckSpeed = CS_PLAYER_DUCK_SPEED_IDEAL;
+
+	if(gEV_Type != Engine_TF2)
+	{
+		bDucked = view_as<bool>(GetEntProp(client, Prop_Send, "m_bDucked"));
+		bDucking = view_as<bool>(GetEntProp(client, Prop_Send, "m_bDucking"));
+
+		if(gEV_Type == Engine_CSS)
+		{
+			fDucktime = GetEntPropFloat(client, Prop_Send, "m_flDucktime");
+		}
+		else if(gEV_Type == Engine_CSGO)
+		{
+			fDucktime = GetEntPropFloat(client, Prop_Send, "m_flDuckAmount");
+			fDuckSpeed = GetEntPropFloat(client, Prop_Send, "m_flDuckSpeed");
+		}
+	}
+
+	if (bDucked || bDucking || fDucktime > 0.0 || fDuckSpeed < CS_PLAYER_DUCK_SPEED_IDEAL || GetClientButtons(client) & IN_DUCK)
+	{
+		iFlags |= CPR_Duck;
+	}
+
 	return iFlags;
 }
 
@@ -1590,23 +1651,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	}
 
 	timer_snapshot_t snapshot;
-	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
-	snapshot.bClientPaused = gA_Timers[client].bPaused;
-	snapshot.iJumps = gA_Timers[client].iJumps;
-	snapshot.bsStyle = gA_Timers[client].iStyle;
-	snapshot.iStrafes = gA_Timers[client].iStrafes;
-	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
-	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
-	snapshot.fServerTime = GetEngineTime();
-	snapshot.fCurrentTime = gA_Timers[client].fTimer;
-	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
-	snapshot.iTimerTrack = gA_Timers[client].iTrack;
-	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
-	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
-	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
-	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
-	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
+	BuildSnapshot(client, snapshot);
 
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_FinishPre);
@@ -1730,15 +1775,46 @@ public int Native_StopChatSound(Handle handler, int numParams)
 	gB_StopChatSound = true;
 }
 
+public int Native_PrintToChatAll(Handle plugin, int numParams)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			SetGlobalTransTarget(i);
+
+			bool previousStopChatSound = gB_StopChatSound;
+			SemiNative_PrintToChat(i, 1);
+			gB_StopChatSound = previousStopChatSound;
+		}
+	}
+
+	gB_StopChatSound = false;
+}
+
 public int Native_PrintToChat(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
+	return SemiNative_PrintToChat(client, 2);
+}
 
-	static int iWritten = 0; // useless?
+public int SemiNative_PrintToChat(int client, int formatParam)
+{
+	int iWritten;
+	char sBuffer[256];
+	char sInput[300];
+	FormatNativeString(0, formatParam, formatParam+1, sizeof(sInput), iWritten, sInput);
 
-	char sBuffer[300];
-	FormatNativeString(0, 2, 3, 300, iWritten, sBuffer);
-	Format(sBuffer, 300, "%s %s%s", gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sBuffer);
+	char sTime[50];
+
+	if (gCV_TimeInMessages.BoolValue)
+	{
+		FormatTime(sTime, sizeof(sTime), gB_Protobuf ? "%H:%M:%S " : "\x01%H:%M:%S ");
+	}
+
+	// space before message needed show colors in cs:go
+	// strlen(sBuffer)>252 is when CSS stops printing the messages
+	FormatEx(sBuffer, (gB_Protobuf ? sizeof(sBuffer) : 253), "%s%s%s %s%s", (gB_Protobuf ? " ":""), sTime, gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sInput);
 
 	if(client == 0)
 	{
@@ -1758,9 +1834,6 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 	if(gB_Protobuf)
 	{
-		// show colors in cs:go
-		Format(sBuffer, 300, " %s", sBuffer);
-
 		Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 		pbmsg.SetInt("ent_idx", client);
 		pbmsg.SetBool("chat", !(gB_StopChatSound || gCV_NoChatSound.BoolValue));
@@ -1772,7 +1845,6 @@ public int Native_PrintToChat(Handle handler, int numParams)
 			pbmsg.AddString("params", "");
 		}
 	}
-
 	else
 	{
 		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
@@ -1793,12 +1865,17 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	int track = GetNativeCell(2);
 
+	Shavit_StopTimer(client, true);
+
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
 	Call_PushCell(track);
 	Call_Finish();
 
-	StartTimer(client, track);
+	if(gCV_AllowTimerWithoutZone.BoolValue || !gB_Zones)
+	{
+		StartTimer(client, track);
+	}
 }
 
 public int Native_GetPerfectJumps(Handle handler, int numParams)
@@ -1825,19 +1902,6 @@ public int Native_GetStyleCount(Handle handler, int numParams)
 	return (gI_Styles > 0)? gI_Styles:-1;
 }
 
-public int Native_GetStyleSettings(Handle handler, int numParams)
-{
-	LogError("Shavit_GetStyleSettings is deprecated and will be removed in 3.0. Use Shavit_GetStyleSetting instead");
-
-	if(GetNativeCell(3) != sizeof(stylesettings_t))
-	{
-		return ThrowNativeError(200, "stylesettings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
-			GetNativeCell(3), sizeof(stylesettings_t));
-	}
-	
-	return SetNativeArray(2, gA_StyleSettings[GetNativeCell(1)], sizeof(stylesettings_t));
-}
-
 public int Native_GetStyleStrings(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
@@ -1850,48 +1914,59 @@ public int Native_GetStyleStrings(Handle handler, int numParams)
 		case sStyleName:
 		{
 			gSM_StyleKeys[style].GetString("name", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sShortName:
 		{
 			gSM_StyleKeys[style].GetString("shortname", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sHTMLColor:
 		{
 			gSM_StyleKeys[style].GetString("htmlcolor", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sChangeCommand:
 		{
 			gSM_StyleKeys[style].GetString("command", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sClanTag:
 		{
 			gSM_StyleKeys[style].GetString("clantag", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sSpecialString:
 		{
 			gSM_StyleKeys[style].GetString("specialstring", sValue, size);
-
-			return SetNativeString(3, sValue, size);
 		}
 		case sStylePermission:
 		{
 			gSM_StyleKeys[style].GetString("permission", sValue, size);
-
-			return SetNativeString(3, sValue, size);
+		}
+		default:
+		{
+			return -1;
 		}
 	}
 
-	return -1;
+	return SetNativeString(3, sValue, size);
+}
+
+public int Native_GetStyleStringsStruct(Handle plugin, int numParams)
+{
+	int style = GetNativeCell(1);
+
+	if (GetNativeCell(3) != sizeof(stylestrings_t))
+	{
+		return ThrowNativeError(200, "stylestrings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins", GetNativeCell(3), sizeof(stylestrings_t));
+	}
+
+	stylestrings_t strings;
+	gSM_StyleKeys[style].GetString("name", strings.sStyleName, sizeof(strings.sStyleName));
+	gSM_StyleKeys[style].GetString("shortname", strings.sShortName, sizeof(strings.sShortName));
+	gSM_StyleKeys[style].GetString("htmlcolor", strings.sHTMLColor, sizeof(strings.sHTMLColor));
+	gSM_StyleKeys[style].GetString("command", strings.sChangeCommand, sizeof(strings.sChangeCommand));
+	gSM_StyleKeys[style].GetString("clantag", strings.sClanTag, sizeof(strings.sClanTag));
+	gSM_StyleKeys[style].GetString("specialstring", strings.sSpecialString, sizeof(strings.sSpecialString));
+	gSM_StyleKeys[style].GetString("permission", strings.sStylePermission, sizeof(strings.sStylePermission));
+
+	return SetNativeArray(2, strings, sizeof(stylestrings_t));
 }
 
 public int Native_GetChatStrings(Handle handler, int numParams)
@@ -1910,6 +1985,16 @@ public int Native_GetChatStrings(Handle handler, int numParams)
 	}
 
 	return -1;
+}
+
+public int Native_GetChatStringsStruct(Handle plugin, int numParams)
+{
+	if (GetNativeCell(2) != sizeof(chatstrings_t))
+	{
+		return ThrowNativeError(200, "chatstrings_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins", GetNativeCell(2), sizeof(chatstrings_t));
+	}
+
+	return SetNativeArray(1, gS_ChatStrings, sizeof(gS_ChatStrings));
 }
 
 public int Native_SetPracticeMode(Handle handler, int numParams)
@@ -1947,23 +2032,7 @@ public int Native_SaveSnapshot(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 
 	timer_snapshot_t snapshot;
-	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
-	snapshot.bClientPaused = gA_Timers[client].bPaused;
-	snapshot.iJumps = gA_Timers[client].iJumps;
-	snapshot.bsStyle = gA_Timers[client].iStyle;
-	snapshot.iStrafes = gA_Timers[client].iStrafes;
-	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
-	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
-	snapshot.fServerTime = GetEngineTime();
-	snapshot.fCurrentTime = gA_Timers[client].fTimer;
-	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
-	snapshot.iTimerTrack = gA_Timers[client].iTrack;
-	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
-	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
-	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
-	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
-	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
-	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
+	BuildSnapshot(client, snapshot);
 	return SetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 }
 
@@ -1974,6 +2043,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 		return ThrowNativeError(200, "timer_snapshot_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins",
 			GetNativeCell(3), sizeof(timer_snapshot_t));
 	}
+
 	int client = GetNativeCell(1);
 
 	timer_snapshot_t snapshot;
@@ -1994,7 +2064,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	// no longer paused, reset their movement
 	if(gA_Timers[client].bPaused && !snapshot.bClientPaused)
 	{
-		SetEntityMoveType(client, MOVETYPE_WALK);
+		//SetEntityMoveType(client, MOVETYPE_WALK);
 	}
 
 	gA_Timers[client].bEnabled = snapshot.bTimerEnabled;
@@ -2012,6 +2082,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].fDistanceOffset = snapshot.fDistanceOffset;
 	gA_Timers[client].fAvgVelocity = snapshot.fAvgVelocity;
 	gA_Timers[client].fMaxVelocity = snapshot.fMaxVelocity;
+	gA_Timers[client].fTimescale = snapshot.fTimescale;
 
 	return 0;
 }
@@ -2263,7 +2334,7 @@ void StartTimer(int client, int track)
 		{
 			if(gA_Timers[client].bPaused)
 			{
-				SetEntityMoveType(client, MOVETYPE_WALK);
+				//SetEntityMoveType(client, MOVETYPE_WALK);
 			}
 
 			gA_Timers[client].iZoneIncrement = 0;
@@ -2322,7 +2393,7 @@ void StopTimer(int client)
 
 	if(gA_Timers[client].bPaused)
 	{
-		SetEntityMoveType(client, MOVETYPE_WALK);
+		//SetEntityMoveType(client, MOVETYPE_WALK);
 	}
 
 	gA_Timers[client].bEnabled = false;
@@ -2363,7 +2434,7 @@ void ResumeTimer(int client)
 
 	gA_Timers[client].bPaused = false;
 	// setting is handled in usercmd
-	SetEntityMoveType(client, MOVETYPE_WALK);
+	//SetEntityMoveType(client, MOVETYPE_WALK);
 }
 
 public void OnClientDisconnect(int client)
@@ -2452,9 +2523,9 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
-	char sName[MAX_NAME_LENGTH_SQL];
-	GetClientName(client, sName, MAX_NAME_LENGTH_SQL);
-	ReplaceString(sName, MAX_NAME_LENGTH_SQL, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
+	char sName[MAX_NAME_LENGTH];
+	GetClientName(client, sName, MAX_NAME_LENGTH);
+	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
 
 	int iLength = ((strlen(sName) * 2) + 1);
 	char[] sEscapedName = new char[iLength];
@@ -2521,75 +2592,6 @@ bool LoadStyles()
 	parser.OnKeyValue = OnStyleKeyValue;
 	parser.ParseFile(sPath);
 	delete parser;
-
-
-	// TODO: REMOVE IN 3.0
-	// These are being left in as a backwards compatibility for the forwards using the style settings struct.
-	// Forwards seem to be fairly safe but will eventually be deprecated in favor of removing enum struct api usage.
-	KeyValues kv = new KeyValues("shavit-styles");
-
-	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
-	{
-		delete kv;
-
-		return false;
-	}
-
-	int i = 0;
-
-	do
-	{		
-		gA_StyleSettings[i].bAutobhop = view_as<bool>(kv.GetNum("autobhop", 1));
-		gA_StyleSettings[i].bEasybhop = view_as<bool>(kv.GetNum("easybhop", 1));
-		gA_StyleSettings[i].iPrespeed = view_as<bool>(kv.GetNum("prespeed", 0));
-		gA_StyleSettings[i].fVelocityLimit = kv.GetFloat("velocity_limit", 0.0);
-		gA_StyleSettings[i].fAiraccelerate = kv.GetFloat("airaccelerate", 1000.0);
-		gA_StyleSettings[i].bEnableBunnyhopping = view_as<bool>(kv.GetNum("bunnyhopping", 1));
-		gA_StyleSettings[i].fRunspeed = kv.GetFloat("runspeed", 260.00);
-		gA_StyleSettings[i].fGravityMultiplier = kv.GetFloat("gravity", 1.0);
-		gA_StyleSettings[i].fSpeedMultiplier = kv.GetFloat("speed", 1.0);
-		gA_StyleSettings[i].fTimescale = view_as<bool>(kv.GetNum("halftime", 0))? 0.5:kv.GetFloat("timescale", 1.0); // backwards compat for old halftime settig
-		gA_StyleSettings[i].fVelocity = kv.GetFloat("velocity", 1.0);
-		gA_StyleSettings[i].fBonusVelocity = kv.GetFloat("bonus_velocity", 0.0);
-		gA_StyleSettings[i].fMinVelocity = kv.GetFloat("min_velocity", 0.0);
-		gA_StyleSettings[i].fJumpMultiplier = kv.GetFloat("jump_multiplier", 0.0);
-		gA_StyleSettings[i].fJumpBonus = kv.GetFloat("jump_bonus", 0.0);
-		gA_StyleSettings[i].bBlockW = view_as<bool>(kv.GetNum("block_w", 0));
-		gA_StyleSettings[i].bBlockA = view_as<bool>(kv.GetNum("block_a", 0));
-		gA_StyleSettings[i].bBlockS = view_as<bool>(kv.GetNum("block_s", 0));
-		gA_StyleSettings[i].bBlockD = view_as<bool>(kv.GetNum("block_d", 0));
-		gA_StyleSettings[i].bBlockUse = view_as<bool>(kv.GetNum("block_use", 0));
-		gA_StyleSettings[i].iForceHSW = kv.GetNum("force_hsw", 0);
-		gA_StyleSettings[i].iBlockPLeft = kv.GetNum("block_pleft", 0);
-		gA_StyleSettings[i].iBlockPRight = kv.GetNum("block_pright", 0);
-		gA_StyleSettings[i].iBlockPStrafe = kv.GetNum("block_pstrafe", 0);
-		gA_StyleSettings[i].bUnranked = view_as<bool>(kv.GetNum("unranked", 0));
-		gA_StyleSettings[i].bNoReplay = view_as<bool>(kv.GetNum("noreplay", 0));
-		gA_StyleSettings[i].bSync = view_as<bool>(kv.GetNum("sync", 1));
-		gA_StyleSettings[i].bStrafeCountW = view_as<bool>(kv.GetNum("strafe_count_w", false));
-		gA_StyleSettings[i].bStrafeCountA = view_as<bool>(kv.GetNum("strafe_count_a", true));
-		gA_StyleSettings[i].bStrafeCountS = view_as<bool>(kv.GetNum("strafe_count_s", false));
-		gA_StyleSettings[i].bStrafeCountD = view_as<bool>(kv.GetNum("strafe_count_d", true));
-		gA_StyleSettings[i].fRankingMultiplier = kv.GetFloat("rankingmultiplier", 1.00);
-		gA_StyleSettings[i].iSpecial = kv.GetNum("special", 0);
-		gA_StyleSettings[i].iOrdering = kv.GetNum("ordering", i);
-		gA_StyleSettings[i].bInaccessible = view_as<bool>(kv.GetNum("inaccessible", false));
-		gA_StyleSettings[i].iEnabled = kv.GetNum("enabled", 1);
-		gA_StyleSettings[i].bKZCheckpoints = view_as<bool>(kv.GetNum("kzcheckpoints", 0));
-		gA_StyleSettings[i].bForceKeysOnGround = view_as<bool>(kv.GetNum("force_groundkeys", 0));
-
-		// if this style is disabled, we will force certain settings
-		if(gA_StyleSettings[i].iEnabled <= 0)
-		{
-			gA_StyleSettings[i].bNoReplay = true;
-			gA_StyleSettings[i].fRankingMultiplier = 0.0;
-			gA_StyleSettings[i].bInaccessible = true;
-		}
-	}
-
-	while(kv.GotoNextKey());
-
-	delete kv;
 
 	gB_Registered = true;
 
@@ -2679,6 +2681,14 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 
 public SMCResult OnStyleLeaveSection(SMCParser smc)
 {
+	if (gI_CurrentParserIndex == -1)
+	{
+		// OnStyleLeaveSection can be called back to back.
+		// And does for when hitting the last style!
+		// So we set gI_CurrentParserIndex to -1 at the end of this function.
+		return;
+	}
+
 	// if this style is disabled, we will force certain settings
 	if(GetStyleSettingInt(gI_CurrentParserIndex, "enabled") <= 0)
 	{
@@ -2711,7 +2721,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	char sName[64];
 	gSM_StyleKeys[gI_CurrentParserIndex].GetString("name", sName, 64);
 
-	if(!gB_Registered && strlen(sStyleCommand) > 0 && !gA_StyleSettings[gI_CurrentParserIndex].bInaccessible)
+	if(!gB_Registered && strlen(sStyleCommand) > 0 && !GetStyleSettingBool(gI_CurrentParserIndex, "inaccessible"))
 	{
 		char sStyleCommands[32][32];
 		int iCommands = ExplodeString(sStyleCommand, ";", sStyleCommands, 32, 32, false);
@@ -2760,6 +2770,8 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 			gI_StyleFlag[gI_CurrentParserIndex] = FlagToBit(flag);
 		}
 	}
+
+	gI_CurrentParserIndex = -1;
 }
 
 public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
@@ -2938,6 +2950,7 @@ void ApplyMigration(int migration)
 		case Migration_PlayertimesDateToInt: ApplyMigration_PlayertimesDateToInt();
 		case Migration_AddZonesFlagsAndData: ApplyMigration_AddZonesFlagsAndData();
 		case Migration_AddPlayertimesCompletions: ApplyMigration_AddPlayertimesCompletions();
+		case Migration_AddCustomChatAccess: ApplyMigration_AddCustomChatAccess();
 	}
 }
 
@@ -2974,6 +2987,13 @@ void ApplyMigration_AddPlayertimesCompletions()
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `completions` SMALLINT DEFAULT 1 AFTER `perfs`;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesCompletions, DBPrio_High);
+}
+
+void ApplyMigration_AddCustomChatAccess()
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "ALTER TABLE `%schat` ADD COLUMN `ccaccess` INT NOT NULL DEFAULT 0 AFTER `ccmessage`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddCustomChatAccess, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -3313,9 +3333,65 @@ public void PostThinkPost(int client)
 	}
 }
 
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if (StrEqual(classname, "player_speedmod"))
+	{
+		gH_AcceptInput.HookEntity(Hook_Pre, entity, DHook_AcceptInput_player_speedmod);
+	}
+}
+
+// bool CBaseEntity::AcceptInput(char  const*, CBaseEntity*, CBaseEntity*, variant_t, int)
+public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hReturn, DHookParam hParams)
+{
+	char buf[128];
+	hParams.GetString(1, buf, sizeof(buf));
+
+	if (!StrEqual(buf, "ModifySpeed") || hParams.IsNull(2))
+	{
+		return MRES_Ignored;
+	}
+
+	int activator = hParams.Get(2);
+
+	if (!IsValidClient(activator, true))
+	{
+		return MRES_Ignored;
+	}
+
+	hParams.GetObjectVarString(4, 0, ObjectValueType_String, buf, sizeof(buf));
+
+	float speed = StringToFloat(buf);
+	int style = gA_Timers[activator].iStyle;
+
+	speed *= (gA_Timers[activator].fTimescale != -1.0) ? gA_Timers[activator].fTimescale : GetStyleSettingFloat(style, "speed");
+	SetEntPropFloat(activator, Prop_Data, "m_flLaggedMovementValue", speed);
+
+	#if DEBUG
+	int caller = hParams.Get(3);
+	PrintToServer("ModifySpeed activator = %d(%N), caller = %d, old_speed = %s, new_speed = %f", activator, activator, caller, buf, speed);
+	#endif
+
+	hReturn.Value = true;
+	return MRES_Supercede;
+}
+
+bool GetCheckUntouch(int client)
+{
+	int flags = GetEntProp(client, Prop_Data, "m_iEFlags");
+	return (flags & EFL_CHECK_UNTOUCH) != 0;
+}
+
 public MRESReturn DHook_ProcessMovement(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
+
+	// Causes client to do zone touching in movement instead of server frames.
+	// From https://github.com/rumourA/End-Touch-Fix
+	if(GetCheckUntouch(client))
+	{
+		SDKCall(gH_PhysicsCheckForEntityUntouch, client);
+	}
 
 	Call_StartForward(gH_Forwards_OnProcessMovement);
 	Call_PushCell(client);
@@ -3353,29 +3429,12 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	gA_Timers[client].iZoneIncrement++;
 
 	timer_snapshot_t snapshot;
-	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
-	snapshot.bClientPaused = gA_Timers[client].bPaused;
-	snapshot.iJumps = gA_Timers[client].iJumps;
-	snapshot.bsStyle = gA_Timers[client].iStyle;
-	snapshot.iStrafes = gA_Timers[client].iStrafes;
-	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
-	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
-	snapshot.fServerTime = GetEngineTime();
-	snapshot.fCurrentTime = gA_Timers[client].fTimer;
-	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
-	snapshot.iTimerTrack = gA_Timers[client].iTrack;
-	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
-	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
-	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
-	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
+	BuildSnapshot(client, snapshot);
 
 	Call_StartForward(gH_Forwards_OnTimerIncrement);
 	Call_PushCell(client);
 	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
 	Call_PushCellRef(time);
-	//TODO:REMOVE IN 3.0
-	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
-	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
 	Call_Finish();
 
 	gA_Timers[client].fTimer += time;
@@ -3383,9 +3442,6 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_StartForward(gH_Forwards_OnTimerIncrementPost);
 	Call_PushCell(client);
 	Call_PushCell(time);
-	//TODO:REMOVE IN 3.0
-	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
-	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
 	Call_Finish();
 
 	return MRES_Ignored;
@@ -3458,6 +3514,28 @@ bool TREnumTrigger(int entity, int client) {
 	return true;
 }
 
+void BuildSnapshot(int client, timer_snapshot_t snapshot)
+{
+	snapshot.bTimerEnabled = gA_Timers[client].bEnabled;
+	snapshot.bClientPaused = gA_Timers[client].bPaused;
+	snapshot.iJumps = gA_Timers[client].iJumps;
+	snapshot.bsStyle = gA_Timers[client].iStyle;
+	snapshot.iStrafes = gA_Timers[client].iStrafes;
+	snapshot.iTotalMeasures = gA_Timers[client].iTotalMeasures;
+	snapshot.iGoodGains = gA_Timers[client].iGoodGains;
+	snapshot.fServerTime = GetEngineTime();
+	snapshot.fCurrentTime = gA_Timers[client].fTimer;
+	snapshot.iSHSWCombination = gA_Timers[client].iSHSWCombination;
+	snapshot.iTimerTrack = gA_Timers[client].iTrack;
+	snapshot.iMeasuredJumps = gA_Timers[client].iMeasuredJumps;
+	snapshot.iPerfectJumps = gA_Timers[client].iPerfectJumps;
+	snapshot.fTimeOffset = gA_Timers[client].fTimeOffset;
+	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
+	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
+	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
+	snapshot.fTimescale = gA_Timers[client].fTimescale;
+}
+
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
 	if(IsFakeClient(client))
@@ -3474,7 +3552,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 		SetEntityFlags(client, (flags | FL_ATCONTROLS));
 
-		SetEntityMoveType(client, MOVETYPE_NONE);
+		//SetEntityMoveType(client, MOVETYPE_NONE);
 
 		return Plugin_Changed;
 	}
@@ -3497,9 +3575,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	Call_PushCell(GetTimerStatus(client));
 	Call_PushCell(gA_Timers[client].iTrack);
 	Call_PushCell(gA_Timers[client].iStyle);
-	//TODO:REMOVE IN 3.0
-	Call_PushArray(gA_StyleSettings[gA_Timers[client].iStyle], sizeof(stylesettings_t));
-	// Call_PushArray(NULL_VECTOR, sizeof(NULL_VECTOR));
 	Call_PushArrayEx(mouse, 2, SM_PARAM_COPYBACK);
 	Call_Finish(result);
 
@@ -3739,6 +3814,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
 		gA_Timers[client].iLandingTick = tickcount;
+
+		if(gEV_Type != Engine_TF2 && GetStyleSettingBool(gA_Timers[client].iStyle, "easybhop"))
+		{
+			SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+		}
 	}
 
 	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)

@@ -1,28 +1,35 @@
 "Games"
 {
+	// A guide to find most of these signatures and offsets: https://www.youtube.com/watch?v=ekyLf6hu4qI
+
 	"#default"
 	{
 		"Keys"
 		{
-			"IGameMovement"		"GameMovement001"
+			"IGameMovement" "GameMovement001"
 		}
 
 		"Signatures"
 		{
 			"CreateInterface"
 			{
-				"library"		"server"
-				"windows"		"@CreateInterface"
-				"linux"			"@CreateInterface"
+				"windows"   "@CreateInterface"
+				"linux"     "@CreateInterface"
 			}
 		}
 
 		"Offsets"
 		{
+			"OS"
+			{
+				"windows"   "1"
+				"linux"     "2"
+			}
+
 			"ProcessMovement"
 			{
-				"windows"		"1"
-				"linux"			"2"
+				"windows"   "1"
+				"linux"     "2"
 			}
 		}
 	}
@@ -31,11 +38,62 @@
 	{
 		"Offsets"
 		{
+			// search string "#SFUI_Notice_SprayPaint_TooClose" to find IsAbleToApplySpray and then go to the next function to find GetPlayerMaxSpeed. Then calculate the vtable offset.
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
-				"windows"	"505"
-				"linux"		"506"
-				"mac"		"506"
+				"windows"   "505"
+				"linux"     "506"
+				"mac"       "506"
+			}
+			// add 1 to the css offset and hope it works
+			"CGameRules::IsSpawnPointValid"
+			{
+				"windows"   "77"
+				"linux"     "78"
+				"mac"       "78"
+			}
+			// can be found inside BotAddCommand
+			"WEAPONTYPE_UNKNOWN"
+			{
+				"windows"   "19"
+				"linux"     "19"
+				"mac"       "19"
+			}
+			// search string: "Can't find specific footstep sound!" to find CBasePlayer::PlayStepSound.
+			// then find the vtable from references and CBasePlayer::UpdateStepSound is right before PlayStepSound
+			"CBasePlayer::UpdateStepSound"
+			{
+				"windows"   "408"
+				"linux"     "409"
+			}
+		}
+
+		"Signatures"
+		{
+			// search string: "silencer_detach" and then check the function calls above it
+			"Player::DoAnimationEvent"
+			{
+				"windows"   "\x55\x8B\xEC\x56\x8B\xF1\x57\x80\xBE\x2A\x2A\x2A\x2A\x00\x74\x2A\x51"
+				"linux"     "\x55\x89\xE5\x83\xEC\x28\x89\x5D\xF4\x8B\x5D\x08\x89\x75\xF8\x8B\x75\x0C\x89\x7D\xFC\x8B\x7D\x10\x80\xBB\x44\x23\x00\x00\x00"
+			}
+			// search string: "-nobots"
+			"BotManager::MaintainBotQuota"
+			{
+				"windows"   "\x55\x8B\xEC\x83\xEC\x18\x89\x4D\x2A\xFF\x15"
+				"linux"     "\x55\x89\xE5\x83\xEC\x78\x89\x7D\x2A\x8B\x7D\x2A\x89\x5D\x2A\x89\x75\x2A"
+			}
+			// search string: "Error - no profile for '%s' exists."
+			"CCSBotManager::BotAddCommand"
+			{
+				"windows"   "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x53\x56\x57\x80\x78\x2A\x00"
+				"linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x4C\x8B\x15\x2A\x2A\x2A\x2A\x8B\x7D\x2A\x8B\x75\x2A\x0F\xB6\x5D\x2A"
+			}
+			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
+			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
+			"PhysicsCheckForEntityUntouch"
+			{
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x8B\x86\xD0\x00\x00\x00"
+				"linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x2C\x8B\x5D\x08\xC7\x44\x24\x04\x01\x00\x00\x00\x89\x1C\x24"
 			}
 		}
 	}
@@ -44,11 +102,116 @@
 	{
 		"Offsets"
 		{
+			// https://asherkin.github.io/vtable/
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
-				"windows"	"438"
-				"linux"		"439"
-				"mac"		"439"
+				"windows"   "438"
+				"linux"     "439"
+				"mac"       "439"
+			}
+			// https://asherkin.github.io/vtable/
+			"CGameRules::IsSpawnPointValid"
+			{
+				"windows"   "76"
+				"linux"     "77"
+				"mac"       "77"
+			}
+			// can be found inside BotAddCommand
+			"WEAPONTYPE_UNKNOWN"
+			{
+				"windows"   "9"
+				"linux"     "9"
+				"mac"       "9"
+			}
+			// https://asherkin.github.io/vtable/
+			"CBasePlayer::UpdateStepSound"
+			{
+				"windows"   "358"
+				"linux"     "359"
+			}
+		}
+
+		"Signatures"
+		{
+			// search string: "ReloadEffect" to find CWeaponCSBase::SendReloadEvents and then DoAnimationEvent is probably the second to last function called there.
+			"Player::DoAnimationEvent"
+			{
+				"windows"   "\x55\x8B\xEC\x83\xEC\x10\x89\x4D\xFC\x83\x7D\x08\x02"
+				"linux"     "@_ZN9CCSPlayer16DoAnimationEventE17PlayerAnimEvent_ti"
+			}
+			// search string: "-nobots"
+			"BotManager::MaintainBotQuota"
+			{
+				"windows"   "\x55\x8B\xEC\x83\xEC\x14\xFF\x15"
+				"linux"     "@_ZN13CCSBotManager16MaintainBotQuotaEv"
+			}
+			// search string: "Error - no profile for '%s' exists."
+			"CCSBotManager::BotAddCommand"
+			{
+				"windows"   "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x80\x78\x2A\x00\x75\x2A\x83\xB8\x2A\x2A\x2A\x2A\x00"
+				"linux"     "@_ZN13CCSBotManager13BotAddCommandEibPKc12CSWeaponType17BotDifficultyType"
+			}
+			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
+			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
+			"PhysicsCheckForEntityUntouch"
+			{
+				"windows"   "\x55\x8B\xEC\x51\x56\x8B\xF1\x8B\x86\x38\x03\x00\x00"
+				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
+			}
+		}
+	}
+
+	"tf"
+	{
+		"Offsets"
+		{
+			// https://asherkin.github.io/vtable/
+			"CGameRules::IsSpawnPointValid"
+			{
+				"windows"   "76"
+				"linux"     "77"
+				"mac"       "77"
+			}
+			// https://asherkin.github.io/vtable/
+			"CBasePlayer::UpdateStepSound"
+			{
+				"windows"   "361"
+				"linux"     "362"
+			}
+		}
+
+		"Signatures"
+		{
+			// search string: "Usage:  setang_exact pitch yaw" to find setang_exact's handler. Then the last function call in the handler is DoAnimationEvent.
+			"Player::DoAnimationEvent"
+			{
+				"windows"   "\x55\x8B\xEC\x51\x53\x56\x8B\x35\x2A\x2A\x2A\x2A\x8B\xD9\x8B\xCE"
+				"linux"     "@_ZN9CTFPlayer16DoAnimationEventE17PlayerAnimEvent_ti"
+			}
+			// search string: "match"
+			"BotManager::MaintainBotQuota"
+			{
+				"windows"   "\x55\x8B\xEC\x81\xEC\x14\x01\x00\x00\xA1"
+				"linux"     "@_ZN13CTFBotManager16MaintainBotQuotaEv"
+			}
+			// search string: "CreatePlayerBot: Unable to create bot"
+			"NextBotCreatePlayerBot<CTFBot>"
+			{
+				"windows"   "\x55\x8B\xEC\x56\x57\x68\x2A\x2A\x2A\x2A\xE8"
+				"linux"     "@_Z22NextBotCreatePlayerBotI6CTFBotEPT_PKcb"
+			}
+			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
+			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
+			"PhysicsCheckForEntityUntouch"
+			{
+				"windows"   "\x55\x8B\xEC\x51\x56\x8B\xF1\x8B\x86\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01"
+				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
+			}
+			// search string: "scoreboard_minigame"
+			"CTFGameRules::CalcPlayerScore"
+			{
+				"windows"   "\x55\x8B\xEC\x56\x8B\x75\x2A\x85\xF6\x75\x2A\x33\xC0\x5E\x5D\xC3\x8B\x56"
+				"linux"     "@_ZN12CTFGameRules15CalcPlayerScoreEP12RoundStats_tP9CTFPlayer"
 			}
 		}
 	}

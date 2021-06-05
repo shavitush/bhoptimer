@@ -49,23 +49,8 @@ int gI_Style[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
-EngineVersion gEV_Type = Engine_Unknown;
-
-int gI_WRAmount[MAXPLAYERS+1][2][STYLE_LIMIT];
-int gI_WRAmountAll[MAXPLAYERS+1];
-int gI_WRAmountCvar[MAXPLAYERS+1];
-int gI_WRHolders[2][STYLE_LIMIT];
-int gI_WRHoldersAll;
-int gI_WRHoldersCvar;
-int gI_WRHolderRank[MAXPLAYERS+1][2][STYLE_LIMIT];
-int gI_WRHolderRankAll[MAXPLAYERS+1];
-int gI_WRHolderRankCvar[MAXPLAYERS+1];
 
 bool gB_Late = false;
-
-// cvars
-Convar gCV_MVPRankOnes = null;
-Convar gCV_MVPRankOnes_Main = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -87,9 +72,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// natives
 	CreateNative("Shavit_OpenStatsMenu", Native_OpenStatsMenu);
-	CreateNative("Shavit_GetWRCount", Native_GetWRCount);
-	CreateNative("Shavit_GetWRHolders", Native_GetWRHolders);
-	CreateNative("Shavit_GetWRHolderRank", Native_GetWRHolderRank);
 
 	RegPluginLibrary("shavit-stats");
 
@@ -108,11 +90,10 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
-	gEV_Type = GetEngineVersion();
-
 	// player commands
+	RegConsoleCmd("sm_p", Command_Profile, "Show the player's profile. Usage: sm_p [target]");
 	RegConsoleCmd("sm_profile", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
-	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
+	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_stats [target]");
 	RegConsoleCmd("sm_mapsdone", Command_MapsDoneLeft, "Show maps that the player has finished. Usage: sm_mapsdone [target]");
 	RegConsoleCmd("sm_mapsleft", Command_MapsDoneLeft, "Show maps that the player has not finished yet. Usage: sm_mapsleft [target]");
 
@@ -121,15 +102,7 @@ public void OnPluginStart()
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-stats.phrases");
 
-	// hooks
-	HookEvent("player_spawn", Player_Event);
-	HookEvent("player_team", Player_Event);
-
-	// cvars
-	gCV_MVPRankOnes = new Convar("shavit_stats_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
-	gCV_MVPRankOnes_Main = new Convar("shavit_stats_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
-
-	Convar.AutoExecConfig();
+	//Convar.AutoExecConfig();
 
 	gB_Rankings = LibraryExists("shavit-rankings");
 
@@ -155,24 +128,16 @@ public void OnMapStart()
 {
 	if(gB_Late)
 	{
-		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
 	}
-
-	UpdateWRHolders();
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
-	if(styles == -1)
-	{
-		styles = Shavit_GetStyleCount();
-	}
-
 	for(int i = 0; i < styles; i++)
 	{
-		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
-		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
+		Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
 	}
 
 	gI_Styles = styles;
@@ -180,41 +145,13 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public void Shavit_OnChatConfigLoaded()
 {
-	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
-	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
-	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
-	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
-	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
-	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
+	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
 public void OnClientPutInServer(int client)
 {
-	if(IsFakeClient(client))
-	{
-		return;
-	}
-
 	gB_CanOpenMenu[client] = true;
-
-	for (int i = 0; i < 2; i++)
-	{
-		for (int j = 0; j < gI_Styles; j++)
-		{
-			gI_WRAmount[client][i][j] = 0;
-			gI_WRHolderRank[client][i][j] = 0;
-		}
-	}
-
-	gI_WRAmountAll[client] = 0;
-	gI_WRAmountCvar[client] = 0;
-	gI_WRHolderRankAll[client] = 0;
-	gI_WRHolderRankCvar[client] = 0;
-
-	UpdateWRs(client);
 }
-
-//OnRankAssigned
 
 public void OnLibraryAdded(const char[] name)
 {
@@ -229,149 +166,6 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
-	}
-}
-
-public void Player_Event(Event event, const char[] name, bool dontBroadcast)
-{
-	if(gCV_MVPRankOnes.IntValue == 0)
-	{
-		return;
-	}
-
-	int client = GetClientOfUserId(event.GetInt("userid"));
-
-	if(IsValidClient(client) && !IsFakeClient(client) && gEV_Type != Engine_TF2)
-	{
-		CS_SetMVPCount(client, Shavit_GetWRCount(client, -1, -1, true));
-	}
-}
-
-void UpdateWRs(int client)
-{
-	int iSteamID = GetSteamAccountID(client);
-
-	if(iSteamID == 0)
-	{
-		return;
-	}
-
-	char sQuery[1300];
-
-	// TODO: Replace with big sexy query that'll calc the stuff sql-side like below
-	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT a.track, a.style FROM %splayertimes a JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style WHERE auth = %d;",
-		gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
-
-	gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
-
-	FormatEx(sQuery, sizeof(sQuery),
-		"WITH x AS ("...
-		"  SELECT a.track, a.style, a.auth FROM %splayertimes a"...
-		"  JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b"...
-		"  ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style"...
-		"), hrank AS ("...
-		"  SELECT track, style, auth, c, RANK() OVER(PARTITION BY style,track ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT sum(c) as c, auth, track, style FROM (SELECT track, style, auth, COUNT(auth) as c FROM x GROUP BY track, style, auth) a GROUP BY track, style, auth) z"...
-		"), hrankall AS ("...
-		"  SELECT -1 as track, -1 as style, auth, c, RANK() OVER(ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT COUNT(*) as c, auth FROM x GROUP BY auth) z"...
-		"), hrankcvar AS ("...
-		" SELECT -1 as track, -1 as style, auth, c, RANK() OVER(ORDER BY c DESC, auth ASC) as wrrank FROM (SELECT COUNT(*) as c, auth FROM x %s %s %s %s GROUP BY auth) z"...
-		")"...
-		" SELECT *, 0 as type FROM hrank WHERE auth = %d"...
-		" UNION SELECT *, 1 as type FROM hrankall WHERE auth = %d"...
-		" UNION SELECT *, 2 as type FROM %s WHERE auth = %d;",
-		gS_MySQLPrefix, gS_MySQLPrefix,
-		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
-		(gCV_MVPRankOnes.IntValue == 2)  ? "style = 0" : "",
-		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
-		(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : "",
-		iSteamID,
-		iSteamID,
-		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "hrankcvar" : "hrankall",
-		iSteamID
-	);
-
-	gH_SQL.Query(SQL_GetWRHolderRank_Callback, sQuery, GetClientSerial(client));
-}
-
-public void SQL_GetWRHolderRank_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (get WR Holder Rank) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
-	}
-
-	while (results.FetchRow())
-	{
-		int track  = results.FetchInt(0);
-		int style  = results.FetchInt(1);
-		results.FetchInt(2); // int auth
-		int total  = results.FetchInt(3);
-		int wrrank = results.FetchInt(4);
-		int type   = results.FetchInt(5);
-
-		if (type == 0)
-		{
-			gI_WRHolderRank[client][track][style] = total;
-		}
-		else if (type == 1)
-		{
-			gI_WRHolderRankAll[client] = wrrank;
-		}
-		else if (type == 2)
-		{
-			gI_WRHolderRankCvar[client] = wrrank;
-		}
-	}
-}
-
-public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (get WR amount) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
-	}
-
-	bool defaultStyleOnly = gCV_MVPRankOnes.IntValue == 2;
-	bool mainOnly = gCV_MVPRankOnes_Main.BoolValue;
-
-	while (results.FetchRow())
-	{
-		int track = results.FetchInt(0);
-		int style = results.FetchInt(1);
-		++gI_WRAmount[client][track > Track_Main][style];
-		++gI_WRAmountAll[client];
-
-		if (!defaultStyleOnly || style == 0)
-		{
-			if (!mainOnly || track == Track_Main)
-			{
-				++gI_WRAmountCvar[client];
-			}
-		}
-	}
-
-	if(gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2)
-	{
-		CS_SetMVPCount(client, Shavit_GetWRCount(client, -1, -1, true));
 	}
 }
 
@@ -436,7 +230,7 @@ public Action Command_MapsDoneLeft(int client, int args)
 		menu.AddItem(sInfo, gS_StyleStrings[iStyle].sStyleName);
 	}
 
-	menu.Display(client, 30);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -461,7 +255,7 @@ public int MenuHandler_MapsDoneLeft(Menu menu, MenuAction action, int param1, in
 			submenu.AddItem(sInfo, sTrack);
 		}
 
-		submenu.Display(param1, 30);
+		submenu.Display(param1, MENU_TIME_FOREVER);
 	}
 
 	else if(action == MenuAction_End)
@@ -526,7 +320,7 @@ Action OpenStatsMenu(int client, int steamid)
 		return Plugin_Handled;
 	}
 
-	// big ass query, looking for optimizations
+	// big ass query, looking for optimizations TODO
 	char sQuery[2048];
 
 	if(gB_Rankings)
@@ -534,10 +328,10 @@ Action OpenStatsMenu(int client, int steamid)
 		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, d.points, e.rank FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = %d) c " ...
+				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track = 0 AND style = 0) c " ...
 				"JOIN (SELECT name, ip, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = %d) d " ...
 				"JOIN (SELECT COUNT(*) as 'rank' FROM %susers as u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points) e " ...
-			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid);
+			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid);
 	}
 
 	else
@@ -545,9 +339,9 @@ Action OpenStatsMenu(int client, int steamid)
 		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %splayertimes a JOIN (SELECT MIN(time) time, map FROM %splayertimes WHERE style = 0 AND track = 0 GROUP by map, style, track) b ON a.time = b.time AND a.map = b.map AND track = 0 AND style = 0 WHERE auth = %d) c " ...
+				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track = 0 AND style = 0) c " ...
 				"JOIN (SELECT name, ip, lastlogin FROM %susers WHERE auth = %d) d " ...
-			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid);
+			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid);
 	}
 
 	gB_CanOpenMenu[client] = false;
@@ -662,7 +456,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		}
 
 		menu.ExitButton = true;
-		menu.Display(client, 20);
+		menu.Display(client, MENU_TIME_FOREVER);
 	}
 
 	else
@@ -701,7 +495,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 		}
 
 		submenu.ExitBackButton = true;
-		submenu.Display(param1, 20);
+		submenu.Display(param1, MENU_TIME_FOREVER);
 	}
 
 	else if(action == MenuAction_End)
@@ -877,7 +671,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 60);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int param2)
@@ -1008,7 +802,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	hMenu.SetTitle(sFormattedTitle);
 	hMenu.ExitBackButton = true;
-	hMenu.Display(client, 20);
+	hMenu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -1032,138 +826,4 @@ public int Native_OpenStatsMenu(Handle handler, int numParams)
 	gI_TargetSteamID[client] = GetNativeCell(2);
 
 	OpenStatsMenu(client, gI_TargetSteamID[client]);
-}
-
-void UpdateWRHolders()
-{
-	char sQuery[1111];
-	FormatEx(sQuery, sizeof(sQuery),
-		"WITH x AS ("...
-		"  SELECT a.track, a.style, a.auth FROM %splayertimes a"...
-		"  JOIN (SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style) b"...
-		"  ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style"...
-		"), main AS ("...
-		"  SELECT 0 as track, style, COUNT(DISTINCT auth) FROM x WHERE track = 0 GROUP BY style"...
-		"), bonus AS ("...
-		"  SELECT 1 as track, style, COUNT(DISTINCT auth) FROM x WHERE track > 0 GROUP BY style"...
-		"), myall AS ("...
-		"  SELECT -1 as track, -1 as style, COUNT(DISTINCT auth) FROM x"...
-		"), mycvar AS ("...
-		"  SELECT -1 as track, -1 as style, COUNT(DISTINCT auth) FROM x %s %s %s %s"...
-		")"...
-		" SELECT *, 0 as type FROM main"...
-		" UNION SELECT *, 0 as type FROM bonus"...
-		" UNION SELECT *, 1 as type FROM myall"...
-		" UNION SELECT *, 2 as type FROM %s;",
-		gS_MySQLPrefix, gS_MySQLPrefix,
-		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
-		(gCV_MVPRankOnes.IntValue == 2) ? "style = 0" : "",
-		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
-		(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : "",
-		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "mycvar" : "myall"
-	);
-
-	gH_SQL.Query(SQL_GetWRHolders_Callback, sQuery);
-}
-
-public void SQL_GetWRHolders_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (get WR Holder amount) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
-	while (results.FetchRow())
-	{
-		int track = results.FetchInt(0);
-		int style = results.FetchInt(1);
-		int total = results.FetchInt(2);
-		int type  = results.FetchInt(3);
-
-		if (type == 0)
-		{
-			gI_WRHolders[track][style] = total;
-		}
-		else if (type == 1)
-		{
-			gI_WRHoldersAll = total;
-		}
-		else if (type == 2)
-		{
-			gI_WRHoldersCvar = total;
-		}
-	}
-}
-
-public int Native_GetWRCount(Handle handler, int numParams)
-{
-	int client = GetNativeCell(1);
-	int track = GetNativeCell(2);
-	int style = GetNativeCell(3);
-	bool usecvars = view_as<bool>(GetNativeCell(4));
-
-	if (usecvars)
-	{
-		return gI_WRAmountCvar[client];
-	}
-	else if (track == -1 && style == -1)
-	{
-		return gI_WRAmountAll[client];
-	}
-
-	if (track > Track_Bonus)
-	{
-		track = Track_Bonus;
-	}
-
-	return gI_WRAmount[client][track][style];
-}
-
-public int Native_GetWRHolders(Handle handler, int numParams)
-{
-	int track = GetNativeCell(1);
-	int style = GetNativeCell(2);
-	bool usecvars = view_as<bool>(GetNativeCell(3));
-
-	if (usecvars)
-	{
-		return gI_WRHoldersCvar;
-	}
-	else if (track == -1 && style == -1)
-	{
-		return gI_WRHoldersAll;
-	}
-
-	if (track > Track_Bonus)
-	{
-		track = Track_Bonus;
-	}
-
-	return gI_WRHolders[track][style];
-}
-
-public int Native_GetWRHolderRank(Handle handler, int numParams)
-{
-	int client = GetNativeCell(1);
-	int track = GetNativeCell(2);
-	int style = GetNativeCell(3);
-	bool usecvars = view_as<bool>(GetNativeCell(4));
-
-	if (usecvars)
-	{
-		return gI_WRHolderRankCvar[client];
-	}
-	else if (track == -1 && style == -1)
-	{
-		return gI_WRHolderRankAll[client];
-	}
-
-	if (track > Track_Bonus)
-	{
-		track = Track_Bonus;
-	}
-
-	return gI_WRHolderRank[client][track][style];
 }

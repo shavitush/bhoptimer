@@ -105,12 +105,14 @@ char gS_MySQLPrefix[32];
 
 // modules
 bool gB_Rankings = false;
+bool gB_Stats = false;
 bool gB_RTLer = false;
 
 // cvars
 Convar gCV_RankingsIntegration = null;
 Convar gCV_CustomChat = null;
 Convar gCV_Colon = null;
+ConVar gCV_TimeInMessages = null;
 
 // cache
 EngineVersion gEV_Type = Engine_Unknown;
@@ -123,6 +125,8 @@ int gI_ChatSelection[MAXPLAYERS+1];
 ArrayList gA_ChatRanks = null;
 
 bool gB_ChangedSinceLogin[MAXPLAYERS+1];
+
+bool gB_CCAccess[MAXPLAYERS+1];
 
 bool gB_NameEnabled[MAXPLAYERS+1];
 char gS_CustomName[MAXPLAYERS+1][128];
@@ -174,9 +178,11 @@ public void OnPluginStart()
 
 	RegAdminCmd("sm_cclist", Command_CCList, ADMFLAG_CHAT, "Print the custom chat setting of all online players.");
 	RegAdminCmd("sm_reloadchatranks", Command_ReloadChatRanks, ADMFLAG_ROOT, "Reloads the chatranks config file.");
+	RegAdminCmd("sm_ccadd", Command_CCAdd, ADMFLAG_CHAT, "Grant a user access to using ccname and ccmsg. Usage: sm_ccadd <steamid3>");
+	RegAdminCmd("sm_ccdelete", Command_CCDelete, ADMFLAG_CHAT, "Remove access granted to a user with sm_ccadd. Usage: sm_ccdelete <steamid3>");
 
 	gCV_RankingsIntegration = new Convar("shavit_chat_rankings", "1", "Integrate with rankings?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_CustomChat = new Convar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
+	gCV_CustomChat = new Convar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override or granted access with sm_ccadd)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
 	gCV_Colon = new Convar("shavit_chat_colon", ":", "String to use as the colon when messaging.");
 
 	Convar.AutoExecConfig();
@@ -202,6 +208,11 @@ public void OnPluginStart()
 	gB_RTLer = LibraryExists("rtler");
 
 	SQL_DBConnect();
+}
+
+public void OnAllPluginsLoaded()
+{
+	gCV_TimeInMessages = FindConVar("shavit_core_timeinmessages");
 }
 
 public void OnMapStart()
@@ -291,11 +302,13 @@ bool LoadChatConfig()
 		{
 			if(chat_title.iRequire == Require_WR_Count)
 			{
-				LogError("shavit chatranks can't use WR count & percentage in the same tag"); // TODO: ???
+				LogError("shavit chatranks can't use WR count & percentage in the same tag");
+				continue;
 			}
 			else if(chat_title.iRequire == Require_Points)
 			{
-				LogError("shavit chatranks can't use points & percentage in the same tag"); // TODO: ???
+				LogError("shavit chatranks can't use points & percentage in the same tag");
+				continue;
 			}
 		}
 		
@@ -312,7 +325,6 @@ bool LoadChatConfig()
 			gA_ChatRanks.PushArray(chat_title);
 		}
 	}
-
 	while(kv.GotoNextKey());
 
 	delete kv;
@@ -441,7 +453,14 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		return Plugin_Continue;
 	}
 
-	Format(sTextFormatting, MAXLENGTH_BUFFER, "\x01%s", sTextFormatting);
+	char sTime[50];
+
+	if (gCV_TimeInMessages.BoolValue)
+	{
+		FormatTime(sTime, sizeof(sTime), "%H:%M:%S ");
+	}
+
+	Format(sTextFormatting, MAXLENGTH_BUFFER, "\x01%s%s", sTime, sTextFormatting);
 
 	// remove control characters
 	for(int i = 0; i < sizeof(gS_ControlCharacters); i++)
@@ -599,6 +618,11 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
+
+	else if(StrEqual(name, "shavit-stats"))
+	{
+		gB_Stats = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -611,6 +635,11 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
+	}
+
+	else if(StrEqual(name, "shavit-stats"))
+	{
+		gB_Stats = false;
 	}
 }
 
@@ -633,6 +662,8 @@ public void OnClientCookiesCached(int client)
 
 public void OnClientPutInServer(int client)
 {
+	gB_CCAccess[client] = false;
+
 	gB_NameEnabled[client] = true;
 	strcopy(gS_CustomName[client], 128, "{team}{name}");
 
@@ -933,7 +964,7 @@ Action ShowRanksMenu(int client, int item)
 			else
 			{
 				char sTranslation[64];
-				strcopy(sTranslation, sizeof(sTranslation), gA_ChatRankMenuFormatStrings[cache.bPercent][cache.bRanged][cache.iRequire]);
+				strcopy(sTranslation, sizeof(sTranslation), gA_ChatRankMenuFormatStrings[cache.bPercent?1:0][cache.bRanged?1:0][cache.iRequire]);
 
 				if (!cache.bRanged && !cache.bPercent && cache.fFrom == 1.0)
 				{
@@ -1053,7 +1084,7 @@ void PreviewChat(int client, int rank)
 
 bool HasCustomChat(int client)
 {
-	return (gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2));
+	return (gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(client, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2 || gB_CCAccess[client]));
 }
 
 bool HasRankAccess(int client, int rank)
@@ -1108,7 +1139,13 @@ bool HasRankAccess(int client, int rank)
 		return true;
 	}
 
-	if(!gB_Rankings || !gCV_RankingsIntegration.BoolValue)
+	if(/*!gB_Rankings ||*/ !gCV_RankingsIntegration.BoolValue)
+	{
+		return false;
+	}
+
+	if ((!gB_Rankings && (cache.iRequire == Require_Rank || cache.iRequire == Require_Points))
+	|| (!gB_Stats && (cache.iRequire == Require_WR_Count || cache.iRequire == Require_WR_Rank)))
 	{
 		return false;
 	}
@@ -1149,6 +1186,11 @@ bool HasRankAccess(int client, int rank)
 		if(fTotal == 0.0)
 		{
 			fTotal = 1.0;
+		}
+
+		if(fVal == 1.0 && (fTotal == 1.0 || cache.fFrom == cache.fTo))
+		{
+			return true;
 		}
 
 		float fPercentile = (fVal / fTotal) * 100.0;
@@ -1203,12 +1245,7 @@ public Action Command_CCList(int client, int args)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsClientInGame(i))
-		{
-			continue;
-		}
-
-		if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
+		if(IsValidClient(i) && !IsFakeClient(i) && HasCustomChat(client))
 		{
 			PrintToConsole(client, "%N (%d/#%d) (name: \"%s\"; message: \"%s\")", i, i, GetClientUserId(i), gS_CustomName[i], gS_CustomMessage[i]);
 		}
@@ -1223,6 +1260,84 @@ public Action Command_ReloadChatRanks(int client, int args)
 	{
 		ReplyToCommand(client, "Reloaded chatranks config.");
 	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_CCAdd(int client, int args)
+{
+	if (args == 0)
+	{
+		ReplyToCommand(client, "Missing steamid3");
+		return Plugin_Handled;
+	}
+
+	char sArgString[32];
+	GetCmdArgString(sArgString, 32);
+
+	ReplaceString(sArgString, 32, "[U:1:", "");
+	ReplaceString(sArgString, 32, "]", "");
+
+	int iSteamID = StringToInt(sArgString);
+
+	if (iSteamID == 0)
+	{
+		ReplyToCommand(client, "Invalid steamid");
+		return Plugin_Handled;
+	}
+
+	char sQuery[128];
+	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %schat (auth, ccaccess) VALUES (%d, 1);", gS_MySQLPrefix, iSteamID);
+	gH_SQL.Query(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i) && GetSteamAccountID(i) == iSteamID)
+		{
+			gB_CCAccess[i] = true;
+		}
+	}
+
+	ReplyToCommand(client, "Added CC access for [U:1:%d]", iSteamID);
+
+	return Plugin_Handled;
+}
+
+public Action Command_CCDelete(int client, int args)
+{
+	if (args == 0)
+	{
+		ReplyToCommand(client, "Missing steamid3");
+		return Plugin_Handled;
+	}
+
+	char sArgString[32];
+	GetCmdArgString(sArgString, 32);
+
+	ReplaceString(sArgString, 32, "[U:1:", "");
+	ReplaceString(sArgString, 32, "]", "");
+
+	int iSteamID = StringToInt(sArgString);
+
+	if (iSteamID == 0)
+	{
+		ReplyToCommand(client, "Invalid steamid");
+		return Plugin_Handled;
+	}
+
+	char sQuery[128];
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %schat SET ccaccess = 0 WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	gH_SQL.Query(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i) && GetSteamAccountID(i) == iSteamID)
+		{
+			gB_CCAccess[i] = false;
+		}
+	}
+
+	ReplyToCommand(client, "Deleted CC access for [U:1:%d]", iSteamID);
 
 	return Plugin_Handled;
 }
@@ -1281,19 +1396,19 @@ void FormatChat(int client, char[] buffer, int size)
 	FormatColors(buffer, size, true, true);
 	FormatRandom(buffer, size);
 
+	char temp[32];
+
 	if(gEV_Type != Engine_TF2)
 	{
-		char sTag[32];
-		CS_GetClientClanTag(client, sTag, 32);
-		ReplaceString(buffer, size, "{clan}", sTag);
+		CS_GetClientClanTag(client, temp, 32);
+		ReplaceString(buffer, size, "{clan}", temp);
 	}
 
 	if(gB_Rankings)
 	{
 		int iRank = Shavit_GetRank(client);
-		char sRank[16];
-		IntToString(iRank, sRank, 16);
-		ReplaceString(buffer, size, "{rank}", sRank);
+		IntToString(iRank, temp, 32);
+		ReplaceString(buffer, size, "{rank}", temp);
 
 		int iRanked = Shavit_GetRankedPlayers();
 
@@ -1303,28 +1418,27 @@ void FormatChat(int client, char[] buffer, int size)
 		}
 
 		float fPercentile = (float(iRank) / iRanked) * 100.0;
-		FormatEx(sRank, 16, "%.01f", fPercentile);
-		ReplaceString(buffer, size, "{rank1}", sRank);
+		FormatEx(temp, 32, "%.01f", fPercentile);
+		ReplaceString(buffer, size, "{rank1}", temp);
 
-		FormatEx(sRank, 16, "%.02f", fPercentile);
-		ReplaceString(buffer, size, "{rank2}", sRank);
+		FormatEx(temp, 32, "%.02f", fPercentile);
+		ReplaceString(buffer, size, "{rank2}", temp);
 
-		FormatEx(sRank, 16, "%.03f", fPercentile);
-		ReplaceString(buffer, size, "{rank3}", sRank);
+		FormatEx(temp, 32, "%.03f", fPercentile);
+		ReplaceString(buffer, size, "{rank3}", temp);
 
-		FormatEx(sRank, 16, "%d", Shavit_GetWRCount(client));
-		ReplaceString(buffer, size, "{wrs}", sRank);
+		FormatEx(temp, 32, "%0.f", Shavit_GetPoints(client));
+		ReplaceString(buffer, size, "{pts}", temp);
+		
+		FormatEx(temp, 32, "%d", Shavit_GetWRHolderRank(client));
+		ReplaceString(buffer, size, "{wrrank}", temp);
 
-		FormatEx(sRank, 16, "%0.f", Shavit_GetPoints(client));
-		ReplaceString(buffer, size, "{pts}", sRank);
-
-		FormatEx(sRank, 16, "%d", Shavit_GetWRHolderRank(client));
-		ReplaceString(buffer, size, "{wrrank}", sRank);
+		FormatEx(temp, 32, "%d", Shavit_GetWRCount(client));
+		ReplaceString(buffer, size, "{wrs}", temp);
 	}
 
-	char sName[MAX_NAME_LENGTH];
-	GetClientName(client, sName, MAX_NAME_LENGTH);
-	ReplaceString(buffer, size, "{name}", sName);
+	GetClientName(client, temp, 32);
+	ReplaceString(buffer, size, "{name}", temp);
 }
 
 void SQL_DBConnect()
@@ -1337,14 +1451,14 @@ void SQL_DBConnect()
 	if(IsMySQLDatabase(gH_SQL))
 	{
 		FormatEx(sQuery, 512,
-			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
+			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', `ccaccess` INT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 
 	else
 	{
 		FormatEx(sQuery, 512,
-			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
+			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), `ccaccess` INT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	}
 	
@@ -1362,12 +1476,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsClientInGame(i))
-		{
-			continue;
-		}
-
-		if(gCV_CustomChat.IntValue > 0 && (CheckCommandAccess(i, "shavit_chat", ADMFLAG_CHAT) || gCV_CustomChat.IntValue == 2))
+		if(IsValidClient(i) && gCV_CustomChat.IntValue > 0)
 		{
 			LoadFromDatabase(i);
 		}
@@ -1429,7 +1538,7 @@ void LoadFromDatabase(int client)
 	}
 
 	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT name, ccname, message, ccmessage FROM %schat WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	FormatEx(sQuery, 256, "SELECT name, ccname, message, ccmessage, ccaccess FROM %schat WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 
 	gH_SQL.Query(SQL_GetChat_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
@@ -1454,6 +1563,13 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 
 	while(results.FetchRow())
 	{
+		gB_CCAccess[client] = view_as<bool>(results.FetchInt(4));
+
+		if (!HasCustomChat(client))
+		{
+			return;
+		}
+
 		gB_NameEnabled[client] = view_as<bool>(results.FetchInt(0));
 		results.FetchString(1, gS_CustomName[client], 128);
 
@@ -1464,10 +1580,18 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 
 void RemoveFromString(char[] buf, char[] thing, int extra)
 {
-	int index;
+	int index, len = strlen(buf);
 	extra += strlen(thing);
+	
 	while ((index = StrContains(buf, thing, true)) != -1)
 	{
+		// Search sequence is in the end of the string, so just cut it and exit
+		if(index + extra >= len)
+		{
+			buf[index] = '\0';
+			break;
+		}
+		
 		while (buf[index] != 0)
 		{
 			buf[index] = buf[index+extra];
@@ -1568,6 +1692,12 @@ public int Native_GetPlainChatrank(Handle handler, int numParams)
 	
 		FormatEx(sRank, 16, "%.03f", fPercentile);
 		ReplaceString(buf, sizeof(buf), "{rank3}", sRank);
+
+		FormatEx(sRank, 16, "%d", Shavit_GetWRHolderRank(client));
+		ReplaceString(buf, sizeof(buf), "{wrrank}", sRank);
+
+		FormatEx(sRank, 16, "%d", Shavit_GetWRCount(client));
+		ReplaceString(buf, sizeof(buf), "{wrs}", sRank);
 	}
 
 	TrimString(buf);

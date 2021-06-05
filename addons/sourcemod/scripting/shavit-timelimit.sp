@@ -276,7 +276,7 @@ public Action Timer_PrintToChat(Handle timer)
 	int timeleft = 0;
 	GetMapTimeLeft(timeleft);
 
-	if(timeleft <= -1 || timeleft >= -3)
+	if(timeleft <= -1 && timeleft >= -3)
 	{
 		Shavit_StopChatSound();
 	}

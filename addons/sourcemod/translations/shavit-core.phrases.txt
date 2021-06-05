@@ -105,6 +105,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}are not{2} allowed to pause while moving."
 	}
+	"PauseDuck"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"You {1}are not{2} allowed to pause while crouching."
+	}
 	"TimerUnpaused"
 	{
 		"#format"	"{1:s},{2:s}"
@@ -130,5 +135,10 @@
 	{
 		"#format"	"{1:f},{2:s}"
 		"en"		"Your time offset was {1}. The distance was {2} units."
+	}
+	"TrackChangeFromMain"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s}"
+		"en"		"Use {1}!m{2}/{3}!main{4} go to back to the main track."
 	}
 }

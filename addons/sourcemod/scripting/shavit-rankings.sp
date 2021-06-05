@@ -44,6 +44,9 @@
 #undef REQUIRE_PLUGIN
 #include <shavit>
 
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
+
 #pragma newdecls required
 #pragma semicolon 1
 
@@ -66,6 +69,7 @@ bool gB_TierQueried = false;
 int gI_Tier = 1; // No floating numbers for tiers, sorry.
 
 char gS_Map[160];
+EngineVersion gEV_Type = Engine_Unknown;
 
 ArrayList gA_ValidMaps = null;
 StringMap gA_MapTiers = null;
@@ -73,6 +77,9 @@ StringMap gA_MapTiers = null;
 Convar gCV_PointsPerTier = null;
 Convar gCV_WeightingMultiplier = null;
 Convar gCV_LastLoginRecalculate = null;
+Convar gCV_MVPRankOnes = null;
+Convar gCV_MVPRankOnes_Main = null;
+Convar gCV_DefaultTier = null;
 
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
@@ -85,6 +92,16 @@ Handle gH_Forwards_OnRankAssigned = null;
 // Timer settings.
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
+
+int gI_WRAmount[MAXPLAYERS+1][2][STYLE_LIMIT];
+int gI_WRAmountAll[MAXPLAYERS+1];
+int gI_WRAmountCvar[MAXPLAYERS+1];
+int gI_WRHolders[2][STYLE_LIMIT];
+int gI_WRHoldersAll;
+int gI_WRHoldersCvar;
+int gI_WRHolderRank[MAXPLAYERS+1][2][STYLE_LIMIT];
+int gI_WRHolderRankAll[MAXPLAYERS+1];
+int gI_WRHolderRankCvar[MAXPLAYERS+1];
 
 public Plugin myinfo =
 {
@@ -103,6 +120,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetRank", Native_GetRank);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
 	CreateNative("Shavit_Rankings_DeleteMap", Native_Rankings_DeleteMap);
+	CreateNative("Shavit_GetWRCount", Native_GetWRCount);
+	CreateNative("Shavit_GetWRHolders", Native_GetWRHolders);
+	CreateNative("Shavit_GetWRHolderRank", Native_GetWRHolderRank);
 
 	RegPluginLibrary("shavit-rankings");
 
@@ -121,6 +141,8 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	gEV_Type = GetEngineVersion();
+
 	gH_Forwards_OnTierAssigned = CreateGlobalForward("Shavit_OnTierAssigned", ET_Event, Param_String, Param_Cell);
 	gH_Forwards_OnRankAssigned = CreateGlobalForward("Shavit_OnRankAssigned", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
@@ -140,12 +162,19 @@ public void OnPluginStart()
 	gCV_PointsPerTier = new Convar("shavit_rankings_pointspertier", "50.0", "Base points to use for per-tier scaling.\nRead the design idea to see how it works: https://github.com/shavitush/bhoptimer/issues/465", 0, true, 1.0);
 	gCV_WeightingMultiplier = new Convar("shavit_rankings_weighting", "0.975", "Weighing multiplier. 1.0 to disable weighting.\nFormula: p[1] * this^0 + p[2] * this^1 + p[3] * this^2 + ... + p[n] * this^(n-1)\nRestart server to apply.", 0, true, 0.01, true, 1.0);
 	gCV_LastLoginRecalculate = new Convar("shavit_rankings_llrecalc", "10080", "Maximum amount of time (in minutes) since last login to recalculate points for a player.\nsm_recalcall does not respect this setting.\n0 - disabled, don't filter anyone", 0, true, 0.0);
+	gCV_MVPRankOnes = new Convar("shavit_rankings_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
+	gCV_MVPRankOnes_Main = new Convar("shavit_rankings_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
+	gCV_DefaultTier = new Convar("shavit_rankings_default_tier", "1", "Sets the default tier for new maps added.", 0, true, 0.0, true, 10.0);
 
 	Convar.AutoExecConfig();
 
 	LoadTranslations("common.phrases");
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-rankings.phrases");
+
+	// hooks
+	HookEvent("player_spawn", Player_Event);
+	HookEvent("player_team", Player_Event);
 
 	// tier cache
 	gA_ValidMaps = new ArrayList(128);
@@ -161,20 +190,12 @@ public void OnPluginStart()
 
 public void Shavit_OnChatConfigLoaded()
 {
-	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
-	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
-	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
-	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
-	Shavit_GetChatStrings(sMessageVariable2, gS_ChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
-	Shavit_GetChatStrings(sMessageStyle, gS_ChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
+	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
-	if(styles == -1)
-	{
-		gI_Styles = Shavit_GetStyleCount();
-	}
+	gI_Styles = styles;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -224,7 +245,7 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 
 	if(gI_Styles == 0)
 	{
-		Shavit_OnStyleConfigLoaded(-1);
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 	}
 
 	SQL_LockDatabase(gH_SQL);
@@ -311,8 +332,32 @@ void RunLongFastQuery(bool &success, const char[] func, const char[] query, any 
 
 public void OnClientConnected(int client)
 {
+	if(IsFakeClient(client))
+	{
+		return;
+	}
+
 	gA_Rankings[client].iRank = 0;
 	gA_Rankings[client].fPoints = 0.0;
+
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0; j < gI_Styles; j++)
+		{
+			gI_WRAmount[client][i][j] = 0;
+			gI_WRHolderRank[client][i][j] = 0;
+		}
+	}
+
+	gI_WRAmountAll[client] = 0;
+	gI_WRAmountCvar[client] = 0;
+	gI_WRHolderRankAll[client] = 0;
+	gI_WRHolderRankCvar[client] = 0;
+}
+
+public void OnClientPutInServer(int client)
+{
+	UpdateWRs(client);
 }
 
 public void OnClientPostAdminCheck(int client)
@@ -338,9 +383,11 @@ public void OnMapStart()
 	GetCurrentMap(gS_Map, 160);
 	GetMapDisplayName(gS_Map, gS_Map, 160);
 
+	UpdateWRHolders();
+
 	// Default tier.
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
-	gI_Tier = 1;
+	gI_Tier = gCV_DefaultTier.IntValue;
 
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
@@ -427,6 +474,88 @@ public void OnMapEnd()
 	gB_TierQueried = false;
 }
 
+public void Player_Event(Event event, const char[] name, bool dontBroadcast)
+{
+	if(gCV_MVPRankOnes.IntValue == 0)
+	{
+		return;
+	}
+
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if(IsValidClient(client) && !IsFakeClient(client) && gEV_Type != Engine_TF2)
+	{
+		CS_SetMVPCount(client, Shavit_GetWRCount(client, -1, -1, true));
+	}
+}
+
+void UpdateWRs(int client)
+{
+	int iSteamID = GetSteamAccountID(client);
+
+	if(iSteamID == 0)
+	{
+		return;
+	}
+
+	char sQuery[512];
+
+	FormatEx(sQuery, sizeof(sQuery),
+		"     SELECT *, 0 as track, 0 as type FROM wrhrankmain  WHERE auth = %d \
+		UNION SELECT *, 1 as track, 0 as type FROM wrhrankbonus WHERE auth = %d \
+		UNION SELECT *, -1,         1 as type FROM wrhrankall   WHERE auth = %d \
+		UNION SELECT *, -1,         2 as type FROM wrhrankcvar  WHERE auth = %d;",
+		iSteamID, iSteamID, iSteamID, iSteamID);
+	gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
+}
+
+public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("SQL_GetWRs_Callback failed. Reason: %s", error);
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	while (results.FetchRow())
+	{
+		int wrrank  = results.FetchInt(0);
+		int style   = results.FetchInt(1);
+		//int auth    = results.FetchInt(2);
+		int wrcount = results.FetchInt(3);
+		int track   = results.FetchInt(4);
+		int type    = results.FetchInt(5);
+
+		if (type == 0)
+		{
+			gI_WRAmount[client][track][style] = wrcount;
+			gI_WRHolderRank[client][track][style] = wrrank;
+		}
+		else if (type == 1)
+		{
+			gI_WRAmountAll[client] = wrcount;
+			gI_WRHolderRankAll[client] = wrrank;
+		}
+		else if (type == 2)
+		{
+			gI_WRAmountCvar[client] = wrcount;
+			gI_WRHolderRankCvar[client] = wrrank;
+		}
+	}
+
+	if(gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2)
+	{
+		CS_SetMVPCount(client, Shavit_GetWRCount(client, -1, -1, true));
+	}
+}
+
 public Action Command_Tier(int client, int args)
 {
 	int tier = gI_Tier;
@@ -490,7 +619,7 @@ public Action Command_Top(int client, int args)
 	if(gH_Top100Menu != null)
 	{
 		gH_Top100Menu.SetTitle("%T (%d)\n ", "Top100", client, gI_RankedPlayers);
-		gH_Top100Menu.Display(client, 60);
+		gH_Top100Menu.Display(client, MENU_TIME_FOREVER);
 	}
 
 	return Plugin_Handled;
@@ -568,8 +697,6 @@ public Action Command_RecalcMap(int client, int args)
 
 void FormatRecalculate(const char[] map, int track, int style, char[] sQuery, int sQueryLen)
 {
-	// TODO: Use (VALUES (style, multiplier), (style, multiplier)) or lots of selects+unions...
-
 	char sTrack[30];
 	bool bHaveMap = strlen(map) != 0;
 
@@ -891,6 +1018,216 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 	gH_Top100Menu.ExitButton = true;
 }
 
+void UpdateWRHolders()
+{
+	// Compatible with MySQL 5.6, 5.7, 8.0
+	char sWRHolderRankTrackQueryYuck[] =
+		"CREATE TEMPORARY TABLE %s AS \
+			SELECT ( \
+				CASE style \
+				WHEN @curGroup \
+				THEN @curRow := @curRow + 1 \
+				ELSE @curRow := 1 AND @curGroup := style END \
+			) as wrrank, \
+			style, auth, wrcount \
+			FROM ( \
+				SELECT style, auth, SUM(c) as wrcount FROM ( \
+					SELECT style, auth, COUNT(auth) as c FROM %swrs WHERE track %c 0 GROUP BY style, auth \
+				) a GROUP BY style, auth ORDER BY style ASC, wrcount DESC, auth ASC \
+			) x, \
+			(SELECT @curRow := 0, @curGroup := 0) r \
+			ORDER BY style ASC, wrrank ASC, auth ASC;";
+	
+	// Compatible with MySQL 8.0 and SQLite // TODO: SELECT VERSION() and check...
+	char sWRHolderRankTrackQueryRANK[] =
+		"CREATE TEMPORARY TABLE %s AS \
+			SELECT \
+				RANK() OVER(PARTITION BY style ORDER BY wrcount DESC, auth ASC) \
+			as wrrank, \
+			style, auth, wrcount \
+			FROM ( \
+				SELECT style, auth, SUM(c) as wrcount FROM ( \
+					SELECT style, auth, COUNT(auth) as c FROM %swrs WHERE track %c 0 GROUP BY style, auth \
+				) a GROUP BY style, auth \
+			) x;";
+
+	// Compatible with MySQL 5.6, 5.7, 8.0
+	char sWRHolderRankOtherQueryYuck[] =
+		"CREATE TEMPORARY TABLE %s AS \
+			SELECT ( \
+				@curRow := @curRow + 1 \
+			) as wrrank, \
+			-1 as style, auth, wrcount \
+			FROM ( \
+				SELECT COUNT(*) as wrcount, auth FROM %swrs %s %s %s %s GROUP BY auth ORDER BY wrcount DESC, auth ASC \
+			) x, \
+			(SELECT @curRow := 0) r \
+			ORDER BY style ASC, wrrank ASC, auth ASC;";
+
+	// Compatible with MySQL 8.0 and SQLite // TODO: SELECT VERSION() and check...
+	char sWRHolderRankOtherQueryRANK[] =
+		"CREATE TEMPORARY TABLE %s AS \
+			SELECT \
+				RANK() OVER(ORDER BY wrcount DESC, auth ASC) \
+			as wrrank, \
+			-1 as style, auth, wrcount \
+			FROM ( \
+				SELECT COUNT(*) as wrcount, auth FROM %swrs %s %s %s %s GROUP BY auth \
+			) x;";
+
+	char sQuery[800];
+	Transaction hTransaction = new Transaction();
+
+	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankmain;");
+	FormatEx(sQuery, sizeof(sQuery),
+		IsMySQLDatabase(gH_SQL) ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
+		"wrhrankmain", gS_MySQLPrefix, '=');
+	hTransaction.AddQuery(sQuery);
+
+	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankbonus;");
+	FormatEx(sQuery, sizeof(sQuery),
+		IsMySQLDatabase(gH_SQL) ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
+		"wrhrankbonus", gS_MySQLPrefix, '>');
+	hTransaction.AddQuery(sQuery);
+
+	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankall;");
+	FormatEx(sQuery, sizeof(sQuery),
+		IsMySQLDatabase(gH_SQL) ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
+		"wrhrankall", gS_MySQLPrefix, "", "", "", "");
+	hTransaction.AddQuery(sQuery);
+
+	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankcvar;");
+	FormatEx(sQuery, sizeof(sQuery),
+		IsMySQLDatabase(gH_SQL) ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
+		"wrhrankcvar", gS_MySQLPrefix,
+		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
+		(gCV_MVPRankOnes.IntValue == 2)  ? "style = 0" : "",
+		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
+		(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : "");
+	hTransaction.AddQuery(sQuery);
+
+	gH_SQL.Execute(hTransaction, Trans_WRHolderRankTablesSuccess, Trans_WRHolderRankTablesError, 0, DBPrio_High);
+}
+
+public void Trans_WRHolderRankTablesSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{	
+	char sQuery[1024];
+	FormatEx(sQuery, sizeof(sQuery),
+		"     SELECT 0 as type, 0 as track, style, COUNT(DISTINCT auth) FROM wrhrankmain GROUP BY STYLE \
+		UNION SELECT 0 as type, 1 as track, style, COUNT(DISTINCT auth) FROM wrhrankbonus GROUP BY STYLE \
+		UNION SELECT 1 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM wrhrankall \
+		UNION SELECT 2 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM wrhrankcvar;");
+	gH_SQL.Query(SQL_GetWRHolders_Callback, sQuery);
+}
+
+public void Trans_WRHolderRankTablesError(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (WR Holder Rank table creation %d/%d) SQL query failed. Reason: %s", failIndex, numQueries, error);
+}
+
+public void SQL_GetWRHolders_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (get WR Holder amount) SQL query failed. Reason: %s", error);
+
+		return;
+	}
+
+	while (results.FetchRow())
+	{
+		int type  = results.FetchInt(0);
+		int track = results.FetchInt(1);
+		int style = results.FetchInt(2);
+		int total = results.FetchInt(3);
+
+		if (type == 0)
+		{
+			gI_WRHolders[track][style] = total;
+		}
+		else if (type == 1)
+		{
+			gI_WRHoldersAll = total;
+		}
+		else if (type == 2)
+		{
+			gI_WRHoldersCvar = total;
+		}
+	}
+}
+
+public int Native_GetWRCount(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int track = GetNativeCell(2);
+	int style = GetNativeCell(3);
+	bool usecvars = view_as<bool>(GetNativeCell(4));
+
+	if (usecvars)
+	{
+		return gI_WRAmountCvar[client];
+	}
+	else if (track == -1 && style == -1)
+	{
+		return gI_WRAmountAll[client];
+	}
+
+	if (track > Track_Bonus)
+	{
+		track = Track_Bonus;
+	}
+
+	return gI_WRAmount[client][track][style];
+}
+
+public int Native_GetWRHolders(Handle handler, int numParams)
+{
+	int track = GetNativeCell(1);
+	int style = GetNativeCell(2);
+	bool usecvars = view_as<bool>(GetNativeCell(3));
+
+	if (usecvars)
+	{
+		return gI_WRHoldersCvar;
+	}
+	else if (track == -1 && style == -1)
+	{
+		return gI_WRHoldersAll;
+	}
+
+	if (track > Track_Bonus)
+	{
+		track = Track_Bonus;
+	}
+
+	return gI_WRHolders[track][style];
+}
+
+public int Native_GetWRHolderRank(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int track = GetNativeCell(2);
+	int style = GetNativeCell(3);
+	bool usecvars = view_as<bool>(GetNativeCell(4));
+
+	if (usecvars)
+	{
+		return gI_WRHolderRankCvar[client];
+	}
+	else if (track == -1 && style == -1)
+	{
+		return gI_WRHolderRankAll[client];
+	}
+
+	if (track > Track_Bonus)
+	{
+		track = Track_Bonus;
+	}
+
+	return gI_WRHolderRank[client][track][style];
+}
+
+
 public int Native_GetMapTier(Handle handler, int numParams)
 {
 	int tier = 0;
@@ -947,7 +1284,7 @@ public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[
 
 	if(view_as<bool>(data))
 	{
-		gI_Tier = 1;
+		gI_Tier = gCV_DefaultTier.IntValue;
 		
 		UpdateAllPoints(true);
 		UpdateRankedPlayers();
