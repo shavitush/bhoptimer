@@ -1418,7 +1418,7 @@ void PersistData(int client, bool disconnected)
 	}
 	else
 	{
-		gA_PersistentData.SetArray(iIndex, aData, sizeof(aData));
+		gA_PersistentData.SetArray(iIndex, aData);
 	}
 }
 
@@ -2442,9 +2442,6 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool isPersistentData)
 	cpcache.fGravity = GetEntityGravity(target);
 	cpcache.fSpeed = GetEntPropFloat(target, Prop_Send, "m_flLaggedMovementValue");
 
-	int iFlags = GetEntityFlags(target);
-	iFlags &= ~(FL_ATCONTROLS|FL_FAKECLIENT);
-
 	if(IsFakeClient(target))
 	{
 		cpcache.iGroundEntity = -1;
@@ -2457,7 +2454,7 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool isPersistentData)
 		GetEntPropString(target, Prop_Data, "m_iName", cpcache.sTargetname, 64);
 	}
 
-	cpcache.iFlags = iFlags;
+	cpcache.iFlags = GetEntityFlags(target) & ~(FL_ATCONTROLS|FL_FAKECLIENT);
 
 	if(gEV_Type != Engine_TF2)
 	{
@@ -2601,9 +2598,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 {
-	MoveType mt = cpcache.iMoveType;
-
-	SetEntityMoveType(client, mt);
+	SetEntityMoveType(client, cpcache.iMoveType);
 	SetEntityFlags(client, cpcache.iFlags);
 	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", cpcache.fSpeed);
 	SetEntPropEnt(client, Prop_Data, "m_hGroundEntity", cpcache.iGroundEntity);
@@ -2620,7 +2615,6 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flDucktime", cpcache.fDucktime);
 	}
-
 	else if(gEV_Type == Engine_CSGO)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", cpcache.fDucktime);
@@ -3129,7 +3123,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		{
 			if(gCV_RestoreStates.BoolValue)
 			{
-				RequestFrame(LoadPersistentData, serial);
+				LoadPersistentData(serial);
 				bCanStartOnSpawn = false;
 			}
 		}
@@ -3141,7 +3135,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			if (iIndex != -1)
 			{
 				gB_SaveStates[client] = true;
-				RequestFrame(LoadPersistentData, serial);
+				LoadPersistentData(serial);
 				bCanStartOnSpawn = false;
 			}
 		}
