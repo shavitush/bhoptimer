@@ -1,5 +1,7 @@
 "Games"
 {
+	// A guide to find most of these signatures and offsets: https://www.youtube.com/watch?v=ekyLf6hu4qI
+
 	"#default"
 	{
 		"Keys"
