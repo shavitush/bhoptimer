@@ -45,6 +45,8 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
   - Makes surf ramps less likely to stop players. (Ramp bug / surf glitch)
 * [RNGFix](https://forums.alliedmods.net/showthread.php?t=310825) ([github](https://github.com/jason-e/rngfix))
   - Makes slopes, teleporters, and more less random. Replaces `slopefix`
+* [HeadBugFix](https://github.com/GAMMACASE/HeadBugFix)
+  - Fixes head bounding boxes when ducking so it's not possible to touch triggers through a roof.
 * [Showtriggers](https://forums.alliedmods.net/showthread.php?t=290356) ([github](https://github.com/1ci/showtriggers))
   - Allows players to toggle trigger visibility.
 * [ShowPlayerClips](https://forums.alliedmods.net/showthread.php?p=2661942) ([github](https://github.com/GAMMACASE/ShowPlayerClips))
