@@ -398,8 +398,6 @@ void LoadDHooks()
 	}
 	else
 	{
-		iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed");
-
 		if ((iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed")) == -1)
 		{
 			SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
@@ -1349,28 +1347,6 @@ public void OnClientDisconnect(int client)
 	delete gA_Checkpoints[client];
 }
 
-void FillPersistentData(int client, persistent_data_t aData, bool disconnected)
-{
-	aData.iSteamID = GetSteamAccountID(client);
-	aData.fDisconnectTime = GetEngineTime();
-	aData.iTimesTeleported = gI_TimesTeleported[client];
-
-	if (disconnected)
-	{
-		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
-		aData.aCheckpoints = gA_Checkpoints[client];
-		gA_Checkpoints[client] = null;
-
-		if (gB_SaveStates[client])
-		{
-			// the rest of the data has already been filled
-			return;
-		}
-	}
-
-	SaveCheckpointCache(client, aData.cpcache, true);
-}
-
 int FindPersistentData(int client, persistent_data_t aData)
 {
 	int iSteamID;
@@ -1408,7 +1384,29 @@ void PersistData(int client, bool disconnected)
 
 	persistent_data_t aData;
 	int iIndex = FindPersistentData(client, aData);
-	FillPersistentData(client, aData, disconnected);
+
+	aData.iSteamID = GetSteamAccountID(client);
+	aData.fDisconnectTime = GetEngineTime();
+	aData.iTimesTeleported = gI_TimesTeleported[client];
+
+	if (disconnected)
+	{
+		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
+		aData.aCheckpoints = gA_Checkpoints[client];
+		gA_Checkpoints[client] = null;
+
+		if (gB_Replay && aData.cpcache.aFrames == null)
+		{
+			aData.cpcache.aFrames = Shavit_GetReplayData(client, true);
+			aData.cpcache.iPreFrames = Shavit_GetPlayerPreFrame(client);
+			aData.cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
+		}
+	}
+
+	if (!gB_SaveStates[client])
+	{
+		SaveCheckpointCache(client, aData.cpcache, false);
+	}
 
 	gB_SaveStates[client] = true;
 
@@ -1449,8 +1447,6 @@ void LoadPersistentData(int serial)
 	{
 		return;
 	}
-
-	Shavit_StopTimer(client);
 
 	LoadCheckpointCache(client, aData.cpcache, true);
 	DeleteCheckpointCache(aData.cpcache);
@@ -2412,7 +2408,7 @@ bool SaveCheckpoint(int client)
 	}
 
 	cp_cache_t cpcache;
-	SaveCheckpointCache(target, cpcache, false);
+	SaveCheckpointCache(target, cpcache, true);
 	gI_CurrentCheckpoint[client] = index;
 
 	if(overflow)
@@ -2431,7 +2427,7 @@ bool SaveCheckpoint(int client)
 	return true;
 }
 
-void SaveCheckpointCache(int target, cp_cache_t cpcache, bool isPersistentData)
+void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpoint)
 {
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
@@ -2499,27 +2495,23 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool isPersistentData)
 	}
 
 	cpcache.aSnapshot = snapshot;
+	cpcache.bSegmented = CanSegment(target);
 
-	if(CanSegment(target) || isPersistentData)
+	if (cpcache.bSegmented && gB_Replay && actually_a_checkpoint && cpcache.aFrames == null)
 	{
-		if(gB_Replay)
+		cpcache.aFrames = Shavit_GetReplayData(target, false);
+		cpcache.iPreFrames = Shavit_GetPlayerPreFrame(target);
+		cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(target);
+	}
+
+	if (gB_Eventqueuefix && !IsFakeClient(target))
+	{
+		eventpack_t ep;
+
+		if (GetClientEvents(target, ep))
 		{
-			cpcache.aFrames = Shavit_GetReplayData(target, isPersistentData);
-			cpcache.iPreFrames = Shavit_GetPlayerPreFrame(target);
-			cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(target);
-		}
-
-		cpcache.bSegmented = true;
-
-		if (gB_Eventqueuefix && !IsFakeClient(target))
-		{
-			eventpack_t ep;
-
-			if (GetClientEvents(target, ep))
-			{
-				cpcache.aEvents = ep.playerEvents;
-				cpcache.aOutputWaits = ep.outputWaits;
-			}
+			cpcache.aEvents = ep.playerEvents;
+			cpcache.aOutputWaits = ep.outputWaits;
 		}
 	}
 
@@ -2649,19 +2641,12 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 
 	SetEntityGravity(client, cpcache.fGravity);
 
-	if(cpcache.bSegmented && gB_Replay)
+	if(gB_Replay && cpcache.aFrames != null)
 	{
-		if(cpcache.aFrames == null)
-		{
-			LogError("SetReplayData for %L failed, recorded frames are null.", client);
-		}
-		else
-		{
-			// if isPersistentData, then CloneHandle() is done instead of ArrayList.Clone()
-			Shavit_SetReplayData(client, cpcache.aFrames, isPersistentData);
-			Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames);
-			Shavit_SetPlayerTimerFrame(client, cpcache.iTimerPreFrames);
-		}
+		// if isPersistentData, then CloneHandle() is done instead of ArrayList.Clone()
+		Shavit_SetReplayData(client, cpcache.aFrames, isPersistentData);
+		Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames);
+		Shavit_SetPlayerTimerFrame(client, cpcache.iTimerPreFrames);
 	}
 
 	if (gB_Eventqueuefix && cpcache.aEvents != null && cpcache.aOutputWaits != null)
