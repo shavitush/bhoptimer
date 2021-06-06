@@ -3214,7 +3214,6 @@ public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 		}
 	}
 
-	gI_MapZones = 0;
 	RequestFrame(CreateZoneEntities);
 }
 
