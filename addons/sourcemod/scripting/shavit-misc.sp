@@ -825,9 +825,9 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		{
 			TF2_RespawnPlayer(client);
 		}
-
 		else
 		{
+			RemoveAllWeapons(client); // so weapons are removed and we don't hit the edict limit
 			CS_RespawnPlayer(client);
 		}
 
@@ -1422,10 +1422,10 @@ void PersistData(int client, bool disconnected)
 
 void DeletePersistentData(int index, persistent_data_t data)
 {
+	gA_PersistentData.Erase(index);
+	DeleteCheckpointCache(data.cpcache);
 	ResetCheckpointsInner(data.aCheckpoints);
 	delete data.aCheckpoints;
-	DeleteCheckpointCache(data.cpcache);
-	gA_PersistentData.Erase(index);
 }
 
 void LoadPersistentData(int serial)
@@ -2627,10 +2627,10 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	SetEntPropString(client, Prop_Data, "m_iClassname", cpcache.sClassname);
 
 	TeleportEntity(client, cpcache.fPosition,
-		((gI_CheckpointsSettings[client] & CP_ANGLES)   > 0 || cpcache.bSegmented) ? cpcache.fAngles   : NULL_VECTOR,
-		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented) ? cpcache.fVelocity : NULL_VECTOR);
+		((gI_CheckpointsSettings[client] & CP_ANGLES)   > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fAngles   : NULL_VECTOR,
+		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fVelocity : NULL_VECTOR);
 
-	if(cpcache.bPractice || !cpcache.bSegmented || GetSteamAccountID(client) != cpcache.iSteamID)
+	if(cpcache.bPractice || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
 	{
 		Shavit_SetPracticeMode(client, true, true);
 	}
@@ -3108,7 +3108,8 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		{
 			if(gCV_RestoreStates.BoolValue)
 			{
-				LoadPersistentData(serial);
+				// events&outputs won't work properly unless we do this next frame...
+				RequestFrame(LoadPersistentData, serial);
 				bCanStartOnSpawn = false;
 			}
 		}
@@ -3120,7 +3121,8 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			if (iIndex != -1)
 			{
 				gB_SaveStates[client] = true;
-				LoadPersistentData(serial);
+				// events&outputs won't work properly unless we do this next frame...
+				RequestFrame(LoadPersistentData, serial);
 				bCanStartOnSpawn = false;
 			}
 		}

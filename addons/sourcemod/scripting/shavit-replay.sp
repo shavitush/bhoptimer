@@ -1039,18 +1039,18 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	ArrayList data = view_as<ArrayList>(GetNativeCell(2));
 	bool cloneHandle = view_as<bool>(GetNativeCell(3));
 
-	delete gA_PlayerFrames[client];
-
 	if (cloneHandle)
 	{
-		gA_PlayerFrames[client] = view_as<ArrayList>(CloneHandle(data));
+		data = view_as<ArrayList>(CloneHandle(data));
 	}
 	else
 	{
-		gA_PlayerFrames[client] = data.Clone();
+		data = data.Clone();
 	}
 
-	gI_PlayerFrames[client] = gA_PlayerFrames[client].Length;
+	delete gA_PlayerFrames[client];
+	gA_PlayerFrames[client] = data;
+	gI_PlayerFrames[client] = data.Length;
 }
 
 public int Native_GetReplayData(Handle plugin, int numParams)
