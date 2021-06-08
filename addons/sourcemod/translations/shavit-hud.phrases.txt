@@ -161,6 +161,10 @@
 	{
 		"en"		"Top left Rank"
 	}
+	"HudVelocityDifference"
+	{
+		"en"		"Velocity Difference"
+	}
 	// ---------- Record Bots ---------- //
 	"ReplayText"
 	{

@@ -46,6 +46,7 @@
 #define HUD2_TIMEDIFFERENCE		(1 << 10)
 #define HUD2_PERFS				(1 << 11)
 #define HUD2_TOPLEFT_RANK		(1 << 12)
+#define HUD2_VELOCITYDIFFERENCE (1 << 13)
 
 #define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2			(HUD2_PERFS)
@@ -217,7 +218,7 @@ public void OnPluginStart()
 		..."HUD_NOPRACALERT			4096\n");
 		
 	IntToString(HUD_DEFAULT2, defaultHUD, 8);
-	gCV_DefaultHUD2 = new Convar("shavit_hud2_default", defaultHUD, "Default HUD2 settings as a bitflag\n"
+	gCV_DefaultHUD2 = new Convar("shavit_hud2_default", defaultHUD, "Default HUD2 settings as a bitflag of what to remove\n"
 		..."HUD2_TIME				1\n"
 		..."HUD2_SPEED				2\n"
 		..."HUD2_JUMPS				4\n"
@@ -230,7 +231,9 @@ public void OnPluginStart()
 		..."HUD2_MAPTIER				512\n"
 		..."HUD2_TIMEDIFFERENCE		1024\n"
 		..."HUD2_PERFS				2048\n"
-		..."HUD2_TOPLEFT_RANK				4096");
+		..."HUD2_TOPLEFT_RANK		4096\n"
+		..."HUD2_VELOCITYDIFFERENCE	8192\n"
+	);
 
 	Convar.AutoExecConfig();
 
@@ -706,6 +709,10 @@ Action ShowHUDMenu(int client, int item)
 		FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
 		FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
 		menu.AddItem(sInfo, sHudItem);
+
+		FormatEx(sInfo, 16, "@%d", HUD2_VELOCITYDIFFERENCE);
+		FormatEx(sHudItem, 64, "%T", "HudVelocityDifference", client);
+		menu.AddItem(sInfo, sHudItem);
 	}
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SPEED);
@@ -1176,7 +1183,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		// no timer: straight up number
 		if(data.iTimerStatus != Timer_Stopped)
 		{
-			if(gB_Replay && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0)
+			if(gB_Replay && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
 			{
 				float res = Shavit_GetClosestReplayVelocityDifference(data.iTarget, (gI_HUDSettings[client] & HUD_2DVEL) == 0);
 				FormatEx(sLine, 128, "%T: %d (%s%.0f)", "HudSpeedText", client, data.iSpeed, (res >= 0.0) ? "+":"", res);
@@ -1403,7 +1410,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			iColor = 0xFFC966;
 		}
 
-		if(data.iTimerStatus != Timer_Stopped && gB_Replay && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0)
+		if(data.iTimerStatus != Timer_Stopped && gB_Replay && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
 		{
 			float res = Shavit_GetClosestReplayVelocityDifference(data.iTarget, (gI_HUDSettings[client] & HUD_2DVEL) == 0);
 			FormatEx(sLine, 128, "<span color='#%06X'>%d u/s (%s%.0f)</span>", iColor, data.iSpeed, (res >= 0.0) ? "+":"", res);
