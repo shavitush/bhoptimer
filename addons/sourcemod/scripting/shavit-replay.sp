@@ -1276,7 +1276,7 @@ public int Native_SetClosestReplayStyle(Handle plugin, int numParams)
 	gI_TimeDifferenceStyle[GetNativeCell(1)] = GetNativeCell(2);
 }
 
-public Action Cron(Handle Timer)
+public Action Timer_Cron(Handle Timer)
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -1287,6 +1287,8 @@ public Action Cron(Handle Timer)
 
 		UpdateReplayClient(gA_BotInfo[i].iEnt);
 	}
+
+	AddReplayBots();
 
 	return Plugin_Continue;
 }
@@ -1518,10 +1520,7 @@ public void OnMapStart()
 		Call_Finish();
 	}
 
-	// Timer because sometimes a few bots don't spawn
-	CreateTimer(0.2, Timer_AddReplayBots, 0, TIMER_FLAG_NO_MAPCHANGE);
-
-	CreateTimer(3.0, Cron, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(3.0, Timer_Cron, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -1626,12 +1625,6 @@ int CreateReplayBot(bot_info_t info)
 	}
 
 	return bot;
-}
-
-Action Timer_AddReplayBots(Handle timer, any data)
-{
-	AddReplayBots();
-	return Plugin_Stop;
 }
 
 void AddReplayBots()
@@ -2076,12 +2069,6 @@ public void OnClientPutInServer(int client)
 		ClearFrames(client);
 
 		SDKHook(client, SDKHook_PostThink, ForceObserveProp);
-
-		// The server kicks all the bots when it's hibernating... so let's add them back in...
-		if (GetClientCount() <= 1)
-		{
-			CreateTimer(0.2, Timer_AddReplayBots, 0, TIMER_FLAG_NO_MAPCHANGE);
-		}
 	}
 }
 
@@ -2514,7 +2501,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	if(makeReplay && ReplayEnabled(style))
 	{
 		StopOrRestartBots(style, track, false);
-		AddReplayBots(); // add missing looping bots
 
 		if (gB_ClosestPos)
 		{
