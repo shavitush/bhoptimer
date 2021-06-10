@@ -229,6 +229,7 @@ Convar gCV_DynamicTimeSearch = null;
 Convar gCV_DynamicTimeCheap = null;
 Convar gCV_DynamicTimeTick = null;
 Convar gCV_EnableDynamicTimeDifference = null;
+Convar gCV_SpawnBotsIfEmpty = null;
 ConVar sv_duplicate_playernames_ok = null;
 
 // timer settings
@@ -387,6 +388,7 @@ public void OnPluginStart()
 	gCV_DynamicTimeCheap = new Convar("shavit_replay_timedifference_cheap", "0.0", "0 - Disabled\n1 - only clip the search ahead to shavit_replay_timedifference_search\n2 - only clip the search behind to players current frame\n3 - clip the search to +/- shavit_replay_timedifference_search seconds to the players current frame", 0, true, 0.0, true, 3.0);
 	gCV_DynamicTimeSearch = new Convar("shavit_replay_timedifference_search", "0.0", "Time in seconds to search the players current frame for dynamic time differences\n0 - Full Scan\nNote: Higher values will result in worse performance", 0, true, 0.0);
 	gCV_EnableDynamicTimeDifference = new Convar("shavit_replay_timedifference", "0", "Enabled dynamic time/velocity differences for the hud", 0, true, 0.0, true, 1.0);
+	gCV_SpawnBotsIfEmpty = new Convar("shavit_replay_spawnbotsifempty", "1", "Whether to spawn replay bots when the server is empty. You may want to disable this if you want to have the warmup time period occur.", 0, true, 0.0, true, 1.0);
 
 	char tenth[6];
 	IntToString(RoundToFloor(1.0 / GetTickInterval() / 10), tenth, sizeof(tenth));
@@ -1288,7 +1290,7 @@ public Action Timer_Cron(Handle Timer)
 		UpdateReplayClient(gA_BotInfo[i].iEnt);
 	}
 
-	if (GetClientCount() >= 1)
+	if (gCV_SpawnBotsIfEmpty.BoolValue || GetClientCount() >= 1)
 	{
 		AddReplayBots();
 	}
