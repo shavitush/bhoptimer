@@ -1288,7 +1288,10 @@ public Action Timer_Cron(Handle Timer)
 		UpdateReplayClient(gA_BotInfo[i].iEnt);
 	}
 
-	AddReplayBots();
+	if (GetClientCount() >= 1)
+	{
+		AddReplayBots();
+	}
 
 	return Plugin_Continue;
 }
