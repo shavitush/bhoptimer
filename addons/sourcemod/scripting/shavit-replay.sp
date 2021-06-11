@@ -3469,8 +3469,6 @@ public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int
 		gI_MenuStyle[param1] = style;
 		int type = gI_MenuType[param1];
 
-		FinishReplay(gA_BotInfo[param1]);
-
 		int bot = -1;
 
 		if (type == Replay_Central)
