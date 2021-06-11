@@ -382,7 +382,7 @@ public void OnPluginStart()
 	gCV_BotPlusUse = new Convar("shavit_replay_botplususe", "1", "Allow bots to use +use?", 0, true, 0.0, true, 1.0);
 	gCV_BotWeapon = new Convar("shavit_replay_botweapon", "", "Choose which weapon the bot will hold.\nLeave empty to use the default.\nSet to \"none\" to have none.\nExample: weapon_usp");
 	gCV_PlaybackCanStop = new Convar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
-	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "10.0", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
+	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "3.5", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.5", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
 	gCV_ClearPreRun = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
 	gCV_DynamicTimeCheap = new Convar("shavit_replay_timedifference_cheap", "0.0", "0 - Disabled\n1 - only clip the search ahead to shavit_replay_timedifference_search\n2 - only clip the search behind to players current frame\n3 - clip the search to +/- shavit_replay_timedifference_search seconds to the players current frame", 0, true, 0.0, true, 3.0);
@@ -686,7 +686,9 @@ void FinishReplay(bot_info_t info)
 
 	if (starter > 0)
 	{
+		gF_LastInteraction[starter] = GetEngineTime();
 		gA_BotInfo[starter].iEnt = -1;
+		OpenReplayMenu(starter); // Refresh menu so Spawn Replay option shows up again...
 	}
 }
 
@@ -829,6 +831,7 @@ void StartReplay(bot_info_t info, int track, int style, int starter, float delay
 		gA_BotInfo[starter].iEnt = info.iEnt;
 		// Timer is used because the bot's name is missing and profile pic random if using RequestFrame...
 		// I really have no idea. Even delaying by 5 frames wasn't enough. Broken game.
+		// It seems to use early steamids for pfps since I've noticed BAILPAN and EricS 's avatars...
 		CreateTimer(0.2, Timer_SpectateMyBot, GetClientSerial(info.iEnt), TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
@@ -2069,6 +2072,7 @@ public void OnClientPutInServer(int client)
 
 	if(!IsFakeClient(client))
 	{
+		gF_LastInteraction[client] = GetEngineTime() - gCV_PlaybackCooldown.FloatValue;
 		gA_BotInfo[client].iEnt = -1;
 		ClearBotInfo(gA_BotInfo[client]);
 		ClearFrames(client);
@@ -3172,7 +3176,7 @@ public Action Command_Replay(int client, int args)
 	return Plugin_Handled;
 }
 
-void OpenReplayMenu(int client)
+void OpenReplayMenu(int client, bool canControlReplayUiFix=false)
 {
 	Menu menu = new Menu(MenuHandler_Replay);
 	menu.SetTitle("%T\n ", "Menu_Replay", client);
@@ -3180,7 +3184,7 @@ void OpenReplayMenu(int client)
 	char sDisplay[64];
 	bool alreadyHaveBot = (gA_BotInfo[client].iEnt > 0);
 	int index = GetControllableReplay(client);
-	bool canControlReplay = (index != -1);
+	bool canControlReplay = canControlReplayUiFix || (index != -1);
 
 	FormatEx(sDisplay, 64, "%T", "CentralReplayStop", client);
 	menu.AddItem("stop", sDisplay, canControlReplay ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -3457,7 +3461,7 @@ public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int
 
 		int style = StringToInt(sInfo);
 
-		if(style < 0 || style >= gI_Styles || !ReplayEnabled(style) || gA_FrameCache[style][gI_MenuTrack[param1]].iFrameCount == 0 || gA_BotInfo[param1].iEnt > 0)
+		if(style < 0 || style >= gI_Styles || !ReplayEnabled(style) || gA_FrameCache[style][gI_MenuTrack[param1]].iFrameCount == 0 || gA_BotInfo[param1].iEnt > 0 || GetEngineTime() - gF_LastInteraction[param1] < gCV_PlaybackCooldown.FloatValue)
 		{
 			return 0;
 		}
@@ -3509,7 +3513,7 @@ public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int
 			return 0;
 		}
 
-		OpenReplayMenu(param1);
+		OpenReplayMenu(param1, true);
 	}
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -3525,10 +3529,9 @@ public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int
 
 bool CanControlReplay(int client, bot_info_t info)
 {
-	return (CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON) ||
-			(gCV_PlaybackCanStop.BoolValue &&
-			GetClientSerial(client) == info.iStarterSerial &&
-			GetEngineTime() - gF_LastInteraction[client] > gCV_PlaybackCooldown.FloatValue));
+	return CheckCommandAccess(client, "sm_deletereplay", ADMFLAG_RCON)
+		|| (gCV_PlaybackCanStop.BoolValue && GetClientSerial(client) == info.iStarterSerial)
+	;
 }
 
 int GetControllableReplay(int client)
