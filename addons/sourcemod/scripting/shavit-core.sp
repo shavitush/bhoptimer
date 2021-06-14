@@ -957,7 +957,7 @@ public Action Command_WipePlayer(int client, int args)
 			return Plugin_Handled;
 		}
 
-		char sAlphabet[] = "abcdefghijkmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ23456789!@#";
+		char sAlphabet[] = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#";
 		strcopy(gS_Verification[client], 8, "");
 
 		for(int i = 0; i < 5; i++)
