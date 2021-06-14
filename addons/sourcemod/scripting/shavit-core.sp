@@ -2068,7 +2068,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	}
 
 	gA_Timers[client].bEnabled = snapshot.bTimerEnabled;
-	gA_Timers[client].bPaused = snapshot.bClientPaused;
+	gA_Timers[client].bPaused = snapshot.bClientPaused && snapshot.bTimerEnabled;
 	gA_Timers[client].iJumps = snapshot.iJumps;
 	gA_Timers[client].iStyle = snapshot.bsStyle;
 	gA_Timers[client].iStrafes = snapshot.iStrafes;
