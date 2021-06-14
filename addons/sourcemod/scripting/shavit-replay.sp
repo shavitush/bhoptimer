@@ -2194,7 +2194,7 @@ void UpdateBotScoreboard(int client)
 		sv_duplicate_playernames_ok.IntValue = sv_duplicate_playernames_ok_original;
 	}
 
-	int iScore = (iFrameCount > 0 || client == gI_CentralBot)? 2000:-2000;
+	int iScore = (iFrameCount > 0 || client == gI_CentralBot)? 1337:-1337;
 
 	if(gEV_Type == Engine_CSGO)
 	{
