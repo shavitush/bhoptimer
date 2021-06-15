@@ -2593,6 +2593,14 @@ bool LoadStyles()
 	parser.ParseFile(sPath);
 	delete parser;
 
+	for (int i = 0; i < gI_Styles; i++)
+	{
+		if (gSM_StyleKeys[i] == null)
+		{
+			SetFailState("Missing style index %d. Highest index is %d. Fix addons/sourcemod/configs/shavit-styles.cfg", i, gI_Styles-1);
+		}
+	}
+
 	gB_Registered = true;
 
 	SortCustom1D(gI_OrderedStyles, gI_Styles, SortAscending_StyleOrder);
@@ -2614,12 +2622,21 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 
 	gI_CurrentParserIndex = StringToInt(name);
 
+	if (gSM_StyleKeys[gI_CurrentParserIndex] != null)
+	{
+		SetFailState("Style index %d (%s) already parsed. Stop using the same index for multiple styles. Fix addons/sourcemod/configs/shavit-styles.cfg", gI_CurrentParserIndex, name);
+	}
+
+	if (gI_CurrentParserIndex >= STYLE_LIMIT)
+	{
+		SetFailState("Style index %d (%s) too high (limit %d). Fix addons/sourcemod/configs/shavit-styles.cfg", gI_CurrentParserIndex, name, STYLE_LIMIT);
+	}
+
 	if(gI_Styles <= gI_CurrentParserIndex)
 	{
 		gI_Styles = gI_CurrentParserIndex + 1;
 	}
 
-	delete gSM_StyleKeys[gI_CurrentParserIndex];
 	gSM_StyleKeys[gI_CurrentParserIndex] = new StringMap();
 
 	gSM_StyleKeys[gI_CurrentParserIndex].SetString("name", "<MISSING STYLE NAME>");
