@@ -567,10 +567,7 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
-	if (gH_IsSpawnPointValid != null)
-	{
-		gH_IsSpawnPointValid.HookGamerules(Hook_Post, Hook_IsSpawnPointValid);
-	}
+	gH_IsSpawnPointValid.HookGamerules(Hook_Post, Hook_IsSpawnPointValid);
 
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
@@ -2669,7 +2666,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	}
 }
 
-bool DeleteCheckpoint(int client, int index, bool force=false, bool eraseIndex=true)
+bool DeleteCheckpoint(int client, int index, bool force=false)
 {
 	if (index < 1 || index > gA_Checkpoints[client].Length)
 	{
@@ -2693,12 +2690,8 @@ bool DeleteCheckpoint(int client, int index, bool force=false, bool eraseIndex=t
 
 	cp_cache_t cpcache;
 	gA_Checkpoints[client].GetArray(index-1, cpcache);
+	gA_Checkpoints[client].Erase(index-1);
 	DeleteCheckpointCache(cpcache);
-
-	if (eraseIndex)
-	{
-		gA_Checkpoints[client].Erase(index-1);
-	}
 
 	return true;
 }
@@ -3560,7 +3553,7 @@ public any Native_SetCheckpoint(Handle plugin, int numParams)
 		position = gI_CurrentCheckpoint[client];
 	}
 
-	DeleteCheckpoint(client, position, true, true);
+	DeleteCheckpoint(client, position, true);
 	gA_Checkpoints[client].SetArray(position-1, cpcache);
 	
 	return true;
