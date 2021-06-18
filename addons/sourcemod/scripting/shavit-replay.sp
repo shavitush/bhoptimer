@@ -1041,9 +1041,9 @@ public int Native_SetReplayData(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	ArrayList data = view_as<ArrayList>(GetNativeCell(2));
-	bool cloneHandle = view_as<bool>(GetNativeCell(3));
+	bool cheapCloneHandle = view_as<bool>(GetNativeCell(3));
 
-	if (cloneHandle)
+	if (cheapCloneHandle)
 	{
 		data = view_as<ArrayList>(CloneHandle(data));
 	}
@@ -1060,17 +1060,18 @@ public int Native_SetReplayData(Handle handler, int numParams)
 public int Native_GetReplayData(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	bool cloneHandle = view_as<bool>(GetNativeCell(2));
+	bool cheapCloneHandle = view_as<bool>(GetNativeCell(2));
 	Handle cloned = null;
 
 	if(gA_PlayerFrames[client] != null)
 	{
-		ArrayList frames = cloneHandle ? gA_PlayerFrames[client] : gA_PlayerFrames[client].Clone();
+		ArrayList frames = cheapCloneHandle ? gA_PlayerFrames[client] : gA_PlayerFrames[client].Clone();
 		frames.Resize(gI_PlayerFrames[client]);
 		cloned = CloneHandle(frames, plugin); // set the calling plugin as the handle owner
 
-		if (!cloneHandle)
+		if (!cheapCloneHandle)
 		{
+			// Only hit for .Clone()'d handles. .Clone() != CloneHandle()
 			CloseHandle(frames);
 		}
 	}
