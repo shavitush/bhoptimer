@@ -175,8 +175,8 @@
 			// https://asherkin.github.io/vtable/
 			"CBasePlayer::UpdateStepSound"
 			{
-				"windows"   "361"
-				"linux"     "362"
+				"windows"   "362"
+				"linux"     "363"
 			}
 		}
 
@@ -204,7 +204,7 @@
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
 			"PhysicsCheckForEntityUntouch"
 			{
-				"windows"   "\x55\x8B\xEC\x51\x56\x8B\xF1\x8B\x86\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01"
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x8B\x86\x2A\x2A\x2A\x2A\xD1\xE8"
 				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 			}
 			// search string: "scoreboard_minigame"
