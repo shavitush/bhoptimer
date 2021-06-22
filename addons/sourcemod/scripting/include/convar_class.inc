@@ -87,6 +87,7 @@ methodmap Convar < ConVar
 			GetPluginFilename(GetMyHandle(), pluginName, PLATFORM_MAX_PATH);
 
 			ReplaceString(pluginName, PLATFORM_MAX_PATH, ".smx", "");
+			ReplaceString(pluginName, PLATFORM_MAX_PATH, "\\", "/");
 
 			int start = FindCharInString(pluginName, '/', true);
 
