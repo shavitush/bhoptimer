@@ -1715,7 +1715,7 @@ bool LoadReplay(framecache_t cache, int style, int track, const char[] path, con
 {
 	bool success = false;
 	replayfile_header_t header;
-	File fFile = ReadReplayHeader(path, header);
+	File fFile = ReadReplayHeader(path, header, style, track);
 
 	if (fFile != null)
 	{
@@ -1809,7 +1809,7 @@ bool ReadReplayFrames(File file, replayfile_header_t header, framecache_t cache)
 	return true;
 }
 
-File ReadReplayHeader(const char[] path, replayfile_header_t header)
+File ReadReplayHeader(const char[] path, replayfile_header_t header, int style, int track)
 {
 	if (!FileExists(path))
 	{
@@ -1855,6 +1855,12 @@ File ReadReplayHeader(const char[] path, replayfile_header_t header)
 			{
 				header.iPreFrames = 0;
 			}
+		}
+		
+		else if(version < 0x03)
+		{
+			header.iStyle = style;
+			header.iTrack = track;
 		}
 
 		file.ReadInt32(header.iFrameCount);
@@ -2005,7 +2011,7 @@ bool DeleteReplay(int style, int track, int accountid, const char[] mapname)
 	if(accountid != 0)
 	{
 		replayfile_header_t header;
-		File file = ReadReplayHeader(sPath, header);
+		File file = ReadReplayHeader(sPath, header, style, track);
 
 		if (file == null)
 		{
