@@ -1524,12 +1524,46 @@ native int Shavit_GetReplayButtons(int ent);
 native int Shavit_GetReplayFrameCount(int style, int track);
 
 /**
+ * Retrieves a replay's pre-run frame count.
+ *
+ * @param style						Style.
+ * @param track						Track.
+ * @return							Frame count.
+ */
+native int Shavit_GetReplayPreFrame(int style, int track);
+
+/**
+ * Retrieves a replay's post-run frame count.
+ *
+ * @param style						Style.
+ * @param track						Track.
+ * @return							Frame count.
+ */
+native int Shavit_GetReplayPostFrame(int style, int track);
+
+/**
  * Retrieves the frame count from the currently running replay bot's framecache_t.
  *
  * @param bot						Replay bot entity.
  * @return							Frame count.
  */
 native int Shavit_GetReplayCacheFrameCount(int bot);
+
+/**
+ * Retrieves the pre-run frame count from the currently running replay bot's framecache_t.
+ *
+ * @param bot						Replay bot entity.
+ * @return							Frame count.
+ */
+native int Shavit_GetReplayCachePreFrame(int bot);
+
+/**
+ * Retrieves the post-run frame count from the currently running replay bot's framecache_t.
+ *
+ * @param bot						Replay bot entity.
+ * @return							Frame count.
+ */
+native int Shavit_GetReplayCachePostFrame(int bot);
 
 /**
  * Retrieves the replay data for the given style and track.
@@ -2483,5 +2517,9 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClientLastStage");
 	MarkNativeAsOptional("Shavit_GetStageWR");
 	MarkNativeAsOptional("Shavit_GetStagePB");
+	MarkNativeAsOptional("Shavit_GetReplayPreFrame");
+	MarkNativeAsOptional("Shavit_GetReplayPostFrame");
+	MarkNativeAsOptional("Shavit_GetReplayCachePreFrame");
+	MarkNativeAsOptional("Shavit_GetReplayCachePostFrame");
 }
 #endif

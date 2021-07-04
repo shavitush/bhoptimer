@@ -40,7 +40,7 @@ forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x04
+#define REPLAY_FORMAT_SUBVERSION 0x05
 #define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 #define MAX_LOOPING_BOT_CONFIGS 24
 #define HACKY_CLIENT_IDX_PROP "m_iTeamNum" // I store the client owner idx in this for Replay_Prop. My brain is too powerful.
@@ -101,6 +101,22 @@ enum struct bot_info_t
 	framecache_t aCache;
 }
 
+enum struct finished_run_info
+{
+	int iSteamID;
+	int style;
+	float time;
+	int jumps;
+	int strafes;
+	float sync;
+	int track;
+	float oldtime;
+	float perfs;
+	float avgvel;
+	float maxvel;
+	int timestamp;
+}
+
 enum
 {
 	iBotShooting_Attack1 = (1 << 0),
@@ -156,6 +172,12 @@ bool gB_Linux;
 char gS_ReplayFolder[PLATFORM_MAX_PATH];
 
 framecache_t gA_FrameCache[STYLE_LIMIT][TRACKS_SIZE];
+
+// stuff related to postframes
+finished_run_info gA_FinishedRunInfo[MAXPLAYERS+1];
+bool gB_GrabbingPostFrames[MAXPLAYERS+1];
+Handle gH_PostFramesTimer[MAXPLAYERS+1];
+int gI_PlayerFinishFrame[MAXPLAYERS+1];
 
 bool gB_Button[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
@@ -222,6 +244,7 @@ Convar gCV_BotWeapon = null;
 Convar gCV_PlaybackCanStop = null;
 Convar gCV_PlaybackCooldown = null;
 Convar gCV_PlaybackPreRunTime = null;
+Convar gCV_PlaybackPostRunTime = null;
 Convar gCV_ClearPreRun = null;
 Convar gCV_DynamicTimeSearch = null;
 Convar gCV_DynamicTimeCheap = null;
@@ -275,7 +298,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayData", Native_GetReplayData);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
+	CreateNative("Shavit_GetReplayPreFrame", Native_GetReplayPreFrame);
+	CreateNative("Shavit_GetReplayPostFrame", Native_GetReplayPostFrame);
 	CreateNative("Shavit_GetReplayCacheFrameCount", Native_GetReplayCacheFrameCount);
+	CreateNative("Shavit_GetReplayCachePreFrame", Native_GetReplayCachePreFrame);
+	CreateNative("Shavit_GetReplayCachePostFrame", Native_GetReplayCachePostFrame);
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
 	CreateNative("Shavit_GetReplayCacheLength", Native_GetReplayCacheLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
@@ -383,7 +410,8 @@ public void OnPluginStart()
 	gCV_BotWeapon = new Convar("shavit_replay_botweapon", "", "Choose which weapon the bot will hold.\nLeave empty to use the default.\nSet to \"none\" to have none.\nExample: weapon_usp");
 	gCV_PlaybackCanStop = new Convar("shavit_replay_pbcanstop", "1", "Allow players to stop playback if they requested it?", 0, true, 0.0, true, 1.0);
 	gCV_PlaybackCooldown = new Convar("shavit_replay_pbcooldown", "3.5", "Cooldown in seconds to apply for players between each playback they request/stop.\nDoes not apply to RCON admins.", 0, true, 0.0);
-	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.5", "Time (in seconds) to record before a player leaves start zone. (The value should NOT be too high)", 0, true, 0.0);
+	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.5", "Time (in seconds) to record before a player leaves start zone.", 0, true, 0.0, true, 2.0);
+	gCV_PlaybackPostRunTime = new Convar("shavit_replay_postruntime", "1.5", "Time (in seconds) to record after a player enters the end zone.", 0, true, 0.0, true, 2.0);
 	gCV_ClearPreRun = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
 	gCV_DynamicTimeCheap = new Convar("shavit_replay_timedifference_cheap", "0.0", "0 - Disabled\n1 - only clip the search ahead to shavit_replay_timedifference_search\n2 - only clip the search behind to players current frame\n3 - clip the search to +/- shavit_replay_timedifference_search seconds to the players current frame", 0, true, 0.0, true, 3.0);
 	gCV_DynamicTimeSearch = new Convar("shavit_replay_timedifference_search", "0.0", "Time in seconds to search the players current frame for dynamic time differences\n0 - Full Scan\nNote: Higher values will result in worse performance", 0, true, 0.0);
@@ -715,12 +743,7 @@ void StopOrRestartBots(int style, int track, bool restart)
 
 bool UnloadReplay(int style, int track, bool reload, bool restart, const char[] path = "")
 {
-	delete gA_FrameCache[style][track].aFrames;
-	gA_FrameCache[style][track].iFrameCount = 0;
-	gA_FrameCache[style][track].fTime = 0.0;
-	gA_FrameCache[style][track].bNewFormat = true;
-	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, "invalid");
-	gA_FrameCache[style][track].iPreFrames = 0;
+	ClearFrameCache(gA_FrameCache[style][track]);
 
 	bool loaded = false;
 
@@ -1100,11 +1123,31 @@ public int Native_GetReplayFrameCount(Handle handler, int numParams)
 	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].iFrameCount;
 }
 
+public int Native_GetReplayPreFrame(Handle plugin, int numParams)
+{
+	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].iPreFrames;
+}
+
+public int Native_GetReplayPostFrame(Handle plugin, int numParams)
+{
+	return gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].iPostFrames;
+}
+
 public int Native_GetReplayCacheFrameCount(Handle handler, int numParams)
 {
 	int bot = GetNativeCell(1);
 	int index = GetBotInfoIndex(bot);
 	return gA_BotInfo[index].aCache.iFrameCount;
+}
+
+public int Native_GetReplayCachePreFrame(Handle plugin, int numParams)
+{
+	return gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].aCache.iPreFrames;
+}
+
+public int Native_GetReplayCachePostFrame(Handle plugin, int numParams)
+{
+	return gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].aCache.iPostFrames;
 }
 
 public int Native_GetClientFrameCount(Handle handler, int numParams)
@@ -1514,13 +1557,7 @@ public void OnMapStart()
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			delete gA_FrameCache[i][j].aFrames;
-			gA_FrameCache[i][j].iFrameCount = 0;
-			gA_FrameCache[i][j].fTime = 0.0;
-			gA_FrameCache[i][j].bNewFormat = true;
-			strcopy(gA_FrameCache[i][j].sReplayName, MAX_NAME_LENGTH, "invalid");
-			gA_FrameCache[i][j].iPreFrames = 0;
-
+			ClearFrameCache(gA_FrameCache[i][j]);
 			DefaultLoadReplay(gA_FrameCache[i][j], i, j);
 		}
 
@@ -1803,8 +1840,10 @@ bool ReadReplayFrames(File file, replayfile_header_t header, framecache_t cache)
 	cache.fTime = header.fTime;
 	cache.iReplayVersion = header.iReplayVersion;
 	cache.bNewFormat = StrEqual(header.sReplayFormat, REPLAY_FORMAT_FINAL);
-	strcopy(cache.sReplayName, MAX_NAME_LENGTH, "invalid");
+	cache.sReplayName = "invalid";
 	cache.iPreFrames = header.iPreFrames;
+	cache.iPostFrames = header.iPostFrames;
+	cache.fTickrate = header.fTickrate;
 
 	return true;
 }
@@ -1900,7 +1939,7 @@ File ReadReplayHeader(const char[] path, replayfile_header_t header, int style, 
 	return file;
 }
 
-void WriteReplayHeader(File fFile, int style, int track, float time, int steamid, int preframes, int timerstartframe, int iSize)
+void WriteReplayHeader(File fFile, int style, int track, float time, int steamid, int preframes, int timerstartframe, int postframes, int iSize)
 {
 	fFile.WriteLine("%d:" ... REPLAY_FORMAT_FINAL, REPLAY_FORMAT_SUBVERSION);
 
@@ -1912,9 +1951,12 @@ void WriteReplayHeader(File fFile, int style, int track, float time, int steamid
 	fFile.WriteInt32(iSize - preframes);
 	fFile.WriteInt32(view_as<int>(time));
 	fFile.WriteInt32(steamid);
+
+	fFile.WriteInt32(postframes);
+	fFile.WriteInt32(view_as<int>(gF_Tickrate));
 }
 
-void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int iSize, int timerstartframe, int timestamp, bool saveCopy, bool saveReplay, char[] sPath, int sPathLen)
+void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int iSize, int timerstartframe, int postframes, int timestamp, bool saveCopy, bool saveReplay, char[] sPath, int sPathLen)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -1938,7 +1980,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	if (saveReplay)
 	{
-		WriteReplayHeader(fWR, style, track, time, steamid, preframes, timerstartframe, iSize);
+		WriteReplayHeader(fWR, style, track, time, steamid, preframes, timerstartframe, postframes, iSize);
 
 		delete gA_FrameCache[style][track].aFrames;
 		gA_FrameCache[style][track].aFrames = new ArrayList(sizeof(frame_t), iSize-preframes);
@@ -1946,7 +1988,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	if (saveCopy)
 	{
-		WriteReplayHeader(fCopy, style, track, time, steamid, preframes, timerstartframe, iSize);
+		WriteReplayHeader(fCopy, style, track, time, steamid, preframes, timerstartframe, postframes, iSize);
 	}
 
 	any aFrameData[sizeof(frame_t)];
@@ -1996,6 +2038,8 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
 	gA_FrameCache[style][track].iPreFrames = timerstartframe - preframes;
+	gA_FrameCache[style][track].iPostFrames = postframes;
+	gA_FrameCache[style][style].fTickrate = gF_Tickrate;
 }
 
 bool DeleteReplay(int style, int track, int accountid, const char[] mapname)
@@ -2358,6 +2402,11 @@ public void OnClientDisconnect(int client)
 			}
 		}
 
+		if (gB_GrabbingPostFrames[client])
+		{
+			FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
+		}
+
 		return;
 	}
 
@@ -2405,6 +2454,11 @@ public void OnEntityDestroyed(int entity)
 
 public Action Shavit_OnStart(int client)
 {
+	if (gB_GrabbingPostFrames[client])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
+	}
+
 	int iMaxPreFrames = RoundToFloor(gCV_PlaybackPreRunTime.FloatValue * gF_Tickrate / Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "speed"));
 
 	gI_PlayerPrerunFrames[client] = gI_PlayerFrames[client] - iMaxPreFrames;
@@ -2424,7 +2478,7 @@ public Action Shavit_OnStart(int client)
 	}
 	else
 	{
-		if(gI_PlayerFrames[client] >= iMaxPreFrames)
+		while (gI_PlayerFrames[client] >= iMaxPreFrames)
 		{
 			gA_PlayerFrames[client].Erase(0);
 			gI_PlayerFrames[client]--;
@@ -2436,6 +2490,11 @@ public Action Shavit_OnStart(int client)
 
 public void Shavit_OnStop(int client)
 {
+	if (gB_GrabbingPostFrames[client])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
+	}
+
 	ClearFrames(client);
 }
 
@@ -2447,13 +2506,23 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	}
 }
 
-public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
+Action Timer_PostFrames(Handle timer, int client)
 {
-	if(Shavit_IsPracticeMode(client) || !gCV_Enabled.BoolValue || gI_PlayerFrames[client] == 0)
-	{
-		return;
-	}
+	gH_PostFramesTimer[client] = null;
+	FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
+	return Plugin_Stop;
+}
 
+void FinishGrabbingPostFrames(int client, finished_run_info info)
+{
+	gB_GrabbingPostFrames[client] = false;
+	delete gH_PostFramesTimer[client];
+
+	DoReplaySaverCallbacks(info.iSteamID, client, info.style, info.time, info.jumps, info.strafes, info.sync, info.track, info.oldtime, info.perfs, info.avgvel, info.maxvel, info.timestamp);
+}
+
+void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
+{
 	bool isTooLong = (gCV_TimeLimit.FloatValue > 0.0 && time > gCV_TimeLimit.FloatValue);
 
 	float length = GetReplayLength(style, track, gA_FrameCache[style][track]);
@@ -2485,14 +2554,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		return;
 	}
 
-	int iSteamID = GetSteamAccountID(client);
-
 	char sName[MAX_NAME_LENGTH];
 	GetClientName(client, sName, MAX_NAME_LENGTH);
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
+	int postframes = gI_PlayerFrames[client] - gI_PlayerFinishFrame[client];
+
 	char sPath[PLATFORM_MAX_PATH];
-	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], gI_PlayerTimerStartFrames[client], timestamp, makeCopy, makeReplay, sPath, sizeof(sPath));
+	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], gI_PlayerTimerStartFrames[client], postframes, timestamp, makeCopy, makeReplay, sPath, sizeof(sPath));
 
 	Call_StartForward(gH_OnReplaySaved);
 	Call_PushCell(client);
@@ -2525,6 +2594,41 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	}
 
 	ClearFrames(client);
+}
+
+public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
+{
+	if(Shavit_IsPracticeMode(client) || !gCV_Enabled.BoolValue || gI_PlayerFrames[client] == 0)
+	{
+		return;
+	}
+
+	finished_run_info info;
+	info.iSteamID = GetSteamAccountID(client);
+	info.style = style;
+	info.time = time;
+	info.jumps = jumps;
+	info.strafes = strafes;
+	info.sync = sync;
+	info.track = track;
+	info.oldtime = oldtime;
+	info.perfs = perfs;
+	info.avgvel = avgvel;
+	info.maxvel = maxvel;
+	info.timestamp = timestamp;
+
+	if (gCV_PlaybackPostRunTime.FloatValue > 0.0)
+	{
+		gA_FinishedRunInfo[client] = info;
+		gB_GrabbingPostFrames[client] = true;
+		gI_PlayerFinishFrame[client] = gI_PlayerFrames[client];
+		delete gH_PostFramesTimer[client];
+		gH_PostFramesTimer[client] = CreateTimer(gCV_PlaybackPostRunTime.FloatValue, Timer_PostFrames, client, TIMER_FLAG_NO_MAPCHANGE);
+	}
+	else
+	{
+		DoReplaySaverCallbacks(GetSteamAccountID(client), client, style, time, jumps, strafes, sync, track, oldtime, perfs, avgvel, maxvel, timestamp);
+	}
 }
 
 void ApplyFlags(int &flags1, int flags2, int flag)
@@ -2747,7 +2851,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			return ReplayOnPlayerRunCmd(gA_BotInfo[client], buttons, impulse, vel);
 		}
 	}
-	else if(ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running)
+	else if (gB_GrabbingPostFrames[client] || (ReplayEnabled(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running))
 	{
 		if((gI_PlayerFrames[client] / gF_Tickrate) > gCV_TimeLimit.FloatValue)
 		{
@@ -2793,7 +2897,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				aFrame.buttons = buttons;
 				aFrame.flags = GetEntityFlags(client);
 				aFrame.mt = GetEntityMoveType(client);
-				//GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", aFrame.vel);
 
 				gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, aFrame, sizeof(frame_t));
 
@@ -2957,6 +3060,20 @@ void ClearFrames(int client)
 	gF_NextFrameTime[client] = 0.0;
 	gI_PlayerPrerunFrames[client] = 0;
 	gI_PlayerTimerStartFrames[client] = 0;
+	gI_PlayerFinishFrame[client] = 0;
+}
+
+void ClearFrameCache(framecache_t cache)
+{
+	delete cache.aFrames;
+	cache.iFrameCount = 0;
+	cache.fTime = 0.0;
+	cache.bNewFormat = true;
+	cache.iReplayVersion = 0;
+	cache.sReplayName = "invalid";
+	cache.iPreFrames = 0;
+	cache.iPostFrames = 0;
+	cache.fTickrate = 0.0;
 }
 
 public void Shavit_OnWRDeleted(int style, int id, int track, int accountid, const char[] mapname)
@@ -3590,13 +3707,7 @@ void ClearBotInfo(bot_info_t info)
 	//info.bIgnoreLimit
 	info.b2x = false;
 
-	info.aCache.iFrameCount = -1;
-	info.aCache.fTime = -1.0;
-	info.aCache.bNewFormat = false;
-	info.aCache.iReplayVersion = -1;
-	info.aCache.sReplayName = "";
-	info.aCache.iPreFrames = -1;
-	delete info.aCache.aFrames;
+	ClearFrameCache(info.aCache);
 }
 
 int GetNextBit(int start, int[] mask, int max)
@@ -3817,6 +3928,7 @@ float GetClosestReplayTime(int client)
 	}
 
 	int iPreFrames = gA_FrameCache[style][track].iPreFrames;
+	int iPostFrames = gA_FrameCache[style][track].iPostFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
 	int iPlayerFrames = gI_PlayerFrames[client] - gI_PlayerPrerunFrames[client];
 
@@ -3845,7 +3957,7 @@ float GetClosestReplayTime(int client)
 		if(iSearch == 0)
 		{
 			iStartFrame = 0;
-			iEndFrame = iLength - 1;
+			iEndFrame = iLength - 1 - iPostFrames;
 		}
 		else
 		{
@@ -3899,7 +4011,7 @@ float GetClosestReplayTime(int client)
 		return 0.0;
 	}
 
-	float frametime = GetReplayLength(style, track, gA_FrameCache[style][track]) / float(gA_FrameCache[style][track].iFrameCount - iPreFrames);
+	float frametime = GetReplayLength(style, track, gA_FrameCache[style][track]) / float(gA_FrameCache[style][track].iFrameCount - iPreFrames - iPostFrames);
 	float timeDifference = (iClosestFrame - iPreFrames) * frametime;
 
 	// Hides the hud if we are using the cheap search method and too far behind to be accurate

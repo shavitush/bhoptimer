@@ -1037,7 +1037,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 	if(data.bReplay)
 	{
-		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iTarget) != Replay_Idle && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
+		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iTarget) != Replay_Idle && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
 		{
 			char sTrack[32];
 
@@ -1242,7 +1242,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 	{
 		StrCat(buffer, maxlen, "<span class='fontSize-l'>");
 
-		if(data.iStyle != -1 && data.fTime <= data.fWR && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
+		if(data.iStyle != -1 && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
 		{
 			char sPlayerName[MAX_NAME_LENGTH];
 			Shavit_GetReplayName(data.iStyle, data.iTrack, sPlayerName, MAX_NAME_LENGTH);
