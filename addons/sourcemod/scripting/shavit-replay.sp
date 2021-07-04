@@ -2603,22 +2603,22 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		return;
 	}
 
-	finished_run_info info;
-	info.iSteamID = GetSteamAccountID(client);
-	info.style = style;
-	info.time = time;
-	info.jumps = jumps;
-	info.strafes = strafes;
-	info.sync = sync;
-	info.track = track;
-	info.oldtime = oldtime;
-	info.perfs = perfs;
-	info.avgvel = avgvel;
-	info.maxvel = maxvel;
-	info.timestamp = timestamp;
-
 	if (gCV_PlaybackPostRunTime.FloatValue > 0.0)
 	{
+		finished_run_info info;
+		info.iSteamID = GetSteamAccountID(client);
+		info.style = style;
+		info.time = time;
+		info.jumps = jumps;
+		info.strafes = strafes;
+		info.sync = sync;
+		info.track = track;
+		info.oldtime = oldtime;
+		info.perfs = perfs;
+		info.avgvel = avgvel;
+		info.maxvel = maxvel;
+		info.timestamp = timestamp;
+
 		gA_FinishedRunInfo[client] = info;
 		gB_GrabbingPostFrames[client] = true;
 		gI_PlayerFinishFrame[client] = gI_PlayerFrames[client];
