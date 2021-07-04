@@ -76,6 +76,7 @@ char gS_PreviousMap[PLATFORM_MAX_PATH];
 int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
 bool gB_ClosedKZCP[MAXPLAYERS+1];
+int gI_LastWeaponTick[MAXPLAYERS+1];
 
 ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
@@ -1265,6 +1266,8 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 
+	gI_LastWeaponTick[client] = GetGameTickCount();
+
 	if(IsFakeClient(client))
 	{
 		if (gCV_BotFootsteps.BoolValue && gH_UpdateStepSound != null)
@@ -1831,6 +1834,13 @@ public Action Command_Weapon(int client, int args)
 
 		return Plugin_Handled;
 	}
+
+	if (GetGameTickCount() - gI_LastWeaponTick[client] < 10)
+	{
+		return Plugin_Handled;
+	}
+
+	gI_LastWeaponTick[client] = GetGameTickCount();
 
 	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
