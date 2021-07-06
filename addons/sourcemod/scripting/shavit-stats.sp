@@ -129,6 +129,7 @@ public void OnMapStart()
 {
 	if(gB_Late)
 	{
+		gB_Late = false;
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
 	}

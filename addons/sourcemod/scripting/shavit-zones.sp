@@ -797,6 +797,7 @@ public void OnMapStart()
 
 	if(gB_Late)
 	{
+		gB_Late = false;
 		Shavit_OnChatConfigLoaded();
 	}
 
