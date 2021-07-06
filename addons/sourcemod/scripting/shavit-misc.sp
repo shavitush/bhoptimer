@@ -954,7 +954,7 @@ public Action Timer_PersistKZCP(Handle timer)
 		if(!gB_ClosedKZCP[i] &&
 			Shavit_GetStyleSettingInt(gI_Style[i], "kzcheckpoints")
 			&& GetClientMenu(i) == MenuSource_None &&
-			IsClientInGame(i) && IsPlayerAlive(i))
+			IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i))
 		{
 			OpenKZCPMenu(i);
 		}
