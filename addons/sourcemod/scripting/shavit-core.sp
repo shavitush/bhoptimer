@@ -1641,11 +1641,11 @@ public int Native_FinishMap(Handle handler, int numParams)
 		#if DEBUG
 		if(gCV_DebugOffsets.BoolValue)
 		{
-			char sOffsetMessage[64];
+			char sOffsetMessage[100];
 			char sOffsetDistance[8];
 			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_End]);
-			FormatEx(sOffsetMessage, 64, "[END]%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_End], sOffsetDistance);
-			PrintToConsole(client, "%s", sOffsetMessage);
+			FormatEx(sOffsetMessage, sizeof(sOffsetMessage), "[END]%T %d", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_End], sOffsetDistance, gA_Timers[client].iZoneIncrement);
+			PrintToChat(client, "%s", sOffsetMessage);
 		}
 		#endif
 	}
@@ -3340,11 +3340,11 @@ public void PostThinkPost(int client)
 		#if DEBUG
 		if(gCV_DebugOffsets.BoolValue)
 		{
-			char sOffsetMessage[64];
+			char sOffsetMessage[100];
 			char sOffsetDistance[8];
 			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_Start]);
-			FormatEx(sOffsetMessage, 64, "[START]%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_Start], sOffsetDistance);
-			PrintToConsole(client, "%s", sOffsetMessage);
+			FormatEx(sOffsetMessage, sizeof(sOffsetMessage), "[START]%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_Start], sOffsetDistance);
+			PrintToChat(client, "%s", sOffsetMessage);
 		}
 		#endif
 	}
