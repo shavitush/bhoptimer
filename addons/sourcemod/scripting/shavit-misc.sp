@@ -1266,8 +1266,6 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 
-	gI_LastWeaponTick[client] = GetGameTickCount();
-
 	if(IsFakeClient(client))
 	{
 		if (gCV_BotFootsteps.BoolValue && gH_UpdateStepSound != null)
