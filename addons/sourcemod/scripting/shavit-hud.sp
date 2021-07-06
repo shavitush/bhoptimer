@@ -1537,12 +1537,11 @@ void UpdateMainHUD(int client)
 	
 	if(IsSource2013(gEV_Type))
 	{
-		if(AddHUDToBuffer_Source2013(client, huddata, sBuffer, 512) > 0)
+		if(!(GetClientButtons(client) & IN_SCORE) && AddHUDToBuffer_Source2013(client, huddata, sBuffer, 512) > 0)
 		{
 			PrintHintText(client, "%s", sBuffer);
 		}
 	}
-	
 	else
 	{
 		StrCat(sBuffer, 512, "<pre>");
