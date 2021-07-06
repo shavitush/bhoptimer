@@ -22,6 +22,7 @@
 
 #include <sourcemod>
 #include <convar_class>
+#include <dhooks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit>

@@ -23,9 +23,9 @@
 #include <sdkhooks>
 #include <clientprefs>
 #include <convar_class>
+#include <dhooks>
 
 #undef REQUIRE_EXTENSIONS
-#include <dhooks>
 #include <SteamWorks>
 #include <cstrike>
 #include <tf2>
