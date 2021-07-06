@@ -573,11 +573,6 @@ public void OnMapStart()
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
 
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		ResetCheckpoints(i);
-	}
-
 	if (!StrEqual(gS_CurrentMap, gS_PreviousMap, false))
 	{
 		int iLength = gA_PersistentData.Length;
@@ -1176,6 +1171,14 @@ public void Shavit_OnResume(int client, int track)
 	}
 }
 
+public void Shavit_OnStop(int client, int track)
+{
+	if (gB_Eventqueuefix)
+	{
+		SetClientEventsPaused(client, false);
+	}
+}
+
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
@@ -1213,13 +1216,8 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
-
-			gI_GroundEntity[client] = iGroundEntity;
-
-			return Plugin_Continue;
 		}
-
-		if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue >= 3)
+		else if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue >= 3)
 		{
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
@@ -1266,6 +1264,8 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
 	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+
+	gI_LastWeaponTick[client] = 0;
 
 	if(IsFakeClient(client))
 	{
@@ -1423,7 +1423,7 @@ void DeletePersistentData(int index, persistent_data_t data)
 {
 	gA_PersistentData.Erase(index);
 	DeleteCheckpointCache(data.cpcache);
-	ResetCheckpointsInner(data.aCheckpoints);
+	DeleteCheckpointCacheList(data.aCheckpoints);
 	delete data.aCheckpoints;
 }
 
@@ -1448,16 +1448,16 @@ void LoadPersistentData(int serial)
 	}
 
 	LoadCheckpointCache(client, aData.cpcache, true);
-	DeleteCheckpointCache(aData.cpcache);
 
 	gI_TimesTeleported[client] = aData.iTimesTeleported;
 
 	if (aData.aCheckpoints != null)
 	{
-		ResetCheckpointsInner(gA_Checkpoints[client]);
+		DeleteCheckpointCacheList(gA_Checkpoints[client]);
 		delete gA_Checkpoints[client];
 		gI_CurrentCheckpoint[client] = aData.iCurrentCheckpoint;
 		gA_Checkpoints[client] = aData.aCheckpoints;
+		aData.aCheckpoints = null;
 
 		if (gA_Checkpoints[client].Length > 0)
 		{
@@ -1466,7 +1466,7 @@ void LoadPersistentData(int serial)
 	}
 
 	gB_SaveStates[client] = false;
-	gA_PersistentData.Erase(iIndex);
+	DeletePersistentData(iIndex, aData);
 }
 
 void DeleteCheckpointCache(cp_cache_t cache)
@@ -1476,7 +1476,7 @@ void DeleteCheckpointCache(cp_cache_t cache)
 	delete cache.aOutputWaits;
 }
 
-void ResetCheckpointsInner(ArrayList cps)
+void DeleteCheckpointCacheList(ArrayList cps)
 {
 	if (cps != null)
 	{
@@ -1493,7 +1493,7 @@ void ResetCheckpointsInner(ArrayList cps)
 
 void ResetCheckpoints(int client)
 {
-	ResetCheckpointsInner(gA_Checkpoints[client]);
+	DeleteCheckpointCacheList(gA_Checkpoints[client]);
 	gI_CurrentCheckpoint[client] = 0;
 }
 
@@ -1628,16 +1628,12 @@ public Action Command_Hide(int client, int args)
 	}
 
 	gB_Hide[client] = !gB_Hide[client];
-
-	char sCookie[4];
-	IntToString(view_as<int>(gB_Hide[client]), sCookie, 4);
-	SetClientCookie(client, gH_HideCookie, sCookie);
+	SetClientCookie(client, gH_HideCookie, gB_Hide[client] ? "1" : "0");
 
 	if(gB_Hide[client])
 	{
 		Shavit_PrintToChat(client, "%T", "HideEnabled", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
-
 	else
 	{
 		Shavit_PrintToChat(client, "%T", "HideDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
@@ -2944,6 +2940,11 @@ public Action Shavit_OnStart(int client)
 {
 	gI_TimesTeleported[client] = 0;
 
+	if (gB_Eventqueuefix)
+	{
+		SetClientEventsPaused(client, false);
+	}
+
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
@@ -3209,30 +3210,9 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 		}
 	}
 
-	switch(gCV_RemoveRagdolls.IntValue)
+	if ((gCV_RemoveRagdolls.IntValue == 1 && IsFakeClient(client)) || gCV_RemoveRagdolls.IntValue == 2)
 	{
-		case 0:
-		{
-			return Plugin_Continue;
-		}
-
-		case 1:
-		{
-			if(IsFakeClient(client))
-			{
-				RemoveRagdoll(client);
-			}
-		}
-
-		case 2:
-		{
-			RemoveRagdoll(client);
-		}
-
-		default:
-		{
-			return Plugin_Continue;
-		}
+		RemoveRagdoll(client);
 	}
 
 	return Plugin_Continue;
