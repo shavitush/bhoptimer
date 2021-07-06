@@ -2039,7 +2039,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
 	gA_FrameCache[style][track].iPreFrames = timerstartframe - preframes;
 	gA_FrameCache[style][track].iPostFrames = postframes;
-	gA_FrameCache[style][style].fTickrate = gF_Tickrate;
+	gA_FrameCache[style][track].fTickrate = gF_Tickrate;
 }
 
 bool DeleteReplay(int style, int track, int accountid, const char[] mapname)
