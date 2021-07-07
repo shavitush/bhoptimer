@@ -934,7 +934,7 @@ public Action Timer_Cron(Handle timer)
 		persistent_data_t aData;
 		gA_PersistentData.GetArray(i, aData);
 
-		if(fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue)
+		if(aData.fDisconnectTime != 0.0 && (fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue))
 		{
 			DeletePersistentData(i, aData);
 		}
@@ -1385,11 +1385,11 @@ void PersistData(int client, bool disconnected)
 	int iIndex = FindPersistentData(client, aData);
 
 	aData.iSteamID = GetSteamAccountID(client);
-	aData.fDisconnectTime = GetEngineTime();
 	aData.iTimesTeleported = gI_TimesTeleported[client];
 
 	if (disconnected)
 	{
+		aData.fDisconnectTime = GetEngineTime();
 		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
 		aData.aCheckpoints = gA_Checkpoints[client];
 		gA_Checkpoints[client] = null;
@@ -1400,6 +1400,10 @@ void PersistData(int client, bool disconnected)
 			aData.cpcache.iPreFrames = Shavit_GetPlayerPreFrame(client);
 			aData.cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
 		}
+	}
+	else
+	{
+		aData.fDisconnectTime = 0.0;
 	}
 
 	if (!gB_SaveStates[client])
