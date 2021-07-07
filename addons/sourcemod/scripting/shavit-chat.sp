@@ -1276,12 +1276,9 @@ public Action Command_CCAdd(int client, int args)
 	char sArgString[32];
 	GetCmdArgString(sArgString, 32);
 
-	ReplaceString(sArgString, 32, "[U:1:", "");
-	ReplaceString(sArgString, 32, "]", "");
+	int iSteamID = SteamIDToAuth(sArgString);
 
-	int iSteamID = StringToInt(sArgString);
-
-	if (iSteamID == 0)
+	if (iSteamID < 1)
 	{
 		ReplyToCommand(client, "Invalid steamid");
 		return Plugin_Handled;
@@ -1299,7 +1296,7 @@ public Action Command_CCAdd(int client, int args)
 		}
 	}
 
-	ReplyToCommand(client, "Added CC access for [U:1:%d]", iSteamID);
+	ReplyToCommand(client, "Added CC access for %s", sArgString);
 
 	return Plugin_Handled;
 }
@@ -1315,12 +1312,9 @@ public Action Command_CCDelete(int client, int args)
 	char sArgString[32];
 	GetCmdArgString(sArgString, 32);
 
-	ReplaceString(sArgString, 32, "[U:1:", "");
-	ReplaceString(sArgString, 32, "]", "");
+	int iSteamID = SteamIDToAuth(sArgString);
 
-	int iSteamID = StringToInt(sArgString);
-
-	if (iSteamID == 0)
+	if (iSteamID < 1)
 	{
 		ReplyToCommand(client, "Invalid steamid");
 		return Plugin_Handled;
@@ -1338,7 +1332,7 @@ public Action Command_CCDelete(int client, int args)
 		}
 	}
 
-	ReplyToCommand(client, "Deleted CC access for [U:1:%d]", iSteamID);
+	ReplyToCommand(client, "Deleted CC access for %s", sArgString);
 
 	return Plugin_Handled;
 }

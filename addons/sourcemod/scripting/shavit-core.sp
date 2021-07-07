@@ -945,14 +945,11 @@ public Action Command_WipePlayer(int client, int args)
 
 	if(strlen(gS_Verification[client]) == 0 || !StrEqual(sArgString, gS_Verification[client]))
 	{
-		ReplaceString(sArgString, 32, "[U:1:", "");
-		ReplaceString(sArgString, 32, "]", "");
-
-		gI_WipePlayerID[client] = StringToInt(sArgString);
+		gI_WipePlayerID[client] = SteamIDToAuth(sArgString);
 
 		if(gI_WipePlayerID[client] <= 0)
 		{
-			Shavit_PrintToChat(client, "Entered SteamID ([U:1:%s]) is invalid. The range for valid SteamIDs is [U:1:1] to [U:1:2147483647].", sArgString);
+			Shavit_PrintToChat(client, "Entered SteamID (%s) is invalid. The range for valid SteamIDs is [U:1:1] to [U:1:2147483647].", sArgString);
 
 			return Plugin_Handled;
 		}
