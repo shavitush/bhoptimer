@@ -1241,6 +1241,11 @@ public void OnClientPutInServer(int client)
 	}
 
 	Reset(client);
+
+	gF_Modifier[client] = 16.0;
+	gI_GridSnap[client] = 16;
+	gB_SnapToWall[client] = false;
+	gB_CursorTracing[client] = true;
 }
 
 void GetStartPosition(int client)
@@ -2164,11 +2169,7 @@ public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, 
 void Reset(int client)
 {
 	gI_ZoneTrack[client] = Track_Main;
-	gF_Modifier[client] = 16.0;
 	gI_MapStep[client] = 0;
-	gI_GridSnap[client] = 16;
-	gB_SnapToWall[client] = false;
-	gB_CursorTracing[client] = true;
 	gI_ZoneFlags[client] = 0;
 	gI_ZoneData[client] = 0;
 	gI_ZoneDatabaseID[client] = -1;
