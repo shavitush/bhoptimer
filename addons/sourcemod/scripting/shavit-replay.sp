@@ -40,7 +40,8 @@ forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x05
+#define REPLAY_FORMAT_SUBVERSION 0x06
+#define REPLAY_FORMAT_CURRENT_USED_CELLS 8
 #define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 #define MAX_LOOPING_BOT_CONFIGS 24
 #define HACKY_CLIENT_IDX_PROP "m_iTeamNum" // I store the client owner idx in this for Replay_Prop. My brain is too powerful.
@@ -1774,17 +1775,26 @@ bool LoadReplay(framecache_t cache, int style, int track, const char[] path, con
 
 bool ReadReplayFrames(File file, replayfile_header_t header, framecache_t cache)
 {
-	int cells = 6;
+	int total_cells = 6;
+	int used_cells = 6;
 
 	if (header.iReplayVersion > 0x01)
 	{
-		cells = 8;
+		total_cells = 8;
+		used_cells = 8;
+	}
+
+	// We have differing total_cells & used_cells because we want to save memory during playback since the latested two cells (vel & mousexy) aren't needed and are only useful for replay file anticheat usage stuff....
+	if (header.iReplayVersion >= 0x06)
+	{
+		total_cells = 10;
+		used_cells = 8;
 	}
 
 	any aReplayData[sizeof(frame_t)];
 
 	delete cache.aFrames;
-	cache.aFrames = new ArrayList(cells, header.iFrameCount);
+	cache.aFrames = new ArrayList(used_cells, header.iFrameCount);
 
 	if (!header.sReplayFormat[0]) // old replay format. no header.
 	{
@@ -1817,9 +1827,9 @@ bool ReadReplayFrames(File file, replayfile_header_t header, framecache_t cache)
 	{
 		for(int i = 0; i < header.iFrameCount; i++)
 		{
-			if(file.Read(aReplayData, cells, 4) >= 0)
+			if(file.Read(aReplayData, total_cells, 4) >= 0)
 			{
-				cache.aFrames.SetArray(i, aReplayData, cells);
+				cache.aFrames.SetArray(i, aReplayData, used_cells);
 			}
 		}
 
@@ -1984,7 +1994,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 		WriteReplayHeader(fWR, style, track, time, steamid, preframes, timerstartframe, postframes, iSize);
 
 		delete gA_FrameCache[style][track].aFrames;
-		gA_FrameCache[style][track].aFrames = new ArrayList(sizeof(frame_t), iSize-preframes);
+		gA_FrameCache[style][track].aFrames = new ArrayList(REPLAY_FORMAT_CURRENT_USED_CELLS, iSize-preframes);
 	}
 
 	if (saveCopy)
@@ -2818,8 +2828,14 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 	return Plugin_Changed;
 }
 
+int LimitMoveVelFloat(float vel)
+{
+	int x = RoundToCeil(vel);
+	return ((x < -666) ? -666 : ((x > 666) ? 666 : x)) & 0xFFFF;
+}
+
 // OnPlayerRunCmd instead of Shavit_OnUserCmdPre because bots are also used here.
-public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3])
+public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
 	if(!gCV_Enabled.BoolValue)
 	{
@@ -2898,6 +2914,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				aFrame.buttons = buttons;
 				aFrame.flags = GetEntityFlags(client);
 				aFrame.mt = GetEntityMoveType(client);
+
+				aFrame.mousexy = mouse[0] | (mouse[1] << 16);
+				aFrame.vel = LimitMoveVelFloat(vel[0]) | (LimitMoveVelFloat(vel[1]) << 16);
 
 				gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, aFrame, sizeof(frame_t));
 

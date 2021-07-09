@@ -225,8 +225,10 @@ enum struct frame_t
 	// iReplayVersion >= 0x02
 	int flags;
 	MoveType mt;
-	// iReplayVersion >= 0x05... maybe
-	//float vel[3];
+	// Everything below is generally NOT loaded into memory for playback
+	// iReplayVersion >= 0x06
+	int mousexy; // `mousex | (mousey << 16)` // unpack with UnpackFrameShorts
+	int vel; // basically `forwardmove | (sidemove << 16)` // unpack with UnpackFrameShorts
 }
 
 enum struct framecache_t
@@ -407,6 +409,15 @@ stock int SteamIDToAuth(const char[] sInput)
 	}
 
 	return StringToInt(sSteamID);
+}
+
+// Can be used to unpack frame_t.mousexy and frame_t.vel
+stock void UnpackFrameShorts(int x, int out[2])
+{
+	int a = (x & 0x0000FFFF);
+	out[0] = (a & 0x8000) ? (a | 0xFFFF0000) : a;
+	int b = (x & 0xFFFF0000) >> 16;
+	out[1] = (b & 0x8000) ? (b | 0xFFFF0000) : b;
 }
 
 // time formatting!
