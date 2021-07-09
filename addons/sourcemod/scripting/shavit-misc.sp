@@ -1357,10 +1357,12 @@ int FindPersistentData(int client, persistent_data_t aData)
 
 	for(int i = 0; i < gA_PersistentData.Length; i++)
 	{
-		gA_PersistentData.GetArray(i, aData);
+		persistent_data_t temp;
+		gA_PersistentData.GetArray(i, temp);
 
-		if(iSteamID == aData.iSteamID)
+		if(iSteamID == temp.iSteamID)
 		{
+			aData = temp;
 			return i;
 		}
 	}
