@@ -244,6 +244,8 @@ public void OnPluginStart()
 	
 	RegAdminCmd("sm_reloadzonesettings", Command_ReloadZoneSettings, ADMFLAG_ROOT, "Reloads the zone settings.");
 
+	RegAdminCmd("sm_loadunzonedmap", Command_LoadUnzonedMap, ADMFLAG_ROOT, "Loads the next map from the maps folder that is unzoned.");
+
 	RegConsoleCmd("sm_stages", Command_Stages, "Opens the stage menu. Usage: sm_stages [stage #]");
 	RegConsoleCmd("sm_stage", Command_Stages, "Opens the stage menu. Usage: sm_stage [stage #]");
 	RegConsoleCmd("sm_s", Command_Stages, "Opens the stage menu. Usage: sm_s [stage #]");
@@ -1643,6 +1645,98 @@ public Action Command_ReloadZoneSettings(int client, int args)
 	LoadZoneSettings();
 
 	ReplyToCommand(client, "Reloaded zone settings.");
+
+	return Plugin_Handled;
+}
+
+bool FindUnzonedMap(char out[PLATFORM_MAX_PATH])
+{
+	StringMap mapList = new StringMap();
+	DirectoryListing dir = OpenDirectory("maps");
+
+	if (dir == null)
+	{
+		return false;
+	}
+
+	char buffer[PLATFORM_MAX_PATH];
+	FileType type;
+
+	while (dir.GetNext(buffer, sizeof(buffer), type))
+	{
+		if (type != FileType_File)
+		{
+			continue;
+		}
+
+		int length = strlen(buffer);
+
+		if (length < 5 || buffer[length-4] != '.') // a.bsp
+		{
+			continue;
+		}
+
+		if (buffer[length-3] == 'b' && buffer[length-2] == 's' && buffer[length-1] == 'p')
+		{
+			buffer[length-4] = 0;
+			mapList.SetValue(buffer, false, false); // note: false for 'replace'
+		}
+	}
+
+	delete dir;
+
+	char sQuery[256];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT map FROM %smapzones;", gS_MySQLPrefix);
+
+	DBResultSet results = SQL_Query(gH_SQL, sQuery);
+
+	if (results == INVALID_HANDLE)
+	{
+		delete mapList;
+		return false;
+	}
+
+	while (results.FetchRow())
+	{
+		results.FetchString(0, buffer, sizeof(buffer));
+		mapList.SetValue(buffer, true, true);
+	}
+
+	delete results;
+
+	StringMapSnapshot snapshot = mapList.Snapshot();
+	bool foundMap = false;
+
+	for (int i = 0; i < snapshot.Length; i++)
+	{
+		snapshot.GetKey(i, buffer, sizeof(buffer));
+
+		bool hasZones = false;
+		mapList.GetValue(buffer, hasZones);
+
+		if (!hasZones && !StrEqual(gS_Map, buffer, false))
+		{
+			out = buffer;
+			foundMap = true;
+			break;
+		}
+	}
+
+	delete snapshot;
+	delete mapList;
+
+	return foundMap;
+}
+
+public Action Command_LoadUnzonedMap(int client, int args)
+{
+	char map[PLATFORM_MAX_PATH];
+
+	if (FindUnzonedMap(map))
+	{
+		Shavit_PrintToChatAll("Loading unzoned map %s", map);
+		ForceChangeLevel(map, "sm_loadunzonedmap");
+	}
 
 	return Plugin_Handled;
 }
