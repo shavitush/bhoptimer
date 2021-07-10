@@ -1686,7 +1686,7 @@ bool FindUnzonedMap(char out[PLATFORM_MAX_PATH])
 	delete dir;
 
 	char sQuery[256];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT map FROM %smapzones;", gS_MySQLPrefix);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT DISTINCT map FROM %smapzones;", gS_MySQLPrefix);
 
 	DBResultSet results = SQL_Query(gH_SQL, sQuery);
 
