@@ -1105,8 +1105,8 @@ public int Native_GetReplayData(Handle plugin, int numParams)
 
 public int Native_GetReplayFrames(Handle plugin, int numParams)
 {
-	int track = GetNativeCell(1);
-	int style = GetNativeCell(2);
+	int style = GetNativeCell(1);
+	int track = GetNativeCell(2);
 	Handle cloned = null;
 
 	if(gA_FrameCache[style][track].aFrames != null)
