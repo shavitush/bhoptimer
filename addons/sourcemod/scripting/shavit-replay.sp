@@ -2921,7 +2921,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				aFrame.flags = GetEntityFlags(client);
 				aFrame.mt = GetEntityMoveType(client);
 
-				aFrame.mousexy = mouse[0] | (mouse[1] << 16);
+				aFrame.mousexy = (mouse[0] & 0xFFFF) | ((mouse[1] & 0xFFFF) << 16);
 				aFrame.vel = LimitMoveVelFloat(vel[0]) | (LimitMoveVelFloat(vel[1]) << 16);
 
 				gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, aFrame, sizeof(frame_t));
