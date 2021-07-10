@@ -1107,13 +1107,19 @@ public int Native_GetReplayFrames(Handle plugin, int numParams)
 {
 	int style = GetNativeCell(1);
 	int track = GetNativeCell(2);
+	bool cheapCloneHandle = (numParams > 2) && view_as<bool>(GetNativeCell(3));
 	Handle cloned = null;
 
 	if(gA_FrameCache[style][track].aFrames != null)
 	{
-		ArrayList frames = gA_FrameCache[style][track].aFrames.Clone();
+		ArrayList frames = cheapCloneHandle ? gA_FrameCache[style][track].aFrames : gA_FrameCache[style][track].aFrames.Clone();
 		cloned = CloneHandle(frames, plugin); // set the calling plugin as the handle owner
-		CloseHandle(frames);
+
+		if (!cheapCloneHandle)
+		{
+			// Only hit for .Clone()'d handles. .Clone() != CloneHandle()
+			CloseHandle(frames);
+		}
 	}
 
 	return view_as<int>(cloned);
