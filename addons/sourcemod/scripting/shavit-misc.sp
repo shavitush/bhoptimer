@@ -2449,7 +2449,11 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 	if(IsFakeClient(target))
 	{
 		cpcache.iGroundEntity = -1;
-		cpcache.iMoveType = MOVETYPE_WALK; // uhhh, yeah... TODO fix me if I ever get bots to NOT use MOVETYPE_NOCLIP... (I think actual .nav files might need to be generated for that?)
+
+		if (cpcache.iMoveType == MOVETYPE_NOCLIP)
+		{
+			cpcache.iMoveType = MOVETYPE_WALK;
+		}
 	}
 	else
 	{
