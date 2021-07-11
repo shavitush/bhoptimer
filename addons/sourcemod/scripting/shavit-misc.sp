@@ -111,6 +111,7 @@ Convar gCV_CreateSpawnPoints = null;
 Convar gCV_DisableRadio = null;
 Convar gCV_Scoreboard = null;
 Convar gCV_WeaponCommands = null;
+Convar gCV_WeaponsSpawnGood = null;
 Convar gCV_PlayerOpacity = null;
 Convar gCV_StaticPrestrafe = null;
 Convar gCV_NoclipMe = null;
@@ -304,6 +305,7 @@ public void OnPluginStart()
 	gCV_DisableRadio = new Convar("shavit_misc_disableradio", "1", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
 	gCV_Scoreboard = new Convar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_WeaponCommands = new Convar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.\n3 - Also give infinite clip ammo.", 0, true, 0.0, true, 3.0);
+	gCV_WeaponsSpawnGood = new Convar("shavit_misc_weaponsspawngood", "1", "Make glocks spawn on burst-fire and USPs spawn with a silencer on.", 0, true, 0.0, true, 1.0);
 	gCV_PlayerOpacity = new Convar("shavit_misc_playeropacity", "69", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 	gCV_StaticPrestrafe = new Convar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoclipMe = new Convar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'admin_noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 2.0);
@@ -1814,6 +1816,38 @@ bool Teleport(int client, int targetserial)
 	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
 
 	return true;
+}
+
+void Frame_WeaponsSpawnGood(int ref)
+{
+	int entity = EntRefToEntIndex(ref);
+
+	if (entity > 0)
+	{
+		char classname[64];
+		GetEntityClassname(entity, classname, sizeof(classname));
+
+		if (StrEqual(classname, "weapon_glock"))
+		{
+			SetEntProp(entity, Prop_Send, "m_bBurstMode", 1);
+		}
+		else if (gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp")) // usp
+		{
+			SetEntProp(entity, Prop_Send, "m_bSilencerOn", 1);
+			SetEntProp(entity, Prop_Send, "m_weaponMode", 1);
+		}
+	}
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if (gCV_WeaponsSpawnGood.BoolValue)
+	{
+		if (StrEqual(classname, "weapon_glock") || (gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp")))
+		{
+			RequestFrame(Frame_WeaponsSpawnGood, EntIndexToEntRef(entity));
+		}
+	}
 }
 
 public Action Command_Weapon(int client, int args)
