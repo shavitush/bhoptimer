@@ -93,6 +93,7 @@ enum
 	Migration_AddZonesFlagsAndData,
 	Migration_AddPlayertimesCompletions,
 	Migration_AddCustomChatAccess,
+	Migration_AddPlayertimesExactTimeInt,
 	MIGRATIONS_END
 };
 
@@ -310,7 +311,6 @@ stock Database GetTimerDatabaseHandle()
 			SetFailState("Timer startup failed. Reason: %s", sError);
 		}
 	}
-
 	else
 	{
 		db = SQLite_UseDatabase("shavit", sError, 255);

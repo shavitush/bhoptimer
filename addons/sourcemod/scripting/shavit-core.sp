@@ -2965,6 +2965,7 @@ void ApplyMigration(int migration)
 		case Migration_AddZonesFlagsAndData: ApplyMigration_AddZonesFlagsAndData();
 		case Migration_AddPlayertimesCompletions: ApplyMigration_AddPlayertimesCompletions();
 		case Migration_AddCustomChatAccess: ApplyMigration_AddCustomChatAccess();
+		case Migration_AddPlayertimesExactTimeInt: ApplyMigration_AddPlayertimesExactTimeInt();
 	}
 }
 
@@ -3008,6 +3009,13 @@ void ApplyMigration_AddCustomChatAccess()
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%schat` ADD COLUMN `ccaccess` INT NOT NULL DEFAULT 0 AFTER `ccmessage`;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddCustomChatAccess, DBPrio_High);
+}
+
+void ApplyMigration_AddPlayertimesExactTimeInt()
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `exact_time_int` INT NOT NULL DEFAULT 0 AFTER `completions`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesExactTimeInt, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
