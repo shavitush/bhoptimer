@@ -1212,7 +1212,8 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	// prespeed
 	if(!bNoclip && Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && bInStart)
 	{
-		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && gI_GroundEntity[client] == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
+		int iPrevGroundEntity = (gI_GroundEntity[client] != -1) ? EntRefToEntIndex(gI_GroundEntity[client]) : -1;
+		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && iPrevGroundEntity == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
@@ -1254,7 +1255,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		}
 	}
 
-	gI_GroundEntity[client] = iGroundEntity;
+	gI_GroundEntity[client] = (iGroundEntity != -1) ? EntIndexToEntRef(iGroundEntity) : -1;
 
 	return Plugin_Continue;
 }
@@ -1853,12 +1854,10 @@ public Action Command_Weapon(int client, int args)
 	{
 		strcopy(sWeapon, 32, (gEV_Type == Engine_CSS)? "weapon_usp":"weapon_usp_silencer");
 	}
-
 	else if(StrContains(sCommand, "glock", false) != -1)
 	{
 		strcopy(sWeapon, 32, "weapon_glock");
 	}
-
 	else
 	{
 		strcopy(sWeapon, 32, "weapon_knife");
@@ -2458,6 +2457,12 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 	else
 	{
 		cpcache.iGroundEntity = GetEntPropEnt(target, Prop_Data, "m_hGroundEntity");
+
+		if (cpcache.iGroundEntity != -1)
+		{
+			cpcache.iGroundEntity = EntIndexToEntRef(cpcache.iGroundEntity);
+		}
+
 		GetEntityClassname(target, cpcache.sClassname, 64);
 		GetEntPropString(target, Prop_Data, "m_iName", cpcache.sTargetname, 64);
 	}
@@ -2605,7 +2610,9 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	SetEntityMoveType(client, cpcache.iMoveType);
 	SetEntityFlags(client, cpcache.iFlags);
 	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", cpcache.fSpeed);
-	SetEntPropEnt(client, Prop_Data, "m_hGroundEntity", cpcache.iGroundEntity);
+
+	int ground = (cpcache.iGroundEntity != -1) ? EntRefToEntIndex(cpcache.iGroundEntity) : -1;
+	SetEntPropEnt(client, Prop_Data, "m_hGroundEntity", ground);
 
 	if(gEV_Type != Engine_TF2)
 	{
