@@ -3117,39 +3117,24 @@ public void Shavit_OnRestart(int client, int track)
 		return;
 	}
 
-	if(!IsPlayerAlive(client))
+	if(gCV_RespawnOnRestart.BoolValue && !IsPlayerAlive(client))
 	{
 		if(gEV_Type == Engine_TF2)
 		{
-			TF2_ChangeClientTeam(client, view_as<TFTeam>(3));
+			TF2_ChangeClientTeam(client, view_as<TFTeam>(GetRandomInt(2, 3)));
 		}
-		
 		else
 		{
-			if(FindEntityByClassname(-1, "info_player_terrorist") != -1)
-			{
-				CS_SwitchTeam(client, 2);
-			}
-
-			else
-			{
-				CS_SwitchTeam(client, 3);
-			}
+			CS_SwitchTeam(client, GetRandomInt(2, 3));
 		}
 
 		if(gEV_Type == Engine_TF2)
 		{
 			TF2_RespawnPlayer(client);
 		}
-
 		else
 		{
 			CS_RespawnPlayer(client);
-		}
-
-		if(gCV_RespawnOnRestart.BoolValue)
-		{
-			RestartTimer(client, track);
 		}
 	}
 }
