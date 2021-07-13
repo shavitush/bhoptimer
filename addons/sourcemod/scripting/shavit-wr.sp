@@ -2364,6 +2364,9 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		if(iOverwrite == 1) // insert
 		{
+			bIncrementCompletions = false;
+			gI_PlayerCompletion[client][style][track] = 1;
+
 			FormatEx(sMessage, 255, "%s[%s]%s %T",
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sVariable, avgvel, maxvel, gS_ChatStrings.sText);
 
