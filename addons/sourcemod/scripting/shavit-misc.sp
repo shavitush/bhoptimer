@@ -568,6 +568,21 @@ public void OnConfigsExecuted()
 	}
 }
 
+void CreateSpawnPoint(int iTeam, float fOrigin[3], float fAngles[3])
+{
+	int iSpawnPoint = CreateEntityByName((gEV_Type == Engine_TF2)? "info_player_teamspawn":((iTeam == 2)? "info_player_terrorist":"info_player_counterterrorist"));
+
+	if (DispatchSpawn(iSpawnPoint))
+	{
+		if (gEV_Type == Engine_TF2)
+		{
+			SetEntProp(iSpawnPoint, Prop_Send, "m_iTeamNum", iTeam);
+		}
+
+		TeleportEntity(iSpawnPoint, fOrigin, fAngles, NULL_VECTOR);
+	}
+}
+
 public void OnMapStart()
 {
 	gH_IsSpawnPointValid.HookGamerules(Hook_Post, Hook_IsSpawnPointValid);
@@ -589,27 +604,38 @@ public void OnMapStart()
 
 	if(gCV_CreateSpawnPoints.IntValue > 0)
 	{
-		int iEntity = -1;
+		int info_player_terrorist        = FindEntityByClassname(-1, "info_player_terrorist");
+		int info_player_counterterrorist = FindEntityByClassname(-1, "info_player_counterterrorist");
+		int info_player_teamspawn        = FindEntityByClassname(-1, "info_player_teamspawn");
+		int info_player_start            = FindEntityByClassname(-1, "info_player_start");
 
-		if((iEntity = FindEntityByClassname(iEntity, "info_player_terrorist")) != -1 || // CS:S/CS:GO T
-			(iEntity = FindEntityByClassname(iEntity, "info_player_counterterrorist")) != -1 || // CS:S/CS:GO CT
-			(iEntity = FindEntityByClassname(iEntity, "info_player_teamspawn")) != -1 || // TF2 spawn point
-			(iEntity = FindEntityByClassname(iEntity, "info_player_start")) != -1)
+		int iEntity =
+			((info_player_terrorist != -1)        ? info_player_terrorist :
+			((info_player_counterterrorist != -1) ? info_player_counterterrorist :
+			((info_player_teamspawn != -1)        ? info_player_teamspawn :
+			((info_player_start != -1)            ? info_player_start : -1))));
+
+		if (iEntity != -1)
 		{
 			float fOrigin[3], fAngles[3];
 			GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", fOrigin);
 			GetEntPropVector(iEntity, Prop_Data, "m_angAbsRotation", fAngles);
 
-			for(int i = 1; i <= gCV_CreateSpawnPoints.IntValue; i++)
+			if (gEV_Type == Engine_TF2)
 			{
-				for(int iTeam = 1; iTeam <= 2; iTeam++)
+				CreateSpawnPoint(2, fOrigin, fAngles);
+				CreateSpawnPoint(3, fOrigin, fAngles);
+			}
+			else
+			{
+				if (info_player_terrorist == -1)
 				{
-					int iSpawnPoint = CreateEntityByName((gEV_Type == Engine_TF2)? "info_player_teamspawn":((iTeam == 1)? "info_player_terrorist":"info_player_counterterrorist"));
+					CreateSpawnPoint(2, fOrigin, fAngles);
+				}
 
-					if(DispatchSpawn(iSpawnPoint))
-					{
-						TeleportEntity(iSpawnPoint, fOrigin, fAngles, NULL_VECTOR);
-					}
+				if (info_player_counterterrorist == -1)
+				{
+					CreateSpawnPoint(3, fOrigin, fAngles);
 				}
 			}
 		}
