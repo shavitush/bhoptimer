@@ -868,7 +868,7 @@ public void OnEntityDestroyed(int entity)
 {
 	if (entity > MaxClients && entity < 4096 && gI_EntityZone[entity] > -1)
 	{
-		KillZoneEntity(gI_EntityZone[entity]);
+		KillZoneEntity(gI_EntityZone[entity], false);
 	}
 }
 
@@ -1068,7 +1068,7 @@ void UnhookEntity(int entity)
 	SDKUnhook(entity, SDKHook_TouchPost, TouchPost);
 }
 
-void KillZoneEntity(int index)
+void KillZoneEntity(int index, bool kill=true)
 {
 	int entity = gA_ZoneCache[index].iEntityID;
 	
@@ -1094,7 +1094,7 @@ void KillZoneEntity(int index)
 
 		UnhookEntity(entity);
 
-		if (!gA_ZoneCache[index].bPrebuilt)
+		if (kill && !gA_ZoneCache[index].bPrebuilt)
 		{
 			AcceptEntityInput(entity, "Kill");
 		}
@@ -1104,12 +1104,7 @@ void KillZoneEntity(int index)
 // 0 - all zones
 void UnloadZones(int zone)
 {
-	if(zone == Zone_CustomSpawn)
-	{
-		ClearCustomSpawn(-1);
-	}
-
-	else
+	if (zone != Zone_CustomSpawn)
 	{
 		for(int i = 0; i < MAX_ZONES; i++)
 		{
@@ -1119,9 +1114,9 @@ void UnloadZones(int zone)
 				ClearZone(i);
 			}
 		}
-
-		ClearCustomSpawn(-1);
 	}
+
+	ClearCustomSpawn(-1);
 }
 
 void RefreshZones()
