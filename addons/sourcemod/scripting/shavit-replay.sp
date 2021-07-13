@@ -1190,7 +1190,7 @@ public int Native_GetReplayStatus(Handle handler, int numParams)
 public any Native_GetReplayTime(Handle handler, int numParams)
 {
 	int index = GetBotInfoIndex(GetNativeCell(1));
-	return float(gA_BotInfo[index].iTick - gA_BotInfo[index].aCache.iPreFrames) / gF_Tickrate * Shavit_GetStyleSettingFloat(gA_BotInfo[index].iStyle, "speed");
+	return float(gA_BotInfo[index].iTick - gA_BotInfo[index].aCache.iPreFrames) / gF_Tickrate * Shavit_GetStyleSettingFloat(gA_BotInfo[index].iStyle, "timescale");
 }
 
 public int Native_HijackAngles(Handle handler, int numParams)
