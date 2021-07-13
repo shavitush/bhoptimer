@@ -36,9 +36,9 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installation-(from-source)).
 
 # Required plugins:
-`shavit-core` - completely required.  
-`shavit-zones` - completely required.  
-`shavit-wr` - required for `shavit-stats`, `shavit-replay`, `shavit-rankings` and `shavit-sounds`.
+- `shavit-core`
+- `shavit-zones`
+- `shavit-wr`
 
 # Recommended plugins:
 * [MomSurfFix](https://forums.alliedmods.net/showthread.php?p=2680743) ([github](https://github.com/GAMMACASE/MomSurfFix))
@@ -47,7 +47,7 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
   - Makes slopes, teleporters, and more less random. Replaces `slopefix`
 * [HeadBugFix](https://github.com/GAMMACASE/HeadBugFix)
   - Fixes head bounding boxes when ducking so it's not possible to touch triggers through a roof.
-* [Showtriggers](https://forums.alliedmods.net/showthread.php?t=290356) ([github](https://github.com/1ci/showtriggers))
+* [Showtriggers](https://forums.alliedmods.net/showthread.php?t=290356) ([github](https://github.com/1ci/showtriggers)) or [Eric's Edit](https://github.com/ecsr/showtriggers)
   - Allows players to toggle trigger visibility.
 * [ShowPlayerClips](https://forums.alliedmods.net/showthread.php?p=2661942) ([github](https://github.com/GAMMACASE/ShowPlayerClips))
   - Allows players to toggle player clip visibility.
@@ -60,9 +60,11 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
 * [shavit-firstjumptick](https://github.com/Nairdaa/bhoptimer-firstjumptick)
   - Displays what tick the player first jumps at upon leaving the startzone. Very useful for strafe maps, where you tryhard to cut that tick or two. !fjt to enable.
 * [sm_closestpos](https://github.com/rtldg/sm_closestpos)
-  - C++ extension to more efficiently find the closest node to a given position. Used to calculate time-difference and velocity-difference from replays.
+  - C++ extension to efficiently find the closest replay position for calculating time-difference and velocity-difference.
+* [mpbhops_but_better](https://github.com/rtldg/mpbhops_but_working)
+  - A cleaner and faster mpbhops/mpbh plugin that also makes door vertical-boosters consistent and frozen.
 
-* TODO: `paint`, `mpbhops`, `ljstats`, `bash2`
+* TODO: `paint`, `ljstats`, `bash2`
 ### CS:GO
 * [NoViewPunch](https://github.com/hermansimensen/NoViewPunch)
   - Removes the viewpunch from landing in CS:GO.
