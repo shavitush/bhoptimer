@@ -2545,6 +2545,11 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 		GetEntPropString(target, Prop_Data, "m_iName", cpcache.sTargetname, 64);
 	}
 
+	if (cpcache.iMoveType == MOVETYPE_NONE)
+	{
+		cpcache.iMoveType = MOVETYPE_WALK;
+	}
+
 	cpcache.iFlags = GetEntityFlags(target) & ~(FL_ATCONTROLS|FL_FAKECLIENT);
 
 	if(gEV_Type != Engine_TF2)
