@@ -623,8 +623,26 @@ public void OnMapStart()
 
 			if (gEV_Type == Engine_TF2)
 			{
-				CreateSpawnPoint(2, fOrigin, fAngles);
-				CreateSpawnPoint(3, fOrigin, fAngles);
+				int iSearch = -1;
+				bool haveRed = false;
+				bool haveBlu = false;
+
+				while ((iSearch = FindEntityByClassname(iSearch, "info_player_teamspawn")) != -1)
+				{
+					int team = GetEntProp(iSearch, Prop_Send, "m_iTeamNum");
+					haveRed = haveRed || team == 2;
+					haveBlu = haveBlu || team == 3;
+				}
+
+				if (!haveRed)
+				{
+					CreateSpawnPoint(2, fOrigin, fAngles);
+				}
+
+				if (!haveBlu)
+				{
+					CreateSpawnPoint(3, fOrigin, fAngles);
+				}
 			}
 			else
 			{
