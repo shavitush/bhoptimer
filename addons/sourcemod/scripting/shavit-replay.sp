@@ -1067,6 +1067,11 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	ArrayList data = view_as<ArrayList>(GetNativeCell(2));
 	bool cheapCloneHandle = view_as<bool>(GetNativeCell(3));
 
+	if (gB_GrabbingPostFrames[client])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
+	}
+
 	if (cheapCloneHandle)
 	{
 		data = view_as<ArrayList>(CloneHandle(data));
