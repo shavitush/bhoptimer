@@ -2517,25 +2517,26 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 					ShowPanel(client, 2);
 				}
-
 				else if(gI_MapStep[client] == 2)
 				{
-					origin[2] += gCV_Height.FloatValue;
-					gV_Point2[client] = origin;
+					if (origin[0] == gV_Point1[client][0] || origin[1] == gV_Point1[client][1])
+					{
+						ShowPanel(client, 2);
+					}
+					else
+					{
+						origin[2] += gCV_Height.FloatValue;
+						gV_Point2[client] = origin;
 
-					gI_MapStep[client]++;
+						gI_MapStep[client]++;
 
-					CreateEditMenu(client);
+						CreateEditMenu(client);
+					}
 				}
 			}
-
-			gB_Button[client] = true;
 		}
 
-		else
-		{
-			gB_Button[client] = false;
-		}
+		gB_Button[client] = (buttons & button) > 0;
 	}
 
 	if(InsideZone(client, Zone_Slide, (gCV_EnforceTracks.BoolValue)? track:-1) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
