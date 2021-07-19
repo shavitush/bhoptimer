@@ -94,6 +94,7 @@ Handle gH_Forwards_OnRankAssigned = null;
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 
+bool gB_WRsRefreshed = false;
 int gI_WRAmount[MAXPLAYERS+1][2][STYLE_LIMIT];
 int gI_WRAmountAll[MAXPLAYERS+1];
 int gI_WRAmountCvar[MAXPLAYERS+1];
@@ -358,7 +359,10 @@ public void OnClientConnected(int client)
 
 public void OnClientPutInServer(int client)
 {
-	UpdateWRs(client);
+	if (gB_WRsRefreshed)
+	{
+		UpdateWRs(client);
+	}
 }
 
 public void OnClientPostAdminCheck(int client)
@@ -473,6 +477,7 @@ public void OnMapEnd()
 {
 	RecalculateAll(gS_Map);
 	gB_TierQueried = false;
+	gB_WRsRefreshed = false;
 }
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
@@ -514,7 +519,22 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 {
 	if(results == null)
 	{
-		LogError("SQL_GetWRs_Callback failed. Reason: %s", error);
+		// Try to recreate temporary tables.
+		// If the db connection drops and disconnects it might be destroying them... but idk.
+		if (StrContains(error, "Table ") != -1 && StrContains(error, " doesn't exist") != -1)
+		{
+			if (gB_WRsRefreshed)
+			{
+				LogError("SQL_GetWRs_Callback failed. Attempting to recreate tables. Error: %s", error);
+				gB_WRsRefreshed = false;
+				RequestFrame(UpdateWRHolders);
+			}
+		}
+		else
+		{
+			LogError("SQL_GetWRs_Callback failed. Reason: %s", error);
+		}
+
 		return;
 	}
 
@@ -1153,6 +1173,16 @@ public void SQL_GetWRHolders_Callback(Database db, DBResultSet results, const ch
 		else if (type == 2)
 		{
 			gI_WRHoldersCvar = total;
+		}
+	}
+
+	gB_WRsRefreshed = true;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i))
+		{
+			UpdateWRs(i);
 		}
 	}
 }
