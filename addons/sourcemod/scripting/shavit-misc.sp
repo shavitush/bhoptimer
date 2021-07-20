@@ -2851,16 +2851,23 @@ public Action Command_Noclip(int client, int args)
 
 	if(GetEntityMoveType(client) != MOVETYPE_NOCLIP)
 	{
-		if(!ShouldDisplayStopWarning(client))
-		{
-			Shavit_StopTimer(client);
-			SetEntityMoveType(client, MOVETYPE_NOCLIP);
-		}
+        if(!Shavit_IsPaused(client))
+        {
+            if(!ShouldDisplayStopWarning(client))
+		    {
+		    	Shavit_StopTimer(client);
+		    	SetEntityMoveType(client, MOVETYPE_NOCLIP);
+		    }
 
-		else
-		{
-			OpenStopWarningMenu(client, DoNoclip);
-		}
+		    else
+		    {
+		    	OpenStopWarningMenu(client, DoNoclip);
+		    }
+        }
+        else
+        {
+            SetEntityMoveType(client, MOVETYPE_NOCLIP);
+        }
 	}
 
 	else

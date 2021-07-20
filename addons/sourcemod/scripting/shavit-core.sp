@@ -1340,7 +1340,7 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 
 void DoJump(int client)
 {
-	if(gA_Timers[client].bEnabled)
+	if(gA_Timers[client].bEnabled && !Shavit_IsPaused(client))
 	{
 		gA_Timers[client].iJumps++;
 	}
@@ -2431,7 +2431,7 @@ void ResumeTimer(int client)
 
 	gA_Timers[client].bPaused = false;
 	// setting is handled in usercmd
-	//SetEntityMoveType(client, MOVETYPE_WALK);
+	SetEntityMoveType(client, MOVETYPE_WALK);
 }
 
 public void OnClientDisconnect(int client)
@@ -3567,22 +3567,22 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	int flags = GetEntityFlags(client);
 
-	if(gA_Timers[client].bPaused && IsPlayerAlive(client))
-	{
-		buttons = 0;
-		vel = view_as<float>({0.0, 0.0, 0.0});
-
-		SetEntityFlags(client, (flags | FL_ATCONTROLS));
-
-		//SetEntityMoveType(client, MOVETYPE_NONE);
-
-		return Plugin_Changed;
-	}
+	//if(gA_Timers[client].bPaused && IsPlayerAlive(client))
+	//{
+	//	buttons = 0;
+	//	vel = view_as<float>({0.0, 0.0, 0.0});
+    //
+	//	SetEntityFlags(client, (flags | FL_ATCONTROLS));
+    //
+	//	//SetEntityMoveType(client, MOVETYPE_NONE);
+    //
+	//	return Plugin_Changed;
+	//}
 
 	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
 
 	// Wait till now to return so spectators can free-cam while paused...
-	if(!IsPlayerAlive(client))
+	if(!IsPlayerAlive(client) || Shavit_IsPaused(client))
 	{
 		return Plugin_Continue;
 	}
