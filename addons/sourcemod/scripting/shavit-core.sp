@@ -768,6 +768,13 @@ public Action Command_TogglePause(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if((iFlags & CPR_InEndZone) > 0)
+	{
+		Shavit_PrintToChat(client, "%T", "PauseEndZone", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+		return Plugin_Handled;
+	}
+
 	if((iFlags & CPR_ByConVar) > 0)
 	{
 		char sCommand[16];
@@ -1550,6 +1557,11 @@ public int Native_CanPause(Handle handler, int numParams)
 	if(Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
 	{
 		iFlags |= CPR_InStartZone;
+	}
+
+	if(Shavit_InsideZone(client, Zone_End, gA_Timers[client].iTrack))
+	{
+		iFlags |= CPR_InEndZone;
 	}
 
 	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
