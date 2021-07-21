@@ -2851,7 +2851,7 @@ public Action Command_Noclip(int client, int args)
 
 	if(GetEntityMoveType(client) != MOVETYPE_NOCLIP)
 	{
-        if(!Shavit_IsPaused(client))
+        if(!Shavit_IsPaused(client) || (Shavit_IsPaused(client) && !Shavit_PauseMovement(client)))
         {
             if(!ShouldDisplayStopWarning(client))
 		    {

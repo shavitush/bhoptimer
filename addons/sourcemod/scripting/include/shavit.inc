@@ -2153,6 +2153,14 @@ native bool Shavit_IsPaused(int client);
 native int Shavit_CanPause(int client);
 
 /**
+ * Determines whether a client is able to move while their timer is paused or not.
+ *
+ * @param client					Client index.
+ * @return							Boolean value.
+ */
+native bool Shavit_PauseMovement(int client);
+
+/**
  * Use this native when printing anything in chat if it's related to the timer.
  * This native will auto-assign colors and a chat prefix.
  *
