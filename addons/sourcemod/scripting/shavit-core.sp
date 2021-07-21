@@ -3580,11 +3580,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		buttons = 0;
 		vel = view_as<float>({0.0, 0.0, 0.0});
-	
+
 		SetEntityFlags(client, (flags | FL_ATCONTROLS));
-	
+
 		//SetEntityMoveType(client, MOVETYPE_NONE);
-	
+
 		return Plugin_Changed;
 	}
 
