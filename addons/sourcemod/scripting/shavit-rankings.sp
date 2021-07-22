@@ -28,7 +28,7 @@
 // A player that gets good times at all styles should be ranked high.
 //
 // Total player points are weighted in the following way: (descending sort of points)
-// points[0] * 0.975^0 + points[1] * 0.975^1 + points[2] * 0.975^2 + ... + points[n] * 0.975^(n-1)
+// points[0] * 0.975^0 + points[1] * 0.975^1 + points[2] * 0.975^2 + ... + points[n] * 0.975^n
 //
 // The ranking leaderboard will be calculated upon: map start.
 // Points are calculated per-player upon: connection/map.
