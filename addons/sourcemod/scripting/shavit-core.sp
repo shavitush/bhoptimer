@@ -3382,6 +3382,13 @@ public void OnEntityCreated(int entity, const char[] classname)
 	{
 		gH_AcceptInput.HookEntity(Hook_Pre, entity, DHook_AcceptInput_player_speedmod);
 	}
+
+	if(StrContains(classname, "trigger_") != -1)
+	{
+		SDKHook(entity, SDKHook_StartTouch, PauseTriggers);
+		SDKHook(entity, SDKHook_Touch, PauseTriggers);
+		SDKHook(entity, SDKHook_EndTouch, PauseTriggers);
+	}
 }
 
 // bool CBaseEntity::AcceptInput(char  const*, CBaseEntity*, CBaseEntity*, variant_t, int)
@@ -3417,6 +3424,19 @@ public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hRetu
 
 	hReturn.Value = true;
 	return MRES_Supercede;
+}
+
+public Action PauseTriggers(int entity, int other)
+{
+	if(!(0 < other <= MaxClients))
+		return Plugin_Continue;
+		
+	if(Shavit_IsPaused(other))
+	{
+		return Plugin_Handled;
+	}
+		
+	return Plugin_Continue;
 }
 
 bool GetCheckUntouch(int client)
