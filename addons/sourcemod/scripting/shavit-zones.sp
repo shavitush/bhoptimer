@@ -513,7 +513,7 @@ public int Native_GetZoneFlags(Handle handler, int numParams)
 
 public int Native_InsideZone(Handle handler, int numParams)
 {
-	return InsideZone(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3));
+	return InsideZone(GetNativeCell(1), GetNativeCell(2), (numParams > 2) ? GetNativeCell(3) : -1);
 }
 
 public int Native_InsideZoneGetID(Handle handler, int numParams)
