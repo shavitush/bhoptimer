@@ -148,9 +148,7 @@ Convar gCV_NoChatSound = null;
 Convar gCV_SimplerLadders = null;
 Convar gCV_UseOffsets = null;
 Convar gCV_TimeInMessages;
-#if DEBUG
 Convar gCV_DebugOffsets = null;
-#endif
 // cached cvars
 int gI_DefaultStyle = 0;
 bool gB_StyleCookies = true;
@@ -393,9 +391,7 @@ public void OnPluginStart()
 	gCV_SimplerLadders = new Convar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 	gCV_UseOffsets = new Convar("shavit_core_useoffsets", "1", "Calculates more accurate times by subtracting/adding tick offsets from the time the server uses to register that a player has left or entered a trigger", 0, true, 0.0, true, 1.0);
 	gCV_TimeInMessages = new Convar("shavit_core_timeinmessages", "0", "Whether to prefix SayText2 messages with the time.", 0, true, 0.0, true, 1.0);
-	#if DEBUG
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
-	#endif
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
@@ -1649,16 +1645,14 @@ public int Native_FinishMap(Handle handler, int numParams)
 		gA_Timers[client].fTimer -= GetTickInterval();
 		gA_Timers[client].fTimer += gA_Timers[client].fTimeOffset[Zone_End];
 
-		#if DEBUG
 		if(gCV_DebugOffsets.BoolValue)
 		{
 			char sOffsetMessage[100];
 			char sOffsetDistance[8];
 			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_End]);
-			FormatEx(sOffsetMessage, sizeof(sOffsetMessage), "[END]%T %d", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_End], sOffsetDistance, gA_Timers[client].iZoneIncrement);
-			PrintToChat(client, "%s", sOffsetMessage);
+			FormatEx(sOffsetMessage, sizeof(sOffsetMessage), "[END] %T %d", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_End], sOffsetDistance, gA_Timers[client].iZoneIncrement);
+			Shavit_PrintToChat(client, "%s", sOffsetMessage);
 		}
-		#endif
 	}
 
 	timer_snapshot_t snapshot;
@@ -3364,16 +3358,14 @@ public void PostThinkPost(int client)
 			CalculateTickIntervalOffset(client, Zone_Start);
 		}
 
-		#if DEBUG
 		if(gCV_DebugOffsets.BoolValue)
 		{
 			char sOffsetMessage[100];
 			char sOffsetDistance[8];
 			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_Start]);
-			FormatEx(sOffsetMessage, sizeof(sOffsetMessage), "[START]%T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_Start], sOffsetDistance);
-			PrintToChat(client, "%s", sOffsetMessage);
+			FormatEx(sOffsetMessage, sizeof(sOffsetMessage), "[START] %T", "DebugOffsets", client, gA_Timers[client].fTimeOffset[Zone_Start], sOffsetDistance);
+			Shavit_PrintToChat(client, "%s", sOffsetMessage);
 		}
-		#endif
 	}
 }
 
