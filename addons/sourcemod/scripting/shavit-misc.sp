@@ -133,6 +133,7 @@ Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
 Convar gCV_RestrictNoclip = null;
 Convar gCV_BotFootsteps = null;
+ConVar gCV_PauseMovement = null;
 
 // external cvars
 ConVar sv_disable_immunity_alpha = null;
@@ -370,6 +371,11 @@ public void OnPluginStart()
 	gB_Chat = LibraryExists("shavit-chat");
 }
 
+public void OnAllPluginsLoaded()
+{
+	gCV_PauseMovement = FindConVar("shavit_core_pause_movement");
+}
+
 void LoadDHooks()
 {
 	Handle hGameData = LoadGameConfigFile("shavit.games");
@@ -525,20 +531,26 @@ public void Shavit_OnChatConfigLoaded()
 	}
 }
 
+void DeletePersistentDataFromClient(int client)
+{
+	persistent_data_t aData;
+	int iIndex = FindPersistentData(client, aData);
+
+	if (iIndex != -1)
+	{
+		DeletePersistentData(iIndex, aData);
+	}
+
+	gB_SaveStates[client] = false;
+}
+
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
 	gI_Style[client] = newstyle;
 
 	if (gB_SaveStates[client] && manual)
 	{
-		persistent_data_t aData;
-		int iIndex = FindPersistentData(client, aData);
-
-		if (iIndex != -1)
-		{
-			gB_SaveStates[client] = false;
-			DeletePersistentData(iIndex, aData);
-		}
+		DeletePersistentDataFromClient(client);
 	}
 
 	if(StrContains(gS_StyleStrings[newstyle].sSpecialString, "segments") != -1)
@@ -1207,6 +1219,11 @@ public void Shavit_OnPause(int client, int track)
 	{
 		SetClientEventsPaused(client, true);
 	}
+
+	if (!gB_SaveStates[client])
+	{
+		PersistData(client, false);
+	}
 }
 
 public void Shavit_OnResume(int client, int track)
@@ -1215,6 +1232,12 @@ public void Shavit_OnResume(int client, int track)
 	{
 		SetClientEventsPaused(client, false);
 	}
+
+	if (gB_SaveStates[client])
+	{
+		// events&outputs won't work properly unless we do this next frame...
+		RequestFrame(LoadPersistentData, GetClientSerial(client));
+	}
 }
 
 public void Shavit_OnStop(int client, int track)
@@ -1222,6 +1245,11 @@ public void Shavit_OnStop(int client, int track)
 	if (gB_Eventqueuefix)
 	{
 		SetClientEventsPaused(client, false);
+	}
+
+	if (gB_SaveStates[client])
+	{
+		DeletePersistentDataFromClient(client);
 	}
 }
 
@@ -2883,7 +2911,6 @@ public Action Command_Noclip(int client, int args)
 
 		return Plugin_Handled;
 	}
-
 	else if(gCV_NoclipMe.IntValue == 2 && !CheckCommandAccess(client, "admin_noclipme", ADMFLAG_CHEATS))
 	{
 		Shavit_PrintToChat(client, "%T", "LackingAccess", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
@@ -2900,18 +2927,22 @@ public Action Command_Noclip(int client, int args)
 
 	if(GetEntityMoveType(client) != MOVETYPE_NOCLIP)
 	{
+		if (gCV_PauseMovement.BoolValue && Shavit_IsPaused(client))
+		{
+			SetEntityMoveType(client, MOVETYPE_NOCLIP);
+			return Plugin_Handled;
+		}
+
 		if(!ShouldDisplayStopWarning(client))
 		{
 			Shavit_StopTimer(client);
 			SetEntityMoveType(client, MOVETYPE_NOCLIP);
 		}
-
 		else
 		{
 			OpenStopWarningMenu(client, DoNoclip);
 		}
 	}
-
 	else
 	{
 		SetEntityMoveType(client, MOVETYPE_WALK);

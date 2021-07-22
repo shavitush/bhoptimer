@@ -3449,7 +3449,7 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_End:
 		{
-			if(status != Timer_Stopped && !Shavit_IsPaused(other) && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack)
+			if (status == Timer_Running && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack)
 			{
 				Shavit_FinishMap(other, gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack);
 			}
@@ -3461,7 +3461,7 @@ public void StartTouchPost(int entity, int other)
 			char special[sizeof(stylestrings_t::sSpecialString)];
 			Shavit_GetStyleStrings(Shavit_GetBhopStyle(other), sSpecialString, special, sizeof(special));
 
-			if(status != Timer_Stopped && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack && (num > gI_LastStage[other] || StrContains(special, "segments") != -1 || StrContains(special, "TAS") != -1 || Shavit_IsPracticeMode(other)))
+			if (status == Timer_Running && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack && (num > gI_LastStage[other] || StrContains(special, "segments") != -1 || StrContains(special, "TAS") != -1 || Shavit_IsPracticeMode(other)))
 			{
 				gI_LastStage[other] = num;
 				char sTime[32];

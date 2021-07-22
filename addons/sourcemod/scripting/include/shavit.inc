@@ -76,6 +76,7 @@ enum
 	CPR_NotOnGround = (1 << 3),
 	CPR_Moving = (1 << 4),
 	CPR_Duck = (1 << 5), // quack
+	CPR_InEndZone = (1 << 6),
 };
 
 enum

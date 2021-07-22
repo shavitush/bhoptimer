@@ -138,6 +138,7 @@ bool gB_HUD = false;
 // cvars
 Convar gCV_Restart = null;
 Convar gCV_Pause = null;
+Convar gCV_PauseMovement = null;
 Convar gCV_AllowTimerWithoutZone = null;
 Convar gCV_BlockPreJump = null;
 Convar gCV_NoZAxisSpeed = null;
@@ -383,6 +384,7 @@ public void OnPluginStart()
 	gCV_Restart = new Convar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
 	gCV_Pause = new Convar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
 	gCV_AllowTimerWithoutZone = new Convar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
+	gCV_PauseMovement = new Convar("shavit_core_pause_movement", "0", "Allow movement/noclip while paused?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = new Convar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = new Convar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
 	gCV_VelocityTeleport = new Convar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
@@ -761,6 +763,13 @@ public Action Command_TogglePause(int client, int args)
 	if((iFlags & CPR_InStartZone) > 0)
 	{
 		Shavit_PrintToChat(client, "%T", "PauseStartZone", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+		return Plugin_Handled;
+	}
+
+	if((iFlags & CPR_InEndZone) > 0)
+	{
+		Shavit_PrintToChat(client, "%T", "PauseEndZone", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
 	}
@@ -1547,6 +1556,11 @@ public int Native_CanPause(Handle handler, int numParams)
 	if(Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTrack))
 	{
 		iFlags |= CPR_InStartZone;
+	}
+
+	if(Shavit_InsideZone(client, Zone_End, gA_Timers[client].iTrack))
+	{
+		iFlags |= CPR_InEndZone;
 	}
 
 	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
@@ -3567,7 +3581,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	int flags = GetEntityFlags(client);
 
-	if(gA_Timers[client].bPaused && IsPlayerAlive(client))
+	if (gA_Timers[client].bPaused && IsPlayerAlive(client) && !gCV_PauseMovement.BoolValue)
 	{
 		buttons = 0;
 		vel = view_as<float>({0.0, 0.0, 0.0});
