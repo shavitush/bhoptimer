@@ -252,6 +252,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_noclipme", Command_Noclip, "Toggles noclip. (sm_nc alias)");
 	AddCommandListener(CommandListener_Noclip, "+noclip");
 	AddCommandListener(CommandListener_Noclip, "-noclip");
+	// Hijack sourcemod's sm_noclip from funcommands to work when no args are specified.
+	AddCommandListener(CommandListener_Sourcemod_Noclip, "sm_noclip");
 
 	// hook teamjoins
 	AddCommandListener(Command_Jointeam, "jointeam");
@@ -2978,6 +2980,17 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 	}
 
 	return Plugin_Handled;
+}
+
+public Action CommandListener_Sourcemod_Noclip(int client, const char[] command, int args)
+{
+	if (IsValidClient(client, true) && args < 1)
+	{
+		Command_Noclip(client, 0);
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
 }
 
 public Action Command_Specs(int client, int args)
