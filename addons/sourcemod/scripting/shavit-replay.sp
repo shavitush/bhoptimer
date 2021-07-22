@@ -253,6 +253,7 @@ Convar gCV_DynamicTimeTick = null;
 Convar gCV_EnableDynamicTimeDifference = null;
 ConVar sv_duplicate_playernames_ok = null;
 ConVar bot_join_after_player = null;
+ConVar mp_randomspawn = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -379,6 +380,8 @@ public void OnPluginStart()
 	}
 
 	bot_join_after_player = FindConVar(gEV_Type == Engine_TF2 ? "tf_bot_join_after_player" : "bot_join_after_player");
+
+	mp_randomspawn = FindConVar("mp_randomspawn");
 
 	sv_duplicate_playernames_ok = FindConVar("sv_duplicate_playernames_ok");
 
@@ -1622,6 +1625,16 @@ int InternalCreateReplayBot()
 	}
 	else
 	{
+		// Do all this mp_randomspawn stuff so we don't have CGameRules::TeamFull return true.
+		// "Could not add bot to the game: Team is full" yada yada
+		int mp_randomspawn_orig;
+		
+		if (mp_randomspawn != null)
+		{
+			mp_randomspawn_orig = mp_randomspawn.IntValue;
+			mp_randomspawn.IntValue = gCV_DefaultTeam.IntValue;
+		}
+
 		if (gB_Linux)
 		{
 			/*int ret =*/ SDKCall(
@@ -1644,6 +1657,11 @@ int InternalCreateReplayBot()
 				gI_WEAPONTYPE_UNKNOWN,     // CSWeaponType      // WEAPONTYPE_UNKNOWN
 				0                          // BotDifficultyType // unused
 			);
+		}
+
+		if (mp_randomspawn != null)
+		{
+			mp_randomspawn.IntValue = mp_randomspawn_orig;
 		}
 
 		//bool success = (0xFF & ret) != 0;
