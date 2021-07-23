@@ -3134,7 +3134,7 @@ public Action Shavit_OnStart(int client)
 		return Plugin_Stop;
 	}
 
-	if(gCV_ResetTargetname.BoolValue || Shavit_IsPracticeMode(client)) // practice mode can be abused to break map triggers
+	if(gCV_ResetTargetname.BoolValue)
 	{
 		DispatchKeyValue(client, "targetname", "");
 		SetEntPropString(client, Prop_Data, "m_iClassname", "player");
