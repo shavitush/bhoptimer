@@ -160,6 +160,7 @@ Convar gCV_Height = null;
 Convar gCV_Offset = null;
 Convar gCV_EnforceTracks = null;
 Convar gCV_BoxOffset = null;
+Convar gCV_PrebuiltVisualOffset = null;
 
 // handles
 Handle gH_DrawEverything = null;
@@ -296,10 +297,12 @@ public void OnPluginStart()
 	gCV_Offset = new Convar("shavit_zones_offset", "1.0", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
 	gCV_EnforceTracks = new Convar("shavit_zones_enforcetracks", "1", "Enforce zone tracks upon entry?\n0 - allow every zone except for start/end to affect users on every zone.\n1 - require the user's track to match the zone's track.", 0, true, 0.0, true, 1.0);
 	gCV_BoxOffset = new Convar("shavit_zones_box_offset", "16", "Offset zone trigger boxes by this many unit\n0 - matches players bounding box\n16 - matches players center");
+	gCV_PrebuiltVisualOffset = new Convar("shavit_zones_prebuilt_visual_offset", "0", "YOU DONT NEED TO TOUCH THIS USUALLY.\nUsed to fix the VISUAL beam offset for prebuilt zones on a map.\nExample map that you want to use this on: bhop_tranquility (with 16)");
 
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
 	gCV_Offset.AddChangeHook(OnConVarChanged);
+	gCV_PrebuiltVisualOffset.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
 
@@ -372,8 +375,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 		delete gH_DrawEverything;
 		gH_DrawEverything = CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
-
-	else if(convar == gCV_Offset && gI_MapZones > 0)
+	else if ((convar == gCV_Offset || convar == gCV_PrebuiltVisualOffset) && gI_MapZones > 0)
 	{
 		for(int i = 0; i < gI_MapZones; i++)
 		{
@@ -390,9 +392,11 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 			gV_MapZones_Visual[i][7][2] = gV_MapZones[i][1][2];
 
 			CreateZonePoints(gV_MapZones_Visual[i], gCV_Offset.FloatValue);
+
+			float offset = -(gA_ZoneCache[i].bPrebuilt ? gCV_PrebuiltVisualOffset.FloatValue : 0.0) + gCV_Offset.FloatValue;
+			CreateZonePoints(gV_MapZones_Visual[i], offset);
 		}
 	}
-
 	else if(convar == gCV_UseCustomSprite && !StrEqual(oldValue, newValue))
 	{
 		LoadZoneSettings();
@@ -1181,7 +1185,8 @@ public void AddZoneToCache(int type, float corner1_x, float corner1_y, float cor
 	gV_MapZones[gI_MapZones][1][1] = gV_MapZones_Visual[gI_MapZones][7][1] = corner2_y;
 	gV_MapZones[gI_MapZones][1][2] = gV_MapZones_Visual[gI_MapZones][7][2] = corner2_z;
 
-	CreateZonePoints(gV_MapZones_Visual[gI_MapZones], gCV_Offset.FloatValue);
+	float offset = -(prebuilt ? gCV_PrebuiltVisualOffset.FloatValue : 0.0) + gCV_Offset.FloatValue;
+	CreateZonePoints(gV_MapZones_Visual[gI_MapZones], offset);
 
 	gV_ZoneCenter[gI_MapZones][0] = (gV_MapZones[gI_MapZones][0][0] + gV_MapZones[gI_MapZones][1][0]) / 2.0;
 	gV_ZoneCenter[gI_MapZones][1] = (gV_MapZones[gI_MapZones][0][1] + gV_MapZones[gI_MapZones][1][1]) / 2.0;
