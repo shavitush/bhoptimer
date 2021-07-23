@@ -329,6 +329,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetClosestReplayVelocityDifference", Native_GetClosestReplayVelocityDifference);
 	CreateNative("Shavit_StartReplayFromFrameCache", Native_StartReplayFromFrameCache);
 	CreateNative("Shavit_StartReplayFromFile", Native_StartReplayFromFile);
+	CreateNative("Shavit_GetLoopingBotByName", Native_GetLoopingBotByName);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -1359,6 +1360,38 @@ public int Native_GetClosestReplayStyle(Handle plugin, int numParams)
 public int Native_SetClosestReplayStyle(Handle plugin, int numParams)
 {
 	gI_TimeDifferenceStyle[GetNativeCell(1)] = GetNativeCell(2);
+}
+
+public int Native_GetLoopingBotByName(Handle plugin, int numParams)
+{
+	char name[PLATFORM_MAX_PATH];
+	GetNativeString(1, name, sizeof(name));
+
+	int configid = -1;
+
+	for (int i = 0; i < MAX_LOOPING_BOT_CONFIGS; i++)
+	{
+		if (StrEqual(gA_LoopingBotConfig[i].sName, name))
+		{
+			configid = i;
+			break;
+		}
+	}
+
+	if (configid == -1)
+	{
+		return -1;
+	}
+
+	for (int i = 1; i <= MAXPLAYERS; i++)
+	{
+		if (gA_BotInfo[i].iType == Replay_Looping && gA_BotInfo[i].iLoopingConfig == configid)
+		{
+			return i;
+		}
+	}
+
+	return 0;
 }
 
 public Action Timer_Cron(Handle Timer)

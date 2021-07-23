@@ -2413,6 +2413,15 @@ native void Shavit_GetPlainChatrank(int client, char[] buf, int buflen, bool inc
  */
 native void Shavit_DeleteWR(int style, int track, const char[] map, int accountid, int recordid, bool delete_sql, bool update_cache);
 
+/*
+ * Used to find a looping replay bot from the loop config name.
+ *
+ * @param name                      Looping bot config name. An example is "Other Styles" from the default set of looping bots in shavit-replay.cfg
+ *
+ * @return                          The client index of the looping replay bot. -1 if could not find the config name. 0 if could not find the replay bot client.
+ */
+native int Shavit_GetLoopingBotByName(const char[] name);
+
 public SharedPlugin __pl_shavit =
 {
 	name = "shavit",
@@ -2565,5 +2574,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayPostFrame");
 	MarkNativeAsOptional("Shavit_GetReplayCachePreFrame");
 	MarkNativeAsOptional("Shavit_GetReplayCachePostFrame");
+	MarkNativeAsOptional("Shavit_GetLoopingBotByName");
 }
 #endif
