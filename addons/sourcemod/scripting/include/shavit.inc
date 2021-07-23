@@ -534,6 +534,12 @@ stock int GetSpectatorTarget(int client, int fallback = -1)
 	return target;
 }
 
+stock float GetAngleDiff(float current, float previous)
+{
+	float diff = current - previous;
+	return diff - 360.0 * RoundToFloor((diff + 180.0) / 360.0);
+}
+
 /**
  * Called before shavit-core processes the client's usercmd.
  * Before this is called, safety checks (fake/dead clients) happen.
@@ -1558,9 +1564,11 @@ native int Shavit_GetReplayStarter(int ent);
  * Really, this is only useful for things like replay props.
  *
  * @param ent						Replay entity.
+ * @param anglediff                 The angle difference between the previous and current y angles.
+ *
  * @return							buttons
  */
-native int Shavit_GetReplayButtons(int ent);
+native int Shavit_GetReplayButtons(int ent, float& anglediff);
 
 /**
  * Retrieves a replay's frame count.

@@ -392,9 +392,7 @@ void MakeAngleDiff(int client, float newAngle)
 {
 	gF_PreviousAngle[client] = gF_Angle[client];
 	gF_Angle[client] = newAngle;
-
-	float fAngleDiff = newAngle - gF_PreviousAngle[client];
-	gF_AngleDiff[client] = fAngleDiff - 360.0 * RoundToFloor((fAngleDiff + 180.0) / 360.0);
+	gF_AngleDiff[client] = GetAngleDiff(newAngle, gF_PreviousAngle[client]);
 }
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
@@ -1590,7 +1588,19 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 		return;
 	}
 
-	int buttons = IsValidClient(target) ? gI_Buttons[target] : Shavit_GetReplayButtons(target);
+	float fAngleDiff;
+	int buttons;
+
+	if (IsValidClient(target))
+	{
+		fAngleDiff = gF_AngleDiff[target];
+		buttons = gI_Buttons[target];
+	}
+	else
+	{
+		buttons = Shavit_GetReplayButtons(target, fAngleDiff);
+	}
+
 	int style = (gB_Replay && Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
@@ -1606,8 +1616,6 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	{
 		FormatEx(sPanelLine, 64, " %d%s%d\n", gI_ScrollCount[target], (gI_ScrollCount[target] > 9)? "   ":"     ", gI_LastScrollCount[target]);
 	}
-
-	float fAngleDiff = IsValidClient(target) ? gF_AngleDiff[target] : 0.0;
 
 	Format(sPanelLine, 128, "%s［%s］　［%s］\n%s  %s  %s\n%s　 %s 　%s\n　%s　　%s", sPanelLine,
 		(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
@@ -1656,8 +1664,18 @@ void UpdateCenterKeys(int client)
 		return;
 	}
 
-	int buttons = IsValidClient(target) ? gI_Buttons[target] : Shavit_GetReplayButtons(target);
-	float fAngleDiff = IsValidClient(target) ? gF_AngleDiff[target] : 0.0;
+	float fAngleDiff;
+	int buttons;
+
+	if (IsValidClient(target))
+	{
+		fAngleDiff = gF_AngleDiff[target];
+		buttons = gI_Buttons[target];
+	}
+	else
+	{
+		buttons = Shavit_GetReplayButtons(target, fAngleDiff);
+	}
 
 	char sCenterText[80];
 	FormatEx(sCenterText, sizeof(sCenterText), "　%s　　%s\n%s　 %s 　%s\n%s　 %s 　%s\n　%s　　%s",

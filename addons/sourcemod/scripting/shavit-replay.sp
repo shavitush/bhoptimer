@@ -1264,7 +1264,11 @@ public int Native_GetReplayButtons(Handle handler, int numParams)
 	}
 
 	frame_t aFrame;
+	gA_BotInfo[bot].aCache.aFrames.GetArray(gA_BotInfo[bot].iTick ? gA_BotInfo[bot].iTick-1 : 0, aFrame, 6);
+	float prevAngle = aFrame.ang[1];
 	gA_BotInfo[bot].aCache.aFrames.GetArray(gA_BotInfo[bot].iTick, aFrame, 6);
+
+	SetNativeCellRef(2, GetAngleDiff(aFrame.ang[1], prevAngle));
 	return aFrame.buttons;
 }
 
