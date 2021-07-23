@@ -158,6 +158,13 @@
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x8B\x86"
 				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 			}
+			// search string: "Could not add bot to the game: Team is full"
+			// protip: on csgo we just use mp_randomspawn instead.
+			"CCSGameRules::TeamFull"
+			{
+				"windows"   "\x55\x8B\xEC\x56\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x8B\x45\x2A\x83\xE8\x02"
+				"linux"     "@_ZN12CCSGameRules8TeamFullEi"
+			}
 		}
 	}
 

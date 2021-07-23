@@ -222,6 +222,7 @@ bot_info_t gA_BotInfo[MAXPLAYERS+1];
 Handle gH_BotAddCommand = INVALID_HANDLE;
 Handle gH_DoAnimationEvent = INVALID_HANDLE ;
 DynamicDetour gH_MaintainBotQuota = null;
+DynamicDetour gH_TeamFull = null;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
 int g_iLastReplayFlags[MAXPLAYERS + 1];
@@ -536,7 +537,22 @@ void LoadDHooks()
 	}
 
 	gH_MaintainBotQuota.Enable(Hook_Pre, Detour_MaintainBotQuota);
-	
+
+	if (gEV_Type == Engine_CSS)
+	{
+		if (!(gH_TeamFull = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Bool, ThisPointer_Address)))
+		{
+			SetFailState("Failed to create detour for CCSGameRules::TeamFull");
+		}
+
+		gH_TeamFull.AddParam(HookParamType_Int); // Team ID
+
+		if (!gH_TeamFull.SetFromConf(gamedata, SDKConf_Signature, "CCSGameRules::TeamFull"))
+		{
+			SetFailState("Failed to get address for CCSGameRules::TeamFull");
+		}
+	}
+
 	StartPrepSDKCall(gB_Linux ? SDKCall_Static : SDKCall_Player);
 
 	if (PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "Player::DoAnimationEvent"))
@@ -557,6 +573,12 @@ void LoadDHooks()
 // Stops bot_quota from doing anything.
 MRESReturn Detour_MaintainBotQuota(int pThis)
 {
+	return MRES_Supercede;
+}
+
+MRESReturn Detour_TeamFull(int pThis, DHookReturn hReturn, DHookParam hParams)
+{
+	hReturn.Value = false;
 	return MRES_Supercede;
 }
 
@@ -1581,7 +1603,20 @@ public void OnMapStart()
 		Call_Finish();
 	}
 
+	if (gH_TeamFull != null)
+	{
+		gH_TeamFull.Enable(Hook_Post, Detour_TeamFull);
+	}
+
 	CreateTimer(3.0, Timer_Cron, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public void OnMapEnd()
+{
+	if (gH_TeamFull != null)
+	{
+		gH_TeamFull.Disable(Hook_Post, Detour_TeamFull);
+	}	
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -1625,8 +1660,7 @@ int InternalCreateReplayBot()
 	}
 	else
 	{
-		// Do all this mp_randomspawn stuff so we don't have CGameRules::TeamFull return true.
-		// "Could not add bot to the game: Team is full" yada yada
+		// Do all this mp_randomspawn stuff on CSGO since it's easier than updating the signature for CCSGameRules::TeamFull.
 		int mp_randomspawn_orig;
 		
 		if (mp_randomspawn != null)
