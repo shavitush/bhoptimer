@@ -1795,23 +1795,22 @@ void UpdateTopLeftHUD(int client, bool wait)
 			track = Shavit_GetReplayBotTrack(target);
 		}
 
-		if(!(0 <= style < gI_Styles) || !(0 <= track <= TRACKS_SIZE))
+		if ((0 <= style < gI_Styles) && (0 <= track <= TRACKS_SIZE))
 		{
-			return;
-		}
-
-		float fWRTime = Shavit_GetWorldRecord(style, track);
-
-		if(fWRTime != 0.0)
-		{
-			char sWRTime[16];
-			FormatSeconds(fWRTime, sWRTime, 16);
-
-			char sWRName[MAX_NAME_LENGTH];
-			Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH, track);
+			float fWRTime = Shavit_GetWorldRecord(style, track);
 
 			char sTopLeft[512];
-			FormatEx(sTopLeft, sizeof(sTopLeft), "WR: %s (%s)", sWRTime, sWRName);
+
+			if (fWRTime != 0.0)
+			{
+				char sWRTime[16];
+				FormatSeconds(fWRTime, sWRTime, 16);
+
+				char sWRName[MAX_NAME_LENGTH];
+				Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH, track);
+
+				FormatEx(sTopLeft, sizeof(sTopLeft), "WR: %s (%s)", sWRTime, sWRName);
+			}
 
 			char sTargetPB[64];
 			FormatSeconds(fTargetPB, sTargetPB, sizeof(sTargetPB));
@@ -1848,7 +1847,6 @@ void UpdateTopLeftHUD(int client, bool wait)
 					}
 				}
 			}
-
 			else if(fSelfPB != 0.0)
 			{
 				Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));

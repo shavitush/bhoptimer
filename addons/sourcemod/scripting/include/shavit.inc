@@ -957,7 +957,7 @@ forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, 
  * Called when top left HUD updates.
  *
  * @param client					Client index that recieves the hud.
- * @param target					Client index that recieves the hud.
+ * @param target					Target entity that is either the client or what the client is spectating.
  * @param topleft					Reference to the HUD buffer.
  * @param topleftlength				Max length of the topleft buffer.
  * @return							Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Anything else to pass along new values.
