@@ -391,8 +391,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 			gV_MapZones_Visual[i][7][1] = gV_MapZones[i][1][1];
 			gV_MapZones_Visual[i][7][2] = gV_MapZones[i][1][2];
 
-			CreateZonePoints(gV_MapZones_Visual[i], gCV_Offset.FloatValue);
-
 			float offset = -(gA_ZoneCache[i].bPrebuilt ? gCV_PrebuiltVisualOffset.FloatValue : 0.0) + gCV_Offset.FloatValue;
 			CreateZonePoints(gV_MapZones_Visual[i], offset);
 		}

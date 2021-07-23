@@ -580,6 +580,43 @@ public void OnConfigsExecuted()
 	{
 		sv_disable_radar.BoolValue = true;
 	}
+
+	if (gB_Late)
+	{
+		gB_Late = false;
+		OnMapStart();
+	}
+
+	LoadMapFixes();
+}
+
+void LoadMapFixes()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-mapfixes.cfg");
+
+	KeyValues kv = new KeyValues("shavit-mapfixes");
+	
+	if (kv.ImportFromFile(sPath) && kv.JumpToKey(gS_CurrentMap) && kv.GotoFirstSubKey(false))
+	{
+		do {
+			char key[128];
+			char value[128];
+			kv.GetSectionName(key, sizeof(key));
+			kv.GetString(NULL_STRING, value, sizeof(value));
+
+			PrintToServer(">>>> mapfixes: %s \"%s\"", key, value);
+
+			ConVar cvar = FindConVar(key);
+
+			if (cvar)
+			{
+				cvar.SetString(value, true, true);
+			}
+		} while (kv.GotoNextKey(false));
+	}
+
+	delete kv;
 }
 
 void CreateSpawnPoint(int iTeam, float fOrigin[3], float fAngles[3])
@@ -603,6 +640,13 @@ public void OnMapStart()
 
 	GetCurrentMap(gS_CurrentMap, 192);
 	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
+
+	if (gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
+		Shavit_OnChatConfigLoaded();
+		return;
+	}
 
 	if (!StrEqual(gS_CurrentMap, gS_PreviousMap, false))
 	{
@@ -671,13 +715,6 @@ public void OnMapStart()
 				}
 			}
 		}
-	}
-
-	if(gB_Late)
-	{
-		gB_Late = false;
-		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
-		Shavit_OnChatConfigLoaded();
 	}
 
 	if(gCV_AdvertisementInterval.FloatValue > 0.0)
