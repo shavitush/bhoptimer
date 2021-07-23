@@ -997,9 +997,14 @@ forward void Shavit_OnTimeOffsetCalculated(int client, int zonetype, float offse
  * @param snapshot					A snapshot of the client's timer when printing the message.
  * @param overwrite					Modify the database? 0 - no. 1 - brand new record. 2 - new personal best.
  * @param rank						Rank on map.
+ * @param message					The finish message.
+ * @param maxlen					Buffer size of message.
+ * @param message2					A second line of info that is printed on finish.
+ * @param maxlen2					Buffer size of message2.
+ *
  * @return							Plugin_Handled or Plugin_Stop to stop the message. Anything else to use new values.
  */
-forward Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_t snapshot, int overwrite, int rank, char[] message, int maxlen);
+forward Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_t snapshot, int overwrite, int rank, char[] message, int maxlen, char[] message2, int maxlen2);
 
 /**
  * Called when a clients dynamic timescale has been changed.
