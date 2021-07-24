@@ -572,12 +572,12 @@ void LoadDHooks()
 }
 
 // Stops bot_quota from doing anything.
-MRESReturn Detour_MaintainBotQuota(int pThis)
+public MRESReturn Detour_MaintainBotQuota(int pThis)
 {
 	return MRES_Supercede;
 }
 
-MRESReturn Detour_TeamFull(int pThis, DHookReturn hReturn, DHookParam hParams)
+public MRESReturn Detour_TeamFull(int pThis, DHookReturn hReturn, DHookParam hParams)
 {
 	hReturn.Value = false;
 	return MRES_Supercede;
@@ -2370,7 +2370,7 @@ void UpdateBotScoreboard(int client)
 	SetEntProp(client, Prop_Data, "m_iDeaths", 0);
 }
 
-Action Timer_SpectateMyBot(Handle timer, any data)
+public Action Timer_SpectateMyBot(Handle timer, any data)
 {
 	SpectateMyBot(data);
 	return Plugin_Stop;
@@ -2617,7 +2617,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	}
 }
 
-Action Timer_PostFrames(Handle timer, int client)
+public Action Timer_PostFrames(Handle timer, int client)
 {
 	gH_PostFramesTimer[client] = null;
 	FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
