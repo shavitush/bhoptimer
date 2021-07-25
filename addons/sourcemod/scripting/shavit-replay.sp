@@ -2566,7 +2566,6 @@ public Action Shavit_OnStart(int client)
 	if (bInStart)
 	{
 		int iFrameDifference = gI_PlayerFrames[client] - iMaxPreFrames;
-		PrintToConsole(client, "%d %d", gI_PlayerFrames[client], iFrameDifference);
 
 		if (iFrameDifference > 0) // TODO: 0 or 1?
 		{
