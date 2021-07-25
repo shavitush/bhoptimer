@@ -43,7 +43,7 @@ forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 // 0x02: flags added movetype added
 // 0x03: integrity stuff: style, track, and map added to header. preframe count added (unimplemented until later though)
 // 0x04: steamid/accountid written as a 32-bit int instead of a string
-// 0x05: postframes added
+// 0x05: postframes & fTickrate added
 // 0x06: mousexy and vel added
 // 0x07: fixed iFrameCount because postframes were included in the value when they shouldn't be
 
@@ -190,6 +190,7 @@ Handle gH_PostFramesTimer[MAXPLAYERS+1];
 int gI_PlayerFinishFrame[MAXPLAYERS+1];
 
 bool gB_Button[MAXPLAYERS+1];
+// we use gI_PlayerFrames instead of grabbing gA_PlayerFrames.Length because the ArrayList is resized to handle 2s worth of extra frames to reduce how often we have to resize it
 int gI_PlayerFrames[MAXPLAYERS+1];
 int gI_PlayerPrerunFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
@@ -2568,7 +2569,7 @@ public Action Shavit_OnStart(int client)
 	{
 		int iFrameDifference = gI_PlayerFrames[client] - iMaxPreFrames;
 
-		if (iFrameDifference > 0) // TODO: 0 or 1?
+		if (iFrameDifference > 0)
 		{
 			// For too many extra frames, we'll just create a new ArrayList and copy the frames over.
 			if (iFrameDifference > 100)
@@ -3193,7 +3194,6 @@ void ClearFrames(int client)
 void ClearFrameCache(frame_cache_t cache)
 {
 	delete cache.aFrames;
-	// TODO:
 	cache.iFrameCount = 0;
 	cache.fTime = 0.0;
 	cache.bNewFormat = true;
