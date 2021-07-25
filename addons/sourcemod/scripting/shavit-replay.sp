@@ -232,7 +232,7 @@ DynamicDetour gH_MaintainBotQuota = null;
 DynamicDetour gH_TeamFull = null;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
-int g_iLastReplayFlags[MAXPLAYERS + 1];
+int gI_LastReplayFlags[MAXPLAYERS + 1];
 
 // how do i call this
 bool gB_HideNameChange = false;
@@ -2876,7 +2876,7 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 
 					SetEntityFlags(info.iEnt, iEntityFlags);
 					
-					if((g_iLastReplayFlags[info.iEnt] & FL_ONGROUND) && !(iReplayFlags & FL_ONGROUND) && gH_DoAnimationEvent != INVALID_HANDLE)
+					if((gI_LastReplayFlags[info.iEnt] & FL_ONGROUND) && !(aFrame.flags & FL_ONGROUND) && gH_DoAnimationEvent != INVALID_HANDLE)
 					{
 						int jumpAnim = (gEV_Type == Engine_CSS) ?
 							CSS_ANIM_JUMP : ((gEV_Type == Engine_TF2) ? TF2_ANIM_JUMP : CSGO_ANIM_JUMP);
@@ -2905,7 +2905,7 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 
 			if (isClient)
 			{
-				g_iLastReplayFlags[info.iEnt] = aFrame.flags; 
+				gI_LastReplayFlags[info.iEnt] = aFrame.flags; 
 				SetEntityMoveType(info.iEnt, mt);
 			}
 
