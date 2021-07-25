@@ -4088,10 +4088,15 @@ float GetClosestReplayTime(int client)
 			}
 			
 			// check if the search ahead flag is off
-			if(iEndFrame >= iLength || gCV_DynamicTimeCheap.IntValue & 1 == 0)
+			if(gCV_DynamicTimeCheap.IntValue & 1 == 0)
 			{
 				iEndFrame = iLength - 1;
 			}
+		}
+
+		if (iEndFrame >= iLength)
+		{
+			iEndFrame = iLength - 1;
 		}
 
 		float fReplayPos[3];
