@@ -416,10 +416,8 @@ stock int SteamIDToAuth(const char[] sInput)
 // Can be used to unpack frame_t.mousexy and frame_t.vel
 stock void UnpackSignedShorts(int x, int out[2])
 {
-	int a = (x & 0x0000FFFF);
-	out[0] = (a & 0x8000) ? (a | 0xFFFF0000) : a;
-	int b = (x & 0xFFFF0000) >> 16;
-	out[1] = (b & 0x8000) ? (b | 0xFFFF0000) : b;
+	out[0] =  ((x        & 0xFFFF) ^ 0x8000) - 0x8000;
+	out[1] = (((x >> 16) & 0xFFFF) ^ 0x8000) - 0x8000;
 }
 
 // time formatting!
