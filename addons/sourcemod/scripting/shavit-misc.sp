@@ -1929,11 +1929,9 @@ bool Teleport(int client, int targetserial)
 	return true;
 }
 
-void Frame_WeaponsSpawnGood(int ref)
+public Action Hook_GunTouch(int entity, int client)
 {
-	int entity = EntRefToEntIndex(ref);
-
-	if (entity > 0)
+	if (1 <= client <= MaxClients)
 	{
 		char classname[64];
 		GetEntityClassname(entity, classname, sizeof(classname));
@@ -1947,12 +1945,15 @@ void Frame_WeaponsSpawnGood(int ref)
 				SetEntProp(entity, Prop_Send, "m_bBurstMode", 1);
 			}
 		}
-		else if (gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp")) // usp
+		else if (gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp"))
 		{
 			SetEntProp(entity, Prop_Send, "m_bSilencerOn", 1);
 			SetEntProp(entity, Prop_Send, "m_weaponMode", 1);
+			SetEntPropFloat(entity, Prop_Send, "m_flDoneSwitchingSilencer", GetGameTime() - 0.1);  
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -1960,7 +1961,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 	if (((gCV_WeaponsSpawnGood.IntValue & 1) && gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp"))
 	||  ((gCV_WeaponsSpawnGood.IntValue & 2) && StrEqual(classname, "weapon_glock")))
 	{
-		RequestFrame(Frame_WeaponsSpawnGood, EntIndexToEntRef(entity));
+		SDKHook(entity, SDKHook_Touch, Hook_GunTouch);
 	}
 }
 
