@@ -2136,6 +2136,7 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	gA_FrameCache[style][track].aFrames.Resize(iSize);
 	gA_FrameCache[style][track].iFrameCount = iSize - preframes - postframes;
 	gA_FrameCache[style][track].fTime = time;
+	gA_FrameCache[style][track].iReplayVersion = REPLAY_FORMAT_SUBVERSION;
 	gA_FrameCache[style][track].bNewFormat = true;
 	strcopy(gA_FrameCache[style][track].sReplayName, MAX_NAME_LENGTH, name);
 	gA_FrameCache[style][track].iPreFrames = preframes;
@@ -2874,8 +2875,8 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 					ApplyFlags(iEntityFlags, iReplayFlags, FL_SWIM);
 
 					SetEntityFlags(info.iEnt, iEntityFlags);
-					
-					if((gI_LastReplayFlags[info.iEnt] & FL_ONGROUND) && !(aFrame.flags & FL_ONGROUND) && gH_DoAnimationEvent != INVALID_HANDLE)
+
+					if((gI_LastReplayFlags[info.iEnt] & FL_ONGROUND) && !(iReplayFlags & FL_ONGROUND) && gH_DoAnimationEvent != INVALID_HANDLE)
 					{
 						int jumpAnim = (gEV_Type == Engine_CSS) ?
 							CSS_ANIM_JUMP : ((gEV_Type == Engine_TF2) ? TF2_ANIM_JUMP : CSGO_ANIM_JUMP);
