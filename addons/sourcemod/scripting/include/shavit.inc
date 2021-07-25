@@ -210,7 +210,6 @@ enum struct cp_cache_t
 	char sClassname[64];
 	ArrayList aFrames;
 	int iPreFrames;
-	int iTimerPreFrames;
 	bool bSegmented;
 	bool bPractice;
 	int iGroundEntity;
@@ -234,7 +233,7 @@ enum struct frame_t
 	int vel; // basically `forwardmove | (sidemove << 16)` // unpack with UnpackSignedShorts
 }
 
-enum struct framecache_t
+enum struct frame_cache_t
 {
 	int iFrameCount;
 	float fTime;
@@ -1507,7 +1506,7 @@ native bool Shavit_DeleteReplay(const char[] map, int style, int track, int acco
  * @param entity					Entity index.
  * @return							The engine time of the replay bot's first frame.
  */
-native float Shavit_GetReplayBotFirstFrame(int entity);
+native float Shavit_GetReplayBotFirstFrameTime(int entity);
 
 /**
  * Retrieve the replay bot's entity index.
@@ -1584,7 +1583,7 @@ native int Shavit_GetReplayFrameCount(int style, int track);
  * @param track						Track.
  * @return							Frame count.
  */
-native int Shavit_GetReplayPreFrame(int style, int track);
+native int Shavit_GetReplayPreFrames(int style, int track);
 
 /**
  * Retrieves a replay's post-run frame count.
@@ -1593,10 +1592,10 @@ native int Shavit_GetReplayPreFrame(int style, int track);
  * @param track						Track.
  * @return							Frame count.
  */
-native int Shavit_GetReplayPostFrame(int style, int track);
+native int Shavit_GetReplayPostFrames(int style, int track);
 
 /**
- * Retrieves the frame count from the currently running replay bot's framecache_t.
+ * Retrieves the frame count from the currently running replay bot's frame_cache_t.
  *
  * @param bot						Replay bot entity.
  * @return							Frame count.
@@ -1604,20 +1603,20 @@ native int Shavit_GetReplayPostFrame(int style, int track);
 native int Shavit_GetReplayCacheFrameCount(int bot);
 
 /**
- * Retrieves the pre-run frame count from the currently running replay bot's framecache_t.
+ * Retrieves the pre-run frame count from the currently running replay bot's frame_cache_t.
  *
  * @param bot						Replay bot entity.
  * @return							Frame count.
  */
-native int Shavit_GetReplayCachePreFrame(int bot);
+native int Shavit_GetReplayCachePreFrames(int bot);
 
 /**
- * Retrieves the post-run frame count from the currently running replay bot's framecache_t.
+ * Retrieves the post-run frame count from the currently running replay bot's frame_cache_t.
  *
  * @param bot						Replay bot entity.
  * @return							Frame count.
  */
-native int Shavit_GetReplayCachePostFrame(int bot);
+native int Shavit_GetReplayCachePostFrames(int bot);
 
 /**
  * Retrieves the replay data for the given style and track.
@@ -1647,7 +1646,7 @@ native int Shavit_GetClientFrameCount(int client);
 native float Shavit_GetReplayLength(int style, int track);
 
 /**
- * Retrieves the replay's total length in seconds from the currently running replay bot's framecache_t.
+ * Retrieves the replay's total length in seconds from the currently running replay bot's frame_cache_t.
  *
  * @param bot						Replay bot entity.
  * @return							Replay length.
@@ -2022,11 +2021,11 @@ native int Shavit_StartReplay(int style, int track, float delay, int client, int
  * @param bot						Bot to play on. Should be of type Replay_Central or Replay_Dynamic. -1 to create new replay bot.
  * @param type						ReplayBotType. Replay_Prop needs `bot` to be -1.
  * @param ignorelimit				Ignore cvar limit for dynamic bots.
- * @param cache						framecache_t filled with replay info and frames.
- * @param size						sizeof(framecache_t). Used to throw errors at you if you don't recompile plugins.
+ * @param cache						frame_cache_t filled with replay info and frames.
+ * @param size						sizeof(frame_cache_t). Used to throw errors at you if you don't recompile plugins.
  * @return							Replay entity. 0 is returned if couldn't be created.
  */
-native int Shavit_StartReplayFromFrameCache(int style, int track, float delay, int client, int bot, bool ignorelimit = false, any[] cache, int size = sizeof(framecache_t));
+native int Shavit_StartReplayFromFrameCache(int style, int track, float delay, int client, int bot, bool ignorelimit = false, any[] cache, int size = sizeof(frame_cache_t));
 
 /**
  * Starts a replay from a replay file.
@@ -2058,7 +2057,6 @@ native bool Shavit_ReloadReplay(int style, int track, bool restart, char[] path 
 
 /**
  * Reloads all of the replays for the map.
- * Note: Not guaranteed to work with legacy replay bots.
  *
  * @param restart					Restart the playback of the replay bots?
  * @return							Amount of loaded replays.
@@ -2367,16 +2365,7 @@ native int Shavit_GetTimesTeleported(int client);
  *
  * @return 							Preframe count
  */
-native int Shavit_GetPlayerPreFrame(int client);
-
-/*
- * returns the number of timer preframes in the players current run.
- *
- * @param client					Client index
- *
- * @return 							Timer preframe count
- */
-native int Shavit_GetPlayerTimerFrame(int client);
+native int Shavit_GetPlayerPreFrames(int client);
 
 /*
  * Sets player's preframe length.
@@ -2387,17 +2376,7 @@ native int Shavit_GetPlayerTimerFrame(int client);
  *
  * @noreturn
  */
-native void Shavit_SetPlayerPreFrame(int client, int PreFrame);
-
-/*
- * Sets player's timer preframe length.
- *
- * @param client					Client index
- * @param TimerPreFrame				Timer start frame length
- *
- * @noreturn
- */
-native void Shavit_SetPlayerTimerFrame(int client, int TimerPreFrame);
+native void Shavit_SetPlayerPreFrames(int client, int PreFrame);
 
 /*
  * Retrieves the player's chatrank trimmed and without colors.
@@ -2476,7 +2455,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetRecordAmount");
 	MarkNativeAsOptional("Shavit_GetReplayBotCurrentFrame");
 	MarkNativeAsOptional("Shavit_GetClientFrameCount");
-	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrame");
+	MarkNativeAsOptional("Shavit_GetReplayBotFirstFrameTime");
 	MarkNativeAsOptional("Shavit_GetReplayBotIndex");
 	MarkNativeAsOptional("Shavit_GetReplayBotStyle");
 	MarkNativeAsOptional("Shavit_GetReplayBotTrack");
@@ -2559,11 +2538,9 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_GetTimesTeleported");
-	MarkNativeAsOptional("Shavit_GetPlayerPreFrame");
-	MarkNativeAsOptional("Shavit_GetPlayerTimerFrame");
-	MarkNativeAsOptional("Shavit_SetPlayerPreFrame");
+	MarkNativeAsOptional("Shavit_GetPlayerPreFrames");
+	MarkNativeAsOptional("Shavit_SetPlayerPreFrames");
 	MarkNativeAsOptional("Shavit_GetClosestReplayTime");
-	MarkNativeAsOptional("Shavit_SetPlayerTimerFrame");
 	MarkNativeAsOptional("Shavit_SetStyleSetting");
 	MarkNativeAsOptional("Shavit_SetStyleSettingFloat");
 	MarkNativeAsOptional("Shavit_SetStyleSettingBool");
@@ -2581,10 +2558,10 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClientLastStage");
 	MarkNativeAsOptional("Shavit_GetStageWR");
 	MarkNativeAsOptional("Shavit_GetStagePB");
-	MarkNativeAsOptional("Shavit_GetReplayPreFrame");
-	MarkNativeAsOptional("Shavit_GetReplayPostFrame");
-	MarkNativeAsOptional("Shavit_GetReplayCachePreFrame");
-	MarkNativeAsOptional("Shavit_GetReplayCachePostFrame");
+	MarkNativeAsOptional("Shavit_GetReplayPreFrames");
+	MarkNativeAsOptional("Shavit_GetReplayPostFrames");
+	MarkNativeAsOptional("Shavit_GetReplayCachePreFrames");
+	MarkNativeAsOptional("Shavit_GetReplayCachePostFrames");
 	MarkNativeAsOptional("Shavit_GetLoopingBotByName");
 }
 #endif

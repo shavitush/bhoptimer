@@ -1513,8 +1513,7 @@ void PersistData(int client, bool disconnected)
 		if (gB_Replay && aData.cpcache.aFrames == null)
 		{
 			aData.cpcache.aFrames = Shavit_GetReplayData(client, true);
-			aData.cpcache.iPreFrames = Shavit_GetPlayerPreFrame(client);
-			aData.cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(client);
+			aData.cpcache.iPreFrames = Shavit_GetPlayerPreFrames(client);
 		}
 	}
 	else
@@ -2671,8 +2670,7 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 	if (cpcache.bSegmented && gB_Replay && actually_a_checkpoint && cpcache.aFrames == null)
 	{
 		cpcache.aFrames = Shavit_GetReplayData(target, false);
-		cpcache.iPreFrames = Shavit_GetPlayerPreFrame(target);
-		cpcache.iTimerPreFrames = Shavit_GetPlayerTimerFrame(target);
+		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
 	}
 
 	if (gB_Eventqueuefix && !IsFakeClient(target))
@@ -2818,8 +2816,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	{
 		// if isPersistentData, then CloneHandle() is done instead of ArrayList.Clone()
 		Shavit_SetReplayData(client, cpcache.aFrames, isPersistentData);
-		Shavit_SetPlayerPreFrame(client, cpcache.iPreFrames);
-		Shavit_SetPlayerTimerFrame(client, cpcache.iTimerPreFrames);
+		Shavit_SetPlayerPreFrames(client, cpcache.iPreFrames);
 	}
 
 	if (gB_Eventqueuefix && cpcache.aEvents != null && cpcache.aOutputWaits != null)
