@@ -1616,9 +1616,9 @@ void ResetCheckpoints(int client)
 	gI_CurrentCheckpoint[client] = 0;
 }
 
-public Action OnTakeDamage(int victim, int& attacker)
+void ClearViewPunch(int victim)
 {
-	if(gB_Hide[victim] || gCV_GodMode.IntValue >= 2)
+	if (1 <= victim <= MaxClients)
 	{
 		if(gEV_Type == Engine_CSGO)
 		{
@@ -1632,39 +1632,53 @@ public Action OnTakeDamage(int victim, int& attacker)
 			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngleVel", NULL_VECTOR);
 		}
 	}
+}
+
+public Action OnTakeDamage(int victim, int& attacker)
+{
+	bool bBlockDamage;
 
 	switch(gCV_GodMode.IntValue)
 	{
 		case 0:
 		{
-			return Plugin_Continue;
+			bBlockDamage = false;
 		}
-
 		case 1:
 		{
 			// 0 - world/fall damage
 			if(attacker == 0)
 			{
-				return Plugin_Handled;
+				bBlockDamage = true;
 			}
 		}
-
 		case 2:
 		{
 			if(IsValidClient(attacker))
 			{
-				return Plugin_Handled;
+				bBlockDamage = true;
 			}
 		}
-
-		// else
 		default:
 		{
-			return Plugin_Handled;
+			bBlockDamage = true;
 		}
 	}
 
-	return Plugin_Continue;
+	if (gB_Hide[victim] || bBlockDamage || IsFakeClient(victim))
+	{
+		ClearViewPunch(victim);
+
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (i != victim && IsValidClient(i) && GetSpectatorTarget(i) == victim)
+			{
+				ClearViewPunch(i);
+			}
+		}
+	}
+
+	return bBlockDamage ? Plugin_Handled : Plugin_Continue;
 }
 
 public void OnWeaponDrop(int client, int entity)
