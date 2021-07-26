@@ -2581,9 +2581,7 @@ public Action Shavit_OnStart(int client)
 			{
 				for (int i = iFrameDifference; i < gI_PlayerFrames[client]; i++)
 				{
-					frame_t frame;
-					gA_PlayerFrames[client].GetArray(i, frame);
-					gA_PlayerFrames[client].SetArray(i-iFrameDifference, frame);
+					gA_PlayerFrames[client].SwapAt(i, i-iFrameDifference);
 				}
 
 				gI_PlayerFrames[client] = iMaxPreFrames;
