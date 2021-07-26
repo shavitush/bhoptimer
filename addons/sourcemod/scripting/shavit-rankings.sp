@@ -771,10 +771,16 @@ public Action Command_RecalcAll(int client, int args)
 	Transaction trans = new Transaction();
 	char sQuery[666];
 
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0;", gS_MySQLPrefix);
+	trans.AddQuery(sQuery);
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		FormatRecalculate("", -1, i, sQuery, sizeof(sQuery));
-		trans.AddQuery(sQuery);
+		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
+		{
+			FormatRecalculate("", -1, i, sQuery, sizeof(sQuery));
+			trans.AddQuery(sQuery);
+		}
 	}
 
 	gH_SQL.Execute(trans, Trans_OnRecalcSuccess, Trans_OnRecalcFail, (client == 0)? 0:GetClientSerial(client));
