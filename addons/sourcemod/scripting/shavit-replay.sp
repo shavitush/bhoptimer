@@ -2571,21 +2571,17 @@ public Action Shavit_OnStart(int client)
 
 		if (iFrameDifference > 0)
 		{
-			// For too many extra frames, we'll just create a new ArrayList and copy the frames over.
+			// For too many extra frames, we'll just shift the preframes to the start of the array.
 			if (iFrameDifference > 100)
 			{
-				ArrayList aFrames = new ArrayList(sizeof(frame_t));
-
-				for (int i = iFrameDifference; i < gI_PlayerFrames[client]; i++) // TODO: Double check this is correct.
+				for (int i = iFrameDifference; i < gI_PlayerFrames[client]; i++)
 				{
 					frame_t frame;
 					gA_PlayerFrames[client].GetArray(i, frame);
-					aFrames.PushArray(frame);
+					gA_PlayerFrames[client].SetArray(i-iFrameDifference, frame);
 				}
 
-				delete gA_PlayerFrames[client];
-				gA_PlayerFrames[client] = aFrames;
-				gI_PlayerFrames[client] = aFrames.Length;
+				gI_PlayerFrames[client] = iMaxPreFrames;
 			}
 			else // iFrameDifference isn't that bad, just loop through and erase.
 			{
