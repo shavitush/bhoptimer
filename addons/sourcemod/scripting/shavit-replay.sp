@@ -2008,6 +2008,11 @@ File ReadReplayHeader(const char[] path, replay_header_t header, int style, int 
 		file.ReadInt32(header.iFrameCount);
 		file.ReadInt32(view_as<int>(header.fTime));
 
+		if (header.iReplayVersion < 0x07)
+		{
+			header.iFrameCount -= header.iPreFrames;
+		}
+
 		if(version >= 0x04)
 		{
 			file.ReadInt32(header.iSteamID);
