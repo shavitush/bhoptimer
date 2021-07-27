@@ -1332,7 +1332,6 @@ public void Bunnyhop_OnLeaveGround(int client, bool jumped, bool ladder)
 	}
 
 	DoJump(client);
-	gA_Timers[client].bJumped = true;
 }
 
 public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
@@ -1340,14 +1339,14 @@ public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
 	DoJump(client);
-	gA_Timers[client].bJumped = true;
 }
 
 void DoJump(int client)
 {
-	if(gA_Timers[client].bEnabled)
+	if(gA_Timers[client].bEnabled && !gA_Timers[client].bPaused)
 	{
 		gA_Timers[client].iJumps++;
+		gA_Timers[client].bJumped = true;
 	}
 
 	// TF2 doesn't use stamina
@@ -3675,29 +3674,33 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	int iPButtons = buttons;
 
-	if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_w") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_w") &&
+	if (!gA_Timers[client].bPaused)
+	{
+		if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_w") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_w") &&
 		(gA_Timers[client].iLastButtons & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
-	{
-		gA_Timers[client].iStrafes++;
+		{
+			gA_Timers[client].iStrafes++;
+		}
+
+		if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_a") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_a") && (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 &&
+			(buttons & IN_MOVELEFT) > 0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+		{
+			gA_Timers[client].iStrafes++;
+		}
+
+		if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_s") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_s") &&
+			(gA_Timers[client].iLastButtons & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
+		{
+			gA_Timers[client].iStrafes++;
+		}
+
+		if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_d") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_d") && (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 &&
+			(buttons & IN_MOVERIGHT) > 0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
+		{
+			gA_Timers[client].iStrafes++;
+		}
 	}
 
-	if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_a") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_a") && (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 &&
-		(buttons & IN_MOVELEFT) > 0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
-	{
-		gA_Timers[client].iStrafes++;
-	}
-
-	if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_s") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_s") &&
-		(gA_Timers[client].iLastButtons & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
-	{
-		gA_Timers[client].iStrafes++;
-	}
-
-	if(GetStyleSettingBool(gA_Timers[client].iStyle, "strafe_count_d") && !GetStyleSettingBool(gA_Timers[client].iStyle, "block_d") && (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 &&
-		(buttons & IN_MOVERIGHT) > 0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
-	{
-		gA_Timers[client].iStrafes++;
-	}
 
 	MoveType mtMoveType = GetEntityMoveType(client);
 
@@ -3855,7 +3858,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
+	else if(!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped && !gA_Timers[client].bPaused)
 	{
 		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
 
@@ -3915,7 +3918,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		fAngle += 360.0;
 	}
 
-	if(iGroundEntity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
+	if(!gA_Timers[client].bPaused && iGroundEntity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
 	{
 		float fAbsVelocity[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
