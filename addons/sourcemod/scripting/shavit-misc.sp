@@ -569,27 +569,6 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	}
 }
 
-public void OnConfigsExecuted()
-{
-	if(sv_disable_immunity_alpha != null)
-	{
-		sv_disable_immunity_alpha.BoolValue = true;
-	}
-
-	if (sv_disable_radar != null && gCV_HideRadar.BoolValue)
-	{
-		sv_disable_radar.BoolValue = true;
-	}
-
-	if (gB_Late)
-	{
-		gB_Late = false;
-		OnMapStart();
-	}
-
-	LoadMapFixes();
-}
-
 void LoadMapFixes()
 {
 	char sPath[PLATFORM_MAX_PATH];
@@ -643,9 +622,10 @@ public void OnMapStart()
 
 	if (gB_Late)
 	{
+		gB_Late = false;
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
-		return;
+		OnAutoConfigsBuffered();
 	}
 
 	if (!StrEqual(gS_CurrentMap, gS_PreviousMap, false))
@@ -658,6 +638,24 @@ public void OnMapStart()
 			gA_PersistentData.GetArray(i, aData);
 			DeletePersistentData(i, aData);
 		}
+	}
+}
+
+public void OnAutoConfigsBuffered()
+{
+	LoadMapFixes();
+}
+
+public void OnConfigsExecuted()
+{
+	if(sv_disable_immunity_alpha != null)
+	{
+		sv_disable_immunity_alpha.BoolValue = true;
+	}
+
+	if (sv_disable_radar != null && gCV_HideRadar.BoolValue)
+	{
+		sv_disable_radar.BoolValue = true;
 	}
 
 	if(gCV_CreateSpawnPoints.IntValue > 0)
