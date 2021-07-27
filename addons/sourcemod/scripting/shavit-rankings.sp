@@ -778,6 +778,8 @@ public Action Command_RecalcAll(int client, int args)
 
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0;", gS_MySQLPrefix);
 	trans.AddQuery(sQuery);
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET points = 0;", gS_MySQLPrefix);
+	trans.AddQuery(sQuery);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
