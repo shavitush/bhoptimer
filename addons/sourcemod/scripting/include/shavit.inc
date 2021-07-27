@@ -582,12 +582,22 @@ forward void Shavit_OnTimeIncrement(int client, timer_snapshot_t snapshot, float
 forward void Shavit_OnTimeIncrementPost(int client, float time);
 
 /**
+ * Called when a player's timer is about to start.
+ * (WARNING: Will be called every tick when the player stands at the start zone!)
+ *
+ * @param client                    Client index.
+ * @param track                     Timer track.
+ * @return                          Plugin_Continue to do nothing or anything else to not start the timer.
+ */
+forward Action Shavit_OnStartPre(int client, int track);
+
+/**
  * Called when a player's timer starts.
  * (WARNING: Will be called every tick when the player stands at the start zone!)
  *
- * @param client					Client index.
- * @param track						Timer track.
- * @return							Plugin_Continue to do nothing or anything else to not start the timer.
+ * @param client                    Client index.
+ * @param track                     Timer track.
+ * @return                          Unused.
  */
 forward Action Shavit_OnStart(int client, int track);
 

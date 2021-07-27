@@ -85,6 +85,7 @@ bool gB_MySQL = false;
 
 // forwards
 Handle gH_Forwards_Start = null;
+Handle gH_Forwards_StartPre = null;
 Handle gH_Forwards_Stop = null;
 Handle gH_Forwards_StopPre = null;
 Handle gH_Forwards_FinishPre = null;
@@ -264,7 +265,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	// forwards
-	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Ignore, Param_Cell, Param_Cell);
+	gH_Forwards_StartPre = CreateGlobalForward("Shavit_OnStartPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
@@ -2298,6 +2300,16 @@ public any Native_SetStyleSettingInt(Handle handler, int numParams)
 	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
 }
 
+public Action Shavit_OnStartPre(int client, int track)
+{
+	if (GetTimerStatus(client) == view_as<int>(Timer_Paused) && gCV_PauseMovement.BoolValue)
+	{
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
+}
+
 int GetTimerStatus(int client)
 {
 	if(!gA_Timers[client].bEnabled)
@@ -2329,13 +2341,18 @@ void StartTimer(int client, int track)
 		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].iStyle, "prespeed") == 2 || curVel <= 290.0)))
 	{
 		Action result = Plugin_Continue;
-		Call_StartForward(gH_Forwards_Start);
+		Call_StartForward(gH_Forwards_StartPre);
 		Call_PushCell(client);
 		Call_PushCell(track);
 		Call_Finish(result);
 
 		if(result == Plugin_Continue)
 		{
+			Call_StartForward(gH_Forwards_Start);
+			Call_PushCell(client);
+			Call_PushCell(track);
+			Call_Finish(result);
+
 			if(gA_Timers[client].bPaused)
 			{
 				//SetEntityMoveType(client, MOVETYPE_WALK);
@@ -2380,11 +2397,12 @@ void StartTimer(int client, int track)
 
 			SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "gravity"));
 		}
-
+#if 0
 		else if(result == Plugin_Handled || result == Plugin_Stop)
 		{
 			gA_Timers[client].bEnabled = false;
 		}
+#endif
 	}
 }
 
