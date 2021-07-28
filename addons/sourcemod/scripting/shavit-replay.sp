@@ -1836,8 +1836,17 @@ bool DefaultLoadReplay(frame_cache_t cache, int style, int track)
 
 	if (gB_ClosestPos)
 	{
+#if DEBUG
+		Profiler p = new Profiler();
+		p.Start();
+#endif
 		delete gH_ClosestPos[track][style];
 		gH_ClosestPos[track][style] = new ClosestPos(cache.aFrames);
+#if DEBUG
+		p.Stop();
+		PrintToServer(">>> ClosestPos / DefaultLoadReplay(style=%d, track=%d) = %f", style, track, p.Time);
+		delete p;
+#endif
 	}
 
 	return true;
@@ -2704,8 +2713,17 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 
 		if (gB_ClosestPos)
 		{
+#if DEBUG
+			Profiler p = new Profiler();
+			p.Start();
+#endif
 			delete gH_ClosestPos[track][style];
 			gH_ClosestPos[track][style] = new ClosestPos(gA_FrameCache[style][track].aFrames);
+#if DEBUG
+			p.Stop();
+			PrintToServer(">>> ClosestPos / DoReplaySaverCallbacks(style=%d, track=%d) = %f", style, track, p.Time);
+			delete p;
+#endif
 		}
 	}
 
@@ -4126,7 +4144,7 @@ float GetClosestReplayTime(int client)
 
 #if DEBUG
 	profiler.Stop();
-	PrintToServer("client(%d) iClosestFrame(%fs) = %d", client, profiler.Time, iClosestFrame);
+	PrintToConsole(client, "iClosestFrame(%fs) = %d", client, profiler.Time, iClosestFrame);
 	delete profiler;
 #endif
 
