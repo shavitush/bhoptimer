@@ -1235,25 +1235,32 @@ void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 	}
 }
 
-void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual)
+void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool nofoward=false)
 {
-	Call_StartForward(gH_Forwards_OnStyleChanged);
-	Call_PushCell(client);
-	Call_PushCell(oldstyle);
-	Call_PushCell(newstyle);
-	Call_PushCell(gA_Timers[client].iTrack);
-	Call_PushCell(manual);
-	Call_Finish();
+	if (!nofoward)
+	{
+		Call_StartForward(gH_Forwards_OnStyleChanged);
+		Call_PushCell(client);
+		Call_PushCell(oldstyle);
+		Call_PushCell(newstyle);
+		Call_PushCell(gA_Timers[client].iTrack);
+		Call_PushCell(manual);
+		Call_Finish();
+	}
 
 	gA_Timers[client].iStyle = newstyle;
 
-	if(gA_Timers[client].fTimescale != -1.0)
+	float fNewTimescale = GetStyleSettingFloat(newstyle, "timescale");
+
+	if (gA_Timers[client].fTimescale != fNewTimescale)
 	{
-		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, -1.0);
-		gA_Timers[client].fTimescale = -1.0;
+		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, fNewTimescale);
+		gA_Timers[client].fTimescale = fNewTimescale;
 	}
 
 	UpdateStyleSettings(client);
+
+	SetEntityGravity(client, GetStyleSettingFloat(newstyle, "gravity"));
 }
 
 void CallOnTimescaleChanged(int client, float oldtimescale, float newtimescale)
@@ -1373,15 +1380,7 @@ void VelocityChanges(int data)
 
 	if(GetStyleSettingBool(style, "force_timescale"))
 	{
-		if(gA_Timers[client].fTimescale != -1.0)
-		{
-			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_Timers[client].fTimescale);
-		}
-		
-		else if(GetStyleSettingFloat(style, "speed") != 1.0)
-		{
-			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", GetStyleSettingFloat(style, "speed"));
-		}
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_Timers[client].fTimescale * GetStyleSettingFloat(gA_Timers[client].iStyle, "speed"));
 	}
 
 	float fAbsVelocity[3];
@@ -1611,23 +1610,7 @@ public int Native_ChangeClientStyle(Handle handler, int numParams)
 
 	if(force || Shavit_HasStyleAccess(client, style))
 	{
-		if(noforward)
-		{
-			gA_Timers[client].iStyle = style;
-
-			if(gA_Timers[client].fTimescale != -1.0)
-			{
-				CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, -1.0);
-				gA_Timers[client].fTimescale = -1.0;
-			}
-
-			UpdateStyleSettings(client);
-		}
-
-		else
-		{
-			CallOnStyleChanged(client, gA_Timers[client].iStyle, style, manual);
-		}
+		CallOnStyleChanged(client, gA_Timers[client].iStyle, style, manual, noforward);
 
 		return true;
 	}
@@ -2117,6 +2100,11 @@ public int Native_MarkKZMap(Handle handler, int numParams)
 
 public int Native_GetClientTimescale(Handle handler, int numParams)
 {
+	if (gA_Timers[GetNativeCell(1)].fTimescale == GetStyleSettingFloat(gA_Timers[client].iStyle, "timescale"))
+	{
+		return -1.0;
+	}
+
 	return view_as<int>(gA_Timers[GetNativeCell(1)].fTimescale);
 }
 
@@ -2385,15 +2373,7 @@ void StartTimer(int client, int track)
 			gA_Timers[client].fAvgVelocity = curVel;
 			gA_Timers[client].fMaxVelocity = curVel;
 
-			if(gA_Timers[client].fTimescale != -1.0)
-			{
-				SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_Timers[client].fTimescale);
-			}
-
-			else
-			{
-				SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", GetStyleSettingFloat(gA_Timers[client].iStyle, "speed"));
-			}
+			SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", gA_Timers[client].fTimescale * GetStyleSettingFloat(gA_Timers[client].iStyle, "speed"));
 
 			SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "gravity"));
 		}
@@ -2517,8 +2497,8 @@ public void OnClientPutInServer(int client)
 	gA_Timers[client].iSHSWCombination = -1;
 	gA_Timers[client].iTrack = 0;
 	gA_Timers[client].iStyle = 0;
-	gA_Timers[client].fTimescale = -1.0;
-	strcopy(gS_DeleteMap[client], 160, "");
+	gA_Timers[client].fTimescale = 1.0;
+	gS_DeleteMap[client][0] = 0;
 
 	gB_CookiesRetrieved[client] = false;
 
@@ -3330,7 +3310,6 @@ public void PreThinkPost(int client)
 		{
 			sv_airaccelerate.FloatValue = GetStyleSettingFloat(gA_Timers[client].iStyle, "airaccelerate");
 		}
-
 		else
 		{
 			sv_airaccelerate.FloatValue = gF_ZoneAiraccelerate[client];
@@ -3358,6 +3337,7 @@ public void PostThinkPost(int client)
 {
 	gF_Origin[client][1] = gF_Origin[client][0];
 	GetEntPropVector(client, Prop_Data, "m_vecOrigin", gF_Origin[client][0]);
+
 	if(gA_Timers[client].iZoneIncrement == 1 && gCV_UseOffsets.BoolValue)
 	{
 		float fVel[3];
@@ -3417,7 +3397,7 @@ public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hRetu
 	float speed = StringToFloat(buf);
 	int style = gA_Timers[activator].iStyle;
 
-	speed *= (gA_Timers[activator].fTimescale != -1.0) ? gA_Timers[activator].fTimescale : GetStyleSettingFloat(style, "speed");
+	speed *= gA_Timers[activator].fTimescale * GetStyleSettingFloat(style, "speed");
 	SetEntPropFloat(activator, Prop_Data, "m_flLaggedMovementValue", speed);
 
 	#if DEBUG
@@ -3461,23 +3441,12 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_PushCell(client);
 	Call_Finish();
 
-	float frametime = GetGameFrameTime();
-
 	if(gA_Timers[client].bPaused || !gA_Timers[client].bEnabled)
 	{
 		return MRES_Ignored;
 	}
 
-	float time;
-	if(gA_Timers[client].fTimescale != -1.0)
-	{
-		time = frametime * gA_Timers[client].fTimescale;
-	}
-
-	else
-	{
-		time = frametime * GetStyleSettingFloat(gA_Timers[client].iStyle, "timescale");
-	}
+	float time = GetGameFrameTime() * gA_Timers[client].fTimescale;
 
 	gA_Timers[client].iZoneIncrement++;
 
@@ -4046,6 +4015,4 @@ void UpdateStyleSettings(int client)
 	}
 
 	UpdateAiraccelerate(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "airaccelerate"));
-
-	SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].iStyle, "gravity"));
 }
