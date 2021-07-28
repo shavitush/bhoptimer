@@ -46,10 +46,11 @@ forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 // 0x05: postframes & fTickrate added
 // 0x06: mousexy and vel added
 // 0x07: fixed iFrameCount because postframes were included in the value when they shouldn't be
+// 0x08: added zone-offsets to header
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x07
+#define REPLAY_FORMAT_SUBVERSION 0x08
 #define REPLAY_FORMAT_CURRENT_USED_CELLS 8
 #define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 #define MAX_LOOPING_BOT_CONFIGS 24
@@ -91,6 +92,7 @@ enum struct replay_header_t
 	int iSteamID;
 	int iPostFrames;
 	float fTickrate;
+	float fZoneOffset[2];
 }
 
 enum struct bot_info_t
@@ -125,6 +127,7 @@ enum struct finished_run_info
 	float avgvel;
 	float maxvel;
 	int timestamp;
+	float fZoneOffset[2];
 }
 
 enum
@@ -2045,6 +2048,12 @@ File ReadReplayHeader(const char[] path, replay_header_t header, int style, int 
 				header.iFrameCount -= header.iPostFrames;
 			}
 		}
+
+		if (version >= 0x08)
+		{
+			file.ReadInt32(view_as<int>(header.fZoneOffset[0]));
+			file.ReadInt32(view_as<int>(header.fZoneOffset[1]));
+		}
 	}
 	else if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_V2))
 	{
@@ -2060,7 +2069,7 @@ File ReadReplayHeader(const char[] path, replay_header_t header, int style, int 
 	return file;
 }
 
-void WriteReplayHeader(File fFile, int style, int track, float time, int steamid, int preframes, int postframes, int iSize)
+void WriteReplayHeader(File fFile, int style, int track, float time, int steamid, int preframes, int postframes, float fZoneOffset[2], int iSize)
 {
 	fFile.WriteLine("%d:" ... REPLAY_FORMAT_FINAL, REPLAY_FORMAT_SUBVERSION);
 
@@ -2075,9 +2084,12 @@ void WriteReplayHeader(File fFile, int style, int track, float time, int steamid
 
 	fFile.WriteInt32(postframes);
 	fFile.WriteInt32(view_as<int>(gF_Tickrate));
+
+	fFile.WriteInt32(view_as<int>(fZoneOffset[0]));
+	fFile.WriteInt32(view_as<int>(fZoneOffset[1]));
 }
 
-void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int iSize, int postframes, int timestamp, bool saveCopy, bool saveReplay, char[] sPath, int sPathLen)
+void SaveReplay(int style, int track, float time, int steamid, char[] name, int preframes, ArrayList playerrecording, int iSize, int postframes, int timestamp, float fZoneOffset[2], bool saveCopy, bool saveReplay, char[] sPath, int sPathLen)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -2101,12 +2113,12 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 
 	if (saveReplay)
 	{
-		WriteReplayHeader(fWR, style, track, time, steamid, preframes, postframes, iSize);
+		WriteReplayHeader(fWR, style, track, time, steamid, preframes, postframes, fZoneOffset, iSize);
 	}
 
 	if (saveCopy)
 	{
-		WriteReplayHeader(fCopy, style, track, time, steamid, preframes, postframes, iSize);
+		WriteReplayHeader(fCopy, style, track, time, steamid, preframes, postframes, fZoneOffset, iSize);
 	}
 
 	any aFrameData[sizeof(frame_t)];
@@ -2643,10 +2655,10 @@ void FinishGrabbingPostFrames(int client, finished_run_info info)
 	gB_GrabbingPostFrames[client] = false;
 	delete gH_PostFramesTimer[client];
 
-	DoReplaySaverCallbacks(info.iSteamID, client, info.style, info.time, info.jumps, info.strafes, info.sync, info.track, info.oldtime, info.perfs, info.avgvel, info.maxvel, info.timestamp);
+	DoReplaySaverCallbacks(info.iSteamID, client, info.style, info.time, info.jumps, info.strafes, info.sync, info.track, info.oldtime, info.perfs, info.avgvel, info.maxvel, info.timestamp, info.fZoneOffset);
 }
 
-void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
+void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, float fZoneOffset[2])
 {
 	bool isTooLong = (gCV_TimeLimit.FloatValue > 0.0 && time > gCV_TimeLimit.FloatValue);
 
@@ -2686,7 +2698,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	int postframes = gI_PlayerFrames[client] - gI_PlayerFinishFrame[client];
 
 	char sPath[PLATFORM_MAX_PATH];
-	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], postframes, timestamp, makeCopy, makeReplay, sPath, sizeof(sPath));
+	SaveReplay(style, track, time, iSteamID, sName, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
 
 	Call_StartForward(gH_OnReplaySaved);
 	Call_PushCell(client);
@@ -2739,6 +2751,10 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	gI_PlayerFinishFrame[client] = gI_PlayerFrames[client];
 
+	float fZoneOffset[2];
+	fZoneOffset[0] = Shavit_GetZoneOffset(client, 0);
+	fZoneOffset[1] = Shavit_GetZoneOffset(client, 1);
+
 	if (gCV_PlaybackPostRunTime.FloatValue > 0.0)
 	{
 		finished_run_info info;
@@ -2754,6 +2770,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		info.avgvel = avgvel;
 		info.maxvel = maxvel;
 		info.timestamp = timestamp;
+		info.fZoneOffset = fZoneOffset;
 
 		gA_FinishedRunInfo[client] = info;
 		gB_GrabbingPostFrames[client] = true;
@@ -2762,7 +2779,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	}
 	else
 	{
-		DoReplaySaverCallbacks(GetSteamAccountID(client), client, style, time, jumps, strafes, sync, track, oldtime, perfs, avgvel, maxvel, timestamp);
+		DoReplaySaverCallbacks(GetSteamAccountID(client), client, style, time, jumps, strafes, sync, track, oldtime, perfs, avgvel, maxvel, timestamp, fZoneOffset);
 	}
 }
 

@@ -184,11 +184,13 @@ enum struct timer_snapshot_t
 	int iTimerTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
-	float fTimeOffset[2];
+	float fZoneOffset[2];
 	float fDistanceOffset[2];
 	float fAvgVelocity;
 	float fMaxVelocity;
 	float fTimescale;
+	int iZoneIncrement;
+	float fTimescaledTicks;
 }
 
 enum struct cp_cache_t
@@ -1481,13 +1483,13 @@ native void Shavit_PauseTimer(int client);
 native void Shavit_ResumeTimer(int client, bool teleport = false);
 
 /**
- * Gets a players time offset given a zone.
+ * Gets a players zone offset.
  *
  * @param client					Client index.
  * @param teleport					Zone type (Zone_Start or Zone_End).
- * @return							Time offset if any for the given zone type.
+ * @return							Zone offset fraction if any for the given zone type.
  */
-native float Shavit_GetTimeOffset(int client, int zonetype);
+native float Shavit_GetZoneOffset(int client, int zonetype);
 
 /**
  * Gets distance of a players distance offset given a zone.
@@ -2489,7 +2491,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetStyleStringsStruct");
 	MarkNativeAsOptional("Shavit_GetSync");
-	MarkNativeAsOptional("Shavit_GetTimeOffset");
+	MarkNativeAsOptional("Shavit_GetZoneOffset");
 	MarkNativeAsOptional("Shavit_GetDistanceOffset");
 	MarkNativeAsOptional("Shavit_GetTimeForRank");
 	MarkNativeAsOptional("Shavit_GetTimerStatus");
