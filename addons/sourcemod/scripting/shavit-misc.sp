@@ -133,6 +133,7 @@ Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
 Convar gCV_RestrictNoclip = null;
 Convar gCV_BotFootsteps = null;
+ConVar gCV_ExperimentalSegmentedEyeAngleFix = null;
 ConVar gCV_PauseMovement = null;
 
 // external cvars
@@ -330,6 +331,7 @@ public void OnPluginStart()
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "1", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 2.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 	gCV_BotFootsteps = new Convar("shavit_misc_botfootsteps", "1", "Enable footstep sounds for replay bots. Only works if shavit_misc_bhopsounds is less than 2.", 0, true, 0.0, true, 1.0);
+	gCV_ExperimentalSegmentedEyeAngleFix = new Convar("shavit_misc_experimental_segmented_eyeangle_fix", "1", "When teleporting to a segmented checkpoint, the player's old eye-angles persist in replay-frames for as many ticks they're behind the server in latency. This applies the teleport-position angles to the replay-frame for that many ticks.", 0, true, 0.0, true, 1.0);
 
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
 	Convar.AutoExecConfig();
@@ -2820,6 +2822,15 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	else
 	{
 		Shavit_SetPracticeMode(client, false, true);
+
+		float latency = GetClientLatency(client, NetFlow_Both);
+
+		if (gCV_ExperimentalSegmentedEyeAngleFix.BoolValue && latency > 0.0)
+		{
+			int ticks = RoundToCeil(latency / GetTickInterval()) + 1;
+			//PrintToChat(client, "%f %f %d", latency, GetTickInterval(), ticks);
+			Shavit_HijackAngles(client, cpcache.fAngles[0], cpcache.fAngles[1], ticks);
+		}
 	}
 
 	SetEntityGravity(client, cpcache.fGravity);

@@ -237,7 +237,7 @@ int gI_LastReplayFlags[MAXPLAYERS + 1];
 
 // how do i call this
 bool gB_HideNameChange = false;
-bool gB_HijackFrame[MAXPLAYERS+1];
+int gI_HijackFrames[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
 
 // plugin cvars
@@ -1234,9 +1234,9 @@ public int Native_HijackAngles(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	gB_HijackFrame[client] = true;
 	gF_HijackedAngles[client][0] = view_as<float>(GetNativeCell(2));
 	gF_HijackedAngles[client][1] = view_as<float>(GetNativeCell(3));
+	gI_HijackFrames[client] = GetNativeCell(4);
 }
 
 public int Native_GetReplayBotStyle(Handle handler, int numParams)
@@ -2222,6 +2222,7 @@ void ForceObserveProp(int client)
 public void OnClientPutInServer(int client)
 {
 	gI_LatestClient = client;
+	gI_HijackFrames[client] = 0;
 
 	if(IsClientSourceTV(client))
 	{
@@ -2562,6 +2563,8 @@ public void OnEntityDestroyed(int entity)
 
 public Action Shavit_OnStart(int client)
 {
+	gI_HijackFrames[client] = 0;
+
 	if (gB_GrabbingPostFrames[client])
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
@@ -2980,10 +2983,9 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	{
 		if((gI_PlayerFrames[client] / gF_Tickrate) > gCV_TimeLimit.FloatValue)
 		{
-			// in case of bad timing
-			if(gB_HijackFrame[client])
+			if (gI_HijackFrames[client])
 			{
-				gB_HijackFrame[client] = false;
+				gI_HijackFrames[client] = 0;
 			}
 
 			return Plugin_Continue;
@@ -3005,7 +3007,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				frame_t aFrame;
 				GetClientAbsOrigin(client, aFrame.pos);
 
-				if(!gB_HijackFrame[client])
+				if (!gI_HijackFrames[client])
 				{
 					float vecEyes[3];
 					GetClientEyeAngles(client, vecEyes);
@@ -3014,9 +3016,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				}
 				else
 				{
-					aFrame.ang[0] = gF_HijackedAngles[client][0];
-					aFrame.ang[1] = gF_HijackedAngles[client][1];
-					gB_HijackFrame[client] = false;
+					aFrame.ang = gF_HijackedAngles[client];
+					--gI_HijackFrames[client];
 				}
 
 				aFrame.buttons = buttons;

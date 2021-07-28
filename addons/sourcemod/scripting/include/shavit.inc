@@ -1691,7 +1691,7 @@ native void Shavit_GetReplayName(int style, int track, char[] buffer, int length
  * @param yaw						Horizontal view angle.
  * @noreturn
  */
-native void Shavit_HijackAngles(int client, float pitch, float yaw);
+native void Shavit_HijackAngles(int client, float pitch, float yaw, int ticks);
 
 /**
  * Checks if there's loaded replay data for a bhop style or not.
