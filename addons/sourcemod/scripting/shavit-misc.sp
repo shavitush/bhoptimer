@@ -351,23 +351,6 @@ public void OnPluginStart()
 		CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
 	}
 
-	// late load
-	if(gB_Late)
-	{
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			if(IsValidClient(i))
-			{
-				OnClientPutInServer(i);
-
-				if(AreClientCookiesCached(i))
-				{
-					OnClientCookiesCached(i);
-				}
-			}
-		}
-	}
-
 	// modules
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_Rankings = LibraryExists("shavit-rankings");
@@ -629,6 +612,20 @@ public void OnMapStart()
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
 		OnAutoConfigsBuffered();
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i))
+			{
+				OnClientPutInServer(i);
+
+				if(AreClientCookiesCached(i))
+				{
+					OnClientCookiesCached(i);
+					Shavit_OnStyleChanged(i, 0, Shavit_GetBhopStyle(i), Shavit_GetClientTrack(i), false);
+				}
+			}
+		}
 	}
 
 	if (!StrEqual(gS_CurrentMap, gS_PreviousMap, false))
