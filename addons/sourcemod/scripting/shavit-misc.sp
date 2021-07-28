@@ -81,7 +81,7 @@ int gI_LastWeaponTick[MAXPLAYERS+1];
 ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
 int gI_TimesTeleported[MAXPLAYERS+1];
-int gB_InCheckpointMenu[MAXPLAYERS+1];
+bool gB_InCheckpointMenu[MAXPLAYERS+1];
 
 int gI_CheckpointsSettings[MAXPLAYERS+1];
 
