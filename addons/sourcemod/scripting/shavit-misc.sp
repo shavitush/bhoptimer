@@ -81,6 +81,7 @@ int gI_LastWeaponTick[MAXPLAYERS+1];
 ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
 int gI_TimesTeleported[MAXPLAYERS+1];
+int gB_InCheckpointMenu[MAXPLAYERS+1];
 
 int gI_CheckpointsSettings[MAXPLAYERS+1];
 
@@ -2113,6 +2114,11 @@ public Action Command_Save(int client, int args)
 	if(SaveCheckpoint(client))
 	{ 
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CurrentCheckpoint[client], gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+		if (gB_InCheckpointMenu[client])
+		{
+			OpenNormalCPMenu(client);
+		}
 	}
 
 	return Plugin_Handled;
@@ -2291,7 +2297,7 @@ void OpenNormalCPMenu(int client)
 		return;
 	}
 
-	Menu menu = new Menu(MenuHandler_Checkpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
+	Menu menu = new Menu(MenuHandler_Checkpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem|MenuAction_Display);
 
 	if(!bSegmented)
 	{
@@ -2451,6 +2457,14 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		Format(sDisplay, 64, "[%s] %s", ((gI_CheckpointsSettings[param1] & StringToInt(sInfo)) > 0)? "x":" ", sDisplay);
 
 		return RedrawMenuItem(sDisplay);
+	}
+	else if (action == MenuAction_Display)
+	{
+		gB_InCheckpointMenu[param1] = true;
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		gB_InCheckpointMenu[param1] = false;
 	}
 	else if(action == MenuAction_End)
 	{
