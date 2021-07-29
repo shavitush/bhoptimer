@@ -2638,7 +2638,7 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 		GetEntPropString(target, Prop_Data, "m_iName", cpcache.sTargetname, 64);
 	}
 
-	if (cpcache.iMoveType == MOVETYPE_NONE)
+	if (cpcache.iMoveType == MOVETYPE_NONE || (cpcache.iMoveType == MOVETYPE_NOCLIP && actually_a_checkpoint))
 	{
 		cpcache.iMoveType = MOVETYPE_WALK;
 	}
