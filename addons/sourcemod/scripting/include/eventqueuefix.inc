@@ -18,7 +18,7 @@ enum struct event_t
 {
 	char target[64];
 	char targetInput[64];
-	char variantValue[64];
+	char variantValue[PLATFORM_MAX_PATH];
 	float delay;
 	int activator;
 	int caller;
