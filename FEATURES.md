@@ -59,6 +59,6 @@ It displays rankings, maps done, maps left, server records, SteamID, country, ma
 #### shavit-timelimit
 Sets a dynamic map time limit according to the average completion time of the map.
 
-#### shavit-wr
+#### shavit-wr (REQUIRED)
 Saves the players' records to the database and allows players to see the server's records.  
 The ability to see records for other maps also exists and can be lazily looked up (!wr map_name, or a part of the map's name).
