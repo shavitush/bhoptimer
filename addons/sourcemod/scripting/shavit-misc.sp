@@ -1949,9 +1949,7 @@ public Action Hook_GunTouch(int entity, int client)
 
 		if (StrEqual(classname, "weapon_glock"))
 		{
-			int owner = GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity");
-
-			if (!IsValidClient(owner) || !IsFakeClient(owner))
+			if (!IsValidClient(client) || !IsFakeClient(client))
 			{
 				SetEntProp(entity, Prop_Send, "m_bBurstMode", 1);
 			}
