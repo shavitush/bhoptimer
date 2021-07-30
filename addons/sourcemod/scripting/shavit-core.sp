@@ -2231,9 +2231,6 @@ public any Native_SetMaxVelocity(Handle plugin, int numParams)
 bool HasStyleSetting(int style, char[] key)
 {
 	char sValue[1];
-	gSM_StyleKeys[style].GetString(key, sValue, 1);
-	
-
 	return gSM_StyleKeys[style].GetString(key, sValue, 1);
 }
 
