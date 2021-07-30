@@ -188,11 +188,10 @@ public void OnPluginStart()
 	// cache
 	gA_ValidMaps = new ArrayList(192);
 
-	// database
-	SQL_DBConnect();
-
 	if(gB_Late)
 	{
+		Shavit_OnDatabaseLoaded();
+
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			if(IsValidClient(i))
@@ -2160,7 +2159,7 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
-void SQL_DBConnect()
+public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle();

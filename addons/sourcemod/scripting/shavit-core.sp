@@ -83,6 +83,8 @@ Handle gH_PhysicsCheckForEntityUntouch;
 // database handle
 Database gH_SQL = null;
 bool gB_MySQL = false;
+int gI_MigrationsRequired;
+int gI_MigrationsFinished;
 
 // forwards
 Handle gH_Forwards_Start = null;
@@ -2915,15 +2917,6 @@ void SQL_DBConnect()
 		gH_SQL.SetCharset("utf8");
 	}
 
-	// migrations will only exist for mysql. sorry sqlite users
-	if(gB_MySQL)
-	{
-		char sQuery[128];
-		FormatEx(sQuery, 128, "CREATE TABLE IF NOT EXISTS `%smigrations` (`code` TINYINT NOT NULL, UNIQUE INDEX `code` (`code`));", gS_MySQLPrefix);
-
-		gH_SQL.Query(SQL_CreateMigrationsTable_Callback, sQuery, 0, DBPrio_High);
-	}
-
 	CreateUsersTable();
 }
 
@@ -2963,9 +2956,16 @@ public void SQL_SelectMigrations_Callback(Database db, DBResultSet results, cons
 	{
 		if(!bMigrationApplied[i])
 		{
+			gI_MigrationsRequired++;
 			PrintToServer("--- Applying database migration %d ---", i);
 			ApplyMigration(i);
 		}
+	}
+
+	if (!gI_MigrationsRequired)
+	{
+		Call_StartForward(gH_Forwards_OnDatabaseLoaded);
+		Call_Finish();
 	}
 }
 
@@ -3255,7 +3255,12 @@ void InsertMigration(int migration)
 
 public void SQL_MigrationApplied_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	// nothing
+	if (++gI_MigrationsFinished >= gI_MigrationsRequired)
+	{
+		gI_MigrationsRequired = gI_MigrationsFinished = 0;
+		Call_StartForward(gH_Forwards_OnDatabaseLoaded);
+		Call_Finish();
+	}
 }
 
 void CreateUsersTable()
@@ -3288,8 +3293,19 @@ public void SQL_CreateUsersTable_Callback(Database db, DBResultSet results, cons
 		return;
 	}
 
-	Call_StartForward(gH_Forwards_OnDatabaseLoaded);
-	Call_Finish();
+	// migrations will only exist for mysql. sorry sqlite users
+	if(gB_MySQL)
+	{
+		char sQuery[128];
+		FormatEx(sQuery, 128, "CREATE TABLE IF NOT EXISTS `%smigrations` (`code` TINYINT NOT NULL, UNIQUE INDEX `code` (`code`));", gS_MySQLPrefix);
+
+		gH_SQL.Query(SQL_CreateMigrationsTable_Callback, sQuery, 0, DBPrio_High);
+	}
+	else
+	{
+		Call_StartForward(gH_Forwards_OnDatabaseLoaded);
+		Call_Finish();
+	}
 }
 
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity)

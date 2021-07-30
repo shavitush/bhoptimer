@@ -187,9 +187,8 @@ public void OnPluginStart()
 	if(gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
+		Shavit_OnDatabaseLoaded();
 	}
-
-	SQL_DBConnect();
 }
 
 public void Shavit_OnChatConfigLoaded()
@@ -218,7 +217,7 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
-void SQL_DBConnect()
+public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle();
@@ -314,7 +313,10 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			OnClientConnected(i);
+			if (IsValidClient(i))
+			{
+				OnClientConnected(i);
+			}
 		}
 	}
 }
@@ -389,6 +391,11 @@ public void OnMapStart()
 
 	GetCurrentMap(gS_Map, 160);
 	GetMapDisplayName(gS_Map, gS_Map, 160);
+
+	if (gH_SQL == null)
+	{
+		return;
+	}
 
 	if (gCV_WRRanks.BoolValue)
 	{
