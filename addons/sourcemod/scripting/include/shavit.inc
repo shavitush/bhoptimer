@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "3.0.0"
+#define SHAVIT_VERSION "3.0.1"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_STAGES 51 // 😐 kind of arbitrary but also some space between this and MAX_ZONES

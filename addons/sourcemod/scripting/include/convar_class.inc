@@ -3,6 +3,7 @@
 #endif
 #define _convar_class_included
 
+//
 // todo: track previous default values 
 
 static ArrayList _ConvarList;
