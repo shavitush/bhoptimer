@@ -3384,7 +3384,7 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 {
 	if(gCV_HideTeamChanges.BoolValue)
 	{
-		if (StrEqual(name, "player_team"))
+		if (StrEqual(name, "player_team") && gEV_Type == Engine_CSGO)
 		{
 			event.SetBool("silent", true);
 		}
