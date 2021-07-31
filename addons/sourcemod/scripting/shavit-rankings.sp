@@ -487,9 +487,14 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 
 public void OnMapEnd()
 {
-	RecalculateAll(gS_Map);
 	gB_TierQueried = false;
 	gB_WRsRefreshed = false;
+
+	// might be null if Shavit_OnDatabaseLoaded hasn't been called yet
+	if (gH_SQL != null)
+	{
+		RecalculateAll(gS_Map);
+	}
 }
 
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
