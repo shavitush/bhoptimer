@@ -1650,7 +1650,7 @@ public Action Command_ReloadZoneSettings(int client, int args)
 bool FindUnzonedMap(char out[PLATFORM_MAX_PATH])
 {
 	StringMap mapList = new StringMap();
-	DirectoryListing dir = OpenDirectory("maps");
+	DirectoryListing dir = OpenDirectory("maps", true);
 
 	if (dir == null)
 	{
