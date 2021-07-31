@@ -72,11 +72,12 @@ public void OnAllPluginsLoaded()
 public void OnPluginStart()
 {
 	// cache
-	gA_FirstSounds = new ArrayList(PLATFORM_MAX_PATH);
-	gA_PersonalSounds = new ArrayList(PLATFORM_MAX_PATH);
-	gA_WorldSounds = new ArrayList(PLATFORM_MAX_PATH);
-	gA_WorstSounds = new ArrayList(PLATFORM_MAX_PATH);
-	gA_NoImprovementSounds = new ArrayList(PLATFORM_MAX_PATH);
+	int cells = ByteCountToCells(PLATFORM_MAX_PATH);
+	gA_FirstSounds = new ArrayList(cells);
+	gA_PersonalSounds = new ArrayList(cells);
+	gA_WorldSounds = new ArrayList(cells);
+	gA_WorstSounds = new ArrayList(cells);
+	gA_NoImprovementSounds = new ArrayList(cells);
 	gSM_RankSounds = new StringMap();
 
 	// modules
