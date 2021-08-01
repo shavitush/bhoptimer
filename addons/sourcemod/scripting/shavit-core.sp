@@ -3888,7 +3888,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
 
-		if(iDifference < 10)
+		if(iDifference <= 10)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
