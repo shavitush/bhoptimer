@@ -480,6 +480,12 @@ public void OnPluginStart()
 	LoadDHooks();
 
 	CreateAllNavFiles();
+
+	if(gB_Late)
+	{
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
+		Shavit_OnChatConfigLoaded();
+	}
 }
 
 void LoadDHooks()
@@ -1569,13 +1575,6 @@ public void OnMapStart()
 	if(!LoadStyling())
 	{
 		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
-	}
-
-	if(gB_Late)
-	{
-		gB_Late = false;
-		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
-		Shavit_OnChatConfigLoaded();
 	}
 
 	GetCurrentMap(gS_Map, 160);

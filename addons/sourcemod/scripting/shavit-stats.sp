@@ -113,7 +113,8 @@ public void OnPluginStart()
 
 	if(gB_Late)
 	{
-		gI_Styles = Shavit_GetStyleCount();
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
+		Shavit_OnChatConfigLoaded();
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -122,16 +123,6 @@ public void OnPluginStart()
 				OnClientPutInServer(i);
 			}
 		}
-	}
-}
-
-public void OnMapStart()
-{
-	if(gB_Late)
-	{
-		gB_Late = false;
-		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
-		Shavit_OnChatConfigLoaded();
 	}
 }
 

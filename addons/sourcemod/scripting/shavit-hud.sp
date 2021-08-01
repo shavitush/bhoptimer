@@ -106,7 +106,6 @@ int gI_Cycle = 0;
 color_t gI_Gradient;
 int gI_GradientDirection = -1;
 int gI_Styles = 0;
-char gS_Map[160];
 
 Handle gH_HUDCookie = null;
 Handle gH_HUDCookieMain = null;
@@ -274,6 +273,9 @@ public void OnPluginStart()
 
 	if(gB_Late)
 	{
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
+		Shavit_OnChatConfigLoaded();
+
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			if(IsValidClient(i))
@@ -286,19 +288,6 @@ public void OnPluginStart()
 				}
 			}
 		}
-	}
-}
-
-public void OnMapStart()
-{
-	GetCurrentMap(gS_Map, 160);
-	GetMapDisplayName(gS_Map, gS_Map, 160);
-
-	if(gB_Late)
-	{
-		gB_Late = false;
-		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
-		Shavit_OnChatConfigLoaded();
 	}
 }
 
@@ -1094,7 +1083,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 	{
 		if(gB_Rankings && (gI_HUD2Settings[client] & HUD2_MAPTIER) == 0)
 		{
-			FormatEx(sLine, 128, "%T", "HudZoneTier", client, Shavit_GetMapTier(gS_Map));
+			FormatEx(sLine, 128, "%T", "HudZoneTier", client, Shavit_GetMapTier());
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
@@ -1304,7 +1293,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			{
 				if(data.iTrack == Track_Main)
 				{
-					FormatEx(sZoneHUD, 32, "%T", "HudZoneTier", client, Shavit_GetMapTier(gS_Map));
+					FormatEx(sZoneHUD, 32, "%T", "HudZoneTier", client, Shavit_GetMapTier());
 				}
 
 				else

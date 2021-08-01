@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "3.0.2"
+#define SHAVIT_VERSION "3.0.3"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_STAGES 51 // 😐 kind of arbitrary but also some space between this and MAX_ZONES
@@ -2137,10 +2137,10 @@ native bool Shavit_IsKZMap();
  * Gets the map tier for a specified map.
  * Use the map's display name.
  *
- * @param map						Map to get the tier of.
+ * @param map						Map to get the tier of. Using "" will get the current map's tier.
  * @return							Map tier. 0 if no results were found.
  */
-native int Shavit_GetMapTier(const char[] map);
+native int Shavit_GetMapTier(const char[] map = "");
 
 /**
  * Gets a StringMap that contains all the cached map tiers.

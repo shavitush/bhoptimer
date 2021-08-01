@@ -58,6 +58,12 @@ enum struct ranking_t
 {
 	int iRank;
 	float fPoints;
+	int iWRAmountAll;
+	int iWRAmountCvar;
+	int iWRHolderRankAll;
+	int iWRHolderRankCvar;
+	int iWRAmount[STYLE_LIMIT*2];
+	int iWRHolderRank[STYLE_LIMIT*2];
 }
 
 char gS_MySQLPrefix[32];
@@ -96,15 +102,9 @@ chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 
 bool gB_WRsRefreshed = false;
-int gI_WRAmount[MAXPLAYERS+1][2][STYLE_LIMIT];
-int gI_WRAmountAll[MAXPLAYERS+1];
-int gI_WRAmountCvar[MAXPLAYERS+1];
 int gI_WRHolders[2][STYLE_LIMIT];
 int gI_WRHoldersAll;
 int gI_WRHoldersCvar;
-int gI_WRHolderRank[MAXPLAYERS+1][2][STYLE_LIMIT];
-int gI_WRHolderRankAll[MAXPLAYERS+1];
-int gI_WRHolderRankCvar[MAXPLAYERS+1];
 
 public Plugin myinfo =
 {
@@ -338,41 +338,19 @@ void RunLongFastQuery(bool &success, const char[] func, const char[] query, any 
 
 public void OnClientConnected(int client)
 {
-	if(IsFakeClient(client))
-	{
-		return;
-	}
-
-	gA_Rankings[client].iRank = 0;
-	gA_Rankings[client].fPoints = 0.0;
-
-	for (int i = 0; i < 2; i++)
-	{
-		for (int j = 0; j < gI_Styles; j++)
-		{
-			gI_WRAmount[client][i][j] = 0;
-			gI_WRHolderRank[client][i][j] = 0;
-		}
-	}
-
-	gI_WRAmountAll[client] = 0;
-	gI_WRAmountCvar[client] = 0;
-	gI_WRHolderRankAll[client] = 0;
-	gI_WRHolderRankCvar[client] = 0;
+	ranking_t empty_ranking;
+	gA_Rankings[client] = empty_ranking;
 }
 
-public void OnClientPutInServer(int client)
-{
-	if (gB_WRsRefreshed)
-	{
-		UpdateWRs(client);
-	}
-}
-
-public void OnClientPostAdminCheck(int client)
+public void OnClientAuthorized(int client)
 {
 	if(!IsFakeClient(client))
 	{
+		if (gB_WRsRefreshed)
+		{
+			UpdateWRs(client);
+		}
+
 		UpdatePlayerRank(client, true);
 	}
 }
@@ -573,22 +551,23 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 
 		if (type == 0)
 		{
-			gI_WRAmount[client][track][style] = wrcount;
-			gI_WRHolderRank[client][track][style] = wrrank;
+			int index = STYLE_LIMIT*track + style;
+			gA_Rankings[client].iWRAmount[index] = wrcount;
+			gA_Rankings[client].iWRHolderRank[index] = wrrank;
 		}
 		else if (type == 1)
 		{
-			gI_WRAmountAll[client] = wrcount;
-			gI_WRHolderRankAll[client] = wrrank;
+			gA_Rankings[client].iWRAmountAll = wrcount;
+			gA_Rankings[client].iWRHolderRankAll = wrcount;
 		}
 		else if (type == 2)
 		{
-			gI_WRAmountCvar[client] = wrcount;
-			gI_WRHolderRankCvar[client] = wrrank;
+			gA_Rankings[client].iWRAmountCvar = wrcount;
+			gA_Rankings[client].iWRHolderRankCvar = wrrank;
 		}
 	}
 
-	if(gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2)
+	if (gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2 && IsValidClient(client))
 	{
 		CS_SetMVPCount(client, Shavit_GetWRCount(client, -1, -1, true));
 	}
@@ -1221,11 +1200,11 @@ public int Native_GetWRCount(Handle handler, int numParams)
 
 	if (usecvars)
 	{
-		return gI_WRAmountCvar[client];
+		return gA_Rankings[client].iWRAmountCvar;
 	}
 	else if (track == -1 && style == -1)
 	{
-		return gI_WRAmountAll[client];
+		return gA_Rankings[client].iWRAmountAll;
 	}
 
 	if (track > Track_Bonus)
@@ -1233,7 +1212,7 @@ public int Native_GetWRCount(Handle handler, int numParams)
 		track = Track_Bonus;
 	}
 
-	return gI_WRAmount[client][track][style];
+	return gA_Rankings[client].iWRAmount[STYLE_LIMIT*track + style];
 }
 
 public int Native_GetWRHolders(Handle handler, int numParams)
@@ -1268,11 +1247,11 @@ public int Native_GetWRHolderRank(Handle handler, int numParams)
 
 	if (usecvars)
 	{
-		return gI_WRHolderRankCvar[client];
+		return gA_Rankings[client].iWRHolderRankCvar;
 	}
 	else if (track == -1 && style == -1)
 	{
-		return gI_WRHolderRankAll[client];
+		return gA_Rankings[client].iWRHolderRankAll;
 	}
 
 	if (track > Track_Bonus)
@@ -1280,22 +1259,21 @@ public int Native_GetWRHolderRank(Handle handler, int numParams)
 		track = Track_Bonus;
 	}
 
-	return gI_WRHolderRank[client][track][style];
+	return gA_Rankings[client].iWRHolderRank[STYLE_LIMIT*track + style];
 }
-
 
 public int Native_GetMapTier(Handle handler, int numParams)
 {
 	int tier = 0;
+	char sMap[PLATFORM_MAX_PATH];
+	GetNativeString(1, sMap, sizeof(sMap));
 
-	char sMap[128];
-	GetNativeString(1, sMap, 128);
-
-	if(!gA_MapTiers.GetValue(sMap, tier))
+	if (!sMap[0])
 	{
-		return 0;
+		return gI_Tier;
 	}
 
+	gA_MapTiers.GetValue(sMap, tier);
 	return tier;
 }
 

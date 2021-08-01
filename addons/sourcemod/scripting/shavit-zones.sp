@@ -96,34 +96,32 @@ enum
 	ZF_ForceRender = (1 << 0)
 };
 
-int gI_ZoneType[MAXPLAYERS+1];
-
 // 0 - nothing
 // 1 - wait for E tap to setup first coord
 // 2 - wait for E tap to setup second coord
 // 3 - confirm
 int gI_MapStep[MAXPLAYERS+1];
-
-float gF_Modifier[MAXPLAYERS+1];
-int gI_GridSnap[MAXPLAYERS+1];
-bool gB_SnapToWall[MAXPLAYERS+1];
-bool gB_CursorTracing[MAXPLAYERS+1];
 int gI_ZoneFlags[MAXPLAYERS+1];
 int gI_ZoneData[MAXPLAYERS+1];
+int gI_ZoneTrack[MAXPLAYERS+1];
+int gI_ZoneType[MAXPLAYERS+1];
+int gI_ZoneDatabaseID[MAXPLAYERS+1];
+int gI_ZoneID[MAXPLAYERS+1];
 bool gB_WaitingForChatInput[MAXPLAYERS+1];
-
-// cache
 float gV_Point1[MAXPLAYERS+1][3];
 float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
 float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
+
+float gF_Modifier[MAXPLAYERS+1];
+int gI_GridSnap[MAXPLAYERS+1];
+bool gB_SnapToWall[MAXPLAYERS+1];
+bool gB_CursorTracing[MAXPLAYERS+1];
+
+// player zone status
 bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 bool gB_InsideZoneID[MAXPLAYERS+1][MAX_ZONES];
-float gF_CustomSpawn[TRACKS_SIZE][3];
-int gI_ZoneTrack[MAXPLAYERS+1];
-int gI_ZoneDatabaseID[MAXPLAYERS+1];
-int gI_ZoneID[MAXPLAYERS+1];
 
 // zone cache
 zone_settings_t gA_ZoneSettings[ZONETYPES_SIZE][TRACKS_SIZE];
@@ -135,8 +133,8 @@ float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
 int gI_StageZoneID[TRACKS_SIZE][MAX_ZONES];
 int gI_HighestStage[TRACKS_SIZE];
+float gF_CustomSpawn[TRACKS_SIZE][3];
 int gI_EntityZone[4096];
-bool gB_ZonesCreated = false;
 int gI_LastStage[MAXPLAYERS+1];
 
 char gS_BeamSprite[PLATFORM_MAX_PATH];
@@ -332,11 +330,15 @@ public void OnPluginStart()
 	{
 		if(IsClientConnected(i) && IsClientInGame(i))
 		{
-			OnClientPutInServer(i);
+			OnClientConnected(i);
 		}
 	}
 
-	SQL_DBConnect();
+	if (gB_Late)
+	{
+		Shavit_OnChatConfigLoaded();
+		Shavit_OnDatabaseLoaded();
+	}
 }
 
 public void OnAllPluginsLoaded()
@@ -799,12 +801,6 @@ public void OnMapStart()
 		gH_DrawEverything = CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 
-	if(gB_Late)
-	{
-		gB_Late = false;
-		Shavit_OnChatConfigLoaded();
-	}
-
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i))
@@ -1033,8 +1029,6 @@ public void Frame_HookTrigger(any data)
 		SDKHook(entity, SDKHook_StartTouchPost, StartTouchPost);
 		SDKHook(entity, SDKHook_EndTouchPost, EndTouchPost);
 		SDKHook(entity, SDKHook_TouchPost, TouchPost);
-
-		gB_ZonesCreated = true;
 	}
 }
 
@@ -1209,36 +1203,26 @@ public void AddZoneToCache(int type, float corner1_x, float corner1_y, float cor
 	gI_MapZones++;
 }
 
-public void OnClientPutInServer(int client)
+public void OnClientConnected(int client)
 {
-	for(int i = 0; i < TRACKS_SIZE; i++)
+	bool empty_InsideZone[TRACKS_SIZE];
+
+	for (int i = 0; i < ZONETYPES_SIZE; i++)
 	{
-		for(int j = 0; j < ZONETYPES_SIZE; j++)
-		{
-			gB_InsideZone[client][j][i] = false;
-		}
-
-		for(int j = 0; j < 3; j++)
-		{
-			gF_ClimbButtonCache[client][i][0][j] = 0.0;
-			gF_ClimbButtonCache[client][i][1][j] = 0.0;
-		}
-
-		gF_StartPos[client][i] = view_as<float>({0.0, 0.0, 0.0});
-		gF_StartAng[client][i] = view_as<float>({0.0, 0.0, 0.0});
-
-		gB_HasSetStart[client][i] = false;
+		gB_InsideZone[client][i] = empty_InsideZone;
 	}
 
-	for(int i = 0; i < MAX_ZONES; i++)
+	bool empty_InsideZoneID[MAX_ZONES];
+	gB_InsideZoneID[client] = empty_InsideZoneID;
+
+	for (int i = 0; i < TRACKS_SIZE; i++)
 	{
-		gB_InsideZoneID[client][i] = false;
+		gF_ClimbButtonCache[client][i][0] = NULL_VECTOR;
+		gF_ClimbButtonCache[client][i][1] = NULL_VECTOR;
 	}
 
-	if (gB_Connected && !IsFakeClient(client))
-	{
-		GetStartPosition(client);
-	}
+	bool empty_HasSetStart[TRACKS_SIZE];
+	gB_HasSetStart[client] = empty_HasSetStart;
 
 	Reset(client);
 
@@ -1246,6 +1230,14 @@ public void OnClientPutInServer(int client)
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
 	gB_CursorTracing[client] = true;
+}
+
+public void OnClientAuthorized(int client)
+{
+	if (gB_Connected && !IsFakeClient(client))
+	{
+		GetStartPosition(client);
+	}
 }
 
 void GetStartPosition(int client)
@@ -1295,7 +1287,6 @@ public void SQL_GetStartPosition_Callback(Database db, DBResultSet results, cons
 
 		gB_StartAnglesOnly[client][track] = results.FetchInt(7) > 0;
 		gB_HasSetStart[client][track] = true;
-
 	}
 }
 
@@ -1310,7 +1301,7 @@ public Action Command_SetStart(int client, int args)
 
 	int track = Shavit_GetClientTrack(client);
 
-	if(!gB_ZonesCreated || !InsideZone(client, Zone_Start, track))
+	if(!InsideZone(client, Zone_Start, track))
 	{
 		Shavit_PrintToChat(client, "%T", "SetStartNotInStartZone", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_ChatStrings.sText);
 		
@@ -2268,13 +2259,10 @@ void Reset(int client)
 	gB_WaitingForChatInput[client] = false;
 	gI_ZoneID[client] = -1;
 
-	for(int i = 0; i < 3; i++)
-	{
-		gV_Point1[client][i] = 0.0;
-		gV_Point2[client][i] = 0.0;
-		gV_Teleport[client][i] = 0.0;
-		gV_WallSnap[client][i] = 0.0;
-	}
+	gV_Point1[client] = NULL_VECTOR;
+	gV_Point2[client] = NULL_VECTOR;
+	gV_Teleport[client] = NULL_VECTOR;
+	gV_WallSnap[client] = NULL_VECTOR;
 }
 
 void ShowPanel(int client, int step)
@@ -3154,7 +3142,7 @@ void CreateZonePoints(float point[8][3], float offset = 0.0)
 	}
 }
 
-void SQL_DBConnect()
+public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle();
@@ -3292,22 +3280,17 @@ public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 		gI_KZButtons[i][1] = -1;
 	}
 
-	gB_ZonesCreated = false;
+	bool empty_InsideZone[TRACKS_SIZE];
 
 	for (int i = 0; i <= MaxClients; i++)
 	{
 		for (int j = 0; j < ZONETYPES_SIZE; j++)
 		{
-			for (int k = 0; k < TRACKS_SIZE; k++)
-			{
-				gB_InsideZone[i][j][k] = false;
-			}
+			gB_InsideZone[i][j] = empty_InsideZone;
 		}
 
-		for (int x = 0; x < MAX_ZONES; x++)
-		{
-			gB_InsideZoneID[i][x] = false;
-		}
+		bool empty_InsideZoneID[MAX_ZONES];
+		gB_InsideZoneID[i] = empty_InsideZoneID;
 	}
 
 	RequestFrame(CreateZoneEntities);
@@ -3407,8 +3390,6 @@ public void CreateZoneEntities()
 		char sTargetname[32];
 		FormatEx(sTargetname, 32, "shavit_zones_%d_%d", gA_ZoneCache[i].iZoneTrack, gA_ZoneCache[i].iZoneType);
 		DispatchKeyValue(entity, "targetname", sTargetname);
-
-		gB_ZonesCreated = true;
 	}
 }
 

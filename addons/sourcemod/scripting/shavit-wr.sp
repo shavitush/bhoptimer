@@ -36,7 +36,6 @@ enum struct wrcache_t
 	int iLastStyle;
 	int iLastTrack;
 	bool bPendingMenu;
-	bool bLoadedCache;
 	char sClientMap[128];
 	float fWRs[STYLE_LIMIT];
 }
@@ -75,6 +74,7 @@ int gI_WRRecordID[STYLE_LIMIT][TRACKS_SIZE];
 int gI_WRSteamID[STYLE_LIMIT][TRACKS_SIZE];
 StringMap gSM_WRNames = null;
 ArrayList gA_Leaderboard[STYLE_LIMIT][TRACKS_SIZE];
+bool gB_LoadedCache[MAXPLAYERS+1];
 float gF_PlayerRecord[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 int gI_PlayerCompletion[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE];
 
@@ -190,13 +190,15 @@ public void OnPluginStart()
 
 	if(gB_Late)
 	{
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
+		Shavit_OnChatConfigLoaded();
 		Shavit_OnDatabaseLoaded();
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			if(IsValidClient(i))
 			{
-				OnClientPutInServer(i);
+				OnClientConnected(i);
 			}
 		}
 	}
@@ -349,10 +351,12 @@ public void OnMapStart()
 	FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateMaps_Callback, sQuery, 0, DBPrio_Low);
 
-	if (gI_Styles == 0)
+	for(int i = 1; i <= MaxClients; i++)
 	{
-		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
-		Shavit_OnChatConfigLoaded();
+		if(IsValidClient(i) && IsClientAuthorized(i))
+		{
+			OnClientAuthorized(i, "");
+		}
 	}
 }
 
@@ -410,27 +414,28 @@ public void Shavit_OnChatConfigLoaded()
 	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
-public void OnClientPutInServer(int client)
+public void OnClientConnected(int client)
 {
-	gA_WRCache[client].bPendingMenu = false;
-	gA_WRCache[client].bLoadedCache = false;
+	wrcache_t empty_cache;
+	gA_WRCache[client] = empty_cache;
+
+	gB_LoadedCache[client] = false;
+
+	any empty_cells[TRACKS_SIZE];
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		gA_WRCache[client].fWRs[i] = 0.0;
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			gF_PlayerRecord[client][i][j] = 0.0;
-			gI_PlayerCompletion[client][i][j] = 0;
-		}
+		gF_PlayerRecord[client][i] = empty_cells;
+		gI_PlayerCompletion[client][i] = empty_cells;
 	}
+}
 
-	if(!IsClientConnected(client) || IsFakeClient(client))
+public void OnClientAuthorized(int client)
+{
+	if (!IsFakeClient(client))
 	{
-		return;
+		UpdateClientCache(client);
 	}
-
-	UpdateClientCache(client);
 }
 
 void UpdateClientCache(int client)
@@ -478,7 +483,7 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 
 	}
 
-	gA_WRCache[client].bLoadedCache = true;
+	gB_LoadedCache[client] = true;
 }
 
 void UpdateWRCache(int client = -1)
@@ -487,12 +492,12 @@ void UpdateWRCache(int client = -1)
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			OnClientPutInServer(i);
+			OnClientConnected(i);
 		}
 	}
 	else
 	{
-		OnClientPutInServer(client);
+		OnClientConnected(client);
 	}
 
 	char sQuery[512];
@@ -598,7 +603,6 @@ public int Native_GetWorldRecord(Handle handler, int numParams)
 
 public int Native_ReloadLeaderboards(Handle handler, int numParams)
 {
-	//UpdateLeaderboards(); // Called by UpdateWRCache->SQL_UpdateWRCache_Callback
 	UpdateWRCache();
 }
 
@@ -2223,7 +2227,7 @@ public void Trans_CreateTable_Error(Database db, any data, int numQueries, const
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
 {
 	// do not risk overwriting the player's data if their PB isn't loaded to cache yet
-	if(!gA_WRCache[client].bLoadedCache)
+	if (!gB_LoadedCache[client])
 	{
 		return;
 	}
@@ -2503,6 +2507,7 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 		return;
 	}
 
+#if 0
 	int client = GetClientFromSerial(data);
 
 	if(client == 0)
@@ -2511,6 +2516,7 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 	}
 
 	UpdateWRCache(client);
+#endif
 }
 
 public void Trans_ReplaceStageTimes_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
