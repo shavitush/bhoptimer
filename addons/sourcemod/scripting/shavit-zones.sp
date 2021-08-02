@@ -1668,6 +1668,7 @@ bool FindUnzonedMap(char out[PLATFORM_MAX_PATH])
 		if (buffer[length-3] == 'b' && buffer[length-2] == 's' && buffer[length-1] == 'p')
 		{
 			buffer[length-4] = 0;
+			LowercaseString(buffer);
 			mapList.SetValue(buffer, false, false); // note: false for 'replace'
 		}
 	}
