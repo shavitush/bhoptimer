@@ -3,7 +3,6 @@
 #endif
 #define _convar_class_included
 
-//
 // todo: track previous default values 
 
 static ArrayList _ConvarList;
@@ -184,6 +183,8 @@ methodmap Convar < ConVar
 			int currentLine = 0;
 			while(!file.EndOfFile() && file.ReadLine(line, 512))
 			{
+				TrimString(line);
+
 				++currentLine;
 				// check if the line contains a valid statement
 				if(line[0] != '/' && line[0] != '\n' && line[0] != 0)
