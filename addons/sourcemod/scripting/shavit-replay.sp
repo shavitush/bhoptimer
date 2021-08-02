@@ -200,6 +200,7 @@ ArrayList gA_PlayerFrames[MAXPLAYERS+1];
 int gI_MenuTrack[MAXPLAYERS+1];
 int gI_MenuStyle[MAXPLAYERS+1];
 int gI_MenuType[MAXPLAYERS+1];
+bool gB_InReplayMenu[MAXPLAYERS+1];
 float gF_LastInteraction[MAXPLAYERS+1];
 float gF_NextFrameTime[MAXPLAYERS+1];
 
@@ -757,7 +758,11 @@ void FinishReplay(bot_info_t info)
 	{
 		gF_LastInteraction[starter] = GetEngineTime();
 		gA_BotInfo[starter].iEnt = -1;
-		OpenReplayMenu(starter); // Refresh menu so Spawn Replay option shows up again...
+
+		if (gB_InReplayMenu[starter])
+		{
+			OpenReplayMenu(starter); // Refresh menu so Spawn Replay option shows up again...
+		}
 	}
 }
 
@@ -3462,7 +3467,7 @@ public Action Command_Replay(int client, int args)
 
 void OpenReplayMenu(int client, bool canControlReplayUiFix=false)
 {
-	Menu menu = new Menu(MenuHandler_Replay);
+	Menu menu = new Menu(MenuHandler_Replay, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem|MenuAction_Display);
 	menu.SetTitle("%T\n ", "Menu_Replay", client);
 
 	char sDisplay[64];
@@ -3555,6 +3560,14 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 
 			OpenReplayMenu(param1);
 		}
+	}
+	else if (action == MenuAction_Display)
+	{
+		gB_InReplayMenu[param1] = true;
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		gB_InReplayMenu[param1] = false;
 	}
 	else if(action == MenuAction_End)
 	{
