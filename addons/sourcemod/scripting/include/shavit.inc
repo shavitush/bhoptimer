@@ -331,6 +331,21 @@ stock bool IsMySQLDatabase(Database db)
 	return StrEqual(sDriver, "mysql", false);
 }
 
+stock void LowercaseString(char[] str)
+{
+	for (int i = 0; str[i] != 0; i++)
+	{
+		str[i] = CharToLower(str[i]);
+	}
+}
+
+stock void GetLowercaseMapName(char sMap[PLATFORM_MAX_PATH])
+{
+	GetCurrentMap(sMap, sizeof(sMap));
+	GetMapDisplayName(sMap, sMap, sizeof(sMap));
+	LowercaseString(sMap);
+}
+
 // retrieves the table prefix defined in configs/shavit-prefix.txt
 stock void GetTimerSQLPrefix(char[] buffer, int maxlen)
 {

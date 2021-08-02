@@ -71,7 +71,7 @@ int gI_GroundEntity[MAXPLAYERS+1];
 int gI_LastShot[MAXPLAYERS+1];
 ArrayList gA_Advertisements = null;
 int gI_AdvertisementsCycle = 0;
-char gS_CurrentMap[192];
+char gS_Map[PLATFORM_MAX_PATH];
 char gS_PreviousMap[PLATFORM_MAX_PATH];
 int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
@@ -562,7 +562,7 @@ void LoadMapFixes()
 
 	KeyValues kv = new KeyValues("shavit-mapfixes");
 	
-	if (kv.ImportFromFile(sPath) && kv.JumpToKey(gS_CurrentMap) && kv.GotoFirstSubKey(false))
+	if (kv.ImportFromFile(sPath) && kv.JumpToKey(gS_Map) && kv.GotoFirstSubKey(false))
 	{
 		do {
 			char key[128];
@@ -603,8 +603,7 @@ public void OnMapStart()
 {
 	gH_IsSpawnPointValid.HookGamerules(Hook_Post, Hook_IsSpawnPointValid);
 
-	GetCurrentMap(gS_CurrentMap, 192);
-	GetMapDisplayName(gS_CurrentMap, gS_CurrentMap, 192);
+	GetLowercaseMapName(gS_Map);
 
 	if (gB_Late)
 	{
@@ -628,7 +627,7 @@ public void OnMapStart()
 		}
 	}
 
-	if (!StrEqual(gS_CurrentMap, gS_PreviousMap, false))
+	if (!StrEqual(gS_Map, gS_PreviousMap, false))
 	{
 		int iLength = gA_PersistentData.Length;
 
@@ -723,7 +722,7 @@ public void OnConfigsExecuted()
 
 public void OnMapEnd()
 {
-	strcopy(gS_PreviousMap, sizeof(gS_PreviousMap), gS_CurrentMap);
+	gS_PreviousMap = gS_Map;
 }
 
 bool LoadAdvertisementsConfig()
@@ -1118,11 +1117,11 @@ public Action Timer_Advertisement(Handle timer)
 			char sName[MAX_NAME_LENGTH];
 			GetClientName(i, sName, MAX_NAME_LENGTH);
 			ReplaceString(sTempMessage, 300, "{name}", sName);
-			ReplaceString(sTempMessage, 300, "{map}", gS_CurrentMap);
 			ReplaceString(sTempMessage, 300, "{timeleft}", sTimeLeft);
 			ReplaceString(sTempMessage, 300, "{timeleftraw}", sTimeLeftRaw);
 			ReplaceString(sTempMessage, 300, "{hostname}", sHostname);
 			ReplaceString(sTempMessage, 300, "{serverip}", sIPAddress);
+			ReplaceString(sTempMessage, 300, "{map}", gS_Map);
 
 			Shavit_PrintToChat(i, "%s", sTempMessage);
 		}

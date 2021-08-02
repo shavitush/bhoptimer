@@ -179,7 +179,7 @@ chatstrings_t gS_ChatStrings;
 bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
-char gS_DeleteMap[MAXPLAYERS+1][160];
+char gS_DeleteMap[MAXPLAYERS+1][PLATFORM_MAX_PATH];
 int gI_WipePlayerID[MAXPLAYERS+1];
 char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
@@ -855,8 +855,8 @@ public Action Command_DeleteMap(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char sArgs[160];
-	GetCmdArgString(sArgs, 160);
+	char sArgs[PLATFORM_MAX_PATH];
+	GetCmdArgString(sArgs, sizeof(sArgs));
 
 	if(StrEqual(sArgs, "confirm") && strlen(gS_DeleteMap[client]) > 0)
 	{
@@ -885,12 +885,12 @@ public Action Command_DeleteMap(int client, int args)
 		}
 
 		ReplyToCommand(client, "Finished deleting data for %s.", gS_DeleteMap[client]);
-		strcopy(gS_DeleteMap[client], 160, "");
+		strcopy(gS_DeleteMap[client], sizeof(sArgs), "");
 	}
 
 	else
 	{
-		strcopy(gS_DeleteMap[client], 160, sArgs);
+		strcopy(gS_DeleteMap[client], sizeof(sArgs), sArgs);
 		ReplyToCommand(client, "Map to delete is now %s.\nRun \"sm_deletemap confirm\" to delete all data regarding the map %s.", gS_DeleteMap[client], gS_DeleteMap[client]);
 	}
 
@@ -3223,11 +3223,11 @@ public void SQL_TableMigrationWorkshop_Callback(Database db, DBResultSet results
 
 	while(results.FetchRow())
 	{
-		char sMap[160];
-		results.FetchString(0, sMap, 160);
+		char sMap[PLATFORM_MAX_PATH];
+		results.FetchString(0, sMap, sizeof(sMap));
 
-		char sDisplayMap[160];
-		GetMapDisplayName(sMap, sDisplayMap, 160);
+		char sDisplayMap[PLATFORM_MAX_PATH];
+		GetMapDisplayName(sMap, sDisplayMap, sizeof(sDisplayMap));
 
 		char sQuery[256];
 		FormatEx(sQuery, 256, "UPDATE %s%s SET map = '%s' WHERE map = '%s';", gS_MySQLPrefix, sTable, sDisplayMap, sMap);

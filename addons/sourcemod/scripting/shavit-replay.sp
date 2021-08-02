@@ -219,7 +219,7 @@ Handle gH_OnReplaySaved = null;
 
 // server specific
 float gF_Tickrate = 0.0;
-char gS_Map[160];
+char gS_Map[PLATFORM_MAX_PATH];
 
 // replay bot stuff
 int gI_CentralBot = -1;
@@ -1577,10 +1577,11 @@ public void OnMapStart()
 		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
 	}
 
-	GetCurrentMap(gS_Map, 160);
+	GetCurrentMap(gS_Map, sizeof(gS_Map));
 	bool bWorkshopWritten = WriteNavMesh(gS_Map); // write "maps/workshop/123123123/bhop_map.nav"
-	GetMapDisplayName(gS_Map, gS_Map, 160);
+	GetMapDisplayName(gS_Map, gS_Map, sizeof(gS_Map));
 	bool bDisplayWritten = WriteNavMesh(gS_Map); // write "maps/bhop_map.nav"
+	LowercaseString(gS_Map);
 
 	// Likely won't run unless this is a workshop map since CreateAllNavFiles() is ran in OnPluginStart()
 	if (bWorkshopWritten || bDisplayWritten)

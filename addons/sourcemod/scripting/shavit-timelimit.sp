@@ -173,9 +173,8 @@ public void OnConfigsExecuted()
 
 void StartCalculating()
 {
-	char sMap[160];
-	GetCurrentMap(sMap, 160);
-	GetMapDisplayName(sMap, sMap, 160);
+	char sMap[PLATFORM_MAX_PATH];
+	GetLowercaseMapName(sMap);
 
 	char sQuery[512];
 	FormatEx(sQuery, 512, "SELECT COUNT(*), SUM(t.time) FROM (SELECT r.time, r.style FROM %splayertimes r WHERE r.map = '%s' AND r.track = 0 %sORDER BY r.time LIMIT %d) t;", gS_MySQLPrefix, sMap, (gCV_Style.BoolValue)? "AND style = 0 ":"", gCV_PlayerAmount.IntValue);

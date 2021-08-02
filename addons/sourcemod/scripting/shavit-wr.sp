@@ -36,7 +36,7 @@ enum struct wrcache_t
 	int iLastStyle;
 	int iLastTrack;
 	bool bPendingMenu;
-	char sClientMap[128];
+	char sClientMap[PLATFORM_MAX_PATH];
 	float fWRs[STYLE_LIMIT];
 }
 
@@ -65,7 +65,7 @@ bool gB_MySQL = false;
 // cache
 wrcache_t gA_WRCache[MAXPLAYERS+1];
 
-char gS_Map[160]; // blame workshop paths being so fucking long
+char gS_Map[PLATFORM_MAX_PATH];
 ArrayList gA_ValidMaps = null;
 
 // current wr stats
@@ -328,24 +328,12 @@ public void OnMapStart()
 		return;
 	}
 
-	GetCurrentMap(gS_Map, 160);
-	GetMapDisplayName(gS_Map, gS_Map, 160);
+	GetLowercaseMapName(gS_Map);
 
 	UpdateWRCache();
 
-	char sLowerCase[160];
-	strcopy(sLowerCase, 160, gS_Map);
-
-	for(int i = 0; i < strlen(sLowerCase); i++)
-	{
-		if(!IsCharUpper(sLowerCase[i]))
-		{
-			sLowerCase[i] = CharToLower(sLowerCase[i]);
-		}
-	}
-
 	gA_ValidMaps.Clear();
-	gA_ValidMaps.PushString(sLowerCase);
+	gA_ValidMaps.PushString(gS_Map);
 
 	char sQuery[128];
 	FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
@@ -447,8 +435,8 @@ void UpdateClientCache(int client)
 		return;
 	}
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT time, style, track, completions, exact_time_int FROM %splayertimes WHERE map = '%s' AND auth = %d;", gS_MySQLPrefix, gS_Map, iSteamID);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT time, style, track, completions, exact_time_int FROM %splayertimes WHERE map = '%s' AND auth = %d;", gS_MySQLPrefix, gS_Map, iSteamID);
 	gH_SQL.Query(SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
@@ -695,11 +683,12 @@ public int Native_GetTimeForRank(Handle handler, int numParams)
 
 public int Native_WR_DeleteMap(Handle handler, int numParams)
 {
-	char sMap[160];
-	GetNativeString(1, sMap, 160);
+	char sMap[PLATFORM_MAX_PATH];
+	GetNativeString(1, sMap, sizeof(sMap));
+	LowercaseString(sMap);
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, sMap);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %splayertimes WHERE map = '%s';", gS_MySQLPrefix, sMap);
 	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 }
 
@@ -852,8 +841,8 @@ public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[
 // debug
 public Action Command_Junk(int client, int args)
 {
-	char sQuery[256];
-	FormatEx(sQuery, 256,
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery),
 		"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync) VALUES (%d, '%s', %f, %d, %d, 0, %d, %.02f);",
 		gS_MySQLPrefix, GetSteamAccountID(client), gS_Map, GetRandomFloat(10.0, 20.0), GetRandomInt(5, 15), GetTime(), GetRandomInt(5, 15), GetRandomFloat(50.0, 99.99));
 
@@ -1136,8 +1125,8 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 		Shavit_LogMessage("%L - deleted all %s track and %s style records from map `%s`.",
 			param1, sTrack, gS_StyleStrings[gA_WRCache[param1].iLastStyle].sStyleName, gS_Map);
 
-		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d;",
+		char sQuery[512];
+		FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %splayertimes WHERE map = '%s' AND style = %d AND track = %d;",
 			gS_MySQLPrefix, gS_Map, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack);
 
 		DataPack hPack = new DataPack();
@@ -1519,13 +1508,13 @@ public Action Command_WorldRecord(int client, int args)
 
 	if(!havemap)
 	{
-		strcopy(gA_WRCache[client].sClientMap, 128, gS_Map);
+		gA_WRCache[client].sClientMap = gS_Map;
 	}
-
 	else
 	{
-		GetCmdArg(1, gA_WRCache[client].sClientMap, 128);
-		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, 128))
+		GetCmdArg(1, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
+
+		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap)))
 		{
 			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
 			return Plugin_Handled;
@@ -2364,14 +2353,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	if(iOverwrite > 0)
 	{
-		char sQuery[512];
+		char sQuery[1024];
 
 		if(iOverwrite == 1) // insert
 		{
 			FormatEx(sMessage, 255, "%s[%s]%s %T",
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
 
-			FormatEx(sQuery, 512,
+			FormatEx(sQuery, sizeof(sQuery),
 				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs, exact_time_int) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f, %d);",
 				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, timestamp, style, strafes, sync, track, perfs, view_as<int>(time));
 		}
@@ -2380,7 +2369,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			FormatEx(sMessage, 255, "%s[%s]%s %T",
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
-			FormatEx(sQuery, 512,
+			FormatEx(sQuery, sizeof(sQuery),
 				"UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f, exact_time_int = %d, completions = completions + 1 WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
 				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, perfs, view_as<int>(time), gS_Map, iSteamID, style, track);
 		}
@@ -2409,8 +2398,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	{
 		if (iOverwrite == 0)
 		{
-			char sQuery[256];
-			FormatEx(sQuery, 256,
+			char sQuery[512];
+			FormatEx(sQuery, sizeof(sQuery),
 				"UPDATE %splayertimes SET completions = completions + 1 WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
 				gS_MySQLPrefix, gS_Map, iSteamID, style, track);
 
@@ -2531,8 +2520,8 @@ public void Trans_ReplaceStageTimes_Error(Database db, any data, int numQueries,
 
 void UpdateLeaderboards()
 {
-	char sQuery[192];
-	FormatEx(sQuery, 192, "SELECT style, track, time, exact_time_int FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT style, track, time, exact_time_int FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery);
 }
 

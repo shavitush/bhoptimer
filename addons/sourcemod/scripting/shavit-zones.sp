@@ -44,7 +44,7 @@ Database gH_SQL = null;
 bool gB_Connected = false;
 bool gB_MySQL = false;
 
-char gS_Map[160];
+char gS_Map[PLATFORM_MAX_PATH];
 
 char gS_ZoneNames[][] =
 {
@@ -555,11 +555,12 @@ public int Native_GetStageCount(Handle handler, int numParas)
 
 public int Native_Zones_DeleteMap(Handle handler, int numParams)
 {
-	char sMap[160];
-	GetNativeString(1, sMap, 160);
+	char sMap[PLATFORM_MAX_PATH];
+	GetNativeString(1, sMap, sizeof(sMap));
+	LowercaseString(sMap);
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, sMap);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, sMap);
 	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 }
 
@@ -775,8 +776,7 @@ public void OnMapStart()
 		return;
 	}
 
-	GetCurrentMap(gS_Map, 160);
-	GetMapDisplayName(gS_Map, gS_Map, 160);
+	GetLowercaseMapName(gS_Map);
 
 	gI_MapZones = 0;
 	UnloadZones(0);
@@ -812,8 +812,8 @@ public void OnMapStart()
 
 public void LoadStageZones()
 {
-	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT id, data, track FROM %smapzones WHERE type = %i and map = '%s'", gS_MySQLPrefix, Zone_Stage, gS_Map);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT id, data, track FROM %smapzones WHERE type = %i and map = '%s'", gS_MySQLPrefix, Zone_Stage, gS_Map);
 	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
 }
 
@@ -1331,9 +1331,9 @@ void SetStart(int client, int track, bool anglesonly)
 
 	GetClientEyeAngles(client, gF_StartAng[client][track]);
 	
-	char query[512];
+	char query[1024];
 	
-	FormatEx(query, 512,
+	FormatEx(query, sizeof(query),
 		"REPLACE INTO %sstartpositions (auth, track, map, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, angles_only) VALUES (%d, %d, '%s', %.03f, %.03f, %.03f, %.03f, %.03f, %.03f, %d);",
 		gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map,
 		gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
@@ -1550,8 +1550,8 @@ public int MenuHandler_DeleteCustomSpawn(Menu menu, MenuAction action, int param
 		gI_ZoneTrack[param1] = iTrack;
 		Shavit_LogMessage("%L - deleted custom spawn from map `%s`.", param1, gS_Map);
 
-		char sQuery[256];
-		FormatEx(sQuery, 256,
+		char sQuery[512];
+		FormatEx(sQuery, sizeof(sQuery),
 			"DELETE FROM %smapzones WHERE type = '%d' AND map = '%s' AND track = %d;",
 			gS_MySQLPrefix, Zone_CustomSpawn, gS_Map, iTrack);
 
@@ -2196,8 +2196,8 @@ public int MenuHandler_DeleteAllZones(Menu menu, MenuAction action, int param1, 
 
 		Shavit_LogMessage("%L - deleted all zones from map `%s`.", param1, gS_Map);
 
-		char sQuery[256];
-		FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+		char sQuery[512];
+		FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
 		gH_SQL.Query(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
 	}
@@ -2842,13 +2842,13 @@ void InsertZone(int client)
 	int iIndex = GetZoneIndex(iType, gI_ZoneTrack[client]);
 	bool bInsert = (gI_ZoneDatabaseID[client] == -1 && (iIndex == -1 || iType >= Zone_Respawn));
 
-	char sQuery[512];
+	char sQuery[1024];
 
 	if(iType == Zone_CustomSpawn)
 	{
 		Shavit_LogMessage("%L - added custom spawn {%.2f, %.2f, %.2f} to map `%s`.", client, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gS_Map);
 
-		FormatEx(sQuery, 512, 
+		FormatEx(sQuery, sizeof(sQuery), 
 			"INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z, track) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', %d);",
 			gS_MySQLPrefix, gS_Map, Zone_CustomSpawn, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gI_ZoneTrack[client]);
 	}
@@ -2857,7 +2857,7 @@ void InsertZone(int client)
 	{
 		Shavit_LogMessage("%L - added %s to map `%s`.", client, gS_ZoneNames[iType], gS_Map);
 
-		FormatEx(sQuery, 512,
+		FormatEx(sQuery, sizeof(sQuery),
 			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, flags, data) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d, %d, %d);",
 			gS_MySQLPrefix, gS_Map, iType, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client]);
 	}
@@ -2877,7 +2877,7 @@ void InsertZone(int client)
 			}
 		}
 
-		FormatEx(sQuery, 512,
+		FormatEx(sQuery, sizeof(sQuery),
 			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d, flags = %d, data = %d WHERE %s = %d;",
 			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}

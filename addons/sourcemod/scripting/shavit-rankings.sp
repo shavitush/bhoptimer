@@ -75,7 +75,7 @@ bool gB_TierQueried = false;
 
 int gI_Tier = 1; // No floating numbers for tiers, sorry.
 
-char gS_Map[160];
+char gS_Map[PLATFORM_MAX_PATH];
 EngineVersion gEV_Type = Engine_Unknown;
 
 ArrayList gA_ValidMaps = null;
@@ -367,8 +367,7 @@ public void OnMapStart()
 	PrintToServer("DEBUG: 1 (OnMapStart)");
 	#endif
 
-	GetCurrentMap(gS_Map, 160);
-	GetMapDisplayName(gS_Map, gS_Map, 160);
+	GetLowercaseMapName(gS_Map);
 
 	if (gH_SQL == null)
 	{
@@ -384,8 +383,8 @@ public void OnMapStart()
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
 	gI_Tier = gCV_DefaultTier.IntValue;
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery);
 
 	gB_TierQueried = true;
@@ -412,7 +411,7 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 		PrintToServer("DEBUG: 3 (tier: %d) (SQL_GetMapTier_Callback)", gI_Tier);
 		#endif
 
-		RecalculateAll(gS_Map);
+		RecalculateAll();
 		UpdateAllPoints();
 
 		#if defined DEBUG
@@ -420,14 +419,13 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 		#endif
 
 		char sQuery[256];
-		FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix, gS_Map);
+		FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix);
 		gH_SQL.Query(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
 	}
-
 	else
 	{
-		char sQuery[256];
-		FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
+		char sQuery[512];
+		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
 		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, gI_Tier, DBPrio_High);
 	}
 }
@@ -471,7 +469,7 @@ public void OnMapEnd()
 	// might be null if Shavit_OnDatabaseLoaded hasn't been called yet
 	if (gH_SQL != null)
 	{
-		RecalculateAll(gS_Map);
+		RecalculateAll();
 	}
 }
 
@@ -577,17 +575,17 @@ public Action Command_Tier(int client, int args)
 {
 	int tier = gI_Tier;
 
-	char sMap[128];
+	char sMap[PLATFORM_MAX_PATH];
 
 	if(args == 0)
 	{
-		strcopy(sMap, 128, gS_Map);
+		sMap = gS_Map;
 	}
-	
 	else
 	{
-		GetCmdArgString(sMap, 128);
-		if(!GuessBestMapName(gA_ValidMaps, sMap, sMap, 128) || !gA_MapTiers.GetValue(sMap, tier))
+		GetCmdArgString(sMap, sizeof(sMap));
+
+		if(!GuessBestMapName(gA_ValidMaps, sMap, sMap, sizeof(sMap)) || !gA_MapTiers.GetValue(sMap, tier))
 		{
 			Shavit_PrintToChat(client, "%t", "Map was not found", sMap);
 			return Plugin_Handled;
@@ -682,8 +680,8 @@ public Action Command_SetTier(int client, int args)
 
 	Shavit_PrintToChat(client, "%T", "SetTier", client, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, tier);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, tier);
 
 	gH_SQL.Query(SQL_SetMapTier_Callback, sQuery);
 
@@ -699,12 +697,12 @@ public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	RecalculateAll(gS_Map);
+	RecalculateAll();
 }
 
 public Action Command_RecalcMap(int client, int args)
 {
-	RecalculateAll(gS_Map);
+	RecalculateAll();
 	UpdateAllPoints(true);
 
 	ReplyToCommand(client, "Done.");
@@ -712,10 +710,9 @@ public Action Command_RecalcMap(int client, int args)
 	return Plugin_Handled;
 }
 
-void FormatRecalculate(const char[] map, int track, int style, char[] sQuery, int sQueryLen)
+void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery, int sQueryLen)
 {
 	char sTrack[30];
-	bool bHaveMap = strlen(map) != 0;
 
 	if (track != -1)
 	{
@@ -729,11 +726,11 @@ void FormatRecalculate(const char[] map, int track, int style, char[] sQuery, in
 		FormatEx(sQuery, sQueryLen,
 			"UPDATE %splayertimes SET points = 0 WHERE style = %d %s %s%s%c %s %s;",
 			gS_MySQLPrefix, style,
-			(bHaveMap || track != -1) ? "AND" : "",
-			(bHaveMap) ? "map = '" : "",
-			(bHaveMap) ? map : "",
-			(bHaveMap) ? '\'' : ' ',
-			(bHaveMap && track != -1) ? "AND" : "",
+			(bUseCurrentMap || track != -1) ? "AND" : "",
+			(bUseCurrentMap) ? "map = '" : "",
+			(bUseCurrentMap) ? gS_Map : "",
+			(bUseCurrentMap) ? '\'' : ' ',
+			(bUseCurrentMap && track != -1) ? "AND" : "",
 			sTrack
 		);
 	}
@@ -749,11 +746,11 @@ void FormatRecalculate(const char[] map, int track, int style, char[] sQuery, in
 			"SET PT.points = GetRecordPoints(PT.style, PT.track, PT.time, PT.map, %.1f, %.3f, WR.time) "...
 			"WHERE PT.style = WR.style and PT.track = WR.track and PT.map = WR.map;",
 			gS_MySQLPrefix, gS_MySQLPrefix, style,
-			(bHaveMap || track != -1) ? "AND" : "",
-			(bHaveMap) ? "map = '" : "",
-			(bHaveMap) ? map : "",
-			(bHaveMap) ? '\'' : ' ',
-			(bHaveMap && track != -1) ? "AND" : "",
+			(bUseCurrentMap || track != -1) ? "AND" : "",
+			(bUseCurrentMap) ? "map = '" : "",
+			(bUseCurrentMap) ? gS_Map : "",
+			(bUseCurrentMap) ? '\'' : ' ',
+			(bUseCurrentMap && track != -1) ? "AND" : "",
 			sTrack,
 			gCV_PointsPerTier.FloatValue, fMultiplier
 		);
@@ -765,7 +762,7 @@ public Action Command_RecalcAll(int client, int args)
 	ReplyToCommand(client, "- Started recalculating points for all maps. Check console for output.");
 
 	Transaction trans = new Transaction();
-	char sQuery[666];
+	char sQuery[1024];
 
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0;", gS_MySQLPrefix);
 	trans.AddQuery(sQuery);
@@ -776,7 +773,7 @@ public Action Command_RecalcAll(int client, int args)
 	{
 		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
 		{
-			FormatRecalculate("", -1, i, sQuery, sizeof(sQuery));
+			FormatRecalculate(false, -1, i, sQuery, sizeof(sQuery));
 			trans.AddQuery(sQuery);
 		}
 	}
@@ -816,40 +813,31 @@ public void Trans_OnRecalcFail(Database db, any data, int numQueries, const char
 	LogError("Timer (rankings) error! Recalculation failed. Reason: %s", error);
 }
 
-void RecalculateAll(const char[] map)
+void RecalculateAll()
 {
 	#if defined DEBUG
 	LogError("DEBUG: 5 (RecalculateAll)");
 	#endif
 
-	char sQuery[666];
+	char sQuery[1024];
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		FormatRecalculate(map, -1, i, sQuery, sizeof(sQuery));
+		FormatRecalculate(true, -1, i, sQuery, sizeof(sQuery));
 		gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
 	}
 }
 
 public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
 {
-	RecalculateMap(gS_Map, track, style);
-}
-
-void RecalculateMap(const char[] map, const int track, const int style)
-{
 	#if defined DEBUG
 	PrintToServer("Recalculating points. (%s, %d, %d)", map, track, style);
 	#endif
 
-	char sQuery[666];
-	FormatRecalculate(map, track, style, sQuery, sizeof(sQuery));
+	char sQuery[1024];
+	FormatRecalculate(true, track, style, sQuery, sizeof(sQuery));
 
 	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, 0, DBPrio_High);
-
-	#if defined DEBUG
-	PrintToServer("Sent query.");
-	#endif
 }
 
 public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -1299,11 +1287,12 @@ public int Native_GetRankedPlayers(Handle handler, int numParams)
 
 public int Native_Rankings_DeleteMap(Handle handler, int numParams)
 {
-	char sMap[160];
-	GetNativeString(1, sMap, 160);
+	char sMap[PLATFORM_MAX_PATH];
+	GetNativeString(1, sMap, sizeof(sMap));
+	LowercaseString(sMap);
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "DELETE FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, sMap);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, sMap);
 	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 }
 

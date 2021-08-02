@@ -603,11 +603,11 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	while(results.FetchRow())
 	{
-		char sMap[192];
-		results.FetchString(0, sMap, 192);
+		char sMap[PLATFORM_MAX_PATH];
+		results.FetchString(0, sMap, sizeof(sMap));
 
-		char sRecordID[192];
-		char sDisplay[256];
+		char sRecordID[PLATFORM_MAX_PATH];
+		char sDisplay[PLATFORM_MAX_PATH];
 
 		if(gI_MapType[client] == MAPSDONE)
 		{
@@ -622,22 +622,18 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 			if(gB_Rankings && points > 0.0)
 			{
-				FormatEx(sDisplay, 192, "[#%d] %s - %s (%.03f %T)", rank, sMap, sTime, points, "MapsPoints", client);
+				FormatEx(sDisplay, sizeof(sDisplay), "[#%d] %s - %s (%.03f %T)", rank, sMap, sTime, points, "MapsPoints", client);
 			}
-
 			else
 			{
-				FormatEx(sDisplay, 192, "[#%d] %s - %s (%d %T)", rank, sMap, sTime, jumps, "MapsJumps", client);
+				FormatEx(sDisplay, sizeof(sDisplay), "[#%d] %s - %s (%d %T)", rank, sMap, sTime, jumps, "MapsJumps", client);
 			}
 
 			int iRecordID = results.FetchInt(3);
-			IntToString(iRecordID, sRecordID, 192);
+			IntToString(iRecordID, sRecordID, sizeof(sRecordID));
 		}
-
 		else
 		{
-			strcopy(sDisplay, 192, sMap);
-
 			if(gB_Rankings)
 			{
 				int iTier = results.FetchInt(1);
@@ -647,10 +643,14 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 					iTier = 1;
 				}
 
-				Format(sDisplay, 192, "%s (Tier %d)", sMap, iTier);
+				FormatEx(sDisplay, sizeof(sDisplay), "%s (Tier %d)", sMap, iTier);
+			}
+			else
+			{
+				sDisplay = sMap;
 			}
 
-			strcopy(sRecordID, 192, sMap);
+			sRecordID = sMap;
 		}
 
 		menu.AddItem(sRecordID, sDisplay);
@@ -671,8 +671,8 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char sInfo[192];
-		menu.GetItem(param2, sInfo, 192);
+		char sInfo[PLATFORM_MAX_PATH];
+		menu.GetItem(param2, sInfo, sizeof(sInfo));
 
 		if(StrEqual(sInfo, "nope"))
 		{
@@ -728,7 +728,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	char sName[MAX_NAME_LENGTH];
 	int iSteamID = 0;
-	char sMap[192];
+	char sMap[PLATFORM_MAX_PATH];
 
 	if(results.FetchRow())
 	{
@@ -758,13 +758,13 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		iSteamID = results.FetchInt(4);
 
 		// 6 - map
-		results.FetchString(6, sMap, 192);
+		results.FetchString(6, sMap, sizeof(sMap));
 
 		float points = results.FetchFloat(9);
 
 		if(gB_Rankings && points > 0.0)
 		{
-			FormatEx(sDisplay, 192, "%T: %.03f", "Points", client, points);
+			FormatEx(sDisplay, 128, "%T: %.03f", "Points", client, points);
 			hMenu.AddItem("-1", sDisplay);
 		}
 
