@@ -813,8 +813,8 @@ bool UnloadReplay(int style, int track, bool reload, bool restart, const char[] 
 
 public int Native_DeleteReplay(Handle handler, int numParams)
 {
-	char sMap[160];
-	GetNativeString(1, sMap, 160);
+	char sMap[PLATFORM_MAX_PATH];
+	GetNativeString(1, sMap, sizeof(sMap));
 
 	int iStyle = GetNativeCell(2);
 	int iTrack = GetNativeCell(3);
@@ -1294,8 +1294,8 @@ public int Native_GetReplayButtons(Handle handler, int numParams)
 
 public int Native_Replay_DeleteMap(Handle handler, int numParams)
 {
-	char sMap[160];
-	GetNativeString(1, sMap, 160);
+	char sMap[PLATFORM_MAX_PATH];
+	GetNativeString(1, sMap, sizeof(sMap));
 
 	for(int i = 0; i < gI_Styles; i++)
 	{

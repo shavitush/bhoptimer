@@ -186,7 +186,7 @@ public void OnPluginStart()
 	gB_Stats = LibraryExists("shavit-stats");
 
 	// cache
-	gA_ValidMaps = new ArrayList(192);
+	gA_ValidMaps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 
 	if(gB_Late)
 	{
@@ -359,23 +359,13 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 
 	while(results.FetchRow())
 	{
-		char sMap[192];
-		results.FetchString(0, sMap, 192);
+		char sMap[PLATFORM_MAX_PATH];
+		results.FetchString(0, sMap, sizeof(sMap));
+		LowercaseString(sMap);
 
-		char sLowerCase[128];
-		strcopy(sLowerCase, 128, sMap);
-
-		for(int i = 0; i < strlen(sLowerCase); i++)
+		if(gA_ValidMaps.FindString(sMap) == -1)
 		{
-			if(!IsCharUpper(sLowerCase[i]))
-			{
-				sLowerCase[i] = CharToLower(sLowerCase[i]);
-			}
-		}
-
-		if(gA_ValidMaps.FindString(sLowerCase) == -1)
-		{
-			gA_ValidMaps.PushString(sLowerCase);
+			gA_ValidMaps.PushString(sMap);
 		}
 	}
 
@@ -1346,8 +1336,8 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		char sName[MAX_NAME_LENGTH];
 		results.FetchString(1, sName, MAX_NAME_LENGTH);
 
-		char sMap[160];
-		results.FetchString(2, sMap, 160);
+		char sMap[PLATFORM_MAX_PATH];
+		results.FetchString(2, sMap, sizeof(sMap));
 
 		float fTime = results.FetchFloat(3);
 		float fSync = results.FetchFloat(4);
@@ -1399,8 +1389,8 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 	char sName[MAX_NAME_LENGTH];
 	hPack.ReadString(sName, MAX_NAME_LENGTH);
 
-	char sMap[160];
-	hPack.ReadString(sMap, 160);
+	char sMap[PLATFORM_MAX_PATH];
+	hPack.ReadString(sMap, sizeof(sMap));
 
 	float fTime = view_as<float>(hPack.ReadCell());
 	float fSync = view_as<float>(hPack.ReadCell());
@@ -1501,7 +1491,6 @@ public Action Command_WorldRecord(int client, int args)
 			track = Track_Bonus;
 		}
 	}
-
 	else
 	{
 		havemap = (args >= 1);
@@ -1691,8 +1680,8 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 	int serial = data.ReadCell();
 	int track = data.ReadCell();
 
-	char sMap[192];
-	data.ReadString(sMap, 192);
+	char sMap[PLATFORM_MAX_PATH];
+	data.ReadString(sMap, sizeof(sMap));
 
 	delete data;
 
@@ -1867,9 +1856,8 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 
 	while(results.FetchRow())
 	{
-		char sMap[192];
-		results.FetchString(1, sMap, 192);
-
+		char sMap[PLATFORM_MAX_PATH];
+		results.FetchString(1, sMap, sizeof(sMap));
 
 		char sName[MAX_NAME_LENGTH];
 		results.FetchString(2, sName, 10);
@@ -1987,7 +1975,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	char sName[MAX_NAME_LENGTH];
 	int iSteamID = 0;
 	char sTrack[32];
-	char sMap[192];
+	char sMap[PLATFORM_MAX_PATH];
 
 	for (int i = 0; i < gI_Styles; i++)
 	{
@@ -2030,8 +2018,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[iStyle].sStyleName);
 		hMenu.AddItem("-1", sDisplay);
 
-		results.FetchString(6, sMap, 192);
-
+		results.FetchString(6, sMap, sizeof(sMap));
 
 		float fPoints = results.FetchFloat(10);
 

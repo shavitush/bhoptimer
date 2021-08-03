@@ -181,7 +181,7 @@ public void OnPluginStart()
 	HookEvent("player_team", Player_Event);
 
 	// tier cache
-	gA_ValidMaps = new ArrayList(128);
+	gA_ValidMaps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	gA_MapTiers = new StringMap();
 
 	if(gB_Late)
@@ -444,8 +444,8 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 
 	while(results.FetchRow())
 	{
-		char sMap[160];
-		results.FetchString(0, sMap, 160);
+		char sMap[PLATFORM_MAX_PATH];
+		results.FetchString(0, sMap, sizeof(sMap));
 
 		int tier = results.FetchInt(1);
 
