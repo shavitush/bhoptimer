@@ -1480,7 +1480,6 @@ void UpdateMainHUD(int client)
 		{
 			iZoneHUD = ZoneHUD_Start;
 		}
-		
 		else if(Shavit_InsideZone(target, Zone_End, -1))
 		{
 			iZoneHUD = ZoneHUD_End;
@@ -1496,12 +1495,7 @@ void UpdateMainHUD(int client)
 			fReplayTime = Shavit_GetReplayTime(target);
 			fReplayLength = Shavit_GetReplayLength(iReplayStyle, iReplayTrack);
 
-			float fSpeed2 = Shavit_GetStyleSettingFloat(iReplayStyle, "speed");
-
-			if(fSpeed2 != 1.0)
-			{
-				fSpeedHUD /= fSpeed2;
-			}
+			fSpeedHUD /= Shavit_GetStyleSettingFloat(iReplayStyle, "speed") * Shavit_GetStyleSettingFloat(iReplayStyle, "timescale");
 		}
 	}
 

@@ -4214,7 +4214,7 @@ float GetClosestReplayTime(int client)
 
 	float replayVel[3];
 	MakeVectorFromPoints(fReplayClosestPos, fReplayPrevPos, replayVel);
-	ScaleVector(replayVel, gF_Tickrate);
+	ScaleVector(replayVel, gF_Tickrate / Shavit_GetStyleSettingFloat(style, "speed") / Shavit_GetStyleSettingFloat(style, "timescale"));
 
 	gF_VelocityDifference2D[client] = (SquareRoot(Pow(clientVel[0], 2.0) + Pow(clientVel[1], 2.0))) - (SquareRoot(Pow(replayVel[0], 2.0) + Pow(replayVel[1], 2.0)));
 	gF_VelocityDifference3D[client] = GetVectorLength(clientVel) - GetVectorLength(replayVel);
