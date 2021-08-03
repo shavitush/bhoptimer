@@ -520,14 +520,13 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		return;
 	}
 
+	gSM_WRNames.Clear();
+
 	// reset cache
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			gSM_WRNames.Clear();
-			gF_WRTime[i][j] = 0.0;
-		}
+		float empty_times[TRACKS_SIZE];
+		gF_WRTime[i] = empty_times;
 	}
 
 	// setup cache again, dynamically and not hardcoded
@@ -566,14 +565,13 @@ public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, co
 		return;
 	}
 
+	float empty_times[MAX_STAGES];
+
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			for(int k = 0; k < MAX_STAGES; k++) // 🤮
-			{
-				gA_StageWR[i][j][k] = 0.0;
-			}
+			gA_StageWR[i][j] = empty_times;
 		}
 	}
 
@@ -2604,10 +2602,8 @@ public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message,
 
 public Action Shavit_OnStart(int client, int track)
 {
-	for (int i = 0; i < MAX_STAGES; i++)
-	{
-		gA_StageTimes[client][i] = 0.0;
-	}
+	float empty_times[MAX_STAGES];
+	gA_StageTimes[client] = empty_times;
 
 	return Plugin_Continue;
 }
