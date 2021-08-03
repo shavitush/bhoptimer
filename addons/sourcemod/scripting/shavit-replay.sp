@@ -2303,6 +2303,8 @@ void FormatStyle(const char[] source, int style, bool central, int track, char d
 	{
 		FormatSeconds(0.0, sTime, 16);
 		sName = "you should never see this";
+		ReplaceString(temp, sizeof(temp), "{style}", "");
+		ReplaceString(temp, sizeof(temp), "{styletag}", "");
 	}
 	else
 	{
