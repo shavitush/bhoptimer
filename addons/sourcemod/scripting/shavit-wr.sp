@@ -480,12 +480,15 @@ void UpdateWRCache(int client = -1)
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			OnClientConnected(i);
+			if (IsValidClient(i) && !IsFakeClient(i))
+			{
+				UpdateClientCache(i);
+			}
 		}
 	}
 	else
 	{
-		OnClientConnected(client);
+		UpdateClientCache(client);
 	}
 
 	char sQuery[512];
@@ -2496,7 +2499,6 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 		return;
 	}
 
-#if 0
 	int client = GetClientFromSerial(data);
 
 	if(client == 0)
@@ -2505,7 +2507,6 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 	}
 
 	UpdateWRCache(client);
-#endif
 }
 
 public void Trans_ReplaceStageTimes_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
