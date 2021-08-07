@@ -1465,20 +1465,14 @@ int FindPersistentData(int client, persistent_data_t aData)
 {
 	int iSteamID;
 
-	if(client == 0 || (iSteamID = GetSteamAccountID(client)) == 0)
+	if((iSteamID = GetSteamAccountID(client)) != 0)
 	{
-		return -1;
-	}
+		int index = gA_PersistentData.FindValue(iSteamID, 0);
 
-	for(int i = 0; i < gA_PersistentData.Length; i++)
-	{
-		persistent_data_t temp;
-		gA_PersistentData.GetArray(i, temp);
-
-		if(iSteamID == temp.iSteamID)
+		if (index != -1)
 		{
-			aData = temp;
-			return i;
+			gA_PersistentData.GetArray(index, aData);
+			return index;
 		}
 	}
 
