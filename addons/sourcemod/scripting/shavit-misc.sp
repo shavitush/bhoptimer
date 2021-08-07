@@ -257,7 +257,7 @@ public void OnPluginStart()
 	AddCommandListener(CommandListener_Noclip, "+noclip");
 	AddCommandListener(CommandListener_Noclip, "-noclip");
 	// Hijack sourcemod's sm_noclip from funcommands to work when no args are specified.
-	AddCommandListener(CommandListener_Sourcemod_Noclip, "sm_noclip");
+	AddCommandListener(CommandListener_funcommands_Noclip, "sm_noclip");
 
 	// hook teamjoins
 	AddCommandListener(Command_Jointeam, "jointeam");
@@ -847,7 +847,7 @@ public Action Command_Spectate(int client, const char[] command, int args)
 		return Plugin_Continue;
 	}
 
-	CleanSwitchTeam(client, 1, false);
+	CleanSwitchTeam(client, 1);
 	return Plugin_Handled;
 }
 
@@ -874,44 +874,14 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		iTeam = iHumanTeam;
 	}
 
-	bool bRespawn = false;
-
-	switch(iTeam)
+	if (iTeam < 1 || iTeam > 3)
 	{
-		case 2:
-		{
-			// if T spawns are available in the map
-			if(gEV_Type == Engine_TF2 || FindEntityByClassname(-1, "info_player_terrorist") != -1)
-			{
-				bRespawn = true;
-				CleanSwitchTeam(client, 2, true);
-			}
-		}
-
-		case 3:
-		{
-			// if CT spawns are available in the map
-			if(gEV_Type == Engine_TF2 || FindEntityByClassname(-1, "info_player_counterterrorist") != -1)
-			{
-				bRespawn = true;
-				CleanSwitchTeam(client, 3, true);
-			}
-		}
-
-		// if they chose to spectate, i'll force them to join the spectators
-		case 1:
-		{
-			CleanSwitchTeam(client, 1, false);
-		}
-
-		default:
-		{
-			bRespawn = true;
-			CleanSwitchTeam(client, GetRandomInt(2, 3), true);
-		}
+		iTeam = GetRandomInt(2, 3);
 	}
 
-	if(gCV_RespawnOnTeam.BoolValue && bRespawn)
+	CleanSwitchTeam(client, iTeam);
+
+	if(gCV_RespawnOnTeam.BoolValue && iTeam != 1)
 	{
 		if(gEV_Type == Engine_TF2)
 		{
@@ -929,7 +899,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
-void CleanSwitchTeam(int client, int team, bool change = false)
+void CleanSwitchTeam(int client, int team)
 {
 	if (gEV_Type == Engine_CSGO && GetClientTeam(client) == team)
 	{
@@ -946,7 +916,7 @@ void CleanSwitchTeam(int client, int team, bool change = false)
 	{
 		TF2_ChangeClientTeam(client, view_as<TFTeam>(team));
 	}
-	else if(change)
+	else if(team != 1)
 	{
 		CS_SwitchTeam(client, team);
 	}
@@ -1777,7 +1747,7 @@ public Action Command_Spec(int client, int args)
 		return Plugin_Handled;
 	}
 
-	CleanSwitchTeam(client, 1, false);
+	CleanSwitchTeam(client, 1);
 
 	int target = -1;
 
@@ -3051,7 +3021,7 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 	return Plugin_Handled;
 }
 
-public Action CommandListener_Sourcemod_Noclip(int client, const char[] command, int args)
+public Action CommandListener_funcommands_Noclip(int client, const char[] command, int args)
 {
 	if (IsValidClient(client, true) && args < 1)
 	{
