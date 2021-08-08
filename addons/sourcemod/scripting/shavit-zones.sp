@@ -3112,10 +3112,10 @@ public Action Timer_Draw(Handle Timer, any data)
 		for(int i = 0; i < 3; i++)
 		{
 			snap1 = origin;
-			snap1[i] -= (gI_GridSnap[client] / 2);
+			snap1[i] -= gI_GridSnap[client];
 
 			snap2 = origin;
-			snap2[i] += (gI_GridSnap[client] / 2);
+			snap2[i] += gI_GridSnap[client];
 
 			TE_SetupBeamPoints(snap1, snap2, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, 0, 0, 0.1, 1.0, 1.0, 0, 0.0, {255, 255, 255, 75}, 0);
 			TE_SendToAll(0.0);
