@@ -1263,6 +1263,16 @@ public void Shavit_OnStop(int client, int track)
 	}
 }
 
+// This is used instead of `TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed)`.
+// Why: TeleportEntity somehow triggers the zone EndTouch which fucks with `Shavit_InsideZone`.
+void DumbSetVelocity(int client, float fSpeed[3])
+{
+	// Someone please let me know if any of these are unnecessary.
+	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", NULL_VECTOR);
+	SetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+	SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed); // m_vecBaseVelocity+m_vecVelocity
+}
+
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
@@ -1282,7 +1292,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 				float fSpeed[3];
 				GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 				fSpeed[2] = 0.0;
-				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+				DumbSetVelocity(client, fSpeed);
 			}
 			else if(gCV_RestrictNoclip.IntValue == 2)
 			{
@@ -1299,7 +1309,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		int iPrevGroundEntity = (gI_GroundEntity[client] != -1) ? EntRefToEntIndex(gI_GroundEntity[client]) : -1;
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && iPrevGroundEntity == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
 			Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		}
 		else if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue >= 3)
@@ -1335,7 +1345,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 				}
 			}
 
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed);
+			DumbSetVelocity(client, fSpeed);
 		}
 	}
 
