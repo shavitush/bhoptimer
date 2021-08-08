@@ -2470,6 +2470,70 @@ public bool TraceFilter_World(int entity, int contentsMask)
 	return (entity == 0);
 }
 
+void FillBoxMinMax(float point1[3], float point2[3], float boxmin[3], float boxmax[3])
+{
+	for (int i = 0; i < 3; i++)
+	{
+		if (point1[i] < point2[i])
+		{
+			boxmin[i] = point1[i];
+			boxmax[i] = point2[i];
+		}
+		else
+		{
+			boxmin[i] = point2[i];
+			boxmax[i] = point1[i];
+		}
+	}
+}
+
+bool BoxesTouching(float point1[3], float point2[3], float box[8][3])
+{
+	float amin[3], amax[3], bmin[3], bmax[3];
+	FillBoxMinMax(point1, point2, amin, amax);
+	FillBoxMinMax(box[0], box[7], bmin, bmax);
+	return (amin[0] <= bmax[0] && amax[0] >= bmin[0]) &&
+	       (amin[1] <= bmax[1] && amax[1] >= bmin[1]) &&
+	       (amin[2] <= bmax[2] && amax[2] >= bmin[2]);
+}
+
+bool PointInBox(float point[3], float box[8][3])
+{
+	return (box[0][0] <= point[0] <= box[7][0]) &&
+	       (box[0][1] <= point[1] <= box[7][1]) &&
+	       (box[0][2] <= point[2] <= box[7][2]);
+}
+
+bool IsThingInAnyZone(float point1[3], float point2[3], int track, int type)
+{
+	bool box = !IsNullVector(point2);
+
+	for (int i = 0; i < MAX_ZONES; i++)
+	{
+		if (!gA_ZoneCache[i].bZoneInitialized || (gA_ZoneCache[i].iZoneTrack == track && gA_ZoneCache[i].iZoneType == type))
+		{
+			continue;
+		}
+
+		if (box)
+		{
+			if (BoxesTouching(point1, point2, gV_MapZones_Visual[i]))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			if (PointInBox(point1, gV_MapZones_Visual[i]))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	if(gI_MapStep[client] > 0 && gI_MapStep[client] != 3)
@@ -2504,22 +2568,21 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 				if(gI_MapStep[client] == 1)
 				{
-					gV_Point1[client] = origin;
-					gV_Point1[client][2] += 1.0;
+					origin[2] += 1.0;
 
-					ShowPanel(client, 2);
+					if (!IsThingInAnyZone(origin, NULL_VECTOR, gI_ZoneTrack[client], gI_ZoneType[client]))
+					{
+						gV_Point1[client] = origin;
+						ShowPanel(client, 2);
+					}
 				}
 				else if(gI_MapStep[client] == 2)
 				{
-					if (origin[0] == gV_Point1[client][0] || origin[1] == gV_Point1[client][1])
-					{
-						ShowPanel(client, 2);
-					}
-					else
-					{
-						origin[2] += gCV_Height.FloatValue;
-						gV_Point2[client] = origin;
+					origin[2] += gCV_Height.FloatValue;
 
+					if (!(origin[0] == gV_Point1[client][0] || origin[1] == gV_Point1[client][1] || IsThingInAnyZone(gV_Point1[client], origin, gI_ZoneTrack[client], gI_ZoneType[client])))
+					{
+						gV_Point2[client] = origin;
 						gI_MapStep[client]++;
 
 						CreateEditMenu(client);
