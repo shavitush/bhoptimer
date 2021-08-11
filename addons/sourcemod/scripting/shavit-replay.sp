@@ -110,6 +110,7 @@ enum struct bot_info_t
 	bool bCustomFrames;
 	bool bIgnoreLimit;
 	bool b2x;
+	float fDelay;
 	frame_cache_t aCache;
 }
 
@@ -884,6 +885,7 @@ void StartReplay(bot_info_t info, int track, int style, int starter, float delay
 	info.iStarterSerial = (starter > 0) ? GetClientSerial(starter) : 0;
 	info.iTick = 0;
 	//info.iLoopingConfig
+	info.fDelay = delay;
 	info.hTimer = CreateTimer((delay / 2.0), Timer_StartReplay, info.iEnt, TIMER_FLAG_NO_MAPCHANGE);
 
 	if (!info.bCustomFrames)
@@ -971,6 +973,7 @@ int CreateReplayEntity(int track, int style, float delay, int client, int bot, i
 			info.iStarterSerial = (client > 0) ? GetClientSerial(client) : 0;
 			info.bIgnoreLimit = ignorelimit;
 			info.iLoopingConfig = loopingConfig;
+			info.fDelay = delay;
 			SetupIfCustomFrames(info, cache);
 			bot = CreateReplayBot(info);
 
@@ -1762,7 +1765,7 @@ int CreateReplayBot(bot_info_t info)
 	}
 	else
 	{
-		StartReplay(gA_BotInfo[bot], gA_BotInfo[bot].iTrack, gA_BotInfo[bot].iStyle, GetClientFromSerial(info.iStarterSerial), gCV_ReplayDelay.FloatValue);
+		StartReplay(gA_BotInfo[bot], gA_BotInfo[bot].iTrack, gA_BotInfo[bot].iStyle, GetClientFromSerial(info.iStarterSerial), info.fDelay);
 	}
 
 	gA_BotInfo[GetClientFromSerial(info.iStarterSerial)].iEnt = bot;
@@ -2860,7 +2863,7 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			if(info.iTick >= (info.aCache.iFrameCount + info.aCache.iPostFrames + info.aCache.iPreFrames))
 			{
 				info.iStatus = Replay_End;
-				info.hTimer = CreateTimer((gCV_ReplayDelay.FloatValue / 2.0), Timer_EndReplay, info.iEnt, TIMER_FLAG_NO_MAPCHANGE);
+				info.hTimer = CreateTimer((info.fDelay / 2.0), Timer_EndReplay, info.iEnt, TIMER_FLAG_NO_MAPCHANGE);
 
 				return Plugin_Changed;
 			}
@@ -3884,6 +3887,7 @@ void ClearBotInfo(bot_info_t info)
 	info.bCustomFrames = false;
 	//info.bIgnoreLimit
 	info.b2x = false;
+	info.fDelay = 0.0;
 
 	ClearFrameCache(info.aCache);
 }

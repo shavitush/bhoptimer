@@ -1493,7 +1493,7 @@ void UpdateMainHUD(int client)
 		if(iReplayStyle != -1)
 		{
 			fReplayTime = Shavit_GetReplayTime(target);
-			fReplayLength = Shavit_GetReplayLength(iReplayStyle, iReplayTrack);
+			fReplayLength = Shavit_GetReplayCacheLength(target);
 
 			fSpeedHUD /= Shavit_GetStyleSettingFloat(iReplayStyle, "speed") * Shavit_GetStyleSettingFloat(iReplayStyle, "timescale");
 		}

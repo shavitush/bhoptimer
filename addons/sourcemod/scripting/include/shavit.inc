@@ -23,7 +23,7 @@
 #endif
 #define _shavit_included
 
-#define SHAVIT_VERSION "3.0.4"
+#define SHAVIT_VERSION "3.0.5"
 #define STYLE_LIMIT 256
 #define MAX_ZONES 64
 #define MAX_STAGES 51 // 😐 kind of arbitrary but also some space between this and MAX_ZONES
@@ -2035,7 +2035,7 @@ native bool Shavit_IsReplayEntity(int ent);
  * @param ignorelimit				Ignore cvar limit for dynamic bots.
  * @return							Replay entity. 0 is returned if couldn't be created.
  */
-native int Shavit_StartReplay(int style, int track, float delay, int client, int bot, int type, bool ignorelimit = false);
+native int Shavit_StartReplay(int style, int track, float delay, int client, int bot, int type, bool ignorelimit);
 
 /**
  * Starts a replay with a given set of frames.
@@ -2052,7 +2052,7 @@ native int Shavit_StartReplay(int style, int track, float delay, int client, int
  * @param size						sizeof(frame_cache_t). Used to throw errors at you if you don't recompile plugins.
  * @return							Replay entity. 0 is returned if couldn't be created.
  */
-native int Shavit_StartReplayFromFrameCache(int style, int track, float delay, int client, int bot, int type, bool ignorelimit = false, any[] cache, int size = sizeof(frame_cache_t));
+native int Shavit_StartReplayFromFrameCache(int style, int track, float delay, int client, int bot, int type, bool ignorelimit, any[] cache, int size = sizeof(frame_cache_t));
 
 /**
  * Starts a replay from a replay file.
@@ -2068,7 +2068,7 @@ native int Shavit_StartReplayFromFrameCache(int style, int track, float delay, i
  * @param path						File path to replay
  * @return							Replay entity. 0 is returned if couldn't be created.
  */
-native int Shavit_StartReplayFromFile(int style, int track, float delay, int client, int bot, int type, bool ignorelimit = false, const char[] path);
+native int Shavit_StartReplayFromFile(int style, int track, float delay, int client, int bot, int type, bool ignorelimit, const char[] path);
 
 /**
  * Reloads a specific replay into the replay bot cache.
