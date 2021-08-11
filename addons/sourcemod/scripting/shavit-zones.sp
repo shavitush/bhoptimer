@@ -2474,39 +2474,34 @@ void FillBoxMinMax(float point1[3], float point2[3], float boxmin[3], float boxm
 {
 	for (int i = 0; i < 3; i++)
 	{
-		if (point1[i] < point2[i])
-		{
-			boxmin[i] = point1[i];
-			boxmax[i] = point2[i];
-		}
-		else
-		{
-			boxmin[i] = point2[i];
-			boxmax[i] = point1[i];
-		}
+		boxmin[i] = (point1[i] < point2[i]) ? point1[i] : point2[i];
+		boxmax[i] = (point1[i] < point2[i]) ? point2[i] : point1[i];
 	}
 }
 
-bool BoxesTouching(float point1[3], float point2[3], float box[8][3])
+bool BoxesIntersect(float amin[3], float amax[3], float bmin[3], float bmax[3])
 {
-	float amin[3], amax[3], bmin[3], bmax[3];
-	FillBoxMinMax(point1, point2, amin, amax);
-	FillBoxMinMax(box[0], box[7], bmin, bmax);
 	return (amin[0] <= bmax[0] && amax[0] >= bmin[0]) &&
 	       (amin[1] <= bmax[1] && amax[1] >= bmin[1]) &&
 	       (amin[2] <= bmax[2] && amax[2] >= bmin[2]);
 }
 
-bool PointInBox(float point[3], float box[8][3])
+bool PointInBox(float point[3], float bmin[3], float bmax[3])
 {
-	return (box[0][0] <= point[0] <= box[7][0]) &&
-	       (box[0][1] <= point[1] <= box[7][1]) &&
-	       (box[0][2] <= point[2] <= box[7][2]);
+	return (bmin[0] <= point[0] <= bmax[0]) &&
+	       (bmin[1] <= point[1] <= bmax[1]) &&
+	       (bmin[2] <= point[2] <= bmax[2]);
 }
 
 bool IsThingInAnyZone(float point1[3], float point2[3], int track, int type)
 {
+	float amin[3], amax[3];
 	bool box = !IsNullVector(point2);
+
+	if (box)
+	{
+		FillBoxMinMax(point1, point2, amin, amax);
+	}
 
 	for (int i = 0; i < MAX_ZONES; i++)
 	{
@@ -2515,16 +2510,19 @@ bool IsThingInAnyZone(float point1[3], float point2[3], int track, int type)
 			continue;
 		}
 
+		float bmin[3], bmax[3];
+		FillBoxMinMax(gV_MapZones_Visual[i][0], gV_MapZones_Visual[i][7], bmin, bmax);
+
 		if (box)
 		{
-			if (BoxesTouching(point1, point2, gV_MapZones_Visual[i]))
+			if (BoxesIntersect(amin, amax, bmin, bmax))
 			{
 				return true;
 			}
 		}
 		else
 		{
-			if (PointInBox(point1, gV_MapZones_Visual[i]))
+			if (PointInBox(point1, bmin, bmax))
 			{
 				return true;
 			}
