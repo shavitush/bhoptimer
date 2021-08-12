@@ -3256,19 +3256,25 @@ public void Shavit_OnRestart(int client, int track)
 		// standard zoning
 		else if((iIndex = GetZoneIndex(Zone_Start, track)) != -1)
 		{
-			float fCenter[3];
+			float fCenter[3], fCustomStart[3];
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
-			fCenter[2] = gV_MapZones[iIndex][0][2];
+			fCenter[2] = gV_MapZones[iIndex][0][2] + 1.0; // no stuck in floor please
+
+			bool bCustomStart = false;
 
 			if(gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track])
 			{
-				fCenter = gF_StartPos[client][track];
+				float bmin[3], bmax[3];
+				FillBoxMinMax(gV_MapZones[iIndex][0], gV_MapZones[iIndex][1], bmin, bmax);
+
+				fCustomStart = gF_StartPos[client][track];
+				fCustomStart[2] += 1.0;
+
+				bCustomStart = PointInBox(fCustomStart, bmin, bmax);
 			}
 
-			fCenter[2] += 1.0; // no stuck in floor please
-
-			TeleportEntity(client, fCenter, gB_HasSetStart[client][track] ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, bCustomStart ? fCustomStart : fCenter, bCustomStart ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		// kz buttons
