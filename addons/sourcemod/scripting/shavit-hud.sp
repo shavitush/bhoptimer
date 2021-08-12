@@ -1026,7 +1026,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 	if(data.bReplay)
 	{
-		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iTarget) != Replay_Idle && Shavit_IsReplayDataLoaded(data.iStyle, data.iTrack))
+		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iTarget) != Replay_Idle && Shavit_GetReplayCacheFrameCount(data.iTarget) > 0)
 		{
 			char sTrack[32];
 
