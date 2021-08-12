@@ -3220,12 +3220,10 @@ public void Shavit_OnRestart(int client, int track)
 	{
 		OpenKZCPMenu(client);
 	}
-	
-	if(!gCV_RespawnOnRestart.BoolValue)
-	{
-		return;
-	}
+}
 
+public Action Shavit_OnRestartPre(int client, int track)
+{
 	if(gCV_RespawnOnRestart.BoolValue && !IsPlayerAlive(client))
 	{
 		if(gEV_Type == Engine_TF2)
@@ -3245,7 +3243,11 @@ public void Shavit_OnRestart(int client, int track)
 		{
 			CS_RespawnPlayer(client);
 		}
+
+		return Plugin_Handled;
 	}
+
+	return Plugin_Continue;
 }
 
 public Action Respawn(Handle timer, any data)

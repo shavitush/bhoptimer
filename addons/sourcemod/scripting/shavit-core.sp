@@ -93,6 +93,7 @@ Handle gH_Forwards_Stop = null;
 Handle gH_Forwards_StopPre = null;
 Handle gH_Forwards_FinishPre = null;
 Handle gH_Forwards_Finish = null;
+Handle gH_Forwards_OnRestartPre = null;
 Handle gH_Forwards_OnRestart = null;
 Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
@@ -274,7 +275,8 @@ public void OnPluginStart()
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
 	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnRestartPre = CreateGlobalForward("Shavit_OnRestartPre", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Ignore, Param_Cell, Param_Cell);
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
@@ -653,6 +655,17 @@ public Action Command_StartTimer(int client, int args)
 	}
 	else if(StrContains(sCommand, "sm_r", false) == 0 || StrContains(sCommand, "sm_s", false) == 0)
 	{
+		Action result = Plugin_Continue;
+		Call_StartForward(gH_Forwards_OnRestartPre);
+		Call_PushCell(client);
+		Call_PushCell(track);
+		Call_Finish(result);
+
+		if (result > Plugin_Continue)
+		{
+			return Plugin_Handled;
+		}
+
 		track = gA_Timers[client].iTrack;
 	}
 

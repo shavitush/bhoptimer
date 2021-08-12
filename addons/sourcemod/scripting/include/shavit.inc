@@ -621,6 +621,15 @@ forward Action Shavit_OnStart(int client, int track);
 /**
  * Called when a player uses the restart command.
  *
+ * @param client                    Client index.
+ * @param track                     Timer track.
+ * @return                          Plugin_Continue to do nothing or anything else to not restart.
+ */
+forward Action Shavit_OnRestartPre(int client, int track);
+
+/**
+ * Called when a player uses the restart command.
+ *
  * @param client					Client index.
  * @param track						Timer track.
  * @noreturn
