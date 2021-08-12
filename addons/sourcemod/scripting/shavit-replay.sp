@@ -322,6 +322,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayLength", Native_GetReplayLength);
 	CreateNative("Shavit_GetReplayCacheLength", Native_GetReplayCacheLength);
 	CreateNative("Shavit_GetReplayName", Native_GetReplayName);
+	CreateNative("Shavit_GetReplayCacheName", Native_GetReplayCacheName);
 	CreateNative("Shavit_GetReplayStatus", Native_GetReplayStatus);
 	CreateNative("Shavit_GetReplayTime", Native_GetReplayTime);
 	CreateNative("Shavit_HijackAngles", Native_HijackAngles);
@@ -1234,6 +1235,11 @@ public int Native_GetReplayCacheLength(Handle handler, int numParams)
 public int Native_GetReplayName(Handle handler, int numParams)
 {
 	return SetNativeString(3, gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].sReplayName, GetNativeCell(4));
+}
+
+public int Native_GetReplayCacheName(Handle plugin, int numParams)
+{
+	return SetNativeString(2, gA_BotInfo[GetNativeCell(1)].aCache.sReplayName, GetNativeCell(3));
 }
 
 public int Native_GetReplayStatus(Handle handler, int numParams)
