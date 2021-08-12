@@ -655,6 +655,8 @@ public Action Command_StartTimer(int client, int args)
 	}
 	else if(StrContains(sCommand, "sm_r", false) == 0 || StrContains(sCommand, "sm_s", false) == 0)
 	{
+		track = gA_Timers[client].iTrack;
+
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_OnRestartPre);
 		Call_PushCell(client);
@@ -665,8 +667,6 @@ public Action Command_StartTimer(int client, int args)
 		{
 			return Plugin_Handled;
 		}
-
-		track = gA_Timers[client].iTrack;
 	}
 
 	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
