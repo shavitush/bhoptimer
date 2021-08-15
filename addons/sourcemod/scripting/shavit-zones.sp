@@ -2493,8 +2493,13 @@ bool PointInBox(float point[3], float bmin[3], float bmax[3])
 	       (bmin[2] <= point[2] <= bmax[2]);
 }
 
-bool IsThingInAnyZone(float point1[3], float point2[3], int track, int type)
+bool InStartOrEndZone(float point1[3], float point2[3], int track, int type)
 {
+	if (type != Zone_Start && type != Zone_End)
+	{
+		return false;
+	}
+
 	float amin[3], amax[3];
 	bool box = !IsNullVector(point2);
 
@@ -2505,7 +2510,7 @@ bool IsThingInAnyZone(float point1[3], float point2[3], int track, int type)
 
 	for (int i = 0; i < MAX_ZONES; i++)
 	{
-		if (!gA_ZoneCache[i].bZoneInitialized || (gA_ZoneCache[i].iZoneTrack == track && gA_ZoneCache[i].iZoneType == type))
+		if (!gA_ZoneCache[i].bZoneInitialized || (gA_ZoneCache[i].iZoneTrack == track && gA_ZoneCache[i].iZoneType == type) || (gA_ZoneCache[i].iZoneType != Zone_End && gA_ZoneCache[i].iZoneType != Zone_Start))
 		{
 			continue;
 		}
@@ -2568,7 +2573,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 				{
 					origin[2] += 1.0;
 
-					if (!IsThingInAnyZone(origin, NULL_VECTOR, gI_ZoneTrack[client], gI_ZoneType[client]))
+					if (!InStartOrEndZone(origin, NULL_VECTOR, gI_ZoneTrack[client], gI_ZoneType[client]))
 					{
 						gV_Point1[client] = origin;
 						ShowPanel(client, 2);
@@ -2578,7 +2583,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 				{
 					origin[2] += gCV_Height.FloatValue;
 
-					if (!(origin[0] == gV_Point1[client][0] || origin[1] == gV_Point1[client][1] || IsThingInAnyZone(gV_Point1[client], origin, gI_ZoneTrack[client], gI_ZoneType[client])))
+					if (origin[0] != gV_Point1[client][0] && origin[1] != gV_Point1[client][1] && !InStartOrEndZone(gV_Point1[client], origin, gI_ZoneTrack[client], gI_ZoneType[client]))
 					{
 						gV_Point2[client] = origin;
 						gI_MapStep[client]++;
