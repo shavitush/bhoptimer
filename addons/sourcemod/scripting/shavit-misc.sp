@@ -49,7 +49,7 @@
 enum struct persistent_data_t
 {
 	int iSteamID;
-	float fDisconnectTime;
+	int iDisconnectTime;
 	int iTimesTeleported;
 	ArrayList aCheckpoints;
 	int iCurrentCheckpoint;
@@ -989,12 +989,12 @@ public Action Timer_Cron(Handle timer)
 		}
 	}
 
-	if(gCV_PersistData.FloatValue < 0.0)
+	if (gCV_PersistData.IntValue < 0)
 	{
 		return Plugin_Continue;
 	}
 
-	float fTime = GetEngineTime();
+	int iTime = GetTime();
 	int iLength = gA_PersistentData.Length;
 
 	for(int i = iLength - 1; i >= 0; i--)
@@ -1002,7 +1002,7 @@ public Action Timer_Cron(Handle timer)
 		persistent_data_t aData;
 		gA_PersistentData.GetArray(i, aData);
 
-		if(aData.fDisconnectTime != 0.0 && (fTime - aData.fDisconnectTime >= gCV_PersistData.FloatValue))
+		if(aData.iDisconnectTime && (iTime - aData.iDisconnectTime >= gCV_PersistData.IntValue))
 		{
 			DeletePersistentData(i, aData);
 		}
@@ -1480,7 +1480,7 @@ void PersistData(int client, bool disconnected)
 
 	if (disconnected)
 	{
-		aData.fDisconnectTime = GetEngineTime();
+		aData.iDisconnectTime = GetTime();
 		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
 		aData.aCheckpoints = gA_Checkpoints[client];
 		gA_Checkpoints[client] = null;
@@ -1493,7 +1493,7 @@ void PersistData(int client, bool disconnected)
 	}
 	else
 	{
-		aData.fDisconnectTime = 0.0;
+		aData.iDisconnectTime = 0;
 	}
 
 	if (!gB_SaveStates[client])
