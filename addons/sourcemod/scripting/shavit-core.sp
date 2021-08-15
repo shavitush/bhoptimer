@@ -163,7 +163,6 @@ bool gB_StyleCookies = true;
 char gS_MySQLPrefix[32];
 
 // server side
-ConVar sv_cheats = null;
 ConVar sv_airaccelerate = null;
 ConVar sv_autobunnyhopping = null;
 ConVar sv_enablebunnyhopping = null;
@@ -196,6 +195,9 @@ char gS_StyleOverride[STYLE_LIMIT][32];
 // kz support
 bool gB_KZMap = false;
 
+#if !DEBUG
+ConVar sv_cheats = null;
+
 char gS_CheatCommands[][] = {
 	"ent_setpos",
 	"setpos",
@@ -210,6 +212,7 @@ char gS_CheatCommands[][] = {
 
 	"give",
 };
+#endif
 
 public Plugin myinfo =
 {
@@ -560,6 +563,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_DefaultStyle = StringToInt(newValue[1]);
 }
 
+#if !DEBUG
 public void sv_cheats_hook(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	if (gCV_DisableSvCheats.BoolValue)
@@ -593,6 +597,7 @@ public Action Command_Cheats(int client, const char[] command, int args)
 
 	return Plugin_Continue;
 }
+#endif
 
 public void OnLibraryAdded(const char[] name)
 {
@@ -669,7 +674,9 @@ public void OnConfigsExecuted()
 {
 	if (gCV_DisableSvCheats.BoolValue)
 	{
+#if !DEBUG
 		sv_cheats.SetInt(0);
+#endif
 	}
 }
 
