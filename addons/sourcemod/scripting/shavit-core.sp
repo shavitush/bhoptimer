@@ -154,6 +154,7 @@ Convar gCV_SimplerLadders = null;
 Convar gCV_UseOffsets = null;
 Convar gCV_TimeInMessages;
 Convar gCV_DebugOffsets = null;
+Convar gCV_DisableSvCheats = null;
 // cached cvars
 int gI_DefaultStyle = 0;
 bool gB_StyleCookies = true;
@@ -162,6 +163,7 @@ bool gB_StyleCookies = true;
 char gS_MySQLPrefix[32];
 
 // server side
+ConVar sv_cheats = null;
 ConVar sv_airaccelerate = null;
 ConVar sv_autobunnyhopping = null;
 ConVar sv_enablebunnyhopping = null;
@@ -193,6 +195,21 @@ char gS_StyleOverride[STYLE_LIMIT][32];
 
 // kz support
 bool gB_KZMap = false;
+
+char gS_CheatCommands[][] = {
+	"ent_setpos",
+	"setpos",
+	"setpos_exact",
+	"setpos_player",
+
+	// can be used to kill other players
+	"explode",
+	"explodevector",
+	"kill",
+	"killvector",
+
+	"give",
+};
 
 public Plugin myinfo =
 {
@@ -399,9 +416,20 @@ public void OnPluginStart()
 	gCV_UseOffsets = new Convar("shavit_core_useoffsets", "1", "Calculates more accurate times by subtracting/adding tick offsets from the time the server uses to register that a player has left or entered a trigger", 0, true, 0.0, true, 1.0);
 	gCV_TimeInMessages = new Convar("shavit_core_timeinmessages", "0", "Whether to prefix SayText2 messages with the time.", 0, true, 0.0, true, 1.0);
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
+	gCV_DisableSvCheats = new Convar("shavit_core_disable_sv_cheats", "1", "Force sv_cheats to 0.", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
+
+#if !DEBUG
+	sv_cheats = FindConVar("sv_cheats");
+	sv_cheats.AddChangeHook(sv_cheats_hook);
+
+	for (int i = 0; i < sizeof(gS_CheatCommands); i++)
+	{
+		AddCommandListener(Command_Cheats, gS_CheatCommands[i]);
+	}
+#endif
 
 	sv_airaccelerate = FindConVar("sv_airaccelerate");
 	sv_airaccelerate.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
@@ -532,6 +560,40 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	gI_DefaultStyle = StringToInt(newValue[1]);
 }
 
+public void sv_cheats_hook(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (gCV_DisableSvCheats.BoolValue)
+	{
+		sv_cheats.SetInt(0);
+	}
+}
+
+public Action Command_Cheats(int client, const char[] command, int args)
+{
+	if (!sv_cheats.BoolValue || client == 0)
+	{
+		return Plugin_Continue;
+	}
+
+	if (StrContains(command, "kill") != -1 || StrContains(command, "explode") != -1)
+	{
+		bool bVector = StrContains(command, "vector") != -1;
+		bool bKillOther = args > (bVector ? 4 : 1);
+
+		if (!bKillOther)
+		{
+			return Plugin_Continue;
+		}
+	}
+
+	if (!(GetUserFlagBits(client) & ADMFLAG_ROOT))
+	{
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
 public void OnLibraryAdded(const char[] name)
 {
 	if(StrEqual(name, "shavit-zones"))
@@ -600,6 +662,14 @@ public void OnMapStart()
 	if(!LoadMessages())
 	{
 		SetFailState("Could not load the chat messages configuration file. Make sure it exists (addons/sourcemod/configs/shavit-messages.cfg) and follows the proper syntax!");
+	}
+}
+
+public void OnConfigsExecuted()
+{
+	if (gCV_DisableSvCheats.BoolValue)
+	{
+		sv_cheats.SetInt(0);
 	}
 }
 
@@ -3617,6 +3687,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Continue;
 	}
 
+#if !DEBUG
+	if (sv_cheats.BoolValue && !(GetUserFlagBits(client) & ADMFLAG_ROOT))
+	{
+		// Block cheat impulses
+		switch (impulse)
+		{
+			case 76, 81, 82, 83, 102, 195, 196, 197, 202, 203:
+			{
+				impulse = 0;
+			}
+		}
+	}
+#endif
+
 	int flags = GetEntityFlags(client);
 
 	if (gA_Timers[client].bPaused && IsPlayerAlive(client) && !gCV_PauseMovement.BoolValue)
@@ -3636,7 +3720,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	// Wait till now to return so spectators can free-cam while paused...
 	if(!IsPlayerAlive(client))
 	{
-		return Plugin_Continue;
+		return Plugin_Changed;
 	}
 
 	Action result = Plugin_Continue;
