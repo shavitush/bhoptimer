@@ -1022,6 +1022,11 @@ public Action Timer_PersistKZCP(Handle timer)
 		{
 			OpenKZCPMenu(i);
 		}
+		// reopen repeatedly in case someone has bad internet and the menu disappears
+		else if (gB_InCheckpointMenu[i])
+		{
+			OpenNormalCPMenu(i);
+		}
 	}
 
 	return Plugin_Continue;
