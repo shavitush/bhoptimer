@@ -989,6 +989,19 @@ public Action Timer_Cron(Handle timer)
 		}
 	}
 
+	if (gCV_NoWeaponDrops.BoolValue)
+	{
+		int ent = -1;
+
+		while ((ent = FindEntityByClassname(ent, "weapon_*")) != -1)
+		{
+			if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == -1)
+			{
+				AcceptEntityInput(ent, "Kill");
+			}
+		}
+	}
+
 	if (gCV_PersistData.IntValue < 0)
 	{
 		return Plugin_Continue;
