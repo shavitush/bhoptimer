@@ -578,7 +578,7 @@ public Action Command_Cheats(int client, const char[] command, int args)
 	if (StrContains(command, "kill") != -1 || StrContains(command, "explode") != -1)
 	{
 		bool bVector = StrContains(command, "vector") != -1;
-		bool bKillOther = args > (bVector ? 4 : 1);
+		bool bKillOther = args > (bVector ? 3 : 0);
 
 		if (!bKillOther)
 		{
