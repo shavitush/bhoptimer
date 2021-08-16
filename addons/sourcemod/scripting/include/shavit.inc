@@ -1788,7 +1788,7 @@ native void Shavit_OpenStatsMenu(int client, int steamid);
  * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
  * @param style						Style to retrieve WRs from. -1 to use all styles.
  * @param usecvars					Whether to depend on the value of `shavit_stats_mvprankones` and `shavit_stats_mvprankones_maintrack`.
- * @noreturn
+ * @return                          The number of WRs.
  */
 native int Shavit_GetWRCount(int client, int track = -1, int style = -1, bool usecvars = true);
 
@@ -1799,19 +1799,20 @@ native int Shavit_GetWRCount(int client, int track = -1, int style = -1, bool us
  * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
  * @param style						Style to retrieve WRs from. -1 to use all styles.
  * @param usecvars					Whether to depend on the value of `shavit_stats_mvprankones` and `shavit_stats_mvprankones_maintrack`.
- * @noreturn
+ * @return                          The number of WR holders. 0 if none.
  */
 native int Shavit_GetWRHolders(int track = -1, int style = -1, bool usecvars = true);
 
 /**
  * Retrieves the player's rank based on how many #1 records they hold.
  * Requires shavit-rankings.
+ * Only works with MySQL 8.0+ or with MariaDB 10.2+.
  *
  * @param client					Client index.
  * @param track						Track to retrieve WRs from. -1 to use all tracks. All bonus tracks are combined.
  * @param style						Style to retrieve WRs from. -1 to use all styles.
  * @param usecvars					Whether to depend on the value of `shavit_stats_mvprankones` and `shavit_stats_mvprankones_maintrack`.
- * @noreturn
+ * @return                          The rank. 0 if none, or not supported.
  */
 native int Shavit_GetWRHolderRank(int client, int track = -1, int style = -1, bool usecvars = true);
 

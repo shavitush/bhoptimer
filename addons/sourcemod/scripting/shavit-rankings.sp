@@ -51,7 +51,6 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-// uncomment when done
 // #define DEBUG
 
 enum struct ranking_t
@@ -68,6 +67,7 @@ enum struct ranking_t
 
 char gS_MySQLPrefix[32];
 Database gH_SQL = null;	
+bool gB_HasSQLRANK = false; // whether the sql driver supports RANK()
 
 bool gB_Stats = false;
 bool gB_Late = false;
@@ -87,7 +87,6 @@ Convar gCV_LastLoginRecalculate = null;
 Convar gCV_MVPRankOnes = null;
 Convar gCV_MVPRankOnes_Main = null;
 Convar gCV_DefaultTier = null;
-Convar gCV_WRRanks = null;
 
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
@@ -168,7 +167,6 @@ public void OnPluginStart()
 	gCV_MVPRankOnes = new Convar("shavit_rankings_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
 	gCV_MVPRankOnes_Main = new Convar("shavit_rankings_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
 	gCV_DefaultTier = new Convar("shavit_rankings_default_tier", "1", "Sets the default tier for new maps added.", 0, true, 0.0, true, 10.0);
-	gCV_WRRanks = new Convar("shavit_rankings_wrranks", "1", "Whether to query WR Holders rank and WR count. If you don't care about it being used for chat-rank customization, you can disable this and have less database churn.", 0, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
@@ -226,6 +224,8 @@ public void Shavit_OnDatabaseLoaded()
 	{
 		SetFailState("MySQL is the only supported database engine for shavit-rankings.");
 	}
+
+	gH_SQL.Query(SQL_Version_Callback, "SELECT VERSION();");
 
 	char sQuery[256];
 	FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
@@ -374,11 +374,6 @@ public void OnMapStart()
 		return;
 	}
 
-	if (gCV_WRRanks.BoolValue)
-	{
-		UpdateWRHolders();
-	}
-
 	// Default tier.
 	// I won't repeat the same mistake blacky has done with tier 3 being default..
 	gI_Tier = gCV_DefaultTier.IntValue;
@@ -500,11 +495,11 @@ void UpdateWRs(int client)
 	char sQuery[512];
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"     SELECT *, 0 as track, 0 as type FROM wrhrankmain  WHERE auth = %d \
-		UNION SELECT *, 1 as track, 0 as type FROM wrhrankbonus WHERE auth = %d \
-		UNION SELECT *, -1,         1 as type FROM wrhrankall   WHERE auth = %d \
-		UNION SELECT *, -1,         2 as type FROM wrhrankcvar  WHERE auth = %d;",
-		iSteamID, iSteamID, iSteamID, iSteamID);
+		"     SELECT *, 0 as track, 0 as type FROM %swrhrankmain  WHERE auth = %d \
+		UNION SELECT *, 1 as track, 0 as type FROM %swrhrankbonus WHERE auth = %d \
+		UNION SELECT *, -1,         1 as type FROM %swrhrankall   WHERE auth = %d \
+		UNION SELECT *, -1,         2 as type FROM %swrhrankcvar  WHERE auth = %d;",
+		gS_MySQLPrefix, iSteamID, gS_MySQLPrefix, iSteamID, gS_MySQLPrefix, iSteamID, gS_MySQLPrefix, iSteamID);
 	gH_SQL.Query(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
 }
 
@@ -512,22 +507,7 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 {
 	if(results == null)
 	{
-		// Try to recreate temporary tables.
-		// If the db connection drops and disconnects it might be destroying them... but idk.
-		if (StrContains(error, "Table ") != -1 && StrContains(error, " doesn't exist") != -1)
-		{
-			if (gB_WRsRefreshed)
-			{
-				LogError("SQL_GetWRs_Callback failed. Attempting to recreate tables. Error: %s", error);
-				gB_WRsRefreshed = false;
-				RequestFrame(UpdateWRHolders);
-			}
-		}
-		else
-		{
-			LogError("SQL_GetWRs_Callback failed. Reason: %s", error);
-		}
-
+		LogError("SQL_GetWRs_Callback failed. Reason: %s", error);
 		return;
 	}
 
@@ -1031,29 +1011,46 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 	gH_Top100Menu.ExitButton = true;
 }
 
-void UpdateWRHolders()
+bool DoWeHaveRANK(const char[] sVersion)
 {
-	// Compatible with MySQL 5.6, 5.7, 8.0
+	float fVersion = StringToFloat(sVersion);
+
+	if (StrContains(sVersion, "MariaDB") != -1)
+	{
+		return fVersion >= 10.2;
+	}
+	else // mysql then...
+	{
+		return fVersion >= 8.0;
+	}
+}
+
+public void SQL_Version_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null || !results.FetchRow())
+	{
+		LogError("Timer (rankings) error! Failed to retrieve VERSION(). Reason: %s", error);
+	}
+	else
+	{
+		char sVersion[100];
+		results.FetchString(0, sVersion, sizeof(sVersion));
+		gB_HasSQLRANK = DoWeHaveRANK(sVersion);
+	}
+
 	char sWRHolderRankTrackQueryYuck[] =
-		"CREATE TEMPORARY TABLE %s AS \
-			SELECT ( \
-				CASE style \
-				WHEN @curGroup \
-				THEN @curRow := @curRow + 1 \
-				ELSE @curRow := 1 AND @curGroup := style END \
-			) as wrrank, \
+		"CREATE OR REPLACE VIEW %s%s AS \
+			SELECT \
+			0 as wrrank, \
 			style, auth, wrcount \
 			FROM ( \
 				SELECT style, auth, SUM(c) as wrcount FROM ( \
 					SELECT style, auth, COUNT(auth) as c FROM %swrs WHERE track %c 0 GROUP BY style, auth \
-				) a GROUP BY style, auth ORDER BY style ASC, wrcount DESC, auth ASC \
-			) x, \
-			(SELECT @curRow := 0, @curGroup := 0) r \
-			ORDER BY style ASC, wrrank ASC, auth ASC;";
+				) a GROUP BY style, auth \
+			) x;";
 	
-	// Compatible with MySQL 8.0 and SQLite // TODO: SELECT VERSION() and check...
 	char sWRHolderRankTrackQueryRANK[] =
-		"CREATE TEMPORARY TABLE %s AS \
+		"CREATE OR REPLACE VIEW %s%s AS \
 			SELECT \
 				RANK() OVER(PARTITION BY style ORDER BY wrcount DESC, auth ASC) \
 			as wrrank, \
@@ -1064,22 +1061,17 @@ void UpdateWRHolders()
 				) a GROUP BY style, auth \
 			) x;";
 
-	// Compatible with MySQL 5.6, 5.7, 8.0
 	char sWRHolderRankOtherQueryYuck[] =
-		"CREATE TEMPORARY TABLE %s AS \
-			SELECT ( \
-				@curRow := @curRow + 1 \
-			) as wrrank, \
+		"CREATE OR REPLACE VIEW %s%s AS \
+			SELECT \
+			0 as wrrank, \
 			-1 as style, auth, wrcount \
 			FROM ( \
-				SELECT COUNT(*) as wrcount, auth FROM %swrs %s %s %s %s GROUP BY auth ORDER BY wrcount DESC, auth ASC \
-			) x, \
-			(SELECT @curRow := 0) r \
-			ORDER BY style ASC, wrrank ASC, auth ASC;";
+				SELECT COUNT(*) as wrcount, auth FROM %swrs %s %s %s %s GROUP BY auth \
+			) x;";
 
-	// Compatible with MySQL 8.0 and SQLite // TODO: SELECT VERSION() and check...
 	char sWRHolderRankOtherQueryRANK[] =
-		"CREATE TEMPORARY TABLE %s AS \
+		"CREATE OR REPLACE VIEW %s%s AS \
 			SELECT \
 				RANK() OVER(ORDER BY wrcount DESC, auth ASC) \
 			as wrrank, \
@@ -1091,28 +1083,24 @@ void UpdateWRHolders()
 	char sQuery[800];
 	Transaction hTransaction = new Transaction();
 
-	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankmain;");
 	FormatEx(sQuery, sizeof(sQuery),
-		IsMySQLDatabase(gH_SQL) ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
-		"wrhrankmain", gS_MySQLPrefix, '=');
+		!gB_HasSQLRANK ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
+		gS_MySQLPrefix, "wrhrankmain", gS_MySQLPrefix, '=');
 	hTransaction.AddQuery(sQuery);
 
-	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankbonus;");
 	FormatEx(sQuery, sizeof(sQuery),
-		IsMySQLDatabase(gH_SQL) ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
-		"wrhrankbonus", gS_MySQLPrefix, '>');
+		!gB_HasSQLRANK ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
+		gS_MySQLPrefix, "wrhrankbonus", gS_MySQLPrefix, '>');
 	hTransaction.AddQuery(sQuery);
 
-	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankall;");
 	FormatEx(sQuery, sizeof(sQuery),
-		IsMySQLDatabase(gH_SQL) ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
-		"wrhrankall", gS_MySQLPrefix, "", "", "", "");
+		!gB_HasSQLRANK ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
+		gS_MySQLPrefix, "wrhrankall", gS_MySQLPrefix, "", "", "", "");
 	hTransaction.AddQuery(sQuery);
 
-	hTransaction.AddQuery("DROP TABLE IF EXISTS wrhrankcvar;");
 	FormatEx(sQuery, sizeof(sQuery),
-		IsMySQLDatabase(gH_SQL) ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
-		"wrhrankcvar", gS_MySQLPrefix,
+		!gB_HasSQLRANK ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
+		gS_MySQLPrefix, "wrhrankcvar", gS_MySQLPrefix,
 		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
 		(gCV_MVPRankOnes.IntValue == 2)  ? "style = 0" : "",
 		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
@@ -1126,10 +1114,11 @@ public void Trans_WRHolderRankTablesSuccess(Database db, any data, int numQuerie
 {	
 	char sQuery[1024];
 	FormatEx(sQuery, sizeof(sQuery),
-		"     SELECT 0 as type, 0 as track, style, COUNT(DISTINCT auth) FROM wrhrankmain GROUP BY STYLE \
-		UNION SELECT 0 as type, 1 as track, style, COUNT(DISTINCT auth) FROM wrhrankbonus GROUP BY STYLE \
-		UNION SELECT 1 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM wrhrankall \
-		UNION SELECT 2 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM wrhrankcvar;");
+		"     SELECT 0 as type, 0 as track, style, COUNT(DISTINCT auth) FROM %swrhrankmain GROUP BY STYLE \
+		UNION SELECT 0 as type, 1 as track, style, COUNT(DISTINCT auth) FROM %swrhrankbonus GROUP BY STYLE \
+		UNION SELECT 1 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM %swrhrankall \
+		UNION SELECT 2 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM %swrhrankcvar;",
+		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	gH_SQL.Query(SQL_GetWRHolders_Callback, sQuery);
 }
 
