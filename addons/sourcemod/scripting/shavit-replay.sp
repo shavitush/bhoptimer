@@ -1250,6 +1250,12 @@ public int Native_GetReplayStatus(Handle handler, int numParams)
 public any Native_GetReplayTime(Handle handler, int numParams)
 {
 	int index = GetBotInfoIndex(GetNativeCell(1));
+
+	if (gA_BotInfo[index].iTick > (gA_BotInfo[index].aCache.iFrameCount + gA_BotInfo[index].aCache.iPreFrames))
+	{
+		return gA_BotInfo[index].aCache.fTime;
+	}
+
 	return float(gA_BotInfo[index].iTick - gA_BotInfo[index].aCache.iPreFrames) / gF_Tickrate * Shavit_GetStyleSettingFloat(gA_BotInfo[index].iStyle, "timescale");
 }
 
