@@ -43,6 +43,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 Database gH_SQL = null;
 bool gB_Connected = false;
 bool gB_MySQL = false;
+bool gB_InsertedPrebuiltZones = false;
 
 char gS_Map[PLATFORM_MAX_PATH];
 
@@ -778,10 +779,8 @@ public void OnMapStart()
 
 	GetLowercaseMapName(gS_Map);
 
-	gI_MapZones = 0;
 	UnloadZones(0);
 	RefreshZones();
-	LoadStageZones();
 	
 	LoadZoneSettings();
 	
@@ -803,49 +802,16 @@ public void OnMapStart()
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i))
+		if (IsValidClient(i) && !IsFakeClient(i))
 		{
 			GetStartPosition(i);
 		}
 	}
 }
 
-public void LoadStageZones()
-{
-	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT id, data, track FROM %smapzones WHERE type = %i and map = '%s'", gS_MySQLPrefix, Zone_Stage, gS_Map);
-	gH_SQL.Query(SQL_GetStageZone_Callback, sQuery,0, DBPrio_High);
-}
-
-public void SQL_GetStageZone_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	for (int i = 0; i < TRACKS_SIZE; i++)
-	{
-		gI_HighestStage[i] = 0;
-	}
-
-	if(results == null)
-	{
-		LogError("Timer (zones GetStageZone) SQL query failed. Reason: %s", error);
-		return;
-	}
-
-	while(results.FetchRow())
-	{
-		int iZoneID = results.FetchInt(0);
-		int iStageNumber = results.FetchInt(1);
-		int iTrack = results.FetchInt(2);
-		gI_StageZoneID[iTrack][iStageNumber] = iZoneID;
-
-		if (iStageNumber > gI_HighestStage[iTrack])
-		{
-			gI_HighestStage[iTrack] = iStageNumber;
-		}
-	} 
-}
-
 public void OnMapEnd()
 {
+	gB_InsertedPrebuiltZones = false;
 	delete gH_DrawEverything;
 }
 
@@ -855,7 +821,6 @@ public void OnEntityCreated(int entity, const char[] classname)
 	{
 		RequestFrame(Frame_HookButton, EntIndexToEntRef(entity));
 	}
-
 	else if(StrEqual(classname, "trigger_multiple", false))
 	{
 		RequestFrame(Frame_HookTrigger, EntIndexToEntRef(entity));
@@ -918,7 +883,7 @@ public void Frame_HookTrigger(any data)
 {
 	int entity = EntRefToEntIndex(data);
 
-	if(entity == INVALID_ENT_REFERENCE)
+	if (entity == INVALID_ENT_REFERENCE || gI_EntityZone[entity] > -1)
 	{
 		return;
 	}
@@ -926,7 +891,7 @@ public void Frame_HookTrigger(any data)
 	char sName[32];
 	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
 
-	// Please follow this naming scheme for this zones https://github.com/3331/fly#trigger_multiple
+	// Please follow this naming scheme for this zones https://github.com/PMArkive/fly#trigger_multiple
 	// mod_zone_start
 	// mod_zone_end
 	// mod_zone_checkpoint_X
@@ -997,6 +962,7 @@ public void Frame_HookTrigger(any data)
 
 	if(zone != -1)
 	{
+		// TODO: Remove?
 		if (zone == Zone_Start || zone == Zone_End)
 		{
 			gI_KZButtons[track][zone] = entity;
@@ -1039,13 +1005,10 @@ public void Shavit_OnChatConfigLoaded()
 
 void ClearZone(int index)
 {
-	for(int i = 0; i < 3; i++)
-	{
-		gV_MapZones[index][0][i] = 0.0;
-		gV_MapZones[index][1][i] = 0.0;
-		gV_Destinations[index][i] = 0.0;
-		gV_ZoneCenter[index][i] = 0.0;
-	}
+	gV_MapZones[index][0] = NULL_VECTOR;
+	gV_MapZones[index][1] = NULL_VECTOR;
+	gV_Destinations[index] = NULL_VECTOR;
+	gV_ZoneCenter[index] = NULL_VECTOR;
 
 	gA_ZoneCache[index].bZoneInitialized = false;
 	gA_ZoneCache[index].bPrebuilt = false;
@@ -1055,13 +1018,6 @@ void ClearZone(int index)
 	gA_ZoneCache[index].iDatabaseID = -1;
 	gA_ZoneCache[index].iZoneFlags = 0;
 	gA_ZoneCache[index].iZoneData = 0;
-}
-
-void UnhookEntity(int entity)
-{
-	SDKUnhook(entity, SDKHook_StartTouchPost, StartTouchPost);
-	SDKUnhook(entity, SDKHook_EndTouchPost, EndTouchPost);
-	SDKUnhook(entity, SDKHook_TouchPost, TouchPost);
 }
 
 void KillZoneEntity(int index, bool kill=true)
@@ -1087,8 +1043,6 @@ void KillZoneEntity(int index, bool kill=true)
 		{
 			return;
 		}
-
-		UnhookEntity(entity);
 
 		if (kill && !gA_ZoneCache[index].bPrebuilt)
 		{
@@ -1118,11 +1072,15 @@ void UnloadZones(int zone)
 void RefreshZones()
 {
 	gI_MapZones = 0;
+
+	int empty_array[TRACKS_SIZE];
+	gI_HighestStage = empty_array;
+
 	ReloadPrebuiltZones();
 
 	char sQuery[512];
 	FormatEx(sQuery, 512,
-		"SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s, flags, data FROM %smapzones WHERE map = '%s';",
+		"SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s, flags, data, prebuilt FROM %smapzones WHERE map = '%s';",
 		(gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
@@ -1133,18 +1091,23 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 	if(results == null)
 	{
 		LogError("Timer (zone refresh) SQL query failed. Reason: %s", error);
-
 		return;
 	}
 
 	while(results.FetchRow())
 	{
+		if (results.FetchInt(14)) // prebuilt
+		{
+			// prebuilt zones already exist in db so we can mark them as already inserted
+			gB_InsertedPrebuiltZones = true;
+			continue;
+		}
+
 		int type = results.FetchInt(0);
+		int track = results.FetchInt(10);
 
 		if(type == Zone_CustomSpawn)
 		{
-			int track = results.FetchInt(10);
-
 			gF_CustomSpawn[track][0] = results.FetchFloat(7);
 			gF_CustomSpawn[track][1] = results.FetchFloat(8);
 			gF_CustomSpawn[track][2] = results.FetchFloat(9);
@@ -1156,12 +1119,39 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 				results.FetchFloat(1), results.FetchFloat(2), results.FetchFloat(3), // corner1_xyz
 				results.FetchFloat(4), results.FetchFloat(5), results.FetchFloat(6), // corner2_xyz
 				results.FetchFloat(7), results.FetchFloat(8), results.FetchFloat(9), // destination_xyz (Zone_Teleport/Zone_Stage)
-				results.FetchInt(10), // track
+				track,
 				results.FetchInt(11), // iDatabaseID
 				results.FetchInt(12), // iZoneFlags
 				results.FetchInt(13), // iZoneData
 				false                 // bPrebuilt
 			);
+		}
+	}
+
+	if (!gB_InsertedPrebuiltZones)
+	{
+		gB_InsertedPrebuiltZones = true;
+
+		char sQuery[1024];
+		Transaction hTransaction;
+
+		for (int i = 0; i < gI_MapZones; i++)
+		{
+			if (gA_ZoneCache[i].bPrebuilt && gA_ZoneCache[i].iEntityID == -1) // magic
+			{
+				if (hTransaction == null)
+				{
+					hTransaction = new Transaction();
+				}
+
+				InsertPrebuiltZone(i, false, sQuery, sizeof(sQuery));
+				hTransaction.AddQuery(sQuery);
+			}
+		}
+
+		if (hTransaction != null)
+		{
+			gH_SQL.Execute(hTransaction);
 		}
 	}
 
@@ -1191,6 +1181,16 @@ public void AddZoneToCache(int type, float corner1_x, float corner1_y, float cor
 		gV_Destinations[gI_MapZones][2] = destination_z;
 	}
 
+	if (type == Zone_Stage)
+	{
+		gI_StageZoneID[track][data] = id;
+
+		if (data > gI_HighestStage[track])
+		{
+			gI_HighestStage[track] = data;
+		}
+	}
+
 	gA_ZoneCache[gI_MapZones].bZoneInitialized = true;
 	gA_ZoneCache[gI_MapZones].bPrebuilt = prebuilt;
 	gA_ZoneCache[gI_MapZones].iZoneType = type;
@@ -1198,7 +1198,11 @@ public void AddZoneToCache(int type, float corner1_x, float corner1_y, float cor
 	gA_ZoneCache[gI_MapZones].iDatabaseID = id;
 	gA_ZoneCache[gI_MapZones].iZoneFlags = flags;
 	gA_ZoneCache[gI_MapZones].iZoneData = data;
-	gA_ZoneCache[gI_MapZones].iEntityID = -1;
+
+	if (!prebuilt)
+	{
+		gA_ZoneCache[gI_MapZones].iEntityID = -1;
+	}
 
 	gI_MapZones++;
 }
@@ -2903,6 +2907,30 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
+void InsertPrebuiltZone(int zone, bool update, char[] sQuery, int sQueryLen)
+{
+	if (update)
+	{
+		FormatEx(sQuery, sQueryLen,
+			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', prebuilt = 1 WHERE map = '%s' AND type = %d AND track = %d;",
+			gS_MySQLPrefix,
+			gV_MapZones[zone][0][0], gV_MapZones[zone][0][1], gV_MapZones[zone][0][2],
+			gV_MapZones[zone][1][0], gV_MapZones[zone][1][1], gV_MapZones[zone][1][2],
+			gS_Map, gA_ZoneCache[zone].iZoneType, gA_ZoneCache[zone].iZoneTrack
+		);
+	}
+	else
+	{
+		FormatEx(sQuery, sQueryLen,
+			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, track, data, prebuilt) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d, %d, 1);",
+			gS_MySQLPrefix, gS_Map, gA_ZoneCache[zone].iZoneType,
+			gV_MapZones[zone][0][0], gV_MapZones[zone][0][1], gV_MapZones[zone][0][2],
+			gV_MapZones[zone][1][0], gV_MapZones[zone][1][1], gV_MapZones[zone][1][2],
+			gA_ZoneCache[zone].iZoneTrack, gA_ZoneCache[zone].iZoneData
+		);
+	}
+}
+
 void InsertZone(int client)
 {
 	int iType = gI_ZoneType[client];
@@ -3219,7 +3247,7 @@ public void Shavit_OnDatabaseLoaded()
 
 	char sQuery[1024];
 	FormatEx(sQuery, 1024,
-		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, PRIMARY KEY (`id`))%s;",
+		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `prebuilt` BOOL, PRIMARY KEY (`id`))%s;",
 		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 
 	hTransaction.AddQuery(sQuery);

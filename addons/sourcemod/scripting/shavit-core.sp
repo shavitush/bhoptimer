@@ -3072,6 +3072,7 @@ void ApplyMigration(int migration)
 		case Migration_AddCustomChatAccess: ApplyMigration_AddCustomChatAccess();
 		case Migration_AddPlayertimesExactTimeInt: ApplyMigration_AddPlayertimesExactTimeInt();
 		case Migration_FixOldCompletionCounts: ApplyMigration_FixOldCompletionCounts();
+		case Migration_AddPrebuiltToMapZonesTable: ApplyMigration_AddPrebuiltToMapZonesTable();
 	}
 }
 
@@ -3129,6 +3130,13 @@ void ApplyMigration_FixOldCompletionCounts()
 	char sQuery[192];
 	FormatEx(sQuery, 192, "UPDATE `%splayertimes` SET completions = completions - 1 WHERE completions > 1;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_FixOldCompletionCounts, DBPrio_High);
+}
+
+void ApplyMigration_AddPrebuiltToMapZonesTable()
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "ALTER TABLE `%smapzones` ADD COLUMN `prebuilt` BOOL;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPrebuiltToMapZonesTable, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)

@@ -96,6 +96,7 @@ enum
 	Migration_AddCustomChatAccess,
 	Migration_AddPlayertimesExactTimeInt,
 	Migration_FixOldCompletionCounts, // old completions accidentally started at 2
+	Migration_AddPrebuiltToMapZonesTable,
 	MIGRATIONS_END
 };
 
