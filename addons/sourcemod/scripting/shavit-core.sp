@@ -4036,17 +4036,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	float fAngle = (angles[1] - gA_Timers[client].fLastAngle);
-
-	while(fAngle > 180.0)
-	{
-		fAngle -= 360.0;
-	}
-
-	while(fAngle < -180.0)
-	{
-		fAngle += 360.0;
-	}
+	float fAngle = GetAngleDiff(angles[1], gA_Timers[client].fLastAngle);
 
 	if(!gA_Timers[client].bPaused && iGroundEntity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
 	{
