@@ -3695,7 +3695,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 #if !DEBUG
-	if (sv_cheats.BoolValue && !(GetUserFlagBits(client) & ADMFLAG_ROOT))
+	if (impulse && sv_cheats.BoolValue && !(GetUserFlagBits(client) & ADMFLAG_ROOT))
 	{
 		// Block cheat impulses
 		switch (impulse)
