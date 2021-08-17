@@ -1503,8 +1503,9 @@ public Action Command_WorldRecord(int client, int args)
 	else
 	{
 		GetCmdArg(1, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
+		LowercaseString(gA_WRCache[client].sClientMap);
 
-		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap)))
+		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap))
 		{
 			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
 			return Plugin_Handled;

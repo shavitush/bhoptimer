@@ -441,6 +441,7 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 	{
 		char sMap[PLATFORM_MAX_PATH];
 		results.FetchString(0, sMap, sizeof(sMap));
+		LowercaseString(sMap);
 
 		int tier = results.FetchInt(1);
 
@@ -564,8 +565,9 @@ public Action Command_Tier(int client, int args)
 	else
 	{
 		GetCmdArgString(sMap, sizeof(sMap));
+		LowercaseString(sMap);
 
-		if(!GuessBestMapName(gA_ValidMaps, sMap, sMap, sizeof(sMap)) || !gA_MapTiers.GetValue(sMap, tier))
+		if(!GuessBestMapName(gA_ValidMaps, sMap, sMap) || !gA_MapTiers.GetValue(sMap, tier))
 		{
 			Shavit_PrintToChat(client, "%t", "Map was not found", sMap);
 			return Plugin_Handled;

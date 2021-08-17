@@ -485,25 +485,23 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	}
 }
 
-stock bool GuessBestMapName(ArrayList maps, const char[] input, char[] output, int size)
+stock bool GuessBestMapName(ArrayList maps, const char input[PLATFORM_MAX_PATH], char output[PLATFORM_MAX_PATH])
 {
 	if(maps.FindString(input) != -1)
 	{
-		strcopy(output, size, input);
-
+		output = input;
 		return true;
 	}
 
-	char sCache[128];
+	char sCache[PLATFORM_MAX_PATH];
 
 	for(int i = 0; i < maps.Length; i++)
 	{
-		maps.GetString(i, sCache, 128);
+		maps.GetString(i, sCache, PLATFORM_MAX_PATH);
 
 		if(StrContains(sCache, input) != -1)
 		{
-			strcopy(output, size, sCache);
-
+			output = sCache;
 			return true;
 		}
 	}
