@@ -1232,7 +1232,6 @@ public int Native_GetReplayCacheLength(Handle handler, int numParams)
 	return view_as<int>(GetReplayLength(gA_BotInfo[index].iStyle,  gA_BotInfo[index].iTrack, gA_BotInfo[index].aCache));
 }
 
-// TODO: Add a native that'd return the replay name of a replay bot... because custom frames...
 public int Native_GetReplayName(Handle handler, int numParams)
 {
 	return SetNativeString(3, gA_FrameCache[GetNativeCell(1)][GetNativeCell(2)].sReplayName, GetNativeCell(4));
@@ -1240,7 +1239,7 @@ public int Native_GetReplayName(Handle handler, int numParams)
 
 public int Native_GetReplayCacheName(Handle plugin, int numParams)
 {
-	return SetNativeString(2, gA_BotInfo[GetNativeCell(1)].aCache.sReplayName, GetNativeCell(3));
+	return SetNativeString(2, gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].aCache.sReplayName, GetNativeCell(3));
 }
 
 public int Native_GetReplayStatus(Handle handler, int numParams)
@@ -2840,42 +2839,29 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 	{
 		if(info.iTick != -1 && info.aCache.iFrameCount >= 1)
 		{
-			if(info.iStatus == Replay_Start)
+			if (info.iStatus == Replay_Start || info.iStatus == Replay_End)
 			{
 				bool bStart = (info.iStatus == Replay_Start);
-
-				int iFrame = (bStart)? 0:(info.aCache.iFrameCount - 1);
+				int iFrame = (bStart) ? 0 : (info.aCache.iFrameCount + info.aCache.iPostFrames + info.aCache.iPreFrames - 1);
 
 				frame_t aFrame;
 				info.aCache.aFrames.GetArray(iFrame, aFrame, 5);
 					
-				if(bStart)
-				{
-					float ang[3];
-					ang[0] = aFrame.ang[0];
-					ang[1] = aFrame.ang[1];
-					TeleportEntity(info.iEnt, aFrame.pos, ang, view_as<float>({0.0, 0.0, 0.0}));
-				}
-				else
-				{
-					float vecVelocity[3];
-					MakeVectorFromPoints(vecCurrentPosition, aFrame.pos, vecVelocity);
-					ScaleVector(vecVelocity, gF_Tickrate);
-					TeleportEntity(info.iEnt, NULL_VECTOR, NULL_VECTOR, vecVelocity);
-				}
+				float ang[3];
+				ang[0] = aFrame.ang[0];
+				ang[1] = aFrame.ang[1];
 
-				return Plugin_Changed;
-			}
-
-			if (info.iStatus == Replay_End)
-			{
+				TeleportEntity(info.iEnt, aFrame.pos, ang, view_as<float>({0.0, 0.0, 0.0}));
 				return Plugin_Changed;
 			}
 
 			info.iTick += info.b2x ? 2 : 1;
 
-			if(info.iTick >= (info.aCache.iFrameCount + info.aCache.iPostFrames + info.aCache.iPreFrames))
+			int limit = (info.aCache.iFrameCount + info.aCache.iPreFrames + info.aCache.iPostFrames);
+
+			if(info.iTick >= limit)
 			{
+				info.iTick = limit;
 				info.iStatus = Replay_End;
 				info.hTimer = CreateTimer((info.fDelay / 2.0), Timer_EndReplay, info.iEnt, TIMER_FLAG_NO_MAPCHANGE);
 
@@ -2952,7 +2938,6 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 							SDKCall(gH_DoAnimationEvent, info.iEnt, jumpAnim, 0);
 						}
 					}
-					
 				}
 
 				if(aFrame.mt == MOVETYPE_LADDER)
@@ -3574,6 +3559,15 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 				if (gA_BotInfo[index].iTick < 0)
 				{
 					gA_BotInfo[index].iTick = 0;
+				}
+				else
+				{
+					int limit = (gA_BotInfo[index].aCache.iFrameCount + gA_BotInfo[index].aCache.iPreFrames + gA_BotInfo[index].aCache.iPostFrames);
+
+					if (gA_BotInfo[index].iTick > limit)
+					{
+						gA_BotInfo[index].iTick = limit;
+					}
 				}
 			}
 
