@@ -239,6 +239,8 @@ DynamicDetour gH_TeamFull = null;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
 int gI_LastReplayFlags[MAXPLAYERS + 1];
+float gF_EyeOffset;
+float gF_EyeOffsetDuck;
 
 // how do i call this
 bool gB_HideNameChange = false;
@@ -386,6 +388,25 @@ public void OnPluginStart()
 	gEV_Type = GetEngineVersion();
 	gF_Tickrate = (1.0 / GetTickInterval());
 
+	switch (gEV_Type)
+	{
+		case Engine_TF2:
+		{
+			gF_EyeOffset = 75.0; // maybe should be a gamedata thing...
+			gF_EyeOffsetDuck = 45.0;
+		}
+		case Engine_CSGO:
+		{
+			gF_EyeOffset = 64.0;
+			gF_EyeOffsetDuck = 46.0;
+		}
+		case Engine_CSS:
+		{
+			gF_EyeOffset = 64.0;
+			gF_EyeOffsetDuck = 47.0;
+		}
+	}
+
 	ConVar bot_stop = FindConVar("bot_stop");
 
 	if (bot_stop != null)
@@ -441,17 +462,6 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		ClearBotInfo(gA_BotInfo[i]);
-
-		// late load
-		if(IsValidClient(i) && !IsFakeClient(i))
-		{
-			OnClientPutInServer(i);
-		}
-	}
-
 	gCV_CentralBot.AddChangeHook(OnConVarChanged);
 	gCV_DynamicBotLimit.AddChangeHook(OnConVarChanged);
 	gCV_AllowPropBots.AddChangeHook(OnConVarChanged);
@@ -488,6 +498,16 @@ public void OnPluginStart()
 	{
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
+	}
+	
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		ClearBotInfo(gA_BotInfo[i]);
+
+		if (gB_Late && IsValidClient(i) && !IsFakeClient(i))
+		{
+			OnClientPutInServer(i);
+		}
 	}
 }
 
@@ -750,7 +770,7 @@ void FinishReplay(bot_info_t info)
 	{
 		if (info.aCache.aFrames != null)
 		{
-			TeleportToStart(info);
+			TeleportToFrame(info, 0);
 		}
 
 		ClearBotInfo(info);
@@ -896,14 +916,20 @@ void StartReplay(bot_info_t info, int track, int style, int starter, float delay
 		info.aCache.aFrames = view_as<ArrayList>(CloneHandle(info.aCache.aFrames));
 	}
 
-	TeleportToStart(info);
+	TeleportToFrame(info, 0);
 	UpdateReplayClient(info.iEnt);
+
+	if (starter > 0 && GetClientTeam(starter) != 1)
+	{
+		ChangeClientTeam(starter, 1);
+	}
 
 	if (starter > 0 && info.iType != Replay_Prop)
 	{
 		gA_BotInfo[starter].iEnt = info.iEnt;
 		// Timer is used because the bot's name is missing and profile pic random if using RequestFrame...
 		// I really have no idea. Even delaying by 5 frames wasn't enough. Broken game.
+		// Maybe would need to be delayed by the player's latency but whatever...
 		// It seems to use early steamids for pfps since I've noticed BAILPAN and EricS 's avatars...
 		CreateTimer(0.2, Timer_SpectateMyBot, GetClientSerial(info.iEnt), TIMER_FLAG_NO_MAPCHANGE);
 	}
@@ -2255,9 +2281,10 @@ public void SQL_GetUserName_Callback(Database db, DBResultSet results, const cha
 
 void ForceObserveProp(int client)
 {
-	if (gA_BotInfo[client].iEnt > 1 && gA_BotInfo[client].iType == Replay_Prop)
+	if (gA_BotInfo[client].iEnt > 1 && gA_BotInfo[client].iType == Replay_Prop && !IsPlayerAlive(client))
 	{
 		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", gA_BotInfo[client].iEnt);
+		SetClientViewEntity(client, gA_BotInfo[client].iEnt);
 	}
 }
 
@@ -2825,9 +2852,6 @@ public void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newt
 
 Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float vel[3])
 {
-	float vecCurrentPosition[3];
-	GetEntPropVector(info.iEnt, Prop_Send, "m_vecOrigin", vecCurrentPosition);
-
 	bool isClient = (1 <= info.iEnt <= MaxClients);
 
 	buttons = 0;
@@ -2843,15 +2867,7 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			{
 				bool bStart = (info.iStatus == Replay_Start);
 				int iFrame = (bStart) ? 0 : (info.aCache.iFrameCount + info.aCache.iPostFrames + info.aCache.iPreFrames - 1);
-
-				frame_t aFrame;
-				info.aCache.aFrames.GetArray(iFrame, aFrame, 5);
-					
-				float ang[3];
-				ang[0] = aFrame.ang[0];
-				ang[1] = aFrame.ang[1];
-
-				TeleportEntity(info.iEnt, aFrame.pos, ang, view_as<float>({0.0, 0.0, 0.0}));
+				TeleportToFrame(info, iFrame);
 				return Plugin_Changed;
 			}
 
@@ -2884,12 +2900,17 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			}
 			else
 			{
-				vecPreviousPos = vecCurrentPosition;
+				GetEntPropVector(info.iEnt, Prop_Send, "m_vecOrigin", vecPreviousPos);
 			}
 
 			frame_t aFrame;
 			info.aCache.aFrames.GetArray(info.iTick, aFrame, (info.aCache.iReplayVersion >= 0x02) ? 8 : 6);
 			buttons = aFrame.buttons;
+
+			if (!isClient)
+			{
+				aFrame.pos[2] += (aFrame.buttons & IN_DUCK) ? gF_EyeOffsetDuck : gF_EyeOffset;
+			}
 
 			if((gCV_BotShooting.IntValue & iBotShooting_Attack1) == 0)
 			{
@@ -3862,14 +3883,19 @@ int GetControllableReplay(int client)
 	return -1;
 }
 
-void TeleportToStart(bot_info_t info)
+void TeleportToFrame(bot_info_t info, int iFrame)
 {
 	frame_t frame;
-	info.aCache.aFrames.GetArray(0, frame, 5);
+	info.aCache.aFrames.GetArray(iFrame, frame, 6);
 
 	float vecAngles[3];
 	vecAngles[0] = frame.ang[0];
 	vecAngles[1] = frame.ang[1];
+
+	if (info.iType == Replay_Prop)
+	{
+		frame.pos[2] += (frame.buttons & IN_DUCK) ? gF_EyeOffsetDuck : gF_EyeOffset;
+	}
 
 	TeleportEntity(info.iEnt, frame.pos, vecAngles, view_as<float>({0.0, 0.0, 0.0}));
 }
@@ -3973,7 +3999,7 @@ void CancelReplay(bot_info_t info, bool update = true)
 
 	if (update)
 	{
-		TeleportToStart(info);
+		TeleportToFrame(info, 0);
 	}
 
 	ClearBotInfo(info);
@@ -4013,6 +4039,7 @@ void KickReplay(bot_info_t info)
 		{
 			// Unset target so we don't get hud errors in the single frame the prop is still alive...
 			SetEntPropEnt(starter, Prop_Send, "m_hObserverTarget", 0);
+			SetClientViewEntity(starter, starter);
 		}
 
 		AcceptEntityInput(info.iEnt, "Kill");
@@ -4069,16 +4096,6 @@ public void OnGameFrame()
 		float vel[3];
 
 		ReplayOnPlayerRunCmd(gA_BotInfo[i], buttons, impulse, vel);
-
-		/*
-		if (!IsPlayerAlive(i))
-		{
-			float pos[3];
-			GetEntPropVector(gA_BotInfo[i].iEnt, Prop_Send, "m_vecOrigin", pos);
-			pos[2] += 64.0;
-			TeleportEntity(i, pos, NULL_VECTOR, NULL_VECTOR);
-		}
-		*/
 	}
 
 	if (!gCV_EnableDynamicTimeDifference.BoolValue)
