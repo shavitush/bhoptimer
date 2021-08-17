@@ -793,6 +793,7 @@ void StopOrRestartBots(int style, int track, bool restart)
 bool UnloadReplay(int style, int track, bool reload, bool restart, const char[] path = "")
 {
 	ClearFrameCache(gA_FrameCache[style][track]);
+	delete gH_ClosestPos[track][style];
 
 	bool loaded = false;
 
@@ -1649,6 +1650,7 @@ public void OnMapStart()
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			ClearFrameCache(gA_FrameCache[i][j]);
+			delete gH_ClosestPos[j][i];
 			DefaultLoadReplay(gA_FrameCache[i][j], i, j);
 		}
 
