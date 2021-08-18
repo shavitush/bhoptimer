@@ -227,39 +227,17 @@ public void Shavit_OnDatabaseLoaded()
 
 	gH_SQL.Query(SQL_Version_Callback, "SELECT VERSION();");
 
-	char sQuery[256];
-	FormatEx(sQuery, 256, "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
+	char sQuery[2048];
+	Transaction2 hTrans = new Transaction2();
 
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery, 0);
-}
+	FormatEx(sQuery, sizeof(sQuery), "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
+	hTrans.AddQuery(sQuery);
 
-public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (rankings) error! Map tiers table creation failed. Reason: %s", error);
+	hTrans.AddQuery("DROP PROCEDURE IF EXISTS UpdateAllPoints;;"); // old (and very slow) deprecated method
+	hTrans.AddQuery("DROP FUNCTION IF EXISTS GetWeightedPoints;;"); // this is here, just in case we ever choose to modify or optimize the calculation
+	hTrans.AddQuery("DROP FUNCTION IF EXISTS GetRecordPoints;;");
 
-		return;
-	}
-
-	#if defined DEBUG
-	PrintToServer("DEBUG: 0 (SQL_CreateTable_Callback)");
-	#endif
-
-	if(gI_Styles == 0)
-	{
-		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
-	}
-
-	SQL_LockDatabase(gH_SQL);
-	SQL_FastQuery(gH_SQL, "DELIMITER ;;");
-	SQL_FastQuery(gH_SQL, "DROP PROCEDURE IF EXISTS UpdateAllPoints;;"); // old (and very slow) deprecated method
-	SQL_FastQuery(gH_SQL, "DROP FUNCTION IF EXISTS GetWeightedPoints;;"); // this is here, just in case we ever choose to modify or optimize the calculation
-	SQL_FastQuery(gH_SQL, "DROP FUNCTION IF EXISTS GetRecordPoints;;");
-
-	bool bSuccess = true;
-
-	RunLongFastQuery(bSuccess, "CREATE GetWeightedPoints",
+	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE FUNCTION GetWeightedPoints(steamid INT) " ...
 		"RETURNS FLOAT " ...
 		"READS SQL DATA " ...
@@ -282,8 +260,9 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		"CLOSE cur; " ...
 		"RETURN total; " ...
 		"END;;", gS_MySQLPrefix, gCV_WeightingMultiplier.FloatValue);
+	hTrans.AddQuery(sQuery);
 
-	RunLongFastQuery(bSuccess, "CREATE GetRecordPoints",
+	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE FUNCTION GetRecordPoints(rstyle INT, rtrack INT, rtime FLOAT, rmap VARCHAR(128), pointspertier FLOAT, stylemultiplier FLOAT, pwr FLOAT) " ...
 		"RETURNS FLOAT " ...
 		"READS SQL DATA " ...
@@ -298,13 +277,21 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 		"IF rtrack > 0 THEN SET ppoints = ppoints * 0.25; END IF; " ...
 		"RETURN ppoints; " ...
 		"END;;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+	hTrans.AddQuery(sQuery);
 
-	SQL_FastQuery(gH_SQL, "DELIMITER ;");
-	SQL_UnlockDatabase(gH_SQL);
+	gH_SQL.Execute(hTrans, Trans_RankingsSetupSuccess, Trans_RankingsSetupError, 0, DBPrio_High);
+}
 
-	if(!bSuccess)
+public void Trans_RankingsSetupError(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (rankings) error %d/%d. Reason: %s", failIndex, numQueries, error);
+}
+
+public void Trans_RankingsSetupSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	if(gI_Styles == 0)
 	{
-		return;
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 	}
 
 	OnMapStart();
@@ -318,21 +305,6 @@ public void SQL_CreateTable_Callback(Database db, DBResultSet results, const cha
 				OnClientConnected(i);
 			}
 		}
-	}
-}
-
-void RunLongFastQuery(bool &success, const char[] func, const char[] query, any ...)
-{
-	char sQuery[2048];
-	VFormat(sQuery, 2048, query, 4);
-
-	if(!SQL_FastQuery(gH_SQL, sQuery))
-	{
-		char sError[255];
-		SQL_GetError(gH_SQL, sError, 255);
-		LogError("Timer (rankings, %s) error! Reason: %s", func, sError);
-
-		success = false;
 	}
 }
 
