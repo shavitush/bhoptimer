@@ -40,7 +40,7 @@
 bool gB_Rankings = false;
 
 // database handle
-Database gH_SQL = null;
+Database2 gH_SQL = null;
 char gS_MySQLPrefix[32];
 
 // cache
@@ -109,7 +109,7 @@ public void OnPluginStart()
 
 	// database
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle();
+	gH_SQL = GetTimerDatabaseHandle2();
 
 	if(gB_Late)
 	{

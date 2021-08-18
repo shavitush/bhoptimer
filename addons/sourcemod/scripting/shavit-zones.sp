@@ -40,7 +40,7 @@
 
 EngineVersion gEV_Type = Engine_Unknown;
 
-Database gH_SQL = null;
+Database2 gH_SQL = null;
 bool gB_Connected = false;
 bool gB_MySQL = false;
 bool gB_InsertedPrebuiltZones = false;
@@ -3240,10 +3240,10 @@ void CreateZonePoints(float point[8][3], float offset = 0.0)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle();
+	gH_SQL = GetTimerDatabaseHandle2();
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
-	Transaction hTransaction = new Transaction();
+	Transaction2 hTransaction = new Transaction2();
 
 	char sQuery[1024];
 	FormatEx(sQuery, 1024,

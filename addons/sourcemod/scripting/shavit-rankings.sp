@@ -66,7 +66,7 @@ enum struct ranking_t
 }
 
 char gS_MySQLPrefix[32];
-Database gH_SQL = null;	
+Database2 gH_SQL = null;	
 bool gB_HasSQLRANK = false; // whether the sql driver supports RANK()
 
 bool gB_Stats = false;
@@ -218,7 +218,7 @@ public void OnLibraryRemoved(const char[] name)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle();
+	gH_SQL = GetTimerDatabaseHandle2();
 
 	if(!IsMySQLDatabase(gH_SQL))
 	{
@@ -743,7 +743,7 @@ public Action Command_RecalcAll(int client, int args)
 {
 	ReplyToCommand(client, "- Started recalculating points for all maps. Check console for output.");
 
-	Transaction trans = new Transaction();
+	Transaction2 trans = new Transaction2();
 	char sQuery[1024];
 
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0;", gS_MySQLPrefix);

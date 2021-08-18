@@ -81,7 +81,7 @@ DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
 Handle gH_PhysicsCheckForEntityUntouch;
 
 // database handle
-Database gH_SQL = null;
+Database2 gH_SQL = null;
 bool gB_MySQL = false;
 int gI_MigrationsRequired;
 int gI_MigrationsFinished;
@@ -2995,7 +2995,7 @@ bool LoadMessages()
 void SQL_DBConnect()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle();
+	gH_SQL = GetTimerDatabaseHandle2();
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	// support unicode names
@@ -3193,7 +3193,7 @@ public void SQL_TableMigrationIPAddresses_Callback(Database db, DBResultSet resu
 		return;
 	}
 
-	Transaction hTransaction = new Transaction();
+	Transaction2 hTransaction = new Transaction2();
 	int iQueries = 0;
 
 	while(results.FetchRow())

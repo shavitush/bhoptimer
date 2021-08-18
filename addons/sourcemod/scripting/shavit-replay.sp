@@ -286,7 +286,7 @@ TopMenu gH_AdminMenu = null;
 TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // database related things
-Database gH_SQL = null;
+Database2 gH_SQL = null;
 char gS_MySQLPrefix[32];
 
 bool gB_ClosestPos;
@@ -488,7 +488,7 @@ public void OnPluginStart()
 
 	// database
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle();
+	gH_SQL = GetTimerDatabaseHandle2();
 
 	LoadDHooks();
 

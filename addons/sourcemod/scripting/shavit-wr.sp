@@ -58,7 +58,7 @@ Handle gH_OnWorstRecord = null;
 Handle gH_OnFinishMessage = null;
 
 // database handle
-Database gH_SQL = null;
+Database2 gH_SQL = null;
 bool gB_Connected = false;
 bool gB_MySQL = false;
 
@@ -2144,11 +2144,11 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle();
+	gH_SQL = GetTimerDatabaseHandle2();
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	char sQuery[1024];
-	Transaction hTransaction = new Transaction();
+	Transaction2 hTransaction = new Transaction2();
 
 	if(gB_MySQL)
 	{

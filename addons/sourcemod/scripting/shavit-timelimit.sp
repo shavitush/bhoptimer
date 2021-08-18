@@ -36,7 +36,7 @@
 // #define DEBUG
 
 // database handle
-Database gH_SQL = null;
+Database2 gH_SQL = null;
 
 // base cvars
 ConVar mp_do_warmup_period = null;
@@ -113,7 +113,7 @@ public void OnPluginStart()
 	Convar.AutoExecConfig();
 
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle();
+	gH_SQL = GetTimerDatabaseHandle2();
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)

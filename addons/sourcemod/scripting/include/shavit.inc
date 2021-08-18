@@ -44,6 +44,8 @@
 #define HUD_NOSOUNDS			(1 << 11) // disables sounds on personal best, world record etc
 #define HUD_NOPRACALERT			(1 << 12) // hides practice mode chat alert
 
+#define SHAVIT_LOG_QUERIES 0
+
 // status
 enum TimerStatus
 {
@@ -250,6 +252,56 @@ enum struct frame_cache_t
 	float fTickrate;
 }
 
+stock void Shavit_LogQuery(const char[] query)
+{
+#if SHAVIT_LOG_QUERIES
+	static File hLogFile;
+
+	if (hLogFile == null)
+	{
+		char sPlugin[PLATFORM_MAX_PATH];
+		GetPluginFilename(INVALID_HANDLE, sPlugin, sizeof(sPlugin));
+		ReplaceString(sPlugin, PLATFORM_MAX_PATH, ".smx", "");
+		ReplaceString(sPlugin, PLATFORM_MAX_PATH, "\\", "/");
+
+		int start = FindCharInString(sPlugin, '/', true);
+
+		char sFilename[PLATFORM_MAX_PATH];
+		BuildPath(Path_SM, sFilename, sizeof(sFilename), "logs/%s_sql.log", sPlugin[start+1]);
+
+		hLogFile = OpenFile(sFilename, "a");
+	}
+
+	if (hLogFile)
+	{
+		LogToOpenFileEx(hLogFile, "%s", query);
+	}
+#endif
+}
+
+methodmap Database2 < Database
+{
+	public void Query(SQLQueryCallback callback, const char[] query, any data = 0, DBPriority prio = DBPrio_Normal)
+	{
+		Shavit_LogQuery(query);
+		this.Query(callback, query, data, prio);
+	}
+}
+
+methodmap Transaction2 < Transaction
+{
+	public Transaction2()
+	{
+		return view_as<Transaction2>(new Transaction());
+	}
+
+	public int AddQuery(const char[] query, any data = 0)
+	{
+		Shavit_LogQuery(query);
+		return this.AddQuery(query, data);
+	}
+}
+
 #if defined USES_CHAT_COLORS
 // hardcoded colors
 char gS_GlobalColorNames[][] =
@@ -321,6 +373,11 @@ stock Database GetTimerDatabaseHandle()
 	}
 
 	return db;
+}
+
+stock Database2 GetTimerDatabaseHandle2()
+{
+	return view_as<Database2>(GetTimerDatabaseHandle());
 }
 
 // figures out if the database is a mysql database
