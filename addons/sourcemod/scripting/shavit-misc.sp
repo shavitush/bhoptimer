@@ -2418,6 +2418,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		else if(StrEqual(sInfo, "reset"))
 		{
 			ConfirmCheckpointsDeleteMenu(param1);
+			gB_InCheckpointMenu[param1] = false;
 
 			return 0;
 		}
