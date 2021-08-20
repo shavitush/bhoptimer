@@ -321,6 +321,31 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
+void ResetWRs()
+{
+	gSM_WRNames.Clear();
+
+	any empty_cells[TRACKS_SIZE];
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		gF_WRTime[i] = empty_cells;
+		gI_WRRecordID[i] = empty_cells;
+		gI_WRSteamID[i] = empty_cells;
+	}
+}
+
+void ResetLeaderboards()
+{
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			gA_Leaderboard[i][j].Clear();
+		}
+	}
+}
+
 public void OnMapStart()
 {
 	if(!gB_Connected)
@@ -346,6 +371,12 @@ public void OnMapStart()
 			OnClientAuthorized(i, "");
 		}
 	}
+}
+
+public void OnMapEnd()
+{
+	ResetWRs();
+	ResetLeaderboards();
 }
 
 public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -489,6 +520,8 @@ void UpdateWRCache(int client = -1)
 
 	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, client);
 
+	UpdateLeaderboards();
+
 	if (client != -1)
 	{
 		return;
@@ -510,14 +543,7 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		return;
 	}
 
-	gSM_WRNames.Clear();
-
-	// reset cache
-	for(int i = 0; i < gI_Styles; i++)
-	{
-		float empty_times[TRACKS_SIZE];
-		gF_WRTime[i] = empty_times;
-	}
+	ResetWRs();
 
 	// setup cache again, dynamically and not hardcoded
 	while(results.FetchRow())
@@ -542,8 +568,6 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 		gSM_WRNames.SetString(sSteamID, sName, false);
 	}
-
-	UpdateLeaderboards();
 }
 
 public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1145,8 +1169,6 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 		gA_WRCache[param1].iLastStyle = StringToInt(info);
 
 		OpenDelete(param1);
-
-		UpdateLeaderboards();
 	}
 
 	else if(action == MenuAction_End)
@@ -2522,13 +2544,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 		return;
 	}
 
-	for(int i = 0; i < gI_Styles; i++)
-	{
-		for(int j = 0; j < TRACKS_SIZE; j++)
-		{
-			gA_Leaderboard[i][j].Clear();
-		}
-	}
+	ResetLeaderboards();
 
 	while(results.FetchRow())
 	{
@@ -2545,7 +2561,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if(i >= gI_Styles || Shavit_GetStyleSettingInt(i, "unranked"))
+		if (Shavit_GetStyleSettingInt(i, "unranked"))
 		{
 			continue;
 		}
