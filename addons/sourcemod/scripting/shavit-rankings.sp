@@ -225,6 +225,14 @@ public void Shavit_OnDatabaseLoaded()
 		SetFailState("MySQL is the only supported database engine for shavit-rankings.");
 	}
 
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i) && IsClientAuthorized(i))
+		{
+			OnClientAuthorized(i, "");
+		}
+	}
+
 	gH_SQL.Query(SQL_Version_Callback, "SELECT VERSION();");
 
 	char sQuery[2048];
@@ -295,17 +303,6 @@ public void Trans_RankingsSetupSuccess(Database db, any data, int numQueries, DB
 	}
 
 	OnMapStart();
-
-	if(gB_Late)
-	{
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			if (IsValidClient(i))
-			{
-				OnClientConnected(i);
-			}
-		}
-	}
 }
 
 public void OnClientConnected(int client)
@@ -316,7 +313,7 @@ public void OnClientConnected(int client)
 
 public void OnClientAuthorized(int client)
 {
-	if(!IsFakeClient(client))
+	if (gH_SQL && !IsFakeClient(client))
 	{
 		if (gB_WRsRefreshed)
 		{

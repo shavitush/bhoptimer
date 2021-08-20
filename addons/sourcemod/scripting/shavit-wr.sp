@@ -410,7 +410,7 @@ public void OnClientConnected(int client)
 
 public void OnClientAuthorized(int client)
 {
-	if (!IsFakeClient(client))
+	if (gB_Connected && !IsFakeClient(client))
 	{
 		UpdateClientCache(client);
 	}
