@@ -687,7 +687,10 @@ public void OnClientDisconnect(int client)
 
 public void OnClientPostAdminCheck(int client)
 {
-	LoadFromDatabase(client);
+	if (gH_SQL)
+	{
+		LoadFromDatabase(client);
+	}
 }
 
 public Action Command_CCHelp(int client, int args)
