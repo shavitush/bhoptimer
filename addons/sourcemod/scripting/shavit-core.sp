@@ -1345,7 +1345,7 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, boo
 
 	float fNewTimescale = GetStyleSettingFloat(newstyle, "timescale");
 
-	if (gA_Timers[client].fTimescale != fNewTimescale)
+	if (gA_Timers[client].fTimescale != fNewTimescale && fNewTimescale > 0.0)
 	{
 		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, fNewTimescale);
 		gA_Timers[client].fTimescale = fNewTimescale;
@@ -2169,7 +2169,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	gA_Timers[client].fDistanceOffset = snapshot.fDistanceOffset;
 	gA_Timers[client].fAvgVelocity = snapshot.fAvgVelocity;
 	gA_Timers[client].fMaxVelocity = snapshot.fMaxVelocity;
-	gA_Timers[client].fTimescale = snapshot.fTimescale;
+	gA_Timers[client].fTimescale = (snapshot.fTimescale > 0.0) ? snapshot.fTimescale : 1.0;
 	gA_Timers[client].iZoneIncrement = snapshot.iZoneIncrement;
 	gA_Timers[client].fTimescaledTicks = snapshot.fTimescaledTicks;
 
@@ -2215,7 +2215,7 @@ public int Native_SetClientTimescale(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	float timescale = GetNativeCell(2);
 
-	if(timescale != gA_Timers[client].fTimescale)
+	if (timescale != gA_Timers[client].fTimescale && timescale > 0.0)
 	{
 		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, timescale);
 		gA_Timers[client].fTimescale = timescale;
@@ -2821,6 +2821,11 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	if(GetStyleSettingBool(gI_CurrentParserIndex, "halftime"))
 	{
 		gSM_StyleKeys[gI_CurrentParserIndex].SetString("timescale", "0.5");
+	}
+
+	if (GetStyleSettingFloat(gI_CurrentParserIndex, "timescale") <= 0.0)
+	{
+		gSM_StyleKeys[gI_CurrentParserIndex].SetString("timescale", "1.0");
 	}
 
 	// Setting it here so that we can reference the timescale setting.
@@ -3690,7 +3695,7 @@ void BuildSnapshot(int client, timer_snapshot_t snapshot)
 	snapshot.fDistanceOffset = gA_Timers[client].fDistanceOffset;
 	snapshot.fAvgVelocity = gA_Timers[client].fAvgVelocity;
 	snapshot.fMaxVelocity = gA_Timers[client].fMaxVelocity;
-	snapshot.fTimescale = gA_Timers[client].fTimescale;
+	snapshot.fTimescale = (gA_Timers[client].fTimescale > 0.0) ? gA_Timers[client].fTimescale : 1.0;
 	snapshot.iZoneIncrement = gA_Timers[client].iZoneIncrement;
 	snapshot.fTimescaledTicks = gA_Timers[client].fTimescaledTicks;
 }
