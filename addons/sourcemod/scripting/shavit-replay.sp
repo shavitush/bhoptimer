@@ -2479,6 +2479,16 @@ void RemoveAllWeapons(int client)
 	}
 }
 
+void Frame_UpdateReplayClient(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if (client > 0)
+	{
+		UpdateReplayClient(client);
+	}
+}
+
 void UpdateReplayClient(int client)
 {
 	// Only run on fakeclients
@@ -4004,9 +4014,9 @@ void CancelReplay(bot_info_t info, bool update = true)
 
 	ClearBotInfo(info);
 
-	if (update)
+	if (update && 1 <= info.iEnt <= MaxClients)
 	{
-		UpdateReplayClient(info.iEnt);
+		RequestFrame(Frame_UpdateReplayClient, GetClientSerial(info.iEnt));
 	}
 }
 
