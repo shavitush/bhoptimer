@@ -610,6 +610,28 @@ stock float GetAngleDiff(float current, float previous)
 	return diff - 360.0 * RoundToFloor((diff + 180.0) / 360.0);
 }
 
+// https://forums.alliedmods.net/showthread.php?t=216841
+// Trims display string to specified max possible length, and prepends "..." if initial string exceeds that length
+stock void TrimDisplayString(const char[] str, char[] outstr, int outstrlen, int max_allowed_length)
+{
+	int count, finallen;
+	for(int i = 0; str[i]; i++)
+	{
+		count += ((str[i] & 0xc0) != 0x80) ? 1 : 0;
+		
+		if(count <= max_allowed_length)
+		{
+			outstr[i] = str[i];
+			finallen = i;
+		}
+	}
+	
+	outstr[finallen + 1] = '\0';
+	
+	if(count > max_allowed_length)
+		Format(outstr, outstrlen, "%s...", outstr);
+}
+
 /**
  * Called before shavit-core processes the client's usercmd.
  * Before this is called, safety checks (fake/dead clients) happen.

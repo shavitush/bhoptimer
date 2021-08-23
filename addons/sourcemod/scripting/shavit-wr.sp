@@ -1883,12 +1883,8 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		results.FetchString(1, sMap, sizeof(sMap));
 
 		char sName[MAX_NAME_LENGTH];
-		results.FetchString(2, sName, 10);
-
-		if(strlen(sName) >= 9)
-		{
-			Format(sName, MAX_NAME_LENGTH, "%s...", sName);
-		}
+		results.FetchString(2, sName, sizeof(sName));
+		TrimDisplayString(sName, sName, sizeof(sName), 9);
 
 		char sTime[16];
 		float fTime = results.FetchFloat(3);
