@@ -1741,7 +1741,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 			GetClientName(iSpectatorClients[i], sName, sizeof(sName));
 			ReplaceString(sName, sizeof(sName), "#", "?");
-			TrimPlayerName(sName, sName, sizeof(sName));
+			TrimDisplayString(sName, sName, sizeof(sName), gCV_SpecNameSymbolLength.IntValue);
 
 			panel.DrawItem(sName, ITEMDRAW_RAWLINE);
 		}
@@ -1946,7 +1946,7 @@ void UpdateKeyHint(int client)
 
 						GetClientName(iSpectatorClients[i], sName, sizeof(sName));
 						ReplaceString(sName, sizeof(sName), "#", "?");
-						TrimPlayerName(sName, sName, sizeof(sName));
+						TrimDisplayString(sName, sName, sizeof(sName), gCV_SpecNameSymbolLength.IntValue);
 						Format(sMessage, 256, "%s\n%s", sMessage, sName);
 					}
 				}
@@ -2044,25 +2044,3 @@ void PrintCSGOHUDText(int client, const char[] str)
 	
 	EndMessage();
 }
-
-// https://forums.alliedmods.net/showthread.php?t=216841
-void TrimPlayerName(const char[] name, char[] outname, int len)
-{
-	int count, finallen;
-	for(int i = 0; name[i]; i++)
-	{
-		count += ((name[i] & 0xc0) != 0x80) ? 1 : 0;
-		
-		if(count <= gCV_SpecNameSymbolLength.IntValue)
-		{
-			outname[i] = name[i];
-			finallen = i;
-		}
-	}
-	
-	outname[finallen + 1] = '\0';
-	
-	if(count > gCV_SpecNameSymbolLength.IntValue)
-		Format(outname, len, "%s...", outname);
-}
-
