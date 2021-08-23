@@ -1883,12 +1883,8 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		results.FetchString(1, sMap, sizeof(sMap));
 
 		char sName[MAX_NAME_LENGTH];
-		results.FetchString(2, sName, 10);
-
-		if(strlen(sName) >= 9)
-		{
-			Format(sName, MAX_NAME_LENGTH, "%s...", sName);
-		}
+		results.FetchString(2, sName, sizeof(sName));
+		TrimPlayerName(sName, sName, sizeof(sName), 9);
 
 		char sTime[16];
 		float fTime = results.FetchFloat(3);
@@ -2649,4 +2645,25 @@ int GetRankForTime(int style, float time, int track)
 float ExactTimeMaybe(float time, int exact_time)
 {
 	return (exact_time != 0) ? view_as<float>(exact_time) : time;
+}
+
+// https://forums.alliedmods.net/showthread.php?t=216841
+void TrimPlayerName(const char[] name, char[] outname, int len, int total_allowed_length)
+{
+	int count, finallen;
+	for(int i = 0; name[i]; i++)
+	{
+		count += ((name[i] & 0xc0) != 0x80) ? 1 : 0;
+		
+		if(count <= total_allowed_length)
+		{
+			outname[i] = name[i];
+			finallen = i;
+		}
+	}
+	
+	outname[finallen + 1] = '\0';
+	
+	if(count > total_allowed_length)
+		Format(outname, len, "%s...", outname);
 }
