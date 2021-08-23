@@ -611,7 +611,7 @@ stock float GetAngleDiff(float current, float previous)
 }
 
 // https://forums.alliedmods.net/showthread.php?t=216841
-// Trims display string to specified max possible length, and prepends "..." if initial string exceeds that length
+// Trims display string to specified max possible length, and appends "..." if initial string exceeds that length
 stock void TrimDisplayString(const char[] str, char[] outstr, int outstrlen, int max_allowed_length)
 {
 	int count, finallen;
