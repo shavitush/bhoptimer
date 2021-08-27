@@ -376,7 +376,6 @@ public void OnMapStart()
 public void OnMapEnd()
 {
 	ResetWRs();
-	ResetLeaderboards();
 }
 
 public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -405,13 +404,28 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
-	for(int i = 0; i < styles; i++)
+	for(int i = 0; i < STYLE_LIMIT; i++)
 	{
-		Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
-
-		for(int j = 0; j < TRACKS_SIZE; j++)
+		if (i < styles)
 		{
-			gA_Leaderboard[i][j] = new ArrayList();
+			Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
+		}
+
+		for (int j = 0; j < TRACKS_SIZE; j++)
+		{
+			if (i < styles)
+			{
+				if (gA_Leaderboard[i][j] == null)
+				{
+					gA_Leaderboard[i][j] = new ArrayList();
+				}
+
+				gA_Leaderboard[i][j].Clear();
+			}
+			else
+			{
+				delete gA_Leaderboard[i][j];
+			}
 		}
 	}
 
