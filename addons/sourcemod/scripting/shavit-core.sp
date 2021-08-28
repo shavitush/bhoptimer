@@ -129,6 +129,7 @@ float gF_Fraction[MAXPLAYERS + 1];
 // cookies
 Handle gH_StyleCookie = null;
 Handle gH_AutoBhopCookie = null;
+Cookie gH_IHateMain = null;
 
 // late load
 bool gB_Late = false;
@@ -352,6 +353,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_restart", Command_StartTimer, "Start your timer.");
 	RegConsoleCmd("sm_m", Command_StartTimer, "Start your timer on the main track.");
 	RegConsoleCmd("sm_main", Command_StartTimer, "Start your timer on the main track.");
+	RegConsoleCmd("sm_ihate!main", Command_IHateMain, "If you really hate !main :(((");
+	gH_IHateMain = new Cookie("shavit_mainhater", "If you really hate !main :(((", CookieAccess_Protected);
 
 	RegConsoleCmd("sm_b", Command_StartTimer, "Start your timer on the bonus track.");
 	RegConsoleCmd("sm_bonus", Command_StartTimer, "Start your timer on the bonus track.");
@@ -732,7 +735,7 @@ public Action Command_StartTimer(int client, int args)
 	}
 	else if(StrContains(sCommand, "sm_r", false) == 0 || StrContains(sCommand, "sm_s", false) == 0)
 	{
-		track = gA_Timers[client].iTrack;
+		track = (DoIHateMain(client)) ? Track_Main : gA_Timers[client].iTrack;
 
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_OnRestartPre);
@@ -763,7 +766,6 @@ public Action Command_StartTimer(int client, int args)
 			StartTimer(client, track);
 		}
 	}
-
 	else
 	{
 		char sTrack[32];
@@ -771,6 +773,27 @@ public Action Command_StartTimer(int client, int args)
 
 		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTrack, gS_ChatStrings.sText);
 	}
+
+	return Plugin_Handled;
+}
+
+bool DoIHateMain(int client)
+{
+	char data[2];
+	gH_IHateMain.Get(client, data, sizeof(data));
+	return (data[0] == '1');
+}
+
+public Action Command_IHateMain(int client, int args)
+{
+	if (!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	bool bIHateMain = DoIHateMain(client);
+	gH_IHateMain.Set(client, (bIHateMain) ? "0" : "1");
+	Shavit_PrintToChat(client, (bIHateMain) ? ":)" : ":(");
 
 	return Plugin_Handled;
 }
@@ -1322,9 +1345,9 @@ void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 	Call_PushCell(newtrack);
 	Call_Finish();
 
-	if (oldtrack == Track_Main && oldtrack != newtrack)
+	if (oldtrack == Track_Main && oldtrack != newtrack && !DoIHateMain(client))
 	{
-		Shavit_PrintToChat(client, "%T", "TrackChangeFromMain", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+		Shavit_PrintToChat(client, "%T", "TrackChangeFromMain", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
 }
 
