@@ -1555,7 +1555,7 @@ bool LoadStyling()
 void CreateAllNavFiles()
 {
 	StringMap mapList = new StringMap();
-	DirectoryListing dir = OpenDirectory("maps");
+	DirectoryListing dir = OpenDirectory("maps", true);
 
 	if (dir == null)
 	{
