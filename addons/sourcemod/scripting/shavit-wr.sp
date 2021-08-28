@@ -193,14 +193,6 @@ public void OnPluginStart()
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
 		Shavit_OnDatabaseLoaded();
-
-		for(int i = 1; i <= MaxClients; i++)
-		{
-			if(IsValidClient(i))
-			{
-				OnClientConnected(i);
-			}
-		}
 	}
 }
 
@@ -490,6 +482,8 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 	{
 		return;
 	}
+
+	OnClientConnected(client);
 
 	while(results.FetchRow())
 	{
@@ -1452,6 +1446,17 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 	if(bWRDeleted)
 	{
 		DeleteWR(iStyle, iTrack, sMap, iSteamID, iRecordID, false, true);
+	}
+	else
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i) && GetSteamAccountID(i) == iSteamID)
+			{
+				UpdateClientCache(i);
+				break;
+			}
+		}
 	}
 
 	int client = GetClientFromSerial(iSerial);
