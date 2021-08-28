@@ -288,7 +288,7 @@ public void OnPluginStart()
 	gH_Forwards_StageMessage = CreateGlobalForward("Shavit_OnStageMessage", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
 	// cvars and stuff
-	gCV_Interval = new Convar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.5, true, 5.0);
+	gCV_Interval = new Convar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.25, true, 5.0);
 	gCV_TeleportToStart = new Convar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = new Convar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_UseCustomSprite = new Convar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -3057,7 +3057,7 @@ public Action Timer_DrawEverything(Handle Timer)
 			{
 				DrawZone(gV_MapZones_Visual[i],
 						GetZoneColors(type, track),
-						RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame) * gCV_Interval.FloatValue,
+						RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame + 1.0) * gCV_Interval.FloatValue,
 						gA_ZoneSettings[type][track].fWidth,
 						gA_ZoneSettings[type][track].bFlatZone,
 						gV_ZoneCenter[i],
@@ -3207,7 +3207,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 			float eyes[3];
 			GetClientEyePosition(i, eyes);
 
-			if(GetVectorDistance(eyes, center) <= 1024.0 ||
+			if(GetVectorDistance(eyes, center) <= 2048.0 ||
 				(TR_TraceRayFilter(eyes, center, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit()))
 			{
 				clients[count++] = i;
