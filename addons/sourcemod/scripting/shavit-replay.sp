@@ -344,6 +344,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StartReplayFromFrameCache", Native_StartReplayFromFrameCache);
 	CreateNative("Shavit_StartReplayFromFile", Native_StartReplayFromFile);
 	CreateNative("Shavit_GetLoopingBotByName", Native_GetLoopingBotByName);
+	CreateNative("Shavit_SetReplayCacheName", Native_SetReplayCacheName);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-replay");
@@ -1442,6 +1443,17 @@ public int Native_GetLoopingBotByName(Handle plugin, int numParams)
 			return i;
 		}
 	}
+
+	return 0;
+}
+
+public int Native_SetReplayCacheName(Handle plugin, int numParams)
+{
+	char name[MAX_NAME_LENGTH];
+	GetNativeString(2, name, sizeof(name));
+
+	int index = GetBotInfoIndex(GetNativeCell(1));
+	gA_BotInfo[index].aCache.sReplayName = name;
 
 	return 0;
 }

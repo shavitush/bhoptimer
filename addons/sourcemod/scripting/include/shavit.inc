@@ -2122,6 +2122,15 @@ native ArrayList Shavit_GetReplayData(int client, bool cheapCloneHandle=false);
 native bool Shavit_IsReplayEntity(int ent);
 
 /**
+ * Sets the sReplayName value in the bot's frame_cache_t.
+ * Useful for `Shavit_StartReplayFromFile` and family.
+ *
+ * @param bot                       The replay bot entity.
+ * @param name                      The name to use.
+ */
+native void Shavit_SetReplayCacheName(int bot, char[] name);
+
+/**
  * Starts a replay given a style and track. 
  *
  * @param style						Bhop style.
@@ -2689,5 +2698,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayCachePreFrames");
 	MarkNativeAsOptional("Shavit_GetReplayCachePostFrames");
 	MarkNativeAsOptional("Shavit_GetLoopingBotByName");
+	MarkNativeAsOptional("Shavit_SetReplayCacheName");
 }
 #endif
