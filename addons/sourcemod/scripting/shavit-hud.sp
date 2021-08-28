@@ -1723,11 +1723,9 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 	{
 		char sName[MAX_NAME_LENGTH];
 		char sSpectators[32];
-		char sSpectatorsPersonal[32];
-		char sSpectatorWatching[32];
-		FormatEx(sSpectatorsPersonal, 32, "%T", "SpectatorPersonal", client);
-		FormatEx(sSpectatorWatching, 32, "%T", "SpectatorWatching", client);
-		FormatEx(sSpectators, 32, "%s (%d):", (client == target)? sSpectatorsPersonal:sSpectatorWatching, iSpectators);
+		FormatEx(sSpectators, sizeof(sSpectators), "%T (%d):",
+			(client == target) ? "SpectatorPersonal" : "SpectatorWatching", client,
+			iSpectators);
 		panel.DrawItem(sSpectators, ITEMDRAW_RAWLINE);
 
 		for(int i = 0; i < iSpectators; i++)
