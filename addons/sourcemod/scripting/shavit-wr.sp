@@ -35,6 +35,7 @@ enum struct wrcache_t
 {
 	int iLastStyle;
 	int iLastTrack;
+	int iPagePosition;
 	bool bPendingMenu;
 	char sClientMap[PLATFORM_MAX_PATH];
 	float fWRs[STYLE_LIMIT];
@@ -1617,7 +1618,7 @@ public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const 
 	ShowWRStyleMenu(client);
 }
 
-void ShowWRStyleMenu(int client)
+void ShowWRStyleMenu(int client, int first_item=0)
 {
 	Menu menu = new Menu(MenuHandler_StyleChooser);
 	menu.SetTitle("%T", "WRMenuTitle", client);
@@ -1663,7 +1664,7 @@ void ShowWRStyleMenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.DisplayAt(client, first_item, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, int param2)
@@ -1688,6 +1689,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 		}
 
 		gA_WRCache[param1].iLastStyle = iStyle;
+		gA_WRCache[param1].iPagePosition = GetMenuSelectionPosition();
 
 		StartWRMenu(param1, gA_WRCache[param1].sClientMap, iStyle, gA_WRCache[param1].iLastTrack);
 	}
@@ -1844,7 +1846,7 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		ShowWRStyleMenu(param1);
+		ShowWRStyleMenu(param1, gA_WRCache[param1].iPagePosition);
 	}
 
 	else if(action == MenuAction_End)
