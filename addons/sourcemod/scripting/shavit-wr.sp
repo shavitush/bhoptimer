@@ -36,6 +36,7 @@ enum struct wrcache_t
 	int iLastStyle;
 	int iLastTrack;
 	int iPagePosition;
+	bool bForceStyle;
 	bool bPendingMenu;
 	char sClientMap[PLATFORM_MAX_PATH];
 	float fWRs[STYLE_LIMIT];
@@ -65,6 +66,7 @@ bool gB_MySQL = false;
 
 // cache
 wrcache_t gA_WRCache[MAXPLAYERS+1];
+StringMap gSM_StyleCommands = null;
 
 char gS_Map[PLATFORM_MAX_PATH];
 ArrayList gA_ValidMaps = null;
@@ -150,6 +152,7 @@ public void OnPluginStart()
 	#endif
 
 	gSM_WRNames = new StringMap();
+	gSM_StyleCommands = new StringMap();
 
 	// forwards
 	gH_OnWorldRecord = CreateGlobalForward("Shavit_OnWorldRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
@@ -395,6 +398,36 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 	SortADTArray(gA_ValidMaps, Sort_Ascending, Sort_String);
 }
 
+void RegisterWRCommands(int style)
+{
+	char sStyleCommands[32][32];
+	int iCommands = ExplodeString(gS_StyleStrings[style].sChangeCommand, ";", sStyleCommands, 32, 32, false);
+
+	char sDescription[128];
+	FormatEx(sDescription, 128, "View the leaderboard of a map on style %s.", gS_StyleStrings[style].sStyleName);
+
+	for (int x = 0; x < iCommands; x++)
+	{
+		TrimString(sStyleCommands[x]);
+		StripQuotes(sStyleCommands[x]);
+
+		if (strlen(sStyleCommands[x]) < 1)
+		{
+			continue;
+		}
+
+
+		char sCommand[40];
+		FormatEx(sCommand, sizeof(sCommand), "sm_wr%s", sStyleCommands[x]);
+		gSM_StyleCommands.SetValue(sCommand, style);
+		RegConsoleCmd(sCommand, Command_WorldRecord_Style, sDescription);
+
+		FormatEx(sCommand, sizeof(sCommand), "sm_bwr%s", sStyleCommands[x]);
+		gSM_StyleCommands.SetValue(sCommand, style);
+		RegConsoleCmd(sCommand, Command_WorldRecord_Style, sDescription);
+	}
+}
+
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
 	for(int i = 0; i < STYLE_LIMIT; i++)
@@ -402,6 +435,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 		if (i < styles)
 		{
 			Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
+			RegisterWRCommands(i);
 		}
 
 		for (int j = 0; j < TRACKS_SIZE; j++)
@@ -1500,6 +1534,23 @@ public void DeleteAll_Callback(Database db, DBResultSet results, const char[] er
 	Shavit_PrintToChat(client, "%T", "DeletedRecordsMap", client, gS_ChatStrings.sVariable, gS_Map, gS_ChatStrings.sText);
 }
 
+public Action Command_WorldRecord_Style(int client, int args)
+{
+	char sCommand[128];
+	GetCmdArg(0, sCommand, sizeof(sCommand));
+
+	int style = 0;
+
+	if (gSM_StyleCommands.GetValue(sCommand, style))
+	{
+		gA_WRCache[client].bForceStyle = true;
+		gA_WRCache[client].iLastStyle = style;
+		Command_WorldRecord(client, args);
+	}
+
+	return Plugin_Handled;
+}
+
 public Action Command_WorldRecord(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -1573,7 +1624,15 @@ void RetrieveWRMenu(int client, int track)
 		{
 			gA_WRCache[client].fWRs[i] = gF_WRTime[i][track];
 		}
-		ShowWRStyleMenu(client);
+
+		if (gA_WRCache[client].bForceStyle)
+		{
+			StartWRMenu(client);
+		}
+		else
+		{
+			ShowWRStyleMenu(client);
+		}
 	}
 	else
 	{
@@ -1615,7 +1674,14 @@ public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const 
 		gA_WRCache[client].fWRs[style] = time;
 	}
 
-	ShowWRStyleMenu(client);
+	if (gA_WRCache[client].bForceStyle)
+	{
+		StartWRMenu(client);
+	}
+	else
+	{
+		ShowWRStyleMenu(client);
+	}
 }
 
 void ShowWRStyleMenu(int client, int first_item=0)
@@ -1691,7 +1757,7 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 		gA_WRCache[param1].iLastStyle = iStyle;
 		gA_WRCache[param1].iPagePosition = GetMenuSelectionPosition();
 
-		StartWRMenu(param1, gA_WRCache[param1].sClientMap, iStyle, gA_WRCache[param1].iLastTrack);
+		StartWRMenu(param1);
 	}
 
 	else if(action == MenuAction_End)
@@ -1702,19 +1768,21 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 	return 0;
 }
 
-void StartWRMenu(int client, const char[] map, int style, int track)
+void StartWRMenu(int client)
 {
+	gA_WRCache[client].bForceStyle = false;
+
 	DataPack dp = new DataPack();
 	dp.WriteCell(GetClientSerial(client));
-	dp.WriteCell(track);
-	dp.WriteString(map);
+	dp.WriteCell(gA_WRCache[client].iLastTrack);
+	dp.WriteString(gA_WRCache[client].sClientMap);
 
-	int iLength = ((strlen(map) * 2) + 1);
+	int iLength = ((strlen(gA_WRCache[client].sClientMap) * 2) + 1);
 	char[] sEscapedMap = new char[iLength];
-	gH_SQL.Escape(map, sEscapedMap, iLength);
+	gH_SQL.Escape(gA_WRCache[client].sClientMap, sEscapedMap, iLength);
 
 	char sQuery[512];
-	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, style, track);
+	FormatEx(sQuery, 512, "SELECT p.id, u.name, p.time, p.jumps, p.auth FROM %splayertimes p JOIN %susers u ON p.auth = u.auth WHERE map = '%s' AND style = %d AND track = %d ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, sEscapedMap, gA_WRCache[client].iLastStyle, gA_WRCache[client].iLastTrack);
 	gH_SQL.Query(SQL_WR_Callback, sQuery, dp);
 }
 
@@ -2163,13 +2231,13 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 		else
 		{
-			StartWRMenu(param1, gA_WRCache[param1].sClientMap, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack);
+			StartWRMenu(param1);
 		}
 	}
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		StartWRMenu(param1, gA_WRCache[param1].sClientMap, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack);
+		StartWRMenu(param1);
 	}
 
 	else if(action == MenuAction_End)
