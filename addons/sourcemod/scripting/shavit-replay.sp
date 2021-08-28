@@ -2032,7 +2032,7 @@ bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cache)
 	cache.fTime = header.fTime;
 	cache.iReplayVersion = header.iReplayVersion;
 	cache.bNewFormat = StrEqual(header.sReplayFormat, REPLAY_FORMAT_FINAL) || is_btimes;
-	cache.sReplayName = "invalid";
+	cache.sReplayName = "unknown";
 	cache.iPreFrames = header.iPreFrames;
 	cache.iPostFrames = header.iPostFrames;
 	cache.fTickrate = header.fTickrate;
