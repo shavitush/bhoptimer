@@ -969,13 +969,34 @@ public void Frame_HookTrigger(any data)
 			Shavit_MarkKZMap();
 		}
 
+		int iZoneIndex = gI_MapZones;
+
+		// Check for existing prebuilt zone in the cache and reuse slot.
+		for (int i = 0; i < gI_MapZones; i++)
+		{
+			if (gA_ZoneCache[i].bPrebuilt && gA_ZoneCache[i].iZoneType == zone && gA_ZoneCache[i].iZoneTrack == track && gA_ZoneCache[i].iZoneData == zonedata)
+			{
+				iZoneIndex = i;
+				break;
+			}
+		}
+
+		gI_EntityZone[entity] = iZoneIndex;
+		gA_ZoneCache[iZoneIndex].iEntityID = entity;
+
+		SDKHook(entity, SDKHook_StartTouchPost, StartTouchPost);
+		SDKHook(entity, SDKHook_EndTouchPost, EndTouchPost);
+		SDKHook(entity, SDKHook_TouchPost, TouchPost);
+
+		if (iZoneIndex != gI_MapZones)
+		{
+			return;
+		}
+
 		float maxs[3], mins[3], origin[3];
 		GetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
 		GetEntPropVector(entity, Prop_Send, "m_vecMins", mins);
 		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
-
-		gI_EntityZone[entity] = gI_MapZones;
-		gA_ZoneCache[gI_MapZones].iEntityID = entity;
 
 		//origin[2] -= (maxs[2] - 2.0); // so you don't get stuck in the ground
 		origin[2] += 1.0; // so you don't get stuck in the ground
@@ -991,10 +1012,6 @@ public void Frame_HookTrigger(any data)
 			zonedata,
 			true      // bPrebuilt
 		);
-
-		SDKHook(entity, SDKHook_StartTouchPost, StartTouchPost);
-		SDKHook(entity, SDKHook_EndTouchPost, EndTouchPost);
-		SDKHook(entity, SDKHook_TouchPost, TouchPost);
 	}
 }
 
@@ -1137,7 +1154,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 		for (int i = 0; i < gI_MapZones; i++)
 		{
-			if (gA_ZoneCache[i].bPrebuilt && gA_ZoneCache[i].iEntityID == -1) // magic
+			if (gA_ZoneCache[i].bPrebuilt)
 			{
 				if (hTransaction == null)
 				{
@@ -1934,17 +1951,19 @@ Action OpenEditMenu(int client)
 		char sInfo[8];
 		IntToString(i, sInfo, 8);
 
+		char sPrebuilt[16];
+		sPrebuilt = gA_ZoneCache[i].bPrebuilt ? " (prebuilt)" : "";
+
 		char sTrack[32];
 		GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
 
 		if(gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
 		{
-			FormatEx(sDisplay, 64, "#%d - %s %d (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack);
+			FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 		}
-
 		else
 		{
-			FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack);
+			FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack, sPrebuilt);
 		}
 
 		if(gB_InsideZoneID[client][i])
@@ -1952,7 +1971,7 @@ Action OpenEditMenu(int client)
 			Format(sDisplay, 64, "%s %T", sDisplay, "ZoneInside", client);
 		}
 
-		menu.AddItem(sInfo, sDisplay);
+		menu.AddItem(sInfo, sDisplay, gA_ZoneCache[i].bPrebuilt ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 	}
 
 	if(menu.ItemCount == 0)
@@ -2042,20 +2061,23 @@ Action OpenDeleteMenu(int client)
 
 	for(int i = 0; i < gI_MapZones; i++)
 	{
-		if(gA_ZoneCache[i].bZoneInitialized)
+		if (gA_ZoneCache[i].bZoneInitialized)
 		{
+			char sPrebuilt[16];
+			sPrebuilt = gA_ZoneCache[i].bPrebuilt ? " (prebuilt)" : "";
+
 			char sTrack[32];
 			GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
 
 			if(gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
 			{
-				FormatEx(sDisplay, 64, "#%d - %s %d (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack);
+				FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 			}
-			
 			else
 			{
-				FormatEx(sDisplay, 64, "#%d - %s (%s)", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack);
+				FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack, sPrebuilt);
 			}
+
 			char sInfo[8];
 			IntToString(i, sInfo, 8);
 			
@@ -2064,7 +2086,7 @@ Action OpenDeleteMenu(int client)
 				Format(sDisplay, 64, "%s %T", sDisplay, "ZoneInside", client);
 			}
 
-			menu.AddItem(sInfo, sDisplay);
+			menu.AddItem(sInfo, sDisplay, gA_ZoneCache[i].bPrebuilt ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 		}
 	}
 
@@ -2223,6 +2245,7 @@ public void SQL_DeleteAllZones_Callback(Database db, DBResultSet results, const 
 	}
 
 	UnloadZones(0);
+	RequestFrame(ReloadPrebuiltZones);
 
 	int client = GetClientFromSerial(data);
 
