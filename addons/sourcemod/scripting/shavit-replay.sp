@@ -1941,6 +1941,7 @@ bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cache)
 {
 	int total_cells = 6;
 	int used_cells = 6;
+	bool is_btimes = false;
 
 	if (header.iReplayVersion > 0x01)
 	{
@@ -1971,7 +1972,7 @@ bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cache)
 			return false;
 		}
 
-		for(int i = 0; !file.EndOfFile(); i++)
+		while (!file.EndOfFile())
 		{
 			file.ReadLine(sLine, 320);
 			int iStrings = ExplodeString(sLine, "|", sExplodedLine, 6, 64);
@@ -1983,18 +1984,34 @@ bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cache)
 			aReplayData[4] = StringToFloat(sExplodedLine[4]);
 			aReplayData[5] = (iStrings == 6) ? StringToInt(sExplodedLine[5]) : 0;
 
-			cache.aFrames.SetArray(i, aReplayData, 6);
+			cache.aFrames.PushArray(aReplayData, 6);
 		}
 
 		cache.iFrameCount = cache.aFrames.Length;
 	}
-	else
+	else // assumes the file position will be at the start of the frames
 	{
+		is_btimes = StrEqual(header.sReplayFormat, "btimes");
+
 		for (int i = 0; i < iTotalSize; i++)
 		{
 			if(file.Read(aReplayData, total_cells, 4) >= 0)
 			{
 				cache.aFrames.SetArray(i, aReplayData, used_cells);
+
+				if (is_btimes && (aReplayData[5] & IN_BULLRUSH))
+				{
+					if (!header.iPreFrames)
+					{
+						header.iPreFrames = i;
+						header.iFrameCount -= i;
+					}
+					else if (!header.iPostFrames)
+					{
+						header.iPostFrames = header.iFrameCount + header.iPreFrames - i;
+						header.iFrameCount -= header.iPostFrames;
+					}
+				}
 			}
 		}
 
@@ -2014,7 +2031,7 @@ bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cache)
 	cache.iFrameCount = header.iFrameCount;
 	cache.fTime = header.fTime;
 	cache.iReplayVersion = header.iReplayVersion;
-	cache.bNewFormat = StrEqual(header.sReplayFormat, REPLAY_FORMAT_FINAL);
+	cache.bNewFormat = StrEqual(header.sReplayFormat, REPLAY_FORMAT_FINAL) || is_btimes;
 	cache.sReplayName = "invalid";
 	cache.iPreFrames = header.iPreFrames;
 	cache.iPostFrames = header.iPostFrames;
@@ -2025,6 +2042,9 @@ bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cache)
 
 File ReadReplayHeader(const char[] path, replay_header_t header, int style, int track)
 {
+	replay_header_t empty_header;
+	header = empty_header;
+
 	if (!FileExists(path))
 	{
 		return null;
@@ -2049,7 +2069,9 @@ File ReadReplayHeader(const char[] path, replay_header_t header, int style, int 
 	char sExplodedHeader[2][64];
 	ExplodeString(sHeader, ":", sExplodedHeader, 2, 64);
 
-	if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_FINAL)) // hopefully, the last of them
+	strcopy(header.sReplayFormat, sizeof(header.sReplayFormat), sExplodedHeader[1]);
+
+	if(StrEqual(header.sReplayFormat, REPLAY_FORMAT_FINAL)) // hopefully, the last of them
 	{
 		int version = StringToInt(sExplodedHeader[0]);
 
@@ -2069,11 +2091,6 @@ File ReadReplayHeader(const char[] path, replay_header_t header, int style, int 
 			{
 				header.iPreFrames = 0;
 			}
-		}
-		else
-		{
-			header.iStyle = style;
-			header.iTrack = track;
 		}
 
 		file.ReadInt32(header.iFrameCount);
@@ -2114,16 +2131,41 @@ File ReadReplayHeader(const char[] path, replay_header_t header, int style, int 
 			file.ReadInt32(view_as<int>(header.fZoneOffset[1]));
 		}
 	}
-	else if(StrEqual(sExplodedHeader[1], REPLAY_FORMAT_V2))
+	else if(StrEqual(header.sReplayFormat, REPLAY_FORMAT_V2))
 	{
 		header.iFrameCount = StringToInt(sExplodedHeader[0]);
 	}
 	else // old, outdated and slow - only used for ancient replays
 	{
-		// no header
+		// check for btimes replays
+		file.Seek(0, SEEK_SET);
+		any stuff[2];
+		file.Read(stuff, 2, 4);
+
+		int btimes_player_id = stuff[0];
+		float run_time = stuff[1];
+
+		if (btimes_player_id >= 0 && run_time > 0.0 && run_time < (10.0 * 60.0 * 60.0))
+		{
+			header.sReplayFormat = "btimes";
+			header.fTime = run_time;
+
+			file.Seek(0, SEEK_END);
+			header.iFrameCount = (file.Position / 4 - 2) / 6;
+			file.Seek(2*4, SEEK_SET);
+		}
 	}
 
-	strcopy(header.sReplayFormat, sizeof(header.sReplayFormat), sExplodedHeader[1]);
+	if (header.iReplayVersion < 0x03)
+	{
+		header.iStyle = style;
+		header.iTrack = track;
+	}
+
+	if (header.iReplayVersion < 0x05)
+	{
+		header.fTickrate = gF_Tickrate;
+	}
 
 	return file;
 }
@@ -2885,7 +2927,12 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 	{
 		if(info.iTick != -1 && info.aCache.iFrameCount >= 1)
 		{
-			if (info.iStatus == Replay_Start || info.iStatus == Replay_End)
+			if (info.iStatus == Replay_End)
+			{
+				return Plugin_Changed;
+			}
+
+			if (info.iStatus == Replay_Start)
 			{
 				bool bStart = (info.iStatus == Replay_Start);
 				int iFrame = (bStart) ? 0 : (info.aCache.iFrameCount + info.aCache.iPostFrames + info.aCache.iPreFrames - 1);
