@@ -100,6 +100,7 @@ Handle gH_Forwards_OnRankAssigned = null;
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
 
+bool gB_WRHolderTablesMade = false;
 bool gB_WRsRefreshed = false;
 int gI_WRHolders[2][STYLE_LIMIT];
 int gI_WRHoldersAll;
@@ -227,7 +228,7 @@ public void Shavit_OnDatabaseLoaded()
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if (IsValidClient(i) && IsClientAuthorized(i))
+		if (IsClientConnected(i) && IsClientAuthorized(i))
 		{
 			OnClientAuthorized(i, "");
 		}
@@ -326,19 +327,20 @@ public void OnClientAuthorized(int client)
 
 public void OnMapStart()
 {
-	// do NOT keep running this more than once per map, as UpdateAllPoints() is called after this eventually and locks up the database while it is running
-	if(gB_TierQueried)
+	GetLowercaseMapName(gS_Map);
+
+	if (gH_SQL == null)
 	{
 		return;
 	}
 
-	#if defined DEBUG
-	PrintToServer("DEBUG: 1 (OnMapStart)");
-	#endif
+	if (gB_WRHolderTablesMade && !gB_WRsRefreshed)
+	{
+		RefreshWRHolders();
+	}
 
-	GetLowercaseMapName(gS_Map);
-
-	if (gH_SQL == null)
+	// do NOT keep running this more than once per map, as UpdateAllPoints() is called after this eventually and locks up the database while it is running
+	if(gB_TierQueried)
 	{
 		return;
 	}
@@ -1082,7 +1084,13 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 }
 
 public void Trans_WRHolderRankTablesSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
-{	
+{
+	gB_WRHolderTablesMade = true;
+	RefreshWRHolders();
+}
+
+void RefreshWRHolders()
+{
 	char sQuery[1024];
 	FormatEx(sQuery, sizeof(sQuery),
 		"     SELECT 0 as type, 0 as track, style, COUNT(DISTINCT auth) FROM %swrhrankmain GROUP BY STYLE \
@@ -1091,6 +1099,8 @@ public void Trans_WRHolderRankTablesSuccess(Database db, any data, int numQuerie
 		UNION SELECT 2 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM %swrhrankcvar;",
 		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	gH_SQL.Query(SQL_GetWRHolders_Callback, sQuery);
+
+	gB_WRsRefreshed = true;
 }
 
 public void Trans_WRHolderRankTablesError(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
@@ -1128,11 +1138,9 @@ public void SQL_GetWRHolders_Callback(Database db, DBResultSet results, const ch
 		}
 	}
 
-	gB_WRsRefreshed = true;
-
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsValidClient(i))
+		if (IsClientConnected(i))
 		{
 			UpdateWRs(i);
 		}
