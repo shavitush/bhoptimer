@@ -107,10 +107,6 @@ public void OnPluginStart()
 
 	gB_Rankings = LibraryExists("shavit-rankings");
 
-	// database
-	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle2();
-
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
@@ -124,6 +120,12 @@ public void OnPluginStart()
 			}
 		}
 	}
+}
+
+public void Shavit_OnDatabaseLoaded()
+{
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)

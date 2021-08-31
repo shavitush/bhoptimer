@@ -254,7 +254,6 @@ enum struct frame_cache_t
 
 stock void Shavit_LogQuery(const char[] query)
 {
-#if SHAVIT_LOG_QUERIES
 	static File hLogFile;
 
 	if (hLogFile == null)
@@ -276,14 +275,15 @@ stock void Shavit_LogQuery(const char[] query)
 	{
 		LogToOpenFileEx(hLogFile, "%s", query);
 	}
-#endif
 }
 
 methodmap Database2 < Database
 {
 	public void Query(SQLQueryCallback callback, const char[] query, any data = 0, DBPriority prio = DBPrio_Normal)
 	{
+#if SHAVIT_LOG_QUERIES
 		Shavit_LogQuery(query);
+#endif
 		this.Query(callback, query, data, prio);
 	}
 }
@@ -297,7 +297,9 @@ methodmap Transaction2 < Transaction
 
 	public int AddQuery(const char[] query, any data = 0)
 	{
+#if SHAVIT_LOG_QUERIES
 		Shavit_LogQuery(query);
+#endif
 		return this.AddQuery(query, data);
 	}
 }

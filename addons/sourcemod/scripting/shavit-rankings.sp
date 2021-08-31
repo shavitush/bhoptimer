@@ -219,7 +219,7 @@ public void OnLibraryRemoved(const char[] name)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle2();
+	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
 
 	if(!IsMySQLDatabase(gH_SQL))
 	{

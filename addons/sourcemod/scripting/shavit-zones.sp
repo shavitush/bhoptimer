@@ -3263,7 +3263,7 @@ void CreateZonePoints(float point[8][3], float offset = 0.0)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle2();
+	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	Transaction2 hTransaction = new Transaction2();

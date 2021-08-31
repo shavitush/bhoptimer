@@ -2244,7 +2244,7 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle2();
+	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	char sQuery[1024];
