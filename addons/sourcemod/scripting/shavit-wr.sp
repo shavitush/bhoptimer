@@ -2085,11 +2085,6 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	char sTrack[32];
 	char sMap[PLATFORM_MAX_PATH];
 
-	for (int i = 0; i < gI_Styles; i++)
-	{
-		gA_WRCache[client].fWRs[i] = 0.0;
-	}
-
 	if(results.FetchRow())
 	{
 		results.FetchString(0, sName, MAX_NAME_LENGTH);
@@ -2105,8 +2100,6 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		int iStyle = results.FetchInt(3);
 		int iJumps = results.FetchInt(2);
 		float fPerfs = results.FetchFloat(9);
-
-		gA_WRCache[client].fWRs[iStyle] = fTime;
 
 		if(Shavit_GetStyleSettingInt(iStyle, "autobhop"))
 		{
