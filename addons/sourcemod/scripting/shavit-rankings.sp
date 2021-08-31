@@ -1015,43 +1015,31 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 		"CREATE OR REPLACE VIEW %s%s AS \
 			SELECT \
 			0 as wrrank, \
-			style, auth, wrcount \
-			FROM ( \
-				SELECT style, auth, SUM(c) as wrcount FROM ( \
-					SELECT style, auth, COUNT(auth) as c FROM %swrs WHERE track %c 0 GROUP BY style, auth \
-				) a GROUP BY style, auth \
-			) x;";
-	
+			style, auth, COUNT(auth) as wrcount \
+			FROM %swrs WHERE track %c 0 GROUP BY style, auth;";
+
 	char sWRHolderRankTrackQueryRANK[] =
 		"CREATE OR REPLACE VIEW %s%s AS \
 			SELECT \
 				RANK() OVER(PARTITION BY style ORDER BY wrcount DESC, auth ASC) \
 			as wrrank, \
-			style, auth, wrcount \
-			FROM ( \
-				SELECT style, auth, SUM(c) as wrcount FROM ( \
-					SELECT style, auth, COUNT(auth) as c FROM %swrs WHERE track %c 0 GROUP BY style, auth \
-				) a GROUP BY style, auth \
-			) x;";
+			style, auth, COUNT(auth) as wrcount \
+			FROM %swrs WHERE track %c 0 GROUP BY style, auth;";
 
 	char sWRHolderRankOtherQueryYuck[] =
 		"CREATE OR REPLACE VIEW %s%s AS \
 			SELECT \
 			0 as wrrank, \
-			-1 as style, auth, wrcount \
-			FROM ( \
-				SELECT COUNT(*) as wrcount, auth FROM %swrs %s %s %s %s GROUP BY auth \
-			) x;";
+			-1 as style, auth, COUNT(*) \
+			FROM %swrs %s %s %s %s GROUP BY auth;";
 
 	char sWRHolderRankOtherQueryRANK[] =
 		"CREATE OR REPLACE VIEW %s%s AS \
 			SELECT \
 				RANK() OVER(ORDER BY wrcount DESC, auth ASC) \
 			as wrrank, \
-			-1 as style, auth, wrcount \
-			FROM ( \
-				SELECT COUNT(*) as wrcount, auth FROM %swrs %s %s %s %s GROUP BY auth \
-			) x;";
+			-1 as style, auth, COUNT(*) as wrcount \
+			FROM %swrs %s %s %s %s GROUP BY auth;";
 
 	char sQuery[800];
 	Transaction hTransaction = new Transaction();
