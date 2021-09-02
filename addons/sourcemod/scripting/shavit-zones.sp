@@ -342,6 +342,11 @@ public void OnPluginStart()
 	}
 }
 
+public void OnPluginEnd()
+{
+	UnloadZones(0);
+}
+
 public void OnAllPluginsLoaded()
 {
 	// admin menu
