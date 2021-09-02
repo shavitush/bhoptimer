@@ -3335,7 +3335,7 @@ public void Shavit_OnRestart(int client, int track)
 				bCustomStart = PointInBox(fCustomStart, bmin, bmax);
 			}
 
-			TeleportEntity(client, bCustomStart ? fCustomStart : fCenter, bCustomStart ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(client, bCustomStart ? fCustomStart : fCenter, gB_HasSetStart[client][track] ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		// kz buttons
