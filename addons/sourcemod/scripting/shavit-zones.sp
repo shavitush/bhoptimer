@@ -3609,7 +3609,7 @@ public void StartTouchPost(int entity, int other)
 
 public void EndTouchPost(int entity, int other)
 {
-	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || gI_EntityZone[entity] >= sizeof(gA_ZoneCache) || IsFakeClient(other))
+	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || IsFakeClient(other))
 	{
 		return;
 	}
