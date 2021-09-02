@@ -379,8 +379,8 @@ public void OnPluginStart()
 	LoadTranslations("shavit-replay.phrases");
 
 	// forwards
-	gH_OnReplayStart = CreateGlobalForward("Shavit_OnReplayStart", ET_Event, Param_Cell, Param_Cell);
-	gH_OnReplayEnd = CreateGlobalForward("Shavit_OnReplayEnd", ET_Event, Param_Cell, Param_Cell);
+	gH_OnReplayStart = CreateGlobalForward("Shavit_OnReplayStart", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_OnReplayEnd = CreateGlobalForward("Shavit_OnReplayEnd", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnReplaysLoaded = CreateGlobalForward("Shavit_OnReplaysLoaded", ET_Event);
 	gH_ShouldSaveReplayCopy = CreateGlobalForward("Shavit_ShouldSaveReplayCopy", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnReplaySaved = CreateGlobalForward("Shavit_OnReplaySaved", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String);
@@ -745,6 +745,12 @@ public void AdminMenu_DeleteReplay(Handle topmenu, TopMenuAction action, TopMenu
 
 void FinishReplay(bot_info_t info)
 {
+	Call_StartForward(gH_OnReplayEnd);
+	Call_PushCell(info.iEnt);
+	Call_PushCell(info.iType);
+	Call_PushCell(true); // actually_finished
+	Call_Finish();
+
 	int starter = GetClientFromSerial(info.iStarterSerial);
 
 	if (info.iType == Replay_Dynamic || info.iType == Replay_Prop)
@@ -934,6 +940,12 @@ void StartReplay(bot_info_t info, int track, int style, int starter, float delay
 		// It seems to use early steamids for pfps since I've noticed BAILPAN and EricS 's avatars...
 		CreateTimer(0.2, Timer_SpectateMyBot, GetClientSerial(info.iEnt), TIMER_FLAG_NO_MAPCHANGE);
 	}
+
+	Call_StartForward(gH_OnReplayStart);
+	Call_PushCell(info.iEnt);
+	Call_PushCell(info.iType);
+	Call_PushCell(false); // delay_elapsed
+	Call_Finish();
 }
 
 public int Native_IsReplayEntity(Handle handler, int numParams)
@@ -2950,6 +2962,12 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 				info.iStatus = Replay_End;
 				info.hTimer = CreateTimer((info.fDelay / 2.0), Timer_EndReplay, info.iEnt, TIMER_FLAG_NO_MAPCHANGE);
 
+				Call_StartForward(gH_OnReplayEnd);
+				Call_PushCell(info.iEnt);
+				Call_PushCell(info.iType);
+				Call_PushCell(false); // actually_finished
+				Call_Finish();
+
 				return Plugin_Changed;
 			}
 
@@ -3183,11 +3201,6 @@ public Action Timer_EndReplay(Handle Timer, any data)
 	data = GetBotInfoIndex(data);
 	gA_BotInfo[data].hTimer = null;
 
-	Call_StartForward(gH_OnReplayEnd);
-	Call_PushCell(gA_BotInfo[data].iEnt);
-	Call_PushCell(gA_BotInfo[data].iType);
-	Call_Finish();
-
 	FinishReplay(gA_BotInfo[data]);
 
 	return Plugin_Stop;
@@ -3202,6 +3215,7 @@ public Action Timer_StartReplay(Handle Timer, any data)
 	Call_StartForward(gH_OnReplayStart);
 	Call_PushCell(gA_BotInfo[data].iEnt);
 	Call_PushCell(gA_BotInfo[data].iType);
+	Call_PushCell(true); // delay_elapsed
 	Call_Finish();
 
 	return Plugin_Stop;
