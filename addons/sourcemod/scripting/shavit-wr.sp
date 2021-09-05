@@ -2275,6 +2275,7 @@ public void Shavit_OnDatabaseLoaded()
 		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
 	hTransaction.AddQuery(sQuery);
 
+#if 1
 	FormatEx(sQuery, sizeof(sQuery),
 		"%s %swrs_min AS SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style;",
 		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
@@ -2286,6 +2287,18 @@ public void Shavit_OnDatabaseLoaded()
 		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
 		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
 	hTransaction.AddQuery(sQuery);
+#else
+	FormatEx(sQuery, sizeof(sQuery),
+		"DROP VIEW IF EXISTS %swrs_min;",
+		gS_MySQLPrefix);
+	hTransaction.AddQuery(sQuery);
+
+	FormatEx(sQuery, sizeof(sQuery),
+		"%s %swrs AS SELECT MIN(time) time, MIN(id) id, MIN(auth) auth, MIN(exact_time_int) exact_time_int, MIN(date) date, map, track, style FROM %splayertimes GROUP BY map, track, style;",
+		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
+		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
+	hTransaction.AddQuery(sQuery);
+#endif
 
 	gH_SQL.Execute(hTransaction, Trans_CreateTable_Success, Trans_CreateTable_Error, 0, DBPrio_High);
 }
