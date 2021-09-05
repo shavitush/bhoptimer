@@ -198,6 +198,8 @@ public void OnPluginStart()
 		Shavit_OnChatConfigLoaded();
 		Shavit_OnDatabaseLoaded();
 	}
+
+	CreateTimer(2.5, Timer_Dominating, 0, TIMER_REPEAT);
 }
 
 public void OnAllPluginsLoaded()
@@ -314,6 +316,34 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gH_AdminMenu = null;
 		gH_TimerCommands = INVALID_TOPMENUOBJECT;
+	}
+}
+
+public Action Timer_Dominating(Handle timer)
+{
+	bool bHasWR[MAXPLAYERS+1];
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i))
+		{
+			char sSteamID[20];
+			IntToString(GetSteamAccountID(i), sSteamID, sizeof(sSteamID));
+			bHasWR[i] = gSM_WRNames.GetString(sSteamID, sSteamID, sizeof(sSteamID));
+		}
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsValidClient(i))
+		{
+			continue;
+		}
+
+		for (int x = 1; x <= MaxClients; x++)
+		{
+			SetEntProp(i, Prop_Send, "m_bPlayerDominatingMe", bHasWR[x], 1, x);
+		}
 	}
 }
 
