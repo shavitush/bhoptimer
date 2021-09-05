@@ -44,6 +44,7 @@ Database2 gH_SQL = null;
 bool gB_Connected = false;
 bool gB_MySQL = false;
 bool gB_InsertedPrebuiltZones = false;
+bool gB_PrecachedStuff = false;
 
 char gS_Map[PLATFORM_MAX_PATH];
 
@@ -778,27 +779,30 @@ void LoadZoneSettings()
 
 public void OnMapStart()
 {
+	if (!gB_PrecachedStuff)
+	{
+		GetLowercaseMapName(gS_Map);
+		LoadZoneSettings();
+		
+		if (gEV_Type == Engine_TF2)
+		{
+			PrecacheModel("models/error.mdl");
+		}
+		else
+		{
+			PrecacheModel("models/props/cs_office/vending_machine.mdl");
+		}
+
+		gB_PrecachedStuff = true;
+	}
+
 	if(!gB_Connected)
 	{
 		return;
 	}
 
-	GetLowercaseMapName(gS_Map);
-
 	UnloadZones(0);
 	RefreshZones();
-	
-	LoadZoneSettings();
-	
-	if(gEV_Type == Engine_TF2)
-	{
-		PrecacheModel("models/error.mdl");
-	}
-
-	else
-	{
-		PrecacheModel("models/props/cs_office/vending_machine.mdl");
-	}
 
 	// start drawing mapzones here
 	if(gH_DrawEverything == null)
@@ -817,6 +821,7 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
+	gB_PrecachedStuff = false;
 	gB_InsertedPrebuiltZones = false;
 	delete gH_DrawEverything;
 }
