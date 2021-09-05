@@ -523,10 +523,10 @@ void LoadDHooks()
 
 	gB_Linux = (gamedata.GetOffset("OS") == 2);
 
-	StartPrepSDKCall(gB_Linux ? SDKCall_Raw : SDKCall_Static);
-
 	if (gEV_Type == Engine_TF2)
 	{
+		StartPrepSDKCall(SDKCall_Static);
+
 		if (!PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "NextBotCreatePlayerBot<CTFBot>"))
 		{
 			SetFailState("Failed to get NextBotCreatePlayerBot<CTFBot>");
@@ -543,6 +543,8 @@ void LoadDHooks()
 	}
 	else
 	{
+		StartPrepSDKCall(gB_Linux ? SDKCall_Raw : SDKCall_Static);
+
 		if (!PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CCSBotManager::BotAddCommand"))
 		{
 			SetFailState("Failed to get CCSBotManager::BotAddCommand");
