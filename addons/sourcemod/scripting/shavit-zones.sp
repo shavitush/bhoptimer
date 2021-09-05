@@ -147,6 +147,7 @@ TopMenu gH_AdminMenu = null;
 TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // misc cache
+bool gB_ZoneCreationQueued = false;
 bool gB_Late = false;
 ConVar sv_gravity = null;
 
@@ -837,6 +838,12 @@ public void OnEntityDestroyed(int entity)
 	if (entity > MaxClients && entity < 4096 && gI_EntityZone[entity] > -1)
 	{
 		KillZoneEntity(gI_EntityZone[entity], false);
+
+		if (!gB_ZoneCreationQueued)
+		{
+			RequestFrame(CreateZoneEntities, true);
+			gB_ZoneCreationQueued = true;
+		}
 	}
 }
 
@@ -1177,7 +1184,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		}
 	}
 
-	CreateZoneEntities();
+	CreateZoneEntities(false);
 }
 
 public void AddZoneToCache(int type, float corner1_x, float corner1_y, float corner1_z, float corner2_x, float corner2_y, float corner2_z, float destination_x, float destination_y, float destination_z, int track, int id, int flags, int data, bool prebuilt)
@@ -3421,8 +3428,6 @@ public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 		bool empty_InsideZoneID[MAX_ZONES];
 		gB_InsideZoneID[i] = empty_InsideZoneID;
 	}
-
-	RequestFrame(CreateZoneEntities);
 }
 
 float Abs(float input)
@@ -3435,7 +3440,7 @@ float Abs(float input)
 	return input;
 }
 
-public void CreateZoneEntities()
+public void CreateZoneEntities(bool only_create_dead_entities)
 {
 	for(int i = 0; i < gI_MapZones; i++)
 	{
@@ -3456,6 +3461,11 @@ public void CreateZoneEntities()
 
 		if(gA_ZoneCache[i].iEntityID != -1)
 		{
+			if (only_create_dead_entities)
+			{
+				continue;
+			}
+
 			KillZoneEntity(i);
 		}
 
@@ -3520,6 +3530,8 @@ public void CreateZoneEntities()
 		FormatEx(sTargetname, 32, "shavit_zones_%d_%d", gA_ZoneCache[i].iZoneTrack, gA_ZoneCache[i].iZoneType);
 		DispatchKeyValue(entity, "targetname", sTargetname);
 	}
+
+	gB_ZoneCreationQueued = false;
 }
 
 public void StartTouchPost(int entity, int other)
