@@ -1392,7 +1392,7 @@ public void OnClientPutInServer(int client)
 
 	if(gEV_Type == Engine_TF2)
 	{
-		SDKHook(client, SDKHook_PreThinkPost, OnPreThink);
+		SDKHook(client, SDKHook_PreThinkPost, TF2_OnPreThink);
 	}
 	else
 	{
@@ -1694,12 +1694,27 @@ public Action OnSetTransmit(int entity, int client)
 	return Plugin_Continue;
 }
 
-public void OnPreThink(int client)
+public void TF2_OnPreThink(int client)
 {
 	if(IsPlayerAlive(client))
 	{
+		float maxspeed;
+		
+		if (GetEntityFlags(client) & FL_ONGROUND)
+		{
+			maxspeed = Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed");
+		}
+		else
+		{
+			// This is used to stop CTFGameMovement::PreventBunnyJumping from destroying
+			// player velocity when doing uncrouch stuff. Kind of poopy.
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+			maxspeed = GetVectorLength(fSpeed);
+		}
+
 		// not the best method, but only one i found for tf2
-		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed",  Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed"));
+		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", maxspeed);
 	}
 }
 

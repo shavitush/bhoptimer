@@ -4001,7 +4001,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		float fSpeed[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
-		fSpeed[2] = 271.0;
+		fSpeed[2] = 289.0;
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 	}
 
