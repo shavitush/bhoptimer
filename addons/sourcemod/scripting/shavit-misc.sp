@@ -97,6 +97,7 @@ Cookie gH_BlockAdvertsCookie = null;
 // cvars
 Convar gCV_GodMode = null;
 Convar gCV_PreSpeed = null;
+Convar gCV_PreSpeedStartzoneMessage = null;
 Convar gCV_HideTeamChanges = null;
 Convar gCV_RespawnOnTeam = null;
 Convar gCV_RespawnOnRestart = null;
@@ -297,6 +298,7 @@ public void OnPluginStart()
 	// cvars and stuff
 	gCV_GodMode = new Convar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
 	gCV_PreSpeed = new Convar("shavit_misc_prespeed", "2", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding. Combine with shavit_core_nozaxisspeed 1 for SourceCode timer's behavior.\n5 - Limit horizontal speed to prestrafe but allow prespeeding.", 0, true, 0.0, true, 5.0);
+	gCV_PreSpeedStartzoneMessage = new Convar("shavit_misc_prespeed_startzone_message", "1", "Whether to show the 'Bunnyhopping in the startzone is not allowed' message.", 0, true, 0.0, true, 1.0);
 	gCV_HideTeamChanges = new Convar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = new Convar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = new Convar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -1328,7 +1330,11 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && iPrevGroundEntity == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
 			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
-			Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+
+			if (gCV_PreSpeedStartzoneMessage.BoolValue)
+			{
+				Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+			}
 		}
 		else if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue >= 3)
 		{
