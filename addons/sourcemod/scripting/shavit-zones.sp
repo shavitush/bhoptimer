@@ -3340,6 +3340,7 @@ public void Shavit_OnRestart(int client, int track)
 			{
 				float bmin[3], bmax[3];
 				FillBoxMinMax(gV_MapZones[iIndex][0], gV_MapZones[iIndex][1], bmin, bmax);
+				bmin[2] -= 0.01; // help fix some slight float accuracy loss for things like bhop_pisjapahnetribkoj
 
 				fCustomStart = gF_StartPos[client][track];
 				fCustomStart[2] += 1.0;
@@ -3377,7 +3378,7 @@ public void Shavit_OnEnd(int client, int track)
 			float fCenter[3];
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
-			fCenter[2] = gV_MapZones[iIndex][0][2];
+			fCenter[2] = gV_MapZones[iIndex][0][2] + 1.0; // no stuck in floor please
 
 			TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
@@ -3639,6 +3640,11 @@ public void EndTouchPost(int entity, int other)
 	int entityzone = gI_EntityZone[entity];
 	int type = gA_ZoneCache[entityzone].iZoneType;
 	int track = gA_ZoneCache[entityzone].iZoneTrack;
+
+	if (type < 0 || track < 0) // odd
+	{
+		return;
+	}
 
 	gB_InsideZone[other][type][track] = false;
 	gB_InsideZoneID[other][entityzone] = false;
