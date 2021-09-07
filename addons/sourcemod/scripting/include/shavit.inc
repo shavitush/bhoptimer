@@ -88,17 +88,18 @@ enum
 	Migration_RemoveWorkshopPlayertimes,
 	Migration_LastLoginIndex,
 	Migration_RemoveCountry,
-	Migration_ConvertIPAddresses,
+	Migration_ConvertIPAddresses, // 5
 	Migration_ConvertSteamIDsUsers,
 	Migration_ConvertSteamIDsPlayertimes,
 	Migration_ConvertSteamIDsChat,
 	Migration_PlayertimesDateToInt,
-	Migration_AddZonesFlagsAndData,
+	Migration_AddZonesFlagsAndData, // 10
 	Migration_AddPlayertimesCompletions,
 	Migration_AddCustomChatAccess,
 	Migration_AddPlayertimesExactTimeInt,
 	Migration_FixOldCompletionCounts, // old completions accidentally started at 2
-	Migration_AddPrebuiltToMapZonesTable,
+	Migration_AddPrebuiltToMapZonesTable, // 15
+	Migration_AddPlaytime,
 	MIGRATIONS_END
 };
 

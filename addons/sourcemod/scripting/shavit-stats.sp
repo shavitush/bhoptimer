@@ -51,6 +51,13 @@ int gI_Track[MAXPLAYERS+1];
 int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 
+// playtime things
+float gF_PlaytimeStart[MAXPLAYERS+1];
+float gF_PlaytimeStyleStart[MAXPLAYERS+1];
+int gI_CurrentStyle[MAXPLAYERS+1];
+float gF_PlaytimeStyleSum[MAXPLAYERS+1][STYLE_LIMIT];
+bool gB_HavePlaytimeOnStyle[MAXPLAYERS+1][STYLE_LIMIT];
+
 bool gB_Late = false;
 
 // timer settings
@@ -59,6 +66,8 @@ stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 
 // chat settings
 chatstrings_t gS_ChatStrings;
+
+Convar gCV_SavePlaytime = null;
 
 public Plugin myinfo =
 {
@@ -103,7 +112,8 @@ public void OnPluginStart()
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-stats.phrases");
 
-	//Convar.AutoExecConfig();
+	gCV_SavePlaytime = new Convar("shavit_stats_saveplaytime", "1", "Whether to save a player's playtime (total & per-style).", 0, true, 0.0, true, 1.0);
+	Convar.AutoExecConfig();
 
 	gB_Rankings = LibraryExists("shavit-rankings");
 
@@ -120,12 +130,37 @@ public void OnPluginStart()
 			}
 		}
 	}
+
+	CreateTimer(2.5 * 60.0, Timer_SavePlaytime, 0, TIMER_REPEAT);
 }
 
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
+
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery),
+		"CREATE TABLE IF NOT EXISTS `%sstyleplaytime` (`auth` INT NOT NULL, `style` INT NOT NULL, `playtime` FLOAT NOT NULL, PRIMARY KEY (`auth`, `style`));",
+		gS_MySQLPrefix);
+	gH_SQL.Query(SQL_CreateStylePlaytimeTable_Callback, sQuery, 0, DBPrio_Normal);
+}
+
+public void SQL_CreateStylePlaytimeTable_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("Timer (styleplaytime table creation) SQL query failed. Reason: %s", error);
+		return;
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientConnected(i) && !IsFakeClient(i) && IsClientAuthorized(i))
+		{
+			OnClientAuthorized(i, "");
+		}
+	}
 }
 
 public void Shavit_OnStyleConfigLoaded(int styles)
@@ -143,9 +178,105 @@ public void Shavit_OnChatConfigLoaded()
 	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
+public void OnClientConnected(int client)
+{
+	gF_PlaytimeStart[client] = 0.0;
+	gF_PlaytimeStyleStart[client] = 0.0;
+	any empty[STYLE_LIMIT];
+	gF_PlaytimeStyleSum[client] = empty;
+	gB_HavePlaytimeOnStyle[client] = empty;
+}
+
 public void OnClientPutInServer(int client)
 {
 	gB_CanOpenMenu[client] = true;
+
+	float now = GetEngineTime();
+	gF_PlaytimeStart[client] = now;
+	gF_PlaytimeStyleStart[client] = now;
+}
+
+public void OnClientAuthorized(int client)
+{
+	if (gH_SQL == null)
+	{
+		return;
+	}
+
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery),
+		"SELECT style FROM %sstyleplaytime WHERE auth = %d;",
+		gS_MySQLPrefix, GetSteamAccountID(client));
+	gH_SQL.Query(SQL_QueryStylePlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
+}
+
+public void SQL_QueryStylePlaytime_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("Timer (style playtime) SQL query failed. Reason: %s", error);
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if (client < 1)
+	{
+		return;
+	}
+
+	while (results.FetchRow())
+	{
+		int style = results.FetchInt(0);
+		gB_HavePlaytimeOnStyle[client][style] = true;
+	}
+}
+
+public void OnClientDisconnect(int client)
+{
+	if (gH_SQL == null || IsFakeClient(client) || !IsClientAuthorized(client) || !gCV_SavePlaytime.BoolValue)
+	{
+		return;
+	}
+
+	Transaction2 trans = null;
+	SavePlaytime(client, GetEngineTime(), trans);
+
+	if (trans != null)
+	{
+		gH_SQL.Execute(trans, Trans_SavePlaytime_Success, Trans_SavePlaytime_Failure);
+	}
+}
+
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
+{
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	gI_CurrentStyle[client] = newstyle;
+
+	if (!IsClientConnected(client) || !IsClientInGame(client))
+	{
+		return;
+	}
+
+	float now = GetEngineTime();
+
+	if (gF_PlaytimeStyleStart[client] == 0.0)
+	{
+		gF_PlaytimeStyleStart[client] = now;
+		return;
+	}
+
+	if (oldstyle == newstyle)
+	{
+		return;
+	}
+
+	gF_PlaytimeStyleSum[client][oldstyle] += (now - gF_PlaytimeStyleStart[client]);
+	gF_PlaytimeStyleStart[client] = now;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -162,6 +293,122 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_Rankings = false;
 	}
+}
+
+void SavePlaytime222(int client, float now, Transaction2 &trans, int style, int iSteamID)
+{
+	char sQuery[512];
+
+	if (style == -1) // regular playtime
+	{
+		if (gF_PlaytimeStart[client] <= 0.0)
+		{
+			return;
+		}
+
+		float diff = now - gF_PlaytimeStart[client];
+		gF_PlaytimeStart[client] = now;
+
+		if (diff <= 0.0)
+		{
+			return;
+		}
+
+		FormatEx(sQuery, sizeof(sQuery),
+			"UPDATE `%susers` SET playtime = playtime + %f WHERE auth = %d;",
+			gS_MySQLPrefix, diff, iSteamID);
+	}
+	else
+	{
+		float diff = gF_PlaytimeStyleSum[client][style];
+
+		if (gI_CurrentStyle[client] == style)
+		{
+			diff += now - gF_PlaytimeStyleStart[client];
+			gF_PlaytimeStyleStart[client] = now;
+		}
+
+		gF_PlaytimeStyleSum[client][style] = 0.0;
+
+		if (diff <= 0.0)
+		{
+			return;
+		}
+
+		if (gB_HavePlaytimeOnStyle[client][style])
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE `%sstyleplaytime` SET playtime = playtime + %f WHERE auth = %d AND style = %d;",
+				gS_MySQLPrefix, diff, iSteamID, style);
+		}
+		else
+		{
+			gB_HavePlaytimeOnStyle[client][style] = true;
+			FormatEx(sQuery, sizeof(sQuery),
+				"INSERT INTO `%sstyleplaytime` (`auth`, `style`, `playtime`) VALUES (%d, %d, %f);",
+				gS_MySQLPrefix, iSteamID, style, diff);
+		}
+	}
+
+	if (trans == null)
+	{
+		trans = view_as<Transaction2>(new Transaction());
+	}
+
+	trans.AddQuery(sQuery);
+}
+
+public void Trans_SavePlaytime_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+}
+
+public void Trans_SavePlaytime_Failure(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (stats save playtime) SQL query %d/%d failed. Reason: %s", failIndex, numQueries, error);
+}
+
+void SavePlaytime(int client, float now, Transaction2 &trans)
+{
+	int iSteamID = GetSteamAccountID(client);
+
+	if (iSteamID == 0)
+	{
+		// how HOW HOW
+		return;
+	}
+
+	for (int i = -1 /* yes */; i < gI_Styles; i++)
+	{
+		SavePlaytime222(client, now, trans, i, iSteamID);
+	}
+}
+
+public Action Timer_SavePlaytime(Handle timer, any data)
+{
+	if (gH_SQL == null || !gCV_SavePlaytime.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
+	Transaction2 trans = null;
+	float now = GetEngineTime();
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsValidClient(i) || !IsClientAuthorized(i))
+		{
+			continue;
+		}
+
+		SavePlaytime(i, now, trans);
+	}
+
+	if (trans != null)
+	{
+		gH_SQL.Execute(trans, Trans_SavePlaytime_Success, Trans_SavePlaytime_Failure);
+	}
+
+	return Plugin_Continue;
 }
 
 public Action Command_MapsDoneLeft(int client, int args)
