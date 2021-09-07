@@ -85,6 +85,10 @@
 	{
 		"en"		"Play time"
 	}
+	"YourPlaytime"
+	{
+		"en"		"Yours"
+	}
 	"Points"
 	{
 		"en"		"Points"

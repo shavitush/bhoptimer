@@ -52,6 +52,7 @@ int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 
 // playtime things
+float gF_PlaytimeCached[MAXPLAYERS+1];
 float gF_PlaytimeStart[MAXPLAYERS+1];
 float gF_PlaytimeStyleStart[MAXPLAYERS+1];
 int gI_CurrentStyle[MAXPLAYERS+1];
@@ -59,6 +60,7 @@ float gF_PlaytimeStyleSum[MAXPLAYERS+1][STYLE_LIMIT];
 bool gB_HavePlaytimeOnStyle[MAXPLAYERS+1][STYLE_LIMIT];
 
 bool gB_Late = false;
+EngineVersion gEV_Type = Engine_Unknown;
 
 // timer settings
 int gI_Styles = 0;
@@ -100,12 +102,15 @@ public void OnAllPluginsLoaded()
 
 public void OnPluginStart()
 {
+	gEV_Type = GetEngineVersion();
+
 	// player commands
 	RegConsoleCmd("sm_p", Command_Profile, "Show the player's profile. Usage: sm_p [target]");
 	RegConsoleCmd("sm_profile", Command_Profile, "Show the player's profile. Usage: sm_profile [target]");
 	RegConsoleCmd("sm_stats", Command_Profile, "Show the player's profile. Usage: sm_stats [target]");
 	RegConsoleCmd("sm_mapsdone", Command_MapsDoneLeft, "Show maps that the player has finished. Usage: sm_mapsdone [target]");
 	RegConsoleCmd("sm_mapsleft", Command_MapsDoneLeft, "Show maps that the player has not finished yet. Usage: sm_mapsleft [target]");
+	RegConsoleCmd("sm_playtime", Command_Playtime, "Show the top playtime list.");
 
 	// translations
 	LoadTranslations("common.phrases");
@@ -181,6 +186,7 @@ public void Shavit_OnChatConfigLoaded()
 
 public void OnClientConnected(int client)
 {
+	gF_PlaytimeCached[client] = 0.0;
 	gF_PlaytimeStart[client] = 0.0;
 	gF_PlaytimeStyleStart[client] = 0.0;
 	any empty[STYLE_LIMIT];
@@ -199,15 +205,18 @@ public void OnClientPutInServer(int client)
 
 public void OnClientAuthorized(int client)
 {
-	if (gH_SQL == null)
+	if (gH_SQL == null || IsFakeClient(client))
 	{
 		return;
 	}
 
+	int iSteamID = GetSteamAccountID(client);
+
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT style FROM %sstyleplaytime WHERE auth = %d;",
-		gS_MySQLPrefix, GetSteamAccountID(client));
+		"SELECT 0 as type, style FROM %sstyleplaytime WHERE auth = %d \
+		UNION SELECT 1 as type, playtime FROM %susers WHERE auth = %d;",
+		gS_MySQLPrefix, iSteamID, gS_MySQLPrefix, iSteamID);
 	gH_SQL.Query(SQL_QueryStylePlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
 }
 
@@ -228,8 +237,18 @@ public void SQL_QueryStylePlaytime_Callback(Database db, DBResultSet results, co
 
 	while (results.FetchRow())
 	{
-		int style = results.FetchInt(0);
-		gB_HavePlaytimeOnStyle[client][style] = true;
+		int type = results.FetchInt(0);
+
+		if (type == 0)
+		{
+			int style = results.FetchInt(1);
+			gB_HavePlaytimeOnStyle[client][style] = true;
+		}
+		else if (type == 1)
+		{
+			float playtime = results.FetchFloat(1);
+			gF_PlaytimeCached[client] = playtime;
+		}
 	}
 }
 
@@ -309,6 +328,8 @@ void SavePlaytime222(int client, float now, Transaction2 &trans, int style, int 
 
 		float diff = now - gF_PlaytimeStart[client];
 		gF_PlaytimeStart[client] = now;
+
+		gF_PlaytimeCached[client] += diff;
 
 		if (diff <= 0.0)
 		{
@@ -410,6 +431,86 @@ public Action Timer_SavePlaytime(Handle timer, any data)
 	}
 
 	return Plugin_Continue;
+}
+
+public Action Command_Playtime(int client, int args)
+{
+	if (!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery),
+		"SELECT auth, name, playtime FROM %susers ORDER BY playtime DESC LIMIT 100;",
+		gS_MySQLPrefix);
+	gH_SQL.Query(SQL_TopPlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
+
+	return Plugin_Handled;
+}
+
+public void SQL_TopPlaytime_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null || !results.RowCount)
+	{
+		LogError("Timer (!playtime) SQL query failed. Reason: %s", error);
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if (client < 1)
+	{
+		return;
+	}
+
+	char sPlaytime[16];
+	FormatSeconds(gF_PlaytimeCached[client], sPlaytime, sizeof(sPlaytime), false, true);
+
+	Menu menu = new Menu(PlaytimeMenu_Handler);
+	menu.SetTitle("%T\n%T: %s", "Playtime", client, "YourPlaytime", client, sPlaytime);
+
+	while (results.FetchRow())
+	{
+		//int iSteamID = results.FetchInt(0);
+
+		char sSteamID[20];
+		results.FetchString(0, sSteamID, sizeof(sSteamID));
+
+		char sName[PLATFORM_MAX_PATH];
+		results.FetchString(1, sName, sizeof(sName));
+
+		float fPlaytime = results.FetchFloat(2);
+		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true);
+
+		char sDisplay[128];
+		FormatEx(sDisplay, sizeof(sDisplay), "%s - %s", sPlaytime, sName);
+		menu.AddItem(sSteamID, sDisplay, ITEMDRAW_DEFAULT);
+	}
+
+	if (menu.ItemCount <= ((gEV_Type == Engine_CSS) ? 9 : 8))
+	{
+		menu.Pagination = MENU_NO_PAGINATION;
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int PlaytimeMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[20];
+		menu.GetItem(param2, info, sizeof(info));
+		FakeClientCommand(param1, "sm_profile [U:1:%s]", info);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
 }
 
 public Action Command_MapsDoneLeft(int client, int args)
