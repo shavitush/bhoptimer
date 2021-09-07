@@ -574,22 +574,21 @@ Action OpenStatsMenu(int client, int steamid)
 
 	if(gB_Rankings)
 	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, d.points, e.rank FROM " ...
+		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, d.points, e.rank, d.playtime FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
 				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track = 0 AND style = 0) c " ...
-				"JOIN (SELECT name, ip, lastlogin, FORMAT(points, 2) points FROM %susers WHERE auth = %d) d " ...
+				"JOIN (SELECT name, ip, lastlogin, FORMAT(points, 2) points, playtime FROM %susers WHERE auth = %d) d " ...
 				"JOIN (SELECT COUNT(*) as 'rank' FROM %susers as u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points) e " ...
 			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid);
 	}
-
 	else
 	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin FROM " ...
+		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, d.playtime FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
 				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track = 0 AND style = 0) c " ...
-				"JOIN (SELECT name, ip, lastlogin FROM %susers WHERE auth = %d) d " ...
+				"JOIN (SELECT name, ip, lastlogin, playtime FROM %susers WHERE auth = %d) d " ...
 			"LIMIT 1;", gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid);
 	}
 
@@ -650,6 +649,10 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			results.FetchString(7, sRank, 16);
 		}
 
+		float fPlaytime = results.FetchFloat(gB_Rankings ? 8 : 6);
+		char sPlaytime[16];
+		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true);
+
 		char sRankingString[64];
 
 		if(gB_Rankings)
@@ -674,9 +677,9 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
-		menu.SetTitle("%s's %T. [U:1:%d]\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n",
+		menu.SetTitle("%s's %T. [U:1:%d]\n%T: %s\n%s\n%s\n[%s] %T: %d%s\n%T: %s\n",
 			gS_TargetName[client], "Profile", client, gI_TargetSteamID[client], "Country", client, sCountry, sLastLogin, sClearString,
-			gS_StyleStrings[0].sStyleName, "WorldRecords", client, iWRs, sRankingString);
+			gS_StyleStrings[0].sStyleName, "WorldRecords", client, iWRs, sRankingString, "Playtime", client, sPlaytime);
 
 		int[] styles = new int[gI_Styles];
 		Shavit_GetOrderedStyles(styles, gI_Styles);

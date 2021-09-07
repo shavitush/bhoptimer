@@ -81,6 +81,10 @@
 	{
 		"en"		"Rank"
 	}
+	"Playtime"
+	{
+		"en"		"Play time"
+	}
 	"Points"
 	{
 		"en"		"Points"
