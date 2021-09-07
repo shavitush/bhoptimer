@@ -121,6 +121,7 @@ public void OnPluginStart()
 	{
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
+		Shavit_OnDatabaseLoaded();
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
