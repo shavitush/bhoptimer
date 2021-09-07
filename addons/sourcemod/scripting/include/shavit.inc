@@ -487,7 +487,7 @@ stock int SteamIDToAuth(const char[] sInput)
 		return StringToInt(sSteamID);
 	}
 
-	return StringToInt(sSteamID);
+	return 0;
 }
 
 // Can be used to unpack frame_t.mousexy and frame_t.vel

@@ -535,21 +535,27 @@ public Action Command_Profile(int client, int args)
 	}
 
 	int target = client;
+	int iSteamID = 0;
 
 	if(args > 0)
 	{
 		char sArgs[64];
 		GetCmdArgString(sArgs, 64);
 
-		target = FindTarget(client, sArgs, true, false);
+		iSteamID = SteamIDToAuth(sArgs);
 
-		if(target == -1)
+		if (iSteamID < 1)
 		{
-			return Plugin_Handled;
+			target = FindTarget(client, sArgs, true, false);
+
+			if (target == -1)
+			{
+				return Plugin_Handled;
+			}
 		}
 	}
 
-	gI_TargetSteamID[client] = GetSteamAccountID(target);
+	gI_TargetSteamID[client] = iSteamID ? iSteamID : GetSteamAccountID(target);
 
 	return OpenStatsMenu(client, gI_TargetSteamID[client]);
 }
