@@ -282,17 +282,7 @@ void PlayEventSound(int client, bool everyone, char sound[PLATFORM_MAX_PATH])
 			continue;
 		}
 
-		if(everyone)
-		{
-			clients[count++] = i;
-
-			continue;
-		}
-
-		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
-
-		// add player and their spectators
-		if(i == client || (IsClientObserver(i) && (iObserverMode >= 3 || iObserverMode <= 5) && GetEntPropEnt(i, Prop_Send, "m_hObserverTarget") == client))
+		if (everyone || i == client || GetSpectatorTarget(i) == client)
 		{
 			clients[count++] = i;
 		}

@@ -593,7 +593,7 @@ stock int GetSpectatorTarget(int client, int fallback = -1)
 	{
 		int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
 
-		if(iObserverMode >= 3 && iObserverMode <= 5)
+		if (iObserverMode >= 3 && iObserverMode <= 7)
 		{
 			int iTarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
 
