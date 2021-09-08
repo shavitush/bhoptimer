@@ -3487,16 +3487,18 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 	int clients[MAXPLAYERS+1];
 	int count = 0;
 
-	for(int i = 1; i <= MaxClients; i++)
+	for(int i = 0; i < numClients; i++)
 	{
-		if(!IsClientInGame(i) || i == client)
+		int x = Players[i];
+
+		if (!IsClientInGame(x) || x == client)
 		{
 			continue;
 		}
 
-		if(!gB_Hide[i] || GetSpectatorTarget(i) == client)
+		if (!gB_Hide[x] || GetSpectatorTarget(x) == client)
 		{
-			clients[count++] = i;
+			clients[count++] = x;
 		}
 	}
 
