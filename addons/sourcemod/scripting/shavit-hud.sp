@@ -1193,7 +1193,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 		char limit[16];
 		Shavit_GetStyleSetting(data.iStyle, "velocity_limit", limit, 16);
-		if(StringToFloat(limit) > 0.0 && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, -1))
+		if(StringToFloat(limit) > 0.0 && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, data.iTrack))
 		{
 			if(gI_ZoneSpeedLimit[data.iTarget] == 0)
 			{
@@ -1469,42 +1469,38 @@ void UpdateMainHUD(int client)
 
 	float fSpeedHUD = ((gI_HUDSettings[client] & HUD_2DVEL) == 0)? GetVectorLength(fSpeed):(SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
 	ZoneHUD iZoneHUD = ZoneHUD_None;
-	int iReplayStyle = 0;
-	int iReplayTrack = 0;
 	float fReplayTime = 0.0;
 	float fReplayLength = 0.0;
 
+	huddata_t huddata;
+	huddata.iStyle = (bReplay) ? Shavit_GetReplayBotStyle(target) : Shavit_GetBhopStyle(target);
+	huddata.iTrack = (bReplay) ? Shavit_GetReplayBotTrack(target) : Shavit_GetClientTrack(target);
+
 	if(!bReplay)
 	{
-		if(Shavit_InsideZone(target, Zone_Start, -1))
+		if (Shavit_InsideZone(target, Zone_Start, huddata.iTrack))
 		{
 			iZoneHUD = ZoneHUD_Start;
 		}
-		else if(Shavit_InsideZone(target, Zone_End, -1))
+		else if (Shavit_InsideZone(target, Zone_End, huddata.iTrack))
 		{
 			iZoneHUD = ZoneHUD_End;
 		}
 	}
 	else
 	{
-		iReplayStyle = Shavit_GetReplayBotStyle(target);
-		iReplayTrack = Shavit_GetReplayBotTrack(target);
-
-		if(iReplayStyle != -1)
+		if (huddata.iStyle != -1)
 		{
 			fReplayTime = Shavit_GetReplayTime(target);
 			fReplayLength = Shavit_GetReplayCacheLength(target);
 
-			fSpeedHUD /= Shavit_GetStyleSettingFloat(iReplayStyle, "speed") * Shavit_GetStyleSettingFloat(iReplayStyle, "timescale");
+			fSpeedHUD /= Shavit_GetStyleSettingFloat(huddata.iStyle, "speed") * Shavit_GetStyleSettingFloat(huddata.iStyle, "timescale");
 		}
 	}
 
-	huddata_t huddata;
 	huddata.iTarget = target;
 	huddata.iSpeed = RoundToNearest(fSpeedHUD);
 	huddata.iZoneHUD = iZoneHUD;
-	huddata.iStyle = (bReplay)? iReplayStyle:Shavit_GetBhopStyle(target);
-	huddata.iTrack = (bReplay)? iReplayTrack:Shavit_GetClientTrack(target);
 	huddata.fTime = (bReplay)? fReplayTime:Shavit_GetClientTime(target);
 	huddata.iJumps = (bReplay)? 0:Shavit_GetClientJumps(target);
 	huddata.iStrafes = (bReplay)? 0:Shavit_GetStrafeCount(target);
@@ -1883,6 +1879,7 @@ void UpdateKeyHint(int client)
 				return;
 			}
 
+			int track = bReplay ? Shavit_GetReplayBotTrack(target) : Shavit_GetClientTrack(target);
 			int style = bReplay ? Shavit_GetReplayBotStyle(target) : Shavit_GetBhopStyle(target);
 
 			if(!(0 <= style < gI_Styles))
@@ -1896,7 +1893,7 @@ void UpdateKeyHint(int client)
 			char autobhop[4];
 			Shavit_GetStyleSetting(style, "autobhop", autobhop, 4);
 
-			if(!bReplay && (gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && StringToInt(sync) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, -1)))
+			if(!bReplay && (gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && StringToInt(sync) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, track)))
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
