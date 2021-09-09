@@ -44,6 +44,8 @@ Convar g_cvEnhancedMenu;
 Convar g_cvMinTier;
 Convar g_cvMaxTier;
 
+Convar g_cvPrefix;
+char g_cPrefix[32];
 
 /* Map arrays */
 ArrayList g_aMapList;
@@ -150,6 +152,9 @@ public void OnPluginStart()
 	g_cvMinTier = new Convar("smc_min_tier", "0", "The minimum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 	g_cvMaxTier = new Convar("smc_max_tier", "10", "The maximum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 
+	g_cvPrefix = new Convar("smc_prefix", "[SMC] ", "The prefix SMC messages have");
+	g_cvPrefix.AddChangeHook(OnConVarChanged);
+
 	Convar.AutoExecConfig();
 	
 	RegAdminCmd("sm_extendmap", Command_Extend, ADMFLAG_RCON, "Admin command for extending map");
@@ -224,83 +229,59 @@ public void OnMapEnd()
 	ClearRTV();
 }
 
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (convar == g_cvPrefix)
+	{
+		strcopy(g_cPrefix, sizeof(g_cPrefix), newValue);
+	}
+}
+
 public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 {
-	DebugPrint("[SMC] OnMapTimeLeftChanged: maplist_length=%i mapvote_started=%s mapvotefinished=%s", g_aMapList.Length, g_bMapVoteStarted ? "true" : "false", g_bMapVoteFinished ? "true" : "false");
+	DebugPrint("%sOnMapTimeLeftChanged: maplist_length=%i mapvote_started=%s mapvotefinished=%s", g_cPrefix, g_aMapList.Length, g_bMapVoteStarted ? "true" : "false", g_bMapVoteFinished ? "true" : "false");
 	
 	int timeleft;
 	if(GetMapTimeLeft(timeleft))
 	{
 		if(!g_bMapVoteStarted && !g_bMapVoteFinished)
 		{
-			int mapvoteTime = timeleft - RoundFloat(g_cvMapVoteStartTime.FloatValue * 60.0);
+			int mapvoteTime = timeleft - RoundFloat(g_cvMapVoteStartTime.FloatValue * 60.0) + 3;
+			switch(mapvoteTime)
+			{
+				case (10 * 60), (5 * 60):
+				{
+					PrintToChatAll("%s%d minutes until map vote", g_cPrefix, mapvoteTime/60);
+				}
+			}
 			switch(mapvoteTime)
 			{
 				case (10 * 60) - 3:
 				{
-					PrintToChatAll("[SMC] 10 minutes until map vote");
+					PrintToChatAll("%s10 minutes until map vote", g_cPrefix);
 				}
-				case (5 * 60) - 3:
+				case 60, 30, 5:
 				{
-					PrintToChatAll("[SMC] 5 minutes until map vote");
-				}
-				case 60 - 3:
-				{
-					PrintToChatAll("[SMC] 1 minute until map vote");
-				}
-				case 30 - 3:
-				{
-					PrintToChatAll("[SMC] 30 seconds until map vote");
-				}
-				case 5 - 3:
-				{
-					PrintToChatAll("[SMC] 5 seconds until map vote");
+					PrintToChatAll("%s%s seconds until map vote", g_cPrefix, mapvoteTime);
 				}
 			}
 		}
 		else if(g_bMapVoteFinished && g_cvDisplayTimeRemaining.BoolValue)
 		{
+			timeleft += 3;
 			switch(timeleft)
 			{
-				case (30 * 60) - 3:
+				case (30 * 60), (20 * 60), (10 * 60), (5 * 60):
 				{
-					PrintToChatAll("[SMC] 30 minutes remaining");
+					PrintToChatAll("%s%d minutes remaining", g_cPrefix, timeleft/60);
 				}
-				case (20 * 60) - 3:
+				case 60, 10, 5, 3, 2:
 				{
-					PrintToChatAll("[SMC] 20 minutes remaining");
+					PrintToChatAll("%s%d seconds remaining", g_cPrefix, timeleft);
 				}
-				case (10 * 60) - 3:
+				case 1:
 				{
-					PrintToChatAll("[SMC] 10 minutes remaining");
-				}
-				case (5 * 60) - 3:
-				{
-					PrintToChatAll("[SMC] 5 minutes remaining");
-				}
-				case 60 - 3:
-				{
-					PrintToChatAll("[SMC] 1 minute remaining");
-				}
-				case 10 - 3:
-				{
-					PrintToChatAll("[SMC] 10 seconds remaining");
-				}
-				case 5 - 3:
-				{
-					PrintToChatAll("[SMC] 5 seconds remaining");
-				}
-				case 3 - 3:
-				{
-					PrintToChatAll("[SMC] 3 seconds remaining");
-				}
-				case 2 - 3:
-				{
-					PrintToChatAll("[SMC] 2 seconds remaining");
-				}
-				case 1 - 3:
-				{
-					PrintToChatAll("[SMC] 1 seconds remaining");
+					PrintToChatAll("%s1 second remaining", g_cPrefix);
 				}
 			}
 		}
@@ -318,17 +299,17 @@ void CheckTimeLeft()
 	if(GetMapTimeLeft(timeleft) && timeleft > 0)
 	{
 		int startTime = RoundFloat(g_cvMapVoteStartTime.FloatValue * 60.0);
-		DebugPrint("[SMC] CheckTimeLeft: timeleft=%i startTime=%i", timeleft, startTime);
+		DebugPrint("%sCheckTimeLeft: timeleft=%i startTime=%i", g_cPrefix, timeleft, startTime);
 		
 		if(timeleft - startTime <= 0)
 		{
-			DebugPrint("[SMC] CheckTimeLeft: Initiating map vote ...", timeleft, startTime);
+			DebugPrint("%sCheckTimeLeft: Initiating map vote ...", g_cPrefix, timeleft, startTime);
 			InitiateMapVote(MapChange_MapEnd);
 		}
 	}
 	else
 	{
-		DebugPrint("[SMC] CheckTimeLeft: GetMapTimeLeft=%s timeleft=%i", GetMapTimeLeft(timeleft) ? "true" : "false", timeleft);
+		DebugPrint("%sCheckTimeLeft: GetMapTimeLeft=%s timeleft=%i", g_cPrefix, GetMapTimeLeft(timeleft) ? "true" : "false", timeleft);
 	}
 }
 
@@ -467,7 +448,7 @@ void InitiateMapVote(MapChange when)
 	menu.ExitButton = false;
 	menu.DisplayVoteToAll(RoundFloat(g_cvMapVoteDuration.FloatValue * 60.0));
 	
-	PrintToChatAll("[SMC] %t", "Nextmap Voting Started");
+	PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Started");
 }
 
 public void Handler_MapVoteFinished(Menu menu, int num_votes, int num_clients, const int[][] client_info, int num_items, const int[][] item_info)
@@ -501,7 +482,7 @@ public void Handler_MapVoteFinished(Menu menu, int num_votes, int num_clients, c
 			float map2percent = float(item_info[1][VOTEINFO_ITEM_VOTES])/ float(num_votes) * 100;
 			
 			
-			PrintToChatAll("[SM] %t", "Starting Runoff", g_cvMapVoteRunOffPerc.FloatValue, info1, map1percent, info2, map2percent);
+			PrintToChatAll("%s%t", "Starting Runoff", g_cPrefix, g_cvMapVoteRunOffPerc.FloatValue, info1, map1percent, info2, map2percent);
 			LogMessage("Voting for next map was indecisive, beginning runoff vote");
 					
 			return;
@@ -552,7 +533,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 			}
 		}
 
-		PrintToChatAll("[SMC] %t", "Current Map Extended", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
+		PrintToChatAll("%s%t", g_cPrefix, "Current Map Extended", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
 		LogAction(-1, -1, "Voting for next map has finished. The current map has been extended.");
 		
 		// We extended, so we'll have to vote again.
@@ -563,7 +544,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 	}
 	else if(StrEqual(map, "dontchange"))
 	{
-		PrintToChatAll("[SMC] %t", "Current Map Stays", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
+		PrintToChatAll("%s%t", g_cPrefix, "Current Map Stays", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
 		LogAction(-1, -1, "Voting for next map has finished. 'No Change' was the winner");
 
 		g_bMapVoteFinished = false;
@@ -595,7 +576,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 		g_bMapVoteStarted = false;
 		g_bMapVoteFinished = true;
 		
-		PrintToChatAll("[SMC] %t", "Nextmap Voting Finished", displayName, RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
+		PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Finished", displayName, RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
 		LogAction(-1, -1, "Voting for next map has finished. Nextmap: %s.", map);
 	}	
 }
@@ -658,7 +639,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 					while(strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0);
 					
 					SetNextMap(map);
-					PrintToChatAll("[SMC] %t", "Nextmap Voting Finished", map, 0, 0);
+					PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Finished", map, 0, 0);
 					LogAction(-1, -1, "Voting for next map has finished. Nextmap: %s.", map);
 					g_bMapVoteFinished = true;
 				}
@@ -684,7 +665,7 @@ void ExtendMap(int time = 0)
 	}
 
 	ExtendMapTimeLimit(time);
-	PrintToChatAll("[SMC] The map was extended for %.1f minutes", time / 60.0);
+	PrintToChatAll("%sThe map was extended for %.1f minutes", g_cPrefix, time / 60.0);
 	
 	g_bMapVoteStarted = false;
 	g_bMapVoteFinished = false;
@@ -740,7 +721,7 @@ public void LoadZonedMapsCallback(Database db, DBResultSet results, const char[]
 {
 	if(results == null)
 	{
-		LogError("[SMC] - (LoadMapZonesCallback) - %s", error);
+		LogError("[shavit-mapchooser] - (LoadMapZonesCallback) - %s", error);
 		return;	
 	}
 
@@ -764,7 +745,7 @@ public void LoadZonedMapsCallbackMixed(Database db, DBResultSet results, const c
 {
 	if(results == null)
 	{
-		LogError("[SMC] - (LoadMapZonesCallbackMixed) - %s", error);
+		LogError("[shavit-mapchooser] - (LoadMapZonesCallbackMixed) - %s", error);
 		return;	
 	}
 
@@ -860,15 +841,15 @@ void SMC_NominateMatches(int client, const char[] mapname)
 		{
 			if (isCurrentMap) 
 			{
-				ReplyToCommand(client, "[SMC] %t", "Can't Nominate Current Map");
+				ReplyToCommand(client, "%s%t", g_cPrefix, "Can't Nominate Current Map");
 			}
 			else if (isOldMap) 
 			{
-				ReplyToCommand(client, "[SMC] %s %t", oldMapName, "Recently Played");
+				ReplyToCommand(client, "%s%s %t", g_cPrefix, oldMapName, "Recently Played");
 			}
 			else 
 			{
-				ReplyToCommand(client, "[SMC] %t", "Map was not found", mapname);	
+				ReplyToCommand(client, "%s%t", g_cPrefix, "Map was not found", mapname);	
 			}
 
 			if (subNominateMenu != INVALID_HANDLE)
@@ -952,7 +933,7 @@ public Action Command_ForceMapVote(int client, int args)
 {
 	if(g_bMapVoteStarted || g_bMapVoteFinished)
 	{
-		ReplyToCommand(client, "[SMC] Map vote already %s", (g_bMapVoteStarted) ? "initiated" : "finished");
+		ReplyToCommand(client, "%sMap vote already %s", g_cPrefix, (g_bMapVoteStarted) ? "initiated" : "finished");
 	}
 	else
 	{
@@ -996,14 +977,14 @@ public Action Command_Nominate(int client, int args)
 		{
 			if(StrEqual(mapname, g_cMapName))
 			{
-				ReplyToCommand(client, "[SMC] %t", "Can't Nominate Current Map");
+				ReplyToCommand(client, "%s%t", "Can't Nominate Current Map");
 				return Plugin_Handled;
 			}
 			
 			int idx = g_aOldMaps.FindString(mapname);
 			if(idx != -1)
 			{
-				ReplyToCommand(client, "[SMC] %s %t", mapname, "Recently Played");
+				ReplyToCommand(client, "%s%s %t", g_cPrefix, mapname, "Recently Played");
 				return Plugin_Handled;
 			}
 		
@@ -1013,7 +994,7 @@ public Action Command_Nominate(int client, int args)
 		}
 		else
 		{
-			ReplyToCommand(client, "[SMC] %t", "Map was not found", mapname);
+			ReplyToCommand(client, "%s%t", g_cPrefix, "Map was not found", mapname);
 		}
 	}
 	
@@ -1024,14 +1005,14 @@ public Action Command_UnNominate(int client, int args)
 {
 	if(g_cNominatedMap[client][0] == '\0')
 	{
-		ReplyToCommand(client, "[SMC] You haven't nominated a map");
+		ReplyToCommand(client, "%sYou haven't nominated a map", g_cPrefix);
 		return Plugin_Handled;
 	}
 
 	int idx = g_aNominateList.FindString(g_cNominatedMap[client]);
 	if(idx != -1)
 	{
-		ReplyToCommand(client, "[SMC] Successfully removed nomination for '%s'", g_cNominatedMap[client]);
+		ReplyToCommand(client, "%sSuccessfully removed nomination for '%s'", g_cPrefix, g_cNominatedMap[client]);
 		g_aNominateList.Erase(idx);
 		g_cNominatedMap[client][0] = '\0';
 	}
@@ -1238,7 +1219,7 @@ void Nominate(int client, const char mapname[PLATFORM_MAX_PATH])
 	int idx = g_aNominateList.FindString(mapname);
 	if(idx != -1)
 	{
-		ReplyToCommand(client, "[SMC] %t", "Map Already Nominated");
+		ReplyToCommand(client, "%s%t", g_cPrefix, "Map Already Nominated");
 		return;
 	}
 	
@@ -1252,31 +1233,31 @@ void Nominate(int client, const char mapname[PLATFORM_MAX_PATH])
 	char name[MAX_NAME_LENGTH];
 	GetClientName(client, name, sizeof(name));
 	
-	PrintToChatAll("[SMC] %t", "Map Nominated", name, mapname);
+	PrintToChatAll("%s%t", g_cPrefix, "Map Nominated", name, mapname);
 }
 
 public Action Command_RockTheVote(int client, int args)
 {
 	if(!IsRTVEnabled())
 	{
-		ReplyToCommand(client, "[SMC] %t", "RTV Not Allowed");
+		ReplyToCommand(client, "%s%t", g_cPrefix, "RTV Not Allowed");
 	}
 	else if(g_bMapVoteStarted)
 	{
-		ReplyToCommand(client, "[SMC] %t", "RTV Started");
+		ReplyToCommand(client, "%s%t", g_cPrefix, "RTV Started");
 	}
 	else if(g_bRockTheVote[client])
 	{
 		int needed = GetRTVVotesNeeded();
-		ReplyToCommand(client, "[SMC] You have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more %s needed)", needed, (needed == 1) ? "vote" : "votes");
+		ReplyToCommand(client, "%sYou have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more %s needed)", g_cPrefix, needed, (needed == 1) ? "vote" : "votes");
 	}
 	else if(g_cvRTVMinimumPoints.IntValue != -1 && Shavit_GetPoints(client) <= g_cvRTVMinimumPoints.FloatValue)
 	{
-		ReplyToCommand(client, "[SMC] You must be a higher rank to RTV!");
+		ReplyToCommand(client, "%sYou must be a higher rank to RTV!", g_cPrefix);
 	}
 	else if(GetClientTeam(client) == CS_TEAM_SPECTATOR && !g_cvRTVAllowSpectators.BoolValue)
 	{
-		ReplyToCommand(client, "[SMC] Spectators have been blocked from RTVing");
+		ReplyToCommand(client, "%sSpectators have been blocked from RTVing", g_cPrefix);
 	}
 	else
 	{
@@ -1302,7 +1283,7 @@ void CheckRTV(int client = 0)
 	{
 		if(client != 0)
 		{
-			PrintToChatAll("[SMC] %t", "RTV Requested", name, rtvcount, total);
+			PrintToChatAll("%s%t", "RTV Requested", g_cPrefix, name, rtvcount, total);
 		}
 	}
 	else
@@ -1314,11 +1295,11 @@ void CheckRTV(int client = 0)
 		
 			if(client != 0)
 			{
-				PrintToChatAll("[SMC] %N wants to rock the vote! Map will now change to %s ...", client, map);
+				PrintToChatAll("%s%N wants to rock the vote! Map will now change to %s ...", g_cPrefix, client, map);
 			}
 			else
 			{
-				PrintToChatAll("[SMC] RTV vote now majority, map changing to %s ...", map);
+				PrintToChatAll("%sRTV vote now majority, map changing to %s ...", g_cPrefix, map);
 			}
 
 			SetNextMap(map);
@@ -1328,11 +1309,11 @@ void CheckRTV(int client = 0)
 		{
 			if(client != 0)
 			{
-				PrintToChatAll("[SMC] %N wants to rock the vote! Map vote will now start ...", client);
+				PrintToChatAll("%s%N wants to rock the vote! Map vote will now start ...", g_cPrefix, client);
 			}
 			else
 			{
-				PrintToChatAll("[SMC] RTV vote now majority, map vote starting ...");
+				PrintToChatAll("%sRTV vote now majority, map vote starting ...", g_cPrefix);
 			}
 			
 			InitiateMapVote(MapChange_Instant);
@@ -1344,11 +1325,11 @@ public Action Command_UnRockTheVote(int client, int args)
 {
 	if(!IsRTVEnabled())
 	{
-		ReplyToCommand(client, "[SMC] RTV has not been enabled yet");
+		ReplyToCommand(client, "%sRTV has not been enabled yet", g_cPrefix);
 	}
 	else if(g_bMapVoteStarted || g_bMapVoteFinished)
 	{
-		ReplyToCommand(client, "[SMC] Map vote already %s", (g_bMapVoteStarted) ? "initiated" : "finished");
+		ReplyToCommand(client, "%sMap vote already %s", g_cPrefix, (g_bMapVoteStarted) ? "initiated" : "finished");
 	}
 	else if(g_bRockTheVote[client])
 	{
@@ -1357,7 +1338,7 @@ public Action Command_UnRockTheVote(int client, int args)
 		int needed = GetRTVVotesNeeded();
 		if(needed > 0)
 		{
-			PrintToChatAll("[SMC] %N no longer wants to rock the vote! (%i more votes needed)", client, needed);
+			PrintToChatAll("%s%N no longer wants to rock the vote! (%i more votes needed)", g_cPrefix, client, needed);
 		}
 	}
 
@@ -1368,7 +1349,7 @@ public Action Command_NomList(int client, int args)
 {
 	if(g_aNominateList.Length < 1)
 	{
-		ReplyToCommand(client, "[SMC] No Maps Nominated");
+		ReplyToCommand(client, "%sNo Maps Nominated", g_cPrefix);
 		return Plugin_Handled;
 	}
 
@@ -1398,7 +1379,7 @@ public int Null_Callback(Menu menu, MenuAction action, int param1, int param2)
 public Action Command_Debug(int client, int args)
 {
 	g_bDebug = !g_bDebug;
-	ReplyToCommand(client, "[SMC] Debug mode: %s", g_bDebug ? "ENABLED" : "DISABLED");
+	ReplyToCommand(client, "%sDebug mode: %s", g_cPrefix, g_bDebug ? "ENABLED" : "DISABLED");
 	return Plugin_Handled;
 }
 
