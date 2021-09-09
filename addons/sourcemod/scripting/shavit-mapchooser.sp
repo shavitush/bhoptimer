@@ -62,6 +62,7 @@ float g_fMapStartTime;
 float g_fLastMapvoteTime = 0.0;
 
 int g_iExtendCount;
+int g_mapFileSerial = -1;
 
 Menu g_hNominateMenu;
 Menu g_hEnhancedMenu;
@@ -78,6 +79,8 @@ Handle g_hRetryTimer = null;
 Handle g_hForward_OnRTV = null;
 Handle g_hForward_OnUnRTV = null;
 Handle g_hForward_OnSuccesfulRTV = null;
+
+StringMap g_mMapList;
 
 enum
 {
@@ -117,7 +120,9 @@ public void OnPluginStart()
 	g_aNominateList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	g_aOldMaps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	g_aTierMenus = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
-	
+
+	g_mMapList = new StringMap();
+
 	g_cvMapListType = new Convar("smc_maplist_type", "1", "Where the plugin should get the map list from. 0 = zoned maps from database, 1 = from maplist file (mapcycle.txt), 2 = from maps folder, 3 = from zoned maps and confirmed by maplist file", _, true, 0.0, true, 3.0);
 	g_cvMatchFuzzyMap = new Convar("smc_match_fuzzy", "1", "If set to 1, the plugin will accept partial map matches from the database. Useful for workshop maps, bad for duplicate map names", _, true, 0.0, true, 1.0);
 	
@@ -689,7 +694,7 @@ void LoadMapList()
 {
 	g_aMapList.Clear();
 	g_aAllMapsList.Clear();
-	
+	g_mMapList.Clear();
 
 	switch(g_cvMapListType.IntValue)
 	{
@@ -711,7 +716,7 @@ void LoadMapList()
 		}
 		case MapListFile:
 		{
-			ReadMapList(g_aMapList, _, "default");
+			ReadMapList(g_aMapList, g_mapFileSerial, "default", MAPLIST_FLAG_CLEARARRAY);
 			CreateNominateMenu();
 		}
 		case MapListMixed:
@@ -719,7 +724,7 @@ void LoadMapList()
 			delete g_hDatabase;
 			SQL_SetPrefix();
 
-			ReadMapList(g_aAllMapsList, _, "default");
+			ReadMapList(g_aAllMapsList, g_mapFileSerial, "default", MAPLIST_FLAG_CLEARARRAY);
 
 			char buffer[512];
 			g_hDatabase = SQL_Connect("shavit", true, buffer, sizeof(buffer));
@@ -764,21 +769,24 @@ public void LoadZonedMapsCallbackMixed(Database db, DBResultSet results, const c
 	}
 
 	char map[PLATFORM_MAX_PATH];
-	char map2[PLATFORM_MAX_PATH];
-	char buffer[PLATFORM_MAX_PATH];
+
+	for (int i = 0; i < g_aAllMapsList.Length; ++i)
+	{
+		g_aAllMapsList.GetString(i, map, sizeof(map));
+		GetMapDisplayName(map, map, sizeof(map));
+		LowercaseString(map);
+		g_mMapList.SetValue(map, i, true);
+	}
+
 	while(results.FetchRow())
 	{	
 		results.FetchString(0, map, sizeof(map));//db mapname
+		LowercaseString(map);
 		
-		for (int i = 0; i < g_aAllMapsList.Length; ++i)
+		int index;
+		if (g_mMapList.GetValue(map, index))
 		{
-			g_aAllMapsList.GetString(i, buffer, sizeof(buffer));//maplistmapname
-			GetMapDisplayName(buffer, map2, sizeof(map2));//get's the displayname of the map
-
-			if (StrEqual(map, map2, false))
-			{	
-				g_aMapList.PushString(buffer); 
-			}
+			g_aMapList.PushString(map); 
 		}
 	}
 	
