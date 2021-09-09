@@ -9,8 +9,6 @@
 // for MapChange type
 #include <mapchooser>
 
-#define PLUGIN_VERSION "1.0.4.7"
-
 
 Database g_hDatabase;
 char g_cSQLPrefix[32];
@@ -92,11 +90,11 @@ enum
 
 public Plugin myinfo =
 {
-	name = "shavit - MapChooser",
-	author = "SlidyBat",
-	description = "Automated Map Voting and nominating with Shavit timer integration",
-	version = PLUGIN_VERSION,
-	url = ""
+	name = "[shavit] MapChooser",
+	author = "SlidyBat, kidfearless, mbhound",
+	description = "Automated Map Voting and nominating with Shavit's bhoptimer integration",
+	version = SHAVIT_VERSION,
+	url = "https://github.com/shavitush/bhoptimer"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
