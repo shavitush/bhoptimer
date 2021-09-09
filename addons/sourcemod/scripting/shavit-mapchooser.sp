@@ -2,13 +2,15 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <convar_class>
 #include <shavit>
-#include <cstrike>
 
 #undef REQUIRE_PLUGIN
 // for MapChange type
 #include <mapchooser>
 
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
 
 Database g_hDatabase;
 char g_cSQLPrefix[32];
@@ -19,31 +21,31 @@ bool g_bDebug;
 #endif
 
 /* ConVars */
-ConVar g_cvRTVRequiredPercentage;
-ConVar g_cvRTVAllowSpectators;
-ConVar g_cvRTVMinimumPoints;
-ConVar g_cvRTVDelayTime;
+Convar g_cvRTVRequiredPercentage;
+Convar g_cvRTVAllowSpectators;
+Convar g_cvRTVMinimumPoints;
+Convar g_cvRTVDelayTime;
 
-ConVar g_cvMapListType;
-ConVar g_cvMatchFuzzyMap;
+Convar g_cvMapListType;
+Convar g_cvMatchFuzzyMap;
 
-ConVar g_cvMapVoteStartTime;
-ConVar g_cvMapVoteDuration;
-ConVar g_cvMapVoteBlockMapInterval;
-ConVar g_cvMapVoteExtendLimit;
-ConVar g_cvMapVoteEnableNoVote;
-ConVar g_cvMapVoteExtendTime;
-ConVar g_cvMapVoteShowTier;
-ConVar g_cvMapVoteRunOff;
-ConVar g_cvMapVoteRunOffPerc;
-ConVar g_cvMapVoteRevoteTime;
-ConVar g_cvDisplayTimeRemaining;
+Convar g_cvMapVoteStartTime;
+Convar g_cvMapVoteDuration;
+Convar g_cvMapVoteBlockMapInterval;
+Convar g_cvMapVoteExtendLimit;
+Convar g_cvMapVoteEnableNoVote;
+Convar g_cvMapVoteExtendTime;
+Convar g_cvMapVoteShowTier;
+Convar g_cvMapVoteRunOff;
+Convar g_cvMapVoteRunOffPerc;
+Convar g_cvMapVoteRevoteTime;
+Convar g_cvDisplayTimeRemaining;
 
-ConVar g_cvNominateMatches;
-ConVar g_cvEnhancedMenu;
+Convar g_cvNominateMatches;
+Convar g_cvEnhancedMenu;
 
-ConVar g_cvMinTier;
-ConVar g_cvMaxTier;
+Convar g_cvMinTier;
+Convar g_cvMaxTier;
 
 
 /* Map arrays */
@@ -119,34 +121,34 @@ public void OnPluginStart()
 	g_aOldMaps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	g_aTierMenus = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	
-	g_cvMapListType = CreateConVar("smc_maplist_type", "1", "Where the plugin should get the map list from. 0 = zoned maps from database, 1 = from maplist file (mapcycle.txt), 2 = from maps folder, 3 = from zoned maps and confirmed by maplist file", _, true, 0.0, true, 3.0);
-	g_cvMatchFuzzyMap = CreateConVar("smc_match_fuzzy", "1", "If set to 1, the plugin will accept partial map matches from the database. Useful for workshop maps, bad for duplicate map names", _, true, 0.0, true, 1.0);
+	g_cvMapListType = new Convar("smc_maplist_type", "1", "Where the plugin should get the map list from. 0 = zoned maps from database, 1 = from maplist file (mapcycle.txt), 2 = from maps folder, 3 = from zoned maps and confirmed by maplist file", _, true, 0.0, true, 3.0);
+	g_cvMatchFuzzyMap = new Convar("smc_match_fuzzy", "1", "If set to 1, the plugin will accept partial map matches from the database. Useful for workshop maps, bad for duplicate map names", _, true, 0.0, true, 1.0);
 	
-	g_cvMapVoteBlockMapInterval = CreateConVar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
-	g_cvMapVoteEnableNoVote = CreateConVar("smc_mapvote_enable_novote", "1", "Whether players are able to choose 'No Vote' in map vote", _, true, 0.0, true, 1.0);
-	g_cvMapVoteExtendLimit = CreateConVar("smc_mapvote_extend_limit", "3", "How many times players can choose to extend a single map (0 = block extending)", _, true, 0.0, false);
-	g_cvMapVoteExtendTime = CreateConVar("smc_mapvote_extend_time", "10", "How many minutes should the map be extended by if the map is extended through a mapvote", _, true, 1.0, false);
-	g_cvMapVoteShowTier = CreateConVar("smc_mapvote_show_tier", "1", "Whether the map tier should be displayed in the map vote", _, true, 0.0, true, 1.0);
-	g_cvMapVoteDuration = CreateConVar("smc_mapvote_duration", "1", "Duration of time in minutes that map vote menu should be displayed for", _, true, 0.1, false);
-	g_cvMapVoteStartTime = CreateConVar("smc_mapvote_start_time", "5", "Time in minutes before map end that map vote starts", _, true, 1.0, false);
+	g_cvMapVoteBlockMapInterval = new Convar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
+	g_cvMapVoteEnableNoVote = new Convar("smc_mapvote_enable_novote", "1", "Whether players are able to choose 'No Vote' in map vote", _, true, 0.0, true, 1.0);
+	g_cvMapVoteExtendLimit = new Convar("smc_mapvote_extend_limit", "3", "How many times players can choose to extend a single map (0 = block extending)", _, true, 0.0, false);
+	g_cvMapVoteExtendTime = new Convar("smc_mapvote_extend_time", "10", "How many minutes should the map be extended by if the map is extended through a mapvote", _, true, 1.0, false);
+	g_cvMapVoteShowTier = new Convar("smc_mapvote_show_tier", "1", "Whether the map tier should be displayed in the map vote", _, true, 0.0, true, 1.0);
+	g_cvMapVoteDuration = new Convar("smc_mapvote_duration", "1", "Duration of time in minutes that map vote menu should be displayed for", _, true, 0.1, false);
+	g_cvMapVoteStartTime = new Convar("smc_mapvote_start_time", "5", "Time in minutes before map end that map vote starts", _, true, 1.0, false);
 	
-	g_cvRTVAllowSpectators = CreateConVar("smc_rtv_allow_spectators", "1", "Whether spectators should be allowed to RTV", _, true, 0.0, true, 1.0);
-	g_cvRTVMinimumPoints = CreateConVar("smc_rtv_minimum_points", "-1", "Minimum number of points a player must have before being able to RTV, or -1 to allow everyone", _, true, -1.0, false);
-	g_cvRTVDelayTime = CreateConVar("smc_rtv_delay", "5", "Time in minutes after map start before players should be allowed to RTV", _, true, 0.0, false);
-	g_cvRTVRequiredPercentage = CreateConVar("smc_rtv_required_percentage", "50", "Percentage of players who have RTVed before a map vote is initiated", _, true, 1.0, true, 100.0);
+	g_cvRTVAllowSpectators = new Convar("smc_rtv_allow_spectators", "1", "Whether spectators should be allowed to RTV", _, true, 0.0, true, 1.0);
+	g_cvRTVMinimumPoints = new Convar("smc_rtv_minimum_points", "-1", "Minimum number of points a player must have before being able to RTV, or -1 to allow everyone", _, true, -1.0, false);
+	g_cvRTVDelayTime = new Convar("smc_rtv_delay", "5", "Time in minutes after map start before players should be allowed to RTV", _, true, 0.0, false);
+	g_cvRTVRequiredPercentage = new Convar("smc_rtv_required_percentage", "50", "Percentage of players who have RTVed before a map vote is initiated", _, true, 1.0, true, 100.0);
 
-	g_cvMapVoteRunOff = CreateConVar("smc_mapvote_runoff", "1", "Hold run of votes if winning choice is less than a certain margin", _, true, 0.0, true, 1.0);
-	g_cvMapVoteRunOffPerc = CreateConVar("smc_mapvote_runoffpercent", "50", "If winning choice has less than this percent of votes, hold a runoff", _, true, 0.0, true, 100.0);
-	g_cvMapVoteRevoteTime = CreateConVar("smc_mapvote_revotetime", "0", "How many minutes after a failed mapvote before rtv is enabled again", _, true, 0.0);
-	g_cvDisplayTimeRemaining = CreateConVar("smc_display_timeleft", "1", "Display remaining messages in chat", _, true, 0.0, true, 1.0);
+	g_cvMapVoteRunOff = new Convar("smc_mapvote_runoff", "1", "Hold run of votes if winning choice is less than a certain margin", _, true, 0.0, true, 1.0);
+	g_cvMapVoteRunOffPerc = new Convar("smc_mapvote_runoffpercent", "50", "If winning choice has less than this percent of votes, hold a runoff", _, true, 0.0, true, 100.0);
+	g_cvMapVoteRevoteTime = new Convar("smc_mapvote_revotetime", "0", "How many minutes after a failed mapvote before rtv is enabled again", _, true, 0.0);
+	g_cvDisplayTimeRemaining = new Convar("smc_display_timeleft", "1", "Display remaining messages in chat", _, true, 0.0, true, 1.0);
 
-	g_cvNominateMatches = CreateConVar("smc_nominate_matches", "1", "Prompts a menu which shows all maps which match argument",  _, true, 0.0, true, 1.0);
-	g_cvEnhancedMenu = CreateConVar("smc_enhanced_menu", "1", "Nominate menu can show maps by alphabetic order and tiers",  _, true, 0.0, true, 1.0);
+	g_cvNominateMatches = new Convar("smc_nominate_matches", "1", "Prompts a menu which shows all maps which match argument",  _, true, 0.0, true, 1.0);
+	g_cvEnhancedMenu = new Convar("smc_enhanced_menu", "1", "Nominate menu can show maps by alphabetic order and tiers",  _, true, 0.0, true, 1.0);
 
-	g_cvMinTier = CreateConVar("smc_min_tier", "0", "The minimum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
-	g_cvMaxTier = CreateConVar("smc_max_tier", "10", "The maximum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
+	g_cvMinTier = new Convar("smc_min_tier", "0", "The minimum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
+	g_cvMaxTier = new Convar("smc_max_tier", "10", "The maximum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 
-	AutoExecConfig();
+	Convar.AutoExecConfig();
 	
 	RegAdminCmd("sm_extendmap", Command_Extend, ADMFLAG_RCON, "Admin command for extending map");
 	RegAdminCmd("sm_forcemapvote", Command_ForceMapVote, ADMFLAG_RCON, "Admin command for forcing the end of map vote");
