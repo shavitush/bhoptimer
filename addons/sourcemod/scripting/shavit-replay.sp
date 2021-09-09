@@ -1671,17 +1671,17 @@ public void OnMapStart()
 
 	PrecacheModel((gEV_Type == Engine_TF2)? "models/error.mdl":"models/props/cs_office/vending_machine.mdl");
 
-	if(!DirExists(gS_ReplayFolder))
+	if (!DirExists(gS_ReplayFolder) && !CreateDirectory(gS_ReplayFolder, 511))
 	{
-		CreateDirectory(gS_ReplayFolder, 511);
+		SetFailState("Failed to create replay folder (%s). Make sure you have file permissions", gS_ReplayFolder);
 	}
 
 	char sPath[PLATFORM_MAX_PATH];
 	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/copy", gS_ReplayFolder);
 
-	if(!DirExists(sPath))
+	if (!DirExists(sPath) && !CreateDirectory(sPath, 511))
 	{
-		CreateDirectory(sPath, 511);
+		SetFailState("Failed to create replay copy folder (%s). Make sure you have file permissions", sPath);
 	}
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -1693,9 +1693,9 @@ public void OnMapStart()
 
 		FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d", gS_ReplayFolder, i);
 
-		if(!DirExists(sPath))
+		if (!DirExists(sPath) && !CreateDirectory(sPath, 511))
 		{
-			CreateDirectory(sPath, 511);
+			SetFailState("Failed to create replay style folder (%s). Make sure you have file permissions", sPath);
 		}
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
@@ -1707,6 +1707,16 @@ public void OnMapStart()
 
 		Call_StartForward(gH_OnReplaysLoaded);
 		Call_Finish();
+	}
+
+	// Test to see if replay file creation even works...
+	FormatEx(sPath, sizeof(sPath), "%s/0/faketestfile_69.replay", gS_ReplayFolder);
+	File fTest = OpenFile(sPath, "wb+");
+	CloseHandle(fTest);
+
+	if (fTest == null)
+	{
+		SetFailState("Failed to write to replay folder (%s). Make sure you have file permissions.", gS_ReplayFolder);
 	}
 
 	if (gH_TeamFull != null)
