@@ -379,6 +379,8 @@ void InitiateMapVote(MapChange when)
 	char map[PLATFORM_MAX_PATH];
 	char mapdisplay[PLATFORM_MAX_PATH + 32];
 
+	StringMap tiersMap = Shavit_GetMapTiers();
+
 	int nominateMapsToAdd = (mapsToAdd > g_aNominateList.Length) ? g_aNominateList.Length : mapsToAdd;
 	for(int i = 0; i < nominateMapsToAdd; i++)
 	{
@@ -387,9 +389,8 @@ void InitiateMapVote(MapChange when)
 
 		if(g_cvMapVoteShowTier.BoolValue)
 		{
-			int tier = Shavit_GetMapTier(mapdisplay);
-
-
+			int tier = 0;
+			tiersMap.GetValue(mapdisplay, tier);
 			Format(mapdisplay, sizeof(mapdisplay), "[T%i] %s", tier, mapdisplay);
 		}
 		else
@@ -426,7 +427,8 @@ void InitiateMapVote(MapChange when)
 
 		if(g_cvMapVoteShowTier.BoolValue)
 		{
-			int tier = Shavit_GetMapTier(mapdisplay);
+			int tier = 0;
+			tiersMap.GetValue(mapdisplay, tier);
 
 			Format(mapdisplay, sizeof(mapdisplay), "[T%i] %s", tier, mapdisplay);
 		}
@@ -434,6 +436,8 @@ void InitiateMapVote(MapChange when)
 
 		menu.AddItem(map, mapdisplay);
 	}
+
+	delete tiersMap;
 
 	if(when == MapChange_MapEnd && g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue)
 	{
@@ -800,6 +804,7 @@ void SMC_NominateMatches(int client, const char[] mapname)
 	bool isOldMap = false;
 	char map[PLATFORM_MAX_PATH];
 	char oldMapName[PLATFORM_MAX_PATH];
+	StringMap tiersMap = Shavit_GetMapTiers();
 
 	int length = g_aMapList.Length;
 	for(int i = 0; i < length; i++)
@@ -827,13 +832,16 @@ void SMC_NominateMatches(int client, const char[] mapname)
 			char mapdisplay[PLATFORM_MAX_PATH + 32];
 			GetMapDisplayName(entry, mapdisplay, sizeof(mapdisplay));
 
-			int tier = Shavit_GetMapTier(mapdisplay);
+			int tier = 0;
+			tiersMap.GetValue(mapdisplay, tier);
 
 			Format(mapdisplay, sizeof(mapdisplay), "%s | T%i", mapdisplay, tier);
 
 			subNominateMenu.AddItem(entry, mapdisplay);
 		}
 	}
+
+	delete tiersMap;
 
 	switch (subNominateMenu.ItemCount)
 	{
@@ -1105,6 +1113,7 @@ void CreateTierMenus()
 	}
 
 	InitTierMenus(min,max);
+	StringMap tiersMap = Shavit_GetMapTiers();
 
 	int length = g_aMapList.Length;
 	for(int i = 0; i < length; ++i)
@@ -1116,7 +1125,8 @@ void CreateTierMenus()
 		char mapdisplay[PLATFORM_MAX_PATH + 32];
 		GetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
 
-		int mapTier = Shavit_GetMapTier(mapdisplay);
+		int mapTier = 0;
+		mapTier = tiersMap.GetValue(mapdisplay, mapTier);
 
 		if(StrEqual(mapname, g_cMapName))
 		{
@@ -1136,6 +1146,8 @@ void CreateTierMenus()
 			AddMenuItem(g_aTierMenus.Get(mapTier-min), mapname, mapdisplay, style);
 		}
 	}
+
+	delete tiersMap;
 
 	CreateEnhancedMenu();
 }
