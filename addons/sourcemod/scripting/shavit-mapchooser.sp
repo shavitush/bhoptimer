@@ -1050,7 +1050,7 @@ void CreateNominateMenu()
 		char mapdisplay2[PLATFORM_MAX_PATH + 32];
 		GetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
 
-		int tier = 1;
+		int tier = 0;
 		tiersMap.GetValue(mapdisplay, tier);
 
 		FormatEx(mapdisplay2, sizeof(mapdisplay2), "%s | T%i", mapdisplay, tier);
