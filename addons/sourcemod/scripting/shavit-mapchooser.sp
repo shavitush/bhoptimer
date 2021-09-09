@@ -1490,6 +1490,7 @@ stock void ChangeMapDelayed(const char[] map, float delay = 2.0)
 
 stock int GetRTVVotesNeeded()
 {
+	int Needed = 0;
 	int total = 0;
 	int rtvcount = 0;
 	for(int i = 1; i <= MaxClients; i++)
@@ -1515,7 +1516,14 @@ stock int GetRTVVotesNeeded()
 		}
 	}
 	
-	int Needed = RoundToFloor(total * (g_cvRTVRequiredPercentage.FloatValue / 100));
+	if(g_cvRTVRequiredPercentage.FloatValue >= 50 && total == 2)
+	{
+		Needed = 2;
+	}
+	else
+	{
+		Needed = RoundToFloor(total * (g_cvRTVRequiredPercentage.FloatValue / 100));
+	}
 	
 	// always clamp to 1, so if rtvcount is 0 it never initiates RTV
 	if(Needed < 1)
@@ -1556,6 +1564,7 @@ stock int GetRTVCount()
 
 stock int GetRTVTotalNeeded()
 {
+	int Needed = 0;
 	int total = 0;
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -1576,7 +1585,14 @@ stock int GetRTVTotalNeeded()
 		}
 	}
 	
-	int Needed = RoundToFloor(total * (g_cvRTVRequiredPercentage.FloatValue / 100));
+	if(g_cvRTVRequiredPercentage.FloatValue >= 50 && total == 2)
+	{
+		Needed = 2;
+	}
+	else
+	{
+		Needed = RoundToFloor(total * (g_cvRTVRequiredPercentage.FloatValue / 100));
+	}
 	
 	// always clamp to 1, so if rtvcount is 0 it never initiates RTV
 	if(Needed < 1)
