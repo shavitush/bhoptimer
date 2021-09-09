@@ -1192,6 +1192,7 @@ forward void Shavit_OnProcessMovementPost(int client);
 
 /**
  * Called when a player RTV's.
+ * Requires shavit-mapchooser.
  *
  * @param client					Client index.
  * @noreturn
@@ -1200,6 +1201,7 @@ forward void SMC_OnRTV(int client);
 
 /**
  * Called when a player UNRTV's.
+ * Requires shavit-mapchooser.
  *
  * @param client					Client index.
  * @noreturn
@@ -1208,6 +1210,7 @@ forward void SMC_OnUnRTV(int client);
 
 /**
  * Called when the map changes from an RTV.
+ * Requires shavit-mapchooser.
  *
  * @noreturn
  */
