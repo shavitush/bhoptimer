@@ -44,6 +44,9 @@ Convar g_cvEnhancedMenu;
 Convar g_cvMinTier;
 Convar g_cvMaxTier;
 
+Convar g_cvAntiSpam;
+float g_fLastRtvTime[MAXPLAYERS+1];
+
 Convar g_cvPrefix;
 char g_cPrefix[32];
 
@@ -151,6 +154,8 @@ public void OnPluginStart()
 
 	g_cvMinTier = new Convar("smc_min_tier", "0", "The minimum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 	g_cvMaxTier = new Convar("smc_max_tier", "10", "The maximum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
+
+	g_cvAntiSpam = new Convar("smc_anti_spam", "2.0", "The number of seconds a player needs to wait before rtv/unrtv.", 0, true, 0.0, true, 60.0);
 
 	g_cvPrefix = new Convar("smc_prefix", "[SMC] ", "The prefix SMC messages have");
 	g_cvPrefix.AddChangeHook(OnConVarChanged);
@@ -1276,6 +1281,14 @@ public Action Command_RockTheVote(int client, int args)
 	}
 	else
 	{
+		if (g_fLastRtvTime[client] && (GetEngineTime() - g_fLastRtvTime[client]) < g_cvAntiSpam.FloatValue)
+		{
+			ReplyToCommand(client, "%sStop doing that so fast", g_cPrefix);
+			return Plugin_Handled;
+		}
+
+		g_fLastRtvTime[client] = GetEngineTime();
+
 		RTVClient(client);
 		CheckRTV(client);
 	}
@@ -1348,6 +1361,14 @@ public Action Command_UnRockTheVote(int client, int args)
 	}
 	else if(g_bRockTheVote[client])
 	{
+		if (g_fLastRtvTime[client] && (GetEngineTime() - g_fLastRtvTime[client]) < g_cvAntiSpam.FloatValue)
+		{
+			ReplyToCommand(client, "[SMC] Stop doing that so fast");
+			return Plugin_Handled;
+		}
+
+		g_fLastRtvTime[client] = GetEngineTime();
+
 		UnRTVClient(client);
 
 		int needed = GetRTVVotesNeeded();
