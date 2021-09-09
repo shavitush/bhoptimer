@@ -92,7 +92,8 @@ enum
 	MapListZoned,
 	MapListFile,
 	MapListFolder,
-	MapListMixed
+	MapListMixed,
+	MapListZonedMixedWithFolder,
 }
 
 public Plugin myinfo =
@@ -128,7 +129,7 @@ public void OnPluginStart()
 
 	g_mMapList = new StringMap();
 
-	g_cvMapListType = new Convar("smc_maplist_type", "1", "Where the plugin should get the map list from. 0 = zoned maps from database, 1 = from maplist file (mapcycle.txt), 2 = from maps folder, 3 = from zoned maps and confirmed by maplist file", _, true, 0.0, true, 3.0);
+	g_cvMapListType = new Convar("smc_maplist_type", "1", "Where the plugin should get the map list from.\n0 - zoned maps from database\n1 - from maplist file (mapcycle.txt)\n2 - from maps folder\n3 - from zoned maps and confirmed by maplist file\n4 - from zoned maps and confirmed by maps folder", _, true, 0.0, true, 4.0);
 	g_cvMatchFuzzyMap = new Convar("smc_match_fuzzy", "1", "If set to 1, the plugin will accept partial map matches from the database. Useful for workshop maps, bad for duplicate map names", _, true, 0.0, true, 1.0);
 
 	g_cvMapVoteBlockMapInterval = new Convar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
@@ -709,12 +710,19 @@ void LoadMapList()
 			ReadMapList(g_aMapList, g_mapFileSerial, "default", MAPLIST_FLAG_CLEARARRAY);
 			CreateNominateMenu();
 		}
-		case MapListMixed:
+		case MapListMixed, MapListZonedMixedWithFolder:
 		{
 			delete g_hDatabase;
 			SQL_SetPrefix();
 
-			ReadMapList(g_aAllMapsList, g_mapFileSerial, "default", MAPLIST_FLAG_CLEARARRAY);
+			if (g_cvMapListType.IntValue == MapListMixed)
+			{
+				ReadMapList(g_aAllMapsList, g_mapFileSerial, "default", MAPLIST_FLAG_CLEARARRAY);
+			}
+			else
+			{
+				LoadFromMapsFolder(g_aAllMapsList);
+			}
 
 			char buffer[512];
 			g_hDatabase = SQL_Connect("shavit", true, buffer, sizeof(buffer));
