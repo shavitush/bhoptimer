@@ -15,10 +15,7 @@
 Database g_hDatabase;
 char g_cSQLPrefix[32];
 
-
-#if defined DEBUG
 bool g_bDebug;
-#endif
 
 /* ConVars */
 Convar g_cvRTVRequiredPercentage;
@@ -159,10 +156,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_rtv", Command_RockTheVote, "Lets players Rock The Vote");
 	RegConsoleCmd("sm_unrtv", Command_UnRockTheVote, "Lets players un-Rock The Vote");
 	RegConsoleCmd("sm_nomlist", Command_NomList, "Shows currently nominated maps");
-	
-	#if defined DEBUG
-	RegConsoleCmd("sm_smcdebug", Command_Debug);
-	#endif
+
+	RegAdminCmd("sm_smcdebug", Command_Debug, ADMFLAG_RCON);
 }
 
 public void OnMapStart()
@@ -226,12 +221,7 @@ public void OnMapEnd()
 
 public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 {
-	#if defined DEBUG
-	if(g_bDebug)
-	{
-		DebugPrint("[SMC] OnMapTimeLeftChanged: maplist_length=%i mapvote_started=%s mapvotefinished=%s", g_aMapList.Length, g_bMapVoteStarted ? "true" : "false", g_bMapVoteFinished ? "true" : "false");
-	}
-	#endif
+	DebugPrint("[SMC] OnMapTimeLeftChanged: maplist_length=%i mapvote_started=%s mapvotefinished=%s", g_aMapList.Length, g_bMapVoteStarted ? "true" : "false", g_bMapVoteFinished ? "true" : "false");
 	
 	int timeleft;
 	if(GetMapTimeLeft(timeleft))
@@ -323,34 +313,18 @@ void CheckTimeLeft()
 	if(GetMapTimeLeft(timeleft) && timeleft > 0)
 	{
 		int startTime = RoundFloat(g_cvMapVoteStartTime.FloatValue * 60.0);
-		#if defined DEBUG
-		if(g_bDebug)
-		{
-			DebugPrint("[SMC] CheckTimeLeft: timeleft=%i startTime=%i", timeleft, startTime);
-		}
-		#endif
+		DebugPrint("[SMC] CheckTimeLeft: timeleft=%i startTime=%i", timeleft, startTime);
 		
 		if(timeleft - startTime <= 0)
 		{
-			#if defined DEBUG
-			if(g_bDebug)
-			{
-				DebugPrint("[SMC] CheckTimeLeft: Initiating map vote ...", timeleft, startTime);
-			}
-			#endif
-		
+			DebugPrint("[SMC] CheckTimeLeft: Initiating map vote ...", timeleft, startTime);
 			InitiateMapVote(MapChange_MapEnd);
 		}
 	}
-	#if defined DEBUG
 	else
 	{
-		if(g_bDebug)
-		{
-			DebugPrint("[SMC] CheckTimeLeft: GetMapTimeLeft=%s timeleft=%i", GetMapTimeLeft(timeleft) ? "true" : "false", timeleft);
-		}
+		DebugPrint("[SMC] CheckTimeLeft: GetMapTimeLeft=%s timeleft=%i", GetMapTimeLeft(timeleft) ? "true" : "false", timeleft);
 	}
-	#endif
 }
 
 public void OnClientDisconnect(int client)
@@ -1413,20 +1387,12 @@ public int Null_Callback(Menu menu, MenuAction action, int param1, int param2)
 	}
 }
 
-#if defined DEBUG
 public Action Command_Debug(int client, int args)
 {
-	if(IsSlidy(client))
-	{
-		g_bDebug = !g_bDebug;
-		ReplyToCommand(client, "[SMC] Debug mode: %s", g_bDebug ? "ENABLED" : "DISABLED");
-		
-		return Plugin_Handled;
-	}
-	
-	return Plugin_Continue;
+	g_bDebug = !g_bDebug;
+	ReplyToCommand(client, "[SMC] Debug mode: %s", g_bDebug ? "ENABLED" : "DISABLED");
+	return Plugin_Handled;
 }
-#endif
 
 void RTVClient(int client)
 {
@@ -1612,15 +1578,19 @@ stock int GetRTVTotalNeeded()
 	return Needed;
 }
 
-stock void DebugPrint(const char[] message, any ...)
-{		
+void DebugPrint(const char[] message, any ...)
+{
+	if (!g_bDebug)
+	{
+		return;
+	}
+
 	char buffer[256];
 	VFormat(buffer, sizeof(buffer), message, 2);
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		// STEAM_1:1:159678344 (SlidyBat)
-		if(GetSteamAccountID(i) == 319356689)
+		if (IsClientConnected(i) && CheckCommandAccess(i, "sm_smcdebug", ADMFLAG_RCON))
 		{
 			PrintToChat(i, buffer);
 			return;
