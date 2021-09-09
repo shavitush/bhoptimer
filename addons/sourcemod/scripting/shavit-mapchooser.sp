@@ -1026,6 +1026,7 @@ void CreateNominateMenu()
 	g_hNominateMenu = new Menu(NominateMenuHandler);
 	
 	g_hNominateMenu.SetTitle("Nominate Menu");
+	StringMap tiersMap = Shavit_GetMapTiers();
 	
 	int length = g_aMapList.Length;
 	for(int i = 0; i < length; ++i)
@@ -1046,15 +1047,17 @@ void CreateNominateMenu()
 		}
 		
 		char mapdisplay[PLATFORM_MAX_PATH + 32];
+		char mapdisplay2[PLATFORM_MAX_PATH + 32];
 		GetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
 
+		int tier = 1;
+		tiersMap.GetValue(mapdisplay, tier);
 
-		int tier = Shavit_GetMapTier(mapdisplay);
-
-		Format(mapdisplay, sizeof(mapdisplay), "%s | T%i", mapdisplay, tier);
-		
-		g_hNominateMenu.AddItem(mapname, mapdisplay, style);
+		FormatEx(mapdisplay2, sizeof(mapdisplay2), "%s | T%i", mapdisplay, tier);
+		g_hNominateMenu.AddItem(mapname, mapdisplay2, style);
 	}
+
+	delete tiersMap;
 
 	if (g_cvEnhancedMenu.BoolValue) 
 	{
@@ -1448,13 +1451,18 @@ stock bool LoadFromMapsFolder(ArrayList list)
 		if(filetype != FileType_File)
 			continue;
 				
-		namelen = strlen(name) - 4;
-		if(StrContains(name, ".bsp", false) != namelen)
+		namelen = strlen(name);
+
+		if (namelen < 5 || name[namelen-4] != '.') // a.bsp
+		{
 			continue;
-				
-		name[namelen] = '\0';
-			
-		list.PushString(name);
+		}
+
+		if (name[namelen-3] == 'b' && name[namelen-2] == 's' && name[namelen-1] == 'p')
+		{
+			name[namelen-4] = 0;
+			list.PushString(name);
+		}
 	}
 
 	delete mapdir;
