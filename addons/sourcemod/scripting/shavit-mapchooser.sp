@@ -795,7 +795,7 @@ bool SMC_FindMap(const char[] mapname, char[] output, int maxlen)
 void SMC_NominateMatches(int client, const char[] mapname)
 {
 	Menu subNominateMenu = new Menu(NominateMenuHandler);
-	subNominateMenu.SetTitle("Nominate Menu\nMaps matching \"%s\"\n ", mapname);
+	subNominateMenu.SetTitle("Nominate\nMaps matching \"%s\"\n ", mapname);
 	bool isCurrentMap = false;
 	bool isOldMap = false;
 	char map[PLATFORM_MAX_PATH];
@@ -1025,7 +1025,7 @@ void CreateNominateMenu()
 	delete g_hNominateMenu;
 	g_hNominateMenu = new Menu(NominateMenuHandler);
 	
-	g_hNominateMenu.SetTitle("Nominate Menu");
+	g_hNominateMenu.SetTitle("Nominate");
 	StringMap tiersMap = Shavit_GetMapTiers();
 	
 	int length = g_aMapList.Length;
@@ -1072,7 +1072,7 @@ void CreateEnhancedMenu()
 	g_hEnhancedMenu = new Menu(EnhancedMenuHandler);
 	g_hEnhancedMenu.ExitButton = true;
 	
-	g_hEnhancedMenu.SetTitle("Nominate Menu");	
+	g_hEnhancedMenu.SetTitle("Nominate");	
 	g_hEnhancedMenu.AddItem("Alphabetic", "Alphabetic");
 
 	for(int i = GetConVarInt(g_cvMinTier); i <= GetConVarInt(g_cvMaxTier); ++i)
@@ -1147,7 +1147,7 @@ void InitTierMenus(int min, int max)
 	for(int i = min; i <= max; i++)
 	{
 		Menu TierMenu = new Menu(NominateMenuHandler);
-		TierMenu.SetTitle("Nominate Menu\nTier \"%i\" Maps\n ", i);
+		TierMenu.SetTitle("Nominate\nTier \"%i\" Maps\n ", i);
 		TierMenu.ExitBackButton = true;
 
 		g_aTierMenus.Push(TierMenu);
