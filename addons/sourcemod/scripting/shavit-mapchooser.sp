@@ -868,14 +868,14 @@ void SMC_NominateMatches(int client, const char[] mapname)
 			
 			subNominateMenu.AddItem(entry, mapdisplay);
 		}
-    }
-    
+	}
+
 	switch (subNominateMenu.ItemCount) 
 	{
-    	case 0:
-    	{
-    		if (isCurrentMap) 
-    		{
+		case 0:
+		{
+			if (isCurrentMap) 
+			{
 				ReplyToCommand(client, "[SMC] %t", "Can't Nominate Current Map");
 			}
 			else if (isOldMap) 
@@ -891,21 +891,21 @@ void SMC_NominateMatches(int client, const char[] mapname)
 			{
 				CloseHandle(subNominateMenu);
 			}
-    	}
-   		case 1:
-   		{
+		}
+		case 1:
+		{
 			Nominate(client, map);
 
 			if (subNominateMenu != INVALID_HANDLE)
 			{
 				CloseHandle(subNominateMenu);
 			}
-   		}
-   		default: 
-   		{
+		}
+		default: 
+		{
 			subNominateMenu.Display(client, MENU_TIME_FOREVER);
-   		}
-  	}
+		}
+	}
 }
 
 bool IsRTVEnabled()
