@@ -1191,6 +1191,29 @@ forward void Shavit_OnProcessMovement(int client);
 forward void Shavit_OnProcessMovementPost(int client);
 
 /**
+ * Called when a player RTV's.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void SMC_OnRTV(int client);
+
+/**
+ * Called when a player UNRTV's.
+ *
+ * @param client					Client index.
+ * @noreturn
+ */
+forward void SMC_OnUnRTV(int client);
+
+/**
+ * Called when the map changes from an RTV.
+ *
+ * @noreturn
+ */
+forward void SMC_OnSuccesfulRTV();
+
+/**
  * Returns bhoptimer's database handle.
  * Call within Shavit_OnDatabaseLoaded. Safety is not guaranteed anywhere else!
  *
