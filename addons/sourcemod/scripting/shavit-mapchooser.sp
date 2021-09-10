@@ -20,6 +20,7 @@ bool g_bDebug;
 /* ConVars */
 Convar g_cvRTVRequiredPercentage;
 Convar g_cvRTVAllowSpectators;
+Convar g_cvRTVSpectatorCooldown;
 Convar g_cvRTVMinimumPoints;
 Convar g_cvRTVDelayTime;
 
@@ -79,6 +80,7 @@ Menu g_hVoteMenu;
 /* Player Data */
 bool g_bRockTheVote[MAXPLAYERS + 1];
 char g_cNominatedMap[MAXPLAYERS + 1][PLATFORM_MAX_PATH];
+float g_fSpecTimerStart[MAXPLAYERS+1];
 
 Handle g_hRetryTimer = null;
 Handle g_hForward_OnRTV = null;
@@ -141,6 +143,7 @@ public void OnPluginStart()
 	g_cvMapVoteStartTime = new Convar("smc_mapvote_start_time", "5", "Time in minutes before map end that map vote starts", _, true, 1.0, false);
 
 	g_cvRTVAllowSpectators = new Convar("smc_rtv_allow_spectators", "1", "Whether spectators should be allowed to RTV", _, true, 0.0, true, 1.0);
+	g_cvRTVSpectatorCooldown = new Convar("smc_rtv_spectator_cooldown", "60", "When `smc_rtv_allow_spectators` is `0`, wait this many seconds before removing a spectator's RTV", 0, true, 0.0);
 	g_cvRTVMinimumPoints = new Convar("smc_rtv_minimum_points", "-1", "Minimum number of points a player must have before being able to RTV, or -1 to allow everyone", _, true, -1.0, false);
 	g_cvRTVDelayTime = new Convar("smc_rtv_delay", "5", "Time in minutes after map start before players should be allowed to RTV", _, true, 0.0, false);
 	g_cvRTVRequiredPercentage = new Convar("smc_rtv_required_percentage", "50", "Percentage of players who have RTVed before a map vote is initiated", _, true, 1.0, true, 100.0);
@@ -198,7 +201,7 @@ public void OnMapStart()
 	}
 	ClearRTV();
 
-
+	CreateTimer(0.5, Timer_SpecCooldown, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	CreateTimer(2.0, Timer_OnMapTimeLeftChanged, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
@@ -240,6 +243,31 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	if (convar == g_cvPrefix)
 	{
 		strcopy(g_cPrefix, sizeof(g_cPrefix), newValue);
+	}
+}
+
+public Action Timer_SpecCooldown(Handle timer)
+{
+	float cooldown = g_cvRTVSpectatorCooldown.FloatValue;
+	float now = GetEngineTime();
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientConnected(i) || !IsClientInGame(i) || GetClientTeam(i) > CS_TEAM_SPECTATOR)
+		{
+			g_fSpecTimerStart[i] = 0.0;
+			continue;
+		}
+
+		if (!g_fSpecTimerStart[i])
+		{
+			g_fSpecTimerStart[i] = now;
+		}
+
+		if (g_bRockTheVote[i] && (now - g_fSpecTimerStart[i]) >= cooldown)
+		{
+			UnRTVClient(i);
+		}
 	}
 }
 
@@ -317,6 +345,11 @@ void CheckTimeLeft()
 	{
 		DebugPrint("%sCheckTimeLeft: GetMapTimeLeft=%s timeleft=%i", g_cPrefix, GetMapTimeLeft(timeleft) ? "true" : "false", timeleft);
 	}
+}
+
+public void OnClientConnected(int client)
+{
+	g_fSpecTimerStart[client] = 0.0;
 }
 
 public void OnClientDisconnect(int client)
