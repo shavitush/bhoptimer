@@ -90,6 +90,9 @@ bool g_bRockTheVote[MAXPLAYERS + 1];
 char g_cNominatedMap[MAXPLAYERS + 1][PLATFORM_MAX_PATH];
 float g_fSpecTimerStart[MAXPLAYERS+1];
 
+float g_fVoteDelayTime = 1.75;
+bool g_bVoteDelayed[MAXPLAYERS+1];
+
 Handle g_hRetryTimer = null;
 Handle g_hForward_OnRTV = null;
 Handle g_hForward_OnUnRTV = null;
@@ -230,6 +233,7 @@ public void OnMapStart()
 
 public void OnConfigsExecuted()
 {
+	g_cvPrefix.GetString(g_cPrefix, sizeof(g_cPrefix));
 	// reload maplist array
 	LoadMapList();
 	// cache the nominate menu so that it isn't being built every time player opens it
@@ -396,6 +400,7 @@ void CheckTimeLeft()
 public void OnClientConnected(int client)
 {
 	g_fSpecTimerStart[client] = 0.0;
+	g_bVoteDelayed[client] = false;
 }
 
 public void OnClientDisconnect(int client)
@@ -493,7 +498,7 @@ void InitiateMapVote(MapChange when)
 		int rand = GetRandomInt(0, g_aMapList.Length - 1);
 		g_aMapList.GetString(rand, map, sizeof(map));
 
-		GetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
+		LessStupidGetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
 
 		if(StrEqual(map, g_cMapName))
 		{
@@ -533,11 +538,41 @@ void InitiateMapVote(MapChange when)
 		menu.AddItem("dontchange", "Don't Change");
 	}
 
+	PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Started");
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		g_bVoteDelayed[i] = (IsClientInGame(i) && !IsFakeClient(i) && GetClientMenu(i) != MenuSource_None);
+
+		if (g_bVoteDelayed[i])
+		{
+			PrintToChat(i, "%sYou had a menu open. Waiting %.2fs before accepting input", g_cPrefix, g_fVoteDelayTime);
+		}
+	}
+
+	CreateTimer(g_fVoteDelayTime+0.1, Timer_VoteDelay, 0, TIMER_FLAG_NO_MAPCHANGE);
+
 	menu.NoVoteButton = g_cvMapVoteEnableNoVote.BoolValue;
 	menu.ExitButton = false;
 	menu.DisplayVoteToAll(RoundFloat(g_cvMapVoteDuration.FloatValue * 60.0));
+}
 
-	PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Started");
+Action Timer_VoteDelay(Handle timer, any data)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (g_bVoteDelayed[i])
+		{
+			g_bVoteDelayed[i] = false;
+
+			if (IsClientInGame(i))
+			{
+				RedrawClientVoteMenu(i);
+			}
+		}
+	}
+
+	return Plugin_Stop;
 }
 
 public void Handler_MapVoteFinished(Menu menu, int num_votes, int num_clients, const int[][] client_info, int num_items, const int[][] item_info)
@@ -674,6 +709,23 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 {
 	switch(action)
 	{
+		case MenuAction_DrawItem:
+		{
+			if (g_bVoteDelayed[param1])
+			{
+				return ITEMDRAW_DISABLED;
+			}
+		}
+
+		case MenuAction_Cancel: // comes up for novote
+		{
+			if (g_bVoteDelayed[param1])
+			{
+				RedrawClientVoteMenu(param1);
+				return 0;
+			}
+		}
+
 		case MenuAction_End:
 		{
 			delete menu;
@@ -731,6 +783,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 					PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Finished", map, 0, 0);
 					LogAction(-1, -1, "Voting for next map has finished. Nextmap: %s.", map);
 					g_bMapVoteFinished = true;
+					ClearRTV();
 				}
 			}
 			else
