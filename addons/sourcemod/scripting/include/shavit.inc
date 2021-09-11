@@ -414,7 +414,7 @@ stock void LessStupidGetMapDisplayName(const char[] map, char[] displayName, int
 	ReplaceString(temp, sizeof(temp), "\\", "/", true);
 
 	int slashpos = FindCharInString(map, '/', true);
-	strcopy(temp2, sizeof(temp), map[slashpos+1]);
+	strcopy(temp2, sizeof(temp2), map[slashpos+1]);
 
 	int ugcpos = StrContains(temp2, ".ugc", true);
 
@@ -433,7 +433,7 @@ stock void GetLowercaseMapName(char sMap[PLATFORM_MAX_PATH])
 	LessStupidGetMapDisplayName(sMap, sMap, sizeof(sMap));
 }
 
-stock bool GetMapsListHandler(const char path[PLATFORM_MAX_PATH], any data, bool is_stringmap, bool lowercase, bool display, bool iter_subfolders, bool use_valve_fs)
+stock bool ReadMapsFolderHandler(const char path[PLATFORM_MAX_PATH], bool is_stringmap, Handle data, bool lowercase, bool display, bool iter_subfolders, bool use_valve_fs, char[][] exclude_prefixes, int exclude_count)
 {
 	bool first_iteration = StrEqual(path, "maps");
 	DirectoryListing dir = OpenDirectory(path, use_valve_fs);
@@ -459,7 +459,7 @@ stock bool GetMapsListHandler(const char path[PLATFORM_MAX_PATH], any data, bool
 			{
 				char subfolder[PLATFORM_MAX_PATH];
 				FormatEx(subfolder, sizeof(subfolder), "%s/%s", path, buffer);
-				GetMapsListHandler(subfolder, data, is_stringmap, lowercase, display, iter_subfolders, use_valve_fs);
+				ReadMapsFolderHandler(subfolder, is_stringmap, data, lowercase, display, iter_subfolders, use_valve_fs, exclude_prefixes, exclude_count);
 			}
 		}
 		else if (type == FileType_File)
@@ -476,16 +476,33 @@ stock bool GetMapsListHandler(const char path[PLATFORM_MAX_PATH], any data, bool
 			{
 				buffer[length-4] = 0;
 
-				if (!display && !first_iteration)
-				{
-					char temp[PLATFORM_MAX_PATH];
-					FormatEx(temp, sizeof(temp), "%s/%s", path[first_iteration ? 0 : 5], buffer);
-					buffer = temp;
-				}
-
 				if (lowercase)
 				{
 					LowercaseString(buffer);
+				}
+
+				bool skip = false;
+
+				for (int i = 0; i < exclude_count; i++)
+				{
+					if (strncmp(buffer, exclude_prefixes[i], strlen(exclude_prefixes[i]), lowercase) == 0)
+					{
+						skip = true;
+						break;
+					}
+				}
+
+				if (skip)
+				{
+					continue;
+				}
+
+				if (!display && !first_iteration)
+				{
+					char temp[PLATFORM_MAX_PATH];
+					int skip_this = 5; // strlen("maps/")
+					FormatEx(temp, sizeof(temp), "%s/%s", path[skip_this], buffer);
+					buffer = temp;
 				}
 
 				if (is_stringmap)
@@ -504,18 +521,16 @@ stock bool GetMapsListHandler(const char path[PLATFORM_MAX_PATH], any data, bool
 	return true;
 }
 
-stock StringMap GetMapsListAsStringMap(bool lowercase, bool display, bool iter_subfolders, bool use_valve_fs)
+static char empty_excludes[][] = {""};
+
+stock bool ReadMapsFolderStringMap(StringMap data, bool lowercase=true, bool display=false, bool iter_subfolders=true, bool use_valve_fs=true, char[][] exclude_prefixes=empty_excludes, int exclude_count=0)
 {
-	StringMap mapList = new StringMap();
-	GetMapsListHandler("maps", mapList, true, lowercase, display, iter_subfolders, use_valve_fs);
-	return mapList;
+	return ReadMapsFolderHandler("maps", true, data, lowercase, display, iter_subfolders, use_valve_fs, exclude_prefixes, exclude_count);
 }
 
-stock ArrayList GetMapsListAsArrayList(bool lowercase, bool display, bool iter_subfolders, bool use_valve_fs)
+stock bool ReadMapsFolderArrayList(ArrayList data, bool lowercase=true, bool display=false, bool iter_subfolders=true, bool use_valve_fs=true, char[][] exclude_prefixes=empty_excludes, int exclude_count=0)
 {
-	ArrayList mapList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
-	GetMapsListHandler("maps", mapList, false, lowercase, display, iter_subfolders, use_valve_fs);
-	return mapList;
+	return ReadMapsFolderHandler("maps", false, data, lowercase, display, iter_subfolders, use_valve_fs, exclude_prefixes, exclude_count);
 }
 
 // retrieves the table prefix defined in configs/shavit-prefix.txt

@@ -12,7 +12,7 @@
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 
-Database g_hDatabase;
+Database2 g_hDatabase;
 char g_cSQLPrefix[32];
 
 bool g_bDebug;
@@ -27,6 +27,13 @@ Convar g_cvRTVDelayTime;
 Convar g_cvMapListType;
 Convar g_cvMatchFuzzyMap;
 Convar g_cvHijackMap;
+
+int g_iExcludePrefixesCount;
+char g_cExcludePrefixesBuffers[128][12];
+Convar g_cvExcludePrefixes;
+int g_iAutocompletePrefixesCount;
+char g_cAutocompletePrefixesBuffers[128][12];
+Convar g_cvAutocompletePrefixes;
 
 Convar g_cvMapVoteStartTime;
 Convar g_cvMapVoteDuration;
@@ -89,6 +96,7 @@ Handle g_hForward_OnUnRTV = null;
 Handle g_hForward_OnSuccesfulRTV = null;
 
 StringMap g_mMapList;
+bool gB_Late = false;
 
 enum
 {
@@ -114,11 +122,18 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_hForward_OnUnRTV = CreateGlobalForward("SMC_OnUnRTV", ET_Event, Param_Cell);
 	g_hForward_OnSuccesfulRTV = CreateGlobalForward("SMC_OnSuccesfulRTV", ET_Event);
 
+	gB_Late = late;
+
 	return APLRes_Success;
 }
 
 public void OnPluginStart()
 {
+	if (gB_Late)
+	{
+		Shavit_OnDatabaseLoaded();
+	}
+
 	LoadTranslations("mapchooser.phrases");
 	LoadTranslations("common.phrases");
 	LoadTranslations("rockthevote.phrases");
@@ -132,9 +147,11 @@ public void OnPluginStart()
 
 	g_mMapList = new StringMap();
 
-	g_cvMapListType = new Convar("smc_maplist_type", "1", "Where the plugin should get the map list from.\n0 - zoned maps from database\n1 - from maplist file (mapcycle.txt)\n2 - from maps folder\n3 - from zoned maps and confirmed by maplist file\n4 - from zoned maps and confirmed by maps folder", _, true, 0.0, true, 4.0);
+	g_cvMapListType = new Convar("smc_maplist_type", "2", "Where the plugin should get the map list from.\n0 - zoned maps from database\n1 - from maplist file (mapcycle.txt)\n2 - from maps folder\n3 - from zoned maps and confirmed by maplist file\n4 - from zoned maps and confirmed by maps folder", _, true, 0.0, true, 4.0);
 	g_cvMatchFuzzyMap = new Convar("smc_match_fuzzy", "1", "If set to 1, the plugin will accept partial map matches from the database. Useful for workshop maps, bad for duplicate map names", _, true, 0.0, true, 1.0);
 	g_cvHijackMap = new Convar("smc_hijack_sm_map_so_its_faster", "1", "Hijacks sourcemod's built-in sm_map command so it's faster.", 0, true, 0.0, true, 1.0);
+	g_cvExcludePrefixes = new Convar("smc_exclude_prefixes", "de_,cs_,as_,ar_,dz_,gd_,lobby_,training1,mg_,gg_,jb_,coop_,aim_,awp_,cp_,ctf_,fy_,dm_,hg_,rp_,ze_,zm_,arena_,pl_,plr_,mvm_,db_,trade_,ba_,mge_,ttt_,ph_,hns_,", "Exclude maps based on these prefixes.\nA good reference: https://developer.valvesoftware.com/wiki/Map_prefixes");
+	g_cvAutocompletePrefixes = new Convar("smc_autocomplete_prefixes", "bhop_,surf_,kz_,kz_bhop_,bhop_kz_,xc_,trikz_,jump_,rj_", "Some prefixes that are attempted when using !nominate");
 
 	g_cvMapVoteBlockMapInterval = new Convar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
 	g_cvMapVoteEnableNoVote = new Convar("smc_mapvote_enable_novote", "1", "Whether players are able to choose 'No Vote' in map vote", _, true, 0.0, true, 1.0);
@@ -171,6 +188,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_extendmap", Command_Extend, ADMFLAG_RCON, "Admin command for extending map");
 	RegAdminCmd("sm_forcemapvote", Command_ForceMapVote, ADMFLAG_RCON, "Admin command for forcing the end of map vote");
 	RegAdminCmd("sm_reloadmaplist", Command_ReloadMaplist, ADMFLAG_CHANGEMAP, "Admin command for forcing maplist to be reloaded");
+
+	RegAdminCmd("sm_loadunzonedmap", Command_LoadUnzonedMap, ADMFLAG_ROOT, "Loads the next map from the maps folder that is unzoned.");
 
 	RegConsoleCmd("sm_nominate", Command_Nominate, "Lets players nominate maps to be on the end of map vote");
 	RegConsoleCmd("sm_unnominate", Command_UnNominate, "Removes nominations");
@@ -240,6 +259,29 @@ public void OnMapEnd()
 	}
 
 	ClearRTV();
+}
+
+int ExplodeCvar(ConVar cvar, char[][] buffers, int maxStrings, int maxStringLength)
+{
+	char cvarstring[2048];
+	cvar.GetString(cvarstring, sizeof(cvarstring));
+	LowercaseString(cvarstring);
+
+	while (ReplaceString(cvarstring, sizeof(cvarstring), ",,", ",", true)) {}
+
+	int count = ExplodeString(cvarstring, ",", buffers, maxStrings, maxStringLength);
+
+	for (int i = 0; i < count; i++)
+	{
+		TrimString(buffers[i]);
+
+		if (buffers[i][0] == 0)
+		{
+			strcopy(buffers[i], maxStringLength, buffers[--count]);
+		}
+	}
+
+	return count;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -718,54 +760,88 @@ void ExtendMap(int time = 0)
 	g_bMapVoteFinished = false;
 }
 
+public void Shavit_OnDatabaseLoaded()
+{
+	GetTimerSQLPrefix(g_cSQLPrefix, sizeof(g_cSQLPrefix));
+	g_hDatabase = view_as<Database2>(Shavit_GetDatabase());
+}
+
+void RemoveExcludesFromArrayList(ArrayList list, bool lowercase, char[][] exclude_prefixes, int exclude_count)
+{
+	int length = list.Length;
+
+	for (int i = 0; i < length; i++)
+	{
+		char buffer[PLATFORM_MAX_PATH];
+		list.GetString(i, buffer, sizeof(buffer));
+
+		for (int x = 0; x < exclude_count; x++)
+		{
+			if (strncmp(buffer, exclude_prefixes[i], strlen(exclude_prefixes[i]), lowercase) == 0)
+			{
+				list.SwapAt(i, --length);
+				break;
+			}
+		}
+	}
+
+	list.Resize(length);
+}
+
 void LoadMapList()
 {
 	g_aMapList.Clear();
 	g_aAllMapsList.Clear();
 	g_mMapList.Clear();
 
+	g_iExcludePrefixesCount = ExplodeCvar(g_cvExcludePrefixes, g_cExcludePrefixesBuffers, sizeof(g_cExcludePrefixesBuffers), sizeof(g_cExcludePrefixesBuffers[]));
+
+	GetTimerSQLPrefix(g_cSQLPrefix, sizeof(g_cSQLPrefix));
+
 	switch(g_cvMapListType.IntValue)
 	{
 		case MapListZoned:
 		{
-			delete g_hDatabase;
-			SQL_SetPrefix();
+			if (g_hDatabase == null)
+			{
+				g_hDatabase = GetTimerDatabaseHandle2();
+			}
 
 			char buffer[512];
-			g_hDatabase = SQL_Connect("shavit", true, buffer, sizeof(buffer));
 
-			Format(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
+			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
 			g_hDatabase.Query(LoadZonedMapsCallback, buffer, _, DBPrio_High);
 		}
 		case MapListFolder:
 		{
-			delete g_aMapList;
-			g_aMapList = GetMapsListAsArrayList(true, false, true, true);
+			ReadMapsFolderArrayList(g_aMapList, true, false, true, true, g_cExcludePrefixesBuffers, g_iExcludePrefixesCount);
 			CreateNominateMenu();
 		}
 		case MapListFile:
 		{
 			ReadMapList(g_aMapList, g_mapFileSerial, "default", MAPLIST_FLAG_CLEARARRAY);
+			RemoveExcludesFromArrayList(g_aMapList, false, g_cExcludePrefixesBuffers, g_iExcludePrefixesCount);
 			CreateNominateMenu();
 		}
 		case MapListMixed, MapListZonedMixedWithFolder:
 		{
-			delete g_hDatabase;
-			SQL_SetPrefix();
+			if (g_hDatabase == null)
+			{
+				g_hDatabase = GetTimerDatabaseHandle2();
+			}
 
 			if (g_cvMapListType.IntValue == MapListMixed)
 			{
 				ReadMapList(g_aAllMapsList, g_mapFileSerial, "default", MAPLIST_FLAG_CLEARARRAY);
+				RemoveExcludesFromArrayList(g_aAllMapsList, false, g_cExcludePrefixesBuffers, g_iExcludePrefixesCount);
 			}
 			else
 			{
-				delete g_aAllMapsList;
-				g_aAllMapsList = GetMapsListAsArrayList(true, false, true, true);
+				ReadMapsFolderArrayList(g_aAllMapsList, true, false, true, true, g_cExcludePrefixesBuffers, g_iExcludePrefixesCount);
 			}
 
 			char buffer[512];
-			g_hDatabase = SQL_Connect("shavit", true, buffer, sizeof(buffer));
-			Format(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
+			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
 			g_hDatabase.Query(LoadZonedMapsCallbackMixed, buffer, _, DBPrio_High);
 		}
 	}
@@ -784,9 +860,9 @@ public void LoadZonedMapsCallback(Database db, DBResultSet results, const char[]
 	while(results.FetchRow())
 	{
 		results.FetchString(0, map, sizeof(map));
+		FindMapResult res = FindMap(map, map2, sizeof(map2));
 
-
-		if((FindMap(map, map2, sizeof(map2)) == FindMap_Found) || (g_cvMatchFuzzyMap.BoolValue && FindMap(map, map2, sizeof(map2)) == FindMap_FuzzyMatch))
+		if (res == FindMap_Found || (g_cvMatchFuzzyMap.BoolValue && res == FindMap_FuzzyMatch))
 		{
 			g_aMapList.PushString(map2);
 		}
@@ -967,6 +1043,16 @@ public Action Timer_ChangeMap(Handle timer, DataPack data)
 	ForceChangeLevel(map, "RTV Mapvote");
 }
 
+// ugh
+public Action Timer_ChangeMap222(Handle timer, DataPack data)
+{
+	char map[PLATFORM_MAX_PATH];
+	data.Reset();
+	data.ReadString(map, sizeof(map));
+
+	ForceChangeLevel(map, "sm_loadunzonedmap");
+}
+
 /* Commands */
 public Action Command_Extend(int client, int args)
 {
@@ -1078,6 +1164,15 @@ public Action Command_UnNominate(int client, int args)
 	return Plugin_Handled;
 }
 
+int SlowSortThatSkipsFolders(int index1, int index2, Handle array, Handle stupidgarbage)
+{
+	char a[PLATFORM_MAX_PATH], b[PLATFORM_MAX_PATH];
+	ArrayList list = view_as<ArrayList>(array);
+	list.GetString(index1, a, sizeof(a));
+	list.GetString(index2, b, sizeof(b));
+	return strcmp(a[FindCharInString(a, '/', true)+1], b[FindCharInString(b, '/', true)+1], true);
+}
+
 void CreateNominateMenu()
 {
 	delete g_hNominateMenu;
@@ -1085,6 +1180,8 @@ void CreateNominateMenu()
 
 	g_hNominateMenu.SetTitle("Nominate");
 	StringMap tiersMap = Shavit_GetMapTiers();
+
+	g_aMapList.SortCustom(SlowSortThatSkipsFolders);
 
 	int length = g_aMapList.Length;
 	for(int i = 0; i < length; ++i)
@@ -1457,6 +1554,68 @@ public int Null_Callback(Menu menu, MenuAction action, int param1, int param2)
 	}
 }
 
+public void FindUnzonedMapCallback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("[shavit-mapchooser] - (FindUnzonedMapCallback) - %s", error);
+		return;
+	}
+
+	StringMap mapList = new StringMap();
+
+	g_iExcludePrefixesCount = ExplodeCvar(g_cvExcludePrefixes, g_cExcludePrefixesBuffers, sizeof(g_cExcludePrefixesBuffers), sizeof(g_cExcludePrefixesBuffers[]));
+
+	ReadMapsFolderStringMap(mapList, true, true, true, true, g_cExcludePrefixesBuffers, g_iExcludePrefixesCount);
+
+	char buffer[PLATFORM_MAX_PATH];
+
+	while (results.FetchRow())
+	{
+		results.FetchString(0, buffer, sizeof(buffer));
+		mapList.SetValue(buffer, true, true);
+	}
+
+	delete results;
+
+	StringMapSnapshot snapshot = mapList.Snapshot();
+	bool foundMap = false;
+
+	for (int i = 0; i < snapshot.Length; i++)
+	{
+		snapshot.GetKey(i, buffer, sizeof(buffer));
+
+		bool hasZones = false;
+		mapList.GetValue(buffer, hasZones);
+
+		if (!hasZones && !StrEqual(g_cMapName, buffer, false))
+		{
+			foundMap = true;
+			break;
+		}
+	}
+
+	delete snapshot;
+	delete mapList;
+
+	if (foundMap)
+	{
+		Shavit_PrintToChatAll("Loading unzoned map %s", buffer);
+
+		DataPack dp;
+		CreateDataTimer(1.0, Timer_ChangeMap222, dp);
+		dp.WriteString(buffer);
+	}
+}
+
+public Action Command_LoadUnzonedMap(int client, int args)
+{
+	char sQuery[256];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT DISTINCT map FROM %smapzones;", g_cSQLPrefix);
+	g_hDatabase.Query(FindUnzonedMapCallback, sQuery, 0, DBPrio_Normal);
+	return Plugin_Handled;
+}
+
 public Action BaseCommands_Command_Map(int client, int args)
 {
 	char map[PLATFORM_MAX_PATH];
@@ -1465,30 +1624,25 @@ public Action BaseCommands_Command_Map(int client, int args)
 	LowercaseString(map);
 	ReplaceString(map, sizeof(map), "\\", "/", true);
 
-	static const char test_prefixes[][] = {
-		"",
-		"bhop_",
-		"surf_",
-		"kz_",
-		"kz_bhop_",
-		"bhop_kz_",
-		"xc_",
-		"trikz_",
-	};
+	g_iAutocompletePrefixesCount = ExplodeCvar(g_cvAutocompletePrefixes, g_cAutocompletePrefixesBuffers, sizeof(g_cAutocompletePrefixesBuffers), sizeof(g_cAutocompletePrefixesBuffers[]));
 
-	StringMap maps = GetMapsListAsStringMap(true, false, true, true);
+	StringMap maps = new StringMap();
+	ReadMapsFolderStringMap(maps);
 
 	int temp;
 	bool foundMap;
 	char buffer[PLATFORM_MAX_PATH];
-	char folder[PLATFORM_MAX_PATH];
 
-	int slashpos = FindCharInString(map, '/', true);
-	strcopy(folder, slashpos+1, map);
-
-	for (int i = 0; i < sizeof(test_prefixes); i++)
+	for (int i = -1; i < g_iAutocompletePrefixesCount; i++)
 	{
-		FormatEx(buffer, sizeof(buffer), "%s%s%s", folder, test_prefixes[i], map);
+		char prefix[12];
+
+		if (i > -1)
+		{
+			prefix = g_cAutocompletePrefixesBuffers[i];
+		}
+
+		FormatEx(buffer, sizeof(buffer), "%s%s", prefix, map);
 
 		if ((foundMap = maps.GetValue(buffer, temp)) != false)
 		{
@@ -1586,29 +1740,6 @@ void UnRTVClient(int client)
 }
 
 /* Stocks */
-stock void SQL_SetPrefix()
-{
-	char sFile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sFile, sizeof(sFile), "configs/shavit-prefix.txt");
-
-	File fFile = OpenFile(sFile, "r");
-	if(fFile == null)
-	{
-		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
-	}
-
-	char sLine[PLATFORM_MAX_PATH*2];
-	while(fFile.ReadLine(sLine, sizeof(sLine)))
-	{
-		TrimString(sLine);
-		strcopy(g_cSQLPrefix, sizeof(g_cSQLPrefix), sLine);
-
-		break;
-	}
-
-	delete fFile;
-}
-
 stock void RemoveString(ArrayList array, const char[] target)
 {
 	int idx = array.FindString(target);
