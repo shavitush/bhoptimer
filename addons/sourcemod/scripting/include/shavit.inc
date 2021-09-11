@@ -2769,6 +2769,7 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetStyleSetting");
 	MarkNativeAsOptional("Shavit_GetStyleSettingInt");
 	MarkNativeAsOptional("Shavit_GetStyleSettingFloat");
+	MarkNativeAsOptional("Shavit_GetStyleSettingBool");
 	MarkNativeAsOptional("Shavit_HasStyleSetting");
 	MarkNativeAsOptional("Shavit_GetStyleStrings");
 	MarkNativeAsOptional("Shavit_GetStyleStringsStruct");
