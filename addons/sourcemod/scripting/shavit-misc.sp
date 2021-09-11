@@ -77,6 +77,7 @@ int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
 bool gB_ClosedKZCP[MAXPLAYERS+1];
 int gI_LastWeaponTick[MAXPLAYERS+1];
+int gI_LastNoclipTick[MAXPLAYERS+1];
 
 ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
@@ -141,6 +142,7 @@ ConVar gCV_ExperimentalSegmentedEyeAngleFix = null;
 ConVar gCV_PauseMovement = null;
 
 // external cvars
+ConVar sv_cheats = null;
 ConVar sv_disable_immunity_alpha = null;
 ConVar mp_humanteam = null;
 ConVar hostname = null;
@@ -216,6 +218,7 @@ public void OnPluginStart()
 	// cache
 	gEV_Type = GetEngineVersion();
 
+	sv_cheats = FindConVar("sv_cheats");
 	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
 
 	// spectator list
@@ -259,6 +262,7 @@ public void OnPluginStart()
 	AddCommandListener(CommandListener_Noclip, "-noclip");
 	// Hijack sourcemod's sm_noclip from funcommands to work when no args are specified.
 	AddCommandListener(CommandListener_funcommands_Noclip, "sm_noclip");
+	AddCommandListener(CommandListener_Real_Noclip, "noclip");
 
 	// hook teamjoins
 	AddCommandListener(Command_Jointeam, "jointeam");
@@ -1385,6 +1389,7 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 
 	gI_LastWeaponTick[client] = 0;
+	gI_LastNoclipTick[client] = 0;
 
 	if(IsFakeClient(client))
 	{
@@ -2996,6 +3001,13 @@ public Action Command_Noclip(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if (gI_LastNoclipTick[client] == GetGameTickCount())
+	{
+		return Plugin_Handled;
+	}
+
+	gI_LastNoclipTick[client] = GetGameTickCount();
+
 	if(gCV_NoclipMe.IntValue == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
@@ -3049,6 +3061,13 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 		return Plugin_Handled;
 	}
 
+	if (gI_LastNoclipTick[client] == GetGameTickCount())
+	{
+		return Plugin_Handled;
+	}
+
+	gI_LastNoclipTick[client] = GetGameTickCount();
+
 	if((gCV_NoclipMe.IntValue == 1 || (gCV_NoclipMe.IntValue == 2 && CheckCommandAccess(client, "noclipme", ADMFLAG_CHEATS))) && command[0] == '+')
 	{
 		if(!ShouldDisplayStopWarning(client))
@@ -3077,6 +3096,21 @@ public Action CommandListener_funcommands_Noclip(int client, const char[] comman
 	{
 		Command_Noclip(client, 0);
 		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
+}
+
+public Action CommandListener_Real_Noclip(int client, const char[] command, int args)
+{
+	if (sv_cheats.BoolValue)
+	{
+		if (gI_LastNoclipTick[client] == GetGameTickCount())
+		{
+			return Plugin_Stop;
+		}
+
+		gI_LastNoclipTick[client] = GetGameTickCount();
 	}
 
 	return Plugin_Continue;
