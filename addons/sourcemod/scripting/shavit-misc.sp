@@ -2803,7 +2803,6 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 {
 	SetEntityMoveType(client, cpcache.iMoveType);
 	SetEntityFlags(client, cpcache.iFlags);
-	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", cpcache.fSpeed);
 
 	int ground = (cpcache.iGroundEntity != -1) ? EntRefToEntIndex(cpcache.iGroundEntity) : -1;
 	SetEntPropEnt(client, Prop_Data, "m_hGroundEntity", ground);
@@ -2836,6 +2835,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 
 	Shavit_LoadSnapshot(client, cpcache.aSnapshot);
 
+	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", cpcache.fSpeed);
 	SetEntPropString(client, Prop_Data, "m_iName", cpcache.sTargetname);
 	SetEntPropString(client, Prop_Data, "m_iClassname", cpcache.sClassname);
 
