@@ -11,7 +11,7 @@ enum struct convar_t
 {
 	ConVar cvar;
 	char description[512];
-	char defValue[64];
+	char defValue[512];
 	char name[255];
 
 	bool GetMin(float& input)
@@ -47,7 +47,7 @@ methodmap Convar < ConVar
 		convar_t savedValue;
 		savedValue.cvar = cvar;
 		strcopy(savedValue.description, 512, description);
-		strcopy(savedValue.defValue, 64, defaultValue);
+		strcopy(savedValue.defValue, sizeof(savedValue.defValue), defaultValue);
 		
 		// Can't set default values :T
 		savedValue.SetMin(hasMin, min);
