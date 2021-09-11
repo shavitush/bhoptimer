@@ -1678,40 +1678,7 @@ public Action Command_ReloadZoneSettings(int client, int args)
 
 bool FindUnzonedMap(char out[PLATFORM_MAX_PATH])
 {
-	StringMap mapList = new StringMap();
-	DirectoryListing dir = OpenDirectory("maps", true);
-
-	if (dir == null)
-	{
-		return false;
-	}
-
-	char buffer[PLATFORM_MAX_PATH];
-	FileType type;
-
-	while (dir.GetNext(buffer, sizeof(buffer), type))
-	{
-		if (type != FileType_File)
-		{
-			continue;
-		}
-
-		int length = strlen(buffer);
-
-		if (length < 5 || buffer[length-4] != '.') // a.bsp
-		{
-			continue;
-		}
-
-		if (buffer[length-3] == 'b' && buffer[length-2] == 's' && buffer[length-1] == 'p')
-		{
-			buffer[length-4] = 0;
-			LowercaseString(buffer);
-			mapList.SetValue(buffer, false, false); // note: false for 'replace'
-		}
-	}
-
-	delete dir;
+	StringMap mapList = GetMapsListAsStringMap(true, true, true, true);
 
 	char sQuery[256];
 	FormatEx(sQuery, sizeof(sQuery), "SELECT DISTINCT map FROM %smapzones;", gS_MySQLPrefix);
@@ -1723,6 +1690,8 @@ bool FindUnzonedMap(char out[PLATFORM_MAX_PATH])
 		delete mapList;
 		return false;
 	}
+
+	char buffer[PLATFORM_MAX_PATH];
 
 	while (results.FetchRow())
 	{

@@ -26,6 +26,7 @@ Convar g_cvRTVDelayTime;
 
 Convar g_cvMapListType;
 Convar g_cvMatchFuzzyMap;
+Convar g_cvHijackMap;
 
 Convar g_cvMapVoteStartTime;
 Convar g_cvMapVoteDuration;
@@ -133,6 +134,7 @@ public void OnPluginStart()
 
 	g_cvMapListType = new Convar("smc_maplist_type", "1", "Where the plugin should get the map list from.\n0 - zoned maps from database\n1 - from maplist file (mapcycle.txt)\n2 - from maps folder\n3 - from zoned maps and confirmed by maplist file\n4 - from zoned maps and confirmed by maps folder", _, true, 0.0, true, 4.0);
 	g_cvMatchFuzzyMap = new Convar("smc_match_fuzzy", "1", "If set to 1, the plugin will accept partial map matches from the database. Useful for workshop maps, bad for duplicate map names", _, true, 0.0, true, 1.0);
+	g_cvHijackMap = new Convar("smc_hijack_sm_map_so_its_faster", "1", "Hijacks sourcemod's built-in sm_map command so it's faster.", 0, true, 0.0, true, 1.0);
 
 	g_cvMapVoteBlockMapInterval = new Convar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
 	g_cvMapVoteEnableNoVote = new Convar("smc_mapvote_enable_novote", "1", "Whether players are able to choose 'No Vote' in map vote", _, true, 0.0, true, 1.0);
@@ -177,6 +179,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_nomlist", Command_NomList, "Shows currently nominated maps");
 
 	RegAdminCmd("sm_smcdebug", Command_Debug, ADMFLAG_RCON);
+
+	AddCommandListener(Command_MapButFaster, "sm_map");
 }
 
 public void OnMapStart()
@@ -735,7 +739,8 @@ void LoadMapList()
 		}
 		case MapListFolder:
 		{
-			LoadFromMapsFolder(g_aMapList);
+			delete g_aMapList;
+			g_aMapList = GetMapsListAsArrayList(true, false, true, true);
 			CreateNominateMenu();
 		}
 		case MapListFile:
@@ -754,7 +759,8 @@ void LoadMapList()
 			}
 			else
 			{
-				LoadFromMapsFolder(g_aAllMapsList);
+				delete g_aAllMapsList;
+				g_aAllMapsList = GetMapsListAsArrayList(true, false, true, true);
 			}
 
 			char buffer[512];
@@ -763,8 +769,6 @@ void LoadMapList()
 			g_hDatabase.Query(LoadZonedMapsCallbackMixed, buffer, _, DBPrio_High);
 		}
 	}
-
-
 }
 
 public void LoadZonedMapsCallback(Database db, DBResultSet results, const char[] error, any data)
@@ -804,8 +808,7 @@ public void LoadZonedMapsCallbackMixed(Database db, DBResultSet results, const c
 	for (int i = 0; i < g_aAllMapsList.Length; ++i)
 	{
 		g_aAllMapsList.GetString(i, map, sizeof(map));
-		GetMapDisplayName(map, map, sizeof(map));
-		LowercaseString(map);
+		LessStupidGetMapDisplayName(map, map, sizeof(map));
 		g_mMapList.SetValue(map, i, true);
 	}
 
@@ -875,15 +878,16 @@ void SMC_NominateMatches(int client, const char[] mapname)
 			}
 
 			map = entry;
-			char mapdisplay[PLATFORM_MAX_PATH + 32];
-			GetMapDisplayName(entry, mapdisplay, sizeof(mapdisplay));
+			char mapdisplay[PLATFORM_MAX_PATH];
+			LessStupidGetMapDisplayName(entry, mapdisplay, sizeof(mapdisplay));
 
 			int tier = 0;
 			tiersMap.GetValue(mapdisplay, tier);
 
-			Format(mapdisplay, sizeof(mapdisplay), "%s | T%i", mapdisplay, tier);
+			char mapdisplay2[PLATFORM_MAX_PATH];
+			FormatEx(mapdisplay2, sizeof(mapdisplay2), "%s | T%i", mapdisplay, tier);
 
-			subNominateMenu.AddItem(entry, mapdisplay);
+			subNominateMenu.AddItem(entry, mapdisplay2);
 		}
 	}
 
@@ -1100,9 +1104,9 @@ void CreateNominateMenu()
 			style = ITEMDRAW_DISABLED;
 		}
 
-		char mapdisplay[PLATFORM_MAX_PATH + 32];
-		char mapdisplay2[PLATFORM_MAX_PATH + 32];
-		GetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
+		char mapdisplay[PLATFORM_MAX_PATH];
+		char mapdisplay2[PLATFORM_MAX_PATH];
+		LessStupidGetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
 
 		int tier = 0;
 		tiersMap.GetValue(mapdisplay, tier);
@@ -1133,12 +1137,11 @@ void CreateEnhancedMenu()
 	{
 		if (GetMenuItemCount(g_aTierMenus.Get(i-GetConVarInt(g_cvMinTier))) > 0)
 		{
-			char tierDisplay[PLATFORM_MAX_PATH + 32];
+			char tierDisplay[32];
+			FormatEx(tierDisplay, sizeof(tierDisplay), "Tier %i", i);
 
-			Format(tierDisplay, sizeof(tierDisplay), "Tier %i", i);
-
-			char tierString[PLATFORM_MAX_PATH + 32];
-			Format(tierString, sizeof(tierString), "%i", i);
+			char tierString[16];
+			IntToString(i, tierString, sizeof(tierString));
 			g_hEnhancedMenu.AddItem(tierString, tierDisplay);
 		}
 	}
@@ -1168,8 +1171,8 @@ void CreateTierMenus()
 		char mapname[PLATFORM_MAX_PATH];
 		g_aMapList.GetString(i, mapname, sizeof(mapname));
 
-		char mapdisplay[PLATFORM_MAX_PATH + 32];
-		GetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
+		char mapdisplay[PLATFORM_MAX_PATH];
+		LessStupidGetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
 
 		int mapTier = 0;
 		mapTier = tiersMap.GetValue(mapdisplay, mapTier);
@@ -1185,11 +1188,12 @@ void CreateTierMenus()
 			style = ITEMDRAW_DISABLED;
 		}
 
-		Format(mapdisplay, sizeof(mapdisplay), "%s | T%i", mapdisplay, mapTier);
+		char mapdisplay2[PLATFORM_MAX_PATH];
+		FormatEx(mapdisplay2, sizeof(mapdisplay2), "%s | T%i", mapdisplay, mapTier);
 
 		if (min <= mapTier <= max)
 		{
-			AddMenuItem(g_aTierMenus.Get(mapTier-min), mapname, mapdisplay, style);
+			AddMenuItem(g_aTierMenus.Get(mapTier-min), mapname, mapdisplay2, style);
 		}
 	}
 
@@ -1453,6 +1457,111 @@ public int Null_Callback(Menu menu, MenuAction action, int param1, int param2)
 	}
 }
 
+public Action BaseCommands_Command_Map(int client, int args)
+{
+	char map[PLATFORM_MAX_PATH];
+	char displayName[PLATFORM_MAX_PATH];
+	GetCmdArg(1, map, sizeof(map));
+	LowercaseString(map);
+	ReplaceString(map, sizeof(map), "\\", "/", true);
+
+	static const char test_prefixes[][] = {
+		"",
+		"bhop_",
+		"surf_",
+		"kz_",
+		"kz_bhop_",
+		"bhop_kz_",
+		"xc_",
+		"trikz_",
+	};
+
+	StringMap maps = GetMapsListAsStringMap(true, false, true, true);
+
+	int temp;
+	bool foundMap;
+	char buffer[PLATFORM_MAX_PATH];
+	char folder[PLATFORM_MAX_PATH];
+
+	int slashpos = FindCharInString(map, '/', true);
+	strcopy(folder, slashpos+1, map);
+
+	for (int i = 0; i < sizeof(test_prefixes); i++)
+	{
+		FormatEx(buffer, sizeof(buffer), "%s%s%s", folder, test_prefixes[i], map);
+
+		if ((foundMap = maps.GetValue(buffer, temp)) != false)
+		{
+			map = buffer;
+			break;
+		}
+	}
+
+	if (!foundMap)
+	{
+		// do a smaller 
+
+		StringMapSnapshot snapshot = maps.Snapshot();
+		int length = snapshot.Length;
+
+		for (int i = 0; i < length; i++)
+		{
+			snapshot.GetKey(i, buffer, sizeof(buffer));
+
+			if (StrContains(buffer, map, true) != -1)
+			{
+				foundMap = true;
+				map = buffer;
+				break;
+			}
+		}
+
+		delete snapshot;
+	}
+
+	delete maps;
+
+	if (!foundMap)
+	{
+		ReplyToCommand(client, "[SM] %t", "Map was not found", map);
+		return Plugin_Handled;
+	}
+
+	LessStupidGetMapDisplayName(map, displayName, sizeof(displayName));
+
+	ShowActivity2(client, "[SM] ", "%t", "Changing map", displayName);
+	LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
+
+	DataPack dp;
+	CreateDataTimer(3.0, BaseCommands_Timer_ChangeMap, dp);
+	dp.WriteString(map);
+
+	return Plugin_Handled;
+}
+
+public Action BaseCommands_Timer_ChangeMap(Handle timer, DataPack dp)
+{
+	char map[PLATFORM_MAX_PATH];
+
+	dp.Reset();
+	dp.ReadString(map, sizeof(map));
+
+	ForceChangeLevel(map, "sm_map Command");
+
+	return Plugin_Stop;
+}
+
+public Action Command_MapButFaster(int client, const char[] command, int args)
+{
+	if (!g_cvHijackMap.BoolValue || !CheckCommandAccess(client, "sm_map", ADMFLAG_CHANGEMAP) || args < 1)
+	{
+		return Plugin_Continue;
+	}
+
+	BaseCommands_Command_Map(client, args);
+	return Plugin_Stop;
+}
+
 public Action Command_Debug(int client, int args)
 {
 	g_bDebug = !g_bDebug;
@@ -1507,41 +1616,6 @@ stock void RemoveString(ArrayList array, const char[] target)
 	{
 		array.Erase(idx);
 	}
-}
-
-stock bool LoadFromMapsFolder(ArrayList list)
-{
-	//from yakmans maplister plugin
-	DirectoryListing mapdir = OpenDirectory("maps/");
-	if(mapdir == null)
-		return false;
-
-	char name[PLATFORM_MAX_PATH];
-	FileType filetype;
-	int namelen;
-
-	while(mapdir.GetNext(name, sizeof(name), filetype))
-	{
-		if(filetype != FileType_File)
-			continue;
-
-		namelen = strlen(name);
-
-		if (namelen < 5 || name[namelen-4] != '.') // a.bsp
-		{
-			continue;
-		}
-
-		if (name[namelen-3] == 'b' && name[namelen-2] == 's' && name[namelen-1] == 'p')
-		{
-			name[namelen-4] = 0;
-			list.PushString(name);
-		}
-	}
-
-	delete mapdir;
-
-	return true;
 }
 
 stock void ChangeMapDelayed(const char[] map, float delay = 2.0)

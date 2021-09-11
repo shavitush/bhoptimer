@@ -402,11 +402,120 @@ stock void LowercaseString(char[] str)
 	}
 }
 
+// GetMapDisplayName ends up opening every single fucking file to verify it's valid.
+// I don't care about that. I just want the stupid fucking mapname string.
+// Also this lowercases the string.
+stock void LessStupidGetMapDisplayName(const char[] map, char[] displayName, int maxlen)
+{
+	char temp[PLATFORM_MAX_PATH];
+	char temp2[PLATFORM_MAX_PATH];
+
+	strcopy(temp, sizeof(temp), map);
+	ReplaceString(temp, sizeof(temp), "\\", "/", true);
+
+	int slashpos = FindCharInString(map, '/', true);
+	strcopy(temp2, sizeof(temp), map[slashpos+1]);
+
+	int ugcpos = StrContains(temp2, ".ugc", true);
+
+	if (ugcpos != -1)
+	{
+		temp2[ugcpos] = 0;
+	}
+
+	LowercaseString(temp2);
+	strcopy(displayName, maxlen, temp2);
+}
+
 stock void GetLowercaseMapName(char sMap[PLATFORM_MAX_PATH])
 {
 	GetCurrentMap(sMap, sizeof(sMap));
-	GetMapDisplayName(sMap, sMap, sizeof(sMap));
-	LowercaseString(sMap);
+	LessStupidGetMapDisplayName(sMap, sMap, sizeof(sMap));
+}
+
+stock bool GetMapsListHandler(const char path[PLATFORM_MAX_PATH], any data, bool is_stringmap, bool lowercase, bool display, bool iter_subfolders, bool use_valve_fs)
+{
+	bool first_iteration = StrEqual(path, "maps");
+	DirectoryListing dir = OpenDirectory(path, use_valve_fs);
+
+	if (dir == null)
+	{
+		return false;
+	}
+
+	char buffer[PLATFORM_MAX_PATH];
+	FileType type;
+
+	while (dir.GetNext(buffer, sizeof(buffer), type))
+	{
+		if (type == FileType_Directory)
+		{
+			if (buffer[0] == '.' && (buffer[1] == 0 || (buffer[1] == '.' && buffer[2] == 0)))
+			{
+				continue;
+			}
+
+			if (iter_subfolders)
+			{
+				char subfolder[PLATFORM_MAX_PATH];
+				FormatEx(subfolder, sizeof(subfolder), "%s/%s", path, buffer);
+				GetMapsListHandler(subfolder, data, is_stringmap, lowercase, display, iter_subfolders, use_valve_fs);
+			}
+		}
+		else if (type == FileType_File)
+		{
+			int length = strlen(buffer);
+
+			if (length < 5 || buffer[length-4] != '.') // a.bsp
+			{
+				continue;
+			}
+
+			if ((buffer[length-3] == 'b' && buffer[length-2] == 's' && buffer[length-1] == 'p') ||
+			    (buffer[length-3] == 'u' && buffer[length-2] == 'g' && buffer[length-1] == 'c'))
+			{
+				buffer[length-4] = 0;
+
+				if (!display && !first_iteration)
+				{
+					char temp[PLATFORM_MAX_PATH];
+					FormatEx(temp, sizeof(temp), "%s/%s", path[first_iteration ? 0 : 5], buffer);
+					buffer = temp;
+				}
+
+				if (lowercase)
+				{
+					LowercaseString(buffer);
+				}
+
+				if (is_stringmap)
+				{
+					view_as<StringMap>(data).SetValue(buffer, false, false);
+				}
+				else
+				{
+					view_as<ArrayList>(data).PushString(buffer);
+				}
+			}
+		}
+	}
+
+	delete dir;
+	return true;
+}
+
+stock StringMap GetMapsListAsStringMap(bool lowercase, bool display, bool iter_subfolders, bool use_valve_fs)
+{
+	StringMap mapList = new StringMap();
+	GetMapsListHandler("maps", mapList, true, lowercase, display, iter_subfolders, use_valve_fs);
+	return mapList;
+}
+
+stock ArrayList GetMapsListAsArrayList(bool lowercase, bool display, bool iter_subfolders, bool use_valve_fs)
+{
+	ArrayList mapList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
+	GetMapsListHandler("maps", mapList, false, lowercase, display, iter_subfolders, use_valve_fs);
+	return mapList;
 }
 
 // retrieves the table prefix defined in configs/shavit-prefix.txt
