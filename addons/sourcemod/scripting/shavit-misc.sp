@@ -3676,7 +3676,7 @@ public Action NormalSound(int clients[MAXPLAYERS], int &numClients, char sample[
 		{
 			for(int i = 0; i < numClients; ++i)
 			{
-				if(!IsValidClient(clients[i]) || gB_Hide[clients[i]])
+				if(!IsValidClient(clients[i]) || (gB_Hide[clients[i]] && GetSpectatorTarget(clients[i]) != entity))
 				{
 					for (int j = i; j < numClients-1; j++)
 					{
