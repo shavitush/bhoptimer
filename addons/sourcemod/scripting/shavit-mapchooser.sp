@@ -2,6 +2,7 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <sdktools_sound>
 #include <convar_class>
 #include <shavit>
 
@@ -51,6 +52,8 @@ Convar g_cvDisplayTimeRemaining;
 
 Convar g_cvNominateMatches;
 Convar g_cvEnhancedMenu;
+
+Convar g_cvMapChangeSound;
 
 Convar g_cvMinTier;
 Convar g_cvMaxTier;
@@ -180,6 +183,8 @@ public void OnPluginStart()
 	g_cvNominateMatches = new Convar("smc_nominate_matches", "1", "Prompts a menu which shows all maps which match argument",  _, true, 0.0, true, 1.0);
 	g_cvEnhancedMenu = new Convar("smc_enhanced_menu", "1", "Nominate menu can show maps by alphabetic order and tiers",  _, true, 0.0, true, 1.0);
 
+	g_cvMapChangeSound = new Convar("smc_mapchange_sound", "0", "Play the Dr. Kleiner `3,2,1 Intializing` sound");
+
 	g_cvMinTier = new Convar("smc_min_tier", "0", "The minimum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 	g_cvMaxTier = new Convar("smc_max_tier", "10", "The maximum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 
@@ -304,6 +309,25 @@ public void Shavit_OnTierAssigned(const char[] map, int tier)
 	{
 		g_bWaitingForTiers = false;
 		RequestFrame(CreateNominateMenu);
+	}
+}
+
+float MapChangeDelay()
+{
+	return g_cvMapChangeSound.BoolValue ? 4.3 : 2.0;
+}
+
+void MapChangeSound()
+{
+	if (g_cvMapChangeSound.BoolValue)
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i))
+			{
+				ClientCommand(i, "play vo/k_lab/kl_initializing02");
+			}
+		}
 	}
 }
 
@@ -777,8 +801,10 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 				Call_Finish();
 			}
 
+			MapChangeSound();
+
 			DataPack data;
-			CreateDataTimer(2.0, Timer_ChangeMap, data);
+			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
 			data.WriteString(map);
 			ClearRTV();
 		}
@@ -1659,7 +1685,9 @@ void CheckRTV(int client = 0)
 			}
 
 			SetNextMap(map);
-			ChangeMapDelayed(map);
+			DataPack data;
+			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
+			data.WriteString(map);
 		}
 		else
 		{
@@ -1876,7 +1904,7 @@ public Action BaseCommands_Command_Map(int client, int args)
 	LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
 
 	DataPack dp;
-	CreateDataTimer(3.0, BaseCommands_Timer_ChangeMap, dp);
+	CreateDataTimer(MapChangeDelay(), BaseCommands_Timer_ChangeMap, dp);
 	dp.WriteString(map);
 
 	return Plugin_Handled;
@@ -1936,13 +1964,6 @@ stock void RemoveString(ArrayList array, const char[] target)
 	{
 		array.Erase(idx);
 	}
-}
-
-stock void ChangeMapDelayed(const char[] map, float delay = 2.0)
-{
-	DataPack data;
-	CreateDataTimer(delay, Timer_ChangeMap, data);
-	data.WriteString(map);
 }
 
 stock int GetRTVVotesNeeded()
