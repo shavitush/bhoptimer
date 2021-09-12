@@ -1986,7 +1986,7 @@ stock void RemoveString(ArrayList array, const char[] target)
 	}
 }
 
-void GetRTVStuff(int& total, int& Needed, int& rtvcount)
+void GetRTVStuff(int& total_needed, int& remaining_needed, int& rtvcount)
 {
 	float now = GetEngineTime();
 
@@ -2005,7 +2005,8 @@ void GetRTVStuff(int& total, int& Needed, int& rtvcount)
 				continue;
 			}
 
-			total++;
+			total_needed++;
+
 			if(g_bRockTheVote[i])
 			{
 				rtvcount++;
@@ -2013,15 +2014,15 @@ void GetRTVStuff(int& total, int& Needed, int& rtvcount)
 		}
 	}
 
-	Needed = RoundToCeil(total * (g_cvRTVRequiredPercentage.FloatValue / 100));
+	total_needed = RoundToCeil(total_needed * (g_cvRTVRequiredPercentage.FloatValue / 100));
 
 	// always clamp to 1, so if rtvcount is 0 it never initiates RTV
-	if(Needed < 1)
+	if (total_needed < 1)
 	{
-		Needed = 1;
+		total_needed = 1;
 	}
 
-	Needed -= rtvcount;
+	remaining_needed = total_needed - rtvcount;
 }
 
 void DebugPrint(const char[] message, any ...)
