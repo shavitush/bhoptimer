@@ -108,6 +108,7 @@ Handle g_hForward_OnSuccesfulRTV = null;
 
 StringMap g_mMapList;
 bool gB_Late = false;
+EngineVersion gEV_Type = Engine_Unknown;
 
 bool gB_Rankings = false;
 
@@ -146,6 +147,8 @@ public void OnPluginStart()
 	LoadTranslations("common.phrases");
 	LoadTranslations("rockthevote.phrases");
 	LoadTranslations("nominations.phrases");
+
+	gEV_Type = GetEngineVersion();
 
 	g_aMapList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	g_aAllMapsList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
@@ -314,11 +317,6 @@ public void Shavit_OnTierAssigned(const char[] map, int tier)
 
 float MapChangeDelay()
 {
-	return g_cvMapChangeSound.BoolValue ? 4.3 : 2.0;
-}
-
-void MapChangeSound()
-{
 	if (g_cvMapChangeSound.BoolValue)
 	{
 		for (int i = 1; i <= MaxClients; i++)
@@ -328,7 +326,11 @@ void MapChangeSound()
 				ClientCommand(i, "play vo/k_lab/kl_initializing02");
 			}
 		}
+
+		return 4.3;
 	}
+
+	return 2.0;
 }
 
 int ExplodeCvar(ConVar cvar, char[][] buffers, int maxStrings, int maxStringLength)
@@ -364,6 +366,11 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 public Action Timer_SpecCooldown(Handle timer)
 {
+	if (g_cvRTVAllowSpectators.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
 	float cooldown = g_cvRTVSpectatorCooldown.FloatValue;
 	float now = GetEngineTime();
 
@@ -383,8 +390,16 @@ public Action Timer_SpecCooldown(Handle timer)
 		if (g_bRockTheVote[i] && (now - g_fSpecTimerStart[i]) >= cooldown)
 		{
 			UnRTVClient(i);
+			int needed = CheckRTV();
+
+			if(needed > 0)
+			{
+				PrintToChatAll("%s%N no longer wants to rock the vote! (%i more votes needed)", g_cPrefix, i, needed);
+			}
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public Action Timer_OnMapTimeLeftChanged(Handle Timer)
@@ -565,7 +580,7 @@ void InitiateMapVote(MapChange when)
 	menu.Pagination = MENU_NO_PAGINATION;
 	menu.SetTitle("Vote Nextmap");
 
-	int mapsToAdd = 8;
+	int mapsToAdd = (gEV_Type == Engine_CSGO) ? 8 : 9;
 	if(g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue)
 	{
 		mapsToAdd--;
@@ -795,13 +810,14 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 		}
 		else if(g_ChangeTime == MapChange_Instant)
 		{
-			if(GetRTVVotesNeeded() <= 0)
+			int needed, rtvcount, total;
+			GetRTVStuff(total, needed, rtvcount);
+
+			if(needed <= 0)
 			{
 				Call_StartForward(g_hForward_OnSuccesfulRTV);
 				Call_Finish();
 			}
-
-			MapChangeSound();
 
 			DataPack data;
 			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
@@ -1619,7 +1635,8 @@ public Action Command_RockTheVote(int client, int args)
 	}
 	else if(g_bRockTheVote[client])
 	{
-		int needed = GetRTVVotesNeeded();
+		int needed, rtvcount, total;
+		GetRTVStuff(total, needed, rtvcount);
 		ReplyToCommand(client, "%sYou have already RTVed, if you want to un-RTV use the command sm_unrtv (%i more %s needed)", g_cPrefix, needed, (needed == 1) ? "vote" : "votes");
 	}
 	else if(g_cvRTVMinimumPoints.IntValue != -1 && Shavit_GetPoints(client) <= g_cvRTVMinimumPoints.FloatValue)
@@ -1650,11 +1667,10 @@ public Action Command_RockTheVote(int client, int args)
 	return Plugin_Handled;
 }
 
-void CheckRTV(int client = 0)
+int CheckRTV(int client = 0)
 {
-	int needed = GetRTVVotesNeeded();
-	int rtvcount = GetRTVCount();
-	int total = GetRTVTotalNeeded();
+	int needed, rtvcount, total;
+	GetRTVStuff(total, needed, rtvcount);
 	char name[MAX_NAME_LENGTH];
 
 	if(client != 0)
@@ -1703,6 +1719,8 @@ void CheckRTV(int client = 0)
 			InitiateMapVote(MapChange_Instant);
 		}
 	}
+
+	return needed;
 }
 
 public Action Command_UnRockTheVote(int client, int args)
@@ -1730,7 +1748,9 @@ public Action Command_UnRockTheVote(int client, int args)
 
 		UnRTVClient(client);
 
-		int needed = GetRTVVotesNeeded();
+		int needed, rtvcount, total;
+		GetRTVStuff(total, needed, rtvcount);
+
 		if(needed > 0)
 		{
 			PrintToChatAll("%s%N no longer wants to rock the vote! (%i more votes needed)", g_cPrefix, client, needed);
@@ -1966,16 +1986,16 @@ stock void RemoveString(ArrayList array, const char[] target)
 	}
 }
 
-stock int GetRTVVotesNeeded()
+void GetRTVStuff(int& total, int& Needed, int& rtvcount)
 {
-	int total = 0;
-	int rtvcount = 0;
+	float now = GetEngineTime();
+
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGame(i) && !IsFakeClient(i))
 		{
 			// dont count players that can't vote
-			if(!g_cvRTVAllowSpectators.BoolValue && IsClientObserver(i))
+			if(!g_cvRTVAllowSpectators.BoolValue && IsClientObserver(i) && (now - g_fSpecTimerStart[i]) >= g_cvRTVSpectatorCooldown.FloatValue)
 			{
 				continue;
 			}
@@ -1993,7 +2013,7 @@ stock int GetRTVVotesNeeded()
 		}
 	}
 
-	int Needed = RoundToCeil(total * (g_cvRTVRequiredPercentage.FloatValue / 100));
+	Needed = RoundToCeil(total * (g_cvRTVRequiredPercentage.FloatValue / 100));
 
 	// always clamp to 1, so if rtvcount is 0 it never initiates RTV
 	if(Needed < 1)
@@ -2001,67 +2021,7 @@ stock int GetRTVVotesNeeded()
 		Needed = 1;
 	}
 
-	return Needed - rtvcount;
-}
-
-stock int GetRTVCount()
-{
-	int rtvcount = 0;
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsClientInGame(i) && !IsFakeClient(i))
-		{
-			// dont count players that can't vote
-			if(!g_cvRTVAllowSpectators.BoolValue && IsClientObserver(i))
-			{
-				continue;
-			}
-
-			if(g_cvRTVMinimumPoints.IntValue != -1 && Shavit_GetPoints(i) <= g_cvRTVMinimumPoints.FloatValue)
-			{
-				continue;
-			}
-
-			if(g_bRockTheVote[i])
-			{
-				rtvcount++;
-			}
-		}
-	}
-
-	return rtvcount;
-}
-
-stock int GetRTVTotalNeeded()
-{
-	int total = 0;
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsClientInGame(i) && !IsFakeClient(i))
-		{
-			// dont count players that can't vote
-			if(!g_cvRTVAllowSpectators.BoolValue && IsClientObserver(i))
-			{
-				continue;
-			}
-
-			if(g_cvRTVMinimumPoints.IntValue != -1 && Shavit_GetPoints(i) <= g_cvRTVMinimumPoints.FloatValue)
-			{
-				continue;
-			}
-
-			total++;
-		}
-	}
-
-	int Needed = RoundToCeil(total * (g_cvRTVRequiredPercentage.FloatValue / 100));
-
-	// always clamp to 1, so if rtvcount is 0 it never initiates RTV
-	if(Needed < 1)
-	{
-		Needed = 1;
-	}
-	return Needed;
+	Needed -= rtvcount;
 }
 
 void DebugPrint(const char[] message, any ...)
@@ -2079,7 +2039,6 @@ void DebugPrint(const char[] message, any ...)
 		if (IsClientConnected(i) && CheckCommandAccess(i, "sm_smcdebug", ADMFLAG_RCON))
 		{
 			PrintToChat(i, buffer);
-			return;
 		}
 	}
 }
