@@ -24,6 +24,8 @@ Convar g_cvRTVSpectatorCooldown;
 Convar g_cvRTVMinimumPoints;
 Convar g_cvRTVDelayTime;
 
+Convar g_cvHideRTVChat;
+
 Convar g_cvMapListType;
 Convar g_cvMatchFuzzyMap;
 Convar g_cvHijackMap;
@@ -55,6 +57,7 @@ Convar g_cvMaxTier;
 
 Convar g_cvAntiSpam;
 float g_fLastRtvTime[MAXPLAYERS+1];
+float g_fLastNominateTime[MAXPLAYERS+1];
 
 Convar g_cvPrefix;
 char g_cPrefix[32];
@@ -81,7 +84,9 @@ int g_mapFileSerial = -1;
 Menu g_hNominateMenu;
 Menu g_hEnhancedMenu;
 
-ArrayList g_aTierMenus;
+Menu g_aTierMenus[10+1];
+bool g_bWaitingForTiers = false;
+bool g_bTiersAssigned = false;
 
 Menu g_hVoteMenu;
 
@@ -100,6 +105,8 @@ Handle g_hForward_OnSuccesfulRTV = null;
 
 StringMap g_mMapList;
 bool gB_Late = false;
+
+bool gB_Rankings = false;
 
 enum
 {
@@ -132,11 +139,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	if (gB_Late)
-	{
-		Shavit_OnDatabaseLoaded();
-	}
-
 	LoadTranslations("mapchooser.phrases");
 	LoadTranslations("common.phrases");
 	LoadTranslations("rockthevote.phrases");
@@ -146,7 +148,6 @@ public void OnPluginStart()
 	g_aAllMapsList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	g_aNominateList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	g_aOldMaps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
-	g_aTierMenus = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 
 	g_mMapList = new StringMap();
 
@@ -169,6 +170,7 @@ public void OnPluginStart()
 	g_cvRTVMinimumPoints = new Convar("smc_rtv_minimum_points", "-1", "Minimum number of points a player must have before being able to RTV, or -1 to allow everyone", _, true, -1.0, false);
 	g_cvRTVDelayTime = new Convar("smc_rtv_delay", "5", "Time in minutes after map start before players should be allowed to RTV", _, true, 0.0, false);
 	g_cvRTVRequiredPercentage = new Convar("smc_rtv_required_percentage", "50", "Percentage of players who have RTVed before a map vote is initiated", _, true, 1.0, true, 100.0);
+	g_cvHideRTVChat = new Convar("smc_hide_rtv_chat", "1", "Whether to hide 'rtv', 'rockthevote', 'unrtv', 'nextmap', and 'nominate' from chat.");
 
 	g_cvMapVoteRunOff = new Convar("smc_mapvote_runoff", "1", "Hold run of votes if winning choice is less than a certain margin", _, true, 0.0, true, 1.0);
 	g_cvMapVoteRunOffPerc = new Convar("smc_mapvote_runoffpercent", "50", "If winning choice has less than this percent of votes, hold a runoff", _, true, 0.0, true, 100.0);
@@ -181,9 +183,9 @@ public void OnPluginStart()
 	g_cvMinTier = new Convar("smc_min_tier", "0", "The minimum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 	g_cvMaxTier = new Convar("smc_max_tier", "10", "The maximum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 
-	g_cvAntiSpam = new Convar("smc_anti_spam", "2.0", "The number of seconds a player needs to wait before rtv/unrtv.", 0, true, 0.0, true, 60.0);
+	g_cvAntiSpam = new Convar("smc_anti_spam", "15.0", "The number of seconds a player needs to wait before rtv/unrtv/nominate.", 0, true, 0.0, true, 300.0);
 
-	g_cvPrefix = new Convar("smc_prefix", "[SMC] ", "The prefix SMC messages have");
+	g_cvPrefix = new Convar("smc_prefix", "[SM] ", "The prefix SMC messages have");
 	g_cvPrefix.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
@@ -203,6 +205,34 @@ public void OnPluginStart()
 	RegAdminCmd("sm_smcdebug", Command_Debug, ADMFLAG_RCON);
 
 	AddCommandListener(Command_MapButFaster, "sm_map");
+
+	gB_Rankings = LibraryExists("shavit-rankings");
+
+	if (gB_Late)
+	{
+		Shavit_OnDatabaseLoaded();
+
+		if (gB_Rankings)
+		{
+			g_bTiersAssigned = true;
+		}
+	}
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit-rankings"))
+	{
+		gB_Rankings = false;
+	}
 }
 
 public void OnMapStart()
@@ -251,7 +281,8 @@ public void OnMapEnd()
 	}
 
 	g_iExtendCount = 0;
-
+	g_bWaitingForTiers = false;
+	g_bTiersAssigned = false;
 
 	g_bMapVoteFinished = false;
 	g_bMapVoteStarted = false;
@@ -263,6 +294,17 @@ public void OnMapEnd()
 	}
 
 	ClearRTV();
+}
+
+public void Shavit_OnTierAssigned(const char[] map, int tier)
+{
+	g_bTiersAssigned = true;
+
+	if (g_bWaitingForTiers)
+	{
+		g_bWaitingForTiers = false;
+		RequestFrame(CreateNominateMenu);
+	}
 }
 
 int ExplodeCvar(ConVar cvar, char[][] buffers, int maxStrings, int maxStringLength)
@@ -399,6 +441,8 @@ void CheckTimeLeft()
 
 public void OnClientConnected(int client)
 {
+	g_fLastRtvTime[client] = 0.0;
+	g_fLastNominateTime[client] = 0.0;
 	g_fSpecTimerStart[client] = 0.0;
 	g_bVoteDelayed[client] = false;
 }
@@ -412,6 +456,21 @@ public void OnClientDisconnect(int client)
 	CheckRTV();
 }
 
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
+{
+	if (!g_cvHideRTVChat.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
+	if (StrEqual(sArgs, "rtv", false) || StrEqual(sArgs, "rockthevote", false) || StrEqual(sArgs, "unrtv", false) || StrEqual(sArgs, "unnominate", false) || StrContains(sArgs, "nominate", false) == 0 || StrEqual(sArgs, "nextmap", false))
+	{
+		return Plugin_Handled; // block chat but still do _Post
+	}
+
+	return Plugin_Continue;
+}
+
 public void OnClientSayCommand_Post(int client, const char[] command, const char[] sArgs)
 {
 	if(StrEqual(sArgs, "rtv", false) || StrEqual(sArgs, "rockthevote", false))
@@ -422,11 +481,38 @@ public void OnClientSayCommand_Post(int client, const char[] command, const char
 
 		SetCmdReplySource(old);
 	}
-	else if(StrEqual(sArgs, "nominate", false))
+	else if (StrEqual(sArgs, "unnominate", false))
 	{
 		ReplySource old = SetCmdReplySource(SM_REPLY_TO_CHAT);
 
-		Command_Nominate(client, 0);
+		Command_UnNominate(client, 0);
+
+		SetCmdReplySource(old);
+	}
+	else if (StrContains(sArgs, "nominate", false) == 0)
+	{
+		ReplySource old = SetCmdReplySource(SM_REPLY_TO_CHAT);
+
+		char mapname[PLATFORM_MAX_PATH];
+		BreakString(sArgs[strlen("nominate")], mapname, sizeof(mapname));
+		TrimString(mapname);
+
+		if (mapname[0] != 0)
+		{
+			Command_Nominate_Internal(client, mapname);
+		}
+		else
+		{
+			Command_Nominate(client, 0);
+		}
+
+		SetCmdReplySource(old);
+	}
+	else if (StrEqual(sArgs, "unrtv", false))
+	{
+		ReplySource old = SetCmdReplySource(SM_REPLY_TO_CHAT);
+
+		Command_UnRockTheVote(client, 0);
 
 		SetCmdReplySource(old);
 	}
@@ -469,7 +555,7 @@ void InitiateMapVote(MapChange when)
 	char map[PLATFORM_MAX_PATH];
 	char mapdisplay[PLATFORM_MAX_PATH + 32];
 
-	StringMap tiersMap = Shavit_GetMapTiers();
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : new StringMap();
 
 	int nominateMapsToAdd = (mapsToAdd > g_aNominateList.Length) ? g_aNominateList.Length : mapsToAdd;
 	for(int i = 0; i < nominateMapsToAdd; i++)
@@ -642,7 +728,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 
 	menu.GetItem(item_info[0][VOTEINFO_ITEM_INDEX], map, sizeof(map), _, displayName, sizeof(displayName));
 
-	PrintToChatAll("#1 vote was %s (%s)", map, (g_ChangeTime == MapChange_Instant) ? "instant" : "map end");
+	//PrintToChatAll("#1 vote was %s (%s)", map, (g_ChangeTime == MapChange_Instant) ? "instant" : "map end");
 
 	if(StrEqual(map, "extend"))
 	{
@@ -982,7 +1068,7 @@ void SMC_NominateMatches(int client, const char[] mapname)
 	bool isOldMap = false;
 	char map[PLATFORM_MAX_PATH];
 	char oldMapName[PLATFORM_MAX_PATH];
-	StringMap tiersMap = Shavit_GetMapTiers();
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : new StringMap();
 
 	int length = g_aMapList.Length;
 	for(int i = 0; i < length; i++)
@@ -1164,7 +1250,11 @@ public Action Command_Nominate(int client, int args)
 
 	char mapname[PLATFORM_MAX_PATH];
 	GetCmdArg(1, mapname, sizeof(mapname));
+	return Command_Nominate_Internal(client, mapname);
+}
 
+public Action Command_Nominate_Internal(int client, char mapname[PLATFORM_MAX_PATH])
+{
 	if (g_cvNominateMatches.BoolValue)
 	{
 		SMC_NominateMatches(client, mapname);
@@ -1200,6 +1290,17 @@ public Action Command_Nominate(int client, int args)
 
 public Action Command_UnNominate(int client, int args)
 {
+	if (g_fLastNominateTime[client] && (GetEngineTime() - g_fLastNominateTime[client]) < g_cvAntiSpam.FloatValue)
+	{
+		ReplyToCommand(client, "%sStop spamming", g_cPrefix);
+		return Plugin_Handled;
+	}
+
+	if (!CheckCommandAccess(client, "sm_map", ADMFLAG_CHANGEMAP))
+	{
+		g_fLastNominateTime[client] = GetEngineTime();
+	}
+
 	if(g_cNominatedMap[client][0] == '\0')
 	{
 		ReplyToCommand(client, "%sYou haven't nominated a map", g_cPrefix);
@@ -1228,11 +1329,17 @@ int SlowSortThatSkipsFolders(int index1, int index2, Handle array, Handle stupid
 
 void CreateNominateMenu()
 {
+	if (gB_Rankings && !g_bTiersAssigned)
+	{
+		g_bWaitingForTiers = true;
+		return;
+	}
+
 	delete g_hNominateMenu;
 	g_hNominateMenu = new Menu(NominateMenuHandler);
 
 	g_hNominateMenu.SetTitle("Nominate");
-	StringMap tiersMap = Shavit_GetMapTiers();
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : new StringMap();
 
 	g_aMapList.SortCustom(SlowSortThatSkipsFolders);
 
@@ -1285,7 +1392,7 @@ void CreateEnhancedMenu()
 
 	for(int i = GetConVarInt(g_cvMinTier); i <= GetConVarInt(g_cvMaxTier); ++i)
 	{
-		if (GetMenuItemCount(g_aTierMenus.Get(i-GetConVarInt(g_cvMinTier))) > 0)
+		if (GetMenuItemCount(g_aTierMenus[i]) > 0)
 		{
 			char tierDisplay[32];
 			FormatEx(tierDisplay, sizeof(tierDisplay), "Tier %i", i);
@@ -1312,7 +1419,7 @@ void CreateTierMenus()
 	}
 
 	InitTierMenus(min,max);
-	StringMap tiersMap = Shavit_GetMapTiers();
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : new StringMap();
 
 	int length = g_aMapList.Length;
 	for(int i = 0; i < length; ++i)
@@ -1325,7 +1432,7 @@ void CreateTierMenus()
 		LessStupidGetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
 
 		int mapTier = 0;
-		mapTier = tiersMap.GetValue(mapdisplay, mapTier);
+		tiersMap.GetValue(mapdisplay, mapTier);
 
 		if(StrEqual(mapname, g_cMapName))
 		{
@@ -1343,7 +1450,7 @@ void CreateTierMenus()
 
 		if (min <= mapTier <= max)
 		{
-			AddMenuItem(g_aTierMenus.Get(mapTier-min), mapname, mapdisplay2, style);
+			AddMenuItem(g_aTierMenus[mapTier], mapname, mapdisplay2, style);
 		}
 	}
 
@@ -1354,15 +1461,17 @@ void CreateTierMenus()
 
 void InitTierMenus(int min, int max)
 {
-	g_aTierMenus.Clear();
+	for (int i = 0; i < sizeof(g_aTierMenus); i++)
+	{
+		delete g_aTierMenus[i];
+	}
 
 	for(int i = min; i <= max; i++)
 	{
 		Menu TierMenu = new Menu(NominateMenuHandler);
 		TierMenu.SetTitle("Nominate\nTier \"%i\" Maps\n ", i);
 		TierMenu.ExitBackButton = true;
-
-		g_aTierMenus.Push(TierMenu);
+		g_aTierMenus[i] = TierMenu;
 	}
 }
 
@@ -1382,7 +1491,7 @@ void OpenEnhancedMenu(int client)
 
 void OpenNominateMenuTier(int client, int tier)
 {
-	DisplayMenu(g_aTierMenus.Get(tier-GetConVarInt(g_cvMinTier)), client, MENU_TIME_FOREVER);
+	DisplayMenu(g_aTierMenus[tier], client, MENU_TIME_FOREVER);
 }
 
 public int NominateMenuHandler(Menu menu, MenuAction action, int param1, int param2)
@@ -1400,11 +1509,21 @@ public int NominateMenuHandler(Menu menu, MenuAction action, int param1, int par
 	}
 	else if (action == MenuAction_End)
 	{
-		if (menu != g_hNominateMenu && menu != INVALID_HANDLE && FindValueInArray(g_aTierMenus, menu) == -1)
+		if (menu != g_hNominateMenu && menu != INVALID_HANDLE)
 		{
+			for (int i = 0; i < sizeof(g_aTierMenus); i++)
+			{
+				if (g_aTierMenus[i] == menu)
+				{
+					return 0;
+				}
+			}
+
 			CloseHandle(menu);
 		}
 	}
+
+	return 0;
 }
 
 public int EnhancedMenuHandler(Menu menu, MenuAction action, int client, int param2)
@@ -1431,6 +1550,17 @@ public int EnhancedMenuHandler(Menu menu, MenuAction action, int client, int par
 
 void Nominate(int client, const char mapname[PLATFORM_MAX_PATH])
 {
+	if (g_fLastNominateTime[client] && (GetEngineTime() - g_fLastNominateTime[client]) < g_cvAntiSpam.FloatValue)
+	{
+		ReplyToCommand(client, "%sStop spamming", g_cPrefix);
+		return;
+	}
+
+	if (!CheckCommandAccess(client, "sm_map", ADMFLAG_CHANGEMAP))
+	{
+		g_fLastNominateTime[client] = GetEngineTime();
+	}
+
 	int idx = g_aNominateList.FindString(mapname);
 	if(idx != -1)
 	{
@@ -1478,11 +1608,14 @@ public Action Command_RockTheVote(int client, int args)
 	{
 		if (g_fLastRtvTime[client] && (GetEngineTime() - g_fLastRtvTime[client]) < g_cvAntiSpam.FloatValue)
 		{
-			ReplyToCommand(client, "%sStop doing that so fast", g_cPrefix);
+			ReplyToCommand(client, "%sStop spamming", g_cPrefix);
 			return Plugin_Handled;
 		}
 
-		g_fLastRtvTime[client] = GetEngineTime();
+		if (!CheckCommandAccess(client, "sm_map", ADMFLAG_CHANGEMAP))
+		{
+			g_fLastRtvTime[client] = GetEngineTime();
+		}
 
 		RTVClient(client);
 		CheckRTV(client);
@@ -1506,7 +1639,7 @@ void CheckRTV(int client = 0)
 	{
 		if(client != 0)
 		{
-			PrintToChatAll("%s%t", "RTV Requested", g_cPrefix, name, rtvcount, total);
+			PrintToChatAll("%s%t", g_cPrefix, "RTV Requested", name, rtvcount, total);
 		}
 	}
 	else
@@ -1558,11 +1691,14 @@ public Action Command_UnRockTheVote(int client, int args)
 	{
 		if (g_fLastRtvTime[client] && (GetEngineTime() - g_fLastRtvTime[client]) < g_cvAntiSpam.FloatValue)
 		{
-			ReplyToCommand(client, "[SMC] Stop doing that so fast");
+			ReplyToCommand(client, "%sStop spamming", g_cPrefix);
 			return Plugin_Handled;
 		}
 
-		g_fLastRtvTime[client] = GetEngineTime();
+		if (!CheckCommandAccess(client, "sm_map", ADMFLAG_CHANGEMAP))
+		{
+			g_fLastRtvTime[client] = GetEngineTime();
+		}
 
 		UnRTVClient(client);
 
@@ -1730,13 +1866,13 @@ public Action BaseCommands_Command_Map(int client, int args)
 
 	if (!foundMap)
 	{
-		ReplyToCommand(client, "[SM] %t", "Map was not found", map);
+		ReplyToCommand(client, "%s%t", g_cPrefix, "Map was not found", map);
 		return Plugin_Handled;
 	}
 
 	LessStupidGetMapDisplayName(map, displayName, sizeof(displayName));
 
-	ShowActivity2(client, "[SM] ", "%t", "Changing map", displayName);
+	ShowActivity2(client, g_cPrefix, "%t", "Changing map", displayName);
 	LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
 
 	DataPack dp;
