@@ -383,10 +383,6 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 		#if defined DEBUG
 		PrintToServer("DEBUG: 4 (SQL_GetMapTier_Callback)");
 		#endif
-
-		char sQuery[256];
-		FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix);
-		gH_SQL.Query(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
 	}
 	else
 	{
@@ -394,6 +390,10 @@ public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char
 		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
 		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, gI_Tier, DBPrio_High);
 	}
+
+	char sQuery[256];
+	FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const char[] error, any data)
