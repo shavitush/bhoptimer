@@ -1641,7 +1641,7 @@ public int EnhancedMenuHandler(Menu menu, MenuAction action, int client, int par
 
 void Nominate(int client, const char mapname[PLATFORM_MAX_PATH])
 {
-	if (g_fMapStartTime - GetEngineTime() < g_cvNominateDelayTime.FloatValue * 60)
+	if (GetEngineTime() - g_fMapStartTime < g_cvNominateDelayTime.FloatValue * 60)
 	{
 		ReplyToCommand(client, "%sNominate has not been enabled yet", g_cPrefix);
 		return;
