@@ -580,8 +580,12 @@ void InitiateMapVote(MapChange when)
 	menu.Pagination = MENU_NO_PAGINATION;
 	menu.SetTitle("Vote Nextmap");
 
-	int mapsToAdd = (gEV_Type == Engine_CSGO) ? 8 : 9;
-	if(g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue)
+	int maxPageItems = (gEV_Type == Engine_CSGO) ? 8 : 9;
+	int mapsToAdd = maxPageItems;
+
+	bool add_extend = (g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue);
+
+	if (add_extend)
 	{
 		mapsToAdd--;
 	}
@@ -589,6 +593,7 @@ void InitiateMapVote(MapChange when)
 	if(g_cvMapVoteEnableNoVote.BoolValue)
 	{
 		mapsToAdd--;
+		maxPageItems--;
 	}
 
 	char map[PLATFORM_MAX_PATH];
@@ -618,24 +623,43 @@ void InitiateMapVote(MapChange when)
 		mapsToAdd--;
 	}
 
+	if (g_aMapList.Length < mapsToAdd)
+	{
+		mapsToAdd = g_aMapList.Length;
+	}
+
+	int mapsAdded = 0;
+	ArrayList used_indices = new ArrayList();
+
 	for(int i = 0; i < mapsToAdd; i++)
 	{
-		int rand = GetRandomInt(0, g_aMapList.Length - 1);
-		g_aMapList.GetString(rand, map, sizeof(map));
+		int rand;
+		bool duplicate = true;
 
-		LessStupidGetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
-
-		if(StrEqual(map, g_cMapName))
+		for (int x = 0; x < 10; x++) // let's not infinite loop
 		{
-			// don't add current map to vote
-			i--;
-			continue;
+			rand = GetRandomInt(0, g_aMapList.Length - 1);
+
+			if (used_indices.FindValue(rand) == -1)
+			{
+				duplicate = false;
+				break;
+			}
 		}
 
-		int idx = g_aOldMaps.FindString(map);
-		if(idx != -1)
+		if (duplicate)
 		{
-			// map already played recently, get another map
+			continue; // unlucky or out of maps
+		}
+
+		used_indices.Push(rand);
+
+		g_aMapList.GetString(rand, map, sizeof(map));
+		LessStupidGetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
+
+		if (StrEqual(map, g_cMapName) || g_aOldMaps.FindString(map) != -1)
+		{
+			// don't add current map or recently played
 			i--;
 			continue;
 		}
@@ -648,17 +672,26 @@ void InitiateMapVote(MapChange when)
 			Format(mapdisplay, sizeof(mapdisplay), "[T%i] %s", tier, mapdisplay);
 		}
 
-
+		mapsAdded += 1;
 		menu.AddItem(map, mapdisplay);
 	}
 
+	delete used_indices;
 	delete tiersMap;
 
-	if(when == MapChange_MapEnd && g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue)
+	if ((when == MapChange_MapEnd && add_extend) || (when == MapChange_Instant))
 	{
-		menu.AddItem("extend", "Extend Map");
+		for (int i = 0; i < (maxPageItems-mapsAdded-1); i++)
+		{
+			menu.AddItem("", "");
+		}
 	}
-	else if(when == MapChange_Instant)
+
+	if ((when == MapChange_MapEnd && add_extend))
+	{
+		menu.AddItem("extend", "Extend Current Map");
+	}
+	else if (when == MapChange_Instant)
 	{
 		menu.AddItem("dontchange", "Don't Change");
 	}
@@ -731,7 +764,7 @@ public void Handler_MapVoteFinished(Menu menu, int num_votes, int num_clients, c
 			float map2percent = float(item_info[1][VOTEINFO_ITEM_VOTES])/ float(num_votes) * 100;
 
 
-			PrintToChatAll("%s%t", "Starting Runoff", g_cPrefix, g_cvMapVoteRunOffPerc.FloatValue, info1, map1percent, info2, map2percent);
+			PrintToChatAll("%s%t", g_cPrefix, "Starting Runoff", g_cvMapVoteRunOffPerc.FloatValue, info1, map1percent, info2, map2percent);
 			LogMessage("Voting for next map was indecisive, beginning runoff vote");
 
 			return;
@@ -843,6 +876,14 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 			{
 				return ITEMDRAW_DISABLED;
 			}
+
+			char map[PLATFORM_MAX_PATH];
+			menu.GetItem(param2, map, sizeof(map));
+
+			if (map[0] == 0)
+			{
+				return ITEMDRAW_DISABLED;
+			}
 		}
 
 		case MenuAction_Cancel: // comes up for novote
@@ -871,14 +912,20 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 			{
 				char map[PLATFORM_MAX_PATH], buffer[255];
 				menu.GetItem(param2, map, sizeof(map));
+	
 				if (strcmp(map, "extend", false) == 0)
 				{
-					Format(buffer, sizeof(buffer), "Extend Map");
+					FormatEx(buffer, sizeof(buffer), "%T", "Extend Map", param1);
 					return RedrawMenuItem(buffer);
 				}
 				else if (strcmp(map, "novote", false) == 0)
 				{
-					Format(buffer, sizeof(buffer), "No Vote");
+					FormatEx(buffer, sizeof(buffer), "%T", "No Vote", param1);
+					return RedrawMenuItem(buffer);
+				}
+				else if (strcmp(map, "dontchange", false) == 0)
+				{
+					FormatEx(buffer, sizeof(buffer), "%T", "Dont Change", param1);
 					return RedrawMenuItem(buffer);
 				}
 			}
