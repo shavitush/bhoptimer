@@ -2883,6 +2883,8 @@ void InsertZone(int client)
 	bool bInsert = (gI_ZoneDatabaseID[client] == -1 && (iIndex == -1 || iType >= Zone_Respawn));
 
 	char sQuery[1024];
+	char sTrack[64];
+	GetTrackName(LANG_SERVER, gI_ZoneTrack[client], sTrack, sizeof(sTrack));
 
 	if(iType == Zone_CustomSpawn)
 	{
@@ -2895,7 +2897,7 @@ void InsertZone(int client)
 
 	else if(bInsert) // insert
 	{
-		Shavit_LogMessage("%L - added %s to map `%s`.", client, gS_ZoneNames[iType], gS_Map);
+		Shavit_LogMessage("%L - added %s %s to map `%s`.", client, sTrack, gS_ZoneNames[iType], gS_Map);
 
 		FormatEx(sQuery, sizeof(sQuery),
 			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, flags, data) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d, %d, %d);",
@@ -2904,7 +2906,7 @@ void InsertZone(int client)
 
 	else // update
 	{
-		Shavit_LogMessage("%L - updated %s in map `%s`.", client, gS_ZoneNames[iType], gS_Map);
+		Shavit_LogMessage("%L - updated %s %s in map `%s`.", client, sTrack, gS_ZoneNames[iType], gS_Map);
 
 		if(gI_ZoneDatabaseID[client] == -1)
 		{
