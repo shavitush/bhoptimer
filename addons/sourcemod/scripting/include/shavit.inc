@@ -398,7 +398,8 @@ stock void LowercaseString(char[] str)
 
 	for (int i = 0; str[i] != 0; i++)
 	{
-		str[i] = to_lowercase_table[str[i]];
+		int x = str[i];
+		str[i] = to_lowercase_table[x];
 	}
 }
 

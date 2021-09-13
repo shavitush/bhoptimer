@@ -717,7 +717,7 @@ void InitiateMapVote(MapChange when)
 	menu.DisplayVoteToAll(RoundFloat(g_cvMapVoteDuration.FloatValue * 60.0));
 }
 
-Action Timer_VoteDelay(Handle timer, any data)
+public Action Timer_VoteDelay(Handle timer, any data)
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -1007,7 +1007,7 @@ void RemoveExcludesFromArrayList(ArrayList list, bool lowercase, char[][] exclud
 
 		for (int x = 0; x < exclude_count; x++)
 		{
-			if (strncmp(buffer, exclude_prefixes[i], strlen(exclude_prefixes[i]), lowercase) == 0)
+			if (strncmp(buffer, exclude_prefixes[x], strlen(exclude_prefixes[x]), lowercase) == 0)
 			{
 				list.SwapAt(i, --length);
 				break;
@@ -1409,7 +1409,7 @@ public Action Command_UnNominate(int client, int args)
 	return Plugin_Handled;
 }
 
-int SlowSortThatSkipsFolders(int index1, int index2, Handle array, Handle stupidgarbage)
+public int SlowSortThatSkipsFolders(int index1, int index2, Handle array, Handle stupidgarbage)
 {
 	char a[PLATFORM_MAX_PATH], b[PLATFORM_MAX_PATH];
 	ArrayList list = view_as<ArrayList>(array);
