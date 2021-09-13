@@ -9,7 +9,7 @@
 	"CommandAliveSpectate"
 	{
 		"#format"	"{1:s},{2:s},{3:s},{4:s}"
-		"en"		"You have to be {1}alive{2} or {3}spectate a player{4} to use this command."
+		"en"		"You have to be {1}alive{2} or {3}spectating a player{4} to use this command."
 	}
 	"CommandSaveCPKZInvalid"
 	{
