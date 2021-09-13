@@ -24,6 +24,7 @@ Convar g_cvRTVAllowSpectators;
 Convar g_cvRTVSpectatorCooldown;
 Convar g_cvRTVMinimumPoints;
 Convar g_cvRTVDelayTime;
+Convar g_cvNominateDelayTime;
 
 Convar g_cvHideRTVChat;
 
@@ -175,6 +176,7 @@ public void OnPluginStart()
 	g_cvRTVSpectatorCooldown = new Convar("smc_rtv_spectator_cooldown", "60", "When `smc_rtv_allow_spectators` is `0`, wait this many seconds before removing a spectator's RTV", 0, true, 0.0);
 	g_cvRTVMinimumPoints = new Convar("smc_rtv_minimum_points", "-1", "Minimum number of points a player must have before being able to RTV, or -1 to allow everyone", _, true, -1.0, false);
 	g_cvRTVDelayTime = new Convar("smc_rtv_delay", "5", "Time in minutes after map start before players should be allowed to RTV", _, true, 0.0, false);
+	g_cvNominateDelayTime = new Convar("smc_nominate_delay", "0", "Time in minutes after map start before players should be allowed to nominate", _, true, 0.0, false);
 	g_cvRTVRequiredPercentage = new Convar("smc_rtv_required_percentage", "50", "Percentage of players who have RTVed before a map vote is initiated", _, true, 1.0, true, 100.0);
 	g_cvHideRTVChat = new Convar("smc_hide_rtv_chat", "1", "Whether to hide 'rtv', 'rockthevote', 'unrtv', 'nextmap', and 'nominate' from chat.");
 
@@ -191,7 +193,7 @@ public void OnPluginStart()
 	g_cvMinTier = new Convar("smc_min_tier", "0", "The minimum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 	g_cvMaxTier = new Convar("smc_max_tier", "10", "The maximum tier to show on the enhanced menu",  _, true, 0.0, true, 10.0);
 
-	g_cvAntiSpam = new Convar("smc_anti_spam", "15.0", "The number of seconds a player needs to wait before rtv/unrtv/nominate.", 0, true, 0.0, true, 300.0);
+	g_cvAntiSpam = new Convar("smc_anti_spam", "15.0", "The number of seconds a player needs to wait before rtv/unrtv/nominate/unnominate.", 0, true, 0.0, true, 300.0);
 
 	g_cvPrefix = new Convar("smc_prefix", "[SM] ", "The prefix SMC messages have");
 	g_cvPrefix.AddChangeHook(OnConVarChanged);
@@ -250,7 +252,7 @@ public void OnMapStart()
 	SetNextMap(g_cMapName);
 
 	// disable rtv if delay time is > 0
-	g_fMapStartTime = GetGameTime();
+	g_fMapStartTime = GetEngineTime();
 	g_fLastMapvoteTime = 0.0;
 
 	g_iExtendCount = 0;
@@ -820,7 +822,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 
 		// We extended, so we'll have to vote again.
 		g_bMapVoteStarted = false;
-		g_fLastMapvoteTime = GetGameTime();
+		g_fLastMapvoteTime = GetEngineTime();
 
 		ClearRTV();
 	}
@@ -831,7 +833,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 
 		g_bMapVoteFinished = false;
 		g_bMapVoteStarted = false;
-		g_fLastMapvoteTime = GetGameTime();
+		g_fLastMapvoteTime = GetEngineTime();
 
 		ClearRTV();
 	}
@@ -1237,7 +1239,7 @@ void SMC_NominateMatches(int client, const char[] mapname)
 
 bool IsRTVEnabled()
 {
-	float time = GetGameTime();
+	float time = GetEngineTime();
 
 	if(g_fLastMapvoteTime != 0.0)
 	{
@@ -1639,6 +1641,12 @@ public int EnhancedMenuHandler(Menu menu, MenuAction action, int client, int par
 
 void Nominate(int client, const char mapname[PLATFORM_MAX_PATH])
 {
+	if (g_fMapStartTime - GetEngineTime() < g_cvNominateDelayTime.FloatValue * 60)
+	{
+		ReplyToCommand(client, "%sNominate has not been enabled yet", g_cPrefix);
+		return;
+	}
+
 	if (g_fLastNominateTime[client] && (GetEngineTime() - g_fLastNominateTime[client]) < g_cvAntiSpam.FloatValue)
 	{
 		ReplyToCommand(client, "%sStop spamming", g_cPrefix);
