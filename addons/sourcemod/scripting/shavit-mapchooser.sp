@@ -985,7 +985,7 @@ void ExtendMap(int time = 0)
 	}
 
 	ExtendMapTimeLimit(time);
-	PrintToChatAll("%sThe map was extended for %.1f minutes", g_cPrefix, time / 60.0);
+	PrintToChatAll("%sThe map was extended for %d minutes", g_cPrefix, time / 60);
 
 	//g_bMapVoteStarted = false;
 	//g_bMapVoteFinished = false;
