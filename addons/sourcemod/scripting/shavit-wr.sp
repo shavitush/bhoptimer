@@ -2419,7 +2419,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Shavit_PrintToChat(client, "old: %.01f new: %.01f", fOldWR, time);
 		#endif
 
-		Transaction hTransaction = new Transaction();
+		Transaction2 hTransaction = new Transaction2();
 		char query[512];
 
 		FormatEx(query, sizeof(query),

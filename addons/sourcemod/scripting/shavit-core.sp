@@ -1143,7 +1143,7 @@ public void Trans_DeleteRestOfUserFailed(Database db, DataPack hPack, int numQue
 
 void DeleteRestOfUser(int iSteamID, DataPack hPack)
 {
-	Transaction hTransaction = new Transaction();
+	Transaction2 hTransaction = new Transaction2();
 	char sQuery[256];
 
 	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
@@ -3394,7 +3394,7 @@ public void SQL_TableMigrationWorkshop_Callback(Database db, DBResultSet results
 		return;
 	}
 
-	Transaction hTransaction = new Transaction();
+	Transaction2 hTransaction = new Transaction2();
 
 	while(results.FetchRow())
 	{

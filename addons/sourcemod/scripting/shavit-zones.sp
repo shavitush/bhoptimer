@@ -1165,7 +1165,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		gB_InsertedPrebuiltZones = true;
 
 		char sQuery[1024];
-		Transaction hTransaction;
+		Transaction2 hTransaction;
 
 		for (int i = 0; i < gI_MapZones; i++)
 		{
@@ -1173,7 +1173,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 			{
 				if (hTransaction == null)
 				{
-					hTransaction = new Transaction();
+					hTransaction = new Transaction2();
 				}
 
 				InsertPrebuiltZone(i, false, sQuery, sizeof(sQuery));

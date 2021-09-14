@@ -1042,7 +1042,7 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 			FROM %swrs %s %s %s %s GROUP BY auth;";
 
 	char sQuery[800];
-	Transaction hTransaction = new Transaction();
+	Transaction2 hTransaction = new Transaction2();
 
 	FormatEx(sQuery, sizeof(sQuery),
 		!gB_HasSQLRANK ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
