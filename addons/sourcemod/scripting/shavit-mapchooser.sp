@@ -4,9 +4,9 @@
 #include <sourcemod>
 #include <sdktools_sound>
 #include <convar_class>
-#include <shavit>
 
 #undef REQUIRE_PLUGIN
+#include <shavit>
 // for MapChange type
 #include <mapchooser>
 
@@ -429,7 +429,7 @@ public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 				}
 				case 60, 30, 5:
 				{
-					PrintToChatAll("%s%s seconds until map vote", g_cPrefix, mapvoteTime);
+					PrintToChatAll("%s%d seconds until map vote", g_cPrefix, mapvoteTime);
 				}
 			}
 		}
