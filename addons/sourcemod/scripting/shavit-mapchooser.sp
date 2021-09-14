@@ -318,6 +318,12 @@ public void Shavit_OnTierAssigned(const char[] map, int tier)
 	}
 }
 
+public Action Timer_MapChangeSound(Handle timer, any data)
+{
+	MapChangeDelay();
+	return Plugin_Stop;
+}
+
 float MapChangeDelay()
 {
 	if (g_cvMapChangeSound.BoolValue)
@@ -458,6 +464,14 @@ public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 	if(g_aMapList.Length && !g_bMapVoteStarted && !g_bMapVoteFinished)
 	{
 		CheckTimeLeft();
+	}
+}
+
+public void Shavit_OnCountdownStart()
+{
+	if (g_cvMapChangeSound.BoolValue)
+	{
+		CreateTimer(0.6, Timer_MapChangeSound, 0, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 

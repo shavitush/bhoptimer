@@ -54,11 +54,16 @@ Convar gCV_MinimumTimes = null;
 Convar gCV_PlayerAmount = null;
 Convar gCV_Style = null;
 Convar gCV_GameStartFix = null;
+Convar gCV_InstantMapChange = null;
 Convar gCV_Enabled = null;
 
 // misc cache
+bool gB_BlockRoundEndEvent = false;
+bool gB_AlternateZeroPrint = false;
 Handle gH_Timer = null;
 EngineVersion gEV_Type = Engine_Unknown;
+
+Handle gH_Forwards_OnCountdownStart = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -84,6 +89,8 @@ public void OnPluginStart()
 {
 	gEV_Type = GetEngineVersion();
 
+	gH_Forwards_OnCountdownStart = CreateGlobalForward("Shavit_OnCountdownStart", ET_Event);
+
 	LoadTranslations("shavit-common.phrases");
 
 	mp_do_warmup_period = FindConVar("mp_do_warmup_period");
@@ -106,14 +113,22 @@ public void OnPluginStart()
 	gCV_Style = new Convar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 0.0, true, 1.0);
 	gCV_GameStartFix = new Convar("shavit_timelimit_gamestartfix", "1", "If set to 1, will block the round from ending because another player joined. Useful for single round servers.", 0, true, 0.0, true, 1.0);
 	gCV_Enabled = new Convar("shavit_timelimit_enabled", "1", "Enables/Disables functionality of the plugin.", 0, true, 0.0, true, 1.0);
+	gCV_InstantMapChange = new Convar("shavit_timelimit_instantmapchange", "1", "If set to 1 then it will changelevel to the next map after the countdown. Requires the 'nextmap' to be set.", 0, true, 0.0, true, 1.0);
 
 	gCV_ForceMapEnd.AddChangeHook(OnConVarChanged);
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
 
+	HookEvent("round_end", round_end, EventHookMode_Pre);
+
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle2();
+}
+
+public void OnMapStart()
+{
+	gB_BlockRoundEndEvent = false;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -281,6 +296,28 @@ public Action Timer_PrintToChat(Handle timer)
 		Shavit_StopChatSound();
 	}
 
+	if (gCV_InstantMapChange.BoolValue && (0 <= timeleft <= 5))
+	{
+		if (timeleft)
+		{
+			if (timeleft == 5)
+			{
+				Call_StartForward(gH_Forwards_OnCountdownStart);
+				Call_Finish();
+			}
+
+			Shavit_StopChatSound();
+			Shavit_PrintToChatAll("%d..", timeleft);
+
+			if (timeleft == 1)
+			{
+				CreateTimer(0.9001, Timer_ChangeMap, 0, TIMER_FLAG_NO_MAPCHANGE);
+			}
+		}
+
+		return Plugin_Continue;
+	}
+
 	switch(timeleft)
 	{
 		case 3600: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "60");
@@ -292,29 +329,60 @@ public Action Timer_PrintToChat(Handle timer)
 		case 60: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "60");
 		case 30: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "30");
 		case 15: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "15");
-		
+
+		case 0: // case 0 is hit twice....
+		{
+			if (!gB_AlternateZeroPrint)
+			{
+				Call_StartForward(gH_Forwards_OnCountdownStart);
+				Call_Finish();
+			}
+
+			Shavit_StopChatSound();
+			Shavit_PrintToChatAll("%d..", gB_AlternateZeroPrint ? 4 : 5);
+			gB_AlternateZeroPrint = !gB_AlternateZeroPrint;
+		}
 		case -1:
 		{
 			Shavit_PrintToChatAll("3..");
 		}
-		
 		case -2:
 		{
 			Shavit_PrintToChatAll("2..");
+
+			if (gEV_Type != Engine_CSGO)
+			{
+				gB_BlockRoundEndEvent = true;
+				// needs to be when timeleft is under 0 otherwise the round will restart and the map won't change
+				CS_TerminateRound(0.0, CSRoundEnd_Draw, true);
+			}
 		}
-		
 		case -3:
 		{
 			Shavit_PrintToChatAll("1..");
-		}
 
-		case -4:
-		{
-			CS_TerminateRound(0.0, CSRoundEnd_Draw, true);
+			if (gEV_Type == Engine_CSGO)
+			{
+				gB_BlockRoundEndEvent = true;
+				// needs to be when timeleft is under 0 otherwise the round will restart and the map won't change
+				CS_TerminateRound(0.0, CSRoundEnd_Draw, true);
+			}
 		}
 	}
 
 	return Plugin_Continue;
+}
+
+public Action Timer_ChangeMap(Handle timer, any data)
+{
+	char map[PLATFORM_MAX_PATH];
+
+	if (GetNextMap(map, sizeof(map)))
+	{
+		ForceChangeLevel(map, "bhoptimer instant map change after timelimit");
+	}
+
+	return Plugin_Stop;
 }
 
 public Action CS_OnTerminateRound(float &fDelay, CSRoundEndReason &iReason)
@@ -324,5 +392,16 @@ public Action CS_OnTerminateRound(float &fDelay, CSRoundEndReason &iReason)
 		return Plugin_Handled;
 	}
 	
+	return Plugin_Continue;
+}
+
+public Action round_end(Event event, const char[] name, bool dontBroadcast)
+{
+	if (gB_BlockRoundEndEvent)
+	{
+		event.BroadcastDisabled = true; // stop the "Event.RoundDraw" sound from playing client-side
+		return Plugin_Changed;
+	}
+
 	return Plugin_Continue;
 }

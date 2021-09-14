@@ -1344,6 +1344,13 @@ forward void SMC_OnUnRTV(int client);
 forward void SMC_OnSuccesfulRTV();
 
 /**
+ * Called from shavit-timelimit when the 5 second map change countdown starts.
+ *
+ * @noreturn
+ */
+forward void Shavit_OnCountdownStart();
+
+/**
  * Returns bhoptimer's database handle.
  * Call within Shavit_OnDatabaseLoaded. Safety is not guaranteed anywhere else!
  *
