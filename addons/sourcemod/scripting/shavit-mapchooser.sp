@@ -183,7 +183,7 @@ public void OnPluginStart()
 	g_cvMapVoteRunOff = new Convar("smc_mapvote_runoff", "1", "Hold run of votes if winning choice is less than a certain margin", _, true, 0.0, true, 1.0);
 	g_cvMapVoteRunOffPerc = new Convar("smc_mapvote_runoffpercent", "50", "If winning choice has less than this percent of votes, hold a runoff", _, true, 0.0, true, 100.0);
 	g_cvMapVoteRevoteTime = new Convar("smc_mapvote_revotetime", "0", "How many minutes after a failed mapvote before rtv is enabled again", _, true, 0.0);
-	g_cvDisplayTimeRemaining = new Convar("smc_display_timeleft", "1", "Display remaining messages in chat", _, true, 0.0, true, 1.0);
+	//g_cvDisplayTimeRemaining = new Convar("smc_display_timeleft", "1", "Display remaining messages in chat", _, true, 0.0, true, 1.0);
 
 	g_cvNominateMatches = new Convar("smc_nominate_matches", "1", "Prompts a menu which shows all maps which match argument",  _, true, 0.0, true, 1.0);
 	g_cvEnhancedMenu = new Convar("smc_enhanced_menu", "1", "Nominate menu can show maps by alphabetic order and tiers",  _, true, 0.0, true, 1.0);
@@ -434,7 +434,7 @@ public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 				}
 			}
 		}
-		else if(g_bMapVoteFinished && g_cvDisplayTimeRemaining.BoolValue)
+		else if(g_bMapVoteFinished && g_cvDisplayTimeRemaining && g_cvDisplayTimeRemaining.BoolValue)
 		{
 			timeleft += 3;
 			switch(timeleft)
