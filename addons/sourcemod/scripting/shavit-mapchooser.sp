@@ -200,8 +200,9 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
-	RegAdminCmd("sm_extendmap", Command_Extend, ADMFLAG_RCON, "Admin command for extending map");
-	RegAdminCmd("sm_forcemapvote", Command_ForceMapVote, ADMFLAG_RCON, "Admin command for forcing the end of map vote");
+	RegAdminCmd("sm_extend", Command_Extend, ADMFLAG_CHANGEMAP, "Admin command for extending map");
+	RegAdminCmd("sm_extendmap", Command_Extend, ADMFLAG_CHANGEMAP, "Admin command for extending map");
+	RegAdminCmd("sm_forcemapvote", Command_ForceMapVote, ADMFLAG_CHANGEMAP, "Admin command for forcing the end of map vote");
 	RegAdminCmd("sm_reloadmaplist", Command_ReloadMaplist, ADMFLAG_CHANGEMAP, "Admin command for forcing maplist to be reloaded");
 
 	RegAdminCmd("sm_loadunzonedmap", Command_LoadUnzonedMap, ADMFLAG_ROOT, "Loads the next map from the maps folder that is unzoned.");
@@ -986,8 +987,8 @@ void ExtendMap(int time = 0)
 	ExtendMapTimeLimit(time);
 	PrintToChatAll("%sThe map was extended for %.1f minutes", g_cPrefix, time / 60.0);
 
-	g_bMapVoteStarted = false;
-	g_bMapVoteFinished = false;
+	//g_bMapVoteStarted = false;
+	//g_bMapVoteFinished = false;
 }
 
 public void Shavit_OnDatabaseLoaded()
