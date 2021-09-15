@@ -599,6 +599,7 @@ void InitiateMapVote(MapChange when)
 
 	int maxPageItems = (gEV_Type == Engine_CSGO) ? 8 : 9;
 	int mapsToAdd = maxPageItems;
+	int mapsAdded = 0;
 
 	bool add_extend = (g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue);
 
@@ -636,7 +637,7 @@ void InitiateMapVote(MapChange when)
 		}
 
 		menu.AddItem(map, mapdisplay);
-
+		mapsAdded += 1;
 		mapsToAdd--;
 	}
 
@@ -645,7 +646,6 @@ void InitiateMapVote(MapChange when)
 		mapsToAdd = g_aMapList.Length;
 	}
 
-	int mapsAdded = 0;
 	ArrayList used_indices = new ArrayList();
 
 	for(int i = 0; i < mapsToAdd; i++)
