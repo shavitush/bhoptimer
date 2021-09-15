@@ -792,10 +792,10 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		if(iClears > iTotalMaps)
 		{
 			iClears = iTotalMaps;
-		}
+		} 
 
 		char sClearString[128];
-		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps) * 100.0));
+		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps > 0 ? float(iTotalMaps) : 0.0) * 100.0));
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
 		menu.SetTitle("%s's %T. [U:1:%d]\n%T: %s\n%s\n%s\n%T: %s\n",
@@ -825,7 +825,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 				FormatEx(sStyleInfo, 256, "%s    [Main] %s\n", sStyleInfo, sClearString);
 				Format(sStyleInfo, 256, "%s    [Main] %T: %d\n", sStyleInfo, "WorldRecords", client, iWRs);
 
-				FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iBonuesClears, iBonuesTotalMaps, ((float(iBonuesClears) / iBonuesTotalMaps) * 100.0));
+				FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iBonuesClears, iBonuesTotalMaps, ((float(iBonuesClears) / iBonuesTotalMaps > 0 ? float(iBonuesTotalMaps) : 0.0) * 100.0));
 				FormatEx(sStyleInfo, 256, "%s    [Bonuses] %s\n", sStyleInfo, sClearString);
 				Format(sStyleInfo, 256, "%s    [Bonuses] %T: %d\n", sStyleInfo, "WorldRecords", client, iBonuesWRs);
 			}
