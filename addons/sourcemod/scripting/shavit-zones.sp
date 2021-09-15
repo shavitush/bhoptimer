@@ -2981,7 +2981,7 @@ public Action Timer_DrawEverything(Handle Timer)
 			{
 				DrawZone(gV_MapZones_Visual[i],
 						GetZoneColors(type, track),
-						RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame + 1.0) * gCV_Interval.FloatValue,
+						RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame + 2.0) * gCV_Interval.FloatValue,
 						gA_ZoneSettings[type][track].fWidth,
 						gA_ZoneSettings[type][track].bFlatZone,
 						gV_ZoneCenter[i],
