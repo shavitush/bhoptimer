@@ -907,6 +907,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 		{
 			if (g_bVoteDelayed[param1])
 			{
+				g_bVoteDelayed[param1] = false;
 				RedrawClientVoteMenu(param1);
 				return 0;
 			}
