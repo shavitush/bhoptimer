@@ -659,7 +659,9 @@ public Action Command_Profile(int client, int args)
 
 	gI_TargetSteamID[client] = iSteamID ? iSteamID : GetSteamAccountID(target);
 
-	return OpenStatsMenu(client, gI_TargetSteamID[client]);
+	gI_Style[client] = 0;
+
+	return OpenStatsMenu(client, gI_TargetSteamID[client], 0);
 }
 
 Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
