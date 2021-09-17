@@ -188,6 +188,11 @@ public void OnPluginStart()
 		Shavit_OnChatConfigLoaded();
 		Shavit_OnDatabaseLoaded();
 	}
+
+	if (gEV_Type != Engine_TF2)
+	{
+		CreateTimer(1.0, Timer_MVPs, 0, TIMER_REPEAT);
+	}
 }
 
 public void Shavit_OnChatConfigLoaded()
@@ -440,6 +445,25 @@ public void OnMapEnd()
 	}
 }
 
+void CS_SetMVPCount_Test(int client, int count)
+{
+	CS_SetMVPCount(client, count);
+	SetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iMVPs", count, 4, client);
+}
+
+public Action Timer_MVPs(Handle timer)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i))
+		{
+			CS_SetMVPCount_Test(i, Shavit_GetWRCount(i, -1, -1, true));
+		}
+	}
+
+	return Plugin_Continue;
+}
+
 public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	if(gCV_MVPRankOnes.IntValue == 0)
@@ -451,7 +475,7 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 
 	if(IsValidClient(client) && !IsFakeClient(client) && gEV_Type != Engine_TF2)
 	{
-		CS_SetMVPCount(client, Shavit_GetWRCount(client, -1, -1, true));
+		CS_SetMVPCount_Test(client, Shavit_GetWRCount(client, -1, -1, true));
 	}
 }
 
@@ -519,7 +543,7 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 
 	if (gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2 && IsValidClient(client))
 	{
-		CS_SetMVPCount(client, Shavit_GetWRCount(client, -1, -1, true));
+		CS_SetMVPCount_Test(client, Shavit_GetWRCount(client, -1, -1, true));
 	}
 }
 
