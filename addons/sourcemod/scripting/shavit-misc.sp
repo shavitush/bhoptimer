@@ -46,6 +46,8 @@
 
 #define DEBUG 0
 
+#define EFL_CHECK_UNTOUCH (1<<24)
+
 enum struct persistent_data_t
 {
 	int iSteamID;
@@ -163,6 +165,7 @@ Handle gH_GetPlayerMaxSpeed = null;
 DynamicHook gH_UpdateStepSound = null;
 DynamicHook gH_IsSpawnPointValid = null;
 DynamicDetour gH_CalcPlayerScore = null;
+Handle gH_PhysicsCheckForEntityUntouch;
 
 // modules
 bool gB_Eventqueuefix = false;
@@ -435,6 +438,13 @@ void LoadDHooks()
 	{
 		SetFailState("Couldn't get the offset for \"CGameRules::IsSpawnPointValid\" - make sure your gamedata is updated!");
 	}
+
+	StartPrepSDKCall(SDKCall_Entity);
+	if(!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "PhysicsCheckForEntityUntouch"))
+	{
+		SetFailState("Failed to get PhysicsCheckForEntityUntouch");
+	}
+	gH_PhysicsCheckForEntityUntouch = EndPrepSDKCall();
 
 	delete hGameData;
 }
@@ -2804,6 +2814,12 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	}
 }
 
+bool GetCheckUntouch(int client)
+{
+	int flags = GetEntProp(client, Prop_Data, "m_iEFlags");
+	return (flags & EFL_CHECK_UNTOUCH) != 0;
+}
+
 void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 {
 	SetEntityMoveType(client, cpcache.iMoveType);
@@ -2847,6 +2863,12 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	TeleportEntity(client, cpcache.fPosition,
 		((gI_CheckpointsSettings[client] & CP_ANGLES)   > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fAngles   : NULL_VECTOR,
 		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fVelocity : NULL_VECTOR);
+
+	// Used to trigger all endtouch booster events which are then wiped via eventqueuefix :)
+	if (GetCheckUntouch(client))
+	{
+		SDKCall(gH_PhysicsCheckForEntityUntouch, client);
+	}
 
 	if(cpcache.bPractice || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
 	{
