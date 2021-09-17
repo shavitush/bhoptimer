@@ -306,8 +306,11 @@ public Action Timer_PrintToChat(Handle timer)
 				Call_Finish();
 			}
 
-			Shavit_StopChatSound();
-			Shavit_PrintToChatAll("%d..", timeleft);
+			if (timeleft <= 3)
+			{
+				Shavit_StopChatSound();
+				Shavit_PrintToChatAll("%d..", timeleft);
+			}
 
 			if (timeleft == 1)
 			{
