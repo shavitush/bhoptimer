@@ -2121,19 +2121,12 @@ public Action Command_Save(int client, int args)
 		return Plugin_Handled;
 	}
 
-	int iMaxCPs = GetMaxCPs(client);
 	bool bSegmenting = CanSegment(client);
 
 	if(!gCV_Checkpoints.BoolValue && !bSegmenting)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
-		return Plugin_Handled;
-	}
-
-	if(!bSegmenting && gA_Checkpoints[client].Length >= iMaxCPs)
-	{
-		Shavit_PrintToChat(client, "%T", "MiscCheckpointsOverflow", client);
 		return Plugin_Handled;
 	}
 
@@ -2337,7 +2330,7 @@ void OpenNormalCPMenu(int client)
 
 	char sDisplay[64];
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1));
-	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue || bSegmented)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	menu.AddItem("save", sDisplay, ITEMDRAW_DEFAULT);
 
 	if(gA_Checkpoints[client].Length > 0)
 	{
@@ -2422,11 +2415,6 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		if(StrEqual(sInfo, "save"))
 		{
-			if(!CanSegment(param1) && gA_Checkpoints[param1].Length >= iMaxCPs)
-			{
-				return 0;
-			}
-			
 			SaveCheckpoint(param1);
 		}
 		else if(StrEqual(sInfo, "tele"))
