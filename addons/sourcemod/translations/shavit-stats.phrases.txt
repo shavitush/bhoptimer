@@ -103,7 +103,7 @@
 	}
 	"WorldRecords"
 	{
-		"en"		"world records"
+		"en"		"World records"
 	}
 	// ---------- Record Data ---------- //
 	"Date"
