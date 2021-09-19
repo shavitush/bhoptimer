@@ -47,6 +47,7 @@ char gS_MySQLPrefix[32];
 bool gB_CanOpenMenu[MAXPLAYERS+1];
 int gI_MapType[MAXPLAYERS+1];
 int gI_Style[MAXPLAYERS+1];
+int gI_MenuPos[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
@@ -226,8 +227,8 @@ void QueryPlaytime(int client)
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT 0 as type, style FROM %sstyleplaytime WHERE auth = %d \
-		UNION SELECT 1 as type, playtime FROM %susers WHERE auth = %d;",
+		"SELECT style, playtime FROM %sstyleplaytime WHERE auth = %d \
+		UNION SELECT -1 as style, playtime FROM %susers WHERE auth = %d;",
 		gS_MySQLPrefix, iSteamID, gS_MySQLPrefix, iSteamID);
 	gH_SQL.Query(SQL_QueryStylePlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
 }
@@ -249,16 +250,15 @@ public void SQL_QueryStylePlaytime_Callback(Database db, DBResultSet results, co
 
 	while (results.FetchRow())
 	{
-		int type = results.FetchInt(0);
+		int style = results.FetchInt(0);
+		float playtime = results.FetchFloat(1);
 
-		if (type == 0)
+		if (style != -1)
 		{
-			int style = results.FetchInt(1);
 			gB_HavePlaytimeOnStyle[client][style] = true;
 		}
-		else if (type == 1)
+		else
 		{
-			float playtime = results.FetchFloat(1);
 			gF_PlaytimeCached[client] = playtime;
 		}
 	}
@@ -507,7 +507,7 @@ public void SQL_TopPlaytime_Callback(Database db, DBResultSet results, const cha
 		results.FetchString(1, sName, sizeof(sName));
 
 		float fPlaytime = results.FetchFloat(2);
-		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true);
+		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true, true);
 
 		char sDisplay[128];
 		FormatEx(sDisplay, sizeof(sDisplay), "%s - %s", sPlaytime, sName);
@@ -691,6 +691,7 @@ public Action Command_Profile(int client, int args)
 Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 {
 	gI_Style[client] = style;
+	gI_MenuPos[client] = item;
 
 	// no spam please
 	if(!gB_CanOpenMenu[client])
@@ -703,7 +704,7 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 
 	if(gB_Rankings)
 	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, f.clears, g.maps, h.wrs, d.points, e.rank, d.playtime FROM " ...
+		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, f.clears, g.maps, h.wrs, d.points, e.rank, d.playtime, i.styleplaytime FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 AND style = %d GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
 				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track = 0 AND style = %d) c " ...
@@ -712,11 +713,12 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 				"JOIN (SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track > 0 AND style = %d GROUP BY map) s) f " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track > 0 AND type = 0 GROUP BY map) s) g " ...
 				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track > 0 AND style = %d) h " ...
-			"LIMIT 1;", gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style);
+				"JOIN (SELECT SUM(playtime) as styleplaytime FROM %sstyleplaytime WHERE auth = %d AND style = %d) i " ...
+			"LIMIT 1;", gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, style);
 	}
 	else
 	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, e.clears, f.maps, g.wrs, d.playtime FROM " ...
+		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, e.clears, f.maps, g.wrs, d.playtime, i.styleplaytime FROM " ...
 				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 AND style = %d GROUP BY map) s) a " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
 				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track = 0 AND style = %d) c " ...
@@ -724,7 +726,8 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 				"JOIN (SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track > 0 AND style = %d GROUP BY map) s) e " ...
 				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track > 0 AND type = 0 GROUP BY map) s) f " ...
 				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track > 0 AND style = %d) g " ...
-			"LIMIT 1;", gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style);
+				"JOIN (SELECT SUM(playtime) as styleplaytime FROM %sstyleplaytime WHERE auth = %d AND style = %d) i " ...
+			"LIMIT 1;", gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, style);
 	}
 
 	gB_CanOpenMenu[client] = false;
@@ -783,9 +786,9 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
 		Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
 
-		int iBonuesClears = results.FetchInt(6);
-		int iBonuesTotalMaps = results.FetchInt(7);
-		int iBonuesWRs = results.FetchInt(8);
+		int iBonusClears = results.FetchInt(6);
+		int iBonusTotalMaps = results.FetchInt(7);
+		int iBonusWRs = results.FetchInt(8);
 
 		char sPoints[16];
 		char sRank[16];
@@ -798,7 +801,11 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 		float fPlaytime = results.FetchFloat(gB_Rankings ? 11 : 9);
 		char sPlaytime[16];
-		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true);
+		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true, true);
+
+		float fStylePlaytime = results.FetchFloat(gB_Rankings ? 12 : 10);
+		char sStylePlaytime[16];
+		FormatSeconds(fStylePlaytime, sStylePlaytime, sizeof(sStylePlaytime), false, true, true);
 
 		char sRankingString[64];
 
@@ -808,7 +815,6 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			{
 				FormatEx(sRankingString, 64, "\n%T: #%s/%d\n%T: %s", "Rank", client, sRank, Shavit_GetRankedPlayers(), "Points", client, sPoints);
 			}
-
 			else
 			{
 				FormatEx(sRankingString, 64, "\n%T: %T", "Rank", client, "PointsUnranked", client);
@@ -819,9 +825,6 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		{
 			iClears = iTotalMaps;
 		}
-
-		char sClearString[128];
-		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / (iTotalMaps > 0 ? float(iTotalMaps) : 0.0)) * 100.0));
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
 		menu.SetTitle("%s's %T. [U:1:%d]\n%T: %s\n%s\n%s\n%T: %s\n",
@@ -844,16 +847,28 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			IntToString(iStyle, sInfo, 4);
 
 			char sStyleInfo[256];
-			FormatEx(sStyleInfo, 256, "%s\n", gS_StyleStrings[iStyle].sStyleName);
 
-			if(iStyle == gI_Style[client])
+			if (iStyle == gI_Style[client])
 			{
-				FormatEx(sStyleInfo, 256, "%s    [Main] %s\n", sStyleInfo, sClearString);
-				Format(sStyleInfo, 256, "%s    [Main] %T: %d\n", sStyleInfo, "WorldRecords", client, iWRs);
-
-				FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iBonuesClears, iBonuesTotalMaps, ((float(iBonuesClears) / (iBonuesTotalMaps > 0 ? float(iBonuesTotalMaps) : 0.0)) * 100.0));
-				FormatEx(sStyleInfo, 256, "%s    [Bonuses] %s\n", sStyleInfo, sClearString);
-				Format(sStyleInfo, 256, "%s    [Bonuses] %T: %d\n", sStyleInfo, "WorldRecords", client, iBonuesWRs);
+				FormatEx(sStyleInfo, sizeof(sStyleInfo),
+					"%s\n"...
+					"    [Main] %T: %d/%d (%0.1f%%)\n"...
+					"    [Main] %T: %d\n"...
+					"    [Bonus] %T: %d/%d (%0.1f%%)\n"...
+					"    [Bonus] %T: %d\n"...
+					"    [%T] %s\n"...
+					"",
+					gS_StyleStrings[iStyle].sStyleName,
+					"MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / (iTotalMaps > 0 ? float(iTotalMaps) : 0.0)) * 100.0),
+					"WorldRecords", client, iWRs,
+					"MapCompletions", client, iBonusClears, iBonusTotalMaps, ((float(iBonusClears) / (iBonusTotalMaps > 0 ? float(iBonusTotalMaps) : 0.0)) * 100.0),
+					"WorldRecords", client, iBonusWRs,
+					"Playtime", client, sStylePlaytime
+				);
+			}
+			else
+			{
+				FormatEx(sStyleInfo, sizeof(sStyleInfo), "%s\n", gS_StyleStrings[iStyle].sStyleName);
 			}
 
 			menu.AddItem(sInfo, sStyleInfo);
@@ -885,6 +900,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 
 		menu.GetItem(param2, sInfo, 32);
 		int iSelectedStyle = StringToInt(sInfo);
+		gI_MenuPos[param1] = GetMenuSelectionPosition();
 
 		// If we select the same style, then display these
 		if(iSelectedStyle == gI_Style[param1])
@@ -914,7 +930,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 		}
 		else // No? display stats menu but different style
 		{
-			OpenStatsMenu(param1, gI_TargetSteamID[param1], iSelectedStyle, GetMenuSelectionPosition());
+			OpenStatsMenu(param1, gI_TargetSteamID[param1], iSelectedStyle, gI_MenuPos[param1]);
 		}
 	}
 
@@ -944,7 +960,7 @@ public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		OpenStatsMenu(param1, gI_TargetSteamID[param1], gI_Style[param1]);
+		OpenStatsMenu(param1, gI_TargetSteamID[param1], gI_Style[param1], gI_MenuPos[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -1103,7 +1119,7 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 
 		if(StrEqual(sInfo, "nope"))
 		{
-			OpenStatsMenu(param1, gI_TargetSteamID[param1]);
+			OpenStatsMenu(param1, gI_TargetSteamID[param1], gI_Style[param1], gI_MenuPos[param1]);
 
 			return 0;
 		}
@@ -1123,7 +1139,7 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		OpenStatsMenu(param1, gI_TargetSteamID[param1]);
+		OpenStatsMenu(param1, gI_TargetSteamID[param1], gI_Style[param1], gI_MenuPos[param1]);
 	}
 
 	else if(action == MenuAction_End)

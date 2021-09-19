@@ -625,7 +625,7 @@ stock void UnpackSignedShorts(int x, int out[2])
 }
 
 // time formatting!
-stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true, bool nodecimal = false)
+stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true, bool nodecimal = false, bool full_hms = false)
 {
 	float fTempTime = time;
 
@@ -649,7 +649,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 		FormatEx(sSeconds, 8, precise? "%.3f":"%.1f", fSeconds);
 	}
 
-	if(fTempTime < 60.0)
+	if (!full_hms && fTempTime < 60.0)
 	{
 		strcopy(newtime, newtimesize, sSeconds);
 		FormatEx(newtime, newtimesize, "%s%s", (time < 0.0) ? "-":"", sSeconds);
@@ -658,7 +658,7 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	{
 		int iMinutes = (iRounded / 60);
 
-		if(fTempTime < 3600.0)
+		if (!full_hms && fTempTime < 3600.0)
 		{
 			FormatEx(newtime, newtimesize, "%s%d:%s%s", (time < 0.0)? "-":"", iMinutes, (fSeconds < 10)? "0":"", sSeconds);
 		}
