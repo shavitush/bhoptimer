@@ -685,13 +685,13 @@ public Action Command_Profile(int client, int args)
 
 	gI_TargetSteamID[client] = iSteamID ? iSteamID : GetSteamAccountID(target);
 
-	gI_Style[client] = 0;
-
-	return OpenStatsMenu(client, gI_TargetSteamID[client], 0);
+	return OpenStatsMenu(client, gI_TargetSteamID[client]);
 }
 
 Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 {
+	gI_Style[client] = style;
+
 	// no spam please
 	if(!gB_CanOpenMenu[client])
 	{
@@ -914,8 +914,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 			}
 		else // No? display stats menu but different style
 		{
-			gI_Style[param1] = iSelectedStyle;
-			OpenStatsMenu(param1, gI_TargetSteamID[param1], gI_Style[param1], GetMenuSelectionPosition());
+			OpenStatsMenu(param1, gI_TargetSteamID[param1], iSelectedStyle, GetMenuSelectionPosition());
 		}
 	}
 
@@ -1104,8 +1103,7 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 
 		if(StrEqual(sInfo, "nope"))
 		{
-			gI_Style[param1] = 0;
-			OpenStatsMenu(param1, gI_TargetSteamID[param1], gI_Style[param1]);
+			OpenStatsMenu(param1, gI_TargetSteamID[param1]);
 
 			return 0;
 		}
@@ -1125,8 +1123,7 @@ public int MenuHandler_ShowMaps(Menu menu, MenuAction action, int param1, int pa
 
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		gI_Style[param1] = 0;
-		OpenStatsMenu(param1, gI_TargetSteamID[param1], gI_Style[param1]);
+		OpenStatsMenu(param1, gI_TargetSteamID[param1]);
 	}
 
 	else if(action == MenuAction_End)
@@ -1246,7 +1243,5 @@ public int Native_OpenStatsMenu(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	gI_TargetSteamID[client] = GetNativeCell(2);
-	gI_Style[client] = 0;
-
-	OpenStatsMenu(client, gI_TargetSteamID[client], gI_Style[client]);
+	OpenStatsMenu(client, gI_TargetSteamID[client]);
 }
