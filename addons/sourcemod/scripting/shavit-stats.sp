@@ -792,7 +792,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		if(iClears > iTotalMaps)
 		{
 			iClears = iTotalMaps;
-		} 
+		}
 
 		char sClearString[128];
 		FormatEx(sClearString, 128, "%T: %d/%d (%.01f%%)", "MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / iTotalMaps > 0 ? float(iTotalMaps) : 0.0) * 100.0));
