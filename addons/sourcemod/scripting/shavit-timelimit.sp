@@ -296,7 +296,7 @@ public Action Timer_PrintToChat(Handle timer)
 		Shavit_StopChatSound();
 	}
 
-	if (gCV_InstantMapChange.BoolValue && (0 <= timeleft <= 5))
+	if (gCV_InstantMapChange.BoolValue && timeleft <= 5)
 	{
 		if (timeleft)
 		{
@@ -306,7 +306,7 @@ public Action Timer_PrintToChat(Handle timer)
 				Call_Finish();
 			}
 
-			if (timeleft <= 3)
+			if (1 <= timeleft <= 3)
 			{
 				Shavit_StopChatSound();
 				Shavit_PrintToChatAll("%d..", timeleft);
