@@ -58,6 +58,7 @@ float gF_PlaytimeStyleStart[MAXPLAYERS+1];
 int gI_CurrentStyle[MAXPLAYERS+1];
 float gF_PlaytimeStyleSum[MAXPLAYERS+1][STYLE_LIMIT];
 bool gB_HavePlaytimeOnStyle[MAXPLAYERS+1][STYLE_LIMIT];
+bool gB_QueriedPlaytime[MAXPLAYERS+1];
 
 bool gB_Late = false;
 EngineVersion gEV_Type = Engine_Unknown;
@@ -192,6 +193,7 @@ public void OnClientConnected(int client)
 	any empty[STYLE_LIMIT];
 	gF_PlaytimeStyleSum[client] = empty;
 	gB_HavePlaytimeOnStyle[client] = empty;
+	gB_QueriedPlaytime[client] = false;
 }
 
 public void OnClientPutInServer(int client)
@@ -205,7 +207,17 @@ public void OnClientPutInServer(int client)
 
 public void OnClientAuthorized(int client)
 {
-	if (gH_SQL == null || IsFakeClient(client))
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	QueryPlaytime(client);
+}
+
+void QueryPlaytime(int client)
+{
+	if (gH_SQL == null)
 	{
 		return;
 	}
@@ -250,6 +262,8 @@ public void SQL_QueryStylePlaytime_Callback(Database db, DBResultSet results, co
 			gF_PlaytimeCached[client] = playtime;
 		}
 	}
+
+	gB_QueriedPlaytime[client] = true;
 }
 
 public void OnClientDisconnect(int client)
@@ -399,6 +413,11 @@ void SavePlaytime(int client, float now, Transaction2 &trans)
 		return;
 	}
 
+	if (!gB_QueriedPlaytime[client])
+	{
+		return;
+	}
+
 	for (int i = -1 /* yes */; i < gI_Styles; i++)
 	{
 		SavePlaytime222(client, now, trans, i, iSteamID);
@@ -422,7 +441,14 @@ public Action Timer_SavePlaytime(Handle timer, any data)
 			continue;
 		}
 
-		SavePlaytime(i, now, trans);
+		if (gB_QueriedPlaytime[i])
+		{
+			SavePlaytime(i, now, trans);
+		}
+		else if ((now - gF_PlaytimeStart[i]) > 15.0)
+		{
+			QueryPlaytime(i);
+		}
 	}
 
 	if (trans != null)
