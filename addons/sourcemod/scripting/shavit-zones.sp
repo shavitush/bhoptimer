@@ -2582,6 +2582,12 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 		if(StrEqual(sInfo, "yes"))
 		{
+			if (gI_ZoneID[param1] != -1)
+			{
+				// reenable so it can be wiped in the subsequent InsertZones->SQL_Callback->UnloadZones
+				gA_ZoneCache[gI_ZoneID[param1]].bZoneInitialized = true;
+			}
+
 			InsertZone(param1);
 			gI_MapStep[param1] = 0;
 
@@ -2590,6 +2596,11 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 		else if(StrEqual(sInfo, "no"))
 		{
+			if (gI_ZoneID[param1] != -1)
+			{
+				gA_ZoneCache[gI_ZoneID[param1]].bZoneInitialized = true;
+			}
+
 			Reset(param1);
 
 			return 0;
@@ -2843,7 +2854,16 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
 	}
+	else if (action == MenuAction_Cancel)
+	{
+		if (gI_ZoneID[param1] != -1)
+		{
+			// reenable original zone
+			gA_ZoneCache[gI_ZoneID[param1]].bZoneInitialized = true;
+		}
 
+		Reset(param1);
+	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
