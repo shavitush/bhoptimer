@@ -911,7 +911,7 @@ public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, 
 
 			submenu.ExitBackButton = true;
 			submenu.Display(param1, MENU_TIME_FOREVER);
-			}
+		}
 		else // No? display stats menu but different style
 		{
 			OpenStatsMenu(param1, gI_TargetSteamID[param1], iSelectedStyle, GetMenuSelectionPosition());
