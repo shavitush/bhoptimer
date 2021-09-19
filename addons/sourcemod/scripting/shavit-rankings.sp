@@ -461,6 +461,15 @@ public Action Timer_MVPs(Handle timer)
 		}
 	}
 
+	static int mvps_offset = -1;
+
+	if (mvps_offset == -1)
+	{
+		mvps_offset = GetEntSendPropOffs(GetPlayerResourceEntity(), "m_iMVPs");
+	}
+
+	ChangeEdictState(GetPlayerResourceEntity(), mvps_offset);
+
 	return Plugin_Continue;
 }
 
