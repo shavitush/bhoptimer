@@ -1134,8 +1134,10 @@ public void LoadZonedMapsCallbackMixed(Database db, DBResultSet results, const c
 		g_mMapList.SetValue(map, i, true);
 	}
 
+	int resultlength, mapsadded;
 	while(results.FetchRow())
 	{
+		resultlength++;
 		results.FetchString(0, map, sizeof(map));//db mapname
 		LowercaseString(map);
 
@@ -1143,8 +1145,11 @@ public void LoadZonedMapsCallbackMixed(Database db, DBResultSet results, const c
 		if (g_mMapList.GetValue(map, index))
 		{
 			g_aMapList.PushString(map);
+			mapsadded++;
 		}
 	}
+
+	PrintToServer("Shavit-Mapchooser Query callback. Number of returned results: %i, Maps added to g_aMapList:%i, g_aAllMapsList.Length:%i, g_mMapList:%i", resultlength, mapsadded, g_aAllMapsList.Length, g_mMapList.Size);
 
 	CreateNominateMenu();
 }
