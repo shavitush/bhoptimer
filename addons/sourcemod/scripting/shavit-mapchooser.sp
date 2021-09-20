@@ -1362,11 +1362,14 @@ public Action Command_Nominate(int client, int args)
 
 public Action Command_Nominate_Internal(int client, char mapname[PLATFORM_MAX_PATH])
 {
+	LowercaseString(mapname);
+
 	if (g_cvNominateMatches.BoolValue)
 	{
 		SMC_NominateMatches(client, mapname);
 	}
-	else {
+	else
+	{
 		if(SMC_FindMap(mapname, mapname, sizeof(mapname)))
 		{
 			if(StrEqual(mapname, g_cMapName))
