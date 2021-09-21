@@ -547,26 +547,38 @@ public Action Command_MapsDoneLeft(int client, int args)
 	}
 
 	int target = client;
+	int iSteamID = 0;
 
 	if(args > 0)
 	{
 		char sArgs[64];
 		GetCmdArgString(sArgs, 64);
 
-		target = FindTarget(client, sArgs, true, false);
+		iSteamID = SteamIDToAuth(sArgs);
 
-		if(target == -1)
+		if (iSteamID < 1)
 		{
-			return Plugin_Handled;
+			target = FindTarget(client, sArgs, true, false);
+
+			if (target == -1)
+			{
+				return Plugin_Handled;
+			}
+
+			GetClientName(target, gS_TargetName[client], sizeof(gS_TargetName[]));
+			iSteamID = GetSteamAccountID(target);
+		}
+		else
+		{
+			FormatEx(gS_TargetName[client], sizeof(gS_TargetName[]), "[U:1:%d]", iSteamID);
 		}
 	}
 
-	gI_TargetSteamID[client] = GetSteamAccountID(target);
+	gI_TargetSteamID[client] = iSteamID;
 
 	char sCommand[16];
 	GetCmdArg(0, sCommand, 16);
 
-	GetClientName(target, gS_TargetName[client], MAX_NAME_LENGTH);
 	ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
 
 	Menu menu = new Menu(MenuHandler_MapsDoneLeft);
@@ -680,10 +692,12 @@ public Action Command_Profile(int client, int args)
 			{
 				return Plugin_Handled;
 			}
+
+			iSteamID = GetSteamAccountID(target);
 		}
 	}
 
-	gI_TargetSteamID[client] = iSteamID ? iSteamID : GetSteamAccountID(target);
+	gI_TargetSteamID[client] = iSteamID;
 
 	return OpenStatsMenu(client, gI_TargetSteamID[client]);
 }
