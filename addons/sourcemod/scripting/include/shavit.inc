@@ -100,6 +100,13 @@ enum
 	Migration_FixOldCompletionCounts, // old completions accidentally started at 2
 	Migration_AddPrebuiltToMapZonesTable, // 15
 	Migration_AddPlaytime,
+	// sorry, this is kind of dumb but it's better than trying to manage which ones have
+	// finished and which tables exist etc etc in a transaction or a completion counter...
+	Migration_Lowercase_maptiers,
+	Migration_Lowercase_mapzones,
+	Migration_Lowercase_playertimes,
+	Migration_Lowercase_stagetimeswr, // 20
+	Migration_Lowercase_startpositions,
 	MIGRATIONS_END
 };
 

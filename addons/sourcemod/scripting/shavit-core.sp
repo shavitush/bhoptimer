@@ -3135,6 +3135,11 @@ void ApplyMigration(int migration)
 		case Migration_FixOldCompletionCounts: ApplyMigration_FixOldCompletionCounts();
 		case Migration_AddPrebuiltToMapZonesTable: ApplyMigration_AddPrebuiltToMapZonesTable();
 		case Migration_AddPlaytime: ApplyMigration_AddPlaytime();
+		case Migration_Lowercase_maptiers: ApplyMigration_LowercaseMaps("maptiers", migration);
+		case Migration_Lowercase_mapzones: ApplyMigration_LowercaseMaps("mapzones", migration);
+		case Migration_Lowercase_playertimes: ApplyMigration_LowercaseMaps("playertimes", migration);
+		case Migration_Lowercase_stagetimeswr: ApplyMigration_LowercaseMaps("stagetimewrs", migration);
+		case Migration_Lowercase_startpositions: ApplyMigration_LowercaseMaps("startpositions", migration);
 	}
 }
 
@@ -3214,6 +3219,13 @@ public void SQL_Migration_AddPlaytime2222222_Callback(Database db, DBResultSet r
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%susers` ADD COLUMN `playtime` FLOAT NOT NULL DEFAULT 0 AFTER `points`;", gS_MySQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlaytime, DBPrio_High);
+}
+
+void ApplyMigration_LowercaseMaps(const char[] table, int migration)
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "UPDATE `%s%s` SET map = LOWER(map);", gS_MySQLPrefix, table);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, migration, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
