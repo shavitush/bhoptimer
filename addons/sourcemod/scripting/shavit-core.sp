@@ -51,7 +51,6 @@ enum struct playertimer_t
 	float fLastAngle;
 	int iTotalMeasures;
 	int iGoodGains;
-	bool bDoubleSteps;
 	float fStrafeWarning;
 	bool bPracticeMode;
 	int iSHSWCombination;
@@ -1227,13 +1226,6 @@ public Action Command_AutoBhop(int client, int args)
 	SetClientCookie(client, gH_AutoBhopCookie, sAutoBhop);
 
 	UpdateStyleSettings(client);
-
-	return Plugin_Handled;
-}
-
-public Action Command_DoubleStep(int client, const char[] command, int args)
-{
-	gA_Timers[client].bDoubleSteps = (command[0] == '+');
 
 	return Plugin_Handled;
 }
@@ -2647,7 +2639,6 @@ public void OnClientPutInServer(int client)
 	}
 
 	gA_Timers[client].bAuto = true;
-	gA_Timers[client].bDoubleSteps = false;
 	gA_Timers[client].fStrafeWarning = 0.0;
 	gA_Timers[client].bPracticeMode = false;
 	gA_Timers[client].iSHSWCombination = -1;
