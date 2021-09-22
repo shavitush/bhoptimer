@@ -387,10 +387,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_autobhop", Command_AutoBhop, "Toggle autobhop.");
 	gH_AutoBhopCookie = RegClientCookie("shavit_autobhop", "Autobhop cookie", CookieAccess_Protected);
 
-	// doublestep fixer
-	AddCommandListener(Command_DoubleStep, "+ds");
-	AddCommandListener(Command_DoubleStep, "-ds");
-
 	// style commands
 	gSM_StyleCommands = new StringMap();
 
@@ -982,6 +978,7 @@ public Action Command_DeleteMap(int client, int args)
 
 	char sArgs[PLATFORM_MAX_PATH];
 	GetCmdArgString(sArgs, sizeof(sArgs));
+	LowercaseString(sArgs);
 
 	if(StrEqual(sArgs, "confirm") && strlen(gS_DeleteMap[client]) > 0)
 	{
@@ -1010,12 +1007,11 @@ public Action Command_DeleteMap(int client, int args)
 		}
 
 		ReplyToCommand(client, "Finished deleting data for %s.", gS_DeleteMap[client]);
-		strcopy(gS_DeleteMap[client], sizeof(sArgs), "");
+		gS_DeleteMap[client] = "";
 	}
-
 	else
 	{
-		strcopy(gS_DeleteMap[client], sizeof(sArgs), sArgs);
+		gS_DeleteMap[client] = sArgs;
 		ReplyToCommand(client, "Map to delete is now %s.\nRun \"sm_deletemap confirm\" to delete all data regarding the map %s.", gS_DeleteMap[client], gS_DeleteMap[client]);
 	}
 

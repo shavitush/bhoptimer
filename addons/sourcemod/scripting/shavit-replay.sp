@@ -1352,6 +1352,7 @@ public int Native_Replay_DeleteMap(Handle handler, int numParams)
 {
 	char sMap[PLATFORM_MAX_PATH];
 	GetNativeString(1, sMap, sizeof(sMap));
+	LowercaseString(sMap);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -2329,7 +2330,7 @@ bool DeleteReplay(int style, int track, int accountid, const char[] mapname)
 		return false;
 	}
 
-	if(StrEqual(mapname, gS_Map))
+	if(StrEqual(mapname, gS_Map, false))
 	{
 		UnloadReplay(style, track, false, false);
 	}

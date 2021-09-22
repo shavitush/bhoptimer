@@ -878,6 +878,7 @@ public int Native_DeleteWR(Handle handle, int numParams)
 	int track = GetNativeCell(2);
 	char map[PLATFORM_MAX_PATH];
 	GetNativeString(3, map, sizeof(map));
+	LowercaseString(map);
 	int steamid = GetNativeCell(4);
 	int recordid = GetNativeCell(5);
 	bool delete_sql = view_as<bool>(GetNativeCell(6));
