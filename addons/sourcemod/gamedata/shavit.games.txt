@@ -41,9 +41,9 @@
 			// search string "#SFUI_Notice_SprayPaint_TooClose" to find IsAbleToApplySpray and then go to the next function to find GetPlayerMaxSpeed. Then calculate the vtable offset.
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
-				"windows"   "505"
-				"linux"     "506"
-				"mac"       "506"
+				"windows"   "506"
+				"linux"     "507"
+				"mac"       "507"
 			}
 			// add 1 to the css offset and hope it works
 			"CGameRules::IsSpawnPointValid"
