@@ -63,8 +63,8 @@
 			// then find the vtable from references and CBasePlayer::UpdateStepSound is right before PlayStepSound
 			"CBasePlayer::UpdateStepSound"
 			{
-				"windows"   "408"
-				"linux"     "409"
+				"windows"   "409"
+				"linux"     "410"
 			}
 		}
 
