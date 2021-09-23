@@ -2634,7 +2634,22 @@ void UpdateReplayClient(int client)
 			{
 				GetEntityClassname(iWeapon, sClassname, 32);
 
-				if(!StrEqual(sWeapon, sClassname))
+				bool same_thing = false;
+
+				// special case for csgo stuff because the usp classname becomes weapon_hpk2000
+				if (gEV_Type == Engine_CSGO)
+				{
+					if (StrEqual(sWeapon, "weapon_usp_silencer"))
+					{
+						same_thing = (61 == GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex"));
+					}
+					else if (StrEqual(sWeapon, "weapon_hpk2000"))
+					{
+						same_thing = (32 == GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex"));
+					}
+				}
+
+				if (!same_thing && !StrEqual(sWeapon, sClassname))
 				{
 					RemoveAllWeapons(client);
 					GivePlayerItem(client, sWeapon);
