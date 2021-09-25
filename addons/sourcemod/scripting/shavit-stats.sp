@@ -692,12 +692,10 @@ public Action Command_Profile(int client, int args)
 			{
 				return Plugin_Handled;
 			}
-
-			iSteamID = GetSteamAccountID(target);
 		}
 	}
 
-	gI_TargetSteamID[client] = iSteamID;
+	gI_TargetSteamID[client] = (iSteamID > 0) ? iSteamID : GetSteamAccountID(target);
 
 	return OpenStatsMenu(client, gI_TargetSteamID[client]);
 }
