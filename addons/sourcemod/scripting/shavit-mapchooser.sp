@@ -1450,6 +1450,18 @@ void CreateNominateMenu()
 		return;
 	}
 
+	int min = GetConVarInt(g_cvMinTier);
+	int max = GetConVarInt(g_cvMaxTier);
+
+	if (max < min)
+	{
+		int temp = max;
+		max = min;
+		min = temp;
+		SetConVarInt(g_cvMinTier, min);
+		SetConVarInt(g_cvMaxTier, max);
+	}
+
 	delete g_hNominateMenu;
 	g_hNominateMenu = new Menu(NominateMenuHandler);
 
@@ -1477,14 +1489,24 @@ void CreateNominateMenu()
 		}
 
 		char mapdisplay[PLATFORM_MAX_PATH];
-		char mapdisplay2[PLATFORM_MAX_PATH];
 		LessStupidGetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
 
-		int tier = 0;
-		tiersMap.GetValue(mapdisplay, tier);
+		if (gB_Rankings)
+		{
+			int tier = 0;
+			tiersMap.GetValue(mapdisplay, tier);
 
-		FormatEx(mapdisplay2, sizeof(mapdisplay2), "%s | T%i", mapdisplay, tier);
-		g_hNominateMenu.AddItem(mapname, mapdisplay2, style);
+			if (min <= tier <= max)
+			{
+				char mapdisplay2[PLATFORM_MAX_PATH];
+				FormatEx(mapdisplay2, sizeof(mapdisplay2), "%s | T%i", mapdisplay, tier);
+				g_hNominateMenu.AddItem(mapname, mapdisplay2, style);
+			}
+		}
+		else
+		{
+			g_hNominateMenu.AddItem(mapname, mapdisplay, style);
+		}
 	}
 
 	delete tiersMap;
@@ -1523,15 +1545,6 @@ void CreateTierMenus()
 {
 	int min = GetConVarInt(g_cvMinTier);
 	int max = GetConVarInt(g_cvMaxTier);
-
-	if (max < min)
-	{
-		int temp = max;
-		max = min;
-		min = temp;
-		SetConVarInt(g_cvMinTier, min);
-		SetConVarInt(g_cvMaxTier, max);
-	}
 
 	InitTierMenus(min,max);
 	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : new StringMap();
