@@ -1529,10 +1529,12 @@ void CreateEnhancedMenu()
 
 	for(int i = GetConVarInt(g_cvMinTier); i <= GetConVarInt(g_cvMaxTier); ++i)
 	{
-		if (GetMenuItemCount(g_aTierMenus[i]) > 0)
+		int count = GetMenuItemCount(g_aTierMenus[i]);
+
+		if (count > 0)
 		{
 			char tierDisplay[32];
-			FormatEx(tierDisplay, sizeof(tierDisplay), "Tier %i", i);
+			FormatEx(tierDisplay, sizeof(tierDisplay), "Tier %i (%d)", i, count);
 
 			char tierString[16];
 			IntToString(i, tierString, sizeof(tierString));
