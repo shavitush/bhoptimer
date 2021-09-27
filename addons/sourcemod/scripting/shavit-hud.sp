@@ -134,6 +134,7 @@ Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_UseHUDFix = null;
 Convar gCV_SpecNameSymbolLength = null;
+Convar gCV_DebugTargetname = null;
 Convar gCV_DefaultHUD = null;
 Convar gCV_DefaultHUD2 = null;
 
@@ -199,6 +200,7 @@ public void OnPluginStart()
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
 	gCV_SpecNameSymbolLength = new Convar("shavit_hud_specnamesymbollength", "32", "Maximum player name length that should be displayed in spectators panel", 0, true, 0.0, true, float(MAX_NAME_LENGTH));
+	gCV_DebugTargetname = new Convar("shavit_hud_debugtargetname", "0", "Draw the targetname & classname to hud. Only used for debugging.", 0, true, 0.0, true, 1.0);
 
 	char defaultHUD[8];
 	IntToString(HUD_DEFAULT, defaultHUD, 8);
@@ -1024,6 +1026,16 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 	int iLines = 0;
 	char sLine[128];
 
+	if (gCV_DebugTargetname.BoolValue && IsValidClient(data.iTarget))
+	{
+		char targetname[64], classname[64];
+		GetEntPropString(data.iTarget, Prop_Data, "m_iName", targetname, sizeof(targetname));
+		GetEntityClassname(data.iTarget, classname, sizeof(classname));
+		FormatEx(sLine, sizeof(sLine), "t='%s' c='%s'", targetname, classname);
+		AddHUDLine(buffer, maxlen, sLine, iLines);
+		iLines++;
+	}
+
 	if(data.bReplay)
 	{
 		if(data.iStyle != -1 && Shavit_GetReplayStatus(data.iTarget) != Replay_Idle && Shavit_GetReplayCacheFrameCount(data.iTarget) > 0)
@@ -1226,6 +1238,16 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 {
 	int iLines = 0;
 	char sLine[128];
+
+	if (gCV_DebugTargetname.BoolValue && IsValidClient(data.iTarget))
+	{
+		char targetname[64], classname[64];
+		GetEntPropString(data.iTarget, Prop_Data, "m_iName", targetname, sizeof(targetname));
+		GetEntityClassname(data.iTarget, classname, sizeof(classname));
+		FormatEx(sLine, sizeof(sLine), "t='%s' c='%s'", targetname, classname);
+		AddHUDLine(buffer, maxlen, sLine, iLines);
+		iLines++;
+	}
 
 	if(data.bReplay)
 	{
