@@ -241,7 +241,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 	if(iRows >= gCV_MinimumTimes.IntValue)
 	{
 		float fTimeSum = results.FetchFloat(1);
-		float fAverage = (fTimeSum / 60 / iRows);
+		float fAverage = (fTimeSum / 60 / gCV_MinimumTimes.IntValue);
 
 		if(fAverage <= 1)
 		{
