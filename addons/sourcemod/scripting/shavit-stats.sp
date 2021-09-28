@@ -494,11 +494,19 @@ public void SQL_TopPlaytime_Callback(Database db, DBResultSet results, const cha
 	FormatSeconds(gF_PlaytimeCached[client], sPlaytime, sizeof(sPlaytime), false, true);
 
 	Menu menu = new Menu(PlaytimeMenu_Handler);
-	menu.SetTitle("%T\n%T: %s", "Playtime", client, "YourPlaytime", client, sPlaytime);
+
+	int own_steamid = GetSteamAccountID(client);
+	int own_rank = 0;
+	int rank = 1;
 
 	while (results.FetchRow())
 	{
-		//int iSteamID = results.FetchInt(0);
+		int iSteamID = results.FetchInt(0);
+
+		if (iSteamID == own_steamid)
+		{
+			own_rank = rank;
+		}
 
 		char sSteamID[20];
 		results.FetchString(0, sSteamID, sizeof(sSteamID));
@@ -510,9 +518,11 @@ public void SQL_TopPlaytime_Callback(Database db, DBResultSet results, const cha
 		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true, true);
 
 		char sDisplay[128];
-		FormatEx(sDisplay, sizeof(sDisplay), "%s - %s", sPlaytime, sName);
+		FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s - %s", rank++, sPlaytime, sName);
 		menu.AddItem(sSteamID, sDisplay, ITEMDRAW_DEFAULT);
 	}
+
+	menu.SetTitle("%T\n%T (#%d): %s", "Playtime", client, "YourPlaytime", client, own_rank, sPlaytime);
 
 	if (menu.ItemCount <= ((gEV_Type == Engine_CSS) ? 9 : 8))
 	{
