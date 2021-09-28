@@ -59,6 +59,7 @@ Convar gCV_GameStartFix = null;
 Convar gCV_InstantMapChange = null;
 Convar gCV_Enabled = null;
 Convar gCV_HideCvarChanges = null;
+Convar gCV_Hide321CountDown = null;
 
 // misc cache
 bool gB_BlockRoundEndEvent = false;
@@ -122,6 +123,7 @@ public void OnPluginStart()
 	gCV_Enabled = new Convar("shavit_timelimit_enabled", "1", "Enables/Disables functionality of the plugin.", 0, true, 0.0, true, 1.0);
 	gCV_InstantMapChange = new Convar("shavit_timelimit_instantmapchange", "1", "If set to 1 then it will changelevel to the next map after the countdown. Requires the 'nextmap' to be set.", 0, true, 0.0, true, 1.0);
 	gCV_HideCvarChanges = new Convar("shavit_timelimit_hidecvarchange", "0", "Whether to hide changes to mp_timelimit & mp_roundtime from chat.", 0, true, 0.0, true, 1.0);
+	gCV_Hide321CountDown = new Convar("shavit_timelimt_hide321countdown", "0", "Whether to hide 3.. 2.. 1.. countdown messages.", 0, true, 0.0, true, 1.0);
 
 	gCV_ForceMapEnd.AddChangeHook(OnConVarChanged);
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
@@ -331,7 +333,7 @@ public Action Timer_PrintToChat(Handle timer)
 				Call_Finish();
 			}
 
-			if (1 <= timeleft <= 3)
+			if (1 <= timeleft <= 3 && !gCV_Hide321CountDown.BoolValue)
 			{
 				Shavit_StopChatSound();
 				Shavit_PrintToChatAll("%d..", timeleft);
