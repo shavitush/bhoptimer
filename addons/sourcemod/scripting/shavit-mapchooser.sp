@@ -432,9 +432,9 @@ public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 			{
 				case (10 * 60) - 3:
 				{
-					PrintToChatAll("%s10 minutes until map vote", g_cPrefix);
+					//PrintToChatAll("%s10 minutes until map vote", g_cPrefix);
 				}
-				case 60, 30, 5:
+				case 5:
 				{
 					PrintToChatAll("%s%d seconds until map vote", g_cPrefix, mapvoteTime);
 				}
