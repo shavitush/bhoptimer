@@ -117,7 +117,7 @@ public void OnPluginStart()
 	gCV_MaximumLimit = new Convar("shavit_timelimit_maximum", "120.0", "Maximum timelimit to use.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!\n0 - No maximum", 0);
 	gCV_ForceMapEnd = new Convar("shavit_timelimit_forcemapend", "1", "Force the map to end after the timelimit.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_MinimumTimes = new Convar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 1.0);
-	gCV_PlayerAmount = new Convar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!\nSet to 0 to have it \"unlimited\".", 0);
+	gCV_PlayerAmount = new Convar("shavit_timelimit_playertime", "10", "Limited amount of times to grab from the database to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!\nSet to 0 to have it \"unlimited\".", 0);
 	gCV_Style = new Convar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 0.0, true, 1.0);
 	gCV_GameStartFix = new Convar("shavit_timelimit_gamestartfix", "1", "If set to 1, will block the round from ending because another player joined. Useful for single round servers.", 0, true, 0.0, true, 1.0);
 	gCV_Enabled = new Convar("shavit_timelimit_enabled", "1", "Enables/Disables functionality of the plugin.", 0, true, 0.0, true, 1.0);
@@ -252,25 +252,28 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 		else if(fAverage <= 2)
 		{
-			fAverage *= 9;
+			fAverage *= 10;
 		}
 
 		else if(fAverage <= 4)
 		{
-			fAverage *= 8;
+			fAverage *= 7;
 		}
 
-		else if(fAverage <= 8)
+		else if(fAverage <= 7)
 		{
 			fAverage *= 7;
 		}
 
 		else if(fAverage <= 10)
 		{
-			fAverage *= 6;
+			fAverage *= 5;
 		}
-
-		fAverage += 5; // I give extra 5 minutes, so players can actually retry the map until they get a good time.
+		
+		else if(fAverage > 10)
+		{
+			fAverage = 120.0;
+		}
 
 		if(fAverage < gCV_MinimumLimit.FloatValue)
 		{
@@ -281,13 +284,22 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 		{
 			fAverage = gCV_MaximumLimit.FloatValue;
 		}
-
-		SetLimit(RoundToCeil(fAverage / 10) * 10);
+		
+		if(fAverage <= 1)
+		{
+			SetLimit(RoundToFloor(fAverage / 10) * 10);
+		}
+		
+		else
+		{
+			SetLimit(RoundToCeil(fAverage / 10) * 10);
+		}
+		
 	}
 
 	else
 	{
-		SetLimit(RoundToNearest(gCV_DefaultLimit.FloatValue));
+		SetLimit(gCV_DefaultLimit.IntValue);
 	}
 }
 
