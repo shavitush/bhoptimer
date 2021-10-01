@@ -100,7 +100,6 @@ Cookie gH_BlockAdvertsCookie = null;
 // cvars
 Convar gCV_GodMode = null;
 Convar gCV_PreSpeed = null;
-Convar gCV_PreSpeedStartzoneMessage = null;
 Convar gCV_HideTeamChanges = null;
 Convar gCV_RespawnOnTeam = null;
 Convar gCV_RespawnOnRestart = null;
@@ -140,6 +139,7 @@ Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
 Convar gCV_RestrictNoclip = null;
 Convar gCV_BotFootsteps = null;
+Convar gCV_SpecScoreboardOrder = null;
 ConVar gCV_ExperimentalSegmentedEyeAngleFix = null;
 ConVar gCV_PauseMovement = null;
 
@@ -271,6 +271,10 @@ public void OnPluginStart()
 	AddCommandListener(Command_Jointeam, "jointeam");
 	AddCommandListener(Command_Spectate, "spectate");
 
+	// gCV_SpecScoreboardOrder stuff
+	AddCommandListener(Command_SpecNextPrev, "spec_next");
+	AddCommandListener(Command_SpecNextPrev, "spec_prev");
+
 	// hook radio commands instead of a global listener
 	for(int i = 0; i < sizeof(gS_RadioCommands); i++)
 	{
@@ -305,7 +309,6 @@ public void OnPluginStart()
 	// cvars and stuff
 	gCV_GodMode = new Convar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
 	gCV_PreSpeed = new Convar("shavit_misc_prespeed", "2", "Stop prespeeding in the start zone?\n0 - Disabled, fully allow prespeeding.\n1 - Limit relatively to prestrafelimit.\n2 - Block bunnyhopping in startzone.\n3 - Limit to prestrafelimit and block bunnyhopping.\n4 - Limit to prestrafelimit but allow prespeeding. Combine with shavit_core_nozaxisspeed 1 for SourceCode timer's behavior.\n5 - Limit horizontal speed to prestrafe but allow prespeeding.", 0, true, 0.0, true, 5.0);
-	gCV_PreSpeedStartzoneMessage = new Convar("shavit_misc_prespeed_startzone_message", "1", "Whether to show the 'Bunnyhopping in the startzone is not allowed' message.", 0, true, 0.0, true, 1.0);
 	gCV_HideTeamChanges = new Convar("shavit_misc_hideteamchanges", "1", "Hide team changes in chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnTeam = new Convar("shavit_misc_respawnonteam", "1", "Respawn whenever a player joins a team?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_RespawnOnRestart = new Convar("shavit_misc_respawnonrestart", "1", "Respawn a dead player if they use the timer restart command?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -346,6 +349,7 @@ public void OnPluginStart()
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 	gCV_BotFootsteps = new Convar("shavit_misc_botfootsteps", "1", "Enable footstep sounds for replay bots. Only works if shavit_misc_bhopsounds is less than 2.", 0, true, 0.0, true, 1.0);
 	gCV_ExperimentalSegmentedEyeAngleFix = new Convar("shavit_misc_experimental_segmented_eyeangle_fix", "1", "When teleporting to a segmented checkpoint, the player's old eye-angles persist in replay-frames for as many ticks they're behind the server in latency. This applies the teleport-position angles to the replay-frame for that many ticks.", 0, true, 0.0, true, 1.0);
+	gCV_SpecScoreboardOrder = new Convar("shavit_misc_spec_scoreboard_order", "1", "Use scoreboard ordering for players when changing target when spectating.", 0, true, 0.0, true, 1.0);
 
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
 	Convar.AutoExecConfig();
@@ -867,6 +871,113 @@ public Action Command_Spectate(int client, const char[] command, int args)
 	return Plugin_Handled;
 }
 
+public int ScoreboardSort(int index1, int index2, Handle array, Handle hndl)
+{
+	int a = GetArrayCell(array, index1);
+	int b = GetArrayCell(array, index2);
+
+	int a_team = GetClientTeam(a);
+	int b_team = GetClientTeam(b);
+
+	if (a_team != b_team)
+	{
+		return a_team > b_team ? -1 : 1;
+	}
+
+	int a_score;
+	int b_score;
+
+	if (gEV_Type == Engine_CSGO)
+	{
+		a_score = CS_GetClientContributionScore(a);
+		b_score = CS_GetClientContributionScore(b);
+	}
+	else
+	{
+		a_score = GetEntProp(a, Prop_Data, "m_iFrags");
+		b_score = GetEntProp(b, Prop_Data, "m_iFrags");
+	}
+
+	if (a_score != b_score)
+	{
+		return a_score > b_score ? -1 : 1;
+	}
+
+	int a_deaths = GetEntProp(a, Prop_Data, "m_iDeaths");
+	int b_deaths = GetEntProp(b, Prop_Data, "m_iDeaths");
+
+	if (a_deaths != b_deaths)
+	{
+		return a_deaths < b_deaths ? -1 : 1;
+	}
+
+	return a < b ? -1 : 1;
+}
+
+public Action Command_SpecNextPrev(int client, const char[] command, int args)
+{
+	if (!IsValidClient(client) || !gCV_SpecScoreboardOrder.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
+	int iObserverMode = GetEntProp(client, Prop_Send, "m_iObserverMode");
+
+	if (iObserverMode <= 3 /* OBS_MODE_FIXED */)
+	{
+		return Plugin_Continue;
+	}
+
+	ArrayList players = new ArrayList(1);
+
+	// add valid alive players
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (i != client && IsValidClient(i) && IsPlayerAlive(i) && GetClientTeam(i) > 1)
+		{
+			players.Push(i);
+		}
+	}
+
+	if (players.Length < 2)
+	{
+		return Plugin_Continue;
+	}
+
+	players.SortCustom(ScoreboardSort);
+
+	int current_target = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
+
+	if (!IsValidClient(current_target))
+	{
+		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", players.Get(0));
+		return Plugin_Handled;
+	}
+
+	int pos = players.FindValue(current_target);
+
+	if (pos == -1)
+	{
+		pos = 0;
+	}
+
+	pos += (StrEqual(command, "spec_next", true)) ? 1 : -1;
+
+	if (pos < 0)
+	{
+		pos = players.Length - 1;
+	}
+
+	if (pos >= players.Length)
+	{
+		pos = 0;
+	}
+
+	SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", players.Get(pos));
+
+	return Plugin_Handled;
+}
+
 public Action Command_Jointeam(int client, const char[] command, int args)
 {
 	if(!IsValidClient(client) || !gCV_JointeamHook.BoolValue)
@@ -1344,11 +1455,6 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && iPrevGroundEntity == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
 			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
-
-			if (gCV_PreSpeedStartzoneMessage.BoolValue)
-			{
-				Shavit_PrintToChat(client, "%T", "BHStartZoneDisallowed", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
-			}
 		}
 		else if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue >= 3)
 		{

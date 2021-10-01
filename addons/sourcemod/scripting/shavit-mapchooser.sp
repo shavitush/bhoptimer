@@ -993,7 +993,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 }
 
 // extends map while also notifying players and setting plugin data
-void ExtendMap(int time = 0)
+void ExtendMap(int client, int time)
 {
 	if(time == 0)
 	{
@@ -1001,7 +1001,7 @@ void ExtendMap(int time = 0)
 	}
 
 	ExtendMapTimeLimit(time);
-	PrintToChatAll("%sThe map was extended for %d minutes", g_cPrefix, time / 60);
+	PrintToChatAll("%s%N extended the map by %d minutes", g_cPrefix, client, time / 60);
 
 	//g_bMapVoteStarted = false;
 	//g_bMapVoteFinished = false;
@@ -1329,7 +1329,7 @@ public Action Command_Extend(int client, int args)
 		extendtime = RoundFloat(g_cvMapVoteExtendTime.FloatValue * 60.0);
 	}
 
-	ExtendMap(extendtime);
+	ExtendMap(client, extendtime);
 
 	return Plugin_Handled;
 }

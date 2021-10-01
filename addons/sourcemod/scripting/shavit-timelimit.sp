@@ -49,6 +49,8 @@ ConVar mp_roundtime = null;
 Convar gCV_Config = null;
 Convar gCV_DefaultLimit = null;
 Convar gCV_DynamicTimelimits = null;
+Convar gCV_MinimumLimit = null;
+Convar gCV_MaximumLimit = null;
 Convar gCV_ForceMapEnd = null;
 Convar gCV_MinimumTimes = null;
 Convar gCV_PlayerAmount = null;
@@ -56,6 +58,8 @@ Convar gCV_Style = null;
 Convar gCV_GameStartFix = null;
 Convar gCV_InstantMapChange = null;
 Convar gCV_Enabled = null;
+Convar gCV_HideCvarChanges = null;
+Convar gCV_Hide321CountDown = null;
 
 // misc cache
 bool gB_BlockRoundEndEvent = false;
@@ -104,16 +108,22 @@ public void OnPluginStart()
 		mp_roundtime.SetBounds(ConVarBound_Upper, false);
 	}
 
+	HookEventEx("server_cvar", Hook_ServerCvar, EventHookMode_Pre);
+
 	gCV_Config = new Convar("shavit_timelimit_config", "1", "Enables the following game settings:\n\"mp_do_warmup_period\" \"0\"\n\"mp_freezetime\" \"0\"\n\"mp_ignore_round_win_conditions\" \"1\"", 0, true, 0.0, true, 1.0);
 	gCV_DefaultLimit = new Convar("shavit_timelimit_default", "60.0", "Default timelimit to use in case there isn't an average.", 0);
 	gCV_DynamicTimelimits = new Convar("shavit_timelimit_dynamic", "1", "Use dynamic timelimits.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_MinimumLimit = new Convar("shavit_timelimit_minimum", "20.0", "Minimum timelimit to use.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0);
+	gCV_MaximumLimit = new Convar("shavit_timelimit_maximum", "120.0", "Maximum timelimit to use.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!\n0 - No maximum", 0);
 	gCV_ForceMapEnd = new Convar("shavit_timelimit_forcemapend", "1", "Force the map to end after the timelimit.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_MinimumTimes = new Convar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 5.0);
+	gCV_MinimumTimes = new Convar("shavit_timelimit_minimumtimes", "5", "Minimum amount of times required to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 1.0);
 	gCV_PlayerAmount = new Convar("shavit_timelimit_playertime", "25", "Limited amount of times to grab from the database to calculate an average.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!\nSet to 0 to have it \"unlimited\".", 0);
 	gCV_Style = new Convar("shavit_timelimit_style", "1", "If set to 1, calculate an average only from times that the first (default: forwards) style was used to set.\nREQUIRES \"shavit_timelimit_dynamic\" TO BE ENABLED!", 0, true, 0.0, true, 1.0);
 	gCV_GameStartFix = new Convar("shavit_timelimit_gamestartfix", "1", "If set to 1, will block the round from ending because another player joined. Useful for single round servers.", 0, true, 0.0, true, 1.0);
 	gCV_Enabled = new Convar("shavit_timelimit_enabled", "1", "Enables/Disables functionality of the plugin.", 0, true, 0.0, true, 1.0);
 	gCV_InstantMapChange = new Convar("shavit_timelimit_instantmapchange", "1", "If set to 1 then it will changelevel to the next map after the countdown. Requires the 'nextmap' to be set.", 0, true, 0.0, true, 1.0);
+	gCV_HideCvarChanges = new Convar("shavit_timelimit_hidecvarchange", "0", "Whether to hide changes to mp_timelimit & mp_roundtime from chat.", 0, true, 0.0, true, 1.0);
+	gCV_Hide321CountDown = new Convar("shavit_timelimt_hide321countdown", "0", "Whether to hide 3.. 2.. 1.. countdown messages.", 0, true, 0.0, true, 1.0);
 
 	gCV_ForceMapEnd.AddChangeHook(OnConVarChanged);
 	gCV_Enabled.AddChangeHook(OnConVarChanged);
@@ -143,6 +153,23 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	{
 		delete gH_Timer;
 	}
+}
+
+public Action Hook_ServerCvar(Event event, const char[] name, bool dontBroadcast)
+{
+	if (gCV_HideCvarChanges.BoolValue)
+	{
+		char cvarname[32];
+		GetEventString(event, "cvarname", cvarname, sizeof(cvarname));
+
+		if (StrEqual(cvarname, "mp_timelimit", true) || StrEqual(cvarname, "mp_roundtime", true))
+		{
+			event.BroadcastDisabled = true;
+			return Plugin_Changed;
+		}
+	}
+
+	return Plugin_Continue;
 }
 
 public void OnConfigsExecuted()
@@ -216,7 +243,7 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 	if(iRows >= gCV_MinimumTimes.IntValue)
 	{
 		float fTimeSum = results.FetchFloat(1);
-		float fAverage = (fTimeSum / 60 / iRows);
+		float fAverage = (fTimeSum / 60 / gCV_MinimumTimes.IntValue);
 
 		if(fAverage <= 1)
 		{
@@ -245,17 +272,17 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 		fAverage += 5; // I give extra 5 minutes, so players can actually retry the map until they get a good time.
 
-		if(fAverage < 20)
+		if(fAverage < gCV_MinimumLimit.FloatValue)
 		{
-			fAverage = 20.0;
+			fAverage = gCV_MinimumLimit.FloatValue;
 		}
 
-		else if(fAverage > 120)
+		else if(fAverage > gCV_MaximumLimit.FloatValue)
 		{
-			fAverage = 120.0;
+			fAverage = gCV_MaximumLimit.FloatValue;
 		}
 
-		SetLimit(RoundToNearest(fAverage));
+		SetLimit(RoundToCeil(fAverage / 10) * 10);
 	}
 
 	else
@@ -306,7 +333,7 @@ public Action Timer_PrintToChat(Handle timer)
 				Call_Finish();
 			}
 
-			if (1 <= timeleft <= 3)
+			if (1 <= timeleft <= 3 && !gCV_Hide321CountDown.BoolValue)
 			{
 				Shavit_StopChatSound();
 				Shavit_PrintToChatAll("%d..", timeleft);
