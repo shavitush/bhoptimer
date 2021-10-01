@@ -1800,7 +1800,7 @@ public Action Command_Zones(int client, int args)
 	Menu menu = new Menu(MenuHandler_SelectZoneTrack);
 	menu.SetTitle("%T", "ZoneMenuTrack", client);
 
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
 		char sInfo[8];
 		IntToString(i, sInfo, 8);
