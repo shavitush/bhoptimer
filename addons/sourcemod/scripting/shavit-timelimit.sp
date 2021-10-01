@@ -247,12 +247,12 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 		if(fAverage <= 1)
 		{
-			fAverage *= 10;
+			fAverage *= 25;
 		}
 
 		else if(fAverage <= 2)
 		{
-			fAverage *= 9;
+			fAverage *= 15;
 		}
 
 		else if(fAverage <= 4)
@@ -260,17 +260,20 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 			fAverage *= 8;
 		}
 
-		else if(fAverage <= 8)
+		else if(fAverage <= 7)
 		{
 			fAverage *= 7;
 		}
 
 		else if(fAverage <= 10)
 		{
-			fAverage *= 6;
+			fAverage *= 5;
 		}
-
-		fAverage += 5; // I give extra 5 minutes, so players can actually retry the map until they get a good time.
+		
+		else if(fAverage > 10)
+		{
+			fAverage = 120.0;
+		}
 
 		if(fAverage < gCV_MinimumLimit.FloatValue)
 		{
@@ -281,13 +284,22 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 		{
 			fAverage = gCV_MaximumLimit.FloatValue;
 		}
-
-		SetLimit(RoundToCeil(fAverage / 10) * 10);
+		
+		if(fAverage <= 0.5)
+		{
+			SetLimit(RoundToFloor(fAverage / 10) * 10);
+		}
+		
+		else
+		{
+			SetLimit(RoundToCeil(fAverage / 10) * 10);
+		}
+		
 	}
 
 	else
 	{
-		SetLimit(RoundToNearest(gCV_DefaultLimit.FloatValue));
+		SetLimit(gCV_DefaultLimit.IntValue);
 	}
 }
 
