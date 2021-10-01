@@ -204,6 +204,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_extendmap", Command_Extend, ADMFLAG_CHANGEMAP, "Admin command for extending map");
 	RegAdminCmd("sm_forcemapvote", Command_ForceMapVote, ADMFLAG_CHANGEMAP, "Admin command for forcing the end of map vote");
 	RegAdminCmd("sm_reloadmaplist", Command_ReloadMaplist, ADMFLAG_CHANGEMAP, "Admin command for forcing maplist to be reloaded");
+	RegAdminCmd("sm_reloadmap", Command_ReloadMap, ADMFLAG_CHANGEMAP, "Admin command for reloading current map");
 
 	RegAdminCmd("sm_loadunzonedmap", Command_LoadUnzonedMap, ADMFLAG_ROOT, "Loads the next map from the maps folder that is unzoned.");
 
@@ -1294,6 +1295,15 @@ public Action Timer_ChangeMap(Handle timer, DataPack data)
 	ForceChangeLevel(map, "RTV Mapvote");
 }
 
+public Action Timer_ReloadMap(Handle timer, DataPack data)
+{
+	char map[PLATFORM_MAX_PATH];
+	data.Reset();
+	data.ReadString(map, sizeof(map));
+
+	ForceChangeLevel(g_cMapName, "sm_reloadmap");
+}
+
 // ugh
 public Action Timer_ChangeMap222(Handle timer, DataPack data)
 {
@@ -1958,6 +1968,18 @@ public Action Command_LoadUnzonedMap(int client, int args)
 	char sQuery[256];
 	FormatEx(sQuery, sizeof(sQuery), "SELECT DISTINCT map FROM %smapzones;", g_cSQLPrefix);
 	g_hDatabase.Query(FindUnzonedMapCallback, sQuery, 0, DBPrio_Normal);
+	return Plugin_Handled;
+}
+
+public Action Command_ReloadMap(int client, int args)
+{
+	char map[PLATFORM_MAX_PATH];
+	
+	PrintToChatAll("%sReloading current map..", g_cPrefix);
+	DataPack dp;
+	CreateDataTimer(MapChangeDelay(), Timer_ReloadMap, dp);
+	dp.WriteString(map);
+	
 	return Plugin_Handled;
 }
 
