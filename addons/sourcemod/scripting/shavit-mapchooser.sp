@@ -1349,15 +1349,23 @@ public Action Command_Nominate(int client, int args)
 {
 	if(args < 1)
 	{
-		if (g_cvEnhancedMenu.BoolValue)
+		if(g_bMapVoteStarted || g_bMapVoteFinished)
 		{
-			OpenEnhancedMenu(client);
+			ReplyToCommand(client, "%sMap vote already %s", g_cPrefix, (g_bMapVoteStarted) ? "initiated" : "finished");
+			return Plugin_Handled;
 		}
 		else
 		{
-			OpenNominateMenu(client);
+			if (g_cvEnhancedMenu.BoolValue)
+			{
+				OpenEnhancedMenu(client);
+			}
+			else
+			{
+				OpenNominateMenu(client);
+			}
+			return Plugin_Handled;
 		}
-		return Plugin_Handled;
 	}
 
 	char mapname[PLATFORM_MAX_PATH];
@@ -1415,7 +1423,13 @@ public Action Command_UnNominate(int client, int args)
 	{
 		g_fLastNominateTime[client] = GetEngineTime();
 	}
-
+	
+	if(g_bMapVoteStarted || g_bMapVoteFinished)
+	{
+		ReplyToCommand(client, "%sMap vote already %s", g_cPrefix, (g_bMapVoteStarted) ? "initiated" : "finished");
+		return Plugin_Handled;
+	}
+	
 	if(g_cNominatedMap[client][0] == '\0')
 	{
 		ReplyToCommand(client, "%sYou haven't nominated a map", g_cPrefix);
