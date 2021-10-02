@@ -51,8 +51,6 @@ Refer to the [wiki page](https://github.com/shavitush/bhoptimer/wiki/1.-Installa
   - Allows players to toggle trigger visibility.
 * [ShowPlayerClips](https://forums.alliedmods.net/showthread.php?p=2661942) ([github](https://github.com/GAMMACASE/ShowPlayerClips))
   - Allows players to toggle player clip visibility.
-* [shavit-mapchooser](https://github.com/mbhound/shavit-mapchooser)
-  - Fancy map chooser plugin to add some timer specific options for the nominate and rtv menus.
 * [shavit-ssj](https://github.com/Nairdaa/shavit-ssj)
   - Speed of Sixth Jump + more, customisable settings with cookies remembering user prefered settings.
 * [shavit-jhud](https://github.com/blankbhop/jhud)
