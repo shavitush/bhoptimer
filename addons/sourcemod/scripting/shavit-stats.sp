@@ -574,14 +574,17 @@ public Action Command_MapsDoneLeft(int client, int args)
 			{
 				return Plugin_Handled;
 			}
-
-			GetClientName(target, gS_TargetName[client], sizeof(gS_TargetName[]));
-			iSteamID = GetSteamAccountID(target);
 		}
 		else
 		{
 			FormatEx(gS_TargetName[client], sizeof(gS_TargetName[]), "[U:1:%d]", iSteamID);
 		}
+	}
+
+	if (iSteamID < 1)
+	{
+		GetClientName(target, gS_TargetName[client], sizeof(gS_TargetName[]));
+		iSteamID = GetSteamAccountID(target);
 	}
 
 	gI_TargetSteamID[client] = iSteamID;
