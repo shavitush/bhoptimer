@@ -249,25 +249,25 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 		{
 			fAverage *= 10;
 		}
-
 		else if(fAverage <= 2)
 		{
 			fAverage *= 9;
 		}
-
 		else if(fAverage <= 4)
 		{
 			fAverage *= 8;
 		}
-
 		else if(fAverage <= 8)
 		{
 			fAverage *= 7;
 		}
-
 		else if(fAverage <= 10)
 		{
 			fAverage *= 6;
+		}
+		else
+		{
+			fAverage *= 5;
 		}
 
 		fAverage += 5; // I give extra 5 minutes, so players can actually retry the map until they get a good time.
