@@ -536,6 +536,8 @@ stock bool ReadMapsFolderStringMap(StringMap data, bool lowercase=true, bool dis
 	return ReadMapsFolderHandler("maps", true, data, lowercase, display, iter_subfolders, use_valve_fs, exclude_prefixes, exclude_count);
 }
 
+// don't forget to declare your ArrayList like below :)))
+//// ArrayList maps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 stock bool ReadMapsFolderArrayList(ArrayList data, bool lowercase=true, bool display=false, bool iter_subfolders=true, bool use_valve_fs=true, char[][] exclude_prefixes=empty_excludes, int exclude_count=0)
 {
 	return ReadMapsFolderHandler("maps", false, data, lowercase, display, iter_subfolders, use_valve_fs, exclude_prefixes, exclude_count);

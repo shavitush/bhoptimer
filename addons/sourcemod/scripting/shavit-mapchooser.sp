@@ -148,6 +148,7 @@ public void OnPluginStart()
 	LoadTranslations("common.phrases");
 	LoadTranslations("rockthevote.phrases");
 	LoadTranslations("nominations.phrases");
+	LoadTranslations("plugin.basecommands");
 
 	gEV_Type = GetEngineVersion();
 
@@ -1638,6 +1639,29 @@ void OpenNominateMenuTier(int client, int tier)
 	DisplayMenu(g_aTierMenus[tier], client, MENU_TIME_FOREVER);
 }
 
+public int MapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char map[PLATFORM_MAX_PATH];
+		menu.GetItem(param2, map, sizeof(map));
+
+		ShowActivity2(param2, g_cPrefix, "%t", "Changing map", map);
+		LogAction(param2, -1, "\"%L\" changed map to \"%s\"", param2, map);
+
+		DataPack dp;
+		CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, dp);
+		dp.WriteString(map);
+		dp.WriteString("sm_map");
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
 public int NominateMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
@@ -1973,6 +1997,54 @@ public Action Command_ReloadMap(int client, int args)
 	return Plugin_Handled;
 }
 
+public Action BaseCommands_Command_Map_Menu(int client, int args)
+{
+	char map[PLATFORM_MAX_PATH];
+	Menu menu = new Menu(MapsMenuHandler);
+
+	if (args < 1)
+	{
+		menu.SetTitle("%T\n ", "Choose Map", client);
+	}
+	else
+	{
+		GetCmdArg(1, map, sizeof(map));
+		LowercaseString(map);
+		ReplaceString(map, sizeof(map), "\\", "/", true);
+
+		menu.SetTitle("Maps matching \"%s\"\n ", map);
+	}
+
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : new StringMap();
+	ArrayList maps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
+	ReadMapsFolderArrayList(maps);
+
+	int length = maps.Length;
+	for(int i = 0; i < length; i++)
+	{
+		char entry[PLATFORM_MAX_PATH];
+		maps.GetString(i, entry, sizeof(entry));
+
+		if (args < 1 || StrContains(entry, map) != -1)
+		{
+			char mapdisplay[PLATFORM_MAX_PATH];
+			LessStupidGetMapDisplayName(entry, mapdisplay, sizeof(mapdisplay));
+
+			int tier = 0;
+			tiersMap.GetValue(mapdisplay, tier);
+
+			char mapdisplay2[PLATFORM_MAX_PATH];
+			FormatEx(mapdisplay2, sizeof(mapdisplay2), "%s | T%i", mapdisplay, tier);
+
+			menu.AddItem(entry, mapdisplay2);
+		}
+	}
+
+	menu.Display(client, MENU_TIME_FOREVER);
+
+	return Plugin_Handled;
+}
+
 public Action BaseCommands_Command_Map(int client, int args)
 {
 	char map[PLATFORM_MAX_PATH];
@@ -2053,12 +2125,26 @@ public Action BaseCommands_Command_Map(int client, int args)
 
 public Action Command_MapButFaster(int client, const char[] command, int args)
 {
-	if (!g_cvHijackMap.BoolValue || !CheckCommandAccess(client, "sm_map", ADMFLAG_CHANGEMAP) || args < 1)
+	if (!g_cvHijackMap.BoolValue || !CheckCommandAccess(client, "sm_map", ADMFLAG_CHANGEMAP))
 	{
 		return Plugin_Continue;
 	}
 
-	BaseCommands_Command_Map(client, args);
+	if (client == 0)
+	{
+		if (args < 1)
+		{
+			ReplyToCommand(client, "[SM] Usage: sm_map <map>");
+			return Plugin_Stop;
+		}
+
+		BaseCommands_Command_Map(client, args);
+	}
+	else
+	{
+		BaseCommands_Command_Map_Menu(client, args);
+	}
+
 	return Plugin_Stop;
 }
 
