@@ -222,6 +222,7 @@ Handle gH_OnReplaySaved = null;
 // server specific
 float gF_Tickrate = 0.0;
 char gS_Map[PLATFORM_MAX_PATH];
+bool gB_CanUpdateReplayClient = false;
 
 // replay bot stuff
 int gI_CentralBot = -1;
@@ -238,6 +239,7 @@ DynamicDetour gH_MaintainBotQuota = null;
 DynamicDetour gH_TeamFull = null;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
+bot_info_t gA_BotInfo_Temp; // cached when creating a bot so we can use an accurate name in player_connect
 int gI_LastReplayFlags[MAXPLAYERS + 1];
 float gF_EyeOffset;
 float gF_EyeOffsetDuck;
@@ -483,6 +485,10 @@ public void OnPluginStart()
 	// name change suppression
 	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
 
+	// to disable replay client updates until next map so the server doesn't crash :)
+	AddCommandListener(CommandListener_changelevel, "changelevel");
+	AddCommandListener(CommandListener_changelevel, "changelevel2");
+
 	// commands
 	RegAdminCmd("sm_deletereplay", Command_DeleteReplay, ADMFLAG_RCON, "Open replay deletion menu.");
 	RegConsoleCmd("sm_replay", Command_Replay, "Opens the central bot menu. For admins: 'sm_replay stop' to stop the playback.");
@@ -666,6 +672,12 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_ClosestPos = false;
 	}
+}
+
+public Action CommandListener_changelevel(int client, const char[] command, int args)
+{
+	gB_CanUpdateReplayClient = false;
+	return Plugin_Continue;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -919,7 +931,7 @@ void StartReplay(bot_info_t info, int track, int style, int starter, float delay
 	info.fDelay = delay;
 	info.hTimer = CreateTimer((delay / 2.0), Timer_StartReplay, info.iEnt, TIMER_FLAG_NO_MAPCHANGE);
 
-	if (!info.bCustomFrames)
+	if (info.aCache.aFrames == null)
 	{
 		info.aCache = gA_FrameCache[style][track];
 		info.aCache.aFrames = view_as<ArrayList>(CloneHandle(info.aCache.aFrames));
@@ -939,7 +951,7 @@ void StartReplay(bot_info_t info, int track, int style, int starter, float delay
 		// Timer is used because the bot's name is missing and profile pic random if using RequestFrame...
 		// I really have no idea. Even delaying by 5 frames wasn't enough. Broken game.
 		// Maybe would need to be delayed by the player's latency but whatever...
-		// It seems to use early steamids for pfps since I've noticed BAILPAN and EricS 's avatars...
+		// It seems to use early steamids for pfps since I've noticed BAILOPAN's and EricS's avatars...
 		CreateTimer(0.2, Timer_SpectateMyBot, GetClientSerial(info.iEnt), TIMER_FLAG_NO_MAPCHANGE);
 	}
 
@@ -963,8 +975,8 @@ void SetupIfCustomFrames(bot_info_t info, frame_cache_t cache)
 	if (cache.aFrames != null)
 	{
 		info.bCustomFrames = true;
-		cache.aFrames = view_as<ArrayList>(CloneHandle(cache.aFrames));
 		info.aCache = cache;
+		info.aCache.aFrames = view_as<ArrayList>(CloneHandle(info.aCache.aFrames));
 	}
 }
 
@@ -1017,6 +1029,7 @@ int CreateReplayEntity(int track, int style, float delay, int client, int bot, i
 			info.bIgnoreLimit = ignorelimit;
 			info.iLoopingConfig = loopingConfig;
 			info.fDelay = delay;
+			info.iStatus = (type == Replay_Central) ? Replay_Idle : Replay_Start;
 			SetupIfCustomFrames(info, cache);
 			bot = CreateReplayBot(info);
 
@@ -1482,7 +1495,10 @@ public Action Timer_Cron(Handle Timer)
 			continue;
 		}
 
-		UpdateReplayClient(gA_BotInfo[i].iEnt);
+		if (1 <= gA_BotInfo[i].iEnt <= MaxClients)
+		{
+			RequestFrame(Frame_UpdateReplayClient, GetClientSerial(gA_BotInfo[i].iEnt));
+		}
 	}
 
 	if (!bot_join_after_player.BoolValue || GetClientCount() >= 1)
@@ -1650,6 +1666,8 @@ public void OnMapStart()
 		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
 	}
 
+	gB_CanUpdateReplayClient = true;
+
 	GetCurrentMap(gS_Map, sizeof(gS_Map));
 	bool bWorkshopWritten = WriteNavMesh(gS_Map); // write "maps/workshop/123123123/bhop_map.nav"
 	GetMapDisplayName(gS_Map, gS_Map, sizeof(gS_Map));
@@ -1730,6 +1748,8 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
+	gB_CanUpdateReplayClient = false;
+
 	if (gH_TeamFull != null)
 	{
 		gH_TeamFull.Disable(Hook_Post, Detour_TeamFull);
@@ -1823,7 +1843,18 @@ int InternalCreateReplayBot()
 
 int CreateReplayBot(bot_info_t info)
 {
+	if (!info.bCustomFrames && info.iType != Replay_Central)
+	{
+		info.aCache = gA_FrameCache[info.iStyle][info.iTrack];
+		info.aCache.aFrames = view_as<ArrayList>(CloneHandle(info.aCache.aFrames));
+	}
+
+	gA_BotInfo_Temp = info;
+
 	int bot = InternalCreateReplayBot();
+
+	bot_info_t empty_bot_info;
+	gA_BotInfo_Temp = empty_bot_info;
 
 	if (bot <= 0)
 	{
@@ -2386,6 +2417,12 @@ public void OnClientPutInServer(int client)
 
 		SDKHook(client, SDKHook_PostThink, ForceObserveProp);
 	}
+	else
+	{
+		char sName[MAX_NAME_LENGTH];
+		FillBotName(gA_BotInfo_Temp, sName);
+		SetClientName(client, sName);
+	}
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -2461,32 +2498,32 @@ void FormatStyle(const char[] source, int style, bool central, int track, char d
 	strcopy(dest, MAX_NAME_LENGTH, temp);
 }
 
-void UpdateBotScoreboard(int client)
+void FillBotName(bot_info_t info, char sName[MAX_NAME_LENGTH])
 {
-	int track = gA_BotInfo[client].iTrack;
-	int style = gA_BotInfo[client].iStyle;
-	int type = gA_BotInfo[client].iType;
-	int iFrameCount = gA_BotInfo[client].aCache.iFrameCount;
+	bool central = (info.iType == Replay_Central);
+	bool idle = (info.iStatus == Replay_Idle);
 
-	bool central = (gI_CentralBot == client);
-	bool idle = (gA_BotInfo[client].iStatus == Replay_Idle);
-
-	if(gEV_Type != Engine_TF2)
+	if (central || info.aCache.iFrameCount > 0)
 	{
-		char sTag[MAX_NAME_LENGTH];
-		FormatStyle(gS_ReplayStrings.sClanTag, style, central, track, sTag, idle, gA_BotInfo[client].aCache, type);
-		CS_SetClientClanTag(client, sTag);
-	}
-
-	char sName[MAX_NAME_LENGTH];
-	
-	if(central || iFrameCount > 0)
-	{
-		FormatStyle(idle ? gS_ReplayStrings.sCentralName : gS_ReplayStrings.sNameStyle, style, central, track, sName, idle, gA_BotInfo[client].aCache, type);
+		FormatStyle(idle ? gS_ReplayStrings.sCentralName : gS_ReplayStrings.sNameStyle, info.iStyle, central, info.iTrack, sName, idle, info.aCache, info.iType);
 	}
 	else
 	{
-		FormatStyle(gS_ReplayStrings.sUnloaded, style, central, track, sName, idle, gA_BotInfo[client].aCache, type);
+		FormatStyle(gS_ReplayStrings.sUnloaded, info.iStyle, central, info.iTrack, sName, idle, info.aCache, info.iType);
+	}
+}
+
+void UpdateBotScoreboard(bot_info_t info)
+{
+	int client = info.iEnt;
+	bool central = (info.iType == Replay_Central);
+	bool idle = (info.iStatus == Replay_Idle);
+
+	if (gEV_Type != Engine_TF2)
+	{
+		char sTag[MAX_NAME_LENGTH];
+		FormatStyle(gS_ReplayStrings.sClanTag, info.iStyle, central, info.iTrack, sTag, idle, info.aCache, info.iType);
+		CS_SetClientClanTag(client, sTag);
 	}
 
 	int sv_duplicate_playernames_ok_original;
@@ -2496,6 +2533,9 @@ void UpdateBotScoreboard(int client)
 		sv_duplicate_playernames_ok.IntValue = 1;
 	}
 
+	char sName[MAX_NAME_LENGTH];
+	FillBotName(info, sName);
+
 	gB_HideNameChange = true;
 	SetClientName(client, sName);
 
@@ -2504,7 +2544,7 @@ void UpdateBotScoreboard(int client)
 		sv_duplicate_playernames_ok.IntValue = sv_duplicate_playernames_ok_original;
 	}
 
-	int iScore = (iFrameCount > 0 || client == gI_CentralBot)? 1337:-1337;
+	int iScore = (info.aCache.iFrameCount > 0 || central) ? 1337 : -1337;
 
 	if(gEV_Type == Engine_CSGO)
 	{
@@ -2571,7 +2611,7 @@ void Frame_UpdateReplayClient(int serial)
 void UpdateReplayClient(int client)
 {
 	// Only run on fakeclients
-	if(!gCV_Enabled.BoolValue || !IsValidClient(client) || !IsFakeClient(client))
+	if (!gB_CanUpdateReplayClient || !gCV_Enabled.BoolValue || !IsValidClient(client) || !IsFakeClient(client))
 	{
 		return;
 	}
@@ -2581,7 +2621,7 @@ void UpdateReplayClient(int client)
 	SetEntProp(client, Prop_Data, "m_CollisionGroup", 2);
 	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 
-	UpdateBotScoreboard(client);
+	UpdateBotScoreboard(gA_BotInfo[client]);
 
 	if(GetClientTeam(client) != gCV_DefaultTeam.IntValue)
 	{
@@ -2720,7 +2760,7 @@ public void OnClientDisconnect_Post(int client)
 
 public void OnEntityDestroyed(int entity)
 {
-	if (entity <= MaxClients)
+	if (entity <= MaxClients) // handled in OnClientDisconnect
 	{
 		return;
 	}
@@ -3295,6 +3335,14 @@ public Action BotEvents(Event event, const char[] name, bool dontBroadcast)
 	if(event.GetBool("bot") || !client || IsFakeClient(client))
 	{
 		event.BroadcastDisabled = true;
+
+		if (StrEqual(name, "player_connect"))
+		{
+			char sName[MAX_NAME_LENGTH];
+			FillBotName(gA_BotInfo_Temp, sName);
+			event.SetString("name", sName);
+		}
+
 		return Plugin_Changed;
 	}
 
@@ -3996,6 +4044,11 @@ int GetControllableReplay(int client)
 
 void TeleportToFrame(bot_info_t info, int iFrame)
 {
+	if (info.aCache.aFrames == null)
+	{
+		return;
+	}
+
 	frame_t frame;
 	info.aCache.aFrames.GetArray(iFrame, frame, 6);
 
@@ -4135,7 +4188,7 @@ void KickReplay(bot_info_t info)
 
 	if (1 <= info.iEnt <= MaxClients)
 	{
-		KickClient(info.iEnt);
+		KickClient(info.iEnt, "you just lost The Game");
 
 		if (info.iType == Replay_Looping)
 		{
