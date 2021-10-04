@@ -416,7 +416,7 @@ public void OnAdminMenuCreated(Handle topmenu)
 		return;
 	}
 
-	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
+	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_zones", ADMFLAG_RCON);
 }
 
 public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
