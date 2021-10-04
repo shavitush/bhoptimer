@@ -341,7 +341,7 @@ float MapChangeDelay()
 		return 4.3;
 	}
 
-	return 2.0;
+	return 1.0;
 }
 
 int ExplodeCvar(ConVar cvar, char[][] buffers, int maxStrings, int maxStringLength)
@@ -874,6 +874,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 			DataPack data;
 			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
 			data.WriteString(map);
+			data.WriteString("RTV Mapvote");
 			ClearRTV();
 		}
 
@@ -1289,30 +1290,14 @@ void ClearRTV()
 /* Timers */
 public Action Timer_ChangeMap(Handle timer, DataPack data)
 {
+	char reason[PLATFORM_MAX_PATH];
 	char map[PLATFORM_MAX_PATH];
+
 	data.Reset();
 	data.ReadString(map, sizeof(map));
+	data.ReadString(reason, sizeof(reason));
 
-	ForceChangeLevel(map, "RTV Mapvote");
-}
-
-// ugh
-public Action Timer_ChangeMap222(Handle timer, DataPack data)
-{
-	char map[PLATFORM_MAX_PATH];
-	data.Reset();
-	data.ReadString(map, sizeof(map));
-
-	ForceChangeLevel(map, "sm_loadunzonedmap");
-}
-
-public Action Timer_ReloadMap(Handle timer, DataPack data)
-{
-	char map[PLATFORM_MAX_PATH];
-	data.Reset();
-	data.ReadString(map, sizeof(map));
-
-	ForceChangeLevel(g_cMapName, "sm_reloadmap");
+	ForceChangeLevel(map, reason);
 }
 
 /* Commands */
@@ -1963,8 +1948,9 @@ public void FindUnzonedMapCallback(Database db, DBResultSet results, const char[
 		Shavit_PrintToChatAll("Loading unzoned map %s", buffer);
 
 		DataPack dp;
-		CreateDataTimer(1.0, Timer_ChangeMap222, dp);
+		CreateDataTimer(1.0, Timer_ChangeMap, dp);
 		dp.WriteString(buffer);
+		dp.WriteString("sm_loadunzonedmap");
 	}
 }
 
@@ -1978,12 +1964,11 @@ public Action Command_LoadUnzonedMap(int client, int args)
 
 public Action Command_ReloadMap(int client, int args)
 {
-	char map[PLATFORM_MAX_PATH];
-
 	PrintToChatAll("%sReloading current map..", g_cPrefix);
 	DataPack dp;
-	CreateDataTimer(MapChangeDelay(), Timer_ReloadMap, dp);
-	dp.WriteString(map);
+	CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, dp);
+	dp.WriteString(g_cMapName);
+	dp.WriteString("sm_reloadmap");
 
 	return Plugin_Handled;
 }
@@ -2059,22 +2044,11 @@ public Action BaseCommands_Command_Map(int client, int args)
 	LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
 
 	DataPack dp;
-	CreateDataTimer(MapChangeDelay(), BaseCommands_Timer_ChangeMap, dp);
+	CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, dp);
 	dp.WriteString(map);
+	dp.WriteString("sm_map");
 
 	return Plugin_Handled;
-}
-
-public Action BaseCommands_Timer_ChangeMap(Handle timer, DataPack dp)
-{
-	char map[PLATFORM_MAX_PATH];
-
-	dp.Reset();
-	dp.ReadString(map, sizeof(map));
-
-	ForceChangeLevel(map, "sm_map Command");
-
-	return Plugin_Stop;
 }
 
 public Action Command_MapButFaster(int client, const char[] command, int args)
