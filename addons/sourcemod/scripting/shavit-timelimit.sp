@@ -247,12 +247,12 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 		if(fAverage <= 1)
 		{
-			fAverage *= 25;
+			fAverage *= 10;
 		}
 
 		else if(fAverage <= 2)
 		{
-			fAverage *= 15;
+			fAverage *= 9;
 		}
 
 		else if(fAverage <= 4)
@@ -260,14 +260,14 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 			fAverage *= 8;
 		}
 
-		else if(fAverage <= 7)
+		else if(fAverage <= 8)
 		{
 			fAverage *= 7;
 		}
 
 		else if(fAverage <= 10)
 		{
-			fAverage *= 5;
+			fAverage *= 6;
 		}
 		
 		else if(fAverage > 10)
