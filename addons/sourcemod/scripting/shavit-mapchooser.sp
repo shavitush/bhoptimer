@@ -1347,6 +1347,12 @@ public Action Command_ReloadMaplist(int client, int args)
 
 public Action Command_Nominate(int client, int args)
 {
+	if (g_bMapVoteStarted || g_bMapVoteFinished)
+	{
+		ReplyToCommand(client, "%sMap vote already %s", g_cPrefix, (g_bMapVoteStarted) ? "initiated" : "finished");
+		return Plugin_Handled;
+	}
+
 	if(args < 1)
 	{
 		if (g_cvEnhancedMenu.BoolValue)
@@ -1367,6 +1373,12 @@ public Action Command_Nominate(int client, int args)
 
 public Action Command_Nominate_Internal(int client, char mapname[PLATFORM_MAX_PATH])
 {
+	if (g_bMapVoteStarted || g_bMapVoteFinished)
+	{
+		ReplyToCommand(client, "%sMap vote already %s", g_cPrefix, (g_bMapVoteStarted) ? "initiated" : "finished");
+		return Plugin_Handled;
+	}
+
 	LowercaseString(mapname);
 
 	if (g_cvNominateMatches.BoolValue)
@@ -1405,6 +1417,12 @@ public Action Command_Nominate_Internal(int client, char mapname[PLATFORM_MAX_PA
 
 public Action Command_UnNominate(int client, int args)
 {
+	if (g_bMapVoteStarted || g_bMapVoteFinished)
+	{
+		ReplyToCommand(client, "%sMap vote already %s", g_cPrefix, (g_bMapVoteStarted) ? "initiated" : "finished");
+		return Plugin_Handled;
+	}
+
 	if (g_fLastNominateTime[client] && (GetEngineTime() - g_fLastNominateTime[client]) < g_cvAntiSpam.FloatValue)
 	{
 		ReplyToCommand(client, "%sStop spamming", g_cPrefix);
