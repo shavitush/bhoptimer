@@ -2040,7 +2040,33 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 		}
 	}
 
-	menu.Display(client, MENU_TIME_FOREVER);
+	delete maps;
+	delete tiersMap;
+
+	switch (menu.ItemCount)
+	{
+		case 0:
+		{
+			ReplyToCommand(client, "%s%t", g_cPrefix, "Map was not found", map);
+			delete menu;
+		}
+		case 1:
+		{
+			menu.GetItem(0, map, sizeof(map));
+			ShowActivity2(client, g_cPrefix, "%t", "Changing map", map);
+			LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
+
+			DataPack dp;
+			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, dp);
+			dp.WriteString(map);
+			dp.WriteString("sm_map");
+			delete menu;
+		}
+		default:
+		{
+			menu.Display(client, MENU_TIME_FOREVER);
+		}
+	}
 
 	return Plugin_Handled;
 }
