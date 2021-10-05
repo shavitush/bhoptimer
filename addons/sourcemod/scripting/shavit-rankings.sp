@@ -382,50 +382,10 @@ public void OnMapStart()
 	gI_Tier = gCV_DefaultTier.IntValue;
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT tier FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
-	gH_SQL.Query(SQL_GetMapTier_Callback, sQuery);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
 
 	gB_TierQueried = true;
-}
-
-public void SQL_GetMapTier_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (rankings, get map tier) error! Reason: %s", error);
-
-		return;
-	}
-
-	#if defined DEBUG
-	PrintToServer("DEBUG: 2 (SQL_GetMapTier_Callback)");
-	#endif
-
-	if(results.RowCount > 0 && results.FetchRow())
-	{
-		gI_Tier = results.FetchInt(0);
-
-		#if defined DEBUG
-		PrintToServer("DEBUG: 3 (tier: %d) (SQL_GetMapTier_Callback)", gI_Tier);
-		#endif
-
-		RecalculateCurrentMap();
-		UpdateAllPoints();
-
-		#if defined DEBUG
-		PrintToServer("DEBUG: 4 (SQL_GetMapTier_Callback)");
-		#endif
-	}
-	else
-	{
-		char sQuery[512];
-		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
-		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, gI_Tier, DBPrio_High);
-	}
-
-	char sQuery[256];
-	FormatEx(sQuery, 256, "SELECT map, tier FROM %smaptiers;", gS_MySQLPrefix);
-	gH_SQL.Query(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -458,6 +418,18 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 	}
 
 	SortADTArray(gA_ValidMaps, Sort_Ascending, Sort_String);
+
+	if (gA_MapTiers.GetValue(gS_Map, gI_Tier))
+	{
+		RecalculateCurrentMap();
+		UpdateAllPoints();
+	}
+	else
+	{
+		char sQuery[512];
+		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
+		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, gI_Tier, DBPrio_High);
+	}
 }
 
 public void OnMapEnd()
