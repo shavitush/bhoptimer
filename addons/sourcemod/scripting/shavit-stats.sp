@@ -145,7 +145,7 @@ public void OnPluginStart()
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
+	gH_SQL = GetTimerDatabaseHandle2(false);
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery),

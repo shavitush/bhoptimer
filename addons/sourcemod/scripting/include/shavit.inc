@@ -376,14 +376,14 @@ char gS_CSGOColors[][] =
 
 // connects synchronously to the bhoptimer database
 // calls errors if needed
-stock Database GetTimerDatabaseHandle()
+stock Database GetTimerDatabaseHandle(bool reuse_persistent_connection=true)
 {
 	Database db = null;
 	char sError[255];
 
 	if(SQL_CheckConfig("shavit"))
 	{
-		if((db = SQL_Connect("shavit", true, sError, 255)) == null)
+		if((db = SQL_Connect("shavit", reuse_persistent_connection, sError, 255)) == null)
 		{
 			SetFailState("Timer startup failed. Reason: %s", sError);
 		}
@@ -396,9 +396,9 @@ stock Database GetTimerDatabaseHandle()
 	return db;
 }
 
-stock Database2 GetTimerDatabaseHandle2()
+stock Database2 GetTimerDatabaseHandle2(bool reuse_persistent_connection=true)
 {
-	return view_as<Database2>(GetTimerDatabaseHandle());
+	return view_as<Database2>(GetTimerDatabaseHandle(reuse_persistent_connection));
 }
 
 // figures out if the database is a mysql database
@@ -1336,6 +1336,13 @@ forward void Shavit_OnProcessMovement(int client);
  * @noreturn
  */
 forward void Shavit_OnProcessMovementPost(int client);
+
+/**
+ * Called after shavit-wr caches the current map's WRs.
+ *
+ * @noreturn
+ */
+forward void Shavit_OnWorldRecordsCached();
 
 /**
  * Called when a player RTV's.

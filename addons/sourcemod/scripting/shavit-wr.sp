@@ -58,6 +58,7 @@ Handle gH_OnFinish_Post = null;
 Handle gH_OnWRDeleted = null;
 Handle gH_OnWorstRecord = null;
 Handle gH_OnFinishMessage = null;
+Handle gH_OnWorldRecordsCached = null;
 
 // database handle
 Database2 gH_SQL = null;
@@ -160,6 +161,7 @@ public void OnPluginStart()
 	gH_OnWRDeleted = CreateGlobalForward("Shavit_OnWRDeleted", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String);
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinishMessage = CreateGlobalForward("Shavit_OnFinishMessage", ET_Event, Param_Cell, Param_CellByRef, Param_Array, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_String, Param_Cell);
+	gH_OnWorldRecordsCached = CreateGlobalForward("Shavit_OnWorldRecordsCached", ET_Event);
 
 	// player commands
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
@@ -641,6 +643,9 @@ public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const c
 		ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 		gSM_WRNames.SetString(sSteamID, sName, false);
 	}
+
+	Call_StartForward(gH_OnWorldRecordsCached);
+	Call_Finish();
 }
 
 public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2275,7 +2280,7 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
+	gH_SQL = GetTimerDatabaseHandle2(false);
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	char sQuery[1024];
