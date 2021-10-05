@@ -66,7 +66,8 @@ enum struct ranking_t
 }
 
 char gS_MySQLPrefix[32];
-Database2 gH_SQL = null;	
+Database2 gH_SQL = null;
+Database2 gH_SQL_b = null;
 bool gB_HasSQLRANK = false; // whether the sql driver supports RANK()
 
 bool gB_Stats = false;
@@ -229,6 +230,7 @@ public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle2(false);
+	gH_SQL_b = true ? GetTimerDatabaseHandle2(false) : gH_SQL;
 
 	if(!IsMySQLDatabase(gH_SQL))
 	{
@@ -891,7 +893,7 @@ void RecalculateCurrentMap()
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		FormatRecalculate(true, Track_Main, i, sQuery, sizeof(sQuery));
-		gH_SQL.Query(SQL_Recalculate_Callback, sQuery, (i << 8) | 0, DBPrio_High);
+		gH_SQL_b.Query(SQL_Recalculate_Callback, sQuery, (i << 8) | 0, DBPrio_High);
 		FormatRecalculate(true, Track_Bonus, i, sQuery, sizeof(sQuery));
 		gH_SQL.Query(SQL_Recalculate_Callback, sQuery, (i << 8) | 1, DBPrio_High);
 	}
@@ -911,7 +913,7 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	char sQuery[1024];
 	FormatRecalculate(true, track, style, sQuery, sizeof(sQuery));
 
-	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, (style << 8) | track, DBPrio_High);
+	gH_SQL_b.Query(SQL_Recalculate_Callback, sQuery, (style << 8) | track, DBPrio_High);
 }
 
 public void SQL_Recalculate_Callback(Database db, DBResultSet results, const char[] error, any data)
