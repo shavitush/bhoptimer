@@ -279,6 +279,7 @@ public void Shavit_OnDatabaseLoaded()
 		"RETURN total; " ...
 		"END;;", gS_MySQLPrefix, gCV_WeightingMultiplier.FloatValue);
 
+#if 0
 	if (gCV_WeightingMultiplier.FloatValue == 1.0)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
@@ -293,6 +294,12 @@ public void Shavit_OnDatabaseLoaded()
 	}
 
 	hTrans.AddQuery(sQuery);
+#else
+	if (gCV_WeightingMultiplier.FloatValue != 1.0)
+	{
+		hTrans.AddQuery(sQuery);
+	}
+#endif
 
 #if 0
 	FormatEx(sQuery, sizeof(sQuery),
@@ -958,18 +965,28 @@ void UpdateAllPoints(bool recalcall = false)
 	LogError("DEBUG: 6 (UpdateAllPoints)");
 	#endif
 
-	char sQuery[256];
+	char sQuery[512];
+	char sLastLogin[256];
 
-	if(recalcall || gCV_LastLoginRecalculate.IntValue == 0)
+	if (recalcall || gCV_LastLoginRecalculate.IntValue == 0)
 	{
-		FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth IN (SELECT DISTINCT auth FROM %splayertimes);",
-			gS_MySQLPrefix, gS_MySQLPrefix);
+		FormatEx(sLastLogin, sizeof(sLastLogin), "lastlogin > %d", (GetTime() - gCV_LastLoginRecalculate.IntValue * 60));
 	}
 
+	if (gCV_WeightingMultiplier.FloatValue == 1.0)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"UPDATE %susers AS U INNER JOIN (SELECT auth, SUM(points) as total FROM %splayertimes GROUP BY auth) P ON U.auth = P.auth SET U.points = P.total %s %s;",
+			gS_MySQLPrefix, gS_MySQLPrefix,
+			(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
+	}
 	else
 	{
-		FormatEx(sQuery, 256, "UPDATE %susers SET points = GetWeightedPoints(auth) WHERE lastlogin > %d AND auth IN (SELECT DISTINCT auth FROM %splayertimes);",
-			gS_MySQLPrefix, (GetTime() - gCV_LastLoginRecalculate.IntValue * 60), gS_MySQLPrefix);
+		FormatEx(sQuery, sizeof(sQuery),
+			"UPDATE %susers SET points = GetWeightedPoints(auth) WHERE %s %s auth IN (SELECT DISTINCT auth FROM %splayertimes);",
+			gS_MySQLPrefix,
+			sLastLogin, (sLastLogin[0] != 0) ? "AND" : "",
+			gS_MySQLPrefix);
 	}
 	
 	gH_SQL.Query(SQL_UpdateAllPoints_Callback, sQuery);
@@ -1238,11 +1255,12 @@ void RefreshWRHolders()
 	else
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"SELECT 2 as type, -1 as track, -1 as style, COUNT(DISTINC auth) FROM %swrs %s %s %s;",
+			"SELECT 2 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM %swrs %s %s %s %s;",
 			gS_MySQLPrefix,
 			(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
-			(gCV_MVPRankOnes.IntValue == 2)  ? "AND style = 0" : "",
-			(gCV_MVPRankOnes_Main.BoolValue) ? "AND track = 0" : ""
+			(gCV_MVPRankOnes.IntValue == 2)  ? "style = 0" : "",
+			(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
+			(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : ""
 		);
 	}
 
