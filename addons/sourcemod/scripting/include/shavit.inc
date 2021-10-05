@@ -200,8 +200,20 @@ enum struct timer_snapshot_t
 	float fAvgVelocity;
 	float fMaxVelocity;
 	float fTimescale;
-	int iZoneIncrement;
+	int iZoneIncrement; // convert to array for per zone offsets (?)
 	float fTimescaledTicks;
+
+	bool bPracticeMode;
+
+	bool bJumped;
+	bool bCanUseAllKeys;
+	bool bOnGround;
+
+	int iLastButtons;
+	float fLastAngle;
+	int iLandingTick;
+	MoveType iLastMoveType;
+	float fStrafeWarning;
 }
 
 enum struct cp_cache_t
@@ -224,7 +236,6 @@ enum struct cp_cache_t
 	ArrayList aFrames;
 	int iPreFrames;
 	bool bSegmented;
-	bool bPractice;
 	int iGroundEntity;
 	int iSteamID;
 	ArrayList aEvents;
