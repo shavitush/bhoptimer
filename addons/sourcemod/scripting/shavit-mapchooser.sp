@@ -2002,22 +2002,26 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 	char map[PLATFORM_MAX_PATH];
 	Menu menu = new Menu(MapsMenuHandler);
 
+	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : new StringMap();
+	ArrayList maps;
+
 	if (args < 1)
 	{
+		maps = g_aMapList;
+
 		menu.SetTitle("%T\n ", "Choose Map", client);
 	}
 	else
 	{
+		maps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
+		ReadMapsFolderArrayList(maps);
+
 		GetCmdArg(1, map, sizeof(map));
 		LowercaseString(map);
 		ReplaceString(map, sizeof(map), "\\", "/", true);
 
 		menu.SetTitle("Maps matching \"%s\"\n ", map);
 	}
-
-	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : new StringMap();
-	ArrayList maps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
-	ReadMapsFolderArrayList(maps);
 
 	int length = maps.Length;
 	for(int i = 0; i < length; i++)
@@ -2040,7 +2044,11 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 		}
 	}
 
-	delete maps;
+	if (args >= 1)
+	{
+		delete maps;
+	}
+
 	delete tiersMap;
 
 	switch (menu.ItemCount)
