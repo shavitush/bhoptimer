@@ -2700,6 +2700,21 @@ native void Shavit_SetPlayerPreFrames(int client, int PreFrame);
 native void Shavit_GetPlainChatrank(int client, char[] buf, int buflen, bool includename=false);
 
 /*
+ * Calculates how many points a time will give.
+ * Used to minimize number of SQL queries.
+ * Requires shavit-rankings.
+ *
+ * @param track                     The track the time is from.
+ * @param style                     The style the time is from.
+ * @param tier                      The map tier. -1 to use the current map's tier.
+ * @param time                      The time you want to calculate the points for.
+ * @param wr                        WR.
+ *
+ * @return                          The number of points the time would give.
+ */
+native float Shavit_GuessPointsForTime(int track, int style, int tier, float time, float wr);
+
+/*
  * Used to delete a WR. Used to ensure Shavit_OnWRDeleted is ran.
  *
  * @param style						Record style.
@@ -2876,5 +2891,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayCachePostFrames");
 	MarkNativeAsOptional("Shavit_GetLoopingBotByName");
 	MarkNativeAsOptional("Shavit_SetReplayCacheName");
+	MarkNativeAsOptional("Shavit_GuessPointsForTime");
 }
 #endif

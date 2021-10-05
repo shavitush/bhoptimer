@@ -126,6 +126,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetWRCount", Native_GetWRCount);
 	CreateNative("Shavit_GetWRHolders", Native_GetWRHolders);
 	CreateNative("Shavit_GetWRHolderRank", Native_GetWRHolderRank);
+	CreateNative("Shavit_GuessPointsForTime", Native_GuessPointsForTime);
 
 	RegPluginLibrary("shavit-rankings");
 
@@ -291,7 +292,7 @@ public void Shavit_OnDatabaseLoaded()
 	hTrans.AddQuery(sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE FUNCTION GetRecordPoints(rstyle INT, rtrack INT, rtime FLOAT, rmap VARCHAR(255), pointspertier FLOAT, stylemultiplier FLOAT, pwr FLOAT, xtier INT) " ...
+		"CREATE FUNCTION GetRecordPoints(rtrack INT, rtime FLOAT, rmap VARCHAR(255), pointspertier FLOAT, stylemultiplier FLOAT, pwr FLOAT, xtier INT) " ...
 		"RETURNS FLOAT " ...
 		"READS SQL DATA " ...
 		"BEGIN " ...
@@ -743,7 +744,7 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			"  WHERE style = %d %s %s%s%c %s %s"...
 			"  GROUP BY map, track, style "...
 			") as WR "...
-			"SET PT.points = GetRecordPoints(PT.style, PT.track, PT.time, %s, %.1f, %.3f, WR.time, %d) "...
+			"SET PT.points = GetRecordPoints(PT.track, PT.time, %s, %.1f, %.3f, WR.time, %d) "...
 			"WHERE PT.style = WR.style and PT.track = WR.track and PT.map = WR.map;",
 			gS_MySQLPrefix, gS_MySQLPrefix, style,
 			(bUseCurrentMap || track != -1) ? "AND" : "",
@@ -832,6 +833,11 @@ void RecalculateAll()
 
 public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
 {
+	if (rank != 1)
+	{
+		return;
+	}
+
 	#if defined DEBUG
 	PrintToServer("Recalculating points. (%s, %d, %d)", map, track, style);
 	#endif
@@ -1299,6 +1305,52 @@ public int Native_Rankings_DeleteMap(Handle handler, int numParams)
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, sMap);
 	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+}
+
+public int Native_GuessPointsForTime(Handle plugin, int numParams)
+{
+	int rtrack = GetNativeCell(1);
+	int rstyle = GetNativeCell(2);
+	int tier = GetNativeCell(3);
+	float rtime = view_as<float>(GetNativeCell(4));
+	float pwr = view_as<float>(GetNativeCell(5));
+
+	float ppoints = Sourcepawn_GetRecordPoints(
+		rtrack,
+		rtime,
+		gCV_PointsPerTier.FloatValue,
+		Shavit_GetStyleSettingFloat(rstyle, "rankingmultiplier"),
+		pwr,
+		tier == -1 ? gI_Tier : tier
+	);
+
+	return view_as<int>(ppoints);
+}
+
+float Sourcepawn_GetRecordPoints(int rtrack, float rtime, float pointspertier, float stylemultiplier, float pwr, int ptier)
+{
+	float ppoints = 0.0;
+
+	if (rtrack > 0)
+	{
+		ptier = 1;
+	}
+
+	ppoints = ((pointspertier * ptier) * 1.5) + (pwr / 15.0);
+
+	if (rtime > pwr)
+	{
+		ppoints = ppoints * (pwr / rtime);
+	}
+
+	ppoints = ppoints * stylemultiplier;
+
+	if (rtrack > 0)
+	{
+		ppoints = ppoints * 0.25;
+	}
+
+	return ppoints;
 }
 
 public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[] error, any data)

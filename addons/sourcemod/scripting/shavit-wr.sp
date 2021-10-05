@@ -2486,6 +2486,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 	if(iOverwrite > 0)
 	{
+		float fPoints = gB_Rankings ? Shavit_GuessPointsForTime(track, style, -1, time, gF_WRTime[style][track]) : 0.0;
+
 		char sQuery[1024];
 
 		if(iOverwrite == 1) // insert
@@ -2494,8 +2496,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
 
 			FormatEx(sQuery, sizeof(sQuery),
-				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs, exact_time_int) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, 0.0, %d, %.2f, %d);",
-				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, timestamp, style, strafes, sync, track, perfs, view_as<int>(time));
+				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs, exact_time_int) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, %f, %d, %.2f, %d);",
+				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, timestamp, style, strafes, sync, fPoints, track, perfs, view_as<int>(time));
 		}
 		else // update
 		{
@@ -2503,8 +2505,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
 			FormatEx(sQuery, sizeof(sQuery),
-				"UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = 0.0, perfs = %.2f, exact_time_int = %d, completions = completions + 1 WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
-				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, perfs, view_as<int>(time), gS_Map, iSteamID, style, track);
+				"UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = %f, perfs = %.2f, exact_time_int = %d, completions = completions + 1 WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
+				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, fPoints, perfs, view_as<int>(time), gS_Map, iSteamID, style, track);
 		}
 
 		gH_SQL.Query(SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
