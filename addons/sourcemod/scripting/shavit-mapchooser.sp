@@ -1849,6 +1849,7 @@ int CheckRTV(int client = 0)
 			DataPack data;
 			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
 			data.WriteString(map);
+			data.WriteString("rtv after map vote");
 		}
 		else
 		{
