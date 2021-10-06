@@ -84,6 +84,7 @@ StringMap gA_MapTiers = null;
 
 Convar gCV_PointsPerTier = null;
 Convar gCV_WeightingMultiplier = null;
+Convar gCV_WeightingLimit = null;
 Convar gCV_LastLoginRecalculate = null;
 Convar gCV_MVPRankOnes_Slow = null;
 Convar gCV_MVPRankOnes = null;
@@ -168,6 +169,7 @@ public void OnPluginStart()
 
 	gCV_PointsPerTier = new Convar("shavit_rankings_pointspertier", "50.0", "Base points to use for per-tier scaling.\nRead the design idea to see how it works: https://github.com/shavitush/bhoptimer/issues/465", 0, true, 1.0);
 	gCV_WeightingMultiplier = new Convar("shavit_rankings_weighting", "0.975", "Weighing multiplier. 1.0 to disable weighting.\nFormula: p[1] * this^0 + p[2] * this^1 + p[3] * this^2 + ... + p[n] * this^(n-1)\nRestart server to apply.", 0, true, 0.01, true, 1.0);
+	gCV_WeightingLimit = new Convar("shavit_rankings_weighting_limit", "0", "Limit the number of times retreived for calculating a player's weighted points to this number.\n0 = no limit\nFor reference, a weighting of 0.975 to the power of 200 is 0.00632299938 and results in pretty much nil points for any further weighted times.\nUnused when shavit_rankings_weighting is 1.0.\nYou probably won't need to change this unless you have hundreds of thousands of player times in your database.", 0, true, 0.0, false);
 	gCV_LastLoginRecalculate = new Convar("shavit_rankings_llrecalc", "10080", "Maximum amount of time (in minutes) since last login to recalculate points for a player.\nsm_recalcall does not respect this setting.\n0 - disabled, don't filter anyone", 0, true, 0.0);
 	gCV_MVPRankOnes_Slow = new Convar("shavit_rankings_mvprankones_slow", "1", "Uses a slower but more featureful MVP counting system.\nEnables the WR Holder ranks & counts for every style & track.\nYou probably won't need to change this unless you have hundreds of thousands of player times in your database.", 0, true, 0.0, true, 1.0);
 	gCV_MVPRankOnes = new Convar("shavit_rankings_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
@@ -257,6 +259,13 @@ public void Shavit_OnDatabaseLoaded()
 	hTrans.AddQuery("DROP FUNCTION IF EXISTS GetWeightedPoints;;"); // this is here, just in case we ever choose to modify or optimize the calculation
 	hTrans.AddQuery("DROP FUNCTION IF EXISTS GetRecordPoints;;");
 
+	char sWeightingLimit[30];
+
+	if (gCV_WeightingLimit.IntValue > 0)
+	{
+		FormatEx(sWeightingLimit, sizeof(sWeightingLimit), "LIMIT %d", gCV_WeightingLimit.IntValue);
+	}
+
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE FUNCTION GetWeightedPoints(steamid INT) " ...
 		"RETURNS FLOAT " ...
@@ -266,7 +275,7 @@ public void Shavit_OnDatabaseLoaded()
 		"DECLARE total FLOAT DEFAULT 0.0; " ...
 		"DECLARE mult FLOAT DEFAULT 1.0; " ...
 		"DECLARE done INT DEFAULT 0; " ...
-		"DECLARE cur CURSOR FOR SELECT points FROM %splayertimes WHERE auth = steamid AND points > 0.0 ORDER BY points DESC; " ...
+		"DECLARE cur CURSOR FOR SELECT points FROM %splayertimes WHERE auth = steamid AND points > 0.0 ORDER BY points DESC %s; " ...
 		"DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1; " ...
 		"OPEN cur; " ...
 		"iter: LOOP " ...
@@ -279,7 +288,7 @@ public void Shavit_OnDatabaseLoaded()
 		"END LOOP; " ...
 		"CLOSE cur; " ...
 		"RETURN total; " ...
-		"END;;", gS_MySQLPrefix, gCV_WeightingMultiplier.FloatValue);
+		"END;;", gS_MySQLPrefix, sWeightingLimit, gCV_WeightingMultiplier.FloatValue);
 
 #if 0
 	if (gCV_WeightingMultiplier.FloatValue == 1.0)
