@@ -859,34 +859,40 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 	}
 	else
 	{
-		if(g_ChangeTime == MapChange_MapEnd)
-		{
-			SetNextMap(map);
-		}
-		else if(g_ChangeTime == MapChange_Instant)
-		{
-			int needed, rtvcount, total;
-			GetRTVStuff(total, needed, rtvcount);
-
-			if(needed <= 0)
-			{
-				Call_StartForward(g_hForward_OnSuccesfulRTV);
-				Call_Finish();
-			}
-
-			DataPack data;
-			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
-			data.WriteString(map);
-			data.WriteString("RTV Mapvote");
-			ClearRTV();
-		}
-
-		g_bMapVoteStarted = false;
-		g_bMapVoteFinished = true;
-
-		PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Finished", displayName, RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
-		LogAction(-1, -1, "Voting for next map has finished. Nextmap: %s.", map);
+		int percentage_of_votes = RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100);
+		DoMapChangeAfterMapVote(map, displayName, percentage_of_votes, num_votes);
 	}
+}
+
+void DoMapChangeAfterMapVote(char map[PLATFORM_MAX_PATH], char displayName[PLATFORM_MAX_PATH], int percentage_of_votes, int num_votes)
+{
+	if(g_ChangeTime == MapChange_MapEnd)
+	{
+		SetNextMap(map);
+	}
+	else if(g_ChangeTime == MapChange_Instant)
+	{
+		int needed, rtvcount, total;
+		GetRTVStuff(total, needed, rtvcount);
+
+		if(needed <= 0)
+		{
+			Call_StartForward(g_hForward_OnSuccesfulRTV);
+			Call_Finish();
+		}
+
+		DataPack data;
+		CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
+		data.WriteString(map);
+		data.WriteString("RTV Mapvote");
+		ClearRTV();
+	}
+
+	g_bMapVoteStarted = false;
+	g_bMapVoteFinished = true;
+
+	PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Finished", displayName, percentage_of_votes, num_votes);
+	LogAction(-1, -1, "Voting for next map has finished. Nextmap: %s.", map);
 }
 
 public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int param2)
@@ -973,6 +979,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 			{
 				int count = menu.ItemCount;
 				char map[PLATFORM_MAX_PATH];
+				char displayName[PLATFORM_MAX_PATH];
 				menu.GetItem(0, map, sizeof(map));
 
 				// Make sure the first map in the menu isn't one of the special items.
@@ -985,15 +992,11 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 					do
 					{
 						int item = GetRandomInt(0, count - 1);
-						menu.GetItem(item, map, sizeof(map));
+						menu.GetItem(item, map, sizeof(map), _, displayName, sizeof(displayName));
 					}
 					while(strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0);
-
-					SetNextMap(map);
-					PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Finished", map, 0, 0);
-					LogAction(-1, -1, "Voting for next map has finished. Nextmap: %s.", map);
-					g_bMapVoteFinished = true;
-					ClearRTV();
+					
+					DoMapChangeAfterMapVote(map, displayName, 0, 0);
 				}
 			}
 			else
