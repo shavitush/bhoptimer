@@ -1203,9 +1203,9 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 		iLines++;
 
-		char limit[16];
-		Shavit_GetStyleSetting(data.iStyle, "velocity_limit", limit, 16);
-		if(StringToFloat(limit) > 0.0 && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, data.iTrack))
+		float limit = Shavit_GetStyleSettingFloat(data.iStyle, "velocity_limit");
+
+		if (limit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, data.iTrack))
 		{
 			if(gI_ZoneSpeedLimit[data.iTarget] == 0)
 			{
@@ -1610,10 +1610,8 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	}
 
 	char sPanelLine[128];
-	char autobhop[4];
-	Shavit_GetStyleSetting(style, "autobhop", autobhop, 4);
 
-	if(gB_BhopStats && !StringToInt(autobhop))
+	if(gB_BhopStats && !Shavit_GetStyleSettingBool(style, "autobhop"))
 	{
 		FormatEx(sPanelLine, 64, " %d%s%d\n", gI_ScrollCount[target], (gI_ScrollCount[target] > 9)? "   ":"     ", gI_LastScrollCount[target]);
 	}
@@ -1692,10 +1690,7 @@ void UpdateCenterKeys(int client)
 		style = 0;
 	}
 
-	char autobhop[4];
-	Shavit_GetStyleSetting(style, "autobhop", autobhop, 4);
-
-	if(gB_BhopStats && !StringToInt(autobhop) && IsValidClient(target))
+	if(gB_BhopStats && !Shavit_GetStyleSettingBool(style, "autobhop") && IsValidClient(target))
 	{
 		Format(sCenterText, sizeof(sCenterText), "%s\n　　%d　%d", sCenterText, gI_ScrollCount[target], gI_LastScrollCount[target]);
 	}
@@ -1909,17 +1904,11 @@ void UpdateKeyHint(int client)
 				style = 0;
 			}
 
-			char sync[4];
-			Shavit_GetStyleSetting(style, "sync", sync, 4);
-
-			char autobhop[4];
-			Shavit_GetStyleSetting(style, "autobhop", autobhop, 4);
-
-			if(!bReplay && (gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && StringToInt(sync) && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, track)))
+			if(!bReplay && (gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetTimerStatus(target) == Timer_Running && Shavit_GetStyleSettingBool(style, "sync") && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, track)))
 			{
 				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 
-				if(!StringToInt(autobhop) && (gI_HUD2Settings[client] & HUD2_PERFS) == 0)
+				if(!Shavit_GetStyleSettingBool(style, "autobhop") && (gI_HUD2Settings[client] & HUD2_PERFS) == 0)
 				{	
 					Format(sMessage, 256, "%s\n%T: %.1f", sMessage, "HudPerfs", client, Shavit_GetPerfectJumps(target));
 				}
