@@ -221,7 +221,8 @@ bot_info_t gA_BotInfo[MAXPLAYERS+1];
 
 // hooks and sdkcall stuff
 Handle gH_BotAddCommand = INVALID_HANDLE;
-Handle gH_DoAnimationEvent = INVALID_HANDLE ;
+Handle gH_DoAnimationEvent = INVALID_HANDLE;
+DynamicHook gH_UpdateStepSound = null;
 DynamicDetour gH_MaintainBotQuota = null;
 DynamicDetour gH_TeamFull = null;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
@@ -236,6 +237,7 @@ bool gB_HideNameChange = false;
 
 // plugin cvars
 Convar gCV_Enabled = null;
+Convar gCV_BotFootsteps = null;
 Convar gCV_ReplayDelay = null;
 Convar gCV_DefaultTeam = null;
 Convar gCV_CentralBot = null;
@@ -414,6 +416,7 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_Enabled = new Convar("shavit_replay_bot_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
+	gCV_BotFootsteps = new Convar("shavit_replay_bot_footsteps", "1", "Enable footstep sounds for replay bots.", 0, true, 0.0, true, 1.0);
 	gCV_ReplayDelay = new Convar("shavit_replay_delay", "2.5", "Time to wait before restarting the replay after it finishes playing.", 0, true, 0.0, true, 10.0);
 	gCV_DefaultTeam = new Convar("shavit_replay_defaultteam", "3", "Default team to make the bots join, if possible.\n2 - Terrorists/RED\n3 - Counter Terrorists/BLU", 0, true, 2.0, true, 3.0);
 	gCV_CentralBot = new Convar("shavit_replay_centralbot", "1", "Have one central bot instead of one bot per replay.\nTriggered with !replay.\nRestart the map for changes to take effect.\nThe disabled setting is not supported - use at your own risk.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -489,6 +492,7 @@ public void OnPluginStart()
 
 void LoadDHooks()
 {
+	int iOffset.
 	GameData gamedata = new GameData("shavit.games");
 
 	if (gamedata == null)
@@ -583,6 +587,18 @@ void LoadDHooks()
 	}
 
 	gH_DoAnimationEvent = EndPrepSDKCall();
+
+	if ((iOffset = GameConfGetOffset(hGameData, "CBasePlayer::UpdateStepSound")) != -1)
+	{
+		gH_UpdateStepSound = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
+		gH_UpdateStepSound.AddParam(HookParamType_ObjectPtr);
+		gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
+		gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
+	}
+	else
+	{
+		LogError("Couldn't get the offset for \"CBasePlayer::UpdateStepSound\" - make sure your gamedata is updated!");
+	}
 
 	delete gamedata;
 }
@@ -2221,6 +2237,12 @@ public void OnClientPutInServer(int client)
 		char sName[MAX_NAME_LENGTH];
 		FillBotName(gA_BotInfo_Temp, sName);
 		SetClientName(client, sName);
+
+		if (gCV_BotFootsteps.BoolValue && gH_UpdateStepSound != null)
+		{
+			gH_UpdateStepSound.HookEntity(Hook_Pre,  client, Hook_UpdateStepSound_Pre);
+			gH_UpdateStepSound.HookEntity(Hook_Post, client, Hook_UpdateStepSound_Post);
+		}
 	}
 }
 
@@ -2245,6 +2267,32 @@ public Action HookTriggers(int entity, int other)
 	}
 
 	return Plugin_Continue;
+}
+
+// Remove flags from replay bots that cause CBasePlayer::UpdateStepSound to return without playing a footstep.
+public MRESReturn Hook_UpdateStepSound_Pre(int pThis, DHookParam hParams)
+{
+	if (GetEntityMoveType(pThis) == MOVETYPE_NOCLIP)
+	{
+		SetEntityMoveType(pThis, MOVETYPE_WALK);
+	}
+
+	SetEntityFlags(pThis, GetEntityFlags(pThis) & ~FL_ATCONTROLS);
+
+	return MRES_Ignored;
+}
+
+// Readd flags to replay bots now that CBasePlayer::UpdateStepSound is done.
+public MRESReturn Hook_UpdateStepSound_Post(int pThis, DHookParam hParams)
+{
+	if (GetEntityMoveType(pThis) == MOVETYPE_WALK)
+	{
+		SetEntityMoveType(pThis, MOVETYPE_NOCLIP);
+	}
+
+	SetEntityFlags(pThis, GetEntityFlags(pThis) | FL_ATCONTROLS);
+
+	return MRES_Ignored;
 }
 
 void FormatStyle(const char[] source, int style, bool central, int track, char dest[MAX_NAME_LENGTH], bool idle, frame_cache_t aCache, int type)

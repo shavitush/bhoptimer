@@ -137,7 +137,6 @@ Convar gCV_StopTimerWarning = null;
 Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
 Convar gCV_RestrictNoclip = null;
-Convar gCV_BotFootsteps = null;
 Convar gCV_SpecScoreboardOrder = null;
 ConVar gCV_ExperimentalSegmentedEyeAngleFix = null;
 ConVar gCV_PauseMovement = null;
@@ -160,7 +159,6 @@ Handle gH_Forwards_OnCheckpointMenuMade = null;
 Handle gH_Forwards_OnCheckpointMenuSelect = null;
 
 // dhooks
-DynamicHook gH_UpdateStepSound = null;
 DynamicHook gH_IsSpawnPointValid = null;
 DynamicDetour gH_CalcPlayerScore = null;
 Handle gH_PhysicsCheckForEntityUntouch;
@@ -344,7 +342,6 @@ public void OnPluginStart()
 	gCV_WRMessages = new Convar("shavit_misc_wrmessages", "3", "How many \"NEW <style> WR!!!\" messages to print?\n0 - Disabled", 0,  true, 0.0, true, 100.0);
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "1", "Should bhop (landing and jumping) sounds be muted?\n0 - Disabled\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 0.0, true, 2.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
-	gCV_BotFootsteps = new Convar("shavit_misc_botfootsteps", "1", "Enable footstep sounds for replay bots. Only works if shavit_misc_bhopsounds is less than 2.", 0, true, 0.0, true, 1.0);
 	gCV_ExperimentalSegmentedEyeAngleFix = new Convar("shavit_misc_experimental_segmented_eyeangle_fix", "1", "When teleporting to a segmented checkpoint, the player's old eye-angles persist in replay-frames for as many ticks they're behind the server in latency. This applies the teleport-position angles to the replay-frame for that many ticks.", 0, true, 0.0, true, 1.0);
 	gCV_SpecScoreboardOrder = new Convar("shavit_misc_spec_scoreboard_order", "1", "Use scoreboard ordering for players when changing target when spectating.", 0, true, 0.0, true, 1.0);
 
@@ -406,18 +403,6 @@ void LoadDHooks()
 		{
 			LogError("Couldn't get the address for \"CTFGameRules::CalcPlayerScore\" - make sure your gamedata is updated!");
 		}
-	}
-
-	if ((iOffset = GameConfGetOffset(hGameData, "CBasePlayer::UpdateStepSound")) != -1)
-	{
-		gH_UpdateStepSound = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
-		gH_UpdateStepSound.AddParam(HookParamType_ObjectPtr);
-		gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
-		gH_UpdateStepSound.AddParam(HookParamType_VectorPtr);
-	}
-	else
-	{
-		LogError("Couldn't get the offset for \"CBasePlayer::UpdateStepSound\" - make sure your gamedata is updated!");
 	}
 
 	if ((iOffset = GameConfGetOffset(hGameData, "CGameRules::IsSpawnPointValid")) != -1)
@@ -1051,32 +1036,6 @@ public Action Command_Radio(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
-// Remove flags from replay bots that cause CBasePlayer::UpdateStepSound to return without playing a footstep.
-public MRESReturn Hook_UpdateStepSound_Pre(int pThis, DHookParam hParams)
-{
-	if (GetEntityMoveType(pThis) == MOVETYPE_NOCLIP)
-	{
-		SetEntityMoveType(pThis, MOVETYPE_WALK);
-	}
-
-	SetEntityFlags(pThis, GetEntityFlags(pThis) & ~FL_ATCONTROLS);
-
-	return MRES_Ignored;
-}
-
-// Readd flags to replay bots now that CBasePlayer::UpdateStepSound is done.
-public MRESReturn Hook_UpdateStepSound_Post(int pThis, DHookParam hParams)
-{
-	if (GetEntityMoveType(pThis) == MOVETYPE_WALK)
-	{
-		SetEntityMoveType(pThis, MOVETYPE_NOCLIP);
-	}
-
-	SetEntityFlags(pThis, GetEntityFlags(pThis) | FL_ATCONTROLS);
-
-	return MRES_Ignored;
-}
-
 public Action Timer_Cron(Handle timer)
 {
 	if(gCV_HideRadar.BoolValue && gEV_Type == Engine_CSS)
@@ -1485,11 +1444,6 @@ public void OnClientPutInServer(int client)
 
 	if(IsFakeClient(client))
 	{
-		if (gCV_BotFootsteps.BoolValue && gH_UpdateStepSound != null)
-		{
-			gH_UpdateStepSound.HookEntity(Hook_Pre,  client, Hook_UpdateStepSound_Pre);
-			gH_UpdateStepSound.HookEntity(Hook_Post, client, Hook_UpdateStepSound_Post);
-		}
 		return;
 	}
 
