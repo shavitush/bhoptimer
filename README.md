@@ -22,7 +22,7 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 
 # Optional requirements, for the best experience:
 * [eventqueuefix](https://github.com/hermansimensen/eventqueue-fix)
-  * Allows for timescaling boosters and is used to fix some exploits. (Use this isntead of `boosterfix`)
+  * Allows for timescaling boosters and is used to fix some exploits. (Use this instead of `boosterfix`)
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135)
   * Used for scroll styles and also required for TF2.
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
