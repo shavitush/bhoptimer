@@ -19,7 +19,10 @@
  */
 
 #include <sourcemod>
-#include <shavit/shavit-replay-stocks.sp>
+
+#include <shavit>
+
+#include <shavit/shavit-replay-stocks>
 
 public Plugin myinfo =
 {

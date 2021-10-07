@@ -29,7 +29,7 @@
 #include <shavit>
 #include <adminmenu>
 
-#include <shavit/shavit-replay-stocks.sp>
+#include <shavit/shavit-replay-stocks>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
