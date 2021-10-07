@@ -3697,7 +3697,7 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 	return Plugin_Stop;
 }
 
-public Action EffectDispatch(const char[] te_name, const Players[], int numClients, float delay)
+public Action EffectDispatch(const char[] te_name, const int[] Players, int numClients, float delay)
 {
 	if(!gCV_NoBlood.BoolValue)
 	{
@@ -3729,7 +3729,7 @@ public Action EffectDispatch(const char[] te_name, const Players[], int numClien
 	return Plugin_Continue;
 }
 
-public Action WorldDecal(const char[] te_name, const Players[], int numClients, float delay)
+public Action WorldDecal(const char[] te_name, const int[] Players, int numClients, float delay)
 {
 	if(!gCV_NoBlood.BoolValue)
 	{
