@@ -1,37 +1,48 @@
-# shavit's bhoptimer
+[![Discord server](https://discordapp.com/api/guilds/389675819959844865/widget.png?style=shield)](https://discord.gg/jyA9q5k)
 
-bhoptimer is (nearly) an all-in-one server plugin for the games Counter-Strike: Source, Counter-Strike: Global Offensive and Team Fortress 2.  
-It's responsible for adding a 'timer system' and many other utilities, so you can install it and have a proper bunnyhop (or any other movement gamemode) server running smoothly!
+### RECOMPILE ALL YOUR PLUGINS THAT USE `#include <shavit>` OR STUFF WILL BREAK
 
-It includes a records system, map zones (start/end marks and such), bonuses, HUD-type OSD with useful information, chat processor and rankings integration, miscellaneous such as weapon commands/spawn point generator, bots that replay the best records of the map, record sounds, interesting statistics, a fair & competitive rankings system and more!
+[AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
 
-## Requirements
+[Download](https://github.com/shavitush/bhoptimer/releases)
 
-* Legal copy of either CS:S, CS:GO or TF2.
-* [Metamod: Source](http://sourcemm.net/downloads.php?branch=stable)
-* [SourceMod 1.10 or above](http://www.sourcemod.net/downloads.php?branch=dev)
+# shavit's bhop timer
 
-# Optional Requirements
+This is nearly an all-in-one server plugin suite for Counter-Strike: Source, Counter-Strike: Global Offensive, and Team Fortress 2 that adds a timer system and many other utilities, so you can install it and run a proper bunnyhop server.
 
-Install these for the best experience.
+Includes a records system, map zones (start/end marks etc), bonuses, HUD with useful information, chat processor, miscellaneous things such as weapon commands/spawn point generator, bots that replay the best records of the map, sounds, statistics, segmented running, a fair & competitive rankings system, and more!
 
-* [DHooks](http://users.alliedmods.net/%7Edrifter/builds/dhooks/2.1/)
+[Mapzones Setup Demonstration](https://youtu.be/OXFMGm40F6c)
+
+# Requirements:
+* Steam version of Counter-Strike: Source, Counter-Strike: Global Offensive, or Team Fortress 2.
+* [Metamod:Source](https://www.sourcemm.net/downloads.php?branch=stable) and [SourceMod 1.10 or above](https://www.sourcemod.net/downloads.php?branch=stable) installed.
+* A MySQL database (preferably locally hosted) if your database is likely to grow big, or if you want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is required.
+* [DHooks](https://github.com/peace-maker/DHooks2/releases)
+
+# Optional requirements, for the best experience:
+* [eventqueuefix](https://github.com/hermansimensen/eventqueue-fix)
+  * Allows for timescaling boosters and is used to fix some exploits. (Use this isntead of `boosterfix`)
 * [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135)
+  * Used for scroll styles and also required for TF2.
+* [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
+  * Used to grab `{serverip}` in advertisements.
+* [DynamicChannels](https://github.com/Vauff/DynamicChannels)
 
-## Installation
+# Installation
 
 * [Build from source](https://github.com/shavitush/bhoptimer/wiki/1.-Installation)
 * [Download an existing release](https://github.com/shavitush/bhoptimer/releases) - installing is simply drag & drop into the  game server's directory.
 
-## Configuration
+# Configuration
 
 The [wiki](https://github.com/shavitush/bhoptimer/wiki) contains most relevant information regarding configuration, under the 2nd category's pages.
 
 Configuration files are in `cfg/sourcemod/plugin.shavit-*.cfg` and `addons/sourcemod/configs/shavit-*`.
 
-## Modules
+# bhoptimer modules:
 
-#### shavit-core (REQUIRED)
+### shavit-core (REQUIRED)
 `bhoptimer`'s core.  
 It handles connections to the database and exposes an API (natives/forwards) for developers and other modules.  
 Calculations, gameplay mechanics and such are all handled by the core plugin.
@@ -50,7 +61,23 @@ Player commands:
 !auto, !autobhop - Toggle autobhop.
 ```
 
-#### shavit-zones (REQUIRED)
+### shavit-wr (REQUIRED)
+Saves the players' records to the database and allows players to see the server's records.  
+The ability to see records for other maps also exists and can be lazily looked up (!wr map_name, or a part of the map's name).
+
+```
+Player commands:
+!wr, !worldrecord - View the leaderboard of a map. Usage: !wr [map]
+!bwr, !bworldrecord, !bonusworldrecord - View the *bonus* leaderboard of a map. Usage: !bwr [map]
+!recent, !recentrecords, !rr - View the recent #1 times set.
+
+Admin commands: (RCON flag)
+!delete, !deleterecord, !deleterecords - Opens a record deletion menu interface.
+!deletall - Deletes all the records for this map.
+!deletestylerecords - Deletes all the records for a style.
+```
+
+### shavit-zones (REQUIRED)
 The zones plugins handles everything related to map zones (such as start/end zone etc) and is necessary for `bhoptimer` to operate.  
 Zones are trigger based and are very lightweight.
 
@@ -67,12 +94,13 @@ Admin commands: (RCON flag)
 !addspawn - Adds a custom spawn location.
 !delspawn - Deletes a custom spawn location.
 !zoneedit, !editzone, !modifyzone - Modify an existing zone.
+!setstart, !spawnpoint, !ss, !sp - Set your restart position & angles in a start zone.
 
 Admin commands: (ROOT flag)
 !reloadzonesettings - Reloads the zone settings.
 ```
 
-#### shavit-chat
+### shavit-chat
 The chat plugin manipulates chat messages sent by players.  
 It includes custom chat names, tags, colors and all can be defined by the players/admins.  
 Admins need the chat flag, or the "shavit_chat" override (good for a donator perk).  
@@ -87,28 +115,33 @@ Player commands:
 !chatrank, !chatranks - View a menu with the chat ranks available to you.
 
 Admin commands: (CHAT flag)
+!ccadd - Give a user ccname & ccmsg access by steamid. Usage: !ccadd <steamid>
+!ccdelete - Remove a user's ccname & ccmsg access that was granted by !ccadd. Usage: !ccdelete <steamid>
 !cclist - Print the custom chat setting of all online players.
 
 Admin commands: (ROOT flag)
 !reloadchatranks - Reloads the chatranks config file.
 ```
 
-#### shavit-hud
+### shavit-hud
 The HUD plugin is `bhoptimer`'s OSD frontend.  
 It shows most (if not all) of the information that the player needs to see.  
 `shavit-hud` integrates with [Bunnyhop Statistics](https://github.com/shavitush/bhopstats) for CS:S.
 
-Some features are: Per-player settings (!hud), truevel and gradient-like display (CS:GO).
+Some features are: Per-player settings (!hud), truevel, and gradient-like display (CS:GO).
 
 ```
 Player commands:
 !hud, !options - Opens the HUD settings menu.
 ```
 
-#### shavit-misc
+### shavit-mapchooser
+Replaces `mapchooser` to provide `bhoptimer` integration into nomination and map vote menus.
+
+### shavit-misc
 This plugin handles miscellaneous things used in bunnyhop servers.
 
-Such as: Team handling (respawning/spectating too), spectators list (!specs), smart player hiding that works for spectating too, teleportation to other players, weapon commands (!knife/!usp/!glock) and ammo management, segmented checkpoints, noclipping (can be set to work for VIPs/admins only), drop-all, godmode, prespeed blocking, prespeed limitation, chat tidying, radar hiding, weapon drop cleaning, player collision removal, auto-respawning, spawn points generator, radio removal, scoreboard manipulation, model opacity changes, fixed runspeed, automatic and configurable chat advertisements, player ragdoll removal and WR messages.
+Such as: Segmented runs, team handling (respawning/spectating too), spectators list (!specs), smart player hiding that works for spectating too, teleportation to other players, weapon commands (!knife/!usp/!glock) and ammo management, segmented checkpoints, noclipping (can be set to work for VIPs/admins only), drop-all, godmode, prespeed blocking, prespeed limitation, chat tidying, radar hiding, weapon drop cleaning, player collision removal, auto-respawning, spawn points generator, radio removal, scoreboard manipulation, model opacity changes, fixed runspeed, automatic and configurable chat advertisements, player ragdoll removal, and WR messages.
 
 ```
 Player commands:
@@ -120,10 +153,10 @@ Player commands:
 !cp, !cpmenu, !checkpoint, !checkpoints - Opens the checkpoints menu.
 !save - Saves checkpoint (default: 1). Usage: !save [number]
 !tele - Teleports to checkpoint (default: 1). Usage: !tele [number]
-!p, !prac, !practice, !nc, !noclipme, +noclip - Toggles noclip.
+!nc, !prac, !practice, !noclipme, +noclip, sm_noclip - Toggles noclip.
 ```
 
-#### shavit-rankings
+### shavit-rankings
 Enables !rank, !top and introduces map tiers (!settier).  
 Each record gets points assigned to it according to the map's tier and overall - how good the time is.  
 This system doesn't allow "rank grinding" by beating all of the easy maps on the server but instead, awards the players that get the best times on the hardest maps and styles.
@@ -142,47 +175,57 @@ Admin commands: (ROOT flag)
 !recalcall - Recalculate the points for every map on the server. Run this after you change the ranking multiplier for a style or after you install the plugin.
 ```
 
-#### shavit-replay
+### shavit-replay
 Creates a replay bot that records the players' world records and playback them on command (!replay/automatic).  
 The replay bot playback can be stopped (if central) and the saved replay can be deleted by server administrators.  
 Replay bots will change their clan tags/names according to the server's configuration.
 
 ```
 Player commands:
-!replay - Opens the central bot menu. For admins: '!replay stop' to stop the playback.
+!replay - Opens the replay bot menu.
 
 Admin commands: (RCON flag)
 !deletereplay - Open replay deletion menu.
 ```
 
-#### shavit-sounds
+### shavit-sounds
 Will play custom sounds when event actions happen.  
 Such as: Getting a world record, improving your own record, getting the worst record in the server, beating a map for the first time or setting a rank #X record.
 
-#### shavit-stats
+### shavit-stats
 The statistics plugin is a statistics frontend for the players.  
-It displays rankings, maps done, maps left, server records, SteamID, country, map completion, last login date and more useful information!
+It displays rankings, maps done, maps left, server records, SteamID, country, map completion, last login date, and more useful information!
 
 ```
 Player commands:
-!profile, !stats - Show the player's profile. Usage: !profile [target]
+!p, !profile, !stats - Show the player's profile. Usage: !profile [target]
 ```
 
-#### shavit-timelimit
+### shavit-timelimit
 Sets a dynamic map time limit according to the average completion time of the map.
 
-#### shavit-wr
-Saves the players' records to the database and allows players to see the server's records.  
-The ability to see records for other maps also exists and can be lazily looked up (!wr map_name, or a part of the map's name).
+# Recommended plugins:
+* [MomSurfFix](https://forums.alliedmods.net/showthread.php?p=2680743) ([github](https://github.com/GAMMACASE/MomSurfFix))
+  - Makes surf ramps less likely to stop players. (Ramp bug / surf glitch)
+* [RNGFix](https://forums.alliedmods.net/showthread.php?t=310825) ([github](https://github.com/jason-e/rngfix))
+  - Makes slopes, teleporters, and more less random. Replaces `slopefix`
+* [HeadBugFix](https://github.com/GAMMACASE/HeadBugFix)
+  - Fixes head bounding boxes when ducking so it's not possible to touch triggers through a roof.
+* [Showtriggers](https://forums.alliedmods.net/showthread.php?t=290356) ([github](https://github.com/1ci/showtriggers)) or [Eric's Edit](https://github.com/ecsr/showtriggers)
+  - Allows players to toggle trigger visibility.
+* [ShowPlayerClips](https://forums.alliedmods.net/showthread.php?p=2661942) ([github](https://github.com/GAMMACASE/ShowPlayerClips))
+  - Allows players to toggle player clip visibility.
+* [shavit-ssj](https://github.com/Nairdaa/shavit-ssj)
+  - Speed of Sixth Jump + more, customisable settings with cookies remembering user prefered settings.
+* [shavit-jhud](https://github.com/blankbhop/jhud)
+  - Jump HUD for bhoptimer. !jhud for settings.
+* [shavit-firstjumptick](https://github.com/Nairdaa/bhoptimer-firstjumptick)
+  - Displays what tick the player first jumps at upon leaving the startzone. Very useful for strafe maps, where you tryhard to cut that tick or two. !fjt to enable.
+* [sm_closestpos](https://github.com/rtldg/sm_closestpos)
+  - C++ extension to efficiently find the closest replay position for calculating time-difference and velocity-difference.
+* [mpbhops_but_better](https://github.com/rtldg/mpbhops_but_working)
+  - A cleaner and faster mpbhops/mpbh plugin that also makes door vertical-boosters consistent and frozen.
 
-```
-Player commands:
-!wr, !worldrecord - View the leaderboard of a map. Usage: !wr [map]
-!bwr, !bworldrecord, !bonusworldrecord - View the *bonus* leaderboard of a map. Usage: !bwr [map]
-!recent, !recentrecords, !rr - View the recent #1 times set.
-
-Admin commands: (RCON flag)
-!delete, !deleterecord, !deleterecords - Opens a record deletion menu interface.
-!deletall - Deletes all the records for this map.
-!deletestylerecords - Deletes all the records for a style.
-```
+### CS:GO
+* [NoViewPunch](https://github.com/hermansimensen/NoViewPunch)
+  - Removes the viewpunch from landing in CS:GO.

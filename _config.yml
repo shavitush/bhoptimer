@@ -1,1 +1,16 @@
-theme: jekyll-theme-cayman
+
+remote_theme: "dracula/gh-pages"
+show_downloads: true
+show_header: true
+
+github:
+  owner_url: https://github.com/shavitush/bhoptimer
+  owner_name: rtldg # just so people don't go and bug shavit
+  zip_url: https://github.com/shavitush/bhoptimer/releases/download/v3.0.8/bhoptimer-v3.0.8.zip
+  tar_url: false
+
+sass:
+  style: compressed
+
+plugins:
+  - jekyll-seo-tag
