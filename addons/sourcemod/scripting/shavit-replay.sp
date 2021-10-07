@@ -29,6 +29,8 @@
 #include <shavit>
 #include <adminmenu>
 
+#include <shavit/shavit-replay-stocks.sp>
+
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 #include <tf2>
@@ -492,7 +494,7 @@ public void OnPluginStart()
 
 void LoadDHooks()
 {
-	int iOffset.
+	int iOffset;
 	GameData gamedata = new GameData("shavit.games");
 
 	if (gamedata == null)
@@ -588,7 +590,7 @@ void LoadDHooks()
 
 	gH_DoAnimationEvent = EndPrepSDKCall();
 
-	if ((iOffset = GameConfGetOffset(hGameData, "CBasePlayer::UpdateStepSound")) != -1)
+	if ((iOffset = GameConfGetOffset(gamedata, "CBasePlayer::UpdateStepSound")) != -1)
 	{
 		gH_UpdateStepSound = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
 		gH_UpdateStepSound.AddParam(HookParamType_ObjectPtr);
@@ -1601,7 +1603,7 @@ public void OnMapStart()
 
 	PrecacheModel((gEV_Type == Engine_TF2)? "models/error.mdl":"models/props/cs_office/vending_machine.mdl");
 
-	Shavit_Replay_CreateDirectories(gS_ReplayFolder);
+	Shavit_Replay_CreateDirectories(gS_ReplayFolder, gI_Styles);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -1659,7 +1661,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	gI_TimeDifferenceStyle[client] = newstyle;
 }
 
-void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames)
+public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, int preframes, int postframes, const char[] name)
 {
 	if (!isbestreplay || istoolong)
 	{
@@ -1668,7 +1670,7 @@ void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int stra
 
 	delete gA_FrameCache[style][track].aFrames;
 	gA_FrameCache[style][track].aFrames = view_as<ArrayList>(CloneHandle(frames));
-	gA_FrameCache[style][track].iFrameCount = iSize - preframes - postframes;
+	gA_FrameCache[style][track].iFrameCount = frames.Length - preframes - postframes;
 	gA_FrameCache[style][track].fTime = time;
 	gA_FrameCache[style][track].iReplayVersion = REPLAY_FORMAT_SUBVERSION;
 	gA_FrameCache[style][track].bNewFormat = true;
@@ -2787,12 +2789,6 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 	}
 
 	return Plugin_Changed;
-}
-
-int LimitMoveVelFloat(float vel)
-{
-	int x = RoundToCeil(vel);
-	return ((x < -666) ? -666 : ((x > 666) ? 666 : x)) & 0xFFFF;
 }
 
 // OnPlayerRunCmd instead of Shavit_OnUserCmdPre because bots are also used here.

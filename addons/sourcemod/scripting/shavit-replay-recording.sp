@@ -79,7 +79,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	gH_ShouldSaveReplayCopy = CreateGlobalForward("Shavit_ShouldSaveReplayCopy", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
-	gH_OnReplaySaved = CreateGlobalForward("Shavit_OnReplaySaved", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell);
+	gH_OnReplaySaved = CreateGlobalForward("Shavit_OnReplaySaved", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_String);
 
 	gCV_Enabled = new Convar("shavit_replay_recording_enabled", "1", "Enable replay bot functionality?", 0, true, 0.0, true, 1.0);
 	gCV_PlaybackPostRunTime = new Convar("shavit_replay_postruntime", "1.5", "Time (in seconds) to record after a player enters the end zone.", 0, true, 0.0, true, 2.0);
@@ -127,7 +127,7 @@ public void OnMapStart()
 
 	GetLowercaseMapName(gS_Map);
 
-	Shavit_Replay_CreateDirectories(gS_ReplayFolder);
+	Shavit_Replay_CreateDirectories(gS_ReplayFolder, gI_Styles);
 }
 
 public void OnClientPutInServer(int client)
@@ -303,6 +303,9 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	Call_PushCell(makeCopy);
 	Call_PushString(sPath);
 	Call_PushCell(gA_PlayerFrames[client]);
+	Call_PushCell(preframes);
+	Call_PushCell(postframes);
+	Call_PushString(sName);
 	Call_Finish();
 
 	ClearFrames(client);
@@ -437,6 +440,12 @@ void WriteReplayHeader(File fFile, int style, int track, float time, int steamid
 
 	fFile.WriteInt32(view_as<int>(fZoneOffset[0]));
 	fFile.WriteInt32(view_as<int>(fZoneOffset[1]));
+}
+
+stock int LimitMoveVelFloat(float vel)
+{
+	int x = RoundToCeil(vel);
+	return ((x < -666) ? -666 : ((x > 666) ? 666 : x)) & 0xFFFF;
 }
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, int mouse[2])
