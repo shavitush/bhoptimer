@@ -393,6 +393,12 @@ stock Database GetTimerDatabaseHandle(bool reuse_persistent_connection=true)
 		db = SQLite_UseDatabase("shavit", sError, 255);
 	}
 
+	// support unicode names
+	if (!db.SetCharset("utf8mb4"))
+	{
+		db.SetCharset("utf8");
+	}
+
 	return db;
 }
 

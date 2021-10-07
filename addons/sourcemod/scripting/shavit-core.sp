@@ -2990,12 +2990,6 @@ void SQL_DBConnect()
 	gH_SQL = GetTimerDatabaseHandle2();
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
-	// support unicode names
-	if(!gH_SQL.SetCharset("utf8mb4"))
-	{
-		gH_SQL.SetCharset("utf8");
-	}
-
 	CreateUsersTable();
 }
 
