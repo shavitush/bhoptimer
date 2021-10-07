@@ -1172,7 +1172,15 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 		if((gI_HUD2Settings[client] & HUD2_STRAFE) == 0)
 		{
-			FormatEx(sLine, 128, "%T: %d", "HudStrafeText", client, data.iStrafes);
+			if((gI_HUD2Settings[client] & HUD2_SYNC) == 0)
+			{
+				FormatEx(sLine, 128, "%T: %d (%.1f%%%%)", "HudStrafeText", client, data.iStrafes, data.fSync);
+			}
+			else
+			{
+				FormatEx(sLine, 128, "%T: %d", "HudStrafeText", client, data.iStrafes);
+			}
+			//FormatEx(sLine, 128, "%T: %d", "HudStrafeText", client, data.iStrafes);
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 			iLines++;
 		}
@@ -1448,9 +1456,8 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		{
 			if((gI_HUD2Settings[client] & HUD2_SYNC) == 0)
 			{
-				FormatEx(sLine, 128, "%d %T (%.1f%%)", data.iStrafes, "HudStrafeText", client, data.fSync);
+				FormatEx(sLine, 128, "%d %T (%.1f%%%%)", data.iStrafes, "HudStrafeText", client, data.fSync);
 			}
-
 			else
 			{
 				FormatEx(sLine, 128, "%d %T", data.iStrafes, "HudStrafeText", client);
