@@ -83,7 +83,7 @@ Zones are trigger based and are very lightweight.
 
 The zones plugin includes some less common features such as: Multiple tracks (main/bonus), zone editing (after setup), snapping zones to walls/corners/grid, zone setup using the cursor's position, configurable sprite/colors for zone types, zone tracks (main/bonus - can be extended), manual adjustments of coordinates before confirmations, teleport zones, glitch zones, no-limit zones (for styles like 400-velocity), flat/3D boxes for zone rendering, an API and more.
 
-It also contains support for built-in map timers (KZ) and the [Fly](https://github.com/3331/fly) zoning standard.
+It also contains support for built-in map timers (KZ) and the [Fly](https://github.com/PMArkive/fly) zoning standard.
 
 ```
 Admin commands: (RCON flag)
