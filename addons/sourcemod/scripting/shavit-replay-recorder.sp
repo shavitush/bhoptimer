@@ -70,6 +70,8 @@ Convar gCV_TimeLimit = null;
 Handle gH_ShouldSaveReplayCopy = null;
 Handle gH_OnReplaySaved = null;
 
+bool gB_RecordingEnabled[MAXPLAYERS+1]; // just a simple thing to prevent plugin reloads from recording half-replays
+
 // stuff related to postframes
 finished_run_info gA_FinishedRunInfo[MAXPLAYERS+1];
 bool gB_GrabbingPostFrames[MAXPLAYERS+1];
@@ -213,6 +215,8 @@ public void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newt
 
 public Action Shavit_OnStart(int client)
 {
+	gB_RecordingEnabled[client] = true;
+
 	gI_HijackFrames[client] = 0;
 
 	if (gB_GrabbingPostFrames[client])
@@ -490,7 +494,7 @@ void WriteReplayHeader(File fFile, int style, int track, float time, int steamid
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, int mouse[2])
 {
-	if (!gA_PlayerFrames[client])
+	if (!gA_PlayerFrames[client] || !gB_RecordingEnabled[client])
 	{
 		return Plugin_Continue;
 	}
