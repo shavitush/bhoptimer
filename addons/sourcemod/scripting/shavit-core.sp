@@ -31,12 +31,12 @@
 #include <shavit>
 #include <eventqueuefix>
 
+#include <shavit/shavit-physicsuntouch>
+
 #pragma newdecls required
 #pragma semicolon 1
 
 #define DEBUG 0
-
-#define EFL_CHECK_UNTOUCH (1<<24)
 
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
@@ -45,7 +45,6 @@ bool gB_Protobuf = false;
 // hook stuff
 DynamicHook gH_GetPlayerMaxSpeed = null;
 DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
-Handle gH_PhysicsCheckForEntityUntouch;
 
 // database handle
 Database2 gH_SQL = null;
@@ -444,12 +443,7 @@ void LoadDHooks()
 	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
 	DHookRaw(processMovementPost, true, IGameMovement);
 
-	StartPrepSDKCall(SDKCall_Entity);
-	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "PhysicsCheckForEntityUntouch"))
-	{
-		SetFailState("Failed to get PhysicsCheckForEntityUntouch");
-	}
-	gH_PhysicsCheckForEntityUntouch = EndPrepSDKCall();
+	LoadPhysicsUntouch(gamedataConf);
 
 	if (gEV_Type != Engine_TF2)
 	{
@@ -3033,22 +3027,13 @@ public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hRetu
 	return MRES_Supercede;
 }
 
-bool GetCheckUntouch(int client)
-{
-	int flags = GetEntProp(client, Prop_Data, "m_iEFlags");
-	return (flags & EFL_CHECK_UNTOUCH) != 0;
-}
-
 public MRESReturn DHook_ProcessMovement(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
 
 	// Causes client to do zone touching in movement instead of server frames.
 	// From https://github.com/rumourA/End-Touch-Fix
-	if(GetCheckUntouch(client))
-	{
-		SDKCall(gH_PhysicsCheckForEntityUntouch, client);
-	}
+	MaybeDoPhysicsUntouch(client);
 
 	Call_StartForward(gH_Forwards_OnProcessMovement);
 	Call_PushCell(client);
