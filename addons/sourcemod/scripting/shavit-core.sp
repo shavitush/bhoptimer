@@ -26,17 +26,19 @@
 #include <convar_class>
 #include <dhooks>
 
+#define DEBUG 0
+
 #undef REQUIRE_PLUGIN
 #define USES_CHAT_COLORS
 #include <shavit>
 #include <eventqueuefix>
 
-#include <shavit/shavit-physicsuntouch>
+#include <shavit/anti-sv_cheats.sp>
+#include <shavit/style-settings.sp>
+#include <shavit/physicsuntouch>
 
 #pragma newdecls required
 #pragma semicolon 1
-
-#define DEBUG 0
 
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
@@ -147,15 +149,8 @@ bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
 
-// flags
-int gI_StyleFlag[STYLE_LIMIT];
-char gS_StyleOverride[STYLE_LIMIT][32];
-
 // kz support
 bool gB_KZMap = false;
-
-#include <shavit/shavit-anti-sv_cheats.sp>
-#include <shavit/shavit-core-style-settings.sp>
 
 public Plugin myinfo =
 {
@@ -186,7 +181,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetZoneOffset", Native_GetZoneOffset);
 	CreateNative("Shavit_GetDistanceOffset", Native_GetDistanceOffset);
 	CreateNative("Shavit_GetTimerStatus", Native_GetTimerStatus);
-	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
 	CreateNative("Shavit_IsKZMap", Native_IsKZMap);
 	CreateNative("Shavit_IsPaused", Native_IsPaused);
 	CreateNative("Shavit_IsPracticeMode", Native_IsPracticeMode);
@@ -1495,18 +1489,6 @@ public int Native_GetBhopStyle(Handle handler, int numParams)
 public int Native_GetTimerStatus(Handle handler, int numParams)
 {
 	return view_as<int>(GetTimerStatus(GetNativeCell(1)));
-}
-
-public int Native_HasStyleAccess(Handle handler, int numParams)
-{
-	int style = GetNativeCell(2);
-
-	if(GetStyleSettingBool(style, "inaccessible") || GetStyleSettingInt(style, "enabled") <= 0)
-	{
-		return false;
-	}
-
-	return CheckCommandAccess(GetNativeCell(1), (strlen(gS_StyleOverride[style]) > 0)? gS_StyleOverride[style]:"<none>", gI_StyleFlag[style]);
 }
 
 public int Native_IsKZMap(Handle handler, int numParams)

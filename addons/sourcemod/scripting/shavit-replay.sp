@@ -29,8 +29,8 @@
 #include <shavit>
 #include <adminmenu>
 
-#include <shavit/shavit-replay-stocks>
-#include <shavit/shavit-replay-file>
+#include <shavit/replay-stocks>
+#include <shavit/replay-file>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>

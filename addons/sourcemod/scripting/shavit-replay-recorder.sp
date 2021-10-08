@@ -24,8 +24,8 @@
 
 #include <shavit>
 
-#include <shavit/shavit-replay-stocks>
-#include <shavit/shavit-replay-file>
+#include <shavit/replay-stocks>
+#include <shavit/replay-file>
 
 public Plugin myinfo =
 {

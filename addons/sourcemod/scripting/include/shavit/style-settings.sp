@@ -36,6 +36,8 @@ int gI_CurrentParserIndex = 0;
 StringMap gSM_StyleKeys[STYLE_LIMIT];
 StringMap gSM_StyleCommands = null;
 
+int gI_StyleFlag[STYLE_LIMIT];
+char gS_StyleOverride[STYLE_LIMIT][32];
 
 void Shavit_Style_Settings_Natives()
 {
@@ -47,6 +49,7 @@ void Shavit_Style_Settings_Natives()
 	CreateNative("Shavit_GetStyleSettingBool", Native_GetStyleSettingBool);
 	CreateNative("Shavit_GetStyleSettingFloat", Native_GetStyleSettingFloat);
 
+	CreateNative("Shavit_HasStyleAccess", Native_HasStyleAccess);
 	CreateNative("Shavit_HasStyleSetting", Native_HasStyleSetting);
 
 	CreateNative("Shavit_SetStyleSetting", Native_SetStyleSetting);
@@ -568,4 +571,16 @@ public int Native_GetStyleStringsStruct(Handle plugin, int numParams)
 	GetStyleSetting(style, "permission", strings.sStylePermission, sizeof(strings.sStylePermission));
 
 	return SetNativeArray(2, strings, sizeof(stylestrings_t));
+}
+
+public int Native_HasStyleAccess(Handle handler, int numParams)
+{
+	int style = GetNativeCell(2);
+
+	if (GetStyleSettingBool(style, "inaccessible") || GetStyleSettingInt(style, "enabled") <= 0)
+	{
+		return false;
+	}
+
+	return CheckCommandAccess(GetNativeCell(1), (strlen(gS_StyleOverride[style]) > 0)? gS_StyleOverride[style]:"<none>", gI_StyleFlag[style]);
 }

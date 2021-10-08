@@ -35,7 +35,7 @@
 #include <shavit>
 #include <eventqueuefix>
 
-#include <shavit/shavit-physicsuntouch>
+#include <shavit/physicsuntouch>
 
 #pragma newdecls required
 #pragma semicolon 1
