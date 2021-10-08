@@ -269,6 +269,8 @@ enum struct frame_cache_t
 	// iReplayVersion >= 0x05
 	int iPostFrames;
 	float fTickrate;
+	// blah blah not affected by iReplayVersion
+	int iSteamID;
 }
 
 stock void Shavit_LogQuery(const char[] query)

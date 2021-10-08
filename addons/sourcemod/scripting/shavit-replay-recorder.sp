@@ -25,6 +25,7 @@
 #include <shavit>
 
 #include <shavit/shavit-replay-stocks>
+#include <shavit/shavit-replay-file>
 
 public Plugin myinfo =
 {
@@ -34,8 +35,6 @@ public Plugin myinfo =
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
 }
-
-#define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
 enum struct finished_run_info
 {
@@ -424,72 +423,20 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 		fCopy = OpenFile(sPath, "wb");
 	}
 
-	if (saveWR)
+	if (fWR)
 	{
-		WriteReplayHeader(fWR, style, track, time, steamid, preframes, postframes, fZoneOffset, iSize);
+		WriteReplayHeader(fWR, style, track, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map);
 	}
 
-	if (saveCopy)
+	if (fCopy)
 	{
-		WriteReplayHeader(fCopy, style, track, time, steamid, preframes, postframes, fZoneOffset, iSize);
+		WriteReplayHeader(fCopy, style, track, time, steamid, preframes, postframes, fZoneOffset, iSize, gF_Tickrate, gS_Map);
 	}
 
-	any aFrameData[sizeof(frame_t)];
-	any aWriteData[sizeof(frame_t) * FRAMES_PER_WRITE];
-	int iFramesWritten = 0;
-
-	for(int i = 0; i < iSize; i++)
-	{
-		playerrecording.GetArray(i, aFrameData, sizeof(frame_t));
-
-		for(int j = 0; j < sizeof(frame_t); j++)
-		{
-			aWriteData[(sizeof(frame_t) * iFramesWritten) + j] = aFrameData[j];
-		}
-
-		if(++iFramesWritten == FRAMES_PER_WRITE || i == iSize - 1)
-		{
-			if (saveWR)
-			{
-				fWR.Write(aWriteData, sizeof(frame_t) * iFramesWritten, 4);
-			}
-
-			if (saveCopy)
-			{
-				fCopy.Write(aWriteData, sizeof(frame_t) * iFramesWritten, 4);
-			}
-
-			iFramesWritten = 0;
-		}
-	}
+	WriteReplayFrames(playerrecording, iSize, fWR, fCopy);
 
 	delete fWR;
 	delete fCopy;
-
-	if (!saveWR)
-	{
-		return;
-	}
-}
-
-void WriteReplayHeader(File fFile, int style, int track, float time, int steamid, int preframes, int postframes, float fZoneOffset[2], int iSize)
-{
-	fFile.WriteLine("%d:" ... REPLAY_FORMAT_FINAL, REPLAY_FORMAT_SUBVERSION);
-
-	fFile.WriteString(gS_Map, true);
-	fFile.WriteInt8(style);
-	fFile.WriteInt8(track);
-	fFile.WriteInt32(preframes);
-
-	fFile.WriteInt32(iSize - preframes - postframes);
-	fFile.WriteInt32(view_as<int>(time));
-	fFile.WriteInt32(steamid);
-
-	fFile.WriteInt32(postframes);
-	fFile.WriteInt32(view_as<int>(gF_Tickrate));
-
-	fFile.WriteInt32(view_as<int>(fZoneOffset[0]));
-	fFile.WriteInt32(view_as<int>(fZoneOffset[1]));
 }
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, int mouse[2])
