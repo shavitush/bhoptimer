@@ -191,7 +191,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ClearCheckpoints", Native_ClearCheckpoints);
 	CreateNative("Shavit_TeleportToCheckpoint", Native_TeleportToCheckpoint);
 	CreateNative("Shavit_GetTotalCheckpoints", Native_GetTotalCheckpoints);
-	CreateNative("Shavit_OpenCheckpointMenu", Native_OpenCheckpointMenu);
 	CreateNative("Shavit_SaveCheckpoint", Native_SaveCheckpoint);
 	CreateNative("Shavit_GetCurrentCheckpoint", Native_GetCurrentCheckpoint);
 	CreateNative("Shavit_SetCurrentCheckpoint", Native_SetCurrentCheckpoint);
@@ -3846,12 +3845,6 @@ public any Native_SetCurrentCheckpoint(Handle plugin, int numParams)
 	int index = GetNativeCell(2);
 	
 	gI_CurrentCheckpoint[client] = index;
-	return 0;
-}
-
-public any Native_OpenCheckpointMenu(Handle plugin, int numParams)
-{
-	OpenNormalCPMenu(GetNativeCell(1));
 	return 0;
 }
 

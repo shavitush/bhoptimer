@@ -2620,15 +2620,6 @@ native void Shavit_TeleportToCheckpoint(int client, int index, bool suppress = f
 native void Shavit_ClearCheckpoints(int client);
 
 /**
- * Opens checkpoint menu for a client
- *
- * @param client					Client index
- *
- * @noreturn
- */
-native void Shavit_OpenCheckpointMenu(int client);
-
-/**
  * Sets the clients dynamic timescale. -1.0 to use the timescale of the client's style.
  * Note: Values above 1.0 won't scale into the replay bot.
  *
