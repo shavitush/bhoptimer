@@ -1,10 +1,15 @@
 
+Handle gH_Forwards_OnStyleConfigLoaded = null;
+
 bool gB_StyleCommandsRegistered = false;
+
 int gI_Styles = 0;
 int gI_OrderedStyles[STYLE_LIMIT];
+int gI_CurrentParserIndex = 0;
+
 StringMap gSM_StyleKeys[STYLE_LIMIT];
 StringMap gSM_StyleCommands = null;
-int gI_CurrentParserIndex = 0;
+
 
 void Shavit_Style_Settings_Natives()
 {
@@ -25,6 +30,11 @@ void Shavit_Style_Settings_Natives()
 
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetStyleStringsStruct", Native_GetStyleStringsStruct);
+}
+
+void Shavit_Style_Settings_Forwards()
+{
+	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 }
 
 bool LoadStyles()

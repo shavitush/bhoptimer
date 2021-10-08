@@ -74,7 +74,6 @@ Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
 Handle gH_Forwards_OnStyleChanged = null;
 Handle gH_Forwards_OnTrackChanged = null;
-Handle gH_Forwards_OnStyleConfigLoaded = null;
 Handle gH_Forwards_OnDatabaseLoaded = null;
 Handle gH_Forwards_OnChatConfigLoaded = null;
 Handle gH_Forwards_OnUserCmdPre = null;
@@ -262,7 +261,6 @@ public void OnPluginStart()
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnTrackChanged = CreateGlobalForward("Shavit_OnTrackChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnStyleConfigLoaded = CreateGlobalForward("Shavit_OnStyleConfigLoaded", ET_Event, Param_Cell);
 	gH_Forwards_OnDatabaseLoaded = CreateGlobalForward("Shavit_OnDatabaseLoaded", ET_Event);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array, Param_Array);
@@ -272,6 +270,9 @@ public void OnPluginStart()
 	gH_Forwards_OnTimeOffsetCalculated = CreateGlobalForward("Shavit_OnTimeOffsetCalculated", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnProcessMovement = CreateGlobalForward("Shavit_OnProcessMovement", ET_Event, Param_Cell);
 	gH_Forwards_OnProcessMovementPost = CreateGlobalForward("Shavit_OnProcessMovementPost", ET_Event, Param_Cell);
+
+	Shavit_Style_Settings_Forwards();
+
 	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
 
