@@ -40,21 +40,6 @@
 //#include <TickRateControl>
 forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 
-// History of REPLAY_FORMAT_SUBVERSION:
-// 0x01: standard origin[3], angles[2], and buttons
-// 0x02: flags added movetype added
-// 0x03: integrity stuff: style, track, and map added to header. preframe count added (unimplemented until later though)
-// 0x04: steamid/accountid written as a 32-bit int instead of a string
-// 0x05: postframes & fTickrate added
-// 0x06: mousexy and vel added
-// 0x07: fixed iFrameCount because postframes were included in the value when they shouldn't be
-// 0x08: added zone-offsets to header
-
-#define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
-#define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x08
-#define REPLAY_FORMAT_CURRENT_USED_CELLS 8
-#define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 #define MAX_LOOPING_BOT_CONFIGS 24
 #define HACKY_CLIENT_IDX_PROP "m_iTeamNum" // I store the client owner idx in this for Replay_Prop. My brain is too powerful.
 
@@ -114,23 +99,6 @@ enum struct bot_info_t
 	bool b2x;
 	float fDelay;
 	frame_cache_t aCache;
-}
-
-enum struct finished_run_info
-{
-	int iSteamID;
-	int style;
-	float time;
-	int jumps;
-	int strafes;
-	float sync;
-	int track;
-	float oldtime;
-	float perfs;
-	float avgvel;
-	float maxvel;
-	int timestamp;
-	float fZoneOffset[2];
 }
 
 enum
@@ -1574,7 +1542,7 @@ void CreateAllNavFiles()
 
 public void OnMapStart()
 {
-	if(!LoadStyling())
+	if (!LoadStyling())
 	{
 		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
 	}

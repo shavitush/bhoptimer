@@ -19,6 +19,8 @@
  */
 
 #include <sourcemod>
+#include <sdktools>
+#include <convar_class>
 
 #include <shavit>
 
@@ -33,9 +35,30 @@ public Plugin myinfo =
 	url = "https://github.com/shavitush/bhoptimer"
 }
 
-bool gB_Late = false;
-EngineVersion gEV_Type = Engine_Unknown;
+#define FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
+enum struct finished_run_info
+{
+	int iSteamID;
+	int style;
+	float time;
+	int jumps;
+	int strafes;
+	float sync;
+	int track;
+	float oldtime;
+	float perfs;
+	float avgvel;
+	float maxvel;
+	int timestamp;
+	float fZoneOffset[2];
+}
+
+bool gB_Late = false;
+char gS_Map[PLATFORM_MAX_PATH];
+float gF_Tickrate = 0.0;
+
+int gI_Styles = 0;
 char gS_ReplayFolder[PLATFORM_MAX_PATH];
 
 Convar gCV_Enabled = null;
@@ -62,6 +85,8 @@ float gF_NextFrameTime[MAXPLAYERS+1];
 int gI_HijackFrames[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
 
+//#include <TickRateControl>
+forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -72,7 +97,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetReplayData", Native_SetReplayData);
 	CreateNative("Shavit_SetPlayerPreFrames", Native_SetPlayerPreFrames);
 
-	RegPluginLibrary("shavit-replay-humans");
+	RegPluginLibrary("shavit-replay-recorder");
 
 	gB_Late = late;
 
@@ -89,6 +114,19 @@ public void OnPluginStart()
 	gCV_PreRunAlways = new Convar("shavit_replay_prerun_always", "1", "Record prerun frames outside the start zone?", 0, true, 0.0, true, 1.0);
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.5", "Time (in seconds) to record before a player leaves start zone.", 0, true, 0.0, true, 2.0);
 	gCV_TimeLimit = new Convar("shavit_replay_timelimit", "7200.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 7200 (2 hours)\n0 - Disabled");
+
+	gF_Tickrate = (1.0 / GetTickInterval());
+
+	if (gB_Late)
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i) && !IsFakeClient(i))
+			{
+				OnClientPutInServer(i);
+			}
+		}
+	}
 }
 
 bool LoadReplayConfig()
@@ -150,6 +188,11 @@ public void OnClientDisconnect_Post(int client)
 {
 	// This runs after shavit-misc has cloned the handle
 	delete gA_PlayerFrames[client];
+}
+
+public void TickRate_OnTickRateChanged(float fOld, float fNew)
+{
+	gF_Tickrate = fNew;
 }
 
 void ClearFrames(int client)
@@ -250,7 +293,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 
 	bool isTooLong = (gCV_TimeLimit.FloatValue > 0.0 && time > gCV_TimeLimit.FloatValue);
 
-	float length = GetReplayLength(style, track, gA_FrameCache[style][track]);
+	float length = Shavit_GetReplayLength(style, track);
 	bool isBestReplay = (length == 0.0 || time < length);
 
 	Action action = Plugin_Continue;
@@ -306,7 +349,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	Call_PushCell(makeCopy);
 	Call_PushString(sPath);
 	Call_PushCell(gA_PlayerFrames[client]);
-	Call_PushCell(preframes);
+	Call_PushCell(gI_PlayerPrerunFrames[client]);
 	Call_PushCell(postframes);
 	Call_PushString(sName);
 	Call_Finish();
@@ -445,15 +488,14 @@ void WriteReplayHeader(File fFile, int style, int track, float time, int steamid
 	fFile.WriteInt32(view_as<int>(fZoneOffset[1]));
 }
 
-stock int LimitMoveVelFloat(float vel)
-{
-	int x = RoundToCeil(vel);
-	return ((x < -666) ? -666 : ((x > 666) ? 666 : x)) & 0xFFFF;
-}
-
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, int mouse[2])
 {
-	if (!gB_GrabbingPostFrames[client] || !(Shavit_ReplayEnabledStyle(style) && status == Timer_Running))
+	if (!gA_PlayerFrames[client])
+	{
+		return Plugin_Continue;
+	}
+
+	if (!gB_GrabbingPostFrames[client] && !(Shavit_ReplayEnabledStyle(style) && status == Timer_Running))
 	{
 		return Plugin_Continue;
 	}
@@ -472,7 +514,11 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 	if (gF_NextFrameTime[client] > 0.0)
 	{
-		gF_NextFrameTime[client] -= fTimescale;
+		if (fTimescale != -1.0)
+		{
+			gF_NextFrameTime[client] -= fTimescale;
+		}
+
 		return Plugin_Continue;
 	}
 
@@ -508,7 +554,10 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 	gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, aFrame, sizeof(frame_t));
 
-	gF_NextFrameTime[client] += (1.0 - fTimescale);
+	if (fTimescale != -1.0)
+	{
+		gF_NextFrameTime[client] += (1.0 - fTimescale);
+	}
 
 	return Plugin_Continue;
 }
