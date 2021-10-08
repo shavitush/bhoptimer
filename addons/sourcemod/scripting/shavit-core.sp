@@ -38,6 +38,13 @@
 
 #define EFL_CHECK_UNTOUCH (1<<24)
 
+enum struct style_setting_t
+{
+	int i;
+	float f;
+	char str[128];
+}
+
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Protobuf = false;
@@ -1237,10 +1244,9 @@ public Action Command_Style(int client, int args)
 		if(GetStyleSettingBool(iStyle, "unranked"))
 		{
 			char sName[64];
-			gSM_StyleKeys[iStyle].GetString("name", sName, 64);
+			GetStyleSetting(iStyle, "name", sName, sizeof(sName));
 			FormatEx(sDisplay, 64, "%T %s", "StyleUnranked", client, sName);
 		}
-
 		else
 		{
 			float time = 0.0;
@@ -1264,13 +1270,12 @@ public Action Command_Style(int client, int args)
 				}
 
 				char sName[64];
-				gSM_StyleKeys[iStyle].GetString("name", sName, 64);
+				GetStyleSetting(iStyle, "name", sName, sizeof(sName));
 				FormatEx(sDisplay, 64, "%s - %s: %s", sName, sWR, sTime);
 			}
-
 			else
 			{
-				gSM_StyleKeys[iStyle].GetString("name", sDisplay, 64);
+				GetStyleSetting(iStyle, "name", sDisplay, sizeof(sDisplay));
 			}
 		}
 
@@ -1403,7 +1408,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 		}
 
 		char sName[64];
-		gSM_StyleKeys[style].GetString("name", sName, 64);
+		GetStyleSetting(style, "name", sName, sizeof(sName));
 
 		Shavit_PrintToChat(client, "%T", "StyleSelection", client, gS_ChatStrings.sStyle, sName, gS_ChatStrings.sText);
 	}
@@ -2019,31 +2024,31 @@ public int Native_GetStyleStrings(Handle handler, int numParams)
 	{
 		case sStyleName:
 		{
-			gSM_StyleKeys[style].GetString("name", sValue, size);
+			GetStyleSetting(style, "name", sValue, size);
 		}
 		case sShortName:
 		{
-			gSM_StyleKeys[style].GetString("shortname", sValue, size);
+			GetStyleSetting(style, "shortname", sValue, size);
 		}
 		case sHTMLColor:
 		{
-			gSM_StyleKeys[style].GetString("htmlcolor", sValue, size);
+			GetStyleSetting(style, "htmlcolor", sValue, size);
 		}
 		case sChangeCommand:
 		{
-			gSM_StyleKeys[style].GetString("command", sValue, size);
+			GetStyleSetting(style, "command", sValue, size);
 		}
 		case sClanTag:
 		{
-			gSM_StyleKeys[style].GetString("clantag", sValue, size);
+			GetStyleSetting(style, "clantag", sValue, size);
 		}
 		case sSpecialString:
 		{
-			gSM_StyleKeys[style].GetString("specialstring", sValue, size);
+			GetStyleSetting(style, "specialstring", sValue, size);
 		}
 		case sStylePermission:
 		{
-			gSM_StyleKeys[style].GetString("permission", sValue, size);
+			GetStyleSetting(style, "permission", sValue, size);
 		}
 		default:
 		{
@@ -2064,13 +2069,13 @@ public int Native_GetStyleStringsStruct(Handle plugin, int numParams)
 	}
 
 	stylestrings_t strings;
-	gSM_StyleKeys[style].GetString("name", strings.sStyleName, sizeof(strings.sStyleName));
-	gSM_StyleKeys[style].GetString("shortname", strings.sShortName, sizeof(strings.sShortName));
-	gSM_StyleKeys[style].GetString("htmlcolor", strings.sHTMLColor, sizeof(strings.sHTMLColor));
-	gSM_StyleKeys[style].GetString("command", strings.sChangeCommand, sizeof(strings.sChangeCommand));
-	gSM_StyleKeys[style].GetString("clantag", strings.sClanTag, sizeof(strings.sClanTag));
-	gSM_StyleKeys[style].GetString("specialstring", strings.sSpecialString, sizeof(strings.sSpecialString));
-	gSM_StyleKeys[style].GetString("permission", strings.sStylePermission, sizeof(strings.sStylePermission));
+	GetStyleSetting(style, "name", strings.sStyleName, sizeof(strings.sStyleName));
+	GetStyleSetting(style, "shortname", strings.sShortName, sizeof(strings.sShortName));
+	GetStyleSetting(style, "htmlcolor", strings.sHTMLColor, sizeof(strings.sHTMLColor));
+	GetStyleSetting(style, "command", strings.sChangeCommand, sizeof(strings.sChangeCommand));
+	GetStyleSetting(style, "clantag", strings.sClanTag, sizeof(strings.sClanTag));
+	GetStyleSetting(style, "specialstring", strings.sSpecialString, sizeof(strings.sSpecialString));
+	GetStyleSetting(style, "permission", strings.sStylePermission, sizeof(strings.sStylePermission));
 
 	return SetNativeArray(2, strings, sizeof(stylestrings_t));
 }
@@ -2224,13 +2229,13 @@ public int Native_GetStyleSetting(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[256];
-	GetNativeString(2, sKey, 256);
+	char sKey[64];
+	GetNativeString(2, sKey, sizeof(sKey));
 
 	int maxlength = GetNativeCell(4);
 	
-	char sValue[256];
-	bool ret = gSM_StyleKeys[style].GetString(sKey, sValue, maxlength);
+	char sValue[128];
+	bool ret = GetStyleSetting(style, sKey, sValue, sizeof(sValue));
 
 	SetNativeString(3, sValue, maxlength);
 	return ret;
@@ -2240,17 +2245,26 @@ public int Native_GetStyleSettingInt(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[256];
-	GetNativeString(2, sKey, 256);
+	char sKey[64];
+	GetNativeString(2, sKey, sizeof(sKey));
 
 	return GetStyleSettingInt(style, sKey);
 }
 
 int GetStyleSettingInt(int style, char[] key)
 {
-	char sValue[16];
-	gSM_StyleKeys[style].GetString(key, sValue, 16);
-	return StringToInt(sValue);
+	style_setting_t ss;
+	gSM_StyleKeys[style].GetArray(key, ss, style_setting_t::i+1);
+	return ss.i;
+}
+
+bool SetStyleSettingInt(int style, char[] key, int value, bool replace=true)
+{
+	style_setting_t ss;
+	ss.i = value;
+	ss.f = float(value);
+	int strcells = IntToString(value, ss.str, sizeof(ss.str));
+	return gSM_StyleKeys[style].SetArray(key, ss, strcells+2, replace);
 }
 
 public int Native_GetStyleSettingBool(Handle handler, int numParams)
@@ -2268,21 +2282,35 @@ bool GetStyleSettingBool(int style, char[] key)
 	return GetStyleSettingInt(style, key) != 0;
 }
 
+bool SetStyleSettingBool(int style, char[] key, bool value, bool replace=true)
+{
+	return SetStyleSettingInt(style, key, value ? 1 : 0, replace);
+}
+
 public any Native_GetStyleSettingFloat(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[256];
-	GetNativeString(2, sKey, 256);
+	char sKey[64];
+	GetNativeString(2, sKey, sizeof(sKey));
 
 	return GetStyleSettingFloat(style, sKey);
 }
 
 float GetStyleSettingFloat(int style, char[] key)
 {
-	char sValue[16];
-	gSM_StyleKeys[style].GetString(key, sValue, 16);
-	return StringToFloat(sValue);
+	style_setting_t ss;
+	gSM_StyleKeys[style].GetArray(key, ss, style_setting_t::f+1);
+	return ss.f;
+}
+
+bool SetStyleSettingFloat(int style, char[] key, float value, bool replace=true)
+{
+	style_setting_t ss;
+	ss.i = RoundFloat(value);
+	ss.f = value;
+	int strcells = FloatToString(value, ss.str, sizeof(ss.str));
+	return gSM_StyleKeys[style].SetArray(key, ss, strcells+2, replace);
 }
 
 public any Native_HasStyleSetting(Handle handler, int numParams)
@@ -2290,8 +2318,8 @@ public any Native_HasStyleSetting(Handle handler, int numParams)
 	// TODO: replace with sm 1.11 StringMap.ContainsKey
 	int style = GetNativeCell(1);
 
-	char sKey[256];
-	GetNativeString(2, sKey, 256);
+	char sKey[64];
+	GetNativeString(2, sKey, sizeof(sKey));
 
 	return HasStyleSetting(style, sKey);
 }
@@ -2318,71 +2346,88 @@ public any Native_SetMaxVelocity(Handle plugin, int numParams)
 
 bool HasStyleSetting(int style, char[] key)
 {
-	char sValue[1];
-	return gSM_StyleKeys[style].GetString(key, sValue, 1);
+	int value[1];
+	return gSM_StyleKeys[style].GetArray(key, value, 1);
+}
+
+bool SetStyleSetting(int style, const char[] key, const char[] value, bool replace=true)
+{
+	style_setting_t ss;
+	ss.i = StringToInt(value);
+	ss.f = StringToFloat(value);
+	int strcells = strcopy(ss.str, sizeof(ss.str), value);
+	if (strcells < 1) strcells = 1;
+	return gSM_StyleKeys[style].SetArray(key, ss, strcells+2, replace);
+}
+
+bool GetStyleSetting(int style, const char[] key, char[] value, int size)
+{
+	style_setting_t ss;
+
+	if (gSM_StyleKeys[style].GetArray(key, ss, sizeof(ss)))
+	{
+		strcopy(value, size, ss.str);
+		return true;
+	}
+
+	return false;
 }
 
 public any Native_SetStyleSetting(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[256];
-	GetNativeString(2, sKey, 256);
+	char sKey[64];
+	GetNativeString(2, sKey, sizeof(sKey));
 
-	char sValue[256];
-	GetNativeString(3, sValue, 256);
+	char sValue[128];
+	GetNativeString(3, sValue, sizeof(sValue));
 
 	bool replace = GetNativeCell(4);
 
-	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
+	return SetStyleSetting(style, sKey, sValue, replace);
 }
 
 public any Native_SetStyleSettingFloat(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[256];
-	GetNativeString(2, sKey, 256);
+	char sKey[64];
+	GetNativeString(2, sKey, sizeof(sKey));
 
 	float fValue = GetNativeCell(3);
 
-	char sValue[16];
-	FloatToString(fValue, sValue, 16);
-
 	bool replace = GetNativeCell(4);
 
-	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
+	return SetStyleSettingFloat(style, sKey, fValue, replace);
 }
 
 public any Native_SetStyleSettingBool(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[256];
-	GetNativeString(2, sKey, 256);
+	char sKey[64];
+	GetNativeString(2, sKey, sizeof(sKey));
 
 	bool value = GetNativeCell(3);
 
 	bool replace = GetNativeCell(4);
 
-	return gSM_StyleKeys[style].SetString(sKey, value ? "1" : "0", replace);
+	return SetStyleSettingInt(style, sKey, value ? 1 : 0, replace);
 }
 
 public any Native_SetStyleSettingInt(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[256];
-	GetNativeString(2, sKey, 256);
+	char sKey[64];
+	GetNativeString(2, sKey, sizeof(sKey));
 
 	int value = GetNativeCell(3);
 
-	char sValue[16];
-	IntToString(value, sValue, 16);
-
 	bool replace = GetNativeCell(4);
 
-	return gSM_StyleKeys[style].SetString(sKey, sValue, replace);
+	return SetStyleSettingInt(style, sKey, value, replace);
 }
 
 public Action Shavit_OnStartPre(int client, int track)
@@ -2750,57 +2795,55 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 
 	gSM_StyleKeys[gI_CurrentParserIndex] = new StringMap();
 
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("name", "<MISSING STYLE NAME>");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("shortname", "<MISSING SHORT STYLE NAME>");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("htmlcolor", "<MISSING STYLE HTML COLOR>");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("command", "");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("clantag", "<MISSING STYLE CLAN TAG>");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("specialstring", "");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("permission", "");
+	SetStyleSetting(gI_CurrentParserIndex, "name", "<MISSING STYLE NAME>");
+	SetStyleSetting(gI_CurrentParserIndex, "shortname", "<MISSING SHORT STYLE NAME>");
+	SetStyleSetting(gI_CurrentParserIndex, "htmlcolor", "<MISSING STYLE HTML COLOR>");
+	SetStyleSetting(gI_CurrentParserIndex, "command", "");
+	SetStyleSetting(gI_CurrentParserIndex, "clantag", "<MISSING STYLE CLAN TAG>");
+	SetStyleSetting(gI_CurrentParserIndex, "specialstring", "");
+	SetStyleSetting(gI_CurrentParserIndex, "permission", "");
 
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("autobhop", "1");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("easybhop", "1");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("prespeed", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("velocity_limit", "0.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("airaccelerate", "1000.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("bunnyhopping", "1");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("runspeed", "260.00");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("gravity", "1.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("speed", "1.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("halftime", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("timescale", "1.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("velocity", "1.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("bonus_velocity", "0.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("min_velocity", "0.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("jump_multiplier", "0.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("jump_bonus", "0.0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_w", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_a", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_s", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_d", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_use", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("force_hsw", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_pleft", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_pright", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("block_pstrafe", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("unranked", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("noreplay", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("sync", "1");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("strafe_count_w", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("strafe_count_a", "1");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("strafe_count_s", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("strafe_count_d", "1");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("rankingmultiplier", "1.00");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("special", "0");
+	SetStyleSettingInt  (gI_CurrentParserIndex, "autobhop", 1);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "easybhop", 1);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "prespeed", 0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity_limit", 0.0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "airaccelerate", 1000.0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "bunnyhopping", 1);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "runspeed", 260.00);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "gravity", 1.0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "speed", 1.0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "halftime", 0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "timescale", 1.0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity", 1.0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "bonus_velocity", 0.0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "min_velocity", 0.0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "jump_multiplier", 0.0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "jump_bonus", 0.0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "block_w", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "block_a", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "block_s", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "block_d", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "block_use", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "force_hsw", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "block_pleft", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "block_pright", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "block_pstrafe", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "unranked", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "noreplay", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "sync", 1);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "strafe_count_w", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "strafe_count_a", 1);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "strafe_count_s", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "strafe_count_d", 1);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "rankingmultiplier", 1.0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "special", 0);
 
-	char sOrder[4];
-	IntToString(gI_CurrentParserIndex, sOrder, 4);
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("ordering", sOrder);
+	SetStyleSettingInt(gI_CurrentParserIndex, "ordering", gI_CurrentParserIndex);
 
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("inaccessible", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("enabled", "1");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("kzcheckpoints", "0");
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString("force_groundkeys", "0");
+	SetStyleSettingInt(gI_CurrentParserIndex, "inaccessible", 0);
+	SetStyleSettingInt(gI_CurrentParserIndex, "enabled", 1);
+	SetStyleSettingInt(gI_CurrentParserIndex, "kzcheckpoints", 0);
+	SetStyleSettingInt(gI_CurrentParserIndex, "force_groundkeys", 0);
 
 	gI_OrderedStyles[gI_CurrentParserIndex] = gI_CurrentParserIndex;
 
@@ -2820,19 +2863,19 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	// if this style is disabled, we will force certain settings
 	if(GetStyleSettingInt(gI_CurrentParserIndex, "enabled") <= 0)
 	{
-		gSM_StyleKeys[gI_CurrentParserIndex].SetString("noreplay", "1");
-		gSM_StyleKeys[gI_CurrentParserIndex].SetString("rankingmultiplier", "0");
-		gSM_StyleKeys[gI_CurrentParserIndex].SetString("inaccessible", "1");
+		SetStyleSettingInt  (gI_CurrentParserIndex, "noreplay", 1);
+		SetStyleSettingFloat(gI_CurrentParserIndex, "rankingmultiplier", 0.0);
+		SetStyleSettingInt  (gI_CurrentParserIndex, "inaccessible", 1);
 	}
 
 	if(GetStyleSettingBool(gI_CurrentParserIndex, "halftime"))
 	{
-		gSM_StyleKeys[gI_CurrentParserIndex].SetString("timescale", "0.5");
+		SetStyleSettingFloat(gI_CurrentParserIndex, "timescale", 0.5);
 	}
 
 	if (GetStyleSettingFloat(gI_CurrentParserIndex, "timescale") <= 0.0)
 	{
-		gSM_StyleKeys[gI_CurrentParserIndex].SetString("timescale", "1.0");
+		SetStyleSettingFloat(gI_CurrentParserIndex, "timescale", 1.0);
 	}
 
 	// Setting it here so that we can reference the timescale setting.
@@ -2840,19 +2883,18 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	{
 		if(GetStyleSettingFloat(gI_CurrentParserIndex, "timescale") == 1.0)
 		{
-			gSM_StyleKeys[gI_CurrentParserIndex].SetString("force_timescale", "0");
+			SetStyleSettingInt(gI_CurrentParserIndex, "force_timescale", 0);
 		}
-		
 		else
 		{
-			gSM_StyleKeys[gI_CurrentParserIndex].SetString("force_timescale", "1");
+			SetStyleSettingInt(gI_CurrentParserIndex, "force_timescale", 1);
 		}
 	}
 
 	char sStyleCommand[128];
-	gSM_StyleKeys[gI_CurrentParserIndex].GetString("command", sStyleCommand, 128);
+	GetStyleSetting(gI_CurrentParserIndex, "command", sStyleCommand, sizeof(sStyleCommand));
 	char sName[64];
-	gSM_StyleKeys[gI_CurrentParserIndex].GetString("name", sName, 64);
+	GetStyleSetting(gI_CurrentParserIndex, "name", sName, sizeof(sName));
 
 	if(!gB_Registered && strlen(sStyleCommand) > 0 && !GetStyleSettingBool(gI_CurrentParserIndex, "inaccessible"))
 	{
@@ -2877,7 +2919,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	}
 
 	char sPermission[64];
-	gSM_StyleKeys[gI_CurrentParserIndex].GetString("permission", sPermission, 64);
+	GetStyleSetting(gI_CurrentParserIndex, "name", sPermission, sizeof(sPermission));
 
 	if(StrContains(sPermission, ";") != -1)
 	{
@@ -2909,7 +2951,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 
 public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
 {
-	gSM_StyleKeys[gI_CurrentParserIndex].SetString(key, value);
+	SetStyleSetting(gI_CurrentParserIndex, key, value);
 }
 
 public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)
