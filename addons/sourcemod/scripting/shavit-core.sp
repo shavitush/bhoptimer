@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 #include <sourcemod>
 #include <sdkhooks>
@@ -37,13 +37,6 @@
 #define DEBUG 0
 
 #define EFL_CHECK_UNTOUCH (1<<24)
-
-enum struct style_setting_t
-{
-	int i;
-	float f;
-	char str[128];
-}
 
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
