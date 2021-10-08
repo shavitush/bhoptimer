@@ -225,6 +225,11 @@ void QueryPlaytime(int client)
 
 	int iSteamID = GetSteamAccountID(client);
 
+	if (iSteamID == 0)
+	{
+		return;
+	}
+
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery),
 		"SELECT style, playtime FROM %sstyleplaytime WHERE auth = %d \
