@@ -186,6 +186,15 @@ native void Shavit_SetCurrentCheckpoint(int client, int index);
  */
 native int Shavit_GetTimesTeleported(int client);
 
+/**
+ * Checks whether the client has savestate data.
+ *
+ * @param client                    Client index
+ *
+ * @return                          Whether a savestate or rejoin-savestate data exists for the client.
+ */
+native bool Shavit_HasSavestate(int client);
+
 public SharedPlugin __pl_shavit_checkpoints =
 {
 	name = "shavit-checkpoints",
@@ -201,12 +210,17 @@ public SharedPlugin __pl_shavit_checkpoints =
 public void __pl_shavit_checkpoints_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_GetTotalCheckpoints");
+
 	MarkNativeAsOptional("Shavit_GetCheckpoint");
 	MarkNativeAsOptional("Shavit_SetCheckpoint");
+
 	MarkNativeAsOptional("Shavit_TeleportToCheckpoint");
 	MarkNativeAsOptional("Shavit_ClearCheckpoints");
 	MarkNativeAsOptional("Shavit_SaveCheckpoint");
+
 	MarkNativeAsOptional("Shavit_GetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
+
+	MarkNativeAsOptional("Shavit_HasSavestate");
 }
 #endif

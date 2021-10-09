@@ -33,6 +33,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <shavit>
+#include <shavit/checkpoints>
 #include <eventqueuefix>
 
 #include <shavit/physicsuntouch>
@@ -122,6 +123,7 @@ DynamicHook gH_IsSpawnPointValid = null;
 DynamicDetour gH_CalcPlayerScore = null;
 
 // modules
+bool gB_Checkpoints = false;
 bool gB_Eventqueuefix = false;
 bool gB_Rankings = false;
 bool gB_Replay = false;
@@ -288,6 +290,7 @@ public void OnPluginStart()
 	}
 
 	// modules
+	gB_Checkpoints = LibraryExists("shavit-checkpoints");
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_Replay = LibraryExists("shavit-replay");
@@ -623,22 +626,22 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
-
 	else if(StrEqual(name, "shavit-replay"))
 	{
 		gB_Replay = true;
 	}
-
 	else if(StrEqual(name, "shavit-zones"))
 	{
 		gB_Zones = true;
 	}
-
 	else if(StrEqual(name, "shavit-chat"))
 	{
 		gB_Chat = true;
 	}
-
+	else if (StrEqual(name, "shavit-checkpoints"))
+	{
+		gB_Checkpoints = true;
+	}
 	else if(StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = true;
@@ -651,22 +654,22 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_Rankings = false;
 	}
-
 	else if(StrEqual(name, "shavit-replay"))
 	{
 		gB_Replay = false;
 	}
-
 	else if(StrEqual(name, "shavit-zones"))
 	{
 		gB_Zones = false;
 	}
-
 	else if(StrEqual(name, "shavit-chat"))
 	{
 		gB_Chat = false;
 	}
-
+	else if (StrEqual(name, "shavit-checkpoints"))
+	{
+		gB_Checkpoints = false;
+	}
 	else if(StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = false;
@@ -1718,6 +1721,11 @@ void SetWeaponAmmo(int client, int weapon, bool setClip1)
 	}
 }
 
+bool CanSegment(int client)
+{
+	return StrContains(gS_StyleStrings[gI_Style[client]].sSpecialString, "segments") != -1;
+}
+
 bool ShouldDisplayStopWarning(int client)
 {
 	return (gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue && !CanSegment(client));
@@ -2156,27 +2164,9 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		// TODO:
 		bool bCanStartOnSpawn = true;
 
-		if(gB_SaveStates[client])
+		if (gB_Checkpoints)
 		{
-			if(gCV_RestoreStates.BoolValue)
-			{
-				// events&outputs won't work properly unless we do this next frame...
-				RequestFrame(LoadPersistentData, serial);
-				bCanStartOnSpawn = false;
-			}
-		}
-		else
-		{
-			persistent_data_t aData;
-			int iIndex = FindPersistentData(client, aData);
-
-			if (iIndex != -1)
-			{
-				gB_SaveStates[client] = true;
-				// events&outputs won't work properly unless we do this next frame...
-				RequestFrame(LoadPersistentData, serial);
-				bCanStartOnSpawn = false;
-			}
+			bCanStartOnSpawn = !Shavit_HasSavestate(client);
 		}
 
 		if(gCV_StartOnSpawn.BoolValue && bCanStartOnSpawn)

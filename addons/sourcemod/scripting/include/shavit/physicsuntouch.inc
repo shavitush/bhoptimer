@@ -5,7 +5,7 @@
 
 Handle gH_PhysicsCheckForEntityUntouch;
 
-void LoadPhysicsUntouch(Handle gamedata)
+stock void LoadPhysicsUntouch(Handle gamedata)
 {
 	StartPrepSDKCall(SDKCall_Entity);
 
@@ -17,13 +17,13 @@ void LoadPhysicsUntouch(Handle gamedata)
 	gH_PhysicsCheckForEntityUntouch = EndPrepSDKCall();
 }
 
-bool GetCheckUntouch(int client)
+stock bool GetCheckUntouch(int client)
 {
 	int flags = GetEntProp(client, Prop_Data, "m_iEFlags");
 	return (flags & EFL_CHECK_UNTOUCH) != 0;
 }
 
-void MaybeDoPhysicsUntouch(int client)
+stock void MaybeDoPhysicsUntouch(int client)
 {
 	if (GetCheckUntouch(client))
 	{

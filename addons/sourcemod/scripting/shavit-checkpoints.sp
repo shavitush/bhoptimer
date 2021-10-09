@@ -20,16 +20,20 @@
 
 #include <sourcemod>
 #include <convar_class>
+#include <clientprefs>
 #include <dhooks>
 
 #include <shavit>
 #include <shavit/checkpoints>
+#include <shavit/physicsuntouch>
 
 #undef REQUIRE_PLUGIN
 #include <eventqueuefix>
 
 #pragma newdecls required
 #pragma semicolon 1
+
+#define DEBUG 0
 
 #define CP_ANGLES				(1 << 0)
 #define CP_VELOCITY				(1 << 1)
@@ -69,6 +73,7 @@ Handle gH_Forwards_OnCheckpointMenuSelect = null;
 chatstrings_t gS_ChatStrings;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 
+int gI_Style[MAXPLAYERS+1];
 bool gB_ClosedKZCP[MAXPLAYERS+1];
 
 ArrayList gA_Checkpoints[MAXPLAYERS+1];
@@ -81,6 +86,9 @@ int gI_CheckpointsSettings[MAXPLAYERS+1];
 // save states
 bool gB_SaveStates[MAXPLAYERS+1]; // whether we have data for when player rejoins from spec
 ArrayList gA_PersistentData = null;
+
+bool gB_Eventqueuefix = false;
+bool gB_Replay = false;
 
 public Plugin myinfo =
 {
@@ -102,6 +110,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetCurrentCheckpoint", Native_GetCurrentCheckpoint);
 	CreateNative("Shavit_SetCurrentCheckpoint", Native_SetCurrentCheckpoint);
 	CreateNative("Shavit_GetTimesTeleported", Native_GetTimesTeleported);
+	CreateNative("Shavit_HasSavestate", Native_HasSavestate);
+
+	RegPluginLibrary("shavit-checkpoints");
 
 	gB_Late = late;
 
@@ -139,7 +150,6 @@ public void OnPluginStart()
 
 	gCV_Checkpoints = new Convar("shavit_misc_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = new Convar("shavit_misc_restorestates", "1", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_JointeamHook = new Convar("shavit_misc_jointeamhook", "1", "Hook `jointeam`?\n0 - Disabled\n1 - Enabled, players can instantly change teams.", 0, true, 0.0, true, 1.0);
 	gCV_MaxCP = new Convar("shavit_misc_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = new Convar("shavit_misc_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_misc_maxcp.\nNote: Very high values will result in HUGE memory usage! Segmented checkpoints contain frame data!", 0, true, 1.0, true, 50.0);
 	gCV_PersistData = new Convar("shavit_misc_persistdata", "600", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled");
@@ -161,6 +171,20 @@ public void OnPluginStart()
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
 	}
+}
+
+void LoadDHooks()
+{
+	Handle hGameData = LoadGameConfigFile("shavit.games");
+
+	if (hGameData == null)
+	{
+		SetFailState("Failed to load shavit gamedata");
+	}
+
+	LoadPhysicsUntouch(hGameData);
+
+	delete hGameData;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -461,15 +485,12 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 	int serial = GetClientSerial(client);
 
-	bool bCanStartOnSpawn = true;
-
 	if (gB_SaveStates[client])
 	{
 		if(gCV_RestoreStates.BoolValue)
 		{
 			// events&outputs won't work properly unless we do this next frame...
 			RequestFrame(LoadPersistentData, serial);
-			bCanStartOnSpawn = false;
 		}
 	}
 	else
@@ -482,13 +503,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			gB_SaveStates[client] = true;
 			// events&outputs won't work properly unless we do this next frame...
 			RequestFrame(LoadPersistentData, serial);
-			bCanStartOnSpawn = false;
 		}
-	}
-
-	if (gCV_StartOnSpawn.BoolValue && bCanStartOnSpawn)
-	{
-		RestartTimer(client, Track_Main);
 	}
 
 	// refreshes kz cp menu if there is nothing open
@@ -1566,6 +1581,26 @@ public any Native_TeleportToCheckpoint(Handle plugin, int numParams)
 
 	TeleportToCheckpoint(client, position, suppress);
 	return 0;
+}
+
+public any Native_HasSavestate(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	if (gB_SaveStates[client])
+	{
+		return true;
+	}
+
+	persistent_data_t aData;
+	int iIndex = FindPersistentData(client, aData);
+
+	if (iIndex != -1)
+	{
+		gB_SaveStates[client] = true;
+	}
+
+	return gB_SaveStates[client];
 }
 
 public any Native_GetTimesTeleported(Handle plugin, int numParams)
