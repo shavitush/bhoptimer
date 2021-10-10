@@ -45,6 +45,7 @@ enum
 	Migration_Lowercase_stagetimeswr, // 20
 	Migration_Lowercase_startpositions,
 	Migration_AddPlayertimesPointsCalcedFrom, // points calculated from wr float added to playertimes
+	// TODO: Add alter tables playertimes modify column blah after blah
 	MIGRATIONS_END
 };
 
