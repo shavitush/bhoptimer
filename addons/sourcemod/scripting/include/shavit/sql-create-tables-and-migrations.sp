@@ -44,6 +44,7 @@ enum
 	Migration_Lowercase_playertimes,
 	Migration_Lowercase_stagetimeswr, // 20
 	Migration_Lowercase_startpositions,
+	Migration_AddPlayertimesPointsCalcedFrom, // points calculated from wr float added to playertimes
 	MIGRATIONS_END
 };
 
@@ -145,7 +146,7 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	//
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(255), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) %s;",
+		"CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(255) NOT NULL, `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
 	hTrans.AddQuery(sQuery);
 
@@ -165,13 +166,13 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	if (gB_MySQL)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` INT, `map` VARCHAR(255), `time` FLOAT, `jumps` INT, `style` TINYINT NOT NULL DEFAULT 0, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, `exact_time_int` INT DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`)) ENGINE=INNODB;",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `time` FLOAT NOT NULL, `jumps` INT, `style` TINYINT NOT NULL DEFAULT 0, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, `exact_time_int` INT DEFAULT 0, `points_calced_from` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`)) ENGINE=INNODB;",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
 	}
 	else
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` INT, `map` VARCHAR(255), `time` FLOAT, `jumps` INT, `style` TINYINT NOT NULL DEFAULT 0, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, `exact_time_int` INT DEFAULT 0);",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `time` FLOAT NOT NULL, `jumps` INT, `style` TINYINT NOT NULL DEFAULT 0, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, `exact_time_int` INT DEFAULT 0, `points_calced_from` FLOAT NOT NULL DEFAULT 0);",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
 	}
 
@@ -204,7 +205,7 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	//
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `prebuilt` BOOL, PRIMARY KEY (`id`)) %s;",
+		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `prebuilt` BOOL, PRIMARY KEY (`id`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
 	hTrans.AddQuery(sQuery);
 
@@ -298,6 +299,7 @@ void ApplyMigration(int migration)
 		case Migration_Lowercase_playertimes: ApplyMigration_LowercaseMaps("playertimes", migration);
 		case Migration_Lowercase_stagetimeswr: ApplyMigration_LowercaseMaps("stagetimewrs", migration);
 		case Migration_Lowercase_startpositions: ApplyMigration_LowercaseMaps("startpositions", migration);
+		case Migration_AddPlayertimesPointsCalcedFrom: ApplyMigration_AddPlayertimesPointsCalcedFrom();
 	}
 }
 
@@ -386,6 +388,13 @@ void ApplyMigration_LowercaseMaps(const char[] table, int migration)
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, migration, DBPrio_High);
 }
 
+void ApplyMigration_AddPlayertimesPointsCalcedFrom()
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 AFTER `exact_time_int`;", gS_SQLPrefix);
+	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesPointsCalcedFrom, DBPrio_High);
+}
+
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	InsertMigration(data);
@@ -400,20 +409,24 @@ public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet resu
 			gS_SQLPrefix, gS_SQLPrefix);
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
+#if 0
 		FormatEx(sQuery, 256,
 			"ALTER TABLE `%splayertimes` ADD CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
+#endif
 
 		FormatEx(sQuery, 256,
 			"DELETE t1 FROM %schat t1 LEFT JOIN %susers t2 ON t1.auth = t2.auth WHERE t2.auth IS NULL;",
 			gS_SQLPrefix, gS_SQLPrefix);
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
+#if 0
 		FormatEx(sQuery, 256,
 			"ALTER TABLE `%schat` ADD CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
 		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
+#endif
 	}
 }
 
