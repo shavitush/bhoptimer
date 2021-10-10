@@ -1449,33 +1449,6 @@ public void Shavit_OnDatabaseLoaded()
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
 
-	char sQuery[512];
-
-	if(IsMySQLDatabase(gH_SQL))
-	{
-		FormatEx(sQuery, 512,
-			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', `ccaccess` INT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
-	}
-	else
-	{
-		FormatEx(sQuery, 512,
-			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128), `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16), `ccaccess` INT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE);",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
-	}
-	
-	gH_SQL.Query(SQL_CreateTable_Callback, sQuery);
-}
-
-public void SQL_CreateTable_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer error! Chat table creation failed. Reason: %s", error);
-
-		return;
-	}
-
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsValidClient(i) && gCV_CustomChat.IntValue > 0)

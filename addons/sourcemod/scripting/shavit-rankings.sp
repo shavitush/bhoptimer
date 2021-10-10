@@ -252,9 +252,6 @@ public void Shavit_OnDatabaseLoaded()
 	char sQuery[2048];
 	Transaction2 hTrans = new Transaction2();
 
-	FormatEx(sQuery, sizeof(sQuery), "CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(128), `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) ENGINE=INNODB;", gS_MySQLPrefix);
-	hTrans.AddQuery(sQuery);
-
 	hTrans.AddQuery("DROP PROCEDURE IF EXISTS UpdateAllPoints;;"); // old (and very slow) deprecated method
 	hTrans.AddQuery("DROP FUNCTION IF EXISTS GetWeightedPoints;;"); // this is here, just in case we ever choose to modify or optimize the calculation
 	hTrans.AddQuery("DROP FUNCTION IF EXISTS GetRecordPoints;;");

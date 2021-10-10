@@ -3210,33 +3210,8 @@ public void Shavit_OnDatabaseLoaded()
 	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
-	Transaction2 hTransaction = new Transaction2();
-
-	char sQuery[1024];
-	FormatEx(sQuery, 1024,
-		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(128), `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `prebuilt` BOOL, PRIMARY KEY (`id`))%s;",
-		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
-
-	hTransaction.AddQuery(sQuery);
-
-	FormatEx(sQuery, 1024,
-		"CREATE TABLE IF NOT EXISTS `%sstartpositions` (`auth` INTEGER NOT NULL, `track` INTEGER NOT NULL, `map` VARCHAR(128) NOT NULL, `pos_x` FLOAT, `pos_y` FLOAT, `pos_z` FLOAT, `ang_x` FLOAT, `ang_y` FLOAT, `ang_z` FLOAT, `angles_only` BOOL, PRIMARY KEY (`auth`, `track`, `map`))%s;",
-		gS_MySQLPrefix, (gB_MySQL)? " ENGINE=INNODB":"");
-
-	hTransaction.AddQuery(sQuery);
-
-	gH_SQL.Execute(hTransaction, Trans_CreateTable_Success, Trans_CreateTable_Failed);
-}
-
-public void Trans_CreateTable_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
-{
 	gB_Connected = true;
 	OnMapStart();
-}
-
-public void Trans_CreateTable_Failed(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
-{
-	LogError("Timer (zones module) error! Map zones' table creation failed %d/%d. Reason: %s", failIndex, numQueries, error);
 }
 
 public void Shavit_OnRestart(int client, int track)

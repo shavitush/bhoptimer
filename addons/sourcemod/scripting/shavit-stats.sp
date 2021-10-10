@@ -147,21 +147,6 @@ public void Shavit_OnDatabaseLoaded()
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle2(false);
 
-	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE TABLE IF NOT EXISTS `%sstyleplaytime` (`auth` INT NOT NULL, `style` INT NOT NULL, `playtime` FLOAT NOT NULL, PRIMARY KEY (`auth`, `style`));",
-		gS_MySQLPrefix);
-	gH_SQL.Query(SQL_CreateStylePlaytimeTable_Callback, sQuery, 0, DBPrio_Normal);
-}
-
-public void SQL_CreateStylePlaytimeTable_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if (results == null)
-	{
-		LogError("Timer (styleplaytime table creation) SQL query failed. Reason: %s", error);
-		return;
-	}
-
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientConnected(i) && !IsFakeClient(i) && IsClientAuthorized(i))
