@@ -44,7 +44,7 @@
 #define HUD_NOSOUNDS			(1 << 11) // disables sounds on personal best, world record etc
 #define HUD_NOPRACALERT			(1 << 12) // hides practice mode chat alert
 
-#define SHAVIT_LOG_QUERIES 0
+#define SHAVIT_LOG_QUERIES 1
 
 // status
 enum TimerStatus

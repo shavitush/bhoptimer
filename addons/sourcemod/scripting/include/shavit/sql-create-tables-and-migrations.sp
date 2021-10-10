@@ -166,14 +166,15 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	if (gB_MySQL)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `time` FLOAT NOT NULL, `jumps` INT, `style` TINYINT NOT NULL DEFAULT 0, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, `exact_time_int` INT DEFAULT 0, `points_calced_from` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`)) ENGINE=INNODB;",
-			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `points_calced_from` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`)) ENGINE=INNODB;",
+			gS_SQLPrefix);
 	}
 	else
 	{
+		// id  style  track  time  auth  map  points  points_calced_from  exact_time_int
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `time` FLOAT NOT NULL, `jumps` INT, `style` TINYINT NOT NULL DEFAULT 0, `date` INT, `strafes` INT, `sync` FLOAT, `points` FLOAT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, `exact_time_int` INT DEFAULT 0, `points_calced_from` FLOAT NOT NULL DEFAULT 0);",
-			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `points_calced_from` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1);",
+			gS_SQLPrefix);
 	}
 
 	hTrans.AddQuery(sQuery);
@@ -391,7 +392,7 @@ void ApplyMigration_LowercaseMaps(const char[] table, int migration)
 void ApplyMigration_AddPlayertimesPointsCalcedFrom()
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 AFTER `exact_time_int`;", gS_SQLPrefix);
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 AFTER `points`;", gS_SQLPrefix);
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesPointsCalcedFrom, DBPrio_High);
 }
 
