@@ -2608,11 +2608,11 @@ public Action BotEvents(Event event, const char[] name, bool dontBroadcast)
 
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if(event.GetBool("bot") || !client || IsFakeClient(client))
+	if (event.GetBool("bot") || (client && IsFakeClient(client))) 
 	{
 		event.BroadcastDisabled = true;
 
-		if (StrEqual(name, "player_connect"))
+		if (StrContains(name, "player_connect") != -1)
 		{
 			char sName[MAX_NAME_LENGTH];
 			FillBotName(gA_BotInfo_Temp, sName);
