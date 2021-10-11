@@ -439,16 +439,21 @@ void SaveReplay(int style, int track, float time, int steamid, char[] name, int 
 	delete fCopy;
 }
 
-public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, int mouse[2])
+public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
-	if (!gA_PlayerFrames[client] || !gB_RecordingEnabled[client])
+	if (IsFakeClient(client) || !IsPlayerAlive(client))
 	{
-		return Plugin_Continue;
+		return;
 	}
 
-	if (!gB_GrabbingPostFrames[client] && !(Shavit_ReplayEnabledStyle(style) && status == Timer_Running))
+	if (!gA_PlayerFrames[client] || !gB_RecordingEnabled[client])
 	{
-		return Plugin_Continue;
+		return;
+	}
+
+	if (!gB_GrabbingPostFrames[client] && !(Shavit_ReplayEnabledStyle(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running))
+	{
+		return;
 	}
 
 	if ((gI_PlayerFrames[client] / gF_Tickrate) > gCV_TimeLimit.FloatValue)
@@ -458,7 +463,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			gI_HijackFrames[client] = 0;
 		}
 
-		return Plugin_Continue;
+		return;
 	}
 
 	float fTimescale = Shavit_GetClientTimescale(client);
@@ -470,7 +475,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			gF_NextFrameTime[client] -= fTimescale;
 		}
 
-		return Plugin_Continue;
+		return;
 	}
 
 	if (gA_PlayerFrames[client].Length <= gI_PlayerFrames[client])
@@ -509,8 +514,6 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	{
 		gF_NextFrameTime[client] += (1.0 - fTimescale);
 	}
-
-	return Plugin_Continue;
 }
 
 stock int LimitMoveVelFloat(float vel)
