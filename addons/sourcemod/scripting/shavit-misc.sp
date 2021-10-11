@@ -878,6 +878,13 @@ void CleanSwitchTeam(int client, int team)
 	}
 	else
 	{
+		// Remove flashlight :)
+		if (gEV_Type == Engine_CSS)
+		{
+			int EF_DIMLIGHT = 4;
+			SetEntProp(client, Prop_Send, "m_fEffects", ~EF_DIMLIGHT & GetEntProp(client, Prop_Send, "m_fEffects"));
+		}
+
 		ChangeClientTeam(client, team);
 	}
 }
