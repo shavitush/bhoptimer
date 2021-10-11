@@ -441,7 +441,6 @@ public Action Timer_QueryWindowsCvar(Handle timer, any data)
 public void OnWindowsCvarQueried(QueryCookie cookie, int client, ConVarQueryResult result, const char[] cvarName, const char[] cvarValue, any value)
 {
 	gB_AlternateCenterKeys[client] = (result == ConVarQuery_NotFound);
-	PrintToChat(client, "gB_AlternateCenterKeys[client] = %d", gB_AlternateCenterKeys[client]);
 }
 
 public void PostThinkPost(int client)
