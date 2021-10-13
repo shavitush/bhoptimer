@@ -53,7 +53,6 @@ int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 
 // playtime things
-float gF_PlaytimeCached[MAXPLAYERS+1];
 float gF_PlaytimeStart[MAXPLAYERS+1];
 float gF_PlaytimeStyleStart[MAXPLAYERS+1];
 int gI_CurrentStyle[MAXPLAYERS+1];
@@ -188,7 +187,6 @@ public void Shavit_OnChatConfigLoaded()
 
 public void OnClientConnected(int client)
 {
-	gF_PlaytimeCached[client] = 0.0;
 	gF_PlaytimeStart[client] = 0.0;
 	gF_PlaytimeStyleStart[client] = 0.0;
 	any empty[STYLE_LIMIT];
@@ -227,9 +225,8 @@ void QueryPlaytime(int client)
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT style, playtime FROM %sstyleplaytime WHERE auth = %d \
-		UNION SELECT -1 as style, playtime FROM %susers WHERE auth = %d;",
-		gS_MySQLPrefix, iSteamID, gS_MySQLPrefix, iSteamID);
+		"SELECT style, playtime FROM %sstyleplaytime WHERE auth = %d;",
+		gS_MySQLPrefix, iSteamID);
 	gH_SQL.Query(SQL_QueryStylePlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
 }
 
@@ -251,16 +248,8 @@ public void SQL_QueryStylePlaytime_Callback(Database db, DBResultSet results, co
 	while (results.FetchRow())
 	{
 		int style = results.FetchInt(0);
-		float playtime = results.FetchFloat(1);
-
-		if (style != -1)
-		{
-			gB_HavePlaytimeOnStyle[client][style] = true;
-		}
-		else
-		{
-			gF_PlaytimeCached[client] = playtime;
-		}
+		//float playtime = results.FetchFloat(1);
+		gB_HavePlaytimeOnStyle[client][style] = true;
 	}
 
 	gB_QueriedPlaytime[client] = true;
@@ -342,8 +331,6 @@ void SavePlaytime222(int client, float now, Transaction2 &trans, int style, int 
 
 		float diff = now - gF_PlaytimeStart[client];
 		gF_PlaytimeStart[client] = now;
-
-		gF_PlaytimeCached[client] += diff;
 
 		if (diff <= 0.0)
 		{
@@ -468,8 +455,10 @@ public Action Command_Playtime(int client, int args)
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT auth, name, playtime FROM %susers ORDER BY playtime DESC LIMIT 100;",
-		gS_MySQLPrefix);
+		"(SELECT auth, name, playtime, -1 as ownrank FROM %susers WHERE playtime > 0 ORDER BY playtime DESC LIMIT 100) " ...
+		"UNION " ...
+		"(SELECT -1, '', u2.playtime, COUNT(*) as ownrank FROM %susers u1 JOIN (SELECT playtime FROM %susers WHERE auth = %d) u2 WHERE u1.playtime >= u2.playtime);",
+		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, GetSteamAccountID(client));
 	gH_SQL.Query(SQL_TopPlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
 
 	return Plugin_Handled;
@@ -490,24 +479,14 @@ public void SQL_TopPlaytime_Callback(Database db, DBResultSet results, const cha
 		return;
 	}
 
-	char sPlaytime[16];
-	FormatSeconds(gF_PlaytimeCached[client], sPlaytime, sizeof(sPlaytime), false, true);
-
 	Menu menu = new Menu(PlaytimeMenu_Handler);
 
-	int own_steamid = GetSteamAccountID(client);
+	char sOwnPlaytime[16];
 	int own_rank = 0;
 	int rank = 1;
 
 	while (results.FetchRow())
 	{
-		int iSteamID = results.FetchInt(0);
-
-		if (iSteamID == own_steamid)
-		{
-			own_rank = rank;
-		}
-
 		char sSteamID[20];
 		results.FetchString(0, sSteamID, sizeof(sSteamID));
 
@@ -515,14 +494,25 @@ public void SQL_TopPlaytime_Callback(Database db, DBResultSet results, const cha
 		results.FetchString(1, sName, sizeof(sName));
 
 		float fPlaytime = results.FetchFloat(2);
+		char sPlaytime[16];
 		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true, true);
 
-		char sDisplay[128];
-		FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s - %s", rank++, sPlaytime, sName);
-		menu.AddItem(sSteamID, sDisplay, ITEMDRAW_DEFAULT);
+		int iOwnRank = results.FetchInt(3);
+
+		if (iOwnRank != -1)
+		{
+			own_rank = iOwnRank;
+			sOwnPlaytime = sPlaytime;
+		}
+		else
+		{
+			char sDisplay[128];
+			FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s - %s", rank++, sPlaytime, sName);
+			menu.AddItem(sSteamID, sDisplay, ITEMDRAW_DEFAULT);
+		}
 	}
 
-	menu.SetTitle("%T\n%T (#%d): %s", "Playtime", client, "YourPlaytime", client, own_rank, sPlaytime);
+	menu.SetTitle("%T\n%T (#%d): %s", "Playtime", client, "YourPlaytime", client, own_rank, sOwnPlaytime);
 
 	if (menu.ItemCount <= ((gEV_Type == Engine_CSS) ? 9 : 8))
 	{
