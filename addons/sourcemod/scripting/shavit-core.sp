@@ -110,7 +110,6 @@ bool gB_HUD = false;
 Convar gCV_Restart = null;
 Convar gCV_Pause = null;
 Convar gCV_PauseMovement = null;
-Convar gCV_AllowTimerWithoutZone = null;
 Convar gCV_BlockPreJump = null;
 Convar gCV_NoZAxisSpeed = null;
 Convar gCV_VelocityTeleport = null;
@@ -328,7 +327,6 @@ public void OnPluginStart()
 
 	gCV_Restart = new Convar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
 	gCV_Pause = new Convar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
-	gCV_AllowTimerWithoutZone = new Convar("shavit_core_timernozone", "0", "Allow the timer to start if there's no start zone?", 0, true, 0.0, true, 1.0);
 	gCV_PauseMovement = new Convar("shavit_core_pause_movement", "0", "Allow movement/noclip while paused?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = new Convar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = new Convar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
@@ -635,7 +633,7 @@ public Action Command_StartTimer(int client, int args)
 		}
 	}
 
-	if(gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap)))
+	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap))
 	{
 		if(!Shavit_StopTimer(client, false))
 		{
@@ -647,7 +645,7 @@ public Action Command_StartTimer(int client, int args)
 		Call_PushCell(track);
 		Call_Finish();
 
-		if(gCV_AllowTimerWithoutZone.BoolValue || !gB_Zones)
+		if (!gB_Zones)
 		{
 			StartTimer(client, track);
 		}
@@ -1321,7 +1319,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	CallOnStyleChanged(client, gA_Timers[client].bsStyle, style, manual);
 
-	if (gCV_AllowTimerWithoutZone.BoolValue || (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTimerTrack) || gB_KZMap)))
+	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTimerTrack) || gB_KZMap))
 	{
 		Shavit_StopTimer(client, true);
 		Call_StartForward(gH_Forwards_OnRestart);
@@ -1860,7 +1858,7 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	Call_PushCell(track);
 	Call_Finish();
 
-	if(gCV_AllowTimerWithoutZone.BoolValue || !gB_Zones)
+	if (!gB_Zones)
 	{
 		StartTimer(client, track);
 	}
