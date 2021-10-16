@@ -1800,7 +1800,8 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 	}
 
 	// space before message needed show colors in cs:go
-	// strlen(sBuffer)>252 is when CSS stops printing the messages
+	// strlen(sBuffer)>252 is when the CSS server stops sending the messages
+	// css user message size limit is 255. byte for client, byte for chatsound, 252 chars + 1 null terminator = 255
 	FormatEx(sBuffer, (gB_Protobuf ? sizeof(sBuffer) : 253), "%s%s%s %s%s", (gB_Protobuf ? " ":""), sTime, gS_ChatStrings.sPrefix, gS_ChatStrings.sText, sInput);
 
 	if(client == 0)
