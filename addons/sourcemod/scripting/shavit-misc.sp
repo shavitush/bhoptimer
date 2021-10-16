@@ -37,6 +37,7 @@
 #include <eventqueuefix>
 
 #include <shavit/physicsuntouch>
+#include <shavit/guns.sp>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -1261,21 +1262,6 @@ public void OnClientPutInServer(int client)
 	}
 }
 
-void RemoveAllWeapons(int client)
-{
-	int weapon = -1, max = GetEntPropArraySize(client, Prop_Send, "m_hMyWeapons");
-	for (int i = 0; i < max; i++)
-	{
-		if ((weapon = GetEntPropEnt(client, Prop_Send, "m_hMyWeapons", i)) == -1)
-			continue;
-
-		if (RemovePlayerItem(client, weapon))
-		{
-			AcceptEntityInput(weapon, "Kill");
-		}
-	}
-}
-
 public void OnClientDisconnect(int client)
 {
 	if(gCV_NoWeaponDrops.BoolValue)
@@ -1713,33 +1699,10 @@ public Action Command_Weapon(int client, int args)
 
 	if(iSlot != CS_SLOT_KNIFE)
 	{
-		SetWeaponAmmo(client, iWeapon, false);
+		SetMaxWeaponAmmo(client, iWeapon, false);
 	}
 
 	return Plugin_Handled;
-}
-
-void SetWeaponAmmo(int client, int weapon, bool setClip1)
-{
-	int iAmmo = GetEntProp(weapon, Prop_Send, "m_iPrimaryAmmoType");
-	SetEntProp(client, Prop_Send, "m_iAmmo", 255, 4, iAmmo);
-
-	if(gEV_Type == Engine_CSGO)
-	{
-		SetEntProp(weapon, Prop_Send, "m_iPrimaryReserveAmmoCount", 255);
-	}
-
-	if (gCV_WeaponCommands.IntValue >= 3 && setClip1)
-	{
-		int amount = GetEntProp(weapon, Prop_Send, "m_iClip1") + 1;
-
-		if (HasEntProp(weapon, Prop_Send, "m_bBurstMode") && GetEntProp(weapon, Prop_Send, "m_bBurstMode"))
-		{
-			amount += 2;
-		}
-
-		SetEntProp(weapon, Prop_Data, "m_iClip1", amount);
-	}
 }
 
 bool CanSegment(int client)
@@ -2275,7 +2238,7 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hpk") != -1 || StrContains(sWeapon, "glock") != -1)
 	{
 		int client = GetClientOfUserId(event.GetInt("userid"));
-		SetWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"), true);
+		SetMaxWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"), gCV_WeaponCommands.IntValue >= 3);
 	}
 }
 

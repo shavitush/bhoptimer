@@ -31,6 +31,7 @@
 
 #include <shavit/replay-stocks>
 #include <shavit/replay-file>
+#include <shavit/guns.sp>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
@@ -2148,21 +2149,6 @@ void SpectateMyBot(int serial)
 	SetEntPropEnt(starter, Prop_Send, "m_hObserverTarget", bot);
 }
 
-void RemoveAllWeapons(int client)
-{
-	int weapon = -1, max = GetEntPropArraySize(client, Prop_Send, "m_hMyWeapons");
-	for (int i = 0; i < max; i++)
-	{
-		if ((weapon = GetEntPropEnt(client, Prop_Send, "m_hMyWeapons", i)) == -1)
-			continue;
-
-		if (RemovePlayerItem(client, weapon))
-		{
-			AcceptEntityInput(weapon, "Kill");
-		}
-	}
-}
-
 void Frame_UpdateReplayClient(int serial)
 {
 	int client = GetClientFromSerial(serial);
@@ -2225,18 +2211,17 @@ void UpdateReplayClient(int client)
 
 	if(gEV_Type != Engine_TF2 && strlen(sWeapon) > 0)
 	{
-		int iWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
-
 		if(StrEqual(sWeapon, "none"))
 		{
 			RemoveAllWeapons(client);
 		}
 		else
 		{
-			char sClassname[32];
+			int iWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
 
 			if(iWeapon != -1 && IsValidEntity(iWeapon))
 			{
+				char sClassname[32];
 				GetEntityClassname(iWeapon, sClassname, 32);
 
 				bool same_thing = false;
