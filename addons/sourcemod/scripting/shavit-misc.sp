@@ -1363,10 +1363,24 @@ public void OnWeaponDrop(int client, int entity)
 // hide
 public Action OnSetTransmit(int entity, int client)
 {
-	if(gB_Hide[client] && client != entity && (!IsClientObserver(client) || (GetEntProp(client, Prop_Send, "m_iObserverMode") != 6 &&
-		GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") != entity)))
+	if (client == entity)
 	{
-		return Plugin_Handled;
+		return Plugin_Continue;
+	}
+
+	if (IsPlayerAlive(client))
+	{
+		if (gB_Hide[client] || !IsPlayerAlive(entity))
+		{
+			return Plugin_Handled;
+		}
+	}
+	else if (gB_Hide[client])
+	{
+		if (!IsClientObserver(client) || (GetEntProp(client, Prop_Send, "m_iObserverMode") != 6 && GetEntPropEnt(client, Prop_Send, "m_hObserverTarget") != entity))
+		{
+			return Plugin_Handled;
+		}
 	}
 
 	return Plugin_Continue;
