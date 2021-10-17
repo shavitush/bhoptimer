@@ -90,6 +90,7 @@ Convar gCV_MVPRankOnes_Slow = null;
 Convar gCV_MVPRankOnes = null;
 Convar gCV_MVPRankOnes_Main = null;
 Convar gCV_DefaultTier = null;
+Convar gCV_NewDBConnection = null;
 
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
@@ -175,6 +176,7 @@ public void OnPluginStart()
 	gCV_MVPRankOnes = new Convar("shavit_rankings_mvprankones", "2", "Set the players' amount of MVPs to the amount of #1 times they have.\n0 - Disabled\n1 - Enabled, for all styles.\n2 - Enabled, for default style only.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 2.0);
 	gCV_MVPRankOnes_Main = new Convar("shavit_rankings_mvprankones_maintrack", "1", "If set to 0, all tracks will be counted for the MVP stars.\nOtherwise, only the main track will be checked.\n\nRequires \"shavit_stats_mvprankones\" set to 1 or above.\n(CS:S/CS:GO only)", 0, true, 0.0, true, 1.0);
 	gCV_DefaultTier = new Convar("shavit_rankings_default_tier", "1", "Sets the default tier for new maps added.", 0, true, 0.0, true, 10.0);
+	gCV_NewDBConnection = new Convar("shavit_rankings_new_db_connection", "0", "Use a new DB connection for rankings. This should help with point-recalculation blocking other queries from running.\nYou probably don't need to use this unless you have a DB with hundreds of thousands of player times.\n0 - Reuses shavit-core DB connection.\n1 - Creates a new DB connection.\n2 - Creates two new DB connections", 0, true, 0.0, true, 2.0);
 
 	Convar.AutoExecConfig();
 
@@ -231,8 +233,8 @@ public void OnLibraryRemoved(const char[] name)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle2(false);
-	gH_SQL_b = true ? GetTimerDatabaseHandle2(false) : gH_SQL;
+	gH_SQL = (gCV_NewDBConnection.IntValue > 0) ? GetTimerDatabaseHandle2(false) : view_as<Database2>(Shavit_GetDatabase());
+	gH_SQL_b = (gCV_NewDBConnection.IntValue > 1) ? GetTimerDatabaseHandle2(false) : gH_SQL;
 
 	if(!IsMySQLDatabase(gH_SQL))
 	{

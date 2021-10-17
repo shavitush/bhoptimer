@@ -92,6 +92,7 @@ char gS_MySQLPrefix[32];
 // cvars
 Convar gCV_RecordsLimit = null;
 Convar gCV_RecentLimit = null;
+Convar gCV_NewDBConnection = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -184,6 +185,7 @@ public void OnPluginStart()
 	// cvars
 	gCV_RecordsLimit = new Convar("shavit_wr_recordlimit", "50", "Limit of records shown in the WR menu.\nAdvised to not set above 1,000 because scrolling through so many pages is useless.\n(And can also cause the command to take long time to run)", 0, true, 1.0);
 	gCV_RecentLimit = new Convar("shavit_wr_recentlimit", "50", "Limit of records shown in the RR menu.", 0, true, 1.0);
+	gCV_NewDBConnection = new Convar("shavit_wr_new_db_connection", "0", "Use a new DB connection for rankings. This should help with point-recalculation blocking other queries from running.\nYou probably don't need to use this unless you have a DB with hundreds of thousands of player times.\n0 - Reuses shavit-core DB connection.\n1 - Creates a new DB connection.", 0, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
@@ -2280,7 +2282,7 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle2(false);
+	gH_SQL = gCV_NewDBConnection.BoolValue ? GetTimerDatabaseHandle2(false) : view_as<Database2>(Shavit_GetDatabase());
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	char sQuery[1024];
