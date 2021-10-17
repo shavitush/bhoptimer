@@ -1452,13 +1452,9 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	{
 		Shavit_SetPracticeMode(client, false, true);
 
-		float latency = GetClientLatency(client, NetFlow_Both);
-
-		if (gCV_ExperimentalSegmentedEyeAngleFix.BoolValue && latency > 0.0)
+		if (gCV_ExperimentalSegmentedEyeAngleFix.BoolValue)
 		{
-			int ticks = RoundToCeil(latency / GetTickInterval()) + 1;
-			//PrintToChat(client, "%f %f %d", latency, GetTickInterval(), ticks);
-			Shavit_HijackAngles(client, cpcache.fAngles[0], cpcache.fAngles[1], ticks);
+			Shavit_HijackAngles(client, cpcache.fAngles[0], cpcache.fAngles[1], -1);
 		}
 	}
 

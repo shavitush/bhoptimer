@@ -593,5 +593,23 @@ public int Native_HijackAngles(Handle handler, int numParams)
 
 	gF_HijackedAngles[client][0] = view_as<float>(GetNativeCell(2));
 	gF_HijackedAngles[client][1] = view_as<float>(GetNativeCell(3));
-	gI_HijackFrames[client] = GetNativeCell(4);
+
+	int ticks = GetNativeCell(4);
+
+	if (ticks == -1)
+	{
+		float latency = GetClientLatency(client, NetFlow_Both);
+
+		if (latency > 0.0)
+		{
+			ticks = RoundToCeil(latency / GetTickInterval()) + 1;
+			//PrintToChat(client, "%f %f %d", latency, GetTickInterval(), ticks);
+			gI_HijackFrames[client] = ticks;
+		}
+	}
+	else
+	{
+		gI_HijackFrames[client] = ticks;
+	}
+
 }
