@@ -25,9 +25,12 @@
 #include <convar_class>
 #include <dhooks>
 
-#undef REQUIRE_PLUGIN
-#define USES_CHAT_COLORS
 #include <shavit>
+#include <shavit/chat>
+#include <shavit/chat-colors>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/rankings>
 #include <rtler>
 
 #undef REQUIRE_EXTENSIONS

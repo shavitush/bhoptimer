@@ -28,11 +28,17 @@
 
 #define DEBUG 0
 
-#undef REQUIRE_PLUGIN
-#define USES_CHAT_COLORS
 #include <shavit>
+#include <shavit/wr>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/hud>
+#include <shavit/rankings>
+#include <shavit/replay-playback>
+#include <shavit/zones>
 #include <eventqueuefix>
 
+#include <shavit/chat-colors>
 #include <shavit/anti-sv_cheats.sp>
 #include <shavit/style-settings.sp>
 #include <shavit/sql-create-tables-and-migrations.sp>
@@ -101,8 +107,7 @@ bool gB_Late = false;
 // modules
 bool gB_Eventqueuefix = false;
 bool gB_Zones = false;
-bool gB_WR = false;
-bool gB_Replay = false;
+bool gB_ReplayPlayback = false;
 bool gB_Rankings = false;
 bool gB_HUD = false;
 
@@ -356,8 +361,7 @@ public void OnPluginStart()
 
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_Zones = LibraryExists("shavit-zones");
-	gB_WR = LibraryExists("shavit-wr");
-	gB_Replay = LibraryExists("shavit-replay");
+	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_HUD = LibraryExists("shavit-hud");
 
@@ -487,27 +491,18 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Zones = true;
 	}
-
-	else if(StrEqual(name, "shavit-wr"))
+	else if(StrEqual(name, "shavit-replay-playback"))
 	{
-		gB_WR = true;
+		gB_ReplayPlayback = true;
 	}
-
-	else if(StrEqual(name, "shavit-replay"))
-	{
-		gB_Replay = true;
-	}
-
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = true;
 	}
-
 	else if(StrEqual(name, "shavit-hud"))
 	{
 		gB_HUD = true;
 	}
-
 	else if(StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = true;
@@ -520,27 +515,18 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_Zones = false;
 	}
-
-	else if(StrEqual(name, "shavit-wr"))
+	else if(StrEqual(name, "shavit-replay-playback"))
 	{
-		gB_WR = false;
+		gB_ReplayPlayback = false;
 	}
-
-	else if(StrEqual(name, "shavit-replay"))
-	{
-		gB_Replay = false;
-	}
-
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
 	}
-
 	else if(StrEqual(name, "shavit-hud"))
 	{
 		gB_HUD = false;
 	}
-
 	else if(StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = false;
@@ -858,11 +844,8 @@ public Action Command_DeleteMap(int client, int args)
 
 	if(StrEqual(sArgs, "confirm") && strlen(gS_DeleteMap[client]) > 0)
 	{
-		if(gB_WR)
-		{
-			Shavit_WR_DeleteMap(gS_DeleteMap[client]);
-			ReplyToCommand(client, "Deleted all records for %s.", gS_DeleteMap[client]);
-		}
+		Shavit_WR_DeleteMap(gS_DeleteMap[client]);
+		ReplyToCommand(client, "Deleted all records for %s.", gS_DeleteMap[client]);
 
 		if(gB_Zones)
 		{
@@ -870,7 +853,7 @@ public Action Command_DeleteMap(int client, int args)
 			ReplyToCommand(client, "Deleted all zones for %s.", gS_DeleteMap[client]);
 		}
 
-		if(gB_Replay)
+		if (gB_ReplayPlayback)
 		{
 			Shavit_Replay_DeleteMap(gS_DeleteMap[client]);
 			ReplyToCommand(client, "Deleted all replay data for %s.", gS_DeleteMap[client]);
@@ -994,10 +977,7 @@ public void Trans_DeleteRestOfUserSuccess(Database db, DataPack hPack, int numQu
 	int iSteamID = hPack.ReadCell();
 	delete hPack;
 
-	if(gB_WR)
-	{
-		Shavit_ReloadLeaderboards();
-	}
+	Shavit_ReloadLeaderboards();
 
 	Shavit_LogMessage("%L - wiped user data for [U:1:%d].", client, iSteamID);
 	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
@@ -1032,18 +1012,11 @@ void DeleteUserData(int client, const int iSteamID)
 	hPack.WriteCell(iSteamID);
 	char sQuery[512];
 
-	if(gB_WR)
-	{
-		FormatEx(sQuery, sizeof(sQuery),
-			"SELECT id, style, track, map FROM %swrs WHERE auth = %d;",
-			gS_MySQLPrefix, iSteamID);
+	FormatEx(sQuery, sizeof(sQuery),
+		"SELECT id, style, track, map FROM %swrs WHERE auth = %d;",
+		gS_MySQLPrefix, iSteamID);
 
-		gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
-	}
-	else
-	{
-		DeleteRestOfUser(iSteamID, hPack);
-	}
+	gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
 }
 
 public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)
@@ -1140,12 +1113,7 @@ public Action Command_Style(int client, int args)
 		}
 		else
 		{
-			float time = 0.0;
-
-			if(gB_WR)
-			{
-				time = Shavit_GetWorldRecord(iStyle, gA_Timers[client].iTimerTrack);
-			}
+			float time = Shavit_GetWorldRecord(iStyle, gA_Timers[client].iTimerTrack);
 
 			if(time > 0.0)
 			{
@@ -1679,12 +1647,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 		perfs = (snapshot.iMeasuredJumps == 0)? 100.0:(snapshot.iPerfectJumps / float(snapshot.iMeasuredJumps) * 100.0);
 	}
 
-	float oldtime = 0.0;
-
-	if(gB_WR)
-	{
-		oldtime = Shavit_GetClientPB(client, style, track);
-	}
+	float oldtime = Shavit_GetClientPB(client, style, track);
 
 	Call_PushCell(oldtime);
 	Call_PushCell(perfs);
@@ -3080,13 +3043,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if (GetTimerStatus(client) == Timer_Running && gA_Timers[client].fCurrentTime != 0.0)
 	{
-#if 0
-		float frameCount = gB_Replay
-			? float(Shavit_GetClientFrameCount(client) - Shavit_GetPlayerPreFrames(client)) + 1
-			: (gA_Timers[client].fCurrentTime / GetTickInterval());
-#else
 		float frameCount = float(gA_Timers[client].iZoneIncrement);
-#endif
 		float fAbsVelocity[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 		float curVel = SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0));

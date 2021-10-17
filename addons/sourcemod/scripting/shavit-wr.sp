@@ -22,8 +22,12 @@
 #include <convar_class>
 #include <dhooks>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
+#include <shavit/wr>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/rankings>
+#include <shavit/zones>
 #include <adminmenu>
 
 #pragma newdecls required

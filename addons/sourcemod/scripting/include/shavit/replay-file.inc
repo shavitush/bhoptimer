@@ -1,3 +1,7 @@
+#if defined _shavit_replay_file_included
+	#endinput
+#endif
+#define _shavit_replay_file_included
 
 // History of REPLAY_FORMAT_SUBVERSION:
 // 0x01: standard origin[3], angles[2], and buttons
@@ -29,6 +33,43 @@ enum struct replay_header_t
 	int iPostFrames;
 	float fTickrate;
 	float fZoneOffset[2];
+}
+
+enum struct frame_t
+{
+	float pos[3];
+	float ang[2];
+	int buttons;
+	// iReplayVersion >= 0x02
+	int flags;
+	MoveType mt;
+	// Everything below is generally NOT loaded into memory for playback
+	// iReplayVersion >= 0x06
+	int mousexy; // `mousex | (mousey << 16)` // unpack with UnpackSignedShorts
+	int vel; // basically `forwardmove | (sidemove << 16)` // unpack with UnpackSignedShorts
+}
+
+enum struct frame_cache_t
+{
+	int iFrameCount;
+	float fTime;
+	bool bNewFormat;
+	int iReplayVersion;
+	char sReplayName[MAX_NAME_LENGTH];
+	int iPreFrames;
+	ArrayList aFrames;
+	// iReplayVersion >= 0x05
+	int iPostFrames;
+	float fTickrate;
+	// blah blah not affected by iReplayVersion
+	int iSteamID;
+}
+
+// Can be used to unpack frame_t.mousexy and frame_t.vel
+stock void UnpackSignedShorts(int x, int out[2])
+{
+	out[0] =  ((x        & 0xFFFF) ^ 0x8000) - 0x8000;
+	out[1] = (((x >> 16) & 0xFFFF) ^ 0x8000) - 0x8000;
 }
 
 stock bool LoadReplayCache(frame_cache_t cache, int style, int track, const char[] path, const char[] mapname)

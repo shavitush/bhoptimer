@@ -22,10 +22,16 @@
 #include <sdktools>
 #include <convar_class>
 
-#include <shavit>
+#include <shavit/replay-recorder>
 
-#include <shavit/replay-stocks>
+#include <shavit>
+#include <shavit/zones>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/replay-playback>
+
 #include <shavit/replay-file>
+#include <shavit/replay-stocks.sp>
 
 public Plugin myinfo =
 {
@@ -86,6 +92,8 @@ float gF_NextFrameTime[MAXPLAYERS+1];
 int gI_HijackFrames[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
 
+bool gB_ReplayPlayback = false;
+
 //#include <TickRateControl>
 forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 
@@ -118,6 +126,8 @@ public void OnPluginStart()
 
 	gF_Tickrate = (1.0 / GetTickInterval());
 
+	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
+
 	if (gB_Late)
 	{
 		for (int i = 1; i <= MaxClients; i++)
@@ -127,6 +137,22 @@ public void OnPluginStart()
 				OnClientPutInServer(i);
 			}
 		}
+	}
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if( StrEqual(name, "shavit-replay-playback"))
+	{
+		gB_ReplayPlayback = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if (StrEqual(name, "shavit-replay-playback"))
+	{
+		gB_ReplayPlayback = false;
 	}
 }
 
@@ -296,7 +322,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 
 	bool isTooLong = (gCV_TimeLimit.FloatValue > 0.0 && time > gCV_TimeLimit.FloatValue);
 
-	float length = Shavit_GetReplayLength(style, track);
+	float length = gB_ReplayPlayback ? Shavit_GetReplayLength(style, track) : 999999999.0;
 	bool isBestReplay = (length == 0.0 || time < length);
 
 	Action action = Plugin_Continue;

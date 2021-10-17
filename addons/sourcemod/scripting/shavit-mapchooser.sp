@@ -5,8 +5,12 @@
 #include <sdktools_sound>
 #include <convar_class>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
+#include <shavit/mapchooser>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/rankings>
+
 // for MapChange type
 #include <mapchooser>
 

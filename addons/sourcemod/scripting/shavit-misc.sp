@@ -31,9 +31,15 @@
 #include <tf2>
 #include <tf2_stocks>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
+#include <shavit/wr>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/chat>
 #include <shavit/checkpoints>
+#include <shavit/rankings>
+#include <shavit/replay-playback>
+#include <shavit/zones>
 #include <eventqueuefix>
 
 #include <shavit/physicsuntouch>
@@ -127,7 +133,7 @@ DynamicDetour gH_CalcPlayerScore = null;
 bool gB_Checkpoints = false;
 bool gB_Eventqueuefix = false;
 bool gB_Rankings = false;
-bool gB_Replay = false;
+bool gB_ReplayPlayback = false;
 bool gB_Zones = false;
 bool gB_Chat = false;
 
@@ -294,7 +300,7 @@ public void OnPluginStart()
 	gB_Checkpoints = LibraryExists("shavit-checkpoints");
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_Rankings = LibraryExists("shavit-rankings");
-	gB_Replay = LibraryExists("shavit-replay");
+	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_Chat = LibraryExists("shavit-chat");
 }
@@ -627,9 +633,9 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
-	else if(StrEqual(name, "shavit-replay"))
+	else if(StrEqual(name, "shavit-replay-playback"))
 	{
-		gB_Replay = true;
+		gB_ReplayPlayback = true;
 	}
 	else if(StrEqual(name, "shavit-zones"))
 	{
@@ -655,9 +661,9 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_Rankings = false;
 	}
-	else if(StrEqual(name, "shavit-replay"))
+	else if(StrEqual(name, "shavit-replay-playback"))
 	{
-		gB_Replay = false;
+		gB_ReplayPlayback = false;
 	}
 	else if(StrEqual(name, "shavit-zones"))
 	{
@@ -1460,19 +1466,31 @@ public Action Command_Spec(int client, int args)
 			return Plugin_Handled;
 		}
 	}
-	else if(gB_Replay)
+	else if (gB_ReplayPlayback)
 	{
 		target = Shavit_GetReplayBotIndex(0, -1); // try to find normal bot
 
 		if (target < 1)
 		{
+			int last_real_player = -1;
+
 			for (int i = 1; i <= MaxClients; i++)
 			{
-				if (IsValidClient(i, true) && IsFakeClient(i))
+				if (IsValidClient(i, true))
 				{
-					target = i;
-					break;
+					if (IsFakeClient(i))
+					{
+						target = i;
+						break;
+					}
+
+					last_real_player = i;
 				}
+			}
+
+			if (target < 1)
+			{
+				target = last_real_player;
 			}
 		}
 	}
@@ -2145,15 +2163,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 			RequestFrame(Frame_RemoveRadar, serial);
 		}
 
-		// TODO:
-		bool bCanStartOnSpawn = true;
-
-		if (gB_Checkpoints)
-		{
-			bCanStartOnSpawn = !Shavit_HasSavestate(client);
-		}
-
-		if(gCV_StartOnSpawn.BoolValue && bCanStartOnSpawn)
+		if (gCV_StartOnSpawn.BoolValue && !(gB_Checkpoints && Shavit_HasSavestate(client)))
 		{
 			RestartTimer(client, Track_Main);
 		}

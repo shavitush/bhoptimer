@@ -1,5 +1,5 @@
 /*
- * shavit's Timer - Replay Bot
+ * shavit's Timer - Replay Bot Playback
  * by: shavit
  *
  * This file is part of shavit's Timer.
@@ -25,12 +25,16 @@
 #include <profiler>
 #include <dhooks>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
+#include <shavit/replay-playback>
+#include <shavit/replay-recorder>
+#include <shavit/wr>
+#include <shavit/zones>
+
+#undef REQUIRE_PLUGIN
 #include <adminmenu>
 
-#include <shavit/replay-stocks>
-#include <shavit/replay-file>
+#include <shavit/replay-stocks.sp>
 #include <shavit/weapon-stocks>
 
 #undef REQUIRE_EXTENSIONS
@@ -281,7 +285,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetReplayCacheName", Native_SetReplayCacheName);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
-	RegPluginLibrary("shavit-replay");
+	RegPluginLibrary("shavit-replay-playback");
 
 	gB_Late = late;
 
@@ -290,11 +294,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-	if(!LibraryExists("shavit-wr"))
-	{
-		SetFailState("shavit-wr is required for the plugin to work.");
-	}
-
 	// admin menu
 	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
 	{

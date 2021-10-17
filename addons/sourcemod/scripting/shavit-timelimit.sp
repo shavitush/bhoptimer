@@ -24,8 +24,10 @@
 #include <convar_class>
 #include <dhooks>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
+#include <shavit/wr>
+
+#undef REQUIRE_PLUGIN
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
@@ -79,14 +81,6 @@ public Plugin myinfo =
 	description = "Sets a dynamic value of mp_timelimit and mp_roundtime, based on average map times on the server.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
-}
-
-public void OnAllPluginsLoaded()
-{
-	if(!LibraryExists("shavit-wr"))
-	{
-		SetFailState("shavit-wr is required for the plugin to work.");
-	}
 }
 
 public void OnPluginStart()

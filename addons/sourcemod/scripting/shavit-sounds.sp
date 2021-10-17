@@ -23,8 +23,11 @@
 #include <convar_class>
 #include <dhooks>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
+#include <shavit/wr>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/hud>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -59,14 +62,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	RegPluginLibrary("shavit-sounds");
 
 	return APLRes_Success;
-}
-
-public void OnAllPluginsLoaded()
-{
-	if(!LibraryExists("shavit-wr"))
-	{
-		SetFailState("shavit-wr is required for the plugin to work.");
-	}
 }
 
 public void OnPluginStart()

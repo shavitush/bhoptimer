@@ -25,32 +25,19 @@
 #include <convar_class>
 #include <dhooks>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
+#include <shavit/hud>
+#include <shavit/wr>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/rankings>
+#include <shavit/replay-playback>
+#include <shavit/zones>
 #include <bhopstats>
 #include <DynamicChannels>
 
 #pragma newdecls required
 #pragma semicolon 1
-
-// HUD2 - these settings will *disable* elements for the main hud
-#define HUD2_TIME				(1 << 0)
-#define HUD2_SPEED				(1 << 1)
-#define HUD2_JUMPS				(1 << 2)
-#define HUD2_STRAFE				(1 << 3)
-#define HUD2_SYNC				(1 << 4)
-#define HUD2_STYLE				(1 << 5)
-#define HUD2_RANK				(1 << 6)
-#define HUD2_TRACK				(1 << 7)
-#define HUD2_SPLITPB			(1 << 8)
-#define HUD2_MAPTIER			(1 << 9)
-#define HUD2_TIMEDIFFERENCE		(1 << 10)
-#define HUD2_PERFS				(1 << 11)
-#define HUD2_TOPLEFT_RANK		(1 << 12)
-#define HUD2_VELOCITYDIFFERENCE (1 << 13)
-
-#define HUD_DEFAULT				(HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
-#define HUD_DEFAULT2			(HUD2_PERFS)
 
 #define MAX_HINT_SIZE 227
 
@@ -94,7 +81,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 Handle gH_Forwards_OnTopLeftHUD = null;
 
 // modules
-bool gB_Replay = false;
+bool gB_ReplayPlayback = false;
 bool gB_Zones = false;
 bool gB_Sounds = false;
 bool gB_Rankings = false;
@@ -184,8 +171,7 @@ public void OnPluginStart()
 		HookEvent("teamplay_round_start", Teamplay_Round_Start);
 	}
 
-	// prevent errors in case the replay bot isn't loaded
-	gB_Replay = LibraryExists("shavit-replay");
+	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_Sounds = LibraryExists("shavit-sounds");
 	gB_Rankings = LibraryExists("shavit-rankings");
@@ -296,9 +282,9 @@ public void OnPluginStart()
 
 public void OnLibraryAdded(const char[] name)
 {
-	if(StrEqual(name, "shavit-replay"))
+	if(StrEqual(name, "shavit-replay-playback"))
 	{
-		gB_Replay = true;
+		gB_ReplayPlayback = true;
 	}
 
 	else if(StrEqual(name, "shavit-zones"))
@@ -329,9 +315,9 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-	if(StrEqual(name, "shavit-replay"))
+	if(StrEqual(name, "shavit-replay-playback"))
 	{
-		gB_Replay = false;
+		gB_ReplayPlayback = false;
 	}
 
 	else if(StrEqual(name, "shavit-zones"))
@@ -719,7 +705,7 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudTimeText", client);
 	menu.AddItem(sInfo, sHudItem);
 
-	if(gB_Replay)
+	if(gB_ReplayPlayback)
 	{
 		FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
 		FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
@@ -1161,7 +1147,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 			char sTimeDiff[32];
 			
-			if(gB_Replay && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if (gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
 			{
 				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget);
 
@@ -1216,7 +1202,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		// no timer: straight up number
 		if(data.iTimerStatus != Timer_Stopped)
 		{
-			if(gB_Replay && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
+			if (gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
 			{
 				float res = Shavit_GetClosestReplayVelocityDifference(data.iTarget, (gI_HUDSettings[client] & HUD_2DVEL) == 0);
 				FormatEx(sLine, 128, "%T: %d (%s%.0f)", "HudSpeedText", client, data.iSpeed, (res >= 0.0) ? "+":"", res);
@@ -1417,7 +1403,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			
 			char sTimeDiff[32];
 			
-			if(gB_Replay && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if (gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
 			{
 				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget);
 
@@ -1453,7 +1439,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 			iColor = 0xFFC966;
 		}
 
-		if(data.iTimerStatus != Timer_Stopped && gB_Replay && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
+		if (data.iTimerStatus != Timer_Stopped && gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
 		{
 			float res = Shavit_GetClosestReplayVelocityDifference(data.iTarget, (gI_HUDSettings[client] & HUD_2DVEL) == 0);
 			FormatEx(sLine, 128, "<span color='#%06X'>%d u/s (%s%.0f)</span>", iColor, data.iSpeed, (res >= 0.0) ? "+":"", res);
@@ -1507,7 +1493,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 void UpdateMainHUD(int client)
 {
 	int target = GetSpectatorTarget(client, client);
-	bool bReplay = (gB_Replay && Shavit_IsReplayEntity(target));
+	bool bReplay = (gB_ReplayPlayback && Shavit_IsReplayEntity(target));
 
 	if((gI_HUDSettings[client] & HUD_CENTER) == 0 ||
 		((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target) ||
@@ -1615,7 +1601,7 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 			return;
 		}
 	}
-	else if (!(gB_Replay && Shavit_IsReplayEntity(target)))
+	else if (!(gB_ReplayPlayback && Shavit_IsReplayEntity(target)))
 	{
 		return;
 	}
@@ -1633,7 +1619,7 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 		buttons = Shavit_GetReplayButtons(target, fAngleDiff);
 	}
 
-	int style = (gB_Replay && Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+	int style = (gB_ReplayPlayback && Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
 	{
@@ -1689,7 +1675,7 @@ void UpdateCenterKeys(int client)
 			return;
 		}
 	}
-	else if (!(gB_Replay && Shavit_IsReplayEntity(target)))
+	else if (!(gB_ReplayPlayback && Shavit_IsReplayEntity(target)))
 	{
 		return;
 	}
@@ -1726,7 +1712,7 @@ void UpdateCenterKeys(int client)
 			(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
 	}
 
-	int style = (gB_Replay && Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
+	int style = (gB_ReplayPlayback && Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
 
 	if(!(0 <= style < gI_Styles))
 	{
@@ -1809,7 +1795,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 	if((!wait || gI_Cycle % 25 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
 	{
 		int target = GetSpectatorTarget(client, client);
-		bool bReplay = (gB_Replay && Shavit_IsReplayEntity(target));
+		bool bReplay = (gB_ReplayPlayback && Shavit_IsReplayEntity(target));
 
 		if (!bReplay && !IsValidClient(target))
 		{
@@ -1932,7 +1918,7 @@ void UpdateKeyHint(int client)
 
 		if(target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)
 		{
-			int bReplay = gB_Replay && Shavit_IsReplayEntity(target);
+			int bReplay = gB_ReplayPlayback && Shavit_IsReplayEntity(target);
 
 			if (!bReplay && !IsValidClient(target))
 			{

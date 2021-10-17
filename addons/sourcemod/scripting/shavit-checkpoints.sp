@@ -25,9 +25,12 @@
 
 #include <shavit>
 #include <shavit/checkpoints>
+#include <shavit/zones>
 #include <shavit/physicsuntouch>
 
 #undef REQUIRE_PLUGIN
+#include <shavit/replay-recorder>
+#include <shavit/replay-playback>
 #include <eventqueuefix>
 
 #pragma newdecls required
@@ -88,7 +91,7 @@ bool gB_SaveStates[MAXPLAYERS+1]; // whether we have data for when player rejoin
 ArrayList gA_PersistentData = null;
 
 bool gB_Eventqueuefix = false;
-bool gB_Replay = false;
+bool gB_ReplayRecorder = false;
 
 public Plugin myinfo =
 {
@@ -164,7 +167,7 @@ public void OnPluginStart()
 
 	// modules
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
-	gB_Replay = LibraryExists("shavit-replay");
+	gB_ReplayRecorder = LibraryExists("shavit-replay-recorder");
 
 	if (gB_Late)
 	{
@@ -189,9 +192,9 @@ void LoadDHooks()
 
 public void OnLibraryAdded(const char[] name)
 {
-	if (StrEqual(name, "shavit-replay"))
+	if (StrEqual(name, "shavit-replay-recorder"))
 	{
-		gB_Replay = true;
+		gB_ReplayRecorder = true;
 	}
 	else if (StrEqual(name, "eventqueuefix"))
 	{
@@ -201,9 +204,9 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-	if (StrEqual(name, "shavit-replay"))
+	if (StrEqual(name, "shavit-replay-recorder"))
 	{
-		gB_Replay = false;
+		gB_ReplayRecorder = false;
 	}
 	else if (StrEqual(name, "eventqueuefix"))
 	{
@@ -585,7 +588,7 @@ void PersistData(int client, bool disconnected)
 		aData.aCheckpoints = gA_Checkpoints[client];
 		gA_Checkpoints[client] = null;
 
-		if (gB_Replay && aData.cpcache.aFrames == null)
+		if (gB_ReplayRecorder && aData.cpcache.aFrames == null)
 		{
 			aData.cpcache.aFrames = Shavit_GetReplayData(client, true);
 			aData.cpcache.iPreFrames = Shavit_GetPlayerPreFrames(client);
@@ -1308,7 +1311,7 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 	cpcache.aSnapshot = snapshot;
 	cpcache.bSegmented = CanSegment(target);
 
-	if (cpcache.bSegmented && gB_Replay && actually_a_checkpoint && cpcache.aFrames == null)
+	if (cpcache.bSegmented && gB_ReplayRecorder && actually_a_checkpoint && cpcache.aFrames == null)
 	{
 		cpcache.aFrames = Shavit_GetReplayData(target, false);
 		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
@@ -1460,7 +1463,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 
 	SetEntityGravity(client, cpcache.fGravity);
 
-	if(gB_Replay && cpcache.aFrames != null)
+	if (gB_ReplayRecorder && cpcache.aFrames != null)
 	{
 		// if isPersistentData, then CloneHandle() is done instead of ArrayList.Clone()
 		Shavit_SetReplayData(client, cpcache.aFrames, isPersistentData);

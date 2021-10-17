@@ -24,11 +24,11 @@
 #include <convar_class>
 #include <dhooks>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
-#include <adminmenu>
-
 #include <shavit/zones>
+
+#undef REQUIRE_PLUGIN
+#include <adminmenu>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>

@@ -23,8 +23,11 @@
 #include <convar_class>
 #include <dhooks>
 
-#undef REQUIRE_PLUGIN
 #include <shavit>
+//#include <shavit/stats>
+
+#undef REQUIRE_PLUGIN
+#include <shavit/rankings>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
@@ -92,14 +95,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	gB_Late = late;
 
 	return APLRes_Success;
-}
-
-public void OnAllPluginsLoaded()
-{
-	if(!LibraryExists("shavit-wr"))
-	{
-		SetFailState("shavit-wr is required for the plugin to work.");
-	}
 }
 
 public void OnPluginStart()
