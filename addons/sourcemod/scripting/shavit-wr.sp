@@ -2253,9 +2253,8 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 			{
 				case 0:
 				{
-					Shavit_OpenStatsMenu(param1, StringToInt(sExploded[1]));
+					FakeClientCommand(param1, "sm_profile [U:1:%s]", sExploded[1]);
 				}
-
 				case 1:
 				{
 					OpenDeleteMenu(param1, StringToInt(sExploded[1]));

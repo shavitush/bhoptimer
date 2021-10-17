@@ -1054,15 +1054,6 @@ native float Shavit_GetZoneOffset(int client, int zonetype);
  */
 native float Shavit_GetDistanceOffset(int client, int zonetype);
 
-/**
- * Opens the stats menu for a client.
- *
- * @param client					Client index.
- * @param steamid					Target Steam account ID to use.
- * @noreturn
- */
-native void Shavit_OpenStatsMenu(int client, int steamid);
-
 /*
  * Gets a value from the style config for the given style
  * e.g. Shavit_GetStyleSetting(Shavit_GetBhopStyle(client), "TAS", sBuffer, 2);
@@ -1434,7 +1425,6 @@ public void __pl_shavit_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_IsPracticeMode");
 	MarkNativeAsOptional("Shavit_LoadSnapshot");
 	MarkNativeAsOptional("Shavit_MarkKZMap");
-	MarkNativeAsOptional("Shavit_OpenStatsMenu");
 	MarkNativeAsOptional("Shavit_PauseTimer");
 	MarkNativeAsOptional("Shavit_PrintToChat");
 	MarkNativeAsOptional("Shavit_PrintToChatAll");

@@ -87,9 +87,6 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	// natives
-	CreateNative("Shavit_OpenStatsMenu", Native_OpenStatsMenu);
-
 	RegPluginLibrary("shavit-stats");
 
 	gB_Late = late;

@@ -675,7 +675,7 @@ public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
 
 		if(gB_Stats && !StrEqual(sInfo, "-1"))
 		{
-			Shavit_OpenStatsMenu(param1, StringToInt(sInfo));
+			FakeClientCommand(param1, "sm_profile [U:1:%s]", sInfo);
 		}
 	}
 
