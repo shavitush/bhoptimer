@@ -31,7 +31,7 @@
 
 #include <shavit/replay-stocks>
 #include <shavit/replay-file>
-#include <shavit/guns.sp>
+#include <shavit/weapon-stocks>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>

@@ -37,7 +37,7 @@
 #include <eventqueuefix>
 
 #include <shavit/physicsuntouch>
-#include <shavit/guns.sp>
+#include <shavit/weapon-stocks>
 
 #pragma newdecls required
 #pragma semicolon 1
