@@ -49,7 +49,6 @@ forward void TickRate_OnTickRateChanged(float fOld, float fNew);
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 2621440
 
 enum struct replaystrings_t
 {

@@ -35,7 +35,6 @@
 #include <tf2>
 
 #pragma semicolon 1
-#pragma dynamic 131072
 #pragma newdecls required
 
 #define DEBUG 0

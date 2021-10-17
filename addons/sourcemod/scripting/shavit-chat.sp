@@ -98,7 +98,6 @@ char gA_ChatRankMenuFormatStrings[2][2][4][] = {
 
 #pragma newdecls required
 #pragma semicolon 1
-#pragma dynamic 131072
 
 // database
 Database gH_SQL = null;
