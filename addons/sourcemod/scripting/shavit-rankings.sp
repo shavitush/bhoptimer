@@ -736,9 +736,15 @@ public Action Command_RecalcMap(int client, int args)
 	return Plugin_Handled;
 }
 
+// You can use Sourcepawn_GetRecordPoints() as a reference for how the queries calculate points.
 void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery, int sQueryLen)
 {
 	float fMultiplier = Shavit_GetStyleSettingFloat(style, "rankingmultiplier");
+
+	if (track > 0)
+	{
+		fMultiplier *= 0.25;
+	}
 
 	if (Shavit_GetStyleSettingBool(style, "unranked") || fMultiplier == 0.0)
 	{
@@ -757,53 +763,35 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 
 	if (bUseCurrentMap)
 	{
-		if (track == Track_Main)
-		{
-			if (gB_WorldRecordsCached)
-			{
-				float fWR = Shavit_GetWorldRecord(style, track);
+		float fTier = (track > 0) ? 1.0 : float(gI_Tier);
 
-				FormatEx(sQuery, sQueryLen,
-					"UPDATE %splayertimes PT " ...
-					"SET PT.points_calced_from = %f, " ...
-					" PT.points = " ...
-					"  %f * (%f / PT.time) " ...
-					"WHERE PT.style = %d AND PT.track = 0 AND PT.map = '%s' AND PT.points_calced_from != %f;",
-					gS_MySQLPrefix,
-					fWR,
-					(((fWR * gCV_PointsPerTier.FloatValue) * 1.5) + (fWR / 15.0)) * fMultiplier,
-					fWR,
-					style,
-					gS_Map,
-					fWR
-				);
-			}
-			else
-			{
-				FormatEx(sQuery, sQueryLen,
-					"UPDATE %splayertimes PT " ...
-					"INNER JOIN %swrs WR ON " ...
-					"   PT.track = 0 AND PT.track = WR.track AND PT.style = %d AND PT.style = WR.style AND PT.map = '%s' AND PT.map = WR.map AND PT.points_calced_from != WR.time " ...
-					"SET PT.points_calced_from = WR.time, " ...
-					" PT.points = "...
-					"   (%f + (WR.time / 15.0)) " ...
-					" * (WR.time / PT.time) " ...
-					" * %f " ...
-					";",
-					gS_MySQLPrefix, gS_MySQLPrefix,
-					style,
-					gS_Map,
-					((gCV_PointsPerTier.FloatValue * gI_Tier) * 1.5),
-					fMultiplier
-				);
-			}
+		// a faster, joinless query is used for main due to it having 70% of playertimes.
+		if (track == Track_Main && gB_WorldRecordsCached)
+		{
+			float fWR = Shavit_GetWorldRecord(style, track);
+
+			FormatEx(sQuery, sQueryLen,
+				"UPDATE %splayertimes PT " ...
+				"SET PT.points_calced_from = %f, " ...
+				" PT.points = " ...
+				"   %f " ...
+				" * (%f / PT.time) " ...
+				"WHERE PT.style = %d AND PT.track = 0 AND PT.map = '%s' AND PT.points_calced_from != %f;",
+				gS_MySQLPrefix,
+				fWR,
+				(((gCV_PointsPerTier.FloatValue * fTier) * 1.5) + (fWR / 15.0)) * fMultiplier,
+				fWR,
+				style,
+				gS_Map,
+				fWR
+			);
 		}
 		else
 		{
 			FormatEx(sQuery, sQueryLen,
 				"UPDATE %splayertimes PT " ...
 				"INNER JOIN %swrs WR ON " ...
-				"   PT.track > 0 AND PT.track = WR.track AND PT.style = %d AND PT.style = WR.style AND PT.map = '%s' AND PT.map = WR.map AND PT.points_calced_from != WR.time " ...
+				"   PT.track %c 0 AND PT.track = WR.track AND PT.style = %d AND PT.style = WR.style AND PT.map = '%s' AND PT.map = WR.map AND PT.points_calced_from != WR.time " ...
 				"SET PT.points_calced_from = WR.time, " ...
 				" PT.points = "...
 				"   (%f + (WR.time / 15.0)) " ...
@@ -811,10 +799,11 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 				" * %f " ...
 				";",
 				gS_MySQLPrefix, gS_MySQLPrefix,
+				(track > 0) ? '>' : '=',
 				style,
 				gS_Map,
-				((gCV_PointsPerTier.FloatValue * 1) * 1.5),
-				fMultiplier * 0.25
+				((gCV_PointsPerTier.FloatValue * fTier) * 1.5),
+				fMultiplier
 			);
 		}
 	}
@@ -823,21 +812,23 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 		FormatEx(sQuery, sQueryLen,
 			"UPDATE %splayertimes PT " ...
 			"INNER JOIN %swrs WR ON " ...
-			"  PT.track = WR.track AND PT.style = WR.style AND PT.map = WR.map AND PT.points_calced_from != WR.time " ...
+			"  PT.track %c 0 AND PT.track = WR.track AND PT.style = %d AND PT.style = WR.style AND PT.map = WR.map AND PT.points_calced_from != WR.time " ...
 			"INNER JOIN %smaptiers MT ON " ...
 			"  PT.map = MT.map " ...
 			"SET PT.points_calced_from = WR.time, " ...
 			" PT.points = "...
-			"  (((%f * MT.tier) * 1.5) + (WR.time / 15.0)) " ...
-			"* (WR.time / PT.time) " ...
-			"* %f %s " ...
-			"WHERE PT.style = %d AND PT.track %c 0;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix,
-			gCV_PointsPerTier.FloatValue,
-			fMultiplier,
-			(track > 0) ? "* 0.25" : "",
+			"   (((%f * %s) * 1.5) + (WR.time / 15.0)) " ...
+			" * (WR.time / PT.time) " ...
+			" * %f " ...
+			";",
+			gS_MySQLPrefix,
+			gS_MySQLPrefix,
+			(track > 0) ? '>' : '=',
 			style,
-			(track > 0) ? '>' : '='
+			gS_MySQLPrefix,
+			gCV_PointsPerTier.FloatValue,
+			(track > 0) ? "1" : "MT.tier",
+			fMultiplier
 		);
 	}
 }
@@ -1444,33 +1435,28 @@ public int Native_GuessPointsForTime(Handle plugin, int numParams)
 		gCV_PointsPerTier.FloatValue,
 		Shavit_GetStyleSettingFloat(rstyle, "rankingmultiplier"),
 		pwr,
-		tier == -1 ? gI_Tier : tier
+		float(tier == -1 ? gI_Tier : tier)
 	);
 
 	return view_as<int>(ppoints);
 }
 
-float Sourcepawn_GetRecordPoints(int rtrack, float rtime, float pointspertier, float stylemultiplier, float pwr, int ptier)
+float Sourcepawn_GetRecordPoints(int rtrack, float rtime, float pointspertier, float stylemultiplier, float pwr, float ptier)
 {
 	float ppoints = 0.0;
 
 	if (rtrack > 0)
 	{
-		ptier = 1;
+		ptier = 1.0;
 	}
 
-	ppoints = ((pointspertier * ptier) * 1.5) + (pwr / 15.0);
-
-	if (rtime > pwr)
-	{
-		ppoints = ppoints * (pwr / rtime);
-	}
-
-	ppoints = ppoints * stylemultiplier;
+	ppoints  = ((pointspertier * ptier) * 1.5) + (pwr / 15.0);
+	ppoints *= (pwr / rtime);
+	ppoints *= stylemultiplier;
 
 	if (rtrack > 0)
 	{
-		ppoints = ppoints * 0.25;
+		ppoints *= 0.25;
 	}
 
 	return ppoints;
