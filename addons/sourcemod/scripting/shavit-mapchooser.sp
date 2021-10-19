@@ -8,6 +8,8 @@
 #include <shavit>
 #include <shavit/mapchooser>
 
+#include <shavit/maps-folder-stocks>
+
 #undef REQUIRE_PLUGIN
 #include <shavit/rankings>
 
