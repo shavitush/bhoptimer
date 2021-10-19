@@ -27,11 +27,11 @@
 
 #include <shavit>
 #include <shavit/replay-playback>
-#include <shavit/replay-recorder>
 #include <shavit/wr>
 #include <shavit/zones>
 
 #undef REQUIRE_PLUGIN
+#include <shavit/replay-recorder>
 #include <adminmenu>
 
 #include <shavit/maps-folder-stocks>
@@ -3551,7 +3551,6 @@ float GetClosestReplayTime(int client)
 	int iPreFrames = gA_FrameCache[style][track].iPreFrames;
 	int iPostFrames = gA_FrameCache[style][track].iPostFrames;
 	int iSearch = RoundToFloor(gCV_DynamicTimeSearch.FloatValue * (1.0 / GetTickInterval()));
-	int iPlayerFrames = Shavit_GetClientFrameCount(client) - Shavit_GetPlayerPreFrames(client);
 
 	float fClientPos[3];
 	GetEntPropVector(client, Prop_Send, "m_vecOrigin", fClientPos);
@@ -3572,6 +3571,7 @@ float GetClosestReplayTime(int client)
 	}
 	else
 	{
+		int iPlayerFrames = Shavit_GetClientFrameCount(client) - Shavit_GetPlayerPreFrames(client);
 		int iStartFrame = iPlayerFrames - iSearch;
 		iEndFrame = iPlayerFrames + iSearch;
 		
