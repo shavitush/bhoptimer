@@ -3199,7 +3199,11 @@ public void Shavit_OnDatabaseLoaded()
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	gB_Connected = true;
-	OnMapStart();
+
+	if (!gB_Late)
+	{
+		OnMapStart();
+	}
 }
 
 public void Shavit_OnRestart(int client, int track)
