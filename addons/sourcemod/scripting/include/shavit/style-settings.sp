@@ -18,6 +18,9 @@
  *
  */
 
+#pragma newdecls required
+#pragma semicolon 1
+
 enum struct style_setting_t
 {
 	int i;
@@ -59,6 +62,8 @@ void Shavit_Style_Settings_Natives()
 
 	CreateNative("Shavit_GetStyleStrings", Native_GetStyleStrings);
 	CreateNative("Shavit_GetStyleStringsStruct", Native_GetStyleStringsStruct);
+
+	gSM_StyleCommands = new StringMap();
 }
 
 void Shavit_Style_Settings_Forwards()
@@ -68,9 +73,6 @@ void Shavit_Style_Settings_Forwards()
 
 bool LoadStyles()
 {
-	delete gSM_StyleCommands;
-	gSM_StyleCommands = new StringMap();
-
 	for (int i = 0; i < STYLE_LIMIT; i++)
 	{
 		delete gSM_StyleKeys[i];
@@ -194,7 +196,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		// OnStyleLeaveSection can be called back to back.
 		// And does for when hitting the last style!
 		// So we set gI_CurrentParserIndex to -1 at the end of this function.
-		return;
+		return SMCParse_Continue;
 	}
 
 	// if this style is disabled, we will force certain settings
@@ -283,6 +285,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	}
 
 	gI_CurrentParserIndex = -1;
+	return SMCParse_Continue;
 }
 
 public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
