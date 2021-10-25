@@ -343,14 +343,14 @@ void ApplyMigration_AddPlayertimesCompletions()
 void ApplyMigration_AddCustomChatAccess()
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%schat` ADD COLUMN `ccaccess` INT NOT NULL DEFAULT 0 AFTER `ccmessage`;", gS_SQLPrefix);
+	FormatEx(sQuery, 192, "ALTER TABLE `%schat` ADD COLUMN `ccaccess` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `ccmessage`" : "");
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddCustomChatAccess, DBPrio_High);
 }
 
 void ApplyMigration_AddPlayertimesExactTimeInt()
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `exact_time_int` INT NOT NULL DEFAULT 0 AFTER `completions`;", gS_SQLPrefix);
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `exact_time_int` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `completions`" : "");
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesExactTimeInt, DBPrio_High);
 }
 
@@ -379,7 +379,7 @@ void ApplyMigration_AddPlaytime()
 public void SQL_Migration_AddPlaytime2222222_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%susers` ADD COLUMN `playtime` FLOAT NOT NULL DEFAULT 0 AFTER `points`;", gS_SQLPrefix);
+	FormatEx(sQuery, 192, "ALTER TABLE `%susers` ADD COLUMN `playtime` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `points`" : "");
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlaytime, DBPrio_High);
 }
 
@@ -393,7 +393,7 @@ void ApplyMigration_LowercaseMaps(const char[] table, int migration)
 void ApplyMigration_AddPlayertimesPointsCalcedFrom()
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 AFTER `points`;", gS_SQLPrefix);
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `points`" : "");
 	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesPointsCalcedFrom, DBPrio_High);
 }
 
