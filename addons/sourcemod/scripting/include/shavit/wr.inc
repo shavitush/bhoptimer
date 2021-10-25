@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_wr_included
+	#endinput
+#endif
+#define _shavit_wr_included
+
 /**
  * Like Shavit_OnFinish, but after the insertion query was called.
  * Called from shavit-wr

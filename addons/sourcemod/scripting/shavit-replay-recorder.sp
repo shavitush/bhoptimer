@@ -25,10 +25,10 @@
 #include <shavit/replay-recorder>
 
 #include <shavit>
-#include <shavit/zones>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/replay-playback>
+#include <shavit/zones>
 
 #include <shavit/replay-file>
 #include <shavit/replay-stocks.sp>

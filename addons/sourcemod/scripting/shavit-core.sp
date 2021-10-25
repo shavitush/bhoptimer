@@ -29,12 +29,12 @@
 #define DEBUG 0
 
 #include <shavit>
-#include <shavit/wr>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/hud>
 #include <shavit/rankings>
 #include <shavit/replay-playback>
+#include <shavit/wr>
 #include <shavit/zones>
 #include <eventqueuefix>
 

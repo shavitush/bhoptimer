@@ -27,11 +27,11 @@
 
 #include <shavit>
 #include <shavit/hud>
-#include <shavit/wr>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/rankings>
 #include <shavit/replay-playback>
+#include <shavit/wr>
 #include <shavit/zones>
 #include <bhopstats>
 #include <DynamicChannels>

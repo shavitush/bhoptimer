@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_mapchooser_included
+	#endinput
+#endif
+#define _shavit_mapchooser_included
+
 /**
  * Called when a player RTV's.
  * Requires shavit-mapchooser.

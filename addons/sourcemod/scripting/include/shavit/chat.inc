@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_chat_included
+	#endinput
+#endif
+#define _shavit_chat_included
+
 /*
  * Retrieves the player's chatrank trimmed and without colors.
  *

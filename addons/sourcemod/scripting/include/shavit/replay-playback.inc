@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_replay_playback_included
+	#endinput
+#endif
+#define _shavit_replay_playback_included
+
 #include <shavit/replay-file>
 
 enum //ReplayStatus

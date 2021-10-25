@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_replay_recorder_included
+	#endinput
+#endif
+#define _shavit_replay_recorder_included
+
 /**
  * Called when a player finishes a time. Allows you to save a replay even if the run is not a WR.
  *

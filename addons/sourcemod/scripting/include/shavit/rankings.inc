@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_rankings_included
+	#endinput
+#endif
+#define _shavit_rankings_included
+
 /**
  * Gets called when a map's tier is assigned.
  * Only called once per map, if the rankings plugin is enabled.

@@ -1,4 +1,9 @@
 
+#if defined _physicuntouch_included
+	#endinput
+#endif
+#define _physicuntouch_included
+
 // Originally from https://github.com/rumourA/End-Touch-Fix
 
 #define EFL_CHECK_UNTOUCH (1<<24)

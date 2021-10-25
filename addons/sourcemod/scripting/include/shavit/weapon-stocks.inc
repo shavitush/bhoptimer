@@ -1,4 +1,9 @@
 
+#if defined _shavit_weapon_stocks_included
+	#endinput
+#endif
+#define _shavit_weapon_stocks_included
+
 stock void RemoveAllWeapons(int client)
 {
 	int weapon = -1, max = GetEntPropArraySize(client, Prop_Send, "m_hMyWeapons");

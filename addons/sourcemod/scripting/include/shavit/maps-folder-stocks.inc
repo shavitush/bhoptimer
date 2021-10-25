@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_mapsfolderstocks_included
+	#endinput
+#endif
+#define _shavit_mapsfolderstocks_included
+
 stock bool WriteNavMesh(const char[] map, bool skipExistsCheck = false)
 {
 	char sTempMap[PLATFORM_MAX_PATH];

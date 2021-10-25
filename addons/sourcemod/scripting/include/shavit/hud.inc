@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_hud_included
+	#endinput
+#endif
+#define _shavit_hud_included
+
 #define HUD_NONE                0
 #define HUD_MASTER              (1 << 0) // master setting
 #define HUD_CENTER              (1 << 1) // show hud as hint text

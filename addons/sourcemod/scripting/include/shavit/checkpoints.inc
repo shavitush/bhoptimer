@@ -18,6 +18,11 @@
  *
  */
 
+#if defined _shavit_checkpoints_included
+	#endinput
+#endif
+#define _shavit_checkpoints_included
+
 enum struct cp_cache_t
 {
 	float fPosition[3];
