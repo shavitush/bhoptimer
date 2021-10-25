@@ -40,6 +40,7 @@
 
 #include <shavit/chat-colors>
 #include <shavit/anti-sv_cheats.sp>
+#include <shavit/steamid-stocks>
 #include <shavit/style-settings.sp>
 #include <shavit/sql-create-tables-and-migrations.sp>
 #include <shavit/physicsuntouch>
@@ -935,7 +936,7 @@ public Action Command_WipePlayer(int client, int args)
 
 	if(strlen(gS_Verification[client]) == 0 || !StrEqual(sArgString, gS_Verification[client]))
 	{
-		gI_WipePlayerID[client] = SteamIDToAuth(sArgString);
+		gI_WipePlayerID[client] = SteamIDToAccountID(sArgString);
 
 		if(gI_WipePlayerID[client] <= 0)
 		{

@@ -29,6 +29,8 @@
 #undef REQUIRE_PLUGIN
 #include <shavit/rankings>
 
+#include <shavit/steamid-stocks>
+
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 
@@ -539,7 +541,7 @@ public Action Command_MapsDoneLeft(int client, int args)
 		char sArgs[64];
 		GetCmdArgString(sArgs, 64);
 
-		iSteamID = SteamIDToAuth(sArgs);
+		iSteamID = SteamIDToAccountID(sArgs);
 
 		if (iSteamID < 1)
 		{
@@ -670,7 +672,7 @@ public Action Command_Profile(int client, int args)
 		char sArgs[64];
 		GetCmdArgString(sArgs, 64);
 
-		iSteamID = SteamIDToAuth(sArgs);
+		iSteamID = SteamIDToAccountID(sArgs);
 
 		if (iSteamID < 1)
 		{

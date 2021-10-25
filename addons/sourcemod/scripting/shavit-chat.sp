@@ -28,6 +28,7 @@
 #include <shavit>
 #include <shavit/chat>
 #include <shavit/chat-colors>
+#include <shavit/steamid-stocks>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/rankings>
@@ -1286,7 +1287,7 @@ public Action Command_CCAdd(int client, int args)
 	char sArgString[32];
 	GetCmdArgString(sArgString, 32);
 
-	int iSteamID = SteamIDToAuth(sArgString);
+	int iSteamID = SteamIDToAccountID(sArgString);
 
 	if (iSteamID < 1)
 	{
@@ -1322,7 +1323,7 @@ public Action Command_CCDelete(int client, int args)
 	char sArgString[32];
 	GetCmdArgString(sArgString, 32);
 
-	int iSteamID = SteamIDToAuth(sArgString);
+	int iSteamID = SteamIDToAccountID(sArgString);
 
 	if (iSteamID < 1)
 	{

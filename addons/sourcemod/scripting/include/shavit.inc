@@ -324,36 +324,6 @@ stock int IPStringToAddress(const char[] ip)
 	return iIPAddress;
 }
 
-// Retrieves authid from STEAM_X:Y:Z and [U:1:123]
-stock int SteamIDToAuth(const char[] sInput)
-{
-	char sSteamID[32];
-	strcopy(sSteamID, sizeof(sSteamID), sInput);
-	ReplaceString(sSteamID, 32, "\"", "");
-
-	if (StrContains(sSteamID, "STEAM_") != -1)
-	{
-		ReplaceString(sSteamID, 32, "STEAM_", "");
-
-		char parts[3][11];
-		ExplodeString(sSteamID, ":", parts, 3, 11);
-
-		// Let X, Y and Z constants be defined by the SteamID: STEAM_X:Y:Z.
-		// Using the formula W=Z*2+Y, a SteamID can be converted:
-		return StringToInt(parts[2]) * 2 + StringToInt(parts[1]);
-	}
-	else if (StrContains(sSteamID, "U:1:") != -1)
-	{
-		ReplaceString(sSteamID, 32, "[", "");
-		ReplaceString(sSteamID, 32, "U:1:", "");
-		ReplaceString(sSteamID, 32, "]", "");
-
-		return StringToInt(sSteamID);
-	}
-
-	return 0;
-}
-
 // time formatting!
 stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool precise = true, bool nodecimal = false, bool full_hms = false)
 {
