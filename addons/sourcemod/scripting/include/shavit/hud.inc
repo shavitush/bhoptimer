@@ -37,6 +37,8 @@
 #define HUD_2DVEL               (1 << 10) // shows 2d velocity
 #define HUD_NOSOUNDS            (1 << 11) // disables sounds on personal best, world record etc
 #define HUD_NOPRACALERT         (1 << 12) // hides practice mode chat alert
+#define HUD_USP                 (1 << 13) // makes you spawn with a USP
+#define HUD_GLOCK               (1 << 14) // makes you spawn with a Glock
 
 // HUD2 - these settings will *disable* elements for the main hud
 #define HUD2_TIME               (1 << 0)
@@ -53,6 +55,8 @@
 #define HUD2_PERFS              (1 << 11)
 #define HUD2_TOPLEFT_RANK       (1 << 12)
 #define HUD2_VELOCITYDIFFERENCE (1 << 13)
+#define HUD2_USPSILENCER        (1 << 14) // spawns usps with a silencer on (only used in CSS)
+#define HUD2_GLOCKBURST         (1 << 15) // spawns glocks with burst
 
 #define HUD_DEFAULT             (HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2            (HUD2_PERFS)
@@ -87,6 +91,15 @@ native int Shavit_ForceHUDUpdate(int client, bool spectators);
  */
 native int Shavit_GetHUDSettings(int client);
 
+/**
+ * Gets the HUD2 settings of a player.
+ * See the HUD2_* defines for information.
+ *
+ * @param client                    Client index.
+ * @return                          HUD settings.
+ */
+native int Shavit_GetHUD2Settings(int client);
+
 public SharedPlugin __pl_shavit_hud =
 {
 	name = "shavit-hud",
@@ -103,5 +116,6 @@ public void __pl_shavit_hud_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_ForceHUDUpdate");
 	MarkNativeAsOptional("Shavit_GetHUDSettings");
+	MarkNativeAsOptional("Shavit_GetHUD2Settings");
 }
 #endif

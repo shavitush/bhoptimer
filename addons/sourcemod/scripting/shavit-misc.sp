@@ -93,7 +93,6 @@ Convar gCV_CreateSpawnPoints = null;
 Convar gCV_DisableRadio = null;
 Convar gCV_Scoreboard = null;
 Convar gCV_WeaponCommands = null;
-Convar gCV_WeaponsSpawnGood = null;
 Convar gCV_PlayerOpacity = null;
 Convar gCV_NoclipMe = null;
 Convar gCV_AdvertisementInterval = null;
@@ -261,7 +260,6 @@ public void OnPluginStart()
 	gCV_DisableRadio = new Convar("shavit_misc_disableradio", "1", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
 	gCV_Scoreboard = new Convar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_WeaponCommands = new Convar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.\n3 - Also give infinite clip ammo.", 0, true, 0.0, true, 3.0);
-	gCV_WeaponsSpawnGood = new Convar("shavit_misc_weaponsspawngood", "3", "Bitflag for making glocks spawn on burst-fire and USPs spawn with a silencer on.\n0 - Disabled\n1 - Spawn USPs with a silencer.\n2 - Spawn glocks on burst-fire mode.\n3 - Spawn both USPs and glocks GOOD.", 0, true, 0.0, true, 3.0);
 	gCV_PlayerOpacity = new Convar("shavit_misc_playeropacity", "69", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 	gCV_NoclipMe = new Convar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'admin_noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 2.0);
 	gCV_AdvertisementInterval = new Convar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
@@ -999,7 +997,7 @@ public Action Timer_Advertisement(Handle timer)
 			gA_Advertisements.GetString(gI_AdvertisementsCycle, sTempMessage, 300);
 
 			char sName[MAX_NAME_LENGTH];
-			GetClientName(i, sName, MAX_NAME_LENGTH);
+			SanerGetClientName(i, sName);
 			ReplaceString(sTempMessage, 300, "{name}", sName);
 			ReplaceString(sTempMessage, 300, "{timeleft}", sTimeLeft);
 			ReplaceString(sTempMessage, 300, "{timeleftraw}", sTimeLeftRaw);
@@ -1561,7 +1559,7 @@ public Action Command_Teleport(int client, int args)
 			IntToString(GetClientSerial(i), serial, 16);
 
 			char sName[MAX_NAME_LENGTH];
-			GetClientName(i, sName, MAX_NAME_LENGTH);
+			SanerGetClientName(i, sName);
 
 			menu.AddItem(serial, sName);
 		}
@@ -1620,40 +1618,6 @@ bool Teleport(int client, int targetserial)
 	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
 
 	return true;
-}
-
-public Action Hook_GunTouch(int entity, int client)
-{
-	if (1 <= client <= MaxClients)
-	{
-		char classname[64];
-		GetEntityClassname(entity, classname, sizeof(classname));
-
-		if (StrEqual(classname, "weapon_glock"))
-		{
-			if (!IsValidClient(client) || !IsFakeClient(client))
-			{
-				SetEntProp(entity, Prop_Send, "m_bBurstMode", 1);
-			}
-		}
-		else if (gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp"))
-		{
-			SetEntProp(entity, Prop_Send, "m_bSilencerOn", 1);
-			SetEntProp(entity, Prop_Send, "m_weaponMode", 1);
-			SetEntPropFloat(entity, Prop_Send, "m_flDoneSwitchingSilencer", GetGameTime() - 0.1);  
-		}
-	}
-
-	return Plugin_Continue;
-}
-
-public void OnEntityCreated(int entity, const char[] classname)
-{
-	if (((gCV_WeaponsSpawnGood.IntValue & 1) && gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp"))
-	||  ((gCV_WeaponsSpawnGood.IntValue & 2) && StrEqual(classname, "weapon_glock")))
-	{
-		SDKHook(entity, SDKHook_Touch, Hook_GunTouch);
-	}
 }
 
 public Action Command_Weapon(int client, int args)

@@ -36,6 +36,9 @@
 #include <bhopstats>
 #include <DynamicChannels>
 
+#undef REQUIRE_EXTENSIONS
+#include <cstrike>
+
 #pragma newdecls required
 #pragma semicolon 1
 
@@ -147,6 +150,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// natives
 	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
 	CreateNative("Shavit_GetHUDSettings", Native_GetHUDSettings);
+	CreateNative("Shavit_GetHUD2Settings", Native_GetHUD2Settings);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit-hud");
@@ -204,7 +208,10 @@ public void OnPluginStart()
 		..."HUD_TIMELEFT				512\n"
 		..."HUD_2DVEL				1024\n"
 		..."HUD_NOSOUNDS				2048\n"
-		..."HUD_NOPRACALERT			4096\n");
+		..."HUD_NOPRACALERT			4096\n"
+		..."HUD_USP                  8192\n"
+		..."HUD_GLOCK                16384\n"
+	);
 		
 	IntToString(HUD_DEFAULT2, defaultHUD, 8);
 	gCV_DefaultHUD2 = new Convar("shavit_hud2_default", defaultHUD, "Default HUD2 settings as a bitflag of what to remove\n"
@@ -222,6 +229,8 @@ public void OnPluginStart()
 		..."HUD2_PERFS				2048\n"
 		..."HUD2_TOPLEFT_RANK		4096\n"
 		..."HUD2_VELOCITYDIFFERENCE	8192\n"
+		..."HUD2_USPSILENCER         16384\n"
+		..."HUD2_GLOCKBURST          32768\n"
 	);
 
 	Convar.AutoExecConfig();
@@ -259,6 +268,8 @@ public void OnPluginStart()
 	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
 	gH_HUDCookieMain = RegClientCookie("shavit_hud_settingmain", "HUD settings for hint text.", CookieAccess_Protected);
+
+	HookEvent("player_spawn", Player_Spawn);
 
 	if(gB_Late)
 	{
@@ -700,6 +711,13 @@ Action ShowHUDMenu(int client, int item)
 	FormatEx(sHudItem, 64, "%T", "HudPracticeModeAlert", client);
 	menu.AddItem(sInfo, sHudItem);
 
+	if (gEV_Type != Engine_TF2)
+	{
+		FormatEx(sInfo, 16, "#%d", HUD_USP);
+		FormatEx(sHudItem, 64, "%T", "HudDefaultPistol", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
+
 	// HUD2 - disables selected elements
 	FormatEx(sInfo, 16, "@%d", HUD2_TIME);
 	FormatEx(sHudItem, 64, "%T", "HudTimeText", client);
@@ -763,6 +781,20 @@ Action ShowHUDMenu(int client, int item)
 		menu.AddItem(sInfo, sHudItem);
 	}
 
+	if (gEV_Type != Engine_TF2)
+	{
+		FormatEx(sInfo, 16, "@%d", HUD2_GLOCKBURST);
+		FormatEx(sHudItem, 64, "%T", "HudGlockBurst", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
+
+	if (gEV_Type == Engine_CSS)
+	{
+		FormatEx(sInfo, 16, "@%d", HUD2_USPSILENCER);
+		FormatEx(sHudItem, 64, "%T", "HudUSPSilencer", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
+
 	menu.ExitButton = true;
 	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 
@@ -776,9 +808,10 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 		char sCookie[16];
 		menu.GetItem(param2, sCookie, 16);
 
-		int type = (sCookie[0] == '!')? 1:2;
+		int type = (sCookie[0] == '!') ? 1 : (sCookie[0] == '@' ? 2 : 3);
 		ReplaceString(sCookie, 16, "!", "");
 		ReplaceString(sCookie, 16, "@", "");
+		ReplaceString(sCookie, 16, "#", "");
 
 		int iSelection = StringToInt(sCookie);
 
@@ -788,12 +821,31 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 			IntToString(gI_HUDSettings[param1], sCookie, 16);
 			SetClientCookie(param1, gH_HUDCookie, sCookie);
 		}
-
-		else
+		else if (type == 2)
 		{
 			gI_HUD2Settings[param1] ^= iSelection;
 			IntToString(gI_HUD2Settings[param1], sCookie, 16);
 			SetClientCookie(param1, gH_HUDCookieMain, sCookie);
+		}
+		else if (type == 3) // special trinary ones :)
+		{
+			int mask = (iSelection | (iSelection << 1));
+
+			if (!(gI_HUDSettings[param1] & mask))
+			{
+				gI_HUDSettings[param1] |= iSelection;
+			}
+			else if (gI_HUDSettings[param1] & iSelection)
+			{
+				gI_HUDSettings[param1] ^= mask;
+			}
+			else
+			{
+				gI_HUDSettings[param1] &= ~mask;
+			}
+
+			IntToString(gI_HUDSettings[param1], sCookie, 16);
+			SetClientCookie(param1, gH_HUDCookie, sCookie);
 		}
 
 		if(gEV_Type == Engine_TF2 && iSelection == HUD_CENTER && (gI_HUDSettings[param1] & HUD_MASTER) > 0)
@@ -811,18 +863,26 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 		int style = 0;
 		menu.GetItem(param2, sInfo, 16, style, sDisplay, 64);
 
-		int type = (sInfo[0] == '!')? 1:2;
+		int type = (sInfo[0] == '!') ? 1 : (sInfo[0] == '@' ? 2 : 3);
 		ReplaceString(sInfo, 16, "!", "");
 		ReplaceString(sInfo, 16, "@", "");
+		ReplaceString(sInfo, 16, "#", "");
+
+		int iSelection = StringToInt(sInfo);
 
 		if(type == 1)
 		{
-			Format(sDisplay, 64, "[%s] %s", ((gI_HUDSettings[param1] & StringToInt(sInfo)) > 0)? "＋":"－", sDisplay);
+			Format(sDisplay, 64, "[%s] %s", ((gI_HUDSettings[param1] & iSelection) > 0)? "＋":"－", sDisplay);
 		}
-
-		else
+		else if (type == 2)
 		{
-			Format(sDisplay, 64, "[%s] %s", ((gI_HUD2Settings[param1] & StringToInt(sInfo)) == 0)? "＋":"－", sDisplay);
+			Format(sDisplay, 64, "[%s] %s", ((gI_HUD2Settings[param1] & iSelection) == 0)? "＋":"－", sDisplay);
+		}
+		else if (type == 3) // special trinary ones :)
+		{
+			bool first = 0 != (gI_HUDSettings[param1] & iSelection);
+			bool second = 0 != (gI_HUDSettings[param1] & (iSelection << 1));
+			Format(sDisplay, 64, "[%s] %s", first ? "１" : (second ? "２" : "０"), sDisplay);
 		}
 
 		return RedrawMenuItem(sDisplay);
@@ -834,6 +894,74 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 	}
 
 	return 0;
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if ((gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp"))
+	||  (StrEqual(classname, "weapon_glock")))
+	{
+		SDKHook(entity, SDKHook_Touch, Hook_GunTouch);
+	}
+}
+
+public Action Hook_GunTouch(int entity, int client)
+{
+	if (1 <= client <= MaxClients)
+	{
+		char classname[64];
+		GetEntityClassname(entity, classname, sizeof(classname));
+
+		if (StrEqual(classname, "weapon_glock"))
+		{
+			if (!IsFakeClient(client) && !(gI_HUD2Settings[client] & HUD2_GLOCKBURST))
+			{
+				SetEntProp(entity, Prop_Send, "m_bBurstMode", 1);
+			}
+		}
+		else if (gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp") && !(gI_HUD2Settings[client] & HUD2_USPSILENCER))
+		{
+			SetEntProp(entity, Prop_Send, "m_bSilencerOn", 1);
+			SetEntProp(entity, Prop_Send, "m_weaponMode", 1);
+			SetEntPropFloat(entity, Prop_Send, "m_flDoneSwitchingSilencer", GetGameTime() - 0.1);  
+		}
+	}
+
+	return Plugin_Continue;
+}
+
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if (!IsFakeClient(client))
+	{
+		if (gEV_Type != Engine_TF2 && (gI_HUDSettings[client] & (HUD_GLOCK|HUD_USP)))
+		{
+			PrintToChat(client, "0x%X", (gI_HUDSettings[client] & (HUD_GLOCK|HUD_USP)));
+			int iSlot = CS_SLOT_SECONDARY;
+			int iWeapon = GetPlayerWeaponSlot(client, iSlot);
+			char sWeapon[32];
+
+			if (gI_HUDSettings[client] & HUD_USP)
+			{
+				strcopy(sWeapon, 32, (gEV_Type == Engine_CSS) ? "weapon_usp" : "weapon_usp_silencer");
+			}
+			else
+			{
+				strcopy(sWeapon, 32, "weapon_glock");
+			}
+
+			if (iWeapon != -1)
+			{
+				RemovePlayerItem(client, iWeapon);
+				AcceptEntityInput(iWeapon, "Kill");
+			}
+
+			iWeapon = GivePlayerItem(client, sWeapon);
+			FakeClientCommand(client, "use %s", sWeapon);
+		}
+	}
 }
 
 public void OnGameFrame()
@@ -2061,6 +2189,12 @@ public int Native_GetHUDSettings(Handle handler, int numParams)
 	}
 
 	return gI_HUDSettings[client];
+}
+
+public int Native_GetHUD2Settings(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	return gI_HUD2Settings[client];
 }
 
 void PrintCSGOHUDText(int client, const char[] str)

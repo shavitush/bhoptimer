@@ -75,6 +75,18 @@
 	{
 		"en"		"Perfect jumps"
 	}
+	"HudDefaultPistol"
+	{
+		"en"		"Default Pistol: 1=USP 2=Glock"
+	}
+	"HudUSPSilencer"
+	{
+		"en"		"Spawn USPs with a silencer attached"
+	}
+	"HudGlockBurst"
+	{
+		"en"		"Spawn Glocks with Burst"
+	}
 	"HudPracticeMode"
 	{
 		"en"		"[PRACTICE]"
