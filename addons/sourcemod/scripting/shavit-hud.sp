@@ -498,6 +498,11 @@ public void OnClientCookiesCached(int client)
 	{
 		gI_HUD2Settings[client] = StringToInt(sHUDSettings);
 	}
+
+	if (gEV_Type != Engine_TF2 && IsValidClient(client, true) && GetClientTeam(client) > 1)
+	{
+		GivePlayerDefaultGun(client);
+	}
 }
 
 public void Player_ChangeClass(Event event, const char[] name, bool dontBroadcast)
@@ -930,35 +935,45 @@ public Action Hook_GunTouch(int entity, int client)
 	return Plugin_Continue;
 }
 
+void GivePlayerDefaultGun(int client)
+{
+	if (!(gI_HUDSettings[client] & (HUD_GLOCK|HUD_USP)))
+	{
+		return;
+	}
+
+	int iSlot = CS_SLOT_SECONDARY;
+	int iWeapon = GetPlayerWeaponSlot(client, iSlot);
+	char sWeapon[32];
+
+	if (gI_HUDSettings[client] & HUD_USP)
+	{
+		strcopy(sWeapon, 32, (gEV_Type == Engine_CSS) ? "weapon_usp" : "weapon_usp_silencer");
+	}
+	else
+	{
+		strcopy(sWeapon, 32, "weapon_glock");
+	}
+
+	if (iWeapon != -1)
+	{
+		RemovePlayerItem(client, iWeapon);
+		AcceptEntityInput(iWeapon, "Kill");
+	}
+
+	iWeapon = GivePlayerItem(client, sWeapon);
+	FakeClientCommand(client, "use %s", sWeapon);
+}
+
 public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
 	if (!IsFakeClient(client))
 	{
-		if (gEV_Type != Engine_TF2 && (gI_HUDSettings[client] & (HUD_GLOCK|HUD_USP)))
+		if (gEV_Type != Engine_TF2)
 		{
-			int iSlot = CS_SLOT_SECONDARY;
-			int iWeapon = GetPlayerWeaponSlot(client, iSlot);
-			char sWeapon[32];
-
-			if (gI_HUDSettings[client] & HUD_USP)
-			{
-				strcopy(sWeapon, 32, (gEV_Type == Engine_CSS) ? "weapon_usp" : "weapon_usp_silencer");
-			}
-			else
-			{
-				strcopy(sWeapon, 32, "weapon_glock");
-			}
-
-			if (iWeapon != -1)
-			{
-				RemovePlayerItem(client, iWeapon);
-				AcceptEntityInput(iWeapon, "Kill");
-			}
-
-			iWeapon = GivePlayerItem(client, sWeapon);
-			FakeClientCommand(client, "use %s", sWeapon);
+			GivePlayerDefaultGun(client);
 		}
 	}
 }
