@@ -463,7 +463,7 @@ stock void SanerGetClientName(int client, char[] name)
 	TrimTrailingInvalidUnicode(name);
 }
 
-stock void TrimTrailingInvalidUnicode(char[] outstr)
+stock bool TrimTrailingInvalidUnicode(char[] outstr)
 {
 	static int masks[3] = {0xC0, 0xE0, 0xF0};
 
@@ -471,14 +471,14 @@ stock void TrimTrailingInvalidUnicode(char[] outstr)
 
 	for (int i = 0; (maxidx-i >= 0) && (i < 3); i++)
 	{
-		int x = (outstr[maxidx-i] & 0xF0);
-
-		if ((x & masks[i]) == masks[i])
+		if ((outstr[maxidx-i] & masks[i]) == masks[i])
 		{
 			outstr[maxidx-i] = 0;
-			return;
+			return true;
 		}
 	}
+
+	return false;
 }
 
 // https://forums.alliedmods.net/showthread.php?t=216841
