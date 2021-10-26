@@ -23,7 +23,6 @@
 
 enum struct style_setting_t
 {
-	int i;
 	float f;
 	char str[128];
 }
@@ -365,9 +364,9 @@ public int Native_GetStyleSettingInt(Handle handler, int numParams)
 
 int GetStyleSettingInt(int style, char[] key)
 {
-	style_setting_t ss;
-	gSM_StyleKeys[style].GetArray(key, ss, style_setting_t::i+1);
-	return ss.i;
+	float val[1];
+	gSM_StyleKeys[style].GetArray(key, val, 1);
+	return RoundToFloor(val[0]);
 }
 
 public int Native_GetStyleSettingBool(Handle handler, int numParams)
@@ -397,9 +396,9 @@ public any Native_GetStyleSettingFloat(Handle handler, int numParams)
 
 float GetStyleSettingFloat(int style, char[] key)
 {
-	style_setting_t ss;
-	gSM_StyleKeys[style].GetArray(key, ss, style_setting_t::f+1);
-	return ss.f;
+	float val[1];
+	gSM_StyleKeys[style].GetArray(key, val, 1);
+	return val[0];
 }
 
 public any Native_HasStyleSetting(Handle handler, int numParams)
@@ -422,7 +421,6 @@ bool HasStyleSetting(int style, char[] key)
 bool SetStyleSetting(int style, const char[] key, const char[] value, bool replace=true)
 {
 	style_setting_t ss;
-	ss.i = StringToInt(value);
 	ss.f = StringToFloat(value);
 	int strcells = strcopy(ss.str, sizeof(ss.str), value);
 	if (strcells < 1) strcells = 1;
@@ -461,10 +459,9 @@ public any Native_SetStyleSettingFloat(Handle handler, int numParams)
 bool SetStyleSettingFloat(int style, char[] key, float value, bool replace=true)
 {
 	style_setting_t ss;
-	ss.i = RoundFloat(value);
 	ss.f = value;
 	int strcells = FloatToString(value, ss.str, sizeof(ss.str));
-	return gSM_StyleKeys[style].SetArray(key, ss, strcells+2, replace);
+	return gSM_StyleKeys[style].SetArray(key, ss, strcells+1, replace);
 }
 
 public any Native_SetStyleSettingBool(Handle handler, int numParams)
@@ -503,10 +500,9 @@ public any Native_SetStyleSettingInt(Handle handler, int numParams)
 bool SetStyleSettingInt(int style, char[] key, int value, bool replace=true)
 {
 	style_setting_t ss;
-	ss.i = value;
 	ss.f = float(value);
 	int strcells = IntToString(value, ss.str, sizeof(ss.str));
-	return gSM_StyleKeys[style].SetArray(key, ss, strcells+2, replace);
+	return gSM_StyleKeys[style].SetArray(key, ss, strcells+1, replace);
 }
 
 public int Native_GetStyleStrings(Handle handler, int numParams)
