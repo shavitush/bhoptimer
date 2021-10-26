@@ -432,6 +432,7 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 	{
 		if (gB_WorldRecordsCached && !gB_InitialRecalcStarted)
 		{
+			gB_InitialRecalcStarted = true;
 			RecalculateCurrentMap();
 			UpdateAllPoints();
 		}
@@ -723,15 +724,15 @@ public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	RecalculateCurrentMap();
+	ReallyRecalculateCurrentMap();
 }
 
 public Action Command_RecalcMap(int client, int args)
 {
-	RecalculateCurrentMap();
+	ReallyRecalculateCurrentMap();
 	UpdateAllPoints(true);
 
-	ReplyToCommand(client, "Done.");
+	ReplyToCommand(client, "Recalc started.");
 
 	return Plugin_Handled;
 }
@@ -889,6 +890,41 @@ public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResul
 public void Trans_OnRecalcFail(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
 {
 	LogError("Timer (rankings) error! Recalculation failed. Reason: %s", error);
+}
+
+void ReallyRecalculateCurrentMap()
+{
+	#if defined DEBUG
+	LogError("DEBUG: 5xxx (ReallyRecalculateCurrentMap)");
+	#endif
+
+	Transaction2 trans = new Transaction2();
+	char sQuery[1024];
+
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0, points_calced_from = 0 WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
+	trans.AddQuery(sQuery);
+
+	for (int i = 0; i < gI_Styles; i++)
+	{
+		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
+		{
+			FormatRecalculate(true, Track_Main, i, sQuery, sizeof(sQuery));
+			trans.AddQuery(sQuery);
+			FormatRecalculate(true, Track_Bonus, i, sQuery, sizeof(sQuery));
+			trans.AddQuery(sQuery);
+		}
+	}
+
+	gH_SQL.Execute(trans, Trans_OnReallyRecalcSuccess, Trans_OnReallyRecalcFail, 0);
+}
+
+public void Trans_OnReallyRecalcSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+}
+
+public void Trans_OnReallyRecalcFail(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer (rankings) error! ReallyRecalculateCurrentMap failed. Reason: %s", error);
 }
 
 void RecalculateCurrentMap()
