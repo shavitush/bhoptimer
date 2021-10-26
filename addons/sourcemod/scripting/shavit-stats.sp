@@ -560,7 +560,7 @@ public Action Command_MapsDoneLeft(int client, int args)
 
 	if (iSteamID < 1)
 	{
-		GetClientName(target, gS_TargetName[client], sizeof(gS_TargetName[]));
+		SanerGetClientName(target, gS_TargetName[client]);
 		iSteamID = GetSteamAccountID(target);
 	}
 

@@ -938,7 +938,6 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	{
 		if (gEV_Type != Engine_TF2 && (gI_HUDSettings[client] & (HUD_GLOCK|HUD_USP)))
 		{
-			PrintToChat(client, "0x%X", (gI_HUDSettings[client] & (HUD_GLOCK|HUD_USP)));
 			int iSlot = CS_SLOT_SECONDARY;
 			int iWeapon = GetPlayerWeaponSlot(client, iSlot);
 			char sWeapon[32];
@@ -1907,7 +1906,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 				break;
 			}
 
-			GetClientName(iSpectatorClients[i], sName, sizeof(sName));
+			SanerGetClientName(iSpectatorClients[i], sName);
 			ReplaceString(sName, sizeof(sName), "#", "?");
 			TrimDisplayString(sName, sName, sizeof(sName), gCV_SpecNameSymbolLength.IntValue);
 
@@ -2107,7 +2106,7 @@ void UpdateKeyHint(int client)
 							break;
 						}
 
-						GetClientName(iSpectatorClients[i], sName, sizeof(sName));
+						SanerGetClientName(iSpectatorClients[i], sName);
 						ReplaceString(sName, sizeof(sName), "#", "?");
 						TrimDisplayString(sName, sName, sizeof(sName), gCV_SpecNameSymbolLength.IntValue);
 						Format(sMessage, 256, "%s\n%s", sMessage, sName);

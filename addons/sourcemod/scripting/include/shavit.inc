@@ -440,6 +440,47 @@ stock float GetAngleDiff(float current, float previous)
 	return diff - 360.0 * RoundToFloor((diff + 180.0) / 360.0);
 }
 
+// Steam names are `char[32+1];`. Source engine names are `char[32];` (MAX_PLAYER_NAME_LENGTH).
+// This means Source engine names can end up with an invalid unicode sequence at the end.
+// This will remove the unicode codepoint if necessary.
+stock void SanerGetClientName(int client, char[] name)
+{
+	static EngineVersion ev = Engine_Unknown;
+
+	if (ev == Engine_Unknown)
+	{
+		ev = GetEngineVersion();
+	}
+
+	GetClientName(client, name, 32+1);
+
+	// CSGO doesn't have this problem because `MAX_PLAYER_NAME_LENGTH` is 128...
+	if (ev == Engine_CSGO)
+	{
+		return;
+	}
+
+	TrimTrailingInvalidUnicode(name);
+}
+
+stock void TrimTrailingInvalidUnicode(char[] outstr)
+{
+	static int masks[3] = {0xC0, 0xE0, 0xF0};
+
+	int maxidx = strlen(outstr)-1;
+
+	for (int i = 0; (maxidx-i >= 0) && (i < 3); i++)
+	{
+		int x = (outstr[maxidx-i] & 0xF0);
+
+		if ((x & masks[i]) == masks[i])
+		{
+			outstr[maxidx-i] = 0;
+			return;
+		}
+	}
+}
+
 // https://forums.alliedmods.net/showthread.php?t=216841
 // Trims display string to specified max possible length, and appends "..." if initial string exceeds that length
 stock void TrimDisplayString(const char[] str, char[] outstr, int outstrlen, int max_allowed_length)

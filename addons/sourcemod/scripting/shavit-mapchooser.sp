@@ -1772,7 +1772,7 @@ void Nominate(int client, const char mapname[PLATFORM_MAX_PATH])
 	g_aNominateList.PushString(mapname);
 	g_cNominatedMap[client] = mapname;
 	char name[MAX_NAME_LENGTH];
-	GetClientName(client, name, sizeof(name));
+	SanerGetClientName(client, name);
 
 	PrintToChatAll("%s%t", g_cPrefix, "Map Nominated", name, mapname);
 }
@@ -1829,7 +1829,7 @@ int CheckRTV(int client = 0)
 
 	if(client != 0)
 	{
-		GetClientName(client, name, sizeof(name));
+		SanerGetClientName(client, name);
 	}
 	if(needed > 0)
 	{
