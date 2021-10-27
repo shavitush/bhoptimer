@@ -1954,7 +1954,9 @@ public void OnClientPutInServer(int client)
 	{
 		char sName[MAX_NAME_LENGTH];
 		FillBotName(gA_BotInfo_Temp, sName);
+		gB_HideNameChange = true;
 		SetClientName(client, sName);
+		gB_HideNameChange = false;
 
 		if (gCV_BotFootsteps.BoolValue && gH_UpdateStepSound != null)
 		{
@@ -2103,6 +2105,7 @@ void UpdateBotScoreboard(bot_info_t info)
 
 	gB_HideNameChange = true;
 	SetClientName(client, sName);
+	gB_HideNameChange = false;
 
 	if (sv_duplicate_playernames_ok != null)
 	{
