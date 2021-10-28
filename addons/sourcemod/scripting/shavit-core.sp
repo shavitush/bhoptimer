@@ -1578,6 +1578,19 @@ public int Native_ChangeClientStyle(Handle handler, int numParams)
 	return false;
 }
 
+public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
+{
+	float minimum_time = GetStyleSettingFloat(snapshot.bsStyle, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
+
+	if (snapshot.fCurrentTime < minimum_time)
+	{
+		Shavit_PrintToChat(client, "%T", "TimeUnderMinimumTime", client, minimum_time, snapshot.fCurrentTime, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
+}
+
 public int Native_FinishMap(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);

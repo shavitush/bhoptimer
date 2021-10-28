@@ -176,6 +176,11 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingFloat(gI_CurrentParserIndex, "rankingmultiplier", 1.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "special", 0);
 
+	// bhop_freedompuppies on normal is like 4.2s
+	SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time", 4.0);
+	// bhop_uc_minecraft_beta2 on bonus normal has a 0.62s time
+	SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time_bonus", 0.5);
+
 	SetStyleSettingInt(gI_CurrentParserIndex, "ordering", gI_CurrentParserIndex);
 
 	SetStyleSettingInt(gI_CurrentParserIndex, "inaccessible", 0);
