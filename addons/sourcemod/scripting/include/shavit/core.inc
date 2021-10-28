@@ -1,5 +1,5 @@
 /*
- * shavit's Timer - .inc file
+ * shavit's Timer - core.inc file
  * by: shavit
  *
  * This file is part of shavit's Timer.
@@ -18,15 +18,15 @@
  *
 */
 
-#if defined _shavit_included
+#if defined _shavit_core_included
 	#endinput
 #endif
-#define _shavit_included
+#define _shavit_core_included
 
 #define SHAVIT_VERSION "3.0.9a"
 #define STYLE_LIMIT 256
 
-#define SHAVIT_LOG_QUERIES 1
+#define SHAVIT_LOG_QUERIES 0
 
 // status
 enum TimerStatus
@@ -1288,7 +1288,7 @@ native void Shavit_SetClientTimescale(int client, float scale);
  */
 native float Shavit_GetClientTimescale(int client);
 
-public SharedPlugin __pl_shavit =
+public SharedPlugin __pl_shavit_core =
 {
 	name = "shavit",
 	file = "shavit-core.smx",
@@ -1300,7 +1300,7 @@ public SharedPlugin __pl_shavit =
 };
 
 #if !defined REQUIRE_PLUGIN
-public void __pl_shavit_SetNTVOptional()
+public void __pl_shavit_core_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_CanPause");
 	MarkNativeAsOptional("Shavit_ChangeClientStyle");
