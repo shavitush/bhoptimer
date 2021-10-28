@@ -28,7 +28,7 @@
 
 #define DEBUG 0
 
-#include <shavit>
+#include <shavit/core>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/hud>

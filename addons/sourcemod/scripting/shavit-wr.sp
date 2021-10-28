@@ -22,7 +22,7 @@
 #include <convar_class>
 #include <dhooks>
 
-#include <shavit>
+#include <shavit/core>
 #include <shavit/wr>
 
 #undef REQUIRE_PLUGIN

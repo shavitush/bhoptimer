@@ -25,7 +25,7 @@
 #include <convar_class>
 #include <dhooks>
 
-#include <shavit>
+#include <shavit/core>
 #include <shavit/chat>
 #include <shavit/chat-colors>
 #include <shavit/steamid-stocks>

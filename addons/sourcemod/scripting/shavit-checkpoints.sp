@@ -23,7 +23,7 @@
 #include <clientprefs>
 #include <dhooks>
 
-#include <shavit>
+#include <shavit/core>
 #include <shavit/checkpoints>
 #include <shavit/zones>
 #include <shavit/physicsuntouch>

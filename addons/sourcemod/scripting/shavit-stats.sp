@@ -23,8 +23,7 @@
 #include <convar_class>
 #include <dhooks>
 
-#include <shavit>
-//#include <shavit/stats>
+#include <shavit/core>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/rankings>

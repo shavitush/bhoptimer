@@ -24,7 +24,7 @@
 
 #include <shavit/replay-recorder>
 
-#include <shavit>
+#include <shavit/core>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/replay-playback>

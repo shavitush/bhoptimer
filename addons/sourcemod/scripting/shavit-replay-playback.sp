@@ -25,7 +25,7 @@
 #include <profiler>
 #include <dhooks>
 
-#include <shavit>
+#include <shavit/core>
 #include <shavit/replay-playback>
 #include <shavit/wr>
 #include <shavit/zones>

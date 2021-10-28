@@ -31,7 +31,7 @@
 #include <tf2>
 #include <tf2_stocks>
 
-#include <shavit>
+#include <shavit/core>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/chat>

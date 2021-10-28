@@ -24,7 +24,7 @@
 #include <convar_class>
 #include <dhooks>
 
-#include <shavit>
+#include <shavit/core>
 #include <shavit/zones>
 
 #undef REQUIRE_PLUGIN

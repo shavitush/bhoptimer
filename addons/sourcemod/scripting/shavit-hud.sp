@@ -25,7 +25,7 @@
 #include <convar_class>
 #include <dhooks>
 
-#include <shavit>
+#include <shavit/core>
 #include <shavit/hud>
 
 #undef REQUIRE_PLUGIN

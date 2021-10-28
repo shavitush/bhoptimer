@@ -5,7 +5,7 @@
 #include <sdktools_sound>
 #include <convar_class>
 
-#include <shavit>
+#include <shavit/core>
 #include <shavit/mapchooser>
 
 #include <shavit/maps-folder-stocks>
@@ -143,6 +143,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_hForward_OnRTV = CreateGlobalForward("SMC_OnRTV", ET_Event, Param_Cell);
 	g_hForward_OnUnRTV = CreateGlobalForward("SMC_OnUnRTV", ET_Event, Param_Cell);
 	g_hForward_OnSuccesfulRTV = CreateGlobalForward("SMC_OnSuccesfulRTV", ET_Event);
+
+	RegPluginLibrary("shavit-mapchooser");
 
 	gB_Late = late;
 
