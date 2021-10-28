@@ -124,6 +124,8 @@ public void OnPluginStart()
 	gCV_PlaybackPreRunTime = new Convar("shavit_replay_preruntime", "1.5", "Time (in seconds) to record before a player leaves start zone.", 0, true, 0.0, true, 2.0);
 	gCV_TimeLimit = new Convar("shavit_replay_timelimit", "7200.0", "Maximum amount of time (in seconds) to allow saving to disk.\nDefault is 7200 (2 hours)\n0 - Disabled");
 
+	Convar.AutoExecConfig();
+
 	gF_Tickrate = (1.0 / GetTickInterval());
 
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
