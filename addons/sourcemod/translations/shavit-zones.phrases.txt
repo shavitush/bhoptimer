@@ -293,6 +293,10 @@
 	{
 		"en"		"Refresh menu"
 	}
+	"TpToZone"
+	{
+		"en"        "Teleport to a zone"
+	}
 	// ---------- Messages ---------- //
 	"ZoneSlayEnter"
 	{

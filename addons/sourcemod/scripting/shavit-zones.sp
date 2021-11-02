@@ -234,6 +234,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_zoneedit", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone.");
 	RegAdminCmd("sm_editzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
 	RegAdminCmd("sm_modifyzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
+
+	RegAdminCmd("sm_tptozone", Command_TpToZone, ADMFLAG_RCON, "Teleport to a zone");
 	
 	RegAdminCmd("sm_reloadzonesettings", Command_ReloadZoneSettings, ADMFLAG_ROOT, "Reloads the zone settings.");
 
@@ -324,18 +326,23 @@ public void OnPluginStart()
 		gI_EntityZone[i] = -1;
 	}
 
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsClientConnected(i) && IsClientInGame(i))
-		{
-			OnClientConnected(i);
-		}
-	}
-
 	if (gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
 		Shavit_OnDatabaseLoaded();
+
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i))
+			{
+				OnClientConnected(i);
+
+				if (AreClientCookiesCached(i) && !IsFakeClient(i))
+				{
+					OnClientCookiesCached(i);
+				}
+			}
+		}
 	}
 }
 
@@ -449,6 +456,7 @@ public void OnAdminMenuReady(Handle topmenu)
 		gH_AdminMenu.AddItem("sm_deletezone", AdminMenu_DeleteZone, gH_TimerCommands, "sm_deletezone", ADMFLAG_RCON);
 		gH_AdminMenu.AddItem("sm_deleteallzones", AdminMenu_DeleteAllZones, gH_TimerCommands, "sm_deleteallzones", ADMFLAG_RCON);
 		gH_AdminMenu.AddItem("sm_zoneedit", AdminMenu_ZoneEdit, gH_TimerCommands, "sm_zoneedit", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_tptozone", AdminMenu_TpToZone, gH_TimerCommands, "sm_tptozone", ADMFLAG_RCON);
 	}
 }
 
@@ -502,6 +510,18 @@ public void AdminMenu_ZoneEdit(Handle topmenu, TopMenuAction action, TopMenuObje
 	{
 		Reset(param);
 		OpenEditMenu(param);
+	}
+}
+
+public void AdminMenu_TpToZone(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if (action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%T", "TpToZone", param);
+	}
+	else if (action == TopMenuAction_SelectOption)
+	{
+		OpenTpToZoneMenu(param);
 	}
 }
 
@@ -1690,6 +1710,16 @@ void ReloadPrebuiltZones()
 	}
 }
 
+public Action Command_TpToZone(int client, int args)
+{
+	if (!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	return OpenTpToZoneMenu(client);
+}
+
 public Action Command_ZoneEdit(int client, int args)
 {
 	if(!IsValidClient(client))
@@ -1888,6 +1918,101 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 		delete menu;
 	}
 	
+	return 0;
+}
+
+Action OpenTpToZoneMenu(int client, int pagepos=0)
+{
+	Menu menu = new Menu(MenuHandler_TpToEdit);
+	menu.SetTitle("%T\n ", "TpToZone", client);
+
+	char sDisplay[64];
+	FormatEx(sDisplay, 64, "%T", "ZoneEditRefresh", client);
+	menu.AddItem("-2", sDisplay);
+
+	for (int i = 0; i < gI_MapZones; i++)
+	{
+		if (!gA_ZoneCache[i].bZoneInitialized)
+		{
+			continue;
+		}
+
+		char sInfo[8];
+		IntToString(i, sInfo, 8);
+
+		char sPrebuilt[16];
+		sPrebuilt = gA_ZoneCache[i].bPrebuilt ? " (prebuilt)" : "";
+
+		char sTrack[32];
+		GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
+
+		if (gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
+		{
+			FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+		}
+		else
+		{
+			FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack, sPrebuilt);
+		}
+
+		if (gB_InsideZoneID[client][i])
+		{
+			Format(sDisplay, 64, "%s %T", sDisplay, "ZoneInside", client);
+		}
+
+		menu.AddItem(sInfo, sDisplay, ITEMDRAW_DEFAULT);
+	}
+
+	if (menu.ItemCount == 0)
+	{
+		FormatEx(sDisplay, 64, "%T", "ZonesMenuNoneFound", client);
+		menu.AddItem("-1", sDisplay);
+	}
+
+	menu.ExitButton = true;
+	menu.DisplayAt(client, pagepos, 300);
+
+	return Plugin_Handled;
+}
+
+public int MenuHandler_TpToEdit(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[8];
+		menu.GetItem(param2, info, 8);
+
+		int id = StringToInt(info);
+
+		switch (id)
+		{
+			case -2:
+			{
+			}
+			case -1:
+			{
+				Shavit_PrintToChat(param1, "%T", "ZonesMenuNoneFound", param1);
+			}
+			default:
+			{
+				Shavit_StopTimer(param1);
+
+				float fCenter[3];
+				fCenter[0] = gV_ZoneCenter[id][0];
+				fCenter[1] = gV_ZoneCenter[id][1];
+				fCenter[2] = gV_MapZones[id][0][2];
+
+				TeleportEntity(param1, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			}
+		}
+
+		OpenTpToZoneMenu(param1, GetMenuSelectionPosition());
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
 	return 0;
 }
 
