@@ -5,7 +5,7 @@
 #define _closestpos_included
 
 methodmap ClosestPos < Handle {
-	public native ClosestPos(ArrayList input, int offset=0);
+	public native ClosestPos(ArrayList input, int offset=0, int startidx=0, int count=2147483647);
 	public native int Find(float pos[3]);
 };
 

@@ -1679,7 +1679,7 @@ public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, i
 		p.Start();
 #endif
 		delete gH_ClosestPos[track][style];
-		gH_ClosestPos[track][style] = new ClosestPos(gA_FrameCache[style][track].aFrames);
+		gH_ClosestPos[track][style] = new ClosestPos(gA_FrameCache[style][track].aFrames, 0, gA_FrameCache[style][track].iPreFrames, gA_FrameCache[style][track].iFrameCount);
 #if DEBUG
 		p.Stop();
 		PrintToServer(">>> ClosestPos / DoReplaySaverCallbacks(style=%d, track=%d) = %f", style, track, p.Time);
@@ -1871,7 +1871,7 @@ bool DefaultLoadReplay(frame_cache_t cache, int style, int track)
 		p.Start();
 #endif
 		delete gH_ClosestPos[track][style];
-		gH_ClosestPos[track][style] = new ClosestPos(cache.aFrames);
+		gH_ClosestPos[track][style] = new ClosestPos(cache.aFrames, 0, cache.iPreFrames, cache.iFrameCount);
 #if DEBUG
 		p.Stop();
 		PrintToServer(">>> ClosestPos / DefaultLoadReplay(style=%d, track=%d) = %f", style, track, p.Time);
@@ -3587,6 +3587,11 @@ float GetClosestReplayTime(int client)
 
 	if (gB_ClosestPos)
 	{
+		if (!gH_ClosestPos[track][style])
+		{
+			return -1.0;
+		}
+
 		iClosestFrame = gH_ClosestPos[track][style].Find(fClientPos);
 		iEndFrame = iLength - 1;
 		iSearch = 0;
