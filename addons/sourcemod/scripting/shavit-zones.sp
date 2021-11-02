@@ -2995,12 +2995,11 @@ public Action Timer_DrawEverything(Handle Timer)
 						gV_ZoneCenter[i],
 						gA_ZoneSettings[type][track].iBeam,
 						gA_ZoneSettings[type][track].iHalo);
-				++iDrawn;
-			}
 
-			if(++iDrawn % iMaxZonesPerFrame == 0)
-			{
-				return Plugin_Continue;
+				if (++iDrawn % iMaxZonesPerFrame == 0)
+				{
+					return Plugin_Continue;
+				}
 			}
 		}
 	}
