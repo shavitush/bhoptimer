@@ -147,6 +147,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("plugin.basecommands");
 	LoadTranslations("common.phrases");
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-wr.phrases");
@@ -1630,6 +1631,8 @@ public Action Command_WorldRecord(int client, int args)
 		havemap = (args >= 1);
 	}
 
+	gA_WRCache[client].iLastTrack = track;
+
 	if(!havemap)
 	{
 		gA_WRCache[client].sClientMap = gS_Map;
@@ -1639,17 +1642,61 @@ public Action Command_WorldRecord(int client, int args)
 		GetCmdArg(1, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
 		LowercaseString(gA_WRCache[client].sClientMap);
 
-		if (!GuessBestMapName(gA_ValidMaps, gA_WRCache[client].sClientMap, gA_WRCache[client].sClientMap))
+		Menu wrmatches = new Menu(WRMatchesMenuHandler);
+		wrmatches.SetTitle("%T", "Choose Map", client);
+
+		char entry[PLATFORM_MAX_PATH];
+		int length = gA_ValidMaps.Length;
+		for (int i = 0; i < length; i++)
 		{
-			Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
-			return Plugin_Handled;
+			gA_ValidMaps.GetString(i, entry, PLATFORM_MAX_PATH);
+
+			if (StrContains(entry, gA_WRCache[client].sClientMap) != -1)
+			{
+				wrmatches.AddItem(entry, entry);
+			}
+		}
+
+		switch (wrmatches.ItemCount)
+		{
+			case 0:
+			{
+				delete wrmatches;
+				Shavit_PrintToChat(client, "%t", "Map was not found", gA_WRCache[client].sClientMap);
+				return Plugin_Handled;
+			}
+			case 1:
+			{
+				delete wrmatches;
+				gA_WRCache[client].sClientMap = entry;
+			}
+			default:
+			{
+				wrmatches.Display(client, MENU_TIME_FOREVER);
+				return Plugin_Handled;
+			}
 		}
 	}
 
-	gA_WRCache[client].iLastTrack = track;
-
 	RetrieveWRMenu(client, track);
 	return Plugin_Handled;
+}
+
+public int WRMatchesMenuHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char map[PLATFORM_MAX_PATH];
+		menu.GetItem(param2, map, sizeof(map));
+		gA_WRCache[param1].sClientMap = map;
+		RetrieveWRMenu(param1, gA_WRCache[param1].iLastTrack);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
 }
 
 void RetrieveWRMenu(int client, int track)
