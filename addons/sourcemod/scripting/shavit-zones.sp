@@ -19,6 +19,7 @@
 */
 
 #include <sourcemod>
+#include <clientprefs>
 #include <sdktools>
 #include <sdkhooks>
 #include <convar_class>
@@ -140,6 +141,7 @@ ConVar sv_gravity = null;
 Convar gCV_Interval = null;
 Convar gCV_TeleportToStart = null;
 Convar gCV_TeleportToEnd = null;
+Convar gCV_AllowDrawAllZones = null;
 Convar gCV_UseCustomSprite = null;
 Convar gCV_Height = null;
 Convar gCV_Offset = null;
@@ -149,7 +151,11 @@ Convar gCV_ExtraSpawnHeight = null;
 Convar gCV_PrebuiltVisualOffset = null;
 
 // handles
-Handle gH_DrawEverything = null;
+Handle gH_DrawVisible = null;
+Handle gH_DrawAllZones = null;
+
+bool gB_DrawAllZones[MAXPLAYERS+1];
+Cookie gH_DrawAllZonesCookie = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
@@ -246,6 +252,10 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_delss", Command_DeleteSetStart, "Deletes the custom set start position.");
 	RegConsoleCmd("sm_delsp", Command_DeleteSetStart, "Deletes the custom set start position.");
 
+	RegConsoleCmd("sm_drawallzones", Command_DrawAllZones, "Toggles drawing all zones.");
+	RegConsoleCmd("sm_drawzones", Command_DrawAllZones, "Toggles drawing all zones.");
+	gH_DrawAllZonesCookie = new Cookie("shavit_drawallzones", "Draw all zones cookie", CookieAccess_Protected);
+
 	for (int i = 0; i <= 9; i++)
 	{
 		char cmd[10], helptext[50];
@@ -276,6 +286,7 @@ public void OnPluginStart()
 	gCV_Interval = new Convar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.25, true, 5.0);
 	gCV_TeleportToStart = new Convar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = new Convar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_AllowDrawAllZones = new Convar("shavit_zones_allowdrawallzones", "1", "Allow players to use !drawallzones to see all zones regardless of zone visibility settings.\n0 - nobody can use !drawallzones\n1 - admins (sm_zones access) can use !drawallzones\n2 - anyone can use !drawallzones", 0, true, 0.0, true, 2.0);
 	gCV_UseCustomSprite = new Convar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_Height = new Convar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
 	gCV_Offset = new Convar("shavit_zones_offset", "1.0", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
@@ -366,8 +377,10 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 {
 	if(convar == gCV_Interval)
 	{
-		delete gH_DrawEverything;
-		gH_DrawEverything = CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		delete gH_DrawVisible;
+		delete gH_DrawAllZones;
+		gH_DrawVisible = CreateTimer(gCV_Interval.FloatValue, Timer_DrawVisible, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		gH_DrawAllZones = CreateTimer(gCV_Interval.FloatValue, Timer_DrawAllZones, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else if ((convar == gCV_Offset || convar == gCV_PrebuiltVisualOffset) && gI_MapZones > 0)
 	{
@@ -789,9 +802,10 @@ public void OnMapStart()
 	RefreshZones();
 
 	// start drawing mapzones here
-	if(gH_DrawEverything == null)
+	if(gH_DrawAllZones == null)
 	{
-		gH_DrawEverything = CreateTimer(gCV_Interval.FloatValue, Timer_DrawEverything, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		gH_DrawVisible = CreateTimer(gCV_Interval.FloatValue, Timer_DrawVisible, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		gH_DrawAllZones = CreateTimer(gCV_Interval.FloatValue, Timer_DrawAllZones, INVALID_HANDLE, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -807,7 +821,8 @@ public void OnMapEnd()
 {
 	gB_PrecachedStuff = false;
 	gB_InsertedPrebuiltZones = false;
-	delete gH_DrawEverything;
+	delete gH_DrawVisible;
+	delete gH_DrawAllZones;
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -1252,6 +1267,7 @@ public void OnClientConnected(int client)
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
 	gB_CursorTracing[client] = true;
+	gB_DrawAllZones[client] = false;
 }
 
 public void OnClientAuthorized(int client)
@@ -1260,6 +1276,18 @@ public void OnClientAuthorized(int client)
 	{
 		GetStartPosition(client);
 	}
+}
+
+public void OnClientCookiesCached(int client)
+{
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	char setting[8];
+	gH_DrawAllZonesCookie.Get(client, setting, sizeof(setting));
+	gB_DrawAllZones[client] = view_as<bool>(StringToInt(setting));
 }
 
 void GetStartPosition(int client)
@@ -1444,6 +1472,27 @@ public Action Command_Modifier(int client, int args)
 	gF_Modifier[client] = fArg1;
 
 	Shavit_PrintToChat(client, "%T %s%.01f%s.", "ModifierSet", client, gS_ChatStrings.sVariable, fArg1, gS_ChatStrings.sText);
+
+	return Plugin_Handled;
+}
+
+bool CanDrawAllZones(int client)
+{
+	if (!gCV_AllowDrawAllZones.BoolValue)
+	{
+		return false;
+	}
+
+	return gCV_AllowDrawAllZones.IntValue == 2 || CheckCommandAccess(client, "sm_zones", ADMFLAG_RCON);
+}
+
+public Action Command_DrawAllZones(int client, int args)
+{
+	if (CanDrawAllZones(client))
+	{
+		gB_DrawAllZones[client] = !gB_DrawAllZones[client];
+		gH_DrawAllZonesCookie.Set(client, gB_DrawAllZones[client] ? "1" : "0");
+	}
 
 	return Plugin_Handled;
 }
@@ -2961,7 +3010,7 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 	Reset(client);
 }
 
-public Action Timer_DrawEverything(Handle Timer)
+public Action Timer_DrawVisible(Handle Timer)
 {
 	if(gI_MapZones == 0)
 	{
@@ -3000,6 +3049,54 @@ public Action Timer_DrawEverything(Handle Timer)
 				{
 					return Plugin_Continue;
 				}
+			}
+		}
+	}
+
+	iCycle = 0;
+
+	return Plugin_Continue;
+}
+
+public Action Timer_DrawAllZones(Handle Timer)
+{
+	if (gI_MapZones == 0 || !gCV_AllowDrawAllZones.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
+	static int iCycle = 0;
+	static int iMaxZonesPerFrame = 5;
+
+	if (iCycle >= gI_MapZones)
+	{
+		iCycle = 0;
+	}
+
+	int iDrawn = 0;
+
+	for (int i = iCycle; i < gI_MapZones; i++, iCycle++)
+	{
+		if (gA_ZoneCache[i].bZoneInitialized)
+		{
+			int type = gA_ZoneCache[i].iZoneType;
+			int track = gA_ZoneCache[i].iZoneTrack;
+
+			DrawZone(
+				gV_MapZones_Visual[i],
+				GetZoneColors(type, track),
+				RoundToCeil(float(gI_MapZones) / iMaxZonesPerFrame + 2.0) * gCV_Interval.FloatValue,
+				gA_ZoneSettings[type][track].fWidth,
+				gA_ZoneSettings[type][track].bFlatZone,
+				gV_ZoneCenter[i],
+				gA_ZoneSettings[type][track].iBeam,
+				gA_ZoneSettings[type][track].iHalo,
+				true // <==== this is the the important part
+			);
+
+			if (++iDrawn % iMaxZonesPerFrame == 0)
+			{
+				return Plugin_Continue;
 			}
 		}
 	}
@@ -3110,7 +3207,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, bool drawallzones=false)
 {
 	static int pairs[][] =
 	{
@@ -3133,7 +3230,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientInGame(i) && !IsFakeClient(i))
+		if(IsClientInGame(i) && !IsFakeClient(i) && (!drawallzones || (gB_DrawAllZones[i] && CanDrawAllZones(i))))
 		{
 			float eyes[3];
 			GetClientEyePosition(i, eyes);
