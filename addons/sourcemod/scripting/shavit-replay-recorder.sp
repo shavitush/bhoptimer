@@ -91,6 +91,7 @@ float gF_NextFrameTime[MAXPLAYERS+1];
 
 int gI_HijackFrames[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
+bool gB_HijackFramesKeepOnStart[MAXPLAYERS+1];
 
 bool gB_ReplayPlayback = false;
 
@@ -252,6 +253,7 @@ void ClearFrames(int client)
 	gI_PlayerPrerunFrames[client] = 0;
 	gI_PlayerFinishFrame[client] = 0;
 	gI_HijackFrames[client] = 0;
+	gB_HijackFramesKeepOnStart[client] = false;
 }
 
 public void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newtimescale)
@@ -263,7 +265,10 @@ public Action Shavit_OnStart(int client)
 {
 	gB_RecordingEnabled[client] = true;
 
-	gI_HijackFrames[client] = 0;
+	if (!gB_HijackFramesKeepOnStart[client])
+	{
+		gI_HijackFrames[client] = 0;
+	}
 
 	if (gB_GrabbingPostFrames[client])
 	{
@@ -659,4 +664,5 @@ public int Native_HijackAngles(Handle handler, int numParams)
 		gI_HijackFrames[client] = ticks;
 	}
 
+	gB_HijackFramesKeepOnStart[client] = (numParams < 5) ? false : view_as<bool>(GetNativeCell(5));
 }

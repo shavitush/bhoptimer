@@ -129,10 +129,11 @@ native ArrayList Shavit_GetReplayData(int client, bool cheapCloneHandle=false);
  * @param pitch                     Vertical view angle.
  * @param yaw                       Horizontal view angle.
  * @param ticks                     The number of ticks to hijack angles for. -1 will calculate the number of ticks based on the client's latency.
+ * @param keeponstart               Whether to continue hijacking angles even after someone restarts.
  *
  * @noreturn
  */
-native void Shavit_HijackAngles(int client, float pitch, float yaw, int ticks = -1);
+native void Shavit_HijackAngles(int client, float pitch, float yaw, int ticks = -1, bool keeponstart = false);
 
 public SharedPlugin __pl_shavit_replay_recorder =
 {

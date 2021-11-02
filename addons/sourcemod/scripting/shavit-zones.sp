@@ -30,6 +30,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
+#include <shavit/replay-recorder>
 
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
@@ -177,6 +178,8 @@ bool gB_HasSetStart[MAXPLAYERS+1][TRACKS_SIZE];
 bool gB_StartAnglesOnly[MAXPLAYERS+1][TRACKS_SIZE];
 float gF_StartPos[MAXPLAYERS+1][TRACKS_SIZE][3];
 float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][3];
+
+bool gB_ReplayRecorder = false;
 
 public Plugin myinfo =
 {
@@ -326,6 +329,8 @@ public void OnPluginStart()
 		gI_EntityZone[i] = -1;
 	}
 
+	gB_ReplayRecorder = LibraryExists("shavit-replay-recorder");
+
 	if (gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
@@ -369,6 +374,10 @@ public void OnLibraryAdded(const char[] name)
 			OnAdminMenuReady(gH_AdminMenu);
 		}
 	}
+	else if (StrEqual(name, "shavit-replay-recorder"))
+	{
+		gB_ReplayRecorder = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -377,6 +386,10 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gH_AdminMenu = null;
 		gH_TimerCommands = INVALID_TOPMENUOBJECT;
+	}
+	else if (StrEqual(name, "shavit-replay-recorder"))
+	{
+		gB_ReplayRecorder = false;
 	}
 } 
 
@@ -3469,6 +3482,11 @@ public void Shavit_OnRestart(int client, int track)
 			}
 
 			TeleportEntity(client, fCenter, gB_HasSetStart[client][track] ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+
+			if (gB_ReplayRecorder && gB_HasSetStart[client][track])
+			{
+				Shavit_HijackAngles(client, gF_StartAng[client][track][0], gF_StartAng[client][track][1], -1, true);
+			}
 		}
 
 		// kz buttons
