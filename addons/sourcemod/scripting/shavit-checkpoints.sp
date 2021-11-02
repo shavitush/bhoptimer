@@ -115,6 +115,26 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetTimesTeleported", Native_GetTimesTeleported);
 	CreateNative("Shavit_HasSavestate", Native_HasSavestate);
 
+	if (!FileExists("cfg/sourcemod/plugin.shavit-checkpoints.cfg") && FileExists("cfg/sourcemod/plugin.shavit-misc.cfg"))
+	{
+		File source = OpenFile("cfg/sourcemod/plugin.shavit-misc.cfg", "r");
+		File destination = OpenFile("cfg/sourcemod/plugin.shavit-checkpoints.cfg", "w");
+
+		if (source && destination)
+		{
+			char line[512];
+
+			while (!source.EndOfFile() && source.ReadLine(line, sizeof(line)))
+			{
+				ReplaceString(line, sizeof(line), "_misc_", "_checkpoints_");
+				destination.WriteLine("%s", line);
+			}
+		}
+
+		delete destination;
+		delete source;
+	}
+
 	RegPluginLibrary("shavit-checkpoints");
 
 	gB_Late = late;
