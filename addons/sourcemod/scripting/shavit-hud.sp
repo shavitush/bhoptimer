@@ -1822,7 +1822,7 @@ void UpdateCenterKeys(int client)
 		buttons = Shavit_GetReplayButtons(target, fAngleDiff);
 	}
 
-	char sCenterText[80];
+	char sCenterText[254];
 
 	if (gB_AlternateCenterKeys[client])
 	{
@@ -1834,7 +1834,7 @@ void UpdateCenterKeys(int client)
 	}
 	else
 	{
-		FormatEx(sCenterText, sizeof(sCenterText), "　%s　　%s\n%s   %s   %s\n%s　 %s 　%s\n　%s　　%s",
+		FormatEx(sCenterText, sizeof(sCenterText), "　  %s　　%s\n  %s   %s   %s\n  %s　 %s 　%s\n　  %s　　%s",
 			(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
 			(fAngleDiff > 0) ? "<":"  ", (buttons & IN_FORWARD) > 0 ? "Ｗ":" ｰ", (fAngleDiff < 0) ? ">":"",
 			(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
@@ -1850,7 +1850,7 @@ void UpdateCenterKeys(int client)
 
 	if(!Shavit_GetStyleSettingBool(style, "autobhop") && IsValidClient(target))
 	{
-		Format(sCenterText, sizeof(sCenterText), "%s\n　　%d　%d", sCenterText, gI_ScrollCount[target], gI_LastScrollCount[target]);
+		Format(sCenterText, sizeof(sCenterText), "%s\n　　%s%d %s%s%d", sCenterText, gI_ScrollCount[target] < 10 ? " " : "", gI_ScrollCount[target], gI_ScrollCount[target] < 10 ? " " : "", gI_LastScrollCount[target] < 10 ? " " : "", gI_LastScrollCount[target]);
 	}
 
 	PrintCenterText(client, "%s", sCenterText);
