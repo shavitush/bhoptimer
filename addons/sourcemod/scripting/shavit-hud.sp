@@ -1165,6 +1165,13 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 	int iLines = 0;
 	char sLine[128];
 
+	if (client == data.iTarget && !Shavit_Core_CookiesRetrieved(client))
+	{
+		FormatEx(sLine, sizeof(sLine), "%T", "TimerLoading", client);
+		AddHUDLine(buffer, maxlen, sLine, iLines);
+		iLines++;
+	}
+
 	if (gCV_DebugTargetname.BoolValue && IsValidClient(data.iTarget))
 	{
 		char targetname[64], classname[64];

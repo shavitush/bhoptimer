@@ -208,6 +208,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetMaxVelocity", Native_GetMaxVelocity);
 	CreateNative("Shavit_SetAvgVelocity", Native_SetAvgVelocity);
 	CreateNative("Shavit_SetMaxVelocity", Native_SetMaxVelocity);
+	CreateNative("Shavit_Core_CookiesRetrieved", Native_Core_CookiesRetrieved);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -2026,6 +2027,11 @@ public any Native_SetAvgVelocity(Handle plugin, int numParams)
 public any Native_SetMaxVelocity(Handle plugin, int numParams)
 {
 	gA_Timers[GetNativeCell(1)].fMaxVelocity = GetNativeCell(2);
+}
+
+public any Native_Core_CookiesRetrieved(Handle plugin, int numParams)
+{
+	return gB_CookiesRetrieved[GetNativeCell(1)];
 }
 
 public Action Shavit_OnStartPre(int client, int track)

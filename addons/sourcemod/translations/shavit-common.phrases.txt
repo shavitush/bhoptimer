@@ -47,4 +47,9 @@
 		"#format"	"{1:s}"
 		"en"		"{1} seconds remaining."
 	}
+	// ----------- Random ----------- //
+	"TimerLoading"
+	{
+		"en"        "Loading.."
+	}
 }
