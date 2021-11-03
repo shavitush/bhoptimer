@@ -33,7 +33,6 @@
 #include <shavit/replay-playback>
 #include <shavit/wr>
 #include <shavit/zones>
-#include <bhopstats>
 #include <DynamicChannels>
 
 #undef REQUIRE_EXTENSIONS
@@ -88,7 +87,6 @@ bool gB_ReplayPlayback = false;
 bool gB_Zones = false;
 bool gB_Sounds = false;
 bool gB_Rankings = false;
-bool gB_BhopStats = false;
 bool gB_DynamicChannels = false;
 
 // cache
@@ -179,7 +177,6 @@ public void OnPluginStart()
 	gB_Zones = LibraryExists("shavit-zones");
 	gB_Sounds = LibraryExists("shavit-sounds");
 	gB_Rankings = LibraryExists("shavit-rankings");
-	gB_BhopStats = LibraryExists("bhopstats");
 	gB_DynamicChannels = LibraryExists("DynamicChannels");
 
 	// HUD handle
@@ -313,11 +310,6 @@ public void OnLibraryAdded(const char[] name)
 		gB_Rankings = true;
 	}
 
-	else if(StrEqual(name, "bhopstats"))
-	{
-		gB_BhopStats = true;
-	}
-
 	else if(StrEqual(name, "DynamicChannels"))
 	{
 		gB_DynamicChannels = true;
@@ -344,11 +336,6 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
-	}
-
-	else if(StrEqual(name, "bhopstats"))
-	{
-		gB_BhopStats = false;
 	}
 
 	else if(StrEqual(name, "DynamicChannels"))
@@ -1770,7 +1757,7 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 
 	char sPanelLine[128];
 
-	if(gB_BhopStats && !Shavit_GetStyleSettingBool(style, "autobhop"))
+	if(!Shavit_GetStyleSettingBool(style, "autobhop"))
 	{
 		FormatEx(sPanelLine, 64, " %d%s%d\n", gI_ScrollCount[target], (gI_ScrollCount[target] > 9)? "   ":"     ", gI_LastScrollCount[target]);
 	}
@@ -1786,14 +1773,14 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	draw = true;
 }
 
-public void Bunnyhop_OnTouchGround(int client)
+public void Shavit_Bhopstats_OnTouchGround(int client)
 {
-	gI_LastScrollCount[client] = BunnyhopStats.GetScrollCount(client);
+	gI_LastScrollCount[client] = Shavit_BunnyhopStats.GetScrollCount(client);
 }
 
-public void Bunnyhop_OnJumpPressed(int client)
+public void Shavit_Bhopstats_OnJumpPressed(int client)
 {
-	gI_ScrollCount[client] = BunnyhopStats.GetScrollCount(client);
+	gI_ScrollCount[client] = Shavit_BunnyhopStats.GetScrollCount(client);
 }
 
 void UpdateCenterKeys(int client)
@@ -1861,7 +1848,7 @@ void UpdateCenterKeys(int client)
 		style = 0;
 	}
 
-	if(gB_BhopStats && !Shavit_GetStyleSettingBool(style, "autobhop") && IsValidClient(target))
+	if(!Shavit_GetStyleSettingBool(style, "autobhop") && IsValidClient(target))
 	{
 		Format(sCenterText, sizeof(sCenterText), "%s\n　　%d　%d", sCenterText, gI_ScrollCount[target], gI_LastScrollCount[target]);
 	}

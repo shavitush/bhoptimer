@@ -29,6 +29,7 @@
 #define DEBUG 0
 
 #include <shavit/core>
+#include <shavit/bhopstats-timerified.sp>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/hud>
@@ -166,6 +167,7 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	Bhopstats_CreateNatives();
 	Shavit_Style_Settings_Natives();
 
 	CreateNative("Shavit_CanPause", Native_CanPause);
@@ -240,6 +242,7 @@ public void OnPluginStart()
 	gH_Forwards_OnProcessMovement = CreateGlobalForward("Shavit_OnProcessMovement", ET_Event, Param_Cell);
 	gH_Forwards_OnProcessMovementPost = CreateGlobalForward("Shavit_OnProcessMovementPost", ET_Event, Param_Cell);
 
+	Bhopstats_CreateForwards();
 	Shavit_Style_Settings_Forwards();
 
 	LoadTranslations("shavit-core.phrases");
@@ -1304,7 +1307,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 }
 
 // used as an alternative for games where player_jump isn't a thing, such as TF2
-public void Bunnyhop_OnLeaveGround(int client, bool jumped, bool ladder)
+public void Shavit_Bhopstats_OnLeaveGround(int client, bool jumped, bool ladder)
 {
 	if(gB_HookedJump || !jumped || ladder)
 	{
@@ -2232,6 +2235,8 @@ public void OnClientPutInServer(int client)
 	{
 		return;
 	}
+
+	Bhopstats_OnClientPutInServer(client);
 
 	gB_Auto[client] = true;
 	gA_Timers[client].fStrafeWarning = 0.0;

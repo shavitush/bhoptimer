@@ -28,6 +28,8 @@
 
 #define SHAVIT_LOG_QUERIES 0
 
+#include <shavit/bhopstats-timerified>
+
 // status
 enum TimerStatus
 {
@@ -1351,5 +1353,7 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetStyleSettingFloat");
 	MarkNativeAsOptional("Shavit_SetStyleSettingBool");
 	MarkNativeAsOptional("Shavit_SetStyleSettingInt");
+
+	__pl_shavit_bhopstats_SetNTVOptional();
 }
 #endif

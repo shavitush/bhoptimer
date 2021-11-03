@@ -16,21 +16,12 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
-#if defined _bhopstats_included
+#if defined _shavit_bhopstats_included
 	#endinput
 #endif
-#define _bhopstats_included
-
-#define BHOPSTATS_VERSION "1.2.0"
-
-enum CheatType
-{
-	Cheat_HighPerfects = 0,
-	Cheat_Auto,
-	Cheat_JumpSpam
-}
+#define _shavit_bhopstats_included
 
 /**
  * Called when the jump key is pressed.
@@ -40,7 +31,7 @@ enum CheatType
  * @param perfect					Was the jump perfectly timed?
  * @noreturn
  */
-forward void Bunnyhop_OnJumpPressed(int client, bool onground, bool perfect);
+forward void Shavit_Bhopstats_OnJumpPressed(int client, bool onground, bool perfect);
 
 /**
  * Called when the jump key is released.
@@ -49,7 +40,7 @@ forward void Bunnyhop_OnJumpPressed(int client, bool onground, bool perfect);
  * @param onground					True if the jump key will do anything for the player when tapped.
  * @noreturn
  */
-forward void Bunnyhop_OnJumpReleased(int client, bool onground);
+forward void Shavit_Bhopstats_OnJumpReleased(int client, bool onground);
 
 /**
  * Called when the player touches the ground.
@@ -57,7 +48,7 @@ forward void Bunnyhop_OnJumpReleased(int client, bool onground);
  * @param client					Client index.
  * @noreturn
  */
-forward void Bunnyhop_OnTouchGround(int client);
+forward void Shavit_Bhopstats_OnTouchGround(int client);
 
 /**
  * Called when the player leaves the ground, by either jumping or falling from somewhere.
@@ -70,7 +61,7 @@ forward void Bunnyhop_OnTouchGround(int client);
  * @param ladder					Did the client leave the ground by leaving a ladder, aka ladderstrafing?
  * @noreturn
  */
-forward void Bunnyhop_OnLeaveGround(int client, bool jumped, bool ladder);
+forward void Shavit_Bhopstats_OnLeaveGround(int client, bool jumped, bool ladder);
 
 /**
  * Retrieves the amount of separate +jump inputs since the player left the ground.
@@ -78,7 +69,7 @@ forward void Bunnyhop_OnLeaveGround(int client, bool jumped, bool ladder);
  * @param client					Client index.
  * @return							Amount of +jump inputs since the left the ground, or 0 if the player is on ground.
  */
-native int Bunnyhop_GetScrollCount(int client);
+native int Shavit_Bhopstats_GetScrollCount(int client);
 
 /**
  * Checks if the player is on ground, or if the jump key will function as in actually triggering a jump or altering velocity.
@@ -87,7 +78,7 @@ native int Bunnyhop_GetScrollCount(int client);
  * @param client					Client index.
  * @return							Boolean value of 'is the player on ground?'
  */
-native bool Bunnyhop_IsOnGround(int client);
+native bool Shavit_Bhopstats_IsOnGround(int client);
 
 /**
  * Checks if the player is holding his jump key.
@@ -95,16 +86,16 @@ native bool Bunnyhop_IsOnGround(int client);
  * @param client					Client index.
  * @return							Boolean value of 'is the player holding the jump key?''
  */
-native bool Bunnyhop_IsHoldingJump(int client);
+native bool Shavit_Bhopstats_IsHoldingJump(int client);
 
 /**
  * Gets a percentage of perfectly timed bunnyhops.
- * Resets at player connection or the Bunnyhop_ResetPerfectJumps native for it is called.
+ * Resets at player connection or the Shavit_Bhopstats_ResetPerfectJumps native for it is called.
  *
  * @param client					Client index.
  * @return							Perfect jump percentage. Results are from 0.0 to 100.0.
  */
-native float Bunnyhop_GetPerfectJumps(int client);
+native float Shavit_Bhopstats_GetPerfectJumps(int client);
 
 /**
  * Resets the perfect jumps percentage of a player back to 0.0.
@@ -112,13 +103,13 @@ native float Bunnyhop_GetPerfectJumps(int client);
  * @param client					Client index.
  * @noreturn
  */
-native void Bunnyhop_ResetPerfectJumps(int client);
+native void Shavit_Bhopstats_ResetPerfectJumps(int client);
 
-methodmap BunnyhopStats __nullable__
+methodmap Shavit_BunnyhopStats __nullable__
 {
-	public BunnyhopStats(int client)
+	public Shavit_BunnyhopStats(int client)
 	{
-		return view_as<BunnyhopStats>(client);
+		return view_as<Shavit_BunnyhopStats>(client);
 	}
 
 	property int index
@@ -133,7 +124,7 @@ methodmap BunnyhopStats __nullable__
 	{
 		public get()
 		{
-			return Bunnyhop_GetScrollCount(this.index);
+			return Shavit_Bhopstats_GetScrollCount(this.index);
 		}
 	}
 
@@ -141,7 +132,7 @@ methodmap BunnyhopStats __nullable__
     {
 		public get()
 		{
-			return Bunnyhop_IsOnGround(this.index);
+			return Shavit_Bhopstats_IsOnGround(this.index);
 		}
     }
 
@@ -149,7 +140,7 @@ methodmap BunnyhopStats __nullable__
     {
 		public get()
 		{
-			return Bunnyhop_IsHoldingJump(this.index);
+			return Shavit_Bhopstats_IsHoldingJump(this.index);
 		}
     }
 
@@ -157,59 +148,48 @@ methodmap BunnyhopStats __nullable__
     {
 		public get()
 		{
-			return Bunnyhop_GetPerfectJumps(this.index);
+			return Shavit_Bhopstats_GetPerfectJumps(this.index);
 		}
     }
 
 	public void ResetPrefects()
 	{
-		Bunnyhop_ResetPerfectJumps(this.index);
+		Shavit_Bhopstats_ResetPerfectJumps(this.index);
 	}
 
 	public static int GetScrollCount(int client)
     {
-		return Bunnyhop_GetScrollCount(client);
+		return Shavit_Bhopstats_GetScrollCount(client);
     }
 
 	public static bool IsOnGround(int client)
     {
-		return Bunnyhop_IsOnGround(client);
+		return Shavit_Bhopstats_IsOnGround(client);
     }
 
 	public static bool IsHoldingJump(int client)
     {
-		return Bunnyhop_IsHoldingJump(client);
+		return Shavit_Bhopstats_IsHoldingJump(client);
     }
 
 	public static float GetPerfectJumps(int client)
     {
-		return Bunnyhop_GetPerfectJumps(client);
+		return Shavit_Bhopstats_GetPerfectJumps(client);
     }
 
 	public static float ResetPrefectJumps(int client)
     {
-		return Bunnyhop_ResetPerfectJumps(client);
+		return Shavit_Bhopstats_ResetPerfectJumps(client);
     }
 }
 
-public SharedPlugin __pl_bhopstats =
-{
-	name = "bhopstats",
-	file = "bhopstats.smx",
-#if defined REQUIRE_PLUGIN
-	required = 1
-#else
-	required = 0
-#endif
-};
-
 #if !defined REQUIRE_PLUGIN
-public void __pl_bhopstats_SetNTVOptional()
+public void __pl_shavit_bhopstats_SetNTVOptional()
 {
-	MarkNativeAsOptional("Bunnyhop_GetScrollCount");
-	MarkNativeAsOptional("Bunnyhop_IsOnGround");
-	MarkNativeAsOptional("Bunnyhop_IsHoldingJump");
-	MarkNativeAsOptional("Bunnyhop_GetPerfectJumps");
-	MarkNativeAsOptional("Bunnyhop_ResetPerfectJumps");
+	MarkNativeAsOptional("Shavit_Bhopstats_GetScrollCount");
+	MarkNativeAsOptional("Shavit_Bhopstats_IsOnGround");
+	MarkNativeAsOptional("Shavit_Bhopstats_IsHoldingJump");
+	MarkNativeAsOptional("Shavit_Bhopstats_GetPerfectJumps");
+	MarkNativeAsOptional("Shavit_Bhopstats_ResetPerfectJumps");
 }
 #endif

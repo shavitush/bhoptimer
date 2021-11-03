@@ -23,8 +23,6 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 # Optional requirements, for the best experience:
 * [eventqueuefix](https://github.com/hermansimensen/eventqueue-fix)
   * Allows for timescaling boosters and is used to fix some exploits. (Use this instead of `boosterfix`)
-* [Bunnyhop Statistics](https://forums.alliedmods.net/showthread.php?t=286135)
-  * Used for scroll styles and also required for TF2.
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
   * Used to grab `{serverip}` in advertisements.
 * [DynamicChannels](https://github.com/Vauff/DynamicChannels)
@@ -126,7 +124,6 @@ Admin commands: (ROOT flag)
 ### shavit-hud
 The HUD plugin is `bhoptimer`'s OSD frontend.  
 It shows most (if not all) of the information that the player needs to see.  
-`shavit-hud` integrates with [Bunnyhop Statistics](https://github.com/shavitush/bhopstats) for CS:S.
 
 Some features are: Per-player settings (!hud), truevel, and gradient-like display (CS:GO).
 
