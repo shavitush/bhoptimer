@@ -284,6 +284,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_StartReplayFromFile", Native_StartReplayFromFile);
 	CreateNative("Shavit_GetLoopingBotByName", Native_GetLoopingBotByName);
 	CreateNative("Shavit_SetReplayCacheName", Native_SetReplayCacheName);
+	CreateNative("Shavit_GetReplayFolderPath", Native_GetReplayFolderPath);
 
 	if (!FileExists("cfg/sourcemod/plugin.shavit-replay-playback.cfg") && FileExists("cfg/sourcemod/plugin.shavit-replay.cfg"))
 	{
@@ -1388,6 +1389,11 @@ public int Native_SetReplayCacheName(Handle plugin, int numParams)
 	gA_BotInfo[index].aCache.sReplayName = name;
 
 	return 0;
+}
+
+public int Native_GetReplayFolderPath(Handle handler, int numParams)
+{
+	return SetNativeString(1, gS_ReplayFolder, GetNativeCell(2));
 }
 
 public Action Timer_Cron(Handle Timer)
