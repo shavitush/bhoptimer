@@ -61,6 +61,32 @@
 #define HUD_DEFAULT             (HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2            (HUD2_PERFS)
 
+enum ZoneHUD
+{
+	ZoneHUD_None,
+	ZoneHUD_Start,
+	ZoneHUD_End
+};
+
+enum struct huddata_t
+{
+	int iTarget;
+	float fTime;
+	int iSpeed;
+	int iStyle;
+	int iTrack;
+	int iJumps;
+	int iStrafes;
+	int iRank;
+	float fSync;
+	float fPB;
+	float fWR;
+	bool bReplay;
+	bool bPractice;
+	TimerStatus iTimerStatus;
+	ZoneHUD iZoneHUD;
+}
+
 /**
  * Called when top left HUD updates.
  *
@@ -68,9 +94,82 @@
  * @param target                    Target entity that is either the client or what the client is spectating.
  * @param topleft                   Reference to the HUD buffer.
  * @param topleftlength             Max length of the topleft buffer.
+ * @param track                     Target's track.
+ * @param style                     Target's style.
+ *
  * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Anything else to pass along new values.
  */
-forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, int topleftlength);
+forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, int topleftlength, int track, int style);
+
+/**
+ * Called before the top left HUD updates and used to build the string for shavit-hud.
+ *
+ * @param client                    Client index that recieves the hud.
+ * @param target                    Target entity that is either the client or what the client is spectating.
+ * @param topleft                   Reference to the HUD buffer.
+ * @param topleftlength             Max length of the topleft buffer.
+ * @param track                     Target's track.
+ * @param style                     Target's style.
+ *
+ * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed to use own topleft string instead of shavit-hud building it.
+ */
+forward Action Shavit_PreOnTopLeftHUD(int client, int target, char[] topleft, int topleftlength, int track, int style);
+
+/**
+ * Called when the center hud updates.
+ *
+ * @param client                    Client index that recieves the hud.
+ * @param target                    Target entity that is either the client or what the client is spectating.
+ * @param buffer                    Reference to the HUD buffer.
+ * @param buflen                    Max length of the buffer.
+ * @param data                      huddata_t which contains target info.
+ *
+ * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed if you modify the buffer string.
+ */
+forward Action Shavit_OnDrawCenterHUD(int client, int target, char[] buffer, int buflen, huddata_t data);
+
+/**
+ * Called before the center hud updates.
+ *
+ * @param client                    Client index that recieves the hud.
+ * @param target                    Target entity that is either the client or what the client is spectating.
+ * @param buffer                    Reference to the HUD buffer.
+ * @param buflen                    Max length of the buffer.
+ * @param data                      huddata_t which contains target info.
+ *
+ * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed if you modify the buffer string.
+ */
+forward Action Shavit_PreOnDrawCenterHUD(int client, int target, char[] buffer, int buflen, huddata_t data);
+
+/**
+ * Called when the !keys hud updates.
+ *
+ * @param client                    Client index that recieves the hud.
+ * @param target                    Target entity that is either the client or what the client is spectating.
+ * @param style                     The target's style.
+ * @param buttons                   The target's buttons.
+ * @param anglediff                 The difference from the target's last angles and current angles.
+ * @param buffer                    Reference to the HUD buffer.
+ * @param buflen                    Max length of the buffer.
+ *
+ * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed if you modify the buffer string.
+ */
+forward Action Shavit_OnDrawKeysHUD(int client, int target, int style, int buttons, float anglediff, char[] buffer, int buflen);
+
+/**
+ * Called before the !keys hud updates.
+ *
+ * @param client                    Client index that recieves the hud.
+ * @param target                    Target entity that is either the client or what the client is spectating.
+ * @param style                     The target's style.
+ * @param buttons                   The target's buttons.
+ * @param anglediff                 The difference from the target's last angles and current angles.
+ * @param buffer                    Reference to the HUD buffer.
+ * @param buflen                    Max length of the buffer.
+ *
+ * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed if you modify the buffer string.
+ */
+forward Action Shavit_PreOnDrawKeysHUD(int client, int target, int style, int buttons, float anglediff, char[] buffer, int buflen);
 
 /**
  * Force an HUD update for a player. Requires shavit-hud.

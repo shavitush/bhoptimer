@@ -43,32 +43,6 @@
 
 #define MAX_HINT_SIZE 227
 
-enum ZoneHUD
-{
-	ZoneHUD_None,
-	ZoneHUD_Start,
-	ZoneHUD_End
-};
-
-enum struct huddata_t
-{
-	int iTarget;
-	float fTime;
-	int iSpeed;
-	int iStyle;
-	int iTrack;
-	int iJumps;
-	int iStrafes;
-	int iRank;
-	float fSync;
-	float fPB;
-	float fWR;
-	bool bReplay;
-	bool bPractice;
-	TimerStatus iTimerStatus;
-	ZoneHUD iZoneHUD;
-}
-
 enum struct color_t
 {
 	int r;
@@ -81,6 +55,11 @@ EngineVersion gEV_Type = Engine_Unknown;
 
 // forwards
 Handle gH_Forwards_OnTopLeftHUD = null;
+Handle gH_Forwards_PreOnTopLeftHUD = null;
+Handle gH_Forwards_OnDrawCenterHUD = null;
+Handle gH_Forwards_PreOnDrawCenterHUD = null;
+Handle gH_Forwards_OnDrawKeysHUD = null;
+Handle gH_Forwards_PreOnDrawKeysHUD = null;
 
 // modules
 bool gB_ReplayPlayback = false;
@@ -115,7 +94,8 @@ char gS_HintPadding[MAX_HINT_SIZE];
 bool gB_AlternateCenterKeys[MAXPLAYERS+1]; // use for css linux gamers
 
 // hud handle
-Handle gH_HUD = null;
+Handle gH_HUDTopleft = null;
+Handle gH_HUDCenter = null;
 
 // plugin cvars
 Convar gCV_GradientStepSize = null;
@@ -143,7 +123,12 @@ public Plugin myinfo =
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	// forwards
-	gH_Forwards_OnTopLeftHUD = CreateGlobalForward("Shavit_OnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell);
+	gH_Forwards_OnTopLeftHUD = CreateGlobalForward("Shavit_OnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_PreOnTopLeftHUD = CreateGlobalForward("Shavit_PreOnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnDrawCenterHUD = CreateGlobalForward("Shavit_OnDrawCenterHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Array);
+	gH_Forwards_PreOnDrawCenterHUD = CreateGlobalForward("Shavit_PreOnDrawCenterHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Array);
+	gH_Forwards_OnDrawKeysHUD = CreateGlobalForward("Shavit_OnDrawKeysHUD", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell);
+	gH_Forwards_PreOnDrawKeysHUD = CreateGlobalForward("Shavit_PreOnDrawKeysHUD", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell);
 
 	// natives
 	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
@@ -180,7 +165,8 @@ public void OnPluginStart()
 	gB_DynamicChannels = LibraryExists("DynamicChannels");
 
 	// HUD handle
-	gH_HUD = CreateHudSynchronizer();
+	gH_HUDTopleft = CreateHudSynchronizer();
+	gH_HUDCenter = CreateHudSynchronizer();
 
 	// plugin convars
 	gCV_GradientStepSize = new Convar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
@@ -1091,7 +1077,6 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 
 		UpdateCenterKeys(client);
 	}
-
 	else if(((gI_HUDSettings[client] & HUD_KEYOVERLAY) > 0 || (gI_HUDSettings[client] & HUD_SPECTATORS) > 0) && (!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel))
 	{
 		bool bShouldDraw = false;
@@ -1639,6 +1624,12 @@ void UpdateMainHUD(int client)
 		return;
 	}
 
+	// Prevent flicker when scoreboard is open
+	if (IsSource2013(gEV_Type) && (GetClientButtons(client) & IN_SCORE) != 0)
+	{
+		return;
+	}
+
 	float fSpeed[3];
 	GetEntPropVector(target, Prop_Data, "m_vecVelocity", fSpeed);
 
@@ -1688,30 +1679,69 @@ void UpdateMainHUD(int client)
 	huddata.bPractice = (bReplay)? false:Shavit_IsPracticeMode(target);
 
 	char sBuffer[512];
-	
-	if(IsSource2013(gEV_Type))
+
+	Action preresult = Plugin_Continue;
+	Call_StartForward(gH_Forwards_PreOnDrawCenterHUD);
+	Call_PushCell(client);
+	Call_PushCell(target);
+	Call_PushStringEx(sBuffer, sizeof(sBuffer), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(sizeof(sBuffer));
+	Call_PushArray(huddata, sizeof(huddata));
+	Call_Finish(preresult);
+
+	if (preresult == Plugin_Handled || preresult == Plugin_Stop)
 	{
-		if(!(GetClientButtons(client) & IN_SCORE) && AddHUDToBuffer_Source2013(client, huddata, sBuffer, 512) > 0)
+		return;
+	}
+
+	int lines = 0;
+
+	if (preresult == Plugin_Continue)
+	{
+		if (IsSource2013(gEV_Type))
 		{
-			PrintHintText(client, "%s", sBuffer);
+			lines = AddHUDToBuffer_Source2013(client, huddata, sBuffer, sizeof(sBuffer));
 		}
+		else
+		{
+			lines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, sizeof(sBuffer));
+		}
+	}
+
+	Action postresult = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnDrawCenterHUD);
+	Call_PushCell(client);
+	Call_PushCell(target);
+	Call_PushStringEx(sBuffer, sizeof(sBuffer), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(sizeof(sBuffer));
+	Call_PushArray(huddata, sizeof(huddata));
+	Call_Finish(postresult);
+
+	if (postresult == Plugin_Handled || postresult == Plugin_Stop)
+	{
+		return;
+	}
+
+	if (preresult == Plugin_Continue && postresult == Plugin_Continue && lines < 1)
+	{
+		return;
+	}
+
+	if (IsSource2013(gEV_Type))
+	{
+		PrintHintText(client, "%s", sBuffer);
 	}
 	else
 	{
-		StrCat(sBuffer, 512, "<pre>");
-		int iLines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, 512);
-		StrCat(sBuffer, 512, "</pre>");
+		Format(sBuffer, sizeof(sBuffer), "<pre>%s</pre>", sBuffer);
 
-		if(iLines > 0)
+		if (gCV_UseHUDFix.BoolValue)
 		{
-			if(gCV_UseHUDFix.BoolValue)
-			{
-				PrintCSGOHUDText(client, sBuffer);
-			}
-			else
-			{
-				PrintHintText(client, "%s", sBuffer);
-			}
+			PrintCSGOHUDText(client, sBuffer);
+		}
+		else
+		{
+			PrintHintText(client, "%s", sBuffer);
 		}
 	}
 }
@@ -1831,7 +1861,15 @@ void UpdateCenterKeys(int client)
 
 	char sCenterText[254];
 
-	if (gB_AlternateCenterKeys[client])
+	if (gEV_Type == Engine_CSGO)
+	{
+		FormatEx(sCenterText, sizeof(sCenterText), "%s   %s\n%s  %s  %s\n%s　 %s 　%s\n %s　　%s",
+			(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
+			(fAngleDiff > 0) ? "<":"ｰ", (buttons & IN_FORWARD) > 0 ? "Ｗ":"ｰ", (fAngleDiff < 0) ? ">":"ｰ",
+			(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
+			(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
+	}
+	else if (gB_AlternateCenterKeys[client])
 	{
 		FormatEx(sCenterText, sizeof(sCenterText), "　%s　　%s\n%s   %s   %s\n%s　 %s 　%s\n　%s　　%s",
 			(buttons & IN_JUMP) > 0? "J":"_", (buttons & IN_DUCK) > 0? "C":"_",
@@ -1860,7 +1898,36 @@ void UpdateCenterKeys(int client)
 		Format(sCenterText, sizeof(sCenterText), "%s\n　　%s%d %s%s%d", sCenterText, gI_ScrollCount[target] < 10 ? " " : "", gI_ScrollCount[target], gI_ScrollCount[target] < 10 ? " " : "", gI_LastScrollCount[target] < 10 ? " " : "", gI_LastScrollCount[target]);
 	}
 
-	PrintCenterText(client, "%s", sCenterText);
+	if (IsSource2013(gEV_Type))
+	{
+		PrintCenterText(client, "%s", sCenterText);
+	}
+	else
+	{
+		PrintCSGOCenterText(client, sCenterText);
+	}
+}
+
+void PrintCSGOCenterText(int client, const char[] text)
+{
+	SetHudTextParams(
+		-1.0, 0.35,
+		0.1,
+		255, 255, 255, 255,
+		0,
+		0.0,
+		0.0,
+		0.0
+	);
+
+	if (gB_DynamicChannels)
+	{
+		ShowHudText(client, GetDynamicChannel(4), "%s", text);
+	}
+	else
+	{
+		ShowSyncHudText(client, gH_HUDCenter, "%s", text);
+	}
 }
 
 void UpdateSpectatorList(int client, Panel panel, bool &draw)
@@ -1928,7 +1995,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 void UpdateTopLeftHUD(int client, bool wait)
 {
-	if((!wait || gI_Cycle % 25 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
+	if((!wait || gI_Cycle % 20 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
 	{
 		int target = GetSpectatorTarget(client, client);
 		bool bReplay = (gB_ReplayPlayback && Shavit_IsReplayEntity(target));
@@ -1956,9 +2023,22 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 		if ((0 <= style < gI_Styles) && (0 <= track <= TRACKS_SIZE))
 		{
-			float fWRTime = Shavit_GetWorldRecord(style, track);
-
 			char sTopLeft[512];
+
+			Action preresult = Plugin_Continue;
+			Call_StartForward(gH_Forwards_PreOnTopLeftHUD);
+			Call_PushCell(client);
+			Call_PushCell(target);
+			Call_PushStringEx(sTopLeft, sizeof(sTopLeft), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+			Call_PushCell(sizeof(sTopLeft));
+			Call_Finish(preresult);
+
+			if (preresult == Plugin_Handled || preresult == Plugin_Stop)
+			{
+				return;
+			}
+
+			float fWRTime = Shavit_GetWorldRecord(style, track);
 
 			if (fWRTime != 0.0)
 			{
@@ -2011,20 +2091,20 @@ void UpdateTopLeftHUD(int client, bool wait)
 				Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
 			}
 
-			Action result = Plugin_Continue;
+			Action postresult = Plugin_Continue;
 			Call_StartForward(gH_Forwards_OnTopLeftHUD);
 			Call_PushCell(client);
 			Call_PushCell(target);
 			Call_PushStringEx(sTopLeft, sizeof(sTopLeft), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 			Call_PushCell(sizeof(sTopLeft));
-			Call_Finish(result);
+			Call_Finish(postresult);
 			
-			if(result != Plugin_Continue && result != Plugin_Changed)
+			if (postresult != Plugin_Continue && postresult != Plugin_Changed)
 			{
 				return;
 			}
 
-			SetHudTextParams(0.01, 0.01, 2.5, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
+			SetHudTextParams(0.01, 0.01, 2.6, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
 
 			if (gB_DynamicChannels)
 			{
@@ -2032,7 +2112,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 			}
 			else
 			{
-				ShowSyncHudText(client, gH_HUD, "%s", sTopLeft);
+				ShowSyncHudText(client, gH_HUDTopleft, "%s", sTopLeft);
 			}
 		}
 	}
