@@ -1178,17 +1178,21 @@ bool SaveCheckpoint(int client)
 
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
 	{
-		if((GetEntityFlags(client) & FL_ONGROUND) == 0 || client != target)
+		if (client != target)
 		{
 			Shavit_PrintToChat(client, "%T", "CommandSaveCPKZInvalid", client);
+			return false;
+		}
 
+		if (!(GetEntityFlags(target) & FL_ONGROUND) && (!Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints_ladders") || GetEntityMoveType(client) != MOVETYPE_LADDER))
+		{
+			Shavit_PrintToChat(client, "%T", "CommandSaveCPKZInvalid", client);
 			return false;
 		}
 
 		if(Shavit_InsideZone(client, Zone_Start, -1))
 		{
 			Shavit_PrintToChat(client, "%T", "CommandSaveCPKZZone", client);
-			
 			return false;
 		}
 	}

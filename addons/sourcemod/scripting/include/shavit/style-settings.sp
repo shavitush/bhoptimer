@@ -190,6 +190,7 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingInt(gI_CurrentParserIndex, "inaccessible", 0);
 	SetStyleSettingInt(gI_CurrentParserIndex, "enabled", 1);
 	SetStyleSettingInt(gI_CurrentParserIndex, "kzcheckpoints", 0);
+	SetStyleSettingInt(gI_CurrentParserIndex, "kzcheckpoints_ladders", 0);
 	SetStyleSettingInt(gI_CurrentParserIndex, "force_groundkeys", 0);
 
 	gI_OrderedStyles[gI_CurrentParserIndex] = gI_CurrentParserIndex;
