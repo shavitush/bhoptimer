@@ -37,6 +37,7 @@ int gI_CurrentParserIndex = 0;
 
 StringMap gSM_StyleKeys[STYLE_LIMIT];
 StringMap gSM_StyleCommands = null;
+StringMap gSM_StyleKeysSet = null;
 
 int gI_StyleFlag[STYLE_LIMIT];
 char gS_StyleOverride[STYLE_LIMIT][32];
@@ -131,6 +132,9 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 		gI_Styles = gI_CurrentParserIndex + 1;
 	}
 
+	delete gSM_StyleKeysSet;
+	gSM_StyleKeysSet = new StringMap();
+
 	gSM_StyleKeys[gI_CurrentParserIndex] = new StringMap();
 
 	SetStyleSetting(gI_CurrentParserIndex, "name", "<MISSING STYLE NAME>");
@@ -176,8 +180,8 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingFloat(gI_CurrentParserIndex, "rankingmultiplier", 1.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "special", 0);
 
-	// bhop_freedompuppies on css auto is like 4.2s. prob lower on csgo so 3.75
-	SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time", 3.75);
+	// bhop_freedompuppies on css auto is like 4.2s. prob lower on csgo so 3.5
+	SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time", 3.5);
 	// bhop_uc_minecraft_beta2 on css auto has a 0.62s time
 	SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time_bonus", 0.5);
 
@@ -231,6 +235,21 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		else
 		{
 			SetStyleSettingInt(gI_CurrentParserIndex, "force_timescale", 1);
+		}
+	}
+
+	if (GetStyleSettingInt(gI_CurrentParserIndex, "prespeed") > 0)
+	{
+		bool value;
+
+		if (!gSM_StyleKeysSet.GetValue("minimum_time", value))
+		{
+			SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time", 0.01);
+		}
+
+		if (!gSM_StyleKeysSet.GetValue("minimum_time_bonus", value))
+		{
+			SetStyleSettingFloat(gI_CurrentParserIndex, "minimum_time_bonus", 0.01);
 		}
 	}
 
@@ -288,6 +307,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		}
 	}
 
+	delete gSM_StyleKeysSet;
 	gI_CurrentParserIndex = -1;
 	return SMCParse_Continue;
 }
@@ -295,6 +315,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
 {
 	SetStyleSetting(gI_CurrentParserIndex, key, value);
+	gSM_StyleKeysSet.SetValue(key, true);
 }
 
 public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)
