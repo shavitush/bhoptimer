@@ -914,9 +914,22 @@ public void Frame_HookButton(any data)
 		zone = Zone_End;
 	}
 
-	if(StrContains(sName, "bonus") != -1)
+	int bonus = StrContains(sName, "bonus");
+
+	if (bonus != -1)
 	{
 		track = Track_Bonus;
+
+		if ('0' <= sName[bonus+5] <= '9')
+		{
+			track = StringToInt(sName[bonus+5]);
+
+			if (track < Track_Bonus || track > Track_Bonus_Last)
+			{
+				LogError("invalid track in climb button (%s) on %s", sName, gS_Map);
+				return;
+			}
+		}
 	}
 
 	if(zone != -1)
@@ -928,18 +941,8 @@ public void Frame_HookButton(any data)
 	}
 }
 
-public void Frame_HookTrigger(any data)
+bool parse_mod_zone(char sName[32], int& zone, int& track, int& zonedata)
 {
-	int entity = EntRefToEntIndex(data);
-
-	if (entity == INVALID_ENT_REFERENCE || gI_EntityZone[entity] > -1)
-	{
-		return;
-	}
-
-	char sName[32];
-	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
-
 	// Please follow this naming scheme for this zones https://github.com/PMArkive/fly#trigger_multiple
 	// mod_zone_start
 	// mod_zone_end
@@ -947,11 +950,6 @@ public void Frame_HookTrigger(any data)
 	// mod_zone_bonus_X_start
 	// mod_zone_bonus_X_end
 	// mod_zone_bonus_X_checkpoint_X
-
-	if(StrContains(sName, "mod_zone_") == -1)
-	{
-		return;
-	}
 
 	// Normalize some zone names that bhop_somp_island and bhop_overthinker use
 	if (StrEqual(sName, "mod_zone_start_bonus") || StrEqual(sName, "mod_zone_bonus_start"))
@@ -963,20 +961,16 @@ public void Frame_HookTrigger(any data)
 		sName = "mod_zone_bonus_1_end";
 	}
 
-	int zone = -1;
-	int zonedata = 0;
-	int track = Track_Main;
-
-	if(StrContains(sName, "start") != -1)
+	if (StrContains(sName, "start") != -1)
 	{
 		zone = Zone_Start;
 	}
-	else if(StrContains(sName, "end") != -1)
+	else if (StrContains(sName, "end") != -1)
 	{
 		zone = Zone_End;
 	}
 
-	if(StrContains(sName, "bonus") != -1 || StrContains(sName, "checkpoint") != -1)
+	if (StrContains(sName, "bonus") != -1 || StrContains(sName, "checkpoint") != -1)
 	{
 		char sections[8][12];
 		ExplodeString(sName, "_", sections, 8, 12, false);
@@ -992,7 +986,7 @@ public void Frame_HookTrigger(any data)
 			if (track < Track_Bonus || track > Track_Bonus_Last)
 			{
 				LogError("invalid track in prebuilt map zone (%s) on %s", sName, gS_Map);
-				return;
+				return false;
 			}
 		}
 
@@ -1004,9 +998,84 @@ public void Frame_HookTrigger(any data)
 			if (zonedata <= 0 || zonedata > MAX_STAGES)
 			{
 				LogError("invalid stage number in prebuilt map zone (%s) on %s", sName, gS_Map);
-				return;
+				return false;
 			}
 		}
+	}
+
+	return true;
+}
+
+bool parse_climb_zone(char sName[32], int& zone, int& track, int& zonedata)
+{
+	// climb_startzone for the start of the main course.
+	// climb_endzone for the end of the main course.
+	// climb_bonusX_startzone for the start of a bonus course where X is the bonus number.
+	// climb_bonusX_endzone for the end of a bonus course where X is the bonus number.
+
+	if (StrContains(sName, "startzone") != -1)
+	{
+		zone = Zone_Start;
+	}
+	else if (StrContains(sName, "endzone") != -1)
+	{
+		zone = Zone_End;
+	}
+
+	int bonus = StrContains(sName, "bonus");
+
+	if (bonus != -1)
+	{
+		track = Track_Bonus;
+
+		if ('0' <= sName[bonus+5] <= '9')
+		{
+			track = StringToInt(sName[bonus+5]);
+
+			if (track < Track_Bonus || track > Track_Bonus_Last)
+			{
+				LogError("invalid track in prebuilt map zone (%s) on %s", sName, gS_Map);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+public void Frame_HookTrigger(any data)
+{
+	int entity = EntRefToEntIndex(data);
+
+	if (entity == INVALID_ENT_REFERENCE || gI_EntityZone[entity] > -1)
+	{
+		return;
+	}
+
+	char sName[32];
+	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
+
+	int zone = -1;
+	int zonedata = 0;
+	int track = Track_Main;
+
+	if (StrContains(sName, "mod_zone_") == 0)
+	{
+		if (!parse_mod_zone(sName, zone, track, zonedata))
+		{
+			return;
+		}
+	}
+	else if (StrContains(sName, "climb_") == 0)
+	{
+		if (!parse_climb_zone(sName, zone, track, zonedata))
+		{
+			return;
+		}
+	}
+	else
+	{
+		return;
 	}
 
 	if(zone != -1)
