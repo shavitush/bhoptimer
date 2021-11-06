@@ -19,7 +19,7 @@
 	"HudInStartZoneCSGO"
 	{
 		"#format"	"{1:d}"
-		"en"		"In Start Zone\n\n\t\t\t{1}"
+		"en"		"In Start Zone"
 	}
 	"HudEndZone"
 	{
@@ -33,7 +33,7 @@
 	"HudInEndZoneCSGO"
 	{
 		"#format"	"{1:d}"
-		"en"		"In End Zone\n\n\t\t\t{1}"
+		"en"		"In End Zone"
 	}
 	"HudPaused"
 	{
