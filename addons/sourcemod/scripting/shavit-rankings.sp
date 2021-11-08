@@ -792,19 +792,19 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			FormatEx(sQuery, sQueryLen,
 				"UPDATE %splayertimes PT " ...
 				"INNER JOIN %swrs WR ON " ...
-				"   PT.track %c 0 AND PT.track = WR.track AND PT.style = %d AND PT.style = WR.style AND PT.map = '%s' AND PT.map = WR.map AND PT.points_calced_from != WR.time " ...
+				"   PT.track = WR.track AND PT.style = WR.style AND PT.map = WR.map AND PT.points_calced_from != WR.time " ...
 				"SET PT.points_calced_from = WR.time, " ...
 				" PT.points = "...
 				"   (%f + (WR.time / 15.0)) " ...
 				" * (WR.time / PT.time) " ...
 				" * %f " ...
-				";",
+				"WHERE PT.track %c 0 AND PT.style = %d AND PT.map = '%s';",
 				gS_MySQLPrefix, gS_MySQLPrefix,
+				((gCV_PointsPerTier.FloatValue * fTier) * 1.5),
+				fMultiplier,
 				(track > 0) ? '>' : '=',
 				style,
-				gS_Map,
-				((gCV_PointsPerTier.FloatValue * fTier) * 1.5),
-				fMultiplier
+				gS_Map
 			);
 		}
 	}
@@ -1273,8 +1273,8 @@ void RefreshWRHolders()
 	if (gCV_MVPRankOnes_Slow.BoolValue)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"     SELECT 0 as type, 0 as track, style, COUNT(DISTINCT auth) FROM %swrhrankmain GROUP BY STYLE \
-			UNION SELECT 0 as type, 1 as track, style, COUNT(DISTINCT auth) FROM %swrhrankbonus GROUP BY STYLE \
+			"     SELECT 0 as type, 0 as track, style, COUNT(DISTINCT auth) FROM %swrhrankmain GROUP BY style \
+			UNION SELECT 0 as type, 1 as track, style, COUNT(DISTINCT auth) FROM %swrhrankbonus GROUP BY style \
 			UNION SELECT 1 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM %swrhrankall \
 			UNION SELECT 2 as type, -1 as track, -1 as style, COUNT(DISTINCT auth) FROM %swrhrankcvar;",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
