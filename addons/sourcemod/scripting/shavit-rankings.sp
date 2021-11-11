@@ -195,7 +195,7 @@ public void OnPluginStart()
 		Shavit_OnDatabaseLoaded();
 	}
 
-	if (gEV_Type != Engine_TF2)
+	if(gEV_Type != Engine_TF2)
 	{
 		CreateTimer(1.0, Timer_MVPs, 0, TIMER_REPEAT);
 	}
@@ -240,7 +240,7 @@ public void Shavit_OnDatabaseLoaded()
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientConnected(i) && IsClientAuthorized(i))
+		if(IsClientConnected(i) && IsClientAuthorized(i))
 		{
 			OnClientAuthorized(i, "");
 		}
@@ -257,7 +257,7 @@ public void Shavit_OnDatabaseLoaded()
 
 	char sWeightingLimit[30];
 
-	if (gCV_WeightingLimit.IntValue > 0)
+	if(gCV_WeightingLimit.IntValue > 0)
 	{
 		FormatEx(sWeightingLimit, sizeof(sWeightingLimit), "LIMIT %d", gCV_WeightingLimit.IntValue);
 	}
@@ -287,7 +287,7 @@ public void Shavit_OnDatabaseLoaded()
 		"END;;", gS_MySQLPrefix, sWeightingLimit, gCV_WeightingMultiplier.FloatValue);
 
 #if 0
-	if (gCV_WeightingMultiplier.FloatValue == 1.0)
+	if(gCV_WeightingMultiplier.FloatValue == 1.0)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"CREATE FUNCTION GetWeightedPoints(steamid INT) " ...
@@ -302,7 +302,7 @@ public void Shavit_OnDatabaseLoaded()
 
 	hTrans.AddQuery(sQuery);
 #else
-	if (gCV_WeightingMultiplier.FloatValue != 1.0)
+	if(gCV_WeightingMultiplier.FloatValue != 1.0)
 	{
 		hTrans.AddQuery(sQuery);
 	}
@@ -353,9 +353,9 @@ public void OnClientConnected(int client)
 
 public void OnClientAuthorized(int client)
 {
-	if (gH_SQL && !IsFakeClient(client))
+	if(gH_SQL && !IsFakeClient(client))
 	{
-		if (gB_WRHoldersRefreshed)
+		if(gB_WRHoldersRefreshed)
 		{
 			UpdateWRs(client);
 		}
@@ -368,18 +368,18 @@ public void OnMapStart()
 {
 	GetLowercaseMapName(gS_Map);
 
-	if (gH_SQL == null)
+	if(gH_SQL == null)
 	{
 		return;
 	}
 
-	if (gB_WRHolderTablesMade && !gB_WRHoldersRefreshed)
+	if(gB_WRHolderTablesMade && !gB_WRHoldersRefreshed)
 	{
 		RefreshWRHolders();
 	}
 
 	// do NOT keep running this more than once per map, as UpdateAllPoints() is called after this eventually and locks up the database while it is running
-	if (gB_TierQueried)
+	if(gB_TierQueried)
 	{
 		return;
 	}
@@ -428,9 +428,9 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 
 	gB_TierRetrieved = true;
 
-	if (gA_MapTiers.GetValue(gS_Map, gI_Tier))
+	if(gA_MapTiers.GetValue(gS_Map, gI_Tier))
 	{
-		if (gB_WorldRecordsCached && !gB_InitialRecalcStarted)
+		if(gB_WorldRecordsCached && !gB_InitialRecalcStarted)
 		{
 			gB_InitialRecalcStarted = true;
 			RecalculateCurrentMap();
@@ -448,7 +448,7 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 public void OnMapEnd()
 {
 	// might be null if Shavit_OnDatabaseLoaded hasn't been called yet
-	if (gH_SQL != null && gB_TierRetrieved && gB_WorldRecordsCached)
+	if(gH_SQL != null && gB_TierRetrieved && gB_WorldRecordsCached)
 	{
 		RecalculateCurrentMap();
 	}
@@ -464,7 +464,7 @@ public void Shavit_OnWorldRecordsCached()
 {
 	gB_WorldRecordsCached = true;
 
-	if (gB_TierRetrieved && !gB_InitialRecalcStarted)
+	if(gB_TierRetrieved && !gB_InitialRecalcStarted)
 	{
 		gB_InitialRecalcStarted = true;
 		RecalculateCurrentMap();
@@ -482,7 +482,7 @@ public Action Timer_MVPs(Handle timer)
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsValidClient(i))
+		if(IsValidClient(i))
 		{
 			CS_SetMVPCount_Test(i, Shavit_GetWRCount(i, -1, -1, true));
 		}
@@ -490,7 +490,7 @@ public Action Timer_MVPs(Handle timer)
 
 	static int mvps_offset = -1;
 
-	if (mvps_offset == -1)
+	if(mvps_offset == -1)
 	{
 		mvps_offset = GetEntSendPropOffs(GetPlayerResourceEntity(), "m_iMVPs");
 	}
@@ -526,7 +526,7 @@ void UpdateWRs(int client)
 
 	char sQuery[512];
 
-	if (gCV_MVPRankOnes_Slow.BoolValue)
+	if(gCV_MVPRankOnes_Slow.BoolValue)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"     SELECT *, 0 as track, 0 as type FROM %swrhrankmain  WHERE auth = %d \
@@ -573,25 +573,25 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 		int track   = results.FetchInt(4);
 		int type    = results.FetchInt(5);
 
-		if (type == 0)
+		if(type == 0)
 		{
 			int index = STYLE_LIMIT*track + style;
 			gA_Rankings[client].iWRAmount[index] = wrcount;
 			gA_Rankings[client].iWRHolderRank[index] = wrrank;
 		}
-		else if (type == 1)
+		else if(type == 1)
 		{
 			gA_Rankings[client].iWRAmountAll = wrcount;
 			gA_Rankings[client].iWRHolderRankAll = wrcount;
 		}
-		else if (type == 2)
+		else if(type == 2)
 		{
 			gA_Rankings[client].iWRAmountCvar = wrcount;
 			gA_Rankings[client].iWRHolderRankCvar = wrrank;
 		}
 	}
 
-	if (gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2 && IsValidClient(client))
+	if(gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2 && IsValidClient(client))
 	{
 		CS_SetMVPCount_Test(client, Shavit_GetWRCount(client, -1, -1, true));
 	}
@@ -742,12 +742,12 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 {
 	float fMultiplier = Shavit_GetStyleSettingFloat(style, "rankingmultiplier");
 
-	if (track > 0)
+	if(track > 0)
 	{
 		fMultiplier *= 0.25;
 	}
 
-	if (Shavit_GetStyleSettingBool(style, "unranked") || fMultiplier == 0.0)
+	if(Shavit_GetStyleSettingBool(style, "unranked") || fMultiplier == 0.0)
 	{
 		FormatEx(sQuery, sQueryLen,
 			"UPDATE %splayertimes SET points = 0, points_calced_from = 0 WHERE style = %d AND track %c 0 %s%s%s;",
@@ -762,12 +762,12 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 		return;
 	}
 
-	if (bUseCurrentMap)
+	if(bUseCurrentMap)
 	{
 		float fTier = (track > 0) ? 1.0 : float(gI_Tier);
 
 		// a faster, joinless query is used for main due to it having 70% of playertimes.
-		if (track == Track_Main && gB_WorldRecordsCached)
+		if(track == Track_Main && gB_WorldRecordsCached)
 		{
 			float fWR = Shavit_GetWorldRecord(style, track);
 
@@ -848,7 +848,7 @@ public Action Command_RecalcAll(int client, int args)
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
+		if(!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
 		{
 			FormatRecalculate(false, Track_Main, i, sQuery, sizeof(sQuery));
 			trans.AddQuery(sQuery);
@@ -906,7 +906,7 @@ void ReallyRecalculateCurrentMap()
 
 	for (int i = 0; i < gI_Styles; i++)
 	{
-		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
+		if(!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
 		{
 			FormatRecalculate(true, Track_Main, i, sQuery, sizeof(sQuery));
 			trans.AddQuery(sQuery);
@@ -937,7 +937,7 @@ void RecalculateCurrentMap()
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
+		if(!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
 		{
 			FormatRecalculate(true, Track_Main, i, sQuery, sizeof(sQuery));
 			gH_SQL_b.Query(SQL_Recalculate_Callback, sQuery, (i << 8) | 0, DBPrio_High);
@@ -949,12 +949,12 @@ void RecalculateCurrentMap()
 
 public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
 {
-	if (rank != 1)
+	if(rank != 1)
 	{
 		return;
 	}
 
-	if (Shavit_GetStyleSettingBool(style, "unranked") || Shavit_GetStyleSettingFloat(style, "rankingmultiplier") == 0.0)
+	if(Shavit_GetStyleSettingBool(style, "unranked") || Shavit_GetStyleSettingFloat(style, "rankingmultiplier") == 0.0)
 	{
 		return;
 	}
@@ -995,12 +995,12 @@ void UpdateAllPoints(bool recalcall = false)
 	char sQuery[512];
 	char sLastLogin[256];
 
-	if (!recalcall && gCV_LastLoginRecalculate.IntValue > 0)
+	if(!recalcall && gCV_LastLoginRecalculate.IntValue > 0)
 	{
 		FormatEx(sLastLogin, sizeof(sLastLogin), "lastlogin > %d", (GetTime() - gCV_LastLoginRecalculate.IntValue * 60));
 	}
 
-	if (gCV_WeightingMultiplier.FloatValue == 1.0)
+	if(gCV_WeightingMultiplier.FloatValue == 1.0)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"UPDATE %susers AS U INNER JOIN (SELECT auth, SUM(points) as total FROM %splayertimes GROUP BY auth) P ON U.auth = P.auth SET U.points = P.total %s %s;",
@@ -1177,7 +1177,7 @@ bool DoWeHaveRANK(const char[] sVersion)
 {
 	float fVersion = StringToFloat(sVersion);
 
-	if (StrContains(sVersion, "MariaDB") != -1)
+	if(StrContains(sVersion, "MariaDB") != -1)
 	{
 		return fVersion >= 10.2;
 	}
@@ -1189,7 +1189,7 @@ bool DoWeHaveRANK(const char[] sVersion)
 
 public void SQL_Version_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if (results == null || !results.FetchRow())
+	if(results == null || !results.FetchRow())
 	{
 		LogError("Timer (rankings) error! Failed to retrieve VERSION(). Reason: %s", error);
 	}
@@ -1270,7 +1270,7 @@ void RefreshWRHolders()
 {
 	char sQuery[1024];
 
-	if (gCV_MVPRankOnes_Slow.BoolValue)
+	if(gCV_MVPRankOnes_Slow.BoolValue)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"     SELECT 0 as type, 0 as track, style, COUNT(DISTINCT auth) FROM %swrhrankmain GROUP BY style \
@@ -1317,15 +1317,15 @@ public void SQL_GetWRHolders_Callback(Database db, DBResultSet results, const ch
 		int style = results.FetchInt(2);
 		int total = results.FetchInt(3);
 
-		if (type == 0)
+		if(type == 0)
 		{
 			gI_WRHolders[track][style] = total;
 		}
-		else if (type == 1)
+		else if(type == 1)
 		{
 			gI_WRHoldersAll = total;
 		}
-		else if (type == 2)
+		else if(type == 2)
 		{
 			gI_WRHoldersCvar = total;
 		}
@@ -1333,7 +1333,7 @@ public void SQL_GetWRHolders_Callback(Database db, DBResultSet results, const ch
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientConnected(i))
+		if(IsClientConnected(i))
 		{
 			UpdateWRs(i);
 		}
@@ -1347,16 +1347,16 @@ public int Native_GetWRCount(Handle handler, int numParams)
 	int style = GetNativeCell(3);
 	bool usecvars = view_as<bool>(GetNativeCell(4));
 
-	if (usecvars)
+	if(usecvars)
 	{
 		return gA_Rankings[client].iWRAmountCvar;
 	}
-	else if (track == -1 && style == -1)
+	else if(track == -1 && style == -1)
 	{
 		return gA_Rankings[client].iWRAmountAll;
 	}
 
-	if (track > Track_Bonus)
+	if(track > Track_Bonus)
 	{
 		track = Track_Bonus;
 	}
@@ -1370,16 +1370,16 @@ public int Native_GetWRHolders(Handle handler, int numParams)
 	int style = GetNativeCell(2);
 	bool usecvars = view_as<bool>(GetNativeCell(3));
 
-	if (usecvars)
+	if(usecvars)
 	{
 		return gI_WRHoldersCvar;
 	}
-	else if (track == -1 && style == -1)
+	else if(track == -1 && style == -1)
 	{
 		return gI_WRHoldersAll;
 	}
 
-	if (track > Track_Bonus)
+	if(track > Track_Bonus)
 	{
 		track = Track_Bonus;
 	}
@@ -1394,16 +1394,16 @@ public int Native_GetWRHolderRank(Handle handler, int numParams)
 	int style = GetNativeCell(3);
 	bool usecvars = view_as<bool>(GetNativeCell(4));
 
-	if (usecvars)
+	if(usecvars)
 	{
 		return gA_Rankings[client].iWRHolderRankCvar;
 	}
-	else if (track == -1 && style == -1)
+	else if(track == -1 && style == -1)
 	{
 		return gA_Rankings[client].iWRHolderRankAll;
 	}
 
-	if (track > Track_Bonus)
+	if(track > Track_Bonus)
 	{
 		track = Track_Bonus;
 	}
@@ -1417,7 +1417,7 @@ public int Native_GetMapTier(Handle handler, int numParams)
 	char sMap[PLATFORM_MAX_PATH];
 	GetNativeString(1, sMap, sizeof(sMap));
 
-	if (!sMap[0])
+	if(!sMap[0])
 	{
 		return gI_Tier;
 	}
@@ -1481,7 +1481,7 @@ float Sourcepawn_GetRecordPoints(int rtrack, float rtime, float pointspertier, f
 {
 	float ppoints = 0.0;
 
-	if (rtrack > 0)
+	if(rtrack > 0)
 	{
 		ptier = 1.0;
 	}
@@ -1490,7 +1490,7 @@ float Sourcepawn_GetRecordPoints(int rtrack, float rtime, float pointspertier, f
 	ppoints *= (pwr / rtime);
 	ppoints *= stylemultiplier;
 
-	if (rtrack > 0)
+	if(rtrack > 0)
 	{
 		ppoints *= 0.25;
 	}
