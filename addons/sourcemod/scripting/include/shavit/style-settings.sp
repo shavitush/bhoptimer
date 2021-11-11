@@ -156,6 +156,7 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingFloat(gI_CurrentParserIndex, "speed", 1.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "halftime", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "timescale", 1.0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "force_timescale", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity", 1.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "bonus_velocity", 0.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "min_velocity", 0.0);
@@ -226,6 +227,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		SetStyleSettingFloat(gI_CurrentParserIndex, "timescale", 1.0);
 	}
 
+#if 0
 	// Setting it here so that we can reference the timescale setting.
 	if (!HasStyleSetting(gI_CurrentParserIndex, "force_timescale"))
 	{
@@ -238,6 +240,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 			SetStyleSettingInt(gI_CurrentParserIndex, "force_timescale", 1);
 		}
 	}
+#endif
 
 	if (GetStyleSettingInt(gI_CurrentParserIndex, "prespeed") > 0)
 	{
