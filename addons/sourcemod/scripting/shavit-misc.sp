@@ -1676,7 +1676,7 @@ public Action Command_Weapon(int client, int args)
 		AcceptEntityInput(iWeapon, "Kill");
 	}
 
-	iWeapon = GivePlayerItem(client, sWeapon);
+	iWeapon = (gEV_Type == Engine_CSGO) ? GiveSkinnedWeapon(client, sWeapon) : GivePlayerItem(client, sWeapon);
 	FakeClientCommand(client, "use %s", sWeapon);
 
 	if(iSlot != CS_SLOT_KNIFE)
@@ -2209,7 +2209,7 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 	char sWeapon[16];
 	event.GetString("weapon", sWeapon, 16);
 
-	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hpk") != -1 || StrContains(sWeapon, "glock") != -1)
+	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hkp") != -1 || StrContains(sWeapon, "glock") != -1)
 	{
 		int client = GetClientOfUserId(event.GetInt("userid"));
 		SetMaxWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"), gCV_WeaponCommands.IntValue >= 3);

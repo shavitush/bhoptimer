@@ -55,7 +55,7 @@
 #define HUD2_PERFS              (1 << 11)
 #define HUD2_TOPLEFT_RANK       (1 << 12)
 #define HUD2_VELOCITYDIFFERENCE (1 << 13)
-#define HUD2_USPSILENCER        (1 << 14) // spawns usps with a silencer on (only used in CSS)
+#define HUD2_USPSILENCER        (1 << 14) // spawns usps with a silencer on
 #define HUD2_GLOCKBURST         (1 << 15) // spawns glocks with burst
 
 #define HUD_DEFAULT             (HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)

@@ -2253,14 +2253,14 @@ void UpdateReplayClient(int client)
 
 				bool same_thing = false;
 
-				// special case for csgo stuff because the usp classname becomes weapon_hpk2000
+				// special case for csgo stuff because the usp classname becomes weapon_hkp2000
 				if (gEV_Type == Engine_CSGO)
 				{
-					if (StrEqual(sWeapon, "weapon_usp_silencer"))
+					if (StrEqual(sWeapon, "weapon_usp_silencer") || StrEqual(sWeapon, "weapon_usp"))
 					{
 						same_thing = (61 == GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex"));
 					}
-					else if (StrEqual(sWeapon, "weapon_hpk2000"))
+					else if (StrEqual(sWeapon, "weapon_hkp2000"))
 					{
 						same_thing = (32 == GetEntProp(iWeapon, Prop_Send, "m_iItemDefinitionIndex"));
 					}

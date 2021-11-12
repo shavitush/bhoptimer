@@ -4,6 +4,40 @@
 #endif
 #define _shavit_weapon_stocks_included
 
+stock int GiveSkinnedWeapon(int client, const char[] classname)
+{
+	int target_team = 0;
+	int current_team = 0;
+
+	if (StrContains(classname, "usp") != -1)
+	{
+		target_team = 3;
+	}
+	else if (StrContains(classname, "glock") != -1)
+	{
+		target_team = 2;
+	}
+
+	if (target_team != 0)
+	{
+		current_team = GetEntProp(client, Prop_Send, "m_iTeamNum");
+
+		if (current_team != target_team)
+		{
+			SetEntProp(client, Prop_Send, "m_iTeamNum", target_team);
+		}
+	}
+
+	int weapon = GivePlayerItem(client, classname);
+
+	if (current_team != target_team)
+	{
+		SetEntProp(client, Prop_Send, "m_iTeamNum", current_team);
+	}
+
+	return weapon;
+}
+
 stock void RemoveAllWeapons(int client)
 {
 	int weapon = -1, max = GetEntPropArraySize(client, Prop_Send, "m_hMyWeapons");

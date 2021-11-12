@@ -28,6 +28,8 @@
 #include <shavit/core>
 #include <shavit/hud>
 
+#include <shavit/weapon-stocks>
+
 #undef REQUIRE_PLUGIN
 #include <shavit/rankings>
 #include <shavit/replay-playback>
@@ -764,10 +766,7 @@ Action ShowHUDMenu(int client, int item)
 		FormatEx(sInfo, 16, "@%d", HUD2_GLOCKBURST);
 		FormatEx(sHudItem, 64, "%T", "HudGlockBurst", client);
 		menu.AddItem(sInfo, sHudItem);
-	}
 
-	if (gEV_Type == Engine_CSS)
-	{
 		FormatEx(sInfo, 16, "@%d", HUD2_USPSILENCER);
 		FormatEx(sHudItem, 64, "%T", "HudUSPSilencer", client);
 		menu.AddItem(sInfo, sHudItem);
@@ -874,10 +873,24 @@ public int MenuHandler_HUD(Menu menu, MenuAction action, int param1, int param2)
 	return 0;
 }
 
+bool is_usp(int entity, const char[] classname)
+{
+	if (gEV_Type == Engine_CSGO)
+	{
+		return (61 == GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
+	}
+	else
+	{
+		return StrEqual(classname, "weapon_usp");
+	}
+}
+
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	if ((gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp"))
-	||  (StrEqual(classname, "weapon_glock")))
+	if (StrEqual(classname, "weapon_glock")
+	||  StrEqual(classname, "weapon_hkp2000")
+	||  StrContains(classname, "weapon_usp") != -1
+	)
 	{
 		SDKHook(entity, SDKHook_Touch, Hook_GunTouch);
 	}
@@ -897,11 +910,17 @@ public Action Hook_GunTouch(int entity, int client)
 				SetEntProp(entity, Prop_Send, "m_bBurstMode", 1);
 			}
 		}
-		else if (gEV_Type == Engine_CSS && StrEqual(classname, "weapon_usp") && !(gI_HUD2Settings[client] & HUD2_USPSILENCER))
+		else if (is_usp(entity, classname))
 		{
-			SetEntProp(entity, Prop_Send, "m_bSilencerOn", 1);
-			SetEntProp(entity, Prop_Send, "m_weaponMode", 1);
-			SetEntPropFloat(entity, Prop_Send, "m_flDoneSwitchingSilencer", GetGameTime() - 0.1);  
+			if (!(gI_HUD2Settings[client] & HUD2_USPSILENCER) != (gEV_Type == Engine_CSS))
+			{
+				return Plugin_Continue;
+			}
+
+			int state = (gEV_Type == Engine_CSS) ? 1 : 0;
+			SetEntProp(entity, Prop_Send, "m_bSilencerOn", state);
+			SetEntProp(entity, Prop_Send, "m_weaponMode", state);
+			SetEntPropFloat(entity, Prop_Send, "m_flDoneSwitchingSilencer", GetGameTime());
 		}
 	}
 
@@ -934,7 +953,7 @@ void GivePlayerDefaultGun(int client)
 		AcceptEntityInput(iWeapon, "Kill");
 	}
 
-	iWeapon = GivePlayerItem(client, sWeapon);
+	iWeapon = (gEV_Type == Engine_CSGO) ? GiveSkinnedWeapon(client, sWeapon) : GivePlayerItem(client, sWeapon);
 	FakeClientCommand(client, "use %s", sWeapon);
 }
 
