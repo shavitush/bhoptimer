@@ -140,6 +140,9 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_GetMapsArrayList", Native_GetMapsArrayList);
+	CreateNative("Shavit_GetMapsStringMap", Native_GetMapsStringMap);
+
 	g_hForward_OnRTV = CreateGlobalForward("SMC_OnRTV", ET_Event, Param_Cell);
 	g_hForward_OnUnRTV = CreateGlobalForward("SMC_OnUnRTV", ET_Event, Param_Cell);
 	g_hForward_OnSuccesfulRTV = CreateGlobalForward("SMC_OnSuccesfulRTV", ET_Event);
@@ -1155,11 +1158,13 @@ public void LoadZonedMapsCallbackMixed(Database db, DBResultSet results, const c
 
 	char map[PLATFORM_MAX_PATH];
 
+	StringMap all_maps = new StringMap();
+
 	for (int i = 0; i < g_aAllMapsList.Length; ++i)
 	{
 		g_aAllMapsList.GetString(i, map, sizeof(map));
 		LessStupidGetMapDisplayName(map, map, sizeof(map));
-		g_mMapList.SetValue(map, i, true);
+		all_maps.SetValue(map, i, true);
 	}
 
 	int resultlength, mapsadded;
@@ -1170,14 +1175,14 @@ public void LoadZonedMapsCallbackMixed(Database db, DBResultSet results, const c
 		LowercaseString(map);
 
 		int index;
-		if (g_mMapList.GetValue(map, index))
+		if (all_maps.GetValue(map, index))
 		{
 			g_aMapList.PushString(map);
 			mapsadded++;
 		}
 	}
 
-	PrintToServer("Shavit-Mapchooser Query callback. Number of returned results: %i, Maps added to g_aMapList:%i, g_aAllMapsList.Length:%i, g_mMapList:%i", resultlength, mapsadded, g_aAllMapsList.Length, g_mMapList.Size);
+	PrintToServer("Shavit-Mapchooser Query callback. Number of returned results: %i, Maps added to g_aMapList:%i, g_aAllMapsList.Length:%i, all_maps:%i", resultlength, mapsadded, g_aAllMapsList.Length, all_maps.Size);
 
 	CreateNominateMenu();
 }
@@ -1535,17 +1540,16 @@ void CreateNominateMenu()
 			int tier = 0;
 			tiersMap.GetValue(mapdisplay, tier);
 
-			if (min <= tier <= max)
+			if (!(min <= tier <= max))
 			{
-				char mapdisplay2[PLATFORM_MAX_PATH];
-				FormatEx(mapdisplay2, sizeof(mapdisplay2), "%s | T%i", mapdisplay, tier);
-				g_hNominateMenu.AddItem(mapname, mapdisplay2, style);
+				continue;
 			}
+
+			Format(mapdisplay, sizeof(mapdisplay), "%s | T%d", mapdisplay, tier);
 		}
-		else
-		{
-			g_hNominateMenu.AddItem(mapname, mapdisplay, style);
-		}
+
+		g_hNominateMenu.AddItem(mapname, mapdisplay, style);
+		g_mMapList.SetValue(mapname, true);
 	}
 
 	delete tiersMap;
@@ -2296,4 +2300,14 @@ void DebugPrint(const char[] message, any ...)
 			PrintToChat(i, buffer);
 		}
 	}
+}
+
+public any Native_GetMapsArrayList(Handle plugin, int numParams)
+{
+	return g_aMapList;
+}
+
+public any Native_GetMapsStringMap(Handle plugin, int numParams)
+{
+	return g_mMapList;
 }

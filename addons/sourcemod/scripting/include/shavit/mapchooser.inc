@@ -49,6 +49,20 @@ forward void SMC_OnUnRTV(int client);
  */
 forward void SMC_OnSuccesfulRTV();
 
+/**
+ * Returns the ArrayList of maps currently on rotation.
+ *
+ * @return                            The ArrayList of Maps
+ */
+native ArrayList Shavit_GetMapsArrayList();
+
+/**
+ * Returns the StringMap of maps currently on rotation.
+ *
+ * @return                            the StringMap of maps
+ */
+native StringMap Shavit_GetMapsStringMap();
+
 public SharedPlugin __pl_shavit_mapchooser =
 {
 	name = "shavit-mapchooser",
@@ -63,5 +77,7 @@ public SharedPlugin __pl_shavit_mapchooser =
 #if !defined REQUIRE_PLUGIN
 public void __pl_shavit_mapchooser_SetNTVOptional()
 {
+	MarkNativeAsOptional("Shavit_GetMapsArrayList");
+	MarkNativeAsOptional("Shavit_GetMapsStringMap");
 }
 #endif
