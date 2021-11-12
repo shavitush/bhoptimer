@@ -121,7 +121,6 @@ float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
 int gI_StageZoneID[TRACKS_SIZE][MAX_ZONES];
 int gI_HighestStage[TRACKS_SIZE];
-float gF_CustomSpawn[TRACKS_SIZE][3];
 int gI_EntityZone[4096];
 int gI_LastStage[MAXPLAYERS+1];
 
@@ -232,9 +231,6 @@ public void OnPluginStart()
 	RegAdminCmd("sm_deleteallzones", Command_DeleteAllZones, ADMFLAG_RCON, "Delete all mapzones");
 
 	RegAdminCmd("sm_modifier", Command_Modifier, ADMFLAG_RCON, "Changes the axis modifier for the zone editor. Usage: sm_modifier <number>");
-
-	RegAdminCmd("sm_addspawn", Command_AddSpawn, ADMFLAG_RCON, "Adds a custom spawn location");
-	RegAdminCmd("sm_delspawn", Command_DelSpawn, ADMFLAG_RCON, "Deletes a custom spawn location");
 
 	RegAdminCmd("sm_zoneedit", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone.");
 	RegAdminCmd("sm_editzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
@@ -1202,8 +1198,6 @@ void UnloadZones(int zone)
 			}
 		}
 	}
-
-	ClearCustomSpawn(-1);
 }
 
 void RefreshZones()
@@ -1243,26 +1237,17 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		int type = results.FetchInt(0);
 		int track = results.FetchInt(10);
 
-		if(type == Zone_CustomSpawn)
-		{
-			gF_CustomSpawn[track][0] = results.FetchFloat(7);
-			gF_CustomSpawn[track][1] = results.FetchFloat(8);
-			gF_CustomSpawn[track][2] = results.FetchFloat(9);
-		}
-		else
-		{
-			AddZoneToCache(
-				type,
-				results.FetchFloat(1), results.FetchFloat(2), results.FetchFloat(3), // corner1_xyz
-				results.FetchFloat(4), results.FetchFloat(5), results.FetchFloat(6), // corner2_xyz
-				results.FetchFloat(7), results.FetchFloat(8), results.FetchFloat(9), // destination_xyz (Zone_Teleport/Zone_Stage)
-				track,
-				results.FetchInt(11), // iDatabaseID
-				results.FetchInt(12), // iZoneFlags
-				results.FetchInt(13), // iZoneData
-				false                 // bPrebuilt
-			);
-		}
+		AddZoneToCache(
+			type,
+			results.FetchFloat(1), results.FetchFloat(2), results.FetchFloat(3), // corner1_xyz,
+			results.FetchFloat(4), results.FetchFloat(5), results.FetchFloat(6), // corner2_xyz
+			results.FetchFloat(7), results.FetchFloat(8), results.FetchFloat(9), // destination_xyz (Zone_Teleport/Zone_Stage)
+			track,
+			results.FetchInt(11), // iDatabaseID
+			results.FetchInt(12), // iZoneFlags
+			results.FetchInt(13), // iZoneData
+			false                 // bPrebuilt
+		);
 	}
 
 	if (!gB_InsertedPrebuiltZones)
@@ -1599,183 +1584,6 @@ public Action Command_DrawAllZones(int client, int args)
 	}
 
 	return Plugin_Handled;
-}
-
-// Krypt Custom Spawn Functions (https://github.com/Kryptanyte)
-public Action Command_AddSpawn(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	return DisplayCustomSpawnMenu(client);
-}
-
-Action DisplayCustomSpawnMenu(int client)
-{
-	Menu menu = new Menu(MenuHandler_AddCustomSpawn);
-	menu.SetTitle("%T\n ", "ZoneCustomSpawnMenuTitle", client);
-
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		char sInfo[8];
-		IntToString(i, sInfo, 8);
-
-		char sTrack[32];
-		GetTrackName(client, i, sTrack, 32);
-
-		menu.AddItem(sInfo, sTrack);
-	}
-
-	menu.ExitButton = true;
-	menu.Display(client, 300);
-
-	return Plugin_Handled;
-}
-
-public int MenuHandler_AddCustomSpawn(Menu menu, MenuAction action, int param1, int param2)
-{
-	if(action == MenuAction_Select)
-	{
-		if(!IsPlayerAlive(param1))
-		{
-			Shavit_PrintToChat(param1, "%T", "ZoneDead", param1);
-
-			return 0;
-		}
-
-		char sInfo[8];
-		menu.GetItem(param2, sInfo, 8);
-		int iTrack = StringToInt(sInfo);
-
-		if(!EmptyVector(gF_CustomSpawn[iTrack]))
-		{
-			char sTrack[32];
-			GetTrackName(param1, iTrack, sTrack, 32);
-
-			Shavit_PrintToChat(param1, "%T", "ZoneCustomSpawnExists", param1, gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText);
-
-			return 0;
-		}
-
-		gI_ZoneType[param1] = Zone_CustomSpawn;
-		gI_ZoneTrack[param1] = iTrack;
-		GetClientAbsOrigin(param1, gV_Point1[param1]);
-
-		InsertZone(param1);
-	}
-
-	else if(action == MenuAction_End)
-	{
-		delete menu;
-	}
-
-	return 0;
-}
-
-public Action Command_DelSpawn(int client, int args)
-{
-	if(!IsValidClient(client))
-	{
-		return Plugin_Handled;
-	}
-
-	return DisplayCustomSpawnDeleteMenu(client);
-}
-
-Action DisplayCustomSpawnDeleteMenu(int client)
-{
-	Menu menu = new Menu(MenuHandler_DeleteCustomSpawn);
-	menu.SetTitle("%T\n ", "ZoneCustomSpawnMenuDeleteTitle", client);
-
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		char sInfo[8];
-		IntToString(i, sInfo, 8);
-
-		char sTrack[32];
-		GetTrackName(client, i, sTrack, 32);
-
-		menu.AddItem(sInfo, sTrack, (EmptyVector(gF_CustomSpawn[i]))? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
-	}
-
-	menu.ExitButton = true;
-	menu.Display(client, 300);
-
-	return Plugin_Handled;
-}
-
-public int MenuHandler_DeleteCustomSpawn(Menu menu, MenuAction action, int param1, int param2)
-{
-	if(action == MenuAction_Select)
-	{
-		char sInfo[8];
-		menu.GetItem(param2, sInfo, 8);
-		int iTrack = StringToInt(sInfo);
-
-		if(EmptyVector(gF_CustomSpawn[iTrack]))
-		{
-			char sTrack[32];
-			GetTrackName(param1, iTrack, sTrack, 32);
-
-			Shavit_PrintToChat(param1, "%T", "ZoneCustomSpawnMissing", param1, gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText);
-
-			return 0;
-		}
-
-		gI_ZoneTrack[param1] = iTrack;
-		Shavit_LogMessage("%L - deleted custom spawn from map `%s`.", param1, gS_Map);
-
-		char sQuery[512];
-		FormatEx(sQuery, sizeof(sQuery),
-			"DELETE FROM %smapzones WHERE type = '%d' AND map = '%s' AND track = %d;",
-			gS_MySQLPrefix, Zone_CustomSpawn, gS_Map, iTrack);
-
-		gH_SQL.Query(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(param1));
-	}
-
-	else if(action == MenuAction_End)
-	{
-		delete menu;
-	}
-
-	return 0;
-}
-
-public void SQL_DeleteCustom_Spawn_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (custom spawn delete) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
-		return;
-	}
-
-	ClearCustomSpawn(gI_ZoneTrack[client]);
-	Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnDelete", client);
-}
-
-void ClearCustomSpawn(int track)
-{
-	if(track != -1)
-	{
-		gF_CustomSpawn[track] = NULL_VECTOR;
-
-		return;
-	}
-	
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		gF_CustomSpawn[i] = NULL_VECTOR;
-	}
 }
 
 void ReloadPrebuiltZones()
@@ -3519,14 +3327,8 @@ public void Shavit_OnRestart(int client, int track)
 	{
 		int iIndex = -1;
 
-		// custom spawns
-		if(!EmptyVector(gF_CustomSpawn[track]))
-		{
-			TeleportEntity(client, gF_CustomSpawn[track], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
-		}
-
 		// standard zoning
-		else if((iIndex = GetZoneIndex(Zone_Start, track)) != -1)
+		if((iIndex = GetZoneIndex(Zone_Start, track)) != -1)
 		{
 			float bmin[3], bmax[3];
 			bool bCustomStart = false;
