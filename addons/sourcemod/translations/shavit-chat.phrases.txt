@@ -51,6 +51,18 @@
 	{
 		"en"		"Select chat rank:\n"
 	}
+	"SelectChatRankType"
+	{
+		"en"        "Which chat ranks do you want to see?\n"
+	}
+	"SelectChatRankUnlocked"
+	{
+		"en"        "Unlocked chat ranks\n"
+	}
+	"SelectChatRankAll"
+	{
+		"en"        "All chat ranks\n"
+	}
 	"AutoAssign"
 	{
 		"en"		"Auto-assign\nAutomatically assign using your rank."
