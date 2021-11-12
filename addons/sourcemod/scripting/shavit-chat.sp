@@ -486,6 +486,8 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	
 	if(HasCustomChat(client) && gI_ChatSelection[client] == -1)
 	{
+		GetPlayerChatSettings(client, sName, sCMessage, -2);
+
 		if(gB_NameEnabled[client])
 		{
 			strcopy(sName, MAXLENGTH_NAME, gS_CustomName[client]);
@@ -496,10 +498,9 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 			strcopy(sCMessage, MAXLENGTH_CMESSAGE, gS_CustomMessage[client]);
 		}
 	}
-
 	else
 	{
-		GetPlayerChatSettings(client, sName, sCMessage);
+		GetPlayerChatSettings(client, sName, sCMessage, gI_ChatSelection[client]);
 	}
 
 	if(strlen(sName) > 0)
@@ -750,7 +751,7 @@ public Action Command_CCName(int client, int args)
 	if(args == 0 || strlen(sArgs) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_ccname <text>");
-		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, gS_CustomName[client]);
+		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, !strlen(gS_CustomName[client]) ? "off" : gS_CustomName[client]);
 
 		return Plugin_Handled;
 	}
@@ -800,7 +801,7 @@ public Action Command_CCMessage(int client, int args)
 	if(args == 0 || strlen(sArgs) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_ccmsg <text>");
-		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, gS_CustomMessage[client]);
+		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, !strlen(gS_CustomMessage[client]) ? "off" : gS_CustomMessage[client]);
 
 		return Plugin_Handled;
 	}
@@ -1216,10 +1217,8 @@ bool HasRankAccess(int client, int rank)
 	return false;
 }
 
-void GetPlayerChatSettings(int client, char[] name, char[] message)
+void GetPlayerChatSettings(int client, char[] name, char[] message, int iRank)
 {
-	int iRank = gI_ChatSelection[client];
-	
 	if(!HasRankAccess(client, iRank))
 	{
 		iRank = -2;
