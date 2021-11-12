@@ -3517,16 +3517,17 @@ public void Shavit_OnRestart(int client, int track)
 
 	if(gCV_TeleportToStart.BoolValue)
 	{
-		int iIndex = -1;
+		int iIndex = GetZoneIndex(Zone_Start, track);
+		bool use_CustomStart_over_CustomSpawn = (iIndex != -1) && gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track];
 
 		// custom spawns
-		if(!EmptyVector(gF_CustomSpawn[track]))
+		if (!use_CustomStart_over_CustomSpawn && !EmptyVector(gF_CustomSpawn[track]))
 		{
 			TeleportEntity(client, gF_CustomSpawn[track], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
 		// standard zoning
-		else if((iIndex = GetZoneIndex(Zone_Start, track)) != -1)
+		else if (iIndex != -1)
 		{
 			float bmin[3], bmax[3];
 			bool bCustomStart = false;
@@ -3534,7 +3535,7 @@ public void Shavit_OnRestart(int client, int track)
 			float fCenter[3];
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
-			fCenter[2] = gV_MapZones[iIndex][0][2];
+			fCenter[2] = gV_MapZones[iIndex][0][2] + gCV_ExtraSpawnHeight.FloatValue;
 
 			if (gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track])
 			{
@@ -3545,7 +3546,7 @@ public void Shavit_OnRestart(int client, int track)
 				bCustomStart = true;
 			}
 
-			fCenter[2] += 1.0 + gCV_ExtraSpawnHeight.FloatValue;
+			fCenter[2] += 1.0;
 
 			if (bCustomStart && !PointInBox(fCenter, bmin, bmax))
 			{
