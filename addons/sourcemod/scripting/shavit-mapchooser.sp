@@ -1183,6 +1183,7 @@ public void LoadZonedMapsCallbackMixed(Database db, DBResultSet results, const c
 	}
 
 	PrintToServer("Shavit-Mapchooser Query callback. Number of returned results: %i, Maps added to g_aMapList:%i, g_aAllMapsList.Length:%i, all_maps:%i", resultlength, mapsadded, g_aAllMapsList.Length, all_maps.Size);
+	delete all_maps;
 
 	CreateNominateMenu();
 }
