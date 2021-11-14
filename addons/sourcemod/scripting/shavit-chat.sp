@@ -654,7 +654,7 @@ public void OnClientCookiesCached(int client)
 	}
 }
 
-public void OnClientPutInServer(int client)
+public void OnClientConnected(int client)
 {
 	gB_CCAccess[client] = false;
 
