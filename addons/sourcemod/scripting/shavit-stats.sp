@@ -26,6 +26,7 @@
 #include <shavit/core>
 
 #undef REQUIRE_PLUGIN
+#include <shavit/mapchooser>
 #include <shavit/rankings>
 
 #include <shavit/steamid-stocks>
@@ -41,6 +42,7 @@
 #define MAPSLEFT 1
 
 // modules
+bool gB_Mapchooser = false;
 bool gB_Rankings = false;
 
 // database handle
@@ -74,6 +76,7 @@ stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 // chat settings
 chatstrings_t gS_ChatStrings;
 
+Convar gCV_UseMapchooser = null;
 Convar gCV_SavePlaytime = null;
 Convar gCV_NewDBConnection = null;
 
@@ -112,11 +115,13 @@ public void OnPluginStart()
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-stats.phrases");
 
+	gCV_UseMapchooser = new Convar("shavit_stats_use_mapchooser", "1", "Whether to use the maplist from shavit-mapchooser when calculating mapsleft/mapsdone.", 0, true, 0.0, true, 1.0);
 	gCV_SavePlaytime = new Convar("shavit_stats_saveplaytime", "1", "Whether to save a player's playtime (total & per-style).", 0, true, 0.0, true, 1.0);
 	gCV_NewDBConnection = new Convar("shavit_stats_new_db_connection", "0", "Use a new DB connection for rankings. This should help with point-recalculation blocking other queries from running.\nYou probably don't need to use this unless you have a DB with hundreds of thousands of player times.\n0 - Reuses shavit-core DB connection.\n1 - Creates a new DB connection.", 0, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
+	gB_Mapchooser = LibraryExists("shavit-mapchooser");
 	gB_Rankings = LibraryExists("shavit-rankings");
 
 	if(gB_Late)
@@ -294,6 +299,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
+	else if (StrEqual(name, "shavit-mapchooser"))
+	{
+		gB_Mapchooser = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -301,6 +310,10 @@ public void OnLibraryRemoved(const char[] name)
 	if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
+	}
+	else if (StrEqual(name, "shavit-mapchooser"))
+	{
+		gB_Mapchooser = false;
 	}
 }
 
