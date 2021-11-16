@@ -521,6 +521,16 @@ public void OnClientConnected(int client)
 
 public void OnClientDisconnect(int client)
 {
+	if (g_cNominatedMap[client][0])
+	{
+		int idx = g_aNominateList.FindString(g_cNominatedMap[client]);
+
+		if (idx != -1)
+		{
+			g_aNominateList.Erase(idx);
+		}
+	}
+
 	// clear player data
 	g_bRockTheVote[client] = false;
 	g_cNominatedMap[client][0] = '\0';
