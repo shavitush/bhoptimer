@@ -124,6 +124,10 @@ public void OnPluginStart()
 	gB_Mapchooser = LibraryExists("shavit-mapchooser");
 	gB_Rankings = LibraryExists("shavit-rankings");
 
+	HookEvent("player_team", Player_Death);
+	HookEvent("player_death", Player_Death);
+	HookEvent("player_spawn", Player_Spawn);
+
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
@@ -198,6 +202,46 @@ public void OnClientAuthorized(int client)
 	}
 
 	QueryPlaytime(client);
+}
+
+public void Player_Death(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	if (gF_PlaytimeStyleStart[client] == 0.0)
+	{
+		if (IsPlayerAlive(client))
+		{
+			gF_PlaytimeStyleStart[client] = GetEngineTime();
+			return;
+		}
+
+		return;
+	}
+
+	float now = GetEngineTime();
+	gF_PlaytimeStyleSum[client][gI_CurrentStyle[client]] += (now - gF_PlaytimeStyleStart[client]);
+	gF_PlaytimeStyleStart[client] = 0.0;
+}
+
+public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	if (gF_PlaytimeStyleStart[client] == 0.0)
+	{
+		gF_PlaytimeStyleStart[client] = GetEngineTime();
+	}
 }
 
 void QueryPlaytime(int client)
@@ -344,7 +388,7 @@ void SavePlaytime222(int client, float now, Transaction2 &trans, int style, int 
 	{
 		float diff = gF_PlaytimeStyleSum[client][style];
 
-		if (gI_CurrentStyle[client] == style)
+		if (gI_CurrentStyle[client] == style && gF_PlaytimeStyleStart[client] != 0.0)
 		{
 			diff += now - gF_PlaytimeStyleStart[client];
 			gF_PlaytimeStyleStart[client] = now;
