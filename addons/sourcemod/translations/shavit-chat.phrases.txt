@@ -22,6 +22,11 @@
 	{
 		"en"		"Check your console."
 	}
+	"CCAccessGranted"
+	{
+		"#format"   "{1:s},{2:s}"
+		"en"        "You've given access to custom chat! Use {1}!cchelp{2} for more info."
+	}
 	"CCHelp_Intro"
 	{
 		"en"		"- You have access to custom chat.\nUsage information:"

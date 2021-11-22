@@ -140,6 +140,8 @@ char gS_CustomName[MAXPLAYERS+1][128];
 bool gB_MessageEnabled[MAXPLAYERS+1];
 char gS_CustomMessage[MAXPLAYERS+1][16];
 
+chatstrings_t gS_ChatStrings;
+
 // chat procesor
 bool gB_Protobuf = false;
 bool gB_NewMessage[MAXPLAYERS+1];
@@ -205,15 +207,23 @@ public void OnPluginStart()
 	if (gB_Late)
 	{
 		Shavit_OnDatabaseLoaded();
+		Shavit_OnChatConfigLoaded();
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGame(i) && !IsFakeClient(i))
 		{
+			OnClientConnected(i);
+
 			if(AreClientCookiesCached(i))
 			{
 				OnClientCookiesCached(i);
+			}
+
+			if (IsClientAuthorized(i))
+			{
+				OnClientPostAdminCheck(i);
 			}
 		}
 	}
@@ -224,6 +234,11 @@ public void OnPluginStart()
 public void OnAllPluginsLoaded()
 {
 	gCV_TimeInMessages = FindConVar("shavit_core_timeinmessages");
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
 public void OnMapStart()
@@ -1283,6 +1298,7 @@ public Action Command_CCAdd(int client, int args)
 		if (IsValidClient(i) && GetSteamAccountID(i) == iSteamID)
 		{
 			gB_CCAccess[i] = true;
+			Shavit_PrintToChat(i, "%T", "CCAccessGranted", i, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 		}
 	}
 
