@@ -1298,7 +1298,7 @@ public Action Command_CCAdd(int client, int args)
 		if (IsValidClient(i) && GetSteamAccountID(i) == iSteamID)
 		{
 			gB_CCAccess[i] = true;
-			Shavit_PrintToChat(i, "%T", "CCAccessGranted", i, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+			Shavit_PrintToChat(i, "%T", "CCAccessGrantedToPlayer", i, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 		}
 	}
 
