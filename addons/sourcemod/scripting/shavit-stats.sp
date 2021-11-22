@@ -757,6 +757,29 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 		return Plugin_Handled;
 	}
 
+	gB_CanOpenMenu[client] = false;
+
+	DataPack data = new DataPack();
+	data.WriteCell(GetClientSerial(client));
+	data.WriteCell(item);
+
+	if (gB_Mapchooser && gCV_UseMapchooser.BoolValue)
+	{
+		char sQuery[2048];
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT ",
+		);
+
+		gH_SQL.Query(OpenStatsMenu_Mapchooser_Callback, sQuery, data, DBPrio_Low);
+
+		return Plugin_Handled;
+	}
+
+	return OpenStatsMenu_Main(client, steamid, style, item, data);
+}
+
+Action OpenStatsMenu_Main(int client, int steamid, int style, int item, DataPack data)
+{
 	// big ass query, looking for optimizations TODO
 	char sQuery[2048];
 
@@ -787,12 +810,6 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 				"JOIN (SELECT SUM(playtime) as styleplaytime FROM %sstyleplaytime WHERE auth = %d AND style = %d) i " ...
 			"LIMIT 1;", gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, style);
 	}
-
-	gB_CanOpenMenu[client] = false;
-
-	DataPack data = new DataPack();
-	data.WriteCell(GetClientSerial(client));
-	data.WriteCell(item);
 
 	gH_SQL.Query(OpenStatsMenuCallback, sQuery, data, DBPrio_Low);
 
@@ -1092,20 +1109,19 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	Menu menu = new Menu(MenuHandler_ShowMaps);
 
-	if(gI_MapType[client] == MAPSDONE)
-	{
-		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
-	}
-
-	else
-	{
-		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
-	}
+	StringMap mapchooser_maps = gCV_UseMapchooser.BoolValue ? Shavit_GetMapsStringMap() : null;
 
 	while(results.FetchRow())
 	{
 		char sMap[PLATFORM_MAX_PATH];
 		results.FetchString(0, sMap, sizeof(sMap));
+
+		bool x;
+		if (mapchooser_maps && !mapchooser_maps.GetValue(sMap, x))
+		{
+			--rows;
+			continue;
+		}
 
 		char sRecordID[PLATFORM_MAX_PATH];
 		char sDisplay[PLATFORM_MAX_PATH];
@@ -1155,6 +1171,17 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		}
 
 		menu.AddItem(sRecordID, sDisplay);
+	}
+
+	delete mapchooser_maps;
+
+	if(gI_MapType[client] == MAPSDONE)
+	{
+		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
+	}
+	else
+	{
+		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	if(menu.ItemCount == 0)
