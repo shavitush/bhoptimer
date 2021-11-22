@@ -1766,6 +1766,9 @@ public int Native_PrintToChat(Handle handler, int numParams)
 
 public int SemiNative_PrintToChat(int client, int formatParam)
 {
+	bool stopChatSound = gB_StopChatSound;
+	gB_StopChatSound = false;
+
 	int iWritten;
 	char sBuffer[256];
 	char sInput[300];
@@ -1786,14 +1789,11 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 	if(client == 0)
 	{
 		PrintToServer("%s", sBuffer);
-
 		return false;
 	}
 
 	if(!IsClientInGame(client))
 	{
-		gB_StopChatSound = false;
-
 		return false;
 	}
 
@@ -1803,7 +1803,7 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 	{
 		Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
 		pbmsg.SetInt("ent_idx", client);
-		pbmsg.SetBool("chat", !(gB_StopChatSound || gCV_NoChatSound.BoolValue));
+		pbmsg.SetBool("chat", !(stopChatSound || gCV_NoChatSound.BoolValue));
 		pbmsg.SetString("msg_name", sBuffer);
 
 		// needed to not crash
@@ -1816,14 +1816,11 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 	{
 		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
 		bfmsg.WriteByte(client);
-		bfmsg.WriteByte(!(gB_StopChatSound || gCV_NoChatSound.BoolValue));
+		bfmsg.WriteByte(!(stopChatSound || gCV_NoChatSound.BoolValue));
 		bfmsg.WriteString(sBuffer);
 	}
 
 	EndMessage();
-
-	gB_StopChatSound = false;
-
 	return true;
 }
 

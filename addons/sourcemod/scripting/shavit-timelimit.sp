@@ -312,11 +312,6 @@ public Action Timer_PrintToChat(Handle timer)
 	int timeleft = 0;
 	GetMapTimeLeft(timeleft);
 
-	if(timeleft <= -1 && timeleft >= -3)
-	{
-		Shavit_StopChatSound();
-	}
-
 	if (gCV_InstantMapChange.BoolValue && timeleft <= 5)
 	{
 		if (timeleft)
@@ -342,6 +337,11 @@ public Action Timer_PrintToChat(Handle timer)
 		return Plugin_Continue;
 	}
 
+	if(timeleft <= 0 && timeleft >= -3)
+	{
+		Shavit_StopChatSound();
+	}
+
 	switch(timeleft)
 	{
 		case 3600: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "60");
@@ -362,7 +362,6 @@ public Action Timer_PrintToChat(Handle timer)
 				Call_Finish();
 			}
 
-			Shavit_StopChatSound();
 			Shavit_PrintToChatAll("%d..", gB_AlternateZeroPrint ? 4 : 5);
 			gB_AlternateZeroPrint = !gB_AlternateZeroPrint;
 		}
