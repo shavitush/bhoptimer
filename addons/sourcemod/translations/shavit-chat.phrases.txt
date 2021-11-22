@@ -22,10 +22,10 @@
 	{
 		"en"		"Check your console."
 	}
-	"CCAccessGranted"
+	"CCAccessGrantedToPlayer"
 	{
 		"#format"   "{1:s},{2:s}"
-		"en"        "You've given access to custom chat! Use {1}!cchelp{2} for more info."
+		"en"        "You've been given access to custom chat! Use {1}!cchelp{2} for more info."
 	}
 	"CCHelp_Intro"
 	{
