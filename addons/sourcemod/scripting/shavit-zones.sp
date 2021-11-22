@@ -3416,7 +3416,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, bool drawallzones=false)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, bool drawallzones=false, int single_client=0)
 {
 	static int pairs[][] =
 	{
@@ -3437,17 +3437,24 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 	int clients[MAXPLAYERS+1];
 	int count = 0;
 
-	for(int i = 1; i <= MaxClients; i++)
+	if (single_client)
 	{
-		if(IsClientInGame(i) && !IsFakeClient(i) && (!drawallzones || (gB_DrawAllZones[i] && CanDrawAllZones(i))))
+		clients[count++] = single_client;
+	}
+	else
+	{
+		for(int i = 1; i <= MaxClients; i++)
 		{
-			float eyes[3];
-			GetClientEyePosition(i, eyes);
-
-			if(GetVectorDistance(eyes, center) <= 2048.0 ||
-				(TR_TraceRayFilter(eyes, center, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit()))
+			if(IsClientInGame(i) && !IsFakeClient(i) && (!drawallzones || (gB_DrawAllZones[i] && CanDrawAllZones(i))))
 			{
-				clients[count++] = i;
+				float eyes[3];
+				GetClientEyePosition(i, eyes);
+
+				if(GetVectorDistance(eyes, center) <= 2048.0 ||
+					(TR_TraceRayFilter(eyes, center, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit()))
+				{
+					clients[count++] = i;
+				}
 			}
 		}
 	}
@@ -3514,10 +3521,10 @@ public void Shavit_OnDatabaseLoaded()
 public void Shavit_OnRestart(int client, int track)
 {
 	gI_LastStage[client] = 0;
+	int iIndex = GetZoneIndex(Zone_Start, track);
 
 	if(gCV_TeleportToStart.BoolValue)
 	{
-		int iIndex = GetZoneIndex(Zone_Start, track);
 		bool use_CustomStart_over_CustomSpawn = (iIndex != -1) && gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track];
 
 		// custom spawns
@@ -3575,15 +3582,31 @@ public void Shavit_OnRestart(int client, int track)
 			Shavit_StartTimer(client, track);
 		}
 	}
+
+	if (iIndex != -1)
+	{
+		DrawZone(
+			gV_MapZones_Visual[iIndex],
+			GetZoneColors(Zone_Start, track),
+			gCV_Interval.FloatValue,
+			gA_ZoneSettings[Zone_Start][track].fWidth,
+			gA_ZoneSettings[Zone_Start][track].bFlatZone,
+			gV_ZoneCenter[iIndex],
+			gA_ZoneSettings[Zone_Start][track].iBeam,
+			gA_ZoneSettings[Zone_Start][track].iHalo,
+			false,
+			client
+		);
+	}
 }
 
 public void Shavit_OnEnd(int client, int track)
 {
+	int iIndex = GetZoneIndex(Zone_End, track);
+
 	if(gCV_TeleportToEnd.BoolValue)
 	{
-		int iIndex = -1;
-
-		if((iIndex = GetZoneIndex(Zone_End, track)) != -1)
+		if(iIndex != -1)
 		{
 			float fCenter[3];
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
@@ -3592,6 +3615,22 @@ public void Shavit_OnEnd(int client, int track)
 
 			TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
+	}
+
+	if (iIndex != -1)
+	{
+		DrawZone(
+			gV_MapZones_Visual[iIndex],
+			GetZoneColors(Zone_End, track),
+			gCV_Interval.FloatValue,
+			gA_ZoneSettings[Zone_End][track].fWidth,
+			gA_ZoneSettings[Zone_End][track].bFlatZone,
+			gV_ZoneCenter[iIndex],
+			gA_ZoneSettings[Zone_End][track].iBeam,
+			gA_ZoneSettings[Zone_End][track].iHalo,
+			false,
+			client
+		);
 	}
 }
 
