@@ -6,7 +6,20 @@ Convar gCV_DisableSvCheats = null;
 ConVar sv_cheats = null;
 
 char gS_CheatCommands[][] = {
+	"ent_create",
+	"ent_orient",
+	"ent_pause",
+
+	"ent_remove",
+	"ent_remove_all",
+
+	"ent_setname",
 	"ent_setpos",
+
+	"ent_teleport",
+
+	"firetarget",
+
 	"setpos",
 	"setpos_exact",
 	"setpos_player",
