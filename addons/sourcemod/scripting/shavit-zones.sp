@@ -101,6 +101,7 @@ float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
 float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
+bool gB_HackyResetCheck[MAXPLAYERS+1];
 
 float gF_Modifier[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
@@ -2826,6 +2827,8 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		char sInfo[16];
 		menu.GetItem(param2, sInfo, 16);
 
+		gB_HackyResetCheck[param1] = true;
+
 		if(StrEqual(sInfo, "yes"))
 		{
 			if (gI_ZoneID[param1] != -1)
@@ -2881,7 +2884,16 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 		CreateEditMenu(param1);
 	}
-
+	else if (action == MenuAction_Cancel)
+	{
+		if (!gB_HackyResetCheck[param1])
+		{
+			if (gI_ZoneID[param1] != -1)
+			{
+				gA_ZoneCache[gI_ZoneID[param1]].bZoneInitialized = true;
+			}
+		}
+	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -2947,6 +2959,7 @@ void CreateEditMenu(int client)
 	char sTrack[32];
 	GetTrackName(client, gI_ZoneTrack[client], sTrack, 32);
 
+	gB_HackyResetCheck[client] = false;
 	Menu menu = new Menu(CreateZoneConfirm_Handler);
 	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
 
