@@ -2023,8 +2023,8 @@ public Action Command_RecentRecords(int client, int args)
 	char sQuery[512];
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %swrs a JOIN %susers u on a.auth = u.auth ORDER BY a.date DESC LIMIT 100;",
-		gS_MySQLPrefix, gS_MySQLPrefix);
+		"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %swrs a JOIN %susers u on a.auth = u.auth ORDER BY a.date DESC LIMIT %d;",
+		gS_MySQLPrefix, gS_MySQLPrefix, gCV_RecentLimit.IntValue);
 
 	gH_SQL.Query(SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 
