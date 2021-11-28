@@ -51,7 +51,7 @@ bool gB_PrecachedStuff = false;
 
 char gS_Map[PLATFORM_MAX_PATH];
 
-char gS_ZoneNames[][] =
+char gS_ZoneNames[ZONETYPES_SIZE][] =
 {
 	"Start Zone", // starts timer
 	"End Zone", // stops timer
@@ -65,7 +65,9 @@ char gS_ZoneNames[][] =
 	"Easybhop Zone", // forces easybhop whether if the player is in non-easy styles or if the server has different settings
 	"Slide Zone", // allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
 	"Custom Airaccelerate", // custom sv_airaccelerate inside this,
-	"Stage Zone" // shows time when entering zone
+	"Stage Zone", // shows time when entering zone
+	"No Timer Gravity Zone", // prevents the timer from setting gravity while inside this zone
+	"Gravity Zone", // lets you set a specific gravity while inside this zone
 };
 
 enum struct zone_settings_t
@@ -2435,6 +2437,11 @@ public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, 
 
 		gI_ZoneType[param1] = StringToInt(info);
 
+		if (gI_ZoneType[param1] == Zone_Gravity)
+		{
+			gI_ZoneData[param1] = view_as<int>(1.0);
+		}
+
 		ShowPanel(param1, 1);
 	}
 
@@ -2906,7 +2913,15 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 {
 	if(gB_WaitingForChatInput[client] && gI_MapStep[client] == 3)
 	{
-		gI_ZoneData[client] = StringToInt(sArgs);
+		if (gI_ZoneType[client] == Zone_Gravity)
+		{
+			gI_ZoneData[client] = view_as<int>(StringToFloat(sArgs));
+		}
+		else
+		{
+			gI_ZoneData[client] = StringToInt(sArgs);
+		}
+
 		CreateEditMenu(client);
 
 		return Plugin_Handled;
@@ -2982,7 +2997,6 @@ void CreateEditMenu(int client)
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetTPZone", client);
 		menu.AddItem("tpzone", sMenuItem);
 	}
-
 	else if(gI_ZoneType[client] == Zone_Stage)
 	{
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
@@ -2991,7 +3005,6 @@ void CreateEditMenu(int client)
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetTPZone", client);
 		menu.AddItem("tpzone", sMenuItem);
 	}
-
 	else
 	{
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
@@ -3012,13 +3025,11 @@ void CreateEditMenu(int client)
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetStage", client, gI_ZoneData[client]);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
-
 	else if(gI_ZoneType[client] == Zone_Airaccelerate)
 	{
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetAiraccelerate", client, gI_ZoneData[client]);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
-
 	else if(gI_ZoneType[client] == Zone_CustomSpeedLimit)
 	{
 		if(gI_ZoneData[client] == 0)
@@ -3031,6 +3042,12 @@ void CreateEditMenu(int client)
 			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimit", client, gI_ZoneData[client]);
 		}
 		
+		menu.AddItem("datafromchat", sMenuItem);
+	}
+	else if (gI_ZoneType[client] == Zone_Gravity)
+	{
+		float g = view_as<float>(gI_ZoneData[client]);
+		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetGravity", client, g);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
 

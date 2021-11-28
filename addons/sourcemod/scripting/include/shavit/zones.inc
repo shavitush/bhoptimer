@@ -41,6 +41,8 @@ enum
 	Zone_Slide,
 	Zone_Airaccelerate,
 	Zone_Stage,
+	Zone_NoTimerGravity,
+	Zone_Gravity,
 	ZONETYPES_SIZE
 };
 

@@ -2478,15 +2478,39 @@ public void PreThinkPost(int client)
 		}
 
 		MoveType mtMoveType = GetEntityMoveType(client);
-
-		if (GetStyleSettingFloat(gA_Timers[client].bsStyle, "gravity") != 1.0 &&
-			(mtMoveType == MOVETYPE_WALK || mtMoveType == MOVETYPE_ISOMETRIC) &&
-			(gA_Timers[client].iLastMoveType == MOVETYPE_LADDER || GetEntityGravity(client) == 1.0))
-		{
-			SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].bsStyle, "gravity"));
-		}
-
+		MoveType mtLast = gA_Timers[client].iLastMoveType;
 		gA_Timers[client].iLastMoveType = mtMoveType;
+
+		if (mtMoveType == MOVETYPE_WALK || mtMoveType == MOVETYPE_ISOMETRIC)
+		{
+			float g = 0.0;
+			float styleg = GetStyleSettingFloat(gA_Timers[client].bsStyle, "gravity");
+
+			if (gB_Zones)
+			{
+				if (Shavit_InsideZone(client, Zone_NoTimerGravity, gA_Timers[client].iTimerTrack))
+				{
+					return;
+				}
+
+				int id;
+
+				if (Shavit_InsideZoneGetID(client, Zone_Gravity, gA_Timers[client].iTimerTrack, id))
+				{
+					g = view_as<float>(Shavit_GetZoneData(id));
+				}
+			}
+
+			if (g == 0.0 && styleg != 1.0 && ((mtLast == MOVETYPE_LADDER || GetEntityGravity(client) == 1.0)))
+			{
+				g = styleg;
+			}
+
+			if (g != 0.0)
+			{
+				SetEntityGravity(client, g);
+			}
+		}
 	}
 }
 

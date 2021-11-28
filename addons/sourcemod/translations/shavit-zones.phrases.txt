@@ -234,6 +234,11 @@
 		"#format"	"{1:d}"
 		"en"		"Stage: {1}"
 	}
+	"ZoneSetGravity"
+	{
+		"#format"   "{1:f}"
+		"en"        "Gravity scale: {1}"
+	}
 	"ZoneEnterDataChat"
 	{
 		"en"		"Input your desired data in chat."
