@@ -441,7 +441,7 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 	{
 		char sQuery[512];
 		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
-		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, gI_Tier, DBPrio_High);
+		gH_SQL.Query(SQL_SetMapTier_Callback, sQuery, 0, DBPrio_High);
 	}
 }
 
@@ -747,12 +747,17 @@ public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	data.Reset();
-	int client = data.ReadCell();
+	int client;
 	char map[PLATFORM_MAX_PATH];
-	data.ReadString(map, sizeof(map));
 
-	if (StrEqual(map, gS_Map))
+	if (data != null)
+	{
+		data.Reset();
+		client = data.ReadCell();
+		data.ReadString(map, sizeof(map));
+	}
+
+	if (data == null || StrEqual(map, gS_Map))
 	{
 		ReallyRecalculateCurrentMap();
 	}
