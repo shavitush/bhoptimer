@@ -41,11 +41,18 @@ stock int SteamIDToAccountID(const char[] sInput)
 	return 0;
 }
 
-stock void AccountIDToSteamID64(int accountid, int num[2])
+stock void AccountIDToSteamID64Num(int accountid, int num[2])
 {
 	num[0] = accountid;
 	//       universe  | type      | instance
 	num[1] = (1 << 24) | (1 << 20) | 1; // 0x01100001
+}
+
+stock void AccountIDToSteamID64(int accountid, char[] buf, int buflen)
+{
+	int num[2];
+	AccountIDToSteamID64Num(accountid, num);
+	SteamID64ToString(num, buf, buflen);
 }
 
 stock void AccountIDToSteamID2(int accountid, char[] buf, int buflen)
