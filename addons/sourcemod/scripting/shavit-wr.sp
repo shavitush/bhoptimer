@@ -1645,10 +1645,10 @@ public Action Command_WorldRecord(int client, int args)
 		Menu wrmatches = new Menu(WRMatchesMenuHandler);
 		wrmatches.SetTitle("%T", "Choose Map", client);
 
-		char entry[PLATFORM_MAX_PATH];
 		int length = gA_ValidMaps.Length;
 		for (int i = 0; i < length; i++)
 		{
+			char entry[PLATFORM_MAX_PATH];
 			gA_ValidMaps.GetString(i, entry, PLATFORM_MAX_PATH);
 
 			if (StrContains(entry, gA_WRCache[client].sClientMap) != -1)
@@ -1667,8 +1667,8 @@ public Action Command_WorldRecord(int client, int args)
 			}
 			case 1:
 			{
+				wrmatches.GetItem(0, gA_WRCache[client].sClientMap, sizeof(wrcache_t::sClientMap));
 				delete wrmatches;
-				gA_WRCache[client].sClientMap = entry;
 			}
 			default:
 			{
