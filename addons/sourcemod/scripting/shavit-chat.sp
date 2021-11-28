@@ -298,7 +298,7 @@ bool LoadChatConfig()
 		ReplaceString(sRanks, 32, "w", "");
 		ReplaceString(sRanks, 32, "W", "");
 		ReplaceString(sRanks, 32, "p", "");
-		ReplaceString(sRanks, 32, "%%", "");
+		ReplaceString(sRanks, 32, "%", "");
 
 		if(StrContains(sRanks, "-") != -1)
 		{
@@ -1165,6 +1165,14 @@ bool HasRankAccess(int client, int rank)
 	}
 	else
 	{
+		if (cache.iRequire == Require_Rank || cache.iRequire == Require_WR_Rank)
+		{
+			if (fVal == 1.0 && cache.fFrom == 0.0)
+			{
+				return true;
+			}
+		}
+
 		if(fTotal == 0.0)
 		{
 			fTotal = 1.0;
