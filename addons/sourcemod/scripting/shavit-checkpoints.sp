@@ -1456,6 +1456,14 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 		return;
 	}
 
+	if (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
+	{
+		cpcache.aSnapshot.bPracticeMode = true;
+
+		// Do this here to trigger practice mode alert
+		Shavit_SetPracticeMode(client, true, true);
+	}
+
 	Shavit_LoadSnapshot(client, cpcache.aSnapshot);
 
 	SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", cpcache.fSpeed);
@@ -1469,14 +1477,8 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 	// Used to trigger all endtouch booster events which are then wiped via eventqueuefix :)
 	MaybeDoPhysicsUntouch(client);
 
-	if (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
+	if (!cpcache.aSnapshot.bPracticeMode)
 	{
-		Shavit_SetPracticeMode(client, true, true);
-	}
-	else
-	{
-		Shavit_SetPracticeMode(client, false, true);
-
 		if (gB_ReplayRecorder)
 		{
 			Shavit_HijackAngles(client, cpcache.fAngles[0], cpcache.fAngles[1], -1);
