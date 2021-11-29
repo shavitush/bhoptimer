@@ -663,6 +663,58 @@ public int Native_GetClientLastStage(Handle plugin, int numParams)
 	return gI_LastStage[GetNativeCell(1)];
 }
 
+bool JumpToZoneType(KeyValues kv, int type, int track)
+{
+	static const char config_keys[ZONETYPES_SIZE][2][50] = {
+		{"Start", ""},
+		{"End", ""},
+		{"Glitch_Respawn", "Glitch Respawn"},
+		{"Glitch_Stop", "Glitch Stop"},
+		{"Glitch_Slay", "Glitch Slay"},
+		{"Freestyle", ""},
+		{"Custom Speed Limit", "Nolimit"},
+		{"Teleport", ""},
+		{"SPAWN POINT", ""},
+		{"Easybhop", ""},
+		{"Slide", ""},
+		{"Airaccelerate", ""},
+		{"Stage", ""},
+		{"No Timer Gravity", ""},
+		{"Gravity", ""},
+	};
+
+	char key[4][50];
+
+	if (track == Track_Main)
+	{
+		key[0] = config_keys[type][0];
+		key[1] = config_keys[type][1];
+	}
+	else
+	{
+		FormatEx(key[0], sizeof(key[]), "Bonus %d %s", track, config_keys[type][0]);
+		if (track == Track_Bonus)
+			FormatEx(key[1], sizeof(key[]), "Bonus %s", config_keys[type][0]);
+
+		if (config_keys[type][0][0])
+		{
+			FormatEx(key[2], sizeof(key[]), "Bonus %d %s", track, config_keys[type][1]);
+			if (track == Track_Bonus)
+				FormatEx(key[3], sizeof(key[]), "Bonus %s", config_keys[type][1]);
+		}
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		if (key[i][0] && kv.JumpToKey(key[i]))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool LoadZonesConfig()
 {
 	char sPath[PLATFORM_MAX_PATH];
@@ -698,62 +750,39 @@ bool LoadZonesConfig()
 
 	kv.GoBack();
 	kv.JumpToKey("Colors");
-	kv.JumpToKey("Start"); // A stupid and hacky way to achieve what I want. It works though.
 
-	int i = 0;
-	int track;
-
-	do
+	for (int type = 0; type < ZONETYPES_SIZE; type++)
 	{
-		// retroactively don't respect custom spawn settings
-		char sSection[32];
-		kv.GetSectionName(sSection, 32);
-
-		if(StrContains(sSection, "SPAWN POINT", false) != -1)
+		if (type == Zone_CustomSpawn)
 		{
 			continue;
 		}
 
-		if((i % ZONETYPES_SIZE) == Zone_CustomSpawn)
+		for (int track = 0; track < TRACKS_SIZE; track++)
 		{
-			i++;
+			if (JumpToZoneType(kv, type, track))
+			{
+				gA_ZoneSettings[type][track].bVisible = view_as<bool>(kv.GetNum("visible", 1));
+				gA_ZoneSettings[type][track].iRed = kv.GetNum("red", 255);
+				gA_ZoneSettings[type][track].iGreen = kv.GetNum("green", 255);
+				gA_ZoneSettings[type][track].iBlue = kv.GetNum("blue", 255);
+				gA_ZoneSettings[type][track].iAlpha = kv.GetNum("alpha", 255);
+				gA_ZoneSettings[type][track].fWidth = kv.GetFloat("width", 2.0);
+				gA_ZoneSettings[type][track].bFlatZone = view_as<bool>(kv.GetNum("flat", false));
+				gA_ZoneSettings[type][track].bUseVanillaSprite = view_as<bool>(kv.GetNum("vanilla_sprite", false));
+				gA_ZoneSettings[type][track].bNoHalo = view_as<bool>(kv.GetNum("no_halo", false));
+				kv.GetString("beam", gA_ZoneSettings[type][track].sBeam, sizeof(zone_settings_t::sBeam), "");
+				kv.GoBack();
+			}
+			else if (track > Track_Bonus)
+			{
+				// Copy bonus 1 settings to any other bonuses that are missing this zone...
+				gA_ZoneSettings[type][track] = gA_ZoneSettings[type][Track_Bonus];
+			}
 		}
-
-		track = (i / ZONETYPES_SIZE);
-
-		if(track >= TRACKS_SIZE)
-		{
-			break;
-		}
-
-		int index = (i % ZONETYPES_SIZE);
-
-		gA_ZoneSettings[index][track].bVisible = view_as<bool>(kv.GetNum("visible", 1));
-		gA_ZoneSettings[index][track].iRed = kv.GetNum("red", 255);
-		gA_ZoneSettings[index][track].iGreen = kv.GetNum("green", 255);
-		gA_ZoneSettings[index][track].iBlue = kv.GetNum("blue", 255);
-		gA_ZoneSettings[index][track].iAlpha = kv.GetNum("alpha", 255);
-		gA_ZoneSettings[index][track].fWidth = kv.GetFloat("width", 2.0);
-		gA_ZoneSettings[index][track].bFlatZone = view_as<bool>(kv.GetNum("flat", false));
-		gA_ZoneSettings[index][track].bUseVanillaSprite = view_as<bool>(kv.GetNum("vanilla_sprite", false));
-		gA_ZoneSettings[index][track].bNoHalo = view_as<bool>(kv.GetNum("no_halo", false));
-		kv.GetString("beam", gA_ZoneSettings[index][track].sBeam, sizeof(zone_settings_t::sBeam), "");
-
-		i++;
 	}
-
-	while(kv.GotoNextKey(false));
 
 	delete kv;
-
-	// copy bonus#1 settings to the rest of the bonuses
-	for (++track; track < TRACKS_SIZE; track++)
-	{
-		for (int type = 0; type < ZONETYPES_SIZE; type++)
-		{
-			gA_ZoneSettings[type][track] = gA_ZoneSettings[type][Track_Bonus];
-		}
-	}
 
 	return true;
 }
