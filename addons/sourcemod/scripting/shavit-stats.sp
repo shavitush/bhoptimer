@@ -79,7 +79,6 @@ chatstrings_t gS_ChatStrings;
 
 Convar gCV_UseMapchooser = null;
 Convar gCV_SavePlaytime = null;
-Convar gCV_NewDBConnection = null;
 
 public Plugin myinfo =
 {
@@ -118,7 +117,6 @@ public void OnPluginStart()
 
 	gCV_UseMapchooser = new Convar("shavit_stats_use_mapchooser", "1", "Whether to use the maplist from shavit-mapchooser when calculating mapsleft/mapsdone.", 0, true, 0.0, true, 1.0);
 	gCV_SavePlaytime = new Convar("shavit_stats_saveplaytime", "1", "Whether to save a player's playtime (total & per-style).", 0, true, 0.0, true, 1.0);
-	gCV_NewDBConnection = new Convar("shavit_stats_new_db_connection", "0", "Use a new DB connection for rankings. This should help with point-recalculation blocking other queries from running.\nYou probably don't need to use this unless you have a DB with hundreds of thousands of player times.\n0 - Reuses shavit-core DB connection.\n1 - Creates a new DB connection.", 0, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
@@ -150,7 +148,7 @@ public void OnPluginStart()
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = gCV_NewDBConnection.BoolValue ? GetTimerDatabaseHandle2(false) : view_as<Database2>(Shavit_GetDatabase());
+	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
