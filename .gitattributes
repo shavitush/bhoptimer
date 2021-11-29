@@ -1,10 +1,10 @@
 * text=auto
 *.inc diff=sourcepawn
 *.sp diff=sourcepawn
-*.txt diff=astextplain
-*.cfg diff=astextplain
+*.txt diff
+*.cfg diff
 
 *.smx binary
 *.mp3 binary
-*.vmt diff=astextplain
+*.vmt diff
 *.vtf binary
