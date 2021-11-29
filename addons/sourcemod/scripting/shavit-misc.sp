@@ -1694,7 +1694,7 @@ bool CanSegment(int client)
 
 bool ShouldDisplayStopWarning(int client)
 {
-	return (gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue && !CanSegment(client));
+	return (!Shavit_IsPracticeMode(client) && gCV_StopTimerWarning.BoolValue && Shavit_GetTimerStatus(client) != Timer_Stopped && Shavit_GetClientTime(client) > gCV_StopTimerWarning.FloatValue && !CanSegment(client));
 }
 
 void DoNoclip(int client)
