@@ -844,6 +844,7 @@ public void DeleteWRGetID_Callback(Database db, DBResultSet results, const char[
 {
 	if(results == null || !results.FetchRow())
 	{
+		delete hPack;
 		LogError("Timer (WR DeleteWRGetID) SQL query failed. Reason: %s", error);
 		return;
 	}

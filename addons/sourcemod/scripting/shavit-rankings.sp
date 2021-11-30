@@ -761,6 +761,8 @@ public void SQL_SetMapTier_Callback(Database db, DBResultSet results, const char
 	{
 		RecalculateSpecificMap(map, client);
 	}
+
+	delete data;
 }
 
 public Action Command_RecalcMap(int client, int args)

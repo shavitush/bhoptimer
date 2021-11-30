@@ -782,17 +782,20 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 
 public void OpenStatsMenu_Mapchooser_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
+	data.Reset();
+	int client = GetClientFromSerial(data.ReadCell());
+	data.ReadCell(); // item
+
 	if (results == null)
 	{
+		delete data;
 		LogError("Timer (statsmenu-mapchooser) SQL query failed. Reason: %s", error);
 		return;
 	}
 
-	data.Reset();
-	int client = GetClientFromSerial(data.ReadCell());
-
 	if (client == 0)
 	{
+		delete data;
 		return;
 	}
 
@@ -819,7 +822,6 @@ public void OpenStatsMenu_Mapchooser_Callback(Database db, DBResultSet results, 
 
 	delete mapchooser_maps;
 
-	data.ReadCell(); // item
 	data.WriteCell(maps_and_completions[0][0], true);
 	data.WriteCell(maps_and_completions[0][1], true);
 	data.WriteCell(maps_and_completions[1][0], true);
@@ -876,13 +878,14 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 	if(results == null)
 	{
+		delete data;
 		LogError("Timer (statsmenu) SQL query failed. Reason: %s", error);
-
 		return;
 	}
 
 	if(client == 0)
 	{
+		delete data;
 		return;
 	}
 
@@ -1033,6 +1036,8 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 	{
 		Shavit_PrintToChat(client, "%T", "StatsMenuFailure", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 	}
+
+	delete data;
 }
 
 public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, int param2)
