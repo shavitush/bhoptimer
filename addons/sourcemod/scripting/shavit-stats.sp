@@ -767,8 +767,8 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 		char sQuery[2048];
 		FormatEx(sQuery, sizeof(sQuery),
 			// Note the `GROUP BY track>0` for now
-			"SELECT 0 as blah, map, track FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0 " ...
-			"UNION SELECT 1 as blah, map, track FROM %smapzones WHERE type = 0 GROUP BY map, track>0;",
+			"SELECT 0 as blah, map, track>0 FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0 " ...
+			"UNION SELECT 1 as blah, map, track>0 FROM %smapzones WHERE type = 0 GROUP BY map, track>0;",
 			gS_MySQLPrefix, steamid, style, gS_MySQLPrefix
 		);
 
