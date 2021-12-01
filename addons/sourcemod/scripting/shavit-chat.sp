@@ -919,7 +919,7 @@ Action ShowChatRanksMenu(int client, int item)
 			bFlagAccess = CheckCommandAccess(client, cache.sAdminFlag, 0, true);
 		}
 
-		if (cache.bEasterEgg || !bFlagAccess)
+		if (cache.bEasterEgg && !bFlagAccess)
 		{
 			continue;
 		}
