@@ -1584,6 +1584,11 @@ public int Native_ChangeClientStyle(Handle handler, int numParams)
 
 public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 {
+	if (snapshot.fCurrentTime <= 0.0)
+	{
+		return Plugin_Stop;
+	}
+
 	float minimum_time = GetStyleSettingFloat(snapshot.bsStyle, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
 
 	if (snapshot.fCurrentTime < minimum_time)
