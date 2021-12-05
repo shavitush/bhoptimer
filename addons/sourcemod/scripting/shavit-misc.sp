@@ -2108,7 +2108,7 @@ public Action Respawn(Handle timer, any data)
 
 void RestartTimer(int client, int track)
 {
-	if((gB_Zones && Shavit_ZoneExists(Zone_Start, track)) || Shavit_IsKZMap())
+	if ((gB_Zones && Shavit_ZoneExists(Zone_Start, track)) || Shavit_IsKZMap(track))
 	{
 		Shavit_RestartTimer(client, track);
 	}

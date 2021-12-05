@@ -154,7 +154,7 @@ float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
 
 // kz support
-bool gB_KZMap = false;
+bool gB_KZMap[TRACKS_SIZE];
 
 public Plugin myinfo =
 {
@@ -560,7 +560,8 @@ public void OnConfigsExecuted()
 
 public void OnMapEnd()
 {
-	gB_KZMap = false;
+	bool empty[TRACKS_SIZE];
+	gB_KZMap = empty;
 }
 
 public Action Command_StartTimer(int client, int args)
@@ -624,7 +625,7 @@ public Action Command_StartTimer(int client, int args)
 		}
 	}
 
-	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap))
+	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap[track]))
 	{
 		if(!Shavit_StopTimer(client, false))
 		{
@@ -635,11 +636,6 @@ public Action Command_StartTimer(int client, int args)
 		Call_PushCell(client);
 		Call_PushCell(track);
 		Call_Finish();
-
-		if (!gB_Zones)
-		{
-			StartTimer(client, track);
-		}
 	}
 	else
 	{
@@ -704,7 +700,7 @@ public Action Command_TeleportEnd(int client, int args)
 		}
 	}
 
-	if(gB_Zones && (Shavit_ZoneExists(Zone_End, track) || gB_KZMap))
+	if(gB_Zones && (Shavit_ZoneExists(Zone_End, track) || gB_KZMap[track]))
 	{
 		if(Shavit_StopTimer(client, false))
 		{
@@ -1292,7 +1288,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	CallOnStyleChanged(client, gA_Timers[client].bsStyle, style, manual);
 
-	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTimerTrack) || gB_KZMap))
+	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTimerTrack) || gB_KZMap[gA_Timers[client].iTimerTrack]))
 	{
 		Shavit_StopTimer(client, true);
 		Call_StartForward(gH_Forwards_OnRestart);
@@ -1461,7 +1457,12 @@ public int Native_GetTimerStatus(Handle handler, int numParams)
 
 public int Native_IsKZMap(Handle handler, int numParams)
 {
-	return view_as<bool>(gB_KZMap);
+	if (numParams < 1)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Missing track parameter.");
+	}
+
+	return gB_KZMap[GetNativeCell(1)];
 }
 
 public int Native_StartTimer(Handle handler, int numParams)
@@ -1984,7 +1985,13 @@ public int Native_LogMessage(Handle plugin, int numParams)
 
 public int Native_MarkKZMap(Handle handler, int numParams)
 {
-	gB_KZMap = true;
+	if (numParams < 1)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Missing track parameter.");
+	}
+
+	gB_KZMap[GetNativeCell(1)] = true;
+	return 0;
 }
 
 public int Native_GetClientTimescale(Handle handler, int numParams)

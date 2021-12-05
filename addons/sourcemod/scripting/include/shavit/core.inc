@@ -1164,20 +1164,20 @@ native void Shavit_LoadSnapshot(int client, any[] snapshot, int size = sizeof(ti
 native void Shavit_StopChatSound();
 
 /**
- * Marks a map as if it has built-in zones/buttons.
+ * Marks a map track as if it has built-in zones/buttons.
  *
  * @noreturn
  */
-native void Shavit_MarkKZMap();
+native void Shavit_MarkKZMap(int track);
 
 /**
- * Lets us know if the map was marked as a KZ map.
+ * Lets us know if the map track was marked as a KZ map.
  * KZ map: a map with built-in zones/buttons.
  * Does not necessarily mean that the map was designed for KZ gameplay.
  *
  * @return							Boolean value.
  */
-native bool Shavit_IsKZMap();
+native bool Shavit_IsKZMap(int track);
 
 /**
  * Retrieves style access for a player.
