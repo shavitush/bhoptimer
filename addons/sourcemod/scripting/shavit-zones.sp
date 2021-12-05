@@ -4044,7 +4044,7 @@ void GetButtonInfo(int entity, int &zone, int &track)
 
 public void UsePost(int entity, int activator, int caller, UseType type, float value)
 {
-	if(activator < 1 || activator > MaxClients || IsFakeClient(activator) || GetEntPropEnt(activator, Prop_Send, "m_hGroundEntity") == -1)
+	if (activator < 1 || activator > MaxClients || IsFakeClient(activator))
 	{
 		return;
 	}
@@ -4056,13 +4056,17 @@ public void UsePost(int entity, int activator, int caller, UseType type, float v
 
 	if(zone == Zone_Start)
 	{
+		if (GetEntPropEnt(activator, Prop_Send, "m_hGroundEntity") == -1)
+		{
+			return;
+		}
+
 		GetClientAbsOrigin(activator, gF_ClimbButtonCache[activator][track][0]);
 		GetClientEyeAngles(activator, gF_ClimbButtonCache[activator][track][1]);
 
 		Shavit_StartTimer(activator, track);
 	}
-
-	if(zone == Zone_End && !Shavit_IsPaused(activator) && Shavit_GetTimerStatus(activator) == Timer_Running && Shavit_GetClientTrack(activator) == track)
+	else if (zone == Zone_End && !Shavit_IsPaused(activator) && Shavit_GetTimerStatus(activator) == Timer_Running && Shavit_GetClientTrack(activator) == track)
 	{
 		Shavit_FinishMap(activator, track);
 	}
