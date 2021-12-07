@@ -174,7 +174,6 @@ Handle gH_Forwards_StageMessage = null;
 
 // kz support
 float gF_ClimbButtonCache[MAXPLAYERS+1][TRACKS_SIZE][2][3]; // 0 - location, 1 - angles
-int gI_KZButtons[TRACKS_SIZE][2]; // 0 - start, 1 - end
 
 // set start
 bool gB_HasSetStart[MAXPLAYERS+1][TRACKS_SIZE];
@@ -918,34 +917,27 @@ public void OnEntityDestroyed(int entity)
 	}
 }
 
-public void Frame_HookButton(any data)
+bool GetButtonInfo(int entity, int& zone, int& track)
 {
-	int entity = EntRefToEntIndex(data);
-
-	if(entity == INVALID_ENT_REFERENCE)
-	{
-		return;
-	}
-
 	char sName[32];
 	GetEntPropString(entity, Prop_Data, "m_iName", sName, 32);
 
 	if(StrContains(sName, "climb_") == -1)
 	{
-		return;
+		return false;
 	}
-
-	int zone = -1;
-	int track = Track_Main;
 
 	if(StrContains(sName, "startbutton") != -1)
 	{
 		zone = Zone_Start;
 	}
-
 	else if(StrContains(sName, "endbutton") != -1)
 	{
 		zone = Zone_End;
+	}
+	else
+	{
+		return false;
 	}
 
 	int bonus = StrContains(sName, "bonus");
@@ -961,18 +953,37 @@ public void Frame_HookButton(any data)
 			if (track < Track_Bonus || track > Track_Bonus_Last)
 			{
 				LogError("invalid track in climb button (%s) on %s", sName, gS_Map);
-				return;
+				return false;
 			}
 		}
 	}
-
-	if(zone != -1)
+	else
 	{
-		gI_KZButtons[track][zone] = entity;
-		Shavit_MarkKZMap(track);
-
-		SDKHook(entity, SDKHook_UsePost, UsePost);
+		track = Track_Main;
 	}
+
+	return true;
+}
+
+public void Frame_HookButton(any data)
+{
+	int entity = EntRefToEntIndex(data);
+
+	if(entity == INVALID_ENT_REFERENCE)
+	{
+		return;
+	}
+
+	int zone = -1;
+	int track = Track_Main;
+
+	if (!GetButtonInfo(entity, zone, track))
+	{
+		return;
+	}
+
+	Shavit_MarkKZMap(track);
+	SDKHook(entity, SDKHook_UsePost, UsePost);
 }
 
 bool parse_mod_zone(char sName[32], int& zone, int& track, int& zonedata)
@@ -1114,13 +1125,6 @@ public void Frame_HookTrigger(any data)
 
 	if(zone != -1)
 	{
-		// TODO: Remove?
-		if (zone == Zone_Start || zone == Zone_End)
-		{
-			gI_KZButtons[track][zone] = entity;
-			Shavit_MarkKZMap(track);
-		}
-
 		int iZoneIndex = gI_MapZones;
 
 		// Check for existing prebuilt zone in the cache and reuse slot.
@@ -3743,12 +3747,6 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 {
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		gI_KZButtons[i][0] = -1;
-		gI_KZButtons[i][1] = -1;
-	}
-
 	bool empty_InsideZone[TRACKS_SIZE];
 
 	for (int i = 0; i <= MaxClients; i++)
@@ -4044,23 +4042,6 @@ public void TouchPost(int entity, int other)
 	}
 }
 
-void GetButtonInfo(int entity, int &zone, int &track)
-{
-	for(int i = 0; i < TRACKS_SIZE; i++)
-	{
-		for(int j = 0; j < 2; j++)
-		{
-			if(gI_KZButtons[i][j] == entity)
-			{
-				zone = j;
-				track = i;
-
-				return;
-			}
-		}
-	}
-}
-
 public void UsePost(int entity, int activator, int caller, UseType type, float value)
 {
 	if (activator < 1 || activator > MaxClients || IsFakeClient(activator))
@@ -4071,7 +4052,10 @@ public void UsePost(int entity, int activator, int caller, UseType type, float v
 	int zone = -1;
 	int track = Track_Main;
 
-	GetButtonInfo(entity, zone, track);
+	if (!GetButtonInfo(entity, zone, track))
+	{
+		return;
+	}
 
 	if(zone == Zone_Start)
 	{
