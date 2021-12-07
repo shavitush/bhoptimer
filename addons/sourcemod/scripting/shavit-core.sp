@@ -1637,55 +1637,23 @@ public int Native_FinishMap(Handle handler, int numParams)
 	}
 
 #if DEBUG
-	float offset = (gA_Timers[client].fZoneOffset[Zone_Start] + gA_Timers[client].fZoneOffset[Zone_End]) * GetTickInterval();
+	float offset = (snapshot.fZoneOffset[Zone_Start] + snapshot.fZoneOffset[Zone_End]) * GetTickInterval();
 	PrintToServer("0x%X %f -- ticks*interval -- offsettime=%f ticks=%.0f", snapshot.fCurrentTime, snapshot.fCurrentTime, offset, snapshot.fTimescaledTicks);
 #endif
 
 	Call_StartForward(gH_Forwards_Finish);
 	Call_PushCell(client);
 
-	int style = 0;
-	int track = Track_Main;
-	float perfs = 100.0;
-
-	if(result == Plugin_Continue)
-	{
-		Call_PushCell(style = gA_Timers[client].bsStyle);
-		Call_PushCell(gA_Timers[client].fCurrentTime);
-		Call_PushCell(gA_Timers[client].iJumps);
-		Call_PushCell(gA_Timers[client].iStrafes);
-		//gross
-		Call_PushCell((GetStyleSettingBool(gA_Timers[client].bsStyle, "sync"))? (gA_Timers[client].iGoodGains == 0)? 0.0:(gA_Timers[client].iGoodGains / float(gA_Timers[client].iTotalMeasures) * 100.0):-1.0);
-		Call_PushCell(track = gA_Timers[client].iTimerTrack);
-		perfs = (gA_Timers[client].iMeasuredJumps == 0)? 100.0:(gA_Timers[client].iPerfectJumps / float(gA_Timers[client].iMeasuredJumps) * 100.0);
-	}
-	else
-	{
-		Call_PushCell(style = snapshot.bsStyle);
-		Call_PushCell(snapshot.fCurrentTime);
-		Call_PushCell(snapshot.iJumps);
-		Call_PushCell(snapshot.iStrafes);
-		// gross
-		Call_PushCell((GetStyleSettingBool(snapshot.bsStyle, "sync"))? (snapshot.iGoodGains == 0)? 0.0:(snapshot.iGoodGains / float(snapshot.iTotalMeasures) * 100.0):-1.0);
-		Call_PushCell(track = snapshot.iTimerTrack);
-		perfs = (snapshot.iMeasuredJumps == 0)? 100.0:(snapshot.iPerfectJumps / float(snapshot.iMeasuredJumps) * 100.0);
-	}
-
-	float oldtime = Shavit_GetClientPB(client, style, track);
-
-	Call_PushCell(oldtime);
-	Call_PushCell(perfs);
-
-	if(result == Plugin_Continue)
-	{
-		Call_PushCell(gA_Timers[client].fAvgVelocity);
-		Call_PushCell(gA_Timers[client].fMaxVelocity);
-	}
-	else
-	{
-		Call_PushCell(snapshot.fAvgVelocity);
-		Call_PushCell(snapshot.fMaxVelocity);
-	}
+	Call_PushCell(snapshot.bsStyle);
+	Call_PushCell(snapshot.fCurrentTime);
+	Call_PushCell(snapshot.iJumps);
+	Call_PushCell(snapshot.iStrafes);
+	Call_PushCell(CalcSync(snapshot));
+	Call_PushCell(snapshot.iTimerTrack);
+	Call_PushCell(Shavit_GetClientPB(client, snapshot.bsStyle, snapshot.iTimerTrack)); // oldtime
+	Call_PushCell(CalcPerfs(snapshot));
+	Call_PushCell(snapshot.fAvgVelocity);
+	Call_PushCell(snapshot.fMaxVelocity);
 
 	Call_PushCell(timestamp);
 	Call_Finish();
@@ -1848,11 +1816,16 @@ public int Native_RestartTimer(Handle handler, int numParams)
 	}
 }
 
+float CalcPerfs(timer_snapshot_t s)
+{
+	return (s.iMeasuredJumps == 0) ? 100.0 : (s.iPerfectJumps / float(s.iMeasuredJumps) * 100.0);
+}
+
 public int Native_GetPerfectJumps(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	return view_as<int>((gA_Timers[client].iMeasuredJumps == 0)? 100.0:(gA_Timers[client].iPerfectJumps / float(gA_Timers[client].iMeasuredJumps) * 100.0));
+	return view_as<int>(CalcPerfs(gA_Timers[client]));
 }
 
 public int Native_GetStrafeCount(Handle handler, int numParams)
@@ -1860,11 +1833,16 @@ public int Native_GetStrafeCount(Handle handler, int numParams)
 	return gA_Timers[GetNativeCell(1)].iStrafes;
 }
 
+float CalcSync(timer_snapshot_t s)
+{
+	return GetStyleSettingBool(s.bsStyle, "sync") ? ((s.iGoodGains == 0) ? 0.0 : (s.iGoodGains / float(s.iTotalMeasures) * 100.0)):-1.0;
+}
+
 public int Native_GetSync(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 
-	return view_as<int>((GetStyleSettingBool(gA_Timers[client].bsStyle, "sync")? (gA_Timers[client].iGoodGains == 0)? 0.0:(gA_Timers[client].iGoodGains / float(gA_Timers[client].iTotalMeasures) * 100.0):-1.0));
+	return view_as<int>(CalcSync(gA_Timers[client]));
 }
 
 public int Native_GetChatStrings(Handle handler, int numParams)
