@@ -127,6 +127,7 @@ Convar gCV_StaticPrestrafe = null;
 Convar gCV_UseOffsets = null;
 Convar gCV_TimeInMessages;
 Convar gCV_DebugOffsets = null;
+Convar gCV_SaveIps = null;
 // cached cvars
 int gI_DefaultStyle = 0;
 bool gB_StyleCookies = true;
@@ -348,6 +349,7 @@ public void OnPluginStart()
 	gCV_StaticPrestrafe = new Convar("shavit_core_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TimeInMessages = new Convar("shavit_core_timeinmessages", "0", "Whether to prefix SayText2 messages with the time.", 0, true, 0.0, true, 1.0);
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
+	gCV_SaveIps = new Convar("shavit_core_save_ips", "1", "Whether to save player IPs in the 'users' database table. IPs are used to show player location on the !profile menu.\nTurning this on will not wipe existing IPs from the 'users' table.", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	Anti_sv_cheats_cvars();
@@ -2280,9 +2282,14 @@ public void OnClientPutInServer(int client)
 	char[] sEscapedName = new char[iLength];
 	gH_SQL.Escape(sName, sEscapedName, iLength);
 
-	char sIPAddress[64];
-	GetClientIP(client, sIPAddress, 64);
-	int iIPAddress = IPStringToAddress(sIPAddress);
+	int iIPAddress = 0;
+
+	if (gCV_SaveIps.BoolValue)
+	{
+		char sIPAddress[64];
+		GetClientIP(client, sIPAddress, 64);
+		iIPAddress = IPStringToAddress(sIPAddress);
+	}
 
 	int iTime = GetTime();
 
