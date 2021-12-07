@@ -3034,7 +3034,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_w")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_w")
-	&& (gA_Timers[client].iLastButtons & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0
+	&& (gA_Timers[client].fLastInputVel[0] <= 0.0) && (vel[0] > 0.0)
 	)
 	{
 		gA_Timers[client].iStrafes++;
@@ -3042,7 +3042,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_s")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_s")
-	&& (gA_Timers[client].iLastButtons & IN_BACK) == 0 && (buttons & IN_BACK) > 0
+	&& (gA_Timers[client].fLastInputVel[0] >= 0.0) && (vel[0] < 0.0)
 	)
 	{
 		gA_Timers[client].iStrafes++;
@@ -3050,8 +3050,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_a")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_a")
-	&& (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 && (buttons & IN_MOVELEFT) > 0
-	&& (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0))
+	&& (gA_Timers[client].fLastInputVel[1] >= 0.0) && (vel[1] < 0.0)
+	&& (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || vel[0] == 0.0)
 	)
 	{
 		gA_Timers[client].iStrafes++;
@@ -3059,8 +3059,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_d")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_d")
-	&& (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 && (buttons & IN_MOVERIGHT) > 0
-	&& (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0))
+	&& (gA_Timers[client].fLastInputVel[1] <= 0.0) && (vel[1] > 0.0)
+	&& (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || vel[0] == 0.0)
 	)
 	{
 		gA_Timers[client].iStrafes++;
@@ -3127,6 +3127,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	gA_Timers[client].fLastAngle = angles[1];
 	gA_Timers[client].bJumped = false;
 	gA_Timers[client].bOnGround = bOnGround;
+	gA_Timers[client].fLastInputVel[0] = vel[0];
+	gA_Timers[client].fLastInputVel[1] = vel[1];
 }
 
 void TestAngles(int client, float dirangle, float yawdelta, const float vel[3])

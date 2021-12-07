@@ -135,6 +135,7 @@ enum struct timer_snapshot_t
 	int iLandingTick;
 	MoveType iLastMoveType;
 	float fStrafeWarning;
+	float fLastInputVel[2];
 }
 
 stock void Shavit_LogQuery(const char[] query)
