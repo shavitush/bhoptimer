@@ -2724,6 +2724,8 @@ void BuildSnapshot(int client, timer_snapshot_t snapshot)
 	//snapshot.iLandingTick = ?????; // TODO: Think about handling segmented scroll? /shrug
 }
 
+// OnPlayerRunCmd for adjusting player buttons & !pause stuff.
+// OnPlayerRunCmdPost for calculating goodgains & perfs and strafes & such.
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
 	if(IsFakeClient(client))
@@ -2827,43 +2829,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 	#endif
 
-	int iPButtons = buttons;
-
-	if (!gA_Timers[client].bClientPaused)
-	{
-		if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_w") && !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_w") &&
-		(gA_Timers[client].iLastButtons & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0)
-		{
-			gA_Timers[client].iStrafes++;
-		}
-
-		if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_a") && !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_a") && (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 &&
-			(buttons & IN_MOVELEFT) > 0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
-		{
-			gA_Timers[client].iStrafes++;
-		}
-
-		if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_s") && !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_s") &&
-			(gA_Timers[client].iLastButtons & IN_BACK) == 0 && (buttons & IN_BACK) > 0)
-		{
-			gA_Timers[client].iStrafes++;
-		}
-
-		if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_d") && !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_d") && (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 &&
-			(buttons & IN_MOVERIGHT) > 0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0)))
-		{
-			gA_Timers[client].iStrafes++;
-		}
-	}
-
-
 	MoveType mtMoveType = GetEntityMoveType(client);
 
 	if(mtMoveType == MOVETYPE_LADDER && gCV_SimplerLadders.BoolValue)
 	{
 		gA_Timers[client].bCanUseAllKeys = true;
 	}
-
 	else if(iGroundEntity != -1)
 	{
 		gA_Timers[client].bCanUseAllKeys = false;
@@ -3013,21 +2984,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	else if (!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped && !gA_Timers[client].bClientPaused)
-	{
-		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
-
-		if(iDifference < 10)
-		{
-			gA_Timers[client].iMeasuredJumps++;
-
-			if(iDifference == 1)
-			{
-				gA_Timers[client].iPerfectJumps++;
-			}
-		}
-	}
-
 	if (bInStart && gCV_BlockPreJump.BoolValue && GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
 	{
 		vel[2] = 0.0;
@@ -3061,21 +3017,92 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
+	return Plugin_Continue;
+}
+
+public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
+{
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	if (!IsPlayerAlive(client) || GetTimerStatus(client) != Timer_Running)
+	{
+		return;
+	}
+
+	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_w")
+	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_w")
+	&& (gA_Timers[client].iLastButtons & IN_FORWARD) == 0 && (buttons & IN_FORWARD) > 0
+	)
+	{
+		gA_Timers[client].iStrafes++;
+	}
+
+	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_s")
+	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_s")
+	&& (gA_Timers[client].iLastButtons & IN_BACK) == 0 && (buttons & IN_BACK) > 0
+	)
+	{
+		gA_Timers[client].iStrafes++;
+	}
+
+	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_a")
+	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_a")
+	&& (gA_Timers[client].iLastButtons & IN_MOVELEFT) == 0 && (buttons & IN_MOVELEFT) > 0
+	&& (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0))
+	)
+	{
+		gA_Timers[client].iStrafes++;
+	}
+
+	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_d")
+	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_d")
+	&& (gA_Timers[client].iLastButtons & IN_MOVERIGHT) == 0 && (buttons & IN_MOVERIGHT) > 0
+	&& (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || ((buttons & IN_FORWARD) == 0 && (buttons & IN_BACK) == 0))
+	)
+	{
+		gA_Timers[client].iStrafes++;
+	}
+
+	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
+	MoveType mtMoveType = GetEntityMoveType(client);
+	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
+
+	// perf jump measuring
+	bool bOnGround = (!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1);
+
+	if (!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
+	{
+		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
+
+		if (iDifference < 10)
+		{
+			gA_Timers[client].iMeasuredJumps++;
+
+			if (iDifference == 1)
+			{
+				gA_Timers[client].iPerfectJumps++;
+			}
+		}
+	}
+
 	float fAngle = GetAngleDiff(angles[1], gA_Timers[client].fLastAngle);
 
-	if (!gA_Timers[client].bClientPaused && iGroundEntity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
+	if (iGroundEntity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
 	{
 		float fAbsVelocity[3];
 		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 
-		if(SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)) > 0.0)
+		if (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)) > 0.0)
 		{
 			float fTempAngle = angles[1];
 
 			float fAngles[3];
 			GetVectorAngles(fAbsVelocity, fAngles);
 
-			if(fTempAngle < 0.0)
+			if (fTempAngle < 0.0)
 			{
 				fTempAngle += 360.0;
 			}
@@ -3084,7 +3111,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if (GetTimerStatus(client) == Timer_Running && gA_Timers[client].fCurrentTime != 0.0)
+	if (gA_Timers[client].fCurrentTime != 0.0)
 	{
 		float frameCount = float(gA_Timers[client].iZoneIncrement);
 		float fAbsVelocity[3];
@@ -3096,15 +3123,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		gA_Timers[client].fAvgVelocity += (curVel - gA_Timers[client].fAvgVelocity) / frameCount;
 	}
 
-	gA_Timers[client].iLastButtons = iPButtons;
+	gA_Timers[client].iLastButtons = buttons;
 	gA_Timers[client].fLastAngle = angles[1];
 	gA_Timers[client].bJumped = false;
 	gA_Timers[client].bOnGround = bOnGround;
-
-	return Plugin_Continue;
 }
 
-void TestAngles(int client, float dirangle, float yawdelta, float vel[3])
+void TestAngles(int client, float dirangle, float yawdelta, const float vel[3])
 {
 	if(dirangle < 0.0)
 	{
