@@ -2963,6 +2963,11 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 						gA_BotInfo[index].iTick = limit;
 					}
 				}
+
+				if (gA_BotInfo[index].hTimer)
+				{
+					TriggerTimer(gA_BotInfo[index].hTimer);
+				}
 			}
 
 			OpenReplayMenu(param1);
