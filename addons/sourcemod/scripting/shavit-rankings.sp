@@ -244,6 +244,11 @@ public void Shavit_OnDatabaseLoaded()
 
 	gH_SQL.Query(SQL_Version_Callback, "SELECT VERSION();");
 
+	if (gCV_WeightingMultiplier.FloatValue == 1.0)
+	{
+		return;
+	}
+
 	char sQuery[2048];
 	Transaction2 hTrans = new Transaction2();
 
