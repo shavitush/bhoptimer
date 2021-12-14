@@ -2724,8 +2724,6 @@ void BuildSnapshot(int client, timer_snapshot_t snapshot)
 	//snapshot.iLandingTick = ?????; // TODO: Think about handling segmented scroll? /shrug
 }
 
-// OnPlayerRunCmd for adjusting player buttons & !pause stuff.
-// OnPlayerRunCmdPost for calculating goodgains & perfs and strafes & such.
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
 	if(IsFakeClient(client))
@@ -2983,6 +2981,20 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 		}
 	}
+	else if (!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped && !gA_Timers[client].bClientPaused)
+	{
+		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
+
+		if (iDifference < 10)
+		{
+			gA_Timers[client].iMeasuredJumps++;
+
+			if (iDifference == 1)
+			{
+				gA_Timers[client].iPerfectJumps++;
+			}
+		}
+	}
 
 	if (bInStart && gCV_BlockPreJump.BoolValue && GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
 	{
@@ -3016,6 +3028,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 		}
 	}
+
+	gA_Timers[client].bJumped = false;
+	gA_Timers[client].bOnGround = bOnGround;
 
 	return Plugin_Continue;
 }
@@ -3067,26 +3082,6 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
-	MoveType mtMoveType = GetEntityMoveType(client);
-	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
-
-	// perf jump measuring
-	bool bOnGround = (!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1);
-
-	if (!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped)
-	{
-		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
-
-		if (iDifference < 10)
-		{
-			gA_Timers[client].iMeasuredJumps++;
-
-			if (iDifference == 1)
-			{
-				gA_Timers[client].iPerfectJumps++;
-			}
-		}
-	}
 
 	float fAngle = GetAngleDiff(angles[1], gA_Timers[client].fLastAngle);
 
@@ -3125,8 +3120,6 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 	gA_Timers[client].iLastButtons = buttons;
 	gA_Timers[client].fLastAngle = angles[1];
-	gA_Timers[client].bJumped = false;
-	gA_Timers[client].bOnGround = bOnGround;
 	gA_Timers[client].fLastInputVel[0] = vel[0];
 	gA_Timers[client].fLastInputVel[1] = vel[1];
 }
