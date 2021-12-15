@@ -295,7 +295,7 @@ public void OnPluginStart()
 
 	if(gEV_Type != Engine_TF2)
 	{
-		CreateTimer(1.0, Timer_Scoreboard, 0, TIMER_REPEAT);
+		CreateTimer(0.2, Timer_Scoreboard, 0, TIMER_REPEAT);
 	}
 
 	// modules
