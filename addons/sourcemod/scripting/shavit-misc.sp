@@ -102,6 +102,8 @@ Convar gCV_DropAll = null;
 Convar gCV_ResetTargetname = null;
 Convar gCV_ResetTargetnameMain = null;
 Convar gCV_ResetTargetnameBonus = null;
+Convar gCV_ResetClassnameMain = null;
+Convar gCV_ResetClassnameBonus = null;
 Convar gCV_JointeamHook = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_HideChatCommands = null;
@@ -269,6 +271,8 @@ public void OnPluginStart()
 	gCV_ResetTargetname = new Convar("shavit_misc_resettargetname", "1", "Reset the player's targetname and eventqueue upon timer start?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetnameMain = new Convar("shavit_misc_resettargetname_main", "", "What targetname to use when resetting the player. You don't need to touch this");
 	gCV_ResetTargetnameBonus = new Convar("shavit_misc_resettargetname_bonus", "", "What targetname to use when resetting the player (on bonus tracks). You don't need to touch this");
+	gCV_ResetClassnameMain = new Convar("shavit_misc_resetclassname_main", "", "What classname to use when resetting the player. You don't need to touch this");
+	gCV_ResetClassnameBonus = new Convar("shavit_misc_resetclassname_bonus", "", "What classname to use when resetting the player (on bonus tracks). You don't need to touch this");
 	gCV_JointeamHook = new Convar("shavit_misc_jointeamhook", "1", "Hook `jointeam`?\n0 - Disabled\n1 - Enabled, players can instantly change teams.", 0, true, 0.0, true, 1.0);
 	gCV_SpectatorList = new Convar("shavit_misc_speclist", "1", "Who to show in !specs?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_HideChatCommands = new Convar("shavit_misc_hidechatcmds", "1", "Hide commands from chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -1990,18 +1994,27 @@ public Action Shavit_OnStart(int client)
 	if(gCV_ResetTargetname.BoolValue)
 	{
 		char targetname[64];
+		char classname[64];
 
 		if (Shavit_GetClientTrack(client) == Track_Main)
 		{
 			gCV_ResetTargetnameMain.GetString(targetname, sizeof(targetname));
+			gCV_ResetClassnameMain.GetString(classname, sizeof(classname));
 		}
 		else
 		{
 			gCV_ResetTargetnameBonus.GetString(targetname, sizeof(targetname));
+			gCV_ResetClassnameBonus.GetString(classname, sizeof(classname));
 		}
 
 		DispatchKeyValue(client, "targetname", targetname);
-		SetEntPropString(client, Prop_Data, "m_iClassname", "player");
+
+		if (!classname[0])
+		{
+			classname = "player";
+		}
+
+		SetEntPropString(client, Prop_Data, "m_iClassname", classname);
 
 		// Used to clear some (mainly basevelocity) events that can be used to boost out of the start zone.
 		if(gB_Eventqueuefix)
