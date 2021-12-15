@@ -188,7 +188,7 @@ stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cac
 	return true;
 }
 
-stock File ReadReplayHeader(const char[] path, replay_header_t header, int style, int track)
+stock File ReadReplayHeader(const char[] path, replay_header_t header, int style = 0, int track = 0)
 {
 	replay_header_t empty_header;
 	header = empty_header;
