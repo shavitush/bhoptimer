@@ -64,6 +64,10 @@ forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, in
  * @param istoolong                 If the time is too long to save a replay if the time is a WR. Note: replays WON'T be full length if this is true.
  * @param iscopy                    If the path points to a copy of the replay.
  * @param replaypath                Path to the saved replay.
+ * @param frames                	ArrayList of the player's frames in the replay.
+ * @param preframes                	The number of preframes in the replay.
+ * @param postframes                The number of postframes in the replay.
+ * @param name                		Player's name at the time of the replay.
  *
  * @noreturn
  */
