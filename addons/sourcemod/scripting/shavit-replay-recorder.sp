@@ -365,8 +365,8 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	Call_PushCell(avgvel);
 	Call_PushCell(maxvel);
 	Call_PushCell(timestamp);
-	Call_PushCell(isTooLong);
 	Call_PushCell(isBestReplay);
+	Call_PushCell(isTooLong);
 	Call_Finish(action);
 
 	bool makeCopy = (action != Plugin_Continue);
