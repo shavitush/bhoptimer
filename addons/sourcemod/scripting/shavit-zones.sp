@@ -3877,15 +3877,30 @@ public void CreateZoneEntities(bool only_create_dead_entities)
 		float height = ((IsSource2013(gEV_Type))? 62.0:72.0) / 2;
 
 		float min[3];
-		min[0] = -distance_x + gCV_BoxOffset.FloatValue;
-		min[1] = -distance_y + gCV_BoxOffset.FloatValue;
+		min[0] = -distance_x;
+		min[1] = -distance_y;
 		min[2] = -distance_z + height;
-		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
 
 		float max[3];
-		max[0] = distance_x - gCV_BoxOffset.FloatValue;
-		max[1] = distance_y - gCV_BoxOffset.FloatValue;
+		max[0] = distance_x;
+		max[1] = distance_y;
 		max[2] = distance_z - height;
+
+		float offset = gCV_BoxOffset.FloatValue;
+
+		if (distance_x > offset)
+		{
+			min[0] += offset;
+			max[0] -= offset;
+		}
+
+		if (distance_y > offset)
+		{
+			min[1] += offset;
+			max[1] -= offset;
+		}
+
+		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
 		SetEntPropVector(entity, Prop_Send, "m_vecMaxs", max);
 
 		SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
