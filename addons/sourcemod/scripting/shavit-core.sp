@@ -77,8 +77,8 @@ Handle gH_Forwards_OnStyleChanged = null;
 Handle gH_Forwards_OnTrackChanged = null;
 Handle gH_Forwards_OnChatConfigLoaded = null;
 Handle gH_Forwards_OnUserCmdPre = null;
-Handle gH_Forwards_OnTimerIncrement = null;
-Handle gH_Forwards_OnTimerIncrementPost = null;
+Handle gH_Forwards_OnTimeIncrement = null;
+Handle gH_Forwards_OnTimeIncrementPost = null;
 Handle gH_Forwards_OnTimescaleChanged = null;
 Handle gH_Forwards_OnTimeOffsetCalculated = null;
 Handle gH_Forwards_OnProcessMovement = null;
@@ -240,8 +240,8 @@ public void OnPluginStart()
 	gH_Forwards_OnTrackChanged = CreateGlobalForward("Shavit_OnTrackChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
 	gH_Forwards_OnUserCmdPre = CreateGlobalForward("Shavit_OnUserCmdPre", ET_Event, Param_Cell, Param_CellByRef, Param_CellByRef, Param_Array, Param_Array, Param_Cell, Param_Cell, Param_Cell, Param_Array, Param_Array);
-	gH_Forwards_OnTimerIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
-	gH_Forwards_OnTimerIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
+	gH_Forwards_OnTimeIncrement = CreateGlobalForward("Shavit_OnTimeIncrement", ET_Event, Param_Cell, Param_Array, Param_CellByRef, Param_Array);
+	gH_Forwards_OnTimeIncrementPost = CreateGlobalForward("Shavit_OnTimeIncrementPost", ET_Event, Param_Cell, Param_Cell, Param_Array);
 	gH_Forwards_OnTimescaleChanged = CreateGlobalForward("Shavit_OnTimescaleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnTimeOffsetCalculated = CreateGlobalForward("Shavit_OnTimeOffsetCalculated", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnProcessMovement = CreateGlobalForward("Shavit_OnProcessMovement", ET_Event, Param_Cell);
@@ -1593,11 +1593,6 @@ public int Native_ChangeClientStyle(Handle handler, int numParams)
 
 public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 {
-	if (snapshot.fCurrentTime <= 0.0)
-	{
-		return Plugin_Stop;
-	}
-
 	float minimum_time = GetStyleSettingFloat(snapshot.bsStyle, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
 
 	if (snapshot.fCurrentTime < minimum_time)
@@ -1609,10 +1604,28 @@ public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 	return Plugin_Continue;
 }
 
+void CalculateRunTime(timer_snapshot_t s, bool include_end_offset)
+{
+	float ticks = float(s.iFullTicks) + (s.iFractionalTicks / 10000.0);
+	ticks += s.fZoneOffset[Zone_Start];
+
+	if (include_end_offset)
+	{
+		ticks -= (1.0 - s.fZoneOffset[Zone_End]);
+	}
+
+	s.fCurrentTime = ticks * GetTickInterval();
+}
+
 public int Native_FinishMap(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	int timestamp = GetTime();
+
+	if (!gA_Timers[client].iFullTicks)
+	{
+		return;
+	}
 
 	if(gCV_UseOffsets.BoolValue)
 	{
@@ -1628,7 +1641,12 @@ public int Native_FinishMap(Handle handler, int numParams)
 		}
 	}
 
-	gA_Timers[client].fCurrentTime = (gA_Timers[client].fTimescaledTicks + gA_Timers[client].fZoneOffset[Zone_Start] + gA_Timers[client].fZoneOffset[Zone_End]) * GetTickInterval();
+	CalculateRunTime(gA_Timers[client], true);
+
+	if (gA_Timers[client].fCurrentTime <= 0.0)
+	{
+		return;
+	}
 
 	timer_snapshot_t snapshot;
 	BuildSnapshot(client, snapshot);
@@ -1644,9 +1662,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 		return;
 	}
 
-#if DEBUG
-	float offset = (snapshot.fZoneOffset[Zone_Start] + snapshot.fZoneOffset[Zone_End]) * GetTickInterval();
-	PrintToServer("0x%X %f -- ticks*interval -- offsettime=%f ticks=%.0f", snapshot.fCurrentTime, snapshot.fCurrentTime, offset, snapshot.fTimescaledTicks);
+#if 1
+	PrintToServer("0x%X %f -- startoffset=%f endoffset=%f fullticks=%d fracticks=%d", snapshot.fCurrentTime, snapshot.fCurrentTime, snapshot.fZoneOffset[Zone_Start], snapshot.fZoneOffset[Zone_End], snapshot.iFullTicks, snapshot.iFractionalTicks);
 #endif
 
 	Call_StartForward(gH_Forwards_Finish);
@@ -1997,6 +2014,8 @@ public int Native_SetClientTimescale(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	float timescale = GetNativeCell(2);
 
+	timescale = float(RoundFloat((timescale * 10000.0)))/10000.0;
+
 	if (timescale != gA_Timers[client].fTimescale && timescale > 0.0)
 	{
 		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, timescale);
@@ -2087,7 +2106,8 @@ void StartTimer(int client, int track)
 			}
 
 			gA_Timers[client].iZoneIncrement = 0;
-			gA_Timers[client].fTimescaledTicks = 0.0;
+			gA_Timers[client].iFullTicks = 0;
+			gA_Timers[client].iFractionalTicks = 0;
 			gA_Timers[client].bClientPaused = false;
 			gA_Timers[client].iStrafes = 0;
 			gA_Timers[client].iJumps = 0;
@@ -2246,7 +2266,8 @@ public void OnClientPutInServer(int client)
 	gA_Timers[client].iTimerTrack = 0;
 	gA_Timers[client].bsStyle = 0;
 	gA_Timers[client].fTimescale = 1.0;
-	gA_Timers[client].fTimescaledTicks = 0.0;
+	gA_Timers[client].iFullTicks = 0;
+	gA_Timers[client].iFractionalTicks = 0;
 	gA_Timers[client].iZoneIncrement = 0;
 	gS_DeleteMap[client][0] = 0;
 
@@ -2637,31 +2658,26 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 
 	float interval = GetTickInterval();
 	float time = interval * gA_Timers[client].fTimescale;
-	float timeOrig = time;
 
 	gA_Timers[client].iZoneIncrement++;
 
 	timer_snapshot_t snapshot;
 	BuildSnapshot(client, snapshot);
 
-	Call_StartForward(gH_Forwards_OnTimerIncrement);
+	Call_StartForward(gH_Forwards_OnTimeIncrement);
 	Call_PushCell(client);
 	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
 	Call_PushCellRef(time);
 	Call_Finish();
 
-	if (time == timeOrig)
-	{
-		gA_Timers[client].fTimescaledTicks += gA_Timers[client].fTimescale;
-	}
-	else
-	{
-		gA_Timers[client].fTimescaledTicks += time / interval;
-	}
+	gA_Timers[client].iFractionalTicks += RoundFloat(gA_Timers[client].fTimescale * 10000.0);
+	int whole_tick = gA_Timers[client].iFractionalTicks / 10000;
+	gA_Timers[client].iFractionalTicks -= whole_tick * 10000;
+	gA_Timers[client].iFullTicks       += whole_tick;
 
-	gA_Timers[client].fCurrentTime = interval * gA_Timers[client].fTimescaledTicks;
+	CalculateRunTime(gA_Timers[client], false);
 
-	Call_StartForward(gH_Forwards_OnTimerIncrementPost);
+	Call_StartForward(gH_Forwards_OnTimeIncrementPost);
 	Call_PushCell(client);
 	Call_PushCell(time);
 	Call_Finish();

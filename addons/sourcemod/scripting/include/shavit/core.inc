@@ -104,6 +104,7 @@ enum struct chatstrings_t
 enum struct timer_snapshot_t
 {
 	bool bTimerEnabled;
+	// fCurrentTime = (float(iFullTicks)+(iFractionalTicks/10000.0)+fZoneOffset[0])*GetTickInterval()
 	float fCurrentTime;
 	bool bClientPaused;
 	int iJumps;
@@ -116,13 +117,16 @@ enum struct timer_snapshot_t
 	int iTimerTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
+	// used as a "tick fraction" basically
 	float fZoneOffset[2];
 	float fDistanceOffset[2];
 	float fAvgVelocity;
 	float fMaxVelocity;
 	float fTimescale;
 	int iZoneIncrement; // convert to array for per zone offsets (?)
-	float fTimescaledTicks;
+
+	int iFullTicks;
+	int iFractionalTicks; // divide this by 10000.0 to get a fraction of a tick. whole ticks are moved to iFullTicks
 
 	bool bPracticeMode;
 
@@ -528,8 +532,6 @@ forward Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float
 
 /**
  * Called just before shavit-core adds time to a player's timer.
- * This is the forward you should use to modify the player's timer smoothly.
- * A good example use case is timescaling.
  *
  * @param client					Client index.
  * @param snapshot					A snapshot with the player's current timer. You cannot manipulate it here.
@@ -1274,6 +1276,7 @@ native void Shavit_SetMaxVelocity(int client, float vel);
 /**
  * Sets the clients dynamic timescale. -1.0 to use the timescale of the client's style.
  * Note: Values above 1.0 won't scale into the replay bot.
+ * Timescale is limited to four decimal places. 1.0 >= timescale >= 0.0001
  *
  * @param client					Client index
  * @param scale						New timescale

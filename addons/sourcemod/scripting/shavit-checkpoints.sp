@@ -1320,7 +1320,12 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 		snapshot.iSHSWCombination = -1;
 		snapshot.iTimerTrack = Shavit_GetReplayBotTrack(target);
 		snapshot.fTimescale = Shavit_GetStyleSettingFloat(snapshot.bsStyle, "timescale");
-		snapshot.fTimescaledTicks = (Shavit_GetReplayBotCurrentFrame(target) - Shavit_GetReplayCachePreFrames(target)) * snapshot.fTimescale;
+
+		float ticks = (Shavit_GetReplayBotCurrentFrame(target) - Shavit_GetReplayCachePreFrames(target)) * snapshot.fTimescale;
+		float fraction = FloatFraction(ticks);
+		snapshot.iFullTicks = RoundFloat(ticks-fraction);
+		snapshot.iFractionalTicks = RoundFloat(fraction * 10000.0);
+
 		cpcache.fSpeed = snapshot.fTimescale * Shavit_GetStyleSettingFloat(snapshot.bsStyle, "speed");
 		ScaleVector(cpcache.fVelocity, 1 / cpcache.fSpeed);
 		cpcache.fGravity = Shavit_GetStyleSettingFloat(target, "gravity");
