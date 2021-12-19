@@ -1224,6 +1224,46 @@ void KillZoneEntity(int index, bool kill=true)
 	}
 }
 
+void KillAllZones()
+{
+	char sTargetname[32];
+	int iEntity = -1;
+
+	while ((iEntity = FindEntityByClassname(ent, "trigger_multiple")) != -1)
+	{
+		GetEntPropString(iEntity, Prop_Data, "m_iName", sTargetname, sizeof(sTargetname));
+
+		bool shavit_created = (StrContains(sTargetname, "shavit_zones_") == 0);
+
+		if (shavit_created
+		|| (StrContains(sTargetname, "mod_zone_") == 0)
+		|| (StrContains(sTargetname, "climb_") == 0)
+		)
+		{
+			SDKUnhook(iEntity, SDKHook_StartTouchPost, StartTouchPost);
+			SDKUnhook(iEntity, SDKHook_EndTouchPost, EndTouchPost);
+			SDKUnhook(iEntity, SDKHook_TouchPost, TouchPost);
+
+			if (shavit_created)
+			{
+				AcceptEntityInput(iEntity, "Kill");
+			}
+		}
+	}
+}
+
+void UnloadZones2()
+{
+	KillAllZones();
+
+	for (int i = 0; i < MAX_ZONES; i++)
+	{
+		ClearZone(i);
+	}
+
+	ClearCustomSpawn(-1);
+}
+
 // 0 - all zones
 void UnloadZones(int zone)
 {
