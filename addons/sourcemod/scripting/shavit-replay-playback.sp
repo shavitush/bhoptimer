@@ -215,6 +215,7 @@ Convar gCV_EnableDynamicTimeDifference = null;
 ConVar sv_duplicate_playernames_ok = null;
 ConVar bot_join_after_player = null;
 ConVar mp_randomspawn = null;
+ConVar gCV_PauseMovement = null;
 
 // timer settings
 int gI_Styles = 0;
@@ -325,6 +326,8 @@ public void OnAllPluginsLoaded()
 	{
 		gB_ClosestPos = true;
 	}
+
+	gCV_PauseMovement = FindConVar("shavit_core_pause_movement");
 }
 
 public void OnPluginStart()
@@ -3489,12 +3492,42 @@ public void OnGameFrame()
 	int valid = 0;
 	int modtick = GetGameTickCount() % gCV_DynamicTimeTick.IntValue;
 
+	// use this because i want velocity-difference with pause_movement
+	bool pause_movement = gCV_PauseMovement.BoolValue;
+
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		// Using modtick & valid to spread out client updates across different ticks.
-		if (IsValidClient(client, true) && !IsFakeClient(client) && Shavit_GetTimerStatus(client) == Timer_Running && !Shavit_InsideZone(client, Zone_Start, Shavit_GetClientTrack(client)) && (++valid % gCV_DynamicTimeTick.IntValue) == modtick)
+		if (IsValidClient(client, true)
+		&& !IsFakeClient(client)
+		&& !Shavit_InsideZone(client, Zone_Start, Shavit_GetClientTrack(client))
+		&& !Shavit_InsideZone(client, Zone_End, Shavit_GetClientTrack(client))
+		)
 		{
-			gF_TimeDifference[client] = GetClosestReplayTime(client);
+			// Using modtick & valid to spread out client updates across different ticks.
+			if ((++valid % gCV_DynamicTimeTick.IntValue) != modtick)
+			{
+				continue;
+			}
+
+			TimerStatus status = Shavit_GetTimerStatus(client);
+
+			if (status == Timer_Stopped)
+			{
+				continue;
+			}
+
+			if (!pause_movement && status != Timer_Running)
+			{
+				continue;
+			}
+
+			// 1. do this which will set velocity-difference
+			float timedifference = GetClosestReplayTime(client);
+			// 2. but don't set the time-difference if paused
+			if (status == Timer_Running)
+			{
+				gF_TimeDifference[client] = timedifference;
+			}
 		}
 	}
 }
