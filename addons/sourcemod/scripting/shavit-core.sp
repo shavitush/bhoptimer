@@ -1601,11 +1601,15 @@ public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 void CalculateRunTime(timer_snapshot_t s, bool include_end_offset)
 {
 	float ticks = float(s.iFullTicks) + (s.iFractionalTicks / 10000.0);
-	ticks += s.fZoneOffset[Zone_Start];
 
-	if (include_end_offset)
+	if (gCV_UseOffsets.BoolValue)
 	{
-		ticks -= (1.0 - s.fZoneOffset[Zone_End]);
+		ticks += s.fZoneOffset[Zone_Start];
+
+		if (include_end_offset)
+		{
+			ticks -= (1.0 - s.fZoneOffset[Zone_End]);
+		}
 	}
 
 	s.fCurrentTime = ticks * GetTickInterval();
