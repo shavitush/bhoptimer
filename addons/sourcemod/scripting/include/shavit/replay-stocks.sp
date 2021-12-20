@@ -4,6 +4,31 @@ stock bool Shavit_ReplayEnabledStyle(int style)
 	return !Shavit_GetStyleSettingBool(style, "unranked") && !Shavit_GetStyleSettingBool(style, "noreplay");
 }
 
+stock bool Shavit_GetReplayFolderPath_Stock(char buffer[PLATFORM_MAX_PATH])
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-replay.cfg");
+
+	KeyValues kv = new KeyValues("shavit-replay");
+	
+	if (!kv.ImportFromFile(sPath))
+	{
+		delete kv;
+		return false;
+	}
+
+	kv.GetString("replayfolder", buffer, PLATFORM_MAX_PATH, "{SM}/data/replaybot");
+
+	if (StrContains(buffer, "{SM}") != -1)
+	{
+		ReplaceString(buffer, PLATFORM_MAX_PATH, "{SM}/", "");
+		BuildPath(Path_SM, buffer, PLATFORM_MAX_PATH, "%s", buffer);
+	}
+
+	delete kv;
+	return true;
+}
+
 stock void Shavit_Replay_CreateDirectories(const char[] sReplayFolder, int styles)
 {
 	if (!DirExists(sReplayFolder) && !CreateDirectory(sReplayFolder, 511))
