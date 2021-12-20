@@ -782,7 +782,7 @@ public Action Command_TogglePause(int client, int args)
 		TeleportEntity(client, gF_PauseOrigin[client], gF_PauseAngles[client], gF_PauseVelocity[client]);
 		ResumeTimer(client);
 
-		Shavit_PrintToChat(client, "%T", "MessageUnpause", client, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		Shavit_PrintToChat(client, "%T", "MessageUnpause", client, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
 
 	else
