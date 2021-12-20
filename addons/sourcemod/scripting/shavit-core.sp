@@ -154,9 +154,6 @@ bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
 
-float gF_SpeedModGarbage;
-int gI_SpeedModGarbage = 0;
-
 // kz support
 bool gB_KZMap[TRACKS_SIZE];
 
@@ -545,9 +542,6 @@ public void OnLibraryRemoved(const char[] name)
 
 public void OnMapStart()
 {
-	gF_SpeedModGarbage = 0.0;
-	gI_SpeedModGarbage = 0;
-
 	// styles
 	if(!LoadStyles())
 	{
@@ -2575,13 +2569,12 @@ public void OnEntityCreated(int entity, const char[] classname)
 {
 	if (StrEqual(classname, "player_speedmod"))
 	{
-		gH_AcceptInput.HookEntity(Hook_Pre, entity, DHook_AcceptInput_player_speedmod);
 		gH_AcceptInput.HookEntity(Hook_Post, entity, DHook_AcceptInput_player_speedmod_Post);
 	}
 }
 
 // bool CBaseEntity::AcceptInput(char  const*, CBaseEntity*, CBaseEntity*, variant_t, int)
-public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hReturn, DHookParam hParams)
+public MRESReturn DHook_AcceptInput_player_speedmod_Post(int pThis, DHookReturn hReturn, DHookParam hParams)
 {
 	char buf[128];
 	hParams.GetString(1, buf, sizeof(buf));
@@ -2604,26 +2597,12 @@ public MRESReturn DHook_AcceptInput_player_speedmod(int pThis, DHookReturn hRetu
 	int style = gA_Timers[activator].bsStyle;
 
 	speed *= gA_Timers[activator].fTimescale * GetStyleSettingFloat(style, "speed");
-	gF_SpeedModGarbage = speed;
-	gI_SpeedModGarbage = activator;
+	SetEntPropFloat(activator, Prop_Data, "m_flLaggedMovementValue", speed);
 
 	#if DEBUG
 	int caller = hParams.Get(3);
 	PrintToServer("ModifySpeed activator = %d(%N), caller = %d, old_speed = %s, new_speed = %f", activator, activator, caller, buf, speed);
 	#endif
-
-	return MRES_Ignored;
-}
-
-// bool CBaseEntity::AcceptInput(char  const*, CBaseEntity*, CBaseEntity*, variant_t, int)
-public MRESReturn DHook_AcceptInput_player_speedmod_Post(int pThis, DHookReturn hReturn, DHookParam hParams)
-{
-	if (gI_SpeedModGarbage)
-	{
-		SetEntPropFloat(gI_SpeedModGarbage, Prop_Data, "m_flLaggedMovementValue", gF_SpeedModGarbage);
-		gI_SpeedModGarbage = 0;
-		gF_SpeedModGarbage = 0.0;
-	}
 
 	return MRES_Ignored;
 }
