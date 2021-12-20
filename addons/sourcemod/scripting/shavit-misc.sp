@@ -94,6 +94,7 @@ Convar gCV_DisableRadio = null;
 Convar gCV_Scoreboard = null;
 Convar gCV_WeaponCommands = null;
 Convar gCV_PlayerOpacity = null;
+Convar gCV_StaticPrestrafe = null;
 Convar gCV_NoclipMe = null;
 Convar gCV_AdvertisementInterval = null;
 Convar gCV_RemoveRagdolls = null;
@@ -127,6 +128,7 @@ Handle gH_Forwards_OnClanTagChangePre = null;
 Handle gH_Forwards_OnClanTagChangePost = null;
 
 // dhooks
+DynamicHook gH_GetPlayerMaxSpeed = null;
 DynamicHook gH_IsSpawnPointValid = null;
 DynamicDetour gH_CalcPlayerScore = null;
 
@@ -263,6 +265,7 @@ public void OnPluginStart()
 	gCV_Scoreboard = new Convar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_WeaponCommands = new Convar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.\n3 - Also give infinite clip ammo.", 0, true, 0.0, true, 3.0);
 	gCV_PlayerOpacity = new Convar("shavit_misc_playeropacity", "69", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
+	gCV_StaticPrestrafe = new Convar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoclipMe = new Convar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'admin_noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 2.0);
 	gCV_AdvertisementInterval = new Convar("shavit_misc_advertisementinterval", "600.0", "Interval between each chat advertisement.\nConfiguration file for those is configs/shavit-advertisements.cfg.\nSet to 0.0 to disable.\nRequires server restart for changes to take effect.", 0, true, 0.0);
 	gCV_RemoveRagdolls = new Convar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
@@ -340,6 +343,15 @@ void LoadDHooks()
 		{
 			LogError("Couldn't get the address for \"CTFGameRules::CalcPlayerScore\" - make sure your gamedata is updated!");
 		}
+	}
+	else
+	{
+		if ((iOffset = GameConfGetOffset(hGameData, "CCSPlayer::GetPlayerMaxSpeed")) == -1)
+		{
+			SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
+		}
+
+		gH_GetPlayerMaxSpeed = DHookCreate(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity, CCSPlayer__GetPlayerMaxSpeed);
 	}
 
 	if ((iOffset = GameConfGetOffset(hGameData, "CGameRules::IsSpawnPointValid")) != -1)
@@ -908,6 +920,18 @@ public Action Command_Radio(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
+public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, DHookReturn hReturn)
+{
+	if(!gCV_StaticPrestrafe.BoolValue || !IsValidClient(pThis, true))
+	{
+		return MRES_Ignored;
+	}
+
+	hReturn.Value = Shavit_GetStyleSettingFloat(gI_Style[pThis], "runspeed");
+
+	return MRES_Override;
+}
+
 public Action Timer_Cron(Handle timer)
 {
 	if(gCV_HideRadar.BoolValue && gEV_Type == Engine_CSS)
@@ -1263,6 +1287,18 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
+	if(gEV_Type == Engine_TF2)
+	{
+		SDKHook(client, SDKHook_PreThinkPost, TF2_OnPreThink);
+	}
+	else
+	{
+		if(gH_GetPlayerMaxSpeed != null)
+		{
+			DHookEntity(gH_GetPlayerMaxSpeed, true, client);
+		}
+	}
+
 	if(!AreClientCookiesCached(client))
 	{
 		gI_Style[client] = Shavit_GetBhopStyle(client);
@@ -1378,6 +1414,30 @@ public Action OnSetTransmit(int entity, int client)
 	}
 
 	return Plugin_Continue;
+}
+
+public void TF2_OnPreThink(int client)
+{
+	if(IsPlayerAlive(client))
+	{
+		float maxspeed;
+		
+		if (GetEntityFlags(client) & FL_ONGROUND)
+		{
+			maxspeed = Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed");
+		}
+		else
+		{
+			// This is used to stop CTFGameMovement::PreventBunnyJumping from destroying
+			// player velocity when doing uncrouch stuff. Kind of poopy.
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+			maxspeed = GetVectorLength(fSpeed);
+		}
+
+		// not the best method, but only one i found for tf2
+		SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", maxspeed);
+	}
 }
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)

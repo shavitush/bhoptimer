@@ -54,7 +54,6 @@ EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Protobuf = false;
 
 // hook stuff
-DynamicHook gH_GetPlayerMaxSpeed = null;
 DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
 
 // database handle
@@ -123,7 +122,6 @@ Convar gCV_VelocityTeleport = null;
 Convar gCV_DefaultStyle = null;
 Convar gCV_NoChatSound = null;
 Convar gCV_SimplerLadders = null;
-Convar gCV_StaticPrestrafe = null;
 Convar gCV_UseOffsets = null;
 Convar gCV_TimeInMessages;
 Convar gCV_DebugOffsets = null;
@@ -346,7 +344,6 @@ public void OnPluginStart()
 	gCV_NoChatSound = new Convar("shavit_core_nochatsound", "0", "Disables click sound for chat messages.", 0, true, 0.0, true, 1.0);
 	gCV_SimplerLadders = new Convar("shavit_core_simplerladders", "1", "Allows using all keys on limited styles (such as sideways) after touching ladders\nTouching the ground enables the restriction again.", 0, true, 0.0, true, 1.0);
 	gCV_UseOffsets = new Convar("shavit_core_useoffsets", "1", "Calculates more accurate times by subtracting/adding tick offsets from the time the server uses to register that a player has left or entered a trigger", 0, true, 0.0, true, 1.0);
-	gCV_StaticPrestrafe = new Convar("shavit_core_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TimeInMessages = new Convar("shavit_core_timeinmessages", "0", "Whether to prefix SayText2 messages with the time.", 0, true, 0.0, true, 1.0);
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
 	gCV_SaveIps = new Convar("shavit_core_save_ips", "1", "Whether to save player IPs in the 'users' database table. IPs are used to show player location on the !profile menu.\nTurning this on will not wipe existing IPs from the 'users' table.", 0, true, 0.0, true, 1.0);
@@ -444,18 +441,6 @@ void LoadDHooks()
 	DHookRaw(processMovementPost, true, IGameMovement);
 
 	LoadPhysicsUntouch(gamedataConf);
-
-	if (gEV_Type != Engine_TF2)
-	{
-		int iOffset;
-
-		if ((iOffset = GameConfGetOffset(gamedataConf, "CCSPlayer::GetPlayerMaxSpeed")) == -1)
-		{
-			SetFailState("Couldn't get the offset for \"CCSPlayer::GetPlayerMaxSpeed\" - make sure your gamedata is updated!");
-		}
-
-		gH_GetPlayerMaxSpeed = new DynamicHook(iOffset, HookType_Entity, ReturnType_Float, ThisPointer_CBaseEntity);
-	}
 
 	delete CreateInterface;
 	delete gamedataConf;
@@ -2285,11 +2270,6 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
 	SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
 
-	if (gEV_Type != Engine_TF2)
-	{
-		gH_GetPlayerMaxSpeed.HookEntity(Hook_Post, client, CCSPlayer__GetPlayerMaxSpeed);
-	}
-
 	int iSteamID = GetSteamAccountID(client);
 
 	if(iSteamID == 0)
@@ -2443,48 +2423,10 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	}
 }
 
-public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, DHookReturn hReturn)
-{
-	if (!gCV_StaticPrestrafe.BoolValue || !IsValidClient(pThis, true))
-	{
-		return MRES_Ignored;
-	}
-
-	hReturn.Value = GetStyleSettingFloat(gA_Timers[pThis].bsStyle, "runspeed");
-
-	return MRES_Override;
-}
-
-void TF2_MaxSpeedStuff(int client)
-{
-	float maxspeed;
-
-	if (GetEntityFlags(client) & FL_ONGROUND)
-	{
-		maxspeed = GetStyleSettingFloat(gA_Timers[client].bsStyle, "runspeed");
-	}
-	else
-	{
-		// This is used to stop CTFGameMovement::PreventBunnyJumping from destroying
-		// player velocity when doing uncrouch stuff. Kind of poopy.
-		float fSpeed[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
-		maxspeed = GetVectorLength(fSpeed);
-	}
-
-	// not the best method, but only one i found for tf2
-	SetEntPropFloat(client, Prop_Send, "m_flMaxspeed", maxspeed);
-}
-
 public void PreThinkPost(int client)
 {
 	if(IsPlayerAlive(client))
 	{
-		if (gEV_Type == Engine_TF2)
-		{
-			TF2_MaxSpeedStuff(client);
-		}
-
 		if(!gB_Zones || !Shavit_InsideZone(client, Zone_Airaccelerate, -1))
 		{
 			sv_airaccelerate.FloatValue = GetStyleSettingFloat(gA_Timers[client].bsStyle, "airaccelerate");
