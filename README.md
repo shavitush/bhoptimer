@@ -226,3 +226,5 @@ Sets a dynamic map time limit according to the average completion time of the ma
 ### CS:GO
 * [NoViewPunch](https://github.com/hermansimensen/NoViewPunch)
   - Removes the viewpunch from landing in CS:GO.
+* [CS:GO Movement unlocker](https://forums.alliedmods.net/showthread.php?t=255298)
+  - Enables prespeeding (no 240 velocity cap for runspeed anymore)
