@@ -149,8 +149,14 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingInt  (gI_CurrentParserIndex, "easybhop", 1);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "prespeed", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity_limit", 0.0);
-	SetStyleSettingFloat(gI_CurrentParserIndex, "airaccelerate", 1000.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "bunnyhopping", 1);
+
+	SetStyleSettingInt  (gI_CurrentParserIndex, "prespeed_type", -1);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "blockprejump", -1);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "nozaxisspeed", -1);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "restrictnoclip", -1);
+
+	SetStyleSettingFloat(gI_CurrentParserIndex, "airaccelerate", 1000.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "runspeed", 260.00);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "gravity", 1.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "speed", 1.0);
@@ -242,7 +248,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	}
 #endif
 
-	if (GetStyleSettingInt(gI_CurrentParserIndex, "prespeed") > 0)
+	if (GetStyleSettingInt(gI_CurrentParserIndex, "prespeed") > 0 || GetStyleSettingInt(gI_CurrentParserIndex, "prespeed_type") > 0)
 	{
 		bool value;
 

@@ -2066,7 +2066,14 @@ void StartTimer(int client, int track)
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 	float curVel = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 
-	if (!gCV_NoZAxisSpeed.BoolValue ||
+	int nozaxisspeed = GetStyleSettingInt(gA_Timers[client].bsStyle, "nozaxisspeed");
+
+	if (nozaxisspeed < 0)
+	{
+		nozaxisspeed = gCV_NoZAxisSpeed.BoolValue;
+	}
+
+	if (!nozaxisspeed ||
 		GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 1 ||
 		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 2 || curVel <= 290.0)))
 	{
@@ -2488,7 +2495,14 @@ public void PostThinkPost(int client)
 		float fVel[3];
 		GetEntPropVector(client, Prop_Data, "m_vecVelocity", fVel);
 
-		if(!gCV_NoZAxisSpeed.BoolValue)
+		int nozaxisspeed = GetStyleSettingInt(gA_Timers[client].bsStyle, "nozaxisspeed");
+
+		if (nozaxisspeed < 0)
+		{
+			nozaxisspeed = gCV_NoZAxisSpeed.BoolValue;
+		}
+
+		if (!nozaxisspeed)
 		{
 			if(fVel[2] == 0.0)
 			{
@@ -2957,7 +2971,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 
-	if (bInStart && gCV_BlockPreJump.BoolValue && GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
+	int blockprejump = GetStyleSettingInt(gA_Timers[client].bsStyle, "blockprejump");
+
+	if (blockprejump < 0)
+	{
+		blockprejump = gCV_BlockPreJump.BoolValue;
+	}
+
+	if (bInStart && blockprejump && GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
 	{
 		vel[2] = 0.0;
 		buttons &= ~IN_JUMP;

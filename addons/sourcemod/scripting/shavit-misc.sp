@@ -1205,16 +1205,24 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		{
 			Shavit_StopTimer(client);
 		}
-		if(bInStart && gCV_RestrictNoclip.BoolValue)
+
+		if (bInStart)
 		{
-			if(gCV_RestrictNoclip.IntValue == 1)
+			int restrictnoclip = Shavit_GetStyleSettingInt(gI_Style[client], "restrictnoclip");
+
+			if (restrictnoclip == -1)
+			{
+				restrictnoclip = gCV_RestrictNoclip.IntValue;
+			}
+
+			if (restrictnoclip == 1)
 			{
 				float fSpeed[3];
 				GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 				fSpeed[2] = 0.0;
 				DumbSetVelocity(client, fSpeed);
 			}
-			else if(gCV_RestrictNoclip.IntValue == 2)
+			else if (restrictnoclip == 2)
 			{
 				SetEntityMoveType(client, MOVETYPE_ISOMETRIC);
 			}
@@ -1226,12 +1234,19 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	// prespeed
 	if(!bNoclip && Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && bInStart)
 	{
+		int prespeed_type = Shavit_GetStyleSettingInt(gI_Style[client], "prespeed_type");
+
+		if (prespeed_type == -1)
+		{
+			prespeed_type = gCV_PreSpeed.IntValue;
+		}
+
 		int iPrevGroundEntity = (gI_GroundEntity[client] != -1) ? EntRefToEntIndex(gI_GroundEntity[client]) : -1;
-		if((gCV_PreSpeed.IntValue == 2 || gCV_PreSpeed.IntValue == 3) && iPrevGroundEntity == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
+		if ((prespeed_type == 2 || prespeed_type == 3) && iPrevGroundEntity == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
 		{
 			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
 		}
-		else if(gCV_PreSpeed.IntValue == 1 || gCV_PreSpeed.IntValue >= 3)
+		else if (prespeed_type == 1 || prespeed_type >= 3)
 		{
 			float fSpeed[3];
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
@@ -1240,7 +1255,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
-			if(gCV_PreSpeed.IntValue < 4 && fSpeed[2] > 0.0)
+			if (prespeed_type < 4 && fSpeed[2] > 0.0)
 			{
 				fLimit /= 3.0;
 			}
@@ -1250,7 +1265,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 			if(fScale < 1.0)
 			{
-				if(gCV_PreSpeed.IntValue == 5)
+				if (prespeed_type == 5)
 				{
 					float zSpeed = fSpeed[2];
 					fSpeed[2] = 0.0;
