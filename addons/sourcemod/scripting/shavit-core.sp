@@ -1645,7 +1645,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 		return;
 	}
 
-#if 1
+#if DEBUG
 	PrintToServer("0x%X %f -- startoffset=%f endoffset=%f fullticks=%d fracticks=%d", snapshot.fCurrentTime, snapshot.fCurrentTime, snapshot.fZoneOffset[Zone_Start], snapshot.fZoneOffset[Zone_End], snapshot.iFullTicks, snapshot.iFractionalTicks);
 #endif
 

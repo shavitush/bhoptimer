@@ -1276,7 +1276,7 @@ native void Shavit_SetMaxVelocity(int client, float vel);
 /**
  * Sets the clients dynamic timescale. -1.0 to use the timescale of the client's style.
  * Note: Values above 1.0 won't scale into the replay bot.
- * Timescale is limited to four decimal places. 1.0 >= timescale >= 0.0001
+ * Timescale is limited to four decimal places. timescale >= 0.0001
  *
  * @param client					Client index
  * @param scale						New timescale
