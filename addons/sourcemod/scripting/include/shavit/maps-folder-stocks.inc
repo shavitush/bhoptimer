@@ -160,7 +160,7 @@ stock void CreateAllNavFiles()
 stock bool ReadMapsFolderHandler(const char path[PLATFORM_MAX_PATH], bool is_stringmap, Handle data, bool lowercase, bool display, bool iter_subfolders, bool use_valve_fs, char[][] exclude_prefixes, int exclude_count)
 {
 	bool first_iteration = StrEqual(path, "maps");
-	DirectoryListing dir = OpenDirectory(path, use_valve_fs);
+	DirectoryListing dir = OpenDirectory(path, use_valve_fs, NULL_STRING);
 
 	if (dir == null)
 	{
