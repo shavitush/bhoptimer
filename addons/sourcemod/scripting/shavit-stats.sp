@@ -768,8 +768,9 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 		FormatEx(sQuery, sizeof(sQuery),
 			// Note the `GROUP BY track>0` for now
 			"SELECT 0 as blah, map, track>0 FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0 " ...
-			"UNION SELECT 1 as blah, map, track>0 FROM %smapzones WHERE type = 0 GROUP BY map, track>0;",
-			gS_MySQLPrefix, steamid, style, gS_MySQLPrefix
+			"UNION SELECT 1 as blah, map, track>0 FROM %smapzones WHERE type = 0 GROUP BY map, track>0 " ...
+			"UNION SELECT 2 as blah, map, track FROM %swrs WHERE auth = %d AND style = %d GROUP BY map, track;",
+			gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style
 		);
 
 		gH_SQL.Query(OpenStatsMenu_Mapchooser_Callback, sQuery, data, DBPrio_Low);
@@ -801,7 +802,7 @@ public void OpenStatsMenu_Mapchooser_Callback(Database db, DBResultSet results, 
 
 	StringMap mapchooser_maps = Shavit_GetMapsStringMap();
 
-	int maps_and_completions[2][2];
+	int maps_and_completions[3][2];
 
 	while (results.FetchRow())
 	{
@@ -826,6 +827,8 @@ public void OpenStatsMenu_Mapchooser_Callback(Database db, DBResultSet results, 
 	data.WriteCell(maps_and_completions[0][1], true);
 	data.WriteCell(maps_and_completions[1][0], true);
 	data.WriteCell(maps_and_completions[1][1], true);
+	data.WriteCell(maps_and_completions[2][0], true);
+	data.WriteCell(maps_and_completions[2][1], true);
 
 	OpenStatsMenu_Main(gI_TargetSteamID[client], gI_Style[client], data);
 }
@@ -835,33 +838,34 @@ Action OpenStatsMenu_Main(int steamid, int style, DataPack data)
 	// big ass query, looking for optimizations TODO
 	char sQuery[2048];
 
-	if(gB_Rankings)
+	FormatEx(sQuery, sizeof(sQuery),
+		"SELECT 0, points, lastlogin, ip, playtime, name FROM %susers WHERE auth = %d\n" ...
+		"UNION ALL SELECT 1, SUM(playtime), 0, 0, 0, '' FROM %sstyleplaytime WHERE auth = %d AND style = %d\n" ...
+		"UNION ALL SELECT 2, COUNT(*), 0, 0, 0, '' FROM %susers u1\n" ...
+		"    JOIN (SELECT points FROM %susers WHERE auth = %d) u2\n" ...
+		"    WHERE u1.points >= u2.points",
+		gS_MySQLPrefix, steamid,
+		gS_MySQLPrefix, steamid, style,
+		gS_MySQLPrefix, gS_MySQLPrefix, steamid
+	);
+
+	if (!gB_Mapchooser || !gCV_UseMapchooser.BoolValue)
 	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, f.clears, g.maps, h.wrs, d.points, e.rank, d.playtime, i.styleplaytime FROM " ...
-				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 AND style = %d GROUP BY map) s) a " ...
-				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track = 0 AND style = %d) c " ...
-				"JOIN (SELECT name, ip, lastlogin, FORMAT(points, 2) points, playtime FROM %susers WHERE auth = %d) d " ...
-				"JOIN (SELECT COUNT(*) as 'rank' FROM %susers as u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points) e " ...
-				"JOIN (SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track > 0 AND style = %d GROUP BY map) s) f " ...
-				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track > 0 AND type = 0 GROUP BY map) s) g " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track > 0 AND style = %d) h " ...
-				"JOIN (SELECT SUM(playtime) as styleplaytime FROM %sstyleplaytime WHERE auth = %d AND style = %d) i " ...
-			"LIMIT 1;", gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, gS_MySQLPrefix, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, style);
+		Format(sQuery, sizeof(sQuery),
+			"%s\n" ...
+			"UNION ALL SELECT 3, COUNT(*), x.bonus, 0, 0, '' FROM\n"...
+			"    (SELECT map, track>0 as bonus FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0) x GROUP BY x.bonus\n"...
+			"UNION ALL SELECT 4, COUNT(*), track>0, 0, 0, '' FROM %swrs WHERE auth = %d AND style = %d GROUP BY track>0\n"...
+			"UNION ALL SELECT 5, COUNT(*), x.bonus, 0, 0, '' FROM\n"...
+			"    (SELECT map, track>0 as bonus FROM %smapzones WHERE type = 0 GROUP BY map, track>0) x GROUP BY x.bonus",
+			sQuery,
+			gS_MySQLPrefix, steamid, style,
+			gS_MySQLPrefix, steamid, style,
+			gS_MySQLPrefix
+		);
 	}
-	else
-	{
-		FormatEx(sQuery, 2048, "SELECT a.clears, b.maps, c.wrs, d.name, d.ip, d.lastlogin, e.clears, f.maps, g.wrs, d.playtime, i.styleplaytime FROM " ...
-				"(SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track = 0 AND style = %d GROUP BY map) s) a " ...
-				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track = 0 AND type = 0 GROUP BY map) s) b " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track = 0 AND style = %d) c " ...
-				"JOIN (SELECT name, ip, lastlogin, playtime FROM %susers WHERE auth = %d) d " ...
-				"JOIN (SELECT COUNT(*) clears FROM (SELECT map FROM %splayertimes WHERE auth = %d AND track > 0 AND style = %d GROUP BY map) s) e " ...
-				"JOIN (SELECT COUNT(*) maps FROM (SELECT map FROM %smapzones WHERE track > 0 AND type = 0 GROUP BY map) s) f " ...
-				"JOIN (SELECT COUNT(*) wrs FROM %swrs WHERE auth = %d AND track > 0 AND style = %d) g " ...
-				"JOIN (SELECT SUM(playtime) as styleplaytime FROM %sstyleplaytime WHERE auth = %d AND style = %d) i " ...
-			"LIMIT 1;", gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, steamid, style);
-	}
+
+	StrCat(sQuery, sizeof(sQuery), ";");
 
 	gH_SQL.Query(OpenStatsMenuCallback, sQuery, data, DBPrio_Low);
 
@@ -874,92 +878,120 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 	int client = GetClientFromSerial(data.ReadCell());
 	int item = data.ReadCell();
 
+	int iCompletions[2];
+	int iWRs[2];
+	int iMaps[2];
+
+	if (gB_Mapchooser && gCV_UseMapchooser.BoolValue)
+	{
+		iCompletions[0] = data.ReadCell();
+		iCompletions[1] = data.ReadCell();
+		iMaps[0] = data.ReadCell();
+		iMaps[1] = data.ReadCell();
+		iWRs[0] = data.ReadCell();
+		iWRs[1] = data.ReadCell();
+	}
+
+	delete data;
+
 	gB_CanOpenMenu[client] = true;
 
 	if(results == null)
 	{
-		delete data;
 		LogError("Timer (statsmenu) SQL query failed. Reason: %s", error);
 		return;
 	}
 
 	if(client == 0)
 	{
-		delete data;
 		return;
 	}
 
-	if(results.FetchRow())
+	float fPoints;
+	char sLastLogin[32];
+	char sCountry[64];
+	char sPlaytime[16];
+
+	char sStylePlaytime[16];
+
+	int iRank;
+
+	if (!results.FetchRow())
 	{
-		// create variables
-		int iClears = results.FetchInt(0);
-		int iTotalMaps = results.FetchInt(1);
-		int iWRs = results.FetchInt(2);
-		results.FetchString(3, gS_TargetName[client], MAX_NAME_LENGTH);
-		ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
+		Shavit_PrintToChat(client, "%T", "StatsMenuFailure", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		return;
+	}
 
-		int iIPAddress = results.FetchInt(4);
-		char sIPAddress[32];
-		IPAddressToString(iIPAddress, sIPAddress, 32);
+	do
+	{
+		int type = results.FetchInt(0);
 
-		char sCountry[64];
-
-		if(!GeoipCountry(sIPAddress, sCountry, 64))
+		if (type == 0)
 		{
-			strcopy(sCountry, 64, "Local Area Network");
+			fPoints = results.FetchFloat(1);
+
+			int iLastLogin = results.FetchInt(2);
+			FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
+			Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
+
+			int iIPAddress = results.FetchInt(3);
+			char sIPAddress[32];
+			IPAddressToString(iIPAddress, sIPAddress, 32);
+
+			if (!GeoipCountry(sIPAddress, sCountry, 64))
+			{
+				sCountry = "Local Area Network";
+			}
+
+			float fPlaytime = results.FetchFloat(4);
+			FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true, true);
+
+			results.FetchString(5, gS_TargetName[client], MAX_NAME_LENGTH);
+			ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
 		}
-
-		int iLastLogin = results.FetchInt(5);
-		char sLastLogin[32];
-		FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
-		Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
-
-		int iBonusClears = results.FetchInt(6);
-		int iBonusTotalMaps = results.FetchInt(7);
-		int iBonusWRs = results.FetchInt(8);
-
-		if (gB_Mapchooser && gCV_UseMapchooser.BoolValue)
+		else if (type == 1)
 		{
-			iClears = data.ReadCell();
-			iBonusClears = data.ReadCell();
-			iTotalMaps = data.ReadCell();
-			iBonusTotalMaps = data.ReadCell();
+			float fPlaytime = results.FetchFloat(1);
+			FormatSeconds(fPlaytime, sStylePlaytime, sizeof(sStylePlaytime), false, true, true);
 		}
-
-		char sPoints[16];
-		char sRank[16];
-
-		if(gB_Rankings)
+		else if (type == 2)
 		{
-			results.FetchString(9, sPoints, 16);
-			results.FetchString(10, sRank, 16);
+			iRank = results.FetchInt(1);
 		}
+		else if (type == 3)
+		{
+			iCompletions[results.FetchInt(2)] = results.FetchInt(1);
+		}
+		else if (type == 4)
+		{
+			iWRs[results.FetchInt(2)] = results.FetchInt(1);
+		}
+		else if (type == 5)
+		{
+			iMaps[results.FetchInt(2)] = results.FetchInt(1);
+		}
+	}
+	while (results.FetchRow());
 
-		float fPlaytime = results.FetchFloat(gB_Rankings ? 11 : 9);
-		char sPlaytime[16];
-		FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true, true);
+	iCompletions[0] = iCompletions[0] < iMaps[0] ? iCompletions[0] : iMaps[0];
+	iCompletions[1] = iCompletions[1] < iMaps[1] ? iCompletions[1] : iMaps[1];
+	iWRs[0] = iWRs[0] < iMaps[0] ? iWRs[0] : iMaps[0];
+	iWRs[1] = iWRs[1] < iMaps[1] ? iWRs[1] : iMaps[1];
 
-		float fStylePlaytime = results.FetchFloat(gB_Rankings ? 12 : 10);
-		char sStylePlaytime[16];
-		FormatSeconds(fStylePlaytime, sStylePlaytime, sizeof(sStylePlaytime), false, true, true);
-
+	if (1 & 1) // :upside_down_smiley_face:
+	{
 		char sRankingString[64];
 
 		if(gB_Rankings)
 		{
-			if(StringToInt(sRank) > 0 && StringToInt(sPoints) > 0)
+			if (iRank > 0 && fPoints > 0.0)
 			{
-				FormatEx(sRankingString, 64, "\n%T: #%s/%d\n%T: %s", "Rank", client, sRank, Shavit_GetRankedPlayers(), "Points", client, sPoints);
+				FormatEx(sRankingString, 64, "\n%T: #%d/%d\n%T: %.2f", "Rank", client, iRank, Shavit_GetRankedPlayers(), "Points", client, fPoints);
 			}
 			else
 			{
 				FormatEx(sRankingString, 64, "\n%T: %T", "Rank", client, "PointsUnranked", client);
 			}
-		}
-
-		if(iClears > iTotalMaps)
-		{
-			iClears = iTotalMaps;
 		}
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
@@ -995,10 +1027,10 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 					"    [%T] %s\n"...
 					"",
 					gS_StyleStrings[iStyle].sStyleName,
-					"MapCompletions", client, iClears, iTotalMaps, ((float(iClears) / (iTotalMaps > 0 ? float(iTotalMaps) : 0.0)) * 100.0),
-					"WorldRecords", client, iWRs,
-					"MapCompletions", client, iBonusClears, iBonusTotalMaps, ((float(iBonusClears) / (iBonusTotalMaps > 0 ? float(iBonusTotalMaps) : 0.0)) * 100.0),
-					"WorldRecords", client, iBonusWRs,
+					"MapCompletions", client, iCompletions[0], iMaps[0], ((float(iCompletions[0]) / (iMaps[0] > 0 ? float(iMaps[0]) : 0.0)) * 100.0),
+					"WorldRecords", client, iWRs[0],
+					"MapCompletions", client, iCompletions[1], iMaps[1], ((float(iCompletions[1]) / (iMaps[1] > 0 ? float(iMaps[1]) : 0.0)) * 100.0),
+					"WorldRecords", client, iWRs[1],
 					"Playtime", client, sStylePlaytime
 				);
 			}
@@ -1031,13 +1063,6 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			Shavit_PrintToChat(client, "%s: %s%s %s[U:1:%d]%s %s", gS_TargetName[client], gS_ChatStrings.sVariable, steam2, gS_ChatStrings.sText, gI_TargetSteamID[client], gS_ChatStrings.sVariable2, steam64);
 		}
 	}
-
-	else
-	{
-		Shavit_PrintToChat(client, "%T", "StatsMenuFailure", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
-	}
-
-	delete data;
 }
 
 public int MenuHandler_ProfileHandler(Menu menu, MenuAction action, int param1, int param2)
