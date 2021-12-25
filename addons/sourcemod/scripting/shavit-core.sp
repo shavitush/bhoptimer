@@ -1932,6 +1932,7 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 
 	timer_snapshot_t snapshot;
 	GetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
+	snapshot.fTimescale = (snapshot.fTimescale > 0.0) ? snapshot.fTimescale : 1.0;
 
 	if (gA_Timers[client].iTimerTrack != snapshot.iTimerTrack)
 	{
@@ -1945,9 +1946,13 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 		CallOnStyleChanged(client, gA_Timers[client].bsStyle, snapshot.bsStyle, false);
 	}
 
+	if (gA_Timers[client].fTimescale != snapshot.fTimescale)
+	{
+		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, snapshot.fTimescale);
+	}
+
 	gA_Timers[client] = snapshot;
 	gA_Timers[client].bClientPaused = snapshot.bClientPaused && snapshot.bTimerEnabled;
-	gA_Timers[client].fTimescale = (snapshot.fTimescale > 0.0) ? snapshot.fTimescale : 1.0;
 
 	return 0;
 }
