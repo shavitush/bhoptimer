@@ -150,6 +150,9 @@ Player commands:
 !cp, !cpmenu, !checkpoint, !checkpoints - Opens the checkpoints menu.
 !save - Saves checkpoint.
 !tele - Teleports to checkpoint (default: 1). Usage: !tele [number]
+!prevcp - Selects the previous checkpoint.
+!nextcp - Selects the next checkpoint.
+!deletecp - Deletes the current checkpoint.
 !nc, !prac, !practice, !noclipme, +noclip, sm_noclip - Toggles noclip.
 ```
 

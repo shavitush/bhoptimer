@@ -157,6 +157,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_checkpoints", Command_Checkpoints, "Opens the checkpoints menu. Alias for sm_cpmenu.");
 	RegConsoleCmd("sm_save", Command_Save, "Saves checkpoint.");
 	RegConsoleCmd("sm_tele", Command_Tele, "Teleports to checkpoint. Usage: sm_tele [number]");
+	RegConsoleCmd("sm_prevcp", Command_PrevCheckpoint, "Selects the previous checkpoint.");
+	RegConsoleCmd("sm_nextcp", Command_NextCheckpoint, "Selects the next checkpoint.");
+	RegConsoleCmd("sm_deletecp", Command_DeleteCheckpoint, "Deletes the current checkpoint.");
 	gH_CheckpointsCookie = RegClientCookie("shavit_checkpoints", "Checkpoints settings", CookieAccess_Protected);
 	gA_PersistentData = new ArrayList(sizeof(persistent_data_t));
 
@@ -712,6 +715,21 @@ void ResetCheckpoints(int client)
 	gI_CurrentCheckpoint[client] = 0;
 }
 
+bool ShouldReopenCheckpointMenu(int client)
+{
+	if (gB_InCheckpointMenu[client])
+	{
+		return true;
+	}
+
+	if (!gB_ClosedKZCP[client] && Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
+	{
+		return true;
+	}
+
+	return false;
+}
+
 public Action Command_Checkpoints(int client, int args)
 {
 	if(client == 0)
@@ -751,9 +769,9 @@ public Action Command_Save(int client, int args)
 	{ 
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CurrentCheckpoint[client], gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
-		if (gB_InCheckpointMenu[client])
+		if (ShouldReopenCheckpointMenu(client))
 		{
-			OpenNormalCPMenu(client);
+			OpenCheckpointsMenu(client);
 		}
 	}
 
@@ -792,6 +810,90 @@ public Action Command_Tele(int client, int args)
 	}
 
 	TeleportToCheckpoint(client, index, true);
+
+	return Plugin_Handled;
+}
+
+public Action Command_PrevCheckpoint(int client, int args)
+{
+	if (client == 0)
+	{
+		ReplyToCommand(client, "This command may be only performed in-game.");
+		return Plugin_Handled;
+	}
+
+	if (!gCV_Checkpoints.BoolValue)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		return Plugin_Handled;
+	}
+
+	if (gI_CurrentCheckpoint[client] > 1)
+	{
+		gI_CurrentCheckpoint[client]--;
+
+		if (ShouldReopenCheckpointMenu(client))
+		{
+			OpenCheckpointsMenu(client);
+		}
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_NextCheckpoint(int client, int args)
+{
+	if (client == 0)
+	{
+		ReplyToCommand(client, "This command may be only performed in-game.");
+		return Plugin_Handled;
+	}
+
+	if (!gCV_Checkpoints.BoolValue)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		return Plugin_Handled;
+	}
+
+	if (gI_CurrentCheckpoint[client] < gA_Checkpoints[client].Length)
+	{
+		gI_CurrentCheckpoint[client]++;
+
+		if (ShouldReopenCheckpointMenu(client))
+		{
+			OpenCheckpointsMenu(client);
+		}
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_DeleteCheckpoint(int client, int args)
+{
+	if (client == 0)
+	{
+		ReplyToCommand(client, "This command may be only performed in-game.");
+		return Plugin_Handled;
+	}
+
+	if (!gCV_Checkpoints.BoolValue)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		return Plugin_Handled;
+	}
+
+	if (DeleteCheckpoint(client, gI_CurrentCheckpoint[client]))
+	{
+		if (gI_CurrentCheckpoint[client] > gA_Checkpoints[client].Length)
+		{
+			gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
+		}
+
+		if (ShouldReopenCheckpointMenu(client))
+		{
+			OpenCheckpointsMenu(client);
+		}
+	}
 
 	return Plugin_Handled;
 }
@@ -1040,11 +1142,17 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		}
 		else if(StrEqual(sInfo, "prev"))
 		{
-			gI_CurrentCheckpoint[param1]--;
+			if (gI_CurrentCheckpoint[param1] > 1)
+			{
+				gI_CurrentCheckpoint[param1]--;
+			}
 		}
 		else if(StrEqual(sInfo, "next"))
 		{
-			gI_CurrentCheckpoint[param1]++;
+			if (gI_CurrentCheckpoint[param1] < gA_Checkpoints[param1].Length)
+			{
+				gI_CurrentCheckpoint[param1]++;
+			}
 		}
 		else if(StrEqual(sInfo, "del"))
 		{
