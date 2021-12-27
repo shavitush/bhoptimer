@@ -148,8 +148,8 @@ Player commands:
 !tpto, !goto - Teleport to another player. Usage: !tpto [target]
 !usp, !glock, !knife - Spawn a USP/Glock/Knife.
 !cp, !cpmenu, !checkpoint, !checkpoints - Opens the checkpoints menu.
-!save - Saves checkpoint.
-!tele - Teleports to checkpoint (default: 1). Usage: !tele [number]
+!save - Saves a checkpoint.
+!tele - Teleports to a checkpoint (default: 1). Usage: !tele [number]
 !prevcp - Selects the previous checkpoint.
 !nextcp - Selects the next checkpoint.
 !deletecp - Deletes the current checkpoint.
