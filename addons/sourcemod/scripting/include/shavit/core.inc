@@ -598,6 +598,15 @@ forward void Shavit_OnRestart(int client, int track);
 /**
  * Called when a player uses the !end command.
  *
+ * @param client                    Client index.
+ * @param track                     Timer track.
+ * @return                          Plugin_Continue to do nothing or anything else to not goto the end.
+ */
+forward Action Shavit_OnEndPre(int client, int track);
+
+/**
+ * Called when a player uses the !end command.
+ *
  * @param client					Client index.
  * @param track						Timer track.
  * @noreturn
@@ -1317,6 +1326,16 @@ native bool Shavit_Core_CookiesRetrieved(int client);
  */
 native bool Shavit_ShouldProcessFrame(int client);
 
+/**
+ * Stops the player's timer and teleports them to the end zone.
+ *
+ * @param client
+ * @param track
+ *
+ * @noreturn
+ */
+native void Shavit_GotoEnd(int client, int track);
+
 public SharedPlugin __pl_shavit_core =
 {
 	name = "shavit",
@@ -1382,6 +1401,7 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetStyleSettingInt");
 	MarkNativeAsOptional("Shavit_Core_CookiesRetrieved");
 	MarkNativeAsOptional("Shavit_ShouldProcessFrame");
+	MarkNativeAsOptional("Shavit_GotoEnd");
 
 	__pl_shavit_bhopstats_SetNTVOptional();
 }

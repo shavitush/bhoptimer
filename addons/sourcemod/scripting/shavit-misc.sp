@@ -70,6 +70,7 @@ int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
 int gI_LastWeaponTick[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
+int gI_LastRestartTrack[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -1782,6 +1783,16 @@ void DoNoclip(int client)
 	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 }
 
+void DoEnd(int client)
+{
+	Shavit_GotoEnd(client, gI_LastRestartTrack[client]);
+}
+
+void DoRestart(int client)
+{
+	Shavit_RestartTimer(client, gI_LastRestartTrack[client]);
+}
+
 void DoStopTimer(int client)
 {
 	Shavit_StopTimer(client);
@@ -1953,6 +1964,12 @@ public Action CommandListener_Real_Noclip(int client, const char[] command, int 
 	{
 		if (gI_LastNoclipTick[client] == GetGameTickCount())
 		{
+			return Plugin_Stop;
+		}
+
+		if (ShouldDisplayStopWarning(client))
+		{
+			OpenStopWarningMenu(client, DoNoclip);
 			return Plugin_Stop;
 		}
 
@@ -2141,6 +2158,18 @@ public void Shavit_OnRestart(int client, int track)
 	}
 }
 
+public Action Shavit_OnEndPre(int client, int track)
+{
+	if (ShouldDisplayStopWarning(client))
+	{
+		gI_LastRestartTrack[client] = track;
+		OpenStopWarningMenu(client, DoEnd);
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
 public Action Shavit_OnRestartPre(int client, int track)
 {
 	if(gCV_RespawnOnRestart.BoolValue && !IsPlayerAlive(client))
@@ -2163,6 +2192,13 @@ public Action Shavit_OnRestartPre(int client, int track)
 			CS_RespawnPlayer(client);
 		}
 
+		return Plugin_Handled;
+	}
+
+	if (ShouldDisplayStopWarning(client))
+	{
+		gI_LastRestartTrack[client] = track;
+		OpenStopWarningMenu(client, DoRestart);
 		return Plugin_Handled;
 	}
 

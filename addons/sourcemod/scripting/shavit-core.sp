@@ -69,6 +69,7 @@ Handle gH_Forwards_FinishPre = null;
 Handle gH_Forwards_Finish = null;
 Handle gH_Forwards_OnRestartPre = null;
 Handle gH_Forwards_OnRestart = null;
+Handle gH_Forwards_OnEndPre = null;
 Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
@@ -209,6 +210,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_SetMaxVelocity", Native_SetMaxVelocity);
 	CreateNative("Shavit_Core_CookiesRetrieved", Native_Core_CookiesRetrieved);
 	CreateNative("Shavit_ShouldProcessFrame", Native_ShouldProcessFrame);
+	CreateNative("Shavit_GotoEnd", Native_GotoEnd);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -229,6 +231,7 @@ public void OnPluginStart()
 	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestartPre = CreateGlobalForward("Shavit_OnRestartPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Ignore, Param_Cell, Param_Cell);
+	gH_Forwards_OnEndPre = CreateGlobalForward("Shavit_OnEndPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
@@ -608,38 +611,38 @@ public Action Command_StartTimer(int client, int args)
 	else if(StrContains(sCommand, "sm_r", false) == 0 || StrContains(sCommand, "sm_s", false) == 0)
 	{
 		track = (DoIHateMain(client)) ? Track_Main : gA_Timers[client].iTimerTrack;
-
-		Action result = Plugin_Continue;
-		Call_StartForward(gH_Forwards_OnRestartPre);
-		Call_PushCell(client);
-		Call_PushCell(track);
-		Call_Finish(result);
-
-		if (result > Plugin_Continue)
-		{
-			return Plugin_Handled;
-		}
 	}
 
-	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, track) || gB_KZMap[track]))
-	{
-		if(!Shavit_StopTimer(client, false))
-		{
-			return Plugin_Handled;
-		}
-
-		Call_StartForward(gH_Forwards_OnRestart);
-		Call_PushCell(client);
-		Call_PushCell(track);
-		Call_Finish();
-	}
-	else
+	if (!gB_Zones || !(Shavit_ZoneExists(Zone_Start, track) || gB_KZMap[track]))
 	{
 		char sTrack[32];
 		GetTrackName(client, track, sTrack, 32);
 
 		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTrack, gS_ChatStrings.sText);
+
+		return Plugin_Handled;
 	}
+
+	Action result = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnRestartPre);
+	Call_PushCell(client);
+	Call_PushCell(track);
+	Call_Finish(result);
+
+	if (result > Plugin_Continue)
+	{
+		return Plugin_Handled;
+	}
+
+	if (!Shavit_StopTimer(client, false))
+	{
+		return Plugin_Handled;
+	}
+
+	Call_StartForward(gH_Forwards_OnRestart);
+	Call_PushCell(client);
+	Call_PushCell(track);
+	Call_Finish();
 
 	return Plugin_Handled;
 }
@@ -696,21 +699,32 @@ public Action Command_TeleportEnd(int client, int args)
 		}
 	}
 
-	if(gB_Zones && (Shavit_ZoneExists(Zone_End, track) || gB_KZMap[track]))
-	{
-		if(Shavit_StopTimer(client, false))
-		{
-			Call_StartForward(gH_Forwards_OnEnd);
-			Call_PushCell(client);
-			Call_PushCell(track);
-			Call_Finish();
-		}
-	}
-
-	else
+	if (!gB_Zones || !(Shavit_ZoneExists(Zone_End, track) || gB_KZMap[track]))
 	{
 		Shavit_PrintToChat(client, "%T", "EndZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		return Plugin_Handled;
 	}
+
+	Action result = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnEndPre);
+	Call_PushCell(client);
+	Call_PushCell(track);
+	Call_Finish(result);
+
+	if (result > Plugin_Continue)
+	{
+		return Plugin_Handled;
+	}
+
+	if (!Shavit_StopTimer(client, false))
+	{
+		return Plugin_Handled;
+	}
+
+	Call_StartForward(gH_Forwards_OnEnd);
+	Call_PushCell(client);
+	Call_PushCell(track);
+	Call_Finish();
 
 	return Plugin_Handled;
 }
@@ -1930,6 +1944,19 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 
 	EndMessage();
 	return true;
+}
+
+public int Native_GotoEnd(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int track = GetNativeCell(2);
+
+	Shavit_StopTimer(client, true);
+
+	Call_StartForward(gH_Forwards_OnEnd);
+	Call_PushCell(client);
+	Call_PushCell(track);
+	Call_Finish();
 }
 
 public int Native_RestartTimer(Handle handler, int numParams)
