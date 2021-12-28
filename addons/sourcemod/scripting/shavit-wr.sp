@@ -1402,18 +1402,19 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 		if(iRecordID == -1)
 		{
 			Shavit_PrintToChat(param1, "%T", "DeletionAborted", param1);
+			OpenDelete(param1);
 
 			return 0;
 		}
 
 		char sQuery[512];
 		FormatEx(sQuery, sizeof(sQuery),
-		"SELECT u.auth, u.name, p.map, p.time, p.sync, p.perfs, p.jumps, p.strafes, p.id, p.date, "...
+		"SELECT u.auth, u.name, p.map, p.time, p.sync, p.perfs, p.jumps, p.strafes, p.id, p.date, p.style, p.track, "...
 		"(SELECT id FROM %splayertimes WHERE style = %d AND track = %d AND map = p.map ORDER BY time, date ASC LIMIT 1) "...
 		"FROM %susers u LEFT JOIN %splayertimes p ON u.auth = p.auth WHERE p.id = %d;",
 			gS_MySQLPrefix, gA_WRCache[param1].iLastStyle, gA_WRCache[param1].iLastTrack, gS_MySQLPrefix, gS_MySQLPrefix, iRecordID);
 
-		gH_SQL.Query(GetRecordDetails_Callback, sQuery, GetClientSerial(param1), DBPrio_High);
+		gH_SQL.Query(GetRecordDetails_Callback, sQuery, GetSteamAccountID(param1), DBPrio_High);
 	}
 
 	else if(action == MenuAction_End)
@@ -1428,15 +1429,17 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 {
 	if(results == null)
 	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i) && GetSteamAccountID(i) == data)
+			{
+				OpenDelete(i);
+				break;
+			}
+		}
+
 		LogError("Timer (WR GetRecordDetails) SQL query failed. Reason: %s", error);
 
-		return;
-	}
-
-	int client = GetClientFromSerial(data);
-
-	if(client == 0)
-	{
 		return;
 	}
 
@@ -1458,14 +1461,13 @@ public void GetRecordDetails_Callback(Database db, DBResultSet results, const ch
 		int iStrafes = results.FetchInt(7);
 		int iRecordID = results.FetchInt(8);
 		int iTimestamp = results.FetchInt(9);
-		int iWRRecordID = results.FetchInt(10);
-
-		int iStyle = gA_WRCache[client].iLastStyle;
-		int iTrack = gA_WRCache[client].iLastTrack;
+		int iStyle = results.FetchInt(10);
+		int iTrack = results.FetchInt(11);
+		int iWRRecordID = results.FetchInt(12);
 
 		// that's a big datapack ya yeet
 		DataPack hPack = new DataPack();
-		hPack.WriteCell(GetClientSerial(client));
+		hPack.WriteCell(data);
 		hPack.WriteCell(iSteamID);
 		hPack.WriteString(sName);
 		hPack.WriteString(sMap);
@@ -1494,7 +1496,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 {
 	hPack.Reset();
 
-	int iSerial = hPack.ReadCell();
+	int admin_steamid = hPack.ReadCell();
 	int iSteamID = hPack.ReadCell();
 
 	char sName[MAX_NAME_LENGTH];
@@ -1516,6 +1518,15 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 
 	bool bWRDeleted = view_as<bool>(hPack.ReadCell());
 	delete hPack;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i) && GetSteamAccountID(i) == admin_steamid)
+		{
+			DeleteSubmenu(i);
+			break;
+		}
+	}
 
 	if(results == null)
 	{
@@ -1540,8 +1551,6 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 		}
 	}
 
-	int client = GetClientFromSerial(iSerial);
-
 	char sTrack[32];
 	GetTrackName(LANG_SERVER, iTrack, sTrack, 32);
 
@@ -1549,15 +1558,17 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 	FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", iTimestamp);
 
 	// above the client == 0 so log doesn't get lost if admin disconnects between deleting record and query execution
-	Shavit_LogMessage("%L - deleted record. Runner: %s ([U:1:%d]) | Map: %s | Style: %s | Track: %s | Time: %.2f (%s) | Strafes: %d (%.1f%%) | Jumps: %d (%.1f%%) | Run date: %s | Record ID: %d",
-		client, sName, iSteamID, sMap, gS_StyleStrings[iStyle].sStyleName, sTrack, fTime, (bWRDeleted)? "WR":"not WR", iStrafes, fSync, iJumps, fPerfectJumps, sDate, iRecordID);
+	Shavit_LogMessage("Admin [U:1:%d] - deleted record. Runner: %s ([U:1:%d]) | Map: %s | Style: %s | Track: %s | Time: %.2f (%s) | Strafes: %d (%.1f%%) | Jumps: %d (%.1f%%) | Run date: %s | Record ID: %d",
+		admin_steamid, sName, iSteamID, sMap, gS_StyleStrings[iStyle].sStyleName, sTrack, fTime, (bWRDeleted)? "WR":"not WR", iStrafes, fSync, iJumps, fPerfectJumps, sDate, iRecordID);
 
-	if(client == 0)
+	for (int i = 1; i <= MaxClients; i++)
 	{
-		return;
+		if (IsValidClient(i) && GetSteamAccountID(i) == admin_steamid)
+		{
+			Shavit_PrintToChat(i, "%T", "DeletedRecord", i);
+			break;
+		}
 	}
-
-	Shavit_PrintToChat(client, "%T", "DeletedRecord", client);
 }
 
 public void DeleteAll_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)

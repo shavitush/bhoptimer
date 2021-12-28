@@ -2783,7 +2783,7 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 		menu.GetItem(param2, sInfo, 4);
 		int style = StringToInt(sInfo);
 
-		if(DeleteReplay(style, gI_MenuTrack[param1], 0, gS_Map))
+		if (style != -1 && DeleteReplay(style, gI_MenuTrack[param1], 0, gS_Map))
 		{
 			char sTrack[32];
 			GetTrackName(param1, gI_MenuTrack[param1], sTrack, 32);
@@ -2797,6 +2797,8 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 		{
 			Shavit_PrintToChat(param1, "%T", "ReplayDeleteFailure", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 		}
+
+		Command_DeleteReplay(param1, 0);
 	}
 
 	else if(action == MenuAction_End)
