@@ -162,6 +162,9 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingFloat(gI_CurrentParserIndex, "speed", 1.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "halftime", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "timescale", 1.0);
+
+	SetStyleSettingInt  (gI_CurrentParserIndex, "tas_timescale", 0);
+
 	SetStyleSettingInt  (gI_CurrentParserIndex, "force_timescale", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity", 1.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "bonus_velocity", 0.0);

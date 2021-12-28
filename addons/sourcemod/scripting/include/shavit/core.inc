@@ -140,6 +140,11 @@ enum struct timer_snapshot_t
 	MoveType iLastMoveType;
 	float fStrafeWarning;
 	float fLastInputVel[2];
+
+	float fplayer_speedmod;
+	float fNextFrameTime;
+
+	MoveType iLastMoveTypeTAS;
 }
 
 stock void Shavit_LogQuery(const char[] query)
@@ -1303,6 +1308,15 @@ native float Shavit_GetClientTimescale(int client);
  */
 native bool Shavit_Core_CookiesRetrieved(int client);
 
+/**
+ * When using the timer's timescale_tas stuff, this returns whether the current frame should be recorded by replay plugins.
+ *
+ * @param client                    Client index
+ *
+ * @return                          true if the current frame should be recorded....
+ */
+native bool Shavit_ShouldProcessFrame(int client);
+
 public SharedPlugin __pl_shavit_core =
 {
 	name = "shavit",
@@ -1367,6 +1381,7 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetStyleSettingBool");
 	MarkNativeAsOptional("Shavit_SetStyleSettingInt");
 	MarkNativeAsOptional("Shavit_Core_CookiesRetrieved");
+	MarkNativeAsOptional("Shavit_ShouldProcessFrame");
 
 	__pl_shavit_bhopstats_SetNTVOptional();
 }

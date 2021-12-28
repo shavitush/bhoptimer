@@ -26,6 +26,10 @@
 		"#format" 	"{1:s},{2:s}"
 		"en"		"You lack the {1}permissions{2} for this style."
 	}
+	"NoEditingTimescale"
+	{
+		"en"        "This style doesn't allow you to change timescale."
+	}
 	// ---------- Errors ---------- //
 	"VerificationFailed"
 	{

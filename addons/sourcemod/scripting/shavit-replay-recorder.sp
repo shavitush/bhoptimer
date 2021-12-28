@@ -87,7 +87,6 @@ int gI_PlayerFinishFrame[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
 int gI_PlayerPrerunFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
-float gF_NextFrameTime[MAXPLAYERS+1];
 
 int gI_HijackFrames[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
@@ -249,16 +248,10 @@ void ClearFrames(int client)
 	delete gA_PlayerFrames[client];
 	gA_PlayerFrames[client] = new ArrayList(sizeof(frame_t));
 	gI_PlayerFrames[client] = 0;
-	gF_NextFrameTime[client] = 0.0;
 	gI_PlayerPrerunFrames[client] = 0;
 	gI_PlayerFinishFrame[client] = 0;
 	gI_HijackFrames[client] = 0;
 	gB_HijackFramesKeepOnStart[client] = false;
-}
-
-public void Shavit_OnTimescaleChanged(int client, float oldtimescale, float newtimescale)
-{
-	gF_NextFrameTime[client] = 0.0;
 }
 
 public Action Shavit_OnStart(int client)
@@ -518,15 +511,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		return;
 	}
 
-	float fTimescale = Shavit_GetClientTimescale(client);
-
-	if (gF_NextFrameTime[client] > 0.0)
+	if (!Shavit_ShouldProcessFrame(client))
 	{
-		if (fTimescale != -1.0)
-		{
-			gF_NextFrameTime[client] -= fTimescale;
-		}
-
 		return;
 	}
 
@@ -561,11 +547,6 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	aFrame.vel = LimitMoveVelFloat(vel[0]) | (LimitMoveVelFloat(vel[1]) << 16);
 
 	gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, aFrame, sizeof(frame_t));
-
-	if (fTimescale != -1.0)
-	{
-		gF_NextFrameTime[client] += (1.0 - fTimescale);
-	}
 }
 
 stock int LimitMoveVelFloat(float vel)

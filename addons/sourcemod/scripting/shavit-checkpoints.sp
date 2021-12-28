@@ -1441,6 +1441,12 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 	else
 	{
 		Shavit_SaveSnapshot(target, snapshot);
+
+		// hacky but should be done for timescale_tas stuff...
+		if (!Shavit_ShouldProcessFrame(target))
+		{
+			cpcache.iMoveType = MOVETYPE_NONE;
+		}
 	}
 
 	cpcache.aSnapshot = snapshot;
