@@ -420,7 +420,7 @@ public int Native_GetStyleSettingBool(Handle handler, int numParams)
 
 bool GetStyleSettingBool(int style, char[] key)
 {
-	return GetStyleSettingInt(style, key) != 0;
+	return GetStyleSettingFloat(style, key) != 0.0;
 }
 
 public any Native_GetStyleSettingFloat(Handle handler, int numParams)
