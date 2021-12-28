@@ -723,7 +723,7 @@ public Action Command_Spectate(int client, const char[] command, int args)
 		return Plugin_Continue;
 	}
 
-	CleanSwitchTeam(client, 1);
+	Command_Spec(client, 0);
 	return Plugin_Handled;
 }
 
