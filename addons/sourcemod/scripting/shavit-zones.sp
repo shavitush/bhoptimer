@@ -439,6 +439,11 @@ public void OnAdminMenuCreated(Handle topmenu)
 		return;
 	}
 
+	if ((gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands")) != INVALID_TOPMENUOBJECT)
+	{
+		return;
+	}
+
 	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
 }
 
