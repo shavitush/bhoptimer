@@ -70,7 +70,7 @@ int gI_Style[MAXPLAYERS+1];
 Function gH_AfterWarningMenu[MAXPLAYERS+1];
 int gI_LastWeaponTick[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
-int gI_LastRestartTrack[MAXPLAYERS+1];
+int gI_LastStopInfo[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -1785,12 +1785,18 @@ void DoNoclip(int client)
 
 void DoEnd(int client)
 {
-	Shavit_GotoEnd(client, gI_LastRestartTrack[client]);
+	Shavit_GotoEnd(client, gI_LastStopInfo[client]);
 }
 
 void DoRestart(int client)
 {
-	Shavit_RestartTimer(client, gI_LastRestartTrack[client]);
+	Shavit_RestartTimer(client, gI_LastStopInfo[client]);
+}
+
+void DoStyleChange(int client)
+{
+	Shavit_StopTimer(client);
+	FakeClientCommandEx(client, "sm_style %d", gI_LastStopInfo[client]);
 }
 
 void DoStopTimer(int client)
@@ -2158,11 +2164,23 @@ public void Shavit_OnRestart(int client, int track)
 	}
 }
 
+public Action Shavit_OnStyleCommandPre(int client, int oldstyle, int newstyle, int track)
+{
+	if (ShouldDisplayStopWarning(client))
+	{
+		gI_LastStopInfo[client] = newstyle;
+		OpenStopWarningMenu(client, DoStyleChange);
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
 public Action Shavit_OnEndPre(int client, int track)
 {
 	if (ShouldDisplayStopWarning(client))
 	{
-		gI_LastRestartTrack[client] = track;
+		gI_LastStopInfo[client] = track;
 		OpenStopWarningMenu(client, DoEnd);
 		return Plugin_Handled;
 	}
@@ -2197,7 +2215,7 @@ public Action Shavit_OnRestartPre(int client, int track)
 
 	if (ShouldDisplayStopWarning(client))
 	{
-		gI_LastRestartTrack[client] = track;
+		gI_LastStopInfo[client] = track;
 		OpenStopWarningMenu(client, DoRestart);
 		return Plugin_Handled;
 	}

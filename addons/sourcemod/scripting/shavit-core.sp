@@ -73,6 +73,7 @@ Handle gH_Forwards_OnEndPre = null;
 Handle gH_Forwards_OnEnd = null;
 Handle gH_Forwards_OnPause = null;
 Handle gH_Forwards_OnResume = null;
+Handle gH_Forwards_OnStyleCommandPre = null;
 Handle gH_Forwards_OnStyleChanged = null;
 Handle gH_Forwards_OnTrackChanged = null;
 Handle gH_Forwards_OnChatConfigLoaded = null;
@@ -235,6 +236,7 @@ public void OnPluginStart()
 	gH_Forwards_OnEnd = CreateGlobalForward("Shavit_OnEnd", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnPause = CreateGlobalForward("Shavit_OnPause", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnResume = CreateGlobalForward("Shavit_OnResume", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnStyleCommandPre = CreateGlobalForward("Shavit_OnStyleCommandPre", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnStyleChanged = CreateGlobalForward("Shavit_OnStyleChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnTrackChanged = CreateGlobalForward("Shavit_OnTrackChanged", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnChatConfigLoaded = CreateGlobalForward("Shavit_OnChatConfigLoaded", ET_Event);
@@ -1210,6 +1212,27 @@ public Action Command_Style(int client, int args)
 		return Plugin_Handled;
 	}
 
+	// allow !style <number>
+	if (args > 0)
+	{
+		char sArgs[16];
+		GetCmdArg(1, sArgs, sizeof(sArgs));
+		int style = StringToInt(sArgs);
+
+		if (style < 0 || style >= Shavit_GetStyleCount())
+		{
+			return Plugin_Handled;
+		}
+
+		if (GetStyleSettingBool(style, "inaccessible"))
+		{
+			return Plugin_Handled;
+		}
+
+		ChangeClientStyle(client, style, true);
+		return Plugin_Handled;
+	}
+
 	Menu menu = new Menu(StyleMenu_Handler);
 	menu.SetTitle("%T", "StyleMenuTitle", client);
 
@@ -1395,6 +1418,19 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	if(manual)
 	{
+		Action result = Plugin_Continue;
+		Call_StartForward(gH_Forwards_OnStyleCommandPre);
+		Call_PushCell(client);
+		Call_PushCell(gA_Timers[client].bsStyle);
+		Call_PushCell(style);
+		Call_PushCell(gA_Timers[client].iTimerTrack);
+		Call_Finish(result);
+
+		if (result > Plugin_Continue)
+		{
+			return;
+		}
+
 		if(!Shavit_StopTimer(client, false))
 		{
 			return;

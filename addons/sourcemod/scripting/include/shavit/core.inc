@@ -679,6 +679,17 @@ forward void Shavit_OnPause(int client, int track);
 forward void Shavit_OnResume(int client, int track);
 
 /**
+ * Called when a player tries to change their bhopstyle.
+ *
+ * @param client                    Client index.
+ * @param oldstyle                  Old bhop style.
+ * @param newstyle                  New bhop style.
+ * @param track                     Timer track.
+ * @return                          Plugin_Continue to do nothing. Anything else to block.
+ */
+forward Action Shavit_OnStyleCommandPre(int client, int oldstyle, int newstyle, int track);
+
+/**
  * Called when a player changes their bhopstyle.
  * Note: Doesn't guarantee that the player is in-game or connected.
  *
