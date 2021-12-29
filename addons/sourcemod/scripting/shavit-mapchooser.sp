@@ -2315,10 +2315,10 @@ void DebugPrint(const char[] message, any ...)
 
 public any Native_GetMapsArrayList(Handle plugin, int numParams)
 {
-	return CloneHandle(g_aMapList, plugin);
+	return g_aMapList;
 }
 
 public any Native_GetMapsStringMap(Handle plugin, int numParams)
 {
-	return CloneHandle(g_mMapList, plugin);
+	return g_mMapList;
 }

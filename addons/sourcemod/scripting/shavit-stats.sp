@@ -821,8 +821,6 @@ public void OpenStatsMenu_Mapchooser_Callback(Database db, DBResultSet results, 
 		maps_and_completions[blah][track>0?1:0] += 1;
 	}
 
-	delete mapchooser_maps;
-
 	data.WriteCell(maps_and_completions[0][0], true);
 	data.WriteCell(maps_and_completions[0][1], true);
 	data.WriteCell(maps_and_completions[1][0], true);
@@ -1270,8 +1268,6 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 		menu.AddItem(sRecordID, sDisplay);
 	}
-
-	delete mapchooser_maps;
 
 	if(gI_MapType[client] == MAPSDONE)
 	{

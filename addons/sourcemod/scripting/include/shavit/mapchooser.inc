@@ -52,14 +52,14 @@ forward void SMC_OnSuccesfulRTV();
 /**
  * Returns the ArrayList of maps currently on rotation.
  *
- * @return                            The ArrayList of Maps
+ * @return                            The ArrayList of Maps. Don't delete this handle.
  */
 native ArrayList Shavit_GetMapsArrayList();
 
 /**
  * Returns the StringMap of maps currently on rotation.
  *
- * @return                            the StringMap of maps
+ * @return                            the StringMap of maps. Don't delete this handle.
  */
 native StringMap Shavit_GetMapsStringMap();
 

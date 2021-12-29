@@ -215,7 +215,8 @@ native int Shavit_GetReplayCachePostFrames(int bot);
  * @param style                     Style.
  * @param track                     Track.
  * @param cheapCloneHandle          False means we duplicate the frames (ArrayList.Clone). True means we clone the handle to the frames (CloneHandle).
- * @return                          ArrayList with proper replay data, or null if there is no recorded data.
+ *
+ * @return                          ArrayList with proper replay data, or null if there is no recorded data. Delete this handle when you're done with it.
  */
 native ArrayList Shavit_GetReplayFrames(int style, int track, bool cheapCloneHandle=false);
 

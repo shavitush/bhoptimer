@@ -121,7 +121,7 @@ native void Shavit_SetReplayData(int client, ArrayList data, bool cheapCloneHand
  * @param client                    Client index.
  * @param cheapCloneHandle          False means we duplicate the frames (Arraylist.Clone). True means we clone the handle to the frames (CloneHandle). This is going to be used for peristent-data in shavit-misc so we don't allocate duplicate memory needlessly.
  *
- * @return                          ArrayList with proper replay data, or null if the player has no recorded data.
+ * @return                          ArrayList with proper replay data, or null if the player has no recorded data. Delete this handle when you're done with it.
  */
 native ArrayList Shavit_GetReplayData(int client, bool cheapCloneHandle=false);
 
