@@ -1373,14 +1373,6 @@ public void SQL_GetWRHolders_Callback(Database db, DBResultSet results, const ch
 			gI_WRHoldersCvar = total;
 		}
 	}
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientConnected(i))
-		{
-			UpdateWRs(i);
-		}
-	}
 }
 
 public int Native_GetWRCount(Handle handler, int numParams)
