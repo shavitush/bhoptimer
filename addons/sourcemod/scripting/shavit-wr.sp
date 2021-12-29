@@ -395,10 +395,9 @@ public void OnMapStart()
 	UpdateWRCache();
 
 	gA_ValidMaps.Clear();
-	gA_ValidMaps.PushString(gS_Map);
 
-	char sQuery[128];
-	FormatEx(sQuery, 128, "SELECT map FROM %smapzones GROUP BY map;", gS_MySQLPrefix);
+	char sQuery[512];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT map FROM %smapzones GROUP BY map UNION SELECT map FROM %splayertimes GROUP BY map ORDER BY map ASC;", gS_MySQLPrefix, gS_MySQLPrefix);
 	gH_SQL.Query(SQL_UpdateMaps_Callback, sQuery, 0, DBPrio_Low);
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -429,14 +428,13 @@ public void SQL_UpdateMaps_Callback(Database db, DBResultSet results, const char
 		char sMap[PLATFORM_MAX_PATH];
 		results.FetchString(0, sMap, sizeof(sMap));
 		LowercaseString(sMap);
-
-		if(gA_ValidMaps.FindString(sMap) == -1)
-		{
-			gA_ValidMaps.PushString(sMap);
-		}
+		gA_ValidMaps.PushString(sMap);
 	}
 
-	SortADTArray(gA_ValidMaps, Sort_Ascending, Sort_String);
+	if (gA_ValidMaps.FindString(gS_Map) == -1)
+	{
+		gA_ValidMaps.PushString(gS_Map);
+	}
 }
 
 void RegisterWRCommands(int style)
