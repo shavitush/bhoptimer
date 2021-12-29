@@ -110,6 +110,7 @@ bool gB_InitialRecalcStarted = false;
 bool gB_WorldRecordsCached = false;
 bool gB_WRHolderTablesMade = false;
 bool gB_WRHoldersRefreshed = false;
+bool gB_WRHoldersRefreshedTimer = false;
 int gI_WRHolders[2][STYLE_LIMIT];
 int gI_WRHoldersAll;
 int gI_WRHoldersCvar;
@@ -354,7 +355,7 @@ public void OnClientAuthorized(int client)
 {
 	if (gH_SQL && !IsFakeClient(client))
 	{
-		if (gB_WRHoldersRefreshed)
+		if (gB_WRHolderTablesMade)
 		{
 			UpdateWRs(client);
 		}
@@ -454,6 +455,7 @@ public void OnMapEnd()
 	gB_TierQueried = false;
 	gB_TierRetrieved = false;
 	gB_WRHoldersRefreshed = false;
+	gB_WRHoldersRefreshedTimer = false;
 	gB_WorldRecordsCached = false;
 }
 
@@ -1315,10 +1317,36 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 public void Trans_WRHolderRankTablesSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
 	gB_WRHolderTablesMade = true;
+
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientConnected(i) && IsClientAuthorized(i))
+		{
+			UpdateWRs(i);
+		}
+	}
+
 	RefreshWRHolders();
 }
 
 void RefreshWRHolders()
+{
+	if (gB_WRHoldersRefreshedTimer)
+	{
+		return;
+	}
+
+	gB_WRHoldersRefreshedTimer = true;
+	CreateTimer(10.0, Timer_RefreshWRHolders, 0, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action Timer_RefreshWRHolders(Handle timer, any data)
+{
+	RefreshWRHoldersActually();
+	return Plugin_Stop;
+}
+
+void RefreshWRHoldersActually()
 {
 	char sQuery[1024];
 
