@@ -806,6 +806,13 @@ void DeleteWRFinal(int style, int track, const char[] map, int steamid, int reco
 
 	if (update_cache)
 	{
+		// pop that sucker from the list so Shavit_OnWRDeleted (mainly in shavit-rankings) can grab the new wr (barring race conditions or whatever...)
+		if (gA_Leaderboard[style][track] && gA_Leaderboard[style][track].Length)
+		{
+			gA_Leaderboard[style][track].Erase(0);
+			gF_WRTime[style][track] = Shavit_GetTimeForRank(style, 1, track);
+		}
+
 		UpdateWRCache();
 	}
 }
@@ -2764,14 +2771,11 @@ int GetRankForTime(int style, float time, int track)
 		return 1;
 	}
 
-	if(gA_Leaderboard[style][track] != null && gA_Leaderboard[style][track].Length > 0)
+	for (int i = 0; i < iRecords; i++)
 	{
-		for(int i = 0; i < iRecords; i++)
+		if (time <= gA_Leaderboard[style][track].Get(i))
 		{
-			if(time <= gA_Leaderboard[style][track].Get(i))
-			{
-				return ++i;
-			}
+			return i+1;
 		}
 	}
 

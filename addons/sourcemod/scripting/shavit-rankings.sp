@@ -450,17 +450,26 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 
 public void OnMapEnd()
 {
-	// might be null if Shavit_OnDatabaseLoaded hasn't been called yet
-	if (gH_SQL != null && gB_TierRetrieved && gB_WorldRecordsCached)
-	{
-		RecalculateCurrentMap();
-	}
-
 	gB_InitialRecalcStarted = false;
 	gB_TierQueried = false;
 	gB_TierRetrieved = false;
 	gB_WRHoldersRefreshed = false;
 	gB_WorldRecordsCached = false;
+}
+
+public void Shavit_OnWRDeleted(int style, int id, int track, int accountid, const char[] mapname)
+{
+	if (!StrEqual(gS_Map, mapname))
+	{
+		return;
+	}
+
+	char sQuery[1024];
+	// bUseCurrentMap=true because shavit-wr should maybe have updated the wr even through the updatewrcache query hasn't run yet
+	FormatRecalculate(true, track, style, sQuery, sizeof(sQuery));
+	gH_SQL.Query(SQL_Recalculate_Callback, sQuery, (style << 8) | track, DBPrio_High);
+
+	UpdateAllPoints();
 }
 
 public void Shavit_OnWorldRecordsCached()
