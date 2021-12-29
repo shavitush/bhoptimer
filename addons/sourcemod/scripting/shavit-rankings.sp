@@ -1287,7 +1287,7 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 	char sWRHolderRankTrackQueryRANK[] =
 		"CREATE OR REPLACE VIEW %s%s AS \
 			SELECT \
-				RANK() OVER(PARTITION BY style ORDER BY wrcount DESC, auth ASC) \
+				RANK() OVER(PARTITION BY style ORDER BY COUNT(auth) DESC, auth ASC) \
 			as wrrank, \
 			style, auth, COUNT(auth) as wrcount \
 			FROM %swrs WHERE track %c 0 GROUP BY style, auth;";
@@ -1302,7 +1302,7 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 	char sWRHolderRankOtherQueryRANK[] =
 		"CREATE OR REPLACE VIEW %s%s AS \
 			SELECT \
-				RANK() OVER(ORDER BY wrcount DESC, auth ASC) \
+				RANK() OVER(ORDER BY COUNT(auth) DESC, auth ASC) \
 			as wrrank, \
 			-1 as style, auth, COUNT(*) as wrcount \
 			FROM %swrs %s %s %s %s GROUP BY auth;";
