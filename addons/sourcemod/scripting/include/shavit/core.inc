@@ -787,7 +787,8 @@ forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int custom
 forward void Shavit_OnTimeOffsetCalculated(int client, int zonetype, float offset, float distance);
 
 /**
- * Called when a clients dynamic timescale has been changed.
+ * Called when a client's dynamic timescale has been changed.
+ * For the client's total timescale value, see the comments next to `Shavit_GetClientTimescale()`.
  *
  * @param client					Client index.
  * @param oldtimescale				The old timescale value
@@ -1299,9 +1300,14 @@ native void Shavit_SetAvgVelocity(int client, float vel);
 native void Shavit_SetMaxVelocity(int client, float vel);
 
 /**
- * Sets the clients dynamic timescale. -1.0 to use the timescale of the client's style.
+ * Sets the client's dynamic timescale (timer_snapshot_t.fTimescale)
  * Note: Values above 1.0 won't scale into the replay bot.
  * Timescale is limited to four decimal places. timescale >= 0.0001
+ *
+ * timer_countdown_timescale = fTimescale * style_timescale;
+ * m_flLaggedMovementValue = fTimescale * style_timescale * style_speed * current_player_speedmod;
+ * Eventqueuefix_timescale = fTimescale * style_timescale * style_speed;
+ * See `UpdateLaggedMovement()` in shavit-core.sp for more info.
  *
  * @param client					Client index
  * @param scale						New timescale
@@ -1311,7 +1317,12 @@ native void Shavit_SetMaxVelocity(int client, float vel);
 native void Shavit_SetClientTimescale(int client, float scale);
 
 /**
- * Gets the clients dynamic timescale, or -1.0 if unset.
+ * Gets the clients dynamic timescale (timer_snapshot_t.fTimescale).
+ *
+ * timer_countdown_timescale = fTimescale * style_timescale;
+ * m_flLaggedMovementValue = fTimescale * style_timescale * style_speed * current_player_speedmod;
+ * Eventqueuefix_timescale = fTimescale * style_timescale * style_speed;
+ * See `UpdateLaggedMovement()` in shavit-core.sp for more info.
  *
  * @param client					Client index
  *
