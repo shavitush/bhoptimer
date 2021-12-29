@@ -178,10 +178,6 @@ public void OnPluginStart()
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-rankings.phrases");
 
-	// hooks
-	HookEvent("player_spawn", Player_Event);
-	HookEvent("player_team", Player_Event);
-
 	// tier cache
 	gA_ValidMaps = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
 	gA_MapTiers = new StringMap();
@@ -479,47 +475,22 @@ public void Shavit_OnWorldRecordsCached()
 	}
 }
 
-void CS_SetMVPCount_Test(int client, int count)
-{
-	CS_SetMVPCount(client, count);
-	SetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iMVPs", count, 4, client);
-}
-
 public Action Timer_MVPs(Handle timer)
 {
+	if (gCV_MVPRankOnes.IntValue == 0)
+	{
+		return Plugin_Continue;
+	}
+
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsValidClient(i))
 		{
-			CS_SetMVPCount_Test(i, Shavit_GetWRCount(i, -1, -1, true));
+			CS_SetMVPCount(i, Shavit_GetWRCount(i, -1, -1, true));
 		}
 	}
 
-	static int mvps_offset = -1;
-
-	if (mvps_offset == -1)
-	{
-		mvps_offset = GetEntSendPropOffs(GetPlayerResourceEntity(), "m_iMVPs");
-	}
-
-	ChangeEdictState(GetPlayerResourceEntity(), mvps_offset);
-
 	return Plugin_Continue;
-}
-
-public void Player_Event(Event event, const char[] name, bool dontBroadcast)
-{
-	if(gCV_MVPRankOnes.IntValue == 0)
-	{
-		return;
-	}
-
-	int client = GetClientOfUserId(event.GetInt("userid"));
-
-	if(IsValidClient(client) && !IsFakeClient(client) && gEV_Type != Engine_TF2)
-	{
-		CS_SetMVPCount_Test(client, Shavit_GetWRCount(client, -1, -1, true));
-	}
 }
 
 void UpdateWRs(int client)
@@ -596,11 +567,6 @@ public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] e
 			gA_Rankings[client].iWRAmountCvar = wrcount;
 			gA_Rankings[client].iWRHolderRankCvar = wrrank;
 		}
-	}
-
-	if (gCV_MVPRankOnes.IntValue > 0 && gEV_Type != Engine_TF2 && IsValidClient(client))
-	{
-		CS_SetMVPCount_Test(client, Shavit_GetWRCount(client, -1, -1, true));
 	}
 }
 
