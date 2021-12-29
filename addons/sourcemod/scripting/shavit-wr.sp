@@ -594,14 +594,6 @@ void UpdateWRCache(int client = -1)
 		UpdateClientCache(client);
 	}
 
-	char sQuery[512];
-
-	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT p.id, p.auth, p.style, p.track, p.time, u.name, p.exact_time_int FROM %swrs p JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s';",
-		gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
-
-	gH_SQL.Query(SQL_UpdateWRCache_Callback, sQuery, client);
-
 	UpdateLeaderboards();
 
 	if (client != -1)
@@ -609,50 +601,13 @@ void UpdateWRCache(int client = -1)
 		return;
 	}
 
+	char sQuery[512];
+
 	FormatEx(sQuery, sizeof(sQuery),
 		"SELECT style, track, auth, stage, time FROM `%sstagetimeswr` WHERE map = '%s';",
 		gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query(SQL_UpdateWRStageTimes_Callback, sQuery);
-}
-
-public void SQL_UpdateWRCache_Callback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if(results == null)
-	{
-		LogError("Timer (WR cache update) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
-	ResetWRs();
-
-	// setup cache again, dynamically and not hardcoded
-	while(results.FetchRow())
-	{
-		int iStyle = results.FetchInt(2);
-		int iTrack = results.FetchInt(3);
-
-		if(iStyle >= gI_Styles || iStyle < 0 || Shavit_GetStyleSettingInt(iStyle, "unranked"))
-		{
-			continue;
-		}
-
-		gI_WRRecordID[iStyle][iTrack] = results.FetchInt(0);
-		gF_WRTime[iStyle][iTrack] = ExactTimeMaybe(results.FetchFloat(4), results.FetchInt(6));
-		gI_WRSteamID[iStyle][iTrack] = results.FetchInt(1);
-
-		char sSteamID[20];
-		IntToString(gI_WRSteamID[iStyle][iTrack], sSteamID, sizeof(sSteamID));
-
-		char sName[MAX_NAME_LENGTH];
-		results.FetchString(5, sName, MAX_NAME_LENGTH);
-		ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
-		gSM_WRNames.SetString(sSteamID, sName, false);
-	}
-
-	Call_StartForward(gH_OnWorldRecordsCached);
-	Call_Finish();
 }
 
 public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2668,7 +2623,7 @@ public void Trans_ReplaceStageTimes_Error(Database db, any data, int numQueries,
 void UpdateLeaderboards()
 {
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT style, track, time, exact_time_int FROM %splayertimes WHERE map = '%s' ORDER BY time ASC, date ASC;", gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT p.style, p.track, p.time, p.exact_time_int, p.id, p.auth, u.name FROM %splayertimes p LEFT JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s' ORDER BY p.time ASC, p.date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 	gH_SQL.Query(SQL_UpdateLeaderboards_Callback, sQuery);
 }
 
@@ -2682,6 +2637,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 	}
 
 	ResetLeaderboards();
+	ResetWRs();
 
 	while(results.FetchRow())
 	{
@@ -2693,9 +2649,25 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 			continue;
 		}
 
-		gA_Leaderboard[style][track].Push(ExactTimeMaybe(results.FetchFloat(2), results.FetchInt(3)));
+		float time = ExactTimeMaybe(results.FetchFloat(2), results.FetchInt(3));
+
+		if (gA_Leaderboard[style][track].Push(time) == 0) // pushed WR
+		{
+			gF_WRTime[style][track] = time;
+			gI_WRRecordID[style][track] = results.FetchInt(4);
+			gI_WRSteamID[style][track] = results.FetchInt(5);
+
+			char sSteamID[20];
+			IntToString(gI_WRSteamID[style][track], sSteamID, sizeof(sSteamID));
+
+			char sName[MAX_NAME_LENGTH];
+			results.FetchString(6, sName, MAX_NAME_LENGTH);
+			ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
+			gSM_WRNames.SetString(sSteamID, sName, false);
+		}
 	}
 
+#if 0
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		if (Shavit_GetStyleSettingInt(i, "unranked"))
@@ -2708,6 +2680,10 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 			SortADTArray(gA_Leaderboard[i][j], Sort_Ascending, Sort_Float);
 		}
 	}
+#endif
+
+	Call_StartForward(gH_OnWorldRecordsCached);
+	Call_Finish();
 }
 
 public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message, int maxlen)
