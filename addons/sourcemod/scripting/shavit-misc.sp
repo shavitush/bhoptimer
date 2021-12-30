@@ -1034,6 +1034,7 @@ public Action Timer_Advertisement(Handle timer)
 			ReplaceString(sTempMessage, 300, "{serverip}", sIPAddress);
 			ReplaceString(sTempMessage, 300, "{map}", gS_Map);
 
+			Shavit_StopChatSound();
 			Shavit_PrintToChat(i, "%s", sTempMessage);
 		}
 	}
