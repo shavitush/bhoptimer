@@ -197,7 +197,7 @@ public void OnPluginStart()
 	g_cvMapVoteRunOffPerc = new Convar("smc_mapvote_runoffpercent", "50", "If winning choice has less than this percent of votes, hold a runoff", _, true, 0.0, true, 100.0);
 	g_cvMapVoteRevoteTime = new Convar("smc_mapvote_revotetime", "0", "How many minutes after a failed mapvote before rtv is enabled again", _, true, 0.0);
 	g_cvMapVotePrintToConsole = new Convar("smc_mapvote_printtoconsole", "1", "Prints map votes that each player makes to console.", _, true, 0.0, true, 1.0);
-	//g_cvDisplayTimeRemaining = new Convar("smc_display_timeleft", "1", "Display remaining messages in chat", _, true, 0.0, true, 1.0);
+	g_cvDisplayTimeRemaining = new Convar("smc_display_timeleft", "0", "Display time until vote in chat", _, true, 0.0, true, 1.0);
 
 	g_cvNominateMatches = new Convar("smc_nominate_matches", "1", "Prompts a menu which shows all maps which match argument",  _, true, 0.0, true, 1.0);
 	g_cvEnhancedMenu = new Convar("smc_enhanced_menu", "1", "Nominate menu can show maps by alphabetic order and tiers",  _, true, 0.0, true, 1.0);
@@ -432,7 +432,7 @@ public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 	DebugPrint("%sOnMapTimeLeftChanged: maplist_length=%i mapvote_started=%s mapvotefinished=%s", g_cPrefix, g_aMapList.Length, g_bMapVoteStarted ? "true" : "false", g_bMapVoteFinished ? "true" : "false");
 
 	int timeleft;
-	if(GetMapTimeLeft(timeleft))
+	if (GetMapTimeLeft(timeleft) && g_cvDisplayTimeRemaining.BoolValue)
 	{
 		if(!g_bMapVoteStarted && !g_bMapVoteFinished)
 		{
@@ -453,25 +453,6 @@ public Action Timer_OnMapTimeLeftChanged(Handle Timer)
 				case 60, 30, 5:
 				{
 					PrintToChatAll("%s%d seconds until map vote", g_cPrefix, mapvoteTime);
-				}
-			}
-		}
-		else if(g_bMapVoteFinished && g_cvDisplayTimeRemaining && g_cvDisplayTimeRemaining.BoolValue)
-		{
-			timeleft += 3;
-			switch(timeleft)
-			{
-				case (30 * 60), (20 * 60), (10 * 60), (5 * 60):
-				{
-					PrintToChatAll("%s%d minutes remaining", g_cPrefix, timeleft/60);
-				}
-				case 60, 10, 5, 3, 2:
-				{
-					PrintToChatAll("%s%d seconds remaining", g_cPrefix, timeleft);
-				}
-				case 1:
-				{
-					PrintToChatAll("%s1 second remaining", g_cPrefix);
 				}
 			}
 		}
