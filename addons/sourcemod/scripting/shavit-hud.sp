@@ -2225,6 +2225,14 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	}
 }
 
+public void Shavit_OnTrackChanged(int client, int oldtrack, int newtrack)
+{
+	if (IsClientInGame(client))
+	{
+		UpdateTopLeftHUD(client, false);
+	}
+}
+
 public int Native_ForceHUDUpdate(Handle handler, int numParams)
 {
 	int clients[MAXPLAYERS+1];
