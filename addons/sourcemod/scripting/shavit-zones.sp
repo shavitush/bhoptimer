@@ -3648,54 +3648,46 @@ public void Shavit_OnRestart(int client, int track)
 
 	if(gCV_TeleportToStart.BoolValue)
 	{
-		bool use_CustomStart_over_CustomSpawn = (iIndex != -1) && gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track];
+		bool bCustomStart = gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track];
+		bool use_CustomStart_over_CustomSpawn = (iIndex != -1) && bCustomStart;
 
 		// custom spawns
 		if (!use_CustomStart_over_CustomSpawn && !EmptyVector(gF_CustomSpawn[track]))
 		{
 			TeleportEntity(client, gF_CustomSpawn[track], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
-
 		// standard zoning
 		else if (iIndex != -1)
 		{
-			float bmin[3], bmax[3];
-			bool bCustomStart = false;
-
 			float fCenter[3];
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
 			fCenter[2] = gV_MapZones[iIndex][0][2] + gCV_ExtraSpawnHeight.FloatValue;
 
-			if (gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track])
+			if (bCustomStart)
 			{
-				FillBoxMinMax(gV_MapZones[iIndex][0], gV_MapZones[iIndex][1], bmin, bmax);
-				bmin[2] -= 0.01; // help fix some slight float accuracy loss for things like bhop_pisjapahnetribkoj
-
 				fCenter = gF_StartPos[client][track];
-				bCustomStart = true;
 			}
 
 			fCenter[2] += 1.0;
 
-			if (bCustomStart && !PointInBox(fCenter, bmin, bmax))
-			{
-				Shavit_StopTimer(client);
-			}
-
 			TeleportEntity(client, fCenter, gB_HasSetStart[client][track] ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			// I would like to put MaybeDoPhysicsUntouch() here but then it doesn't retrigger the zone's starttouch until next frame so the hud can show the wrong thing if I spam !r since the player isn't "in-the-zone"... TODO maybe...
 
 			if (gB_ReplayRecorder && gB_HasSetStart[client][track])
 			{
 				Shavit_HijackAngles(client, gF_StartAng[client][track][0], gF_StartAng[client][track][1], -1, true);
 			}
-		}
 
+			if (!gB_HasSetStart[client][track] || gB_StartAnglesOnly[client][track])
+			{
+				// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
+				Shavit_StartTimer(client, track);
+			}
+		}
 		// kz buttons
 		else if (Shavit_IsKZMap(track))
 		{
-			Shavit_StopTimer(client);
-
 			if (EmptyVector(gF_ClimbButtonCache[client][track][0]) || EmptyVector(gF_ClimbButtonCache[client][track][1]))
 			{
 				return;
@@ -3704,12 +3696,6 @@ public void Shavit_OnRestart(int client, int track)
 			TeleportEntity(client, gF_ClimbButtonCache[client][track][0], gF_ClimbButtonCache[client][track][1], view_as<float>({0.0, 0.0, 0.0}));
 
 			return;
-		}
-
-		// Just let TouchPost/TouchPost_Trigger handle it so setstarts outside of a start zone don't start.
-		if (!gB_HasSetStart[client][track] || gB_StartAnglesOnly[client][track])
-		{
-			Shavit_StartTimer(client, track);
 		}
 	}
 

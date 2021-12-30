@@ -2241,19 +2241,11 @@ public Action Respawn(Handle timer, any data)
 
 		if(gCV_RespawnOnRestart.BoolValue)
 		{
-			RestartTimer(client, Track_Main);
+			Shavit_RestartTimer(client, Shavit_GetClientTrack(client));
 		}
 	}
 
 	return Plugin_Handled;
-}
-
-void RestartTimer(int client, int track)
-{
-	if ((gB_Zones && Shavit_ZoneExists(Zone_Start, track)) || Shavit_IsKZMap(track))
-	{
-		Shavit_RestartTimer(client, track);
-	}
 }
 
 public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
@@ -2271,7 +2263,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 		if (gCV_StartOnSpawn.BoolValue && !(gB_Checkpoints && Shavit_HasSavestate(client)))
 		{
-			RestartTimer(client, Track_Main);
+			Shavit_RestartTimer(client, Shavit_GetClientTrack(client));
 		}
 
 		if(gCV_Scoreboard.BoolValue)

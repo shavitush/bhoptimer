@@ -856,9 +856,10 @@ native void Shavit_StartTimer(int client, int track);
  *
  * @param client					Client index.
  * @param track						Timer track.
- * @noreturn
+ * @param force                     True to force the player to restart. False to call into Shavit_OnRestartPre and Shavit_OnStopPre first.
+ * @return                          True on restart and False if a callback blocked the restart.
  */
-native void Shavit_RestartTimer(int client, int track);
+native bool Shavit_RestartTimer(int client, int track, bool force=true);
 
 /**
  * Stops the timer for a player.

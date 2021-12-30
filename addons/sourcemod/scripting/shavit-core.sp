@@ -625,26 +625,7 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Action result = Plugin_Continue;
-	Call_StartForward(gH_Forwards_OnRestartPre);
-	Call_PushCell(client);
-	Call_PushCell(track);
-	Call_Finish(result);
-
-	if (result > Plugin_Continue)
-	{
-		return Plugin_Handled;
-	}
-
-	if (!Shavit_StopTimer(client, false))
-	{
-		return Plugin_Handled;
-	}
-
-	Call_StartForward(gH_Forwards_OnRestart);
-	Call_PushCell(client);
-	Call_PushCell(track);
-	Call_Finish();
+	Shavit_RestartTimer(client, track);
 
 	return Plugin_Handled;
 }
@@ -1459,11 +1440,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTimerTrack) || gB_KZMap[gA_Timers[client].iTimerTrack]))
 	{
-		Shavit_StopTimer(client, true);
-		Call_StartForward(gH_Forwards_OnRestart);
-		Call_PushCell(client);
-		Call_PushCell(gA_Timers[client].iTimerTrack);
-		Call_Finish();
+		Shavit_RestartTimer(client, gA_Timers[client].iTimerTrack, true);
 	}
 
 	char sStyle[4];
@@ -1999,18 +1976,40 @@ public int Native_RestartTimer(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
 	int track = GetNativeCell(2);
+	bool force = (numParams < 3) || GetNativeCell(3);
 
-	Shavit_StopTimer(client, true);
+	if (!force)
+	{
+		Action result = Plugin_Continue;
+		Call_StartForward(gH_Forwards_OnRestartPre);
+		Call_PushCell(client);
+		Call_PushCell(track);
+		Call_Finish(result);
+
+		if (result > Plugin_Continue)
+		{
+			return 0;
+		}
+	}
+
+	if (!Shavit_StopTimer(client, force))
+	{
+		return 0;
+	}
+
+	if (gA_Timers[client].iTimerTrack != track)
+	{
+		CallOnTrackChanged(client, gA_Timers[client].iTimerTrack, track);
+	}
+
+	gA_Timers[client].iTimerTrack = track;
 
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
 	Call_PushCell(track);
 	Call_Finish();
 
-	if (!gB_Zones)
-	{
-		StartTimer(client, track);
-	}
+	return 1;
 }
 
 float CalcPerfs(timer_snapshot_t s)
