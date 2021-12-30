@@ -1313,6 +1313,8 @@ public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param
 
 void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 {
+	gA_Timers[client].iTimerTrack = newtrack;
+
 	Call_StartForward(gH_Forwards_OnTrackChanged);
 	Call_PushCell(client);
 	Call_PushCell(oldtrack);
@@ -1343,6 +1345,8 @@ void UpdateLaggedMovement(int client, bool eventqueuefix, bool user_timescale)
 
 void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool nofoward=false, bool skiptsforward=false)
 {
+	gA_Timers[client].bsStyle = newstyle;
+
 	if (!nofoward)
 	{
 		Call_StartForward(gH_Forwards_OnStyleChanged);
@@ -1354,14 +1358,11 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, boo
 		Call_Finish();
 	}
 
-	gA_Timers[client].bsStyle = newstyle;
-
 	if (!skiptsforward)
 	{
 		if (gA_Timers[client].fTimescale != 1.0)
 		{
 			CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, 1.0);
-			gA_Timers[client].fTimescale = 1.0;
 		}
 
 		UpdateLaggedMovement(client, true, true);
@@ -1374,6 +1375,7 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, boo
 
 void CallOnTimescaleChanged(int client, float oldtimescale, float newtimescale)
 {
+	gA_Timers[client].fTimescale = newtimescale;
 	Call_StartForward(gH_Forwards_OnTimescaleChanged);
 	Call_PushCell(client);
 	Call_PushCell(oldtimescale);
@@ -2003,8 +2005,6 @@ public int Native_RestartTimer(Handle handler, int numParams)
 		CallOnTrackChanged(client, gA_Timers[client].iTimerTrack, track);
 	}
 
-	gA_Timers[client].iTimerTrack = track;
-
 	Call_StartForward(gH_Forwards_OnRestart);
 	Call_PushCell(client);
 	Call_PushCell(track);
@@ -2128,8 +2128,6 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 		CallOnTrackChanged(client, gA_Timers[client].iTimerTrack, snapshot.iTimerTrack);
 	}
 
-	gA_Timers[client].iTimerTrack = snapshot.iTimerTrack;
-
 	if (gA_Timers[client].bsStyle != snapshot.bsStyle && Shavit_HasStyleAccess(client, snapshot.bsStyle))
 	{
 		CallOnStyleChanged(client, gA_Timers[client].bsStyle, snapshot.bsStyle, false, true);
@@ -2187,7 +2185,6 @@ public int Native_SetClientTimescale(Handle handler, int numParams)
 	if (timescale != gA_Timers[client].fTimescale && timescale > 0.0)
 	{
 		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, timescale);
-		gA_Timers[client].fTimescale = timescale;
 		UpdateLaggedMovement(client, true, true);
 	}
 }
