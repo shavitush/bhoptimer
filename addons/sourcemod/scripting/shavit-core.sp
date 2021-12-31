@@ -1782,8 +1782,9 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	CalculateRunTime(gA_Timers[client], true);
 
-	if (gA_Timers[client].fCurrentTime <= 0.0)
+	if (gA_Timers[client].fCurrentTime <= 0.11)
 	{
+		StopTimer(client);
 		return;
 	}
 
@@ -2347,6 +2348,8 @@ void StopTimer(int client)
 	gA_Timers[client].bTimerEnabled = false;
 	gA_Timers[client].iJumps = 0;
 	gA_Timers[client].fCurrentTime = 0.0;
+	gA_Timers[client].iFullTicks = 0;
+	gA_Timers[client].iFractionalTicks = 0;
 	gA_Timers[client].bClientPaused = false;
 	gA_Timers[client].iStrafes = 0;
 	gA_Timers[client].iTotalMeasures = 0;
