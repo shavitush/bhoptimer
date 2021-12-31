@@ -212,6 +212,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_Core_CookiesRetrieved", Native_Core_CookiesRetrieved);
 	CreateNative("Shavit_ShouldProcessFrame", Native_ShouldProcessFrame);
 	CreateNative("Shavit_GotoEnd", Native_GotoEnd);
+	CreateNative("Shavit_UpdateLaggedMovement", Native_UpdateLaggedMovement);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -812,7 +813,7 @@ public Action Command_Timescale(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if (!GetStyleSettingInt(gA_Timers[client].bsStyle, "tas_timescale"))
+	if (GetStyleSettingFloat(gA_Timers[client].bsStyle, "tas_timescale") != -1.0)
 	{
 		Shavit_PrintToChat(client, "%T", "NoEditingTimescale", client);
 		return Plugin_Handled;
@@ -844,7 +845,7 @@ public Action Command_TimescalePlus(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if (!GetStyleSettingInt(gA_Timers[client].bsStyle, "tas_timescale"))
+	if (GetStyleSettingFloat(gA_Timers[client].bsStyle, "tas_timescale") != -1.0)
 	{
 		Shavit_PrintToChat(client, "%T", "NoEditingTimescale", client);
 		return Plugin_Handled;
@@ -882,7 +883,7 @@ public Action Command_TimescaleMinus(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if (!GetStyleSettingInt(gA_Timers[client].bsStyle, "tas_timescale"))
+	if (GetStyleSettingFloat(gA_Timers[client].bsStyle, "tas_timescale") != -1.0)
 	{
 		Shavit_PrintToChat(client, "%T", "NoEditingTimescale", client);
 		return Plugin_Handled;
@@ -1328,22 +1329,32 @@ void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 	}
 }
 
-void UpdateLaggedMovement(int client, bool eventqueuefix, bool user_timescale)
+public any Native_UpdateLaggedMovement(Handle handler, int numParams)
 {
-	float speed =
-		  (user_timescale ? gA_Timers[client].fTimescale : 1.0)
-		* GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale")
+	int client = GetNativeCell(1);
+	bool user_timescale = GetNativeCell(2) != 0;
+	UpdateLaggedMovement(client, user_timescale);
+}
+
+void UpdateLaggedMovement(int client, bool user_timescale)
+{
+	float style_laggedmovement =
+		  GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale")
 		* GetStyleSettingFloat(gA_Timers[client].bsStyle, "speed");
 
-	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", speed * gA_Timers[client].fplayer_speedmod);
+	float laggedmovement =
+		  (user_timescale ? gA_Timers[client].fTimescale : 1.0)
+		* style_laggedmovement;
 
-	if (eventqueuefix && gB_Eventqueuefix)
+	SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", laggedmovement * gA_Timers[client].fplayer_speedmod);
+
+	if (gB_Eventqueuefix)
 	{
-		SetEventsTimescale(client, speed);
+		SetEventsTimescale(client, style_laggedmovement);
 	}
 }
 
-void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool nofoward=false, bool skiptsforward=false)
+void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool nofoward=false)
 {
 	gA_Timers[client].bsStyle = newstyle;
 
@@ -1358,15 +1369,15 @@ void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, boo
 		Call_Finish();
 	}
 
-	if (!skiptsforward)
-	{
-		if (gA_Timers[client].fTimescale != 1.0)
-		{
-			CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, 1.0);
-		}
+	float style_ts = GetStyleSettingFloat(newstyle, "tas_timescale");
 
-		UpdateLaggedMovement(client, true, true);
+	if (style_ts >= 0.0)
+	{
+		float newts = (style_ts > 0.0) ? style_ts : 1.0; // 🦎🦎🦎
+		Shavit_SetClientTimescale(client, newts);
 	}
+
+	UpdateLaggedMovement(client, true);
 
 	UpdateStyleSettings(client);
 
@@ -1498,10 +1509,12 @@ void VelocityChanges(int data)
 
 	int style = gA_Timers[client].bsStyle;
 
+#if 0
 	if(GetStyleSettingBool(style, "force_timescale"))
 	{
-		UpdateLaggedMovement(client, true, true);
+		UpdateLaggedMovement(client, true);
 	}
+#endif
 
 	float fAbsVelocity[3];
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
@@ -2124,22 +2137,32 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	GetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 	snapshot.fTimescale = (snapshot.fTimescale > 0.0) ? snapshot.fTimescale : 1.0;
 
+	if (!Shavit_HasStyleAccess(client, snapshot.bsStyle))
+	{
+		return 0;
+	}
+
 	if (gA_Timers[client].iTimerTrack != snapshot.iTimerTrack)
 	{
 		CallOnTrackChanged(client, gA_Timers[client].iTimerTrack, snapshot.iTimerTrack);
 	}
 
-	if (gA_Timers[client].bsStyle != snapshot.bsStyle && Shavit_HasStyleAccess(client, snapshot.bsStyle))
+	if (gA_Timers[client].bsStyle != snapshot.bsStyle)
 	{
-		CallOnStyleChanged(client, gA_Timers[client].bsStyle, snapshot.bsStyle, false, true);
+		CallOnStyleChanged(client, gA_Timers[client].bsStyle, snapshot.bsStyle, false);
 	}
 
-	Shavit_SetClientTimescale(client, snapshot.fTimescale); // will call ts-changed forward & UpdateLaggedMovement
+	float oldts = gA_Timers[client].fTimescale;
 
 	gA_Timers[client] = snapshot;
 	gA_Timers[client].bClientPaused = snapshot.bClientPaused && snapshot.bTimerEnabled;
 
-	return 0;
+	if (GetStyleSettingFloat(snapshot.bsStyle, "tas_timescale") < 0.0)
+	{
+		Shavit_SetClientTimescale(client, oldts);
+	}
+
+	return 1;
 }
 
 public int Native_LogMessage(Handle plugin, int numParams)
@@ -2186,7 +2209,7 @@ public int Native_SetClientTimescale(Handle handler, int numParams)
 	if (timescale != gA_Timers[client].fTimescale && timescale > 0.0)
 	{
 		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, timescale);
-		UpdateLaggedMovement(client, true, true);
+		UpdateLaggedMovement(client, true);
 	}
 }
 
@@ -2219,8 +2242,7 @@ public any Native_ShouldProcessFrame(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	return gA_Timers[client].fTimescale == 1.0
-	    || gA_Timers[client].fNextFrameTime <= 0.0
-	    || !GetStyleSettingBool(gA_Timers[client].bsStyle, "tas_timescale");
+	    || gA_Timers[client].fNextFrameTime <= 0.0;
 }
 
 public Action Shavit_OnStartPre(int client, int track)
@@ -2320,7 +2342,7 @@ void StartTimer(int client, int track)
 			//gA_Timers[client].fNextFrameTime = 0.0;
 
 			//gA_Timers[client].fplayer_speedmod = 1.0;
-			UpdateLaggedMovement(client, true, true);
+			UpdateLaggedMovement(client, true);
 
 			SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].bsStyle, "gravity"));
 		}
@@ -2750,7 +2772,7 @@ public MRESReturn DHook_AcceptInput_player_speedmod_Post(int pThis, DHookReturn 
 	float speed = StringToFloat(buf);
 
 	gA_Timers[activator].fplayer_speedmod = speed;
-	UpdateLaggedMovement(activator, false, true);
+	UpdateLaggedMovement(activator, true);
 
 	#if DEBUG
 	int caller = hParams.Get(3);
@@ -2772,8 +2794,17 @@ public MRESReturn DHook_ProcessMovement(Handle hParams)
 	Call_PushCell(client);
 	Call_Finish();
 
-	if (!GetStyleSettingBool(gA_Timers[client].bsStyle, "tas_timescale") || gA_Timers[client].fTimescale == 1.0)
+	if (IsFakeClient(client) || !IsPlayerAlive(client))
 	{
+		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 1.0); // otherwise you get slow spec noclip
+		return MRES_Ignored;
+	}
+
+	MoveType mt = GetEntityMoveType(client);
+
+	if (gA_Timers[client].fTimescale == 1.0 || mt == MOVETYPE_NOCLIP)
+	{
+		SetClientEventsPaused(client, gA_Timers[client].bClientPaused);
 		return MRES_Ignored;
 	}
 
@@ -2781,13 +2812,23 @@ public MRESReturn DHook_ProcessMovement(Handle hParams)
 	if (gA_Timers[client].fNextFrameTime <= 0.0)
 	{
 		gA_Timers[client].fNextFrameTime += (1.0 - gA_Timers[client].fTimescale);
-		gA_Timers[client].iLastMoveTypeTAS = GetEntityMoveType(client);
-		UpdateLaggedMovement(client, false, false);
+
+		if (mt != MOVETYPE_NONE)
+		{
+			gA_Timers[client].iLastMoveTypeTAS = mt;
+		}
+
+		UpdateLaggedMovement(client, false);
 	}
 	else
 	{
 		gA_Timers[client].fNextFrameTime -= gA_Timers[client].fTimescale;
 		SetEntityMoveType(client, MOVETYPE_NONE);
+	}
+
+	if (gB_Eventqueuefix)
+	{
+		SetClientEventsPaused(client, (!Shavit_ShouldProcessFrame(client) || gA_Timers[client].bClientPaused));
 	}
 
 	return MRES_Ignored;
@@ -2801,10 +2842,15 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_PushCell(client);
 	Call_Finish();
 
-	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "tas_timescale") && gA_Timers[client].fTimescale != 1.0)
+	if (IsFakeClient(client) || !IsPlayerAlive(client))
+	{
+		return MRES_Ignored;
+	}
+
+	if (gA_Timers[client].fTimescale != 1.0 && GetEntityMoveType(client) != MOVETYPE_NOCLIP)
 	{
 		SetEntityMoveType(client, gA_Timers[client].iLastMoveTypeTAS);
-		UpdateLaggedMovement(client, true, true);
+		UpdateLaggedMovement(client, true);
 	}
 
 	if (gA_Timers[client].bClientPaused || !gA_Timers[client].bTimerEnabled)

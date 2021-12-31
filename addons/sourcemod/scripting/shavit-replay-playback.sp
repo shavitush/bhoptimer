@@ -1939,7 +1939,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 {
 	// trigger_once | trigger_multiple.. etc
 	// func_door | func_door_rotating
-	if(StrContains(classname, "trigger_") != -1 || StrContains(classname, "_door") != -1)
+	if (StrContains(classname, "trigger_") != -1 || StrContains(classname, "_door") != -1 || StrContains(classname, "player_speedmod") != -1)
 	{
 		SDKHook(entity, SDKHook_StartTouch, HookTriggers);
 		SDKHook(entity, SDKHook_EndTouch, HookTriggers);

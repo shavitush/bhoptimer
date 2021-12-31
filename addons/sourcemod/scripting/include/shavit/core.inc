@@ -1181,9 +1181,9 @@ native void Shavit_SaveSnapshot(int client, any[] snapshot, int size = sizeof(ti
  * @param client					Client index.
  * @param snapshot					Full snapshot of the client's timer.
  * @param size						Size of the snapshot buffer, e.g sizeof(timer_snapshot_t)
- * @noreturn
+ * @return                          Success boolean
  */
-native void Shavit_LoadSnapshot(int client, any[] snapshot, int size = sizeof(timer_snapshot_t));
+native bool Shavit_LoadSnapshot(int client, any[] snapshot, int size = sizeof(timer_snapshot_t));
 
 /**
  * Use this native to stop the click sound that plays upon chat messages.
@@ -1332,6 +1332,16 @@ native void Shavit_SetClientTimescale(int client, float scale);
 native float Shavit_GetClientTimescale(int client);
 
 /**
+ * Something to be used by the checkpoint plugin to trigger updating laggedmovement.
+ *
+ * @param client                    Client index
+ * @param user_timescale            Whether to use fTimescale as a multiplier for laggedmovement too.
+ *
+ * @noreturn
+ */
+native void Shavit_UpdateLaggedMovement(int client, bool user_timescale=true);
+
+/**
  * asdf
  *
  * @param client                    Client index
@@ -1425,6 +1435,7 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_Core_CookiesRetrieved");
 	MarkNativeAsOptional("Shavit_ShouldProcessFrame");
 	MarkNativeAsOptional("Shavit_GotoEnd");
+	MarkNativeAsOptional("Shavit_UpdateLaggedMovement");
 
 	__pl_shavit_bhopstats_SetNTVOptional();
 }
