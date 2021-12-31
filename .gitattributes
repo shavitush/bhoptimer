@@ -1,6 +1,6 @@
 * text=auto
-*.inc diff=sourcepawn
-*.sp diff=sourcepawn
+*.inc diff=sourcepawn linguist-language=SourcePawn
+*.sp diff=sourcepawn linguist-language=SourcePawn
 *.txt diff
 *.cfg diff
 
