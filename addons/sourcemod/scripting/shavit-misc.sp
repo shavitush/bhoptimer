@@ -32,6 +32,7 @@
 #include <tf2_stocks>
 
 #include <shavit/core>
+#include <shavit/misc>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/chat>
@@ -158,6 +159,8 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("Shavit_IsClientUsingHide", Native_IsClientUsingHide);
+
 	gB_Late = late;
 
 	return APLRes_Success;
@@ -2622,4 +2625,9 @@ public Action Command_Drop(int client, const char[] command, int argc)
 	}
 
 	return Plugin_Handled;
+}
+
+public int Native_IsClientUsingHide(Handle plugin, int numParams)
+{
+	return gB_Hide[GetNativeCell(1)];
 }
