@@ -39,6 +39,7 @@
 #define HUD_NOPRACALERT         (1 << 12) // hides practice mode chat alert
 #define HUD_USP                 (1 << 13) // makes you spawn with a USP
 #define HUD_GLOCK               (1 << 14) // makes you spawn with a Glock
+#define HUD_DEBUGTARGETNAME     (1 << 15) // admin option to show current targetname & classname
 
 // HUD2 - these settings will *disable* elements for the main hud
 #define HUD2_TIME               (1 << 0)

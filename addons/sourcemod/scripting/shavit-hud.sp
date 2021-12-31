@@ -105,7 +105,6 @@ Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_UseHUDFix = null;
 Convar gCV_SpecNameSymbolLength = null;
-Convar gCV_DebugTargetname = null;
 Convar gCV_DefaultHUD = null;
 Convar gCV_DefaultHUD2 = null;
 
@@ -176,7 +175,6 @@ public void OnPluginStart()
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
 	gCV_SpecNameSymbolLength = new Convar("shavit_hud_specnamesymbollength", "32", "Maximum player name length that should be displayed in spectators panel", 0, true, 0.0, true, float(MAX_NAME_LENGTH));
-	gCV_DebugTargetname = new Convar("shavit_hud_debugtargetname", "0", "Draw the targetname & classname to hud. Only used for debugging.", 0, true, 0.0, true, 1.0);
 
 	char defaultHUD[8];
 	IntToString(HUD_DEFAULT, defaultHUD, 8);
@@ -698,6 +696,13 @@ Action ShowHUDMenu(int client, int item)
 		menu.AddItem(sInfo, sHudItem);
 	}
 
+	if (CheckCommandAccess(client, "shavit_admin", ADMFLAG_BAN))
+	{
+		FormatEx(sInfo, 16, "!%d", HUD_DEBUGTARGETNAME);
+		FormatEx(sHudItem, 64, "%T", "HudDebugTargetname", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
+
 	// HUD2 - disables selected elements
 	FormatEx(sInfo, 16, "@%d", HUD2_TIME);
 	FormatEx(sHudItem, 64, "%T", "HudTimeText", client);
@@ -1175,7 +1180,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 	}
 
-	if (gCV_DebugTargetname.BoolValue && IsValidClient(data.iTarget))
+	if (gI_HUDSettings[client] & HUD_DEBUGTARGETNAME)
 	{
 		char targetname[64], classname[64];
 		GetEntPropString(data.iTarget, Prop_Data, "m_iName", targetname, sizeof(targetname));
@@ -1382,7 +1387,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 
 	StrCat(buffer, maxlen, "<span class='fontSize-l'>");
 
-	if (gCV_DebugTargetname.BoolValue && IsValidClient(data.iTarget))
+	if (gI_HUDSettings[client] & HUD_DEBUGTARGETNAME)
 	{
 		char targetname[64], classname[64];
 		GetEntPropString(data.iTarget, Prop_Data, "m_iName", targetname, sizeof(targetname));

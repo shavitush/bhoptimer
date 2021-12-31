@@ -177,6 +177,10 @@
 	{
 		"en"		"Velocity Difference"
 	}
+	"HudDebugTargetname"
+	{
+		"en"        "Debug targetname"
+	}
 	// ---------- Record Bots ---------- //
 	"ReplayText"
 	{
