@@ -1285,6 +1285,25 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		}
 	}
 
+	if (!bNoclip && Shavit_GetStyleSettingBool(gI_Style[client], "prespeed") && bInStart)
+	{
+		float prespeed_ez_vel = Shavit_GetStyleSettingFloat(gI_Style[client], "prespeed_ez_vel");
+
+		if (prespeed_ez_vel > 0.0 && iGroundEntity != -1 && (buttons & IN_JUMP))
+		{
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+			float fSpeedXY = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
+			float fScale = (prespeed_ez_vel / fSpeedXY);
+
+			if (fScale > 1.0)
+			{
+				ScaleVector(fSpeed, fScale);
+				DumbSetVelocity(client, fSpeed);
+			}
+		}
+	}
+
 	gI_GroundEntity[client] = (iGroundEntity != -1) ? EntIndexToEntRef(iGroundEntity) : -1;
 
 	return Plugin_Continue;

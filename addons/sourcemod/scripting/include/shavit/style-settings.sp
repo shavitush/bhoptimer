@@ -148,6 +148,7 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingInt  (gI_CurrentParserIndex, "autobhop", 1);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "easybhop", 1);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "prespeed", 0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "prespeed_ez_vel", 0.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity_limit", 0.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "bunnyhopping", 1);
 
