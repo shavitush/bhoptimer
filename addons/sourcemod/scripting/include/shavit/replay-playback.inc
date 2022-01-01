@@ -475,5 +475,6 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayCachePostFrames");
 	MarkNativeAsOptional("Shavit_GetLoopingBotByName");
 	MarkNativeAsOptional("Shavit_SetReplayCacheName");
+	MarkNativeAsOptional("Shavit_GetReplayFolderPath");
 }
 #endif
