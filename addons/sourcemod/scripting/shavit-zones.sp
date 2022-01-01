@@ -1234,7 +1234,7 @@ void KillAllZones()
 	char sTargetname[32];
 	int iEntity = -1;
 
-	while ((iEntity = FindEntityByClassname(ent, "trigger_multiple")) != -1)
+	while ((iEntity = FindEntityByClassname(iEntity, "trigger_multiple")) != -1)
 	{
 		GetEntPropString(iEntity, Prop_Data, "m_iName", sTargetname, sizeof(sTargetname));
 
