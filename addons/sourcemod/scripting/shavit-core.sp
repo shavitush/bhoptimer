@@ -626,7 +626,7 @@ public Action Command_StartTimer(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Shavit_RestartTimer(client, track);
+	Shavit_RestartTimer(client, track, false);
 
 	return Plugin_Handled;
 }
@@ -1454,7 +1454,7 @@ void ChangeClientStyle(int client, int style, bool manual)
 
 	if (gB_Zones && (Shavit_ZoneExists(Zone_Start, gA_Timers[client].iTimerTrack) || gB_KZMap[gA_Timers[client].iTimerTrack]))
 	{
-		Shavit_RestartTimer(client, gA_Timers[client].iTimerTrack, true);
+		Shavit_RestartTimer(client, gA_Timers[client].iTimerTrack);
 	}
 
 	char sStyle[4];
@@ -2009,7 +2009,7 @@ public int Native_RestartTimer(Handle handler, int numParams)
 		}
 	}
 
-	if (!Shavit_StopTimer(client, force))
+	if (gA_Timers[client].bTimerEnabled && !Shavit_StopTimer(client, force))
 	{
 		return 0;
 	}

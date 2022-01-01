@@ -3644,6 +3644,12 @@ public void Shavit_OnDatabaseLoaded()
 public void Shavit_OnRestart(int client, int track)
 {
 	gI_LastStage[client] = 0;
+
+	if (!IsPlayerAlive(client))
+	{
+		return;
+	}
+
 	int iIndex = GetZoneIndex(Zone_Start, track);
 
 	if(gCV_TeleportToStart.BoolValue)
