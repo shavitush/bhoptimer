@@ -1106,9 +1106,9 @@ void DeleteRestOfUser(int iSteamID, DataPack hPack)
 	char sQuery[256];
 
 	FormatEx(sQuery, 256, "DELETE FROM %splayertimes WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
-	hTransaction.AddQuery(sQuery);
+	hTransaction.AddQuery2(sQuery);
 	FormatEx(sQuery, 256, "DELETE FROM %susers WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
-	hTransaction.AddQuery(sQuery);
+	hTransaction.AddQuery2(sQuery);
 
 	gH_SQL.Execute(hTransaction, Trans_DeleteRestOfUserSuccess, Trans_DeleteRestOfUserFailed, hPack);
 }
@@ -1124,7 +1124,7 @@ void DeleteUserData(int client, const int iSteamID)
 		"SELECT id, style, track, map FROM %swrs WHERE auth = %d;",
 		gS_MySQLPrefix, iSteamID);
 
-	gH_SQL.Query(SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
+	gH_SQL.Query2(SQL_DeleteUserData_GetRecords_Callback, sQuery, hPack, DBPrio_High);
 }
 
 public void SQL_DeleteUserData_GetRecords_Callback(Database db, DBResultSet results, const char[] error, DataPack hPack)
@@ -2537,7 +2537,7 @@ public void OnClientPutInServer(int client)
 			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime);
 	}
 
-	gH_SQL.Query(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query2(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
 }
 
 public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)

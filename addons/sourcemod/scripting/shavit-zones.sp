@@ -608,7 +608,8 @@ public int Native_Zones_DeleteMap(Handle handler, int numParams)
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, sMap);
-	gH_SQL.Query(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+	gH_SQL.Query2(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+	return 1;
 }
 
 public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1301,7 +1302,7 @@ void RefreshZones()
 		"SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s, flags, data, prebuilt FROM %smapzones WHERE map = '%s';",
 		(gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
-	gH_SQL.Query(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query2(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1363,7 +1364,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 				}
 
 				InsertPrebuiltZone(i, false, sQuery, sizeof(sQuery));
-				hTransaction.AddQuery(sQuery);
+				hTransaction.AddQuery2(sQuery);
 			}
 		}
 
@@ -1490,7 +1491,7 @@ void GetStartPosition(int client)
 		"SELECT track, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, angles_only FROM %sstartpositions WHERE auth = %d AND map = '%s'",
 		gS_MySQLPrefix, steamID, gS_Map);
 
-	gH_SQL.Query(SQL_GetStartPosition_Callback, query, GetClientSerial(client));
+	gH_SQL.Query2(SQL_GetStartPosition_Callback, query, GetClientSerial(client));
 }
 
 public void SQL_GetStartPosition_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1576,7 +1577,7 @@ void SetStart(int client, int track, bool anglesonly)
 		gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
 		gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2], anglesonly);
 	
-	gH_SQL.Query(SQL_InsertStartPosition_Callback, query);
+	gH_SQL.Query2(SQL_InsertStartPosition_Callback, query);
 }
 
 public void SQL_InsertStartPosition_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -1615,7 +1616,7 @@ void DeleteSetStart(int client, int track)
 		"DELETE FROM %sstartpositions WHERE auth = %d AND track = %d AND map = '%s';",
 		gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map);
 
-	gH_SQL.Query(SQL_DeleteSetStart_Callback, query);
+	gH_SQL.Query2(SQL_DeleteSetStart_Callback, query);
 }
 
 public void SQL_DeleteSetStart_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -1813,7 +1814,7 @@ public int MenuHandler_DeleteCustomSpawn(Menu menu, MenuAction action, int param
 			"DELETE FROM %smapzones WHERE type = '%d' AND map = '%s' AND track = %d;",
 			gS_MySQLPrefix, Zone_CustomSpawn, gS_Map, iTrack);
 
-		gH_SQL.Query(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(param1));
+		gH_SQL.Query2(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(param1));
 	}
 
 	else if(action == MenuAction_End)
@@ -2399,7 +2400,7 @@ public int MenuHandler_DeleteZone(Menu menu, MenuAction action, int param1, int 
 				hDatapack.WriteCell(GetClientSerial(param1));
 				hDatapack.WriteCell(gA_ZoneCache[id].iZoneType);
 
-				gH_SQL.Query(SQL_DeleteZone_Callback, sQuery, hDatapack);
+				gH_SQL.Query2(SQL_DeleteZone_Callback, sQuery, hDatapack);
 			}
 		}
 	}
@@ -2490,7 +2491,7 @@ public int MenuHandler_DeleteAllZones(Menu menu, MenuAction action, int param1, 
 		char sQuery[512];
 		FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
-		gH_SQL.Query(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
+		gH_SQL.Query2(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
 	}
 
 	else if(action == MenuAction_End)
@@ -3313,7 +3314,7 @@ void InsertZone(int client)
 			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}
 
-	gH_SQL.Query(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
+	gH_SQL.Query2(SQL_InsertZone_Callback, sQuery, GetClientSerial(client));
 }
 
 public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, any data)

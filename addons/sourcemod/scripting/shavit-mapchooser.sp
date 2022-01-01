@@ -1078,7 +1078,7 @@ void LoadMapList()
 			char buffer[512];
 
 			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
-			g_hDatabase.Query(LoadZonedMapsCallback, buffer, _, DBPrio_High);
+			g_hDatabase.Query2(LoadZonedMapsCallback, buffer, _, DBPrio_High);
 		}
 		case MapListFolder:
 		{
@@ -1110,7 +1110,7 @@ void LoadMapList()
 
 			char buffer[512];
 			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
-			g_hDatabase.Query(LoadZonedMapsCallbackMixed, buffer, _, DBPrio_High);
+			g_hDatabase.Query2(LoadZonedMapsCallbackMixed, buffer, _, DBPrio_High);
 		}
 	}
 }
@@ -2003,7 +2003,7 @@ public Action Command_LoadUnzonedMap(int client, int args)
 {
 	char sQuery[256];
 	FormatEx(sQuery, sizeof(sQuery), "SELECT DISTINCT map FROM %smapzones;", g_cSQLPrefix);
-	g_hDatabase.Query(FindUnzonedMapCallback, sQuery, 0, DBPrio_Normal);
+	g_hDatabase.Query2(FindUnzonedMapCallback, sQuery, 0, DBPrio_Normal);
 	return Plugin_Handled;
 }
 

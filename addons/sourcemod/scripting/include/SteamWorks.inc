@@ -270,9 +270,9 @@ typeset SteamWorksHTTPDataReceived
 
 typeset SteamWorksHTTPBodyCallback
 {
-	function void (const char sData[]);
-	function void (const char sData[], any value);
-	function void (const int data[], any value, int datalen);
+	function void (const char[] sData);
+	function void (const char[] sData, any value);
+	function void (const int[] data, any value, int datalen);
 };
 
 #else

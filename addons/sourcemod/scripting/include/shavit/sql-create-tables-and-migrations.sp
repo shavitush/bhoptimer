@@ -116,12 +116,12 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 			gS_SQLPrefix);
 	}
 
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%smigrations` (`code` TINYINT NOT NULL, PRIMARY KEY (`code`));",
 		gS_SQLPrefix);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	//
 	//// shavit-chat
@@ -140,7 +140,7 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
 	}
 
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	//
 	//// shavit-rankings
@@ -149,7 +149,7 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(255) NOT NULL, `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	//
 	//// shavit-stats
@@ -158,7 +158,7 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%sstyleplaytime` (`auth` INT NOT NULL, `style` TINYINT NOT NULL, `playtime` FLOAT NOT NULL, PRIMARY KEY (`auth`, `style`));",
 		gS_SQLPrefix);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	//
 	//// shavit-wr
@@ -178,29 +178,29 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 			gS_SQLPrefix);
 	}
 
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%sstagetimeswr` (`style` TINYINT NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `map` VARCHAR(255) NOT NULL, `stage` TINYINT NOT NULL, `auth` INT NOT NULL, `time` FLOAT NOT NULL, PRIMARY KEY (`style`, `track`, `map`, `stage`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%sstagetimespb` (`style` TINYINT NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `map` VARCHAR(255) NOT NULL, `stage` TINYINT NOT NULL, `auth` INT NOT NULL, `time` FLOAT NOT NULL, PRIMARY KEY (`style`, `track`, `auth`, `map`, `stage`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"%s %swrs_min AS SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style;",
 		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
 		gS_SQLPrefix, gS_SQLPrefix);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"%s %swrs AS SELECT a.* FROM %splayertimes a JOIN %swrs_min b ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style;",
 		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
 		gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	//
 	//// shavit-wr
@@ -209,12 +209,12 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `prebuilt` BOOL, PRIMARY KEY (`id`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%sstartpositions` (`auth` INTEGER NOT NULL, `track` TINYINT NOT NULL, `map` VARCHAR(255) NOT NULL, `pos_x` FLOAT, `pos_y` FLOAT, `pos_z` FLOAT, `ang_x` FLOAT, `ang_y` FLOAT, `ang_z` FLOAT, `angles_only` BOOL, PRIMARY KEY (`auth`, `track`, `map`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
-	hTrans.AddQuery(sQuery);
+	hTrans.AddQuery2(sQuery);
 
 	hSQL.Execute(hTrans, Trans_CreateTables_Success, Trans_CreateTables_Error, 0, DBPrio_High);
 }
@@ -237,7 +237,7 @@ public void Trans_CreateTables_Success(Database db, any data, int numQueries, DB
 	{
 		char sQuery[128];
 		FormatEx(sQuery, 128, "SELECT code FROM %smigrations;", gS_SQLPrefix);
-		gH_SQL.Query(SQL_SelectMigrations_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query2(SQL_SelectMigrations_Callback, sQuery, 0, DBPrio_High);
 	}
 	else
 	{
@@ -309,63 +309,63 @@ void ApplyMigration_LastLoginIndex()
 {
 	char sQuery[128];
 	FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD INDEX `lastlogin` (`lastlogin`);", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_LastLoginIndex, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_LastLoginIndex, DBPrio_High);
 }
 
 void ApplyMigration_RemoveCountry()
 {
 	char sQuery[128];
 	FormatEx(sQuery, 128, "ALTER TABLE `%susers` DROP COLUMN `country`;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_RemoveCountry, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_RemoveCountry, DBPrio_High);
 }
 
 void ApplyMigration_PlayertimesDateToInt()
 {
 	char sQuery[128];
 	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` CHANGE COLUMN `date` `date` INT;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_PlayertimesDateToInt, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_PlayertimesDateToInt, DBPrio_High);
 }
 
 void ApplyMigration_AddZonesFlagsAndData()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%smapzones` ADD COLUMN `flags` INT NULL AFTER `track`, ADD COLUMN `data` INT NULL AFTER `flags`;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddZonesFlagsAndData, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddZonesFlagsAndData, DBPrio_High);
 }
 
 void ApplyMigration_AddPlayertimesCompletions()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `completions` SMALLINT DEFAULT 1 AFTER `perfs`;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesCompletions, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesCompletions, DBPrio_High);
 }
 
 void ApplyMigration_AddCustomChatAccess()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%schat` ADD COLUMN `ccaccess` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `ccmessage`" : "");
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddCustomChatAccess, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddCustomChatAccess, DBPrio_High);
 }
 
 void ApplyMigration_AddPlayertimesExactTimeInt()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `exact_time_int` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `completions`" : "");
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesExactTimeInt, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesExactTimeInt, DBPrio_High);
 }
 
 void ApplyMigration_FixOldCompletionCounts()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "UPDATE `%splayertimes` SET completions = completions - 1 WHERE completions > 1;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_FixOldCompletionCounts, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_FixOldCompletionCounts, DBPrio_High);
 }
 
 void ApplyMigration_AddPrebuiltToMapZonesTable()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%smapzones` ADD COLUMN `prebuilt` BOOL;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPrebuiltToMapZonesTable, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPrebuiltToMapZonesTable, DBPrio_High);
 }
 
 // double up on this migration because some people may have used shavit-playtime which uses INT but I want FLOAT
@@ -373,28 +373,28 @@ void ApplyMigration_AddPlaytime()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%susers` MODIFY COLUMN `playtime` FLOAT NOT NULL DEFAULT 0;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_Migration_AddPlaytime2222222_Callback, sQuery, Migration_AddPlaytime, DBPrio_High);
+	gH_SQL.Query2(SQL_Migration_AddPlaytime2222222_Callback, sQuery, Migration_AddPlaytime, DBPrio_High);
 }
 
 public void SQL_Migration_AddPlaytime2222222_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%susers` ADD COLUMN `playtime` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `points`" : "");
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlaytime, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlaytime, DBPrio_High);
 }
 
 void ApplyMigration_LowercaseMaps(const char[] table, int migration)
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "UPDATE `%s%s` SET map = LOWER(map);", gS_SQLPrefix, table);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, migration, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, migration, DBPrio_High);
 }
 
 void ApplyMigration_AddPlayertimesPointsCalcedFrom()
 {
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `points`" : "");
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesPointsCalcedFrom, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesPointsCalcedFrom, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -409,25 +409,25 @@ public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet resu
 		FormatEx(sQuery, 256,
 			"DELETE t1 FROM %splayertimes t1 LEFT JOIN %susers t2 ON t1.auth = t2.auth WHERE t2.auth IS NULL;",
 			gS_SQLPrefix, gS_SQLPrefix);
-		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query2(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 #if 0
 		FormatEx(sQuery, 256,
 			"ALTER TABLE `%splayertimes` ADD CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
-		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
+		gH_SQL.Query2(SQL_TableMigrationIndexing_Callback, sQuery);
 #endif
 
 		FormatEx(sQuery, 256,
 			"DELETE t1 FROM %schat t1 LEFT JOIN %susers t2 ON t1.auth = t2.auth WHERE t2.auth IS NULL;",
 			gS_SQLPrefix, gS_SQLPrefix);
-		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query2(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 #if 0
 		FormatEx(sQuery, 256,
 			"ALTER TABLE `%schat` ADD CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE;",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
-		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery);
+		gH_SQL.Query2(SQL_TableMigrationIndexing_Callback, sQuery);
 #endif
 	}
 }
@@ -439,11 +439,11 @@ void ApplyMigration_ConvertIPAddresses(bool index = true)
 	if (index)
 	{
 		FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD INDEX `ip` (`ip`);", gS_SQLPrefix);
-		gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+		gH_SQL.Query2(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 	}
 
 	FormatEx(sQuery, 128, "SELECT DISTINCT ip FROM %susers WHERE ip LIKE '%%.%%';", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationIPAddresses_Callback, sQuery);
+	gH_SQL.Query2(SQL_TableMigrationIPAddresses_Callback, sQuery);
 }
 
 public void SQL_TableMigrationIPAddresses_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -466,7 +466,7 @@ public void SQL_TableMigrationIPAddresses_Callback(Database db, DBResultSet resu
 		char sQuery[256];
 		FormatEx(sQuery, 256, "UPDATE %susers SET ip = %d WHERE ip = '%s';", gS_SQLPrefix, IPStringToAddress(sIPAddress), sIPAddress);
 
-		hTransaction.AddQuery(sQuery);
+		hTransaction.AddQuery2(sQuery);
 
 		if (++iQueries >= 10000)
 		{
@@ -489,10 +489,10 @@ public void Trans_IPAddressMigrationSuccess(Database db, any data, int numQuerie
 
 	char sQuery[128];
 	FormatEx(sQuery, 128, "ALTER TABLE `%susers` DROP INDEX `ip`;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 	FormatEx(sQuery, 128, "ALTER TABLE `%susers` CHANGE COLUMN `ip` `ip` INT;", gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_ConvertIPAddresses, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_ConvertIPAddresses, DBPrio_High);
 }
 
 public void Trans_IPAddressMigrationFailed(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
@@ -511,10 +511,10 @@ void ApplyMigration_ConvertSteamIDs()
 
 	char sQuery[128];
 	FormatEx(sQuery, 128, "ALTER TABLE `%splayertimes` DROP CONSTRAINT `%spt_auth`;", gS_SQLPrefix, gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 	FormatEx(sQuery, 128, "ALTER TABLE `%schat` DROP CONSTRAINT `%sch_auth`;", gS_SQLPrefix, gS_SQLPrefix);
-	gH_SQL.Query(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationIndexing_Callback, sQuery, 0, DBPrio_High);
 
 	for (int i = 0; i < sizeof(sTables); i++)
 	{
@@ -523,7 +523,7 @@ void ApplyMigration_ConvertSteamIDs()
 		hPack.WriteString(sTables[i]);
 
 		FormatEx(sQuery, 128, "UPDATE %s%s SET auth = REPLACE(REPLACE(auth, \"[U:1:\", \"\"), \"]\", \"\") WHERE auth LIKE '[%%';", sTables[i], gS_SQLPrefix);
-		gH_SQL.Query(SQL_TableMigrationSteamIDs_Callback, sQuery, hPack, DBPrio_High);
+		gH_SQL.Query2(SQL_TableMigrationSteamIDs_Callback, sQuery, hPack, DBPrio_High);
 	}
 }
 
@@ -542,7 +542,7 @@ public void SQL_TableMigrationSteamIDs_Callback(Database db, DBResultSet results
 
 	char sQuery[128];
 	FormatEx(sQuery, 128, "ALTER TABLE `%s%s` CHANGE COLUMN `auth` `auth` INT;", gS_SQLPrefix, sTable);
-	gH_SQL.Query(SQL_TableMigrationSingleQuery_Callback, sQuery, iMigration, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, iMigration, DBPrio_High);
 }
 
 void ApplyMigration_RemoveWorkshopPath(int migration)
@@ -560,7 +560,7 @@ void ApplyMigration_RemoveWorkshopPath(int migration)
 
 	char sQuery[192];
 	FormatEx(sQuery, 192, "SELECT map FROM %s%s WHERE map LIKE 'workshop%%' GROUP BY map;", gS_SQLPrefix, sTables[migration]);
-	gH_SQL.Query(SQL_TableMigrationWorkshop_Callback, sQuery, hPack, DBPrio_High);
+	gH_SQL.Query2(SQL_TableMigrationWorkshop_Callback, sQuery, hPack, DBPrio_High);
 }
 
 public void SQL_TableMigrationWorkshop_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -592,7 +592,7 @@ public void SQL_TableMigrationWorkshop_Callback(Database db, DBResultSet results
 		char sQuery[256];
 		FormatEx(sQuery, 256, "UPDATE %s%s SET map = '%s' WHERE map = '%s';", gS_SQLPrefix, sTable, sDisplayMap, sMap);
 
-		hTransaction.AddQuery(sQuery);
+		hTransaction.AddQuery2(sQuery);
 	}
 
 	gH_SQL.Execute(hTransaction, Trans_WorkshopMigration, INVALID_FUNCTION, iMigration);
@@ -607,7 +607,7 @@ void InsertMigration(int migration)
 {
 	char sQuery[128];
 	FormatEx(sQuery, 128, "INSERT INTO %smigrations (code) VALUES (%d);", gS_SQLPrefix, migration);
-	gH_SQL.Query(SQL_MigrationApplied_Callback, sQuery, migration);
+	gH_SQL.Query2(SQL_MigrationApplied_Callback, sQuery, migration);
 }
 
 public void SQL_MigrationApplied_Callback(Database db, DBResultSet results, const char[] error, any data)

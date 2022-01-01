@@ -177,9 +177,9 @@ methodmap Shavit_BunnyhopStats __nullable__
 		return Shavit_Bhopstats_GetPerfectJumps(client);
     }
 
-	public static float ResetPrefectJumps(int client)
+	public static void ResetPrefectJumps(int client)
     {
-		return Shavit_Bhopstats_ResetPerfectJumps(client);
+		Shavit_Bhopstats_ResetPerfectJumps(client);
     }
 }
 

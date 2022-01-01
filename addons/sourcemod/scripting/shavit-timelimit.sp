@@ -219,7 +219,7 @@ void StartCalculating()
 	PrintToServer("%s", sQuery);
 	#endif
 
-	gH_SQL.Query(SQL_GetMapTimes, sQuery, 0, DBPrio_Low);
+	gH_SQL.Query2(SQL_GetMapTimes, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error, any data)

@@ -812,7 +812,7 @@ bool LoadReplay(frame_cache_t cache, int style, int track, const char[] path, co
 		hPack.WriteCell(style);
 		hPack.WriteCell(track);
 
-		gH_SQL.Query(SQL_GetUserName_Callback, sQuery, hPack, DBPrio_High);
+		gH_SQL.Query2(SQL_GetUserName_Callback, sQuery, hPack, DBPrio_High);
 	}
 
 	return ret;
