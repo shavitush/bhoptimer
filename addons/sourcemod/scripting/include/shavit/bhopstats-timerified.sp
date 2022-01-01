@@ -96,6 +96,8 @@ public int Native_ResetPerfectJumps(Handle handler, int numParams)
 
 	gI_Jumps[client] = 0;
 	gI_PerfectJumps[client] = 0;
+
+	return 0;
 }
 
 public void Bhopstats_PostThinkPost(int client)

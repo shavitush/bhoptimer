@@ -1319,6 +1319,8 @@ public int Native_Replay_DeleteMap(Handle handler, int numParams)
 	{
 		OnMapStart();
 	}
+
+	return 1;
 }
 
 public int Native_GetClosestReplayTime(Handle plugin, int numParams)
@@ -1354,6 +1356,7 @@ public int Native_GetClosestReplayStyle(Handle plugin, int numParams)
 public int Native_SetClosestReplayStyle(Handle plugin, int numParams)
 {
 	gI_TimeDifferenceStyle[GetNativeCell(1)] = GetNativeCell(2);
+	return 1;
 }
 
 public int Native_GetLoopingBotByName(Handle plugin, int numParams)

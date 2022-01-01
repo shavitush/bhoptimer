@@ -1334,6 +1334,7 @@ public any Native_UpdateLaggedMovement(Handle handler, int numParams)
 	int client = GetNativeCell(1);
 	bool user_timescale = GetNativeCell(2) != 0;
 	UpdateLaggedMovement(client, user_timescale);
+	return 1;
 }
 
 void UpdateLaggedMovement(int client, bool user_timescale)
@@ -1624,6 +1625,7 @@ public int Native_IsKZMap(Handle handler, int numParams)
 public int Native_StartTimer(Handle handler, int numParams)
 {
 	StartTimer(GetNativeCell(1), GetNativeCell(2));
+	return 0;
 }
 
 public int Native_StopTimer(Handle handler, int numParams)
@@ -1776,7 +1778,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	if (!gA_Timers[client].iFullTicks)
 	{
-		return;
+		return 0;
 	}
 
 	if(gCV_UseOffsets.BoolValue)
@@ -1798,7 +1800,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	if (gA_Timers[client].fCurrentTime <= 0.11)
 	{
 		StopTimer(client);
-		return;
+		return 0;
 	}
 
 	timer_snapshot_t snapshot;
@@ -1812,7 +1814,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	if(result != Plugin_Continue && result != Plugin_Changed)
 	{
-		return;
+		return 0;
 	}
 
 #if DEBUG
@@ -1837,6 +1839,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 	Call_Finish();
 
 	StopTimer(client);
+	return 1;
 }
 
 public int Native_PauseTimer(Handle handler, int numParams)
@@ -1848,6 +1851,7 @@ public int Native_PauseTimer(Handle handler, int numParams)
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", gF_PauseVelocity[client]);
 
 	PauseTimer(client);
+	return 1;
 }
 
 public any Native_GetZoneOffset(Handle handler, int numParams)
@@ -1886,11 +1890,14 @@ public int Native_ResumeTimer(Handle handler, int numParams)
 	{
 		TeleportEntity(client, gF_PauseOrigin[client], gF_PauseAngles[client], gF_PauseVelocity[client]);
 	}
+
+	return 1;
 }
 
 public int Native_StopChatSound(Handle handler, int numParams)
 {
 	gB_StopChatSound = true;
+	return 1;
 }
 
 public int Native_PrintToChatAll(Handle plugin, int numParams)
@@ -1908,6 +1915,7 @@ public int Native_PrintToChatAll(Handle plugin, int numParams)
 	}
 
 	gB_StopChatSound = false;
+	return 1;
 }
 
 public int Native_PrintToChat(Handle handler, int numParams)
@@ -1987,6 +1995,8 @@ public int Native_GotoEnd(Handle handler, int numParams)
 	Call_PushCell(client);
 	Call_PushCell(track);
 	Call_Finish();
+
+	return 1;
 }
 
 public int Native_RestartTimer(Handle handler, int numParams)
@@ -2096,6 +2106,8 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	}
 
 	gA_Timers[client].bPracticeMode = practice;
+
+	return 1;
 }
 
 public int Native_IsPaused(Handle handler, int numParams)
@@ -2180,6 +2192,7 @@ public int Native_LogMessage(Handle plugin, int numParams)
 	FormatNativeString(0, 1, 2, 300, iWritten, sBuffer);
 
 	LogToFileEx(gS_LogPath, "[%s] %s", sPlugin, sBuffer);
+	return 1;
 }
 
 public int Native_MarkKZMap(Handle handler, int numParams)
@@ -2211,6 +2224,8 @@ public int Native_SetClientTimescale(Handle handler, int numParams)
 		CallOnTimescaleChanged(client, gA_Timers[client].fTimescale, timescale);
 		UpdateLaggedMovement(client, true);
 	}
+
+	return 1;
 }
 
 public any Native_GetAvgVelocity(Handle plugin, int numParams)
@@ -2226,11 +2241,13 @@ public any Native_GetMaxVelocity(Handle plugin, int numParams)
 public any Native_SetAvgVelocity(Handle plugin, int numParams)
 {
 	gA_Timers[GetNativeCell(1)].fAvgVelocity = GetNativeCell(2);
+	return 1;
 }
 
 public any Native_SetMaxVelocity(Handle plugin, int numParams)
 {
 	gA_Timers[GetNativeCell(1)].fMaxVelocity = GetNativeCell(2);
+	return 1;
 }
 
 public any Native_Core_CookiesRetrieved(Handle plugin, int numParams)

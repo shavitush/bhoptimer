@@ -656,11 +656,13 @@ public int Native_IsClientCreatingZone(Handle handler, int numParams)
 public int Native_SetStart(Handle handler, int numParams)
 {
 	SetStart(GetNativeCell(1), GetNativeCell(2), view_as<bool>(GetNativeCell(3)));
+	return 1;
 }
 
 public int Native_DeleteSetStart(Handle handler, int numParams)
 {
 	DeleteSetStart(GetNativeCell(1), GetNativeCell(2));
+	return 1;
 }
 
 public int Native_GetClientLastStage(Handle plugin, int numParams)
@@ -2483,7 +2485,7 @@ public int MenuHandler_DeleteAllZones(Menu menu, MenuAction action, int param1, 
 
 		if(iInfo == -1)
 		{
-			return;
+			return 0;
 		}
 
 		Shavit_LogMessage("%L - deleted all zones from map `%s`.", param1, gS_Map);
@@ -2498,6 +2500,8 @@ public int MenuHandler_DeleteAllZones(Menu menu, MenuAction action, int param1, 
 	{
 		delete menu;
 	}
+
+	return 0;
 }
 
 public void SQL_DeleteAllZones_Callback(Database db, DBResultSet results, const char[] error, any data)

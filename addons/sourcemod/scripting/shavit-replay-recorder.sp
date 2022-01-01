@@ -571,6 +571,7 @@ public int Native_SetPlayerPreFrames(Handle handler, int numParams)
 	int preframes = GetNativeCell(2);
 
 	gI_PlayerPrerunFrames[client] = preframes;
+	return 1;
 }
 
 public int Native_GetReplayData(Handle plugin, int numParams)
@@ -618,6 +619,7 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	delete gA_PlayerFrames[client];
 	gA_PlayerFrames[client] = data;
 	gI_PlayerFrames[client] = data.Length;
+	return 1;
 }
 
 public int Native_HijackAngles(Handle handler, int numParams)
@@ -646,4 +648,5 @@ public int Native_HijackAngles(Handle handler, int numParams)
 	}
 
 	gB_HijackFramesKeepOnStart[client] = (numParams < 5) ? false : view_as<bool>(GetNativeCell(5));
+	return ticks;
 }

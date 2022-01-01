@@ -356,6 +356,8 @@ public Action Timer_Dominating(Handle timer)
 			SetEntProp(i, Prop_Send, "m_bPlayerDominatingMe", bHasWR[x], 1, x);
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 void ResetWRs()
@@ -647,11 +649,13 @@ public int Native_GetWorldRecord(Handle handler, int numParams)
 public int Native_ReloadLeaderboards(Handle handler, int numParams)
 {
 	UpdateWRCache();
+	return 1;
 }
 
 public int Native_GetWRRecordID(Handle handler, int numParams)
 {
 	SetNativeCellRef(2, gI_WRRecordID[GetNativeCell(1)][GetNativeCell(3)]);
+	return -1;
 }
 
 public int Native_GetWRName(Handle handler, int numParams)
@@ -688,11 +692,13 @@ public int Native_SetClientPB(Handle handler, int numParams)
 	float time = GetNativeCell(4);
 
 	gF_PlayerRecord[client][style][track] = time;
+	return 1;
 }
 
 public int Native_GetPlayerPB(Handle handler, int numParams)
 {
 	SetNativeCellRef(3, gF_PlayerRecord[GetNativeCell(1)][GetNativeCell(2)][GetNativeCell(4)]);
+	return -1;
 }
 
 public int Native_GetClientCompletions(Handle handler, int numParams)
@@ -861,6 +867,7 @@ public int Native_DeleteWR(Handle handle, int numParams)
 	bool update_cache = view_as<bool>(GetNativeCell(7));
 
 	DeleteWR(style, track, map, steamid, recordid, delete_sql, update_cache);
+	return 1;
 }
 
 public int Native_GetStageWR(Handle plugin, int numParams)

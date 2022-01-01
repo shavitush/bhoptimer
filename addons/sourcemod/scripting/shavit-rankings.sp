@@ -1527,6 +1527,7 @@ public int Native_Rankings_DeleteMap(Handle handler, int numParams)
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, sMap);
 	gH_SQL.Query2(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+	return 1;
 }
 
 public int Native_GuessPointsForTime(Handle plugin, int numParams)

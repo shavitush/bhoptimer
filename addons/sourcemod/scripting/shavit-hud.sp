@@ -406,6 +406,8 @@ public Action Timer_QueryWindowsCvar(Handle timer, any data)
 	{
 		QueryClientConVar(client, "windows_speaker_config", OnWindowsCvarQueried);
 	}
+
+	return Plugin_Stop;
 }
 
 public void OnWindowsCvarQueried(QueryCookie cookie, int client, ConVarQueryResult result, const char[] cvarName, const char[] cvarValue, any value)
