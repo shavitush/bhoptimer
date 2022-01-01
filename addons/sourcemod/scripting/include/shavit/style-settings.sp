@@ -556,31 +556,31 @@ public int Native_GetStyleStrings(Handle handler, int numParams)
 	{
 		case sStyleName:
 		{
-			GetStyleSetting(style, "name", sValue, size);
+			GetStyleSetting(style, "name", sValue, sizeof(stylestrings_t::sStyleName));
 		}
 		case sShortName:
 		{
-			GetStyleSetting(style, "shortname", sValue, size);
+			GetStyleSetting(style, "shortname", sValue, sizeof(stylestrings_t::sShortName));
 		}
 		case sHTMLColor:
 		{
-			GetStyleSetting(style, "htmlcolor", sValue, size);
+			GetStyleSetting(style, "htmlcolor", sValue, sizeof(stylestrings_t::sHTMLColor));
 		}
 		case sChangeCommand:
 		{
-			GetStyleSetting(style, "command", sValue, size);
+			GetStyleSetting(style, "command", sValue, sizeof(stylestrings_t::sChangeCommand));
 		}
 		case sClanTag:
 		{
-			GetStyleSetting(style, "clantag", sValue, size);
+			GetStyleSetting(style, "clantag", sValue, sizeof(stylestrings_t::sClanTag));
 		}
 		case sSpecialString:
 		{
-			GetStyleSetting(style, "specialstring", sValue, size);
+			GetStyleSetting(style, "specialstring", sValue, sizeof(stylestrings_t::sSpecialString));
 		}
 		case sStylePermission:
 		{
-			GetStyleSetting(style, "permission", sValue, size);
+			GetStyleSetting(style, "permission", sValue, sizeof(stylestrings_t::sStylePermission));
 		}
 		default:
 		{
