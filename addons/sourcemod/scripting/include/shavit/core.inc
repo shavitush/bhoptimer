@@ -295,7 +295,7 @@ stock void GetTimerSQLPrefix(char[] buffer, int maxlen)
 	{
 		SetFailState("Cannot open \"configs/shavit-prefix.txt\". Make sure this file exists and that the server has read permissions to it.");
 	}
-	
+
 	char sLine[PLATFORM_MAX_PATH * 2];
 
 	if(fFile.ReadLine(sLine, PLATFORM_MAX_PATH * 2))
@@ -501,16 +501,16 @@ stock void TrimDisplayString(const char[] str, char[] outstr, int outstrlen, int
 	for(int i = 0; str[i]; i++)
 	{
 		count += ((str[i] & 0xc0) != 0x80) ? 1 : 0;
-		
+
 		if(count <= max_allowed_length)
 		{
 			outstr[i] = str[i];
 			finallen = i;
 		}
 	}
-	
+
 	outstr[finallen + 1] = '\0';
-	
+
 	if(count > max_allowed_length)
 		Format(outstr, outstrlen, "%s...", outstr);
 }
@@ -521,7 +521,7 @@ stock void TrimDisplayString(const char[] str, char[] outstr, int outstrlen, int
  * Use this forward in modules that use OnPlayerRunCmd to avoid errors and unintended behavior.
  * If a module conflicts with buttons/velocity/angles being changed in shavit-core, this forward is recommended.
  * This forward will NOT be called if a player's timer is paused.
- * 
+ *
  * @param client					Client index.
  * @param buttons					Buttons sent in the usercmd.
  * @param impulse					Impulse sent in the usercmd.
@@ -771,7 +771,7 @@ forward Action Shavit_OnClanTagChangePre(int client, char[] clantag, int clantag
  * @param client					Client index.
  * @param customtag					Reference to the custom clan tag buffer.
  * @param customtaglength			Max length of the customtag buffer.
- * @noreturn							
+ * @noreturn
  */
 forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int customtaglength);
 
@@ -782,7 +782,7 @@ forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int custom
  * @param zonetype					Zone type (Zone_Start or Zone_End).
  * @param offset					Time offset from the given zone.
  * @param distance					Distance used in time offset.
- * @noreturn							
+ * @noreturn
  */
 forward void Shavit_OnTimeOffsetCalculated(int client, int zonetype, float offset, float distance);
 

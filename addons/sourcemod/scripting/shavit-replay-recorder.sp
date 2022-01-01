@@ -183,7 +183,7 @@ bool LoadReplayConfig()
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-replay.cfg");
 
 	KeyValues kv = new KeyValues("shavit-replay");
-	
+
 	if(!kv.ImportFromFile(sPath))
 	{
 		delete kv;
@@ -199,7 +199,7 @@ bool LoadReplayConfig()
 		ReplaceString(sFolder, PLATFORM_MAX_PATH, "{SM}/", "");
 		BuildPath(Path_SM, sFolder, PLATFORM_MAX_PATH, "%s", sFolder);
 	}
-	
+
 	strcopy(gS_ReplayFolder, PLATFORM_MAX_PATH, sFolder);
 
 	delete kv;

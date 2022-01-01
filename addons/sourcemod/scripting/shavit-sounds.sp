@@ -121,7 +121,6 @@ public void OnMapStart()
 	{
 		SetFailState("Cannot open \"configs/shavit-sounds.cfg\". Make sure this file exists and that the server has read permissions to it.");
 	}
-
 	else
 	{
 		char sLine[PLATFORM_MAX_PATH*2];
@@ -145,27 +144,22 @@ public void OnMapStart()
 			{
 				gA_FirstSounds.PushString(sExploded[1]);
 			}
-
 			else if(StrEqual(sExploded[0], "personal"))
 			{
 				gA_PersonalSounds.PushString(sExploded[1]);
 			}
-
 			else if(StrEqual(sExploded[0], "world"))
 			{
 				gA_WorldSounds.PushString(sExploded[1]);
 			}
-
 			else if(StrEqual(sExploded[0], "worst"))
 			{
 				gA_WorstSounds.PushString(sExploded[1]);
 			}
-
 			else if(StrEqual(sExploded[0], "worse") || StrEqual(sExploded[0], "noimprovement"))
 			{
 				gA_NoImprovementSounds.PushString(sExploded[1]);
 			}
-
 			else
 			{
 				gSM_RankSounds.SetString(sExploded[0], sExploded[1]);
@@ -176,7 +170,6 @@ public void OnMapStart()
 				FormatEx(sDownloadString, PLATFORM_MAX_PATH, "sound/%s", sExploded[1]);
 				AddFileToDownloadsTable(sDownloadString);
 			}
-
 			else
 			{
 				LogError("\"sound/%s\" could not be accessed.", sExploded[1]);
@@ -222,19 +215,16 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	{
 		bEveryone = true;
 	}
-
 	else if(gA_WorldSounds.Length != 0 && rank == 1)
 	{
 		bEveryone = true;
 
 		gA_WorldSounds.GetString(GetRandomInt(0, gA_WorldSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 	}
-
 	else if(gA_PersonalSounds.Length != 0 && time < fOldTime)
 	{
 		gA_PersonalSounds.GetString(GetRandomInt(0, gA_PersonalSounds.Length - 1), sSound, PLATFORM_MAX_PATH);
 	}
-
 	else if(gA_FirstSounds.Length != 0 && overwrite == 1)
 	{
 		gA_FirstSounds.GetString(GetRandomInt(0, gA_FirstSounds.Length - 1), sSound, PLATFORM_MAX_PATH);

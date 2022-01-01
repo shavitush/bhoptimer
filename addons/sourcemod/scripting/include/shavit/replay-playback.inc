@@ -301,7 +301,7 @@ native bool Shavit_IsReplayEntity(int ent);
 native void Shavit_SetReplayCacheName(int bot, char[] name);
 
 /**
- * Starts a replay given a style and track. 
+ * Starts a replay given a style and track.
  *
  * @param style                     Bhop style.
  * @param track                     Timer track.
@@ -356,7 +356,7 @@ native int Shavit_StartReplayFromFile(int style, int track, float delay, int cli
  * @param restart                   Restart the playback of the replay bot if it's playing?
  * @param path                      Path to the replay file. Use `BuildPath(Path_SM, ...)` to generate one. Leave as empty to use default.
  * @return                          Was the replay loaded?
- */ 
+ */
 native bool Shavit_ReloadReplay(int style, int track, bool restart, char[] path = "");
 
 /**

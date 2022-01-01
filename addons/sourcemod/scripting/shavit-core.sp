@@ -264,7 +264,6 @@ public void OnPluginStart()
 		sv_autobunnyhopping = FindConVar("sv_autobunnyhopping");
 		sv_autobunnyhopping.BoolValue = false;
 	}
-
 	else if(gEV_Type != Engine_CSS && gEV_Type != Engine_TF2)
 	{
 		SetFailState("This plugin was meant to be used in CS:S, CS:GO and TF2 *only*.");
@@ -770,7 +769,6 @@ public Action Command_TogglePause(int client, int args)
 
 		Shavit_PrintToChat(client, "%T", "MessageUnpause", client, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
-
 	else
 	{
 		if((iFlags & CPR_NotOnGround) > 0)
@@ -1006,7 +1004,6 @@ public Action Command_Migration(int client, int args)
 			bApplyMigration[i] = true;
 		}
 	}
-
 	else
 	{
 		int iMigration = StringToInt(sArg);
@@ -1063,7 +1060,6 @@ public Action Command_WipePlayer(int client, int args)
 		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s[U:1:%d]%s. To confirm, enter %s!wipeplayer %s",
 			gS_ChatStrings.sVariable, gI_WipePlayerID[client], gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_Verification[client]);
 	}
-
 	else
 	{
 		Shavit_PrintToChat(client, "Deleting data for SteamID %s[U:1:%d]%s...",
@@ -1275,7 +1271,6 @@ public Action Command_Style(int client, int args)
 	{
 		menu.AddItem("-1", "Nothing");
 	}
-
 	else if(menu.ItemCount <= ((gEV_Type == Engine_CSS)? 9:8))
 	{
 		menu.Pagination = MENU_NO_PAGINATION;
@@ -1303,7 +1298,6 @@ public int StyleMenu_Handler(Menu menu, MenuAction action, int param1, int param
 
 		ChangeClientStyle(param1, style, true);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1567,7 +1561,6 @@ void VelocityChanges(int data)
 	{
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
 	}
-
 	else
 	{
 		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fAbsVelocity);
@@ -2546,7 +2539,6 @@ public void OnClientPutInServer(int client)
 			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
 			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
 	}
-
 	else
 	{
 		FormatEx(sQuery, 512,
@@ -2567,7 +2559,6 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 		{
 			LogError("Timer error! Failed to insert a disconnected player's data to the table. Reason: %s", error);
 		}
-
 		else
 		{
 			LogError("Timer error! Failed to insert \"%N\"'s data to the table. Reason: %s", client, error);
@@ -2648,7 +2639,6 @@ public void Shavit_OnEnterZone(int client, int type, int track, int id, int enti
 
 		UpdateAiraccelerate(client, gF_ZoneAiraccelerate[client]);
 	}
-
 	else if(type == Zone_CustomSpeedLimit)
 	{
 		gF_ZoneSpeedLimit[client] = float(Shavit_GetZoneData(id));

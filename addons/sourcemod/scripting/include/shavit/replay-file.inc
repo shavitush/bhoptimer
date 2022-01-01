@@ -1,3 +1,23 @@
+/*
+ * shavit's Timer - replay file stocks & format
+ * by: shavit
+ *
+ * This file is part of shavit's Timer.
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, version 3.0, as published by the
+ * Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #if defined _shavit_replay_file_included
 	#endinput
 #endif
@@ -231,7 +251,7 @@ stock File ReadReplayHeader(const char[] path, replay_header_t header, int style
 			file.ReadString(header.sMap, PLATFORM_MAX_PATH);
 			file.ReadUint8(header.iStyle);
 			file.ReadUint8(header.iTrack);
-			
+
 			file.ReadInt32(header.iPreFrames);
 
 			// In case the replay was from when there could still be negative preframes
@@ -371,4 +391,3 @@ stock void WriteReplayFrames(ArrayList playerrecording, int iSize, File file_a, 
 		}
 	}
 }
-

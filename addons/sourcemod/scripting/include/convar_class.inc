@@ -1,9 +1,33 @@
+/*
+MIT License
+
+Copyright (c) 2019 KiD Fearless
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #if defined _convar_class_included
  #endinput
 #endif
 #define _convar_class_included
 
-// todo: track previous default values 
+// todo: track previous default values
 
 static ArrayList _ConvarList;
 
@@ -48,7 +72,7 @@ methodmap Convar < ConVar
 		savedValue.cvar = cvar;
 		strcopy(savedValue.description, 512, description);
 		strcopy(savedValue.defValue, sizeof(savedValue.defValue), defaultValue);
-		
+
 		// Can't set default values :T
 		savedValue.SetMin(hasMin, min);
 		savedValue.SetMax(hasMax, max);
@@ -126,7 +150,7 @@ methodmap Convar < ConVar
 					{
 						continue;
 					}
-					
+
 					// make a copy of our description
 					char descr[512];
 					descr = convar.description;
@@ -257,7 +281,7 @@ methodmap Convar < ConVar
 					{
 						file.WriteLine("// Maximum: \"%02f\"", x);
 					}
-					
+
 					// only difference is that now we check for a stored value.
 					char storedValue[512];
 					if(convars.GetString(name, storedValue, 512))
@@ -277,7 +301,7 @@ methodmap Convar < ConVar
 				char pluginName[64];
 				GetPluginFilename(GetMyHandle(), pluginName, 64);
 				LogError("Failed to auto generate config for %s, make sure the directory has write permission.", pluginName);
-				
+
 				if(clearWhenDone)
 				{
 					delete _ConvarList;
@@ -286,7 +310,7 @@ methodmap Convar < ConVar
 				delete convars;
 				return false;
 			}
-		
+
 			delete convars;
 		}
 		if(fileExists)

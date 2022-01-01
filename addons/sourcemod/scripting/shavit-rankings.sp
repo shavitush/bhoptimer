@@ -671,7 +671,7 @@ public Action Command_SetTier(int client, int args)
 {
 	char sArg[8];
 	GetCmdArg(1, sArg, 8);
-	
+
 	int tier = StringToInt(sArg);
 
 	if(args == 0 || tier < 1 || tier > 10)
@@ -1069,7 +1069,7 @@ void UpdateAllPoints(bool recalcall = false)
 			sLastLogin, (sLastLogin[0] != 0) ? "AND" : "",
 			gS_MySQLPrefix);
 	}
-	
+
 	gH_SQL.Query2(SQL_UpdateAllPoints_Callback, sQuery);
 }
 
@@ -1583,7 +1583,7 @@ public void SQL_DeleteMap_Callback(Database db, DBResultSet results, const char[
 	if(view_as<bool>(data))
 	{
 		gI_Tier = gCV_DefaultTier.IntValue;
-		
+
 		UpdateAllPoints(true);
 		UpdateRankedPlayers();
 	}

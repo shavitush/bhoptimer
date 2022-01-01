@@ -423,7 +423,6 @@ public void OnClientCookiesCached(int client)
 		SetClientCookie(client, gH_HideCookie, "0");
 		gB_Hide[client] = false;
 	}
-
 	else
 	{
 		gB_Hide[client] = view_as<bool>(StringToInt(sSetting));
@@ -461,7 +460,7 @@ void LoadMapFixes()
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-mapfixes.cfg");
 
 	KeyValues kv = new KeyValues("shavit-mapfixes");
-	
+
 	if (kv.ImportFromFile(sPath) && kv.JumpToKey(gS_Map) && kv.GotoFirstSubKey(false))
 	{
 		do {
@@ -616,7 +615,7 @@ bool LoadAdvertisementsConfig()
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-advertisements.cfg");
 
 	KeyValues kv = new KeyValues("shavit-advertisements");
-	
+
 	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey(false))
 	{
 		delete kv;
@@ -710,7 +709,6 @@ int GetHumanTeam()
 	{
 		return 2;
 	}
-
 	else if(StrEqual(sTeam, "ct", false) || StrContains(sTeam, "blu", false) != -1)
 	{
 		return 3;
@@ -1139,7 +1137,7 @@ void UpdateClanTag(int client)
 	Call_PushStringEx(sCustomTag, 32, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
 	Call_PushCell(32);
 	Call_Finish(result);
-	
+
 	if(result != Plugin_Continue && result != Plugin_Changed)
 	{
 		return;
@@ -1274,7 +1272,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 				{
 					float zSpeed = fSpeed[2];
 					fSpeed[2] = 0.0;
-					
+
 					ScaleVector(fSpeed, fScale);
 					fSpeed[2] = zSpeed;
 				}
@@ -1460,7 +1458,7 @@ public void TF2_OnPreThink(int client)
 	if(IsPlayerAlive(client))
 	{
 		float maxspeed;
-		
+
 		if (GetEntityFlags(client) & FL_ONGROUND)
 		{
 			maxspeed = Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed");
@@ -1645,7 +1643,6 @@ public Action Command_Teleport(int client, int args)
 
 		Teleport(client, GetClientSerial(iTarget));
 	}
-
 	else
 	{
 		Menu menu = new Menu(MenuHandler_Teleport);
@@ -1686,7 +1683,6 @@ public int MenuHandler_Teleport(Menu menu, MenuAction action, int param1, int pa
 			Command_Teleport(param1, 0);
 		}
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1859,7 +1855,6 @@ public int MenuHandler_StopWarning(Menu menu, MenuAction action, int param1, int
 			Call_Finish();
 		}
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1961,13 +1956,11 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 			Shavit_StopTimer(client);
 			SetEntityMoveType(client, MOVETYPE_NOCLIP);
 		}
-
 		else
 		{
 			OpenStopWarningMenu(client, DoNoclip);
 		}
 	}
-
 	else if(GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		SetEntityMoveType(client, MOVETYPE_WALK);
@@ -2064,7 +2057,6 @@ public Action Command_Specs(int client, int args)
 			{
 				FormatEx(sSpecs, 192, "%s%N", gS_ChatStrings.sVariable2, i);
 			}
-
 			else
 			{
 				Format(sSpecs, 192, "%s%s, %s%N", sSpecs, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, i);
@@ -2076,7 +2068,6 @@ public Action Command_Specs(int client, int args)
 	{
 		Shavit_PrintToChat(client, "%T", "SpectatorCount", client, gS_ChatStrings.sVariable2, iObserverTarget, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iCount, gS_ChatStrings.sText, sSpecs);
 	}
-
 	else
 	{
 		Shavit_PrintToChat(client, "%T", "SpectatorCountZero", client, gS_ChatStrings.sVariable2, iObserverTarget, gS_ChatStrings.sText);
@@ -2171,7 +2162,6 @@ public void Shavit_OnWorldRecord(int client, int style, float time, int jumps, i
 		{
 			Shavit_PrintToChatAll("%t", "WRNotice", gS_ChatStrings.sWarning, sUpperCase);
 		}
-
 		else
 		{
 			Shavit_PrintToChatAll("%s[%s]%s %t", gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WRNotice", gS_ChatStrings.sWarning, sUpperCase);
@@ -2256,7 +2246,6 @@ public Action Respawn(Handle timer, any data)
 		{
 			TF2_RespawnPlayer(client);
 		}
-
 		else
 		{
 			CS_RespawnPlayer(client);
@@ -2432,7 +2421,6 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 		TE_WriteFloat("m_fInaccuracy", TE_ReadFloat("m_fInaccuracy"));
 		TE_WriteFloat("m_fSpread", TE_ReadFloat("m_fSpread"));
 	}
-
 	else if(gEV_Type == Engine_CSGO)
 	{
 		TE_WriteNum("m_weapon", TE_ReadNum("m_weapon"));
@@ -2442,14 +2430,13 @@ public Action Shotgun_Shot(const char[] te_name, const int[] Players, int numCli
 		TE_WriteNum("m_nItemDefIndex", TE_ReadNum("m_nItemDefIndex"));
 		TE_WriteNum("m_iSoundType", TE_ReadNum("m_iSoundType"));
 	}
-
 	else if(gEV_Type == Engine_TF2)
 	{
 		TE_WriteNum("m_iWeaponID", TE_ReadNum("m_iWeaponID"));
 		TE_WriteFloat("m_flSpread", TE_ReadFloat("m_flSpread"));
 		TE_WriteNum("m_bCritical", TE_ReadNum("m_bCritical"));
 	}
-	
+
 	TE_Send(clients, count, delay);
 
 	return Plugin_Stop;
@@ -2550,7 +2537,7 @@ public Action NormalSound(int clients[MAXPLAYERS], int &numClients, char sample[
 					{
 						clients[j] = clients[j+1];
 					}
-					
+
 					numClients--;
 					i--;
 				}
@@ -2559,7 +2546,7 @@ public Action NormalSound(int clients[MAXPLAYERS], int &numClients, char sample[
 
 		return Plugin_Changed;
 	}
-   
+
 	return Plugin_Continue;
 }
 

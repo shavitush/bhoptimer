@@ -339,7 +339,7 @@ public void OnPluginStart()
 	gH_OnReplayStart = CreateGlobalForward("Shavit_OnReplayStart", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnReplayEnd = CreateGlobalForward("Shavit_OnReplayEnd", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnReplaysLoaded = CreateGlobalForward("Shavit_OnReplaysLoaded", ET_Event);
-	
+
 	// game specific
 	gEV_Type = GetEngineVersion();
 	gF_Tickrate = (1.0 / GetTickInterval());
@@ -456,7 +456,7 @@ public void OnPluginStart()
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
 	}
-	
+
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		ClearBotInfo(gA_BotInfo[i]);
@@ -707,7 +707,7 @@ public void OnAdminMenuReady(Handle topmenu)
 				OnAdminMenuCreated(topmenu);
 			}
 		}
-		
+
 		gH_AdminMenu.AddItem("sm_deletereplay", AdminMenu_DeleteReplay, gH_TimerCommands, "sm_deletereplay", ADMFLAG_RCON);
 	}
 }
@@ -718,7 +718,6 @@ public void AdminMenu_DeleteReplay(Handle topmenu, TopMenuAction action, TopMenu
 	{
 		FormatEx(buffer, maxlength, "%t", "DeleteReplayAdminMenu");
 	}
-
 	else if(action == TopMenuAction_SelectOption)
 	{
 		Command_DeleteReplay(param, 0);
@@ -1436,7 +1435,7 @@ bool LoadStyling()
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-replay.cfg");
 
 	KeyValues kv = new KeyValues("shavit-replay");
-	
+
 	if(!kv.ImportFromFile(sPath))
 	{
 		delete kv;
@@ -1457,7 +1456,7 @@ bool LoadStyling()
 		ReplaceString(sFolder, PLATFORM_MAX_PATH, "{SM}/", "");
 		BuildPath(Path_SM, sFolder, PLATFORM_MAX_PATH, "%s", sFolder);
 	}
-	
+
 	strcopy(gS_ReplayFolder, PLATFORM_MAX_PATH, sFolder);
 
 	if (kv.JumpToKey("Looping Bots"))
@@ -1664,7 +1663,7 @@ int InternalCreateReplayBot()
 	{
 		// Do all this mp_randomspawn stuff on CSGO since it's easier than updating the signature for CCSGameRules::TeamFull.
 		int mp_randomspawn_orig;
-		
+
 		if (mp_randomspawn != null)
 		{
 			mp_randomspawn_orig = mp_randomspawn.IntValue;
@@ -1862,7 +1861,7 @@ bool DeleteReplay(int style, int track, int accountid, const char[] mapname)
 			return false;
 		}
 	}
-	
+
 	if(!DeleteFile(sPath))
 	{
 		return false;
@@ -2154,7 +2153,6 @@ void UpdateReplayClient(int client)
 		{
 			ChangeClientTeam(client, gCV_DefaultTeam.IntValue);
 		}
-
 		else
 		{
 			CS_SwitchTeam(client, gCV_DefaultTeam.IntValue);
@@ -2172,7 +2170,7 @@ void UpdateReplayClient(int client)
 			CS_RespawnPlayer(client);
 		}
 	}
-		
+
 	int iFlags = GetEntityFlags(client);
 
 	if((iFlags & FL_ATCONTROLS) == 0)
@@ -2411,7 +2409,7 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 					{
 						int jumpAnim = (gEV_Type == Engine_CSS) ?
 							CSS_ANIM_JUMP : ((gEV_Type == Engine_TF2) ? TF2_ANIM_JUMP : CSGO_ANIM_JUMP);
-						
+
 						if(gB_Linux)
 						{
 							SDKCall(gH_DoAnimationEvent, EntIndexToEntRef(info.iEnt), jumpAnim, 0);
@@ -2435,7 +2433,7 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 
 			if (isClient)
 			{
-				gI_LastReplayFlags[info.iEnt] = aFrame.flags; 
+				gI_LastReplayFlags[info.iEnt] = aFrame.flags;
 				SetEntityMoveType(info.iEnt, mt);
 			}
 
@@ -2567,7 +2565,7 @@ public Action BotEvents(Event event, const char[] name, bool dontBroadcast)
 
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if (event.GetBool("bot") || (client && IsFakeClient(client))) 
+	if (event.GetBool("bot") || (client && IsFakeClient(client)))
 	{
 		event.BroadcastDisabled = true;
 
@@ -2704,7 +2702,6 @@ public Action Command_DeleteReplay(int client, int args)
 
 				FormatEx(sDisplay, 64, "%s (%s) - %s", gS_StyleStrings[iStyle].sStyleName, sTrack, sTime);
 			}
-
 			else
 			{
 				FormatEx(sDisplay, 64, "%s (%s)", gS_StyleStrings[iStyle].sStyleName, sTrack);
@@ -2736,7 +2733,7 @@ public int DeleteReplay_Callback(Menu menu, MenuAction action, int param1, int p
 
 		char sExploded[2][4];
 		ExplodeString(sInfo, ";", sExploded, 2, 4);
-		
+
 		int style = StringToInt(sExploded[0]);
 
 		if(style == -1)
@@ -2769,7 +2766,6 @@ public int DeleteReplay_Callback(Menu menu, MenuAction action, int param1, int p
 		submenu.ExitButton = true;
 		submenu.Display(param1, MENU_TIME_FOREVER);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -2795,7 +2791,6 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 
 			Shavit_PrintToChat(param1, "%T (%s%s%s)", "ReplayDeleted", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText);
 		}
-
 		else
 		{
 			Shavit_PrintToChat(param1, "%T", "ReplayDeleteFailure", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
@@ -2803,7 +2798,6 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 
 		Command_DeleteReplay(param1, 0);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -3453,7 +3447,7 @@ float GetReplayLength(int style, int track, frame_cache_t aCache)
 	{
 		return 0.0;
 	}
-	
+
 	if(aCache.bNewFormat)
 	{
 		return aCache.fTime;
@@ -3591,7 +3585,7 @@ float GetClosestReplayTime(int client)
 		int iPlayerFrames = Shavit_GetClientFrameCount(client) - Shavit_GetPlayerPreFrames(client);
 		int iStartFrame = iPlayerFrames - iSearch;
 		iEndFrame = iPlayerFrames + iSearch;
-		
+
 		if(iSearch == 0)
 		{
 			iStartFrame = 0;
@@ -3604,7 +3598,7 @@ float GetClosestReplayTime(int client)
 			{
 				iStartFrame = 0;
 			}
-			
+
 			// check if the search ahead flag is off
 			if(gCV_DynamicTimeCheap.IntValue & 1 == 0)
 			{

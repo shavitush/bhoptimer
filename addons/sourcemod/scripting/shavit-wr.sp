@@ -238,7 +238,6 @@ public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject 
 	{
 		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
 	}
-
 	else if(action == TopMenuAction_DisplayOption)
 	{
 		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
@@ -270,7 +269,6 @@ public void AdminMenu_Delete(Handle topmenu, TopMenuAction action, TopMenuObject
 	{
 		FormatEx(buffer, maxlength, "%t", "DeleteSingleRecord");
 	}
-
 	else if(action == TopMenuAction_SelectOption)
 	{
 		Command_Delete(param, 0);
@@ -283,7 +281,6 @@ public void AdminMenu_DeleteAll(Handle topmenu,  TopMenuAction action, TopMenuOb
 	{
 		FormatEx(buffer, maxlength, "%t", "DeleteAllRecords");
 	}
-
 	else if(action == TopMenuAction_SelectOption)
 	{
 		Command_DeleteAll(param, 0);
@@ -296,12 +293,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Rankings = true;
 	}
-
 	else if(StrEqual(name, "shavit-stats"))
 	{
 		gB_Stats = true;
 	}
-
 	else if (StrEqual(name, "adminmenu"))
 	{
 		if ((gH_AdminMenu = GetAdminTopMenu()) != null)
@@ -317,12 +312,10 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_Rankings = false;
 	}
-
 	else if(StrEqual(name, "shavit-stats"))
 	{
 		gB_Stats = false;
 	}
-
 	else if (StrEqual(name, "adminmenu"))
 	{
 		gH_AdminMenu = null;
@@ -1003,7 +996,6 @@ public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, in
 
 		DeleteSubmenu(param1);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1120,7 +1112,6 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		subMenu.ExitButton = true;
 		subMenu.Display(param1, 300);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1139,7 +1130,6 @@ public int MenuHandler_DeleteAll_Second(Menu menu, MenuAction action, int param1
 
 		DeleteAllSubmenu(param1);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1208,7 +1198,6 @@ public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int p
 
 		gH_SQL.Query2(DeleteAll_Callback, sQuery, hPack, DBPrio_High);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1227,7 +1216,6 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 
 		OpenDelete(param1);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1320,7 +1308,6 @@ public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int para
 			OpenDeleteMenu(param1, id);
 		}
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1384,7 +1371,6 @@ public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int p
 
 		gH_SQL.Query2(GetRecordDetails_Callback, sQuery, GetSteamAccountID(param1), DBPrio_High);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1830,7 +1816,6 @@ public int MenuHandler_StyleChooser(Menu menu, MenuAction action, int param1, in
 
 		StartWRMenu(param1);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1934,7 +1919,6 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 
 		hMenu.AddItem("-1", sNoRecords);
 	}
-
 	else
 	{
 		int iStyle = gA_WRCache[client].iLastStyle;
@@ -1947,7 +1931,6 @@ public void SQL_WR_Callback(Database db, DBResultSet results, const char[] error
 		{
 			FormatEx(sRanks, 32, "(%d %T)", iRecords, "WRRecord", client);
 		}
-
 		else
 		{
 			FormatEx(sRanks, 32, "(#%d/%d)", iMyRank, iRecords);
@@ -1976,18 +1959,15 @@ public int WRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 		{
 			OpenSubMenu(param1, id);
 		}
-
 		else
 		{
 			ShowWRStyleMenu(param1);
 		}
 	}
-
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
 		ShowWRStyleMenu(param1, gA_WRCache[param1].iPagePosition);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -2095,18 +2075,15 @@ public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 
 			OpenSubMenu(param1, StringToInt(sExploded[0]));
 		}
-
 		else
 		{
 			RetrieveWRMenu(param1, gA_WRCache[param1].iLastTrack);
 		}
 	}
-
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
 		RetrieveWRMenu(param1, gA_WRCache[param1].iLastTrack);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -2176,7 +2153,6 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		{
 			FormatEx(sDisplay, 128, "%T: %d", "WRJumps", client, iJumps);
 		}
-
 		else
 		{
 			FormatEx(sDisplay, 128, "%T: %d (%.2f%%)", "WRJumps", client, iJumps, fPerfs);
@@ -2242,7 +2218,6 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		GetTrackName(client, results.FetchInt(11), sTrack, 32);
 	}
-
 	else
 	{
 		char sMenuItem[64];
@@ -2254,7 +2229,6 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 	{
 		FormatEx(sFormattedTitle, 256, "%s [U:1:%d]\n--- %s: [%s]", sName, iSteamID, sMap, sTrack);
 	}
-
 	else
 	{
 		FormatEx(sFormattedTitle, 256, "%T", "Error", client);
@@ -2291,18 +2265,15 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 				}
 			}
 		}
-
 		else
 		{
 			StartWRMenu(param1);
 		}
 	}
-
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
 		StartWRMenu(param1);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -2352,12 +2323,10 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		iOverwrite = 0; // ugly way of not writing to database
 		bIncrementCompletions = false;
 	}
-
 	else if(gF_PlayerRecord[client][style][track] == 0.0)
 	{
 		iOverwrite = 1;
 	}
-
 	else if(time < gF_PlayerRecord[client][style][track])
 	{
 		iOverwrite = 2;

@@ -957,7 +957,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 			{
 				char map[PLATFORM_MAX_PATH], buffer[255];
 				menu.GetItem(param2, map, sizeof(map));
-	
+
 				if (strcmp(map, "extend", false) == 0)
 				{
 					FormatEx(buffer, sizeof(buffer), "%T", "Extend Map", param1);
@@ -999,7 +999,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 						menu.GetItem(item, map, sizeof(map), _, displayName, sizeof(displayName));
 					}
 					while(strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0);
-					
+
 					DoMapChangeAfterMapVote(map, displayName, 0, 0);
 				}
 			}
@@ -2144,7 +2144,7 @@ public Action BaseCommands_Command_Map(int client, int args)
 
 	if (!foundMap)
 	{
-		// do a smaller 
+		// do a smaller
 
 		StringMapSnapshot snapshot = maps.Snapshot();
 		int length = snapshot.Length;

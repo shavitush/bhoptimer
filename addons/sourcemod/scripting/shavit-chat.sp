@@ -260,7 +260,7 @@ bool LoadChatConfig()
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-chat.cfg");
 
 	KeyValues kv = new KeyValues("shavit-chat");
-	
+
 	if(!kv.ImportFromFile(sPath) || !kv.GotoFirstSubKey())
 	{
 		delete kv;
@@ -277,7 +277,7 @@ bool LoadChatConfig()
 		kv.GetString("ranks", sRanks, 32, "0");
 
 		if(sRanks[0] == 'p')
-		{	
+		{
 			chat_title.iRequire = Require_Points;
 		}
 		else if(sRanks[0] == 'w')
@@ -337,10 +337,10 @@ bool LoadChatConfig()
 				continue;
 			}
 		}
-		
+
 		chat_title.bFree = view_as<bool>(kv.GetNum("free", false));
 		chat_title.bEasterEgg = view_as<bool>(kv.GetNum("easteregg", false));
-		
+
 		kv.GetString("name", chat_title.sName, MAXLENGTH_NAME, "{name}");
 		kv.GetString("message", chat_title.sMessage, MAXLENGTH_MESSAGE, "");
 		kv.GetString("display", chat_title.sDisplay, MAXLENGTH_DISPLAY, "");
@@ -364,7 +364,7 @@ bool LoadChatSettings()
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-chatsettings.cfg");
 
 	KeyValues kv = new KeyValues("shavit-chat");
-	
+
 	if(!kv.ImportFromFile(sPath))
 	{
 		delete kv;
@@ -379,7 +379,6 @@ bool LoadChatSettings()
 	{
 		failed = !kv.JumpToKey("CS:S");
 	}
-
 	else if(gEV_Type == Engine_CSGO)
 	{
 		failed = !kv.JumpToKey("CS:GO");
@@ -448,7 +447,6 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 		pbmsg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
 		pbmsg.ReadString("params", sOriginalText, MAXLENGTH_TEXT, 1);
 	}
-
 	else
 	{
 		BfRead bfmsg = UserMessageToBfRead(msg);
@@ -520,7 +518,6 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 			TrimString(sOriginalText);
 			Format(sOriginalText, MAXLENGTH_MESSAGE, "%s%s", sFixedMessage, sCMessage);
 		}
-
 		else
 		{
 			Format(sOriginalText, MAXLENGTH_MESSAGE, "%s%s", sCMessage, sOriginalText);
@@ -580,7 +577,7 @@ void Frame_SendText(DataPack pack)
 	{
 		return;
 	}
-	
+
 	Handle hSayText2 = StartMessage("SayText2", clients, count, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
 	if(hSayText2 == null)
@@ -597,14 +594,13 @@ void Frame_SendText(DataPack pack)
 		pbmsg.SetInt("ent_idx", client);
 		pbmsg.SetBool("chat", true);
 		pbmsg.SetString("msg_name", sText);
-		
+
 		// needed to not crash
 		for(int i = 1; i <= 4; i++)
 		{
 			pbmsg.AddString("params", "");
 		}
 	}
-
 	else
 	{
 		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
@@ -622,12 +618,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_RTLer = true;
 	}
-
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = true;
 	}
-
 	else if(StrEqual(name, "shavit-stats"))
 	{
 		gB_Stats = true;
@@ -640,12 +634,10 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_RTLer = false;
 	}
-
 	else if(StrEqual(name, "shavit-rankings"))
 	{
 		gB_Rankings = false;
 	}
-
 	else if(StrEqual(name, "shavit-stats"))
 	{
 		gB_Stats = false;
@@ -662,7 +654,6 @@ public void OnClientCookiesCached(int client)
 		SetClientCookie(client, gH_ChatCookie, "-2");
 		gI_ChatSelection[client] = -2;
 	}
-
 	else
 	{
 		gI_ChatSelection[client] = StringToInt(sChatSettings);
@@ -718,7 +709,6 @@ public Action Command_CCHelp(int client, int args)
 			"CCHelp_CSS_1", client,
 			"CCHelp_CSS_2", client);
 	}
-
 	else
 	{
 		PrintToConsole(client, "%T", "CCHelp_CSGO_1", client);
@@ -754,7 +744,6 @@ public Action Command_CCName(int client, int args)
 
 		return Plugin_Handled;
 	}
-
 	else if(StrEqual(sArgs, "off"))
 	{
 		Shavit_PrintToChat(client, "%T", "NameOff", client, sArgs);
@@ -804,7 +793,6 @@ public Action Command_CCMessage(int client, int args)
 
 		return Plugin_Handled;
 	}
-
 	else if(StrEqual(sArgs, "off"))
 	{
 		Shavit_PrintToChat(client, "%T", "MessageOff", client, sArgs);
@@ -910,7 +898,7 @@ Action ShowChatRanksMenu(int client, int item)
 		else if (iSize == 1)
 		{
 			AdminFlag afFlag = view_as<AdminFlag>(0);
-			
+
 			if(FindFlagByChar(cache.sAdminFlag[0], afFlag))
 			{
 				bFlagAccess = GetAdminFlag(GetUserAdmin(client), afFlag);
@@ -1049,13 +1037,12 @@ void PreviewChat(int client, int rank)
 			pbmsg.SetInt("ent_idx", client);
 			pbmsg.SetBool("chat", true);
 			pbmsg.SetString("msg_name", sTextFormatting);
-			
+
 			for(int i = 1; i <= 4; i++)
 			{
 				pbmsg.AddString("params", "");
 			}
 		}
-
 		else
 		{
 			BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
@@ -1080,7 +1067,6 @@ bool HasRankAccess(int client, int rank)
 	{
 		return true;
 	}
-
 	else if(!(0 <= rank <= (gA_ChatRanks.Length - 1)))
 	{
 		return false;
@@ -1099,17 +1085,15 @@ bool HasRankAccess(int client, int rank)
 	{
 		bFlagAccess = true;
 	}
-
 	else if(iSize == 1)
 	{
 		AdminFlag afFlag = view_as<AdminFlag>(0);
-		
+
 		if(FindFlagByChar(sFlag[0], afFlag))
 		{
 			bFlagAccess = GetAdminFlag(GetUserAdmin(client), afFlag);
 		}
 	}
-
 	else
 	{
 		bFlagAccess = CheckCommandAccess(client, sFlag, 0, true);
@@ -1188,7 +1172,7 @@ bool HasRankAccess(int client, int rank)
 		}
 
 		float fPercentile = (fVal / fTotal) * 100.0;
-		
+
 		if(cache.fFrom <= fPercentile <= cache.fTo)
 		{
 			return true;
@@ -1396,7 +1380,6 @@ void FormatRandom(char[] buffer, int size)
 		{
 			FormatEx(temp, 8, "\x07%06X", GetRandomInt(0, 0xFFFFFF));
 		}
-
 		else
 		{
 			strcopy(temp, 8, gS_CSGOColors[GetRandomInt(0, sizeof(gS_CSGOColors) - 1)]);
@@ -1444,7 +1427,7 @@ void FormatChat(int client, char[] buffer, int size)
 
 		FormatEx(temp, 32, "%0.f", Shavit_GetPoints(client));
 		ReplaceString(buffer, size, "{pts}", temp);
-		
+
 		FormatEx(temp, 32, "%d", Shavit_GetWRHolderRank(client));
 		ReplaceString(buffer, size, "{wrrank}", temp);
 
@@ -1569,7 +1552,7 @@ void RemoveFromString(char[] buf, char[] thing, int extra)
 {
 	int index, len = strlen(buf);
 	extra += strlen(thing);
-	
+
 	while ((index = StrContains(buf, thing, true)) != -1)
 	{
 		// Search sequence is in the end of the string, so just cut it and exit
@@ -1578,7 +1561,7 @@ void RemoveFromString(char[] buf, char[] thing, int extra)
 			buf[index] = '\0';
 			break;
 		}
-		
+
 		while (buf[index] != 0)
 		{
 			buf[index] = buf[index+extra];
@@ -1676,7 +1659,7 @@ public int Native_GetPlainChatrank(Handle handler, int numParams)
 
 		FormatEx(sRank, 16, "%.02f", fPercentile);
 		ReplaceString(buf, sizeof(buf), "{rank2}", sRank);
-	
+
 		FormatEx(sRank, 16, "%.03f", fPercentile);
 		ReplaceString(buf, sizeof(buf), "{rank3}", sRank);
 

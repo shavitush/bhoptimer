@@ -129,28 +129,28 @@ methodmap Shavit_BunnyhopStats __nullable__
 	}
 
 	property bool OnGround
-    {
+	{
 		public get()
 		{
 			return Shavit_Bhopstats_IsOnGround(this.index);
 		}
-    }
+	}
 
 	property bool HoldingJump
-    {
+	{
 		public get()
 		{
 			return Shavit_Bhopstats_IsHoldingJump(this.index);
 		}
-    }
+	}
 
 	property float PerfectJumps
-    {
+	{
 		public get()
 		{
 			return Shavit_Bhopstats_GetPerfectJumps(this.index);
 		}
-    }
+	}
 
 	public void ResetPrefects()
 	{
@@ -158,29 +158,29 @@ methodmap Shavit_BunnyhopStats __nullable__
 	}
 
 	public static int GetScrollCount(int client)
-    {
+	{
 		return Shavit_Bhopstats_GetScrollCount(client);
-    }
+	}
 
 	public static bool IsOnGround(int client)
-    {
+	{
 		return Shavit_Bhopstats_IsOnGround(client);
-    }
+	}
 
 	public static bool IsHoldingJump(int client)
-    {
+	{
 		return Shavit_Bhopstats_IsHoldingJump(client);
-    }
+	}
 
 	public static float GetPerfectJumps(int client)
-    {
+	{
 		return Shavit_Bhopstats_GetPerfectJumps(client);
-    }
+	}
 
 	public static void ResetPrefectJumps(int client)
-    {
+	{
 		Shavit_Bhopstats_ResetPerfectJumps(client);
-    }
+	}
 }
 
 #if !defined REQUIRE_PLUGIN

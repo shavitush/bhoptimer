@@ -96,7 +96,7 @@ public void OnPluginStart()
 	mp_ignore_round_win_conditions = FindConVar("mp_ignore_round_win_conditions");
 	mp_timelimit = FindConVar("mp_timelimit");
 	mp_roundtime = FindConVar("mp_roundtime");
-	
+
 	if(mp_roundtime != null)
 	{
 		mp_roundtime.SetBounds(ConVarBound_Upper, false);
@@ -142,7 +142,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 		delete gH_Timer;
 		gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
-
 	else
 	{
 		delete gH_Timer;
@@ -195,7 +194,6 @@ public void OnConfigsExecuted()
 	{
 		StartCalculating();
 	}
-	
 	else
 	{
 		SetLimit(RoundToNearest(gCV_DefaultLimit.FloatValue));
@@ -270,7 +268,6 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 		{
 			fAverage = gCV_MinimumLimit.FloatValue;
 		}
-
 		else if(fAverage > gCV_MaximumLimit.FloatValue)
 		{
 			fAverage = gCV_MaximumLimit.FloatValue;
@@ -278,7 +275,6 @@ public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error
 
 		SetLimit(RoundToCeil(fAverage / 10) * 10);
 	}
-
 	else
 	{
 		SetLimit(RoundToNearest(gCV_DefaultLimit.FloatValue));
@@ -414,7 +410,7 @@ public Action CS_OnTerminateRound(float &fDelay, CSRoundEndReason &iReason)
 	{
 		return Plugin_Handled;
 	}
-	
+
 	return Plugin_Continue;
 }
 

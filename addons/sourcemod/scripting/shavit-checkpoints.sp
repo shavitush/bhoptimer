@@ -414,9 +414,9 @@ public void OnClientPutInServer(int client)
 
 	if(gA_Checkpoints[client] == null)
 	{
-		gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));	
+		gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));
 	}
-	else 
+	else
 	{
 		ResetCheckpoints(client);
 	}
@@ -467,7 +467,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		// OnClientPutInServer will still fire but we need a valid arraylist in the mean time.
 		if(gA_Checkpoints[client] == null)
 		{
-			gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));	
+			gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));
 		}
 
 		OpenCheckpointsMenu(client);
@@ -704,7 +704,7 @@ void DeleteCheckpointCacheList(ArrayList cps)
 			cps.GetArray(i, cache);
 			DeleteCheckpointCache(cache);
 		}
-		
+
 		cps.Clear();
 	}
 }
@@ -766,7 +766,7 @@ public Action Command_Save(int client, int args)
 	}
 
 	if(SaveCheckpoint(client))
-	{ 
+	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsSaved", client, gI_CurrentCheckpoint[client], gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 
 		if (ShouldReopenCheckpointMenu(client))
@@ -1007,7 +1007,6 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 
 		OpenCheckpointsMenu(param1);
 	}
-
 	else if(action == MenuAction_Cancel)
 	{
 		if(param2 == MenuCancel_Exit)
@@ -1015,7 +1014,6 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 			gB_ClosedKZCP[param1] = true;
 		}
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1041,7 +1039,6 @@ void OpenNormalCPMenu(int client)
 	{
 		menu.SetTitle("%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
 	}
-
 	else
 	{
 		menu.SetTitle("%T\n ", "MiscCheckpointMenuSegmented", client);
@@ -1120,7 +1117,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		Call_PushCell(param1);
 		Call_PushCell(param2);
 		Call_PushStringEx(sInfo, 16, SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-		Call_PushCell(16); 
+		Call_PushCell(16);
 		Call_PushCell(iCurrent);
 		Call_PushCell(iMaxCPs);
 
@@ -1244,7 +1241,6 @@ public int MenuHandler_CheckpointsDelete(Menu menu, MenuAction action, int param
 
 		OpenCheckpointsMenu(param1);
 	}
-
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1313,7 +1309,7 @@ bool SaveCheckpoint(int client)
 		if(style < 0 || track < 0)
 		{
 			Shavit_PrintToChat(client, "%T", "CommandAliveSpectate", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-			
+
 			return false;
 		}
 	}
@@ -1328,7 +1324,7 @@ bool SaveCheckpoint(int client)
 	Call_PushCell(index);
 	Call_PushCell(overflow);
 	Call_Finish(result);
-	
+
 	if(result != Plugin_Continue)
 	{
 		return false;
@@ -1513,7 +1509,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	Call_PushCell(client);
 	Call_PushCell(index);
 	Call_Finish(result);
-	
+
 	if(result != Plugin_Continue)
 	{
 		return;
@@ -1703,7 +1699,7 @@ public any Native_SetCheckpoint(Handle plugin, int numParams)
 
 	DeleteCheckpoint(client, position, true);
 	gA_Checkpoints[client].SetArray(position-1, cpcache);
-	
+
 	return true;
 }
 
@@ -1762,7 +1758,7 @@ public any Native_SetCurrentCheckpoint(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	int index = GetNativeCell(2);
-	
+
 	gI_CurrentCheckpoint[client] = index;
 	return 0;
 }
