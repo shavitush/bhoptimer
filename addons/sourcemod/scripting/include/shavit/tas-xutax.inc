@@ -1,6 +1,6 @@
 /*
  * tas-xutax.inc file
- * by: xutaxkamay, shavit
+ * by: xutaxkamay
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the

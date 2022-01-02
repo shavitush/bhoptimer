@@ -60,8 +60,8 @@ ConVar sv_stopspeed = null;
 public Plugin myinfo =
 {
 	name = "[shavit] TAS (XutaxKamay)",
-	author = "xutaxkamay, KiD Fearless, rtldg",
-	description = "TAS module for shavit's bhop timer featuring xutaxkamay's autostrafer.",
+	author = "xutaxkamay, oblivious, KiD Fearless, rtldg",
+	description = "TAS module for shavit's bhop timer featuring xutaxkamay's autostrafer and oblivious's autogain.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
 };
@@ -323,20 +323,30 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 	if (s_iOnGroundCount[client] <= 1)
 	{
-		if (!!(buttons & (IN_FORWARD | IN_BACK)))
+		if (IsSurfing(client))
 		{
 			return Plugin_Continue;
 		}
 
-		if (!!(buttons & (IN_MOVERIGHT | IN_MOVELEFT)))
+		if (tastype != TASType_Autogain && tastype != TASType_AutogainNoSpeedLoss)
 		{
-			if (gI_Override[client] == TASOverride_All)
+			if (!!(buttons & (IN_FORWARD | IN_BACK)))
 			{
 				return Plugin_Continue;
 			}
-			else if (gI_Override[client] == TASOverride_Surf && IsSurfing(client))
+
+			if (!!(buttons & (IN_MOVERIGHT | IN_MOVELEFT)))
 			{
-				return Plugin_Continue;
+				if (gI_Override[client] == TASOverride_All)
+				{
+					return Plugin_Continue;
+				}
+				/*
+				else if (gI_Override[client] == TASOverride_Surf && IsSurfing(client))
+				{
+					return Plugin_Continue;
+				}
+				*/
 			}
 		}
 
