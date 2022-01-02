@@ -73,7 +73,6 @@ Handle gH_Forwards_OnCheckpointMenuMade = null;
 Handle gH_Forwards_OnCheckpointMenuSelect = null;
 
 chatstrings_t gS_ChatStrings;
-stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 
 int gI_Style[MAXPLAYERS+1];
 bool gB_ClosedKZCP[MAXPLAYERS+1];
@@ -192,7 +191,6 @@ public void OnPluginStart()
 
 	if (gB_Late)
 	{
-		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
 	}
 }
@@ -274,14 +272,6 @@ public void OnMapStart()
 public void OnMapEnd()
 {
 	gS_PreviousMap = gS_Map;
-}
-
-public void Shavit_OnStyleConfigLoaded(int styles)
-{
-	for(int i = 0; i < styles; i++)
-	{
-		Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
-	}
 }
 
 public void Shavit_OnChatConfigLoaded()
@@ -461,7 +451,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		DeletePersistentDataFromClient(client);
 	}
 
-	if(StrContains(gS_StyleStrings[newstyle].sSpecialString, "segments") != -1)
+	if (Shavit_GetStyleSettingBool(newstyle, "segments"))
 	{
 		// Gammacase somehow had this callback fire before OnClientPutInServer.
 		// OnClientPutInServer will still fire but we need a valid arraylist in the mean time.
@@ -557,7 +547,7 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 
 bool CanSegment(int client)
 {
-	return StrContains(gS_StyleStrings[gI_Style[client]].sSpecialString, "segments") != -1;
+	return Shavit_GetStyleSettingBool(gI_Style[client], "segments");
 }
 
 int GetMaxCPs(int client)
