@@ -25,6 +25,7 @@
 
 #include <shavit/core>
 #include <shavit/tas>
+#include <shavit/tas-oblivious>
 #include <shavit/tas-xutax>
 
 #undef REQUIRE_PLUGIN
@@ -48,6 +49,9 @@ bool gB_ForceJump[MAXPLAYERS+1];
 
 Convar gCV_AutoFindOffsets = null;
 ConVar sv_airaccelerate = null;
+ConVar sv_accelerate = null;
+ConVar sv_friction = null;
+ConVar sv_stopspeed = null;
 
 public Plugin myinfo =
 {
@@ -78,6 +82,9 @@ public void OnPluginStart()
 
 	gEV_Type = GetEngineVersion();
 	sv_airaccelerate = FindConVar("sv_airaccelerate");
+	sv_accelerate = FindConVar("sv_accelerate");
+	sv_friction = FindConVar("sv_friction");
+	sv_stopspeed = FindConVar("sv_stopspeed");
 
 	GameData gamedata = new GameData("shavit.games");
 
@@ -249,6 +256,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		return Plugin_Continue;
 	}
 
+	if (!IsPlayerAlive(client) || GetEntityMoveType(client) == MOVETYPE_NOCLIP || GetEntityMoveType(client) == MOVETYPE_LADDER || !(GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
+	{
+		return Plugin_Continue;
+	}
+
 	static int s_iOnGroundCount[MAXPLAYERS+1] = {1, ...};
 
 	if (GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
@@ -260,10 +272,19 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		s_iOnGroundCount[client] = 0;
 	}
 
-	if (IsPlayerAlive(client)
-		&& s_iOnGroundCount[client] <= 1
-		&& !(GetEntityMoveType(client) & MOVETYPE_LADDER)
-		&& (GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
+	float flSurfaceFriction = 1.0;
+
+	if (g_iSurfaceFrictionOffset > 0)
+	{
+		flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
+
+		if (gCV_AutoFindOffsets.BoolValue && s_iOnGroundCount[client] == 0 && !(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
+		{
+			FindNewFrictionOffset(client);
+		}
+	}
+
+	if (s_iOnGroundCount[client] <= 1)
 	{
 		if (!!(buttons & (IN_FORWARD | IN_BACK)))
 		{
@@ -282,20 +303,32 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 
-		float flSurfaceFriction = 1.0;
-
-		if (g_iSurfaceFrictionOffset > 0)
+		if (true)
 		{
-			flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
+			XutaxOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
+				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove, g_flOldYawAngle[client], g_fPower[client]);
+		}
+		else
+		{
+			ObliviousOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
+				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove,
+				false /*no_speed_loss[client]*/);
+		}
+	}
+	else
+	{
+		if (/*psh_enabled[client] &&*/ (vel[0] != 0.0 || vel[1] != 0.0))
+		{
+			float _delta_opt = ground_delta_opt(client, angles, vel, flSurfaceFriction,
+				sv_accelerate.FloatValue, sv_friction.FloatValue, sv_stopspeed.FloatValue);
 
-			if (gCV_AutoFindOffsets.BoolValue && s_iOnGroundCount[client] == 0 && !(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
-			{
-				FindNewFrictionOffset(client);
-			}
+			float _tmp[3]; _tmp[0] = angles[0]; _tmp[2] = angles[2];
+			_tmp[1] = normalize_yaw(angles[1] - _delta_opt);
+
+			angles[1] = _tmp[1];
 		}
 
-		XutaxOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
-			sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove, g_flOldYawAngle[client], g_fPower[client]);
+		//return Plugin_Continue; // maybe??
 	}
 
 	g_flOldYawAngle[client] = angles[1];
