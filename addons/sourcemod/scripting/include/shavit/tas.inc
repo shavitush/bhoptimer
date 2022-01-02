@@ -23,16 +23,111 @@
 #endif
 #define _shavit_tas_included
 
-
 #define TAS_STYLE_SETTING "tas"
 
-enum
+enum TASOverride
 {
-	Type_Normal, // only w/s disables autostrafe
-	Type_SurfOverride, // w/s always disables, a/d only over surf ramps
-	Type_Override, // all keys disable
-	Type_Size // size
+	TASOverride_Normal, // only w/s disables autostrafe
+	TASOverride_Surf, // w/s always disables, a/d only over surf ramps
+	TASOverride_All, // all keys disable
+	TASOverride_Size // size
 };
+
+enum TASType
+{
+	TASType_Any = -1,
+	TASType_Null = 0,
+	TASType_1Tick, // xutaxkamay
+	TASType_Autogain, // oblivious
+	TASType_AutogainNoSpeedLoss, // oblivious
+	TASType_Size
+};
+
+/**
+ * Sets whether the client has the autostrafe/strafehack enabled.
+ *
+ * @param client		Client index
+ * @param value			New value to set the autostrafe/strafehack to.
+ * @noreturn
+ */
+native void Shavit_SetAutostrafeEnabled(int client, bool value);
+
+/**
+ * Retrieves whether the client has the autostrafe/strafehack enabled.
+ *
+ * @param client		Client index
+ * @return				The current autostrafe/strafehack enabled value.
+ */
+native bool Shavit_GetAutostrafeEnabled(int client);
+
+/**
+ * Sets the autostrafe/strafehack type on the given client index.
+ *
+ * @param client		Client index of the player to set the autostrafe/strafehack on.
+ * @param value			New type to set the strafehack to.
+ * @noreturn
+ */
+native void Shavit_SetAutostrafeType(int client, TASType value);
+
+/**
+ * Retrieves the current strafehack type for the given client index.
+ *
+ * @param client		Client index of the player to get the strafehack type from.
+ * @return				The current strafehack type.
+ */
+native TASType Shavit_GetAutostrafeType(int client);
+
+/**
+ * Sets the strafehack power on the given client index. Power is the cut off point before it will turn into an autostrafe. 1.0 is the default.
+ *
+ * @param client		Client index of the player to set the power on.
+ * @param value			New power setting.
+ * @noreturn
+ */
+native void Shavit_SetAutostrafePower(int client, float value);
+
+/**
+ * Retrieves the current strafehack power for the given client index. Default is 1.0
+ *
+ * @param client		Client index of the player to get the strafehack power.
+ * @return				The current strafehack power.
+ */
+native float Shavit_GetAutostrafePower(int client);
+
+/**
+ * Sets the key override type on the given client index.
+ *
+ * @param client		Client index
+ * @param value			New type to set the key override to.
+ * @noreturn
+ */
+native void Shavit_SetAutostrafeKeyOverride(int client, TASOverride value);
+
+/**
+ * Retrieves the current key override type for the given client index.
+ *
+ * @param client		Client index
+ * @return				The current key override type.
+ */
+native TASOverride Shavit_GetAutostrafeKeyOverride(int client);
+
+/**
+ * Sets whether the client has automatic prestrafe enabled.
+ *
+ * @param client		Client index
+ * @param value			New value to set the automatic prestrafe to.
+ * @noreturn
+ */
+native void Shavit_SetAutoPrestrafe(int client, bool value);
+
+/**
+ * Retrieves whether the client has automatic prestrafe enabled.
+ *
+ * @param client		Client index
+ * @return				The current auto prestrafe value.
+ */
+native bool Shavit_GetAutoPrestrafe(int client);
+
 
 // taken from shavit's oryx
 stock bool IsSurfing(int client)
@@ -75,3 +170,31 @@ public bool TRFilter_NoPlayers(int entity, int mask, any data)
 {
 	return (entity != view_as<int>(data) || (entity < 1 || entity > MaxClients));
 }
+
+
+public SharedPlugin __pl_shavit_tas =
+{
+	name = "shavit-tas",
+	file = "shavit-tas.smx",
+#if defined REQUIRE_PLUGIN
+	required = 1
+#else
+	required = 0
+#endif
+};
+
+#if !defined REQUIRE_PLUGIN
+public void __pl_shavit_tas_SetNTVOptional()
+{
+	MarkNativeAsOptional("Shavit_SetAutostrafeEnabled");
+	MarkNativeAsOptional("Shavit_GetAutostrafeEnabled");
+	MarkNativeAsOptional("Shavit_SetAutostrafeType");
+	MarkNativeAsOptional("Shavit_GetAutostrafeType");
+	MarkNativeAsOptional("Shavit_SetAutostrafePower");
+	MarkNativeAsOptional("Shavit_GetAutostrafePower");
+	MarkNativeAsOptional("Shavit_SetAutostrafeKeyOverride");
+	MarkNativeAsOptional("Shavit_GetAutostrafeKeyOverride");
+	MarkNativeAsOptional("Shavit_SetAutoPrestrafe");
+	MarkNativeAsOptional("Shavit_GetAutoPrestrafe");
+}
+#endif

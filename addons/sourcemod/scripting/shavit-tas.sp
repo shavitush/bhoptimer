@@ -35,14 +35,18 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+bool gB_Late = false;
 EngineVersion gEV_Type = Engine_Unknown;
 
 float g_flAirSpeedCap = 30.0;
 float g_flOldYawAngle[MAXPLAYERS + 1];
 int g_iSurfaceFrictionOffset;
 float g_fMaxMove = 400.0;
+
 bool g_bEnabled[MAXPLAYERS + 1];
-int g_iType[MAXPLAYERS + 1];
+TASType gI_Type[MAXPLAYERS + 1];
+TASOverride gI_Override[MAXPLAYERS + 1];
+bool gB_Prestrafe[MAXPLAYERS + 1];
 float g_fPower[MAXPLAYERS + 1] = {1.0, ...};
 
 bool gB_ForceJump[MAXPLAYERS+1];
@@ -64,13 +68,18 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	CreateNative("SetXutaxStrafe", Native_SetAutostrafe);
-	CreateNative("GetXutaxStrafe", Native_GetAutostrafe);
-	CreateNative("SetXutaxType", Native_SetType);
-	CreateNative("GetXutaxType", Native_GetType);
-	CreateNative("SetXutaxPower", Native_SetPower);
-	CreateNative("GetXutaxPower", Native_GetPower);
+	CreateNative("Shavit_SetAutostrafeEnabled", Native_SetAutostrafeEnabled);
+	CreateNative("Shavit_GetAutostrafeEnabled", Native_GetAutostrafeEnabled);
+	CreateNative("Shavit_SetAutostrafeType", Native_SetAutostrafeType);
+	CreateNative("Shavit_GetAutostrafeType", Native_GetAutostrafeType);
+	CreateNative("Shavit_SetAutostrafePower", Native_SetAutostrafePower);
+	CreateNative("Shavit_GetAutostrafePower", Native_GetAutostrafePower);
+	CreateNative("Shavit_SetAutostrafeKeyOverride", Native_SetAutostrafeKeyOverride);
+	CreateNative("Shavit_GetAutostrafeKeyOverride", Native_GetAutostrafeKeyOverride);
+	CreateNative("Shavit_SetAutoPrestrafe", Native_SetAutoPrestrafe);
+	CreateNative("Shavit_GetAutoPrestrafe", Native_GetAutoPrestrafe);
 
+	gB_Late = late;
 	RegPluginLibrary("shavit-tas");
 	return APLRes_Success;
 }
@@ -120,6 +129,17 @@ public void OnPluginStart()
 	gCV_AutoFindOffsets = new Convar("xutax_find_offsets", "1", "Attempt to autofind offsets", _, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
+
+	if (gB_Late)
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientConnected(i))
+			{
+				OnClientConnected(i);
+			}
+		}
+	}
 }
 
 // doesn't exist in css so we have to cache the value
@@ -130,8 +150,10 @@ public void OnWishSpeedChanged(ConVar convar, const char[] oldValue, const char[
 
 public void OnClientConnected(int client)
 {
-	g_bEnabled[client] = false;
-	g_iType[client] = Type_SurfOverride;
+	g_bEnabled[client] = true;
+	gI_Override[client] = TASOverride_Surf;
+	gI_Type[client] = TASType_1Tick;
+	gB_Prestrafe[client] = true;
 	g_fPower[client] = 1.0;
 }
 
@@ -244,23 +266,26 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-#if 0
 	if (!g_bEnabled[client])
 	{
 		return Plugin_Continue;
 	}
-#endif
 
 	if (IsFakeClient(client))
 	{
 		return Plugin_Continue;
 	}
 
-	int tastype = Shavit_GetStyleSettingInt(Shavit_GetBhopStyle(client), "tas");
+	TASType tastype = view_as<TASType>(Shavit_GetStyleSettingInt(Shavit_GetBhopStyle(client), TAS_STYLE_SETTING));
 
 	if (!tastype)
 	{
 		return Plugin_Continue;
+	}
+
+	if (tastype == TASType_Any)
+	{
+		tastype = gI_Type[client];
 	}
 
 	if (!Shavit_ShouldProcessFrame(client))
@@ -305,31 +330,31 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 		if (!!(buttons & (IN_MOVERIGHT | IN_MOVELEFT)))
 		{
-			if (g_iType[client] == Type_Override)
+			if (gI_Override[client] == TASOverride_All)
 			{
 				return Plugin_Continue;
 			}
-			else if (g_iType[client] == Type_SurfOverride && IsSurfing(client))
+			else if (gI_Override[client] == TASOverride_Surf && IsSurfing(client))
 			{
 				return Plugin_Continue;
 			}
 		}
 
-		if (tastype == 1)
+		if (tastype == TASType_1Tick)
 		{
 			XutaxOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
 				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove, g_flOldYawAngle[client], g_fPower[client]);
 		}
-		else if (tastype == 2)
+		else if (tastype == TASType_Autogain || tastype == TASType_AutogainNoSpeedLoss)
 		{
 			ObliviousOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
 				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove,
-				false /*no_speed_loss[client]*/);
+				(tastype == TASType_AutogainNoSpeedLoss));
 		}
 	}
 	else
 	{
-		if (/*psh_enabled[client] &&*/ (vel[0] != 0.0 || vel[1] != 0.0))
+		if (gB_Prestrafe[client] && (vel[0] != 0.0 || vel[1] != 0.0))
 		{
 			float _delta_opt = ground_delta_opt(client, angles, vel, flSurfaceFriction,
 				sv_accelerate.FloatValue, sv_friction.FloatValue, sv_stopspeed.FloatValue);
@@ -400,7 +425,7 @@ public Action Command_ScanOffsets(int client, int args)
 }
 
 // natives
-public any Native_SetAutostrafe(Handle plugin, int numParams)
+public any Native_SetAutostrafeEnabled(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	bool value = GetNativeCell(2);
@@ -408,27 +433,27 @@ public any Native_SetAutostrafe(Handle plugin, int numParams)
 	return 0;
 }
 
-public any Native_GetAutostrafe(Handle plugin, int numParams)
+public any Native_GetAutostrafeEnabled(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	return g_bEnabled[client];
 }
 
-public any Native_SetType(Handle plugin, int numParams)
+public any Native_SetAutostrafeType(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	int value = GetNativeCell(2);
-	g_iType[client] = value;
+	TASType value = view_as<TASType>(GetNativeCell(2));
+	gI_Type[client] = value;
 	return 0;
 }
 
-public any Native_GetType(Handle plugin, int numParams)
+public any Native_GetAutostrafeType(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	return g_iType[client];
+	return gI_Type[client];
 }
 
-public any Native_SetPower(Handle plugin, int numParams)
+public any Native_SetAutostrafePower(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	float value = GetNativeCell(2);
@@ -436,8 +461,36 @@ public any Native_SetPower(Handle plugin, int numParams)
 	return 0;
 }
 
-public any Native_GetPower(Handle plugin, int numParams)
+public any Native_GetAutostrafePower(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	return g_fPower[client];
+}
+
+public any Native_SetAutostrafeKeyOverride(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	TASOverride value = view_as<TASOverride>(GetNativeCell(2));
+	gI_Override[client] = value;
+	return 0;
+}
+
+public any Native_GetAutostrafeKeyOverride(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	return gI_Override[client];
+}
+
+public any Native_SetAutoPrestrafe(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	bool value = GetNativeCell(2);
+	gB_Prestrafe[client] = value;
+	return 0;
+}
+
+public any Native_GetAutoPrestrafe(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	return gB_Prestrafe[client];
 }
