@@ -344,6 +344,8 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 				continue;
 			}
 
+			LowercaseString(pair[0]);
+
 			if (HasStyleSetting(gI_CurrentParserIndex, pair[0]))
 			{
 				char asdf[128];
