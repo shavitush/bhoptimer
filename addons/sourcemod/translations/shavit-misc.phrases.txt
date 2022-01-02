@@ -188,6 +188,10 @@
 	{
 		"en"		"Use velocity"
 	}
+	"TasSettings"
+	{
+		"en"        "TAS Settings"
+	}
 	// ---------- Misc ---------- //
 	"BHStartZoneDisallowed"
 	{
