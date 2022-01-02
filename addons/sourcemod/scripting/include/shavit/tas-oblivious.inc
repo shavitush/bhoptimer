@@ -136,6 +136,11 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 		delta_opt = -normalize_yaw(angles[1] - (vel_yaw + (45.0 * sign)));
 	}
 
+	float frac = 1.0;
+
+	if (buttons & IN_DUCK && !no_speed_loss)
+		frac = 0.34;
+
 	float _addspeed = 0.0;
 	if (!set_back)
 	{
@@ -148,7 +153,7 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 		NormalizeVector(_fore, _fore); NormalizeVector(_side, _side);
 
 		for(int i = 0; i < 2; i++)
-			_wishvel[i] = _fore[i] * vel[0] + _side[i] * vel[1];
+			_wishvel[i] = _fore[i] * vel[0] * frac + _side[i] * vel[1] * frac;
 
 		_wishspeed = NormalizeVector(_wishvel, _wishdir);
 
@@ -176,7 +181,7 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 	NormalizeVector(fore, fore); NormalizeVector(side, side);
 
 	for(int i = 0; i < 2; i++)
-		wishvel[i] = fore[i] * vel[0] + side[i] * vel[1];
+		wishvel[i] = fore[i] * vel[0] * frac + side[i] * vel[1] * frac;
 
 	wishspeed = NormalizeVector(wishvel, wishdir);
 
