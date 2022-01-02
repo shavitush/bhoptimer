@@ -66,6 +66,12 @@
 				"windows"   "409"
 				"linux"     "410"
 			}
+			// TODO
+			"m_surfaceFriction"
+			{
+				"windows"   "8"
+				"linux"     "8"
+			}
 		}
 
 		"Signatures"
@@ -128,6 +134,12 @@
 			{
 				"windows"   "358"
 				"linux"     "359"
+			}
+			// TODO
+			"m_surfaceFriction"
+			{
+				"windows"   "104"
+				"linux"     "104"
 			}
 		}
 
