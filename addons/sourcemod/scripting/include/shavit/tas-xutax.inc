@@ -25,7 +25,7 @@
 // https://github.com/ValveSoftware/source-sdk-2013/blob/0d8dceea4310fde5706b3ce1c70609d72a38efdf/mp/src/game/shared/gamemovement.cpp#L1707-L1799
 
 
-float AngleNormalize(float flAngle)
+stock float AngleNormalize(float flAngle)
 {
 	if (flAngle > 180.0)
 		flAngle -= 360.0;
@@ -35,7 +35,7 @@ float AngleNormalize(float flAngle)
 	return flAngle;
 }
 
-float Vec2DToYaw(float vec[2])
+stock float Vec2DToYaw(float vec[2])
 {
 	float flYaw = 0.0;
 
@@ -68,7 +68,7 @@ float Vec2DToYaw(float vec[2])
  * But, for noclip (3D) it's a different story that I will let you discover, same method, but 3 equations and 3 unknown variables (forwardmove, sidemove, upmove).
  */
 
-void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRight[2], float &flForwardMove, float &flSideMove, float flMaxMove)
+stock void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRight[2], float &flForwardMove, float &flSideMove, float flMaxMove)
 {
 	// wishdir[0] = foward[0] * forwardmove + right[0] * sidemove;
 	// wishdir[1] = foward[1] * forwardmove + right[1] * sidemove;
@@ -101,7 +101,7 @@ void Solve2DMovementsVars(float vecWishDir[2], float vecForward[2], float vecRig
 	}
 }
 
-float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, float flAirSpeedCap)
+stock float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, float flAirSpeedCap)
 {
 	// In order to solve this, we must check that accelspeed < 30
 	// so it applies the correct strafing method.
@@ -168,7 +168,7 @@ float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float flMax
 	return flMaxDelta;
 }*/
 
-float SimulateAirAccelerate(float flVelocity[2], float flWishDir[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, float flVelocityOutput[2], float flAirSpeedCap)
+stock float SimulateAirAccelerate(float flVelocity[2], float flWishDir[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, float flVelocityOutput[2], float flAirSpeedCap)
 {
 	float flWishSpeedCapped = flMaxSpeed;
 
@@ -202,7 +202,7 @@ float SimulateAirAccelerate(float flVelocity[2], float flWishDir[2], float flAir
 }
 
 // The idea is to get the maximum angle
-float GetMaxDeltaInAir(float flVelocity[2], float flMaxSpeed, float flSurfaceFriction, bool bLeft, float flAirAccelerate, float flAirSpeedCap)
+stock float GetMaxDeltaInAir(float flVelocity[2], float flMaxSpeed, float flSurfaceFriction, bool bLeft, float flAirAccelerate, float flAirSpeedCap)
 {
 	float flFrametime = GetTickInterval();
 
@@ -262,7 +262,7 @@ float GetMaxDeltaInAir(float flVelocity[2], float flMaxSpeed, float flSurfaceFri
 	// return FloatAbs(AngleNormalize(flNewBestYawLeft - flNewBestYawRight) / 2.0);
 }
 
-void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], float flMaxSpeed, float flSurfaceFriction, float &flForwardMove, float &flSideMove, bool bPreferRight, float flAirAccelerate, float flMaxMove, float flAirSpeedCap)
+stock void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], float flMaxSpeed, float flSurfaceFriction, float &flForwardMove, float &flSideMove, bool bPreferRight, float flAirAccelerate, float flMaxMove, float flAirSpeedCap)
 {
 	float flFrametime = GetTickInterval();
 	float flYawVelocity = Vec2DToYaw(flVelocity);
@@ -350,7 +350,7 @@ void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], float flM
 	}
 }
 
-public Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2],
+stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2],
 	float flAirAccelerate, float flSurfaceFriction, float flAirSpeedCap, float flMaxMove, float flOldYawAngle, float fPower)
 {
 	float flFowardMove, flSideMove;

@@ -22,18 +22,18 @@
 #define _shavit_tas_oblivious_included
 
 
-float normalize_yaw(float _yaw)
+stock float normalize_yaw(float _yaw)
 {
 	while (_yaw > 180.0) _yaw -= 360.0;
 	while (_yaw < -180.0) _yaw += 360.0; return _yaw;
 }
 
-float get_length_2d(float vec[3])
+stock float get_length_2d(float vec[3])
 {
 	return SquareRoot(vec[0] * vec[0] + vec[1] * vec[1]);
 }
 
-float ground_delta_opt(int client, float angles[3], float move[3], float surface_friction,
+stock float ground_delta_opt(int client, float angles[3], float move[3], float surface_friction,
 	float accelerate, float friction, float stopspeed)
 {
 	float fore[3], side[3], wishvel[3];
@@ -99,7 +99,7 @@ float ground_delta_opt(int client, float angles[3], float move[3], float surface
 	return 0.0;
 }
 
-public Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2],
+stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2],
 	float air_accelerate, float surface_friction, float flAirSpeedCap, float flMaxMove,
 	bool no_speed_loss)
 {
