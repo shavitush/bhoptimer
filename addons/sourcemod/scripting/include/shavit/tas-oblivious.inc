@@ -120,6 +120,9 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 
 	float delta_opt = -normalize_yaw(angles[1] - vel_yaw);
 
+	if (get_length_2d(velocity) == 0.0)
+		delta_opt = 90.0;
+
 	if (vel[0] != 0.0 && vel[1] == 0.0)
 	{
 		float sign = vel[0] > 0.0 ? -1.0 : 1.0;
