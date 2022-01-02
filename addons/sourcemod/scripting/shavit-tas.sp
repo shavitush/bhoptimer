@@ -251,6 +251,18 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	}
 #endif
 
+	if (IsFakeClient(client))
+	{
+		return Plugin_Continue;
+	}
+
+	int tastype = Shavit_GetStyleSettingInt(Shavit_GetBhopStyle(client), "tas");
+
+	if (!tastype)
+	{
+		return Plugin_Continue;
+	}
+
 	if (!Shavit_ShouldProcessFrame(client))
 	{
 		return Plugin_Continue;
@@ -303,12 +315,12 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 
-		if (true)
+		if (tastype == 1)
 		{
 			XutaxOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
 				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove, g_flOldYawAngle[client], g_fPower[client]);
 		}
-		else
+		else if (tastype == 2)
 		{
 			ObliviousOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
 				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove,
