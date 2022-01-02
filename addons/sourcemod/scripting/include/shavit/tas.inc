@@ -128,6 +128,23 @@ native void Shavit_SetAutoPrestrafe(int client, bool value);
  */
 native bool Shavit_GetAutoPrestrafe(int client);
 
+/**
+ * Sets whether the client automatically jumps when they leave the start zone.
+ *
+ * @param client		Client index
+ * @param value			New value to set the automatic jump to.
+ * @noreturn
+ */
+native void Shavit_SetAutoJumpOnStart(int client, bool value);
+
+/**
+ * Retrieves hether the client automatically jumps when they leave the start zone.
+ *
+ * @param client		Client index
+ * @return				The current auto jump value.
+ */
+native bool Shavit_GetAutoJumpOnStart(int client);
+
 
 // taken from shavit's oryx
 stock bool IsSurfing(int client)
@@ -196,5 +213,7 @@ public void __pl_shavit_tas_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetAutostrafeKeyOverride");
 	MarkNativeAsOptional("Shavit_SetAutoPrestrafe");
 	MarkNativeAsOptional("Shavit_GetAutoPrestrafe");
+	MarkNativeAsOptional("Shavit_SetAutoJumpOnStart");
+	MarkNativeAsOptional("Shavit_GetAutoJumpOnStart");
 }
 #endif

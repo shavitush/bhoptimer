@@ -1133,6 +1133,11 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		Action result = Plugin_Continue;
 		Call_Finish(result);
 
+		if (result == Plugin_Stop)
+		{
+			gB_InCheckpointMenu[param1] = false;
+		}
+
 		if(result != Plugin_Continue)
 		{
 			return 0;

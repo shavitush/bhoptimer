@@ -192,6 +192,30 @@
 	{
 		"en"        "TAS Settings"
 	}
+	"Autostrafer"
+	{
+		"en"        "Autostrafer"
+	}
+	"JumpOnStart"
+	{
+		"en"        "Jump on start-zone exit"
+	}
+	"AutoPrestrafe"
+	{
+		"en"        "Auto Prestrafe"
+	}
+	"Autostrafer_type"
+	{
+		"en"        "Type"
+	}
+	"Autostrafer_1tick"
+	{
+		"en"        "1Tick (xutaxkamay)"
+	}
+	"Autostrafer_autogain"
+	{
+		"en"        "Velocity (oblivious)"
+	}
 	// ---------- Misc ---------- //
 	"BHStartZoneDisallowed"
 	{
