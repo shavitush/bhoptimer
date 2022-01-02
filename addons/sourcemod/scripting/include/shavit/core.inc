@@ -384,6 +384,20 @@ stock void FormatSeconds(float time, char[] newtime, int newtimesize, bool preci
 	}
 }
 
+stock void PrettyishTimescale(char[] buffer, int size, float ts, float min, float max, float x)
+{
+	ts += x;
+	ts = (ts < min) ? min : ((ts > max) ? max : ts);
+
+	if (ts == 1.0)
+	{
+		FormatEx(buffer, size, "1.00");
+		return;
+	}
+
+	FormatEx(buffer, size, "0.%02d", RoundFloat(ts * 100.0));
+}
+
 stock bool GuessBestMapName(ArrayList maps, const char input[PLATFORM_MAX_PATH], char output[PLATFORM_MAX_PATH])
 {
 	if(maps.FindString(input) != -1)

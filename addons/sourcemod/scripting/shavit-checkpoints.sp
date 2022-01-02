@@ -1068,11 +1068,29 @@ void OpenNormalCPMenu(int client)
 	// apparently this is the fix
 	// menu.AddItem("spacer", "", ITEMDRAW_RAWLINE);
 
+	bool tas_timescale = (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "tas_timescale") == -1.0);
+
+	if (tas_timescale)
+	{
+		float ts = Shavit_GetClientTimescale(client);
+		char buf[10];
+		PrettyishTimescale(buf, sizeof(buf), ts, 0.1, 1.0, -0.1);
+		FormatEx(sDisplay, 64, "-%T: %s", "Timescale", client, buf);
+		menu.AddItem("tsminus", sDisplay, (ts > 0.1) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+		PrettyishTimescale(buf, sizeof(buf), ts, 0.1, 1.0, 0.1);
+		FormatEx(sDisplay, 64, "+%T: %s\n ", "Timescale", client, buf);
+		menu.AddItem("tsplus", sDisplay, (ts != 1.0) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	}
+
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
 	menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
-	menu.AddItem("reset", sDisplay);
+	if (!tas_timescale)
+	{
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
+		menu.AddItem("reset", sDisplay);
+	}
+
 	if(!bSegmented)
 	{
 		char sInfo[16];
@@ -1167,6 +1185,20 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 			gB_InCheckpointMenu[param1] = false;
 
 			return 0;
+		}
+		else if (StrEqual(sInfo, "tsplus"))
+		{
+			if (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(param1), "tas_timescale") == -1.0)
+			{
+				FakeClientCommand(param1, "sm_tsplus");
+			}
+		}
+		else if (StrEqual(sInfo, "tsminus"))
+		{
+			if (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(param1), "tas_timescale") == -1.0)
+			{
+				FakeClientCommand(param1, "sm_tsminus");
+			}
 		}
 		else if(!StrEqual(sInfo, "spacer"))
 		{

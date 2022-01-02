@@ -898,7 +898,20 @@ public Action Command_TimescaleMinus(int client, int args)
 
 	if (ts >= 0.01)
 	{
-		float newts = gA_Timers[client].fTimescale - ts;
+		float newts = ts;
+
+		// very hacky I know but I hate formatting timescales and seeing 0.39999 because float subtraction is stupid
+		for (int i = 0; i < 99; i++)
+		{
+			float x = newts + ts;
+
+			if (x >= gA_Timers[client].fTimescale)
+			{
+				break;
+			}
+
+			newts = x;
+		}
 
 		if (newts < ts)
 		{
