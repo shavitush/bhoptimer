@@ -462,9 +462,14 @@ void OpenTasSettingsMenu(int client)
 	bool tastype_editable = (tastype == TASType_Any);
 	tastype = (tastype == TASType_Any) ? gI_Type[client] : tastype;
 
-	FormatEx(display, sizeof(display), "%T: %T", "Autostrafer_type", client,
+	FormatEx(display, sizeof(display), "%T: %T\n ", "Autostrafer_type", client,
 		(tastype == TASType_1Tick ? "Autostrafer_1tick" : "Autostrafer_autogain"), client);
 	menu.AddItem("type", display, (tastype_editable ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED));
+
+	TASOverride ov = gI_Override[client];
+	FormatEx(display, sizeof(display), "%T: %T", "TASOverride", client,
+		(ov == TASOverride_Normal ? "TASOverride_Normal" : (ov == TASOverride_Surf ? "TASOverride_Surf" : "TASOverride_All")), client);
+	menu.AddItem("override", display);
 
 	if (Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(client), "segments"))
 	{
@@ -504,6 +509,21 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 			if (tastype == TASType_Any)
 			{
 				gI_Type[param1] = (gI_Type[param1] == TASType_1Tick ? TASType_Autogain : TASType_1Tick);
+			}
+		}
+		else if (StrEqual(info, "override"))
+		{
+			if (gI_Override[param1] == TASOverride_Normal)
+			{
+				gI_Override[param1] = TASOverride_Surf;
+			}
+			else if (gI_Override[param1] == TASOverride_Surf)
+			{
+				gI_Override[param1] = TASOverride_All;
+			}
+			else
+			{
+				gI_Override[param1] = TASOverride_Normal;
 			}
 		}
 

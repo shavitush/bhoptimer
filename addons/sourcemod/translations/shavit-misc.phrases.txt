@@ -216,6 +216,22 @@
 	{
 		"en"        "Velocity (oblivious)"
 	}
+	"TASOverride"
+	{
+		"en"        "Key Override"
+	}
+	"TASOverride_Normal"
+	{
+		"en"        "W/S"
+	}
+	"TASOverride_Surf"
+	{
+		"en"        "W/S (and A/D on surf ramps)"
+	}
+	"TASOverride_All"
+	{
+		"en"        "W/S A/D"
+	}
 	// ---------- Misc ---------- //
 	"BHStartZoneDisallowed"
 	{
