@@ -83,9 +83,10 @@ forward Action Shavit_OnDelete(int client, int index);
  *
  * @param client                    Client index.
  * @param segmented                 If the menu was a segmented menu
+ * @param menu                      Handle to the menu so you can .AddItem().
  * @return                          Plugin_Handled or Plugin_Stop to stop the menu.
  */
-forward Action Shavit_OnCheckPointMenuMade(int client, bool segmented);
+forward Action Shavit_OnCheckpointMenuMade(int client, bool segmented, Menu menu);
 
 /**
  * Called before a selection is processed in the main checkpoint menu.
