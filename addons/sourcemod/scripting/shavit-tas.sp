@@ -163,6 +163,28 @@ public void OnClientConnected(int client)
 	g_fPower[client] = 1.0;
 }
 
+public Action Shavit_OnStart(int client, int track)
+{
+	gB_ForceJump[client] = false;
+	return Plugin_Continue;
+}
+
+public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
+{
+	if (!IsValidClient(client, true) || IsFakeClient(client))
+	{
+		return;
+	}
+
+	if (type == Zone_Start)
+	{
+		if (Shavit_GetClientTrack(client) == track)
+		{
+			gB_ForceJump[client] = false;
+		}
+	}
+}
+
 public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data)
 {
 	if (!IsValidClient(client, true) || IsFakeClient(client))
