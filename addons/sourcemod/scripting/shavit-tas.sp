@@ -639,6 +639,20 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 				gI_Override[param1] = TASOverride_Normal;
 			}
 		}
+		else if (StrEqual(info, "tsplus"))
+		{
+			if (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(param1), "tas_timescale") == -1.0)
+			{
+				FakeClientCommand(param1, "sm_tsplus");
+			}
+		}
+		else if (StrEqual(info, "tsminus"))
+		{
+			if (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(param1), "tas_timescale") == -1.0)
+			{
+				FakeClientCommand(param1, "sm_tsminus");
+			}
+		}
 
 		OpenTasSettingsMenu(param1);
 	}
