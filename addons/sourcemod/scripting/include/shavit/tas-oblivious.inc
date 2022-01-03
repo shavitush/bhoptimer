@@ -254,6 +254,7 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 
 	if (GetVectorLength(new_vel) < 99999.0 && GetVectorLength(new_vel) > 0.0)
 	{
+#if 0
 		SetEntPropVector(client, Prop_Data, "m_vecVelocity", new_vel);
 
 		float _new_vel[3];
@@ -261,10 +262,15 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 			_new_vel[i] = new_vel[i] + base_vel[i];
 
 		SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", _new_vel); // m_vecBaseVelocity+m_vecVelocity
+#else
+		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, new_vel);
+#endif
 		SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", base_vel);
 	}
 
+#if 0
 	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", base_vel);
+#endif
 
 	if (set_back)
 		vel[1] = 0.0;
