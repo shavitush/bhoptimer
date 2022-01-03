@@ -539,7 +539,7 @@ stock void FindNewFrictionOffset(int client, bool logOnly = false)
 	}
 }
 
-void OpenTasSettingsMenu(int client)
+void OpenTasSettingsMenu(int client, int pos=0)
 {
 	char display[64];
 	Menu menu = new Menu(MenuHandler_TasSettings, MENU_ACTIONS_DEFAULT);
@@ -589,7 +589,7 @@ void OpenTasSettingsMenu(int client)
 		menu.ExitButton = true;
 	}
 
-	menu.Display(client, MENU_TIME_FOREVER);
+	menu.DisplayAt(client, pos, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int param2)
@@ -654,7 +654,7 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 			}
 		}
 
-		OpenTasSettingsMenu(param1);
+		OpenTasSettingsMenu(param1, GetMenuSelectionPosition());
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
