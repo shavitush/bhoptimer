@@ -216,6 +216,10 @@
 	{
 		"en"        "Velocity (oblivious)"
 	}
+	"Autostrafer_autogain_nsl"
+	{
+		"en"        "Velocity (No speed loss) (oblivious)"
+	}
 	"TASOverride"
 	{
 		"en"        "Key Override"

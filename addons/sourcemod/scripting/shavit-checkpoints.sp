@@ -1064,11 +1064,10 @@ void OpenNormalCPMenu(int client)
 	{
 		float ts = Shavit_GetClientTimescale(client);
 		char buf[10];
-		PrettyishTimescale(buf, sizeof(buf), ts, 0.1, 1.0, -0.1);
-		FormatEx(sDisplay, 64, "-%T: %s", "Timescale", client, buf);
+		PrettyishTimescale(buf, sizeof(buf), ts, 0.1, 1.0, 0.0);
+		FormatEx(sDisplay, 64, "--%T\n%T: %s", "Timescale", client, "CurrentTimescale", client, buf);
 		menu.AddItem("tsminus", sDisplay, (ts > 0.1) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
-		PrettyishTimescale(buf, sizeof(buf), ts, 0.1, 1.0, 0.1);
-		FormatEx(sDisplay, 64, "+%T: %s\n ", "Timescale", client, buf);
+		FormatEx(sDisplay, 64, "++%T\n ", "Timescale", client);
 		menu.AddItem("tsplus", sDisplay, (ts != 1.0) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 	}
 

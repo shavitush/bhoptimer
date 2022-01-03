@@ -41,7 +41,7 @@
 	{
 		"#format"	"{1:s}"
 		"en"		"{1} minutes remaining."
-	}	
+	}
 	"Seconds"
 	{
 		"#format"	"{1:s}"
@@ -55,5 +55,9 @@
 	"Timescale"
 	{
 		"en"        "Timescale"
+	}
+	"CurrentTimescale"
+	{
+		"en"        "Current Timescale"
 	}
 }

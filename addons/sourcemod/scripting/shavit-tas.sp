@@ -464,8 +464,18 @@ void OpenTasSettingsMenu(int client)
 	tastype = (tastype == TASType_Any) ? gI_Type[client] : tastype;
 
 	FormatEx(display, sizeof(display), "%T: %T\n ", "Autostrafer_type", client,
-		(tastype == TASType_1Tick ? "Autostrafer_1tick" : "Autostrafer_autogain"), client);
+		(tastype == TASType_1Tick ? "Autostrafer_1tick" : (tastype == TASType_Autogain ? "Autostrafer_autogain" : "Autostrafer_autogain_nsl")), client);
 	menu.AddItem("type", display, (tastype_editable ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED));
+
+	bool tas_timescale = (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "tas_timescale") == -1.0);
+
+	float ts = Shavit_GetClientTimescale(client);
+	char buf[10];
+	PrettyishTimescale(buf, sizeof(buf), ts, 0.1, 1.0, 0.0);
+	FormatEx(display, sizeof(display), "--%T\n%T: %s", "Timescale", client, "CurrentTimescale", client, buf);
+	menu.AddItem("tsminus", display, (tas_timescale && ts > 0.1) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	FormatEx(display, sizeof(display), "++%T\n ", "Timescale", client);
+	menu.AddItem("tsplus", display, (tas_timescale && ts != 1.0) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	TASOverride ov = gI_Override[client];
 	FormatEx(display, sizeof(display), "%T: %T", "TASOverride", client,
