@@ -215,5 +215,7 @@ public void __pl_shavit_tas_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetAutoPrestrafe");
 	MarkNativeAsOptional("Shavit_SetAutoJumpOnStart");
 	MarkNativeAsOptional("Shavit_GetAutoJumpOnStart");
+	MarkNativeAsOptional("Shavit_SetEdgeJump");
+	MarkNativeAsOptional("Shavit_GetEdgeJump");
 }
 #endif

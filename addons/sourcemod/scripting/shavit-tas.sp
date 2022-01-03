@@ -20,6 +20,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 #include <cstrike>
 #include <convar_class>
 
@@ -48,6 +49,7 @@ TASType gI_Type[MAXPLAYERS + 1];
 TASOverride gI_Override[MAXPLAYERS + 1];
 bool gB_Prestrafe[MAXPLAYERS + 1];
 bool gB_AutoJumpOnStart[MAXPLAYERS + 1];
+bool gB_EdgeJump[MAXPLAYERS + 1];
 float g_fPower[MAXPLAYERS + 1] = {1.0, ...};
 
 bool gB_ForceJump[MAXPLAYERS+1];
@@ -81,6 +83,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetAutoPrestrafe", Native_GetAutoPrestrafe);
 	CreateNative("Shavit_SetAutoJumpOnStart", Native_SetAutoJumpOnStart);
 	CreateNative("Shavit_GetAutoJumpOnStart", Native_GetAutoJumpOnStart);
+	CreateNative("Shavit_SetEdgeJump", Native_SetEdgeJump);
+	CreateNative("Shavit_GetEdgeJump", Native_GetEdgeJump);
 
 	gB_Late = late;
 	RegPluginLibrary("shavit-tas");
@@ -142,6 +146,11 @@ public void OnPluginStart()
 			if (IsClientConnected(i))
 			{
 				OnClientConnected(i);
+
+				if (IsClientInGame(i))
+				{
+					OnClientPutInServer(i);
+				}
 			}
 		}
 	}
@@ -159,8 +168,14 @@ public void OnClientConnected(int client)
 	gI_Override[client] = TASOverride_Surf;
 	gI_Type[client] = TASType_1Tick;
 	gB_AutoJumpOnStart[client] = true;
+	gB_EdgeJump[client] = true;
 	gB_Prestrafe[client] = true;
 	g_fPower[client] = 1.0;
+}
+
+public void OnClientPutInServer(int client)
+{
+	SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
 }
 
 public Action Shavit_OnStart(int client, int track)
@@ -286,13 +301,71 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		return Plugin_Continue;
 	}
 
-	if (gB_ForceJump[client] && status == Timer_Running && Shavit_GetStyleSettingBool(style, TAS_STYLE_SETTING))
+	if (gB_ForceJump[client] /*&& status == Timer_Running*/ && Shavit_GetStyleSettingBool(style, TAS_STYLE_SETTING))
 	{
 		buttons |= IN_JUMP;
 	}
 
 	gB_ForceJump[client] = false;
 	return Plugin_Changed;
+}
+
+
+#if 0
+public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
+#else
+public void PostThinkPost(int client)
+#endif
+{
+	if (!gB_EdgeJump[client])
+	{
+		return;
+	}
+
+	if (IsFakeClient(client))
+	{
+		return;
+	}
+
+	TASType tastype = view_as<TASType>(Shavit_GetStyleSettingInt(Shavit_GetBhopStyle(client), TAS_STYLE_SETTING));
+
+	if (!tastype)
+	{
+		return;
+	}
+
+	if (!Shavit_ShouldProcessFrame(client))
+	{
+		return;
+	}
+
+	if (!IsPlayerAlive(client) || GetEntityMoveType(client) != MOVETYPE_WALK || !(GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1))
+	{
+		return;
+	}
+
+	if (!(GetEntityFlags(client) & FL_ONGROUND))
+	{
+		return;
+	}
+
+	float pos[3], vel[3], nextpos[3], lower[3];
+	GetClientAbsOrigin(client, pos);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", vel);
+	ScaleVector(vel, GetTickInterval());
+	AddVectors(pos, vel, nextpos);
+	AddVectors(nextpos, view_as<float>({0.0, 0.0, -10.0}), lower);
+
+	float mins[3], maxs[3];
+	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
+	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
+
+	TR_TraceHullFilter(nextpos, lower, mins, maxs, MASK_PLAYERSOLID, TRFilter_NoPlayers, client);
+
+	if (!TR_DidHit())
+	{
+		gB_ForceJump[client] = true;
+	}
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
@@ -499,6 +572,9 @@ void OpenTasSettingsMenu(int client)
 	FormatEx(display, sizeof(display), "++%T\n ", "Timescale", client);
 	menu.AddItem("tsplus", display, (tas_timescale && ts != 1.0) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
+	FormatEx(display, sizeof(display), "[%s] %T", gB_EdgeJump[client] ? "＋":"－", "EdgeJump", client);
+	menu.AddItem("edgejump", display);
+
 	TASOverride ov = gI_Override[client];
 	FormatEx(display, sizeof(display), "%T: %T", "TASOverride", client,
 		(ov == TASOverride_Normal ? "TASOverride_Normal" : (ov == TASOverride_Surf ? "TASOverride_Surf" : "TASOverride_All")), client);
@@ -530,6 +606,10 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 		else if (StrEqual(info, "autojump"))
 		{
 			gB_AutoJumpOnStart[param1] = !gB_AutoJumpOnStart[param1];
+		}
+		else if (StrEqual(info, "edgejump"))
+		{
+			gB_EdgeJump[param1] = !gB_EdgeJump[param1];
 		}
 		else if (StrEqual(info, "prestrafe"))
 		{
@@ -674,4 +754,18 @@ public any Native_GetAutoJumpOnStart(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	return gB_AutoJumpOnStart[client];
+}
+
+public any Native_SetEdgeJump(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	bool value = GetNativeCell(2);
+	gB_EdgeJump[client] = value;
+	return 0;
+}
+
+public any Native_GetEdgeJump(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	return gB_EdgeJump[client];
 }

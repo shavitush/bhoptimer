@@ -200,6 +200,10 @@
 	{
 		"en"        "Jump on start-zone exit"
 	}
+	"EdgeJump"
+	{
+		"en"        "Edge jump"
+	}
 	"AutoPrestrafe"
 	{
 		"en"        "Auto Prestrafe"
