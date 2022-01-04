@@ -62,6 +62,8 @@ ConVar sv_stopspeed = null;
 
 chatstrings_t gS_ChatStrings;
 
+bool gB_GlobalTraceResult = false;
+
 public Plugin myinfo =
 {
 	name = "[shavit] TAS",
@@ -347,6 +349,18 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	return Plugin_Changed;
 }
 
+bool TRFilter_OnlyZones(int entity, any data)
+{
+	int zoneid = Shavit_GetZoneID(entity);
+
+	if (zoneid == -1 || Shavit_GetZoneTrack(zoneid) != data)
+	{
+		return true;
+	}
+
+	gB_GlobalTraceResult = true;
+	return false;
+}
 
 #if 0
 public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
@@ -360,7 +374,12 @@ public void PostThinkPost(int client)
 {
 #endif
 
-	if (!gB_EdgeJump[client])
+	if (gB_ForceJump[client])
+	{
+		return;
+	}
+
+	if (!gB_EdgeJump[client] && !gB_AutoJumpOnStart[client])
 	{
 		return;
 	}
@@ -385,22 +404,41 @@ public void PostThinkPost(int client)
 		return;
 	}
 
-	float pos[3], vel[3], nextpos[3], lower[3];
-	GetClientAbsOrigin(client, pos);
-	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", vel);
-	ScaleVector(vel, GetTickInterval());
-	AddVectors(pos, vel, nextpos);
-	AddVectors(nextpos, view_as<float>({0.0, 0.0, -10.0}), lower);
-
+	float origin[3], absvel[3], nextpos[3];
+	GetClientAbsOrigin(client, origin);
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", absvel);
 	float mins[3], maxs[3];
 	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
 	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
+	ScaleVector(absvel, GetTickInterval());
 
-	TR_TraceHullFilter(nextpos, lower, mins, maxs, MASK_PLAYERSOLID, TRFilter_NoPlayers, client);
-
-	if (!TR_DidHit())
+	if (gB_AutoJumpOnStart[client])
 	{
-		gB_ForceJump[client] = true;
+		int track = Shavit_GetClientTrack(client);
+		if (Shavit_InsideZone(client, Zone_Start, track))
+		{
+			float blah[3]; blah = absvel;
+			ScaleVector(blah, 3.0); // 2 isn't always enough... so 3 it is :)
+			AddVectors(origin, blah, nextpos);
+
+			gB_GlobalTraceResult = false;
+			TR_EnumerateEntitiesHull(nextpos, nextpos, mins, maxs, PARTITION_TRIGGER_EDICTS, TRFilter_OnlyZones, track);
+
+			if (!gB_GlobalTraceResult)
+			{
+				gB_ForceJump[client] = true;
+			}
+		}
+	}
+
+	if (gB_EdgeJump[client] && !gB_ForceJump[client])
+	{
+		float lower[3];
+		AddVectors(origin, absvel, nextpos);
+		AddVectors(nextpos, view_as<float>({0.0, 0.0, -10.0}), lower);
+
+		TR_TraceHullFilter(nextpos, lower, mins, maxs, MASK_PLAYERSOLID, TRFilter_NoPlayers, client);
+		gB_ForceJump[client] = !TR_DidHit();
 	}
 }
 
