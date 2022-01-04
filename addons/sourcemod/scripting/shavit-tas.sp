@@ -131,6 +131,20 @@ public void OnPluginStart()
 		}
 	}
 
+	AddCommandListener(CommandListener_Toggler, "+autostrafe");
+	AddCommandListener(CommandListener_Toggler, "-autostrafe");
+	AddCommandListener(CommandListener_Toggler, "+prestrafe");
+	AddCommandListener(CommandListener_Toggler, "-prestrafe");
+	AddCommandListener(CommandListener_Toggler, "+jumponstart");
+	AddCommandListener(CommandListener_Toggler, "-jumponstart");
+	AddCommandListener(CommandListener_Toggler, "+edgejump");
+	AddCommandListener(CommandListener_Toggler, "-edgejump");
+
+	RegConsoleCmd("sm_autostrafe", Command_Toggler, "");
+	RegConsoleCmd("sm_prestrafe", Command_Toggler, "");
+	RegConsoleCmd("sm_jumponstart", Command_Toggler, "");
+	RegConsoleCmd("sm_edgejump", Command_Toggler, "");
+
 	RegConsoleCmd("sm_tasm", Command_TasSettingsMenu, "Opens the TAS settings menu.");
 	RegConsoleCmd("sm_tasmenu", Command_TasSettingsMenu, "Opens the TAS settings menu.");
 	RegAdminCmd("sm_xutax_scan", Command_ScanOffsets, ADMFLAG_CHEATS, "Scan for possible offset locations");
@@ -370,11 +384,6 @@ public void PostThinkPost(int client)
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-	if (!g_bEnabled[client])
-	{
-		return Plugin_Continue;
-	}
-
 	if (IsFakeClient(client))
 	{
 		return Plugin_Continue;
@@ -435,7 +444,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 	if (s_iOnGroundCount[client] <= 1)
 	{
-		if (IsSurfing(client))
+		if (!g_bEnabled[client] || IsSurfing(client))
 		{
 			return Plugin_Continue;
 		}
@@ -666,6 +675,74 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 	}
 
 	return 0;
+}
+
+public Action CommandListener_Toggler(int client, const char[] command, int args)
+{
+	if (!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	bool set = (command[0] == '+');
+
+	if (StrEqual(command[1], "autostrafe"))
+	{
+		g_bEnabled[client] = set;
+	}
+	else if (StrEqual(command[1], "prestrafe"))
+	{
+		gB_Prestrafe[client] = set;
+	}
+	else if (StrEqual(command[1], "jumponstart"))
+	{
+		gB_AutoJumpOnStart[client] = set;
+	}
+	else if (StrEqual(command[1], "edgejump"))
+	{
+		gB_EdgeJump[client] = set;
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_Toggler(int client, int args)
+{
+	if (!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	char command[32];
+	GetCmdArg(0, command, sizeof(command));
+
+	int x = -1;
+
+	if (args > 0)
+	{
+		char arg[5];
+		GetCmdArg(1, arg, sizeof(arg));
+		x = StringToInt(arg);
+	}
+
+	if (StrEqual(command, "sm_autostrafe"))
+	{
+		g_bEnabled[client] = (x == -1) ? !g_bEnabled[client] : (x != 0);
+	}
+	else if (StrEqual(command, "sm_prestrafe"))
+	{
+		gB_Prestrafe[client] = (x == -1) ? !gB_Prestrafe[client] : (x != 0);
+	}
+	else if (StrEqual(command, "sm_jumponstart"))
+	{
+		gB_AutoJumpOnStart[client] = (x == -1) ? !gB_AutoJumpOnStart[client] : (x != 0);
+	}
+	else if (StrEqual(command, "sm_edgejump"))
+	{
+		gB_EdgeJump[client] = (x == -1) ? !gB_EdgeJump[client] : (x != 0);
+	}
+
+	return Plugin_Handled;
 }
 
 public Action Command_TasSettingsMenu(int client, int args)
