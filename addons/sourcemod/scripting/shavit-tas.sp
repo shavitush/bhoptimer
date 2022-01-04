@@ -189,7 +189,10 @@ public void OnClientConnected(int client)
 
 public void OnClientPutInServer(int client)
 {
-	SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
+	if (!IsFakeClient(client))
+	{
+		SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
+	}
 }
 
 public Action Shavit_OnStart(int client, int track)
@@ -327,16 +330,17 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 #if 0
 public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
-#else
-public void PostThinkPost(int client)
-#endif
 {
-	if (!gB_EdgeJump[client])
+	if (IsFakeClient(client))
 	{
 		return;
 	}
+#else
+public void PostThinkPost(int client)
+{
+#endif
 
-	if (IsFakeClient(client))
+	if (!gB_EdgeJump[client])
 	{
 		return;
 	}
