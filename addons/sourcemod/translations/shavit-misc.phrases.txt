@@ -224,6 +224,14 @@
 	{
 		"en"        "Velocity (No speed loss) (oblivious)"
 	}
+	"TASEnabled"
+	{
+		"en"        "Enabled"
+	}
+	"TASDisabled"
+	{
+		"en"        "Disabled"
+	}
 	"TASOverride"
 	{
 		"en"        "Key Override"

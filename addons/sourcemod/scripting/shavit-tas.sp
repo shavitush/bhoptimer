@@ -44,7 +44,7 @@ float g_flOldYawAngle[MAXPLAYERS + 1];
 int g_iSurfaceFrictionOffset;
 float g_fMaxMove = 400.0;
 
-bool g_bEnabled[MAXPLAYERS + 1];
+bool gB_Autostrafer[MAXPLAYERS + 1];
 TASType gI_Type[MAXPLAYERS + 1];
 TASOverride gI_Override[MAXPLAYERS + 1];
 bool gB_Prestrafe[MAXPLAYERS + 1];
@@ -60,9 +60,11 @@ ConVar sv_accelerate = null;
 ConVar sv_friction = null;
 ConVar sv_stopspeed = null;
 
+chatstrings_t gS_ChatStrings;
+
 public Plugin myinfo =
 {
-	name = "[shavit] TAS (XutaxKamay)",
+	name = "[shavit] TAS",
 	author = "xutaxkamay, oblivious, KiD Fearless, rtldg",
 	description = "TAS module for shavit's bhop timer featuring xutaxkamay's autostrafer and oblivious's autogain.",
 	version = SHAVIT_VERSION,
@@ -155,6 +157,8 @@ public void OnPluginStart()
 
 	if (gB_Late)
 	{
+		Shavit_OnChatConfigLoaded();
+
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientConnected(i))
@@ -178,7 +182,7 @@ public void OnWishSpeedChanged(ConVar convar, const char[] oldValue, const char[
 
 public void OnClientConnected(int client)
 {
-	g_bEnabled[client] = true;
+	gB_Autostrafer[client] = true;
 	gI_Override[client] = TASOverride_Surf;
 	gI_Type[client] = TASType_1Tick;
 	gB_AutoJumpOnStart[client] = true;
@@ -193,6 +197,11 @@ public void OnClientPutInServer(int client)
 	{
 		SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
 	}
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
 public Action Shavit_OnStart(int client, int track)
@@ -448,7 +457,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 	if (s_iOnGroundCount[client] <= 1)
 	{
-		if (!g_bEnabled[client] || IsSurfing(client))
+		if (!gB_Autostrafer[client] || IsSurfing(client))
 		{
 			return Plugin_Continue;
 		}
@@ -558,7 +567,7 @@ void OpenTasSettingsMenu(int client, int pos=0)
 	Menu menu = new Menu(MenuHandler_TasSettings, MENU_ACTIONS_DEFAULT);
 	menu.SetTitle("%T\n ", "TasSettings", client);
 
-	FormatEx(display, sizeof(display), "[%s] %T", g_bEnabled[client] ? "＋":"－", "Autostrafer", client);
+	FormatEx(display, sizeof(display), "[%s] %T", gB_Autostrafer[client] ? "＋":"－", "Autostrafer", client);
 	menu.AddItem("toggle", display);
 
 	FormatEx(display, sizeof(display), "[%s] %T", gB_AutoJumpOnStart[client] ? "＋":"－", "JumpOnStart", client);
@@ -614,7 +623,7 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 
 		if (StrEqual(info, "toggle"))
 		{
-			g_bEnabled[param1] = !g_bEnabled[param1];
+			gB_Autostrafer[param1] = !gB_Autostrafer[param1];
 		}
 		else if (StrEqual(info, "autojump"))
 		{
@@ -689,23 +698,31 @@ public Action CommandListener_Toggler(int client, const char[] command, int args
 	}
 
 	bool set = (command[0] == '+');
+	char translation[32];
 
 	if (StrEqual(command[1], "autostrafe"))
 	{
-		g_bEnabled[client] = set;
+		gB_Autostrafer[client] = set;
+		translation = "Autostrafer";
 	}
 	else if (StrEqual(command[1], "prestrafe"))
 	{
 		gB_Prestrafe[client] = set;
+		translation = "AutoPrestrafe";
 	}
 	else if (StrEqual(command[1], "jumponstart"))
 	{
 		gB_AutoJumpOnStart[client] = set;
+		translation = "JumpOnStart";
 	}
 	else if (StrEqual(command[1], "edgejump"))
 	{
 		gB_EdgeJump[client] = set;
+		translation = "EdgeJump";
 	}
+
+	Shavit_StopChatSound();
+	Shavit_PrintToChat(client, "%T: %s%T", translation, client, (set ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning), (set ? "TASEnabled" : "TASDisabled"), client);
 
 	return Plugin_Handled;
 }
@@ -729,22 +746,32 @@ public Action Command_Toggler(int client, int args)
 		x = StringToInt(arg);
 	}
 
+	bool set;
+	char translation[32];
+
 	if (StrEqual(command, "sm_autostrafe"))
 	{
-		g_bEnabled[client] = (x == -1) ? !g_bEnabled[client] : (x != 0);
+		set = gB_Autostrafer[client] = (x == -1) ? !gB_Autostrafer[client] : (x != 0);
+		translation = "Autostrafer";
 	}
 	else if (StrEqual(command, "sm_prestrafe"))
 	{
-		gB_Prestrafe[client] = (x == -1) ? !gB_Prestrafe[client] : (x != 0);
+		set = gB_Prestrafe[client] = (x == -1) ? !gB_Prestrafe[client] : (x != 0);
+		translation = "AutoPrestrafe";
 	}
 	else if (StrEqual(command, "sm_jumponstart"))
 	{
-		gB_AutoJumpOnStart[client] = (x == -1) ? !gB_AutoJumpOnStart[client] : (x != 0);
+		set = gB_AutoJumpOnStart[client] = (x == -1) ? !gB_AutoJumpOnStart[client] : (x != 0);
+		translation = "JumpOnStart";
 	}
 	else if (StrEqual(command, "sm_edgejump"))
 	{
-		gB_EdgeJump[client] = (x == -1) ? !gB_EdgeJump[client] : (x != 0);
+		set = gB_EdgeJump[client] = (x == -1) ? !gB_EdgeJump[client] : (x != 0);
+		translation = "EdgeJump";
 	}
+
+	Shavit_StopChatSound();
+	Shavit_PrintToChat(client, "%T: %s%T", translation, client, (set ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning), (set ? "TASEnabled" : "TASDisabled"), client);
 
 	return Plugin_Handled;
 }
@@ -771,14 +798,14 @@ public any Native_SetAutostrafeEnabled(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	bool value = GetNativeCell(2);
-	g_bEnabled[client] = value;
+	gB_Autostrafer[client] = value;
 	return 0;
 }
 
 public any Native_GetAutostrafeEnabled(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	return g_bEnabled[client];
+	return gB_Autostrafer[client];
 }
 
 public any Native_SetAutostrafeType(Handle plugin, int numParams)
