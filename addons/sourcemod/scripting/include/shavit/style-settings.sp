@@ -164,7 +164,12 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingInt  (gI_CurrentParserIndex, "halftime", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "timescale", 1.0);
 
-	SetStyleSettingInt  (gI_CurrentParserIndex, "tas_timescale", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "tas", 0);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "tas_timescale", 0.0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "autostrafe", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "prestrafe", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "edgejump", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "jumponstart", 0);
 
 	SetStyleSettingInt  (gI_CurrentParserIndex, "force_timescale", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity", 1.0);
@@ -251,6 +256,36 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		}
 	}
 #endif
+
+	if (GetStyleSettingBool(gI_CurrentParserIndex, "tas"))
+	{
+		bool x;
+
+		if (!gSM_StyleKeysSet.GetValue("tas_timescale", x))
+		{
+			SetStyleSettingFloat(gI_CurrentParserIndex, "tas_timescale", -1.0);
+		}
+
+		if (!gSM_StyleKeysSet.GetValue("autostrafe", x))
+		{
+			SetStyleSettingInt  (gI_CurrentParserIndex, "autostrafe", 1);
+		}
+
+		if (!gSM_StyleKeysSet.GetValue("autoprestrafe", x))
+		{
+			SetStyleSettingBool (gI_CurrentParserIndex, "autoprestrafe", true);
+		}
+
+		if (!gSM_StyleKeysSet.GetValue("edgejump", x))
+		{
+			SetStyleSettingBool (gI_CurrentParserIndex, "edgejump", true);
+		}
+
+		if (!gSM_StyleKeysSet.GetValue("autojumponstart", x))
+		{
+			SetStyleSettingBool (gI_CurrentParserIndex, "autojumponstart", true);
+		}
+	}
 
 	if (GetStyleSettingInt(gI_CurrentParserIndex, "prespeed") > 0 || GetStyleSettingInt(gI_CurrentParserIndex, "prespeed_type") > 0)
 	{

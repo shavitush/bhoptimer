@@ -23,24 +23,24 @@
 #endif
 #define _shavit_tas_included
 
-#define TAS_STYLE_SETTING "tas"
-
-enum TASOverride
+enum AutostrafeOverride
 {
-	TASOverride_Normal, // only w/s disables autostrafe
-	TASOverride_Surf, // w/s always disables, a/d only over surf ramps
-	TASOverride_All, // all keys disable
-	TASOverride_Size // size
+	AutostrafeOverride_Normal, // only w/s disables autostrafe
+	AutostrafeOverride_Surf, // w/s always disables, a/d only over surf ramps
+	AutostrafeOverride_Surf_W_Okay, // s always disables, a/d only over surf ramps
+	AutostrafeOverride_All, // all keys disable
+	AutostrafeOverride_Size // size
 };
 
-enum TASType
+enum AutostrafeType
 {
-	TASType_Any = -1,
-	TASType_Null = 0,
-	TASType_1Tick, // xutaxkamay
-	TASType_Autogain, // oblivious
-	TASType_AutogainNoSpeedLoss, // oblivious
-	TASType_Size
+	AutostrafeType_Any = -1,
+	AutostrafeType_Disabled = 0,
+	AutostrafeType_1Tick = 1, // xutaxkamay
+	AutostrafeType_Autogain, // oblivious
+	AutostrafeType_AutogainNoSpeedLoss, // oblivious
+	AutostrafeType_Basic, //
+	AutostrafeType_Size
 };
 
 /**
@@ -67,7 +67,7 @@ native bool Shavit_GetAutostrafeEnabled(int client);
  * @param value			New type to set the strafehack to.
  * @noreturn
  */
-native void Shavit_SetAutostrafeType(int client, TASType value);
+native void Shavit_SetAutostrafeType(int client, AutostrafeType value);
 
 /**
  * Retrieves the current strafehack type for the given client index.
@@ -75,7 +75,7 @@ native void Shavit_SetAutostrafeType(int client, TASType value);
  * @param client		Client index of the player to get the strafehack type from.
  * @return				The current strafehack type.
  */
-native TASType Shavit_GetAutostrafeType(int client);
+native AutostrafeType Shavit_GetAutostrafeType(int client);
 
 /**
  * Sets the strafehack power on the given client index. Power is the cut off point before it will turn into an autostrafe. 1.0 is the default.
@@ -101,7 +101,7 @@ native float Shavit_GetAutostrafePower(int client);
  * @param value			New type to set the key override to.
  * @noreturn
  */
-native void Shavit_SetAutostrafeKeyOverride(int client, TASOverride value);
+native void Shavit_SetAutostrafeKeyOverride(int client, AutostrafeOverride value);
 
 /**
  * Retrieves the current key override type for the given client index.
@@ -109,7 +109,7 @@ native void Shavit_SetAutostrafeKeyOverride(int client, TASOverride value);
  * @param client		Client index
  * @return				The current key override type.
  */
-native TASOverride Shavit_GetAutostrafeKeyOverride(int client);
+native AutostrafeOverride Shavit_GetAutostrafeKeyOverride(int client);
 
 /**
  * Sets whether the client has automatic prestrafe enabled.

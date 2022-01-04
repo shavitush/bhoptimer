@@ -353,6 +353,9 @@ stock void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], flo
 stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2],
 	float flAirAccelerate, float flSurfaceFriction, float flAirSpeedCap, float flMaxMove, float flOldYawAngle, float fPower)
 {
+	// clear out forward because Surf_W_Okay is nice...
+	vel[0] = 0.0;
+
 	float flFowardMove, flSideMove;
 	float flMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
 	float flVelocity[3], flVelocity2D[2];

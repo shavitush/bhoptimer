@@ -196,7 +196,7 @@
 	{
 		"en"        "Autostrafer"
 	}
-	"JumpOnStart"
+	"AutoJumpOnStart"
 	{
 		"en"        "Jump on start-zone exit"
 	}
@@ -232,19 +232,23 @@
 	{
 		"en"        "Disabled"
 	}
-	"TASOverride"
+	"AutostrafeOverride"
 	{
 		"en"        "Key Override"
 	}
-	"TASOverride_Normal"
+	"AutostrafeOverride_Normal"
 	{
 		"en"        "W/S"
 	}
-	"TASOverride_Surf"
+	"AutostrafeOverride_Surf"
 	{
 		"en"        "W/S (and A/D on surf ramps)"
 	}
-	"TASOverride_All"
+	"AutostrafeOverride_Surf_W_Okay"
+	{
+		"en"        "S (and A/D on surf ramps)"
+	}
+	"AutostrafeOverride_All"
 	{
 		"en"        "W/S A/D"
 	}
