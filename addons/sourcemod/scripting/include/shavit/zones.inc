@@ -207,6 +207,30 @@ native int Shavit_GetHighestStage(int track);
 native int Shavit_GetClientLastStage(int client);
 
 /**
+ * Returns the zone index for the entity if available.
+ *
+ * @param entity                    Client index.
+ * @return                          -1 if not a zone entity. >=0 for a zone index.
+ */
+native int Shavit_GetZoneID(int entity);
+
+/**
+ * Returns the zone track.
+ *
+ * @param zoneid                    Zone index.
+ * @return                          Zone track.
+ */
+native int Shavit_GetZoneTrack(int zoneid);
+
+/**
+ * Returns the zone type.
+ *
+ * @param zoneid                    Zone index.
+ * @return                          Zone type.
+ */
+native int Shavit_GetZoneType(int zoneid);
+
+/**
  * Retrieve the WR's stage time.
  *
  * @param track                     Track index.
@@ -283,5 +307,8 @@ public void __pl_shavit_zones_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetStart");
 	MarkNativeAsOptional("Shavit_DeleteSetStart");
 	MarkNativeAsOptional("Shavit_GetClientLastStage");
+	MarkNativeAsOptional("Shavit_GetZoneTrack");
+	MarkNativeAsOptional("Shavit_GetZoneType");
+	MarkNativeAsOptional("Shavit_GetZoneID");
 }
 #endif
