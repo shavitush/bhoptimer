@@ -167,9 +167,9 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingInt  (gI_CurrentParserIndex, "tas", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "tas_timescale", 0.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "autostrafe", 0);
-	SetStyleSettingInt  (gI_CurrentParserIndex, "prestrafe", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "autoprestrafe", 0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "edgejump", 0);
-	SetStyleSettingInt  (gI_CurrentParserIndex, "jumponstart", 0);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "autojumponstart", 0);
 
 	SetStyleSettingInt  (gI_CurrentParserIndex, "force_timescale", 0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "velocity", 1.0);
