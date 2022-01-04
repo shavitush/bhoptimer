@@ -681,7 +681,7 @@ public any Native_GetZoneType(Handle plugin, int numParams)
 public any Native_GetZoneID(Handle plugin, int numParams)
 {
 	int entity = GetNativeCell(1);
-	return gI_EntityZone[entity] > -1;
+	return gI_EntityZone[entity];
 }
 
 bool JumpToZoneType(KeyValues kv, int type, int track)
