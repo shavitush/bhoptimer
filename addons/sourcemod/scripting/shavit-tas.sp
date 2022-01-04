@@ -379,12 +379,11 @@ public void PostThinkPost(int client)
 		return;
 	}
 
-	if (!gB_EdgeJump[client] && !gB_AutoJumpOnStart[client])
-	{
-		return;
-	}
+	int style = Shavit_GetBhopStyle(client);
+	bool edgejump = (gB_EdgeJump[client] && Shavit_GetStyleSettingBool(style, "edgejump"));
+	bool autojumponstart = (gB_AutoJumpOnStart[client] && Shavit_GetStyleSettingBool(style, "autojumponstart"));
 
-	if (!Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(client), "edgejump"))
+	if (!edgejump && !autojumponstart)
 	{
 		return;
 	}
@@ -407,12 +406,12 @@ public void PostThinkPost(int client)
 	float origin[3], absvel[3], nextpos[3];
 	GetClientAbsOrigin(client, origin);
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", absvel);
+	ScaleVector(absvel, GetTickInterval());
 	float mins[3], maxs[3];
 	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
 	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
-	ScaleVector(absvel, GetTickInterval());
 
-	if (gB_AutoJumpOnStart[client])
+	if (autojumponstart)
 	{
 		int track = Shavit_GetClientTrack(client);
 		if (Shavit_InsideZone(client, Zone_Start, track))
@@ -431,7 +430,7 @@ public void PostThinkPost(int client)
 		}
 	}
 
-	if (gB_EdgeJump[client] && !gB_ForceJump[client])
+	if (edgejump && !gB_ForceJump[client])
 	{
 		float lower[3];
 		AddVectors(origin, absvel, nextpos);
@@ -625,17 +624,20 @@ void OpenTasSettingsMenu(int client, int pos=0)
 
 	int style = Shavit_GetBhopStyle(client);
 
-	FormatEx(display, sizeof(display), "[%s] %T", gB_Autostrafer[client] ? "＋":"－", "Autostrafer", client);
-	menu.AddItem("autostrafe", display,
-		Shavit_GetStyleSettingBool(style, "autostrafe") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	bool autostrafe_allowed = Shavit_GetStyleSettingBool(style, "autostrafe");
+	bool autostrafe = (gB_Autostrafer[client] && autostrafe_allowed);
+	FormatEx(display, sizeof(display), "[%s] %T", autostrafe ? "＋":"－", "Autostrafer", client);
+	menu.AddItem("autostrafe", display, autostrafe_allowed ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
-	FormatEx(display, sizeof(display), "[%s] %T", gB_AutoJumpOnStart[client] ? "＋":"－", "AutoJumpOnStart", client);
-	menu.AddItem("autojump", display,
-		Shavit_GetStyleSettingBool(style, "autojumponstart") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	bool autojumponstart_allowed = Shavit_GetStyleSettingBool(style, "autojumponstart");
+	bool autojumponstart = (gB_AutoJumpOnStart[client] && autojumponstart_allowed);
+	FormatEx(display, sizeof(display), "[%s] %T", autojumponstart ? "＋":"－", "AutoJumpOnStart", client);
+	menu.AddItem("autojump", display, autojumponstart_allowed ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
-	FormatEx(display, sizeof(display), "[%s] %T\n ", gB_Prestrafe[client] ? "＋":"－", "AutoPrestrafe", client);
-	menu.AddItem("prestrafe", display,
-		Shavit_GetStyleSettingBool(style, "autoprestrafe") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	bool autoprestrafe_allowed = Shavit_GetStyleSettingBool(style, "autoprestrafe");
+	bool autoprestrafe = (gB_Prestrafe[client] && autoprestrafe_allowed);
+	FormatEx(display, sizeof(display), "[%s] %T\n ", autoprestrafe ? "＋":"－", "AutoPrestrafe", client);
+	menu.AddItem("prestrafe", display, autoprestrafe_allowed ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	AutostrafeType tastype = view_as<AutostrafeType>(Shavit_GetStyleSettingInt(style, "autostrafe"));
 	bool tastype_editable = (tastype == AutostrafeType_Any);
@@ -655,9 +657,10 @@ void OpenTasSettingsMenu(int client, int pos=0)
 	FormatEx(display, sizeof(display), "++%T\n ", "Timescale", client);
 	menu.AddItem("tsplus", display, (tas_timescale && ts != 1.0) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
-	FormatEx(display, sizeof(display), "[%s] %T", gB_EdgeJump[client] ? "＋":"－", "EdgeJump", client);
-	menu.AddItem("edgejump", display,
-		Shavit_GetStyleSettingBool(style, "edgejump") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	bool edgejump_allowed = Shavit_GetStyleSettingBool(style, "edgejump");
+	bool edgejump = (gB_EdgeJump[client] && edgejump_allowed);
+	FormatEx(display, sizeof(display), "[%s] %T", edgejump ? "＋":"－", "EdgeJump", client);
+	menu.AddItem("edgejump", display, edgejump_allowed ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 	AutostrafeOverride ov = gI_Override[client];
 	FormatEx(display, sizeof(display), "%T: %T", "AutostrafeOverride", client,
