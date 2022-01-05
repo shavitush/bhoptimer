@@ -2943,7 +2943,7 @@ void OpenReplayMenu(int client, bool canControlReplayUiFix=false)
 	FormatEx(sDisplay, 64, "-10s");
 	menu.AddItem("-10", sDisplay, canControlReplay ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	FormatEx(sDisplay, 64, "%T", "Menu_PlaybackSpeed", client, gA_BotInfo[index].fPlaybackSpeed);
+	FormatEx(sDisplay, 64, "%T", "Menu_PlaybackSpeed", client, (index != -1) ? gA_BotInfo[index].fPlaybackSpeed : 1.0);
 	menu.AddItem("speed", sDisplay, canControlReplay ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	FormatEx(sDisplay, 64, "%T", "Menu_RefreshReplay", client);
