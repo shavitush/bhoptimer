@@ -91,6 +91,9 @@ ArrayList gA_PersistentData = null;
 bool gB_Eventqueuefix = false;
 bool gB_ReplayRecorder = false;
 
+DynamicHook gH_CommitSuicide = null;
+float gF_NextSuicide[MAXPLAYERS+1];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Checkpoints",
@@ -207,6 +210,32 @@ void LoadDHooks()
 	LoadPhysicsUntouch(hGameData);
 
 	delete hGameData;
+
+	int iOffset;
+
+	if (gEV_Type == Engine_CSS)
+	{
+		hGameData = LoadGameConfigFile("sdktools.games/game.cstrike");
+	}
+	else if (gEV_Type == Engine_CSGO)
+	{
+		hGameData = LoadGameConfigFile("sdktools.games/engine.csgo");
+	}
+	else if (gEV_Type == Engine_TF2)
+	{
+		hGameData = LoadGameConfigFile("sdktools.games/game.tf");
+	}
+
+	if ((iOffset = GameConfGetOffset(hGameData, "CommitSuicide")) == -1)
+	{
+		SetFailState("Couldn't get the offset for \"CommitSuicide\"!");
+	}
+
+	gH_CommitSuicide = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
+	gH_CommitSuicide.AddParam(HookParamType_Bool);
+	gH_CommitSuicide.AddParam(HookParamType_Bool);
+
+	delete hGameData;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -319,6 +348,20 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	return Plugin_Continue;
 }
 
+public MRESReturn CBasePlayer__CommitSuicide(int client, DHookParam params)
+{
+	//bool bExplode = params.Get(1);
+	bool bForce = params.Get(2);
+
+	if (IsPlayerAlive(client) && (bForce || gF_NextSuicide[client] <= GetGameTime()))
+	{
+		gF_NextSuicide[client] = GetGameTime() + 5.0;
+		PersistData(client, false);
+	}
+
+	return MRES_Ignored;
+}
+
 public Action Timer_Cron(Handle timer)
 {
 	if (gCV_PersistData.IntValue < 0)
@@ -391,9 +434,16 @@ public void OnClientCookiesCached(int client)
 
 public void OnClientPutInServer(int client)
 {
+	gF_NextSuicide[client] = GetGameTime();
+
 	if (IsFakeClient(client))
 	{
 		return;
+	}
+
+	if (gH_CommitSuicide != null)
+	{
+		gH_CommitSuicide.HookEntity(Hook_Pre,  client, CBasePlayer__CommitSuicide);
 	}
 
 	if (!AreClientCookiesCached(client))
