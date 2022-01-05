@@ -185,7 +185,7 @@ stock bool IsSurfing(int client)
 
 stock bool TRFilter_NoPlayers(int entity, int mask, any data)
 {
-	return (entity != view_as<int>(data) || (entity < 1 || entity > MaxClients));
+	return !(entity < MaxClients);
 }
 
 
