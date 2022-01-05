@@ -113,6 +113,7 @@ bool gB_Stats = false;
 bool gB_RTLer = false;
 
 // cvars
+Convar gCV_Enabled = null;
 Convar gCV_RankingsIntegration = null;
 Convar gCV_CustomChat = null;
 Convar gCV_Colon = null;
@@ -191,6 +192,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_ccadd", Command_CCAdd, ADMFLAG_ROOT, "Grant a user access to using ccname and ccmsg. Usage: sm_ccadd <steamid3>");
 	RegAdminCmd("sm_ccdelete", Command_CCDelete, ADMFLAG_ROOT, "Remove access granted to a user with sm_ccadd. Usage: sm_ccdelete <steamid3>");
 
+	gCV_Enabled = new Convar("shavit_chat_enabled", "1", "Whether chat is actually hooked by shavit-chat. Set to 0 if you want to use an alternative chat processor while still being able to use `Shavit_GetPlainChatrank()` or `{cr}` in `shavit_misc_scoreboard` for example.", 0, true, 0.0, true, 1.0);
 	gCV_RankingsIntegration = new Convar("shavit_chat_rankings", "1", "Integrate with rankings?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_CustomChat = new Convar("shavit_chat_customchat", "1", "Allow custom chat names or message colors?\n0 - Disabled\n1 - Enabled (requires chat flag/'shavit_chat' override or granted access with sm_ccadd)\n2 - Allow use by everyone", 0, true, 0.0, true, 2.0);
 	gCV_Colon = new Convar("shavit_chat_colon", ":", "String to use as the colon when messaging.");
@@ -434,6 +436,11 @@ void ReplaceFormats(char[] formatting, int maxlen, char[] name, char[] colon, ch
 
 public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
 {
+	if (!gCV_Enabled.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
 	int client = 0;
 	char sMessage[32];
 	char sOriginalName[MAXLENGTH_NAME];
