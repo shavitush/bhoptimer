@@ -381,11 +381,18 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 
 			LowercaseString(pair[0]);
 
+#if 0
 			if (HasStyleSetting(gI_CurrentParserIndex, pair[0]))
+#else
+			bool x;
+			if (gSM_StyleKeysSet.GetValue(pair[0], x))
+#endif
 			{
 				char asdf[128];
 				GetStyleSetting(gI_CurrentParserIndex, pair[0], asdf, sizeof(asdf));
-				LogError("Style has '%s' set (%s) but is also trying to set it from specialstring (%s).", pair[0], asdf, pair[1][0] ? pair[1] : "1");
+				char name[128];
+				GetStyleSetting(gI_CurrentParserIndex, "name", name, sizeof(name));
+				LogError("Style %s (%d) has '%s' set (%s) but is also trying to set it from specialstring (%s).", name, gI_CurrentParserIndex, pair[0], asdf, pair[1][0] ? pair[1] : "1");
 				continue;
 			}
 
