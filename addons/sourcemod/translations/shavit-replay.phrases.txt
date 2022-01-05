@@ -107,6 +107,11 @@
 		"#format"	"{1:s}"
 		"en"		"[{1}] Toggle 2x speed"
 	}
+	"Menu_PlaybackSpeed"
+	{
+		"#format"   "{1:.1f}"
+		"en"        "Playback speed: {1}x"
+	}
 	"Menu_RefreshReplay"
 	{
 		"en"		"Refresh"

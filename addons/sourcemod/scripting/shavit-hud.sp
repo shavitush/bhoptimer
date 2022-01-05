@@ -1642,6 +1642,11 @@ void UpdateMainHUD(int client)
 
 			fSpeedHUD /= Shavit_GetStyleSettingFloat(huddata.iStyle, "speed") * Shavit_GetStyleSettingFloat(huddata.iStyle, "timescale");
 		}
+
+		if (Shavit_GetReplayPlaybackSpeed(target) == 0.5)
+		{
+			fSpeedHUD *= 2.0;
+		}
 	}
 
 	huddata.iTarget = target;

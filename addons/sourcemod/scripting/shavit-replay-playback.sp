@@ -86,7 +86,8 @@ enum struct bot_info_t
 	float fFirstFrameTime; // Shavit_GetReplayBotFirstFrameTime
 	bool bCustomFrames;
 	bool bIgnoreLimit;
-	bool b2x;
+	float fPlaybackSpeed;
+	bool bDoMiddleFrame;
 	float fDelay;
 	frame_cache_t aCache;
 }
@@ -286,6 +287,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetLoopingBotByName", Native_GetLoopingBotByName);
 	CreateNative("Shavit_SetReplayCacheName", Native_SetReplayCacheName);
 	CreateNative("Shavit_GetReplayFolderPath", Native_GetReplayFolderPath);
+	CreateNative("Shavit_GetReplayPlaybackSpeed", Native_GetReplayPlaybackSpeed);
 
 	if (!FileExists("cfg/sourcemod/plugin.shavit-replay-playback.cfg") && FileExists("cfg/sourcemod/plugin.shavit-replay.cfg"))
 	{
@@ -457,7 +459,7 @@ public void OnPluginStart()
 		Shavit_OnChatConfigLoaded();
 	}
 
-	for(int i = 1; i <= MaxClients; i++)
+	for(int i = 1; i < sizeof(gA_BotInfo); i++)
 	{
 		ClearBotInfo(gA_BotInfo[i]);
 
@@ -1008,6 +1010,7 @@ int CreateReplayEntity(int track, int style, float delay, int client, int bot, i
 			}
 
 			bot_info_t info;
+			ClearBotInfo(info);
 			info.iType = type;
 			info.iStyle = style;
 			info.iTrack = track;
@@ -1388,6 +1391,11 @@ public int Native_GetLoopingBotByName(Handle plugin, int numParams)
 	}
 
 	return 0;
+}
+
+public any Native_GetReplayPlaybackSpeed(Handle plugin, int numParams)
+{
+	return gA_BotInfo[GetBotInfoIndex(GetNativeCell(1))].fPlaybackSpeed;
 }
 
 public int Native_SetReplayCacheName(Handle plugin, int numParams)
@@ -2299,6 +2307,16 @@ void ApplyFlags(int &flags1, int flags2, int flag)
 	}
 }
 
+stock float AngleNormalize(float flAngle)
+{
+	if (flAngle > 180.0)
+		flAngle -= 360.0;
+	else if (flAngle < -180.0)
+		flAngle += 360.0;
+
+	return flAngle;
+}
+
 Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float vel[3])
 {
 	bool isClient = (1 <= info.iEnt <= MaxClients);
@@ -2325,7 +2343,20 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 				return Plugin_Changed;
 			}
 
-			info.iTick += info.b2x ? 2 : 1;
+			if (info.fPlaybackSpeed == 1.0)
+			{
+				info.iTick += 1;
+			}
+			else if (info.fPlaybackSpeed == 2.0)
+			{
+				info.iTick += 2;
+			}
+			else //if (info.fPlaybackSpeed == 0.5)
+			{
+				if (info.bDoMiddleFrame)
+					info.iTick += 1;
+				info.bDoMiddleFrame = !info.bDoMiddleFrame;
+			}
 
 			int limit = (info.aCache.iFrameCount + info.aCache.iPreFrames + info.aCache.iPostFrames);
 
@@ -2351,12 +2382,10 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 
 			float vecPreviousPos[3];
 
-			if (info.b2x)
+			if (info.fPlaybackSpeed == 2.0)
 			{
-				frame_t aFramePrevious;
 				int previousTick = (info.iTick > 0) ? (info.iTick-1) : 0;
-				info.aCache.aFrames.GetArray(previousTick, aFramePrevious, (info.aCache.iReplayVersion >= 0x02) ? 8 : 6);
-				vecPreviousPos = aFramePrevious.pos;
+				info.aCache.aFrames.GetArray(previousTick, vecPreviousPos, 3);
 			}
 			else
 			{
@@ -2437,6 +2466,22 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 				SetEntityMoveType(info.iEnt, mt);
 			}
 
+			if (info.fPlaybackSpeed == 0.5 && info.bDoMiddleFrame && (info.iTick+1 < limit))
+			{
+				frame_t asdf;
+				info.aCache.aFrames.GetArray(info.iTick+1, asdf, 5);
+
+				float middle[3];
+				MakeVectorFromPoints(aFrame.pos, asdf.pos, middle);
+				ScaleVector(middle, 0.5);
+				AddVectors(aFrame.pos, middle, aFrame.pos);
+
+				aFrame.ang[0] = (aFrame.ang[0] + asdf.ang[0]) / 2.0;
+				// this took too long to figure out
+				float diff = GetAngleDiff(asdf.ang[1], aFrame.ang[1]);
+				aFrame.ang[1] = AngleNormalize(aFrame.ang[1] + diff/2.0);
+			}
+
 			float vecVelocity[3];
 			MakeVectorFromPoints(vecPreviousPos, aFrame.pos, vecVelocity);
 			ScaleVector(vecVelocity, gF_Tickrate);
@@ -2445,14 +2490,14 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			ang[0] = aFrame.ang[0];
 			ang[1] = aFrame.ang[1];
 
-			if(info.b2x || (info.iTick > 1 &&
+			if (info.fPlaybackSpeed == 2.0 || (info.iTick > 1 &&
 				// replay is going above 50k speed, just teleport at this point
 				(GetVectorLength(vecVelocity) > 50000.0 ||
 				// bot is on ground.. if the distance between the previous position is much bigger (1.5x) than the expected according
 				// to the bot's velocity, teleport to avoid sync issues
 				(bWalk && GetVectorDistance(vecPreviousPos, aFrame.pos) > GetVectorLength(vecVelocity) / gF_Tickrate * 1.5))))
 			{
-				TeleportEntity(info.iEnt, aFrame.pos, ang, info.b2x ? vecVelocity : NULL_VECTOR);
+				TeleportEntity(info.iEnt, aFrame.pos, ang, (info.fPlaybackSpeed == 2.0) ? vecVelocity : NULL_VECTOR);
 			}
 			else
 			{
@@ -2898,8 +2943,8 @@ void OpenReplayMenu(int client, bool canControlReplayUiFix=false)
 	FormatEx(sDisplay, 64, "-10s");
 	menu.AddItem("-10", sDisplay, canControlReplay ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	FormatEx(sDisplay, 64, "%T", "Menu_Replay2X", client, (index != -1 && gA_BotInfo[index].b2x) ? "+" : "_");
-	menu.AddItem("2x", sDisplay, canControlReplay ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	FormatEx(sDisplay, 64, "%T", "Menu_PlaybackSpeed", client, gA_BotInfo[index].fPlaybackSpeed);
+	menu.AddItem("speed", sDisplay, canControlReplay ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	FormatEx(sDisplay, 64, "%T", "Menu_RefreshReplay", client);
 	menu.AddItem("refresh", sDisplay, ITEMDRAW_DEFAULT);
@@ -2932,13 +2977,18 @@ public int MenuHandler_Replay(Menu menu, MenuAction action, int param1, int para
 		{
 			OpenReplayTypeMenu(param1);
 		}
-		else if (StrEqual(sInfo, "2x"))
+		else if (StrEqual(sInfo, "speed"))
 		{
 			int index = GetControllableReplay(param1);
 
 			if (index != -1)
 			{
-				gA_BotInfo[index].b2x = !gA_BotInfo[index].b2x;
+				gA_BotInfo[index].fPlaybackSpeed /= 2.0;
+
+				if (gA_BotInfo[index].fPlaybackSpeed < 0.5)
+				{
+					gA_BotInfo[index].fPlaybackSpeed = 2.0;
+				}
 			}
 
 			OpenReplayMenu(param1);
@@ -3310,7 +3360,8 @@ void ClearBotInfo(bot_info_t info)
 	info.fFirstFrameTime = -1.0;
 	info.bCustomFrames = false;
 	//info.bIgnoreLimit
-	info.b2x = false;
+	info.fPlaybackSpeed = 1.0;
+	info.bDoMiddleFrame = false;
 	info.fDelay = 0.0;
 
 	ClearFrameCache(info.aCache);

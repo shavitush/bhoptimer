@@ -425,6 +425,16 @@ native int Shavit_GetReplayStatus(int ent);
  */
 native int Shavit_GetLoopingBotByName(const char[] name);
 
+/*
+ * Retrieves the playback speed of the replay bot.
+ *
+ * @param bot
+ *
+ * @return                          Should be 0.5, 1.0, or 2.0.
+ */
+native float Shavit_GetReplayPlaybackSpeed(int bot);
+
+
 public SharedPlugin __pl_shavit_replay_playback =
 {
 	name = "shavit-replay-playback",
@@ -476,5 +486,6 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetLoopingBotByName");
 	MarkNativeAsOptional("Shavit_SetReplayCacheName");
 	MarkNativeAsOptional("Shavit_GetReplayFolderPath");
+	MarkNativeAsOptional("Shavit_GetReplayPlaybackSpeed");
 }
 #endif
