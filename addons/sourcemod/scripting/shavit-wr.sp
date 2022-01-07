@@ -179,6 +179,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_rr", Command_RecentRecords, "View the recent #1 times set.");
 
+	RegConsoleCmd("sm_time", Command_PersonalBest, "I don't want to write description, sorry but not really lol");
+	RegConsoleCmd("sm_pb", Command_PersonalBest, "I don't want to write description, sorry but not really lol");
+
 	// delete records
 	RegAdminCmd("sm_delete", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
 	RegAdminCmd("sm_deleterecord", Command_Delete, ADMFLAG_RCON, "Opens a record deletion menu interface.");
@@ -2085,6 +2088,154 @@ public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 		RetrieveWRMenu(param1, gA_WRCache[param1].iLastTrack);
 	}
 	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public Action Command_PersonalBest(int client, int args)
+{
+	if (!IsValidClient(client))
+		return Plugin_Handled;
+	
+	char query[512];
+	FormatEx(query, sizeof(query), "select p.id, p.style, p.track, p.time, p.date from %splayertimes p where", gS_MySQLPrefix);
+
+	char map[PLATFORM_MAX_PATH];
+	int target_index = client;
+
+	if (args > 0) // map / player / player & map
+	{
+		char sArgs[256];
+		GetCmdArgString(sArgs, sizeof(sArgs));
+
+		char arg[64];
+		int len = BreakString(sArgs, arg, sizeof(arg));
+
+		// FindTarget but without error message, taken from helper.inc
+		int target_list[1];
+		int flags = COMMAND_FILTER_NO_MULTI | COMMAND_FILTER_NO_BOTS;
+		char target_name[MAX_TARGET_LENGTH];
+		bool tn_is_ml;
+
+		// Not a player, showing our own pbs on specified map
+		if (ProcessTargetString(arg, client, target_list, 1, flags, target_name, sizeof(target_name), tn_is_ml) <= 0)
+		{
+			strcopy(map, sizeof(sArgs), sArgs);
+			LowercaseString(map);
+			FormatEx(query, sizeof(query), "%s p.map = '%s';", query, map);
+		}
+		else // Is a player
+		{
+			target_index = target_list[0];
+			int target_steamid = GetSteamAccountID(target_index);
+
+			int dummy_var = BreakString(sArgs[len], map, sizeof(map));
+			if (dummy_var == -1) // The client only specifies a player
+			{
+				strcopy(map, sizeof(map), gS_Map);
+				FormatEx(query, sizeof(query), "%s p.auth = %d;", query, target_steamid);
+			}
+			else // Player and map name
+			{
+				strcopy(map, sizeof(map), sArgs[len]);
+				LowercaseString(map);
+				FormatEx(query, sizeof(query), "%s p.map = '%s' and p.auth = %d;", query, map, target_steamid);
+			}
+		}
+	}
+	else
+	{
+		FormatEx(query, sizeof(query), "%s p.map = '%s';", query, gS_Map);
+		strcopy(map, sizeof(map), gS_Map);
+	}
+
+	DataPack pack = new DataPack();
+	pack.WriteCell(client);
+	pack.WriteCell(target_index);
+	pack.WriteString(map);
+
+	gH_SQL.Query2(SQL_PersonalBest_Callback, query, pack, DBPrio_Low);
+
+	return Plugin_Handled;
+}
+
+public void SQL_PersonalBest_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if(results == null)
+	{
+		LogError("Timer (SQL_PersonalBest_Callback) error! Reason: %s", error);
+		return;
+	}
+
+	data.Reset();
+	int client = data.ReadCell();
+	int target = data.ReadCell();
+	char map[PLATFORM_MAX_PATH];
+	data.ReadString(map, sizeof(map));
+	delete data;
+
+	char name[MAX_NAME_LENGTH];
+	GetClientName(target, name, sizeof(name));
+
+	if (!results.RowCount)
+	{
+		Shavit_PrintToChat(client, "%T", "NoPB", client, gS_ChatStrings.sVariable, name, gS_ChatStrings.sText, gS_ChatStrings.sVariable, map, gS_ChatStrings.sText);
+		return;
+	}
+
+	Menu menu = new Menu(PersonalBestMenu_Handler);
+	menu.SetTitle("%T", "ListPersonalBest", client, name, map);
+
+	while (results.FetchRow())
+	{
+		int id = results.FetchInt(0);
+		int style = results.FetchInt(1);
+		int track = results.FetchInt(2);
+		float time = results.FetchFloat(3);
+		char date[32];
+		results.FetchString(4, date, sizeof(date));
+
+		if(date[4] != '-')
+		{
+			FormatTime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", StringToInt(date));
+		}
+
+		char display_date[64];
+		FormatEx(display_date, sizeof(display_date), "%T: %s", "WRDate", client, date);
+
+		char info[16];
+		Format(info, sizeof(info), "%d", id);
+
+		char track_name[32];
+		GetTrackName(client, track, track_name, sizeof(track_name));
+
+		char formated_time[32];
+		FormatSeconds(time, formated_time, sizeof(formated_time));
+
+		char display[256];
+		Format(display, sizeof(display), "%s - %s: %s\n        %s", track_name, gS_StyleStrings[style].sStyleName, formated_time, display_date);
+
+		menu.AddItem(info, display);
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int PersonalBestMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char info[16];
+		menu.GetItem(param2, info, sizeof(info));
+
+		int record_id = StringToInt(info);
+		OpenSubMenu(param1, record_id);
+	}
+	else if (action == MenuAction_End)
 	{
 		delete menu;
 	}
