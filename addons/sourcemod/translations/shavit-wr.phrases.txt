@@ -25,6 +25,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"Records for {1}:\n({2})"
 	}
+	"ListPersonalBest"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Personal best for {1} on {2}"
+	}
 	// ---------- Completion Messages ---------- //
 	"FirstCompletion"
 	{
@@ -131,6 +136,11 @@
 	{
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1}FATAL ERROR: {2}No styles are available. Contact the server owner immediately!"
+	}
+	"NoPB"
+	{
+		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s}"
+		"en"		"No PB records were found for {1}{2}{3} on map {4}{5}{6}."
 	}
 	// ---------- WR Menu ---------- //
 	"RecentRecords"
