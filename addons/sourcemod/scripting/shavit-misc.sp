@@ -798,6 +798,7 @@ public Action Command_SpecNextPrev(int client, const char[] command, int args)
 
 	if (players.Length < 2)
 	{
+		delete players;
 		return Plugin_Continue;
 	}
 
@@ -808,6 +809,7 @@ public Action Command_SpecNextPrev(int client, const char[] command, int args)
 	if (!IsValidClient(current_target))
 	{
 		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", players.Get(0));
+		delete players;
 		return Plugin_Handled;
 	}
 
@@ -831,7 +833,7 @@ public Action Command_SpecNextPrev(int client, const char[] command, int args)
 	}
 
 	SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", players.Get(pos));
-
+	delete players;
 	return Plugin_Handled;
 }
 
