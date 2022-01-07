@@ -1011,7 +1011,7 @@ native float Shavit_GetDistanceOffset(int client, int zonetype);
 
 /*
  * Gets a value from the style config for the given style
- * e.g. Shavit_GetStyleSetting(Shavit_GetBhopStyle(client), "TAS", sBuffer, 2);
+ * e.g. Shavit_GetStyleSetting(Shavit_GetBhopStyle(client), "TAS", sBuffer, sizeof(sBuffer));
  *
  * @param style						Style index.
  * @param key						Style key to retreive.

@@ -146,11 +146,11 @@ public void OnPluginStart()
 	AddCommandListener(CommandListener_Toggler, "+edgejump");
 	AddCommandListener(CommandListener_Toggler, "-edgejump");
 
-	RegConsoleCmd("sm_autostrafer", Command_Toggler, "");
-	RegConsoleCmd("sm_autostrafe", Command_Toggler, "");
-	RegConsoleCmd("sm_autoprestrafe", Command_Toggler, "");
-	RegConsoleCmd("sm_autojumponstart", Command_Toggler, "");
-	RegConsoleCmd("sm_edgejump", Command_Toggler, "");
+	RegConsoleCmd("sm_autostrafer", Command_Toggler, "Usage: !autostrafe [1|0]");
+	RegConsoleCmd("sm_autostrafe", Command_Toggler, "Usage: !autostrafe [1|0]");
+	RegConsoleCmd("sm_autoprestrafe", Command_Toggler, "Usage: !autoprestrafe [1|0}");
+	RegConsoleCmd("sm_autojumponstart", Command_Toggler, "Usage: !autojumponstart [1|0}");
+	RegConsoleCmd("sm_edgejump", Command_Toggler, "Usage: !edgejump [1|0}");
 
 	RegConsoleCmd("sm_tasm", Command_TasSettingsMenu, "Opens the TAS settings menu.");
 	RegConsoleCmd("sm_tasmenu", Command_TasSettingsMenu, "Opens the TAS settings menu.");
