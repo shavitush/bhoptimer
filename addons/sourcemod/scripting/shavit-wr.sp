@@ -2124,6 +2124,7 @@ public Action Command_PersonalBest(int client, int args)
 		if (ProcessTargetString(arg, client, target_list, 1, flags, target_name, sizeof(target_name), tn_is_ml) <= 0)
 		{
 			strcopy(map, sizeof(sArgs), sArgs);
+			LowercaseString(map);
 			FormatEx(query, sizeof(query), "%s p.map = '%s';", query, map);
 		}
 		else // Is a player
@@ -2140,6 +2141,7 @@ public Action Command_PersonalBest(int client, int args)
 			else // Player and map name
 			{
 				strcopy(map, sizeof(map), sArgs[len]);
+				LowercaseString(map);
 				FormatEx(query, sizeof(query), "%s p.map = '%s' and p.auth = %d;", query, map, target_steamid);
 			}
 		}
@@ -2212,7 +2214,6 @@ public void SQL_PersonalBest_Callback(Database db, DBResultSet results, const ch
 
 		char formated_time[32];
 		FormatSeconds(time, formated_time, sizeof(formated_time));
-
 
 		char display[256];
 		Format(display, sizeof(display), "%s - %s: %s\n        %s", track_name, gS_StyleStrings[style].sStyleName, formated_time, display_date);
