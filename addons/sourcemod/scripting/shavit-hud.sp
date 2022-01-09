@@ -58,9 +58,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 // forwards
 Handle gH_Forwards_OnTopLeftHUD = null;
 Handle gH_Forwards_PreOnTopLeftHUD = null;
-Handle gH_Forwards_OnDrawCenterHUD = null;
 Handle gH_Forwards_PreOnDrawCenterHUD = null;
-Handle gH_Forwards_OnDrawKeysHUD = null;
 Handle gH_Forwards_PreOnDrawKeysHUD = null;
 
 // modules
@@ -126,10 +124,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// forwards
 	gH_Forwards_OnTopLeftHUD = CreateGlobalForward("Shavit_OnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_PreOnTopLeftHUD = CreateGlobalForward("Shavit_PreOnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnDrawCenterHUD = CreateGlobalForward("Shavit_OnDrawCenterHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Array);
 	gH_Forwards_PreOnDrawCenterHUD = CreateGlobalForward("Shavit_PreOnDrawCenterHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Array);
-	gH_Forwards_OnDrawKeysHUD = CreateGlobalForward("Shavit_OnDrawKeysHUD", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell);
-	gH_Forwards_PreOnDrawKeysHUD = CreateGlobalForward("Shavit_PreOnDrawKeysHUD", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell);
+	gH_Forwards_PreOnDrawKeysHUD = CreateGlobalForward("Shavit_PreOnDrawKeysHUD", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// natives
 	CreateNative("Shavit_ForceHUDUpdate", Native_ForceHUDUpdate);
@@ -1679,10 +1675,10 @@ void UpdateMainHUD(int client)
 		return;
 	}
 
-	int lines = 0;
-
 	if (preresult == Plugin_Continue)
 	{
+		int lines = 0;
+
 		if (IsSource2013(gEV_Type))
 		{
 			lines = AddHUDToBuffer_Source2013(client, huddata, sBuffer, sizeof(sBuffer));
@@ -1691,25 +1687,11 @@ void UpdateMainHUD(int client)
 		{
 			lines = AddHUDToBuffer_CSGO(client, huddata, sBuffer, sizeof(sBuffer));
 		}
-	}
 
-	Action postresult = Plugin_Continue;
-	Call_StartForward(gH_Forwards_OnDrawCenterHUD);
-	Call_PushCell(client);
-	Call_PushCell(target);
-	Call_PushStringEx(sBuffer, sizeof(sBuffer), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-	Call_PushCell(sizeof(sBuffer));
-	Call_PushArray(huddata, sizeof(huddata));
-	Call_Finish(postresult);
-
-	if (postresult == Plugin_Handled || postresult == Plugin_Stop)
-	{
-		return;
-	}
-
-	if (preresult == Plugin_Continue && postresult == Plugin_Continue && lines < 1)
-	{
-		return;
+		if (lines < 1)
+		{
+			return;
+		}
 	}
 
 	if (IsSource2013(gEV_Type))
@@ -1831,42 +1813,19 @@ void UpdateCenterKeys(int client)
 
 	float fAngleDiff;
 	int buttons;
+	int scrolls = -1;
+	int prevscrolls = -1;
 
 	if (IsValidClient(target))
 	{
 		fAngleDiff = gF_AngleDiff[target];
 		buttons = gI_Buttons[target];
+		scrolls = gI_ScrollCount[target];
+		prevscrolls = gI_LastScrollCount[target];
 	}
 	else
 	{
 		buttons = Shavit_GetReplayButtons(target, fAngleDiff);
-	}
-
-	char sCenterText[254];
-
-	if (gEV_Type == Engine_CSGO)
-	{
-		FormatEx(sCenterText, sizeof(sCenterText), "%s   %s\n%s  %s  %s\n%s　 %s 　%s\n %s　　%s",
-			(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
-			(fAngleDiff > 0) ? "<":"ｰ", (buttons & IN_FORWARD) > 0 ? "Ｗ":"ｰ", (fAngleDiff < 0) ? ">":"ｰ",
-			(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
-			(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
-	}
-	else if (gB_AlternateCenterKeys[client])
-	{
-		FormatEx(sCenterText, sizeof(sCenterText), "　%s　　%s\n%s   %s   %s\n%s　 %s 　%s\n　%s　　%s",
-			(buttons & IN_JUMP) > 0? "J":"_", (buttons & IN_DUCK) > 0? "C":"_",
-			(fAngleDiff > 0) ? "<":"  ", (buttons & IN_FORWARD) > 0 ? "W":" _", (fAngleDiff < 0) ? ">":"",
-			(buttons & IN_MOVELEFT) > 0? "A":"_", (buttons & IN_BACK) > 0? "S":"_", (buttons & IN_MOVERIGHT) > 0? "D":"_",
-			(buttons & IN_LEFT) > 0? "L":" ", (buttons & IN_RIGHT) > 0? "R":" ");
-	}
-	else
-	{
-		FormatEx(sCenterText, sizeof(sCenterText), "　  %s　　%s\n  %s   %s   %s\n  %s　 %s 　%s\n　  %s　　%s",
-			(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
-			(fAngleDiff > 0) ? "<":"  ", (buttons & IN_FORWARD) > 0 ? "Ｗ":" ｰ", (fAngleDiff < 0) ? ">":"",
-			(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
-			(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
 	}
 
 	int style = (gB_ReplayPlayback && Shavit_IsReplayEntity(target))? Shavit_GetReplayBotStyle(target):Shavit_GetBhopStyle(target);
@@ -1876,9 +1835,30 @@ void UpdateCenterKeys(int client)
 		style = 0;
 	}
 
-	if(!Shavit_GetStyleSettingBool(style, "autobhop") && IsValidClient(target))
+	char sCenterText[254];
+
+	Action preresult = Plugin_Continue;
+	Call_StartForward(gH_Forwards_PreOnDrawKeysHUD);
+	Call_PushCell(client);
+	Call_PushCell(target);
+	Call_PushCell(style);
+	Call_PushCell(buttons);
+	Call_PushCell(fAngleDiff);
+	Call_PushStringEx(sCenterText, sizeof(sCenterText), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(sizeof(sCenterText));
+	Call_PushCell(scrolls);
+	Call_PushCell(prevscrolls);
+	Call_PushCell(gB_AlternateCenterKeys[client]);
+	Call_Finish(preresult);
+
+	if (preresult == Plugin_Handled || preresult == Plugin_Stop)
 	{
-		Format(sCenterText, sizeof(sCenterText), "%s\n　　%s%d %s%s%d", sCenterText, gI_ScrollCount[target] < 10 ? " " : "", gI_ScrollCount[target], gI_ScrollCount[target] < 10 ? " " : "", gI_LastScrollCount[target] < 10 ? " " : "", gI_LastScrollCount[target]);
+		return;
+	}
+
+	if (preresult == Plugin_Continue)
+	{
+		FillCenterKeys(client, target, style, buttons, fAngleDiff, sCenterText, sizeof(sCenterText));
 	}
 
 	if (IsSource2013(gEV_Type))
@@ -1888,6 +1868,39 @@ void UpdateCenterKeys(int client)
 	else
 	{
 		PrintCSGOCenterText(client, sCenterText);
+	}
+}
+
+void FillCenterKeys(int client, int target, int style, int buttons, float fAngleDiff, char[] buffer, int buflen)
+{
+	if (gEV_Type == Engine_CSGO)
+	{
+		FormatEx(buffer, buflen, "%s   %s\n%s  %s  %s\n%s　 %s 　%s\n %s　　%s",
+			(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
+			(fAngleDiff > 0) ? "<":"ｰ", (buttons & IN_FORWARD) > 0 ? "Ｗ":"ｰ", (fAngleDiff < 0) ? ">":"ｰ",
+			(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
+			(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
+	}
+	else if (gB_AlternateCenterKeys[client])
+	{
+		FormatEx(buffer, buflen, "　%s　　%s\n%s   %s   %s\n%s　 %s 　%s\n　%s　　%s",
+			(buttons & IN_JUMP) > 0? "J":"_", (buttons & IN_DUCK) > 0? "C":"_",
+			(fAngleDiff > 0) ? "<":"  ", (buttons & IN_FORWARD) > 0 ? "W":" _", (fAngleDiff < 0) ? ">":"",
+			(buttons & IN_MOVELEFT) > 0? "A":"_", (buttons & IN_BACK) > 0? "S":"_", (buttons & IN_MOVERIGHT) > 0? "D":"_",
+			(buttons & IN_LEFT) > 0? "L":" ", (buttons & IN_RIGHT) > 0? "R":" ");
+	}
+	else
+	{
+		FormatEx(buffer, buflen, "　  %s　　%s\n  %s   %s   %s\n  %s　 %s 　%s\n　  %s　　%s",
+			(buttons & IN_JUMP) > 0? "Ｊ":"ｰ", (buttons & IN_DUCK) > 0? "Ｃ":"ｰ",
+			(fAngleDiff > 0) ? "<":"  ", (buttons & IN_FORWARD) > 0 ? "Ｗ":" ｰ", (fAngleDiff < 0) ? ">":"",
+			(buttons & IN_MOVELEFT) > 0? "Ａ":"ｰ", (buttons & IN_BACK) > 0? "Ｓ":"ｰ", (buttons & IN_MOVERIGHT) > 0? "Ｄ":"ｰ",
+			(buttons & IN_LEFT) > 0? "Ｌ":" ", (buttons & IN_RIGHT) > 0? "Ｒ":" ");
+	}
+
+	if(!Shavit_GetStyleSettingBool(style, "autobhop") && IsValidClient(target))
+	{
+		Format(buffer, buflen, "%s\n　　%s%d %s%s%d", buffer, gI_ScrollCount[target] < 10 ? " " : "", gI_ScrollCount[target], gI_ScrollCount[target] < 10 ? " " : "", gI_LastScrollCount[target] < 10 ? " " : "", gI_LastScrollCount[target]);
 	}
 }
 
