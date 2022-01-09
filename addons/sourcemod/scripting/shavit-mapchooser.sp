@@ -1887,7 +1887,7 @@ public Action Command_UnRockTheVote(int client, int args)
 	{
 		ReplyToCommand(client, "%sRTV has not been enabled yet", g_cPrefix);
 	}
-	else if(g_bMapVoteStarted || g_bMapVoteFinished)
+	else if(g_bMapVoteStarted || (g_bMapVoteFinished && g_ChangeTime != MapChange_MapEnd))
 	{
 		ReplyToCommand(client, "%sMap vote already %s", g_cPrefix, (g_bMapVoteStarted) ? "initiated" : "finished");
 	}
