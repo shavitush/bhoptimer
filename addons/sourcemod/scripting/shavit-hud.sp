@@ -1077,22 +1077,25 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 		UpdateTopLeftHUD(client, true);
 	}
 
+	UpdateCenterKeys(client);
+
 	if(IsSource2013(gEV_Type))
 	{
 		if(!keysonly)
 		{
 			UpdateKeyHint(client);
 		}
-
-		UpdateCenterKeys(client);
 	}
-	else if(((gI_HUDSettings[client] & HUD_KEYOVERLAY) > 0 || (gI_HUDSettings[client] & HUD_SPECTATORS) > 0) && (!gB_Zones || !Shavit_IsClientCreatingZone(client)) && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel))
+	else if ((gI_HUDSettings[client] & HUD_SPECTATORS) > 0
+	      && (!gB_Zones || !Shavit_IsClientCreatingZone(client))
+	      && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel)
+	)
 	{
 		bool bShouldDraw = false;
 		Panel pHUD = new Panel();
 
-		UpdateKeyOverlay(client, pHUD, bShouldDraw);
-		pHUD.DrawItem("", ITEMDRAW_RAWLINE);
+		//UpdateKeyOverlay(client, pHUD, bShouldDraw);
+		//pHUD.DrawItem("", ITEMDRAW_RAWLINE);
 
 		UpdateSpectatorList(client, pHUD, bShouldDraw);
 
@@ -1227,7 +1230,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 	{
 		if(gB_Rankings && (gI_HUD2Settings[client] & HUD2_MAPTIER) == 0)
 		{
-			FormatEx(sLine, 128, "%T", "HudZoneTier", client, Shavit_GetMapTier());
+			FormatEx(sLine, 128, "%T", "HudZoneTier", client, data.iMapTier);
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 		}
 
@@ -1264,16 +1267,11 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 			char sTimeDiff[32];
 
-			if (gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if ((gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0 && data.fClosestReplayTime != -1.0)
 			{
-				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget);
-
-				if(fClosestReplayTime != -1.0)
-				{
-					float fDifference = data.fTime - fClosestReplayTime;
-					FormatSeconds(fDifference, sTimeDiff, 32, false);
-					Format(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
-				}
+				float fDifference = data.fTime - data.fClosestReplayTime;
+				FormatSeconds(fDifference, sTimeDiff, 32, false);
+				Format(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
 			}
 
 			if((gI_HUD2Settings[client] & HUD2_RANK) == 0)
@@ -1315,9 +1313,9 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		// no timer: straight up number
 		if(data.iTimerStatus != Timer_Stopped)
 		{
-			if (gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
+			if (data.fClosestReplayTime != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
 			{
-				float res = Shavit_GetClosestReplayVelocityDifference(data.iTarget, (gI_HUDSettings[client] & HUD_2DVEL) == 0);
+				float res = data.fClosestVelocityDifference;
 				FormatEx(sLine, 128, "%T: %d (%s%.0f)", "HudSpeedText", client, data.iSpeed, (res >= 0.0) ? "+":"", res);
 			}
 			else
@@ -1431,7 +1429,7 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 	{
 		if (gB_Rankings && (gI_HUD2Settings[client] & HUD2_MAPTIER) == 0)
 		{
-			FormatEx(sFirstThing, sizeof(sFirstThing), "%T", "HudZoneTier", client, Shavit_GetMapTier());
+			FormatEx(sFirstThing, sizeof(sFirstThing), "%T", "HudZoneTier", client, data.iMapTier);
 		}
 	}
 	else
@@ -1502,16 +1500,11 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 
 			char sTimeDiff[32];
 
-			if (gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && (gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0)
+			if ((gI_HUD2Settings[client] & HUD2_TIMEDIFFERENCE) == 0 && data.fClosestReplayTime != -1.0)
 			{
-				float fClosestReplayTime = Shavit_GetClosestReplayTime(data.iTarget);
-
-				if(fClosestReplayTime != -1.0)
-				{
-					float fDifference = data.fTime - fClosestReplayTime;
-					FormatSeconds(fDifference, sTimeDiff, 32, false);
-					Format(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
-				}
+				float fDifference = data.fTime - data.fClosestReplayTime;
+				FormatSeconds(fDifference, sTimeDiff, 32, false);
+				Format(sTimeDiff, 32, " (%s%s)", (fDifference >= 0.0)? "+":"", sTimeDiff);
 			}
 
 			if((gI_HUD2Settings[client] & HUD2_RANK) == 0)
@@ -1531,16 +1524,16 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 	{
 		int iColor = 0xA0FFFF;
 
-		if((data.iSpeed - gI_PreviousSpeed[client]) < 0)
+		if((data.iSpeed - data.iPreviousSpeed) < 0)
 		{
 			iColor = 0xFFC966;
 		}
 
 		char sVelDiff[32];
 
-		if (data.iZoneHUD == ZoneHUD_None && data.iTimerStatus != Timer_Stopped && gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(data.iTarget), data.iTrack) != 0 && Shavit_GetClosestReplayTime(data.iTarget) != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
+		if (data.iZoneHUD == ZoneHUD_None && data.iTimerStatus != Timer_Stopped && data.fClosestReplayTime != -1.0 && (gI_HUD2Settings[client] & HUD2_VELOCITYDIFFERENCE) == 0)
 		{
-			float res = Shavit_GetClosestReplayVelocityDifference(data.iTarget, (gI_HUDSettings[client] & HUD_2DVEL) == 0);
+			float res = data.fClosestVelocityDifference;
 			FormatEx(sVelDiff, sizeof(sVelDiff), " (%s%.0f)", (res >= 0.0) ? "+":"", res);
 		}
 
@@ -1658,6 +1651,26 @@ void UpdateMainHUD(int client)
 	huddata.iTimerStatus = (bReplay)? Timer_Running:Shavit_GetTimerStatus(target);
 	huddata.bReplay = bReplay;
 	huddata.bPractice = (bReplay)? false:Shavit_IsPracticeMode(target);
+	huddata.iHUDSettings = gI_HUDSettings[client];
+	huddata.iHUD2Settings = gI_HUD2Settings[client];
+	huddata.iPreviousSpeed = gI_PreviousSpeed[client];
+	huddata.iMapTier = gB_Rankings ? Shavit_GetMapTier() : 0;
+
+	huddata.fClosestReplayTime = -1.0;
+	huddata.fClosestVelocityDifference = 0.0;
+
+	if (!bReplay && gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(target), huddata.iTrack) != 0)
+	{
+		huddata.fClosestReplayTime = Shavit_GetClosestReplayTime(target);
+
+		if (huddata.fClosestReplayTime != -1.0)
+		{
+			huddata.fClosestVelocityDifference = Shavit_GetClosestReplayVelocityDifference(
+				target,
+				(gI_HUDSettings[client] & HUD_2DVEL) == 0
+			);
+		}
+	}
 
 	char sBuffer[512];
 

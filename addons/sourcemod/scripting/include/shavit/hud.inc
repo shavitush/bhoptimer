@@ -62,6 +62,16 @@
 #define HUD_DEFAULT             (HUD_MASTER|HUD_CENTER|HUD_ZONEHUD|HUD_OBSERVE|HUD_TOPLEFT|HUD_SYNC|HUD_TIMELEFT|HUD_2DVEL|HUD_SPECTATORS)
 #define HUD_DEFAULT2            (HUD2_PERFS)
 
+stock bool HUD1Enabled(int hudbits, int flag)
+{
+	return (hudbits & flag) != 0;
+}
+
+stock bool HUD2Enabled(int hudbits, int flag)
+{
+	return (hudbits & flag) == 0;
+}
+
 enum ZoneHUD
 {
 	ZoneHUD_None,
@@ -86,6 +96,14 @@ enum struct huddata_t
 	bool bPractice;
 	TimerStatus iTimerStatus;
 	ZoneHUD iZoneHUD;
+
+	int iHUDSettings;
+	int iHUD2Settings;
+
+	int iPreviousSpeed;
+	float fClosestReplayTime;
+	float fClosestVelocityDifference;
+	int iMapTier;
 }
 
 /**
