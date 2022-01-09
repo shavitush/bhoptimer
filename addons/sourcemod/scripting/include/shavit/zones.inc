@@ -273,6 +273,7 @@ native void Shavit_SetStart(int client, int track, bool anglesonly);
  */
 native void Shavit_DeleteSetStart(int client, int track);
 
+#if 0
 native void Shavit_RemoveAllZones();
 
 native int Shavit_GetZoneCount();
@@ -280,6 +281,7 @@ native int Shavit_GetZoneCount();
 native void Shavit_GetZone(int index, any[] zonecache, int size = sizeof(zone_cache_t));
 
 native int Shavit_AddZone(any[] zonecache, int size = sizeof(zone_cache_t));
+#endif
 
 public SharedPlugin __pl_shavit_zones =
 {

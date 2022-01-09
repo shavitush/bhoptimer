@@ -1754,6 +1754,7 @@ public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 	if (snapshot.fCurrentTime < minimum_time)
 	{
 		Shavit_PrintToChat(client, "%T", "TimeUnderMinimumTime", client, minimum_time, snapshot.fCurrentTime, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
+		StopTimer(client);
 		return Plugin_Stop;
 	}
 
@@ -2824,7 +2825,11 @@ public MRESReturn DHook_ProcessMovement(Handle hParams)
 
 	if (gA_Timers[client].fTimescale == 1.0 || mt == MOVETYPE_NOCLIP)
 	{
-		SetClientEventsPaused(client, gA_Timers[client].bClientPaused);
+		if (gB_Eventqueuefix)
+		{
+			SetClientEventsPaused(client, gA_Timers[client].bClientPaused);
+		}
+
 		return MRES_Ignored;
 	}
 

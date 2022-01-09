@@ -209,8 +209,8 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 	{
 		addspeed = addspeed - _addspeed;
 
-		if (addspeed > 30.0)
-			addspeed = 30.0;
+		if (addspeed > flAirSpeedCap)
+			addspeed = flAirSpeedCap;
 	}
 
 	if (buttons & IN_DUCK)
