@@ -3321,6 +3321,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_w")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_w")
 	&& (gA_Timers[client].fLastInputVel[0] <= 0.0) && (vel[0] > 0.0)
+	&& GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") != 1
 	)
 	{
 		gA_Timers[client].iStrafes++;
