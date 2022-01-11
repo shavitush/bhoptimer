@@ -23,7 +23,7 @@
 #endif
 #define _shavit_core_included
 
-#define SHAVIT_VERSION "3.0.9a"
+#define SHAVIT_VERSION "3.1.0"
 #define STYLE_LIMIT 256
 
 #define SHAVIT_LOG_QUERIES 0
