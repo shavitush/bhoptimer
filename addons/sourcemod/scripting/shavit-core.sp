@@ -229,7 +229,7 @@ public void OnPluginStart()
 	gH_Forwards_StartPre = CreateGlobalForward("Shavit_OnStartPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
-	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Event, Param_Cell, Param_Array);
+	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Hook, Param_Cell, Param_Array);
 	gH_Forwards_Finish = CreateGlobalForward("Shavit_OnFinish", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestartPre = CreateGlobalForward("Shavit_OnRestartPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Ignore, Param_Cell, Param_Cell);
@@ -1754,7 +1754,7 @@ public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
 	if (snapshot.fCurrentTime < minimum_time)
 	{
 		Shavit_PrintToChat(client, "%T", "TimeUnderMinimumTime", client, minimum_time, snapshot.fCurrentTime, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
-		StopTimer(client);
+		Shavit_StopTimer(client);
 		return Plugin_Stop;
 	}
 
@@ -1806,7 +1806,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	if (gA_Timers[client].fCurrentTime <= 0.11)
 	{
-		StopTimer(client);
+		Shavit_StopTimer(client);
 		return 0;
 	}
 
