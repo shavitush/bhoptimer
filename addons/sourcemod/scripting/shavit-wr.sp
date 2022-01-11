@@ -180,6 +180,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_rr", Command_RecentRecords, "View the recent #1 times set.");
 
+	RegConsoleCmd("sm_times", Command_PersonalBest, "View a player's time on a specific map.");
 	RegConsoleCmd("sm_time", Command_PersonalBest, "View a player's time on a specific map.");
 	RegConsoleCmd("sm_pb", Command_PersonalBest, "View a player's time on a specific map.");
 
