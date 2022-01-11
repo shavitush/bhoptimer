@@ -244,6 +244,10 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_truvel", Command_TrueVel, "Toggles 2D ('true') velocity. (alias for sm_truevel)");
 	RegConsoleCmd("sm_2dvel", Command_TrueVel, "Toggles 2D ('true') velocity. (alias for sm_truevel)");
 
+	AddCommandListener(Command_SpecNextPrev, "spec_player");
+	AddCommandListener(Command_SpecNextPrev, "spec_next");
+	AddCommandListener(Command_SpecNextPrev, "spec_prev");
+
 	// cookies
 	gH_HUDCookie = RegClientCookie("shavit_hud_setting", "HUD settings", CookieAccess_Protected);
 	gH_HUDCookieMain = RegClientCookie("shavit_hud_settingmain", "HUD settings for hint text.", CookieAccess_Protected);
@@ -557,6 +561,22 @@ void ToggleHUD(int client, int hud, bool chat)
 				gS_ChatStrings.sVariable, sHUDSetting, gS_ChatStrings.sText, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		}
 	}
+}
+
+void Frame_UpdateTopLeftHUD(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if (client)
+	{
+		UpdateTopLeftHUD(client, false);
+	}
+}
+
+public Action Command_SpecNextPrev(int client, const char[] command, int args)
+{
+	RequestFrame(Frame_UpdateTopLeftHUD, GetClientSerial(client));
+	return Plugin_Continue;
 }
 
 public Action Command_Master(int client, int args)
