@@ -341,17 +341,21 @@ public Action Timer_PrintToChat(Handle timer)
 		Shavit_StopChatSound();
 	}
 
+	char timebuf[12];
+
 	switch(timeleft)
 	{
-		case 3600: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "60");
-		case 1800: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "30");
-		case 1200: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "20");
-		case 600: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "10");
-		case 300: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "5");
-		case 120: Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, "2");
-		case 60: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "60");
-		case 30: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "30");
-		case 15: Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, "15");
+		case 3600, 1800, 1200, 600, 300, 120:
+		{
+			IntToString(timeleft/60, timebuf, sizeof(timebuf));
+			Shavit_StopChatSound();
+			Shavit_PrintToChatAll("%T", "Minutes", LANG_SERVER, timebuf);
+		}
+		case 60, 30, 15:
+		{
+			IntToString(timeleft, timebuf, sizeof(timebuf));
+			Shavit_PrintToChatAll("%T", "Seconds", LANG_SERVER, timebuf);
+		}
 
 		case 0: // case 0 is hit twice....
 		{
