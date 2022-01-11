@@ -764,6 +764,13 @@ Action ShowHUDMenu(int client, int item)
 		menu.AddItem(sInfo, sHudItem);
 	}
 
+	if (gEV_Type == Engine_CSGO)
+	{
+		FormatEx(sInfo, 16, "@%d", HUD2_CENTERKEYS);
+		FormatEx(sHudItem, 64, "%T", "HudCenterKeys", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
+
 	menu.ExitButton = true;
 	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 
@@ -1077,7 +1084,13 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 		UpdateTopLeftHUD(client, true);
 	}
 
-	UpdateCenterKeys(client);
+	bool draw_keys = HUD1Enabled(gI_HUDSettings[client], HUD_KEYOVERLAY);
+	bool center_keys = HUD2Enabled(gI_HUD2Settings[client], HUD2_CENTERKEYS);
+
+	if (draw_keys && center_keys)
+	{
+		UpdateCenterKeys(client);
+	}
 
 	if(IsSource2013(gEV_Type))
 	{
@@ -1086,7 +1099,7 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 			UpdateKeyHint(client);
 		}
 	}
-	else if ((gI_HUDSettings[client] & HUD_SPECTATORS) > 0
+	else if (((gI_HUDSettings[client] & HUD_SPECTATORS) > 0 || (draw_keys && !center_keys))
 	      && (!gB_Zones || !Shavit_IsClientCreatingZone(client))
 	      && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel)
 	)
@@ -1094,8 +1107,11 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 		bool bShouldDraw = false;
 		Panel pHUD = new Panel();
 
-		//UpdateKeyOverlay(client, pHUD, bShouldDraw);
-		//pHUD.DrawItem("", ITEMDRAW_RAWLINE);
+		if (!center_keys)
+		{
+			UpdateKeyOverlay(client, pHUD, bShouldDraw);
+			pHUD.DrawItem("", ITEMDRAW_RAWLINE);
+		}
 
 		UpdateSpectatorList(client, pHUD, bShouldDraw);
 
