@@ -214,14 +214,12 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
-	RegAdminCmd("sm_extend", Command_Extend, ADMFLAG_CHANGEMAP, "Admin command for extending map");
-	RegAdminCmd("sm_extendmap", Command_Extend, ADMFLAG_CHANGEMAP, "Admin command for extending map");
 	RegAdminCmd("sm_forcemapvote", Command_ForceMapVote, ADMFLAG_CHANGEMAP, "Admin command for forcing the end of map vote");
 	RegAdminCmd("sm_reloadmaplist", Command_ReloadMaplist, ADMFLAG_CHANGEMAP, "Admin command for forcing maplist to be reloaded");
 	RegAdminCmd("sm_reloadmap", Command_ReloadMap, ADMFLAG_CHANGEMAP, "Admin command for reloading current map");
 	RegAdminCmd("sm_restartmap", Command_ReloadMap, ADMFLAG_CHANGEMAP, "Admin command for reloading current map");
 
-	RegAdminCmd("sm_loadunzonedmap", Command_LoadUnzonedMap, ADMFLAG_ROOT, "Loads the next map from the maps folder that is unzoned.");
+	RegAdminCmd("sm_loadunzonedmap", Command_LoadUnzonedMap, ADMFLAG_CHANGEMAP, "Loads the next map from the maps folder that is unzoned.");
 
 	RegConsoleCmd("sm_nominate", Command_Nominate, "Lets players nominate maps to be on the end of map vote");
 	RegConsoleCmd("sm_unnominate", Command_UnNominate, "Removes nominations");
@@ -1015,21 +1013,6 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 	return 0;
 }
 
-// extends map while also notifying players and setting plugin data
-void ExtendMap(int client, int time)
-{
-	if(time == 0)
-	{
-		time = RoundFloat(g_cvMapVoteExtendTime.FloatValue * 60);
-	}
-
-	ExtendMapTimeLimit(time);
-	PrintToChatAll("%s%N extended the map by %d minutes", g_cPrefix, client, time / 60);
-
-	//g_bMapVoteStarted = false;
-	//g_bMapVoteFinished = false;
-}
-
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(g_cSQLPrefix, sizeof(g_cSQLPrefix));
@@ -1326,25 +1309,6 @@ public Action Timer_ChangeMap(Handle timer, DataPack data)
 }
 
 /* Commands */
-public Action Command_Extend(int client, int args)
-{
-	int extendtime;
-	if(args > 0)
-	{
-		char sArg[8];
-		GetCmdArg(1, sArg, sizeof(sArg));
-		extendtime = RoundFloat(StringToFloat(sArg) * 60);
-	}
-	else
-	{
-		extendtime = RoundFloat(g_cvMapVoteExtendTime.FloatValue * 60.0);
-	}
-
-	ExtendMap(client, extendtime);
-
-	return Plugin_Handled;
-}
-
 public Action Command_ForceMapVote(int client, int args)
 {
 	if(g_bMapVoteStarted || g_bMapVoteFinished)

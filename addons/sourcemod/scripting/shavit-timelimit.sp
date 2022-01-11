@@ -124,6 +124,9 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
+	RegAdminCmd("sm_extend", Command_Extend, ADMFLAG_CHANGEMAP, "Admin command for extending map");
+	RegAdminCmd("sm_extendmap", Command_Extend, ADMFLAG_CHANGEMAP, "Admin command for extending map");
+
 	HookEvent("round_end", round_end, EventHookMode_Pre);
 
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
@@ -423,4 +426,30 @@ public Action round_end(Event event, const char[] name, bool dontBroadcast)
 	}
 
 	return Plugin_Continue;
+}
+
+public Action Command_Extend(int client, int args)
+{
+	int extendtime = 10 * 60;
+
+	if (args > 0)
+	{
+		char sArg[8];
+		GetCmdArg(1, sArg, sizeof(sArg));
+		extendtime = RoundFloat(StringToFloat(sArg) * 60);
+	}
+	else
+	{
+		ConVar smc_mapvote_extend_time = FindConVar("smc_mapvote_extend_time");
+
+		if (smc_mapvote_extend_time)
+		{
+			extendtime = RoundFloat(smc_mapvote_extend_time.FloatValue * 60.0);
+		}
+	}
+
+	ExtendMapTimeLimit(extendtime);
+	Shavit_PrintToChatAll("%N extended the map by %d minutes", client, extendtime / 60);
+
+	return Plugin_Handled;
 }
