@@ -830,7 +830,6 @@ public Action Command_Timescale(int client, int args)
 	if (ts >= 0.01 && ts <= 1.0)
 	{
 		Shavit_SetClientTimescale(client, ts);
-		Shavit_PrintToChat(client, "%f", ts);
 	}
 
 	return Plugin_Handled;
@@ -868,7 +867,6 @@ public Action Command_TimescalePlus(int client, int args)
 		}
 
 		Shavit_SetClientTimescale(client, ts);
-		Shavit_PrintToChat(client, "%f", ts);
 	}
 
 	return Plugin_Handled;
@@ -924,7 +922,6 @@ public Action Command_TimescaleMinus(int client, int args)
 		}
 
 		Shavit_SetClientTimescale(client, newts);
-		Shavit_PrintToChat(client, "%f", newts);
 	}
 
 	return Plugin_Handled;
