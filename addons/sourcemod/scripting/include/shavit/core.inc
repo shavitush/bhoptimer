@@ -391,7 +391,7 @@ stock void PrettyishTimescale(char[] buffer, int size, float ts, float min, floa
 
 	if (ts == 1.0)
 	{
-		FormatEx(buffer, size, "1.00");
+		FormatEx(buffer, size, "1.0");
 		return;
 	}
 
