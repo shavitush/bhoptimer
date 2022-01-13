@@ -391,11 +391,11 @@ stock void PrettyishTimescale(char[] buffer, int size, float ts, float min, floa
 
 	if (ts == 1.0)
 	{
-		FormatEx(buffer, size, "1.00");
+		FormatEx(buffer, size, "1.0");
 		return;
 	}
 
-	FormatEx(buffer, size, "0.%02d", RoundFloat(ts * 100.0));
+	FormatEx(buffer, size, "0.%d", RoundFloat(ts * 10.0));
 }
 
 stock bool GuessBestMapName(ArrayList maps, const char input[PLATFORM_MAX_PATH], char output[PLATFORM_MAX_PATH])
