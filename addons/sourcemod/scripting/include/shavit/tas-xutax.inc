@@ -377,23 +377,29 @@ stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float v
 	if (flAngleDifference < 0.0)
 	{
 		float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, flMaxSpeed, flSurfaceFriction, true, flAirAccelerate, flAirSpeedCap);
-		vel[1] = flMaxMove;
 
 		if (flCurrentAngles <= flMaxDelta * fPower)
 		{
 			vel[0] = flFowardMove * flMaxMove;
 			vel[1] = flSideMove * flMaxMove;
 		}
+		else
+		{
+			vel[1] = flMaxMove;
+		}
 	}
 	else if (flAngleDifference > 0.0)
 	{
 		float flMaxDelta = GetMaxDeltaInAir(flVelocity2D, flMaxSpeed, flSurfaceFriction, false, flAirAccelerate, flAirSpeedCap);
-		vel[1] = -flMaxMove;
 
 		if (flCurrentAngles <= flMaxDelta * fPower)
 		{
 			vel[0] = flFowardMove * flMaxMove;
 			vel[1] = flSideMove * flMaxMove;
+		}
+		else
+		{
+			vel[1] = -flMaxMove;
 		}
 	}
 	else
