@@ -224,6 +224,10 @@
 	{
 		"en"        "Velocity (No speed loss) (oblivious)"
 	}
+	"Autostrafer_basic"
+	{
+		"en"		"Basic"
+	}
 	"TASEnabled"
 	{
 		"en"        "Enabled"

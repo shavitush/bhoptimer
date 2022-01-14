@@ -655,7 +655,7 @@ void OpenTasSettingsMenu(int client, int pos=0)
 	tastype = tastype_editable ? gI_Type[client] : tastype;
 
 	FormatEx(display, sizeof(display), "%T: %T\n ", "Autostrafer_type", client,
-		(tastype == AutostrafeType_Disabled ? "TASDisabled" : (tastype == AutostrafeType_1Tick ? "Autostrafer_1tick" : (tastype == AutostrafeType_Autogain ? "Autostrafer_autogain" : "Autostrafer_autogain_nsl"))), client);
+		(tastype == AutostrafeType_Disabled ? "TASDisabled" : (tastype == AutostrafeType_1Tick ? "Autostrafer_1tick" : (tastype == AutostrafeType_Autogain ? "Autostrafer_autogain" : tastype == AutostrafeType_Basic ? "Autostrafer_basic" : "Autostrafer_autogain_nsl"))), client);
 	menu.AddItem("type", display, (tastype_editable ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED));
 
 	bool tas_timescale = (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "tas_timescale") == -1.0);
