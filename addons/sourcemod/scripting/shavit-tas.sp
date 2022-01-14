@@ -719,7 +719,7 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 
 			if (tastype == AutostrafeType_Any)
 			{
-				gI_Type[param1] = (gI_Type[param1] == AutostrafeType_1Tick ? AutostrafeType_Autogain : AutostrafeType_1Tick);
+				gI_Type[param1] = (gI_Type[param1] == AutostrafeType_1Tick ? AutostrafeType_Autogain : gI_Type[param1] == AutostrafeType_Basic ? AutostrafeType_1Tick : AutostrafeType_Basic);
 			}
 		}
 		else if (StrEqual(info, "override"))
