@@ -1197,7 +1197,7 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 
 	Menu menu = new Menu(MenuHandler_ShowMaps);
 
-	StringMap mapchooser_maps = gCV_UseMapchooser.BoolValue ? Shavit_GetMapsStringMap() : null;
+	StringMap mapchooser_maps = (gB_Mapchooser && gCV_UseMapchooser.BoolValue) ? Shavit_GetMapsStringMap() : null;
 
 	while(results.FetchRow())
 	{
