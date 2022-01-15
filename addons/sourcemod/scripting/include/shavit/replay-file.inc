@@ -205,6 +205,11 @@ stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cac
 	cache.fTickrate = header.fTickrate;
 	cache.iSteamID = header.iSteamID;
 
+	if (cache.iSteamID > 0)
+	{
+		FormatEx(cache.sReplayName, sizeof(cache.sReplayName), "[U:1:%d]", cache.iSteamID);
+	}
+
 	return true;
 }
 
