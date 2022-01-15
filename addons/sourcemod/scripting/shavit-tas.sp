@@ -547,16 +547,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 		else if (type == AutostrafeType_Basic)
 		{
-			// Maybe use angle to determine the direction? using mousedx is kinda inaccurate
-			if (mouse[0] > 0)
+			float delta = angles[1] - g_flOldYawAngle[client];
+			// :sunglasses: 
+			if (delta != 0.0)
 			{
-				vel[1] = g_fMaxMove;
-				buttons |= IN_MOVERIGHT;
-			}
-			else if (mouse[0] < 0)
-			{
-				vel[1] = -g_fMaxMove;
-				buttons |= IN_MOVELEFT;
+				vel[1] = delta < 0.0 ? g_fMaxMove : - g_fMaxMove;
 			}
 		}
 	}
