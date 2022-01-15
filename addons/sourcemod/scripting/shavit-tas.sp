@@ -542,6 +542,15 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 		else if (type == AutostrafeType_Basic)
 		{
+			float delta = angles[1] - g_flOldYawAngle[client];
+			if (delta < 0.0)
+			{
+				vel[1] = g_fMaxMove;
+			}
+			else if (delta > 0.0)
+			{
+				vel[1]= -g_fMaxMove;
+			}
 		}
 	}
 	else
@@ -639,7 +648,7 @@ void OpenTasSettingsMenu(int client, int pos=0)
 	tastype = tastype_editable ? gI_Type[client] : tastype;
 
 	FormatEx(display, sizeof(display), "%T: %T\n ", "Autostrafer_type", client,
-		(tastype == AutostrafeType_Disabled ? "TASDisabled" : (tastype == AutostrafeType_1Tick ? "Autostrafer_1tick" : (tastype == AutostrafeType_Autogain ? "Autostrafer_autogain" : "Autostrafer_autogain_nsl"))), client);
+		(tastype == AutostrafeType_Disabled ? "TASDisabled" : (tastype == AutostrafeType_1Tick ? "Autostrafer_1tick" : (tastype == AutostrafeType_Autogain ? "Autostrafer_autogain" : tastype == AutostrafeType_Basic ? "Autostrafer_basic" : "Autostrafer_autogain_nsl"))), client);
 	menu.AddItem("type", display, (tastype_editable ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED));
 
 	bool tas_timescale = (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "tas_timescale") == -1.0);
@@ -703,7 +712,7 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 
 			if (tastype == AutostrafeType_Any)
 			{
-				gI_Type[param1] = (gI_Type[param1] == AutostrafeType_1Tick ? AutostrafeType_Autogain : AutostrafeType_1Tick);
+				gI_Type[param1] = (gI_Type[param1] == AutostrafeType_1Tick ? AutostrafeType_Autogain : gI_Type[param1] == AutostrafeType_Basic ? AutostrafeType_1Tick : AutostrafeType_Basic);
 			}
 		}
 		else if (StrEqual(info, "override"))
