@@ -548,10 +548,13 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		else if (type == AutostrafeType_Basic)
 		{
 			float delta = angles[1] - g_flOldYawAngle[client];
-			// :sunglasses: 
-			if (delta != 0.0)
+			if (delta < 0.0)
 			{
-				vel[1] = delta < 0.0 ? g_fMaxMove : - g_fMaxMove;
+				vel[1] = g_fMaxMove;
+			}
+			else if (delta > 0.0)
+			{
+				vel[1]= -g_fMaxMove;
 			}
 		}
 	}
