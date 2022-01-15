@@ -187,6 +187,7 @@ Player commands:
 !tpto, !goto - Teleport to another player. Usage: !tpto [target]
 !usp, !glock, !knife - Spawn a USP/Glock/Knife.
 !nc, !prac, !practice, !noclipme, +noclip, sm_noclip - Toggles noclip.
+!adverts - Prints all adverts to the client.
 ```
 
 ### shavit-rankings

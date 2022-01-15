@@ -249,6 +249,7 @@ public void OnPluginStart()
 	hostport = FindConVar("hostport");
 	RegConsoleCmd("sm_toggleadverts", Command_ToggleAdverts, "Toggles visibility of advertisements");
 	gH_BlockAdvertsCookie = new Cookie("shavit-blockadverts", "whether to block shavit-misc advertisements", CookieAccess_Private);
+	RegConsoleCmd("sm_adverts", Command_PrintAdverts, "Prints all the adverts to your chat");
 
 	// cvars and stuff
 	gCV_GodMode = new Convar("shavit_misc_godmode", "3", "Enable godmode for players?\n0 - Disabled\n1 - Only prevent fall/world damage.\n2 - Only prevent damage from other players.\n3 - Full godmode.", 0, true, 0.0, true, 3.0);
@@ -987,7 +988,7 @@ public Action Timer_Scoreboard(Handle timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_Advertisement(Handle timer)
+void FillAdvertisementBuffer(char[] buf, int buflen, int index)
 {
 	char sHostname[128];
 	hostname.GetString(sHostname, 128);
@@ -1010,6 +1011,20 @@ public Action Timer_Advertisement(Handle timer)
 		FormatEx(sIPAddress, 64, "%d.%d.%d.%d:%d", iAddress[0], iAddress[1], iAddress[2], iAddress[3], hostport.IntValue);
 	}
 
+	gA_Advertisements.GetString(index, buf, buflen);
+
+	ReplaceString(buf, buflen, "{timeleft}", sTimeLeft);
+	ReplaceString(buf, buflen, "{timeleftraw}", sTimeLeftRaw);
+	ReplaceString(buf, buflen, "{hostname}", sHostname);
+	ReplaceString(buf, buflen, "{serverip}", sIPAddress);
+	ReplaceString(buf, buflen, "{map}", gS_Map);
+}
+
+public Action Timer_Advertisement(Handle timer)
+{
+	char sTempMessage[256];
+	FillAdvertisementBuffer(sTempMessage, sizeof(sTempMessage), gI_AdvertisementsCycle);
+
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientConnected(i) && IsClientInGame(i))
@@ -1025,20 +1040,14 @@ public Action Timer_Advertisement(Handle timer)
 				}
 			}
 
-			char sTempMessage[300];
-			gA_Advertisements.GetString(gI_AdvertisementsCycle, sTempMessage, 300);
-
 			char sName[MAX_NAME_LENGTH];
 			SanerGetClientName(i, sName);
-			ReplaceString(sTempMessage, 300, "{name}", sName);
-			ReplaceString(sTempMessage, 300, "{timeleft}", sTimeLeft);
-			ReplaceString(sTempMessage, 300, "{timeleftraw}", sTimeLeftRaw);
-			ReplaceString(sTempMessage, 300, "{hostname}", sHostname);
-			ReplaceString(sTempMessage, 300, "{serverip}", sIPAddress);
-			ReplaceString(sTempMessage, 300, "{map}", gS_Map);
+			char sTempTempMessage[256];
+			sTempTempMessage = sTempMessage;
+			ReplaceString(sTempTempMessage, 256, "{name}", sName);
 
 			Shavit_StopChatSound();
-			Shavit_PrintToChat(i, "%s", sTempMessage);
+			Shavit_PrintToChat(i, "%s", sTempTempMessage);
 		}
 	}
 
@@ -1612,6 +1621,23 @@ public Action Command_ToggleAdverts(int client, int args)
 		gH_BlockAdvertsCookie.Get(client, sCookie, sizeof(sCookie));
 		gH_BlockAdvertsCookie.Set(client, (sCookie[0] == '1') ? "0" : "1");
 		Shavit_PrintToChat(client, "%T", (sCookie[0] == '1') ? "AdvertisementsEnabled" : "AdvertisementsDisabled", client);
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_PrintAdverts(int client, int args)
+{
+	char sName[MAX_NAME_LENGTH];
+	SanerGetClientName(client, sName);
+
+	for (int i = 0; i < gA_Advertisements.Length; i++)
+	{
+		char sTempMessage[256];
+		FillAdvertisementBuffer(sTempMessage, sizeof(sTempMessage), i);
+		ReplaceString(sTempMessage, sizeof(sTempMessage), "{name}", sName);
+		Shavit_StopChatSound();
+		Shavit_PrintToChat(client, "%s", sTempMessage);
 	}
 
 	return Plugin_Handled;
