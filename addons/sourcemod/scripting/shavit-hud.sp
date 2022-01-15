@@ -751,7 +751,7 @@ Action ShowHUDMenu(int client, int item)
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_RANK);
-	FormatEx(sHudItem, 64, "%T", "HudRankText", client);
+	FormatEx(sHudItem, 64, "#%T", "HudRankText", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_TRACK);
