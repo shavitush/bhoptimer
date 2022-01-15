@@ -542,7 +542,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 		else if (type == AutostrafeType_Basic)
 		{
-			float delta = angles[1] - g_flOldYawAngle[client];
+			float delta = AngleNormalize(angles[1] - g_flOldYawAngle[client]);
+
 			if (delta < 0.0)
 			{
 				vel[1] = g_fMaxMove;
