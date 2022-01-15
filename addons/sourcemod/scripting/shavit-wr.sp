@@ -110,6 +110,9 @@ float gA_StageWR[STYLE_LIMIT][TRACKS_SIZE][MAX_STAGES]; // WR run's stage times
 ArrayList gA_StagePB[MAXPLAYERS+1][STYLE_LIMIT][TRACKS_SIZE]; // player's best WRCP times or something
 float gA_StageTimes[MAXPLAYERS+1][MAX_STAGES]; // player's current run stage times
 
+Menu gH_PBMenu[MAXPLAYERS+1];
+int gI_PBMenuPos[MAXPLAYERS+1];
+
 public Plugin myinfo =
 {
 	name = "[shavit] World Records",
@@ -525,6 +528,11 @@ public void OnClientAuthorized(int client, const char[] auth)
 	{
 		UpdateClientCache(client);
 	}
+}
+
+public void OnClientDisconnect(int client)
+{
+	delete gH_PBMenu[client];
 }
 
 void UpdateClientCache(int client)
@@ -2260,9 +2268,6 @@ public void SQL_PersonalBest_Callback(Database db, DBResultSet results, const ch
 			results.FetchString(5, name, sizeof(name));
 		}
 
-		char display_date[64];
-		FormatEx(display_date, sizeof(display_date), "%T: %s", "WRDate", client, date);
-
 		char track_name[32];
 		GetTrackName(client, track, track_name, sizeof(track_name));
 
@@ -2270,7 +2275,7 @@ public void SQL_PersonalBest_Callback(Database db, DBResultSet results, const ch
 		FormatSeconds(time, formated_time, sizeof(formated_time));
 
 		char display[256];
-		Format(display, sizeof(display), "%s - %s: %s\n        %s", track_name, gS_StyleStrings[style].sStyleName, formated_time, display_date);
+		Format(display, sizeof(display), "%s - %s - %s", track_name, gS_StyleStrings[style].sStyleName, formated_time);
 
 		char info[16];
 		IntToString(id, info, sizeof(info));
@@ -2281,6 +2286,9 @@ public void SQL_PersonalBest_Callback(Database db, DBResultSet results, const ch
 
 	menu.ExitButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
+
+	delete gH_PBMenu[client];
+	gH_PBMenu[client] = menu;
 }
 
 public int PersonalBestMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -2289,14 +2297,23 @@ public int PersonalBestMenu_Handler(Menu menu, MenuAction action, int param1, in
 	{
 		char info[16];
 		menu.GetItem(param2, info, sizeof(info));
-
+		gI_PBMenuPos[param1] = GetMenuSelectionPosition();
 		int record_id = StringToInt(info);
 		OpenSubMenu(param1, record_id);
 	}
+	else if(action == MenuAction_Cancel)
+	{
+		if (param2 == MenuCancel_Exit)
+		{
+			delete gH_PBMenu[param1];
+		}
+	}
+#if 0
 	else if (action == MenuAction_End)
 	{
 		delete menu;
 	}
+#endif
 
 	return 0;
 }
@@ -2324,6 +2341,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	if(results == null)
 	{
+		delete gH_PBMenu[client];
 		LogError("Timer (WR SUBMENU) SQL query failed. Reason: %s", error);
 
 		return;
@@ -2445,7 +2463,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	hMenu.SetTitle(sFormattedTitle);
 	hMenu.ExitBackButton = true;
-	hMenu.Display(client, 300);
+	hMenu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -2479,9 +2497,23 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 			StartWRMenu(param1);
 		}
 	}
-	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	else if(action == MenuAction_Cancel)
 	{
-		StartWRMenu(param1);
+		if (param2 == MenuCancel_ExitBack)
+		{
+			if (gH_PBMenu[param1])
+			{
+				gH_PBMenu[param1].DisplayAt(param1, gI_PBMenuPos[param1], MENU_TIME_FOREVER);
+			}
+			else
+			{
+				StartWRMenu(param1);
+			}
+		}
+		else
+		{
+			delete gH_PBMenu[param1];
+		}
 	}
 	else if(action == MenuAction_End)
 	{
