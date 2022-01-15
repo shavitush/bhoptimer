@@ -299,25 +299,20 @@ public Action Shavit_OnCheckpointMenuMade(int client, bool segmented, Menu menu)
 
 	char sDisplay[64];
 	bool tas_timescale = (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "tas_timescale") == -1.0);
-	int delcurrentcheckpoint = -1;
+
+	FormatEx(sDisplay, 64, "%T\n ", "TasSettings", client);
 
 	if (tas_timescale)
 	{
-		if ((delcurrentcheckpoint = FindMenuItem(menu, "del")) != -1)
-		{
-			menu.RemoveItem(delcurrentcheckpoint);
-		}
+		int pos = FindMenuItem(menu, "del");
+		menu.InsertItem(pos, "tassettings", sDisplay);
 	}
-
-	FormatEx(sDisplay, 64, "%T\n ", "TasSettings", client);
-	menu.AddItem("tassettings", sDisplay);
-	//menu.ExitButton = false;
-
-	if (delcurrentcheckpoint != -1)
+	else
 	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
-		menu.AddItem("del", sDisplay, (Shavit_GetTotalCheckpoints(client) > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		menu.AddItem("tassettings", sDisplay);
 	}
+
+	menu.ExitButton = gEV_Type != Engine_CSGO;
 
 	return Plugin_Changed;
 }

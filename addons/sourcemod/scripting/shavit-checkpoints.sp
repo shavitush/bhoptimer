@@ -1124,11 +1124,8 @@ void OpenNormalCPMenu(int client)
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
 	menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	if (!tas_timescale)
-	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
-		menu.AddItem("reset", sDisplay);
-	}
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
+	menu.AddItem("reset", sDisplay);
 
 	if(!bSegmented)
 	{
