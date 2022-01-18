@@ -155,7 +155,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tasmenu", Command_TasSettingsMenu, "Opens the TAS settings menu.");
 	RegAdminCmd("sm_xutax_scan", Command_ScanOffsets, ADMFLAG_CHEATS, "Scan for possible offset locations");
 
-	Convar.AutoExecConfig();
+	//Convar.AutoExecConfig();
 
 	if (gB_Late)
 	{
@@ -542,7 +542,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 			else if (delta > 0.0)
 			{
-				vel[1]= -g_fMaxMove;
+				vel[1] = -g_fMaxMove;
 			}
 		}
 	}
