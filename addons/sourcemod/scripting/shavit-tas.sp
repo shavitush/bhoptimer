@@ -54,7 +54,6 @@ float g_fPower[MAXPLAYERS + 1] = {1.0, ...};
 
 bool gB_ForceJump[MAXPLAYERS+1];
 
-Convar gCV_AutoFindOffsets = null;
 ConVar sv_airaccelerate = null;
 ConVar sv_accelerate = null;
 ConVar sv_friction = null;
@@ -155,8 +154,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_tasm", Command_TasSettingsMenu, "Opens the TAS settings menu.");
 	RegConsoleCmd("sm_tasmenu", Command_TasSettingsMenu, "Opens the TAS settings menu.");
 	RegAdminCmd("sm_xutax_scan", Command_ScanOffsets, ADMFLAG_CHEATS, "Scan for possible offset locations");
-
-	gCV_AutoFindOffsets = new Convar("xutax_find_offsets", "1", "Attempt to autofind offsets", _, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
@@ -477,11 +474,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	if (g_iSurfaceFrictionOffset > 0)
 	{
 		flSurfaceFriction = GetEntDataFloat(client, g_iSurfaceFrictionOffset);
-
-		if (gCV_AutoFindOffsets.BoolValue && s_iOnGroundCount[client] == 0 && !(flSurfaceFriction == 0.25 || flSurfaceFriction == 1.0))
-		{
-			FindNewFrictionOffset(client);
-		}
 	}
 
 	int style = Shavit_GetBhopStyle(client);
