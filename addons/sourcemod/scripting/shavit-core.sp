@@ -1795,6 +1795,8 @@ public int Native_FinishMap(Handle handler, int numParams)
 			char sOffsetDistance[8];
 			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_End]);
 			FormatEx(sOffsetMessage, sizeof(sOffsetMessage), "[END] %T %d", "DebugOffsets", client, gA_Timers[client].fZoneOffset[Zone_End], sOffsetDistance, gA_Timers[client].iZoneIncrement);
+			PrintToConsole(client, "%s", sOffsetMessage);
+			Shavit_StopChatSound();
 			Shavit_PrintToChat(client, "%s", sOffsetMessage);
 		}
 	}
@@ -2754,6 +2756,8 @@ public void PostThinkPost(int client)
 			char sOffsetDistance[8];
 			FormatEx(sOffsetDistance, 8, "%.1f", gA_Timers[client].fDistanceOffset[Zone_Start]);
 			FormatEx(sOffsetMessage, sizeof(sOffsetMessage), "[START] %T", "DebugOffsets", client, gA_Timers[client].fZoneOffset[Zone_Start], sOffsetDistance);
+			PrintToConsole(client, "%s", sOffsetMessage);
+			Shavit_StopChatSound();
 			Shavit_PrintToChat(client, "%s", sOffsetMessage);
 		}
 	}
