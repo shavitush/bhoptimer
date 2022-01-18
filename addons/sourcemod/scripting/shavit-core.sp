@@ -2292,6 +2292,41 @@ TimerStatus GetTimerStatus(int client)
 	return Timer_Running;
 }
 
+// TODO: remove this one day and properly calculate it because this sucks a lot
+float ShittyGetMaxPrestrafe(int client)
+{
+	static ConVar gCV_PrestrafeLimit = view_as<ConVar>(-1);
+
+	if (gCV_PrestrafeLimit == view_as<ConVar>(-1))
+	{
+		gCV_PrestrafeLimit = FindConVar("shavit_misc_prestrafelimit");
+	}
+
+	float tickrate = 1.0 / GetTickInterval();
+	float variance = 0.611;
+
+	if (tickrate <= 105.0)
+	{
+		variance = 0.000;
+	}
+	else if (tickrate <= 128.0)
+	{
+		variance = 0.112;
+	}
+	else if (tickrate <= 200.0)
+	{
+		variance = 0.322;
+	}
+	else if (tickrate <= 500.0)
+	{
+		variance = 0.543;
+	}
+
+	float runspeed = GetStyleSettingFloat(gA_Timers[client].bsStyle, "runspeed");
+	float prestrafelimit = gCV_PrestrafeLimit ? gCV_PrestrafeLimit.FloatValue : 30.0;
+	return runspeed + prestrafelimit + variance;
+}
+
 void StartTimer(int client, int track)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client) || !gB_CookiesRetrieved[client])
@@ -2312,7 +2347,7 @@ void StartTimer(int client, int track)
 
 	if (!nozaxisspeed ||
 		GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 1 ||
-		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 2 || curVel <= 290.0)))
+		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 2 || curVel <= ShittyGetMaxPrestrafe(client))))
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_StartPre);
