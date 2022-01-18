@@ -484,6 +484,9 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		type = gI_Type[client];
 	}
 
+	float oldyaw = g_flOldYawAngle[client];
+	g_flOldYawAngle[client] = angles[1];
+
 	if (s_iOnGroundCount[client] <= 1)
 	{
 		if (!type || !gB_Autostrafer[client] || IsSurfing(client))
@@ -524,7 +527,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		if (type == AutostrafeType_1Tick)
 		{
 			XutaxOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
-				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove, g_flOldYawAngle[client], g_fPower[client]);
+				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove, oldyaw, g_fPower[client]);
 		}
 		else if (type == AutostrafeType_Autogain || type == AutostrafeType_AutogainNoSpeedLoss)
 		{
@@ -534,7 +537,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 		else if (type == AutostrafeType_Basic)
 		{
-			float delta = AngleNormalize(angles[1] - g_flOldYawAngle[client]);
+			float delta = AngleNormalize(angles[1] - oldyaw);
 
 			if (delta < 0.0)
 			{
@@ -560,11 +563,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 			angles[1] = _tmp[1];
 		}
-
-		//return Plugin_Continue; // maybe??
 	}
-
-	g_flOldYawAngle[client] = angles[1];
 
 	return Plugin_Continue;
 }
