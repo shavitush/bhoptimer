@@ -4,6 +4,7 @@ Note: Dates are UTC+0.
 
 # v3.1.1 - asdf - 2022-01-19 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.1
+https://github.com/shavitush/bhoptimer/commit/a1d30afdbe8352df489f5e16739efcdde56129f2
 
 - made most of the shavit-timeleft time-remaining messages silent https://github.com/shavitush/bhoptimer/commit/6921f38214ed7561411d5bbb203857bade211794
 - removed forgotten chat message when changing timescale https://github.com/shavitush/bhoptimer/commit/b4d13836ea9c104e7ed8c45240488e6b57185a4d
@@ -361,6 +362,8 @@ https://github.com/shavitush/bhoptimer/commit/32658a029d0aa35ca646434a8518f700d6
 # v3.0.0 - Fluffytail Edition - 2021-07-29 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.0.0
 https://github.com/shavitush/bhoptimer/commit/9adf78d311192f91ccf32edf9decb72fa1597313
+
+(originally this was going to be v2.7.0 but it took too long and had too many changes so it became v3.0.0 and also the `very_good_yes` was deprecated with the bump to v3.0.0)
 
 ## This update breaks plugins using natives with enum structs along with removing some natives. Recompile any plugin that uses shavit.inc. Also `stylesettings_t` was removed so anything that uses that will need to be changed, but it's easy to fix.
 ## Also, make sure to post any errors or problems you find in the github issue tracker or in the `#timer-support-here` channel of the bhoptimer discord https://discord.gg/jyA9q5k
