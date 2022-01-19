@@ -31,6 +31,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <shavit/checkpoints>
+#include <shavit/replay-recorder>
 #include <shavit/zones>
 
 #pragma newdecls required
@@ -62,6 +63,8 @@ ConVar sv_stopspeed = null;
 chatstrings_t gS_ChatStrings;
 
 bool gB_GlobalTraceResult = false;
+
+bool gB_ReplayRecorder = false;
 
 public Plugin myinfo =
 {
@@ -173,6 +176,24 @@ public void OnPluginStart()
 				}
 			}
 		}
+	}
+
+	gB_ReplayRecorder = LibraryExists("shavit-replay-recorder");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if (StrEqual(name, "shavit-replay-recorder"))
+	{
+		gB_ReplayRecorder = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if (StrEqual(name, "shavit-replay-recorder"))
+	{
+		gB_ReplayRecorder = false;
 	}
 }
 
@@ -560,6 +581,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 			float _tmp[3]; _tmp[0] = angles[0]; _tmp[2] = angles[2];
 			_tmp[1] = normalize_yaw(angles[1] - _delta_opt);
+
+			if (gB_ReplayRecorder)
+			{
+				Shavit_HijackAngles(client, angles[0], angles[1], 2, true);
+			}
 
 			angles[1] = _tmp[1];
 		}
