@@ -2,7 +2,7 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
-# v3.1.0 - asdf - 2022-01-19 - rtldg
+# v3.1.1 - asdf - 2022-01-19 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.1
 
 - made most of the shavit-timeleft time-remaining messages silent https://github.com/shavitush/bhoptimer/commit/6921f38214ed7561411d5bbb203857bade211794
