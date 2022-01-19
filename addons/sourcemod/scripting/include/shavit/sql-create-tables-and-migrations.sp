@@ -45,6 +45,7 @@ enum
 	Migration_Lowercase_stagetimeswr, // 20
 	Migration_Lowercase_startpositions,
 	Migration_AddPlayertimesPointsCalcedFrom, // points calculated from wr float added to playertimes
+	Migration_RemovePlayertimesPointsCalcedFrom, // lol
 	// TODO: Add alter tables playertimes modify column blah after blah
 	MIGRATIONS_END
 };
@@ -167,14 +168,14 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	if (gB_MySQL)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `points_calced_from` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), INDEX `map2` (`map`)) ENGINE=INNODB;",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), INDEX `map2` (`map`)) ENGINE=INNODB;",
 			gS_SQLPrefix);
 	}
 	else
 	{
-		// id  style  track  time  auth  map  points  points_calced_from  exact_time_int
+		// id  style  track  time  auth  map  points  exact_time_int
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `points_calced_from` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1);",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1);",
 			gS_SQLPrefix);
 	}
 
@@ -302,6 +303,7 @@ void ApplyMigration(int migration)
 		case Migration_Lowercase_stagetimeswr: ApplyMigration_LowercaseMaps("stagetimewrs", migration);
 		case Migration_Lowercase_startpositions: ApplyMigration_LowercaseMaps("startpositions", migration);
 		case Migration_AddPlayertimesPointsCalcedFrom: ApplyMigration_AddPlayertimesPointsCalcedFrom();
+		case Migration_RemovePlayertimesPointsCalcedFrom: ApplyMigration_RemovePlayertimesPointsCalcedFrom();
 	}
 }
 
@@ -392,9 +394,20 @@ void ApplyMigration_LowercaseMaps(const char[] table, int migration)
 
 void ApplyMigration_AddPlayertimesPointsCalcedFrom()
 {
+#if 0
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `points`" : "");
 	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesPointsCalcedFrom, DBPrio_High);
+#else
+	SQL_TableMigrationSingleQuery_Callback(null, null, "", Migration_AddPlayertimesPointsCalcedFrom);
+#endif
+}
+
+void ApplyMigration_RemovePlayertimesPointsCalcedFrom()
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` DROP COLUMN `points_calced_from`;", gS_SQLPrefix);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_RemovePlayertimesPointsCalcedFrom, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
