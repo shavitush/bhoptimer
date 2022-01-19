@@ -136,9 +136,11 @@ bool gB_StyleCookies = true;
 char gS_MySQLPrefix[32];
 
 // server side
+ConVar sv_accelerate = null;
 ConVar sv_airaccelerate = null;
 ConVar sv_autobunnyhopping = null;
 ConVar sv_enablebunnyhopping = null;
+ConVar sv_friction = null;
 
 // chat settings
 chatstrings_t gS_ChatStrings;
@@ -367,6 +369,7 @@ public void OnPluginStart()
 
 	Convar.AutoExecConfig();
 
+	sv_accelerate = FindConVar("sv_accelerate");
 	sv_airaccelerate = FindConVar("sv_airaccelerate");
 	sv_airaccelerate.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 
@@ -376,6 +379,8 @@ public void OnPluginStart()
 	{
 		sv_enablebunnyhopping.Flags &= ~(FCVAR_NOTIFY | FCVAR_REPLICATED);
 	}
+
+	sv_friction = FindConVar("sv_friction");
 
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_Zones = LibraryExists("shavit-zones");
@@ -2292,39 +2297,19 @@ TimerStatus GetTimerStatus(int client)
 	return Timer_Running;
 }
 
-// TODO: remove this one day and properly calculate it because this sucks a lot
-float ShittyGetMaxPrestrafe(int client)
+// TODO: surfacefriction
+float MaxPrestrafe(float runspeed, float accelerate, float friction, float tickinterval)
 {
-	static ConVar gCV_PrestrafeLimit = view_as<ConVar>(-1);
+	return runspeed * SquareRoot(
+		(accelerate / friction) *
+		((2.0 - accelerate * tickinterval) / (2.0 - friction * tickinterval))
+	);
+}
 
-	if (gCV_PrestrafeLimit == view_as<ConVar>(-1))
-	{
-		gCV_PrestrafeLimit = FindConVar("shavit_misc_prestrafelimit");
-	}
-
-	float tickrate = 1.0 / GetTickInterval();
-	float variance = 0.611;
-
-	if (tickrate <= 105.0)
-	{
-		variance = 0.000;
-	}
-	else if (tickrate <= 128.0)
-	{
-		variance = 0.112;
-	}
-	else if (tickrate <= 200.0)
-	{
-		variance = 0.322;
-	}
-	else if (tickrate <= 500.0)
-	{
-		variance = 0.543;
-	}
-
+float ClientMaxPrestrafe(int client)
+{
 	float runspeed = GetStyleSettingFloat(gA_Timers[client].bsStyle, "runspeed");
-	float prestrafelimit = gCV_PrestrafeLimit ? gCV_PrestrafeLimit.FloatValue : 30.0;
-	return runspeed + prestrafelimit + variance;
+	return MaxPrestrafe(runspeed, sv_accelerate.FloatValue, sv_friction.FloatValue, GetTickInterval());
 }
 
 void StartTimer(int client, int track)
@@ -2347,7 +2332,7 @@ void StartTimer(int client, int track)
 
 	if (!nozaxisspeed ||
 		GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 1 ||
-		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 2 || curVel <= ShittyGetMaxPrestrafe(client))))
+		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 2 || curVel <= ClientMaxPrestrafe(client))))
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_StartPre);
