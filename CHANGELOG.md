@@ -2,6 +2,15 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
+
+
+# v3.1.2 - asdf - 2022-01-xx - rtldg
+https://github.com/shavitush/bhoptimer/releases/tag/v3.1.2
+
+- more robust max prestrafe limit thing to replace something from v3.1.1 https://github.com/shavitush/bhoptimer/commit/dd0059f15fc3045e67325deda4552984b968ca6f
+
+
+
 # v3.1.1 - asdf - 2022-01-19 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.1
 https://github.com/shavitush/bhoptimer/commit/a1d30afdbe8352df489f5e16739efcdde56129f2
@@ -13,7 +22,7 @@ https://github.com/shavitush/bhoptimer/commit/a1d30afdbe8352df489f5e16739efcdde5
 - make block_pstrafe do nothing when autostrafe is enabled https://github.com/shavitush/bhoptimer/commit/4167001b5cb8b1df446ab0d0868fd182f6448483
 - replay bot name is filled with steamid by default (which is helpful for playing replays of a player who isn't in your db) https://github.com/shavitush/bhoptimer/commit/2909a3817922cee683d07f6600c5aa2e899be500
 - fixed some pb menu bugginess https://github.com/shavitush/bhoptimer/commit/6d296caf36f3cd0dfde15181348e04b46f3b4cb1
-- added !adverts https://github.com/shavitush/bhoptimer/commit/3d40d4f8098460ce18fd38da47cb7b48d5944a5e#diff-4f4d0de982619be9feb94c8ec5dbc2bc221936b5abd2131b137d409e90e743d9
+- added !adverts https://github.com/shavitush/bhoptimer/commit/3d40d4f8098460ce18fd38da47cb7b48d5944a5e
 - added reset-checkpoints back to tas menu https://github.com/shavitush/bhoptimer/commit/ecbc7edca2998c6728dea37f26966c6b8c835599
 - prefix css expected hud rank with `#` https://github.com/shavitush/bhoptimer/commit/062efd4772ab97782dbf77bb56f546ce7f0e4416
 - basic autostrafer implemented https://github.com/shavitush/bhoptimer/commit/e43c011711c05977cbf6251c067de2aad859f3b5
