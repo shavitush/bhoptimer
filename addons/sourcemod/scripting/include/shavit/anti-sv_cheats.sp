@@ -123,7 +123,7 @@ public Action Command_Cheats(int client, const char[] command, int args)
 
 	if (!(GetUserFlagBits(client) & ADMFLAG_ROOT))
 	{
-		return Plugin_Handled;
+		return Plugin_Stop;
 	}
 
 	return Plugin_Continue;

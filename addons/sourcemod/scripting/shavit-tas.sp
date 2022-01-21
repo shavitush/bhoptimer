@@ -820,7 +820,7 @@ void Command_Toggler_Internal(int client, const char[] asdfcommand, int x)
 public Action CommandListener_Toggler(int client, const char[] command, int args)
 {
 	Command_Toggler_Internal(client, command[1], (command[0] == '+') ? 1 : 0);
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action Command_Toggler(int client, int args)

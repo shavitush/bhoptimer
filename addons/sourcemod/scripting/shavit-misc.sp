@@ -726,7 +726,7 @@ public Action Command_Spectate(int client, const char[] command, int args)
 	}
 
 	Command_Spec(client, 0);
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public int ScoreboardSort(int index1, int index2, Handle array, Handle hndl)
@@ -811,7 +811,7 @@ public Action Command_SpecNextPrev(int client, const char[] command, int args)
 	{
 		SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", players.Get(0));
 		delete players;
-		return Plugin_Handled;
+		return Plugin_Stop;
 	}
 
 	int pos = players.FindValue(current_target);
@@ -835,7 +835,7 @@ public Action Command_SpecNextPrev(int client, const char[] command, int args)
 
 	SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", players.Get(pos));
 	delete players;
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action Command_Jointeam(int client, const char[] command, int args)
@@ -875,7 +875,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 			CS_RespawnPlayer(client);
 		}
 
-		return Plugin_Handled;
+		return Plugin_Stop;
 	}
 
 	return Plugin_Continue;
@@ -919,7 +919,7 @@ public Action Command_Radio(int client, const char[] command, int args)
 {
 	if(gCV_DisableRadio.BoolValue)
 	{
-		return Plugin_Handled;
+		return Plugin_Stop;
 	}
 
 	return Plugin_Continue;
@@ -1969,12 +1969,12 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 {
 	if(!IsValidClient(client, true))
 	{
-		return Plugin_Handled;
+		return Plugin_Stop;
 	}
 
 	if (gI_LastNoclipTick[client] == GetGameTickCount())
 	{
-		return Plugin_Handled;
+		return Plugin_Stop;
 	}
 
 	gI_LastNoclipTick[client] = GetGameTickCount();
@@ -1996,7 +1996,7 @@ public Action CommandListener_Noclip(int client, const char[] command, int args)
 		SetEntityMoveType(client, MOVETYPE_WALK);
 	}
 
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action CommandListener_funcommands_Noclip(int client, const char[] command, int args)
@@ -2641,7 +2641,7 @@ public Action Command_Drop(int client, const char[] command, int argc)
 		CS_DropWeapon(client, iWeapon, true);
 	}
 
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public int Native_IsClientUsingHide(Handle plugin, int numParams)
