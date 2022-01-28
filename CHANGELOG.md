@@ -4,16 +4,26 @@ Note: Dates are UTC+0.
 
 
 
-# v3.1.2 - asdf - 2022-01-xx - rtldg
+# v3.1.2 - asdf - 2022-01-28 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.2
 
 - more robust max prestrafe limit thing to replace something from v3.1.1 https://github.com/shavitush/bhoptimer/commit/dd0059f15fc3045e67325deda4552984b968ca6f
+- fix crash that came with the `player_speedmod` hook https://github.com/shavitush/bhoptimer/commit/0000000146955c76f2ad78096cc27f614dfddf3d
+- added `bhop_lowg` to mapfixes https://github.com/shavitush/bhoptimer/commit/7399512f5e98b34d6547008998448d50a303dc08
+- small change to `prespeed_ez_vel`'s internal stuff to maybe prevent the `-2147483648` velocity thing from happening and freezing you https://github.com/shavitush/bhoptimer/commit/00000008fd7b6cbe586fe900e118405dc67bb279
 
 
 
 # v3.1.1 - asdf - 2022-01-19 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.1
 https://github.com/shavitush/bhoptimer/commit/a1d30afdbe8352df489f5e16739efcdde56129f2
+
+**Note:** If you get errors like this then just restart your server because it should be a one-off thing.
+```
+[shavit-rankings.smx] Timer (WR Holder Rank table creation 0/4) SQL query failed. Reason: View 'shavit.wrs' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them
+
+[shavit-wr.smx] Timer (WR RetrieveWRMenu) SQL query failed. Reason: View 'shavit.wrs' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them
+```
 
 - made most of the shavit-timeleft time-remaining messages silent https://github.com/shavitush/bhoptimer/commit/6921f38214ed7561411d5bbb203857bade211794
 - removed forgotten chat message when changing timescale https://github.com/shavitush/bhoptimer/commit/b4d13836ea9c104e7ed8c45240488e6b57185a4d
