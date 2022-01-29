@@ -138,7 +138,7 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 
 	float frac = 1.0;
 
-	if (buttons & IN_DUCK && !no_speed_loss)
+	if (buttons & IN_DUCK && no_speed_loss)
 		frac = 0.34;
 
 	float _addspeed = 0.0;
