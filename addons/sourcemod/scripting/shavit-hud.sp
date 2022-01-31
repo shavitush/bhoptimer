@@ -1210,7 +1210,17 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 		char targetname[64], classname[64];
 		GetEntPropString(data.iTarget, Prop_Data, "m_iName", targetname, sizeof(targetname));
 		GetEntityClassname(data.iTarget, classname, sizeof(classname));
-		FormatEx(sLine, sizeof(sLine), "t='%s' c='%s'", targetname, classname);
+
+		char speedmod[33];
+
+		if (IsValidClient(data.iTarget) && !IsFakeClient(data.iTarget))
+		{
+			timer_snapshot_t snapshot;
+			Shavit_SaveSnapshot(data.iTarget, snapshot, sizeof(snapshot));
+			FormatEx(speedmod, sizeof(speedmod), " sm=%.2f lm=%.2f", snapshot.fplayer_speedmod, GetEntPropFloat((data.iTarget), Prop_Send, "m_flLaggedMovementValue"));
+		}
+
+		FormatEx(sLine, sizeof(sLine), "t='%s' c='%s'%s", targetname, classname, speedmod);
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 	}
 
@@ -1407,7 +1417,17 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		char targetname[64], classname[64];
 		GetEntPropString(data.iTarget, Prop_Data, "m_iName", targetname, sizeof(targetname));
 		GetEntityClassname(data.iTarget, classname, sizeof(classname));
-		FormatEx(sLine, sizeof(sLine), "t='%s' c='%s'", targetname, classname);
+
+		char speedmod[33];
+
+		if (IsValidClient(data.iTarget) && !IsFakeClient(data.iTarget))
+		{
+			timer_snapshot_t snapshot;
+			Shavit_SaveSnapshot(data.iTarget, snapshot, sizeof(snapshot));
+			FormatEx(speedmod, sizeof(speedmod), " sm=%.2f lm=%.2f", snapshot.fplayer_speedmod, GetEntPropFloat((data.iTarget), Prop_Send, "m_flLaggedMovementValue"));
+		}
+
+		FormatEx(sLine, sizeof(sLine), "t='%s' c='%s'%s", targetname, classname, speedmod);
 		AddHUDLine(buffer, maxlen, sLine, iLines);
 	}
 
