@@ -2218,7 +2218,7 @@ void UpdateKeyHint(int client)
 				style = 0;
 			}
 
-			if (!bReplay && Shavit_GetTimerStatus(target) == Timer_Running && (!gB_Zones || !Shavit_InsideZone(target, Zone_Start, track)))
+			if (!bReplay && Shavit_GetTimerStatus(target) != Timer_Stopped)
 			{
 				bool perf_double_newline = true;
 
