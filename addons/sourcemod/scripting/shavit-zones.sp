@@ -1495,35 +1495,20 @@ public void OnClientCookiesCached(int client)
 	gH_DrawAllZonesCookie.Get(client, setting, sizeof(setting));
 	gB_DrawAllZones[client] = view_as<bool>(StringToInt(setting));
 
-	char info[20];
+	char displayInfo[20], colorInfo[20], widthInfo[20];
 
-	gH_ZoneDisplayTypeCookie.Get(client, info, sizeof(info));
+	gH_ZoneDisplayTypeCookie.Get(client, displayInfo, sizeof(displayInfo));
+	gH_ZoneColorCookie.Get(client, colorInfo, sizeof(colorInfo));
+	gH_ZoneWidthCookie.Get(client, widthInfo, sizeof(widthInfo));
+
 	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
 	{
 		for (int j = Zone_Respawn - 1; j >= 0; j--)
 		{
-			gI_ZoneDisplayType[client][j][i] = StringToInt(info[i * 2 + j]);
-			info[i*2+j] = '\x0';
-		}
-	}
-
-	gH_ZoneColorCookie.Get(client, info, sizeof(info));
-	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
-	{
-		for (int j = Zone_Respawn - 1; j >= 0; j--)
-		{
-			gI_ZoneColor[client][j][i] = StringToInt(info[i * 2 + j]);
-			info[i*2+j] = '\x0';
-		}
-	}
-
-	gH_ZoneWidthCookie.Get(client, info, sizeof(info));
-	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
-	{
-		for (int j = Zone_Respawn - 1; j >= 0; j--)
-		{
-			gI_ZoneWidth[client][j][i] = StringToInt(info[i * 2 + j]);
-			info[i*2+j] = '\x0';
+			gI_ZoneDisplayType[client][j][i] = StringToInt(displayInfo[i * 2 + j]);
+			gI_ZoneColor[client][j][i] = StringToInt(colorInfo[i * 2 + j]);
+			gI_ZoneWidth[client][j][i] = StringToInt(widthInfo[i * 2 + j]);
+			displayInfo[i * 2 + j] = colorInfo[i * 2 + j] = widthInfo[i * 2 + j] = '\x0';
 		}
 	}
 }
