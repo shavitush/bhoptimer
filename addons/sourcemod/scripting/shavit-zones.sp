@@ -1513,6 +1513,42 @@ public void OnClientCookiesCached(int client)
 	char setting[8];
 	gH_DrawAllZonesCookie.Get(client, setting, sizeof(setting));
 	gB_DrawAllZones[client] = view_as<bool>(StringToInt(setting));
+
+	char info[20];
+	
+	// SourcePawn is stupid, why? let me tell you:
+	// let info = "123456789"
+	// if you do info[1], it will print "23456789" instead of "2" :)
+
+	gH_ZoneDisplayTypeCookie.Get(client, info, sizeof(info));
+	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
+	{
+		for (int j = Zone_Respawn - 1; j >= 0; j--)
+		{
+			gI_ZoneDisplayType[client][j][i] = StringToInt(info[i * 2 + j]);
+			info[i*2+j] = '\x0';
+		}
+	}
+
+	gH_ZoneColorCookie.Get(client, info, sizeof(info));
+	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
+	{
+		for (int j = Zone_Respawn - 1; j >= 0; j--)
+		{
+			gI_ZoneColor[client][j][i] = StringToInt(info[i * 2 + j]);
+			info[i*2+j] = '\x0';
+		}
+	}
+
+	gH_ZoneWidthCookie.Get(client, info, sizeof(info));
+	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
+	{
+		for (int j = Zone_Respawn - 1; j >= 0; j--)
+		{
+			gI_ZoneWidth[client][j][i] = StringToInt(info[i * 2 + j]);
+			info[i*2+j] = '\x0';
+		}
+	}
 }
 
 void GetStartPosition(int client)
@@ -2457,7 +2493,7 @@ void HandleCustomZoneCookie(int client, Cookie &cookie, int track, int zoneType,
 		{
 			for(int j = 0; j < Zone_Respawn; j++)
 			{
-				FormatEx(info, sizeof(info), "%s%i", info, (i == track && j == zoneType ? value : j));
+				FormatEx(info, sizeof(info), "%s%i", info, (i == track && j == zoneType ? value : 0));
 			}
 		}
 		cookie.Set(client, info);
@@ -2489,7 +2525,7 @@ public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, 
 			if (gI_ZoneDisplayType[client][zoneType][track] >= ZoneDisplay_Size)
 				gI_ZoneDisplayType[client][zoneType][track] = ZoneDisplay_Default;
 
-			HandleCustomZoneCookie(client, gH_ZoneDisplayTypeCookie, zoneType, track, gI_ZoneDisplayType[client][zoneType][track]);
+			HandleCustomZoneCookie(client, gH_ZoneDisplayTypeCookie, track, zoneType, gI_ZoneDisplayType[client][zoneType][track]);
 		}
 		else if (option == 1) // Color
 		{
@@ -2498,7 +2534,7 @@ public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, 
 			if (gI_ZoneColor[client][zoneType][track] >= ZoneColor_Size)
 				gI_ZoneColor[client][zoneType][track] = ZoneColor_Default;
 
-			HandleCustomZoneCookie(client, gH_ZoneColorCookie, zoneType, track, gI_ZoneColor[client][zoneType][track]);
+			HandleCustomZoneCookie(client, gH_ZoneColorCookie, track, zoneType, gI_ZoneColor[client][zoneType][track]);
 		}
 		else if (option == 2) // Width
 		{
@@ -2507,7 +2543,7 @@ public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, 
 			if (gI_ZoneWidth[client][zoneType][track] >= ZoneWidth_Size)
 				gI_ZoneWidth[client][zoneType][track] = ZoneWidth_Default;
 
-			HandleCustomZoneCookie(client, gH_ZoneWidthCookie, zoneType, track, gI_ZoneWidth[client][zoneType][track]);
+			HandleCustomZoneCookie(client, gH_ZoneWidthCookie, track, zoneType, gI_ZoneWidth[client][zoneType][track]);
 		}
 
 		OpenSubCustomZoneMenu(client, track, zoneType);
@@ -3815,10 +3851,10 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 		// sorry for this
 		int actual_color[4];
-		actual_color[0] = ((track > -1 && type > -1 && gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[0] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][0];
-		actual_color[1] = ((track > -1 && type > -1 && gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[1] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][1];
-		actual_color[2] = ((track > -1 && type > -1 && gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[2] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][2];
-		actual_color[3] = ((track > -1 && type > -1 && gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[3] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][3];
+		actual_color[0] = (track > -1 && type > -1 && (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[0] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][0];
+		actual_color[1] = (track > -1 && type > -1 && (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[1] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][1];
+		actual_color[2] = (track > -1 && type > -1 && (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[2] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][2];
+		actual_color[3] = (track > -1 && type > -1 && (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[3] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][3];
 
 		float actual_width = ((track > -1 && type > -1 && gI_ZoneWidth[clients[i]][type][track] == ZoneWidth_Default) || track == -1 && type == -1) ? width : some_width[gI_ZoneWidth[clients[i]][type][track] - 1];
 
