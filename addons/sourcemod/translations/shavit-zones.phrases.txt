@@ -302,6 +302,99 @@
 	{
 		"en"        "Teleport to a zone"
 	}
+	// ---------- Custom Zone ---------- //
+	"CustomZone_MainMenuTitle"
+	{
+		"en"		"Select the zone you want to customize"
+	}
+	"CustomZone_SubMenuTitle"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Customizing {1} - {2}"
+	}
+	"CustomZone_DisplayType"
+	{
+		"en"		"Zone display type"
+	}
+	"CustomZone_Color"
+	{
+		"en"		"Zone color"
+	}
+	"CustomZone_Width"
+	{
+		"en"		"Zone width"
+	}
+	"CustomZone_Default"
+	{
+		"en"		"Default"
+	}
+	
+	"CustomZone_DisplayType_None"
+	{
+		"en"		"None"
+	}
+	"CustomZone_DisplayType_Box"
+	{
+		"en"		"Box"
+	}
+	"CustomZone_DisplayType_Flat"
+	{
+		"en"		"Flat"
+	}
+	
+	"CustomZone_Color_White"
+	{
+		"en"		"White"
+	}
+	"CustomZone_Color_Red"
+	{
+		"en"		"Red"
+	}
+	"CustomZone_Color_Orange"
+	{
+		"en"		"Orange"
+	}
+	"CustomZone_Color_Yellow"
+	{
+		"en"		"Yellow"
+	}
+	"CustomZone_Color_Green"
+	{
+		"en"		"Green"
+	}
+	"CustomZone_Color_Cyan"
+	{
+		"en"		"Cyan"
+	}
+	"CustomZone_Color_Blue"
+	{
+		"en"		"Blue"
+	}
+	"CustomZone_Color_Purple"
+	{
+		"en"		"Purple"
+	}
+	"CustomZone_Color_Pink"
+	{
+		"en"		"Pink"
+	}
+
+	"CustomZone_Width_UltraThin"
+	{
+		"en"		"Ultra thin"
+	}
+	"CustomZone_Width_Thin"
+	{
+		"en"		"Thin"
+	}
+	"CustomZone_Width_Normal"
+	{
+		"en"		"Normal"
+	}
+	"CustomZone_Width_Thick"
+	{
+		"en"		"Thick"
+	}
 	// ---------- Messages ---------- //
 	"ZoneSlayEnter"
 	{

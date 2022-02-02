@@ -51,25 +51,6 @@ bool gB_PrecachedStuff = false;
 
 char gS_Map[PLATFORM_MAX_PATH];
 
-char gS_ZoneNames[ZONETYPES_SIZE][] =
-{
-	"Start Zone", // starts timer
-	"End Zone", // stops timer
-	"Glitch Zone (Respawn Player)", // respawns the player
-	"Glitch Zone (Stop Timer)", // stops the player's timer
-	"Slay Player", // slays (kills) players which come to this zone
-	"Freestyle Zone", // ignores style physics when at this zone. e.g. WASD when SWing
-	"Custom Speed Limit", // overwrites velocity limit in the zone
-	"Teleport Zone", // teleports to a defined point
-	"SPAWN POINT", // << unused
-	"Easybhop Zone", // forces easybhop whether if the player is in non-easy styles or if the server has different settings
-	"Slide Zone", // allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
-	"Custom Airaccelerate", // custom sv_airaccelerate inside this,
-	"Stage Zone", // shows time when entering zone
-	"No Timer Gravity Zone", // prevents the timer from setting gravity while inside this zone
-	"Gravity Zone", // lets you set a specific gravity while inside this zone
-};
-
 enum struct zone_settings_t
 {
 	bool bVisible;
@@ -2142,15 +2123,19 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 		Menu submenu = new Menu(MenuHandler_SelectZoneType);
 		submenu.SetTitle("%T\n ", "ZoneMenuTitle", param1, sTrack);
 
-		for(int i = 0; i < sizeof(gS_ZoneNames); i++)
+		char sZoneName[32];
+
+		for(int i = 0; i < ZONETYPES_SIZE; i++)
 		{
 			if(i == Zone_CustomSpawn)
 			{
 				continue;
 			}
 
+			GetZoneName(param1, i, sZoneName, sizeof(sZoneName));
+
 			IntToString(i, sInfo, 8);
-			submenu.AddItem(sInfo, gS_ZoneNames[i]);
+			submenu.AddItem(sInfo, sZoneName);
 		}
 
 		submenu.ExitButton = true;
@@ -2196,13 +2181,16 @@ Action OpenTpToZoneMenu(int client, int pagepos=0)
 		char sTrack[32];
 		GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
 
+		char sZoneName[32];
+		GetZoneName(client, gA_ZoneCache[i].iZoneType, sZoneName, sizeof(sZoneName));
+
 		if (gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
 		{
-			FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+			FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 		}
 		else
 		{
-			FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack, sPrebuilt);
+			FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), sZoneName, sTrack, sPrebuilt);
 		}
 
 		if (gB_InsideZoneID[client][i])
@@ -2293,13 +2281,16 @@ Action OpenEditMenu(int client, int pos = 0)
 		char sTrack[32];
 		GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
 
+		char sZoneName[32];
+		GetZoneName(client, gA_ZoneCache[i].iZoneType, sZoneName, sizeof(sZoneName));
+
 		if(gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
 		{
-			FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+			FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 		}
 		else
 		{
-			FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack, sPrebuilt);
+			FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), sZoneName, sTrack, sPrebuilt);
 		}
 
 		if(gB_InsideZoneID[client][i])
@@ -2381,7 +2372,7 @@ public Action Command_CustomZones(int client, int args)
 void OpenCustomZoneMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_CustomZones);
-	menu.SetTitle("Select the zone type you want to customize");
+	menu.SetTitle("%T", "CustomZone_MainMenuTitle", client);
 
 	// Only start zone and end zone are customizable imo, why do you even want to customize the zones that arent often used/seen???
 	for (int i = 0; i < TRACKS_SIZE; i++)
@@ -2392,9 +2383,11 @@ void OpenCustomZoneMenu(int client)
 			{
 				char info[8];
 				FormatEx(info, sizeof(info), "%i;%i", i, j);
-				char trackName[64], display[64];
+				char trackName[32], zoneName[32], display[64];
 				GetTrackName(client, i, trackName, sizeof(trackName));
-				FormatEx(display, sizeof(display), "%s %s", trackName, gS_ZoneNames[j]);
+				GetZoneName(client, j, zoneName, sizeof(zoneName));
+
+				FormatEx(display, sizeof(display), "%s - %s", trackName, zoneName);
 				menu.AddItem(info, display);
 			}
 		}
@@ -2430,43 +2423,55 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 {
 	Menu menu = new Menu(MenuHandler_SubCustomZones);
 
-	char trackName[32];
+	char trackName[32], zoneName[32];
 	GetTrackName(client, track, trackName, sizeof(trackName));
+	GetZoneName(client, zoneType, zoneName, sizeof(zoneName));
 
-	menu.SetTitle("Customizing %s %s", trackName, gS_ZoneNames[zoneType]);
+	menu.SetTitle("%T", "CustomZone_SubMenuTitle", client, trackName, zoneName);
 
 	char info[16], display[64];
 
-	FormatEx(info, sizeof(info), "%i;%i;0", track, zoneType);
-	FormatEx(display, sizeof(display), "Display type: %s", (
-		gI_ZoneDisplayType[client][zoneType][track] == ZoneDisplay_Default ? "Default" : 
-		gI_ZoneDisplayType[client][zoneType][track] == ZoneDisplay_Flat ? "Flat" : "Box"));
-	menu.AddItem(info, display);
+	static char displayName[ZoneDisplay_Size][] = 
+	{
+		"CustomZone_Default",
+		"CustomZone_DisplayType_Flat",
+		"CustomZone_DisplayType_Box",
+		"CustomZone_DisplayType_None",
+	};
 
 	static char colorName[ZoneColor_Size][] = 
 	{
-		"Default",
-		"White",
-		"Red",
-		"Orange",
-		"Yellow",
-		"Green",
-		"Cyan",
-		"Blue",
-		"Purple",
-		"Pink"
+		"CustomZone_Default",
+		"CustomZone_Color_White",
+		"CustomZone_Color_Red",
+		"CustomZone_Color_Orange",
+		"CustomZone_Color_Yellow",
+		"CustomZone_Color_Green",
+		"CustomZone_Color_Cyan",
+		"CustomZone_Color_Blue",
+		"CustomZone_Color_Purple",
+		"CustomZone_Color_Pink"
 	};
 
+	static char widthName[ZoneWidth_Size][] = 
+	{
+		"CustomZone_Default",
+		"CustomZone_Width_UltraThin",
+		"CustomZone_Width_Thin",
+		"CustomZone_Width_Normal",
+		"CustomZone_Width_Thick"
+	};
+
+	FormatEx(info, sizeof(info), "%i;%i;0", track, zoneType);
+	FormatEx(display, sizeof(display), "%T: %T", "CustomZone_DisplayType", client, displayName[gI_ZoneDisplayType[client][zoneType][track]], client);
+	menu.AddItem(info, display);
+
 	FormatEx(info, sizeof(info), "%i;%i;1", track, zoneType);
-	FormatEx(display, sizeof(display), "Color: %s", colorName[gI_ZoneColor[client][zoneType][track]]);
+	FormatEx(display, sizeof(display), "%T: %T", "CustomZone_Color", client, colorName[gI_ZoneColor[client][zoneType][track]], client);
 	menu.AddItem(info, display);
 
 	FormatEx(info, sizeof(info), "%i;%i;2", track, zoneType);
-	FormatEx(display, sizeof(display), "Width: %s", (
-		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Default ? "Default" : 
-		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_UltraThin ? "Ultra thin" :
-		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Thin ? "Thin" :
-		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Normal ? "Normal" : "Thick"));
+	FormatEx(display, sizeof(display), "%T: %T", "CustomZone_Width", client, widthName[gI_ZoneWidth[client][zoneType][track]], client);
 	menu.AddItem(info, display);
 
 	menu.ExitBackButton = true;
@@ -2593,13 +2598,16 @@ Action OpenDeleteMenu(int client, int pos = 0)
 			char sTrack[32];
 			GetTrackName(client, gA_ZoneCache[i].iZoneTrack, sTrack, 32);
 
+			char sZoneName[32];
+			GetZoneName(client, gA_ZoneCache[i].iZoneType, sZoneName, sizeof(sZoneName));
+
 			if(gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
 			{
-				FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+				FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 			}
 			else
 			{
-				FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), gS_ZoneNames[gA_ZoneCache[i].iZoneType], sTrack, sPrebuilt);
+				FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), sZoneName, sTrack, sPrebuilt);
 			}
 
 			char sInfo[8];
@@ -2643,7 +2651,10 @@ public int MenuHandler_DeleteZone(Menu menu, MenuAction action, int param1, int 
 
 			default:
 			{
-				Shavit_LogMessage("%L - deleted %s (id %d) from map `%s`.", param1, gS_ZoneNames[gA_ZoneCache[id].iZoneType], gA_ZoneCache[id].iDatabaseID, gS_Map);
+				char sZoneName[32];
+				GetZoneName(LANG_SERVER, gA_ZoneCache[id].iZoneType, sZoneName, sizeof(sZoneName));
+
+				Shavit_LogMessage("%L - deleted %s (id %d) from map `%s`.", param1, sZoneName, gA_ZoneCache[id].iDatabaseID, gS_Map);
 
 				char sQuery[256];
 				FormatEx(sQuery, 256, "DELETE FROM %smapzones WHERE %s = %d;", gS_MySQLPrefix, (gB_MySQL)? "id":"rowid", gA_ZoneCache[id].iDatabaseID);
@@ -2687,7 +2698,10 @@ public void SQL_DeleteZone_Callback(Database db, DBResultSet results, const char
 		return;
 	}
 
-	Shavit_PrintToChat(client, "%T", "ZoneDeleteSuccessful", client, gS_ChatStrings.sVariable, gS_ZoneNames[type], gS_ChatStrings.sText);
+	char sZoneName[32];
+	GetZoneName(client, type, sZoneName, sizeof(sZoneName));
+
+	Shavit_PrintToChat(client, "%T", "ZoneDeleteSuccessful", client, gS_ChatStrings.sVariable, sZoneName, gS_ChatStrings.sText);
 }
 
 public Action Command_DeleteAllZones(int client, int args)
@@ -3509,8 +3523,9 @@ void InsertZone(int client)
 	bool bInsert = (gI_ZoneDatabaseID[client] == -1 && (iIndex == -1 || iType >= Zone_Respawn));
 
 	char sQuery[1024];
-	char sTrack[64];
+	char sTrack[64], sZoneName[32];
 	GetTrackName(LANG_SERVER, gI_ZoneTrack[client], sTrack, sizeof(sTrack));
+	GetTrackName(LANG_SERVER, iType, sZoneName, sizeof(sZoneName));
 
 	if(iType == Zone_CustomSpawn)
 	{
@@ -3522,7 +3537,7 @@ void InsertZone(int client)
 	}
 	else if(bInsert) // insert
 	{
-		Shavit_LogMessage("%L - added %s %s to map `%s`.", client, sTrack, gS_ZoneNames[iType], gS_Map);
+		Shavit_LogMessage("%L - added %s %s to map `%s`.", client, sTrack, sZoneName, gS_Map);
 
 		FormatEx(sQuery, sizeof(sQuery),
 			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, flags, data) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d, %d, %d);",
@@ -3530,7 +3545,7 @@ void InsertZone(int client)
 	}
 	else // update
 	{
-		Shavit_LogMessage("%L - updated %s %s in map `%s`.", client, sTrack, gS_ZoneNames[iType], gS_Map);
+		Shavit_LogMessage("%L - updated %s %s in map `%s`.", client, sTrack, sZoneName, gS_Map);
 
 		if(gI_ZoneDatabaseID[client] == -1)
 		{
@@ -3611,10 +3626,10 @@ public Action Timer_DrawVisible(Handle Timer)
 						gV_ZoneCenter[i],
 						gA_ZoneSettings[type][track].iBeam,
 						gA_ZoneSettings[type][track].iHalo,
-						false,
-						0,
 						track,
-						type);
+						type,
+						false,
+						0);
 
 				if (++iDrawn % iMaxZonesPerFrame == 0)
 				{
@@ -3662,10 +3677,10 @@ public Action Timer_DrawAllZones(Handle Timer)
 				gV_ZoneCenter[i],
 				gA_ZoneSettings[type][track].iBeam,
 				gA_ZoneSettings[type][track].iHalo,
-				true, // <==== this is the the important part,
-				0,
 				track,
-				type
+				type,
+				true, // <==== this is the the important part,
+				0
 			);
 
 			if (++iDrawn % iMaxZonesPerFrame == 0)
@@ -3742,7 +3757,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		// This is here to make the zone setup grid snapping be 1:1 to how it looks when done with the setup.
 		origin = points[7];
 
-		DrawZone(points, GetZoneColors(type, track, 125), 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo);
+		DrawZone(points, GetZoneColors(type, track, 125), 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type);
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
@@ -3778,7 +3793,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, bool drawallzones=false, int single_client=0, int track = -1, int type = -1)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, int track, int type, bool drawallzones=false, int single_client=0)
 {
 	static int pairs[][] =
 	{
@@ -3830,8 +3845,9 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 				float eyes[3];
 				GetClientEyePosition(i, eyes);
 
-				if(GetVectorDistance(eyes, center) <= 2048.0 ||
-					(TR_TraceRayFilter(eyes, center, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit()))
+				if( gI_ZoneDisplayType[i][type][track] != ZoneDisplay_None &&
+				     (GetVectorDistance(eyes, center) <= 2048.0 ||
+					(TR_TraceRayFilter(eyes, center, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit())))
 				{
 					clients[count++] = i;
 				}
@@ -3842,18 +3858,17 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 	for (int i = 0; i < count; i++)
 	{
 		// TODO: Clean this up please help me 😢
-		int point_size = ((track > -1 && type > -1 && (gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Flat || 
-						   							   gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Default && flat))
-						 || (track == -1 && type == -1 && flat)) ? 4 : 12;
+		int point_size = (gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Flat || 
+						  gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Default && flat) ? 4 : 12;
 
 		// sorry for this
 		int actual_color[4];
-		actual_color[0] = (track > -1 && type > -1 && (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[0] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][0];
-		actual_color[1] = (track > -1 && type > -1 && (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[1] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][1];
-		actual_color[2] = (track > -1 && type > -1 && (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[2] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][2];
-		actual_color[3] = (track > -1 && type > -1 && (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[3] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][3];
+		actual_color[0] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[0] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][0];
+		actual_color[1] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[1] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][1];
+		actual_color[2] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[2] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][2];
+		actual_color[3] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[3] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][3];
 
-		float actual_width = ((track > -1 && type > -1 && gI_ZoneWidth[clients[i]][type][track] == ZoneWidth_Default) || track == -1 && type == -1) ? width : some_width[gI_ZoneWidth[clients[i]][type][track] - 1];
+		float actual_width = (gI_ZoneWidth[clients[i]][type][track] == ZoneWidth_Default) ? width : some_width[gI_ZoneWidth[clients[i]][type][track] - 1];
 
 		for(int j = 0; j < point_size; j++)
 		{
@@ -3989,10 +4004,10 @@ public void Shavit_OnRestart(int client, int track)
 			gV_ZoneCenter[iIndex],
 			gA_ZoneSettings[Zone_Start][track].iBeam,
 			gA_ZoneSettings[Zone_Start][track].iHalo,
-			false,
-			client,
 			track,
-			Zone_Start
+			Zone_Start,
+			false,
+			client
 		);
 	}
 }
@@ -4025,10 +4040,10 @@ public void Shavit_OnEnd(int client, int track)
 			gV_ZoneCenter[iIndex],
 			gA_ZoneSettings[Zone_End][track].iBeam,
 			gA_ZoneSettings[Zone_End][track].iHalo,
-			false,
-			client,
 			track,
-			Zone_End
+			Zone_End,
+			false,
+			client
 		);
 	}
 }

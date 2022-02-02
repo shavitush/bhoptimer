@@ -28,21 +28,21 @@
 
 enum
 {
-	Zone_Start,
-	Zone_End,
-	Zone_Respawn,
-	Zone_Stop,
-	Zone_Slay,
-	Zone_Freestyle,
-	Zone_CustomSpeedLimit,
-	Zone_Teleport,
-	Zone_CustomSpawn,
-	Zone_Easybhop,
-	Zone_Slide,
-	Zone_Airaccelerate,
-	Zone_Stage,
-	Zone_NoTimerGravity,
-	Zone_Gravity,
+	Zone_Start, 			// starts timer
+	Zone_End, 				// stops timer
+	Zone_Respawn, 			// respawns the player
+	Zone_Stop,				// stops the player's timer
+	Zone_Slay,				// slays (kills) players which come to this zone
+	Zone_Freestyle,			// ignores style physics when at this zone. e.g. WASD when SWing
+	Zone_CustomSpeedLimit,	// overwrites velocity limit in the zone
+	Zone_Teleport,			// teleports to a defined point
+	Zone_CustomSpawn,		// << unused
+	Zone_Easybhop,			// forces easybhop whether if the player is in non-easy styles or if the server has different settings
+	Zone_Slide,				// allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
+	Zone_Airaccelerate,		// custom sv_airaccelerate inside this,
+	Zone_Stage,				// shows time when entering zone
+	Zone_NoTimerGravity,	// prevents the timer from setting gravity while inside this zone
+	Zone_Gravity,			// lets you set a specific gravity while inside this zone
 	ZONETYPES_SIZE
 };
 
@@ -58,6 +58,7 @@ enum
 	ZoneDisplay_Default,
 	ZoneDisplay_Flat,
 	ZoneDisplay_Box,
+	ZoneDisplay_None,
 	ZoneDisplay_Size
 };
 
@@ -114,6 +115,77 @@ enum struct zone_cache_t
 	int iZoneData;
 }
 #endif
+
+stock void GetZoneName(int client, int zoneType, char[] output, int size)
+{
+	switch (zoneType)
+	{
+		case Zone_Start:
+		{
+			FormatEx(output, size, "%T", "Zone_Start", client);
+		}
+		case Zone_End:
+		{
+			FormatEx(output, size, "%T", "Zone_End", client);
+		}
+		case Zone_Respawn:
+		{
+			FormatEx(output, size, "%T", "Zone_Respawn", client);
+		}
+		case Zone_Stop:
+		{
+			FormatEx(output, size, "%T", "Zone_Stop", client);
+		}
+		case Zone_Slay:
+		{
+			FormatEx(output, size, "%T", "Zone_Slay", client);
+		}
+		case Zone_Freestyle:
+		{
+			FormatEx(output, size, "%T", "Zone_Freestyle", client);
+		}
+		case Zone_CustomSpeedLimit:
+		{
+			FormatEx(output, size, "%T", "Zone_CustomSpeedLimit", client);
+		}
+		case Zone_Teleport:
+		{
+			FormatEx(output, size, "%T", "Zone_Teleport", client);
+		}
+		case Zone_CustomSpawn:
+		{
+			FormatEx(output, size, "%T", "Zone_CustomSpawn", client);
+		}
+		case Zone_Easybhop:
+		{
+			FormatEx(output, size, "%T", "Zone_Easybhop", client);
+		}
+		case Zone_Slide:
+		{
+			FormatEx(output, size, "%T", "Zone_Slide", client);
+		}
+		case Zone_Airaccelerate:
+		{
+			FormatEx(output, size, "%T", "Zone_Airaccelerate", client);
+		}
+		case Zone_Stage:
+		{
+			FormatEx(output, size, "%T", "Zone_Stage", client);
+		}
+		case Zone_NoTimerGravity:
+		{
+			FormatEx(output, size, "%T", "Zone_NoTimerGravity", client);
+		}
+		case Zone_Gravity:
+		{
+			FormatEx(output, size, "%T", "Zone_Gravity", client);
+		}
+		default:
+		{
+			FormatEx(output, size, "%T", "Zone_Unknown", client);
+		}
+	}
+}
 
 /**
  * Called when a player enters a zone.
