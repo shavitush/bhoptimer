@@ -3994,8 +3994,8 @@ public void Shavit_OnRestart(int client, int track)
 			gA_ZoneSettings[Zone_Start][track].iHalo,
 			false,
 			client,
-			Zone_Start,
-			track
+			track,
+			Zone_Start
 		);
 	}
 }
@@ -4030,8 +4030,8 @@ public void Shavit_OnEnd(int client, int track)
 			gA_ZoneSettings[Zone_End][track].iHalo,
 			false,
 			client,
-			Zone_End,
-			track
+			track,
+			Zone_End
 		);
 	}
 }
