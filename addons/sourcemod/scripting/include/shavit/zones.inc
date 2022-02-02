@@ -80,6 +80,7 @@ enum
 enum 
 {
 	ZoneWidth_Default,
+	ZoneWidth_UltraThin,
 	ZoneWidth_Thin,
 	ZoneWidth_Normal,
 	ZoneWidth_Thick,

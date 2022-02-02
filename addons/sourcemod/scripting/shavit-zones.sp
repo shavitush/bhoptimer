@@ -2464,6 +2464,7 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 	FormatEx(info, sizeof(info), "%i;%i;2", track, zoneType);
 	FormatEx(display, sizeof(display), "Width: %s", (
 		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Default ? "Default" : 
+		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_UltraThin ? "Ultra thin" :
 		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Thin ? "Thin" :
 		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Normal ? "Normal" : "Thick"));
 	menu.AddItem(info, display);
@@ -3808,9 +3809,9 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 		{ 255, 192, 203, 255 }, // Pink
 	};
 
-	static float some_width[3] = 
+	static float some_width[4] = 
 	{
-		0.5, 2.0, 8.0
+		0.1, 0.5, 2.0, 8.0
 	};
 
 	int clients[MAXPLAYERS+1];
