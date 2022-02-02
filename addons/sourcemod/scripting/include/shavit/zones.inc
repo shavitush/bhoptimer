@@ -52,6 +52,40 @@ enum
 	ZF_Prebuilt    = (1 << 1), // comes from mod_zone_* entities
 };
 
+// Zone Display type
+enum 
+{
+	ZoneDisplay_Default,
+	ZoneDisplay_Flat,
+	ZoneDisplay_Box,
+	ZoneDisplay_Size
+};
+
+// Zone Color, maybe we just let the user decide what color they actually want..? maybe store rgba as hex string but that would be mega long for each track
+enum
+{
+	ZoneColor_Default,
+	ZoneColor_White,
+	ZoneColor_Red,
+	ZoneColor_Orange,
+	ZoneColor_Yellow,
+	ZoneColor_Green,
+	ZoneColor_Cyan,
+	ZoneColor_Blue,
+	ZoneColor_Purple,
+	ZoneColor_Pink,
+	ZoneColor_Size
+};
+
+enum 
+{
+	ZoneWidth_Default,
+	ZoneWidth_Thin,
+	ZoneWidth_Normal,
+	ZoneWidth_Thick,
+	ZoneWidth_Size
+};
+
 #if 0
 enum struct zone_cache_t
 {

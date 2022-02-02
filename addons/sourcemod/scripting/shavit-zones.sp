@@ -183,6 +183,16 @@ float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][3];
 
 bool gB_ReplayRecorder = false;
 
+// custom zone stuff
+int gI_ZoneDisplayType[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
+Cookie gH_ZoneDisplayTypeCookie = null;
+
+int gI_ZoneColor[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
+Cookie gH_ZoneColorCookie = null;
+
+int gI_ZoneWidth[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
+Cookie gH_ZoneWidthCookie = null;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
@@ -267,6 +277,13 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_drawallzones", Command_DrawAllZones, "Toggles drawing all zones.");
 	RegConsoleCmd("sm_drawzones", Command_DrawAllZones, "Toggles drawing all zones.");
 	gH_DrawAllZonesCookie = new Cookie("shavit_drawallzones", "Draw all zones cookie", CookieAccess_Protected);
+
+	RegConsoleCmd("sm_czones", Command_CustomZones, "Customize start and end zone for each track");
+	RegConsoleCmd("sm_customzones", Command_CustomZones, "Customize start and end zone for each track");
+
+	gH_ZoneDisplayTypeCookie = new Cookie("shavit_zonedisplaytype", "Display type for each zone", CookieAccess_Private);
+	gH_ZoneColorCookie = new Cookie("shavit_zonecolor", "Zone color for each zone", CookieAccess_Private);
+	gH_ZoneWidthCookie = new Cookie("shavit_zonewidth", "Zone width for each zone", CookieAccess_Private);
 
 	for (int i = 0; i <= 9; i++)
 	{
@@ -1449,6 +1466,12 @@ public void OnClientConnected(int client)
 	for (int i = 0; i < ZONETYPES_SIZE; i++)
 	{
 		gB_InsideZone[client][i] = empty_InsideZone;
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			gI_ZoneDisplayType[client][i][j] = ZoneDisplay_Default;
+			gI_ZoneColor[client][i][j] = ZoneColor_Default;
+			gI_ZoneWidth[client][i][j] = ZoneWidth_Default;
+		}
 	}
 
 	bool empty_InsideZoneID[MAX_ZONES];
@@ -2307,6 +2330,193 @@ public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int pa
 		}
 	}
 	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public Action Command_CustomZones(int client, int args)
+{
+	if (!client) return Plugin_Handled;
+	
+	OpenCustomZoneMenu(client);
+
+	return Plugin_Handled;
+}
+
+void OpenCustomZoneMenu(int client)
+{
+	Menu menu = new Menu(MenuHandler_CustomZones);
+	menu.SetTitle("Select the zone type you want to customize");
+
+	// Only start zone and end zone are customizable imo, why do you even want to customize the zones that arent often used/seen???
+	for (int i = 0; i < TRACKS_SIZE; i++)
+	{
+		for (int j = 0; j < Zone_Respawn; j++)
+		{
+			if(gA_ZoneSettings[j][0].bVisible)
+			{
+				char info[8];
+				FormatEx(info, sizeof(info), "%i;%i", i, j);
+				char trackName[64], display[64];
+				GetTrackName(client, i, trackName, sizeof(trackName));
+				FormatEx(display, sizeof(display), "%s %s", trackName, gS_ZoneNames[j]);
+				menu.AddItem(info, display);
+			}
+		}
+	}
+
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_CustomZones(Menu menu, MenuAction action, int client, int position)
+{
+	if(action == MenuAction_Select)
+	{
+		char info[8];
+		menu.GetItem(position, info, sizeof(info));
+
+		char exploded[2][4];
+		ExplodeString(info, ";", exploded, 2, 4);
+
+		int track = StringToInt(exploded[0]);
+		int zoneType = StringToInt(exploded[1]);
+
+		OpenSubCustomZoneMenu(client, track, zoneType);
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void OpenSubCustomZoneMenu(int client, int track, int zoneType)
+{
+	Menu menu = new Menu(MenuHandler_SubCustomZones);
+
+	char trackName[32];
+	GetTrackName(client, track, trackName, sizeof(trackName));
+
+	menu.SetTitle("Customizing %s %s", trackName, gS_ZoneNames[zoneType]);
+
+	char info[16], display[64];
+
+	FormatEx(info, sizeof(info), "%i;%i;0", zoneType, track);
+	FormatEx(display, sizeof(display), "Display type: %s", (
+		gI_ZoneDisplayType[client][zoneType][track] == ZoneDisplay_Default ? "Default" : 
+		gI_ZoneDisplayType[client][zoneType][track] == ZoneDisplay_Flat ? "Flat" : "Box"));
+	menu.AddItem(info, display);
+
+	static char colorName[ZoneColor_Size][] = 
+	{
+		"Default",
+		"White",
+		"Red",
+		"Orange",
+		"Yellow",
+		"Green",
+		"Cyan",
+		"Blue",
+		"Purple",
+		"Pink"
+	};
+
+	FormatEx(info, sizeof(info), "%i;%i;1", track, zoneType);
+	FormatEx(display, sizeof(display), "Color: %s", colorName[gI_ZoneColor[client][zoneType][track]]);
+	menu.AddItem(info, display);
+
+	FormatEx(info, sizeof(info), "%i;%i;2", track, zoneType);
+	FormatEx(display, sizeof(display), "Width: %s", (
+		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Default ? "Default" : 
+		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Thin ? "Thin" :
+		gI_ZoneWidth[client][zoneType][track] == ZoneWidth_Normal ? "Normal" : "Thick"));
+	menu.AddItem(info, display);
+
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+void HandleCustomZoneCookie(int client, Cookie &cookie, int track, int zoneType, int value)
+{
+	// Total size is 2(start zone & end zone) * track_size
+	// and the cookie info looks like this:
+	// main_start,main_end,b1_start,b1_end ....
+
+	static char numbers[] = "0123456789";
+
+	char info[20];
+	cookie.Get(client, info, sizeof(info));
+	
+	if (!strlen(info))
+	{
+		for (int i = 0; i < TRACKS_SIZE; i++)
+		{
+			for(int j = 0; j < Zone_Respawn; j++)
+			{
+				FormatEx(info, sizeof(info), "%s%i", info, (i == track && j == zoneType ? value : j));
+			}
+		}
+		cookie.Set(client, info);
+		return;
+	}
+
+	info[track * 2 + zoneType] = numbers[value];
+	cookie.Set(client, info);
+}
+
+public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[16];
+		menu.GetItem(param2, info, sizeof(info));
+
+		char exploded[3][4];
+		ExplodeString(info, ";", exploded, 3, 4);
+
+		int track = StringToInt(exploded[0]);
+		int zoneType = StringToInt(exploded[1]);
+		int option = StringToInt(exploded[2]);
+
+		if (option == 0) // Display type
+		{
+			gI_ZoneDisplayType[client][zoneType][track]++;
+
+			if (gI_ZoneDisplayType[client][zoneType][track] >= ZoneDisplay_Size)
+				gI_ZoneDisplayType[client][zoneType][track] = ZoneDisplay_Default;
+
+			HandleCustomZoneCookie(client, gH_ZoneDisplayTypeCookie, zoneType, track, gI_ZoneDisplayType[client][zoneType][track]);
+		}
+		else if (option == 1) // Color
+		{
+			gI_ZoneColor[client][zoneType][track]++;
+
+			if (gI_ZoneColor[client][zoneType][track] >= ZoneColor_Size)
+				gI_ZoneColor[client][zoneType][track] = ZoneColor_Default;
+
+			HandleCustomZoneCookie(client, gH_ZoneColorCookie, zoneType, track, gI_ZoneColor[client][zoneType][track]);
+		}
+		else if (option == 2) // Width
+		{
+			gI_ZoneWidth[client][zoneType][track]++;
+
+			if (gI_ZoneWidth[client][zoneType][track] >= ZoneWidth_Size)
+				gI_ZoneWidth[client][zoneType][track] = ZoneWidth_Default;
+
+			HandleCustomZoneCookie(client, gH_ZoneWidthCookie, zoneType, track, gI_ZoneWidth[client][zoneType][track]);
+		}
+
+		OpenSubCustomZoneMenu(client, track, zoneType);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		OpenCustomZoneMenu(client);
+	}
+	else if (action == MenuAction_End)
 	{
 		delete menu;
 	}
@@ -3367,7 +3577,11 @@ public Action Timer_DrawVisible(Handle Timer)
 						gA_ZoneSettings[type][track].bFlatZone,
 						gV_ZoneCenter[i],
 						gA_ZoneSettings[type][track].iBeam,
-						gA_ZoneSettings[type][track].iHalo);
+						gA_ZoneSettings[type][track].iHalo,
+						false,
+						0,
+						track,
+						type);
 
 				if (++iDrawn % iMaxZonesPerFrame == 0)
 				{
@@ -3415,7 +3629,10 @@ public Action Timer_DrawAllZones(Handle Timer)
 				gV_ZoneCenter[i],
 				gA_ZoneSettings[type][track].iBeam,
 				gA_ZoneSettings[type][track].iHalo,
-				true // <==== this is the the important part
+				true, // <==== this is the the important part,
+				0,
+				track,
+				type
 			);
 
 			if (++iDrawn % iMaxZonesPerFrame == 0)
@@ -3528,7 +3745,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, bool drawallzones=false, int single_client=0)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, bool drawallzones=false, int single_client=0, int track = -1, int type = -1)
 {
 	static int pairs[][] =
 	{
@@ -3544,6 +3761,24 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 		{ 5, 4 },
 		{ 6, 7 },
 		{ 7, 5 }
+	};
+
+	static int clrs[][4] = 
+	{
+		{ 255, 255, 255, 255 }, // White
+		{ 255, 0, 0, 255 }, // Red
+		{ 255, 215, 0, 255 }, // Orange
+		{ 255, 255 ,0, 255 }, // Yellow
+		{ 0, 255, 0, 255}, // Green
+		{ 0, 255, 255, 255 }, // Cyan
+		{ 0, 0, 255, 255 }, // Blue
+		{ 128, 0, 128, 255 }, // Purple
+		{ 255, 192, 203, 255 }, // Purple
+	};
+
+	static float some_width[3] = 
+	{
+		0.5, 2.0, 8.0
 	};
 
 	int clients[MAXPLAYERS+1];
@@ -3571,10 +3806,27 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 		}
 	}
 
-	for(int i = 0; i < ((flat)? 4:12); i++)
+	for (int i = 0; i < count; i++)
 	{
-		TE_SetupBeamPoints(points[pairs[i][0]], points[pairs[i][1]], beam, halo, 0, 0, life, width, width, 0, 0.0, color, 0);
-		TE_Send(clients, count, 0.0);
+		// TODO: Clean this up please help me 😢
+		int point_size = ((track > -1 && type > -1 && (gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Flat || 
+						   							   gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Default && flat))
+						 || (track == -1 && type == -1 && flat)) ? 4 : 12;
+
+		// sorry for this
+		int actual_color[4];
+		actual_color[0] = ((track > -1 && type > -1 && gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[0] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][0];
+		actual_color[1] = ((track > -1 && type > -1 && gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[1] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][1];
+		actual_color[2] = ((track > -1 && type > -1 && gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[2] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][2];
+		actual_color[3] = ((track > -1 && type > -1 && gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) || track == -1 && type == -1) ? color[3] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][3];
+
+		float actual_width = ((track > -1 && type > -1 && gI_ZoneWidth[clients[i]][type][track] == ZoneWidth_Default) || track == -1 && type == -1) ? width : some_width[gI_ZoneWidth[clients[i]][type][track] - 1];
+
+		for(int j = 0; j < point_size; j++)
+		{
+			TE_SetupBeamPoints(points[pairs[j][0]], points[pairs[j][1]], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, actual_color, 0);
+			TE_SendToClient(clients[i], 0.0);
+		}
 	}
 }
 
@@ -3705,7 +3957,9 @@ public void Shavit_OnRestart(int client, int track)
 			gA_ZoneSettings[Zone_Start][track].iBeam,
 			gA_ZoneSettings[Zone_Start][track].iHalo,
 			false,
-			client
+			client,
+			Zone_Start,
+			track
 		);
 	}
 }
@@ -3739,7 +3993,9 @@ public void Shavit_OnEnd(int client, int track)
 			gA_ZoneSettings[Zone_End][track].iBeam,
 			gA_ZoneSettings[Zone_End][track].iHalo,
 			false,
-			client
+			client,
+			Zone_End,
+			track
 		);
 	}
 }
