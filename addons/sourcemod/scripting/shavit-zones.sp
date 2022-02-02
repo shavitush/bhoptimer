@@ -2405,7 +2405,7 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 
 	char info[16], display[64];
 
-	FormatEx(info, sizeof(info), "%i;%i;0", zoneType, track);
+	FormatEx(info, sizeof(info), "%i;%i;0", track, zoneType);
 	FormatEx(display, sizeof(display), "Display type: %s", (
 		gI_ZoneDisplayType[client][zoneType][track] == ZoneDisplay_Default ? "Default" : 
 		gI_ZoneDisplayType[client][zoneType][track] == ZoneDisplay_Flat ? "Flat" : "Box"));
