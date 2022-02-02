@@ -1515,10 +1515,6 @@ public void OnClientCookiesCached(int client)
 	gB_DrawAllZones[client] = view_as<bool>(StringToInt(setting));
 
 	char info[20];
-	
-	// SourcePawn is stupid, why? let me tell you:
-	// let info = "123456789"
-	// if you do info[1], it will print "23456789" instead of "2" :)
 
 	gH_ZoneDisplayTypeCookie.Get(client, info, sizeof(info));
 	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
@@ -3803,13 +3799,13 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 	{
 		{ 255, 255, 255, 255 }, // White
 		{ 255, 0, 0, 255 }, // Red
-		{ 255, 215, 0, 255 }, // Orange
+		{ 255, 128, 0, 255 }, // Orange
 		{ 255, 255 ,0, 255 }, // Yellow
 		{ 0, 255, 0, 255}, // Green
 		{ 0, 255, 255, 255 }, // Cyan
 		{ 0, 0, 255, 255 }, // Blue
 		{ 128, 0, 128, 255 }, // Purple
-		{ 255, 192, 203, 255 }, // Purple
+		{ 255, 192, 203, 255 }, // Pink
 	};
 
 	static float some_width[3] = 
