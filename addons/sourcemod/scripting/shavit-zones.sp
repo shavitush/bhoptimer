@@ -3845,8 +3845,8 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 				float eyes[3];
 				GetClientEyePosition(i, eyes);
 
-				if( gI_ZoneDisplayType[i][type][track] != ZoneDisplay_None &&
-				     (GetVectorDistance(eyes, center) <= 2048.0 ||
+				if(gI_ZoneDisplayType[i][type][track] != ZoneDisplay_None &&
+					(GetVectorDistance(eyes, center) <= 2048.0 ||
 					(TR_TraceRayFilter(eyes, center, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_World) && !TR_DidHit())))
 				{
 					clients[count++] = i;
@@ -3857,7 +3857,6 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 	for (int i = 0; i < count; i++)
 	{
-		// TODO: Clean this up please help me 😢
 		int point_size = (gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Flat || 
 						  gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Default && flat) ? 4 : 12;
 
@@ -3866,7 +3865,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 		actual_color[0] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[0] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][0];
 		actual_color[1] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[1] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][1];
 		actual_color[2] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[2] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][2];
-		actual_color[3] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[3] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][3];
+		actual_color[3] = color[3];
 
 		float actual_width = (gI_ZoneWidth[clients[i]][type][track] == ZoneWidth_Default) ? width : some_width[gI_ZoneWidth[clients[i]][type][track] - 1];
 
