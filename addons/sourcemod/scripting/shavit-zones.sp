@@ -3510,7 +3510,7 @@ void InsertZone(int client)
 	char sQuery[1024];
 	char sTrack[64], sZoneName[32];
 	GetTrackName(LANG_SERVER, gI_ZoneTrack[client], sTrack, sizeof(sTrack));
-	GetTrackName(LANG_SERVER, iType, sZoneName, sizeof(sZoneName));
+	GetZoneName(LANG_SERVER, iType, sZoneName, sizeof(sZoneName));
 
 	if(iType == Zone_CustomSpawn)
 	{
