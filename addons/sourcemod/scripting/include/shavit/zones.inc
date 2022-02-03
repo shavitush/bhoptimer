@@ -118,73 +118,26 @@ enum struct zone_cache_t
 
 stock void GetZoneName(int client, int zoneType, char[] output, int size)
 {
-	switch (zoneType)
-	{
-		case Zone_Start:
-		{
-			FormatEx(output, size, "%T", "Zone_Start", client);
-		}
-		case Zone_End:
-		{
-			FormatEx(output, size, "%T", "Zone_End", client);
-		}
-		case Zone_Respawn:
-		{
-			FormatEx(output, size, "%T", "Zone_Respawn", client);
-		}
-		case Zone_Stop:
-		{
-			FormatEx(output, size, "%T", "Zone_Stop", client);
-		}
-		case Zone_Slay:
-		{
-			FormatEx(output, size, "%T", "Zone_Slay", client);
-		}
-		case Zone_Freestyle:
-		{
-			FormatEx(output, size, "%T", "Zone_Freestyle", client);
-		}
-		case Zone_CustomSpeedLimit:
-		{
-			FormatEx(output, size, "%T", "Zone_CustomSpeedLimit", client);
-		}
-		case Zone_Teleport:
-		{
-			FormatEx(output, size, "%T", "Zone_Teleport", client);
-		}
-		case Zone_CustomSpawn:
-		{
-			FormatEx(output, size, "%T", "Zone_CustomSpawn", client);
-		}
-		case Zone_Easybhop:
-		{
-			FormatEx(output, size, "%T", "Zone_Easybhop", client);
-		}
-		case Zone_Slide:
-		{
-			FormatEx(output, size, "%T", "Zone_Slide", client);
-		}
-		case Zone_Airaccelerate:
-		{
-			FormatEx(output, size, "%T", "Zone_Airaccelerate", client);
-		}
-		case Zone_Stage:
-		{
-			FormatEx(output, size, "%T", "Zone_Stage", client);
-		}
-		case Zone_NoTimerGravity:
-		{
-			FormatEx(output, size, "%T", "Zone_NoTimerGravity", client);
-		}
-		case Zone_Gravity:
-		{
-			FormatEx(output, size, "%T", "Zone_Gravity", client);
-		}
-		default:
-		{
-			FormatEx(output, size, "%T", "Zone_Unknown", client);
-		}
-	}
+	static char sTranslationStrings[][] = {
+		"Zone_Start",
+		"Zone_End",
+		"Zone_Respawn",
+		"Zone_Stop",
+		"Zone_Slay",
+		"Zone_Freestyle",
+		"Zone_CustomSpeedLimit",
+		"Zone_Teleport",
+		"Zone_CustomSpawn",
+		"Zone_Easybhop",
+		"Zone_Slide",
+		"Zone_Airaccelerate",
+		"Zone_Stage",
+		"Zone_NoTimerGravity",
+		"Zone_Gravity",
+		"Zone_Unknown"
+	};
+	
+	FormatEx(output, size, "%T", sTranslationStrings[zoneType], client);
 }
 
 /**
