@@ -315,7 +315,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 
 	gI_CurrentStyle[client] = newstyle;
 
-	if (!IsClientConnected(client) || !IsClientInGame(client))
+	if (!IsClientConnected(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
 	{
 		return;
 	}
