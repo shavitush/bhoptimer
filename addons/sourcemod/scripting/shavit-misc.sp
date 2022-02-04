@@ -851,7 +851,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	int iTeam = StringToInt(arg1);
 	int iHumanTeam = GetHumanTeam();
 
-	if (iHumanTeam != 0)
+	if (iHumanTeam != 0 && iTeam != 1)
 	{
 		iTeam = iHumanTeam;
 	}
