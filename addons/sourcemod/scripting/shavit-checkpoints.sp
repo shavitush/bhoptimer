@@ -779,6 +779,11 @@ public Action Command_Checkpoints(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if (!gA_Checkpoints[client]) // probably got here from another plugin doing `FakeClientCommandEx(param1, "sm_checkpoints");` too early or too late
+	{
+		return Plugin_Handled;
+	}
+
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
 	{
 		gB_ClosedKZCP[client] = false;
