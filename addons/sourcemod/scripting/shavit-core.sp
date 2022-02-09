@@ -2728,7 +2728,9 @@ public void PreThinkPost(int client)
 				}
 			}
 
-			if (g == 0.0 && styleg != 1.0 && ((mtLast == MOVETYPE_LADDER || GetEntityGravity(client) == 1.0)))
+			float clientg = GetEntityGravity(client);
+
+			if (g == 0.0 && styleg != 1.0 && ((mtLast == MOVETYPE_LADDER || clientg == 1.0 || clientg == 0.0)))
 			{
 				g = styleg;
 			}
