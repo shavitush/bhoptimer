@@ -469,6 +469,12 @@ stock float GetAngleDiff(float current, float previous)
 // Steam names are `char[32+1];`. Source engine names are `char[32];` (MAX_PLAYER_NAME_LENGTH).
 // This means Source engine names can end up with an invalid unicode sequence at the end.
 // This will remove the unicode codepoint if necessary.
+/*
+	Sourcemod 1.11 will strip the invalid codepoint internally (some relevant links below) but it'd still be nice to just retrive the client's `name` convar so we get the full thing or maybe even grab it from whatever SteamGameServer api stuff makes it available if possible.
+	https://github.com/alliedmodders/sourcemod/pull/545
+	https://github.com/alliedmodders/sourcemod/issues/1315
+	https://github.com/alliedmodders/sourcemod/pull/1544
+*/
 stock void SanerGetClientName(int client, char[] name)
 {
 	static EngineVersion ev = Engine_Unknown;
