@@ -195,6 +195,12 @@ stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cac
 		}
 	}
 
+	if (cache.aFrames.Length <= 10) // worthless replay so it doesn't get to load
+	{
+		delete cache.aFrames;
+		return false;
+	}
+
 	cache.iFrameCount = header.iFrameCount;
 	cache.fTime = header.fTime;
 	cache.iReplayVersion = header.iReplayVersion;

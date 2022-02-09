@@ -1645,7 +1645,7 @@ public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, i
 		gH_ClosestPos[track][style] = new ClosestPos(gA_FrameCache[style][track].aFrames, 0, gA_FrameCache[style][track].iPreFrames, gA_FrameCache[style][track].iFrameCount);
 #if DEBUG
 		p.Stop();
-		PrintToServer(">>> ClosestPos / DoReplaySaverCallbacks(style=%d, track=%d) = %f", style, track, p.Time);
+		PrintToServer(">>> ClosestPos @ Shavit_OnReplaySaved(style=%d, track=%d) = %f", style, track, p.Time);
 		delete p;
 #endif
 	}
