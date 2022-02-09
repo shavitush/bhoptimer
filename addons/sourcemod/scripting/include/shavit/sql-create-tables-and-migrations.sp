@@ -46,7 +46,6 @@ enum
 	Migration_Lowercase_startpositions,
 	Migration_AddPlayertimesPointsCalcedFrom, // points calculated from wr float added to playertimes
 	Migration_RemovePlayertimesPointsCalcedFrom, // lol
-	// TODO: Add alter tables playertimes modify column blah after blah
 	MIGRATIONS_END
 };
 

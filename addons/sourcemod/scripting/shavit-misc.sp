@@ -139,7 +139,6 @@ bool gB_Checkpoints = false;
 bool gB_Eventqueuefix = false;
 bool gB_Rankings = false;
 bool gB_ReplayPlayback = false;
-bool gB_Zones = false;
 bool gB_Chat = false;
 
 // timer settings
@@ -311,7 +310,6 @@ public void OnPluginStart()
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
-	gB_Zones = LibraryExists("shavit-zones");
 	gB_Chat = LibraryExists("shavit-chat");
 }
 
@@ -655,10 +653,6 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_ReplayPlayback = true;
 	}
-	else if(StrEqual(name, "shavit-zones"))
-	{
-		gB_Zones = true;
-	}
 	else if(StrEqual(name, "shavit-chat"))
 	{
 		gB_Chat = true;
@@ -682,10 +676,6 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-replay-playback"))
 	{
 		gB_ReplayPlayback = false;
-	}
-	else if(StrEqual(name, "shavit-zones"))
-	{
-		gB_Zones = false;
 	}
 	else if(StrEqual(name, "shavit-chat"))
 	{

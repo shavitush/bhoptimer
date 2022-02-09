@@ -2210,7 +2210,6 @@ void UpdateKeyHint(int client)
 				return;
 			}
 
-			int track = bReplay ? Shavit_GetReplayBotTrack(target) : Shavit_GetClientTrack(target);
 			int style = bReplay ? Shavit_GetReplayBotStyle(target) : Shavit_GetBhopStyle(target);
 
 			if(!(0 <= style < gI_Styles))

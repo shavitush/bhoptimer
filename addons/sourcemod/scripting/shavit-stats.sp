@@ -830,7 +830,6 @@ public void OpenStatsMenu_Mapchooser_Callback(Database db, DBResultSet results, 
 
 Action OpenStatsMenu_Main(int steamid, int style, DataPack data)
 {
-	// big ass query, looking for optimizations TODO
 	char sQuery[2048];
 
 	FormatEx(sQuery, sizeof(sQuery),

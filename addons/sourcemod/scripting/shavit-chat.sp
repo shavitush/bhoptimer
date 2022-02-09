@@ -68,38 +68,6 @@ enum
 	Require_WR_Rank,
 }
 
-// percent, ranged, Require_*
-char gA_ChatRankMenuFormatStrings[2][2][4][] = {
-	{
-		{
-			"ChatRanksMenu_Flat",
-			"ChatRanksMenu_Points",
-			"ChatRanksMenu_WR_Count",
-			"ChatRanksMenu_WR_Rank",
-		},
-		{
-			"ChatRanksMenu_Flat_Ranged",
-			"ChatRanksMenu_Points_Ranged",
-			"ChatRanksMenu_WR_Count_Ranged",
-			"ChatRanksMenu_WR_Rank_Ranged",
-		}
-	},
-	{
-		{
-			"ChatRanksMenu_Percentage",
-			"",
-			"",
-			"ChatRanksMenu_WR_Rank_Percentage",
-		},
-		{
-			"ChatRanksMenu_Percentage_Ranged",
-			"",
-			"",
-			"ChatRanksMenu_WR_Rank_Ranged",
-		}
-	}
-};
-
 #pragma newdecls required
 #pragma semicolon 1
 
@@ -922,34 +890,7 @@ Action ShowChatRanksMenu(int client, int item)
 		}
 
 		char sMenuDisplay[MAXLENGTH_DISPLAY];
-
-#if 0
-		char sRequirements[64];
-
-		if(!cache.bFree)
-		{
-			if(cache.fFrom == 0.0 && cache.fTo == 0.0)
-			{
-				FormatEx(sRequirements, 64, "%T", "ChatRanksMenu_Unranked", client);
-			}
-			else
-			{
-				char sTranslation[64];
-				strcopy(sTranslation, sizeof(sTranslation), gA_ChatRankMenuFormatStrings[cache.bPercent?1:0][cache.bRanged?1:0][cache.iRequire]);
-
-				if (!cache.bRanged && !cache.bPercent && cache.fFrom == 1.0)
-				{
-					StrCat(sTranslation, sizeof(sTranslation), "_1");
-				}
-
-				FormatEx(sRequirements, 64, "%T", sTranslation, client, cache.fFrom, cache.fTo, '%', '%');
-			}
-		}
-
-		FormatEx(sMenuDisplay, sizeof(sMenuDisplay), "%s\n%s\n ", cache.sDisplay, sRequirements);
-#else
 		FormatEx(sMenuDisplay, sizeof(sMenuDisplay), "%s\n ", cache.sDisplay);
-#endif
 
 		char sInfo[8];
 		IntToString(i, sInfo, 8);
@@ -957,7 +898,7 @@ Action ShowChatRanksMenu(int client, int item)
 		menu.AddItem(sInfo, sMenuDisplay);
 	}
 
-	//menu.Pagination = 4; // 4 items per page because too menus have a 512 byte limit...
+	menu.Pagination = 4; // 4 items per page because menus have a 512 byte limit...
 	menu.ExitBackButton = true;
 	menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 
