@@ -186,6 +186,7 @@ Handle gH_DoAnimationEvent = INVALID_HANDLE;
 DynamicHook gH_UpdateStepSound = null;
 DynamicDetour gH_MaintainBotQuota = null;
 DynamicDetour gH_TeamFull = null;
+bool gB_TeamFullDetoured = false;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
 bot_info_t gA_BotInfo_Temp; // cached when creating a bot so we can use an accurate name in player_connect
@@ -1577,6 +1578,7 @@ public void OnMapStart()
 	if (gH_TeamFull != null)
 	{
 		gH_TeamFull.Enable(Hook_Post, Detour_TeamFull);
+		gB_TeamFullDetoured = true;
 	}
 
 	CreateTimer(3.0, Timer_Cron, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
@@ -1586,8 +1588,9 @@ public void OnMapEnd()
 {
 	gB_CanUpdateReplayClient = false;
 
-	if (gH_TeamFull != null)
+	if (gH_TeamFull != null && gB_TeamFullDetoured)
 	{
+		gB_TeamFullDetoured = false;
 		gH_TeamFull.Disable(Hook_Post, Detour_TeamFull);
 	}
 }
