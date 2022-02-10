@@ -411,4 +411,68 @@
 		"#format"	"{1:s},{2:s},{3:d},{4:s},{5:s},{6:s}{7:s}"
 		"en"		"{1}You have reached stage {2}{3}{4} with a time of {5}{6}{7}."
 	}
+	"Zone_Start"
+	{
+		"en"		"Start zone"
+	}
+	"Zone_End"
+	{
+		"en"		"End zone"
+	}
+	"Zone_Respawn"
+	{
+		"en"		"Glitch Zone (Respawn Player)"
+	}
+	"Zone_Stop"
+	{
+		"en"		"Glitch Zone (Stop Timer)"
+	}
+	"Zone_Slay"
+	{
+		"en"		"Slay Player"
+	}
+	"Zone_Freestyle"
+	{
+		"en"		"Freestyle Zone"
+	}
+	"Zone_CustomSpeedLimit"
+	{
+		"en"		"Custom Speed Limit"
+	}
+	"Zone_Teleport"
+	{
+		"en"		"Teleport Zone"
+	}
+	"Zone_CustomSpawn"
+	{
+		"en"		"SPAWN POINT"
+	}
+	"Zone_Easybhop"
+	{
+		"en"		"Easybhop Zone"
+	}
+	"Zone_Slide"
+	{
+		"en"		"Slide Zone"
+	}
+	"Zone_Airaccelerate"
+	{
+		"en"		"Custom Airaccelerate"
+	}
+	"Zone_Stage"
+	{
+		"en"		"Stage Zone"
+	}
+	"Zone_NoTimerGravity"
+	{
+		"en"		"No Timer Gravity Zone"
+	}
+	"Zone_Gravity"
+	{
+		"en"		"Gravity Zone"
+	}
+	"Zone_Unknown"
+	{
+		"en"		"UNKNOWN ZONE"
+	}
 }
