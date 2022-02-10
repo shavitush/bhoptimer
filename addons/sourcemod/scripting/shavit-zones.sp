@@ -4040,7 +4040,7 @@ public void TouchPost(int entity, int other)
 	{
 		case Zone_Start:
 		{
-			if(GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1)
+			if (GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1 && !Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(other), "startinair"))
 			{
 				return;
 			}

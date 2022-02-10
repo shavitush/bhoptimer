@@ -156,6 +156,7 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 	SetStyleSettingInt  (gI_CurrentParserIndex, "blockprejump", -1);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "nozaxisspeed", -1);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "restrictnoclip", -1);
+	SetStyleSettingInt  (gI_CurrentParserIndex, "startinair", 0);
 
 	SetStyleSettingFloat(gI_CurrentParserIndex, "airaccelerate", 1000.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "runspeed", 260.00);
