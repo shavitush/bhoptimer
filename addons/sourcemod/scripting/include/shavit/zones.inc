@@ -118,7 +118,7 @@ enum struct zone_cache_t
 
 stock void GetZoneName(int client, int zoneType, char[] output, int size)
 {
-	static char sTranslationStrings[][] = {
+	static char sTranslationStrings[ZONETYPES_SIZE][] = {
 		"Zone_Start",
 		"Zone_End",
 		"Zone_Respawn",
@@ -133,11 +133,13 @@ stock void GetZoneName(int client, int zoneType, char[] output, int size)
 		"Zone_Airaccelerate",
 		"Zone_Stage",
 		"Zone_NoTimerGravity",
-		"Zone_Gravity",
-		"Zone_Unknown"
+		"Zone_Gravity"
 	};
-	
-	FormatEx(output, size, "%T", sTranslationStrings[zoneType], client);
+
+	if (zoneType >= ZONETYPES_SIZE)
+		FormatEx(output, size, "%T", "Zone_Unknown", client);
+	else
+		FormatEx(output, size, "%T", sTranslationStrings[zoneType], client);
 }
 
 /**
