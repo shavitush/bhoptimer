@@ -1503,7 +1503,7 @@ public void OnClientCookiesCached(int client)
 
 	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
 	{
-		for (int j = Zone_Respawn - 1; j >= 0; j--)
+		for (int j = Zone_End; j >= Zone_Start; j--)
 		{
 			gI_ZoneDisplayType[client][j][i] = StringToInt(displayInfo[i * 2 + j]);
 			gI_ZoneColor[client][j][i] = StringToInt(colorInfo[i * 2 + j]);
@@ -2362,9 +2362,9 @@ void OpenCustomZoneMenu(int client)
 	// Only start zone and end zone are customizable imo, why do you even want to customize the zones that arent often used/seen???
 	for (int i = 0; i < TRACKS_SIZE; i++)
 	{
-		for (int j = 0; j < Zone_Respawn; j++)
+		for (int j = 0; j <= Zone_End; j++)
 		{
-			if(gA_ZoneSettings[j][0].bVisible)
+			if (gA_ZoneSettings[j][0].bVisible)
 			{
 				char info[8];
 				FormatEx(info, sizeof(info), "%i;%i", i, j);
@@ -2478,11 +2478,12 @@ void HandleCustomZoneCookie(int client, Cookie &cookie, int track, int zoneType,
 	{
 		for (int i = 0; i < TRACKS_SIZE; i++)
 		{
-			for(int j = 0; j < Zone_Respawn; j++)
+			for (int j = 0; j <= Zone_End; j++)
 			{
 				FormatEx(info, sizeof(info), "%s%i", info, (i == track && j == zoneType ? value : 0));
 			}
 		}
+
 		cookie.Set(client, info);
 		return;
 	}
@@ -3843,14 +3844,10 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 	for (int i = 0; i < count; i++)
 	{
 		int point_size = (gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Flat || 
-						  gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Default && flat) ? 4 : 12;
+		                  gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Default && flat) ? 4 : 12;
 
-		// sorry for this
 		int actual_color[4];
-		actual_color[0] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[0] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][0];
-		actual_color[1] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[1] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][1];
-		actual_color[2] = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color[2] : clrs[gI_ZoneColor[clients[i]][type][track] - 1][2];
-		actual_color[3] = color[3];
+		actual_color = (gI_ZoneColor[clients[i]][type][track] == ZoneColor_Default) ? color : clrs[gI_ZoneColor[clients[i]][type][track] - 1];
 
 		float actual_width = (gI_ZoneWidth[clients[i]][type][track] == ZoneWidth_Default) ? width : some_width[gI_ZoneWidth[clients[i]][type][track] - 1];
 
