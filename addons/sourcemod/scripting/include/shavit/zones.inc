@@ -28,21 +28,21 @@
 
 enum
 {
-	Zone_Start,
-	Zone_End,
-	Zone_Respawn,
-	Zone_Stop,
-	Zone_Slay,
-	Zone_Freestyle,
-	Zone_CustomSpeedLimit,
-	Zone_Teleport,
-	Zone_CustomSpawn,
-	Zone_Easybhop,
-	Zone_Slide,
-	Zone_Airaccelerate,
-	Zone_Stage,
-	Zone_NoTimerGravity,
-	Zone_Gravity,
+	Zone_Start, 			// starts timer
+	Zone_End, 				// stops timer
+	Zone_Respawn, 			// respawns the player
+	Zone_Stop,				// stops the player's timer
+	Zone_Slay,				// slays (kills) players which come to this zone
+	Zone_Freestyle,			// ignores style physics when at this zone. e.g. WASD when SWing
+	Zone_CustomSpeedLimit,	// overwrites velocity limit in the zone
+	Zone_Teleport,			// teleports to a defined point
+	Zone_CustomSpawn,		// << unused
+	Zone_Easybhop,			// forces easybhop whether if the player is in non-easy styles or if the server has different settings
+	Zone_Slide,				// allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
+	Zone_Airaccelerate,		// custom sv_airaccelerate inside this,
+	Zone_Stage,				// shows time when entering zone
+	Zone_NoTimerGravity,	// prevents the timer from setting gravity while inside this zone
+	Zone_Gravity,			// lets you set a specific gravity while inside this zone
 	ZONETYPES_SIZE
 };
 
@@ -50,6 +50,42 @@ enum
 {
 	ZF_ForceRender = (1 << 0),
 	ZF_Prebuilt    = (1 << 1), // comes from mod_zone_* entities
+};
+
+// Zone Display type
+enum 
+{
+	ZoneDisplay_Default,
+	ZoneDisplay_Flat,
+	ZoneDisplay_Box,
+	ZoneDisplay_None,
+	ZoneDisplay_Size
+};
+
+// Zone Color, maybe we just let the user decide what color they actually want..? maybe store rgba as hex string but that would be mega long for each track
+enum
+{
+	ZoneColor_Default,
+	ZoneColor_White,
+	ZoneColor_Red,
+	ZoneColor_Orange,
+	ZoneColor_Yellow,
+	ZoneColor_Green,
+	ZoneColor_Cyan,
+	ZoneColor_Blue,
+	ZoneColor_Purple,
+	ZoneColor_Pink,
+	ZoneColor_Size
+};
+
+enum 
+{
+	ZoneWidth_Default,
+	ZoneWidth_UltraThin,
+	ZoneWidth_Thin,
+	ZoneWidth_Normal,
+	ZoneWidth_Thick,
+	ZoneWidth_Size
 };
 
 #if 0
@@ -79,6 +115,32 @@ enum struct zone_cache_t
 	int iZoneData;
 }
 #endif
+
+stock void GetZoneName(int client, int zoneType, char[] output, int size)
+{
+	static char sTranslationStrings[ZONETYPES_SIZE][] = {
+		"Zone_Start",
+		"Zone_End",
+		"Zone_Respawn",
+		"Zone_Stop",
+		"Zone_Slay",
+		"Zone_Freestyle",
+		"Zone_CustomSpeedLimit",
+		"Zone_Teleport",
+		"Zone_CustomSpawn",
+		"Zone_Easybhop",
+		"Zone_Slide",
+		"Zone_Airaccelerate",
+		"Zone_Stage",
+		"Zone_NoTimerGravity",
+		"Zone_Gravity"
+	};
+
+	if (zoneType >= ZONETYPES_SIZE)
+		FormatEx(output, size, "%T", "Zone_Unknown", client);
+	else
+		FormatEx(output, size, "%T", sTranslationStrings[zoneType], client);
+}
 
 /**
  * Called when a player enters a zone.

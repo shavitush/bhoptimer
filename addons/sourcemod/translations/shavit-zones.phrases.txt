@@ -302,6 +302,99 @@
 	{
 		"en"        "Teleport to a zone"
 	}
+	// ---------- Custom Zone ---------- //
+	"CustomZone_MainMenuTitle"
+	{
+		"en"		"Select the zone you want to customize"
+	}
+	"CustomZone_SubMenuTitle"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Customizing {1} - {2}"
+	}
+	"CustomZone_DisplayType"
+	{
+		"en"		"Zone display type"
+	}
+	"CustomZone_Color"
+	{
+		"en"		"Zone color"
+	}
+	"CustomZone_Width"
+	{
+		"en"		"Zone width"
+	}
+	"CustomZone_Default"
+	{
+		"en"		"Default"
+	}
+	
+	"CustomZone_DisplayType_None"
+	{
+		"en"		"None"
+	}
+	"CustomZone_DisplayType_Box"
+	{
+		"en"		"Box"
+	}
+	"CustomZone_DisplayType_Flat"
+	{
+		"en"		"Flat"
+	}
+	
+	"CustomZone_Color_White"
+	{
+		"en"		"White"
+	}
+	"CustomZone_Color_Red"
+	{
+		"en"		"Red"
+	}
+	"CustomZone_Color_Orange"
+	{
+		"en"		"Orange"
+	}
+	"CustomZone_Color_Yellow"
+	{
+		"en"		"Yellow"
+	}
+	"CustomZone_Color_Green"
+	{
+		"en"		"Green"
+	}
+	"CustomZone_Color_Cyan"
+	{
+		"en"		"Cyan"
+	}
+	"CustomZone_Color_Blue"
+	{
+		"en"		"Blue"
+	}
+	"CustomZone_Color_Purple"
+	{
+		"en"		"Purple"
+	}
+	"CustomZone_Color_Pink"
+	{
+		"en"		"Pink"
+	}
+
+	"CustomZone_Width_UltraThin"
+	{
+		"en"		"Ultra thin"
+	}
+	"CustomZone_Width_Thin"
+	{
+		"en"		"Thin"
+	}
+	"CustomZone_Width_Normal"
+	{
+		"en"		"Normal"
+	}
+	"CustomZone_Width_Thick"
+	{
+		"en"		"Thick"
+	}
 	// ---------- Messages ---------- //
 	"ZoneSlayEnter"
 	{
@@ -317,5 +410,69 @@
 	{
 		"#format"	"{1:s},{2:s},{3:d},{4:s},{5:s},{6:s}{7:s}"
 		"en"		"{1}You have reached stage {2}{3}{4} with a time of {5}{6}{7}."
+	}
+	"Zone_Start"
+	{
+		"en"		"Start zone"
+	}
+	"Zone_End"
+	{
+		"en"		"End zone"
+	}
+	"Zone_Respawn"
+	{
+		"en"		"Glitch Zone (Respawn Player)"
+	}
+	"Zone_Stop"
+	{
+		"en"		"Glitch Zone (Stop Timer)"
+	}
+	"Zone_Slay"
+	{
+		"en"		"Slay Player"
+	}
+	"Zone_Freestyle"
+	{
+		"en"		"Freestyle Zone"
+	}
+	"Zone_CustomSpeedLimit"
+	{
+		"en"		"Custom Speed Limit"
+	}
+	"Zone_Teleport"
+	{
+		"en"		"Teleport Zone"
+	}
+	"Zone_CustomSpawn"
+	{
+		"en"		"SPAWN POINT"
+	}
+	"Zone_Easybhop"
+	{
+		"en"		"Easybhop Zone"
+	}
+	"Zone_Slide"
+	{
+		"en"		"Slide Zone"
+	}
+	"Zone_Airaccelerate"
+	{
+		"en"		"Custom Airaccelerate"
+	}
+	"Zone_Stage"
+	{
+		"en"		"Stage Zone"
+	}
+	"Zone_NoTimerGravity"
+	{
+		"en"		"No Timer Gravity Zone"
+	}
+	"Zone_Gravity"
+	{
+		"en"		"Gravity Zone"
+	}
+	"Zone_Unknown"
+	{
+		"en"		"UNKNOWN ZONE"
 	}
 }
