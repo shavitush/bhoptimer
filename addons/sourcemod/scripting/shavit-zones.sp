@@ -165,14 +165,10 @@ float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][3];
 bool gB_ReplayRecorder = false;
 
 // custom zone stuff
+Cookie gH_CustomZoneCookie = null;
 int gI_ZoneDisplayType[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
-Cookie gH_ZoneDisplayTypeCookie = null;
-
 int gI_ZoneColor[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
-Cookie gH_ZoneColorCookie = null;
-
 int gI_ZoneWidth[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
-Cookie gH_ZoneWidthCookie = null;
 
 public Plugin myinfo =
 {
@@ -262,9 +258,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_czones", Command_CustomZones, "Customize start and end zone for each track");
 	RegConsoleCmd("sm_customzones", Command_CustomZones, "Customize start and end zone for each track");
 
-	gH_ZoneDisplayTypeCookie = new Cookie("shavit_zonedisplaytype", "Display type for each zone", CookieAccess_Private);
-	gH_ZoneColorCookie = new Cookie("shavit_zonecolor", "Zone color for each zone", CookieAccess_Private);
-	gH_ZoneWidthCookie = new Cookie("shavit_zonewidth", "Zone width for each zone", CookieAccess_Private);
+	gH_CustomZoneCookie = new Cookie("shavit_customzones", "Cookie for storing custom zone stuff", CookieAccess_Private);
 
 	for (int i = 0; i <= 9; i++)
 	{
@@ -1447,6 +1441,7 @@ public void OnClientConnected(int client)
 	for (int i = 0; i < ZONETYPES_SIZE; i++)
 	{
 		gB_InsideZone[client][i] = empty_InsideZone;
+
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
 			gI_ZoneDisplayType[client][i][j] = ZoneDisplay_Default;
@@ -1495,20 +1490,22 @@ public void OnClientCookiesCached(int client)
 	gH_DrawAllZonesCookie.Get(client, setting, sizeof(setting));
 	gB_DrawAllZones[client] = view_as<bool>(StringToInt(setting));
 
-	char displayInfo[20], colorInfo[20], widthInfo[20];
+	char czone[1 + 2*2*TRACKS_SIZE + 1]; // version + ((start + end) * 2 chars * tracks) + NUL terminator
+	gH_CustomZoneCookie.Get(client, czone, sizeof(czone));
 
-	gH_ZoneDisplayTypeCookie.Get(client, displayInfo, sizeof(displayInfo));
-	gH_ZoneColorCookie.Get(client, colorInfo, sizeof(colorInfo));
-	gH_ZoneWidthCookie.Get(client, widthInfo, sizeof(widthInfo));
-
-	for (int i = TRACKS_SIZE - 1; i >= 0; i--)
+	if (czone[0] == 'a') // "version number"
 	{
-		for (int j = Zone_End; j >= Zone_Start; j--)
+		int p = 1;
+		char c;
+
+		while ((c = czone[p++]) != 0)
 		{
-			gI_ZoneDisplayType[client][j][i] = StringToInt(displayInfo[i * 2 + j]);
-			gI_ZoneColor[client][j][i] = StringToInt(colorInfo[i * 2 + j]);
-			gI_ZoneWidth[client][j][i] = StringToInt(widthInfo[i * 2 + j]);
-			displayInfo[i * 2 + j] = colorInfo[i * 2 + j] = widthInfo[i * 2 + j] = '\x0';
+			int track = c & 0xf;
+			int type = (c >> 4) & 1;
+			gI_ZoneDisplayType[client][type][track] = (c >> 5) & 3;
+			c = czone[p++];
+			gI_ZoneColor[client][type][track] = c & 0xf;
+			gI_ZoneWidth[client][type][track] = (c >> 4) & 7;
 		}
 	}
 }
@@ -2465,31 +2462,24 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 
 void HandleCustomZoneCookie(int client, Cookie &cookie, int track, int zoneType, int value)
 {
-	// Total size is 2(start zone & end zone) * track_size
-	// and the cookie info looks like this:
-	// main_start,main_end,b1_start,b1_end ....
+	char buf[1 + 2*2*TRACKS_SIZE + 1]; // version + ((start + end) * 2 chars * tracks) + NUL terminator
+	int p = 0;
 
-	static char numbers[] = "0123456789";
-
-	char info[20];
-	cookie.Get(client, info, sizeof(info));
-	
-	if (!strlen(info))
+	for (int type = Zone_Start; type <= Zone_End; type++)
 	{
-		for (int i = 0; i < TRACKS_SIZE; i++)
+		for (int track = Track_Main; track < TRACKS_SIZE; track++)
 		{
-			for (int j = 0; j <= Zone_End; j++)
+			if (gI_ZoneDisplayType[client][type][track] || gI_ZoneColor[client][type][track] || gI_ZoneWidth[client][type][track])
 			{
-				FormatEx(info, sizeof(info), "%s%i", info, (i == track && j == zoneType ? value : 0));
+				if (!p) buf[p++] = 'a'; // "version number"
+				// highest bit (0x80) set so we don't get a zero byte terminating the cookie early
+				buf[p++] = 0x80 | (gI_ZoneDisplayType[client][type][track] << 5) | (type << 4) | track;
+				buf[p++] = 0x80 | (gI_ZoneWidth[client][type][track] << 4) | gI_ZoneColor[client][type][track];
 			}
 		}
-
-		cookie.Set(client, info);
-		return;
 	}
 
-	info[track * 2 + zoneType] = numbers[value];
-	cookie.Set(client, info);
+	gH_CustomZoneCookie.Set(client, buf);
 }
 
 public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, int param2)
@@ -2513,7 +2503,7 @@ public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, 
 			if (gI_ZoneDisplayType[client][zoneType][track] >= ZoneDisplay_Size)
 				gI_ZoneDisplayType[client][zoneType][track] = ZoneDisplay_Default;
 
-			HandleCustomZoneCookie(client, gH_ZoneDisplayTypeCookie, track, zoneType, gI_ZoneDisplayType[client][zoneType][track]);
+			HandleCustomZoneCookie(client);
 		}
 		else if (option == 1) // Color
 		{
@@ -2522,7 +2512,7 @@ public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, 
 			if (gI_ZoneColor[client][zoneType][track] >= ZoneColor_Size)
 				gI_ZoneColor[client][zoneType][track] = ZoneColor_Default;
 
-			HandleCustomZoneCookie(client, gH_ZoneColorCookie, track, zoneType, gI_ZoneColor[client][zoneType][track]);
+			HandleCustomZoneCookie(client);
 		}
 		else if (option == 2) // Width
 		{
@@ -2531,7 +2521,7 @@ public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, 
 			if (gI_ZoneWidth[client][zoneType][track] >= ZoneWidth_Size)
 				gI_ZoneWidth[client][zoneType][track] = ZoneWidth_Default;
 
-			HandleCustomZoneCookie(client, gH_ZoneWidthCookie, track, zoneType, gI_ZoneWidth[client][zoneType][track]);
+			HandleCustomZoneCookie(client);
 		}
 
 		OpenSubCustomZoneMenu(client, track, zoneType);
