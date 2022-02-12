@@ -170,6 +170,8 @@ int gI_ZoneDisplayType[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 int gI_ZoneColor[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 int gI_ZoneWidth[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 
+int gI_LastMenuPos[MAXPLAYERS+1];
+
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
@@ -255,6 +257,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_drawzones", Command_DrawAllZones, "Toggles drawing all zones.");
 	gH_DrawAllZonesCookie = new Cookie("shavit_drawallzones", "Draw all zones cookie", CookieAccess_Protected);
 
+	RegConsoleCmd("sm_czone", Command_CustomZones, "Customize start and end zone for each track");
 	RegConsoleCmd("sm_czones", Command_CustomZones, "Customize start and end zone for each track");
 	RegConsoleCmd("sm_customzones", Command_CustomZones, "Customize start and end zone for each track");
 
@@ -2345,13 +2348,13 @@ public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int pa
 public Action Command_CustomZones(int client, int args)
 {
 	if (!client) return Plugin_Handled;
-	
+
 	OpenCustomZoneMenu(client);
 
 	return Plugin_Handled;
 }
 
-void OpenCustomZoneMenu(int client)
+void OpenCustomZoneMenu(int client, int pos=0)
 {
 	Menu menu = new Menu(MenuHandler_CustomZones);
 	menu.SetTitle("%T", "CustomZone_MainMenuTitle", client);
@@ -2375,7 +2378,7 @@ void OpenCustomZoneMenu(int client)
 		}
 	}
 
-	menu.Display(client, MENU_TIME_FOREVER);
+	menu.DisplayAt(client, pos, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_CustomZones(Menu menu, MenuAction action, int client, int position)
@@ -2391,6 +2394,7 @@ public int MenuHandler_CustomZones(Menu menu, MenuAction action, int client, int
 		int track = StringToInt(exploded[0]);
 		int zoneType = StringToInt(exploded[1]);
 
+		gI_LastMenuPos[client] = GetMenuSelectionPosition();
 		OpenSubCustomZoneMenu(client, track, zoneType);
 	}
 	else if(action == MenuAction_End)
@@ -2413,7 +2417,7 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 
 	char info[16], display[64];
 
-	static char displayName[ZoneDisplay_Size][] = 
+	static char displayName[ZoneDisplay_Size][] =
 	{
 		"CustomZone_Default",
 		"CustomZone_DisplayType_Flat",
@@ -2421,7 +2425,7 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 		"CustomZone_DisplayType_None",
 	};
 
-	static char colorName[ZoneColor_Size][] = 
+	static char colorName[ZoneColor_Size][] =
 	{
 		"CustomZone_Default",
 		"CustomZone_Color_White",
@@ -2435,7 +2439,7 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 		"CustomZone_Color_Pink"
 	};
 
-	static char widthName[ZoneWidth_Size][] = 
+	static char widthName[ZoneWidth_Size][] =
 	{
 		"CustomZone_Default",
 		"CustomZone_Width_UltraThin",
@@ -2460,7 +2464,7 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
-void HandleCustomZoneCookie(int client, Cookie &cookie, int track, int zoneType, int value)
+void HandleCustomZoneCookie(int client)
 {
 	char buf[1 + 2*2*TRACKS_SIZE + 1]; // version + ((start + end) * 2 chars * tracks) + NUL terminator
 	int p = 0;
@@ -2528,7 +2532,7 @@ public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, 
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		OpenCustomZoneMenu(client);
+		OpenCustomZoneMenu(client, gI_LastMenuPos[client]);
 	}
 	else if (action == MenuAction_End)
 	{
@@ -3787,7 +3791,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 		{ 7, 5 }
 	};
 
-	static int clrs[][4] = 
+	static int clrs[][4] =
 	{
 		{ 255, 255, 255, 255 }, // White
 		{ 255, 0, 0, 255 }, // Red
@@ -3800,7 +3804,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 		{ 255, 192, 203, 255 }, // Pink
 	};
 
-	static float some_width[4] = 
+	static float some_width[4] =
 	{
 		0.1, 0.5, 2.0, 8.0
 	};
@@ -3833,7 +3837,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 	for (int i = 0; i < count; i++)
 	{
-		int point_size = (gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Flat || 
+		int point_size = (gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Flat ||
 		                  gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Default && flat) ? 4 : 12;
 
 		int actual_color[4];
