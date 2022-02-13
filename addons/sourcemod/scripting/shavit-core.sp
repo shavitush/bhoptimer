@@ -88,6 +88,8 @@ Handle gH_Forwards_OnProcessMovementPost = null;
 // player timer variables
 timer_snapshot_t gA_Timers[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
+int gI_FirstTouchedGround[MAXPLAYERS+1];
+int gI_LastTickcount[MAXPLAYERS+1];
 
 // these are here until the compiler bug is fixed
 float gF_PauseOrigin[MAXPLAYERS+1][3];
@@ -2332,7 +2334,9 @@ void StartTimer(int client, int track)
 
 	if (!nozaxisspeed ||
 		GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 1 ||
-		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 2 || curVel <= ClientMaxPrestrafe(client))))
+		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 2 || curVel <= 50.0 ||
+			((curVel <= ClientMaxPrestrafe(client) && gA_Timers[client].bOnGround &&
+			  (gI_LastTickcount[client]-gI_FirstTouchedGround[client] > RoundFloat(0.5/GetTickInterval()))))))) // beautiful
 	{
 		Action result = Plugin_Continue;
 		Call_StartForward(gH_Forwards_StartPre);
@@ -2519,6 +2523,8 @@ public void OnClientPutInServer(int client)
 	gA_Timers[client].fNextFrameTime = 0.0;
 	gA_Timers[client].fplayer_speedmod = 1.0;
 	gS_DeleteMap[client][0] = 0;
+	gI_FirstTouchedGround[client] = 0;
+	gI_LastTickcount[client] = 0;
 
 	gB_CookiesRetrieved[client] = false;
 
@@ -3270,9 +3276,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	// perf jump measuring
 	bool bOnGround = (!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1);
 
+	gI_LastTickcount[client] = tickcount;
+
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
 		gA_Timers[client].iLandingTick = tickcount;
+		gI_FirstTouchedGround[client] = tickcount;
 
 		if (gEV_Type != Engine_TF2 && GetStyleSettingBool(gA_Timers[client].bsStyle, "easybhop"))
 		{
