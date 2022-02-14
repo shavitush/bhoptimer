@@ -2121,6 +2121,11 @@ public Action Shavit_OnStart(int client)
 	if (gB_Eventqueuefix)
 	{
 		SetClientEventsPaused(client, false);
+		
+		// Used to clear some (mainly basevelocity) events that can be used to boost out of the start zone.
+		ClearClientEvents(client); // maybe unneeded?
+		// The RequestFrame is the on that's actually needed though...
+		RequestFrame(ClearClientEventsFrame, GetClientSerial(client));
 	}
 
 	if(gCV_ResetTargetname.BoolValue)
@@ -2147,14 +2152,6 @@ public Action Shavit_OnStart(int client)
 		}
 
 		SetEntPropString(client, Prop_Data, "m_iClassname", classname);
-
-		// Used to clear some (mainly basevelocity) events that can be used to boost out of the start zone.
-		if(gB_Eventqueuefix)
-		{
-			ClearClientEvents(client); // maybe unneeded?
-			// The RequestFrame is the on that's actually needed though...
-			RequestFrame(ClearClientEventsFrame, GetClientSerial(client));
-		}
 	}
 
 	return Plugin_Continue;
