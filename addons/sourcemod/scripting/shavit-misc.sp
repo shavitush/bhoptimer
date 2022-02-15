@@ -73,6 +73,9 @@ int gI_LastWeaponTick[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
 int gI_LastStopInfo[MAXPLAYERS+1];
 
+int gI_LatestTeleportTick[MAXPLAYERS+1];
+bool gB_WasInStartZoneBeforeTeleport[MAXPLAYERS+1];
+
 // cookies
 Handle gH_HideCookie = null;
 Cookie gH_BlockAdvertsCookie = null;
@@ -133,6 +136,7 @@ Handle gH_Forwards_OnClanTagChangePost = null;
 DynamicHook gH_GetPlayerMaxSpeed = null;
 DynamicHook gH_IsSpawnPointValid = null;
 DynamicDetour gH_CalcPlayerScore = null;
+DynamicHook gH_TeleportDhook = null;
 
 // modules
 bool gB_Checkpoints = false;
@@ -275,7 +279,7 @@ public void OnPluginStart()
 	gCV_RemoveRagdolls = new Convar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
 	gCV_ClanTag = new Convar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style tag.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track.\n{rank} - player rank.\n{cr} - player's chatrank from shavit-chat, trimmed, with no colors", 0);
 	gCV_DropAll = new Convar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_ResetTargetname = new Convar("shavit_misc_resettargetname", "1", "Reset the player's targetname and eventqueue upon timer start?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_ResetTargetname = new Convar("shavit_misc_resettargetname", "0", "Reset the player's targetname and eventqueue upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetnameMain = new Convar("shavit_misc_resettargetname_main", "", "What targetname to use when resetting the player. You don't need to touch this");
 	gCV_ResetTargetnameBonus = new Convar("shavit_misc_resettargetname_bonus", "", "What targetname to use when resetting the player (on bonus tracks). You don't need to touch this");
 	gCV_ResetClassnameMain = new Convar("shavit_misc_resetclassname_main", "", "What classname to use when resetting the player. You don't need to touch this");
@@ -367,9 +371,33 @@ void LoadDHooks()
 	{
 		SetFailState("Couldn't get the offset for \"CGameRules::IsSpawnPointValid\" - make sure your gamedata is updated!");
 	}
-
+	
 	LoadPhysicsUntouch(hGameData);
-
+	
+	delete hGameData;
+	
+	hGameData = LoadGameConfigFile("sdktools.games");
+	if (hGameData == null)
+	{
+		SetFailState("Failed to load sdktools gamedata");
+	}
+	
+	iOffset = GameConfGetOffset(hGameData, "Teleport");
+	if (iOffset == -1)
+	{
+		SetFailState("Couldn't get the offset for \"Teleport\"!");
+	}
+	
+	gH_TeleportDhook = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
+	
+	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
+	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
+	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
+	if (GetEngineVersion() == Engine_CSGO)
+	{
+		gH_TeleportDhook.AddParam(HookParamType_Bool);
+	}
+	
 	delete hGameData;
 }
 
@@ -1321,6 +1349,9 @@ public void OnClientPutInServer(int client)
 
 	gI_LastWeaponTick[client] = 0;
 	gI_LastNoclipTick[client] = 0;
+	
+	gI_LatestTeleportTick[client] = 0;
+	gB_WasInStartZoneBeforeTeleport[client] = false;
 
 	if(IsFakeClient(client))
 	{
@@ -1337,6 +1368,11 @@ public void OnClientPutInServer(int client)
 		{
 			DHookEntity(gH_GetPlayerMaxSpeed, true, client);
 		}
+	}
+	
+	if(gH_TeleportDhook != null)
+	{
+		gH_TeleportDhook.HookEntity(Hook_Pre, client, DHooks_OnTeleport);
 	}
 
 	if(!AreClientCookiesCached(client))
@@ -2096,14 +2132,20 @@ public Action Command_Specs(int client, int args)
 	return Plugin_Handled;
 }
 
-void ClearClientEventsFrame(int serial)
+public MRESReturn DHooks_OnTeleport(int pThis, DHookParam hParams)
 {
-	int client = GetClientFromSerial(serial);
-
-	if (client > 0 && gB_Eventqueuefix)
+	if(!IsValidEntity(pThis) || !IsClientInGame(pThis) || IsFakeClient(pThis))
 	{
-		ClearClientEvents(client);
+		return MRES_Ignored;
 	}
+	
+	if(!hParams.IsNull(1))
+	{
+		gB_WasInStartZoneBeforeTeleport[pThis] = Shavit_InsideZone(pThis, Zone_Start, -1);
+		gI_LatestTeleportTick[pThis] = GetGameTickCount();
+	}
+	
+	return MRES_Ignored;
 }
 
 public Action Shavit_OnStartPre(int client)
@@ -2112,7 +2154,20 @@ public Action Shavit_OnStartPre(int client)
 	{
 		return Plugin_Stop;
 	}
-
+	
+	// GAMMACASE: This prevents further abuses related to external events being ran after you teleport from the trigger, with events setup, outside the start zone into the start zone.
+	// This accounts for the io events that might be set inside the start zone trigger in OnStartTouch and wont reset them!
+	// Logic behind this code is that all events in this chain are not instantly fired, so checking if there were teleport from the outside of a start zone in last 2 ticks
+	// and doing physics untouch now to trigger all OnEndTouch that should happen at the same tick but later and removing them allows further events from OnStartTouch be separated
+	// and be fired after which is the expected and desired effect.
+	// This also kills all ongoing events that were active on the client prior to the teleportation to start.
+	if((gI_LatestTeleportTick[client] == GetGameTickCount() || gI_LatestTeleportTick[client] + 1 == GetGameTickCount()) && !gB_WasInStartZoneBeforeTeleport[client])
+	{
+		MaybeDoPhysicsUntouch(client);
+		ClearClientEvents(client);
+		return Plugin_Stop;
+	}
+	
 	return Plugin_Continue;
 }
 
@@ -2147,14 +2202,6 @@ public Action Shavit_OnStart(int client)
 		}
 
 		SetEntPropString(client, Prop_Data, "m_iClassname", classname);
-
-		// Used to clear some (mainly basevelocity) events that can be used to boost out of the start zone.
-		if(gB_Eventqueuefix)
-		{
-			ClearClientEvents(client); // maybe unneeded?
-			// The RequestFrame is the on that's actually needed though...
-			RequestFrame(ClearClientEventsFrame, GetClientSerial(client));
-		}
 	}
 
 	return Plugin_Continue;
