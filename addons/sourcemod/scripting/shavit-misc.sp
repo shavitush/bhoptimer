@@ -105,11 +105,6 @@ Convar gCV_AdvertisementInterval = null;
 Convar gCV_RemoveRagdolls = null;
 Convar gCV_ClanTag = null;
 Convar gCV_DropAll = null;
-Convar gCV_ResetTargetname = null;
-Convar gCV_ResetTargetnameMain = null;
-Convar gCV_ResetTargetnameBonus = null;
-Convar gCV_ResetClassnameMain = null;
-Convar gCV_ResetClassnameBonus = null;
 Convar gCV_JointeamHook = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_HideChatCommands = null;
@@ -279,11 +274,6 @@ public void OnPluginStart()
 	gCV_RemoveRagdolls = new Convar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
 	gCV_ClanTag = new Convar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style tag.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track.\n{rank} - player rank.\n{cr} - player's chatrank from shavit-chat, trimmed, with no colors", 0);
 	gCV_DropAll = new Convar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_ResetTargetname = new Convar("shavit_misc_resettargetname", "0", "Reset the player's targetname and eventqueue upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_ResetTargetnameMain = new Convar("shavit_misc_resettargetname_main", "", "What targetname to use when resetting the player. You don't need to touch this");
-	gCV_ResetTargetnameBonus = new Convar("shavit_misc_resettargetname_bonus", "", "What targetname to use when resetting the player (on bonus tracks). You don't need to touch this");
-	gCV_ResetClassnameMain = new Convar("shavit_misc_resetclassname_main", "", "What classname to use when resetting the player. You don't need to touch this");
-	gCV_ResetClassnameBonus = new Convar("shavit_misc_resetclassname_bonus", "", "What classname to use when resetting the player (on bonus tracks). You don't need to touch this");
 	gCV_JointeamHook = new Convar("shavit_misc_jointeamhook", "1", "Hook `jointeam`?\n0 - Disabled\n1 - Enabled, players can instantly change teams.", 0, true, 0.0, true, 1.0);
 	gCV_SpectatorList = new Convar("shavit_misc_speclist", "1", "Who to show in !specs?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_HideChatCommands = new Convar("shavit_misc_hidechatcmds", "1", "Hide commands from chat?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -2155,17 +2145,32 @@ public Action Shavit_OnStartPre(int client)
 		return Plugin_Stop;
 	}
 	
+	static int tick_served[MAXPLAYERS + 1];
+	int curr_tick = GetGameTickCount();
+	
 	// GAMMACASE: This prevents further abuses related to external events being ran after you teleport from the trigger, with events setup, outside the start zone into the start zone.
 	// This accounts for the io events that might be set inside the start zone trigger in OnStartTouch and wont reset them!
 	// Logic behind this code is that all events in this chain are not instantly fired, so checking if there were teleport from the outside of a start zone in last 2 ticks
 	// and doing physics untouch now to trigger all OnEndTouch that should happen at the same tick but later and removing them allows further events from OnStartTouch be separated
 	// and be fired after which is the expected and desired effect.
-	// This also kills all ongoing events that were active on the client prior to the teleportation to start.
-	if((gI_LatestTeleportTick[client] == GetGameTickCount() || gI_LatestTeleportTick[client] + 1 == GetGameTickCount()) && !gB_WasInStartZoneBeforeTeleport[client])
+	// This also kills all ongoing events that were active on the client prior to the teleportation to start and also resets targetname and classname
+	// before the OnStartTouch from triggers in start zone are run, thus preventing the maps to be abusable if they don't have any reset triggers in place
+	if((gI_LatestTeleportTick[client] <= curr_tick <= gI_LatestTeleportTick[client] + 1) && 
+		!gB_WasInStartZoneBeforeTeleport[client] && curr_tick != tick_served[client])
 	{
+		SetEntPropString(client, Prop_Data, "m_iName", "");
+		SetEntPropString(client, Prop_Data, "m_iClassname", "player");
+		
 		MaybeDoPhysicsUntouch(client);
 		ClearClientEvents(client);
+		
+		tick_served[client] = curr_tick;
+		
 		return Plugin_Stop;
+	}
+	else if(curr_tick != tick_served[client])
+	{
+		tick_served[client] = 0;
 	}
 	
 	return Plugin_Continue;
@@ -2176,32 +2181,6 @@ public Action Shavit_OnStart(int client)
 	if (gB_Eventqueuefix)
 	{
 		SetClientEventsPaused(client, false);
-	}
-
-	if(gCV_ResetTargetname.BoolValue)
-	{
-		char targetname[64];
-		char classname[64];
-
-		if (Shavit_GetClientTrack(client) == Track_Main)
-		{
-			gCV_ResetTargetnameMain.GetString(targetname, sizeof(targetname));
-			gCV_ResetClassnameMain.GetString(classname, sizeof(classname));
-		}
-		else
-		{
-			gCV_ResetTargetnameBonus.GetString(targetname, sizeof(targetname));
-			gCV_ResetClassnameBonus.GetString(classname, sizeof(classname));
-		}
-
-		DispatchKeyValue(client, "targetname", targetname);
-
-		if (!classname[0])
-		{
-			classname = "player";
-		}
-
-		SetEntPropString(client, Prop_Data, "m_iClassname", classname);
 	}
 
 	return Plugin_Continue;
