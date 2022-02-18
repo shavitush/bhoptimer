@@ -2168,6 +2168,32 @@ public Action Shavit_OnStartPre(int client)
 	if((gI_LatestTeleportTick[client] <= curr_tick <= gI_LatestTeleportTick[client] + 1) && 
 		!gB_WasInStartZoneBeforeTeleport[client] && curr_tick != tick_served[client])
 	{
+		if(gCV_ResetTargetname.BoolValue)
+		{
+			char targetname[64];
+			char classname[64];
+			
+			if (Shavit_GetClientTrack(client) == Track_Main)
+			{
+				gCV_ResetTargetnameMain.GetString(targetname, sizeof(targetname));
+				gCV_ResetClassnameMain.GetString(classname, sizeof(classname));
+			}
+			else
+			{
+				gCV_ResetTargetnameBonus.GetString(targetname, sizeof(targetname));
+				gCV_ResetClassnameBonus.GetString(classname, sizeof(classname));
+			}
+			
+			DispatchKeyValue(client, "targetname", targetname);
+			
+			if (!classname[0])
+			{
+				classname = "player";
+			}
+			
+			SetEntPropString(client, Prop_Data, "m_iClassname", classname);
+		}
+		
 		MaybeDoPhysicsUntouch(client);
 		ClearClientEvents(client);
 		
@@ -2188,32 +2214,6 @@ public Action Shavit_OnStart(int client)
 	if (gB_Eventqueuefix)
 	{
 		SetClientEventsPaused(client, false);
-	}
-	
-	if(gCV_ResetTargetname.BoolValue)
-	{
-		char targetname[64];
-		char classname[64];
-
-		if (Shavit_GetClientTrack(client) == Track_Main)
-		{
-			gCV_ResetTargetnameMain.GetString(targetname, sizeof(targetname));
-			gCV_ResetClassnameMain.GetString(classname, sizeof(classname));
-		}
-		else
-		{
-			gCV_ResetTargetnameBonus.GetString(targetname, sizeof(targetname));
-			gCV_ResetClassnameBonus.GetString(classname, sizeof(classname));
-		}
-
-		DispatchKeyValue(client, "targetname", targetname);
-
-		if (!classname[0])
-		{
-			classname = "player";
-		}
-
-		SetEntPropString(client, Prop_Data, "m_iClassname", classname);
 	}
 
 	return Plugin_Continue;
