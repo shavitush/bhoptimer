@@ -33,10 +33,10 @@ static ArrayList _ConvarList;
 
 enum struct convar_t
 {
+	char name[255];
 	ConVar cvar;
 	char description[512];
 	char defValue[512];
-	char name[255];
 
 	bool GetMin(float& input)
 	{
@@ -70,6 +70,7 @@ methodmap Convar < ConVar
 
 		convar_t savedValue;
 		savedValue.cvar = cvar;
+		strcopy(savedValue.name, sizeof(savedValue.name), name);
 		strcopy(savedValue.description, 512, description);
 		strcopy(savedValue.defValue, sizeof(savedValue.defValue), defaultValue);
 
@@ -102,6 +103,7 @@ methodmap Convar < ConVar
 			return false;
 		}
 
+		_ConvarList.Sort(Sort_Ascending, Sort_String);
 
 		// Check if the file exists.
 		char local[PLATFORM_MAX_PATH];
@@ -151,19 +153,11 @@ methodmap Convar < ConVar
 						continue;
 					}
 
-					// make a copy of our description
-					char descr[512];
-					descr = convar.description;
-
 					// format newlines as comments
-					ReplaceString(descr, 512, "\n", "\n// ");
+					ReplaceString(convar.description, 512, "\n", "\n// ");
 
 					// write the values and bounds to the file if they exist
-					file.WriteLine("// %s", descr);
-
-					// get the convar name and default value to write to file
-					char name[64];
-					convar.cvar.GetName(name, 64);
+					file.WriteLine("// %s", convar.description);
 
 					file.WriteLine("// -");
 					file.WriteLine("// Default: \"%s\"", convar.defValue);
@@ -176,7 +170,7 @@ methodmap Convar < ConVar
 					{
 						file.WriteLine("// Maximum: \"%02f\"", x);
 					}
-					file.WriteLine("%s \"%s\"\n", name, convar.defValue);
+					file.WriteLine("%s \"%s\"\n", convar.name, convar.defValue);
 				}
 				// end with newline
 				file.WriteLine("");
@@ -262,14 +256,8 @@ methodmap Convar < ConVar
 						continue;
 					}
 
-					char descr[512];
-					descr = convar.description;
-
-					ReplaceString(descr, 512, "\n", "\n// ");
-					file.WriteLine("// %s", descr);
-
-					char name[64];
-					convar.cvar.GetName(name, 64);
+					ReplaceString(convar.description, 512, "\n", "\n// ");
+					file.WriteLine("// %s", convar.description);
 
 					file.WriteLine("// -");
 					file.WriteLine("// Default: \"%s\"", convar.defValue);
@@ -284,13 +272,13 @@ methodmap Convar < ConVar
 
 					// only difference is that now we check for a stored value.
 					char storedValue[512];
-					if(convars.GetString(name, storedValue, 512))
+					if(convars.GetString(convar.name, storedValue, 512))
 					{
-						file.WriteLine("%s \"%s\"\n", name, storedValue);
+						file.WriteLine("%s \"%s\"\n", convar.name, storedValue);
 					}
 					else
 					{
-						file.WriteLine("%s \"%s\"\n", name, convar.defValue);
+						file.WriteLine("%s \"%s\"\n", convar.name, convar.defValue);
 					}
 				}
 				file.WriteLine("");
