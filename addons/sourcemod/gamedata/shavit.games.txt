@@ -38,7 +38,7 @@
 	{
 		"Offsets"
 		{
-			// search string "#SFUI_Notice_SprayPaint_TooClose" to find IsAbleToApplySpray and then go to the next function to find GetPlayerMaxSpeed. Then calculate the vtable offset.
+			// search string: "start %f %f %f" and then check the function call offsets above it and convert them to vtable offsets (divide by 4 most likely or whatever)
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
 				"windows"   "506"
