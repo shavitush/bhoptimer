@@ -305,6 +305,7 @@ public void OnPluginStart()
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
 	gCV_Offset.AddChangeHook(OnConVarChanged);
 	gCV_PrebuiltVisualOffset.AddChangeHook(OnConVarChanged);
+	gCV_BoxOffset.AddChangeHook(OnConVarChanged);
 
 	Convar.AutoExecConfig();
 
@@ -426,6 +427,10 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	else if(convar == gCV_UseCustomSprite && !StrEqual(oldValue, newValue))
 	{
 		LoadZoneSettings();
+	}
+	else if (convar == gCV_BoxOffset)
+	{
+		CreateZoneEntities(false);
 	}
 }
 
