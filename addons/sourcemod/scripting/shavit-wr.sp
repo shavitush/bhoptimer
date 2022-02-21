@@ -2977,7 +2977,23 @@ int GetRankForTime(int style, float time, int track)
 		return 1;
 	}
 
-	for (int i = 0; i < iRecords; i++)
+	int i = 0;
+
+	if (iRecords > 100)
+	{
+		int middle = iRecords/2;
+
+		if (gA_Leaderboard[style][track].Get(middle) < time)
+		{
+			i = middle;
+		}
+		else
+		{
+			iRecords = middle;
+		}
+	}
+
+	for (; i < iRecords; i++)
 	{
 		if (time <= gA_Leaderboard[style][track].Get(i))
 		{
