@@ -1297,15 +1297,23 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 			float fSpeedXY = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
 
-			if (fSpeedXY >= 1.0)
+			if (fSpeedXY < prespeed_ez_vel)
 			{
-				float direction[3];
-				GetVectorAngles(fSpeed, direction);
+				float theta;
 
-				float yaw = DegToRad(direction[1]);
-				fSpeed[0] = prespeed_ez_vel * Cosine(yaw);
-				fSpeed[1] = prespeed_ez_vel * Sine(yaw);
+				if (fSpeedXY >= 1.0)
+				{
+					float direction[3];
+					GetVectorAngles(fSpeed, direction);
+					theta = DegToRad(direction[1]);
+				}
+				else
+				{
+					theta = DegToRad(angles[1]);
+				}
 
+				fSpeed[0] = prespeed_ez_vel * Cosine(theta);
+				fSpeed[1] = prespeed_ez_vel * Sine(theta);
 				DumbSetVelocity(client, fSpeed);
 			}
 		}
