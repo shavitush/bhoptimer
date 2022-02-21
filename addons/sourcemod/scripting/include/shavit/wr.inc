@@ -135,9 +135,9 @@ native void Shavit_GetWRRecordID(int style, int &recordid, int track);
  * @param wrname                    Reference to the name variable.
  * @param wrmaxlength               Max length for the string.
  * @param track                     Timer track.
- * @noreturn
+ * @return                          Returns true if the player's name has been cached. False if it hasn't. `wrname` is filled with the player's name if available, otherwise the steamid if the name isn't cached, and lastly the string "none" if neither the name or steamid is available.
  */
-native void Shavit_GetWRName(int style, char[] wrname, int wrmaxlength, int track);
+native bool Shavit_GetWRName(int style, char[] wrname, int wrmaxlength, int track);
 
 /**
  * Retrieves the best time of a player.

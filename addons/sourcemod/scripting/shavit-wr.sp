@@ -677,11 +677,17 @@ public int Native_GetWRName(Handle handler, int numParams)
 		if (gSM_WRNames.GetString(sSteamID, sName, sizeof(sName)))
 		{
 			SetNativeString(2, sName, GetNativeCell(3));
+			return 1;
+		}
+		else
+		{
+			FormatEx(sName, sizeof(sName), "[U:1:%d]", iSteamID);
+			SetNativeString(2, sName, GetNativeCell(3));
 			return 0;
 		}
 	}
 
-	SetNativeString(2, "invalid", GetNativeCell(3));
+	SetNativeString(2, "none", GetNativeCell(3));
 	return 0;
 }
 
@@ -2583,6 +2589,14 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		gF_WRTime[style][track] = time;
 
 		gI_WRSteamID[style][track] = iSteamID;
+
+		char sSteamID[20];
+		IntToString(iSteamID, sSteamID, sizeof(sSteamID));
+
+		char sName[32+1];
+		SanerGetClientName(client, sName);
+		ReplaceString(sName, sizeof(sName), "#", "?");
+		gSM_WRNames.SetString(sSteamID, sName, true);
 
 		Call_StartForward(gH_OnWorldRecord);
 		Call_PushCell(client);
