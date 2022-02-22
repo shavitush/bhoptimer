@@ -105,7 +105,7 @@ Convar gCV_AdvertisementInterval = null;
 Convar gCV_RemoveRagdolls = null;
 Convar gCV_ClanTag = null;
 Convar gCV_DropAll = null;
-Convar gCV_ResetTargetname = null;
+Convar gCV_ForceTargetnameReset = null;
 Convar gCV_ResetTargetnameMain = null;
 Convar gCV_ResetTargetnameBonus = null;
 Convar gCV_ResetClassnameMain = null;
@@ -279,7 +279,7 @@ public void OnPluginStart()
 	gCV_RemoveRagdolls = new Convar("shavit_misc_removeragdolls", "1", "Remove ragdolls after death?\n0 - Disabled\n1 - Only remove replay bot ragdolls.\n2 - Remove all ragdolls.", 0, true, 0.0, true, 2.0);
 	gCV_ClanTag = new Convar("shavit_misc_clantag", "{tr}{styletag} :: {time}", "Custom clantag for players.\n0 - Disabled\n{styletag} - style tag.\n{style} - style name.\n{time} - formatted time.\n{tr} - first letter of track.\n{rank} - player rank.\n{cr} - player's chatrank from shavit-chat, trimmed, with no colors", 0);
 	gCV_DropAll = new Convar("shavit_misc_dropall", "1", "Allow all weapons to be dropped?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_ResetTargetname = new Convar("shavit_misc_resettargetname", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_ForceTargetnameReset = new Convar("shavit_misc_forcetargetnamereset", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetnameMain = new Convar("shavit_misc_resettargetname_main", "", "What targetname to use when resetting the player. You don't need to touch this");
 	gCV_ResetTargetnameBonus = new Convar("shavit_misc_resettargetname_bonus", "", "What targetname to use when resetting the player (on bonus tracks). You don't need to touch this");
 	gCV_ResetClassnameMain = new Convar("shavit_misc_resetclassname_main", "", "What classname to use when resetting the player. You don't need to touch this");
@@ -2168,7 +2168,7 @@ public Action Shavit_OnStartPre(int client)
 	if((gI_LatestTeleportTick[client] <= curr_tick <= gI_LatestTeleportTick[client] + 1) && 
 		!gB_WasInStartZoneBeforeTeleport[client] && curr_tick != tick_served[client])
 	{
-		if(gCV_ResetTargetname.BoolValue)
+		if(gCV_ForceTargetnameReset.BoolValue)
 		{
 			char targetname[64];
 			char classname[64];
