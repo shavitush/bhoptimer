@@ -159,6 +159,13 @@ native int Shavit_GetReplayStarter(int ent);
 native int Shavit_GetReplayButtons(int ent, float& anglediff);
 
 /**
+ * Retrieves the replay's entity flags for its current tick.
+ * @param                           Replay entity.
+ * @return                          Entity flags
+ */
+native int Shavit_GetReplayEntityFlags(int ent);
+
+/**
  * Retrieves a replay's frame count.
  *
  * @param style                     Style.
@@ -473,6 +480,7 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClosestReplayVelocityDifference");
 	MarkNativeAsOptional("Shavit_IsReplayEntity");
 	MarkNativeAsOptional("Shavit_GetReplayButtons");
+	MarkNativeAsOptional("Shavit_GetReplayEntityFlags");
 	MarkNativeAsOptional("Shavit_GetClosestReplayStyle");
 	MarkNativeAsOptional("Shavit_SetClosestReplayStyle");
 	MarkNativeAsOptional("Shavit_GetReplayCacheFrameCount");

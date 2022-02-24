@@ -29,7 +29,6 @@
 #define DEBUG 0
 
 #include <shavit/core>
-#include <shavit/bhopstats-timerified.sp>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/hud>
@@ -160,6 +159,10 @@ float gF_ZoneSpeedLimit[MAXPLAYERS+1];
 
 // kz support
 bool gB_KZMap[TRACKS_SIZE];
+
+
+#include <shavit/bhopstats-timerified.sp> // down here to get includes from replay-playback & to inherit gB_ReplayPlayback
+
 
 public Plugin myinfo =
 {
@@ -344,6 +347,7 @@ public void OnPluginStart()
 	// admin
 	RegAdminCmd("sm_deletemap", Command_DeleteMap, ADMFLAG_ROOT, "Deletes all map data. Usage: sm_deletemap <map>");
 	RegAdminCmd("sm_wipeplayer", Command_WipePlayer, ADMFLAG_BAN, "Wipes all bhoptimer data for specified player. Usage: sm_wipeplayer <steamid3>");
+	RegAdminCmd("sm_wipetrack", Command_WipeTrack, ADMFLAG_ROOT, "Deletes all runs on a track.");
 	RegAdminCmd("sm_migration", Command_Migration, ADMFLAG_ROOT, "Force a database migration to run. Usage: sm_migration <migration id> or \"all\" to run all migrations.");
 	// commands END
 
@@ -1087,6 +1091,12 @@ public Action Command_WipePlayer(int client, int args)
 		strcopy(gS_Verification[client], 8, "");
 		gI_WipePlayerID[client] = -1;
 	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_WipeTrack(int client, int args)
+{
 
 	return Plugin_Handled;
 }
@@ -2502,13 +2512,12 @@ public void OnClientCookiesCached(int client)
 public void OnClientPutInServer(int client)
 {
 	StopTimer(client);
+	Bhopstats_OnClientPutInServer(client);
 
 	if(!IsClientConnected(client) || IsFakeClient(client))
 	{
 		return;
 	}
-
-	Bhopstats_OnClientPutInServer(client);
 
 	gB_Auto[client] = true;
 	gA_Timers[client].fStrafeWarning = 0.0;

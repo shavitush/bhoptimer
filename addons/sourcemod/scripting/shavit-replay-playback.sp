@@ -179,6 +179,7 @@ int gI_DynamicBots = 0;
 // Replay_Prop: index with starter/watcher
 // Replay_ANYTHINGELSE: index with fakeclient index
 bot_info_t gA_BotInfo[MAXPLAYERS+1];
+frame_t gA_CachedFrames[MAXPLAYERS+1][2]; // I know it kind of overlaps with the frame_cache_t name stuff...
 
 // hooks and sdkcall stuff
 Handle gH_BotAddCommand = INVALID_HANDLE;
@@ -260,6 +261,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
 	CreateNative("Shavit_GetReplayStarter", Native_GetReplayStarter);
 	CreateNative("Shavit_GetReplayButtons", Native_GetReplayButtons);
+	CreateNative("Shavit_GetReplayEntityFlags", Native_GetReplayEntityFlags);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
 	CreateNative("Shavit_GetReplayPreFrames", Native_GetReplayPreFrames);
@@ -1281,13 +1283,20 @@ public int Native_GetReplayButtons(Handle handler, int numParams)
 		return 0;
 	}
 
-	frame_t aFrame;
-	gA_BotInfo[bot].aCache.aFrames.GetArray(gA_BotInfo[bot].iTick ? gA_BotInfo[bot].iTick-1 : 0, aFrame, 6);
-	float prevAngle = aFrame.ang[1];
-	gA_BotInfo[bot].aCache.aFrames.GetArray(gA_BotInfo[bot].iTick, aFrame, 6);
+	SetNativeCellRef(2, GetAngleDiff(gA_CachedFrames[bot][0].ang[1], gA_CachedFrames[bot][1].ang[1]));
+	return gA_CachedFrames[bot][0].buttons;
+}
 
-	SetNativeCellRef(2, GetAngleDiff(aFrame.ang[1], prevAngle));
-	return aFrame.buttons;
+public int Native_GetReplayEntityFlags(Handle plugin, int numParams)
+{
+	int bot = GetBotInfoIndex(GetNativeCell(1));
+
+	if (gA_BotInfo[bot].iStatus != Replay_Running)
+	{
+		return 0;
+	}
+
+	return gA_CachedFrames[bot][0].flags;
 }
 
 public int Native_Replay_DeleteMap(Handle handler, int numParams)
@@ -2398,6 +2407,9 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			frame_t aFrame;
 			info.aCache.aFrames.GetArray(info.iTick, aFrame, (info.aCache.iReplayVersion >= 0x02) ? 8 : 6);
 			buttons = aFrame.buttons;
+
+			gA_CachedFrames[info.iEnt][1] = gA_CachedFrames[info.iEnt][0];
+			gA_CachedFrames[info.iEnt][0] = aFrame;
 
 			if (!isClient)
 			{

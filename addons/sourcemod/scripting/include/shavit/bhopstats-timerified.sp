@@ -110,7 +110,17 @@ public void Bhopstats_PostThinkPost(int client)
 	int buttons = GetClientButtons(client);
 	bool bOldOnGround = gB_OnGround[client];
 
-	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
+	int iGroundEntity;
+
+	if (gB_ReplayPlayback && IsFakeClient(client))
+	{
+		iGroundEntity = (Shavit_GetReplayEntityFlags(client) & FL_ONGROUND) ? 0 : -1;
+	}
+	else
+	{
+		iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
+	}
+
 	bool bOnLadder = (GetEntityMoveType(client) == MOVETYPE_LADDER);
 	gB_OnGround[client] = (iGroundEntity != -1 || GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2 || bOnLadder);
 
