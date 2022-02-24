@@ -1819,17 +1819,10 @@ void AddReplayBots()
 	}
 }
 
-void GetReplayFilePath(int style, int track, const char[] mapname, char sPath[PLATFORM_MAX_PATH])
-{
-	char sTrack[4];
-	FormatEx(sTrack, 4, "_%d", track);
-	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", gS_ReplayFolder, style, mapname, (track > 0)? sTrack:"");
-}
-
 bool DefaultLoadReplay(frame_cache_t cache, int style, int track)
 {
 	char sPath[PLATFORM_MAX_PATH];
-	GetReplayFilePath(style, track, gS_Map, sPath);
+	Shavit_GetReplayFilePath(style, track, gS_Map, gS_ReplayFolder, sPath);
 
 	if (!LoadReplay(cache, style, track, sPath, gS_Map))
 	{
@@ -1857,7 +1850,7 @@ bool DefaultLoadReplay(frame_cache_t cache, int style, int track)
 bool DeleteReplay(int style, int track, int accountid, const char[] mapname)
 {
 	char sPath[PLATFORM_MAX_PATH];
-	GetReplayFilePath(style, track, mapname, sPath);
+	Shavit_GetReplayFilePath(style, track, mapname, gS_ReplayFolder, sPath);
 
 	if(!FileExists(sPath))
 	{

@@ -335,13 +335,35 @@ void FinishGrabbingPostFrames(int client, finished_run_info info)
 	DoReplaySaverCallbacks(info.iSteamID, client, info.style, info.time, info.jumps, info.strafes, info.sync, info.track, info.oldtime, info.perfs, info.avgvel, info.maxvel, info.timestamp, info.fZoneOffset);
 }
 
+float ExistingWrReplayLength(int style, int track)
+{
+	if (gB_ReplayPlayback)
+	{
+		return Shavit_GetReplayLength(style, track);
+	}
+
+	char sPath[PLATFORM_MAX_PATH];
+	Shavit_GetReplayFilePath(style, track, gS_Map, gS_ReplayFolder, sPath);
+
+	replay_header_t header;
+	File f = ReadReplayHeader(sPath, header, style, track);
+
+	if (f != null)
+	{
+		delete f;
+		return header.fTime;
+	}
+
+	return 0.0;
+}
+
 void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, float fZoneOffset[2])
 {
 	gA_PlayerFrames[client].Resize(gI_PlayerFrames[client]);
 
 	bool isTooLong = (gCV_TimeLimit.FloatValue > 0.0 && time > gCV_TimeLimit.FloatValue);
 
-	float length = gB_ReplayPlayback ? Shavit_GetReplayLength(style, track) : 999999999.0;
+	float length = ExistingWrReplayLength(style, track);
 	bool isBestReplay = (length == 0.0 || time < length);
 
 	Action action = Plugin_Continue;

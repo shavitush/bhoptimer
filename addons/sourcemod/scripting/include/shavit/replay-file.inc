@@ -224,11 +224,6 @@ stock File ReadReplayHeader(const char[] path, replay_header_t header, int style
 	replay_header_t empty_header;
 	header = empty_header;
 
-	if (!FileExists(path))
-	{
-		return null;
-	}
-
 	File file = OpenFile(path, "rb");
 
 	if (file == null)

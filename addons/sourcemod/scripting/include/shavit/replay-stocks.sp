@@ -23,6 +23,13 @@ stock bool Shavit_ReplayEnabledStyle(int style)
 	return !Shavit_GetStyleSettingBool(style, "unranked") && !Shavit_GetStyleSettingBool(style, "noreplay");
 }
 
+stock void Shavit_GetReplayFilePath(int style, int track, const char[] mapname, const char[] replayfolder, char sPath[PLATFORM_MAX_PATH])
+{
+	char sTrack[4];
+	FormatEx(sTrack, 4, "_%d", track);
+	FormatEx(sPath, PLATFORM_MAX_PATH, "%s/%d/%s%s.replay", replayfolder, style, mapname, (track > 0)? sTrack:"");
+}
+
 stock bool Shavit_GetReplayFolderPath_Stock(char buffer[PLATFORM_MAX_PATH])
 {
 	char sPath[PLATFORM_MAX_PATH];
