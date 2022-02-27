@@ -48,6 +48,7 @@ enum struct cp_cache_t
 	ArrayList aEvents;
 	ArrayList aOutputWaits;
 	float vecLadderNormal[3];
+	StringMap customdata;
 }
 
 /**
@@ -100,6 +101,38 @@ forward Action Shavit_OnCheckpointMenuMade(int client, bool segmented, Menu menu
  * @return                          Plugin_Continue to continue the callback. Return Plugin_Stop to prevent the checkpoints menu from reopening.
  */
 forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info, int maxlength, int currentCheckpoint, int maxCPs);
+
+/**
+ * Called when a checkpoint cache is saved.
+ *
+ * @param client                    The client the checkpoint cache is being saved for.
+ * @param cache                     The resulting checkpoint cache structure.
+ * @param index                     The resulting checkpoint index for this checkpoint cache. -1 if the cache is being saved as "persistent data" for rejoins/spectating.
+ * @param target                    The target of the checkpoint cache.
+ *
+ * @noreturn
+ */
+forward void Shavit_OnCheckpointCacheSaved(int client, cp_cache_t cache, int index, int target);
+
+/**
+ * Called when a checkpoint cache is being loaded.
+ *
+ * @param client                    The client who is loading the checkpoint cache.
+ * @param cache                     The cache.
+ * @param index                     The checkpoint index for this cache. -1 if the cache is being loaded from "persistent data" for rejoins/spectating.
+ *
+ * @noreturn
+ */
+forward void Shavit_OnCheckpointCacheLoaded(int client, cp_cache_t cache, int index);
+
+/**
+ * Called when a checkpoint cache is being deleted.
+ *
+ * @param cache                     The cache.
+ *
+ * @noreturn
+ */
+forward void Shavit_OnCheckpointCacheDeleted(cp_cache_t cache);
 
 /**
  * Gets the total number of CPs that a client has saved

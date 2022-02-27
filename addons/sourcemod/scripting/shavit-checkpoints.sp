@@ -71,6 +71,9 @@ Handle gH_Forwards_OnTeleport = null;
 Handle gH_Forwards_OnDelete = null;
 Handle gH_Forwards_OnCheckpointMenuMade = null;
 Handle gH_Forwards_OnCheckpointMenuSelect = null;
+Handle gH_Forwards_OnCheckpointCacheSaved = null;
+Handle gH_Forwards_OnCheckpointCacheLoaded = null;
+Handle gH_Forwards_OnCheckpointCacheDeleted = null;
 
 chatstrings_t gS_ChatStrings;
 
@@ -150,6 +153,9 @@ public void OnPluginStart()
 	gH_Forwards_OnCheckpointMenuMade = CreateGlobalForward("Shavit_OnCheckpointMenuMade", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnDelete = CreateGlobalForward("Shavit_OnDelete", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnCheckpointCacheSaved = CreateGlobalForward("Shavit_OnCheckpointCacheSaved", ET_Ignore, Param_Cell, Param_Array, Param_Cell, Param_Cell);
+	gH_Forwards_OnCheckpointCacheLoaded = CreateGlobalForward("Shavit_OnCheckpointCacheLoaded", ET_Ignore, Param_Cell, Param_Array, Param_Cell);
+	gH_Forwards_OnCheckpointCacheDeleted = CreateGlobalForward("Shavit_OnCheckpointCacheDeleted", ET_Ignore, Param_Array);
 
 	gEV_Type = GetEngineVersion();
 
@@ -662,7 +668,7 @@ void PersistData(int client, bool disconnected)
 
 	if (!gB_SaveStates[client])
 	{
-		SaveCheckpointCache(client, aData.cpcache, false);
+		SaveCheckpointCache(client, client, aData.cpcache, -1);
 	}
 
 	gB_SaveStates[client] = true;
@@ -724,14 +730,25 @@ void LoadPersistentData(int serial)
 		}
 	}
 
+	Call_StartForward(gH_Forwards_OnCheckpointCacheLoaded);
+	Call_PushCell(client);
+	Call_PushArray(aData.cpcache, sizeof(aData.cpcache));
+	Call_PushCell(-1);
+	Call_Finish();
+
 	DeletePersistentData(iIndex, aData);
 }
 
 void DeleteCheckpointCache(cp_cache_t cache)
 {
+	Call_StartForward(gH_Forwards_OnCheckpointCacheDeleted);
+	Call_PushArray(cache, sizeof(cache));
+	Call_Finish();
+
 	delete cache.aFrames;
 	delete cache.aEvents;
 	delete cache.aOutputWaits;
+	delete cache.customdata;
 }
 
 void DeleteCheckpointCacheList(ArrayList cps)
@@ -1410,7 +1427,7 @@ bool SaveCheckpoint(int client)
 	}
 
 	cp_cache_t cpcache;
-	SaveCheckpointCache(target, cpcache, true);
+	SaveCheckpointCache(client, target, cpcache, index);
 	gI_CurrentCheckpoint[client] = index;
 
 	if(overflow)
@@ -1429,7 +1446,7 @@ bool SaveCheckpoint(int client)
 	return true;
 }
 
-void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpoint)
+void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index)
 {
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
@@ -1462,7 +1479,7 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 		GetEntPropString(target, Prop_Data, "m_iName", cpcache.sTargetname, 64);
 	}
 
-	if (cpcache.iMoveType == MOVETYPE_NONE || (cpcache.iMoveType == MOVETYPE_NOCLIP && actually_a_checkpoint))
+	if (cpcache.iMoveType == MOVETYPE_NONE || (cpcache.iMoveType == MOVETYPE_NOCLIP && index != -1))
 	{
 		cpcache.iMoveType = MOVETYPE_WALK;
 	}
@@ -1522,7 +1539,7 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 	cpcache.aSnapshot = snapshot;
 	cpcache.bSegmented = CanSegment(target);
 
-	if (cpcache.bSegmented && gB_ReplayRecorder && actually_a_checkpoint && cpcache.aFrames == null)
+	if (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null)
 	{
 		cpcache.aFrames = Shavit_GetReplayData(target, false);
 		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
@@ -1540,6 +1557,20 @@ void SaveCheckpointCache(int target, cp_cache_t cpcache, bool actually_a_checkpo
 	}
 
 	cpcache.iSteamID = GetSteamAccountID(target);
+
+	if (cpcache.iSteamID != GetSteamAccountID(saver))
+	{
+		cpcache.aSnapshot.bPracticeMode = true;
+	}
+
+	cpcache.customdata = new StringMap();
+
+	Call_StartForward(gH_Forwards_OnCheckpointCacheSaved);
+	Call_PushCell(saver);
+	Call_PushArray(cpcache, sizeof(cpcache));
+	Call_PushCell(index);
+	Call_PushCell(target);
+	Call_Finish();
 }
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
@@ -1604,6 +1635,12 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	LoadCheckpointCache(client, cpcache, false);
 	Shavit_ResumeTimer(client);
+
+	Call_StartForward(gH_Forwards_OnCheckpointCacheLoaded);
+	Call_PushCell(client);
+	Call_PushArray(cpcache, sizeof(cpcache));
+	Call_PushCell(index);
+	Call_Finish();
 
 	if(!suppressMessage)
 	{
