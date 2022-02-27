@@ -4,11 +4,14 @@ Note: Dates are UTC+0.
 
 
 
-# v3.1.3 - asdf 2022-02-xx - rtldg
+# v3.1.3 - asdf - 2022-02-27 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.3
 
+small things mainly and might as well push out a release instead of waiting another two weeks. hopefully nobody notices that half the `!czones` colors don't work because overlapping beams fucks with the color intensity. might have a bigger release next that messes with how the replays are stored and the replay format.
+
+- included [eventqueuefix 1.2.1](https://github.com/hermansimensen/eventqueue-fix/tree/01eff5cc5f4d6d0f728563e538c9e203b565f304) in release zip so people use the correct eventqueuefix version for the timer
 - `invert this duck autogain nsl boolean` https://github.com/shavitush/bhoptimer/commit/26dfdcc9275baa08fa32e23a0315ecaa96c50e8e
-- added player_speedmod & m_flLaggedMovementValue values to debug targetname hud thing https://github.com/shavitush/bhoptimer/commit/9a5ff64fc5ed0f005f0a820f8eecdbf8b06b1a17
+- added `player_speedmod` & `m_flLaggedMovementValue` values to debug targetname hud thing https://github.com/shavitush/bhoptimer/commit/9a5ff64fc5ed0f005f0a820f8eecdbf8b06b1a17
 - `draw perfs keyhint even in startzone so the hud doesn't resize constantly` https://github.com/shavitush/bhoptimer/commit/987eebb3b072f7392579173a6a8831d4a09e622a
 - `don't let mp_humanteam get in the way of jointeam 1 (for css spectatemenu prompt on first join)` https://github.com/shavitush/bhoptimer/commit/a0153de9f80f49c043762d25ddf8978870c02295
 - two stats playtime bugfixes https://github.com/shavitush/bhoptimer/commit/253321ced6f502f1b457f7f94070dabd85e73505 https://github.com/shavitush/bhoptimer/commit/363627603b4edef059859fd1720db7807e26eee5
