@@ -4,8 +4,36 @@ Note: Dates are UTC+0.
 
 
 
+# v3.1.3 - asdf 2022-02-xx - rtldg
+https://github.com/shavitush/bhoptimer/releases/tag/v3.1.3
+
+- `invert this duck autogain nsl boolean` https://github.com/shavitush/bhoptimer/commit/26dfdcc9275baa08fa32e23a0315ecaa96c50e8e
+- added player_speedmod & m_flLaggedMovementValue values to debug targetname hud thing https://github.com/shavitush/bhoptimer/commit/9a5ff64fc5ed0f005f0a820f8eecdbf8b06b1a17
+- `draw perfs keyhint even in startzone so the hud doesn't resize constantly` https://github.com/shavitush/bhoptimer/commit/987eebb3b072f7392579173a6a8831d4a09e622a
+- `don't let mp_humanteam get in the way of jointeam 1 (for css spectatemenu prompt on first join)` https://github.com/shavitush/bhoptimer/commit/a0153de9f80f49c043762d25ddf8978870c02295
+- two stats playtime bugfixes https://github.com/shavitush/bhoptimer/commit/253321ced6f502f1b457f7f94070dabd85e73505 https://github.com/shavitush/bhoptimer/commit/363627603b4edef059859fd1720db7807e26eee5
+- fixed lowgrav & ladders sometimes breaking still (in 2022) https://github.com/shavitush/bhoptimer/commit/ef5ac148b3a7b4076ede6db766189042de8ed661
+- added the `startinair` style setting which might be useful for non-bhop gamemodes like surf or tf2 stuff. might be exploitable so just let me know :^) https://github.com/shavitush/bhoptimer/commit/a6ade753fe33cde9eccb3f00788cb71d0807b726
+- @NukoOoOoOoO added !czones so players can change zone colors & style https://github.com/shavitush/bhoptimer/commit/9c634868cb3b2f9b0c0e36ca653d1f3972292531 https://github.com/shavitush/bhoptimer/pull/1119
+- multiple maps added to shavit-mapfixes.cfg
+	- `bhop_blackshit` https://github.com/shavitush/bhoptimer/commit/2360d71494c7cbf09762d9afdc4d0facc679494f
+	- `bhop_apathy` and `bhop_interloper` https://github.com/shavitush/bhoptimer/commit/614b16ce1711d160af7477690699d628387a76ac
+- `don't start non-prespeed styles unless on ground for .5s` https://github.com/shavitush/bhoptimer/commit/89e97dfd3d5710ec5c25bafa78f0ded2c05d15a9
+- modified `prespeed_ez_vel` to hopefully prevent invalid velocities & to make it work with just where the player is looking while standing still https://github.com/shavitush/bhoptimer/commit/98ee1799270690304585af6ec58415add80c426d
+- make `shavit_zones_box_offset` affect zones when changed mid-map https://github.com/shavitush/bhoptimer/commit/840490cc54f9862b9450e39ed88c141e767d071c
+- prevent "invalid" from showing up in the top left immediately after a new WR is made.https://github.com/shavitush/bhoptimer/commit/2e791a8237fd069019470686d4cc6effd880673b
+	- adds a return value to `Shavit_GetWRName`
+- make the scroll count !keys display work for (non-prop) replay bots https://github.com/shavitush/bhoptimer/commit/80e8480b7a0a94e8962e1d3da78602c703edf63d
+	- adds `Shavit_GetReplayEntityFlags()`, although it might be removed in the "near" future
+- prevent `shavit-replay-recorder` from overwriting faster replay files if `shavit-replay-playback` is unloaded https://github.com/shavitush/bhoptimer/commit/060ce5e660471c1ab6b84b0fc98d2b6e99a23e9e
+- added more shavit-checkpoint forwards so third-party plugins can store custom data in checkpoints. https://github.com/shavitush/bhoptimer/commit/69445ebab582de152439d9a82c58aaffc71bc226
+	- `mpbhops_but_working` now uses these to work with segmented checkpoints https://github.com/rtldg/mpbhops_but_working/blob/516b470feaa5180145acc28f28c05ff4793547ad/addons/sourcemod/scripting/mpbhops_but_working.sp#L116-L132
+	- `StringMap customdata` was added to the bottom of `cp_cache_t`
+	- includes `Shavit_OnCheckpointCacheSaved`, `Shavit_OnCheckpointCacheLoaded`, and `Shavit_OnCheckpointCacheDeleted`
+
 # v3.1.2 - asdf - 2022-01-28 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.2
+https://github.com/shavitush/bhoptimer/commit/d335ec72625b29f90668ab332f58323e528dd98f
 
 - more robust max prestrafe limit thing to replace something from v3.1.1 https://github.com/shavitush/bhoptimer/commit/dd0059f15fc3045e67325deda4552984b968ca6f
 - fix crash that came with the `player_speedmod` hook https://github.com/shavitush/bhoptimer/commit/0000000146955c76f2ad78096cc27f614dfddf3d
