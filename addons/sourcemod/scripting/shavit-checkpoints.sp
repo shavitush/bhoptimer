@@ -705,6 +705,7 @@ void LoadPersistentData(int serial)
 		return;
 	}
 
+	gB_SaveStates[client] = false;
 	LoadCheckpointCache(client, aData.cpcache, true);
 
 	gI_TimesTeleported[client] = aData.iTimesTeleported;
@@ -723,7 +724,6 @@ void LoadPersistentData(int serial)
 		}
 	}
 
-	gB_SaveStates[client] = false;
 	DeletePersistentData(iIndex, aData);
 }
 
