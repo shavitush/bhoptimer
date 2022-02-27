@@ -177,6 +177,8 @@ public void OnPluginStart()
 	sv_cheats = FindConVar("sv_cheats");
 	sv_disable_immunity_alpha = FindConVar("sv_disable_immunity_alpha");
 
+	RegAdminCmd("sm_maptimer_checkpoints", Command_MaptimerCheckpoints, ADMFLAG_RCON, "kz_bhop_yonkoma");
+
 	// spectator list
 	RegConsoleCmd("sm_specs", Command_Specs, "Show a list of spectators.");
 	RegConsoleCmd("sm_spectators", Command_Specs, "Show a list of spectators.");
@@ -1904,6 +1906,27 @@ public bool Shavit_OnStopPre(int client, int track)
 	}
 
 	return true;
+}
+
+public Action Command_MaptimerCheckpoints(int client, int args)
+{
+	if (client == 0 && args == 1)
+	{
+		char arg[8];
+		GetCmdArg(1, arg, sizeof(arg));
+		static float starttime;
+
+		if (StringToInt(arg) == 0)
+		{
+			starttime = GetGameTime();
+		}
+		else
+		{
+			Shavit_PrintToChatAll("Nice! That took %s%.3fs", gS_ChatStrings.sVariable, GetGameTime()-starttime);
+		}
+	}
+
+	return Plugin_Handled;
 }
 
 public Action Command_Noclip(int client, int args)
