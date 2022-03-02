@@ -43,7 +43,6 @@
 #include <shavit/zones>
 #include <eventqueuefix>
 
-#include <shavit/physicsuntouch>
 #include <shavit/weapon-stocks>
 
 #pragma newdecls required
@@ -72,9 +71,6 @@ Function gH_AfterWarningMenu[MAXPLAYERS+1];
 int gI_LastWeaponTick[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
 int gI_LastStopInfo[MAXPLAYERS+1];
-
-int gI_LatestTeleportTick[MAXPLAYERS+1];
-bool gB_WasInStartZoneBeforeTeleport[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -136,7 +132,6 @@ Handle gH_Forwards_OnClanTagChangePost = null;
 DynamicHook gH_GetPlayerMaxSpeed = null;
 DynamicHook gH_IsSpawnPointValid = null;
 DynamicDetour gH_CalcPlayerScore = null;
-DynamicHook gH_TeleportDhook = null;
 
 // modules
 bool gB_Checkpoints = false;
@@ -371,33 +366,7 @@ void LoadDHooks()
 	{
 		SetFailState("Couldn't get the offset for \"CGameRules::IsSpawnPointValid\" - make sure your gamedata is updated!");
 	}
-	
-	LoadPhysicsUntouch(hGameData);
-	
-	delete hGameData;
-	
-	hGameData = LoadGameConfigFile("sdktools.games");
-	if (hGameData == null)
-	{
-		SetFailState("Failed to load sdktools gamedata");
-	}
-	
-	iOffset = GameConfGetOffset(hGameData, "Teleport");
-	if (iOffset == -1)
-	{
-		SetFailState("Couldn't get the offset for \"Teleport\"!");
-	}
-	
-	gH_TeleportDhook = new DynamicHook(iOffset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
-	
-	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
-	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
-	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
-	if (GetEngineVersion() == Engine_CSGO)
-	{
-		gH_TeleportDhook.AddParam(HookParamType_Bool);
-	}
-	
+
 	delete hGameData;
 }
 
@@ -1349,9 +1318,6 @@ public void OnClientPutInServer(int client)
 
 	gI_LastWeaponTick[client] = 0;
 	gI_LastNoclipTick[client] = 0;
-	
-	gI_LatestTeleportTick[client] = 0;
-	gB_WasInStartZoneBeforeTeleport[client] = false;
 
 	if(IsFakeClient(client))
 	{
@@ -1368,11 +1334,6 @@ public void OnClientPutInServer(int client)
 		{
 			DHookEntity(gH_GetPlayerMaxSpeed, true, client);
 		}
-	}
-	
-	if(gH_TeleportDhook != null)
-	{
-		gH_TeleportDhook.HookEntity(Hook_Pre, client, DHooks_OnTeleport);
 	}
 
 	if(!AreClientCookiesCached(client))
@@ -2132,78 +2093,11 @@ public Action Command_Specs(int client, int args)
 	return Plugin_Handled;
 }
 
-public MRESReturn DHooks_OnTeleport(int pThis, DHookParam hParams)
-{
-	if(!IsValidEntity(pThis) || !IsClientInGame(pThis) || IsFakeClient(pThis))
-	{
-		return MRES_Ignored;
-	}
-	
-	if(!hParams.IsNull(1))
-	{
-		gB_WasInStartZoneBeforeTeleport[pThis] = Shavit_InsideZone(pThis, Zone_Start, -1);
-		gI_LatestTeleportTick[pThis] = GetGameTickCount();
-	}
-	
-	return MRES_Ignored;
-}
-
 public Action Shavit_OnStartPre(int client)
 {
 	if (Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
-	}
-	
-	static int tick_served[MAXPLAYERS + 1];
-	int curr_tick = GetGameTickCount();
-	
-	// GAMMACASE: This prevents further abuses related to external events being ran after you teleport from the trigger, with events setup, outside the start zone into the start zone.
-	// This accounts for the io events that might be set inside the start zone trigger in OnStartTouch and wont reset them!
-	// Logic behind this code is that all events in this chain are not instantly fired, so checking if there were teleport from the outside of a start zone in last 2 ticks
-	// and doing physics untouch now to trigger all OnEndTouch that should happen at the same tick but later and removing them allows further events from OnStartTouch be separated
-	// and be fired after which is the expected and desired effect.
-	// This also kills all ongoing events that were active on the client prior to the teleportation to start and also resets targetname and classname
-	// before the OnStartTouch from triggers in start zone are run, thus preventing the maps to be abusable if they don't have any reset triggers in place
-	if((gI_LatestTeleportTick[client] <= curr_tick <= gI_LatestTeleportTick[client] + 1) && 
-		!gB_WasInStartZoneBeforeTeleport[client] && curr_tick != tick_served[client])
-	{
-		if(gCV_ForceTargetnameReset.BoolValue)
-		{
-			char targetname[64];
-			char classname[64];
-			
-			if (Shavit_GetClientTrack(client) == Track_Main)
-			{
-				gCV_ResetTargetnameMain.GetString(targetname, sizeof(targetname));
-				gCV_ResetClassnameMain.GetString(classname, sizeof(classname));
-			}
-			else
-			{
-				gCV_ResetTargetnameBonus.GetString(targetname, sizeof(targetname));
-				gCV_ResetClassnameBonus.GetString(classname, sizeof(classname));
-			}
-			
-			DispatchKeyValue(client, "targetname", targetname);
-			
-			if (!classname[0])
-			{
-				classname = "player";
-			}
-			
-			SetEntPropString(client, Prop_Data, "m_iClassname", classname);
-		}
-		
-		MaybeDoPhysicsUntouch(client);
-		ClearClientEvents(client);
-		
-		tick_served[client] = curr_tick;
-		
-		return Plugin_Stop;
-	}
-	else if(curr_tick != tick_served[client])
-	{
-		tick_served[client] = 0;
 	}
 	
 	return Plugin_Continue;
@@ -2214,6 +2108,32 @@ public Action Shavit_OnStart(int client)
 	if (gB_Eventqueuefix)
 	{
 		SetClientEventsPaused(client, false);
+	}
+	
+	if(gCV_ForceTargetnameReset.BoolValue)
+	{
+		char targetname[64];
+		char classname[64];
+		
+		if (Shavit_GetClientTrack(client) == Track_Main)
+		{
+			gCV_ResetTargetnameMain.GetString(targetname, sizeof(targetname));
+			gCV_ResetClassnameMain.GetString(classname, sizeof(classname));
+		}
+		else
+		{
+			gCV_ResetTargetnameBonus.GetString(targetname, sizeof(targetname));
+			gCV_ResetClassnameBonus.GetString(classname, sizeof(classname));
+		}
+		
+		DispatchKeyValue(client, "targetname", targetname);
+		
+		if (!classname[0])
+		{
+			classname = "player";
+		}
+		
+		SetEntPropString(client, Prop_Data, "m_iClassname", classname);
 	}
 
 	return Plugin_Continue;
