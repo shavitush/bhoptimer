@@ -2565,7 +2565,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	bool bIncrementCompletions = true;
 	int iOverwrite = 0;
 
-	if(Shavit_GetStyleSettingInt(style, "unranked") || Shavit_IsPracticeMode(client))
+	if(Shavit_GetStyleSettingInt(style, "unranked") || Shavit_IsPracticeMode(client) || Shavit_IsTimerBanned(client))
 	{
 		iOverwrite = 0; // ugly way of not writing to database
 		bIncrementCompletions = false;

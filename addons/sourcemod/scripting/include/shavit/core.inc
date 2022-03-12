@@ -1389,6 +1389,35 @@ native bool Shavit_ShouldProcessFrame(int client);
  */
 native void Shavit_GotoEnd(int client, int track);
 
+/**
+ * idk pls help
+ *
+ * @param client
+ *
+ * @return                          true if the target player is timerbanned
+ */
+native bool Shavit_IsTimerBanned(int client);
+
+/**
+ * idk pls help
+ *
+ * @param client
+ * @param steamid
+ *
+ * @noreturn
+ */
+native void Shavit_AddToTimerban(int client, int steamid);
+
+/**
+ * idk pls help
+ *
+ * @param client
+ * @param steamid
+ *
+ * @noreturn
+ */
+native void Shavit_RemoveFromTimerban(int client, int steamid);
+
 public SharedPlugin __pl_shavit_core =
 {
 	name = "shavit",

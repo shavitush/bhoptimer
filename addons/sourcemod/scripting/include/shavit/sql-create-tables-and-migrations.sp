@@ -46,6 +46,7 @@ enum
 	Migration_Lowercase_startpositions,
 	Migration_AddPlayertimesPointsCalcedFrom, // points calculated from wr float added to playertimes
 	Migration_RemovePlayertimesPointsCalcedFrom, // lol
+	Migration_AddTimerBannedColumnToUser,
 	MIGRATIONS_END
 };
 
@@ -106,13 +107,13 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	if (gB_MySQL)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%susers` (`auth` INT NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_general_ci', `ip` INT, `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, `playtime` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`), INDEX `lastlogin` (`lastlogin`)) ENGINE=INNODB;",
+			"CREATE TABLE IF NOT EXISTS `%susers` (`auth` INT NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_general_ci', `ip` INT, `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, `playtime` FLOAT NOT NULL DEFAULT 0, `timerbanned` tinyint NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`), INDEX `lastlogin` (`lastlogin`)) ENGINE=INNODB;",
 			gS_SQLPrefix);
 	}
 	else
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%susers` (`auth` INT NOT NULL PRIMARY KEY, `name` VARCHAR(32), `ip` INT, `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, `playtime` FLOAT NOT NULL DEFAULT 0);",
+			"CREATE TABLE IF NOT EXISTS `%susers` (`auth` INT NOT NULL PRIMARY KEY, `name` VARCHAR(32), `ip` INT, `lastlogin` INTEGER NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, `playtime` FLOAT NOT NULL DEFAULT 0, `timerbanned` BOOL NOT NULL DEFAULT 0);",
 			gS_SQLPrefix);
 	}
 
@@ -303,6 +304,7 @@ void ApplyMigration(int migration)
 		case Migration_Lowercase_startpositions: ApplyMigration_LowercaseMaps("startpositions", migration);
 		case Migration_AddPlayertimesPointsCalcedFrom: ApplyMigration_AddPlayertimesPointsCalcedFrom();
 		case Migration_RemovePlayertimesPointsCalcedFrom: ApplyMigration_RemovePlayertimesPointsCalcedFrom();
+		case Migration_AddTimerBannedColumnToUser: ApplyMigration_AddTimerbanColumn();
 	}
 }
 
@@ -537,6 +539,15 @@ void ApplyMigration_ConvertSteamIDs()
 		FormatEx(sQuery, 128, "UPDATE %s%s SET auth = REPLACE(REPLACE(auth, \"[U:1:\", \"\"), \"]\", \"\") WHERE auth LIKE '[%%';", sTables[i], gS_SQLPrefix);
 		gH_SQL.Query2(SQL_TableMigrationSteamIDs_Callback, sQuery, hPack, DBPrio_High);
 	}
+}
+
+void ApplyMigration_AddTimerbanColumn()
+{
+	char sQuery[192];
+	// lowercsae gang :sunglasses:
+	FormatEx(sQuery, 192, "alter table `%susers` add column `timerbanned` tinyint not null default 0;", gS_SQLPrefix);
+
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddTimerBannedColumnToUser, DBPrio_High);
 }
 
 public void SQL_TableMigrationIndexing_Callback(Database db, DBResultSet results, const char[] error, DataPack data)

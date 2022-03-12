@@ -156,6 +156,7 @@ char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
+bool gB_IsTimerBanned[MAXPLAYERS+1];
 
 // kz support
 bool gB_KZMap[TRACKS_SIZE];
@@ -220,6 +221,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ShouldProcessFrame", Native_ShouldProcessFrame);
 	CreateNative("Shavit_GotoEnd", Native_GotoEnd);
 	CreateNative("Shavit_UpdateLaggedMovement", Native_UpdateLaggedMovement);
+	CreateNative("Shavit_IsTimerBanned", Native_IsTimerBanned);
+	CreateNative("Shavit_AddToTimerban", Native_AddToTimerban);
+	CreateNative("Shavit_RemoveFromTimerban", Native_RemoveFromTimerban);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -349,6 +353,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_wipeplayer", Command_WipePlayer, ADMFLAG_BAN, "Wipes all bhoptimer data for specified player. Usage: sm_wipeplayer <steamid3>");
 	RegAdminCmd("sm_wipetrack", Command_WipeTrack, ADMFLAG_ROOT, "Deletes all runs on a track.");
 	RegAdminCmd("sm_migration", Command_Migration, ADMFLAG_ROOT, "Force a database migration to run. Usage: sm_migration <migration id> or \"all\" to run all migrations.");
+	RegAdminCmd("sm_addtimerban", Command_AddTimerBan, ADMFLAG_BAN, "Add a player to timerban list. Usage: sm_addtimerban <steamid3>");
+	RegAdminCmd("sm_removetimerban", Command_RemoveTimerBan, ADMFLAG_BAN, "Remove a player to timerban list. Usage: sm_removetimerban <steamid3>");
 	// commands END
 
 	// logs
@@ -1095,6 +1101,72 @@ public Action Command_WipePlayer(int client, int args)
 	return Plugin_Handled;
 }
 
+void ProcessTimerBan(int client, int steamid, bool remove)
+{
+	DataPack dp = new DataPack();
+	dp.WriteCell(client);
+	dp.WriteCell(steamid);
+	dp.WriteCell(remove);
+
+	char sQuery[192];
+	FormatEx(sQuery, 192, "update %susers set timerbanned = %d where auth = %d", gS_MySQLPrefix, !remove, steamid);
+	gH_SQL.Query2(SQL_TimerBan_Callback, sQuery, dp);
+}
+
+public Action Command_AddTimerBan(int client, int args)
+{
+	char sArgString[32];
+	GetCmdArgString(sArgString, 32);
+
+	int steamid = SteamIDToAccountID(sArgString);
+	
+	ProcessTimerBan(client, steamid, false);
+
+	return Plugin_Handled;
+}
+
+public Action Command_RemoveTimerBan(int client, int args)
+{
+	char sArgString[32];
+	GetCmdArgString(sArgString, 32);
+
+	int steamid = SteamIDToAccountID(sArgString);
+	
+	ProcessTimerBan(client, steamid, true);
+
+	return Plugin_Handled;
+}
+
+public void SQL_TimerBan_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	data.Reset();
+	int client = data.ReadCell();
+	int steamid = data.ReadCell();
+	bool isremove = view_as<bool>(data.ReadCell());
+	delete data;
+
+	if (!results)
+	{
+		LogError("[TimerBan] Failed to %s steamid \"%d\".", steamid, isremove ? "remove" : "add");
+		return;
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientConnected(i) && !IsFakeClient(i) && GetSteamAccountID(i) == steamid)
+		{
+			gB_IsTimerBanned[i] = !isremove;
+			break;
+		}
+	}
+
+	if (client)
+	{
+		// next level code here
+		Shavit_PrintToChat(client, "%s steamid \"%d\" %s timerban list", isremove ? "Removed" : "Added", steamid, isremove ? "from" : "to");
+	}
+}
+
 public Action Command_WipeTrack(int client, int args)
 {
 
@@ -1374,6 +1446,34 @@ void UpdateLaggedMovement(int client, bool user_timescale)
 	{
 		SetEventsTimescale(client, style_laggedmovement);
 	}
+}
+
+public int Native_IsTimerBanned(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+
+	if (!IsClientInGame(client))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client is not in-game.");
+	}
+
+	return gB_IsTimerBanned[client];
+}
+
+public any Native_AddToTimerban(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int steamid = GetNativeCell(2);
+	ProcessTimerBan(client, steamid, false);
+	return 1;
+}
+
+public any Native_RemoveFromTimerban(Handle handler, int numParams)
+{
+	int client = GetNativeCell(1);
+	int steamid = GetNativeCell(2);
+	ProcessTimerBan(client, steamid, true);
+	return 1;
 }
 
 void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool nofoward=false)
@@ -2534,6 +2634,7 @@ public void OnClientPutInServer(int client)
 	gS_DeleteMap[client][0] = 0;
 	gI_FirstTouchedGround[client] = 0;
 	gI_LastTickcount[client] = 0;
+	gB_IsTimerBanned[client] = false;
 
 	gB_CookiesRetrieved[client] = false;
 
@@ -2584,17 +2685,20 @@ public void OnClientPutInServer(int client)
 	if(gB_MySQL)
 	{
 		FormatEx(sQuery, 512,
-			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
+			"INSERT INTO %susers (auth, name, ip, lastlogin, timerbanned) VALUES (%d, '%s', %d, %d, 0) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
 			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
 	}
 	else
 	{
 		FormatEx(sQuery, 512,
-			"REPLACE INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d);",
-			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime);
+			"REPLACE INTO %susers (auth, name, ip, lastlogin, timerbanned) VALUES (%d, '%s', %d, %d, (select timerbanned from %susers where auth = %d));",
+			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, gS_MySQLPrefix , iSteamID);
 	}
 
 	gH_SQL.Query2(SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
+
+	FormatEx(sQuery, 512, "select timerbanned from %susers where auth = %d", gS_MySQLPrefix, iSteamID);
+	gH_SQL.Query2(SQL_CheckTimerBanned_Callback, sQuery, GetClientSerial(client));
 }
 
 public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2613,6 +2717,23 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 		}
 
 		return;
+	}
+}
+
+public void SQL_CheckTimerBanned_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (!results)
+	{
+		LogError("Timer error! Failed to fetch timerban status from the table. Reason: %s", error);
+		return;
+	}
+
+	int client = GetClientFromSerial(data);
+
+	if (results.FetchRow())
+	{
+		gB_IsTimerBanned[client] = view_as<bool>(results.FetchInt(0));
+		PrintToServer("aa");
 	}
 }
 
