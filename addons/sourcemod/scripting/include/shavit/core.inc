@@ -1390,7 +1390,7 @@ native bool Shavit_ShouldProcessFrame(int client);
 native void Shavit_GotoEnd(int client, int track);
 
 /**
- * idk pls help
+ * Not good at describing things, please help
  *
  * @param client
  *
@@ -1399,7 +1399,7 @@ native void Shavit_GotoEnd(int client, int track);
 native bool Shavit_IsTimerBanned(int client);
 
 /**
- * idk pls help
+ * Not good at describing things, please help
  *
  * @param client
  * @param steamid
@@ -1409,7 +1409,7 @@ native bool Shavit_IsTimerBanned(int client);
 native void Shavit_AddToTimerban(int client, int steamid);
 
 /**
- * idk pls help
+ * Not good at describing things, please help
  *
  * @param client
  * @param steamid
@@ -1485,6 +1485,9 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_ShouldProcessFrame");
 	MarkNativeAsOptional("Shavit_GotoEnd");
 	MarkNativeAsOptional("Shavit_UpdateLaggedMovement");
+	MarkNativeAsOptional("Shavit_IsTimerBanned");
+	MarkNativeAsOptional("Shavit_AddToTimerban");
+	MarkNativeAsOptional("Shavit_RemoveFromTimerban");
 
 	__pl_shavit_bhopstats_SetNTVOptional();
 }

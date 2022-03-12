@@ -544,7 +544,6 @@ void ApplyMigration_ConvertSteamIDs()
 void ApplyMigration_AddTimerbanColumn()
 {
 	char sQuery[192];
-	// lowercsae gang :sunglasses:
 	FormatEx(sQuery, 192, "alter table `%susers` add column `timerbanned` tinyint not null default 0;", gS_SQLPrefix);
 
 	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddTimerBannedColumnToUser, DBPrio_High);

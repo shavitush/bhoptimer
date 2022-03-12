@@ -1162,7 +1162,6 @@ public void SQL_TimerBan_Callback(Database db, DBResultSet results, const char[]
 
 	if (client)
 	{
-		// next level code here
 		Shavit_PrintToChat(client, "%s steamid \"%d\" %s timerban list", isremove ? "Removed" : "Added", steamid, isremove ? "from" : "to");
 	}
 }
@@ -2733,7 +2732,6 @@ public void SQL_CheckTimerBanned_Callback(Database db, DBResultSet results, cons
 	if (results.FetchRow())
 	{
 		gB_IsTimerBanned[client] = view_as<bool>(results.FetchInt(0));
-		PrintToServer("aa");
 	}
 }
 
