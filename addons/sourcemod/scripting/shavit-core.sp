@@ -3409,33 +3409,28 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 	float fAngle = GetAngleDiff(angles[1], gA_Timers[client].fLastAngle);
 
-	if (iGroundEntity == -1 && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0)
+	float fAbsVelocity[3];
+	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+	float curVel = SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0));
+
+	if (iGroundEntity == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER && (GetEntityFlags(client) & FL_INWATER) == 0 && fAngle != 0.0 && curVel > 0.0)
 	{
-		float fAbsVelocity[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+		float fTempAngle = angles[1];
 
-		if (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)) > 0.0)
+		float fAngles[3];
+		GetVectorAngles(fAbsVelocity, fAngles);
+
+		if (fTempAngle < 0.0)
 		{
-			float fTempAngle = angles[1];
-
-			float fAngles[3];
-			GetVectorAngles(fAbsVelocity, fAngles);
-
-			if (fTempAngle < 0.0)
-			{
-				fTempAngle += 360.0;
-			}
-
-			TestAngles(client, (fTempAngle - fAngles[1]), fAngle, vel);
+			fTempAngle += 360.0;
 		}
+
+		TestAngles(client, (fTempAngle - fAngles[1]), fAngle, vel);
 	}
 
 	if (gA_Timers[client].fCurrentTime != 0.0)
 	{
 		float frameCount = float(gA_Timers[client].iZoneIncrement);
-		float fAbsVelocity[3];
-		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
-		float curVel = SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0));
 		float maxVel = gA_Timers[client].fMaxVelocity;
 		gA_Timers[client].fMaxVelocity = (curVel > maxVel) ? curVel : maxVel;
 		// STOLEN from Epic/Disrevoid. Thx :)
