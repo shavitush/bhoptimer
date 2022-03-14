@@ -2401,8 +2401,9 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			info.aCache.aFrames.GetArray(info.iTick, aFrame, (info.aCache.iReplayVersion >= 0x02) ? 8 : 6);
 			buttons = aFrame.buttons;
 
-			gA_CachedFrames[info.iEnt][1] = gA_CachedFrames[info.iEnt][0];
-			gA_CachedFrames[info.iEnt][0] = aFrame;
+			int cacheidx = GetBotInfoIndex(info.iEnt);
+			gA_CachedFrames[cacheidx][1] = gA_CachedFrames[cacheidx][0];
+			gA_CachedFrames[cacheidx][0] = aFrame;
 
 			if (!isClient)
 			{
