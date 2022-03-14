@@ -68,6 +68,8 @@ Handle gH_CheckpointsCookie = null;
 
 Handle gH_Forwards_OnSave = null;
 Handle gH_Forwards_OnTeleport = null;
+Handle gH_Forwards_OnSavePre = null;
+Handle gH_Forwards_OnTeleportPre = null;
 Handle gH_Forwards_OnDelete = null;
 Handle gH_Forwards_OnCheckpointMenuMade = null;
 Handle gH_Forwards_OnCheckpointMenuSelect = null;
@@ -148,8 +150,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Ignore, Param_Cell, Param_Cell);
+	gH_Forwards_OnSavePre = CreateGlobalForward("Shavit_OnSavePre", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnTeleportPre = CreateGlobalForward("Shavit_OnTeleportPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuMade = CreateGlobalForward("Shavit_OnCheckpointMenuMade", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnDelete = CreateGlobalForward("Shavit_OnDelete", ET_Event, Param_Cell, Param_Cell);
@@ -1415,7 +1419,7 @@ bool SaveCheckpoint(int client)
 	int index = (overflow ? iMaxCPs : gA_Checkpoints[client].Length+1);
 
 	Action result = Plugin_Continue;
-	Call_StartForward(gH_Forwards_OnSave);
+	Call_StartForward(gH_Forwards_OnSavePre);
 	Call_PushCell(client);
 	Call_PushCell(index);
 	Call_PushCell(overflow);
@@ -1438,11 +1442,23 @@ bool SaveCheckpoint(int client)
 		{
 			gA_Checkpoints[client].ShiftUp(iMaxCPs-1);
 			gA_Checkpoints[client].SetArray(iMaxCPs-1, cpcache);
-			return true;
+		}
+		else
+		{
+			gA_Checkpoints[client].PushArray(cpcache);
 		}
 	}
+	else
+	{
+		gA_Checkpoints[client].PushArray(cpcache);
+	}
 
-	gA_Checkpoints[client].PushArray(cpcache);
+	Call_StartForward(gH_Forwards_OnSave);
+	Call_PushCell(client);
+	Call_PushCell(index);
+	Call_PushCell(overflow);
+	Call_Finish();
+
 	return true;
 }
 
@@ -1616,7 +1632,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	}
 
 	Action result = Plugin_Continue;
-	Call_StartForward(gH_Forwards_OnTeleport);
+	Call_StartForward(gH_Forwards_OnTeleportPre);
 	Call_PushCell(client);
 	Call_PushCell(index);
 	Call_Finish(result);
@@ -1639,6 +1655,11 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	Call_StartForward(gH_Forwards_OnCheckpointCacheLoaded);
 	Call_PushCell(client);
 	Call_PushArray(cpcache, sizeof(cpcache));
+	Call_PushCell(index);
+	Call_Finish();
+
+	Call_StartForward(gH_Forwards_OnTeleport);
+	Call_PushCell(client);
 	Call_PushCell(index);
 	Call_Finish();
 

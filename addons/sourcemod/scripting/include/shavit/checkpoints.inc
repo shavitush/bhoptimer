@@ -58,15 +58,34 @@ enum struct cp_cache_t
  * @param index                     Checkpoint that was teleported to.
  * @return                          Plugin_Continue to allow teleporting, anything else to prevent.
  */
+forward Action Shavit_OnTeleportPre(int client, int index);
+
+/**
+ * Called when a player teleports with checkpoints.
+ *
+ * @param client                    Client index.
+ * @param index                     Checkpoint that was teleported to.
+ * @return                          Unused. Use Shavit_OnTeleportPre if you want to block teleporting.
+ */
 forward Action Shavit_OnTeleport(int client, int index);
 
 /**
- * Called when a saves a checkpoint.
+ * Called when a player saves a checkpoint.
  *
  * @param client                    Client index.
  * @param index                     Checkpoint that was saved to.
  * @param overflow                  Does this checkpoint shift the rest.
  * @return                          Plugin_Continue to allow saving, anything else to prevent.
+ */
+forward Action Shavit_OnSavePre(int client, int index, bool overflow);
+
+/**
+ * Called when a player saves a checkpoint.
+ *
+ * @param client                    Client index.
+ * @param index                     Checkpoint that was saved to.
+ * @param overflow                  Does this checkpoint shift the rest.
+ * @return                          Unused. Use Shavit_OnSavePre if you want to block checkpoint saving.
  */
 forward Action Shavit_OnSave(int client, int index, bool overflow);
 
