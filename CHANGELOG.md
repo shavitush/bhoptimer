@@ -6,6 +6,9 @@ Note: Dates are UTC+0.
 
 # v3.1.3 - asdf - 2022-02-27 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.3
+https://github.com/shavitush/bhoptimer/commit/d77fa13ebe679b7cca4493436e1fa045a15d3865
+
+edit: bhoptimer-v3.1.3-1.zip = included eventqueuefix license. bhoptimer-v3.1.3-2.zip = bug fix commit included from https://github.com/shavitush/bhoptimer/commit/70f29d3ca55a9f70d64f74ac9059c3cd1ab00a7a
 
 small things mainly and might as well push out a release instead of waiting another two weeks. hopefully nobody notices that half the `!czones` colors don't work because overlapping beams fucks with the color intensity. might have a bigger release next that messes with how the replays are stored and the replay format.
 
