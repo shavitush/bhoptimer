@@ -179,36 +179,6 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
-bool LoadReplayConfig()
-{
-	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-replay.cfg");
-
-	KeyValues kv = new KeyValues("shavit-replay");
-
-	if(!kv.ImportFromFile(sPath))
-	{
-		delete kv;
-
-		return false;
-	}
-
-	char sFolder[PLATFORM_MAX_PATH];
-	kv.GetString("replayfolder", sFolder, PLATFORM_MAX_PATH, "{SM}/data/replaybot");
-
-	if(StrContains(sFolder, "{SM}") != -1)
-	{
-		ReplaceString(sFolder, PLATFORM_MAX_PATH, "{SM}/", "");
-		BuildPath(Path_SM, sFolder, PLATFORM_MAX_PATH, "%s", sFolder);
-	}
-
-	strcopy(gS_ReplayFolder, PLATFORM_MAX_PATH, sFolder);
-
-	delete kv;
-
-	return true;
-}
-
 public void OnMapStart()
 {
 	GetLowercaseMapName(gS_Map);
@@ -216,7 +186,7 @@ public void OnMapStart()
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
-	if (!LoadReplayConfig())
+	if (!Shavit_GetReplayFolderPath_Stock(gS_ReplayFolder))
 	{
 		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
 	}
