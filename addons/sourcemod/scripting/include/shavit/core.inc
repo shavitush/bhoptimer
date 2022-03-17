@@ -1362,11 +1362,11 @@ native float Shavit_GetClientTimescale(int client);
 native void Shavit_UpdateLaggedMovement(int client, bool user_timescale=true);
 
 /**
- * asdf
+ * Check if there are client cookies to retrieve. **NATIVE CURRENTLY USED ONLY FOR HUD**.
  *
  * @param client                    Client index
  *
- * @return                          asdf
+ * @return                          True if there are client cookies retrieved and set to client.
  */
 native bool Shavit_Core_CookiesRetrieved(int client);
 
@@ -1375,7 +1375,7 @@ native bool Shavit_Core_CookiesRetrieved(int client);
  *
  * @param client                    Client index
  *
- * @return                          true if the current frame should be recorded....
+ * @return                          True if the current frame should be recorded.
  */
 native bool Shavit_ShouldProcessFrame(int client);
 
