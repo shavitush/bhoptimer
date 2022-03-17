@@ -209,12 +209,17 @@ bool LoadReplayConfig()
 
 public void OnMapStart()
 {
+	GetLowercaseMapName(gS_Map);
+}
+
+public void Shavit_OnStyleConfigLoaded(int styles)
+{
 	if (!LoadReplayConfig())
 	{
 		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
 	}
 
-	GetLowercaseMapName(gS_Map);
+	gI_Styles = styles;
 
 	Shavit_Replay_CreateDirectories(gS_ReplayFolder, gI_Styles);
 }

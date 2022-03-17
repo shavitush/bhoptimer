@@ -1535,11 +1535,6 @@ bool LoadStyling()
 
 public void OnMapStart()
 {
-	if (!LoadStyling())
-	{
-		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
-	}
-
 	gB_CanUpdateReplayClient = true;
 
 	GetCurrentMap(gS_Map, sizeof(gS_Map));
@@ -1563,8 +1558,6 @@ public void OnMapStart()
 	}
 
 	PrecacheModel((gEV_Type == Engine_TF2)? "models/error.mdl":"models/props/cs_office/vending_machine.mdl");
-
-	Shavit_Replay_CreateDirectories(gS_ReplayFolder, gI_Styles);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
@@ -1606,12 +1599,19 @@ public void OnMapEnd()
 
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
+	if (!LoadStyling())
+	{
+		SetFailState("Could not load the replay bots' configuration file. Make sure it exists (addons/sourcemod/configs/shavit-replay.cfg) and follows the proper syntax!");
+	}
+
 	for (int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
 	}
 
 	gI_Styles = styles;
+
+	Shavit_Replay_CreateDirectories(gS_ReplayFolder, gI_Styles);
 }
 
 public void Shavit_OnChatConfigLoaded()
