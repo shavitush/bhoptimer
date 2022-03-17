@@ -589,11 +589,21 @@ void LoadDHooks()
 // Stops bot_quota from doing anything.
 public MRESReturn Detour_MaintainBotQuota(int pThis)
 {
+	if (!gCV_Enabled.BoolValue)
+	{
+		return MRES_Ignored;
+	}
+
 	return MRES_Supercede;
 }
 
 public MRESReturn Detour_TeamFull(int pThis, DHookReturn hReturn, DHookParam hParams)
 {
+	if (!gCV_Enabled.BoolValue)
+	{
+		return MRES_Ignored;
+	}
+
 	hReturn.Value = false;
 	return MRES_Supercede;
 }
@@ -650,7 +660,7 @@ public Action CommandListener_changelevel(int client, const char[] command, int 
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	OnMapStart();
+	KickAllReplays();
 }
 
 public void OnForcedConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1329,7 +1339,8 @@ public int Native_Replay_DeleteMap(Handle handler, int numParams)
 
 	if(StrEqual(gS_Map, sMap, false))
 	{
-		OnMapStart();
+		KickAllReplays();
+		LoadDefaultReplays(); // clears frame cache
 	}
 
 	return 1;
@@ -1426,6 +1437,11 @@ public int Native_GetReplayFolderPath(Handle handler, int numParams)
 
 public Action Timer_Cron(Handle Timer)
 {
+	if (!gCV_Enabled.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (gA_BotInfo[i].iEnt != i)
@@ -1550,15 +1566,21 @@ public void OnMapStart()
 		ServerCommand("nav_load");
 	}
 
-	KickAllReplays();
-
-	if(!gCV_Enabled.BoolValue)
-	{
-		return;
-	}
-
 	PrecacheModel((gEV_Type == Engine_TF2)? "models/error.mdl":"models/props/cs_office/vending_machine.mdl");
 
+	RequestFrame(LoadDefaultReplays);
+
+	if (gH_TeamFull != null && !gB_TeamFullDetoured)
+	{
+		gH_TeamFull.Enable(Hook_Post, Detour_TeamFull);
+		gB_TeamFullDetoured = true;
+	}
+
+	CreateTimer(3.0, Timer_Cron, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+}
+
+void LoadDefaultReplays()
+{
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		if (!Shavit_ReplayEnabledStyle(i))
@@ -1576,14 +1598,6 @@ public void OnMapStart()
 
 	Call_StartForward(gH_OnReplaysLoaded);
 	Call_Finish();
-
-	if (gH_TeamFull != null)
-	{
-		gH_TeamFull.Enable(Hook_Post, Detour_TeamFull);
-		gB_TeamFullDetoured = true;
-	}
-
-	CreateTimer(3.0, Timer_Cron, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void OnMapEnd()
