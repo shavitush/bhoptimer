@@ -398,6 +398,11 @@ public Action Timer_Cron(Handle timer)
 
 public Action Timer_PersistKZCPMenu(Handle timer)
 {
+	if (!gCV_Checkpoints.BoolValue)
+	{
+		return Plugin_Continue;
+	}
+
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(!gB_ClosedKZCP[i] &&
