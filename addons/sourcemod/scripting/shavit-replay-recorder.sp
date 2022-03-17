@@ -151,6 +151,8 @@ public void OnPluginStart()
 
 	if (gB_Late)
 	{
+		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
+
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (IsValidClient(i) && !IsFakeClient(i))
