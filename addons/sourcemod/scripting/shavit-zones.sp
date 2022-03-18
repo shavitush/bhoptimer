@@ -384,7 +384,7 @@ void LoadDHooks()
 	
 	LoadPhysicsUntouch(hGameData);
 	
-	if(gEV_Type == Engine_CSGO)
+	if (gEV_Type == Engine_CSGO)
 	{
 		StartPrepSDKCall(SDKCall_Entity);
 	}
@@ -393,19 +393,19 @@ void LoadDHooks()
 		StartPrepSDKCall(SDKCall_Static);
 	}
 	
-	if(!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "PhysicsRemoveTouchedList"))
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "PhysicsRemoveTouchedList"))
 	{
 		SetFailState("Failed to find \"PhysicsRemoveTouchedList\" signature!");
 	}
 	
-	if(gEV_Type != Engine_CSGO)
+	if (gEV_Type != Engine_CSGO)
 	{
 		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
 	}
 	
 	gH_PhysicsRemoveTouchedList = EndPrepSDKCall();
 	
-	if(!gH_PhysicsRemoveTouchedList)
+	if (!gH_PhysicsRemoveTouchedList)
 	{
 		SetFailState("Failed to create sdkcall to \"PhysicsRemoveTouchedList\"!");
 	}
@@ -459,7 +459,7 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_ReplayRecorder = true;
 	}
-	else if(StrEqual(name, "eventqueuefix"))
+	else if (StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = true;
 	}
@@ -476,7 +476,7 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_ReplayRecorder = false;
 	}
-	else if(StrEqual(name, "eventqueuefix"))
+	else if (StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = false;
 	}
@@ -1000,7 +1000,7 @@ public void OnClientPutInServer(int client)
 {
 	gI_LatestTeleportTick[client] = 0;
 	
-	if(gH_TeleportDhook != null)
+	if (!IsFakeClient(client) && gH_TeleportDhook != null)
 	{
 		gH_TeleportDhook.HookEntity(Hook_Pre, client, DHooks_OnTeleport);
 	}
@@ -4287,12 +4287,12 @@ public void CreateZoneEntities(bool only_create_dead_entities)
 
 public MRESReturn DHooks_OnTeleport(int pThis, DHookParam hParams)
 {
-	if(!IsValidEntity(pThis) || !IsClientInGame(pThis) || IsFakeClient(pThis))
+	if (!IsValidEntity(pThis) || !IsClientInGame(pThis))
 	{
 		return MRES_Ignored;
 	}
 	
-	if(!hParams.IsNull(1))
+	if (!hParams.IsNull(1))
 	{
 		gI_LatestTeleportTick[pThis] = GetGameTickCount();
 	}
@@ -4449,17 +4449,18 @@ public void TouchPost(int entity, int other)
 				// and be fired after which is the expected and desired effect.
 				// This also kills all ongoing events that were active on the client prior to the teleportation to start and also resets targetname and classname
 				// before the OnStartTouch from triggers in start zone are run, thus preventing the maps to be abusable if they don't have any reset triggers in place
-				if((gI_LatestTeleportTick[other] <= curr_tick <= gI_LatestTeleportTick[other] + 4) && curr_tick != tick_served[other])
+				if (curr_tick != tick_served[other])
 				{
-					PhysicsRemoveTouchedList(other);
-					ClearClientEvents(other);
-					
-					tick_served[other] = curr_tick;
-					
-					return;
-				}
-				else if(curr_tick != tick_served[other])
-				{
+					if (gI_LatestTeleportTick[other] <= curr_tick <= gI_LatestTeleportTick[other] + 4)
+					{
+						PhysicsRemoveTouchedList(other);
+						ClearClientEvents(other);
+
+						tick_served[other] = curr_tick;
+
+						return;
+					}
+
 					tick_served[other] = 0;
 				}
 			}
