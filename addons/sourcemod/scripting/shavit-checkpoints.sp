@@ -646,7 +646,7 @@ void PersistData(int client, bool disconnected)
 		GetSteamAccountID(client) == 0 ||
 		//Shavit_GetTimerStatus(client) == Timer_Stopped ||
 		(!gCV_RestoreStates.BoolValue && !disconnected) ||
-			(gCV_PersistData.IntValue == 0 && disconnected))
+		(gCV_PersistData.IntValue == 0 && disconnected))
 	{
 		return;
 	}
@@ -1059,7 +1059,7 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 		else if(StrEqual(sInfo, "next"))
 		{
 			if(gI_CurrentCheckpoint[param1] < gA_Checkpoints[param1].Length)
-			gI_CurrentCheckpoint[param1]++;
+				gI_CurrentCheckpoint[param1]++;
 		}
 		else if(StrEqual(sInfo, "pause"))
 		{
@@ -1728,7 +1728,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 
 	TeleportEntity(client, cpcache.fPosition,
 		((gI_CheckpointsSettings[client] & CP_ANGLES)   > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fAngles   : NULL_VECTOR,
-			((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fVelocity : NULL_VECTOR);
+		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fVelocity : NULL_VECTOR);
 
 	// Used to trigger all endtouch booster events which are then wiped via eventqueuefix :)
 	MaybeDoPhysicsUntouch(client);
