@@ -101,6 +101,13 @@
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x8B\x86\xD0\x00\x00\x00"
 				"linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x2C\x8B\x5D\x08\xC7\x44\x24\x04\x01\x00\x00\x00\x89\x1C\x24"
 			}
+			// search string: "remove 0x%p: %s-%s (%d-%d) [%d in play, %d max]\n".
+			// function with one argument is PhysicsRemoveTouchedList
+			"PhysicsRemoveTouchedList"
+			{
+				"windows"   "\x55\x8B\xEC\x83\xEC\x0C\x57\x8B\xF9\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01\x0F\x84"
+				"linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x5C\x8B\x55\x08\xC7\x44\x24\x2A\x2A\x2A\x2A\x2A\x89\x14\x24\xE8"
+			}
 		}
 	}
 
@@ -177,6 +184,13 @@
 				"windows"   "\x55\x8B\xEC\x56\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x8B\x45\x2A\x83\xE8\x02"
 				"linux"     "@_ZN12CCSGameRules8TeamFullEi"
 			}
+			// search string: "remove 0x%p: %s-%s (%d-%d) [%d in play, %d max]\n".
+			// function with one argument is PhysicsRemoveTouchedList
+			"PhysicsRemoveTouchedList"
+			{
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\x7D\x08\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01\x0F\x84"
+				"linux"     "@_ZN11CBaseEntity24PhysicsRemoveTouchedListEPS_"
+			}
 		}
 	}
 
@@ -231,6 +245,13 @@
 			{
 				"windows"   "\x55\x8B\xEC\x56\x8B\x75\x2A\x85\xF6\x75\x2A\x33\xC0\x5E\x5D\xC3\x8B\x56"
 				"linux"     "@_ZN12CTFGameRules15CalcPlayerScoreEP12RoundStats_tP9CTFPlayer"
+			}
+			// search string: "remove 0x%p: %s-%s (%d-%d) [%d in play, %d max]\n".
+			// function with one argument is PhysicsRemoveTouchedList
+			"PhysicsRemoveTouchedList"
+			{
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\x7D\x08\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01\x0F\x84"
+				"linux"     "@_ZN11CBaseEntity24PhysicsRemoveTouchedListEPS_"
 			}
 		}
 	}
