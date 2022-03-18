@@ -2099,7 +2099,7 @@ public Action Shavit_OnStartPre(int client)
 	{
 		return Plugin_Stop;
 	}
-	
+
 	return Plugin_Continue;
 }
 
@@ -2109,7 +2109,7 @@ public Action Shavit_OnStart(int client)
 	{
 		SetClientEventsPaused(client, false);
 	}
-	
+
 	if(gCV_ForceTargetnameReset.BoolValue)
 	{
 		char targetname[64];
@@ -2125,14 +2125,14 @@ public Action Shavit_OnStart(int client)
 			gCV_ResetTargetnameBonus.GetString(targetname, sizeof(targetname));
 			gCV_ResetClassnameBonus.GetString(classname, sizeof(classname));
 		}
-		
+
 		DispatchKeyValue(client, "targetname", targetname);
-		
+
 		if (!classname[0])
 		{
 			classname = "player";
 		}
-		
+
 		SetEntPropString(client, Prop_Data, "m_iClassname", classname);
 	}
 
