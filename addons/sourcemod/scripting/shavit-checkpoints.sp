@@ -185,7 +185,7 @@ public void OnPluginStart()
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-misc.phrases");
 
-	gCV_Checkpoints = new Convar("shavit_checkpoints_checkpoints", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
+	gCV_Checkpoints = new Convar("shavit_checkpoints_checkpointsenabled", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = new Convar("shavit_checkpoints_restorestates", "1", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_MaxCP = new Convar("shavit_checkpoints_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = new Convar("shavit_checkpoints_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_checkpoints_maxcp.\nNote: Very high values will result in HUGE memory usage! Segmented checkpoints contain frame data!", 0, true, 1.0, true, 50.0);
@@ -646,7 +646,7 @@ void PersistData(int client, bool disconnected)
 		GetSteamAccountID(client) == 0 ||
 		//Shavit_GetTimerStatus(client) == Timer_Stopped ||
 		(!gCV_RestoreStates.BoolValue && !disconnected) ||
-		(gCV_PersistData.IntValue == 0 && disconnected))
+			(gCV_PersistData.IntValue == 0 && disconnected))
 	{
 		return;
 	}
@@ -1059,7 +1059,7 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 		else if(StrEqual(sInfo, "next"))
 		{
 			if(gI_CurrentCheckpoint[param1] < gA_Checkpoints[param1].Length)
-				gI_CurrentCheckpoint[param1]++;
+			gI_CurrentCheckpoint[param1]++;
 		}
 		else if(StrEqual(sInfo, "pause"))
 		{
@@ -1728,7 +1728,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 
 	TeleportEntity(client, cpcache.fPosition,
 		((gI_CheckpointsSettings[client] & CP_ANGLES)   > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fAngles   : NULL_VECTOR,
-		((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fVelocity : NULL_VECTOR);
+			((gI_CheckpointsSettings[client] & CP_VELOCITY) > 0 || cpcache.bSegmented || isPersistentData) ? cpcache.fVelocity : NULL_VECTOR);
 
 	// Used to trigger all endtouch booster events which are then wiped via eventqueuefix :)
 	MaybeDoPhysicsUntouch(client);
@@ -1757,7 +1757,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 		ep.outputWaits = cpcache.aOutputWaits;
 		SetClientEvents(client, ep);
 
-		#if DEBUG
+#if DEBUG
 		PrintToConsole(client, "targetname='%s'", cpcache.sTargetname);
 
 		for (int i = 0; i < cpcache.aEvents.Length; i++)
@@ -1766,7 +1766,7 @@ void LoadCheckpointCache(int client, cp_cache_t cpcache, bool isPersistentData)
 			cpcache.aEvents.GetArray(i, e);
 			PrintToConsole(client, "%s %s %s %f %i %i %i", e.target, e.targetInput, e.variantValue, e.delay, e.activator, e.caller, e.outputID);
 		}
-		#endif
+#endif
 	}
 }
 
