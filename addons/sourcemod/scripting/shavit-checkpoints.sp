@@ -1878,8 +1878,16 @@ public any Native_SetCheckpoint(Handle plugin, int numParams)
 	else
 	{
 		DeleteCheckpoint(client, position, true);
-		gA_Checkpoints[client].ShiftUp(position-1);
-		gA_Checkpoints[client].SetArray(position-1, cpcache);
+
+		if (gA_Checkpoints[client].Length >= position)
+		{
+			gA_Checkpoints[client].ShiftUp(position-1);
+			gA_Checkpoints[client].SetArray(position-1, cpcache);
+		}
+		else
+		{
+			gA_Checkpoints[client].PushArray(cpcache);
+		}
 	}
 
 	return true;
