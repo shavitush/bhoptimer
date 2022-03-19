@@ -1840,8 +1840,32 @@ public any Native_SetCheckpoint(Handle plugin, int numParams)
 		position = gI_CurrentCheckpoint[client];
 	}
 
-	DeleteCheckpoint(client, position, true);
-	gA_Checkpoints[client].SetArray(position-1, cpcache);
+	if (position > GetMaxCPs(client))
+	{
+		return false;
+	}
+
+	bool cheapCloneHandle = (numParams > 4) ? GetNativeCell(5) : true;
+
+	if (cpcache.aFrames)
+		cpcache.aFrames = cheapCloneHandle ? view_as<ArrayList>(CloneHandle(cpcache.aFrames)) : cpcache.aFrames.Clone();
+	if (cpcache.aEvents)
+		cpcache.aEvents = cheapCloneHandle ? view_as<ArrayList>(CloneHandle(cpcache.aEvents)) : cpcache.aEvents.Clone();
+	if (cpcache.aOutputWaits)
+		cpcache.aOutputWaits = cheapCloneHandle ? view_as<ArrayList>(CloneHandle(cpcache.aOutputWaits)) : cpcache.aOutputWaits.Clone();
+	if (cpcache.customdata)
+		cpcache.customdata = view_as<StringMap>(CloneHandle(cpcache.customdata)); //cheapCloneHandle ? view_as<StringMap>(CloneHandle(cpcache.customdata)) : cpcache.customdata.Clone();
+
+	if (gA_Checkpoints[client].Length >= position)
+	{
+		DeleteCheckpoint(client, position, true);
+		gA_Checkpoints[client].ShiftUp(position-1);
+		gA_Checkpoints[client].SetArray(position-1, cpcache);
+	}
+	else
+	{
+		gA_Checkpoints[client].PushArray(cpcache);
+	}
 
 	return true;
 }

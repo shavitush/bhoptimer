@@ -181,10 +181,11 @@ native bool Shavit_GetCheckpoint(int client, int index, any[] cpcache, int size 
  * @param index                     Index of CP to set, or -1 to push cp as last
  * @param cpcache                   Buffer to store cp data in sizeof(cp_cache_t)
  * @param size                      Size of the cpcache buffer, e.g sizeof(cp_cache_t)
+ * @param cheapCloneHandle          False means we duplicate aFrames, aEvents, and aOutputWaits (ArrayList.Clone). True means we clone the handle (CloneHandle).
  *
  * @noreturn
  */
-native void Shavit_SetCheckpoint(int client, int index, any[] cpcache, int size = sizeof(cp_cache_t));
+native void Shavit_SetCheckpoint(int client, int index, any[] cpcache, int size = sizeof(cp_cache_t), bool cheapCloneHandle=true);
 
 /**
  * Teleports client to the checkpoint at given index
