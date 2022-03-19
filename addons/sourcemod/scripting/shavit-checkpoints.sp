@@ -1835,12 +1835,20 @@ public any Native_SetCheckpoint(Handle plugin, int numParams)
 	cp_cache_t cpcache;
 	GetNativeArray(3, cpcache, sizeof(cp_cache_t));
 
-	if(position == -1)
+	int maxcps = GetMaxCPs(client);
+	int numcps = gA_Checkpoints[client].Length;
+
+	if (position <= -1)
 	{
-		position = gI_CurrentCheckpoint[client];
+		position = numcps + 1;
 	}
 
-	if (position > GetMaxCPs(client))
+	if (position == 0 && numcps >= maxcps)
+	{
+		return false;
+	}
+
+	if (position > maxcps)
 	{
 		return false;
 	}
@@ -1856,15 +1864,22 @@ public any Native_SetCheckpoint(Handle plugin, int numParams)
 	if (cpcache.customdata)
 		cpcache.customdata = view_as<StringMap>(CloneHandle(cpcache.customdata)); //cheapCloneHandle ? view_as<StringMap>(CloneHandle(cpcache.customdata)) : cpcache.customdata.Clone();
 
-	if (gA_Checkpoints[client].Length >= position)
+	if (numcps == 0)
+	{
+		gA_Checkpoints[client].PushArray(cpcache);
+		gI_CurrentCheckpoint[client] = 1;
+	}
+	else if (position == 0)
+	{
+		gA_Checkpoints[client].ShiftUp(0);
+		gA_Checkpoints[client].SetArray(0, cpcache);
+		++gI_CurrentCheckpoint[client];
+	}
+	else
 	{
 		DeleteCheckpoint(client, position, true);
 		gA_Checkpoints[client].ShiftUp(position-1);
 		gA_Checkpoints[client].SetArray(position-1, cpcache);
-	}
-	else
-	{
-		gA_Checkpoints[client].PushArray(cpcache);
 	}
 
 	return true;

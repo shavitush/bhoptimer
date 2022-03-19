@@ -178,7 +178,7 @@ native bool Shavit_GetCheckpoint(int client, int index, any[] cpcache, int size 
  * Sets checkpoint data at the given index for the given client
  *
  * @param client                    Client index
- * @param index                     Index of CP to set, or -1 to push cp as last
+ * @param index                     Index of CP to set, or -1 to push cp as last. 0 to push cp to first without erasing.
  * @param cpcache                   Buffer to store cp data in sizeof(cp_cache_t)
  * @param size                      Size of the cpcache buffer, e.g sizeof(cp_cache_t)
  * @param cheapCloneHandle          False means we duplicate aFrames, aEvents, and aOutputWaits (ArrayList.Clone). True means we clone the handle (CloneHandle).
