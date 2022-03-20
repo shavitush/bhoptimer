@@ -126,7 +126,7 @@ forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info
  *
  * @param client                    The client the checkpoint cache is being saved for.
  * @param cache                     The resulting checkpoint cache structure.
- * @param index                     The resulting checkpoint index for this checkpoint cache. -1 if the cache is being saved as "persistent data" for rejoins/spectating.
+ * @param index                     The resulting checkpoint index for this checkpoint cache. -1 if the cache is being saved as "persistent data" for rejoins/spectating. 0 if not being saved to checkpoints list.
  * @param target                    The target of the checkpoint cache.
  *
  * @noreturn
@@ -138,20 +138,11 @@ forward void Shavit_OnCheckpointCacheSaved(int client, cp_cache_t cache, int ind
  *
  * @param client                    The client who is loading the checkpoint cache.
  * @param cache                     The cache.
- * @param index                     The checkpoint index for this cache. -1 if the cache is being loaded from "persistent data" for rejoins/spectating.
+ * @param index                     The checkpoint index for this cache. -1 if the cache is being loaded from "persistent data" for rejoins/spectating. 0 if the cache is being loaded usually by Shavit_LoadCheckpointCache().
  *
  * @noreturn
  */
 forward void Shavit_OnCheckpointCacheLoaded(int client, cp_cache_t cache, int index);
-
-/**
- * Called when a checkpoint cache is being deleted.
- *
- * @param cache                     The cache.
- *
- * @noreturn
- */
-forward void Shavit_OnCheckpointCacheDeleted(cp_cache_t cache);
 
 /**
  * Gets the total number of CPs that a client has saved
@@ -245,6 +236,16 @@ native void Shavit_SetCurrentCheckpoint(int client, int index);
 native int Shavit_GetTimesTeleported(int client);
 
 /**
+ * Sets the number of times the client has teleported to checkpoints.
+ * This is useful to have if you intend to implement a plugin to save "persistent data" between map changes".
+ *
+ * @param client                    Client index
+ * @param count                     Teleport count
+ * @noreturn
+ */
+native void Shavit_SetTimesTeleported(int client, int count);
+
+/**
  * Checks whether the client has savestate data.
  *
  * @param client                    Client index
@@ -252,6 +253,30 @@ native int Shavit_GetTimesTeleported(int client);
  * @return                          Whether a savestate or rejoin-savestate data exists for the client.
  */
 native bool Shavit_HasSavestate(int client);
+
+/**
+ * Loads a cp_cache_t on a player. AKA teleports players.
+ *
+ * @param client                    Client index
+ * @param cache                     Input cp_cache_t
+ * @param index                     -1 if you want the cp_cache_t to be loaded as "persistent data". 0 if not. greater-than-zero if you know what you're doing and intentionally want to spoof the cp_cache_t as a checkpoint index for some reason... I recommend looking at shavit-checkpoints.sp to see how "index" and "isPersistentData" are used to see what kind of difference there is.
+ * @param size                      sizeof(cp_cache_t) to mostly ensure the calling plugin has a matching cp_cache_t.
+ *
+ * @return                          Returns whether the checkpoint cache was able to be loaded.
+ */
+native bool Shavit_LoadCheckpointCache(int client, any[] cache, int index, int size = sizeof(cp_cache_t));
+
+/**
+ * Saves a cp_cache_t from a player.
+ *
+ * @param client                    Client index
+ * @param cache                     Output cp_cache_t
+ * @param index                     -1 if you want the cp_cache_t to be saved as "persistent data". 0 if not. greater-than-zero if you what you're doing and intentionally want to spoof the cp_cache_t creation as a checkpoint index for some reason... I recommend looking at shavit-checkpoints.sp to see how "index" and "isPersistentData" are used to see what kind of difference there is.
+ * @param size                      sizeof(cp_cache_t) to mostly ensure the calling plugin has a matching cp_cache_t.
+ *
+ * @noreturn
+ */
+native void Shavit_SaveCheckpointCache(int client, any[] cache, int index, int size = sizeof(cp_cache_t));
 
 public SharedPlugin __pl_shavit_checkpoints =
 {
@@ -279,6 +304,12 @@ public void __pl_shavit_checkpoints_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetCurrentCheckpoint");
 	MarkNativeAsOptional("Shavit_SetCurrentCheckpoint");
 
+	MarkNativeAsOptional("Shavit_GetTimesTeleported");
+	MarkNativeAsOptional("Shavit_SetTimesTeleported");
+
 	MarkNativeAsOptional("Shavit_HasSavestate");
+
+	MarkNativeAsOptional("Shavit_LoadCheckpointCache");
+	MarkNativeAsOptional("Shavit_SaveCheckpointCache");
 }
 #endif
