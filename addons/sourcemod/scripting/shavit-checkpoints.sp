@@ -678,7 +678,7 @@ void PersistData(int client, bool disconnected)
 
 	if (!gB_SaveStates[client])
 	{
-		SaveCheckpointCache(client, client, aData.cpcache, -1);
+		SaveCheckpointCache(client, client, aData.cpcache, -1, INVALID_HANDLE);
 	}
 
 	gB_SaveStates[client] = true;
@@ -1429,7 +1429,7 @@ bool SaveCheckpoint(int client)
 	}
 
 	cp_cache_t cpcache;
-	SaveCheckpointCache(client, target, cpcache, index);
+	SaveCheckpointCache(client, target, cpcache, index, INVALID_HANDLE);
 	gI_CurrentCheckpoint[client] = index;
 
 	if(overflow)
@@ -1460,7 +1460,7 @@ bool SaveCheckpoint(int client)
 	return true;
 }
 
-void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index)
+void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin)
 {
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
@@ -1555,7 +1555,18 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index)
 
 	if (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null)
 	{
-		cpcache.aFrames = Shavit_GetReplayData(target, false);
+		ArrayList frames = Shavit_GetReplayData(target, false);
+
+		if (plugin != INVALID_HANDLE)
+		{
+			cpcache.aFrames = view_as<ArrayList>(CloneHandle(frames, plugin));
+			delete frames;
+		}
+		else
+		{
+			cpcache.aFrames = frames;
+		}
+
 		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
 	}
 
@@ -1565,8 +1576,18 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index)
 
 		if (GetClientEvents(target, ep))
 		{
-			cpcache.aEvents = ep.playerEvents;
-			cpcache.aOutputWaits = ep.outputWaits;
+			if (plugin != INVALID_HANDLE)
+			{
+				cpcache.aEvents = view_as<ArrayList>(CloneHandle(ep.playerEvents, plugin));
+				delete ep.playerEvents;
+				cpcache.aOutputWaits = view_as<ArrayList>(CloneHandle(ep.outputWaits, plugin));
+				delete ep.outputWaits;
+			}
+			else
+			{
+				cpcache.aEvents = ep.playerEvents;
+				cpcache.aOutputWaits = ep.outputWaits;
+			}
 		}
 	}
 
@@ -1577,7 +1598,17 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index)
 		cpcache.aSnapshot.bPracticeMode = true;
 	}
 
-	cpcache.customdata = new StringMap();
+	StringMap cd = new StringMap();
+
+	if (plugin != INVALID_HANDLE)
+	{
+		cpcache.customdata = view_as<StringMap>(CloneHandle(cd, plugin));
+		delete cd;
+	}
+	else
+	{
+		cpcache.customdata = cd;
+	}
 
 	Call_StartForward(gH_Forwards_OnCheckpointCacheSaved);
 	Call_PushCell(saver);
@@ -1999,14 +2030,15 @@ public any Native_LoadCheckpointCache(Handle plugin, int numParams)
 
 public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 {
-	if (GetNativeCell(4) != sizeof(cp_cache_t))
+	if (GetNativeCell(5) != sizeof(cp_cache_t))
 	{
-		return ThrowNativeError(200, "cp_cache_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins", GetNativeCell(4), sizeof(cp_cache_t));
+		return ThrowNativeError(200, "cp_cache_t does not match latest(got %i expected %i). Please update your includes and recompile your plugins", GetNativeCell(5), sizeof(cp_cache_t));
 	}
 
-	int client = GetNativeCell(1);
+	int saver = GetNativeCell(1);
+	int target = GetNativeCell(2);
 	cp_cache_t cache;
-	int index = GetNativeCell(3);
-	SaveCheckpointCache(client, client, cache, index);
-	return SetNativeArray(2, cache, sizeof(cp_cache_t));
+	int index = GetNativeCell(4);
+	SaveCheckpointCache(saver, target, cache, index, plugin);
+	return SetNativeArray(3, cache, sizeof(cp_cache_t));
 }
