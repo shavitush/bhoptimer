@@ -4501,9 +4501,9 @@ public void TouchPost(int entity, int other)
 				// and be fired after which is the expected and desired effect.
 				// This also kills all ongoing events that were active on the client prior to the teleportation to start and also resets targetname and classname
 				// before the OnStartTouch from triggers in start zone are run, thus preventing the maps to be abusable if they don't have any reset triggers in place
-				if (curr_tick != tick_served[other])
+				if (gI_LatestTeleportTick[other] <= curr_tick <= gI_LatestTeleportTick[other] + 4)
 				{
-					if (gI_LatestTeleportTick[other] <= curr_tick <= gI_LatestTeleportTick[other] + 4)
+					if (curr_tick != tick_served[other])
 					{
 						ResetClientTargetNameAndClassName(other, gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack);
 
@@ -4511,10 +4511,12 @@ public void TouchPost(int entity, int other)
 						ClearClientEvents(other);
 
 						tick_served[other] = curr_tick;
-
-						return;
 					}
 
+					return;
+				}
+				else if (curr_tick != tick_served[other])
+				{
 					tick_served[other] = 0;
 				}
 			}
