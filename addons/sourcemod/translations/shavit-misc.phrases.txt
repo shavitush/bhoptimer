@@ -152,8 +152,8 @@
 	}
 	"MiscCheckpointSave"
 	{
-		"#format"	"{1:d}"
-		"en"		"Save checkpoint ({1})"
+		"#format"	"{1:d},{2:d}"
+		"en"		"Save checkpoint ({1}/{2})"
 	}
 	"MiscCheckpointTeleport"
 	{

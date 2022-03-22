@@ -989,7 +989,7 @@ void OpenKZCPMenu(int client)
 	menu.SetTitle("%T\n", "MiscCheckpointMenu", client);
 
 	char sDisplay[64];
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1));
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1), gCV_MaxCP.IntValue);
 	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	if(gA_Checkpoints[client].Length > 0)
@@ -1109,7 +1109,9 @@ void OpenNormalCPMenu(int client)
 	}
 
 	char sDisplay[64];
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1));
+	int newcount = gA_Checkpoints[client].Length+1;
+	int maxcps = GetMaxCPs(client);
+	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (newcount>maxcps ? maxcps : newcount), maxcps);
 	menu.AddItem("save", sDisplay, ITEMDRAW_DEFAULT);
 
 	if(gA_Checkpoints[client].Length > 0)
