@@ -515,7 +515,10 @@ public void OnClientDisconnect(int client)
 	// clear player data
 	g_bRockTheVote[client] = false;
 	g_cNominatedMap[client][0] = '\0';
+}
 
+public void OnClientDisconnect_Post(int client)
+{
 	CheckRTV();
 }
 
