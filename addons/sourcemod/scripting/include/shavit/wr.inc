@@ -199,6 +199,30 @@ native int Shavit_GetRankForTime(int style, float time, int track);
  */
 native float Shavit_GetTimeForRank(int style, int rank, int track);
 
+/**
+ * Retrieve the WR's stage time.
+ *
+ * @param track                     Track index.
+ * @param style                     Style index.
+ * @param stage                     Stage number.
+ * @return                          The stage time of the WR run. Can be 0.0 if the WR run didn't hit the stage or if the stage doesn't exist.
+ */
+native float Shavit_GetStageWR(int track, int style, int stage);
+
+/**
+ * Retrieve the client's PB stage time.
+ *
+ * @param client                    Client index.
+ * @param track                     Track index.
+ * @param style                     Style index.
+ * @param stage                     Stage number.
+ * @return                          The stage time of the PB run. Can be 0.0 if the PB run didn't hit the stage or if the stage doesn't exist.
+ */
+//native float Shavit_GetStagePB(int client, int track, int style, int stage);
+
+//native float Shavit_GetStageWRCP(int track, int style, int stage);
+//native float Shavit_GetStagePBCP(int client, int track, int style, int stage);
+
 /*
  * Used to delete a WR. Used to ensure Shavit_OnWRDeleted is ran.
  *
