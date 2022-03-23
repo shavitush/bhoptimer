@@ -21,10 +21,13 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+#define SS_VAL_SZ 128
+#define SS_KEY_SZ 64
+
 enum struct style_setting_t
 {
 	float f;
-	char str[128];
+	char str[SS_VAL_SZ];
 }
 
 Handle gH_Forwards_OnStyleConfigLoaded = null;
@@ -273,7 +276,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 		}
 	}
 
-	char sStyleCommand[128];
+	char sStyleCommand[SS_VAL_SZ];
 	GetStyleSetting(gI_CurrentParserIndex, "command", sStyleCommand, sizeof(sStyleCommand));
 	char sName[64];
 	GetStyleSetting(gI_CurrentParserIndex, "name", sName, sizeof(sName));
@@ -329,7 +332,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 
 	if (HasStyleSetting(gI_CurrentParserIndex, "specialstring"))
 	{
-		char value[128];
+		char value[SS_VAL_SZ];
 		GetStyleSetting(gI_CurrentParserIndex, "specialstring", value, sizeof(value));
 
 		char keys[32][32];
@@ -359,9 +362,9 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 			if (gSM_StyleKeysSet.GetValue(pair[0], x))
 #endif
 			{
-				char asdf[128];
+				char asdf[SS_VAL_SZ];
 				GetStyleSetting(gI_CurrentParserIndex, pair[0], asdf, sizeof(asdf));
-				char name[128];
+				char name[SS_VAL_SZ];
 				GetStyleSetting(gI_CurrentParserIndex, "name", name, sizeof(name));
 				LogError("Style %s (%d) has '%s' set (%s) but is also trying to set it from specialstring (%s).", name, gI_CurrentParserIndex, pair[0], asdf, pair[1][0] ? pair[1] : "1");
 				continue;
@@ -461,7 +464,7 @@ public int Native_GetStyleSetting(Handle handler, int numParams)
 
 	int maxlength = GetNativeCell(4);
 
-	char sValue[128];
+	char sValue[SS_VAL_SZ];
 	bool ret = GetStyleSetting(style, sKey, sValue, sizeof(sValue));
 
 	SetNativeString(3, sValue, maxlength);
@@ -517,7 +520,7 @@ public any Native_GetStyleSettingFloat(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[64];
+	char sKey[SS_KEY_SZ];
 	GetNativeString(2, sKey, sizeof(sKey));
 
 	return GetStyleSettingFloat(style, sKey);
@@ -535,7 +538,7 @@ public any Native_HasStyleSetting(Handle handler, int numParams)
 	// TODO: replace with sm 1.11 StringMap.ContainsKey
 	int style = GetNativeCell(1);
 
-	char sKey[64];
+	char sKey[SS_KEY_SZ];
 	GetNativeString(2, sKey, sizeof(sKey));
 
 	return HasStyleSetting(style, sKey);
@@ -551,19 +554,18 @@ bool SetStyleSetting(int style, const char[] key, const char[] value, bool repla
 {
 	style_setting_t ss;
 	ss.f = StringToFloat(value);
-	int strcells = strcopy(ss.str, sizeof(ss.str), value);
-	if (strcells < 1) strcells = 1;
-	return gSM_StyleKeys[style].SetArray(key, ss, strcells+2, replace);
+	int bytes = 4 + 1 + strcopy(ss.str, sizeof(ss.str), value);
+	return gSM_StyleKeys[style].SetArray(key, ss, ByteCountToCells(bytes), replace);
 }
 
 public any Native_SetStyleSetting(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[64];
+	char sKey[SS_KEY_SZ];
 	GetNativeString(2, sKey, sizeof(sKey));
 
-	char sValue[128];
+	char sValue[SS_VAL_SZ];
 	GetNativeString(3, sValue, sizeof(sValue));
 
 	bool replace = GetNativeCell(4);
@@ -575,7 +577,7 @@ public any Native_SetStyleSettingFloat(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[64];
+	char sKey[SS_KEY_SZ];
 	GetNativeString(2, sKey, sizeof(sKey));
 
 	float fValue = GetNativeCell(3);
@@ -597,7 +599,7 @@ public any Native_SetStyleSettingBool(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[64];
+	char sKey[SS_KEY_SZ];
 	GetNativeString(2, sKey, sizeof(sKey));
 
 	bool value = GetNativeCell(3);
@@ -616,7 +618,7 @@ public any Native_SetStyleSettingInt(Handle handler, int numParams)
 {
 	int style = GetNativeCell(1);
 
-	char sKey[64];
+	char sKey[SS_KEY_SZ];
 	GetNativeString(2, sKey, sizeof(sKey));
 
 	int value = GetNativeCell(3);
@@ -639,7 +641,7 @@ public int Native_GetStyleStrings(Handle handler, int numParams)
 	int style = GetNativeCell(1);
 	int type = GetNativeCell(2);
 	int size = GetNativeCell(4);
-	char sValue[128];
+	char sValue[SS_VAL_SZ];
 
 	switch(type)
 	{
