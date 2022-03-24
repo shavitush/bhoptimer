@@ -139,6 +139,12 @@ Convar gCV_BoxOffset = null;
 Convar gCV_ExtraSpawnHeight = null;
 Convar gCV_PrebuiltVisualOffset = null;
 
+Convar gCV_ForceTargetnameReset = null;
+Convar gCV_ResetTargetnameMain = null;
+Convar gCV_ResetTargetnameBonus = null;
+Convar gCV_ResetClassnameMain = null;
+Convar gCV_ResetClassnameBonus = null;
+
 // handles
 Handle gH_DrawVisible = null;
 Handle gH_DrawAllZones = null;
@@ -312,6 +318,12 @@ public void OnPluginStart()
 	gCV_BoxOffset = new Convar("shavit_zones_box_offset", "16", "Offset zone trigger boxes by this many unit\n0 - matches players bounding box\n16 - matches players center");
 	gCV_ExtraSpawnHeight = new Convar("shavit_zones_extra_spawn_height", "0.0", "YOU DONT NEED TO TOUCH THIS USUALLY. FIX YOUR ACTUAL ZONES.\nUsed to fix some shit prebuilt zones that are in the ground like bhop_strafecontrol");
 	gCV_PrebuiltVisualOffset = new Convar("shavit_zones_prebuilt_visual_offset", "0", "YOU DONT NEED TO TOUCH THIS USUALLY.\nUsed to fix the VISUAL beam offset for prebuilt zones on a map.\nExample maps you'd want to use 16 on: bhop_tranquility and bhop_amaranthglow");
+
+	gCV_ForceTargetnameReset = new Convar("shavit_zones_forcetargetnamereset", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_ResetTargetnameMain = new Convar("shavit_zones_resettargetname_main", "", "What targetname to use when resetting the player.\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
+	gCV_ResetTargetnameBonus = new Convar("shavit_zones_resettargetname_bonus", "", "What targetname to use when resetting the player (on bonus tracks).\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
+	gCV_ResetClassnameMain = new Convar("shavit_zones_resetclassname_main", "", "What classname to use when resetting the player.\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
+	gCV_ResetClassnameBonus = new Convar("shavit_zones_resetclassname_bonus", "", "What classname to use when resetting the player (on bonus tracks).\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
 
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
@@ -4007,6 +4019,40 @@ public void Shavit_OnDatabaseLoaded()
 	}
 }
 
+void ResetClientTargetNameAndClassName(int client, int track)
+{
+	char targetname[64];
+	char classname[64];
+
+	if (track == Track_Main)
+	{
+		gCV_ResetTargetnameMain.GetString(targetname, sizeof(targetname));
+		gCV_ResetClassnameMain.GetString(classname, sizeof(classname));
+	}
+	else
+	{
+		gCV_ResetTargetnameBonus.GetString(targetname, sizeof(targetname));
+		gCV_ResetClassnameBonus.GetString(classname, sizeof(classname));
+	}
+
+	DispatchKeyValue(client, "targetname", targetname);
+
+	if (!classname[0])
+	{
+		classname = "player";
+	}
+
+	SetEntPropString(client, Prop_Data, "m_iClassname", classname);
+}
+
+public Action Shavit_OnStart(int client, int track)
+{
+	if(gCV_ForceTargetnameReset.BoolValue)
+	{
+		ResetClientTargetNameAndClassName(client, track);
+	}
+}
+
 public void Shavit_OnRestart(int client, int track)
 {
 	gI_LastStage[client] = 0;
@@ -4053,6 +4099,7 @@ public void Shavit_OnRestart(int client, int track)
 
 			if (!gB_HasSetStart[client][track] || gB_StartAnglesOnly[client][track])
 			{
+				ResetClientTargetNameAndClassName(client, track);
 				// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
 				Shavit_StartTimer(client, track);
 			}
@@ -4454,18 +4501,22 @@ public void TouchPost(int entity, int other)
 				// and be fired after which is the expected and desired effect.
 				// This also kills all ongoing events that were active on the client prior to the teleportation to start and also resets targetname and classname
 				// before the OnStartTouch from triggers in start zone are run, thus preventing the maps to be abusable if they don't have any reset triggers in place
-				if (curr_tick != tick_served[other])
+				if (gI_LatestTeleportTick[other] <= curr_tick <= gI_LatestTeleportTick[other] + 4)
 				{
-					if (gI_LatestTeleportTick[other] <= curr_tick <= gI_LatestTeleportTick[other] + 4)
+					if (curr_tick != tick_served[other])
 					{
+						ResetClientTargetNameAndClassName(other, gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack);
+
 						PhysicsRemoveTouchedList(other);
 						ClearClientEvents(other);
 
 						tick_served[other] = curr_tick;
-
-						return;
 					}
 
+					return;
+				}
+				else if (curr_tick != tick_served[other])
+				{
 					tick_served[other] = 0;
 				}
 			}
