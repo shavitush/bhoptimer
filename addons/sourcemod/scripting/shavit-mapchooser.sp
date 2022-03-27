@@ -684,7 +684,7 @@ void InitiateMapVote(MapChange when)
 		g_aMapList.GetString(rand, map, sizeof(map));
 		LessStupidGetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
 
-		if (StrEqual(map, g_cMapName) || g_aOldMaps.FindString(map) != -1)
+		if (StrEqual(map, g_cMapName) || g_aOldMaps.FindString(map) != -1 || g_aNominateList.FindString(map) != -1)
 		{
 			// don't add current map or recently played
 			i--;
