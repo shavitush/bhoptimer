@@ -420,7 +420,7 @@ void LoadDHooks()
 	}
 
 	StartPrepSDKCall(SDKCall_Static);
-	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "CreateInterface"))
+	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "CreateInterface_Server"))
 	{
 		SetFailState("Failed to get CreateInterface");
 	}

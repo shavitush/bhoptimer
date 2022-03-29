@@ -11,8 +11,9 @@
 
 		"Signatures"
 		{
-			"CreateInterface"
+			"CreateInterface_Server"
 			{
+				"library"   "server"
 				"windows"   "@CreateInterface"
 				"linux"     "@CreateInterface"
 			}
