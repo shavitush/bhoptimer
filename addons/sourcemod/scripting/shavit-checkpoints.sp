@@ -405,18 +405,18 @@ public Action Timer_PersistKZCPMenu(Handle timer)
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(!gB_ClosedKZCP[i] &&
-			Shavit_GetStyleSettingInt(gI_Style[i], "kzcheckpoints")
-			&& GetClientMenu(i) == MenuSource_None &&
-			IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i))
+	{	
+		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i))
 		{
-			OpenKZCPMenu(i);
-		}
-		// reopen repeatedly in case someone has bad internet and the menu disappears
-		else if (gB_InCheckpointMenu[i])
-		{
-			OpenNormalCPMenu(i);
+			if(!gB_ClosedKZCP[i] && !gB_InCheckpointMenu[i] && Shavit_GetStyleSettingInt(gI_Style[i], "kzcheckpoints"))
+			{
+				OpenKZCPMenu(i);
+			}
+			// reopen repeatedly in case someone has bad internet and the menu disappears
+			else if (gB_InCheckpointMenu[i] && gB_ClosedKZCP[i])
+			{
+				OpenNormalCPMenu(i);
+			}
 		}
 	}
 
@@ -528,6 +528,35 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 
 		OpenCheckpointsMenu(client);
 		Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+	}
+
+	/**
+	 * gB_InCheckpointMenu	indicates whether NORMAL checkpoint menu is opened.
+	 * gB_ClosedKZCP	indicates whether KZ	 checkpoint menu is closed.
+	 *
+	 * If open KZCP menu, gB_ClosedKZCP is false and gB_InCheckpointMenu should be false, too.
+	 */
+
+	if (Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints")
+		&& !Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints")
+		&& !gB_ClosedKZCP[client])
+	{
+		gB_InCheckpointMenu[client] = true;
+		gB_ClosedKZCP[client] = true;
+	}
+	else if (!Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints")
+		&& Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints"))
+	{
+		if(!gB_InCheckpointMenu[client])
+		{
+			// Open CP menu once switching from non-KZCP to KZCP styles.
+			OpenKZCPMenu(client);
+		}
+		else
+		{
+			gB_InCheckpointMenu[client] = false;
+			gB_ClosedKZCP[client] = false;
+		}		
 	}
 }
 
@@ -803,11 +832,6 @@ public Action Command_Checkpoints(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
-	{
-		gB_ClosedKZCP[client] = false;
-	}
-
 	return OpenCheckpointsMenu(client);
 }
 
@@ -1071,6 +1095,11 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 
 		OpenCheckpointsMenu(param1);
 	}
+	else if (action == MenuAction_Display)
+	{
+		gB_ClosedKZCP[param1] = false;
+		gB_InCheckpointMenu[param1] = false;
+	}
 	else if(action == MenuAction_Cancel)
 	{
 		if(param2 == MenuCancel_Exit)
@@ -1298,6 +1327,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 	else if (action == MenuAction_Display)
 	{
 		gB_InCheckpointMenu[param1] = true;
+		gB_ClosedKZCP[param1] = true;
 	}
 	else if (action == MenuAction_Cancel)
 	{
