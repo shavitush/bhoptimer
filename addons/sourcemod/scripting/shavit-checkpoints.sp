@@ -538,25 +538,28 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	 */
 
 	if (Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints")
-		&& !Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints")
-		&& !gB_ClosedKZCP[client])
+		&& !Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints"))
 	{
-		gB_InCheckpointMenu[client] = true;
-		gB_ClosedKZCP[client] = true;
-	}
-	else if (!Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints")
-		&& Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints"))
-	{
-		if(!gB_InCheckpointMenu[client])
+		if (!gB_ClosedKZCP[client])
 		{
-			// Open CP menu once switching from non-KZCP to KZCP styles.
-			OpenKZCPMenu(client);
+			gB_ClosedKZCP[client] = true;
+			gB_InCheckpointMenu[client] = true;
 		}
 		else
 		{
 			gB_InCheckpointMenu[client] = false;
-			gB_ClosedKZCP[client] = false;
-		}		
+		}
+	}
+	else if (!Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints")
+		&& Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints"))
+	{
+		if(gB_InCheckpointMenu[client])
+		{
+			gB_InCheckpointMenu[client] = false;
+		}
+
+		// Open CP menu once changing from non-KZCP to KZCP styles.
+		gB_ClosedKZCP[client] = false;
 	}
 }
 
@@ -1095,10 +1098,10 @@ public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, i
 
 		OpenCheckpointsMenu(param1);
 	}
-	else if (action == MenuAction_Display)
+	else if(action == MenuAction_Display)
 	{
-		gB_ClosedKZCP[param1] = false;
 		gB_InCheckpointMenu[param1] = false;
+		gB_ClosedKZCP[param1] = false;
 	}
 	else if(action == MenuAction_Cancel)
 	{
