@@ -514,7 +514,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 	{
 		// Gammacase somehow had this callback fire before OnClientPutInServer.
 		// OnClientPutInServer will still fire but we need a valid arraylist in the mean time.
-		if(gA_Checkpoints[client] == null && bSegmented)
+		if(gA_Checkpoints[client] == null)
 		{
 			gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));
 		}
