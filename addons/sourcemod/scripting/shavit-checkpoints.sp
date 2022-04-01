@@ -79,7 +79,6 @@ Handle gH_Forwards_OnCheckpointCacheLoaded = null;
 chatstrings_t gS_ChatStrings;
 
 int gI_Style[MAXPLAYERS+1];
-bool gB_ClosedKZCP[MAXPLAYERS+1];
 
 ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
@@ -195,7 +194,7 @@ public void OnPluginStart()
 	Convar.AutoExecConfig();
 
 	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
-	CreateTimer(0.5, Timer_PersistKZCPMenu, 0, TIMER_REPEAT);
+	CreateTimer(0.5, Timer_PersistCPMenu, 0, TIMER_REPEAT);
 
 	LoadDHooks();
 
@@ -397,7 +396,7 @@ public Action Timer_Cron(Handle timer)
 	return Plugin_Continue;
 }
 
-public Action Timer_PersistKZCPMenu(Handle timer)
+public Action Timer_PersistCPMenu(Handle timer)
 {
 	if (!gCV_Checkpoints.BoolValue)
 	{
@@ -406,17 +405,9 @@ public Action Timer_PersistKZCPMenu(Handle timer)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{	
-		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i))
+		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && ShouldReopenCheckpointMenu(i))
 		{
-			if(!gB_ClosedKZCP[i] && !gB_InCheckpointMenu[i] && Shavit_GetStyleSettingInt(gI_Style[i], "kzcheckpoints"))
-			{
-				OpenKZCPMenu(i);
-			}
-			// reopen repeatedly in case someone has bad internet and the menu disappears
-			else if (gB_InCheckpointMenu[i] && gB_ClosedKZCP[i])
-			{
-				OpenNormalCPMenu(i);
-			}
+			OpenCPMenu(i);
 		}
 	}
 
@@ -478,7 +469,6 @@ public void OnClientPutInServer(int client)
 	}
 
 	gB_SaveStates[client] = false;
-	gB_ClosedKZCP[client] = false;
 }
 
 public void OnClientDisconnect(int client)
@@ -512,54 +502,25 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 {
 	gI_Style[client] = newstyle;
 
+	bool bSegmented = Shavit_GetStyleSettingBool(newstyle, "segments");
+	bool bKzcheckpoints = Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints");
+
 	if (gB_SaveStates[client] && manual)
 	{
 		DeletePersistentDataFromClient(client);
 	}
 
-	if (Shavit_GetStyleSettingBool(newstyle, "segments"))
+	if (bSegmented || bKzcheckpoints)
 	{
 		// Gammacase somehow had this callback fire before OnClientPutInServer.
 		// OnClientPutInServer will still fire but we need a valid arraylist in the mean time.
-		if(gA_Checkpoints[client] == null)
+		if(gA_Checkpoints[client] == null && bSegmented)
 		{
 			gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));
 		}
 
 		OpenCheckpointsMenu(client);
 		Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-	}
-
-	/**
-	 * gB_InCheckpointMenu	indicates whether NORMAL checkpoint menu is opened.
-	 * gB_ClosedKZCP	indicates whether KZ	 checkpoint menu is closed.
-	 *
-	 * If open KZCP menu, gB_ClosedKZCP is false and gB_InCheckpointMenu should be false, too.
-	 */
-
-	if (Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints")
-		&& !Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints"))
-	{
-		if (!gB_ClosedKZCP[client])
-		{
-			gB_ClosedKZCP[client] = true;
-			gB_InCheckpointMenu[client] = true;
-		}
-		else
-		{
-			gB_InCheckpointMenu[client] = false;
-		}
-	}
-	else if (!Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints")
-		&& Shavit_GetStyleSettingBool(newstyle, "kzcheckpoints"))
-	{
-		if(gB_InCheckpointMenu[client])
-		{
-			gB_InCheckpointMenu[client] = false;
-		}
-
-		// Open CP menu once changing from non-KZCP to KZCP styles.
-		gB_ClosedKZCP[client] = false;
 	}
 }
 
@@ -577,12 +538,12 @@ public Action Shavit_OnStart(int client)
 
 public void Shavit_OnRestart(int client, int track)
 {
-	if(!gB_ClosedKZCP[client] &&
+	if(gB_InCheckpointMenu[client] &&
 		Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
 		GetClientMenu(client, null) == MenuSource_None &&
 		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
-		OpenKZCPMenu(client);
+		OpenCPMenu(client);
 	}
 }
 
@@ -619,12 +580,12 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	}
 
 	// refreshes kz cp menu if there is nothing open
-	if (!gB_ClosedKZCP[client] &&
+	if (gB_InCheckpointMenu[client] &&
 		Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
 		GetClientMenu(client, null) == MenuSource_None &&
 		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
-		OpenKZCPMenu(client);
+		OpenCPMenu(client);
 	}
 }
 
@@ -808,17 +769,7 @@ void ResetCheckpoints(int client)
 
 bool ShouldReopenCheckpointMenu(int client)
 {
-	if (gB_InCheckpointMenu[client])
-	{
-		return true;
-	}
-
-	if (!gB_ClosedKZCP[client] && Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
-	{
-		return true;
-	}
-
-	return false;
+	return gB_InCheckpointMenu[client];
 }
 
 public Action Command_Checkpoints(int client, int args)
@@ -991,138 +942,17 @@ public Action Command_DeleteCheckpoint(int client, int args)
 
 public Action OpenCheckpointsMenu(int client)
 {
-	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
-	{
-		OpenKZCPMenu(client);
-	}
-	else
-	{
-		OpenNormalCPMenu(client);
-	}
+	OpenCPMenu(client);
 
 	return Plugin_Handled;
 }
 
-void OpenKZCPMenu(int client)
-{
-	// if we're segmenting, resort to the normal checkpoints instead
-	if(CanSegment(client))
-	{
-		OpenNormalCPMenu(client);
-
-		return;
-	}
-	Menu menu = new Menu(MenuHandler_KZCheckpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem);
-	menu.SetTitle("%T\n", "MiscCheckpointMenu", client);
-
-	char sDisplay[64];
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (gA_Checkpoints[client].Length + 1), gCV_MaxCP.IntValue);
-	menu.AddItem("save", sDisplay, (gA_Checkpoints[client].Length < gCV_MaxCP.IntValue)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
-
-	if(gA_Checkpoints[client].Length > 0)
-	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gI_CurrentCheckpoint[client]);
-		menu.AddItem("tele", sDisplay, ITEMDRAW_DEFAULT);
-	}
-	else
-	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, 1);
-		menu.AddItem("tele", sDisplay, ITEMDRAW_DISABLED);
-	}
-
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointPrevious", client);
-	menu.AddItem("prev", sDisplay);
-
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointNext", client);
-	menu.AddItem("next", sDisplay);
-
-	if((Shavit_CanPause(client) & CPR_ByConVar) == 0)
-	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointPause", client);
-		menu.AddItem("pause", sDisplay);
-	}
-
-	menu.ExitButton = true;
-	menu.Display(client, MENU_TIME_FOREVER);
-}
-
-public int MenuHandler_KZCheckpoints(Menu menu, MenuAction action, int param1, int param2)
-{
-	if(action == MenuAction_Select)
-	{
-		if(CanSegment(param1) || !Shavit_GetStyleSettingInt(gI_Style[param1], "kzcheckpoints"))
-		{
-			return 0;
-		}
-
-		char sInfo[8];
-		menu.GetItem(param2, sInfo, 8);
-
-		if(StrEqual(sInfo, "save"))
-		{
-			if(gA_Checkpoints[param1].Length < gCV_MaxCP.IntValue)
-			{
-				SaveCheckpoint(param1);
-			}
-		}
-		else if(StrEqual(sInfo, "tele"))
-		{
-			TeleportToCheckpoint(param1, gI_CurrentCheckpoint[param1], true);
-		}
-		else if(StrEqual(sInfo, "prev"))
-		{
-			if(gI_CurrentCheckpoint[param1] > 1)
-			{
-				gI_CurrentCheckpoint[param1]--;
-			}
-		}
-		else if(StrEqual(sInfo, "next"))
-		{
-			if(gI_CurrentCheckpoint[param1] < gA_Checkpoints[param1].Length)
-				gI_CurrentCheckpoint[param1]++;
-		}
-		else if(StrEqual(sInfo, "pause"))
-		{
-			if(Shavit_CanPause(param1) == 0)
-			{
-				if(Shavit_IsPaused(param1))
-				{
-					Shavit_ResumeTimer(param1, true);
-				}
-				else
-				{
-					Shavit_PauseTimer(param1);
-				}
-			}
-		}
-
-		OpenCheckpointsMenu(param1);
-	}
-	else if(action == MenuAction_Display)
-	{
-		gB_InCheckpointMenu[param1] = false;
-		gB_ClosedKZCP[param1] = false;
-	}
-	else if(action == MenuAction_Cancel)
-	{
-		if(param2 == MenuCancel_Exit)
-		{
-			gB_ClosedKZCP[param1] = true;
-		}
-	}
-	else if(action == MenuAction_End)
-	{
-		delete menu;
-	}
-
-	return 0;
-}
-
-void OpenNormalCPMenu(int client)
+void OpenCPMenu(int client)
 {
 	bool bSegmented = CanSegment(client);
+	bool bKzcheckpoints = Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints");
 
-	if(!gCV_Checkpoints.BoolValue && !bSegmented)
+	if(!gCV_Checkpoints.BoolValue && !bSegmented && !bKzcheckpoints)
 	{
 		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
@@ -1133,7 +963,18 @@ void OpenNormalCPMenu(int client)
 
 	if(!bSegmented)
 	{
-		menu.SetTitle("%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
+		char sInfo[64];
+
+		if(!bKzcheckpoints)
+		{
+			FormatEx(sInfo, 64, "%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
+		}
+		else
+		{
+			FormatEx(sInfo, 64, "%T\n ", "MiscCheckpointMenu", client);
+		}
+
+		menu.SetTitle(sInfo);
 	}
 	else
 	{
@@ -1160,8 +1001,15 @@ void OpenNormalCPMenu(int client)
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointPrevious", client);
 	menu.AddItem("prev", sDisplay, (gI_CurrentCheckpoint[client] > 1)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-	FormatEx(sDisplay, 64, "%T\n ", "MiscCheckpointNext", client);
+	FormatEx(sDisplay, 64, "%T%s", "MiscCheckpointNext", client, (bKzcheckpoints)? "":"\n ");
 	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[client].Length)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+
+
+	if((Shavit_CanPause(client) & CPR_ByConVar) == 0 && bKzcheckpoints)
+	{
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointPause", client);
+		menu.AddItem("pause", sDisplay);
+	}
 
 	// apparently this is the fix
 	// menu.AddItem("spacer", "", ITEMDRAW_RAWLINE);
@@ -1179,23 +1027,28 @@ void OpenNormalCPMenu(int client)
 		menu.AddItem("tsplus", sDisplay, (ts != 1.0) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 	}
 
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
-	menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
-
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
-	menu.AddItem("reset", sDisplay);
-
-	if(!bSegmented)
+	if(!bKzcheckpoints)
 	{
-		char sInfo[16];
-		IntToString(CP_ANGLES, sInfo, 16);
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseAngles", client);
-		menu.AddItem(sInfo, sDisplay);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
+		menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-		IntToString(CP_VELOCITY, sInfo, 16);
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseVelocity", client);
-		menu.AddItem(sInfo, sDisplay);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
+		menu.AddItem("reset", sDisplay);
+
+		if(!bSegmented)
+		{
+			char sInfo[16];
+			IntToString(CP_ANGLES, sInfo, 16);
+			FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseAngles", client);
+			menu.AddItem(sInfo, sDisplay);
+
+			IntToString(CP_VELOCITY, sInfo, 16);
+			FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseVelocity", client);
+			menu.AddItem(sInfo, sDisplay);
+		}
 	}
+
+	
 
 	menu.Pagination = MENU_NO_PAGINATION;
 	menu.ExitButton = true;
@@ -1269,6 +1122,20 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 				gI_CurrentCheckpoint[param1]++;
 			}
 		}
+		else if(StrEqual(sInfo, "pause"))
+		{
+			if(Shavit_CanPause(param1) == 0)
+			{
+				if(Shavit_IsPaused(param1))
+				{
+					Shavit_ResumeTimer(param1, true);
+				}
+				else
+				{
+					Shavit_PauseTimer(param1);
+				}
+			}
+		}
 		else if(StrEqual(sInfo, "del"))
 		{
 			if(DeleteCheckpoint(param1, gI_CurrentCheckpoint[param1]))
@@ -1330,7 +1197,6 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 	else if (action == MenuAction_Display)
 	{
 		gB_InCheckpointMenu[param1] = true;
-		gB_ClosedKZCP[param1] = true;
 	}
 	else if (action == MenuAction_Cancel)
 	{
