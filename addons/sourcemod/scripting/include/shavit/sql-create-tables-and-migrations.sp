@@ -56,20 +56,6 @@ static char gS_SQLPrefix[32];
 int gI_MigrationsRequired;
 int gI_MigrationsFinished;
 
-char gS_TableNames[][32] = {
-	"users",
-	"migrations",
-	"maptiers",
-	"styleplaytime",
-	"playertimes",
-	"stagetimeswr",
-	"stagetimespb",
-	"wrs_min",
-	"wrs",
-	"mapzones",
-	"startpositions",
-};
-
 public void RunOnDatabaseLoadedForward()
 {
 	static GlobalForward hOnDatabasedLoaded;
@@ -221,13 +207,28 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 
 public void Trans_CreateTables_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
 {
-	if (0 <= failIndex < sizeof(gS_TableNames))
+	static char tablenames[][32] = {
+		"users",
+		"migrations",
+		"chat",
+		"maptiers",
+		"styleplaytime",
+		"playertimes",
+		"stagetimeswr",
+		"stagetimespb",
+		"wrs_min",
+		"wrs",
+		"mapzones",
+		"startpositions",
+	};
+
+	if (0 <= failIndex < sizeof(tablenames))
 	{
-		LogError("Timer (create %s) error. Reason: %s", gS_TableNames[failIndex], error);
+		LogError("Timer failed to create sql table %s. Reason: %s", tablenames[failIndex], error);
 	}
 	else
 	{
-		LogError("Timer (create tables) error. failIndex=%d. numQueries=%d. Reason: %s", failIndex, numQueries, error);
+		LogError("Timer failed to create sql tables. failIndex=%d. numQueries=%d. Reason: %s", failIndex, numQueries, error);
 	}
 }
 
