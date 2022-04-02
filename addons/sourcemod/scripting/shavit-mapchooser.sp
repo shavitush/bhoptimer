@@ -226,6 +226,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_rtv", Command_RockTheVote, "Lets players Rock The Vote");
 	RegConsoleCmd("sm_unrtv", Command_UnRockTheVote, "Lets players un-Rock The Vote");
 	RegConsoleCmd("sm_nomlist", Command_NomList, "Shows currently nominated maps");
+	RegConsoleCmd("sm_nominatedmaps", Command_NomList, "Shows currently nominated maps");
+	RegConsoleCmd("sm_nominations", Command_NomList, "Shows currently nominated maps");
 
 	RegAdminCmd("sm_smcdebug", Command_Debug, ADMFLAG_RCON);
 
