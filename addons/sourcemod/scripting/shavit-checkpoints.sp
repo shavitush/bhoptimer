@@ -724,7 +724,7 @@ void LoadPersistentData(int serial)
 
 	bool bKzcheckpoints = Shavit_GetStyleSettingBool(aData.cpcache.aSnapshot.bsStyle, "kzcheckpoints");
 
-	if (LoadCheckpointCache(client, aData.cpcache, -1, bKzcheckpoints ? true : false))
+	if (LoadCheckpointCache(client, aData.cpcache, -1, bKzcheckpoints))
 	{
 		gI_TimesTeleported[client] = aData.iTimesTeleported;
 
@@ -1589,7 +1589,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	bool bKzcheckpoints = Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints");
 
-	if (!LoadCheckpointCache(client, cpcache, index, bKzcheckpoints ? true : false))
+	if (!LoadCheckpointCache(client, cpcache, index, bKzcheckpoints))
 	{
 		return;
 	}
