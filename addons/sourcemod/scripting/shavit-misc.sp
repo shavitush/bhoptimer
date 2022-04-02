@@ -1808,7 +1808,7 @@ public Action Command_Weapon(int client, int args)
 
 bool CanSegment(int client)
 {
-	return StrContains(gS_StyleStrings[gI_Style[client]].sSpecialString, "segments") != -1;
+	return Shavit_GetStyleSettingBool(gI_Style[client], "segments");
 }
 
 bool ShouldDisplayStopWarning(int client)

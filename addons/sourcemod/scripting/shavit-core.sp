@@ -2172,7 +2172,9 @@ public int Native_LoadSnapshot(Handle handler, int numParams)
 	GetNativeArray(2, snapshot, sizeof(timer_snapshot_t));
 	snapshot.fTimescale = (snapshot.fTimescale > 0.0) ? snapshot.fTimescale : 1.0;
 
-	if (!Shavit_HasStyleAccess(client, snapshot.bsStyle))
+	bool force = GetNativeCell(4);
+
+	if (!Shavit_HasStyleAccess(client, snapshot.bsStyle) && !force)
 	{
 		return 0;
 	}

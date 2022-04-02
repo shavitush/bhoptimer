@@ -4406,10 +4406,10 @@ public void StartTouchPost(int entity, int other)
 		case Zone_Stage:
 		{
 			int num = gA_ZoneCache[gI_EntityZone[entity]].iZoneData;
-			char special[sizeof(stylestrings_t::sSpecialString)];
-			Shavit_GetStyleStrings(Shavit_GetBhopStyle(other), sSpecialString, special, sizeof(special));
+			int iStyle = Shavit_GetBhopStyle(other);
+			bool bTASSegments = Shavit_GetStyleSettingBool(iStyle, "tas") || Shavit_GetStyleSettingBool(iStyle, "segments");
 
-			if (status == Timer_Running && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack && (num > gI_LastStage[other] || StrContains(special, "segments") != -1 || StrContains(special, "TAS") != -1 || Shavit_IsPracticeMode(other)))
+			if (status == Timer_Running && Shavit_GetClientTrack(other) == gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack && (num > gI_LastStage[other] || bTASSegments || Shavit_IsPracticeMode(other)))
 			{
 				gI_LastStage[other] = num;
 				char sTime[32];

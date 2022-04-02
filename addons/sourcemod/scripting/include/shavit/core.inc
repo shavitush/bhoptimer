@@ -1201,9 +1201,10 @@ native void Shavit_SaveSnapshot(int client, any[] snapshot, int size = sizeof(ti
  * @param client					Client index.
  * @param snapshot					Full snapshot of the client's timer.
  * @param size						Size of the snapshot buffer, e.g sizeof(timer_snapshot_t)
+ * @param force						Forcibly load the snapshot without checking the style access for a player.
  * @return                          Success boolean
  */
-native bool Shavit_LoadSnapshot(int client, any[] snapshot, int size = sizeof(timer_snapshot_t));
+native bool Shavit_LoadSnapshot(int client, any[] snapshot, int size = sizeof(timer_snapshot_t), bool force = false);
 
 /**
  * Use this native to stop the click sound that plays upon chat messages.

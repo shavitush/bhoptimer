@@ -533,6 +533,12 @@ public Action Shavit_OnStart(int client)
 		ResetCheckpoints(client);
 	}
 
+	// shavit-kz
+	if(Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints"))
+	{
+		UpdateKZStyle(client, TimerAction_OnStart);
+	}
+
 	return Plugin_Continue;
 }
 
@@ -716,7 +722,9 @@ void LoadPersistentData(int serial)
 
 	gB_SaveStates[client] = false;
 
-	if (LoadCheckpointCache(client, aData.cpcache, -1))
+	bool bKzcheckpoints = Shavit_GetStyleSettingBool(aData.cpcache.aSnapshot.bsStyle, "kzcheckpoints");
+
+	if (LoadCheckpointCache(client, aData.cpcache, -1, bKzcheckpoints ? true : false))
 	{
 		gI_TimesTeleported[client] = aData.iTimesTeleported;
 
@@ -1579,7 +1587,9 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		Shavit_StopTimer(client);
 	}
 
-	if (!LoadCheckpointCache(client, cpcache, index))
+	bool bKzcheckpoints = Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints");
+
+	if (!LoadCheckpointCache(client, cpcache, index, bKzcheckpoints ? true : false))
 	{
 		return;
 	}
@@ -1591,6 +1601,12 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	Call_PushCell(index);
 	Call_Finish();
 
+	// shavit-kz
+	if(bKzcheckpoints)
+	{
+		UpdateKZStyle(client, TimerAction_OnTeleport);
+	}
+	
 	if(!suppressMessage)
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, index, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
@@ -1598,10 +1614,10 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 }
 
 // index = -1 when persistent data. index = 0 when Shavit_LoadCheckpointCache() usually. index > 0 when "actually a checkpoint"
-bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index)
+bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force = false)
 {
 	// ripped this out and put it here since Shavit_LoadSnapshot() checks this and we want to bail early if LoadSnapShot would fail
-	if (!Shavit_HasStyleAccess(client, cpcache.aSnapshot.bsStyle))
+	if (!Shavit_HasStyleAccess(client, cpcache.aSnapshot.bsStyle) && !force)
 	{
 		return false;
 	}
@@ -1654,7 +1670,7 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index)
 		Shavit_SetPracticeMode(client, true, true);
 	}
 
-	Shavit_LoadSnapshot(client, cpcache.aSnapshot);
+	Shavit_LoadSnapshot(client, cpcache.aSnapshot, sizeof(timer_snapshot_t), force);
 
 	Shavit_UpdateLaggedMovement(client, true);
 	SetEntPropString(client, Prop_Data, "m_iName", cpcache.sTargetname);
@@ -1740,6 +1756,29 @@ bool DeleteCheckpoint(int client, int index, bool force=false)
 	DeleteCheckpointCache(cpcache);
 
 	return true;
+}
+
+bool UpdateKZStyle(int client, TimerAction timerAction)
+{
+	int iTargetStyle = -1;
+
+	if(timerAction == TimerAction_OnStart)
+	{
+		iTargetStyle = Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints_onstart");
+	}
+	else if(timerAction == TimerAction_OnTeleport)
+	{
+		iTargetStyle = Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints_ontele");
+	}
+
+	if(iTargetStyle != -1)
+	{
+		Shavit_ChangeClientStyle(client, iTargetStyle, true, false, false);
+
+		return true;
+	}
+
+	return false;
 }
 
 public any Native_GetCheckpoint(Handle plugin, int numParams)
@@ -1925,8 +1964,9 @@ public any Native_LoadCheckpointCache(Handle plugin, int numParams)
 	cp_cache_t cache;
 	GetNativeArray(2, cache, sizeof(cp_cache_t));
 	int index = GetNativeCell(3);
+	bool force = GetNativeCell(5);
 
-	return LoadCheckpointCache(client, cache, index);
+	return LoadCheckpointCache(client, cache, index, force);
 }
 
 public any Native_SaveCheckpointCache(Handle plugin, int numParams)

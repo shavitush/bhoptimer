@@ -209,8 +209,14 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 
 	SetStyleSettingInt(gI_CurrentParserIndex, "inaccessible", 0);
 	SetStyleSettingInt(gI_CurrentParserIndex, "enabled", 1);
+
 	SetStyleSettingInt(gI_CurrentParserIndex, "kzcheckpoints", 0);
 	SetStyleSettingInt(gI_CurrentParserIndex, "kzcheckpoints_ladders", 0);
+	SetStyleSettingInt(gI_CurrentParserIndex, "kzcheckpoints_ontele", -1);
+	SetStyleSettingInt(gI_CurrentParserIndex, "kzcheckpoints_onstart", -1);
+
+	SetStyleSettingInt(gI_CurrentParserIndex, "segments", 0);
+
 	SetStyleSettingInt(gI_CurrentParserIndex, "force_groundkeys", 0);
 
 	gI_OrderedStyles[gI_CurrentParserIndex] = gI_CurrentParserIndex;
@@ -233,6 +239,11 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	{
 		SetStyleSettingInt  (gI_CurrentParserIndex, "noreplay", 1);
 		SetStyleSettingFloat(gI_CurrentParserIndex, "rankingmultiplier", 0.0);
+		SetStyleSettingInt  (gI_CurrentParserIndex, "inaccessible", 1);
+	}
+
+	if (GetStyleSettingInt(gI_CurrentParserIndex, "kzcheckpoints_onstart") != -1)
+	{
 		SetStyleSettingInt  (gI_CurrentParserIndex, "inaccessible", 1);
 	}
 
@@ -340,6 +351,12 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 
 		for (int i = 0; i < count; i++)
 		{
+			// make "segments" specialstring still avaliable
+			if (StrContains(keys[i], "segments"))
+			{
+				SetStyleSettingInt(gI_CurrentParserIndex, "segments", 1);
+			}
+
 			TrimString(keys[i]);
 
 			char pair[2][32];
