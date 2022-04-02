@@ -44,6 +44,7 @@
 #pragma semicolon 1
 
 #define MAX_HINT_SIZE 227
+#define HUD_PRINTCENTER 4
 
 enum struct color_t
 {
@@ -54,6 +55,9 @@ enum struct color_t
 
 // game type (CS:S/CS:GO/TF2)
 EngineVersion gEV_Type = Engine_Unknown;
+
+UserMsg gI_HintText = view_as<UserMsg>(-1);
+UserMsg gI_TextMsg = view_as<UserMsg>(-1);
 
 // forwards
 Handle gH_Forwards_OnTopLeftHUD = null;
@@ -147,6 +151,9 @@ public void OnPluginStart()
 
 	// game-specific
 	gEV_Type = GetEngineVersion();
+
+	gI_HintText = GetUserMessageId("HintText");
+	gI_TextMsg = GetUserMessageId("TextMsg");
 
 	if(gEV_Type == Engine_TF2)
 	{
@@ -1766,7 +1773,7 @@ void UpdateMainHUD(int client)
 
 	if (IsSource2013(gEV_Type))
 	{
-		PrintHintText(client, "%s", sBuffer);
+		UnreliablePrintHintText(client, sBuffer);
 	}
 	else
 	{
@@ -1933,7 +1940,7 @@ void UpdateCenterKeys(int client)
 
 	if (IsSource2013(gEV_Type))
 	{
-		PrintCenterText(client, "%s", sCenterText);
+		UnreliablePrintCenterText(client, sCenterText);
 	}
 	else
 	{
@@ -2367,13 +2374,45 @@ public int Native_GetHUD2Settings(Handle handler, int numParams)
 	return gI_HUD2Settings[client];
 }
 
+void UnreliablePrintCenterText(int client, const char[] str)
+{
+	int clients[1];
+	clients[0] = client;
+
+	// Start our own message instead of using PrintCenterText so we can exclude USERMSG_RELIABLE.
+	// This makes the HUD update visually faster.
+	BfWrite msg = view_as<BfWrite>(StartMessageEx(gI_TextMsg, clients, 1, 0));
+	msg.WriteByte(HUD_PRINTCENTER);
+	msg.WriteString(str);
+	msg.WriteString("");
+	msg.WriteString("");
+	msg.WriteString("");
+	msg.WriteString("");
+	EndMessage();
+}
+
+void UnreliablePrintHintText(int client, const char[] str)
+{
+	int clients[1];
+	clients[0] = client;
+
+	// Start our own message instead of using PrintHintText so we can exclude USERMSG_RELIABLE.
+	// This makes the HUD update visually faster.
+	BfWrite msg = view_as<BfWrite>(StartMessageEx(gI_HintText, clients, 1, 0));
+	msg.WriteString(str);
+	EndMessage();
+}
+
 void PrintCSGOHUDText(int client, const char[] str)
 {
 	char buff[MAX_HINT_SIZE];
 	FormatEx(buff, sizeof(buff), "</font>%s%s", str, gS_HintPadding);
 
-	Protobuf pb = view_as<Protobuf>(StartMessageOne("TextMsg", client, USERMSG_RELIABLE | USERMSG_BLOCKHOOKS));
-	pb.SetInt("msg_dst", 4);
+	int clients[1];
+	clients[0] = client;
+
+	Protobuf pb = view_as<Protobuf>(StartMessageEx(gI_TextMsg, clients, 1, USERMSG_BLOCKHOOKS));
+	pb.SetInt("msg_dst", HUD_PRINTCENTER);
 	pb.AddString("params", "#SFUI_ContractKillStart");
 	pb.AddString("params", buff);
 	pb.AddString("params", NULL_STRING);
