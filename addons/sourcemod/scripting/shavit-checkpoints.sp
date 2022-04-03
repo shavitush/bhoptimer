@@ -528,14 +528,10 @@ public Action Shavit_OnStart(int client)
 {
 	gI_TimesTeleported[client] = 0;
 
-	if (Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))
-	{
-		ResetCheckpoints(client);
-	}
-
 	// shavit-kz
 	if(Shavit_GetStyleSettingBool(gI_Style[client], "kzcheckpoints"))
 	{
+		ResetCheckpoints(client);
 		UpdateKZStyle(client, TimerAction_OnStart);
 	}
 
