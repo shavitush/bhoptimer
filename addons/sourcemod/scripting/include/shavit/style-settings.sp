@@ -351,12 +351,6 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 
 		for (int i = 0; i < count; i++)
 		{
-			// make "segments" specialstring still avaliable
-			if (StrContains(keys[i], "segments"))
-			{
-				SetStyleSettingInt(gI_CurrentParserIndex, "segments", 1);
-			}
-
 			TrimString(keys[i]);
 
 			char pair[2][32];
