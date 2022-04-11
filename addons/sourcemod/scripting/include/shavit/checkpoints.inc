@@ -23,13 +23,6 @@
 #endif
 #define _shavit_checkpoints_included
 
-enum TimerAction
-{
-	TimerAction_None,
-	TimerAction_OnStart,
-	TimerAction_OnTeleport
-}
-
 enum struct cp_cache_t
 {
 	float fPosition[3];

@@ -43,6 +43,12 @@
 
 #define CP_DEFAULT				(CP_ANGLES|CP_VELOCITY)
 
+enum TimerAction
+{
+	TimerAction_OnStart,
+	TimerAction_OnTeleport
+}
+
 enum struct persistent_data_t
 {
 	int iSteamID;
@@ -404,7 +410,7 @@ public Action Timer_PersistCPMenu(Handle timer)
 	}
 
 	for(int i = 1; i <= MaxClients; i++)
-	{	
+	{
 		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && ShouldReopenCheckpointMenu(i))
 		{
 			OpenCPMenu(i);
@@ -1052,7 +1058,7 @@ void OpenCPMenu(int client)
 		}
 	}
 
-	
+
 
 	menu.Pagination = MENU_NO_PAGINATION;
 	menu.ExitButton = true;
@@ -1602,7 +1608,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	{
 		UpdateKZStyle(client, TimerAction_OnTeleport);
 	}
-	
+
 	if(!suppressMessage)
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsTeleported", client, index, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
