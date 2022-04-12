@@ -149,6 +149,30 @@
 				"windows"   "104"
 				"linux"     "104"
 			}
+			// find in CCSGameMovement::CheckForLadders which references CCSPlayer::CanGrabLadder
+			"CCSPlayer::m_lastStandingPos"
+			{
+				"windows"   "5688"
+				"linux"     "5704"
+			}
+			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
+			"CCSPlayer::m_ladderSurpressionTimer"
+			{
+				"windows"   "5700"
+				"linux"     "5720" // +20 wow that's easy!
+			}
+			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
+			"CCSPlayer::m_lastLadderNormal"
+			{
+				"windows"   "5712"
+				"linux"     "5732" // +20 wow that's easy!
+			}
+			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
+			"CCSPlayer::m_lastLadderPos"
+			{
+				"windows"   "5724"
+				"linux"     "5744" // +20 wow that's easy!
+			}
 		}
 
 		"Signatures"

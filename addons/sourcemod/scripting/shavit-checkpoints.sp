@@ -103,6 +103,11 @@ bool gB_ReplayRecorder = false;
 DynamicHook gH_CommitSuicide = null;
 float gF_NextSuicide[MAXPLAYERS+1];
 
+int gI_Offset_m_lastStandingPos = 0;
+int gI_Offset_m_ladderSurpressionTimer = 0;
+int gI_Offset_m_lastLadderNormal = 0;
+int gI_Offset_m_lastLadderPos = 0;
+
 public Plugin myinfo =
 {
 	name = "[shavit] Checkpoints",
@@ -224,6 +229,29 @@ void LoadDHooks()
 	}
 
 	LoadPhysicsUntouch(hGameData);
+
+	if (gEV_Type == Engine_CSS)
+	{
+		if ((gI_Offset_m_lastStandingPos = GameConfGetOffset(hGameData, "CCSPlayer::m_lastStandingPos")) == -1)
+		{
+			SetFailState("Couldn't get the offset for \"CCSPlayer::m_lastStandingPos\"!");
+		}
+
+		if ((gI_Offset_m_ladderSurpressionTimer = GameConfGetOffset(hGameData, "CCSPlayer::m_ladderSurpressionTimer")) == -1)
+		{
+			SetFailState("Couldn't get the offset for \"CCSPlayer::m_ladderSurpressionTimer\"!");
+		}
+
+		if ((gI_Offset_m_lastLadderNormal = GameConfGetOffset(hGameData, "CCSPlayer::m_lastLadderNormal")) == -1)
+		{
+			SetFailState("Couldn't get the offset for \"CCSPlayer::m_lastLadderNormal\"!");
+		}
+
+		if ((gI_Offset_m_lastLadderPos = GameConfGetOffset(hGameData, "CCSPlayer::m_lastLadderPos")) == -1)
+		{
+			SetFailState("Couldn't get the offset for \"CCSPlayer::m_lastLadderPos\"!");
+		}
+	}
 
 	delete hGameData;
 
@@ -1376,7 +1404,25 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
 	GetEntPropVector(target, Prop_Data, "m_vecAbsVelocity", cpcache.fVelocity);
-	GetEntPropVector(target, Prop_Data, "m_vecLadderNormal", cpcache.vecLadderNormal);
+
+	if (gEV_Type != Engine_TF2)
+	{
+		GetEntPropVector(target, Prop_Data, "m_vecLadderNormal", cpcache.vecLadderNormal);
+	}
+
+	if (gEV_Type == Engine_CSS)
+	{
+		GetEntDataVector(target, gI_Offset_m_lastStandingPos, cpcache.m_lastStandingPos);
+		cpcache.m_ladderSurpressionTimer[0] = GetEntDataFloat(target, gI_Offset_m_ladderSurpressionTimer + 4);
+		cpcache.m_ladderSurpressionTimer[1] = GetEntDataFloat(target, gI_Offset_m_ladderSurpressionTimer + 8) - GetGameTime();
+		GetEntDataVector(target, gI_Offset_m_lastLadderNormal, cpcache.m_lastLadderNormal);
+		GetEntDataVector(target, gI_Offset_m_lastLadderPos, cpcache.m_lastLadderPos);
+	}
+	else if (gEV_Type == Engine_CSGO)
+	{
+		cpcache.m_bHasWalkMovedSinceLastJump = 0 != GetEntProp(target, Prop_Data, "m_bHasWalkMovedSinceLastJump", 1);
+		cpcache.m_ignoreLadderJumpTime = GetEntPropFloat(target, Prop_Data, "m_ignoreLadderJumpTime") - GetGameTime();
+	}
 
 	cpcache.iMoveType = GetEntityMoveType(target);
 	cpcache.fGravity = GetEntityGravity(target);
@@ -1642,10 +1688,17 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 
 	if(gEV_Type == Engine_CSS)
 	{
+		SetEntDataVector(client, gI_Offset_m_lastStandingPos,           cpcache.m_lastStandingPos);
+		SetEntDataFloat(client, gI_Offset_m_ladderSurpressionTimer + 4, cpcache.m_ladderSurpressionTimer[0]);
+		SetEntDataFloat(client, gI_Offset_m_ladderSurpressionTimer + 8, cpcache.m_ladderSurpressionTimer[1] + GetGameTime());
+		SetEntDataVector(client, gI_Offset_m_lastLadderNormal,          cpcache.m_lastLadderNormal);
+		SetEntDataVector(client, gI_Offset_m_lastLadderPos,             cpcache.m_lastLadderPos);
 		SetEntPropFloat(client, Prop_Send, "m_flDucktime", cpcache.fDucktime);
 	}
 	else if(gEV_Type == Engine_CSGO)
 	{
+		SetEntProp(client, Prop_Data, "m_bHasWalkMovedSinceLastJump", cpcache.m_bHasWalkMovedSinceLastJump, 1);
+		SetEntPropFloat(client, Prop_Data, "m_ignoreLadderJumpTime", cpcache.m_ignoreLadderJumpTime + GetGameTime());
 		SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", cpcache.fDucktime);
 		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache.fDuckSpeed);
 	}

@@ -49,6 +49,14 @@ enum struct cp_cache_t
 	ArrayList aOutputWaits;
 	float vecLadderNormal[3];
 	StringMap customdata;
+
+	bool m_bHasWalkMovedSinceLastJump; // csgo only
+	float m_ignoreLadderJumpTime; // csgo only
+
+	float m_lastStandingPos[3]; // css only
+	float m_ladderSurpressionTimer[2]; // css only // 0 = duration, 1 = remaining
+	float m_lastLadderNormal[3]; // css only
+	float m_lastLadderPos[3]; // css only
 }
 
 /**
