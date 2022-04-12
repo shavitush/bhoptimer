@@ -817,7 +817,7 @@ bool LoadReplay(frame_cache_t cache, int style, int track, const char[] path, co
 {
 	bool ret = LoadReplayCache(cache, style, track, path, mapname);
 
-	if (ret && cache.iSteamID > 0)
+	if (ret && cache.iSteamID != 0)
 	{
 		char sQuery[192];
 		FormatEx(sQuery, 192, "SELECT name FROM %susers WHERE auth = %d;", gS_MySQLPrefix, cache.iSteamID);

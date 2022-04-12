@@ -681,7 +681,7 @@ public int Native_GetWRName(Handle handler, int numParams)
 		}
 		else
 		{
-			FormatEx(sName, sizeof(sName), "[U:1:%d]", iSteamID);
+			FormatEx(sName, sizeof(sName), "[U:1:%u]", iSteamID);
 			SetNativeString(2, sName, GetNativeCell(3));
 			return 0;
 		}
@@ -1531,7 +1531,7 @@ public void DeleteConfirm_Callback(Database db, DBResultSet results, const char[
 	FormatTime(sDate, 32, "%Y-%m-%d %H:%M:%S", iTimestamp);
 
 	// above the client == 0 so log doesn't get lost if admin disconnects between deleting record and query execution
-	Shavit_LogMessage("Admin [U:1:%d] - deleted record. Runner: %s ([U:1:%d]) | Map: %s | Style: %s | Track: %s | Time: %.2f (%s) | Strafes: %d (%.1f%%) | Jumps: %d (%.1f%%) | Run date: %s | Record ID: %d",
+	Shavit_LogMessage("Admin [U:1:%u] - deleted record. Runner: %s ([U:1:%u]) | Map: %s | Style: %s | Track: %s | Time: %.2f (%s) | Strafes: %d (%.1f%%) | Jumps: %d (%.1f%%) | Run date: %s | Record ID: %d",
 		admin_steamid, sName, iSteamID, sMap, gS_StyleStrings[iStyle].sStyleName, sTrack, fTime, (bWRDeleted)? "WR":"not WR", iStrafes, fSync, iJumps, fPerfectJumps, sDate, iRecordID);
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -2460,7 +2460,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 	if(strlen(sName) > 0)
 	{
-		FormatEx(sFormattedTitle, 256, "%s [U:1:%d]\n--- %s: [%s]", sName, iSteamID, sMap, sTrack);
+		FormatEx(sFormattedTitle, 256, "%s [U:1:%u]\n--- %s: [%s]", sName, iSteamID, sMap, sTrack);
 	}
 	else
 	{

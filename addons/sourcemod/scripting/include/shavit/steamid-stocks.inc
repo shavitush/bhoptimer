@@ -79,7 +79,7 @@ stock void AccountIDToSteamID2(int accountid, char[] buf, int buflen)
 
 stock void AccountIDToSteamID3(int accountid, char[] buf, int buflen)
 {
-	FormatEx(buf, buflen, "[U:1:%d]", accountid);
+	FormatEx(buf, buflen, "[U:1:%u]", accountid);
 }
 
 stock void SteamID64ToString(int num[2], char[] buf, int buflen)
@@ -99,5 +99,5 @@ stock int SteamID64ToAccountID(const char[] steamid64)
 	int num[2];
 	kv.SetString(NULL_STRING, steamid64);
 	kv.GetUInt64(NULL_STRING, num);
-	return num[0]; // & 0x7FFFFFFF;
+	return num[0];
 }

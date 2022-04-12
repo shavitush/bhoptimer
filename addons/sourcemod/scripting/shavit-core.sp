@@ -1063,9 +1063,9 @@ public Action Command_WipePlayer(int client, int args)
 	{
 		gI_WipePlayerID[client] = SteamIDToAccountID(sArgString);
 
-		if(gI_WipePlayerID[client] <= 0)
+		if(gI_WipePlayerID[client] == 0)
 		{
-			Shavit_PrintToChat(client, "Entered SteamID (%s) is invalid. The range for valid SteamIDs is [U:1:1] to [U:1:2147483647].", sArgString);
+			Shavit_PrintToChat(client, "Entered SteamID (%s) is invalid. The range for valid SteamIDs is [U:1:1] to [U:1:4294967295].", sArgString);
 
 			return Plugin_Handled;
 		}
@@ -1078,12 +1078,12 @@ public Action Command_WipePlayer(int client, int args)
 			gS_Verification[client][i] = sAlphabet[GetRandomInt(0, sizeof(sAlphabet) - 1)];
 		}
 
-		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s[U:1:%d]%s. To confirm, enter %s!wipeplayer %s",
+		Shavit_PrintToChat(client, "Preparing to delete all user data for SteamID %s[U:1:%u]%s. To confirm, enter %s!wipeplayer %s",
 			gS_ChatStrings.sVariable, gI_WipePlayerID[client], gS_ChatStrings.sText, gS_ChatStrings.sVariable2, gS_Verification[client]);
 	}
 	else
 	{
-		Shavit_PrintToChat(client, "Deleting data for SteamID %s[U:1:%d]%s...",
+		Shavit_PrintToChat(client, "Deleting data for SteamID %s[U:1:%u]%s...",
 			gS_ChatStrings.sVariable, gI_WipePlayerID[client], gS_ChatStrings.sText);
 
 		DeleteUserData(client, gI_WipePlayerID[client]);
@@ -1110,8 +1110,8 @@ public void Trans_DeleteRestOfUserSuccess(Database db, DataPack hPack, int numQu
 
 	Shavit_ReloadLeaderboards();
 
-	Shavit_LogMessage("%L - wiped user data for [U:1:%d].", client, iSteamID);
-	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%d]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
+	Shavit_LogMessage("%L - wiped user data for [U:1:%u].", client, iSteamID);
+	Shavit_PrintToChat(client, "Finished wiping timer data for user %s[U:1:%u]%s.", gS_ChatStrings.sVariable, iSteamID, gS_ChatStrings.sText);
 }
 
 public void Trans_DeleteRestOfUserFailed(Database db, DataPack hPack, int numQueries, const char[] error, int failIndex, any[] queryData)
@@ -1120,7 +1120,7 @@ public void Trans_DeleteRestOfUserFailed(Database db, DataPack hPack, int numQue
 	hPack.ReadCell();
 	int iSteamID = hPack.ReadCell();
 	delete hPack;
-	LogError("Timer error! Failed to wipe user data (wipe | delete user data/times, id [U:1:%d]). Reason: %s", iSteamID, error);
+	LogError("Timer error! Failed to wipe user data (wipe | delete user data/times, id [U:1:%u]). Reason: %s", iSteamID, error);
 }
 
 void DeleteRestOfUser(int iSteamID, DataPack hPack)
