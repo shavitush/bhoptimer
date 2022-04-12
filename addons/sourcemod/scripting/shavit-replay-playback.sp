@@ -1124,12 +1124,27 @@ public int Native_StartReplayFromFile(Handle handler, int numParams)
 
 	frame_cache_t cache; // null cache
 
-	if (!LoadReplay(cache, style, track, path, gS_Map))
+	if (!LoadReplayCache(cache, style, track, path, gS_Map))
 	{
 		return 0;
 	}
 
-	return CreateReplayEntity(track, style, delay, client, bot, type, ignorelimit, cache, 0);
+	bot = CreateReplayEntity(track, style, delay, client, bot, type, ignorelimit, cache, 0);
+
+	if (!bot)
+	{
+		delete cache.aFrames;
+		return 0;
+	}
+
+	if (cache.iSteamID != 0)
+	{
+		char sQuery[192];
+		FormatEx(sQuery, sizeof(sQuery), "SELECT name FROM %susers WHERE auth = %d;", gS_MySQLPrefix, cache.iSteamID);
+		gH_SQL.Query2(SQL_GetUserName_Botref_Callback, sQuery, EntIndexToEntRef(bot), DBPrio_High);
+	}
+
+	return bot;
 }
 
 public int Native_ReloadReplay(Handle handler, int numParams)
@@ -1900,6 +1915,24 @@ bool DeleteReplay(int style, int track, int accountid, const char[] mapname)
 	}
 
 	return true;
+}
+
+public void SQL_GetUserName_Botref_Callback(Database db, DBResultSet results, const char[] error, int botref)
+{
+	if (results == null)
+	{
+		LogError("SQL error! Failed to get username for replay bot! Reason: %s", error);
+		return;
+	}
+
+	int bot = EntRefToEntIndex(botref);
+
+	if (IsValidEntity(bot) && results.FetchRow())
+	{
+		char name[32+1];
+		results.FetchString(0, name, sizeof(name));
+		Shavit_SetReplayCacheName(bot, name);
+	}
 }
 
 public void SQL_GetUserName_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
