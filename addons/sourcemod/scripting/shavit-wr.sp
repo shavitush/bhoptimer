@@ -64,6 +64,8 @@ Handle gH_OnWRDeleted = null;
 Handle gH_OnWorstRecord = null;
 Handle gH_OnFinishMessage = null;
 Handle gH_OnWorldRecordsCached = null;
+Handle gH_OnOpenSubMenu = null;
+Handle gH_OnOpenSubMenuButtonPressed = null;
 
 // database handle
 Database2 gH_SQL = null;
@@ -170,6 +172,8 @@ public void OnPluginStart()
 	gH_OnWorstRecord = CreateGlobalForward("Shavit_OnWorstRecord", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_OnFinishMessage = CreateGlobalForward("Shavit_OnFinishMessage", ET_Event, Param_Cell, Param_CellByRef, Param_Array, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_String, Param_Cell);
 	gH_OnWorldRecordsCached = CreateGlobalForward("Shavit_OnWorldRecordsCached", ET_Event);
+	gH_OnOpenSubMenu = CreateGlobalForward("Shavit_OnOpenSubMenu", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell);
+	gH_OnOpenSubMenuButtonPressed = CreateGlobalForward("Shavit_OnOpenSubMenuButtonPressed", ET_Hook, Param_Cell, Param_String);
 
 	// player commands
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
@@ -2448,8 +2452,17 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatEx(sInfo, 32, "1;%d", id);
 			hMenu.AddItem(sInfo, sMenuItem);
 		}
+		int track = results.FetchInt(11);
+		GetTrackName(client, track, sTrack, 32);
 
-		GetTrackName(client, results.FetchInt(11), sTrack, 32);
+		Call_StartForward(gH_OnOpenSubMenu);
+		Call_PushCell(client);
+		Call_PushCell(hMenu);
+		Call_PushCell(id);
+		Call_PushString(sMap);
+		Call_PushCell(track);
+		Call_PushCell(iStyle);
+		Call_Finish();
 	}
 	else
 	{
@@ -2476,25 +2489,33 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if(action == MenuAction_Select)
 	{
-		char sInfo[32];
-		menu.GetItem(param2, sInfo, 32);
+		char sInfo[64];
+		menu.GetItem(param2, sInfo, 64);
+
+		Call_StartForward(gH_OnOpenSubMenuButtonPressed);
+		Call_PushCell(param1);
+		Call_PushString(sInfo);
+		Call_Finish();
 
 		if(gB_Stats && StringToInt(sInfo) != -1)
 		{
-			char sExploded[2][32];
-			ExplodeString(sInfo, ";", sExploded, 2, 32, true);
-
-			int first = StringToInt(sExploded[0]);
-
-			switch(first)
+			if(StrContains(sInfo, ";", false) == 0)
 			{
-				case 0:
+				char sExploded[2][32];
+				ExplodeString(sInfo, ";", sExploded, 2, 32, true);
+
+				int first = StringToInt(sExploded[0]);
+
+				switch(first)
 				{
-					FakeClientCommand(param1, "sm_profile [U:1:%s]", sExploded[1]);
-				}
-				case 1:
-				{
-					OpenDeleteMenu(param1, StringToInt(sExploded[1]));
+					case 0:
+					{
+						FakeClientCommand(param1, "sm_profile [U:1:%s]", sExploded[1]);
+					}
+					case 1:
+					{
+						OpenDeleteMenu(param1, StringToInt(sExploded[1]));
+					}
 				}
 			}
 		}

@@ -246,6 +246,9 @@ native void Shavit_DeleteWR(int style, int track, const char[] map, int accounti
  */
 native void Shavit_WR_DeleteMap(const char[] map);
 
+forward void Shavit_OnOpenSubMenu(int client, Menu menu, int uid, const char[] sMap, int track, int style);
+forward Action Shavit_OnOpenSubMenuButtonPressed(int client, const char[] szInfo);
+
 public SharedPlugin __pl_shavit_wr =
 {
 	name = "shavit-wr",
