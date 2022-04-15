@@ -107,6 +107,7 @@ Convar gCV_TicksPerUpdate = null;
 Convar gCV_SpectatorList = null;
 Convar gCV_UseHUDFix = null;
 Convar gCV_SpecNameSymbolLength = null;
+Convar gCV_BlockYouHaveSpottedHint = null;
 Convar gCV_DefaultHUD = null;
 Convar gCV_DefaultHUD2 = null;
 
@@ -161,6 +162,10 @@ public void OnPluginStart()
 		HookEvent("player_team", Player_ChangeClass);
 		HookEvent("teamplay_round_start", Teamplay_Round_Start);
 	}
+	else if (gEV_Type == Engine_CSS)
+	{
+		HookUserMessage(gI_HintText, Hook_HintText, true);
+	}
 
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Zones = LibraryExists("shavit-zones");
@@ -178,6 +183,7 @@ public void OnPluginStart()
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
 	gCV_SpecNameSymbolLength = new Convar("shavit_hud_specnamesymbollength", "32", "Maximum player name length that should be displayed in spectators panel", 0, true, 0.0, true, float(MAX_NAME_LENGTH));
+	gCV_BlockYouHaveSpottedHint = new Convar("shavit_hud_block_spotted_hint", "1", "Blocks the hint message for spotting an enemy or friendly (which covers the center HUD)", 0, true, 0.0, true, 1.0);
 
 	char defaultHUD[8];
 	IntToString(HUD_DEFAULT, defaultHUD, 8);
@@ -491,6 +497,22 @@ public void Player_ChangeClass(Event event, const char[] name, bool dontBroadcas
 public void Teamplay_Round_Start(Event event, const char[] name, bool dontBroadcast)
 {
 	CreateTimer(0.5, Timer_FillerHintTextAll, 0, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action Hook_HintText(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
+{
+	if (gCV_BlockYouHaveSpottedHint.BoolValue)
+	{
+		char text[64];
+		msg.ReadString(text, sizeof(text));
+
+		if (StrEqual(text, "#Hint_spotted_a_friend") || StrEqual(text, "#Hint_spotted_an_enemy"))
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	return Plugin_Continue;
 }
 
 public Action Timer_FillerHintTextAll(Handle timer, any data)
@@ -2384,7 +2406,7 @@ void UnreliablePrintCenterText(int client, const char[] str)
 
 	// Start our own message instead of using PrintCenterText so we can exclude USERMSG_RELIABLE.
 	// This makes the HUD update visually faster.
-	BfWrite msg = view_as<BfWrite>(StartMessageEx(gI_TextMsg, clients, 1, 0));
+	BfWrite msg = view_as<BfWrite>(StartMessageEx(gI_TextMsg, clients, 1, USERMSG_BLOCKHOOKS));
 	msg.WriteByte(HUD_PRINTCENTER);
 	msg.WriteString(str);
 	msg.WriteString("");
@@ -2401,7 +2423,7 @@ void UnreliablePrintHintText(int client, const char[] str)
 
 	// Start our own message instead of using PrintHintText so we can exclude USERMSG_RELIABLE.
 	// This makes the HUD update visually faster.
-	BfWrite msg = view_as<BfWrite>(StartMessageEx(gI_HintText, clients, 1, 0));
+	BfWrite msg = view_as<BfWrite>(StartMessageEx(gI_HintText, clients, 1, USERMSG_BLOCKHOOKS));
 	msg.WriteString(str);
 	EndMessage();
 }
