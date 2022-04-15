@@ -134,6 +134,7 @@ bool gB_Eventqueuefix = false;
 bool gB_Rankings = false;
 bool gB_ReplayPlayback = false;
 bool gB_Chat = false;
+bool gB_Zones = false;
 
 // timer settings
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -302,6 +303,7 @@ public void OnPluginStart()
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Chat = LibraryExists("shavit-chat");
+	gB_Zones = LibraryExists("shavit-zones");
 }
 
 public void OnAllPluginsLoaded()
@@ -646,6 +648,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Chat = true;
 	}
+	else if (StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = true;
+	}
 	else if (StrEqual(name, "shavit-checkpoints"))
 	{
 		gB_Checkpoints = true;
@@ -669,6 +675,10 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "shavit-chat"))
 	{
 		gB_Chat = false;
+	}
+	else if (StrEqual(name, "shavit-zones"))
+	{
+		gB_Zones = false;
 	}
 	else if (StrEqual(name, "shavit-checkpoints"))
 	{
@@ -1189,7 +1199,7 @@ void DumbSetVelocity(int client, float fSpeed[3])
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style)
 {
 	bool bNoclip = (GetEntityMoveType(client) == MOVETYPE_NOCLIP);
-	bool bInStart = Shavit_InsideZone(client, Zone_Start, track);
+	bool bInStart = gB_Zones && Shavit_InsideZone(client, Zone_Start, track);
 
 	// i will not be adding a setting to toggle this off
 	if(bNoclip)

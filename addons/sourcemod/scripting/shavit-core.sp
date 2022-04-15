@@ -1512,7 +1512,7 @@ void DoJump(int client)
 	}
 
 	// TF2 doesn't use stamina
-	if (gEV_Type != Engine_TF2 && (GetStyleSettingBool(gA_Timers[client].bsStyle, "easybhop")) || Shavit_InsideZone(client, Zone_Easybhop, gA_Timers[client].iTimerTrack))
+	if (gEV_Type != Engine_TF2 && (GetStyleSettingBool(gA_Timers[client].bsStyle, "easybhop")) || (gB_Zones && Shavit_InsideZone(client, Zone_Easybhop, gA_Timers[client].iTimerTrack)))
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 	}
@@ -1692,14 +1692,17 @@ public int Native_CanPause(Handle handler, int numParams)
 		iFlags |= CPR_NoTimer;
 	}
 
-	if (Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTimerTrack))
+	if (gB_Zones)
 	{
-		iFlags |= CPR_InStartZone;
-	}
+		if (Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTimerTrack))
+		{
+			iFlags |= CPR_InStartZone;
+		}
 
-	if (Shavit_InsideZone(client, Zone_End, gA_Timers[client].iTimerTrack))
-	{
-		iFlags |= CPR_InEndZone;
+		if (Shavit_InsideZone(client, Zone_End, gA_Timers[client].iTimerTrack))
+		{
+			iFlags |= CPR_InEndZone;
+		}
 	}
 
 	if(GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 && GetEntityMoveType(client) != MOVETYPE_LADDER)
@@ -3088,7 +3091,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
-	bool bInStart = Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTimerTrack);
+	bool bInStart = gB_Zones && Shavit_InsideZone(client, Zone_Start, gA_Timers[client].iTimerTrack);
 
 	if (gA_Timers[client].bTimerEnabled && !gA_Timers[client].bClientPaused)
 	{
@@ -3154,7 +3157,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	// key blocking
-	if(!gA_Timers[client].bCanUseAllKeys && mtMoveType != MOVETYPE_NOCLIP && mtMoveType != MOVETYPE_LADDER && !Shavit_InsideZone(client, Zone_Freestyle, -1))
+	if(!gA_Timers[client].bCanUseAllKeys && mtMoveType != MOVETYPE_NOCLIP && mtMoveType != MOVETYPE_LADDER && !(gB_Zones && Shavit_InsideZone(client, Zone_Freestyle, -1)))
 	{
 		// block E
 		if (GetStyleSettingBool(gA_Timers[client].bsStyle, "block_use") && (buttons & IN_USE) > 0)

@@ -1386,7 +1386,7 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 		float limit = Shavit_GetStyleSettingFloat(data.iStyle, "velocity_limit");
 
-		if (limit > 0.0 && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, data.iTrack))
+		if (limit > 0.0 && gB_Zones && Shavit_InsideZone(data.iTarget, Zone_CustomSpeedLimit, data.iTrack))
 		{
 			if(gI_ZoneSpeedLimit[data.iTarget] == 0)
 			{
@@ -1677,13 +1677,16 @@ void UpdateMainHUD(int client)
 
 	if(!bReplay)
 	{
-		if (Shavit_InsideZone(target, Zone_Start, huddata.iTrack))
+		if (gB_Zones)
 		{
-			iZoneHUD = ZoneHUD_Start;
-		}
-		else if (Shavit_InsideZone(target, Zone_End, huddata.iTrack))
-		{
-			iZoneHUD = ZoneHUD_End;
+			if (Shavit_InsideZone(target, Zone_Start, huddata.iTrack))
+			{
+				iZoneHUD = ZoneHUD_Start;
+			}
+			else if (Shavit_InsideZone(target, Zone_End, huddata.iTrack))
+			{
+				iZoneHUD = ZoneHUD_End;
+			}
 		}
 	}
 	else
