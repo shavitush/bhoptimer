@@ -393,7 +393,7 @@ public void OnClientPutInServer(int client)
 
 	if(IsFakeClient(client))
 	{
-		SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
+		SDKHook(client, SDKHook_PostThinkPost, BotPostThinkPost);
 	}
 	else
 	{
@@ -421,7 +421,7 @@ public void OnWindowsCvarQueried(QueryCookie cookie, int client, ConVarQueryResu
 	gB_AlternateCenterKeys[client] = (result == ConVarQuery_NotFound);
 }
 
-public void PostThinkPost(int client)
+public void BotPostThinkPost(int client)
 {
 	int buttons = GetClientButtons(client);
 
@@ -1893,6 +1893,16 @@ void UpdateCenterKeys(int client)
 	{
 		return;
 	}
+
+	int current_tick = GetGameTickCount();
+	static int last_drawn[MAXPLAYERS+1];
+
+	if (current_tick == last_drawn[client])
+	{
+		return;
+	}
+
+	last_drawn[client] = current_tick;
 
 	int target = GetSpectatorTarget(client, client);
 
