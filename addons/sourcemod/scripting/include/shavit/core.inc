@@ -1359,15 +1359,6 @@ native float Shavit_GetClientTimescale(int client);
 native void Shavit_UpdateLaggedMovement(int client, bool user_timescale=true);
 
 /**
- * Check if there are client cookies to retrieve. **NATIVE CURRENTLY USED ONLY FOR HUD**.
- *
- * @param client                    Client index
- *
- * @return                          True if there are client cookies retrieved and set to client.
- */
-native bool Shavit_Core_CookiesRetrieved(int client);
-
-/**
  * When using the timer's timescale_tas stuff, this returns whether the current frame should be recorded by replay plugins.
  *
  * @param client                    Client index
@@ -1449,7 +1440,6 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_SetStyleSettingFloat");
 	MarkNativeAsOptional("Shavit_SetStyleSettingBool");
 	MarkNativeAsOptional("Shavit_SetStyleSettingInt");
-	MarkNativeAsOptional("Shavit_Core_CookiesRetrieved");
 	MarkNativeAsOptional("Shavit_ShouldProcessFrame");
 	MarkNativeAsOptional("Shavit_GotoEnd");
 	MarkNativeAsOptional("Shavit_UpdateLaggedMovement");

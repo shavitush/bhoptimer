@@ -216,7 +216,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetMaxVelocity", Native_GetMaxVelocity);
 	CreateNative("Shavit_SetAvgVelocity", Native_SetAvgVelocity);
 	CreateNative("Shavit_SetMaxVelocity", Native_SetMaxVelocity);
-	CreateNative("Shavit_Core_CookiesRetrieved", Native_Core_CookiesRetrieved);
 	CreateNative("Shavit_ShouldProcessFrame", Native_ShouldProcessFrame);
 	CreateNative("Shavit_GotoEnd", Native_GotoEnd);
 	CreateNative("Shavit_UpdateLaggedMovement", Native_UpdateLaggedMovement);
@@ -2276,11 +2275,6 @@ public any Native_SetMaxVelocity(Handle plugin, int numParams)
 {
 	gA_Timers[GetNativeCell(1)].fMaxVelocity = GetNativeCell(2);
 	return 1;
-}
-
-public any Native_Core_CookiesRetrieved(Handle plugin, int numParams)
-{
-	return gB_CookiesRetrieved[GetNativeCell(1)];
 }
 
 public any Native_ShouldProcessFrame(Handle plugin, int numParams)
