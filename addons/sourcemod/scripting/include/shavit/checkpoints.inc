@@ -283,10 +283,11 @@ native bool Shavit_LoadCheckpointCache(int client, any[] cache, int index, int s
  * @param cache                     Output cp_cache_t
  * @param index                     -1 if you want the cp_cache_t to be saved as "persistent data". 0 if not. greater-than-zero if you what you're doing and intentionally want to spoof the cp_cache_t creation as a checkpoint index for some reason... I recommend looking at shavit-checkpoints.sp to see how "index" and "isPersistentData" are used to see what kind of difference there is.
  * @param size                      sizeof(cp_cache_t) to mostly ensure the calling plugin has a matching cp_cache_t.
+ * @param bypass                    Do not trigger Shavit_OnCheckpointCacheSaved().
  *
  * @noreturn
  */
-native void Shavit_SaveCheckpointCache(int saver, int target, any[] cache, int index, int size = sizeof(cp_cache_t));
+native void Shavit_SaveCheckpointCache(int saver, int target, any[] cache, int index, int size = sizeof(cp_cache_t), bool bypass = false);
 
 public SharedPlugin __pl_shavit_checkpoints =
 {

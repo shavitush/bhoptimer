@@ -1399,7 +1399,7 @@ bool SaveCheckpoint(int client)
 	return true;
 }
 
-void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin)
+void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin, bool bypass = false)
 {
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
@@ -1567,12 +1567,15 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 		cpcache.customdata = cd;
 	}
 
-	Call_StartForward(gH_Forwards_OnCheckpointCacheSaved);
-	Call_PushCell(saver);
-	Call_PushArray(cpcache, sizeof(cpcache));
-	Call_PushCell(index);
-	Call_PushCell(target);
-	Call_Finish();
+	if (!bypass)
+	{
+		Call_StartForward(gH_Forwards_OnCheckpointCacheSaved);
+		Call_PushCell(saver);
+		Call_PushArray(cpcache, sizeof(cpcache));
+		Call_PushCell(index);
+		Call_PushCell(target);
+		Call_Finish();
+	}
 }
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage)
@@ -2035,6 +2038,7 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 	int target = GetNativeCell(2);
 	cp_cache_t cache;
 	int index = GetNativeCell(4);
-	SaveCheckpointCache(saver, target, cache, index, plugin);
+	bool bypass = GetNativeCell(5);
+	SaveCheckpointCache(saver, target, cache, index, plugin, bypass);
 	return SetNativeArray(3, cache, sizeof(cp_cache_t));
 }
