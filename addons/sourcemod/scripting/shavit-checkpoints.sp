@@ -1550,10 +1550,12 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 
 	cpcache.iSteamID = GetSteamAccountID(target);
 
+#if 0
 	if (cpcache.iSteamID != GetSteamAccountID(saver))
 	{
 		cpcache.aSnapshot.bPracticeMode = true;
 	}
+#endif
 
 	StringMap cd = new StringMap();
 
@@ -1665,7 +1667,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force = false)
 {
 	// ripped this out and put it here since Shavit_LoadSnapshot() checks this and we want to bail early if LoadSnapShot would fail
-	if (!Shavit_HasStyleAccess(client, cpcache.aSnapshot.bsStyle) && !force)
+	if (!force && !Shavit_HasStyleAccess(client, cpcache.aSnapshot.bsStyle))
 	{
 		return false;
 	}
