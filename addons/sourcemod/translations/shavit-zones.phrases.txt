@@ -24,11 +24,6 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"You have to be {1}alive{2} to set your start position."
 	}
-	"SetStartNotInStartZone"
-	{
-		"#format"	"{1:s},{2:s},{3:s},{4:s}"
-		"en"		"You {1}must{2} be in the {3}start zone{4} to use set start."
-	}
 	"DeleteSetStart"
 	{
 		"#format"	"{1:s},{2:s}"
@@ -328,7 +323,7 @@
 	{
 		"en"		"Default"
 	}
-	
+
 	"CustomZone_DisplayType_None"
 	{
 		"en"		"None"
@@ -341,7 +336,7 @@
 	{
 		"en"		"Flat"
 	}
-	
+
 	"CustomZone_Color_White"
 	{
 		"en"		"White"

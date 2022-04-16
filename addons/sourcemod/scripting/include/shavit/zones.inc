@@ -23,8 +23,8 @@
 #endif
 #define _shavit_zones_included
 
-#define MAX_ZONES 64
-#define MAX_STAGES 51 // 😐 kind of arbitrary but also some space between this and MAX_ZONES
+#define MAX_ZONES 128
+#define MAX_STAGES 69
 
 enum
 {
@@ -36,7 +36,7 @@ enum
 	Zone_Freestyle,			// ignores style physics when at this zone. e.g. WASD when SWing
 	Zone_CustomSpeedLimit,	// overwrites velocity limit in the zone
 	Zone_Teleport,			// teleports to a defined point
-	Zone_CustomSpawn,		// << unused
+	Zone_CustomSpawn,		// spawn position for a track. not a physical zone.
 	Zone_Easybhop,			// forces easybhop whether if the player is in non-easy styles or if the server has different settings
 	Zone_Slide,				// allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
 	Zone_Airaccelerate,		// custom sv_airaccelerate inside this,
@@ -49,7 +49,6 @@ enum
 enum
 {
 	ZF_ForceRender = (1 << 0),
-	ZF_Prebuilt    = (1 << 1), // comes from mod_zone_* entities
 };
 
 // Zone Display type
@@ -88,33 +87,29 @@ enum
 	ZoneWidth_Size
 };
 
-#if 0
+enum // i really can't think of a better name than "source" for this
+{
+	ZoneSource_2Points,
+	ZoneSource_trigger_multiple,
+	ZoneSource_trigger_teleport,
+	ZoneSource_func_button,
+	ZoneSource_AreasAndClusters,
+};
+
 enum struct zone_cache_t
 {
-	bool bZoneInitialized;
-	int iType;
+	int iType; // The type of zone. Zone_Start, Zone_End, etc...
 	int iTrack; // 0 - main, 1 - bonus1 etc
-	int iEntity;
-	int iDatabaseID; // when ZF_Prebuilt, this is the entity's m_iHammerID
-	int iFlags;
-	int iData;
-	float fCorner1[3];
-	float fCorner2[3];
-	float fDestination[3];
+	int iEntity; // The entity to the matching zone if applicable. trigger_multiple zones, hammerid zones, and targetname zones should have this filled to a valid entity index.
+	int iDatabaseID; // uhhhh TODO
+	int iFlags; // The ZF_* flags.
+	int iData; // Depends on the zone. Zone_Stage stores the stage number in this for example.
+	float fCorner1[3]; // the hull mins. (or unused if ZoneSource_AreasAndClusters) // TODO, maybe reuse for cluster & areas?
+	float fCorner2[3]; // the hull maxs. (or unused if ZoneSource_AreasAndClusters)
+	float fDestination[3]; // Used by Zone_CustomSpawn, Zone_Teleport, and Zone_Stage.
+	int iSource; // ZoneSource_*
+	char sTarget[64]; // either the hammerid or the targetname
 }
-#else
-enum struct zone_cache_t
-{
-	bool bZoneInitialized;
-	bool bPrebuilt; // comes from mod_zone_* entities
-	int iZoneType;
-	int iZoneTrack; // 0 - main, 1 - bonus etc
-	int iEntityID;
-	int iDatabaseID;
-	int iZoneFlags;
-	int iZoneData;
-}
-#endif
 
 stock void GetZoneName(int client, int zoneType, char[] output, int size)
 {
@@ -311,15 +306,41 @@ native void Shavit_SetStart(int client, int track, bool anglesonly);
  */
 native void Shavit_DeleteSetStart(int client, int track);
 
-#if 0
-native void Shavit_RemoveAllZones();
+/**
+ * Removes all zones from memory and unhooks any zones and kills any created entities.
+ * @noreturn
+ */
+native void Shavit_UnloadZones();
 
+/**
+ * Returns the number of zones that are currently loaded in memory.
+ *
+ * @return                          The number of zones currently loaded in memory.
+ */
 native int Shavit_GetZoneCount();
 
+/**
+ * Retrieves the zone_cache_t for a zone.
+ *
+ * @param index                     The zone index. 0 through Shavit_GetZoneCount()-1.
+ * @param zonecache                 The zone_cache_t struct that is retrieved from the zone.
+ * @param size                      sizeof(zone_cache_t) to make sure the caller has a matching struct version.
+ *
+ * @noreturn
+ */
 native void Shavit_GetZone(int index, any[] zonecache, int size = sizeof(zone_cache_t));
 
+/**
+ * Adds a zone to memory. (Does NOT insert into DB).
+ *
+ * @param zonecache                 The zone_cache_t struct that is used to create or hook a zone.
+ * @param size                      sizeof(zone_cache_t) to make sure the caller has a matching struct version.
+ *
+ * @return                          The zone index on success (index for a particular zone can change). <0 on failure.
+ */
 native int Shavit_AddZone(any[] zonecache, int size = sizeof(zone_cache_t));
-#endif
+
+//native void Shavit_RemoveZone(int index);
 
 public SharedPlugin __pl_shavit_zones =
 {
@@ -350,5 +371,10 @@ public void __pl_shavit_zones_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetZoneTrack");
 	MarkNativeAsOptional("Shavit_GetZoneType");
 	MarkNativeAsOptional("Shavit_GetZoneID");
+	MarkNativeAsOptional("Shavit_UnloadZones");
+	MarkNativeAsOptional("Shavit_GetZoneCount");
+	MarkNativeAsOptional("Shavit_GetZone");
+	MarkNativeAsOptional("Shavit_AddZone");
+	//MarkNativeAsOptional("Shavit_RemoveZone");
 }
 #endif

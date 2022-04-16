@@ -46,6 +46,10 @@ enum
 	Migration_Lowercase_startpositions,
 	Migration_AddPlayertimesPointsCalcedFrom, // points calculated from wr float added to playertimes
 	Migration_RemovePlayertimesPointsCalcedFrom, // lol
+	Migration_NormalizeMapzonePoints,
+	Migration_AddMapzonesSourceAndTarget, // 25
+	Migration_ConvertPrebuiltMapzones,
+	Migration_DropPrebuiltColumn,
 	MIGRATIONS_END
 };
 
@@ -193,7 +197,7 @@ public void SQL_CreateTables(Database2 hSQL, const char[] prefix, bool mysql)
 	//
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `prebuilt` BOOL, PRIMARY KEY (`id`)) %s;",
+		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `source` TINYINT, `target` VARCHAR(63), PRIMARY KEY (`id`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
 	hTrans.AddQuery2(sQuery);
 
@@ -304,6 +308,10 @@ void ApplyMigration(int migration)
 		case Migration_Lowercase_startpositions: ApplyMigration_LowercaseMaps("startpositions", migration);
 		case Migration_AddPlayertimesPointsCalcedFrom: ApplyMigration_AddPlayertimesPointsCalcedFrom();
 		case Migration_RemovePlayertimesPointsCalcedFrom: ApplyMigration_RemovePlayertimesPointsCalcedFrom();
+		case Migration_NormalizeMapzonePoints: ApplyMigration_NormalizeMapzonePoints();
+		case Migration_AddMapzonesSourceAndTarget: ApplyMigration_AddMapzonesSourceAndTarget();
+		case Migration_ConvertPrebuiltMapzones: ApplyMigration_ConvertPrebuiltMapzones();
+		case Migration_DropPrebuiltColumn: ApplyMigration_DropPrebuiltColumn();
 	}
 }
 
@@ -365,9 +373,13 @@ void ApplyMigration_FixOldCompletionCounts()
 
 void ApplyMigration_AddPrebuiltToMapZonesTable()
 {
+#if 0
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%smapzones` ADD COLUMN `prebuilt` BOOL;", gS_SQLPrefix);
 	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPrebuiltToMapZonesTable, DBPrio_High);
+#else
+	SQL_TableMigrationSingleQuery_Callback(null, null, "", Migration_AddPrebuiltToMapZonesTable);
+#endif
 }
 
 // double up on this migration because some people may have used shavit-playtime which uses INT but I want FLOAT
@@ -408,6 +420,54 @@ void ApplyMigration_RemovePlayertimesPointsCalcedFrom()
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` DROP COLUMN `points_calced_from`;", gS_SQLPrefix);
 	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_RemovePlayertimesPointsCalcedFrom, DBPrio_High);
+}
+
+void ApplyMigration_NormalizeMapzonePoints() // TODO: test with sqlite lol
+{
+	char sQuery[666], greatest[16], least[16], id[16];
+	greatest = gB_MySQL ? "GREATEST" : "MAX";
+	least = gB_MySQL ? "LEAST" : "MIN";
+	id = gB_MySQL ? "id" : "rowid";
+
+	FormatEx(sQuery, sizeof(sQuery),
+		"UPDATE `%smapzones` A, `%smapzones` B SET \
+		A.corner1_x=%s(B.corner1_x, B.corner2_x), \
+		A.corner1_y=%s(B.corner1_y, B.corner2_y), \
+		A.corner1_z=%s(B.corner1_z, B.corner2_z), \
+		A.corner2_x=%s(B.corner1_x, B.corner2_x), \
+		A.corner2_y=%s(B.corner1_y, B.corner2_y), \
+		A.corner2_z=%s(B.corner1_z, B.corner2_z)  \
+		WHERE A.%s = B.%s;",
+		gS_SQLPrefix, gS_SQLPrefix,
+		least, least, least,
+		greatest, greatest, greatest,
+		id, id
+	);
+
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_NormalizeMapzonePoints, DBPrio_High);
+}
+
+void ApplyMigration_AddMapzonesSourceAndTarget()
+{
+	char sQuery[192];
+	FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%smapzones` ADD COLUMN `source` TINYINT, ADD COLUMN `target` VARCHAR(63);", gS_SQLPrefix);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddMapzonesSourceAndTarget, DBPrio_High);
+}
+
+void ApplyMigration_ConvertPrebuiltMapzones()
+{
+	char sQuery[192];
+	// set source to ZoneSource_HookTriggerMultiple
+	// the "target" column will still be null BUT on first map load we'll find the entity and update those rows...
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE `%smapzones` SET source = 1 WHERE prebuilt = 1;", gS_SQLPrefix);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_ConvertPrebuiltMapzones, DBPrio_High);
+}
+
+void ApplyMigration_DropPrebuiltColumn()
+{
+	char sQuery[192];
+	FormatEx(sQuery, 192, "ALTER TABLE `%smapzones` DROP COLUMN `prebuilt`;", gS_SQLPrefix);
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_DropPrebuiltColumn, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)

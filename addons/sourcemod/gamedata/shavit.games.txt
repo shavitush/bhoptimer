@@ -17,6 +17,13 @@
 				"windows"   "@CreateInterface"
 				"linux"     "@CreateInterface"
 			}
+
+			"CreateInterface_Engine"
+			{
+				"library"   "engine"
+				"windows"   "@CreateInterface"
+				"linux"     "@CreateInterface"
+			}
 		}
 
 		"Offsets"
@@ -72,6 +79,18 @@
 			{
 				"windows"   "8"
 				"linux"     "8"
+			}
+			// TODO
+			"GetClusterForOrigin"
+			{
+				"windows"   "12"
+				"linux"     "12"
+			}
+			// TODO
+			"GetArea"
+			{
+				"windows"   "65"
+				"linux"     "65"
 			}
 		}
 
@@ -172,6 +191,18 @@
 			{
 				"windows"   "5724"
 				"linux"     "5744" // +20 wow that's easy!
+			}
+			// TODO
+			"GetClusterForOrigin"
+			{
+				"windows"   "11"
+				"linux"     "11"
+			}
+			// TODO
+			"GetArea"
+			{
+				"windows"   "64"
+				"linux"     "64"
 			}
 		}
 
