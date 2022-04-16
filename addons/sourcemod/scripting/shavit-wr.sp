@@ -2376,7 +2376,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 
 		char sDisplay[128];
 		FormatEx(sDisplay, 128, "%T: %s", "WRTime", client, sTime);
-		hMenu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
 
 		int iStyle = results.FetchInt(3);
 		int iJumps = results.FetchInt(2);
@@ -2391,13 +2391,13 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 			FormatEx(sDisplay, 128, "%T: %d (%.2f%%)", "WRJumps", client, iJumps, fPerfs);
 		}
 
-		hMenu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
 
 		FormatEx(sDisplay, 128, "%T: %d", "WRCompletions", client, results.FetchInt(12));
-		hMenu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
 
 		FormatEx(sDisplay, 128, "%T: %s", "WRStyle", client, gS_StyleStrings[iStyle].sStyleName);
-		hMenu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
 
 		results.FetchString(6, sMap, sizeof(sMap));
 
@@ -2406,7 +2406,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		if(gB_Rankings && fPoints > 0.0)
 		{
 			FormatEx(sDisplay, 128, "%T: %.03f", "WRPointsCap", client, fPoints);
-			hMenu.AddItem("-1", sDisplay);
+			hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
 		}
 
 		iSteamID = results.FetchInt(4);
@@ -2420,7 +2420,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 
 		FormatEx(sDisplay, 128, "%T: %s", "WRDate", client, sDate);
-		hMenu.AddItem("-1", sDisplay);
+		hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
 
 		int strafes = results.FetchInt(7);
 		float sync = results.FetchFloat(8);
@@ -2428,7 +2428,7 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		if(iJumps > 0 || strafes > 0)
 		{
 			FormatEx(sDisplay, 128, (sync != -1.0)? "%T: %d (%.02f%%)":"%T: %d", "WRStrafes", client, strafes, sync);
-			hMenu.AddItem("-1", sDisplay);
+			hMenu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
 		}
 
 		char sMenuItem[64];
