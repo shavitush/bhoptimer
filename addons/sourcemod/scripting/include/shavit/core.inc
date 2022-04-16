@@ -252,6 +252,17 @@ stock void LowercaseString(char[] str)
 	}
 }
 
+stock void UppercaseString(char[] str)
+{
+	int i, x;
+	while ((x = str[i]) != 0)
+	{
+		if ('a' <= x <= 'z')
+			str[i] -= ('a' - 'A');
+		++i;
+	}
+}
+
 // GetMapDisplayName ends up opening every single fucking file to verify it's valid.
 // I don't care about that. I just want the stupid fucking mapname string.
 // Also this lowercases the string.
