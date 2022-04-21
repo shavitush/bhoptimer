@@ -152,8 +152,8 @@
 			// find in CCSGameMovement::CheckForLadders which references CCSPlayer::CanGrabLadder
 			"CCSPlayer::m_lastStandingPos"
 			{
-				"windows"   "5688"
-				"linux"     "5704"
+				"windows"   "5684"
+				"linux"     "5704" // +20 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
 			"CCSPlayer::m_ladderSurpressionTimer"
