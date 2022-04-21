@@ -2,6 +2,37 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
+# v3.2.0 - asdf - 2022-04-xx - rtldg
+https://github.com/shavitush/bhoptimer/releases/tag/v3.2.0
+
+- added `Shavit_OnTeleportPre` and `Shavit_OnSavePre`. The return values of `Shavit_OnSave` and `Shavit_OnTeleport` are now ignored. https://github.com/shavitush/bhoptimer/commit/de8a82707b9fab615438844a2ea2f5ccc78957dc
+- fixed replay prop playback breaking due to a bad index https://github.com/shavitush/bhoptimer/commit/70f29d3ca55a9f70d64f74ac9059c3cd1ab00a7a
+- fixed replays not loading on the first map (and issues with creating replay directories too) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/d58d3ee1d569b22eded5a8f63e64544846b4d20e
+- Changed the behaviour of `shavit_misc_resettargetname` (#1123) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/0fee1862c8403e07d561cab45a9997dbe88a1041
+	- Fix targetname and classname locking (#1135) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/8f07c1d5106b28dea3c03eb842ec5c711cb0f1aa
+	- TODO TODO more notes here
+- renamed `shavit_checkpoints_checkpoints` to `shavit_checkpoints_enabled` https://github.com/shavitush/bhoptimer/commit/b05393cf9fca682c7e959164a1ac15017c3efa3a
+- improved handle handling in `Shavit_SetCheckpoint` and added `cheapCloneHandle` as a parameter for #1133 https://github.com/shavitush/bhoptimer/commit/91ec294f423def449dee616f9a4f7ea0b335abda
+	- and a couple of other commits for that issue https://github.com/shavitush/bhoptimer/commit/8f59007d1d59c34c4b24c13de1c4fe207a3b20f5 https://github.com/shavitush/bhoptimer/commit/ea9a96271125659f252787840013b01e108633f5
+- removed `Shavit_OnCheckpointCacheDeleted`. added `Shavit_SetTimesTeleported`, `Shavit_LoadCheckpointCache`, and `Shavit_SaveCheckpointCache` https://github.com/shavitush/bhoptimer/commit/86af6ca07ba18f6c401b662159a8323fea85ad60 Shavit_SaveCheckpointCache
+- added max checkpoint counter to checkpoint menu https://github.com/shavitush/bhoptimer/commit/f642afe0162de51fe6359db7fd032fb772f95ab4
+- moved shavit-mapchooser's `CheckRTV` to `OnClientDisconnect_Post` so it works properly :tm: https://github.com/shavitush/bhoptimer/commit/85ff178f473ae8cf714ad1f3505625052d3f84bf
+- corrected native definition file for `Shavit_GetStageWR` https://github.com/shavitush/bhoptimer/commit/554606a21030648bfafbf20ccc1e3baa9fe3e335
+- made `LowercaseString` faster :pepega: https://github.com/shavitush/bhoptimer/commit/3a6592cc5ee4e320402482eb9f386ac8ca438d8e
+- added `bhop_drop`'s bonus to mapfixes https://github.com/shavitush/bhoptimer/commit/fda64ad1026ef2005c1d74c17d50bc1460097b60
+- prevent nominations from being put twice on the map vote https://github.com/shavitush/bhoptimer/commit/ddb902e663b0fdb5071785af37aaed5cd0e189de
+- changed oblivous autogain velocity stuff so boosters on `bhop_linear_gif` aren't affected by vertical velocity @defiy https://github.com/shavitush/bhoptimer/commit/76aaecdb6e84353b939fe29f8d267d5378565b65
+- added `!nominatedmaps` and `!nominations` as aliases for `!nomlist` (#1136) @Nairdaa https://github.com/shavitush/bhoptimer/commit/d7785f91ce4535d7a7af1520b39c9124ca30a6d7
+- removed reliable flag from centerhud and hinttext messages so they update faster and don't wait for an ack https://github.com/shavitush/bhoptimer/commit/ea3bd051242527268ee6bdfcf1a3011a2d6a3bcf https://github.com/shavitush/bhoptimer/commit/cf5bc4b7db5d9783179fc0578fc98af10a97a9ef
+- merge checkpoint menus and shavit-kz.sp, etc (#1137) @sh4hrazad https://github.com/shavitush/bhoptimer/commit/6d208a8595f798d15f1cc0d56847e86134adc44b
+	- fix normal checkpoint menu spams on changing the style from non-kz to kz styles
+	- Added `kzcheckpoints_ontele` and `kzcheckpoints_ontele` style settings (merged in `shavit-kz.sp`).
+- some currently disabled ladder checkpoint stuff has been added https://github.com/shavitush/bhoptimer/commit/1802f998fcb4ba65e9e32fd5da75cdf7a22d2d99 https://github.com/shavitush/bhoptimer/commit/158f0b854621ad208458ea73db545535d8af27a4
+- made `Shavit_StartReplayFromFile` retrieve player name correctly https://github.com/shavitush/bhoptimer/commit/aa1f0eb169b3f957ee5531df4d0f65445b39a008
+- removed `Shavit_Core_CookiesRetrieved`. tldr just check if client cookies are cached. https://github.com/shavitush/bhoptimer/commit/1230bf92663471568a8aa92bb33c3aa60c76c3ea
+- added `shavit_hud_block_spotted_hint` for CSS https://github.com/shavitush/bhoptimer/commit/48ffd9bc714a7679b3cff070bc2cb26c0c897694
+- made the buttons in wr submenu not do stuff https://github.com/shavitush/bhoptimer/commit/14e71dbbb492785941834fae63864b7923e767c8
+
 
 
 # v3.1.3 - asdf - 2022-02-27 - rtldg
@@ -36,6 +67,8 @@ small things mainly and might as well push out a release instead of waiting anot
 	- `mpbhops_but_working` now uses these to work with segmented checkpoints https://github.com/rtldg/mpbhops_but_working/blob/516b470feaa5180145acc28f28c05ff4793547ad/addons/sourcemod/scripting/mpbhops_but_working.sp#L116-L132
 	- `StringMap customdata` was added to the bottom of `cp_cache_t`
 	- includes `Shavit_OnCheckpointCacheSaved`, `Shavit_OnCheckpointCacheLoaded`, and `Shavit_OnCheckpointCacheDeleted`
+
+
 
 # v3.1.2 - asdf - 2022-01-28 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.2
