@@ -1747,10 +1747,11 @@ void UpdateMainHUD(int client)
 
 	huddata.fClosestReplayTime = -1.0;
 	huddata.fClosestVelocityDifference = 0.0;
+	huddata.fClosestReplayLength = 0.0;
 
 	if (!bReplay && gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(target), huddata.iTrack) != 0)
 	{
-		huddata.fClosestReplayTime = Shavit_GetClosestReplayTime(target);
+		huddata.fClosestReplayTime = Shavit_GetClosestReplayTime(target, huddata.fClosestReplayLength);
 
 		if (huddata.fClosestReplayTime != -1.0)
 		{

@@ -157,6 +157,7 @@ float gF_LastInteraction[MAXPLAYERS+1];
 
 float gF_TimeDifference[MAXPLAYERS+1];
 int   gI_TimeDifferenceStyle[MAXPLAYERS+1];
+float gF_TimeDifferenceLength[MAXPLAYERS+1]; // i love adding variables...
 float gF_VelocityDifference2D[MAXPLAYERS+1];
 float gF_VelocityDifference3D[MAXPLAYERS+1];
 
@@ -1369,6 +1370,12 @@ public int Native_GetClosestReplayTime(Handle plugin, int numParams)
 	}
 
 	int client = GetNativeCell(1);
+
+	if (numParams > 1)
+	{
+		SetNativeCellRef(2, gF_TimeDifferenceLength[client]);
+	}
+
 	return view_as<int>(gF_TimeDifference[client]);
 }
 
@@ -3747,6 +3754,8 @@ float GetClosestReplayTime(int client)
 		return -1.0;
 	}
 
+	gF_TimeDifferenceLength[client] = GetReplayLength(style, track, gA_FrameCache[style][track]);
+
 	// inside start zone
 	if(iClosestFrame < iPreFrames)
 	{
@@ -3755,7 +3764,7 @@ float GetClosestReplayTime(int client)
 		return 0.0;
 	}
 
-	float frametime = GetReplayLength(style, track, gA_FrameCache[style][track]) / float(gA_FrameCache[style][track].iFrameCount);
+	float frametime = gF_TimeDifferenceLength[client] / float(gA_FrameCache[style][track].iFrameCount);
 	float timeDifference = (iClosestFrame - iPreFrames) * frametime;
 
 	// Hides the hud if we are using the cheap search method and too far behind to be accurate
