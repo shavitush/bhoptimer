@@ -107,9 +107,12 @@ forward Action Shavit_OnSave(int client, int index, bool overflow);
  *
  * @param client                    Client index.
  * @param index                     Checkpoint that will be deleted.
+ * @param cleared                   Whether the checkpoint is being deleted due to all the checkpoints being cleared/reset.
+                                    The return value CANNOT be used to block deletion of these.
+ *
  * @return                          Plugin_Continue to continue deletion, anything else to prevent.
  */
-forward Action Shavit_OnDelete(int client, int index);
+forward Action Shavit_OnDelete(int client, int index, bool cleared);
 
 /**
  * Called after the checkpoint menu has been made and before it's sent to the client.

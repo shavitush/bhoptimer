@@ -170,7 +170,7 @@ public void OnPluginStart()
 	gH_Forwards_OnTeleportPre = CreateGlobalForward("Shavit_OnTeleportPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuMade = CreateGlobalForward("Shavit_OnCheckpointMenuMade", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnDelete = CreateGlobalForward("Shavit_OnDelete", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnDelete = CreateGlobalForward("Shavit_OnDelete", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointCacheSaved = CreateGlobalForward("Shavit_OnCheckpointCacheSaved", ET_Ignore, Param_Cell, Param_Array, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointCacheLoaded = CreateGlobalForward("Shavit_OnCheckpointCacheLoaded", ET_Ignore, Param_Cell, Param_Array, Param_Cell);
 
@@ -788,12 +788,21 @@ void DeleteCheckpointCache(cp_cache_t cache)
 	delete cache.customdata;
 }
 
-void DeleteCheckpointCacheList(ArrayList cps)
+void DeleteCheckpointCacheList(ArrayList cps, int client_for_callback=0)
 {
 	if (cps != null)
 	{
-		for(int i = 0; i < cps.Length; i++)
+		for (int i = cps.Length - 1; i >= 0; i--)
 		{
+			if (client_for_callback)
+			{
+				Call_StartForward(gH_Forwards_OnDelete);
+				Call_PushCell(client_for_callback);
+				Call_PushCell(i+1);
+				Call_PushCell(true);
+				Call_Finish();
+			}
+
 			cp_cache_t cache;
 			cps.GetArray(i, cache);
 			DeleteCheckpointCache(cache);
@@ -805,8 +814,8 @@ void DeleteCheckpointCacheList(ArrayList cps)
 
 void ResetCheckpoints(int client)
 {
-	DeleteCheckpointCacheList(gA_Checkpoints[client]);
 	gI_CurrentCheckpoint[client] = 0;
+	DeleteCheckpointCacheList(gA_Checkpoints[client], client);
 }
 
 bool ShouldReopenCheckpointMenu(int client)
@@ -1807,6 +1816,7 @@ bool DeleteCheckpoint(int client, int index, bool force=false)
 		Call_StartForward(gH_Forwards_OnDelete);
 		Call_PushCell(client);
 		Call_PushCell(index);
+		Call_PushCell(false);
 		Call_Finish(result);
 	}
 
