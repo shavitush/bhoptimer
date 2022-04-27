@@ -165,9 +165,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Ignore, Param_Cell, Param_Cell);
+	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnSavePre = CreateGlobalForward("Shavit_OnSavePre", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnTeleportPre = CreateGlobalForward("Shavit_OnTeleportPre", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnTeleportPre = CreateGlobalForward("Shavit_OnTeleportPre", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuMade = CreateGlobalForward("Shavit_OnCheckpointMenuMade", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnDelete = CreateGlobalForward("Shavit_OnDelete", ET_Event, Param_Cell, Param_Cell, Param_Cell);
@@ -1157,7 +1157,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		}
 		else if(StrEqual(sInfo, "tele"))
 		{
-			TeleportToCheckpoint(param1, iCurrent, true);
+			TeleportToCheckpoint(param1, param1, iCurrent, true);
 		}
 		else if(StrEqual(sInfo, "prev"))
 		{
@@ -1592,7 +1592,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	Call_Finish();
 }
 
-void TeleportToCheckpoint(int client, int index, bool suppressMessage)
+void TeleportToCheckpoint(int client, int target, int index, bool suppressMessage)
 {
 	if(index < 1 || index > gCV_MaxCP.IntValue || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
 	{
@@ -1613,7 +1613,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	}
 
 	cp_cache_t cpcache;
-	gA_Checkpoints[client].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
+	gA_Checkpoints[target].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
 
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") != Shavit_GetStyleSettingInt(cpcache.aSnapshot.bsStyle, "kzcheckpoints"))
 	{
@@ -1637,6 +1637,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	Action result = Plugin_Continue;
 	Call_StartForward(gH_Forwards_OnTeleportPre);
 	Call_PushCell(client);
+	Call_PushCell(target);
 	Call_PushCell(index);
 	Call_Finish(result);
 
@@ -1663,6 +1664,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 
 	Call_StartForward(gH_Forwards_OnTeleport);
 	Call_PushCell(client);
+	Call_PushCell(target);
 	Call_PushCell(index);
 	Call_Finish();
 
@@ -1958,10 +1960,11 @@ public any Native_ClearCheckpoints(Handle plugin, int numParams)
 public any Native_TeleportToCheckpoint(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
+	int target = GetNativeCell(2);
 	int position = GetNativeCell(2);
 	bool suppress = GetNativeCell(3);
 
-	TeleportToCheckpoint(client, position, suppress);
+	TeleportToCheckpoint(client, target, position, suppress);
 	return 0;
 }
 

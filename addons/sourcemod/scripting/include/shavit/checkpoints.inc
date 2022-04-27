@@ -67,20 +67,22 @@ enum struct cp_cache_t
 /**
  * Called when a player teleports with checkpoints.
  *
- * @param client                    Client index.
+ * @param client                    Client index that will be teleported to the checkpoint.
+ * @param target                    Target index that owns the checkpoint.
  * @param index                     Checkpoint that was teleported to.
  * @return                          Plugin_Continue to allow teleporting, anything else to prevent.
  */
-forward Action Shavit_OnTeleportPre(int client, int index);
+forward Action Shavit_OnTeleportPre(int client, int target, int index);
 
 /**
  * Called when a player teleports with checkpoints.
  *
- * @param client                    Client index.
+ * @param client                    Client index that has been teleported to the checkpoint.
+ * @param target                    Target index that owns the checkpoint.
  * @param index                     Checkpoint that was teleported to.
  * @return                          Unused. Use Shavit_OnTeleportPre if you want to block teleporting.
  */
-forward Action Shavit_OnTeleport(int client, int index);
+forward Action Shavit_OnTeleport(int client, int target, int index);
 
 /**
  * Called when a player saves a checkpoint.
@@ -195,15 +197,16 @@ native bool Shavit_GetCheckpoint(int client, int index, any[] cpcache, int size 
 native void Shavit_SetCheckpoint(int client, int index, any[] cpcache, int size = sizeof(cp_cache_t), bool cheapCloneHandle=true);
 
 /**
- * Teleports client to the checkpoint at given index
+ * Teleports client to the checkpoint at given target and index
  *
- * @param client                    Client index
+ * @param client                    Client index to be teleported
+ * @param target                    Target index that owns the checkpoint
  * @param index                     Index of CP to teleport to
  * @param suppress                  Supress checkpoint message
  *
  * @noreturn
  */
-native void Shavit_TeleportToCheckpoint(int client, int index, bool suppress = false);
+native void Shavit_TeleportToCheckpoint(int client, int target, int index, bool suppress = false);
 
 /**
  * Clears all saved checkpoints for the specified client
