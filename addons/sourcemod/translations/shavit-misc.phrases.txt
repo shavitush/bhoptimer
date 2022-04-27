@@ -99,6 +99,10 @@
 	{
 		"en"		"Unable to save due to checkpoint overflow."
 	}
+	"MiscCheckpointOwnerInvalid"
+	{
+		"en"		"The checkpoints' owner is invalid or disconnected."
+	}
 	"MiscSegmentedCommand"
 	{
 		"#format"	"{1:s},{2:s}"
@@ -128,6 +132,10 @@
 	"ClearCPNo"
 	{
 		"en"		"No."
+	}
+	"MiscCheckpointPersisted"
+	{
+		"en"		"Persisted checkpoints"
 	}
 	"TeleportMenuTitle"
 	{
@@ -173,6 +181,14 @@
 	{
 		"en"		"Next"
 	}
+	"MiscCheckpointUseOthers"
+	{
+		"en"		"Use other's checkpoints"
+	}
+	"MiscCheckpointBack"
+	{
+		"en"		"Back to your checkpoints"
+	}
 	"MiscCheckpointReset"
 	{
 		"en"		"Reset checkpoints"
@@ -192,10 +208,6 @@
 	"MiscCheckpointUseVelocity"
 	{
 		"en"		"Use velocity"
-	}
-	"MiscCheckpointUsePublic"
-	{
-		"en"		"Use public"
 	}
 	"TasSettings"
 	{
