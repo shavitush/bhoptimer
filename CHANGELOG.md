@@ -2,15 +2,25 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
-# v3.2.0 - asdf - 2022-04-xx - rtldg
+# v3.2.0 - checkpoints & resettargetname stuffffff - 2022-04-27 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.2.0
+
+Lots of checkpoint API changes and also lots of changes to how the `shavit_misc_resettargetname` family works.
+
+**Protip: If you don't have `eventqueuefix` on your server then you're going to suffer** through booster exploits & other broken shit.
+
+**Update shavit-mapfixes.cfg every release.** It wasn't ever explicitly mentioned in release notes so I'll put it here.
+
+Maps that have triggers in the start zone for resetting targetnames & classnames should now activate with @GAMMACASE's changes (#1123 / #1135) to the `shavit_misc_resettargetname` family, compared to previously where it wiped all events in the startzone and had a lot of cvars added to shavit-mapfixes.cfg to unbreak the maps.
+
+If you have any new breakage on maps, let us know in the discord server or with a Github issue.
+
 
 - added `Shavit_OnTeleportPre` and `Shavit_OnSavePre`. The return values of `Shavit_OnSave` and `Shavit_OnTeleport` are now ignored. https://github.com/shavitush/bhoptimer/commit/de8a82707b9fab615438844a2ea2f5ccc78957dc
 - fixed replay prop playback breaking due to a bad index https://github.com/shavitush/bhoptimer/commit/70f29d3ca55a9f70d64f74ac9059c3cd1ab00a7a
 - fixed replays not loading on the first map (and issues with creating replay directories too) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/d58d3ee1d569b22eded5a8f63e64544846b4d20e
 - Changed the behaviour of `shavit_misc_resettargetname` (#1123) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/0fee1862c8403e07d561cab45a9997dbe88a1041
 	- Fix targetname and classname locking (#1135) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/8f07c1d5106b28dea3c03eb842ec5c711cb0f1aa
-	- TODO TODO more notes here
 - renamed `shavit_checkpoints_checkpoints` to `shavit_checkpoints_enabled` https://github.com/shavitush/bhoptimer/commit/b05393cf9fca682c7e959164a1ac15017c3efa3a
 - improved handle handling in `Shavit_SetCheckpoint` and added `cheapCloneHandle` as a parameter for #1133 https://github.com/shavitush/bhoptimer/commit/91ec294f423def449dee616f9a4f7ea0b335abda
 	- and a couple of other commits for that issue https://github.com/shavitush/bhoptimer/commit/8f59007d1d59c34c4b24c13de1c4fe207a3b20f5 https://github.com/shavitush/bhoptimer/commit/ea9a96271125659f252787840013b01e108633f5
@@ -32,6 +42,24 @@ https://github.com/shavitush/bhoptimer/releases/tag/v3.2.0
 - removed `Shavit_Core_CookiesRetrieved`. tldr just check if client cookies are cached. https://github.com/shavitush/bhoptimer/commit/1230bf92663471568a8aa92bb33c3aa60c76c3ea
 - added `shavit_hud_block_spotted_hint` for CSS https://github.com/shavitush/bhoptimer/commit/48ffd9bc714a7679b3cff070bc2cb26c0c897694
 - made the buttons in wr submenu not do stuff https://github.com/shavitush/bhoptimer/commit/14e71dbbb492785941834fae63864b7923e767c8
+- made the `Reset Checkpoints` buttons also trigger the `Shavit_OnDelete` callback. https://github.com/shavitush/bhoptimer/commit/b956ffb8aa93ca746bc50ac1766e23d550a2df8c
+- added `fClosestReplayLength` to `huddata_t` and `Shavit_GetClosestReplayTime` https://github.com/shavitush/bhoptimer/commit/b2b2fe3344ec0bcb0bec97c48642f030a6691449
+- `shavit_misc_weaponcommands` now has options 4 and 5 for all weapons/grenades... https://github.com/shavitush/bhoptimer/commit/a25417cc8ac2e892df9290a098d4d27946f78fd8 https://github.com/shavitush/bhoptimer/commit/c8ed191d11228d38abca455a9ca490a76d74aa26
+	- might be buggy. let me know if there's problems.
+```
+// Enable sm_usp, sm_glock, sm_knife, and infinite ammo?
+// 0 - Disabled
+// 1 - Enabled
+// 2 - Also give infinite reserve ammo for USP & Glocks.
+// 3 - Also give infinite clip ammo for USP & Glocks.
+// 4 - Also give infinite reserve for all weapons (and grenades).
+// 5 - Also give infinite clip ammo for all weapons (and grenades).
+// -
+// Default: "2"
+// Minimum: "0.000000"
+// Maximum: "5.000000"
+shavit_misc_weaponcommands "2"
+```
 
 
 

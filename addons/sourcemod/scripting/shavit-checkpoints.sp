@@ -566,7 +566,11 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		}
 
 		OpenCheckpointsMenu(client);
-		Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+
+		if (!Shavit_GetStyleSettingBool(oldstyle, "segments") && !Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
+		{
+			Shavit_PrintToChat(client, "%T", "MiscSegmentedCommand", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+		}
 	}
 }
 
