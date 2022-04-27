@@ -36,7 +36,7 @@ If you have any new breakage on maps, let us know in the discord server or with 
 - removed reliable flag from centerhud and hinttext messages so they update faster and don't wait for an ack https://github.com/shavitush/bhoptimer/commit/ea3bd051242527268ee6bdfcf1a3011a2d6a3bcf https://github.com/shavitush/bhoptimer/commit/cf5bc4b7db5d9783179fc0578fc98af10a97a9ef
 - merge checkpoint menus and shavit-kz.sp, etc (#1137) @sh4hrazad https://github.com/shavitush/bhoptimer/commit/6d208a8595f798d15f1cc0d56847e86134adc44b
 	- fix normal checkpoint menu spams on changing the style from non-kz to kz styles
-	- Added `kzcheckpoints_ontele` and `kzcheckpoints_ontele` style settings (merged in `shavit-kz.sp`).
+	- Added `kzcheckpoints_ontele` and `kzcheckpoints_onstart` style settings (merged in `shavit-kz.sp`).
 - some currently disabled ladder checkpoint stuff has been added https://github.com/shavitush/bhoptimer/commit/1802f998fcb4ba65e9e32fd5da75cdf7a22d2d99 https://github.com/shavitush/bhoptimer/commit/158f0b854621ad208458ea73db545535d8af27a4
 - made `Shavit_StartReplayFromFile` retrieve player name correctly https://github.com/shavitush/bhoptimer/commit/aa1f0eb169b3f957ee5531df4d0f65445b39a008
 - removed `Shavit_Core_CookiesRetrieved`. tldr just check if client cookies are cached. https://github.com/shavitush/bhoptimer/commit/1230bf92663471568a8aa92bb33c3aa60c76c3ea
