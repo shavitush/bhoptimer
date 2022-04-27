@@ -129,15 +129,16 @@ forward Action Shavit_OnCheckpointMenuMade(int client, bool segmented, Menu menu
 /**
  * Called before a selection is processed in the main checkpoint menu.
  *
- * @param client                    Client index.
+ * @param client                    Client index who selects in the menu
  * @param param2                    Second parameter in the callback, usually the item selected.
  * @param info                      reference copy of the info string used in the callback
  * @param maxlength                 length of the info buffer
- * @param currentCheckpoint         Clients current checkpoint
+ * @param owner                     Client index who owns the current checkpoint
+ * @param currentCheckpoint         Clients current checkpoint selected
  * @param maxCPs                    Max checkpoints the client can use
  * @return                          Plugin_Continue to continue the callback. Return Plugin_Stop to prevent the checkpoints menu from reopening.
  */
-forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info, int maxlength, int currentCheckpoint, int maxCPs);
+forward Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info, int maxlength, int owner, int currentCheckpoint, int maxCPs);
 
 /**
  * Called when a checkpoint cache is saved.
