@@ -1015,6 +1015,16 @@ void OpenCPMenu(int client)
 
 	int iUsingOwner = GetUsingCheckpointsOwner(client);
 
+	if(gI_CurrentCheckpoint[client] > gA_Checkpoints[iUsingOwner].Length)
+	{
+		gI_CurrentCheckpoint[client] = gA_Checkpoints[iUsingOwner].Length;
+	}
+
+	if(gI_CurrentCheckpoint[client] == 0 && gA_Checkpoints[iUsingOwner].Length != 0)
+	{
+		gI_CurrentCheckpoint[client] = 1;
+	}
+
 	Menu menu = new Menu(MenuHandler_Checkpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem|MenuAction_Display);
 
 	if(!bSegmented || bSegmented && iUsingOwner != client)
@@ -1040,17 +1050,17 @@ void OpenCPMenu(int client)
 	}
 
 	char sDisplay[64];
-	int newcount = gA_Checkpoints[iUsingOwner].Length+1;
-	int maxcps = GetMaxCPs(iUsingOwner);
+	int newcount = gA_Checkpoints[client].Length + 1;
+	int maxcps = GetMaxCPs(client);
 
 	if(iUsingOwner == client)
 	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (newcount>maxcps ? maxcps : newcount), maxcps);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (newcount > maxcps ? maxcps : newcount), maxcps);
 		menu.AddItem("save", sDisplay, ITEMDRAW_DEFAULT);
 	}
 	else
 	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointDuplicate", client, (newcount>maxcps ? maxcps : newcount), maxcps);
+		FormatEx(sDisplay, 64, "%T", "MiscCheckpointDuplicate", client, (newcount > maxcps ? maxcps : newcount), maxcps);
 		menu.AddItem("dupe", sDisplay, ITEMDRAW_DEFAULT);
 	}
 
@@ -1066,10 +1076,10 @@ void OpenCPMenu(int client)
 	}
 
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointPrevious", client);
-	menu.AddItem("prev", sDisplay, (gI_CurrentCheckpoint[client] > 1)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	menu.AddItem("prev", sDisplay, (gI_CurrentCheckpoint[client] > 1) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
-	FormatEx(sDisplay, 64, "%T%s", "MiscCheckpointNext", client, (bKzcheckpoints)? "":"\n ");
-	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[iUsingOwner].Length)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	FormatEx(sDisplay, 64, "%T%s", "MiscCheckpointNext", client, (bKzcheckpoints) ? "" : "\n ");
+	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[iUsingOwner].Length) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 
 	if((Shavit_CanPause(client) & CPR_ByConVar) == 0 && bKzcheckpoints)
