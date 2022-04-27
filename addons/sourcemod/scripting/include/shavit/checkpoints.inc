@@ -65,7 +65,7 @@ enum struct cp_cache_t
 }
 
 /**
- * Called when a player teleports with checkpoints.
+ * Called when a player will be teleported with checkpoints.
  *
  * @param client                    Client index that will be teleported to the checkpoint.
  * @param target                    Target index that owns the checkpoint.
@@ -75,7 +75,7 @@ enum struct cp_cache_t
 forward Action Shavit_OnTeleportPre(int client, int target, int index);
 
 /**
- * Called when a player teleports with checkpoints.
+ * Called when a player has been teleported with checkpoints.
  *
  * @param client                    Client index that has been teleported to the checkpoint.
  * @param target                    Target index that owns the checkpoint.
@@ -85,24 +85,26 @@ forward Action Shavit_OnTeleportPre(int client, int target, int index);
 forward Action Shavit_OnTeleport(int client, int target, int index);
 
 /**
- * Called when a player saves a checkpoint.
+ * Called when a player is saving a checkpoint.
  *
  * @param client                    Client index.
  * @param index                     Checkpoint that was saved to.
  * @param overflow                  Does this checkpoint shift the rest.
+ * @param duplicate                 Whether the checkpoint to be saved is a duplicate of others
  * @return                          Plugin_Continue to allow saving, anything else to prevent.
  */
-forward Action Shavit_OnSavePre(int client, int index, bool overflow);
+forward Action Shavit_OnSavePre(int client, int index, bool overflow, bool duplicate);
 
 /**
- * Called when a player saves a checkpoint.
+ * Called when a player has saved a checkpoint.
  *
  * @param client                    Client index.
  * @param index                     Checkpoint that was saved to.
  * @param overflow                  Does this checkpoint shift the rest.
+ * @param duplicate                 Whether the checkpoint that has been saved is a duplicate of others
  * @return                          Unused. Use Shavit_OnSavePre if you want to block checkpoint saving.
  */
-forward Action Shavit_OnSave(int client, int index, bool overflow);
+forward Action Shavit_OnSave(int client, int index, bool overflow, bool duplicate);
 
 /**
  * Called when a player deletes a checkpoint.

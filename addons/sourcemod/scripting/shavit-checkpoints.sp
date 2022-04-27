@@ -166,9 +166,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnSavePre = CreateGlobalForward("Shavit_OnSavePre", ET_Event, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnSavePre = CreateGlobalForward("Shavit_OnSavePre", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnTeleportPre = CreateGlobalForward("Shavit_OnTeleportPre", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuMade = CreateGlobalForward("Shavit_OnCheckpointMenuMade", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
@@ -558,6 +558,11 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		if(gA_Checkpoints[client] == null)
 		{
 			gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));
+		}
+
+		if(bKzcheckpoints)
+		{
+			gI_UsingCheckpointsOwner[client] = 0;
 		}
 
 		OpenCheckpointsMenu(client);
@@ -1015,6 +1020,14 @@ void OpenCPMenu(int client)
 
 	int iUsingOwner = GetUsingCheckpointsOwner(client);
 
+	if(!IsValidClient(iUsingOwner))
+	{
+		gI_UsingCheckpointsOwner[client] = 0;
+		gI_CurrentCheckpoint[client] = gA_Checkpoints[client].Length;
+
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointOwnerInvalid", client);
+	}
+
 	if(gI_CurrentCheckpoint[client] > gA_Checkpoints[iUsingOwner].Length)
 	{
 		gI_CurrentCheckpoint[client] = gA_Checkpoints[iUsingOwner].Length;
@@ -1056,13 +1069,12 @@ void OpenCPMenu(int client)
 	if(iUsingOwner == client)
 	{
 		FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (newcount > maxcps ? maxcps : newcount), maxcps);
-		menu.AddItem("save", sDisplay, ITEMDRAW_DEFAULT);
 	}
 	else
 	{
 		FormatEx(sDisplay, 64, "%T", "MiscCheckpointDuplicate", client, (newcount > maxcps ? maxcps : newcount), maxcps);
-		menu.AddItem("dupe", sDisplay, ITEMDRAW_DEFAULT);
 	}
+	menu.AddItem("save", sDisplay, (iUsingOwner == client || iUsingOwner != client && gA_Checkpoints[iUsingOwner].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
 	if(gA_Checkpoints[iUsingOwner].Length > 0)
 	{
@@ -1166,14 +1178,6 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		int iCurrent = gI_CurrentCheckpoint[param1];
 		int iUsingOwner = GetUsingCheckpointsOwner(param1);
 
-		if(!IsValidClient(iUsingOwner))
-		{
-			gI_UsingCheckpointsOwner[param1] = 0;
-			Shavit_PrintToChat(param1, "MiscCheckpointOwnerInvalid", param1);
-			return 0;
-		}
-
-		// maybe add iUsingOwner for the forward
 		Call_StartForward(gH_Forwards_OnCheckpointMenuSelect);
 		Call_PushCell(param1);
 		Call_PushCell(param2);
@@ -1198,11 +1202,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		if(StrEqual(sInfo, "save"))
 		{
-			SaveCheckpoint(param1);
-		}
-		if(StrEqual(sInfo, "dupe"))
-		{
-			DupeCheckpoint(param1, iUsingOwner, iCurrent);
+			SaveCheckpoint(param1, (iUsingOwner != param1));
 		}
 		else if(StrEqual(sInfo, "tele"))
 		{
@@ -1238,8 +1238,8 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		}
 		else if(StrEqual(sInfo, "useothers"))
 		{
-			SelectCheckpointsOwnerMenu(param1);
 			gB_InCheckpointMenu[param1] = false;
+			SelectCheckpointsOwnerMenu(param1);
 
 			return 0;
 		}
@@ -1260,8 +1260,8 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		}
 		else if(StrEqual(sInfo, "reset"))
 		{
-			ConfirmCheckpointsDeleteMenu(param1);
 			gB_InCheckpointMenu[param1] = false;
+			ConfirmCheckpointsDeleteMenu(param1);
 
 			return 0;
 		}
@@ -1376,6 +1376,10 @@ public int MenuHandler_CheckpointsOwner(Menu menu, MenuAction action, int param1
 
 		OpenCheckpointsMenu(param1);
 	}
+	else if (action == MenuAction_Cancel)
+	{
+		OpenCPMenu(param1);
+	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1437,7 +1441,7 @@ public int MenuHandler_CheckpointsDelete(Menu menu, MenuAction action, int param
 	return 0;
 }
 
-bool SaveCheckpoint(int client)
+bool SaveCheckpoint(int client, bool duplicate = false)
 {
 	// ???
 	// nairda somehow triggered an error that requires this
@@ -1511,6 +1515,7 @@ bool SaveCheckpoint(int client)
 	Call_PushCell(client);
 	Call_PushCell(index);
 	Call_PushCell(overflow);
+	Call_PushCell(duplicate);
 	Call_Finish(result);
 
 	if(result != Plugin_Continue)
@@ -1519,7 +1524,25 @@ bool SaveCheckpoint(int client)
 	}
 
 	cp_cache_t cpcache;
-	SaveCheckpointCache(client, target, cpcache, index, INVALID_HANDLE);
+
+	if(!duplicate)
+	{
+		SaveCheckpointCache(client, target, cpcache, index, INVALID_HANDLE);
+	}
+	else
+	{
+		gA_Checkpoints[gI_UsingCheckpointsOwner[client]].GetArray(gI_CurrentCheckpoint[client]-1, cpcache, sizeof(cp_cache_t));
+		
+		if (cpcache.aFrames)
+			cpcache.aFrames = cpcache.aFrames.Clone();
+		if (cpcache.aEvents)
+			cpcache.aEvents = cpcache.aEvents.Clone();
+		if (cpcache.aOutputWaits)
+			cpcache.aOutputWaits = cpcache.aOutputWaits.Clone();
+		if (cpcache.customdata)
+			cpcache.customdata = view_as<StringMap>(CloneHandle(cpcache.customdata));
+	}
+
 	gI_CurrentCheckpoint[client] = index;
 
 	if(overflow)
@@ -1545,6 +1568,7 @@ bool SaveCheckpoint(int client)
 	Call_PushCell(client);
 	Call_PushCell(index);
 	Call_PushCell(overflow);
+	Call_PushCell(duplicate);
 	Call_Finish();
 
 	return true;
@@ -1728,11 +1752,6 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	Call_PushCell(index);
 	Call_PushCell(target);
 	Call_Finish();
-}
-
-void DupeCheckpoint(int client, int target, int index)
-{
-	Shavit_PrintToChat(client, "*not implemented*");
 }
 
 void TeleportToCheckpoint(int client, int target, int index, bool suppressMessage)

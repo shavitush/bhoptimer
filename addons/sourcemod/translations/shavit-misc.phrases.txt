@@ -101,7 +101,7 @@
 	}
 	"MiscCheckpointOwnerInvalid"
 	{
-		"en"		"The checkpoints' owner is invalid or disconnected."
+		"en"		"Brought you back to your own checkpoints because the checkpoints' owner is invalid or disconnected."
 	}
 	"MiscSegmentedCommand"
 	{
