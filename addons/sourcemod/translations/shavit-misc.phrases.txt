@@ -102,7 +102,7 @@
 	"MiscSegmentedCommand"
 	{
 		"#format"	"{1:s},{2:s}"
-		"en"		"Use {1}!cp{2} to re-open the segmented checkpoints menu."
+		"en"		"Use {1}!cp{2} to re-open the checkpoints menu."
 	}
 	// ---------- Menus ---------- //
 	"StopTimerWarning"
