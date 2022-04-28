@@ -185,6 +185,10 @@
 	{
 		"en"		"Use other's checkpoints"
 	}
+	"MiscCheckpointPersistedTag"
+	{
+		"en"		"persisted"
+	}
 	"MiscCheckpointBack"
 	{
 		"en"		"Back to your checkpoints"

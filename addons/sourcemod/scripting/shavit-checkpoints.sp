@@ -52,6 +52,7 @@ enum TimerAction
 enum struct persistent_data_t
 {
 	int iSteamID;
+	char sName[64];
 	int iDisconnectTime;
 	int iTimesTeleported;
 	ArrayList aCheckpoints;
@@ -697,12 +698,13 @@ void PersistData(int client, bool disconnected)
 	int iIndex = FindPersistentData(client, aData);
 
 	aData.iSteamID = GetSteamAccountID(client);
+	GetClientName(client, aData.sName, sizeof(persistent_data_t::sName));
 	aData.iTimesTeleported = gI_TimesTeleported[client];
 
 	if (disconnected)
 	{
 		aData.iDisconnectTime = GetTime();
-		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
+		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client] > gA_Checkpoints[client] ? gA_Checkpoints[client].Length : gI_CurrentCheckpoint[client];
 		aData.aCheckpoints = gA_Checkpoints[client];
 		gA_Checkpoints[client] = null;
 
@@ -1344,6 +1346,18 @@ void SelectCheckpointsOwnerMenu(int client)
 		}
 	}
 
+	// make full use of checkpoints in persistent data :b
+	for(int i = 0; i < gA_PersistentData.Length; i++)
+	{
+		persistent_data_t aData;
+		gA_PersistentData.GetArray(i, aData, sizeof(persistent_data_t));
+
+		FormatEx(sInfo, 8, "-%d", i);
+		FormatEx(sDisplay, 64, "%s (%T)", aData.sName, "MiscCheckpointPersistedTag", client);
+
+		hMenu.AddItem(sInfo, sDisplay);
+	}
+
 	if(hMenu.ItemCount == 1)
 	{
 		GetClientName(client, sDisplay, 64);
@@ -1371,6 +1385,20 @@ public int MenuHandler_CheckpointsOwner(Menu menu, MenuAction action, int param1
 		}
 
 		int iUsingOwner = StringToInt(sInfo);
+
+		if(iUsingOwner < 0)
+		{
+
+		}
+
+		if(!IsValidClient(iUsingOwner))
+		{
+			Shavit_PrintToChat(client, "%T", "MiscCheckpointOwnerInvalid", client);
+			SelectCheckpointsOwnerMenu(param1);
+
+			return 0;
+		}
+
 		gI_UsingCheckpointsOwner[param1] = iUsingOwner;
 		gI_CurrentCheckpoint[param1] = gA_Checkpoints[iUsingOwner].Length;
 
@@ -1528,6 +1556,8 @@ bool SaveCheckpoint(int client, bool duplicate = false)
 	if(!duplicate)
 	{
 		SaveCheckpointCache(client, target, cpcache, index, INVALID_HANDLE);
+		gI_CurrentCheckpoint[client] = index;
+
 	}
 	else
 	{
@@ -1542,8 +1572,6 @@ bool SaveCheckpoint(int client, bool duplicate = false)
 		if (cpcache.customdata)
 			cpcache.customdata = view_as<StringMap>(CloneHandle(cpcache.customdata));
 	}
-
-	gI_CurrentCheckpoint[client] = index;
 
 	if(overflow)
 	{
