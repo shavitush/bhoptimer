@@ -101,7 +101,7 @@
 	}
 	"MiscCheckpointOwnerInvalid"
 	{
-		"en"		"Brought you back to your own checkpoints because the checkpoints' owner is invalid or disconnected."
+		"en"		"The checkpoints' owner is invalid or has disconnected."
 	}
 	"MiscSegmentedCommand"
 	{
@@ -136,6 +136,10 @@
 	"MiscCheckpointPersisted"
 	{
 		"en"		"Persisted checkpoints"
+	}
+	"MiscCheckpointNoOtherPlayers"
+	{
+		"en"		"No other clients in the server.."
 	}
 	"TeleportMenuTitle"
 	{

@@ -1336,9 +1336,6 @@ void SelectCheckpointsOwnerMenu(int client)
 	char sDisplay[64];
 	char sInfo[8];
 
-	FormatEx(sDisplay, 64, "%T\n ", "MiscCheckpointPersisted", client);
-	hMenu.AddItem("persisted", sDisplay);
-
 	for(int i = 1; i < MAXPLAYERS; i++)
 	{
 		if(IsValidClient(i) && !IsFakeClient(i) && i != client)
@@ -1350,24 +1347,13 @@ void SelectCheckpointsOwnerMenu(int client)
 		}
 	}
 
-	// make full use of checkpoints in persistent data :b
-	for(int i = 0; i < gA_PersistentData.Length; i++)
+	if(hMenu.ItemCount == 0)
 	{
-		persistent_data_t aData;
-		gA_PersistentData.GetArray(i, aData, sizeof(persistent_data_t));
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointNoOtherPlayers", client);
 
-		FormatEx(sInfo, 8, "-%d", i);
-		FormatEx(sDisplay, 64, "%s (%T)", aData.sName, "MiscCheckpointPersistedTag", client);
+		delete hMenu;
 
-		hMenu.AddItem(sInfo, sDisplay);
-	}
-
-	if(hMenu.ItemCount == 1)
-	{
-		GetClientName(client, sDisplay, 64);
-		IntToString(client, sInfo, 8);
-
-		hMenu.AddItem(sInfo, sDisplay);
+		return;
 	}
 
 	hMenu.ExitButton = true;
@@ -1381,19 +1367,7 @@ public int MenuHandler_CheckpointsOwner(Menu menu, MenuAction action, int param1
 		char sInfo[16];
 		menu.GetItem(param2, sInfo, 16);
 
-		if(StrEqual(sInfo, "persisted"))
-		{
-			PersistedCheckpointsMenu(param1);
-
-			return 0;
-		}
-
 		int iUsingOwner = StringToInt(sInfo);
-
-		if(iUsingOwner < 0)
-		{
-
-		}
 
 		if(!IsValidClient(iUsingOwner))
 		{
@@ -1428,11 +1402,6 @@ int GetUsingCheckpointsOwner(int client)
 	}
 	
 	return client;
-}
-
-void PersistedCheckpointsMenu(int client)
-{
-	Shavit_PrintToChat(client, "*not implemented*");
 }
 
 void ConfirmCheckpointsDeleteMenu(int client)
