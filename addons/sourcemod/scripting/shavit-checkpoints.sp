@@ -52,7 +52,6 @@ enum TimerAction
 enum struct persistent_data_t
 {
 	int iSteamID;
-	char sName[64];
 	int iDisconnectTime;
 	int iTimesTeleported;
 	ArrayList aCheckpoints;
@@ -66,6 +65,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Late = false;
 
 Convar gCV_Checkpoints = null;
+Convar gCV_UseOthers = null;
 Convar gCV_RestoreStates = null;
 Convar gCV_PersistData = null;
 Convar gCV_MaxCP = null;
@@ -202,6 +202,7 @@ public void OnPluginStart()
 	LoadTranslations("shavit-misc.phrases");
 
 	gCV_Checkpoints = new Convar("shavit_checkpoints_enabled", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
+	gCV_UseOthers = new Convar("shavit_checkpoints_useothers", "1", "Allow players to use or duplicate other players' checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = new Convar("shavit_checkpoints_restorestates", "1", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_MaxCP = new Convar("shavit_checkpoints_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = new Convar("shavit_checkpoints_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_checkpoints_maxcp.\nNote: Very high values will result in HUGE memory usage! Segmented checkpoints contain frame data!", 0, true, 1.0, true, 50.0);
@@ -702,13 +703,12 @@ void PersistData(int client, bool disconnected)
 	int iIndex = FindPersistentData(client, aData);
 
 	aData.iSteamID = GetSteamAccountID(client);
-	GetClientName(client, aData.sName, sizeof(persistent_data_t::sName));
 	aData.iTimesTeleported = gI_TimesTeleported[client];
 
 	if (disconnected)
 	{
 		aData.iDisconnectTime = GetTime();
-		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client] > gA_Checkpoints[client] ? gA_Checkpoints[client].Length : gI_CurrentCheckpoint[client];
+		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client] > gA_Checkpoints[client].Length ? gA_Checkpoints[client].Length : gI_CurrentCheckpoint[client];
 		aData.aCheckpoints = gA_Checkpoints[client];
 		gA_Checkpoints[client] = null;
 
@@ -1052,7 +1052,7 @@ void OpenCPMenu(int client)
 
 		FormatEx(sInfo, 64, "%T\n", "MiscCheckpointMenu", client);
 
-		if(!bKzcheckpoints || bKzcheckpoints && iUsingOwner != client)
+		if(!bKzcheckpoints)
 		{
 			FormatEx(sInfo, 64, "%s%T\n ", sInfo, "MiscCheckpointWarning", client);
 		}
@@ -1124,10 +1124,13 @@ void OpenCPMenu(int client)
 
 	if(!bKzcheckpoints)
 	{
-		if (iUsingOwner == client)
+		if (iUsingOwner == client || !gCV_UseOthers.BoolValue)
 		{
-			FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseOthers", client);
-			menu.AddItem("useothers", sDisplay);
+			if(gCV_UseOthers.BoolValue)
+			{
+				FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseOthers", client);
+				menu.AddItem("useothers", sDisplay);
+			}
 
 			FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
 			menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
@@ -1330,6 +1333,15 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 void SelectCheckpointsOwnerMenu(int client)
 {
+	if(!gCV_UseOthers.BoolValue)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		
+		OpenCPMenu(client);
+
+		return;
+	}
+
 	Menu hMenu = new Menu(MenuHandler_CheckpointsOwner);
 	hMenu.SetTitle("%T\n ", "MiscCheckpointUseOthers", client);
 
@@ -1353,6 +1365,8 @@ void SelectCheckpointsOwnerMenu(int client)
 
 		delete hMenu;
 
+		OpenCPMenu(client);
+
 		return;
 	}
 
@@ -1371,7 +1385,7 @@ public int MenuHandler_CheckpointsOwner(Menu menu, MenuAction action, int param1
 
 		if(!IsValidClient(iUsingOwner))
 		{
-			Shavit_PrintToChat(client, "%T", "MiscCheckpointOwnerInvalid", client);
+			Shavit_PrintToChat(param1, "%T", "MiscCheckpointOwnerInvalid", param1);
 			SelectCheckpointsOwnerMenu(param1);
 
 			return 0;

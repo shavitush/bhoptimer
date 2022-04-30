@@ -133,13 +133,9 @@
 	{
 		"en"		"No."
 	}
-	"MiscCheckpointPersisted"
-	{
-		"en"		"Persisted checkpoints"
-	}
 	"MiscCheckpointNoOtherPlayers"
 	{
-		"en"		"No other clients in the server.."
+		"en"		"There's no other clients in the server."
 	}
 	"TeleportMenuTitle"
 	{
@@ -188,10 +184,6 @@
 	"MiscCheckpointUseOthers"
 	{
 		"en"		"Use other's checkpoints"
-	}
-	"MiscCheckpointPersistedTag"
-	{
-		"en"		"persisted"
 	}
 	"MiscCheckpointBack"
 	{
