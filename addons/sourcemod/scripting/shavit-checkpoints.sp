@@ -65,6 +65,7 @@ EngineVersion gEV_Type = Engine_Unknown;
 bool gB_Late = false;
 
 Convar gCV_Checkpoints = null;
+Convar gCV_UseOthers = null;
 Convar gCV_RestoreStates = null;
 Convar gCV_PersistData = null;
 Convar gCV_MaxCP = null;
@@ -90,6 +91,8 @@ ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
 int gI_TimesTeleported[MAXPLAYERS+1];
 bool gB_InCheckpointMenu[MAXPLAYERS+1];
+
+int gI_UsingCheckpointsOwner[MAXPLAYERS+1]; // 0 = use player's own checkpoints
 
 int gI_CheckpointsSettings[MAXPLAYERS+1];
 
@@ -164,12 +167,12 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Ignore, Param_Cell, Param_Cell);
-	gH_Forwards_OnSavePre = CreateGlobalForward("Shavit_OnSavePre", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnTeleportPre = CreateGlobalForward("Shavit_OnTeleportPre", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_OnSave = CreateGlobalForward("Shavit_OnSave", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnTeleport = CreateGlobalForward("Shavit_OnTeleport", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnSavePre = CreateGlobalForward("Shavit_OnSavePre", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnTeleportPre = CreateGlobalForward("Shavit_OnTeleportPre", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointMenuMade = CreateGlobalForward("Shavit_OnCheckpointMenuMade", ET_Event, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnCheckpointMenuSelect = CreateGlobalForward("Shavit_OnCheckpointMenuSelect", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnDelete = CreateGlobalForward("Shavit_OnDelete", ET_Event, Param_Cell, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointCacheSaved = CreateGlobalForward("Shavit_OnCheckpointCacheSaved", ET_Ignore, Param_Cell, Param_Array, Param_Cell, Param_Cell);
 	gH_Forwards_OnCheckpointCacheLoaded = CreateGlobalForward("Shavit_OnCheckpointCacheLoaded", ET_Ignore, Param_Cell, Param_Array, Param_Cell);
@@ -199,6 +202,7 @@ public void OnPluginStart()
 	LoadTranslations("shavit-misc.phrases");
 
 	gCV_Checkpoints = new Convar("shavit_checkpoints_enabled", "1", "Allow players to save and teleport to checkpoints.", 0, true, 0.0, true, 1.0);
+	gCV_UseOthers = new Convar("shavit_checkpoints_useothers", "1", "Allow players to use or duplicate another player's checkpoints.", 0, true, 0.0, true, 1.0);
 	gCV_RestoreStates = new Convar("shavit_checkpoints_restorestates", "1", "Save the players' timer/position etc.. when they die/change teams,\nand load the data when they spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_MaxCP = new Convar("shavit_checkpoints_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = new Convar("shavit_checkpoints_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_checkpoints_maxcp.\nNote: Very high values will result in HUGE memory usage! Segmented checkpoints contain frame data!", 0, true, 1.0, true, 50.0);
@@ -507,6 +511,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	gB_SaveStates[client] = false;
+	gI_UsingCheckpointsOwner[client] = 0;
 }
 
 public void OnClientDisconnect(int client)
@@ -515,6 +520,17 @@ public void OnClientDisconnect(int client)
 	{
 		return;
 	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (gI_UsingCheckpointsOwner[i] == client)
+		{
+			gI_UsingCheckpointsOwner[i] = 0;
+			gI_CurrentCheckpoint[i] = gA_Checkpoints[i].Length;
+		}
+	}
+
+	gI_UsingCheckpointsOwner[client] = 0;
 
 	PersistData(client, true);
 
@@ -555,6 +571,11 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		if(gA_Checkpoints[client] == null)
 		{
 			gA_Checkpoints[client] = new ArrayList(sizeof(cp_cache_t));
+		}
+
+		if (bKzcheckpoints)
+		{
+			gI_UsingCheckpointsOwner[client] = 0;
 		}
 
 		OpenCheckpointsMenu(client);
@@ -698,7 +719,7 @@ void PersistData(int client, bool disconnected)
 	if (disconnected)
 	{
 		aData.iDisconnectTime = GetTime();
-		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client];
+		aData.iCurrentCheckpoint = gI_CurrentCheckpoint[client] > gA_Checkpoints[client].Length ? gA_Checkpoints[client].Length : gI_CurrentCheckpoint[client];
 		aData.aCheckpoints = gA_Checkpoints[client];
 		gA_Checkpoints[client] = null;
 
@@ -906,7 +927,7 @@ public Action Command_Tele(int client, int args)
 		}
 	}
 
-	TeleportToCheckpoint(client, index, true);
+	TeleportToCheckpoint(client, index, true, client);
 
 	return Plugin_Handled;
 }
@@ -1014,19 +1035,33 @@ void OpenCPMenu(int client)
 		return;
 	}
 
+	int iUsingOwner = GetUsingCheckpointsOwner(client);
+
+	if (gI_CurrentCheckpoint[client] > gA_Checkpoints[iUsingOwner].Length)
+	{
+		gI_CurrentCheckpoint[client] = gA_Checkpoints[iUsingOwner].Length;
+	}
+
+	if (gI_CurrentCheckpoint[client] == 0 && gA_Checkpoints[iUsingOwner].Length != 0)
+	{
+		gI_CurrentCheckpoint[client] = 1;
+	}
+
 	Menu menu = new Menu(MenuHandler_Checkpoints, MENU_ACTIONS_DEFAULT|MenuAction_DisplayItem|MenuAction_Display);
 
-	if(!bSegmented)
+	if (!bSegmented || iUsingOwner != client)
 	{
 		char sInfo[64];
 
-		if(!bKzcheckpoints)
+		FormatEx(sInfo, sizeof(sInfo), "%T\n", "MiscCheckpointMenu", client);
+
+		if (!bKzcheckpoints)
 		{
-			FormatEx(sInfo, 64, "%T\n%T\n ", "MiscCheckpointMenu", client, "MiscCheckpointWarning", client);
+			FormatEx(sInfo, sizeof(sInfo), "%s%T\n ", sInfo, "MiscCheckpointWarning", client);
 		}
 		else
 		{
-			FormatEx(sInfo, 64, "%T\n ", "MiscCheckpointMenu", client);
+			StrCat(sInfo, sizeof(sInfo), " ");
 		}
 
 		menu.SetTitle(sInfo);
@@ -1037,12 +1072,13 @@ void OpenCPMenu(int client)
 	}
 
 	char sDisplay[64];
-	int newcount = gA_Checkpoints[client].Length+1;
+	int newcount = gA_Checkpoints[client].Length + 1;
 	int maxcps = GetMaxCPs(client);
-	FormatEx(sDisplay, 64, "%T", "MiscCheckpointSave", client, (newcount>maxcps ? maxcps : newcount), maxcps);
-	menu.AddItem("save", sDisplay, ITEMDRAW_DEFAULT);
 
-	if(gA_Checkpoints[client].Length > 0)
+	FormatEx(sDisplay, 64, "%T", (iUsingOwner == client) ? "MiscCheckpointSave" : "MiscCheckpointDuplicate", client, (newcount > maxcps ? maxcps : newcount), maxcps);
+	menu.AddItem("save", sDisplay, (iUsingOwner == client || gA_Checkpoints[iUsingOwner].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+
+	if (gA_Checkpoints[iUsingOwner].Length > 0)
 	{
 		FormatEx(sDisplay, 64, "%T", "MiscCheckpointTeleport", client, gI_CurrentCheckpoint[client]);
 		menu.AddItem("tele", sDisplay, ITEMDRAW_DEFAULT);
@@ -1054,10 +1090,10 @@ void OpenCPMenu(int client)
 	}
 
 	FormatEx(sDisplay, 64, "%T", "MiscCheckpointPrevious", client);
-	menu.AddItem("prev", sDisplay, (gI_CurrentCheckpoint[client] > 1)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	menu.AddItem("prev", sDisplay, (gI_CurrentCheckpoint[client] > 1) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
-	FormatEx(sDisplay, 64, "%T%s", "MiscCheckpointNext", client, (bKzcheckpoints)? "":"\n ");
-	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[client].Length)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+	FormatEx(sDisplay, 64, "%T%s", "MiscCheckpointNext", client, (bKzcheckpoints) ? "" : "\n ");
+	menu.AddItem("next", sDisplay, (gI_CurrentCheckpoint[client] < gA_Checkpoints[iUsingOwner].Length) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 
 
 	if((Shavit_CanPause(client) & CPR_ByConVar) == 0 && bKzcheckpoints)
@@ -1084,11 +1120,25 @@ void OpenCPMenu(int client)
 
 	if(!bKzcheckpoints)
 	{
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
-		menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+		if (iUsingOwner == client || !gCV_UseOthers.BoolValue)
+		{
+			FormatEx(sDisplay, 64, "%T", "MiscCheckpointDeleteCurrent", client);
+			menu.AddItem("del", sDisplay, (gA_Checkpoints[client].Length > 0) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 
-		FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
-		menu.AddItem("reset", sDisplay);
+			FormatEx(sDisplay, 64, "%T", "MiscCheckpointReset", client);
+			menu.AddItem("reset", sDisplay);
+
+			if (gCV_UseOthers.BoolValue)
+			{
+				FormatEx(sDisplay, 64, "%T", "MiscCheckpointUseOthers", client);
+				menu.AddItem("useothers", sDisplay);
+			}
+		}
+		else
+		{
+			FormatEx(sDisplay, 64, "%T", "MiscCheckpointBack", client);
+			menu.AddItem("useselfs", sDisplay);
+		}
 
 		if(!bSegmented)
 		{
@@ -1102,8 +1152,6 @@ void OpenCPMenu(int client)
 			menu.AddItem(sInfo, sDisplay);
 		}
 	}
-
-
 
 	menu.Pagination = MENU_NO_PAGINATION;
 	menu.ExitButton = true;
@@ -1133,6 +1181,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		int iMaxCPs = GetMaxCPs(param1);
 		int iCurrent = gI_CurrentCheckpoint[param1];
+		int iUsingOwner = GetUsingCheckpointsOwner(param1);
 
 		Call_StartForward(gH_Forwards_OnCheckpointMenuSelect);
 		Call_PushCell(param1);
@@ -1141,6 +1190,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		Call_PushCell(16);
 		Call_PushCell(iCurrent);
 		Call_PushCell(iMaxCPs);
+		Call_PushCell(iUsingOwner);
 
 		Action result = Plugin_Continue;
 		Call_Finish(result);
@@ -1157,11 +1207,11 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		if(StrEqual(sInfo, "save"))
 		{
-			SaveCheckpoint(param1);
+			SaveCheckpoint(param1, (iUsingOwner != param1));
 		}
 		else if(StrEqual(sInfo, "tele"))
 		{
-			TeleportToCheckpoint(param1, iCurrent, true);
+			TeleportToCheckpoint(param1, iCurrent, true, iUsingOwner);
 		}
 		else if(StrEqual(sInfo, "prev"))
 		{
@@ -1172,7 +1222,7 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		}
 		else if(StrEqual(sInfo, "next"))
 		{
-			if (gI_CurrentCheckpoint[param1] < gA_Checkpoints[param1].Length)
+			if (gI_CurrentCheckpoint[param1] < gA_Checkpoints[iUsingOwner].Length)
 			{
 				gI_CurrentCheckpoint[param1]++;
 			}
@@ -1191,6 +1241,18 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 				}
 			}
 		}
+		else if (StrEqual(sInfo, "useothers"))
+		{
+			gB_InCheckpointMenu[param1] = false;
+			SelectCheckpointsOwnerMenu(param1);
+
+			return 0;
+		}
+		else if (StrEqual(sInfo, "useselfs"))
+		{
+			gI_UsingCheckpointsOwner[param1] = 0;
+			gI_CurrentCheckpoint[param1] = gA_Checkpoints[param1].Length;
+		}
 		else if(StrEqual(sInfo, "del"))
 		{
 			if(DeleteCheckpoint(param1, gI_CurrentCheckpoint[param1]))
@@ -1203,8 +1265,8 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 		}
 		else if(StrEqual(sInfo, "reset"))
 		{
-			ConfirmCheckpointsDeleteMenu(param1);
 			gB_InCheckpointMenu[param1] = false;
+			ConfirmCheckpointsDeleteMenu(param1);
 
 			return 0;
 		}
@@ -1265,6 +1327,83 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 	return 0;
 }
 
+void SelectCheckpointsOwnerMenu(int client)
+{
+	if (!gCV_UseOthers.BoolValue)
+	{
+		Shavit_PrintToChat(client, "%T", "FeatureDisabled", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		OpenCPMenu(client);
+		return;
+	}
+
+	Menu hMenu = new Menu(MenuHandler_CheckpointsOwner);
+	hMenu.SetTitle("%T\n ", "MiscCheckpointUseOthers", client);
+
+	char sDisplay[64];
+	char sInfo[8];
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i) && !IsFakeClient(i) && i != client)
+		{
+			GetClientName(i, sDisplay, sizeof(sDisplay));
+			IntToString(i, sInfo, sizeof(sInfo));
+
+			hMenu.AddItem(sInfo, sDisplay);
+		}
+	}
+
+	if (hMenu.ItemCount == 0)
+	{
+		Shavit_PrintToChat(client, "%T", "MiscCheckpointNoOtherPlayers", client);
+		delete hMenu;
+		OpenCPMenu(client);
+		return;
+	}
+
+	hMenu.ExitButton = true;
+	hMenu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_CheckpointsOwner(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char sInfo[16];
+		menu.GetItem(param2, sInfo, sizeof(sInfo));
+
+		int iUsingOwner = StringToInt(sInfo);
+
+		if (!IsValidClient(iUsingOwner) || !gA_Checkpoints[iUsingOwner])
+		{
+			Shavit_PrintToChat(param1, "%T", "MiscCheckpointOwnerInvalid", param1);
+			SelectCheckpointsOwnerMenu(param1);
+
+			return 0;
+		}
+
+		gI_UsingCheckpointsOwner[param1] = iUsingOwner;
+		gI_CurrentCheckpoint[param1] = gA_Checkpoints[iUsingOwner].Length;
+
+		OpenCheckpointsMenu(param1);
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		OpenCPMenu(param1);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+int GetUsingCheckpointsOwner(int client)
+{
+	return gI_UsingCheckpointsOwner[client] ? gI_UsingCheckpointsOwner[client] : client;
+}
+
 void ConfirmCheckpointsDeleteMenu(int client)
 {
 	Menu hMenu = new Menu(MenuHandler_CheckpointsDelete);
@@ -1303,7 +1442,7 @@ public int MenuHandler_CheckpointsDelete(Menu menu, MenuAction action, int param
 	return 0;
 }
 
-bool SaveCheckpoint(int client)
+bool SaveCheckpoint(int client, bool duplicate = false)
 {
 	// ???
 	// nairda somehow triggered an error that requires this
@@ -1377,6 +1516,7 @@ bool SaveCheckpoint(int client)
 	Call_PushCell(client);
 	Call_PushCell(index);
 	Call_PushCell(overflow);
+	Call_PushCell(duplicate);
 	Call_Finish(result);
 
 	if(result != Plugin_Continue)
@@ -1385,8 +1525,25 @@ bool SaveCheckpoint(int client)
 	}
 
 	cp_cache_t cpcache;
-	SaveCheckpointCache(client, target, cpcache, index, INVALID_HANDLE);
-	gI_CurrentCheckpoint[client] = index;
+
+	if (!duplicate)
+	{
+		SaveCheckpointCache(client, target, cpcache, index, INVALID_HANDLE);
+		gI_CurrentCheckpoint[client] = index;
+	}
+	else
+	{
+		gA_Checkpoints[gI_UsingCheckpointsOwner[client]].GetArray(gI_CurrentCheckpoint[client]-1, cpcache, sizeof(cp_cache_t));
+
+		if (cpcache.aFrames)
+			cpcache.aFrames = view_as<ArrayList>(CloneHandle(cpcache.aFrames));
+		if (cpcache.aEvents)
+			cpcache.aEvents = view_as<ArrayList>(CloneHandle(cpcache.aEvents));
+		if (cpcache.aOutputWaits)
+			cpcache.aOutputWaits = view_as<ArrayList>(CloneHandle(cpcache.aOutputWaits));
+		if (cpcache.customdata)
+			cpcache.customdata = view_as<StringMap>(CloneHandle(cpcache.customdata));
+	}
 
 	if(overflow)
 	{
@@ -1411,6 +1568,7 @@ bool SaveCheckpoint(int client)
 	Call_PushCell(client);
 	Call_PushCell(index);
 	Call_PushCell(overflow);
+	Call_PushCell(duplicate);
 	Call_Finish();
 
 	return true;
@@ -1596,7 +1754,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	Call_Finish();
 }
 
-void TeleportToCheckpoint(int client, int index, bool suppressMessage)
+void TeleportToCheckpoint(int client, int index, bool suppressMessage, int target=0)
 {
 	if(index < 1 || index > gCV_MaxCP.IntValue || (!gCV_Checkpoints.BoolValue && !CanSegment(client)))
 	{
@@ -1610,24 +1768,21 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 		return;
 	}
 
-	if(index > gA_Checkpoints[client].Length)
+	target = target ? target : client;
+
+	if (index > gA_Checkpoints[target].Length)
 	{
 		Shavit_PrintToChat(client, "%T", "MiscCheckpointsEmpty", client, index, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return;
 	}
 
 	cp_cache_t cpcache;
-	gA_Checkpoints[client].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
+	gA_Checkpoints[target].GetArray(index - 1, cpcache, sizeof(cp_cache_t));
 
 	if(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") != Shavit_GetStyleSettingInt(cpcache.aSnapshot.bsStyle, "kzcheckpoints"))
 	{
 		Shavit_PrintToChat(client, "%T", "CommandTeleCPInvalid", client);
 
-		return;
-	}
-
-	if(IsNullVector(cpcache.fPosition))
-	{
 		return;
 	}
 
@@ -1642,6 +1797,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	Call_StartForward(gH_Forwards_OnTeleportPre);
 	Call_PushCell(client);
 	Call_PushCell(index);
+	Call_PushCell(target);
 	Call_Finish(result);
 
 	if(result != Plugin_Continue)
@@ -1668,6 +1824,7 @@ void TeleportToCheckpoint(int client, int index, bool suppressMessage)
 	Call_StartForward(gH_Forwards_OnTeleport);
 	Call_PushCell(client);
 	Call_PushCell(index);
+	Call_PushCell(target);
 	Call_Finish();
 
 	// shavit-kz
@@ -1964,8 +2121,9 @@ public any Native_TeleportToCheckpoint(Handle plugin, int numParams)
 	int client = GetNativeCell(1);
 	int position = GetNativeCell(2);
 	bool suppress = GetNativeCell(3);
+	int target = (numParams > 3) ? GetNativeCell(4) : 0;
 
-	TeleportToCheckpoint(client, position, suppress);
+	TeleportToCheckpoint(client, position, suppress, target);
 	return 0;
 }
 

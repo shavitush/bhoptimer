@@ -99,6 +99,10 @@
 	{
 		"en"		"Unable to save due to checkpoint overflow."
 	}
+	"MiscCheckpointOwnerInvalid"
+	{
+		"en"		"The checkpoint's owner is invalid or has disconnected."
+	}
 	"MiscSegmentedCommand"
 	{
 		"#format"	"{1:s},{2:s}"
@@ -129,6 +133,10 @@
 	{
 		"en"		"No."
 	}
+	"MiscCheckpointNoOtherPlayers"
+	{
+		"en"		"You are alone (also, the server is empty)"
+	}
 	"TeleportMenuTitle"
 	{
 		"en"		"Teleport to:"
@@ -155,6 +163,11 @@
 		"#format"	"{1:d},{2:d}"
 		"en"		"Save checkpoint ({1}/{2})"
 	}
+	"MiscCheckpointDuplicate"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"Duplicate checkpoint ({1}/{2})"
+	}
 	"MiscCheckpointTeleport"
 	{
 		"#format"	"{1:d}"
@@ -167,6 +180,14 @@
 	"MiscCheckpointNext"
 	{
 		"en"		"Next"
+	}
+	"MiscCheckpointUseOthers"
+	{
+		"en"		"Use another player's checkpoints"
+	}
+	"MiscCheckpointBack"
+	{
+		"en"		"Back to your checkpoints"
 	}
 	"MiscCheckpointReset"
 	{
