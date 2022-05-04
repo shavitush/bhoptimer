@@ -927,7 +927,7 @@ public Action Command_Tele(int client, int args)
 		}
 	}
 
-	TeleportToCheckpoint(client, client, index, true);
+	TeleportToCheckpoint(client, index, true, client);
 
 	return Plugin_Handled;
 }
@@ -2119,7 +2119,6 @@ public any Native_ClearCheckpoints(Handle plugin, int numParams)
 public any Native_TeleportToCheckpoint(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
-	int target = GetNativeCell(2);
 	int position = GetNativeCell(2);
 	bool suppress = GetNativeCell(3);
 	int target = (numParams > 3) ? GetNativeCell(4) : 0;
