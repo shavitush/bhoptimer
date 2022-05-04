@@ -4,6 +4,7 @@ Note: Dates are UTC+0.
 
 # v3.2.0 - checkpoints & resettargetname stuffffff - 2022-04-27 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.2.0
+https://github.com/shavitush/bhoptimer/commit/7c842afdf05e6c9b37174d7b1d6e21d685f6ce57
 
 Lots of checkpoint API changes and also lots of changes to how the `shavit_misc_resettargetname` family works.
 
@@ -18,13 +19,13 @@ If you have any new breakage on maps, let us know in the discord server or with 
 
 - added `Shavit_OnTeleportPre` and `Shavit_OnSavePre`. The return values of `Shavit_OnSave` and `Shavit_OnTeleport` are now ignored. https://github.com/shavitush/bhoptimer/commit/de8a82707b9fab615438844a2ea2f5ccc78957dc
 - fixed replay prop playback breaking due to a bad index https://github.com/shavitush/bhoptimer/commit/70f29d3ca55a9f70d64f74ac9059c3cd1ab00a7a
-- fixed replays not loading on the first map (and issues with creating replay directories too) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/d58d3ee1d569b22eded5a8f63e64544846b4d20e
+- fixed replays not loading on the first map (and issues with creating replay directories too) (#1130) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/d58d3ee1d569b22eded5a8f63e64544846b4d20e
 - Changed the behaviour of `shavit_misc_resettargetname` (#1123) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/0fee1862c8403e07d561cab45a9997dbe88a1041
 	- Fix targetname and classname locking (#1135) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/8f07c1d5106b28dea3c03eb842ec5c711cb0f1aa
 - renamed `shavit_checkpoints_checkpoints` to `shavit_checkpoints_enabled` https://github.com/shavitush/bhoptimer/commit/b05393cf9fca682c7e959164a1ac15017c3efa3a
 - improved handle handling in `Shavit_SetCheckpoint` and added `cheapCloneHandle` as a parameter for #1133 https://github.com/shavitush/bhoptimer/commit/91ec294f423def449dee616f9a4f7ea0b335abda
 	- and a couple of other commits for that issue https://github.com/shavitush/bhoptimer/commit/8f59007d1d59c34c4b24c13de1c4fe207a3b20f5 https://github.com/shavitush/bhoptimer/commit/ea9a96271125659f252787840013b01e108633f5
-- removed `Shavit_OnCheckpointCacheDeleted`. added `Shavit_SetTimesTeleported`, `Shavit_LoadCheckpointCache`, and `Shavit_SaveCheckpointCache` https://github.com/shavitush/bhoptimer/commit/86af6ca07ba18f6c401b662159a8323fea85ad60 Shavit_SaveCheckpointCache
+- removed `Shavit_OnCheckpointCacheDeleted`. added `Shavit_SetTimesTeleported`, `Shavit_LoadCheckpointCache`, and `Shavit_SaveCheckpointCache` https://github.com/shavitush/bhoptimer/commit/86af6ca07ba18f6c401b662159a8323fea85ad60
 - added max checkpoint counter to checkpoint menu https://github.com/shavitush/bhoptimer/commit/f642afe0162de51fe6359db7fd032fb772f95ab4
 - moved shavit-mapchooser's `CheckRTV` to `OnClientDisconnect_Post` so it works properly :tm: https://github.com/shavitush/bhoptimer/commit/85ff178f473ae8cf714ad1f3505625052d3f84bf
 - corrected native definition file for `Shavit_GetStageWR` https://github.com/shavitush/bhoptimer/commit/554606a21030648bfafbf20ccc1e3baa9fe3e335
