@@ -1868,6 +1868,11 @@ bool DefaultLoadReplay(frame_cache_t cache, int style, int track)
 	if (gB_ClosestPos)
 	{
 #if DEBUG
+		PrintToServer("about to create closestpos handle with %d %d %d %d",
+			gA_FrameCache[style][track].aFrames,
+			0,
+			gA_FrameCache[style][track].iPreFrames,
+			gA_FrameCache[style][track].iFrameCount);
 		Profiler p = new Profiler();
 		p.Start();
 #endif
@@ -3744,7 +3749,7 @@ float GetClosestReplayTime(int client)
 
 #if DEBUG
 	profiler.Stop();
-	PrintToConsole(client, "iClosestFrame(%fs) = %d", client, profiler.Time, iClosestFrame);
+	PrintToConsole(client, "iClosestFrame(%fs) = %d", profiler.Time, iClosestFrame);
 	delete profiler;
 #endif
 
