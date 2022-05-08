@@ -433,17 +433,17 @@ stock bool GuessBestMapName(ArrayList maps, const char input[PLATFORM_MAX_PATH],
 	return false;
 }
 
-stock void GetTrackName(int client, int track, char[] output, int size)
+stock void GetTrackName(int client, int track, char[] output, int size, bool include_bonus_num=true)
 {
 	if (track == Track_Main)
 	{
 		FormatEx(output, size, "%T", "Track_Main", client);
 	}
-	else if (track >= Track_Bonus)
+	else if (Track_Bonus <= track < TRACKS_SIZE)
 	{
-		FormatEx(output, size, "%T", "Track_Bonus", client, track);
+		FormatEx(output, size, "%T", include_bonus_num ? "Track_Bonus" : "Track_Bonus_NoNum", client, track);
 	}
-	else //if (track < Track_Main)
+	else
 	{
 		FormatEx(output, size, "%T", "Track_Unknown", client);
 	}

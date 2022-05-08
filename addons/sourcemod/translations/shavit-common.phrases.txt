@@ -18,6 +18,10 @@
 		"#format"	"{1:d}"
 		"en"		"Bonus {1}"
 	}
+	"Track_Bonus_NoNum"
+	{
+		"en"		"Bonus"
+	}
 	// ---------- Commands ---------- //
 	"NoCommandAccess"
 	{
