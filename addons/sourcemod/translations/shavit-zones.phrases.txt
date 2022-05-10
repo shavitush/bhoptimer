@@ -239,6 +239,11 @@
 		"#format"   "{1:f}"
 		"en"        "Gravity scale: {1}"
 	}
+	"ZoneSetSpeedmod"
+	{
+		"#format"   "{1:f}"
+		"en"        "Speedmod: {1}"
+	}
 	"ZoneEnterDataChat"
 	{
 		"en"		"Input your desired data in chat."
@@ -328,7 +333,7 @@
 	{
 		"en"		"Default"
 	}
-	
+
 	"CustomZone_DisplayType_None"
 	{
 		"en"		"None"
@@ -341,7 +346,7 @@
 	{
 		"en"		"Flat"
 	}
-	
+
 	"CustomZone_Color_White"
 	{
 		"en"		"White"
@@ -470,6 +475,10 @@
 	"Zone_Gravity"
 	{
 		"en"		"Gravity Zone"
+	}
+	"Zone_Speedmod"
+	{
+		"en"		"Speedmod Zone"
 	}
 	"Zone_Unknown"
 	{

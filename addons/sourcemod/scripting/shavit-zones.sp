@@ -803,6 +803,7 @@ bool JumpToZoneType(KeyValues kv, int type, int track)
 		{"Stage", ""},
 		{"No Timer Gravity", ""},
 		{"Gravity", ""},
+		{"Speedmod", ""},
 	};
 
 	char key[4][50];
@@ -2301,6 +2302,10 @@ Action OpenTpToZoneMenu(int client, int pagepos=0)
 		{
 			FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 		}
+		else if (gA_ZoneCache[i].iZoneType == Zone_Gravity || gA_ZoneCache[i].iZoneType == Zone_Speedmod)
+		{
+			FormatEx(sDisplay, 64, "#%d - %s %.2f (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+		}
 		else
 		{
 			FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), sZoneName, sTrack, sPrebuilt);
@@ -2400,6 +2405,10 @@ Action OpenEditMenu(int client, int pos = 0)
 		if(gA_ZoneCache[i].iZoneType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iZoneType == Zone_Stage || gA_ZoneCache[i].iZoneType == Zone_Airaccelerate)
 		{
 			FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+		}
+		else if (gA_ZoneCache[i].iZoneType == Zone_Gravity || gA_ZoneCache[i].iZoneType == Zone_Speedmod)
+		{
+			FormatEx(sDisplay, 64, "#%d - %s %.2f (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 		}
 		else
 		{
@@ -2725,6 +2734,10 @@ Action OpenDeleteMenu(int client, int pos = 0)
 			{
 				FormatEx(sDisplay, 64, "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 			}
+			else if (gA_ZoneCache[i].iZoneType == Zone_Gravity || gA_ZoneCache[i].iZoneType == Zone_Speedmod)
+			{
+				FormatEx(sDisplay, 64, "#%d - %s %.2f (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+			}
 			else
 			{
 				FormatEx(sDisplay, 64, "#%d - %s (%s)%s", (i + 1), sZoneName, sTrack, sPrebuilt);
@@ -2917,7 +2930,7 @@ public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, 
 
 		gI_ZoneType[param1] = StringToInt(info);
 
-		if (gI_ZoneType[param1] == Zone_Gravity)
+		if (gI_ZoneType[param1] == Zone_Gravity || gI_ZoneType[param1] == Zone_Speedmod)
 		{
 			gI_ZoneData[param1] = view_as<int>(1.0);
 		}
@@ -3383,7 +3396,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 {
 	if(gB_WaitingForChatInput[client] && gI_MapStep[client] == 3)
 	{
-		if (gI_ZoneType[client] == Zone_Gravity)
+		if (gI_ZoneType[client] == Zone_Gravity || gI_ZoneType[client] == Zone_Speedmod)
 		{
 			gI_ZoneData[client] = view_as<int>(StringToFloat(sArgs));
 		}
@@ -3516,9 +3529,15 @@ void CreateEditMenu(int client)
 		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetGravity", client, g);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
+	else if (gI_ZoneType[client] == Zone_Speedmod)
+	{
+		float speed = view_as<float>(gI_ZoneData[client]);
+		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetSpeedmod", client, speed);
+		menu.AddItem("datafromchat", sMenuItem);
+	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 600);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 void CreateAdjustMenu(int client, int page)
@@ -4291,21 +4310,28 @@ public void CreateZoneEntities(bool only_create_dead_entities)
 			continue;
 		}
 
-		int entity = CreateEntityByName("trigger_multiple");
+		bool speedmod = (gA_ZoneCache[i].iZoneType == Zone_Speedmod);
+		char classname[32]; classname = speedmod ? "player_speedmod" : "trigger_multiple";
+
+		int entity = CreateEntityByName(classname);
 
 		if(entity == -1)
 		{
-			LogError("\"trigger_multiple\" creation failed, map %s.", gS_Map);
+			LogError("\"%s\" creation failed, map %s.", classname, gS_Map);
 
 			continue;
 		}
 
-		DispatchKeyValue(entity, "wait", "0");
-		DispatchKeyValue(entity, "spawnflags", "4097");
+		// TODO: look into storing the SF_SPEED_MOD_SUPPRESS_* in iZoneFlags
+		if (!speedmod)
+		{
+			DispatchKeyValue(entity, "wait", "0");
+			DispatchKeyValue(entity, "spawnflags", "4097");
+		}
 
 		if(!DispatchSpawn(entity))
 		{
-			LogError("\"trigger_multiple\" spawning failed, map %s.", gS_Map);
+			LogError("\"%s\" spawning failed, map %s.", classname, gS_Map);
 
 			continue;
 		}
@@ -4348,6 +4374,14 @@ public void CreateZoneEntities(bool only_create_dead_entities)
 
 		SetEntPropVector(entity, Prop_Send, "m_vecMins", min);
 		SetEntPropVector(entity, Prop_Send, "m_vecMaxs", max);
+
+		if (speedmod)
+		{
+			int FSOLID_NOT_SOLID = 4;
+			int FSOLID_TRIGGER = 8;
+			SetEntProp(entity, Prop_Send, "m_usSolidFlags", FSOLID_TRIGGER|FSOLID_NOT_SOLID);
+			SDKHook(entity, SDKHook_StartTouch, SameTrack_StartTouch_er);
+		}
 
 		SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
 
@@ -4461,6 +4495,14 @@ public void StartTouchPost(int entity, int other)
 				}
 			}
 		}
+
+		case Zone_Speedmod:
+		{
+			char s[16];
+			FloatToString(view_as<float>(gA_ZoneCache[gI_EntityZone[entity]].iZoneData), s, sizeof(s));
+			SetVariantString(s);
+			AcceptEntityInput(entity, "ModifySpeed", other, entity, 0);
+		}
 	}
 
 	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]].iZoneType][gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack] = true;
@@ -4474,6 +4516,16 @@ public void StartTouchPost(int entity, int other)
 	Call_PushCell(entity);
 	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]].iZoneData);
 	Call_Finish();
+}
+
+public Action SameTrack_StartTouch_er(int entity, int other)
+{
+	if (other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || !gA_ZoneCache[gI_EntityZone[entity]].bZoneInitialized || IsFakeClient(other) || gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack != Shavit_GetClientTrack(other))
+	{
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
 }
 
 public void EndTouchPost(int entity, int other)
@@ -4494,6 +4546,12 @@ public void EndTouchPost(int entity, int other)
 
 	gB_InsideZone[other][type][track] = false;
 	gB_InsideZoneID[other][entityzone] = false;
+
+	if (type == Zone_Speedmod)
+	{
+		SetVariantString("1.0"); // surely nothing can go wrong with this
+		AcceptEntityInput(entity, "ModifySpeed", other, entity, 0);
+	}
 
 	Call_StartForward(gH_Forwards_LeaveZone);
 	Call_PushCell(other);
