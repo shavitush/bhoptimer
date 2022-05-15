@@ -1017,7 +1017,7 @@ native void Shavit_ResumeTimer(int client, bool teleport = false);
  * Gets a players zone offset.
  *
  * @param client					Client index.
- * @param teleport					Zone type (Zone_Start or Zone_End).
+ * @param zonetype					Zone type (Zone_Start or Zone_End).
  * @return							Zone offset fraction if any for the given zone type.
  */
 native float Shavit_GetZoneOffset(int client, int zonetype);
@@ -1026,8 +1026,8 @@ native float Shavit_GetZoneOffset(int client, int zonetype);
  * Gets distance of a players distance offset given a zone.
  *
  * @param client					Client index.
- * @param teleport					Zone type  (Zone_Start or Zone_End).
- * @return 							Distance offset if any for the given zone type/
+ * @param zonetype					Zone type  (Zone_Start or Zone_End).
+ * @return 							Distance offset if any for the given zone type
  */
 native float Shavit_GetDistanceOffset(int client, int zonetype);
 
