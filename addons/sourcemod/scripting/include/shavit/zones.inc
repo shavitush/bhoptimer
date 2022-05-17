@@ -90,7 +90,7 @@ enum
 
 enum // i really can't think of a better name than "source" for this
 {
-	ZoneSource_2Points,
+	ZoneSource_Box,
 	ZoneSource_trigger_multiple,
 	ZoneSource_trigger_teleport,
 	ZoneSource_func_button,
@@ -342,7 +342,7 @@ native void Shavit_GetZone(int index, any[] zonecache, int size = sizeof(zone_ca
  */
 native int Shavit_AddZone(any[] zonecache, int size = sizeof(zone_cache_t));
 
-//native void Shavit_RemoveZone(int index);
+native void Shavit_RemoveZone(int index);
 
 public SharedPlugin __pl_shavit_zones =
 {
@@ -377,6 +377,6 @@ public void __pl_shavit_zones_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetZoneCount");
 	MarkNativeAsOptional("Shavit_GetZone");
 	MarkNativeAsOptional("Shavit_AddZone");
-	//MarkNativeAsOptional("Shavit_RemoveZone");
+	MarkNativeAsOptional("Shavit_RemoveZone");
 }
 #endif

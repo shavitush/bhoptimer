@@ -457,7 +457,7 @@ void ApplyMigration_AddMapzonesSourceAndTarget()
 void ApplyMigration_ConvertPrebuiltMapzones()
 {
 	char sQuery[192];
-	// set source to ZoneSource_HookTriggerMultiple
+	// set source to ZoneSource_trigger_multiple
 	// the "target" column will still be null BUT on first map load we'll find the entity and update those rows...
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE `%smapzones` SET source = 1 WHERE prebuilt = 1;", gS_SQLPrefix);
 	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_ConvertPrebuiltMapzones, DBPrio_High);
