@@ -179,7 +179,7 @@ public void OnPluginStart()
 
 	// plugin convars
 	gCV_GradientStepSize = new Convar("shavit_hud_gradientstepsize", "15", "How fast should the start/end HUD gradient be?\nThe number is the amount of color change per 0.1 seconds.\nThe higher the number the faster the gradient.", 0, true, 1.0, true, 255.0);
-	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
+	gCV_TicksPerUpdate = new Convar("shavit_hud_ticksperupdate", "5", "How often (in ticks) should the HUD update?\nPlay around with this value until you find the best for your server.\nThe maximum value is your tickrate.\nNote: You should probably avoid 1-2 on CSS since players will probably feel stuttery FPS due to all the usermessages.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
 	gCV_SpectatorList = new Convar("shavit_hud_speclist", "1", "Who to show in the specators list?\n0 - everyone\n1 - all admins (admin_speclisthide override to bypass)\n2 - players you can target", 0, true, 0.0, true, 2.0);
 	gCV_UseHUDFix = new Convar("shavit_hud_csgofix", "1", "Apply the csgo color fix to the center hud?\nThis will add a dollar sign and block sourcemod hooks to hint message", 0, true, 0.0, true, 1.0);
 	gCV_SpecNameSymbolLength = new Convar("shavit_hud_specnamesymbollength", "32", "Maximum player name length that should be displayed in spectators panel", 0, true, 0.0, true, float(MAX_NAME_LENGTH));
@@ -203,6 +203,7 @@ public void OnPluginStart()
 		..."HUD_NOPRACALERT			4096\n"
 		..."HUD_USP                  8192\n"
 		..."HUD_GLOCK                16384\n"
+		..."HUD_SPECTATORSDEAD       65536\n"
 	);
 
 	IntToString(HUD_DEFAULT2, defaultHUD, 8);
@@ -223,6 +224,7 @@ public void OnPluginStart()
 		..."HUD2_VELOCITYDIFFERENCE	8192\n"
 		..."HUD2_USPSILENCER         16384\n"
 		..."HUD2_GLOCKBURST          32768\n"
+		..."HUD2_CENTERKEYS          65536\n"
 	);
 
 	Convar.AutoExecConfig();
@@ -686,6 +688,10 @@ Action ShowHUDMenu(int client, int item)
 
 	FormatEx(sInfo, 16, "!%d", HUD_SPECTATORS);
 	FormatEx(sHudItem, 64, "%T", "HudSpectators", client);
+	menu.AddItem(sInfo, sHudItem);
+
+	FormatEx(sInfo, 16, "!%d", HUD_SPECTATORSDEAD);
+	FormatEx(sHudItem, 64, "%T", "HudSpectatorsDead", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "!%d", HUD_KEYOVERLAY);
@@ -1154,6 +1160,11 @@ void TriggerHUDUpdate(int client, bool keysonly = false) // keysonly because CS:
 	      && (GetClientMenu(client, null) == MenuSource_None || GetClientMenu(client, null) == MenuSource_RawPanel)
 	)
 	{
+		if (gI_HUDSettings[client] & HUD_SPECTATORSDEAD && IsPlayerAlive(client))
+		{
+			return;
+		}
+
 		bool bShouldDraw = false;
 		Panel pHUD = new Panel();
 
@@ -1747,10 +1758,11 @@ void UpdateMainHUD(int client)
 
 	huddata.fClosestReplayTime = -1.0;
 	huddata.fClosestVelocityDifference = 0.0;
+	huddata.fClosestReplayLength = 0.0;
 
 	if (!bReplay && gB_ReplayPlayback && Shavit_GetReplayFrameCount(Shavit_GetClosestReplayStyle(target), huddata.iTrack) != 0)
 	{
-		huddata.fClosestReplayTime = Shavit_GetClosestReplayTime(target);
+		huddata.fClosestReplayTime = Shavit_GetClosestReplayTime(target, huddata.fClosestReplayLength);
 
 		if (huddata.fClosestReplayTime != -1.0)
 		{
@@ -2045,6 +2057,12 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 		return;
 	}
 
+
+	if (gI_HUDSettings[client] & HUD_SPECTATORSDEAD && IsPlayerAlive(client))
+	{
+		return;
+	}
+
 	int target = GetSpectatorTarget(client, client);
 
 	if(((gI_HUDSettings[client] & HUD_OBSERVE) == 0 && client != target))
@@ -2275,7 +2293,7 @@ void UpdateKeyHint(int client)
 				}
 			}
 
-			if((gI_HUDSettings[client] & HUD_SPECTATORS) > 0)
+			if ((gI_HUDSettings[client] & HUD_SPECTATORS) > 0 && (!(gI_HUDSettings[client] & HUD_SPECTATORSDEAD) || !IsPlayerAlive(client)))
 			{
 				int iSpectatorClients[MAXPLAYERS+1];
 				int iSpectators = 0;

@@ -129,6 +129,10 @@
 	{
 		"en"		"Spectator list"
 	}
+	"HudSpectatorsDead"
+	{
+		"en"		"Spectator list (only when dead)"
+	}
 	"HudKeyOverlay"
 	{
 		"en"		"Key display"

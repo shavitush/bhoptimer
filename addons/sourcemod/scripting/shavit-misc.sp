@@ -264,7 +264,7 @@ public void OnPluginStart()
 	gCV_CreateSpawnPoints = new Convar("shavit_misc_createspawnpoints", "6", "Amount of spawn points to add for each team.\n0 - Disabled", 0, true, 0.0, true, 32.0);
 	gCV_DisableRadio = new Convar("shavit_misc_disableradio", "1", "Block radio commands.\n0 - Disabled (radio commands work)\n1 - Enabled (radio commands are blocked)", 0, true, 0.0, true, 1.0);
 	gCV_Scoreboard = new Convar("shavit_misc_scoreboard", "1", "Manipulate scoreboard so score is -{time} and deaths are {rank})?\nDeaths part requires shavit-rankings.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
-	gCV_WeaponCommands = new Convar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock and sm_knife?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserved ammo.\n3 - Also give infinite clip ammo.", 0, true, 0.0, true, 3.0);
+	gCV_WeaponCommands = new Convar("shavit_misc_weaponcommands", "2", "Enable sm_usp, sm_glock, sm_knife, and infinite ammo?\n0 - Disabled\n1 - Enabled\n2 - Also give infinite reserve ammo for USP & Glocks.\n3 - Also give infinite clip ammo for USP & Glocks.\n4 - Also give infinite reserve for all weapons (and grenades).\n5 - Also give infinite clip ammo for all weapons (and grenades).", 0, true, 0.0, true, 5.0);
 	gCV_PlayerOpacity = new Convar("shavit_misc_playeropacity", "69", "Player opacity (alpha) to set on spawn.\n-1 - Disabled\nValue can go up to 255. 0 for invisibility.", 0, true, -1.0, true, 255.0);
 	gCV_StaticPrestrafe = new Convar("shavit_misc_staticprestrafe", "1", "Force prestrafe for every pistol.\n250 is the default value and some styles will have 260.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_NoclipMe = new Convar("shavit_misc_noclipme", "1", "Allow +noclip, sm_p and all the noclip commands?\n0 - Disabled\n1 - Enabled\n2 - requires 'admin_noclipme' override or ADMFLAG_CHEATS flag.", 0, true, 0.0, true, 2.0);
@@ -2354,7 +2354,9 @@ public Action Player_Notifications(Event event, const char[] name, bool dontBroa
 
 public void Weapon_Fire(Event event, const char[] name, bool dB)
 {
-	if(gCV_WeaponCommands.IntValue < 2)
+	int weaponcvar = gCV_WeaponCommands.IntValue;
+
+	if (weaponcvar < 2)
 	{
 		return;
 	}
@@ -2362,10 +2364,10 @@ public void Weapon_Fire(Event event, const char[] name, bool dB)
 	char sWeapon[16];
 	event.GetString("weapon", sWeapon, 16);
 
-	if(StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hkp") != -1 || StrContains(sWeapon, "glock") != -1)
+	if (weaponcvar >= 4 || StrContains(sWeapon, "usp") != -1 || StrContains(sWeapon, "hkp") != -1 || StrContains(sWeapon, "glock") != -1)
 	{
 		int client = GetClientOfUserId(event.GetInt("userid"));
-		SetMaxWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"), gCV_WeaponCommands.IntValue >= 3);
+		SetMaxWeaponAmmo(client, GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon"), weaponcvar == 3 || weaponcvar == 5);
 	}
 }
 

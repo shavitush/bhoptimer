@@ -180,6 +180,7 @@ float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][3];
 bool gB_Eventqueuefix = false;
 bool gB_ReplayRecorder = false;
 
+#define CZONE_VER 'b'
 // custom zone stuff
 Cookie gH_CustomZoneCookie = null;
 int gI_ZoneDisplayType[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
@@ -898,6 +899,7 @@ bool JumpToZoneType(KeyValues kv, int type, int track)
 		{"Stage", ""},
 		{"No Timer Gravity", ""},
 		{"Gravity", ""},
+		{"Speedmod", ""},
 	};
 
 	char key[4][50];
@@ -1780,17 +1782,29 @@ public void OnClientCookiesCached(int client)
 	gH_DrawAllZonesCookie.Get(client, setting, sizeof(setting));
 	gB_DrawAllZones[client] = view_as<bool>(StringToInt(setting));
 
-	char czone[1 + 2*2*TRACKS_SIZE + 1]; // version + ((start + end) * 2 chars * tracks) + NUL terminator
+	char czone[100]; // #define MAX_VALUE_LENGTH 100
 	gH_CustomZoneCookie.Get(client, czone, sizeof(czone));
 
-	if (czone[0] == 'a') // "version number"
+	char ver = czone[0];
+
+	if (ver == 'a' || ver == 'b') // "version number"
 	{
+		// a = [1 + 2*2*TRACKS_SIZE + 1]; // version + ((start + end) * 2 chars * tracks) + NUL terminator
+		// b = [1 + ZONETYPES_SIZE*2*2 + 1] // version + (ZONETYPES_SIZE * 2 chars * (main+bonus)) + NUL terminator
+
 		int p = 1;
 		char c;
 
 		while ((c = czone[p++]) != 0)
 		{
 			int track = c & 0xf;
+#if CZONE_VER == 'b'
+			if (track > Track_Bonus)
+			{
+				++p;
+				continue;
+			}
+#endif
 			int type = (c >> 4) & 1;
 			gI_ZoneDisplayType[client][type][track] = (c >> 5) & 3;
 			c = czone[p++];
@@ -2440,6 +2454,10 @@ Action OpenTpToZoneMenu(int client, int pagepos=0)
 		{
 			FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iData, sTrack, sTarget);
 		}
+		else if (gA_ZoneCache[i].iZoneType == Zone_Gravity || gA_ZoneCache[i].iZoneType == Zone_Speedmod)
+		{
+			FormatEx(sDisplay, 64, "#%d - %s %.2f (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+		}
 		else
 		{
 			FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s (%s)%s", (i + 1), sZoneName, sTrack, sTarget);
@@ -2541,6 +2559,10 @@ Action OpenEditMenu(int client, int pos = 0)
 		{
 			FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iData, sTrack, sTarget);
 		}
+		else if (gA_ZoneCache[i].iZoneType == Zone_Gravity || gA_ZoneCache[i].iZoneType == Zone_Speedmod)
+		{
+			FormatEx(sDisplay, 64, "#%d - %s %.2f (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
+		}
 		else
 		{
 			FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s (%s)%s", (i + 1), sZoneName, sTrack, sTarget);
@@ -2628,16 +2650,22 @@ void OpenCustomZoneMenu(int client, int pos=0)
 	menu.SetTitle("%T", "CustomZone_MainMenuTitle", client);
 
 	// Only start zone and end zone are customizable imo, why do you even want to customize the zones that arent often used/seen???
+#if CZONE_VER == 'b'
+	for (int i = 0; i <= Track_Bonus; i++)
+	{
+		for (int j = 0; j < ZONETYPES_SIZE; j++)
+#else
 	for (int i = 0; i < TRACKS_SIZE; i++)
 	{
 		for (int j = 0; j <= Zone_End; j++)
+#endif
 		{
-			if (gA_ZoneSettings[j][0].bVisible)
+			if (j != Zone_CustomSpawn)// && gA_ZoneSettings[j][i].bVisible)
 			{
 				char info[8];
 				FormatEx(info, sizeof(info), "%i;%i", i, j);
 				char trackName[32], zoneName[32], display[64];
-				GetTrackName(client, i, trackName, sizeof(trackName));
+				GetTrackName(client, i, trackName, sizeof(trackName), !(CZONE_VER == 'b'));
 				GetZoneName(client, j, zoneName, sizeof(zoneName));
 
 				FormatEx(display, sizeof(display), "%s - %s", trackName, zoneName);
@@ -2734,16 +2762,22 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 
 void HandleCustomZoneCookie(int client)
 {
-	char buf[1 + 2*2*TRACKS_SIZE + 1]; // version + ((start + end) * 2 chars * tracks) + NUL terminator
+	char buf[100]; // #define MAX_VALUE_LENGTH 100
 	int p = 0;
 
+#if CZONE_VER == 'b'
+	for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
+	{
+		for (int track = Track_Main; track <= Track_Bonus; track++)
+#else
 	for (int type = Zone_Start; type <= Zone_End; type++)
 	{
 		for (int track = Track_Main; track < TRACKS_SIZE; track++)
+#endif
 		{
 			if (gI_ZoneDisplayType[client][type][track] || gI_ZoneColor[client][type][track] || gI_ZoneWidth[client][type][track])
 			{
-				if (!p) buf[p++] = 'a'; // "version number"
+				if (!p) buf[p++] = CZONE_VER;
 				// highest bit (0x80) set so we don't get a zero byte terminating the cookie early
 				buf[p++] = 0x80 | (gI_ZoneDisplayType[client][type][track] << 5) | (type << 4) | track;
 				buf[p++] = 0x80 | (gI_ZoneWidth[client][type][track] << 4) | gI_ZoneColor[client][type][track];
@@ -2859,6 +2893,10 @@ Action OpenDeleteMenu(int client, int pos = 0)
 			if(gA_ZoneCache[i].iType == Zone_CustomSpeedLimit || gA_ZoneCache[i].iType == Zone_Stage || gA_ZoneCache[i].iType == Zone_Airaccelerate)
 			{
 				FormatEx(sDisplay, sizeof(sDisplay), "#%d - %s %d (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iData, sTrack, sTarget);
+			}
+			else if (gA_ZoneCache[i].iZoneType == Zone_Gravity || gA_ZoneCache[i].iZoneType == Zone_Speedmod)
+			{
+				FormatEx(sDisplay, 64, "#%d - %s %.2f (%s)%s", (i + 1), sZoneName, gA_ZoneCache[i].iZoneData, sTrack, sPrebuilt);
 			}
 			else
 			{
@@ -3055,7 +3093,7 @@ public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, 
 
 		gI_ZoneType[param1] = StringToInt(info);
 
-		if (gI_ZoneType[param1] == Zone_Gravity)
+		if (gI_ZoneType[param1] == Zone_Gravity || gI_ZoneType[param1] == Zone_Speedmod)
 		{
 			gI_ZoneData[param1] = view_as<int>(1.0);
 		}
@@ -3533,7 +3571,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 {
 	if(gB_WaitingForChatInput[client] && gI_MapStep[client] == 3)
 	{
-		if (gI_ZoneType[client] == Zone_Gravity)
+		if (gI_ZoneType[client] == Zone_Gravity || gI_ZoneType[client] == Zone_Speedmod)
 		{
 			gI_ZoneData[client] = view_as<int>(StringToFloat(sArgs));
 		}
@@ -3666,9 +3704,15 @@ void CreateEditMenu(int client)
 		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetGravity", client, g);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
+	else if (gI_ZoneType[client] == Zone_Speedmod)
+	{
+		float speed = view_as<float>(gI_ZoneData[client]);
+		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetSpeedmod", client, speed);
+		menu.AddItem("datafromchat", sMenuItem);
+	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 600);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 void CreateAdjustMenu(int client, int page)
@@ -4041,6 +4085,10 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 	{
 		0.1, 0.5, 2.0, 8.0
 	};
+
+#if CZONE_VER == 'b'
+	track = (track > Track_Bonus) ? Track_Bonus : Track_Main;
+#endif
 
 	int clients[MAXPLAYERS+1];
 	int count = 0;
@@ -4474,6 +4522,14 @@ public void StartTouchPost(int entity, int other)
 				}
 			}
 		}
+
+		case Zone_Speedmod:
+		{
+			char s[16];
+			FloatToString(view_as<float>(gA_ZoneCache[gI_EntityZone[entity]].iZoneData), s, sizeof(s));
+			SetVariantString(s);
+			AcceptEntityInput(entity, "ModifySpeed", other, entity, 0);
+		}
 	}
 
 	gB_InsideZone[other][gA_ZoneCache[gI_EntityZone[entity]].iType][gA_ZoneCache[gI_EntityZone[entity]].iTrack] = true;
@@ -4487,6 +4543,16 @@ public void StartTouchPost(int entity, int other)
 	Call_PushCell(entity);
 	Call_PushCell(gA_ZoneCache[gI_EntityZone[entity]].iData);
 	Call_Finish();
+}
+
+public Action SameTrack_StartTouch_er(int entity, int other)
+{
+	if (other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || !gA_ZoneCache[gI_EntityZone[entity]].bZoneInitialized || IsFakeClient(other) || gA_ZoneCache[gI_EntityZone[entity]].iZoneTrack != Shavit_GetClientTrack(other))
+	{
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
 }
 
 public void EndTouchPost(int entity, int other)
@@ -4507,6 +4573,12 @@ public void EndTouchPost(int entity, int other)
 
 	gB_InsideZone[other][type][track] = false;
 	gB_InsideZoneID[other][entityzone] = false;
+
+	if (type == Zone_Speedmod)
+	{
+		SetVariantString("1.0"); // surely nothing can go wrong with this
+		AcceptEntityInput(entity, "ModifySpeed", other, entity, 0);
+	}
 
 	Call_StartForward(gH_Forwards_LeaveZone);
 	Call_PushCell(other);

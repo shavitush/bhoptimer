@@ -378,10 +378,11 @@ native int Shavit_ReloadReplays(bool restart);
  * Gets time from replay frame that is closest to client.
  *
  * @param client                    Client index.
+ * @param outlength                 Fills this variable with the total length of the replay that's being compared to.
  *
  * @return                          Replay time.
  */
-native float Shavit_GetClosestReplayTime(int client);
+native float Shavit_GetClosestReplayTime(int client, float &outlength=0.0);
 
 /**
  * Gets the style the client is getting the closest replay time from.

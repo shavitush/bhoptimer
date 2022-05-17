@@ -27,6 +27,7 @@ char gS_CheatCommands[][] = {
 	"ent_create",
 	"ent_orient",
 	"ent_pause",
+	"ent_fire",
 
 	"ent_remove",
 	"ent_remove_all",
