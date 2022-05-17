@@ -1205,6 +1205,8 @@ void FindEntitiesToHook(const char[] classname, int source)
 
 	while ((ent = FindEntityByClassname(ent, classname)) != -1)
 	{
+		char hammerid[12];
+		IntToString(GetEntProp(ent, Prop_Data, "m_iHammerID"), hammerid, sizeof(hammerid)); // xd string comparisons
 		GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
 
 		if (source == ZoneSource_trigger_multiple && StrContains(targetname, "shavit_zones_") == 0)
@@ -1214,7 +1216,8 @@ void FindEntitiesToHook(const char[] classname, int source)
 
 		for (int i = 0; i < gI_MapZones; i++)
 		{
-			if (gA_ZoneCache[i].iEntity > 0 || gA_ZoneCache[i].iSource != source)
+			if (gA_ZoneCache[i].iEntity > 0 || gA_ZoneCache[i].iSource != source
+			||  !StrEqual(gA_ZoneCache[i].sTarget, (gA_ZoneCache[i].iFlags & ZF_Hammerid) ? hamemrid : targetname))
 			{
 				continue;
 			}
