@@ -138,12 +138,30 @@ native bool Shavit_GetAutoPrestrafe(int client);
 native void Shavit_SetAutoJumpOnStart(int client, bool value);
 
 /**
- * Retrieves hether the client automatically jumps when they leave the start zone.
+ * Retrieves whether the client automatically jumps when they leave the start zone.
  *
  * @param client		Client index
  * @return				The current auto jump value.
  */
 native bool Shavit_GetAutoJumpOnStart(int client);
+
+/**
+ * Sets whether the client uses the autogain basic strafer.
+ *
+ * @param client		Client index
+ * @param value			New value to set the autogain basic strafer to.
+ * @noreturn
+ */
+native void Shavit_SetAutogainBasicStrafer(int client, bool value);
+
+/**
+ * Retrieves whether the client has has enabled the autogain basic strafer :tm:
+ *
+ * @param client		Client index
+ * @return				The current autogain basic strafer setting.
+ */
+native bool Shavit_GetAutogainBasicStrafer(int client);
+
 
 
 // taken from shavit's oryx
@@ -217,5 +235,7 @@ public void __pl_shavit_tas_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetAutoJumpOnStart");
 	MarkNativeAsOptional("Shavit_SetEdgeJump");
 	MarkNativeAsOptional("Shavit_GetEdgeJump");
+	MarkNativeAsOptional("Shavit_SetAutogainBasicStrafer");
+	MarkNativeAsOptional("Shavit_GetAutogainBasicStrafer");
 }
 #endif
