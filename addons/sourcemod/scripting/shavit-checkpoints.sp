@@ -262,21 +262,8 @@ void LoadDHooks()
 	}
 
 	delete hGameData;
-
+	hGameData = LoadGameConfigFile("sdktools.games");
 	int iOffset;
-
-	if (gEV_Type == Engine_CSS)
-	{
-		hGameData = LoadGameConfigFile("sdktools.games/game.cstrike");
-	}
-	else if (gEV_Type == Engine_CSGO)
-	{
-		hGameData = LoadGameConfigFile("sdktools.games/engine.csgo");
-	}
-	else if (gEV_Type == Engine_TF2)
-	{
-		hGameData = LoadGameConfigFile("sdktools.games/game.tf");
-	}
 
 	if ((iOffset = GameConfGetOffset(hGameData, "CommitSuicide")) == -1)
 	{

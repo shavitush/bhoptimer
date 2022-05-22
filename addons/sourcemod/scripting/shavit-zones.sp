@@ -165,6 +165,7 @@ Handle gH_Forwards_StageMessage = null;
 
 // sdkcalls
 Handle gH_PhysicsRemoveTouchedList = null;
+Handle gH_CommitSuicide = null; // sourcemod always finds a way to amaze me
 
 // dhooks
 DynamicHook gH_TeleportDhook = null;
@@ -446,6 +447,15 @@ void LoadDHooks()
 	if (GetEngineVersion() == Engine_CSGO)
 	{
 		gH_TeleportDhook.AddParam(HookParamType_Bool);
+	}
+
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "CommitSuicide");
+	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_ByValue); // explode
+	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_ByValue); // force
+	if (!(gH_CommitSuicide = EndPrepSDKCall()))
+	{
+		SetFailState("Failed to create sdkcall to \"CommitSuicide\"");
 	}
 
 	delete hGameData;
@@ -4420,6 +4430,11 @@ void PhysicsRemoveTouchedList(int client)
 	SDKCall(gH_PhysicsRemoveTouchedList, client);
 }
 
+void ACTUALLY_ForcePlayerSuicide(int client)
+{
+	SDKCall(gH_CommitSuicide, client, false, true);
+}
+
 public void StartTouchPost(int entity, int other)
 {
 	if(other < 1 || other > MaxClients || gI_EntityZone[entity] == -1 || !gA_ZoneCache[gI_EntityZone[entity]].bZoneInitialized || IsFakeClient(other) ||
@@ -4444,9 +4459,12 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_Slay:
 		{
-			Shavit_StopTimer(other);
-			ForcePlayerSuicide(other);
-			Shavit_PrintToChat(other, "%T", "ZoneSlayEnter", other, gS_ChatStrings.sWarning, gS_ChatStrings.sVariable2, gS_ChatStrings.sWarning);
+			if (status != Timer_Stopped)
+			{
+				Shavit_StopTimer(other);
+				ACTUALLY_ForcePlayerSuicide(other);
+				Shavit_PrintToChat(other, "%T", "ZoneSlayEnter", other, gS_ChatStrings.sWarning, gS_ChatStrings.sVariable2, gS_ChatStrings.sWarning);
+			}
 		}
 
 		case Zone_Stop:
@@ -4636,9 +4654,14 @@ public void TouchPost(int entity, int other)
 
 		case Zone_Slay:
 		{
-			Shavit_StopTimer(other);
-			ForcePlayerSuicide(other);
-			Shavit_PrintToChat(other, "%T", "ZoneSlayEnter", other, gS_ChatStrings.sWarning, gS_ChatStrings.sVariable2, gS_ChatStrings.sWarning);
+			TimerStatus status = Shavit_GetTimerStatus(other);
+
+			if (status != Timer_Stopped)
+			{
+				Shavit_StopTimer(other);
+				ACTUALLY_ForcePlayerSuicide(other);
+				Shavit_PrintToChat(other, "%T", "ZoneSlayEnter", other, gS_ChatStrings.sWarning, gS_ChatStrings.sVariable2, gS_ChatStrings.sWarning);
+			}
 		}
 
 		case Zone_Stop:
