@@ -57,7 +57,6 @@ int gI_Style[MAXPLAYERS+1];
 int gI_MenuPos[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
 int gI_TargetSteamID[MAXPLAYERS+1];
-int gI_LastPrintedSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 
 // playtime things
@@ -183,7 +182,6 @@ public void OnClientConnected(int client)
 	gF_PlaytimeStyleSum[client] = empty;
 	gB_HavePlaytimeOnStyle[client] = empty;
 	gB_QueriedPlaytime[client] = false;
-	gI_LastPrintedSteamID[client] = 0;
 }
 
 public void OnClientPutInServer(int client)
@@ -929,12 +927,16 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		return;
 	}
 
+	bool even_exists = false;
+
 	do
 	{
 		int type = results.FetchInt(0);
 
 		if (type == 0)
 		{
+			even_exists = true;
+
 			fPoints = results.FetchFloat(1);
 
 			int iLastLogin = results.FetchInt(2);
@@ -979,6 +981,12 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		}
 	}
 	while (results.FetchRow());
+
+	if (!even_exists)
+	{
+		Shavit_PrintToChat(client, "%T", "StatsMenuUnknownPlayer", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gI_TargetSteamID[client]);
+		return;
+	}
 
 	iCompletions[0] = iCompletions[0] < iMaps[0] ? iCompletions[0] : iMaps[0];
 	iCompletions[1] = iCompletions[1] < iMaps[1] ? iCompletions[1] : iMaps[1];
@@ -1060,15 +1068,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		menu.ExitButton = true;
 		menu.DisplayAt(client, item, MENU_TIME_FOREVER);
 
-		if (GetSteamAccountID(client) != gI_TargetSteamID[client] && gI_LastPrintedSteamID[client] != gI_TargetSteamID[client])
-		{
-			gI_LastPrintedSteamID[client] = gI_TargetSteamID[client];
-			char steam2[40];
-			AccountIDToSteamID2(gI_TargetSteamID[client], steam2, sizeof(steam2));
-			char steam64[40];
-			AccountIDToSteamID64(gI_TargetSteamID[client], steam64, sizeof(steam64));
-			Shavit_PrintToChat(client, "%s: %s%s %s[U:1:%u]%s %s", gS_TargetName[client], gS_ChatStrings.sVariable, steam2, gS_ChatStrings.sText, gI_TargetSteamID[client], gS_ChatStrings.sVariable2, steam64);
-		}
+		Shavit_PrintSteamIDOnce(client, gI_TargetSteamID[client], gS_TargetName[client]);
 	}
 }
 

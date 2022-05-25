@@ -6,6 +6,11 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"{1}ERROR: {2}Could not open the stats menu."
 	}
+	"StatsMenuUnknownPlayer"
+	{
+		"#format"   "{1:s},{2:s},{3:s},{4:d}"
+		"en"        "{1}ERROR: {2}Unknown player {3}[U:1:{4}]"
+	}
 	// ---------- Map Completions ---------- //
 	"SelectTrack"
 	{

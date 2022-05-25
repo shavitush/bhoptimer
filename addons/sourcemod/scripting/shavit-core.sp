@@ -163,6 +163,7 @@ char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
+int gI_LastPrintedSteamID[MAXPLAYERS+1];
 
 // kz support
 bool gB_KZMap[TRACKS_SIZE];
@@ -226,6 +227,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ShouldProcessFrame", Native_ShouldProcessFrame);
 	CreateNative("Shavit_GotoEnd", Native_GotoEnd);
 	CreateNative("Shavit_UpdateLaggedMovement", Native_UpdateLaggedMovement);
+	CreateNative("Shavit_PrintSteamIDOnce", Native_PrintSteamIDOnce);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -1379,6 +1381,27 @@ void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 		Shavit_StopChatSound();
 		Shavit_PrintToChat(client, "%T", "TrackChangeFromMain", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 	}
+}
+
+public any Native_PrintSteamIDOnce(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int steamid = GetNativeCell(2);
+
+	if (gI_LastPrintedSteamID[client] != steamid && GetSteamAccountID(client) != steamid)
+	{
+		gI_LastPrintedSteamID[client] = steamid;
+
+		char targetname[32+1], steam2[40], steam64[40];
+
+		GetNativeString(3, targetname, sizeof(targetname));
+		AccountIDToSteamID2(steamid, steam2, sizeof(steam2));
+		AccountIDToSteamID64(steamid, steam64, sizeof(steam64));
+
+		Shavit_PrintToChat(client, "%s: %s%s %s[U:1:%u]%s %s", targetname, gS_ChatStrings.sVariable, steam2, gS_ChatStrings.sText, steamid, gS_ChatStrings.sVariable, steam64);
+	}
+
+	return 1;
 }
 
 public any Native_UpdateLaggedMovement(Handle handler, int numParams)
@@ -2568,6 +2591,7 @@ public void OnClientPutInServer(int client)
 	gI_FirstTouchedGround[client] = 0;
 	gI_LastTickcount[client] = 0;
 	gI_HijackFrames[client] = 0;
+	gI_LastPrintedSteamID[client] = 0;
 
 	gB_CookiesRetrieved[client] = false;
 

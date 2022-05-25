@@ -2451,6 +2451,8 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 
 		GetTrackName(client, results.FetchInt(11), sTrack, 32);
+
+		Shavit_PrintSteamIDOnce(client, iSteamID, sName);
 	}
 	else
 	{
