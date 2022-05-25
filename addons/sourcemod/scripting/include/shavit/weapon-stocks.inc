@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - weapon stocks
- * by: shavit
+ * by: shavit, psychonic, Kxnrl, rtldg
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -23,6 +24,8 @@
 #endif
 #define _shavit_weapon_stocks_included
 
+// based on code by Kxnrl in SurfTimer
+// https://github.com/surftimer/SurfTimer/commit/134887a29a396e01a721a78ab69e81a80593411a#diff-0b2bae39ae9de87ea2952bfd12c8777c7301e06ce683acc518229704cf024c33R4894-R4910
 stock int GiveSkinnedWeapon(int client, const char[] classname)
 {
 	int target_team = 0;
@@ -57,6 +60,8 @@ stock int GiveSkinnedWeapon(int client, const char[] classname)
 	return weapon;
 }
 
+// based on testsuite code from psychonic
+// https://github.com/alliedmodders/sourcemod/blob/c5701503185d7e1cb8411c7347abdd31eee75c4e/plugins/testsuite/entpropelements.sp#L88-L96
 stock void RemoveAllWeapons(int client)
 {
 	int weapon = -1, max = GetEntPropArraySize(client, Prop_Send, "m_hMyWeapons");

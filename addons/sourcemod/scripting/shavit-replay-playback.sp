@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - Replay Bot Playback
- * by: shavit
+ * by: shavit, rtldg, carnifex, KiD Fearless
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -16,7 +17,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 #include <sourcemod>
 #include <sdktools>
@@ -245,7 +246,7 @@ ClosestPos gH_ClosestPos[TRACKS_SIZE][STYLE_LIMIT];
 public Plugin myinfo =
 {
 	name = "[shavit] Replay Bot",
-	author = "shavit",
+	author = "shavit, rtldg, carnifex, KiD Fearless",
 	description = "A replay bot for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"

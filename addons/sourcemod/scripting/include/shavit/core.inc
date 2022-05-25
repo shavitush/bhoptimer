@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - core.inc file
- * by: shavit
+ * by: shavit, KiD Fearless, rtldg, Nairda, GAMMA CASE, carnifex,
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -16,7 +17,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 #if defined _shavit_core_included
 	#endinput

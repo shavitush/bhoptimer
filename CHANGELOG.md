@@ -2,6 +2,29 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
+# v3.x.x - stuff - 2022-0X-XX - rtldg
+
+
+**Note:** Contributors and more copyright attributions were added to files and plugins mostly by skimming through git blame. If a name was missed or should be added/removed, please let me know (also the ordering of names was pretty random)
+
+
+- added an option to use an duplicate other players' checkpoints (#1142) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/487e3db9d09d704b67f66e928fcd36adfd990abf
+	- You can toggle this with `shavit_checkpoints_useothers` (default: 1)
+	- new parameters added to `Shavit_OnTeleportPre`, `Shavit_OnTeleport`, `Shavit_OnSavePre`, `Shavit_OnSave`, `Shavit_OnCheckpointMenuSelect`, and `Shavit_TeleportToCheckpoint`
+- changed czone settings to let all zone types be configurable. made the settings for bonuses apply to every bonus https://github.com/shavitush/bhoptimer/commit/ab73e36a15bc426f4edeec13b8d44e8dffacd522
+- added `Zone_Speedmod` so oblivious could have fun bonuses https://github.com/shavitush/bhoptimer/commit/acf47a11b1aa10ceaaaa1555e58611efca452098
+	- avoid putting these inside of entites that trigger a map's `player_speedmod` because they'll probably override each other randomly
+	- also gravity zones should show the gravity amount in zone edit menus now
+- added the `!maprestart` & `!mapreload` aliases https://github.com/shavitush/bhoptimer/commit/a23348d843b623183aa3538ad67be6e9d5ee4446
+- add csgo stripper:source configs for `workshop/2117675766/bhop_craton`, `workshop/1195609162/bhop_bless`, and `workshop/859067603/bhop_bless` https://github.com/shavitush/bhoptimer/commit/d816423eb69c1c199d1034b39e7412ad94abe17f
+- added `ent_fire` to cheat commands list since it can be used on csgo https://github.com/shavitush/bhoptimer/commit/bc62b92983f829e84c7f1c06af37b237dc0214ae
+- added `HUD_SPECTATORSDEAD` / !hud option `Spectator list (only when dead)` to hide the spectators list when you're alive because people spectating me makes me nervous 😵‍💫 https://github.com/shavitush/bhoptimer/commit/22a68b491b659702284bf40575b9055416f4c9a5
+- added `shavit_core_hijack_teleport_angles` (temporary?) TODO description https://github.com/shavitush/bhoptimer/commit/53463d8fb9a3d058d4c938c3bbf4d23882cc133a
+- added an option to toggle the basic autostrafer on the autogain/velocity/oblivious autostrafer thing https://github.com/shavitush/bhoptimer/commit/c2e50761ec4cb085e3a66391a8517ccedcbb9e09
+	- +`Shavit_SetAutogainBasicStrafer`, +`Shavit_GetAutogainBasicStrafer`, `sm_autogainbss`, `+/-autogainbss`
+- slay zones were changed slightly so the player-killer has a 100% success rate..... but make it only slay if the timer is running https://github.com/shavitush/bhoptimer/commit/96ef03e458c5de59e52ac3dbf9f0ff862d8e9652
+
+
 # v3.2.0 - checkpoints & resettargetname stuffffff - 2022-04-27 - rtldg
 https://github.com/shavitush/bhoptimer/releases/tag/v3.2.0
 https://github.com/shavitush/bhoptimer/commit/7c842afdf05e6c9b37174d7b1d6e21d685f6ce57

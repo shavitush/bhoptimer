@@ -2,6 +2,9 @@
  * tas-oblivious.inc file
  * by: oblivious
  *
+ * Originally from autogain (https://github.com/defiy/autogain) Mirror: https://github.com/PMArkive/autogain
+ * and edited to be part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
  * Free Software Foundation.

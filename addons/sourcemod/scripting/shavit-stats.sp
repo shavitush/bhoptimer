@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - Player Stats
- * by: shavit
+ * by: shavit, rtldg, Nuko
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -16,7 +17,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 #include <sourcemod>
 #include <geoip>
@@ -83,7 +84,7 @@ Convar gCV_SavePlaytime = null;
 public Plugin myinfo =
 {
 	name = "[shavit] Player Stats",
-	author = "shavit",
+	author = "shavit, rtldg, Nuko",
 	description = "Player stats for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"

@@ -1,6 +1,9 @@
 /*
  * tas-xutax.inc file
- * by: xutaxkamay
+ * by: xutaxkamay, KiD Fearless
+ *
+ * Retrieved from KiD-TAS (https://github.com/kidfearless/KiD-TAS)
+ * and edited to be part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the

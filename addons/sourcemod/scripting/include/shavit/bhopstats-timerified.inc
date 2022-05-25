@@ -2,7 +2,8 @@
  * Bunnyhop Statistics API - Include file
  * by: shavit
  *
- * This file is part of Bunnyhop Statistics API.
+ * Originally from Bunnyhop Statistics API (https://github.com/shavitush/bhopstats)
+ * but edited to be part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the

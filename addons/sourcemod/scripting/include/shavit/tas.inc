@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - tas.inc file
- * by: xutaxkamay, shavit
+ * by: xutaxkamay, shavit, rtldg
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
