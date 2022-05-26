@@ -1658,7 +1658,7 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 
 public int Native_GetDatabase(Handle handler, int numParams)
 {
-	return view_as<int>(CloneHandle(gH_SQL, handler));
+	return gH_SQL ? view_as<int>(CloneHandle(gH_SQL, handler)) : 0;
 }
 
 public int Native_GetClientTime(Handle handler, int numParams)
