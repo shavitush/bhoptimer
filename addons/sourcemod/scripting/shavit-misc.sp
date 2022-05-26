@@ -1192,7 +1192,7 @@ public void Shavit_OnStop(int client, int track)
 void DumbSetVelocity(int client, float fSpeed[3])
 {
 	// Someone please let me know if any of these are unnecessary.
-	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", NULL_VECTOR);
+	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", ZERO_VECTOR);
 	SetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 	SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed); // m_vecBaseVelocity+m_vecVelocity
 }
@@ -1374,14 +1374,14 @@ void ClearViewPunch(int victim)
 	{
 		if(gEV_Type == Engine_CSGO)
 		{
-			SetEntPropVector(victim, Prop_Send, "m_viewPunchAngle", NULL_VECTOR);
-			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngle", NULL_VECTOR);
-			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngleVel", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_viewPunchAngle", ZERO_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngle", ZERO_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngleVel", ZERO_VECTOR);
 		}
 		else
 		{
-			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngle", NULL_VECTOR);
-			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngleVel", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngle", ZERO_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngleVel", ZERO_VECTOR);
 		}
 	}
 }

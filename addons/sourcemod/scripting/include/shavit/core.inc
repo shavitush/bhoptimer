@@ -27,6 +27,9 @@
 #define SHAVIT_VERSION "3.2.1a"
 #define STYLE_LIMIT 256
 
+// god i fucking hate sourcemod. NULL_VECTOR isn't const so it's not guaranteed to be 0,0,0
+#define ZERO_VECTOR view_as<float>({0,0,0})
+
 #define SHAVIT_LOG_QUERIES 0
 
 #include <shavit/bhopstats-timerified>

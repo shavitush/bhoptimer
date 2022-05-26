@@ -226,13 +226,13 @@ stock float GetMaxDeltaInAir(float flVelocity[2], float flMaxSpeed, float flSurf
 	flTemp[1] = flBestYawLeft;
 	flTemp[2] = 0.0;
 
-	GetAngleVectors(flTemp, vecBestLeft3D, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(flTemp, vecBestLeft3D, ZERO_VECTOR, ZERO_VECTOR);
 
 	flTemp[0] = 0.0;
 	flTemp[1] = flBestYawRight;
 	flTemp[2] = 0.0;
 
-	GetAngleVectors(flTemp, vecBestRight3D, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(flTemp, vecBestRight3D, ZERO_VECTOR, ZERO_VECTOR);
 
 	float vecBestRight[2], vecBestLeft[2];
 
@@ -286,13 +286,13 @@ stock void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], flo
 	tempAngle[1] = flBestYawRight;
 	tempAngle[2] = 0.0;
 
-	GetAngleVectors(tempAngle, vecBestDirRight, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(tempAngle, vecBestDirRight, ZERO_VECTOR, ZERO_VECTOR);
 
 	tempAngle[0] = 0.0;
 	tempAngle[1] = flBestYawLeft;
 	tempAngle[2] = 0.0;
 
-	GetAngleVectors(tempAngle, vecBestDirLeft, NULL_VECTOR, NULL_VECTOR);
+	GetAngleVectors(tempAngle, vecBestDirLeft, ZERO_VECTOR, ZERO_VECTOR);
 
 	// Our wanted direction.
 	float vecBestDir[2];
@@ -333,7 +333,7 @@ stock void GetIdealMovementsInAir(float flYawWantedDir, float flVelocity[2], flo
 	tempAngle[2] = 0.0;
 
 	// Convert our yaw wanted direction to vectors.
-	GetAngleVectors(tempAngle, vecForwardWantedDir3D, vecRightWantedDir3D, NULL_VECTOR);
+	GetAngleVectors(tempAngle, vecForwardWantedDir3D, vecRightWantedDir3D, ZERO_VECTOR);
 
 	vecForwardWantedDir[0] = vecForwardWantedDir3D[0];
 	vecForwardWantedDir[1] = vecForwardWantedDir3D[1];

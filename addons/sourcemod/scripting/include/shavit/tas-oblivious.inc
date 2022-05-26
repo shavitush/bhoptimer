@@ -42,7 +42,7 @@ stock float ground_delta_opt(int client, float angles[3], float move[3], float s
 	float fore[3], side[3], wishvel[3];
 	float wishspeed;
 
-	GetAngleVectors(angles, fore, side, NULL_VECTOR);
+	GetAngleVectors(angles, fore, side, ZERO_VECTOR);
 
 	fore[2] = 0.0;
 	side[2] = 0.0;
@@ -150,7 +150,7 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 		float _fore[3], _side[3], _wishvel[3], _wishdir[3];
 		float _wishspeed, _wishspd, _currentspeed;
 
-		GetAngleVectors(angles, _fore, _side, NULL_VECTOR);
+		GetAngleVectors(angles, _fore, _side, ZERO_VECTOR);
 
 		_fore[2] = 0.0; _side[2] = 0.0;
 		NormalizeVector(_fore, _fore); NormalizeVector(_side, _side);
@@ -178,7 +178,7 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 	float tmp[3];
 	tmp[0] = 0.0; tmp[2] = 0.0;
 	tmp[1] = normalize_yaw(angles[1] + delta_opt);
-	GetAngleVectors(tmp, fore, side, NULL_VECTOR);
+	GetAngleVectors(tmp, fore, side, ZERO_VECTOR);
 
 	fore[2] = 0.0; side[2] = 0.0;
 	NormalizeVector(fore, fore); NormalizeVector(side, side);

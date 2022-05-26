@@ -1325,10 +1325,10 @@ public void Shavit_OnChatConfigLoaded()
 
 void ClearZone(int index)
 {
-	gV_MapZones[index][0] = NULL_VECTOR;
-	gV_MapZones[index][1] = NULL_VECTOR;
-	gV_Destinations[index] = NULL_VECTOR;
-	gV_ZoneCenter[index] = NULL_VECTOR;
+	gV_MapZones[index][0] = ZERO_VECTOR;
+	gV_MapZones[index][1] = ZERO_VECTOR;
+	gV_Destinations[index] = ZERO_VECTOR;
+	gV_ZoneCenter[index] = ZERO_VECTOR;
 
 	gA_ZoneCache[index].bZoneInitialized = false;
 	gA_ZoneCache[index].bPrebuilt = false;
@@ -1588,8 +1588,8 @@ public void OnClientConnected(int client)
 
 	for (int i = 0; i < TRACKS_SIZE; i++)
 	{
-		gF_ClimbButtonCache[client][i][0] = NULL_VECTOR;
-		gF_ClimbButtonCache[client][i][1] = NULL_VECTOR;
+		gF_ClimbButtonCache[client][i][0] = ZERO_VECTOR;
+		gF_ClimbButtonCache[client][i][1] = ZERO_VECTOR;
 	}
 
 	bool empty_HasSetStart[TRACKS_SIZE];
@@ -1739,7 +1739,7 @@ void SetStart(int client, int track, bool anglesonly)
 
 	if (anglesonly)
 	{
-		gF_StartPos[client][track] = NULL_VECTOR;
+		gF_StartPos[client][track] = ZERO_VECTOR;
 	}
 	else
 	{
@@ -1786,8 +1786,8 @@ public Action Command_DeleteSetStart(int client, int args)
 void DeleteSetStart(int client, int track)
 {
 	gB_HasSetStart[client][track] = false;
-	gF_StartPos[client][track] = view_as<float>({0.0, 0.0, 0.0});
-	gF_StartAng[client][track] = view_as<float>({0.0, 0.0, 0.0});
+	gF_StartPos[client][track] = ZERO_VECTOR;
+	gF_StartAng[client][track] = ZERO_VECTOR;
 
 	char query[512];
 
@@ -2025,14 +2025,13 @@ void ClearCustomSpawn(int track)
 {
 	if(track != -1)
 	{
-		gF_CustomSpawn[track] = NULL_VECTOR;
-
+		gF_CustomSpawn[track] = ZERO_VECTOR;
 		return;
 	}
 
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		gF_CustomSpawn[i] = NULL_VECTOR;
+		gF_CustomSpawn[i] = ZERO_VECTOR;
 	}
 }
 
@@ -2180,7 +2179,7 @@ public Action Command_Beamer(int client, int args)
 #if 1
 		// this sometimes helps with the beam getting stuck in walls
 		float fwd[3];
-		GetAngleVectors(direction, fwd, NULL_VECTOR, NULL_VECTOR);
+		GetAngleVectors(direction, fwd, ZERO_VECTOR, ZERO_VECTOR);
 		ScaleVector(fwd, -1.5);
 		AddVectors(fwd, startpos, startpos);
 #endif
@@ -3068,10 +3067,10 @@ void Reset(int client)
 	gB_WaitingForChatInput[client] = false;
 	gI_ZoneID[client] = -1;
 
-	gV_Point1[client] = NULL_VECTOR;
-	gV_Point2[client] = NULL_VECTOR;
-	gV_Teleport[client] = NULL_VECTOR;
-	gV_WallSnap[client] = NULL_VECTOR;
+	gV_Point1[client] = ZERO_VECTOR;
+	gV_Point2[client] = ZERO_VECTOR;
+	gV_Teleport[client] = ZERO_VECTOR;
+	gV_WallSnap[client] = ZERO_VECTOR;
 }
 
 void ShowPanel(int client, int step)
@@ -4014,7 +4013,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
 		{
-			TE_SetupEnergySplash(gV_Teleport[client], NULL_VECTOR, false);
+			TE_SetupEnergySplash(gV_Teleport[client], ZERO_VECTOR, false);
 			TE_SendToAll(0.0);
 		}
 	}
