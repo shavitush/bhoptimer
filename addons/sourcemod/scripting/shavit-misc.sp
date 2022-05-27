@@ -110,6 +110,7 @@ Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
 Convar gCV_RestrictNoclip = null;
 Convar gCV_SpecScoreboardOrder = null;
+Convar gCV_BadSetLocalAnglesFix = null;
 ConVar gCV_PauseMovement = null;
 
 // external cvars
@@ -281,6 +282,11 @@ public void OnPluginStart()
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "1", "Should bhop (landing and jumping) sounds be muted?\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 1.0, true, 2.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 	gCV_SpecScoreboardOrder = new Convar("shavit_misc_spec_scoreboard_order", "1", "Use scoreboard ordering for players when changing target when spectating.", 0, true, 0.0, true, 1.0);
+
+	if (gEV_Type != Engine_CSGO)
+	{
+		gCV_BadSetLocalAnglesFix = new Convar("shavit_misc_bad_setlocalangles_fix", "1", "Fix 'Bad SetLocalAngles' on func_rotating entities.", 0, true, 0.0, true, 1.0);
+	}
 
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
 	Convar.AutoExecConfig();
@@ -927,6 +933,12 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, DHookReturn hReturn)
 	return MRES_Override;
 }
 
+float normalize_ang(float ang)
+{
+	while (ang > 180.0) ang -= 360.0;
+	while (ang < -180.0) ang += 360.0; return ang;
+}
+
 public Action Timer_Cron(Handle timer)
 {
 	if(gCV_HideRadar.BoolValue && gEV_Type == Engine_CSS)
@@ -951,6 +963,25 @@ public Action Timer_Cron(Handle timer)
 			if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == -1)
 			{
 				AcceptEntityInput(ent, "Kill");
+			}
+		}
+	}
+
+	if (gEV_Type != Engine_CSGO && gCV_BadSetLocalAnglesFix.BoolValue)
+	{
+		int ent = -1;
+
+		while ((ent = FindEntityByClassname(ent, "func_rotating")) != -1)
+		{
+			float ang[3], newang[3];
+			GetEntPropVector(ent, Prop_Send, "m_angRotation", ang);
+			newang[0] = normalize_ang(ang[0]);
+			newang[2] = normalize_ang(ang[1]);
+			newang[2] = normalize_ang(ang[2]);
+
+			if (newang[0] != ang[0] || newang[1] != ang[1] || newang[2] != ang[2])
+			{
+				SetEntPropVector(ent, Prop_Send, "m_angRotation", newang);
 			}
 		}
 	}
