@@ -555,7 +555,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 				gV_MapZones_Visual[i][0] = gV_MapZones[i][0];
 				gV_MapZones_Visual[i][7] = gV_MapZones[i][1];
 
-				CreateZonePoints(gV_MapZones_Visual[i], convar == gCV_PrebuiltVisualOffset);
+				CreateZonePoints(gV_MapZones_Visual[i], convar == gCV_PrebuiltVisualOffset); // TODO
 			}
 		}
 	}
@@ -574,7 +574,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 		}
 	}
 	else if (convar == gCV_LocalZones)
-	{// TODO
+	{
 		UnloadZones();
 		if (gCV_LocalZones.BoolValue)
 			RefreshZones();
@@ -898,28 +898,58 @@ public any Native_AddZone(Handle plugin, int numParams)
 	return gI_MapZones++;
 }
 
-// TODO
 public any Native_RemoveZone(Handle plugin, int numParams)
 {
 	int index = GetNativeCell(1);
 
-	if (!gI_MapZones || index >= gI_MapZones)
+	if (gI_MapZones <= 0 || index >= gI_MapZones)
 	{
 		return 0;
 	}
 
 	zone_cache_t cache; cache = gA_ZoneCache[index];
-	/* clear:
-	gA_ZoneCache
-	gV_MapZones
-	gV_MapZones_Visual
-	gV_ZoneCenter
-	gV_Destinations
-	gI_StageZoneID = recalc. Remove?
-	gI_HighestStage = recalc
-	gB_InsideZoneID
-	gI_EntityZone
-	*/
+
+	int ent = gA_ZoneCache[index].iEntity;
+	ClearZoneEntity(index, true);
+
+	if (ent && gA_ZoneCache[index].iSource == ZoneSource_Box) // created by shavit-zones
+	{
+		AcceptEntityInput(ent, "Kill");
+	}
+
+	int top = --gI_MapZones;
+
+	// gI_StageZoneID = recalc. Remove?
+
+	if (index < top)
+	{
+		gI_EntityZone[gA_ZoneCache[top].iEntity] = index;
+		gA_ZoneCache[index] = gA_ZoneCache[top];
+		gV_Destinations[index] = gV_Destinations[top];
+		gV_ZoneCenter[index] = gV_ZoneCenter[top];
+
+		gV_MapZones[index][0] = gV_MapZones[top][0];
+		gV_MapZones[index][1] = gV_MapZones[top][1];
+
+		for (int i = 0; i < sizeof(gV_MapZones_Visual[]); i++)
+		{
+			gV_MapZones_Visual[index][i] = gV_MapZones_Visual[top][i];
+		}
+
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			gB_InsideZoneID[i][index] = gB_InsideZoneID[i][top];
+		}
+	}
+	else
+	{
+		bool empty_InsideZoneID[MAX_ZONES];
+
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			gB_InsideZoneID[i] = empty_InsideZoneID;
+		}
+	}
 
 	RecalcInsideZoneAll();
 
@@ -1577,9 +1607,28 @@ void ClearZoneEntity(int index, bool unhook)
 
 		if (unhook && IsValidEntity(entity))
 		{
-			SDKUnhook(entity, SDKHook_StartTouchPost, StartTouchPost);
-			SDKUnhook(entity, SDKHook_EndTouchPost, EndTouchPost);
-			SDKUnhook(entity, SDKHook_TouchPost, TouchPost);
+			UnhookZone(gA_ZoneCache[index]);
+		}
+	}
+}
+
+void UnhookZone(zone_cache_t cache)
+{
+	int entity = cache.iEntity;
+
+	if (cache.iSource == ZoneSource_func_button)
+	{
+		SDKUnhook(entity, SDKHook_UsePost, UsePost_HookedButton);
+	}
+	else if (cache.iSource == ZoneSource_Box)
+	{
+		SDKUnhook(entity, SDKHook_StartTouchPost, StartTouchPost);
+		SDKUnhook(entity, SDKHook_EndTouchPost, EndTouchPost);
+		SDKUnhook(entity, SDKHook_TouchPost, TouchPost);
+
+		if (cache.iType == Zone_Speedmod)
+		{
+			SDKUnhook(entity, SDKHook_StartTouch, SameTrack_StartTouch_er);
 		}
 	}
 }
@@ -3181,12 +3230,7 @@ public int MenuHandler_DeleteZone(Menu menu, MenuAction action, int param1, int 
 
 				gH_SQL.Query2(SQL_DeleteZone_Callback, sQuery, hDatapack);
 
-#if 1 // TODO
 				Shavit_RemoveZone(id);
-#else
-				UnloadZones();
-				RefreshZones();
-#endif
 			}
 		}
 	}
