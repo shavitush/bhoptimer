@@ -52,6 +52,7 @@ enum
 {
 	ZF_ForceRender = (1 << 0),
 	ZF_Hammerid    = (1 << 1), // used by ZoneSource_{trigger_{multiple, teleport}, func_button} sometimes
+	ZF_Solid       = (1 << 2), // forces the zone to block people...
 };
 
 // Zone Display type

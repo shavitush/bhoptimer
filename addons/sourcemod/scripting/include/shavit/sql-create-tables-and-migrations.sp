@@ -312,7 +312,7 @@ void ApplyMigration(int migration)
 		case Migration_NormalizeMapzonePoints: ApplyMigration_NormalizeMapzonePoints();
 		case Migration_AddMapzonesSourceAndTarget: ApplyMigration_AddMapzonesSourceAndTarget();
 		case Migration_DealWithPrebuiltMapzones: ApplyMigration_DealWithPrebuiltMapzones();
-		case Migration_DropPrebuiltColumn: ApplyMigration_DropPrebuiltColumn();
+		//case Migration_DropPrebuiltColumn: ApplyMigration_DropPrebuiltColumn();
 	}
 }
 

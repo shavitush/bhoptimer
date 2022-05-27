@@ -1671,6 +1671,12 @@ bool CreateZoneTrigger(int zone)
 		SDKHook(entity, SDKHook_StartTouch, SameTrack_StartTouch_er);
 	}
 
+	if (gA_ZoneCache[zone].iFlags & ZF_Solid)
+	{
+		SetEntProp(entity, Prop_Send, "m_usSolidFlags",
+			GetEntProp(entity, Prop_Send, "m_usSolidFlags") & ~(FSOLID_TRIGGER|FSOLID_NOT_SOLID));
+	}
+
 	TeleportEntity(entity, gV_ZoneCenter[zone], NULL_VECTOR, NULL_VECTOR);
 
 	SetZoneMinsMaxs(zone);
@@ -4078,6 +4084,7 @@ void InsertZone(int client)
 {
 	int iType = gI_ZoneType[client];
 	int iIndex = GetZoneIndex(iType, gI_ZoneTrack[client]);
+	// TODO
 	bool bInsert = (gI_ZoneDatabaseID[client] == -1 && (iIndex == -1 || iType >= Zone_Respawn));
 
 	char sQuery[1024];
@@ -4156,6 +4163,7 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 	}
 	else
 	{
+		// TODO
 		UnloadZones();
 		RefreshZones();
 	}
@@ -4733,6 +4741,7 @@ public void StartTouchPost(int entity, int other)
 	int type = gA_ZoneCache[zone].iType;
 	int track = gA_ZoneCache[zone].iTrack;
 
+	// todo: do this after the inside-zone is set?
 	if (gCV_EnforceTracks.BoolValue && type > Zone_End && track != Shavit_GetClientTrack(other))
 		return;
 
