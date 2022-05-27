@@ -49,7 +49,7 @@ enum
 	Migration_RemovePlayertimesPointsCalcedFrom, // lol
 	Migration_NormalizeMapzonePoints,
 	Migration_AddMapzonesSourceAndTarget, // 25
-	Migration_ConvertPrebuiltMapzones,
+	Migration_DealWithPrebuiltMapzones,
 	Migration_DropPrebuiltColumn,
 	MIGRATIONS_END
 };
@@ -311,7 +311,7 @@ void ApplyMigration(int migration)
 		case Migration_RemovePlayertimesPointsCalcedFrom: ApplyMigration_RemovePlayertimesPointsCalcedFrom();
 		case Migration_NormalizeMapzonePoints: ApplyMigration_NormalizeMapzonePoints();
 		case Migration_AddMapzonesSourceAndTarget: ApplyMigration_AddMapzonesSourceAndTarget();
-		case Migration_ConvertPrebuiltMapzones: ApplyMigration_ConvertPrebuiltMapzones();
+		case Migration_DealWithPrebuiltMapzones: ApplyMigration_DealWithPrebuiltMapzones();
 		case Migration_DropPrebuiltColumn: ApplyMigration_DropPrebuiltColumn();
 	}
 }
@@ -455,13 +455,17 @@ void ApplyMigration_AddMapzonesSourceAndTarget()
 	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddMapzonesSourceAndTarget, DBPrio_High);
 }
 
-void ApplyMigration_ConvertPrebuiltMapzones()
+void ApplyMigration_DealWithPrebuiltMapzones()
 {
 	char sQuery[192];
+#if 0
 	// set source to ZoneSource_trigger_multiple
 	// the "target" column will still be null BUT on first map load we'll find the entity and update those rows...
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE `%smapzones` SET source = 1 WHERE prebuilt = 1;", gS_SQLPrefix);
-	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_ConvertPrebuiltMapzones, DBPrio_High);
+#else
+	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM `%smapzones` WHERE prebuilt = 1;", gS_SQLPrefix);
+#endif
+	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_DealWithPrebuiltMapzones, DBPrio_High);
 }
 
 void ApplyMigration_DropPrebuiltColumn()

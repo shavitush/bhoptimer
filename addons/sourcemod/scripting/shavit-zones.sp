@@ -100,7 +100,7 @@ bool gB_CursorTracing[MAXPLAYERS+1];
 int gI_LatestTeleportTick[MAXPLAYERS+1];
 
 // player zone status
-bool gB_InsideZone[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
+int gI_InsideZone[MAXPLAYERS+1][TRACKS_SIZE]; // bit flag
 bool gB_InsideZoneID[MAXPLAYERS+1][MAX_ZONES];
 
 // zone cache
@@ -775,20 +775,19 @@ bool InsideZone(int client, int type, int track)
 {
 	if(track != -1)
 	{
-		return gB_InsideZone[client][type][track];
+		return (gI_InsideZone[client][track] & (1 << type)) != 0;
 	}
 	else
 	{
+		int res = 0;
+
 		for(int i = 0; i < TRACKS_SIZE; i++)
 		{
-			if(gB_InsideZone[client][type][i])
-			{
-				return true;
-			}
+			res |= gI_InsideZone[client][i];
 		}
-	}
 
-	return false;
+		return (res & (1 << type)) != 0;
+	}
 }
 
 public int Native_IsClientCreatingZone(Handle handler, int numParams)
@@ -909,6 +908,7 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 		return 0;
 	}
 
+	zone_cache_t cache; cache = gA_ZoneCache[index];
 	/* clear:
 	gA_ZoneCache
 	gV_MapZones
@@ -921,9 +921,9 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 	gI_EntityZone
 	*/
 
-	RecalcInsideZone();
+	RecalcInsideZoneAll();
 
-	if (type == Zone_Stage && stagenumber == gI_HighestStage[track]);
+	if (cache.iType == Zone_Stage && cache.iData == gI_HighestStage[cache.iTrack])
 		RecalcHighestStage();
 
 	// call EndTouchPost(zoneent, player) manually here?
@@ -1230,7 +1230,7 @@ void FindEntitiesToHook(const char[] classname, int source)
 		for (int i = 0; i < gI_MapZones; i++)
 		{
 			if (gA_ZoneCache[i].iEntity > 0 || gA_ZoneCache[i].iSource != source
-			||  !StrEqual(gA_ZoneCache[i].sTarget, (gA_ZoneCache[i].iFlags & ZF_Hammerid) ? hamemrid : targetname))
+			||  !StrEqual(gA_ZoneCache[i].sTarget, (gA_ZoneCache[i].iFlags & ZF_Hammerid) ? hammerid : targetname))
 			{
 				continue;
 			}
@@ -1355,7 +1355,6 @@ public void Frame_HookButton(any data)
 	Shavit_MarkKZMap(track);
 	SDKHook(entity, SDKHook_UsePost, UsePost_AutoButton);
 }
-#endif
 
 bool parse_mod_zone(const char[] asdfasdf, int& zone, int& track, int& zonedata)
 {
@@ -1462,7 +1461,6 @@ bool parse_climb_zone(const char[] sName, int& zone, int& track, int& zonedata)
 	return true;
 }
 
-#if 0
 public void Frame_HookTrigger(any data)
 {
 	int entity = EntRefToEntIndex(data);
@@ -1673,35 +1671,65 @@ void UnloadZones()
 		ClearZone(i);
 	}
 
-	bool empty_InsideZone[TRACKS_SIZE];
+	int empty_tracks[TRACKS_SIZE];
 	bool empty_InsideZoneID[MAX_ZONES];
 
-	for (int client = 0; client < sizeof(gB_InsideZone); client++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
-		for (int type = 0; type < ZONETYPES_SIZE; type++)
-		{
-			gB_InsideZone[client][type] = empty_InsideZone;
-		}
-
-		gB_InsideZoneID[client] = empty_InsideZoneID;
+		gI_InsideZone[i] = empty_tracks;
+		gB_InsideZoneID[i] = empty_InsideZoneID;
 	}
 
-	int empty_array[TRACKS_SIZE];
-	gI_HighestStage = empty_array;
+	gI_HighestStage = empty_tracks;
 
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		gI_StageZoneID[i] = empty_array;
+		gI_StageZoneID[i] = empty_tracks;
 		gF_CustomSpawn[i] = ZERO_VECTOR;
 	}
 }
 
-void RecalcInsideZone()
+void RecalcInsideZoneAll()
 {
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		RecalcInsideZone(i);
+	}
+}
+
+void RecalcInsideZone(int client)
+{
+	int empty_array[TRACKS_SIZE];
+	for (int i = 0; i < TRACKS_SIZE; i++)
+		gI_InsideZone[client] = empty_array;
+
+	for (int i = 0; i < gI_MapZones; i++)
+	{
+		if (gB_InsideZoneID[client][i])
+		{
+			int track = gA_ZoneCache[i].iTrack;
+			int type = gA_ZoneCache[i].iType;
+			gI_InsideZone[client][track] |= (1 << type);
+		}
+	}
 }
 
 void RecalcHighestStage()
 {
+	int empty_tracks[TRACKS_SIZE];
+	gI_HighestStage = empty_tracks;
+
+	for (int i = 0; i < gI_MapZones; i++)
+	{
+		int type = gA_ZoneCache[i].iType;
+		if (type == Zone_Stage) continue;
+
+		int track = gA_ZoneCache[i].iTrack;
+		int stagenum = gA_ZoneCache[i].iData;
+
+		if (stagenum > gI_HighestStage[track])
+			gI_HighestStage[track] = stagenum;
+	}
 }
 
 void RefreshZones()
@@ -1768,7 +1796,8 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		{
 			if (!cache.sTarget[0])
 			{
-				// Migrate previous `prebuilt`-column-having zones
+				// ~~Migrate previous `prebuilt`-column-having zones~~ nevermind...
+				continue;
 			}
 		}
 
@@ -1807,11 +1836,11 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 
 public void OnClientConnected(int client)
 {
-	bool empty_InsideZone[TRACKS_SIZE];
+	int empty_InsideZone[TRACKS_SIZE];
 
 	for (int i = 0; i < ZONETYPES_SIZE; i++)
 	{
-		gB_InsideZone[client][i] = empty_InsideZone;
+		gI_InsideZone[client] = empty_InsideZone;
 
 		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
@@ -4566,16 +4595,12 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 public void Round_Start(Event event, const char[] name, bool dontBroadcast)
 {
-	bool empty_InsideZone[TRACKS_SIZE];
+	int empty_InsideZone[TRACKS_SIZE];
+	bool empty_InsideZoneID[MAX_ZONES];
 
-	for (int i = 0; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
-		for (int j = 0; j < ZONETYPES_SIZE; j++)
-		{
-			gB_InsideZone[i][j] = empty_InsideZone;
-		}
-
-		bool empty_InsideZoneID[MAX_ZONES];
+		gI_InsideZone[i] = empty_InsideZone;
 		gB_InsideZoneID[i] = empty_InsideZoneID;
 	}
 }
@@ -4747,7 +4772,7 @@ public void StartTouchPost(int entity, int other)
 		}
 	}
 
-	gB_InsideZone[other][type][track] = true;
+	gI_InsideZone[other][track] |= (1 << type);
 	gB_InsideZoneID[other][zone] = true;
 
 	Call_StartForward(gH_Forwards_EnterZone);
@@ -4791,8 +4816,8 @@ public void EndTouchPost(int entity, int other)
 		return;
 	}
 
-	gB_InsideZone[other][type][track] = false; // TODO edit this
 	gB_InsideZoneID[other][entityzone] = false;
+	RecalcInsideZone(other);
 
 	if (type == Zone_Speedmod)
 	{
