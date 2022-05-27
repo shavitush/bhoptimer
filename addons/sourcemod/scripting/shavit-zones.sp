@@ -2137,7 +2137,7 @@ public Action Command_Beamer(int client, int args)
 
 	float delay = 0.0;
 
-	for (int i = 20; i >= 0; --i)
+	for (int C = 20; C >= 0; --C)
 	{
 		/*
 		My code from tracegun.lua that I based this off of:
@@ -2170,19 +2170,11 @@ public Action Command_Beamer(int client, int args)
 		TE_SendToClient(client, delay);
 		delay += 0.11;
 
-		if (!i) break;
+		if (!C) break;
 
 		SubtractVectors(endpos, startpos, direction);
 		NormalizeVector(direction, direction);
 		GetVectorAngles(direction, direction);
-
-#if 1
-		// this sometimes helps with the beam getting stuck in walls
-		float fwd[3];
-		GetAngleVectors(direction, fwd, ZERO_VECTOR, ZERO_VECTOR);
-		ScaleVector(fwd, -1.5);
-		AddVectors(fwd, startpos, startpos);
-#endif
 
 		startpos = endpos;
 
