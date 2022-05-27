@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - Core
- * by: shavit
+ * by: shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, OliviaMourning, Nickelony, sh4hrazad, BoomShotKapow, strafe
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -54,6 +55,7 @@ bool gB_Protobuf = false;
 
 // hook stuff
 DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
+DynamicHook gH_TeleportDhook = null;
 
 // database handle
 Database2 gH_SQL = null;
@@ -95,6 +97,10 @@ float gF_PauseOrigin[MAXPLAYERS+1][3];
 float gF_PauseAngles[MAXPLAYERS+1][3];
 float gF_PauseVelocity[MAXPLAYERS+1][3];
 
+// potentially temporary more effective hijack angles
+int gI_HijackFrames[MAXPLAYERS+1];
+float gF_HijackedAngles[MAXPLAYERS+1][2];
+
 // used for offsets
 float gF_SmallestDist[MAXPLAYERS + 1];
 float gF_Origin[MAXPLAYERS + 1][2][3];
@@ -129,6 +135,7 @@ Convar gCV_UseOffsets = null;
 Convar gCV_TimeInMessages;
 Convar gCV_DebugOffsets = null;
 Convar gCV_SaveIps = null;
+Convar gCV_HijackTeleportAngles = null;
 // cached cvars
 int gI_DefaultStyle = 0;
 bool gB_StyleCookies = true;
@@ -156,6 +163,7 @@ char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
+int gI_LastPrintedSteamID[MAXPLAYERS+1];
 
 // kz support
 bool gB_KZMap[TRACKS_SIZE];
@@ -167,7 +175,7 @@ bool gB_KZMap[TRACKS_SIZE];
 public Plugin myinfo =
 {
 	name = "[shavit] Core",
-	author = "shavit",
+	author = "shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, OliviaMourning, Nickelony, sh4hrazad, BoomShotKapow, strafe",
 	description = "The core for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -219,6 +227,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_ShouldProcessFrame", Native_ShouldProcessFrame);
 	CreateNative("Shavit_GotoEnd", Native_GotoEnd);
 	CreateNative("Shavit_UpdateLaggedMovement", Native_UpdateLaggedMovement);
+	CreateNative("Shavit_PrintSteamIDOnce", Native_PrintSteamIDOnce);
 
 	// registers library, check "bool LibraryExists(const char[] name)" in order to use with other plugins
 	RegPluginLibrary("shavit");
@@ -368,6 +377,7 @@ public void OnPluginStart()
 	gCV_TimeInMessages = new Convar("shavit_core_timeinmessages", "0", "Whether to prefix SayText2 messages with the time.", 0, true, 0.0, true, 1.0);
 	gCV_DebugOffsets = new Convar("shavit_core_debugoffsets", "0", "Print offset upon leaving or entering a zone?", 0, true, 0.0, true, 1.0);
 	gCV_SaveIps = new Convar("shavit_core_save_ips", "1", "Whether to save player IPs in the 'users' database table. IPs are used to show player location on the !profile menu.\nTurning this on will not wipe existing IPs from the 'users' table.", 0, true, 0.0, true, 1.0);
+	gCV_HijackTeleportAngles = new Convar("shavit_core_hijack_teleport_angles", "0", "Whether to hijack player angles on teleport so their latency doesn't fuck up their shit.", 0, true, 0.0, true, 1.0);
 	gCV_DefaultStyle.AddChangeHook(OnConVarChanged);
 
 	Anti_sv_cheats_cvars();
@@ -493,6 +503,30 @@ void LoadDHooks()
 	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
 	gH_AcceptInput.AddParam(HookParamType_Object, 20, DHookPass_ByVal|DHookPass_ODTOR|DHookPass_OCTOR|DHookPass_OASSIGNOP); //variant_t is a union of 12 (float[3]) plus two int type params 12 + 8 = 20
 	gH_AcceptInput.AddParam(HookParamType_Int);
+
+	gamedataConf = LoadGameConfigFile("sdktools.games");
+	if (gamedataConf == null)
+	{
+		SetFailState("Failed to load sdktools gamedata");
+	}
+
+	offset = GameConfGetOffset(gamedataConf, "Teleport");
+	if (offset == -1)
+	{
+		SetFailState("Couldn't get the offset for \"Teleport\"!");
+	}
+
+	gH_TeleportDhook = new DynamicHook(offset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
+
+	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
+	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
+	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
+	if (gEV_Type == Engine_CSGO)
+	{
+		gH_TeleportDhook.AddParam(HookParamType_Bool);
+	}
+
+	delete gamedataConf;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1349,6 +1383,27 @@ void CallOnTrackChanged(int client, int oldtrack, int newtrack)
 	}
 }
 
+public any Native_PrintSteamIDOnce(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	int steamid = GetNativeCell(2);
+
+	if (gI_LastPrintedSteamID[client] != steamid && GetSteamAccountID(client) != steamid)
+	{
+		gI_LastPrintedSteamID[client] = steamid;
+
+		char targetname[32+1], steam2[40], steam64[40];
+
+		GetNativeString(3, targetname, sizeof(targetname));
+		AccountIDToSteamID2(steamid, steam2, sizeof(steam2));
+		AccountIDToSteamID64(steamid, steam64, sizeof(steam64));
+
+		Shavit_PrintToChat(client, "%s: %s%s %s[U:1:%u]%s %s", targetname, gS_ChatStrings.sVariable, steam2, gS_ChatStrings.sText, steamid, gS_ChatStrings.sVariable, steam64);
+	}
+
+	return 1;
+}
+
 public any Native_UpdateLaggedMovement(Handle handler, int numParams)
 {
 	int client = GetNativeCell(1);
@@ -1603,7 +1658,7 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 
 public int Native_GetDatabase(Handle handler, int numParams)
 {
-	return view_as<int>(CloneHandle(gH_SQL, handler));
+	return gH_SQL ? view_as<int>(CloneHandle(gH_SQL, handler)) : 0;
 }
 
 public int Native_GetClientTime(Handle handler, int numParams)
@@ -2518,6 +2573,8 @@ public void OnClientPutInServer(int client)
 		return;
 	}
 
+	gH_TeleportDhook.HookEntity(Hook_Post, client, DHooks_OnTeleport);
+
 	gB_Auto[client] = true;
 	gA_Timers[client].fStrafeWarning = 0.0;
 	gA_Timers[client].bPracticeMode = false;
@@ -2533,6 +2590,8 @@ public void OnClientPutInServer(int client)
 	gS_DeleteMap[client][0] = 0;
 	gI_FirstTouchedGround[client] = 0;
 	gI_LastTickcount[client] = 0;
+	gI_HijackFrames[client] = 0;
+	gI_LastPrintedSteamID[client] = 0;
 
 	gB_CookiesRetrieved[client] = false;
 
@@ -2613,6 +2672,28 @@ public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char
 
 		return;
 	}
+}
+
+// alternatively, SnapEyeAngles &| SetLocalAngles should work...
+// but we have easy gamedata for Teleport so whatever...
+public MRESReturn DHooks_OnTeleport(int pThis, DHookParam hParams)
+{
+	if (gCV_HijackTeleportAngles.BoolValue && !hParams.IsNull(2) && IsPlayerAlive(pThis))
+	{
+		float latency = GetClientLatency(pThis, NetFlow_Both);
+
+		if (latency > 0.0)
+		{
+			gI_HijackFrames[pThis] = RoundToCeil(latency / GetTickInterval()) + 1;
+
+			float angles[3];
+			hParams.GetVector(2, angles);
+			gF_HijackedAngles[pThis][0] = angles[0];
+			gF_HijackedAngles[pThis][1] = angles[1];
+		}
+	}
+
+	return MRES_Ignored;
 }
 
 void ReplaceColors(char[] string, int size)
@@ -3059,6 +3140,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	SetEntityFlags(client, (flags & ~FL_ATCONTROLS));
+
+	if (gI_HijackFrames[client])
+	{
+		--gI_HijackFrames[client];
+		angles[0] = gF_HijackedAngles[client][0];
+		angles[1] = gF_HijackedAngles[client][1];
+	}
 
 	// Wait till now to return so spectators can free-cam while paused...
 	if(!IsPlayerAlive(client))

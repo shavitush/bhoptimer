@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - tas.inc file
- * by: xutaxkamay, shavit
+ * by: xutaxkamay, shavit, rtldg
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -138,12 +139,30 @@ native bool Shavit_GetAutoPrestrafe(int client);
 native void Shavit_SetAutoJumpOnStart(int client, bool value);
 
 /**
- * Retrieves hether the client automatically jumps when they leave the start zone.
+ * Retrieves whether the client automatically jumps when they leave the start zone.
  *
  * @param client		Client index
  * @return				The current auto jump value.
  */
 native bool Shavit_GetAutoJumpOnStart(int client);
+
+/**
+ * Sets whether the client uses the autogain basic strafer.
+ *
+ * @param client		Client index
+ * @param value			New value to set the autogain basic strafer to.
+ * @noreturn
+ */
+native void Shavit_SetAutogainBasicStrafer(int client, bool value);
+
+/**
+ * Retrieves whether the client has has enabled the autogain basic strafer :tm:
+ *
+ * @param client		Client index
+ * @return				The current autogain basic strafer setting.
+ */
+native bool Shavit_GetAutogainBasicStrafer(int client);
+
 
 
 // taken from shavit's oryx
@@ -217,5 +236,7 @@ public void __pl_shavit_tas_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetAutoJumpOnStart");
 	MarkNativeAsOptional("Shavit_SetEdgeJump");
 	MarkNativeAsOptional("Shavit_GetEdgeJump");
+	MarkNativeAsOptional("Shavit_SetAutogainBasicStrafer");
+	MarkNativeAsOptional("Shavit_GetAutogainBasicStrafer");
 }
 #endif

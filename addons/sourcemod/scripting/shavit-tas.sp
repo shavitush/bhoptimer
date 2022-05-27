@@ -2,7 +2,8 @@
  * shavit's Timer - TAS
  * by: xutaxkamay, KiD Fearless, rtldg
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -52,6 +53,7 @@ bool gB_Prestrafe[MAXPLAYERS + 1];
 bool gB_AutoJumpOnStart[MAXPLAYERS + 1];
 bool gB_EdgeJump[MAXPLAYERS + 1];
 float g_fPower[MAXPLAYERS + 1] = {1.0, ...};
+bool gB_AutogainBasicStrafer[MAXPLAYERS + 1];
 
 bool gB_ForceJump[MAXPLAYERS+1];
 
@@ -91,6 +93,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetAutoJumpOnStart", Native_GetAutoJumpOnStart);
 	CreateNative("Shavit_SetEdgeJump", Native_SetEdgeJump);
 	CreateNative("Shavit_GetEdgeJump", Native_GetEdgeJump);
+	CreateNative("Shavit_SetAutogainBasicStrafer", Native_SetAutogainBasicStrafer);
+	CreateNative("Shavit_GetAutogainBasicStrafer", Native_GetAutogainBasicStrafer);
 
 	gB_Late = late;
 	RegPluginLibrary("shavit-tas");
@@ -147,12 +151,15 @@ public void OnPluginStart()
 	AddCommandListener(CommandListener_Toggler, "-autojumponstart");
 	AddCommandListener(CommandListener_Toggler, "+edgejump");
 	AddCommandListener(CommandListener_Toggler, "-edgejump");
+	AddCommandListener(CommandListener_Toggler, "+autogainbss");
+	AddCommandListener(CommandListener_Toggler, "-autogainbss");
 
 	RegConsoleCmd("sm_autostrafer", Command_Toggler, "Usage: !autostrafe [1|0]");
 	RegConsoleCmd("sm_autostrafe", Command_Toggler, "Usage: !autostrafe [1|0]");
 	RegConsoleCmd("sm_autoprestrafe", Command_Toggler, "Usage: !autoprestrafe [1|0}");
 	RegConsoleCmd("sm_autojumponstart", Command_Toggler, "Usage: !autojumponstart [1|0}");
 	RegConsoleCmd("sm_edgejump", Command_Toggler, "Usage: !edgejump [1|0}");
+	RegConsoleCmd("sm_autogainbss", Command_Toggler, "Usage: !autogainbss [1|0}");
 
 	RegConsoleCmd("sm_tasm", Command_TasSettingsMenu, "Opens the TAS settings menu.");
 	RegConsoleCmd("sm_tasmenu", Command_TasSettingsMenu, "Opens the TAS settings menu.");
@@ -212,6 +219,7 @@ public void OnClientConnected(int client)
 	gB_EdgeJump[client] = true;
 	gB_Prestrafe[client] = true;
 	g_fPower[client] = 1.0;
+	gB_AutogainBasicStrafer[client] = true;
 }
 
 public void OnClientPutInServer(int client)
@@ -552,6 +560,20 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 		else if (type == AutostrafeType_Autogain || type == AutostrafeType_AutogainNoSpeedLoss)
 		{
+			if (gB_AutogainBasicStrafer[client])
+			{
+				float delta = AngleNormalize(angles[1] - oldyaw);
+
+				if (delta < 0.0)
+				{
+					vel[1] = g_fMaxMove;
+				}
+				else if (delta > 0.0)
+				{
+					vel[1] = -g_fMaxMove;
+				}
+			}
+
 			ObliviousOnPlayerRunCmd(client, buttons, impulse, vel, angles, weapon, subtype, cmdnum, tickcount, seed, mouse,
 				sv_airaccelerate.FloatValue, flSurfaceFriction, g_flAirSpeedCap, g_fMaxMove,
 				(type == AutostrafeType_AutogainNoSpeedLoss));
@@ -689,6 +711,11 @@ void OpenTasSettingsMenu(int client, int pos=0)
 		(ov == AutostrafeOverride_Normal ? "AutostrafeOverride_Normal" : (ov == AutostrafeOverride_Surf ? "AutostrafeOverride_Surf" : (ov == AutostrafeOverride_Surf_W_Okay ? "AutostrafeOverride_Surf_W_Okay" : "AutostrafeOverride_All"))), client);
 	menu.AddItem("override", display);
 
+	FormatEx(display, sizeof(display), "[%s] %T", gB_AutogainBasicStrafer[client] ? "＋":"－", "AutogainBasicStrafer", client);
+	menu.AddItem("autogainbss", display,
+		(tastype == AutostrafeType_Autogain || tastype == AutostrafeType_AutogainNoSpeedLoss) ?
+		ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+
 	if (Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(client), "segments"))
 	{
 		menu.ExitBackButton = true;
@@ -723,6 +750,10 @@ public int MenuHandler_TasSettings(Menu menu, MenuAction action, int param1, int
 		else if (StrEqual(info, "prestrafe"))
 		{
 			gB_Prestrafe[param1] = !gB_Prestrafe[param1];
+		}
+		else if (StrEqual(info, "autogainbss"))
+		{
+			gB_AutogainBasicStrafer[param1] = !gB_AutogainBasicStrafer[param1];
 		}
 		else if (StrEqual(info, "type"))
 		{
@@ -784,9 +815,12 @@ void Command_Toggler_Internal(int client, const char[] asdfcommand, int x)
 		command = "autostrafe";
 	}
 
-	if (!Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(client), command))
+	if (!StrEqual(command, "autogainbss"))
 	{
-		return;
+		if (!Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(client), command))
+		{
+			return;
+		}
 	}
 
 	bool set;
@@ -811,6 +845,11 @@ void Command_Toggler_Internal(int client, const char[] asdfcommand, int x)
 	{
 		set = gB_EdgeJump[client] = (x == -1) ? !gB_EdgeJump[client] : (x != 0);
 		translation = "EdgeJump";
+	}
+	else if (StrEqual(command, "autogainbss"))
+	{
+		set = gB_AutogainBasicStrafer[client] = (x == -1) ? !gB_AutogainBasicStrafer[client] : (x != 0);
+		translation = "AutogainBasicStrafer";
 	}
 
 	Shavit_StopChatSound();
@@ -955,4 +994,18 @@ public any Native_GetEdgeJump(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	return gB_EdgeJump[client];
+}
+
+public any Native_SetAutogainBasicStrafer(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	bool value = GetNativeCell(2);
+	gB_AutogainBasicStrafer[client] = value;
+	return 0;
+}
+
+public any Native_GetAutogainBasicStrafer(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	return gB_AutogainBasicStrafer[client];
 }

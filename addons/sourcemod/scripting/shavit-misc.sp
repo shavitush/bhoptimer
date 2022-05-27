@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - Miscellaneous
- * by: shavit
+ * by: shavit, Technoblazed, strafe, EvanIMK, Nickelony, rtldg, ofirgall
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -16,7 +17,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 #include <sourcemod>
 #include <sdktools>
@@ -109,6 +110,7 @@ Convar gCV_WRMessages = null;
 Convar gCV_BhopSounds = null;
 Convar gCV_RestrictNoclip = null;
 Convar gCV_SpecScoreboardOrder = null;
+Convar gCV_BadSetLocalAnglesFix = null;
 ConVar gCV_PauseMovement = null;
 
 // external cvars
@@ -145,7 +147,7 @@ chatstrings_t gS_ChatStrings;
 public Plugin myinfo =
 {
 	name = "[shavit] Miscellaneous",
-	author = "shavit",
+	author = "shavit, Technoblazed, strafe, EvanIMK, Nickelony, rtldg, ofirgall",
 	description = "Miscellaneous features for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -280,6 +282,11 @@ public void OnPluginStart()
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "1", "Should bhop (landing and jumping) sounds be muted?\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 1.0, true, 2.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 	gCV_SpecScoreboardOrder = new Convar("shavit_misc_spec_scoreboard_order", "1", "Use scoreboard ordering for players when changing target when spectating.", 0, true, 0.0, true, 1.0);
+
+	if (gEV_Type != Engine_CSGO)
+	{
+		gCV_BadSetLocalAnglesFix = new Convar("shavit_misc_bad_setlocalangles_fix", "1", "Fix 'Bad SetLocalAngles' on func_rotating entities.", 0, true, 0.0, true, 1.0);
+	}
 
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
 	Convar.AutoExecConfig();
@@ -926,6 +933,12 @@ public MRESReturn CCSPlayer__GetPlayerMaxSpeed(int pThis, DHookReturn hReturn)
 	return MRES_Override;
 }
 
+float normalize_ang(float ang)
+{
+	while (ang > 180.0) ang -= 360.0;
+	while (ang < -180.0) ang += 360.0; return ang;
+}
+
 public Action Timer_Cron(Handle timer)
 {
 	if(gCV_HideRadar.BoolValue && gEV_Type == Engine_CSS)
@@ -950,6 +963,25 @@ public Action Timer_Cron(Handle timer)
 			if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == -1)
 			{
 				AcceptEntityInput(ent, "Kill");
+			}
+		}
+	}
+
+	if (gEV_Type != Engine_CSGO && gCV_BadSetLocalAnglesFix.BoolValue)
+	{
+		int ent = -1;
+
+		while ((ent = FindEntityByClassname(ent, "func_rotating")) != -1)
+		{
+			float ang[3], newang[3];
+			GetEntPropVector(ent, Prop_Send, "m_angRotation", ang);
+			newang[0] = normalize_ang(ang[0]);
+			newang[2] = normalize_ang(ang[1]);
+			newang[2] = normalize_ang(ang[2]);
+
+			if (newang[0] != ang[0] || newang[1] != ang[1] || newang[2] != ang[2])
+			{
+				SetEntPropVector(ent, Prop_Send, "m_angRotation", newang);
 			}
 		}
 	}
@@ -1191,7 +1223,7 @@ public void Shavit_OnStop(int client, int track)
 void DumbSetVelocity(int client, float fSpeed[3])
 {
 	// Someone please let me know if any of these are unnecessary.
-	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", NULL_VECTOR);
+	SetEntPropVector(client, Prop_Data, "m_vecBaseVelocity", ZERO_VECTOR);
 	SetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 	SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed); // m_vecBaseVelocity+m_vecVelocity
 }
@@ -1373,14 +1405,14 @@ void ClearViewPunch(int victim)
 	{
 		if(gEV_Type == Engine_CSGO)
 		{
-			SetEntPropVector(victim, Prop_Send, "m_viewPunchAngle", NULL_VECTOR);
-			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngle", NULL_VECTOR);
-			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngleVel", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_viewPunchAngle", ZERO_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngle", ZERO_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_aimPunchAngleVel", ZERO_VECTOR);
 		}
 		else
 		{
-			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngle", NULL_VECTOR);
-			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngleVel", NULL_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngle", ZERO_VECTOR);
+			SetEntPropVector(victim, Prop_Send, "m_vecPunchAngleVel", ZERO_VECTOR);
 		}
 	}
 }

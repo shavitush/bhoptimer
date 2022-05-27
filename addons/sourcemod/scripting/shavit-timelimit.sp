@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - Dynamic Timelimits
- * by: shavit
+ * by: shavit, Nickelony, Sirhephaestus, rtldg
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -16,7 +17,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 // original idea from ckSurf.
 
@@ -77,7 +78,7 @@ char gS_MySQLPrefix[32];
 public Plugin myinfo =
 {
 	name = "[shavit] Dynamic Timelimits",
-	author = "shavit",
+	author = "shavit, Nickelony, Sirhephaestus, rtldg",
 	description = "Sets a dynamic value of mp_timelimit and mp_roundtime, based on average map times on the server.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"

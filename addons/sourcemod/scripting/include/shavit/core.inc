@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - core.inc file
- * by: shavit
+ * by: shavit, KiD Fearless, rtldg, Nairda, GAMMA CASE, carnifex,
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -16,7 +17,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 #if defined _shavit_core_included
 	#endinput
@@ -25,6 +26,9 @@
 
 #define SHAVIT_VERSION "3.2.1a"
 #define STYLE_LIMIT 256
+
+// god i fucking hate sourcemod. NULL_VECTOR isn't const so it's not guaranteed to be 0,0,0
+#define ZERO_VECTOR view_as<float>({0,0,0})
 
 #define SHAVIT_LOG_QUERIES 0
 
@@ -1370,6 +1374,17 @@ native float Shavit_GetClientTimescale(int client);
 native void Shavit_UpdateLaggedMovement(int client, bool user_timescale=true);
 
 /**
+ * Used in shavit-wr and shavit-stats to share the last printed steamid.
+ *
+ * @param client                    Client index to print to
+ * @param steamid                   The steamid to print (or not if it's the same as last printed)
+ * @param targetname                The player name that the steamid belongs to.
+ *
+ * @noreturn
+ */
+native void Shavit_PrintSteamIDOnce(int client, int steamid, const char[] targetname);
+
+/**
  * When using the timer's timescale_tas stuff, this returns whether the current frame should be recorded by replay plugins.
  *
  * @param client                    Client index
@@ -1454,6 +1469,7 @@ public void __pl_shavit_core_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_ShouldProcessFrame");
 	MarkNativeAsOptional("Shavit_GotoEnd");
 	MarkNativeAsOptional("Shavit_UpdateLaggedMovement");
+	MarkNativeAsOptional("Shavit_PrintSteamIDOnce");
 
 	__pl_shavit_bhopstats_SetNTVOptional();
 }

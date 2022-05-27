@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - Chat
- * by: shavit
+ * by: shavit, Nairda, GAMMA CASE, Kid Fearless, rtldg, BoomShotKapow
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -16,7 +17,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 // Note: For donator perks, give donators a custom flag and then override it to have "shavit_chat".
 
@@ -122,7 +123,7 @@ char gS_ControlCharacters[][] = {"\x01", "\x02", "\x03", "\x04", "\x05", "\x06",
 public Plugin myinfo =
 {
 	name = "[shavit] Chat Processor",
-	author = "shavit",
+	author = "shavit, Nairda, GAMMA CASE, Kid Fearless, rtldg, BoomShotKapow",
 	description = "Custom chat privileges (custom name/message colors), chat processor, and rankings integration.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"

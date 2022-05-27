@@ -1,8 +1,9 @@
 /*
  * shavit's Timer - World Records
- * by: shavit
+ * by: shavit, SaengerItsWar, KiD Fearless, rtldg, BoomShotKapow, Nuko
  *
- * This file is part of shavit's Timer.
+ * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
+ *
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License, version 3.0, as published by the
@@ -16,7 +17,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  *
-*/
+ */
 
 #include <sourcemod>
 #include <convar_class>
@@ -116,7 +117,7 @@ int gI_PBMenuPos[MAXPLAYERS+1];
 public Plugin myinfo =
 {
 	name = "[shavit] World Records",
-	author = "shavit",
+	author = "shavit, SaengerItsWar, KiD Fearless, rtldg, BoomShotKapow, Nuko",
 	description = "World records for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -2450,6 +2451,8 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 
 		GetTrackName(client, results.FetchInt(11), sTrack, 32);
+
+		Shavit_PrintSteamIDOnce(client, iSteamID, sName);
 	}
 	else
 	{

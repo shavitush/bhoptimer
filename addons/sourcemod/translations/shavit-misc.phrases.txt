@@ -225,6 +225,10 @@
 	{
 		"en"        "Edge jump"
 	}
+	"AutogainBasicStrafer"
+	{
+		"en"        "Autogain basic strafer"
+	}
 	"AutoPrestrafe"
 	{
 		"en"        "Auto Prestrafe"
@@ -239,11 +243,11 @@
 	}
 	"Autostrafer_autogain"
 	{
-		"en"        "Velocity (oblivious)"
+		"en"        "Velocity/autogain (oblivious)"
 	}
 	"Autostrafer_autogain_nsl"
 	{
-		"en"        "Velocity (No speed loss) (oblivious)"
+		"en"        "Velocity/autogain (No speed loss) (oblivious)"
 	}
 	"Autostrafer_basic"
 	{
