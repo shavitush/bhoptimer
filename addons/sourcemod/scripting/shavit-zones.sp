@@ -99,7 +99,6 @@ bool gB_InsideZoneID[MAXPLAYERS+1][MAX_ZONES];
 zone_settings_t gA_ZoneSettings[ZONETYPES_SIZE][TRACKS_SIZE];
 zone_cache_t gA_ZoneCache[MAX_ZONES]; // Vectors will not be inside this array.
 int gI_MapZones = 0;
-float gV_MapZones[MAX_ZONES][2][3];
 float gV_MapZones_Visual[MAX_ZONES][8][3];
 float gV_ZoneCenter[MAX_ZONES][3];
 int gI_StageZoneID[TRACKS_SIZE][MAX_ZONES];
@@ -543,8 +542,8 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 			if ((convar == gCV_Offset && gA_ZoneCache[i].iSource == ZoneSource_Box)
 			||  (convar == gCV_PrebuiltVisualOffset && gA_ZoneCache[i].iSource == ZoneSource_trigger_multiple))
 			{
-				gV_MapZones_Visual[i][0] = gV_MapZones[i][0];
-				gV_MapZones_Visual[i][7] = gV_MapZones[i][1];
+				gV_MapZones_Visual[i][0] = gA_ZoneCache[i].fCorner1;
+				gV_MapZones_Visual[i][7] = gA_ZoneCache[i].fCorner2;
 
 				CreateZonePoints(gV_MapZones_Visual[i], convar == gCV_PrebuiltVisualOffset); // TODO
 			}
@@ -861,8 +860,6 @@ public any Native_AddZone(Handle plugin, int numParams)
 
 	gA_ZoneCache[gI_MapZones] = cache;
 
-	gV_MapZones[gI_MapZones][0] = cache.fCorner1;
-	gV_MapZones[gI_MapZones][1] = cache.fCorner2;
 	gV_MapZones_Visual[gI_MapZones][0] = cache.fCorner1;
 	gV_MapZones_Visual[gI_MapZones][7] = cache.fCorner2;
 
@@ -912,9 +909,6 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 		gI_EntityZone[gA_ZoneCache[top].iEntity] = index;
 		gA_ZoneCache[index] = gA_ZoneCache[top];
 		gV_ZoneCenter[index] = gV_ZoneCenter[top];
-
-		gV_MapZones[index][0] = gV_MapZones[top][0];
-		gV_MapZones[index][1] = gV_MapZones[top][1];
 
 		for (int i = 0; i < sizeof(gV_MapZones_Visual[]); i++)
 		{
@@ -1567,8 +1561,6 @@ public void Shavit_OnChatConfigLoaded()
 
 void ClearZone(int index)
 {
-	gV_MapZones[index][0] = ZERO_VECTOR;
-	gV_MapZones[index][1] = ZERO_VECTOR;
 	gV_ZoneCenter[index] = ZERO_VECTOR;
 	zone_cache_t cache;
 	gA_ZoneCache[index] = cache;
@@ -2762,7 +2754,7 @@ public int MenuHandler_TpToEdit(Menu menu, MenuAction action, int param1, int pa
 				float fCenter[3];
 				fCenter[0] = gV_ZoneCenter[id][0];
 				fCenter[1] = gV_ZoneCenter[id][1];
-				fCenter[2] = gV_MapZones[id][0][2];
+				fCenter[2] = gA_ZoneCache[id].fCorner1[2];
 
 				TeleportEntity(param1, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 			}
@@ -4485,7 +4477,7 @@ public void Shavit_OnRestart(int client, int track)
 			float fCenter[3];
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
-			fCenter[2] = gV_MapZones[iIndex][0][2] + gCV_ExtraSpawnHeight.FloatValue;
+			fCenter[2] = gA_ZoneCache[iIndex].fCorner1[2] + gCV_ExtraSpawnHeight.FloatValue;
 
 			if (bCustomStart)
 			{
@@ -4555,7 +4547,7 @@ public void Shavit_OnEnd(int client, int track)
 			float fCenter[3];
 			fCenter[0] = gV_ZoneCenter[iIndex][0];
 			fCenter[1] = gV_ZoneCenter[iIndex][1];
-			fCenter[2] = gV_MapZones[iIndex][0][2] + 1.0; // no stuck in floor please
+			fCenter[2] = gA_ZoneCache[iIndex].fCorner1[2] + 1.0; // no stuck in floor please
 
 			TeleportEntity(client, fCenter, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
@@ -4631,9 +4623,9 @@ float Abs(float input)
 
 void SetZoneMinsMaxs(int zone)
 {
-	float distance_x = Abs(gV_MapZones[zone][0][0] - gV_MapZones[zone][1][0]) / 2;
-	float distance_y = Abs(gV_MapZones[zone][0][1] - gV_MapZones[zone][1][1]) / 2;
-	float distance_z = Abs(gV_MapZones[zone][0][2] - gV_MapZones[zone][1][2]) / 2;
+	float distance_x = Abs(gA_ZoneCache[zone].fCorner1[0] - gA_ZoneCache[zone].fCorner2[0]) / 2;
+	float distance_y = Abs(gA_ZoneCache[zone].fCorner1[1] - gA_ZoneCache[zone].fCorner2[1]) / 2;
+	float distance_z = Abs(gA_ZoneCache[zone].fCorner1[2] - gA_ZoneCache[zone].fCorner2[2]) / 2;
 
 	float height = ((IsSource2013(gEV_Type))? 62.0:72.0) / 2;
 
