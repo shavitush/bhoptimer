@@ -1735,8 +1735,7 @@ void RecalcInsideZoneAll()
 void RecalcInsideZone(int client)
 {
 	int empty_array[TRACKS_SIZE];
-	for (int i = 0; i < TRACKS_SIZE; i++)
-		gI_InsideZone[client] = empty_array;
+	gI_InsideZone[client] = empty_array;
 
 	for (int i = 0; i < gI_MapZones; i++)
 	{
