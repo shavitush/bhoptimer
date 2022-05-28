@@ -1668,7 +1668,6 @@ bool CreateZoneTrigger(int zone)
 	if (speedmod)
 	{
 		SetEntProp(entity, Prop_Send, "m_usSolidFlags", FSOLID_TRIGGER|FSOLID_NOT_SOLID);
-		SDKHook(entity, SDKHook_StartTouch, SameTrack_StartTouch_er);
 	}
 
 	if (gA_ZoneCache[zone].iFlags & ZF_Solid)
@@ -1706,6 +1705,11 @@ void HookZoneTrigger(int zone, int entity)
 	SDKHook(entity, SDKHook_StartTouchPost, StartTouchPost);
 	SDKHook(entity, SDKHook_EndTouchPost, EndTouchPost);
 	SDKHook(entity, SDKHook_TouchPost, TouchPost);
+
+	if (gA_ZoneCache[zone].iType == Zone_Speedmod)
+	{
+		SDKHook(entity, SDKHook_StartTouch, SameTrack_StartTouch_er);
+	}
 
 	gI_EntityZone[entity] = zone;
 	gA_ZoneCache[zone].iEntity = entity;
