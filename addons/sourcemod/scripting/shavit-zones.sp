@@ -79,18 +79,8 @@ enum struct zone_settings_t
 // 3 - confirm
 int gI_MapStep[MAXPLAYERS+1]; // TODO ENUM
 zone_cache_t gA_EditCache[MAXPLAYERS+1];
-int gI_ZoneFlags[MAXPLAYERS+1];
-int gI_ZoneData[MAXPLAYERS+1];
-int gI_ZoneTrack[MAXPLAYERS+1];
-int gI_ZoneType[MAXPLAYERS+1];
-int gI_ZoneDatabaseID[MAXPLAYERS+1];
 int gI_ZoneID[MAXPLAYERS+1];
-char gS_ZoneTarget[MAXPLAYERS+1][64];
-int gI_ZoneSource[MAXPLAYERS+1];
 bool gB_WaitingForChatInput[MAXPLAYERS+1];
-float gV_Point1[MAXPLAYERS+1][3];
-float gV_Point2[MAXPLAYERS+1][3];
-float gV_Teleport[MAXPLAYERS+1][3];
 float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 
@@ -111,7 +101,6 @@ zone_cache_t gA_ZoneCache[MAX_ZONES]; // Vectors will not be inside this array.
 int gI_MapZones = 0;
 float gV_MapZones[MAX_ZONES][2][3];
 float gV_MapZones_Visual[MAX_ZONES][8][3];
-float gV_Destinations[MAX_ZONES][3];
 float gV_ZoneCenter[MAX_ZONES][3];
 int gI_StageZoneID[TRACKS_SIZE][MAX_ZONES];
 int gI_HighestStage[TRACKS_SIZE];
@@ -882,11 +871,6 @@ public any Native_AddZone(Handle plugin, int numParams)
 	AddVectors(cache.fCorner1, cache.fCorner2, gV_ZoneCenter[gI_MapZones]);
 	ScaleVector(gV_ZoneCenter[gI_MapZones], 0.5);
 
-	if (cache.iType == Zone_Teleport || cache.iType == Zone_Stage)
-	{
-		gV_Destinations[gI_MapZones] = cache.fDestination;
-	}
-
 	if (cache.iType == Zone_Stage)
 	{
 		gI_StageZoneID[cache.iTrack][cache.iData] = cache.iDatabaseID;
@@ -927,7 +911,6 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 	{
 		gI_EntityZone[gA_ZoneCache[top].iEntity] = index;
 		gA_ZoneCache[index] = gA_ZoneCache[top];
-		gV_Destinations[index] = gV_Destinations[top];
 		gV_ZoneCenter[index] = gV_ZoneCenter[top];
 
 		gV_MapZones[index][0] = gV_MapZones[top][0];
@@ -1586,7 +1569,6 @@ void ClearZone(int index)
 {
 	gV_MapZones[index][0] = ZERO_VECTOR;
 	gV_MapZones[index][1] = ZERO_VECTOR;
-	gV_Destinations[index] = ZERO_VECTOR;
 	gV_ZoneCenter[index] = ZERO_VECTOR;
 	zone_cache_t cache;
 	gA_ZoneCache[index] = cache;
@@ -2244,9 +2226,9 @@ public int MenuHandler_AddCustomSpawn(Menu menu, MenuAction action, int param1, 
 			return 0;
 		}
 
-		gI_ZoneType[param1] = Zone_CustomSpawn;
-		gI_ZoneTrack[param1] = iTrack;
-		GetClientAbsOrigin(param1, gV_Teleport[param1]);
+		gA_EditCache[param1].iType = Zone_CustomSpawn;
+		gA_EditCache[param1].iTrack = iTrack;
+		GetClientAbsOrigin(param1, gA_EditCache[param1].fDestination);
 
 		InsertZone(param1);
 	}
@@ -2542,9 +2524,9 @@ public Action Command_Stages(int client, int args)
 			{
 				Shavit_StopTimer(client);
 
-				if(!EmptyVector(gV_Destinations[i]))
+				if (!EmptyVector(gA_ZoneCache[i].fDestination))
 				{
-					TeleportEntity(client, gV_Destinations[i], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+					TeleportEntity(client, gA_ZoneCache[i].fDestination, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 				}
 				else
 				{
@@ -2593,9 +2575,9 @@ public int MenuHandler_SelectStage(Menu menu, MenuAction action, int param1, int
 
 		Shavit_StopTimer(param1);
 
-		if(!EmptyVector(gV_Destinations[iIndex]))
+		if (!EmptyVector(gA_ZoneCache[iIndex].fDestination))
 		{
-			TeleportEntity(param1, gV_Destinations[iIndex], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			TeleportEntity(param1, gA_ZoneCache[iIndex].fDestination, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 		}
 		else
 		{
@@ -2657,10 +2639,10 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 	{
 		char sInfo[8];
 		menu.GetItem(param2, sInfo, 8);
-		gI_ZoneTrack[param1] = StringToInt(sInfo);
+		gA_EditCache[param1].iTrack = StringToInt(sInfo);
 
 		char sTrack[16];
-		GetTrackName(param1, gI_ZoneTrack[param1], sTrack, 16);
+		GetTrackName(param1, gA_EditCache[param1].iTrack, sTrack, 16);
 
 		Menu submenu = new Menu(MenuHandler_SelectZoneType);
 		submenu.SetTitle("%T\n ", "ZoneMenuTitle", param1, sTrack);
@@ -2885,18 +2867,8 @@ public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int pa
 			{
 				// a hack to place the player in the last step of zone editing
 				gI_MapStep[param1] = 3;
-				gV_Point1[param1] = gV_MapZones[id][0];
-				gV_Point2[param1] = gV_MapZones[id][1];
-				gI_ZoneType[param1] = gA_ZoneCache[id].iType;
-				gI_ZoneTrack[param1] = gA_ZoneCache[id].iTrack;
-				gV_Teleport[param1] = gV_Destinations[id];
-				gI_ZoneDatabaseID[param1] = gA_ZoneCache[id].iDatabaseID;
-				gI_ZoneFlags[param1] = gA_ZoneCache[id].iFlags;
-				gI_ZoneData[param1] = gA_ZoneCache[id].iData;
+				gA_EditCache[param1] = gA_ZoneCache[id];
 				gI_ZoneID[param1] = id;
-
-				// to stop the original zone from drawing
-				//gA_ZoneCache[id].bInitialized = false;
 
 				// draw the zone edit
 				CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
@@ -3370,11 +3342,11 @@ public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, 
 		char info[8];
 		menu.GetItem(param2, info, 8);
 
-		gI_ZoneType[param1] = StringToInt(info);
+		gA_EditCache[param1].iType = StringToInt(info);
 
-		if (gI_ZoneType[param1] == Zone_Gravity || gI_ZoneType[param1] == Zone_Speedmod)
+		if (gA_EditCache[param1].iType == Zone_Gravity || gA_EditCache[param1].iType == Zone_Speedmod)
 		{
-			gI_ZoneData[param1] = view_as<int>(1.0);
+			gA_EditCache[param1].iData = view_as<int>(1.0);
 		}
 
 		ShowPanel(param1, 1);
@@ -3389,20 +3361,15 @@ public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, 
 
 void Reset(int client)
 {
-	gI_ZoneTrack[client] = Track_Main;
+	zone_cache_t cache;
+	cache.iType = -1;
+	cache.iEntity = 0;
+	cache.iDatabaseID = -1;
+	gA_EditCache[client] = cache;
 	gI_MapStep[client] = 0;
-	gI_ZoneFlags[client] = 0;
-	gI_ZoneData[client] = 0;
-	gI_ZoneType[client] = -1;
-	gI_ZoneSource[client] = 0;
-	gS_ZoneTarget[client][0] = 0;
-	gI_ZoneDatabaseID[client] = -1;
 	gB_WaitingForChatInput[client] = false;
 	gI_ZoneID[client] = -1;
 
-	gV_Point1[client] = ZERO_VECTOR;
-	gV_Point2[client] = ZERO_VECTOR;
-	gV_Teleport[client] = ZERO_VECTOR;
 	gV_WallSnap[client] = ZERO_VECTOR;
 }
 
@@ -3721,9 +3688,9 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 				{
 					origin[2] += 1.0;
 
-					if (!InStartOrEndZone(origin, NULL_VECTOR, gI_ZoneTrack[client], gI_ZoneType[client]))
+					if (!InStartOrEndZone(origin, NULL_VECTOR, gA_EditCache[client].iTrack, gA_EditCache[client].iType))
 					{
-						gV_Point1[client] = origin;
+						gA_EditCache[client].fCorner1 = origin;
 						ShowPanel(client, 2);
 					}
 				}
@@ -3731,9 +3698,9 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 				{
 					origin[2] += gCV_Height.FloatValue;
 
-					if (origin[0] != gV_Point1[client][0] && origin[1] != gV_Point1[client][1] && !InStartOrEndZone(gV_Point1[client], origin, gI_ZoneTrack[client], gI_ZoneType[client]))
+					if (origin[0] != gA_EditCache[client].fCorner1[0] && origin[1] != gA_EditCache[client].fCorner1[1] && !InStartOrEndZone(gA_EditCache[client].fCorner1, origin, gA_EditCache[client].iTrack, gA_EditCache[client].iType))
 					{
-						gV_Point2[client] = origin;
+						gA_EditCache[client].fCorner2 = origin;
 						gI_MapStep[client]++;
 
 						CreateEditMenu(client);
@@ -3806,14 +3773,14 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		}
 		else if(StrEqual(sInfo, "datafromchat"))
 		{
-			gI_ZoneData[param1] = 0;
+			gA_EditCache[param1].iData = 0;
 			gB_WaitingForChatInput[param1] = true;
 			Shavit_PrintToChat(param1, "%T", "ZoneEnterDataChat", param1);
 			return 0;
 		}
 		else if(StrEqual(sInfo, "forcerender"))
 		{
-			gI_ZoneFlags[param1] ^= ZF_ForceRender;
+			gA_EditCache[param1].iFlags ^= ZF_ForceRender;
 		}
 
 		CreateEditMenu(param1);
@@ -3830,13 +3797,13 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 {
 	if(gB_WaitingForChatInput[client] && gI_MapStep[client] == 3)
 	{
-		if (gI_ZoneType[client] == Zone_Gravity || gI_ZoneType[client] == Zone_Speedmod)
+		if (gA_EditCache[client].iType == Zone_Gravity || gA_EditCache[client].iType == Zone_Speedmod)
 		{
-			gI_ZoneData[client] = view_as<int>(StringToFloat(sArgs));
+			gA_EditCache[client].iData = view_as<int>(StringToFloat(sArgs));
 		}
 		else
 		{
-			gI_ZoneData[client] = StringToInt(sArgs);
+			gA_EditCache[client].iData = StringToInt(sArgs);
 		}
 
 		CreateEditMenu(client);
@@ -3853,9 +3820,9 @@ void UpdateTeleportZone(int client)
 	GetClientAbsOrigin(client, vTeleport);
 	vTeleport[2] += 2.0;
 
-	if(gI_ZoneType[client] == Zone_Stage)
+	if(gA_EditCache[client].iType == Zone_Stage)
 	{
-		gV_Teleport[client] = vTeleport;
+		gA_EditCache[client].fDestination = vTeleport;
 
 		Shavit_PrintToChat(client, "%T", "ZoneTeleportUpdated", client);
 	}
@@ -3865,7 +3832,7 @@ void UpdateTeleportZone(int client)
 
 		for(int i = 0; i < 3; i++)
 		{
-			if(gV_Point1[client][i] >= vTeleport[i] == gV_Point2[client][i] >= vTeleport[i])
+			if(gA_EditCache[client].fCorner1[i] >= vTeleport[i] == gA_EditCache[client].fCorner2[i] >= vTeleport[i])
 			{
 				bInside = false;
 			}
@@ -3877,7 +3844,7 @@ void UpdateTeleportZone(int client)
 		}
 		else
 		{
-			gV_Teleport[client] = vTeleport;
+			gA_EditCache[client].fDestination = vTeleport;
 
 			Shavit_PrintToChat(client, "%T", "ZoneTeleportUpdated", client);
 		}
@@ -3887,16 +3854,16 @@ void UpdateTeleportZone(int client)
 void CreateEditMenu(int client)
 {
 	char sTrack[32];
-	GetTrackName(client, gI_ZoneTrack[client], sTrack, 32);
+	GetTrackName(client, gA_EditCache[client].iTrack, sTrack, 32);
 
 	Menu menu = new Menu(CreateZoneConfirm_Handler);
 	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
 
 	char sMenuItem[64];
 
-	if(gI_ZoneType[client] == Zone_Teleport)
+	if (gA_EditCache[client].iType == Zone_Teleport)
 	{
-		if(EmptyVector(gV_Teleport[client]))
+		if (EmptyVector(gA_EditCache[client].fDestination))
 		{
 			FormatEx(sMenuItem, 64, "%T", "ZoneSetTP", client);
 			menu.AddItem("-1", sMenuItem, ITEMDRAW_DISABLED);
@@ -3910,7 +3877,7 @@ void CreateEditMenu(int client)
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetTPZone", client);
 		menu.AddItem("tpzone", sMenuItem);
 	}
-	else if(gI_ZoneType[client] == Zone_Stage)
+	else if (gA_EditCache[client].iType == Zone_Stage)
 	{
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetYes", client);
 		menu.AddItem("yes", sMenuItem);
@@ -3930,41 +3897,41 @@ void CreateEditMenu(int client)
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
 	menu.AddItem("adjust", sMenuItem);
 
-	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gI_ZoneFlags[client] & ZF_ForceRender) > 0)? "＋":"－");
+	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gA_EditCache[client].iFlags & ZF_ForceRender) > 0)? "＋":"－");
 	menu.AddItem("forcerender", sMenuItem);
 
-	if(gI_ZoneType[client] == Zone_Stage)
+	if (gA_EditCache[client].iType == Zone_Stage)
 	{
-		FormatEx(sMenuItem, 64, "%T", "ZoneSetStage", client, gI_ZoneData[client]);
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetStage", client, gA_EditCache[client].iData);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
-	else if(gI_ZoneType[client] == Zone_Airaccelerate)
+	else if (gA_EditCache[client].iType == Zone_Airaccelerate)
 	{
-		FormatEx(sMenuItem, 64, "%T", "ZoneSetAiraccelerate", client, gI_ZoneData[client]);
+		FormatEx(sMenuItem, 64, "%T", "ZoneSetAiraccelerate", client, gA_EditCache[client].iData);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
-	else if(gI_ZoneType[client] == Zone_CustomSpeedLimit)
+	else if (gA_EditCache[client].iType == Zone_CustomSpeedLimit)
 	{
-		if(gI_ZoneData[client] == 0)
+		if (gA_EditCache[client].iData == 0)
 		{
-			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimitUnlimited", client, gI_ZoneData[client]);
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimitUnlimited", client, gA_EditCache[client].iData);
 		}
 		else
 		{
-			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimit", client, gI_ZoneData[client]);
+			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimit", client, gA_EditCache[client].iData);
 		}
 
 		menu.AddItem("datafromchat", sMenuItem);
 	}
-	else if (gI_ZoneType[client] == Zone_Gravity)
+	else if (gA_EditCache[client].iType == Zone_Gravity)
 	{
-		float g = view_as<float>(gI_ZoneData[client]);
+		float g = view_as<float>(gA_EditCache[client].iData);
 		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetGravity", client, g);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
-	else if (gI_ZoneType[client] == Zone_Speedmod)
+	else if (gA_EditCache[client].iType == Zone_Speedmod)
 	{
-		float speed = view_as<float>(gI_ZoneData[client]);
+		float speed = view_as<float>(gA_EditCache[client].iData);
 		FormatEx(sMenuItem, sizeof(sMenuItem), "%T", "ZoneSetSpeedmod", client, speed);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
@@ -4039,8 +4006,13 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 			int iPoint = StringToInt(sExploded[0]);
 			int iAxis = StringToInt(sExploded[1]);
 			bool bIncrease = view_as<bool>(StringToInt(sExploded[2]) == 1);
+			float mod = ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]);
 
-			((iPoint == 1)? gV_Point1:gV_Point2)[param1][iAxis] += ((bIncrease)? gF_Modifier[param1]:-gF_Modifier[param1]);
+			if (iPoint == 1)
+				gA_EditCache[param1].fCorner1[iAxis] += mod;
+			else
+				gA_EditCache[param1].fCorner2[iAxis] += mod;
+
 			Shavit_PrintToChat(param1, "%T", (bIncrease)? "ZoneSizeIncrease":"ZoneSizeDecrease", param1, gS_ChatStrings.sVariable2, sAxis[iAxis], gS_ChatStrings.sText, iPoint, gS_ChatStrings.sVariable, gF_Modifier[param1], gS_ChatStrings.sText);
 
 			CreateAdjustMenu(param1, GetMenuSelectionPosition());
@@ -4068,28 +4040,17 @@ void InsertZone(int client)
 {
 	char sQuery[1024];
 	char sTrack[64], sZoneName[32];
-	GetTrackName(LANG_SERVER, gI_ZoneTrack[client], sTrack, sizeof(sTrack));
-	GetZoneName(LANG_SERVER, gI_ZoneType[client], sZoneName, sizeof(sZoneName));
+	GetTrackName(LANG_SERVER, gA_EditCache[client].iTrack, sTrack, sizeof(sTrack));
+	GetZoneName(LANG_SERVER, gA_EditCache[client].iType, sZoneName, sizeof(sZoneName));
 
 	// normalize zone points...
-	FillBoxMinMax(gV_Point1[client], gV_Point2[client], gV_Point1[client], gV_Point2[client]);
+	FillBoxMinMax(gA_EditCache[client].fCorner1, gA_EditCache[client].fCorner2, gA_EditCache[client].fCorner1, gA_EditCache[client].fCorner2);
 
-#if 1
-	zone_cache_t c;
-	c.iType = gI_ZoneType[client];
-	c.iTrack = gI_ZoneTrack[client];
+	zone_cache_t c; c = gA_EditCache[client];
 	c.iEntity = -1;
-	c.iDatabaseID = gI_ZoneDatabaseID[client];
-	c.iFlags = gI_ZoneFlags[client];
-	c.iData = gI_ZoneData[client];
-	c.fCorner1 = gV_Point1[client];
-	c.fCorner2 = gV_Point2[client];
-	c.fDestination = gV_Teleport[client];
-	c.iSource = gI_ZoneSource[client];
-	c.sTarget = gS_ZoneTarget[client];
 	Shavit_AddZone(c);
 
-	if (gI_ZoneDatabaseID[client] == -1) // insert
+	if (c.iDatabaseID == -1) // insert
 	{
 		Shavit_LogMessage(
 			"%L - added %s %s to map `%s`. \
@@ -4155,52 +4116,6 @@ void InsertZone(int client)
 			gB_MySQL ? "id" : "rowid", c.iDatabaseID
 		);
 	}
-
-#else
-
-	int iType = gI_ZoneType[client];
-	int iIndex = GetZoneIndex(iType, gI_ZoneTrack[client]);
-	// TODO
-	bool bInsert = (gI_ZoneDatabaseID[client] == -1 && (iIndex == -1 || iType >= Zone_Respawn));
-
-	if(iType == Zone_CustomSpawn)
-	{
-		Shavit_LogMessage("%L - added custom spawn {%.2f, %.2f, %.2f} to map `%s`.", client, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gS_Map);
-
-		FormatEx(sQuery, sizeof(sQuery),
-			"INSERT INTO %smapzones (map, type, destination_x, destination_y, destination_z, track) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', %d);",
-			gS_MySQLPrefix, gS_Map, Zone_CustomSpawn, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gI_ZoneTrack[client]);
-
-		gF_CustomSpawn[gI_ZoneTrack[client]] = gV_Point1[client];
-	}
-	else if(bInsert) // insert
-	{
-		Shavit_LogMessage("%L - added %s %s to map `%s`.", client, sTrack, sZoneName, gS_Map);
-
-		FormatEx(sQuery, sizeof(sQuery),
-			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, flags, data) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d, %d, %d);",
-			gS_MySQLPrefix, gS_Map, iType, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client]);
-	}
-	else // update
-	{
-		Shavit_LogMessage("%L - updated %s %s in map `%s`.", client, sTrack, sZoneName, gS_Map);
-
-		if(gI_ZoneDatabaseID[client] == -1)
-		{
-			for(int i = 0; i < gI_MapZones; i++)
-			{
-				if (gA_ZoneCache[i].iType == iType && gA_ZoneCache[i].iTrack == gI_ZoneTrack[client])
-				{
-					gI_ZoneDatabaseID[client] = gA_ZoneCache[i].iDatabaseID;
-				}
-			}
-		}
-
-		FormatEx(sQuery, sizeof(sQuery),
-			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d, flags = %d, data = %d WHERE %s = %d;",
-			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
-	}
-#endif
 
 	Reset(client);
 
@@ -4312,22 +4227,22 @@ public Action Timer_Draw(Handle Timer, any data)
 		gV_WallSnap[client] = origin;
 	}
 
-	if(gI_MapStep[client] == 1 || gV_Point2[client][0] == 0.0)
+	if(gI_MapStep[client] == 1 || gA_EditCache[client].fCorner2[0] == 0.0)
 	{
 		origin[2] = (vPlayerOrigin[2] + gCV_Height.FloatValue);
 	}
 	else
 	{
-		origin = gV_Point2[client];
+		origin = gA_EditCache[client].fCorner2;
 	}
 
-	int type = gI_ZoneType[client];
-	int track = gI_ZoneTrack[client];
+	int type = gA_EditCache[client].iType;
+	int track = gA_EditCache[client].iTrack;
 
-	if(!EmptyVector(gV_Point1[client]) || !EmptyVector(gV_Point2[client]))
+	if(!EmptyVector(gA_EditCache[client].fCorner1) || !EmptyVector(gA_EditCache[client].fCorner2))
 	{
 		float points[8][3];
-		points[0] = gV_Point1[client];
+		points[0] = gA_EditCache[client].fCorner1;
 		points[7] = origin;
 		CreateZonePoints(points, false);
 
@@ -4338,9 +4253,9 @@ public Action Timer_Draw(Handle Timer, any data)
 		GetZoneColors(colors, type, track, 125);
 		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type);
 
-		if(gI_ZoneType[client] == Zone_Teleport && !EmptyVector(gV_Teleport[client]))
+		if(gA_EditCache[client].iType == Zone_Teleport && !EmptyVector(gA_EditCache[client].fDestination))
 		{
-			TE_SetupEnergySplash(gV_Teleport[client], ZERO_VECTOR, false);
+			TE_SetupEnergySplash(gA_EditCache[client].fDestination, ZERO_VECTOR, false);
 			TE_SendToAll(0.0);
 		}
 	}
@@ -4803,7 +4718,7 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_Teleport:
 		{
-			TeleportEntity(other, gV_Destinations[zone], NULL_VECTOR, NULL_VECTOR);
+			TeleportEntity(other, gA_ZoneCache[zone].fDestination, NULL_VECTOR, NULL_VECTOR);
 		}
 
 		case Zone_Slay:
@@ -5010,7 +4925,7 @@ public void TouchPost(int entity, int other)
 		}
 		case Zone_Teleport:
 		{
-			TeleportEntity(other, gV_Destinations[zone], NULL_VECTOR, NULL_VECTOR);
+			TeleportEntity(other, gA_ZoneCache[zone].fDestination, NULL_VECTOR, NULL_VECTOR);
 		}
 		case Zone_Slay:
 		{

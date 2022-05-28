@@ -104,7 +104,7 @@ enum struct zone_cache_t
 {
 	int iType; // The type of zone. Zone_Start, Zone_End, etc...
 	int iTrack; // 0 - main, 1 - bonus1 etc
-	int iEntity; // The entity to the matching zone if applicable. trigger_multiple zones, hammerid zones, and targetname zones should have this filled to a valid entity index.
+	int iEntity; // TODO: The entity to the matching zone if applicable. trigger_multiple zones, hammerid zones, and targetname zones should have this filled to a valid entity index.
 	int iDatabaseID; // uhhhh TODO
 	int iFlags; // The ZF_* flags.
 	int iData; // Depends on the zone. Zone_Stage stores the stage number in this for example.
