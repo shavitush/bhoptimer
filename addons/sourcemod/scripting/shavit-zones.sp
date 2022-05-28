@@ -902,7 +902,7 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 
 	int top = --gI_MapZones;
 
-	// gI_StageZoneID = recalc. Remove?
+	// gI_StageZoneID = recalc. Remove? TODO
 
 	if (index < top)
 	{
@@ -3353,9 +3353,6 @@ public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, 
 void Reset(int client)
 {
 	zone_cache_t cache;
-	cache.iType = -1;
-	cache.iEntity = 0;
-	cache.iDatabaseID = -1;
 	gA_EditCache[client] = cache;
 	gI_MapStep[client] = 0;
 	gB_WaitingForChatInput[client] = false;
