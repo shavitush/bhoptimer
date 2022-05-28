@@ -78,19 +78,21 @@ enum struct zone_settings_t
 // 2 - wait for E tap to setup second coord
 // 3 - confirm
 int gI_MapStep[MAXPLAYERS+1]; // TODO ENUM
+zone_cache_t gA_EditCache[MAXPLAYERS+1];
 int gI_ZoneFlags[MAXPLAYERS+1];
 int gI_ZoneData[MAXPLAYERS+1];
 int gI_ZoneTrack[MAXPLAYERS+1];
 int gI_ZoneType[MAXPLAYERS+1];
 int gI_ZoneDatabaseID[MAXPLAYERS+1];
 int gI_ZoneID[MAXPLAYERS+1];
+char gS_ZoneTarget[MAXPLAYERS+1][64];
+int gI_ZoneSource[MAXPLAYERS+1];
 bool gB_WaitingForChatInput[MAXPLAYERS+1];
 float gV_Point1[MAXPLAYERS+1][3];
 float gV_Point2[MAXPLAYERS+1][3];
 float gV_Teleport[MAXPLAYERS+1][3];
 float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
-bool gB_HackyResetCheck[MAXPLAYERS+1];
 
 float gF_Modifier[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
@@ -2244,7 +2246,7 @@ public int MenuHandler_AddCustomSpawn(Menu menu, MenuAction action, int param1, 
 
 		gI_ZoneType[param1] = Zone_CustomSpawn;
 		gI_ZoneTrack[param1] = iTrack;
-		GetClientAbsOrigin(param1, gV_Point1[param1]);
+		GetClientAbsOrigin(param1, gV_Teleport[param1]);
 
 		InsertZone(param1);
 	}
@@ -3391,6 +3393,9 @@ void Reset(int client)
 	gI_MapStep[client] = 0;
 	gI_ZoneFlags[client] = 0;
 	gI_ZoneData[client] = 0;
+	gI_ZoneType[client] = -1;
+	gI_ZoneSource[client] = 0;
+	gS_ZoneTarget[client][0] = 0;
 	gI_ZoneDatabaseID[client] = -1;
 	gB_WaitingForChatInput[client] = false;
 	gI_ZoneID[client] = -1;
@@ -3775,36 +3780,24 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		char sInfo[16];
 		menu.GetItem(param2, sInfo, 16);
 
-		gB_HackyResetCheck[param1] = true;
-
 		if(StrEqual(sInfo, "yes"))
 		{
 			if (gI_ZoneID[param1] != -1)
 			{
-				// reenable so it can be wiped in the subsequent InsertZones->SQL_Callback->UnloadZones
-				//gA_ZoneCache[gI_ZoneID[param1]].bInitialized = true;
+				Shavit_RemoveZone(gI_ZoneID[param1]); // TODO: gI_ZoneID can be wiped mid menu or something...
 			}
 
 			InsertZone(param1);
-			gI_MapStep[param1] = 0;
-
 			return 0;
 		}
 		else if(StrEqual(sInfo, "no"))
 		{
-			if (gI_ZoneID[param1] != -1)
-			{
-				//gA_ZoneCache[gI_ZoneID[param1]].bInitialized = true;
-			}
-
 			Reset(param1);
-
 			return 0;
 		}
 		else if(StrEqual(sInfo, "adjust"))
 		{
 			CreateAdjustMenu(param1, 0);
-
 			return 0;
 		}
 		else if(StrEqual(sInfo, "tpzone"))
@@ -3815,9 +3808,7 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		{
 			gI_ZoneData[param1] = 0;
 			gB_WaitingForChatInput[param1] = true;
-
 			Shavit_PrintToChat(param1, "%T", "ZoneEnterDataChat", param1);
-
 			return 0;
 		}
 		else if(StrEqual(sInfo, "forcerender"))
@@ -3826,16 +3817,6 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 		}
 
 		CreateEditMenu(param1);
-	}
-	else if (action == MenuAction_Cancel)
-	{
-		if (!gB_HackyResetCheck[param1])
-		{
-			if (gI_ZoneID[param1] != -1)
-			{
-				//gA_ZoneCache[gI_ZoneID[param1]].bInitialized = true;
-			}
-		}
 	}
 	else if(action == MenuAction_End)
 	{
@@ -3908,7 +3889,6 @@ void CreateEditMenu(int client)
 	char sTrack[32];
 	GetTrackName(client, gI_ZoneTrack[client], sTrack, 32);
 
-	gB_HackyResetCheck[client] = false;
 	Menu menu = new Menu(CreateZoneConfirm_Handler);
 	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
 
@@ -4086,15 +4066,102 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 
 void InsertZone(int client)
 {
+	char sQuery[1024];
+	char sTrack[64], sZoneName[32];
+	GetTrackName(LANG_SERVER, gI_ZoneTrack[client], sTrack, sizeof(sTrack));
+	GetZoneName(LANG_SERVER, gI_ZoneType[client], sZoneName, sizeof(sZoneName));
+
+	// normalize zone points...
+	FillBoxMinMax(gV_Point1[client], gV_Point2[client], gV_Point1[client], gV_Point2[client]);
+
+#if 1
+	zone_cache_t c;
+	c.iType = gI_ZoneType[client];
+	c.iTrack = gI_ZoneTrack[client];
+	c.iEntity = -1;
+	c.iDatabaseID = gI_ZoneDatabaseID[client];
+	c.iFlags = gI_ZoneFlags[client];
+	c.iData = gI_ZoneData[client];
+	c.fCorner1 = gV_Point1[client];
+	c.fCorner2 = gV_Point2[client];
+	c.fDestination = gV_Teleport[client];
+	c.iSource = gI_ZoneSource[client];
+	c.sTarget = gS_ZoneTarget[client];
+	Shavit_AddZone(c);
+
+	if (gI_ZoneDatabaseID[client] == -1) // insert
+	{
+		Shavit_LogMessage(
+			"%L - added %s %s to map `%s`. \
+			p1(%f, %f, %f), p2(%f, %f, %f), dest(%f, %f, %f), \
+			flags=%d, data=%d, source=%d, target='%s'",
+			client, sTrack, sZoneName, gS_Map,
+			EXPAND_VECTOR(c.fCorner1),
+			EXPAND_VECTOR(c.fCorner2),
+			EXPAND_VECTOR(c.fDestination),
+			c.iFlags, c.iData,
+			c.iSource, c.sTarget
+		);
+
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO %smapzones (map, type, \
+			corner1_x, corner1_y, corner1_z, \
+			corner2_x, corner2_y, corner2_z, \
+			destination_x, destination_y, destination_z, \
+			track, flags, data, source, target) VALUES \
+			('%s', %d,  \
+			%f, %f, %f, \
+			%f, %f, %f, \
+			%f, %f, %f, \
+			%d, %d, %d, \
+			%d, '%s');",
+			gS_MySQLPrefix,
+			gS_Map, c.iType,
+			EXPAND_VECTOR(c.fCorner1),
+			EXPAND_VECTOR(c.fCorner2),
+			EXPAND_VECTOR(c.fDestination),
+			c.iTrack, c.iFlags, c.iData,
+			c.iSource, c.sTarget
+		);
+	}
+	else // update
+	{
+		Shavit_LogMessage(
+			"%L - updated %s %s (%d) in map `%s`. \
+			p1(%f, %f, %f), p2(%f, %f, %f), dest(%f, %f, %f), \
+			flags=%d, data=%d, source=%d, target='%s'",
+			client, sTrack, sZoneName, c.iDatabaseID, gS_Map,
+			EXPAND_VECTOR(c.fCorner1),
+			EXPAND_VECTOR(c.fCorner2),
+			EXPAND_VECTOR(c.fDestination),
+			c.iFlags, c.iData,
+			c.iSource, c.sTarget
+		);
+
+		FormatEx(sQuery, sizeof(sQuery),
+			"UPDATE %smapzones SET \
+			  corner1_x = '%f', corner1_y = '%f', corner1_z = '%f' \
+			, corner2_x = '%f', corner2_y = '%f', corner2_z = '%f' \
+			, destination_x = '%f', destination_y = '%f', destination_z = '%f' \
+			, flags = %d, data = %d \
+			, source = %d, target = '%s' \
+			WHERE %s = %d;",
+			gS_MySQLPrefix,
+			EXPAND_VECTOR(c.fCorner1),
+			EXPAND_VECTOR(c.fCorner2),
+			EXPAND_VECTOR(c.fDestination),
+			c.iFlags, c.iData,
+			c.iSource, c.sTarget,
+			gB_MySQL ? "id" : "rowid", c.iDatabaseID
+		);
+	}
+
+#else
+
 	int iType = gI_ZoneType[client];
 	int iIndex = GetZoneIndex(iType, gI_ZoneTrack[client]);
 	// TODO
 	bool bInsert = (gI_ZoneDatabaseID[client] == -1 && (iIndex == -1 || iType >= Zone_Respawn));
-
-	char sQuery[1024];
-	char sTrack[64], sZoneName[32];
-	GetTrackName(LANG_SERVER, gI_ZoneTrack[client], sTrack, sizeof(sTrack));
-	GetZoneName(LANG_SERVER, iType, sZoneName, sizeof(sZoneName));
 
 	if(iType == Zone_CustomSpawn)
 	{
@@ -4109,9 +4176,6 @@ void InsertZone(int client)
 	else if(bInsert) // insert
 	{
 		Shavit_LogMessage("%L - added %s %s to map `%s`.", client, sTrack, sZoneName, gS_Map);
-
-		// normalize zone points...
-		FillBoxMinMax(gV_Point1[client], gV_Point2[client], gV_Point1[client], gV_Point2[client]);
 
 		FormatEx(sQuery, sizeof(sQuery),
 			"INSERT INTO %smapzones (map, type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, flags, data) VALUES ('%s', %d, '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', '%.03f', %d, %d, %d);",
@@ -4132,44 +4196,23 @@ void InsertZone(int client)
 			}
 		}
 
-		// normalize zone points...
-		FillBoxMinMax(gV_Point1[client], gV_Point2[client], gV_Point1[client], gV_Point2[client]);
-
 		FormatEx(sQuery, sizeof(sQuery),
 			"UPDATE %smapzones SET corner1_x = '%.03f', corner1_y = '%.03f', corner1_z = '%.03f', corner2_x = '%.03f', corner2_y = '%.03f', corner2_z = '%.03f', destination_x = '%.03f', destination_y = '%.03f', destination_z = '%.03f', track = %d, flags = %d, data = %d WHERE %s = %d;",
 			gS_MySQLPrefix, gV_Point1[client][0], gV_Point1[client][1], gV_Point1[client][2], gV_Point2[client][0], gV_Point2[client][1], gV_Point2[client][2], gV_Teleport[client][0], gV_Teleport[client][1], gV_Teleport[client][2], gI_ZoneTrack[client], gI_ZoneFlags[client], gI_ZoneData[client], (gB_MySQL)? "id":"rowid", gI_ZoneDatabaseID[client]);
 	}
+#endif
 
-	DataPack data = new DataPack();
-	data.WriteCell(GetClientSerial(client));
-	data.WriteCell(iType);
 	Reset(client);
 
-	gH_SQL.Query2(SQL_InsertZone_Callback, sQuery, data);
+	gH_SQL.Query2(SQL_InsertZone_Callback, sQuery, 0);
 }
 
 public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
-	data.Reset();
-	int client = GetClientFromSerial(data.ReadCell());
-	int zonetype = data.ReadCell();
-	delete data;
-
 	if (results == null)
 	{
 		LogError("Timer (zone insert) SQL query failed. Reason: %s", error);
 		return;
-	}
-
-	if (zonetype == Zone_CustomSpawn)
-	{
-		Shavit_PrintToChat(client, "%T", "ZoneCustomSpawnSuccess", client);
-	}
-	else
-	{
-		// TODO
-		UnloadZones();
-		RefreshZones();
 	}
 }
 
