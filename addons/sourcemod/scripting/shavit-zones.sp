@@ -3820,7 +3820,7 @@ void UpdateTeleportZone(int client)
 	GetClientAbsOrigin(client, vTeleport);
 	vTeleport[2] += 2.0;
 
-	if(gA_EditCache[client].iType == Zone_Stage)
+	if (gA_EditCache[client].iType == Zone_Stage)
 	{
 		gA_EditCache[client].fDestination = vTeleport;
 
@@ -3832,7 +3832,7 @@ void UpdateTeleportZone(int client)
 
 		for(int i = 0; i < 3; i++)
 		{
-			if(gA_EditCache[client].fCorner1[i] >= vTeleport[i] == gA_EditCache[client].fCorner2[i] >= vTeleport[i])
+			if (gA_EditCache[client].fCorner1[i] >= vTeleport[i] == gA_EditCache[client].fCorner2[i] >= vTeleport[i])
 			{
 				bInside = false;
 			}
@@ -4227,7 +4227,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		gV_WallSnap[client] = origin;
 	}
 
-	if(gI_MapStep[client] == 1 || gA_EditCache[client].fCorner2[0] == 0.0)
+	if (gI_MapStep[client] == 1 || gA_EditCache[client].fCorner2[0] == 0.0)
 	{
 		origin[2] = (vPlayerOrigin[2] + gCV_Height.FloatValue);
 	}
@@ -4239,7 +4239,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	int type = gA_EditCache[client].iType;
 	int track = gA_EditCache[client].iTrack;
 
-	if(!EmptyVector(gA_EditCache[client].fCorner1) || !EmptyVector(gA_EditCache[client].fCorner2))
+	if (!EmptyVector(gA_EditCache[client].fCorner1) || !EmptyVector(gA_EditCache[client].fCorner2))
 	{
 		float points[8][3];
 		points[0] = gA_EditCache[client].fCorner1;
@@ -4253,7 +4253,7 @@ public Action Timer_Draw(Handle Timer, any data)
 		GetZoneColors(colors, type, track, 125);
 		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type);
 
-		if(gA_EditCache[client].iType == Zone_Teleport && !EmptyVector(gA_EditCache[client].fDestination))
+		if (gA_EditCache[client].iType == Zone_Teleport && !EmptyVector(gA_EditCache[client].fDestination))
 		{
 			TE_SetupEnergySplash(gA_EditCache[client].fDestination, ZERO_VECTOR, false);
 			TE_SendToAll(0.0);
