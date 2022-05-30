@@ -1559,13 +1559,6 @@ public void Shavit_OnChatConfigLoaded()
 	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
-void ClearZone(int index)
-{
-	gV_ZoneCenter[index] = ZERO_VECTOR;
-	zone_cache_t cache;
-	gA_ZoneCache[index] = cache;
-}
-
 void ClearZoneEntity(int index, bool unhook)
 {
 	for (int i = 1; i <= MaxClients; i++)
@@ -1703,7 +1696,8 @@ void UnloadZones()
 			AcceptEntityInput(ent, "Kill");
 		}
 
-		ClearZone(i);
+		zone_cache_t empty_cache;
+		gA_ZoneCache[i] = empty_cache;
 	}
 
 	int empty_tracks[TRACKS_SIZE];
