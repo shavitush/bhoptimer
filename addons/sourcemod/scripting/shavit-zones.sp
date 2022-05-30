@@ -71,6 +71,7 @@ enum struct zone_settings_t
 	bool bNoHalo;
 	int iBeam;
 	int iHalo;
+	int iSpeed;
 	char sBeam[PLATFORM_MAX_PATH];
 }
 
@@ -703,7 +704,7 @@ public int Native_InsideZoneGetID(Handle handler, int numParams)
 	int iType = GetNativeCell(2);
 	int iTrack = GetNativeCell(3);
 
-	if (iTrack >= 0 && !(gI_InsideZone[client][iTrack] & (1 << iType))
+	if (iTrack >= 0 && !(gI_InsideZone[client][iTrack] & (1 << iType)))
 	{
 		return false;
 	}
@@ -1050,6 +1051,7 @@ bool LoadZonesConfig()
 				gA_ZoneSettings[type][track].bFlatZone = view_as<bool>(kv.GetNum("flat", false));
 				gA_ZoneSettings[type][track].bUseVanillaSprite = view_as<bool>(kv.GetNum("vanilla_sprite", false));
 				gA_ZoneSettings[type][track].bNoHalo = view_as<bool>(kv.GetNum("no_halo", false));
+				gA_ZoneSettings[type][track].iSpeed = kv.GetNum("speed", 0);
 				kv.GetString("beam", gA_ZoneSettings[type][track].sBeam, sizeof(zone_settings_t::sBeam), "");
 				kv.GoBack();
 			}
@@ -4158,6 +4160,7 @@ public Action Timer_DrawZones(Handle Timer, any drawAll)
 				gA_ZoneSettings[type][track].iHalo,
 				track,
 				type,
+				gA_ZoneSettings[type][track].iSpeed,
 				!!drawAll,
 				0
 			);
@@ -4235,7 +4238,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		int colors[4];
 		GetZoneColors(colors, type, track, 125);
-		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type);
+		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type, gA_ZoneSettings[type][track].iSpeed, false, 0);
 
 		if (gA_EditCache[client].iType == Zone_Teleport && !EmptyVector(gA_EditCache[client].fDestination))
 		{
@@ -4271,7 +4274,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, int track, int type, bool drawallzones=false, int single_client=0)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, int track, int type, int speed, bool drawallzones, int single_client)
 {
 	static int pairs[][] =
 	{
@@ -4349,7 +4352,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 		for(int j = 0; j < point_size; j++)
 		{
-			TE_SetupBeamPoints(points[pairs[j][0]], points[pairs[j][1]], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, actual_color, 0);
+			TE_SetupBeamPoints(points[pairs[j][0]], points[pairs[j][1]], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, actual_color, speed);
 			TE_SendToClient(clients[i], 0.0);
 		}
 	}
@@ -4522,6 +4525,7 @@ public void Shavit_OnRestart(int client, int track)
 			gA_ZoneSettings[Zone_Start][track].iHalo,
 			track,
 			Zone_Start,
+			gA_ZoneSettings[Zone_Start][track].iSpeed,
 			false,
 			client
 		);
@@ -4561,6 +4565,7 @@ public void Shavit_OnEnd(int client, int track)
 			gA_ZoneSettings[Zone_End][track].iHalo,
 			track,
 			Zone_End,
+			gA_ZoneSettings[Zone_End][track].iSpeed,
 			false,
 			client
 		);
