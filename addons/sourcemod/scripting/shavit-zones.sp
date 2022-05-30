@@ -25,6 +25,7 @@
 #include <sdkhooks>
 #include <convar_class>
 #include <dhooks>
+#include <profiler>
 
 #include <shavit/core>
 #include <shavit/zones>
@@ -104,7 +105,7 @@ float gV_ZoneCenter[MAX_ZONES][3];
 int gI_StageZoneID[TRACKS_SIZE][MAX_ZONES];
 int gI_HighestStage[TRACKS_SIZE];
 float gF_CustomSpawn[TRACKS_SIZE][3];
-int gI_EntityZone[2048];
+int gI_EntityZone[2048] = {-1, ...};
 int gI_LastStage[MAXPLAYERS+1];
 
 char gS_BeamSprite[PLATFORM_MAX_PATH];
@@ -355,11 +356,6 @@ public void OnPluginStart()
 			gA_ZoneSettings[i][j].fWidth = 2.0;
 			gA_ZoneSettings[i][j].bFlatZone = false;
 		}
-	}
-
-	for(int i = 0; i < sizeof(gI_EntityZone); i++)
-	{
-		gI_EntityZone[i] = -1;
 	}
 
 	gB_ReplayRecorder = LibraryExists("shavit-replay-recorder");
