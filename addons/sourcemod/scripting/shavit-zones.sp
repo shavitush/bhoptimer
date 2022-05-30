@@ -373,7 +373,7 @@ public void OnPluginStart()
 				OnClientConnected(i);
 				OnClientPutInServer(i);
 
-				if (AreClientCookiesCached(i) && !IsFakeClient(i))
+				if (AreClientCookiesCached(i))
 				{
 					OnClientCookiesCached(i);
 				}
@@ -703,7 +703,12 @@ public int Native_InsideZoneGetID(Handle handler, int numParams)
 	int iType = GetNativeCell(2);
 	int iTrack = GetNativeCell(3);
 
-	for(int i = 0; i < MAX_ZONES; i++)
+	if (iTrack >= 0 && !(gI_InsideZone[client][iTrack] & (1 << iType))
+	{
+		return false;
+	}
+
+	for (int i = 0; i < gI_MapZones; i++)
 	{
 		if(gB_InsideZoneID[client][i] &&
 			gA_ZoneCache[i].iType == iType &&
@@ -1223,14 +1228,15 @@ void FindEntitiesToHook(const char[] classname, int source)
 
 	while ((ent = FindEntityByClassname(ent, classname)) != -1)
 	{
-		char hammerid[12];
-		IntToString(GetEntProp(ent, Prop_Data, "m_iHammerID"), hammerid, sizeof(hammerid)); // xd string comparisons
 		GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
 
 		if (source == ZoneSource_trigger_multiple && StrContains(targetname, "shavit_zones_") == 0)
 		{
 			continue;
 		}
+
+		char hammerid[12];
+		IntToString(GetEntProp(ent, Prop_Data, "m_iHammerID"), hammerid, sizeof(hammerid)); // xd string comparisons
 
 		for (int i = 0; i < gI_MapZones; i++)
 		{
@@ -1285,7 +1291,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 
 public void OnEntityDestroyed(int entity)
 {
-	if (entity > MAXPLAYERS && entity < 4096 && gI_EntityZone[entity] > -1)
+	if (entity > MAXPLAYERS && entity < 2048 && gI_EntityZone[entity] > -1)
 	{
 		ClearZoneEntity(gI_EntityZone[entity], false);
 	}
