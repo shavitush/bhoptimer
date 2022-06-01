@@ -133,7 +133,7 @@ stock void GetZoneName(int client, int zoneType, char[] output, int size)
 		"Zone_Stage",
 		"Zone_NoTimerGravity",
 		"Zone_Gravity",
-		"Zone_Speedmod"
+		"Zone_Speedmod",
 	};
 
 	if (zoneType >= ZONETYPES_SIZE)
