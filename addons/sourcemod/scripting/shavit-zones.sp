@@ -1142,17 +1142,19 @@ public void OnMapStart()
 	}
 }
 
-void DBConnectedSoDoStuff()
+public void OnConfigsExecuted()
 {
-	UnloadZones();
-	RefreshZones();
-
-	// start drawing mapzones here
 	if (gH_DrawAllZones == null)
 	{
 		gH_DrawVisible = CreateTimer(gCV_Interval.FloatValue, Timer_DrawZones, 0, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 		gH_DrawAllZones = CreateTimer(gCV_Interval.FloatValue, Timer_DrawZones, 1, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
+}
+
+void DBConnectedSoDoStuff()
+{
+	UnloadZones();
+	RefreshZones();
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
