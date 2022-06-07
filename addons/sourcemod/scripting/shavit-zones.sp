@@ -80,7 +80,7 @@ enum struct zone_settings_t
 // 1 - wait for E tap to setup first coord
 // 2 - wait for E tap to setup second coord
 // 3 - confirm
-int gI_MapStep[MAXPLAYERS+1]; // TODO ENUM
+int gI_MapStep[MAXPLAYERS+1];
 zone_cache_t gA_EditCache[MAXPLAYERS+1];
 int gI_ZoneID[MAXPLAYERS+1];
 bool gB_WaitingForChatInput[MAXPLAYERS+1];
@@ -104,7 +104,6 @@ zone_cache_t gA_ZoneCache[MAX_ZONES]; // Vectors will not be inside this array.
 int gI_MapZones = 0;
 float gV_MapZones_Visual[MAX_ZONES][8][3];
 float gV_ZoneCenter[MAX_ZONES][3];
-int gI_StageZoneID[TRACKS_SIZE][MAX_ZONES];
 int gI_HighestStage[TRACKS_SIZE];
 float gF_CustomSpawn[TRACKS_SIZE][3];
 int gI_EntityZone[2048] = {-1, ...};
@@ -206,7 +205,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// zone natives
 	CreateNative("Shavit_GetZoneData", Native_GetZoneData);
 	CreateNative("Shavit_GetZoneFlags", Native_GetZoneFlags);
-	CreateNative("Shavit_GetStageZone", Native_GetStageZone);
 	CreateNative("Shavit_GetStageCount", Native_GetStageCount);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
 	CreateNative("Shavit_InsideZoneGetID", Native_InsideZoneGetID);
@@ -549,7 +547,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 				gV_MapZones_Visual[i][0] = gA_ZoneCache[i].fCorner1;
 				gV_MapZones_Visual[i][7] = gA_ZoneCache[i].fCorner2;
 
-				CreateZonePoints(gV_MapZones_Visual[i], convar == gCV_PrebuiltVisualOffset); // TODO
+				CreateZonePoints(gV_MapZones_Visual[i], convar == gCV_PrebuiltVisualOffset);
 			}
 		}
 	}
@@ -755,13 +753,6 @@ public int Native_InsideZoneGetID(Handle handler, int numParams)
 	return false;
 }
 
-public int Native_GetStageZone(Handle handler, int numParams)
-{
-	int iStageNumber = GetNativeCell(1);
-	int iTrack = GetNativeCell(2);
-	return gI_StageZoneID[iTrack][iStageNumber];
-}
-
 public int Native_GetStageCount(Handle handler, int numParas)
 {
 	return gI_HighestStage[GetNativeCell(1)];
@@ -902,15 +893,13 @@ public any Native_AddZone(Handle plugin, int numParams)
 	gV_MapZones_Visual[gI_MapZones][0] = cache.fCorner1;
 	gV_MapZones_Visual[gI_MapZones][7] = cache.fCorner2;
 
-	CreateZonePoints(gV_MapZones_Visual[gI_MapZones], false);//prebuilt); TODO
+	CreateZonePoints(gV_MapZones_Visual[gI_MapZones], cache.iForm == ZoneForm_trigger_multiple);
 
 	AddVectors(cache.fCorner1, cache.fCorner2, gV_ZoneCenter[gI_MapZones]);
 	ScaleVector(gV_ZoneCenter[gI_MapZones], 0.5);
 
 	if (cache.iType == Zone_Stage)
 	{
-		gI_StageZoneID[cache.iTrack][cache.iData] = cache.iDatabaseID;
-
 		if (cache.iData > gI_HighestStage[cache.iTrack])
 		{
 			gI_HighestStage[cache.iTrack] = cache.iData;
@@ -940,8 +929,6 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 	}
 
 	int top = --gI_MapZones;
-
-	// gI_StageZoneID = recalc. Remove? TODO
 
 	if (index < top)
 	{
@@ -1555,7 +1542,6 @@ void UnloadZones()
 
 	for(int i = 0; i < TRACKS_SIZE; i++)
 	{
-		gI_StageZoneID[i] = empty_tracks;
 		gF_CustomSpawn[i] = ZERO_VECTOR;
 	}
 }
@@ -2049,9 +2035,11 @@ public int MenuHandler_AddCustomSpawn(Menu menu, MenuAction action, int param1, 
 			return 0;
 		}
 
-		gA_EditCache[param1].iType = Zone_CustomSpawn;
-		gA_EditCache[param1].iTrack = iTrack;
-		GetClientAbsOrigin(param1, gA_EditCache[param1].fDestination);
+		zone_cache_t cache;
+		cache.iType = Zone_CustomSpawn;
+		cache.iTrack = iTrack;
+		GetClientAbsOrigin(param1, cache.fDestination);
+		gA_EditCache[param1] = cache;
 
 		InsertZone(param1);
 	}
@@ -3173,6 +3161,7 @@ public int MenuHandler_SelectZoneType(Menu menu, MenuAction action, int param1, 
 void Reset(int client)
 {
 	zone_cache_t cache;
+	cache.iDatabaseID = -1;
 	gA_EditCache[client] = cache;
 	gI_MapStep[client] = 0;
 	gB_WaitingForChatInput[client] = false;
@@ -3846,16 +3835,17 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 
 void InsertZone(int client)
 {
-	char sQuery[1024];
-	char sTrack[64], sZoneName[32];
-	GetTrackName(LANG_SERVER, gA_EditCache[client].iTrack, sTrack, sizeof(sTrack));
-	GetZoneName(LANG_SERVER, gA_EditCache[client].iType, sZoneName, sizeof(sZoneName));
-
-	// normalize zone points...
-	FillBoxMinMax(gA_EditCache[client].fCorner1, gA_EditCache[client].fCorner2, gA_EditCache[client].fCorner1, gA_EditCache[client].fCorner2);
-
 	zone_cache_t c; c = gA_EditCache[client];
 	c.iEntity = -1;
+
+	char sQuery[1024];
+	char sTrack[64], sZoneName[32];
+	GetTrackName(LANG_SERVER, c.iTrack, sTrack, sizeof(sTrack));
+	GetZoneName(LANG_SERVER, c.iType, sZoneName, sizeof(sZoneName));
+
+	// normalize zone points...
+	FillBoxMinMax(c.fCorner1, c.fCorner2, c.fCorner1, c.fCorner2);
+
 	Shavit_AddZone(c);
 
 	if (c.iDatabaseID == -1) // insert

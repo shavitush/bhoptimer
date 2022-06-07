@@ -285,16 +285,6 @@ forward void Shavit_LoadZonesHere();
 forward Action Shavit_OnStageMessage(int client, int stageNumber, char[] message, int maxlen);
 
 /**
- * Retrieve the zone ID for a given stage number.
- * Will return exception if stagenumber doesn't have a zone.
- *
- * @param stage                     Stage number.
- * @param track                     Track number.
- * @return                          Zone ID of stage.
- */
-native int Shavit_GetStageZone(int stage, int track=Track_Main);
-
-/**
  * Checks if a mapzone exists.
  *
  * @param type                      Mapzone type.
@@ -474,7 +464,6 @@ public void __pl_shavit_zones_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_GetZoneData");
 	MarkNativeAsOptional("Shavit_GetZoneFlags");
-	MarkNativeAsOptional("Shavit_GetStageZone");
 	MarkNativeAsOptional("Shavit_GetStageCount");
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_InsideZoneGetID");
