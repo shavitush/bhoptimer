@@ -219,6 +219,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetZoneTrack", Native_GetZoneTrack);
 	CreateNative("Shavit_GetZoneType", Native_GetZoneType);
 	CreateNative("Shavit_GetZoneID", Native_GetZoneID);
+	CreateNative("Shavit_ReloadZones", Native_ReloadZones);
 	CreateNative("Shavit_UnloadZones", Native_UnloadZones);
 	CreateNative("Shavit_GetZoneCount", Native_GetZoneCount);
 	CreateNative("Shavit_GetZone", Native_GetZone);
@@ -580,7 +581,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	{
 		for (int i = gI_MapZones; i > 0; i++)
 		{
-			if (StrEqual(gA_ZoneCache[i-1].sSource, "prebuilt"))
+			if (StrEqual(gA_ZoneCache[i-1].sSource, "autozone"))
 				Shavit_RemoveZone(i-1);
 		}
 
@@ -590,7 +591,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	{
 		for (int i = gI_MapZones; i > 0; i++)
 		{
-			if (StrEqual(gA_ZoneCache[i-1].sSource, "climbbutton"))
+			if (StrEqual(gA_ZoneCache[i-1].sSource, "autobutton"))
 				Shavit_RemoveZone(i-1);
 		}
 
@@ -850,6 +851,12 @@ public any Native_GetZoneID(Handle plugin, int numParams)
 {
 	int entity = GetNativeCell(1);
 	return gI_EntityZone[entity];
+}
+
+public any Native_ReloadZones(Handle plugin, int numParams)
+{
+	LoadZonesHere();
+	return 0;
 }
 
 public any Native_UnloadZones(Handle plugin, int numParams)
@@ -1176,10 +1183,10 @@ public void OnConfigsExecuted()
 		gH_DrawAllZones = CreateTimer(gCV_Interval.FloatValue, Timer_DrawZones, 1, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 
-	RequestFrame(Frame_LoadZonesHere);
+	RequestFrame(LoadZonesHere);
 }
 
-void Frame_LoadZonesHere()
+void LoadZonesHere()
 {
 	gB_YouCanLoadZonesNow = true;
 	UnloadZones();
@@ -1236,7 +1243,7 @@ void add_prebuilts_to_cache(const char[] classname, bool button)
 
 		cache.iDatabaseID = -1;
 		cache.iForm = button ? ZoneForm_func_button : ZoneForm_trigger_multiple;
-		cache.sSource = button ? "climbbutton" : "prebuilt";
+		cache.sSource = button ? "autobutton" : "autozone";
 
 		if (button)
 		{

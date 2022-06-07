@@ -112,7 +112,7 @@ enum struct zone_cache_t
 	float fCorner2[3]; // the hull maxs. (or unused if ZoneForm_AreasAndClusters)
 	float fDestination[3]; // Used by Zone_CustomSpawn, Zone_Teleport, and Zone_Stage.
 	int iForm; // ZoneForm_*
-	char sSource[16]; // "sql", "climbbutton", "prebuilt", "sourcejump", "http", etc...
+	char sSource[16]; // "sql", "autobutton", "autozone", "sourcejump", "http", etc...
 	char sTarget[64]; // either the hammerid or the targetname
 }
 
@@ -417,6 +417,12 @@ native void Shavit_SetStart(int client, int track, bool anglesonly);
 native void Shavit_DeleteSetStart(int client, int track);
 
 /**
+ * Removes all zones from memory and then reloads zones from the database & any plugins.
+ * @noreturn
+ */
+native void Shavit_ReloadZones();
+
+/**
  * Removes all zones from memory and unhooks any zones and kills any created entities.
  * @noreturn
  */
@@ -481,6 +487,7 @@ public void __pl_shavit_zones_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetZoneTrack");
 	MarkNativeAsOptional("Shavit_GetZoneType");
 	MarkNativeAsOptional("Shavit_GetZoneID");
+	MarkNativeAsOptional("Shavit_ReloadZones");
 	MarkNativeAsOptional("Shavit_UnloadZones");
 	MarkNativeAsOptional("Shavit_GetZoneCount");
 	MarkNativeAsOptional("Shavit_GetZone");
