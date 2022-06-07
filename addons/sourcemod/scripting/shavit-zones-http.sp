@@ -112,6 +112,7 @@ void LoadCachedZones()
 	for (int i = 0; i < gA_Zones.Length; i++)
 	{
 		zone_cache_t cache;
+		gA_Zones.GetArray(i, cache);
 		Shavit_AddZone(cache);
 	}
 }
