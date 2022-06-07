@@ -51,10 +51,8 @@ enum
 enum
 {
 	ZF_ForceRender = (1 << 0),
-	ZF_Hammerid    = (1 << 1), // used by ZoneSource_{trigger_{multiple, teleport}, func_button} sometimes
+	ZF_Hammerid    = (1 << 1), // used by ZoneForm_{trigger_{multiple, teleport}, func_button} sometimes
 	ZF_Solid       = (1 << 2), // forces the zone to block people...
-	ZF_AutoHooked  = (1 << 3), // this was hooked by the timer automatically because of `shavit_zones_usebuttons` OR `shavit_zones_useprebuilt`
-	ZF_SQLZones    = (1 << 4), // came from `shavit_zones_usesql`
 };
 
 // Zone Display type
@@ -93,13 +91,13 @@ enum
 	ZoneWidth_Size
 };
 
-enum // i really can't think of a better name than "source" for this
+enum
 {
-	ZoneSource_Box,
-	ZoneSource_trigger_multiple,
-	ZoneSource_trigger_teleport,
-	ZoneSource_func_button,
-	ZoneSource_AreasAndClusters,
+	ZoneForm_Box,
+	ZoneForm_trigger_multiple,
+	ZoneForm_trigger_teleport,
+	ZoneForm_func_button,
+	ZoneForm_AreasAndClusters,
 };
 
 enum struct zone_cache_t
@@ -110,10 +108,11 @@ enum struct zone_cache_t
 	int iDatabaseID; // uhhhh TODO
 	int iFlags; // The ZF_* flags.
 	int iData; // Depends on the zone. Zone_Stage stores the stage number in this for example.
-	float fCorner1[3]; // the hull mins. (or unused if ZoneSource_AreasAndClusters) // TODO, maybe reuse for cluster & areas?
-	float fCorner2[3]; // the hull maxs. (or unused if ZoneSource_AreasAndClusters)
+	float fCorner1[3]; // the hull mins. (or unused if ZoneForm_AreasAndClusters) // TODO, maybe reuse for cluster & areas?
+	float fCorner2[3]; // the hull maxs. (or unused if ZoneForm_AreasAndClusters)
 	float fDestination[3]; // Used by Zone_CustomSpawn, Zone_Teleport, and Zone_Stage.
-	int iSource; // ZoneSource_*
+	int iForm; // ZoneForm_*
+	char sSource[16]; // "sql", "climbbutton", "prebuilt", "sourcejump", "http", etc...
 	char sTarget[64]; // either the hammerid or the targetname
 }
 

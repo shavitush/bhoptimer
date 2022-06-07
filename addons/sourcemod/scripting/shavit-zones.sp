@@ -542,8 +542,8 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	{
 		for (int i = 0; i < gI_MapZones; i++)
 		{
-			if ((convar == gCV_Offset && gA_ZoneCache[i].iSource == ZoneSource_Box)
-			||  (convar == gCV_PrebuiltVisualOffset && gA_ZoneCache[i].iSource == ZoneSource_trigger_multiple))
+			if ((convar == gCV_Offset && gA_ZoneCache[i].iForm == ZoneForm_Box)
+			||  (convar == gCV_PrebuiltVisualOffset && gA_ZoneCache[i].iForm == ZoneForm_trigger_multiple))
 			{
 				gV_MapZones_Visual[i][0] = gA_ZoneCache[i].fCorner1;
 				gV_MapZones_Visual[i][7] = gA_ZoneCache[i].fCorner2;
@@ -560,7 +560,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	{
 		for (int i = 0; i < gI_MapZones; i++)
 		{
-			if (gA_ZoneCache[i].iSource == ZoneSource_Box && gA_ZoneCache[i].iEntity > 0)
+			if (gA_ZoneCache[i].iForm == ZoneForm_Box && gA_ZoneCache[i].iEntity > 0)
 			{
 				SetZoneMinsMaxs(i);
 			}
@@ -570,7 +570,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	{
 		for (int i = gI_MapZones; i > 0; i++)
 		{
-			if (gA_ZoneCache[i-1].iFlags & ZF_SQLZones)
+			if (StrEqual(gA_ZoneCache[i-1].sSource, "sql"))
 				Shavit_RemoveZone(i-1);
 		}
 
@@ -580,7 +580,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	{
 		for (int i = gI_MapZones; i > 0; i++)
 		{
-			if ((gA_ZoneCache[i-1].iFlags & ZF_AutoHooked) && gA_ZoneCache[i-1].iSource == ZoneSource_trigger_multiple)
+			if (StrEqual(gA_ZoneCache[i-1].sSource, "prebuilt"))
 				Shavit_RemoveZone(i-1);
 		}
 
@@ -590,7 +590,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	{
 		for (int i = gI_MapZones; i > 0; i++)
 		{
-			if ((gA_ZoneCache[i-1].iFlags & ZF_AutoHooked) && gA_ZoneCache[i-1].iSource == ZoneSource_func_button)
+			if (StrEqual(gA_ZoneCache[i-1].sSource, "climbbutton"))
 				Shavit_RemoveZone(i-1);
 		}
 
@@ -927,7 +927,7 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 	int ent = gA_ZoneCache[index].iEntity;
 	ClearZoneEntity(index, true);
 
-	if (ent && gA_ZoneCache[index].iSource == ZoneSource_Box) // created by shavit-zones
+	if (ent && gA_ZoneCache[index].iForm == ZoneForm_Box) // created by shavit-zones
 	{
 		AcceptEntityInput(ent, "Kill");
 	}
@@ -1235,8 +1235,8 @@ void add_prebuilts_to_cache(const char[] classname, bool button)
 		PrintToServer(">>>> shavit-zones: Hooking '%s' '%s' (%d)", classname, targetname, hammerid);
 
 		cache.iDatabaseID = -1;
-		cache.iFlags |= ZF_AutoHooked;
-		cache.iSource = button ? ZoneSource_func_button : ZoneSource_trigger_multiple;
+		cache.iForm = button ? ZoneForm_func_button : ZoneForm_trigger_multiple;
+		cache.sSource = button ? "climbbutton" : "prebuilt";
 
 		if (button)
 		{
@@ -1272,9 +1272,9 @@ public void OnGameFrame()
 			continue;
 		}
 
-		switch (gA_ZoneCache[i].iSource)
+		switch (gA_ZoneCache[i].iForm)
 		{
-			case ZoneSource_Box:
+			case ZoneForm_Box:
 			{
 				if (!CreateZoneTrigger(i))
 				{
@@ -1282,19 +1282,19 @@ public void OnGameFrame()
 				}
 				break;
 			}
-			case ZoneSource_trigger_multiple:
+			case ZoneForm_trigger_multiple:
 			{
 				if (gA_ZoneCache[i].sTarget[0])
 					search_trigger_multiple = true;
 				break;
 			}
-			case ZoneSource_trigger_teleport:
+			case ZoneForm_trigger_teleport:
 			{
 				if (gA_ZoneCache[i].sTarget[0])
 					search_trigger_teleport = true;
 				break;
 			}
-			case ZoneSource_func_button:
+			case ZoneForm_func_button:
 			{
 				if (gA_ZoneCache[i].sTarget[0])
 					search_func_button = true;
@@ -1305,21 +1305,21 @@ public void OnGameFrame()
 
 	if (search_trigger_multiple)
 	{
-		FindEntitiesToHook("trigger_multiple", ZoneSource_trigger_multiple);
+		FindEntitiesToHook("trigger_multiple", ZoneForm_trigger_multiple);
 	}
 
 	if (search_trigger_teleport)
 	{
-		FindEntitiesToHook("trigger_teleport", ZoneSource_trigger_teleport);
+		FindEntitiesToHook("trigger_teleport", ZoneForm_trigger_teleport);
 	}
 
 	if (search_func_button)
 	{
-		FindEntitiesToHook("func_button", ZoneSource_func_button);
+		FindEntitiesToHook("func_button", ZoneForm_func_button);
 	}
 }
 
-void FindEntitiesToHook(const char[] classname, int source)
+void FindEntitiesToHook(const char[] classname, int form)
 {
 	char targetname[64];
 	int ent = -1;
@@ -1333,7 +1333,7 @@ void FindEntitiesToHook(const char[] classname, int source)
 
 		GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
 
-		if (source == ZoneSource_trigger_multiple && StrContains(targetname, "shavit_zones_") == 0)
+		if (form == ZoneForm_trigger_multiple && StrContains(targetname, "shavit_zones_") == 0)
 		{
 			continue;
 		}
@@ -1343,13 +1343,13 @@ void FindEntitiesToHook(const char[] classname, int source)
 
 		for (int i = 0; i < gI_MapZones; i++)
 		{
-			if (gA_ZoneCache[i].iEntity > 0 || gA_ZoneCache[i].iSource != source
+			if (gA_ZoneCache[i].iEntity > 0 || gA_ZoneCache[i].iForm != form
 			||  !StrEqual(gA_ZoneCache[i].sTarget, (gA_ZoneCache[i].iFlags & ZF_Hammerid) ? hammerid : targetname))
 			{
 				continue;
 			}
 
-			if (source == ZoneSource_func_button)
+			if (form == ZoneForm_func_button)
 			{
 				HookButton(i, ent);
 			}
@@ -1418,11 +1418,11 @@ void UnhookZone(zone_cache_t cache)
 {
 	int entity = cache.iEntity;
 
-	if (cache.iSource == ZoneSource_func_button)
+	if (cache.iForm == ZoneForm_func_button)
 	{
 		SDKUnhook(entity, SDKHook_UsePost, UsePost_HookedButton);
 	}
-	else if (cache.iSource == ZoneSource_Box)
+	else if (cache.iForm == ZoneForm_Box)
 	{
 		SDKUnhook(entity, SDKHook_StartTouchPost, StartTouchPost);
 		SDKUnhook(entity, SDKHook_EndTouchPost, EndTouchPost);
@@ -1524,7 +1524,7 @@ void UnloadZones()
 		int ent = gA_ZoneCache[i].iEntity;
 		ClearZoneEntity(i, true);
 
-		if (ent && gA_ZoneCache[i].iSource == ZoneSource_Box) // created by shavit-zones
+		if (ent && gA_ZoneCache[i].iForm == ZoneForm_Box) // created by shavit-zones
 		{
 			AcceptEntityInput(ent, "Kill");
 		}
@@ -1599,7 +1599,7 @@ void RefreshZones()
 {
 	char sQuery[512];
 	FormatEx(sQuery, 512,
-		"SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s, flags, data, source, target FROM %smapzones WHERE map = '%s';",
+		"SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s, flags, data, form, target FROM %smapzones WHERE map = '%s';",
 		(gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
 	gH_SQL.Query2(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
@@ -1641,16 +1641,17 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		cache.fDestination = destination;
 		cache.iTrack = track;
 		cache.iDatabaseID = results.FetchInt(11);
-		cache.iFlags = results.FetchInt(12) | ZF_SQLZones;
+		cache.iFlags = results.FetchInt(12);
 		cache.iData = results.FetchInt(13);
-		cache.iSource = results.FetchInt(14);
+		cache.iForm = results.FetchInt(14);
 		results.FetchString(15, cache.sTarget, sizeof(cache.sTarget));
+		cache.sSource = "sql";
 
-		if (cache.iSource == ZoneSource_Box)
+		if (cache.iForm == ZoneForm_Box)
 		{
 			//
 		}
-		else if (cache.iSource == ZoneSource_trigger_multiple)
+		else if (cache.iForm == ZoneForm_trigger_multiple)
 		{
 			if (!cache.sTarget[0])
 			{
@@ -2487,9 +2488,9 @@ Action OpenTpToZoneMenu(int client, int pagepos=0)
 
 		char sTarget[64];
 
-		switch (gA_ZoneCache[i].iSource)
+		switch (gA_ZoneCache[i].iForm)
 		{
-			case ZoneSource_func_button, ZoneSource_trigger_multiple, ZoneSource_trigger_teleport:
+			case ZoneForm_func_button, ZoneForm_trigger_multiple, ZoneForm_trigger_teleport:
 			{
 				FormatEx(sTarget, sizeof(sTarget), " (%s)", gA_ZoneCache[i].sTarget);
 			}
@@ -2592,9 +2593,9 @@ Action OpenEditMenu(int client, int pos = 0)
 
 		char sTarget[64];
 
-		switch (gA_ZoneCache[i].iSource)
+		switch (gA_ZoneCache[i].iForm)
 		{
-			case ZoneSource_func_button, ZoneSource_trigger_multiple, ZoneSource_trigger_teleport:
+			case ZoneForm_func_button, ZoneForm_trigger_multiple, ZoneForm_trigger_teleport:
 			{
 				FormatEx(sTarget, sizeof(sTarget), " (%s)", gA_ZoneCache[i].sTarget);
 			}
@@ -2624,7 +2625,7 @@ Action OpenEditMenu(int client, int pos = 0)
 			Format(sDisplay, sizeof(sDisplay), "%s %T", sDisplay, "ZoneInside", client);
 		}
 
-		menu.AddItem(sInfo, sDisplay, gA_ZoneCache[i].iSource != ZoneSource_Box ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+		menu.AddItem(sInfo, sDisplay, gA_ZoneCache[i].iForm != ZoneForm_Box ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 	}
 
 	menu.ExitButton = true;
@@ -2929,9 +2930,9 @@ Action OpenDeleteMenu(int client, int pos = 0)
 
 			char sTarget[64];
 
-			switch (gA_ZoneCache[i].iSource)
+			switch (gA_ZoneCache[i].iForm)
 			{
-				case ZoneSource_func_button, ZoneSource_trigger_multiple, ZoneSource_trigger_teleport:
+				case ZoneForm_func_button, ZoneForm_trigger_multiple, ZoneForm_trigger_teleport:
 				{
 					FormatEx(sTarget, sizeof(sTarget), " (%s)", gA_ZoneCache[i].sTarget);
 				}
@@ -2964,7 +2965,7 @@ Action OpenDeleteMenu(int client, int pos = 0)
 				Format(sDisplay, sizeof(sDisplay), "%s %T", sDisplay, "ZoneInside", client);
 			}
 
-			menu.AddItem(sInfo, sDisplay, gA_ZoneCache[i].iSource != ZoneSource_Box ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem(sInfo, sDisplay, gA_ZoneCache[i].iForm != ZoneForm_Box ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 		}
 	}
 
@@ -3855,13 +3856,13 @@ void InsertZone(int client)
 		Shavit_LogMessage(
 			"%L - added %s %s to map `%s`. \
 			p1(%f, %f, %f), p2(%f, %f, %f), dest(%f, %f, %f), \
-			flags=%d, data=%d, source=%d, target='%s'",
+			flags=%d, data=%d, form=%d, target='%s'",
 			client, sTrack, sZoneName, gS_Map,
 			EXPAND_VECTOR(c.fCorner1),
 			EXPAND_VECTOR(c.fCorner2),
 			EXPAND_VECTOR(c.fDestination),
 			c.iFlags, c.iData,
-			c.iSource, c.sTarget
+			c.iForm, c.sTarget
 		);
 
 		FormatEx(sQuery, sizeof(sQuery),
@@ -3869,7 +3870,7 @@ void InsertZone(int client)
 			corner1_x, corner1_y, corner1_z, \
 			corner2_x, corner2_y, corner2_z, \
 			destination_x, destination_y, destination_z, \
-			track, flags, data, source, target) VALUES \
+			track, flags, data, form, target) VALUES \
 			('%s', %d,  \
 			%f, %f, %f, \
 			%f, %f, %f, \
@@ -3882,7 +3883,7 @@ void InsertZone(int client)
 			EXPAND_VECTOR(c.fCorner2),
 			EXPAND_VECTOR(c.fDestination),
 			c.iTrack, c.iFlags, c.iData,
-			c.iSource, c.sTarget
+			c.iForm, c.sTarget
 		);
 	}
 	else // update
@@ -3890,13 +3891,13 @@ void InsertZone(int client)
 		Shavit_LogMessage(
 			"%L - updated %s %s (%d) in map `%s`. \
 			p1(%f, %f, %f), p2(%f, %f, %f), dest(%f, %f, %f), \
-			flags=%d, data=%d, source=%d, target='%s'",
+			flags=%d, data=%d, form=%d, target='%s'",
 			client, sTrack, sZoneName, c.iDatabaseID, gS_Map,
 			EXPAND_VECTOR(c.fCorner1),
 			EXPAND_VECTOR(c.fCorner2),
 			EXPAND_VECTOR(c.fDestination),
 			c.iFlags, c.iData,
-			c.iSource, c.sTarget
+			c.iForm, c.sTarget
 		);
 
 		FormatEx(sQuery, sizeof(sQuery),
@@ -3905,14 +3906,14 @@ void InsertZone(int client)
 			, corner2_x = '%f', corner2_y = '%f', corner2_z = '%f' \
 			, destination_x = '%f', destination_y = '%f', destination_z = '%f' \
 			, flags = %d, data = %d \
-			, source = %d, target = '%s' \
+			, form = %d, target = '%s' \
 			WHERE %s = %d;",
 			gS_MySQLPrefix,
 			EXPAND_VECTOR(c.fCorner1),
 			EXPAND_VECTOR(c.fCorner2),
 			EXPAND_VECTOR(c.fDestination),
 			c.iFlags, c.iData,
-			c.iSource, c.sTarget,
+			c.iForm, c.sTarget,
 			gB_MySQL ? "id" : "rowid", c.iDatabaseID
 		);
 	}
