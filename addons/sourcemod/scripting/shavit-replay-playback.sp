@@ -163,6 +163,7 @@ float gF_VelocityDifference2D[MAXPLAYERS+1];
 float gF_VelocityDifference3D[MAXPLAYERS+1];
 
 bool gB_Late = false;
+bool gB_AdminMenu = false;
 
 // forwards
 Handle gH_OnReplayStart = null;
@@ -323,12 +324,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnAllPluginsLoaded()
 {
-	// admin menu
-	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
-	{
-		OnAdminMenuReady(gH_AdminMenu);
-	}
-
 	if (LibraryExists("closestpos"))
 	{
 		gB_ClosestPos = true;
@@ -458,10 +453,17 @@ public void OnPluginStart()
 
 	CreateAllNavFiles();
 
+	gB_AdminMenu = LibraryExists("adminmenu");
+
 	if(gB_Late)
 	{
 		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
 		Shavit_OnChatConfigLoaded();
+
+		if (gB_AdminMenu && (gH_AdminMenu = GetAdminTopMenu()) != null)
+		{
+			OnAdminMenuReady(gH_AdminMenu);
+		}
 	}
 
 	for(int i = 1; i < sizeof(gA_BotInfo); i++)
@@ -630,10 +632,7 @@ public void OnLibraryAdded(const char[] name)
 {
 	if (strcmp(name, "adminmenu") == 0)
 	{
-		if ((gH_AdminMenu = GetAdminTopMenu()) != null)
-		{
-			OnAdminMenuReady(gH_AdminMenu);
-		}
+		gB_AdminMenu = true;
 	}
 	else if (strcmp(name, "closestpos") == 0)
 	{
@@ -645,6 +644,7 @@ public void OnLibraryRemoved(const char[] name)
 {
 	if (strcmp(name, "adminmenu") == 0)
 	{
+		gB_AdminMenu = false;
 		gH_AdminMenu = null;
 		gH_TimerCommands = INVALID_TOPMENUOBJECT;
 	}
@@ -684,47 +684,12 @@ public void OnForcedConVarChanged(ConVar convar, const char[] oldValue, const ch
 	}
 }
 
-public void OnAdminMenuCreated(Handle topmenu)
+public void OnAdminMenuReady(Handle topmenu)
 {
-	if(gH_AdminMenu == null || (topmenu == gH_AdminMenu && gH_TimerCommands != INVALID_TOPMENUOBJECT))
-	{
-		return;
-	}
+	gH_AdminMenu = TopMenu.FromHandle(topmenu);
 
 	if ((gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands")) != INVALID_TOPMENUOBJECT)
 	{
-		return;
-	}
-
-	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
-}
-
-public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
-{
-	if(action == TopMenuAction_DisplayTitle)
-	{
-		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
-	}
-	else if(action == TopMenuAction_DisplayOption)
-	{
-		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
-	}
-}
-
-public void OnAdminMenuReady(Handle topmenu)
-{
-	if((gH_AdminMenu = GetAdminTopMenu()) != null)
-	{
-		if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
-		{
-			gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands");
-
-			if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
-			{
-				OnAdminMenuCreated(topmenu);
-			}
-		}
-
 		gH_AdminMenu.AddItem("sm_deletereplay", AdminMenu_DeleteReplay, gH_TimerCommands, "sm_deletereplay", ADMFLAG_RCON);
 	}
 }

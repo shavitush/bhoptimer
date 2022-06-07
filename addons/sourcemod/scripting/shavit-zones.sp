@@ -181,6 +181,7 @@ float gF_StartAng[MAXPLAYERS+1][TRACKS_SIZE][3];
 // modules
 bool gB_Eventqueuefix = false;
 bool gB_ReplayRecorder = false;
+bool gB_AdminMenu = false;
 
 #define CZONE_VER 'b'
 // custom zone stuff
@@ -366,11 +367,17 @@ public void OnPluginStart()
 
 	gB_ReplayRecorder = LibraryExists("shavit-replay-recorder");
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
+	gB_AdminMenu = LibraryExists("adminmenu");
 
 	if (gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
 		Shavit_OnDatabaseLoaded();
+
+		if (gB_AdminMenu && (gH_AdminMenu = GetAdminTopMenu()) != null)
+		{
+			OnAdminMenuReady(gH_AdminMenu);
+		}
 
 		for(int i = 1; i <= MaxClients; i++)
 		{
@@ -483,23 +490,11 @@ void LoadDHooks()
 	delete hGameData;
 }
 
-public void OnAllPluginsLoaded()
-{
-	// admin menu
-	if(LibraryExists("adminmenu") && ((gH_AdminMenu = GetAdminTopMenu()) != null))
-	{
-		OnAdminMenuReady(gH_AdminMenu);
-	}
-}
-
 public void OnLibraryAdded(const char[] name)
 {
 	if (strcmp(name, "adminmenu") == 0)
 	{
-		if ((gH_AdminMenu = GetAdminTopMenu()) != null)
-		{
-			OnAdminMenuReady(gH_AdminMenu);
-		}
+		gB_AdminMenu = true;
 	}
 	else if (StrEqual(name, "shavit-replay-recorder"))
 	{
@@ -515,6 +510,7 @@ public void OnLibraryRemoved(const char[] name)
 {
 	if (strcmp(name, "adminmenu") == 0)
 	{
+		gB_AdminMenu = false;
 		gH_AdminMenu = null;
 		gH_TimerCommands = INVALID_TOPMENUOBJECT;
 	}
@@ -597,47 +593,12 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 }
 
-public void OnAdminMenuCreated(Handle topmenu)
+public void OnAdminMenuReady(Handle topmenu)
 {
-	if(gH_AdminMenu == null || (topmenu == gH_AdminMenu && gH_TimerCommands != INVALID_TOPMENUOBJECT))
-	{
-		return;
-	}
+	gH_AdminMenu = TopMenu.FromHandle(topmenu);
 
 	if ((gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands")) != INVALID_TOPMENUOBJECT)
 	{
-		return;
-	}
-
-	gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
-}
-
-public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
-{
-	if(action == TopMenuAction_DisplayTitle)
-	{
-		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
-	}
-	else if(action == TopMenuAction_DisplayOption)
-	{
-		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
-	}
-}
-
-public void OnAdminMenuReady(Handle topmenu)
-{
-	if((gH_AdminMenu = GetAdminTopMenu()) != null)
-	{
-		if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
-		{
-			gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands");
-
-			if(gH_TimerCommands == INVALID_TOPMENUOBJECT)
-			{
-				OnAdminMenuCreated(topmenu);
-			}
-		}
-
 		gH_AdminMenu.AddItem("sm_zones", AdminMenu_Zones, gH_TimerCommands, "sm_zones", ADMFLAG_RCON);
 		gH_AdminMenu.AddItem("sm_deletezone", AdminMenu_DeleteZone, gH_TimerCommands, "sm_deletezone", ADMFLAG_RCON);
 		gH_AdminMenu.AddItem("sm_deleteallzones", AdminMenu_DeleteAllZones, gH_TimerCommands, "sm_deleteallzones", ADMFLAG_RCON);
