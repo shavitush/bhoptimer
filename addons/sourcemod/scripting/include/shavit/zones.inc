@@ -53,6 +53,8 @@ enum
 	ZF_ForceRender = (1 << 0),
 	ZF_Hammerid    = (1 << 1), // used by ZoneSource_{trigger_{multiple, teleport}, func_button} sometimes
 	ZF_Solid       = (1 << 2), // forces the zone to block people...
+	ZF_AutoHooked  = (1 << 3), // this was hooked by the timer automatically because of `shavit_zones_usebuttons` OR `shavit_zones_useprebuilt`
+	ZF_SQLZones    = (1 << 4), // came from `shavit_zones_usesql`
 };
 
 // Zone Display type
@@ -142,6 +144,105 @@ stock void GetZoneName(int client, int zoneType, char[] output, int size)
 		FormatEx(output, size, "%T", sTranslationStrings[zoneType], client);
 }
 
+// Please follow something like this:
+//   mod_zone_start
+//   mod_zone_end
+//   mod_zone_checkpoint_X
+//   mod_zone_bonus_X_start
+//   mod_zone_bonus_X_end
+//   mod_zone_bonus_X_checkpoint_X
+//
+//   climb_startbutton
+//   climb_endbutton
+//   climb_bonusX_startbutton
+//   climb_bonusX_endbutton
+//
+//   climb_startzone
+//   climb_endzone
+//   climb_bonusX_startzone
+//   climb_bonusX_endzone
+stock bool Shavit_ParseZoneTargetname(const char[] targetname, bool button, int& type, int& track, int& stage, const char[] mapname_for_log="")
+{
+	track = Track_Main;
+	type = -1;
+	stage = 0;
+
+	if (strncmp(targetname, "climb_", 6) != 0
+	&&  (button || strncmp(targetname, "mod_zone_", 9) != 0))
+	{
+		return false;
+	}
+
+	if (StrContains(targetname, "start") != -1)
+	{
+		type = Zone_Start;
+	}
+	else if (StrContains(targetname, "end") != -1)
+	{
+		type = Zone_End;
+	}
+
+	int bonus = StrContains(targetname, "bonus");
+
+	if (bonus != -1)
+	{
+		track = Track_Bonus;
+		bonus += 5; // skip past "bonus"
+		if (targetname[bonus] == '_') bonus += 1;
+
+		if ('1' <= targetname[bonus] <= '9')
+		{
+			track = StringToInt(targetname[bonus]);
+
+			if (track < Track_Bonus || track > Track_Bonus_Last)
+			{
+				if (mapname_for_log[0]) LogError("invalid track in prebuilt map zone (%s) on %s", targetname, mapname_for_log);
+				return false;
+			}
+		}
+	}
+
+	int checkpoint = StrContains(targetname, "checkpoint");
+
+	if (checkpoint != -1)
+	{
+		if (button)
+		{
+			if (mapname_for_log[0]) LogError("invalid button (%s) (has checkpoint) on %s", targetname, mapname_for_log);
+			return false;
+		}
+
+		if (type != -1)
+		{
+			if (mapname_for_log[0]) LogError("invalid type (start/end + checkpoint) in prebuilt map zone (%s) on %s", targetname, mapname_for_log);
+			return false; // end/start & checkpoint...
+		}
+
+		type = Zone_Stage;
+		checkpoint += 10; // skip past "checkpoint"
+		if (targetname[checkpoint] == '_') checkpoint += 1;
+
+		if ('1' <= targetname[checkpoint] <= '9')
+		{
+			stage = StringToInt(targetname[checkpoint]);
+
+			if (stage <= 0 || stage > MAX_STAGES)
+			{
+				if (mapname_for_log[0]) LogError("invalid stage number in prebuilt map zone (%s) on %s", targetname, mapname_for_log);
+				return false;
+			}
+		}
+	}
+
+	if (type == -1)
+	{
+		if (mapname_for_log[0]) LogError("invalid zone type in prebuilt map zone (%s) on %s", targetname, mapname_for_log);
+		return false;
+	}
+
+	return true;
+}
+
 /**
  * Called when a player enters a zone.
  *
@@ -167,6 +268,11 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
  * @noreturn
  */
 forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data);
+
+/**
+ *
+ */
+forward void Shavit_LoadZonesHere();
 
 /**
  * Called when a player leaves a zone.
