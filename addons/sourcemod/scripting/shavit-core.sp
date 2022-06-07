@@ -46,6 +46,8 @@
 #include <shavit/sql-create-tables-and-migrations.sp>
 #include <shavit/physicsuntouch>
 
+#include <adminmenu>
+
 #pragma newdecls required
 #pragma semicolon 1
 
@@ -120,6 +122,10 @@ bool gB_Zones = false;
 bool gB_ReplayPlayback = false;
 bool gB_Rankings = false;
 bool gB_HUD = false;
+bool gB_AdminMenu = false;
+
+TopMenu gH_AdminMenu = null;
+TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // cvars
 Convar gCV_Restart = null;
@@ -402,6 +408,7 @@ public void OnPluginStart()
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
 	gB_Rankings = LibraryExists("shavit-rankings");
 	gB_HUD = LibraryExists("shavit-hud");
+	gB_AdminMenu = LibraryExists("adminmenu");
 
 	// database connections
 	SQL_DBConnect();
@@ -409,6 +416,12 @@ public void OnPluginStart()
 	// late
 	if(gB_Late)
 	{
+		if (gB_AdminMenu && (gH_AdminMenu = GetAdminTopMenu()) != null)
+		{
+			OnAdminMenuCreated(gH_AdminMenu);
+			OnAdminMenuReady(gH_AdminMenu);
+		}
+
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			if(IsValidClient(i))
@@ -417,6 +430,33 @@ public void OnPluginStart()
 			}
 		}
 	}
+}
+
+public void OnAdminMenuCreated(Handle topmenu)
+{
+	gH_AdminMenu = TopMenu.FromHandle(topmenu);
+
+	if ((gH_TimerCommands = gH_AdminMenu.FindCategory("Timer Commands")) == INVALID_TOPMENUOBJECT)
+	{
+		gH_TimerCommands = gH_AdminMenu.AddCategory("Timer Commands", CategoryHandler, "shavit_admin", ADMFLAG_RCON);
+	}
+}
+
+public void CategoryHandler(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayTitle)
+	{
+		FormatEx(buffer, maxlength, "%T:", "TimerCommands", param);
+	}
+	else if(action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%T", "TimerCommands", param);
+	}
+}
+
+public void OnAdminMenuReady(Handle topmenu)
+{
+	gH_AdminMenu = TopMenu.FromHandle(topmenu);
 }
 
 void LoadDHooks()
@@ -557,6 +597,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Eventqueuefix = true;
 	}
+	else if (StrEqual(name, "adminmenu"))
+	{
+		gB_AdminMenu = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -580,6 +624,12 @@ public void OnLibraryRemoved(const char[] name)
 	else if(StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = false;
+	}
+	else if (StrEqual(name, "adminmenu"))
+	{
+		gB_AdminMenu = false;
+		gH_AdminMenu = null;
+		gH_TimerCommands = INVALID_TOPMENUOBJECT;
 	}
 }
 
