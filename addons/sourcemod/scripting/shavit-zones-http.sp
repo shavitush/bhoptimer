@@ -128,7 +128,7 @@ void RetrieveZones(const char[] mapname)
 
 	if (!apiurl[0])
 	{
-		LogError("Missing HTTP url");
+		LogError("Missing API URL");
 		return;
 	}
 
@@ -208,6 +208,7 @@ void handlestuff(DataPack pack, JSON_Array records)
 
 	char source[16];
 	gCV_Source.GetString(source, sizeof(source));
+	if (!source[0]) source = "http";
 
 	if (records == null)
 	{
@@ -236,24 +237,55 @@ void handlestuff(DataPack pack, JSON_Array records)
 #endif
 
 		zone_cache_t cache;
-		cache.iType = json.GetInt("type");
-		cache.iTrack = json.GetInt("track");
+
+		if (json.HasKey("track_type"))
+		{
+			char sTrack[16];
+			json.GetString("track_type", sTrack, sizeof(sTrack));
+
+			if (StrEqual(sTrack, "main"))
+			{
+				cache.iTrack = Track_Main;
+			}
+			else if (StrEqual(sTrack, "bonus"))
+			{
+				cache.iTrack = json.GetInt("track_index");
+			}
+		}
+
+		if (json.HasKey("zone_type"))
+		{
+			char sType[16];
+			json.GetString("zone_type", sType, sizeof(sType));
+
+			if (StrEqual(sType, "start"))
+			{
+				cache.iType = Zone_Start;
+			}
+			else if (StrEqual(sType, "end"))
+			{
+				cache.iType = Zone_End;
+			}
+		}
+
+		//if (json.HasKey("type")) cache.iType = json.GetInt("type");
+		//if (json.HasKey("track")) cache.iTrack = json.GetInt("track");
 		//cache.iEntity
-		cache.iDatabaseID = json.GetInt("databaseid");
-		cache.iFlags = json.GetInt("flags");
-		cache.iData = json.GetInt("data");
+		if (json.HasKey("databaseid")) cache.iDatabaseID = json.GetInt("databaseid");
+		if (json.HasKey("flags")) cache.iFlags = json.GetInt("flags");
+		if (json.HasKey("data")) cache.iData = json.GetInt("data");
 		cache.fCorner1[0] = json.GetFloat("corner1_x");
 		cache.fCorner1[1] = json.GetFloat("corner1_y");
 		cache.fCorner1[2] = json.GetFloat("corner1_z");
 		cache.fCorner2[0] = json.GetFloat("corner2_x");
 		cache.fCorner2[1] = json.GetFloat("corner2_y");
 		cache.fCorner2[2] = json.GetFloat("corner2_z");
-		cache.fDestination[0] = json.GetFloat("dest_x");
-		cache.fDestination[1] = json.GetFloat("dest_y");
-		cache.fDestination[2] = json.GetFloat("dest_z");
-		cache.iForm = json.GetInt("form");
-		json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
-		//json.GetString("source", cache.sSource, sizeof(cache.sSource));
+		if (json.HasKey("dest_x")) cache.fDestination[0] = json.GetFloat("dest_x");
+		if (json.HasKey("dest_y")) cache.fDestination[1] = json.GetFloat("dest_y");
+		if (json.HasKey("dest_z")) cache.fDestination[2] = json.GetFloat("dest_z");
+		if (json.HasKey("form")) cache.iForm = json.GetInt("form");
+		if (json.HasKey("target")) json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
+		//if (json.HasKey("source")) json.GetString("source", cache.sSource, sizeof(cache.sSource));
 		cache.sSource = source;
 
 		gA_Zones.PushArray(cache);
