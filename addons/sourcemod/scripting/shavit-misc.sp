@@ -466,7 +466,7 @@ void LoadMapFixes()
 			kv.GetSectionName(key, sizeof(key));
 			kv.GetString(NULL_STRING, value, sizeof(value));
 
-			PrintToServer(">>>> mapfixes: %s \"%s\"", key, value);
+			PrintToServer(">>>> shavit-misc/mapfixes: %s \"%s\"", key, value);
 
 			ConVar cvar = FindConVar(key);
 
