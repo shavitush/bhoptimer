@@ -40,6 +40,26 @@
 #pragma newdecls required
 
 
+static char gS_ZoneTypes[ZONETYPES_SIZE][18] = {
+	"start",
+	"end",
+	"respawn",
+	"stop",
+	"slay",
+	"freestyle",
+	"customspeedlimit",
+	"teleport",
+	"customspawn",
+	"easybhop",
+	"slide",
+	"airaccel",
+	"stage",
+	"notimergravity",
+	"gravity",
+	"speedmod",
+};
+
+
 bool gB_YouCanLoadZonesNow = false;
 char gS_Map[PLATFORM_MAX_PATH];
 char gS_ZonesForMap[PLATFORM_MAX_PATH];
@@ -196,6 +216,25 @@ void RequestCallback_Steamworks(const char[] data, DataPack pack, int datalen)
 #endif
 
 #if USE_RIPEXT
+void ReadVec(const char[] key, JSONObject json, float vec[3])
+#else
+void ReadVec(const char[] key, JSON_Object json, float vec[3])
+#endif
+{
+	if (json.HasKey(key))
+	{
+#if USE_RIPEXT
+			JSONArray arr = view_as<JSONArray>(json.Get(key));
+#else
+			JSON_Array arr = view_as<JSON_Array>(json.GetObject(key));
+#endif
+			vec[0] = arr.GetFloat(0);
+			vec[1] = arr.GetFloat(1);
+			vec[2] = arr.GetFloat(2);
+	}
+}
+
+#if USE_RIPEXT
 void handlestuff(DataPack pack, JSONArray records)
 #else
 void handlestuff(DataPack pack, JSON_Array records)
@@ -228,61 +267,49 @@ void handlestuff(DataPack pack, JSON_Array records)
 
 	gA_Zones.Clear();
 
-	for (int i = 0; i < records.Length; i++)
+
+
+	for (int RN = 0; RN < records.Length; RN++)
 	{
 #if USE_RIPEXT
-		JSONObject json = view_as<JSONObject>(records.Get(i));
+		JSONObject json = view_as<JSONObject>(records.Get(RN));
 #else
-		JSON_Object json = records.GetObject(i);
+		JSON_Object json = records.GetObject(RN);
 #endif
 
+		char buf[16];
 		zone_cache_t cache;
 
-		if (json.HasKey("track_type"))
-		{
-			char sTrack[16];
-			json.GetString("track_type", sTrack, sizeof(sTrack));
+		json.GetString("type", buf, sizeof(buf));
+		cache.iType = -1;
 
-			if (StrEqual(sTrack, "main"))
+		for (int i = 0; i < ZONETYPES_SIZE; i++)
+		{
+			if (StrEqual(buf, gS_ZoneTypes[i]))
 			{
-				cache.iTrack = Track_Main;
-			}
-			else if (StrEqual(sTrack, "bonus"))
-			{
-				cache.iTrack = json.GetInt("track_index");
+				cache.iType = i;
 			}
 		}
 
-		if (json.HasKey("zone_type"))
+		if (cache.iType == -1)
 		{
-			char sType[16];
-			json.GetString("zone_type", sType, sizeof(sType));
-
-			if (StrEqual(sType, "start"))
-			{
-				cache.iType = Zone_Start;
-			}
-			else if (StrEqual(sType, "end"))
-			{
-				cache.iType = Zone_End;
-			}
+			//PrintToServer("");
+			continue;
 		}
 
-		//if (json.HasKey("type")) cache.iType = json.GetInt("type");
-		//if (json.HasKey("track")) cache.iTrack = json.GetInt("track");
+		cache.iTrack = json.GetInt("track");
 		//cache.iEntity
-		if (json.HasKey("databaseid")) cache.iDatabaseID = json.GetInt("databaseid");
+		cache.iDatabaseID = json.GetInt("id");
 		if (json.HasKey("flags")) cache.iFlags = json.GetInt("flags");
 		if (json.HasKey("data")) cache.iData = json.GetInt("data");
-		cache.fCorner1[0] = json.GetFloat("corner1_x");
-		cache.fCorner1[1] = json.GetFloat("corner1_y");
-		cache.fCorner1[2] = json.GetFloat("corner1_z");
-		cache.fCorner2[0] = json.GetFloat("corner2_x");
-		cache.fCorner2[1] = json.GetFloat("corner2_y");
-		cache.fCorner2[2] = json.GetFloat("corner2_z");
-		if (json.HasKey("dest_x")) cache.fDestination[0] = json.GetFloat("dest_x");
-		if (json.HasKey("dest_y")) cache.fDestination[1] = json.GetFloat("dest_y");
-		if (json.HasKey("dest_z")) cache.fDestination[2] = json.GetFloat("dest_z");
+
+		if (cache.iType == Zone_Stage)
+			if (json.HasKey("index")) cache.iData = json.GetInt("index");
+
+		ReadVec("point_a", json, cache.fCorner1);
+		ReadVec("point_b", json, cache.fCorner2);
+		ReadVec("dest", json, cache.fDestination);
+
 		if (json.HasKey("form")) cache.iForm = json.GetInt("form");
 		if (json.HasKey("target")) json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
 		//if (json.HasKey("source")) json.GetString("source", cache.sSource, sizeof(cache.sSource));
