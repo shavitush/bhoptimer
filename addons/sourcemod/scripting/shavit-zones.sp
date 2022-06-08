@@ -849,6 +849,9 @@ public any Native_AddZone(Handle plugin, int numParams)
 	GetNativeArray(1, cache, sizeof(cache));
 	cache.iEntity = -1;
 
+	// normalize zone points...
+	FillBoxMinMax(cache.fCorner1, cache.fCorner2, cache.fCorner1, cache.fCorner2);
+
 	gA_ZoneCache[gI_MapZones] = cache;
 
 	gV_MapZones_Visual[gI_MapZones][0] = cache.fCorner1;
