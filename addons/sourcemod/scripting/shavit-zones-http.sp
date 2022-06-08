@@ -247,7 +247,7 @@ void handlestuff(DataPack pack, JSON_Array records)
 	pack.ReadString(mapname, sizeof(mapname));
 	delete pack;
 
-	char source[32];
+	char source[16];
 	gCV_Source.GetString(source, sizeof(source));
 	if (!source[0]) source = "http";
 
@@ -277,7 +277,7 @@ void handlestuff(DataPack pack, JSON_Array records)
 		JSON_Object json = records.GetObject(RN);
 #endif
 
-		char buf[16];
+		char buf[32];
 		zone_cache_t cache;
 
 		json.GetString("type", buf, sizeof(buf));
