@@ -52,10 +52,10 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"You {1}cannot{2} setup mapzones when you're dead."
 	}
-	"ZonesNotLocal"
+	"ZonesNotSQL"
 	{
 		"#format"   "{1:s},{2:s}"
-		"en"        "You {1}cannot{2} add/edit/delete non-local zones."
+		"en"        "You {1}cannot{2} add/edit/delete non-sql zones."
 	}
 	"ZoneCustomSpawnMenuTitle"
 	{

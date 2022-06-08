@@ -1945,7 +1945,7 @@ public Action Command_AddSpawn(int client, int args)
 
 	if (!gCV_SQLZones.BoolValue)
 	{
-		Shavit_PrintToChat(client, "%T", "ZonesNotLocal", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
 
@@ -2121,7 +2121,7 @@ public Action Command_ZoneEdit(int client, int args)
 
 	if (!gCV_SQLZones.BoolValue)
 	{
-		Shavit_PrintToChat(client, "%T", "ZonesNotLocal", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
 
@@ -2358,7 +2358,7 @@ public Action Command_Zones(int client, int args)
 
 	if (!gCV_SQLZones.BoolValue)
 	{
-		Shavit_PrintToChat(client, "%T", "ZonesNotLocal", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
 
@@ -2860,7 +2860,7 @@ public Action Command_DeleteZone(int client, int args)
 
 	if (!gCV_SQLZones.BoolValue)
 	{
-		Shavit_PrintToChat(client, "%T", "ZonesNotLocal", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
 
