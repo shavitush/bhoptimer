@@ -36,6 +36,9 @@
 #undef REQUIRE_PLUGIN
 
 
+// todo: defines for JSON_Array & JSONArray?
+// todo: or even compile this including both and have cvar determine whether ripext or not is used?
+
 #pragma semicolon 1
 #pragma newdecls required
 
@@ -186,7 +189,7 @@ void RetrieveZones(const char[] mapname)
 #if USE_RIPEXT
 void RequestCallback_Ripext(HTTPResponse response, DataPack pack, const char[] error)
 {
-	if (response.Status != HTTPStatus_OK)
+	if (response.Status != HTTPStatus_OK || response.Data == null)
 	{
 		LogError("HTTP API request failed");
 		delete pack;
@@ -213,7 +216,13 @@ public void RequestCompletedCallback_Steamworks(Handle request, bool bFailure, b
 
 void RequestCallback_Steamworks(const char[] data, DataPack pack, int datalen)
 {
-	handlestuff(pack, view_as<JSON_Array>(json_decode(data)));
+	JSON_Array records = view_as<JSON_Array>(json_decode(data));
+
+	if (records)
+	{
+		handlestuff(pack, records);
+		json_cleanup(records);
+	}
 }
 #endif
 
@@ -247,25 +256,16 @@ void handlestuff(DataPack pack, JSON_Array records)
 	pack.ReadString(mapname, sizeof(mapname));
 	delete pack;
 
+	if (!StrEqual(mapname, gS_Map))
+	{
+		return;
+	}
+
 	char source[16];
 	gCV_Source.GetString(source, sizeof(source));
 	if (!source[0]) source = "http";
 
-	if (records == null)
-	{
-		LogError("JSON Handle is NULL");
-		return;
-	}
-
 	gS_ZonesForMap = mapname;
-
-	if (!StrEqual(mapname, gS_Map))
-	{
-#if !USE_RIPEXT
-		json_cleanup(records);
-#endif
-		return;
-	}
 
 	gA_Zones.Clear();
 
@@ -311,18 +311,12 @@ void handlestuff(DataPack pack, JSON_Array records)
 		ReadVec("dest", json, cache.fDestination);
 
 		if (json.HasKey("form")) cache.iForm = json.GetInt("form");
-		if (json.HasKey("target")) json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
-		//if (json.HasKey("source")) json.GetString("source", cache.sSource, sizeof(cache.sSource));
+		json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
+		//json.GetString("source", cache.sSource, sizeof(cache.sSource));
 		cache.sSource = source;
 
 		gA_Zones.PushArray(cache);
 	}
-
-#if USE_RIPEXT
-	// the records handle is closed by ripext post-callback
-#else
-	json_cleanup(records);
-#endif
 
 	if (gB_YouCanLoadZonesNow)
 		LoadCachedZones();
