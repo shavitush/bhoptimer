@@ -91,10 +91,10 @@ public void OnPluginStart()
 {
 	gA_Zones = new ArrayList(sizeof(zone_cache_t));
 
-	gCV_Enable = new Convar("shavit_zones_http_enable", "1", "description", 0, true, 0.0, true, 1.0);
-	gCV_ApiUrl = new Convar("shavit_zones_http_url", "", "description", FCVAR_PROTECTED);
-	gCV_ApiKey = new Convar("shavit_zones_http_key", "", "description", FCVAR_PROTECTED);
-	gCV_Source = new Convar("shavit_zones_http_src", "http", "description");
+	gCV_Enable = new Convar("shavit_zones_http_enable", "1", "Whether to enable this or not...", 0, true, 0.0, true, 1.0);
+	gCV_ApiUrl = new Convar("shavit_zones_http_url", "", "API URL. Will replace `{map}` and `{key}` with the mapname and api key.\nExample sourcejump url:\n  https://sourcejump.net/api/v2/maps/{map}/zones", FCVAR_PROTECTED);
+	gCV_ApiKey = new Convar("shavit_zones_http_key", "", "API key that some APIs might require.", FCVAR_PROTECTED);
+	gCV_Source = new Convar("shavit_zones_http_src", "http", "A string used by plugins to identify where a zone came from (http, sourcejump, sql, etc)");
 
 	Convar.AutoExecConfig();
 }
@@ -152,7 +152,8 @@ void RetrieveZones(const char[] mapname)
 		return;
 	}
 
-	StrCat(apiurl, sizeof(apiurl), mapname);
+	ReplaceString(apiurl, sizeof(apiurl), "{map}", mapname);
+	ReplaceString(apiurl, sizeof(apiurl), "{key}", apikey);
 
 	DataPack pack = new DataPack();
 	pack.WriteString(mapname);
@@ -161,6 +162,7 @@ void RetrieveZones(const char[] mapname)
 	HTTPRequest http = new HTTPRequest(apiurl);
 	if (apikey[0])
 		http.SetHeader("api-key", "%s", apikey);
+	http.SetHeader("map", "%s", mapname);
 	http.Get(RequestCallback_Ripext, pack);
 #else
 	Handle request;
@@ -266,8 +268,6 @@ void handlestuff(DataPack pack, JSON_Array records)
 	}
 
 	gA_Zones.Clear();
-
-
 
 	for (int RN = 0; RN < records.Length; RN++)
 	{
