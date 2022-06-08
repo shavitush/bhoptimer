@@ -247,7 +247,7 @@ void handlestuff(DataPack pack, JSON_Array records)
 	pack.ReadString(mapname, sizeof(mapname));
 	delete pack;
 
-	char source[16];
+	char source[32];
 	gCV_Source.GetString(source, sizeof(source));
 	if (!source[0]) source = "http";
 
