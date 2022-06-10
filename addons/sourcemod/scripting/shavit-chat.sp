@@ -679,17 +679,24 @@ public void OnClientPostAdminCheck(int client)
 	}
 }
 
+Action Timer_RefreshAdmins(Handle timer, any data)
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i) && !IsFakeClient(i) && IsClientAuthorized(i))
+		{
+			OnClientPostAdminCheck(i);
+		}
+	}
+
+	return Plugin_Stop;
+}
+
 public void OnRebuildAdminCache(AdminCachePart part)
 {
 	if (part == AdminCache_Overrides) // the last of the 3 parts when I tested
 	{
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if (IsValidClient(i) && !IsFakeClient(i) && IsClientAuthorized(i))
-			{
-				OnClientPostAdminCheck(i);
-			}
-		}
+		CreateTimer(2.5, Timer_RefreshAdmins, 0, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
@@ -1159,13 +1166,6 @@ bool HasRankAccess(int client, int rank)
 
 void GetPlayerChatSettings(int client, char[] name, char[] message, int iRank)
 {
-#if 0
-	if(!HasRankAccess(client, iRank))
-	{
-		iRank = -2;
-	}
-#endif
-
 	int iLength = gA_ChatRanks.Length;
 
 	if (iRank == -1)
