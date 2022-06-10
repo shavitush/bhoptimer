@@ -103,12 +103,10 @@ bool gB_ChatRanksMenuOnlyUnlocked[MAXPLAYERS+1];
 bool gB_ChangedSinceLogin[MAXPLAYERS+1];
 
 bool gB_CCAccess[MAXPLAYERS+1];
-
-bool gB_NameEnabled[MAXPLAYERS+1];
 char gS_CustomName[MAXPLAYERS+1][128];
-
-bool gB_MessageEnabled[MAXPLAYERS+1];
 char gS_CustomMessage[MAXPLAYERS+1][16];
+
+bool gB_AdminChecked[MAXPLAYERS+1];
 
 chatstrings_t gS_ChatStrings;
 
@@ -194,6 +192,7 @@ public void OnPluginStart()
 
 			if (IsClientAuthorized(i))
 			{
+				OnClientAuthorized(i, "");
 				OnClientPostAdminCheck(i);
 			}
 		}
@@ -627,24 +626,25 @@ public void OnClientCookiesCached(int client)
 
 	if(strlen(sChatSettings) == 0)
 	{
-		SetClientCookie(client, gH_ChatCookie, "-2");
 		gI_ChatSelection[client] = -2;
 	}
 	else
 	{
 		gI_ChatSelection[client] = StringToInt(sChatSettings);
+
+		if (gB_AdminChecked[client] && !HasRankAccess(client, gI_ChatSelection[client]))
+		{
+			SetClientCookie(client, gH_ChatCookie, "-2");
+			gI_ChatSelection[client] = -2;
+		}
 	}
 }
 
 public void OnClientConnected(int client)
 {
 	gB_CCAccess[client] = false;
-
-	gB_NameEnabled[client] = true;
-	strcopy(gS_CustomName[client], 128, "{team}{name}");
-
-	gB_MessageEnabled[client] = true;
-	strcopy(gS_CustomMessage[client], 128, "{default}");
+	strcopy(gS_CustomName[client], sizeof(gS_CustomName[]), "{team}{name}");
+	strcopy(gS_CustomMessage[client], sizeof(gS_CustomMessage[]), "{default}");
 }
 
 public void OnClientDisconnect(int client)
@@ -653,13 +653,43 @@ public void OnClientDisconnect(int client)
 	{
 		SaveToDatabase(client);
 	}
+
+	gB_AdminChecked[client] = false;
 }
 
-public void OnClientPostAdminCheck(int client)
+public void OnClientAuthorized(int client, const char[] auth)
 {
 	if (gH_SQL)
 	{
 		LoadFromDatabase(client);
+	}
+}
+
+public void OnClientPostAdminCheck(int client)
+{
+	gB_AdminChecked[client] = true;
+
+	if (AreClientCookiesCached(client))
+	{
+		if (!HasRankAccess(client, gI_ChatSelection[client]))
+		{
+			SetClientCookie(client, gH_ChatCookie, "-2");
+			gI_ChatSelection[client] = -2;
+		}
+	}
+}
+
+public void OnRebuildAdminCache(AdminCachePart part)
+{
+	if (part == AdminCache_Overrides) // the last of the 3 parts when I tested
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i) && !IsFakeClient(i) && IsClientAuthorized(i))
+			{
+				OnClientPostAdminCheck(i);
+			}
+		}
 	}
 }
 
@@ -716,27 +746,25 @@ public Action Command_CCName(int client, int args)
 	if(args == 0 || strlen(sArgs) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_ccname <text>");
-		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, !strlen(gS_CustomName[client]) ? "off" : gS_CustomName[client]);
+		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, gS_CustomName[client]);
 
 		return Plugin_Handled;
 	}
 	else if(StrEqual(sArgs, "off"))
 	{
 		Shavit_PrintToChat(client, "%T", "NameOff", client, sArgs);
-
-		gB_NameEnabled[client] = false;
-
-		return Plugin_Handled;
+		sArgs = "{team}{name}";
 	}
-
-	Shavit_PrintToChat(client, "%T", "ChatUpdated", client);
+	else
+	{
+		Shavit_PrintToChat(client, "%T", "ChatUpdated", client);
+	}
 
 	if(!StrEqual(gS_CustomName[client], sArgs))
 	{
 		gB_ChangedSinceLogin[client] = true;
 	}
 
-	gB_NameEnabled[client] = true;
 	strcopy(gS_CustomName[client], 128, sArgs);
 
 	return Plugin_Handled;
@@ -765,27 +793,25 @@ public Action Command_CCMessage(int client, int args)
 	if(args == 0 || strlen(sArgs) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_ccmsg <text>");
-		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, !strlen(gS_CustomMessage[client]) ? "off" : gS_CustomMessage[client]);
+		Shavit_PrintToChat(client, "%T", "ChatCurrent", client, gS_CustomMessage[client]);
 
 		return Plugin_Handled;
 	}
 	else if(StrEqual(sArgs, "off"))
 	{
 		Shavit_PrintToChat(client, "%T", "MessageOff", client, sArgs);
-
-		gB_MessageEnabled[client] = false;
-
-		return Plugin_Handled;
+		sArgs = "{default}";
 	}
-
-	Shavit_PrintToChat(client, "%T", "ChatUpdated", client);
+	else
+	{
+		Shavit_PrintToChat(client, "%T", "ChatUpdated", client);
+	}
 
 	if(!StrEqual(gS_CustomMessage[client], sArgs))
 	{
 		gB_ChangedSinceLogin[client] = true;
 	}
 
-	gB_MessageEnabled[client] = true;
 	strcopy(gS_CustomMessage[client], 16, sArgs);
 
 	return Plugin_Handled;
@@ -1144,20 +1170,9 @@ void GetPlayerChatSettings(int client, char[] name, char[] message, int iRank)
 
 	if (iRank == -1)
 	{
-		if (gB_NameEnabled[client])
-		{
-			strcopy(name, MAXLENGTH_NAME, gS_CustomName[client]);
-		}
-
-		if (gB_MessageEnabled[client])
-		{
-			strcopy(message, MAXLENGTH_NAME, gS_CustomMessage[client]);
-		}
-
-		if (name[0] && message[0])
-		{
-			return;
-		}
+		strcopy(name, MAXLENGTH_NAME, gS_CustomName[client]);
+		strcopy(message, MAXLENGTH_NAME, gS_CustomMessage[client]);
+		return;
 	}
 
 	// if we auto-assign, start looking for an available rank starting from index 0
@@ -1427,7 +1442,7 @@ void SaveToDatabase(int client)
 	char sQuery[512];
 	FormatEx(sQuery, 512,
 		"REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES (%d, %d, '%s', %d, '%s');",
-		gS_MySQLPrefix, iSteamID, gB_NameEnabled[client], sEscapedName, gB_MessageEnabled[client], sEscapedMessage);
+		gS_MySQLPrefix, iSteamID, 1, sEscapedName, 1, sEscapedMessage);
 
 	gH_SQL.Query2(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -1489,10 +1504,7 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 			return;
 		}
 
-		gB_NameEnabled[client] = view_as<bool>(results.FetchInt(0));
 		results.FetchString(1, gS_CustomName[client], 128);
-
-		gB_MessageEnabled[client] = view_as<bool>(results.FetchInt(2));
 		results.FetchString(3, gS_CustomMessage[client], 16);
 	}
 }
@@ -1526,7 +1538,7 @@ public int Native_GetPlainChatrank(Handle handler, int numParams)
 	bool includename = !(GetNativeCell(4) == 0);
 	int iChatrank = gI_ChatSelection[client];
 
-	if (HasCustomChat(client) && iChatrank == -1 && gB_NameEnabled[client])
+	if (iChatrank == -1 && HasCustomChat(client))
 	{
 		strcopy(buf, sizeof(buf), gS_CustomName[client]);
 	}
