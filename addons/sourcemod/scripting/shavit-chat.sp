@@ -106,6 +106,8 @@ bool gB_CCAccess[MAXPLAYERS+1];
 char gS_CustomName[MAXPLAYERS+1][128];
 char gS_CustomMessage[MAXPLAYERS+1][16];
 
+bool gB_AdminChecked[MAXPLAYERS+1];
+
 chatstrings_t gS_ChatStrings;
 
 // chat procesor
@@ -190,6 +192,7 @@ public void OnPluginStart()
 
 			if (IsClientAuthorized(i))
 			{
+				OnClientAuthorized(i, "");
 				OnClientPostAdminCheck(i);
 			}
 		}
@@ -623,12 +626,17 @@ public void OnClientCookiesCached(int client)
 
 	if(strlen(sChatSettings) == 0)
 	{
-		SetClientCookie(client, gH_ChatCookie, "-2");
 		gI_ChatSelection[client] = -2;
 	}
 	else
 	{
 		gI_ChatSelection[client] = StringToInt(sChatSettings);
+
+		if (gB_AdminChecked[client] && !HasRankAccess(client, gI_ChatSelection[client]))
+		{
+			SetClientCookie(client, gH_ChatCookie, "-2");
+			gI_ChatSelection[client] = -2;
+		}
 	}
 }
 
@@ -645,13 +653,43 @@ public void OnClientDisconnect(int client)
 	{
 		SaveToDatabase(client);
 	}
+
+	gB_AdminChecked[client] = false;
 }
 
-public void OnClientPostAdminCheck(int client)
+public void OnClientAuthorized(int client, const char[] auth)
 {
 	if (gH_SQL)
 	{
 		LoadFromDatabase(client);
+	}
+}
+
+public void OnClientPostAdminCheck(int client)
+{
+	gB_AdminChecked[client] = true;
+
+	if (AreClientCookiesCached(client))
+	{
+		if (!HasRankAccess(client, gI_ChatSelection[client]))
+		{
+			SetClientCookie(client, gH_ChatCookie, "-2");
+			gI_ChatSelection[client] = -2;
+		}
+	}
+}
+
+public void OnRebuildAdminCache(AdminCachePart part)
+{
+	if (part == AdminCache_Overrides) // the last of the 3 parts when I tested
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i) && !IsFakeClient(i) && IsClientAuthorized(i))
+			{
+				OnClientPostAdminCheck(i);
+			}
+		}
 	}
 }
 
