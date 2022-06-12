@@ -25,16 +25,11 @@
 #include <shavit/core>
 #include <shavit/zones>
 
-#define USE_RIPEXT 1
-#if USE_RIPEXT
+#undef REQUIRE_PLUGIN
+#undef REQUIRE_EXTENSIONS
 #include <ripext> // https://github.com/ErikMinekus/sm-ripext
-#else
 #include <json> // https://github.com/clugg/sm-json
 #include <SteamWorks> // HTTP stuff
-#endif
-
-#undef REQUIRE_PLUGIN
-
 
 // todo: defines for JSON_Array & JSONArray?
 // todo: or even compile this including both and have cvar determine whether ripext or not is used?
@@ -69,6 +64,7 @@ char gS_ZonesForMap[PLATFORM_MAX_PATH];
 ArrayList gA_Zones = null;
 
 Convar gCV_Enable = null;
+Convar gCV_UseRipext = null;
 Convar gCV_ApiUrl = null;
 Convar gCV_ApiKey = null;
 Convar gCV_Source = null;
@@ -95,6 +91,7 @@ public void OnPluginStart()
 	gA_Zones = new ArrayList(sizeof(zone_cache_t));
 
 	gCV_Enable = new Convar("shavit_zones_http_enable", "1", "Whether to enable this or not...", 0, true, 0.0, true, 1.0);
+	gCV_UseRipext = new Convar("shavit_zones_http_ripext", "1", "Whether to use ripext or steamworks", 0, true, 0.0, true, 1.0);
 	gCV_ApiUrl = new Convar("shavit_zones_http_url", "", "API URL. Will replace `{map}` and `{key}` with the mapname and api key.\nExample sourcejump url:\n  https://sourcejump.net/api/v2/maps/{map}/zones", FCVAR_PROTECTED);
 	gCV_ApiKey = new Convar("shavit_zones_http_key", "", "API key that some APIs might require.", FCVAR_PROTECTED);
 	gCV_Source = new Convar("shavit_zones_http_src", "http", "A string used by plugins to identify where a zone came from (http, sourcejump, sql, etc)");
@@ -161,13 +158,16 @@ void RetrieveZones(const char[] mapname)
 	DataPack pack = new DataPack();
 	pack.WriteString(mapname);
 
-#if USE_RIPEXT
-	HTTPRequest http = new HTTPRequest(apiurl);
-	if (apikey[0])
-		http.SetHeader("api-key", "%s", apikey);
-	http.SetHeader("map", "%s", mapname);
-	http.Get(RequestCallback_Ripext, pack);
-#else
+	if (gCV_UseRipext.BoolValue)
+	{
+		HTTPRequest http = new HTTPRequest(apiurl);
+		if (apikey[0])
+			http.SetHeader("api-key", "%s", apikey);
+		http.SetHeader("map", "%s", mapname);
+		http.Get(RequestCallback_Ripext, pack);
+		return;
+	}
+
 	Handle request;
 	if (!(request = SteamWorks_CreateHTTPRequest(k_EHTTPMethodGET, apiurl))
 	  || (apikey[0] && !SteamWorks_SetHTTPRequestHeaderValue(request, "api-key", apikey))
@@ -183,10 +183,8 @@ void RetrieveZones(const char[] mapname)
 		LogError("failed to setup & send HTTP request");
 		return;
 	}
-#endif
 }
 
-#if USE_RIPEXT
 void RequestCallback_Ripext(HTTPResponse response, DataPack pack, const char[] error)
 {
 	if (response.Status != HTTPStatus_OK || response.Data == null)
@@ -196,9 +194,9 @@ void RequestCallback_Ripext(HTTPResponse response, DataPack pack, const char[] e
 		return;
 	}
 
-	handlestuff(pack, view_as<JSONArray>(response.Data));
+	handlestuff(pack, response.Data, true);
 }
-#else
+
 public void RequestCompletedCallback_Steamworks(Handle request, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, DataPack pack)
 {
 	if (bFailure || !bRequestSuccessful || eStatusCode != k_EHTTPStatusCode200OK)
@@ -214,42 +212,63 @@ public void RequestCompletedCallback_Steamworks(Handle request, bool bFailure, b
 	SteamWorks_GetHTTPResponseBodyCallback(request, RequestCallback_Steamworks, pack);
 }
 
-void RequestCallback_Steamworks(const char[] data, DataPack pack, int datalen)
+void RequestCallback_Steamworks(const char[] data, DataPack pack)
 {
 	JSON_Array records = view_as<JSON_Array>(json_decode(data));
 
 	if (records)
 	{
-		handlestuff(pack, records);
+		handlestuff(pack, records, false);
 		json_cleanup(records);
 	}
 }
-#endif
 
-#if USE_RIPEXT
-void ReadVec(const char[] key, JSONObject json, float vec[3])
-#else
-void ReadVec(const char[] key, JSON_Object json, float vec[3])
-#endif
+enum struct JsonThing
 {
-	if (json.HasKey(key))
+	JSONObject objrip;
+	JSON_Object objsw;
+	bool isrip;
+
+	bool HasKey(const char[] key)
 	{
-#if USE_RIPEXT
-			JSONArray arr = view_as<JSONArray>(json.Get(key));
-#else
-			JSON_Array arr = view_as<JSON_Array>(json.GetObject(key));
-#endif
+		return this.isrip ? this.objrip.HasKey(key) : this.objsw.HasKey(key);
+	}
+
+	int GetInt(const char[] key)
+	{
+		return this.isrip ? this.objrip.GetInt(key) : this.objsw.GetInt(key);
+	}
+
+	float GetFloat(const char[] key)
+	{
+		return this.isrip ? this.objrip.GetFloat(key) : this.objsw.GetFloat(key);
+	}
+
+	bool GetString(const char[] key, char[] buf, int size)
+	{
+		return this.isrip ? this.objrip.GetString(key, buf, size) : this.objsw.GetString(key, buf, size);
+	}
+
+	void GetVec(const char[] key, float vec[3])
+	{
+		if (this.isrip)
+		{
+			JSONArray arr = view_as<JSONArray>(this.objrip.Get(key));
 			vec[0] = arr.GetFloat(0);
 			vec[1] = arr.GetFloat(1);
 			vec[2] = arr.GetFloat(2);
+		}
+		else
+		{
+			JSON_Array arr = view_as<JSON_Array>(this.objsw.GetObject(key));
+			vec[0] = arr.GetFloat(0);
+			vec[1] = arr.GetFloat(1);
+			vec[2] = arr.GetFloat(2);
+		}
 	}
 }
 
-#if USE_RIPEXT
-void handlestuff(DataPack pack, JSONArray records)
-#else
-void handlestuff(DataPack pack, JSON_Array records)
-#endif
+void handlestuff(DataPack pack, any records, bool ripext)
 {
 	pack.Reset();
 	char mapname[PLATFORM_MAX_PATH];
@@ -269,13 +288,18 @@ void handlestuff(DataPack pack, JSON_Array records)
 
 	gA_Zones.Clear();
 
-	for (int RN = 0; RN < records.Length; RN++)
+	int asdf = ripext ? view_as<JSONArray>(records).Length : view_as<JSON_Array>(records).Length;
+
+	for (int RN = 0; RN < asdf; RN++)
 	{
-#if USE_RIPEXT
-		JSONObject json = view_as<JSONObject>(records.Get(RN));
-#else
-		JSON_Object json = records.GetObject(RN);
-#endif
+		any data = ripext ?
+			view_as<int>(view_as<JSONArray>(records).Get(RN)) :
+			view_as<int>(view_as<JSON_Array>(records).GetObject(RN));
+
+		JsonThing json;
+		json.objrip = data;
+		json.objsw = data;
+		json.isrip = ripext;
 
 		char buf[32];
 		zone_cache_t cache;
@@ -306,9 +330,9 @@ void handlestuff(DataPack pack, JSON_Array records)
 		if (cache.iType == Zone_Stage)
 			if (json.HasKey("index")) cache.iData = json.GetInt("index");
 
-		ReadVec("point_a", json, cache.fCorner1);
-		ReadVec("point_b", json, cache.fCorner2);
-		ReadVec("dest", json, cache.fDestination);
+		json.GetVec("point_a", cache.fCorner1);
+		json.GetVec("point_b", cache.fCorner1);
+		json.GetVec("dest", cache.fCorner1);
 
 		if (json.HasKey("form")) cache.iForm = json.GetInt("form");
 		json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
