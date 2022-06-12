@@ -82,6 +82,7 @@ enum struct zone_settings_t
 // 3 - confirm
 int gI_MapStep[MAXPLAYERS+1];
 Handle gH_StupidTimer[MAXPLAYERS+1];
+int gI_CurrentTraceEntity = 0;
 zone_cache_t gA_EditCache[MAXPLAYERS+1];
 int gI_HookListPos[MAXPLAYERS+1];
 int gI_ZoneID[MAXPLAYERS+1];
@@ -1644,7 +1645,7 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		{
 			if (!cache.sTarget[0])
 			{
-				// ~~Migrate previous `prebuilt`-column-having zones~~ nevermind...
+				// ~~Migrate previous `prebuilt`-column-having zones~~ nevermind... TODO
 				continue;
 			}
 		}
@@ -2723,6 +2724,27 @@ void OpenHookMenu_Editor(int client)
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
+void HookZone_SetupEditor(int client, int ent)
+{
+	float origin[3];
+	GetEntPropVector(ent, Prop_Send, "m_vecOrigin", origin);
+	GetEntPropVector(ent, Prop_Send, "m_vecMins", gA_EditCache[client].fCorner1);
+	GetEntPropVector(ent, Prop_Send, "m_vecMaxs", gA_EditCache[client].fCorner2);
+	origin[2] += 1.0; // so you don't get stuck in the ground
+	AddVectors(origin, gA_EditCache[client].fCorner1, gA_EditCache[client].fCorner1);
+	AddVectors(origin, gA_EditCache[client].fCorner2, gA_EditCache[client].fCorner2);
+
+	gI_MapStep[client] = 3;
+	gA_EditCache[client].iEntity = ent;
+	gA_EditCache[client].iType = -1;
+	gA_EditCache[client].iTrack = -1;
+	gA_EditCache[client].iFlags = -1;
+	OpenHookMenu_Editor(client);
+
+	//if (gA_EditCache[client].iForm == ZoneForm_trigger_multiple)
+	gH_StupidTimer[client] = CreateTimer(0.1, Timer_Draw, GetClientSerial(client), TIMER_REPEAT);
+}
+
 public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, int param2)
 {
 	if (action == MenuAction_Select)
@@ -2739,24 +2761,7 @@ public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, in
 		}
 
 		gI_HookListPos[param1] = GetMenuSelectionPosition();
-
-		float origin[3];
-		GetEntPropVector(ent, Prop_Send, "m_vecOrigin", origin);
-		GetEntPropVector(ent, Prop_Send, "m_vecMins", gA_EditCache[param1].fCorner1);
-		GetEntPropVector(ent, Prop_Send, "m_vecMaxs", gA_EditCache[param1].fCorner2);
-		origin[2] += 1.0; // so you don't get stuck in the ground
-		AddVectors(origin, gA_EditCache[param1].fCorner1, gA_EditCache[param1].fCorner1);
-		AddVectors(origin, gA_EditCache[param1].fCorner2, gA_EditCache[param1].fCorner2);
-
-		gI_MapStep[param1] = 3;
-		gA_EditCache[param1].iEntity = ent;
-		gA_EditCache[param1].iType = -1;
-		gA_EditCache[param1].iTrack = -1;
-		gA_EditCache[param1].iFlags = -1;
-		OpenHookMenu_Editor(param1);
-
-		//if (gA_EditCache[param1].iForm == ZoneForm_trigger_multiple)
-		gH_StupidTimer[param1] = CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
+		HookZone_SetupEditor(param1, ent);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -2851,6 +2856,22 @@ void OpenHookMenu_List(int client, int form, int pos = 0)
 	menu.DisplayAt(client, pos, MENU_TIME_FOREVER);
 }
 
+
+bool TeleportFilter(int entity)
+{
+	char classname[20];
+	GetEntityClassname(entity, classname, sizeof(classname));
+
+	if (StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_multiple") || StrEqual(classname, "func_button"))
+	{
+		//TR_ClipCurrentRayToEntity(MASK_ALL, entity);
+		gI_CurrentTraceEntity = entity;
+		return false;
+	}
+
+	return true;
+}
+
 public int MenuHandle_HookZone_Form(Menu menu, MenuAction action, int param1, int param2)
 {
 	if (action == MenuAction_Select)
@@ -2858,7 +2879,69 @@ public int MenuHandle_HookZone_Form(Menu menu, MenuAction action, int param1, in
 		char info[20];
 		menu.GetItem(param2, info, sizeof(info));
 		int form = StringToInt(info);
-		OpenHookMenu_List(param1, form, 0);
+
+		if (form != -1)
+		{
+			OpenHookMenu_List(param1, form, 0);
+			return 0;
+		}
+
+		// entity under crosshair
+
+		float origin[3], endpos[3];
+		GetClientEyePosition(param1, origin);
+		GetClientEyeAngles(param1, endpos);
+		GetAngleVectors(endpos, endpos, NULL_VECTOR, NULL_VECTOR);
+		ScaleVector(endpos, 30000.0);
+		AddVectors(origin, endpos, endpos);
+
+		gI_CurrentTraceEntity = 0; // had some troubles in mpbhops_but_working with TR_EnumerateEntitiesHull. So I did this. And copied it to bhoptimer
+		TR_EnumerateEntitiesHull(origin, endpos,
+			view_as<float>({-8.0, -8.0, 0.0}), view_as<float>({8.0, 8.0, 0.0}),
+			PARTITION_TRIGGER_EDICTS, TeleportFilter, 0);
+		int ent = gI_CurrentTraceEntity;
+
+		if (ent <= MaxClients || ent >= 2048)
+		{
+			Shavit_PrintToChat(param1, "Couldn't find entity under crosshair");
+			OpenHookMenu_Form(param1);
+			return 0;
+		}
+
+		char classname[32];
+		GetEntityClassname(ent, classname, sizeof(classname));
+
+		if (StrEqual(classname, "func_button"))
+		{
+			form = ZoneForm_func_button;
+		}
+		else if (StrEqual(classname, "trigger_multiple"))
+		{
+			form = ZoneForm_trigger_multiple;
+		}
+		else if (StrEqual(classname, "trigger_teleport"))
+		{
+			form = ZoneForm_trigger_teleport;
+		}
+		else
+		{
+			Shavit_PrintToChat(param1, "Entity class %s (%d) not supported", classname, ent);
+			OpenHookMenu_Form(param1);
+			return 0;
+		}
+
+		if (gI_EntityZone[ent] > -1)
+		{
+			Shavit_PrintToChat(param1, "Entity %s (%d) is already hooked", classname, ent);
+			OpenHookMenu_Form(param1);
+			return 0;
+		}
+
+		Reset(param1);
+		gI_HookListPos[param1] = 0;
+		gA_EditCache[param1].iForm = form;
+		gA_EditCache[param1].sSource = "sql";
+		HookZone_SetupEditor(param1, ent);
 	}
 	else if (action == MenuAction_End)
 	{
@@ -2875,6 +2958,10 @@ void OpenHookMenu_Form(int client)
 	Menu menu = new Menu(MenuHandle_HookZone_Form);
 	menu.SetTitle("%T\n ", "HookZone", client);
 
+	char display[128];
+
+	FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Crosshair", client);
+	menu.AddItem("-1", display);
 	// hardcoded ZoneForm_ values
 	menu.AddItem("3", "func_button");
 	menu.AddItem("1", "trigger_multiple");
@@ -4375,8 +4462,14 @@ public Action Timer_Draw(Handle Timer, any data)
 	{
 		Reset(client);
 
-		if (gH_StupidTimer[client] == Timer)
-			gH_StupidTimer[client] = null;
+		for (int i = 1; i < MAXPLAYERS+1; i++)
+		{
+			if (gH_StupidTimer[i] == Timer)
+			{
+				gH_StupidTimer[i] = null;
+				break;
+			}
+		}
 
 		return Plugin_Stop;
 	}

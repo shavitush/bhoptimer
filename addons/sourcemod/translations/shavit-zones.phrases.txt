@@ -30,6 +30,10 @@
 		"en"		"Start position has been {1}deleted{2}."
 	}
 	// ---------- ZoneHook ---------- //
+	"ZoneHook_Crosshair"
+	{
+		"en"        "Entity under crosshair"
+	}
 	"ZoneHook_Tpto"
 	{
 		"en"        "Teleport to (stops timer)"
