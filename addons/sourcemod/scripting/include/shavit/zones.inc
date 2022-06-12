@@ -104,8 +104,8 @@ enum struct zone_cache_t
 {
 	int iType; // The type of zone. Zone_Start, Zone_End, etc...
 	int iTrack; // 0 - main, 1 - bonus1 etc
-	int iEntity; // TODO: The entity to the matching zone if applicable. trigger_multiple zones, hammerid zones, and targetname zones should have this filled to a valid entity index.
-	int iDatabaseID; // uhhhh TODO
+	int iEntity; // Filled by Shavit_GetZone() if applicable.
+	int iDatabaseID; // Can be the database ID (> 0) for "sql" sources. Non-sql sources can fill this with whatever.
 	int iFlags; // The ZF_* flags.
 	int iData; // Depends on the zone. Zone_Stage stores the stage number in this for example.
 	float fCorner1[3]; // the hull mins. (or unused if ZoneForm_AreasAndClusters) // TODO, maybe reuse for cluster & areas?
@@ -446,6 +446,15 @@ native void Shavit_GetZone(int index, any[] zonecache, int size = sizeof(zone_ca
  */
 native int Shavit_AddZone(any[] zonecache, int size = sizeof(zone_cache_t));
 
+/**
+ * Removes a zone from memory. (Does NOT delete from DB).
+ * WARNING: If there are zones after `index`, then they will be moved down in memory to fill this slot after removal.
+ * This unhooks the zone's entity too.
+ *
+ * @param index                     The zone's index.
+ *
+ * @noreturn
+ */
 native void Shavit_RemoveZone(int index);
 
 public SharedPlugin __pl_shavit_zones =
