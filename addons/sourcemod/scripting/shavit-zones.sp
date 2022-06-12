@@ -81,6 +81,7 @@ enum struct zone_settings_t
 // 2 - wait for E tap to setup second coord
 // 3 - confirm
 int gI_MapStep[MAXPLAYERS+1];
+Handle gH_StupidTimer[MAXPLAYERS+1];
 zone_cache_t gA_EditCache[MAXPLAYERS+1];
 int gI_HookListPos[MAXPLAYERS+1];
 int gI_ZoneID[MAXPLAYERS+1];
@@ -2571,15 +2572,11 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 		if (StrEqual(info, "tpto"))
 		{
 			Shavit_StopTimer(param1);
-			SetEntityMoveType(param1, MOVETYPE_NOCLIP);
 			float center[3];
 			center[0] = (gA_EditCache[param1].fCorner1[0] + gA_EditCache[param1].fCorner2[0]) * 0.5;
 			center[1] = (gA_EditCache[param1].fCorner1[1] + gA_EditCache[param1].fCorner2[1]) * 0.5;
-			center[2] = gA_EditCache[param1].fCorner2[2] + 1.0;
+			center[2] = gA_EditCache[param1].fCorner1[2] + 1.0;
 			TeleportEntity(param1, center, NULL_VECTOR, ZERO_VECTOR);
-		}
-		else if (StrEqual(info, "draw"))
-		{
 		}
 		else if (StrEqual(info, "track"))
 		{
@@ -2588,8 +2585,50 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 		}
 		else if (StrEqual(info, "ztype"))
 		{
-			if ((gA_EditCache[param1].iType += 1) >= ZONETYPES_SIZE)
-				gA_EditCache[param1].iType = 0;
+			static int allowed_types[] = {
+				// ZoneForm_Box (unused)
+				0
+				// ZoneForm_trigger_multiple
+				, (1 << Zone_Start)
+				| (1 << Zone_End)
+				| (1 << Zone_Respawn)
+				| (1 << Zone_Stop)
+				| (1 << Zone_Slay)
+				| (1 << Zone_Freestyle)
+				| (1 << Zone_CustomSpeedLimit)
+				| (1 << Zone_Teleport)
+				| (1 << Zone_Easybhop)
+				| (1 << Zone_Slide)
+				| (1 << Zone_Airaccelerate)
+				| (1 << Zone_Stage)
+				| (1 << Zone_NoTimerGravity)
+				| (1 << Zone_Gravity)
+				// ZoneForm_trigger_teleport
+				, (1 << Zone_End)
+				| (1 << Zone_Respawn)
+				| (1 << Zone_Stop)
+				| (1 << Zone_Slay)
+				| (1 << Zone_Freestyle)
+				| (1 << Zone_CustomSpeedLimit)
+				| (1 << Zone_Stage)
+				| (1 << Zone_NoTimerGravity)
+				// ZoneForm_func_button
+				, (1 << Zone_Start)
+				| (1 << Zone_End)
+				| (1 << Zone_Stop)
+				| (1 << Zone_Slay)
+				| (1 << Zone_Stage)
+			};
+
+			int form = gA_EditCache[param1].iForm;
+
+			for (int i = 0; i < 100; i++) // no infinite loops = good :)
+			{
+				if (++gA_EditCache[param1].iType >= ZONETYPES_SIZE)
+					gA_EditCache[param1].iType = 0;
+				if (allowed_types[form] & (1 << gA_EditCache[param1].iType))
+					break;
+			}
 		}
 		else if (StrEqual(info, "htype"))
 		{
@@ -2597,9 +2636,6 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 				gA_EditCache[param1].iFlags = 0;
 			else
 				gA_EditCache[param1].iFlags ^= ZF_Hammerid;
-		}
-		else if (StrEqual(info, "asdf"))
-		{
 		}
 		else if (StrEqual(info, "hook"))
 		{
@@ -2611,16 +2647,12 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 			CreateEditMenu(param1);
 			return 0;
 		}
-		else if (StrEqual(info, "back"))
-		{
-			OpenHookMenu_List(param1, gA_EditCache[param1].iForm, gI_HookListPos[param1]);
-			return 0;
-		}
 
-		OpenHookMenu_Editor(
-			param1, gA_EditCache[param1].iEntity,
-			gA_EditCache[param1].iFlags, gA_EditCache[param1].iType, gA_EditCache[param1].iTrack
-		);
+		OpenHookMenu_Editor(param1);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		OpenHookMenu_List(param1, gA_EditCache[param1].iForm, gI_HookListPos[param1]);
 	}
 	else if (action == MenuAction_End)
 	{
@@ -2630,10 +2662,13 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 	return 0;
 }
 
-void OpenHookMenu_Editor(
-	int client, int ent,
-	int hooktype=-1, int zonetype=-1, int track=-1)
+void OpenHookMenu_Editor(int client)
 {
+	int ent = gA_EditCache[client].iEntity;
+	int track = gA_EditCache[client].iTrack;
+	int hooktype = gA_EditCache[client].iForm;
+	int zonetype = gA_EditCache[client].iType;
+
 	char classname[32], targetname[64], hammerid[16];
 	GetEntityClassname(ent, classname, sizeof(classname));
 	GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
@@ -2647,33 +2682,19 @@ void OpenHookMenu_Editor(
 	FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Tpto", client);
 	menu.AddItem("tpto", display);
 
-	//FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Draw", client);
-	//menu.AddItem("draw", display);
-
 	GetTrackName(client, track, buf, sizeof(buf), true);
 	FormatEx(display, sizeof(display), "%T", "ZoneEditTrack", client, buf);
 	menu.AddItem("track", display);
 	GetZoneName(client, zonetype, buf, sizeof(buf));
 	FormatEx(display, sizeof(display), "%T", "ZoneHook_Zonetype", client, buf);
 	menu.AddItem("ztype", display);
-	FormatEx(display, sizeof(display), "%T", "ZoneHook_Hooktype", client,
+	FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Hooktype", client,
 		(hooktype == -1) ? "UNKNOWN" :
 			(hooktype & ZF_Hammerid) ? "hammerid" : "targetname",
 		(hooktype == -1) ? "":
 			(hooktype & ZF_Hammerid) ? hammerid : targetname
 	);
 	menu.AddItem("htype", display);
-	FormatEx(display, sizeof(display), "extra extra\n ");
-	menu.AddItem("asdf", display);
-
-	if (gEV_Type != Engine_CSGO)
-	{
-		menu.AddItem("", "", ITEMDRAW_SPACER);
-		menu.AddItem("", "", ITEMDRAW_SPACER);
-	}
-
-	FormatEx(display, sizeof(display), "%T", "Back", client);
-	menu.AddItem("back", display);
 
 	FormatEx(display, sizeof(display), "%T", "ZoneHook_Confirm", client);
 	menu.AddItem(
@@ -2681,9 +2702,8 @@ void OpenHookMenu_Editor(
 		(zonetype != -1 && hooktype != -1 && track != -1) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED
 	);
 
-	menu.Pagination = MENU_NO_PAGINATION;
-	menu.ExitButton = true;
-	menu.DisplayAt(client, 0, MENU_TIME_FOREVER);
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, int param2)
@@ -2716,10 +2736,10 @@ public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, in
 		gA_EditCache[param1].iType = -1;
 		gA_EditCache[param1].iTrack = -1;
 		gA_EditCache[param1].iFlags = -1;
-		OpenHookMenu_Editor(param1, ent);
+		OpenHookMenu_Editor(param1);
 
 		if (gA_EditCache[param1].iForm == ZoneForm_trigger_multiple)
-			CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
+			gH_StupidTimer[param1] = CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -2740,8 +2760,8 @@ void OpenHookMenu_List(int client, int form, int pos = 0)
 	gA_EditCache[client].sSource = "sql";
 
 	char classname[32]; classname =
-		form == ZoneForm_trigger_multiple ? "trigger_multiple" :
-		form == ZoneForm_trigger_teleport ? "trigger_teleport" : "func_button";
+		 (form == ZoneForm_trigger_multiple) ? "trigger_multiple" :
+		((form == ZoneForm_trigger_teleport) ? "trigger_teleport" : "func_button");
 
 	Menu menu = new Menu(MenuHandle_HookZone_List);
 	menu.SetTitle("%T\n ", "HookZone2", client, classname);
@@ -2768,7 +2788,7 @@ void OpenHookMenu_List(int client, int form, int pos = 0)
 
 	if (!menu.ItemCount)
 	{
-		Shavit_PrintToChat(client, "No entities found");
+		Shavit_PrintToChat(client, "No unhooked entities found");
 		delete menu;
 		OpenHookMenu_Form(client);
 		return;
@@ -2902,6 +2922,7 @@ public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int pa
 				gI_MapStep[param1] = 3;
 				gA_EditCache[param1] = gA_ZoneCache[id];
 				gI_ZoneID[param1] = id;
+				gI_LastMenuPos[param1] = GetMenuSelectionPosition();
 
 				// draw the zone edit
 				CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
@@ -3411,6 +3432,7 @@ void Reset(int client)
 	gA_EditCache[client] = cache;
 	gI_MapStep[client] = 0;
 	gI_HookListPos[client] = -1;
+	delete gH_StupidTimer[client];
 	gB_WaitingForChatInput[client] = false;
 	gI_ZoneID[client] = -1;
 
@@ -3831,7 +3853,21 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 	}
 	else if (action == MenuAction_Cancel)
 	{
-		Reset(param1);
+		if (param2 == MenuCancel_ExitBack)
+		{
+			if (gI_ZoneID[param1] == -1)
+			{
+				OpenHookMenu_Editor(param1);
+			}
+			else
+			{
+				OpenEditMenu(param1, gI_LastMenuPos[param1]);
+			}
+		}
+		else
+		{
+			Reset(param1);
+		}
 	}
 	else if(action == MenuAction_End)
 	{
@@ -4005,7 +4041,10 @@ void CreateEditMenu(int client)
 		menu.AddItem("datafromchat", sMenuItem);
 	}
 
-	menu.ExitButton = true;
+	if (hookmenu || gI_ZoneID[client] != -1)
+		menu.ExitBackButton = true;
+	else
+		menu.ExitButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
@@ -4276,6 +4315,9 @@ public Action Timer_Draw(Handle Timer, any data)
 	if(client == 0 || gI_MapStep[client] == 0)
 	{
 		Reset(client);
+
+		if (gH_StupidTimer[client] == Timer)
+			gH_StupidTimer[client] = null;
 
 		return Plugin_Stop;
 	}

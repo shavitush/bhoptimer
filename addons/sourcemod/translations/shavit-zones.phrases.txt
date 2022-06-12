@@ -32,7 +32,7 @@
 	// ---------- ZoneHook ---------- //
 	"ZoneHook_Tpto"
 	{
-		"en"        "Teleport to (stops timer & noclips)"
+		"en"        "Teleport to (stops timer)"
 	}
 	"ZoneHook_Draw"
 	{
