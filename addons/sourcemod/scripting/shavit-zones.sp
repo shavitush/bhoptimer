@@ -166,6 +166,7 @@ Handle gH_Forwards_StageMessage = null;
 
 // sdkcalls
 Handle gH_PhysicsRemoveTouchedList = null;
+Handle gH_PassesTriggerFilters = null;
 Handle gH_CommitSuicide = null; // sourcemod always finds a way to amaze me
 
 // dhooks
@@ -455,6 +456,21 @@ void LoadDHooks()
 	if (!gH_PhysicsRemoveTouchedList)
 	{
 		SetFailState("Failed to create sdkcall to \"PhysicsRemoveTouchedList\"!");
+	}
+
+	StartPrepSDKCall(SDKCall_Entity);
+
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "CBaseTrigger::PassesTriggerFilters"))
+	{
+		SetFailState("Failed to find \"CBaseTrigger::PassesTriggerFilters\" offset!");
+	}
+
+	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
+	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+
+	if (!(gH_PassesTriggerFilters = EndPrepSDKCall()))
+	{
+		SetFailState("Failed to create sdkcall to \"CBaseTrigger::PassesTriggerFilters\"!");
 	}
 
 	delete hGameData;
@@ -4864,6 +4880,14 @@ public void StartTouchPost(int entity, int other)
 	if (gCV_EnforceTracks.BoolValue && type > Zone_End && track != Shavit_GetClientTrack(other))
 		return;
 
+	if (gA_ZoneCache[zone].iForm == ZoneForm_trigger_multiple || gA_ZoneCache[zone].iForm == ZoneForm_trigger_teleport)
+	{
+		if (!SDKCall(gH_PassesTriggerFilters, entity, other))
+		{
+			return;
+		}
+	}
+
 	TimerStatus status = Shavit_GetTimerStatus(other);
 
 	switch (type)
@@ -5022,6 +5046,14 @@ public void TouchPost(int entity, int other)
 
 	if (gCV_EnforceTracks.BoolValue && type > Zone_End && track != Shavit_GetClientTrack(other))
 		return;
+
+	if (gA_ZoneCache[zone].iForm == ZoneForm_trigger_multiple || gA_ZoneCache[zone].iForm == ZoneForm_trigger_teleport)
+	{
+		if (!SDKCall(gH_PassesTriggerFilters, entity, other))
+		{
+			return;
+		}
+	}
 
 	// do precise stuff here, this will be called *A LOT*
 	switch (type)
