@@ -3827,6 +3827,10 @@ public int CreateZoneConfirm_Handler(Menu menu, MenuAction action, int param1, i
 
 		CreateEditMenu(param1);
 	}
+	else if (action == MenuAction_Cancel)
+	{
+		Reset(param1);
+	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
