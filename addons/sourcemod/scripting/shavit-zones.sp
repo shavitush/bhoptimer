@@ -1321,7 +1321,7 @@ void FindEntitiesToHook(const char[] classname, int form)
 			continue;
 		}
 
-		GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
+		GetEntPropString(ent, Prop_Data, form == ZoneForm_trigger_teleport ? "m_target" : "m_iName", targetname, sizeof(targetname));
 
 		if (form == ZoneForm_trigger_multiple && StrContains(targetname, "shavit_zones_") == 0)
 		{
@@ -2658,7 +2658,7 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 			if (gA_EditCache[param1].iFlags & ZF_Hammerid)
 				IntToString(GetEntProp(gA_EditCache[param1].iEntity, Prop_Data, "m_iHammerID"), gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
 			else
-				GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
+				GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, gA_EditCache[param1].iForm == ZoneForm_trigger_teleport ? "m_target" : "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
 
 			CreateEditMenu(param1);
 			return 0;
@@ -2681,17 +2681,18 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 void OpenHookMenu_Editor(int client)
 {
 	int ent = gA_EditCache[client].iEntity;
+	int form = gA_EditCache[client].iForm;
 	int track = gA_EditCache[client].iTrack;
-	int hooktype = gA_EditCache[client].iForm;
+	int hooktype = gA_EditCache[client].iFlags;
 	int zonetype = gA_EditCache[client].iType;
 
 	char classname[32], targetname[64], hammerid[16];
 	GetEntityClassname(ent, classname, sizeof(classname));
-	GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
+	GetEntPropString(ent, Prop_Data, form == ZoneForm_trigger_teleport ? "m_target" : "m_iName", targetname, sizeof(targetname));
 	IntToString(GetEntProp(ent, Prop_Data, "m_iHammerID"), hammerid, sizeof(hammerid));
 
 	Menu menu = new Menu(MenuHandler_HookZone_Editor);
-	menu.SetTitle("%s\nhammerid = %s\ntargetname = '%s'\n ", classname, hammerid, targetname);
+	menu.SetTitle("%s\nhammerid = %s\n%s = '%s'\n ", classname, hammerid, form == ZoneForm_trigger_teleport ? "target" : "targetname", targetname);
 
 	char display[128], buf[32];
 
@@ -2706,7 +2707,7 @@ void OpenHookMenu_Editor(int client)
 	menu.AddItem("ztype", display);
 	FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Hooktype", client,
 		(hooktype == -1) ? "UNKNOWN" :
-			(hooktype & ZF_Hammerid) ? "hammerid" : "targetname",
+			(hooktype & ZF_Hammerid) ? "hammerid" : (form == ZoneForm_trigger_teleport ? "target" : "targetname"),
 		(hooktype == -1) ? "":
 			(hooktype & ZF_Hammerid) ? hammerid : targetname
 	);
@@ -2824,14 +2825,14 @@ void OpenHookMenu_List(int client, int form, int pos = 0)
 		ent_list_thing thing;
 		list.GetArray(i, thing);
 
-		GetEntPropString(thing.ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
+		GetEntPropString(thing.ent, Prop_Data, form == ZoneForm_trigger_teleport ? "m_target" : "m_iName", targetname, sizeof(targetname));
 
 		if (form == ZoneForm_trigger_multiple && StrContains(targetname, "shavit_zones_") == 0)
 		{
 			continue;
 		}
 
-		FormatEx(display, sizeof(display), "%s %d dist=%.1fm", targetname, GetEntProp(thing.ent, Prop_Data, "m_iHammerID"), thing.dist*0.01905);
+		FormatEx(display, sizeof(display), "%s | %d dist=%.1fm", targetname, GetEntProp(thing.ent, Prop_Data, "m_iHammerID"), thing.dist*0.01905);
 		FormatEx(info, sizeof(info), "%d", EntIndexToEntRef(thing.ent));
 		menu.AddItem(info, display);
 	}
@@ -4316,11 +4317,17 @@ public Action Timer_DrawZones(Handle Timer, any drawAll)
 
 	for (int i = iCycle[drawAll]; i < gI_MapZones; i++, iCycle[drawAll]++)
 	{
+		int form = gA_ZoneCache[i].iForm;
 		int type = gA_ZoneCache[i].iType;
 		int track = gA_ZoneCache[i].iTrack;
 
 		if (drawAll || gA_ZoneSettings[type][track].bVisible || (gA_ZoneCache[i].iFlags & ZF_ForceRender) > 0)
 		{
+			if (form == ZoneForm_trigger_teleport && !(drawAll || (gA_ZoneCache[i].iFlags & ZF_ForceRender) > 0))
+			{
+				continue;
+			}
+
 			int colors[4];
 			GetZoneColors(colors, type, track);
 
