@@ -49,8 +49,6 @@ enum
 	Migration_RemovePlayertimesPointsCalcedFrom, // lol
 	Migration_NormalizeMapzonePoints,
 	Migration_AddMapzonesFormAndTarget, // 25
-	Migration_DealWithPrebuiltMapzones,
-	Migration_DropPrebuiltColumn,
 	MIGRATIONS_END
 };
 
@@ -311,8 +309,6 @@ void ApplyMigration(int migration)
 		case Migration_RemovePlayertimesPointsCalcedFrom: ApplyMigration_RemovePlayertimesPointsCalcedFrom();
 		case Migration_NormalizeMapzonePoints: ApplyMigration_NormalizeMapzonePoints();
 		case Migration_AddMapzonesFormAndTarget: ApplyMigration_AddMapzonesFormAndTarget();
-		case Migration_DealWithPrebuiltMapzones: ApplyMigration_DealWithPrebuiltMapzones();
-		//case Migration_DropPrebuiltColumn: ApplyMigration_DropPrebuiltColumn();
 	}
 }
 
@@ -453,26 +449,6 @@ void ApplyMigration_AddMapzonesFormAndTarget()
 	char sQuery[192];
 	FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%smapzones` ADD COLUMN `form` TINYINT, ADD COLUMN `target` VARCHAR(63);", gS_SQLPrefix);
 	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddMapzonesFormAndTarget, DBPrio_High);
-}
-
-void ApplyMigration_DealWithPrebuiltMapzones()
-{
-	char sQuery[192];
-#if 0
-	// set form to ZoneForm_trigger_multiple
-	// the "target" column will still be null BUT on first map load we'll find the entity and update those rows...
-	FormatEx(sQuery, sizeof(sQuery), "UPDATE `%smapzones` SET form = 1 WHERE prebuilt = 1;", gS_SQLPrefix);
-#else
-	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM `%smapzones` WHERE prebuilt = 1;", gS_SQLPrefix);
-#endif
-	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_DealWithPrebuiltMapzones, DBPrio_High);
-}
-
-void ApplyMigration_DropPrebuiltColumn()
-{
-	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%smapzones` DROP COLUMN `prebuilt`;", gS_SQLPrefix);
-	gH_SQL.Query2(SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_DropPrebuiltColumn, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
