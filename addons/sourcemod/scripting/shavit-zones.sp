@@ -2675,7 +2675,7 @@ void OpenHookMenu_Editor(
 	FormatEx(display, sizeof(display), "%T", "Back", client);
 	menu.AddItem("back", display);
 
-	FormatEx(display, sizeof(display), "%T", "ZoneHook_HookAndConfirm", client);
+	FormatEx(display, sizeof(display), "%T", "ZoneHook_Confirm", client);
 	menu.AddItem(
 		"hook", display,
 		(zonetype != -1 && hooktype != -1 && track != -1) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED
@@ -2718,7 +2718,7 @@ public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, in
 		gA_EditCache[param1].iFlags = -1;
 		OpenHookMenu_Editor(param1, ent);
 
-		if (gA_EditCache[parm1].iForm == ZoneForm_trigger_multiple)
+		if (gA_EditCache[param1].iForm == ZoneForm_trigger_multiple)
 			CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)

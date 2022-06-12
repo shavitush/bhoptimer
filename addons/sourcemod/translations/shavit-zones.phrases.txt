@@ -48,9 +48,9 @@
 		"#format"   "{1:s},{2:s}"
 		"en"        "Hook type: {1} ({2})"
 	}
-	"ZoneHook_HookAndConfirm"
+	"ZoneHook_Confirm"
 	{
-		"en"        "Hook & confirm"
+		"en"        "Go to confirm"
 	}
 	// ---------- Commands ---------- //
 	"StageCommandAlive"
