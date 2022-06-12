@@ -2801,7 +2801,7 @@ void OpenHookMenu_List(int client, int form, int pos = 0)
 		GetEntPropVector(ent, Prop_Send, "m_vecOrigin", ent_origin);
 
 		ent_list_thing thing;
-		thing.dist = GetVectorDistance(player_origin, ent_origin, true);
+		thing.dist = GetVectorDistance(player_origin, ent_origin);
 		thing.ent = ent;
 		list.PushArray(thing);
 	}
@@ -2831,7 +2831,7 @@ void OpenHookMenu_List(int client, int form, int pos = 0)
 			continue;
 		}
 
-		FormatEx(display, sizeof(display), "'%s' (%d) dist=%.0f", targetname, GetEntProp(thing.ent, Prop_Data, "m_iHammerID"), thing.dist);
+		FormatEx(display, sizeof(display), "%s %d dist=%.1fm", targetname, GetEntProp(thing.ent, Prop_Data, "m_iHammerID"), thing.dist*0.01905);
 		FormatEx(info, sizeof(info), "%d", EntIndexToEntRef(thing.ent));
 		menu.AddItem(info, display);
 	}
