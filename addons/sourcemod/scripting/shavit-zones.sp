@@ -82,6 +82,7 @@ enum struct zone_settings_t
 // 3 - confirm
 int gI_MapStep[MAXPLAYERS+1];
 zone_cache_t gA_EditCache[MAXPLAYERS+1];
+int gI_HookListPos[MAXPLAYERS+1];
 int gI_ZoneID[MAXPLAYERS+1];
 bool gB_WaitingForChatInput[MAXPLAYERS+1];
 float gV_WallSnap[MAXPLAYERS+1][3];
@@ -258,6 +259,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_zoneedit", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone.");
 	RegAdminCmd("sm_editzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
 	RegAdminCmd("sm_modifyzone", Command_ZoneEdit, ADMFLAG_RCON, "Modify an existing zone. Alias of sm_zoneedit.");
+	RegAdminCmd("sm_hookzone", Command_HookZone, ADMFLAG_RCON, "Hook an existing trigger, teleporter, or button.");
 
 	RegAdminCmd("sm_tptozone", Command_TpToZone, ADMFLAG_RCON, "Teleport to a zone");
 
@@ -604,6 +606,7 @@ public void OnAdminMenuReady(Handle topmenu)
 		gH_AdminMenu.AddItem("sm_deleteallzones", AdminMenu_DeleteAllZones, gH_TimerCommands, "sm_deleteallzones", ADMFLAG_RCON);
 		gH_AdminMenu.AddItem("sm_zoneedit", AdminMenu_ZoneEdit, gH_TimerCommands, "sm_zoneedit", ADMFLAG_RCON);
 		gH_AdminMenu.AddItem("sm_tptozone", AdminMenu_TpToZone, gH_TimerCommands, "sm_tptozone", ADMFLAG_RCON);
+		gH_AdminMenu.AddItem("sm_hookzone", AdminMenu_HookZone, gH_TimerCommands, "sm_hookzone", ADMFLAG_RCON);
 	}
 }
 
@@ -665,6 +668,18 @@ public void AdminMenu_TpToZone(Handle topmenu, TopMenuAction action, TopMenuObje
 	else if (action == TopMenuAction_SelectOption)
 	{
 		OpenTpToZoneMenu(param);
+	}
+}
+
+public void AdminMenu_HookZone(Handle topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+{
+	if (action == TopMenuAction_DisplayOption)
+	{
+		FormatEx(buffer, maxlength, "%T", "HookZone", param);
+	}
+	else if (action == TopMenuAction_SelectOption)
+	{
+		OpenHookMenu_Form(param);
 	}
 }
 
@@ -1284,7 +1299,7 @@ void FindEntitiesToHook(const char[] classname, int form)
 
 	while ((ent = FindEntityByClassname(ent, classname)) != -1)
 	{
-		if (gI_EntityZone[ent] > MAXPLAYERS)
+		if (gI_EntityZone[ent] > MaxClients)
 		{
 			continue;
 		}
@@ -1339,7 +1354,7 @@ public void OnClientPutInServer(int client)
 
 public void OnEntityDestroyed(int entity)
 {
-	if (entity > MAXPLAYERS && entity < 2048 && gI_EntityZone[entity] > -1)
+	if (entity > MaxClients && entity < 2048 && gI_EntityZone[entity] > -1)
 	{
 		ClearZoneEntity(gI_EntityZone[entity], false);
 	}
@@ -1361,7 +1376,7 @@ void ClearZoneEntity(int index, bool unhook)
 
 	gA_ZoneCache[index].iEntity = -1;
 
-	if (entity > MAXPLAYERS)
+	if (entity > MaxClients)
 	{
 		gI_EntityZone[entity] = -1;
 
@@ -2130,6 +2145,23 @@ public Action Command_ZoneEdit(int client, int args)
 	return OpenEditMenu(client);
 }
 
+public Action Command_HookZone(int client, int args)
+{
+	if (!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if (!gCV_SQLZones.BoolValue)
+	{
+		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		return Plugin_Handled;
+	}
+
+	OpenHookMenu_Form(client);
+	return Plugin_Handled;
+}
+
 public Action Command_ReloadZoneSettings(int client, int args)
 {
 	LoadZoneSettings();
@@ -2529,6 +2561,254 @@ public int MenuHandler_TpToEdit(Menu menu, MenuAction action, int param1, int pa
 	return 0;
 }
 
+public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[32];
+		menu.GetItem(param2, info, sizeof(info));
+
+		if (StrEqual(info, "tpto"))
+		{
+			Shavit_StopTimer(param1);
+			SetEntityMoveType(param1, MOVETYPE_NOCLIP);
+			float center[3];
+			center[0] = (gA_EditCache[param1].fCorner1[0] + gA_EditCache[param1].fCorner2[0]) * 0.5;
+			center[1] = (gA_EditCache[param1].fCorner1[1] + gA_EditCache[param1].fCorner2[1]) * 0.5;
+			center[2] = gA_EditCache[param1].fCorner2[2] + 1.0;
+			TeleportEntity(param1, center, NULL_VECTOR, ZERO_VECTOR);
+		}
+		else if (StrEqual(info, "draw"))
+		{
+		}
+		else if (StrEqual(info, "track"))
+		{
+			if ((gA_EditCache[param1].iTrack += 1) > Track_Bonus_Last)
+				gA_EditCache[param1].iTrack = 0;
+		}
+		else if (StrEqual(info, "ztype"))
+		{
+			if ((gA_EditCache[param1].iType += 1) >= ZONETYPES_SIZE)
+				gA_EditCache[param1].iType = 0;
+		}
+		else if (StrEqual(info, "htype"))
+		{
+			if (gA_EditCache[param1].iFlags == -1)
+				gA_EditCache[param1].iFlags = 0;
+			else
+				gA_EditCache[param1].iFlags ^= ZF_Hammerid;
+		}
+		else if (StrEqual(info, "asdf"))
+		{
+		}
+		else if (StrEqual(info, "hook"))
+		{
+			if (gA_EditCache[param1].iFlags & ZF_Hammerid)
+				IntToString(GetEntProp(gA_EditCache[param1].iEntity, Prop_Send, "m_iHammerID"), gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
+			else
+				GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
+
+			CreateEditMenu(param1);
+			return 0;
+		}
+		else if (StrEqual(info, "back"))
+		{
+			OpenHookMenu_List(param1, gA_EditCache[param1].iForm, gI_HookListPos[param1]);
+			return 0;
+		}
+
+		OpenHookMenu_Editor(
+			param1, gA_EditCache[param1].iEntity,
+			gA_EditCache[param1].iFlags, gA_EditCache[param1].iType, gA_EditCache[param1].iTrack
+		);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void OpenHookMenu_Editor(
+	int client, int ent,
+	int hooktype=-1, int zonetype=-1, int track=-1)
+{
+	char classname[32], targetname[64], hammerid[16];
+	GetEntityClassname(ent, classname, sizeof(classname));
+	GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
+	IntToString(GetEntProp(ent, Prop_Data, "m_iHammerID"), hammerid, sizeof(hammerid));
+
+	Menu menu = new Menu(MenuHandler_HookZone_Editor);
+	menu.SetTitle("%s\nhammerid = %s\ntargetname = '%s'\n ", classname, hammerid, targetname);
+
+	char display[128], buf[32];
+
+	FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Tpto", client);
+	menu.AddItem("tpto", display);
+
+	//FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Draw", client);
+	//menu.AddItem("draw", display);
+
+	GetTrackName(client, track, buf, sizeof(buf), true);
+	FormatEx(display, sizeof(display), "%T", "ZoneEditTrack", client, buf);
+	menu.AddItem("track", display);
+	GetZoneName(client, zonetype, buf, sizeof(buf));
+	FormatEx(display, sizeof(display), "%T", "ZoneHook_Zonetype", client, buf);
+	menu.AddItem("ztype", display);
+	FormatEx(display, sizeof(display), "%T", "ZoneHook_Hooktype", client,
+		(hooktype == -1) ? "UNKNOWN" :
+			(hooktype & ZF_Hammerid) ? "hammerid" : "targetname",
+		(hooktype == -1) ? "":
+			(hooktype & ZF_Hammerid) ? hammerid : targetname
+	);
+	menu.AddItem("htype", display);
+	FormatEx(display, sizeof(display), "extra extra\n ");
+	menu.AddItem("asdf", display);
+
+	if (gEV_Type != Engine_CSGO)
+	{
+		menu.AddItem("", "", ITEMDRAW_SPACER);
+		menu.AddItem("", "", ITEMDRAW_SPACER);
+	}
+
+	FormatEx(display, sizeof(display), "%T", "Back", client);
+	menu.AddItem("back", display);
+
+	FormatEx(display, sizeof(display), "%T", "ZoneHook_HookAndConfirm", client);
+	menu.AddItem(
+		"hook", display,
+		(zonetype != -1 && hooktype != -1 && track != -1) ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED
+	);
+
+	menu.Pagination = MENU_NO_PAGINATION;
+	menu.ExitButton = true;
+	menu.DisplayAt(client, 0, MENU_TIME_FOREVER);
+}
+
+public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[20];
+		menu.GetItem(param2, info, sizeof(info));
+		int ent = EntRefToEntIndex(StringToInt(info));
+
+		if (ent <= MaxClients)
+		{
+			Shavit_PrintToChat(param1, "Invalid entity index???");
+			OpenHookMenu_List(param1, gA_EditCache[param1].iForm, 0);
+			return 0;
+		}
+
+		gI_HookListPos[param1] = GetMenuSelectionPosition();
+
+		float origin[3];
+		GetEntPropVector(ent, Prop_Send, "m_vecOrigin", origin);
+		GetEntPropVector(ent, Prop_Send, "m_vecMins", gA_EditCache[param1].fCorner1);
+		GetEntPropVector(ent, Prop_Send, "m_vecMaxs", gA_EditCache[param1].fCorner2);
+		origin[2] += 1.0; // so you don't get stuck in the ground
+		AddVectors(origin, gA_EditCache[param1].fCorner1, gA_EditCache[param1].fCorner1);
+		AddVectors(origin, gA_EditCache[param1].fCorner2, gA_EditCache[param1].fCorner2);
+
+		gA_EditCache[param1].iEntity = ent;
+		gA_EditCache[param1].iType = -1;
+		gA_EditCache[param1].iTrack = -1;
+		gA_EditCache[param1].iFlags = -1;
+		OpenHookMenu_Editor(param1, ent);
+		gI_MapStep[param1] = 3;
+		CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		OpenHookMenu_Form(param1);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void OpenHookMenu_List(int client, int form, int pos = 0)
+{
+	Reset(client);
+	gA_EditCache[client].iForm = form;
+	gA_EditCache[client].sSource = "sql";
+
+	char classname[32]; classname =
+		form == ZoneForm_trigger_multiple ? "trigger_multiple" :
+		form == ZoneForm_trigger_teleport ? "trigger_teleport" : "func_button";
+
+	Menu menu = new Menu(MenuHandle_HookZone_List);
+	menu.SetTitle("%T\n ", "HookZone2", client, classname);
+
+	char targetname[64], info[20], display[128];
+	int ent = -1;
+
+	while ((ent = FindEntityByClassname(ent, classname)) != -1)
+	{
+		if (gI_EntityZone[ent] > -1) continue;
+
+		GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
+
+		if (form == ZoneForm_trigger_multiple && StrContains(targetname, "shavit_zones_") == 0)
+		{
+			continue;
+		}
+
+		int hammerid = GetEntProp(ent, Prop_Data, "m_iHammerID");
+		FormatEx(display, sizeof(display), "'%s' (%d)", targetname, hammerid);
+		FormatEx(info, sizeof(info), "%d", EntIndexToEntRef(ent));
+		menu.AddItem(info, display);
+	}
+
+	if (!menu.ItemCount)
+	{
+		Shavit_PrintToChat(client, "No entities found");
+		delete menu;
+		OpenHookMenu_Form(client);
+		return;
+	}
+
+	menu.ExitBackButton = true;
+	menu.DisplayAt(client, pos, MENU_TIME_FOREVER);
+}
+
+public int MenuHandle_HookZone_Form(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[20];
+		menu.GetItem(param2, info, sizeof(info));
+		int form = StringToInt(info);
+		OpenHookMenu_List(param1, form, 0);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void OpenHookMenu_Form(int client)
+{
+	Reset(client);
+
+	Menu menu = new Menu(MenuHandle_HookZone_Form);
+	menu.SetTitle("%T\n ", "HookZone", client);
+
+	// hardcoded ZoneForm_ values
+	menu.AddItem("3", "func_button");
+	menu.AddItem("1", "trigger_multiple");
+	menu.AddItem("2", "trigger_teleport");
+
+	menu.ExitButton = true; // TODO Back button to admin menu list...
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
 Action OpenEditMenu(int client, int pos = 0)
 {
 	Menu menu = new Menu(MenuHandler_ZoneEdit);
@@ -2584,7 +2864,7 @@ Action OpenEditMenu(int client, int pos = 0)
 			Format(sDisplay, sizeof(sDisplay), "%s %T", sDisplay, "ZoneInside", client);
 		}
 
-		menu.AddItem(sInfo, sDisplay, gA_ZoneCache[i].iForm != ZoneForm_Box ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+		menu.AddItem(sInfo, sDisplay, StrEqual(gA_ZoneCache[i].sSource, "sql") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 	}
 
 	menu.ExitButton = true;
@@ -2924,7 +3204,7 @@ Action OpenDeleteMenu(int client, int pos = 0)
 				Format(sDisplay, sizeof(sDisplay), "%s %T", sDisplay, "ZoneInside", client);
 			}
 
-			menu.AddItem(sInfo, sDisplay, gA_ZoneCache[i].iForm != ZoneForm_Box ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+			menu.AddItem(sInfo, sDisplay, StrEqual(gA_ZoneCache[i].sSource, "sql") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 		}
 	}
 
@@ -3128,6 +3408,7 @@ void Reset(int client)
 	cache.iDatabaseID = -1;
 	gA_EditCache[client] = cache;
 	gI_MapStep[client] = 0;
+	gI_HookListPos[client] = -1;
 	gB_WaitingForChatInput[client] = false;
 	gI_ZoneID[client] = -1;
 
@@ -3614,11 +3895,31 @@ void UpdateTeleportZone(int client)
 
 void CreateEditMenu(int client)
 {
-	char sTrack[32];
+	bool hookmenu = gI_HookListPos[client] != -1;
+
+	char sTrack[32], sType[32];
 	GetTrackName(client, gA_EditCache[client].iTrack, sTrack, 32);
+	GetZoneName(client, gA_EditCache[client].iType, sType, sizeof(sType));
 
 	Menu menu = new Menu(CreateZoneConfirm_Handler);
-	menu.SetTitle("%T\n%T\n ", "ZoneEditConfirm", client, "ZoneEditTrack", client, sTrack);
+
+	if (hookmenu)
+	{
+		menu.SetTitle("%T\n%T\n%T\n%T\n ",
+			"ZoneEditConfirm", client,
+			"ZoneEditTrack", client, sTrack,
+			"ZoneHook_Zonetype", client, sType,
+			"ZoneHook_Hooktype", client,
+			(gA_EditCache[client].iFlags & ZF_Hammerid) ? "hammerid" : "targetname",
+			gA_EditCache[client].sTarget);
+	}
+	else
+	{
+		menu.SetTitle("%T\n%T\n%T\n ",
+			"ZoneEditConfirm", client,
+			"ZoneEditTrack", client, sTrack,
+			"ZoneHook_Zonetype", client, sType);
+	}
 
 	char sMenuItem[64];
 
@@ -3656,7 +3957,8 @@ void CreateEditMenu(int client)
 	menu.AddItem("no", sMenuItem);
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneSetAdjust", client);
-	menu.AddItem("adjust", sMenuItem);
+	menu.AddItem("adjust", sMenuItem,
+		(hookmenu || gA_EditCache[client].iForm != ZoneForm_Box) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
 	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gA_EditCache[client].iFlags & ZF_ForceRender) > 0)? "＋":"－");
 	menu.AddItem("forcerender", sMenuItem);
@@ -3999,8 +4301,8 @@ public Action Timer_Draw(Handle Timer, any data)
 		origin = gA_EditCache[client].fCorner2;
 	}
 
-	int type = gA_EditCache[client].iType;
-	int track = gA_EditCache[client].iTrack;
+	int type = gA_EditCache[client].iType; type = type < 0 ? 0 : type;
+	int track = gA_EditCache[client].iTrack; track = track < 0 ? 0 : track;
 
 	if (!EmptyVector(gA_EditCache[client].fCorner1) || !EmptyVector(gA_EditCache[client].fCorner2))
 	{
@@ -4729,7 +5031,7 @@ public void UsePost_HookedButton(int entity, int activator, int caller, UseType 
 
 	int zone = gI_EntityZone[entity];
 
-	if (zone > MAXPLAYERS)
+	if (zone > MaxClients)
 	{
 		ButtonLogic(activator, gA_ZoneCache[zone].iType, gA_ZoneCache[zone].iTrack);
 	}

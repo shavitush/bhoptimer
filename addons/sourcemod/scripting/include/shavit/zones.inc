@@ -137,7 +137,7 @@ stock void GetZoneName(int client, int zoneType, char[] output, int size)
 		"Zone_Speedmod",
 	};
 
-	if (zoneType >= ZONETYPES_SIZE)
+	if (zoneType < 0 || zoneType >= ZONETYPES_SIZE)
 		FormatEx(output, size, "%T", "Zone_Unknown", client);
 	else
 		FormatEx(output, size, "%T", sTranslationStrings[zoneType], client);

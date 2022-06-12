@@ -29,6 +29,29 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"Start position has been {1}deleted{2}."
 	}
+	// ---------- ZoneHook ---------- //
+	"ZoneHook_Tpto"
+	{
+		"en"        "Teleport to (stops timer & noclips)"
+	}
+	"ZoneHook_Draw"
+	{
+		"en"        "Draw beams around entity"
+	}
+	"ZoneHook_Zonetype"
+	{
+		"#format"   "{1:s}"
+		"en"        "Zone type: {1}"
+	}
+	"ZoneHook_Hooktype"
+	{
+		"#format"   "{1:s},{2:s}"
+		"en"        "Hook type: {1} ({2})"
+	}
+	"ZoneHook_HookAndConfirm"
+	{
+		"en"        "Hook & confirm"
+	}
 	// ---------- Commands ---------- //
 	"StageCommandAlive"
 	{
@@ -290,6 +313,15 @@
 	"ZoneEdit"
 	{
 		"en"		"Edit a map zone"
+	}
+	"HookZone"
+	{
+		"en"        "Hook a trigger, teleporter, or button."
+	}
+	"HookZone2"
+	{
+		"#format"   "{1:s}"
+		"en"        "Hook {1}"
 	}
 	"ZoneEditTitle"
 	{
