@@ -17,6 +17,13 @@
 				"windows"   "@CreateInterface"
 				"linux"     "@CreateInterface"
 			}
+
+			"CreateInterface_Engine"
+			{
+				"library"   "engine"
+				"windows"   "@CreateInterface"
+				"linux"     "@CreateInterface"
+			}
 		}
 
 		"Offsets"
@@ -39,6 +46,12 @@
 	{
 		"Offsets"
 		{
+			// todo
+			"CBaseTrigger::PassesTriggerFilters"
+			{
+				"windows"   "210"
+				"linux"     "211"
+			}
 			// search string: "start %f %f %f" and then check the function call offsets above it and convert them to vtable offsets (divide by 4 most likely or whatever)
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
@@ -72,6 +85,18 @@
 			{
 				"windows"   "8"
 				"linux"     "8"
+			}
+			// TODO
+			"GetClusterForOrigin"
+			{
+				"windows"   "12"
+				"linux"     "12"
+			}
+			// TODO
+			"GetArea"
+			{
+				"windows"   "65"
+				"linux"     "65"
 			}
 		}
 
@@ -116,6 +141,12 @@
 	{
 		"Offsets"
 		{
+			// https://asherkin.github.io/vtable/
+			"CBaseTrigger::PassesTriggerFilters"
+			{
+				"windows"   "197"
+				"linux"     "198"
+			}
 			// https://asherkin.github.io/vtable/
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
@@ -173,6 +204,18 @@
 				"windows"   "5724"
 				"linux"     "5744" // +20 wow that's easy!
 			}
+			// TODO
+			"GetClusterForOrigin"
+			{
+				"windows"   "11"
+				"linux"     "11"
+			}
+			// TODO
+			"GetArea"
+			{
+				"windows"   "64"
+				"linux"     "64"
+			}
 		}
 
 		"Signatures"
@@ -223,6 +266,12 @@
 	{
 		"Offsets"
 		{
+			// https://asherkin.github.io/vtable/
+			"CBaseTrigger::PassesTriggerFilters"
+			{
+				"windows"   "201"
+				"linux"     "202"
+			}
 			// https://asherkin.github.io/vtable/
 			"CGameRules::IsSpawnPointValid"
 			{

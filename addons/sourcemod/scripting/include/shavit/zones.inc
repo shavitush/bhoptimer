@@ -24,8 +24,8 @@
 #endif
 #define _shavit_zones_included
 
-#define MAX_ZONES 64
-#define MAX_STAGES 51 // 😐 kind of arbitrary but also some space between this and MAX_ZONES
+#define MAX_ZONES 128
+#define MAX_STAGES 69
 
 enum
 {
@@ -37,7 +37,7 @@ enum
 	Zone_Freestyle,			// ignores style physics when at this zone. e.g. WASD when SWing
 	Zone_CustomSpeedLimit,	// overwrites velocity limit in the zone
 	Zone_Teleport,			// teleports to a defined point
-	Zone_CustomSpawn,		// << unused
+	Zone_CustomSpawn,		// spawn position for a track. not a physical zone.
 	Zone_Easybhop,			// forces easybhop whether if the player is in non-easy styles or if the server has different settings
 	Zone_Slide,				// allows players to slide, in order to fix parts like the 5th stage of bhop_arcane
 	Zone_Airaccelerate,		// custom sv_airaccelerate inside this,
@@ -51,7 +51,8 @@ enum
 enum
 {
 	ZF_ForceRender = (1 << 0),
-	ZF_Prebuilt    = (1 << 1), // comes from mod_zone_* entities
+	ZF_Hammerid    = (1 << 1), // used by ZoneForm_{trigger_{multiple, teleport}, func_button} sometimes
+	ZF_Solid       = (1 << 2), // forces the zone to block people...
 };
 
 // Zone Display type
@@ -90,33 +91,30 @@ enum
 	ZoneWidth_Size
 };
 
-#if 0
+enum
+{
+	ZoneForm_Box,
+	ZoneForm_trigger_multiple,
+	ZoneForm_trigger_teleport,
+	ZoneForm_func_button,
+	ZoneForm_AreasAndClusters,
+};
+
 enum struct zone_cache_t
 {
-	bool bZoneInitialized;
-	int iType;
+	int iType; // The type of zone. Zone_Start, Zone_End, etc...
 	int iTrack; // 0 - main, 1 - bonus1 etc
-	int iEntity;
-	int iDatabaseID; // when ZF_Prebuilt, this is the entity's m_iHammerID
-	int iFlags;
-	int iData;
-	float fCorner1[3];
-	float fCorner2[3];
-	float fDestination[3];
+	int iEntity; // Filled by Shavit_GetZone() if applicable.
+	int iDatabaseID; // Can be the database ID (> 0) for "sql" sources. Non-sql sources can fill this with whatever.
+	int iFlags; // The ZF_* flags.
+	int iData; // Depends on the zone. Zone_Stage stores the stage number in this for example.
+	float fCorner1[3]; // the hull mins. (or unused if ZoneForm_AreasAndClusters) // TODO, maybe reuse for cluster & areas?
+	float fCorner2[3]; // the hull maxs. (or unused if ZoneForm_AreasAndClusters)
+	float fDestination[3]; // Used by Zone_CustomSpawn, Zone_Teleport, and Zone_Stage.
+	int iForm; // ZoneForm_*
+	char sSource[16]; // "sql", "autobutton", "autozone", "sourcejump", "http", etc...
+	char sTarget[64]; // either the hammerid or the targetname
 }
-#else
-enum struct zone_cache_t
-{
-	bool bZoneInitialized;
-	bool bPrebuilt; // comes from mod_zone_* entities
-	int iZoneType;
-	int iZoneTrack; // 0 - main, 1 - bonus etc
-	int iEntityID;
-	int iDatabaseID;
-	int iZoneFlags;
-	int iZoneData;
-}
-#endif
 
 stock void GetZoneName(int client, int zoneType, char[] output, int size)
 {
@@ -136,13 +134,112 @@ stock void GetZoneName(int client, int zoneType, char[] output, int size)
 		"Zone_Stage",
 		"Zone_NoTimerGravity",
 		"Zone_Gravity",
-		"Zone_Speedmod"
+		"Zone_Speedmod",
 	};
 
-	if (zoneType >= ZONETYPES_SIZE)
+	if (zoneType < 0 || zoneType >= ZONETYPES_SIZE)
 		FormatEx(output, size, "%T", "Zone_Unknown", client);
 	else
 		FormatEx(output, size, "%T", sTranslationStrings[zoneType], client);
+}
+
+// Please follow something like this:
+//   mod_zone_start
+//   mod_zone_end
+//   mod_zone_checkpoint_X
+//   mod_zone_bonus_X_start
+//   mod_zone_bonus_X_end
+//   mod_zone_bonus_X_checkpoint_X
+//
+//   climb_startbutton
+//   climb_endbutton
+//   climb_bonusX_startbutton
+//   climb_bonusX_endbutton
+//
+//   climb_startzone
+//   climb_endzone
+//   climb_bonusX_startzone
+//   climb_bonusX_endzone
+stock bool Shavit_ParseZoneTargetname(const char[] targetname, bool button, int& type, int& track, int& stage, const char[] mapname_for_log="")
+{
+	track = Track_Main;
+	type = -1;
+	stage = 0;
+
+	if (strncmp(targetname, "climb_", 6) != 0
+	&&  (button || strncmp(targetname, "mod_zone_", 9) != 0))
+	{
+		return false;
+	}
+
+	if (StrContains(targetname, "start") != -1)
+	{
+		type = Zone_Start;
+	}
+	else if (StrContains(targetname, "end") != -1)
+	{
+		type = Zone_End;
+	}
+
+	int bonus = StrContains(targetname, "bonus");
+
+	if (bonus != -1)
+	{
+		track = Track_Bonus;
+		bonus += 5; // skip past "bonus"
+		if (targetname[bonus] == '_') bonus += 1;
+
+		if ('1' <= targetname[bonus] <= '9')
+		{
+			track = StringToInt(targetname[bonus]);
+
+			if (track < Track_Bonus || track > Track_Bonus_Last)
+			{
+				if (mapname_for_log[0]) LogError("invalid track in prebuilt map zone (%s) on %s", targetname, mapname_for_log);
+				return false;
+			}
+		}
+	}
+
+	int checkpoint = StrContains(targetname, "checkpoint");
+
+	if (checkpoint != -1)
+	{
+		if (button)
+		{
+			if (mapname_for_log[0]) LogError("invalid button (%s) (has checkpoint) on %s", targetname, mapname_for_log);
+			return false;
+		}
+
+		if (type != -1)
+		{
+			if (mapname_for_log[0]) LogError("invalid type (start/end + checkpoint) in prebuilt map zone (%s) on %s", targetname, mapname_for_log);
+			return false; // end/start & checkpoint...
+		}
+
+		type = Zone_Stage;
+		checkpoint += 10; // skip past "checkpoint"
+		if (targetname[checkpoint] == '_') checkpoint += 1;
+
+		if ('1' <= targetname[checkpoint] <= '9')
+		{
+			stage = StringToInt(targetname[checkpoint]);
+
+			if (stage <= 0 || stage > MAX_STAGES)
+			{
+				if (mapname_for_log[0]) LogError("invalid stage number in prebuilt map zone (%s) on %s", targetname, mapname_for_log);
+				return false;
+			}
+		}
+	}
+
+	if (type == -1)
+	{
+		if (mapname_for_log[0]) LogError("invalid zone type in prebuilt map zone (%s) on %s", targetname, mapname_for_log);
+		return false;
+	}
+
+	return true;
 }
 
 /**
@@ -172,6 +269,11 @@ forward void Shavit_OnEnterZone(int client, int type, int track, int id, int ent
 forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity, int data);
 
 /**
+ *
+ */
+forward void Shavit_LoadZonesHere();
+
+/**
  * Called when a player leaves a zone.
  *
  * @param client                    Client index.
@@ -181,16 +283,6 @@ forward void Shavit_OnLeaveZone(int client, int type, int track, int id, int ent
  * @return                          Plugin_Handled to block the timer from printing msg to the client. Plugin_Continue to let the timer print msg.
  */
 forward Action Shavit_OnStageMessage(int client, int stageNumber, char[] message, int maxlen);
-
-/**
- * Retrieve the zone ID for a given stage number.
- * Will return exception if stagenumber doesn't have a zone.
- *
- * @param stage                     Stage number.
- * @param track                     Track number.
- * @return                          Zone ID of stage.
- */
-native int Shavit_GetStageZone(int stage, int track=Track_Main);
 
 /**
  * Checks if a mapzone exists.
@@ -314,15 +406,56 @@ native void Shavit_SetStart(int client, int track, bool anglesonly);
  */
 native void Shavit_DeleteSetStart(int client, int track);
 
-#if 0
-native void Shavit_RemoveAllZones();
+/**
+ * Removes all zones from memory and then reloads zones from the database & any plugins.
+ * @noreturn
+ */
+native void Shavit_ReloadZones();
 
+/**
+ * Removes all zones from memory and unhooks any zones and kills any created entities.
+ * @noreturn
+ */
+native void Shavit_UnloadZones();
+
+/**
+ * Returns the number of zones that are currently loaded in memory.
+ *
+ * @return                          The number of zones currently loaded in memory.
+ */
 native int Shavit_GetZoneCount();
 
+/**
+ * Retrieves the zone_cache_t for a zone.
+ *
+ * @param index                     The zone index. 0 through Shavit_GetZoneCount()-1.
+ * @param zonecache                 The zone_cache_t struct that is retrieved from the zone.
+ * @param size                      sizeof(zone_cache_t) to make sure the caller has a matching struct version.
+ *
+ * @noreturn
+ */
 native void Shavit_GetZone(int index, any[] zonecache, int size = sizeof(zone_cache_t));
 
+/**
+ * Adds a zone to memory. (Does NOT insert into DB).
+ *
+ * @param zonecache                 The zone_cache_t struct that is used to create or hook a zone.
+ * @param size                      sizeof(zone_cache_t) to make sure the caller has a matching struct version.
+ *
+ * @return                          The zone index on success (index for a particular zone can change). <0 on failure.
+ */
 native int Shavit_AddZone(any[] zonecache, int size = sizeof(zone_cache_t));
-#endif
+
+/**
+ * Removes a zone from memory. (Does NOT delete from DB).
+ * WARNING: If there are zones after `index`, then they will be moved down in memory to fill this slot after removal.
+ * This unhooks the zone's entity too.
+ *
+ * @param index                     The zone's index.
+ *
+ * @noreturn
+ */
+native void Shavit_RemoveZone(int index);
 
 public SharedPlugin __pl_shavit_zones =
 {
@@ -340,7 +473,6 @@ public void __pl_shavit_zones_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_GetZoneData");
 	MarkNativeAsOptional("Shavit_GetZoneFlags");
-	MarkNativeAsOptional("Shavit_GetStageZone");
 	MarkNativeAsOptional("Shavit_GetStageCount");
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_InsideZoneGetID");
@@ -353,5 +485,11 @@ public void __pl_shavit_zones_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetZoneTrack");
 	MarkNativeAsOptional("Shavit_GetZoneType");
 	MarkNativeAsOptional("Shavit_GetZoneID");
+	MarkNativeAsOptional("Shavit_ReloadZones");
+	MarkNativeAsOptional("Shavit_UnloadZones");
+	MarkNativeAsOptional("Shavit_GetZoneCount");
+	MarkNativeAsOptional("Shavit_GetZone");
+	MarkNativeAsOptional("Shavit_AddZone");
+	MarkNativeAsOptional("Shavit_RemoveZone");
 }
 #endif
