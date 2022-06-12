@@ -1391,7 +1391,7 @@ public int Native_GetLoopingBotByName(Handle plugin, int numParams)
 		return -1;
 	}
 
-	for (int i = 1; i <= MAXPLAYERS; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (gA_BotInfo[i].iType == Replay_Looping && gA_BotInfo[i].iLoopingConfig == configid)
 		{
