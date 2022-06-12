@@ -2604,7 +2604,7 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 		else if (StrEqual(info, "hook"))
 		{
 			if (gA_EditCache[param1].iFlags & ZF_Hammerid)
-				IntToString(GetEntProp(gA_EditCache[param1].iEntity, Prop_Send, "m_iHammerID"), gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
+				IntToString(GetEntProp(gA_EditCache[param1].iEntity, Prop_Data, "m_iHammerID"), gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
 			else
 				GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
 
