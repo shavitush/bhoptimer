@@ -2711,13 +2711,15 @@ public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, in
 		AddVectors(origin, gA_EditCache[param1].fCorner1, gA_EditCache[param1].fCorner1);
 		AddVectors(origin, gA_EditCache[param1].fCorner2, gA_EditCache[param1].fCorner2);
 
+		gI_MapStep[param1] = 3;
 		gA_EditCache[param1].iEntity = ent;
 		gA_EditCache[param1].iType = -1;
 		gA_EditCache[param1].iTrack = -1;
 		gA_EditCache[param1].iFlags = -1;
 		OpenHookMenu_Editor(param1, ent);
-		gI_MapStep[param1] = 3;
-		CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
+
+		if (gA_EditCache[parm1].iForm == ZoneForm_trigger_multiple)
+			CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
