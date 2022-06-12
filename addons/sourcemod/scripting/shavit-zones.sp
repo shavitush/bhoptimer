@@ -2680,7 +2680,7 @@ void OpenHookMenu_Editor(int client)
 	char display[128], buf[32];
 
 	FormatEx(display, sizeof(display), "%T\n ", "ZoneHook_Tpto", client);
-	menu.AddItem("tpto", display);
+	menu.AddItem("tpto", display);//, form == ZoneForm_trigger_teleport ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
 	GetTrackName(client, track, buf, sizeof(buf), true);
 	FormatEx(display, sizeof(display), "%T", "ZoneEditTrack", client, buf);
@@ -2738,8 +2738,8 @@ public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, in
 		gA_EditCache[param1].iFlags = -1;
 		OpenHookMenu_Editor(param1);
 
-		if (gA_EditCache[param1].iForm == ZoneForm_trigger_multiple)
-			gH_StupidTimer[param1] = CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
+		//if (gA_EditCache[param1].iForm == ZoneForm_trigger_multiple)
+		gH_StupidTimer[param1] = CreateTimer(0.1, Timer_Draw, GetClientSerial(param1), TIMER_REPEAT);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -2753,38 +2753,74 @@ public int MenuHandle_HookZone_List(Menu menu, MenuAction action, int param1, in
 	return 0;
 }
 
+enum struct ent_list_thing
+{
+	float dist;
+	int ent;
+}
+
 void OpenHookMenu_List(int client, int form, int pos = 0)
 {
 	Reset(client);
 	gA_EditCache[client].iForm = form;
 	gA_EditCache[client].sSource = "sql";
 
+	float player_origin[3];
+	GetClientAbsOrigin(client, player_origin);
+
 	char classname[32]; classname =
 		 (form == ZoneForm_trigger_multiple) ? "trigger_multiple" :
 		((form == ZoneForm_trigger_teleport) ? "trigger_teleport" : "func_button");
 
-	Menu menu = new Menu(MenuHandle_HookZone_List);
-	menu.SetTitle("%T\n ", "HookZone2", client, classname);
-
 	char targetname[64], info[20], display[128];
 	int ent = -1;
+
+	ArrayList list = new ArrayList(sizeof(ent_list_thing));
 
 	while ((ent = FindEntityByClassname(ent, classname)) != -1)
 	{
 		if (gI_EntityZone[ent] > -1) continue;
 
-		GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
+		float ent_origin[3];
+		GetEntPropVector(ent, Prop_Send, "m_vecOrigin", ent_origin);
+
+		ent_list_thing thing;
+		thing.dist = GetVectorDistance(player_origin, ent_origin, true);
+		thing.ent = ent;
+		list.PushArray(thing);
+	}
+
+	if (!list.Length)
+	{
+		Shavit_PrintToChat(client, "No unhooked entities found");
+		delete list;
+		OpenHookMenu_Form(client);
+		return;
+	}
+
+	list.Sort(Sort_Ascending, Sort_Float);
+
+	Menu menu = new Menu(MenuHandle_HookZone_List);
+	menu.SetTitle("%T\n ", "HookZone2", client, classname);
+
+	for (int i = 0; i < list.Length; i++)
+	{
+		ent_list_thing thing;
+		list.GetArray(i, thing);
+
+		GetEntPropString(thing.ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
 
 		if (form == ZoneForm_trigger_multiple && StrContains(targetname, "shavit_zones_") == 0)
 		{
 			continue;
 		}
 
-		int hammerid = GetEntProp(ent, Prop_Data, "m_iHammerID");
-		FormatEx(display, sizeof(display), "'%s' (%d)", targetname, hammerid);
-		FormatEx(info, sizeof(info), "%d", EntIndexToEntRef(ent));
+		FormatEx(display, sizeof(display), "'%s' (%d) dist=%.0f", targetname, GetEntProp(thing.ent, Prop_Data, "m_iHammerID"), thing.dist);
+		FormatEx(info, sizeof(info), "%d", EntIndexToEntRef(thing.ent));
 		menu.AddItem(info, display);
 	}
+
+	delete list;
 
 	if (!menu.ItemCount)
 	{
