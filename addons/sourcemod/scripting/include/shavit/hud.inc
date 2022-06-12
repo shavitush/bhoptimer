@@ -108,6 +108,11 @@ enum struct huddata_t
 	float fClosestVelocityDifference;
 	int iMapTier;
 	float fClosestReplayLength;
+
+	int iButtons;
+	int iScrolls;
+	int iScrollsPrev;
+	float fAngleDiff;
 }
 
 /**

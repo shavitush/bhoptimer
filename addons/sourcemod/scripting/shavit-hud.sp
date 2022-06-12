@@ -1757,6 +1757,20 @@ void UpdateMainHUD(int client)
 	huddata.iPreviousSpeed = gI_PreviousSpeed[client];
 	huddata.iMapTier = gB_Rankings ? Shavit_GetMapTier() : 0;
 
+	if (IsValidClient(target))
+	{
+		huddata.fAngleDiff = gF_AngleDiff[target];
+		huddata.iButtons = gI_Buttons[target];
+		huddata.iScrolls = gI_ScrollCount[target];
+		huddata.iScrollsPrev = gI_LastScrollCount[target];
+	}
+	else
+	{
+		huddata.iButtons = Shavit_GetReplayButtons(target, huddata.fAngleDiff);
+		huddata.iScrolls = -1;
+		huddata.iScrollsPrev = -1;
+	}
+
 	huddata.fClosestReplayTime = -1.0;
 	huddata.fClosestVelocityDifference = 0.0;
 	huddata.fClosestReplayLength = 0.0;
