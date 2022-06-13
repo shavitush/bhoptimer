@@ -2669,7 +2669,7 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 			else
 				GetEntPropString(gA_EditCache[param1].iEntity, Prop_Data, gA_EditCache[param1].iForm == ZoneForm_trigger_teleport ? "m_target" : "m_iName", gA_EditCache[param1].sTarget, sizeof(gA_EditCache[].sTarget));
 
-			CreateEditMenu(param1);
+			CreateEditMenu(param1, true);
 			return 0;
 		}
 
@@ -3933,7 +3933,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 						gA_EditCache[client].fCorner2 = origin;
 						gI_MapStep[client]++;
 
-						CreateEditMenu(client);
+						CreateEditMenu(client, true);
 					}
 				}
 			}
@@ -4099,7 +4099,7 @@ void UpdateTeleportZone(int client)
 	}
 }
 
-void CreateEditMenu(int client)
+void CreateEditMenu(int client, bool autostage=false)
 {
 	bool hookmenu = gI_HookListPos[client] != -1;
 
@@ -4171,6 +4171,13 @@ void CreateEditMenu(int client)
 
 	if (gA_EditCache[client].iType == Zone_Stage)
 	{
+		if (autostage)
+		{
+			int highest = gI_HighestStage[gA_EditCache[client].iTrack];
+			highest = highest > 0 ? highest+1 : 2;
+			gA_EditCache[client].iData = highest;
+		}
+
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetStage", client, gA_EditCache[client].iData);
 		menu.AddItem("datafromchat", sMenuItem);
 	}
