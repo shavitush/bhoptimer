@@ -237,16 +237,9 @@ public void Trans_CreateTables_Error(Database db, any data, int numQueries, cons
 
 public void Trans_CreateTables_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	if (gB_MySQL)
-	{
-		char sQuery[128];
-		FormatEx(sQuery, 128, "SELECT code FROM %smigrations;", gS_SQLPrefix);
-		gH_SQL.Query2(SQL_SelectMigrations_Callback, sQuery, 0, DBPrio_High);
-	}
-	else
-	{
-		RunOnDatabaseLoadedForward();
-	}
+	char sQuery[128];
+	FormatEx(sQuery, 128, "SELECT code FROM %smigrations;", gS_SQLPrefix);
+	gH_SQL.Query2(SQL_SelectMigrations_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_SelectMigrations_Callback(Database db, DBResultSet results, const char[] error, any data)
