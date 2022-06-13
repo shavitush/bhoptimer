@@ -961,7 +961,7 @@ public Action Command_Delete(int client, int args)
 		menu.AddItem(sInfo, sTrack, (records > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
-	menu.ExitButton = true;
+	menu.ExitBackButton = true;
 	menu.Display(client, 300);
 
 	return Plugin_Handled;
@@ -976,6 +976,10 @@ public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, in
 		gA_WRCache[param1].iLastTrack = StringToInt(info);
 
 		DeleteSubmenu(param1);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
 	}
 	else if(action == MenuAction_End)
 	{
@@ -1043,7 +1047,7 @@ public Action Command_DeleteAll(int client, int args)
 		menu.AddItem(sInfo, sTrack, (iRecords > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
-	menu.ExitButton = true;
+	menu.ExitBackButton = true;
 	menu.Display(client, 300);
 
 	return Plugin_Handled;
@@ -1092,6 +1096,10 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 
 		subMenu.ExitButton = true;
 		subMenu.Display(param1, 300);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
 	}
 	else if(action == MenuAction_End)
 	{

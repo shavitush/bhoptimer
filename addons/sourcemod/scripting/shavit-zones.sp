@@ -2428,7 +2428,7 @@ public Action Command_Zones(int client, int args)
 		menu.AddItem(sInfo, sDisplay);
 	}
 
-	menu.ExitButton = true;
+	menu.ExitBackButton = true;
 	menu.Display(client, 300);
 
 	return Plugin_Handled;
@@ -2465,6 +2465,10 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 
 		submenu.ExitButton = true;
 		submenu.Display(param1, 300);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
 	}
 	else if(action == MenuAction_End)
 	{
@@ -2532,7 +2536,7 @@ Action OpenTpToZoneMenu(int client, int pagepos=0)
 		menu.AddItem(sInfo, sDisplay, ITEMDRAW_DEFAULT);
 	}
 
-	menu.ExitButton = true;
+	menu.ExitBackButton = true;
 	menu.DisplayAt(client, pagepos, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
@@ -2570,6 +2574,10 @@ public int MenuHandler_TpToEdit(Menu menu, MenuAction action, int param1, int pa
 		}
 
 		OpenTpToZoneMenu(param1, GetMenuSelectionPosition());
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
 	}
 	else if (action == MenuAction_End)
 	{
@@ -2943,6 +2951,10 @@ public int MenuHandle_HookZone_Form(Menu menu, MenuAction action, int param1, in
 		gA_EditCache[param1].sSource = "sql";
 		HookZone_SetupEditor(param1, ent);
 	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
+	}
 	else if (action == MenuAction_End)
 	{
 		delete menu;
@@ -2967,7 +2979,7 @@ void OpenHookMenu_Form(int client)
 	menu.AddItem("1", "trigger_multiple");
 	menu.AddItem("2", "trigger_teleport");
 
-	menu.ExitButton = true; // TODO Back button to admin menu list...
+	menu.ExitBackButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
@@ -3029,7 +3041,7 @@ Action OpenEditMenu(int client, int pos = 0)
 		menu.AddItem(sInfo, sDisplay, StrEqual(gA_ZoneCache[i].sSource, "sql") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 	}
 
-	menu.ExitButton = true;
+	menu.ExitBackButton = true;
 	menu.DisplayAt(client, pos, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
@@ -3070,6 +3082,10 @@ public int MenuHandler_ZoneEdit(Menu menu, MenuAction action, int param1, int pa
 				CreateEditMenu(param1);
 			}
 		}
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
 	}
 	else if(action == MenuAction_End)
 	{
@@ -3371,7 +3387,7 @@ Action OpenDeleteMenu(int client, int pos = 0)
 		}
 	}
 
-	menu.ExitButton = true;
+	menu.ExitBackButton = true;
 	menu.DisplayAt(client, pos, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
@@ -3417,6 +3433,10 @@ public int MenuHandler_DeleteZone(Menu menu, MenuAction action, int param1, int 
 				Shavit_RemoveZone(id);
 			}
 		}
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
 	}
 	else if(action == MenuAction_End)
 	{
@@ -3485,7 +3505,7 @@ public Action Command_DeleteAllZones(int client, int args)
 		menu.AddItem("-1", sMenuItem);
 	}
 
-	menu.ExitButton = true;
+	menu.ExitBackButton = true;
 	menu.Display(client, 300);
 
 	return Plugin_Handled;
@@ -3511,6 +3531,10 @@ public int MenuHandler_DeleteAllZones(Menu menu, MenuAction action, int param1, 
 		FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
 		gH_SQL.Query2(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
 	}
 	else if(action == MenuAction_End)
 	{

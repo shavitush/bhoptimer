@@ -2797,7 +2797,7 @@ public Action Command_DeleteReplay(int client, int args)
 		menu.AddItem("-1", sMenuItem);
 	}
 
-	menu.ExitButton = true;
+	menu.ExitBackButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
@@ -2844,6 +2844,10 @@ public int DeleteReplay_Callback(Menu menu, MenuAction action, int param1, int p
 
 		submenu.ExitButton = true;
 		submenu.Display(param1, MENU_TIME_FOREVER);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		gH_AdminMenu.DisplayCategory(gH_TimerCommands, param1);
 	}
 	else if(action == MenuAction_End)
 	{
