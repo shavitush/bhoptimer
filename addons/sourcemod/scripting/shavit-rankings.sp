@@ -69,7 +69,7 @@ enum struct ranking_t
 }
 
 char gS_MySQLPrefix[32];
-Database2 gH_SQL = null;
+Database gH_SQL = null;
 bool gB_HasSQLRANK = false; // whether the sql driver supports RANK()
 
 bool gB_Stats = false;
@@ -222,7 +222,7 @@ public void OnLibraryRemoved(const char[] name)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
+	gH_SQL = Shavit_GetDatabase();
 
 	if(!IsMySQLDatabase(gH_SQL))
 	{
@@ -237,7 +237,7 @@ public void Shavit_OnDatabaseLoaded()
 		}
 	}
 
-	gH_SQL.Query2(SQL_Version_Callback, "SELECT VERSION();");
+	QueryLog(gH_SQL, SQL_Version_Callback, "SELECT VERSION();");
 
 	if (gCV_WeightingMultiplier.FloatValue == 1.0)
 	{
@@ -246,11 +246,11 @@ public void Shavit_OnDatabaseLoaded()
 	}
 
 	char sQuery[2048];
-	Transaction2 hTrans = new Transaction2();
+	Transaction trans = new Transaction();
 
-	hTrans.AddQuery2("DROP PROCEDURE IF EXISTS UpdateAllPoints;;"); // old (and very slow) deprecated method
-	hTrans.AddQuery2("DROP FUNCTION IF EXISTS GetWeightedPoints;;"); // this is here, just in case we ever choose to modify or optimize the calculation
-	hTrans.AddQuery2("DROP FUNCTION IF EXISTS GetRecordPoints;;");
+	AddQueryLog(trans, "DROP PROCEDURE IF EXISTS UpdateAllPoints;;"); // old (and very slow) deprecated method
+	AddQueryLog(trans, "DROP FUNCTION IF EXISTS GetWeightedPoints;;"); // this is here, just in case we ever choose to modify or optimize the calculation
+	AddQueryLog(trans, "DROP FUNCTION IF EXISTS GetRecordPoints;;");
 
 	char sWeightingLimit[30];
 
@@ -297,11 +297,11 @@ public void Shavit_OnDatabaseLoaded()
 			"END;;", gS_MySQLPrefix);
 	}
 
-	hTrans.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 #else
 	if (gCV_WeightingMultiplier.FloatValue != 1.0)
 	{
-		hTrans.AddQuery2(sQuery);
+		AddQueryLog(trans, sQuery);
 	}
 #endif
 
@@ -321,10 +321,10 @@ public void Shavit_OnDatabaseLoaded()
 		"IF rtrack > 0 THEN SET ppoints = ppoints * 0.25; END IF; " ...
 		"RETURN ppoints; " ...
 		"END;;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
-	hTrans.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 #endif
 
-	gH_SQL.Execute(hTrans, Trans_RankingsSetupSuccess, Trans_RankingsSetupError, 0, DBPrio_High);
+	gH_SQL.Execute(trans, Trans_RankingsSetupSuccess, Trans_RankingsSetupError, 0, DBPrio_High);
 }
 
 public void Trans_RankingsSetupError(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
@@ -392,7 +392,7 @@ public void OnMapStart()
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery), "SELECT map, tier FROM %smaptiers ORDER BY map ASC;", gS_MySQLPrefix);
-	gH_SQL.Query2(SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
+	QueryLog(gH_SQL, SQL_FillTierCache_Callback, sQuery, 0, DBPrio_High);
 
 	gB_TierQueried = true;
 }
@@ -435,7 +435,7 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 
 		char sQuery[512];
 		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
-		gH_SQL.Query2(SQL_SetMapTier_Callback, sQuery, 0, DBPrio_High);
+		QueryLog(gH_SQL, SQL_SetMapTier_Callback, sQuery, 0, DBPrio_High);
 	}
 }
 
@@ -457,7 +457,7 @@ public void Shavit_OnWRDeleted(int style, int id, int track, int accountid, cons
 	char sQuery[1024];
 	// bUseCurrentMap=true because shavit-wr should maybe have updated the wr even through the updatewrcache query hasn't run yet
 	FormatRecalculate(true, track, style, sQuery, sizeof(sQuery));
-	gH_SQL.Query2(SQL_Recalculate_Callback, sQuery, (style << 8) | track, DBPrio_High);
+	QueryLog(gH_SQL, SQL_Recalculate_Callback, sQuery, (style << 8) | track, DBPrio_High);
 
 	UpdateAllPoints(true);
 }
@@ -516,7 +516,7 @@ void UpdateWRs(int client)
 		);
 	}
 
-	gH_SQL.Query2(SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
+	QueryLog(gH_SQL, SQL_GetWRs_Callback, sQuery, GetClientSerial(client));
 }
 
 public void SQL_GetWRs_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -698,7 +698,7 @@ public Action Command_SetTier(int client, int args)
 	data.WriteCell(client ? GetClientSerial(client) : 0);
 	data.WriteString(map);
 
-	gH_SQL.Query2(SQL_SetMapTier_Callback, sQuery, data);
+	QueryLog(gH_SQL, SQL_SetMapTier_Callback, sQuery, data);
 
 	return Plugin_Handled;
 }
@@ -849,22 +849,22 @@ public Action Command_RecalcAll(int client, int args)
 {
 	ReplyToCommand(client, "- Started recalculating points for all maps. Check console for output.");
 
-	Transaction2 trans = new Transaction2();
+	Transaction trans = new Transaction();
 	char sQuery[1024];
 
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0;", gS_MySQLPrefix);
-	trans.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET points = 0;", gS_MySQLPrefix);
-	trans.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
 		{
 			FormatRecalculate(false, Track_Main, i, sQuery, sizeof(sQuery));
-			trans.AddQuery2(sQuery);
+			AddQueryLog(trans, sQuery);
 			FormatRecalculate(false, Track_Bonus, i, sQuery, sizeof(sQuery));
-			trans.AddQuery2(sQuery);
+			AddQueryLog(trans, sQuery);
 		}
 	}
 
@@ -894,19 +894,19 @@ public void Trans_OnRecalcFail(Database db, any data, int numQueries, const char
 
 void RecalculateSpecificMap(const char[] map, int serial)
 {
-	Transaction2 trans = new Transaction2();
+	Transaction trans = new Transaction();
 	char sQuery[1024];
 
 	// Only maintrack times because bonus times aren't tiered.
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0 WHERE map = '%s' AND track = 0;", gS_MySQLPrefix, map);
-	trans.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
 		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
 		{
 			FormatRecalculate(false, Track_Main, i, sQuery, sizeof(sQuery), map);
-			trans.AddQuery2(sQuery);
+			AddQueryLog(trans, sQuery);
 		}
 	}
 
@@ -919,20 +919,20 @@ void ReallyRecalculateCurrentMap()
 	LogError("DEBUG: 5xxx (ReallyRecalculateCurrentMap)");
 	#endif
 
-	Transaction2 trans = new Transaction2();
+	Transaction trans = new Transaction();
 	char sQuery[1024];
 
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0 WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
-	trans.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 
 	for (int i = 0; i < gI_Styles; i++)
 	{
 		if (!Shavit_GetStyleSettingBool(i, "unranked") && Shavit_GetStyleSettingFloat(i, "rankingmultiplier") != 0.0)
 		{
 			FormatRecalculate(true, Track_Main, i, sQuery, sizeof(sQuery));
-			trans.AddQuery2(sQuery);
+			AddQueryLog(trans, sQuery);
 			FormatRecalculate(true, Track_Bonus, i, sQuery, sizeof(sQuery));
-			trans.AddQuery2(sQuery);
+			AddQueryLog(trans, sQuery);
 		}
 	}
 
@@ -969,7 +969,7 @@ public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, i
 	char sQuery[1024];
 	FormatRecalculate(true, track, style, sQuery, sizeof(sQuery));
 
-	gH_SQL.Query2(SQL_Recalculate_Callback, sQuery, (style << 8) | track, DBPrio_High);
+	QueryLog(gH_SQL, SQL_Recalculate_Callback, sQuery, (style << 8) | track, DBPrio_High);
 	UpdateAllPoints(true, gS_Map, track);
 }
 
@@ -1009,7 +1009,7 @@ void UpdatePointsForSinglePlayer(int client)
 			gS_MySQLPrefix, auth);
 	}
 
-	gH_SQL.Query2(SQL_UpdateAllPoints_Callback, sQuery, GetClientSerial(client));
+	QueryLog(gH_SQL, SQL_UpdateAllPoints_Callback, sQuery, GetClientSerial(client));
 }
 
 void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
@@ -1060,7 +1060,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			sTrackWhere);
 	}
 
-	gH_SQL.Query2(SQL_UpdateAllPoints_Callback, sQuery);
+	QueryLog(gH_SQL, SQL_UpdateAllPoints_Callback, sQuery);
 }
 
 public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1099,7 +1099,7 @@ void UpdatePlayerRank(int client, bool first)
 		hPack.WriteCell(GetClientSerial(client));
 		hPack.WriteCell(first);
 
-		gH_SQL.Query2(SQL_UpdatePlayerRank_Callback, sQuery, hPack, DBPrio_Low);
+		QueryLog(gH_SQL, SQL_UpdatePlayerRank_Callback, sQuery, hPack, DBPrio_Low);
 	}
 }
 
@@ -1149,7 +1149,7 @@ void UpdateTop100()
 		SELECT * FROM (SELECT -1 as c, auth, name, points FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
 		gS_MySQLPrefix, gS_MySQLPrefix);
 
-	gH_SQL.Query2(SQL_UpdateTop100_Callback, sQuery, 0, DBPrio_High);
+	QueryLog(gH_SQL, SQL_UpdateTop100_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1257,22 +1257,22 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 			FROM %swrs %s %s %s %s GROUP BY auth;";
 
 	char sQuery[800];
-	Transaction2 hTransaction = new Transaction2();
+	Transaction trans = new Transaction();
 
 	FormatEx(sQuery, sizeof(sQuery),
 		!gB_HasSQLRANK ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
 		gS_MySQLPrefix, "wrhrankmain", gS_MySQLPrefix, '=');
-	hTransaction.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		!gB_HasSQLRANK ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
 		gS_MySQLPrefix, "wrhrankbonus", gS_MySQLPrefix, '>');
-	hTransaction.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		!gB_HasSQLRANK ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
 		gS_MySQLPrefix, "wrhrankall", gS_MySQLPrefix, "", "", "", "");
-	hTransaction.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		!gB_HasSQLRANK ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
@@ -1281,9 +1281,9 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 		(gCV_MVPRankOnes.IntValue == 2)  ? "style = 0" : "",
 		(gCV_MVPRankOnes.IntValue == 2 && gCV_MVPRankOnes_Main.BoolValue) ? "AND" : "",
 		(gCV_MVPRankOnes_Main.BoolValue) ? "track = 0" : "");
-	hTransaction.AddQuery2(sQuery);
+	AddQueryLog(trans, sQuery);
 
-	gH_SQL.Execute(hTransaction, Trans_WRHolderRankTablesSuccess, Trans_WRHolderRankTablesError, 0, DBPrio_High);
+	gH_SQL.Execute(trans, Trans_WRHolderRankTablesSuccess, Trans_WRHolderRankTablesError, 0, DBPrio_High);
 }
 
 public void Trans_WRHolderRankTablesSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
@@ -1343,7 +1343,7 @@ void RefreshWRHoldersActually()
 		);
 	}
 
-	gH_SQL.Query2(SQL_GetWRHolders_Callback, sQuery);
+	QueryLog(gH_SQL, SQL_GetWRHolders_Callback, sQuery);
 
 	gB_WRHoldersRefreshed = true;
 }
@@ -1498,7 +1498,7 @@ public int Native_Rankings_DeleteMap(Handle handler, int numParams)
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smaptiers WHERE map = '%s';", gS_MySQLPrefix, sMap);
-	gH_SQL.Query2(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+	QueryLog(gH_SQL, SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 	return 1;
 }
 

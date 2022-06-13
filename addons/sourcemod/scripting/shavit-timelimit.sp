@@ -39,7 +39,7 @@
 // #define DEBUG
 
 // database handle
-Database2 gH_SQL = null;
+Database gH_SQL = null;
 
 // base cvars
 ConVar mp_do_warmup_period = null;
@@ -131,7 +131,7 @@ public void OnPluginStart()
 	HookEvent("round_end", round_end, EventHookMode_Pre);
 
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle2();
+	gH_SQL = GetTimerDatabaseHandle();
 }
 
 public void OnMapStart()
@@ -221,7 +221,7 @@ void StartCalculating()
 	PrintToServer("%s", sQuery);
 	#endif
 
-	gH_SQL.Query2(SQL_GetMapTimes, sQuery, 0, DBPrio_Low);
+	QueryLog(gH_SQL, SQL_GetMapTimes, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_GetMapTimes(Database db, DBResultSet results, const char[] error, any data)

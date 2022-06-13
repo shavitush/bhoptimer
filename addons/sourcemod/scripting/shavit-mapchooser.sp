@@ -40,7 +40,7 @@
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 
-Database2 g_hDatabase;
+Database g_hDatabase;
 char g_cSQLPrefix[32];
 
 bool g_bDebug;
@@ -1044,7 +1044,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(g_cSQLPrefix, sizeof(g_cSQLPrefix));
-	g_hDatabase = view_as<Database2>(Shavit_GetDatabase());
+	g_hDatabase = Shavit_GetDatabase();
 }
 
 void RemoveExcludesFromArrayList(ArrayList list, bool lowercase, char[][] exclude_prefixes, int exclude_count)
@@ -1085,13 +1085,13 @@ void LoadMapList()
 		{
 			if (g_hDatabase == null)
 			{
-				g_hDatabase = GetTimerDatabaseHandle2();
+				g_hDatabase = GetTimerDatabaseHandle();
 			}
 
 			char buffer[512];
 
 			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
-			g_hDatabase.Query2(LoadZonedMapsCallback, buffer, _, DBPrio_High);
+			QueryLog(g_hDatabase, LoadZonedMapsCallback, buffer, _, DBPrio_High);
 		}
 		case MapListFolder:
 		{
@@ -1108,7 +1108,7 @@ void LoadMapList()
 		{
 			if (g_hDatabase == null)
 			{
-				g_hDatabase = GetTimerDatabaseHandle2();
+				g_hDatabase = GetTimerDatabaseHandle();
 			}
 
 			if (g_cvMapListType.IntValue == MapListMixed)
@@ -1123,7 +1123,7 @@ void LoadMapList()
 
 			char buffer[512];
 			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
-			g_hDatabase.Query2(LoadZonedMapsCallbackMixed, buffer, _, DBPrio_High);
+			QueryLog(g_hDatabase, LoadZonedMapsCallbackMixed, buffer, _, DBPrio_High);
 		}
 	}
 }
@@ -2014,7 +2014,7 @@ public Action Command_LoadUnzonedMap(int client, int args)
 {
 	char sQuery[256];
 	FormatEx(sQuery, sizeof(sQuery), "SELECT DISTINCT map FROM %smapzones;", g_cSQLPrefix);
-	g_hDatabase.Query2(FindUnzonedMapCallback, sQuery, 0, DBPrio_Normal);
+	QueryLog(g_hDatabase, FindUnzonedMapCallback, sQuery, 0, DBPrio_Normal);
 	return Plugin_Handled;
 }
 

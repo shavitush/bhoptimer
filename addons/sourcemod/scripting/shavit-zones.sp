@@ -52,7 +52,7 @@
 
 EngineVersion gEV_Type = Engine_Unknown;
 
-Database2 gH_SQL = null;
+Database gH_SQL = null;
 bool gB_MySQL = false;
 
 bool gB_YouCanLoadZonesNow = false;
@@ -760,7 +760,7 @@ public int Native_Zones_DeleteMap(Handle handler, int numParams)
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, sMap);
-	gH_SQL.Query2(SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
+	QueryLog(gH_SQL, SQL_DeleteMap_Callback, sQuery, StrEqual(gS_Map, sMap, false), DBPrio_High);
 	return 1;
 }
 
@@ -1592,7 +1592,7 @@ void RefreshZones()
 		"SELECT type, corner1_x, corner1_y, corner1_z, corner2_x, corner2_y, corner2_z, destination_x, destination_y, destination_z, track, %s, flags, data, form, target FROM %smapzones WHERE map = '%s';",
 		(gB_MySQL)? "id":"rowid", gS_MySQLPrefix, gS_Map);
 
-	gH_SQL.Query2(SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
+	QueryLog(gH_SQL, SQL_RefreshZones_Callback, sQuery, 0, DBPrio_High);
 }
 
 public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1659,25 +1659,25 @@ public void SQL_RefreshZones_Callback(Database db, DBResultSet results, const ch
 		gB_InsertedPrebuiltZones = true;
 
 		char sQuery[1024];
-		Transaction2 hTransaction;
+		Transaction trans;
 
 		for (int i = 0; i < gI_MapZones; i++)
 		{
 			if (gA_ZoneCache[i].bPrebuilt)
 			{
-				if (hTransaction == null)
+				if (trans == null)
 				{
-					hTransaction = new Transaction2();
+					trans = new Transaction();
 				}
 
 				InsertPrebuiltZone(i, false, sQuery, sizeof(sQuery));
-				hTransaction.AddQuery2(sQuery);
+				AddQueryLog(hTransaction, sQuery);
 			}
 		}
 
-		if (hTransaction != null)
+		if (trans != null)
 		{
-			gH_SQL.Execute(hTransaction);
+			gH_SQL.Execute(trans);
 		}
 	}
 #endif
@@ -1786,7 +1786,7 @@ void GetStartPosition(int client)
 		"SELECT track, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, angles_only FROM %sstartpositions WHERE auth = %d AND map = '%s'",
 		gS_MySQLPrefix, steamID, gS_Map);
 
-	gH_SQL.Query2(SQL_GetStartPosition_Callback, query, GetClientSerial(client));
+	QueryLog(gH_SQL, SQL_GetStartPosition_Callback, query, GetClientSerial(client));
 }
 
 public void SQL_GetStartPosition_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1863,7 +1863,7 @@ void SetStart(int client, int track, bool anglesonly)
 		gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
 		gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2], anglesonly);
 
-	gH_SQL.Query2(SQL_InsertStartPosition_Callback, query);
+	QueryLog(gH_SQL, SQL_InsertStartPosition_Callback, query);
 }
 
 public void SQL_InsertStartPosition_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -1902,7 +1902,7 @@ void DeleteSetStart(int client, int track)
 		"DELETE FROM %sstartpositions WHERE auth = %d AND track = %d AND map = '%s';",
 		gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map);
 
-	gH_SQL.Query2(SQL_DeleteSetStart_Callback, query);
+	QueryLog(gH_SQL, SQL_DeleteSetStart_Callback, query);
 }
 
 public void SQL_DeleteSetStart_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -2106,7 +2106,7 @@ public int MenuHandler_DeleteCustomSpawn(Menu menu, MenuAction action, int param
 			"DELETE FROM %smapzones WHERE type = %d AND map = '%s' AND track = %d;",
 			gS_MySQLPrefix, Zone_CustomSpawn, gS_Map, iTrack);
 
-		gH_SQL.Query2(SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(param1));
+		QueryLog(gH_SQL, SQL_DeleteCustom_Spawn_Callback, sQuery, GetClientSerial(param1));
 	}
 	else if(action == MenuAction_End)
 	{
@@ -3428,7 +3428,7 @@ public int MenuHandler_DeleteZone(Menu menu, MenuAction action, int param1, int 
 				hDatapack.WriteCell(GetClientSerial(param1));
 				hDatapack.WriteCell(gA_ZoneCache[id].iType);
 
-				gH_SQL.Query2(SQL_DeleteZone_Callback, sQuery, hDatapack);
+				QueryLog(gH_SQL, SQL_DeleteZone_Callback, sQuery, hDatapack);
 
 				Shavit_RemoveZone(id);
 			}
@@ -3530,7 +3530,7 @@ public int MenuHandler_DeleteAllZones(Menu menu, MenuAction action, int param1, 
 		char sQuery[512];
 		FormatEx(sQuery, sizeof(sQuery), "DELETE FROM %smapzones WHERE map = '%s';", gS_MySQLPrefix, gS_Map);
 
-		gH_SQL.Query2(SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
+		QueryLog(gH_SQL, SQL_DeleteAllZones_Callback, sQuery, GetClientSerial(param1));
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -4392,7 +4392,7 @@ void InsertZone(int client)
 
 	Reset(client);
 
-	gH_SQL.Query2(SQL_InsertZone_Callback, sQuery, 0);
+	QueryLog(gH_SQL, SQL_InsertZone_Callback, sQuery, 0);
 }
 
 public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
@@ -4702,7 +4702,7 @@ void CreateZonePoints(float point[8][3], bool prebuilt)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
+	gH_SQL = Shavit_GetDatabase();
 	gB_MySQL = IsMySQLDatabase(gH_SQL);
 
 	if (gB_YouCanLoadZonesNow && gCV_SQLZones.BoolValue)

@@ -157,6 +157,17 @@ enum struct timer_snapshot_t
 stock void Shavit_LogQuery(const char[] query)
 {
 	static File hLogFile;
+	static ConVar shavit_core_log_sql = null;
+
+	if (shavit_core_log_sql == null)
+	{
+		shavit_core_log_sql = FindConVar("shavit_core_log_sql");
+	}
+
+	if (!shavit_core_log_sql || !shavit_core_log_sql.BoolValue)
+	{
+		return;
+	}
 
 	if (hLogFile == null)
 	{
@@ -179,35 +190,20 @@ stock void Shavit_LogQuery(const char[] query)
 	}
 }
 
-methodmap Database2 < Database
+stock void QueryLog(Database db, SQLQueryCallback callback, const char[] query, any data = 0, DBPriority prio = DBPrio_Normal)
 {
-	public void Query2(SQLQueryCallback callback, const char[] query, any data = 0, DBPriority prio = DBPrio_Normal)
-	{
-#if SHAVIT_LOG_QUERIES
-		Shavit_LogQuery(query);
-#endif
-		this.Query(callback, query, data, prio);
-	}
+	Shavit_LogQuery(query);
+	db.Query(callback, query, data, prio);
 }
 
-methodmap Transaction2 < Transaction
+stock int AddQueryLog(Transaction trans, const char[] query, any data = 0)
 {
-	public Transaction2()
-	{
-		return view_as<Transaction2>(new Transaction());
-	}
-
-	public int AddQuery2(const char[] query, any data = 0)
-	{
-#if SHAVIT_LOG_QUERIES
-		Shavit_LogQuery(query);
-#endif
-		return this.AddQuery(query, data);
-	}
+	Shavit_LogQuery(query);
+	return trans.AddQuery(query, data);
 }
 
 // connects synchronously to the bhoptimer database
-// calls errors if needed
+// call errors if needed
 stock Database GetTimerDatabaseHandle(bool reuse_persistent_connection=true)
 {
 	Database db = null;
@@ -232,11 +228,6 @@ stock Database GetTimerDatabaseHandle(bool reuse_persistent_connection=true)
 	}
 
 	return db;
-}
-
-stock Database2 GetTimerDatabaseHandle2(bool reuse_persistent_connection=true)
-{
-	return view_as<Database2>(GetTimerDatabaseHandle(reuse_persistent_connection));
 }
 
 // figures out if the database is a mysql database

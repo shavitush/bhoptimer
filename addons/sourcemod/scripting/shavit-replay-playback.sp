@@ -238,7 +238,7 @@ TopMenu gH_AdminMenu = null;
 TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // database related things
-Database2 gH_SQL = null;
+Database gH_SQL = null;
 char gS_MySQLPrefix[32];
 
 bool gB_ClosestPos;
@@ -447,7 +447,7 @@ public void OnPluginStart()
 
 	// database
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = GetTimerDatabaseHandle2();
+	gH_SQL = GetTimerDatabaseHandle();
 
 	LoadDHooks();
 
@@ -793,7 +793,7 @@ bool LoadReplay(frame_cache_t cache, int style, int track, const char[] path, co
 		hPack.WriteCell(style);
 		hPack.WriteCell(track);
 
-		gH_SQL.Query2(SQL_GetUserName_Callback, sQuery, hPack, DBPrio_High);
+		QueryLog(gH_SQL, SQL_GetUserName_Callback, sQuery, hPack, DBPrio_High);
 	}
 
 	return ret;
@@ -1108,7 +1108,7 @@ public int Native_StartReplayFromFile(Handle handler, int numParams)
 	{
 		char sQuery[192];
 		FormatEx(sQuery, sizeof(sQuery), "SELECT name FROM %susers WHERE auth = %d;", gS_MySQLPrefix, cache.iSteamID);
-		gH_SQL.Query2(SQL_GetUserName_Botref_Callback, sQuery, EntIndexToEntRef(bot), DBPrio_High);
+		QueryLog(gH_SQL, SQL_GetUserName_Botref_Callback, sQuery, EntIndexToEntRef(bot), DBPrio_High);
 	}
 
 	return bot;

@@ -73,7 +73,7 @@ enum
 #pragma semicolon 1
 
 // database
-Database2 gH_SQL = null;
+Database gH_SQL = null;
 char gS_MySQLPrefix[32];
 
 // modules
@@ -1251,7 +1251,7 @@ public Action Command_CCAdd(int client, int args)
 
 	char sQuery[128];
 	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %schat (auth, ccaccess) VALUES (%d, 1);", gS_MySQLPrefix, iSteamID);
-	gH_SQL.Query2(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
+	QueryLog(gH_SQL, SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -1289,7 +1289,7 @@ public Action Command_CCDelete(int client, int args)
 
 	char sQuery[128];
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %schat SET ccaccess = 0 WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
-	gH_SQL.Query2(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
+	QueryLog(gH_SQL, SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -1406,7 +1406,7 @@ void FormatChat(int client, char[] buffer, int size)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = view_as<Database2>(Shavit_GetDatabase());
+	gH_SQL = Shavit_GetDatabase();
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -1444,7 +1444,7 @@ void SaveToDatabase(int client)
 		"REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES (%d, %d, '%s', %d, '%s');",
 		gS_MySQLPrefix, iSteamID, 1, sEscapedName, 1, sEscapedMessage);
 
-	gH_SQL.Query2(SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
+	QueryLog(gH_SQL, SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_UpdateUser_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1474,7 +1474,7 @@ void LoadFromDatabase(int client)
 	char sQuery[256];
 	FormatEx(sQuery, 256, "SELECT name, ccname, message, ccmessage, ccaccess FROM %schat WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
 
-	gH_SQL.Query2(SQL_GetChat_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
+	QueryLog(gH_SQL, SQL_GetChat_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 }
 
 public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] error, any data)
