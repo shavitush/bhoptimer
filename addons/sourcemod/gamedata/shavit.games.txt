@@ -232,6 +232,13 @@
 				"windows"   "\x55\x8B\xEC\x83\xEC\x14\xFF\x15"
 				"linux"     "@_ZN13CCSBotManager16MaintainBotQuotaEv"
 			}
+			// search string: "Server is hibernating" to find SetHibernating and then go its references
+			"CGameServer::UpdateHibernationState"
+			{
+				"library"   "engine"
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x07\x8B\x40\x2A\xFF\xD0\x84\xC0\x0F\x84"
+				"linux"     "@_ZN11CGameServer22UpdateHibernationStateEv"
+			}
 			// search string: "Error - no profile for '%s' exists."
 			"CCSBotManager::BotAddCommand"
 			{

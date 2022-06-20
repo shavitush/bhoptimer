@@ -189,6 +189,8 @@ Handle gH_BotAddCommand = INVALID_HANDLE;
 Handle gH_DoAnimationEvent = INVALID_HANDLE;
 DynamicHook gH_UpdateStepSound = null;
 DynamicDetour gH_MaintainBotQuota = null;
+DynamicDetour gH_UpdateHibernationState = null;
+bool gB_DisableHibernation = false;
 DynamicDetour gH_TeamFull = null;
 bool gB_TeamFullDetoured = false;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
@@ -218,6 +220,7 @@ Convar gCV_DynamicTimeSearch = null;
 Convar gCV_DynamicTimeCheap = null;
 Convar gCV_DynamicTimeTick = null;
 Convar gCV_EnableDynamicTimeDifference = null;
+Convar gCV_DisableHibernation = null;
 ConVar sv_duplicate_playernames_ok = null;
 ConVar bot_join_after_player = null;
 ConVar mp_randomspawn = null;
@@ -411,6 +414,12 @@ public void OnPluginStart()
 	gCV_DynamicTimeSearch = new Convar("shavit_replay_timedifference_search", "60.0", "Time in seconds to search the players current frame for dynamic time differences\n0 - Full Scan\nNote: Higher values will result in worse performance", 0, true, 0.0);
 	gCV_EnableDynamicTimeDifference = new Convar("shavit_replay_timedifference", "1", "Enabled dynamic time/velocity differences for the hud", 0, true, 0.0, true, 1.0);
 
+	if (gEV_Type == Engine_CSS)
+	{
+		gCV_DisableHibernation = new Convar("shavit_replay_disable_hibernation", "0", "Whether to disable server hibernation...", 0, true, 0.0, true, 1.0);
+		gCV_DisableHibernation.AddChangeHook(OnConVarChanged);
+	}
+
 	char tenth[6];
 	IntToString(RoundToFloor(1.0 / GetTickInterval() / 10), tenth, sizeof(tenth));
 	gCV_DynamicTimeTick = new Convar("shavit_replay_timedifference_tick", tenth, "How often (in ticks) should the time difference update.\nYou should probably keep this around 0.1s worth of ticks.\nThe maximum value is your tickrate.", 0, true, 1.0, true, (1.0 / GetTickInterval()));
@@ -548,6 +557,18 @@ void LoadDHooks()
 
 	if (gEV_Type == Engine_CSS)
 	{
+		if (!(gH_UpdateHibernationState = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_Address)))
+		{
+			LogError("Failed to create detour for CGameServer::UpdateHibernationState");
+		}
+		else
+		{
+			if (!DHookSetFromConf(gH_UpdateHibernationState, gamedata, SDKConf_Signature, "CGameServer::UpdateHibernationState"))
+			{
+				LogError("Failed to get address for CGameServer::UpdateHibernationState");
+			}
+		}
+
 		if (!(gH_TeamFull = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Bool, ThisPointer_Address)))
 		{
 			SetFailState("Failed to create detour for CCSGameRules::TeamFull");
@@ -588,6 +609,11 @@ void LoadDHooks()
 	}
 
 	delete gamedata;
+}
+
+public MRESReturn Detour_UpdateHibernationState(int pThis)
+{
+	return MRES_Supercede;
 }
 
 // Stops bot_quota from doing anything.
@@ -662,6 +688,19 @@ public Action CommandListener_changelevel(int client, const char[] command, int 
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
+	if (gCV_DisableHibernation != null && convar == gCV_DisableHibernation)
+	{
+		if (gH_UpdateHibernationState && convar.BoolValue != gB_DisableHibernation)
+		{
+			if ((gB_DisableHibernation = convar.BoolValue))
+				gH_UpdateHibernationState.Enable(Hook_Pre, Detour_UpdateHibernationState);
+			else
+				gH_UpdateHibernationState.Disable(Hook_Pre, Detour_UpdateHibernationState);
+		}
+
+		return;
+	}
+
 	KickAllReplays();
 }
 
