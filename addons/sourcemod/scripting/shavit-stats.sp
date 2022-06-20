@@ -60,6 +60,7 @@ int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 
 // playtime things
+Transaction gH_DisconnectPlaytimeQueries = null;
 float gF_PlaytimeStart[MAXPLAYERS+1];
 float gF_PlaytimeStyleStart[MAXPLAYERS+1];
 int gI_CurrentStyle[MAXPLAYERS+1];
@@ -143,6 +144,41 @@ public void OnPluginStart()
 	}
 
 	CreateTimer(2.5 * 60.0, Timer_SavePlaytime, 0, TIMER_REPEAT);
+	CreateTimer(3.0, Timer_SaveDisconnectPlaytime, 0, TIMER_REPEAT);
+}
+
+public void OnMapEnd()
+{
+	PrintToServer("OnMapEnd");
+	FlushDisconnectPlaytime();
+}
+
+public void OnPluginEnd()
+{
+	PrintToServer("OnPluginEnd");
+	FlushDisconnectPlaytime();
+}
+
+void FlushDisconnectPlaytime()
+{
+	float now = GetEngineTime();
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsValidClient(i))
+		{
+			continue;
+		}
+
+		SavePlaytime(i, now, gH_DisconnectPlaytimeQueries);
+	}
+
+	if (gH_DisconnectPlaytimeQueries != null)
+	{
+		PrintToServer("flushing...");
+		gH_SQL.Execute(gH_DisconnectPlaytimeQueries, Trans_SavePlaytime_Success, Trans_SavePlaytime_Failure);
+		gH_DisconnectPlaytimeQueries = null;
+	}
 }
 
 public void Shavit_OnDatabaseLoaded()
@@ -308,13 +344,8 @@ public void OnClientDisconnect(int client)
 		return;
 	}
 
-	Transaction trans = null;
-	SavePlaytime(client, GetEngineTime(), trans);
-
-	if (trans != null)
-	{
-		gH_SQL.Execute(trans, Trans_SavePlaytime_Success, Trans_SavePlaytime_Failure);
-	}
+	PrintToServer("OnClientDisconnect");
+	SavePlaytime(client, GetEngineTime(), gH_DisconnectPlaytimeQueries);
 }
 
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
@@ -444,7 +475,7 @@ public void Trans_SavePlaytime_Failure(Database db, any data, int numQueries, co
 	LogError("Timer (stats save playtime) SQL query %d/%d failed. Reason: %s", failIndex, numQueries, error);
 }
 
-void SavePlaytime(int client, float now, Transaction&trans)
+void SavePlaytime(int client, float now, Transaction& trans)
 {
 	int iSteamID = GetSteamAccountID(client);
 
@@ -497,6 +528,18 @@ public Action Timer_SavePlaytime(Handle timer, any data)
 		gH_SQL.Execute(trans, Trans_SavePlaytime_Success, Trans_SavePlaytime_Failure);
 	}
 
+	return Plugin_Continue;
+}
+
+public Action Timer_SaveDisconnectPlaytime(Handle timer, any data)
+{
+	if (gH_SQL == null || gH_DisconnectPlaytimeQueries == null)
+	{
+		return Plugin_Continue;
+	}
+
+	gH_SQL.Execute(gH_DisconnectPlaytimeQueries, Trans_SavePlaytime_Success, Trans_SavePlaytime_Failure);
+	gH_DisconnectPlaytimeQueries = null;
 	return Plugin_Continue;
 }
 
