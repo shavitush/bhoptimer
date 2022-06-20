@@ -149,13 +149,11 @@ public void OnPluginStart()
 
 public void OnMapEnd()
 {
-	PrintToServer("OnMapEnd");
 	FlushDisconnectPlaytime();
 }
 
 public void OnPluginEnd()
 {
-	PrintToServer("OnPluginEnd");
 	FlushDisconnectPlaytime();
 }
 
@@ -175,7 +173,6 @@ void FlushDisconnectPlaytime()
 
 	if (gH_DisconnectPlaytimeQueries != null)
 	{
-		PrintToServer("flushing...");
 		gH_SQL.Execute(gH_DisconnectPlaytimeQueries, Trans_SavePlaytime_Success, Trans_SavePlaytime_Failure);
 		gH_DisconnectPlaytimeQueries = null;
 	}
@@ -344,7 +341,6 @@ public void OnClientDisconnect(int client)
 		return;
 	}
 
-	PrintToServer("OnClientDisconnect");
 	SavePlaytime(client, GetEngineTime(), gH_DisconnectPlaytimeQueries);
 }
 
