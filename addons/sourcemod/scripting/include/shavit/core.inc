@@ -33,8 +33,6 @@
 // stolen from boosterfix
 #define EXPAND_VECTOR(%1) %1[0], %1[1], %1[2]
 
-#define SHAVIT_LOG_QUERIES 0
-
 #include <shavit/bhopstats-timerified>
 
 // status
