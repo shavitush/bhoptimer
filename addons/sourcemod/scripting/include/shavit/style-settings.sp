@@ -316,7 +316,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	}
 
 	char sPermission[64];
-	GetStyleSetting(gI_CurrentParserIndex, "name", sPermission, sizeof(sPermission));
+	GetStyleSetting(gI_CurrentParserIndex, "permission", sPermission, sizeof(sPermission));
 
 	if (StrContains(sPermission, ";") != -1)
 	{
