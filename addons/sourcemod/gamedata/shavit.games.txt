@@ -276,21 +276,20 @@
 			// https://asherkin.github.io/vtable/
 			"CBaseTrigger::PassesTriggerFilters"
 			{
-				"windows"   "201"
-				"linux"     "202"
+				"windows"   "204"
+				"linux"     "205"
 			}
 			// https://asherkin.github.io/vtable/
 			"CGameRules::IsSpawnPointValid"
 			{
 				"windows"   "76"
 				"linux"     "77"
-				"mac"       "77"
 			}
 			// https://asherkin.github.io/vtable/
 			"CBasePlayer::UpdateStepSound"
 			{
-				"windows"   "362"
-				"linux"     "363"
+				"windows"   "365"
+				"linux"     "366"
 			}
 		}
 
