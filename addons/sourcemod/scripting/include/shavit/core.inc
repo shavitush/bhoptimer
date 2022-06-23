@@ -228,13 +228,26 @@ stock Database GetTimerDatabaseHandle(bool reuse_persistent_connection=true)
 	return db;
 }
 
-// figures out if the database is a mysql database
-stock bool IsMySQLDatabase(Database db)
-{
-	char sDriver[8];
-	db.Driver.GetIdentifier(sDriver, 8);
+enum {
+	Driver_unknown,
+	Driver_sqlite,
+	Driver_mysql,
+	Driver_pgsql,
+}
 
-	return StrEqual(sDriver, "mysql", false);
+stock int GetDatabaseDriver(Database db)
+{
+	char sDriver[16];
+	db.Driver.GetIdentifier(sDriver, sizeof(sDriver));
+
+	if (StrEqual(sDriver, "mysql", false))
+		return Driver_mysql;
+	else if (StrEqual(sDriver, "sqlite", false))
+		return Driver_sqlite;
+	else if (StrEqual(sDriver, "pgsql", false))
+		return Driver_pgsql;
+	else
+		return Driver_unknown;
 }
 
 stock void LowercaseString(char[] str)
@@ -861,7 +874,7 @@ forward void Shavit_OnCountdownStart();
  *
  * @return							Database handle.
  */
-native Database Shavit_GetDatabase();
+native Database Shavit_GetDatabase(int& outdriver=0);
 
 /**
  * Starts the timer for a player.

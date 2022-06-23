@@ -61,7 +61,7 @@ DynamicHook gH_TeleportDhook = null;
 
 // database handle
 Database gH_SQL = null;
-bool gB_MySQL = false;
+int gI_Driver = Driver_unknown;
 
 // forwards
 Handle gH_Forwards_Start = null;
@@ -1710,6 +1710,8 @@ public void Player_Death(Event event, const char[] name, bool dontBroadcast)
 
 public int Native_GetDatabase(Handle handler, int numParams)
 {
+	if (numParams > 0)
+		SetNativeCellRef(1, gI_Driver);
 	return gH_SQL ? view_as<int>(CloneHandle(gH_SQL, handler)) : 0;
 }
 
@@ -2691,10 +2693,16 @@ public void OnClientPutInServer(int client)
 
 	char sQuery[512];
 
-	if(gB_MySQL)
+	if (gI_Driver == Driver_mysql)
 	{
 		FormatEx(sQuery, 512,
 			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
+			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
+	}
+	else if (gI_Driver == Driver_pgsql)
+	{
+		FormatEx(sQuery, 512,
+			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON CONFLICT(auth) DO UPDATE SET name = '%s', ip = %d, lastlogin = %d;",
 			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
 	}
 	else
@@ -2806,9 +2814,9 @@ void SQL_DBConnect()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle();
-	gB_MySQL = IsMySQLDatabase(gH_SQL);
+	gI_Driver = GetDatabaseDriver(gH_SQL);
 
-	SQL_CreateTables(gH_SQL, gS_MySQLPrefix, gB_MySQL);
+	SQL_CreateTables(gH_SQL, gS_MySQLPrefix, gI_Driver);
 }
 
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity)

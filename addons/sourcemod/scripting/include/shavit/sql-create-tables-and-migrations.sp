@@ -53,7 +53,7 @@ enum
 };
 
 static Database gH_SQL;
-static bool gB_MySQL;
+static int gI_Driver;
 static char gS_SQLPrefix[32];
 
 int gI_MigrationsRequired;
@@ -72,10 +72,10 @@ public void RunOnDatabaseLoadedForward()
 	Call_Finish(hOnDatabasedLoaded);
 }
 
-public void SQL_CreateTables(Database hSQL, const char[] prefix, bool mysql)
+public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 {
 	gH_SQL = hSQL;
-	gB_MySQL = mysql;
+	gI_Driver = driver;
 	strcopy(gS_SQLPrefix, sizeof(gS_SQLPrefix), prefix);
 
 	Transaction trans = new Transaction();
@@ -83,7 +83,7 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, bool mysql)
 	char sQuery[2048];
 	char sOptionalINNODB[16];
 
-	if (gB_MySQL)
+	if (driver == Driver_mysql)
 	{
 		sOptionalINNODB = "ENGINE=INNODB";
 	}
@@ -92,7 +92,7 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, bool mysql)
 	//// shavit-core
 	//
 
-	if (gB_MySQL)
+	if (driver == Driver_mysql)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"CREATE TABLE IF NOT EXISTS `%susers` (`auth` INT NOT NULL, `name` VARCHAR(32) COLLATE 'utf8mb4_general_ci', `ip` INT, `lastlogin` INT NOT NULL DEFAULT -1, `points` FLOAT NOT NULL DEFAULT 0, `playtime` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), INDEX `points` (`points`), INDEX `lastlogin` (`lastlogin`)) ENGINE=INNODB;",
@@ -116,7 +116,7 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, bool mysql)
 	//// shavit-chat
 	//
 
-	if (gB_MySQL)
+	if (driver == Driver_mysql)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"CREATE TABLE IF NOT EXISTS `%schat` (`auth` INT NOT NULL, `name` INT NOT NULL DEFAULT 0, `ccname` VARCHAR(128) COLLATE 'utf8mb4_unicode_ci', `message` INT NOT NULL DEFAULT 0, `ccmessage` VARCHAR(16) COLLATE 'utf8mb4_unicode_ci', `ccaccess` INT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`), CONSTRAINT `%sch_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=INNODB;",
@@ -153,7 +153,7 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, bool mysql)
 	//// shavit-wr
 	//
 
-	if (gB_MySQL)
+	if (driver == Driver_mysql)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), INDEX `map2` (`map`)) ENGINE=INNODB;",
@@ -179,15 +179,23 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, bool mysql)
 		gS_SQLPrefix, sOptionalINNODB);
 	AddQueryLog(trans, sQuery);
 
+	if (driver == Driver_sqlite)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "DROP VIEW IF EXISTS %swrs;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+		FormatEx(sQuery, sizeof(sQuery), "DROP VIEW IF EXISTS %swrs_min;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+	}
+
 	FormatEx(sQuery, sizeof(sQuery),
 		"%s %swrs_min AS SELECT MIN(time) time, map, track, style FROM %splayertimes GROUP BY map, track, style;",
-		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
+		driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
 		gS_SQLPrefix, gS_SQLPrefix);
 	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"%s %swrs AS SELECT a.* FROM %splayertimes a JOIN %swrs_min b ON a.time = b.time AND a.map = b.map AND a.track = b.track AND a.style = b.style;",
-		gB_MySQL ? "CREATE OR REPLACE VIEW" : "CREATE VIEW IF NOT EXISTS",
+		driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
 		gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
 	AddQueryLog(trans, sQuery);
 
@@ -343,14 +351,14 @@ void ApplyMigration_AddPlayertimesCompletions()
 void ApplyMigration_AddCustomChatAccess()
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%schat` ADD COLUMN `ccaccess` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `ccmessage`" : "");
+	FormatEx(sQuery, 192, "ALTER TABLE `%schat` ADD COLUMN `ccaccess` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "AFTER `ccmessage`" : "");
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddCustomChatAccess, DBPrio_High);
 }
 
 void ApplyMigration_AddPlayertimesExactTimeInt()
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `exact_time_int` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `completions`" : "");
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `exact_time_int` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "AFTER `completions`" : "");
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesExactTimeInt, DBPrio_High);
 }
 
@@ -383,7 +391,7 @@ void ApplyMigration_AddPlaytime()
 public void SQL_Migration_AddPlaytime2222222_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%susers` ADD COLUMN `playtime` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `points`" : "");
+	FormatEx(sQuery, 192, "ALTER TABLE `%susers` ADD COLUMN `playtime` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "AFTER `points`" : "");
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlaytime, DBPrio_High);
 }
 
@@ -398,7 +406,7 @@ void ApplyMigration_AddPlayertimesPointsCalcedFrom()
 {
 #if 0
 	char sQuery[192];
-	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, gB_MySQL ? "AFTER `points`" : "");
+	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `points_calced_from` FLOAT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "AFTER `points`" : "");
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesPointsCalcedFrom, DBPrio_High);
 #else
 	SQL_TableMigrationSingleQuery_Callback(null, null, "", Migration_AddPlayertimesPointsCalcedFrom);
@@ -415,9 +423,9 @@ void ApplyMigration_RemovePlayertimesPointsCalcedFrom()
 void ApplyMigration_NormalizeMapzonePoints() // TODO: test with sqlite lol
 {
 	char sQuery[666], greatest[16], least[16], id[16];
-	greatest = gB_MySQL ? "GREATEST" : "MAX";
-	least = gB_MySQL ? "LEAST" : "MIN";
-	id = gB_MySQL ? "id" : "rowid";
+	greatest = (gI_Driver != Driver_sqlite) ? "GREATEST" : "MAX";
+	least = (gI_Driver != Driver_sqlite) ? "LEAST" : "MIN";
+	id = (gI_Driver != Driver_sqlite) ? "id" : "rowid";
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"UPDATE `%smapzones` A, `%smapzones` B SET \
