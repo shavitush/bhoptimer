@@ -46,7 +46,7 @@
 	{
 		"Offsets"
 		{
-			// todo
+			// search string: "func_pushable" and you can find CBaseTrigger::PassesTriggerFilters / CBaseVPhysicsTrigger::PassesTriggerFilters. Follow references to these functions to find the vtable and then calculate the offset...
 			"CBaseTrigger::PassesTriggerFilters"
 			{
 				"windows"   "210"
@@ -59,7 +59,7 @@
 				"linux"     "507"
 				"mac"       "507"
 			}
-			// add 1 to the css offset and hope it works
+			// add 1 to the css offset and hope it works (or look around the references to "Invalid counterterrorist spawnpoint")
 			"CGameRules::IsSpawnPointValid"
 			{
 				"windows"   "77"
