@@ -64,4 +64,8 @@
 	{
 		"en"        "Current Timescale"
 	}
+	"OpenSteamProfile"
+	{
+		"en"        "Open Steam profile"
+	}
 }

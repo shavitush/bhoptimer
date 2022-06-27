@@ -2402,15 +2402,18 @@ public void SQL_SubMenu_Callback(Database db, DBResultSet results, const char[] 
 		}
 
 		char sMenuItem[64];
-		FormatEx(sMenuItem, 64, "%T", "WRPlayerStats", client);
-
 		char sInfo[32];
-		FormatEx(sInfo, 32, "0;%d", iSteamID);
 
 		if(gB_Stats)
 		{
+			FormatEx(sMenuItem, 64, "%T", "WRPlayerStats", client);
+			FormatEx(sInfo, 32, "0;%d", iSteamID);
 			hMenu.AddItem(sInfo, sMenuItem);
 		}
+
+		FormatEx(sMenuItem, 64, "%T", "OpenSteamProfile", client);
+		FormatEx(sInfo, 32, "2;%d", iSteamID);
+		hMenu.AddItem(sInfo, sMenuItem);
 
 		if(CheckCommandAccess(client, "sm_delete", ADMFLAG_RCON))
 		{
@@ -2467,6 +2470,12 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 				case 1:
 				{
 					OpenDeleteMenu(param1, StringToInt(sExploded[1]));
+				}
+				case 2:
+				{
+					char url[192+1];
+					FormatEx(url, sizeof(url), "https://steamcommunity.com/profiles/[U:1:%s]", sExploded[1]);
+					ShowMOTDPanel(param1, "you just lost The Game", url, MOTDPANEL_TYPE_URL);
 				}
 			}
 		}
