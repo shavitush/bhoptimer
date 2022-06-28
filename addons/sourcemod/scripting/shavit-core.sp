@@ -1077,6 +1077,7 @@ public Action Command_DeleteMap(int client, int args)
 			ReplyToCommand(client, "Deleted all rankings for %s.", gS_DeleteMap[client]);
 		}
 
+		Shavit_LogMessage("%L - deleted all map data for `%s`", client, gS_DeleteMap[client]);
 		ReplyToCommand(client, "Finished deleting data for %s.", gS_DeleteMap[client]);
 		gS_DeleteMap[client] = "";
 	}
@@ -1171,6 +1172,7 @@ public Action Command_WipePlayer(int client, int args)
 		Shavit_PrintToChat(client, "Deleting data for SteamID %s[U:1:%u]%s...",
 			gS_ChatStrings.sVariable, gI_WipePlayerID[client], gS_ChatStrings.sText);
 
+		Shavit_LogMessage("%L - wiped [U:1:%u]'s player data", client, gI_WipePlayerID[client]);
 		DeleteUserData(client, gI_WipePlayerID[client]);
 
 		strcopy(gS_Verification[client], 8, "");

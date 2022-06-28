@@ -1263,6 +1263,7 @@ public Action Command_CCAdd(int client, int args)
 		}
 	}
 
+	Shavit_LogMessage("%L - granted CC access to [U:1:%u]", client, iSteamID);
 	ReplyToCommand(client, "Added CC access for %s", sArgString);
 
 	return Plugin_Handled;
@@ -1300,7 +1301,8 @@ public Action Command_CCDelete(int client, int args)
 		}
 	}
 
-	ReplyToCommand(client, "Deleted CC access for %s", sArgString);
+	Shavit_LogMessage("%L - deleted CC access from [U:1:%u]", client, iSteamID);
+	ReplyToCommand(client, "Deleted CC access from %s", sArgString);
 
 	return Plugin_Handled;
 }

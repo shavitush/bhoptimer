@@ -692,6 +692,7 @@ public Action Command_SetTier(int client, int args)
 	Call_Finish();
 
 	Shavit_PrintToChat(client, "%T", "SetTier", client, gS_ChatStrings.sVariable2, tier, gS_ChatStrings.sText);
+	Shavit_LogMessage("%L - set tier of `%s` to %d", client, gS_Map, tier);
 
 	char sQuery[512];
 	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, map, tier);

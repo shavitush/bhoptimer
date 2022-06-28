@@ -73,7 +73,7 @@ Convar gCV_Source = null;
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones (HTTP API)",
-	author = "rtldg, KiD Fearless",
+	author = "rtldg",
 	description = "Retrieves map zones for bhoptimer from an HTTP API.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
