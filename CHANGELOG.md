@@ -2,12 +2,34 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
-# v3.x.x - stuff - 2022-0X-XX - rtldg
+# v3.3.0 - zone stuff & bloat - 2022-06-28 - rtldg
 
 
 **Note:** Contributors and more copyright attributions were added to files and plugins mostly by skimming through git blame. If a name was missed or should be added/removed, please let me know (also the ordering of names was pretty random)
 
 
+## zone stuff
+- main commits https://github.com/shavitush/bhoptimer/commit/e3aac2d24efc239cf8bc6d1296f0ede031b7f0b1 https://github.com/shavitush/bhoptimer/commit/4315221b86889c65c2b35d9d07bf3241e4c57315
+- new cvars:
+	- `shavit_zones_usesql`: Whether to automatically load zones from the database or not. If you're using standardized zones from some source with `shavit-zones-http`, then you'd change this cvar to `0` for example.
+	- `shavit_zones_useprebuilt`: Whether to automatically hook `trigger_multiple` zones like `climb_zone*` and `mod_zone*`.
+	- `shavit_zones_usebuttons`: Whether to automatically hook `climb_*` buttons...
+- you can now hook trigger_multiples, func_buttons, and trigger_teleports by their hammerids or by `targetname` (trigger_multiple/func_button) / `target` (trigger_teleport).
+	- trigger_teleports should usually be hooked by hammerid because hooking by target is a bit iffy.
+	- there's a menu that shows all the hookable things and the player's distance to them. also a menu option to hook the thing the player is looking at...
+- `shavit-zones-http.sp` added. maybe sourcejump can use it or something.
+	- this plugin is also a good example of how to use the new APIs for adding zones from other plugins.
+	- The dependencies & headers (sm-json & ripext) for this plugin are not included in the bhoptimer repo. You'll have to retrieve them yourself for now if you intend to compile this.
+- zone points are now be normalized (sql migration and when sending to db). corner1 turns into the zone mins and corner2 turns into the maxs.
+- a `"speed"` zone config thing was added for zones. you can add this key to `shavit-zones.cfg` to make zone beam textures move.
+- api and stuff:
+	- `zone_cache_t` is now usable for adding zones from other plugins.
+		- forward `Shavit_LoadZonesHere()` is where you should add `zone_cache_t`'s from other plugins
+	- removed `Shavit_GetStageZone()` as it doesn't work well with multiple stage zones.
+	- added `Shavit_ReloadZones()`, `Shavit_UnloadZones()`, `Shavit_GetZoneCount()`, `Shavit_GetZone()`, `Shavit_AddZone()`, and `Shavit_RemoveZone()`
+	- `MAX_ZONES` 64->128. `MAX_STAGES` 51->69.
+
+## everything else
 - added an option to use an duplicate other players' checkpoints (#1142) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/487e3db9d09d704b67f66e928fcd36adfd990abf
 	- You can toggle this with `shavit_checkpoints_useothers` (default: 1)
 	- new parameters added to `Shavit_OnTeleportPre`, `Shavit_OnTeleport`, `Shavit_OnSavePre`, `Shavit_OnSave`, `Shavit_OnCheckpointMenuSelect`, and `Shavit_TeleportToCheckpoint`
@@ -17,12 +39,33 @@ Note: Dates are UTC+0.
 	- also gravity zones should show the gravity amount in zone edit menus now
 - added the `!maprestart` & `!mapreload` aliases https://github.com/shavitush/bhoptimer/commit/a23348d843b623183aa3538ad67be6e9d5ee4446
 - add csgo stripper:source configs for `workshop/2117675766/bhop_craton`, `workshop/1195609162/bhop_bless`, and `workshop/859067603/bhop_bless` https://github.com/shavitush/bhoptimer/commit/d816423eb69c1c199d1034b39e7412ad94abe17f
+	- also a config for a shit `mod_zone_start` on `bhop_n0bs1_css` was added
 - added `ent_fire` to cheat commands list since it can be used on csgo https://github.com/shavitush/bhoptimer/commit/bc62b92983f829e84c7f1c06af37b237dc0214ae
 - added `HUD_SPECTATORSDEAD` / !hud option `Spectator list (only when dead)` to hide the spectators list when you're alive because people spectating me makes me nervous 😵‍💫 https://github.com/shavitush/bhoptimer/commit/22a68b491b659702284bf40575b9055416f4c9a5
 - added `shavit_core_hijack_teleport_angles` (temporary?) TODO description https://github.com/shavitush/bhoptimer/commit/53463d8fb9a3d058d4c938c3bbf4d23882cc133a
 - added an option to toggle the basic autostrafer on the autogain/velocity/oblivious autostrafer thing https://github.com/shavitush/bhoptimer/commit/c2e50761ec4cb085e3a66391a8517ccedcbb9e09
 	- +`Shavit_SetAutogainBasicStrafer`, +`Shavit_GetAutogainBasicStrafer`, `sm_autogainbss`, `+/-autogainbss`
 - slay zones were changed slightly so the player-killer has a 100% success rate..... but make it only slay if the timer is running https://github.com/shavitush/bhoptimer/commit/96ef03e458c5de59e52ac3dbf9f0ff862d8e9652
+- made the !wr menu also print steamids to chat like the !profile menu does https://github.com/shavitush/bhoptimer/commit/7dddfe25f3e6a440fb3d584767592107210cbd3d
+- added sm_beamer https://github.com/shavitush/bhoptimer/commit/d8a9dd7d7b73ad9c36788e48b85b1c968fe96010
+- added `shavit_misc_bad_setlocalangles_fix` for CS:S/TF2. fixes some `func_rotating` things that stop rotating https://github.com/shavitush/bhoptimer/commit/79baadf54152fd3a817dbf34bf957c5d2472a661
+- the player's current value from `player_speedmod`s is now reset to 1.0 on timer start. this shouldn't affect many things but it does help on `deathrun_steam_works` https://github.com/shavitush/bhoptimer/commit/8f11f9aaf157037f41607da0e7d9bd5a7157fe07
+	- open an issue or join the discord if you encounter any problems with this please.
+- fixed the `Timer Commands` admin menu category disappearing or being wiped when some bhoptimer plugins are reloaded https://github.com/shavitush/bhoptimer/commit/09917f91d97320afad9227798bbcd3b9184be8be
+- `!ccmsg off` and `!ccname off` were changed slightly ||i can't remember what the difference is now|| https://github.com/shavitush/bhoptimer/commit/bfa9aa45e421353af0ff83e15ef1bab9e4a2e57a
+- fixed some flag & admin checks for shavit-chat ranks when reloading or removing admin from people https://github.com/shavitush/bhoptimer/commit/41f50505f9dd1df6b4238997f45a5918883e99e5 https://github.com/shavitush/bhoptimer/commit/affac70f99ce069d5c4fe9cba4a98b7628407000
+- added buttons, scrolls, and anglediff to `huddata_t` https://github.com/shavitush/bhoptimer/commit/8e0e5ec8c1b551f802fac23db04546e06b4dfc86
+- added back button to admin command menus https://github.com/shavitush/bhoptimer/commit/7c251ef81dd95418947388126e026177e94c98ca
+- sqlite now automatically runs migrations too https://github.com/shavitush/bhoptimer/commit/fa6ccdbdedf1b3008ab4fe32adac338e059fd3ff
+- added `shavit_core_log_sql` and removed `Database2`/`Transaction2` methodmap nonsense https://github.com/shavitush/bhoptimer/commit/0f44dd1710c24ad97f2f0f6eb9aa562ea85baf24
+- added an auto stage zone numbering thing for #1147 https://github.com/shavitush/bhoptimer/commit/d922cebf976ce0467cb362a0561981e323c16a6a
+	- first stage thing is given `2`... I'm not really sure what I want to do for this...
+- playtime saving sql queries from disconnecting players are now buffered & grouped into a transaction. so instead of on map change spamming like 12 queries, with the delay between queries for each, the timer will now just have to send one transaction to hopefully help with some slight sql query blockage on map change... https://github.com/shavitush/bhoptimer/commit/fa28502a0d796a403ad68217f39ad4cf441e8819
+- added `shavit_replay_disable_hibernation` for CS:S. https://github.com/shavitush/bhoptimer/commit/9cbed1972be081ca404bb64c404913590493d618
+- fixed `permission` style setting typo that came from the v3.1.0 release https://github.com/shavitush/bhoptimer/commit/1a03bdac13bbdb12fc0bbf21e7652b31b181ab31
+- updated tf2 gamedata for the 2022-06-21 update https://github.com/shavitush/bhoptimer/commit/178d42e2fdb5768d9c94af785a5e35e378f9e0a5
+- added some code to help deal with different sql db drivers. should help with porting queries to sqlite (shavit-rankings) & postgresql (sm 1.11) https://github.com/shavitush/bhoptimer/commit/448652888092705dfe3f3d3ee251ec9d993f41d5
+
 
 
 # v3.2.0 - checkpoints & resettargetname stuffffff - 2022-04-27 - rtldg
