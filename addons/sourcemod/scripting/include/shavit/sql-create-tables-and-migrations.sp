@@ -48,7 +48,8 @@ enum
 	Migration_AddPlayertimesPointsCalcedFrom, // points calculated from wr float added to playertimes
 	Migration_RemovePlayertimesPointsCalcedFrom, // lol
 	Migration_NormalizeMapzonePoints,
-	Migration_AddMapzonesFormAndTarget, // 25
+	Migration_AddMapzonesForm, // 25
+	Migration_AddMapzonesTarget,
 	MIGRATIONS_END
 };
 
@@ -309,7 +310,8 @@ void ApplyMigration(int migration)
 		case Migration_AddPlayertimesPointsCalcedFrom: ApplyMigration_AddPlayertimesPointsCalcedFrom();
 		case Migration_RemovePlayertimesPointsCalcedFrom: ApplyMigration_RemovePlayertimesPointsCalcedFrom();
 		case Migration_NormalizeMapzonePoints: ApplyMigration_NormalizeMapzonePoints();
-		case Migration_AddMapzonesFormAndTarget: ApplyMigration_AddMapzonesFormAndTarget();
+		case Migration_AddMapzonesForm: ApplyMigration_AddMapzonesForm();
+		case Migration_AddMapzonesTarget: ApplyMigration_AddMapzonesTarget();
 	}
 }
 
@@ -445,11 +447,18 @@ void ApplyMigration_NormalizeMapzonePoints() // TODO: test with sqlite lol
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_NormalizeMapzonePoints, DBPrio_High);
 }
 
-void ApplyMigration_AddMapzonesFormAndTarget()
+void ApplyMigration_AddMapzonesForm()
 {
 	char sQuery[192];
-	FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%smapzones` ADD COLUMN `form` TINYINT, ADD COLUMN `target` VARCHAR(63);", gS_SQLPrefix);
-	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddMapzonesFormAndTarget, DBPrio_High);
+	FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%smapzones` ADD COLUMN `form` TINYINT;", gS_SQLPrefix);
+	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddMapzonesForm, DBPrio_High);
+}
+
+void ApplyMigration_AddMapzonesTarget()
+{
+	char sQuery[192];
+	FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%smapzones` ADD COLUMN `target` VARCHAR(63);", gS_SQLPrefix);
+	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddMapzonesTarget, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
