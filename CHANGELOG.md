@@ -17,6 +17,7 @@ Note: Dates are UTC+0.
 - you can now hook trigger_multiples, func_buttons, and trigger_teleports by their hammerids or by `targetname` (trigger_multiple/func_button) / `target` (trigger_teleport).
 	- trigger_teleports should usually be hooked by hammerid because hooking by target is a bit iffy.
 	- there's a menu that shows all the hookable things and the player's distance to them. also a menu option to hook the thing the player is looking at...
+	- oh yeah, it's `sm_hookzone` and also in the Timer Commands menu
 - `shavit-zones-http.sp` added. maybe sourcejump can use it or something.
 	- this plugin is also a good example of how to use the new APIs for adding zones from other plugins.
 	- The dependencies & headers (sm-json & ripext) for this plugin are not included in the bhoptimer repo. You'll have to retrieve them yourself for now if you intend to compile this.
@@ -30,7 +31,7 @@ Note: Dates are UTC+0.
 	- `MAX_ZONES` 64->128. `MAX_STAGES` 51->69.
 
 ## everything else
-- added an option to use an duplicate other players' checkpoints (#1142) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/487e3db9d09d704b67f66e928fcd36adfd990abf
+- added an option to use an duplicate other players' checkpoints (#1142) @sh4hrazad https://github.com/shavitush/bhoptimer/commit/487e3db9d09d704b67f66e928fcd36adfd990abf
 	- You can toggle this with `shavit_checkpoints_useothers` (default: 1)
 	- new parameters added to `Shavit_OnTeleportPre`, `Shavit_OnTeleport`, `Shavit_OnSavePre`, `Shavit_OnSave`, `Shavit_OnCheckpointMenuSelect`, and `Shavit_TeleportToCheckpoint`
 - changed czone settings to let all zone types be configurable. made the settings for bonuses apply to every bonus https://github.com/shavitush/bhoptimer/commit/ab73e36a15bc426f4edeec13b8d44e8dffacd522
