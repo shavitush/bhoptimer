@@ -1804,12 +1804,17 @@ public Action Command_RockTheVote(int client, int args)
 	{
 		ReplyToCommand(client, "%sYou must be a higher rank to RTV!", g_cPrefix);
 	}
-	else if(GetClientTeam(client) == CS_TEAM_SPECTATOR && !g_cvRTVAllowSpectators.BoolValue)
-	{
-		ReplyToCommand(client, "%sSpectators have been blocked from RTVing", g_cPrefix);
-	}
 	else
 	{
+		if (GetClientTeam(client) == CS_TEAM_SPECTATOR && !g_cvRTVAllowSpectators.BoolValue)
+		{
+			if ((GetEngineTime() - g_fSpecTimerStart[client]) >= g_cvRTVSpectatorCooldown.FloatValue)
+			{
+				ReplyToCommand(client, "%sSpectators have been blocked from RTVing", g_cPrefix);
+				return Plugin_Handled;
+			}
+		}
+
 		if (g_fLastRtvTime[client] && (GetEngineTime() - g_fLastRtvTime[client]) < g_cvAntiSpam.FloatValue)
 		{
 			ReplyToCommand(client, "%sStop spamming", g_cPrefix);
