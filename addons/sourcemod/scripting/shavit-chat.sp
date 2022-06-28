@@ -1500,12 +1500,6 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 	while(results.FetchRow())
 	{
 		gB_CCAccess[client] = view_as<bool>(results.FetchInt(4));
-
-		if (!HasCustomChat(client))
-		{
-			return;
-		}
-
 		results.FetchString(1, gS_CustomName[client], 128);
 		results.FetchString(3, gS_CustomMessage[client], 16);
 	}
