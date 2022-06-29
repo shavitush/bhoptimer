@@ -9,6 +9,7 @@ Note: Dates are UTC+0.
 
 Edit: bhoptimer-v3.3.0-2.zip = includes https://github.com/shavitush/bhoptimer/commit/0360b957e46ac46866313f9d7a97d6dc5635c208
 Edit: bhoptimer-v3.3.0-3.zip = includes https://github.com/shavitush/bhoptimer/commit/6dc1fb66e4a559ec397575956431dc617ad6f9ae
+Edit: bhoptimer-v3.3.0-4.zip = includes https://github.com/shavitush/bhoptimer/commit/bdfa61e3f9fb53f96531d76819d8f45a105ab4d2
 
 ## zone stuff
 - main commits https://github.com/shavitush/bhoptimer/commit/e3aac2d24efc239cf8bc6d1296f0ede031b7f0b1 https://github.com/shavitush/bhoptimer/commit/4315221b86889c65c2b35d9d07bf3241e4c57315
