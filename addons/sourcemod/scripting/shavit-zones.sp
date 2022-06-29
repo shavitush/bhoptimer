@@ -2035,7 +2035,19 @@ public int MenuHandler_AddCustomSpawn(Menu menu, MenuAction action, int param1, 
 		zone_cache_t cache;
 		cache.iType = Zone_CustomSpawn;
 		cache.iTrack = iTrack;
+		cache.iDatabaseID = -1;
 		GetClientAbsOrigin(param1, cache.fDestination);
+		gF_CustomSpawn[iTrack] = cache.fDestination;
+
+		for (int i = 0; i < gI_MapZones; i++)
+		{
+			if (gA_ZoneCache[i].iType == Zone_CustomSpawn && gA_ZoneCache[i].iTrack == iTrack && StrEqual(gA_ZoneCache[i].sSource, "sql"))
+			{
+				cache.iDatabaseID = gA_ZoneCache[i].iDatabaseID;
+				break;
+			}
+		}
+
 		gA_EditCache[param1] = cache;
 
 		InsertZone(param1);
@@ -4778,7 +4790,8 @@ public void Shavit_OnRestart(int client, int track)
 		// custom spawns
 		if (!use_CustomStart_over_CustomSpawn && !EmptyVector(gF_CustomSpawn[track]))
 		{
-			TeleportEntity(client, gF_CustomSpawn[track], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+			float pos[3]; pos = gF_CustomSpawn[track]; pos[2] += 1.0;
+			TeleportEntity(client, pos, NULL_VECTOR, ZERO_VECTOR);
 		}
 		// standard zoning
 		else if (iIndex != -1)
