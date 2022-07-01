@@ -2492,7 +2492,7 @@ void StartTimer(int client, int track)
 
 			gA_Timers[client].iTimerTrack = track;
 			gA_Timers[client].bTimerEnabled = true;
-			gA_Timers[client].iSHSWCombination = -1;
+			gA_Timers[client].iKeyCombo = -1;
 			gA_Timers[client].fCurrentTime = 0.0;
 			gA_Timers[client].bPracticeMode = false;
 			gA_Timers[client].iMeasuredJumps = 0;
@@ -2634,7 +2634,7 @@ public void OnClientPutInServer(int client)
 	gB_Auto[client] = true;
 	gA_Timers[client].fStrafeWarning = 0.0;
 	gA_Timers[client].bPracticeMode = false;
-	gA_Timers[client].iSHSWCombination = -1;
+	gA_Timers[client].iKeyCombo = -1;
 	gA_Timers[client].iTimerTrack = 0;
 	gA_Timers[client].bsStyle = 0;
 	gA_Timers[client].fTimescale = 1.0;
@@ -3335,6 +3335,36 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				buttons &= ~IN_MOVERIGHT;
 			}
 
+			if (GetStyleSettingBool(gA_Timers[client].bsStyle, "a_or_d_only"))
+			{
+				int iCombination = -1;
+				bool bMoveLeft = ((buttons & IN_MOVELEFT) > 0 && vel[1] < 0.0);
+				bool bMoveRight = ((buttons & IN_MOVERIGHT) > 0 && vel[1] > 0.0);
+
+				if (bMoveLeft)
+				{
+					iCombination = 0;
+				}
+				else if (bMoveRight)
+				{
+					iCombination = 1;
+				}
+
+				if (iCombination != -1)
+				{
+					if (gA_Timers[client].iKeyCombo == -1)
+					{
+						gA_Timers[client].iKeyCombo = iCombination;
+					}
+
+					if (iCombination != gA_Timers[client].iKeyCombo)
+					{
+						vel[1] = 0.0;
+						buttons &= ~(IN_MOVELEFT|IN_MOVERIGHT);
+					}
+				}
+			}
+
 			// HSW
 			// Theory about blocking non-HSW strafes while playing HSW:
 			// Block S and W without A or D.
@@ -3361,18 +3391,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					}
 
 					// int gI_SHSW_FirstCombination[MAXPLAYERS+1]; // 0 - W/A S/D | 1 - W/D S/A
-					if(gA_Timers[client].iSHSWCombination == -1 && iCombination != -1)
+					if(gA_Timers[client].iKeyCombo == -1 && iCombination != -1)
 					{
 						Shavit_PrintToChat(client, "%T", (iCombination == 0)? "SHSWCombination0":"SHSWCombination1", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
-						gA_Timers[client].iSHSWCombination = iCombination;
+						gA_Timers[client].iKeyCombo = iCombination;
 					}
 
 					// W/A S/D
-					if((gA_Timers[client].iSHSWCombination == 0 && iCombination != 0) ||
+					if((gA_Timers[client].iKeyCombo == 0 && iCombination != 0) ||
 					// W/D S/A
-						(gA_Timers[client].iSHSWCombination == 1 && iCombination != 1) ||
+						(gA_Timers[client].iKeyCombo == 1 && iCombination != 1) ||
 					// no valid combination & no valid input
-						(gA_Timers[client].iSHSWCombination == -1 && iCombination == -1))
+						(gA_Timers[client].iKeyCombo == -1 && iCombination == -1))
 					{
 						vel[0] = 0.0;
 						vel[1] = 0.0;

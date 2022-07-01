@@ -118,7 +118,7 @@ enum struct timer_snapshot_t
 	int iTotalMeasures;
 	int iGoodGains;
 	float fServerTime;
-	int iSHSWCombination;
+	int iKeyCombo;
 	int iTimerTrack;
 	int iMeasuredJumps;
 	int iPerfectJumps;
