@@ -1149,7 +1149,7 @@ void UpdateTop100()
 	FormatEx(sQuery, sizeof(sQuery),
 		"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
 		UNION ALL \
-		SELECT * FROM (SELECT -1 as c, auth, name, points FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
+		SELECT * FROM (SELECT -1 as c, auth, name, FORMAT(points, 2) FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
 		gS_MySQLPrefix, gS_MySQLPrefix);
 
 	QueryLog(gH_SQL, SQL_UpdateTop100_Callback, sQuery, 0, DBPrio_High);
@@ -1185,10 +1185,11 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 		char sName[32+1];
 		results.FetchString(2, sName, sizeof(sName));
 
-		float fPoints = results.FetchFloat(3);
+		char sPoints[16];
+		results.FetchString(3, sPoints, 16);
 
 		char sDisplay[96];
-		FormatEx(sDisplay, 96, "#%d - %s (%.2f)", (++row), sName, fPoints);
+		FormatEx(sDisplay, 96, "#%d - %s (%s)", (++row), sName, sPoints);
 		gH_Top100Menu.AddItem(sSteamID, sDisplay);
 	}
 
