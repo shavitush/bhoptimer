@@ -29,6 +29,10 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"Start position has been {1}deleted{2}."
 	}
+	"DeleteSetStartMenuTitle"
+	{
+		"en"        "Start position to delete"
+	}
 	// ---------- ZoneHook ---------- //
 	"ZoneHook_Crosshair"
 	{

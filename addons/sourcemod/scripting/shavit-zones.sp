@@ -1883,11 +1883,47 @@ public Action Command_DeleteSetStart(int client, int args)
 		return Plugin_Handled;
 	}
 
-	Shavit_PrintToChat(client, "%T", "DeleteSetStart", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+	Menu menu = new Menu(MenuHandler_DeleteSetStart);
+	menu.SetTitle("%T\n ", "DeleteSetStartMenuTitle", client);
 
-	DeleteSetStart(client, Shavit_GetClientTrack(client));
+	for (int i = 0; i < TRACKS_SIZE; i++)
+	{
+		if (gB_HasSetStart[client][i])
+		{
+			char info[8], sTrack[32];
+			IntToString(i, info, sizeof(info));
+			GetTrackName(client, i, sTrack, sizeof(sTrack));
+			menu.AddItem(info, sTrack);
+		}
+	}
 
+	if (!menu.ItemCount)
+	{
+		delete menu;
+		return Plugin_Handled;
+	}
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
 	return Plugin_Handled;
+}
+
+public int MenuHandler_DeleteSetStart(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char info[8];
+		menu.GetItem(param2, info, sizeof(info));
+		int track = StringToInt(info);
+		Shavit_PrintToChat(param1, "%T", "DeleteSetStart", param1, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+		DeleteSetStart(param1, track);
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
 }
 
 void DeleteSetStart(int client, int track)
