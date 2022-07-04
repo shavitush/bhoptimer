@@ -4331,6 +4331,7 @@ void InsertZone(int client)
 {
 	zone_cache_t c; c = gA_EditCache[client];
 	c.iEntity = -1;
+	c.sSource = "sql";
 
 	char sQuery[1024];
 	char sTrack[64], sZoneName[32];
