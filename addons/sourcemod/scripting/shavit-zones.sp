@@ -4448,16 +4448,18 @@ void InsertZone(int client)
 
 	Reset(client);
 
-	QueryLog(gH_SQL, SQL_InsertZone_Callback, sQuery, 0);
+	QueryLog(gH_SQL, SQL_InsertZone_Callback, sQuery, gI_MapZones-1);
 }
 
-public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	if (results == null)
 	{
 		LogError("Timer (zone insert) SQL query failed. Reason: %s", error);
 		return;
 	}
+
+	gA_ZoneCache[data].iDatabaseID = results.InsertId;
 }
 
 public Action Timer_DrawZones(Handle Timer, any drawAll)
