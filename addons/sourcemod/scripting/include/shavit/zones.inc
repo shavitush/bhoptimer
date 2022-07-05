@@ -53,6 +53,7 @@ enum
 	ZF_ForceRender = (1 << 0),
 	ZF_Hammerid    = (1 << 1), // used by ZoneForm_{trigger_{multiple, teleport}, func_button} sometimes
 	ZF_Solid       = (1 << 2), // forces the zone to block people...
+	ZF_Origin      = (1 << 4), // sTarget is the entity's origin formatted as "%X %X %X"
 };
 
 // Zone Display type
