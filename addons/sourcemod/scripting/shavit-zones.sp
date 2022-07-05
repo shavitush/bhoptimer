@@ -920,7 +920,7 @@ public any Native_RemoveZone(Handle plugin, int numParams)
 	int ent = gA_ZoneCache[index].iEntity;
 	ClearZoneEntity(index, true);
 
-	if (ent && gA_ZoneCache[index].iForm == ZoneForm_Box) // created by shavit-zones
+	if (ent > MaxClients && gA_ZoneCache[index].iForm == ZoneForm_Box) // created by shavit-zones
 	{
 		AcceptEntityInput(ent, "Kill");
 	}
@@ -1271,25 +1271,21 @@ public void OnGameFrame()
 				{
 					return; // uhhhhhhhh
 				}
-				break;
 			}
 			case ZoneForm_trigger_multiple:
 			{
 				if (gA_ZoneCache[i].sTarget[0])
 					search_trigger_multiple = true;
-				break;
 			}
 			case ZoneForm_trigger_teleport:
 			{
 				if (gA_ZoneCache[i].sTarget[0])
 					search_trigger_teleport = true;
-				break;
 			}
 			case ZoneForm_func_button:
 			{
 				if (gA_ZoneCache[i].sTarget[0])
 					search_func_button = true;
-				break;
 			}
 		}
 	}
