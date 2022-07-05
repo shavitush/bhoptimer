@@ -4488,7 +4488,7 @@ public Action Timer_DrawZones(Handle Timer, any drawAll)
 
 		if (drawAll || gA_ZoneSettings[type][track].bVisible || (gA_ZoneCache[i].iFlags & ZF_ForceRender) > 0)
 		{
-			if (form == ZoneForm_trigger_teleport && !(drawAll || (gA_ZoneCache[i].iFlags & ZF_ForceRender) > 0))
+			if ((form == ZoneForm_trigger_teleport || form == ZoneForm_func_button) && !(drawAll || (gA_ZoneCache[i].iFlags & ZF_ForceRender) > 0))
 			{
 				continue;
 			}
