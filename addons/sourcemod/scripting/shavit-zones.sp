@@ -4484,18 +4484,54 @@ void InsertZone(int client)
 
 	Reset(client);
 
-	QueryLog(gH_SQL, SQL_InsertZone_Callback, sQuery, gI_MapZones-1);
+	DataPack pack = new DataPack();
+	// TODO Sourcemod 1.11 pack.WriteCellArray
+	MyWriteCellArray(pack, c, sizeof(c));
+	QueryLog(gH_SQL, SQL_InsertZone_Callback, sQuery, pack);
 }
 
-public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, any data)
+void MyWriteCellArray(DataPack pack, any[] array, int size)
 {
+	for (int i = 0; i < size; i++)
+		pack.WriteCell(array[i]);
+}
+
+void MyReadCellArray(DataPack pack, any[] array, int size)
+{
+	for (int i = 0; i < size; i++)
+		array[i] = pack.ReadCell();
+}
+
+bool MyArrayEquals(any[] a, any[] b, int size)
+{
+	for (int i = 0; i < size; i++)
+		if (a[i] != b[i])
+			return false;
+	return true;
+}
+
+public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char[] error, DataPack pack)
+{
+	zone_cache_t cache;
+	pack.Reset();
+	MyReadCellArray(pack, cache, sizeof(cache));
+	delete pack;
+
 	if (results == null)
 	{
 		LogError("Timer (zone insert) SQL query failed. Reason: %s", error);
 		return;
 	}
 
-	gA_ZoneCache[data].iDatabaseID = results.InsertId;
+	for (int i = 0; i < gI_MapZones; i++)
+	{
+		cache.iEntity = gA_ZoneCache[i].iEntity;
+		if (MyArrayEquals(gA_ZoneCache[i], cache, sizeof(zone_cache_t)))
+		{
+			gA_ZoneCache[i].iDatabaseID = results.InsertId;
+			break;
+		}
+	}
 }
 
 public Action Timer_DrawZones(Handle Timer, any drawAll)
