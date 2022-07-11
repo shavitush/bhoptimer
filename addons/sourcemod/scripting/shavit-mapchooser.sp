@@ -40,6 +40,8 @@
 #undef REQUIRE_EXTENSIONS
 #include <cstrike>
 
+bool gB_ConfigsExecuted = false;
+int gI_Driver = Driver_unknown;
 Database g_hDatabase;
 char g_cSQLPrefix[32];
 
@@ -313,6 +315,7 @@ public void OnMapStart()
 
 public void OnConfigsExecuted()
 {
+	gB_ConfigsExecuted = true;
 	g_cvPrefix.GetString(g_cPrefix, sizeof(g_cPrefix));
 	// reload maplist array
 	LoadMapList();
@@ -321,6 +324,8 @@ public void OnConfigsExecuted()
 
 public void OnMapEnd()
 {
+	gB_ConfigsExecuted = false;
+
 	if(g_cvMapVoteBlockMapInterval.IntValue > 0)
 	{
 		g_aOldMaps.PushString(g_cMapName);
@@ -652,7 +657,7 @@ void InitiateMapVote(MapChange when)
 	char map[PLATFORM_MAX_PATH];
 	char mapdisplay[PLATFORM_MAX_PATH + 32];
 
-	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
 
 	int nominateMapsToAdd = (mapsToAdd > g_aNominateList.Length) ? g_aNominateList.Length : mapsToAdd;
 	for(int i = 0; i < nominateMapsToAdd; i++)
@@ -1044,7 +1049,18 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(g_cSQLPrefix, sizeof(g_cSQLPrefix));
-	g_hDatabase = Shavit_GetDatabase();
+	g_hDatabase = Shavit_GetDatabase(gI_Driver);
+
+	if (gB_ConfigsExecuted)
+	{
+		switch (g_cvMapListType.IntValue)
+		{
+			case MapListZoned, MapListMixed, MapListZonedMixedWithFolder:
+			{
+				RequestFrame(LoadMapList);
+			}
+		}
+	}
 }
 
 void RemoveExcludesFromArrayList(ArrayList list, bool lowercase, char[][] exclude_prefixes, int exclude_count)
@@ -1085,7 +1101,7 @@ void LoadMapList()
 		{
 			if (g_hDatabase == null)
 			{
-				g_hDatabase = GetTimerDatabaseHandle();
+				return;
 			}
 
 			char buffer[512];
@@ -1108,7 +1124,7 @@ void LoadMapList()
 		{
 			if (g_hDatabase == null)
 			{
-				g_hDatabase = GetTimerDatabaseHandle();
+				return;
 			}
 
 			if (g_cvMapListType.IntValue == MapListMixed)
@@ -1218,7 +1234,7 @@ void SMC_NominateMatches(int client, const char[] mapname)
 	bool isOldMap = false;
 	char map[PLATFORM_MAX_PATH];
 	char oldMapName[PLATFORM_MAX_PATH];
-	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
 	int min = GetConVarInt(g_cvMinTier);
 	int max = GetConVarInt(g_cvMaxTier);
 
@@ -1484,7 +1500,7 @@ public int SlowSortThatSkipsFolders(int index1, int index2, Handle array, Handle
 
 void CreateNominateMenu()
 {
-	if (gB_Rankings && !g_bTiersAssigned)
+	if (gB_Rankings && (gI_Driver == Driver_mysql || gI_Driver == Driver_unknown) && !g_bTiersAssigned)
 	{
 		g_bWaitingForTiers = true;
 		return;
@@ -1506,7 +1522,7 @@ void CreateNominateMenu()
 	g_hNominateMenu = new Menu(NominateMenuHandler);
 
 	g_hNominateMenu.SetTitle("Nominate");
-	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
 
 	g_aMapList.SortCustom(SlowSortThatSkipsFolders);
 
@@ -1588,7 +1604,7 @@ void CreateTierMenus()
 	int max = GetConVarInt(g_cvMaxTier);
 
 	InitTierMenus(min,max);
-	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
 
 	int length = g_aMapList.Length;
 	for(int i = 0; i < length; ++i)
@@ -2039,7 +2055,7 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 	char map[PLATFORM_MAX_PATH];
 	Menu menu = new Menu(MapsMenuHandler);
 
-	StringMap tiersMap = gB_Rankings ? Shavit_GetMapTiers() : null;
+	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
 	ArrayList maps;
 
 	if (args < 1)
