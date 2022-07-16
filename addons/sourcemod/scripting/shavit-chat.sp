@@ -626,7 +626,7 @@ void DoChatRankValidation(int client)
 		return;
 
 	// we want ccname checks to only happen after admin is queried & ccname sql query...
-	if (gI_ChatSelection[client] != -1 || (gB_AdminChecked[client] && gB_CCQueried[client]))
+	if (gB_AdminChecked[client] && (gI_ChatSelection[client] != -1 || gB_CCQueried[client]))
 	{
 		if (!HasRankAccess(client, gI_ChatSelection[client]))
 		{
