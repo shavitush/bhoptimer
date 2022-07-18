@@ -4743,7 +4743,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 	};
 
 #if CZONE_VER == 'b'
-	track = (track > Track_Bonus) ? Track_Bonus : Track_Main;
+	track = (track >= Track_Bonus) ? Track_Bonus : Track_Main;
 #endif
 
 	int clients[MAXPLAYERS+1];
