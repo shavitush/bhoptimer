@@ -187,7 +187,7 @@ bool gB_Eventqueuefix = false;
 bool gB_ReplayRecorder = false;
 bool gB_AdminMenu = false;
 
-#define CZONE_VER 'b'
+#define CZONE_VER 'c'
 // custom zone stuff
 Cookie gH_CustomZoneCookie = null;
 int gI_ZoneDisplayType[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
@@ -1780,7 +1780,7 @@ public void OnClientCookiesCached(int client)
 		while ((c = czone[p++]) != 0)
 		{
 			int track = c & 0xf;
-#if CZONE_VER == 'b'
+#if CZONE_VER != 'a'
 			if (track > Track_Bonus)
 			{
 				++p;
@@ -1792,6 +1792,23 @@ public void OnClientCookiesCached(int client)
 			c = czone[p++];
 			gI_ZoneColor[client][type][track] = c & 0xf;
 			gI_ZoneWidth[client][type][track] = (c >> 4) & 7;
+		}
+	}
+	else if (ver == 'c') // back to the original :pensive:
+	{
+		// c = [1 + ZONETYPES_SIZE*2*3 + 1] // version = (ZONETYPES_SIZE * (main+bonus) * 3 chars) + NUL terminator
+		// char[98] as of right now....
+
+		int p = 1;
+
+		for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
+		{
+			for (int track = Track_Main; track <= Track_Bonus; track++)
+			{
+				gI_ZoneDisplayType[client][type][track] = czone[p++] - '0';
+				gI_ZoneColor[client][type][track] = czone[p++] - '0';
+				gI_ZoneWidth[client][type][track] = czone[p++] - '0';
+			}
 		}
 	}
 }
@@ -3307,7 +3324,7 @@ void HandleCustomZoneCookie(int client)
 	char buf[100]; // #define MAX_VALUE_LENGTH 100
 	int p = 0;
 
-#if CZONE_VER == 'b'
+#if CZONE_VER >= 'b'
 	for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
 	{
 		for (int track = Track_Main; track <= Track_Bonus; track++)
@@ -3317,6 +3334,12 @@ void HandleCustomZoneCookie(int client)
 		for (int track = Track_Main; track < TRACKS_SIZE; track++)
 #endif
 		{
+#if CZONE_VER == 'c'
+			if (!p) buf[p++] = CZONE_VER;
+			buf[p++] = '0' + gI_ZoneDisplayType[client][type][track];
+			buf[p++] = '0' + gI_ZoneColor[client][type][track];
+			buf[p++] = '0' + gI_ZoneWidth[client][type][track];
+#else
 			if (gI_ZoneDisplayType[client][type][track] || gI_ZoneColor[client][type][track] || gI_ZoneWidth[client][type][track])
 			{
 				if (!p) buf[p++] = CZONE_VER;
@@ -3324,6 +3347,7 @@ void HandleCustomZoneCookie(int client)
 				buf[p++] = 0x80 | (gI_ZoneDisplayType[client][type][track] << 5) | (type << 4) | track;
 				buf[p++] = 0x80 | (gI_ZoneWidth[client][type][track] << 4) | gI_ZoneColor[client][type][track];
 			}
+#endif
 		}
 	}
 
