@@ -3549,7 +3549,10 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		return;
 	}
 
-	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_w")
+	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
+
+	if (iGroundEntity == -1
+	&& GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_w")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_w")
 	&& (gA_Timers[client].fLastInputVel[0] <= 0.0) && (vel[0] > 0.0)
 	&& GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") != 1
@@ -3558,7 +3561,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		gA_Timers[client].iStrafes++;
 	}
 
-	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_s")
+	if (iGroundEntity == -1
+	&& GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_s")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_s")
 	&& (gA_Timers[client].fLastInputVel[0] >= 0.0) && (vel[0] < 0.0)
 	)
@@ -3566,7 +3570,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		gA_Timers[client].iStrafes++;
 	}
 
-	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_a")
+	if (iGroundEntity == -1
+	&& GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_a")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_a")
 	&& (gA_Timers[client].fLastInputVel[1] >= 0.0) && (vel[1] < 0.0)
 	&& (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || vel[0] == 0.0)
@@ -3575,7 +3580,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		gA_Timers[client].iStrafes++;
 	}
 
-	if (GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_d")
+	if (iGroundEntity == -1
+	&& GetStyleSettingBool(gA_Timers[client].bsStyle, "strafe_count_d")
 	&& !GetStyleSettingBool(gA_Timers[client].bsStyle, "block_d")
 	&& (gA_Timers[client].fLastInputVel[1] <= 0.0) && (vel[1] > 0.0)
 	&& (GetStyleSettingInt(gA_Timers[client].bsStyle, "force_hsw") > 0 || vel[0] == 0.0)
@@ -3583,8 +3589,6 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	{
 		gA_Timers[client].iStrafes++;
 	}
-
-	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
 
 	float fAngle = GetAngleDiff(angles[1], gA_Timers[client].fLastAngle);
 

@@ -1329,7 +1329,7 @@ native float Shavit_GetMaxVelocity(int client);
 native void Shavit_SetAvgVelocity(int client, float vel);
 
 /**
- * Gets the max velocity of a player.
+ * Sets the max velocity a player has reached in a run. (timer_snapshot_t.fMaxVelocity)
  *
  * @param client					Client index
  * @param vel						Max velocity

@@ -197,14 +197,12 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	}
 }
 
-public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track)
+public void Shavit_OnFinish_Post(int client, int style, float time, int jumps, int strafes, float sync, int rank, int overwrite, int track, float fOldTime)
 {
 	if(!gCV_Enabled.BoolValue)
 	{
 		return;
 	}
-
-	float fOldTime = Shavit_GetClientPB(client, style, track);
 
 	char sSound[PLATFORM_MAX_PATH];
 	bool bEveryone = false;
