@@ -91,6 +91,7 @@ float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 
 float gF_Modifier[MAXPLAYERS+1];
+int gI_AdjustAxis[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
 bool gB_SnapToWall[MAXPLAYERS+1];
 bool gB_CursorTracing[MAXPLAYERS+1];
@@ -1739,6 +1740,7 @@ public void OnClientConnected(int client)
 	Reset(client);
 
 	gF_Modifier[client] = 16.0;
+	gI_AdjustAxis[client] = 0;
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
 	gB_CursorTracing[client] = true;
@@ -4331,12 +4333,7 @@ void CreateAdjustMenu(int client, int page)
 {
 	Menu hMenu = new Menu(ZoneAdjuster_Handler);
 	char sMenuItem[64];
-	hMenu.SetTitle("%T", "ZoneAdjustPosition", client);
-
-	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
-	hMenu.AddItem("done", sMenuItem);
-	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustCancel", client);
-	hMenu.AddItem("cancel", sMenuItem);
+	hMenu.SetTitle("%T\n ", "ZoneAdjustPosition", client);
 
 	char sAxis[4];
 	strcopy(sAxis, 4, "XYZ");
@@ -4346,18 +4343,21 @@ void CreateAdjustMenu(int client, int page)
 
 	for(int iPoint = 1; iPoint <= 2; iPoint++)
 	{
-		for(int iAxis = 0; iAxis < 3; iAxis++)
+		for (int iState = 1; iState <= 2; iState++)
 		{
-			for(int iState = 1; iState <= 2; iState++)
-			{
-				FormatEx(sDisplay, 32, "%T %c%.01f", "ZonePoint", client, iPoint, sAxis[iAxis], (iState == 1)? '+':'-', gF_Modifier[client]);
-				FormatEx(sInfo, 16, "%d;%d;%d", iPoint, iAxis, iState);
-				hMenu.AddItem(sInfo, sDisplay);
-			}
+			FormatEx(sDisplay, 32, "%T %c%.01f%s", "ZonePoint", client, iPoint, sAxis[gI_AdjustAxis[client]], (iState == 1)? '+':'-', gF_Modifier[client], (iState==2)?"\n ":"");
+			FormatEx(sInfo, 16, "%d;%d;%d", iPoint, gI_AdjustAxis[client], iState);
+			hMenu.AddItem(sInfo, sDisplay);
 		}
 	}
 
-	hMenu.ExitButton = false;
+	FormatEx(sMenuItem, 64, "%T\n ", "ZoneAxis", client);
+	hMenu.AddItem("axis", sMenuItem);
+
+	FormatEx(sMenuItem, 64, "%T", "ZoneAdjustDone", client);
+	hMenu.AddItem("done", sMenuItem);
+
+	hMenu.ExitButton = true;
 	hMenu.DisplayAt(client, page, MENU_TIME_FOREVER);
 }
 
@@ -4372,15 +4372,10 @@ public int ZoneAdjuster_Handler(Menu menu, MenuAction action, int param1, int pa
 		{
 			CreateEditMenu(param1);
 		}
-		else if(StrEqual(sInfo, "cancel"))
+		else if (StrEqual(sInfo, "axis"))
 		{
-			if (gI_ZoneID[param1] != -1)
-			{
-				// reenable original zone
-				//gA_ZoneCache[gI_ZoneID[param1]].bInitialized = true;
-			}
-
-			Reset(param1);
+			gI_AdjustAxis[param1] = (gI_AdjustAxis[param1] + 1) % 3;
+			CreateAdjustMenu(param1, GetMenuSelectionPosition());
 		}
 		else
 		{
