@@ -1833,6 +1833,9 @@ void AddReplayBots()
 		UpdateReplayClient(bot);
 	}
 
+	// try not to spawn all the bots on the same tick... maybe it'll help with the occasional script execution timeout
+	bool do_request_frame = false;
+
 	// Load all bots from looping config...
 	for (int i = 0; i < MAX_LOOPING_BOT_CONFIGS; i++)
 	{
@@ -1849,6 +1852,14 @@ void AddReplayBots()
 		{
 			continue;
 		}
+
+		if (do_request_frame)
+		{
+			RequestFrame(AddReplayBots);
+			return;
+		}
+
+		do_request_frame = true;
 
 		int bot = CreateReplayEntity(track, style, -1.0, 0, -1, Replay_Looping, false, cache, i);
 
