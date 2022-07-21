@@ -978,7 +978,7 @@ public Action Timer_Cron(Handle timer)
 			float ang[3], newang[3];
 			GetEntPropVector(ent, Prop_Send, "m_angRotation", ang);
 			newang[0] = normalize_ang(ang[0]);
-			newang[2] = normalize_ang(ang[1]);
+			newang[1] = normalize_ang(ang[1]);
 			newang[2] = normalize_ang(ang[2]);
 
 			if (newang[0] != ang[0] || newang[1] != ang[1] || newang[2] != ang[2])
