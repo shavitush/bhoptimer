@@ -740,12 +740,9 @@ Action ShowHUDMenu(int client, int item)
 		menu.AddItem(sInfo, sHudItem);
 	}
 
-	if (CheckCommandAccess(client, "shavit_admin", ADMFLAG_BAN))
-	{
-		FormatEx(sInfo, 16, "!%d", HUD_DEBUGTARGETNAME);
-		FormatEx(sHudItem, 64, "%T", "HudDebugTargetname", client);
-		menu.AddItem(sInfo, sHudItem);
-	}
+	FormatEx(sInfo, 16, "!%d", HUD_DEBUGTARGETNAME);
+	FormatEx(sHudItem, 64, "%T", "HudDebugTargetname", client);
+	menu.AddItem(sInfo, sHudItem);
 
 	// HUD2 - disables selected elements
 	FormatEx(sInfo, 16, "@%d", HUD2_TIME);
