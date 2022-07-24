@@ -295,7 +295,7 @@ public void OnPluginStart()
 
 	mp_humanteam = FindConVar((gEV_Type == Engine_TF2) ? "mp_humans_must_join_team" : "mp_humanteam");
 	sv_disable_radar = FindConVar("sv_disable_radar");
-	if (gEV_Type == Engine_TF2) tf_dropped_weapon_lifetime = FindConVar("tf_dropped_weapon_lifetime");
+	tf_dropped_weapon_lifetime = FindConVar("tf_dropped_weapon_lifetime");
 
 	// crons
 	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
@@ -553,6 +553,11 @@ public void OnConfigsExecuted()
 	if (sv_disable_radar != null && gCV_HideRadar.BoolValue)
 	{
 		sv_disable_radar.BoolValue = true;
+	}
+
+	if (tf_dropped_weapon_lifetime != null && gCV_NoWeaponDrops.BoolValue)
+	{
+		tf_dropped_weapon_lifetime.IntValue = 0;
 	}
 
 	if(gCV_CreateSpawnPoints.IntValue > 0)
