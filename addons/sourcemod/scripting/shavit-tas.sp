@@ -114,9 +114,16 @@ public void OnPluginStart()
 
 	GameData gamedata = new GameData("shavit.games");
 
-	if ((g_iSurfaceFrictionOffset = gamedata.GetOffset("m_surfaceFriction")) == -1)
+	Address surfaceFrctionAddress = gamedata.GetAddress("m_surfaceFriction");
+
+	if (surfaceFrctionAddress == Address_Null)
 	{
-		LogError("[XUTAX] Invalid offset supplied, defaulting friction values");
+		g_iSurfaceFrictionOffset = -1;
+		LogError("[XUTAX] The address of m_surfaceFriction is null, defaulting friction values");
+	}
+	else
+	{
+		g_iSurfaceFrictionOffset = view_as<int>(surfaceFrctionAddress);
 	}
 
 	delete gamedata;
@@ -127,18 +134,6 @@ public void OnPluginStart()
 		ConVar sv_air_max_wishspeed = FindConVar("sv_air_max_wishspeed");
 		sv_air_max_wishspeed.AddChangeHook(OnWishSpeedChanged);
 		g_flAirSpeedCap = sv_air_max_wishspeed.FloatValue;
-
-		if (g_iSurfaceFrictionOffset != -1)
-		{
-			g_iSurfaceFrictionOffset = FindSendPropInfo("CBasePlayer", "m_ubEFNoInterpParity") - g_iSurfaceFrictionOffset;
-		}
-	}
-	else
-	{
-		if (g_iSurfaceFrictionOffset != -1)
-		{
-			g_iSurfaceFrictionOffset += FindSendPropInfo("CBasePlayer", "m_szLastPlaceName");
-		}
 	}
 
 	AddCommandListener(CommandListener_Toggler, "+autostrafer");
@@ -163,7 +158,6 @@ public void OnPluginStart()
 
 	RegConsoleCmd("sm_tasm", Command_TasSettingsMenu, "Opens the TAS settings menu.");
 	RegConsoleCmd("sm_tasmenu", Command_TasSettingsMenu, "Opens the TAS settings menu.");
-	RegAdminCmd("sm_xutax_scan", Command_ScanOffsets, ADMFLAG_CHEATS, "Scan for possible offset locations");
 
 	//Convar.AutoExecConfig();
 
@@ -616,50 +610,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	return Plugin_Continue;
 }
 
-stock void FindNewFrictionOffset(int client, bool logOnly = false)
-{
-	if (gEV_Type == Engine_CSGO)
-	{
-		int startingOffset = FindSendPropInfo("CBasePlayer", "m_ubEFNoInterpParity");
-		for (int i = 16; i >= -128; --i)
-		{
-			float friction = GetEntDataFloat(client, startingOffset + i);
-			if (friction == 0.25 || friction == 1.0)
-			{
-				if (logOnly)
-				{
-					PrintToConsole(client, "Found offset canidate: %i", i * -1);
-				}
-				else
-				{
-					g_iSurfaceFrictionOffset = startingOffset - i;
-					LogError("[XUTAX] Current offset is out of date. Please update to new offset: %i", i * -1);
-				}
-			}
-		}
-	}
-	else
-	{
-		int startingOffset = FindSendPropInfo("CBasePlayer", "m_szLastPlaceName");
-		for (int i = 1; i <= 128; ++i)
-		{
-			float friction = GetEntDataFloat(client, startingOffset + i);
-			if (friction == 0.25 || friction == 1.0)
-			{
-				if(logOnly)
-				{
-					PrintToConsole(client, "Found offset canidate: %i", i);
-				}
-				else
-				{
-					g_iSurfaceFrictionOffset = startingOffset + i;
-					LogError("[XUTAX] Current offset is out of date. Please update to new offset: %i", i);
-				}
-			}
-		}
-	}
-}
-
 void OpenTasSettingsMenu(int client, int pos=0)
 {
 	char display[64];
@@ -886,13 +836,6 @@ public Action Command_TasSettingsMenu(int client, int args)
 	{
 		OpenTasSettingsMenu(client);
 	}
-
-	return Plugin_Handled;
-}
-
-public Action Command_ScanOffsets(int client, int args)
-{
-	FindNewFrictionOffset(client, .logOnly = true);
 
 	return Plugin_Handled;
 }
