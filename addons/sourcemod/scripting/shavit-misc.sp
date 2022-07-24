@@ -120,6 +120,7 @@ ConVar mp_humanteam = null;
 ConVar hostname = null;
 ConVar hostport = null;
 ConVar sv_disable_radar = null;
+ConVar tf_dropped_weapon_lifetime = null;
 
 // forwards
 Handle gH_Forwards_OnClanTagChangePre = null;
@@ -289,10 +290,12 @@ public void OnPluginStart()
 	}
 
 	gCV_HideRadar.AddChangeHook(OnConVarChanged);
+	gCV_NoWeaponDrops.AddChangeHook(OnConVarChanged);
 	Convar.AutoExecConfig();
 
 	mp_humanteam = FindConVar((gEV_Type == Engine_TF2) ? "mp_humans_must_join_team" : "mp_humanteam");
 	sv_disable_radar = FindConVar("sv_disable_radar");
+	if (gEV_Type == Engine_TF2) tf_dropped_weapon_lifetime = FindConVar("tf_dropped_weapon_lifetime");
 
 	// crons
 	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
@@ -373,9 +376,20 @@ void LoadDHooks()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	if (sv_disable_radar != null)
+	if (convar == gCV_HideRadar && sv_disable_radar != null)
 	{
 		sv_disable_radar.BoolValue = gCV_HideRadar.BoolValue;
+	}
+	else if (gEV_Type == Engine_TF2 && convar == gCV_NoWeaponDrops)
+	{
+		if (convar.BoolValue)
+		{
+			tf_dropped_weapon_lifetime.IntValue = 0;
+			TF2_KillDroppedWeapons();
+		} else
+		{
+			tf_dropped_weapon_lifetime.IntValue = 30; // default value
+		}
 	}
 }
 
@@ -1201,6 +1215,16 @@ void RemoveRagdoll(int client)
 	}
 }
 
+void TF2_KillDroppedWeapons()
+{
+	int ent = -1;
+
+	while ((ent = FindEntityByClassname(ent, "tf_dropped_weapon")) != -1)
+	{
+		AcceptEntityInput(ent, "Kill");
+	}
+}
+
 public void Shavit_OnPause(int client, int track)
 {
 	if (gB_Eventqueuefix)
@@ -1365,8 +1389,11 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_SetTransmit, OnSetTransmit);
-	SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+	if(gEV_Type != Engine_TF2)
+	{
+		SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
+	}
 
 	gI_LastWeaponTick[client] = 0;
 	gI_LastNoclipTick[client] = 0;
