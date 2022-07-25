@@ -44,6 +44,14 @@
 
 	"csgo"
 	{
+		"Addresses"
+		{
+			"m_surfaceFriction"
+			{
+				"signature" "CBasePlayer->m_surfaceFriction"
+				"read"      "4" // skip the first 4 bytes
+			}
+		}
 		"Offsets"
 		{
 			// search string: "func_pushable" and you can find CBaseTrigger::PassesTriggerFilters / CBaseVPhysicsTrigger::PassesTriggerFilters. Follow references to these functions to find the vtable and then calculate the offset...
@@ -134,11 +142,30 @@
 				"windows"   "\x55\x8B\xEC\x83\xEC\x0C\x57\x8B\xF9\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01\x0F\x84"
 				"linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x5C\x8B\x55\x08\xC7\x44\x24\x2A\x2A\x2A\x2A\x2A\x89\x14\x24\xE8"
 			}
+			// search string: "sv_friction", look for instruction like this: "mov some_register, offset sv_friction_cvar"
+			// xref sv_friction_cvar, look for the place that it gets called and has this:
+			// *(float*)(a1[1] + some_offset) * (float(__thiscall)(void*))(*(uintptr_t*)sv_friction + GetFloatIndex*sizeof(void*))(sv_friction)
+			// make a signature for some_offset
+			// if it's unclear: https://youtu.be/xiNQ00X4R_I
+			"CBasePlayer->m_surfaceFriction"
+			{
+				"windows"	"\xF3\x0F\x10\x80\x2A\x2A\x2A\x2A\xF3\x0F\x59\x45\x2A\xF3\x0F\x11\x45"
+				"linux"	    "\xF3\x0F\x59\xB2\x2A\x2A\x2A\x2A\xF3\x0F\x59\xF0"
+			}
 		}
 	}
 
 	"cstrike"
 	{
+		"Addresses"
+		{
+			"m_surfaceFriction"
+			{
+				"signature" "CBasePlayer->m_surfaceFriction"
+				"read"      "2" // skip the first 2 bytes
+			}
+		}
+
 		"Offsets"
 		{
 			// https://asherkin.github.io/vtable/
@@ -173,12 +200,6 @@
 			{
 				"windows"   "358"
 				"linux"     "359"
-			}
-			// TODO
-			"m_surfaceFriction"
-			{
-				"windows"   "104"
-				"linux"     "104"
 			}
 			// find in CCSGameMovement::CheckForLadders which references CCSPlayer::CanGrabLadder
 			"CCSPlayer::m_lastStandingPos"
@@ -265,6 +286,14 @@
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\x7D\x08\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01\x0F\x84"
 				"linux"     "@_ZN11CBaseEntity24PhysicsRemoveTouchedListEPS_"
+			}
+			// look for function CGameMovement::CategorizePosition
+			// and you will see something something *(_DWORD*)(a1[1] + some_offset) = 0x3F800000
+			// make a signature at "mov dword ptr[eax+some_offset], 3F800000h"
+			"CBasePlayer->m_surfaceFriction"
+			{
+				"windows"	"\xC7\x80\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x8B\x07\xFF\x90"
+				"linux"	    "\xC7\x80\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x8B\x03\x89\x1C\x24\xFF\x90\x2A\x2A\x2A\x2A\x8B\x53\x04"
 			}
 		}
 	}
