@@ -1,8 +1,10 @@
 [![Discord server](https://discordapp.com/api/guilds/389675819959844865/widget.png?style=shield)](https://discord.gg/jyA9q5k)
 
+### SOURCEMOD VERSION 1.10 IS REQUIRED TO RUN THE TIMER. SUPPORT FOR NEWER VERSIONS SOON™
+
 ### RECOMPILE ALL YOUR PLUGINS THAT USE `#include <shavit>` OR STUFF WILL BREAK
 
-[AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
+[AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456) // !!! OUTDATED !!!
 
 [Download](https://github.com/shavitush/bhoptimer/releases)
 
