@@ -1,6 +1,6 @@
 [![Discord server](https://discordapp.com/api/guilds/389675819959844865/widget.png?style=shield)](https://discord.gg/jyA9q5k)
 
-### RECOMPILE ALL YOUR PLUGINS THAT USE `#include <shavit>` OR STUFF WILL BREAK
+### RECOMPILE ALL YOUR PLUGINS THAT USE `#include <shavit>` WITH SM _1.10_ OR STUFF WILL BREAK
 
 [AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
 
