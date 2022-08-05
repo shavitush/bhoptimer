@@ -32,6 +32,26 @@
  */
 native bool Shavit_IsClientUsingHide(int client);
 
+/**
+ * Called before clan tag variables are processed.
+ *
+ * @param client					Client index.
+ * @param clantag					Reference to the clan tag buffer.
+ * @param clantaglength				Max length of the customtag buffer.
+ * @return							Plugin_Handled or Plugin_Stop to block the clan tag from changing. Anything else to pass along new values.
+ */
+forward Action Shavit_OnClanTagChangePre(int client, char[] clantag, int clantaglength);
+
+/**
+ * Called after clan tags are changed.
+ *
+ * @param client					Client index.
+ * @param customtag					Reference to the custom clan tag buffer.
+ * @param customtaglength			Max length of the customtag buffer.
+ * @noreturn
+ */
+forward void Shavit_OnClanTagChangePost(int client, char[] customtag, int customtaglength);
+
 public SharedPlugin __pl_shavit_misc =
 {
 	name = "shavit-misc",
