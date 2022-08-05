@@ -2,7 +2,7 @@
 
 ### RECOMPILE ALL YOUR PLUGINS THAT USE `#include <shavit>` OR STUFF WILL BREAK
 
-[AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456)
+[AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456) // !!! OUTDATED !!!
 
 [Download](https://github.com/shavitush/bhoptimer/releases)
 
