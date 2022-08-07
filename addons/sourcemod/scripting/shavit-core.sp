@@ -1711,7 +1711,6 @@ void VelocityChanges(int data)
 			{
 				fAbsVelocity[0] *= fScale;
 				fAbsVelocity[1] *= fScale;
-				PrintToChat(client, "double capped %d", GetGameTickCount());
 			}
 		}
 	}
