@@ -1646,8 +1646,9 @@ void VelocityChanges(int data)
 	}
 #endif
 
-	float fAbsVelocity[3];
+	float fAbsVelocity[3], fAbsOrig[3];
 	GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fAbsVelocity);
+	fAbsOrig = fAbsVelocity;
 
 	float fSpeed = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
 
@@ -1691,6 +1692,32 @@ void VelocityChanges(int data)
 		fAbsVelocity[2] += fJumpBonus;
 	}
 
+	float fSpeedLimit = GetStyleSettingFloat(gA_Timers[client].bsStyle, "velocity_limit");
+
+	if (fSpeedLimit > 0.0)
+	{
+		if (gB_Zones && Shavit_InsideZone(client, Zone_CustomSpeedLimit, -1))
+		{
+			fSpeedLimit = gF_ZoneSpeedLimit[client];
+		}
+
+		float fSpeed_New = (SquareRoot(Pow(fAbsVelocity[0], 2.0) + Pow(fAbsVelocity[1], 2.0)));
+
+		if (fSpeedLimit != 0.0 && fSpeed_New > 0.0)
+		{
+			float fScale = fSpeedLimit / fSpeed_New;
+
+			if (fScale < 1.0)
+			{
+				fAbsVelocity[0] *= fScale;
+				fAbsVelocity[1] *= fScale;
+				PrintToChat(client, "double capped %d", GetGameTickCount());
+			}
+		}
+	}
+
+	if (fAbsOrig[0] == fAbsVelocity[0] && fAbsOrig[1] == fAbsVelocity[1] && fAbsOrig[2] == fAbsVelocity[2])
+		return;
 
 	if(!gCV_VelocityTeleport.BoolValue)
 	{
@@ -3504,6 +3531,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		buttons &= ~IN_JUMP;
 	}
 
+	// This can be bypassed by spamming +duck on CSS which causes `iGroundEntity` to be `-1` here...
+	//   (e.g. an autobhop + velocity_limit style...)
+	// m_hGroundEntity changes from 0 -> -1 same tick which causes problems and I'm not sure what the best way / place to handle that is...
+	// There's not really many things using m_hGroundEntity that "matter" in this function
+	// so I'm just going to move this `velocity_limit` logic somewhere else instead of trying to "fix" it.
+	// Now happens in `VelocityChanges()` which comes from `player_jump->RequestFrame(VelocityChanges)`.
+	//   (that is also the same thing btimes does)
+#if 0
 	// velocity limit
 	if (iGroundEntity != -1 && GetStyleSettingFloat(gA_Timers[client].bsStyle, "velocity_limit") > 0.0)
 	{
@@ -3525,11 +3560,13 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 			if(fScale < 1.0)
 			{
-				ScaleVector(fSpeed, fScale);
+				fSpeed[0] *= fScale;
+				fSpeed[1] *= fScale;
 				TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fSpeed); // maybe change this to SetEntPropVector some time?
 			}
 		}
 	}
+#endif
 
 	gA_Timers[client].bJumped = false;
 	gA_Timers[client].bOnGround = bOnGround;
