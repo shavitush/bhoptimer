@@ -2690,13 +2690,14 @@ public void OnClientPutInServer(int client)
 
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
 	SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
+}
 
+public void OnClientAuthorized(int client, const char[] auth)
+{
 	int iSteamID = GetSteamAccountID(client);
 
 	if(iSteamID == 0)
 	{
-		KickClient(client, "%T", "VerificationFailed", client);
-
 		return;
 	}
 
