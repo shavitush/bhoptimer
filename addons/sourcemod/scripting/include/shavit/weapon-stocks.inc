@@ -25,6 +25,8 @@
 #define _shavit_weapon_stocks_included
 
 // based on code by Kxnrl in SurfTimer
+//  which is based on code by splewis from csgo-deathmatch?
+//  https://github.com/Maxximou5/csgo-deathmatch/pull/24/commits/207cbfe3f1b9a1082c4a710841c190bb753485dc#diff-2c9694977d0a3fe527ca8b484add6a58f53bab303e5dcaa583cb2917ec04d89cR3122-R3130
 // https://github.com/surftimer/SurfTimer/commit/134887a29a396e01a721a78ab69e81a80593411a#diff-0b2bae39ae9de87ea2952bfd12c8777c7301e06ce683acc518229704cf024c33R4894-R4910
 stock int GiveSkinnedWeapon(int client, const char[] classname)
 {
