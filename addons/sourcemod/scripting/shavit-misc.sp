@@ -1601,7 +1601,21 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 	}
 
+	if (StrEqual(sArgs, "1r") || StrEqual(sArgs, "1b"))
+	{
+		if (gCV_HideChatCommands.BoolValue)
+			return Plugin_Handled; // block chat but still do _Post
+	}
+
 	return Plugin_Continue;
+}
+
+public void OnClientSayCommand_Post(int client, const char[] command, const char[] sArgs)
+{
+	if (StrEqual(sArgs, "1r") || StrEqual(sArgs, "1b"))
+	{
+		FakeClientCommandEx(client, "sm_%c", sArgs[1]);
+	}
 }
 
 public Action Command_Hide(int client, int args)
