@@ -115,6 +115,8 @@ float g_fLastMapvoteTime = 0.0;
 int g_iExtendCount;
 int g_mapFileSerial = -1;
 
+int gI_LastEnhancedMenuPos[MAXPLAYERS+1];
+
 Menu g_hNominateMenu;
 Menu g_hEnhancedMenu;
 
@@ -528,6 +530,7 @@ public void OnClientConnected(int client)
 	g_fLastNominateTime[client] = 0.0;
 	g_fSpecTimerStart[client] = 0.0;
 	g_bVoteDelayed[client] = false;
+	gI_LastEnhancedMenuPos[client] = 0;
 }
 
 public void OnClientDisconnect(int client)
@@ -1672,9 +1675,10 @@ void OpenNominateMenu(int client)
 	g_hNominateMenu.Display(client, MENU_TIME_FOREVER);
 }
 
-void OpenEnhancedMenu(int client)
+void OpenEnhancedMenu(int client, int pos = 0)
 {
-	g_hEnhancedMenu.Display(client, MENU_TIME_FOREVER);
+	gI_LastEnhancedMenuPos[client] = 0;
+	g_hEnhancedMenu.DisplayAt(client, pos, MENU_TIME_FOREVER);
 }
 
 void OpenNominateMenuTier(int client, int tier)
@@ -1716,7 +1720,7 @@ public int NominateMenuHandler(Menu menu, MenuAction action, int param1, int par
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack && GetConVarBool(g_cvEnhancedMenu))
 	{
-		OpenEnhancedMenu(param1);
+		OpenEnhancedMenu(param1, gI_LastEnhancedMenuPos[param1]);
 	}
 	else if (action == MenuAction_End)
 	{
@@ -1743,6 +1747,7 @@ public int EnhancedMenuHandler(Menu menu, MenuAction action, int client, int par
 	{
 		char option[PLATFORM_MAX_PATH];
 		menu.GetItem(param2, option, sizeof(option));
+		gI_LastEnhancedMenuPos[client] = GetMenuSelectionPosition();
 
 		if (StrEqual(option , "Alphabetic"))
 		{
@@ -1752,10 +1757,6 @@ public int EnhancedMenuHandler(Menu menu, MenuAction action, int client, int par
 		{
 			OpenNominateMenuTier(client, StringToInt(option));
 		}
-	}
-	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
-	{
-		OpenEnhancedMenu(client);
 	}
 
 	return 0;
