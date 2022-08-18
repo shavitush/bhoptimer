@@ -452,34 +452,26 @@ public void BotPostThinkPost(int client)
 
 public void OnClientCookiesCached(int client)
 {
-	char sHUDSettings[8];
-	GetClientCookie(client, gH_HUDCookie, sHUDSettings, 8);
+	char sHUDSettings[12];
+	GetClientCookie(client, gH_HUDCookie, sHUDSettings, sizeof(sHUDSettings));
 
 	if(strlen(sHUDSettings) == 0)
 	{
-		gCV_DefaultHUD.GetString(sHUDSettings, 8);
-
+		gCV_DefaultHUD.GetString(sHUDSettings, sizeof(sHUDSettings));
 		SetClientCookie(client, gH_HUDCookie, sHUDSettings);
-		gI_HUDSettings[client] = gCV_DefaultHUD.IntValue;
-	}
-	else
-	{
-		gI_HUDSettings[client] = StringToInt(sHUDSettings);
 	}
 
-	GetClientCookie(client, gH_HUDCookieMain, sHUDSettings, 8);
+	gI_HUDSettings[client] = StringToInt(sHUDSettings);
+
+	GetClientCookie(client, gH_HUDCookieMain, sHUDSettings, sizeof(sHUDSettings));
 
 	if(strlen(sHUDSettings) == 0)
 	{
-		gCV_DefaultHUD2.GetString(sHUDSettings, 8);
-
+		gCV_DefaultHUD2.GetString(sHUDSettings, sizeof(sHUDSettings));
 		SetClientCookie(client, gH_HUDCookieMain, sHUDSettings);
-		gI_HUD2Settings[client] = gCV_DefaultHUD2.IntValue;
 	}
-	else
-	{
-		gI_HUD2Settings[client] = StringToInt(sHUDSettings);
-	}
+
+	gI_HUD2Settings[client] = StringToInt(sHUDSettings);
 
 	if (gEV_Type != Engine_TF2 && IsValidClient(client, true) && GetClientTeam(client) > 1)
 	{
