@@ -31,9 +31,6 @@
 #include <json> // https://github.com/clugg/sm-json
 #include <SteamWorks> // HTTP stuff
 
-// todo: defines for JSON_Array & JSONArray?
-// todo: or even compile this including both and have cvar determine whether ripext or not is used?
-
 #pragma semicolon 1
 #pragma newdecls required
 
