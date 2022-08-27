@@ -1549,6 +1549,7 @@ void CreateNominateMenu()
 
 		char mapdisplay[PLATFORM_MAX_PATH];
 		LessStupidGetMapDisplayName(mapname, mapdisplay, sizeof(mapdisplay));
+		g_mMapList.SetValue(mapdisplay, true);
 
 		if (tiersMap)
 		{
@@ -1564,7 +1565,6 @@ void CreateNominateMenu()
 		}
 
 		g_hNominateMenu.AddItem(mapname, mapdisplay, style);
-		g_mMapList.SetValue(mapdisplay, true);
 	}
 
 	delete tiersMap;
