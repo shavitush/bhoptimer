@@ -5266,7 +5266,7 @@ public void StartTouchPost(int entity, int other)
 				FormatSeconds(Shavit_GetClientTime(other), sTime, 32, true);
 
 				char sMessage[255];
-				FormatEx(sMessage, 255, "%T", "ZoneStageEnter", other, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, num, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText);
+				FormatEx(sMessage, 255, "%T", "ZoneStageEnter", other, gS_ChatStrings.sText, gS_ChatStrings.sVariable, num, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText);
 
 				Action aResult = Plugin_Continue;
 				Call_StartForward(gH_Forwards_StageMessage);
