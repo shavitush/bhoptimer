@@ -5426,10 +5426,12 @@ public void TouchPost(int entity, int other)
 			if (Shavit_GetTimerStatus(other) == Timer_Stopped || Shavit_GetClientTrack(other) != Track_Main)
 			{
 				Shavit_StartTimer(other, track);
+				gI_LastStage[other] = 0;
 			}
 			else if (track == Track_Main)
 			{
 				Shavit_StartTimer(other, Track_Main);
+				gI_LastStage[other] = 0;
 			}
 		}
 		case Zone_Respawn:
