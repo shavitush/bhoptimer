@@ -1543,8 +1543,8 @@ int AddHUDToBuffer_CSGO(int client, huddata_t data, char[] buffer, int maxlen)
 		if ((gI_HUDSettings[client] & HUD_ZONEHUD) > 0)
 		{
 			FormatEx(sLine, sizeof(sLine),
-				"<span color='#%06X'>%T</span>",
-				((gI_Gradient.r << 16) + (gI_Gradient.g << 8) + (gI_Gradient.b)),
+				"<span color='#1EE9E3'>%T</span>",
+				// ((gI_Gradient.r << 16) + (gI_Gradient.g << 8) + (gI_Gradient.b)),
 				(data.iZoneHUD == ZoneHUD_Start) ? "HudInStartZoneCSGO" : "HudInEndZoneCSGO",
 				client,
 				data.iSpeed

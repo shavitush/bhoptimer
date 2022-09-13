@@ -48,6 +48,26 @@
 		"#format"	"{1:s},{2:s}"
 		"en"		"You are now {1}not hiding{2} players."
 	}
+	"AutoRestartEnabled"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"You will now {1}automatically restart{2} if you are slower than your PB."
+	}
+	"AutoRestartDisabled"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"You will no longer {1}automatically restart{2}."
+	}
+	"AutoRestartTriggered1"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"You were {1}automatically restarted{2} due to being slower than your PB."
+	}
+	"AutoRestartTriggered2"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Use {1}!autorestart{2} to disable this."
+	}
 	"LackingAccess"
 	{
 		"#format"	"{1:s},{2:s}"
