@@ -116,4 +116,15 @@
 	{
 		"en"		"Refresh"
 	}
+	// ---------- Replay Routing ---------- //
+	"ReplayRouteEnabled"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Replay route preview {1}enabled{2}."
+	}
+	"ReplayRouteDisabled"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Replay route preview {1}disabled{2}."
+	}
 }
