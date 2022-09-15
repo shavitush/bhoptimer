@@ -209,6 +209,7 @@ public void OnPluginStart()
 	
 	// qol
 	RegConsoleCmd("sm_autorestart", Command_AutoRestart, "Toggles auto-restart.");
+	RegConsoleCmd("sm_autoreset", Command_AutoRestart, "Toggles auto-restart.");
 	gH_AutoRestartCookie = RegClientCookie("shavit_autorestart", "Auto-restart settings", CookieAccess_Protected);
 
 	AddCommandListener(CommandListener_Noclip, "+noclip");
