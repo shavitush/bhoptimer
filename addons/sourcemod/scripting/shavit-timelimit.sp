@@ -69,11 +69,14 @@ bool gB_BlockRoundEndEvent = false;
 bool gB_AlternateZeroPrint = false;
 Handle gH_Timer = null;
 EngineVersion gEV_Type = Engine_Unknown;
+chatstrings_t gS_ChatStrings;
 
 Handle gH_Forwards_OnCountdownStart = null;
 
 // table prefix
 char gS_MySQLPrefix[32];
+
+bool gB_Late = false;
 
 public Plugin myinfo =
 {
@@ -82,6 +85,12 @@ public Plugin myinfo =
 	description = "Sets a dynamic value of mp_timelimit and mp_roundtime, based on average map times on the server.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
+}
+
+public APLRes AskPluginLoad2(Handle plugin, bool late, char[] error, int maxlength)
+{
+	gB_Late = late;
+	return APLRes_Success;
 }
 
 public void OnPluginStart()
@@ -132,6 +141,9 @@ public void OnPluginStart()
 
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle();
+
+	if(gB_Late)
+		Shavit_OnChatConfigLoaded();
 }
 
 public void OnMapStart()
@@ -207,6 +219,11 @@ public void OnConfigsExecuted()
 	{
 		gH_Timer = CreateTimer(1.0, Timer_PrintToChat, 0, TIMER_REPEAT);
 	}
+}
+
+public void Shavit_OnChatConfigLoaded()
+{
+	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
 void StartCalculating()
@@ -292,6 +309,7 @@ void SetLimit(int time)
 	if(mp_roundtime != null)
 	{
 		mp_roundtime.IntValue = time;
+		GameRules_SetProp("m_iRoundTime", time * 60); 
 	}
 }
 
@@ -454,7 +472,6 @@ public Action Command_Extend(int client, int args)
 	}
 
 	ExtendMapTimeLimit(extendtime);
-	Shavit_PrintToChatAll("%N extended the map by %d minutes", client, extendtime / 60);
-
+	Shavit_PrintToChatAll("%T", "Extended", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sVariable, extendtime / 60,  gS_ChatStrings.sText);
 	return Plugin_Handled;
 }
