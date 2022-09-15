@@ -61,6 +61,7 @@ char gS_RadioCommands[][] = { "coverme", "takepoint", "holdpos", "regroup", "fol
 	"getout", "negative", "enemydown", "compliment", "thanks", "cheer", "go_a", "go_b", "sorry", "needrop", "playerradio", "playerchatwheel", "player_ping", "chatwheel_ping" };
 
 bool gB_Hide[MAXPLAYERS+1];
+bool gB_AutoRestart[MAXPLAYERS+1];
 bool gB_Late = false;
 int gI_GroundEntity[MAXPLAYERS+1];
 int gI_LastShot[MAXPLAYERS+1];
@@ -75,6 +76,7 @@ int gI_LastStopInfo[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
+Handle gH_AutoRestartCookie = null;
 Cookie gH_BlockAdvertsCookie = null;
 
 // cvars
@@ -204,6 +206,11 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_practice", Command_Noclip, "Toggles noclip. (sm_nc alias)");
 	RegConsoleCmd("sm_nc", Command_Noclip, "Toggles noclip.");
 	RegConsoleCmd("sm_noclipme", Command_Noclip, "Toggles noclip. (sm_nc alias)");
+	
+	// qol
+	RegConsoleCmd("sm_autorestart", Command_AutoRestart, "Toggles auto-restart.");
+	gH_AutoRestartCookie = RegClientCookie("shavit_autorestart", "Auto-restart settings", CookieAccess_Protected);
+
 	AddCommandListener(CommandListener_Noclip, "+noclip");
 	AddCommandListener(CommandListener_Noclip, "-noclip");
 	// Hijack sourcemod's sm_noclip from funcommands to work when no args are specified.
@@ -427,17 +434,10 @@ public void OnClientCookiesCached(int client)
 	}
 
 	char sSetting[8];
-	GetClientCookie(client, gH_HideCookie, sSetting, 8);
-
-	if(strlen(sSetting) == 0)
-	{
-		SetClientCookie(client, gH_HideCookie, "0");
-		gB_Hide[client] = false;
-	}
-	else
-	{
-		gB_Hide[client] = view_as<bool>(StringToInt(sSetting));
-	}
+	GetClientCookie(client, gH_HideCookie, sSetting, sizeof(sSetting));
+	gB_Hide[client] = StringToInt(sSetting) != 0;
+	GetClientCookie(client, gH_AutoRestartCookie, sSetting, sizeof(sSetting));
+	gB_AutoRestart[client] = StringToInt(sSetting) != 0;
 
 	gI_Style[client] = Shavit_GetBhopStyle(client);
 }
@@ -1297,6 +1297,19 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			{
 				SetEntityMoveType(client, MOVETYPE_ISOMETRIC);
 			}
+		}
+	}
+
+	if (gB_AutoRestart[client])
+	{
+		float bestTime = Shavit_GetClientPB(client, style, track);
+		float current = Shavit_GetClientTime(client);
+
+		if (bestTime != 0 && current > bestTime)
+		{
+			Shavit_RestartTimer(client, track);
+			Shavit_PrintToChat(client, "%T", "AutoRestartTriggered1", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
+			Shavit_PrintToChat(client, "%T", "AutoRestartTriggered2", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 		}
 	}
 
@@ -2706,6 +2719,15 @@ public Action Command_Drop(int client, const char[] command, int argc)
 	}
 
 	return Plugin_Stop;
+}
+
+public Action Command_AutoRestart(int client, int args)
+{
+	gB_AutoRestart[client] = !gB_AutoRestart[client];
+	SetClientCookie(client, gH_AutoRestartCookie, gB_AutoRestart[client] ? "1" : "0");
+
+	Shavit_PrintToChat(client, "%T", gB_AutoRestart[client] ? "AutoRestartEnabled" : "AutoRestartDisabled", client, gB_AutoRestart[client] ?  gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+	return Plugin_Handled;
 }
 
 public int Native_IsClientUsingHide(Handle plugin, int numParams)
