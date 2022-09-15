@@ -75,7 +75,7 @@ int gI_LastNoclipTick[MAXPLAYERS+1];
 int gI_LastStopInfo[MAXPLAYERS+1];
 
 // cookies
-Handle gH_HideCookie = null
+Handle gH_HideCookie = null;
 Handle gH_AutoRestartCookie = null;
 Cookie gH_BlockAdvertsCookie = null;
 
