@@ -210,6 +210,7 @@ bot_info_t gA_BotInfo_Temp; // cached when creating a bot so we can use an accur
 int gI_LastReplayFlags[MAXPLAYERS + 1];
 float gF_EyeOffset;
 float gF_EyeOffsetDuck;
+float gF_MaxMove = 400.0;
 
 // how do i call this
 bool gB_HideNameChange = false;
@@ -379,6 +380,7 @@ public void OnPluginStart()
 		{
 			gF_EyeOffset = 64.0;
 			gF_EyeOffsetDuck = 46.0;
+			gF_MaxMove = 450.0;
 		}
 		case Engine_CSS:
 		{
@@ -2642,6 +2644,21 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 				{
 					bWalk = true;
 				}
+			}
+
+			if (info.aCache.iReplayVersion >= 0x06)
+			{
+				int ivel[2];
+				UnpackSignedShorts(aFrame.vel, ivel);
+				vel[0] = float(ivel[0]);
+				vel[1] = float(ivel[1]);
+			}
+			else
+			{
+				if (buttons & IN_FORWARD)   vel[0] += gF_MaxMove;
+				if (buttons & IN_BACK)      vel[0] -= gF_MaxMove;
+				if (buttons & IN_MOVELEFT)  vel[1] -= gF_MaxMove;
+				if (buttons & IN_MOVERIGHT) vel[1] += gF_MaxMove;
 			}
 
 			if (isClient)

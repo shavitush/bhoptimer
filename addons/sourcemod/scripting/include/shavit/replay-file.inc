@@ -88,7 +88,7 @@ enum struct frame_cache_t
 }
 
 // Can be used to unpack frame_t.mousexy and frame_t.vel
-stock void UnpackSignedShorts(int x, int out[2])
+stock void UnpackSignedShorts(int x, int[] out)
 {
 	out[0] =  ((x        & 0xFFFF) ^ 0x8000) - 0x8000;
 	out[1] = (((x >> 16) & 0xFFFF) ^ 0x8000) - 0x8000;
