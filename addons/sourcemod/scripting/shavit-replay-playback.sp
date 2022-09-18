@@ -3328,7 +3328,7 @@ void OpenReplayTrackMenu(int client)
 			{
 				records = true;
 
-				continue;
+				break;
 			}
 		}
 
