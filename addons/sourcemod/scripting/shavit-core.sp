@@ -521,36 +521,15 @@ void LoadDHooks()
 	delete CreateInterface;
 	delete gamedataConf;
 
-	GameData AcceptInputGameData;
+	gamedataConf = LoadGameConfigFile("sdktools.games");
 
-	if (gEV_Type == Engine_CSS)
-	{
-		AcceptInputGameData = new GameData("sdktools.games/game.cstrike");
-	}
-	else if (gEV_Type == Engine_TF2)
-	{
-		AcceptInputGameData = new GameData("sdktools.games/game.tf");
-	}
-	else if (gEV_Type == Engine_CSGO)
-	{
-		AcceptInputGameData = new GameData("sdktools.games/engine.csgo");
-	}
-
-	// Stolen from dhooks-test.sp
-	offset = AcceptInputGameData.GetOffset("AcceptInput");
-	delete AcceptInputGameData;
+	offset = GameConfGetOffset(gamedataConf, "AcceptInput");
 	gH_AcceptInput = new DynamicHook(offset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity);
 	gH_AcceptInput.AddParam(HookParamType_CharPtr);
 	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
 	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
 	gH_AcceptInput.AddParam(HookParamType_Object, 20, DHookPass_ByVal|DHookPass_ODTOR|DHookPass_OCTOR|DHookPass_OASSIGNOP); //variant_t is a union of 12 (float[3]) plus two int type params 12 + 8 = 20
 	gH_AcceptInput.AddParam(HookParamType_Int);
-
-	gamedataConf = LoadGameConfigFile("sdktools.games");
-	if (gamedataConf == null)
-	{
-		SetFailState("Failed to load sdktools gamedata");
-	}
 
 	offset = GameConfGetOffset(gamedataConf, "Teleport");
 	if (offset == -1)
