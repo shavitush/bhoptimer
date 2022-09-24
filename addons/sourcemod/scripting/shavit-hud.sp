@@ -1703,6 +1703,9 @@ void UpdateMainHUD(int client)
 	if(!bReplay)
 	{
 		if (gB_Zones && ((prespeed.IntValue % 2 == 0 || prespeed.IntValue == 0) ? ((Shavit_GetClientTime(client)) < 0.05) : true))
+		{
+			if (Shavit_InsideZone(target, Zone_Start, huddata.iTrack))
+			{
 				iZoneHUD = ZoneHUD_Start;
 			}
 			else if (Shavit_InsideZone(target, Zone_End, huddata.iTrack))
