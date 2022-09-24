@@ -507,7 +507,7 @@ void UpdateClientCache(int client)
 	}
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT time, style, track, completions, exact_time_int FROM %splayertimes WHERE map = '%s' AND auth = %d;", gS_MySQLPrefix, gS_Map, iSteamID);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT time, style, track, completions FROM %splayertimes WHERE map = '%s' AND auth = %d;", gS_MySQLPrefix, gS_Map, iSteamID);
 	QueryLog(gH_SQL, SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
@@ -539,7 +539,7 @@ public void SQL_UpdateCache_Callback(Database db, DBResultSet results, const cha
 			continue;
 		}
 
-		gF_PlayerRecord[client][style][track] = ExactTimeMaybe(results.FetchFloat(0), results.FetchInt(4));
+		gF_PlayerRecord[client][style][track] = results.FetchFloat(0);
 		gI_PlayerCompletion[client][style][track] = results.FetchInt(3);
 
 	}
@@ -2675,8 +2675,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText);
 
 			FormatEx(sQuery, sizeof(sQuery),
-				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs, exact_time_int) VALUES (%d, '%s', %f, %d, %d, %d, %d, %.2f, %f, %d, %.2f, %d);",
-				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, timestamp, style, strafes, sync, fPoints, track, perfs, view_as<int>(time));
+				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %.9f, %d, %d, %d, %d, %.2f, %f, %d, %.2f, %d);",
+				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, timestamp, style, strafes, sync, fPoints, track, perfs);
 		}
 		else // update
 		{
@@ -2684,8 +2684,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletion", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sDifference);
 
 			FormatEx(sQuery, sizeof(sQuery),
-				"UPDATE %splayertimes SET time = %f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = %f, perfs = %.2f, exact_time_int = %d, completions = completions + 1 WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
-				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, fPoints, perfs, view_as<int>(time), gS_Map, iSteamID, style, track);
+				"UPDATE %splayertimes SET time = %.9f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = %f, perfs = %.2f, completions = completions + 1 WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
+				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, fPoints, perfs, gS_Map, iSteamID, style, track);
 		}
 
 		QueryLog(gH_SQL, SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
@@ -2836,7 +2836,7 @@ public void Trans_ReplaceStageTimes_Error(Database db, any data, int numQueries,
 void UpdateLeaderboards()
 {
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT p.style, p.track, p.time, p.exact_time_int, p.id, p.auth, u.name FROM %splayertimes p LEFT JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s' ORDER BY p.time ASC, p.date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT p.style, p.track, FORMAT(p.time, 9), 0, p.id, p.auth, u.name FROM %splayertimes p LEFT JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s' ORDER BY p.time ASC, p.date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 	QueryLog(gH_SQL, SQL_UpdateLeaderboards_Callback, sQuery);
 }
 
@@ -2862,7 +2862,7 @@ public void SQL_UpdateLeaderboards_Callback(Database db, DBResultSet results, co
 			continue;
 		}
 
-		float time = ExactTimeMaybe(results.FetchFloat(2), results.FetchInt(3));
+		float time = results.FetchFloat(2);
 
 		if (gA_Leaderboard[style][track].Push(time) == 0) // pushed WR
 		{
@@ -2983,9 +2983,4 @@ int GetRankForTime(int style, float time, int track)
 	}
 
 	return (iRecords + 1);
-}
-
-float ExactTimeMaybe(float time, int exact_time)
-{
-	return (exact_time != 0) ? view_as<float>(exact_time) : time;
 }

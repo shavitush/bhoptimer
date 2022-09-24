@@ -50,6 +50,7 @@ enum
 	Migration_NormalizeMapzonePoints,
 	Migration_AddMapzonesForm, // 25
 	Migration_AddMapzonesTarget,
+	Migration_DeprecateExactTimeInt,
 	MIGRATIONS_END
 };
 
@@ -157,14 +158,14 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 	if (driver == Driver_mysql)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), INDEX `map2` (`map`)) ENGINE=INNODB;",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INT NOT NULL AUTO_INCREMENT, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, PRIMARY KEY (`id`), INDEX `map` (`map`, `style`, `track`, `time`), INDEX `auth` (`auth`, `date`, `points`), INDEX `time` (`time`), INDEX `map2` (`map`)) ENGINE=INNODB;",
 			gS_SQLPrefix);
 	}
 	else
 	{
 		// id  style  track  time  auth  map  points  exact_time_int
 		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `exact_time_int` INT DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1);",
+			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1);",
 			gS_SQLPrefix);
 	}
 
@@ -312,6 +313,7 @@ void ApplyMigration(int migration)
 		case Migration_NormalizeMapzonePoints: ApplyMigration_NormalizeMapzonePoints();
 		case Migration_AddMapzonesForm: ApplyMigration_AddMapzonesForm();
 		case Migration_AddMapzonesTarget: ApplyMigration_AddMapzonesTarget();
+		case Migration_DeprecateExactTimeInt: ApplyMigration_DeprecateExactTimeInt();
 	}
 }
 
@@ -359,9 +361,13 @@ void ApplyMigration_AddCustomChatAccess()
 
 void ApplyMigration_AddPlayertimesExactTimeInt()
 {
+#if 0
 	char sQuery[192];
 	FormatEx(sQuery, 192, "ALTER TABLE `%splayertimes` ADD COLUMN `exact_time_int` INT NOT NULL DEFAULT 0 %s;", gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "AFTER `completions`" : "");
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddPlayertimesExactTimeInt, DBPrio_High);
+#else
+	SQL_TableMigrationSingleQuery_Callback(null, null, "", Migration_AddPlayertimesExactTimeInt);
+#endif
 }
 
 void ApplyMigration_FixOldCompletionCounts()
@@ -459,6 +465,76 @@ void ApplyMigration_AddMapzonesTarget()
 	char sQuery[192];
 	FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%smapzones` ADD COLUMN `target` VARCHAR(63);", gS_SQLPrefix);
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddMapzonesTarget, DBPrio_High);
+}
+
+void ApplyMigration_DeprecateExactTimeInt()
+{
+	char query[256];
+	FormatEx(query, sizeof(query), "SELECT id, exact_time_int FROM %splayertimes WHERE exact_time_int != 0;", gS_SQLPrefix);
+	QueryLog(gH_SQL, SQL_Migration_DeprecateExactTimeInt_Query, query);
+}
+
+public void SQL_Migration_DeprecateExactTimeInt_Query(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null || results.RowCount == 0)
+	{
+		InsertMigration(Migration_DeprecateExactTimeInt);
+		return;
+	}
+
+	ArrayStack stack = new ArrayStack(2);
+
+	while (results.FetchRow())
+	{
+		int things[2];
+		things[0] = results.FetchInt(0);
+		things[1] = results.FetchInt(1);
+		stack.PushArray(things);
+	}
+
+	SQL_Migration_DeprecateExactTimeInt_Main(stack);
+}
+
+void SQL_Migration_DeprecateExactTimeInt_Main(ArrayStack stack)
+{
+	Transaction trans = new Transaction();
+	int queries = 0;
+
+	while (!stack.Empty)
+	{
+		int things[2];
+		stack.PopArray(things);
+		char query[512];
+		FormatEx(query, sizeof(query),
+			"UPDATE %splayertimes SET time = %.9f WHERE id = %d;",
+			gS_SQLPrefix, things[1], things[0]);
+		AddQueryLog(trans, query);
+
+		if (++queries > 9000)
+			break;
+	}
+
+	if (stack.Empty)
+		delete stack;
+
+	gH_SQL.Execute(trans, Trans_DeprecateExactTimeIntSuccess, Trans_DeprecateExactTimeIntFailed, stack);
+}
+
+public void Trans_DeprecateExactTimeIntSuccess(Database db, ArrayStack stack, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	if (!stack)
+	{
+		InsertMigration(Migration_DeprecateExactTimeInt);
+		return;
+	}
+
+	SQL_Migration_DeprecateExactTimeInt_Main(stack);
+}
+
+public void Trans_DeprecateExactTimeIntFailed(Database db, ArrayStack stack, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	delete stack;
+	LogError("Timer (core) error! ExactTimeInt migration failed. %d %d Reason: %s", numQueries, failIndex, error);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
