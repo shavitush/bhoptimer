@@ -329,7 +329,7 @@ stock void GetTimerSQLPrefix(char[] buffer, int maxlen)
 
 stock bool IsValidClient(int client, bool bAlive = false)
 {
-	return (client >= 1 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsClientSourceTV(client) && (!bAlive || IsPlayerAlive(client)));
+	return (client >= 1 && client <= MaxClients && IsClientInGame(client) && !IsClientSourceTV(client) && (!bAlive || IsPlayerAlive(client)));
 }
 
 stock bool IsSource2013(EngineVersion ev)
