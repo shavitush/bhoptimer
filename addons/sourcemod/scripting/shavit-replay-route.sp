@@ -24,7 +24,6 @@
 #include <shavit/replay-playback>
 #include <shavit/core>
 #include <clientprefs>
-#include <shavit/chat>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -95,7 +94,6 @@ public void OnClientCookiesCached(int client) {
     GetClientCookie(client, gH_RouteCookie, sSetting, sizeof(sSetting));
 
     if (strlen(sSetting) == 0) {
-        SetClientCookie(client, gH_RouteCookie, "1");
         gB_ReplayRoute[client] = true;
         return;
     }
@@ -103,8 +101,6 @@ public void OnClientCookiesCached(int client) {
 }
 
 public void OnClientPutInServer(int client) {
-    if (!IsValidReplayClient(client))
-        return;
     gH_RouteArray[client] = CreateArray(3);
 }
 
@@ -125,7 +121,7 @@ public Action Timer_Record(Handle timer) {
     SetReplayRoute();
 
     for (int i = 1; i <= MaxClients; i++) {
-        if (!IsValidReplayClient(i))
+        if (!IsValidClient(i))
             continue;
         // set route
         if (gH_RouteArray[i] == INVALID_HANDLE)
@@ -192,7 +188,7 @@ public void SetReplayRoute() // https://bitbucket.org/kztimerglobalteam/kztimerg
         float fBeamOrigin[3];
         GetArrayArray(hReplayRouteArray, i, fBeamOrigin, 3);
         for (int client = 1; client <= MaxClients; client++) {
-            if (!IsValidReplayClient(client) || !gB_ReplayRoute[client] || IsFakeClient(client))
+            if (!IsClientInGame(client) || !gB_ReplayRoute[client] || IsFakeClient(client))
                 continue;
             float fClientOrigin[3];
             GetClientAbsOrigin(client, fClientOrigin);
@@ -205,10 +201,6 @@ public void SetReplayRoute() // https://bitbucket.org/kztimerglobalteam/kztimerg
         }
     }
     delete hTmpArray;
-}
-
-stock bool IsValidReplayClient(int client) {
-    return (client >= 1 && client <= MaxClients && IsValidEntity(client) && IsClientConnected(client) && IsClientInGame(client));
 }
 
 stock void GetGroundOrigin(int client, float pos[3]) {
