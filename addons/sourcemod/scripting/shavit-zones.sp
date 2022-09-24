@@ -4798,7 +4798,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 		for (int j = 0; j < 12; j++)
 		{
-			float actual_width = (j >= 8) ? 0.75 : 2.5;
+			float actual_width = (j >= 8) ? 0.5 : 1.0;
 			char x = magic[editaxis*12+j];
 			TE_SetupBeamPoints(points[x >> 4], points[x & 7], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, clrs[((j >= 8) ? ZoneColor_White : ZoneColor_Green) - 1], speed);
 			TE_Send(clients, count, 0.0);
