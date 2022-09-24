@@ -4283,9 +4283,7 @@ void CreateEditMenu(int client, bool autostage=false)
 	{
 		if (autostage)
 		{
-			int highest = gI_HighestStage[gA_EditCache[client].iTrack];
-			highest = highest > 0 ? highest+1 : 2;
-			gA_EditCache[client].iData = highest;
+			gA_EditCache[client].iData = gI_HighestStage[gA_EditCache[client].iTrack] + 1;
 		}
 
 		FormatEx(sMenuItem, 64, "%T", "ZoneSetStage", client, gA_EditCache[client].iData);
