@@ -59,6 +59,7 @@ static Database gH_SQL;
 static int gI_Driver;
 static char gS_SQLPrefix[32];
 
+char SQLitePTQuery[1024]; // used in Migration_AddPlayertimesAuthFK if db created <= v3.3.2
 int gI_MigrationsRequired;
 int gI_MigrationsFinished;
 
@@ -168,6 +169,7 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 		FormatEx(sQuery, sizeof(sQuery),
 			"CREATE TABLE IF NOT EXISTS `%splayertimes` (`id` INTEGER PRIMARY KEY, `style` TINYINT NOT NULL DEFAULT 0, `track` TINYINT NOT NULL DEFAULT 0, `time` FLOAT NOT NULL, `auth` INT NOT NULL, `map` VARCHAR(255) NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, `jumps` INT, `date` INT, `strafes` INT, `sync` FLOAT, `perfs` FLOAT DEFAULT 0, `completions` SMALLINT DEFAULT 1, CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE RESTRICT ON DELETE RESTRICT);",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+		strcopy(SQLitePTQuery, sizeof(SQLitePTQuery), sQuery);
 	}
 
 	AddQueryLog(trans, sQuery);
