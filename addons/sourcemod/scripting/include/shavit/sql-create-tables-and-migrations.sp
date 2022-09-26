@@ -629,6 +629,40 @@ public void SQL_TableMigrationPlayertimesAuthFK_Callback(Database db, DBResultSe
 		FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%splayertimes` ADD CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE RESTRICT ON DELETE RESTRICT;", gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
 		AddQueryLog(trans, sQuery);
 	}
+	else
+	{
+		results.FetchRow();
+
+		char sPlayertimesMasterSQL[1024];
+		results.FetchString(0, sPlayertimesMasterSQL, sizeof(sPlayertimesMasterSQL));
+
+		char sConstraintTest[64];
+		FormatEx(sConstraintTest, sizeof(sConstraintTest), "CONSTRAINT `%spt_auth`", gS_SQLPrefix);
+
+		if (StrContains(sPlayertimesMasterSQL, sConstraintTest) == -1 // >= v3.1.0
+			|| StrContains(sPlayertimesMasterSQL, "(`auth`) ON UPDATE CASCADE ON DELETE CASCADE") != -1) // <= v3.0.8
+		{
+			FormatEx(sQuery, sizeof(sQuery), "CREATE TEMPORARY TABLE temp_pt AS SELECT * FROM `%splayertimes`;", gS_SQLPrefix);
+			AddQueryLog(trans, sQuery);
+
+			FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `%splayertimes`;", gS_SQLPrefix);
+			AddQueryLog(trans, sQuery);
+
+			// Re-use playertimes table creation query
+			AddQueryLog(trans, SQLitePTQuery);
+
+			FormatEx(sQuery, sizeof(sQuery), "INSERT INTO `%splayertimes` (id, style, track, time, auth, map, points, jumps, date, strafes, sync, perfs, completions) SELECT id, style, track, time, auth, map, points, jumps, date, strafes, sync, perfs, completions FROM temp_pt;", gS_SQLPrefix);
+			AddQueryLog(trans, sQuery);
+
+			FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `temp_pt`;");
+			AddQueryLog(trans, sQuery);
+		}
+		else // db was created > v3.3.2
+		{
+			InsertMigration(Migration_AddPlayertimesAuthFK);
+			return;
+		}
+	}
 
 	gH_SQL.Execute(trans, Trans_AddPlayertimesAuthFK_Success, Trans_AddPlayertimesAuthFK_Error, 0, DBPrio_High);
 }
