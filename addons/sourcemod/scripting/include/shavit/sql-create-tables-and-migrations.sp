@@ -603,6 +603,44 @@ void ApplyMigration_AddPlayertimesAuthFK()
 	QueryLog(gH_SQL, SQL_TableMigrationPlayertimesAuthFK_Callback, sQuery);
 }
 
+public void SQL_TableMigrationPlayertimesAuthFK_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if (results == null)
+	{
+		LogError("Timer error! Playertimes auth FK migration selection failed. Reason: %s", error);
+		return;
+	}
+
+	Transaction trans = new Transaction();
+	char sQuery[512];
+
+	if (gI_Driver == Driver_mysql)
+	{
+		results.FetchRow();
+		if (results.FetchInt(0)) // pt_auth CONSTRAINT exists
+		{
+			// Remove in case it has CASCADE referential actions (<= v3.0.8)
+			FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%splayertimes`DROP FOREIGN KEY `%spt_auth`;", gS_SQLPrefix, gS_SQLPrefix);
+			AddQueryLog(trans, sQuery);
+		}
+
+		FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%splayertimes` ADD CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE RESTRICT ON DELETE RESTRICT;", gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+	}
+
+	gH_SQL.Execute(trans, Trans_AddPlayertimesAuthFK_Success, Trans_AddPlayertimesAuthFK_Error, 0, DBPrio_High);
+}
+
+public void Trans_AddPlayertimesAuthFK_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	InsertMigration(Migration_AddPlayertimesAuthFK);
+}
+
+public void Trans_AddPlayertimesAuthFK_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer error! Playertimes auth FK migration transaction failed. Reason: %s", error);
+}
+
 void ApplyMigration_ConvertIPAddresses(bool index = true)
 {
 	char sQuery[128];
