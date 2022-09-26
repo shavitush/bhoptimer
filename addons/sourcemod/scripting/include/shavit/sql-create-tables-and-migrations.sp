@@ -51,6 +51,7 @@ enum
 	Migration_AddMapzonesForm, // 25
 	Migration_AddMapzonesTarget,
 	Migration_DeprecateExactTimeInt,
+	Migration_AddPlayertimesAuthFK,
 	MIGRATIONS_END
 };
 
@@ -314,6 +315,7 @@ void ApplyMigration(int migration)
 		case Migration_AddMapzonesForm: ApplyMigration_AddMapzonesForm();
 		case Migration_AddMapzonesTarget: ApplyMigration_AddMapzonesTarget();
 		case Migration_DeprecateExactTimeInt: ApplyMigration_DeprecateExactTimeInt();
+		case Migration_AddPlayertimesAuthFK: ApplyMigration_AddPlayertimesAuthFK();
 	}
 }
 
@@ -570,6 +572,35 @@ public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet resu
 		QueryLog(gH_SQL, SQL_TableMigrationIndexing_Callback, sQuery);
 #endif
 	}
+}
+
+void ApplyMigration_AddPlayertimesAuthFK()
+{
+	// More details about this migration here https://github.com/shavitush/bhoptimer/issues/1175
+	char sQuery[512];
+
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT COUNT(*) \
+			FROM information_schema.REFERENTIAL_CONSTRAINTS \
+			WHERE CONSTRAINT_SCHEMA = DATABASE() \
+				AND REFERENCED_TABLE_NAME = '%susers' \
+				AND CONSTRAINT_NAME = '%spt_auth';",
+			gS_SQLPrefix, gS_SQLPrefix
+		);
+	}
+	else if (gI_Driver == Driver_sqlite)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "SELECT sql FROM sqlite_master WHERE name = '%splayertimes';", gS_SQLPrefix);
+	}
+	else // PostgreSQL unaffected
+	{
+		InsertMigration(Migration_AddPlayertimesAuthFK);
+		return;
+	}
+
+	QueryLog(gH_SQL, SQL_TableMigrationPlayertimesAuthFK_Callback, sQuery);
 }
 
 void ApplyMigration_ConvertIPAddresses(bool index = true)
