@@ -1697,12 +1697,10 @@ void UpdateMainHUD(int client)
 	huddata_t huddata;
 	huddata.iStyle = (bReplay) ? Shavit_GetReplayBotStyle(target) : Shavit_GetBhopStyle(target);
 	huddata.iTrack = (bReplay) ? Shavit_GetReplayBotTrack(target) : Shavit_GetClientTrack(target);
-	
-	ConVar prespeed = FindConVar("shavit_misc_prespeed");
 
 	if(!bReplay)
 	{
-		if (gB_Zones && ((prespeed.IntValue % 2 == 0 || prespeed.IntValue == 0) ? ((Shavit_GetClientTime(client)) < 0.05) : true))
+		if (gB_Zones && Shavit_GetClientTime(client) < 0.3)
 		{
 			if (Shavit_InsideZone(target, Zone_Start, huddata.iTrack))
 			{
