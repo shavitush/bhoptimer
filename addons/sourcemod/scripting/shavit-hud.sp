@@ -1700,7 +1700,7 @@ void UpdateMainHUD(int client)
 
 	if(!bReplay)
 	{
-		if (gB_Zones)
+		if (gB_Zones && Shavit_GetClientTime(client) < 0.3)
 		{
 			if (Shavit_InsideZone(target, Zone_Start, huddata.iTrack))
 			{
