@@ -58,8 +58,7 @@ static Database gH_SQL;
 static int gI_Driver;
 static char gS_SQLPrefix[32];
 
-int gI_MigrationsRequired;
-int gI_MigrationsFinished;
+bool gB_MigrationsApplied[255];
 
 public void RunOnDatabaseLoadedForward()
 {
@@ -269,20 +268,24 @@ public void SQL_SelectMigrations_Callback(Database db, DBResultSet results, cons
 		bMigrationApplied[results.FetchInt(0)] = true;
 	}
 
+	gB_MigrationsApplied = bMigrationApplied;
+	DoNextMigration();
+}
+
+void DoNextMigration()
+{
 	for (int i = 0; i < MIGRATIONS_END; i++)
 	{
-		if (!bMigrationApplied[i])
+		if (!gB_MigrationsApplied[i])
 		{
-			gI_MigrationsRequired++;
+			gB_MigrationsApplied[i] = true;
 			PrintToServer("--- Applying database migration %d ---", i);
 			ApplyMigration(i);
+			return;
 		}
 	}
 
-	if (!gI_MigrationsRequired)
-	{
-		RunOnDatabaseLoadedForward();
-	}
+	RunOnDatabaseLoadedForward();
 }
 
 void ApplyMigration(int migration)
@@ -752,9 +755,5 @@ void InsertMigration(int migration)
 
 public void SQL_MigrationApplied_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if (++gI_MigrationsFinished >= gI_MigrationsRequired)
-	{
-		gI_MigrationsRequired = gI_MigrationsFinished = 0;
-		RunOnDatabaseLoadedForward();
-	}
+	DoNextMigration();
 }
