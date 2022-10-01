@@ -60,6 +60,7 @@ static int gI_Driver;
 static char gS_SQLPrefix[32];
 
 bool gB_MigrationsApplied[255];
+char SQLiteMapzonesQuery[1024]; // used in Migration_FixSQLiteMapzonesROWID if db created <= v3.3.2
 
 public void RunOnDatabaseLoadedForward()
 {
@@ -218,6 +219,7 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 			"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INTEGER PRIMARY KEY, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `form` TINYINT, `target` VARCHAR(63));",
 			gS_SQLPrefix);
 		AddQueryLog(trans, sQuery);
+		strcopy(SQLiteMapzonesQuery, sizeof(SQLiteMapzonesQuery), sQuery);
 	}
 
 	FormatEx(sQuery, sizeof(sQuery),
