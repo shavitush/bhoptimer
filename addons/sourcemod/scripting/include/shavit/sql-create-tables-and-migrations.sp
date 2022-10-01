@@ -51,6 +51,7 @@ enum
 	Migration_AddMapzonesForm, // 25
 	Migration_AddMapzonesTarget,
 	Migration_DeprecateExactTimeInt,
+	Migration_FixSQLiteMapzonesROWID,
 	MIGRATIONS_END
 };
 
@@ -317,6 +318,7 @@ void ApplyMigration(int migration)
 		case Migration_AddMapzonesForm: ApplyMigration_AddMapzonesForm();
 		case Migration_AddMapzonesTarget: ApplyMigration_AddMapzonesTarget();
 		case Migration_DeprecateExactTimeInt: ApplyMigration_DeprecateExactTimeInt();
+		case Migration_FixSQLiteMapzonesROWID: ApplyMigration_FixSQLiteMapzonesROWID();
 	}
 }
 
@@ -538,6 +540,29 @@ public void Trans_DeprecateExactTimeIntFailed(Database db, ArrayStack stack, int
 {
 	delete stack;
 	LogError("Timer (core) error! ExactTimeInt migration failed. %d %d Reason: %s", numQueries, failIndex, error);
+}
+
+void ApplyMigration_FixSQLiteMapzonesROWID()
+{
+	if (gI_Driver != Driver_sqlite)
+	{
+		InsertMigration(Migration_FixSQLiteMapzonesROWID);
+		return;
+	}
+
+	char sQuery[256];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT EXISTS(SELECT 1 FROM `%smapzones` WHERE id IS NULL);", gS_SQLPrefix);
+
+	QueryLog(gH_SQL, SQL_FixSQLiteMapzonesROWID_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_FixSQLiteMapzonesROWID_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("Timer error! SQLiteMapzonesROWID migration failed. Reason: %s", error);
+		return;
+	}
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
