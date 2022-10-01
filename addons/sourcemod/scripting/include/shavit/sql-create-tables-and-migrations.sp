@@ -205,10 +205,20 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 	//// shavit-wr
 	//
 
-	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `form` TINYINT, `target` VARCHAR(63), PRIMARY KEY (`id`)) %s;",
-		gS_SQLPrefix, sOptionalINNODB);
-	AddQueryLog(trans, sQuery);
+	if (driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `form` TINYINT, `target` VARCHAR(63), PRIMARY KEY (`id`)) %s;",
+			gS_SQLPrefix, sOptionalINNODB);
+		AddQueryLog(trans, sQuery);
+	}
+	else
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INTEGER PRIMARY KEY, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `form` TINYINT, `target` VARCHAR(63));",
+			gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+	}
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%sstartpositions` (`auth` INTEGER NOT NULL, `track` TINYINT NOT NULL, `map` VARCHAR(255) NOT NULL, `pos_x` FLOAT, `pos_y` FLOAT, `pos_z` FLOAT, `ang_x` FLOAT, `ang_y` FLOAT, `ang_z` FLOAT, `angles_only` BOOL, PRIMARY KEY (`auth`, `track`, `map`)) %s;",
