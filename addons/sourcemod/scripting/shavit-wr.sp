@@ -68,6 +68,7 @@ Handle gH_OnFinishMessage = null;
 Handle gH_OnWorldRecordsCached = null;
 
 // database handle
+int gI_Driver = Driver_unknown;
 Database gH_SQL = null;
 bool gB_Connected = false;
 
@@ -507,7 +508,7 @@ void UpdateClientCache(int client)
 	}
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT time, style, track, completions FROM %splayertimes WHERE map = '%s' AND auth = %d;", gS_MySQLPrefix, gS_Map, iSteamID);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT %s, style, track, completions FROM %splayertimes WHERE map = '%s' AND auth = %d;", gI_Driver == Driver_mysql ? "FORMAT(time, 9)" : "printf(\"%.9f\", time)", gS_MySQLPrefix, gS_Map, iSteamID);
 	QueryLog(gH_SQL, SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
@@ -2513,7 +2514,7 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = Shavit_GetDatabase();
+	gH_SQL = Shavit_GetDatabase(gI_Driver);
 
 	gB_Connected = true;
 	OnMapStart();
@@ -2836,7 +2837,7 @@ public void Trans_ReplaceStageTimes_Error(Database db, any data, int numQueries,
 void UpdateLeaderboards()
 {
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT p.style, p.track, FORMAT(p.time, 9), 0, p.id, p.auth, u.name FROM %splayertimes p LEFT JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s' ORDER BY p.time ASC, p.date ASC;", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT p.style, p.track, %s, 0, p.id, p.auth, u.name FROM %splayertimes p LEFT JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s' ORDER BY p.time ASC, p.date ASC;", gI_Driver == Driver_mysql ? "FORMAT(p.time, 9)" : "printf(\"%.9f\", p.time)", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 	QueryLog(gH_SQL, SQL_UpdateLeaderboards_Callback, sQuery);
 }
 
