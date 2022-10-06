@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - SQL table creation and migrations
- * by: shavit, rtldg
+ * by: shavit, rtldg, jedso
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
