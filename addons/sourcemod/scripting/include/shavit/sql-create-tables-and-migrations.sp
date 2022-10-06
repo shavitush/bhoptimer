@@ -619,23 +619,29 @@ public void SQL_TableMigrationPlayertimesAuthFK_Callback(Database db, DBResultSe
 	Transaction trans = new Transaction();
 	char sQuery[512];
 
+	results.FetchRow();
+
 	if (gI_Driver == Driver_mysql)
 	{
-		results.FetchRow();
 		if (results.FetchInt(0)) // pt_auth CONSTRAINT exists
 		{
 			// Remove in case it has CASCADE referential actions (<= v3.0.8)
-			FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%splayertimes`DROP FOREIGN KEY `%spt_auth`;", gS_SQLPrefix, gS_SQLPrefix);
+			FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%splayertimes` DROP FOREIGN KEY `%spt_auth`;", gS_SQLPrefix, gS_SQLPrefix);
 			AddQueryLog(trans, sQuery);
 		}
+
+		// add missing users to users table
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO `%susers` (auth) SELECT p1.auth FROM `%splayertimes` p1 LEFT JOIN `%susers` u1 ON u1.auth = p1.auth WHERE u1.auth IS NULL;",
+			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
+		);
+		AddQueryLog(trans, sQuery);
 
 		FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE `%splayertimes` ADD CONSTRAINT `%spt_auth` FOREIGN KEY (`auth`) REFERENCES `%susers` (`auth`) ON UPDATE RESTRICT ON DELETE RESTRICT;", gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
 		AddQueryLog(trans, sQuery);
 	}
 	else
 	{
-		results.FetchRow();
-
 		char sPlayertimesMasterSQL[1024];
 		results.FetchString(0, sPlayertimesMasterSQL, sizeof(sPlayertimesMasterSQL));
 
@@ -645,6 +651,13 @@ public void SQL_TableMigrationPlayertimesAuthFK_Callback(Database db, DBResultSe
 		if (StrContains(sPlayertimesMasterSQL, sConstraintTest) == -1 // >= v3.1.0
 			|| StrContains(sPlayertimesMasterSQL, "(`auth`) ON UPDATE CASCADE ON DELETE CASCADE") != -1) // <= v3.0.8
 		{
+			// add missing users to users table
+			FormatEx(sQuery, sizeof(sQuery),
+				"INSERT INTO `%susers` (auth) SELECT p1.auth FROM `%splayertimes` p1 LEFT JOIN `%susers` u1 ON u1.auth = p1.auth WHERE u1.auth IS NULL;",
+				gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
+			);
+			AddQueryLog(trans, sQuery);
+
 			FormatEx(sQuery, sizeof(sQuery), "CREATE TEMPORARY TABLE temp_pt AS SELECT * FROM `%splayertimes`;", gS_SQLPrefix);
 			AddQueryLog(trans, sQuery);
 
