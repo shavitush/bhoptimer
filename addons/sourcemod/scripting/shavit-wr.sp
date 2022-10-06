@@ -2514,7 +2514,7 @@ public int SubMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = Shavit_GetDatabase();
+	gH_SQL = Shavit_GetDatabase(gI_Driver);
 
 	gB_Connected = true;
 	OnMapStart();
