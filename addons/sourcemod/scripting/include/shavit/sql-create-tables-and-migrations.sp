@@ -60,8 +60,8 @@ static Database gH_SQL;
 static int gI_Driver;
 static char gS_SQLPrefix[32];
 
-char SQLitePTQuery[1024]; // used in Migration_AddPlayertimesAuthFK if db created <= v3.3.2
 bool gB_MigrationsApplied[255];
+char SQLitePTQuery[1024]; // used in Migration_AddPlayertimesAuthFK if db created <= v3.3.2
 char SQLiteMapzonesQuery[1024]; // used in Migration_FixSQLiteMapzonesROWID if db created <= v3.3.2
 
 public void RunOnDatabaseLoadedForward()
@@ -567,7 +567,7 @@ void ApplyMigration_FixSQLiteMapzonesROWID()
 	}
 
 	char sQuery[256];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT EXISTS(SELECT 1 FROM `%smapzones` WHERE id IS NULL);", gS_SQLPrefix);
+	FormatEx(sQuery, sizeof(sQuery), "SELECT sql FROM sqlite_master WHERE name = '%smapzones';", gS_SQLPrefix);
 
 	QueryLog(gH_SQL, SQL_FixSQLiteMapzonesROWID_Callback, sQuery, 0, DBPrio_High);
 }
@@ -579,32 +579,38 @@ public void SQL_FixSQLiteMapzonesROWID_Callback(Database db, DBResultSet results
 		LogError("Timer error! SQLiteMapzonesROWID migration failed. Reason: %s", error);
 		return;
 	}
-	else if (!results.FetchInt(0)) // No NULL ids
-	{
-		InsertMigration(Migration_FixSQLiteMapzonesROWID);
-		return;
-	}
 
 	Transaction trans = new Transaction();
 	char sQuery[512];
+	char sMapzonesMasterSQL[1024];
 
-	FormatEx(sQuery, sizeof(sQuery), "CREATE TEMPORARY TABLE temp_mapzones AS SELECT * FROM `%smapzones`;", gS_SQLPrefix);
-	AddQueryLog(trans, sQuery);
+	results.FetchRow();
+	results.FetchString(0, sMapzonesMasterSQL, sizeof(sMapzonesMasterSQL));
 
-	FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `%smapzones`;", gS_SQLPrefix);
-	AddQueryLog(trans, sQuery);
+	if (StrContains(sMapzonesMasterSQL, "`id` INT AUTO_INCREMENT") != -1)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "CREATE TEMPORARY TABLE temp_mapzones AS SELECT * FROM `%smapzones`;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
 
-	// Re-use mapzones table creation query
-	AddQueryLog(trans, SQLiteMapzonesQuery);
+		FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `%smapzones`;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
 
-	// Can't do SELECT * FROM temp_mapzones because DBs created < v3.3.0 have an extra `prebuilt` column
-	FormatEx(sQuery, sizeof(sQuery), "INSERT INTO `%smapzones` SELECT `id`, `map`, `type`, `corner1_x`, `corner1_y`, `corner1_z`, `corner2_x`, `corner2_y`, `corner2_z`, `destination_x`, `destination_y`, `destination_z`, `track`, `flags`, `data`, `form`, `target` FROM temp_mapzones;", gS_SQLPrefix);
-	AddQueryLog(trans, sQuery);
+		// Re-use mapzones table creation query
+		AddQueryLog(trans, SQLiteMapzonesQuery);
 
-	FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `temp_mapzones`;");
-	AddQueryLog(trans, sQuery);
+		// Can't do SELECT * FROM temp_mapzones because DBs created < v3.3.0 have an extra `prebuilt` column
+		FormatEx(sQuery, sizeof(sQuery), "INSERT INTO `%smapzones` SELECT `id`, `map`, `type`, `corner1_x`, `corner1_y`, `corner1_z`, `corner2_x`, `corner2_y`, `corner2_z`, `destination_x`, `destination_y`, `destination_z`, `track`, `flags`, `data`, `form`, `target` FROM temp_mapzones;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
 
-	gH_SQL.Execute(trans, Trans_FixSQLiteMapzonesROWID_Success, Trans_FixSQLiteMapzonesROWID_Error, 0, DBPrio_High);
+		FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `temp_mapzones`;");
+		AddQueryLog(trans, sQuery);
+
+		gH_SQL.Execute(trans, Trans_FixSQLiteMapzonesROWID_Success, Trans_FixSQLiteMapzonesROWID_Error, 0, DBPrio_High);
+	}
+	else
+	{
+		InsertMigration(Migration_FixSQLiteMapzonesROWID);
+	}
 }
 
 public void Trans_FixSQLiteMapzonesROWID_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
