@@ -52,6 +52,7 @@ enum
 	Migration_AddMapzonesTarget,
 	Migration_DeprecateExactTimeInt,
 	Migration_AddPlayertimesAuthFK,
+	Migration_FixSQLiteMapzonesROWID,
 	MIGRATIONS_END
 };
 
@@ -59,8 +60,9 @@ static Database gH_SQL;
 static int gI_Driver;
 static char gS_SQLPrefix[32];
 
-char SQLitePTQuery[1024]; // used in Migration_AddPlayertimesAuthFK if db created <= v3.3.2
 bool gB_MigrationsApplied[255];
+char SQLitePTQuery[1024]; // used in Migration_AddPlayertimesAuthFK if db created <= v3.3.2
+char SQLiteMapzonesQuery[1024]; // used in Migration_FixSQLiteMapzonesROWID if db created <= v3.3.2
 
 public void RunOnDatabaseLoadedForward()
 {
@@ -207,10 +209,21 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 	//// shavit-wr
 	//
 
-	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `form` TINYINT, `target` VARCHAR(63), PRIMARY KEY (`id`)) %s;",
-		gS_SQLPrefix, sOptionalINNODB);
-	AddQueryLog(trans, sQuery);
+	if (driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INT AUTO_INCREMENT, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `form` TINYINT, `target` VARCHAR(63), PRIMARY KEY (`id`)) %s;",
+			gS_SQLPrefix, sOptionalINNODB);
+		AddQueryLog(trans, sQuery);
+	}
+	else
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"CREATE TABLE IF NOT EXISTS `%smapzones` (`id` INTEGER PRIMARY KEY, `map` VARCHAR(255) NOT NULL, `type` INT, `corner1_x` FLOAT, `corner1_y` FLOAT, `corner1_z` FLOAT, `corner2_x` FLOAT, `corner2_y` FLOAT, `corner2_z` FLOAT, `destination_x` FLOAT NOT NULL DEFAULT 0, `destination_y` FLOAT NOT NULL DEFAULT 0, `destination_z` FLOAT NOT NULL DEFAULT 0, `track` INT NOT NULL DEFAULT 0, `flags` INT NOT NULL DEFAULT 0, `data` INT NOT NULL DEFAULT 0, `form` TINYINT, `target` VARCHAR(63));",
+			gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+		strcopy(SQLiteMapzonesQuery, sizeof(SQLiteMapzonesQuery), sQuery);
+	}
 
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%sstartpositions` (`auth` INTEGER NOT NULL, `track` TINYINT NOT NULL, `map` VARCHAR(255) NOT NULL, `pos_x` FLOAT, `pos_y` FLOAT, `pos_z` FLOAT, `ang_x` FLOAT, `ang_y` FLOAT, `ang_z` FLOAT, `angles_only` BOOL, PRIMARY KEY (`auth`, `track`, `map`)) %s;",
@@ -321,6 +334,7 @@ void ApplyMigration(int migration)
 		case Migration_AddMapzonesTarget: ApplyMigration_AddMapzonesTarget();
 		case Migration_DeprecateExactTimeInt: ApplyMigration_DeprecateExactTimeInt();
 		case Migration_AddPlayertimesAuthFK: ApplyMigration_AddPlayertimesAuthFK();
+		case Migration_FixSQLiteMapzonesROWID: ApplyMigration_FixSQLiteMapzonesROWID();
 	}
 }
 
@@ -542,6 +556,71 @@ public void Trans_DeprecateExactTimeIntFailed(Database db, ArrayStack stack, int
 {
 	delete stack;
 	LogError("Timer (core) error! ExactTimeInt migration failed. %d %d Reason: %s", numQueries, failIndex, error);
+}
+
+void ApplyMigration_FixSQLiteMapzonesROWID()
+{
+	if (gI_Driver != Driver_sqlite)
+	{
+		InsertMigration(Migration_FixSQLiteMapzonesROWID);
+		return;
+	}
+
+	char sQuery[256];
+	FormatEx(sQuery, sizeof(sQuery), "SELECT sql FROM sqlite_master WHERE name = '%smapzones';", gS_SQLPrefix);
+
+	QueryLog(gH_SQL, SQL_FixSQLiteMapzonesROWID_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_FixSQLiteMapzonesROWID_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("Timer error! SQLiteMapzonesROWID migration failed. Reason: %s", error);
+		return;
+	}
+
+	Transaction trans = new Transaction();
+	char sQuery[512];
+	char sMapzonesMasterSQL[1024];
+
+	results.FetchRow();
+	results.FetchString(0, sMapzonesMasterSQL, sizeof(sMapzonesMasterSQL));
+
+	if (StrContains(sMapzonesMasterSQL, "`id` INT AUTO_INCREMENT") != -1)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "CREATE TEMPORARY TABLE temp_mapzones AS SELECT * FROM `%smapzones`;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+
+		FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `%smapzones`;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+
+		// Re-use mapzones table creation query
+		AddQueryLog(trans, SQLiteMapzonesQuery);
+
+		// Can't do SELECT * FROM temp_mapzones because DBs created < v3.3.0 have an extra `prebuilt` column
+		FormatEx(sQuery, sizeof(sQuery), "INSERT INTO `%smapzones` SELECT `id`, `map`, `type`, `corner1_x`, `corner1_y`, `corner1_z`, `corner2_x`, `corner2_y`, `corner2_z`, `destination_x`, `destination_y`, `destination_z`, `track`, `flags`, `data`, `form`, `target` FROM temp_mapzones;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+
+		FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `temp_mapzones`;");
+		AddQueryLog(trans, sQuery);
+
+		gH_SQL.Execute(trans, Trans_FixSQLiteMapzonesROWID_Success, Trans_FixSQLiteMapzonesROWID_Error, 0, DBPrio_High);
+	}
+	else
+	{
+		InsertMigration(Migration_FixSQLiteMapzonesROWID);
+	}
+}
+
+public void Trans_FixSQLiteMapzonesROWID_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	InsertMigration(Migration_FixSQLiteMapzonesROWID);
+}
+
+public void Trans_FixSQLiteMapzonesROWID_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer error! SQLiteMapzonesROWID migration transaction failed. Reason: %s", error);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
