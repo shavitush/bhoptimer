@@ -2,7 +2,7 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
-# v3.4.0 - Long overdue edition - 2022-10-24 - rtldg
+# v3.4.0 - Long overdue edition - 2022-10-14 - rtldg
 [`v3.3.2...v3.4.0`](https://github.com/shavitush/bhoptimer/compare/v3.3.2...v3.4.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
 
@@ -28,7 +28,7 @@ I got lazy and didn't do much on the timer. Thanks to @MSVC & @jedso for doing s
 - recreate mapzones table on sqlite with proper incrementing id #1177 @jedso https://github.com/shavitush/bhoptimer/pull/1177/commits
 - show timer in hud when started (prespeeding) in start zone #1174 @lilac1337 https://github.com/shavitush/bhoptimer/commit/b868208520219746638e554bdc84b6ceb6010319
 - mark ripext natives as optional in `shavit-zones-http.sp` https://github.com/shavitush/bhoptimer/commit/8eefcd5b68173abfb86c3ee909009a576e7cf8a8
-- filter invalid maps `!map`, `!nominate`, and map votes (to hopefully help with #1178) https://github.com/shavitush/bhoptimer/commit/09c0d228b4e1c89d9b746c3d36d1d12bf2091d46
+- filter invalid maps in `!map`, `!nominate`, and map votes (to hopefully help with #1178) https://github.com/shavitush/bhoptimer/commit/09c0d228b4e1c89d9b746c3d36d1d12bf2091d46
 
 
 
@@ -62,7 +62,7 @@ I did make releases for a couple (v3.3.0-2 through v3.3.0-4) but that was sloppy
 - fixed a couple of ccname bugs that came from v3.3.0 https://github.com/shavitush/bhoptimer/commit/0360b957e46ac46866313f9d7a97d6dc5635c208 https://github.com/shavitush/bhoptimer/commit/d78393f0842241ca78abc964629e8d14ae1debfb
 - split mapzones form & target migration so the query can be compatible with sqlite https://github.com/shavitush/bhoptimer/commit/6dc1fb66e4a559ec397575956431dc617ad6f9ae
 - `!addspawn` broke after `zones wip pr` so https://github.com/shavitush/bhoptimer/commit/bdfa61e3f9fb53f96531d76819d8f45a105ab4d2
-- added `a_or_d_only` style setting so you can have a single merged style for a-only & d-only if you want https://github.com/shavitush/bhoptimer/commit/64bd95a73b8f6a64680df139ef8f8f9fa48fccbd https://github.com/shavitush/bhoptimer/commit/7e44264f13168934ba031e7d15159992f469ddd3 (#1150)
+- added `a_or_d_only` style setting so you can have a single merged style for a-only & d-only if you want https://github.com/shavitush/bhoptimer/commit/64bd95a73b8f6a64680df139ef8f8f9fa48fccbd https://github.com/shavitush/bhoptimer/commit/7e44264f13168934ba031e7d15159992f469ddd3 (https://github.com/shavitush/bhoptimer/pull/1150)
 - reverted a change made to the `!top` query so we have the pretty commas separators again https://github.com/shavitush/bhoptimer/commit/1449b9b3d58f097a80ce802b0a9e783c4f1f7ea1
 - added a menu for `!deletesetstart` https://github.com/shavitush/bhoptimer/commit/8900e4b6ff4d3d52575ae26df43fa4db52b64fe6
 - fixed zones not deleting from the database if you create then delete them without reloading the map https://github.com/shavitush/bhoptimer/commit/fb42a370fe3ed28130f8bea0ff4cd82d6e191d94 https://github.com/shavitush/bhoptimer/commit/4ac0b4da5df1e01a5d5fef0fb834d57e2debe14c
@@ -70,8 +70,8 @@ I did make releases for a couple (v3.3.0-2 through v3.3.0-4) but that was sloppy
 - don't draw zone boxes around hooked buttons https://github.com/shavitush/bhoptimer/commit/27ec578c7d79200a1e66d014af761de156ef88cc
 - added hooking by origin (`ZF_Origin` zone flag) & fixed a lot of broken button stuff https://github.com/shavitush/bhoptimer/commit/5c14dfcc60bff4a2306d86349fcc4a5f85c8ff42
 	- really should've used a different struct member for `ZF_Origin/ZF_Hammerid` instead of using flags but whatever :^)
-- made shavit-mapchooser not break if shavit-rankings throws errors about a sqlite db (#1149) https://github.com/shavitush/bhoptimer/commit/a778908e32473bdd852dee1227766ea8d87cf5cf
-	- this is more of a bandaid until I make shavit-rankings queries for sqlite & postgresql (#1148)
+- made shavit-mapchooser not break if shavit-rankings throws errors about a sqlite db (https://github.com/shavitush/bhoptimer/issues/1149) https://github.com/shavitush/bhoptimer/commit/a778908e32473bdd852dee1227766ea8d87cf5cf
+	- this is more of a bandaid until I make shavit-rankings queries for sqlite & postgresql (https://github.com/shavitush/bhoptimer/issues/1148)
 
 
 
@@ -111,7 +111,7 @@ Edit: bhoptimer-v3.3.0-4.zip = includes https://github.com/shavitush/bhoptimer/c
 	- `MAX_ZONES` 64->128. `MAX_STAGES` 51->69.
 
 ## everything else
-- added an option to use an duplicate other players' checkpoints (#1142) @sh4hrazad https://github.com/shavitush/bhoptimer/commit/487e3db9d09d704b67f66e928fcd36adfd990abf
+- added an option to use an duplicate other players' checkpoints (https://github.com/shavitush/bhoptimer/pull/1142) @sh4hrazad https://github.com/shavitush/bhoptimer/commit/487e3db9d09d704b67f66e928fcd36adfd990abf
 	- You can toggle this with `shavit_checkpoints_useothers` (default: 1)
 	- new parameters added to `Shavit_OnTeleportPre`, `Shavit_OnTeleport`, `Shavit_OnSavePre`, `Shavit_OnSave`, `Shavit_OnCheckpointMenuSelect`, and `Shavit_TeleportToCheckpoint`
 - changed czone settings to let all zone types be configurable. made the settings for bonuses apply to every bonus https://github.com/shavitush/bhoptimer/commit/ab73e36a15bc426f4edeec13b8d44e8dffacd522
@@ -139,7 +139,7 @@ Edit: bhoptimer-v3.3.0-4.zip = includes https://github.com/shavitush/bhoptimer/c
 - added back button to admin command menus https://github.com/shavitush/bhoptimer/commit/7c251ef81dd95418947388126e026177e94c98ca
 - sqlite now automatically runs migrations too https://github.com/shavitush/bhoptimer/commit/fa6ccdbdedf1b3008ab4fe32adac338e059fd3ff
 - added `shavit_core_log_sql` and removed `Database2`/`Transaction2` methodmap nonsense https://github.com/shavitush/bhoptimer/commit/0f44dd1710c24ad97f2f0f6eb9aa562ea85baf24
-- added an auto stage zone numbering thing for #1147 https://github.com/shavitush/bhoptimer/commit/d922cebf976ce0467cb362a0561981e323c16a6a
+- added an auto stage zone numbering thing for https://github.com/shavitush/bhoptimer/issues/1147 https://github.com/shavitush/bhoptimer/commit/d922cebf976ce0467cb362a0561981e323c16a6a
 	- first stage thing is given `2`... I'm not really sure what I want to do for this...
 - playtime saving sql queries from disconnecting players are now buffered & grouped into a transaction. so instead of on map change spamming like 12 queries, with the delay between queries for each, the timer will now just have to send one transaction to hopefully help with some slight sql query blockage on map change... https://github.com/shavitush/bhoptimer/commit/fa28502a0d796a403ad68217f39ad4cf441e8819
 - added `shavit_replay_disable_hibernation` for CS:S. https://github.com/shavitush/bhoptimer/commit/9cbed1972be081ca404bb64c404913590493d618
@@ -160,18 +160,18 @@ Lots of checkpoint API changes and also lots of changes to how the `shavit_misc_
 
 **Update shavit-mapfixes.cfg every release.** It wasn't ever explicitly mentioned in release notes so I'll put it here.
 
-Maps that have triggers in the start zone for resetting targetnames & classnames should now activate with @GAMMACASE's changes (#1123 / #1135) to the `shavit_misc_resettargetname` family, compared to previously where it wiped all events in the startzone and had a lot of cvars added to shavit-mapfixes.cfg to unbreak the maps.
+Maps that have triggers in the start zone for resetting targetnames & classnames should now activate with @GAMMACASE's changes (https://github.com/shavitush/bhoptimer/pull/1123 / https://github.com/shavitush/bhoptimer/pull/1135) to the `shavit_misc_resettargetname` family, compared to previously where it wiped all events in the startzone and had a lot of cvars added to shavit-mapfixes.cfg to unbreak the maps.
 
 If you have any new breakage on maps, let us know in the discord server or with a Github issue.
 
 
 - added `Shavit_OnTeleportPre` and `Shavit_OnSavePre`. The return values of `Shavit_OnSave` and `Shavit_OnTeleport` are now ignored. https://github.com/shavitush/bhoptimer/commit/de8a82707b9fab615438844a2ea2f5ccc78957dc
 - fixed replay prop playback breaking due to a bad index https://github.com/shavitush/bhoptimer/commit/70f29d3ca55a9f70d64f74ac9059c3cd1ab00a7a
-- fixed replays not loading on the first map (and issues with creating replay directories too) (#1130) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/d58d3ee1d569b22eded5a8f63e64544846b4d20e
-- Changed the behaviour of `shavit_misc_resettargetname` (#1123) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/0fee1862c8403e07d561cab45a9997dbe88a1041
-	- Fix targetname and classname locking (#1135) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/8f07c1d5106b28dea3c03eb842ec5c711cb0f1aa
+- fixed replays not loading on the first map (and issues with creating replay directories too) (https://github.com/shavitush/bhoptimer/pull/1130) @Ciallo-Ani https://github.com/shavitush/bhoptimer/commit/d58d3ee1d569b22eded5a8f63e64544846b4d20e
+- Changed the behaviour of `shavit_misc_resettargetname` (https://github.com/shavitush/bhoptimer/pull/1123) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/0fee1862c8403e07d561cab45a9997dbe88a1041
+	- Fix targetname and classname locking (https://github.com/shavitush/bhoptimer/pull/1135) @GAMMACASE https://github.com/shavitush/bhoptimer/commit/8f07c1d5106b28dea3c03eb842ec5c711cb0f1aa
 - renamed `shavit_checkpoints_checkpoints` to `shavit_checkpoints_enabled` https://github.com/shavitush/bhoptimer/commit/b05393cf9fca682c7e959164a1ac15017c3efa3a
-- improved handle handling in `Shavit_SetCheckpoint` and added `cheapCloneHandle` as a parameter for #1133 https://github.com/shavitush/bhoptimer/commit/91ec294f423def449dee616f9a4f7ea0b335abda
+- improved handle handling in `Shavit_SetCheckpoint` and added `cheapCloneHandle` as a parameter for https://github.com/shavitush/bhoptimer/issues/1133 https://github.com/shavitush/bhoptimer/commit/91ec294f423def449dee616f9a4f7ea0b335abda
 	- and a couple of other commits for that issue https://github.com/shavitush/bhoptimer/commit/8f59007d1d59c34c4b24c13de1c4fe207a3b20f5 https://github.com/shavitush/bhoptimer/commit/ea9a96271125659f252787840013b01e108633f5
 - removed `Shavit_OnCheckpointCacheDeleted`. added `Shavit_SetTimesTeleported`, `Shavit_LoadCheckpointCache`, and `Shavit_SaveCheckpointCache` https://github.com/shavitush/bhoptimer/commit/86af6ca07ba18f6c401b662159a8323fea85ad60
 - added max checkpoint counter to checkpoint menu https://github.com/shavitush/bhoptimer/commit/f642afe0162de51fe6359db7fd032fb772f95ab4
@@ -181,9 +181,9 @@ If you have any new breakage on maps, let us know in the discord server or with 
 - added `bhop_drop`'s bonus to mapfixes https://github.com/shavitush/bhoptimer/commit/fda64ad1026ef2005c1d74c17d50bc1460097b60
 - prevent nominations from being put twice on the map vote https://github.com/shavitush/bhoptimer/commit/ddb902e663b0fdb5071785af37aaed5cd0e189de
 - changed oblivous autogain velocity stuff so boosters on `bhop_linear_gif` aren't affected by vertical velocity @defiy https://github.com/shavitush/bhoptimer/commit/76aaecdb6e84353b939fe29f8d267d5378565b65
-- added `!nominatedmaps` and `!nominations` as aliases for `!nomlist` (#1136) @Nairdaa https://github.com/shavitush/bhoptimer/commit/d7785f91ce4535d7a7af1520b39c9124ca30a6d7
+- added `!nominatedmaps` and `!nominations` as aliases for `!nomlist` (https://github.com/shavitush/bhoptimer/pull/1136) @Nairdaa https://github.com/shavitush/bhoptimer/commit/d7785f91ce4535d7a7af1520b39c9124ca30a6d7
 - removed reliable flag from centerhud and hinttext messages so they update faster and don't wait for an ack https://github.com/shavitush/bhoptimer/commit/ea3bd051242527268ee6bdfcf1a3011a2d6a3bcf https://github.com/shavitush/bhoptimer/commit/cf5bc4b7db5d9783179fc0578fc98af10a97a9ef
-- merge checkpoint menus and shavit-kz.sp, etc (#1137) @sh4hrazad https://github.com/shavitush/bhoptimer/commit/6d208a8595f798d15f1cc0d56847e86134adc44b
+- merge checkpoint menus and shavit-kz.sp, etc (https://github.com/shavitush/bhoptimer/pull/1137) @sh4hrazad https://github.com/shavitush/bhoptimer/commit/6d208a8595f798d15f1cc0d56847e86134adc44b
 	- fix normal checkpoint menu spams on changing the style from non-kz to kz styles
 	- Added `kzcheckpoints_ontele` and `kzcheckpoints_onstart` style settings (merged in `shavit-kz.sp`).
 - some currently disabled ladder checkpoint stuff has been added https://github.com/shavitush/bhoptimer/commit/1802f998fcb4ba65e9e32fd5da75cdf7a22d2d99 https://github.com/shavitush/bhoptimer/commit/158f0b854621ad208458ea73db545535d8af27a4
@@ -652,103 +652,103 @@ https://github.com/shavitush/bhoptimer/commit/9adf78d311192f91ccf32edf9decb72fa1
 - Times should now be slightly more accurate by basing off tick-interval instead of frame-time.
 
 ## Concommands
-- added `sm_ccadd <steamid>` and `sm_ccdelete <steamid>` to give ccname&ccmsg access via steamid instead of adding them with admin flags or something (#861). [commit](https://github.com/shavitush/bhoptimer/commit/19c5ccb7f38cc793f974a2c118c1c10ccc20e71a)
+- added `sm_ccadd <steamid>` and `sm_ccdelete <steamid>` to give ccname&ccmsg access via steamid instead of adding them with admin flags or something (https://github.com/shavitush/bhoptimer/issues/861). https://github.com/shavitush/bhoptimer/commit/19c5ccb7f38cc793f974a2c118c1c10ccc20e71a
 - `sm_recalcall` and `sm_recalcmap` should be faster now.
 - added `sm_toggleadverts` for clients.
 - Multiple bonus typo convenience commands added. `sm_b1`, `sm_b2`, etc through to `sm_b8`.
 - Multiple stage typo convenience commands added. `sm_s1`, `sm_s2`, etc through `sm_s9`.
 - `!r` now resets your timer back to the track you were previously on. `!main`/`!m` was added to move you back to the main track
 - `sm_p` has been changed to be an alias of `sm_profile` instead of noclip. You'll probably want to use `sm_nc` now.
-	- `sm_noclip` can now be used as an alias of the timer noclip commands. [commit](https://github.com/shavitush/bhoptimer/commit/dd756b95cc77eec8cc2ccafd855a86628a213d9e)
+	- `sm_noclip` can now be used as an alias of the timer noclip commands. https://github.com/shavitush/bhoptimer/commit/dd756b95cc77eec8cc2ccafd855a86628a213d9e
 - `sm_loadunzonedmap` to load the next unzoned map from the `maps` folder (doesn't include workshop maps or sub-folders).
 - `sm_save` will now refresh an open checkpoint menu.
 
 ## Convars
-- added `shavit_rankings_default_tier`. (#1041)
+- added `shavit_rankings_default_tier`. (https://github.com/shavitush/bhoptimer/issues/1041)
 - renamed `shavit_stats_mvprankones` to `shavit_rankings_mvprankones`.
 - renamed `shavit_stats_mvprankones_maintrack` to `shavit_rankings_mvprankones_maintrack`.
-- `shavit_misc_prespeed` gained `5 - Limit horizontal speed to prestrafe but allow prespeeding.` [commit](https://github.com/shavitush/bhoptimer/commit/70ae9bc4cbdafdfa7ff0232161f876390ae0a381)
+- `shavit_misc_prespeed` gained `5 - Limit horizontal speed to prestrafe but allow prespeeding.` https://github.com/shavitush/bhoptimer/commit/70ae9bc4cbdafdfa7ff0232161f876390ae0a381
 - `shavit_hud_timedifference` renamed to `shavit_replay_timedifference`
 - added `shavit_replay_timedifference_tick` to change often the time/velocity difference values are updated.
-- `shavit_misc_hideradar` will now force `sv_disable_radar` on CS:GO. [commit](https://github.com/shavitush/bhoptimer/commit/6229900bafbc51bd2de4c463a40636e53fa865bd)
+- `shavit_misc_hideradar` will now force `sv_disable_radar` on CS:GO. https://github.com/shavitush/bhoptimer/commit/6229900bafbc51bd2de4c463a40636e53fa865bd
 - added `shavit_replay_dynamicbotlimit` to set how many replay bots can be spawned by players.
 - added `shavit_replay_allowpropbots` to enable/disable Prop (prop_physics) Replay Bots.
-- added `shavit_core_timeinmessages` to print the server time before chat messages and timer messages. [commit](https://github.com/shavitush/bhoptimer/commit/7df2e2c959cd1eb5ad271d0aa914e848512e7375)
-- added `shavit_misc_botfootsteps` to toggle replay bot footstep sounds. [commit](https://github.com/shavitush/bhoptimer/commit/c4520b7ab826ea5cfe395fc91c4607a81c0f39bb), [commit2](https://github.com/shavitush/bhoptimer/commit/3c5fa5e07b5c2b9556355b92923ccfe0bea7d840), [commit3](https://github.com/shavitush/bhoptimer/commit/4d797d234712c0c4fae29d798088195b205a97c8)
+- added `shavit_core_timeinmessages` to print the server time before chat messages and timer messages. https://github.com/shavitush/bhoptimer/commit/7df2e2c959cd1eb5ad271d0aa914e848512e7375
+- added `shavit_misc_botfootsteps` to toggle replay bot footstep sounds. https://github.com/shavitush/bhoptimer/commit/c4520b7ab826ea5cfe395fc91c4607a81c0f39bb https://github.com/shavitush/bhoptimer/commit/3c5fa5e07b5c2b9556355b92923ccfe0bea7d840 https://github.com/shavitush/bhoptimer/commit/4d797d234712c0c4fae29d798088195b205a97c8
 - added `{cr}` as an option for `shavit_misc_clantag`
-- added `shavit_misc_weaponcommands 3` to give infinite clip ammo (useful for CSS which doesn't have `sv_infinite_ammo`). [commit](https://github.com/shavitush/bhoptimer/commit/6bd7b0af0ea38c27b8ccafa6fe69a626352e4f88)
-- added `shavit_replay_postruntime` to set how long postframes should record. [commit](https://github.com/shavitush/bhoptimer/commit/28e9d4029b7010d6933b8d775cb2098c6b09d379)
-- fixed `shavit_misc_godmode 1` (no fall damage) not working (#1051)
-	- spectators being aimpunched has been fixed also. [commit](https://github.com/shavitush/bhoptimer/commit/4f23ec879173000861fddbb11304e890af1c3db6)
+- added `shavit_misc_weaponcommands 3` to give infinite clip ammo (useful for CSS which doesn't have `sv_infinite_ammo`). https://github.com/shavitush/bhoptimer/commit/6bd7b0af0ea38c27b8ccafa6fe69a626352e4f88
+- added `shavit_replay_postruntime` to set how long postframes should record. https://github.com/shavitush/bhoptimer/commit/28e9d4029b7010d6933b8d775cb2098c6b09d379
+- fixed `shavit_misc_godmode 1` (no fall damage) not working (https://github.com/shavitush/bhoptimer/pull/1051)
+	- spectators being aimpunched has been fixed also. https://github.com/shavitush/bhoptimer/commit/4f23ec879173000861fddbb11304e890af1c3db6
 - added `shavit_misc_weaponsspawngood` to make glocks spawn on burst-fire and USPs to spawn with a silencer on.
-- added `shavit_core_pause_movement` to allow player movement/noclip while paused. (#1067)
+- added `shavit_core_pause_movement` to allow player movement/noclip while paused. (https://github.com/shavitush/bhoptimer/pull/1067)
 - added `shavit_zones_prebuilt_visual_offset` to adjust the visual zones for maps like `bhop_amaranthglow` and `bhop_tranquility`
-- added `shavit_misc_experimental_segmented_eyeangle_fix` to fix segmented replays have bad eye-angles when teleporting to a checkpoint. [commit](https://github.com/shavitush/bhoptimer/commit/aff3f95813d05ffe55a6e805515477918da42759)
+- added `shavit_misc_experimental_segmented_eyeangle_fix` to fix segmented replays have bad eye-angles when teleporting to a checkpoint. https://github.com/shavitush/bhoptimer/commit/aff3f95813d05ffe55a6e805515477918da42759
 
 ## Misc
-- Allow !goto/!tpto from start/end zone (#963)
-- only print the stage time message once per stage (#965)
-- allow !resume when not on the ground (#966)
-- Multiple bonuses (1-8) added (#982)
+- Allow !goto/!tpto from start/end zone (https://github.com/shavitush/bhoptimer/pull/963)
+- only print the stage time message once per stage (https://github.com/shavitush/bhoptimer/pull/965)
+- allow !resume when not on the ground (https://github.com/shavitush/bhoptimer/pull/966)
+- Multiple bonuses (1-8) added (https://github.com/shavitush/bhoptimer/pull/982)
 	- Bonus1 settings are copied to any bonuses that don't have settings in `shavit-zones.cfg`
 - Persistent-data, savestates, and checkpoints have been improved.
 	- Can now checkpoint onto a ladder thanks to `m_vecLadderNormal`.
-	- Fixed segmented checkpoints from starting in practice mode sometimes (#1023)
+	- Fixed segmented checkpoints from starting in practice mode sometimes (https://github.com/shavitush/bhoptimer/issues/1023)
 	- Persistent data is now kept when changing map to the same map. This is done because of server hibernation causes map changes a lot on csgo which is annoying.
 	- reduced some allocations and ArrayList cloning
 	- fixed persistent data & savestates spawning you in the wall if you were ducked in a tunnel.
-- Add support for [`hermansimensen/eventqueuefix`](https://github.com/hermansimensen/eventqueue-fix)
+- Add support for https://github.com/hermansimensen/eventqueue-fix
 	- boosters & map outputs can be saved in checkpoints to prevent cheesability
 	- events are paused from running when the timer is paused (although this still needs to be worked on)
-- increased top left WR hud buffer size to handle long player names (#1050)
-- changed replay bot score from 2000 to 1337 (#1059)
+- increased top left WR hud buffer size to handle long player names (https://github.com/shavitush/bhoptimer/pull/1050)
+- changed replay bot score from 2000 to 1337 (https://github.com/shavitush/bhoptimer/pull/1059)
 - initial [DynamicChannels](https://github.com/Vauff/DynamicChannels) stuff added (which probably doesn't work too well)
-- Fix exploit allowing extra height on spawn. [commit](https://github.com/shavitush/bhoptimer/commit/f7c878b8f1f75cb88a207c587d701d09507fb1a3)
-- Speculative exploit fix for passing through zones or something. [commit](https://github.com/shavitush/bhoptimer/commit/976fc90d87972bb379be743e74f2592926fd774b)
-- Speculative fix for timers starting when you're not on the ground. [commit](https://github.com/shavitush/bhoptimer/commit/3f7d3e3a5980ca644fc45762edf200f529c6860c)
+- Fix exploit allowing extra height on spawn. https://github.com/shavitush/bhoptimer/commit/f7c878b8f1f75cb88a207c587d701d09507fb1a3
+- Speculative exploit fix for passing through zones or something. https://github.com/shavitush/bhoptimer/commit/976fc90d87972bb379be743e74f2592926fd774b
+- Speculative fix for timers starting when you're not on the ground. https://github.com/shavitush/bhoptimer/commit/3f7d3e3a5980ca644fc45762edf200f529c6860c
 - Fixed bug that caused style command callbacks to register twice.
 - Improve zone drawing cycle stuff.
 - Various SQL query changes to hopefully improve the speed of some things.
-- Replay bots now do a (jank) jump animation (#1046)
-- Block SHSW on HSW while still allowing `+back` to be used in the air to stop. (#973)
+- Replay bots now do a (jank) jump animation (https://github.com/shavitush/bhoptimer/pull/1046)
+- Block SHSW on HSW while still allowing `+back` to be used in the air to stop. (https://github.com/shavitush/bhoptimer/pull/973)
 - Removed restart warning for segmented styles.
-- Fixed `player_speedmod` and timescaled styles interacting. For example the bhop_voyage hot air balloon level now works timescaled. [commit](https://github.com/shavitush/bhoptimer/commit/6db6b5f3cf70fb9bd5df99e7a63f079633b69460)
+- Fixed `player_speedmod` and timescaled styles interacting. For example the bhop_voyage hot air balloon level now works timescaled. https://github.com/shavitush/bhoptimer/commit/6db6b5f3cf70fb9bd5df99e7a63f079633b69460
   - edit 2021-11-08: also `speed` and `timescale` both affect styles now since some commit somewhere... slow mo was affected. just remove the `"speed" "0.5"` and it should work how it used to
-- Setspawn/setstart for each player added. !sp / !ss / !delss / !delsp (#1028)
-- Added velocity difference to the HUD from the closest replay time position. [commit](https://github.com/shavitush/bhoptimer/commit/8b48ae8c917f972e18af3a1456ce77e6714ba668)
+- Setspawn/setstart for each player added. !sp / !ss / !delss / !delsp (https://github.com/shavitush/bhoptimer/pull/1028)
+- Added velocity difference to the HUD from the closest replay time position. https://github.com/shavitush/bhoptimer/commit/8b48ae8c917f972e18af3a1456ce77e6714ba668
 - Removed `base.nav` by embedding it in shavit-replay.sp.
-- .nav files are now written for all maps on plugin start. [commit](https://github.com/shavitush/bhoptimer/commit/91ccae3509c3b92d2d1e419da79fe8619aba6179)
-- .nav files can now be loaded without needing to changelevel. [commit](https://github.com/shavitush/bhoptimer/commit/0448297994322ee2f5f8f69f75abcc9056d7d25c)
-- Show wrs and blank styles on `!wr notcurrentmap`. [commit](https://github.com/shavitush/bhoptimer/commit/dcb9595f1affe3c95badb5c93eaf62a10efa4711)
+- .nav files are now written for all maps on plugin start. https://github.com/shavitush/bhoptimer/commit/91ccae3509c3b92d2d1e419da79fe8619aba6179
+- .nav files can now be loaded without needing to changelevel. https://github.com/shavitush/bhoptimer/commit/0448297994322ee2f5f8f69f75abcc9056d7d25c
+- Show wrs and blank styles on `!wr notcurrentmap`. https://github.com/shavitush/bhoptimer/commit/dcb9595f1affe3c95badb5c93eaf62a10efa4711
 - Menus now stay open forever unless closed.
-- Zone editing and creation modifiers and grid-snap values will now be saved between menu usages. [commit](https://github.com/shavitush/bhoptimer/commit/11137e940706c4a0c1383c6f432923e9449b6cd6)
-- Changed TraceRay masks to use MASK_PLAYERSOLID for zone snapping. (#1032)
+- Zone editing and creation modifiers and grid-snap values will now be saved between menu usages. https://github.com/shavitush/bhoptimer/commit/11137e940706c4a0c1383c6f432923e9449b6cd6
+- Changed TraceRay masks to use MASK_PLAYERSOLID for zone snapping. (https://github.com/shavitush/bhoptimer/pull/1032)
 - fixed worse-time completion messages not printing for spectators.
 - !keys menu had changed a bit.
-	- `+left`/`+right` are now visible in the !keys menu (#980)
-	- added angle difference arrows (similar btimes) to !keys. [commit](https://github.com/shavitush/bhoptimer/commit/3750c8edebb2d7a590b75dff9e64af836a592792)
-	- another [commit](https://github.com/shavitush/bhoptimer/commit/5a4acc49a444e308e47759a7724e71157081cbcc)
-- blocked pausing while ducking. [commit](https://github.com/shavitush/bhoptimer/commit/d272aae97b62371753d2c07f94f0eab2f4cabdd7)
-- fixed csgo team menu being open on join and also needing to be closed twice. [commit](https://github.com/shavitush/bhoptimer/commit/6386577ef4149c3676d79f37e9675e15a7c85518)
-- fix checkpoints not saving timescale. [commit](https://github.com/shavitush/bhoptimer/commit/5c772b06e387f00d1712fc47cadbba9784c8c9e4)
-- The `playertimes` table added `exact_time_int` which will be used to save the exact time value since there's some rounding problems with float-formatting & database handling. [commit](https://github.com/shavitush/bhoptimer/commit/a6be0127ee9d44c82cfe146e0da22d255398f825)
+	- `+left`/`+right` are now visible in the !keys menu (https://github.com/shavitush/bhoptimer/pull/980)
+	- added angle difference arrows (similar btimes) to !keys. https://github.com/shavitush/bhoptimer/commit/3750c8edebb2d7a590b75dff9e64af836a592792
+	- another https://github.com/shavitush/bhoptimer/commit/5a4acc49a444e308e47759a7724e71157081cbcc
+- blocked pausing while ducking. https://github.com/shavitush/bhoptimer/commit/d272aae97b62371753d2c07f94f0eab2f4cabdd7
+- fixed csgo team menu being open on join and also needing to be closed twice. https://github.com/shavitush/bhoptimer/commit/6386577ef4149c3676d79f37e9675e15a7c85518
+- fix checkpoints not saving timescale. https://github.com/shavitush/bhoptimer/commit/5c772b06e387f00d1712fc47cadbba9784c8c9e4
+- The `playertimes` table added `exact_time_int` which will be used to save the exact time value since there's some rounding problems with float-formatting & database handling. https://github.com/shavitush/bhoptimer/commit/a6be0127ee9d44c82cfe146e0da22d255398f825
 - fix bug with shavit-timeleft repeatedly calling `Shavit_StopChatSound`.
-- The weapon commands, `sm_glock`, `sm_usp`, and `sm_knife`, now have rate-limiting to prevent the server from spawning too many entities and crashing. [commit](https://github.com/shavitush/bhoptimer/commit/82918f194535b990215822fa13df53adb1b023ea)
-- fixed the original zone disappearing if you are editing zones and then cancel. [commit](https://github.com/shavitush/bhoptimer/commit/328f4301aaf7612ceccbf9195c2856d9571ea63e)
-- Spawns created by `shavit_misc_createspawnpoints` will only fill in missing spawnpoints now and will not create extra. [commit](https://github.com/shavitush/bhoptimer/commit/576534092becc4556f8d2faa90ef086e88588970) [commit2](https://github.com/shavitush/bhoptimer/commit/fdacc94c3221e92cb225bfe6779fc62e506741f6)
-	- A couple of hooks have been added to make all spawnpoints valid for spawning and to skip "Team is full" checks for bots. [commit](https://github.com/shavitush/bhoptimer/commit/50d000c20eac229c65a3d8144e27fbfb58cde3e1) [commit2](https://github.com/shavitush/bhoptimer/commit/d5713824ceb8484ed7de0f2dd94a75d31ecf81d1)
-- fixed a bug that'd give 2 completions on initial map finish. [commit](https://github.com/shavitush/bhoptimer/commit/7b4d2f5b23cc467f30273caca525148bfcb62d4f) [commit2](https://github.com/shavitush/bhoptimer/commit/ca6ad88b7b0b0d72b45872e1266531f6e651fa38)
-	- A migration was added to subtract 1 from all completions in the database to correct older times that were affected. [commit](https://github.com/shavitush/bhoptimer/commit/4f704a2fe45a5895522928c5287c9d1739b3613a)
-- The zone start-point and end-point are now blocked from being placed in the same x or y axis. aka: no zero-width zones. [commit](https://github.com/shavitush/bhoptimer/commit/57e6f9563d56f96c919fb6ac56c3cd677edca739)
-- More radio commands and pinging commands where added to the radio blocklist. [commit](https://github.com/shavitush/bhoptimer/commit/793116d476b91bcbd9cfd0b2c4f6f264f9e47187) [commit2](https://github.com/shavitush/bhoptimer/commit/35de299212731c869d9447f5ae9f78965a3ef329)
-- `Shavit_PrintToChatAll` changed into a native to decrease some allocations and also to work with `Shavit_StopChatSound`. [commit](https://github.com/shavitush/bhoptimer/commit/cdc0c651b965213a1609ec23c9c65f4f5e1f204c)
-- CS:S and TF2 center hud thing now hides when the scoreboard is open so less flickering is shown. [commit](https://github.com/shavitush/bhoptimer/commit/00fa237c28b6aa7db42e98069649861d4def181c)
-- reset stamina on landing for csgo easybhop so you don't have to change `sv_staminalandcost` (unless you want to) [commit](https://github.com/shavitush/bhoptimer/commit/7117b38038a92981f7aaf381c2ddf43accdce582)
+- The weapon commands, `sm_glock`, `sm_usp`, and `sm_knife`, now have rate-limiting to prevent the server from spawning too many entities and crashing. https://github.com/shavitush/bhoptimer/commit/82918f194535b990215822fa13df53adb1b023ea
+- fixed the original zone disappearing if you are editing zones and then cancel. https://github.com/shavitush/bhoptimer/commit/328f4301aaf7612ceccbf9195c2856d9571ea63e
+- Spawns created by `shavit_misc_createspawnpoints` will only fill in missing spawnpoints now and will not create extra. https://github.com/shavitush/bhoptimer/commit/576534092becc4556f8d2faa90ef086e88588970 https://github.com/shavitush/bhoptimer/commit/fdacc94c3221e92cb225bfe6779fc62e506741f6
+	- A couple of hooks have been added to make all spawnpoints valid for spawning and to skip "Team is full" checks for bots. https://github.com/shavitush/bhoptimer/commit/50d000c20eac229c65a3d8144e27fbfb58cde3e1 https://github.com/shavitush/bhoptimer/commit/d5713824ceb8484ed7de0f2dd94a75d31ecf81d1
+- fixed a bug that'd give 2 completions on initial map finish. https://github.com/shavitush/bhoptimer/commit/7b4d2f5b23cc467f30273caca525148bfcb62d4f https://github.com/shavitush/bhoptimer/commit/ca6ad88b7b0b0d72b45872e1266531f6e651fa38
+	- A migration was added to subtract 1 from all completions in the database to correct older times that were affected. https://github.com/shavitush/bhoptimer/commit/4f704a2fe45a5895522928c5287c9d1739b3613a
+- The zone start-point and end-point are now blocked from being placed in the same x or y axis. aka: no zero-width zones. https://github.com/shavitush/bhoptimer/commit/57e6f9563d56f96c919fb6ac56c3cd677edca739
+- More radio commands and pinging commands where added to the radio blocklist. https://github.com/shavitush/bhoptimer/commit/793116d476b91bcbd9cfd0b2c4f6f264f9e47187 https://github.com/shavitush/bhoptimer/commit/35de299212731c869d9447f5ae9f78965a3ef329
+- `Shavit_PrintToChatAll` changed into a native to decrease some allocations and also to work with `Shavit_StopChatSound`. https://github.com/shavitush/bhoptimer/commit/cdc0c651b965213a1609ec23c9c65f4f5e1f204c
+- CS:S and TF2 center hud thing now hides when the scoreboard is open so less flickering is shown. https://github.com/shavitush/bhoptimer/commit/00fa237c28b6aa7db42e98069649861d4def181c
+- reset stamina on landing for csgo easybhop so you don't have to change `sv_staminalandcost` (unless you want to) https://github.com/shavitush/bhoptimer/commit/7117b38038a92981f7aaf381c2ddf43accdce582
 - avg/max velocity added to run completion (2nd) message.
 	- calculates based on the velocity from every frame instead of velocity on jump. (so it works well with surf)
-- added support for [rtldg/sm_closestpos](https://github.com/rtldg/sm_closestpos) (C++ extension) to improve closest position finding speed.
+- added support for https://github.com/rtldg/sm_closestpos (C++ extension) to improve closest position finding speed.
 	- `sm_closestpos(0.000006s)` -- `sourcepawn(0.011590s)` (time needed to locate closest position with a long badges replay i had)
-- Added looping, dynamicly spawning, and physics_prop replay bots. [commit](https://github.com/shavitush/bhoptimer/commit/9e43f67fc3a66554b3d8ec253332a8b511d1d9d1) (there's many more commits, but that's the initial one)
+- Added looping, dynamicly spawning, and physics_prop replay bots. https://github.com/shavitush/bhoptimer/commit/9e43f67fc3a66554b3d8ec253332a8b511d1d9d1 (there's many more commits, but that's the initial one)
 	- Looping bots will repeat any replays on tracks and styles specified for it in `shavit-replay.cfg`.
 	- Dynamic bots allow multiple replay bots to be spawned by different players so replay bot hogging isn't as problematic.
 	- Prop replay bots are physics_props that the client spectates and don't take a player slot.
@@ -763,26 +763,26 @@ https://github.com/shavitush/bhoptimer/commit/9adf78d311192f91ccf32edf9decb72fa1
 		bot_join_after_player 0
 		mp_autokick 0
 		```
-- Removed usage of `bot_quota` and started to call BotAddCommand directly which works really well and is really cool and I love it. bot_quota sucks. [commit](https://github.com/shavitush/bhoptimer/commit/57e9072b195ff24fcec9eb28316f2791c72a89d0)
-- Replay playback should work a bit better if the tickrate was changed by TickrateControl (#1018).
-- Post-run frames / postframes added to replays. [main commit](https://github.com/shavitush/bhoptimer/commit/28e9d4029b7010d6933b8d775cb2098c6b09d379)
+- Removed usage of `bot_quota` and started to call BotAddCommand directly which works really well and is really cool and I love it. bot_quota sucks. https://github.com/shavitush/bhoptimer/commit/57e9072b195ff24fcec9eb28316f2791c72a89d0
+- Replay playback should work a bit better if the tickrate was changed by TickrateControl (https://github.com/shavitush/bhoptimer/pull/1018).
+- Post-run frames / postframes added to replays. https://github.com/shavitush/bhoptimer/commit/28e9d4029b7010d6933b8d775cb2098c6b09d379
 - usercmd mousex/mousey and forwardmove/sidemove added to replay file.
 - When spectating replays, the percentage-complete now goes below 0% for preframes and above 100% for postframes.
 - Fixed replay bots teleporting on the last frame of a replay and screwing up prediction.
-- the `!replay` menu now includes +1s, -1s, +10s, -10s, and 2x speed options to rewind/fastforward. [commit](https://github.com/shavitush/bhoptimer/commit/a2735d8a2a322d6cb25d0617c49ee9563e3a3be9)
-- Stage stuff: [initial commit](https://github.com/shavitush/bhoptimer/commit/2697e6c5b1ed3de7464f60c7177f4eaba8acc6b6), and [another](https://github.com/shavitush/bhoptimer/commit/96281d2f85fb570e15f18ae2ff5038b875763796)
-	- prebuilt map stages using mod_zone_checkpoint_X / mod_zone_bonus_X_checkpoint_X work now [commit](https://github.com/shavitush/bhoptimer/commit/2d39b90564826fc7fc97172d86868fbfe6bcc3e0)
+- the `!replay` menu now includes +1s, -1s, +10s, -10s, and 2x speed options to rewind/fastforward. https://github.com/shavitush/bhoptimer/commit/a2735d8a2a322d6cb25d0617c49ee9563e3a3be9
+- Stage stuff: https://github.com/shavitush/bhoptimer/commit/2697e6c5b1ed3de7464f60c7177f4eaba8acc6b6 and https://github.com/shavitush/bhoptimer/commit/96281d2f85fb570e15f18ae2ff5038b875763796
+	- prebuilt map stages using mod_zone_checkpoint_X / mod_zone_bonus_X_checkpoint_X work now https://github.com/shavitush/bhoptimer/commit/2d39b90564826fc7fc97172d86868fbfe6bcc3e0
 		- Check out https://github.com/PMArkive/fly#trigger_multiple for the format used for prebuilt map zones
 
 ## Timer configs
 - `shavit-styles.cfg`
-	- `force_timescale` added. [commit](https://github.com/shavitush/bhoptimer/commit/f997d4e54468d930da356031dd22f64d26f8b44d)
+	- `force_timescale` added. https://github.com/shavitush/bhoptimer/commit/f997d4e54468d930da356031dd22f64d26f8b44d
 - `shavit-zones.cfg`
 	- Zone beams can now be changed for each zone type.
 		- `beam` - the custom beam path for the zone type.
 		- `vanilla_sprite` - whether to use the default sprite or the timer's sprite.
 		- `no_halo` - whether the zone should have a halo drawn for it.
-	- Added `beam_ignorez` to draw zone beams through walls (#618)
+	- Added `beam_ignorez` to draw zone beams through walls (https://github.com/shavitush/bhoptimer/issues/618)
 - `shavit-chat.cfg`
 	- added `w` (WR Count) and `W` (rank out of WR holders) options to the `ranks` filtering
 	- added `{pts}`, `{wrs}`, and `{wrrank}` for chat ranks
@@ -870,9 +870,9 @@ https://github.com/shavitush/bhoptimer/commit/9adf78d311192f91ccf32edf9decb72fa1
 	- `Shavit_OnTimeIncrementPost` no longer has the `stylesettings_t` parameter.
 	- `Shavit_OnFinish` gained `float avgvel, float maxvel, int timestamp`
 	- `Shavit_OnFinish_Post` gained `float avgvel, float maxvel, int timestamp`
-	- `Shavit_OnFinishMessage` now has a `message2` parameter that is used to print an extra message to spectators and the player. Curently prints avg/max velocity and perf percentage. [commit](Shavit_OnFinishMessage)
+	- `Shavit_OnFinishMessage` now has a `message2` parameter that is used to print an extra message to spectators and the player. Curently prints avg/max velocity and perf percentage. https://github.com/shavitush/bhoptimer/commit/435a23f065cf45ca97248ae80ad84ae64c3fee9d
 	- `Shavit_OnWorldRecord` gained `float avgvel, float maxvel, int timestamp`
-	- `Shavit_OnTopLeftHUD` will now run more often so plugins like [wrsj](https://github.com/rtldg/wrsj) can show the SourceJump WR in the top-left all the time.
+	- `Shavit_OnTopLeftHUD` will now run more often so plugins like https://github.com/rtldg/wrsj can show the SourceJump WR in the top-left all the time.
 - Added forwards:
 	- `Shavit_ShouldSaveReplayCopy` - Called when a player finishes a run and can be used to save a copy of the replay even if it is not a WR.
 	- `Shavit_OnStartPre` - Used to potentially block StartTimer from starting a player's timer. Previously `Shavit_OnStart` would've been used.
