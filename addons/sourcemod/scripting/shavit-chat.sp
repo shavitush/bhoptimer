@@ -75,6 +75,7 @@ enum
 // database
 Database gH_SQL = null;
 char gS_MySQLPrefix[32];
+int gI_Driver = Driver_unknown;
 
 // modules
 bool gB_Rankings = false;
@@ -102,12 +103,9 @@ bool gB_ChatRanksMenuOnlyUnlocked[MAXPLAYERS+1];
 
 bool gB_ChangedSinceLogin[MAXPLAYERS+1];
 
-bool gB_CCQueried[MAXPLAYERS+1];
 bool gB_CCAccess[MAXPLAYERS+1];
 char gS_CustomName[MAXPLAYERS+1][128];
 char gS_CustomMessage[MAXPLAYERS+1][16];
-
-bool gB_AdminChecked[MAXPLAYERS+1];
 
 chatstrings_t gS_ChatStrings;
 
@@ -194,7 +192,6 @@ public void OnPluginStart()
 			if (IsClientAuthorized(i))
 			{
 				OnClientAuthorized(i, "");
-				OnClientPostAdminCheck(i);
 			}
 		}
 	}
@@ -620,22 +617,6 @@ public void OnLibraryRemoved(const char[] name)
 	}
 }
 
-void DoChatRankValidation(int client)
-{
-	if (!AreClientCookiesCached(client))
-		return;
-
-	// we want ccname checks to only happen after admin is queried & ccname sql query...
-	if (gB_AdminChecked[client] && (gI_ChatSelection[client] != -1 || gB_CCQueried[client]))
-	{
-		if (!HasRankAccess(client, gI_ChatSelection[client]))
-		{
-			SetClientCookie(client, gH_ChatCookie, "-2"); // auto
-			gI_ChatSelection[client] = -2;
-		}
-	}
-}
-
 public void OnClientCookiesCached(int client)
 {
 	char sChatSettings[8];
@@ -649,13 +630,10 @@ public void OnClientCookiesCached(int client)
 	{
 		gI_ChatSelection[client] = StringToInt(sChatSettings);
 	}
-
-	DoChatRankValidation(client);
 }
 
 public void OnClientConnected(int client)
 {
-	gB_CCQueried[client] = false;
 	gB_CCAccess[client] = false;
 	strcopy(gS_CustomName[client], sizeof(gS_CustomName[]), "{team}{name}");
 	strcopy(gS_CustomMessage[client], sizeof(gS_CustomMessage[]), "{default}");
@@ -667,8 +645,6 @@ public void OnClientDisconnect(int client)
 	{
 		SaveToDatabase(client);
 	}
-
-	gB_AdminChecked[client] = false;
 }
 
 public void OnClientAuthorized(int client, const char[] auth)
@@ -676,33 +652,6 @@ public void OnClientAuthorized(int client, const char[] auth)
 	if (gH_SQL)
 	{
 		LoadFromDatabase(client);
-	}
-}
-
-public void OnClientPostAdminCheck(int client)
-{
-	gB_AdminChecked[client] = true;
-	DoChatRankValidation(client);
-}
-
-Action Timer_RefreshAdmins(Handle timer, any data)
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsValidClient(i) && !IsFakeClient(i) && gB_AdminChecked[i])
-		{
-			OnClientPostAdminCheck(i);
-		}
-	}
-
-	return Plugin_Stop;
-}
-
-public void OnRebuildAdminCache(AdminCachePart part)
-{
-	if (part == AdminCache_Overrides) // the last of the 3 parts when I tested
-	{
-		CreateTimer(2.5, Timer_RefreshAdmins, 0, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
@@ -997,7 +946,7 @@ void PreviewChat(int client, int rank)
 
 	char sName[MAXLENGTH_NAME];
 	char sCMessage[MAXLENGTH_MESSAGE];
-	GetPlayerChatSettings(client, sName, sCMessage, rank);
+	GetPlayerChatSettings(client, sName, sCMessage, rank, true);
 
 	FormatChat(client, sName, MAXLENGTH_NAME);
 	strcopy(sOriginalName, MAXLENGTH_NAME, sName);
@@ -1170,19 +1119,19 @@ bool HasRankAccess(int client, int rank)
 	return false;
 }
 
-void GetPlayerChatSettings(int client, char[] name, char[] message, int iRank)
+void GetPlayerChatSettings(int client, char[] name, char[] message, int iRank, bool force=false)
 {
-	int iLength = gA_ChatRanks.Length;
-
-	if (iRank == -1)
+	if (iRank == -1 && (force || HasCustomChat(client)))
 	{
 		strcopy(name, MAXLENGTH_NAME, gS_CustomName[client]);
 		strcopy(message, MAXLENGTH_NAME, gS_CustomMessage[client]);
 		return;
 	}
 
+	int iLength = gA_ChatRanks.Length;
+
 	// if we auto-assign, start looking for an available rank starting from index 0
-	if (iRank == -2 || iRank == -1)
+	if (iRank < 0 || (!force && !HasRankAccess(client, iRank)))
 	{
 		for(int i = 0; i < iLength; i++)
 		{
@@ -1255,8 +1204,21 @@ public Action Command_CCAdd(int client, int args)
 		return Plugin_Handled;
 	}
 
-	char sQuery[128];
-	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %schat (auth, ccaccess) VALUES (%d, 1);", gS_MySQLPrefix, iSteamID);
+	char sQuery[512];
+
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO %schat (auth, ccaccess) VALUES (%d, 1) ON DUPLICATE KEY UPDATE ccaccess = 1;",
+			gS_MySQLPrefix, iSteamID);
+	}
+	else // postgresql & sqlite
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO %schat (auth, ccaccess) VALUES (%d, 1) ON CONFLICT(auth) DO UPDATE SET ccaccess = 1;",
+			gS_MySQLPrefix, iSteamID);
+	}
+
 	QueryLog(gH_SQL, SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 
 	for(int i = 1; i <= MaxClients; i++)
@@ -1414,7 +1376,7 @@ void FormatChat(int client, char[] buffer, int size)
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = Shavit_GetDatabase();
+	gH_SQL = Shavit_GetDatabase(gI_Driver);
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -1447,10 +1409,20 @@ void SaveToDatabase(int client)
 	char[] sEscapedMessage = new char[iLength];
 	gH_SQL.Escape(gS_CustomMessage[client], sEscapedMessage, iLength);
 
-	char sQuery[512];
-	FormatEx(sQuery, 512,
-		"REPLACE INTO %schat (auth, name, ccname, message, ccmessage) VALUES (%d, %d, '%s', %d, '%s');",
-		gS_MySQLPrefix, iSteamID, 1, sEscapedName, 1, sEscapedMessage);
+	char sQuery[1024];
+
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO %schat (auth, ccname, ccmessage) VALUES (%d, '%s', '%s') ON DUPLICATE KEY UPDATE ccname = '%s', ccmessage = '%s';",
+			gS_MySQLPrefix, iSteamID, sEscapedName, sEscapedMessage, sEscapedName, sEscapedMessage);
+	}
+	else // postgresql & sqlite
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO %schat (auth, ccname, ccmessage) VALUES (%d, '%s', '%s') ON CONFLICT(auth) DO UPDATE SET ccname = '%s', ccmessage = '%s';",
+			gS_MySQLPrefix, iSteamID, sEscapedName, sEscapedMessage, sEscapedName, sEscapedMessage);
+	}
 
 	QueryLog(gH_SQL, SQL_UpdateUser_Callback, sQuery, 0, DBPrio_Low);
 }
@@ -1502,7 +1474,6 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 	}
 
 	gB_ChangedSinceLogin[client] = false;
-	gB_CCQueried[client] = true;
 
 	while(results.FetchRow())
 	{
@@ -1510,8 +1481,6 @@ public void SQL_GetChat_Callback(Database db, DBResultSet results, const char[] 
 		results.FetchString(1, gS_CustomName[client], 128);
 		results.FetchString(3, gS_CustomMessage[client], 16);
 	}
-
-	DoChatRankValidation(client);
 }
 
 void RemoveFromString(char[] buf, char[] thing, int extra)
