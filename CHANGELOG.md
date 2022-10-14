@@ -6,29 +6,30 @@ Note: Dates are UTC+0.
 [`v3.3.2...v3.4.0`](https://github.com/shavitush/bhoptimer/compare/v3.3.2...v3.4.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
 
-I got lazy and didn't do much on the timer. Thanks to @MSVC & @jedso for doing some things too 
+Thanks to all the contributors who pushed this release along by making PRs which made me feel guilty for slacking.
 
 - 😵‍💫 fixed broken implementation of `shavit_misc_bad_setlocalangles_fix` https://github.com/shavitush/bhoptimer/commit/e322606492cc2955dfd52415cb70432845f8fb1b
 - added something to draw which zone axis is being edited https://github.com/shavitush/bhoptimer/commit/1c82605db50e3ded7dc31756be52eb2be16ec43a https://github.com/shavitush/bhoptimer/commit/ea8f14fa07874a700acd0782b247018abfb8d28a
 - removed admin requirement for debug targetname hud setting https://github.com/shavitush/bhoptimer/commit/68a57b912341b9f02e8ce3b48b05773b58771d8c
-- fixed `shavit_misc_noweapondrops` on TF2 #1160 @jedso https://github.com/shavitush/bhoptimer/commit/578636d52875a9a10bc1f857853032ebb6da57ba
-- use a signature instead of netprop+offset to find surface friction used by shavit-tas #1158 @NukoOoOoOoO https://github.com/shavitush/bhoptimer/commit/21c62040623681431a8658ccfa412059646e9cd7
+- fixed `shavit_misc_noweapondrops` on TF2 https://github.com/shavitush/bhoptimer/pull/1160 @jedso https://github.com/shavitush/bhoptimer/commit/578636d52875a9a10bc1f857853032ebb6da57ba
+- use a signature instead of netprop+offset to find surface friction used by shavit-tas https://github.com/shavitush/bhoptimer/pull/1158 @NukoOoOoOoO https://github.com/shavitush/bhoptimer/commit/21c62040623681431a8658ccfa412059646e9cd7
 - fix the `velocity_limit` style setting being avoidable with +duck spam (mainly practical on auto + velocity_limit styles...) https://github.com/shavitush/bhoptimer/commit/5fc891d6fa2ac39ebbe8933e97a9ad4119a3900f
 - added chat typo handler for `1r` -> `!r` & `1b` -> `!b` https://github.com/shavitush/bhoptimer/commit/bdea5036979b2868c93f826ae43010b9ac63cd04
-- remove the steamid verification kick thing in OnClientPutInServer #1047 @BoomShotKapow https://github.com/shavitush/bhoptimer/commit/b78ae36a0ef72d15620d2b18017bbff18d41b9fc
+- remove the steamid verification kick thing in OnClientPutInServer https://github.com/shavitush/bhoptimer/issues/1047 @BoomShotKapow https://github.com/shavitush/bhoptimer/commit/b78ae36a0ef72d15620d2b18017bbff18d41b9fc
 - save tier list position in !nominate menu https://github.com/shavitush/bhoptimer/commit/864b46379b667dd6c1fc59059cce003d4238b934
-- fix `shavit_stats_use_mapchooser` not being compatible with workshop maps #1168 https://github.com/shavitush/bhoptimer/commit/3d16f5ffa74fb72a9d1ef25c5c13790d1089c4c8 https://github.com/shavitush/bhoptimer/commit/a1a1c6adfa594968cc1f6df35f650ce06bef5fd5
-- add translation for `!extend` & update `m_iRoundTime` #1172 @MSWS https://github.com/shavitush/bhoptimer/commit/f4cd4e9e6adce239e7574691531f6ce85fe32d81
-- add `!autorestart` #1170 @MSWS https://github.com/shavitush/bhoptimer/commit/e3aab46e0157fadedc0532cd3cd27f4b0283bc95 https://github.com/shavitush/bhoptimer/commit/fdbbc11d2ad9e165a956180d3c7cc4addfc8ed37
+- fix `shavit_stats_use_mapchooser` not being compatible with workshop maps https://github.com/shavitush/bhoptimer/issues/1168 https://github.com/shavitush/bhoptimer/commit/3d16f5ffa74fb72a9d1ef25c5c13790d1089c4c8 https://github.com/shavitush/bhoptimer/commit/a1a1c6adfa594968cc1f6df35f650ce06bef5fd5
+- add translation for `!extend` & update `m_iRoundTime` https://github.com/shavitush/bhoptimer/pull/1172 @MSWS https://github.com/shavitush/bhoptimer/commit/f4cd4e9e6adce239e7574691531f6ce85fe32d81
+- add `!autorestart` https://github.com/shavitush/bhoptimer/pull/1170 @MSWS https://github.com/shavitush/bhoptimer/commit/e3aab46e0157fadedc0532cd3cd27f4b0283bc95 https://github.com/shavitush/bhoptimer/commit/fdbbc11d2ad9e165a956180d3c7cc4addfc8ed37
 - set forwardmove & sidemove on replay bots because why not https://github.com/shavitush/bhoptimer/commit/b115726abb6d800c8557d56af3435e3a94dafe0d
 - make the autostage thing start at 1. starting at 2 was dumb https://github.com/shavitush/bhoptimer/commit/5ccd0efd0415f91c59d29f03c296c5d8f9f8fb24
 - deprecate `exact_time_int` https://github.com/shavitush/bhoptimer/commit/894b039e4ea0d599c2d32252d391c377c58f1bfd https://github.com/shavitush/bhoptimer/commit/87c2b1e4368b7553ff5495a681dd566c54c57732 https://github.com/shavitush/bhoptimer/commit/236829cc333ca4adff2f461a4223de167b619ac9 https://github.com/shavitush/bhoptimer/commit/7a79fc03e8b67e737155f6cdd1c976c90a46f5c6 https://github.com/shavitush/bhoptimer/commit/fd687dd2d70525861a513cae96c52670ecb37983
-- readd foreign keys to playertimes from users table #1175 #1176 @jedso https://github.com/shavitush/bhoptimer/pull/1176/commits
+- readd foreign keys to playertimes from users table https://github.com/shavitush/bhoptimer/issues/1175 https://github.com/shavitush/bhoptimer/pull/1176 @jedso https://github.com/shavitush/bhoptimer/pull/1176/commits
 	- relevant https://github.com/shavitush/bhoptimer/commit/e4f2d35f6c7d4b9ca0442e431c29630458c7fe18 https://github.com/shavitush/bhoptimer/commit/2b2a1fcb12dd8efa5ef9501adbf15cef9d0458fc
-- recreate mapzones table on sqlite with proper incrementing id #1177 @jedso https://github.com/shavitush/bhoptimer/pull/1177/commits
-- show timer in hud when started (prespeeding) in start zone #1174 @lilac1337 https://github.com/shavitush/bhoptimer/commit/b868208520219746638e554bdc84b6ceb6010319
+- recreate mapzones table on sqlite with proper incrementing id https://github.com/shavitush/bhoptimer/pull/1177 @jedso https://github.com/shavitush/bhoptimer/pull/1177/commits
+- show timer in hud when started (prespeeding) in start zone https://github.com/shavitush/bhoptimer/pull/1174 @lilac1337 https://github.com/shavitush/bhoptimer/commit/b868208520219746638e554bdc84b6ceb6010319
 - mark ripext natives as optional in `shavit-zones-http.sp` https://github.com/shavitush/bhoptimer/commit/8eefcd5b68173abfb86c3ee909009a576e7cf8a8
-- filter invalid maps in `!map`, `!nominate`, and map votes (to hopefully help with #1178) https://github.com/shavitush/bhoptimer/commit/09c0d228b4e1c89d9b746c3d36d1d12bf2091d46
+- filter invalid maps in `!map`, `!nominate`, and map votes (to hopefully help with https://github.com/shavitush/bhoptimer/issues/1178) https://github.com/shavitush/bhoptimer/commit/09c0d228b4e1c89d9b746c3d36d1d12bf2091d46
+- followup for ccname & chat rank bugs again https://github.com/shavitush/bhoptimer/commit/783fd4f0a7ee492c13e7c316394fc59c426616aa
 
 
 
