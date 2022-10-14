@@ -2,8 +2,40 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
+# v3.4.0 - Long overdue edition - 2022-10-24 - rtldg
+[`v3.3.2...v3.4.0`](https://github.com/shavitush/bhoptimer/compare/v3.3.2...v3.4.0)
+https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
+
+I got lazy and didn't do much on the timer. Thanks to @MSVC & @jedso for doing some things too 
+
+- 😵‍💫 fixed broken implementation of `shavit_misc_bad_setlocalangles_fix` https://github.com/shavitush/bhoptimer/commit/e322606492cc2955dfd52415cb70432845f8fb1b
+- added something to draw which zone axis is being edited https://github.com/shavitush/bhoptimer/commit/1c82605db50e3ded7dc31756be52eb2be16ec43a https://github.com/shavitush/bhoptimer/commit/ea8f14fa07874a700acd0782b247018abfb8d28a
+- removed admin requirement for debug targetname hud setting https://github.com/shavitush/bhoptimer/commit/68a57b912341b9f02e8ce3b48b05773b58771d8c
+- fixed `shavit_misc_noweapondrops` on TF2 #1160 @jedso https://github.com/shavitush/bhoptimer/commit/578636d52875a9a10bc1f857853032ebb6da57ba
+- use a signature instead of netprop+offset to find surface friction used by shavit-tas #1158 @NukoOoOoOoO https://github.com/shavitush/bhoptimer/commit/21c62040623681431a8658ccfa412059646e9cd7
+- fix the `velocity_limit` style setting being avoidable with +duck spam (mainly practical on auto + velocity_limit styles...) https://github.com/shavitush/bhoptimer/commit/5fc891d6fa2ac39ebbe8933e97a9ad4119a3900f
+- added chat typo handler for `1r` -> `!r` & `1b` -> `!b` https://github.com/shavitush/bhoptimer/commit/bdea5036979b2868c93f826ae43010b9ac63cd04
+- remove the steamid verification kick thing in OnClientPutInServer #1047 @BoomShotKapow https://github.com/shavitush/bhoptimer/commit/b78ae36a0ef72d15620d2b18017bbff18d41b9fc
+- save tier list position in !nominate menu https://github.com/shavitush/bhoptimer/commit/864b46379b667dd6c1fc59059cce003d4238b934
+- fix `shavit_stats_use_mapchooser` not being compatible with workshop maps #1168 https://github.com/shavitush/bhoptimer/commit/3d16f5ffa74fb72a9d1ef25c5c13790d1089c4c8 https://github.com/shavitush/bhoptimer/commit/a1a1c6adfa594968cc1f6df35f650ce06bef5fd5
+- add translation for `!extend` & update `m_iRoundTime` #1172 @MSWS https://github.com/shavitush/bhoptimer/commit/f4cd4e9e6adce239e7574691531f6ce85fe32d81
+- add `!autorestart` #1170 @MSWS https://github.com/shavitush/bhoptimer/commit/e3aab46e0157fadedc0532cd3cd27f4b0283bc95 https://github.com/shavitush/bhoptimer/commit/fdbbc11d2ad9e165a956180d3c7cc4addfc8ed37
+- set forwardmove & sidemove on replay bots because why not https://github.com/shavitush/bhoptimer/commit/b115726abb6d800c8557d56af3435e3a94dafe0d
+- make the autostage thing start at 1. starting at 2 was dumb https://github.com/shavitush/bhoptimer/commit/5ccd0efd0415f91c59d29f03c296c5d8f9f8fb24
+- deprecate `exact_time_int` https://github.com/shavitush/bhoptimer/commit/894b039e4ea0d599c2d32252d391c377c58f1bfd https://github.com/shavitush/bhoptimer/commit/87c2b1e4368b7553ff5495a681dd566c54c57732 https://github.com/shavitush/bhoptimer/commit/236829cc333ca4adff2f461a4223de167b619ac9 https://github.com/shavitush/bhoptimer/commit/7a79fc03e8b67e737155f6cdd1c976c90a46f5c6 https://github.com/shavitush/bhoptimer/commit/fd687dd2d70525861a513cae96c52670ecb37983
+- readd foreign keys to playertimes from users table #1175 #1176 @jedso https://github.com/shavitush/bhoptimer/pull/1176/commits
+	- relevant https://github.com/shavitush/bhoptimer/commit/e4f2d35f6c7d4b9ca0442e431c29630458c7fe18 https://github.com/shavitush/bhoptimer/commit/2b2a1fcb12dd8efa5ef9501adbf15cef9d0458fc
+- recreate mapzones table on sqlite with proper incrementing id #1177 @jedso https://github.com/shavitush/bhoptimer/pull/1177/commits
+- show timer in hud when started (prespeeding) in start zone #1174 @lilac1337 https://github.com/shavitush/bhoptimer/commit/b868208520219746638e554bdc84b6ceb6010319
+- mark ripext natives as optional in `shavit-zones-http.sp` https://github.com/shavitush/bhoptimer/commit/8eefcd5b68173abfb86c3ee909009a576e7cf8a8
+- filter invalid maps `!map`, `!nominate`, and map votes (to hopefully help with #1178) https://github.com/shavitush/bhoptimer/commit/09c0d228b4e1c89d9b746c3d36d1d12bf2091d46
+
+
+
 # v3.3.2 - bug fixes 2 📲 👙 🍌 ⛩ 🕗 🖋 🐰 🚨 🐂 😘 - 2022-07-20 - rtldg
+[`v3.3.1...v3.3.2`](https://github.com/shavitush/bhoptimer/compare/v3.3.1...v3.3.2)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.3.2
+https://github.com/shavitush/bhoptimer/commit/e76ab45a55ab630b26852c47f87bcde6347806a5
 
 - some czones bugfixes
 	- fixed bonus 1 using the same settings as main (bug since 3.3.0) https://github.com/shavitush/bhoptimer/commit/684ade8dd9014b0e354b559afaafd3cb80699d7a
@@ -17,6 +49,7 @@ https://github.com/shavitush/bhoptimer/releases/tag/v3.3.2
 
 
 # v3.3.1 - bug fixes 🥤 - 2022-07-11 - rtldg
+[`v3.3.0...v3.3.1`](https://github.com/shavitush/bhoptimer/compare/v3.3.0...v3.3.1)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.3.1
 https://github.com/shavitush/bhoptimer/commit/5ba8ede632258ff3b0855ef792dce5369bec62da
 
@@ -43,6 +76,7 @@ I did make releases for a couple (v3.3.0-2 through v3.3.0-4) but that was sloppy
 
 
 # v3.3.0 - zone stuff & bloat - 2022-06-28 - rtldg
+[`v3.2.0...v3.3.0-3`](https://github.com/shavitush/bhoptimer/compare/v3.2.0...v3.3.0-3)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.3.0
 https://github.com/shavitush/bhoptimer/commit/1a86a2b643a324b38b648ffeeed83c1c19e30b6f
 https://github.com/shavitush/bhoptimer/releases/tag/v3.3.0-3
@@ -116,6 +150,7 @@ Edit: bhoptimer-v3.3.0-4.zip = includes https://github.com/shavitush/bhoptimer/c
 
 
 # v3.2.0 - checkpoints & resettargetname stuffffff - 2022-04-27 - rtldg
+[`v3.1.3...v3.2.0`](https://github.com/shavitush/bhoptimer/compare/v3.1.3...v3.2.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.2.0
 https://github.com/shavitush/bhoptimer/commit/7c842afdf05e6c9b37174d7b1d6e21d685f6ce57
 
@@ -178,6 +213,7 @@ shavit_misc_weaponcommands "2"
 
 
 # v3.1.3 - asdf - 2022-02-27 - rtldg
+[`v3.1.2...v3.1.3`](https://github.com/shavitush/bhoptimer/compare/v3.1.2...v3.1.3)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.3
 https://github.com/shavitush/bhoptimer/commit/d77fa13ebe679b7cca4493436e1fa045a15d3865
 
@@ -213,6 +249,7 @@ small things mainly and might as well push out a release instead of waiting anot
 
 
 # v3.1.2 - asdf - 2022-01-28 - rtldg
+[`v3.1.1...v3.1.2`](https://github.com/shavitush/bhoptimer/compare/v3.1.1...v3.1.2)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.2
 https://github.com/shavitush/bhoptimer/commit/d335ec72625b29f90668ab332f58323e528dd98f
 
@@ -224,6 +261,7 @@ https://github.com/shavitush/bhoptimer/commit/d335ec72625b29f90668ab332f58323e52
 
 
 # v3.1.1 - asdf - 2022-01-19 - rtldg
+[`v3.1.0...v3.1.1`](https://github.com/shavitush/bhoptimer/compare/v3.1.0...v3.1.1)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.1
 https://github.com/shavitush/bhoptimer/commit/a1d30afdbe8352df489f5e16739efcdde56129f2
 
@@ -256,6 +294,7 @@ https://github.com/shavitush/bhoptimer/commit/a1d30afdbe8352df489f5e16739efcdde5
 
 
 # v3.1.0 - asdf - 2022-01-11 - rtldg
+[`v3.0.8...v3.1.0`](https://github.com/shavitush/bhoptimer/compare/v3.0.8...v3.1.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.1.0
 https://github.com/shavitush/bhoptimer/commit/0133300a400f70116776b71197fb2f4fb0a55e59
 
@@ -421,6 +460,7 @@ Shoutout to sirhephaestus for watching an 18 hour playthrough of The Witcher 1 g
 
 
 # v3.0.8 - asdf - 2021-10-04 - rtldg
+[`v3.0.7...v3.0.8`](https://github.com/shavitush/bhoptimer/compare/v3.0.7...v3.0.8)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.0.8
 https://github.com/shavitush/bhoptimer/commit/b2a95095e788f86724ef463f9d8dfae1077c01c3
 
@@ -450,6 +490,7 @@ https://github.com/shavitush/bhoptimer/commit/b2a95095e788f86724ef463f9d8dfae107
 
 
 # v3.0.7 - asdf - 2021-09-23 - rtldg
+[`v3.0.6...v3.0.7`](https://github.com/shavitush/bhoptimer/compare/v3.0.6...v3.0.7)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.0.7
 https://github.com/shavitush/bhoptimer/commit/346d7f903c9118e3180dd6cc8936e0ed3f2ba597
 https://github.com/shavitush/bhoptimer/commit/e7bf386d1401a98072b272de204fc13d2fc4fb8e (v3.0.7-1) (added with a single commit added for csgo handling of `shavit_replay_botweapon`)
@@ -494,10 +535,11 @@ https://github.com/shavitush/bhoptimer/commit/32f0e50905cba03437a67552fdf088bfff
 
 
 # v3.0.6 - asdf - 2021-08-21 - rtldg
+[`v3.0.5...v3.0.6`](https://github.com/shavitush/bhoptimer/compare/v3.0.5...v3.0.6)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.0.6
 https://github.com/shavitush/bhoptimer/commit/c00ab666bedc92afdced75f89ce40ff8b2a1f129
 
--  fix reset-checkpoints menu from being overlapped by the checkpoint menu reopening. thanks, haze https://github.com/shavitush/bhoptimer/commit/fc801e8a017d16789170575a85bde24879130986
+- fix reset-checkpoints menu from being overlapped by the checkpoint menu reopening. thanks, haze https://github.com/shavitush/bhoptimer/commit/fc801e8a017d16789170575a85bde24879130986
 - fixed some more errors that came up from the Shavit_OnDatabaseLoaded stuff https://github.com/shavitush/bhoptimer/commit/309421ad18f0644cc9e6e00537a8d3569e0c5f72 https://github.com/shavitush/bhoptimer/commit/599b276e42b2468a28014015d36d637ca548c990
 - wr cache is now emptied on map end so you no longer see stale times on map change for a couple seconds https://github.com/shavitush/bhoptimer/commit/09f34bcef34d9e49783164dd9afb6edfba456dcc
 - delayed bot name change to prevent crash in Host_Changelevel https://github.com/shavitush/bhoptimer/commit/f7cd8bf0721632601cd44e3ee25085e01a4dc5c2
@@ -506,6 +548,7 @@ https://github.com/shavitush/bhoptimer/commit/c00ab666bedc92afdced75f89ce40ff8b2
 
 
 # v3.0.5 - asdf - 2021-08-20 - rtldg
+[`v3.0.0...v3.0.5`](https://github.com/shavitush/bhoptimer/compare/v3.0.0...v3.0.5)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.0.5
 https://github.com/shavitush/bhoptimer/commit/5687095144b87c64bc32ec1e7f43baf408270eac
 https://github.com/shavitush/bhoptimer/commit/599b276e42b2468a28014015d36d637ca548c990 (v3.0.5-2) (replaced with zip with some more sql handle checks & a fix for the `Reset checkpoints` menu before you can fix it)
@@ -588,6 +631,7 @@ https://github.com/shavitush/bhoptimer/commit/32658a029d0aa35ca646434a8518f700d6
 
 
 # v3.0.0 - Fluffytail Edition - 2021-07-29 - rtldg
+[`v2.6.0...v3.0.0`](https://github.com/shavitush/bhoptimer/compare/v2.6.0...v3.0.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.0.0
 https://github.com/shavitush/bhoptimer/commit/9adf78d311192f91ccf32edf9decb72fa1597313
 
@@ -837,6 +881,7 @@ https://github.com/shavitush/bhoptimer/commit/9adf78d311192f91ccf32edf9decb72fa1
 
 
 # v2.6.0 - Community Update Edition - 2020-11-23 - kidfearless
+[`v2.5.7a...v2.6.0`](https://github.com/shavitush/bhoptimer/compare/v2.5.7a...v2.6.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.6.0
 https://github.com/shavitush/bhoptimer/commit/06addf326f155b05f63acec78b816406a3aaaad5 (v2.6.0)
 https://github.com/shavitush/bhoptimer/commit/cbda66670072ee3dddeb4e309b6ebfaea5291d7e (v2.6.0-1) -- Included fix for Shavit_SaveCheckpoint native
@@ -905,6 +950,7 @@ Big thanks to Gammacase, rtldg, nairdaa, deadwinter, carnifex, and SaengerItsWar
 
 
 # v2.5.7a - asdf - 2020-07-07 - kidfearless
+[`v2.5.6...v2.5.7a`](https://github.com/shavitush/bhoptimer/compare/v2.5.6...v2.5.7a)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.7a
 https://github.com/shavitush/bhoptimer/commit/7567cde52df2adf0461984db72fb60531c331f8e
 
@@ -951,6 +997,7 @@ https://github.com/shavitush/bhoptimer/commit/7567cde52df2adf0461984db72fb60531c
 
 
 # v2.5.6 - asdf - 2020-01-23 - kidfearless
+[`v2.5.5a...v2.5.6`](https://github.com/shavitush/bhoptimer/compare/v2.5.5a...v2.5.6)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.6
 https://github.com/shavitush/bhoptimer/commit/c8467630ab94c295a740270b888f3d7a68ef54b7
 
@@ -995,6 +1042,7 @@ https://github.com/shavitush/bhoptimer/commit/c8467630ab94c295a740270b888f3d7a68
 
 
 # v2.5.5a - asdf - 2019-08-08 - shavit
+[`v2.5.5...v2.5.5a`](https://github.com/shavitush/bhoptimer/compare/v2.5.5...v2.5.5a)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.5a
 https://github.com/shavitush/bhoptimer/commit/979c911a268f22bd94c930ed7f7722bd8426b326
 
@@ -1045,6 +1093,7 @@ Your database should be MUCH faster if it was misconfigured due to failed migrat
 
 
 # v2.5.5 - asdf - 2019-07-14 - shavit
+[`v2.5.4...v2.5.5`](https://github.com/shavitush/bhoptimer/compare/v2.5.4...v2.5.5)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.5
 https://github.com/shavitush/bhoptimer/commit/e4c8be08bc18884236b1b5842df58b83990f0f69
 
@@ -1115,6 +1164,7 @@ Somewhat big update. I'm unmotivated recently so it'll probably be a while until
 
 
 # v2.5.4 - asdf - 2019-04-15 - shavit
+[`v2.5.3...v2.5.4`](https://github.com/shavitush/bhoptimer/compare/v2.5.3...v2.5.4)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.4
 https://github.com/shavitush/bhoptimer/commit/88b8b9a0799e95ac4680c20786d3b412f4a6d788
 
@@ -1130,6 +1180,7 @@ This is a hotfix update with some changes requested shortly after the v2.5.3 upd
 
 
 # v2.5.3 - asdf - 2019-04-14 - shavit
+[`v2.5.2...v2.5.3`](https://github.com/shavitush/bhoptimer/compare/v2.5.2...v2.5.3)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.3
 https://github.com/shavitush/bhoptimer/commit/2a1914010c943e8cfc4e3c5cfbcf9f22de2c052c
 
@@ -1167,6 +1218,7 @@ if((Shavit_CanPause(client) & CPR_ByConVar) > 0)
 
 
 # v2.5.2 - asdf - 2019-03-29 - shavit
+[`v2.5.1...v2.5.2`](https://github.com/shavitush/bhoptimer/compare/v2.5.1...v2.5.2)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.2
 https://github.com/shavitush/bhoptimer/commit/5fb84e6ace5fcd8e39a409550d167e7e1501dc60
 
@@ -1178,6 +1230,7 @@ https://github.com/shavitush/bhoptimer/commit/5fb84e6ace5fcd8e39a409550d167e7e15
 
 
 # v2.5.1 - asdf - 2019-03-29 - shavit
+[`v2.5.0...v2.5.1`](https://github.com/shavitush/bhoptimer/compare/v2.5.0...v2.5.1)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.1
 https://github.com/shavitush/bhoptimer/commit/c631f2f549beef5bc5ecad664236c51f03218d65
 
@@ -1188,6 +1241,7 @@ https://github.com/shavitush/bhoptimer/commit/c631f2f549beef5bc5ecad664236c51f03
 
 
 # v2.5.0 - asdf - 2019-03-29 - shavit
+[`v2.4.1...v2.5.0`](https://github.com/shavitush/bhoptimer/compare/v2.4.1...v2.5.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.5.0
 https://github.com/shavitush/bhoptimer/commit/95d9cad3091003bb0da4c40c92522635604bb233
 
@@ -1236,6 +1290,7 @@ https://github.com/shavitush/bhoptimer/commit/95d9cad3091003bb0da4c40c9252263560
 
 
 # v2.4.1 - asdf - 2019-03-08 - shavit
+[`v2.4.0...v2.4.1`](https://github.com/shavitush/bhoptimer/compare/v2.4.0...v2.4.1)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.4.1
 https://github.com/shavitush/bhoptimer/commit/a0d205247a5bde6ea7edaf749af4dcad7b21c017
 
@@ -1277,6 +1332,7 @@ A relatively big update considering it's a minor version, have fun!
 
 
 # v2.4.0 - asdf - 2019-02-02 - shavit
+[`v2.3.6...v2.4.0`](https://github.com/shavitush/bhoptimer/compare/v2.3.6...v2.4.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.4.0
 https://github.com/shavitush/bhoptimer/commit/1cd4b4c9c364cdade32456e7caa65ebc07528bd9
 
@@ -1300,6 +1356,7 @@ https://github.com/shavitush/bhoptimer/commit/1cd4b4c9c364cdade32456e7caa65ebc07
 
 
 # v2.3.6 - asdf - 2018-12-23 - shavit
+[`v2.3.5...v2.3.6`](https://github.com/shavitush/bhoptimer/compare/v2.3.5...v2.3.6)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.3.6
 https://github.com/shavitush/bhoptimer/commit/98d9b29c1da86bf22df5586428cc5c006c0403c1
 
@@ -1311,6 +1368,7 @@ https://github.com/shavitush/bhoptimer/commit/98d9b29c1da86bf22df5586428cc5c006c
 
 
 # v2.3.5 - asdf - 2018-12-07 - shavit
+[`v2.3.4...v2.3.5`](https://github.com/shavitush/bhoptimer/compare/v2.3.4...v2.3.5)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.3.5
 https://github.com/shavitush/bhoptimer/commit/f527455a2d66f5ec278a3148bb9bda0be3726ecd
 
@@ -1322,6 +1380,7 @@ https://github.com/shavitush/bhoptimer/commit/f527455a2d66f5ec278a3148bb9bda0be3
 
 
 # v2.3.4 - Pausing development for a while - 2018-11-03 - shavit
+[`v2.3.3...v2.3.4`](https://github.com/shavitush/bhoptimer/compare/v2.3.3...v2.3.4)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.3.4
 https://github.com/shavitush/bhoptimer/commit/398c9ee84e0c481e29ec1cfd3e2cf55ec7fca36e
 
@@ -1335,6 +1394,7 @@ https://github.com/shavitush/bhoptimer/commit/398c9ee84e0c481e29ec1cfd3e2cf55ec7
 
 
 # v2.3.3 - asdf - 2018-10-10 - shavit
+[`v2.3.2...v2.3.3`](https://github.com/shavitush/bhoptimer/compare/v2.3.2...v2.3.3)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.3.3
 https://github.com/shavitush/bhoptimer/commit/b8d0522e96e8867402915d5aa55e9f5fbf0b7ea5
 
@@ -1346,6 +1406,7 @@ https://github.com/shavitush/bhoptimer/commit/b8d0522e96e8867402915d5aa55e9f5fbf
 
 
 # v2.3.2 - asdf - 2018-10-03 - shavit
+[`v2.3.1...v2.3.2`](https://github.com/shavitush/bhoptimer/compare/v2.3.1...v2.3.2)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.3.2
 https://github.com/shavitush/bhoptimer/commit/73fdf77d36d1fd60fc2b3417c19454cabc349e50
 
@@ -1355,6 +1416,7 @@ https://github.com/shavitush/bhoptimer/commit/73fdf77d36d1fd60fc2b3417c19454cabc
 
 
 # v2.3.1 - asdf - 2018-09-22 - shavit
+[`v2.3.0...v2.3.1`](https://github.com/shavitush/bhoptimer/compare/v2.3.0...v2.3.1)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.3.1
 https://github.com/shavitush/bhoptimer/commit/e9a203ba946c58617e77619c45ff292ef1b7cf98
 
@@ -1367,6 +1429,7 @@ https://github.com/shavitush/bhoptimer/commit/e9a203ba946c58617e77619c45ff292ef1
 
 
 # v2.3.0 - asdf - 2018-09-14 - shavit
+[`v2.2.0...v2.3.0`](https://github.com/shavitush/bhoptimer/compare/v2.2.0...v2.3.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.3.0
 https://github.com/shavitush/bhoptimer/commit/c774f41ac80ca2b77a210a6fe7d7cd8c58f7b37b
 
@@ -1385,6 +1448,7 @@ https://github.com/shavitush/bhoptimer/commit/c774f41ac80ca2b77a210a6fe7d7cd8c58
 
 
 # v2.2.0 - new chat processor - 2018-06-23 - shavit
+[`v2.1.2...v2.2.0`](https://github.com/shavitush/bhoptimer/compare/v2.1.2...v2.2.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.2.0
 https://github.com/shavitush/bhoptimer/commit/945b1c85d00216dfb469b41d0e6ea48e77f852a1
 
@@ -1411,6 +1475,7 @@ https://github.com/shavitush/bhoptimer/commit/945b1c85d00216dfb469b41d0e6ea48e77
 
 
 # v2.1.2 - bug fixes and polishing - 2018-05-07 - shavit
+[`v2.1.1...v2.1.2`](https://github.com/shavitush/bhoptimer/compare/v2.1.1...v2.1.2)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.1.2
 https://github.com/shavitush/bhoptimer/commit/a5c68940c60740d53169da0be847a18c13eb5629
 
@@ -1424,6 +1489,7 @@ https://github.com/shavitush/bhoptimer/commit/a5c68940c60740d53169da0be847a18c13
 
 
 # v2.1.1 - exploit fix - 2018-05-03 - shavit
+[`v2.1.0...v2.1.1`](https://github.com/shavitush/bhoptimer/compare/v2.1.0...v2.1.1)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.1.1
 https://github.com/shavitush/bhoptimer/commit/fda9d81bc7ca1bfb32bf8751f6aa24da962dc166
 
@@ -1434,6 +1500,7 @@ https://github.com/shavitush/bhoptimer/commit/fda9d81bc7ca1bfb32bf8751f6aa24da96
 
 
 # v2.1.0 - segmented runs! - 2018-05-02 - shavit
+[`v2.0.3...v2.1.0`](https://github.com/shavitush/bhoptimer/compare/v2.0.3...v2.1.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.1.0
 https://github.com/shavitush/bhoptimer/commit/3e558558b003bd7e504fdc0ce9528ce0cbe383d3
 
@@ -1453,6 +1520,7 @@ https://github.com/shavitush/bhoptimer/commit/3e558558b003bd7e504fdc0ce9528ce0cb
 
 
 # v2.0.3 - small updates - 2018-04-29 - shavit
+[`v2.0.2...v2.0.3`](https://github.com/shavitush/bhoptimer/compare/v2.0.2...v2.0.3)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.0.3
 https://github.com/shavitush/bhoptimer/commit/c294408c431f315730e0bc71248009d74c1ddc73
 
@@ -1468,6 +1536,7 @@ https://github.com/shavitush/bhoptimer/commit/c294408c431f315730e0bc71248009d74c
 
 
 # v2.0.2 - begone, bugs! - 2018-04-19 - shavit
+[`v2.0.1...v2.0.2`](https://github.com/shavitush/bhoptimer/compare/v2.0.1...v2.0.2)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.0.2
 https://github.com/shavitush/bhoptimer/commit/a0665072139c16aaac355953404982709f9ba816
 
@@ -1484,6 +1553,7 @@ https://github.com/shavitush/bhoptimer/commit/a0665072139c16aaac355953404982709f
 
 
 # v2.0.1 - bug fixes - 2018-03-23 - shavit
+[`v2.0.0...v2.0.1`](https://github.com/shavitush/bhoptimer/compare/v2.0.0...v2.0.1)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.0.1
 https://github.com/shavitush/bhoptimer/commit/c28de91fd4a1a153099c7adc1b95d4be0453ce00
 
@@ -1496,6 +1566,7 @@ https://github.com/shavitush/bhoptimer/commit/c28de91fd4a1a153099c7adc1b95d4be04
 
 
 # v2.0.0 - official release! - 2018-03-18 - shavit
+[`1.4b-hotfix...v2.0.0`](https://github.com/shavitush/bhoptimer/compare/1.4b-hotfix...v2.0.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v2.0.0
 https://github.com/shavitush/bhoptimer/commit/f9b67450db01c1954d28dd36fe2e9ab96c45c11c
 
@@ -1556,6 +1627,7 @@ The last release was in September 21, 2015. There have been **too many** changes
 
 
 # v1.4b - hotfix - 2015-09-21 - shavit
+[`1.4b...1.4b-hotfix`](https://github.com/shavitush/bhoptimer/compare/1.4b...1.4b-hotfix)
 https://github.com/shavitush/bhoptimer/releases/tag/1.4b-hotfix
 https://github.com/shavitush/bhoptimer/commit/489a6826d74a84ae8e65f9b92d17b3f4aba1f984
 
@@ -1564,6 +1636,7 @@ Fixed compilation for the SM 1.7.3 compiler.
 
 
 # v1.4b - more plugins - 2015-09-20 - shavit
+[`1.3b...1.4b`](https://github.com/shavitush/bhoptimer/compare/1.3b...1.4b)
 https://github.com/shavitush/bhoptimer/releases/tag/1.4b
 https://github.com/shavitush/bhoptimer/commit/519a647a53b79eb46fa3323ca44a1681ccda1f2a
 
@@ -1591,6 +1664,7 @@ https://github.com/shavitush/bhoptimer/commit/519a647a53b79eb46fa3323ca44a1681cc
 
 
 # v1.3b - Freestyle zones update! - 2015-07-27 - shavit
+[`1.1b...1.3b`](https://github.com/shavitush/bhoptimer/compare/1.1b...1.3b)
 https://github.com/shavitush/bhoptimer/releases/tag/1.3b
 https://github.com/shavitush/bhoptimer/commit/fd4bb2c67201ce30703a66a372a7d6d749db8171
 
