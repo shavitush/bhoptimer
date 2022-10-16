@@ -2,9 +2,24 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
+# v3.4.1 - Long overdue edition (Director's Cut) - 2022-10-16 - rtldg
+[`v3.4.0...v3.4.1`](https://github.com/shavitush/bhoptimer/compare/v3.3.2...v3.4.0)
+https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
+
+Bug fix release for v3.4.0. See the changelog for v3.4.0 here: https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
+
+- fix leaderboard times from mysql not parsing correctly (after the deprecation of exact_time_int in v3.4.0 https://github.com/shavitush/bhoptimer/commit/894b039e4ea0d599c2d32252d391c377c58f1bfd) https://github.com/shavitush/bhoptimer/commit/4fee1e4cc193a51f84447e585809017f1261c061
+	- Mysql returns formatted floats with commas when it's >=1000 (like `2,095.12345123`). The comma makes `DBResultSet.FetchFloat` (`atof` internally) return `2` instead of `2095.12345123`.
+- potentially fix segmented replay saving edge case & add some error logging if replay files can't be opened for writing https://github.com/shavitush/bhoptimer/commit/5ac888c3a0b20926e7b362a212217164519b5365
+
+
+
 # v3.4.0 - Long overdue edition - 2022-10-14 - rtldg
 [`v3.3.2...v3.4.0`](https://github.com/shavitush/bhoptimer/compare/v3.3.2...v3.4.0)
 https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
+https://github.com/shavitush/bhoptimer/commit/3db30bea9877bd69851efb9dde6b1a70a063d721
+
+**Note: Release includes [eventqueuefix 1.3.1](https://github.com/hermansimensen/eventqueue-fix/pull/21) which works with Sourcemod 1.10/1.11 Windows/Linux**
 
 Thanks to all the contributors who pushed this release along by making PRs which made me feel guilty for slacking.
 
