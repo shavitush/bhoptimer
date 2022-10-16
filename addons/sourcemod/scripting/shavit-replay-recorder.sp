@@ -377,7 +377,14 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	int postframes = gI_PlayerFrames[client] - gI_PlayerFinishFrame[client];
 
 	char sPath[PLATFORM_MAX_PATH];
-	SaveReplay(style, track, time, iSteamID, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
+	bool saved = SaveReplay(style, track, time, iSteamID, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
+
+	if (!saved)
+	{
+		LogError("SaveReplay() failed. Skipping OnReplaySaved")
+		ClearFrames(client);
+		return;
+	}
 
 	Call_StartForward(gH_OnReplaySaved);
 	Call_PushCell(client);
@@ -410,6 +417,12 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	if (Shavit_IsPracticeMode(client) || !gCV_Enabled.BoolValue || (gI_PlayerFrames[client]-gI_PlayerPrerunFrames[client] <= 10))
 	{
 		return;
+	}
+
+	// Someone using checkpoints presumably
+	if (gB_GrabbingPostFrames[client])
+	{
+		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
 	}
 
 	gI_PlayerFinishFrame[client] = gI_PlayerFrames[client];
@@ -446,7 +459,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	}
 }
 
-void SaveReplay(int style, int track, float time, int steamid, int preframes, ArrayList playerrecording, int iSize, int postframes, int timestamp, float fZoneOffset[2], bool saveCopy, bool saveWR, char[] sPath, int sPathLen)
+bool SaveReplay(int style, int track, float time, int steamid, int preframes, ArrayList playerrecording, int iSize, int postframes, int timestamp, float fZoneOffset[2], bool saveCopy, bool saveWR, char[] sPath, int sPathLen)
 {
 	char sTrack[4];
 	FormatEx(sTrack, 4, "_%d", track);
@@ -457,15 +470,39 @@ void SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 	if (saveWR)
 	{
 		FormatEx(sPath, sPathLen, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
-		DeleteFile(sPath);
-		fWR = OpenFile(sPath, "wb");
+
+		if (!(fWR = OpenFile(sPath, "wb+")))
+		{
+			LogError("Failed to open WR replay file for writing. ('%s')", sPath);
+		}
 	}
 
 	if (saveCopy)
 	{
 		FormatEx(sPath, sPathLen, "%s/copy/%d_%d_%s.replay", gS_ReplayFolder, timestamp, steamid, gS_Map);
-		DeleteFile(sPath);
-		fCopy = OpenFile(sPath, "wb");
+	
+		if (!(fCopy = OpenFile(sPath, "wb+")))
+		{
+			LogError("Failed to open 'copy' replay file for writing. ('%s')", sPath);
+		}
+	}
+
+	if (!fWR && !fCopy)
+	{
+		// I want to try and salvage the replay file so let's write it out to a random
+		//  file and hope people read the error log to figure out what happened...
+		// I'm not really sure how we could reach this though as
+		//  `Shavit_Replay_CreateDirectories` should have failed if it couldn't create
+		//  a test file.
+		FormatEx(sPath, sPathLen, "%s/%d_%d_%s%s.replay", gS_ReplayFolder, style, GetURandomInt() % 99, gS_Map, (track > 0)? sTrack:"");
+
+		if (!(fWR = OpenFile(sPath, "wb+")))
+		{
+			LogError("Couldn't open a WR, 'copy', or 'salvage' replay file....");
+			return false;
+		}
+
+		LogError("Couldn't open a WR or 'copy' replay file. Writing 'salvage' replay @ (style %d) '%s'", style, sPath);
 	}
 
 	if (fWR)
@@ -482,6 +519,7 @@ void SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 
 	delete fWR;
 	delete fCopy;
+	return true;
 }
 
 public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
