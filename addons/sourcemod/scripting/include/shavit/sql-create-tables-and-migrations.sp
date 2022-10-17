@@ -56,6 +56,39 @@ enum
 	MIGRATIONS_END
 };
 
+char gS_MigrationNames[][] = {
+	"RemoveWorkshopMaptiers",
+	"RemoveWorkshopMapzones",
+	"RemoveWorkshopPlayertimes",
+	"LastLoginIndex",
+	"RemoveCountry",
+	"ConvertIPAddresses",
+	"ConvertSteamIDsUsers",
+	"ConvertSteamIDsPlayertimes",
+	"ConvertSteamIDsChat",
+	"PlayertimesDateToInt",
+	"AddZonesFlagsAndData",
+	"AddPlayertimesCompletions",
+	"AddCustomChatAccess",
+	"AddPlayertimesExactTimeInt",
+	"FixOldCompletionCounts",
+	"AddPrebuiltToMapZonesTable",
+	"AddPlaytime",
+	"Lowercase_maptiers",
+	"Lowercase_mapzones",
+	"Lowercase_playertimes",
+	"Lowercase_stagetimeswr",
+	"Lowercase_startpositions",
+	"AddPlayertimesPointsCalcedFrom",
+	"RemovePlayertimesPointsCalcedFrom",
+	"NormalizeMapzonePoints",
+	"AddMapzonesForm",
+	"AddMapzonesTarget",
+	"DeprecateExactTimeInt",
+	"AddPlayertimesAuthFK",
+	"FixSQLiteMapzonesROWID",
+};
+
 static Database gH_SQL;
 static int gI_Driver;
 static char gS_SQLPrefix[32];
@@ -295,7 +328,8 @@ void DoNextMigration()
 		if (!gB_MigrationsApplied[i])
 		{
 			gB_MigrationsApplied[i] = true;
-			PrintToServer("--- Applying database migration %d ---", i);
+			PrintToServer("--- Applying database migration %d %s ---", i, gS_MigrationNames[i]);
+			PrintToChatAll("--- Applying database migration %d %s ---", i, gS_MigrationNames[i]);
 			ApplyMigration(i);
 			return;
 		}
@@ -491,7 +525,22 @@ void ApplyMigration_AddMapzonesTarget()
 void ApplyMigration_DeprecateExactTimeInt()
 {
 	char query[256];
-	FormatEx(query, sizeof(query), "SELECT id, exact_time_int FROM %splayertimes WHERE exact_time_int != 0;", gS_SQLPrefix);
+
+	if (gI_Driver == Driver_mysql)
+	{
+		// From these:
+		// https://stackoverflow.com/questions/67653555/mysql-function-hexadecimal-conversation-to-float/67654768#67654768
+		// https://stackoverflow.com/questions/37523874/converting-hex-to-float-sql/37524172#37524172
+		// http://multikoder.blogspot.com/2013/03/converting-varbinary-to-float-in-t-sql.html
+		// etc...
+		FormatEx(query, sizeof(query), "UPDATE %splayertimes SET time = (1.0 + (exact_time_int & 0x7FFFFF) * pow(2.0, -23)) * POWER(2.0, (exact_time_int & 0x7f800000) / 0x800000 - 127) WHERE exact_time_int != 0;", gS_SQLPrefix);
+	}
+	else
+	{
+		// sqlite (at least in sourcemod builds) doesn't have the `POWER()` function so we'll just keep doing this transaction batching...
+		FormatEx(query, sizeof(query), "SELECT id, exact_time_int FROM %splayertimes WHERE exact_time_int != 0;", gS_SQLPrefix);
+	}
+
 	QueryLog(gH_SQL, SQL_Migration_DeprecateExactTimeInt_Query, query);
 }
 
@@ -499,6 +548,7 @@ public void SQL_Migration_DeprecateExactTimeInt_Query(Database db, DBResultSet r
 {
 	if (results == null || results.RowCount == 0)
 	{
+		// mysql should hit this because rowcount should be 0
 		InsertMigration(Migration_DeprecateExactTimeInt);
 		return;
 	}
@@ -512,6 +562,9 @@ public void SQL_Migration_DeprecateExactTimeInt_Query(Database db, DBResultSet r
 		things[1] = results.FetchInt(1);
 		stack.PushArray(things);
 	}
+
+	PrintToServer("--- DeprecateExactTimeInt to edit %d rows ---", results.RowCount);
+	PrintToChatAll("--- DeprecateExactTimeInt to edit %d rows ---", results.RowCount);
 
 	SQL_Migration_DeprecateExactTimeInt_Main(stack);
 }
@@ -531,9 +584,12 @@ void SQL_Migration_DeprecateExactTimeInt_Main(ArrayStack stack)
 			gS_SQLPrefix, things[1], things[0]);
 		AddQueryLog(trans, query);
 
-		if (++queries > 9000)
+		if (++queries > 200)
 			break;
 	}
+
+	PrintToServer("--- DeprecateExactTimeInt starting transaction with %d rows (%f) ---", queries, GetEngineTime());
+	PrintToChatAll("--- DeprecateExactTimeInt starting transaction with %d rows (%f) ---", queries, GetEngineTime());
 
 	if (stack.Empty)
 		delete stack;
@@ -543,6 +599,9 @@ void SQL_Migration_DeprecateExactTimeInt_Main(ArrayStack stack)
 
 public void Trans_DeprecateExactTimeIntSuccess(Database db, ArrayStack stack, int numQueries, DBResultSet[] results, any[] queryData)
 {
+	PrintToServer("--- DeprecateExactTimeInt did transaction with %d rows (%f) ---", numQueries, GetEngineTime());
+	PrintToChatAll("--- DeprecateExactTimeInt did transaction with %d rows (%f) ---", numQueries, GetEngineTime());
+
 	if (!stack)
 	{
 		InsertMigration(Migration_DeprecateExactTimeInt);
@@ -950,7 +1009,9 @@ void InsertMigration(int migration)
 	QueryLog(gH_SQL, SQL_MigrationApplied_Callback, sQuery, migration);
 }
 
-public void SQL_MigrationApplied_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void SQL_MigrationApplied_Callback(Database db, DBResultSet results, const char[] error, any migration)
 {
+	PrintToServer("--- FINISHED database migration %d %s ---", migration, gS_MigrationNames[migration]);
+	PrintToChatAll("--- FINISHED database migration %d %s ---", migration, gS_MigrationNames[migration]);
 	DoNextMigration();
 }
