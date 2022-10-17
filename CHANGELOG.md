@@ -2,9 +2,23 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
+# v3.4.2 - Long overdue edition (Extended Director's Cut) - 2022-10-17 - rtldg
+[`v3.4.1...v3.4.2`](https://github.com/shavitush/bhoptimer/compare/v3.4.1...v3.4.2)
+https://github.com/shavitush/bhoptimer/releases/tag/v3.4.2
+
+Bug fix release for v3.4.0 / v3.4.1. See the changelogs here: https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
+https://github.com/shavitush/bhoptimer/releases/tag/v3.4.1
+
+- mark `SteamWorks_SetHTTPRequestAbsoluteTimeoutMS` as optional in `shavit-zones-http` https://github.com/shavitush/bhoptimer/commit/f16b9aa7f3f9f5c19ec4fa1a71109811eaac1b73
+- faster mysql query for the deprecate `exact_time_int` stuff (and more migration logging) https://github.com/shavitush/bhoptimer/commit/07727e1db08e1a8047de488d0ebb720ab35b7b55
+	- the transaction batches turned out to be REALLY slow
+
+
+
 # v3.4.1 - Long overdue edition (Director's Cut) - 2022-10-16 - rtldg
-[`v3.4.0...v3.4.1`](https://github.com/shavitush/bhoptimer/compare/v3.3.2...v3.4.0)
-https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
+[`v3.4.0...v3.4.1`](https://github.com/shavitush/bhoptimer/compare/v3.4.0...v3.4.1)
+https://github.com/shavitush/bhoptimer/releases/tag/v3.4.1
+https://github.com/shavitush/bhoptimer/commit/d0d3c62ff56e64d5909592381e86ab6fe4e36023
 
 Bug fix release for v3.4.0. See the changelog for v3.4.0 here: https://github.com/shavitush/bhoptimer/releases/tag/v3.4.0
 
