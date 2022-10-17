@@ -92,6 +92,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	MarkNativeAsOptional("JSONArray.Get");
 	MarkNativeAsOptional("JSONArray.Length.get");
 	MarkNativeAsOptional("JSONArray.GetFloat");
+	MarkNativeAsOptional("SteamWorks_SetHTTPRequestAbsoluteTimeoutMS");
 	
 	RegPluginLibrary("shavit-zones-http");
 	return APLRes_Success;
