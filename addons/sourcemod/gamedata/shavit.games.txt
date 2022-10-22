@@ -147,10 +147,13 @@
 			// *(float*)(a1[1] + some_offset) * (float(__thiscall)(void*))(*(uintptr_t*)sv_friction + GetFloatIndex*sizeof(void*))(sv_friction)
 			// make a signature for some_offset
 			// if it's unclear: https://youtu.be/xiNQ00X4R_I
+			//  On Ghidra + Windows CSGO, the references are sometimes missing.
+			//  You can find a variable/memory-location holding -25.0 with a memory search.
+			//  This variable is referenced in the same function as where you can find this signature.
 			"CBasePlayer->m_surfaceFriction"
 			{
 				"windows"	"\xF3\x0F\x10\x80\x2A\x2A\x2A\x2A\xF3\x0F\x59\x45\x2A\xF3\x0F\x11\x45"
-				"linux"	    "\xF3\x0F\x59\xB2\x2A\x2A\x2A\x2A\xF3\x0F\x59\xF0"
+				"linux"	    "\xF3\x0F\x59\x90\x2A\x2A\x2A\x2A\x8B\x43\x2A\xF3\x0F\x59\xD0"
 			}
 		}
 	}
