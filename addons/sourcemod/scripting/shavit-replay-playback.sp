@@ -396,6 +396,11 @@ public void OnPluginStart()
 		bot_stop.Flags &= ~FCVAR_CHEAT;
 	}
 
+	if (gEV_Type == Engine_TF2)
+	{
+		FindConVar("tf_bot_count").Flags &= ~FCVAR_NOTIFY; // silence please
+	}
+
 	bot_join_after_player = FindConVar(gEV_Type == Engine_TF2 ? "tf_bot_join_after_player" : "bot_join_after_player");
 
 	mp_randomspawn = FindConVar("mp_randomspawn");
