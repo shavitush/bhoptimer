@@ -863,8 +863,19 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		return Plugin_Continue;
 	}
 
-	char arg1[8];
-	GetCmdArg(1, arg1, 8);
+	char arg1[16];
+	GetCmdArg(1, arg1, sizeof(arg1));
+
+	if (gEV_Type == Engine_TF2)
+	{
+		if (StrEqual(arg1, "spectate", false) || StrEqual(arg1, "spectator", false))
+		{
+			Command_Spec(client, 0);
+			return Plugin_Stop;
+		}
+
+		return Plugin_Continue;
+	}
 
 	int iTeam = StringToInt(arg1);
 	int iHumanTeam = GetHumanTeam();
@@ -912,11 +923,7 @@ void CleanSwitchTeam(int client, int team)
 		event.Cancel();
 	}
 
-	if(gEV_Type == Engine_TF2)
-	{
-		TF2_ChangeClientTeam(client, view_as<TFTeam>(team));
-	}
-	else if(team != 1)
+	if (gEV_Type != Engine_TF2 && team != 1)
 	{
 		CS_SwitchTeam(client, team);
 	}
