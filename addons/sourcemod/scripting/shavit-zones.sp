@@ -5105,8 +5105,23 @@ void SetZoneMinsMaxs(int zone)
 	float distance_x = Abs(gA_ZoneCache[zone].fCorner1[0] - gA_ZoneCache[zone].fCorner2[0]) / 2;
 	float distance_y = Abs(gA_ZoneCache[zone].fCorner1[1] - gA_ZoneCache[zone].fCorner2[1]) / 2;
 	float distance_z = Abs(gA_ZoneCache[zone].fCorner1[2] - gA_ZoneCache[zone].fCorner2[2]) / 2;
+	float height;
 
-	float height = ((IsSource2013(gEV_Type))? 62.0:72.0) / 2;
+	switch (gEV_Type)
+	{
+		case Engine_CSS:
+		{
+			height = 62.0 / 2;
+		}
+		case Engine_CSGO:
+		{
+			height = 72.0 / 2;
+		}
+		case Engine_TF2:
+		{
+			height = 82.0 / 2;
+		}
+	}
 
 	float mins[3];
 	mins[0] = -distance_x;
