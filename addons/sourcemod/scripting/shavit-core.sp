@@ -160,6 +160,7 @@ ConVar sv_friction = null;
 chatstrings_t gS_ChatStrings;
 
 // misc cache
+int gI_ClientProcessingMovement = 0;
 bool gB_StopChatSound = false;
 bool gB_HookedJump = false;
 char gS_LogPath[PLATFORM_MAX_PATH];
@@ -515,6 +516,21 @@ void LoadDHooks()
 	DHookAddParam(processMovementPost, HookParamType_CBaseEntity);
 	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
 	DHookRaw(processMovementPost, true, IGameMovement);
+
+	if (gEV_Type == Engine_TF2)
+	{
+		Handle PreventBunnyJumping = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Void, ThisPointer_Ignore);
+
+		if (!DHookSetFromConf(PreventBunnyJumping, gamedataConf, SDKConf_Signature, "CTFGameMovement::PreventBunnyJumping"))
+		{
+			SetFailState("Failed to set CTFGameMovement::PreventBunnyJumping signature");
+		}
+
+		if (!DHookEnableDetour(PreventBunnyJumping, false, DHook_PreventBunnyJumpingPre))
+		{
+			SetFailState("Failed to find CTFGameMovement::PreventBunnyJumping signature");
+		}
+	}
 
 	LoadPhysicsUntouch(gamedataConf);
 
@@ -2982,9 +2998,18 @@ public MRESReturn DHook_AcceptInput_player_speedmod_Post(int pThis, DHookReturn 
 	return MRES_Ignored;
 }
 
+public MRESReturn DHook_PreventBunnyJumpingPre()
+{
+	if (GetStyleSettingBool(gA_Timers[gI_ClientProcessingMovement].bsStyle, "bunnyhopping"))
+		return MRES_Supercede;
+	else
+		return MRES_Ignored;
+}
+
 public MRESReturn DHook_ProcessMovement(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
+	gI_ClientProcessingMovement = client;
 
 	// Causes client to do zone touching in movement instead of server frames.
 	// From https://github.com/rumourA/End-Touch-Fix

@@ -327,6 +327,13 @@
 
 		"Signatures"
 		{
+			// search string: "BumperCar.Jump" to find CTFGameMovement::CheckJumpButton.
+			// Then the call to PreventBunnyJumping is right above the string reference somewhere...
+			"CTFGameMovement::PreventBunnyJumping"
+			{
+				"windows"  "\x56\x8B\xF1\x6A\x52\x8B\x8E\x2A\x2A\x2A\x2A\x81\xC1\xB0\x19\x00\x00\xE8\x2A\x2A\x2A\x2A\x84\xC0\x75"
+				"linux"    "@_ZN15CTFGameMovement19PreventBunnyJumpingEv"
+			}
 			// search string: "Usage:  setang_exact pitch yaw" to find setang_exact's handler. Then the last function call in the handler is DoAnimationEvent.
 			"Player::DoAnimationEvent"
 			{
