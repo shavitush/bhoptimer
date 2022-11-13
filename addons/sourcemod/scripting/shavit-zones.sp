@@ -5122,7 +5122,7 @@ void SetZoneMinsMaxs(int zone)
 
 	for (int i = 0; i < 3; i++)
 	{
-		float offset = offsets[i>>1];
+		float offset = offsets[i/2];
 #if 1
 		maxs[i] = Abs(gA_ZoneCache[zone].fCorner1[i] - gA_ZoneCache[zone].fCorner2[i]) / 2.0;
 		if (maxs[i] > offset) maxs[i] -= offset;
