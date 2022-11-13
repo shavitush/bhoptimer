@@ -333,7 +333,7 @@ public void OnPluginStart()
 	gCV_Height = new Convar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
 	gCV_Offset = new Convar("shavit_zones_offset", "1.0", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
 	gCV_EnforceTracks = new Convar("shavit_zones_enforcetracks", "1", "Enforce zone tracks upon entry?\n0 - allow every zone except for start/end to affect users on every zone.\n1 - require the user's track to match the zone's track.", 0, true, 0.0, true, 1.0);
-	gCV_BoxOffset = new Convar("shavit_zones_box_offset", "16", "Offset zone trigger boxes by this many unit\n0 - matches players bounding box\n16 - matches players center");
+	gCV_BoxOffset = new Convar("shavit_zones_box_offset", "1", "Offset zone trigger boxes to the center of a player's bounding box or the edges.\n0 - triggers when edges of the bounding boxes touch.\n1 - triggers when the center of a player is in a zone.", 0, true, 0.0, true, 1.0);
 	gCV_ExtraSpawnHeight = new Convar("shavit_zones_extra_spawn_height", "0.0", "YOU DONT NEED TO TOUCH THIS USUALLY. FIX YOUR ACTUAL ZONES.\nUsed to fix some shit prebuilt zones that are in the ground like bhop_strafecontrol");
 	gCV_PrebuiltVisualOffset = new Convar("shavit_zones_prebuilt_visual_offset", "0", "YOU DONT NEED TO TOUCH THIS USUALLY.\nUsed to fix the VISUAL beam offset for prebuilt zones on a map.\nExample maps you'd want to use 16 on: bhop_tranquility and bhop_amaranthglow");
 
@@ -5097,34 +5097,40 @@ float Abs(float input)
 
 void SetZoneMinsMaxs(int zone)
 {
-	float distance_x = Abs(gA_ZoneCache[zone].fCorner1[0] - gA_ZoneCache[zone].fCorner2[0]) / 2;
-	float distance_y = Abs(gA_ZoneCache[zone].fCorner1[1] - gA_ZoneCache[zone].fCorner2[1]) / 2;
-	float distance_z = Abs(gA_ZoneCache[zone].fCorner1[2] - gA_ZoneCache[zone].fCorner2[2]) / 2;
+	float offsets[2]; // 0 = x/y width. 1 = z height.
 
-	float height = ((IsSource2013(gEV_Type))? 62.0:72.0) / 2;
-
-	float mins[3];
-	mins[0] = -distance_x;
-	mins[1] = -distance_y;
-	mins[2] = -distance_z + height;
-
-	float maxs[3];
-	maxs[0] = distance_x;
-	maxs[1] = distance_y;
-	maxs[2] = distance_z - height;
-
-	float offset = gCV_BoxOffset.FloatValue;
-
-	if (distance_x > offset)
+	if (gCV_BoxOffset.FloatValue != 0.0)
 	{
-		mins[0] += offset;
-		maxs[0] -= offset;
+		if (gEV_Type == Engine_CSS)
+		{
+			offsets[0] = 32.0 / 2.0;
+			offsets[1] = 62.0 / 2.0;
+		}
+		else if (gEV_Type == Engine_CSGO)
+		{
+			offsets[0] = 32.0 / 2.0;
+			offsets[1] = 72.0 / 2.0;
+		}
+		else if (gEV_Type == Engine_TF2)
+		{
+			offsets[0] = 48.0 / 2.0;
+			offsets[1] = 82.0 / 2.0;
+		}
 	}
 
-	if (distance_y > offset)
+	float mins[3], maxs[3];
+
+	for (int i = 0; i < 3; i++)
 	{
-		mins[1] += offset;
-		maxs[1] -= offset;
+		float offset = offsets[i/2];
+#if 1
+		maxs[i] = Abs(gA_ZoneCache[zone].fCorner1[i] - gA_ZoneCache[zone].fCorner2[i]) / 2.0;
+		if (maxs[i] > offset) maxs[i] -= offset;
+#else // maybe this would be good?
+		maxs[i] = Abs(gA_ZoneCache[zone].fCorner1[i] - gA_ZoneCache[zone].fCorner2[i]) / 2.0 - offset;
+		if (maxs[i] < 1.0) maxs[i] = 1.0;
+#endif
+		mins[i] = -maxs[i];
 	}
 
 	SetEntPropVector(gA_ZoneCache[zone].iEntity, Prop_Send, "m_vecMins", mins);
