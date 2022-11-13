@@ -58,6 +58,7 @@ static char gS_ZoneTypes[ZONETYPES_SIZE][18] = {
 bool gB_YouCanLoadZonesNow = false;
 char gS_Map[PLATFORM_MAX_PATH];
 char gS_ZonesForMap[PLATFORM_MAX_PATH];
+char gS_EngineName[16];
 ArrayList gA_Zones = null;
 
 Convar gCV_Enable = null;
@@ -100,11 +101,18 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	switch (GetEngineVersion())
+	{
+		case Engine_CSGO: gS_EngineName = "csgo";
+		case Engine_CSS:  gS_EngineName = "cstrike";
+		case Engine_TF2:  gS_EngineName = "tf2";
+	}
+
 	gA_Zones = new ArrayList(sizeof(zone_cache_t));
 
 	gCV_Enable = new Convar("shavit_zones_http_enable", "1", "Whether to enable this or not...", 0, true, 0.0, true, 1.0);
 	gCV_UseRipext = new Convar("shavit_zones_http_ripext", "1", "Whether to use ripext or steamworks", 0, true, 0.0, true, 1.0);
-	gCV_ApiUrl = new Convar("shavit_zones_http_url", "", "API URL. Will replace `{map}` and `{key}` with the mapname and api key.\nExample sourcejump url:\n  https://sourcejump.net/api/v2/maps/{map}/zones", FCVAR_PROTECTED);
+	gCV_ApiUrl = new Convar("shavit_zones_http_url", "", "API URL. Will replace `{map}` and `{key}` with the mapname and api key.\nExample sourcejump url:\n  https://sourcejump.net/api/v2/maps/{map}/zones\nExample srcwr url:\n  https://srcwr.github.io/zones/{engine}/{map}.json", FCVAR_PROTECTED);
 	gCV_ApiKey = new Convar("shavit_zones_http_key", "", "API key that some APIs might require.", FCVAR_PROTECTED);
 	gCV_Source = new Convar("shavit_zones_http_src", "http", "A string used by plugins to identify where a zone came from (http, sourcejump, sql, etc)");
 
@@ -154,7 +162,7 @@ void RetrieveZones(const char[] mapname)
 	if (!gCV_Enable.BoolValue)
 		return;
 
-	char apikey[64], apiurl[333];
+	char apikey[64], apiurl[512];
 	gCV_ApiKey.GetString(apikey, sizeof(apikey));
 	gCV_ApiUrl.GetString(apiurl, sizeof(apiurl));
 
@@ -166,6 +174,7 @@ void RetrieveZones(const char[] mapname)
 
 	ReplaceString(apiurl, sizeof(apiurl), "{map}", mapname);
 	ReplaceString(apiurl, sizeof(apiurl), "{key}", apikey);
+	ReplaceString(apiurl, sizeof(apiurl), "{engine}", gS_EngineName);
 
 	DataPack pack = new DataPack();
 	pack.WriteString(mapname);
@@ -345,11 +354,11 @@ void handlestuff(DataPack pack, any records, bool ripext)
 			if (json.HasKey("index")) cache.iData = json.GetInt("index");
 
 		json.GetVec("point_a", cache.fCorner1);
-		json.GetVec("point_b", cache.fCorner1);
-		json.GetVec("dest", cache.fCorner1);
+		json.GetVec("point_b", cache.fCorner2);
+		if (json.HasKey("dest")) json.GetVec("dest", cache.fCorner1);
 
 		if (json.HasKey("form")) cache.iForm = json.GetInt("form");
-		json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
+		if (json.HasKey("target")) json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
 		//json.GetString("source", cache.sSource, sizeof(cache.sSource));
 		cache.sSource = source;
 
