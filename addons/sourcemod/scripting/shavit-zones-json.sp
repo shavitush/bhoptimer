@@ -62,6 +62,7 @@ static char gS_ZoneForms[5][26] = {
 	"areas and clusters"
 };
 
+bool gB_Late = false;
 bool gB_YouCanLoadZonesNow = false;
 char gS_Map[PLATFORM_MAX_PATH];
 char gS_ZonesForMap[PLATFORM_MAX_PATH];
@@ -73,6 +74,7 @@ Convar gCV_UseRipext = null;
 Convar gCV_ApiUrl = null;
 Convar gCV_ApiKey = null;
 Convar gCV_Source = null;
+Convar gCV_Folder = null;
 
 
 public Plugin myinfo =
@@ -87,6 +89,8 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	gB_Late = late;
+
 	MarkNativeAsOptional("HTTPRequest.HTTPRequest");
 	MarkNativeAsOptional("HTTPRequest.SetHeader");
 	MarkNativeAsOptional("HTTPRequest.Get");
@@ -121,16 +125,21 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	gCV_Enable = new Convar("shavit_zones_http_enable", "1", "Whether to enable this or not...", 0, true, 0.0, true, 1.0);
-	gCV_UseRipext = new Convar("shavit_zones_http_ripext", "1", "Whether to use ripext or steamworks", 0, true, 0.0, true, 1.0);
-	gCV_ApiUrl = new Convar("shavit_zones_http_url", "", "API URL. Will replace `{map}` and `{key}` with the mapname and api key.\nExample sourcejump url:\n  https://sourcejump.net/api/v2/maps/{map}/zones\nExample srcwr url:\n  https://srcwr.github.io/zones/{engine}/{map}.json", FCVAR_PROTECTED);
-	gCV_ApiKey = new Convar("shavit_zones_http_key", "", "API key that some APIs might require.", FCVAR_PROTECTED);
-	gCV_Source = new Convar("shavit_zones_http_src", "http", "A string used by plugins to identify where a zone came from (http, sourcejump, sql, etc)");
-	//gCV_Folder = new Convar("shavit_zones_json_folder", "1", "Whether to use ")
+	gCV_Enable = new Convar("shavit_zones_json_enable", "1", "Whether to enable this or not...", 0, true, 0.0, true, 1.0);
+	gCV_UseRipext = new Convar("shavit_zones_json_ripext", "1", "Whether to use ripext or steamworks", 0, true, 0.0, true, 1.0);
+	gCV_ApiUrl = new Convar("shavit_zones_json_url", "http://zones-{engine}.srcwr.com/x/{map}.json", "API URL. Will replace `{map}`, `{key}`, and `{engine}` with the mapname, api key, and engine name....\nOther example urls:\n  https://srcwr.github.io/zones-{engine}/x/{map}.json\n  https://sourcejump.net/api/v2/maps/{map}/zones", FCVAR_PROTECTED);
+	gCV_ApiKey = new Convar("shavit_zones_json_key", "", "API key that some APIs might require.", FCVAR_PROTECTED);
+	gCV_Source = new Convar("shavit_zones_json_src", "http", "A string used by plugins to identify where a zone came from (http, sourcejump, sql, etc)");
+	gCV_Folder = new Convar("shavit_zones_json_folder", "0", "Whether to use a local folder for json zones instead of the http URL.\n0 - use HTTP stuff...\n1 - use folder of JSON zones at `addons/sourcemod/data/zones-{engine}/x/{map}.json`");
 
 	Convar.AutoExecConfig();
 
 	RegAdminCmd("sm_dumpzones", Command_DumpZones, ADMFLAG_RCON, "Dumps current map's zones to a json file");
+
+	if (gB_Late)
+	{
+		gB_YouCanLoadZonesNow = true;
+	}
 }
 
 public void OnMapEnd()
@@ -163,6 +172,8 @@ void LoadCachedZones()
 	if (!gCV_Enable.BoolValue || !gA_Zones)
 		return;
 
+	Shavit_UnloadZones(); // TODO: fuck it......
+
 	for (int i = 0; i < gA_Zones.Length; i++)
 	{
 		zone_cache_t cache;
@@ -176,7 +187,7 @@ void RetrieveZones(const char[] mapname)
 	if (!gCV_Enable.BoolValue)
 		return;
 
-	if (true)
+	if (gCV_Folder.BoolValue)
 	{
 		char path[PLATFORM_MAX_PATH];
 		BuildPath(Path_SM, path, sizeof(path), "data/zones-%s/x/%s.json", gS_EngineName, gS_Map);
@@ -191,8 +202,9 @@ void RetrieveZones(const char[] mapname)
 			delete records;
 			if (gB_YouCanLoadZonesNow)
 				LoadCachedZones();
-			return;
 		}
+
+		return;
 	}
 
 	char apikey[64], apiurl[512];
@@ -396,13 +408,12 @@ ArrayList EatUpZones(any records, bool ripext, const char source[16])
 
 		if (json.HasKey("point_a")) json.GetVec("point_a", cache.fCorner1);
 		if (json.HasKey("point_b")) json.GetVec("point_b", cache.fCorner2);
-		if (json.HasKey("dest")) json.GetVec("dest", cache.fCorner1);
+		if (json.HasKey("dest")) json.GetVec("dest", cache.fDestination);
 
 		if (json.HasKey("form")) cache.iForm = json.GetInt("form");
 		if (json.HasKey("target")) json.GetString("target", cache.sTarget, sizeof(cache.sTarget));
 		//json.GetString("source", cache.sSource, sizeof(cache.sSource));
 		cache.sSource = source;
-
 		zones.PushArray(cache);
 	}
 
@@ -452,7 +463,7 @@ JSONObject FillYourMom(zone_cache_t cache)
 		b.PushFloat(cache.fCorner2[i]);
 		c.PushFloat(cache.fDestination[i]);
 	}
-	if (!EmptyVector(cache.fCorner1)) obj.Set("point_a", b);
+	if (!EmptyVector(cache.fCorner1)) obj.Set("point_a", a);
 	if (!EmptyVector(cache.fCorner2)) obj.Set("point_b", b);
 	if (!EmptyVector(cache.fDestination)) obj.Set("dest", c);
 	if (cache.iForm) obj.SetInt("form", cache.iForm);

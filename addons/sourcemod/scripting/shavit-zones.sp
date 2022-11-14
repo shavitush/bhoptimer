@@ -377,6 +377,7 @@ public void OnPluginStart()
 
 	if (gB_Late)
 	{
+		GetLowercaseMapName(gS_Map); // erm...
 		Shavit_OnChatConfigLoaded();
 		Shavit_OnDatabaseLoaded();
 
