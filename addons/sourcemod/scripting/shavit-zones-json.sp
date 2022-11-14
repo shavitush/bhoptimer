@@ -116,7 +116,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	char dir[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, dir, sizeof(dir), "data/zones-%s", gS_EngineName);
 	CreateDirectory(dir, 1 | 4 | 8 | 32 | 64 | 128 | 256);
-	StrCat(dir, sizeof(dir), "/x");
+	StrCat(dir, sizeof(dir), "/z");
 	CreateDirectory(dir, 1 | 4 | 8 | 32 | 64 | 128 | 256);
 
 	RegPluginLibrary("shavit-zones-json");
@@ -127,7 +127,7 @@ public void OnPluginStart()
 {
 	gCV_Enable = new Convar("shavit_zones_json_enable", "1", "Whether to enable this or not...", 0, true, 0.0, true, 1.0);
 	gCV_UseRipext = new Convar("shavit_zones_json_ripext", "1", "Whether to use ripext or steamworks", 0, true, 0.0, true, 1.0);
-	gCV_ApiUrl = new Convar("shavit_zones_json_url", "http://zones-{engine}.srcwr.com/x/{map}.json", "API URL. Will replace `{map}`, `{key}`, and `{engine}` with the mapname, api key, and engine name....\nOther example urls:\n  https://srcwr.github.io/zones-{engine}/x/{map}.json\n  https://sourcejump.net/api/v2/maps/{map}/zones", FCVAR_PROTECTED);
+	gCV_ApiUrl = new Convar("shavit_zones_json_url", "http://zones-{engine}.srcwr.com/z/{map}.json", "API URL. Will replace `{map}`, `{key}`, and `{engine}` with the mapname, api key, and engine name....\nOther example urls:\n  https://srcwr.github.io/zones-{engine}/z/{map}.json\n  https://sourcejump.net/api/v2/maps/{map}/zones", FCVAR_PROTECTED);
 	gCV_ApiKey = new Convar("shavit_zones_json_key", "", "API key that some APIs might require.", FCVAR_PROTECTED);
 	gCV_Source = new Convar("shavit_zones_json_src", "http", "A string used by plugins to identify where a zone came from (http, sourcejump, sql, etc)");
 	gCV_Folder = new Convar("shavit_zones_json_folder", "0", "Whether to use a local folder for json zones instead of the http URL.\n0 - use HTTP stuff...\n1 - use folder of JSON zones at `addons/sourcemod/data/zones-{engine}/x/{map}.json`");
@@ -497,8 +497,10 @@ public Action Command_DumpZones(int client, int args)
 
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];
 	GetLowercaseMapName(map);
-	BuildPath(Path_SM, path, sizeof(path), "data/zones-cstrike/x/%s.json", map);
+	BuildPath(Path_SM, path, sizeof(path), "data/zones-cstrike/z/%s.json", map);
 	wow.ToFile(path, JSON_SORT_KEYS);
+	delete wow;
+	Shavit_PrintToChat(client, "Dumped zones to %s", path);
 
 	return Plugin_Handled;
 }
