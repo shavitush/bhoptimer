@@ -2056,11 +2056,13 @@ public Action Command_AddSpawn(int client, int args)
 		return Plugin_Handled;
 	}
 
+#if 0
 	if (!gCV_SQLZones.BoolValue)
 	{
 		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
+#endif
 
 	return DisplayCustomSpawnMenu(client);
 }
@@ -2244,11 +2246,13 @@ public Action Command_ZoneEdit(int client, int args)
 		return Plugin_Handled;
 	}
 
+#if 0
 	if (!gCV_SQLZones.BoolValue)
 	{
 		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
+#endif
 
 	Reset(client);
 
@@ -2262,11 +2266,13 @@ public Action Command_HookZone(int client, int args)
 		return Plugin_Handled;
 	}
 
+#if 0
 	if (!gCV_SQLZones.BoolValue)
 	{
 		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
+#endif
 
 	OpenHookMenu_Form(client);
 	return Plugin_Handled;
@@ -2498,11 +2504,13 @@ public Action Command_Zones(int client, int args)
 		return Plugin_Handled;
 	}
 
+#if 0
 	if (!gCV_SQLZones.BoolValue)
 	{
 		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
+#endif
 
 	Reset(client);
 
@@ -3139,7 +3147,7 @@ Action OpenEditMenu(int client, int pos = 0)
 			Format(sDisplay, sizeof(sDisplay), "%s %T", sDisplay, "ZoneInside", client);
 		}
 
-		menu.AddItem(sInfo, sDisplay, StrEqual(gA_ZoneCache[i].sSource, "sql") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+		menu.AddItem(sInfo, sDisplay, ITEMDRAW_DEFAULT);
 	}
 
 	menu.ExitBackButton = true;
@@ -3425,11 +3433,13 @@ public Action Command_DeleteZone(int client, int args)
 		return Plugin_Handled;
 	}
 
+#if 0
 	if (!gCV_SQLZones.BoolValue)
 	{
 		Shavit_PrintToChat(client, "%T", "ZonesNotSQL", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 		return Plugin_Handled;
 	}
+#endif
 
 	return OpenDeleteMenu(client);
 }
@@ -3491,7 +3501,7 @@ Action OpenDeleteMenu(int client, int pos = 0)
 				Format(sDisplay, sizeof(sDisplay), "%s %T", sDisplay, "ZoneInside", client);
 			}
 
-			menu.AddItem(sInfo, sDisplay, StrEqual(gA_ZoneCache[i].sSource, "sql") ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+			menu.AddItem(sInfo, sDisplay, ITEMDRAW_DEFAULT);
 		}
 	}
 
@@ -4431,7 +4441,18 @@ void InsertZone(int client)
 	// normalize zone points...
 	FillBoxMinMax(c.fCorner1, c.fCorner2, c.fCorner1, c.fCorner2);
 
+	Reset(client);
+
+	if (!gCV_SQLZones.BoolValue)
+	{
+		c.sSource = "folder?";
+		c.iDatabaseID = GetTime();
+	}
+
 	Shavit_AddZone(c);
+
+	if (!gCV_SQLZones.BoolValue)
+		return;
 
 	if (c.iDatabaseID == -1) // insert
 	{
@@ -4499,8 +4520,6 @@ void InsertZone(int client)
 			(gI_Driver != Driver_sqlite) ? "id" : "rowid", c.iDatabaseID
 		);
 	}
-
-	Reset(client);
 
 	DataPack pack = new DataPack();
 	// TODO Sourcemod 1.11 pack.WriteCellArray
