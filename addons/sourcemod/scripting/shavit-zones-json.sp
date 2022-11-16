@@ -69,6 +69,25 @@ char gS_ZonesForMap[PLATFORM_MAX_PATH];
 char gS_EngineName[16];
 ArrayList gA_Zones = null;
 
+enum struct MapInfoTrack
+{
+	int tier; // 0 = unknown
+	// -1 = unknown | 0 = false | 1 = true | 2 = really hard
+	int possible_on_scroll;
+	int possible_on_400vel;
+	int possible_on_stamina;
+}
+
+static char gS_InfoDescripters[][] = {
+	"Unknown",
+	"False",
+	"True",
+	"Really hard",
+};
+
+int gI_MapInfoTrack[MAXPLAYERS+1];
+MapInfoTrack gA_TrackInfo[TRACKS_SIZE];
+
 Convar gCV_Enable = null;
 Convar gCV_UseRipext = null;
 Convar gCV_ApiUrl = null;
@@ -118,6 +137,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateDirectory(dir, 1 | 4 | 8 | 32 | 64 | 128 | 256);
 	StrCat(dir, sizeof(dir), "/z");
 	CreateDirectory(dir, 1 | 4 | 8 | 32 | 64 | 128 | 256);
+	dir[strlen(dir)-1] = 'i';
+	CreateDirectory(dir, 1 | 4 | 8 | 32 | 64 | 128 | 256);
 
 	RegPluginLibrary("shavit-zones-json");
 	return APLRes_Success;
@@ -125,6 +146,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
+
 	gCV_Enable = new Convar("shavit_zones_json_enable", "1", "Whether to enable this or not...", 0, true, 0.0, true, 1.0);
 	gCV_UseRipext = new Convar("shavit_zones_json_ripext", "1", "Whether to use ripext or steamworks", 0, true, 0.0, true, 1.0);
 	gCV_ApiUrl = new Convar("shavit_zones_json_url", "http://zones-{engine}.srcwr.com/z/{map}.json", "API URL. Will replace `{map}`, `{key}`, and `{engine}` with the mapname, api key, and engine name....\nOther example urls:\n  https://srcwr.github.io/zones-{engine}/z/{map}.json\n  https://sourcejump.net/api/v2/maps/{map}/zones", FCVAR_PROTECTED);
@@ -135,6 +158,7 @@ public void OnPluginStart()
 	Convar.AutoExecConfig();
 
 	RegAdminCmd("sm_dumpzones", Command_DumpZones, ADMFLAG_RCON, "Dumps current map's zones to a json file");
+	RegAdminCmd("sm_editmi", Command_EditMapInfo, ADMFLAG_RCON, "Edits current map's info and dumps to a json file");
 
 	if (gB_Late)
 	{
@@ -495,12 +519,186 @@ public Action Command_DumpZones(int client, int args)
 		delete obj;
 	}
 
-	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];
-	GetLowercaseMapName(map);
-	BuildPath(Path_SM, path, sizeof(path), "data/zones-cstrike/z/%s.json", map);
+	char path[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, path, sizeof(path), "data/zones-%s/z/%s.json", gS_EngineName, gS_Map);
 	wow.ToFile(path, JSON_SORT_KEYS);
 	delete wow;
 	Shavit_PrintToChat(client, "Dumped zones to %s", path);
+
+	return Plugin_Handled;
+}
+
+int MaybeInt(JSONObject json, const char[] key, int defaultttt=0) // TODO: remove
+{
+	if (json && json.HasKey(key)) return json.GetInt(key);
+	return defaultttt;
+}
+
+void JsonToMapInfo(JSONArray arr)
+{
+	for (int i = 0; i < TRACKS_SIZE; i++)
+	{
+		JSONObject obj = (arr.Length > i && !arr.IsNull(i)) ? view_as<JSONObject>(arr.Get(i)) : null;
+		gA_TrackInfo[i].tier = MaybeInt(obj, "tier", 0);
+		gA_TrackInfo[i].possible_on_scroll  = MaybeInt(obj, "possible_on_scroll", -1);
+		gA_TrackInfo[i].possible_on_400vel  = MaybeInt(obj, "possible_on_400vel", -1);
+		gA_TrackInfo[i].possible_on_stamina = MaybeInt(obj, "possible_on_stamina", -1);
+		delete obj;
+	}
+}
+
+JSONObject MapInfoToJson(MapInfoTrack info)
+{
+	JSONObject json = new JSONObject();
+	if (info.tier > 0) json.SetInt("tier", info.tier);
+	if (info.possible_on_scroll > -1) json.SetInt("possible_on_scroll", info.possible_on_scroll);
+	if (info.possible_on_400vel > -1) json.SetInt("possible_on_400vel", info.possible_on_400vel);
+	if (info.possible_on_stamina > -1) json.SetInt("possible_on_stamina", info.possible_on_stamina);
+	if (json.Size < 1) delete json;
+	return json;
+}
+
+int MenuHandler_MapInfo(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[32];
+		menu.GetItem(param2, info, sizeof(info));
+		int track = gI_MapInfoTrack[param1];
+
+		if (StrEqual(info, "save"))
+		{
+			JSONArray arr = new JSONArray();
+			JSONObject empty = new JSONObject();
+
+			for (int i, empties; i < TRACKS_SIZE; i++)
+			{
+				JSONObject obj = MapInfoToJson(gA_TrackInfo[i]);
+
+				if (!obj)
+				{
+					++empties;
+					continue;
+				}
+		
+				for (; empties; --empties)
+					arr.Push(empty);
+				arr.Push(obj);
+				delete obj;
+			}
+
+			delete empty;
+
+			if (!arr.Length)
+			{
+				delete arr;
+				Shavit_PrintToChat(param1, "Empty map info array... doing nothing");
+				return 0;
+			}
+
+			char path[PLATFORM_MAX_PATH];
+			BuildPath(Path_SM, path, sizeof(path), "data/zones-%s/i/%s.json", gS_EngineName, gS_Map);
+			arr.ToFile(path);
+			char buff[512];
+			arr.ToString(buff, sizeof(buff));
+			PrintToServer("%s", buff);
+			delete arr;
+			Shavit_PrintToChat(param1, "Wrote mapinfo to %s", path);
+
+			return 0;
+		}
+		else if (StrEqual(info, "back2main"))
+		{
+			gI_MapInfoTrack[param1] = 0;
+		}
+		else if (StrEqual(info, "trackiter"))
+		{
+			gI_MapInfoTrack[param1] = (track + 1) % TRACKS_SIZE;
+		}
+		else if (StrEqual(info, "tier"))
+		{
+			gA_TrackInfo[track].tier = (gA_TrackInfo[track].tier + 1) % 11; // hardcode 10 lol
+		}
+		else if (StrEqual(info, "scroll"))
+		{
+			gA_TrackInfo[track].possible_on_scroll += 1;
+			if (gA_TrackInfo[track].possible_on_scroll > 2)
+				gA_TrackInfo[track].possible_on_scroll = -1;
+		}
+		else if (StrEqual(info, "400vel"))
+		{
+			gA_TrackInfo[track].possible_on_400vel += 1;
+			if (gA_TrackInfo[track].possible_on_400vel > 2)
+				gA_TrackInfo[track].possible_on_400vel = -1;
+		}
+		else if (StrEqual(info, "stamina"))
+		{
+			gA_TrackInfo[track].possible_on_stamina += 1;
+			if (gA_TrackInfo[track].possible_on_stamina > 2)
+				gA_TrackInfo[track].possible_on_stamina = -1;
+		}
+
+		CreateMapInfoMenu(param1);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void CreateMapInfoMenu(int client)
+{
+	Menu menu = new Menu(MenuHandler_MapInfo);
+	menu.SetTitle("Map info\n ");
+
+	char display[128];
+	int track = gI_MapInfoTrack[client];
+	int tier = gA_TrackInfo[track].tier;
+
+	menu.AddItem("save", "Save\n ");
+	menu.AddItem("back2main", "Back to Main track",
+		track > 0 ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+
+	GetTrackName(client, track, display, sizeof(display), true);
+	Format(display, sizeof(display), "Track: %s\n ", display);
+	menu.AddItem("trackiter", display);
+
+	FormatEx(display, sizeof(display), "Track Tier: %d%s", tier, tier < 1 ? " (unknown)" : "");
+	menu.AddItem("tier", display);
+
+	FormatEx(display, sizeof(display), "Possible on Scroll:  %s", gS_InfoDescripters[1 + gA_TrackInfo[track].possible_on_scroll]);
+	menu.AddItem("scroll", display);
+	FormatEx(display, sizeof(display), "Possible on 400vel:  %s", gS_InfoDescripters[1 + gA_TrackInfo[track].possible_on_400vel]);
+	menu.AddItem("400vel", display);
+	FormatEx(display, sizeof(display), "Possible on Stamina: %s\n ", gS_InfoDescripters[1 + gA_TrackInfo[track].possible_on_stamina]);
+	menu.AddItem("stamina", display);
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public Action Command_EditMapInfo(int client, int args)
+{
+	if (!client)
+	{
+		ReplyToCommand(client, "You're not real");
+		return Plugin_Handled;
+	}
+
+	char path[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, path, sizeof(path), "data/zones-%s/i/%s.json", gS_EngineName, gS_Map);
+
+	JSONArray arr = JSONArray.FromFile(path);
+	if (!arr) arr = new JSONArray();
+	JsonToMapInfo(arr);
+	delete arr;
+
+	int empty[MAXPLAYERS+1];
+	gI_MapInfoTrack = empty;
+
+	CreateMapInfoMenu(client);
 
 	return Plugin_Handled;
 }
