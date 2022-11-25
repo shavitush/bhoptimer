@@ -171,7 +171,7 @@ stock float GetThetaAngleInAir(float flVelocity[2], float flAirAccelerate, float
 	return flMaxDelta;
 }*/
 
-stock float SimulateAirAccelerate(float flVelocity[2], float flWishDir[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, float flVelocityOutput[2], float flAirSpeedCap)
+stock void SimulateAirAccelerate(float flVelocity[2], float flWishDir[2], float flAirAccelerate, float flMaxSpeed, float flSurfaceFriction, float flFrametime, float flVelocityOutput[2], float flAirSpeedCap)
 {
 	float flWishSpeedCapped = flMaxSpeed;
 
