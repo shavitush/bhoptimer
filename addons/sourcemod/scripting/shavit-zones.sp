@@ -4936,6 +4936,8 @@ public Action Shavit_OnStart(int client, int track)
 	{
 		ResetClientTargetNameAndClassName(client, track);
 	}
+
+	return Plugin_Continue;
 }
 
 public void Shavit_OnRestart(int client, int track)
