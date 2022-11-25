@@ -44,16 +44,10 @@ jobs:
             spcomp $src -o=plugins/$(basename $src .sp)'.smx' -i=scripting/include -v2
           done
 
-      # https://stackoverflow.com/a/58035262
-      - name: extract branch name
-        shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
-        id: extract_branch
-
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: bhoptimer-${{ steps.extract_branch.outputs.branch }}-sm${{ matrix.sm-version }}-${{ env.GITHUB_SHA_SHORT }}
+          name: bhoptimer-${{ github.head_ref || github.ref_name }}-sm${{ matrix.sm-version }}-${{ env.GITHUB_SHA_SHORT }}
           path: |
             addons
             materials
