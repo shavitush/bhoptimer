@@ -480,7 +480,7 @@ bool SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 	if (saveCopy)
 	{
 		FormatEx(sPath, sPathLen, "%s/copy/%d_%d_%s.replay", gS_ReplayFolder, timestamp, steamid, gS_Map);
-	
+
 		if (!(fCopy = OpenFile(sPath, "wb+")))
 		{
 			LogError("Failed to open 'copy' replay file for writing. ('%s')", sPath);
@@ -494,7 +494,7 @@ bool SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 		// I'm not really sure how we could reach this though as
 		//  `Shavit_Replay_CreateDirectories` should have failed if it couldn't create
 		//  a test file.
-		FormatEx(sPath, sPathLen, "%s/%d_%d_%s%s.replay", gS_ReplayFolder, style, GetURandomInt() % 99, gS_Map, (track > 0)? sTrack:"");
+		FormatEx(sPath, sPathLen, "%s/%d_%s%s_%d.replay", gS_ReplayFolder, style, gS_Map, sTrack, iSize-preframes-postframes);
 
 		if (!(fWR = OpenFile(sPath, "wb+")))
 		{
