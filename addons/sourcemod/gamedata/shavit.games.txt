@@ -308,8 +308,8 @@
 			// https://asherkin.github.io/vtable/
 			"CBaseTrigger::PassesTriggerFilters"
 			{
-				"windows"   "204"
-				"linux"     "205"
+				"windows"   "207"
+				"linux"     "208"
 			}
 			// https://asherkin.github.io/vtable/
 			"CGameRules::IsSpawnPointValid"
@@ -320,8 +320,8 @@
 			// https://asherkin.github.io/vtable/
 			"CBasePlayer::UpdateStepSound"
 			{
-				"windows"   "365"
-				"linux"     "366"
+				"windows"   "368"
+				"linux"     "369"
 			}
 		}
 
@@ -331,7 +331,7 @@
 			// Then the call to PreventBunnyJumping is right above the string reference somewhere...
 			"CTFGameMovement::PreventBunnyJumping"
 			{
-				"windows"  "\x56\x8B\xF1\x6A\x52\x8B\x8E\x2A\x2A\x2A\x2A\x81\xC1\xB0\x19\x00\x00\xE8\x2A\x2A\x2A\x2A\x84\xC0\x75"
+				"windows"  "\x56\x8B\xF1\x6A\x52\x8B\x8E\x2A\x2A\x2A\x2A\x81\xC1\xE0\x1A\x00\x00\xE8\x2A\x2A\x2A\x2A\x84\xC0\x75"
 				"linux"    "@_ZN15CTFGameMovement19PreventBunnyJumpingEv"
 			}
 			// search string: "Usage:  setang_exact pitch yaw" to find setang_exact's handler. Then the last function call in the handler is DoAnimationEvent.
@@ -356,7 +356,7 @@
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
 			"PhysicsCheckForEntityUntouch"
 			{
-				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x8B\x86\x2A\x2A\x2A\x2A\xD1\xE8"
+				"windows"   "\x55\x8B\xEC\x57\x8B\x7D\x2A\x85\xFF\x0F\x84\x2A\x2A\x2A\x2A\x8B\x87"
 				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 			}
 			// search string: "scoreboard_minigame"
@@ -369,7 +369,7 @@
 			// function with one argument is PhysicsRemoveTouchedList
 			"PhysicsRemoveTouchedList"
 			{
-				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\x7D\x08\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01\x0F\x84"
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x53\x8B\x5D\x2A\x8B\x83"
 				"linux"     "@_ZN11CBaseEntity24PhysicsRemoveTouchedListEPS_"
 			}
 		}
