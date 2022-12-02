@@ -1884,20 +1884,6 @@ public int Native_ChangeClientStyle(Handle handler, int numParams)
 	return false;
 }
 
-public Action Shavit_OnFinishPre(int client, timer_snapshot_t snapshot)
-{
-	float minimum_time = GetStyleSettingFloat(snapshot.bsStyle, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
-
-	if (snapshot.fCurrentTime < minimum_time)
-	{
-		Shavit_PrintToChat(client, "%T", "TimeUnderMinimumTime", client, minimum_time, snapshot.fCurrentTime, snapshot.iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
-		Shavit_StopTimer(client);
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
 void CalculateRunTime(timer_snapshot_t s, bool include_end_offset)
 {
 	float ticks = float(s.iFullTicks) + (s.iFractionalTicks / 10000.0);
@@ -1943,8 +1929,13 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	CalculateRunTime(gA_Timers[client], true);
 
-	if (gA_Timers[client].fCurrentTime <= 0.11)
+	float minimum_time = GetStyleSettingFloat(gA_Timers[client].bsStyle, gA_Timers[client].iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
+	float current_time = gA_Timers[client].fCurrentTime;
+
+	if (current_time <= 0.11 || current_time < minimum_time)
 	{
+		Shavit_PrintToChat(client, "%T", (current_time <= 0.11) ? "TimeUnderMinimumTime2" : "TimeUnderMinimumTime", client, (current_time <= 0.11) ? 0.11 : minimum_time, current_time,
+		gA_Timers[client].iTimerTrack == Track_Main ? "minimum_time" : "minimum_time_bonus");
 		Shavit_StopTimer(client);
 		return 0;
 	}

@@ -40,6 +40,11 @@
 		"#format"   "{1:f},{2:f},{3:s}"
 		"en"        "Your time ({2}) was faster than the style's {3} setting ({1}) and did not count."
 	}
+	"TimeUnderMinimumTime2"
+	{
+		"#format"   "{1:f},{2:f}"
+		"en"        "Your time ({2}) was faster or equal to the timer's minimum ({1}) and did not count."
+	}
 	// ---------- Menus ---------- //
 	"StyleMenuTitle"
 	{
