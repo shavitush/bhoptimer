@@ -2563,10 +2563,11 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	}
 
 	bool bEveryone = (iOverwrite > 0);
+	bool bIsWR = (iOverwrite > 0 && (time < gF_WRTime[style][track] || gF_WRTime[style][track] == 0.0));
 	char sMessage[255];
 	char sMessage2[255];
 
-	if(iOverwrite > 0 && (time < gF_WRTime[style][track] || gF_WRTime[style][track] == 0.0)) // WR?
+	if(bIsWR)
 	{
 		float fOldWR = gF_WRTime[style][track];
 		gF_WRTime[style][track] = time;
@@ -2600,36 +2601,6 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		#if defined DEBUG
 		Shavit_PrintToChat(client, "old: %.01f new: %.01f", fOldWR, time);
 		#endif
-
-		Transaction trans = new Transaction();
-		char query[512];
-
-		FormatEx(query, sizeof(query),
-			"DELETE FROM `%sstagetimeswr` WHERE style = %d AND track = %d AND map = '%s';",
-			gS_MySQLPrefix, style, track, gS_Map
-		);
-
-		AddQueryLog(trans, query);
-
-		for (int i = 0; i < MAX_STAGES; i++)
-		{
-			float fTime = gA_StageTimes[client][i];
-			gA_StageWR[style][track][i] = fTime;
-
-			if (fTime == 0.0)
-			{
-				continue;
-			}
-
-			FormatEx(query, sizeof(query),
-				"INSERT INTO `%sstagetimeswr` (`style`, `track`, `map`, `auth`, `time`, `stage`) VALUES (%d, %d, '%s', %d, %f, %d);",
-				gS_MySQLPrefix, style, track, gS_Map, iSteamID, fTime, i
-			);
-
-			AddQueryLog(trans, query);
-		}
-
-		gH_SQL.Execute(trans, Trans_ReplaceStageTimes_Success, Trans_ReplaceStageTimes_Error, 0, DBPrio_High);
 	}
 
 	int iRank = GetRankForTime(style, time, track);
@@ -2669,7 +2640,35 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	{
 		float fPoints = gB_Rankings ? Shavit_GuessPointsForTime(track, style, -1, time, gF_WRTime[style][track]) : 0.0;
 
+		Transaction trans = new Transaction();
 		char sQuery[1024];
+
+		FormatEx(sQuery, sizeof(sQuery), "CREATE TEMPORARY TABLE IF NOT EXISTS `Insert_Stages` (`playertimes_id` INT, `stage` TINYINT NOT NULL, `time` FLOAT NOT NULL);");
+		AddQueryLog(trans, sQuery);
+
+		FormatEx(sQuery, sizeof(sQuery), "DELETE FROM `Insert_Stages`;");
+		AddQueryLog(trans, sQuery);
+
+		for (int i = 0; i < MAX_STAGES; i++)
+		{
+			float fTime = gA_StageTimes[client][i];
+
+			if(bIsWR)
+			{
+				gA_StageWR[style][track][i] = fTime;
+			}
+
+			if (fTime == 0.0)
+			{
+				continue;
+			}
+
+			FormatEx(sQuery, sizeof(sQuery),
+				"INSERT INTO `Insert_Stages` (`stage`, `time`) VALUES (%d, %f);",
+				i, fTime
+			);
+			AddQueryLog(trans, sQuery);
+		}
 
 		if(iOverwrite == 1) // insert
 		{
@@ -2679,6 +2678,18 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			FormatEx(sQuery, sizeof(sQuery),
 				"INSERT INTO %splayertimes (auth, map, time, jumps, date, style, strafes, sync, points, track, perfs) VALUES (%d, '%s', %.9f, %d, %d, %d, %d, %.2f, %f, %d, %.2f);",
 				gS_MySQLPrefix, iSteamID, gS_Map, time, jumps, timestamp, style, strafes, sync, fPoints, track, perfs);
+			AddQueryLog(trans, sQuery);
+
+			// Will affect 0 rows on linear/unstaged maps
+			// TODO: Needs PostgreSQL support
+			FormatEx(sQuery, sizeof(sQuery), "UPDATE `Insert_Stages` SET `playertimes_id` = %s;", gI_Driver == Driver_mysql ? "LAST_INSERT_ID()" : "last_insert_rowid()");
+			AddQueryLog(trans, sQuery);
+
+			FormatEx(sQuery, sizeof(sQuery),
+				"INSERT INTO `%sstagetimes` (playertimes_id, stage, time) SELECT playertimes_id, stage, time FROM `Insert_Stages`;",
+				gS_MySQLPrefix
+			);
+			AddQueryLog(trans, sQuery);
 		}
 		else // update
 		{
@@ -2688,9 +2699,26 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			FormatEx(sQuery, sizeof(sQuery),
 				"UPDATE %splayertimes SET time = %.9f, jumps = %d, date = %d, strafes = %d, sync = %.02f, points = %f, perfs = %.2f, completions = completions + 1 WHERE map = '%s' AND auth = %d AND style = %d AND track = %d;",
 				gS_MySQLPrefix, time, jumps, timestamp, strafes, sync, fPoints, perfs, gS_Map, iSteamID, style, track);
+			AddQueryLog(trans, sQuery);
+
+			// Will affect 0 rows on linear/unstaged maps
+			FormatEx(sQuery, sizeof(sQuery), "UPDATE `Insert_Stages` SET `playertimes_id` = (SELECT id FROM `%splayertimes` WHERE map = '%s' AND auth = %d AND style = %d AND track = %d);",
+			gS_MySQLPrefix, gS_Map, iSteamID, style, track);
+			AddQueryLog(trans, sQuery);
+
+			// Delete all stage times first (safer than an UPDATE in unexpected cases where the new completion has fewer/no stage times, e.g. bad zoning)
+			FormatEx(sQuery, sizeof(sQuery), "DELETE FROM `%sstagetimes` WHERE playertimes_id IN (SELECT id FROM `%splayertimes` WHERE map = '%s' AND auth = %d AND style = %d AND track = %d);",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map, iSteamID, style, track);
+			AddQueryLog(trans, sQuery);
+
+			FormatEx(sQuery, sizeof(sQuery),
+				"INSERT INTO `%sstagetimes` (playertimes_id, stage, time) SELECT playertimes_id, stage, time FROM `Insert_Stages`;",
+				gS_MySQLPrefix
+			);
+			AddQueryLog(trans, sQuery);
 		}
 
-		QueryLog(gH_SQL, SQL_OnFinish_Callback, sQuery, GetClientSerial(client), DBPrio_High);
+		gH_SQL.Execute(trans, Trans_OnFinishTimes_Success, Trans_OnFinishTimes_Error, GetClientSerial(client), DBPrio_High);
 
 		Call_StartForward(gH_OnFinish_Post);
 		Call_PushCell(client);
@@ -2806,15 +2834,8 @@ public void SQL_OnIncrementCompletions_Callback(Database db, DBResultSet results
 	}
 }
 
-public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[] error, any data)
+public void Trans_OnFinishTimes_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	if(results == null)
-	{
-		LogError("Timer (WR OnFinish) SQL query failed. Reason: %s", error);
-
-		return;
-	}
-
 	int client = GetClientFromSerial(data);
 
 	if(client == 0)
@@ -2825,14 +2846,9 @@ public void SQL_OnFinish_Callback(Database db, DBResultSet results, const char[]
 	UpdateWRCache(client);
 }
 
-public void Trans_ReplaceStageTimes_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+public void Trans_OnFinishTimes_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
 {
-	return;
-}
-
-public void Trans_ReplaceStageTimes_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
-{
-	LogError("Timer (ReplaceStageTimes) SQL query failed %d/%d. Reason: %s", failIndex, numQueries, error);
+	LogError("Timer (WR OnFinish) SQL query failed %d/%d. Reason: %s", failIndex, numQueries, error);
 }
 
 void UpdateLeaderboards()
