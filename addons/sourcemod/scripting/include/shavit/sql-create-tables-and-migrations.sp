@@ -53,6 +53,7 @@ enum
 	Migration_DeprecateExactTimeInt,
 	Migration_AddPlayertimesAuthFK,
 	Migration_FixSQLiteMapzonesROWID,
+	Migration_NormalizeStageTimes,
 	MIGRATIONS_END
 };
 
@@ -87,6 +88,7 @@ char gS_MigrationNames[][] = {
 	"DeprecateExactTimeInt",
 	"AddPlayertimesAuthFK",
 	"FixSQLiteMapzonesROWID",
+	"NormalizeStageTimes",
 };
 
 static Database gH_SQL;
@@ -217,7 +219,7 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE TABLE IF NOT EXISTS `%sstagetimeswr` (`style` TINYINT NOT NULL, `track` TINYINT NOT NULL DEFAULT 0, `map` VARCHAR(255) NOT NULL, `stage` TINYINT NOT NULL, `auth` INT NOT NULL, `time` FLOAT NOT NULL, PRIMARY KEY (`style`, `track`, `map`, `stage`)) %s;",
+		"CREATE TABLE IF NOT EXISTS `%sstagetimes` (`playertimes_id` INT NOT NULL, `stage` TINYINT NOT NULL, `time` FLOAT NOT NULL, PRIMARY KEY (`playertimes_id`, `stage`), FOREIGN KEY(`playertimes_id`) REFERENCES playertimes (`id`) ON UPDATE CASCADE ON DELETE CASCADE) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
 	AddQueryLog(trans, sQuery);
 
@@ -385,6 +387,7 @@ void ApplyMigration(int migration)
 		case Migration_DeprecateExactTimeInt: ApplyMigration_DeprecateExactTimeInt();
 		case Migration_AddPlayertimesAuthFK: ApplyMigration_AddPlayertimesAuthFK();
 		case Migration_FixSQLiteMapzonesROWID: ApplyMigration_FixSQLiteMapzonesROWID();
+		case Migration_NormalizeStageTimes: ApplyMigration_NormalizeStageTimes();
 	}
 }
 
@@ -522,6 +525,75 @@ void ApplyMigration_NormalizeMapzonePoints() // TODO: test with sqlite lol
 	);
 
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_NormalizeMapzonePoints, DBPrio_High);
+}
+
+void ApplyMigration_NormalizeStageTimes()
+{
+	char sQuery[192];
+	// Check if stagetimeswr exists before migration (it does not on fresh installs)
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "SHOW TABLES LIKE '%sstagetimeswr';", gS_SQLPrefix);
+	}
+	else if (gI_Driver == Driver_sqlite)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "SELECT 1 FROM sqlite_master WHERE type='table' AND name='%sstagetimeswr';", gS_SQLPrefix);
+	}
+	else // PostgreSQL unaffected
+	{
+		InsertMigration(Migration_NormalizeStageTimes);
+	}
+
+	QueryLog(gH_SQL, SQL_NormalizeStageTimes_Callback, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_NormalizeStageTimes_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("Timer error! Existence detection of %sstagetimeswr failed. Reason: %s", gS_SQLPrefix, error);
+		return;
+	}
+
+	if (results.FetchRow()) //stagetimeswr exists
+	{
+		Transaction trans = new Transaction();
+		char sQuery[512];
+
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO `%sstagetimes` (playertimes_id, stage, time) \
+			SELECT \
+				PT.id AS `playertimes_id`, \
+				STWR.stage, \
+				STWR.time \
+			FROM `%splayertimes` AS `PT` \
+				INNER JOIN `%sstagetimeswr` AS `STWR` ON PT.auth = STWR.auth \
+				AND PT.map = STWR.map \
+				AND PT.track = STWR.track \
+				AND PT.style = STWR.style;",
+				gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
+		);
+		AddQueryLog(trans, sQuery);
+
+		FormatEx(sQuery, sizeof(sQuery), "DROP TABLE `%sstagetimeswr`;", gS_SQLPrefix);
+		AddQueryLog(trans, sQuery);
+
+		gH_SQL.Execute(trans, Trans_NormalizeStageTimes_Success, Trans_NormalizeStageTimes_Error, 0, DBPrio_High);
+	}
+	else
+	{
+		InsertMigration(Migration_NormalizeStageTimes);
+	}
+}
+
+public void Trans_NormalizeStageTimes_Success(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+{
+	InsertMigration(Migration_NormalizeStageTimes);
+}
+
+public void Trans_NormalizeStageTimes_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer error! NormalizeStageTimes migration transaction failed. Reason: %s", error);
 }
 
 void ApplyMigration_AddMapzonesForm()
