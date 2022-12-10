@@ -575,9 +575,10 @@ void UpdateWRCache(int client = -1)
 	char sQuery[512];
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT style, track, auth, stage, time FROM `%sstagetimeswr` WHERE map = '%s';",
-		gS_MySQLPrefix, gS_Map);
-
+			"SELECT WR.style, WR.track, ST.stage, ST.time \
+			FROM `%sstagetimes` AS `ST`	INNER JOIN `%swrs` AS `WR` ON WR.id = ST.playertimes_id \
+			WHERE WR.map = '%s';",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 	QueryLog(gH_SQL, SQL_UpdateWRStageTimes_Callback, sQuery);
 }
 
@@ -604,9 +605,9 @@ public void SQL_UpdateWRStageTimes_Callback(Database db, DBResultSet results, co
 	{
 		int style = results.FetchInt(0);
 		int track = results.FetchInt(1);
-		int stage = results.FetchInt(3);
+		int stage = results.FetchInt(2);
 
-		gA_StageWR[style][track][stage] = results.FetchFloat(4);
+		gA_StageWR[style][track][stage] = results.FetchFloat(3);
 	}
 }
 
