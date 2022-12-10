@@ -126,6 +126,14 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 		sOptionalINNODB = "ENGINE=INNODB";
 	}
 
+	// Enable foreign key constraints for SQLite (e.g. CASCADE DELETE)
+	// No-op within a transaction, so has to be its own query
+	if (driver == Driver_sqlite)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "PRAGMA foreign_keys = ON");
+		QueryLog(gH_SQL, SQL_PragmaFKSqlite_Callback, sQuery, 0, DBPrio_High);
+	}
+
 	//
 	//// shavit-core
 	//
@@ -264,6 +272,14 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 	AddQueryLog(trans, sQuery);
 
 	hSQL.Execute(trans, Trans_CreateTables_Success, Trans_CreateTables_Error, 0, DBPrio_High);
+}
+
+public void SQL_PragmaFKSqlite_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		SetFailState("Timer failed to enable foreign key constraints (SQLite). Reason: %s", error);
+	}
 }
 
 public void Trans_CreateTables_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
