@@ -2926,6 +2926,13 @@ public Action Shavit_OnStageMessage(int client, int stageNumber, char[] message,
 
 	gA_StageTimes[client][stageNumber] = stageTime;
 
+	// Don't show ANY stage message if 0.0
+	// (e.g. if stage zone intersects with start zone)
+	if (stageTime == 0.0)
+	{
+		return Plugin_Handled;
+	}
+
 	if (stageTimeWR == 0.0)
 	{
 		return Plugin_Continue;
