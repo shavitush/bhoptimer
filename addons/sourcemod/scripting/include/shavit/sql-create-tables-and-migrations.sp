@@ -542,6 +542,7 @@ void ApplyMigration_NormalizeStageTimes()
 	else // PostgreSQL unaffected
 	{
 		InsertMigration(Migration_NormalizeStageTimes);
+		return;
 	}
 
 	QueryLog(gH_SQL, SQL_NormalizeStageTimes_Callback, sQuery, 0, DBPrio_High);

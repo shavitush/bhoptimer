@@ -575,9 +575,9 @@ void UpdateWRCache(int client = -1)
 	char sQuery[512];
 
 	FormatEx(sQuery, sizeof(sQuery),
-			"SELECT WR.style, WR.track, ST.stage, ST.time \
+			"SELECT WR.style, WR.track, ST.stage, %s \
 			FROM `%sstagetimes` AS `ST`	INNER JOIN `%swrs` AS `WR` ON WR.id = ST.playertimes_id \
-			WHERE WR.map = '%s';",
+			WHERE WR.map = '%s';", gI_Driver == Driver_mysql ? "REPLACE(FORMAT(ST.time, 9), ',', '')" : "printf(\"%.9f\", ST.time)",
 			gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 	QueryLog(gH_SQL, SQL_UpdateWRStageTimes_Callback, sQuery);
 }
@@ -2664,7 +2664,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			}
 
 			FormatEx(sQuery, sizeof(sQuery),
-				"INSERT INTO `Insert_Stages` (`stage`, `time`) VALUES (%d, %f);",
+				"INSERT INTO `Insert_Stages` (`stage`, `time`) VALUES (%d, %.9f);",
 				i, fTime
 			);
 			AddQueryLog(trans, sQuery);
