@@ -976,7 +976,7 @@ void UpdatePointsForSinglePlayer(int client)
 		FormatEx(sQuery, sizeof(sQuery),
 		    "UPDATE %susers SET points = (\n"
 		... "  SELECT SUM(points2) FROM (\n"
-		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) -1)) as points2\n"
+		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
 		... "    FROM %splayertimes\n"
 		... "    WHERE auth = %d AND points > 0\n"
 		... "    ORDER BY points DESC %s\n"
@@ -1062,7 +1062,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			sMapWhere,
 			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
 			sTrackWhere,
-			sLimit);
+			sLimit); // TODO: Remove/move sLimit?
 	}
 	else if (gB_SQLWindowFunctions)
 	{
@@ -1080,9 +1080,9 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			gS_MySQLPrefix,
 			gCV_WeightingMultiplier.FloatValue,
 			gS_MySQLPrefix,
-			gS_MySQLPrefix,
-			sLimit,
+			sLimit, // TODO: Remove/move sLimit?
 			sLastLogin, sLastLogin[0] ? "AND" : "",
+			gS_MySQLPrefix,
 			(sMapWhere[0] || sTrackWhere[0]) ? "WHERE" : "",
 			sMapWhere,
 			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
