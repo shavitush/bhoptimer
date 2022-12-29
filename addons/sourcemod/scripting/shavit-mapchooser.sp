@@ -45,6 +45,9 @@ int gI_Driver = Driver_unknown;
 Database g_hDatabase;
 char g_cSQLPrefix[32];
 
+//Jacob added this
+public bool instantChange = false;
+
 bool g_bDebug;
 
 /* ConVars */
@@ -644,6 +647,7 @@ void InitiateMapVote(MapChange when)
 	int mapsToAdd = maxPageItems;
 	int mapsAdded = 0;
 
+
 	bool add_extend = (g_cvMapVoteExtendLimit.IntValue == -1) || (g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue);
 
 	if (add_extend)
@@ -663,7 +667,7 @@ void InitiateMapVote(MapChange when)
 	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
 
 	int nominateMapsToAdd = (mapsToAdd > g_aNominateList.Length) ? g_aNominateList.Length : mapsToAdd;
-	for(int i = 0; i < nominateMapsToAdd; i++)
+	for(int i = 0; i < nominateMapsToAdd - 1; i++)
 	{
 		g_aNominateList.GetString(i, map, sizeof(map));
 		LessStupidGetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
@@ -680,9 +684,16 @@ void InitiateMapVote(MapChange when)
 		}
 
 		menu.AddItem(map, mapdisplay);
+		/////JACOB ADDED THIS
+		//DebugPrint(map + " " + mapdisplay);
+
 		mapsAdded += 1;
 		mapsToAdd--;
 	}
+
+		////jacob added this too
+	//menu.AddItem("reroll", "Reroll Maps");
+	//mapsAdded += 1;
 
 	if (g_aMapList.Length < mapsToAdd)
 	{
@@ -758,10 +769,14 @@ void InitiateMapVote(MapChange when)
 	if ((when == MapChange_MapEnd && add_extend))
 	{
 		menu.AddItem("extend", "Extend Current Map");
+		menu.AddItem("reroll", "Reroll Maps");
+		instantChange = false;
 	}
 	else if (when == MapChange_Instant)
 	{
 		menu.AddItem("dontchange", "Don't Change");
+		menu.AddItem("reroll", "Reroll Maps");
+		instantChange = true;
 	}
 
 	PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Started");
@@ -903,6 +918,25 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 
 		ClearRTV();
 	}
+	else if(StrEqual(map, "reroll")) /////JACOB ADDED THIS TOO!
+	{
+
+		PrintToChatAll("%s%t", g_cPrefix, "ReRolling Maps", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
+		LogAction(-1, -1, "Voting for next map has restarted. Reroll complete.");
+
+
+		g_bMapVoteStarted = false;
+		g_fLastMapvoteTime = GetEngineTime();
+		ClearRTV();
+
+		if (instantChange){
+			InitiateMapVote(MapChange_Instant);
+		}else
+		{
+			InitiateMapVote(MapChange_MapEnd);
+		}
+		
+	}
 	else
 	{
 		int percentage_of_votes = RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100);
@@ -931,7 +965,7 @@ void DoMapChangeAfterMapVote(char map[PLATFORM_MAX_PATH], char displayName[PLATF
 		CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
 		data.WriteString(map);
 		data.WriteString("RTV Mapvote");
-		// ClearRTV();
+		ClearRTV();
 	}
 
 	g_bMapVoteStarted = false;
@@ -2137,9 +2171,9 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 		{
 			menu.GetItem(0, map, sizeof(map));
 			delete menu;
-
+			
 			if (!MapValidOrYell(client, map)) return Plugin_Handled;
-
+	
 			ShowActivity2(client, g_cPrefix, "%t", "Changing map", map);
 			LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
 
