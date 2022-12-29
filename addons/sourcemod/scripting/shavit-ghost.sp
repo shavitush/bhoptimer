@@ -5,6 +5,8 @@
 #define PLUGIN_AUTHOR "CodingCow"
 #define PLUGIN_VERSION "1.00"
 
+#define TIME_TO_TICKS(%1) RoundFloat(0.5 + %1 / GetTickInterval())
+
 #include <sourcemod>
 #include <sdktools>
 #include <cstrike>
@@ -407,15 +409,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 			else if(ghostMode[client] == 1)
 			{
-				int tickrate = Shavit_GetReplayPreFrames(Shavit_GetBhopStyle(client), Shavit_GetClientTrack(client));
-				
+				float AvgLatency = GetClientAvgLatency(client, NetFlow_Outgoing);
+				int AvgLatencyTicks = TIME_TO_TICKS(AvgLatency);
+				int startTick = Shavit_GetReplayPreFrames(Shavit_GetBhopStyle(client), Shavit_GetClientTrack(client)) + AvgLatencyTicks;			
 				if(cmdNum[client] == 0)
-					cmdNum[client] = tickrate;
+					cmdNum[client] = startTick;
 				
 				if(cmdNum[client] > GhostData2[client].Length - 1)
-					cmdNum[client] = tickrate;
+					cmdNum[client] = startTick;
 					
-				if(cmdNum[client] > tickrate && cmdNum[client] < GhostData2[client].Length)
+				if(cmdNum[client] > startTick && cmdNum[client] < GhostData2[client].Length)
 				{
 					float info[8];
 					GhostData2[client].GetArray(cmdNum[client], info, sizeof(info));
