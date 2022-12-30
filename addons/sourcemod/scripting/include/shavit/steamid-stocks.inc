@@ -24,7 +24,15 @@
 #endif
 #define _steamid_stocks_included
 
+#if SOURCEMOD_V_MAJOR > 1 || SOURCEMOD_V_MINOR >= 11
+#else
 static KeyValues kv = null;
+static bool hasi64 = false;
+
+native int Int64ToString(const int num[2], char[] str, int maxlength);
+native int StringToInt64(const char[] str, int result[2], int nBase=10);
+#endif
+
 
 // Retrieves accountid from STEAM_X:Y:Z, [U:1:123], and 765xxxxxxxxxxxxxx
 stock int SteamIDToAccountID(const char[] sInput)
@@ -85,22 +93,52 @@ stock void AccountIDToSteamID3(int accountid, char[] buf, int buflen)
 	FormatEx(buf, buflen, "[U:1:%u]", accountid);
 }
 
-stock void SteamID64ToString(int num[2], char[] buf, int buflen)
+stock void SteamID64ToString(const int num[2], char[] buf, int buflen)
 {
+#if SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 11
+	Int64ToString(num, buf, buflen);
+#else
 	if (kv == null)
+	{
+		if (!hasi64)
+			hasi64 = GetFeatureStatus(FeatureType_Native, "Int64ToString") == FeatureStatus_Available;
+
+		if (hasi64)
+		{
+			Int64ToString(num, buf, buflen);
+			return;
+		}
+
 		kv = new KeyValues("fuck sourcemod");
+	}
 
 	kv.SetUInt64(NULL_STRING, num);
 	kv.GetString(NULL_STRING, buf, buflen);
+#endif
 }
 
 stock int SteamID64ToAccountID(const char[] steamid64)
 {
-	if (kv == null)
-		kv = new KeyValues("fuck sourcemod");
-
 	int num[2];
+#if SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 11
+	StringToInt64(steamid64, num);
+#else
+	if (kv == null)
+	{
+		if (!hasi64)
+			hasi64 = GetFeatureStatus(FeatureType_Native, "StringToInt64") == FeatureStatus_Available;
+
+		if (hasi64)
+		{
+			StringToInt64(steamid64, num);
+			return num[0];
+		}
+
+		kv = new KeyValues("fuck sourcemod");
+	}
+
 	kv.SetString(NULL_STRING, steamid64);
 	kv.GetUInt64(NULL_STRING, num);
+#endif
 	return num[0];
 }

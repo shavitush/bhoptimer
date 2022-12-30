@@ -186,6 +186,7 @@ public void OnPluginStart()
 	// spec
 	RegConsoleCmd("sm_spec", Command_Spec, "Moves you to the spectators' team. Usage: sm_spec [target]");
 	RegConsoleCmd("sm_spectate", Command_Spec, "Moves you to the spectators' team. Usage: sm_spectate [target]");
+	RegConsoleCmd("sm_specbot", Command_SpecBot, "Spectates the replay bot (usually)");
 
 	// hide
 	RegConsoleCmd("sm_hide", Command_Hide, "Toggle players' hiding.");
@@ -206,7 +207,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_practice", Command_Noclip, "Toggles noclip. (sm_nc alias)");
 	RegConsoleCmd("sm_nc", Command_Noclip, "Toggles noclip.");
 	RegConsoleCmd("sm_noclipme", Command_Noclip, "Toggles noclip. (sm_nc alias)");
-	
+
 	// qol
 	RegConsoleCmd("sm_autorestart", Command_AutoRestart, "Toggles auto-restart.");
 	RegConsoleCmd("sm_autoreset", Command_AutoRestart, "Toggles auto-restart.");
@@ -1648,6 +1649,11 @@ public Action Command_Hide(int client, int args)
 	}
 
 	return Plugin_Handled;
+}
+
+public Action Command_SpecBot(int client, int args)
+{
+	return Command_Spec(client, 0);
 }
 
 public Action Command_Spec(int client, int args)

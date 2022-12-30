@@ -190,6 +190,12 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+#if SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 11
+#else
+	MarkNativeAsOptional("Int64ToString");
+	MarkNativeAsOptional("StringToInt64");
+#endif
+
 	new Convar("shavit_core_log_sql", "0", "Whether to log SQL queries from the timer.", 0, true, 0.0, true, 1.0);
 
 	Bhopstats_CreateNatives();

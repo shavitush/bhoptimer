@@ -92,6 +92,12 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+#if SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 11
+#else
+	MarkNativeAsOptional("Int64ToString");
+	MarkNativeAsOptional("StringToInt64");
+#endif
+
 	RegPluginLibrary("shavit-stats");
 
 	gB_Late = late;
