@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - mapchooser aaaaaaa
- * by: various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus
+ * by: various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus, MicrowavedBunny
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -45,8 +45,7 @@ int gI_Driver = Driver_unknown;
 Database g_hDatabase;
 char g_cSQLPrefix[32];
 
-//Jacob added this
-public bool instantChange = false;
+bool gB_instantChange = false;
 
 bool g_bDebug;
 
@@ -76,6 +75,7 @@ Convar g_cvMapVoteDuration;
 Convar g_cvMapVoteBlockMapInterval;
 Convar g_cvMapVoteExtendLimit;
 Convar g_cvMapVoteEnableNoVote;
+Convar g_cvMapVoteEnableReRoll;
 Convar g_cvMapVoteExtendTime;
 Convar g_cvMapVoteShowTier;
 Convar g_cvMapVoteRunOff;
@@ -160,7 +160,7 @@ enum
 public Plugin myinfo =
 {
 	name = "[shavit] MapChooser",
-	author = "various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus",
+	author = "various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus, MicrowavedBunny",
 	description = "Automated Map Voting and nominating with Shavit's bhoptimer integration",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -207,6 +207,7 @@ public void OnPluginStart()
 
 	g_cvMapVoteBlockMapInterval = new Convar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
 	g_cvMapVoteEnableNoVote = new Convar("smc_mapvote_enable_novote", "1", "Whether players are able to choose 'No Vote' in map vote", _, true, 0.0, true, 1.0);
+	g_cvMapVoteEnableReRoll = new Convar("smc_mapvote_enable_reroll", "0", "Whether players are able to choose 'ReRoll' in map vote", _, true, 0.0, true, 1.0);
 	g_cvMapVoteExtendLimit = new Convar("smc_mapvote_extend_limit", "3", "How many times players can choose to extend a single map (0 = block extending, -1 = infinite extending)", _, true, -1.0, false);
 	g_cvMapVoteExtendTime = new Convar("smc_mapvote_extend_time", "10", "How many minutes should the map be extended by if the map is extended through a mapvote", _, true, 1.0, false);
 	g_cvMapVoteShowTier = new Convar("smc_mapvote_show_tier", "1", "Whether the map tier should be displayed in the map vote", _, true, 0.0, true, 1.0);
@@ -667,7 +668,7 @@ void InitiateMapVote(MapChange when)
 	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
 
 	int nominateMapsToAdd = (mapsToAdd > g_aNominateList.Length) ? g_aNominateList.Length : mapsToAdd;
-	for(int i = 0; i < nominateMapsToAdd - 1; i++)
+	for(int i = 0; i < nominateMapsToAdd - g_cvMapVoteEnableReRoll.IntValue; i++)
 	{
 		g_aNominateList.GetString(i, map, sizeof(map));
 		LessStupidGetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
@@ -684,16 +685,9 @@ void InitiateMapVote(MapChange when)
 		}
 
 		menu.AddItem(map, mapdisplay);
-		/////JACOB ADDED THIS
-		//DebugPrint(map + " " + mapdisplay);
-
 		mapsAdded += 1;
 		mapsToAdd--;
 	}
-
-		////jacob added this too
-	//menu.AddItem("reroll", "Reroll Maps");
-	//mapsAdded += 1;
 
 	if (g_aMapList.Length < mapsToAdd)
 	{
@@ -768,15 +762,15 @@ void InitiateMapVote(MapChange when)
 
 	if ((when == MapChange_MapEnd && add_extend))
 	{
+		if(g_cvMapVoteEnableReRoll.BoolValue)menu.AddItem("reroll", "Reroll Maps");
 		menu.AddItem("extend", "Extend Current Map");
-		menu.AddItem("reroll", "Reroll Maps");
-		instantChange = false;
+		gB_instantChange = false;
 	}
 	else if (when == MapChange_Instant)
 	{
+		if(g_cvMapVoteEnableReRoll.BoolValue)menu.AddItem("reroll", "Reroll Maps");
 		menu.AddItem("dontchange", "Don't Change");
-		menu.AddItem("reroll", "Reroll Maps");
-		instantChange = true;
+		gB_instantChange = true;
 	}
 
 	PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Started");
@@ -918,7 +912,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 
 		ClearRTV();
 	}
-	else if(StrEqual(map, "reroll")) /////JACOB ADDED THIS TOO!
+	else if(StrEqual(map, "reroll")) 
 	{
 
 		PrintToChatAll("%s%t", g_cPrefix, "ReRolling Maps", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
@@ -929,7 +923,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 		g_fLastMapvoteTime = GetEngineTime();
 		ClearRTV();
 
-		if (instantChange){
+		if (gB_instantChange){
 			InitiateMapVote(MapChange_Instant);
 		}else
 		{
@@ -965,7 +959,7 @@ void DoMapChangeAfterMapVote(char map[PLATFORM_MAX_PATH], char displayName[PLATF
 		CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
 		data.WriteString(map);
 		data.WriteString("RTV Mapvote");
-		ClearRTV();
+		//ClearRTV();
 	}
 
 	g_bMapVoteStarted = false;
