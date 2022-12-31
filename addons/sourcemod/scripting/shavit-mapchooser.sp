@@ -44,9 +44,6 @@ bool gB_ConfigsExecuted = false;
 int gI_Driver = Driver_unknown;
 Database g_hDatabase;
 char g_cSQLPrefix[32];
-
-bool gB_instantChange = false;
-
 bool g_bDebug;
 
 /* ConVars */
@@ -184,6 +181,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("mapchooser.phrases");
 	LoadTranslations("common.phrases");
 	LoadTranslations("rockthevote.phrases");
@@ -765,7 +763,6 @@ void InitiateMapVote(MapChange when)
 			menu.AddItem("reroll", "Reroll Maps");
 		}
 		menu.AddItem("extend", "Extend Current Map");
-		gB_instantChange = false;
 	}
 	else if (when == MapChange_Instant)
 	{
@@ -773,7 +770,6 @@ void InitiateMapVote(MapChange when)
 			menu.AddItem("reroll", "Reroll Maps");
 		}
 		menu.AddItem("dontchange", "Don't Change");
-		gB_instantChange = true;
 	}
 
 	PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Started");
@@ -921,18 +917,11 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 		PrintToChatAll("%s%t", g_cPrefix, "ReRolling Maps", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
 		LogAction(-1, -1, "Voting for next map has restarted. Reroll complete.");
 
-
 		g_bMapVoteStarted = false;
 		g_fLastMapvoteTime = GetEngineTime();
 		ClearRTV();
 
-		if (gB_instantChange){
-			InitiateMapVote(MapChange_Instant);
-		}else
-		{
-			InitiateMapVote(MapChange_MapEnd);
-		}
-		
+		InitiateMapVote(g_ChangeTime);	
 	}
 	else
 	{
