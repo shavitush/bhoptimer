@@ -1050,7 +1050,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 
 				// Make sure the first map in the menu isn't one of the special items.
 				// This would mean there are no real maps in the menu, because the special items are added after all maps. Don't do anything if that's the case.
-				if(strcmp(map, "extend", false) != 0 && strcmp(map, "dontchange", false) != 0)
+				if(strcmp(map, "extend", false) != 0 && strcmp(map, "dontchange", false) != 0 && strcmp(map, "reroll", false) != 0)
 				{
 					// Get a random map from the list.
 
@@ -1060,7 +1060,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 						int item = GetRandomInt(0, count - 1);
 						menu.GetItem(item, map, sizeof(map), _, displayName, sizeof(displayName));
 					}
-					while(strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0);
+					while(strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0 || strcmp(map, "reroll", false) == 0);
 
 					DoMapChangeAfterMapVote(map, displayName, 0, 0);
 				}
