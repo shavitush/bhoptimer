@@ -2168,9 +2168,7 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 		{
 			menu.GetItem(0, map, sizeof(map));
 			delete menu;
-			
 			if (!MapValidOrYell(client, map)) return Plugin_Handled;
-	
 			ShowActivity2(client, g_cPrefix, "%t", "Changing map", map);
 			LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
 
