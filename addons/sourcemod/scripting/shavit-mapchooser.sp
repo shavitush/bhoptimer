@@ -665,7 +665,7 @@ void InitiateMapVote(MapChange when)
 	StringMap tiersMap = (gB_Rankings && gI_Driver == Driver_mysql) ? Shavit_GetMapTiers() : null;
 
 	int nominateMapsToAdd = (mapsToAdd > g_aNominateList.Length) ? g_aNominateList.Length : mapsToAdd;
-	for(int i = 0; i < nominateMapsToAdd - g_cvMapVoteEnableReRoll.IntValue; i++)
+	for(int i = 0; i < nominateMapsToAdd; i++)
 	{
 		g_aNominateList.GetString(i, map, sizeof(map));
 		LessStupidGetMapDisplayName(map, mapdisplay, sizeof(mapdisplay));
@@ -951,7 +951,7 @@ void DoMapChangeAfterMapVote(char map[PLATFORM_MAX_PATH], char displayName[PLATF
 		CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
 		data.WriteString(map);
 		data.WriteString("RTV Mapvote");
-		//ClearRTV();
+		ClearRTV();
 	}
 
 	g_bMapVoteStarted = false;
