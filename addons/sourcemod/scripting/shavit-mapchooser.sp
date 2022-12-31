@@ -648,7 +648,6 @@ void InitiateMapVote(MapChange when)
 	int mapsToAdd = maxPageItems;
 	int mapsAdded = 0;
 
-
 	bool add_extend = (g_cvMapVoteExtendLimit.IntValue == -1) || (g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue);
 
 	if (add_extend)
@@ -762,13 +761,17 @@ void InitiateMapVote(MapChange when)
 
 	if ((when == MapChange_MapEnd && add_extend))
 	{
-		if(g_cvMapVoteEnableReRoll.BoolValue)menu.AddItem("reroll", "Reroll Maps");
+		if(g_cvMapVoteEnableReRoll.BoolValue){
+			menu.AddItem("reroll", "Reroll Maps");
+		}
 		menu.AddItem("extend", "Extend Current Map");
 		gB_instantChange = false;
 	}
 	else if (when == MapChange_Instant)
 	{
-		if(g_cvMapVoteEnableReRoll.BoolValue)menu.AddItem("reroll", "Reroll Maps");
+		if(g_cvMapVoteEnableReRoll.BoolValue){
+			menu.AddItem("reroll", "Reroll Maps");
+		}
 		menu.AddItem("dontchange", "Don't Change");
 		gB_instantChange = true;
 	}
