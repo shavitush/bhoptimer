@@ -3976,7 +3976,7 @@ bool InStartOrEndZone(float point1[3], float point2[3], int track, int type)
 		FillBoxMinMax(point1, point2, amin, amax);
 	}
 
-	for (int i = 0; i < MAX_ZONES; i++)
+	for (int i = 0; i < gI_MapZones; i++)
 	{
 		if ((gA_ZoneCache[i].iTrack == track && gA_ZoneCache[i].iType == type)
 		||  (gA_ZoneCache[i].iType != Zone_End && gA_ZoneCache[i].iType != Zone_Start))

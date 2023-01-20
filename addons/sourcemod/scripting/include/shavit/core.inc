@@ -283,8 +283,8 @@ stock void LessStupidGetMapDisplayName(const char[] map, char[] displayName, int
 	strcopy(temp, sizeof(temp), map);
 	ReplaceString(temp, sizeof(temp), "\\", "/", true);
 
-	int slashpos = FindCharInString(map, '/', true);
-	strcopy(temp2, sizeof(temp2), map[slashpos+1]);
+	int slashpos = FindCharInString(temp, '/', true);
+	strcopy(temp2, sizeof(temp2), temp[slashpos+1]);
 
 	int ugcpos = StrContains(temp2, ".ugc", true);
 
