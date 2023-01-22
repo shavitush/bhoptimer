@@ -2189,7 +2189,7 @@ public int Native_RestartTimer(Handle handler, int numParams)
 
 float CalcPerfs(timer_snapshot_t s)
 {
-	return (s.iMeasuredJumps == 0) ? 100.0 : (s.iPerfectJumps / float(s.iMeasuredJumps) * 100.0);
+	return (s.iMeasuredJumps == 0) ? 0.0 : (s.iPerfectJumps / float(s.iMeasuredJumps) * 100.0);
 }
 
 public int Native_GetPerfectJumps(Handle handler, int numParams)
