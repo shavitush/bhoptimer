@@ -1098,8 +1098,6 @@ void RemoveExcludesFromArrayList(ArrayList list, bool lowercase, char[][] exclud
 
 void LoadMapList()
 {
-	g_aMapList.Clear();
-	g_aAllMapsList.Clear();
 	g_mMapList.Clear();
 
 	g_iExcludePrefixesCount = ExplodeCvar(g_cvExcludePrefixes, g_cExcludePrefixesBuffers, sizeof(g_cExcludePrefixesBuffers), sizeof(g_cExcludePrefixesBuffers[]));
@@ -1115,6 +1113,8 @@ void LoadMapList()
 				return;
 			}
 
+			g_aMapList.Clear();
+
 			char buffer[512];
 
 			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
@@ -1122,6 +1122,7 @@ void LoadMapList()
 		}
 		case MapListFolder:
 		{
+			g_aMapList.Clear();
 			ReadMapsFolderArrayList(g_aMapList, true, false, true, true, g_cExcludePrefixesBuffers, g_iExcludePrefixesCount);
 			CreateNominateMenu();
 		}
@@ -1145,6 +1146,7 @@ void LoadMapList()
 			}
 			else
 			{
+				g_aAllMapsList.Clear();
 				ReadMapsFolderArrayList(g_aAllMapsList, true, false, true, true, g_cExcludePrefixesBuffers, g_iExcludePrefixesCount);
 			}
 
