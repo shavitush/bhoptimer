@@ -1605,7 +1605,7 @@ void RecalcHighestStage()
 	for (int i = 0; i < gI_MapZones; i++)
 	{
 		int type = gA_ZoneCache[i].iType;
-		if (type == Zone_Stage) continue;
+		if (type != Zone_Stage) continue;
 
 		int track = gA_ZoneCache[i].iTrack;
 		int stagenum = gA_ZoneCache[i].iData;
