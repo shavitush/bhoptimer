@@ -129,6 +129,7 @@ TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
 
 // cvars
 Convar gCV_Restart = null;
+Convar gCV_RestartWithFullHP = null;
 Convar gCV_Pause = null;
 Convar gCV_PauseMovement = null;
 Convar gCV_BlockPreJump = null;
@@ -380,6 +381,7 @@ public void OnPluginStart()
 	CreateConVar("shavit_version", SHAVIT_VERSION, "Plugin version.", (FCVAR_NOTIFY | FCVAR_DONTRECORD));
 
 	gCV_Restart = new Convar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
+	gCV_RestartWithFullHP = new Convar("shavit_core_restart_with_hp", "1", "Reset hp on restart?", 0, true, 0.0, true, 1.0);
 	gCV_Pause = new Convar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
 	gCV_PauseMovement = new Convar("shavit_core_pause_movement", "0", "Allow movement/noclip while paused?", 0, true, 0.0, true, 1.0);
 	gCV_BlockPreJump = new Convar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
@@ -727,6 +729,13 @@ public Action Command_StartTimer(int client, int args)
 		Shavit_PrintToChat(client, "%T", "StartZoneUndefined", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTrack, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
+	}
+	
+	if(gCV_RestartWithFullHP.BoolValue)
+	{
+		SetEntityHealth(client, 100);
+		SetEntProp(client, Prop_Send, "m_ArmorValue", 100);
+		SetEntProp(client, Prop_Send, "m_bHasHelmet", 1);
 	}
 
 	Shavit_RestartTimer(client, track, false);
