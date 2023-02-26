@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - mapchooser aaaaaaa
- * by: various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus
+ * by: various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus, MicrowavedBunny
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -73,6 +73,7 @@ Convar g_cvMapVoteDuration;
 Convar g_cvMapVoteBlockMapInterval;
 Convar g_cvMapVoteExtendLimit;
 Convar g_cvMapVoteEnableNoVote;
+Convar g_cvMapVoteEnableReRoll;
 Convar g_cvMapVoteExtendTime;
 Convar g_cvMapVoteShowTier;
 Convar g_cvMapVoteRunOff;
@@ -157,7 +158,7 @@ enum
 public Plugin myinfo =
 {
 	name = "[shavit] MapChooser",
-	author = "various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus",
+	author = "various alliedmodders(?), SlidyBat, KiD Fearless, mbhound, rtldg, lilac, Sirhephaestus, MicrowavedBunny",
 	description = "Automated Map Voting and nominating with Shavit's bhoptimer integration",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -181,6 +182,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("mapchooser.phrases");
 	LoadTranslations("common.phrases");
 	LoadTranslations("rockthevote.phrases");
@@ -204,6 +206,7 @@ public void OnPluginStart()
 
 	g_cvMapVoteBlockMapInterval = new Convar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
 	g_cvMapVoteEnableNoVote = new Convar("smc_mapvote_enable_novote", "1", "Whether players are able to choose 'No Vote' in map vote", _, true, 0.0, true, 1.0);
+	g_cvMapVoteEnableReRoll = new Convar("smc_mapvote_enable_reroll", "0", "Whether players are able to choose 'ReRoll' in map vote", _, true, 0.0, true, 1.0);
 	g_cvMapVoteExtendLimit = new Convar("smc_mapvote_extend_limit", "3", "How many times players can choose to extend a single map (0 = block extending, -1 = infinite extending)", _, true, -1.0, false);
 	g_cvMapVoteExtendTime = new Convar("smc_mapvote_extend_time", "10", "How many minutes should the map be extended by if the map is extended through a mapvote", _, true, 1.0, false);
 	g_cvMapVoteShowTier = new Convar("smc_mapvote_show_tier", "1", "Whether the map tier should be displayed in the map vote", _, true, 0.0, true, 1.0);
@@ -649,6 +652,12 @@ void InitiateMapVote(MapChange when)
 	if (add_extend)
 	{
 		mapsToAdd--;
+
+		if (g_cvMapVoteEnableReRoll.BoolValue)
+		{
+			mapsToAdd--;
+			maxPageItems--;
+		}
 	}
 
 	if(g_cvMapVoteEnableNoVote.BoolValue)
@@ -757,10 +766,14 @@ void InitiateMapVote(MapChange when)
 
 	if ((when == MapChange_MapEnd && add_extend))
 	{
+		if (g_cvMapVoteEnableReRoll.BoolValue)
+			menu.AddItem("reroll", "Reroll Maps");
 		menu.AddItem("extend", "Extend Current Map");
 	}
 	else if (when == MapChange_Instant)
 	{
+		if (g_cvMapVoteEnableReRoll.BoolValue)
+			menu.AddItem("reroll", "Reroll Maps");
 		menu.AddItem("dontchange", "Don't Change");
 	}
 
@@ -903,6 +916,18 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 
 		ClearRTV();
 	}
+	else if (StrEqual(map, "reroll"))
+	{
+
+		PrintToChatAll("%s%t", g_cPrefix, "ReRolling Maps", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
+		LogAction(-1, -1, "Voting for next map has restarted. Reroll complete.");
+
+		g_bMapVoteStarted = false;
+		g_fLastMapvoteTime = GetEngineTime();
+		ClearRTV();
+
+		InitiateMapVote(g_ChangeTime);
+	}
 	else
 	{
 		int percentage_of_votes = RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100);
@@ -1030,7 +1055,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 
 				// Make sure the first map in the menu isn't one of the special items.
 				// This would mean there are no real maps in the menu, because the special items are added after all maps. Don't do anything if that's the case.
-				if(strcmp(map, "extend", false) != 0 && strcmp(map, "dontchange", false) != 0)
+				if (strcmp(map, "extend", false) != 0 && strcmp(map, "dontchange", false) != 0 && strcmp(map, "reroll", false) != 0)
 				{
 					// Get a random map from the list.
 
@@ -1040,7 +1065,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 						int item = GetRandomInt(0, count - 1);
 						menu.GetItem(item, map, sizeof(map), _, displayName, sizeof(displayName));
 					}
-					while(strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0);
+					while (strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0 || strcmp(map, "reroll", false) == 0);
 
 					DoMapChangeAfterMapVote(map, displayName, 0, 0);
 				}
