@@ -44,6 +44,7 @@ bool gB_ConfigsExecuted = false;
 int gI_Driver = Driver_unknown;
 Database g_hDatabase;
 char g_cSQLPrefix[32];
+
 bool g_bDebug;
 
 /* ConVars */
@@ -651,6 +652,12 @@ void InitiateMapVote(MapChange when)
 	if (add_extend)
 	{
 		mapsToAdd--;
+
+		if (g_cvMapVoteEnableReRoll.BoolValue)
+		{
+			mapsToAdd--;
+			maxPageItems--;
+		}
 	}
 
 	if(g_cvMapVoteEnableNoVote.BoolValue)
@@ -759,16 +766,14 @@ void InitiateMapVote(MapChange when)
 
 	if ((when == MapChange_MapEnd && add_extend))
 	{
-		if(g_cvMapVoteEnableReRoll.BoolValue){
+		if (g_cvMapVoteEnableReRoll.BoolValue)
 			menu.AddItem("reroll", "Reroll Maps");
-		}
 		menu.AddItem("extend", "Extend Current Map");
 	}
 	else if (when == MapChange_Instant)
 	{
-		if(g_cvMapVoteEnableReRoll.BoolValue){
+		if (g_cvMapVoteEnableReRoll.BoolValue)
 			menu.AddItem("reroll", "Reroll Maps");
-		}
 		menu.AddItem("dontchange", "Don't Change");
 	}
 
@@ -911,7 +916,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 
 		ClearRTV();
 	}
-	else if(StrEqual(map, "reroll")) 
+	else if (StrEqual(map, "reroll"))
 	{
 
 		PrintToChatAll("%s%t", g_cPrefix, "ReRolling Maps", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
@@ -921,7 +926,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 		g_fLastMapvoteTime = GetEngineTime();
 		ClearRTV();
 
-		InitiateMapVote(g_ChangeTime);	
+		InitiateMapVote(g_ChangeTime);
 	}
 	else
 	{
@@ -951,7 +956,7 @@ void DoMapChangeAfterMapVote(char map[PLATFORM_MAX_PATH], char displayName[PLATF
 		CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
 		data.WriteString(map);
 		data.WriteString("RTV Mapvote");
-		ClearRTV();
+		// ClearRTV();
 	}
 
 	g_bMapVoteStarted = false;
@@ -1050,7 +1055,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 
 				// Make sure the first map in the menu isn't one of the special items.
 				// This would mean there are no real maps in the menu, because the special items are added after all maps. Don't do anything if that's the case.
-				if(strcmp(map, "extend", false) != 0 && strcmp(map, "dontchange", false) != 0 && strcmp(map, "reroll", false) != 0)
+				if (strcmp(map, "extend", false) != 0 && strcmp(map, "dontchange", false) != 0 && strcmp(map, "reroll", false) != 0)
 				{
 					// Get a random map from the list.
 
@@ -1060,7 +1065,7 @@ public int Handler_MapVoteMenu(Menu menu, MenuAction action, int param1, int par
 						int item = GetRandomInt(0, count - 1);
 						menu.GetItem(item, map, sizeof(map), _, displayName, sizeof(displayName));
 					}
-					while(strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0 || strcmp(map, "reroll", false) == 0);
+					while (strcmp(map, "extend", false) == 0 || strcmp(map, "dontchange", false) == 0 || strcmp(map, "reroll", false) == 0);
 
 					DoMapChangeAfterMapVote(map, displayName, 0, 0);
 				}
@@ -2157,7 +2162,9 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 		{
 			menu.GetItem(0, map, sizeof(map));
 			delete menu;
+
 			if (!MapValidOrYell(client, map)) return Plugin_Handled;
+
 			ShowActivity2(client, g_cPrefix, "%t", "Changing map", map);
 			LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
 
