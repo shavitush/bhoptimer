@@ -441,6 +441,13 @@ public void OnPluginStart()
 	}
 }
 
+public void OnPluginEnd()
+{
+	if (sv_enablebunnyhopping != null)
+		sv_enablebunnyhopping.Flags |= (FCVAR_REPLICATED | FCVAR_NOTIFY);
+	sv_airaccelerate.Flags |= (FCVAR_REPLICATED | FCVAR_NOTIFY);
+}
+
 public void OnAdminMenuCreated(Handle topmenu)
 {
 	gH_AdminMenu = TopMenu.FromHandle(topmenu);
