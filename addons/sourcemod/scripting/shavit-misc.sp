@@ -114,6 +114,7 @@ Convar gCV_RestrictNoclip = null;
 Convar gCV_SpecScoreboardOrder = null;
 Convar gCV_BadSetLocalAnglesFix = null;
 ConVar gCV_PauseMovement = null;
+Convar gCV_RestartWithFullHP = null;
 
 // external cvars
 ConVar sv_cheats = null;
@@ -292,6 +293,11 @@ public void OnPluginStart()
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "1", "Should bhop (landing and jumping) sounds be muted?\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 1.0, true, 2.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
 	gCV_SpecScoreboardOrder = new Convar("shavit_misc_spec_scoreboard_order", "1", "Use scoreboard ordering for players when changing target when spectating.", 0, true, 0.0, true, 1.0);
+
+	if (gEV_Type != Engine_TF2)
+	{
+		gCV_RestartWithFullHP = new Convar("shavit_misc_restart_with_full_hp", "1", "Reset hp on restart?", 0, true, 0.0, true, 1.0);
+	}
 
 	if (gEV_Type != Engine_CSGO)
 	{
@@ -2282,6 +2288,13 @@ public void Shavit_OnRestart(int client, int track)
 	if(gEV_Type != Engine_TF2)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+
+		if (gCV_RestartWithFullHP.BoolValue)
+		{
+			SetEntityHealth(client, 100);
+			SetEntProp(client, Prop_Send, "m_ArmorValue", 100);
+			SetEntProp(client, Prop_Send, "m_bHasHelmet", 1);
+		}
 	}
 }
 
