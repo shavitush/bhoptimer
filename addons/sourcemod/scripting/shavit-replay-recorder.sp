@@ -524,6 +524,17 @@ bool SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 
 public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
+	static bool resizeFailed[MAXPLAYERS+1];
+
+	if (resizeFailed[client]) // rip
+	{
+		resizeFailed[client] = false;
+		gB_RecordingEnabled[client] = false;
+		ClearFrames(client);
+		LogError("failed to resize frames for %N... clearing frames I guess...", client);
+		return;
+	}
+
 	if (IsFakeClient(client) || !IsPlayerAlive(client))
 	{
 		return;
@@ -556,9 +567,11 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 	if (gA_PlayerFrames[client].Length <= gI_PlayerFrames[client])
 	{
+		resizeFailed[client] = true;
 		// Add about two seconds worth of frames so we don't have to resize so often
 		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + (RoundToCeil(gF_Tickrate) * 2));
 		//PrintToChat(client, "resizing %d -> %d", gI_PlayerFrames[client], gA_PlayerFrames[client].Length);
+		resizeFailed[client] = false;
 	}
 
 	frame_t aFrame;
