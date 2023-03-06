@@ -352,7 +352,7 @@ native bool Shavit_IsClientCreatingZone(int client);
  * Retrieve the highest stage number for a given track.
  *
  * @param track                     Track number.
- * @return                          Number of stages.
+ * @return                          Highest stage number...
  */
 native int Shavit_GetHighestStage(int track);
 
@@ -474,7 +474,7 @@ public void __pl_shavit_zones_SetNTVOptional()
 {
 	MarkNativeAsOptional("Shavit_GetZoneData");
 	MarkNativeAsOptional("Shavit_GetZoneFlags");
-	MarkNativeAsOptional("Shavit_GetStageCount");
+	MarkNativeAsOptional("Shavit_GetHighestStage");
 	MarkNativeAsOptional("Shavit_InsideZone");
 	MarkNativeAsOptional("Shavit_InsideZoneGetID");
 	MarkNativeAsOptional("Shavit_IsClientCreatingZone");

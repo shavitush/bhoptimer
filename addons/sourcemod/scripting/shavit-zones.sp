@@ -211,7 +211,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// zone natives
 	CreateNative("Shavit_GetZoneData", Native_GetZoneData);
 	CreateNative("Shavit_GetZoneFlags", Native_GetZoneFlags);
-	CreateNative("Shavit_GetStageCount", Native_GetStageCount);
+	CreateNative("Shavit_GetHighestStage", Native_GetHighestStage);
 	CreateNative("Shavit_InsideZone", Native_InsideZone);
 	CreateNative("Shavit_InsideZoneGetID", Native_InsideZoneGetID);
 	CreateNative("Shavit_IsClientCreatingZone", Native_IsClientCreatingZone);
@@ -749,7 +749,7 @@ public int Native_InsideZoneGetID(Handle handler, int numParams)
 	return false;
 }
 
-public int Native_GetStageCount(Handle handler, int numParas)
+public int Native_GetHighestStage(Handle handler, int numParas)
 {
 	return gI_HighestStage[GetNativeCell(1)];
 }
