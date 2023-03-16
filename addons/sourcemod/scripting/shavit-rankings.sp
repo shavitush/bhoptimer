@@ -70,7 +70,7 @@ enum struct ranking_t
 
 char gS_MySQLPrefix[32];
 Database gH_SQL = null;
-bool gB_HasSQLRANK = false; // whether the sql driver supports RANK()
+bool gB_SQLWindowFunctions = false;
 int gI_Driver = Driver_unknown;
 
 bool gB_Stats = false;
@@ -225,11 +225,6 @@ public void Shavit_OnDatabaseLoaded()
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = Shavit_GetDatabase(gI_Driver);
 
-	if (gI_Driver != Driver_mysql)
-	{
-		SetFailState("MySQL is the only supported database engine for shavit-rankings.");
-	}
-
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientConnected(i) && IsClientAuthorized(i))
@@ -239,11 +234,15 @@ public void Shavit_OnDatabaseLoaded()
 	}
 
 	QueryLog(gH_SQL, SQL_Version_Callback,
-		gI_Driver == Driver_sqlite ? "SELECT sqlite_version();" : "SELECT VERSION();");
+		gI_Driver == Driver_sqlite
+		? "WITH p AS (SELECT COUNT(*) FROM pragma_function_list WHERE name = 'pow') SELECT sqlite_version(), * FROM p;"
+		: "SELECT VERSION();");
+}
 
-	if (gI_Driver == Driver_sqlite || gCV_WeightingMultiplier.FloatValue == 1.0)
+void CreateGetWeightedPointsFunction()
+{
+	if (gCV_WeightingMultiplier.FloatValue == 1.0)
 	{
-		OnMapStart();
 		return;
 	}
 
@@ -285,62 +284,21 @@ public void Shavit_OnDatabaseLoaded()
 		"RETURN total; " ...
 		"END;;", gS_MySQLPrefix, sWeightingLimit, gCV_WeightingMultiplier.FloatValue);
 
-#if 0
-	if (gCV_WeightingMultiplier.FloatValue == 1.0)
-	{
-		FormatEx(sQuery, sizeof(sQuery),
-			"CREATE FUNCTION GetWeightedPoints(steamid INT) " ...
-			"RETURNS FLOAT " ...
-			"READS SQL DATA " ...
-			"BEGIN " ...
-			"DECLARE total FLOAT DEFAULT 0.0; " ...
-			"SELECT SUM(points) FROM %splayertimes WHERE auth = steamid INTO total; " ...
-			"RETURN total; " ...
-			"END;;", gS_MySQLPrefix);
-	}
 
 	AddQueryLog(trans, sQuery);
-#else
-	if (gCV_WeightingMultiplier.FloatValue != 1.0)
-	{
-		AddQueryLog(trans, sQuery);
-	}
-#endif
-
-#if 0
-	FormatEx(sQuery, sizeof(sQuery),
-		"CREATE FUNCTION GetRecordPoints(rtrack INT, rtime FLOAT, rmap VARCHAR(255), pointspertier FLOAT, stylemultiplier FLOAT, pwr FLOAT, xtier INT) " ...
-		"RETURNS FLOAT " ...
-		"READS SQL DATA " ...
-		"BEGIN " ...
-		"DECLARE ppoints FLOAT DEFAULT 0.0; " ...
-		"DECLARE ptier INT DEFAULT 1; " ...
-		"IF rmap > '' THEN SELECT tier FROM %smaptiers WHERE map = rmap INTO ptier; ELSE SET ptier = xtier; END IF; " ...
-		"IF rtrack > 0 THEN SET ptier = 1; END IF; " ...
-		"SET ppoints = ((pointspertier * ptier) * 1.5) + (pwr / 15.0); " ...
-		"IF rtime > pwr THEN SET ppoints = ppoints * (pwr / rtime); END IF; " ...
-		"SET ppoints = ppoints * stylemultiplier; " ...
-		"IF rtrack > 0 THEN SET ppoints = ppoints * 0.25; END IF; " ...
-		"RETURN ppoints; " ...
-		"END;;", gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix);
-	AddQueryLog(trans, sQuery);
-#endif
 
 	gH_SQL.Execute(trans, Trans_RankingsSetupSuccess, Trans_RankingsSetupError, 0, DBPrio_High);
 }
 
 public void Trans_RankingsSetupError(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
 {
+	LogError("Your Mysql/Mariadb didn't let us create the GetWeightedPoints function. Either update your DB version so it doesn't need GetWeightedPoints (to 8.0 or 10.2), fix your DB permissions, OR set `shavit_rankings_weighting` to `1.0`.");
 	LogError("Timer (rankings) error %d/%d. Reason: %s", failIndex, numQueries, error);
+	SetFailState("Read the error log");
 }
 
 public void Trans_RankingsSetupSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	if(gI_Styles == 0)
-	{
-		Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount());
-	}
-
 	OnMapStart();
 }
 
@@ -366,6 +324,7 @@ public void OnClientAuthorized(int client, const char[] auth)
 public void OnMapStart()
 {
 	GetLowercaseMapName(gS_Map);
+	Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount()); // just in case :)
 
 	if (gH_SQL == null)
 	{
@@ -783,12 +742,33 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			float fWR = Shavit_GetWorldRecord(style, track);
 
 			FormatEx(sQuery, sQueryLen,
-				"UPDATE %splayertimes AS PT " ...
-				"SET PT.points = %f * (%f / PT.time) " ...
-				"WHERE PT.style = %d AND PT.track = 0 AND PT.map = '%s';",
+				"UPDATE %splayertimes " ...
+				"SET points = %f * (%f / time) " ...
+				"WHERE style = %d AND track = 0 AND map = '%s';",
 				gS_MySQLPrefix,
 				(((gCV_PointsPerTier.FloatValue * fTier) * 1.5) + (fWR / 15.0)) * fMultiplier,
 				fWR,
+				style,
+				gS_Map
+			);
+		}
+		else if (gI_Driver == Driver_sqlite)
+		{
+			FormatEx(sQuery, sQueryLen,
+			    "UPDATE %splayertimes AS PT\n"
+			... "SET\n"
+			... " points =\n"
+			... "   (%f + (WR.time / 15.0))\n"
+			... " * (WR.time / PT.time)\n"
+			... " * %f\n"
+			... "FROM %swrs WR\n"
+			... "WHERE PT.track %c 0 AND PT.style = %d AND PT.map = '%s'\n"
+			... "  AND PT.track = WR.track AND PT.style = WR.style AND PT.map = WR.map;",
+				gS_MySQLPrefix,
+				((gCV_PointsPerTier.FloatValue * fTier) * 1.5),
+				fMultiplier,
+				gS_MySQLPrefix,
+				(track > 0) ? '>' : '=',
 				style,
 				gS_Map
 			);
@@ -814,14 +794,36 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			);
 		}
 	}
+	else if (gI_Driver == Driver_sqlite)
+	{
+		char mapfilter[50+PLATFORM_MAX_PATH];
+		if (map[0]) FormatEx(mapfilter, sizeof(mapfilter), "AND PT.map = '%s'", map);
+
+		FormatEx(sQuery, sQueryLen,
+		   "UPDATE %splayertimes AS PT\n"
+		... "SET points =\n"
+		... "   (((%f * %s) * 1.5) + (WR.time / 15.0))\n"
+		... " * (WR.time / PT.time)\n"
+		... " * %f\n"
+		... "FROM %swrs AS WR\n"
+		... "JOIN %smaptiers AS MT ON\n"
+		... "  PT.map = MT.map\n"
+		... "WHERE PT.track %c 0 AND PT.track = WR.track AND PT.style = %d AND PT.style = WR.style %s AND PT.map = WR.map;",
+			gS_MySQLPrefix,
+			gCV_PointsPerTier.FloatValue,
+			(track > 0) ? "1" : "MT.tier",
+			fMultiplier,
+			gS_MySQLPrefix,
+			gS_MySQLPrefix,
+			(track > 0) ? '>' : '=',
+			style,
+			mapfilter
+		);
+	}
 	else
 	{
 		char mapfilter[50+PLATFORM_MAX_PATH];
-
-		if (map[0])
-		{
-			FormatEx(mapfilter, sizeof(mapfilter), "AND PT.map = '%s'", map);
-		}
+		if (map[0]) FormatEx(mapfilter, sizeof(mapfilter), "AND PT.map = '%s'", map);
 
 		FormatEx(sQuery, sQueryLen,
 			"UPDATE %splayertimes AS PT " ...
@@ -833,8 +835,7 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			" PT.points = "...
 			"   (((%f * %s) * 1.5) + (WR.time / 15.0)) " ...
 			" * (WR.time / PT.time) " ...
-			" * %f " ...
-			";",
+			" * %f;",
 			gS_MySQLPrefix,
 			gS_MySQLPrefix,
 			(track > 0) ? '>' : '=',
@@ -999,13 +1000,36 @@ void UpdatePointsForSinglePlayer(int client)
 
 	char sQuery[1024];
 
-	if (gI_Driver == Driver_sqlite || gCV_WeightingMultiplier.FloatValue == 1.0)
+	if (gCV_WeightingMultiplier.FloatValue == 1.0)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"UPDATE %susers SET points = (SELECT SUM(points) FROM %splayertimes WHERE auth = %d) WHERE auth = %d;",
 			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
 	}
-	else
+	else if (gB_SQLWindowFunctions)
+	{
+		char sLimit[30];
+		if (gCV_WeightingLimit.IntValue > 0)
+			FormatEx(sLimit, sizeof(sLimit), "LIMIT %d", gCV_WeightingLimit.IntValue);
+
+		FormatEx(sQuery, sizeof(sQuery),
+		    "UPDATE %susers SET points = (\n"
+		... "  SELECT SUM(points2) FROM (\n"
+		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
+		... "    FROM %splayertimes\n"
+		... "    WHERE auth = %d AND points > 0\n"
+		... "    ORDER BY points DESC %s\n"
+		... "  ) as t\n"
+		... ") WHERE auth = %d;",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			auth,
+			sLimit,
+			auth
+		);
+	}
+	else // We should only be here if mysql :)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"UPDATE %susers SET points = GetWeightedPoints(auth) WHERE auth = %d;",
@@ -1022,36 +1046,99 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 	#endif
 
 	char sQuery[1024];
-	char sLastLogin[256];
+	char sLastLogin[69], sLimit[30], sMapWhere[512], sTrackWhere[64];
+
+	if (track != -1)
+		FormatEx(sTrackWhere, sizeof(sTrackWhere), "track = %d", track);
+	if (map[0])
+		FormatEx(sMapWhere, sizeof(sMapWhere), "map = '%s'", map);
 
 	if (!recalcall && gCV_LastLoginRecalculate.IntValue > 0)
 	{
 		FormatEx(sLastLogin, sizeof(sLastLogin), "lastlogin > %d", (GetTime() - gCV_LastLoginRecalculate.IntValue * 60));
 	}
 
-	if (gI_Driver == Driver_sqlite || gCV_WeightingMultiplier.FloatValue == 1.0)
+	if (gCV_WeightingLimit.IntValue > 0)
+		FormatEx(sLimit, sizeof(sLimit), "LIMIT %d", gCV_WeightingLimit.IntValue);
+
+	if (gCV_WeightingMultiplier.FloatValue == 1.0)
+	{
+		if (gI_Driver == Driver_sqlite)
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE %susers AS U SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth) P WHERE U.auth = P.auth %s %s;",
+				gS_MySQLPrefix, gS_MySQLPrefix,
+				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
+		}
+		else
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE %susers AS U INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth) P ON U.auth = P.auth SET U.points = P.total %s %s;",
+				gS_MySQLPrefix, gS_MySQLPrefix,
+				(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
+		}
+	}
+	else if (gB_SQLWindowFunctions && gI_Driver == Driver_mysql)
+	{
+		if (sLastLogin[0])
+			Format(sLastLogin, sizeof(sLastLogin), "u2.%s", sLastLogin);
+		if (sMapWhere[0])
+			Format(sMapWhere, sizeof(sMapWhere), "p.%s", sMapWhere);
+		if (sTrackWhere[0])
+			Format(sTrackWhere, sizeof(sTrackWhere), "p.%s", sTrackWhere);
+
+		// fuck you mysql
+		FormatEx(sQuery, sizeof(sQuery),
+		    "UPDATE %susers AS u, (\n"
+		... "  SELECT auth, SUM(t.points2) as pp FROM (\n"
+		... "    SELECT p.auth, (p.points * POW(%f, ROW_NUMBER() OVER (PARTITION BY p.auth ORDER BY p.points DESC) - 1)) as points2\n"
+		... "    FROM %splayertimes AS p\n"
+		... "    JOIN %susers AS u2\n"
+		... "     ON u2.auth = p.auth %s %s\n"
+		... "    WHERE p.points > 0 %s %s %s %s\n"
+		... "    ORDER BY p.points DESC %s\n"
+		... "  ) AS t\n"
+		... "  GROUP by auth\n"
+		... ") AS a\n"
+		... "SET u.points = a.pp\n"
+		... "WHERE u.auth = a.auth;",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			gS_MySQLPrefix,
+			sLastLogin[0] ? "AND" : "", sLastLogin,
+			(sMapWhere[0] || sTrackWhere[0]) ? "AND" : "",
+			sMapWhere,
+			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
+			sTrackWhere,
+			sLimit); // TODO: Remove/move sLimit?
+	}
+	else if (gB_SQLWindowFunctions)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"UPDATE %susers AS U INNER JOIN (SELECT auth, SUM(points) as total FROM %splayertimes GROUP BY auth) P ON U.auth = P.auth SET U.points = P.total %s %s;",
-			gS_MySQLPrefix, gS_MySQLPrefix,
-			(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
+		    "UPDATE %susers AS u\n"
+		... "SET points = (\n"
+		... "  SELECT SUM(points2) FROM (\n"
+		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) AS points2\n"
+		... "    FROM %splayertimes\n"
+		... "    WHERE auth = u.auth AND points > 0\n"
+		... "    ORDER BY points DESC %s\n"
+		... "  ) AS t\n"
+		... ") WHERE %s %s auth IN\n"
+		... "  (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s);",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			sLimit, // TODO: Remove/move sLimit?
+			sLastLogin, sLastLogin[0] ? "AND" : "",
+			gS_MySQLPrefix,
+			(sMapWhere[0] || sTrackWhere[0]) ? "WHERE" : "",
+			sMapWhere,
+			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
+			sTrackWhere);
 	}
-	else
+	else // !gB_SQLWindowFunctions && gI_Driver == Driver_mysql
 	{
-		char sMapWhere[512];
-
-		if (map[0])
-		{
-			FormatEx(sMapWhere, sizeof(sMapWhere), "map = '%s'", map);
-		}
-
-		char sTrackWhere[64];
-
-		if (track != -1)
-		{
-			FormatEx(sTrackWhere, sizeof(sTrackWhere), "track = %d", track);
-		}
-
 		FormatEx(sQuery, sizeof(sQuery),
 			"UPDATE %susers SET points = GetWeightedPoints(auth) WHERE %s %s auth IN (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s);",
 			gS_MySQLPrefix,
@@ -1203,27 +1290,27 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 	gH_Top100Menu.ExitButton = true;
 }
 
-bool DoWeHaveRANK(const char[] sVersion)
+bool DoWeHaveWindowFunctions(const char[] sVersion)
 {
 	float fVersion = StringToFloat(sVersion);
 
 	if (gI_Driver == Driver_sqlite)
 	{
-		return fVersion >= 3.25;
+		return fVersion >= 3.25; // 2018~
 	}
 	else if (gI_Driver == Driver_pgsql)
 	{
-		return fVersion >= 10.0;
+		return fVersion >= 8.4; // 2009~
 	}
 	else if (gI_Driver == Driver_mysql)
 	{
 		if (StrContains(sVersion, "MariaDB") != -1)
 		{
-			return fVersion >= 10.2;
+			return fVersion >= 10.2; // 2016~
 		}
 		else // mysql then...
 		{
-			return fVersion >= 8.0;
+			return fVersion >= 8.0; // 2018~
 		}
 	}
 
@@ -1240,7 +1327,32 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 	{
 		char sVersion[100];
 		results.FetchString(0, sVersion, sizeof(sVersion));
-		gB_HasSQLRANK = DoWeHaveRANK(sVersion);
+		gB_SQLWindowFunctions = DoWeHaveWindowFunctions(sVersion);
+
+		if (gI_Driver == Driver_sqlite)
+		{
+			gB_SQLWindowFunctions = gB_SQLWindowFunctions && results.FetchInt(1) > 0;
+		}
+	}
+
+	if (!gB_SQLWindowFunctions)
+	{
+		if (gI_Driver == Driver_sqlite)
+		{
+			LogError("sqlite version not supported. Try using db.sqlite.ext from Sourcemod 1.12 or higher.");
+			SetFailState("sqlite version not supported. Try using db.sqlite.ext from Sourcemod 1.12 or higher.");
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			LogError("Okay, really? Your postgres version is from 2014 or earlier... come on, brother...");
+			SetFailState("Update postgresql");
+		}
+		else // mysql
+		{
+			// Mysql 5.7 is a cancer upon society. EOS is Oct 2023!! Unbelievable.
+			// Please update your servers already, nfoservers.
+			CreateGetWeightedPointsFunction();
+		}
 	}
 
 	char sWRHolderRankTrackQueryYuck[] =
@@ -1289,25 +1401,25 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 	}
 
 	FormatEx(sQuery, sizeof(sQuery),
-		!gB_HasSQLRANK ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
+		!gB_SQLWindowFunctions ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
 		gI_Driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
 		gS_MySQLPrefix, "wrhrankmain", gS_MySQLPrefix, '=');
 	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
-		!gB_HasSQLRANK ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
+		!gB_SQLWindowFunctions ? sWRHolderRankTrackQueryYuck : sWRHolderRankTrackQueryRANK,
 		gI_Driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
 		gS_MySQLPrefix, "wrhrankbonus", gS_MySQLPrefix, '>');
 	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
-		!gB_HasSQLRANK ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
+		!gB_SQLWindowFunctions ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
 		gI_Driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
 		gS_MySQLPrefix, "wrhrankall", gS_MySQLPrefix, "", "", "", "");
 	AddQueryLog(trans, sQuery);
 
 	FormatEx(sQuery, sizeof(sQuery),
-		!gB_HasSQLRANK ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
+		!gB_SQLWindowFunctions ? sWRHolderRankOtherQueryYuck : sWRHolderRankOtherQueryRANK,
 		gI_Driver == Driver_sqlite ? "CREATE VIEW IF NOT EXISTS" : "CREATE OR REPLACE VIEW",
 		gS_MySQLPrefix, "wrhrankcvar", gS_MySQLPrefix,
 		(gCV_MVPRankOnes.IntValue == 2 || gCV_MVPRankOnes_Main.BoolValue) ? "WHERE" : "",
