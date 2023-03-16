@@ -71,6 +71,7 @@ enum struct ranking_t
 char gS_MySQLPrefix[32];
 Database gH_SQL = null;
 bool gB_SQLWindowFunctions = false;
+bool gB_SqliteHatesPOW = false;
 int gI_Driver = Driver_unknown;
 
 bool gB_Stats = false;
@@ -340,6 +341,11 @@ public void OnMapStart()
 	if (gB_TierQueried)
 	{
 		return;
+	}
+
+	if (gB_SqliteHatesPOW && gCV_WeightingMultiplier.FloatValue < 1.0)
+	{
+		LogError("Rankings Weighting multiplier set but sqlite extension isn't supported. Try using db.sqlite.ext from Sourcemod 1.12 or higher.");
 	}
 
 	if (gH_Top100Menu == null)
@@ -1000,7 +1006,7 @@ void UpdatePointsForSinglePlayer(int client)
 
 	char sQuery[1024];
 
-	if (gCV_WeightingMultiplier.FloatValue == 1.0)
+	if (gCV_WeightingMultiplier.FloatValue == 1.0 || gB_SqliteHatesPOW)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"UPDATE %susers SET points = (SELECT SUM(points) FROM %splayertimes WHERE auth = %d) WHERE auth = %d;",
@@ -1061,7 +1067,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 	if (gCV_WeightingLimit.IntValue > 0)
 		FormatEx(sLimit, sizeof(sLimit), "LIMIT %d", gCV_WeightingLimit.IntValue);
 
-	if (gCV_WeightingMultiplier.FloatValue == 1.0)
+	if (gCV_WeightingMultiplier.FloatValue == 1.0 || gB_SqliteHatesPOW)
 	{
 		if (gI_Driver == Driver_sqlite)
 		{
@@ -1331,7 +1337,7 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 
 		if (gI_Driver == Driver_sqlite)
 		{
-			gB_SQLWindowFunctions = gB_SQLWindowFunctions && results.FetchInt(1) > 0;
+			gB_SqliteHatesPOW = results.FetchInt(1) == 0;
 		}
 	}
 
@@ -1339,7 +1345,6 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 	{
 		if (gI_Driver == Driver_sqlite)
 		{
-			LogError("sqlite version not supported. Try using db.sqlite.ext from Sourcemod 1.12 or higher.");
 			SetFailState("sqlite version not supported. Try using db.sqlite.ext from Sourcemod 1.12 or higher.");
 		}
 		else if (gI_Driver == Driver_pgsql)
