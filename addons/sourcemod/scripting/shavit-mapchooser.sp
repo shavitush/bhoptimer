@@ -1164,6 +1164,8 @@ void LoadMapList()
 				return;
 			}
 
+			g_aMapList.Clear();
+
 			if (g_cvMapListType.IntValue == MapListMixed)
 			{
 				ReadMapList(g_aAllMapsList, g_mapFileSerial, "default", MAPLIST_FLAG_CLEARARRAY);
