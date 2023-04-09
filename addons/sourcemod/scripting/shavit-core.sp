@@ -1897,15 +1897,22 @@ public int Native_ChangeClientStyle(Handle handler, int numParams)
 	return false;
 }
 
-void CalculateRunTime(timer_snapshot_t s, bool include_end_offset)
+void CalculateRunTime(timer_snapshot_t s, bool finished)
 {
+	if (finished)
+	{
+		// Round up fractional ticks... mostly
+		if (s.iFractionalTicks > 100)
+			s.iFractionalTicks = 10000;
+	}
+
 	float ticks = float(s.iFullTicks) + (s.iFractionalTicks / 10000.0);
 
 	if (gCV_UseOffsets.BoolValue)
 	{
 		ticks += s.fZoneOffset[Zone_Start];
 
-		if (include_end_offset)
+		if (finished)
 		{
 			ticks -= (1.0 - s.fZoneOffset[Zone_End]);
 		}
