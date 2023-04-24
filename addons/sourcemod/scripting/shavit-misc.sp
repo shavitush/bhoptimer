@@ -1484,7 +1484,7 @@ void ClearViewPunch(int victim)
 	}
 }
 
-public Action OnTakeDamage(int victim, int& attacker)
+public Action OnTakeDamage(int victim, int& attacker, int& inflictor, float& damage, int& damagetype, int& weapon, float damageForce[3], float damagePosition[3])
 {
 	bool bBlockDamage;
 
@@ -1497,14 +1497,25 @@ public Action OnTakeDamage(int victim, int& attacker)
 		case 1:
 		{
 			// 0 - world/fall damage
-			if(attacker == 0)
+			if (attacker == 0 || attacker > MaxClients) // (attacker > MaxClients) for DMG_CRUSH, by moving/falling objects for example (with cs_enable_player_physics_box 1)
 			{
 				bBlockDamage = true;
+			}
+			else if (inflictor != attacker && IsValidEntity(inflictor)) // handles damage dealt by point_hurt (see https://developer.valvesoftware.com/wiki/Point_hurt)
+			{
+				char sClassname[12];
+				if (GetEntityClassname(inflictor, sClassname, sizeof(sClassname)) && StrEqual(sClassname, "point_hurt"))
+				{
+					bBlockDamage = true;
+				}
 			}
 		}
 		case 2:
 		{
-			if(IsValidClient(attacker))
+			char sClassname[12];
+			if (IsValidClient(attacker) &&
+				( !IsValidEntity(inflictor) || !GetEntityClassname(inflictor, sClassname, sizeof(sClassname)) || !StrEqual(sClassname, "point_hurt") ) // This line ignores damage dealt by point_hurt (see https://developer.valvesoftware.com/wiki/Point_hurt)
+			   )
 			{
 				bBlockDamage = true;
 			}
