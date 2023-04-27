@@ -33,6 +33,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <shavit/replay-recorder>
+#include <shavit/tas> // for the `IsSurfing` stock
 #include <adminmenu>
 
 #include <shavit/maps-folder-stocks>
@@ -2708,6 +2709,14 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			else
 			{
 				TeleportEntity(info.iEnt, NULL_VECTOR, ang, vecVelocity);
+			}
+
+			if (isClient && gEV_Type == Engine_TF2 && (buttons & IN_DUCK))
+			{
+				if (IsSurfing(info.iEnt))
+				{
+					buttons &= ~IN_DUCK;
+				}
 			}
 		}
 	}

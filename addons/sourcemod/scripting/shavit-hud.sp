@@ -1858,7 +1858,7 @@ void UpdateKeyOverlay(int client, Panel panel, bool &draw)
 	float fAngleDiff;
 	int buttons;
 
-	if (IsValidClient(target))
+	if (IsValidClient(target) && !IsFakeClient(target))
 	{
 		fAngleDiff = gF_AngleDiff[target];
 		buttons = gI_Buttons[target];
@@ -1946,8 +1946,16 @@ void UpdateCenterKeys(int client)
 
 	if (IsValidClient(target))
 	{
-		fAngleDiff = gF_AngleDiff[target];
-		buttons = gI_Buttons[target];
+		if (IsFakeClient(target))
+		{
+			buttons = Shavit_GetReplayButtons(target, fAngleDiff);
+		}
+		else
+		{
+			fAngleDiff = gF_AngleDiff[target];
+			buttons = gI_Buttons[target];
+		}
+
 		scrolls = gI_ScrollCount[target];
 		prevscrolls = gI_LastScrollCount[target];
 	}
