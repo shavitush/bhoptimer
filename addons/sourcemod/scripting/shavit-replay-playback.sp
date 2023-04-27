@@ -207,6 +207,7 @@ DynamicDetour gH_TeamFull = null;
 bool gB_TeamFullDetoured = false;
 int gI_WEAPONTYPE_UNKNOWN = 123123123;
 int gI_LatestClient = -1;
+bool gB_ExpectingBot = false;
 bot_info_t gA_BotInfo_Temp; // cached when creating a bot so we can use an accurate name in player_connect
 int gI_LastReplayFlags[MAXPLAYERS + 1];
 float gF_EyeOffset;
@@ -1785,6 +1786,7 @@ public void Shavit_OnReplaySaved(int client, int style, float time, int jumps, i
 int InternalCreateReplayBot()
 {
 	gI_LatestClient = -1;
+	gB_ExpectingBot = true;
 
 	if (gEV_Type == Engine_TF2)
 	{
@@ -1844,6 +1846,7 @@ int InternalCreateReplayBot()
 		//bool success = (0xFF & ret) != 0;
 	}
 
+	gB_ExpectingBot = false;
 	return gI_LatestClient;
 }
 
@@ -2117,7 +2120,7 @@ public void OnClientPutInServer(int client)
 
 		SDKHook(client, SDKHook_PostThink, ForceObserveProp);
 	}
-	else
+	else if (gB_ExpectingBot)
 	{
 		char sName[MAX_NAME_LENGTH];
 		FillBotName(gA_BotInfo_Temp, sName);
@@ -2829,7 +2832,7 @@ public Action BotEvents(Event event, const char[] name, bool dontBroadcast)
 	{
 		event.BroadcastDisabled = true;
 
-		if (StrContains(name, "player_connect") != -1)
+		if (StrContains(name, "player_connect") != -1 && gB_ExpectingBot)
 		{
 			char sName[MAX_NAME_LENGTH];
 			FillBotName(gA_BotInfo_Temp, sName);
