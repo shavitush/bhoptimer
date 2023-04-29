@@ -1490,7 +1490,7 @@ public Action OnTakeDamage(int victim, int& attacker, int& inflictor, float& dam
 
 	switch(gCV_GodMode.IntValue)
 	{
-		default: // 0 or invalid value: don't block damage
+		case 0: // don't block damage
 		{
 			bBlockDamage = false;
 		}
