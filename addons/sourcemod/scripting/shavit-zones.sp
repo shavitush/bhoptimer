@@ -4991,7 +4991,8 @@ public void Shavit_OnRestart(int client, int track)
 			{
 				ResetClientTargetNameAndClassName(client, track);
 				// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
-				Shavit_StartTimer(client, track);
+				bool skipGroundCheck = true;
+				Shavit_StartTimer(client, track, skipGroundCheck);
 			}
 		}
 		// kz buttons
@@ -5416,10 +5417,12 @@ public void TouchPost(int entity, int other)
 				}
 			}
 
+#if 0
 			if (GetEntPropEnt(other, Prop_Send, "m_hGroundEntity") == -1 && !Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(other), "startinair"))
 			{
 				return;
 			}
+#endif
 
 			// start timer instantly for main track, but require bonuses to have the current timer stopped
 			// so you don't accidentally step on those while running

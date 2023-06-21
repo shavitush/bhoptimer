@@ -117,6 +117,8 @@ ConVar gCV_PauseMovement = null;
 Convar gCV_RestartWithFullHP = null;
 
 // external cvars
+ConVar sv_accelerate = null;
+ConVar sv_friction = null;
 ConVar sv_cheats = null;
 ConVar sv_disable_immunity_alpha = null;
 ConVar mp_humanteam = null;
@@ -311,6 +313,9 @@ public void OnPluginStart()
 	mp_humanteam = FindConVar((gEV_Type == Engine_TF2) ? "mp_humans_must_join_team" : "mp_humanteam");
 	sv_disable_radar = FindConVar("sv_disable_radar");
 	tf_dropped_weapon_lifetime = FindConVar("tf_dropped_weapon_lifetime");
+
+	sv_accelerate = FindConVar("sv_accelerate");
+	sv_friction = FindConVar("sv_friction");
 
 	// crons
 	CreateTimer(10.0, Timer_Cron, 0, TIMER_REPEAT);
@@ -2253,11 +2258,67 @@ public Action Command_Specs(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action Shavit_OnStartPre(int client)
+float StyleMaxPrestrafe(int style)
 {
-	if (Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0 && GetEntityMoveType(client) == MOVETYPE_NOCLIP)
+	float runspeed = Shavit_GetStyleSettingFloat(style, "runspeed");
+	return MaxPrestrafe(runspeed, sv_accelerate.FloatValue, sv_friction.FloatValue, GetTickInterval());
+}
+
+public Action Shavit_OnStartPre(int client, int track, bool& skipGroundTimer)
+{
+	if (GetEntityMoveType(client) == MOVETYPE_NOCLIP)
 	{
 		return Plugin_Stop;
+	}
+
+	if (Shavit_GetStyleSettingInt(gI_Style[client], "prespeed") == 0)
+	{
+		int prespeed_type = Shavit_GetStyleSettingInt(gI_Style[client], "prespeed_type");
+
+		if (prespeed_type == -1)
+		{
+			prespeed_type = gCV_PreSpeed.IntValue;
+		}
+
+		if (prespeed_type == 1 || prespeed_type >= 3)
+		{
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+
+			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
+			float maxPrestrafe = StyleMaxPrestrafe(gI_Style[client]);
+			if (fLimit > maxPrestrafe) fLimit = maxPrestrafe;
+
+			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
+			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
+			if (prespeed_type < 4 && fSpeed[2] > 0.0)
+			{
+				fLimit /= 3.0;
+			}
+
+			float fSpeedXY = (SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0)));
+			float fScale = (fLimit / fSpeedXY);
+
+			if(fScale < 1.0)
+			{
+				if (prespeed_type == 5)
+				{
+					float zSpeed = fSpeed[2];
+					fSpeed[2] = 0.0;
+
+					ScaleVector(fSpeed, fScale);
+					fSpeed[2] = zSpeed;
+				}
+				else
+				{
+					ScaleVector(fSpeed, fScale);
+				}
+
+				DumbSetVelocity(client, fSpeed);
+			}
+
+			skipGroundTimer = true;
+		}
 	}
 
 	return Plugin_Continue;

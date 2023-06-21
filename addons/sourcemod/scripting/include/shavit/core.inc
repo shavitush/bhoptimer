@@ -551,6 +551,15 @@ stock void TrimDisplayString(const char[] str, char[] outstr, int outstrlen, int
 		Format(outstr, outstrlen, "%s...", outstr);
 }
 
+// TODO: surfacefriction
+stock float MaxPrestrafe(float runspeed, float accelerate, float friction, float tickinterval)
+{
+	return runspeed * SquareRoot(
+		(accelerate / friction) *
+		((2.0 - accelerate * tickinterval) / (2.0 - friction * tickinterval))
+	);
+}
+
 /**
  * Called before shavit-core processes the client's usercmd.
  * Before this is called, safety checks (fake/dead clients) happen.
@@ -599,9 +608,10 @@ forward void Shavit_OnTimeIncrementPost(int client, float time);
  *
  * @param client                    Client index.
  * @param track                     Timer track.
+ * @param skipGroundTimer           Whether shavit-core can skip the on-ground-for-half-a-second check. shavit-misc uses this for some prespeed settings...
  * @return                          Plugin_Continue to do nothing or anything else to not start the timer.
  */
-forward Action Shavit_OnStartPre(int client, int track);
+forward Action Shavit_OnStartPre(int client, int track, bool& skipGroundTimer);
 
 /**
  * Called when a player's timer starts.
@@ -862,9 +872,10 @@ native Database Shavit_GetDatabase(int& outdriver=0);
  *
  * @param client					Client index.
  * @param track						Timer track.
+ * @param skipGroundCheck           Whether to skip checking if the player is on the ground. This is used in shavit-zones for when teleporting/!restarting players to a floating zone...
  * @noreturn
  */
-native void Shavit_StartTimer(int client, int track);
+native void Shavit_StartTimer(int client, int track, bool skipGroundCheck=false);
 
 /**
  * Restarts the timer for a player.

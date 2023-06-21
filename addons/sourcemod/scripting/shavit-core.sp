@@ -256,7 +256,7 @@ public void OnPluginStart()
 {
 	// forwards
 	gH_Forwards_Start = CreateGlobalForward("Shavit_OnStart", ET_Ignore, Param_Cell, Param_Cell);
-	gH_Forwards_StartPre = CreateGlobalForward("Shavit_OnStartPre", ET_Event, Param_Cell, Param_Cell);
+	gH_Forwards_StartPre = CreateGlobalForward("Shavit_OnStartPre", ET_Event, Param_Cell, Param_Cell, Param_CellByRef);
 	gH_Forwards_Stop = CreateGlobalForward("Shavit_OnStop", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_StopPre = CreateGlobalForward("Shavit_OnStopPre", ET_Event, Param_Cell, Param_Cell);
 	gH_Forwards_FinishPre = CreateGlobalForward("Shavit_OnFinishPre", ET_Hook, Param_Cell, Param_Array);
@@ -1777,7 +1777,7 @@ public int Native_IsKZMap(Handle handler, int numParams)
 
 public int Native_StartTimer(Handle handler, int numParams)
 {
-	StartTimer(GetNativeCell(1), GetNativeCell(2));
+	StartTimer(GetNativeCell(1), GetNativeCell(2), numParams >= 3 ? GetNativeCell(3) : false);
 	return 0;
 }
 
@@ -2440,58 +2440,88 @@ TimerStatus GetTimerStatus(int client)
 	return Timer_Running;
 }
 
-// TODO: surfacefriction
-float MaxPrestrafe(float runspeed, float accelerate, float friction, float tickinterval)
+float StyleMaxPrestrafe(int style)
 {
-	return runspeed * SquareRoot(
-		(accelerate / friction) *
-		((2.0 - accelerate * tickinterval) / (2.0 - friction * tickinterval))
-	);
-}
-
-float ClientMaxPrestrafe(int client)
-{
-	float runspeed = GetStyleSettingFloat(gA_Timers[client].bsStyle, "runspeed");
+	float runspeed = GetStyleSettingFloat(style, "runspeed");
 	return MaxPrestrafe(runspeed, sv_accelerate.FloatValue, sv_friction.FloatValue, GetTickInterval());
 }
 
-void StartTimer(int client, int track)
+bool CanStartTimer(int client, int track, bool skipGroundCheck)
 {
 	if(!IsValidClient(client, true) || GetClientTeam(client) < 2 || IsFakeClient(client) || !gB_CookiesRetrieved[client])
 	{
-		return;
+		return false;
 	}
+
+	int style = gA_Timers[client].bsStyle;
+
+	int prespeed = GetStyleSettingInt(style, "prespeed");
+	if (prespeed == 1)
+		return true;
 
 	float fSpeed[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+
+	int nozaxisspeed = GetStyleSettingInt(style, "nozaxisspeed");
+	if (nozaxisspeed < 0) nozaxisspeed = gCV_NoZAxisSpeed.IntValue;
+
+	if (nozaxisspeed && fSpeed[2] != 0.0)
+		return false;
+
+	if (prespeed == 2)
+		return true;
+
+	bool skipGroundTimer = false;
+	Action result = Plugin_Continue;
+	Call_StartForward(gH_Forwards_StartPre);
+	Call_PushCell(client);
+	Call_PushCell(track);
+	Call_PushCellRef(skipGroundTimer);
+	Call_Finish(result);
+
+	if (result != Plugin_Continue)
+		return false;
+
+	// re-grab velocity in case shavit-misc capped it
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
 	float curVel = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
 
-	int nozaxisspeed = GetStyleSettingInt(gA_Timers[client].bsStyle, "nozaxisspeed");
+	// This helps with zones that are floating in the air (commonly for bonuses).
+	// Since you teleport into the air with 0-velocity...
+	if (curVel <= 50.0)
+		return true;
 
-	if (nozaxisspeed < 0)
+	float prestrafe = StyleMaxPrestrafe(style);
+	if (curVel > prestrafe)
+		return false;
+
+	if (skipGroundCheck || GetStyleSettingBool(style, "startinair"))
+		return true;
+
+#if 0
+	MoveType mtMoveType = GetEntityMoveType(client);
+	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
+	int iGroundEntity = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
+	// gA_Timers[client].bOnGround isn't updated/correct when zones->touchpost->starttimer happens... frustrating...
+	bool bOnGround = (!bInWater && mtMoveType == MOVETYPE_WALK && iGroundEntity != -1);
+
+	if (!bOnGround) return false;
+#endif
+
+	if (skipGroundTimer) return true;
+
+	int halfSecOfTicks = RoundFloat(0.5 / GetTickInterval());
+	int onGroundTicks = gI_LastTickcount[client] - gI_FirstTouchedGround[client];
+
+	return onGroundTicks >= halfSecOfTicks;
+}
+
+void StartTimer(int client, int track, bool skipGroundCheck)
+{
+	if (CanStartTimer(client, track, skipGroundCheck))
 	{
-		nozaxisspeed = gCV_NoZAxisSpeed.BoolValue;
-	}
-
-	if (!nozaxisspeed ||
-		GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 1 ||
-		(fSpeed[2] == 0.0 && (GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 2 || curVel <= 50.0 ||
-			((curVel <= ClientMaxPrestrafe(client) && gA_Timers[client].bOnGround &&
-			  (gI_LastTickcount[client]-gI_FirstTouchedGround[client] > RoundFloat(0.5/GetTickInterval()))))))) // beautiful
-	{
-		Action result = Plugin_Continue;
-		Call_StartForward(gH_Forwards_StartPre);
-		Call_PushCell(client);
-		Call_PushCell(track);
-		Call_Finish(result);
-
-		if(result == Plugin_Continue)
+		if (true) // fucking shit
 		{
-			Call_StartForward(gH_Forwards_Start);
-			Call_PushCell(client);
-			Call_PushCell(track);
-			Call_Finish(result);
-
 			if (gA_Timers[client].bClientPaused)
 			{
 				//SetEntityMoveType(client, MOVETYPE_WALK);
@@ -2523,6 +2553,11 @@ void StartTimer(int client, int track)
 			gA_Timers[client].fZoneOffset[Zone_End] = 0.0;
 			gA_Timers[client].fDistanceOffset[Zone_Start] = 0.0;
 			gA_Timers[client].fDistanceOffset[Zone_End] = 0.0;
+
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecVelocity", fSpeed);
+			float curVel = SquareRoot(Pow(fSpeed[0], 2.0) + Pow(fSpeed[1], 2.0));
+
 			gA_Timers[client].fAvgVelocity = curVel;
 			gA_Timers[client].fMaxVelocity = curVel;
 
@@ -2533,6 +2568,11 @@ void StartTimer(int client, int track)
 			UpdateLaggedMovement(client, true);
 
 			SetEntityGravity(client, GetStyleSettingFloat(gA_Timers[client].bsStyle, "gravity"));
+
+			Call_StartForward(gH_Forwards_Start);
+			Call_PushCell(client);
+			Call_PushCell(track);
+			Call_Finish();
 		}
 #if 0
 		else if(result == Plugin_Handled || result == Plugin_Stop)
