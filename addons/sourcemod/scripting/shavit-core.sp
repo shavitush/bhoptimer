@@ -3722,7 +3722,7 @@ void TestAngles(int client, float dirangle, float yawdelta, const float vel[3])
 	}
 
 	// hsw (thanks nairda!)
-	else if((dirangle > 22.5 && dirangle < 67.5))
+	else if((dirangle > 22.5 && dirangle < 67.5) || (dirangle > 292.5 && dirangle < 337.5))
 	{
 		gA_Timers[client].iTotalMeasures++;
 
