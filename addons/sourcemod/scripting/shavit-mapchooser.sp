@@ -108,6 +108,7 @@ char g_cMapName[PLATFORM_MAX_PATH];
 
 MapChange g_ChangeTime;
 
+bool g_bWaitingForChange;
 bool g_bMapVoteStarted;
 bool g_bMapVoteFinished;
 float g_fMapStartTime;
@@ -330,6 +331,7 @@ public void OnConfigsExecuted()
 public void OnMapEnd()
 {
 	gB_ConfigsExecuted = false;
+	g_bWaitingForChange = false;
 
 	if(g_cvMapVoteBlockMapInterval.IntValue > 0)
 	{
@@ -389,6 +391,24 @@ float MapChangeDelay()
 	}
 
 	return 1.0;
+}
+
+void StartMapChange(float delay, const char[] map, const char[] reason)
+{
+	if (g_bWaitingForChange)
+	{
+		// Could be here if someone !map's during the 1-4s delay before the changelevel... but this simplifies things...
+		LogError("StartMapChange called but already waiting for map change. Blocking... (%f, %s, %s)", delay, map, reason);
+		return;
+	}
+
+	g_bWaitingForChange = true;
+	SetNextMap(map);
+
+	DataPack dp;
+	CreateDataTimer(delay, Timer_ChangeMap, dp);
+	dp.WriteString(map);
+	dp.WriteString(reason);
 }
 
 int ExplodeCvar(ConVar cvar, char[][] buffers, int maxStrings, int maxStringLength)
@@ -952,11 +972,7 @@ void DoMapChangeAfterMapVote(char map[PLATFORM_MAX_PATH], char displayName[PLATF
 			Call_Finish();
 		}
 
-		DataPack data;
-		CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
-		data.WriteString(map);
-		data.WriteString("RTV Mapvote");
-		// ClearRTV();
+		StartMapChange(MapChangeDelay(), map, "RTV Mapvote");
 	}
 
 	g_bMapVoteStarted = false;
@@ -1397,6 +1413,7 @@ public Action Timer_ChangeMap(Handle timer, DataPack data)
 	data.ReadString(map, sizeof(map));
 	data.ReadString(reason, sizeof(reason));
 
+	//LogError("Timer_ChangeMap(%s, %s)", map, reason);
 	ForceChangeLevel(map, reason);
 	return Plugin_Stop;
 }
@@ -1733,10 +1750,7 @@ public int MapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 		ShowActivity2(param1, g_cPrefix, "%t", "Changing map", map);
 		LogAction(param1, -1, "\"%L\" changed map to \"%s\"", param1, map);
 
-		DataPack dp;
-		CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, dp);
-		dp.WriteString(map);
-		dp.WriteString("sm_map");
+		StartMapChange(MapChangeDelay(), map, "sm_map (MapsMenuHandler)");
 	}
 	else if (action == MenuAction_End)
 	{
@@ -1891,6 +1905,9 @@ public Action Command_RockTheVote(int client, int args)
 
 int CheckRTV(int client = 0)
 {
+	if (g_bWaitingForChange)
+		return 0;
+
 	int needed, rtvcount, total;
 	GetRTVStuff(total, needed, rtvcount);
 	char name[MAX_NAME_LENGTH];
@@ -1922,11 +1939,7 @@ int CheckRTV(int client = 0)
 				PrintToChatAll("%sRTV vote now majority, map changing to %s ...", g_cPrefix, map);
 			}
 
-			SetNextMap(map);
-			DataPack data;
-			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, data);
-			data.WriteString(map);
-			data.WriteString("rtv after map vote");
+			StartMapChange(MapChangeDelay(), map, "rtv after map vote");
 		}
 		else
 		{
@@ -2063,11 +2076,7 @@ public void FindUnzonedMapCallback(Database db, DBResultSet results, const char[
 	if (foundMap)
 	{
 		Shavit_PrintToChatAll("Loading unzoned map %s", buffer);
-
-		DataPack dp;
-		CreateDataTimer(1.0, Timer_ChangeMap, dp);
-		dp.WriteString(buffer);
-		dp.WriteString("sm_loadunzonedmap");
+		StartMapChange(1.0, buffer, "sm_loadunzonedmap");
 	}
 }
 
@@ -2082,11 +2091,7 @@ public Action Command_LoadUnzonedMap(int client, int args)
 public Action Command_ReloadMap(int client, int args)
 {
 	PrintToChatAll("%sReloading current map..", g_cPrefix);
-	DataPack dp;
-	CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, dp);
-	dp.WriteString(g_cMapName);
-	dp.WriteString("sm_reloadmap");
-
+	StartMapChange(MapChangeDelay(), g_cMapName, "sm_reloadmap");
 	return Plugin_Handled;
 }
 
@@ -2172,10 +2177,7 @@ public Action BaseCommands_Command_Map_Menu(int client, int args)
 			ShowActivity2(client, g_cPrefix, "%t", "Changing map", map);
 			LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
 
-			DataPack dp;
-			CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, dp);
-			dp.WriteString(map);
-			dp.WriteString("sm_map");
+			StartMapChange(MapChangeDelay(), map, "sm_map (BaseCommands_Command_Map_Menu)");
 		}
 		default:
 		{
@@ -2258,10 +2260,7 @@ public Action BaseCommands_Command_Map(int client, int args)
 	ShowActivity2(client, g_cPrefix, "%t", "Changing map", displayName);
 	LogAction(client, -1, "\"%L\" changed map to \"%s\"", client, map);
 
-	DataPack dp;
-	CreateDataTimer(MapChangeDelay(), Timer_ChangeMap, dp);
-	dp.WriteString(map);
-	dp.WriteString("sm_map");
+	StartMapChange(MapChangeDelay(), map, "sm_map (BaseCommands_Command_Map)");
 
 	return Plugin_Handled;
 }
