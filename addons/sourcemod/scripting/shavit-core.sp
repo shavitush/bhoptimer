@@ -3748,7 +3748,7 @@ void TestAngles(int client, float dirangle, float yawdelta, const float vel[3])
 	{
 		gA_Timers[client].iTotalMeasures++;
 
-		if((yawdelta < 0.0 && vel[1] >= -100.0) || (yawdelta > 0.0 && vel[1] <= 100.0))
+		if((yawdelta > 0.0 && vel[1] <= -100.0) || (yawdelta < 0.0 && vel[1] >= 100.0))
 		{
 			gA_Timers[client].iGoodGains++;
 		}
