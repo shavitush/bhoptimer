@@ -3732,6 +3732,17 @@ void TestAngles(int client, float dirangle, float yawdelta, const float vel[3])
 		}
 	}
 
+	// backwards hsw
+	else if((dirangle > 112.5 && dirangle < 157.5) || (dirangle > 202.5 && dirangle < 247.5))
+	{
+		gA_Timers[client].iTotalMeasures++;
+
+		if((yawdelta != 0.0) && (vel[0] >= 100.0 || vel[1] >= 100.0) && (vel[0] >= -100.0 || vel[1] >= -100.0))
+		{
+			gA_Timers[client].iGoodGains++;
+		}
+	}
+
 	// sw
 	else if((dirangle > 67.5 && dirangle < 112.5) || (dirangle > 247.5 && dirangle < 292.5))
 	{
