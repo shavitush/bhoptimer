@@ -1313,11 +1313,11 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 		if(data.iZoneHUD == ZoneHUD_Start)
 		{
-			FormatEx(sLine, 128, "%T ", "HudInStartZone", client, data.iSpeed);
+			FormatEx(sLine, 128, "%T ", (gI_HUD2Settings[client] & HUD2_SPEED) ? "HudInStartZoneNoSpeed" : "HudInStartZone", client, data.iSpeed);
 		}
 		else
 		{
-			FormatEx(sLine, 128, "%T ", "HudInEndZone", client, data.iSpeed);
+			FormatEx(sLine, 128, "%T ", (gI_HUD2Settings[client] & HUD2_SPEED) ? "HudInEndZoneNoSpeed" : "HudInEndZone", client, data.iSpeed);
 		}
 
 		AddHUDLine(buffer, maxlen, sLine, iLines);

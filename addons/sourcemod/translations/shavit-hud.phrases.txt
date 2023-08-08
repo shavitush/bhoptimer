@@ -16,6 +16,11 @@
 		"#format"	"{1:d}"
 		"en"		"In Start Zone\n\n{1}"
 	}
+	"HudInStartZoneNoSpeed"
+	{
+		"#format"	"{1:d}"
+		"en"		"In Start Zone"
+	}
 	"HudInStartZoneCSGO"
 	{
 		"#format"	"{1:d}"
@@ -29,6 +34,11 @@
 	{
 		"#format"	"{1:d}"
 		"en"		"In End Zone\n\n{1}"
+	}
+	"HudInEndZoneNoSpeed"
+	{
+		"#format"	"{1:d}"
+		"en"		"In End Zone"
 	}
 	"HudInEndZoneCSGO"
 	{
