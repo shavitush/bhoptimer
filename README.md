@@ -2,6 +2,8 @@
 
 ### RECOMPILE ALL YOUR PLUGINS THAT USE `#include <shavit>` OR STUFF WILL BREAK
 
+### CS:GO is dead. Support won't be removed and gamedata should:tm: still work but it isn't actively tested.
+
 [AlliedModders thread](https://forums.alliedmods.net/showthread.php?t=265456) // !!! OUTDATED !!!
 
 [Download](https://github.com/shavitush/bhoptimer/releases)
@@ -16,13 +18,14 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 
 # Requirements:
 * Steam version of Counter-Strike: Source, Counter-Strike: Global Offensive, or Team Fortress 2.
-* [Metamod:Source](https://www.sourcemm.net/downloads.php?branch=stable) and [SourceMod 1.10](https://www.sourcemod.net/smdrop/1.10/) (latest at bottom of list) [or 1.11+](https://www.sourcemod.net/downloads.php?branch=stable) installed.
+* [Metamod:Source](https://www.sourcemm.net/downloads.php?branch=stable) and [SourceMod](https://www.sourcemod.net/downloads.php?branch=stable) 1.10 or higher ([1.10](https://www.sourcemod.net/downloads.php?branch=1.10-dev&all=1), [1.11](https://www.sourcemod.net/downloads.php?branch=1.11-dev&all=1), [1.12](https://www.sourcemod.net/downloads.php?branch=1.12-dev&all=1)).
 * A MySQL database (preferably locally hosted) if your database is likely to grow big, or if you want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is required.
-* [DHooks](https://github.com/peace-maker/DHooks2/releases)
+* [DHooks](https://github.com/peace-maker/DHooks2/releases) (included with SourceMod 1.11 and higher).
 
 # Optional requirements, for the best experience:
 * [eventqueuefix](https://github.com/hermansimensen/eventqueue-fix)
   * Allows for timescaling boosters and is used to fix some exploits. (Use this instead of `boosterfix`)
+  * (included in bhoptimer release zips)
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
   * Used to grab `{serverip}` in advertisements.
 * [DynamicChannels](https://github.com/Vauff/DynamicChannels)
