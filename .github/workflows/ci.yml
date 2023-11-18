@@ -28,10 +28,10 @@ jobs:
           # Mac zip just because it's smaller & we don't repack the extensions...
           wget https://github.com/ErikMinekus/sm-ripext/releases/download/1.3.1/sm-ripext-1.3.1-mac.zip
           unzip sm-ripext-1.3.1-mac.zip "addons/sourcemod/scripting/include/*"
-          wget https://github.com/clugg/sm-json/archive/refs/tags/v4.1.1.tar.gz
-          tar --strip-components=1 -xvzf v4.1.1.tar.gz sm-json-4.1.1/addons/sourcemod/scripting/include
-          wget https://github.com/hermansimensen/eventqueue-fix/archive/refs/tags/1.3.1.tar.gz
-          tar --strip-components=1 -xvzf 1.3.1.tar.gz -C addons/sourcemod
+          wget https://github.com/clugg/sm-json/archive/refs/tags/v5.0.0.tar.gz
+          tar --strip-components=1 -xvzf v5.0.0.tar.gz sm-json-5.0.0/addons/sourcemod/scripting/include
+          wget https://github.com/hermansimensen/eventqueue-fix/archive/refs/tags/1.3.2.tar.gz
+          tar --strip-components=1 -xvzf 1.3.2.tar.gz -C addons/sourcemod
           rm -rf *.zip *.tar.gz addons/sourcemod/.git* addons/sourcemod/LICENSE
 
       - name: Run compiler
