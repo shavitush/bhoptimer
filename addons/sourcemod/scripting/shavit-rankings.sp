@@ -1088,10 +1088,6 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 	{
 		if (sLastLogin[0])
 			Format(sLastLogin, sizeof(sLastLogin), "u2.%s", sLastLogin);
-		if (sMapWhere[0])
-			Format(sMapWhere, sizeof(sMapWhere), "p.%s", sMapWhere);
-		if (sTrackWhere[0])
-			Format(sTrackWhere, sizeof(sTrackWhere), "p.%s", sTrackWhere);
 
 		// fuck you mysql
 		FormatEx(sQuery, sizeof(sQuery),
@@ -1101,7 +1097,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 		... "    FROM %splayertimes AS p\n"
 		... "    JOIN %susers AS u2\n"
 		... "     ON u2.auth = p.auth %s %s\n"
-		... "    WHERE p.points > 0 %s %s %s %s\n"
+		... "    WHERE p.points > 0 AND p.auth IN (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s)\n"
 		... "    ORDER BY p.points DESC %s\n"
 		... "  ) AS t\n"
 		... "  GROUP by auth\n"
@@ -1113,7 +1109,8 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			gS_MySQLPrefix,
 			gS_MySQLPrefix,
 			sLastLogin[0] ? "AND" : "", sLastLogin,
-			(sMapWhere[0] || sTrackWhere[0]) ? "AND" : "",
+			gS_MySQLPrefix,
+			(sMapWhere[0] || sTrackWhere[0]) ? "WHERE" : "",
 			sMapWhere,
 			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
 			sTrackWhere,
