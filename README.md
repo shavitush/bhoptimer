@@ -274,6 +274,8 @@ Player commands:
   - Allows players to toggle trigger visibility.
 * [ShowPlayerClips](https://forums.alliedmods.net/showthread.php?p=2661942) ([github](https://github.com/GAMMACASE/ShowPlayerClips))
   - Allows players to toggle player clip visibility.
+* [JumpStats](https://github.com/Nimmy2222/bhop-get-stats)
+  - Covers SSJ, Jhud, StrafeTrainer, Strafe Offsets and FJT. Colors, HUD positioning editor, cookies, etc
 * [shavit-ssj](https://github.com/Nairdaa/shavit-ssj)
   - Speed of Sixth Jump + more, customisable settings with cookies remembering user prefered settings.
 * [shavit-jhud](https://github.com/blankbhop/jhud)
