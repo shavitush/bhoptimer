@@ -2267,7 +2267,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 void UpdateKeyHint(int client)
 {
 
-	if((gI_Cycle % 10) != 0 || ( !(gI_HUDSettings[client] & HUD_SYNC) && !(gI_HUDSettings[client] & HUD_TIMELEFT) && gI_HUD2Settings[client] & HUD2_PERFS))
+	if((gI_Cycle % 10) != 0)
 	{
 		return;
 	}
@@ -2286,6 +2286,12 @@ void UpdateKeyHint(int client)
 	Call_Finish(preresult);
 
 	if (preresult == Plugin_Handled || preresult == Plugin_Stop)
+	{
+		return;
+	}
+
+	//Allows listening plugins to force this function despite player settings for sync, timeleft, perfs
+	if(strlen(sMessage) == 0 && !(gI_HUDSettings[client] & HUD_SYNC) && !(gI_HUDSettings[client] & HUD_TIMELEFT) && gI_HUD2Settings[client] & HUD2_PERFS)
 	{
 		return;
 	}
