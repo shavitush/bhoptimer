@@ -1057,7 +1057,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 	if (track != -1)
 		FormatEx(sTrackWhere, sizeof(sTrackWhere), "track = %d", track);
 	if (map[0])
-		FormatEx(sMapWhere, sizeof(sMapWhere), "map = '%s'", map);
+        FormatEx(sMapWhere, sizeof(sMapWhere), "map = \"%s\"", map);
 
 	if (!recalcall && gCV_LastLoginRecalculate.IntValue > 0)
 	{
