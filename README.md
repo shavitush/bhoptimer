@@ -32,7 +32,7 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 
 # Installation
 
-* [Build from source](https://github.com/shavitush/bhoptimer/wiki/1.-Installation)
+* [Build from source](https://github.com/shavitush/bhoptimer/wiki/1.-Installation-(from-source))
 * [Download an existing release](https://github.com/shavitush/bhoptimer/releases) - installing is simply drag & drop into the  game server's directory.
 
 # Configuration
