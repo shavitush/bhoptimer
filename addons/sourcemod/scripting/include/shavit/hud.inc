@@ -122,10 +122,12 @@ enum struct huddata_t
  * @param target                    Target entity that is either the client or what the client is spectating.
  * @param topleft                   Reference to the HUD buffer.
  * @param topleftlength             Max length of the topleft buffer.
+ * @param track						Clients current track
+ * @param style						Clients current style
  *
  * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Anything else to pass along new values.
  */
-forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, int topleftlength);
+forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, int topleftlength, int track, int style);
 
 /**
  * Called before the top left HUD updates and used to build the string for shavit-hud.
@@ -134,10 +136,12 @@ forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, int t
  * @param target                    Target entity that is either the client or what the client is spectating.
  * @param topleft                   Reference to the HUD buffer.
  * @param topleftlength             Max length of the topleft buffer.
+ * @param track						Clients current track
+ * @param style						Clients current style
  *
  * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed to use own topleft string instead of shavit-hud building it.
  */
-forward Action Shavit_PreOnTopLeftHUD(int client, int target, char[] topleft, int topleftlength);
+forward Action Shavit_PreOnTopLeftHUD(int client, int target, char[] topleft, int topleftlength, int track, int style, bool &forceUpdate);
 
 /**
  * Called when key hint (bottom left) HUD updates (Source 2013 only).
@@ -146,10 +150,12 @@ forward Action Shavit_PreOnTopLeftHUD(int client, int target, char[] topleft, in
  * @param target                    Target entity that is either the client or what the client is spectating.
  * @param keyhint                   Reference to the HUD buffer.
  * @param keyhintlength             Max length of the keyhint buffer.
+ * @param track						Clients current track
+ * @param style						Clients current style
  *
  * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Anything else to pass along new values.
  */
-forward Action Shavit_OnKeyHintHUD(int client, int target, char[] keyhint, int keyhintlength);
+forward Action Shavit_OnKeyHintHUD(int client, int target, char[] keyhint, int keyhintlength, int track, int style);
 
 /**
  * Called before the key hint HUD (bottom left) updates and used to build the string for shavit-hud (Source 2013 only).
@@ -158,10 +164,12 @@ forward Action Shavit_OnKeyHintHUD(int client, int target, char[] keyhint, int k
  * @param target                    Target entity that is either the client or what the client is spectating.
  * @param keyhint                   Reference to the HUD buffer.
  * @param keyhintlength             Max length of the keyhint buffer.
+ * @param track						Clients current track
+ * @param style						Clients current style
  *
  * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed to use own keyhint string instead of shavit-hud building it.
  */
-forward Action Shavit_PreOnKeyHintHUD(int client, int target, char[] keyhint, int keyhintlength);
+forward Action Shavit_PreOnKeyHintHUD(int client, int target, char[] keyhint, int keyhintlength, int track, int style, bool &forceUpdate);
 
 /**
  * Called before the center hud updates.
