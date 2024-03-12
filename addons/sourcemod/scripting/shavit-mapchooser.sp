@@ -398,7 +398,7 @@ void StartMapChange(float delay, const char[] map, const char[] reason)
 	if (g_bWaitingForChange)
 	{
 		// Could be here if someone !map's during the 1-4s delay before the changelevel... but this simplifies things...
-		LogError("StartMapChange called but already waiting for map change. Blocking... (%f, %s, %s)", delay, map, reason);
+		LogError("StartMapChange called, but already waiting for the map to change. Blocking... (%f, %s, %s)", delay, map, reason);
 		return;
 	}
 
