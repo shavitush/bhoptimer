@@ -2138,7 +2138,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 void UpdateTopLeftHUD(int client, bool wait)
 {
-	if(wait && gI_Cycle % 20 != 0)
+	if (wait && gI_Cycle % 20 != 0)
 	{
 		return;
 	}
@@ -2155,7 +2155,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 	int style = 0;
 	float fTargetPB = 0.0;
 
-	if(!bReplay)
+	if (!bReplay)
 	{
 		style = Shavit_GetBhopStyle(target);
 		track = Shavit_GetClientTrack(target);
@@ -2195,12 +2195,12 @@ void UpdateTopLeftHUD(int client, bool wait)
 		return;
 	}
 
-	if(!(gI_HUDSettings[client] & HUD_TOPLEFT) && !forceUpdate)
+	if (!(gI_HUDSettings[client] & HUD_TOPLEFT) && !forceUpdate)
 	{
 		return;
 	}
 
-	if((gI_HUDSettings[client] & HUD_TOPLEFT))
+	if ((gI_HUDSettings[client] & HUD_TOPLEFT))
 	{
 		float fWRTime = Shavit_GetWorldRecord(style, track);
 
@@ -2224,11 +2224,11 @@ void UpdateTopLeftHUD(int client, bool wait)
 		FormatSeconds(fSelfPB, sSelfPB, sizeof(sSelfPB));
 		Format(sSelfPB, sizeof(sSelfPB), "%T: %s", "HudBestText", client, sSelfPB);
 
-		if((gI_HUD2Settings[client] & HUD2_SPLITPB) == 0 && target != client)
+		if ((gI_HUD2Settings[client] & HUD2_SPLITPB) == 0 && target != client)
 		{
-			if(fTargetPB != 0.0)
+			if (fTargetPB != 0.0)
 			{
-				if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
+				if ((gI_HUD2Settings[client] & HUD2_TOPLEFT_RANK) == 0)
 				{
 					Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d) (%N)", sTopLeft, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), target);
 				}
@@ -2238,9 +2238,9 @@ void UpdateTopLeftHUD(int client, bool wait)
 				}
 			}
 
-			if(fSelfPB != 0.0)
+			if (fSelfPB != 0.0)
 			{
-				if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
+				if ((gI_HUD2Settings[client] & HUD2_TOPLEFT_RANK) == 0)
 				{
 					Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d) (%N)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
 				}
@@ -2250,7 +2250,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 				}
 			}
 		}
-		else if(fSelfPB != 0.0)
+		else if (fSelfPB != 0.0)
 		{
 			Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
 		}
@@ -2285,8 +2285,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 
 void UpdateKeyHint(int client)
 {
-
-	if((gI_Cycle % 10) != 0)
+	if ((gI_Cycle % 10) != 0)
 	{
 		return;
 	}
@@ -2300,7 +2299,7 @@ void UpdateKeyHint(int client)
 	int style;
 	int track;
 
-	if(!bReplay)
+	if (!bReplay)
 	{
 		style = Shavit_GetBhopStyle(target);
 		track = Shavit_GetClientTrack(target);
@@ -2314,7 +2313,7 @@ void UpdateKeyHint(int client)
 	style = (style == -1) ? 0 : style;
 	track = (track == -1) ? 0 : track;
 
-	if (!(0 <= style < gI_Styles) && !(0 <= track <= TRACKS_SIZE))
+	if (!(0 <= style < gI_Styles) || !(0 <= track <= TRACKS_SIZE))
 	{
 		return;
 	}
@@ -2337,19 +2336,18 @@ void UpdateKeyHint(int client)
 		return;
 	}
 
-	if(!forceUpdate && !(gI_HUDSettings[client] & HUD_SYNC) && !(gI_HUDSettings[client] & HUD_TIMELEFT) && gI_HUD2Settings[client] & HUD2_PERFS)
+	if (!forceUpdate && !(gI_HUDSettings[client] & HUD_SYNC) && !(gI_HUDSettings[client] & HUD_TIMELEFT) && gI_HUD2Settings[client] & HUD2_PERFS)
 	{
 		return;
 	}
 
-	if((gI_HUDSettings[client] & HUD_TIMELEFT) > 0 && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
+	if ((gI_HUDSettings[client] & HUD_TIMELEFT) > 0 && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
 	{
 		FormatEx(sMessage, 256, (iTimeLeft > 150)? "%s%T: %d minutes":"%T: %d seconds", sMessage, "HudTimeLeft", client, (iTimeLeft > 150) ? (iTimeLeft / 60)+1 : iTimeLeft);
 	}
 
-	if(target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)
+	if (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)
 	{
-
 		if (!bReplay && !IsValidClient(target))
 		{
 			return;
@@ -2377,15 +2375,15 @@ void UpdateKeyHint(int client)
 			int iSpectators = 0;
 			bool bIsAdmin = CheckCommandAccess(client, "admin_speclisthide", ADMFLAG_KICK);
 
-			for(int i = 1; i <= MaxClients; i++)
+			for (int i = 1; i <= MaxClients; i++)
 			{
-				if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetSpectatorTarget(i, i) != target)
+				if (i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetSpectatorTarget(i, i) != target)
 				{
 					continue;
 				}
 
-				if((gCV_SpectatorList.IntValue == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
-					(gCV_SpectatorList.IntValue == 2 && !CanUserTarget(client, i)))
+				if ((gCV_SpectatorList.IntValue == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
+				    (gCV_SpectatorList.IntValue == 2 && !CanUserTarget(client, i)))
 				{
 					continue;
 				}
@@ -2393,17 +2391,16 @@ void UpdateKeyHint(int client)
 				iSpectatorClients[iSpectators++] = i;
 			}
 
-			if(iSpectators > 0)
+			if (iSpectators > 0)
 			{
 				Format(sMessage, 256, "%s%s%spectators (%d):", sMessage, (strlen(sMessage) > 0)? "\n\n":"", (client == target)? "S":"Other S", iSpectators);
 				char sName[MAX_NAME_LENGTH];
 
-				for(int i = 0; i < iSpectators; i++)
+				for (int i = 0; i < iSpectators; i++)
 				{
-					if(i == 7)
+					if (i == 7)
 					{
 						Format(sMessage, 256, "%s\n...", sMessage);
-
 						break;
 					}
 
@@ -2431,7 +2428,7 @@ void UpdateKeyHint(int client)
 		return;
 	}
 
-	if(strlen(sMessage) > 0)
+	if (strlen(sMessage) > 0)
 	{
 		Handle hKeyHintText = StartMessageOne("KeyHintText", client);
 		BfWriteByte(hKeyHintText, 1);
