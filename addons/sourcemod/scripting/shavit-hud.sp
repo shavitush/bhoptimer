@@ -2170,7 +2170,7 @@ void UpdateTopLeftHUD(int client, bool wait)
 	style = (style == -1) ? 0 : style; // central replay bot probably
 	track = (track == -1) ? 0 : track; // central replay bot probably
 
-	if (!(0 <= style < gI_Styles) && !(0 <= track <= TRACKS_SIZE))
+	if (!(0 <= style < gI_Styles) || !(0 <= track <= TRACKS_SIZE))
 	{
 		return;
 	}
