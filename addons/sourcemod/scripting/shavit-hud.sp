@@ -63,6 +63,8 @@ UserMsg gI_TextMsg = view_as<UserMsg>(-1);
 // forwards
 Handle gH_Forwards_OnTopLeftHUD = null;
 Handle gH_Forwards_PreOnTopLeftHUD = null;
+Handle gH_Forwards_OnKeyHintHUD = null;
+Handle gH_Forwards_PreOnKeyHintHUD = null;
 Handle gH_Forwards_PreOnDrawCenterHUD = null;
 Handle gH_Forwards_PreOnDrawKeysHUD = null;
 
@@ -129,7 +131,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	// forwards
 	gH_Forwards_OnTopLeftHUD = CreateGlobalForward("Shavit_OnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
-	gH_Forwards_PreOnTopLeftHUD = CreateGlobalForward("Shavit_PreOnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_PreOnTopLeftHUD = CreateGlobalForward("Shavit_PreOnTopLeftHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
+	gH_Forwards_OnKeyHintHUD = CreateGlobalForward("Shavit_OnKeyHintHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_PreOnKeyHintHUD = CreateGlobalForward("Shavit_PreOnKeyHintHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
 	gH_Forwards_PreOnDrawCenterHUD = CreateGlobalForward("Shavit_PreOnDrawCenterHUD", ET_Event, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Array);
 	gH_Forwards_PreOnDrawKeysHUD = CreateGlobalForward("Shavit_PreOnDrawKeysHUD", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
@@ -2134,230 +2138,302 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 
 void UpdateTopLeftHUD(int client, bool wait)
 {
-	if((!wait || gI_Cycle % 20 == 0) && (gI_HUDSettings[client] & HUD_TOPLEFT) > 0)
+	if (wait && gI_Cycle % 20 != 0)
 	{
-		int target = GetSpectatorTarget(client, client);
-		bool bReplay = (gB_ReplayPlayback && Shavit_IsReplayEntity(target));
+		return;
+	}
 
-		if (!bReplay && !IsValidClient(target))
+	int target = GetSpectatorTarget(client, client);
+	bool bReplay = (gB_ReplayPlayback && Shavit_IsReplayEntity(target));
+
+	if (!bReplay && !IsValidClient(target))
+	{
+		return;
+	}
+
+	int track = 0;
+	int style = 0;
+	float fTargetPB = 0.0;
+
+	if (!bReplay)
+	{
+		style = Shavit_GetBhopStyle(target);
+		track = Shavit_GetClientTrack(target);
+		fTargetPB = Shavit_GetClientPB(target, style, track);
+	}
+	else
+	{
+		style = Shavit_GetReplayBotStyle(target);
+		track = Shavit_GetReplayBotTrack(target);
+	}
+
+	style = (style == -1) ? 0 : style; // central replay bot probably
+	track = (track == -1) ? 0 : track; // central replay bot probably
+
+	if (!(0 <= style < gI_Styles) || !(0 <= track <= TRACKS_SIZE))
+	{
+		return;
+	}
+
+	char sTopLeft[512];
+
+	Action preresult = Plugin_Continue;
+	bool forceUpdate = false;
+
+	Call_StartForward(gH_Forwards_PreOnTopLeftHUD);
+	Call_PushCell(client);
+	Call_PushCell(target);
+	Call_PushStringEx(sTopLeft, sizeof(sTopLeft), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(sizeof(sTopLeft));
+	Call_PushCell(track);
+	Call_PushCell(style);
+	Call_PushCellRef(forceUpdate);
+	Call_Finish(preresult);
+
+	if (preresult == Plugin_Handled || preresult == Plugin_Stop)
+	{
+		return;
+	}
+
+	if (!(gI_HUDSettings[client] & HUD_TOPLEFT) && !forceUpdate)
+	{
+		return;
+	}
+
+	if ((gI_HUDSettings[client] & HUD_TOPLEFT))
+	{
+		float fWRTime = Shavit_GetWorldRecord(style, track);
+
+		if (fWRTime != 0.0)
 		{
-			return;
+			char sWRTime[16];
+			FormatSeconds(fWRTime, sWRTime, 16);
+
+			char sWRName[MAX_NAME_LENGTH];
+			Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH, track);
+
+			FormatEx(sTopLeft, sizeof(sTopLeft), "%sWR: %s (%s)", sTopLeft, sWRTime, sWRName);
 		}
 
-		int track = 0;
-		int style = 0;
-		float fTargetPB = 0.0;
+		char sTargetPB[64];
+		FormatSeconds(fTargetPB, sTargetPB, sizeof(sTargetPB));
+		Format(sTargetPB, sizeof(sTargetPB), "%T: %s", "HudBestText", client, sTargetPB);
 
-		if(!bReplay)
+		float fSelfPB = Shavit_GetClientPB(client, style, track);
+		char sSelfPB[64];
+		FormatSeconds(fSelfPB, sSelfPB, sizeof(sSelfPB));
+		Format(sSelfPB, sizeof(sSelfPB), "%T: %s", "HudBestText", client, sSelfPB);
+
+		if ((gI_HUD2Settings[client] & HUD2_SPLITPB) == 0 && target != client)
 		{
-			style = Shavit_GetBhopStyle(target);
-			track = Shavit_GetClientTrack(target);
-			fTargetPB = Shavit_GetClientPB(target, style, track);
-		}
-		else
-		{
-			style = Shavit_GetReplayBotStyle(target);
-			track = Shavit_GetReplayBotTrack(target);
-		}
-
-		style = (style == -1) ? 0 : style; // central replay bot probably
-		track = (track == -1) ? 0 : track; // central replay bot probably
-
-		if ((0 <= style < gI_Styles) && (0 <= track <= TRACKS_SIZE))
-		{
-			char sTopLeft[512];
-
-			Action preresult = Plugin_Continue;
-			Call_StartForward(gH_Forwards_PreOnTopLeftHUD);
-			Call_PushCell(client);
-			Call_PushCell(target);
-			Call_PushStringEx(sTopLeft, sizeof(sTopLeft), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-			Call_PushCell(sizeof(sTopLeft));
-			Call_Finish(preresult);
-
-			if (preresult == Plugin_Handled || preresult == Plugin_Stop)
+			if (fTargetPB != 0.0)
 			{
-				return;
-			}
-
-			float fWRTime = Shavit_GetWorldRecord(style, track);
-
-			if (fWRTime != 0.0)
-			{
-				char sWRTime[16];
-				FormatSeconds(fWRTime, sWRTime, 16);
-
-				char sWRName[MAX_NAME_LENGTH];
-				Shavit_GetWRName(style, sWRName, MAX_NAME_LENGTH, track);
-
-				FormatEx(sTopLeft, sizeof(sTopLeft), "WR: %s (%s)", sWRTime, sWRName);
-			}
-
-			char sTargetPB[64];
-			FormatSeconds(fTargetPB, sTargetPB, sizeof(sTargetPB));
-			Format(sTargetPB, sizeof(sTargetPB), "%T: %s", "HudBestText", client, sTargetPB);
-
-			float fSelfPB = Shavit_GetClientPB(client, style, track);
-			char sSelfPB[64];
-			FormatSeconds(fSelfPB, sSelfPB, sizeof(sSelfPB));
-			Format(sSelfPB, sizeof(sSelfPB), "%T: %s", "HudBestText", client, sSelfPB);
-
-			if((gI_HUD2Settings[client] & HUD2_SPLITPB) == 0 && target != client)
-			{
-				if(fTargetPB != 0.0)
+				if ((gI_HUD2Settings[client] & HUD2_TOPLEFT_RANK) == 0)
 				{
-					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
-					{
-						Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d) (%N)", sTopLeft, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), target);
-					}
-					else
-					{
-						Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (%N)", sTopLeft, sTargetPB, target);
-					}
+					Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d) (%N)", sTopLeft, sTargetPB, Shavit_GetRankForTime(style, fTargetPB, track), target);
 				}
-
-				if(fSelfPB != 0.0)
+				else
 				{
-					if((gI_HUD2Settings[client]& HUD2_TOPLEFT_RANK) == 0)
-					{
-						Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d) (%N)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
-					}
-					else
-					{
-						Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (%N)", sTopLeft, sSelfPB, client);
-					}
+					Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (%N)", sTopLeft, sTargetPB, target);
 				}
 			}
-			else if(fSelfPB != 0.0)
-			{
-				Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
-			}
 
-			Action postresult = Plugin_Continue;
-			Call_StartForward(gH_Forwards_OnTopLeftHUD);
-			Call_PushCell(client);
-			Call_PushCell(target);
-			Call_PushStringEx(sTopLeft, sizeof(sTopLeft), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-			Call_PushCell(sizeof(sTopLeft));
-			Call_Finish(postresult);
-
-			if (postresult != Plugin_Continue && postresult != Plugin_Changed)
+			if (fSelfPB != 0.0)
 			{
-				return;
-			}
-
-			SetHudTextParams(0.01, 0.01, 2.6, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
-
-			if (gB_DynamicChannels)
-			{
-				ShowHudText(client, GetDynamicChannel(5), "%s", sTopLeft);
-			}
-			else
-			{
-				ShowSyncHudText(client, gH_HUDTopleft, "%s", sTopLeft);
+				if ((gI_HUD2Settings[client] & HUD2_TOPLEFT_RANK) == 0)
+				{
+					Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d) (%N)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track), client);
+				}
+				else
+				{
+					Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (%N)", sTopLeft, sSelfPB, client);
+				}
 			}
 		}
+		else if (fSelfPB != 0.0)
+		{
+			Format(sTopLeft, sizeof(sTopLeft), "%s\n%s (#%d)", sTopLeft, sSelfPB, Shavit_GetRankForTime(style, fSelfPB, track));
+		}
+	}
+
+	Action postresult = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnTopLeftHUD);
+	Call_PushCell(client);
+	Call_PushCell(target);
+	Call_PushStringEx(sTopLeft, sizeof(sTopLeft), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(sizeof(sTopLeft));
+	Call_PushCell(track);
+	Call_PushCell(style);
+	Call_Finish(postresult);
+
+	if (postresult != Plugin_Continue && postresult != Plugin_Changed)
+	{
+		return;
+	}
+
+	SetHudTextParams(0.01, 0.01, 2.6, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
+
+	if (gB_DynamicChannels)
+	{
+		ShowHudText(client, GetDynamicChannel(5), "%s", sTopLeft);
+	}
+	else
+	{
+		ShowSyncHudText(client, gH_HUDTopleft, "%s", sTopLeft);
 	}
 }
 
 void UpdateKeyHint(int client)
 {
-	if ((gI_Cycle % 10) == 0 && ((gI_HUDSettings[client] & HUD_SYNC) > 0 || (gI_HUDSettings[client] & HUD_TIMELEFT) > 0 || !(gI_HUD2Settings[client] & HUD2_PERFS)))
+	if ((gI_Cycle % 10) != 0)
 	{
-		char sMessage[256];
-		int iTimeLeft = -1;
+		return;
+	}
 
-		if((gI_HUDSettings[client] & HUD_TIMELEFT) > 0 && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
+	char sMessage[256];
+	int iTimeLeft = -1;
+
+	int target = GetSpectatorTarget(client, client);
+
+	int bReplay = gB_ReplayPlayback && Shavit_IsReplayEntity(target);
+	int style;
+	int track;
+
+	if (!bReplay)
+	{
+		style = Shavit_GetBhopStyle(target);
+		track = Shavit_GetClientTrack(target);
+	}
+	else
+	{
+		style = Shavit_GetReplayBotStyle(target);
+		track = Shavit_GetReplayBotTrack(target);
+	}
+
+	style = (style == -1) ? 0 : style;
+	track = (track == -1) ? 0 : track;
+
+	if (!(0 <= style < gI_Styles) || !(0 <= track <= TRACKS_SIZE))
+	{
+		return;
+	}
+
+	Action preresult = Plugin_Continue;
+	bool forceUpdate = false;
+
+	Call_StartForward(gH_Forwards_PreOnKeyHintHUD);
+	Call_PushCell(client);
+	Call_PushCell(target);
+	Call_PushStringEx(sMessage, sizeof(sMessage), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(sizeof(sMessage));
+	Call_PushCell(track);
+	Call_PushCell(style);
+	Call_PushCellRef(forceUpdate);
+	Call_Finish(preresult);
+
+	if (preresult == Plugin_Handled || preresult == Plugin_Stop)
+	{
+		return;
+	}
+
+	if (!forceUpdate && !(gI_HUDSettings[client] & HUD_SYNC) && !(gI_HUDSettings[client] & HUD_TIMELEFT) && gI_HUD2Settings[client] & HUD2_PERFS)
+	{
+		return;
+	}
+
+	if ((gI_HUDSettings[client] & HUD_TIMELEFT) > 0 && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
+	{
+		FormatEx(sMessage, 256, (iTimeLeft > 150)? "%s%T: %d minutes":"%T: %d seconds", sMessage, "HudTimeLeft", client, (iTimeLeft > 150) ? (iTimeLeft / 60)+1 : iTimeLeft);
+	}
+
+	if (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)
+	{
+		if (!bReplay && !IsValidClient(target))
 		{
-			FormatEx(sMessage, 256, (iTimeLeft > 150)? "%T: %d minutes":"%T: %d seconds", "HudTimeLeft", client, (iTimeLeft > 150) ? (iTimeLeft / 60)+1 : iTimeLeft);
+			return;
 		}
 
-		int target = GetSpectatorTarget(client, client);
-
-		if(target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)
+		if (!bReplay && Shavit_GetTimerStatus(target) != Timer_Stopped)
 		{
-			int bReplay = gB_ReplayPlayback && Shavit_IsReplayEntity(target);
+			bool perf_double_newline = true;
 
-			if (!bReplay && !IsValidClient(target))
+			if ((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetStyleSettingBool(style, "sync"))
 			{
-				return;
+				perf_double_newline = false;
+				Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
 			}
 
-			int style = bReplay ? Shavit_GetReplayBotStyle(target) : Shavit_GetBhopStyle(target);
-
-			if(!(0 <= style < gI_Styles))
+			if (!Shavit_GetStyleSettingBool(style, "autobhop") && (gI_HUD2Settings[client] & HUD2_PERFS) == 0)
 			{
-				style = 0;
-			}
-
-			if (!bReplay && Shavit_GetTimerStatus(target) != Timer_Stopped)
-			{
-				bool perf_double_newline = true;
-
-				if ((gI_HUDSettings[client] & HUD_SYNC) > 0 && Shavit_GetStyleSettingBool(style, "sync"))
-				{
-					perf_double_newline = false;
-					Format(sMessage, 256, "%s%s%T: %.01f", sMessage, (strlen(sMessage) > 0)? "\n\n":"", "HudSync", client, Shavit_GetSync(target));
-				}
-
-				if (!Shavit_GetStyleSettingBool(style, "autobhop") && (gI_HUD2Settings[client] & HUD2_PERFS) == 0)
-				{
-					Format(sMessage, 256, "%s%s\n%T: %.1f", sMessage, perf_double_newline ? "\n":"", "HudPerfs", client, Shavit_GetPerfectJumps(target));
-				}
-			}
-
-			if ((gI_HUDSettings[client] & HUD_SPECTATORS) > 0 && (!(gI_HUDSettings[client] & HUD_SPECTATORSDEAD) || !IsPlayerAlive(client)))
-			{
-				int iSpectatorClients[MAXPLAYERS+1];
-				int iSpectators = 0;
-				bool bIsAdmin = CheckCommandAccess(client, "admin_speclisthide", ADMFLAG_KICK);
-
-				for(int i = 1; i <= MaxClients; i++)
-				{
-					if(i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetSpectatorTarget(i, i) != target)
-					{
-						continue;
-					}
-
-					if((gCV_SpectatorList.IntValue == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
-						(gCV_SpectatorList.IntValue == 2 && !CanUserTarget(client, i)))
-					{
-						continue;
-					}
-
-					iSpectatorClients[iSpectators++] = i;
-				}
-
-				if(iSpectators > 0)
-				{
-					Format(sMessage, 256, "%s%s%spectators (%d):", sMessage, (strlen(sMessage) > 0)? "\n\n":"", (client == target)? "S":"Other S", iSpectators);
-					char sName[MAX_NAME_LENGTH];
-
-					for(int i = 0; i < iSpectators; i++)
-					{
-						if(i == 7)
-						{
-							Format(sMessage, 256, "%s\n...", sMessage);
-
-							break;
-						}
-
-						SanerGetClientName(iSpectatorClients[i], sName);
-						ReplaceString(sName, sizeof(sName), "#", "?");
-						TrimDisplayString(sName, sName, sizeof(sName), gCV_SpecNameSymbolLength.IntValue);
-						Format(sMessage, 256, "%s\n%s", sMessage, sName);
-					}
-				}
+				Format(sMessage, 256, "%s%s\n%T: %.1f", sMessage, perf_double_newline ? "\n":"", "HudPerfs", client, Shavit_GetPerfectJumps(target));
 			}
 		}
 
-		if(strlen(sMessage) > 0)
+		if ((gI_HUDSettings[client] & HUD_SPECTATORS) > 0 && (!(gI_HUDSettings[client] & HUD_SPECTATORSDEAD) || !IsPlayerAlive(client)))
 		{
-			Handle hKeyHintText = StartMessageOne("KeyHintText", client);
-			BfWriteByte(hKeyHintText, 1);
-			BfWriteString(hKeyHintText, sMessage);
-			EndMessage();
+			int iSpectatorClients[MAXPLAYERS+1];
+			int iSpectators = 0;
+			bool bIsAdmin = CheckCommandAccess(client, "admin_speclisthide", ADMFLAG_KICK);
+
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (i == client || !IsValidClient(i) || IsFakeClient(i) || !IsClientObserver(i) || GetClientTeam(i) < 1 || GetSpectatorTarget(i, i) != target)
+				{
+					continue;
+				}
+
+				if ((gCV_SpectatorList.IntValue == 1 && !bIsAdmin && CheckCommandAccess(i, "admin_speclisthide", ADMFLAG_KICK)) ||
+				    (gCV_SpectatorList.IntValue == 2 && !CanUserTarget(client, i)))
+				{
+					continue;
+				}
+
+				iSpectatorClients[iSpectators++] = i;
+			}
+
+			if (iSpectators > 0)
+			{
+				Format(sMessage, 256, "%s%s%spectators (%d):", sMessage, (strlen(sMessage) > 0)? "\n\n":"", (client == target)? "S":"Other S", iSpectators);
+				char sName[MAX_NAME_LENGTH];
+
+				for (int i = 0; i < iSpectators; i++)
+				{
+					if (i == 7)
+					{
+						Format(sMessage, 256, "%s\n...", sMessage);
+						break;
+					}
+
+					SanerGetClientName(iSpectatorClients[i], sName);
+					ReplaceString(sName, sizeof(sName), "#", "?");
+					TrimDisplayString(sName, sName, sizeof(sName), gCV_SpecNameSymbolLength.IntValue);
+					Format(sMessage, 256, "%s\n%s", sMessage, sName);
+				}
+			}
 		}
+	}
+
+	Action postresult = Plugin_Continue;
+	Call_StartForward(gH_Forwards_OnKeyHintHUD);
+	Call_PushCell(client);
+	Call_PushCell(target);
+	Call_PushStringEx(sMessage, sizeof(sMessage), SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+	Call_PushCell(sizeof(sMessage));
+	Call_PushCell(track);
+	Call_PushCell(style);
+	Call_Finish(postresult);
+
+	if (postresult == Plugin_Handled || postresult == Plugin_Stop)
+	{
+		return;
+	}
+
+	if (strlen(sMessage) > 0)
+	{
+		Handle hKeyHintText = StartMessageOne("KeyHintText", client);
+		BfWriteByte(hKeyHintText, 1);
+		BfWriteString(hKeyHintText, sMessage);
+		EndMessage();
 	}
 }
 

@@ -138,10 +138,40 @@ forward Action Shavit_OnTopLeftHUD(int client, int target, char[] topleft, int t
  * @param topleftlength             Max length of the topleft buffer.
  * @param track                     Target's track.
  * @param style                     Target's style.
+ * @param forceUpdate               Force even if the client has disabled HUD_TOPLEFT.
  *
  * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed to use own topleft string instead of shavit-hud building it.
  */
-forward Action Shavit_PreOnTopLeftHUD(int client, int target, char[] topleft, int topleftlength, int track, int style);
+forward Action Shavit_PreOnTopLeftHUD(int client, int target, char[] topleft, int topleftlength, int track, int style, bool &forceUpdate);
+
+/**
+ * Called when key hint (bottom left) HUD updates (Source 2013 only).
+ *
+ * @param client                    Client index that recieves the hud.
+ * @param target                    Target entity that is either the client or what the client is spectating.
+ * @param keyhint                   Reference to the HUD buffer.
+ * @param keyhintlength             Max length of the keyhint buffer.
+ * @param track                     Target's track.
+ * @param style                     Target's style.
+ *
+ * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Anything else to pass along new values.
+ */
+forward Action Shavit_OnKeyHintHUD(int client, int target, char[] keyhint, int keyhintlength, int track, int style);
+
+/**
+ * Called before the key hint HUD (bottom left) updates and used to build the string for shavit-hud (Source 2013 only).
+ *
+ * @param client                    Client index that recieves the hud.
+ * @param target                    Target entity that is either the client or what the client is spectating.
+ * @param keyhint                   Reference to the HUD buffer.
+ * @param keyhintlength             Max length of the keyhint buffer.
+ * @param track                     Target's track.
+ * @param style                     Target's style.
+ * @param forceUpdate               Force even if the client has disabled HUD_SYNC, HUD_TIMELEFT, and HUD2_PERFS.
+ *
+ * @return                          Plugin_Handled or Plugin_Stop to block the HUD message from appearing. Plugin_Changed to use own keyhint string instead of shavit-hud building it.
+ */
+forward Action Shavit_PreOnKeyHintHUD(int client, int target, char[] keyhint, int keyhintlength, int track, int style, bool &forceUpdate);
 
 /**
  * Called before the center hud updates.
