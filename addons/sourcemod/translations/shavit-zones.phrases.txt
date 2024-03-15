@@ -454,7 +454,7 @@
 	"ZoneStageEnter"
 	{
 		"#format"	"{1:s},{2:s},{3:d},{4:s},{5:s},{6:s}{7:s}"
-		"en"		"{1}Stage {2}{3}{4} @ {5}{6}{7} "
+		"en"		"{1}You have reached stage {2}{3}{4} with a time of {5}{6}{7}."
 	}
 	"Zone_Start"
 	{
