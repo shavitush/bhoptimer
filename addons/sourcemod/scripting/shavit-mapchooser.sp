@@ -1557,7 +1557,7 @@ public int SlowSortThatSkipsFolders(int index1, int index2, Handle array, Handle
 
 void CreateNominateMenu()
 {
-	if (gB_Rankings && (gI_Driver == Driver_mysql || gI_Driver == Driver_unknown) && !g_bTiersAssigned)
+	if (gB_Rankings && !g_bTiersAssigned)
 	{
 		g_bWaitingForTiers = true;
 		return;

@@ -77,6 +77,7 @@ int gI_Driver = Driver_unknown;
 bool gB_Stats = false;
 bool gB_Late = false;
 bool gB_TierQueried = false;
+bool gB_MapStarted = false;
 
 int gI_Tier = 1; // No floating numbers for tiers, sorry.
 
@@ -234,6 +235,8 @@ public void Shavit_OnDatabaseLoaded()
 		}
 	}
 
+	DbStuffPostMapStart();
+
 	QueryLog(gH_SQL, SQL_Version_Callback,
 		gI_Driver == Driver_sqlite
 		? "WITH p AS (SELECT COUNT(*) FROM pragma_function_list WHERE name = 'pow') SELECT sqlite_version(), * FROM p;"
@@ -300,7 +303,7 @@ public void Trans_RankingsSetupError(Database db, any data, int numQueries, cons
 
 public void Trans_RankingsSetupSuccess(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-	OnMapStart();
+	DbStuffPostMapStart();
 }
 
 public void OnClientConnected(int client)
@@ -326,8 +329,13 @@ public void OnMapStart()
 {
 	GetLowercaseMapName(gS_Map);
 	Shavit_OnStyleConfigLoaded(Shavit_GetStyleCount()); // just in case :)
+	gB_MapStarted = true;
+	DbStuffPostMapStart();
+}
 
-	if (gH_SQL == null)
+void DbStuffPostMapStart()
+{
+	if (gH_SQL == null || !gB_MapStarted)
 	{
 		return;
 	}
@@ -409,6 +417,7 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 public void OnMapEnd()
 {
 	gB_TierQueried = false;
+	gB_MapStarted = false;
 	gB_WRHoldersRefreshed = false;
 	gB_WRHoldersRefreshedTimer = false;
 	gB_WorldRecordsCached = false;
