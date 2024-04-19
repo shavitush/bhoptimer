@@ -479,7 +479,7 @@ public void OnAdminMenuReady(Handle topmenu)
 
 void LoadDHooks()
 {
-	Handle gamedataConf = LoadGameConfigFile("shavit.games");
+	GameData gamedataConf = LoadGameConfigFile("shavit.games");
 
 	if(gamedataConf == null)
 	{
@@ -550,7 +550,7 @@ void LoadDHooks()
 	}
 	else if (gEV_Type == Engine_TF2 && !gB_Linux)
 	{
-		gI_TF2PreventBunnyJumpingAddr = GameConfGetAddress(gamedataConf, "CTFGameMovement::PreventBunnyJumping");
+		gI_TF2PreventBunnyJumpingAddr = gamedataConf.GetMemSig("CTFGameMovement::PreventBunnyJumping");
 
 		if (gI_TF2PreventBunnyJumpingAddr == Address_Null)
 		{
