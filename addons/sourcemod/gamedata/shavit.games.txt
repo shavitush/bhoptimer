@@ -1,6 +1,6 @@
 "Games"
 {
-	// A guide to find most of these signatures and offsets: https://www.youtube.com/watch?v=ekyLf6hu4qI
+	// A guide to find most of these signatures and offsets: https://www.youtube.com/watch?v=ekyLf6hu4qI and another https://www.youtube.com/watch?v=J7eHgK_UYOk
 
 	"#default"
 	{
@@ -331,9 +331,10 @@
 		{
 			// search string: "BumperCar.Jump" to find CTFGameMovement::CheckJumpButton.
 			// Then the call to PreventBunnyJumping is right above the string reference somewhere...
+			// Update 2024-04-18: This fucking bitch got inlined on Windows so this signature is now to the first jump instruction of it to gtfo of doing the velocity stuff. https://i.imgur.com/LDq6Ubo.png
 			"CTFGameMovement::PreventBunnyJumping"
 			{
-				"windows"  "\x56\x8B\xF1\x6A\x52\x8B\x8E\x2A\x2A\x2A\x2A\x81\xC1\xE0\x1A\x00\x00\xE8\x2A\x2A\x2A\x2A\x84\xC0\x75"
+				"windows"  "\x75\x2A\x8B\x47\x2A\x8D\x77\x2A\x0F\x57\xC0"
 				"linux"    "@_ZN15CTFGameMovement19PreventBunnyJumpingEv"
 			}
 			// search string: "Usage:  setang_exact pitch yaw" to find setang_exact's handler. Then the last function call in the handler is DoAnimationEvent.
@@ -358,13 +359,13 @@
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
 			"PhysicsCheckForEntityUntouch"
 			{
-				"windows"   "\x55\x8B\xEC\x51\x56\x8B\xF1\x8B\x86\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01"
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8"
 				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 			}
 			// search string: "scoreboard_minigame"
 			"CTFGameRules::CalcPlayerScore"
 			{
-				"windows"   "\x55\x8B\xEC\x56\x8B\x75\x2A\x85\xF6\x75\x2A\x33\xC0\x5E\x5D\xC3\x8B\x56"
+				"windows"   "\x55\x8B\xEC\x57\x8B\x7D\x2A\x85\xFF\x75\x2A\x33\xC0\x5F\x5D\xC3\x8B\x57"
 				"linux"     "@_ZN12CTFGameRules15CalcPlayerScoreEP12RoundStats_tP9CTFPlayer"
 			}
 			// search string: "remove 0x%p: %s-%s (%d-%d) [%d in play, %d max]\n".
