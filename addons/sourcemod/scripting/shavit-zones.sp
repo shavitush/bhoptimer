@@ -4526,21 +4526,8 @@ void InsertZone(int client)
 	}
 
 	DataPack pack = new DataPack();
-	// TODO Sourcemod 1.11 pack.WriteCellArray
-	MyWriteCellArray(pack, c, sizeof(c));
+	pack.WriteCellArray(c, sizeof(c));
 	QueryLog(gH_SQL, SQL_InsertZone_Callback, sQuery, pack);
-}
-
-void MyWriteCellArray(DataPack pack, any[] array, int size)
-{
-	for (int i = 0; i < size; i++)
-		pack.WriteCell(array[i]);
-}
-
-void MyReadCellArray(DataPack pack, any[] array, int size)
-{
-	for (int i = 0; i < size; i++)
-		array[i] = pack.ReadCell();
 }
 
 bool MyArrayEquals(any[] a, any[] b, int size)
@@ -4555,7 +4542,7 @@ public void SQL_InsertZone_Callback(Database db, DBResultSet results, const char
 {
 	zone_cache_t cache;
 	pack.Reset();
-	MyReadCellArray(pack, cache, sizeof(cache));
+	pack.ReadCellArray(cache, sizeof(cache));
 	delete pack;
 
 	if (results == null)

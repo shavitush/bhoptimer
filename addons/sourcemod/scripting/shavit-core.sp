@@ -59,9 +59,7 @@ bool gB_Protobuf = false;
 // hook stuff
 DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
 DynamicHook gH_TeleportDhook = null;
-#if I_WANT_SM_1_11_THINGS
 Address gI_TF2PreventBunnyJumpingAddr = Address_Null;
-#endif
 
 // database handle
 Database gH_SQL = null;
@@ -553,7 +551,6 @@ void LoadDHooks()
 	}
 	else if (gEV_Type == Engine_TF2 && !gB_Linux)
 	{
-#if I_WANT_SM_1_11_THINGS
 		gI_TF2PreventBunnyJumpingAddr = gamedataConf.GetMemSig("CTFGameMovement::PreventBunnyJumping");
 
 		if (gI_TF2PreventBunnyJumpingAddr == Address_Null)
@@ -565,7 +562,6 @@ void LoadDHooks()
 			// Write the original JNZ byte but with updateMemAccess=true so we don't repeatedly page-protect it later.
 			StoreToAddress(gI_TF2PreventBunnyJumpingAddr, 0x75, NumberType_Int8, true);
 		}
-#endif
 	}
 
 	LoadPhysicsUntouch(gamedataConf);
@@ -2760,7 +2756,7 @@ public void OnClientAuthorized(int client, const char[] auth)
 	}
 
 	char sName[MAX_NAME_LENGTH];
-	SanerGetClientName(client, sName);
+	GetClientName(client, sName, sizeof(sName));
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?"); // to avoid this: https://user-images.githubusercontent.com/3672466/28637962-0d324952-724c-11e7-8b27-15ff021f0a59.png
 
 	int iLength = ((strlen(sName) * 2) + 1);
@@ -3085,7 +3081,6 @@ public MRESReturn DHook_ProcessMovement(Handle hParams)
 	int client = DHookGetParam(hParams, 1);
 	gI_ClientProcessingMovement = client;
 
-#if I_WANT_SM_1_11_THINGS
 	if (gI_TF2PreventBunnyJumpingAddr != Address_Null)
 	{
 		if (GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping"))
@@ -3093,7 +3088,6 @@ public MRESReturn DHook_ProcessMovement(Handle hParams)
 		else
 			StoreToAddress(gI_TF2PreventBunnyJumpingAddr, 0x75, NumberType_Int8, false); // jnz
 	}
-#endif
 
 	// Causes client to do zone touching in movement instead of server frames.
 	// From https://github.com/rumourA/End-Touch-Fix

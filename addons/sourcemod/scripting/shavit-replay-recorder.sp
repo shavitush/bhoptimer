@@ -371,7 +371,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	}
 
 	char sName[MAX_NAME_LENGTH];
-	SanerGetClientName(client, sName);
+	GetClientName(client, sName, sizeof(sName));
 	ReplaceString(sName, MAX_NAME_LENGTH, "#", "?");
 
 	int postframes = gI_PlayerFrames[client] - gI_PlayerFinishFrame[client];

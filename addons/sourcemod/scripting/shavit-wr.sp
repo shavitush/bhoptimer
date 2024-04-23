@@ -2585,7 +2585,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		IntToString(iSteamID, sSteamID, sizeof(sSteamID));
 
 		char sName[32+1];
-		SanerGetClientName(client, sName);
+		GetClientName(client, sName, sizeof(sName));
 		ReplaceString(sName, sizeof(sName), "#", "?");
 		gSM_WRNames.SetString(sSteamID, sName, true);
 

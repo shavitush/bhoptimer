@@ -942,7 +942,7 @@ void PreviewChat(int client, int rank)
 	Format(sTextFormatting, MAXLENGTH_BUFFER, "\x01%s", sTextFormatting);
 
 	char sOriginalName[MAXLENGTH_NAME];
-	SanerGetClientName(client, sOriginalName);
+	GetClientName(client, sOriginalName, sizeof(sOriginalName));
 
 	// remove control characters
 	for(int i = 0; i < sizeof(gS_ControlCharacters); i++)
@@ -1375,7 +1375,7 @@ void FormatChat(int client, char[] buffer, int size)
 		ReplaceString(buffer, size, "{wrs}", temp);
 	}
 
-	SanerGetClientName(client, temp);
+	GetClientName(client, temp, sizeof(temp));
 	ReplaceString(buffer, size, "{name}", temp);
 }
 
@@ -1567,7 +1567,7 @@ public int Native_GetPlainChatrank(Handle handler, int numParams)
 	char sName[MAX_NAME_LENGTH];
 	if (includename /* || iChatRank == -1*/)
 	{
-		SanerGetClientName(client, sName);
+		GetClientName(client, sName, sizeof(sName));
 	}
 
 	ReplaceString(buf, sizeof(buf), "{name}", sName);

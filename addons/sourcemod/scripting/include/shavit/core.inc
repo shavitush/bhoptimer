@@ -486,49 +486,6 @@ stock float GetAngleDiff(float current, float previous)
 	return diff - 360.0 * RoundToFloor((diff + 180.0) / 360.0);
 }
 
-// Steam names are `char[32+1];`. Source engine names are `char[32];` (MAX_PLAYER_NAME_LENGTH).
-// This means Source engine names can end up with an invalid unicode sequence at the end.
-// This will remove the unicode codepoint if necessary.
-/*
-	Sourcemod 1.11 will strip the invalid codepoint internally (some relevant links below) but it'd still be nice to just retrive the client's `name` convar so we get the full thing or maybe even grab it from whatever SteamGameServer api stuff makes it available if possible.
-	https://github.com/alliedmodders/sourcemod/pull/545
-	https://github.com/alliedmodders/sourcemod/issues/1315
-	https://github.com/alliedmodders/sourcemod/pull/1544
-*/
-stock void SanerGetClientName(int client, char[] name)
-{
-	static EngineVersion ev = Engine_Unknown;
-
-	if (ev == Engine_Unknown)
-	{
-		ev = GetEngineVersion();
-	}
-
-	GetClientName(client, name, 32+1);
-
-	// CSGO doesn't have this problem because `MAX_PLAYER_NAME_LENGTH` is 128...
-	if (ev == Engine_CSGO)
-	{
-		return;
-	}
-
-	int len = strlen(name);
-
-	if (len == 31)
-	{
-		for (int i = 0; i < 3; i++)
-		{
-			static int masks[3] = {0xC0, 0xE0, 0xF0};
-
-			if ((name[len-i-1] & masks[i]) >= masks[i])
-			{
-				name[len-i-1] = 0;
-				return;
-			}
-		}
-	}
-}
-
 // https://forums.alliedmods.net/showthread.php?t=216841
 // Trims display string to specified max possible length, and appends "..." if initial string exceeds that length
 stock void TrimDisplayString(const char[] str, char[] outstr, int outstrlen, int max_allowed_length)

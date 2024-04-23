@@ -2125,7 +2125,7 @@ void UpdateSpectatorList(int client, Panel panel, bool &draw)
 				break;
 			}
 
-			SanerGetClientName(iSpectatorClients[i], sName);
+			GetClientName(iSpectatorClients[i], sName, sizeof(sName));
 			ReplaceString(sName, sizeof(sName), "#", "?");
 			TrimDisplayString(sName, sName, sizeof(sName), gCV_SpecNameSymbolLength.IntValue);
 
@@ -2407,7 +2407,7 @@ void UpdateKeyHint(int client)
 						break;
 					}
 
-					SanerGetClientName(iSpectatorClients[i], sName);
+					GetClientName(iSpectatorClients[i], sName, sizeof(sName));
 					ReplaceString(sName, sizeof(sName), "#", "?");
 					TrimDisplayString(sName, sName, sizeof(sName), gCV_SpecNameSymbolLength.IntValue);
 					Format(sMessage, 256, "%s\n%s", sMessage, sName);

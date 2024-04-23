@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        sm-version: [ '1.10', '1.11' ] #, '1.12'
+        sm-version: [ '1.11' ] #, '1.12'
 
     name: "Build SM ${{ matrix.sm-version }}"
     steps:
@@ -15,7 +15,7 @@ jobs:
         shell: bash
         run: echo "GITHUB_SHA_SHORT=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup SP
         uses: rumblefrog/setup-sp@master
@@ -45,7 +45,7 @@ jobs:
           done
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bhoptimer-${{ github.head_ref || github.ref_name }}-sm${{ matrix.sm-version }}-${{ env.GITHUB_SHA_SHORT }}
           path: |
@@ -64,12 +64,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Archive artifacts
         shell: bash
         run: find * -maxdepth 0 -type d -exec zip -rq {}.zip {} \;
-          
+
       - uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
