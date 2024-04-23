@@ -526,25 +526,7 @@ void LoadDHooks()
 
 	gB_Linux = (gamedata.GetOffset("OS") == 2);
 
-	if (gEV_Type == Engine_TF2)
-	{
-		StartPrepSDKCall(SDKCall_Static);
-
-		if (!PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "NextBotCreatePlayerBot<CTFBot>"))
-		{
-			SetFailState("Failed to get NextBotCreatePlayerBot<CTFBot>");
-		}
-
-		PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);       // const char *name
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);   // bool bReportFakeClient
-		PrepSDKCall_SetReturnInfo(SDKType_CBasePlayer, SDKPass_Pointer); // CTFBot*
-
-		if (!(gH_BotAddCommand = EndPrepSDKCall()))
-		{
-			SetFailState("Unable to prepare SDKCall for NextBotCreatePlayerBot<CTFBot>");
-		}
-	}
-	else
+	if (gEV_Type != Engine_TF2)
 	{
 		StartPrepSDKCall(gB_Linux ? SDKCall_Raw : SDKCall_Static);
 
@@ -1790,18 +1772,8 @@ int InternalCreateReplayBot()
 
 	if (gEV_Type == Engine_TF2)
 	{
-		int bot = SDKCall(
-			gH_BotAddCommand,
-			"replaybot", // name
-			true // bReportFakeClient
-		);
-
-		if (IsValidClient(bot))
-		{
-			TF2_ChangeClientTeam(bot, TFTeam_Red);
-			TF2_SetPlayerClass(bot, TFClass_Sniper);
-			SetFakeClientConVar(bot, "name", "replaybot");
-		}
+		char output[12];
+		ServerCommandEx(output, sizeof(output), "tf_bot_add red sniper noquota replaybot");
 	}
 	else
 	{

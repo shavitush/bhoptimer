@@ -346,14 +346,8 @@
 			// search string: "match"
 			"BotManager::MaintainBotQuota"
 			{
-				"windows"   "\x55\x8B\xEC\x81\xEC\x14\x01\x00\x00\xA1"
+				"windows"   "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x81\xEC\x10\x01\x00\x00\x83\xB8\x2A\x2A\x2A\x2A\x00"
 				"linux"     "@_ZN13CTFBotManager16MaintainBotQuotaEv"
-			}
-			// search string: "CreatePlayerBot: Unable to create bot"
-			"NextBotCreatePlayerBot<CTFBot>"
-			{
-				"windows"   "\x55\x8B\xEC\x56\x57\x68\x2A\x2A\x2A\x2A\xE8"
-				"linux"     "@_Z22NextBotCreatePlayerBotI6CTFBotEPT_PKcb"
 			}
 			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
