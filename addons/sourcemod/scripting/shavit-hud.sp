@@ -2301,8 +2301,11 @@ void UpdateKeyHint(int client)
 
 	if (!bReplay)
 	{
-		style = Shavit_GetBhopStyle(target);
-		track = Shavit_GetClientTrack(target);
+		if (target > 0 && target <= MaxClients)
+		{
+			style = Shavit_GetBhopStyle(target);
+			track = Shavit_GetClientTrack(target);
+		}
 	}
 	else
 	{
