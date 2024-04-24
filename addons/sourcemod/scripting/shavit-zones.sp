@@ -275,6 +275,8 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_stage", Command_Stages, "Opens the stage menu. Usage: sm_stage [stage #]");
 	RegConsoleCmd("sm_s", Command_Stages, "Opens the stage menu. Usage: sm_s [stage #]");
 
+	RegConsoleCmd("sm_teleport", Command_Teleport, "Teleport command ported from KSF :3");
+
 	RegConsoleCmd("sm_set", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_setstart", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_ss", Command_SetStart, "Set current position as spawn location in start zone.");
@@ -2461,6 +2463,54 @@ public Action Command_Stages(int client, int args)
 
 	return Plugin_Handled;
 }
+
+public Action Command_Teleport(int client, int args)
+{
+	if(!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+
+	if(!IsPlayerAlive(client))
+	{
+		Shavit_PrintToChat(client, "%T", "StageCommandAlive", client);
+
+		return Plugin_Handled;
+	}
+
+	int last = gI_LastStage[client];
+	int track = Shavit_GetClientTrack(client);
+
+	if (Shavit_InsideZone(client, Zone_Stage, track)) {
+		Shavit_PrintToChat(client, ":P");
+		return Plugin_Handled;
+	}
+
+	if (last == 0) {
+		Shavit_RestartTimer(client, track);
+	}
+	// // COPY PASTED CODE
+	if (last > 0)
+	{
+		for(int i = 0; i < gI_MapZones; i++)
+		{
+			if (gA_ZoneCache[i].iType == Zone_Stage && gA_ZoneCache[i].iData == last && gA_ZoneCache[i].iTrack == track)
+			{
+				if (!EmptyVector(gA_ZoneCache[i].fDestination))
+				{
+					TeleportEntity(client, gA_ZoneCache[i].fDestination, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+				}
+				else
+				{
+					TeleportEntity(client, gV_ZoneCenter[i], NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+				}
+			}
+		}
+	}
+
+	return Plugin_Handled;
+}
+
 
 public int MenuHandler_SelectStage(Menu menu, MenuAction action, int param1, int param2)
 {
