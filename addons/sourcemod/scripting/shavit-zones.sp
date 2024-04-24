@@ -2481,16 +2481,15 @@ public Action Command_Teleport(int client, int args)
 	int last = gI_LastStage[client];
 	int track = Shavit_GetClientTrack(client);
 
+	// crude way to prevent cheesing
 	if (Shavit_InsideZone(client, Zone_Stage, track)) {
-		Shavit_PrintToChat(client, ":P");
 		return Plugin_Handled;
 	}
 
 	if (last == 0) {
 		Shavit_RestartTimer(client, track);
 	}
-	// // COPY PASTED CODE
-	if (last > 0)
+	else if (last > 0)
 	{
 		for(int i = 0; i < gI_MapZones; i++)
 		{
