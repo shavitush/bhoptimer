@@ -74,13 +74,6 @@
 				"linux"     "78"
 				"mac"       "78"
 			}
-			// can be found inside BotAddCommand
-			"WEAPONTYPE_UNKNOWN"
-			{
-				"windows"   "19"
-				"linux"     "19"
-				"mac"       "19"
-			}
 			// search string: "Can't find specific footstep sound!" to find CBasePlayer::PlayStepSound.
 			// then find the vtable from references and CBasePlayer::UpdateStepSound is right before PlayStepSound
 			"CBasePlayer::UpdateStepSound"
@@ -121,12 +114,6 @@
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x14\x89\x4D\x2A\xFF\x15"
 				"linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x2C\xE8\x2A\x2A\x2A\x2A\x84\xC0\x74\x2A\xA1"
-			}
-			// search string: "Error - no profile for '%s' exists."
-			"CCSBotManager::BotAddCommand"
-			{
-				"windows"   "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x53\x56\x57\x80\x78\x2A\x00"
-				"linux"     "\x55\x89\xE5\x57\x56\x53\x83\xEC\x1C\x8B\x45\x2A\x89\x45\x2A\xA1\x2A\x2A\x2A\x2A\x0F\xB6\x70"
 			}
 			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
@@ -193,13 +180,6 @@
 				"linux"     "77"
 				"mac"       "77"
 			}
-			// can be found inside BotAddCommand
-			"WEAPONTYPE_UNKNOWN"
-			{
-				"windows"   "9"
-				"linux"     "9"
-				"mac"       "9"
-			}
 			// https://asherkin.github.io/vtable/
 			"CBasePlayer::UpdateStepSound"
 			{
@@ -264,12 +244,6 @@
 				"library"   "engine"
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x07\x8B\x40\x2A\xFF\xD0\x84\xC0\x0F\x84"
 				"linux"     "@_ZN11CGameServer22UpdateHibernationStateEv"
-			}
-			// search string: "Error - no profile for '%s' exists."
-			"CCSBotManager::BotAddCommand"
-			{
-				"windows"   "\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x80\x78\x2A\x00\x75\x2A\x83\xB8\x2A\x2A\x2A\x2A\x00"
-				"linux"     "@_ZN13CCSBotManager13BotAddCommandEibPKc12CSWeaponType17BotDifficultyType"
 			}
 			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
