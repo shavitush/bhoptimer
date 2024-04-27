@@ -275,7 +275,10 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_stage", Command_Stages, "Opens the stage menu. Usage: sm_stage [stage #]");
 	RegConsoleCmd("sm_s", Command_Stages, "Opens the stage menu. Usage: sm_s [stage #]");
 
-	RegConsoleCmd("sm_teleport", Command_Teleport, "Teleport command ported from KSF :3");
+	RegConsoleCmd("sm_sr", Command_StageRestart, "Teleports the player to the current stage. Only works on surf maps.");
+	RegConsoleCmd("sm_rs", Command_StageRestart, "Teleports the player to the current stage. Only works on surf maps.");
+	RegConsoleCmd("sm_stagerestart", Command_StageRestart, "Teleports the player to the current stage. Only works on surf maps.");
+	RegConsoleCmd("sm_restartstage", Command_StageRestart, "Teleports the player to the current stage. Only works on surf maps.");
 
 	RegConsoleCmd("sm_set", Command_SetStart, "Set current position as spawn location in start zone.");
 	RegConsoleCmd("sm_setstart", Command_SetStart, "Set current position as spawn location in start zone.");
@@ -2464,7 +2467,7 @@ public Action Command_Stages(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action Command_Teleport(int client, int args)
+public Action Command_StageRestart(int client, int args)
 {
 	// This command should only work on surf maps for now
 	// There are quite a few bhop maps that have checkpoint triggers and this command would ruin those maps
