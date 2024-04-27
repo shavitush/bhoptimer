@@ -2479,7 +2479,6 @@ public Action Command_StageRestart(int client, int args)
 	if(!IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "%T", "StageCommandAlive", client);
-
 		return Plugin_Handled;
 	}
 
@@ -2487,14 +2486,16 @@ public Action Command_StageRestart(int client, int args)
 	int track = Shavit_GetClientTrack(client);
 
 	// crude way to prevent cheesing
-	if (Shavit_InsideZone(client, Zone_Stage, track)) {
+	if (InsideZone(client, Zone_Stage, track) || InsideZone(client, Zone_Start, -1))
+	{
 		return Plugin_Handled;
 	}
 
-	if (last == 0) {
+	if (last <= 0)
+	{
 		Shavit_RestartTimer(client, track);
 	}
-	else if (last > 0)
+	else
 	{
 		for(int i = 0; i < gI_MapZones; i++)
 		{
