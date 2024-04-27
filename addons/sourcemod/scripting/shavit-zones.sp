@@ -2466,7 +2466,10 @@ public Action Command_Stages(int client, int args)
 
 public Action Command_Teleport(int client, int args)
 {
-	if(!IsValidClient(client))
+	// This command should only work on surf maps for now
+	// There are quite a few bhop maps that have checkpoint triggers and this command would ruin those maps
+	// Ideally there would be a zone-based solution to this problem
+	if(!IsValidClient(client) || strncmp(gS_Map, "surf_", 5))
 	{
 		return Plugin_Handled;
 	}
