@@ -2132,7 +2132,16 @@ void FormatStyle(const char[] source, int style, bool central, int track, char d
 	else
 	{
 		FormatSeconds(GetReplayLength(style, track, aCache), sTime, 16);
-		GetReplayName(style, track, sName, sizeof(sName));
+
+		if(aCache.bNewFormat)
+		{
+			strcopy(sName, sizeof(sName), aCache.sReplayName);
+		}
+		else
+		{
+			GetReplayName(style, track, sName, sizeof(sName));
+		}
+
 		ReplaceString(temp, sizeof(temp), "{style}", gS_StyleStrings[style].sStyleName);
 		ReplaceString(temp, sizeof(temp), "{styletag}", gS_StyleStrings[style].sClanTag);
 	}
