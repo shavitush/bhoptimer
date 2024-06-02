@@ -55,7 +55,8 @@ stock float ground_delta_opt(int client, float angles[3], float move[3], float s
 
 	wishspeed = GetVectorLength(wishvel);
 
-	if(wishspeed > GetEntPropFloat(client, Prop_Send, "m_flMaxspeed") && GetEntPropFloat(client, Prop_Send, "m_flMaxspeed") != 0.0) wishspeed = GetEntPropFloat(client, Prop_Send, "m_flMaxspeed");
+	float flMaxSpeed = Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "runspeed");
+	if(wishspeed > flMaxSpeed && flMaxSpeed != 0.0) wishspeed = flMaxSpeed;
 
 	float velocity[3];
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", velocity);
@@ -106,7 +107,7 @@ stock Action ObliviousOnPlayerRunCmd(int client, int& buttons, int& impulse, flo
 	float air_accelerate, float surface_friction, float flAirSpeedCap, float flMaxMove,
 	bool no_speed_loss)
 {
-	float flMaxSpeed = GetEntPropFloat(client, Prop_Send, "m_flMaxspeed");
+	float flMaxSpeed = Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "runspeed");
 
 	bool set_back = true;
 	if (vel[0] != 0.0 || vel[1] != 0.0)

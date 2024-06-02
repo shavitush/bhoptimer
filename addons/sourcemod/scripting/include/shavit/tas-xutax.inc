@@ -360,7 +360,7 @@ stock Action XutaxOnPlayerRunCmd(int client, int& buttons, int& impulse, float v
 	vel[0] = 0.0;
 
 	float flFowardMove, flSideMove;
-	float flMaxSpeed = GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
+	float flMaxSpeed = Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "runspeed");
 	float flVelocity[3], flVelocity2D[2];
 
 	GetEntPropVector(client, Prop_Data, "m_vecVelocity", flVelocity);
