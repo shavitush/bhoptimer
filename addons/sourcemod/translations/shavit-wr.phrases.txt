@@ -142,12 +142,33 @@
 		"#format"	"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s}"
 		"en"		"No PB records were found for {1}{2}{3} on map {4}{5}{6}."
 	}
-	// ---------- WR Menu ---------- //
+	// ---------- RR Menu ---------- //
 	"RecentRecords"
 	{
 		"#format"	"{1:d}"
 		"en"		"Recent {1} record(s)"
 	}
+	"RecentRecordsFirstMenuTitle"
+	{
+		"en"		"Recent records"
+	}
+	"RecentRecordsStyleSelectionMenuTitle"
+	{
+		"en"		"Recent records (by style)"
+	}
+	"RecentRecordsAll"
+	{
+		"en"		"All recent records"
+	}
+	"RecentRecordsByStyle"
+	{
+		"en"		"Sorted by style"
+	}
+	"RecentRecordsMainOnly"
+	{
+		"en"		"Main only"
+	}
+	// ---------- WR Menu ---------- //
 	"WRDate"
 	{
 		"en"		"Date"

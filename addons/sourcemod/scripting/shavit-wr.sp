@@ -116,6 +116,7 @@ float gA_StageTimes[MAXPLAYERS+1][MAX_STAGES]; // player's current run stage tim
 Menu gH_PBMenu[MAXPLAYERS+1];
 int gI_PBMenuPos[MAXPLAYERS+1];
 int gI_SubMenuPos[MAXPLAYERS+1];
+bool gB_RRMainOnly[MAXPLAYERS+1];
 
 public Plugin myinfo =
 {
@@ -478,6 +479,8 @@ public void Shavit_OnChatConfigLoaded()
 
 public void OnClientConnected(int client)
 {
+	gB_RRMainOnly[client] = false;
+
 	wrcache_t empty_cache;
 	gA_WRCache[client] = empty_cache;
 
@@ -1981,17 +1984,117 @@ public Action Command_RecentRecords(int client, int args)
 		return Plugin_Handled;
 	}
 
+	Menu menu = new Menu(RRFirstMenu_Handler);
+	menu.SetTitle("%T\n ", "RecentRecordsFirstMenuTitle", client);
+
+	char display[256];
+	FormatEx(display, sizeof(display), "%T", "RecentRecordsAll", client);
+	menu.AddItem("all", display);
+	FormatEx(display, sizeof(display), "%T\n ", "RecentRecordsByStyle", client);
+	menu.AddItem("style", display);
+	FormatEx(display, sizeof(display), "[%s] %T", gB_RRMainOnly[client] ? "+" : "-", "RecentRecordsMainOnly", client);
+	menu.AddItem("mainonly", display);
+
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+
+	return Plugin_Handled;
+}
+
+int RRFirstMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		int client = param1;
+		char info[16];
+		menu.GetItem(param2, info, sizeof(info));
+
+		if (StrEqual(info, "all"))
+		{
+			RecentRecords_DoQuery(client, "");
+		}
+		else if (StrEqual(info, "style"))
+		{
+			RecentRecords_StyleMenu(client);
+		}
+		else if (StrEqual(info, "mainonly"))
+		{
+			gB_RRMainOnly[client] = !gB_RRMainOnly[client];
+			Command_RecentRecords(client, 0); // remake menu...
+		}
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void RecentRecords_StyleMenu(int client)
+{
+	Menu menu = new Menu(RRStyleSelectionMenu_Handler);
+	menu.SetTitle("%T\n ", "RecentRecordsStyleSelectionMenuTitle", client);
+
+	int[] styles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(styles, gI_Styles);
+
+	for (int i = 0; i < gI_Styles; i++)
+	{
+		int style = styles[i];
+
+		if (Shavit_GetStyleSettingInt(style, "enabled") == -1)
+		{
+			continue;
+		}
+
+		char info[8];
+		IntToString(style, info, sizeof(info));
+
+		menu.AddItem(info, gS_StyleStrings[style].sStyleName);
+	}
+
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+int RRStyleSelectionMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[16];
+		menu.GetItem(param2, info, sizeof(info));
+		RecentRecords_DoQuery(param1, info);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		Command_RecentRecords(param1, 0);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void RecentRecords_DoQuery(int client, char[] style)
+{
 	char sQuery[512];
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %swrs a JOIN %susers u on a.auth = u.auth ORDER BY a.date DESC LIMIT %d;",
-		gS_MySQLPrefix, gS_MySQLPrefix, gCV_RecentLimit.IntValue);
+		"SELECT a.id, a.map, u.name, a.time, a.style, a.track FROM %swrs a JOIN %susers u on a.auth = u.auth %s %s %s %s %s ORDER BY a.date DESC LIMIT %d;",
+		gS_MySQLPrefix, gS_MySQLPrefix,
+		(gB_RRMainOnly[client] || style[0] != '\0') ? "WHERE" : "",
+		(gB_RRMainOnly[client]) ? "a.track = 0" : "",
+		(gB_RRMainOnly[client] && style[0] != '\0') ? "AND" : "",
+		(style[0] != '\0') ? "a.style = " : "",
+		(style[0] != '\0') ? style : "",
+		gCV_RecentLimit.IntValue);
 
 	QueryLog(gH_SQL, SQL_RR_Callback, sQuery, GetClientSerial(client), DBPrio_Low);
 
 	gA_WRCache[client].bPendingMenu = true;
-
-	return Plugin_Handled;
 }
 
 public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -2053,8 +2156,8 @@ public void SQL_RR_Callback(Database db, DBResultSet results, const char[] error
 		menu.AddItem("-1", sMenuItem);
 	}
 
-	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -2080,7 +2183,8 @@ public int RRMenu_Handler(Menu menu, MenuAction action, int param1, int param2)
 	}
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
-		RetrieveWRMenu(param1, gA_WRCache[param1].iLastTrack);
+		//RetrieveWRMenu(param1, gA_WRCache[param1].iLastTrack); // was this ever used?
+		Command_RecentRecords(param1, 0);
 	}
 	else if(action == MenuAction_End)
 	{
