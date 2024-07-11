@@ -503,6 +503,16 @@ public void OnPluginStart()
 		{
 			OnAdminMenuReady(gH_AdminMenu);
 		}
+
+		for (int entity = MaxClients+1, last = GetMaxEntities(); entity <= last; ++entity)
+		{
+			if (IsValidEntity(entity))
+			{
+				char classname[64];
+				GetEntityClassname(entity, classname, sizeof(classname));
+				OnEntityCreated(entity, classname);
+			}
+		}
 	}
 
 	for(int i = 1; i < sizeof(gA_BotInfo); i++)
