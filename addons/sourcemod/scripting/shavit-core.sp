@@ -2896,33 +2896,39 @@ void SQL_DBConnect()
 	SQL_CreateTables(gH_SQL, gS_MySQLPrefix, gI_Driver);
 }
 
-public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity)
+public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
 {
-	if(type == Zone_Airaccelerate)
+	if (type == Zone_Airaccelerate && track == gA_Timers[client].iTimerTrack)
 	{
-		gF_ZoneAiraccelerate[client] = float(Shavit_GetZoneData(id));
+		gF_ZoneAiraccelerate[client] = view_as<float>(data);
+	}
+	else if (type == Zone_CustomSpeedLimit && track == gA_Timers[client].iTimerTrack)
+	{
+		gF_ZoneSpeedLimit[client] = view_as<float>(data);
+	}
+	else
+	{
+		return;
+	}
 
-		UpdateAiraccelerate(client, gF_ZoneAiraccelerate[client]);
-	}
-	else if(type == Zone_CustomSpeedLimit)
-	{
-		gF_ZoneSpeedLimit[client] = float(Shavit_GetZoneData(id));
-	}
+	UpdateStyleSettings(client);
 }
 
 public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
 {
-	if(type == Zone_Airaccelerate)
-	{
-		UpdateAiraccelerate(client, GetStyleSettingFloat(gA_Timers[client].bsStyle, "airaccelerate"));
-	}
+	if (track != gA_Timers[client].iTimerTrack)
+		return;
+	if (type != Zone_Airaccelerate && type != Zone_CustomSpeedLimit)
+		return;
+
+	UpdateStyleSettings(client);
 }
 
 public void PreThinkPost(int client)
 {
 	if(IsPlayerAlive(client))
 	{
-		if(!gB_Zones || !Shavit_InsideZone(client, Zone_Airaccelerate, -1))
+		if (!gB_Zones || !Shavit_InsideZone(client, Zone_Airaccelerate, gA_Timers[client].iTimerTrack))
 		{
 			sv_airaccelerate.FloatValue = GetStyleSettingFloat(gA_Timers[client].bsStyle, "airaccelerate");
 		}
@@ -2933,7 +2939,14 @@ public void PreThinkPost(int client)
 
 		if(sv_enablebunnyhopping != null)
 		{
-			sv_enablebunnyhopping.BoolValue = GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping");
+			if (gB_Zones && Shavit_InsideZone(client, Zone_CustomSpeedLimit, gA_Timers[client].iTimerTrack))
+			{
+				sv_enablebunnyhopping.BoolValue = true;
+			}
+			else
+			{
+				sv_enablebunnyhopping.BoolValue = GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping");
+			}
 		}
 
 		MoveType mtMoveType = GetEntityMoveType(client);
@@ -3815,8 +3828,22 @@ void UpdateStyleSettings(int client)
 
 	if(sv_enablebunnyhopping != null)
 	{
-		sv_enablebunnyhopping.ReplicateToClient(client, (GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping"))? "1":"0");
+		if (gB_Zones && Shavit_InsideZone(client, Zone_CustomSpeedLimit, gA_Timers[client].iTimerTrack))
+		{
+			sv_enablebunnyhopping.ReplicateToClient(client, "1");
+		}
+		else
+		{
+			sv_enablebunnyhopping.ReplicateToClient(client, (GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping"))? "1":"0");
+		}
 	}
 
-	UpdateAiraccelerate(client, GetStyleSettingFloat(gA_Timers[client].bsStyle, "airaccelerate"));
+	if (gB_Zones && Shavit_InsideZone(client, Zone_Airaccelerate, gA_Timers[client].iTimerTrack))
+	{
+		UpdateAiraccelerate(client, gF_ZoneAiraccelerate[client]);
+	}
+	else
+	{
+		UpdateAiraccelerate(client, GetStyleSettingFloat(gA_Timers[client].bsStyle, "airaccelerate"));
+	}
 }
