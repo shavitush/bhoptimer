@@ -2916,6 +2916,8 @@ public void Shavit_OnEnterZone(int client, int type, int track, int id, int enti
 
 public void Shavit_OnLeaveZone(int client, int type, int track, int id, int entity)
 {
+	// TODO: Do we need to do something about clients switching tracks and not having style-related cvars set or anything like that?
+	//       Probably so very niche that it doesn't matter.
 	if (track != gA_Timers[client].iTimerTrack)
 		return;
 	if (type != Zone_Airaccelerate && type != Zone_CustomSpeedLimit)
