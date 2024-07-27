@@ -117,7 +117,7 @@ int gI_Offset_m_lastLadderPos = 0;
 public Plugin myinfo =
 {
 	name = "[shavit] Checkpoints",
-	author = "shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2",
+	author = "shavit, KiD Fearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2",
 	description = "Checkpoints for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
