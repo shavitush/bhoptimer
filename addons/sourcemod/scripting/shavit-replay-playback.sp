@@ -3569,6 +3569,11 @@ bool FindNextLoop(int &track, int &style, int config)
 	{
 		int nextstyle = GetNextBit(style, gA_LoopingBotConfig[config].aStyleMask, gI_Styles);
 
+		if (nextstyle < 0)
+		{
+			return false;
+		}
+
 		if (nextstyle <= style || track == -1)
 		{
 			track = GetNextBit(track, aTrackMask, TRACKS_SIZE);
