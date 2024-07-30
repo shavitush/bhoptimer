@@ -1005,6 +1005,7 @@ bool JumpToZoneType(KeyValues kv, int type, int track)
 		{"No Timer Gravity", ""},
 		{"Gravity", ""},
 		{"Speedmod", ""},
+		{"No Jump", ""}
 	};
 
 	char key[4][50];
