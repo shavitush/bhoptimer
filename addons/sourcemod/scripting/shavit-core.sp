@@ -3602,6 +3602,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
 
+		if (Shavit_InsideZone(client, Zone_NoJump, gA_Timers[client].iTimerTrack) )
+		{
+			SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", view_as<float>({0.0, 0.0, 0.0}));
+			buttons &= ~IN_JUMP;
+		}
+
 		if (iDifference < 10)
 		{
 			gA_Timers[client].iMeasuredJumps++;
