@@ -2491,7 +2491,7 @@ public Action Command_StageRestart(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if (last <= 0)
+	if (last <= 0 || InsideZone(client, Zone_End, track))
 	{
 		Shavit_RestartTimer(client, track);
 	}
