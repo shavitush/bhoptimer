@@ -524,6 +524,10 @@
 	{
 		"en"		"No Jump Zone"
 	}
+	"Zone_Autobhop"
+	{
+		"en"		"Autobhop Zone"
+	}
 	"Zone_Unknown"
 	{
 		"en"		"UNKNOWN ZONE"

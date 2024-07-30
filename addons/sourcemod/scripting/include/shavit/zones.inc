@@ -46,6 +46,7 @@ enum
 	Zone_Gravity,			// lets you set a specific gravity while inside this zone
 	Zone_Speedmod,			// creates a player_speedmod
 	Zone_NoJump,			// blocks the player from jumping while inside the zone
+	Zone_Autobhop,			// forces autobhop for the player
 	ZONETYPES_SIZE
 };
 
@@ -137,7 +138,8 @@ stock void GetZoneName(int client, int zoneType, char[] output, int size)
 		"Zone_NoTimerGravity",
 		"Zone_Gravity",
 		"Zone_Speedmod",
-		"Zone_NoJump"
+		"Zone_NoJump",
+		"Zone_Autobhop"
 	};
 
 	if (zoneType < 0 || zoneType >= ZONETYPES_SIZE)
