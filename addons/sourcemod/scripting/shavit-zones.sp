@@ -140,6 +140,7 @@ Convar gCV_EnforceTracks = null;
 Convar gCV_BoxOffset = null;
 Convar gCV_ExtraSpawnHeight = null;
 Convar gCV_PrebuiltVisualOffset = null;
+Convar gCV_EnableStageRestart = null;
 
 Convar gCV_ForceTargetnameReset = null;
 Convar gCV_ResetTargetnameMain = null;
@@ -340,6 +341,7 @@ public void OnPluginStart()
 	gCV_BoxOffset = new Convar("shavit_zones_box_offset", "1", "Offset zone trigger boxes to the center of a player's bounding box or the edges.\n0 - triggers when edges of the bounding boxes touch.\n1 - triggers when the center of a player is in a zone.", 0, true, 0.0, true, 1.0);
 	gCV_ExtraSpawnHeight = new Convar("shavit_zones_extra_spawn_height", "0.0", "YOU DONT NEED TO TOUCH THIS USUALLY. FIX YOUR ACTUAL ZONES.\nUsed to fix some shit prebuilt zones that are in the ground like bhop_strafecontrol");
 	gCV_PrebuiltVisualOffset = new Convar("shavit_zones_prebuilt_visual_offset", "0", "YOU DONT NEED TO TOUCH THIS USUALLY.\nUsed to fix the VISUAL beam offset for prebuilt zones on a map.\nExample maps you'd want to use 16 on: bhop_tranquility and bhop_amaranthglow");
+	gCV_EnableStageRestart = new Convar("shavit_zones_enable_stage_restart", "1", "Whether clients can use !stagerestart/!restartstage/!rs to restart to the current stage zone. Currently only available for `surf_` maps.", 0, true, 0.0, true, 1.0);
 
 	gCV_ForceTargetnameReset = new Convar("shavit_zones_forcetargetnamereset", "0", "Reset the player's targetname upon timer start?\nRecommended to leave disabled. Enable via per-map configs when necessary.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_ResetTargetnameMain = new Convar("shavit_zones_resettargetname_main", "", "What targetname to use when resetting the player.\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
@@ -2476,6 +2478,12 @@ public Action Command_StageRestart(int client, int args)
 		return Plugin_Handled;
 	}
 
+	if (!gCV_EnableStageRestart.BoolValue)
+	{
+		Shavit_PrintToChat(client, "!stagerestart is disabled!"); // untranslated strings in 2024...
+		return Plugin_Handled;
+	}
+
 	if(!IsPlayerAlive(client))
 	{
 		Shavit_PrintToChat(client, "%T", "StageCommandAlive", client);
@@ -2491,7 +2499,7 @@ public Action Command_StageRestart(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if (last <= 0 || InsideZone(client, Zone_End, track))
+	if (last <= 0 || Shavit_GetTimerStatus(client) == Timer_Stopped || InsideZone(client, Zone_End, track))
 	{
 		Shavit_RestartTimer(client, track);
 	}
