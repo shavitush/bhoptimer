@@ -3553,9 +3553,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	bool bInWater = (GetEntProp(client, Prop_Send, "m_nWaterLevel") >= 2);
 	int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
 
-	bool bInAutobhop = gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack);
-
-	if (((GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop") && gB_Auto[client]) || bInAutobhop) && (buttons & IN_JUMP) > 0 && mtMoveType == MOVETYPE_WALK && !bInWater)
+	if (   gB_Auto[client]
+		&& (buttons & IN_JUMP) > 0
+		&& mtMoveType == MOVETYPE_WALK
+		&& !bInWater
+		&& (   GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop")
+			|| (gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack))
+		   )
+	)
 	{
 		SetEntProp(client, Prop_Data, "m_nOldButtons", (iOldButtons &= ~IN_JUMP));
 	}
@@ -3568,6 +3573,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 
 	if (bInStart && blockprejump && GetStyleSettingInt(gA_Timers[client].bsStyle, "prespeed") == 0 && (vel[2] > 0 || (buttons & IN_JUMP) > 0))
+	{
+		vel[2] = 0.0;
+		buttons &= ~IN_JUMP;
+	}
+
+	if (gB_Zones && Shavit_InsideZone(client, Zone_NoJump, gA_Timers[client].iTimerTrack))
 	{
 		vel[2] = 0.0;
 		buttons &= ~IN_JUMP;
@@ -3603,12 +3614,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	else if (!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped && !gA_Timers[client].bClientPaused)
 	{
 		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
-
-		if (Shavit_InsideZone(client, Zone_NoJump, gA_Timers[client].iTimerTrack) )
-		{
-			SetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", view_as<float>({0.0, 0.0, 0.0}));
-			buttons &= ~IN_JUMP;
-		}
 
 		if (iDifference < 10)
 		{

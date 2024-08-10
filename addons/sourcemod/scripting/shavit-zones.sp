@@ -1813,7 +1813,10 @@ public void OnClientCookiesCached(int client)
 
 		int p = 1;
 
-		for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
+		// TODO: ZONETYPES_SIZE is too big now so we'll have to come back to do something about this...
+		//       Just make another cookie :pepega: or maybe store the settings in the DB rather than cookie.
+		//for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
+		for (int type = Zone_Start; type <= Zone_Speedmod; type++)
 		{
 			for (int track = Track_Main; track <= Track_Bonus; track++)
 			{
