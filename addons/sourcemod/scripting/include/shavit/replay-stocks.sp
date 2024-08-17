@@ -99,3 +99,4 @@ stock void Shavit_Replay_CreateDirectories(const char[] sReplayFolder, int style
 	{
 		CloseHandle(fTest);
 	}
+}
