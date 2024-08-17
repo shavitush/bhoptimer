@@ -99,4 +99,5 @@ stock void Shavit_Replay_CreateDirectories(const char[] sReplayFolder, int style
 	{
 		// File was opened successfully, now close it
 		CloseHandle(fTest);
+	}
 }
