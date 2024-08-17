@@ -90,13 +90,13 @@ stock void Shavit_Replay_CreateDirectories(const char[] sReplayFolder, int style
 	FormatEx(sPath, sizeof(sPath), "%s/0/faketestfile_69.replay", sReplayFolder);
 	File fTest = OpenFile(sPath, "wb+");
 
-	// Check if file was opened successfully before closing
+	// Check if the file was opened successfully for writing
 	if (fTest == null)
 	{
 		SetFailState("Failed to write to replay folder (%s). Make sure you have file permissions.", sReplayFolder);
 	}
 	else
 	{
+		// File was opened successfully, now close it
 		CloseHandle(fTest);
-	}
 }
