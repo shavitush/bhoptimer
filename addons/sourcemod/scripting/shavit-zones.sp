@@ -4870,6 +4870,10 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 	if (editaxis != -1)
 	{
+		// The is generated with https://gist.github.com/rtldg/94fa32b7abb064e0e99dfbf0c73c1cda
+		// The beam pairs array at the top of this function isn't useful for the order we want
+		// for drawing the editaxis beams so that gist was used to help figure out which
+		// beam indices go where, and then to make a fun little magic string out of it...
 		char magic[] = "\x01\x132\x02EWvF\x04\x15&77&2v\x15\x04\x10T\x13W\x02F7\x151u&\x04 d#g\x01E";
 
 		for (int j = 0; j < 12; j++)
