@@ -2900,11 +2900,11 @@ public void Shavit_OnEnterZone(int client, int type, int track, int id, int enti
 {
 	if (type == Zone_Airaccelerate && track == gA_Timers[client].iTimerTrack)
 	{
-		gF_ZoneAiraccelerate[client] = view_as<float>(data);
+		gF_ZoneAiraccelerate[client] = float(data);
 	}
 	else if (type == Zone_CustomSpeedLimit && track == gA_Timers[client].iTimerTrack)
 	{
-		gF_ZoneSpeedLimit[client] = view_as<float>(data);
+		gF_ZoneSpeedLimit[client] = float(data);
 	}
 	else
 	{
