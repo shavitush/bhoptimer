@@ -35,7 +35,6 @@
 
 #include <shavit/bhopstats-timerified>
 
-// status
 enum TimerStatus
 {
 	Timer_Stopped,
@@ -67,6 +66,7 @@ enum
 {
 	sStyleName,
 	sShortName,
+	// Used in CSGO
 	sHTMLColor,
 	sChangeCommand,
 	sClanTag,
@@ -115,12 +115,21 @@ enum struct timer_snapshot_t
 	int iJumps;
 	int bsStyle;
 	int iStrafes;
+	// Total times we checked if a strafe was "synced".
 	int iTotalMeasures;
+	// Not actually "gains". How many times a strafe was "synced".
 	int iGoodGains;
+	// Not actually used for anything. GetEngineTime() when the snapshot was taken.
 	float fServerTime;
+	// -1 by default which means no key combination
+	// if a_or_d_only: 0 = IN_MOVELEFT (a), 1 = IN_MOVERIGHT (d)
+	// if surf hsw: 0 = WA/SD, 1 = WD/SA
 	int iKeyCombo;
 	int iTimerTrack;
+	// How many times we checked if the player jumped on the same tick they land.
+	// This is only incremented if the player jumps within 10 ticks of landing (this is just an implementation note and could change (99% won't though)).
 	int iMeasuredJumps;
+	// How many times the player jumped on the same tick they land.
 	int iPerfectJumps;
 	// used as a "tick fraction" basically
 	float fZoneOffset[2];
@@ -128,27 +137,41 @@ enum struct timer_snapshot_t
 	float fAvgVelocity;
 	float fMaxVelocity;
 	float fTimescale;
-	int iZoneIncrement; // convert to array for per zone offsets (?)
+	// Internal counter used for calculating the startzone's fZoneOffset & fDistanceOffset
+	int iZoneIncrement;
 
 	int iFullTicks;
 	int iFractionalTicks; // divide this by 10000.0 to get a fraction of a tick. whole ticks are moved to iFullTicks
 
 	bool bPracticeMode;
 
+	// Internal bool for checking if the player jumped.
 	bool bJumped;
+	// If shavit_core_simplerladders == 1 & we're on a ladder then this is true so the player can use any keys when they're on SW or W-only or etc...
 	bool bCanUseAllKeys;
+	// Internal bool for checking if the player is(/was?) on the ground. Complicated...
 	bool bOnGround;
 
+	// Currently unused but saved because why not...
 	int iLastButtons;
+	// Internal float used for checking if the player's horizontal viewangle changed so we can do sync stuff.
 	float fLastAngle;
+
+	// Internal int used for the iMeasuredJumps & iPerfectJumps stuff.
 	int iLandingTick;
+	// Internal value used for unfucking style/zone gravity when using ladders.
 	MoveType iLastMoveType;
+	// Internal value used for blocking +strafe (if block_pstrafe is enabled).
 	float fStrafeWarning;
+	// Internal values used for incrementing strafe count.
 	float fLastInputVel[2];
 
+	// Internal value used for unfucking m_flLaggedMovementValue from player_speedmod's when combined with style settings such as "timescale" and "speed".
 	float fplayer_speedmod;
+	// Internal value used for timescaling and recording frames and stuff....
 	float fNextFrameTime;
 
+	// Internal value used for timescaling and stuff....
 	MoveType iLastMoveTypeTAS;
 }
 

@@ -19,6 +19,15 @@
  *
  */
 
+
+// This code annoys everyone but admins would sometimes set sv_cheats 1 and then
+// forget to toggle it back off when they were done playing around so then people
+// would join and teleport into the endzone and set dumb times.  And now we're here...
+// Just add some aliases to your autoexec:
+//   alias cheats "sm_rcon shavit_core_disable_sv_cheats 0 ; sm_rcon sv_cheats 1"
+//   alias cheat  "sm_rcon shavit_core_disable_sv_cheats 0 ; sm_rcon sv_cheats 1"
+
+
 Convar gCV_DisableSvCheats = null;
 
 #if !DEBUG
@@ -84,9 +93,19 @@ void Remove_sv_cheat_Impluses(int client, int &impulse)
 #if !DEBUG
 	if (impulse && sv_cheats.BoolValue && !(GetUserFlagBits(client) & ADMFLAG_ROOT))
 	{
-		// Block cheat impulses
 		switch (impulse)
 		{
+			// Likely incomplete list of the most cheaty impulses...
+			// 76 = spawn npc
+			// 81 = something cubemap
+			// 82 = create jeep
+			// 83 = create airboat
+			// 102 = something node
+			// 195 = something node
+			// 196 = something node
+			// 197 = something node
+			// 202 = something bloodsplat
+			// 203 = remove entity
 			case 76, 81, 82, 83, 102, 195, 196, 197, 202, 203:
 			{
 				impulse = 0;

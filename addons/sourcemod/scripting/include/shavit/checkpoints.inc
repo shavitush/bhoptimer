@@ -51,6 +51,9 @@ enum struct cp_cache_t
 	ArrayList aEvents;
 	ArrayList aOutputWaits;
 	float vecLadderNormal[3];
+	// This handle will be deleted when the checkpoint is deleted, or something like that...
+	// If you want to keep this (which you probably should) then you'd have
+	// to use StringMap.Clone() (owned clone) or CloneHandle() (shared object).
 	StringMap customdata;
 
 	bool m_bHasWalkMovedSinceLastJump; // csgo only
