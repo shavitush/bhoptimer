@@ -525,41 +525,33 @@ void ApplyMigration_AddMapzonesTarget()
 void ApplyMigration_DeprecateExactTimeInt()
 {
 	char query[256];
-
-	if (gI_Driver == Driver_mysql)
-	{
-		// From these:
-		// https://stackoverflow.com/questions/67653555/mysql-function-hexadecimal-conversation-to-float/67654768#67654768
-		// https://stackoverflow.com/questions/37523874/converting-hex-to-float-sql/37524172#37524172
-		// http://multikoder.blogspot.com/2013/03/converting-varbinary-to-float-in-t-sql.html
-		// etc...
-		FormatEx(query, sizeof(query), "UPDATE %splayertimes SET time = (1.0 + (exact_time_int & 0x7FFFFF) * pow(2.0, -23)) * POWER(2.0, (exact_time_int & 0x7f800000) / 0x800000 - 127) WHERE exact_time_int != 0;", gS_SQLPrefix);
-	}
-	else
-	{
-		// sqlite (at least in sourcemod builds) doesn't have the `POWER()` function so we'll just keep doing this transaction batching...
-		FormatEx(query, sizeof(query), "SELECT id, exact_time_int FROM %splayertimes WHERE exact_time_int != 0;", gS_SQLPrefix);
-	}
-
+	FormatEx(query, sizeof(query), "SELECT id, time, exact_time_int FROM %splayertimes WHERE exact_time_int != 0;", gS_SQLPrefix);
 	QueryLog(gH_SQL, SQL_Migration_DeprecateExactTimeInt_Query, query);
 }
 
 public void SQL_Migration_DeprecateExactTimeInt_Query(Database db, DBResultSet results, const char[] error, any data)
 {
-	if (results == null || results.RowCount == 0)
+	if (results == null || error[0] != '\0')
 	{
-		// mysql should hit this because rowcount should be 0
+		LogError("DeprecateExactTimeInt query failed... %s (%s)", results == null ? "results=null" : "", error);
+		return;
+	}
+
+	if (results.RowCount == 0)
+	{
+		// Nothing to queue, yay!
 		InsertMigration(Migration_DeprecateExactTimeInt);
 		return;
 	}
 
-	ArrayStack stack = new ArrayStack(2);
+	ArrayStack stack = new ArrayStack(3);
 
 	while (results.FetchRow())
 	{
-		int things[2];
+		int things[3];
 		things[0] = results.FetchInt(0);
-		things[1] = results.FetchInt(1);
+		things[1] = view_as<int>(results.FetchFloat(1));
+		things[2] = results.FetchInt(2);
 		stack.PushArray(things);
 	}
 
@@ -576,14 +568,25 @@ void SQL_Migration_DeprecateExactTimeInt_Main(ArrayStack stack)
 
 	while (!stack.Empty)
 	{
-		int things[2];
+		int things[3];
 		stack.PopArray(things);
+
+		int id = things[0];
+		float time = view_as<float>(things[1]);
+		float exact_time = view_as<float>(things[2]);
+		// https://github.com/shavitush/bhoptimer/issues/1218
+		// An issue popped up where we were no longer using/setting exact_time_int before this migration was added
+		// so it was possible for someone to beat their time and then this migration would reset it to the old exact_time_int time which was a big fat oopsie.
+		// Now we min() it here! (which we couldn't do nicely in SQL).
+		float min_time = time < exact_time ? time : exact_time;
+
 		char query[512];
 		FormatEx(query, sizeof(query),
 			"UPDATE %splayertimes SET time = %.9f WHERE id = %d;",
-			gS_SQLPrefix, things[1], things[0]);
+			gS_SQLPrefix, min_time, id);
 		AddQueryLog(trans, query);
 
+		// We do these queries/transactions in batches because AFAIR there is some SQL driver crash issue that likes to pop up with tons of queries... epic swag skibidi sigma rizz. Have you noticed that baby gronk (which was mid) has died out?
 		if (++queries > 200)
 			break;
 	}
