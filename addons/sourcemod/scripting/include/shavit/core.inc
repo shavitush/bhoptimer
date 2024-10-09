@@ -534,10 +534,13 @@ stock void TrimDisplayString(const char[] str, char[] outstr, int outstrlen, int
 // TODO: surfacefriction
 stock float MaxPrestrafe(float runspeed, float accelerate, float friction, float tickinterval)
 {
-	return runspeed * SquareRoot(
+	if (friction < 0.0) return 9999999.0; // hello ~~mario~~ bhop_ins_mariooo
+	if (accelerate < 0.0) accelerate = -accelerate;
+	float something = runspeed * SquareRoot(
 		(accelerate / friction) *
 		((2.0 - accelerate * tickinterval) / (2.0 - friction * tickinterval))
 	);
+	return something < 0.0 ? -something : something;
 }
 
 /**
