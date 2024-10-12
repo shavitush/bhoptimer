@@ -260,6 +260,11 @@
 		"#format"	"{1:d}"
 		"en"		"Custom speed limit: {1} (No Limit)"
 	}
+	"ZoneSetSpeedLimitDefault"
+	{
+		"#format"	"{1:d}"
+		"en"		"Custom speed limit: {1} (Default Speedcap)"
+	}
 	"ZoneSetStage"
 	{
 		"#format"	"{1:d}"
