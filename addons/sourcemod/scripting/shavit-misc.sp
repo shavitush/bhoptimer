@@ -1356,6 +1356,13 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
 			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
+			float cfgLimit = Shavit_GetStyleSettingFloat(gI_Style[client], "maxprestrafe");
+			float maxPrestrafe = StyleMaxPrestrafe(gI_Style[client]);
+			if (cfgLimit > 0.0) {
+				fLimit = cfgLimit;
+			} else if (fLimit > maxPrestrafe) {
+				fLimit = maxPrestrafe;
+			}
 
 			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
@@ -2286,8 +2293,13 @@ public Action Shavit_OnStartPre(int client, int track, bool& skipGroundTimer)
 			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
 
 			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
+			float cfgLimit = Shavit_GetStyleSettingFloat(gI_Style[client], "maxprestrafe");
 			float maxPrestrafe = StyleMaxPrestrafe(gI_Style[client]);
-			if (fLimit > maxPrestrafe) fLimit = maxPrestrafe;
+			if (cfgLimit > 0.0) {
+				fLimit = cfgLimit;
+			} else if (fLimit > maxPrestrafe) {
+				fLimit = maxPrestrafe;
+			}
 
 			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)

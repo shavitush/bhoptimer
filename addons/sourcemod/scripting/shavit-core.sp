@@ -2510,7 +2510,8 @@ bool CanStartTimer(int client, int track, bool skipGroundCheck)
 	if (curVel <= 50.0)
 		return true;
 
-	float prestrafe = StyleMaxPrestrafe(style);
+	float cfgMax = GetStyleSettingFloat(style, "maxprestrafe");
+	float prestrafe = cfgMax > 0.0 ? cfgMax : StyleMaxPrestrafe(style);
 	if (curVel > prestrafe)
 		return false;
 
