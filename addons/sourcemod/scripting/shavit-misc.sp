@@ -1357,10 +1357,21 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
 			float cfgLimit = Shavit_GetStyleSettingFloat(gI_Style[client], "maxprestrafe");
+
+			int zoneid;
+			Shavit_InsideZoneGetID(client, Zone_Start, track, zoneid);
+			float zoneLimit = float(Shavit_GetZoneData(zoneid));
+
 			float maxPrestrafe = StyleMaxPrestrafe(gI_Style[client]);
-			if (cfgLimit > 0.0) {
+			if (zoneLimit > 0.0)
+			{
+				fLimit = zoneLimit;
+			}
+			else if (cfgLimit > 0.0)
+			{
 				fLimit = cfgLimit;
-			} else if (fLimit > maxPrestrafe) {
+			}
+			else if (fLimit > maxPrestrafe){
 				fLimit = maxPrestrafe;
 			}
 
@@ -2294,10 +2305,21 @@ public Action Shavit_OnStartPre(int client, int track, bool& skipGroundTimer)
 
 			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
 			float cfgLimit = Shavit_GetStyleSettingFloat(gI_Style[client], "maxprestrafe");
+
+			int zoneid;
+			Shavit_InsideZoneGetID(client, Zone_Start, track, zoneid);
+			float zoneLimit = float(Shavit_GetZoneData(zoneid));
+
 			float maxPrestrafe = StyleMaxPrestrafe(gI_Style[client]);
-			if (cfgLimit > 0.0) {
+			if (zoneLimit > 0.0)
+			{
+				fLimit = zoneLimit;
+			}
+			else if (cfgLimit > 0.0)
+			{
 				fLimit = cfgLimit;
-			} else if (fLimit > maxPrestrafe) {
+			}
+			else if (fLimit > maxPrestrafe){
 				fLimit = maxPrestrafe;
 			}
 
