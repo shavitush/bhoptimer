@@ -73,6 +73,7 @@ Function gH_AfterWarningMenu[MAXPLAYERS+1];
 int gI_LastWeaponTick[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
 int gI_LastStopInfo[MAXPLAYERS+1];
+int gI_LastGroundLandTick[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -1345,8 +1346,19 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			prespeed_type = gCV_PreSpeed.IntValue;
 		}
 
+		int tickCount = GetSysTickCount();
 		int iPrevGroundEntity = (gI_GroundEntity[client] != -1) ? EntRefToEntIndex(gI_GroundEntity[client]) : -1;
-		if ((prespeed_type == 2 || prespeed_type == 3 || prespeed_type == 6) && iPrevGroundEntity == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
+
+		if (iPrevGroundEntity == -1 && iGroundEntity != -1) {
+			gI_LastGroundLandTick[client] = tickCount;
+		}
+
+		if ((prespeed_type == 2 || prespeed_type == 3) && iPrevGroundEntity == -1 && iGroundEntity != -1 && (buttons & IN_JUMP) > 0)
+		{
+			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
+		}
+
+		if (prespeed_type == 6 && iPrevGroundEntity == -1 && iGroundEntity != -1 && tickCount - gI_LastGroundLandTick[client] <= 1000)
 		{
 			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
 		}
