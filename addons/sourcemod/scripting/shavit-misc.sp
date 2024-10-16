@@ -1371,7 +1371,8 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			{
 				fLimit = cfgLimit;
 			}
-			else if (fLimit > maxPrestrafe){
+			else if (fLimit > maxPrestrafe)
+			{
 				fLimit = maxPrestrafe;
 			}
 
@@ -2319,7 +2320,8 @@ public Action Shavit_OnStartPre(int client, int track, bool& skipGroundTimer)
 			{
 				fLimit = cfgLimit;
 			}
-			else if (fLimit > maxPrestrafe){
+			else if (fLimit > maxPrestrafe)
+			{
 				fLimit = maxPrestrafe;
 			}
 
