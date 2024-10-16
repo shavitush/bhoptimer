@@ -1358,7 +1358,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
-		if (prespeed_type == 6 && iPrevGroundEntity == -1 && iGroundEntity != -1 && tickCount - gI_LastGroundLandTick[client] <= 1000)
+		if (prespeed_type == 6 && iGroundEntity != -1 && tickCount - gI_LastGroundLandTick[client] <= 250 && (buttons & IN_JUMP) > 0)
 		{
 			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
 		}
@@ -1466,6 +1466,7 @@ public void OnClientPutInServer(int client)
 
 	gI_LastWeaponTick[client] = 0;
 	gI_LastNoclipTick[client] = 0;
+	gI_LastGroundLandTick[client] = 0;
 
 	if(IsFakeClient(client))
 	{
