@@ -533,7 +533,8 @@ public void SQL_Migration_DeprecateExactTimeInt_Query(Database db, DBResultSet r
 {
 	if (results == null || error[0] != '\0')
 	{
-		LogError("DeprecateExactTimeInt query failed... %s (%s)", results == null ? "results=null" : "", error);
+		LogError("DeprecateExactTimeInt query failed... %s (%s). Finishing this migration though because things are probably fine...", results == null ? "results=null" : "", error);
+		InsertMigration(Migration_DeprecateExactTimeInt);
 		return;
 	}
 
