@@ -1358,10 +1358,6 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
 		}
 
-		if (prespeed_type == 6 && iGroundEntity != -1 && tickCount - gI_LastGroundLandTick[client] <= 250 && (buttons & IN_JUMP) > 0)
-		{
-			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
-		}
 		else if (prespeed_type == 1 || prespeed_type >= 3)
 		{
 			float fSpeed[3];
@@ -1391,6 +1387,21 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			// if trying to jump, add a very low limit to stop prespeeding in an elegant way
 			// otherwise, make sure nothing weird is happening (such as sliding at ridiculous speeds, at zone enter)
 			if (prespeed_type < 4 && fSpeed[2] > 0.0)
+			{
+				fLimit /= 3.0;
+			}
+
+			int iOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
+			// TODO: somehow incorporate the autobhop style thingy or figure out a better way to do all of this lmao
+			int iAutoBhop = Shavit_GetStyleSettingBool(Shavit_GetBhopStyle(client), "autobhop");
+			bool isJumping = (buttons & IN_JUMP) > 0;
+			if (!iAutoBhop)
+			{
+				isJumping &= (iOldButtons & IN_JUMP) == 0;
+			}
+			if (prespeed_type == 6 && iGroundEntity != -1 &&
+			    tickCount - gI_LastGroundLandTick[client] <= 150 &&
+				isJumping)
 			{
 				fLimit /= 3.0;
 			}
