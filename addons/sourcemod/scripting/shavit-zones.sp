@@ -2799,6 +2799,9 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 				| (1 << Zone_Stage)
 				| (1 << Zone_NoTimerGravity)
 				| (1 << Zone_Gravity)
+				| (1 << Zone_Speedmod)
+				| (1 << Zone_NoJump)
+				| (1 << Zone_Autobhop)
 				// ZoneForm_trigger_teleport
 				, (1 << Zone_End)
 				| (1 << Zone_Respawn)
