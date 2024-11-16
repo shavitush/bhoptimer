@@ -406,7 +406,7 @@ void ReplaceFormats(char[] formatting, int maxlen, char[] name, char[] colon, ch
 	ReplaceString(formatting, maxlen, "{msg}", text);
 }
 
-public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
+public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	if (!gCV_Enabled.BoolValue)
 	{
@@ -420,7 +420,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 
 	if(gB_Protobuf)
 	{
-		Protobuf pbmsg = UserMessageToProtobuf(msg);
+		Protobuf pbmsg = view_as<Protobuf>(msg);
 		client = pbmsg.ReadInt("ent_idx");
 		pbmsg.ReadString("msg_name", sMessage, 32);
 		pbmsg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
@@ -428,7 +428,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	}
 	else
 	{
-		BfRead bfmsg = UserMessageToBfRead(msg);
+		BfRead bfmsg = view_as<BfRead>(msg);
 		client = bfmsg.ReadByte();
 		bfmsg.ReadByte(); // chat parameter
 		bfmsg.ReadString(sMessage, 32);

@@ -437,7 +437,7 @@ public SMCResult OnStyleKeyValue(SMCParser smc, const char[] key, const char[] v
 	return SMCParse_Continue;
 }
 
-public int SortAscending_StyleOrder(int index1, int index2, const int[] array, any hndl)
+public int SortAscending_StyleOrder(int index1, int index2, const int[] array, Handle hndl)
 {
 	return GetStyleSettingInt(index1, "ordering") - GetStyleSettingInt(index2, "ordering");
 }
