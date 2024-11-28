@@ -164,6 +164,7 @@ public SMCResult OnStyleEnterSection(SMCParser smc, const char[] name, bool opt_
 
 	SetStyleSettingFloat(gI_CurrentParserIndex, "airaccelerate", 1000.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "runspeed", 260.00);
+	SetStyleSettingFloat(gI_CurrentParserIndex, "maxprestrafe", 0.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "gravity", 1.0);
 	SetStyleSettingFloat(gI_CurrentParserIndex, "speed", 1.0);
 	SetStyleSettingInt  (gI_CurrentParserIndex, "halftime", 0);
