@@ -198,6 +198,10 @@ int gI_ZoneWidth[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 
 int gI_LastMenuPos[MAXPLAYERS+1];
 
+// from https://github.com/alliedmodders/sourcemod/blob/master/plugins/include/sdktools_functions.inc
+// Should be available in SM1.11+ but not sure...
+native void EntityCollisionRulesChanged(int entity);
+
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
@@ -1501,6 +1505,9 @@ bool CreateZoneTrigger(int zone)
 	{
 		SetEntProp(entity, Prop_Send, "m_usSolidFlags",
 			GetEntProp(entity, Prop_Send, "m_usSolidFlags") & ~(FSOLID_TRIGGER|FSOLID_NOT_SOLID));
+
+		if (GetFeatureStatus(FeatureType_Native, "EntityCollisionRulesChanged") == FeatureStatus_Available)
+			EntityCollisionRulesChanged(entity);
 	}
 
 	TeleportEntity(entity, gV_ZoneCenter[zone], NULL_VECTOR, NULL_VECTOR);
