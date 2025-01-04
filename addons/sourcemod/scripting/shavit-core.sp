@@ -28,7 +28,6 @@
 #include <dhooks>
 
 #define DEBUG 0
-#define I_WANT_SM_1_11_THINGS 1
 
 #include <shavit/core>
 
