@@ -2303,6 +2303,14 @@ public Action Command_ReloadZoneSettings(int client, int args)
 	return Plugin_Handled;
 }
 
+// Was originally used in beamer to replicate this gmod lua code:
+/*
+My code from tracegun.lua that I based this off of:
+	local ang = tr.Normal:Angle() // calculate in SP with: ( traceRes.HitPos - traceRes.StartPos ):Normalize()
+	ang:RotateAroundAxis(tr.HitNormal, 180)
+	local dir = ang:Forward()*-1
+	tr = util.TraceLine({start=tr.HitPos, endpos=tr.HitPos+(dir*100000), filter=players})
+*/
 stock void RotateAroundAxis(float v[3], const float in_k[3], float theta)
 {
 	// https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula#Statement
@@ -2329,6 +2337,23 @@ stock void RotateAroundAxis(float v[3], const float in_k[3], float theta)
 	}
 }
 
+stock void ReflectAngles(float direction[3], const float normal[3])
+{
+	float fwd[3], reflected[3];
+
+	GetAngleVectors(direction, fwd, NULL_VECTOR, NULL_VECTOR);
+
+	float dot = GetVectorDotProduct(fwd, normal);
+
+	for (int i = 0; i < 3; i++)
+	{
+		reflected[i] = fwd[i] - 2.0 * dot * normal[i];
+	}
+
+	NormalizeVector(reflected, reflected);
+	GetVectorAngles(reflected, direction);
+}
+
 public Action Command_Beamer(int client, int args)
 {
 	static float rate_limit[MAXPLAYERS+1];
@@ -2348,15 +2373,6 @@ public Action Command_Beamer(int client, int args)
 
 	for (int C = 20; C >= 0; --C)
 	{
-		/*
-		My code from tracegun.lua that I based this off of:
-			local ang = tr.Normal:Angle() // ( traceRes.HitPos - traceRes.StartPos ):Normalize()
-			ang:RotateAroundAxis(tr.HitNormal, 180)
-			local dir = ang:Forward()*-1
-
-			tr = util.TraceLine({start=tr.HitPos, endpos=tr.HitPos+(dir*100000), filter=players})
-		*/
-
 		TR_TraceRayFilter(startpos, direction, MASK_ALL, RayType_Infinite, TRFilter_NoPlayers, client);
 		TR_GetEndPosition(endpos);
 
@@ -2381,16 +2397,12 @@ public Action Command_Beamer(int client, int args)
 
 		if (!C) break;
 
-		SubtractVectors(endpos, startpos, direction);
-		NormalizeVector(direction, direction);
-		GetVectorAngles(direction, direction);
-
 		startpos = endpos;
 
 		float hitnormal[3];
 		TR_GetPlaneNormal(INVALID_HANDLE, hitnormal);
 
-		RotateAroundAxis(direction, hitnormal, 180.0);
+		ReflectAngles(direction, hitnormal);
 	}
 
 	return Plugin_Handled;
