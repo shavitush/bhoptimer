@@ -291,12 +291,10 @@ public void OnPluginStart()
 	gEV_Type = GetEngineVersion();
 	gB_Protobuf = (GetUserMessageType() == UM_Protobuf);
 
-	if(gEV_Type == Engine_CSGO)
-	{
-		sv_autobunnyhopping = FindConVar("sv_autobunnyhopping");
-		sv_autobunnyhopping.BoolValue = false;
-	}
-	else if(gEV_Type != Engine_CSS && gEV_Type != Engine_TF2)
+	sv_autobunnyhopping = FindConVar("sv_autobunnyhopping");
+	if (sv_autobunnyhopping) sv_autobunnyhopping.BoolValue = false;
+
+	if (gEV_Type != Engine_CSGO && gEV_Type != Engine_CSS && gEV_Type != Engine_TF2)
 	{
 		SetFailState("This plugin was meant to be used in CS:S, CS:GO and TF2 *only*.");
 	}
