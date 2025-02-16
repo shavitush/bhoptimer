@@ -618,6 +618,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 		}
 
 		if (convar.BoolValue) add_prebuilts_to_cache("func_button", true);
+		if (convar.BoolValue) add_prebuilts_to_cache("func_rot_button", true);
 	}
 }
 
@@ -1219,6 +1220,7 @@ public void Shavit_LoadZonesHere()
 	if (gCV_ClimbButtons.BoolValue)
 	{
 		add_prebuilts_to_cache("func_button", true);
+		add_prebuilts_to_cache("func_rot_button", true);
 	}
 }
 
@@ -1329,6 +1331,7 @@ public void OnGameFrame()
 	if (search_func_button)
 	{
 		FindEntitiesToHook("func_button", ZoneForm_func_button);
+		FindEntitiesToHook("func_rot_button", ZoneForm_func_button);
 	}
 }
 
@@ -3017,6 +3020,23 @@ void OpenHookMenu_List(int client, int form, int pos = 0)
 		list.PushArray(thing);
 	}
 
+	// copy & paste for func_rot_button because it's shrimple and I can't think of how to do it cleanly otherwise right now
+	if (form == ZoneForm_func_button)
+	{
+		while ((ent = FindEntityByClassname(ent, "func_rot_button")) != -1)
+		{
+			if (gI_EntityZone[ent] > -1) continue;
+
+			float ent_origin[3];
+			GetEntPropVector(ent, Prop_Send, "m_vecOrigin", ent_origin);
+
+			ent_list_thing thing;
+			thing.dist = GetVectorDistance(player_origin, ent_origin);
+			thing.ent = ent;
+			list.PushArray(thing);
+		}
+	}
+
 	if (!list.Length)
 	{
 		Shavit_PrintToChat(client, "No unhooked entities found");
@@ -3067,7 +3087,7 @@ bool TeleportFilter(int entity)
 	char classname[20];
 	GetEntityClassname(entity, classname, sizeof(classname));
 
-	if (StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_multiple") || StrEqual(classname, "func_button"))
+	if (StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_multiple") || StrEqual(classname, "func_button") || StrEqual("func_rot_button"))
 	{
 		//TR_ClipCurrentRayToEntity(MASK_ALL, entity);
 		gI_CurrentTraceEntity = entity;
@@ -3116,7 +3136,7 @@ public int MenuHandle_HookZone_Form(Menu menu, MenuAction action, int param1, in
 		char classname[32];
 		GetEntityClassname(ent, classname, sizeof(classname));
 
-		if (StrEqual(classname, "func_button"))
+		if (StrEqual(classname, "func_button") || StrEqual(classname, "func_rot_button"))
 		{
 			form = ZoneForm_func_button;
 		}
