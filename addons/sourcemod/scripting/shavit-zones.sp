@@ -3087,7 +3087,7 @@ bool TeleportFilter(int entity)
 	char classname[20];
 	GetEntityClassname(entity, classname, sizeof(classname));
 
-	if (StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_multiple") || StrEqual(classname, "func_button") || StrEqual("func_rot_button"))
+	if (StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_multiple") || StrEqual(classname, "func_button") || StrEqual(classname, "func_rot_button"))
 	{
 		//TR_ClipCurrentRayToEntity(MASK_ALL, entity);
 		gI_CurrentTraceEntity = entity;
