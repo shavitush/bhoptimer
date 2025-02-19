@@ -161,10 +161,12 @@
 		"Offsets"
 		{
 			// https://asherkin.github.io/vtable/
+			// search string: "func_pushable" and you can find CBaseTrigger::PassesTriggerFilters / CBaseVPhysicsTrigger::PassesTriggerFilters. Follow references to these functions to find the vtable and then calculate the offset...
+			// CHECKED 2025-02-19
 			"CBaseTrigger::PassesTriggerFilters"
 			{
-				"windows"   "197"
-				"linux"     "198"
+				"windows"   "203"
+				"linux"     "204"
 			}
 			// https://asherkin.github.io/vtable/ (if updated)
 			// search string: "start %f %f %f" and then check the function call offsets above it and convert them to vtable offsets (divide by 4 most likely or whatever)
@@ -220,29 +222,29 @@
 			//      }
 			//      return 1;
 			//    }
-			"CCSPlayer::m_lastStandingPos"
 			// CHECKED 2025-02-19
+			"CCSPlayer::m_lastStandingPos"
 			{
 				"windows"   "6016"
 				"linux"     "6036" // +20 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
-			"CCSPlayer::m_ladderSurpressionTimer"
 			// CHECKED 2025-02-19
+			"CCSPlayer::m_ladderSurpressionTimer"
 			{
 				"windows"   "6032"
 				"linux"     "6052" // +20 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
-			"CCSPlayer::m_lastLadderNormal"
 			// CHECKED 2025-02-19
+			"CCSPlayer::m_lastLadderNormal"
 			{
 				"windows"   "6044"
 				"linux"     "6064" // +20 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
-			"CCSPlayer::m_lastLadderPos"
 			// CHECKED 2025-02-19
+			"CCSPlayer::m_lastLadderPos"
 			{
 				"windows"   "6056"
 				"linux"     "6076" // +20 wow that's easy!
@@ -279,17 +281,19 @@
 			}
 			// search string: "Server is hibernating" to find SetHibernating and then go its references
 			// NOTE 2025-02-19: Function has been inlined on Windows into SV_Think...
+			// CHECKED 2025-02-19
 			"CGameServer::UpdateHibernationState"
 			{
 				"library"   "engine"
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x07\x8B\x40\x2A\xFF\xD0\x84\xC0\x0F\x84"
-				"linux"     "@_ZN11CGameServer22UpdateHibernationStateEv"
+				"linux"     "@_ZN11CGameServer22UpdateHibernationStateEv.part.0"
 			}
 			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
+			// CHECKED 2025-02-19
 			"PhysicsCheckForEntityUntouch"
 			{
-				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x8B\x86"
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x87"
 				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 			}
 			// search string: "Could not add bot to the game: Team is full" to find CCSBotManager::BotAddCommand and then follow the if-statement up to find the function call that was fall (because TeamFull())
@@ -302,9 +306,10 @@
 			}
 			// search string: "remove 0x%p: %s-%s (%d-%d) [%d in play, %d max]\n".
 			// function with one argument is PhysicsRemoveTouchedList
+			// CHECKED 2025-02-19
 			"PhysicsRemoveTouchedList"
 			{
-				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\x7D\x08\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8\xA8\x01\x0F\x84"
+				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x53\x8B\x5D\x2A\x8B\x83"
 				"linux"     "@_ZN11CBaseEntity24PhysicsRemoveTouchedListEPS_"
 			}
 			// look for CGameMovement::CategorizePosition by searching for 140.0f
@@ -314,7 +319,7 @@
 			"CBasePlayer->m_surfaceFriction"
 			{
 				"windows"	"\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x8B\x07"
-				"linux"	    "\xC7\x80\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x8B\x03\x89\x1C\x24\xFF\x90\x2A\x2A\x2A\x2A\x8B\x53\x04"
+				"linux"	    "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x8B\x03"
 			}
 		}
 	}
