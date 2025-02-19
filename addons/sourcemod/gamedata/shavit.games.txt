@@ -166,7 +166,9 @@
 			"CBaseTrigger::PassesTriggerFilters"
 			{
 				"windows"   "203"
+				"windows64" "203"
 				"linux"     "204"
+				"linux64"   "204"
 			}
 			// https://asherkin.github.io/vtable/ (if updated)
 			// search string: "start %f %f %f" and then check the function call offsets above it and convert them to vtable offsets (divide by 4 most likely or whatever)
@@ -174,7 +176,9 @@
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
 				"windows"   "445"
+				"windows64" "445"
 				"linux"     "446"
+				"linux64"   "446"
 				"mac"       "446"
 			}
 			// https://asherkin.github.io/vtable/
@@ -183,16 +187,20 @@
 			"CGameRules::IsSpawnPointValid"
 			{
 				"windows"   "76"
+				"windows64" "77" // yes, same as linux64 (according to vtable site)
 				"linux"     "77"
+				"linux64"   "77"
 				"mac"       "77"
 			}
 			// https://asherkin.github.io/vtable/
-			// search string: "water" to find CBasePlayer::UpdateStepSound. At the bottom there's a vtable call to ::PlayStepSound. Grab that, divide by 4, add 1. Bam, UpdateStepSound...
+			// search string: "water" to find CBasePlayer::UpdateStepSound. At the bottom there's a vtable call to ::PlayStepSound. Grab that, divide by 4, subtract 1. Bam, UpdateStepSound...
 			// CHECKED 2025-02-19
 			"CBasePlayer::UpdateStepSound"
 			{
-				"windows"   "366"
-				"linux"     "367"
+				"windows"   "364"
+				"windows64" "364"
+				"linux"     "365"
+				"linux64"   "365"
 			}
 			// find in CCSGameMovement::CheckForLadders which references CCSPlayer::CanGrabLadder
 			//
