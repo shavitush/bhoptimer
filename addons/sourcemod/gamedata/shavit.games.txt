@@ -34,6 +34,12 @@
 				"linux"     "2"
 			}
 
+			"X64"
+			{
+				"windows64" "1"
+				"linux64"   "1"
+			}
+
 			"ProcessMovement"
 			{
 				"windows"   "1"
@@ -286,14 +292,18 @@
 			"Player::DoAnimationEvent"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x0C\x89\x4D\x2A\x83\x7D\x2A\x02"
+				"windows64" "\x44\x89\x44\x24\x2A\x89\x54\x24\x2A\x48\x89\x4C\x24\x2A\x48\x83\xEC\x38\x83\x7C\x24\x2A\x02"
 				"linux"     "@_ZN9CCSPlayer16DoAnimationEventE17PlayerAnimEvent_ti"
+				"linux64"   "@_ZN9CCSPlayer16DoAnimationEventE17PlayerAnimEvent_ti"
 			}
-			// search string: "-nobots" (and then look for the function that also references "fill" and "match")
+			// search string: "-nobots" (and then look for the function that also references "fill" and "match" (or just the function with 0 or 1 parameters...))
 			// CHECKED 2025-02-19
 			"BotManager::MaintainBotQuota"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x14\xFF\x15"
+				"windows64" "\x48\x83\xEC\x78\xFF\x15"
 				"linux"     "@_ZN13CCSBotManager16MaintainBotQuotaEv"
+				"linux64"   "@_ZN13CCSBotManager16MaintainBotQuotaEv"
 			}
 			// search string: "Server is hibernating" to find SetHibernating and then go its references
 			// NOTE 2025-02-19: Function has been inlined on Windows into SV_Think...
@@ -302,15 +312,20 @@
 			{
 				"library"   "engine"
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x07\x8B\x40\x2A\xFF\xD0\x84\xC0\x0F\x84"
+				"windows64" "\x48\x89\x5C\x24\x2A\x56\x48\x83\xEC\x40\x8B\x05"
 				"linux"     "@_ZN11CGameServer22UpdateHibernationStateEv.part.0"
+				"linux64"   "@_ZN11CGameServer14SetHibernatingEb"
 			}
 			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
+			// (should be the function with one argument (this ptr))
 			// CHECKED 2025-02-19
 			"PhysicsCheckForEntityUntouch"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x87"
+				"windows64" "\x40\x57\x48\x83\xEC\x20\x8B\x81"
 				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
+				"linux64"   "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 			}
 			// search string: "Could not add bot to the game: Team is full" to find CCSBotManager::BotAddCommand and then follow the if-statement up to find the function call that was fall (because TeamFull())
 			// protip: on csgo we just use mp_randomspawn instead.
@@ -318,7 +333,9 @@
 			"CCSGameRules::TeamFull"
 			{
 				"windows"   "\x55\x8B\xEC\x56\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x8B\x45\x2A\x83\xE8\x02"
+				"windows64  "\x48\x89\x5C\x24\x2A\x57\x48\x83\xEC\x20\x8B\xFA\x48\x8B\xD9\xE8\x2A\x2A\x2A\x2A\x83\xEF\x02"
 				"linux"     "@_ZN12CCSGameRules8TeamFullEi"
+				"linux64"   "@_ZN12CCSGameRules8TeamFullEi"
 			}
 			// search string: "remove 0x%p: %s-%s (%d-%d) [%d in play, %d max]\n".
 			// function with one argument is PhysicsRemoveTouchedList
@@ -326,7 +343,9 @@
 			"PhysicsRemoveTouchedList"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x53\x8B\x5D\x2A\x8B\x83"
+				"windows64" "\x40\x55\x56\x48\x83\xEC\x58"
 				"linux"     "@_ZN11CBaseEntity24PhysicsRemoveTouchedListEPS_"
+				"linux64"   "@_ZN11CBaseEntity24PhysicsRemoveTouchedListEPS_"
 			}
 			// look for CGameMovement::CategorizePosition by searching for 140.0f
 			// and you will see something something `*(_DWORD*)(a1[1] + some_offset) = 0x3F800000` right at the top
@@ -335,7 +354,9 @@
 			"CBasePlayer->m_surfaceFriction"
 			{
 				"windows"	"\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x8B\x07"
+				"windows64  "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x48\x8B\x01"
 				"linux"	    "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x8B\x03"
+				"linux64"   "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x48\x8B\x07"
 			}
 		}
 	}
