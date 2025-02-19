@@ -21,12 +21,12 @@
 
 enum
 {
-	Migration_RemoveWorkshopMaptiers, // 0
-	Migration_RemoveWorkshopMapzones,
-	Migration_RemoveWorkshopPlayertimes,
-	Migration_LastLoginIndex,
-	Migration_RemoveCountry,
-	Migration_ConvertIPAddresses, // 5
+	Migration_RemoveWorkshopMaptiers, // 0 // safe with newly-created tables
+	Migration_RemoveWorkshopMapzones, // safe with newly-created tables
+	Migration_RemoveWorkshopPlayertimes, // safe with newly-created tables
+	Migration_LastLoginIndex, // safe with newly-created tables
+	Migration_RemoveCountry, // safe with newly-created tables -- doesn't work on sqlite
+	Migration_ConvertIPAddresses, // 5 //
 	Migration_ConvertSteamIDsUsers,
 	Migration_ConvertSteamIDsPlayertimes,
 	Migration_ConvertSteamIDsChat,
@@ -374,8 +374,11 @@ void ApplyMigration(int migration)
 
 void ApplyMigration_LastLoginIndex()
 {
-	char sQuery[128];
-	FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD INDEX `lastlogin` (`lastlogin`);", gS_SQLPrefix);
+	char sQuery[512];
+	if (gI_Driver == Driver_sqlite)
+		FormatEx(sQuery, 512, "CREATE INDEX IF NOT EXISTS lastlogin ON `%susers` (lastlogin);", gS_SQLPrefix);
+	else
+		FormatEx(sQuery, 512, "ALTER TABLE `%susers` ADD INDEX `lastlogin` (`lastlogin`);", gS_SQLPrefix);
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_LastLoginIndex, DBPrio_High);
 }
 
