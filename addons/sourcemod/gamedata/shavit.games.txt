@@ -234,28 +234,36 @@
 			"CCSPlayer::m_lastStandingPos"
 			{
 				"windows"   "6016"
+				"windows64" "6640"
 				"linux"     "6036" // +20 wow that's easy!
+				"linux64"   "6688" // +48 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
 			// CHECKED 2025-02-19
 			"CCSPlayer::m_ladderSurpressionTimer"
 			{
 				"windows"   "6032"
+				"windows64" "6668"
 				"linux"     "6052" // +20 wow that's easy!
+				"linux64"   "6716" // +48 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
 			// CHECKED 2025-02-19
 			"CCSPlayer::m_lastLadderNormal"
 			{
 				"windows"   "6044"
+				"windows64" "6672"
 				"linux"     "6064" // +20 wow that's easy!
+				"linux64"   "6720" // +48 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
 			// CHECKED 2025-02-19
 			"CCSPlayer::m_lastLadderPos"
 			{
 				"windows"   "6056"
+				"windows64" "6684"
 				"linux"     "6076" // +20 wow that's easy!
+				"linux64"   "6732" // +48 wow that's easy!
 			}
 			// TODO
 			"GetClusterForOrigin"
