@@ -31,12 +31,16 @@
 			"OS"
 			{
 				"windows"   "1"
+				"windows64" "1"
 				"linux"     "2"
+				"linux64"   "2"
 			}
 
 			"X64"
 			{
+				"windows"   "0"
 				"windows64" "1"
+				"linux"     "0"
 				"linux64"   "1"
 			}
 
