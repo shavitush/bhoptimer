@@ -15,14 +15,18 @@
 			{
 				"library"   "server"
 				"windows"   "@CreateInterface"
+				"windows64" "@CreateInterface"
 				"linux"     "@CreateInterface"
+				"linux64"   "@CreateInterface"
 			}
 
 			"CreateInterface_Engine"
 			{
 				"library"   "engine"
 				"windows"   "@CreateInterface"
+				"windows64" "@CreateInterface"
 				"linux"     "@CreateInterface"
+				"linux64"   "@CreateInterface"
 			}
 		}
 
@@ -47,7 +51,9 @@
 			"ProcessMovement"
 			{
 				"windows"   "1"
+				"windows64" "1"
 				"linux"     "2"
+				"linux64"   "2"
 			}
 		}
 	}
@@ -337,7 +343,7 @@
 			"CCSGameRules::TeamFull"
 			{
 				"windows"   "\x55\x8B\xEC\x56\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x8B\x45\x2A\x83\xE8\x02"
-				"windows64  "\x48\x89\x5C\x24\x2A\x57\x48\x83\xEC\x20\x8B\xFA\x48\x8B\xD9\xE8\x2A\x2A\x2A\x2A\x83\xEF\x02"
+				"windows64" "\x48\x89\x5C\x24\x2A\x57\x48\x83\xEC\x20\x8B\xFA\x48\x8B\xD9\xE8\x2A\x2A\x2A\x2A\x83\xEF\x02"
 				"linux"     "@_ZN12CCSGameRules8TeamFullEi"
 				"linux64"   "@_ZN12CCSGameRules8TeamFullEi"
 			}
@@ -358,7 +364,7 @@
 			"CBasePlayer->m_surfaceFriction"
 			{
 				"windows"	"\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x8B\x07"
-				"windows64  "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x48\x8B\x01"
+				"windows64" "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x48\x8B\x01"
 				"linux"	    "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x8B\x03"
 				"linux64"   "\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x48\x8B\x07"
 			}
