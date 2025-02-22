@@ -167,11 +167,6 @@
 	{
 		"Addresses"
 		{
-			"m_surfaceFriction"
-			{
-				"signature" "CBasePlayer->m_surfaceFriction"
-				"read"      "2" // skip the first 2 bytes
-			}
 		}
 
 		"Offsets"
