@@ -114,7 +114,7 @@ public void OnPluginStart()
 
 	GameData gamedata = new GameData("shavit.games");
 
-	Address surfaceFrictionAddress = gamedata.GetMemSig("m_surfaceFriction");
+	Address surfaceFrictionAddress = gamedata.GetMemSig("CBasePlayer->m_surfaceFriction");
 
 	if (surfaceFrictionAddress == Address_Null)
 	{
