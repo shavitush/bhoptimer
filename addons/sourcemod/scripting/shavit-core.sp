@@ -484,52 +484,6 @@ void LoadDHooks()
 		SetFailState("Failed to load shavit gamedata");
 	}
 
-	StartPrepSDKCall(SDKCall_Static);
-	if(!PrepSDKCall_SetFromConf(gamedataConf, SDKConf_Signature, "CreateInterface_Server"))
-	{
-		SetFailState("Failed to get CreateInterface");
-	}
-	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
-	Handle CreateInterface = EndPrepSDKCall();
-
-	if(CreateInterface == null)
-	{
-		SetFailState("Unable to prepare SDKCall for CreateInterface");
-	}
-
-	char interfaceName[64];
-
-	// ProcessMovement
-	if(!GameConfGetKeyValue(gamedataConf, "IGameMovement", interfaceName, sizeof(interfaceName)))
-	{
-		SetFailState("Failed to get IGameMovement interface name");
-	}
-
-	Address IGameMovement = SDKCall(CreateInterface, interfaceName, 0);
-
-	if(!IGameMovement)
-	{
-		SetFailState("Failed to get IGameMovement pointer");
-	}
-
-	int offset = GameConfGetOffset(gamedataConf, "ProcessMovement");
-	if(offset == -1)
-	{
-		SetFailState("Failed to get ProcessMovement offset");
-	}
-
-	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovement);
-	DHookAddParam(processMovement, HookParamType_CBaseEntity);
-	DHookAddParam(processMovement, HookParamType_ObjectPtr);
-	DHookRaw(processMovement, false, IGameMovement);
-
-	Handle processMovementPost = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPost);
-	DHookAddParam(processMovementPost, HookParamType_CBaseEntity);
-	DHookAddParam(processMovementPost, HookParamType_ObjectPtr);
-	DHookRaw(processMovementPost, true, IGameMovement);
-
 	gB_Linux = GameConfGetOffset(gamedataConf, "OS") == 2;
 
 	if (gEV_Type == Engine_TF2 && gB_Linux)
@@ -563,12 +517,11 @@ void LoadDHooks()
 
 	LoadPhysicsUntouch(gamedataConf);
 
-	delete CreateInterface;
 	delete gamedataConf;
 
 	gamedataConf = LoadGameConfigFile("sdktools.games");
 
-	offset = GameConfGetOffset(gamedataConf, "AcceptInput");
+	int offset = GameConfGetOffset(gamedataConf, "AcceptInput");
 	gH_AcceptInput = new DynamicHook(offset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity);
 	gH_AcceptInput.AddParam(HookParamType_CharPtr);
 	gH_AcceptInput.AddParam(HookParamType_CBaseEntity);
@@ -583,7 +536,6 @@ void LoadDHooks()
 	}
 
 	gH_TeleportDhook = new DynamicHook(offset, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
-
 	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
 	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
 	gH_TeleportDhook.AddParam(HookParamType_VectorPtr);
@@ -2739,6 +2691,7 @@ public void OnClientPutInServer(int client)
 		CallOnStyleChanged(client, 0, gI_DefaultStyle, false);
 	}
 
+	SDKHook(client, SDKHook_PreThink, PreThink);
 	SDKHook(client, SDKHook_PreThinkPost, PreThinkPost);
 	SDKHook(client, SDKHook_PostThinkPost, PostThinkPost);
 }
@@ -2923,6 +2876,11 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	UpdateStyleSettings(client);
 }
 
+public void PreThink(int client)
+{
+	FakeProcessMovementPre(client);
+}
+
 public void PreThinkPost(int client)
 {
 	if(IsPlayerAlive(client))
@@ -2989,6 +2947,8 @@ public void PreThinkPost(int client)
 
 public void PostThinkPost(int client)
 {
+	FakeProcessMovementPost(client);
+
 	gF_Origin[client][1] = gF_Origin[client][0];
 	GetEntPropVector(client, Prop_Data, "m_vecOrigin", gF_Origin[client][0]);
 
@@ -3088,9 +3048,8 @@ public MRESReturn DHook_PreventBunnyJumpingPre()
 		return MRES_Ignored;
 }
 
-public MRESReturn DHook_ProcessMovement(Handle hParams)
+void FakeProcessMovementPre(int client)
 {
-	int client = DHookGetParam(hParams, 1);
 	gI_ClientProcessingMovement = client;
 
 	if (gI_TF2PreventBunnyJumpingAddr != Address_Null)
@@ -3112,7 +3071,7 @@ public MRESReturn DHook_ProcessMovement(Handle hParams)
 	if (IsFakeClient(client) || !IsPlayerAlive(client))
 	{
 		SetEntPropFloat(client, Prop_Data, "m_flLaggedMovementValue", 1.0); // otherwise you get slow spec noclip
-		return MRES_Ignored;
+		return;
 	}
 
 	MoveType mt = GetEntityMoveType(client);
@@ -3124,7 +3083,7 @@ public MRESReturn DHook_ProcessMovement(Handle hParams)
 			SetClientEventsPaused(client, gA_Timers[client].bClientPaused);
 		}
 
-		return MRES_Ignored;
+		return;
 	}
 
 	// i got this code from kid-tas by kid fearless
@@ -3149,21 +3108,17 @@ public MRESReturn DHook_ProcessMovement(Handle hParams)
 	{
 		SetClientEventsPaused(client, (!Shavit_ShouldProcessFrame(client) || gA_Timers[client].bClientPaused));
 	}
-
-	return MRES_Ignored;
 }
 
-public MRESReturn DHook_ProcessMovementPost(Handle hParams)
+void FakeProcessMovementPost(int client)
 {
-	int client = DHookGetParam(hParams, 1);
-
 	Call_StartForward(gH_Forwards_OnProcessMovementPost);
 	Call_PushCell(client);
 	Call_Finish();
 
 	if (IsFakeClient(client) || !IsPlayerAlive(client))
 	{
-		return MRES_Ignored;
+		return;
 	}
 
 	if (gA_Timers[client].fTimescale != 1.0 && GetEntityMoveType(client) != MOVETYPE_NOCLIP)
@@ -3174,7 +3129,7 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 
 	if (gA_Timers[client].bClientPaused || !gA_Timers[client].bTimerEnabled)
 	{
-		return MRES_Ignored;
+		return;
 	}
 
 	float interval = GetTickInterval();
@@ -3204,7 +3159,7 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_PushCell(time);
 	Call_Finish();
 
-	return MRES_Ignored;
+	MaybeDoPhysicsUntouch(client);
 }
 
 // reference: https://github.com/momentum-mod/game/blob/5e2d1995ca7c599907980ee5b5da04d7b5474c61/mp/src/game/server/momentum/mom_timer.cpp#L388

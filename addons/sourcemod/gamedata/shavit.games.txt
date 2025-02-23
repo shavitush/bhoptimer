@@ -4,22 +4,8 @@
 
 	"#default"
 	{
-		"Keys"
-		{
-			"IGameMovement" "GameMovement001"
-		}
-
 		"Signatures"
 		{
-			"CreateInterface_Server"
-			{
-				"library"   "server"
-				"windows"   "@CreateInterface"
-				"windows64" "@CreateInterface"
-				"linux"     "@CreateInterface"
-				"linux64"   "@CreateInterface"
-			}
-
 			"CreateInterface_Engine"
 			{
 				"library"   "engine"
@@ -46,14 +32,6 @@
 				"windows64" "1"
 				"linux"     "0"
 				"linux64"   "1"
-			}
-
-			"ProcessMovement"
-			{
-				"windows"   "1"
-				"windows64" "1"
-				"linux"     "2"
-				"linux64"   "2"
 			}
 		}
 	}
