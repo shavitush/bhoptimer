@@ -173,7 +173,6 @@
 		{
 			// https://asherkin.github.io/vtable/
 			// search string: "func_pushable" and you can find CBaseTrigger::PassesTriggerFilters / CBaseVPhysicsTrigger::PassesTriggerFilters. Follow references to these functions to find the vtable and then calculate the offset...
-			// CHECKED 2025-02-19
 			"CBaseTrigger::PassesTriggerFilters"
 			{
 				"windows"   "203"
@@ -183,7 +182,6 @@
 			}
 			// https://asherkin.github.io/vtable/ (if updated)
 			// search string: "start %f %f %f" and then check the function call offsets above it and convert them to vtable offsets (divide by 4 most likely or whatever)
-			// CHECKED 2025-02-19
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
 				"windows"   "445"
@@ -194,7 +192,6 @@
 			}
 			// https://asherkin.github.io/vtable/
 			// search string: "Invalid counterterrorist spawnpoint" and then look for the first function call in each iteration of the loop
-			// CHECKED 2025-02-19
 			"CGameRules::IsSpawnPointValid"
 			{
 				"windows"   "76"
@@ -205,7 +202,6 @@
 			}
 			// https://asherkin.github.io/vtable/
 			// search string: "water" to find CBasePlayer::UpdateStepSound. At the bottom there's a vtable call to ::PlayStepSound. Grab that, divide by 4, subtract 1. Bam, UpdateStepSound...
-			// CHECKED 2025-02-19
 			"CBasePlayer::UpdateStepSound"
 			{
 				"windows"   "364"
@@ -241,7 +237,6 @@
 			//      }
 			//      return 1;
 			//    }
-			// CHECKED 2025-02-19
 			"CCSPlayer::m_lastStandingPos"
 			{
 				"windows"   "6016"
@@ -250,7 +245,6 @@
 				"linux64"   "6688" // +48 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
-			// CHECKED 2025-02-19
 			"CCSPlayer::m_ladderSurpressionTimer"
 			{
 				"windows"   "6032"
@@ -259,7 +253,6 @@
 				"linux64"   "6716" // +48 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
-			// CHECKED 2025-02-19
 			"CCSPlayer::m_lastLadderNormal"
 			{
 				"windows"   "6044"
@@ -268,7 +261,6 @@
 				"linux64"   "6720" // +48 wow that's easy!
 			}
 			// find CCSPlayer::CanGrabLadder via 4096.0f or symbols on linux...
-			// CHECKED 2025-02-19
 			"CCSPlayer::m_lastLadderPos"
 			{
 				"windows"   "6056"
@@ -293,7 +285,6 @@
 		"Signatures"
 		{
 			// search string: "ReloadEffect" to find CWeaponCSBase::SendReloadEvents and then CCSPlayer::DoAnimationEvent is probably the second to last function called there.
-			// CHECKED 2025-02-19
 			"Player::DoAnimationEvent"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x0C\x89\x4D\x2A\x83\x7D\x2A\x02"
@@ -302,7 +293,6 @@
 				"linux64"   "@_ZN9CCSPlayer16DoAnimationEventE17PlayerAnimEvent_ti"
 			}
 			// search string: "-nobots" (and then look for the function that also references "fill" and "match" (or just the function with 0 or 1 parameters...))
-			// CHECKED 2025-02-19
 			"BotManager::MaintainBotQuota"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x14\xFF\x15"
@@ -312,7 +302,6 @@
 			}
 			// search string: "Server is hibernating" to find SetHibernating and then go its references
 			// NOTE 2025-02-19: Function has been inlined on Windows into SV_Think...
-			// CHECKED 2025-02-19
 			"CGameServer::UpdateHibernationState"
 			{
 				"library"   "engine"
@@ -324,7 +313,6 @@
 			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
 			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
 			// (should be the function with one argument (this ptr))
-			// CHECKED 2025-02-19
 			"PhysicsCheckForEntityUntouch"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x87"
@@ -334,7 +322,6 @@
 			}
 			// search string: "Could not add bot to the game: Team is full" to find CCSBotManager::BotAddCommand and then follow the if-statement up to find the function call that was fall (because TeamFull())
 			// protip: on csgo we just use mp_randomspawn instead.
-			// CHECKED 2025-02-19
 			"CCSGameRules::TeamFull"
 			{
 				"windows"   "\x55\x8B\xEC\x56\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x8B\x45\x2A\x83\xE8\x02"
@@ -344,7 +331,6 @@
 			}
 			// search string: "remove 0x%p: %s-%s (%d-%d) [%d in play, %d max]\n".
 			// function with one argument is PhysicsRemoveTouchedList
-			// CHECKED 2025-02-19
 			"PhysicsRemoveTouchedList"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x53\x8B\x5D\x2A\x8B\x83"
@@ -355,7 +341,6 @@
 			// look for CGameMovement::CategorizePosition by searching for 140.0f
 			// and you will see something something `*(_DWORD*)(a1[1] + some_offset) = 0x3F800000` right at the top
 			// make a signature at "mov dword ptr[eax+some_offset], 3F800000h"
-			// CHECKED 2025-02-19
 			"CBasePlayer->m_surfaceFriction"
 			{
 				"windows"	"\xC7\x80\x2A\x2A\x2A\x2A\x00\x00\x80\x3F\x8B\x07"
