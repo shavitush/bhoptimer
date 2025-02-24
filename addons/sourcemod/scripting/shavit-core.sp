@@ -520,7 +520,7 @@ void LoadDHooks()
 		SetFailState("Failed to get ProcessMovement offset");
 	}
 
-	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovement);
+	Handle processMovement = DHookCreate(offset, HookType_Raw, ReturnType_Void, ThisPointer_Ignore, DHook_ProcessMovementPre);
 	DHookAddParam(processMovement, HookParamType_CBaseEntity);
 	DHookAddParam(processMovement, HookParamType_ObjectPtr);
 	DHookRaw(processMovement, false, IGameMovement);
@@ -3088,7 +3088,7 @@ public MRESReturn DHook_PreventBunnyJumpingPre()
 		return MRES_Ignored;
 }
 
-public MRESReturn DHook_ProcessMovement(Handle hParams)
+public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 {
 	int client = DHookGetParam(hParams, 1);
 	gI_ClientProcessingMovement = client;
@@ -3203,6 +3203,8 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 	Call_PushCell(client);
 	Call_PushCell(time);
 	Call_Finish();
+
+	MaybeDoPhysicsUntouch(client);
 
 	return MRES_Ignored;
 }
