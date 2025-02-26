@@ -172,6 +172,7 @@ char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
+float gF_ZoneStartSpeedLimit[MAXPLAYERS+1];
 int gI_LastPrintedSteamID[MAXPLAYERS+1];
 
 // kz support
@@ -2507,7 +2508,19 @@ bool CanStartTimer(int client, int track, bool skipGroundCheck)
 	if (curVel <= 50.0)
 		return true;
 
-	float prestrafe = StyleMaxPrestrafe(style);
+	float cfgMax = GetStyleSettingFloat(style, "maxprestrafe");
+	float zoneMax = gF_ZoneStartSpeedLimit[client];
+	// float prestrafe = cfgMax > 0.0 ? cfgMax : StyleMaxPrestrafe(style);
+	float prestrafe;
+	if (zoneMax > 0.0) {
+		prestrafe = zoneMax;
+	}
+	else if (cfgMax > 0.0) {
+		prestrafe = cfgMax;
+	} else {
+		prestrafe = StyleMaxPrestrafe(style);
+	}
+
 	if (curVel > prestrafe)
 		return false;
 
@@ -2895,7 +2908,10 @@ void SQL_DBConnect()
 
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
 {
-	if (type == Zone_Airaccelerate && track == gA_Timers[client].iTimerTrack)
+	if (type == Zone_Start && track == gA_Timers[client].iTimerTrack) {
+		gF_ZoneStartSpeedLimit[client] = float(data);
+	}
+	else if (type == Zone_Airaccelerate && track == gA_Timers[client].iTimerTrack)
 	{
 		gF_ZoneAiraccelerate[client] = float(data);
 	}
@@ -2917,7 +2933,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	//       Probably so very niche that it doesn't matter.
 	if (track != gA_Timers[client].iTimerTrack)
 		return;
-	if (type != Zone_Airaccelerate && type != Zone_CustomSpeedLimit)
+	if (type != Zone_Airaccelerate && type != Zone_CustomSpeedLimit && type != Zone_Start)
 		return;
 
 	UpdateStyleSettings(client);
