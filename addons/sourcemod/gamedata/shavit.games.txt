@@ -188,7 +188,6 @@
 				"windows64" "445"
 				"linux"     "446"
 				"linux64"   "446"
-				"mac"       "446"
 			}
 			// https://asherkin.github.io/vtable/
 			// search string: "Invalid counterterrorist spawnpoint" and then look for the first function call in each iteration of the loop
@@ -198,7 +197,6 @@
 				"windows64" "77" // yes, same as linux64 (according to vtable site)
 				"linux"     "77"
 				"linux64"   "77"
-				"mac"       "77"
 			}
 			// https://asherkin.github.io/vtable/
 			// search string: "water" to find CBasePlayer::UpdateStepSound. At the bottom there's a vtable call to ::PlayStepSound. Grab that, divide by 4, subtract 1. Bam, UpdateStepSound...

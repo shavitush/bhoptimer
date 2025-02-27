@@ -18,7 +18,7 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
 
 # Requirements:
 * Steam version of Counter-Strike: Source, Counter-Strike: Global Offensive, or Team Fortress 2.
-* [Metamod:Source](https://www.sourcemm.net/downloads.php?branch=stable) and [SourceMod](https://www.sourcemod.net/downloads.php?branch=stable) 1.11 or higher.
+* [Metamod:Source](https://www.sourcemm.net/downloads.php?branch=stable) and [SourceMod](https://www.sourcemod.net/downloads.php?branch=stable) 1.12 or higher.
 * A MySQL database (preferably locally hosted) if your database is likely to grow big, or if you want to use the rankings plugin. MySQL server version of 5.5.5 or above (MariaDB equivalent works too) is required.
 
 # Optional requirements, for the best experience:
