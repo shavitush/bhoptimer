@@ -114,16 +114,17 @@ public void OnPluginStart()
 
 	GameData gamedata = new GameData("shavit.games");
 
-	Address surfaceFrctionAddress = gamedata.GetAddress("m_surfaceFriction");
+	Address surfaceFrictionAddress = gamedata.GetMemSig("CBasePlayer->m_surfaceFriction");
 
-	if (surfaceFrctionAddress == Address_Null)
+	if (surfaceFrictionAddress == Address_Null)
 	{
 		g_iSurfaceFrictionOffset = -1;
 		LogError("[XUTAX] The address of m_surfaceFriction is null, defaulting friction values");
 	}
 	else
 	{
-		g_iSurfaceFrictionOffset = view_as<int>(surfaceFrctionAddress);
+		int instr = LoadFromAddress(surfaceFrictionAddress, NumberType_Int32);
+		g_iSurfaceFrictionOffset = instr >> 16;
 	}
 
 	delete gamedata;
