@@ -192,6 +192,7 @@ bool gB_AdminMenu = false;
 #define CZONE_VER 'c'
 // custom zone stuff
 Cookie gH_CustomZoneCookie = null;
+Cookie gH_CustomZoneCookie2 = null; // fuck
 int gI_ZoneDisplayType[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 int gI_ZoneColor[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 int gI_ZoneWidth[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
@@ -300,6 +301,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_customzones", Command_CustomZones, "Customize start and end zone for each track");
 
 	gH_CustomZoneCookie = new Cookie("shavit_customzones", "Cookie for storing custom zone stuff", CookieAccess_Private);
+	gH_CustomZoneCookie2 = new Cookie("shavit_customzones2", "Cooke (AGAIN) for storing custom zone stuff", CookieAccess_Private);
 
 	for (int i = 0; i <= 9; i++)
 	{
@@ -1782,8 +1784,10 @@ public void OnClientCookiesCached(int client)
 	gH_DrawAllZonesCookie.Get(client, setting, sizeof(setting));
 	gB_DrawAllZones[client] = view_as<bool>(StringToInt(setting));
 
-	char czone[100]; // #define MAX_VALUE_LENGTH 100
-	gH_CustomZoneCookie.Get(client, czone, sizeof(czone));
+	// we have to go through some pain because cookies can only fit into a char[100] buffer...
+	char czone[200];
+	gH_CustomZoneCookie.Get(client, czone, 100);
+	gH_CustomZoneCookie2.Get(client, czone[99], 100);
 
 	char ver = czone[0];
 
@@ -1815,14 +1819,11 @@ public void OnClientCookiesCached(int client)
 	else if (ver == 'c') // back to the original :pensive:
 	{
 		// c = [1 + ZONETYPES_SIZE*2*3 + 1] // version = (ZONETYPES_SIZE * (main+bonus) * 3 chars) + NUL terminator
-		// char[98] as of right now....
+		// char[109] as of right now....
 
 		int p = 1;
 
-		// TODO: ZONETYPES_SIZE is too big now so we'll have to come back to do something about this...
-		//       Just make another cookie :pepega: or maybe store the settings in the DB rather than cookie.
-		//for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
-		for (int type = Zone_Start; type <= Zone_Speedmod; type++)
+		for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
 		{
 			for (int track = Track_Main; track <= Track_Bonus; track++)
 			{
@@ -3327,7 +3328,7 @@ void OpenCustomZoneMenu(int client, int pos=0)
 	menu.SetTitle("%T", "CustomZone_MainMenuTitle", client);
 
 	// Only start zone and end zone are customizable imo, why do you even want to customize the zones that arent often used/seen???
-#if CZONE_VER == 'b'
+#if CZONE_VER != 'a'
 	for (int i = 0; i <= Track_Bonus; i++)
 	{
 		for (int j = 0; j < ZONETYPES_SIZE; j++)
@@ -3439,7 +3440,7 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 
 void HandleCustomZoneCookie(int client)
 {
-	char buf[100]; // #define MAX_VALUE_LENGTH 100
+	char buf[200];
 	int p = 0;
 
 #if CZONE_VER >= 'b'
@@ -3469,7 +3470,10 @@ void HandleCustomZoneCookie(int client)
 		}
 	}
 
+	Format(buf[100], 100, "%s", buf[99]); // shift that bitch over...
+	buf[99] = 0;
 	gH_CustomZoneCookie.Set(client, buf);
+	gH_CustomZoneCookie2.Set(client, buf[100]);
 }
 
 public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, int param2)
