@@ -292,7 +292,11 @@ public void OnPluginStart()
 	gB_Protobuf = (GetUserMessageType() == UM_Protobuf);
 
 	sv_autobunnyhopping = FindConVar("sv_autobunnyhopping");
-	if (sv_autobunnyhopping) sv_autobunnyhopping.BoolValue = false;
+	if (sv_autobunnyhopping)
+	{
+		sv_autobunnyhopping.BoolValue = false;
+		sv_autobunnyhopping.AddChangeHook(OnConVarChanged);
+	}
 
 	if (gEV_Type != Engine_CSGO && gEV_Type != Engine_CSS && gEV_Type != Engine_TF2)
 	{
@@ -597,6 +601,13 @@ void LoadDHooks()
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
+	if (convar == sv_autobunnyhopping)
+	{
+		if (convar.BoolValue)
+			convar.BoolValue = false;
+		return;
+	}
+
 	gB_StyleCookies = (newValue[0] != '!');
 	gI_DefaultStyle = StringToInt(newValue[1]);
 }
