@@ -2,7 +2,7 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
-# v?.?.? - ? - 202?-??-?? - rtldg
+# v?.?.? - ? - 2025-0?-?? - rtldg
 - random things
 	- move around the absolute minimum time (0.11s) stuff https://github.com/shavitush/bhoptimer/commit/2dbb211742124484f4a420c61b4511b2c5f16b38
 	- fix wrong variable used in `LessStupidGetMapDisplayName` (relevant for tf2 & csgo) https://github.com/shavitush/bhoptimer/commit/afa6b07da8e7540277ada3a85895da2c1395aed3
@@ -32,6 +32,8 @@ Note: Dates are UTC+0.
 	- Clarify logic for testing writeability with faketestfile_69.replay https://github.com/shavitush/bhoptimer/pull/1217 @Nairdaa https://github.com/shavitush/bhoptimer/commit/1b676441975267a629948efc9479acda3cc1325f
 	- do something to not error on negative `sv_friction` and negative `sv_accelerate` https://github.com/shavitush/bhoptimer/commit/187bd2c97541503bcf5421770f7baf040b6000ef
 		- like on `bhop_ins_mariooo`
+	- fix some colors in advertisement messages not working https://github.com/shavitush/bhoptimer/commit/ad48aa3345878fab54d785980f0be656677a68e3
+	- check & use `sv_autobunnyhopping` even if the game is not CS:GO (and it's in CS:S as of the 2025-02-18 update! Thank you @misyltoad) https://github.com/shavitush/bhoptimer/commit/94ebb97c79f0ff71dd7115ac6626d86e162df1a7
 - menu & hud things
 	- save `!wr` menu record page for back button https://github.com/shavitush/bhoptimer/commit/9423ef79add10b5d48e64eb1a90e845d781b9906
 	- timeleft hud - show seconds starting at 150s https://github.com/shavitush/bhoptimer/commit/3a1e6a60cd810089ee0b4db37e99c0ad6c0e031b
@@ -40,6 +42,7 @@ Note: Dates are UTC+0.
 		- this is the thing that's used when you have a checkpoint menu open and then a mapvote comes up, for example
 	- add keyhint forwards and forceUpdate https://github.com/shavitush/bhoptimer/pull/1201 @enimmy https://github.com/shavitush/bhoptimer/commit/d57ec73adb70ad5ece0a688f71cd54619a57883d
 	- allow the !recentrecords menu to be sorted by style https://github.com/shavitush/bhoptimer/commit/4652e36cc66b5296d91f6d4e2a22aff7c1459016
+	- fix error spam from PR #1201 https://github.com/shavitush/bhoptimer/commit/23fa606920707c99749474653a5588e6681bf423
 - checkpoint things
 	- Make sure CSS uses the ladder checkpoint stuff https://github.com/shavitush/bhoptimer/commit/c2a9017810d5df1a185d665d31e482a4a476d9cc
 		- this also changes the checkpoint struct size because we need to save some internal ladder variables the engine uses
@@ -69,6 +72,9 @@ Note: Dates are UTC+0.
 		- part 2: edit the DeprecateExactInt sql error handling a bit for https://github.com/shavitush/bhoptimer/commit/9434dc943866b3891dd18ea936e1e35e156c6f94
 	- Add new zone types to hookzone menu https://github.com/shavitush/bhoptimer/pull/1221 @Awesomerly https://github.com/shavitush/bhoptimer/commit/7c8002557416e909d430709cf05e551129258f3b
 	- unbreak sourcemod 1.12 builds https://github.com/shavitush/bhoptimer/commit/17e60114a4847f2b4bf27354f04a5e32f936d82f https://github.com/shavitush/bhoptimer/commit/54c04a0219650760165e1d0c119c85131cee3c5b https://github.com/shavitush/bhoptimer/commit/2dd385a8eb3f0eafe367ccfc93409035acb81079
+	- make `!beamer` more reliable and stuck in walls less (if at all!) @rumourA https://github.com/shavitush/bhoptimer/commit/2bbb3865f8785b3d8ddbf93b9cb83e78ed625ae6
+		- I love `!beamer` so much. I lie in bed and think about `!beamer`.
+	- Make `func_rot_button` entities hookable just like `func_button` https://github.com/shavitush/bhoptimer/commit/04ad339fe81deb97fbb3880290d24e4891f526e0 https://github.com/shavitush/bhoptimer/commit/f54775044ccae66ad7a14948bc1a4eb11b0b676c
 - replay things
 	- make salvage replay-files have frame-count in filename https://github.com/shavitush/bhoptimer/commit/1f8461f64b54cd03533b0deacc5285c17e55e00c
 	- add `!specbot` to shavit-misc as an alias for `!spec` https://github.com/shavitush/bhoptimer/commit/bb49da4d9c12ede5929be933726ea783a77c4b85
@@ -87,6 +93,7 @@ Note: Dates are UTC+0.
 	- sqlite shavit-rankings support (& `GetWeightedPoints` deprecation) https://github.com/shavitush/bhoptimer/pull/1183 https://github.com/shavitush/bhoptimer/commit/787aa8ff346b378f2a2b068d51c136529ed34b1c
 		- make sure it logs POW support for older Sourcemod versions (< 1.12) https://github.com/shavitush/bhoptimer/commit/fee8edeedafc417f5b413b0e8a1aadbf17c1e42d
 	- fix a point recalculation query that was doing the wrong checks in a WHERE statement https://github.com/shavitush/bhoptimer/commit/7fb0f45c2c75714b4192f48e4b7ea030b0f9b5a9
+	- fix database version parsing https://github.coim/shavitush/bhoptimer/pull/1222 @Awesomerly https://github.com/shavitush/bhoptimer/commit/e5976001cfb3b51f4e0517a51c17c723089f53af
 - mapchooser things
 	- fix maplist clearing after sm ReadMapList fix (I can't remember what the sm ReadMapList fix was, sorry) https://github.com/shavitush/bhoptimer/commit/888b4be951f73f5b93262be17046dc231d756a05
 	- add map reroll to shavit-mapchooser https://github.com/shavitush/bhoptimer/pull/1184 @MicrowavedBunny https://github.com/shavitush/bhoptimer/commit/e4c58dd952d8cd4d41b6b3919fc5561bf3e8a875
@@ -95,6 +102,7 @@ Note: Dates are UTC+0.
 		- something to do with rtv'ing *again* right before the map changes?
 	- dumb https://github.com/shavitush/bhoptimer/pull/1195 @Nairdaa https://github.com/shavitush/bhoptimer/commit/c6c38b0816aa1f2f673fb11fefdc307485db3d0e
 	- fixups for mapchooser nominate menu after sqlite support was added to shavit-rankings https://github.com/shavitush/bhoptimer/commit/66c730a897df94ec0d30703f4005e1596ae63107
+	- make it grab tiers even if not mysql https://github.com/shavitush/bhoptimer/commit/b150073754a0a1c1098ff484bbb2e9a5e5600cec
 - tf2 things
 	- fix jump counter & shavit_core_blockprejump (still kind of fucky) https://github.com/shavitush/bhoptimer/commit/fefb0ffe6f680401b0547c3b624d1b1c1628db7b
 	- silence tf_bot_count change notification https://github.com/shavitush/bhoptimer/commit/f1bea169d24e321d97c6b5bff22d4bc5ddc2c86d

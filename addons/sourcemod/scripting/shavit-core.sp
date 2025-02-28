@@ -2914,7 +2914,7 @@ public void Shavit_OnEnterZone(int client, int type, int track, int id, int enti
 	{
 		gF_ZoneSpeedLimit[client] = float(data);
 	}
-	else
+	else if (type != Zone_Autobhop)
 	{
 		return;
 	}
@@ -2928,7 +2928,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	//       Probably so very niche that it doesn't matter.
 	if (track != gA_Timers[client].iTimerTrack)
 		return;
-	if (type != Zone_Airaccelerate && type != Zone_CustomSpeedLimit)
+	if (type != Zone_Airaccelerate && type != Zone_CustomSpeedLimit && type != Zone_Autobhop)
 		return;
 
 	UpdateStyleSettings(client);
@@ -3848,7 +3848,17 @@ void UpdateStyleSettings(int client)
 {
 	if(sv_autobunnyhopping != null)
 	{
-		sv_autobunnyhopping.ReplicateToClient(client, (GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop") && gB_Auto[client])? "1":"0");
+		sv_autobunnyhopping.ReplicateToClient(client,
+			(
+				gB_Auto[client]
+				&&
+				(
+					GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop")
+				    || (gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack))
+				)
+			)
+			? "1":"0"
+		);
 	}
 
 	if(sv_enablebunnyhopping != null)
