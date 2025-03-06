@@ -24,8 +24,6 @@
 #endif
 #define _shavit_checkpoints_included
 
-#define MORE_LADDER_CHECKPOINT_STUFF 1
-
 enum struct cp_cache_t
 {
 	float fPosition[3];
@@ -59,12 +57,10 @@ enum struct cp_cache_t
 	bool m_bHasWalkMovedSinceLastJump; // csgo only
 	float m_ignoreLadderJumpTime; // csgo only
 
-#if MORE_LADDER_CHECKPOINT_STUFF
 	float m_lastStandingPos[3]; // css only
 	float m_ladderSurpressionTimer[2]; // css only // 0 = duration, 1 = remaining
 	float m_lastLadderNormal[3]; // css only
 	float m_lastLadderPos[3]; // css only
-#endif
 }
 
 /**

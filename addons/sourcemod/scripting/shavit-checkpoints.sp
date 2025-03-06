@@ -107,12 +107,10 @@ bool gB_ReplayRecorder = false;
 DynamicHook gH_CommitSuicide = null;
 float gF_NextSuicide[MAXPLAYERS+1];
 
-#if MORE_LADDER_CHECKPOINT_STUFF
 int gI_Offset_m_lastStandingPos = 0;
 int gI_Offset_m_ladderSurpressionTimer = 0;
 int gI_Offset_m_lastLadderNormal = 0;
 int gI_Offset_m_lastLadderPos = 0;
-#endif
 
 public Plugin myinfo =
 {
@@ -240,7 +238,6 @@ void LoadDHooks()
 
 	if (gEV_Type == Engine_CSS)
 	{
-#if MORE_LADDER_CHECKPOINT_STUFF
 		if ((gI_Offset_m_lastStandingPos = GameConfGetOffset(hGameData, "CCSPlayer::m_lastStandingPos")) == -1)
 		{
 			SetFailState("Couldn't get the offset for \"CCSPlayer::m_lastStandingPos\"!");
@@ -260,7 +257,6 @@ void LoadDHooks()
 		{
 			SetFailState("Couldn't get the offset for \"CCSPlayer::m_lastLadderPos\"!");
 		}
-#endif
 	}
 
 	delete hGameData;
@@ -1576,13 +1572,11 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 
 	if (gEV_Type == Engine_CSS)
 	{
-#if MORE_LADDER_CHECKPOINT_STUFF
 		GetEntDataVector(target, gI_Offset_m_lastStandingPos, cpcache.m_lastStandingPos);
 		cpcache.m_ladderSurpressionTimer[0] = GetEntDataFloat(target, gI_Offset_m_ladderSurpressionTimer + 4);
 		cpcache.m_ladderSurpressionTimer[1] = GetEntDataFloat(target, gI_Offset_m_ladderSurpressionTimer + 8) - GetGameTime();
 		GetEntDataVector(target, gI_Offset_m_lastLadderNormal, cpcache.m_lastLadderNormal);
 		GetEntDataVector(target, gI_Offset_m_lastLadderPos, cpcache.m_lastLadderPos);
-#endif
 	}
 	else if (gEV_Type == Engine_CSGO)
 	{
@@ -1855,13 +1849,11 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 
 	if(gEV_Type == Engine_CSS)
 	{
-#if MORE_LADDER_CHECKPOINT_STUFF
 		SetEntDataVector(client, gI_Offset_m_lastStandingPos,           cpcache.m_lastStandingPos);
 		SetEntDataFloat(client, gI_Offset_m_ladderSurpressionTimer + 4, cpcache.m_ladderSurpressionTimer[0]);
 		SetEntDataFloat(client, gI_Offset_m_ladderSurpressionTimer + 8, cpcache.m_ladderSurpressionTimer[1] + GetGameTime());
 		SetEntDataVector(client, gI_Offset_m_lastLadderNormal,          cpcache.m_lastLadderNormal);
 		SetEntDataVector(client, gI_Offset_m_lastLadderPos,             cpcache.m_lastLadderPos);
-#endif
 		SetEntPropFloat(client, Prop_Send, "m_flDucktime", cpcache.fDucktime);
 	}
 	else if(gEV_Type == Engine_CSGO)
