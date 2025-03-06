@@ -114,7 +114,12 @@ public void OnPluginStart()
 
 	GameData gamedata = new GameData("shavit.games");
 
-	Address surfaceFrictionAddress = gamedata.GetMemSig("CBasePlayer->m_surfaceFriction");
+	Address surfaceFrictionAddress;
+
+	if (gEV_Type == Engine_CSGO)
+		surfaceFrictionAddress = gamedata.GetAddress("m_surfaceFriction");
+	else
+		surfaceFrictionAddress = gamedata.GetMemSig("CBasePlayer->m_surfaceFriction");
 
 	if (surfaceFrictionAddress == Address_Null)
 	{
@@ -123,8 +128,18 @@ public void OnPluginStart()
 	}
 	else
 	{
-		int instr = LoadFromAddress(surfaceFrictionAddress, NumberType_Int32);
-		g_iSurfaceFrictionOffset = instr >> 16;
+		if (gEV_Type == Engine_CSGO)
+		{
+			g_iSurfaceFrictionOffset = view_as<int>(surfaceFrictionAddress);
+		}
+		else
+		{
+			int instr = LoadFromAddress(surfaceFrictionAddress, NumberType_Int32);
+			// The lowest two bytes are the beginning of a `mov`.
+			// The offset is 100% definitely totally always 16-bit.
+			// We could just put the offset into the gamedata too but SHUT UP!
+			g_iSurfaceFrictionOffset = instr >> 16;
+		}
 	}
 
 	delete gamedata;
