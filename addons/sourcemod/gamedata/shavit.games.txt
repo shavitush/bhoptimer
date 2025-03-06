@@ -171,7 +171,7 @@
 
 		"Offsets"
 		{
-			// https://asherkin.github.io/vtable/
+			// https://asherkin.github.io/vtable/ (you can drop a .so from your srcds into this)
 			// search string: "func_pushable" and you can find CBaseTrigger::PassesTriggerFilters / CBaseVPhysicsTrigger::PassesTriggerFilters. Follow references to these functions to find the vtable and then calculate the offset...
 			"CBaseTrigger::PassesTriggerFilters"
 			{
@@ -180,7 +180,7 @@
 				"linux"     "204"
 				"linux64"   "204"
 			}
-			// https://asherkin.github.io/vtable/ (if updated)
+			// https://asherkin.github.io/vtable/ (you can drop a .so from your srcds into this)
 			// search string: "start %f %f %f" and then check the function call offsets above it and convert them to vtable offsets (divide by 4 most likely or whatever)
 			"CCSPlayer::GetPlayerMaxSpeed"
 			{
@@ -189,7 +189,7 @@
 				"linux"     "446"
 				"linux64"   "446"
 			}
-			// https://asherkin.github.io/vtable/
+			// https://asherkin.github.io/vtable/ (you can drop a .so from your srcds into this)
 			// search string: "Invalid counterterrorist spawnpoint" and then look for the first function call in each iteration of the loop
 			"CGameRules::IsSpawnPointValid"
 			{
@@ -198,7 +198,7 @@
 				"linux"     "77"
 				"linux64"   "77"
 			}
-			// https://asherkin.github.io/vtable/
+			// https://asherkin.github.io/vtable/ (you can drop a .so from your srcds into this)
 			// search string: "water" to find CBasePlayer::UpdateStepSound. At the bottom there's a vtable call to ::PlayStepSound. Grab that, divide by 4, subtract 1. Bam, UpdateStepSound...
 			"CBasePlayer::UpdateStepSound"
 			{
@@ -209,8 +209,8 @@
 			}
 			// find in CCSGameMovement::CheckForLadders which references CCSPlayer::CanGrabLadder
 			//
-			// Find CCSPlayer::CanGrabLadder by searching for 4096.0f, finding functions that reference...
-			// It might look like this
+			// Find CCSPlayer::CanGrabLadder by searching for 4096.0f, then find the function (CheckForLadders) that references it...
+			//  CanGrabLadder might look like this on Windows (or just use symbols on Linux)
 			//    undefined4 __thiscall CCSPlayer::CanGrabLadder(int param_1_00,float *param_1,float *param_2)
 			//    {
 			//      float10 extraout_ST0;
@@ -298,12 +298,12 @@
 				"linux"     "@_ZN13CCSBotManager16MaintainBotQuotaEv"
 				"linux64"   "@_ZN13CCSBotManager16MaintainBotQuotaEv"
 			}
-			// search string: "Server is hibernating" to find SetHibernating and then go its references
+			// search string: "Server is hibernating" to find SetHibernating and then go to its references
 			// NOTE 2025-02-19: Function has been inlined on Windows into SV_Think...
 			"CGameServer::UpdateHibernationState"
 			{
 				"library"   "engine"
-				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x07\x8B\x40\x2A\xFF\xD0\x84\xC0\x0F\x84"
+				//"windows"   ""
 				"windows64" "\x48\x89\x5C\x24\x2A\x56\x48\x83\xEC\x40\x8B\x05"
 				"linux"     "@_ZN11CGameServer22UpdateHibernationStateEv.part.0"
 				"linux64"   "@_ZN11CGameServer14SetHibernatingEb"
@@ -318,7 +318,7 @@
 				"linux"     "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 				"linux64"   "@_ZN11CBaseEntity28PhysicsCheckForEntityUntouchEv"
 			}
-			// search string: "Could not add bot to the game: Team is full" to find CCSBotManager::BotAddCommand and then follow the if-statement up to find the function call that was fall (because TeamFull())
+			// search string: "Could not add bot to the game: Team is full" to find CCSBotManager::BotAddCommand and then follow the if-statement up to find the function call that was full (because TeamFull())
 			// protip: on csgo we just use mp_randomspawn instead.
 			"CCSGameRules::TeamFull"
 			{
