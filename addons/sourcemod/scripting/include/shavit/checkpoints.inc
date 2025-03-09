@@ -61,6 +61,11 @@ enum struct cp_cache_t
 	float m_ladderSurpressionTimer[2]; // css only // 0 = duration, 1 = remaining
 	float m_lastLadderNormal[3]; // css only
 	float m_lastLadderPos[3]; // css only
+
+	// used by player_speedmod
+	int m_afButtonDisabled;
+	// used by trigger_playermovement
+	int m_afButtonForced;
 }
 
 /**
