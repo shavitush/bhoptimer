@@ -2332,7 +2332,7 @@ public void VScript_OnScriptVMInitialized()
 
 	// function Timer_GetCheckpointCustomData(player, key, value)
 	gH_VScript_Timer_GetCheckpointCustomData = VScript_CreateFunction();
-	gH_VScript_Timer_SetCheckpointCustomData.SetScriptName("Timer_GetCheckpointCustomData");
+	gH_VScript_Timer_GetCheckpointCustomData.SetScriptName("Timer_GetCheckpointCustomData");
 	gH_VScript_Timer_GetCheckpointCustomData.Return = FIELD_CSTRING;
 	gH_VScript_Timer_GetCheckpointCustomData.SetParam(1, FIELD_HSCRIPT);
 	gH_VScript_Timer_GetCheckpointCustomData.SetParam(2, FIELD_CSTRING);
