@@ -1368,7 +1368,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
 			float cfgLimit = Shavit_GetStyleSettingFloat(gI_Style[client], "maxprestrafe");
-			float zoneLimit = gF_ZoneStartSpeedLimit[client]
+			float zoneLimit = gF_ZoneStartSpeedLimit[client];
 			float maxPrestrafe = StyleMaxPrestrafe(gI_Style[client]);
 
 			if (zoneLimit > 0.0)
