@@ -1349,7 +1349,7 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			prespeed_type = gCV_PreSpeed.IntValue;
 		}
 
-		int tickCount = GetSysTickCount();
+		int tickCount = GetGameTickCount();
 		int iPrevGroundEntity = (gI_GroundEntity[client] != -1) ? EntRefToEntIndex(gI_GroundEntity[client]) : -1;
 
 		if (iPrevGroundEntity == -1 && iGroundEntity != -1)
