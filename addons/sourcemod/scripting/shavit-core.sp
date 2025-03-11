@@ -2521,14 +2521,18 @@ bool CanStartTimer(int client, int track, bool skipGroundCheck)
 
 	float cfgMax = GetStyleSettingFloat(style, "maxprestrafe");
 	float zoneMax = gF_ZoneStartSpeedLimit[client];
-	// float prestrafe = cfgMax > 0.0 ? cfgMax : StyleMaxPrestrafe(style);
 	float prestrafe;
-	if (zoneMax > 0.0) {
+
+	if (zoneMax > 0.0)
+	{
 		prestrafe = zoneMax;
 	}
-	else if (cfgMax > 0.0) {
+	else if (cfgMax > 0.0)
+	{
 		prestrafe = cfgMax;
-	} else {
+	}
+	else
+	{
 		prestrafe = StyleMaxPrestrafe(style);
 	}
 
@@ -2919,7 +2923,8 @@ void SQL_DBConnect()
 
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
 {
-	if (type == Zone_Start && track == gA_Timers[client].iTimerTrack) {
+	if (type == Zone_Start && track == gA_Timers[client].iTimerTrack)
+	{
 		gF_ZoneStartSpeedLimit[client] = float(data);
 	}
 	else if (type == Zone_Airaccelerate && track == gA_Timers[client].iTimerTrack)

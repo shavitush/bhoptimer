@@ -75,6 +75,7 @@ int gI_LastWeaponTick[MAXPLAYERS+1];
 int gI_LastNoclipTick[MAXPLAYERS+1];
 int gI_LastStopInfo[MAXPLAYERS+1];
 int gI_LastGroundLandTick[MAXPLAYERS+1];
+float gF_ZoneStartSpeedLimit[MAXPLAYERS+1];
 
 // cookies
 Handle gH_HideCookie = null;
@@ -1351,7 +1352,8 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		int tickCount = GetSysTickCount();
 		int iPrevGroundEntity = (gI_GroundEntity[client] != -1) ? EntRefToEntIndex(gI_GroundEntity[client]) : -1;
 
-		if (iPrevGroundEntity == -1 && iGroundEntity != -1) {
+		if (iPrevGroundEntity == -1 && iGroundEntity != -1)
+		{
 			gI_LastGroundLandTick[client] = tickCount;
 		}
 
@@ -1359,7 +1361,6 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 		{
 			DumbSetVelocity(client, view_as<float>({0.0, 0.0, 0.0}));
 		}
-
 		else if (prespeed_type == 1 || prespeed_type >= 3)
 		{
 			float fSpeed[3];
@@ -1367,12 +1368,9 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 
 			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
 			float cfgLimit = Shavit_GetStyleSettingFloat(gI_Style[client], "maxprestrafe");
-
-			int zoneid;
-			Shavit_InsideZoneGetID(client, Zone_Start, track, zoneid);
-			float zoneLimit = float(Shavit_GetZoneData(zoneid));
-
+			float zoneLimit = gF_ZoneStartSpeedLimit[client]
 			float maxPrestrafe = StyleMaxPrestrafe(gI_Style[client]);
+
 			if (zoneLimit > 0.0)
 			{
 				fLimit = zoneLimit;
@@ -1399,11 +1397,14 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 			bool isJumping = (buttons & IN_JUMP) > 0;
 			if (!iAutoBhop)
 			{
-				isJumping &= (iOldButtons & IN_JUMP) == 0;
+				isJumping = isJumping && (iOldButtons & IN_JUMP) == 0;
 			}
-			if (prespeed_type == 6 && iGroundEntity != -1 &&
-			    tickCount - gI_LastGroundLandTick[client] <= 150 &&
-				isJumping)
+			if (
+				   prespeed_type == 6
+			    && iGroundEntity != -1
+			    && tickCount - gI_LastGroundLandTick[client] <= 150
+			    && isJumping
+			)
 			{
 				fLimit /= 3.0;
 			}
@@ -1466,6 +1467,14 @@ public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float 
 	gI_GroundEntity[client] = (iGroundEntity != -1) ? EntIndexToEntRef(iGroundEntity) : -1;
 
 	return Plugin_Continue;
+}
+
+public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
+{
+	if (type == Zone_Start && track == Shavit_GetClientTrack(client))
+	{
+		gF_ZoneStartSpeedLimit[client] = float(data);
+	}
 }
 
 public void OnClientPutInServer(int client)
@@ -2332,12 +2341,9 @@ public Action Shavit_OnStartPre(int client, int track, bool& skipGroundTimer)
 
 			float fLimit = (Shavit_GetStyleSettingFloat(gI_Style[client], "runspeed") + gCV_PrestrafeLimit.FloatValue);
 			float cfgLimit = Shavit_GetStyleSettingFloat(gI_Style[client], "maxprestrafe");
-
-			int zoneid;
-			Shavit_InsideZoneGetID(client, Zone_Start, track, zoneid);
-			float zoneLimit = float(Shavit_GetZoneData(zoneid));
-
+			float zoneLimit = gF_ZoneStartSpeedLimit[client];
 			float maxPrestrafe = StyleMaxPrestrafe(gI_Style[client]);
+
 			if (zoneLimit > 0.0)
 			{
 				fLimit = zoneLimit;

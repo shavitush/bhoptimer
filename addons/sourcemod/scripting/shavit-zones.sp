@@ -4402,7 +4402,8 @@ void CreateEditMenu(int client, bool autostage=false)
 	FormatEx(sMenuItem, 64, "%T", "ZoneForceRender", client, ((gA_EditCache[client].iFlags & ZF_ForceRender) > 0)? "＋":"－");
 	menu.AddItem("forcerender", sMenuItem);
 
-	if (gA_EditCache[client].iType == Zone_Start) {
+	if (gA_EditCache[client].iType == Zone_Start)
+	{
 		if (gA_EditCache[client].iData == 0)
 		{
 			FormatEx(sMenuItem, 64, "%T", "ZoneSetSpeedLimitDefault", client, gA_EditCache[client].iData);
