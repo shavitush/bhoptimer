@@ -34,6 +34,7 @@
 
 #include <shavit/core>
 #include <shavit/misc>
+#include <shavit/chat-colors>
 
 #undef REQUIRE_PLUGIN
 #include <shavit/chat>
@@ -664,9 +665,10 @@ bool LoadAdvertisementsConfig()
 		ReplaceString(sTempMessage, 300, "{variable2}", gS_ChatStrings.sVariable2);
 		ReplaceString(sTempMessage, 300, "{style}", gS_ChatStrings.sStyle);
 
+		FormatColors(sTempMessage, 300, true, false, gEV_Type == Engine_CSGO, false);
+
 		gA_Advertisements.PushString(sTempMessage);
 	}
-
 	while(kv.GotoNextKey(false));
 
 	delete kv;

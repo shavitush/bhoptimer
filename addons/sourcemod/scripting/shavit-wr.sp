@@ -336,13 +336,14 @@ void ResetWRs()
 {
 	gSM_WRNames.Clear();
 
-	any empty_cells[TRACKS_SIZE];
+	float fempty_cells[TRACKS_SIZE];
+	int iempty_cells[TRACKS_SIZE];
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		gF_WRTime[i] = empty_cells;
-		gI_WRRecordID[i] = empty_cells;
-		gI_WRSteamID[i] = empty_cells;
+		gF_WRTime[i] = fempty_cells;
+		gI_WRRecordID[i] = iempty_cells;
+		gI_WRSteamID[i] = iempty_cells;
 	}
 }
 
@@ -486,12 +487,13 @@ public void OnClientConnected(int client)
 
 	gB_LoadedCache[client] = false;
 
-	any empty_cells[TRACKS_SIZE];
+	float fempty_cells[TRACKS_SIZE];
+	int iempty_cells[TRACKS_SIZE];
 
 	for(int i = 0; i < gI_Styles; i++)
 	{
-		gF_PlayerRecord[client][i] = empty_cells;
-		gI_PlayerCompletion[client][i] = empty_cells;
+		gF_PlayerRecord[client][i] = fempty_cells;
+		gI_PlayerCompletion[client][i] = iempty_cells;
 	}
 }
 

@@ -107,12 +107,12 @@ bool gB_ReplayRecorder = false;
 DynamicHook gH_CommitSuicide = null;
 float gF_NextSuicide[MAXPLAYERS+1];
 
-#if MORE_LADDER_CHECKPOINT_STUFF
 int gI_Offset_m_lastStandingPos = 0;
 int gI_Offset_m_ladderSurpressionTimer = 0;
 int gI_Offset_m_lastLadderNormal = 0;
 int gI_Offset_m_lastLadderPos = 0;
-#endif
+int gI_Offset_m_afButtonDisabled = 0;
+int gI_Offset_m_afButtonForced = 0;
 
 public Plugin myinfo =
 {
@@ -229,7 +229,7 @@ public void OnPluginStart()
 
 void LoadDHooks()
 {
-	Handle hGameData = LoadGameConfigFile("shavit.games");
+	GameData hGameData = new GameData("shavit.games");
 
 	if (hGameData == null)
 	{
@@ -240,7 +240,6 @@ void LoadDHooks()
 
 	if (gEV_Type == Engine_CSS)
 	{
-#if MORE_LADDER_CHECKPOINT_STUFF
 		if ((gI_Offset_m_lastStandingPos = GameConfGetOffset(hGameData, "CCSPlayer::m_lastStandingPos")) == -1)
 		{
 			SetFailState("Couldn't get the offset for \"CCSPlayer::m_lastStandingPos\"!");
@@ -260,8 +259,19 @@ void LoadDHooks()
 		{
 			SetFailState("Couldn't get the offset for \"CCSPlayer::m_lastLadderPos\"!");
 		}
-#endif
 	}
+
+	Address buttonsSig = hGameData.GetMemSig("CBasePlayer->m_afButtonDisabled");
+	if (buttonsSig == Address_Null)
+	{
+		SetFailState("Couldn't find signature of CBasePlayer->m_afButtonDisabled");
+	}
+
+	int instr = LoadFromAddress(buttonsSig, NumberType_Int32);
+	// The lowest two bytes are the beginning of a `mov`.
+	// The offset is 100% definitely totally always 16-bit.
+	gI_Offset_m_afButtonDisabled = instr >> 16;
+	gI_Offset_m_afButtonForced = gI_Offset_m_afButtonDisabled + 4;
 
 	delete hGameData;
 	hGameData = LoadGameConfigFile("sdktools.games");
@@ -1576,19 +1586,20 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 
 	if (gEV_Type == Engine_CSS)
 	{
-#if MORE_LADDER_CHECKPOINT_STUFF
 		GetEntDataVector(target, gI_Offset_m_lastStandingPos, cpcache.m_lastStandingPos);
 		cpcache.m_ladderSurpressionTimer[0] = GetEntDataFloat(target, gI_Offset_m_ladderSurpressionTimer + 4);
 		cpcache.m_ladderSurpressionTimer[1] = GetEntDataFloat(target, gI_Offset_m_ladderSurpressionTimer + 8) - GetGameTime();
 		GetEntDataVector(target, gI_Offset_m_lastLadderNormal, cpcache.m_lastLadderNormal);
 		GetEntDataVector(target, gI_Offset_m_lastLadderPos, cpcache.m_lastLadderPos);
-#endif
 	}
 	else if (gEV_Type == Engine_CSGO)
 	{
 		cpcache.m_bHasWalkMovedSinceLastJump = 0 != GetEntProp(target, Prop_Data, "m_bHasWalkMovedSinceLastJump", 1);
 		cpcache.m_ignoreLadderJumpTime = GetEntPropFloat(target, Prop_Data, "m_ignoreLadderJumpTime") - GetGameTime();
 	}
+
+	cpcache.m_afButtonDisabled = GetEntData(target, gI_Offset_m_afButtonDisabled);
+	cpcache.m_afButtonForced = GetEntData(target, gI_Offset_m_afButtonForced);
 
 	cpcache.iMoveType = GetEntityMoveType(target);
 	cpcache.fGravity = GetEntityGravity(target);
@@ -1855,13 +1866,11 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 
 	if(gEV_Type == Engine_CSS)
 	{
-#if MORE_LADDER_CHECKPOINT_STUFF
 		SetEntDataVector(client, gI_Offset_m_lastStandingPos,           cpcache.m_lastStandingPos);
 		SetEntDataFloat(client, gI_Offset_m_ladderSurpressionTimer + 4, cpcache.m_ladderSurpressionTimer[0]);
 		SetEntDataFloat(client, gI_Offset_m_ladderSurpressionTimer + 8, cpcache.m_ladderSurpressionTimer[1] + GetGameTime());
 		SetEntDataVector(client, gI_Offset_m_lastLadderNormal,          cpcache.m_lastLadderNormal);
 		SetEntDataVector(client, gI_Offset_m_lastLadderPos,             cpcache.m_lastLadderPos);
-#endif
 		SetEntPropFloat(client, Prop_Send, "m_flDucktime", cpcache.fDucktime);
 	}
 	else if(gEV_Type == Engine_CSGO)
@@ -1871,6 +1880,9 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		SetEntPropFloat(client, Prop_Send, "m_flDuckAmount", cpcache.fDucktime);
 		SetEntPropFloat(client, Prop_Send, "m_flDuckSpeed", cpcache.fDuckSpeed);
 	}
+
+	SetEntData(client, gI_Offset_m_afButtonDisabled, cpcache.m_afButtonDisabled);
+	SetEntData(client, gI_Offset_m_afButtonForced, cpcache.m_afButtonForced);
 
 	// this is basically the same as normal checkpoints except much less data is used
 	if(!isPersistentData && Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints"))

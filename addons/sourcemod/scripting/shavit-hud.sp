@@ -2346,7 +2346,7 @@ void UpdateKeyHint(int client)
 
 	if ((gI_HUDSettings[client] & HUD_TIMELEFT) > 0 && GetMapTimeLeft(iTimeLeft) && iTimeLeft > 0)
 	{
-		FormatEx(sMessage, 256, (iTimeLeft > 150)? "%s%T: %d minutes":"%T: %d seconds", sMessage, "HudTimeLeft", client, (iTimeLeft > 150) ? (iTimeLeft / 60)+1 : iTimeLeft);
+		FormatEx(sMessage, 256, (iTimeLeft > 150)? "%s%T: %d minutes":"%s%T: %d seconds", sMessage, "HudTimeLeft", client, (iTimeLeft > 150) ? (iTimeLeft / 60)+1 : iTimeLeft);
 	}
 
 	if (target == client || (gI_HUDSettings[client] & HUD_OBSERVE) > 0)

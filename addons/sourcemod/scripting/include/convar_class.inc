@@ -79,7 +79,11 @@ methodmap Convar < ConVar
 		savedValue.SetMin(hasMin, min);
 		savedValue.SetMax(hasMax, max);
 
-		convar = savedValue;
+		// Have to do it this way instead of `convar = savedValue;` because SM 1.12 is a whiny bitch.
+		convar.name = savedValue.name;
+		convar.cvar = savedValue.cvar;
+		convar.description = savedValue.description;
+		convar.defValue = convar.defValue;
 
 		_ConvarList.PushArray(savedValue);
 

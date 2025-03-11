@@ -398,7 +398,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 void ReplaceFormats(char[] formatting, int maxlen, char[] name, char[] colon, char[] text)
 {
-	FormatColors(formatting, maxlen, true, false);
+	FormatColors(formatting, maxlen, true, false, gEV_Type == Engine_CSGO);
 	FormatRandom(formatting, maxlen);
 	ReplaceString(formatting, maxlen, "{name}", name);
 	ReplaceString(formatting, maxlen, "{def}", "\x01");
@@ -406,7 +406,7 @@ void ReplaceFormats(char[] formatting, int maxlen, char[] name, char[] colon, ch
 	ReplaceString(formatting, maxlen, "{msg}", text);
 }
 
-public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int playersNum, bool reliable, bool init)
+public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int playersNum, bool reliable, bool init)
 {
 	if (!gCV_Enabled.BoolValue)
 	{
@@ -420,7 +420,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 
 	if(gB_Protobuf)
 	{
-		Protobuf pbmsg = UserMessageToProtobuf(msg);
+		Protobuf pbmsg = view_as<Protobuf>(msg);
 		client = pbmsg.ReadInt("ent_idx");
 		pbmsg.ReadString("msg_name", sMessage, 32);
 		pbmsg.ReadString("params", sOriginalName, MAXLENGTH_NAME, 0);
@@ -428,7 +428,7 @@ public Action Hook_SayText2(UserMsg msg_id, any msg, const int[] players, int pl
 	}
 	else
 	{
-		BfRead bfmsg = UserMessageToBfRead(msg);
+		BfRead bfmsg = view_as<BfRead>(msg);
 		client = bfmsg.ReadByte();
 		bfmsg.ReadByte(); // chat parameter
 		bfmsg.ReadString(sMessage, 32);
@@ -1281,35 +1281,6 @@ public Action Command_CCDelete(int client, int args)
 	return Plugin_Handled;
 }
 
-void FormatColors(char[] buffer, int size, bool colors, bool escape)
-{
-	if(colors)
-	{
-		for(int i = 0; i < sizeof(gS_GlobalColorNames); i++)
-		{
-			ReplaceString(buffer, size, gS_GlobalColorNames[i], gS_GlobalColors[i]);
-		}
-
-		if(gEV_Type == Engine_CSGO)
-		{
-			for(int i = 0; i < sizeof(gS_CSGOColorNames); i++)
-			{
-				ReplaceString(buffer, size, gS_CSGOColorNames[i], gS_CSGOColors[i]);
-			}
-		}
-
-		ReplaceString(buffer, size, "^", "\x07");
-		ReplaceString(buffer, size, "{RGB}", "\x07");
-		ReplaceString(buffer, size, "&", "\x08");
-		ReplaceString(buffer, size, "{RGBA}", "\x08");
-	}
-
-	if(escape)
-	{
-		ReplaceString(buffer, size, "%%", "");
-	}
-}
-
 void FormatRandom(char[] buffer, int size)
 {
 	char temp[8];
@@ -1331,7 +1302,7 @@ void FormatRandom(char[] buffer, int size)
 
 void FormatChat(int client, char[] buffer, int size)
 {
-	FormatColors(buffer, size, true, true);
+	FormatColors(buffer, size, true, true, gEV_Type == Engine_CSGO);
 	FormatRandom(buffer, size);
 
 	char temp[33];

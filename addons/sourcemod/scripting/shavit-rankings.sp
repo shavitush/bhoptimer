@@ -1304,25 +1304,32 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 
 bool DoWeHaveWindowFunctions(const char[] sVersion)
 {
-	float fVersion = StringToFloat(sVersion);
+	char buf[100][2];
+	ExplodeString(sVersion, ".", buf, 2, 100);
+	int iMajor = StringToInt(buf[0]);
+	int iMinor = StringToInt(buf[1]);
 
 	if (gI_Driver == Driver_sqlite)
 	{
-		return fVersion >= 3.25; // 2018~
+		// 2018~
+		return iMajor > 3 || (iMajor == 3 && iMinor >= 25); // 2018~
 	}
 	else if (gI_Driver == Driver_pgsql)
 	{
-		return fVersion >= 8.4; // 2009~
+		// 2009~
+		return iMajor > 8 || (iMajor == 8 && iMinor >= 4);
 	}
 	else if (gI_Driver == Driver_mysql)
 	{
 		if (StrContains(sVersion, "MariaDB") != -1)
 		{
-			return fVersion >= 10.2; // 2016~
+			 // 2016~
+			return iMajor > 10 || (iMajor == 10 && iMinor >= 2);
 		}
 		else // mysql then...
 		{
-			return fVersion >= 8.0; // 2018~
+			// 2018~
+			return iMajor > 8 || (iMajor == 8 && iMinor >= 0);
 		}
 	}
 

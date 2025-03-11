@@ -192,6 +192,7 @@ bool gB_AdminMenu = false;
 #define CZONE_VER 'c'
 // custom zone stuff
 Cookie gH_CustomZoneCookie = null;
+Cookie gH_CustomZoneCookie2 = null; // fuck
 int gI_ZoneDisplayType[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 int gI_ZoneColor[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 int gI_ZoneWidth[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
@@ -300,6 +301,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_customzones", Command_CustomZones, "Customize start and end zone for each track");
 
 	gH_CustomZoneCookie = new Cookie("shavit_customzones", "Cookie for storing custom zone stuff", CookieAccess_Private);
+	gH_CustomZoneCookie2 = new Cookie("shavit_customzones2", "Cooke (AGAIN) for storing custom zone stuff", CookieAccess_Private);
 
 	for (int i = 0; i <= 9; i++)
 	{
@@ -618,6 +620,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 		}
 
 		if (convar.BoolValue) add_prebuilts_to_cache("func_button", true);
+		if (convar.BoolValue) add_prebuilts_to_cache("func_rot_button", true);
 	}
 }
 
@@ -1219,6 +1222,7 @@ public void Shavit_LoadZonesHere()
 	if (gCV_ClimbButtons.BoolValue)
 	{
 		add_prebuilts_to_cache("func_button", true);
+		add_prebuilts_to_cache("func_rot_button", true);
 	}
 }
 
@@ -1329,6 +1333,7 @@ public void OnGameFrame()
 	if (search_func_button)
 	{
 		FindEntitiesToHook("func_button", ZoneForm_func_button);
+		FindEntitiesToHook("func_rot_button", ZoneForm_func_button);
 	}
 }
 
@@ -1501,6 +1506,8 @@ bool CreateZoneTrigger(int zone)
 	{
 		SetEntProp(entity, Prop_Send, "m_usSolidFlags",
 			GetEntProp(entity, Prop_Send, "m_usSolidFlags") & ~(FSOLID_TRIGGER|FSOLID_NOT_SOLID));
+
+		EntityCollisionRulesChanged(entity);
 	}
 
 	TeleportEntity(entity, gV_ZoneCenter[zone], NULL_VECTOR, NULL_VECTOR);
@@ -1777,8 +1784,10 @@ public void OnClientCookiesCached(int client)
 	gH_DrawAllZonesCookie.Get(client, setting, sizeof(setting));
 	gB_DrawAllZones[client] = view_as<bool>(StringToInt(setting));
 
-	char czone[100]; // #define MAX_VALUE_LENGTH 100
-	gH_CustomZoneCookie.Get(client, czone, sizeof(czone));
+	// we have to go through some pain because cookies can only fit into a char[100] buffer...
+	char czone[200];
+	gH_CustomZoneCookie.Get(client, czone, 100);
+	gH_CustomZoneCookie2.Get(client, czone[99], 100);
 
 	char ver = czone[0];
 
@@ -1810,14 +1819,11 @@ public void OnClientCookiesCached(int client)
 	else if (ver == 'c') // back to the original :pensive:
 	{
 		// c = [1 + ZONETYPES_SIZE*2*3 + 1] // version = (ZONETYPES_SIZE * (main+bonus) * 3 chars) + NUL terminator
-		// char[98] as of right now....
+		// char[109] as of right now....
 
 		int p = 1;
 
-		// TODO: ZONETYPES_SIZE is too big now so we'll have to come back to do something about this...
-		//       Just make another cookie :pepega: or maybe store the settings in the DB rather than cookie.
-		//for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
-		for (int type = Zone_Start; type <= Zone_Speedmod; type++)
+		for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
 		{
 			for (int track = Track_Main; track <= Track_Bonus; track++)
 			{
@@ -2301,6 +2307,14 @@ public Action Command_ReloadZoneSettings(int client, int args)
 	return Plugin_Handled;
 }
 
+// Was originally used in beamer to replicate this gmod lua code:
+/*
+My code from tracegun.lua that I based this off of:
+	local ang = tr.Normal:Angle() // calculate in SP with: ( traceRes.HitPos - traceRes.StartPos ):Normalize()
+	ang:RotateAroundAxis(tr.HitNormal, 180)
+	local dir = ang:Forward()*-1
+	tr = util.TraceLine({start=tr.HitPos, endpos=tr.HitPos+(dir*100000), filter=players})
+*/
 stock void RotateAroundAxis(float v[3], const float in_k[3], float theta)
 {
 	// https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula#Statement
@@ -2327,6 +2341,23 @@ stock void RotateAroundAxis(float v[3], const float in_k[3], float theta)
 	}
 }
 
+stock void ReflectAngles(float direction[3], const float normal[3])
+{
+	float fwd[3], reflected[3];
+
+	GetAngleVectors(direction, fwd, NULL_VECTOR, NULL_VECTOR);
+
+	float dot = GetVectorDotProduct(fwd, normal);
+
+	for (int i = 0; i < 3; i++)
+	{
+		reflected[i] = fwd[i] - 2.0 * dot * normal[i];
+	}
+
+	NormalizeVector(reflected, reflected);
+	GetVectorAngles(reflected, direction);
+}
+
 public Action Command_Beamer(int client, int args)
 {
 	static float rate_limit[MAXPLAYERS+1];
@@ -2346,15 +2377,6 @@ public Action Command_Beamer(int client, int args)
 
 	for (int C = 20; C >= 0; --C)
 	{
-		/*
-		My code from tracegun.lua that I based this off of:
-			local ang = tr.Normal:Angle() // ( traceRes.HitPos - traceRes.StartPos ):Normalize()
-			ang:RotateAroundAxis(tr.HitNormal, 180)
-			local dir = ang:Forward()*-1
-
-			tr = util.TraceLine({start=tr.HitPos, endpos=tr.HitPos+(dir*100000), filter=players})
-		*/
-
 		TR_TraceRayFilter(startpos, direction, MASK_ALL, RayType_Infinite, TRFilter_NoPlayers, client);
 		TR_GetEndPosition(endpos);
 
@@ -2379,16 +2401,12 @@ public Action Command_Beamer(int client, int args)
 
 		if (!C) break;
 
-		SubtractVectors(endpos, startpos, direction);
-		NormalizeVector(direction, direction);
-		GetVectorAngles(direction, direction);
-
 		startpos = endpos;
 
 		float hitnormal[3];
 		TR_GetPlaneNormal(INVALID_HANDLE, hitnormal);
 
-		RotateAroundAxis(direction, hitnormal, 180.0);
+		ReflectAngles(direction, hitnormal);
 	}
 
 	return Plugin_Handled;
@@ -2799,6 +2817,9 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 				| (1 << Zone_Stage)
 				| (1 << Zone_NoTimerGravity)
 				| (1 << Zone_Gravity)
+				| (1 << Zone_Speedmod)
+				| (1 << Zone_NoJump)
+				| (1 << Zone_Autobhop)
 				// ZoneForm_trigger_teleport
 				, (1 << Zone_End)
 				| (1 << Zone_Respawn)
@@ -3000,6 +3021,23 @@ void OpenHookMenu_List(int client, int form, int pos = 0)
 		list.PushArray(thing);
 	}
 
+	// copy & paste for func_rot_button because it's shrimple and I can't think of how to do it cleanly otherwise right now
+	if (form == ZoneForm_func_button)
+	{
+		while ((ent = FindEntityByClassname(ent, "func_rot_button")) != -1)
+		{
+			if (gI_EntityZone[ent] > -1) continue;
+
+			float ent_origin[3];
+			GetEntPropVector(ent, Prop_Send, "m_vecOrigin", ent_origin);
+
+			ent_list_thing thing;
+			thing.dist = GetVectorDistance(player_origin, ent_origin);
+			thing.ent = ent;
+			list.PushArray(thing);
+		}
+	}
+
 	if (!list.Length)
 	{
 		Shavit_PrintToChat(client, "No unhooked entities found");
@@ -3050,7 +3088,7 @@ bool TeleportFilter(int entity)
 	char classname[20];
 	GetEntityClassname(entity, classname, sizeof(classname));
 
-	if (StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_multiple") || StrEqual(classname, "func_button"))
+	if (StrEqual(classname, "trigger_teleport") || StrEqual(classname, "trigger_multiple") || StrEqual(classname, "func_button") || StrEqual(classname, "func_rot_button"))
 	{
 		//TR_ClipCurrentRayToEntity(MASK_ALL, entity);
 		gI_CurrentTraceEntity = entity;
@@ -3099,7 +3137,7 @@ public int MenuHandle_HookZone_Form(Menu menu, MenuAction action, int param1, in
 		char classname[32];
 		GetEntityClassname(ent, classname, sizeof(classname));
 
-		if (StrEqual(classname, "func_button"))
+		if (StrEqual(classname, "func_button") || StrEqual(classname, "func_rot_button"))
 		{
 			form = ZoneForm_func_button;
 		}
@@ -3290,7 +3328,7 @@ void OpenCustomZoneMenu(int client, int pos=0)
 	menu.SetTitle("%T", "CustomZone_MainMenuTitle", client);
 
 	// Only start zone and end zone are customizable imo, why do you even want to customize the zones that arent often used/seen???
-#if CZONE_VER == 'b'
+#if CZONE_VER != 'a'
 	for (int i = 0; i <= Track_Bonus; i++)
 	{
 		for (int j = 0; j < ZONETYPES_SIZE; j++)
@@ -3402,7 +3440,7 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 
 void HandleCustomZoneCookie(int client)
 {
-	char buf[100]; // #define MAX_VALUE_LENGTH 100
+	char buf[200];
 	int p = 0;
 
 #if CZONE_VER >= 'b'
@@ -3432,7 +3470,10 @@ void HandleCustomZoneCookie(int client)
 		}
 	}
 
+	Format(buf[100], 100, "%s", buf[99]); // shift that bitch over...
+	buf[99] = 0;
 	gH_CustomZoneCookie.Set(client, buf);
+	gH_CustomZoneCookie2.Set(client, buf[100]);
 }
 
 public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, int param2)
