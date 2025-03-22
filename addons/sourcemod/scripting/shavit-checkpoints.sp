@@ -117,17 +117,11 @@ int gI_Offset_m_afButtonDisabled = 0;
 int gI_Offset_m_afButtonForced = 0;
 
 // vscript!!! you're going to break all my checkpoints!!!
-#if 0
-VScriptExecute gH_VScript_OnStart;
-VScriptExecute gH_VScript_OnEnd;
-#endif
 VScriptExecute gH_VScript_Timer_OnCheckpointSave;
 VScriptExecute gH_VScript_Timer_OnCheckpointLoadPre;
 VScriptExecute gH_VScript_Timer_OnCheckpointLoadPost;
 VScriptFunction gH_VScript_Timer_SetCheckpointCustomData;
 VScriptFunction gH_VScript_Timer_GetCheckpointCustomData;
-VScriptFunction gH_VScript_Timer_GetTime;
-
 enum VScript_Checkpoint_State
 {
 	VCS_NO_TOUCH = 0,
@@ -136,6 +130,7 @@ enum VScript_Checkpoint_State
 }
 VScript_Checkpoint_State gI_VScript_Checkpointing[MAXPLAYERS+1];
 StringMap gH_VScript_Checkpoint_CustomData[MAXPLAYERS+1];
+
 
 public Plugin myinfo =
 {
@@ -2289,19 +2284,6 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 
 public void VScript_OnScriptVMInitialized()
 {
-#if 0
-	// ::Timer_OnStart <- function(player)
-	if (VScript_GetGlobalFunction("Timer_OnStart"))
-		gH_VScript_OnStart = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnStart"));
-	else
-		gH_VScript_OnStart = view_as<VScriptExecute>(Address_Null);
-	// ::Timer_OnEnd <- function(player)
-	if (VScript_GetGlobalFunction("Timer_OnEnd"))
-		gH_VScript_OnEnd = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnEnd"));
-	else
-		gH_VScript_OnEnd = view_as<VScriptExecute>(Address_Null);
-#endif
-
 	// ::Timer_OnCheckpointSave <- function(player)
 	if (VScript_GetGlobalFunction("Timer_OnCheckpointSave"))
 		gH_VScript_Timer_OnCheckpointSave = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointSave"));
@@ -2340,15 +2322,6 @@ public void VScript_OnScriptVMInitialized()
 	gH_VScript_Timer_GetCheckpointCustomData.SetFunctionEmpty();
 	gH_VScript_Timer_GetCheckpointCustomData.Register();
 	gH_VScript_Timer_GetCheckpointCustomData.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetCheckpointCustomData);
-
-	// function Timer_GetTime(player) // returns a float
-	gH_VScript_Timer_GetTime = VScript_CreateFunction();
-	gH_VScript_Timer_GetTime.SetScriptName("Timer_GetTime");
-	gH_VScript_Timer_GetTime.Return = FIELD_FLOAT;
-	gH_VScript_Timer_GetTime.SetParam(1, FIELD_HSCRIPT);
-	gH_VScript_Timer_GetTime.SetFunctionEmpty();
-	gH_VScript_Timer_GetTime.Register();
-	gH_VScript_Timer_GetTime.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetTime);
 }
 
 MRESReturn Detour_Timer_SetCheckpointCustomData(DHookParam params)
@@ -2419,19 +2392,4 @@ void Do_Timer_OnCheckpointLoadPost(int client, StringMap customdata)
 
 		gI_VScript_Checkpointing[client] = VCS_NO_TOUCH;
 	}
-}
-
-MRESReturn Detour_Timer_GetTime(DHookReturn hret, DHookParam params)
-{
-	int client = VScript_HScriptToEntity(params.Get(1));
-
-	if (client < 1 || client > MaxClients || !IsClientInGame(client))
-	{
-		// Log error or something...
-		return MRES_Supercede;
-	}
-
-	hret.Value = Shavit_GetClientTime(client);
-
-	return MRES_Supercede;
 }

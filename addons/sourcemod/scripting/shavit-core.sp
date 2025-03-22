@@ -38,6 +38,7 @@
 #include <shavit/wr>
 #include <shavit/zones>
 #include <eventqueuefix>
+#include <vscript>
 
 #include <shavit/chat-colors>
 #include <shavit/anti-sv_cheats.sp>
@@ -59,6 +60,15 @@ bool gB_Protobuf = false;
 DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
 DynamicHook gH_TeleportDhook = null;
 Address gI_TF2PreventBunnyJumpingAddr = Address_Null;
+
+// vscript (non-checkpoint natives)
+#if 0
+VScriptExecute gH_VScript_OnStart;
+VScriptExecute gH_VScript_OnEnd;
+#endif
+VScriptFunction gH_VScript_Timer_GetTime;
+VScriptFunction gH_VScript_Timer_GetStatus;
+
 
 // database handle
 Database gH_SQL = null;
@@ -3881,4 +3891,68 @@ void UpdateStyleSettings(int client)
 	{
 		UpdateAiraccelerate(client, GetStyleSettingFloat(gA_Timers[client].bsStyle, "airaccelerate"));
 	}
+}
+
+public void VScript_OnScriptVMInitialized()
+{
+#if 0
+	// ::Timer_OnStart <- function(player)
+	if (VScript_GetGlobalFunction("Timer_OnStart"))
+		gH_VScript_OnStart = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnStart"));
+	else
+		gH_VScript_OnStart = view_as<VScriptExecute>(Address_Null);
+	// ::Timer_OnEnd <- function(player)
+	if (VScript_GetGlobalFunction("Timer_OnEnd"))
+		gH_VScript_OnEnd = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnEnd"));
+	else
+		gH_VScript_OnEnd = view_as<VScriptExecute>(Address_Null);
+#endif
+
+	// function Timer_GetTime(player) // returns a float
+	gH_VScript_Timer_GetTime = VScript_CreateFunction();
+	gH_VScript_Timer_GetTime.SetScriptName("Timer_GetTime");
+	gH_VScript_Timer_GetTime.Return = FIELD_FLOAT;
+	gH_VScript_Timer_GetTime.SetParam(1, FIELD_HSCRIPT);
+	gH_VScript_Timer_GetTime.SetFunctionEmpty();
+	gH_VScript_Timer_GetTime.Register();
+	gH_VScript_Timer_GetTime.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetTime);
+
+	// function gH_VScript_Timer_GetStatus(player) // returns a int -- 0=stopped, 1=running, 2=paused
+	gH_VScript_Timer_GetStatus = VScript_CreateFunction();
+	gH_VScript_Timer_GetStatus.SetScriptName("Timer_GetStatus");
+	gH_VScript_Timer_GetStatus.Return = FIELD_INTEGER;
+	gH_VScript_Timer_GetStatus.SetParam(1, FIELD_HSCRIPT);
+	gH_VScript_Timer_GetStatus.SetFunctionEmpty();
+	gH_VScript_Timer_GetStatus.Register();
+	gH_VScript_Timer_GetStatus.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetStatus);
+}
+
+MRESReturn Detour_Timer_GetTime(DHookReturn hret, DHookParam params)
+{
+	int client = VScript_HScriptToEntity(params.Get(1));
+
+	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+	{
+		// Log error or something...
+		return MRES_Supercede;
+	}
+
+	hret.Value = Shavit_GetClientTime(client);
+
+	return MRES_Supercede;
+}
+
+MRESReturn Detour_Timer_GetStatus(DHookReturn hret, DHookParam params)
+{
+	int client = VScript_HScriptToEntity(params.Get(1));
+
+	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+	{
+		// Log error or something...
+		return MRES_Supercede;
+	}
+
+	hret.Value = view_as<int>(GetTimerStatus(client));
+
+	return MRES_Supercede;
 }
