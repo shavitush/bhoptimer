@@ -2326,7 +2326,15 @@ public void VScript_OnScriptVMInitialized()
 
 MRESReturn Detour_Timer_SetCheckpointCustomData(DHookParam params)
 {
-	int client = VScript_HScriptToEntity(params.Get(1));
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
 
 	if (client < 1 || client > MaxClients || !IsClientInGame(client))
 	{
@@ -2352,7 +2360,15 @@ MRESReturn Detour_Timer_SetCheckpointCustomData(DHookParam params)
 
 MRESReturn Detour_Timer_GetCheckpointCustomData(DHookReturn hret, DHookParam params)
 {
-	int client = VScript_HScriptToEntity(params.Get(1));
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
 
 	if (client < 1 || client > MaxClients || !IsClientInGame(client))
 	{

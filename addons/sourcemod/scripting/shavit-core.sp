@@ -3929,11 +3929,21 @@ public void VScript_OnScriptVMInitialized()
 
 MRESReturn Detour_Timer_GetTime(DHookReturn hret, DHookParam params)
 {
-	int client = VScript_HScriptToEntity(params.Get(1));
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		hret.Value = 0.0;
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
 
 	if (client < 1 || client > MaxClients || !IsClientInGame(client))
 	{
 		// Log error or something...
+		hret.Value = 0.0;
 		return MRES_Supercede;
 	}
 
@@ -3944,11 +3954,21 @@ MRESReturn Detour_Timer_GetTime(DHookReturn hret, DHookParam params)
 
 MRESReturn Detour_Timer_GetStatus(DHookReturn hret, DHookParam params)
 {
-	int client = VScript_HScriptToEntity(params.Get(1));
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		hret.Value = 0;
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
 
 	if (client < 1 || client > MaxClients || !IsClientInGame(client))
 	{
 		// Log error or something...
+		hret.Value = 0;
 		return MRES_Supercede;
 	}
 
