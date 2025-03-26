@@ -35,7 +35,7 @@ jobs:
           wget https://github.com/nosoop/SMExt-SourceScramble/releases/download/0.7.1.4/package.tar.gz
           tar --strip-components=1 -xvzf package.tar.gz
           wget https://github.com/nosoop/SMExt-SourceScramble/releases/download/0.7.1.4/package.zip
-          unzip package.zip "addons/sourcemod/scripting/extensions/*"
+          unzip package.zip "addons/sourcemod/extensions/*"
           wget https://github.com/FortyTwoFortyTwo/VScript/archive/refs/tags/1.10.0.90.tar.gz
           tar --strip-components=1 -xvzf 1.10.0.90.tar.gz
           rm -rf *.zip *.tar.gz addons/sourcemod/.git* addons/sourcemod/LICENSE scripts
