@@ -66,6 +66,7 @@ VScriptExecute gH_VScript_OnStart;
 VScriptExecute gH_VScript_OnFinish;
 VScriptFunction gH_VScript_Timer_GetTime;
 VScriptFunction gH_VScript_Timer_GetStatus;
+VScriptFunction gH_VScript_Timer_GetTrack;
 
 
 // database handle
@@ -2049,6 +2050,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 		if (gH_VScript_OnFinish)
 		{
 			gH_VScript_OnFinish.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			gH_VScript_OnFinish.SetParam(2, FIELD_INTEGER, snapshot.iTimerTrack);
 			gH_VScript_OnFinish.Execute();
 		}
 	}
@@ -2637,6 +2639,7 @@ void StartTimer(int client, int track, bool skipGroundCheck)
 				if (gH_VScript_OnStart)
 				{
 					gH_VScript_OnStart.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+					gH_VScript_OnStart.SetParam(2, FIELD_INTEGER, track);
 					gH_VScript_OnStart.Execute();
 				}
 			}
@@ -3948,7 +3951,7 @@ public void VScript_OnScriptVMInitialized()
 	}
 	gH_VScript_Timer_GetTime.Register();
 
-	// function gH_VScript_Timer_GetStatus(player) // returns a int -- 0=stopped, 1=running, 2=paused
+	// function Timer_GetStatus(player) // returns an int -- 0=stopped, 1=running, 2=paused
 	if (!gH_VScript_Timer_GetStatus)
 	{
 		gH_VScript_Timer_GetStatus = VScript_CreateFunction();
@@ -3959,6 +3962,18 @@ public void VScript_OnScriptVMInitialized()
 		gH_VScript_Timer_GetStatus.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetStatus);
 	}
 	gH_VScript_Timer_GetStatus.Register();
+
+	// function Timer_GetTrack(player) // returns an int -- 0=main, 1 or higher = a bonus track
+	if (!gH_VScript_Timer_GetTrack)
+	{
+		gH_VScript_Timer_GetTrack = VScript_CreateFunction();
+		gH_VScript_Timer_GetTrack.SetScriptName("Timer_GetTrack");
+		gH_VScript_Timer_GetTrack.Return = FIELD_INTEGER;
+		gH_VScript_Timer_GetTrack.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_GetTrack.SetFunctionEmpty();
+		gH_VScript_Timer_GetTrack.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetTrack);
+	}
+	gH_VScript_Timer_GetTrack.Register();
 }
 
 MRESReturn Detour_Timer_GetTime(DHookReturn hret, DHookParam params)
@@ -4007,6 +4022,31 @@ MRESReturn Detour_Timer_GetStatus(DHookReturn hret, DHookParam params)
 	}
 
 	hret.Value = view_as<int>(GetTimerStatus(client));
+
+	return MRES_Supercede;
+}
+
+MRESReturn Detour_Timer_GetTrack(DHookReturn hret, DHookParam params)
+{
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		hret.Value = -1;
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
+
+	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+	{
+		// Log error or something...
+		hret.Value = -1;
+		return MRES_Supercede;
+	}
+
+	hret.Value = view_as<int>(gA_Timers[client].iTimerTrack);
 
 	return MRES_Supercede;
 }
