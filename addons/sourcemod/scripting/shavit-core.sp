@@ -62,10 +62,8 @@ DynamicHook gH_TeleportDhook = null;
 Address gI_TF2PreventBunnyJumpingAddr = Address_Null;
 
 // vscript (non-checkpoint natives)
-#if 0
 VScriptExecute gH_VScript_OnStart;
-VScriptExecute gH_VScript_OnEnd;
-#endif
+VScriptExecute gH_VScript_OnFinish;
 VScriptFunction gH_VScript_Timer_GetTime;
 VScriptFunction gH_VScript_Timer_GetStatus;
 
@@ -135,6 +133,7 @@ bool gB_ReplayPlayback = false;
 bool gB_Rankings = false;
 bool gB_HUD = false;
 bool gB_AdminMenu = false;
+bool gB_VScript = false;
 
 TopMenu gH_AdminMenu = null;
 TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
@@ -452,6 +451,11 @@ public void OnPluginStart()
 				OnClientPutInServer(i);
 			}
 		}
+
+		if (gB_VScript && VScript_IsScriptVMInitialized())
+		{
+			VScript_OnScriptVMInitialized();
+		}
 	}
 }
 
@@ -648,6 +652,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_AdminMenu = true;
 	}
+	else if (StrEqual(name, "vscript"))
+	{
+		gB_VScript = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -677,6 +685,10 @@ public void OnLibraryRemoved(const char[] name)
 		gB_AdminMenu = false;
 		gH_AdminMenu = null;
 		gH_TimerCommands = INVALID_TOPMENUOBJECT;
+	}
+	else if (StrEqual(name, "vscript"))
+	{
+		gB_VScript = false;
 	}
 }
 
@@ -2032,6 +2044,15 @@ public int Native_FinishMap(Handle handler, int numParams)
 	Call_PushCell(timestamp);
 	Call_Finish();
 
+	if (gB_VScript)
+	{
+		if (gH_VScript_OnFinish)
+		{
+			gH_VScript_OnFinish.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			gH_VScript_OnFinish.Execute();
+		}
+	}
+
 	StopTimer(client);
 	return 1;
 }
@@ -2610,6 +2631,15 @@ void StartTimer(int client, int track, bool skipGroundCheck)
 			Call_PushCell(client);
 			Call_PushCell(track);
 			Call_Finish();
+
+			if (gB_VScript)
+			{
+				if (gH_VScript_OnStart)
+				{
+					gH_VScript_OnStart.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+					gH_VScript_OnStart.Execute();
+				}
+			}
 		}
 #if 0
 		else if(result == Plugin_Handled || result == Plugin_Stop)
@@ -3895,36 +3925,40 @@ void UpdateStyleSettings(int client)
 
 public void VScript_OnScriptVMInitialized()
 {
-#if 0
+	delete gH_VScript_OnStart;
+	delete gH_VScript_OnFinish;
+
 	// ::Timer_OnStart <- function(player)
 	if (VScript_GetGlobalFunction("Timer_OnStart"))
 		gH_VScript_OnStart = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnStart"));
-	else
-		gH_VScript_OnStart = view_as<VScriptExecute>(Address_Null);
-	// ::Timer_OnEnd <- function(player)
-	if (VScript_GetGlobalFunction("Timer_OnEnd"))
-		gH_VScript_OnEnd = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnEnd"));
-	else
-		gH_VScript_OnEnd = view_as<VScriptExecute>(Address_Null);
-#endif
+
+	// ::Timer_OnFinish <- function(player)
+	if (VScript_GetGlobalFunction("Timer_OnFinish"))
+		gH_VScript_OnFinish = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnFinish"));
 
 	// function Timer_GetTime(player) // returns a float
-	gH_VScript_Timer_GetTime = VScript_CreateFunction();
-	gH_VScript_Timer_GetTime.SetScriptName("Timer_GetTime");
-	gH_VScript_Timer_GetTime.Return = FIELD_FLOAT;
-	gH_VScript_Timer_GetTime.SetParam(1, FIELD_HSCRIPT);
-	gH_VScript_Timer_GetTime.SetFunctionEmpty();
+	if (!gH_VScript_Timer_GetTime)
+	{
+		gH_VScript_Timer_GetTime = VScript_CreateFunction();
+		gH_VScript_Timer_GetTime.SetScriptName("Timer_GetTime");
+		gH_VScript_Timer_GetTime.Return = FIELD_FLOAT;
+		gH_VScript_Timer_GetTime.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_GetTime.SetFunctionEmpty();
+		gH_VScript_Timer_GetTime.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetTime);
+	}
 	gH_VScript_Timer_GetTime.Register();
-	gH_VScript_Timer_GetTime.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetTime);
 
 	// function gH_VScript_Timer_GetStatus(player) // returns a int -- 0=stopped, 1=running, 2=paused
-	gH_VScript_Timer_GetStatus = VScript_CreateFunction();
-	gH_VScript_Timer_GetStatus.SetScriptName("Timer_GetStatus");
-	gH_VScript_Timer_GetStatus.Return = FIELD_INTEGER;
-	gH_VScript_Timer_GetStatus.SetParam(1, FIELD_HSCRIPT);
-	gH_VScript_Timer_GetStatus.SetFunctionEmpty();
+	if (!gH_VScript_Timer_GetStatus)
+	{
+		gH_VScript_Timer_GetStatus = VScript_CreateFunction();
+		gH_VScript_Timer_GetStatus.SetScriptName("Timer_GetStatus");
+		gH_VScript_Timer_GetStatus.Return = FIELD_INTEGER;
+		gH_VScript_Timer_GetStatus.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_GetStatus.SetFunctionEmpty();
+		gH_VScript_Timer_GetStatus.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetStatus);
+	}
 	gH_VScript_Timer_GetStatus.Register();
-	gH_VScript_Timer_GetStatus.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetStatus);
 }
 
 MRESReturn Detour_Timer_GetTime(DHookReturn hret, DHookParam params)

@@ -243,6 +243,11 @@ public void OnPluginStart()
 	if (gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
+
+		if (gB_VScript && VScript_IsScriptVMInitialized())
+		{
+			VScript_OnScriptVMInitialized();
+		}
 	}
 }
 
@@ -2284,44 +2289,48 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 
 public void VScript_OnScriptVMInitialized()
 {
+	delete gH_VScript_Timer_OnCheckpointSave;
+	delete gH_VScript_Timer_OnCheckpointLoadPre;
+	delete gH_VScript_Timer_OnCheckpointLoadPost;
+
 	// ::Timer_OnCheckpointSave <- function(player)
 	if (VScript_GetGlobalFunction("Timer_OnCheckpointSave"))
 		gH_VScript_Timer_OnCheckpointSave = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointSave"));
-	else
-		gH_VScript_Timer_OnCheckpointSave = view_as<VScriptExecute>(Address_Null);
 
 	// ::Timer_OnCheckpointLoadPre <- function(player)
 	if (VScript_GetGlobalFunction("Timer_OnCheckpointLoadPre"))
 		gH_VScript_Timer_OnCheckpointLoadPre = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPre"));
-	else
-		gH_VScript_Timer_OnCheckpointLoadPre = view_as<VScriptExecute>(Address_Null);
 
 	// ::Timer_OnCheckpointLoadPost <- function(player)
 	if (VScript_GetGlobalFunction("Timer_OnCheckpointLoadPost"))
 		gH_VScript_Timer_OnCheckpointLoadPost = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPost"));
-	else
-		gH_VScript_Timer_OnCheckpointLoadPost = view_as<VScriptExecute>(Address_Null);
 
 	// function Timer_SetCheckpointCustomData(player, key, value)
-	gH_VScript_Timer_SetCheckpointCustomData = VScript_CreateFunction();
-	gH_VScript_Timer_SetCheckpointCustomData.SetScriptName("Timer_SetCheckpointCustomData");
-	gH_VScript_Timer_SetCheckpointCustomData.Return = FIELD_VOID;
-	gH_VScript_Timer_SetCheckpointCustomData.SetParam(1, FIELD_HSCRIPT);
-	gH_VScript_Timer_SetCheckpointCustomData.SetParam(2, FIELD_CSTRING);
-	gH_VScript_Timer_SetCheckpointCustomData.SetParam(3, FIELD_CSTRING);
-	gH_VScript_Timer_SetCheckpointCustomData.SetFunctionEmpty();
+	if (!gH_VScript_Timer_SetCheckpointCustomData)
+	{
+		gH_VScript_Timer_SetCheckpointCustomData = VScript_CreateFunction();
+		gH_VScript_Timer_SetCheckpointCustomData.SetScriptName("Timer_SetCheckpointCustomData");
+		gH_VScript_Timer_SetCheckpointCustomData.Return = FIELD_VOID;
+		gH_VScript_Timer_SetCheckpointCustomData.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_SetCheckpointCustomData.SetParam(2, FIELD_CSTRING);
+		gH_VScript_Timer_SetCheckpointCustomData.SetParam(3, FIELD_CSTRING);
+		gH_VScript_Timer_SetCheckpointCustomData.SetFunctionEmpty();
+		gH_VScript_Timer_SetCheckpointCustomData.CreateDetour().Enable(Hook_Pre, Detour_Timer_SetCheckpointCustomData);
+	}
 	gH_VScript_Timer_SetCheckpointCustomData.Register();
-	gH_VScript_Timer_SetCheckpointCustomData.CreateDetour().Enable(Hook_Pre, Detour_Timer_SetCheckpointCustomData);
 
 	// function Timer_GetCheckpointCustomData(player, key, value)
-	gH_VScript_Timer_GetCheckpointCustomData = VScript_CreateFunction();
-	gH_VScript_Timer_GetCheckpointCustomData.SetScriptName("Timer_GetCheckpointCustomData");
-	gH_VScript_Timer_GetCheckpointCustomData.Return = FIELD_CSTRING;
-	gH_VScript_Timer_GetCheckpointCustomData.SetParam(1, FIELD_HSCRIPT);
-	gH_VScript_Timer_GetCheckpointCustomData.SetParam(2, FIELD_CSTRING);
-	gH_VScript_Timer_GetCheckpointCustomData.SetFunctionEmpty();
+	if (!gH_VScript_Timer_GetCheckpointCustomData)
+	{
+		gH_VScript_Timer_GetCheckpointCustomData = VScript_CreateFunction();
+		gH_VScript_Timer_GetCheckpointCustomData.SetScriptName("Timer_GetCheckpointCustomData");
+		gH_VScript_Timer_GetCheckpointCustomData.Return = FIELD_CSTRING;
+		gH_VScript_Timer_GetCheckpointCustomData.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_GetCheckpointCustomData.SetParam(2, FIELD_CSTRING);
+		gH_VScript_Timer_GetCheckpointCustomData.SetFunctionEmpty();
+		gH_VScript_Timer_GetCheckpointCustomData.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetCheckpointCustomData);
+	}
 	gH_VScript_Timer_GetCheckpointCustomData.Register();
-	gH_VScript_Timer_GetCheckpointCustomData.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetCheckpointCustomData);
 }
 
 MRESReturn Detour_Timer_SetCheckpointCustomData(DHookParam params)
