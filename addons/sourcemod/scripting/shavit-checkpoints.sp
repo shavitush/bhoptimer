@@ -2357,7 +2357,7 @@ MRESReturn Detour_Timer_SetCheckpointCustomData(DHookParam params)
 		return MRES_Supercede;
 	}
 
-	char key[512], value[512];
+	char key[512], value[4096];
 	params.GetString(2, key, sizeof(key));
 	params.GetString(3, value, sizeof(value));
 
@@ -2391,7 +2391,7 @@ MRESReturn Detour_Timer_GetCheckpointCustomData(DHookReturn hret, DHookParam par
 		return MRES_Supercede;
 	}
 
-	char key[512], value[512];
+	char key[512], value[4096];
 	params.GetString(2, key, sizeof(key));
 
 	if (gH_VScript_Checkpoint_CustomData[client])
