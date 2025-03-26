@@ -33,12 +33,12 @@ jobs:
           wget https://github.com/hermansimensen/eventqueue-fix/archive/refs/heads/main.tar.gz
           tar --strip-components=1 -xvzf main.tar.gz -C addons/sourcemod
           wget https://github.com/nosoop/SMExt-SourceScramble/releases/download/0.7.1.4/package.tar.gz
-          tar --strip-components=1 -xvzf package.tar.gz
+          tar --strip-components=2 -xvzf package.tar.gz -C addons/sourcemod
           wget https://github.com/nosoop/SMExt-SourceScramble/releases/download/0.7.1.4/package.zip
           unzip package.zip "addons/sourcemod/extensions/*"
           wget https://github.com/FortyTwoFortyTwo/VScript/archive/refs/tags/1.10.0.90.tar.gz
-          tar --strip-components=1 -xvzf 1.10.0.90.tar.gz
-          rm -rf *.zip *.tar.gz addons/sourcemod/.git* addons/sourcemod/LICENSE scripts
+          tar --strip-components=1 -xvzf 1.10.0.90.tar.gz -C addons/sourcemod
+          rm -rf *.zip *.tar.gz addons/sourcemod/{.git*,LICENSE,plugins,scripts,scripting/vscript_test.sp,README.md}
 
       - name: Run compiler
         shell: bash
