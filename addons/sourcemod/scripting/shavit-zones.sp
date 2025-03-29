@@ -5041,11 +5041,15 @@ public Action Shavit_OnStart(int client, int track)
 
 public void Shavit_OnRestart(int client, int track)
 {
-	gI_LastStage[client] = 0;
-
 	if (!IsPlayerAlive(client))
 	{
 		return;
+	}
+
+	// For stage zones that intersect with start zone
+	if (!Shavit_InsideZone(client, Zone_Start, -1))
+	{
+		gI_LastStage[client] = 0;
 	}
 
 	int iIndex = GetZoneIndex(Zone_Start, track);
@@ -5345,6 +5349,17 @@ public void StartTouchPost(int entity, int other)
 			}
 		}
 
+		case Zone_Start:
+		{
+			// Same logic as TouchPost Zone_Start:
+			// - reset last stage instantly for main start zone
+			// - only reset for bonus start zone if client's current track is a bonus
+			if (Shavit_GetClientTrack(other) != Track_Main || track == Track_Main)
+			{
+				gI_LastStage[other] = 0;
+			}
+		}
+
 		case Zone_End:
 		{
 			if (status == Timer_Running && Shavit_GetClientTrack(other) == track)
@@ -5366,7 +5381,7 @@ public void StartTouchPost(int entity, int other)
 				FormatSeconds(Shavit_GetClientTime(other), sTime, 32, true);
 
 				char sMessage[255];
-				FormatEx(sMessage, 255, "%T", "ZoneStageEnter", other, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, num, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText);
+				FormatEx(sMessage, 255, "%T", "ZoneStageEnter", other, gS_ChatStrings.sText, gS_ChatStrings.sVariable, num, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTime, gS_ChatStrings.sText);
 
 				Action aResult = Plugin_Continue;
 				Call_StartForward(gH_Forwards_StageMessage);
