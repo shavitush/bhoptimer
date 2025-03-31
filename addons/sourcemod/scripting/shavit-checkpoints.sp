@@ -2287,6 +2287,7 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 	return SetNativeArray(3, cache, sizeof(cp_cache_t));
 }
 
+// This is called after mapspawn.nut for reference. (Which is before OnMapStart() too)
 public void VScript_OnScriptVMInitialized()
 {
 	delete gH_VScript_Timer_OnCheckpointSave;
@@ -2294,15 +2295,15 @@ public void VScript_OnScriptVMInitialized()
 	delete gH_VScript_Timer_OnCheckpointLoadPost;
 
 	// ::Timer_OnCheckpointSave <- function(player)
-	if (VScript_GetGlobalFunction("Timer_OnCheckpointSave"))
+	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointSave"))
 		gH_VScript_Timer_OnCheckpointSave = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointSave"));
 
 	// ::Timer_OnCheckpointLoadPre <- function(player)
-	if (VScript_GetGlobalFunction("Timer_OnCheckpointLoadPre"))
+	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointLoadPre"))
 		gH_VScript_Timer_OnCheckpointLoadPre = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPre"));
 
 	// ::Timer_OnCheckpointLoadPost <- function(player)
-	if (VScript_GetGlobalFunction("Timer_OnCheckpointLoadPost"))
+	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointLoadPost"))
 		gH_VScript_Timer_OnCheckpointLoadPost = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPost"));
 
 	// function Timer_SetCheckpointCustomData(player, key, value)

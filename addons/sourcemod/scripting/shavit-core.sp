@@ -3926,17 +3926,18 @@ void UpdateStyleSettings(int client)
 	}
 }
 
+// This is called after mapspawn.nut for reference. (Which is before OnMapStart() too)
 public void VScript_OnScriptVMInitialized()
 {
 	delete gH_VScript_OnStart;
 	delete gH_VScript_OnFinish;
 
 	// ::Timer_OnStart <- function(player)
-	if (VScript_GetGlobalFunction("Timer_OnStart"))
+	if (HSCRIPT_RootTable.ValueExists("Timer_OnStart"))
 		gH_VScript_OnStart = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnStart"));
 
 	// ::Timer_OnFinish <- function(player)
-	if (VScript_GetGlobalFunction("Timer_OnFinish"))
+	if (HSCRIPT_RootTable.ValueExists("Timer_OnFinish"))
 		gH_VScript_OnFinish = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnFinish"));
 
 	// function Timer_GetTime(player) // returns a float
