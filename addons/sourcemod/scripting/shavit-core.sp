@@ -3097,7 +3097,7 @@ public MRESReturn DHook_AcceptInput_player_speedmod_Post(int pThis, DHookReturn 
 	char buf[128];
 	hParams.GetString(1, buf, sizeof(buf));
 
-	if (!StrEqual(buf, "ModifySpeed") || hParams.IsNull(2))
+	if (!StrEqual(buf, "ModifySpeed", false) || hParams.IsNull(2))
 	{
 		return MRES_Ignored;
 	}

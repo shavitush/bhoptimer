@@ -160,6 +160,13 @@
 				"windows"	"\xF3\x0F\x10\x80\x2A\x2A\x2A\x2A\xF3\x0F\x59\x45\x2A\xF3\x0F\x11\x45"
 				"linux"	    "\xF3\x0F\x10\xB8\x2A\x2A\x2A\x2A\xA1"
 			}
+			// search "sv_maxusrcmdprocessticks_warning at server" to find CPlayerMove::RunCommand
+			// then sig the the `mov REG1,dword ptr [REG2 + OFFSET_TO_BUTTON_DISABLED_HERE]`
+			"CBasePlayer->m_afButtonDisabled"
+			{
+				"windows"   "\x8B\x87\x2A\x2A\x2A\x2A\xF7\xD0\x21\x43"
+				"linux"     "\x8B\x83\x2A\x2A\x2A\x2A\xF7\xD0"
+			}
 		}
 	}
 
