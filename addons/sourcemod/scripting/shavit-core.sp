@@ -1625,7 +1625,10 @@ void ChangeClientStyle(int client, int style, bool manual)
 	char sStyle[4];
 	IntToString(style, sStyle, 4);
 
-	SetClientCookie(client, gH_StyleCookie, sStyle);
+	if(gB_StyleCookies)
+	{
+		SetClientCookie(client, gH_StyleCookie, sStyle);
+	}
 }
 
 public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
