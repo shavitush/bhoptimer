@@ -296,7 +296,7 @@ public void OnPluginStart()
 	gCV_WRMessages = new Convar("shavit_misc_wrmessages", "3", "How many \"NEW <style> WR!!!\" messages to print?\n0 - Disabled", 0,  true, 0.0, true, 100.0);
 	gCV_BhopSounds = new Convar("shavit_misc_bhopsounds", "1", "Should bhop (landing and jumping) sounds be muted?\n1 - Blocked while !hide is enabled\n2 - Always blocked", 0,  true, 1.0, true, 2.0);
 	gCV_RestrictNoclip = new Convar("shavit_misc_restrictnoclip", "0", "Should noclip be be restricted\n0 - Disabled\n1 - No vertical velocity while in noclip in start zone\n2 - No noclip in start zone", 0, true, 0.0, true, 2.0);
-	gCV_UnNoclipOnRestart = new Convar("shavit_misc_unnocliponrestart", "0", "Should noclip be disabled when a player restarts their timer while in noclip?\n0 - Disabled\n1 - Normal movement will be restored on restart", 0, true, 0.0, true, 1.0);
+	gCV_UnNoclipOnRestart = new Convar("shavit_misc_unnocliponrestart", "1", "Should noclip be disabled when a player restarts their timer while in noclip?\n0 - Disabled\n1 - Normal movement will be restored on restart", 0, true, 0.0, true, 1.0);
 	gCV_SpecScoreboardOrder = new Convar("shavit_misc_spec_scoreboard_order", "1", "Use scoreboard ordering for players when changing target when spectating.", 0, true, 0.0, true, 1.0);
 
 	if (gEV_Type != Engine_TF2)
