@@ -2807,14 +2807,14 @@ public void OnClientAuthorized(int client, const char[] auth)
 	if (gI_Driver == Driver_mysql)
 	{
 		FormatEx(sQuery, 512,
-			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
-			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
+			"INSERT INTO %susers (auth, name, ip, lastlogin, firstlogin) VALUES (%d, '%s', %d, %d, %d) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
+			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, iTime, sEscapedName, iIPAddress, iTime);
 	}
 	else // postgresql & sqlite
 	{
 		FormatEx(sQuery, 512,
-			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON CONFLICT(auth) DO UPDATE SET name = '%s', ip = %d, lastlogin = %d;",
-			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
+			"INSERT INTO %susers (auth, name, ip, lastlogin, firstlogin) VALUES (%d, '%s', %d, %d, %d) ON CONFLICT(auth) DO UPDATE SET name = '%s', ip = %d, lastlogin = %d;",
+			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, iTime, sEscapedName, iIPAddress, iTime);
 	}
 
 	QueryLog(gH_SQL, SQL_InsertUser_Callback, sQuery, GetClientSerial(client));

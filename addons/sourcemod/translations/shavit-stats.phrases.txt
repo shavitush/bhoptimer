@@ -74,6 +74,10 @@
 	{
 		"en"		"Last Login"
 	}
+	"FirstLogin"
+	{
+		"en"		"First Login"
+	}
 	"MapCompletions"
 	{
 		"en"		"Map completions"

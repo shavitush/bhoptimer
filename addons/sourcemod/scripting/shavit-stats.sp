@@ -890,9 +890,9 @@ Action OpenStatsMenu_Main(int steamid, int style, DataPack data)
 	char sQuery[2048];
 
 	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT 0, points, lastlogin, ip, playtime, name FROM %susers WHERE auth = %d\n" ...
-		"UNION ALL SELECT 1, SUM(playtime), 0, 0, 0, '' FROM %sstyleplaytime WHERE auth = %d AND style = %d\n" ...
-		"UNION ALL SELECT 2, COUNT(*), 0, 0, 0, '' FROM %susers u1\n" ...
+		"SELECT 0, points, lastlogin, firstlogin, ip, playtime, name FROM %susers WHERE auth = %d\n" ...
+		"UNION ALL SELECT 1, SUM(playtime), 0, 0, 0, 0, '' FROM %sstyleplaytime WHERE auth = %d AND style = %d\n" ...
+		"UNION ALL SELECT 2, COUNT(*), 0, 0, 0, 0, '' FROM %susers u1\n" ...
 		"    JOIN (SELECT points FROM %susers WHERE auth = %d) u2\n" ...
 		"    WHERE u1.points >= u2.points",
 		gS_MySQLPrefix, steamid,
@@ -960,6 +960,7 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 
 	float fPoints;
 	char sLastLogin[32];
+	char sFirstLogin[32];
 	char sCountry[64];
 	char sPlaytime[16];
 
@@ -989,7 +990,11 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			FormatTime(sLastLogin, 32, "%Y-%m-%d %H:%M:%S", iLastLogin);
 			Format(sLastLogin, 32, "%T: %s", "LastLogin", client, (iLastLogin != -1)? sLastLogin:"N/A");
 
-			int iIPAddress = results.FetchInt(3);
+			int iFirstLogin = results.FetchInt(3);
+			FormatTime(sFirstLogin, 32, "%Y-%m-%d %H:%M:%S", iFirstLogin);
+			Format(sFirstLogin, 32, "%T: %s", "FirstLogin", client, (iFirstLogin != -1)? sFirstLogin:"N/A");
+			
+			int iIPAddress = results.FetchInt(4);
 			char sIPAddress[32];
 			IPAddressToString(iIPAddress, sIPAddress, 32);
 
@@ -998,10 +1003,10 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 				sCountry = "Local Area Network";
 			}
 
-			float fPlaytime = results.FetchFloat(4);
+			float fPlaytime = results.FetchFloat(5);
 			FormatSeconds(fPlaytime, sPlaytime, sizeof(sPlaytime), false, true, true);
 
-			results.FetchString(5, gS_TargetName[client], MAX_NAME_LENGTH);
+			results.FetchString(6, gS_TargetName[client], MAX_NAME_LENGTH);
 			ReplaceString(gS_TargetName[client], MAX_NAME_LENGTH, "#", "?");
 		}
 		else if (type == 1)
@@ -1056,8 +1061,8 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 		}
 
 		Menu menu = new Menu(MenuHandler_ProfileHandler);
-		menu.SetTitle("%s's %T. [U:1:%u]\n%T: %s\n%s\n%s\n%T: %s\n",
-			gS_TargetName[client], "Profile", client, gI_TargetSteamID[client], "Country", client, sCountry, sLastLogin,
+		menu.SetTitle("%s's %T. [U:1:%u]\n%T: %s\n%s\n%s\n%s\n%T: %s\n",
+			gS_TargetName[client], "Profile", client, gI_TargetSteamID[client], "Country", client, sCountry, sFirstLogin, sLastLogin,
 			sRankingString, "Playtime", client, sPlaytime);
 
 		int[] styles = new int[gI_Styles];
