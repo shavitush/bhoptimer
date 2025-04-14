@@ -699,7 +699,7 @@ void ApplyMigration_AddUsersFirstLogin()
 public void ApplyMigration_AddUsersFirstLogin2222222_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	char sQuery[256];
-	FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET firstlogin = IF((SELECT COUNT(*) FROM %splayertimes WHERE %splayertimes.auth = %susers.auth) > 0, (SELECT MIN(`date`) FROM %splayertimes WHERE auth = %susers.auth), IF((%susers.lastlogin != 0), %susers.lastlogin, UNIX_TIMESTAMP()));", gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET firstlogin = IF((SELECT COUNT(*) FROM %splayertimes WHERE %splayertimes.auth = %susers.auth) > 0, (SELECT MIN(`date`) FROM %splayertimes WHERE auth = %susers.auth), IF((%susers.lastlogin != 0), %susers.lastlogin, %s));", gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "UNIX_TIMESTAMP()" : "unixepoch('now')");
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddUsersFirstLogin, DBPrio_High);
 }
 
