@@ -692,14 +692,21 @@ public void Trans_FixSQLiteMapzonesROWID_Error(Database db, any data, int numQue
 void ApplyMigration_AddUsersFirstLogin()
 {
 	char sQuery[256];
-	FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE %susers ADD `firstlogin` int(11) DEFAULT -1 NOT NULL %s;", gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "AFTER `lastlogin`" : "");
+	FormatEx(sQuery, sizeof(sQuery), "ALTER TABLE %susers ADD `firstlogin` INT NOT NULL DEFAULT -1 %s;", gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "AFTER `lastlogin`" : "");
 	QueryLog(gH_SQL, ApplyMigration_AddUsersFirstLogin2222222_Callback, sQuery, Migration_AddUsersFirstLogin, DBPrio_High);
 }
 
 public void ApplyMigration_AddUsersFirstLogin2222222_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	char sQuery[256];
-	FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET firstlogin = IF((SELECT COUNT(*) FROM %splayertimes WHERE %splayertimes.auth = %susers.auth) > 0, (SELECT MIN(`date`) FROM %splayertimes WHERE auth = %susers.auth), IF((%susers.lastlogin != 0), %susers.lastlogin, %s));", gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, (gI_Driver == Driver_mysql) ? "UNIX_TIMESTAMP()" : "unixepoch('now')");
+	if(gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET firstlogin = IF((SELECT COUNT(*) FROM %splayertimes WHERE %splayertimes.auth = %susers.auth) > 0, (SELECT MIN(`date`) FROM %splayertimes WHERE auth = %susers.auth), IF((%susers.lastlogin != 0), %susers.lastlogin, UNIX_TIMESTAMP()));", gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+	}
+	else
+	{
+		FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET firstlogin = IIF((SELECT COUNT(*) FROM %splayertimes WHERE %splayertimes.auth = %susers.auth) > 0, (SELECT MIN(`date`) FROM %splayertimes WHERE auth = %susers.auth), IIF((%susers.lastlogin != 0), %susers.lastlogin, unixepoch('now')));", gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix);
+	}
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddUsersFirstLogin, DBPrio_High);
 }
 
