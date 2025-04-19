@@ -33,6 +33,7 @@
 #include <shavit/replay-recorder>
 #include <shavit/replay-playback>
 #include <eventqueuefix>
+#include <vscript>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -103,6 +104,7 @@ ArrayList gA_PersistentData = null;
 
 bool gB_Eventqueuefix = false;
 bool gB_ReplayRecorder = false;
+bool gB_VScript = false;
 
 DynamicHook gH_CommitSuicide = null;
 float gF_NextSuicide[MAXPLAYERS+1];
@@ -113,6 +115,22 @@ int gI_Offset_m_lastLadderNormal = 0;
 int gI_Offset_m_lastLadderPos = 0;
 int gI_Offset_m_afButtonDisabled = 0;
 int gI_Offset_m_afButtonForced = 0;
+
+// vscript!!! you're going to break all my checkpoints!!!
+VScriptExecute gH_VScript_Timer_OnCheckpointSave;
+VScriptExecute gH_VScript_Timer_OnCheckpointLoadPre;
+VScriptExecute gH_VScript_Timer_OnCheckpointLoadPost;
+VScriptFunction gH_VScript_Timer_SetCheckpointCustomData;
+VScriptFunction gH_VScript_Timer_GetCheckpointCustomData;
+enum VScript_Checkpoint_State
+{
+	VCS_NO_TOUCH = 0,
+	VCS_Saving,
+	VCS_Loading,
+}
+VScript_Checkpoint_State gI_VScript_Checkpointing[MAXPLAYERS+1];
+StringMap gH_VScript_Checkpoint_CustomData[MAXPLAYERS+1];
+
 
 public Plugin myinfo =
 {
@@ -220,10 +238,16 @@ public void OnPluginStart()
 	// modules
 	gB_Eventqueuefix = LibraryExists("eventqueuefix");
 	gB_ReplayRecorder = LibraryExists("shavit-replay-recorder");
+	gB_VScript = LibraryExists("vscript");
 
 	if (gB_Late)
 	{
 		Shavit_OnChatConfigLoaded();
+
+		if (gB_VScript && VScript_IsScriptVMInitialized())
+		{
+			VScript_OnScriptVMInitialized();
+		}
 	}
 }
 
@@ -299,6 +323,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_Eventqueuefix = true;
 	}
+	else if (StrEqual(name, "vscript"))
+	{
+		gB_VScript = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -310,6 +338,10 @@ public void OnLibraryRemoved(const char[] name)
 	else if (StrEqual(name, "eventqueuefix"))
 	{
 		gB_Eventqueuefix = false;
+	}
+	else if (StrEqual(name, "vscript"))
+	{
+		gB_VScript = false;
 	}
 }
 
@@ -1752,6 +1784,21 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	Call_PushCell(index);
 	Call_PushCell(target);
 	Call_Finish();
+
+	// NOTE THAT TARGET COULD BE A BOT OR WHATEVER SO GOD HELP US
+	if (gB_VScript)
+	{
+		gI_VScript_Checkpointing[target] = VCS_Saving;
+		gH_VScript_Checkpoint_CustomData[target] = cpcache.customdata;
+
+		if (gH_VScript_Timer_OnCheckpointSave)
+		{
+			gH_VScript_Timer_OnCheckpointSave.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(target));
+			gH_VScript_Timer_OnCheckpointSave.Execute();
+		}
+
+		gI_VScript_Checkpointing[target] = VCS_NO_TOUCH;
+	}
 }
 
 void TeleportToCheckpoint(int client, int index, bool suppressMessage, int target=0)
@@ -1850,6 +1897,20 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 
 	bool isPersistentData = (index == -1);
 
+	if (gB_VScript)
+	{
+		gI_VScript_Checkpointing[client] = VCS_Loading;
+		gH_VScript_Checkpoint_CustomData[client] = cpcache.customdata;
+
+		if (gH_VScript_Timer_OnCheckpointLoadPre)
+		{
+			gH_VScript_Timer_OnCheckpointLoadPre.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			gH_VScript_Timer_OnCheckpointLoadPre.Execute();
+		}
+
+		gI_VScript_Checkpointing[client] = VCS_NO_TOUCH;
+	}
+
 	SetEntityMoveType(client, cpcache.iMoveType);
 	SetEntityFlags(client, cpcache.iFlags);
 
@@ -1894,6 +1955,8 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		Call_PushArray(cpcache, sizeof(cp_cache_t));
 		Call_PushCell(index);
 		Call_Finish();
+
+		Do_Timer_OnCheckpointLoadPost(client, cpcache.customdata);
 
 		return true;
 	}
@@ -1960,6 +2023,8 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 	Call_PushArray(cpcache, sizeof(cp_cache_t));
 	Call_PushCell(index);
 	Call_Finish();
+
+	Do_Timer_OnCheckpointLoadPost(client, cpcache.customdata);
 
 	return true;
 }
@@ -2220,4 +2285,137 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 	int index = GetNativeCell(4);
 	SaveCheckpointCache(saver, target, cache, index, plugin);
 	return SetNativeArray(3, cache, sizeof(cp_cache_t));
+}
+
+// This is called after mapspawn.nut for reference. (Which is before OnMapStart() too)
+public void VScript_OnScriptVMInitialized()
+{
+	delete gH_VScript_Timer_OnCheckpointSave;
+	delete gH_VScript_Timer_OnCheckpointLoadPre;
+	delete gH_VScript_Timer_OnCheckpointLoadPost;
+
+	// ::Timer_OnCheckpointSave <- function(player)
+	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointSave"))
+		gH_VScript_Timer_OnCheckpointSave = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointSave"));
+
+	// ::Timer_OnCheckpointLoadPre <- function(player)
+	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointLoadPre"))
+		gH_VScript_Timer_OnCheckpointLoadPre = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPre"));
+
+	// ::Timer_OnCheckpointLoadPost <- function(player)
+	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointLoadPost"))
+		gH_VScript_Timer_OnCheckpointLoadPost = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPost"));
+
+	// function Timer_SetCheckpointCustomData(player, key, value)
+	if (!gH_VScript_Timer_SetCheckpointCustomData)
+	{
+		gH_VScript_Timer_SetCheckpointCustomData = VScript_CreateFunction();
+		gH_VScript_Timer_SetCheckpointCustomData.SetScriptName("Timer_SetCheckpointCustomData");
+		gH_VScript_Timer_SetCheckpointCustomData.Return = FIELD_VOID;
+		gH_VScript_Timer_SetCheckpointCustomData.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_SetCheckpointCustomData.SetParam(2, FIELD_CSTRING);
+		gH_VScript_Timer_SetCheckpointCustomData.SetParam(3, FIELD_CSTRING);
+		gH_VScript_Timer_SetCheckpointCustomData.SetFunctionEmpty();
+		gH_VScript_Timer_SetCheckpointCustomData.CreateDetour().Enable(Hook_Pre, Detour_Timer_SetCheckpointCustomData);
+	}
+	gH_VScript_Timer_SetCheckpointCustomData.Register();
+
+	// function Timer_GetCheckpointCustomData(player, key, value)
+	if (!gH_VScript_Timer_GetCheckpointCustomData)
+	{
+		gH_VScript_Timer_GetCheckpointCustomData = VScript_CreateFunction();
+		gH_VScript_Timer_GetCheckpointCustomData.SetScriptName("Timer_GetCheckpointCustomData");
+		gH_VScript_Timer_GetCheckpointCustomData.Return = FIELD_CSTRING;
+		gH_VScript_Timer_GetCheckpointCustomData.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_GetCheckpointCustomData.SetParam(2, FIELD_CSTRING);
+		gH_VScript_Timer_GetCheckpointCustomData.SetFunctionEmpty();
+		gH_VScript_Timer_GetCheckpointCustomData.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetCheckpointCustomData);
+	}
+	gH_VScript_Timer_GetCheckpointCustomData.Register();
+}
+
+MRESReturn Detour_Timer_SetCheckpointCustomData(DHookParam params)
+{
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
+
+	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+	{
+		// Log error or something...
+		return MRES_Supercede;
+	}
+
+	if (gI_VScript_Checkpointing[client] != VCS_Saving)
+	{
+		// Log error or something because this should only be called in Timer_OnCheckpointSave
+		return MRES_Supercede;
+	}
+
+	char key[512], value[4096];
+	params.GetString(2, key, sizeof(key));
+	params.GetString(3, value, sizeof(value));
+
+	if (gH_VScript_Checkpoint_CustomData[client])
+		gH_VScript_Checkpoint_CustomData[client].SetString(key, value, true);
+
+	return MRES_Supercede;
+}
+
+MRESReturn Detour_Timer_GetCheckpointCustomData(DHookReturn hret, DHookParam params)
+{
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
+
+	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+	{
+		// Log error or something...
+		return MRES_Supercede;
+	}
+
+	if (gI_VScript_Checkpointing[client] != VCS_Loading)
+	{
+		// Log error or something because this should only be called in Timer_OnCheckpointLoad{Pre,Post}
+		return MRES_Supercede;
+	}
+
+	char key[512], value[4096];
+	params.GetString(2, key, sizeof(key));
+
+	if (gH_VScript_Checkpoint_CustomData[client])
+		gH_VScript_Checkpoint_CustomData[client].GetString(key, value, sizeof(value));
+
+	hret.SetString(value);
+
+	return MRES_Supercede;
+}
+
+void Do_Timer_OnCheckpointLoadPost(int client, StringMap customdata)
+{
+	if (gB_VScript)
+	{
+		gI_VScript_Checkpointing[client] = VCS_Loading;
+		gH_VScript_Checkpoint_CustomData[client] = customdata;
+
+		if (gH_VScript_Timer_OnCheckpointLoadPost)
+		{
+			gH_VScript_Timer_OnCheckpointLoadPost.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			gH_VScript_Timer_OnCheckpointLoadPost.Execute();
+		}
+
+		gI_VScript_Checkpointing[client] = VCS_NO_TOUCH;
+	}
 }
