@@ -182,6 +182,7 @@ char gS_Verification[MAXPLAYERS+1][8];
 bool gB_CookiesRetrieved[MAXPLAYERS+1];
 float gF_ZoneAiraccelerate[MAXPLAYERS+1];
 float gF_ZoneSpeedLimit[MAXPLAYERS+1];
+float gF_ZoneStartSpeedLimit[MAXPLAYERS+1];
 int gI_LastPrintedSteamID[MAXPLAYERS+1];
 
 // kz support
@@ -1648,7 +1649,10 @@ void ChangeClientStyle(int client, int style, bool manual)
 	char sStyle[4];
 	IntToString(style, sStyle, 4);
 
-	SetClientCookie(client, gH_StyleCookie, sStyle);
+	if(gB_StyleCookies)
+	{
+		SetClientCookie(client, gH_StyleCookie, sStyle);
+	}
 }
 
 public void Player_Jump(Event event, const char[] name, bool dontBroadcast)
@@ -2551,7 +2555,23 @@ bool CanStartTimer(int client, int track, bool skipGroundCheck)
 	if (curVel <= 50.0)
 		return true;
 
-	float prestrafe = StyleMaxPrestrafe(style);
+	float cfgMax = GetStyleSettingFloat(style, "maxprestrafe");
+	float zoneMax = gF_ZoneStartSpeedLimit[client];
+	float prestrafe;
+
+	if (zoneMax > 0.0)
+	{
+		prestrafe = zoneMax;
+	}
+	else if (cfgMax > 0.0)
+	{
+		prestrafe = cfgMax;
+	}
+	else
+	{
+		prestrafe = StyleMaxPrestrafe(style);
+	}
+
 	if (curVel > prestrafe)
 		return false;
 
@@ -2830,14 +2850,14 @@ public void OnClientAuthorized(int client, const char[] auth)
 	if (gI_Driver == Driver_mysql)
 	{
 		FormatEx(sQuery, 512,
-			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
-			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
+			"INSERT INTO %susers (auth, name, ip, lastlogin, firstlogin) VALUES (%d, '%s', %d, %d, %d) ON DUPLICATE KEY UPDATE name = '%s', ip = %d, lastlogin = %d;",
+			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, iTime, sEscapedName, iIPAddress, iTime);
 	}
 	else // postgresql & sqlite
 	{
 		FormatEx(sQuery, 512,
-			"INSERT INTO %susers (auth, name, ip, lastlogin) VALUES (%d, '%s', %d, %d) ON CONFLICT(auth) DO UPDATE SET name = '%s', ip = %d, lastlogin = %d;",
-			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, sEscapedName, iIPAddress, iTime);
+			"INSERT INTO %susers (auth, name, ip, lastlogin, firstlogin) VALUES (%d, '%s', %d, %d, %d) ON CONFLICT(auth) DO UPDATE SET name = '%s', ip = %d, lastlogin = %d;",
+			gS_MySQLPrefix, iSteamID, sEscapedName, iIPAddress, iTime, iTime, sEscapedName, iIPAddress, iTime);
 	}
 
 	QueryLog(gH_SQL, SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
@@ -2949,7 +2969,11 @@ void SQL_DBConnect()
 
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
 {
-	if (type == Zone_Airaccelerate && track == gA_Timers[client].iTimerTrack)
+	if (type == Zone_Start && track == gA_Timers[client].iTimerTrack)
+	{
+		gF_ZoneStartSpeedLimit[client] = float(data);
+	}
+	else if (type == Zone_Airaccelerate && track == gA_Timers[client].iTimerTrack)
 	{
 		gF_ZoneAiraccelerate[client] = float(data);
 	}
@@ -2971,7 +2995,7 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	//       Probably so very niche that it doesn't matter.
 	if (track != gA_Timers[client].iTimerTrack)
 		return;
-	if (type != Zone_Airaccelerate && type != Zone_CustomSpeedLimit && type != Zone_Autobhop)
+	if (type != Zone_Airaccelerate && type != Zone_CustomSpeedLimit && type != Zone_Autobhop && type != Zone_Start)
 		return;
 
 	UpdateStyleSettings(client);
