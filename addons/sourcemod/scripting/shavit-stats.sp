@@ -993,12 +993,16 @@ public void OpenStatsMenuCallback(Database db, DBResultSet results, const char[]
 			int iFirstLogin = results.FetchInt(3);
 			FormatTime(sFirstLogin, 32, "%Y-%m-%d %H:%M:%S", iFirstLogin);
 			Format(sFirstLogin, 32, "%T: %s", "FirstLogin", client, (iFirstLogin != -1)? sFirstLogin:"N/A");
-			
+
 			int iIPAddress = results.FetchInt(4);
 			char sIPAddress[32];
 			IPAddressToString(iIPAddress, sIPAddress, 32);
 
-			if (!GeoipCountry(sIPAddress, sCountry, 64))
+			if ((iIPAddress & 0xFFFF0000) == 0xA9F40000) // 169.254.x.x
+			{
+				sCountry = "Steam Datagram Relay";
+			}
+			else if (!GeoipCountry(sIPAddress, sCountry, 64))
 			{
 				sCountry = "Local Area Network";
 			}
