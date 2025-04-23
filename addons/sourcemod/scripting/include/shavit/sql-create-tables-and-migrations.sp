@@ -53,7 +53,8 @@ enum
 	Migration_DeprecateExactTimeInt,
 	Migration_AddPlayertimesAuthFK,
 	Migration_FixSQLiteMapzonesROWID,
-	Migration_AddUsersFirstLogin,
+	Migration_AddUsersFirstLogin, // 30
+	Migration_MoreFirstLoginStuff,
 	MIGRATIONS_END
 };
 
@@ -89,6 +90,7 @@ char gS_MigrationNames[][] = {
 	"AddPlayertimesAuthFK",
 	"FixSQLiteMapzonesROWID",
 	"AddUsersFirstLogin",
+	"MoreFirstLoginStuff",
 };
 
 static Database gH_SQL;
@@ -372,6 +374,7 @@ void ApplyMigration(int migration)
 		case Migration_AddPlayertimesAuthFK: ApplyMigration_AddPlayertimesAuthFK();
 		case Migration_FixSQLiteMapzonesROWID: ApplyMigration_FixSQLiteMapzonesROWID();
 		case Migration_AddUsersFirstLogin: ApplyMigration_AddUsersFirstLogin();
+		case Migration_MoreFirstLoginStuff: ApplyMigration_MoreFirstLoginStuff();
 	}
 }
 
@@ -699,8 +702,70 @@ void ApplyMigration_AddUsersFirstLogin()
 public void ApplyMigration_AddUsersFirstLogin2222222_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	char sQuery[256];
-	FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET firstlogin = lastlogin WHERE lastlogin > 0;", gS_SQLPrefix);
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET firstlogin = lastlogin WHERE lastlogin > 1188518400;", gS_SQLPrefix);
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddUsersFirstLogin, DBPrio_High);
+}
+
+public void ApplyMigration_MoreFirstLoginStuff()
+{
+	char query[512];
+	Transaction trans = new Transaction();
+
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(query, sizeof(query),
+			"UPDATE %susers JOIN ( \
+				SELECT auth, `time`, FLOOR(MIN(`date`) - `time`) as min_date \
+				FROM %splayertimes \
+				WHERE `date` > 1188518400 \
+				GROUP BY auth \
+			) as pt ON %susers.auth = pt.auth \
+			SET firstlogin = FLOOR(pt.min_date - pt.time) \
+			WHERE firstlogin <= 0;",
+			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
+		);
+		AddQueryLog(trans, query);
+		FormatEx(query, sizeof(query),
+			"UPDATE %susers JOIN ( \
+				SELECT auth, `time`, FLOOR(MIN(`date`) - `time`) as min_date \
+				FROM %splayertimes \
+				WHERE `date` > 1188518400 \
+				GROUP BY auth \
+			) as pt ON %susers.auth = pt.auth \
+			SET firstlogin = LEAST(firstlogin, FLOOR(pt.min_date - pt.time)) \
+			WHERE firstlogin > 0;",
+			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
+		);
+		AddQueryLog(trans, query);
+	}
+	else // sqlite & postgresql use the same syntax here
+	{
+		FormatEx(query, sizeof(query),
+			"UPDATE %susers SET firstlogin = FLOOR(pt.min_date - pt.time) \
+			FROM ( \
+				SELECT auth, time, MIN(date) as min_date \
+				FROM %splayertimes \
+				WHERE date > 1188518400 \
+				GROUP BY auth \
+			) as pt \
+			WHERE %susers.auth = pt.auth AND firstlogin <= 0;",
+			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
+		);
+		AddQueryLog(trans, query);
+		FormatEx(query, sizeof(query),
+			"UPDATE %susers SET firstlogin = MIN(firstlogin, FLOOR(pt.min_date - pt.time)) \
+			FROM ( \
+				SELECT auth, time, MIN(date) as min_date \
+				FROM %splayertimes \
+				WHERE date > 1188518400 \
+				GROUP BY auth \
+			) as pt \
+			WHERE %susers.auth = pt.auth AND firstlogin > 0;",
+			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
+		);
+		AddQueryLog(trans, query);
+	}
+	gH_SQL.Execute(trans, Trans_MigrationSimple, TransMigrationSimple_Error, Migration_MoreFirstLoginStuff);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1015,12 +1080,17 @@ public void SQL_TableMigrationWorkshop_Callback(Database db, DBResultSet results
 		AddQueryLog(trans, sQuery);
 	}
 
-	gH_SQL.Execute(trans, Trans_WorkshopMigration, INVALID_FUNCTION, iMigration);
+	gH_SQL.Execute(trans, Trans_MigrationSimple, INVALID_FUNCTION, iMigration);
 }
 
-public void Trans_WorkshopMigration(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
+public void Trans_MigrationSimple(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
 	InsertMigration(data);
+}
+
+public void TransMigrationSimple_Error(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
+{
+	LogError("Timer failed on migration %d. failIndex=%d, numQueries=%d, reason: '%s'", data, failIndex, numQueries, error);
 }
 
 void InsertMigration(int migration)
