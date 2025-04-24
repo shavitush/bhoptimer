@@ -62,8 +62,6 @@ DynamicHook gH_TeleportDhook = null;
 Address gI_TF2PreventBunnyJumpingAddr = Address_Null;
 
 // vscript (non-checkpoint natives)
-VScriptExecute gH_VScript_OnStart;
-VScriptExecute gH_VScript_OnFinish;
 VScriptFunction gH_VScript_Timer_GetTime;
 VScriptFunction gH_VScript_Timer_GetStatus;
 VScriptFunction gH_VScript_Timer_GetTrack;
@@ -2051,11 +2049,14 @@ public int Native_FinishMap(Handle handler, int numParams)
 
 	if (gB_VScript)
 	{
-		if (gH_VScript_OnFinish)
+		if (HSCRIPT_RootTable.ValueExists("Timer_OnFinish"))
 		{
-			gH_VScript_OnFinish.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
-			gH_VScript_OnFinish.SetParam(2, FIELD_INTEGER, snapshot.iTimerTrack);
-			gH_VScript_OnFinish.Execute();
+			// ::Timer_OnFinish <- function(player)
+			VScriptExecute Timer_OnFinish = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnFinish"));
+			Timer_OnFinish.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			Timer_OnFinish.SetParam(2, FIELD_INTEGER, snapshot.iTimerTrack);
+			Timer_OnFinish.Execute();
+			delete Timer_OnFinish;
 		}
 	}
 
@@ -2656,11 +2657,13 @@ void StartTimer(int client, int track, bool skipGroundCheck)
 
 			if (gB_VScript)
 			{
-				if (gH_VScript_OnStart)
+				if (HSCRIPT_RootTable.ValueExists("Timer_OnStart"))
 				{
-					gH_VScript_OnStart.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
-					gH_VScript_OnStart.SetParam(2, FIELD_INTEGER, track);
-					gH_VScript_OnStart.Execute();
+					VScriptExecute Timer_OnStart = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnStart"));
+					Timer_OnStart.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+					Timer_OnStart.SetParam(2, FIELD_INTEGER, track);
+					Timer_OnStart.Execute();
+					delete Timer_OnStart;
 				}
 			}
 		}
@@ -3953,17 +3956,6 @@ void UpdateStyleSettings(int client)
 // This is called after mapspawn.nut for reference. (Which is before OnMapStart() too)
 public void VScript_OnScriptVMInitialized()
 {
-	delete gH_VScript_OnStart;
-	delete gH_VScript_OnFinish;
-
-	// ::Timer_OnStart <- function(player)
-	if (HSCRIPT_RootTable.ValueExists("Timer_OnStart"))
-		gH_VScript_OnStart = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnStart"));
-
-	// ::Timer_OnFinish <- function(player)
-	if (HSCRIPT_RootTable.ValueExists("Timer_OnFinish"))
-		gH_VScript_OnFinish = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnFinish"));
-
 	// function Timer_GetTime(player) // returns a float
 	if (!gH_VScript_Timer_GetTime)
 	{

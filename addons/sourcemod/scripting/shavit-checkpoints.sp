@@ -117,9 +117,6 @@ int gI_Offset_m_afButtonDisabled = 0;
 int gI_Offset_m_afButtonForced = 0;
 
 // vscript!!! you're going to break all my checkpoints!!!
-VScriptExecute gH_VScript_Timer_OnCheckpointSave;
-VScriptExecute gH_VScript_Timer_OnCheckpointLoadPre;
-VScriptExecute gH_VScript_Timer_OnCheckpointLoadPost;
 VScriptFunction gH_VScript_Timer_SetCheckpointCustomData;
 VScriptFunction gH_VScript_Timer_GetCheckpointCustomData;
 enum VScript_Checkpoint_State
@@ -1791,10 +1788,13 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 		gI_VScript_Checkpointing[target] = VCS_Saving;
 		gH_VScript_Checkpoint_CustomData[target] = cpcache.customdata;
 
-		if (gH_VScript_Timer_OnCheckpointSave)
+		if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointSave"))
 		{
-			gH_VScript_Timer_OnCheckpointSave.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(target));
-			gH_VScript_Timer_OnCheckpointSave.Execute();
+			// ::Timer_OnCheckpointSave <- function(player)
+			VScriptExecute Timer_OnCheckpointSave = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointSave"));
+			Timer_OnCheckpointSave.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(target));
+			Timer_OnCheckpointSave.Execute();
+			delete Timer_OnCheckpointSave;
 		}
 
 		gI_VScript_Checkpointing[target] = VCS_NO_TOUCH;
@@ -1902,10 +1902,13 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		gI_VScript_Checkpointing[client] = VCS_Loading;
 		gH_VScript_Checkpoint_CustomData[client] = cpcache.customdata;
 
-		if (gH_VScript_Timer_OnCheckpointLoadPre)
+		if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointLoadPre"))
 		{
-			gH_VScript_Timer_OnCheckpointLoadPre.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
-			gH_VScript_Timer_OnCheckpointLoadPre.Execute();
+			// ::Timer_OnCheckpointLoadPre <- function(player)
+			VScriptExecute Timer_OnCheckpointLoadPre = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPre"));
+			Timer_OnCheckpointLoadPre.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			Timer_OnCheckpointLoadPre.Execute();
+			delete Timer_OnCheckpointLoadPre;
 		}
 
 		gI_VScript_Checkpointing[client] = VCS_NO_TOUCH;
@@ -2290,22 +2293,6 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 // This is called after mapspawn.nut for reference. (Which is before OnMapStart() too)
 public void VScript_OnScriptVMInitialized()
 {
-	delete gH_VScript_Timer_OnCheckpointSave;
-	delete gH_VScript_Timer_OnCheckpointLoadPre;
-	delete gH_VScript_Timer_OnCheckpointLoadPost;
-
-	// ::Timer_OnCheckpointSave <- function(player)
-	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointSave"))
-		gH_VScript_Timer_OnCheckpointSave = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointSave"));
-
-	// ::Timer_OnCheckpointLoadPre <- function(player)
-	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointLoadPre"))
-		gH_VScript_Timer_OnCheckpointLoadPre = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPre"));
-
-	// ::Timer_OnCheckpointLoadPost <- function(player)
-	if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointLoadPost"))
-		gH_VScript_Timer_OnCheckpointLoadPost = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPost"));
-
 	// function Timer_SetCheckpointCustomData(player, key, value)
 	if (!gH_VScript_Timer_SetCheckpointCustomData)
 	{
@@ -2410,10 +2397,13 @@ void Do_Timer_OnCheckpointLoadPost(int client, StringMap customdata)
 		gI_VScript_Checkpointing[client] = VCS_Loading;
 		gH_VScript_Checkpoint_CustomData[client] = customdata;
 
-		if (gH_VScript_Timer_OnCheckpointLoadPost)
+		if (HSCRIPT_RootTable.ValueExists("Timer_OnCheckpointLoadPost"))
 		{
-			gH_VScript_Timer_OnCheckpointLoadPost.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
-			gH_VScript_Timer_OnCheckpointLoadPost.Execute();
+			// ::Timer_OnCheckpointLoadPost <- function(player)
+			VScriptExecute Timer_OnCheckpointLoadPost = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPost"));
+			Timer_OnCheckpointLoadPost.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			Timer_OnCheckpointLoadPost.Execute();
+			delete Timer_OnCheckpointLoadPost;
 		}
 
 		gI_VScript_Checkpointing[client] = VCS_NO_TOUCH;
