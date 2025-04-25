@@ -296,6 +296,11 @@ public void Shavit_OnLeaveZone(int client, int type, int track, int id, int enti
 	}
 }
 
+public void Shavit_OnBhopStyleChanged(int client, int oldstyle, int newstyle)
+{
+    gB_ForceJump[client] = false;
+}
+
 int FindMenuItem(Menu menu, const char[] info)
 {
 	for (int i = 0; i < menu.ItemCount; i++)
@@ -366,18 +371,25 @@ public Action Shavit_OnCheckpointMenuSelect(int client, int param2, char[] info,
 
 public Action Shavit_OnUserCmdPre(int client, int &buttons, int &impulse, float vel[3], float angles[3], TimerStatus status, int track, int style, int mouse[2])
 {
-	if (!Shavit_ShouldProcessFrame(client))
-	{
-		return Plugin_Continue;
-	}
+    if (!Shavit_ShouldProcessFrame(client))
+    {
+        return Plugin_Continue;
+    }
 
-	if (gB_ForceJump[client] && (Shavit_GetStyleSettingBool(style, "edgejump") || Shavit_GetStyleSettingBool(style, "autojumponstart")))
-	{
-		buttons |= IN_JUMP;
-	}
-
-	gB_ForceJump[client] = false;
-	return Plugin_Changed;
+    if (gB_ForceJump[client] && (Shavit_GetStyleSettingBool(style, "edgejump") || Shavit_GetStyleSettingBool(style, "autojumponstart")))
+    {
+        int playerTrack = Shavit_GetClientTrack(client);
+        
+        if (Shavit_InsideZone(client, Zone_Start, playerTrack))
+        {
+            buttons |= IN_JUMP;
+        }
+        else
+        {
+            gB_ForceJump[client] = false;
+            return Plugin_Continue;
+        }
+    }
 }
 
 bool TRFilter_OnlyZones(int entity, any data)
