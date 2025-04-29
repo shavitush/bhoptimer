@@ -32,9 +32,9 @@ jobs:
           tar --strip-components=1 -xvzf v5.0.1.tar.gz sm-json-5.0.1/addons/sourcemod/scripting/include
           wget https://github.com/hermansimensen/eventqueue-fix/archive/refs/heads/main.tar.gz
           tar --strip-components=1 -xvzf main.tar.gz -C addons/sourcemod
-          wget https://github.com/nosoop/SMExt-SourceScramble/releases/download/0.7.1.4/package.tar.gz
+          wget https://github.com/nosoop/SMExt-SourceScramble/releases/download/0.8.1.1/package.tar.gz
           tar --strip-components=2 -xvzf package.tar.gz -C addons/sourcemod
-          wget https://github.com/nosoop/SMExt-SourceScramble/releases/download/0.7.1.4/package.zip
+          wget https://github.com/nosoop/SMExt-SourceScramble/releases/download/0.8.1.1/package.zip
           unzip package.zip "addons/sourcemod/extensions/*"
           wget https://github.com/FortyTwoFortyTwo/VScript/archive/refs/tags/1.10.0.90.tar.gz
           tar --strip-components=1 -xvzf 1.10.0.90.tar.gz -C addons/sourcemod
