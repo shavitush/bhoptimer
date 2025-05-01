@@ -1520,11 +1520,11 @@ void UpdateLaggedMovement(int client, bool user_timescale)
 	}
 }
 
-void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool nofoward=false)
+void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool noforward=false)
 {
 	gA_Timers[client].bsStyle = newstyle;
 
-	if (!nofoward)
+	if (!noforward)
 	{
 		Call_StartForward(gH_Forwards_OnStyleChanged);
 		Call_PushCell(client);
