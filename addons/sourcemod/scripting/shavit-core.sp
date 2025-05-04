@@ -1389,7 +1389,8 @@ public Action Command_Style(int client, int args)
 		else
 		{
 			float time = Shavit_GetWorldRecord(iStyle, gA_Timers[client].iTimerTrack);
-
+			float pb = Shavit_GetClientPB(client, iStyle, gA_Timers[client].iTimerTrack);
+			
 			if(time > 0.0)
 			{
 				char sTime[32];
@@ -1405,7 +1406,17 @@ public Action Command_Style(int client, int args)
 
 				char sName[64];
 				GetStyleSetting(iStyle, "name", sName, sizeof(sName));
-				FormatEx(sDisplay, 64, "%s - %s: %s", sName, sWR, sTime);
+				
+				if(pb > 0.0)
+				{
+					char sPb[32];
+					FormatSeconds(pb, sPb, 32, false);
+					FormatEx(sDisplay, 64, "%s - %s: %s - PB: %s", sName, sWR, sTime, sPb);
+				}
+				else
+				{
+					FormatEx(sDisplay, 64, "%s - %s: %s", sName, sWR, sTime);
+				}
 			}
 			else
 			{
