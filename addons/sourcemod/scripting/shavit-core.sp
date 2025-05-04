@@ -1389,7 +1389,7 @@ public Action Command_Style(int client, int args)
 		else
 		{
 			float time = Shavit_GetWorldRecord(iStyle, gA_Timers[client].iTimerTrack);
-			
+
 			if(time > 0.0)
 			{
 				char sTime[32];
