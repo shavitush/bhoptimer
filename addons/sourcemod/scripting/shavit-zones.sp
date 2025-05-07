@@ -352,6 +352,8 @@ public void OnPluginStart()
 	gCV_ResetClassnameBonus = new Convar("shavit_zones_resetclassname_bonus", "", "What classname to use when resetting the player (on bonus tracks).\nWould be applied once player teleports to the start zone or on every start if shavit_zones_forcetargetnamereset cvar is set to 1.\nYou don't need to touch this");
 
 	gCV_SQLZones.AddChangeHook(OnConVarChanged);
+	gCV_PrebuiltZones.AddChangeHook(OnConVarChanged);
+	gCV_ClimbButtons.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
 	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
 	gCV_Offset.AddChangeHook(OnConVarChanged);
@@ -593,7 +595,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if (convar == gCV_SQLZones)
 	{
-		for (int i = gI_MapZones; i > 0; i++)
+		for (int i = gI_MapZones; i > 0; i--)
 		{
 			if (StrEqual(gA_ZoneCache[i-1].sSource, "sql"))
 				Shavit_RemoveZone(i-1);
@@ -603,7 +605,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if (convar == gCV_PrebuiltZones)
 	{
-		for (int i = gI_MapZones; i > 0; i++)
+		for (int i = gI_MapZones; i > 0; i--)
 		{
 			if (StrEqual(gA_ZoneCache[i-1].sSource, "autozone"))
 				Shavit_RemoveZone(i-1);
@@ -613,7 +615,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	}
 	else if (convar == gCV_ClimbButtons)
 	{
-		for (int i = gI_MapZones; i > 0; i++)
+		for (int i = gI_MapZones; i > 0; i--)
 		{
 			if (StrEqual(gA_ZoneCache[i-1].sSource, "autobutton"))
 				Shavit_RemoveZone(i-1);
