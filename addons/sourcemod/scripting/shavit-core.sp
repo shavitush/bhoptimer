@@ -1426,7 +1426,19 @@ public Action Command_Style(int client, int args)
 
 				char sName[64];
 				GetStyleSetting(iStyle, "name", sName, sizeof(sName));
-				FormatEx(sDisplay, 64, "%s - %s: %s", sName, sWR, sTime);
+
+				float pb = Shavit_GetClientPB(client, iStyle, gA_Timers[client].iTimerTrack);
+
+				if(pb > 0.0)
+				{
+					char sPb[32];
+					FormatSeconds(pb, sPb, 32, false);
+					FormatEx(sDisplay, 64, "%s - %s: %s - PB: %s", sName, sWR, sTime, sPb);
+				}
+				else
+				{
+					FormatEx(sDisplay, 64, "%s - %s: %s", sName, sWR, sTime);
+				}
 			}
 			else
 			{
@@ -1541,11 +1553,11 @@ void UpdateLaggedMovement(int client, bool user_timescale)
 	}
 }
 
-void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool nofoward=false)
+void CallOnStyleChanged(int client, int oldstyle, int newstyle, bool manual, bool noforward=false)
 {
 	gA_Timers[client].bsStyle = newstyle;
 
-	if (!nofoward)
+	if (!noforward)
 	{
 		Call_StartForward(gH_Forwards_OnStyleChanged);
 		Call_PushCell(client);
