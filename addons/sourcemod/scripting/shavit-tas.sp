@@ -257,6 +257,11 @@ public void Shavit_OnRestart(int client, int track)
 	gI_LastRestart[client] = GetGameTickCount();
 }
 
+public Action Shavit_OnTeleportPre(int client, int index, int target)
+{
+	gI_LastRestart[client] = GetGameTickCount();
+}
+
 public void Shavit_OnEnterZone(int client, int type, int track, int id, int entity, int data)
 {
 	if (!IsValidClient(client, true) || IsFakeClient(client))
