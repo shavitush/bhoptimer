@@ -259,6 +259,7 @@ public void Shavit_OnRestart(int client, int track)
 
 public Action Shavit_OnTeleportPre(int client, int index, int target)
 {
+	// to prevent gB_ForceJump when teleporting to a checkpoint in the start zone
 	gI_LastRestart[client] = GetGameTickCount();
 }
 
