@@ -715,24 +715,24 @@ public void ApplyMigration_MoreFirstLoginStuff()
 	{
 		FormatEx(query, sizeof(query),
 			"UPDATE %susers JOIN ( \
-				SELECT auth, `time`, FLOOR(MIN(`date`) - `time`) as min_date \
+				SELECT auth, MIN(FLOOR(`date` - `time`)) as min_date \
 				FROM %splayertimes \
 				WHERE `date` > 1188518400 \
 				GROUP BY auth \
 			) as pt ON %susers.auth = pt.auth \
-			SET firstlogin = FLOOR(pt.min_date - pt.time) \
+			SET firstlogin = pt.min_date \
 			WHERE firstlogin <= 0;",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
 		);
 		AddQueryLog(trans, query);
 		FormatEx(query, sizeof(query),
 			"UPDATE %susers JOIN ( \
-				SELECT auth, `time`, FLOOR(MIN(`date`) - `time`) as min_date \
+				SELECT auth, MIN(FLOOR(`date` - `time`)) as min_date \
 				FROM %splayertimes \
 				WHERE `date` > 1188518400 \
 				GROUP BY auth \
 			) as pt ON %susers.auth = pt.auth \
-			SET firstlogin = LEAST(firstlogin, FLOOR(pt.min_date - pt.time)) \
+			SET firstlogin = LEAST(firstlogin, pt.min_date) \
 			WHERE firstlogin > 0;",
 			gS_SQLPrefix, gS_SQLPrefix, gS_SQLPrefix
 		);
@@ -741,9 +741,9 @@ public void ApplyMigration_MoreFirstLoginStuff()
 	else // sqlite & postgresql use the same syntax here
 	{
 		FormatEx(query, sizeof(query),
-			"UPDATE %susers SET firstlogin = FLOOR(pt.min_date - pt.time) \
+			"UPDATE %susers SET firstlogin = pt.min_date \
 			FROM ( \
-				SELECT auth, time, MIN(date) as min_date \
+				SELECT auth, MIN(FLOOR(date - time)) as min_date \
 				FROM %splayertimes \
 				WHERE date > 1188518400 \
 				GROUP BY auth \
@@ -753,9 +753,9 @@ public void ApplyMigration_MoreFirstLoginStuff()
 		);
 		AddQueryLog(trans, query);
 		FormatEx(query, sizeof(query),
-			"UPDATE %susers SET firstlogin = MIN(firstlogin, FLOOR(pt.min_date - pt.time)) \
+			"UPDATE %susers SET firstlogin = MIN(firstlogin, pt.min_date) \
 			FROM ( \
-				SELECT auth, time, MIN(date) as min_date \
+				SELECT auth, MIN(FLOOR(date - time)) as min_date \
 				FROM %splayertimes \
 				WHERE date > 1188518400 \
 				GROUP BY auth \
