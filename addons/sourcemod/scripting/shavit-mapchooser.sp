@@ -54,6 +54,7 @@ Convar g_cvRTVSpectatorCooldown;
 Convar g_cvRTVMinimumPoints;
 Convar g_cvRTVDelayTime;
 Convar g_cvNominateDelayTime;
+Convar g_cvVoteDelayTime;
 
 Convar g_cvHideRTVChat;
 
@@ -133,7 +134,6 @@ bool g_bRockTheVote[MAXPLAYERS + 1];
 char g_cNominatedMap[MAXPLAYERS + 1][PLATFORM_MAX_PATH];
 float g_fSpecTimerStart[MAXPLAYERS+1];
 
-float g_fVoteDelayTime = 5.0;
 bool g_bVoteDelayed[MAXPLAYERS+1];
 
 Handle g_hRetryTimer = null;
@@ -222,6 +222,7 @@ public void OnPluginStart()
 	g_cvNominateDelayTime = new Convar("smc_nominate_delay", "0", "Time in minutes after map start before players should be allowed to nominate", _, true, 0.0, false);
 	g_cvRTVRequiredPercentage = new Convar("smc_rtv_required_percentage", "50", "Percentage of players who have RTVed before a map vote is initiated", _, true, 1.0, true, 100.0);
 	g_cvHideRTVChat = new Convar("smc_hide_rtv_chat", "1", "Whether to hide 'rtv', 'rockthevote', 'unrtv', 'nextmap', and 'nominate' from chat.");
+	g_cvVoteDelayTime = new Convar("smc_vote_delay", "5", "Time in seconds after the map vote menu opens before players that had a menu open already can interact with it", _, true, 0.0, false);
 
 	g_cvMapVoteRunOff = new Convar("smc_mapvote_runoff", "1", "Hold run off votes if winning choice is less than a certain margin", _, true, 0.0, true, 1.0);
 	g_cvMapVoteRunOffPerc = new Convar("smc_mapvote_runoffpercent", "50", "If winning choice has less than this percent of votes, hold a runoff", _, true, 0.0, true, 100.0);
@@ -807,11 +808,11 @@ void InitiateMapVote(MapChange when)
 
 		if (g_bVoteDelayed[i])
 		{
-			PrintToChat(i, "%sYou had a menu open. Waiting %.2fs before accepting input", g_cPrefix, g_fVoteDelayTime);
+			PrintToChat(i, "%sYou had a menu open. Waiting %.2fs before accepting input", g_cPrefix, g_cvVoteDelayTime.FloatValue);
 		}
 	}
 
-	CreateTimer(g_fVoteDelayTime+0.1, Timer_VoteDelay, 0, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(g_cvVoteDelayTime.FloatValue+0.1, Timer_VoteDelay, 0, TIMER_FLAG_NO_MAPCHANGE);
 
 	menu.NoVoteButton = g_cvMapVoteEnableNoVote.BoolValue;
 	menu.ExitButton = false;
