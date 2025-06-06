@@ -2,7 +2,13 @@ CHANGELOG.md file for bhoptimer -- https://github.com/shavitush/bhoptimer
 Note: Dates are UTC+0.
 
 
-# v?.?.? - ? - 2025-0?-?? - rtldg
+
+# v3.?.? - ? - 2025-06-?? - rtldg
+- shavit-mapchooser timerified (more) https://github.com/shavitush/bhoptimer/pull/1242 @mourningsickness
+
+
+
+# v3.5.0 - too much, too little, and too late - 2025-06-06 - rtldg
 this is too dense and unreadable. I'm sorry...
 
 - random things
