@@ -272,8 +272,6 @@ public void OnPluginStart()
 			g_bTiersAssigned = true;
 		}
 	}
-
-	Shavit_OnChatConfigLoaded();
 }
 
 public void Shavit_OnChatConfigLoaded()
