@@ -1,0 +1,227 @@
+"Phrases"
+{
+	"Extend Current Map"
+	{
+		"en"			"Extend Current Map"
+	}
+	"No Vote"
+	{
+		"en"			"No Vote"
+	}
+	"Dont Change"
+	{
+		"en"			"Don't Change"
+	}
+	"Reroll Maps"
+	{
+		"en"			"Reroll Maps"
+	}
+	"Choose Map"
+	{
+		"en"			"Choose Map"
+	}
+	"Vote Nextmap"
+	{
+		"en"			"Vote Nextmap"
+	}
+	"Runoff Vote Nextmap"
+	{
+		"en"			"Runoff Vote Nextmap"
+	}
+	"Nominate"
+	{
+		"en"			"Nominate"
+	}
+	"Alphabetic"
+	{
+		"en"			"Alphabetic"
+	}
+	"Nominated Maps"
+	{
+		"en"			"Nominated Maps"
+	}
+	"TitleMapsMatching"
+	{
+		"#format"		"{1:s}"
+		"en"			"Maps matching \"{1}\"\n "
+	}
+	"Stop Spamming"
+	{
+		"en"			"Stop spamming"
+	}
+	"UnRTV"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:i},{6:s},{7:s}"
+		"en"			"{1}{2} {3}no longer wants to rock the vote! ({4}{5} {6}more vote{7} needed)"
+	}
+	"MinutesLeft"
+	{
+		"#format"		"{1:s},{2:i},{3:s}"
+		"en"			"{1}{2} {3}minutes until map vote"
+	}
+	"SecondsLeft"
+	{
+		"#format"		"{1:s},{2:i},{3:s}"
+		"en"			"{1}{2} {3}seconds until map vote"
+	}
+	"VotingStarted"
+	{
+		"en"			"Voting for the next map has started!"
+	}
+	"MenuOpenDelayed"
+	{
+		"#format"		"{1:s},{2:.2f},{3:s}"
+		"en"			"You had a menu open. Waiting {1}{2}{3}s before accepting input"
+	}
+	"Runoff"
+	{
+		"#format"		"{1:s},{2:.0f},{3:s},{4:s},{5:s},{6:s},{7:.0f},{8:s},{9:s},{10:s},{11:.0f}"
+		"en"			"No map got over {1}{2}%% {3}votes ({4}{5} {6}[{7}%%] & {8}{9} {10}[{11}%%]), starting runoff vote"
+	}
+	"CurrentMapExtended"
+	{
+		"#format"		"{1:s},{2:i},{3:s},{4:s},{5:i},{6:s},{7:s}"
+		"en"			"The current map has been extended. (Received {1}{2}%% {3}of {4}{5} {6}vote{7})"
+	}
+	"ReRollingMaps"
+	{
+		"#format"		"{1:s},{2:i},{3:s},{4:s},{5:i},{6:s},{7:s}"
+		"en"			"Voting for next map has restarted with re-rolled maps. (Received {1}{2}%% {3}of {4}{5} {6}vote{7})"
+	}
+	"MapVoteFinished"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:i},{6:s},{7:s},{8:i},{9:s},{10:s}"
+		"en"			"Map voting has finished. The next map will be {1}{2}{3}. (Received {4}{5}%% {6}of {7}{8} {9}vote{10})"
+	}
+	"NominateCurrentMap"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s}"
+		"en"			"The map you chose is the {1}current {2}map and can {3}not {4}be nominated"
+	}
+	"NominateRecentlyPlayed"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:s}"
+		"en"			"{1}{2} {3}has been recently played and can {4}not {5}be nominated"
+	}
+	"MapNotFound"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:s}"
+		"en"			"Map {1}{2} {3}was {4}not {5}found"
+	}
+	"MapVoteStartedOrFinished"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"Map vote already {1}{2}"
+	}
+	"UnNominateNoMap"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"You have {1}not {2}nominated a map"
+	}
+	"UnNominate"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"Successfully removed nomination for {1}{2}"
+	}
+	"ChangingMap"
+	{
+		"#format"		"{1:s},{2:s},{3:s}"
+		"en"			"Changing map to {1}{2}{3}..."
+	}
+	"NominateNotEnabled"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"Nominate has {1}not {2}been enabled yet"
+	}
+	"AlreadyNominated"
+	{
+		"#format"		"{1:s},{2:s},{3:s}"
+		"en"			"{1}{2} {3}has already been nominated"
+	}
+	"Nominated"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:s}"
+		"en"			"{1}{2} {3}has nominated {4}{5}"
+	}
+	"RTVNotEnabled"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"Rock the vote has {1}not {2}been enabled yet"
+	}
+	"RTVAlreadyStarted"
+	{
+		"#format"		"{1:s}"
+		"en"			"Rock the vote has already {1}started"
+	}
+	"RTVAlreadyVoted"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:i},{5:s},{6:s}"
+		"en"			"You have already voted to RTV, if you want to un-RTV use the command {1}!unrtv {2}({3}{4} {5} more vote{6} needed)"
+	}
+	"RTVHigherRank"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"You must be a higher {1}!rank {2}to RTV"
+	}
+	"RTVSpectatorBlocked"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"Spectators have been {1}blocked {2}from RTVing"
+	}
+	"RTV"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:i},{6:s},{7:s},{8:s},{9:i},{10:s}"
+		"en"			"{1}{2} {3}wants to rock the vote! ({4}{5} {6}vote{7}, {8}{9} {10}required)"
+	}
+	"RTVMapChange"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:s},{6:s}"
+		"en"			"{1}{2} {3}wants to rock the vote! Map changing to {4}{5}{6}..."
+	}
+	"RTVMajority"
+	{
+		"#format"		"{1:s},{2:s},{3:s}"
+		"en"			"RTV vote is now majority, map changing to {1}{2}{3}..."
+	}
+	"RTVMapVote"
+	{
+		"#format"		"{1:s},{2:s},{3:s}"
+		"en"			"{1}{2} {3}wants to rock the vote! Map vote will now start..."
+	}
+	"RTVMajorityMapVote"
+	{
+		"en"			"RTV vote is now majority, map vote will now start..."
+	}
+	"UnRTV"
+	{
+		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:i},{6:s},{7:s}"
+		"en"			"{1}{2} {3}no longer wants to rock the vote! ({4}{5} {6}more vote{7} needed)"
+	}
+	"NomListNoMaps"
+	{
+		"en"			"No maps are currently nominated"
+	}
+	"Nextmap"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"The next map is {1}{2}"
+	}
+	"NextmapNone"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"The next map has {1}not {2}been voted yet"
+	}
+	"LoadUnzoned"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"Loading unzoned map {1}{2}"
+	}
+	"ReloadMap"
+	{
+		"en"			"Reloading current map..."
+	}
+	"InvalidMap"
+	{
+		"en"			"Invalid map :("
+	}
+}
