@@ -867,7 +867,7 @@ public void Handler_MapVoteFinished(Menu menu, int num_votes, int num_clients, c
 			g_hVoteMenu = new Menu(Handler_MapVoteMenu, MENU_ACTIONS_ALL);
 			
 			char buffer[128];
-			Format(buffer, sizeof(buffer), "%T", "Runoff Vote Nextmap");
+			Format(buffer, sizeof(buffer), "%T", "Runoff Vote Nextmap", LANG_SERVER);
 			g_hVoteMenu.SetTitle(buffer);
 			
 			g_hVoteMenu.VoteResultCallback = Handler_VoteFinishedGeneric;
