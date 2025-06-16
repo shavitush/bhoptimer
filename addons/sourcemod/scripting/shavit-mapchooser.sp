@@ -245,7 +245,9 @@ public void OnPluginStart()
 	RegAdminCmd("sm_mapreload", Command_ReloadMap, ADMFLAG_CHANGEMAP, "Admin command for reloading current map");
 	RegAdminCmd("sm_maprestart", Command_ReloadMap, ADMFLAG_CHANGEMAP, "Admin command for reloading current map");
 
-	RegAdminCmd("sm_loadunzonedmap", Command_LoadUnzonedMap, ADMFLAG_CHANGEMAP, "Loads the next map from the maps folder that is unzoned.");
+	RegAdminCmd("sm_zonedmaps", Command_ZonedMaps, ADMFLAG_CHANGEMAP, "Admin command for viewing all zoned maps");
+	RegAdminCmd("sm_unzonedmaps", Command_UnzonedMaps, ADMFLAG_CHANGEMAP, "Admin command for viewing all unzoned maps");
+	RegAdminCmd("sm_loadunzonedmap", Command_LoadUnzonedMap, ADMFLAG_CHANGEMAP, "Admin command for loading the next unzoned map");
 
 	RegConsoleCmd("sm_nominate", Command_Nominate, "Lets players nominate maps to be on the end of map vote");
 	RegConsoleCmd("sm_unnominate", Command_UnNominate, "Removes nominations");
@@ -1179,9 +1181,11 @@ void LoadMapList()
 			}
 
 			g_aMapList.Clear();
+			
+			g_aAllMapsList.Clear();
+			ReadMapsFolderArrayList(g_aAllMapsList, true, false, true, true, g_cExcludePrefixesBuffers, g_iExcludePrefixesCount);
 
 			char buffer[512];
-
 			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
 			QueryLog(g_hDatabase, LoadZonedMapsCallback, buffer, _, DBPrio_High);
 		}
@@ -2141,6 +2145,81 @@ public void FindUnzonedMapCallback(Database db, DBResultSet results, const char[
 		Shavit_PrintToChatAll("%t", "LoadUnzoned", gS_ChatStrings.sVariable, buffer);
 		StartMapChange(1.0, buffer, "sm_loadunzonedmap");
 	}
+}
+
+public void OpenZonedMapsMenu(int client, bool zoned)
+{
+    if (!IsClientInGame(client)) return;
+
+    char buffer[PLATFORM_MAX_PATH];
+    Menu menu = new Menu(MapsMenuHandler);
+
+    if (zoned)
+    {
+        if (g_aMapList == null || g_aMapList.Length == 0)
+        {
+			Shavit_PrintToChat(client, "%t", "NoZonedMapsFound");
+            delete menu;
+            return;
+        }
+
+        for (int i = 0; i < g_aMapList.Length; i++)
+        {
+            g_aMapList.GetString(i, buffer, sizeof(buffer));
+            menu.AddItem(buffer, buffer);
+        }
+
+        Format(buffer, sizeof(buffer), "%T", "ZonedMapsTitle", client, g_aMapList.Length);
+        menu.SetTitle(buffer);
+        menu.Display(client, MENU_TIME_FOREVER);
+    }
+    else
+    {
+        StringMap zonedMapLookup = new StringMap();
+
+        for (int i = 0; i < g_aMapList.Length; i++)
+        {
+            g_aMapList.GetString(i, buffer, sizeof(buffer));
+            zonedMapLookup.SetValue(buffer, true);
+        }
+
+        int unzonedCount = 0;
+        for (int i = 0; i < g_aAllMapsList.Length; i++)
+        {
+            g_aAllMapsList.GetString(i, buffer, sizeof(buffer));
+
+            if (!zonedMapLookup.ContainsKey(buffer))
+            {
+                menu.AddItem(buffer, buffer);
+                unzonedCount++;
+            }
+        }
+
+        delete zonedMapLookup;
+
+        if (unzonedCount == 0)
+        {
+			Shavit_PrintToChat(client, "%t", "NoUnzonedMapsFound");
+            delete menu;
+            return;
+        }
+
+		Format(buffer, sizeof(buffer), "%T", "UnzonedMapsTitle", client, unzonedCount);
+        menu.SetTitle(buffer);
+        menu.Display(client, MENU_TIME_FOREVER);
+    }
+}
+
+public Action Command_ZonedMaps(int client, int args)
+{
+    OpenZonedMapsMenu(client, true);
+    return Plugin_Handled;
+}
+
+public Action Command_UnzonedMaps(int client, int args)
+{
+    OpenZonedMapsMenu(client, false);
+    return Plugin_Handled;
 }
 
 public Action Command_LoadUnzonedMap(int client, int args)
