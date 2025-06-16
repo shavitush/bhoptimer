@@ -49,11 +49,6 @@
 	{
 		"en"			"Stop spamming"
 	}
-	"UnRTV"
-	{
-		"#format"		"{1:s},{2:s},{3:s},{4:s},{5:i},{6:s},{7:s}"
-		"en"			"{1}{2} {3}no longer wants to rock the vote! ({4}{5} {6}more vote{7} needed)"
-	}
 	"MinutesLeft"
 	{
 		"#format"		"{1:s},{2:i},{3:s}"
@@ -215,6 +210,24 @@
 	{
 		"#format"		"{1:s},{2:s}"
 		"en"			"Loading unzoned map {1}{2}"
+	}
+	"NoUnzonedMapsFound"
+	{
+		"en"			"No unzoned maps found"
+	}
+	"NoZonedMapsFound"
+	{
+		"en"			"No zoned maps found"
+	}
+	"ZonedMapsTitle"
+	{
+		"#format"		"{1:d}"
+		"en"			"Zoned Maps ({1})"
+	}
+	"UnzonedMapsTitle"
+	{
+		"#format"		"{1:d}"
+		"en"			"Unzoned Maps ({1})"
 	}
 	"ReloadMap"
 	{
