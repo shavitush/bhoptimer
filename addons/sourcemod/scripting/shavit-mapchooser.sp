@@ -1182,7 +1182,7 @@ void LoadMapList()
 
 			char buffer[512];
 
-			FormatEx(buffer, sizeof(buffer), "SELECT UNIQUE `map` FROM `%smapzones` mz1 WHERE EXISTS (select 1 from `%smapzones` mz2 WHERE mz2.`map` = mz1.`map` AND `type` = 0 AND `track` = 0) AND EXISTS (select 1 from `%smapzones` mz3 WHERE mz3.`map` = mz1.`map` AND `type` = 1 AND `track` = 0) ORDER BY `map`", g_cSQLPrefix, g_cSQLPrefix, g_cSQLPrefix);
+			FormatEx(buffer, sizeof(buffer), "SELECT UNIQUE `map` FROM `%smapzones` mz1 WHERE EXISTS (select 1 from `%smapzones` mz2 WHERE mz2.`map` = mz1.`map` AND mz2.`type` = 0 AND mz2.`track` = 0) AND EXISTS (select 1 from `%smapzones` mz3 WHERE mz3.`map` = mz1.`map` AND mz3.`type` = 1 AND mz3.`track` = 0) ORDER BY `map`", g_cSQLPrefix, g_cSQLPrefix, g_cSQLPrefix);
 			QueryLog(g_hDatabase, LoadZonedMapsCallback, buffer, _, DBPrio_High);
 		}
 		case MapListFolder:
@@ -1218,7 +1218,7 @@ void LoadMapList()
 			}
 
 			char buffer[512];
-			FormatEx(buffer, sizeof(buffer), "SELECT UNIQUE `map` FROM `%smapzones` mz1 WHERE EXISTS (select 1 from `%smapzones` mz2 WHERE mz2.`map` = mz1.`map` AND `type` = 0 AND `track` = 0) AND EXISTS (select 1 from `%smapzones` mz3 WHERE mz3.`map` = mz1.`map` AND `type` = 1 AND `track` = 0) ORDER BY `map`", g_cSQLPrefix, g_cSQLPrefix, g_cSQLPrefix);
+			FormatEx(buffer, sizeof(buffer), "SELECT UNIQUE `map` FROM `%smapzones` mz1 WHERE EXISTS (select 1 from `%smapzones` mz2 WHERE mz2.`map` = mz1.`map` AND mz2.`type` = 0 AND mz2.`track` = 0) AND EXISTS (select 1 from `%smapzones` mz3 WHERE mz3.`map` = mz1.`map` AND mz3.`type` = 1 AND mz3.`track` = 0) ORDER BY `map`", g_cSQLPrefix, g_cSQLPrefix, g_cSQLPrefix);
 			QueryLog(g_hDatabase, LoadZonedMapsCallbackMixed, buffer, _, DBPrio_High);
 		}
 	}
