@@ -221,12 +221,12 @@
 	}
 	"ZonedMapsTitle"
 	{
-		"#format"		"{1:d}"
+		"#format"		"{1:i}"
 		"en"			"Zoned Maps ({1})"
 	}
 	"UnzonedMapsTitle"
 	{
-		"#format"		"{1:d}"
+		"#format"		"{1:i}"
 		"en"			"Unzoned Maps ({1})"
 	}
 	"ReloadMap"
