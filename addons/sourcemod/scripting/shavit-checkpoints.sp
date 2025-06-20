@@ -1337,7 +1337,6 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 	else if(action == MenuAction_End)
 	{
 		delete menu;
-		gB_InCheckpointMenu[param1] = false;
 		return Plugin_Handled;
 	}
 	
