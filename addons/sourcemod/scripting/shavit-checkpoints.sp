@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Checkpoints
- * by: shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2
+ * by: shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, olivia, Nuko, yupi2
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -92,6 +92,7 @@ ArrayList gA_Checkpoints[MAXPLAYERS+1];
 int gI_CurrentCheckpoint[MAXPLAYERS+1];
 int gI_TimesTeleported[MAXPLAYERS+1];
 bool gB_InCheckpointMenu[MAXPLAYERS+1];
+bool gB_CPMenuClosedByMenu[MAXPLAYERS+1];
 
 int gI_UsingCheckpointsOwner[MAXPLAYERS+1]; // 0 = use player's own checkpoints
 
@@ -117,7 +118,7 @@ int gI_Offset_m_afButtonForced = 0;
 public Plugin myinfo =
 {
 	name = "[shavit] Checkpoints",
-	author = "shavit, KiD Fearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2",
+	author = "shavit, KiD Fearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, olivia, Nuko, yupi2",
 	description = "Checkpoints for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -446,8 +447,9 @@ public Action Timer_PersistCPMenu(Handle timer)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && ShouldReopenCheckpointMenu(i))
+		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) >= 2 && GetClientMenu(i, null) == MenuSource_None && (ShouldReopenCheckpointMenu(i) || gB_CPMenuClosedByMenu[i]))
 		{
+			gB_CPMenuClosedByMenu[i] = false;
 			OpenCPMenu(i);
 		}
 	}
@@ -510,6 +512,7 @@ public void OnClientPutInServer(int client)
 	}
 
 	gB_SaveStates[client] = false;
+	gB_CPMenuClosedByMenu[client] = false;
 	gI_UsingCheckpointsOwner[client] = 0;
 }
 
@@ -575,9 +578,17 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		if (bKzcheckpoints)
 		{
 			gI_UsingCheckpointsOwner[client] = 0;
+			
+			if (Shavit_GetStyleSettingBool(oldstyle, "segments"))
+				OpenCheckpointsMenu(client);
 		}
-
-		OpenCheckpointsMenu(client);
+		else if (bSegmented && Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
+		{
+			OpenCheckpointsMenu(client);
+		}
+		
+		gB_InCheckpointMenu[client] = true;
+		
 
 		if (!Shavit_GetStyleSettingBool(oldstyle, "segments") && !Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
 		{
@@ -603,7 +614,7 @@ public Action Shavit_OnStart(int client)
 public void Shavit_OnRestart(int client, int track)
 {
 	if(gB_InCheckpointMenu[client] &&
-		Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
+		(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") || Shavit_GetStyleSettingInt(gI_Style[client], "segments")) &&
 		GetClientMenu(client, null) == MenuSource_None &&
 		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
@@ -645,7 +656,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 	// refreshes kz cp menu if there is nothing open
 	if (gB_InCheckpointMenu[client] &&
-		Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
+		(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") || Shavit_GetStyleSettingInt(gI_Style[client], "segments")) &&
 		GetClientMenu(client, null) == MenuSource_None &&
 		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
@@ -861,6 +872,7 @@ public Action Command_Checkpoints(int client, int args)
 		return Plugin_Handled;
 	}
 
+	gB_InCheckpointMenu[client] = true;
 	return OpenCheckpointsMenu(client);
 }
 
@@ -1103,7 +1115,8 @@ void OpenCPMenu(int client)
 
 	// apparently this is the fix
 	// menu.AddItem("spacer", "", ITEMDRAW_RAWLINE);
-
+	// ^this is the how to add a spacer, if you are using a panel.. in this case, it's a menu.. so it doesn't do anything -olivia 19/Jun/2025
+	
 	bool tas_timescale = (Shavit_GetStyleSettingFloat(Shavit_GetBhopStyle(client), "tas_timescale") == -1.0);
 
 	if (tas_timescale)
@@ -1310,19 +1323,24 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		return RedrawMenuItem(sDisplay);
 	}
-	else if (action == MenuAction_Display)
-	{
-		gB_InCheckpointMenu[param1] = true;
-	}
 	else if (action == MenuAction_Cancel)
 	{
+		if (param2 == MenuCancel_Interrupted) //menu was closed by another menu
+		{
+			gB_CPMenuClosedByMenu[param1] = true;
+			gB_InCheckpointMenu[param1] = true;
+			return Plugin_Handled;
+		}
 		gB_InCheckpointMenu[param1] = false;
+		return Plugin_Handled;
 	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
+		return Plugin_Handled;
 	}
-
+	
+	gB_InCheckpointMenu[param1] = true;
 	return 0;
 }
 
