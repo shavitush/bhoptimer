@@ -118,6 +118,8 @@ int gI_PBMenuPos[MAXPLAYERS+1];
 int gI_SubMenuPos[MAXPLAYERS+1];
 bool gB_RRMainOnly[MAXPLAYERS+1];
 
+int gI_DeleteMenuStylePos[MAXPLAYERS+1];
+
 public Plugin myinfo =
 {
 	name = "[shavit] World Records",
@@ -1002,7 +1004,7 @@ public int MenuHandler_Delete_First(Menu menu, MenuAction action, int param1, in
 	return 0;
 }
 
-void DeleteSubmenu(int client)
+void DeleteSubmenu(int client, int position=0)
 {
 	Menu menu = new Menu(MenuHandler_Delete);
 	menu.SetTitle("%T\n ", "DeleteMenuTitle", client);
@@ -1028,8 +1030,9 @@ void DeleteSubmenu(int client)
 		menu.AddItem(sInfo, sDisplay, (GetRecordAmount(iStyle, gA_WRCache[client].iLastTrack) > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
+	menu.ExitBackButton = true;
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.DisplayAt(client, position, MENU_TIME_FOREVER);
 }
 
 public Action Command_DeleteAll(int client, int args)
@@ -1215,8 +1218,16 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 		char info[16];
 		menu.GetItem(param2, info, 16);
 		gA_WRCache[param1].iLastStyle = StringToInt(info);
+		gI_DeleteMenuStylePos[param1] = GetMenuSelectionPosition();
 
 		OpenDelete(param1);
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		if (param2 == MenuCancel_ExitBack)
+		{
+			Command_Delete(param1, 0);
+		}
 	}
 	else if(action == MenuAction_End)
 	{
@@ -1292,6 +1303,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		menu.AddItem("-1", sNoRecords);
 	}
 
+	menu.ExitBackButton = true;
 	menu.ExitButton = true;
 	menu.Display(client, 300);
 }
@@ -1308,6 +1320,13 @@ public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int para
 		if(id != -1)
 		{
 			OpenDeleteMenu(param1, id);
+		}
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		if (param2 == MenuCancel_ExitBack)
+		{
+			DeleteSubmenu(param1, gI_DeleteMenuStylePos[param1]);
 		}
 	}
 	else if(action == MenuAction_End)
