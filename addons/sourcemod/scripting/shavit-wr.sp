@@ -1028,7 +1028,6 @@ void DeleteSubmenu(int client)
 		menu.AddItem(sInfo, sDisplay, (GetRecordAmount(iStyle, gA_WRCache[client].iLastTrack) > 0)? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
 	}
 
-	menu.ExitBackButton = true;
 	menu.ExitButton = true;
 	menu.Display(client, 300);
 }
@@ -1219,13 +1218,6 @@ public int MenuHandler_Delete(Menu menu, MenuAction action, int param1, int para
 
 		OpenDelete(param1);
 	}
-	else if(action == MenuAction_Cancel)
-	{
-		if(param2 == MenuCancel_ExitBack)
-		{
-                    Command_Delete(param1, 0);
-                }
-	}
 	else if(action == MenuAction_End)
 	{
 		delete menu;
@@ -1300,7 +1292,6 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 		menu.AddItem("-1", sNoRecords);
 	}
 
-	menu.ExitBackButton = true;
 	menu.ExitButton = true;
 	menu.Display(client, 300);
 }
@@ -1318,13 +1309,6 @@ public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int para
 		{
 			OpenDeleteMenu(param1, id);
 		}
-	}
-	else if(action == MenuAction_Cancel)
-	{
-		if(param2 == MenuCancel_ExitBack)
-		{
-                    DeleteSubmenu(param1);
-                }
 	}
 	else if(action == MenuAction_End)
 	{
