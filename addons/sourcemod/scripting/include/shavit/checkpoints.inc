@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Checkpoints
- * by: shavit, kidfearless, Nairda, GAMMA CASE, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning
+ * by: shavit, kidfearless, Nairda, GAMMA CASE, rtldg, sh4hrazad, Ciallo-Ani, olivia
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *

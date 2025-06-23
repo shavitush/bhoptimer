@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Checkpoints
- * by: shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2
+ * by: shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, olivia, Nuko, yupi2
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -117,7 +117,7 @@ int gI_Offset_m_afButtonForced = 0;
 public Plugin myinfo =
 {
 	name = "[shavit] Checkpoints",
-	author = "shavit, KiD Fearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2",
+	author = "shavit, KiD Fearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, olivia, Nuko, yupi2",
 	description = "Checkpoints for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"

@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Core
- * by: shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, OliviaMourning, Nickelony, sh4hrazad, BoomShotKapow, strafe
+ * by: shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, olivia, Nickelony, sh4hrazad, BoomShotKapow, strafe
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -185,7 +185,7 @@ bool gB_KZMap[TRACKS_SIZE];
 public Plugin myinfo =
 {
 	name = "[shavit] Core",
-	author = "shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, OliviaMourning, Nickelony, sh4hrazad, BoomShotKapow, strafe",
+	author = "shavit, rtldg, KiD Fearless, GAMMA CASE, Technoblazed, carnifex, ofirgall, Nairda, Extan, rumour, olivia, Nickelony, sh4hrazad, BoomShotKapow, strafe",
 	description = "The core for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"

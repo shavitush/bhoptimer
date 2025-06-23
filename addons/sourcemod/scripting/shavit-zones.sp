@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Map Zones
- * by: shavit, GAMMA CASE, rtldg, KiD Fearless, Kryptanyte, carnifex, rumour, BoomShotKapow, Nuko, Technoblazed, Kxnrl, Extan, sh4hrazad, OliviaMourning
+ * by: shavit, GAMMA CASE, rtldg, KiD Fearless, Kryptanyte, carnifex, rumour, BoomShotKapow, Nuko, Technoblazed, Kxnrl, Extan, sh4hrazad, olivia
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -202,7 +202,7 @@ int gI_LastMenuPos[MAXPLAYERS+1];
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
-	author = "shavit, GAMMA CASE, rtldg, KiD Fearless, Kryptanyte, carnifex, rumour, BoomShotKapow, Nuko, Technoblazed, Kxnrl, Extan, sh4hrazad, OliviaMourning",
+	author = "shavit, GAMMA CASE, rtldg, KiD Fearless, Kryptanyte, carnifex, rumour, BoomShotKapow, Nuko, Technoblazed, Kxnrl, Extan, sh4hrazad, olivia",
 	description = "Map zones for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
