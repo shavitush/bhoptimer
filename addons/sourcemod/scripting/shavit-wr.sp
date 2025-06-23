@@ -977,7 +977,7 @@ public Action Command_Delete(int client, int args)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -1064,7 +1064,7 @@ public Action Command_DeleteAll(int client, int args)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -1111,7 +1111,7 @@ public int MenuHandler_DeleteAll_First(Menu menu, MenuAction action, int param1,
 		}
 
 		subMenu.ExitButton = true;
-		subMenu.Display(param1, 300);
+		subMenu.Display(param1, MENU_TIME_FOREVER);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -1169,7 +1169,7 @@ void DeleteAllSubmenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_DeleteAll(Menu menu, MenuAction action, int param1, int param2)
@@ -1305,7 +1305,7 @@ public void SQL_OpenDelete_Callback(Database db, DBResultSet results, const char
 
 	menu.ExitBackButton = true;
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int OpenDelete_Handler(Menu menu, MenuAction action, int param1, int param2)
@@ -1363,7 +1363,7 @@ void OpenDeleteMenu(int client, int id)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int DeleteConfirm_Handler(Menu menu, MenuAction action, int param1, int param2)
