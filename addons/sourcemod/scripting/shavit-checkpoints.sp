@@ -447,9 +447,8 @@ public Action Timer_PersistCPMenu(Handle timer)
 
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && GetClientTeam(i) >= 2 && GetClientMenu(i, null) == MenuSource_None && (ShouldReopenCheckpointMenu(i) || gB_CPMenuClosedByMenu[i]))
+		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i) && ShouldReopenCheckpointMenu(i))
 		{
-			gB_CPMenuClosedByMenu[i] = false;
 			OpenCPMenu(i);
 		}
 	}
@@ -512,7 +511,6 @@ public void OnClientPutInServer(int client)
 	}
 
 	gB_SaveStates[client] = false;
-	gB_CPMenuClosedByMenu[client] = false;
 	gI_UsingCheckpointsOwner[client] = 0;
 }
 
@@ -578,17 +576,9 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 		if (bKzcheckpoints)
 		{
 			gI_UsingCheckpointsOwner[client] = 0;
-			
-			if (Shavit_GetStyleSettingBool(oldstyle, "segments"))
-				OpenCheckpointsMenu(client);
 		}
-		else if (bSegmented && Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
-		{
-			OpenCheckpointsMenu(client);
-		}
-		
-		gB_InCheckpointMenu[client] = true;
-		
+
+		OpenCheckpointsMenu(client);
 
 		if (!Shavit_GetStyleSettingBool(oldstyle, "segments") && !Shavit_GetStyleSettingBool(oldstyle, "kzcheckpoints"))
 		{
@@ -614,7 +604,7 @@ public Action Shavit_OnStart(int client)
 public void Shavit_OnRestart(int client, int track)
 {
 	if(gB_InCheckpointMenu[client] &&
-		(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") || Shavit_GetStyleSettingInt(gI_Style[client], "segments")) &&
+		Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
 		GetClientMenu(client, null) == MenuSource_None &&
 		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
@@ -656,7 +646,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 
 	// refreshes kz cp menu if there is nothing open
 	if (gB_InCheckpointMenu[client] &&
-		(Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") || Shavit_GetStyleSettingInt(gI_Style[client], "segments")) &&
+		Shavit_GetStyleSettingInt(gI_Style[client], "kzcheckpoints") &&
 		GetClientMenu(client, null) == MenuSource_None &&
 		IsPlayerAlive(client) && GetClientTeam(client) >= 2)
 	{
@@ -872,7 +862,6 @@ public Action Command_Checkpoints(int client, int args)
 		return Plugin_Handled;
 	}
 
-	gB_InCheckpointMenu[client] = true;
 	return OpenCheckpointsMenu(client);
 }
 
@@ -1323,24 +1312,20 @@ public int MenuHandler_Checkpoints(Menu menu, MenuAction action, int param1, int
 
 		return RedrawMenuItem(sDisplay);
 	}
+	else if (action == MenuAction_Display)
+	{
+		gB_InCheckpointMenu[param1] = true;
+	}
 	else if (action == MenuAction_Cancel)
 	{
-		if (param2 == MenuCancel_Interrupted) //menu was closed by another menu
-		{
-			gB_CPMenuClosedByMenu[param1] = true;
-			gB_InCheckpointMenu[param1] = true;
-			return Plugin_Handled;
-		}
 		gB_InCheckpointMenu[param1] = false;
 		return Plugin_Handled;
 	}
 	else if(action == MenuAction_End)
 	{
-		delete menu;
 		return Plugin_Handled;
 	}
-	
-	gB_InCheckpointMenu[param1] = true;
+
 	return 0;
 }
 
