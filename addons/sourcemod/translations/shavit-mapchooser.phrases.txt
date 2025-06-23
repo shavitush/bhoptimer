@@ -1,17 +1,5 @@
 "Phrases"
 {
-	"Extend Current Map"
-	{
-		"en"			"Extend Current Map"
-	}
-	"No Vote"
-	{
-		"en"			"No Vote"
-	}
-	"Dont Change"
-	{
-		"en"			"Don't Change"
-	}
 	"Reroll Maps"
 	{
 		"en"			"Reroll Maps"
