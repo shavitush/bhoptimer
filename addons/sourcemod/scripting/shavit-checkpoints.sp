@@ -1687,11 +1687,12 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	cpcache.aSnapshot = snapshot;
 	cpcache.bSegmented = CanSegment(target);
 
-	if (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null)
+	if (gB_ReplayRecorder && cpcache.aFrames == null)
 	{
 		ArrayList frames = Shavit_GetReplayData(target, false);
+		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
 
-		if (plugin != INVALID_HANDLE)
+		if (cpcache.bSegmented && index != -1 && plugin != INVALID_HANDLE)
 		{
 			cpcache.aFrames = view_as<ArrayList>(CloneHandle(frames, plugin));
 			delete frames;
@@ -1700,8 +1701,6 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 		{
 			cpcache.aFrames = frames;
 		}
-
-		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
 	}
 
 	if (gB_Eventqueuefix && !IsFakeClient(target))
