@@ -436,7 +436,7 @@ void SavePlaytime222(int client, float now, Transaction&trans, int style, int iS
 		if (gI_CurrentStyle[client] == style && gF_PlaytimeStyleStart[client] != 0.0)
 		{
 			diff += now - gF_PlaytimeStyleStart[client];
-			gF_PlaytimeStyleStart[client] = IsPlayerAlive(client) ? now : 0.0;
+			gF_PlaytimeStyleStart[client] = IsClientInGame(client) ? IsPlayerAlive(client) ? now : 0.0 : 0.0;
 		}
 
 		gF_PlaytimeStyleSum[client][style] = 0.0;
