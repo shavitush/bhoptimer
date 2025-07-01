@@ -1573,7 +1573,7 @@ bool SaveCheckpoint(int client, bool duplicate = false)
 	return true;
 }
 
-void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin)
+void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin, bool saveReplay = false)
 {
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
@@ -1687,7 +1687,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	cpcache.aSnapshot = snapshot;
 	cpcache.bSegmented = CanSegment(target);
 
-	if (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null)
+	if (saveReplay || (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null))
 	{
 		ArrayList frames = Shavit_GetReplayData(target, false);
 
@@ -2218,6 +2218,7 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 	int target = GetNativeCell(2);
 	cp_cache_t cache;
 	int index = GetNativeCell(4);
-	SaveCheckpointCache(saver, target, cache, index, plugin);
+	bool saveReplay = (numParams >= 6 && GetNativeCell(5));
+	SaveCheckpointCache(saver, target, cache, index, plugin, saveReplay);
 	return SetNativeArray(3, cache, sizeof(cp_cache_t));
 }
