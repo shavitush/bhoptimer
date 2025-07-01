@@ -2218,7 +2218,7 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 	int target = GetNativeCell(2);
 	cp_cache_t cache;
 	int index = GetNativeCell(4);
-	bool saveReplay = GetNativeCell(5);
+	bool saveReplay = (numParams >= 6 && GetNativeCell(5));
 	SaveCheckpointCache(saver, target, cache, index, plugin, saveReplay);
 	return SetNativeArray(3, cache, sizeof(cp_cache_t));
 }
