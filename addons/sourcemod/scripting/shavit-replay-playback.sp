@@ -2763,6 +2763,12 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 			KickReplay(gA_BotInfo[index]);
 		}
 	}
+	
+	if(IsPlayerAlive(client) && gB_InReplayMenu[client])
+	{
+		CancelClientMenu(client);
+		gB_InReplayMenu[client] = false;
+	}
 }
 
 public Action BotEvents(Event event, const char[] name, bool dontBroadcast)
