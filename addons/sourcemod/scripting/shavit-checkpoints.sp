@@ -1573,7 +1573,7 @@ bool SaveCheckpoint(int client, bool duplicate = false)
 	return true;
 }
 
-void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin)
+void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin, bool saveReplay = false)
 {
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
@@ -1687,12 +1687,11 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	cpcache.aSnapshot = snapshot;
 	cpcache.bSegmented = CanSegment(target);
 
-	if (gB_ReplayRecorder && cpcache.aFrames == null)
+	if (saveReplay == true || (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null))
 	{
 		ArrayList frames = Shavit_GetReplayData(target, false);
-		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
 
-		if (cpcache.bSegmented && index != -1 && plugin != INVALID_HANDLE)
+		if (plugin != INVALID_HANDLE)
 		{
 			cpcache.aFrames = view_as<ArrayList>(CloneHandle(frames, plugin));
 			delete frames;
@@ -1701,6 +1700,8 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 		{
 			cpcache.aFrames = frames;
 		}
+
+		cpcache.iPreFrames = Shavit_GetPlayerPreFrames(target);
 	}
 
 	if (gB_Eventqueuefix && !IsFakeClient(target))
@@ -2217,6 +2218,7 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 	int target = GetNativeCell(2);
 	cp_cache_t cache;
 	int index = GetNativeCell(4);
-	SaveCheckpointCache(saver, target, cache, index, plugin);
+	bool saveReplay = GetNativeCell(5);
+	SaveCheckpointCache(saver, target, cache, index, plugin, saveReplay);
 	return SetNativeArray(3, cache, sizeof(cp_cache_t));
 }
