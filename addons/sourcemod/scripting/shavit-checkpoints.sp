@@ -1687,7 +1687,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	cpcache.aSnapshot = snapshot;
 	cpcache.bSegmented = CanSegment(target);
 
-	if (saveReplay == true || (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null))
+	if (saveReplay || (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null))
 	{
 		ArrayList frames = Shavit_GetReplayData(target, false);
 
