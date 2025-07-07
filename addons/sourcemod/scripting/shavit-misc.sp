@@ -1929,7 +1929,10 @@ bool Teleport(int client, int targetserial)
 	float vecPosition[3];
 	GetClientAbsOrigin(iTarget, vecPosition);
 
-	Shavit_StopTimer(client);
+	if(Shavit_GetTimerStatus(client) == Timer_Running || !gCV_PauseMovement.BoolValue)
+	{
+		Shavit_StopTimer(client);
+	}
 
 	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
 
