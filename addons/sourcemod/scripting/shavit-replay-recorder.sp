@@ -204,6 +204,8 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect(int client)
 {
+	gB_RecordingEnabled[client] = false; // reset a little state...
+
 	if (gB_GrabbingPostFrames[client])
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
@@ -657,6 +659,9 @@ public int Native_SetReplayData(Handle handler, int numParams)
 	{
 		FinishGrabbingPostFrames(client, gA_FinishedRunInfo[client]);
 	}
+
+	// Player starts run, reconnects, savestate reloads, and this needs to be true...
+	gB_RecordingEnabled[client] = true;
 
 	if (cheapCloneHandle)
 	{
