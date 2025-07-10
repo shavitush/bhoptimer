@@ -2130,8 +2130,8 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 	gB_StopChatSound = false;
 
 	int iWritten;
-	char sBuffer[256];
-	char sInput[300];
+	char sBuffer[500];
+	char sInput[500];
 	FormatNativeString(0, formatParam, formatParam+1, sizeof(sInput), iWritten, sInput);
 
 	char sTime[50];
@@ -2142,46 +2142,128 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 	}
 
 	// space before message needed show colors in cs:go
+	FormatEx(sBuffer, sizeof(sBuffer), "%s%s%s%s%s%s", (gB_Protobuf ? " ":""), sTime, gS_ChatStrings.sPrefix, (gS_ChatStrings.sPrefix[0] != 0 ? " " : ""), gS_ChatStrings.sText, sInput);
+
 	// strlen(sBuffer)>252 is when the CSS server stops sending the messages
 	// css user message size limit is 255. byte for client, byte for chatsound, 252 chars + 1 null terminator = 255
-	FormatEx(sBuffer, (gB_Protobuf ? sizeof(sBuffer) : 253), "%s%s%s%s%s%s", (gB_Protobuf ? " ":""), sTime, gS_ChatStrings.sPrefix, (gS_ChatStrings.sPrefix[0] != 0 ? " " : ""), gS_ChatStrings.sText, sInput);
+	// maxLen gB_ProtoBuf = 256, else 253
+	int maxLen = gB_Protobuf ? 255 : 252;
+	bool multipleMessages = (strlen(sBuffer) > maxLen);
 
-	if(client == 0)
+	if (!multipleMessages)
 	{
-		PrintToServer("%s", sBuffer);
-		return false;
-	}
-
-	if(!IsClientInGame(client))
-	{
-		return false;
-	}
-
-	Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
-
-	if(gB_Protobuf)
-	{
-		Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
-		pbmsg.SetInt("ent_idx", client);
-		pbmsg.SetBool("chat", !(stopChatSound || gCV_NoChatSound.BoolValue));
-		pbmsg.SetString("msg_name", sBuffer);
-
-		// needed to not crash
-		for(int i = 1; i <= 4; i++)
+		if (client == 0)
 		{
-			pbmsg.AddString("params", "");
+			PrintToServer("%s", sBuffer);
+			return false;
 		}
+
+		if (!IsClientInGame(client))
+		{
+			return false;
+		}
+
+		Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
+
+		if (gB_Protobuf)
+		{
+			Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
+			pbmsg.SetInt("ent_idx", client);
+			pbmsg.SetBool("chat", !(stopChatSound || gCV_NoChatSound.BoolValue));
+			pbmsg.SetString("msg_name", sBuffer);
+
+			// needed to not crash
+			for (int i = 1; i <= 4; i++)
+			{
+				pbmsg.AddString("params", "");
+			}
+		}
+		else
+		{
+			BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
+			bfmsg.WriteByte(client);
+			bfmsg.WriteByte(!(stopChatSound || gCV_NoChatSound.BoolValue));
+			bfmsg.WriteString(sBuffer);
+		}
+
+		EndMessage();
+		return true;
 	}
 	else
 	{
-		BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
-		bfmsg.WriteByte(client);
-		bfmsg.WriteByte(!(stopChatSound || gCV_NoChatSound.BoolValue));
-		bfmsg.WriteString(sBuffer);
-	}
+		//code to split string, need to find first space before message limit
+		//TODO: handle if there is a color code applied at iCut that != sText and apply it to the start of sBuffer2
+		char sBuffer1[maxLen+1], sBuffer2[maxLen+1];
+		strcopy(sBuffer1, sizeof(sBuffer1), sBuffer);
 
-	EndMessage();
-	return true;
+		int iCut = FindCharInString(sBuffer1, " ", true);
+		strcopy(sBuffer1, iCut, sBuffer; //destLen not iCut+1 because we don't want to include the space at the end of the first message
+		FormatEx(sBuffer2, "%s", gB_Protobuf ? sBuffer[iCut]:sBuffer[iCut+1]); //cute way to include space in front for csgo, remove it otherwise
+
+		//copy/paste of if (!multipleMessages), with a second iteration for sBuffer2
+		if (client == 0)
+		{
+			PrintToServer("%s", sBuffer1);
+			PrintToServer("%s", sBuffer2);
+			return false;
+		}
+
+		if (!IsClientInGame(client))
+		{
+			return false;
+		}
+
+		Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
+
+		if (gB_Protobuf)
+		{
+			Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
+			pbmsg.SetInt("ent_idx", client);
+			pbmsg.SetBool("chat", !(stopChatSound || gCV_NoChatSound.BoolValue));
+			pbmsg.SetString("msg_name", sBuffer1);
+
+			// needed to not crash
+			for (int i = 1; i <= 4; i++)
+			{
+				pbmsg.AddString("params", "");
+			}
+		}
+		else
+		{
+			BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
+			bfmsg.WriteByte(client);
+			bfmsg.WriteByte(!(stopChatSound || gCV_NoChatSound.BoolValue));
+			bfmsg.WriteString(sBuffer1);
+		}
+
+		EndMessage();
+		
+		Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
+
+		if (gB_Protobuf)
+		{
+			Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
+			pbmsg.SetInt("ent_idx", client);
+			pbmsg.SetBool("chat", !(stopChatSound || gCV_NoChatSound.BoolValue));
+			pbmsg.SetString("msg_name", sBuffer2);
+
+			// needed to not crash
+			for (int i = 1; i <= 4; i++)
+			{
+				pbmsg.AddString("params", "");
+			}
+		}
+		else
+		{
+			BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
+			bfmsg.WriteByte(client);
+			bfmsg.WriteByte(!(stopChatSound || gCV_NoChatSound.BoolValue));
+			bfmsg.WriteString(sBuffer2);
+		}
+
+		EndMessage();
+		return true;
+	}
 }
 
 public int Native_GotoEnd(Handle handler, int numParams)
