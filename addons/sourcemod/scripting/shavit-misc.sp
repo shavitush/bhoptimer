@@ -1929,7 +1929,16 @@ bool Teleport(int client, int targetserial)
 	float vecPosition[3];
 	GetClientAbsOrigin(iTarget, vecPosition);
 
-	Shavit_StopTimer(client);
+	if(Shavit_GetTimerStatus(client) == Timer_Running || !gCV_PauseMovement.BoolValue)
+	{
+		if(ShouldDisplayStopWarning(client))
+	 	{
+	 		gI_LastStopInfo[client] = targetserial;
+	 		OpenStopWarningMenu(client, DoTeleport);
+	 		return true;
+	 	}
+		Shavit_StopTimer(client);
+	}
 
 	TeleportEntity(client, vecPosition, NULL_VECTOR, NULL_VECTOR);
 
@@ -2038,6 +2047,12 @@ void DoStyleChange(int client)
 void DoStopTimer(int client)
 {
 	Shavit_StopTimer(client);
+}
+
+void DoTeleport(int client)
+{
+	Shavit_StopTimer(client);
+	Teleport(client, gI_LastStopInfo[client]);
 }
 
 void OpenStopWarningMenu(int client, StopTimerCallback after)
