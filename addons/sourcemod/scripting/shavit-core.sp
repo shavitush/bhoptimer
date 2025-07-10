@@ -2193,7 +2193,8 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 	{
 		//code to split string, need to find first space before message limit
 		//TODO: handle if there is a color code applied at iCut that != sText and apply it to the start of sBuffer2
-		char sBuffer1[maxLen+1], sBuffer2[maxLen+1];
+		char sBuffer1 = new char[maxLen+1];
+		char sBuffer2 = new char[maxLen+1];
 		strcopy(sBuffer1, sizeof(sBuffer1), sBuffer);
 
 		int iCut = FindCharInString(sBuffer1, " ", true);
