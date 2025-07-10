@@ -2239,27 +2239,27 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 
 		EndMessage();
 		
-		hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
+		Handle hSayText22 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
 		if (gB_Protobuf)
 		{
-			Protobuf pbmsg = UserMessageToProtobuf(hSayText2);
-			pbmsg.SetInt("ent_idx", client);
-			pbmsg.SetBool("chat", !(stopChatSound || gCV_NoChatSound.BoolValue));
-			pbmsg.SetString("msg_name", sBuffer2);
+			Protobuf pbmsg2 = UserMessageToProtobuf(hSayText22);
+			pbmsg2.SetInt("ent_idx", client);
+			pbmsg2.SetBool("chat", !(stopChatSound || gCV_NoChatSound.BoolValue));
+			pbmsg2.SetString("msg_name", sBuffer2);
 
 			// needed to not crash
 			for (int i = 1; i <= 4; i++)
 			{
-				pbmsg.AddString("params", "");
+				pbmsg2.AddString("params", "");
 			}
 		}
 		else
 		{
-			BfWrite bfmsg = UserMessageToBfWrite(hSayText2);
-			bfmsg.WriteByte(client);
-			bfmsg.WriteByte(!(stopChatSound || gCV_NoChatSound.BoolValue));
-			bfmsg.WriteString(sBuffer2);
+			BfWrite bfmsg2 = UserMessageToBfWrite(hSayText22);
+			bfmsg2.WriteByte(client);
+			bfmsg2.WriteByte(!(stopChatSound || gCV_NoChatSound.BoolValue));
+			bfmsg2.WriteString(sBuffer2);
 		}
 
 		EndMessage();
