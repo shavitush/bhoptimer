@@ -386,7 +386,7 @@ public void OnPluginStart()
 
 	gCV_Restart = new Convar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
 	gCV_Pause = new Convar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
-	gCV_PauseMovement = new Convar("shavit_core_pause_movement", "0", "Allow movement/noclip while paused?\n0 - Disabled, fully allow movement.\n1 - Allow movement/noclip while paused. Need to stand on the ground.\n2 - Allow to pause while moving and you can move while paused.(not recommended)\n3 - Allow to pause while moving but freeze you when paused.", 0, true, 0.0, true, 3.0);
+	gCV_PauseMovement = new Convar("shavit_core_pause_movement", "0", "Allow movement/noclip while paused?\n0 - Disabled, no movement while paused.\n1 - Allow movement/noclip while paused, must stand still to pause.\n2 - Allow movement/noclip while paused, can pause while moving. (Not recommended)\n3 - Disallow movement/noclip while paused, can pause while moving.", 0, true, 0.0, true, 3.0);
 	gCV_BlockPreJump = new Convar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = new Convar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
 	gCV_VelocityTeleport = new Convar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
