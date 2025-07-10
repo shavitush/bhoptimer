@@ -2197,7 +2197,7 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 		char[] sBuffer2 = new char[maxLen+1];
 		strcopy(sBuffer1, maxLen+1, sBuffer);
 
-		int iCut = FindCharInString(sBuffer1, " ", true);
+		int iCut = FindCharInString(sBuffer1, ' ', true);
 		strcopy(sBuffer1, iCut, sBuffer); //destLen not iCut+1 because we don't want to include the space at the end of the first message
 		FormatEx(sBuffer2, maxLen+1, "%s", gB_Protobuf ? sBuffer[iCut]:sBuffer[iCut+1]); //cute way to include space in front for csgo, remove it otherwise
 
