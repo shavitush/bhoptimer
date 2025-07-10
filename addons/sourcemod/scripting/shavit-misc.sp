@@ -1931,6 +1931,12 @@ bool Teleport(int client, int targetserial)
 
 	if(Shavit_GetTimerStatus(client) == Timer_Running || !gCV_PauseMovement.BoolValue)
 	{
+		if(ShouldDisplayStopWarning(client))
+	 	{
+	 		gI_LastStopInfo[client] = targetserial;
+	 		OpenStopWarningMenu(client, DoTeleport);
+	 		return true;
+	 	}
 		Shavit_StopTimer(client);
 	}
 
@@ -2041,6 +2047,12 @@ void DoStyleChange(int client)
 void DoStopTimer(int client)
 {
 	Shavit_StopTimer(client);
+}
+
+void DoTeleport(int client)
+{
+	Shavit_StopTimer(client);
+	Teleport(client, gI_LastStopInfo[client]);
 }
 
 void OpenStopWarningMenu(int client, StopTimerCallback after)
