@@ -2195,7 +2195,7 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 		//TODO: handle if there is a color code applied at iCut that != sText and apply it to the start of sBuffer2
 		char[] sBuffer1 = new char[maxLen+1];
 		char[] sBuffer2 = new char[maxLen+1];
-		strcopy(sBuffer1, sizeof(sBuffer1), sBuffer);
+		strcopy(sBuffer1, maxLen+1, sBuffer);
 
 		int iCut = FindCharInString(sBuffer1, " ", true);
 		strcopy(sBuffer1, iCut, sBuffer); //destLen not iCut+1 because we don't want to include the space at the end of the first message
