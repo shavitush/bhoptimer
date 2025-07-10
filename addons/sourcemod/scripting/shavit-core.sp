@@ -2239,7 +2239,7 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 
 		EndMessage();
 		
-		Handle hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
+		hSayText2 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
 		if (gB_Protobuf)
 		{
