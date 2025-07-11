@@ -2198,8 +2198,9 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 		strcopy(sBuffer1, maxLen+1, sBuffer);
 
 		int iCut = FindCharInString(sBuffer1, ' ', true);
-		strcopy(sBuffer1, iCut, sBuffer); //destLen not iCut+1 because we don't want to include the space at the end of the first message
-		FormatEx(sBuffer2, maxLen+1, "%s", gB_Protobuf ? sBuffer[iCut]:sBuffer[iCut+1]); //cute way to include space in front for csgo, remove it otherwise
+		strcopy(sBuffer1, iCut+1, sBuffer);
+
+		FormatEx(sBuffer2, maxLen+1, "%s%s%s", (gB_Protobuf ? " ":""), gS_ChatStrings.sText, sBuffer[iCut+1]);
 
 		//copy/paste of if (!multipleMessages), with a second iteration for sBuffer2
 		if (client == 0)
@@ -2238,7 +2239,7 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 		}
 
 		EndMessage();
-		
+
 		Handle hSayText22 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
 
 		if (gB_Protobuf)
