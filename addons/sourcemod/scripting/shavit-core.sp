@@ -2195,12 +2195,27 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 		//TODO: handle if there is a color code applied at iCut that != sText and apply it to the start of sBuffer2
 		char[] sBuffer1 = new char[maxLen+1];
 		char[] sBuffer2 = new char[maxLen+1];
+		char sLastColor[11];
+
 		strcopy(sBuffer1, maxLen+1, sBuffer);
 
 		int iCut = FindCharInString(sBuffer1, ' ', true);
+		int iColor = FindCharInString(sBuffer1, '\\', true);
+		if(iColor != -1 && StrEqual(sBuffer1[iColor+1], "x") && StrEqual(sBuffer1[iColor+2], "0") && StrEqual(sBuffer1[iColor+3], "7"))
+		{
+			if(iCut - iColor <= 10)
+			{
+				iCut = iColor-1;
+			}
+			else if(!StrContains(sBuffer1[iColor], gS_ChatStrings.sText))
+			{
+				strcopy(sLastColor, sizeof(sLastColor), sBuffer1[iColor]);
+			}
+		}
+
 		strcopy(sBuffer1, iCut+1, sBuffer);
 
-		FormatEx(sBuffer2, maxLen+1, "%s%s%s", (gB_Protobuf ? " ":""), gS_ChatStrings.sText, sBuffer[iCut+1]);
+		FormatEx(sBuffer2, maxLen+1, "%s%s%s", (gB_Protobuf ? " ":""), IsNullString(sLastColor) ? gS_ChatStrings.sText : sLastColor, sBuffer[iCut+1]);
 
 		//copy/paste of if (!multipleMessages), with a second iteration for sBuffer2
 		if (client == 0)
@@ -2241,7 +2256,6 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 		EndMessage();
 
 		Handle hSayText22 = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
-
 		if (gB_Protobuf)
 		{
 			Protobuf pbmsg2 = UserMessageToProtobuf(hSayText22);
