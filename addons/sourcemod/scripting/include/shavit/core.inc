@@ -98,7 +98,7 @@ enum struct stylestrings_t
 
 enum struct chatstrings_t
 {
-	char sPrefix[64];
+	char sPrefix[128];
 	char sText[16];
 	char sWarning[16];
 	char sVariable[16];
