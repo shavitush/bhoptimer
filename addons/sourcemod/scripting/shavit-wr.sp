@@ -522,7 +522,20 @@ void UpdateClientCache(int client)
 	}
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT %s, style, track, completions FROM %splayertimes WHERE map = '%s' AND auth = %d;", gI_Driver == Driver_mysql ? "REPLACE(FORMAT(time, 9), ',', '')" : "printf(\"%.9f\", time)", gS_MySQLPrefix, gS_Map, iSteamID);
+	char sTimeFormat[64];
+	if (gI_Driver == Driver_mysql)
+	{
+		strcopy(sTimeFormat, sizeof(sTimeFormat), "REPLACE(FORMAT(time, 9), ',', '')");
+	}
+	else if (gI_Driver == Driver_pgsql)
+	{
+		strcopy(sTimeFormat, sizeof(sTimeFormat), "time::text");
+	}
+	else // SQLite
+	{
+		strcopy(sTimeFormat, sizeof(sTimeFormat), "printf(\"%.9f\", time)");
+	}
+	FormatEx(sQuery, sizeof(sQuery), "SELECT %s, style, track, completions FROM %splayertimes WHERE map = '%s' AND auth = %d;", sTimeFormat, gS_MySQLPrefix, gS_Map, iSteamID);
 	QueryLog(gH_SQL, SQL_UpdateCache_Callback, sQuery, GetClientSerial(client), DBPrio_High);
 }
 
@@ -588,9 +601,24 @@ void UpdateWRCache(int client = -1)
 
 	char sQuery[512];
 
-	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT style, track, auth, stage, time FROM `%sstagetimeswr` WHERE map = '%s';",
-		gS_MySQLPrefix, gS_Map);
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT style, track, auth, stage, time FROM `%sstagetimeswr` WHERE map = '%s';",
+			gS_MySQLPrefix, gS_Map);
+	}
+	else if (gI_Driver == Driver_pgsql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT style, track, auth, stage, time FROM %sstagetimeswr WHERE map = '%s';",
+			gS_MySQLPrefix, gS_Map);
+	}
+	else // SQLite
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT style, track, auth, stage, time FROM `%sstagetimeswr` WHERE map = '%s';",
+			gS_MySQLPrefix, gS_Map);
+	}
 
 	QueryLog(gH_SQL, SQL_UpdateWRStageTimes_Callback, sQuery);
 }
@@ -2737,10 +2765,27 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Transaction trans = new Transaction();
 		char query[512];
 
-		FormatEx(query, sizeof(query),
-			"DELETE FROM `%sstagetimeswr` WHERE style = %d AND track = %d AND map = '%s';",
-			gS_MySQLPrefix, style, track, gS_Map
-		);
+		if (gI_Driver == Driver_mysql)
+		{
+			FormatEx(query, sizeof(query),
+				"DELETE FROM `%sstagetimeswr` WHERE style = %d AND track = %d AND map = '%s';",
+				gS_MySQLPrefix, style, track, gS_Map
+			);
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			FormatEx(query, sizeof(query),
+				"DELETE FROM %sstagetimeswr WHERE style = %d AND track = %d AND map = '%s';",
+				gS_MySQLPrefix, style, track, gS_Map
+			);
+		}
+		else // SQLite
+		{
+			FormatEx(query, sizeof(query),
+				"DELETE FROM `%sstagetimeswr` WHERE style = %d AND track = %d AND map = '%s';",
+				gS_MySQLPrefix, style, track, gS_Map
+			);
+		}
 
 		AddQueryLog(trans, query);
 
@@ -2754,12 +2799,30 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				continue;
 			}
 
-			FormatEx(query, sizeof(query),
-				"INSERT INTO `%sstagetimeswr` (`style`, `track`, `map`, `auth`, `time`, `stage`) VALUES (%d, %d, '%s', %d, %f, %d);",
-				gS_MySQLPrefix, style, track, gS_Map, iSteamID, fTime, i
-			);
+			char sInsertQuery[512];
+			if (gI_Driver == Driver_mysql)
+			{
+				FormatEx(sInsertQuery, sizeof(sInsertQuery),
+					"INSERT INTO `%sstagetimeswr` (`style`, `track`, `map`, `auth`, `time`, `stage`) VALUES (%d, %d, '%s', %d, %f, %d);",
+					gS_MySQLPrefix, style, track, gS_Map, iSteamID, fTime, i
+				);
+			}
+			else if (gI_Driver == Driver_pgsql)
+			{
+				FormatEx(sInsertQuery, sizeof(sInsertQuery),
+					"INSERT INTO %sstagetimeswr (style, track, map, auth, time, stage) VALUES (%d, %d, '%s', %d, %f, %d);",
+					gS_MySQLPrefix, style, track, gS_Map, iSteamID, fTime, i
+				);
+			}
+			else // SQLite
+			{
+				FormatEx(sInsertQuery, sizeof(sInsertQuery),
+					"INSERT INTO `%sstagetimeswr` (`style`, `track`, `map`, `auth`, `time`, `stage`) VALUES (%d, %d, '%s', %d, %f, %d);",
+					gS_MySQLPrefix, style, track, gS_Map, iSteamID, fTime, i
+				);
+			}
 
-			AddQueryLog(trans, query);
+			AddQueryLog(trans, sInsertQuery);
 		}
 
 		gH_SQL.Execute(trans, Trans_ReplaceStageTimes_Success, Trans_ReplaceStageTimes_Error, 0, DBPrio_High);
@@ -2971,7 +3034,20 @@ public void Trans_ReplaceStageTimes_Error(Database db, any data, int numQueries,
 void UpdateLeaderboards()
 {
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "SELECT p.style, p.track, %s, 0, p.id, p.auth, u.name FROM %splayertimes p LEFT JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s' ORDER BY p.time ASC, p.date ASC;", gI_Driver == Driver_mysql ? "REPLACE(FORMAT(time, 9), ',', '')" : "printf(\"%.9f\", p.time)", gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
+	char sTimeFormat[64];
+	if (gI_Driver == Driver_mysql)
+	{
+		strcopy(sTimeFormat, sizeof(sTimeFormat), "REPLACE(FORMAT(time, 9), ',', '')");
+	}
+	else if (gI_Driver == Driver_pgsql)
+	{
+		strcopy(sTimeFormat, sizeof(sTimeFormat), "p.time::text");
+	}
+	else // SQLite
+	{
+		strcopy(sTimeFormat, sizeof(sTimeFormat), "printf(\"%.9f\", p.time)");
+	}
+	FormatEx(sQuery, sizeof(sQuery), "SELECT p.style, p.track, %s, 0, p.id, p.auth, u.name FROM %splayertimes p LEFT JOIN %susers u ON p.auth = u.auth WHERE p.map = '%s' ORDER BY p.time ASC, p.date ASC;", sTimeFormat, gS_MySQLPrefix, gS_MySQLPrefix, gS_Map);
 	QueryLog(gH_SQL, SQL_UpdateLeaderboards_Callback, sQuery);
 }
 
