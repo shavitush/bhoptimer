@@ -2203,11 +2203,11 @@ public int SemiNative_PrintToChat(int client, int formatParam)
 		int iColor = FindCharInString(sBuffer1, '\\', true);
 		if(iColor != -1 && StrEqual(sBuffer1[iColor+1], "x") && StrEqual(sBuffer1[iColor+2], "0") && StrEqual(sBuffer1[iColor+3], "7"))
 		{
-			if(iCut - iColor <= 10)
+			if(0 <= iCut - iColor <= 11)
 			{
 				iCut = iColor-1;
 			}
-			else if(!StrContains(sBuffer1[iColor], gS_ChatStrings.sText))
+			if(!StrContains(sBuffer1[iColor], gS_ChatStrings.sText))
 			{
 				strcopy(sLastColor, sizeof(sLastColor), sBuffer1[iColor]);
 			}
