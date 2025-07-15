@@ -33,6 +33,9 @@ jobs:
           wget https://github.com/hermansimensen/eventqueue-fix/archive/refs/heads/main.tar.gz
           tar --strip-components=1 -xvzf main.tar.gz -C addons/sourcemod
           rm -rf *.zip *.tar.gz addons/sourcemod/.git* addons/sourcemod/LICENSE
+          wget https://github.com/srcwr/eventqueuefixfix/releases/download/v1.0.1/eventqueuefixfix-v1.0.1-def5b0e-windows-x32.zip
+          unzip eventqueuefixfix-v1.0.1-def5b0e-windows-x32.zip "addons/sourcemod/extensions/*"
+          rm "addons/sourcemod/extensions/eventqueuefixfix.pdb"
 
       - name: Run compiler
         shell: bash
