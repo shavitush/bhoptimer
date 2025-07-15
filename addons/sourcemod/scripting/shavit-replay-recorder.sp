@@ -392,6 +392,8 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 
 	int postframes = gI_PlayerFrames[client] - gI_PlayerFinishFrame[client];
 
+	ArrayList playerrecording = view_as<ArrayList>(CloneHandle(gA_PlayerFrames[client]));
+
 	DataPack dp = new DataPack();
 	dp.WriteCell(GetClientSerial(client));
 	dp.WriteCell(style);
@@ -408,7 +410,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	dp.WriteCell(isBestReplay);
 	dp.WriteCell(isTooLong);
 	dp.WriteCell(makeCopy);
-	dp.WriteCell(gA_PlayerFrames[client]);
+	dp.WriteCell(playerrecording);
 	dp.WriteCell(gI_PlayerPrerunFrames[client]);
 	dp.WriteCell(postframes);
 	dp.WriteString(sName);
@@ -416,7 +418,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	if (gB_Floppy)
 	{
 		SRCWRFloppy_AsyncSaveReplay(
-			  REPLAY_FORMAT_FINAL,
+			  REPLAY_FORMAT_FINAL
 			, REPLAY_FORMAT_SUBVERSION
 			, FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem
 			, dp
@@ -425,9 +427,9 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 			, style
 			, track
 			, time
-			, steamid
-			, preframes
-			, gA_PlayerFrames[client]
+			, iSteamID
+			, gI_PlayerPrerunFrames[client]
+			, playerrecording
 			, gI_PlayerFrames[client]
 			, postframes
 			, timestamp
@@ -440,7 +442,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	else
 	{
 		char sPath[PLATFORM_MAX_PATH];
-		bool saved = SaveReplay(style, track, time, iSteamID, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
+		bool saved = SaveReplay(style, track, time, iSteamID, gI_PlayerPrerunFrames[client], playerrecording, gI_PlayerFrames[client], postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
 		FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem(saved, dp, sPath)
 	}
 
@@ -466,7 +468,7 @@ void FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem(bool saved, any value, 
 	int timestamp = dp.ReadCell();
 	bool isBestReplay = dp.ReadCell();
 	bool isTooLong = dp.ReadCell();
-	bool MakeCopy = dp.ReadCell();
+	bool makeCopy = dp.ReadCell();
 	ArrayList playerrecording = dp.ReadCell();
 	int preframes = dp.ReadCell();
 	int postframes = dp.ReadCell();
@@ -502,6 +504,8 @@ void FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem(bool saved, any value, 
 	Call_PushCell(postframes);
 	Call_PushString(sName);
 	Call_Finish();
+
+	delete playerrecording;
 }
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
