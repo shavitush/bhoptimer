@@ -37,7 +37,7 @@ jobs:
           unzip eventqueuefixfix-v1.0.1-def5b0e-windows-x32.zip "addons/sourcemod/extensions/*"
           rm "addons/sourcemod/extensions/eventqueuefixfix.pdb"
           wget https://github.com/srcwr/srcwrfloppy/releases/download/v2.0.0/srcwrfloppy-v2.0.0.zip
-          unzip srcwrfloppy-v2.0.0.zip "addons/sourcemod/extensions/*"
+          unzip -qO UTF-8 srcwrfloppy-v2.0.0.zip "addons/sourcemod/extensions/*"
           rm "addons/sourcemod/extensions/srcwr💾.pdb"
 
       - name: Run compiler
