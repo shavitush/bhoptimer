@@ -15,30 +15,14 @@ typeset ReplaySavedCallback {
 
 // Don't modify the `playerrecording` ArrayList until the ReplaySavedCallback is called... OR ELSE!!!!
 native void SRCWRFloppy_AsyncSaveReplay(
-	// required & will throw an error if you don't use the supported versions...
-	  char[] replayfmt
-	, int replaysubversion
-	// what to call when saved
-	, ReplaySavedCallback callback
-	// what to pass along to the callback
-	, any value
-
-	, char[] replayFolder
-	, char[] map
-	// copy of SaveReplay() params
-	, int style
-	, int track
-	, float time
-	, int steamid
-	, int preframes
+	  ReplaySavedCallback callback // what to call when saved
+	, any value // what to pass along to the callback
+	, char[] wrpath
+	, char[] copypath
+	, char[] header
+	, int headersize
 	, ArrayList playerrecording
-	, int iSize
-	, int postframes
-	, int timestamp
-	, float fZoneOffset[2]
-	, bool saveCopy
-	, bool saveWR
-	, float tickrate
+	, int totalframes
 );
 
 

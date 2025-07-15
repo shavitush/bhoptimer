@@ -417,26 +417,27 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 
 	if (gB_Floppy)
 	{
+		char buf[512];
+		int headersize = WriteReplayHeaderToBuffer(buf, style, track, time, iSteamID, gI_PlayerPrerunFrames[client], postframes, fZoneOffset, gI_PlayerFrames[client], gF_Tickrate, gS_Map);
+
+		char wrpath[PLATFORM_MAX_PATH], copypath[PLATFORM_MAX_PATH];
+		if (makeReplay)
+			FormatEx(wrpath, sizeof(wrpath),
+				track>0?"%s/%d/%s%s_%d.replay" : "%s/%d/%s%s.replay",
+				gS_ReplayFolder, style, gS_Map, track
+			);
+		if (makeCopy)
+			FormatEx(copypath, sizeof(copypath), "%s/copy/%d_%d_%s.replay", gS_ReplayFolder, timestamp, iSteamID, gS_Map);
+
 		SRCWRFloppy_AsyncSaveReplay(
-			  REPLAY_FORMAT_FINAL
-			, REPLAY_FORMAT_SUBVERSION
-			, FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem
+			  FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem
 			, dp
-			, gS_ReplayFolder
-			, gS_Map
-			, style
-			, track
-			, time
-			, iSteamID
-			, gI_PlayerPrerunFrames[client]
+			, wrpath
+			, copypath
+			, buf
+			, headersize
 			, playerrecording
 			, gI_PlayerFrames[client]
-			, postframes
-			, timestamp
-			, fZoneOffset
-			, makeCopy
-			, makeReplay
-			, gF_Tickrate
 		);
 	}
 	else
