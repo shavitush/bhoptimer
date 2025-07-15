@@ -35,7 +35,7 @@
 #include <shavit/replay-stocks.sp>
 
 #undef REQUIRE_EXTENSIONS
-#include <srcwr/delta>
+#include <srcwr/floppy>
 
 
 public Plugin myinfo =
@@ -98,7 +98,7 @@ float gF_HijackedAngles[MAXPLAYERS+1][2];
 bool gB_HijackFramesKeepOnStart[MAXPLAYERS+1];
 
 bool gB_ReplayPlayback = false;
-bool gB_Delta = false;
+bool gB_Floppy = false;
 
 //#include <TickRateControl>
 forward void TickRate_OnTickRateChanged(float fOld, float fNew);
@@ -154,7 +154,7 @@ public void OnPluginStart()
 	gF_Tickrate = (1.0 / GetTickInterval());
 
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
-	gB_Delta = LibraryExists("srcwrdelta");
+	gB_Floppy = LibraryExists("srcwr💾");
 
 	if (gB_Late)
 	{
@@ -176,9 +176,9 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_ReplayPlayback = true;
 	}
-	else if (StrEqual(name, "srcwrdelta"))
+	else if (StrEqual(name, "srcwr💾"))
 	{
-		gB_Delta = true;
+		gB_Floppy = true;
 	}
 }
 
@@ -188,9 +188,9 @@ public void OnLibraryRemoved(const char[] name)
 	{
 		gB_ReplayPlayback = false;
 	}
-	else if (StrEqual(name, "srcwrdelta"))
+	else if (StrEqual(name, "srcwr💾"))
 	{
-		gB_Delta = false;
+		gB_Floppy = false;
 	}
 }
 
@@ -413,14 +413,15 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	dp.WriteCell(postframes);
 	dp.WriteString(sName);
 
-	if (gB_Delta)
+	if (gB_Floppy)
 	{
-		SRCWRDELTA_AsyncSaveReplay(
+		SRCWRFloppy_AsyncSaveReplay(
 			  REPLAY_FORMAT_FINAL,
 			, REPLAY_FORMAT_SUBVERSION
-			, DeltaAsynchronouslySavedMyReplayWhichWasNiceOfThem
+			, FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem
 			, dp
 			, gS_ReplayFolder
+			, gS_Map
 			, style
 			, track
 			, time
@@ -433,19 +434,20 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 			, fZoneOffset
 			, makeCopy
 			, makeReplay
+			, gF_Tickrate
 		);
 	}
 	else
 	{
 		char sPath[PLATFORM_MAX_PATH];
 		bool saved = SaveReplay(style, track, time, iSteamID, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
-		DeltaAsynchronouslySavedMyReplayWhichWasNiceOfThem(saved, dp, sPath)
+		FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem(saved, dp, sPath)
 	}
 
 	ClearFrames(client);
 }
 
-void DeltaAsynchronouslySavedMyReplayWhichWasNiceOfThem(bool saved, any value, char[] sPath)
+void FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem(bool saved, any value, char[] sPath)
 {
 	DataPack dp = value;
 	dp.Reset();
