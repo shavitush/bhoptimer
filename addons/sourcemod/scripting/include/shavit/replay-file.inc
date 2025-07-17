@@ -376,7 +376,7 @@ stock void cell2buf(char[] buf, int& pos, int cell)
 stock int WriteReplayHeaderToBuffer(char[] buf, int style, int track, float time, int steamid, int preframes, int postframes, float fZoneOffset[2], int totalframes, float tickrate, const char[] sMap)
 {
 	int pos = FormatEx(buf, 512, "%d:%s\n%s", REPLAY_FORMAT_SUBVERSION, REPLAY_FORMAT_FINAL, sMap);
-	pos += 1; // skip pass NUL
+	pos += 1; // skip past NUL
 	buf[pos++] = style & 0xFF;
 	buf[pos++] = track & 0xFF;
 	cell2buf(buf, pos, preframes);
