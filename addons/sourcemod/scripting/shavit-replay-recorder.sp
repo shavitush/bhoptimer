@@ -34,6 +34,10 @@
 #include <shavit/replay-file>
 #include <shavit/replay-stocks.sp>
 
+#undef REQUIRE_EXTENSIONS
+#include <srcwr/floppy>
+
+
 public Plugin myinfo =
 {
 	name = "[shavit] Replay Recorder",
@@ -94,6 +98,7 @@ float gF_HijackedAngles[MAXPLAYERS+1][2];
 bool gB_HijackFramesKeepOnStart[MAXPLAYERS+1];
 
 bool gB_ReplayPlayback = false;
+bool gB_Floppy = false;
 
 //#include <TickRateControl>
 forward void TickRate_OnTickRateChanged(float fOld, float fNew);
@@ -149,6 +154,7 @@ public void OnPluginStart()
 	gF_Tickrate = (1.0 / GetTickInterval());
 
 	gB_ReplayPlayback = LibraryExists("shavit-replay-playback");
+	gB_Floppy = LibraryExists("srcwr💾");
 
 	if (gB_Late)
 	{
@@ -170,6 +176,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_ReplayPlayback = true;
 	}
+	else if (StrEqual(name, "srcwr💾"))
+	{
+		gB_Floppy = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -177,6 +187,10 @@ public void OnLibraryRemoved(const char[] name)
 	if (StrEqual(name, "shavit-replay-playback"))
 	{
 		gB_ReplayPlayback = false;
+	}
+	else if (StrEqual(name, "srcwr💾"))
+	{
+		gB_Floppy = false;
 	}
 }
 
@@ -378,13 +392,94 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 
 	int postframes = gI_PlayerFrames[client] - gI_PlayerFinishFrame[client];
 
-	char sPath[PLATFORM_MAX_PATH];
-	bool saved = SaveReplay(style, track, time, iSteamID, gI_PlayerPrerunFrames[client], gA_PlayerFrames[client], gI_PlayerFrames[client], postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
+	ArrayList playerrecording = view_as<ArrayList>(CloneHandle(gA_PlayerFrames[client]));
+
+	DataPack dp = new DataPack();
+	dp.WriteCell(GetClientSerial(client));
+	dp.WriteCell(style);
+	dp.WriteCell(time);
+	dp.WriteCell(jumps);
+	dp.WriteCell(strafes);
+	dp.WriteCell(sync);
+	dp.WriteCell(track);
+	dp.WriteCell(oldtime);
+	dp.WriteCell(perfs);
+	dp.WriteCell(avgvel);
+	dp.WriteCell(maxvel);
+	dp.WriteCell(timestamp);
+	dp.WriteCell(isBestReplay);
+	dp.WriteCell(isTooLong);
+	dp.WriteCell(makeCopy);
+	dp.WriteCell(playerrecording);
+	dp.WriteCell(gI_PlayerPrerunFrames[client]);
+	dp.WriteCell(postframes);
+	dp.WriteString(sName);
+
+	if (gB_Floppy)
+	{
+		char buf[512];
+		int headersize = WriteReplayHeaderToBuffer(buf, style, track, time, iSteamID, gI_PlayerPrerunFrames[client], postframes, fZoneOffset, gI_PlayerFrames[client], gF_Tickrate, gS_Map);
+
+		char wrpath[PLATFORM_MAX_PATH], copypath[PLATFORM_MAX_PATH];
+		if (makeReplay)
+			FormatEx(wrpath, sizeof(wrpath),
+				track>0?"%s/%d/%s%s_%d.replay" : "%s/%d/%s%s.replay",
+				gS_ReplayFolder, style, gS_Map, track
+			);
+		if (makeCopy)
+			FormatEx(copypath, sizeof(copypath), "%s/copy/%d_%d_%s.replay", gS_ReplayFolder, timestamp, iSteamID, gS_Map);
+
+		SRCWRFloppy_AsyncSaveReplay(
+			  FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem
+			, dp
+			, wrpath
+			, copypath
+			, buf
+			, headersize
+			, playerrecording
+			, gI_PlayerFrames[client]
+		);
+	}
+	else
+	{
+		char sPath[PLATFORM_MAX_PATH];
+		bool saved = SaveReplay(style, track, time, iSteamID, gI_PlayerPrerunFrames[client], playerrecording, gI_PlayerFrames[client], postframes, timestamp, fZoneOffset, makeCopy, makeReplay, sPath, sizeof(sPath));
+		FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem(saved, dp, sPath)
+	}
+
+	ClearFrames(client);
+}
+
+void FloppyAsynchronouslySavedMyReplayWhichWasNiceOfThem(bool saved, any value, char[] sPath)
+{
+	DataPack dp = value;
+	dp.Reset();
+
+	int client = GetClientFromSerial(dp.ReadCell());
+	int style = dp.ReadCell();
+	float time = dp.ReadCell();
+	int jumps = dp.ReadCell();
+	int strafes = dp.ReadCell();
+	float sync = dp.ReadCell();
+	int track = dp.ReadCell();
+	float oldtime = dp.ReadCell();
+	float perfs  = dp.ReadCell();
+	float avgvel = dp.ReadCell();
+	float maxvel = dp.ReadCell();
+	int timestamp = dp.ReadCell();
+	bool isBestReplay = dp.ReadCell();
+	bool isTooLong = dp.ReadCell();
+	bool makeCopy = dp.ReadCell();
+	ArrayList playerrecording = dp.ReadCell();
+	int preframes = dp.ReadCell();
+	int postframes = dp.ReadCell();
+	char sName[MAX_NAME_LENGTH];
+	dp.ReadString(sName, sizeof(sName));
 
 	if (!saved)
 	{
-		LogError("SaveReplay() failed. Skipping OnReplaySaved")
-		ClearFrames(client);
+		LogError("Failed to save replay... Skipping OnReplaySaved");
+		delete playerrecording; // importante!
 		return;
 	}
 
@@ -405,13 +500,13 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 	Call_PushCell(isTooLong);
 	Call_PushCell(makeCopy);
 	Call_PushString(sPath);
-	Call_PushCell(gA_PlayerFrames[client]);
-	Call_PushCell(gI_PlayerPrerunFrames[client]);
+	Call_PushCell(playerrecording);
+	Call_PushCell(preframes);
 	Call_PushCell(postframes);
 	Call_PushString(sName);
 	Call_Finish();
 
-	ClearFrames(client);
+	delete playerrecording;
 }
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp)
@@ -469,16 +564,6 @@ bool SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 	File fWR = null;
 	File fCopy = null;
 
-	if (saveWR)
-	{
-		FormatEx(sPath, sPathLen, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
-
-		if (!(fWR = OpenFile(sPath, "wb+")))
-		{
-			LogError("Failed to open WR replay file for writing. ('%s')", sPath);
-		}
-	}
-
 	if (saveCopy)
 	{
 		FormatEx(sPath, sPathLen, "%s/copy/%d_%d_%s.replay", gS_ReplayFolder, timestamp, steamid, gS_Map);
@@ -486,6 +571,16 @@ bool SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 		if (!(fCopy = OpenFile(sPath, "wb+")))
 		{
 			LogError("Failed to open 'copy' replay file for writing. ('%s')", sPath);
+		}
+	}
+
+	if (saveWR)
+	{
+		FormatEx(sPath, sPathLen, "%s/%d/%s%s.replay", gS_ReplayFolder, style, gS_Map, (track > 0)? sTrack:"");
+
+		if (!(fWR = OpenFile(sPath, "wb+")))
+		{
+			LogError("Failed to open WR replay file for writing. ('%s')", sPath);
 		}
 	}
 

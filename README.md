@@ -26,6 +26,9 @@ Includes a records system, map zones (start/end marks etc), bonuses, HUD with us
   * Allows for timescaling boosters and is used to fix some exploits. (Use this instead of `boosterfix`)
   * (included in bhoptimer release zips)
   * Along with using [eventqueuefixfix](https://github.com/srcwr/eventqueuefixfix) at the same time to fix eventqueuefix on Windows after the 2025-02-18 update.
+* [srcwr💾](https://github.com/srcwr/srcwrfloppy)
+  * Saves replays asynchronously (read: doesn't lag the server when saving a replay).
+  * (included in bhoptimer release zips)
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556)
   * Used to grab `{serverip}` in advertisements.
 * [DynamicChannels](https://github.com/Vauff/DynamicChannels)
