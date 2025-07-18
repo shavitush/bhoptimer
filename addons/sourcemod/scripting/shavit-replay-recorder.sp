@@ -423,7 +423,7 @@ void DoReplaySaverCallbacks(int iSteamID, int client, int style, float time, int
 		char wrpath[PLATFORM_MAX_PATH], copypath[PLATFORM_MAX_PATH];
 		if (makeReplay)
 			FormatEx(wrpath, sizeof(wrpath),
-				track>0?"%s/%d/%s%s_%d.replay" : "%s/%d/%s%s.replay",
+				track>0?"%s/%d/%s_%d.replay" : "%s/%d/%s.replay",
 				gS_ReplayFolder, style, gS_Map, track
 			);
 		if (makeCopy)
