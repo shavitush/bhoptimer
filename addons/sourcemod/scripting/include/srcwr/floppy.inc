@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2025 rtldg <rtldg@protonmail.com>
 
-#if defined _floppy_included
+#if defined _srcwrfloppy_included
 	#endinput
 #endif
-#define _floppy_included
+#define _srcwrfloppy_included
 #pragma semicolon 1
 
 
@@ -43,7 +43,7 @@ public Extension __ext_srcwrfloppy =
 };
 
 #if !defined REQUIRE_EXTENSIONS
-public void __ext_floppy_SetNTVOptional()
+public void __ext_srcwrfloppy_SetNTVOptional()
 {
 	MarkNativeAsOptional("SRCWRFloppy_AsyncSaveReplay");
 }
