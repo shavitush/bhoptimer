@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Map Zones
- * by: shavit, GAMMA CASE, rtldg, KiD Fearless, Kryptanyte, carnifex, rumour, BoomShotKapow, Nuko, Technoblazed, Kxnrl, Extan, sh4hrazad, OliviaMourning
+ * by: shavit, GAMMA CASE, rtldg, KiD Fearless, Kryptanyte, carnifex, rumour, BoomShotKapow, Nuko, Technoblazed, Kxnrl, Extan, sh4hrazad, olivia
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -202,7 +202,7 @@ int gI_LastMenuPos[MAXPLAYERS+1];
 public Plugin myinfo =
 {
 	name = "[shavit] Map Zones",
-	author = "shavit, GAMMA CASE, rtldg, KiD Fearless, Kryptanyte, carnifex, rumour, BoomShotKapow, Nuko, Technoblazed, Kxnrl, Extan, sh4hrazad, OliviaMourning",
+	author = "shavit, GAMMA CASE, rtldg, KiD Fearless, Kryptanyte, carnifex, rumour, BoomShotKapow, Nuko, Technoblazed, Kxnrl, Extan, sh4hrazad, olivia",
 	description = "Map zones for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -2106,7 +2106,7 @@ Action DisplayCustomSpawnMenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -2191,7 +2191,7 @@ Action DisplayCustomSpawnDeleteMenu(int client)
 	}
 
 	menu.ExitButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -2620,7 +2620,7 @@ public Action Command_Zones(int client, int args)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -2655,7 +2655,7 @@ public int MenuHandler_SelectZoneTrack(Menu menu, MenuAction action, int param1,
 		}
 
 		submenu.ExitButton = true;
-		submenu.Display(param1, 300);
+		submenu.Display(param1, MENU_TIME_FOREVER);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -3738,7 +3738,7 @@ public Action Command_DeleteAllZones(int client, int args)
 	}
 
 	menu.ExitBackButton = true;
-	menu.Display(client, 300);
+	menu.Display(client, MENU_TIME_FOREVER);
 
 	return Plugin_Handled;
 }
@@ -5347,7 +5347,7 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_Slay:
 		{
-			if (status != Timer_Stopped)
+			if (status == Timer_Running)
 			{
 				Shavit_StopTimer(other);
 				ACTUALLY_ForcePlayerSuicide(other);
@@ -5357,7 +5357,7 @@ public void StartTouchPost(int entity, int other)
 
 		case Zone_Stop:
 		{
-			if(status != Timer_Stopped)
+			if(status == Timer_Running)
 			{
 				Shavit_StopTimer(other);
 				Shavit_PrintToChat(other, "%T", "ZoneStopEnter", other, gS_ChatStrings.sWarning, gS_ChatStrings.sVariable2, gS_ChatStrings.sWarning);

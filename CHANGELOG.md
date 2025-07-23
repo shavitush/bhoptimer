@@ -3,8 +3,16 @@ Note: Dates are UTC+0.
 
 
 
-# v3.?.? - ? - 2025-06-?? - rtldg
-- shavit-mapchooser timerified (more) https://github.com/shavitush/bhoptimer/pull/1242 @mourningsickness
+# v3.?.? - ? - 2025-0?-? - rtldg
+what will go here? hmm i wonder... maybe vscript pull request? maybe updating tf2 gamedata because i forgot? who knows...
+
+
+
+# v3.5.1 - small things - 2025-06-24 - rtldg
+- fix olivia's name in the author lists https://github.com/shavitush/bhoptimer/commit/f0ccf6dc0aa45aa72d7c428d5c8866aae28467e4
+- shavit-wr.sp - add back buttons to !delete menus (QoL) https://github.com/shavitush/bhoptimer/commit/877b71aa4d8a7735ee0eec189dd0ef6a72249180 @mourningsickness @rtldg
+- Keep all menus open forever https://github.com/shavitush/bhoptimer/commit/bb09568d9797b61b1a0cd290b56545f8a928b8e8
+	- a few that were missed in a pass a couple years ago
 
 
 

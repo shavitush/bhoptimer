@@ -162,10 +162,13 @@
 			}
 			// search "sv_maxusrcmdprocessticks_warning at server" to find CPlayerMove::RunCommand
 			// then sig the the `mov REG1,dword ptr [REG2 + OFFSET_TO_BUTTON_DISABLED_HERE]`
+			// looks like these in decompiled form:
+			// (windows) `param_3[0xc] = param_3[0xc] & ~param_2[0x32b];`
+			// (linux)   `*(uint *)(param_3 + 0x30) = uVar12 & ~param_2[0x331];`
 			"CBasePlayer->m_afButtonDisabled"
 			{
-				"windows"   "\x8B\x87\x2A\x2A\x2A\x2A\xF7\xD0\x21\x43"
-				"linux"     "\x8B\x83\x2A\x2A\x2A\x2A\xF7\xD0"
+				"windows"   "\x8B\x86\x2A\x2A\x2A\x2A\xF7\xD0\x21\x47"
+				"linux"     "\x8b\x93\x2A\x2A\x2A\x2A\xF7\xD2\x21\xd0"
 			}
 		}
 	}

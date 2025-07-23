@@ -48,8 +48,9 @@ forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, in
 
 /**
  * Called when either a WR replay or a copy of a replay has been saved.
+ * NOTE: Can be called with a delay after a run is finished due to asynchronous replay saving through extensions.
  *
- * @param client                    Client index.
+ * @param client                    Client index. Can be 0 if the replay was saved asynchronously & the client disconnected super duper quick...
  * @param style                     Style the record was done on.
  * @param time                      Record time.
  * @param jumps                     Jumps amount.

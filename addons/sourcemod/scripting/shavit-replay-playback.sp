@@ -2763,6 +2763,12 @@ public void Player_Event(Event event, const char[] name, bool dontBroadcast)
 			KickReplay(gA_BotInfo[index]);
 		}
 	}
+	
+	if(IsPlayerAlive(client) && gB_InReplayMenu[client])
+	{
+		CancelClientMenu(client);
+		gB_InReplayMenu[client] = false;
+	}
 }
 
 public Action BotEvents(Event event, const char[] name, bool dontBroadcast)
@@ -2995,18 +3001,21 @@ public int DeleteConfirmation_Callback(Menu menu, MenuAction action, int param1,
 		menu.GetItem(param2, sInfo, 4);
 		int style = StringToInt(sInfo);
 
-		if (style != -1 && DeleteReplay(style, gI_MenuTrack[param1], 0, gS_Map))
+		if (style != -1)
 		{
-			char sTrack[32];
-			GetTrackName(param1, gI_MenuTrack[param1], sTrack, 32);
+			if (DeleteReplay(style, gI_MenuTrack[param1], 0, gS_Map))
+			{
+				char sTrack[32];
+				GetTrackName(param1, gI_MenuTrack[param1], sTrack, 32);
 
-			LogAction(param1, param1, "Deleted replay for %s on map %s. (Track: %s)", gS_StyleStrings[style].sStyleName, gS_Map, sTrack);
+				LogAction(param1, param1, "Deleted replay for %s on map %s. (Track: %s)", gS_StyleStrings[style].sStyleName, gS_Map, sTrack);
 
-			Shavit_PrintToChat(param1, "%T (%s%s%s)", "ReplayDeleted", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText);
-		}
-		else
-		{
-			Shavit_PrintToChat(param1, "%T", "ReplayDeleteFailure", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
+				Shavit_PrintToChat(param1, "%T (%s%s%s)", "ReplayDeleted", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText);
+			}
+			else
+			{
+				Shavit_PrintToChat(param1, "%T", "ReplayDeleteFailure", param1, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
+			}
 		}
 
 		Command_DeleteReplay(param1, 0);
@@ -3383,7 +3392,7 @@ void OpenReplayStyleMenu(int client, int track)
 	}
 
 	menu.ExitBackButton = true;
-	menu.DisplayAt(client, 0, 300);
+	menu.DisplayAt(client, 0, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_ReplayStyle(Menu menu, MenuAction action, int param1, int param2)

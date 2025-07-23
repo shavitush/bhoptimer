@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Checkpoints
- * by: shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2
+ * by: shavit, kidfearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, olivia, Nuko, yupi2
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -132,7 +132,7 @@ StringMap gH_VScript_Checkpoint_CustomData[MAXPLAYERS+1];
 public Plugin myinfo =
 {
 	name = "[shavit] Checkpoints",
-	author = "shavit, KiD Fearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, OliviaMourning, Nuko, yupi2",
+	author = "shavit, KiD Fearless, Nairda, GAMMA CASE, rumour, rtldg, sh4hrazad, Ciallo-Ani, olivia, Nuko, yupi2",
 	description = "Checkpoints for shavit's bhop timer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -1602,7 +1602,7 @@ bool SaveCheckpoint(int client, bool duplicate = false)
 	return true;
 }
 
-void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin)
+void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, Handle plugin, bool saveReplay = false)
 {
 	GetClientAbsOrigin(target, cpcache.fPosition);
 	GetClientEyeAngles(target, cpcache.fAngles);
@@ -1716,7 +1716,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 	cpcache.aSnapshot = snapshot;
 	cpcache.bSegmented = CanSegment(target);
 
-	if (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null)
+	if (saveReplay || (cpcache.bSegmented && gB_ReplayRecorder && index != -1 && cpcache.aFrames == null))
 	{
 		ArrayList frames = Shavit_GetReplayData(target, false);
 
@@ -2286,7 +2286,8 @@ public any Native_SaveCheckpointCache(Handle plugin, int numParams)
 	int target = GetNativeCell(2);
 	cp_cache_t cache;
 	int index = GetNativeCell(4);
-	SaveCheckpointCache(saver, target, cache, index, plugin);
+	bool saveReplay = (numParams >= 6 && GetNativeCell(5));
+	SaveCheckpointCache(saver, target, cache, index, plugin, saveReplay);
 	return SetNativeArray(3, cache, sizeof(cp_cache_t));
 }
 
