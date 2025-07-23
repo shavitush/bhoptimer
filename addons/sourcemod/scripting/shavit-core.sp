@@ -2569,10 +2569,15 @@ bool CanStartTimer(int client, int track, bool skipGroundCheck)
 
 	if (skipGroundTimer) return true;
 
-	int halfSecOfTicks = RoundFloat(0.5 / GetTickInterval());
-	int onGroundTicks = gI_LastTickcount[client] - gI_FirstTouchedGround[client];
+	if (gI_FirstTouchedGround[client] > 0)
+	{
+		int halfSecOfTicks = RoundFloat(0.5 / GetTickInterval());
+		int onGroundTicks = gI_LastTickcount[client] - gI_FirstTouchedGround[client];
 
-	return onGroundTicks >= halfSecOfTicks;
+		return onGroundTicks >= halfSecOfTicks;
+	}
+
+	return false;
 }
 
 void StartTimer(int client, int track, bool skipGroundCheck)
@@ -3670,6 +3675,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 				gA_Timers[client].iPerfectJumps++;
 			}
 		}
+	}
+
+	if (!bOnGround)
+	{
+		gI_FirstTouchedGround[client] = 0;
 	}
 
 	// This can be bypassed by spamming +duck on CSS which causes `iGroundEntity` to be `-1` here...
