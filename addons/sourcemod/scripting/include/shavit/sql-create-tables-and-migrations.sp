@@ -182,6 +182,11 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 		gS_SQLPrefix, sOptionalINNODB);
 	AddQueryLog(trans, sQuery);
 
+	FormatEx(sQuery, sizeof(sQuery),
+		"CREATE TABLE IF NOT EXISTS `%sstylerankings` (`auth` INT NOT NULL, `style` TINYINT NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`, `style`));",
+		gS_SQLPrefix);
+	AddQueryLog(trans, sQuery);
+
 	//
 	//// shavit-stats
 	//
