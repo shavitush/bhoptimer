@@ -59,13 +59,24 @@
 enum struct ranking_t
 {
 	int iRank;
+	int iStyleRank[STYLE_LIMIT];
 	float fPoints;
+	float fStylePoints[STYLE_LIMIT];
 	int iWRAmountAll;
 	int iWRAmountCvar;
 	int iWRHolderRankAll;
 	int iWRHolderRankCvar;
 	int iWRAmount[STYLE_LIMIT*2];
 	int iWRHolderRank[STYLE_LIMIT*2];
+}
+
+enum struct stylerankcache_t
+{
+	int iLastStyle;
+	int iLastTrack;
+	int iPagePosition;
+	bool bForceStyle;
+	bool bPendingMenu;
 }
 
 char gS_MySQLPrefix[32];
@@ -99,6 +110,7 @@ Convar gCV_DefaultTier = null;
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
 int gI_RankedPlayers = 0;
+int gI_StyleRankedPlayers[STYLE_LIMIT] = {0, ...};
 Menu gH_Top100Menu = null;
 
 Handle gH_Forwards_OnTierAssigned = null;
@@ -107,6 +119,11 @@ Handle gH_Forwards_OnRankAssigned = null;
 // Timer settings.
 chatstrings_t gS_ChatStrings;
 int gI_Styles = 0;
+stylestrings_t gS_StyleStrings[STYLE_LIMIT];
+
+// Cache
+StringMap gSM_StyleCommands = null;
+stylerankcache_t gA_StyleRankCache[MAXPLAYERS+1];
 
 bool gB_WorldRecordsCached = false;
 bool gB_WRHolderTablesMade = false;
@@ -119,7 +136,7 @@ int gI_WRHoldersCvar;
 public Plugin myinfo =
 {
 	name = "[shavit] Rankings",
-	author = "shavit, rtldg",
+	author = "shavit, rtldg, olivia",
 	description = "A fair and competitive ranking system for shavit's bhoptimer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -130,8 +147,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetMapTier", Native_GetMapTier);
 	CreateNative("Shavit_GetMapTiers", Native_GetMapTiers);
 	CreateNative("Shavit_GetPoints", Native_GetPoints);
+	CreateNative("Shavit_GetStylePoints", Native_GetStylePoints);
 	CreateNative("Shavit_GetRank", Native_GetRank);
+	CreateNative("Shavit_GetStyleRank", Native_GetStyleRank);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
+	CreateNative("Shavit_GetStyleRankedPlayers", Native_GetStyleRankedPlayers);
 	CreateNative("Shavit_Rankings_DeleteMap", Native_Rankings_DeleteMap);
 	CreateNative("Shavit_GetWRCount", Native_GetWRCount);
 	CreateNative("Shavit_GetWRHolders", Native_GetWRHolders);
@@ -152,11 +172,15 @@ public void OnPluginStart()
 	gH_Forwards_OnTierAssigned = CreateGlobalForward("Shavit_OnTierAssigned", ET_Event, Param_String, Param_Cell);
 	gH_Forwards_OnRankAssigned = CreateGlobalForward("Shavit_OnRankAssigned", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
+	gSM_StyleCommands = new StringMap();
+
 	RegConsoleCmd("sm_tier", Command_Tier, "Prints the map's tier to chat.");
 	RegConsoleCmd("sm_maptier", Command_Tier, "Prints the map's tier to chat. (sm_tier alias)");
 
 	RegConsoleCmd("sm_rank", Command_Rank, "Show your or someone else's rank. Usage: sm_rank [name]");
 	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players.");
+	RegConsoleCmd("sm_stylerank", Command_StyleRank, "Show your or someone else's rank on a style. Usage: sm_stylerank [name]");
+	RegConsoleCmd("sm_styletop", Command_StyleTop, "Show the top 100 players for a style.");
 
 	RegAdminCmd("sm_settier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_settier <tier> [map]");
 	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_setmaptier <tier> [map] (sm_settier alias)");
@@ -201,8 +225,47 @@ public void Shavit_OnChatConfigLoaded()
 	Shavit_GetChatStringsStruct(gS_ChatStrings);
 }
 
+void RegisterStyleRankCommands(int style)
+{
+	char sStyleCommands[32][32];
+	int iCommands = ExplodeString(gS_StyleStrings[style].sChangeCommand, ";", sStyleCommands, 32, 32, false);
+
+	char sDescription[128];
+	FormatEx(sDescription, 128, "View the top players of style %s.", gS_StyleStrings[style].sStyleName);
+
+	for (int x = 0; x < iCommands; x++)
+	{
+		TrimString(sStyleCommands[x]);
+		StripQuotes(sStyleCommands[x]);
+
+		if (strlen(sStyleCommands[x]) < 1)
+		{
+			continue;
+		}
+
+
+		char sCommand[40];
+		FormatEx(sCommand, sizeof(sCommand), "sm_rank%s", sStyleCommands[x]);
+		gSM_StyleCommands.SetValue(sCommand, style);
+		RegConsoleCmd(sCommand, Command_Rank_Style, sDescription);
+
+		FormatEx(sCommand, sizeof(sCommand), "sm_top%s", sStyleCommands[x]);
+		gSM_StyleCommands.SetValue(sCommand, style);
+		RegConsoleCmd(sCommand, Command_Top_Style, sDescription);
+	}
+}
+
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
+	for (int i = 0; i < STYLE_LIMIT; i++)
+	{
+		if (i < styles)
+		{
+			Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
+			RegisterStyleRankCommands(i);
+		}
+	}
+
 	gI_Styles = styles;
 }
 
@@ -310,6 +373,9 @@ public void OnClientConnected(int client)
 {
 	ranking_t empty_ranking;
 	gA_Rankings[client] = empty_ranking;
+	
+	stylerankcache_t empty_cache;
+	gA_StyleRankCache[client] = empty_cache;
 }
 
 public void OnClientAuthorized(int client, const char[] auth)
@@ -565,44 +631,136 @@ public Action Command_Tier(int client, int args)
 	return Plugin_Handled;
 }
 
+public Action Command_StyleRank(int client, int args)
+{
+	//Create a style menu
+	//Call Command_Rank with the client's selected style
+
+	return Plugin_Handled;
+}
+
+public Action Command_Rank_Style(int client, int args)
+{
+	char sCommand[128];
+	GetCmdArg(0, sCommand, sizeof(sCommand));
+
+	int style = 0;
+
+	if (gSM_StyleCommands.GetValue(sCommand, style))
+	{
+		gA_StyleRankCache[client].bForceStyle = true;
+		gA_StyleRankCache[client].iLastStyle = style;
+		Command_Rank(client, args);
+	}
+
+	return Plugin_Handled;
+}
+
 public Action Command_Rank(int client, int args)
 {
 	int target = client;
+	int style = -1;
 
-	if(args > 0)
+	if (args > 0)
 	{
 		char sArgs[MAX_TARGET_LENGTH];
 		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
 
 		target = FindTarget(client, sArgs, true, false);
 
-		if(target == -1)
+		if (target == -1)
 		{
 			return Plugin_Handled;
 		}
 	}
 
-	if(gA_Rankings[target].fPoints == 0.0)
+	if (gA_StyleRankCache[client].bForceStyle)
+	{
+		style = gA_StyleRankCache[client].iLastStyle;
+		gA_StyleRankCache[client].bForceStyle = false;
+	}
+
+	if (gA_Rankings[target].fPoints == 0.0)
 	{
 		Shavit_PrintToChat(client, "%T", "Unranked", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText);
 
 		return Plugin_Handled;
 	}
+	else if (style > -1 && gA_Rankings[target].fStylePoints[style] == 0.0)
+	{
+		Shavit_PrintToChat(client, "%T", "UnrankedOnStyle", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
 
+		return Plugin_Handled;
+	}
+	
+	if (style == -1)
+	{
 	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
 		gS_ChatStrings.sVariable, (gA_Rankings[target].iRank > gI_RankedPlayers)? gI_RankedPlayers:gA_Rankings[target].iRank, gS_ChatStrings.sText,
 		gI_RankedPlayers,
 		gS_ChatStrings.sVariable, gA_Rankings[target].fPoints, gS_ChatStrings.sText);
+	}
+	else
+	{
+		Shavit_PrintToChat(client, "%T", "StyleRank", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
+		gS_ChatStrings.sVariable, (gA_Rankings[target].iStyleRank[style] > gI_RankedStylePlayers[style])? gI_RankedStylePlayers[style]:gA_Rankings[target].iStyleRank[style], gS_ChatStrings.sText,
+		gI_RankedStylePlayers[style],
+		gS_ChatStrings.sVariable, gA_Rankings[target].fPoints, gS_ChatStrings.sText,
+		gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText);
+	}
 
 	return Plugin_Handled;
 }
 
 public Action Command_Top(int client, int args)
 {
-	if(gH_Top100Menu != null)
+	int style = -1;
+
+	if (gA_StyleRankCache[client].bForceStyle)
 	{
-		gH_Top100Menu.SetTitle("%T (%d)\n ", "Top100", client, gI_RankedPlayers);
-		gH_Top100Menu.Display(client, MENU_TIME_FOREVER);
+		style = gA_StyleRankCache[client].iLastStyle;
+		gA_StyleRankCache[client].bForceStyle = false;
+	}
+
+	if (style == -1)
+	{
+		if(gH_Top100Menu != null)
+		{
+			gH_Top100Menu.SetTitle("%T (%d)\n ", "Top100", client, gI_RankedPlayers);
+			gH_Top100Menu.Display(client, MENU_TIME_FOREVER);
+		}
+	}
+	else
+	{
+		if(gH_StyleTop100Menu != null)
+		{
+			gH_StyleTop100Menu.SetTitle("%T (%d)\n ", "Top100", client, gS_StyleStrings[style].sStyleName, gI_RankedStylePlayers[style]);
+			gH_StyleTop100Menu.Display(client, style, MENU_TIME_FOREVER);
+		}
+	}
+
+	return Plugin_Handled;
+}
+
+public Action Command_StyleTop(int client, int args)
+{
+	//Create style menu
+
+	return Plugin_Handled;
+}
+
+public Action Command_Top_Style(int client, int args)
+{
+	char sCommand[128];
+	GetCmdArg(0, sCommand, sizeof(sCommand));
+
+	int style = 0;
+
+	if (gSM_StyleCommands.GetValue(sCommand, style))
+	{
+		gA_StyleRankCache[client].bForceStyle = true;
+		gA_StyleRankCache[client].iLastStyle = style;
+		Command_Top(client, args);
 	}
 
 	return Plugin_Handled;
