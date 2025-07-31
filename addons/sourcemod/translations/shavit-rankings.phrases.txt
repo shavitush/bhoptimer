@@ -36,6 +36,11 @@
 	{
 		"en"		"Top 100 ranked players:"
 	}
+	"StyleTop100"
+	{
+		"#format"	"{1:s}"
+		"en"		"Top 100 ranked players ({1}):"
+	}
 	"NoRankedPlayers"
 	{
 		"en"		"No ranked players found."
