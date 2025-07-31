@@ -41,6 +41,10 @@
 		"#format"	"{1:s}"
 		"en"		"Top 100 ranked players ({1}):"
 	}
+	"Overall"
+	{
+		"en"		"Overall"
+	}
 	"NoRankedPlayers"
 	{
 		"en"		"No ranked players found."
