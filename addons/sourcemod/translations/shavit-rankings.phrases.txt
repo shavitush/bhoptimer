@@ -21,6 +21,11 @@
 		"#format"	"{1:s},{2:N},{3:s}"
 		"en"		"{1}{2}{3} is unranked."
 	}
+	"UnrankedOnStyle"
+	{
+		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:s},{6:s}"
+		"en"		"{1}{2}{3} is unranked on {4}{5}{6}."
+	}
 	// ---------- Menus ---------- //
 	"Top100"
 	{
