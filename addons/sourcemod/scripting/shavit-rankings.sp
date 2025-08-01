@@ -1342,7 +1342,7 @@ void UpdatePointsForSinglePlayer(int client)
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			"UPDATE %sstylepoints SET points = (SELECT SUM(points) FROM %splayertimes WHERE auth = %d AND style = %d) WHERE auth = %d AND style = %d;",
+			"UPDATE IGNORE %sstylepoints SET points = (SELECT SUM(points) FROM %splayertimes WHERE auth = %d AND style = %d) WHERE auth = %d AND style = %d;",
 			gS_MySQLPrefix, gS_MySQLPrefix, auth, i, auth, i);
 
 			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
@@ -1374,7 +1374,7 @@ void UpdatePointsForSinglePlayer(int client)
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			    "UPDATE %sstylepoints SET points = (\n"
+			    "UPDATE IGNORE %sstylepoints SET points = (\n"
 			... "  SELECT SUM(points2) FROM (\n"
 			... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
 			... "    FROM %splayertimes\n"
@@ -1402,7 +1402,7 @@ void UpdatePointsForSinglePlayer(int client)
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-				"UPDATE %sstylepoints SET points = GetWeightedPoints(auth, %d) WHERE auth = %d and style = %d;",
+				"UPDATE IGNORE %sstylepoints SET points = GetWeightedPoints(auth, %d) WHERE auth = %d and style = %d;",
 				gS_MySQLPrefix, i, auth, i);
 
 			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
@@ -1446,7 +1446,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			for (int i = 0; i < gI_Styles; i++)
 			{
 				FormatEx(sStyleQuery, sizeof(sStyleQuery),
-					"UPDATE %sstylepoints AS S SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P WHERE S.auth = P.auth %s %s;",
+					"UPDATE IGNORE %sstylepoints AS S SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P WHERE S.auth = P.auth %s %s;",
 					gS_MySQLPrefix, gS_MySQLPrefix, i,
 					(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
 
@@ -1463,7 +1463,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			for (int i = 0; i < gI_Styles; i++)
 			{
 				FormatEx(sStyleQuery, sizeof(sStyleQuery),
-					"UPDATE %sstylepoints AS S INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P ON S.auth = P.auth SET S.points = P.total %s %s;",
+					"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P ON S.auth = P.auth SET S.points = P.total %s %s;",
 					gS_MySQLPrefix, gS_MySQLPrefix, i,
 					(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
 
@@ -1506,7 +1506,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			    "UPDATE %sstylepoints AS s, (\n"
+			    "UPDATE IGNORE %sstylepoints AS s, (\n"
 			... "  SELECT auth, SUM(t.points2) as pp FROM (\n"
 			... "    SELECT p.auth, (p.points * POW(%f, ROW_NUMBER() OVER (PARTITION BY p.auth ORDER BY p.points DESC) - 1)) as points2\n"
 			... "    FROM %splayertimes AS p\n"
@@ -1562,7 +1562,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			    "UPDATE %sstylepoints AS s\n"
+			    "UPDATE IGNORE %sstylepoints AS s\n"
 			... "SET points = (\n"
 			... "  SELECT SUM(points2) FROM (\n"
 			... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) AS points2\n"
@@ -1602,7 +1602,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			FormatEx(sQuery, sizeof(sQuery),
-				"UPDATE %sstylepoints SET points = GetWeightedStylePoints(auth, %d) WHERE %s %s auth IN (SELECT DISTINCT auth FROM %splayertimes WHERE style = %d %s %s %s %s);",
+				"UPDATE IGNORE %sstylepoints SET points = GetWeightedStylePoints(auth, %d) WHERE %s %s auth IN (SELECT DISTINCT auth FROM %splayertimes WHERE style = %d %s %s %s %s);",
 				gS_MySQLPrefix, i,
 				sLastLogin, (sLastLogin[0] != 0) ? "AND" : "",
 				gS_MySQLPrefix, i,
