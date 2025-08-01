@@ -1349,8 +1349,9 @@ void FormatChat(int client, char[] buffer, int size)
 			else
 			{
 				IntToString(iStyleRank, sStyleRank, 16);
+				Format(sStyleRank, 16, "#%s", sStyleRank);
 			}
-			FormatEx(sStyleBuf, 32, "#{style%drank}", i);
+			FormatEx(sStyleBuf, 32, "{style%drank}", i);
 			ReplaceString(buffer, size, sStyleBuf, sStyleRank);
 
 			if(i == Shavit_GetBhopStyle(client))
@@ -1612,8 +1613,9 @@ public int Native_GetPlainChatrank(Handle handler, int numParams)
 			else
 			{
 				IntToString(iStyleRank, sStyleRank, 16);
+				Format(sStyleRank, 16, "#%s", sStyleRank);
 			}
-			FormatEx(sStyleBuf, 32, "#{style%drank}", i);
+			FormatEx(sStyleBuf, 32, "{style%drank}", i);
 			ReplaceString(buf, sizeof(buf), sStyleBuf, sStyleRank);
 
 			if(i == Shavit_GetBhopStyle(client))
