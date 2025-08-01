@@ -1350,8 +1350,14 @@ void FormatChat(int client, char[] buffer, int size)
 			{
 				IntToString(iStyleRank, sStyleRank, 16);
 			}
-			FormatEx(sStyleBuf, 32, "{style%drank}", i);
+			FormatEx(sStyleBuf, 32, "#{style%drank}", i);
 			ReplaceString(buffer, size, sStyleBuf, sStyleRank);
+
+			if(i == Shavit_GetBhopStyle(client))
+			{
+				FormatEx(sStyleBuf, 32, "%s%s %s", iStyleRank > 0 ? "#" : "", sStyleRank, gS_StyleStrings[i].sStyleName);
+				ReplaceString(buffer, size, "{currentstylerank}", sStyleBuf);
+			}
 		}
 
 		int iRanked = Shavit_GetRankedPlayers();
@@ -1607,8 +1613,14 @@ public int Native_GetPlainChatrank(Handle handler, int numParams)
 			{
 				IntToString(iStyleRank, sStyleRank, 16);
 			}
-			FormatEx(sStyleBuf, 32, "{style%drank}", i);
+			FormatEx(sStyleBuf, 32, "#{style%drank}", i);
 			ReplaceString(buf, sizeof(buf), sStyleBuf, sStyleRank);
+
+			if(i == Shavit_GetBhopStyle(client))
+			{
+				FormatEx(sStyleBuf, 32, "%s%s %s", iStyleRank > 0 ? "#" : "", sStyleRank, gS_StyleStrings[i].sStyleName);
+				ReplaceString(buf, sizeof(buf), "{currentstylerank}", sStyleBuf);
+			}
 		}
 
 		int iRanked = Shavit_GetRankedPlayers();
