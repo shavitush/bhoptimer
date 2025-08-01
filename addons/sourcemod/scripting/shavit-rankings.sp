@@ -1402,7 +1402,7 @@ void UpdatePointsForSinglePlayer(int client)
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-				"UPDATE IGNORE %sstylepoints SET points = GetWeightedPoints(auth, %d) WHERE auth = %d and style = %d;",
+				"UPDATE IGNORE %sstylepoints SET points = GetStyleWeightedPoints(auth, %d) WHERE auth = %d and style = %d;",
 				gS_MySQLPrefix, i, auth, i);
 
 			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
@@ -1446,8 +1446,8 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			for (int i = 0; i < gI_Styles; i++)
 			{
 				FormatEx(sStyleQuery, sizeof(sStyleQuery),
-					"UPDATE IGNORE %sstylepoints AS S SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P WHERE S.auth = P.auth %s %s;",
-					gS_MySQLPrefix, gS_MySQLPrefix, i,
+					"UPDATE IGNORE %sstylepoints AS S SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P WHERE S.auth = P.auth AND style = %d %s %s;",
+					gS_MySQLPrefix, gS_MySQLPrefix, i, i,
 					(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
 
 				QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
@@ -1463,8 +1463,8 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			for (int i = 0; i < gI_Styles; i++)
 			{
 				FormatEx(sStyleQuery, sizeof(sStyleQuery),
-					"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P ON S.auth = P.auth SET S.points = P.total %s %s;",
-					gS_MySQLPrefix, gS_MySQLPrefix, i,
+					"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P ON S.auth = P.auth SET S.points = P.total WHERE style = %d %s %s;",
+					gS_MySQLPrefix, gS_MySQLPrefix, i, i,
 					(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
 
 				QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
