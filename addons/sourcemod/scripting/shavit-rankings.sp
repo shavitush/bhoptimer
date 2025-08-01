@@ -905,7 +905,7 @@ void OpenStyleTopMenu(int client)
 	{
 		char sName[33];
 		char sSteamID[33];
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < (gI_StyleRankedPlayers[iStyle] < 100 ? gI_StyleRankedPlayers[iStyle] : 100); i++)
 		{
 			gA_StyleTop[iStyle].sName.GetString(i, sName, sizeof(sName));
 			IntToString(gA_StyleTop[iStyle].iSteamID[i], sSteamID, sizeof(sSteamID));
