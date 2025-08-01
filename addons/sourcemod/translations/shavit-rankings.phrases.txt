@@ -41,6 +41,15 @@
 		"#format"	"{1:s}"
 		"en"		"Top 100 ranked players ({1}):"
 	}
+	"StyleRankTitle"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1}'s rank:"
+	}
+	"StyleTopTitle"
+	{
+		"en"		"Top Players Menu:"
+	}
 	"Overall"
 	{
 		"en"		"Overall"
