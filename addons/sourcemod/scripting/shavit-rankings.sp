@@ -227,7 +227,6 @@ public void OnPluginStart()
 	Convar.AutoExecConfig();
 
 	LoadTranslations("common.phrases");
-	LoadTranslations("shavit-core.phrases");
 	LoadTranslations("shavit-common.phrases");
 	LoadTranslations("shavit-rankings.phrases");
 
