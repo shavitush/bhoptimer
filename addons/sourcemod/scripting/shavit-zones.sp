@@ -1923,11 +1923,27 @@ void SetStart(int client, int track, bool anglesonly)
 
 	char query[1024];
 
-	FormatEx(query, sizeof(query),
-		"REPLACE INTO %sstartpositions (auth, track, map, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, angles_only) VALUES (%d, %d, '%s', %.03f, %.03f, %.03f, %.03f, %.03f, %.03f, %d);",
-		gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map,
-		gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
-		gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2], anglesonly);
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(query, sizeof(query),
+			"REPLACE INTO %sstartpositions (auth, track, map, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, angles_only) VALUES (%d, %d, '%s', %.03f, %.03f, %.03f, %.03f, %.03f, %.03f, %d);",
+			gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map,
+			gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
+			gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2], anglesonly);
+	}
+	else // PostgreSQL/SQLite
+	{
+		FormatEx(query, sizeof(query),
+			"INSERT INTO %sstartpositions (auth, track, map, pos_x, pos_y, pos_z, ang_x, ang_y, ang_z, angles_only) VALUES (%d, %d, '%s', %.03f, %.03f, %.03f, %.03f, %.03f, %.03f, %s) " ...
+			"ON CONFLICT (auth, track, map) DO UPDATE SET " ...
+			"pos_x = EXCLUDED.pos_x, pos_y = EXCLUDED.pos_y, pos_z = EXCLUDED.pos_z, " ...
+			"ang_x = EXCLUDED.ang_x, ang_y = EXCLUDED.ang_y, ang_z = EXCLUDED.ang_z, " ...
+			"angles_only = EXCLUDED.angles_only;",
+			gS_MySQLPrefix, GetSteamAccountID(client), track, gS_Map,
+			gF_StartPos[client][track][0], gF_StartPos[client][track][1], gF_StartPos[client][track][2],
+			gF_StartAng[client][track][0], gF_StartAng[client][track][1], gF_StartAng[client][track][2], 
+			anglesonly ? "true" : "false");
+	}
 
 	QueryLog(gH_SQL, SQL_InsertStartPosition_Callback, query);
 }

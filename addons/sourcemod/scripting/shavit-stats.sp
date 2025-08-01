@@ -49,6 +49,7 @@ bool gB_Rankings = false;
 // database handle
 Database gH_SQL = null;
 char gS_MySQLPrefix[32];
+int gI_Driver = Driver_unknown;
 
 // cache
 bool gB_CanOpenMenu[MAXPLAYERS+1];
@@ -187,7 +188,7 @@ void FlushDisconnectPlaytime()
 public void Shavit_OnDatabaseLoaded()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
-	gH_SQL = Shavit_GetDatabase();
+	gH_SQL = Shavit_GetDatabase(gI_Driver);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -425,9 +426,18 @@ void SavePlaytime222(int client, float now, Transaction&trans, int style, int iS
 			return;
 		}
 
-		FormatEx(sQuery, sizeof(sQuery),
-			"UPDATE `%susers` SET playtime = playtime + %f WHERE auth = %d;",
-			gS_MySQLPrefix, diff, iSteamID);
+		if (gI_Driver == Driver_mysql)
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE `%susers` SET playtime = playtime + %f WHERE auth = %d;",
+				gS_MySQLPrefix, diff, iSteamID);
+		}
+		else // PostgreSQL/SQLite
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE %susers SET playtime = playtime + %f WHERE auth = %d;",
+				gS_MySQLPrefix, diff, iSteamID);
+		}
 	}
 	else
 	{
@@ -448,16 +458,34 @@ void SavePlaytime222(int client, float now, Transaction&trans, int style, int iS
 
 		if (gB_HavePlaytimeOnStyle[client][style])
 		{
-			FormatEx(sQuery, sizeof(sQuery),
-				"UPDATE `%sstyleplaytime` SET playtime = playtime + %f WHERE auth = %d AND style = %d;",
-				gS_MySQLPrefix, diff, iSteamID, style);
+			if (gI_Driver == Driver_mysql)
+			{
+				FormatEx(sQuery, sizeof(sQuery),
+					"UPDATE `%sstyleplaytime` SET playtime = playtime + %f WHERE auth = %d AND style = %d;",
+					gS_MySQLPrefix, diff, iSteamID, style);
+			}
+			else // PostgreSQL/SQLite
+			{
+				FormatEx(sQuery, sizeof(sQuery),
+					"UPDATE %sstyleplaytime SET playtime = playtime + %f WHERE auth = %d AND style = %d;",
+					gS_MySQLPrefix, diff, iSteamID, style);
+			}
 		}
 		else
 		{
 			gB_HavePlaytimeOnStyle[client][style] = true;
-			FormatEx(sQuery, sizeof(sQuery),
-				"INSERT INTO `%sstyleplaytime` (`auth`, `style`, `playtime`) VALUES (%d, %d, %f);",
-				gS_MySQLPrefix, iSteamID, style, diff);
+			if (gI_Driver == Driver_mysql)
+			{
+				FormatEx(sQuery, sizeof(sQuery),
+					"INSERT INTO `%sstyleplaytime` (`auth`, `style`, `playtime`) VALUES (%d, %d, %f);",
+					gS_MySQLPrefix, iSteamID, style, diff);
+			}
+			else // PostgreSQL/SQLite
+			{
+				FormatEx(sQuery, sizeof(sQuery),
+					"INSERT INTO %sstyleplaytime (auth, style, playtime) VALUES (%d, %d, %f);",
+					gS_MySQLPrefix, iSteamID, style, diff);
+			}
 		}
 	}
 
@@ -554,11 +582,23 @@ public Action Command_Playtime(int client, int args)
 	}
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery),
-		"(SELECT auth, name, playtime, -1 as ownrank FROM %susers WHERE playtime > 0 ORDER BY playtime DESC LIMIT 100) " ...
-		"UNION " ...
-		"(SELECT -1, '', u2.playtime, COUNT(*) as ownrank FROM %susers u1 JOIN (SELECT playtime FROM %susers WHERE auth = %d) u2 WHERE u1.playtime >= u2.playtime);",
-		gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, GetSteamAccountID(client));
+	
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"(SELECT auth, name, playtime, -1 as ownrank FROM %susers WHERE playtime > 0 ORDER BY playtime DESC LIMIT 100) " ...
+			"UNION " ...
+			"(SELECT -1, '', u2.playtime, COUNT(*) as ownrank FROM %susers u1 JOIN (SELECT playtime FROM %susers WHERE auth = %d) u2 WHERE u1.playtime >= u2.playtime);",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, GetSteamAccountID(client));
+	}
+	else // PostgreSQL/SQLite
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"(SELECT auth, name, playtime, -1 as ownrank FROM %susers WHERE playtime > 0 ORDER BY playtime DESC LIMIT 100) " ...
+			"UNION " ...
+			"(SELECT -1, ''::TEXT, u2.playtime, COUNT(*)::INT as ownrank FROM %susers u1 JOIN (SELECT playtime FROM %susers WHERE auth = %d) u2 WHERE u1.playtime >= u2.playtime);",
+			gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, GetSteamAccountID(client));
+	}
 	QueryLog(gH_SQL, SQL_TopPlaytime_Callback, sQuery, GetClientSerial(client), DBPrio_Normal);
 
 	return Plugin_Handled;
@@ -819,13 +859,39 @@ Action OpenStatsMenu(int client, int steamid, int style = 0, int item = 0)
 	if (gB_Mapchooser && gCV_UseMapchooser.BoolValue)
 	{
 		char sQuery[2048];
-		FormatEx(sQuery, sizeof(sQuery),
-			// Note the `GROUP BY track>0` for now
-			"SELECT 0 as blah, map, track>0 FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0 " ...
-			"UNION SELECT 1 as blah, map, track>0 FROM %smapzones WHERE type = 0 GROUP BY map, track>0 " ...
-			"UNION SELECT 2 as blah, map, track FROM %swrs WHERE auth = %d AND style = %d GROUP BY map, track;",
-			gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style
-		);
+		
+		if (gI_Driver == Driver_mysql)
+		{
+			// MySQL/SQLite: original query
+			FormatEx(sQuery, sizeof(sQuery),
+				// Note the `GROUP BY track>0` for now
+				"SELECT 0 as blah, map, track>0 FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0 " ...
+				"UNION SELECT 1 as blah, map, track>0 FROM %smapzones WHERE type = 0 GROUP BY map, track>0 " ...
+				"UNION SELECT 2 as blah, map, track FROM %swrs WHERE auth = %d AND style = %d GROUP BY map, track;",
+				gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style
+			);
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			// PostgreSQL: cast track to boolean to match track>0
+			FormatEx(sQuery, sizeof(sQuery),
+				"SELECT 0 as blah, map, track>0 FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0 " ...
+				"UNION SELECT 1 as blah, map, track>0 FROM %smapzones WHERE type = 0 GROUP BY map, track>0 " ...
+				"UNION SELECT 2 as blah, map, track>0 FROM %swrs WHERE auth = %d AND style = %d GROUP BY map, track>0;",
+				gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style
+			);
+		}
+		else // SQLite
+		{
+			// SQLite: same as MySQL
+			FormatEx(sQuery, sizeof(sQuery),
+				// Note the `GROUP BY track>0` for now
+				"SELECT 0 as blah, map, track>0 FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0 " ...
+				"UNION SELECT 1 as blah, map, track>0 FROM %smapzones WHERE type = 0 GROUP BY map, track>0 " ...
+				"UNION SELECT 2 as blah, map, track FROM %swrs WHERE auth = %d AND style = %d GROUP BY map, track;",
+				gS_MySQLPrefix, steamid, style, gS_MySQLPrefix, gS_MySQLPrefix, steamid, style
+			);
+		}
 
 		QueryLog(gH_SQL, OpenStatsMenu_Mapchooser_Callback, sQuery, data, DBPrio_Low);
 
@@ -889,31 +955,65 @@ Action OpenStatsMenu_Main(int steamid, int style, DataPack data)
 {
 	char sQuery[2048];
 
-	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT 0, points, lastlogin, firstlogin, ip, playtime, name FROM %susers WHERE auth = %d\n" ...
-		"UNION ALL SELECT 1, SUM(playtime), 0, 0, 0, 0, '' FROM %sstyleplaytime WHERE auth = %d AND style = %d\n" ...
-		"UNION ALL SELECT 2, COUNT(*), 0, 0, 0, 0, '' FROM %susers u1\n" ...
-		"    JOIN (SELECT points FROM %susers WHERE auth = %d) u2\n" ...
-		"    WHERE u1.points >= u2.points",
-		gS_MySQLPrefix, steamid,
-		gS_MySQLPrefix, steamid, style,
-		gS_MySQLPrefix, gS_MySQLPrefix, steamid
-	);
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT 0, points, lastlogin, firstlogin, ip, playtime, name FROM %susers WHERE auth = %d\n" ...
+			"UNION ALL SELECT 1, SUM(playtime), 0, 0, 0, 0, '' FROM %sstyleplaytime WHERE auth = %d AND style = %d\n" ...
+			"UNION ALL SELECT 2, COUNT(*), 0, 0, 0, 0, '' FROM %susers u1\n" ...
+			"    JOIN (SELECT points FROM %susers WHERE auth = %d) u2 ON 1=1\n" ...
+			"    WHERE u1.points >= u2.points",
+			gS_MySQLPrefix, steamid,
+			gS_MySQLPrefix, steamid, style,
+			gS_MySQLPrefix, gS_MySQLPrefix, steamid
+		);
+	}
+	else // PostgreSQL/SQLite
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT 0, points::FLOAT, lastlogin, firstlogin, ip, playtime::FLOAT, name FROM %susers WHERE auth = %d\n" ...
+			"UNION ALL SELECT 1, SUM(playtime)::FLOAT, 0, 0, 0, 0.0, '' FROM %sstyleplaytime WHERE auth = %d AND style = %d\n" ...
+			"UNION ALL SELECT 2, COUNT(*)::FLOAT, 0, 0, 0, 0.0, '' FROM %susers u1\n" ...
+			"    JOIN (SELECT points FROM %susers WHERE auth = %d) u2 ON 1=1\n" ...
+			"    WHERE u1.points >= u2.points",
+			gS_MySQLPrefix, steamid,
+			gS_MySQLPrefix, steamid, style,
+			gS_MySQLPrefix, gS_MySQLPrefix, steamid
+		);
+	}
 
 	if (!gB_Mapchooser || !gCV_UseMapchooser.BoolValue)
 	{
-		Format(sQuery, sizeof(sQuery),
-			"%s\n" ...
-			"UNION ALL SELECT 3, COUNT(*), x.bonus, 0, 0, '' FROM\n"...
-			"    (SELECT map, track>0 as bonus FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0) x GROUP BY x.bonus\n"...
-			"UNION ALL SELECT 4, COUNT(*), track>0, 0, 0, '' FROM %swrs WHERE auth = %d AND style = %d GROUP BY track>0\n"...
-			"UNION ALL SELECT 5, COUNT(*), x.bonus, 0, 0, '' FROM\n"...
-			"    (SELECT map, track>0 as bonus FROM %smapzones WHERE type = 0 GROUP BY map, track>0) x GROUP BY x.bonus",
-			sQuery,
-			gS_MySQLPrefix, steamid, style,
-			gS_MySQLPrefix, steamid, style,
-			gS_MySQLPrefix
-		);
+		if (gI_Driver == Driver_mysql)
+		{
+			Format(sQuery, sizeof(sQuery),
+				"%s\n" ...
+				"UNION ALL SELECT 3, COUNT(*), x.bonus, 0, 0, 0, '' FROM\n"...
+				"    (SELECT map, track>0 as bonus FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0) x GROUP BY x.bonus\n"...
+				"UNION ALL SELECT 4, COUNT(*), track>0, 0, 0, 0, '' FROM %swrs WHERE auth = %d AND style = %d GROUP BY track>0\n"...
+				"UNION ALL SELECT 5, COUNT(*), x.bonus, 0, 0, 0, '' FROM\n"...
+				"    (SELECT map, track>0 as bonus FROM %smapzones WHERE type = 0 GROUP BY map, track>0) x GROUP BY x.bonus",
+				sQuery,
+				gS_MySQLPrefix, steamid, style,
+				gS_MySQLPrefix, steamid, style,
+				gS_MySQLPrefix
+			);
+		}
+		else // PostgreSQL/SQLite
+		{
+			Format(sQuery, sizeof(sQuery),
+				"%s\n" ...
+				"UNION ALL SELECT 3, COUNT(*)::FLOAT, CASE WHEN x.bonus THEN 1 ELSE 0 END, 0, 0, 0.0, '' FROM\n"...
+				"    (SELECT map, track>0 as bonus FROM %splayertimes WHERE auth = %d AND style = %d GROUP BY map, track>0) x GROUP BY x.bonus\n"...
+				"UNION ALL SELECT 4, COUNT(*)::FLOAT, CASE WHEN track>0 THEN 1 ELSE 0 END, 0, 0, 0.0, '' FROM %swrs WHERE auth = %d AND style = %d GROUP BY track>0\n"...
+				"UNION ALL SELECT 5, COUNT(*)::FLOAT, CASE WHEN x.bonus THEN 1 ELSE 0 END, 0, 0, 0.0, '' FROM\n"...
+				"    (SELECT map, track>0 as bonus FROM %smapzones WHERE type = 0 GROUP BY map, track>0) x GROUP BY x.bonus",
+				sQuery,
+				gS_MySQLPrefix, steamid, style,
+				gS_MySQLPrefix, steamid, style,
+				gS_MySQLPrefix
+			);
+		}
 	}
 
 	StrCat(sQuery, sizeof(sQuery), ";");
