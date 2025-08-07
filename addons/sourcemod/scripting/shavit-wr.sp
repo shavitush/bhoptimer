@@ -193,7 +193,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map] [bonus number]");
 	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map] [bonus number]");
 	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map] [bonus number]");
-	RegConsoleCmd("sm_swr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bsr [map] [bonus number]");
+	RegConsoleCmd("sm_bsr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bsr [map] [bonus number]");
 	RegConsoleCmd("sm_bserverrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bserverrecord [map] [bonus number]");
 	RegConsoleCmd("sm_bonusserverrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusserverrecord [map] [bonus number]");
 
