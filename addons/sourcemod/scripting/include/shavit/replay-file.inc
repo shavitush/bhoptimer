@@ -365,6 +365,35 @@ stock void WriteReplayHeader(File fFile, int style, int track, float time, int s
 	fFile.WriteInt32(view_as<int>(fZoneOffset[1]));
 }
 
+stock void cell2buf(char[] buf, int& pos, int cell)
+{
+	buf[pos++] = cell & 0xFF;
+	buf[pos++] = (cell >> 8) & 0xFF;
+	buf[pos++] = (cell >> 16) & 0xFF;
+	buf[pos++] = (cell >> 24) & 0xFF;
+}
+
+stock int WriteReplayHeaderToBuffer(char[] buf, int style, int track, float time, int steamid, int preframes, int postframes, float fZoneOffset[2], int totalframes, float tickrate, const char[] sMap)
+{
+	int pos = FormatEx(buf, 512, "%d:%s\n%s", REPLAY_FORMAT_SUBVERSION, REPLAY_FORMAT_FINAL, sMap);
+	pos += 1; // skip past NUL
+	buf[pos++] = style & 0xFF;
+	buf[pos++] = track & 0xFF;
+	cell2buf(buf, pos, preframes);
+
+	cell2buf(buf, pos, totalframes - preframes - postframes);
+	cell2buf(buf, pos, view_as<int>(time));
+	cell2buf(buf, pos, steamid);
+
+	cell2buf(buf, pos, postframes);
+	cell2buf(buf, pos, view_as<int>(tickrate));
+
+	cell2buf(buf, pos, view_as<int>(fZoneOffset[0]));
+	cell2buf(buf, pos, view_as<int>(fZoneOffset[1]));
+
+	return pos;
+}
+
 // file_a is usually used as the wr replay file.
 // file_b is usually used as the duplicate/backup replay file.
 stock void WriteReplayFrames(ArrayList playerrecording, int iSize, File file_a, File file_b)
