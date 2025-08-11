@@ -1386,7 +1386,6 @@ void UpdatePointsForSinglePlayer(int client)
 		);
 
 			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
-		}
 	}
 	else // We should only be here if mysql :)
 	{
