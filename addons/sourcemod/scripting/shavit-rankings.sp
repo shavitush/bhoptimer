@@ -1339,14 +1339,11 @@ void UpdatePointsForSinglePlayer(int client)
 			"UPDATE %susers SET points = (SELECT SUM(points) FROM %splayertimes WHERE auth = %d) WHERE auth = %d;",
 			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
 
-		for (int i = 0; i < gI_Styles; i++)
-		{
-			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			"UPDATE IGNORE %sstylepoints SET points = (SELECT SUM(points) FROM %splayertimes WHERE auth = %d AND style = %d) WHERE auth = %d AND style = %d;",
-			gS_MySQLPrefix, gS_MySQLPrefix, auth, i, auth, i);
+		FormatEx(sStyleQuery, sizeof(sStyleQuery),
+			"UPDATE IGNORE %sstylepoints AS S SET points = P.total (SELECT SUM(points) as total FROM %splayertimes WHERE auth = %d GROUP BY style) P WHERE auth = %d AND S.style = P.style;",
+			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
 
-			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
-		}
+		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 	}
 	else if (gB_SQLWindowFunctions)
 	{
@@ -1371,24 +1368,22 @@ void UpdatePointsForSinglePlayer(int client)
 			auth
 		);
 
-		for (int i = 0; i < gI_Styles; i++)
-		{
-			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			    "UPDATE IGNORE %sstylepoints SET points = (\n"
-			... "  SELECT SUM(points2) FROM (\n"
-			... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
-			... "    FROM %splayertimes\n"
-			... "    WHERE auth = %d AND points > 0 AND style = %d\n"
-			... "    ORDER BY points DESC %s\n"
-			... "  ) as t\n"
-			... ") WHERE auth = %d AND style = %d;",
-				gS_MySQLPrefix,
-				gCV_WeightingMultiplier.FloatValue,
-				gS_MySQLPrefix,
-				auth, i,
-				sLimit,
-				auth, i
-			);
+		FormatEx(sStyleQuery, sizeof(sStyleQuery),
+			"UPDATE IGNORE %sstylepoints AS S SET points = (\n"
+		... "  SELECT SUM(points2) FROM (\n"
+		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
+		... "    FROM %splayertimes\n"
+		... "    WHERE auth = %d AND points > 0 GROUP BY style\n"
+		... "    ORDER BY points DESC %s\n"
+		... "  ) as t\n"
+		... ") P WHERE auth = %d AND S.style = P.style;",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			auth,
+			sLimit,
+			auth
+		);
 
 			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 		}
@@ -1443,15 +1438,12 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 				gS_MySQLPrefix, gS_MySQLPrefix,
 				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
 
-			for (int i = 0; i < gI_Styles; i++)
-			{
-				FormatEx(sStyleQuery, sizeof(sStyleQuery),
-					"UPDATE IGNORE %sstylepoints AS S SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P WHERE S.auth = P.auth AND style = %d %s %s;",
-					gS_MySQLPrefix, gS_MySQLPrefix, i, i,
-					(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE IGNORE %sstylepoints AS S SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P WHERE S.auth = P.auth AND S.style = P.style %s %s;",
+				gS_MySQLPrefix, gS_MySQLPrefix,
+				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
 
-				QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
-			}
+			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 		}
 		else
 		{
@@ -1460,15 +1452,12 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 				gS_MySQLPrefix, gS_MySQLPrefix,
 				(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
 
-			for (int i = 0; i < gI_Styles; i++)
-			{
-				FormatEx(sStyleQuery, sizeof(sStyleQuery),
-					"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes WHERE style = %d GROUP BY auth) P ON S.auth = P.auth SET S.points = P.total WHERE style = %d %s %s;",
-					gS_MySQLPrefix, gS_MySQLPrefix, i, i,
-					(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P ON S.auth = P.auth SET S.points = P.total WHERE S.style = P.style %s %s;",
+				gS_MySQLPrefix, gS_MySQLPrefix,
+				(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
 
-				QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
-			}
+			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 		}
 	}
 	else if (gB_SQLWindowFunctions && gI_Driver == Driver_mysql)
@@ -1503,8 +1492,6 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			sTrackWhere,
 			sLimit); // TODO: Remove/move sLimit?
 
-		for (int i = 0; i < gI_Styles; i++)
-		{
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
 			    "UPDATE IGNORE %sstylepoints AS s, (\n"
 			... "  SELECT auth, SUM(t.points2) as pp FROM (\n"
@@ -1512,28 +1499,26 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			... "    FROM %splayertimes AS p\n"
 			... "    JOIN %sstylepoints AS s2\n"
 			... "     ON s2.auth = p.auth %s %s\n"
-			... "    WHERE p.points > 0 AND p.style = %d AND p.auth IN (SELECT DISTINCT auth FROM %splayertimes WHERE style = %d %s %s %s %s)\n"
-			... "    ORDER BY p.points DESC %s\n"
+			... "    WHERE p.points > 0 AND p.auth IN (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s)\n"
+			... "    ORDER BY p.points DESC GROUP BY style %s\n"
 			... "  ) AS t\n"
-			... "  GROUP by auth\n"
+			... "  GROUP by auth, style\n"
 			... ") AS a\n"
 			... "SET s.points = a.pp\n"
-			... "WHERE s.auth = a.auth and s.style = %d;",
+			... "WHERE s.auth = a.auth and s.style = a.style;",
 				gS_MySQLPrefix,
 				gCV_WeightingMultiplier.FloatValue,
 				gS_MySQLPrefix,
 				gS_MySQLPrefix,
 				sLastLogin[0] ? "AND" : "", sLastLogin,
-				i, gS_MySQLPrefix, i,
+				gS_MySQLPrefix,
 				sMapWhere[0] ? "AND" : "",
 				sMapWhere,
 				sTrackWhere[0] ? "AND" : "",
 				sTrackWhere,
-				sLimit, // TODO: Remove/move sLimit?
-				i);
+				sLimit); // TODO: Remove/move sLimit?
 
 			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
-		}
 	}
 	else if (gB_SQLWindowFunctions)
 	{
@@ -1559,33 +1544,29 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
 			sTrackWhere);
 
-		for (int i = 0; i < gI_Styles; i++)
-		{
-			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			    "UPDATE IGNORE %sstylepoints AS s\n"
-			... "SET points = (\n"
-			... "  SELECT SUM(points2) FROM (\n"
-			... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) AS points2\n"
-			... "    FROM %splayertimes\n"
-			... "    WHERE auth = s.auth AND points > 0 AND style = %d\n"
-			... "    ORDER BY points DESC %s\n"
-			... "  ) AS t\n"
-			... ") WHERE %s %s auth IN\n"
-			... "  (SELECT DISTINCT auth FROM %splayertimes WHERE style = %d %s %s %s %s);",
-				gS_MySQLPrefix,
-				gCV_WeightingMultiplier.FloatValue,
-				gS_MySQLPrefix,
-				i,
-				sLimit, // TODO: Remove/move sLimit?
-				sLastLogin, sLastLogin[0] ? "AND" : "",
-				gS_MySQLPrefix, i,
-				sMapWhere[0] ? "AND" : "",
-				sMapWhere,
-				sTrackWhere[0] ? "AND" : "",
-				sTrackWhere);
+		FormatEx(sStyleQuery, sizeof(sStyleQuery),
+		    "UPDATE IGNORE %sstylepoints AS s\n"
+		... "SET points = (\n"
+		... "  SELECT SUM(points2) FROM (\n"
+		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) AS points2\n"
+		... "    FROM %splayertimes\n"
+		... "    WHERE auth = s.auth AND points > 0\n"
+		... "    ORDER BY points DESC GROUP BY style %s\n"
+		... "  ) AS t\n"
+		... ") p WHERE %s %s auth IN\n"
+		... "  (SELECT DISTINCT auth FROM %splayertimes WHERE style = t.style %s %s %s %s);",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			sLimit, // TODO: Remove/move sLimit?
+			sLastLogin, sLastLogin[0] ? "AND" : "",
+			gS_MySQLPrefix,
+			sMapWhere[0] ? "AND" : "",
+			sMapWhere,
+			sTrackWhere[0] ? "AND" : "",
+			sTrackWhere);
 
-			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
-		}
+		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 	}
 	else // !gB_SQLWindowFunctions && gI_Driver == Driver_mysql
 	{
