@@ -1369,7 +1369,15 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 		if((gI_HUD2Settings[client] & HUD2_JUMPS) == 0)
 		{
-			FormatEx(sLine, 128, "%T: %d", "HudJumpsText", client, data.iJumps);
+			if (!Shavit_GetStyleSettingBool(data.iStyle, "autobhop") && (gI_HUD2Settings[client] & HUD2_PERFS) == 0)
+			{
+				FormatEx(sLine, 128, "%T: %d (%.1f%)", "HudJumpsText", client, data.iJumps, Shavit_GetPerfectJumps(data.iTarget));
+			}
+			else
+			{
+				FormatEx(sLine, 128, "%T: %d", "HudJumpsText", client, data.iJumps);
+			}
+
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 		}
 
