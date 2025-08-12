@@ -1340,8 +1340,8 @@ void UpdatePointsForSinglePlayer(int client)
 			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
 
 		FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			"UPDATE IGNORE %sstylepoints AS S SET points = P.total (SELECT style, SUM(points) as total FROM %splayertimes WHERE auth = %d GROUP BY style) P WHERE auth = %d AND S.style = P.style;",
-			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
+			"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, style, SUM(points) AS total FROM %splayertimes WHERE auth = %d GROUP BY style) P ON S.auth = P.auth SET S.points = P.total WHERE S.style = P.style;",
+			gS_MySQLPrefix, gS_MySQLPrefix, auth);
 
 		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 	}
