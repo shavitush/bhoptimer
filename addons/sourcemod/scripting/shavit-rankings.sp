@@ -422,7 +422,7 @@ public void OnClientAuthorized(int client, const char[] auth)
 			else // postgresql & sqlite
 			{
 				FormatEx(sQuery, 512,
-					"INSERT INTO %susers (auth, style, points) VALUES (%d, %d, 0) ON CONFLICT DO NOTHING;",
+					"INSERT INTO %sstylepoints (auth, style, points) VALUES (%d, %d, 0) ON CONFLICT DO NOTHING;",
 					gS_MySQLPrefix, iSteamID, i);
 			}
 
