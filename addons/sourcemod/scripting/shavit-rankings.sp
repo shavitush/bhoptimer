@@ -1340,7 +1340,7 @@ void UpdatePointsForSinglePlayer(int client)
 			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
 
 		FormatEx(sStyleQuery, sizeof(sStyleQuery),
-			"UPDATE IGNORE %sstylepoints AS S SET points = P.total (SELECT SUM(points) as total FROM %splayertimes WHERE auth = %d GROUP BY style) P WHERE auth = %d AND S.style = P.style;",
+			"UPDATE IGNORE %sstylepoints AS S SET points = P.total (SELECT style, SUM(points) as total FROM %splayertimes WHERE auth = %d GROUP BY style) P WHERE auth = %d AND S.style = P.style;",
 			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
 
 		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
@@ -1371,12 +1371,12 @@ void UpdatePointsForSinglePlayer(int client)
 		FormatEx(sStyleQuery, sizeof(sStyleQuery),
 			"UPDATE IGNORE %sstylepoints AS S SET points = (\n"
 		... "  SELECT SUM(points2) FROM (\n"
-		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
+		... "    SELECT style, (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
 		... "    FROM %splayertimes\n"
 		... "    WHERE auth = %d AND points > 0 GROUP BY style\n"
 		... "    ORDER BY points DESC %s\n"
 		... "  ) as t\n"
-		... ") P WHERE auth = %d AND S.style = P.style;",
+		... ") P WHERE auth = %d AND S.style = t.style;",
 			gS_MySQLPrefix,
 			gCV_WeightingMultiplier.FloatValue,
 			gS_MySQLPrefix,
@@ -1438,7 +1438,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
 
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-				"UPDATE IGNORE %sstylepoints AS S SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P WHERE S.auth = P.auth AND S.style = P.style %s %s;",
+				"UPDATE IGNORE %sstylepoints AS S SET points = P.total FROM (SELECT auth, style, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P WHERE S.auth = P.auth AND S.style = P.style %s %s;",
 				gS_MySQLPrefix, gS_MySQLPrefix,
 				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
 
@@ -1452,7 +1452,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 				(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
 
 			FormatEx(sStyleQuery, sizeof(sStyleQuery),
-				"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P ON S.auth = P.auth SET S.points = P.total WHERE S.style = P.style %s %s;",
+				"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, style, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P ON S.auth = P.auth SET S.points = P.total WHERE S.style = P.style %s %s;",
 				gS_MySQLPrefix, gS_MySQLPrefix,
 				(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
 
