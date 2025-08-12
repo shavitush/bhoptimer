@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Rankings
- * by: shavit, rtldg
+ * by: shavit, rtldg, olivia
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
