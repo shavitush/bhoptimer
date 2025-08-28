@@ -1015,6 +1015,7 @@ bool JumpToZoneType(KeyValues kv, int type, int track)
 		{"Speedmod", ""},
 		{"No Jump", ""},
 		{"Autobhop", ""},
+		{"Pause", ""},
 	};
 
 	char key[4][50];
@@ -2824,6 +2825,7 @@ public int MenuHandler_HookZone_Editor(Menu menu, MenuAction action, int param1,
 				| (1 << Zone_Speedmod)
 				| (1 << Zone_NoJump)
 				| (1 << Zone_Autobhop)
+				| (1 << Zone_Pause)
 				// ZoneForm_trigger_teleport
 				, (1 << Zone_End)
 				| (1 << Zone_Respawn)
@@ -5425,6 +5427,15 @@ public void StartTouchPost(int entity, int other)
 			SetVariantString(s);
 			AcceptEntityInput(entity, "ModifySpeed", other, entity, 0);
 		}
+
+		case Zone_Pause:
+		{
+			if(Shavit_GetTimerStatus(other) != Timer_Stopped)
+			{
+				Shavit_PauseTimer(other);
+				//Should we print?
+			}
+		}
 	}
 
 	gI_InsideZone[other][track] |= (1 << type);
@@ -5478,6 +5489,11 @@ public void EndTouchPost(int entity, int other)
 	{
 		SetVariantString("1.0");
 		AcceptEntityInput(entity, "ModifySpeed", other, entity, 0);
+	}
+
+	if (type == Zone_Pause)
+	{
+		Shavit_ResumeTimer(other);
 	}
 
 	Call_StartForward(gH_Forwards_LeaveZone);
