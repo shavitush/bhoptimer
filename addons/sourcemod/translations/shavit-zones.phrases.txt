@@ -533,6 +533,10 @@
 	{
 		"en"		"Autobhop Zone"
 	}
+	"Zone_Pause"
+	{
+		"en"		"Pause Zone"
+	}
 	"Zone_Unknown"
 	{
 		"en"		"UNKNOWN ZONE"
