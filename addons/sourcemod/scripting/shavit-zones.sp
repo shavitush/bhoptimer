@@ -131,6 +131,7 @@ Convar gCV_PrebuiltZones = null;
 Convar gCV_ClimbButtons = null;
 Convar gCV_Interval = null;
 Convar gCV_TeleportToStart = null;
+Convar gCV_TeleportToStartOnSpawn = null;
 Convar gCV_TeleportToEnd = null;
 Convar gCV_AllowDrawAllZones = null;
 Convar gCV_UseCustomSprite = null;
@@ -334,6 +335,7 @@ public void OnPluginStart()
 	gCV_ClimbButtons = new Convar("shavit_zones_usebuttons", "1", "Whether to automatically hook climb_* buttons.", 0, true, 0.0, true, 1.0);
 	gCV_Interval = new Convar("shavit_zones_interval", "1.0", "Interval between each time a mapzone is being drawn to the players.", 0, true, 0.25, true, 5.0);
 	gCV_TeleportToStart = new Convar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+	gCV_TeleportToStartOnSpawn = new Convar("shavit_zones_teleporttostart_onspawn", "1", "Teleport players to the start zone on player spawn?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = new Convar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_AllowDrawAllZones = new Convar("shavit_zones_allowdrawallzones", "1", "Allow players to use !drawallzones to see all zones regardless of zone visibility settings.\n0 - nobody can use !drawallzones\n1 - admins (sm_zones access) can use !drawallzones\n2 - anyone can use !drawallzones", 0, true, 0.0, true, 2.0);
 	gCV_UseCustomSprite = new Convar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
@@ -5071,60 +5073,7 @@ public void Shavit_OnRestart(int client, int track)
 
 	if(gCV_TeleportToStart.BoolValue)
 	{
-		bool bCustomStart = gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track];
-		bool use_CustomStart_over_CustomSpawn = (iIndex != -1) && bCustomStart;
-
-		// custom spawns
-		if (!use_CustomStart_over_CustomSpawn && !EmptyVector(gF_CustomSpawn[track]))
-		{
-			float pos[3]; pos = gF_CustomSpawn[track]; pos[2] += 1.0;
-			TeleportEntity(client, pos, NULL_VECTOR, ZERO_VECTOR);
-		}
-		// standard zoning
-		else if (bCustomStart || iIndex != -1)
-		{
-			float fCenter[3];
-
-			if (bCustomStart)
-			{
-				fCenter = gF_StartPos[client][track];
-			}
-			else
-			{
-				fCenter[0] = gV_ZoneCenter[iIndex][0];
-				fCenter[1] = gV_ZoneCenter[iIndex][1];
-				fCenter[2] = gA_ZoneCache[iIndex].fCorner1[2] + gCV_ExtraSpawnHeight.FloatValue;
-			}
-
-			fCenter[2] += 1.0;
-
-			TeleportEntity(client, fCenter, gB_HasSetStart[client][track] ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
-
-			if (gB_ReplayRecorder && gB_HasSetStart[client][track])
-			{
-				Shavit_HijackAngles(client, gF_StartAng[client][track][0], gF_StartAng[client][track][1], -1, true);
-			}
-
-			if (!gB_HasSetStart[client][track] || gB_StartAnglesOnly[client][track])
-			{
-				ResetClientTargetNameAndClassName(client, track);
-				// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
-				bool skipGroundCheck = true;
-				Shavit_StartTimer(client, track, skipGroundCheck);
-			}
-		}
-		// kz buttons
-		else if (Shavit_IsKZMap(track))
-		{
-			if (EmptyVector(gF_ClimbButtonCache[client][track][0]) || EmptyVector(gF_ClimbButtonCache[client][track][1]))
-			{
-				return;
-			}
-
-			TeleportEntity(client, gF_ClimbButtonCache[client][track][0], gF_ClimbButtonCache[client][track][1], view_as<float>({0.0, 0.0, 0.0}));
-
-			return;
-		}
+		TeleportToStart(client, iIndex, track);
 	}
 
 	if (iIndex != -1)
@@ -5214,7 +5163,74 @@ int GetZoneIndex(int type, int track, int start = 0)
 
 public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 {
-	Reset(GetClientOfUserId(event.GetInt("userid")));
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	int track = Shavit_GetClientTrack(client);
+	int iIndex = GetZoneIndex(Zone_Start, track);
+
+	Reset(client);
+	
+	if(GetConVarBool(gCV_TeleportToStartOnSpawn) && (Shavit_ZoneExists(Zone_Start, track) || Shavit_IsKZMap(track)))
+	{
+		TeleportToStart(client, iIndex, track);
+	}
+}
+
+public void TeleportToStart(int client, int iIndex, int track)
+{
+	bool bCustomStart = gB_HasSetStart[client][track] && !gB_StartAnglesOnly[client][track];
+	bool use_CustomStart_over_CustomSpawn = (iIndex != -1) && bCustomStart;
+
+	// custom spawns
+	if (!use_CustomStart_over_CustomSpawn && !EmptyVector(gF_CustomSpawn[track]))
+	{
+		float pos[3]; pos = gF_CustomSpawn[track]; pos[2] += 1.0;
+		TeleportEntity(client, pos, NULL_VECTOR, ZERO_VECTOR);
+	}
+	// standard zoning
+	else if (bCustomStart || iIndex != -1)
+	{
+		float fCenter[3];
+
+		if (bCustomStart)
+		{
+			fCenter = gF_StartPos[client][track];
+		}
+		else
+		{
+			fCenter[0] = gV_ZoneCenter[iIndex][0];
+			fCenter[1] = gV_ZoneCenter[iIndex][1];
+			fCenter[2] = gA_ZoneCache[iIndex].fCorner1[2] + gCV_ExtraSpawnHeight.FloatValue;
+		}
+
+		fCenter[2] += 1.0;
+
+		TeleportEntity(client, fCenter, gB_HasSetStart[client][track] ? gF_StartAng[client][track] : NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
+
+		if (gB_ReplayRecorder && gB_HasSetStart[client][track])
+		{
+			Shavit_HijackAngles(client, gF_StartAng[client][track][0], gF_StartAng[client][track][1], -1, true);
+		}
+
+		if (!gB_HasSetStart[client][track] || gB_StartAnglesOnly[client][track])
+		{
+			ResetClientTargetNameAndClassName(client, track);
+			// normally StartTimer will happen on zone-touch BUT we have this here for zones that are in the air
+			bool skipGroundCheck = true;
+			Shavit_StartTimer(client, track, skipGroundCheck);
+		}
+	}
+	// kz buttons
+	else if (Shavit_IsKZMap(track))
+	{
+		if (EmptyVector(gF_ClimbButtonCache[client][track][0]) || EmptyVector(gF_ClimbButtonCache[client][track][1]))
+		{
+			return;
+		}
+
+		TeleportEntity(client, gF_ClimbButtonCache[client][track][0], gF_ClimbButtonCache[client][track][1], view_as<float>({0.0, 0.0, 0.0}));
+
+		return;
+	}
 }
 
 public void Round_Start(Event event, const char[] name, bool dontBroadcast)
