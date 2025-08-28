@@ -47,6 +47,7 @@ enum
 	Zone_Speedmod,			// creates a player_speedmod
 	Zone_NoJump,			// blocks the player from jumping while inside the zone
 	Zone_Autobhop,			// forces autobhop for the player
+	Zone_Pause,				// pause the player's timer
 	ZONETYPES_SIZE
 };
 
@@ -139,7 +140,8 @@ stock void GetZoneName(int client, int zoneType, char[] output, int size)
 		"Zone_Gravity",
 		"Zone_Speedmod",
 		"Zone_NoJump",
-		"Zone_Autobhop",
+		"Zone_Autobhop",,
+		"Zone_Pause",
 	};
 
 	if (zoneType < 0 || zoneType >= ZONETYPES_SIZE)
