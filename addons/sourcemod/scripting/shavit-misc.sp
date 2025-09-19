@@ -2454,7 +2454,7 @@ public void Shavit_OnRestart(int client, int track)
 	{
 		SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 
-		if (gCV_RestartWithFullHP.BoolValue)
+		if (gCV_RestartWithFullHP.BoolValue && GetClientHealth(client) < 100)
 		{
 			SetEntityHealth(client, 100);
 			SetEntProp(client, Prop_Send, "m_ArmorValue", 100);
