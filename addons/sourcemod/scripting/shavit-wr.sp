@@ -507,14 +507,6 @@ public void OnClientAuthorized(int client, const char[] auth)
 	}
 }
 
-public void OnClientPostAdminCheck(int client)
-{
-	if (gB_Connected && !IsFakeClient(client) && !gB_LoadedCache[client])
-	{
-		UpdateClientCache(client);
-	}
-}
-
 public void OnClientDisconnect(int client)
 {
 	delete gH_PBMenu[client];
