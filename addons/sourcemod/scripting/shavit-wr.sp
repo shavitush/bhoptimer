@@ -187,10 +187,15 @@ public void OnPluginStart()
 	// player commands
 	RegConsoleCmd("sm_wr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_wr [map]");
 	RegConsoleCmd("sm_worldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_worldrecord [map]");
+	RegConsoleCmd("sm_sr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_sr [map]");
+	RegConsoleCmd("sm_serverrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_serverrecord [map]");
 
 	RegConsoleCmd("sm_bwr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bwr [map] [bonus number]");
 	RegConsoleCmd("sm_bworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bworldrecord [map] [bonus number]");
 	RegConsoleCmd("sm_bonusworldrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusworldrecord [map] [bonus number]");
+	RegConsoleCmd("sm_bsr", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bsr [map] [bonus number]");
+	RegConsoleCmd("sm_bserverrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bserverrecord [map] [bonus number]");
+	RegConsoleCmd("sm_bonusserverrecord", Command_WorldRecord, "View the leaderboard of a map. Usage: sm_bonusserverrecord [map] [bonus number]");
 
 	RegConsoleCmd("sm_recent", Command_RecentRecords, "View the recent #1 times set.");
 	RegConsoleCmd("sm_recentrecords", Command_RecentRecords, "View the recent #1 times set.");
@@ -438,7 +443,15 @@ void RegisterWRCommands(int style)
 		gSM_StyleCommands.SetValue(sCommand, style);
 		RegConsoleCmd(sCommand, Command_WorldRecord_Style, sDescription);
 
+		FormatEx(sCommand, sizeof(sCommand), "sm_sr%s", sStyleCommands[x]);
+		gSM_StyleCommands.SetValue(sCommand, style);
+		RegConsoleCmd(sCommand, Command_WorldRecord_Style, sDescription);
+
 		FormatEx(sCommand, sizeof(sCommand), "sm_bwr%s", sStyleCommands[x]);
+		gSM_StyleCommands.SetValue(sCommand, style);
+		RegConsoleCmd(sCommand, Command_WorldRecord_Style, sDescription);
+
+		FormatEx(sCommand, sizeof(sCommand), "sm_bsr%s", sStyleCommands[x]);
 		gSM_StyleCommands.SetValue(sCommand, style);
 		RegConsoleCmd(sCommand, Command_WorldRecord_Style, sDescription);
 	}
