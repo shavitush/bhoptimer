@@ -3353,7 +3353,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	int flags = GetEntityFlags(client);
 
-	if (gA_Timers[client].bClientPaused && IsPlayerAlive(client) && !gCV_PauseMovement.BoolValue)
+	int track = Shavit_GetClientTrack(client);
+
+	if (gA_Timers[client].bClientPaused && IsPlayerAlive(client) && !gCV_PauseMovement.BoolValue && !Shavit_InsideZone(client, Zone_Pause, track))
 	{
 		buttons = 0;
 		vel = view_as<float>({0.0, 0.0, 0.0});
