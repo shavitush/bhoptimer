@@ -42,6 +42,7 @@
 #define HUD_GLOCK               (1 << 14) // makes you spawn with a Glock
 #define HUD_DEBUGTARGETNAME     (1 << 15) // admin option to show current targetname & classname
 #define HUD_SPECTATORSDEAD      (1 << 16) // for only showing spectators list when you're dead/spectating.
+#define HUD_PERFS_CENTER        (1 << 17) // for the perf percentage in the center hud.  e.g. "Jumps: 20 (66.6%)"
 
 // HUD2 - these settings will *disable* elements for the main hud
 #define HUD2_TIME               (1 << 0)

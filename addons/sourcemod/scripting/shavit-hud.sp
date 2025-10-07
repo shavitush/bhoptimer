@@ -209,6 +209,7 @@ public void OnPluginStart()
 		..."HUD_USP                  8192\n"
 		..."HUD_GLOCK                16384\n"
 		..."HUD_SPECTATORSDEAD       65536\n"
+		..."HUD_PERFS_CENTER        131072\n"
 	);
 
 	IntToString(HUD_DEFAULT2, defaultHUD, 8);
@@ -774,6 +775,10 @@ Action ShowHUDMenu(int client, int item)
 
 	FormatEx(sInfo, 16, "@%d", HUD2_PERFS);
 	FormatEx(sHudItem, 64, "%T", "HudPerfs", client);
+	menu.AddItem(sInfo, sHudItem);
+
+	FormatEx(sInfo, 16, "!%d", HUD_PERFS_CENTER);
+	FormatEx(sHudItem, 64, "%T", "HudPerfsCenter", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_STYLE);
@@ -1369,7 +1374,15 @@ int AddHUDToBuffer_Source2013(int client, huddata_t data, char[] buffer, int max
 
 		if((gI_HUD2Settings[client] & HUD2_JUMPS) == 0)
 		{
-			FormatEx(sLine, 128, "%T: %d", "HudJumpsText", client, data.iJumps);
+			if (!Shavit_GetStyleSettingBool(data.iStyle, "autobhop") && (gI_HUDSettings[client] & HUD_PERFS_CENTER))
+			{
+				FormatEx(sLine, 128, "%T: %d (%.1f％)", "HudJumpsText", client, data.iJumps, Shavit_GetPerfectJumps(data.iTarget));
+			}
+			else
+			{
+				FormatEx(sLine, 128, "%T: %d", "HudJumpsText", client, data.iJumps);
+			}
+
 			AddHUDLine(buffer, maxlen, sLine, iLines);
 		}
 
