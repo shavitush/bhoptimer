@@ -85,6 +85,10 @@
 	{
 		"en"		"Perfect jumps"
 	}
+	"HudPerfsCenter"
+	{
+		"en"        "Perfect jumps (center hud)"
+	}
 	"HudDefaultPistol"
 	{
 		"en"		"Default Pistol: 1=USP 2=Glock"

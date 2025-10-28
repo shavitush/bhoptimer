@@ -99,7 +99,8 @@ Handle gH_Forwards_OnProcessMovementPost = null;
 // player timer variables
 timer_snapshot_t gA_Timers[MAXPLAYERS+1];
 bool gB_Auto[MAXPLAYERS+1];
-int gI_FirstTouchedGround[MAXPLAYERS+1];
+// 0 is in air, 1 or greater is on ground, -1 means client was on ground with zero...ish... velocity
+int gI_FirstTouchedGroundForStartTimer[MAXPLAYERS+1];
 int gI_LastTickcount[MAXPLAYERS+1];
 
 // these are here until the compiler bug is fixed
@@ -2334,7 +2335,7 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	bool practice = view_as<bool>(GetNativeCell(2));
 	bool alert = view_as<bool>(GetNativeCell(3));
 
-	if(alert && practice && !gA_Timers[client].bPracticeMode && (!gB_HUD || (Shavit_GetHUDSettings(client) & HUD_NOPRACALERT) == 0))
+	if(alert && practice && !gA_Timers[client].bPracticeMode && (!gB_HUD || (Shavit_GetHUDSettings(client) & HUD_NOPRACALERT) == 0) && !Shavit_InsideZone(client, Zone_Start, -1))
 	{
 		Shavit_PrintToChat(client, "%T", "PracticeModeAlert", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 	}
@@ -2603,10 +2604,20 @@ bool CanStartTimer(int client, int track, bool skipGroundCheck)
 
 	if (skipGroundTimer) return true;
 
-	int halfSecOfTicks = RoundFloat(0.5 / GetTickInterval());
-	int onGroundTicks = gI_LastTickcount[client] - gI_FirstTouchedGround[client];
+	if (gI_FirstTouchedGroundForStartTimer[client] < 0)
+	{
+		// was on ground with zero...ish... velocity...
+		return true;
+	}
+	else if (gI_FirstTouchedGroundForStartTimer[client] > 0)
+	{
+		int halfSecOfTicks = RoundFloat(0.5 / GetTickInterval());
+		int onGroundTicks = gI_LastTickcount[client] - gI_FirstTouchedGroundForStartTimer[client];
 
-	return onGroundTicks >= halfSecOfTicks;
+		return onGroundTicks >= halfSecOfTicks;
+	}
+
+	return false;
 }
 
 void StartTimer(int client, int track, bool skipGroundCheck)
@@ -2810,7 +2821,7 @@ public void OnClientPutInServer(int client)
 	gA_Timers[client].fNextFrameTime = 0.0;
 	gA_Timers[client].fplayer_speedmod = 1.0;
 	gS_DeleteMap[client][0] = 0;
-	gI_FirstTouchedGround[client] = 0;
+	gI_FirstTouchedGroundForStartTimer[client] = 0;
 	gI_LastTickcount[client] = 0;
 	gI_HijackFrames[client] = 0;
 	gI_LastPrintedSteamID[client] = 0;
@@ -3693,10 +3704,35 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	gI_LastTickcount[client] = tickcount;
 
+	if (bOnGround)
+	{
+		if (gI_FirstTouchedGroundForStartTimer[client] == 0)
+		{
+			// just landed (or teleported to the ground or whatever)
+			gI_FirstTouchedGroundForStartTimer[client] = tickcount;
+		}
+
+		if (gI_FirstTouchedGroundForStartTimer[client] > 0)
+		{
+			float fSpeed[3];
+			GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", fSpeed);
+
+			// zero...ish... velocity... (squared-ish (cubed?))
+			if (GetVectorLength(fSpeed, true) <= 1000.0)
+			{
+				gI_FirstTouchedGroundForStartTimer[client] = -1;
+			}
+		}
+	}
+	else
+	{
+		gI_FirstTouchedGroundForStartTimer[client] = 0;
+	}
+
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
 		gA_Timers[client].iLandingTick = tickcount;
-		gI_FirstTouchedGround[client] = tickcount;
+		gI_FirstTouchedGroundForStartTimer[client] = tickcount;
 
 		if (gEV_Type != Engine_TF2 && GetStyleSettingBool(gA_Timers[client].bsStyle, "easybhop"))
 		{

@@ -56,6 +56,7 @@ int gI_MapType[MAXPLAYERS+1];
 int gI_Style[MAXPLAYERS+1];
 int gI_MenuPos[MAXPLAYERS+1];
 int gI_Track[MAXPLAYERS+1];
+int gI_Tier[MAXPLAYERS+1];
 int gI_TargetSteamID[MAXPLAYERS+1];
 char gS_TargetName[MAXPLAYERS+1][MAX_NAME_LENGTH];
 
@@ -753,9 +754,46 @@ public int MenuHandler_MapsDoneLeft_Track(Menu menu, MenuAction action, int para
 {
 	if(action == MenuAction_Select)
 	{
-		char sInfo[8];
+		char sInfo[8], sTier[16];
 		menu.GetItem(param2, sInfo, 8);
 		gI_Track[param1] = StringToInt(sInfo);
+
+		if(gB_Rankings)
+		{
+			Menu submenu = new Menu(MenuHandler_MapsDoneLeft_Tier);
+			submenu.SetTitle("%T\n ", "SelectTier", param1);
+
+			submenu.AddItem("0", "All");
+
+			for(int i = 1; i <= 10; ++i)
+			{
+				IntToString(i, sInfo, 8);
+				FormatEx(sTier, 16, "Tier %d", i);
+				submenu.AddItem(sInfo, sTier);
+			}
+
+			submenu.Display(param1, MENU_TIME_FOREVER);
+		}
+		else
+		{
+			ShowMaps(param1);
+		}
+	}
+	else if(action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+public int MenuHandler_MapsDoneLeft_Tier(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		char sInfo[8];
+		menu.GetItem(param2, sInfo, 8);
+		gI_Tier[param1] = StringToInt(sInfo);
 
 		ShowMaps(param1);
 	}
@@ -1180,7 +1218,7 @@ public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int
 {
 	if(action == MenuAction_Select)
 	{
-		char sInfo[32];
+		char sInfo[32], sTier[16];
 		menu.GetItem(param2, sInfo, 32);
 
 		char sExploded[2][4];
@@ -1189,7 +1227,26 @@ public int MenuHandler_TypeHandler(Menu menu, MenuAction action, int param1, int
 		gI_Track[param1] = StringToInt(sExploded[0]);
 		gI_MapType[param1] = StringToInt(sExploded[1]);
 
-		ShowMaps(param1);
+		if(gB_Rankings)
+		{
+			Menu submenu = new Menu(MenuHandler_MapsDoneLeft_Tier);
+			submenu.SetTitle("%T\n ", "SelectTier", param1);
+
+			submenu.AddItem("0", "All");
+
+			for(int i = 1; i <= 10; ++i)
+			{
+				IntToString(i, sInfo, 8);
+				FormatEx(sTier, 16, "Tier %d", i);
+				submenu.AddItem(sInfo, sTier);
+			}
+
+			submenu.Display(param1, MENU_TIME_FOREVER);
+		}
+		else
+		{
+			ShowMaps(param1);
+		}
 	}
 	else if(action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
 	{
@@ -1210,21 +1267,39 @@ void ShowMaps(int client)
 		return;
 	}
 
-	char sQuery[512];
+	char sQuery[512], tierStr[32];
+
+	if(gI_Tier[client] > 0)
+	{
+		FormatEx(tierStr, 32, " AND t.tier = %d", gI_Tier[client]);
+	}
+	else
+	{
+		gI_Tier[client] = 0;
+	}
 
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		FormatEx(sQuery, 512,
-			"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 as 'rank', a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = %d AND a.style = %d AND a.track = %d GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.%s;",
-			gS_MySQLPrefix, gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client], (gB_Rankings)? "points DESC":"map");
+		if(gB_Rankings)
+		{
+			FormatEx(sQuery, 512,
+				"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 as 'rank', a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track LEFT JOIN %smaptiers t ON a.map = t.map WHERE a.auth = %d AND a.style = %d AND a.track = %d%s GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.points DESC;",
+				gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client], tierStr);
+		}
+		else
+		{
+			FormatEx(sQuery, 512,
+				"SELECT a.map, a.time, a.jumps, a.id, COUNT(b.map) + 1 as 'rank', a.points FROM %splayertimes a LEFT JOIN %splayertimes b ON a.time > b.time AND a.map = b.map AND a.style = b.style AND a.track = b.track WHERE a.auth = %d AND a.style = %d AND a.track = %d GROUP BY a.map, a.time, a.jumps, a.id, a.points ORDER BY a.map;",
+				gS_MySQLPrefix, gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client]);
+		}
 	}
 	else
 	{
 		if(gB_Rankings)
 		{
 			FormatEx(sQuery, 512,
-				"SELECT DISTINCT m.map, t.tier FROM %smapzones m LEFT JOIN %smaptiers t ON m.map = t.map WHERE m.type = 0 AND m.track = %d AND m.map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = %d AND style = %d AND track = %d) ORDER BY m.map;",
-				gS_MySQLPrefix, gS_MySQLPrefix, gI_Track[client], gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client]);
+				"SELECT DISTINCT m.map, t.tier FROM %smapzones m LEFT JOIN %smaptiers t ON m.map = t.map WHERE m.type = 0 AND m.track = %d%s AND m.map NOT IN (SELECT DISTINCT map FROM %splayertimes WHERE auth = %d AND style = %d AND track = %d) ORDER BY m.map;",
+				gS_MySQLPrefix, gS_MySQLPrefix, gI_Track[client], tierStr, gS_MySQLPrefix, gI_TargetSteamID[client], gI_Style[client], gI_Track[client]);
 		}
 		else
 		{
@@ -1328,13 +1403,19 @@ public void ShowMapsCallback(Database db, DBResultSet results, const char[] erro
 		menu.AddItem(sRecordID, sDisplay);
 	}
 
+	char sTier[8];
+	if(gI_Tier[client] > 0)
+	{
+		FormatEx(sTier, 8, "T%d ", gI_Tier[client]);
+	}
+
 	if(gI_MapType[client] == MAPSDONE)
 	{
-		menu.SetTitle("%T (%s)", "MapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%s%T (%s)", sTier, "MapsDoneFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 	else
 	{
-		menu.SetTitle("%T (%s)", "MapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
+		menu.SetTitle("%s%T (%s)", sTier, "MapsLeftFor", client, gS_StyleStrings[gI_Style[client]].sShortName, gS_TargetName[client], rows, sTrack);
 	}
 
 	if(menu.ItemCount == 0)

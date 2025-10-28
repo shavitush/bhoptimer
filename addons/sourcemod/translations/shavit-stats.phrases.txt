@@ -16,6 +16,10 @@
 	{
 		"en"		"Select timer track:"
 	}
+	"SelectTier"
+	{
+		"en"		"Select map tier:"
+	}
 	"MapsDone"
 	{
 		"en"		"Maps done"
