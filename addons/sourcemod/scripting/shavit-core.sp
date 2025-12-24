@@ -387,7 +387,7 @@ public void OnPluginStart()
 
 	gCV_Restart = new Convar("shavit_core_restart", "1", "Allow commands that restart the timer?", 0, true, 0.0, true, 1.0);
 	gCV_Pause = new Convar("shavit_core_pause", "1", "Allow pausing?", 0, true, 0.0, true, 1.0);
-	gCV_PauseMovement = new Convar("shavit_core_pause_movement", "0", "Allow movement/noclip while paused?", 0, true, 0.0, true, 1.0);
+	gCV_PauseMovement = new Convar("shavit_core_pause_movement", "0", "Allow movement/noclip while paused?\n0 - Disabled, no movement while paused.\n1 - Allow movement/noclip while paused, must stand still to pause.\n2 - Allow movement/noclip while paused, can pause while moving. (Not recommended)\n3 - Disallow movement/noclip while paused, can pause while moving. (Not recommended)", 0, true, 0.0, true, 3.0);
 	gCV_BlockPreJump = new Convar("shavit_core_blockprejump", "0", "Prevents jumping in the start zone.", 0, true, 0.0, true, 1.0);
 	gCV_NoZAxisSpeed = new Convar("shavit_core_nozaxisspeed", "1", "Don't start timer if vertical speed exists (btimes style).", 0, true, 0.0, true, 1.0);
 	gCV_VelocityTeleport = new Convar("shavit_core_velocityteleport", "0", "Teleport the client when changing its velocity? (for special styles)", 0, true, 0.0, true, 1.0);
@@ -904,25 +904,28 @@ public Action Command_TogglePause(int client, int args)
 	}
 	else
 	{
-		if((iFlags & CPR_NotOnGround) > 0)
+		if (gCV_PauseMovement.IntValue == 0 || gCV_PauseMovement.IntValue == 1)
 		{
-			Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+			if ((iFlags & CPR_NotOnGround))
+			{
+				Shavit_PrintToChat(client, "%T", "PauseNotOnGround", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
-			return Plugin_Handled;
-		}
+				return Plugin_Handled;
+			}
 
-		if((iFlags & CPR_Moving) > 0)
-		{
-			Shavit_PrintToChat(client, "%T", "PauseMoving", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+			if ((iFlags & CPR_Moving))
+			{
+				Shavit_PrintToChat(client, "%T", "PauseMoving", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
-			return Plugin_Handled;
-		}
+				return Plugin_Handled;
+			}
 
-		if((iFlags & CPR_Duck) > 0)
-		{
-			Shavit_PrintToChat(client, "%T", "PauseDuck", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
+			if ((iFlags & CPR_Duck))
+			{
+				Shavit_PrintToChat(client, "%T", "PauseDuck", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 
-			return Plugin_Handled;
+				return Plugin_Handled;
+			}
 		}
 
 		GetClientAbsOrigin(client, gF_PauseOrigin[client]);
@@ -2462,7 +2465,7 @@ public any Native_ShouldProcessFrame(Handle plugin, int numParams)
 
 public Action Shavit_OnStartPre(int client, int track)
 {
-	if (GetTimerStatus(client) == Timer_Paused && gCV_PauseMovement.BoolValue)
+	if (GetTimerStatus(client) == Timer_Paused && gCV_PauseMovement.IntValue > 0)
 	{
 		return Plugin_Stop;
 	}
@@ -3353,10 +3356,15 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	int flags = GetEntityFlags(client);
 
-	if (gA_Timers[client].bClientPaused && IsPlayerAlive(client) && !gCV_PauseMovement.BoolValue)
+	if (gA_Timers[client].bClientPaused && IsPlayerAlive(client) && (gCV_PauseMovement.IntValue == 0 || gCV_PauseMovement.IntValue == 3))
 	{
 		buttons = 0;
 		vel = view_as<float>({0.0, 0.0, 0.0});
+
+		if (gCV_PauseMovement.IntValue == 3)
+		{
+			TeleportEntity(client, gF_PauseOrigin[client], gF_PauseAngles[client], view_as<float>({0.0, 0.0, 0.0}));
+		}
 
 		SetEntityFlags(client, (flags | FL_ATCONTROLS));
 
