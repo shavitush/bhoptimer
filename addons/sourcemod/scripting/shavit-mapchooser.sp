@@ -1160,7 +1160,7 @@ void LoadMapList()
 
 			char buffer[512];
 
-			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
+			FormatEx(buffer, sizeof(buffer), "SELECT DISTINCT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
 			QueryLog(g_hDatabase, LoadZonedMapsCallback, buffer, _, DBPrio_High);
 		}
 		case MapListFolder:
@@ -1196,7 +1196,7 @@ void LoadMapList()
 			}
 
 			char buffer[512];
-			FormatEx(buffer, sizeof(buffer), "SELECT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
+			FormatEx(buffer, sizeof(buffer), "SELECT DISTINCT `map` FROM `%smapzones` WHERE `type` = 1 AND `track` = 0 ORDER BY `map`", g_cSQLPrefix);
 			QueryLog(g_hDatabase, LoadZonedMapsCallbackMixed, buffer, _, DBPrio_High);
 		}
 	}
