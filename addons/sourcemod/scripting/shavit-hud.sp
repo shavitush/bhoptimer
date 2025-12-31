@@ -208,6 +208,7 @@ public void OnPluginStart()
 		..."HUD_NOPRACALERT			4096\n"
 		..."HUD_USP                  8192\n"
 		..."HUD_GLOCK                16384\n"
+		..."HUD_DEBUGTARGETNAME      32768\n"
 		..."HUD_SPECTATORSDEAD       65536\n"
 		..."HUD_PERFS_CENTER        131072\n"
 	);
@@ -707,7 +708,7 @@ Action ShowHUDMenu(int client, int item)
 	if(IsSource2013(gEV_Type))
 	{
 		FormatEx(sInfo, 16, "!%d", HUD_SYNC);
-		FormatEx(sHudItem, 64, "%T", "HudSync", client);
+		FormatEx(sHudItem, 64, "%T", "HudSync_keyhint", client);
 		menu.AddItem(sInfo, sHudItem);
 
 		FormatEx(sInfo, 16, "!%d", HUD_TIMELEFT);
@@ -751,15 +752,18 @@ Action ShowHUDMenu(int client, int item)
 		FormatEx(sInfo, 16, "@%d", HUD2_TIMEDIFFERENCE);
 		FormatEx(sHudItem, 64, "%T", "HudTimeDifference", client);
 		menu.AddItem(sInfo, sHudItem);
-
-		FormatEx(sInfo, 16, "@%d", HUD2_VELOCITYDIFFERENCE);
-		FormatEx(sHudItem, 64, "%T", "HudVelocityDifference", client);
-		menu.AddItem(sInfo, sHudItem);
 	}
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SPEED);
 	FormatEx(sHudItem, 64, "%T", "HudSpeedText", client);
 	menu.AddItem(sInfo, sHudItem);
+
+	if (gB_ReplayPlayback)
+	{
+		FormatEx(sInfo, 16, "@%d", HUD2_VELOCITYDIFFERENCE);
+		FormatEx(sHudItem, 64, "%T", "HudVelocityDifference", client);
+		menu.AddItem(sInfo, sHudItem);
+	}
 
 	FormatEx(sInfo, 16, "@%d", HUD2_JUMPS);
 	FormatEx(sHudItem, 64, "%T", "HudJumpsText", client);
@@ -770,11 +774,11 @@ Action ShowHUDMenu(int client, int item)
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_SYNC);
-	FormatEx(sHudItem, 64, "%T", "HudSync", client);
+	FormatEx(sHudItem, 64, "%T", "HudSync_center", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "@%d", HUD2_PERFS);
-	FormatEx(sHudItem, 64, "%T", "HudPerfs", client);
+	FormatEx(sHudItem, 64, "%T", "HudPerfs_keyhint", client);
 	menu.AddItem(sInfo, sHudItem);
 
 	FormatEx(sInfo, 16, "!%d", HUD_PERFS_CENTER);
