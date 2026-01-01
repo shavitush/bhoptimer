@@ -120,27 +120,23 @@ stock bool LoadReplayCache(frame_cache_t cache, int style, int track, const char
 stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cache)
 {
 	int total_cells = 6;
-	int used_cells = 6;
 	bool is_btimes = false;
 
 	if (header.iReplayVersion > 0x01)
 	{
 		total_cells = 8;
-		used_cells = 8;
 	}
 
-	// We have differing total_cells & used_cells because we want to save memory during playback since the latest two cells added (vel & mousexy) aren't needed and are only useful for replay file anticheat usage stuff....
 	if (header.iReplayVersion >= 0x06)
 	{
 		total_cells = 10;
-		used_cells = 8;
 	}
 
 	any aReplayData[sizeof(frame_t)];
 
 	delete cache.aFrames;
 	int iTotalSize = header.iFrameCount + header.iPreFrames + header.iPostFrames;
-	cache.aFrames = new ArrayList(used_cells, iTotalSize);
+	cache.aFrames = new ArrayList(total_cells, iTotalSize);
 
 	if (!header.sReplayFormat[0]) // old replay format. no header.
 	{
@@ -177,7 +173,7 @@ stock bool ReadReplayFrames(File file, replay_header_t header, frame_cache_t cac
 		{
 			if(file.Read(aReplayData, total_cells, 4) >= 0)
 			{
-				cache.aFrames.SetArray(i, aReplayData, used_cells);
+				cache.aFrames.SetArray(i, aReplayData);
 
 				if (is_btimes && (aReplayData[5] & IN_BULLRUSH))
 				{
