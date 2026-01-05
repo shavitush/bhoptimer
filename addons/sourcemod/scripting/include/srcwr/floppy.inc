@@ -9,7 +9,7 @@
 
 
 typeset ReplaySavedCallback {
-	function void(bool saved, any value, char[] sPath);
+	function void(bool saved, any value);
 }
 
 
@@ -17,8 +17,7 @@ typeset ReplaySavedCallback {
 native void SRCWRFloppy_AsyncSaveReplay(
 	  ReplaySavedCallback callback // what to call when saved
 	, any value // what to pass along to the callback
-	, char[] wrpath
-	, char[] copypath
+	, ArrayList paths
 	, char[] header
 	, int headersize
 	, ArrayList playerrecording

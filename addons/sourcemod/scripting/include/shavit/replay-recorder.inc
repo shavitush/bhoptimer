@@ -25,7 +25,15 @@
 #define _shavit_replay_recorder_included
 
 /**
+ * If you want to save a replay to an additional path, then call this inside of `Shavit_AddAdditionalReplayPathsHere()`.
+ *
+ * @param path                      The additional path to save the replay to.
+ */
+native void Shavit_AdditionalReplayPath(const char[] path);
+
+/**
  * Called when a player finishes a time. Allows you to save a replay even if the run is not a WR.
+ * To save replay to additional paths, call `Shavit_AdditionalReplayPath()`
  *
  * @param client                    Client index.
  * @param style                     Style the record was done on.
@@ -42,9 +50,9 @@
  * @param isbestreplay              If the time is the new replay.
  * @param istoolong                 If the time is too long to save a replay if the time is a WR. Note: replays WON'T be full length if this is true.
  *
- * @return                          Return Plugin_Changed (or higher) to cause a copy of the replay to be saved. Return Plugin_Continue otherwise.
+ * @noreturn
  */
-forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong);
+forward void Shavit_AddAdditionalReplayPathsHere(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong);
 
 /**
  * Called when either a WR replay or a copy of a replay has been saved.
@@ -64,8 +72,7 @@ forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, in
  * @param timestamp                 System time of when player finished.
  * @param isbestreplay              If the time is the new replay.
  * @param istoolong                 If the time is too long to save a replay if the time is a WR. Note: replays WON'T be full length if this is true.
- * @param iscopy                    If the path points to a copy of the replay.
- * @param replaypath                Path to the saved replay.
+ * @param replaypaths               ArrayList of the paths the replay was saved to.  If isbestreplay&&!istoolong then the 0th index will be the WR path.
  * @param frames                	ArrayList of the player's frames in the replay.
  * @param preframes                	The number of preframes in the replay.
  * @param postframes                The number of postframes in the replay.
@@ -73,7 +80,7 @@ forward Action Shavit_ShouldSaveReplayCopy(int client, int style, float time, in
  *
  * @noreturn
  */
-forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, bool iscopy, const char[] replaypath, ArrayList frames, int preframes, int postframes, const char[] name);
+forward void Shavit_OnReplaySaved(int client, int style, float time, int jumps, int strafes, float sync, int track, float oldtime, float perfs, float avgvel, float maxvel, int timestamp, bool isbestreplay, bool istoolong, ArrayList replaypaths, ArrayList frames, int preframes, int postframes, const char[] name);
 
 /**
  * Retrieves a client's frame count.
