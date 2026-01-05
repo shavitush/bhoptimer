@@ -55,6 +55,7 @@ enum
 	Migration_FixSQLiteMapzonesROWID,
 	Migration_AddUsersFirstLogin, // 30
 	Migration_MoreFirstLoginStuff,
+	Migration_AddStylePoints,
 	MIGRATIONS_END
 };
 
@@ -91,6 +92,7 @@ char gS_MigrationNames[][] = {
 	"FixSQLiteMapzonesROWID",
 	"AddUsersFirstLogin",
 	"MoreFirstLoginStuff",
+	"AddStylePoints",
 };
 
 static Database gH_SQL;
@@ -180,6 +182,11 @@ public void SQL_CreateTables(Database hSQL, const char[] prefix, int driver)
 	FormatEx(sQuery, sizeof(sQuery),
 		"CREATE TABLE IF NOT EXISTS `%smaptiers` (`map` VARCHAR(255) NOT NULL, `tier` INT NOT NULL DEFAULT 1, PRIMARY KEY (`map`)) %s;",
 		gS_SQLPrefix, sOptionalINNODB);
+	AddQueryLog(trans, sQuery);
+
+	FormatEx(sQuery, sizeof(sQuery),
+		"CREATE TABLE IF NOT EXISTS `%sstylepoints` (`auth` INT NOT NULL, `style` TINYINT NOT NULL, `points` FLOAT NOT NULL DEFAULT 0, PRIMARY KEY (`auth`, `style`));",
+		gS_SQLPrefix);
 	AddQueryLog(trans, sQuery);
 
 	//
@@ -375,6 +382,7 @@ void ApplyMigration(int migration)
 		case Migration_FixSQLiteMapzonesROWID: ApplyMigration_FixSQLiteMapzonesROWID();
 		case Migration_AddUsersFirstLogin: ApplyMigration_AddUsersFirstLogin();
 		case Migration_MoreFirstLoginStuff: ApplyMigration_MoreFirstLoginStuff();
+		case Migration_AddStylePoints: ApplyMigration_AddStylePoints();
 	}
 }
 
@@ -766,6 +774,13 @@ public void ApplyMigration_MoreFirstLoginStuff()
 		AddQueryLog(trans, query);
 	}
 	gH_SQL.Execute(trans, Trans_MigrationSimple, TransMigrationSimple_Error, Migration_MoreFirstLoginStuff);
+}
+
+void ApplyMigration_AddStylePoints()
+{
+	char sQuery[256];
+	FormatEx(sQuery, sizeof(sQuery), "INSERT INTO %sstylepoints (auth, style) SELECT UNIQUE auth, style FROM %splayertimes;", gS_SQLPrefix, gS_SQLPrefix);
+	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddStylePoints, DBPrio_High);
 }
 
 public void SQL_TableMigrationSingleQuery_Callback(Database db, DBResultSet results, const char[] error, any data)
