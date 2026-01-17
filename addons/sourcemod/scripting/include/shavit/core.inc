@@ -578,8 +578,6 @@ forward void Shavit_OnTimeIncrement(int client, timer_snapshot_t snapshot, float
 
 /**
  * Called just before shavit-core adds time to a player's timer.
- * This is the forward you should use to modify the player's timer smoothly.
- * A good example use case is timescaling.
  *
  * @param client					Client index.
  * @param snapshot					A snapshot with the player's current timer. Read above in shavit.inc for more information.
