@@ -61,6 +61,7 @@ char gS_RadioCommands[][] = { "coverme", "takepoint", "holdpos", "regroup", "fol
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
 	"getout", "negative", "enemydown", "compliment", "thanks", "cheer", "go_a", "go_b", "sorry", "needrop", "playerradio", "playerchatwheel", "player_ping", "chatwheel_ping" };
 
+float gF_LastJointeam[MAXPLAYERS+1];
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_AutoRestart[MAXPLAYERS+1];
 bool gB_Late = false;
@@ -908,6 +909,17 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		iTeam = GetRandomInt(2, 3);
 	}
 
+	// Prevent `jointeam` from being too spammable.
+	if (iTeam != 1)
+	{
+		float now = GetEngineTime();
+		if (now - gF_LastJointeam[client] < 0.35)
+		{
+			return Plugin_Stop;
+		}
+		gF_LastJointeam[client] = now;
+	}
+
 	CleanSwitchTeam(client, iTeam);
 
 	if(gCV_RespawnOnTeam.BoolValue && iTeam != 1)
@@ -1496,6 +1508,8 @@ public void OnClientPutInServer(int client)
 	{
 		return;
 	}
+
+	gF_LastJointeam[client] = 0.0;
 
 	if(gEV_Type == Engine_TF2)
 	{
