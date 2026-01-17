@@ -486,7 +486,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 void LoadMapFixes()
 {
 	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-mapfixes.cfg");
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "gamedata/shavit-mapfixes.cfg");
 
 	KeyValues kv = new KeyValues("shavit-mapfixes");
 
