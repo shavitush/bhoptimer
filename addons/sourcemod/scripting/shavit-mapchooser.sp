@@ -71,6 +71,7 @@ Convar g_cvAutocompletePrefixes;
 Convar g_cvMapVoteStartTime;
 Convar g_cvMapVoteDuration;
 Convar g_cvMapVoteBlockMapInterval;
+Convar g_cvMapVotePrioritizeSpecial;
 Convar g_cvMapVoteExtendLimit;
 Convar g_cvMapVoteEnableNoVote;
 Convar g_cvMapVoteEnableReRoll;
@@ -207,6 +208,7 @@ public void OnPluginStart()
 	g_cvAutocompletePrefixes = new Convar("smc_autocomplete_prefixes", "bhop_,surf_,kz_,kz_bhop_,bhop_kz_,xc_,trikz_,jump_,rj_", "Some prefixes that are attempted when using !map");
 
 	g_cvMapVoteBlockMapInterval = new Convar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
+	g_cvMapVotePrioritizeSpecial = new Convar("smc_mapvote_prioritize_special", "1", "Whether to prioritize extend, dontchange, and reroll for ties.", _, true, 0.0, true, 1.0);
 	g_cvMapVoteEnableNoVote = new Convar("smc_mapvote_enable_novote", "1", "Whether players are able to choose 'No Vote' in map vote", _, true, 0.0, true, 1.0);
 	g_cvMapVoteEnableReRoll = new Convar("smc_mapvote_enable_reroll", "0", "Whether players are able to choose 'ReRoll' in map vote", _, true, 0.0, true, 1.0);
 	g_cvMapVoteExtendLimit = new Convar("smc_mapvote_extend_limit", "3", "How many times players can choose to extend a single map (0 = block extending, -1 = infinite extending)", _, true, -1.0, false);
@@ -896,12 +898,50 @@ public Action Timer_StartMapVote(Handle timer, DataPack data)
 	return Plugin_Stop;
 }
 
+// If for example a map & extend have the same number of votes, then we want to pick extend.
+int PrioritizeSpecialItem(Menu menu, int num_items, const int[][] item_info)
+{
+	if (!g_cvMapVotePrioritizeSpecial.BoolValue)
+	{
+		return 0;
+	}
+
+	int maxvotes = item_info[0][VOTEINFO_ITEM_VOTES];
+	int last_index_with_maxvotes = 0;
+
+	for (int i = 1; i < num_items; ++i)
+	{
+		if (item_info[i][VOTEINFO_ITEM_VOTES] == maxvotes)
+		{
+			last_index_with_maxvotes = i;
+		}
+	}
+
+	if (last_index_with_maxvotes > 0)
+	{
+		for (int i = 0; i < last_index_with_maxvotes+1; ++i)
+		{
+			char map[32];
+			menu.GetItem(item_info[i][VOTEINFO_ITEM_INDEX], map, sizeof(map));
+
+			if (StrEqual(map, "extend") || StrEqual(map, "dontchange") || StrEqual(map, "reroll"))
+			{
+				return i;
+			}
+		}
+	}
+
+	return 0;
+}
+
 public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_clients, const int[][] client_info, int num_items, const int[][] item_info)
 {
 	char map[PLATFORM_MAX_PATH];
 	char displayName[PLATFORM_MAX_PATH];
 
-	menu.GetItem(item_info[0][VOTEINFO_ITEM_INDEX], map, sizeof(map), _, displayName, sizeof(displayName));
+	int item = PrioritizeSpecialItem(menu, num_items, item_info);
+
+	menu.GetItem(item_info[item][VOTEINFO_ITEM_INDEX], map, sizeof(map), _, displayName, sizeof(displayName));
 
 	//PrintToChatAll("#1 vote was %s (%s)", map, (g_ChangeTime == MapChange_Instant) ? "instant" : "map end");
 
@@ -918,7 +958,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 			}
 		}
 
-		PrintToChatAll("%s%t", g_cPrefix, "Current Map Extended", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
+		PrintToChatAll("%s%t", g_cPrefix, "Current Map Extended", RoundToFloor(float(item_info[item][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
 		LogAction(-1, -1, "Voting for next map has finished. The current map has been extended.");
 
 		// We extended, so we'll have to vote again.
@@ -929,7 +969,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 	}
 	else if(StrEqual(map, "dontchange"))
 	{
-		PrintToChatAll("%s%t", g_cPrefix, "Current Map Stays", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
+		PrintToChatAll("%s%t", g_cPrefix, "Current Map Stays", RoundToFloor(float(item_info[item][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
 		LogAction(-1, -1, "Voting for next map has finished. 'No Change' was the winner");
 
 		g_bMapVoteFinished = false;
@@ -941,7 +981,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 	else if (StrEqual(map, "reroll"))
 	{
 
-		PrintToChatAll("%s%t", g_cPrefix, "ReRolling Maps", RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
+		PrintToChatAll("%s%t", g_cPrefix, "ReRolling Maps", RoundToFloor(float(item_info[item][VOTEINFO_ITEM_VOTES])/float(num_votes)*100), num_votes);
 		LogAction(-1, -1, "Voting for next map has restarted. Reroll complete.");
 
 		g_bMapVoteStarted = false;
@@ -952,7 +992,7 @@ public void Handler_VoteFinishedGeneric(Menu menu, int num_votes, int num_client
 	}
 	else
 	{
-		int percentage_of_votes = RoundToFloor(float(item_info[0][VOTEINFO_ITEM_VOTES])/float(num_votes)*100);
+		int percentage_of_votes = RoundToFloor(float(item_info[item][VOTEINFO_ITEM_VOTES])/float(num_votes)*100);
 		DoMapChangeAfterMapVote(map, displayName, percentage_of_votes, num_votes);
 	}
 }
