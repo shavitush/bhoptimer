@@ -85,16 +85,12 @@ enum struct styletop_t
 
 	void Init()
 	{
-		if(this.sName != null)
-		{
-			delete this.sName;
-		}
-
+		delete this.sName;
 		this.sName = new ArrayList(ByteCountToCells(33), 100);
 		
-		for(int x = 0; x < this.sName.Length; x++)
+		for (int i, len = this.sName.Length; i < len; i++)
 		{
-			this.sName.SetString(x, "");
+			this.sName.SetString(i, "");
 		}
 	}
 }
@@ -257,10 +253,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 	for (int i = 0; i < STYLE_LIMIT; i++)
 	{
-		if (i < styles)
-		{
-			Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
-		}
+		Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
 	}
 }
 
@@ -404,29 +397,24 @@ public void OnClientAuthorized(int client, const char[] auth)
 	{
 		int iSteamID = GetSteamAccountID(client);
 
-		if(iSteamID == 0)
-		{
-			return;
-		}
-
 		char sQuery[512];
 
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			if (gI_Driver == Driver_mysql)
 			{
-				FormatEx(sQuery, 512,
+				FormatEx(sQuery, sizeof(sQuery),
 					"INSERT IGNORE INTO %sstylepoints (auth, style, points) VALUES (%d, %d, 0);",
 					gS_MySQLPrefix, iSteamID, i);
 			}
 			else // postgresql & sqlite
 			{
-				FormatEx(sQuery, 512,
+				FormatEx(sQuery, sizeof(sQuery),
 					"INSERT INTO %sstylepoints (auth, style, points) VALUES (%d, %d, 0) ON CONFLICT DO NOTHING;",
 					gS_MySQLPrefix, iSteamID, i);
 			}
 
-			QueryLog(gH_SQL, SQL_InsertUser_Callback, sQuery, GetClientSerial(client));
+			QueryLog(gH_SQL, SQL_InsertUser_Callback, sQuery, iSteamID);
 		}
 
 		if (gB_WRHolderTablesMade)
@@ -440,20 +428,9 @@ public void OnClientAuthorized(int client, const char[] auth)
 
 public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	if(results == null)
+	if (results == null)
 	{
-		int client = GetClientFromSerial(data);
-
-		if(client == 0)
-		{
-			LogError("Timer error! (rankings) Failed to insert a disconnected player's data to the table. Reason: %s", error);
-		}
-		else
-		{
-			LogError("Timer error! (rankings) Failed to insert \"%N\"'s data to the table. Reason: %s", client, error);
-		}
-
-		return;
+		LogError("Timer error! (rankings) Failed to insert [U:1:%d]'s data to the table. Reason: %s", data, error);
 	}
 }
 
@@ -701,14 +678,14 @@ public Action Command_Rank(int client, int args)
 {
 	int target = client;
 
-	if (args > 0)
+	if(args > 0)
 	{
 		char sArgs[MAX_TARGET_LENGTH];
 		GetCmdArgString(sArgs, MAX_TARGET_LENGTH);
 
 		target = FindTarget(client, sArgs, true, false);
 
-		if (target == -1)
+		if(target == -1)
 		{
 			return Plugin_Handled;
 		}
