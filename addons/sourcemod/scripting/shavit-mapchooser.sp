@@ -74,6 +74,7 @@ Convar g_cvMapVoteBlockMapInterval;
 Convar g_cvMapVoteExtendLimit;
 Convar g_cvMapVoteEnableNoVote;
 Convar g_cvMapVoteEnableReRoll;
+Convar g_cvMapVoteEnableExtend;
 Convar g_cvMapVoteExtendTime;
 Convar g_cvMapVoteShowTier;
 Convar g_cvMapVoteRunOff;
@@ -209,6 +210,7 @@ public void OnPluginStart()
 	g_cvMapVoteBlockMapInterval = new Convar("smc_mapvote_blockmap_interval", "1", "How many maps should be played before a map can be nominated again", _, true, 0.0, false);
 	g_cvMapVoteEnableNoVote = new Convar("smc_mapvote_enable_novote", "1", "Whether players are able to choose 'No Vote' in map vote", _, true, 0.0, true, 1.0);
 	g_cvMapVoteEnableReRoll = new Convar("smc_mapvote_enable_reroll", "0", "Whether players are able to choose 'ReRoll' in map vote", _, true, 0.0, true, 1.0);
+	g_cvMapVoteEnableExtend = new Convar("smc_mapvote_enable_extend", "1", "Whether players are able to choose 'Extend/Don't change' in map vote", _, true, 0.0, true, 1.0);
 	g_cvMapVoteExtendLimit = new Convar("smc_mapvote_extend_limit", "3", "How many times players can choose to extend a single map (0 = block extending, -1 = infinite extending)", _, true, -1.0, false);
 	g_cvMapVoteExtendTime = new Convar("smc_mapvote_extend_time", "10", "How many minutes should the map be extended by if the map is extended through a mapvote", _, true, 1.0, false);
 	g_cvMapVoteShowTier = new Convar("smc_mapvote_show_tier", "1", "Whether the map tier should be displayed in the map vote", _, true, 0.0, true, 1.0);
@@ -670,6 +672,17 @@ void InitiateMapVote(MapChange when)
 
 	bool add_extend = (g_cvMapVoteExtendLimit.IntValue == -1) || (g_cvMapVoteExtendLimit.IntValue > 0 && g_iExtendCount < g_cvMapVoteExtendLimit.IntValue);
 
+	if ((when == MapChange_MapEnd && add_extend))
+	{
+		if (g_cvMapVoteEnableExtend.BoolValue)
+		menu.AddItem("extend", "Extend Current Map");
+	}
+	else if (when == MapChange_Instant)
+	{
+		if (g_cvMapVoteEnableExtend.BoolValue)
+		menu.AddItem("dontchange", "Don't Change");
+	}
+
 	if (add_extend)
 	{
 		mapsToAdd--;
@@ -790,13 +803,11 @@ void InitiateMapVote(MapChange when)
 	{
 		if (g_cvMapVoteEnableReRoll.BoolValue)
 			menu.AddItem("reroll", "Reroll Maps");
-		menu.AddItem("extend", "Extend Current Map");
 	}
 	else if (when == MapChange_Instant)
 	{
 		if (g_cvMapVoteEnableReRoll.BoolValue)
 			menu.AddItem("reroll", "Reroll Maps");
-		menu.AddItem("dontchange", "Don't Change");
 	}
 
 	PrintToChatAll("%s%t", g_cPrefix, "Nextmap Voting Started");
