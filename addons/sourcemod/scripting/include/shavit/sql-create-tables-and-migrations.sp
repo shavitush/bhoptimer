@@ -779,7 +779,7 @@ public void ApplyMigration_MoreFirstLoginStuff()
 void ApplyMigration_AddStylePoints()
 {
 	char sQuery[256];
-	FormatEx(sQuery, sizeof(sQuery), "INSERT INTO %sstylepoints (auth, style) SELECT UNIQUE auth, style FROM %splayertimes;", gS_SQLPrefix, gS_SQLPrefix);
+	FormatEx(sQuery, sizeof(sQuery), "INSERT INTO %sstylepoints (auth, style) SELECT DISTINCT auth, style FROM %splayertimes;", gS_SQLPrefix, gS_SQLPrefix);
 	QueryLog(gH_SQL, SQL_TableMigrationSingleQuery_Callback, sQuery, Migration_AddStylePoints, DBPrio_High);
 }
 
