@@ -65,7 +65,8 @@ Address gI_TF2PreventBunnyJumpingAddr = Address_Null;
 VScriptFunction gH_VScript_Timer_GetTime;
 VScriptFunction gH_VScript_Timer_GetStatus;
 VScriptFunction gH_VScript_Timer_GetTrack;
-
+// Caching this makes me happy
+HSCRIPT gH_PlayerHSCRIPT[MAXPLAYERS+1];
 
 // database handle
 Database gH_SQL = null;
@@ -2069,7 +2070,7 @@ public int Native_FinishMap(Handle handler, int numParams)
 		{
 			// ::Timer_OnFinish <- function(player)
 			VScriptExecute Timer_OnFinish = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnFinish"));
-			Timer_OnFinish.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			Timer_OnFinish.SetParam(1, FIELD_HSCRIPT, gH_PlayerHSCRIPT[client]);
 			Timer_OnFinish.SetParam(2, FIELD_INTEGER, snapshot.iTimerTrack);
 			Timer_OnFinish.Execute();
 			delete Timer_OnFinish;
@@ -2685,8 +2686,9 @@ void StartTimer(int client, int track, bool skipGroundCheck)
 			{
 				if (HSCRIPT_RootTable.ValueExists("Timer_OnStart"))
 				{
+					// ::Timer_OnStart <- function(player, track)
 					VScriptExecute Timer_OnStart = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnStart"));
-					Timer_OnStart.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+					Timer_OnStart.SetParam(1, FIELD_HSCRIPT, gH_PlayerHSCRIPT[client]);
 					Timer_OnStart.SetParam(2, FIELD_INTEGER, track);
 					Timer_OnStart.Execute();
 					delete Timer_OnStart;
@@ -2804,7 +2806,12 @@ public void OnClientPutInServer(int client)
 	StopTimer(client);
 	Bhopstats_OnClientPutInServer(client);
 
-	if(!IsClientConnected(client) || IsFakeClient(client))
+	if (gB_VScript)
+	{
+		gH_PlayerHSCRIPT[client] = VScript_EntityToHScript(client);
+	}
+
+	if (IsFakeClient(client))
 	{
 		return;
 	}

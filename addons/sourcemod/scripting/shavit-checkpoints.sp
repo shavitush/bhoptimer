@@ -127,6 +127,8 @@ enum VScript_Checkpoint_State
 }
 VScript_Checkpoint_State gI_VScript_Checkpointing[MAXPLAYERS+1];
 StringMap gH_VScript_Checkpoint_CustomData[MAXPLAYERS+1];
+// Caching this makes me happy
+HSCRIPT gH_PlayerHSCRIPT[MAXPLAYERS+1];
 
 
 public Plugin myinfo =
@@ -512,6 +514,11 @@ public void OnClientCookiesCached(int client)
 public void OnClientPutInServer(int client)
 {
 	gF_NextSuicide[client] = GetGameTime();
+
+	if (gB_VScript)
+	{
+		gH_PlayerHSCRIPT[client] = VScript_EntityToHScript(client);
+	}
 
 	if (IsFakeClient(client))
 	{
@@ -1793,7 +1800,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 		{
 			// ::Timer_OnCheckpointSave <- function(player)
 			VScriptExecute Timer_OnCheckpointSave = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointSave"));
-			Timer_OnCheckpointSave.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(target));
+			Timer_OnCheckpointSave.SetParam(1, FIELD_HSCRIPT, gH_PlayerHSCRIPT[target]);
 			Timer_OnCheckpointSave.Execute();
 			delete Timer_OnCheckpointSave;
 		}
@@ -1907,7 +1914,7 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		{
 			// ::Timer_OnCheckpointLoadPre <- function(player)
 			VScriptExecute Timer_OnCheckpointLoadPre = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPre"));
-			Timer_OnCheckpointLoadPre.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			Timer_OnCheckpointLoadPre.SetParam(1, FIELD_HSCRIPT, gH_PlayerHSCRIPT[client]);
 			Timer_OnCheckpointLoadPre.Execute();
 			delete Timer_OnCheckpointLoadPre;
 		}
@@ -2403,7 +2410,7 @@ void Do_Timer_OnCheckpointLoadPost(int client, StringMap customdata)
 		{
 			// ::Timer_OnCheckpointLoadPost <- function(player)
 			VScriptExecute Timer_OnCheckpointLoadPost = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnCheckpointLoadPost"));
-			Timer_OnCheckpointLoadPost.SetParam(1, FIELD_HSCRIPT, VScript_EntityToHScript(client));
+			Timer_OnCheckpointLoadPost.SetParam(1, FIELD_HSCRIPT, gH_PlayerHSCRIPT[client]);
 			Timer_OnCheckpointLoadPost.Execute();
 			delete Timer_OnCheckpointLoadPost;
 		}
