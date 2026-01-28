@@ -38,6 +38,7 @@
 #include <shavit/wr>
 #include <shavit/zones>
 #include <eventqueuefix>
+#include <vscript>
 
 #include <shavit/chat-colors>
 #include <shavit/anti-sv_cheats.sp>
@@ -59,6 +60,13 @@ bool gB_Protobuf = false;
 DynamicHook gH_AcceptInput; // used for hooking player_speedmod's AcceptInput
 DynamicHook gH_TeleportDhook = null;
 Address gI_TF2PreventBunnyJumpingAddr = Address_Null;
+
+// vscript (non-checkpoint natives)
+VScriptFunction gH_VScript_Timer_GetTime;
+VScriptFunction gH_VScript_Timer_GetStatus;
+VScriptFunction gH_VScript_Timer_GetTrack;
+// Caching this makes me happy
+HSCRIPT gH_PlayerHSCRIPT[MAXPLAYERS+1];
 
 // database handle
 Database gH_SQL = null;
@@ -126,6 +134,7 @@ bool gB_ReplayPlayback = false;
 bool gB_Rankings = false;
 bool gB_HUD = false;
 bool gB_AdminMenu = false;
+bool gB_VScript = false;
 
 TopMenu gH_AdminMenu = null;
 TopMenuObject gH_TimerCommands = INVALID_TOPMENUOBJECT;
@@ -444,6 +453,11 @@ public void OnPluginStart()
 				OnClientPutInServer(i);
 			}
 		}
+
+		if (gB_VScript && VScript_IsScriptVMInitialized())
+		{
+			VScript_OnScriptVMInitialized();
+		}
 	}
 }
 
@@ -640,6 +654,10 @@ public void OnLibraryAdded(const char[] name)
 	{
 		gB_AdminMenu = true;
 	}
+	else if (StrEqual(name, "vscript"))
+	{
+		gB_VScript = true;
+	}
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -669,6 +687,10 @@ public void OnLibraryRemoved(const char[] name)
 		gB_AdminMenu = false;
 		gH_AdminMenu = null;
 		gH_TimerCommands = INVALID_TOPMENUOBJECT;
+	}
+	else if (StrEqual(name, "vscript"))
+	{
+		gB_VScript = false;
 	}
 }
 
@@ -2042,6 +2064,19 @@ public int Native_FinishMap(Handle handler, int numParams)
 	Call_PushCell(timestamp);
 	Call_Finish();
 
+	if (gB_VScript)
+	{
+		if (HSCRIPT_RootTable.ValueExists("Timer_OnFinish"))
+		{
+			// ::Timer_OnFinish <- function(player)
+			VScriptExecute Timer_OnFinish = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnFinish"));
+			Timer_OnFinish.SetParam(1, FIELD_HSCRIPT, gH_PlayerHSCRIPT[client]);
+			Timer_OnFinish.SetParam(2, FIELD_INTEGER, snapshot.iTimerTrack);
+			Timer_OnFinish.Execute();
+			delete Timer_OnFinish;
+		}
+	}
+
 	StopTimer(client);
 	return 1;
 }
@@ -2646,6 +2681,19 @@ void StartTimer(int client, int track, bool skipGroundCheck)
 			Call_PushCell(client);
 			Call_PushCell(track);
 			Call_Finish();
+
+			if (gB_VScript)
+			{
+				if (HSCRIPT_RootTable.ValueExists("Timer_OnStart"))
+				{
+					// ::Timer_OnStart <- function(player, track)
+					VScriptExecute Timer_OnStart = new VScriptExecute(HSCRIPT_RootTable.GetValue("Timer_OnStart"));
+					Timer_OnStart.SetParam(1, FIELD_HSCRIPT, gH_PlayerHSCRIPT[client]);
+					Timer_OnStart.SetParam(2, FIELD_INTEGER, track);
+					Timer_OnStart.Execute();
+					delete Timer_OnStart;
+				}
+			}
 		}
 #if 0
 		else if(result == Plugin_Handled || result == Plugin_Stop)
@@ -2758,7 +2806,12 @@ public void OnClientPutInServer(int client)
 	StopTimer(client);
 	Bhopstats_OnClientPutInServer(client);
 
-	if(!IsClientConnected(client) || IsFakeClient(client))
+	if (gB_VScript)
+	{
+		gH_PlayerHSCRIPT[client] = VScript_EntityToHScript(client);
+	}
+
+	if (IsFakeClient(client))
 	{
 		return;
 	}
@@ -3961,4 +4014,119 @@ void UpdateStyleSettings(int client)
 	{
 		UpdateAiraccelerate(client, GetStyleSettingFloat(gA_Timers[client].bsStyle, "airaccelerate"));
 	}
+}
+
+// This is called after mapspawn.nut for reference. (Which is before OnMapStart() too)
+public void VScript_OnScriptVMInitialized()
+{
+	// function Timer_GetTime(player) // returns a float
+	if (!gH_VScript_Timer_GetTime)
+	{
+		gH_VScript_Timer_GetTime = VScript_CreateFunction();
+		gH_VScript_Timer_GetTime.SetScriptName("Timer_GetTime");
+		gH_VScript_Timer_GetTime.Return = FIELD_FLOAT;
+		gH_VScript_Timer_GetTime.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_GetTime.SetFunctionEmpty();
+		gH_VScript_Timer_GetTime.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetTime);
+	}
+	gH_VScript_Timer_GetTime.Register();
+
+	// function Timer_GetStatus(player) // returns an int -- 0=stopped, 1=running, 2=paused
+	if (!gH_VScript_Timer_GetStatus)
+	{
+		gH_VScript_Timer_GetStatus = VScript_CreateFunction();
+		gH_VScript_Timer_GetStatus.SetScriptName("Timer_GetStatus");
+		gH_VScript_Timer_GetStatus.Return = FIELD_INTEGER;
+		gH_VScript_Timer_GetStatus.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_GetStatus.SetFunctionEmpty();
+		gH_VScript_Timer_GetStatus.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetStatus);
+	}
+	gH_VScript_Timer_GetStatus.Register();
+
+	// function Timer_GetTrack(player) // returns an int -- 0=main, 1 or higher = a bonus track
+	if (!gH_VScript_Timer_GetTrack)
+	{
+		gH_VScript_Timer_GetTrack = VScript_CreateFunction();
+		gH_VScript_Timer_GetTrack.SetScriptName("Timer_GetTrack");
+		gH_VScript_Timer_GetTrack.Return = FIELD_INTEGER;
+		gH_VScript_Timer_GetTrack.SetParam(1, FIELD_HSCRIPT);
+		gH_VScript_Timer_GetTrack.SetFunctionEmpty();
+		gH_VScript_Timer_GetTrack.CreateDetour().Enable(Hook_Pre, Detour_Timer_GetTrack);
+	}
+	gH_VScript_Timer_GetTrack.Register();
+}
+
+MRESReturn Detour_Timer_GetTime(DHookReturn hret, DHookParam params)
+{
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		hret.Value = 0.0;
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
+
+	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+	{
+		// Log error or something...
+		hret.Value = 0.0;
+		return MRES_Supercede;
+	}
+
+	hret.Value = Shavit_GetClientTime(client);
+
+	return MRES_Supercede;
+}
+
+MRESReturn Detour_Timer_GetStatus(DHookReturn hret, DHookParam params)
+{
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		hret.Value = 0;
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
+
+	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+	{
+		// Log error or something...
+		hret.Value = 0;
+		return MRES_Supercede;
+	}
+
+	hret.Value = view_as<int>(GetTimerStatus(client));
+
+	return MRES_Supercede;
+}
+
+MRESReturn Detour_Timer_GetTrack(DHookReturn hret, DHookParam params)
+{
+	HSCRIPT clienthandle = params.Get(1);
+
+	if (clienthandle == view_as<HSCRIPT>(0))
+	{
+		// null object passed in probably
+		hret.Value = -1;
+		return MRES_Supercede;
+	}
+
+	int client = VScript_HScriptToEntity(clienthandle);
+
+	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+	{
+		// Log error or something...
+		hret.Value = -1;
+		return MRES_Supercede;
+	}
+
+	hret.Value = view_as<int>(gA_Timers[client].iTimerTrack);
+
+	return MRES_Supercede;
 }
