@@ -3,7 +3,7 @@ Note: Dates are UTC+0.
 
 
 
-# v3.?.? - ? - 2025-??-? - rtldg
+# v4.0.0 - ? - 2026-01-?? - rtldg
 what will go here? hmm i wonder... maybe vscript pull request? maybe updating tf2 gamedata because i forgot? who knows...
 
 thank pixel for finding that the 0.5s on-ground start-timer thing wasn't working

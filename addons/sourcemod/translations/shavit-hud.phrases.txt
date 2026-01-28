@@ -81,9 +81,21 @@
 	{
 		"en"		"Sync"
 	}
+	"HudSync_keyhint"
+	{
+		"en"		"Sync (right side)"
+	}
+	"HudSync_center"
+	{
+		"en"		"Sync (center hud)"
+	}
 	"HudPerfs"
 	{
 		"en"		"Perfect jumps"
+	}
+	"HudPerfs_keyhint"
+	{
+		"en"		"Perfect jumps (right side)"
 	}
 	"HudPerfsCenter"
 	{
@@ -129,15 +141,15 @@
 	}
 	"HudCenter"
 	{
-		"en"		"Center text"
+		"en"		"(Bottom) Center HUD"
 	}
 	"HudZoneHud"
 	{
-		"en"		"Zone HUD"
+		"en"		"In-Zone HUD (center hud)"
 	}
 	"HudObserve"
 	{
-		"en"		"Spectate HUD"
+		"en"		"HUD when spectating"
 	}
 	"HudSpectators"
 	{
@@ -145,7 +157,7 @@
 	}
 	"HudSpectatorsDead"
 	{
-		"en"		"Spectator list (only when dead)"
+		"en"		"Disable Spectator list while alive"
 	}
 	"HudKeyOverlay"
 	{
