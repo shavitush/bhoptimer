@@ -409,7 +409,18 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 		Call_Finish();
 
 		char sQuery[512];
-		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
+		if (gI_Driver == Driver_mysql)
+		{
+			FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			FormatEx(sQuery, sizeof(sQuery), "INSERT INTO %smaptiers (map, tier) VALUES ('%s', %d) ON CONFLICT (map) DO UPDATE SET tier = EXCLUDED.tier;", gS_MySQLPrefix, gS_Map, gI_Tier);
+		}
+		else // SQLite
+		{
+			FormatEx(sQuery, sizeof(sQuery), "INSERT OR REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
+		}
 		QueryLog(gH_SQL, SQL_SetMapTier_Callback, sQuery, 0, DBPrio_High);
 	}
 }
@@ -671,7 +682,18 @@ public Action Command_SetTier(int client, int args)
 	Shavit_LogMessage("%L - set tier of `%s` to %d", client, gS_Map, tier);
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, map, tier);
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, map, tier);
+	}
+	else if (gI_Driver == Driver_pgsql)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "INSERT INTO %smaptiers (map, tier) VALUES ('%s', %d) ON CONFLICT (map) DO UPDATE SET tier = EXCLUDED.tier;", gS_MySQLPrefix, map, tier);
+	}
+	else // SQLite
+	{
+		FormatEx(sQuery, sizeof(sQuery), "INSERT OR REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, map, tier);
+	}
 
 	DataPack data = new DataPack();
 	data.WriteCell(client ? GetClientSerial(client) : 0);
@@ -790,7 +812,7 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 				gS_Map
 			);
 		}
-		else
+		else if (gI_Driver == Driver_mysql)
 		{
 			FormatEx(sQuery, sQueryLen,
 				"UPDATE %splayertimes AS PT " ...
@@ -805,6 +827,27 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 				gS_MySQLPrefix, gS_MySQLPrefix,
 				((gCV_PointsPerTier.FloatValue * fTier) * 1.5),
 				fMultiplier,
+				(track > 0) ? '>' : '=',
+				style,
+				gS_Map
+			);
+		}
+		else // PostgreSQL
+		{
+			FormatEx(sQuery, sQueryLen,
+				"UPDATE %splayertimes AS PT " ...
+				"SET " ...
+				" points = "...
+				"   (%f + (WR.time / 15.0)) " ...
+				" * (WR.time / PT.time) " ...
+				" * %f " ...
+				"FROM %swrs WR " ...
+				"WHERE PT.track = WR.track AND PT.style = WR.style AND PT.map = WR.map " ...
+				"  AND PT.track %c 0 AND PT.style = %d AND PT.map = '%s';",
+				gS_MySQLPrefix,
+				((gCV_PointsPerTier.FloatValue * fTier) * 1.5),
+				fMultiplier,
+				gS_MySQLPrefix,
 				(track > 0) ? '>' : '=',
 				style,
 				gS_Map
@@ -837,7 +880,7 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			mapfilter
 		);
 	}
-	else
+	else if (gI_Driver == Driver_mysql)
 	{
 		char mapfilter[50+PLATFORM_MAX_PATH];
 		if (map[0]) FormatEx(mapfilter, sizeof(mapfilter), "AND PT.map = '%s'", map);
@@ -862,6 +905,32 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			gCV_PointsPerTier.FloatValue,
 			(track > 0) ? "1" : "MT.tier",
 			fMultiplier
+		);
+	}
+	else // PostgreSQL
+	{
+		char mapfilter[50+PLATFORM_MAX_PATH];
+		if (map[0]) FormatEx(mapfilter, sizeof(mapfilter), "AND PT.map = '%s'", map);
+
+		FormatEx(sQuery, sQueryLen,
+			"UPDATE %splayertimes AS PT " ...
+			"SET " ...
+			" points = "...
+			"   (((%f * %s) * 1.5) + (WR.time / 15.0)) " ...
+			" * (WR.time / PT.time) " ...
+			" * %f " ...
+			"FROM %swrs AS WR, %smaptiers AS MT " ...
+			"WHERE PT.track %c 0 AND PT.track = WR.track AND PT.style = %d AND PT.style = WR.style %s AND PT.map = WR.map " ...
+			"  AND PT.map = MT.map;",
+			gS_MySQLPrefix,
+			gCV_PointsPerTier.FloatValue,
+			(track > 0) ? "1" : "MT.tier",
+			fMultiplier,
+			gS_MySQLPrefix,
+			gS_MySQLPrefix,
+			(track > 0) ? '>' : '=',
+			style,
+			mapfilter
 		);
 	}
 }
@@ -1100,7 +1169,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 		if (sLastLogin[0])
 			Format(sLastLogin, sizeof(sLastLogin), "u2.%s", sLastLogin);
 
-		// fuck you mysql
+		// MySQL-specific JOIN syntax
 		FormatEx(sQuery, sizeof(sQuery),
 		    "UPDATE %susers AS u, (\n"
 		... "  SELECT auth, SUM(t.points2) as pp FROM (\n"
@@ -1127,8 +1196,34 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			sTrackWhere,
 			sLimit); // TODO: Remove/move sLimit?
 	}
+	else if (gB_SQLWindowFunctions && gI_Driver == Driver_pgsql)
+	{
+		// PostgreSQL-specific syntax (similar to standard SQL)
+		FormatEx(sQuery, sizeof(sQuery),
+		    "UPDATE %susers AS u\n"
+		... "SET points = (\n"
+		... "  SELECT SUM(points2) FROM (\n"
+		... "    SELECT (points * POWER(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) AS points2\n"
+		... "    FROM %splayertimes\n"
+		... "    WHERE auth = u.auth AND points > 0\n"
+		... "    ORDER BY points DESC %s\n"
+		... "  ) AS t\n"
+		... ") WHERE %s %s auth IN\n"
+		... "  (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s);",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			sLimit, // TODO: Remove/move sLimit?
+			sLastLogin, sLastLogin[0] ? "AND" : "",
+			gS_MySQLPrefix,
+			(sMapWhere[0] || sTrackWhere[0]) ? "WHERE" : "",
+			sMapWhere,
+			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
+			sTrackWhere);
+	}
 	else if (gB_SQLWindowFunctions)
 	{
+		// Standard SQL window functions (SQLite and other databases)
 		FormatEx(sQuery, sizeof(sQuery),
 		    "UPDATE %susers AS u\n"
 		... "SET points = (\n"
@@ -1196,8 +1291,21 @@ void UpdatePlayerRank(int client, bool first)
 		// if there's any issue with this query,
 		// add "ORDER BY points DESC " before "LIMIT 1"
 		char sQuery[512];
-		FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points;",
-			gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		if (gI_Driver == Driver_mysql)
+		{
+			FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 CROSS JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points GROUP BY u2.points;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
+		else // SQLite
+		{
+			FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
 
 		DataPack hPack = new DataPack();
 		hPack.WriteCell(GetClientSerial(client));
@@ -1247,11 +1355,30 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 void UpdateTop100()
 {
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
-		UNION ALL \
-		SELECT * FROM (SELECT -1 as c, auth, name, FORMAT(points, 2) FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
-		gS_MySQLPrefix, gS_MySQLPrefix);
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
+			UNION ALL \
+			SELECT * FROM (SELECT -1 as c, auth, name, FORMAT(points, 2) FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+	}
+	else if (gI_Driver == Driver_pgsql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
+			UNION ALL \
+			SELECT * FROM (SELECT -1 as c, auth, name, ROUND(points::numeric, 2)::text FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+	}
+	else // SQLite
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
+			UNION ALL \
+			SELECT * FROM (SELECT -1 as c, auth, name, ROUND(points, 2) FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+	}
 
 	QueryLog(gH_SQL, SQL_UpdateTop100_Callback, sQuery, 0, DBPrio_High);
 }
@@ -1306,23 +1433,67 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 
 bool DoWeHaveWindowFunctions(const char[] sVersion)
 {
-	char buf[100][2];
-	ExplodeString(sVersion, ".", buf, 2, 100);
-	int iMajor = StringToInt(buf[0]);
-	int iMinor = StringToInt(buf[1]);
-
 	if (gI_Driver == Driver_sqlite)
 	{
+		char buf[100][2];
+		ExplodeString(sVersion, ".", buf, 2, 100);
+		int iMajor = StringToInt(buf[0]);
+		int iMinor = StringToInt(buf[1]);
 		// 2018~
 		return iMajor > 3 || (iMajor == 3 && iMinor >= 25); // 2018~
 	}
 	else if (gI_Driver == Driver_pgsql)
 	{
-		// 2009~
+		// PostgreSQL version string format: "PostgreSQL 16.1 on x86_64-pc-linux-gnu..."
+		// Extract version number after "PostgreSQL "
+		char sVersionCopy[100];
+		strcopy(sVersionCopy, sizeof(sVersionCopy), sVersion);
+		
+		int iStart = StrContains(sVersionCopy, "PostgreSQL ");
+		if (iStart != -1)
+		{
+			iStart += 11; // Length of "PostgreSQL "
+			char sVersionPart[32];
+			strcopy(sVersionPart, sizeof(sVersionPart), sVersionCopy[iStart]);
+			
+			// Find first space to terminate version string
+			int iEnd = StrContains(sVersionPart, " ");
+			if (iEnd != -1)
+			{
+				sVersionPart[iEnd] = '\0';
+			}
+			
+			char buf[32][2];
+			ExplodeString(sVersionPart, ".", buf, 2, 32);
+			int iMajor = StringToInt(buf[0]);
+			int iMinor = StringToInt(buf[1]);
+			
+			// PostgreSQL has had window functions since 8.4 (2009)
+			// But modern PostgreSQL uses major.minor format where major >= 10
+			if (iMajor >= 10)
+			{
+				return true; // All PostgreSQL 10+ have window functions
+			}
+			else
+			{
+				return iMajor > 8 || (iMajor == 8 && iMinor >= 4);
+			}
+		}
+		
+		// Fallback: assume old format and check anyway
+		char buf[100][2];
+		ExplodeString(sVersion, ".", buf, 2, 100);
+		int iMajor = StringToInt(buf[0]);
+		int iMinor = StringToInt(buf[1]);
 		return iMajor > 8 || (iMajor == 8 && iMinor >= 4);
 	}
 	else if (gI_Driver == Driver_mysql)
 	{
+		char buf[100][2];
+		ExplodeString(sVersion, ".", buf, 2, 100);
+		int iMajor = StringToInt(buf[0]);
+		int iMinor = StringToInt(buf[1]);
+		
 		if (StrContains(sVersion, "MariaDB") != -1)
 		{
 			 // 2016~
@@ -1364,8 +1535,8 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 		}
 		else if (gI_Driver == Driver_pgsql)
 		{
-			LogError("Okay, really? Your postgres version is from 2014 or earlier... come on, brother...");
-			SetFailState("Update postgresql");
+			LogError("PostgreSQL version does not support window functions. Window functions require PostgreSQL 8.4 or later.");
+			SetFailState("Update PostgreSQL to version 8.4 or later");
 		}
 		else // mysql
 		{
