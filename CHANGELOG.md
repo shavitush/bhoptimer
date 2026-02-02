@@ -3,14 +3,88 @@ Note: Dates are UTC+0.
 
 
 
-# v4.0.0 - ? - 2026-01-?? - rtldg
-what will go here? hmm i wonder... maybe vscript pull request? maybe updating tf2 gamedata because i forgot? who knows...
+# v?.?.? - ? - 2026-??-?? - rtldg
+¿
 
-thank pixel for finding that the 0.5s on-ground start-timer thing wasn't working
+
+
+# v4.0.0 - The release that breaks things and didn't merge enough - 2026-01-31 - rtldg
+[`v3.5.1...v4.0.0`](https://github.com/shavitush/bhoptimer/compare/v3.5.1...v4.0.0)
+
+Release numbers went from v3.5.1 to v4.0.0 because I broke some replay-recording functions to provide a better API for [srcwr💾](https://github.com/srcwr/srcwrfloppy).
+
+### If you use these plugins, then you will have to update them:
+- https://github.com/offstyles/offstyle-plugins
+- https://github.com/KawaiiClan/bhoptimer-savestate
+
+### If you use these plugins, then don't update bhoptimer until these are updated:
+- https://github.com/BoomShotKapow/shavit-myreplay
+- https://github.com/sourcejump/plugin-database
+	- https://github.com/sourcejump/plugin-database/pull/1
+
+## Changes:
+- gamedata
+	- Update CSGO m_afButtonDisabled signature https://github.com/shavitush/bhoptimer/commit/309cdf3acf7dc91582370c7e13ca2f50c9fe910e
+	- move `shavit-mapfixes.cfg` out of `configs/` and into `gamedata/` https://github.com/shavitush/bhoptimer/commit/3757b8482c6cf303d06f361d7f4576ec020abfac
+		- Easier to update this way.
+	- Update TF2 gamedata (untested) https://github.com/shavitush/bhoptimer/commit/72a23e665b1ff88d623fa0abaf3b803372d9d7d1
+- bug fixes
+	- shavit-stats.sp - fix error due to IsPlayerAlive() being called on disconnected client https://github.com/shavitush/bhoptimer/pull/1188 @mourningsickness https://github.com/shavitush/bhoptimer/commit/14b967496211dc598c09af470fd02759da9fab9d
+	- shavit-checkpoints.sp - fix aFrames and iPreFrames not always being set https://github.com/shavitush/bhoptimer/pull/1244 @mourningsickness https://github.com/shavitush/bhoptimer/commit/466bcf62dfc4fd509b47f3968cf3a1d8c1751297
+	- Fix savestates not enabling recording (found by happydez) https://github.com/shavitush/bhoptimer/commit/4f43b628ae1f1f923ceb518528de074b2c765966\
+	- shavit-replay-playback.sp - fix error in case where style == -1 https://github.com/shavitush/bhoptimer/pull/1254 @mourningsickness https://github.com/shavitush/bhoptimer/commit/b1e8e1504346e9475b413b387b7ee06fb9414dc7
+	- (IMPORTANT) Fix the on-ground 0.5s start-timer check which stops shit like "lowjumps" (thanks to PixeL for informing and testing)
+		- Fix the on-ground 0.5s start-timer check from 89e97df https://github.com/shavitush/bhoptimer/commit/00feb624c2c78c94d2780ce694eff0226379f5d2
+		- Fix the on-ground 0.5s start-timer even further dot dot dot https://github.com/shavitush/bhoptimer/commit/128940ff193e2b0ff22c6cc8eaa660e7b7883a6f
+	- change RemoveFromString() to hopefully not access out of bounds memory (olivia ran into this) https://github.com/shavitush/bhoptimer/commit/beaaccda056f2695dc02dffa8274957d2bf2b039
+	- Fix duped maps in !nominate when there are multiple end-zones https://github.com/shavitush/bhoptimer/pull/1256 @Awesomerly https://github.com/shavitush/bhoptimer/commit/5ca44fe4b732f0fed42353f355a9efdff9ec3857
+	- Load all replay frame cells into memory instead of only 8 https://github.com/shavitush/bhoptimer/commit/9e82623a8f976362b187022191b77dceb24d9ad4
+		- Requires you to recompile any savestate plugins.  Read the commit message for more details.
+	- reset gB_InCheckpointMenu OnClientDisconnect https://github.com/shavitush/bhoptimer/pull/1263 @mourningsickness https://github.com/shavitush/bhoptimer/commit/f1d0af4a9ccfc02679e81cab5bea6f4686034a4c
+	- Prevent `jointeam` from being too spammable https://github.com/shavitush/bhoptimer/commit/f6367934434b6b4e425a377d053d6307731ff1da
+		- This doesn't fix any exploits but might help mitigate against people trying to crash the server.
+- quality of life
+	- shavit-replay-playback.sp - close replay menu on spawn (if it's open) https://github.com/shavitush/bhoptimer/pull/1247 @mourningsickness https://github.com/shavitush/bhoptimer/commit/c0d5efb3097b2adccedf41371b37fd630c20d53d
+	- shavit-zones.sp - make it so slay/stoptimer zones don't apply if paused https://github.com/shavitush/bhoptimer/pull/1251 @mourningsickness https://github.com/shavitush/bhoptimer/commit/326caccb0640b53754b5acdacb39d995ee9a14f3
+	- shavit-misc.sp - don't stop timer on tpto if paused with pause movement enabled https://github.com/shavitush/bhoptimer/pull/1249 @mourningsickness https://github.com/shavitush/bhoptimer/commit/0b0be25c78a1479e0dc16e855805607da31de948
+	- prevent prac warning spam in start zone https://github.com/shavitush/bhoptimer/pull/1258 @normalamron https://github.com/shavitush/bhoptimer/commit/71c674663f1948c05cb36032dcc691a4c41d1b50
+	- Reset players hp [only] when needed @xhaooy https://github.com/shavitush/bhoptimer/commit/21a7b58c82c98136fbdd43c13ba33090241642f5
+	- Try to make some HUD translation strings & menu things clearer https://github.com/shavitush/bhoptimer/commit/460664fe8d5bbe0f4e1dc2a2578eef84ee04ebe7
+	- Disable triggers while zoning https://github.com/shavitush/bhoptimer/commit/4e9c9abdf4b467dea3f2b9262dba1eca4932b567
+- misc
+	- Clarify shavit_replay_timelimit 0.0/disabled not recording replays https://github.com/shavitush/bhoptimer/commit/70308f3d6ac765d6b437984b4144ba3806a9a34f
+	- Include eventqueuefixfix in release zips (only needed on Windows) https://github.com/shavitush/bhoptimer/commit/378a2eae700c218e1d2568c4ae83241009ca49e4
+	- bump to v4.0.0 https://github.com/shavitush/bhoptimer/commit/8ceacc4d248cf20ac180eaae81513ae2b784614e
+		- including this because it also added `SHAVIT_VERSION_MAJOR`, `SHAVIT_VERSION_MINOR`, and `SHAVIT_VERSION_PATCH` which can be used in ifdefs now.
+	- fix comment on `Shavit_OnTimeIncrementPost` https://github.com/shavitush/bhoptimer/commit/317169dfda5ff00f972aa04a403fc04dae5d6fd4
+- features
+	- add !worldrecord/!wr aliases (!serverrecord/!sr) (#1257)  https://github.com/shavitush/bhoptimer/pull/1257 @mourningsickness https://github.com/shavitush/bhoptimer/commit/7d3913bc3e52ef8249ad6733af70d767a2257230
+	- Add tier selection menu to mapsleft and mapsdone menus (with "All" option, for current functionality) https://github.com/shavitush/bhoptimer/pull/1262 @mourningsickness https://github.com/shavitush/bhoptimer/commit/a350d7982ca92c0ebf592d4d2040432c2677ff5e
+	- Make it easier to change the max tier https://github.com/shavitush/bhoptimer/commit/7cbb25054126f7bf331fb2f70ceb77525774decf
+		- Some servers like to raise the max tier. This requires editing the code. Now with another plugin: you can set `shavit_rankings_default_tier`'s upper bounds and then blah blah. Not really tested though.
+	- shavit-hud.sp - add perf% to center hud https://github.com/shavitush/bhoptimer/pull/1259 @mourningsickness https://github.com/shavitush/bhoptimer/commit/133c4e5b125fa942159fcadbe792982e2a6fe13f
+	- shavit_core_pause_movement - add extra 2 cvars for pause https://github.com/shavitush/bhoptimer/pull/1250 @normalamron https://github.com/shavitush/bhoptimer/commit/7502325be87d0c5db17a9cc0475b27aced4bc8ae
+	- Prioritize extend/dontchange/reroll for a tied vote https://github.com/shavitush/bhoptimer/pull/1265 https://github.com/shavitush/bhoptimer/commit/cceba51a00e6a2b0f29dbbd3136a87a996d82b2c
+		- Adds `smc_mapvote_prioritize_special` (1 by default) to toggle this behavior.
+	- [srcwr💾](https://github.com/srcwr/srcwrfloppy)
+		- What: sourcemod extension (.dll/.so) to write replays with a background thread.
+		- Why: reduces lag when people finish a run.
+		- What this breaks:
+			- `Shavit_ShouldSaveReplayCopy`, `Shavit_OnReplaySaved`, and `WriteReplayFrames`.
+			- Why: poor API with the `makeCopy` params etc, and by changing it: we can write replays for third-party plugins (like https://github.com/BoomShotKapow/shavit-myreplay)
+		- All the commits:
+			- Use an extension to save replays asynchronously https://github.com/shavitush/bhoptimer/pull/1253 https://github.com/shavitush/bhoptimer/commit/16ccd0cc7ca2942baf3130b298c8ce57b5d236c5
+			- https://github.com/shavitush/bhoptimer/commit/d08a3078e14abccd776e33f99351b54589c67427
+			- https://github.com/shavitush/bhoptimer/commit/f14cbf5aff899e1d012e760b8a6a39c4184d7653
+			- https://github.com/shavitush/bhoptimer/commit/871c67deac43356194897979ab953cfd38906140
+			- https://github.com/shavitush/bhoptimer/commit/0ebfa900b9468c6413ebf10b61dd35cc27d20e34
+			- add `Shavit_AdditionalReplayPath`, edit & rename `Shavit_ShouldSaveReplayCopy` to `Shavit_AddAdditionalReplayPathsHere`, edit `Shavit_OnReplaySaved`, edit `WriteReplayFrames`, and make compatible with srcwr💾 v4.0.0 https://github.com/shavitush/bhoptimer/commit/eb079a6d1e508069bdb2d9a375de2826cdb62b63
 
 
 
 # v3.5.1 - small things - 2025-06-24 - rtldg
+[`v3.5.0...v3.5.1`](https://github.com/shavitush/bhoptimer/compare/v3.5.0...v3.5.1)
+
 - fix olivia's name in the author lists https://github.com/shavitush/bhoptimer/commit/f0ccf6dc0aa45aa72d7c428d5c8866aae28467e4
 - shavit-wr.sp - add back buttons to !delete menus (QoL) https://github.com/shavitush/bhoptimer/commit/877b71aa4d8a7735ee0eec189dd0ef6a72249180 @mourningsickness @rtldg
 - Keep all menus open forever https://github.com/shavitush/bhoptimer/commit/bb09568d9797b61b1a0cd290b56545f8a928b8e8
@@ -19,6 +93,7 @@ thank pixel for finding that the 0.5s on-ground start-timer thing wasn't working
 
 
 # v3.5.0 - too much, too little, and too late - 2025-06-06 - rtldg
+[`v3.4.2...v3.5.0`](https://github.com/shavitush/bhoptimer/compare/v3.4.2...v3.5.0)
 this is too dense and unreadable. I'm sorry...
 
 - random things
