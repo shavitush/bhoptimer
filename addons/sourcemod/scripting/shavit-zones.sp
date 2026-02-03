@@ -1083,6 +1083,24 @@ bool LoadZonesConfig()
 		return false;
 	}
 
+	for(int i = 0; i < ZONETYPES_SIZE; i++)
+	{
+		for(int j = 0; j < TRACKS_SIZE; j++)
+		{
+			gA_ZoneSettings[i][j].bVisible = true;
+			gA_ZoneSettings[i][j].iRed = 255;
+			gA_ZoneSettings[i][j].iGreen = 255;
+			gA_ZoneSettings[i][j].iBlue = 255;
+			gA_ZoneSettings[i][j].iAlpha = 255;
+			gA_ZoneSettings[i][j].fWidth = 2.0;
+			gA_ZoneSettings[i][j].bFlatZone = false;
+			gA_ZoneSettings[i][j].bUseVanillaSprite = false;
+			gA_ZoneSettings[i][j].bNoHalo = false;
+			gA_ZoneSettings[i][j].iSpeed = 0;
+			gA_ZoneSettings[i][j].sBeam[0] = 0;
+		}
+	}
+
 
 	gA_ZoneSprites.Clear();
 	kv.JumpToKey("Sprites");
@@ -1209,9 +1227,23 @@ void LoadZoneSettings()
 			}
 			else
 			{
-				gA_ZoneSettings[i][j].iBeam = (gA_ZoneSettings[i][j].sBeam[0] != 0)
-					? PrecacheModel(gA_ZoneSettings[i][j].sBeam, true)
-					: defaultBeam;
+				if (gA_ZoneSettings[i][j].sBeam[0] != 0)
+				{
+					gA_ZoneSettings[i][j].iBeam = PrecacheModel(gA_ZoneSettings[i][j].sBeam, true);
+				}
+				else
+				{
+					if (gA_ZoneSprites.Length > 0)
+					{
+						zone_sprite_t sprite;
+						gA_ZoneSprites.GetArray(0, sprite);
+						gA_ZoneSettings[i][j].iBeam = sprite.iBeam;
+					}
+					else
+					{
+						gA_ZoneSettings[i][j].iBeam = defaultBeam;
+					}
+				}
 			}
 
 			gA_ZoneSettings[i][j].iHalo = (gA_ZoneSettings[i][j].bNoHalo) ? 0 : defaultHalo;
