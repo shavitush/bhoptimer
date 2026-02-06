@@ -1,0 +1,24 @@
+"UnlitGeneric"
+{
+	//"$receiveflashlight" 0
+	//"$singlepassflashlight" 0
+	"$basetexture" "shavit/bluelightningscroll3"
+	
+	"Proxies"
+	{
+		"TextureScroll"
+		{
+                        		"texturescrollvar" "$baseTextureTransform"
+                        		"texturescrollrate" 0.1
+			"texturescrollangle" 270
+		}
+	}
+	//"$alphatest" 1
+	"$translucent" 1
+	//"$alphatestreference" "0.99"
+	//"$additive" 0
+	"$vertexcolor" 1
+	//"$vertexalpha" 1
+	//"$decalscale" 2
+	"$ignorez" "1"
+}

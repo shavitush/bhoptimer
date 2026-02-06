@@ -114,8 +114,19 @@ float gF_CustomSpawn[TRACKS_SIZE][3];
 int gI_EntityZone[2048] = {-1, ...};
 int gI_LastStage[MAXPLAYERS+1];
 
-char gS_BeamSprite[PLATFORM_MAX_PATH];
-char gS_BeamSpriteIgnoreZ[PLATFORM_MAX_PATH];
+enum struct zone_sprite_t
+{
+	char sName[64];
+	char sBeam[PLATFORM_MAX_PATH];
+	char sBeamIgnoreZ[PLATFORM_MAX_PATH];
+	char sDownloads[1024];
+	int iBeam;
+	int iBeamIgnoreZ;
+}
+
+ArrayList gA_ZoneSprites;
+Cookie gH_CustomZoneSpriteCookie;
+int gI_ZoneSprite[MAXPLAYERS+1][ZONETYPES_SIZE][TRACKS_SIZE];
 int gI_BeamSpriteIgnoreZ;
 
 // admin menu
@@ -134,7 +145,7 @@ Convar gCV_Interval = null;
 Convar gCV_TeleportToStart = null;
 Convar gCV_TeleportToEnd = null;
 Convar gCV_AllowDrawAllZones = null;
-Convar gCV_UseCustomSprite = null;
+
 Convar gCV_Height = null;
 Convar gCV_Offset = null;
 Convar gCV_EnforceTracks = null;
@@ -302,7 +313,10 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_customzones", Command_CustomZones, "Customize start and end zone for each track");
 
 	gH_CustomZoneCookie = new Cookie("shavit_customzones", "Cookie for storing custom zone stuff", CookieAccess_Private);
+	gH_CustomZoneSpriteCookie = new Cookie("shavit_zone_sprite", "Cookie for storing the chosen zone sprite", CookieAccess_Private);
 	gH_CustomZoneCookie2 = new Cookie("shavit_customzones2", "Cooke (AGAIN) for storing custom zone stuff", CookieAccess_Private);
+
+	gA_ZoneSprites = new ArrayList(sizeof(zone_sprite_t));
 
 	for (int i = 0; i <= 9; i++)
 	{
@@ -337,7 +351,7 @@ public void OnPluginStart()
 	gCV_TeleportToStart = new Convar("shavit_zones_teleporttostart", "1", "Teleport players to the start zone on timer restart?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_TeleportToEnd = new Convar("shavit_zones_teleporttoend", "1", "Teleport players to the end zone on sm_end?\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
 	gCV_AllowDrawAllZones = new Convar("shavit_zones_allowdrawallzones", "1", "Allow players to use !drawallzones to see all zones regardless of zone visibility settings.\n0 - nobody can use !drawallzones\n1 - admins (sm_zones access) can use !drawallzones\n2 - anyone can use !drawallzones", 0, true, 0.0, true, 2.0);
-	gCV_UseCustomSprite = new Convar("shavit_zones_usecustomsprite", "1", "Use custom sprite for zone drawing?\nSee `configs/shavit-zones.cfg`.\n0 - Disabled\n1 - Enabled", 0, true, 0.0, true, 1.0);
+
 	gCV_Height = new Convar("shavit_zones_height", "128.0", "Height to use for the start zone.", 0, true, 0.0, false);
 	gCV_Offset = new Convar("shavit_zones_offset", "1.0", "When calculating a zone's *VISUAL* box, by how many units, should we scale it to the center?\n0.0 - no downscaling. Values above 0 will scale it inward and negative numbers will scale it outwards.\nAdjust this value if the zones clip into walls.");
 	gCV_EnforceTracks = new Convar("shavit_zones_enforcetracks", "1", "Enforce zone tracks upon entry?\n0 - allow every zone except for start/end to affect users on every zone.\n1 - require the user's track to match the zone's track.", 0, true, 0.0, true, 1.0);
@@ -356,7 +370,7 @@ public void OnPluginStart()
 	gCV_PrebuiltZones.AddChangeHook(OnConVarChanged);
 	gCV_ClimbButtons.AddChangeHook(OnConVarChanged);
 	gCV_Interval.AddChangeHook(OnConVarChanged);
-	gCV_UseCustomSprite.AddChangeHook(OnConVarChanged);
+
 	gCV_Offset.AddChangeHook(OnConVarChanged);
 	gCV_PrebuiltVisualOffset.AddChangeHook(OnConVarChanged);
 	gCV_BoxOffset.AddChangeHook(OnConVarChanged);
@@ -590,10 +604,7 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 			}
 		}
 	}
-	else if(convar == gCV_UseCustomSprite && !StrEqual(oldValue, newValue))
-	{
-		LoadZoneSettings();
-	}
+
 	else if (convar == gCV_BoxOffset)
 	{
 		for (int i = 0; i < gI_MapZones; i++)
@@ -1072,23 +1083,54 @@ bool LoadZonesConfig()
 		return false;
 	}
 
-	kv.JumpToKey("Sprites");
-	kv.GetString("beam", gS_BeamSprite, PLATFORM_MAX_PATH);
-	kv.GetString("beam_ignorez", gS_BeamSpriteIgnoreZ, PLATFORM_MAX_PATH, gS_BeamSprite);
-
-	char sDownloads[PLATFORM_MAX_PATH * 8];
-	kv.GetString("downloads", sDownloads, (PLATFORM_MAX_PATH * 8));
-
-	char sDownloadsExploded[PLATFORM_MAX_PATH][PLATFORM_MAX_PATH];
-	int iDownloads = ExplodeString(sDownloads, ";", sDownloadsExploded, PLATFORM_MAX_PATH, PLATFORM_MAX_PATH, false);
-
-	for(int i = 0; i < iDownloads; i++)
+	for(int i = 0; i < ZONETYPES_SIZE; i++)
 	{
-		if(strlen(sDownloadsExploded[i]) > 0)
+		for(int j = 0; j < TRACKS_SIZE; j++)
 		{
-			TrimString(sDownloadsExploded[i]);
-			AddFileToDownloadsTable(sDownloadsExploded[i]);
+			gA_ZoneSettings[i][j].bVisible = true;
+			gA_ZoneSettings[i][j].iRed = 255;
+			gA_ZoneSettings[i][j].iGreen = 255;
+			gA_ZoneSettings[i][j].iBlue = 255;
+			gA_ZoneSettings[i][j].iAlpha = 255;
+			gA_ZoneSettings[i][j].fWidth = 2.0;
+			gA_ZoneSettings[i][j].bFlatZone = false;
+			gA_ZoneSettings[i][j].bUseVanillaSprite = false;
+			gA_ZoneSettings[i][j].bNoHalo = false;
+			gA_ZoneSettings[i][j].iSpeed = 0;
+			gA_ZoneSettings[i][j].sBeam[0] = 0;
 		}
+	}
+
+
+	gA_ZoneSprites.Clear();
+	kv.JumpToKey("Sprites");
+
+	if (kv.GotoFirstSubKey())
+	{
+		do
+		{
+			zone_sprite_t sprite;
+			kv.GetSectionName(sprite.sName, sizeof(zone_sprite_t::sName));
+			kv.GetString("beam", sprite.sBeam, sizeof(zone_sprite_t::sBeam));
+			kv.GetString("beam_ignorez", sprite.sBeamIgnoreZ, sizeof(zone_sprite_t::sBeamIgnoreZ), sprite.sBeam);
+			kv.GetString("downloads", sprite.sDownloads, sizeof(zone_sprite_t::sDownloads));
+			gA_ZoneSprites.PushArray(sprite);
+
+			char sDownloadsExploded[64][PLATFORM_MAX_PATH];
+			int iDownloads = ExplodeString(sprite.sDownloads, ";", sDownloadsExploded, sizeof(sDownloadsExploded), sizeof(sDownloadsExploded[]));
+
+			for (int i = 0; i < iDownloads; i++)
+			{
+				if (strlen(sDownloadsExploded[i]) > 0)
+				{
+					TrimString(sDownloadsExploded[i]);
+					AddFileToDownloadsTable(sDownloadsExploded[i]);
+				}
+			}
+		}
+		while (kv.GotoNextKey());
+
+		kv.GoBack();
 	}
 
 	kv.GoBack();
@@ -1140,7 +1182,6 @@ void LoadZoneSettings()
 
 	int defaultBeam;
 	int defaultHalo;
-	int customBeam;
 
 	if(IsSource2013(gEV_Type))
 	{
@@ -1153,16 +1194,27 @@ void LoadZoneSettings()
 		defaultHalo = PrecacheModel("sprites/glow01.vmt", true);
 	}
 
-	if(gCV_UseCustomSprite.BoolValue)
+	for (int i = 0; i < gA_ZoneSprites.Length; i++)
 	{
-		customBeam = PrecacheModel(gS_BeamSprite, true);
-	}
-	else
-	{
-		customBeam = defaultBeam;
-	}
+		zone_sprite_t sprite;
+		gA_ZoneSprites.GetArray(i, sprite);
 
-	gI_BeamSpriteIgnoreZ = PrecacheModel(gS_BeamSpriteIgnoreZ, true);
+		if (sprite.sBeam[0] != 0)
+		{
+			sprite.iBeam = PrecacheModel(sprite.sBeam, true);
+		}
+
+		if (sprite.sBeamIgnoreZ[0] != 0)
+		{
+			sprite.iBeamIgnoreZ = PrecacheModel(sprite.sBeamIgnoreZ, true);
+		}
+		else
+		{
+			sprite.iBeamIgnoreZ = sprite.iBeam;
+		}
+
+		gA_ZoneSprites.SetArray(i, sprite);
+	}
 
 	for (int i = 0; i < ZONETYPES_SIZE; i++)
 	{
@@ -1175,13 +1227,38 @@ void LoadZoneSettings()
 			}
 			else
 			{
-				gA_ZoneSettings[i][j].iBeam = (gA_ZoneSettings[i][j].sBeam[0] != 0)
-					? PrecacheModel(gA_ZoneSettings[i][j].sBeam, true)
-					: customBeam;
+				if (gA_ZoneSettings[i][j].sBeam[0] != 0)
+				{
+					gA_ZoneSettings[i][j].iBeam = PrecacheModel(gA_ZoneSettings[i][j].sBeam, true);
+				}
+				else
+				{
+					if (gA_ZoneSprites.Length > 0)
+					{
+						zone_sprite_t sprite;
+						gA_ZoneSprites.GetArray(0, sprite);
+						gA_ZoneSettings[i][j].iBeam = sprite.iBeam;
+					}
+					else
+					{
+						gA_ZoneSettings[i][j].iBeam = defaultBeam;
+					}
+				}
 			}
 
 			gA_ZoneSettings[i][j].iHalo = (gA_ZoneSettings[i][j].bNoHalo) ? 0 : defaultHalo;
 		}
+	}
+
+	if (gA_ZoneSprites.Length > 0)
+	{
+		zone_sprite_t sprite;
+		gA_ZoneSprites.GetArray(0, sprite);
+		gI_BeamSpriteIgnoreZ = sprite.iBeamIgnoreZ;
+	}
+	else
+	{
+		gI_BeamSpriteIgnoreZ = defaultBeam;
 	}
 }
 
@@ -1777,6 +1854,7 @@ public void OnClientConnected(int client)
 			gI_ZoneDisplayType[client][i][j] = ZoneDisplay_Default;
 			gI_ZoneColor[client][i][j] = ZoneColor_Default;
 			gI_ZoneWidth[client][i][j] = ZoneWidth_Default;
+			gI_ZoneSprite[client][i][j] = -1;
 		}
 	}
 
@@ -1868,6 +1946,29 @@ public void OnClientCookiesCached(int client)
 				gI_ZoneDisplayType[client][type][track] = czone[p++] - '0';
 				gI_ZoneColor[client][type][track] = czone[p++] - '0';
 				gI_ZoneWidth[client][type][track] = czone[p++] - '0';
+			}
+		}
+	}
+
+	char sprite_buf[200];
+	gH_CustomZoneSpriteCookie.Get(client, sprite_buf, sizeof(sprite_buf));
+
+	if (sprite_buf[0] != 0)
+	{
+		int p_sprite = 0;
+		char two_chars[3];
+
+		for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
+		{
+			for (int track = Track_Main; track <= Track_Bonus; track++)
+			{
+				two_chars[0] = sprite_buf[p_sprite++];
+				two_chars[1] = sprite_buf[p_sprite++];
+				two_chars[2] = 0;
+
+				int val = StringToInt(two_chars, 16);
+				if (val == 255) val = -1;
+				gI_ZoneSprite[client][type][track] = val;
 			}
 		}
 	}
@@ -3472,6 +3573,25 @@ void OpenSubCustomZoneMenu(int client, int track, int zoneType)
 	FormatEx(display, sizeof(display), "%T: %T", "CustomZone_Width", client, widthName[gI_ZoneWidth[client][zoneType][track]], client);
 	menu.AddItem(info, display);
 
+	FormatEx(info, sizeof(info), "%i;%i;3", track, zoneType);
+
+	int spriteIdx = gI_ZoneSprite[client][zoneType][track];
+	char spriteName[64];
+
+	if (spriteIdx >= 0 && spriteIdx < gA_ZoneSprites.Length)
+	{
+		zone_sprite_t sprite;
+		gA_ZoneSprites.GetArray(spriteIdx, sprite);
+		FormatEx(spriteName, sizeof(spriteName), "%s", sprite.sName);
+	}
+	else
+	{
+		FormatEx(spriteName, sizeof(spriteName), "%T", "CustomZone_Default", client);
+	}
+
+	FormatEx(display, sizeof(display), "Sprite: %s", spriteName);
+	menu.AddItem(info, display);
+
 	menu.ExitBackButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
@@ -3512,6 +3632,20 @@ void HandleCustomZoneCookie(int client)
 	buf[99] = 0;
 	gH_CustomZoneCookie.Set(client, buf);
 	gH_CustomZoneCookie2.Set(client, buf[100]);
+	char sprite_buf[200];
+	int p_sprite = 0;
+
+	for (int type = Zone_Start; type < ZONETYPES_SIZE; type++)
+	{
+		for (int track = Track_Main; track <= Track_Bonus; track++)
+		{
+			int val = gI_ZoneSprite[client][type][track];
+			if (val == -1) val = 255;
+			Format(sprite_buf[p_sprite], sizeof(sprite_buf) - p_sprite, "%02X", val);
+			p_sprite += 2;
+		}
+	}
+	gH_CustomZoneSpriteCookie.Set(client, sprite_buf);
 }
 
 public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, int param2)
@@ -3555,7 +3689,63 @@ public int MenuHandler_SubCustomZones(Menu menu, MenuAction action, int client, 
 
 			HandleCustomZoneCookie(client);
 		}
+		else if (option == 3) // Sprite
+		{
+			OpenSpriteSelectMenu(client, track, zoneType);
+			return 0;
+		}
 
+		OpenSubCustomZoneMenu(client, track, zoneType);
+	}
+	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
+	{
+		OpenCustomZoneMenu(client, gI_LastMenuPos[client]);
+	}
+	else if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+
+	return 0;
+}
+
+void OpenSpriteSelectMenu(int client, int track, int zoneType)
+{
+	Menu menu = new Menu(MenuHandler_SpriteSelect);
+	menu.SetTitle("Select Sprite");
+
+	char info[16];
+	FormatEx(info, sizeof(info), "%d;%d;-1", track, zoneType);
+	menu.AddItem(info, "Default");
+
+	for (int i = 0; i < gA_ZoneSprites.Length; i++)
+	{
+		zone_sprite_t sprite;
+		gA_ZoneSprites.GetArray(i, sprite);
+		FormatEx(info, sizeof(info), "%d;%d;%d", track, zoneType, i);
+		menu.AddItem(info, sprite.sName);
+	}
+
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_SpriteSelect(Menu menu, MenuAction action, int client, int param2)
+{
+	if (action == MenuAction_Select)
+	{
+		char info[16];
+		menu.GetItem(param2, info, sizeof(info));
+
+		char exploded[3][5];
+		ExplodeString(info, ";", exploded, 3, 5);
+
+		int track = StringToInt(exploded[0]);
+		int zoneType = StringToInt(exploded[1]);
+		int spriteIdx = StringToInt(exploded[2]);
+
+		gI_ZoneSprite[client][zoneType][track] = spriteIdx;
+		HandleCustomZoneCookie(client);
 		OpenSubCustomZoneMenu(client, track, zoneType);
 	}
 	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack)
@@ -4784,7 +4974,9 @@ public Action Timer_DrawZones(Handle Timer, any drawAll)
 				type,
 				gA_ZoneSettings[type][track].iSpeed,
 				!!drawAll,
-				0
+				0,
+				-1,
+				false
 			);
 
 			if (++iDrawn % iMaxZonesPerFrame == 0)
@@ -4869,7 +5061,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		int colors[4];
 		GetZoneColors(colors, type, track, 125);
-		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type, gA_ZoneSettings[type][track].iSpeed, false, 0, gI_AdjustAxis[client]);
+		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type, gA_ZoneSettings[type][track].iSpeed, false, 0, gI_AdjustAxis[client], true);
 
 		if (gA_EditCache[client].iType == Zone_Teleport && !EmptyVector(gA_EditCache[client].fDestination))
 		{
@@ -4905,7 +5097,7 @@ public Action Timer_Draw(Handle Timer, any data)
 	return Plugin_Continue;
 }
 
-void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, int track, int type, int speed, bool drawallzones, int single_client, int editaxis=-1)
+void DrawZone(float points[8][3], int color[4], float life, float width, bool flat, float center[3], int beam, int halo, int track, int type, int speed, bool drawallzones, int single_client, int editaxis=-1, bool bUseIgnoreZ=false)
 {
 	static int pairs[][] =
 	{
@@ -4992,6 +5184,15 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 	for (int i = 0; i < count; i++)
 	{
+		int actual_beam = beam;
+		int spriteIdx = gI_ZoneSprite[clients[i]][type][track];
+		if (spriteIdx != -1 && spriteIdx < gA_ZoneSprites.Length)
+		{
+			zone_sprite_t sprite;
+			gA_ZoneSprites.GetArray(spriteIdx, sprite);
+			actual_beam = bUseIgnoreZ ? sprite.iBeamIgnoreZ : sprite.iBeam;
+		}
+
 		int point_size = (gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Flat ||
 		                  gI_ZoneDisplayType[clients[i]][type][track] == ZoneDisplay_Default && flat) ? 4 : 12;
 
@@ -5002,7 +5203,7 @@ void DrawZone(float points[8][3], int color[4], float life, float width, bool fl
 
 		for(int j = 0; j < point_size; j++)
 		{
-			TE_SetupBeamPoints(points[pairs[j][0]], points[pairs[j][1]], beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, actual_color, speed);
+			TE_SetupBeamPoints(points[pairs[j][0]], points[pairs[j][1]], actual_beam, halo, 0, 0, life, actual_width, actual_width, 0, 0.0, actual_color, speed);
 			TE_SendToClient(clients[i], 0.0);
 		}
 	}

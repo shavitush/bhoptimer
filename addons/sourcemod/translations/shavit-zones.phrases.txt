@@ -379,6 +379,10 @@
 	{
 		"en"		"Zone width"
 	}
+	"CustomZone_Sprite"
+	{
+		"en"		"Zone sprite"
+	}
 	"CustomZone_Default"
 	{
 		"en"		"Default"
