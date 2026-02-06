@@ -3,8 +3,16 @@ Note: Dates are UTC+0.
 
 
 
-# v?.?.? - ? - 2026-??-?? - rtldg
-¿
+# v4.0.1 - The release that fixes one thing and didn't merge enough - 2026-02-06 - rtldg
+[`v4.0.0...v4.0.1`](https://github.com/shavitush/bhoptimer/compare/v4.0.0...v4.0.1)
+
+See [v4.0.0](https://github.com/shavitush/bhoptimer/releases/tag/v4.0.0) for more recent changes.
+
+## Changes:
+- fix native name typos and cement `Shavit_AlsoSaveReplayTo` https://github.com/shavitush/bhoptimer/commit/8d6e99262f1dbdcedade445d0ebc45f1a3ff5d80
+	- shavit-replay-recorder creates the `Shavit_AlsoSaveReplayTo` native, but the header file had the name as `Shavit_AdditionalReplayPath`.
+	`Shavit_AdditionalReplayPath` was probably what I intended to use but I don't remember.  The name is fine, so keeping it as `Shavit_AlsoSaveReplayTo` means less churn for other plugins.
+	- Also makes sure the sucker is marked as optional for plugins that don't depend on bhoptimer but may want to use if available (e.g. for alt timers).
 
 
 
