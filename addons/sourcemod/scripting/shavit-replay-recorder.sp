@@ -636,8 +636,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	if (gA_PlayerFrames[client].Length <= gI_PlayerFrames[client])
 	{
 		resizeFailed[client] = true;
-		// Add about two seconds worth of frames so we don't have to resize so often
-		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + (RoundToCeil(gF_Tickrate) * 2));
+		// Add about 20 seconds worth of frames so we don't have to resize often
+		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + (RoundToCeil(gF_Tickrate) * 20));
 		//PrintToChat(client, "resizing %d -> %d", gI_PlayerFrames[client], gA_PlayerFrames[client].Length);
 		resizeFailed[client] = false;
 	}
