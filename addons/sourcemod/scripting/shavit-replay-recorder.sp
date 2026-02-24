@@ -712,15 +712,20 @@ public int Native_GetReplayData(Handle plugin, int numParams)
 
 	if(gA_PlayerFrames[client] != null)
 	{
-		ArrayList frames = cheapCloneHandle ? gA_PlayerFrames[client] : gA_PlayerFrames[client].Clone();
-		frames.Resize(gI_PlayerFrames[client]);
-		cloned = CloneHandle(frames, plugin); // set the calling plugin as the handle owner
-
-		if (!cheapCloneHandle)
+		if (cheapCloneHandle)
 		{
-			// Only hit for .Clone()'d handles. .Clone() != CloneHandle()
+			cloned = CloneHandle(gA_PlayerFrames[client], plugin);
+		}
+		else
+		{
+			ArrayList frames = gA_PlayerFrames[client].Clone();
+			cloned = CloneHandle(frames, plugin);
 			CloseHandle(frames);
 		}
+
+		// The ArrayList might have extra space since we expand it to hold N seconds of ticks, so we .Resize() less often.
+		// Anything that uses `frames.Length` might get fucked, so resizing to the "current" length is probably a good idea.
+		view_as<ArrayList>(cloned).Resize(gI_PlayerFrames[client]);
 	}
 
 	return view_as<int>(cloned);
