@@ -2709,6 +2709,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 	}
 
 	bool bEveryone = (iOverwrite > 0);
+	bool bWorseTimeMsg = false;
 	char sMessage[255];
 	char sMessage2[255];
 	float fOldWR = 0.0;
@@ -2918,6 +2919,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 		if(iOverwrite == 0 && !Shavit_GetStyleSettingInt(style, "unranked"))
 		{
+			bWorseTimeMsg = true;
 			FormatEx(sMessage, 255, "%s[%s]%s %T",
 				gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "WorseTime", client, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
 		}
@@ -3000,8 +3002,17 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 			{
 				if(client != i && IsValidClient(i) && GetSpectatorTarget(i) == client)
 				{
-					// Use the SAME message as the client
-					Shavit_PrintToChat(i, "%s", sMessage);
+					if(bWorseTimeMsg)
+					{
+						char sSpectatorMsg[255];
+						FormatEx(sSpectatorMsg, sizeof(sSpectatorMsg), "%s[%s]%s %T",
+							gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "NotFirstCompletionWorse", i, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDifference);
+						Shavit_PrintToChat(i, "%s", sSpectatorMsg);
+					}
+					else
+					{
+						Shavit_PrintToChat(i, "%s", sMessage);
+					}
 
 					if (sMessage2[0] != 0)
 					{
