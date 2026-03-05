@@ -2304,7 +2304,7 @@ public int Native_SetPracticeMode(Handle handler, int numParams)
 	bool practice = view_as<bool>(GetNativeCell(2));
 	bool alert = view_as<bool>(GetNativeCell(3));
 
-	if(alert && practice && !gA_Timers[client].bPracticeMode && (!gB_HUD || (Shavit_GetHUDSettings(client) & HUD_NOPRACALERT) == 0) && !Shavit_InsideZone(client, Zone_Start, -1))
+	if(alert && practice && !gA_Timers[client].bPracticeMode && (!gB_HUD || (Shavit_GetHUDSettings(client) & HUD_NOPRACALERT) == 0))
 	{
 		Shavit_PrintToChat(client, "%T", "PracticeModeAlert", client, gS_ChatStrings.sWarning, gS_ChatStrings.sText);
 	}

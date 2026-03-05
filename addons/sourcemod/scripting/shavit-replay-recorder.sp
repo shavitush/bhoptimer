@@ -636,8 +636,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	if (gA_PlayerFrames[client].Length <= gI_PlayerFrames[client])
 	{
 		resizeFailed[client] = true;
-		// Add about two seconds worth of frames so we don't have to resize so often
-		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + (RoundToCeil(gF_Tickrate) * 2));
+		// Add about 20 seconds worth of frames so we don't have to resize often
+		gA_PlayerFrames[client].Resize(gI_PlayerFrames[client] + (RoundToCeil(gF_Tickrate) * 20));
 		//PrintToChat(client, "resizing %d -> %d", gI_PlayerFrames[client], gA_PlayerFrames[client].Length);
 		resizeFailed[client] = false;
 	}
@@ -712,15 +712,20 @@ public int Native_GetReplayData(Handle plugin, int numParams)
 
 	if(gA_PlayerFrames[client] != null)
 	{
-		ArrayList frames = cheapCloneHandle ? gA_PlayerFrames[client] : gA_PlayerFrames[client].Clone();
-		frames.Resize(gI_PlayerFrames[client]);
-		cloned = CloneHandle(frames, plugin); // set the calling plugin as the handle owner
-
-		if (!cheapCloneHandle)
+		if (cheapCloneHandle)
 		{
-			// Only hit for .Clone()'d handles. .Clone() != CloneHandle()
+			cloned = CloneHandle(gA_PlayerFrames[client], plugin);
+		}
+		else
+		{
+			ArrayList frames = gA_PlayerFrames[client].Clone();
+			cloned = CloneHandle(frames, plugin);
 			CloseHandle(frames);
 		}
+
+		// The ArrayList might have extra space since we expand it to hold N seconds of ticks, so we .Resize() less often.
+		// Anything that uses `frames.Length` might get fucked, so resizing to the "current" length is probably a good idea.
+		view_as<ArrayList>(cloned).Resize(gI_PlayerFrames[client]);
 	}
 
 	return view_as<int>(cloned);
