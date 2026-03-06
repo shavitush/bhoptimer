@@ -176,6 +176,11 @@ float gF_ZoneSpeedLimit[MAXPLAYERS+1];
 float gF_ZoneStartSpeedLimit[MAXPLAYERS+1];
 int gI_LastPrintedSteamID[MAXPLAYERS+1];
 
+// Cache last replicated convar values to avoid spamming ReplicateToClient (which causes `DispatchAsyncEvent backlog` errors / lag in CS:GO, for example on !r).
+char gS_LastReplicatedAA[MAXPLAYERS+1][8];
+char gS_LastReplicatedAutoBhop[MAXPLAYERS+1][4];
+char gS_LastReplicatedEnableBhop[MAXPLAYERS+1][4];
+
 // kz support
 bool gB_KZMap[TRACKS_SIZE];
 
@@ -2784,6 +2789,9 @@ public void OnClientPutInServer(int client)
 	gI_LastPrintedSteamID[client] = 0;
 
 	gB_CookiesRetrieved[client] = false;
+	gS_LastReplicatedAA[client][0] = '\0';
+	gS_LastReplicatedAutoBhop[client][0] = '\0';
+	gS_LastReplicatedEnableBhop[client][0] = '\0';
 
 	if(AreClientCookiesCached(client))
 	{
@@ -3921,35 +3929,55 @@ void UpdateAiraccelerate(int client, float airaccelerate)
 {
 	char sAiraccelerate[8];
 	FloatToString(airaccelerate, sAiraccelerate, 8);
-	sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+
+	if (!StrEqual(sAiraccelerate, gS_LastReplicatedAA[client]))
+	{
+		sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
+		gS_LastReplicatedAA[client] = sAiraccelerate;
+	}
 }
 
 void UpdateStyleSettings(int client)
 {
 	if(sv_autobunnyhopping != null)
 	{
-		sv_autobunnyhopping.ReplicateToClient(client,
+		char sAutoBhop[4];
+		sAutoBhop =
 			(
 				gB_Auto[client]
 				&&
 				(
 					GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop")
-				    || (gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack))
+					|| (gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack))
 				)
 			)
 			? "1":"0"
-		);
+		;
+
+		if (!StrEqual(sAutoBhop, gS_LastReplicatedAutoBhop[client]))
+		{
+			sv_autobunnyhopping.ReplicateToClient(client, sAutoBhop);
+			gS_LastReplicatedAutoBhop[client] = sAutoBhop;
+		}
 	}
 
 	if(sv_enablebunnyhopping != null)
 	{
+		char sEnableBhop[4];
+
 		if (gB_Zones && Shavit_InsideZone(client, Zone_CustomSpeedLimit, gA_Timers[client].iTimerTrack))
 		{
-			sv_enablebunnyhopping.ReplicateToClient(client, "1");
+			sEnableBhop = "1";
 		}
 		else
 		{
-			sv_enablebunnyhopping.ReplicateToClient(client, (GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping"))? "1":"0");
+			sEnableBhop = GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping") ? "1" : "0";
+		}
+
+		if (!StrEqual(sEnableBhop, gS_LastReplicatedEnableBhop[client]))
+		{
+			sv_enablebunnyhopping.ReplicateToClient(client, sEnableBhop);
+			gS_LastReplicatedEnableBhop[client] = sEnableBhop;
 		}
 	}
 
