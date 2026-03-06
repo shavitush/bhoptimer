@@ -176,7 +176,7 @@ float gF_ZoneSpeedLimit[MAXPLAYERS+1];
 float gF_ZoneStartSpeedLimit[MAXPLAYERS+1];
 int gI_LastPrintedSteamID[MAXPLAYERS+1];
 
-// Cache last replicated convar values to avoid spamming ReplicateToClient
+// Cache last replicated convar values to avoid spamming ReplicateToClient (which causes `DispatchAsyncEvent backlog` errors / lag in CS:GO, for example on !r).
 char gS_LastReplicatedAA[MAXPLAYERS+1][8];
 char gS_LastReplicatedAutoBhop[MAXPLAYERS+1][4];
 char gS_LastReplicatedEnableBhop[MAXPLAYERS+1][4];
@@ -3930,10 +3930,10 @@ void UpdateAiraccelerate(int client, float airaccelerate)
 	char sAiraccelerate[8];
 	FloatToString(airaccelerate, sAiraccelerate, 8);
 
-	if(!StrEqual(sAiraccelerate, gS_LastReplicatedAA[client]))
+	if (!StrEqual(sAiraccelerate, gS_LastReplicatedAA[client]))
 	{
 		sv_airaccelerate.ReplicateToClient(client, sAiraccelerate);
-		strcopy(gS_LastReplicatedAA[client], sizeof(gS_LastReplicatedAA[]), sAiraccelerate);
+		gS_LastReplicatedAA[client] = sAiraccelerate;
 	}
 }
 
@@ -3942,20 +3942,22 @@ void UpdateStyleSettings(int client)
 	if(sv_autobunnyhopping != null)
 	{
 		char sAutoBhop[4];
-		sAutoBhop = (
-			gB_Auto[client]
-			&&
+		sAutoBhop =
 			(
-				GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop")
-			    || (gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack))
+				gB_Auto[client]
+				&&
+				(
+					GetStyleSettingBool(gA_Timers[client].bsStyle, "autobhop")
+					|| (gB_Zones && Shavit_InsideZone(client, Zone_Autobhop, gA_Timers[client].iTimerTrack))
+				)
 			)
-		)
-		? "1":"0";
+			? "1":"0"
+		;
 
-		if(!StrEqual(sAutoBhop, gS_LastReplicatedAutoBhop[client]))
+		if (!StrEqual(sAutoBhop, gS_LastReplicatedAutoBhop[client]))
 		{
 			sv_autobunnyhopping.ReplicateToClient(client, sAutoBhop);
-			strcopy(gS_LastReplicatedAutoBhop[client], sizeof(gS_LastReplicatedAutoBhop[]), sAutoBhop);
+			gS_LastReplicatedAutoBhop[client] = sAutoBhop;
 		}
 	}
 
@@ -3969,13 +3971,13 @@ void UpdateStyleSettings(int client)
 		}
 		else
 		{
-			sEnableBhop = (GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping"))? "1":"0";
+			sEnableBhop = GetStyleSettingBool(gA_Timers[client].bsStyle, "bunnyhopping") ? "1" : "0";
 		}
 
-		if(!StrEqual(sEnableBhop, gS_LastReplicatedEnableBhop[client]))
+		if (!StrEqual(sEnableBhop, gS_LastReplicatedEnableBhop[client]))
 		{
 			sv_enablebunnyhopping.ReplicateToClient(client, sEnableBhop);
-			strcopy(gS_LastReplicatedEnableBhop[client], sizeof(gS_LastReplicatedEnableBhop[]), sEnableBhop);
+			gS_LastReplicatedEnableBhop[client] = sEnableBhop;
 		}
 	}
 
