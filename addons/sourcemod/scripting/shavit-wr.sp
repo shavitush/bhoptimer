@@ -2823,9 +2823,9 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		{
 			float fTargetWR = (fOldWR != 0.0) ? fOldWR : gF_WRTime[style][track];
 
-			if(fTargetWR != 0.0)
+			if (fTargetWR != 0.0)
 			{
-				if(time > fTargetWR)
+				if (time > fTargetWR)
 				{
 					float fDiff = time - fTargetWR;
 					char sDiff[16];
@@ -2834,7 +2834,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 					FormatEx(sMessage, 255, "%s[%s]%s %T",
 						gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "FirstCompletionWorse", LANG_SERVER, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, gS_ChatStrings.sVariable, iRank, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, sDiff);
 				}
-				else if(time < fTargetWR)
+				else if (time < fTargetWR)
 				{
 					float fDiff = fTargetWR - time;
 					char sDiff[16];
@@ -2930,23 +2930,19 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		bool bHasPB = (fTargetTime != 0.0);
 
 		// If no PB, use WR as target
-		if(!bHasPB && gF_WRTime[style][track] != 0.0)
+		if (!bHasPB && gF_WRTime[style][track] != 0.0)
 		{
 			fTargetTime = gF_WRTime[style][track];
 		}
 
-		if(iOverwrite == 0 && fTargetTime != 0.0)
+		if (iOverwrite == 0 && fTargetTime != 0.0)
 		{
-			float fDiff = (fTargetTime - time);
-			char sDiff[16];
-			FormatSeconds(fDiff, sDiff, 16, true);
-			
-			if(time < fTargetTime)
+			if (time < fTargetTime)
 			{
 				float fAbsDiff = (fTargetTime - time);
 				char sAbsDiff[16];
-				FormatSeconds(fAbsDiff, sAbsDiff, 16); 
-				
+				FormatSeconds(fAbsDiff, sAbsDiff, 16);
+
 				FormatEx(sMessage, 255, "%s[%s]%s %T",
 					gS_ChatStrings.sVariable, sTrack, gS_ChatStrings.sText, "PracticeBetterTime", client, gS_ChatStrings.sVariable2, client, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[style].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sTime, gS_ChatStrings.sText, jumps, strafes, sSync, gS_ChatStrings.sText, gS_ChatStrings.sWarning, sAbsDiff);
 			}
