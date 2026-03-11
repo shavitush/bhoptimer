@@ -25,15 +25,8 @@
 #define _shavit_replay_recorder_included
 
 /**
- * If you want to save a replay to an additional path, then call this inside of `Shavit_AddAdditionalReplayPathsHere()`.
- *
- * @param path                      The additional path to save the replay to.
- */
-native void Shavit_AdditionalReplayPath(const char[] path);
-
-/**
  * Called when a player finishes a time. Allows you to save a replay even if the run is not a WR.
- * To save replay to additional paths, call `Shavit_AdditionalReplayPath()`
+ * To save replay to additional paths, call `Shavit_AlsoSaveReplayTo()`
  *
  * @param client                    Client index.
  * @param style                     Style the record was done on.
@@ -148,6 +141,13 @@ native ArrayList Shavit_GetReplayData(int client, bool cheapCloneHandle=false);
  */
 native void Shavit_HijackAngles(int client, float pitch, float yaw, int ticks = -1, bool keeponstart = false);
 
+/**
+ * If you want to save a replay to an additional path, then call this inside of `Shavit_AddAdditionalReplayPathsHere()`.
+ *
+ * @param path                      The additional path to save the replay to.
+ */
+native void Shavit_AlsoSaveReplayTo(const char[] path);
+
 public SharedPlugin __pl_shavit_replay_recorder =
 {
 	name = "shavit-replay-recorder",
@@ -168,5 +168,6 @@ public void __pl_shavit_replay_recorder_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetReplayData");
 	MarkNativeAsOptional("Shavit_HijackAngles");
 	MarkNativeAsOptional("Shavit_SetReplayData");
+	MarkNativeAsOptional("Shavit_AlsoSaveReplayTo");
 }
 #endif

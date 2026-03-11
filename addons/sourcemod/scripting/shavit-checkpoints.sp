@@ -530,6 +530,7 @@ public void OnClientDisconnect(int client)
 	}
 
 	gI_UsingCheckpointsOwner[client] = 0;
+	gB_InCheckpointMenu[client] = false;
 
 	PersistData(client, true);
 
@@ -1898,7 +1899,7 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		return true;
 	}
 
-	if (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
+	if (cpcache.aSnapshot.iFullTicks > 0 && (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID))
 	{
 		cpcache.aSnapshot.bPracticeMode = true;
 

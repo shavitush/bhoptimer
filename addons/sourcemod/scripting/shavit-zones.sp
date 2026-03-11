@@ -95,6 +95,7 @@ int gI_AdjustAxis[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
 bool gB_SnapToWall[MAXPLAYERS+1];
 bool gB_CursorTracing[MAXPLAYERS+1];
+bool gB_IgnoreTriggers[MAXPLAYERS+1];
 
 int gI_LatestTeleportTick[MAXPLAYERS+1];
 
@@ -407,6 +408,16 @@ public void OnPluginStart()
 				{
 					OnClientCookiesCached(i);
 				}
+			}
+		}
+
+		for (int entity = MaxClients+1, last = GetMaxEntities(); entity <= last; ++entity)
+		{
+			if (IsValidEntity(entity))
+			{
+				char classname[64];
+				GetEntityClassname(entity, classname, sizeof(classname));
+				OnEntityCreated(entity, classname);
 			}
 		}
 	}
@@ -1411,6 +1422,30 @@ public void OnClientPutInServer(int client)
 	}
 }
 
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	// trigger_once | trigger_multiple.. etc
+	if (StrContains(classname, "trigger_") != -1 || StrContains(classname, "player_speedmod") != -1)
+	{
+		SDKHook(entity, SDKHook_StartTouch, Hook_IgnoreTriggersWhileZoning);
+		SDKHook(entity, SDKHook_EndTouch, Hook_IgnoreTriggersWhileZoning);
+		SDKHook(entity, SDKHook_Touch, Hook_IgnoreTriggersWhileZoning);
+	}
+}
+
+Action Hook_IgnoreTriggersWhileZoning(int entity, int other)
+{
+	if (1 <= other <= MaxClients && gI_MapStep[other] > 0 && gB_IgnoreTriggers[other])
+	{
+		if (Shavit_GetTimerStatus(other) != Timer_Running)
+		{
+			return Plugin_Handled;
+		}
+	}
+
+	return Plugin_Continue;
+}
+
 public void OnEntityDestroyed(int entity)
 {
 	if (entity > MaxClients && entity < 2048 && gI_EntityZone[entity] > -1)
@@ -1764,6 +1799,7 @@ public void OnClientConnected(int client)
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
 	gB_CursorTracing[client] = true;
+	gB_IgnoreTriggers[client] = true;
 	gB_DrawAllZones[client] = false;
 }
 
@@ -3879,7 +3915,10 @@ void ShowPanel(int client, int step)
 	FormatEx(sDisplay, 64, "%T", "CursorZone", client, (gB_CursorTracing[client])? "ZoneSetYes":"ZoneSetNo", client);
 	pPanel.DrawItem(sDisplay);
 
-	pPanel.Send(client, ZoneCreation_Handler, 600);
+	FormatEx(sDisplay, sizeof(sDisplay), "%T", "ZoningIgnoreTriggers", client, (gB_IgnoreTriggers[client])? "ZoneSetYes":"ZoneSetNo", client);
+	pPanel.DrawItem(sDisplay);
+
+	pPanel.Send(client, ZoneCreation_Handler, MENU_TIME_FOREVER);
 
 	delete pPanel;
 }
@@ -3940,6 +3979,11 @@ public int ZoneCreation_Handler(Menu menu, MenuAction action, int param1, int pa
 				{
 					gB_SnapToWall[param1] = false;
 				}
+			}
+
+			case 6:
+			{
+				gB_IgnoreTriggers[param1] = !gB_IgnoreTriggers[param1];
 			}
 		}
 

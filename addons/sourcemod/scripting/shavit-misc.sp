@@ -61,6 +61,7 @@ char gS_RadioCommands[][] = { "coverme", "takepoint", "holdpos", "regroup", "fol
 	"getinpos", "stormfront", "report", "roger", "enemyspot", "needbackup", "sectorclear", "inposition", "reportingin",
 	"getout", "negative", "enemydown", "compliment", "thanks", "cheer", "go_a", "go_b", "sorry", "needrop", "playerradio", "playerchatwheel", "player_ping", "chatwheel_ping" };
 
+float gF_LastJointeam[MAXPLAYERS+1];
 bool gB_Hide[MAXPLAYERS+1];
 bool gB_AutoRestart[MAXPLAYERS+1];
 bool gB_Late = false;
@@ -486,7 +487,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 void LoadMapFixes()
 {
 	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-mapfixes.cfg");
+	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "gamedata/shavit-mapfixes.cfg");
 
 	KeyValues kv = new KeyValues("shavit-mapfixes");
 
@@ -906,6 +907,17 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	if (iTeam < 1 || iTeam > 3)
 	{
 		iTeam = GetRandomInt(2, 3);
+	}
+
+	// Prevent `jointeam` from being too spammable.
+	if (iTeam != 1)
+	{
+		float now = GetEngineTime();
+		if (now - gF_LastJointeam[client] < 0.35)
+		{
+			return Plugin_Stop;
+		}
+		gF_LastJointeam[client] = now;
 	}
 
 	CleanSwitchTeam(client, iTeam);
@@ -1496,6 +1508,8 @@ public void OnClientPutInServer(int client)
 	{
 		return;
 	}
+
+	gF_LastJointeam[client] = 0.0;
 
 	if(gEV_Type == Engine_TF2)
 	{

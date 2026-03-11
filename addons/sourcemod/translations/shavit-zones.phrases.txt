@@ -138,6 +138,11 @@
 		"#format"	"{1:T}"
 		"en"		"Use cursor position: {1}"
 	}
+	"ZoningIgnoreTriggers"
+	{
+		"#format"	"{1:T}"
+		"en"		"Ignore triggers (only while timer is stopped): {1}"
+	}
 	// ---------- Zone Menu ---------- //
 	"ZoneAdjustCancel"
 	{

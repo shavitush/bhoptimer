@@ -375,20 +375,20 @@
 			// https://asherkin.github.io/vtable/
 			"CBaseTrigger::PassesTriggerFilters"
 			{
-				"windows"   "207"
-				"linux"     "208"
+				"windows"   "208"
+				"linux"     "209"
 			}
 			// https://asherkin.github.io/vtable/
 			"CGameRules::IsSpawnPointValid"
 			{
-				"windows"   "76"
+				"windows"   "77"
 				"linux"     "77"
 			}
 			// https://asherkin.github.io/vtable/
 			"CBasePlayer::UpdateStepSound"
 			{
-				"windows"   "368"
-				"linux"     "369"
+				"windows"   "369"
+				"linux"     "370"
 			}
 		}
 
@@ -399,13 +399,13 @@
 			// Update 2024-04-18: This fucking bitch got inlined on Windows so this signature is now to the first jump instruction of it to gtfo of doing the velocity stuff. https://i.imgur.com/LDq6Ubo.png
 			"CTFGameMovement::PreventBunnyJumping"
 			{
-				"windows"  "\x75\x2A\x8B\x47\x2A\x8D\x77\x2A\x0F\x57\xC0"
+				"windows"  "\x75\x2A\x8B\x47\x2A\x0F\x57\xC0"
 				"linux"    "@_ZN15CTFGameMovement19PreventBunnyJumpingEv"
 			}
 			// search string: "Usage:  setang_exact pitch yaw" to find setang_exact's handler. Then the last function call in the handler is DoAnimationEvent.
 			"Player::DoAnimationEvent"
 			{
-				"windows"   "\x55\x8B\xEC\x51\x53\x56\x8B\x35\x2A\x2A\x2A\x2A\x8B\xD9\x8B\xCE"
+				"windows"   "\x55\x8B\xEC\x83\xEC\x2C\x53\x56\x8B\x35"
 				"linux"     "@_ZN9CTFPlayer16DoAnimationEventE17PlayerAnimEvent_ti"
 			}
 			// search string: "match"
@@ -415,7 +415,7 @@
 				"linux"     "@_ZN13CTFBotManager16MaintainBotQuotaEv"
 			}
 			// search string: "remove 0x%p: %s-%s" to find PhysicsRemoveToucher.
-			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher.
+			// Find PhysicsCheckForEntityUntouch by checking the functions that call PhysicsRemoveToucher (it's probably the first reference / bigger caller).
 			"PhysicsCheckForEntityUntouch"
 			{
 				"windows"   "\x55\x8B\xEC\x83\xEC\x08\x57\x8B\xF9\x8B\x87\x2A\x2A\x2A\x2A\xD1\xE8"
