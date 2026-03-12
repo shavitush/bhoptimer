@@ -91,6 +91,7 @@ float gV_WallSnap[MAXPLAYERS+1][3];
 bool gB_Button[MAXPLAYERS+1];
 
 float gF_Modifier[MAXPLAYERS+1];
+bool gB_InAdjustMenu[MAXPLAYERS+1];
 int gI_AdjustAxis[MAXPLAYERS+1];
 int gI_GridSnap[MAXPLAYERS+1];
 bool gB_SnapToWall[MAXPLAYERS+1];
@@ -1795,6 +1796,7 @@ public void OnClientConnected(int client)
 	Reset(client);
 
 	gF_Modifier[client] = 16.0;
+	gB_InAdjustMenu[client] = false;
 	gI_AdjustAxis[client] = 0;
 	gI_GridSnap[client] = 16;
 	gB_SnapToWall[client] = false;
@@ -3863,6 +3865,7 @@ void Reset(int client)
 	cache.iDatabaseID = -1;
 	gA_EditCache[client] = cache;
 	gI_MapStep[client] = 0;
+	gB_InAdjustMenu[client] = false;
 	gI_HookListPos[client] = -1;
 	delete gH_StupidTimer[client];
 	gB_WaitingForChatInput[client] = false;
@@ -4382,6 +4385,7 @@ void UpdateTeleportZone(int client)
 
 void CreateEditMenu(int client, bool autostage=false)
 {
+	gB_InAdjustMenu[client] = false;
 	bool hookmenu = gI_HookListPos[client] != -1;
 
 	char sTrack[32], sType[32];
@@ -4515,6 +4519,7 @@ void CreateEditMenu(int client, bool autostage=false)
 
 void CreateAdjustMenu(int client, int page)
 {
+	gB_InAdjustMenu[client] = true;
 	Menu hMenu = new Menu(ZoneAdjuster_Handler);
 	char sMenuItem[64];
 	hMenu.SetTitle("%T\n ", "ZoneAdjustPosition", client);
@@ -4869,7 +4874,7 @@ public Action Timer_Draw(Handle Timer, any data)
 
 		int colors[4];
 		GetZoneColors(colors, type, track, 125);
-		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type, gA_ZoneSettings[type][track].iSpeed, false, 0, gI_AdjustAxis[client]);
+		DrawZone(points, colors, 0.1, gA_ZoneSettings[type][track].fWidth, false, origin, gI_BeamSpriteIgnoreZ, gA_ZoneSettings[type][track].iHalo, track, type, gA_ZoneSettings[type][track].iSpeed, false, 0, gB_InAdjustMenu[client] ? gI_AdjustAxis[client] : -1);
 
 		if (gA_EditCache[client].iType == Zone_Teleport && !EmptyVector(gA_EditCache[client].fDestination))
 		{
