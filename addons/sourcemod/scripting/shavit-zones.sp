@@ -4386,6 +4386,8 @@ void UpdateTeleportZone(int client)
 void CreateEditMenu(int client, bool autostage=false)
 {
 	gB_InAdjustMenu[client] = false;
+	gB_WaitingForChatInput[client] = false;
+
 	bool hookmenu = gI_HookListPos[client] != -1;
 
 	char sTrack[32], sType[32];
