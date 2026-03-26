@@ -1717,10 +1717,10 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 				delete ep.playerEvents;
 				cpcache.aOutputWaits = view_as<ArrayList>(CloneHandle(ep.outputWaits, plugin));
 				delete ep.outputWaits;
-				for (int i = 0; i < 4; i++)
+				for (int N = 0; N < 4; N++)
 				{
-					cpcache.aOnUser1_4[i] = view_as<ArrayList>(CloneHandle(ep.OnUser1_4[i], plugin));
-					delete ep.OnUser1_4[i];
+					cpcache.aOnUser1_4[N] = view_as<ArrayList>(CloneHandle(ep.OnUser1_4[N], plugin));
+					delete ep.OnUser1_4[Ni];
 				}
 			}
 			else
