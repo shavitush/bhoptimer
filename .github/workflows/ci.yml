@@ -30,8 +30,8 @@ jobs:
           unzip sm-ripext-1.3.1-mac.zip "addons/sourcemod/scripting/include/*"
           wget https://github.com/clugg/sm-json/archive/refs/tags/v5.0.1.tar.gz
           tar --strip-components=1 -xvzf v5.0.1.tar.gz sm-json-5.0.1/addons/sourcemod/scripting/include
-          wget https://github.com/hermansimensen/eventqueue-fix/archive/refs/heads/main.tar.gz
-          tar --strip-components=1 -xvzf main.tar.gz -C addons/sourcemod
+          wget https://github.com/hermansimensen/eventqueue-fix/archive/refs/tags/1.4.0.tar.gz
+          tar --strip-components=1 -xvzf 1.4.0.tar.gz -C addons/sourcemod
           rm -rf *.zip *.tar.gz addons/sourcemod/.git* addons/sourcemod/LICENSE
           wget https://github.com/srcwr/eventqueuefixfix/releases/download/v1.0.1/eventqueuefixfix-v1.0.1-def5b0e-windows-x32.zip
           unzip eventqueuefixfix-v1.0.1-def5b0e-windows-x32.zip "addons/sourcemod/extensions/*"
