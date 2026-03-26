@@ -1720,7 +1720,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 				for (int N = 0; N < 4; N++)
 				{
 					cpcache.aOnUser1_4[N] = view_as<ArrayList>(CloneHandle(ep.OnUser1_4[N], plugin));
-					delete ep.OnUser1_4[Ni];
+					delete ep.OnUser1_4[N];
 				}
 			}
 			else
