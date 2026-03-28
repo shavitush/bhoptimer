@@ -92,6 +92,7 @@ int gI_PlayerFinishFrame[MAXPLAYERS+1];
 int gI_PlayerFrames[MAXPLAYERS+1];
 int gI_PlayerPrerunFrames[MAXPLAYERS+1];
 ArrayList gA_PlayerFrames[MAXPLAYERS+1];
+frame_t gA_InProgressFrame[MAXPLAYERS+1];
 
 int gI_HijackFrames[MAXPLAYERS+1];
 float gF_HijackedAngles[MAXPLAYERS+1][2];
@@ -590,6 +591,17 @@ bool SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 	return true;
 }
 
+public void OnPlayerRunCmdPre(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
+{
+	GetClientAbsOrigin(client, gA_InProgressFrame[client].pos);
+	//ang
+	//buttons
+	gA_InProgressFrame[client].flags = GetEntityFlags(client);
+	gA_InProgressFrame[client].mt = GetEntityMoveType(client);
+	//mousexy
+	//vel
+}
+
 public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
 	static bool resizeFailed[MAXPLAYERS+1];
@@ -642,30 +654,24 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		resizeFailed[client] = false;
 	}
 
-	frame_t aFrame;
-	GetClientAbsOrigin(client, aFrame.pos);
-
 	if (!gI_HijackFrames[client])
 	{
 		float vecEyes[3];
 		GetClientEyeAngles(client, vecEyes);
-		aFrame.ang[0] = vecEyes[0];
-		aFrame.ang[1] = vecEyes[1];
+		gA_InProgressFrame[client].ang[0] = vecEyes[0];
+		gA_InProgressFrame[client].ang[1] = vecEyes[1];
 	}
 	else
 	{
-		aFrame.ang = gF_HijackedAngles[client];
+		gA_InProgressFrame[client].ang = gF_HijackedAngles[client];
 		--gI_HijackFrames[client];
 	}
 
-	aFrame.buttons = buttons;
-	aFrame.flags = GetEntityFlags(client);
-	aFrame.mt = GetEntityMoveType(client);
+	gA_InProgressFrame[client].buttons = buttons;
+	gA_InProgressFrame[client].mousexy = (mouse[0] & 0xFFFF) | ((mouse[1] & 0xFFFF) << 16);
+	gA_InProgressFrame[client].vel = LimitMoveVelFloat(vel[0]) | (LimitMoveVelFloat(vel[1]) << 16);
 
-	aFrame.mousexy = (mouse[0] & 0xFFFF) | ((mouse[1] & 0xFFFF) << 16);
-	aFrame.vel = LimitMoveVelFloat(vel[0]) | (LimitMoveVelFloat(vel[1]) << 16);
-
-	gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, aFrame, sizeof(frame_t));
+	gA_PlayerFrames[client].SetArray(gI_PlayerFrames[client]++, gA_InProgressFrame[client], sizeof(frame_t));
 }
 
 stock int LimitMoveVelFloat(float vel)

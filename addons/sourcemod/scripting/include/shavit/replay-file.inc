@@ -34,10 +34,11 @@
 // 0x07: fixed iFrameCount because postframes were included in the value when they shouldn't be
 // 0x08: added zone-offsets to header
 // 0x09: bumped with no actual file changes because time calculation in regards to offsets have been changed/fixed since it seems to have been using the end-zone-offset incorrectly (and should now be fine hopefully since 2021-12-21 / a146b51fb16febf1847657fba7ef9e0c056d7476)
+// 0x0a: Replay-frame saving was originally in `OnPlayerRunCmd()` (`Shavit_OnUserCmdPre`).  It was moved to `OnPlayerRunCmdPost()` so we could capture `buttons`/`vel` after every plugin had modified them.  This was a mistake because grabbing `flags` in `OnPlayerRunCmdPost()` is busted and fucked and shit.  So this version defucks that.  Replay-file format is unchanged, but .pos, .flags, and .mt are grabbed in `OnPlayerRunCmdPre()` and the rest of the values are grabbed in `OnPlayerRunCmdPost()`.
 
 #define REPLAY_FORMAT_V2 "{SHAVITREPLAYFORMAT}{V2}"
 #define REPLAY_FORMAT_FINAL "{SHAVITREPLAYFORMAT}{FINAL}"
-#define REPLAY_FORMAT_SUBVERSION 0x09
+#define REPLAY_FORMAT_SUBVERSION 0x0a
 
 #define REPLAY_FRAMES_PER_WRITE 100 // amounts of frames to write per read/write call
 
