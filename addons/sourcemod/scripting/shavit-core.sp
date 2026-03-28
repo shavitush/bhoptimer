@@ -3171,7 +3171,6 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 	}
 
 	// Causes client to do zone touching in movement instead of server frames.
-	// From https://github.com/rumourA/End-Touch-Fix
 	MaybeDoPhysicsUntouch(client);
 
 	Call_StartForward(gH_Forwards_OnProcessMovement);
@@ -3241,37 +3240,35 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 		UpdateLaggedMovement(client, true);
 	}
 
-	if (gA_Timers[client].bClientPaused || !gA_Timers[client].bTimerEnabled)
+	if (gA_Timers[client].bTimerEnabled && !gA_Timers[client].bClientPaused)
 	{
-		return MRES_Ignored;
+		float interval = GetTickInterval();
+		float ts = GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale") * gA_Timers[client].fTimescale;
+		float time = interval * ts;
+
+		gA_Timers[client].iZoneIncrement++;
+
+		timer_snapshot_t snapshot;
+		BuildSnapshot(client, snapshot);
+
+		Call_StartForward(gH_Forwards_OnTimeIncrement);
+		Call_PushCell(client);
+		Call_PushArray(snapshot, sizeof(timer_snapshot_t));
+		Call_PushCellRef(time);
+		Call_Finish();
+
+		gA_Timers[client].iFractionalTicks += RoundFloat(ts * 10000.0);
+		int whole_tick = gA_Timers[client].iFractionalTicks / 10000;
+		gA_Timers[client].iFractionalTicks -= whole_tick * 10000;
+		gA_Timers[client].iFullTicks       += whole_tick;
+
+		CalculateRunTime(gA_Timers[client], false);
+
+		Call_StartForward(gH_Forwards_OnTimeIncrementPost);
+		Call_PushCell(client);
+		Call_PushCell(time);
+		Call_Finish();
 	}
-
-	float interval = GetTickInterval();
-	float ts = GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale") * gA_Timers[client].fTimescale;
-	float time = interval * ts;
-
-	gA_Timers[client].iZoneIncrement++;
-
-	timer_snapshot_t snapshot;
-	BuildSnapshot(client, snapshot);
-
-	Call_StartForward(gH_Forwards_OnTimeIncrement);
-	Call_PushCell(client);
-	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
-	Call_PushCellRef(time);
-	Call_Finish();
-
-	gA_Timers[client].iFractionalTicks += RoundFloat(ts * 10000.0);
-	int whole_tick = gA_Timers[client].iFractionalTicks / 10000;
-	gA_Timers[client].iFractionalTicks -= whole_tick * 10000;
-	gA_Timers[client].iFullTicks       += whole_tick;
-
-	CalculateRunTime(gA_Timers[client], false);
-
-	Call_StartForward(gH_Forwards_OnTimeIncrementPost);
-	Call_PushCell(client);
-	Call_PushCell(time);
-	Call_Finish();
 
 	MaybeDoPhysicsUntouch(client);
 
