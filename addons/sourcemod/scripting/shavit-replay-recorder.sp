@@ -593,13 +593,23 @@ bool SaveReplay(int style, int track, float time, int steamid, int preframes, Ar
 
 public void OnPlayerRunCmdPre(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
 {
-	GetClientAbsOrigin(client, gA_InProgressFrame[client].pos);
-	//ang
-	//buttons
+	if (IsFakeClient(client) || !IsPlayerAlive(client))
+	{
+		return;
+	}
+
+	if (!gA_PlayerFrames[client] || !gB_RecordingEnabled[client])
+	{
+		return;
+	}
+
+	if (!gB_GrabbingPostFrames[client] && !(Shavit_ReplayEnabledStyle(Shavit_GetBhopStyle(client)) && Shavit_GetTimerStatus(client) == Timer_Running))
+	{
+		return;
+	}
+
 	gA_InProgressFrame[client].flags = GetEntityFlags(client);
 	gA_InProgressFrame[client].mt = GetEntityMoveType(client);
-	//mousexy
-	//vel
 }
 
 public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float vel[3], const float angles[3], int weapon, int subtype, int cmdnum, int tickcount, int seed, const int mouse[2])
@@ -653,6 +663,8 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		//PrintToChat(client, "resizing %d -> %d", gI_PlayerFrames[client], gA_PlayerFrames[client].Length);
 		resizeFailed[client] = false;
 	}
+
+	GetClientAbsOrigin(client, gA_InProgressFrame[client].pos);
 
 	if (!gI_HijackFrames[client])
 	{
