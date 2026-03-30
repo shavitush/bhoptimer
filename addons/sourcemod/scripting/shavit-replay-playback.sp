@@ -284,6 +284,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
 	CreateNative("Shavit_GetReplayStarter", Native_GetReplayStarter);
 	CreateNative("Shavit_GetReplayButtons", Native_GetReplayButtons);
+	CreateNative("Shavit_GetReplayBotCache", Native_GetReplayBotCache);
 	CreateNative("Shavit_GetReplayEntityFlags", Native_GetReplayEntityFlags);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
@@ -1345,6 +1346,20 @@ public int Native_GetReplayButtons(Handle handler, int numParams)
 
 	SetNativeCellRef(2, GetAngleDiff(gA_CachedFrames[bot][0].ang[1], gA_CachedFrames[bot][1].ang[1]));
 	return gA_CachedFrames[bot][0].buttons;
+}
+
+public int Native_GetReplayBotCache(Handle handler, int numParams)
+{
+	if (GetNativeCell(3) != sizeof(frame_cache_t))
+	{
+		ThrowNativeError(200, "frame_cache_t does not match latest (got %i expected %i). Please update your includes and recompile your plugins.",
+			GetNativeCell(3), sizeof(frame_cache_t));
+		return 0;
+	}
+
+	int bot = GetBotInfoIndex(GetNativeCell(1));
+	SetNativeArray(2, gA_BotInfo[bot].aCache, sizeof(frame_cache_t));
+	return 0;
 }
 
 public int Native_GetReplayEntityFlags(Handle plugin, int numParams)
