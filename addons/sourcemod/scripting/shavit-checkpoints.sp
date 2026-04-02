@@ -71,6 +71,7 @@ Convar gCV_RestoreStates = null;
 Convar gCV_PersistData = null;
 Convar gCV_MaxCP = null;
 Convar gCV_MaxCP_Segmented = null;
+Convar gCV_SaveReplayFrames = null;
 
 Handle gH_CheckpointsCookie = null;
 
@@ -209,6 +210,7 @@ public void OnPluginStart()
 	gCV_MaxCP = new Convar("shavit_checkpoints_maxcp", "1000", "Maximum amount of checkpoints.\nNote: Very high values will result in high memory usage!", 0, true, 1.0, true, 10000.0);
 	gCV_MaxCP_Segmented = new Convar("shavit_checkpoints_maxcp_seg", "10", "Maximum amount of segmented checkpoints. Make this less or equal to shavit_checkpoints_maxcp.\nNote: Very high values will result in HUGE memory usage! Segmented checkpoints contain frame data!", 0, true, 1.0, true, 50.0);
 	gCV_PersistData = new Convar("shavit_checkpoints_persistdata", "600", "How long to persist timer data for disconnected users in seconds?\n-1 - Until map change\n0 - Disabled", 0, true, -1.0);
+	gCV_SaveReplayFrames = new Convar("shavit_checkpoints_always_save_replay_frames", "0", "If set to 1, practice checkpoints will always save replay frames.\nSet this to 1 to fix the shavit-myreplay !preview command for practice checkpoints.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 	Convar.AutoExecConfig();
 
@@ -1528,7 +1530,7 @@ bool SaveCheckpoint(int client, bool duplicate = false)
 
 	if (!duplicate)
 	{
-		SaveCheckpointCache(client, target, cpcache, index, INVALID_HANDLE);
+		SaveCheckpointCache(client, target, cpcache, index, INVALID_HANDLE, gCV_SaveReplayFrames.BoolValue);
 		gI_CurrentCheckpoint[client] = index;
 	}
 	else
