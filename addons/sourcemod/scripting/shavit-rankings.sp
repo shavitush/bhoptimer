@@ -635,7 +635,9 @@ public Action Command_SetTier(int client, int args)
 
 	if(args == 0 || tier < 1 || tier > maxtier)
 	{
-		ReplyToCommand(client, "%T", "ArgumentsMissing", client, "sm_settier <tier> (1-%d) [map]", maxtier);
+		char buf[64];
+		FormatEx(buf, 64, "sm_settier <tier> (1-%d) [map]", maxtier);
+		ReplyToCommand(client, "%T", "ArgumentsMissing", client, buf);
 
 		return Plugin_Handled;
 	}
