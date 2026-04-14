@@ -606,7 +606,11 @@ void Frame_UpdateTopLeftHUD(int serial)
 
 public Action Command_SpecNextPrev(int client, const char[] command, int args)
 {
-	RequestFrame(Frame_UpdateTopLeftHUD, GetClientSerial(client));
+	if (IsClientInGame(client))
+	{
+		RequestFrame(Frame_UpdateTopLeftHUD, GetClientSerial(client));
+	}
+
 	return Plugin_Continue;
 }
 
