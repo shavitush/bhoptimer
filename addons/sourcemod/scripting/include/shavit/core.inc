@@ -161,7 +161,8 @@ enum struct timer_snapshot_t
 	float fLastAngle;
 
 	// Internal int used for the iMeasuredJumps & iPerfectJumps stuff.
-	int iLandingTick;
+	// How many ticks the player has been on the ground since landing. 0 = in air.
+	int iGroundTicks;
 	// Internal value used for unfucking style/zone gravity when using ladders.
 	MoveType iLastMoveType;
 	// Internal value used for blocking +strafe (if block_pstrafe is enabled).

@@ -3347,7 +3347,6 @@ void BuildSnapshot(int client, timer_snapshot_t snapshot)
 	snapshot = gA_Timers[client];
 	snapshot.fServerTime = GetEngineTime();
 	snapshot.fTimescale = (gA_Timers[client].fTimescale > 0.0) ? gA_Timers[client].fTimescale : 1.0;
-	//snapshot.iLandingTick = ?????; // TODO: Think about handling segmented scroll? /shrug
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
@@ -3698,7 +3697,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
-		gA_Timers[client].iLandingTick = tickcount;
 		gI_FirstTouchedGroundForStartTimer[client] = tickcount;
 
 		if (gEV_Type != Engine_TF2 && GetStyleSettingBool(gA_Timers[client].bsStyle, "easybhop"))
@@ -3708,17 +3706,30 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 	else if (!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped && !gA_Timers[client].bClientPaused)
 	{
-		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
+		int iGroundTicks = gA_Timers[client].iGroundTicks;
 
-		if (iDifference < 10)
+		if(iGroundTicks < 10)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
-			if (iDifference == 1)
+			if(iGroundTicks == 1)
 			{
 				gA_Timers[client].iPerfectJumps++;
 			}
 		}
+	}
+	
+	// Maintain GroundTicks counter
+	if(bOnGround)
+	{
+		if (!gA_Timers[client].bOnGround)
+			gA_Timers[client].iGroundTicks = 1; // landing frame
+		else
+			gA_Timers[client].iGroundTicks++;
+	}
+	else
+	{
+		gA_Timers[client].iGroundTicks = 0;
 	}
 
 	// This can be bypassed by spamming +duck on CSS which causes `iGroundEntity` to be `-1` here...
