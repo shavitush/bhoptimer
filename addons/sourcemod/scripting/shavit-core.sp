@@ -3708,19 +3708,18 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	{
 		int iGroundTicks = gA_Timers[client].iGroundTicks;
 
-		if(iGroundTicks < 10)
+		if (iGroundTicks < 10)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
-			if(iGroundTicks == 1)
+			if (iGroundTicks == 1)
 			{
 				gA_Timers[client].iPerfectJumps++;
 			}
 		}
 	}
 	
-	// Maintain GroundTicks counter
-	if(bOnGround)
+	if (bOnGround)
 	{
 		if (!gA_Timers[client].bOnGround)
 			gA_Timers[client].iGroundTicks = 1; // landing frame
