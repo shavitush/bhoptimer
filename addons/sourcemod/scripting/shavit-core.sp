@@ -3718,7 +3718,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			}
 		}
 	}
-	
+
 	if (bOnGround)
 	{
 		if (!gA_Timers[client].bOnGround)
