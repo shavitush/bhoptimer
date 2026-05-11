@@ -1,5 +1,19 @@
 "Phrases"
 {
+	"ReplayFileInfo"
+	{
+		"#format"	"{1:s},{2:d},{3:s},{4:0x},{5:s},{6:d},{7:d},{8:d},{9:d},{10:f},{11:u},{12:d},{13:f},{14:f},{15:f},{16:d}"
+		"en"		"File: {1} ({2} Bytes)\nFormat: {3}\nVersion: {4}\nMap: {5}\nStyle: {6}\nTrack: {7}\nPreframes: {8}\nFramecount: {9}\nTime: {10}\nAccountID: {11}\nPostframes: {12}\nTickrate: {13}\nZoneoffsets: {14}/{15}\nTimestamp: {16}"
+	}
+	"ReplayFileNotFound"
+	{
+		"#format"	"{1:s}"
+		"en"		"File not found. ({1})"
+	}
+	"FailedToReadReplayHeader"
+	{
+		"en"		"Failed to read replay header."
+	}
 	// ---------- Menus ---------- //
 	"DeleteReplayAdminMenu"
 	{

@@ -3171,7 +3171,6 @@ public MRESReturn DHook_ProcessMovementPre(Handle hParams)
 	}
 
 	// Causes client to do zone touching in movement instead of server frames.
-	// From https://github.com/rumourA/End-Touch-Fix
 	MaybeDoPhysicsUntouch(client);
 
 	Call_StartForward(gH_Forwards_OnProcessMovement);
@@ -3241,37 +3240,35 @@ public MRESReturn DHook_ProcessMovementPost(Handle hParams)
 		UpdateLaggedMovement(client, true);
 	}
 
-	if (gA_Timers[client].bClientPaused || !gA_Timers[client].bTimerEnabled)
+	if (gA_Timers[client].bTimerEnabled && !gA_Timers[client].bClientPaused)
 	{
-		return MRES_Ignored;
+		float interval = GetTickInterval();
+		float ts = GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale") * gA_Timers[client].fTimescale;
+		float time = interval * ts;
+
+		gA_Timers[client].iZoneIncrement++;
+
+		timer_snapshot_t snapshot;
+		BuildSnapshot(client, snapshot);
+
+		Call_StartForward(gH_Forwards_OnTimeIncrement);
+		Call_PushCell(client);
+		Call_PushArray(snapshot, sizeof(timer_snapshot_t));
+		Call_PushCellRef(time);
+		Call_Finish();
+
+		gA_Timers[client].iFractionalTicks += RoundFloat(ts * 10000.0);
+		int whole_tick = gA_Timers[client].iFractionalTicks / 10000;
+		gA_Timers[client].iFractionalTicks -= whole_tick * 10000;
+		gA_Timers[client].iFullTicks       += whole_tick;
+
+		CalculateRunTime(gA_Timers[client], false);
+
+		Call_StartForward(gH_Forwards_OnTimeIncrementPost);
+		Call_PushCell(client);
+		Call_PushCell(time);
+		Call_Finish();
 	}
-
-	float interval = GetTickInterval();
-	float ts = GetStyleSettingFloat(gA_Timers[client].bsStyle, "timescale") * gA_Timers[client].fTimescale;
-	float time = interval * ts;
-
-	gA_Timers[client].iZoneIncrement++;
-
-	timer_snapshot_t snapshot;
-	BuildSnapshot(client, snapshot);
-
-	Call_StartForward(gH_Forwards_OnTimeIncrement);
-	Call_PushCell(client);
-	Call_PushArray(snapshot, sizeof(timer_snapshot_t));
-	Call_PushCellRef(time);
-	Call_Finish();
-
-	gA_Timers[client].iFractionalTicks += RoundFloat(ts * 10000.0);
-	int whole_tick = gA_Timers[client].iFractionalTicks / 10000;
-	gA_Timers[client].iFractionalTicks -= whole_tick * 10000;
-	gA_Timers[client].iFullTicks       += whole_tick;
-
-	CalculateRunTime(gA_Timers[client], false);
-
-	Call_StartForward(gH_Forwards_OnTimeIncrementPost);
-	Call_PushCell(client);
-	Call_PushCell(time);
-	Call_Finish();
 
 	MaybeDoPhysicsUntouch(client);
 
@@ -3350,7 +3347,6 @@ void BuildSnapshot(int client, timer_snapshot_t snapshot)
 	snapshot = gA_Timers[client];
 	snapshot.fServerTime = GetEngineTime();
 	snapshot.fTimescale = (gA_Timers[client].fTimescale > 0.0) ? gA_Timers[client].fTimescale : 1.0;
-	//snapshot.iLandingTick = ?????; // TODO: Think about handling segmented scroll? /shrug
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
@@ -3701,7 +3697,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
 	if(bOnGround && !gA_Timers[client].bOnGround)
 	{
-		gA_Timers[client].iLandingTick = tickcount;
 		gI_FirstTouchedGroundForStartTimer[client] = tickcount;
 
 		if (gEV_Type != Engine_TF2 && GetStyleSettingBool(gA_Timers[client].bsStyle, "easybhop"))
@@ -3711,17 +3706,30 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	}
 	else if (!bOnGround && gA_Timers[client].bOnGround && gA_Timers[client].bJumped && !gA_Timers[client].bClientPaused)
 	{
-		int iDifference = (tickcount - gA_Timers[client].iLandingTick);
+		int onehundredMillisecondsAsTicks = RoundToCeil(0.1 / GetTickInterval());
+		int iGroundTicks = gA_Timers[client].iGroundTicks;
 
-		if (iDifference < 10)
+		if (iGroundTicks < onehundredMillisecondsAsTicks)
 		{
 			gA_Timers[client].iMeasuredJumps++;
 
-			if (iDifference == 1)
+			if (iGroundTicks == 1)
 			{
 				gA_Timers[client].iPerfectJumps++;
 			}
 		}
+	}
+
+	if (bOnGround)
+	{
+		if (!gA_Timers[client].bOnGround)
+			gA_Timers[client].iGroundTicks = 1; // landing frame
+		else
+			gA_Timers[client].iGroundTicks++;
+	}
+	else
+	{
+		gA_Timers[client].iGroundTicks = 0;
 	}
 
 	// This can be bypassed by spamming +duck on CSS which causes `iGroundEntity` to be `-1` here...

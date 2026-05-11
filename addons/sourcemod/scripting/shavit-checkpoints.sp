@@ -1717,11 +1717,17 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 				delete ep.playerEvents;
 				cpcache.aOutputWaits = view_as<ArrayList>(CloneHandle(ep.outputWaits, plugin));
 				delete ep.outputWaits;
+				for (int N = 0; N < 4; N++)
+				{
+					cpcache.aOnUser1_4[N] = view_as<ArrayList>(CloneHandle(ep.OnUser1_4[N], plugin));
+					delete ep.OnUser1_4[N];
+				}
 			}
 			else
 			{
 				cpcache.aEvents = ep.playerEvents;
 				cpcache.aOutputWaits = ep.outputWaits;
+				cpcache.aOnUser1_4 = ep.OnUser1_4;
 			}
 		}
 	}
@@ -1942,6 +1948,7 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		eventpack_t ep;
 		ep.playerEvents = cpcache.aEvents;
 		ep.outputWaits = cpcache.aOutputWaits;
+		ep.OnUser1_4 = cpcache.aOnUser1_4;
 		SetClientEvents(client, ep);
 
 #if DEBUG

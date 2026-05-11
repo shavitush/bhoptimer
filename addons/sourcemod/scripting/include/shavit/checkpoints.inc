@@ -48,6 +48,7 @@ enum struct cp_cache_t
 	int iSteamID;
 	ArrayList aEvents;
 	ArrayList aOutputWaits;
+	ArrayList aOnUser1_4[4];
 	float vecLadderNormal[3];
 	// This handle will be deleted when the checkpoint is deleted, or something like that...
 	// If you want to keep this (which you probably should) then you'd have

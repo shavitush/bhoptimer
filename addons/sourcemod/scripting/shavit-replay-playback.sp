@@ -284,6 +284,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetReplayBotType", Native_GetReplayBotType);
 	CreateNative("Shavit_GetReplayStarter", Native_GetReplayStarter);
 	CreateNative("Shavit_GetReplayButtons", Native_GetReplayButtons);
+	CreateNative("Shavit_GetReplayBotCache", Native_GetReplayBotCache);
 	CreateNative("Shavit_GetReplayEntityFlags", Native_GetReplayEntityFlags);
 	CreateNative("Shavit_GetReplayFrames", Native_GetReplayFrames);
 	CreateNative("Shavit_GetReplayFrameCount", Native_GetReplayFrameCount);
@@ -482,6 +483,8 @@ public void OnPluginStart()
 
 	// commands
 	RegAdminCmd("sm_deletereplay", Command_DeleteReplay, ADMFLAG_RCON, "Open replay deletion menu.");
+	RegAdminCmd("sm_playreplayfile", Command_PlayReplayFile, ADMFLAG_RCON, "Start a replay from file. Usage: sm_playreplayfile <path>");
+	RegAdminCmd("sm_replayfileinfo", Command_ReplayFileInfo, ADMFLAG_RCON, "Prints a replay-file's header to console. Usage: sm_replayfileinfo <path>");
 	RegConsoleCmd("sm_replay", Command_Replay, "Opens the central bot menu. For admins: 'sm_replay stop' to stop the playback.");
 
 	// database
@@ -1345,6 +1348,20 @@ public int Native_GetReplayButtons(Handle handler, int numParams)
 
 	SetNativeCellRef(2, GetAngleDiff(gA_CachedFrames[bot][0].ang[1], gA_CachedFrames[bot][1].ang[1]));
 	return gA_CachedFrames[bot][0].buttons;
+}
+
+public int Native_GetReplayBotCache(Handle handler, int numParams)
+{
+	if (GetNativeCell(3) != sizeof(frame_cache_t))
+	{
+		ThrowNativeError(200, "frame_cache_t does not match latest (got %i expected %i). Please update your includes and recompile your plugins.",
+			GetNativeCell(3), sizeof(frame_cache_t));
+		return 0;
+	}
+
+	int bot = GetBotInfoIndex(GetNativeCell(1));
+	SetNativeArray(2, gA_BotInfo[bot].aCache, sizeof(frame_cache_t));
+	return 0;
 }
 
 public int Native_GetReplayEntityFlags(Handle plugin, int numParams)
@@ -2869,6 +2886,75 @@ void ClearFrameCache(frame_cache_t cache)
 public void Shavit_OnWRDeleted(int style, int id, int track, int accountid, const char[] mapname)
 {
 	DeleteReplay(style, track, accountid, mapname);
+}
+
+Action Command_ReplayFileInfo(int client, int args)
+{
+	if(args == 0)
+	{
+		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_replayfileinfo <path>");
+		return Plugin_Handled;
+	}
+
+	char sPath[PLATFORM_MAX_PATH];
+	GetCmdArgString(sPath, sizeof(sPath));
+
+	if(!FileExists(sPath))
+	{
+		Shavit_PrintToChat(client, "%T", "ReplayFileNotFound", client, sPath);
+		return Plugin_Handled;
+	}
+
+	replay_header_t aHeader;
+	File hFile = ReadReplayHeader(sPath, aHeader, -1, -1);
+	if(hFile == null)
+	{
+		Shavit_PrintToChat(client, "%T", "FailedToReadReplayHeader", client);
+		return Plugin_Handled;
+	}
+	delete hFile;
+
+	int iFileSize = FileSize(sPath);
+
+	PrintToConsole(client, "%T", "ReplayFileInfo", client, sPath, iFileSize,
+		aHeader.sReplayFormat, aHeader.iReplayVersion, aHeader.sMap, aHeader.iStyle, aHeader.iTrack, aHeader.iPreFrames, aHeader.iFrameCount,
+		aHeader.fTime, aHeader.iSteamID, aHeader.iPostFrames, aHeader.fTickrate, aHeader.fZoneOffset[0], aHeader.fZoneOffset[1], aHeader.iTimestamp);
+
+	return Plugin_Handled;
+}
+
+Action Command_PlayReplayFile(int client, int args)
+{
+	if(args == 0)
+	{
+		Shavit_PrintToChat(client, "%T", "ArgumentsMissing", client, "sm_playreplayfile <path>");
+		return Plugin_Handled;
+	}
+
+	char sPath[PLATFORM_MAX_PATH];
+	GetCmdArgString(sPath, sizeof(sPath));
+
+	if(!FileExists(sPath))
+	{
+		Shavit_PrintToChat(client, "%T", "ReplayFileNotFound", client, sPath);
+		return Plugin_Handled;
+	}
+
+	replay_header_t aHeader;
+	File hFile = ReadReplayHeader(sPath, aHeader);
+	if(hFile == null)
+	{
+		Shavit_PrintToChat(client, "%T", "FailedToReadHeader", client);
+		return Plugin_Handled;
+	}
+	delete hFile;
+
+	if(Shavit_StartReplayFromFile(aHeader.iStyle, aHeader.iTrack, -1.0, client, -1, Replay_Dynamic, true, sPath) == 0)
+	{
+		Shavit_PrintToChat(client, "%T", "FailedToCreateReplay", client);
+	}
+
+	return Plugin_Handled;
 }
 
 public Action Command_DeleteReplay(int client, int args)

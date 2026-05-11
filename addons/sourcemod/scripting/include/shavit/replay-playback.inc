@@ -160,6 +160,16 @@ native int Shavit_GetReplayStarter(int ent);
 native int Shavit_GetReplayButtons(int ent, float& anglediff);
 
 /**
+ * Retrieves the frame_cache_t struct from the bot's active replay cache.
+ * Note: the aFrames handle inside is borrowed — do NOT close it.
+ *
+ * @param bot       Bot entity index.
+ * @param cache     frame_cache_t to fill.
+ * @param size      sizeof(frame_cache_t). Used to catch stale includes.
+ */
+native void Shavit_GetReplayBotCache(int bot, any[] cache, int size = sizeof(frame_cache_t));
+
+/**
  * Retrieves the replay's entity flags for its current tick.
  * @param                           Replay entity.
  * @return                          Entity flags
@@ -482,6 +492,7 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClosestReplayVelocityDifference");
 	MarkNativeAsOptional("Shavit_IsReplayEntity");
 	MarkNativeAsOptional("Shavit_GetReplayButtons");
+	MarkNativeAsOptional("Shavit_GetReplayBotCache");
 	MarkNativeAsOptional("Shavit_GetReplayEntityFlags");
 	MarkNativeAsOptional("Shavit_GetClosestReplayStyle");
 	MarkNativeAsOptional("Shavit_SetClosestReplayStyle");
