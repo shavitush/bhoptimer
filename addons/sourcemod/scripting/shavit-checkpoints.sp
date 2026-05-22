@@ -371,7 +371,7 @@ public void Shavit_OnResume(int client, int track)
 {
 	if (gB_SaveStates[client])
 	{
-		// events&outputs won't work properly unless we do this next frame...
+		// events&outputs won't work properly unless we do this next-frame / end-of-current-frame...
 		RequestFrame(LoadPersistentData, GetClientSerial(client));
 	}
 }
@@ -627,7 +627,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 	{
 		if(gCV_RestoreStates.BoolValue)
 		{
-			// events&outputs won't work properly unless we do this next frame...
+			// events&outputs won't work properly unless we do this next-frame / end-of-current-frame...
 			RequestFrame(LoadPersistentData, serial);
 		}
 	}
@@ -639,7 +639,7 @@ public void Player_Spawn(Event event, const char[] name, bool dontBroadcast)
 		if (iIndex != -1)
 		{
 			gB_SaveStates[client] = true;
-			// events&outputs won't work properly unless we do this next frame...
+			// events&outputs won't work properly unless we do this next-frame / end-of-current-frame...
 			RequestFrame(LoadPersistentData, serial);
 		}
 	}
@@ -1656,7 +1656,7 @@ void SaveCheckpointCache(int saver, int target, cp_cache_t cpcache, int index, H
 
 	if(IsFakeClient(target))
 	{
-		// unfortunately replay bots don't have a snapshot, so we can generate a fake one
+		// unfortunately replay bots don't have a snapshot, so we generate a fake one
 		snapshot.bTimerEnabled = true;
 		snapshot.fCurrentTime = Shavit_GetReplayTime(target);
 		snapshot.bClientPaused = false;
