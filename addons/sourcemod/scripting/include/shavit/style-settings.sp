@@ -39,6 +39,7 @@ int gI_CurrentParserIndex = 0;
 
 StringMap gSM_StyleKeys[STYLE_LIMIT];
 StringMap gSM_StyleCommands = null;
+StringMap gSM_StyleCommandsRegistered = null;
 StringMap gSM_StyleKeysSet = null;
 
 int gI_StyleFlag[STYLE_LIMIT];
@@ -66,6 +67,7 @@ void Shavit_Style_Settings_Natives()
 	CreateNative("Shavit_GetStyleStringsStruct", Native_GetStyleStringsStruct);
 
 	gSM_StyleCommands = new StringMap();
+	gSM_StyleCommandsRegistered = new StringMap();
 }
 
 void Shavit_Style_Settings_Forwards()
@@ -82,6 +84,8 @@ bool LoadStyles()
 
 	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-styles.cfg");
+
+	gSM_StyleCommands.Clear();
 
 	SMCParser parser = new SMCParser();
 	parser.OnEnterSection = OnStyleEnterSection;
@@ -312,9 +316,10 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 			char sCommand[40];
 			FormatEx(sCommand, sizeof(sCommand), "sm_%s", sStyleCommands[x]);
 
-			if (!gSM_StyleCommands.ContainsKey(sCommand))
+			if (!gSM_StyleCommandsRegistered.ContainsKey(sCommand))
 			{
 				RegConsoleCmd(sCommand, Command_StyleChange, sDescription);
+				gSM_StyleCommandsRegistered.SetValue(sCommand, 1000000);
 			}
 
 			gSM_StyleCommands.SetValue(sCommand, gI_CurrentParserIndex);
