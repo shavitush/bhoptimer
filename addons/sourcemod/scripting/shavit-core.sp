@@ -22,7 +22,6 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools>
-#include <geoip>
 #include <clientprefs>
 #include <convar_class>
 #include <dhooks>

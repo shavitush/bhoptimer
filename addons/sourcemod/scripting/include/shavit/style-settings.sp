@@ -33,14 +33,13 @@ enum struct style_setting_t
 
 Handle gH_Forwards_OnStyleConfigLoaded = null;
 
-bool gB_StyleCommandsRegistered = false;
-
 int gI_Styles = 0;
 int gI_OrderedStyles[STYLE_LIMIT];
 int gI_CurrentParserIndex = 0;
 
 StringMap gSM_StyleKeys[STYLE_LIMIT];
 StringMap gSM_StyleCommands = null;
+StringMap gSM_StyleCommandsRegistered = null;
 StringMap gSM_StyleKeysSet = null;
 
 int gI_StyleFlag[STYLE_LIMIT];
@@ -68,6 +67,7 @@ void Shavit_Style_Settings_Natives()
 	CreateNative("Shavit_GetStyleStringsStruct", Native_GetStyleStringsStruct);
 
 	gSM_StyleCommands = new StringMap();
+	gSM_StyleCommandsRegistered = new StringMap();
 }
 
 void Shavit_Style_Settings_Forwards()
@@ -85,6 +85,8 @@ bool LoadStyles()
 	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, PLATFORM_MAX_PATH, "configs/shavit-styles.cfg");
 
+	gSM_StyleCommands.Clear();
+
 	SMCParser parser = new SMCParser();
 	parser.OnEnterSection = OnStyleEnterSection;
 	parser.OnLeaveSection = OnStyleLeaveSection;
@@ -99,8 +101,6 @@ bool LoadStyles()
 			SetFailState("Missing style index %d. Highest index is %d. Fix addons/sourcemod/configs/shavit-styles.cfg", i, gI_Styles-1);
 		}
 	}
-
-	gB_StyleCommandsRegistered = true;
 
 	SortCustom1D(gI_OrderedStyles, gI_Styles, SortAscending_StyleOrder);
 
@@ -295,7 +295,7 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 	char sName[64];
 	GetStyleSetting(gI_CurrentParserIndex, "name", sName, sizeof(sName));
 
-	if (!gB_StyleCommandsRegistered && strlen(sStyleCommand) > 0 && !GetStyleSettingBool(gI_CurrentParserIndex, "inaccessible"))
+	if (sStyleCommand[0] != '\0' && !GetStyleSettingBool(gI_CurrentParserIndex, "inaccessible"))
 	{
 		char sStyleCommands[32][32];
 		int iCommands = ExplodeString(sStyleCommand, ";", sStyleCommands, 32, 32, false);
@@ -308,12 +308,21 @@ public SMCResult OnStyleLeaveSection(SMCParser smc)
 			TrimString(sStyleCommands[x]);
 			StripQuotes(sStyleCommands[x]);
 
-			char sCommand[32];
-			FormatEx(sCommand, 32, "sm_%s", sStyleCommands[x]);
+			if (sStyleCommands[x][0] == '\0')
+			{
+				continue;
+			}
+
+			char sCommand[40];
+			FormatEx(sCommand, sizeof(sCommand), "sm_%s", sStyleCommands[x]);
+
+			if (!gSM_StyleCommandsRegistered.ContainsKey(sCommand))
+			{
+				RegConsoleCmd(sCommand, Command_StyleChange, sDescription);
+				gSM_StyleCommandsRegistered.SetValue(sCommand, 1000000);
+			}
 
 			gSM_StyleCommands.SetValue(sCommand, gI_CurrentParserIndex);
-
-			RegConsoleCmd(sCommand, Command_StyleChange, sDescription);
 		}
 	}
 
