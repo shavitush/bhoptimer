@@ -1076,7 +1076,7 @@ public void SQL_TableMigrationWorkshop_Callback(Database db, DBResultSet results
 
 		char sQuery[256];
 		FormatEx(sQuery, 256, "UPDATE %s%s SET map = '%s' WHERE map = '%s';", gS_SQLPrefix, sTable, sDisplayMap, sMap);
-
+        // ^ Sqlinjection ez.
 		AddQueryLog(trans, sQuery);
 	}
 
