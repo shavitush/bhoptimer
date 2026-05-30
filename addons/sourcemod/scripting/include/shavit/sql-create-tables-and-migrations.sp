@@ -363,7 +363,7 @@ void ApplyMigration(int migration)
 		case Migration_Lowercase_maptiers: ApplyMigration_LowercaseMaps("maptiers", migration);
 		case Migration_Lowercase_mapzones: ApplyMigration_LowercaseMaps("mapzones", migration);
 		case Migration_Lowercase_playertimes: ApplyMigration_LowercaseMaps("playertimes", migration);
-		case Migration_Lowercase_stagetimeswr: ApplyMigration_LowercaseMaps("stagetimewrs", migration);
+		case Migration_Lowercase_stagetimeswr: ApplyMigration_LowercaseMaps("stagetimeswr", migration);
 		case Migration_Lowercase_startpositions: ApplyMigration_LowercaseMaps("startpositions", migration);
 		case Migration_AddPlayertimesPointsCalcedFrom: ApplyMigration_AddPlayertimesPointsCalcedFrom();
 		case Migration_RemovePlayertimesPointsCalcedFrom: ApplyMigration_RemovePlayertimesPointsCalcedFrom();
