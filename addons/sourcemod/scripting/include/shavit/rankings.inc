@@ -48,6 +48,19 @@ forward void Shavit_OnTierAssigned(const char[] map, int tier);
 forward void Shavit_OnRankAssigned(int client, int rank, float points, bool first);
 
 /**
+ * Gets called when the server acknowledges the client's ranking status for a style.
+ * It is called after OnClientPostAdminCheck and at forced rank recalculations.
+ *
+ * @param client                    Client index.
+ * @param style                     Style index.
+ * @param rank                      Client's rank. (0 if unranked or unassigned)
+ * @param points                    Client's points. (0.0 if unranked or unassigned)
+ * @param first                     True if the forward is called after the initial connection, false if it is caused by recalculation.
+ * @noreturn
+ */
+forward void Shavit_OnStyleRankAssigned(int client, int style, int rank, float points, bool first);
+
+/**
  * Gets the map tier for a specified map.
  * Use the map's display name.
  *
@@ -73,6 +86,15 @@ native StringMap Shavit_GetMapTiers();
 native float Shavit_GetPoints(int client);
 
 /**
+ * Gets player points on a style.
+ *
+ * @param client                    Client index.
+ * @param style                     Style index.
+ * @return                          Points. 0.0 if unranked.
+ */
+native float Shavit_GetStylePoints(int client, int style);
+
+/**
  * Gets player rank.
  *
  * @param client                    Client index.
@@ -81,11 +103,28 @@ native float Shavit_GetPoints(int client);
 native int Shavit_GetRank(int client);
 
 /**
+ * Gets player rank on a style.
+ *
+ * @param client                    Client index.
+ * @param style                     Style index.
+ * @return                          Rank. 0 if unranked.
+ */
+native int Shavit_GetStyleRank(int client, int style);
+
+/**
  * Gets the amount of players with over 0 points.
  *
  * @return                          Amount of ranked players.
  */
 native int Shavit_GetRankedPlayers();
+
+/**
+ * Gets the amount of players with over 0 points on a style.
+ *
+ * @param style                     Style index.
+ * @return                          Amount of ranked players.
+ */
+native int Shavit_GetStyleRankedPlayers(int style);
 
 /**
  * Deletes tier setting for the specified map.
@@ -164,8 +203,11 @@ public void __pl_shavit_rankings_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetMapTier");
 	MarkNativeAsOptional("Shavit_GetMapTiers");
 	MarkNativeAsOptional("Shavit_GetPoints");
+	MarkNativeAsOptional("Shavit_GetStylePoints");
 	MarkNativeAsOptional("Shavit_GetRank");
+	MarkNativeAsOptional("Shavit_GetStyleRank");
 	MarkNativeAsOptional("Shavit_GetRankedPlayers");
+	MarkNativeAsOptional("Shavit_GetStyleRankedPlayers");
 	MarkNativeAsOptional("Shavit_Rankings_DeleteMap");
 	MarkNativeAsOptional("Shavit_GetWRCount");
 	MarkNativeAsOptional("Shavit_GetWRHolders");
