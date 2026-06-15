@@ -3845,7 +3845,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 			fTempAngle += 360.0;
 		}
 
-		TestAngles(client, (fTempAngle - fAngles[1]), fAngle, vel);
+		TestAngles(client, (fTempAngle - fAngles[1]), fAngle, gA_Timers[client].fLastInputVel);
 	}
 
 	if (gA_Timers[client].fCurrentTime != 0.0)
@@ -3863,7 +3863,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 	gA_Timers[client].fLastInputVel[1] = vel[1];
 }
 
-void TestAngles(int client, float dirangle, float yawdelta, const float vel[3])
+void TestAngles(int client, float dirangle, float yawdelta, const float vel[2])
 {
 	if(dirangle < 0.0)
 	{
