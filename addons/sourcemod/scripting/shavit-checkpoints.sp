@@ -1905,12 +1905,15 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 		return true;
 	}
 
-	if (cpcache.aSnapshot.iFullTicks > 0 && (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID))
+	if (cpcache.aSnapshot.bPracticeMode || !(cpcache.bSegmented || isPersistentData) || GetSteamAccountID(client) != cpcache.iSteamID)
 	{
 		cpcache.aSnapshot.bPracticeMode = true;
 
 		// Do this here to trigger practice mode alert
-		Shavit_SetPracticeMode(client, true, true);
+		if (!Shavit_InsideZone(client, Zone_Start, -1))
+		{
+			Shavit_SetPracticeMode(client, true, true);
+		}
 	}
 
 	Shavit_LoadSnapshot(client, cpcache.aSnapshot, sizeof(timer_snapshot_t), force);
