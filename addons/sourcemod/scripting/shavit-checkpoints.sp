@@ -1909,8 +1909,8 @@ bool LoadCheckpointCache(int client, cp_cache_t cpcache, int index, bool force =
 	{
 		cpcache.aSnapshot.bPracticeMode = true;
 
-		// Do this here to only trigger a practice mode alert if the client was outside the start zone (prevent alert spam in some cases)
-		if (!Shavit_InsideZone(client, Zone_Start, -1))
+		// Do this here to only trigger a practice mode alert if the client was <=1s into a run (prevent alert spam in some cases)
+		if (cpcache.aSnapshot.iFullTicks > 100)
 		{
 			Shavit_SetPracticeMode(client, true, true);
 		}
