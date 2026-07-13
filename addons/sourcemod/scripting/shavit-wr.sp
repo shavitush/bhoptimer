@@ -1802,7 +1802,18 @@ void ShowWRStyleMenu(int client, int first_item=0)
 			char sTime[32];
 			FormatSeconds(gA_WRCache[client].fWRs[iStyle], sTime, 32, false);
 
-			FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[iStyle].sStyleName, sTime);
+			float pb = Shavit_GetClientPB(client, iStyle, gA_WRCache[client].iLastTrack);
+
+			if(pb > 0.0)
+			{
+				char sPb[32];
+				FormatSeconds(pb, sPb, 32, false);
+				FormatEx(sDisplay, 64, "%s - WR: %s - PB: %s", gS_StyleStrings[iStyle].sStyleName, sTime, sPb);
+			}
+			else
+			{
+				FormatEx(sDisplay, 64, "%s - WR: %s", gS_StyleStrings[iStyle].sStyleName, sTime);
+			}
 		}
 		else
 		{
