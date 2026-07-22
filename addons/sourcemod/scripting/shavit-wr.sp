@@ -46,6 +46,7 @@ enum struct wrcache_t
 	bool bPendingMenu;
 	char sClientMap[PLATFORM_MAX_PATH];
 	float fWRs[STYLE_LIMIT];
+	float fPBs[STYLE_LIMIT];
 }
 
 enum struct stagetimewrcp_t
@@ -1714,6 +1715,7 @@ void RetrieveWRMenu(int client, int track)
 		for (int i = 0; i < gI_Styles; i++)
 		{
 			gA_WRCache[client].fWRs[i] = gF_WRTime[i][track];
+			gA_WRCache[client].fPBs[i] = gF_PlayerRecord[client][i][track];
 		}
 
 		if (gA_WRCache[client].bForceStyle)
@@ -1728,10 +1730,11 @@ void RetrieveWRMenu(int client, int track)
 	else
 	{
 		gA_WRCache[client].bPendingMenu = true;
+		int iSteamID = GetSteamAccountID(client);
 		char sQuery[512];
 		FormatEx(sQuery, sizeof(sQuery),
-			"SELECT style, time FROM %swrs WHERE map = '%s' AND track = %d AND style < %d ORDER BY style;",
-			gS_MySQLPrefix, gA_WRCache[client].sClientMap, track, gI_Styles);
+			"SELECT w.style, w.time, p.time FROM %swrs w LEFT JOIN %splayertimes p ON w.map = p.map AND w.style = p.style AND w.track = p.track AND p.auth = %d WHERE w.map = '%s' AND w.track = %d AND w.style < %d ORDER BY w.style;",
+			gS_MySQLPrefix, gS_MySQLPrefix, iSteamID, gA_WRCache[client].sClientMap, track, gI_Styles);
 		QueryLog(gH_SQL, SQL_RetrieveWRMenu_Callback, sQuery, GetClientSerial(client));
 	}
 }
@@ -1756,6 +1759,7 @@ public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const 
 	for (int i = 0; i < gI_Styles; i++)
 	{
 		gA_WRCache[client].fWRs[i] = 0.0;
+		gA_WRCache[client].fPBs[i] = 0.0;
 	}
 
 	while (results.FetchRow())
@@ -1763,6 +1767,7 @@ public void SQL_RetrieveWRMenu_Callback(Database db, DBResultSet results, const 
 		int style  = results.FetchInt(0);
 		float time = results.FetchFloat(1);
 		gA_WRCache[client].fWRs[style] = time;
+		gA_WRCache[client].fPBs[style] = results.FetchFloat(2);
 	}
 
 	if (gA_WRCache[client].bForceStyle)
@@ -1802,7 +1807,7 @@ void ShowWRStyleMenu(int client, int first_item=0)
 			char sTime[32];
 			FormatSeconds(gA_WRCache[client].fWRs[iStyle], sTime, 32, false);
 
-			float pb = Shavit_GetClientPB(client, iStyle, gA_WRCache[client].iLastTrack);
+			float pb = gA_WRCache[client].fPBs[iStyle];
 
 			if(pb > 0.0)
 			{
