@@ -1031,6 +1031,27 @@ int CreateReplayEntity(int track, int style, float delay, int client, int bot, i
 		delay = gCV_ReplayDelay.FloatValue;
 	}
 
+	if (type == Replay_Automatic)
+	{
+		if (IsValidClient(gI_CentralBot) && gA_BotInfo[gI_CentralBot].iStatus == Replay_Idle)
+		{
+			type = Replay_Central;
+			bot = gI_CentralBot;
+		}
+		else if (ignorelimit || gI_DynamicBots < gCV_DynamicBotLimit.IntValue)
+		{
+			type = Replay_Dynamic;
+		}
+		else if (gCV_AllowPropBots.BoolValue)
+		{
+			type = Replay_Prop;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+
 	if (bot == -1)
 	{
 		if (type == Replay_Prop)
@@ -2949,7 +2970,7 @@ Action Command_PlayReplayFile(int client, int args)
 	}
 	delete hFile;
 
-	if(Shavit_StartReplayFromFile(aHeader.iStyle, aHeader.iTrack, -1.0, client, -1, Replay_Dynamic, true, sPath) == 0)
+	if(Shavit_StartReplayFromFile(aHeader.iStyle, aHeader.iTrack, -1.0, client, -1, Replay_Automatic, true, sPath) == 0)
 	{
 		Shavit_PrintToChat(client, "%T", "FailedToCreateReplay", client);
 	}
