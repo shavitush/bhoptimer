@@ -302,6 +302,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_IsReplayDataLoaded", Native_IsReplayDataLoaded);
 	CreateNative("Shavit_IsReplayEntity", Native_IsReplayEntity);
 	CreateNative("Shavit_StartReplay", Native_StartReplay);
+	CreateNative("Shavit_StopReplay", Native_StopReplay);
 	CreateNative("Shavit_ReloadReplay", Native_ReloadReplay);
 	CreateNative("Shavit_ReloadReplays", Native_ReloadReplays);
 	CreateNative("Shavit_Replay_DeleteMap", Native_Replay_DeleteMap);
@@ -1109,6 +1110,25 @@ int CreateReplayEntity(int track, int style, float delay, int client, int bot, i
 	}
 
 	return bot;
+}
+
+public int Native_StopReplay(Handle handler, int numParams)
+{
+	int bot = GetNativeCell(1);
+	int client = GetNativeCell(2);
+	int index = GetBotInfoIndex(bot);
+
+	if (index >= 1 && (!client || (IsValidClient(client) && CanControlReplay(client, gA_BotInfo[index]))))
+	{
+		// It should be fine allowing to stop a replay even if it is already in the Replay_Stop state
+		if (gA_BotInfo[index].iStatus != Replay_Idle)
+		{
+			FinishReplay(gA_BotInfo[index]);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 public int Native_StartReplay(Handle handler, int numParams)

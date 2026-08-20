@@ -319,6 +319,15 @@ native bool Shavit_IsReplayEntity(int ent);
 native void Shavit_SetReplayCacheName(int bot, char[] name);
 
 /**
+ * Stops the playback of a replay bot.
+ *
+ * @param bot                       The replay bot entity.
+ * @param client                    Client requesting the stop, or 0 to bypass the permission check.
+ * @return                          True if the replay bot has been stopped, false otherwise.
+ */
+native void Shavit_StopReplay(int bot, int client = 0);
+
+/**
  * Starts a replay given a style and track.
  *
  * @param style                     Bhop style.
@@ -487,6 +496,7 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_ReloadReplay");
 	MarkNativeAsOptional("Shavit_ReloadReplays");
 	MarkNativeAsOptional("Shavit_Replay_DeleteMap");
+	MarkNativeAsOptional("Shavit_StopReplay");
 	MarkNativeAsOptional("Shavit_StartReplay");
 	MarkNativeAsOptional("Shavit_GetClosestReplayTime");
 	MarkNativeAsOptional("Shavit_GetClosestReplayVelocityDifference");
