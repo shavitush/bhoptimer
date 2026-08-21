@@ -333,7 +333,7 @@ native void Shavit_SetReplayCacheName(int bot, char[] name);
  * @param client                    Client requesting the stop, or 0 to bypass the permission check.
  * @return                          True if the replay bot has been stopped, false otherwise.
  */
-native void Shavit_StopReplay(int bot, int client = 0);
+native bool Shavit_StopReplay(int bot, int client = 0);
 
 /**
  * Starts a replay given a style and track.
