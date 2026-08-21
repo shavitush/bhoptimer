@@ -305,9 +305,17 @@ native bool Shavit_IsReplayDataLoaded(int style, int track);
 /**
  * Checks if the given entity is a replay bot (fakeclient) or replay prop.
  *
- * @param                           The entity index to check.
+ * @param ent                       The entity index to check.
  */
 native bool Shavit_IsReplayEntity(int ent);
+
+/**
+ * Retrieves the replay bot (or prop) entity currently tied to a client.
+ *
+ * @param client                    Client index.
+ * @return                          Replay bot entity, 0 if no replay bot is active.
+ */
+native int Shavit_GetClientReplayBot(int client);
 
 /**
  * Sets the sReplayName value in the bot's frame_cache_t.
@@ -501,6 +509,7 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_GetClosestReplayTime");
 	MarkNativeAsOptional("Shavit_GetClosestReplayVelocityDifference");
 	MarkNativeAsOptional("Shavit_IsReplayEntity");
+	MarkNativeAsOptional("Shavit_GetClientReplayBot");
 	MarkNativeAsOptional("Shavit_GetReplayButtons");
 	MarkNativeAsOptional("Shavit_GetReplayBotCache");
 	MarkNativeAsOptional("Shavit_GetReplayEntityFlags");
