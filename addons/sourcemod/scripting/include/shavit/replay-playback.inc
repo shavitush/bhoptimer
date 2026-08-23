@@ -102,7 +102,7 @@ native bool Shavit_DeleteReplay(const char[] map, int style, int track, int acco
 native float Shavit_GetReplayBotFirstFrameTime(int entity);
 
 /**
- * Retrieve the replay bot's entity index.
+ * Retrieves the replay bot's entity index.
  *
  * @param style                     Style you want. -1 if you want the central bot. If no central bot, the first bot it finds it used.
  * @param track                     Track you want. -1 if you want the central bot. If no central bot, the first bot it finds it used.
@@ -111,7 +111,7 @@ native float Shavit_GetReplayBotFirstFrameTime(int entity);
 native int Shavit_GetReplayBotIndex(int style, int track);
 
 /**
- * Retrieve the style being played by the replay bot.
+ * Retrieves the style being played by the replay bot.
  *
  * @param entity                    Entity index.
  * @return                          Style being played by the replay bot. -1 if the replay bot is idle.
@@ -119,22 +119,23 @@ native int Shavit_GetReplayBotIndex(int style, int track);
 native int Shavit_GetReplayBotStyle(int entity);
 
 /**
- * Retrieve the timer track being played by the replay bot.
+ * Retrieves the timer track being played by the replay bot.
  *
- * @param entity                    entity index.
+ * @param entity                    Entity index.
  * @return                          Timer track replayed by the bot. -1 if the replay bot is idle.
  */
 native int Shavit_GetReplayBotTrack(int entity);
 
 /**
- * Gets the replay bot type setting of the server.
+ * Retrieves the replay bot's type.
  *
+ * @param entity                    Entity index.
  * @return                          See ReplayBotType enum.
  */
-native int Shavit_GetReplayBotType();
+native int Shavit_GetReplayBotType(int entity);
 
 /**
- * Retrieve the replay bot's current played frame.
+ * Retrieves the replay bot's current played frame.
  *
  * @param entity                    Entity index.
  * @return                          Current played frame.
