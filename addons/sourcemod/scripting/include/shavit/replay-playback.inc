@@ -36,6 +36,7 @@ enum //ReplayStatus
 
 enum //ReplayBotType
 {
+	Replay_Automatic = -1, // Automatically chooses a replay type based on availability (Central/Dynamic/Prop) for Shavit_StartReplay, Shavit_StartReplayFromFile & Shavit_StartReplayFromFrameCache
 	Replay_Central,
 	Replay_Looping, // these are the ones that loop styles, tracks, and (eventually) stages...
 	Replay_Dynamic, // these are bots that spawn on !replay when the central bot is taken
@@ -476,9 +477,9 @@ public SharedPlugin __pl_shavit_replay_playback =
 	name = "shavit-replay-playback",
 	file = "shavit-replay-playback.smx",
 #if defined REQUIRE_PLUGIN
-	required = 1
+	required = 1,
 #else
-	required = 0
+	required = 0,
 #endif
 };
 
