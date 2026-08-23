@@ -305,9 +305,17 @@ native bool Shavit_IsReplayDataLoaded(int style, int track);
 /**
  * Checks if the given entity is a replay bot (fakeclient) or replay prop.
  *
- * @param                           The entity index to check.
+ * @param ent                       The entity index to check.
  */
 native bool Shavit_IsReplayEntity(int ent);
+
+/**
+ * Retrieves the replay bot (or prop) entity currently tied to a client.
+ *
+ * @param client                    Client index.
+ * @return                          Replay bot entity, 0 if no replay bot is active.
+ */
+native int Shavit_GetClientReplayBot(int client);
 
 /**
  * Sets the sReplayName value in the bot's frame_cache_t.
@@ -317,6 +325,15 @@ native bool Shavit_IsReplayEntity(int ent);
  * @param name                      The name to use.
  */
 native void Shavit_SetReplayCacheName(int bot, char[] name);
+
+/**
+ * Stops the playback of a replay bot.
+ *
+ * @param bot                       The replay bot entity.
+ * @param client                    Client requesting the stop, or 0 to bypass the permission check.
+ * @return                          True if the replay bot has been stopped, false otherwise.
+ */
+native bool Shavit_StopReplay(int bot, int client = 0);
 
 /**
  * Starts a replay given a style and track.
@@ -487,10 +504,12 @@ public void __pl_shavit_replay_playback_SetNTVOptional()
 	MarkNativeAsOptional("Shavit_ReloadReplay");
 	MarkNativeAsOptional("Shavit_ReloadReplays");
 	MarkNativeAsOptional("Shavit_Replay_DeleteMap");
+	MarkNativeAsOptional("Shavit_StopReplay");
 	MarkNativeAsOptional("Shavit_StartReplay");
 	MarkNativeAsOptional("Shavit_GetClosestReplayTime");
 	MarkNativeAsOptional("Shavit_GetClosestReplayVelocityDifference");
 	MarkNativeAsOptional("Shavit_IsReplayEntity");
+	MarkNativeAsOptional("Shavit_GetClientReplayBot");
 	MarkNativeAsOptional("Shavit_GetReplayButtons");
 	MarkNativeAsOptional("Shavit_GetReplayBotCache");
 	MarkNativeAsOptional("Shavit_GetReplayEntityFlags");
