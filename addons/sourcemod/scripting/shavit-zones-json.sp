@@ -155,7 +155,7 @@ public void OnPluginStart()
 	gCV_ApiUrl = new Convar("shavit_zones_json_url", "http://zones-{engine}.srcwr.com/z/{map}.json", "API URL. Will replace `{map}`, `{key}`, and `{engine}` with the mapname, api key, and engine name....\nOther example urls:\n  https://srcwr.github.io/zones-{engine}/z/{map}.json\n  https://sourcejump.net/api/v2/maps/{map}/zones", FCVAR_PROTECTED);
 	gCV_ApiKey = new Convar("shavit_zones_json_key", "", "API key that some APIs might require.", FCVAR_PROTECTED);
 	gCV_Source = new Convar("shavit_zones_json_src", "http", "A string used by plugins to identify where a zone came from (http, sourcejump, sql, etc)");
-	gCV_Folder = new Convar("shavit_zones_json_folder", "0", "Whether to use a local folder for json zones instead of the http URL.\n0 - use HTTP stuff...\n1 - use folder of JSON zones at `addons/sourcemod/data/zones-{engine}/z/{map}.json`");
+	gCV_Folder = new Convar("shavit_zones_json_folder", "0", "Whether to use a local folder for json zones instead of the http URL.\n0 - use HTTP stuff...\n1 - use folder of JSON zones at `addons/sourcemod/data/zones-{engine}/z/{map}.json`\n2 - use folder of JSON zones at `addons/sourcemod/data/zones-{engine}/z/{map} if it exists, otherwise use HTTP", 0, true, 0.0, true, 2.0);
 
 	Convar.AutoExecConfig();
 
@@ -213,11 +213,11 @@ void RetrieveZones(const char[] mapname)
 	if (!gCV_Enable.BoolValue)
 		return;
 
-	if (gCV_Folder.BoolValue)
-	{
 		char path[PLATFORM_MAX_PATH];
 		BuildPath(Path_SM, path, sizeof(path), "data/zones-%s/z/%s.json", gS_EngineName, gS_Map);
 
+    if (gCV_Folder.IntValue == 1 || (gCV_Folder.IntValue == 2 && FileExists(path)))
+    {
 		JSONArray records = JSONArray.FromFile(path);
 
 		if (records)
@@ -228,9 +228,10 @@ void RetrieveZones(const char[] mapname)
 			delete records;
 			if (gB_YouCanLoadZonesNow)
 				LoadCachedZones();
+			return;
 		}
-
-		return;
+		if (gCV_Folder.IntValue == 1)
+			return; 
 	}
 
 	char apikey[64], apiurl[512];
