@@ -216,8 +216,8 @@ void RetrieveZones(const char[] mapname)
 		char path[PLATFORM_MAX_PATH];
 		BuildPath(Path_SM, path, sizeof(path), "data/zones-%s/z/%s.json", gS_EngineName, gS_Map);
 
-    if (gCV_Folder.IntValue == 1 || (gCV_Folder.IntValue == 2 && FileExists(path)))
-    {
+	if (gCV_Folder.IntValue == 1 || (gCV_Folder.IntValue == 2 && FileExists(path)))
+	{
 		JSONArray records = JSONArray.FromFile(path);
 
 		if (records)
@@ -230,6 +230,7 @@ void RetrieveZones(const char[] mapname)
 				LoadCachedZones();
 			return;
 		}
+
 		if (gCV_Folder.IntValue == 1)
 			return; 
 	}
