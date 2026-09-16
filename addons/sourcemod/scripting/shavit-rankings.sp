@@ -1022,7 +1022,7 @@ void UpdatePointsForSinglePlayer(int client)
 	if (gCV_WeightingMultiplier.FloatValue == 1.0 || gB_SqliteHatesPOW)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
-			"UPDATE %susers SET points = (SELECT SUM(points) FROM %splayertimes WHERE auth = %d) WHERE auth = %d;",
+			"UPDATE %susers SET points = COALESCE((SELECT SUM(points) FROM %splayertimes WHERE auth = %d), 0) WHERE auth = %d;",
 			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
 	}
 	else if (gB_SQLWindowFunctions)
@@ -1032,14 +1032,14 @@ void UpdatePointsForSinglePlayer(int client)
 			FormatEx(sLimit, sizeof(sLimit), "LIMIT %d", gCV_WeightingLimit.IntValue);
 
 		FormatEx(sQuery, sizeof(sQuery),
-		    "UPDATE %susers SET points = (\n"
+		    "UPDATE %susers SET points = COALESCE((\n"
 		... "  SELECT SUM(points2) FROM (\n"
 		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
 		... "    FROM %splayertimes\n"
 		... "    WHERE auth = %d AND points > 0\n"
 		... "    ORDER BY points DESC %s\n"
 		... "  ) as t\n"
-		... ") WHERE auth = %d;",
+		... "), 0) WHERE auth = %d;",
 			gS_MySQLPrefix,
 			gCV_WeightingMultiplier.FloatValue,
 			gS_MySQLPrefix,
@@ -1133,14 +1133,14 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 		    "UPDATE %susers AS u\n"
-		... "SET points = (\n"
+		... "SET points = COALESCE((\n"
 		... "  SELECT SUM(points2) FROM (\n"
 		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) AS points2\n"
 		... "    FROM %splayertimes\n"
 		... "    WHERE auth = u.auth AND points > 0\n"
 		... "    ORDER BY points DESC %s\n"
 		... "  ) AS t\n"
-		... ") WHERE %s %s auth IN\n"
+		... "), 0) WHERE %s %s auth IN\n"
 		... "  (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s);",
 			gS_MySQLPrefix,
 			gCV_WeightingMultiplier.FloatValue,
@@ -1252,8 +1252,10 @@ void UpdateTop100()
 	FormatEx(sQuery, sizeof(sQuery),
 		"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
 		UNION ALL \
-		SELECT * FROM (SELECT -1 as c, auth, name, FORMAT(points, 2) FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
-		gS_MySQLPrefix, gS_MySQLPrefix);
+		SELECT * FROM (SELECT -1 as c, auth, name, %s FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
+		gS_MySQLPrefix,
+		(gI_Driver == Driver_sqlite) ? "printf('%.2f', points)" : "FORMAT(points, 2)",
+		gS_MySQLPrefix);
 
 	QueryLog(gH_SQL, SQL_UpdateTop100_Callback, sQuery, 0, DBPrio_High);
 }
