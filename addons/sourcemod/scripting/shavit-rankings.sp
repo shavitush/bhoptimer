@@ -1,6 +1,6 @@
 /*
  * shavit's Timer - Rankings
- * by: shavit, rtldg
+ * by: shavit, rtldg, olivia
  *
  * This file is part of shavit's Timer (https://github.com/shavitush/bhoptimer)
  *
@@ -59,13 +59,40 @@
 enum struct ranking_t
 {
 	int iRank;
+	int iStyleRank[STYLE_LIMIT];
 	float fPoints;
+	float fStylePoints[STYLE_LIMIT];
 	int iWRAmountAll;
 	int iWRAmountCvar;
 	int iWRHolderRankAll;
 	int iWRHolderRankCvar;
 	int iWRAmount[STYLE_LIMIT*2];
 	int iWRHolderRank[STYLE_LIMIT*2];
+}
+
+enum struct stylerankcache_t
+{
+	int iMenuPosition;
+	int iStyle;
+	int iTarget;
+}
+
+enum struct styletop_t
+{
+	ArrayList sName;
+	int iSteamID[100];
+	float fPoints[100];
+
+	void Init()
+	{
+		delete this.sName;
+		this.sName = new ArrayList(ByteCountToCells(33), 100);
+		
+		for (int i, len = this.sName.Length; i < len; i++)
+		{
+			this.sName.SetString(i, "");
+		}
+	}
 }
 
 char gS_MySQLPrefix[32];
@@ -99,14 +126,22 @@ Convar gCV_DefaultTier = null;
 ranking_t gA_Rankings[MAXPLAYERS+1];
 
 int gI_RankedPlayers = 0;
+int gI_StyleRankedPlayers[STYLE_LIMIT] = {0, ...};
+
 Menu gH_Top100Menu = null;
+styletop_t gA_StyleTop[STYLE_LIMIT];
 
 Handle gH_Forwards_OnTierAssigned = null;
 Handle gH_Forwards_OnRankAssigned = null;
+Handle gH_Forwards_OnStyleRankAssigned = null;
 
 // Timer settings.
 chatstrings_t gS_ChatStrings;
+stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 int gI_Styles = 0;
+
+// Cache
+stylerankcache_t gA_StyleRankCache[MAXPLAYERS+1];
 
 bool gB_WorldRecordsCached = false;
 bool gB_WRHolderTablesMade = false;
@@ -119,7 +154,7 @@ int gI_WRHoldersCvar;
 public Plugin myinfo =
 {
 	name = "[shavit] Rankings",
-	author = "shavit, rtldg",
+	author = "shavit, rtldg, olivia",
 	description = "A fair and competitive ranking system for shavit's bhoptimer.",
 	version = SHAVIT_VERSION,
 	url = "https://github.com/shavitush/bhoptimer"
@@ -130,8 +165,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Shavit_GetMapTier", Native_GetMapTier);
 	CreateNative("Shavit_GetMapTiers", Native_GetMapTiers);
 	CreateNative("Shavit_GetPoints", Native_GetPoints);
+	CreateNative("Shavit_GetStylePoints", Native_GetStylePoints);
 	CreateNative("Shavit_GetRank", Native_GetRank);
+	CreateNative("Shavit_GetStyleRank", Native_GetStyleRank);
 	CreateNative("Shavit_GetRankedPlayers", Native_GetRankedPlayers);
+	CreateNative("Shavit_GetStyleRankedPlayers", Native_GetStyleRankedPlayers);
 	CreateNative("Shavit_Rankings_DeleteMap", Native_Rankings_DeleteMap);
 	CreateNative("Shavit_GetWRCount", Native_GetWRCount);
 	CreateNative("Shavit_GetWRHolders", Native_GetWRHolders);
@@ -147,16 +185,24 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
+	for (int i = 0; i < sizeof(gA_StyleTop); i++)
+	{
+		gA_StyleTop[i].Init();
+	}
+
 	gEV_Type = GetEngineVersion();
 
 	gH_Forwards_OnTierAssigned = CreateGlobalForward("Shavit_OnTierAssigned", ET_Event, Param_String, Param_Cell);
 	gH_Forwards_OnRankAssigned = CreateGlobalForward("Shavit_OnRankAssigned", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	gH_Forwards_OnStyleRankAssigned = CreateGlobalForward("Shavit_OnStyleRankAssigned", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	RegConsoleCmd("sm_tier", Command_Tier, "Prints the map's tier to chat.");
 	RegConsoleCmd("sm_maptier", Command_Tier, "Prints the map's tier to chat. (sm_tier alias)");
 
 	RegConsoleCmd("sm_rank", Command_Rank, "Show your or someone else's rank. Usage: sm_rank [name]");
 	RegConsoleCmd("sm_top", Command_Top, "Show the top 100 players.");
+	RegConsoleCmd("sm_stylerank", Command_Rank, "Show your or someone else's rank on a style. Usage: sm_stylerank [name]");
+	RegConsoleCmd("sm_styletop", Command_Top, "Show the top 100 players for a style.");
 
 	RegAdminCmd("sm_settier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_settier <tier> [map]");
 	RegAdminCmd("sm_setmaptier", Command_SetTier, ADMFLAG_RCON, "Change the map's tier. Usage: sm_setmaptier <tier> [map] (sm_settier alias)");
@@ -204,6 +250,11 @@ public void Shavit_OnChatConfigLoaded()
 public void Shavit_OnStyleConfigLoaded(int styles)
 {
 	gI_Styles = styles;
+
+	for (int i = 0; i < STYLE_LIMIT; i++)
+	{
+		Shavit_GetStyleStringsStruct(i, gS_StyleStrings[i]);
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -288,7 +339,6 @@ void CreateGetWeightedPointsFunction()
 		"RETURN total; " ...
 		"END;;", gS_MySQLPrefix, sWeightingLimit, gCV_WeightingMultiplier.FloatValue);
 
-
 	AddQueryLog(trans, sQuery);
 
 	gH_SQL.Execute(trans, Trans_RankingsSetupSuccess, Trans_RankingsSetupError, 0, DBPrio_High);
@@ -310,18 +360,51 @@ public void OnClientConnected(int client)
 {
 	ranking_t empty_ranking;
 	gA_Rankings[client] = empty_ranking;
+	
+	stylerankcache_t empty_cache;
+	gA_StyleRankCache[client] = empty_cache;
 }
 
 public void OnClientAuthorized(int client, const char[] auth)
 {
 	if (gH_SQL && !IsFakeClient(client))
 	{
+		int iSteamID = GetSteamAccountID(client);
+
+		char sQuery[512];
+
+		for (int i = 0; i < gI_Styles; i++)
+		{
+			if (gI_Driver == Driver_mysql)
+			{
+				FormatEx(sQuery, sizeof(sQuery),
+					"INSERT IGNORE INTO %sstylepoints (auth, style, points) VALUES (%d, %d, 0);",
+					gS_MySQLPrefix, iSteamID, i);
+			}
+			else // postgresql & sqlite
+			{
+				FormatEx(sQuery, sizeof(sQuery),
+					"INSERT INTO %sstylepoints (auth, style, points) VALUES (%d, %d, 0) ON CONFLICT DO NOTHING;",
+					gS_MySQLPrefix, iSteamID, i);
+			}
+
+			QueryLog(gH_SQL, SQL_InsertUser_Callback, sQuery, iSteamID);
+		}
+
 		if (gB_WRHolderTablesMade)
 		{
 			UpdateWRs(client);
 		}
 
 		UpdatePlayerRank(client, true);
+	}
+}
+
+public void SQL_InsertUser_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("Timer error! (rankings) Failed to insert [U:1:%d]'s data to the table. Reason: %s", data, error);
 	}
 }
 
@@ -409,7 +492,18 @@ public void SQL_FillTierCache_Callback(Database db, DBResultSet results, const c
 		Call_Finish();
 
 		char sQuery[512];
-		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
+		if (gI_Driver == Driver_mysql)
+		{
+			FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			FormatEx(sQuery, sizeof(sQuery), "INSERT INTO %smaptiers (map, tier) VALUES ('%s', %d) ON CONFLICT (map) DO UPDATE SET tier = EXCLUDED.tier;", gS_MySQLPrefix, gS_Map, gI_Tier);
+		}
+		else // SQLite
+		{
+			FormatEx(sQuery, sizeof(sQuery), "INSERT OR REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, gS_Map, gI_Tier);
+		}
 		QueryLog(gH_SQL, SQL_SetMapTier_Callback, sQuery, 0, DBPrio_High);
 	}
 }
@@ -582,30 +676,209 @@ public Action Command_Rank(int client, int args)
 		}
 	}
 
-	if(gA_Rankings[target].fPoints == 0.0)
+	if(IsValidClient(client))
 	{
-		Shavit_PrintToChat(client, "%T", "Unranked", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText);
-
-		return Plugin_Handled;
+		gA_StyleRankCache[client].iTarget = target;
+		OpenRankMenu(client, 0);
 	}
-
-	Shavit_PrintToChat(client, "%T", "Rank", client, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
-		gS_ChatStrings.sVariable, (gA_Rankings[target].iRank > gI_RankedPlayers)? gI_RankedPlayers:gA_Rankings[target].iRank, gS_ChatStrings.sText,
-		gI_RankedPlayers,
-		gS_ChatStrings.sVariable, gA_Rankings[target].fPoints, gS_ChatStrings.sText);
 
 	return Plugin_Handled;
 }
 
+void OpenRankMenu(int client, int position = 0)
+{
+	if(!IsValidClient(gA_StyleRankCache[client].iTarget))
+	{
+		return;
+	}
+
+	Menu menu = new Menu(MenuHandler_Rank);
+
+	char sDisplay[32];
+	GetClientName(gA_StyleRankCache[client].iTarget, sDisplay, sizeof(sDisplay));
+
+	SetMenuTitle(menu, "%T\n ", "StyleRankTitle", client, sDisplay);
+
+	FormatEx(sDisplay, 32, "%T\n ", "Overall", client);
+	menu.AddItem("-1", sDisplay);
+
+	int[] iOrderedStyles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(iOrderedStyles, gI_Styles);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		int iStyle = iOrderedStyles[i];
+
+		if(Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
+		{
+			continue;
+		}
+
+		char sStyle[8];
+		IntToString(iStyle, sStyle, sizeof(sStyle));
+		menu.AddItem(sStyle, gS_StyleStrings[iStyle].sStyleName);
+	}
+
+	menu.ExitButton = true;
+	DisplayMenuAtItem(menu, client, position, MENU_TIME_FOREVER);
+}
+
+public void MenuHandler_Rank(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		if(!IsValidClient(gA_StyleRankCache[param1].iTarget))
+		{
+			return;
+		}
+
+		char sStyle[8];
+		menu.GetItem(param2, sStyle, sizeof(sStyle));
+		int iStyle = StringToInt(sStyle);
+		int target = gA_StyleRankCache[param1].iTarget;
+
+		if (iStyle < 0 || iStyle >= gI_Styles)
+		{
+			iStyle = -1;
+		}
+		
+		if (gA_Rankings[target].fPoints == 0.0)
+		{
+			Shavit_PrintToChat(param1, "%T", "Unranked", param1, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText);
+		}
+		else if (iStyle > -1 && gA_Rankings[target].fStylePoints[iStyle] == 0.0)
+		{
+			Shavit_PrintToChat(param1, "%T", "UnrankedOnStyle", param1, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[iStyle].sStyleName, gS_ChatStrings.sText);
+		}
+		else
+		{
+			if (iStyle == -1)
+			{
+				Shavit_PrintToChat(param1, "%T", "Rank", param1, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
+				gS_ChatStrings.sVariable, (gA_Rankings[target].iRank > gI_RankedPlayers)? gI_RankedPlayers:gA_Rankings[target].iRank, gS_ChatStrings.sText,
+				gI_RankedPlayers,
+				gS_ChatStrings.sVariable, gA_Rankings[target].fPoints, gS_ChatStrings.sText);
+			}
+			else
+			{
+				Shavit_PrintToChat(param1, "%T", "StyleRank", param1, gS_ChatStrings.sVariable2, target, gS_ChatStrings.sText,
+				gS_ChatStrings.sVariable, (gA_Rankings[target].iStyleRank[iStyle] > gI_StyleRankedPlayers[iStyle])? gI_StyleRankedPlayers[iStyle]:gA_Rankings[target].iStyleRank[iStyle], gS_ChatStrings.sText,
+				gI_StyleRankedPlayers[iStyle],
+				gS_ChatStrings.sVariable, gA_Rankings[target].fStylePoints[iStyle], gS_ChatStrings.sText,
+				gS_ChatStrings.sStyle, gS_StyleStrings[iStyle].sStyleName, gS_ChatStrings.sText);
+			}
+		}
+
+		OpenRankMenu(param1, GetMenuSelectionPosition());
+	}
+	else if (action == MenuAction_End)
+		delete menu;
+}
+
 public Action Command_Top(int client, int args)
 {
-	if(gH_Top100Menu != null)
+	if(IsValidClient(client))
 	{
-		gH_Top100Menu.SetTitle("%T (%d)\n ", "Top100", client, gI_RankedPlayers);
-		gH_Top100Menu.Display(client, MENU_TIME_FOREVER);
+		OpenTopMainMenu(client, 0);
 	}
 
 	return Plugin_Handled;
+}
+
+void OpenTopMainMenu(int client, int position = 0)
+{
+	Menu menu = new Menu(MenuHandler_TopMain);
+
+	char sDisplay[32];
+
+	SetMenuTitle(menu, "%T\n ", "StyleTopTitle", client);
+
+	FormatEx(sDisplay, 32, "%T\n ", "Overall", client);
+	menu.AddItem("-1", sDisplay);
+
+	int[] iOrderedStyles = new int[gI_Styles];
+	Shavit_GetOrderedStyles(iOrderedStyles, gI_Styles);
+
+	for(int i = 0; i < gI_Styles; i++)
+	{
+		int iStyle = iOrderedStyles[i];
+
+		if(Shavit_GetStyleSettingInt(iStyle, "enabled") == -1)
+		{
+			continue;
+		}
+
+		char sStyle[8];
+		IntToString(iStyle, sStyle, sizeof(sStyle));
+		menu.AddItem(sStyle, gS_StyleStrings[iStyle].sStyleName);
+	}
+
+	menu.ExitButton = true;
+	DisplayMenuAtItem(menu, client, position, MENU_TIME_FOREVER);
+}
+
+public void MenuHandler_TopMain(Menu menu, MenuAction action, int param1, int param2)
+{
+	if(action == MenuAction_Select)
+	{
+		gA_StyleRankCache[param1].iMenuPosition = GetMenuSelectionPosition();
+		char sStyle[8];
+		menu.GetItem(param2, sStyle, sizeof(sStyle));
+		int iStyle = StringToInt(sStyle);
+
+		if (iStyle < 0 || iStyle >= gI_Styles)
+		{
+			iStyle = -1;
+		}
+		
+		if(iStyle == -1)
+		{
+			if(gH_Top100Menu != null)
+			{
+				gH_Top100Menu.SetTitle("%T (%d)\n ", "Top100", param1, gI_RankedPlayers);
+				gH_Top100Menu.Display(param1, MENU_TIME_FOREVER);
+			}
+		}
+		else
+		{
+			gA_StyleRankCache[param1].iStyle = iStyle;
+			OpenStyleTopMenu(param1);
+		}
+	}
+	else if (action == MenuAction_End)
+		delete menu;
+}
+
+void OpenStyleTopMenu(int client)
+{
+	int iStyle = gA_StyleRankCache[client].iStyle;
+	char sDisplay[96];
+
+	Menu menu = new Menu(MenuHandler_Top);
+
+	menu.SetTitle("%T (%d)\n ", "StyleTop100", client, gS_StyleStrings[iStyle].sStyleName, gI_StyleRankedPlayers[iStyle]);
+
+	if (gI_StyleRankedPlayers[iStyle] == 0)
+	{
+		FormatEx(sDisplay, 64, "%T", "NoRankedPlayers", client);
+		menu.AddItem("-1", sDisplay, ITEMDRAW_DISABLED);
+	}
+	else
+	{
+		char sName[33];
+		char sSteamID[33];
+		for (int i = 0; i < (gI_StyleRankedPlayers[iStyle] < 100 ? gI_StyleRankedPlayers[iStyle] : 100); i++)
+		{
+			gA_StyleTop[iStyle].sName.GetString(i, sName, sizeof(sName));
+			IntToString(gA_StyleTop[iStyle].iSteamID[i], sSteamID, sizeof(sSteamID));
+			FormatEx(sDisplay, 96, "#%d - %s (%.2f)", i+1, sName, gA_StyleTop[iStyle].fPoints[i]);
+			menu.AddItem(sSteamID, sDisplay);
+		}
+	}
+
+	menu.ExitBackButton = true;
+	menu.ExitButton = true;
+	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
@@ -619,6 +892,11 @@ public int MenuHandler_Top(Menu menu, MenuAction action, int param1, int param2)
 		{
 			FakeClientCommand(param1, "sm_profile [U:1:%s]", sInfo);
 		}
+	}
+	else if(action == MenuAction_Cancel)
+	{
+		if(param2 == MenuCancel_ExitBack)
+			OpenTopMainMenu(param1, gA_StyleRankCache[param1].iMenuPosition);
 	}
 
 	return 0;
@@ -673,7 +951,18 @@ public Action Command_SetTier(int client, int args)
 	Shavit_LogMessage("%L - set tier of `%s` to %d", client, gS_Map, tier);
 
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, map, tier);
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, map, tier);
+	}
+	else if (gI_Driver == Driver_pgsql)
+	{
+		FormatEx(sQuery, sizeof(sQuery), "INSERT INTO %smaptiers (map, tier) VALUES ('%s', %d) ON CONFLICT (map) DO UPDATE SET tier = EXCLUDED.tier;", gS_MySQLPrefix, map, tier);
+	}
+	else // SQLite
+	{
+		FormatEx(sQuery, sizeof(sQuery), "INSERT OR REPLACE INTO %smaptiers (map, tier) VALUES ('%s', %d);", gS_MySQLPrefix, map, tier);
+	}
 
 	DataPack data = new DataPack();
 	data.WriteCell(client ? GetClientSerial(client) : 0);
@@ -792,7 +1081,7 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 				gS_Map
 			);
 		}
-		else
+		else if (gI_Driver == Driver_mysql)
 		{
 			FormatEx(sQuery, sQueryLen,
 				"UPDATE %splayertimes AS PT " ...
@@ -807,6 +1096,27 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 				gS_MySQLPrefix, gS_MySQLPrefix,
 				((gCV_PointsPerTier.FloatValue * fTier) * 1.5),
 				fMultiplier,
+				(track > 0) ? '>' : '=',
+				style,
+				gS_Map
+			);
+		}
+		else // PostgreSQL
+		{
+			FormatEx(sQuery, sQueryLen,
+				"UPDATE %splayertimes AS PT " ...
+				"SET " ...
+				" points = "...
+				"   (%f + (WR.time / 15.0)) " ...
+				" * (WR.time / PT.time) " ...
+				" * %f " ...
+				"FROM %swrs WR " ...
+				"WHERE PT.track = WR.track AND PT.style = WR.style AND PT.map = WR.map " ...
+				"  AND PT.track %c 0 AND PT.style = %d AND PT.map = '%s';",
+				gS_MySQLPrefix,
+				((gCV_PointsPerTier.FloatValue * fTier) * 1.5),
+				fMultiplier,
+				gS_MySQLPrefix,
 				(track > 0) ? '>' : '=',
 				style,
 				gS_Map
@@ -839,7 +1149,7 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			mapfilter
 		);
 	}
-	else
+	else if (gI_Driver == Driver_mysql)
 	{
 		char mapfilter[50+PLATFORM_MAX_PATH];
 		if (map[0]) FormatEx(mapfilter, sizeof(mapfilter), "AND PT.map = '%s'", map);
@@ -866,6 +1176,32 @@ void FormatRecalculate(bool bUseCurrentMap, int track, int style, char[] sQuery,
 			fMultiplier
 		);
 	}
+	else // PostgreSQL
+	{
+		char mapfilter[50+PLATFORM_MAX_PATH];
+		if (map[0]) FormatEx(mapfilter, sizeof(mapfilter), "AND PT.map = '%s'", map);
+
+		FormatEx(sQuery, sQueryLen,
+			"UPDATE %splayertimes AS PT " ...
+			"SET " ...
+			" points = "...
+			"   (((%f * %s) * 1.5) + (WR.time / 15.0)) " ...
+			" * (WR.time / PT.time) " ...
+			" * %f " ...
+			"FROM %swrs AS WR, %smaptiers AS MT " ...
+			"WHERE PT.track %c 0 AND PT.track = WR.track AND PT.style = %d AND PT.style = WR.style %s AND PT.map = WR.map " ...
+			"  AND PT.map = MT.map;",
+			gS_MySQLPrefix,
+			gCV_PointsPerTier.FloatValue,
+			(track > 0) ? "1" : "MT.tier",
+			fMultiplier,
+			gS_MySQLPrefix,
+			gS_MySQLPrefix,
+			(track > 0) ? '>' : '=',
+			style,
+			mapfilter
+		);
+	}
 }
 
 public Action Command_RecalcAll(int client, int args)
@@ -878,6 +1214,8 @@ public Action Command_RecalcAll(int client, int args)
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %splayertimes SET points = 0;", gS_MySQLPrefix);
 	AddQueryLog(trans, sQuery);
 	FormatEx(sQuery, sizeof(sQuery), "UPDATE %susers SET points = 0;", gS_MySQLPrefix);
+	AddQueryLog(trans, sQuery);
+	FormatEx(sQuery, sizeof(sQuery), "UPDATE %sstylepoints SET points = 0;", gS_MySQLPrefix);
 	AddQueryLog(trans, sQuery);
 
 	for(int i = 0; i < gI_Styles; i++)
@@ -905,7 +1243,7 @@ public void Trans_OnRecalcSuccess(Database db, any data, int numQueries, DBResul
 		SetCmdReplySource(SM_REPLY_TO_CONSOLE);
 	}
 
-	ReplyToCommand(client, "- Finished recalculating all points. Recalculating user points, top 100 and user cache.");
+	ReplyToCommand(client, "- Finished recalculating all points. Recalculating user points, top 100 and user cache for all styles.");
 
 	UpdateAllPoints(true);
 }
@@ -1017,13 +1355,34 @@ void UpdatePointsForSinglePlayer(int client)
 {
 	int auth = GetSteamAccountID(client);
 
-	char sQuery[1024];
+	char sQuery[1024], sStyleQuery[1024];
 
 	if (gCV_WeightingMultiplier.FloatValue == 1.0 || gB_SqliteHatesPOW)
 	{
 		FormatEx(sQuery, sizeof(sQuery),
 			"UPDATE %susers SET points = (SELECT SUM(points) FROM %splayertimes WHERE auth = %d) WHERE auth = %d;",
 			gS_MySQLPrefix, gS_MySQLPrefix, auth, auth);
+
+		if (gI_Driver == Driver_mysql)
+		{
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, style, SUM(points) AS total FROM %splayertimes WHERE auth = %d GROUP BY style) P ON S.auth = P.auth SET S.points = P.total WHERE S.style = P.style;",
+				gS_MySQLPrefix, gS_MySQLPrefix, auth);
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE %sstylepoints AS S SET points = P.total FROM (SELECT auth, style, SUM(points) AS total FROM %splayertimes WHERE auth = %d GROUP BY style) P WHERE S.auth = P.auth AND S.style = P.style;",
+				gS_MySQLPrefix, gS_MySQLPrefix, auth);
+		}
+		else // SQLite
+		{
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE %sstylepoints SET points = (SELECT SUM(points) FROM %splayertimes WHERE %sstylepoints.auth = %splayertimes.auth AND %sstylepoints.style = %splayertimes.style AND auth = %d GROUP BY style);",
+				gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, auth);
+		}
+
+		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 	}
 	else if (gB_SQLWindowFunctions)
 	{
@@ -1047,6 +1406,67 @@ void UpdatePointsForSinglePlayer(int client)
 			sLimit,
 			auth
 		);
+
+		if (gI_Driver == Driver_mysql)
+		{
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE IGNORE %sstylepoints AS S SET points = (\n"
+			... "  SELECT SUM(points2) FROM (\n"
+			... "    SELECT style, (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
+			... "    FROM %splayertimes\n"
+			... "    WHERE auth = %d AND points > 0 GROUP BY style\n"
+			... "    ORDER BY points DESC %s\n"
+			... "  ) as t\n"
+			... ") WHERE S.auth = %d AND S.style = t.style;",
+				gS_MySQLPrefix,
+				gCV_WeightingMultiplier.FloatValue,
+				gS_MySQLPrefix,
+				auth,
+				sLimit,
+				auth
+			);
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE %sstylepoints AS S SET points = (\n"
+			... "  SELECT SUM(points2) FROM (\n"
+			... "    SELECT (points * POWER(%f, ROW_NUMBER() OVER (PARTITION BY style ORDER BY points DESC) - 1)) as points2\n"
+			... "    FROM %splayertimes\n"
+			... "    WHERE auth = %d AND points > 0 AND style = S.style\n"
+			... "    ORDER BY points DESC %s\n"
+			... "  ) as t\n"
+			... ") WHERE S.auth = %d;",
+				gS_MySQLPrefix,
+				gCV_WeightingMultiplier.FloatValue,
+				gS_MySQLPrefix,
+				auth,
+				sLimit,
+				auth
+			);
+		}
+		else // SQLite
+		{
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE %sstylepoints SET points = (\n"
+			... "  SELECT SUM(points2) FROM (\n"
+			... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) as points2\n"
+			... "    FROM %splayertimes\n"
+			... "    WHERE auth = %d AND points > 0 AND style = %sstylepoints.style\n"
+			... "    ORDER BY points DESC %s\n"
+			... "  ) as t\n"
+			... ") WHERE auth = %d;",
+				gS_MySQLPrefix,
+				gCV_WeightingMultiplier.FloatValue,
+				gS_MySQLPrefix,
+				auth,
+				gS_MySQLPrefix,
+				sLimit,
+				auth
+			);
+		}
+
+		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 	}
 	else // We should only be here if mysql :)
 	{
@@ -1064,7 +1484,7 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 	LogError("DEBUG: 6 (UpdateAllPoints)");
 	#endif
 
-	char sQuery[1024];
+	char sQuery[1024], sStyleQuery[1024];
 	char sLastLogin[69], sLimit[30], sMapWhere[512], sTrackWhere[64];
 
 	if (track != -1)
@@ -1088,13 +1508,41 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 				"UPDATE %susers AS U SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth) P WHERE U.auth = P.auth %s %s;",
 				gS_MySQLPrefix, gS_MySQLPrefix,
 				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
+
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE IGNORE %sstylepoints AS S SET points = P.total FROM (SELECT auth, style, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P WHERE S.auth = P.auth AND S.style = P.style %s %s;",
+				gS_MySQLPrefix, gS_MySQLPrefix,
+				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
+
+			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 		}
-		else
+		else if (gI_Driver == Driver_pgsql)
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE %susers AS U SET points = P.total FROM (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth) P WHERE U.auth = P.auth %s %s;",
+				gS_MySQLPrefix, gS_MySQLPrefix,
+				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
+
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE %sstylepoints AS S SET points = P.total FROM (SELECT auth, style, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P WHERE S.auth = P.auth AND S.style = P.style %s %s;",
+				gS_MySQLPrefix, gS_MySQLPrefix,
+				(sLastLogin[0] != 0) ? "AND " : "", sLastLogin);
+
+			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
+		}
+		else // MySQL
 		{
 			FormatEx(sQuery, sizeof(sQuery),
 				"UPDATE %susers AS U INNER JOIN (SELECT auth, SUM(points) AS total FROM %splayertimes GROUP BY auth) P ON U.auth = P.auth SET U.points = P.total %s %s;",
 				gS_MySQLPrefix, gS_MySQLPrefix,
 				(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
+
+			FormatEx(sStyleQuery, sizeof(sStyleQuery),
+				"UPDATE IGNORE %sstylepoints AS S INNER JOIN (SELECT auth, style, SUM(points) AS total FROM %splayertimes GROUP BY auth, style) P ON S.auth = P.auth SET S.points = P.total WHERE S.style = P.style %s %s;",
+				gS_MySQLPrefix, gS_MySQLPrefix,
+				(sLastLogin[0] != 0) ? "WHERE" : "", sLastLogin);
+
+			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 		}
 	}
 	else if (gB_SQLWindowFunctions && gI_Driver == Driver_mysql)
@@ -1128,6 +1576,83 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
 			sTrackWhere,
 			sLimit); // TODO: Remove/move sLimit?
+
+		FormatEx(sStyleQuery, sizeof(sStyleQuery),
+			    "UPDATE IGNORE %sstylepoints AS s, (\n"
+			... "  SELECT auth, SUM(t.points2) as pp FROM (\n"
+			... "    SELECT p.auth, (p.points * POW(%f, ROW_NUMBER() OVER (PARTITION BY p.auth ORDER BY p.points DESC) - 1)) as points2\n"
+			... "    FROM %splayertimes AS p\n"
+			... "    JOIN %sstylepoints AS s2\n"
+			... "     ON s2.auth = p.auth %s %s\n"
+			... "    WHERE p.points > 0 AND p.auth IN (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s)\n"
+			... "    ORDER BY p.points DESC GROUP BY style %s\n"
+			... "  ) AS t\n"
+			... "  GROUP by auth, style\n"
+			... ") AS a\n"
+			... "SET s.points = a.pp\n"
+			... "WHERE s.auth = a.auth and s.style = a.style;",
+				gS_MySQLPrefix,
+				gCV_WeightingMultiplier.FloatValue,
+				gS_MySQLPrefix,
+				gS_MySQLPrefix,
+				sLastLogin[0] ? "AND" : "", sLastLogin,
+				gS_MySQLPrefix,
+				sMapWhere[0] ? "AND" : "",
+				sMapWhere,
+				sTrackWhere[0] ? "AND" : "",
+				sTrackWhere,
+				sLimit); // TODO: Remove/move sLimit?
+
+		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
+	}
+	else if (gB_SQLWindowFunctions && gI_Driver == Driver_pgsql)
+	{
+		// PostgreSQL-specific syntax (similar to standard SQL)
+		FormatEx(sQuery, sizeof(sQuery),
+		    "UPDATE %susers AS u\n"
+		... "SET points = (\n"
+		... "  SELECT SUM(points2) FROM (\n"
+		... "    SELECT (points * POWER(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) AS points2\n"
+		... "    FROM %splayertimes\n"
+		... "    WHERE auth = u.auth AND points > 0\n"
+		... "    ORDER BY points DESC %s\n"
+		... "  ) AS t\n"
+		... ") WHERE %s %s auth IN\n"
+		... "  (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s);",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			sLimit, // TODO: Remove/move sLimit?
+			sLastLogin, sLastLogin[0] ? "AND" : "",
+			gS_MySQLPrefix,
+			(sMapWhere[0] || sTrackWhere[0]) ? "WHERE" : "",
+			sMapWhere,
+			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
+			sTrackWhere);
+
+		FormatEx(sStyleQuery, sizeof(sStyleQuery),
+		    "UPDATE %sstylepoints AS s\n"
+		... "SET points = (\n"
+		... "  SELECT SUM(points2) FROM (\n"
+		... "    SELECT (points * POWER(%f, ROW_NUMBER() OVER (PARTITION BY style ORDER BY points DESC) - 1)) AS points2\n"
+		... "    FROM %splayertimes\n"
+		... "    WHERE auth = s.auth AND points > 0 AND style = s.style\n"
+		... "    ORDER BY points DESC %s\n"
+		... "  ) AS t\n"
+		... ") WHERE %s %s auth IN\n"
+		... "  (SELECT DISTINCT auth FROM %splayertimes %s %s %s %s);",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			sLimit, // TODO: Remove/move sLimit?
+			sLastLogin, sLastLogin[0] ? "AND" : "",
+			gS_MySQLPrefix,
+			(sMapWhere[0] || sTrackWhere[0]) ? "WHERE" : "",
+			sMapWhere,
+			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
+			sTrackWhere);
+
+		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 	}
 	else if (gB_SQLWindowFunctions)
 	{
@@ -1152,6 +1677,30 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			sMapWhere,
 			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
 			sTrackWhere);
+
+		FormatEx(sStyleQuery, sizeof(sStyleQuery),
+		    "UPDATE IGNORE %sstylepoints AS s\n"
+		... "SET points = (\n"
+		... "  SELECT SUM(points2) FROM (\n"
+		... "    SELECT (points * POW(%f, ROW_NUMBER() OVER (ORDER BY points DESC) - 1)) AS points2\n"
+		... "    FROM %splayertimes\n"
+		... "    WHERE auth = s.auth AND points > 0\n"
+		... "    ORDER BY points DESC GROUP BY style %s\n"
+		... "  ) AS t\n"
+		... ") p WHERE %s %s auth IN\n"
+		... "  (SELECT DISTINCT auth FROM %splayertimes WHERE style = t.style %s %s %s %s);",
+			gS_MySQLPrefix,
+			gCV_WeightingMultiplier.FloatValue,
+			gS_MySQLPrefix,
+			sLimit, // TODO: Remove/move sLimit?
+			sLastLogin, sLastLogin[0] ? "AND" : "",
+			gS_MySQLPrefix,
+			sMapWhere[0] ? "AND" : "",
+			sMapWhere,
+			sTrackWhere[0] ? "AND" : "",
+			sTrackWhere);
+
+		QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
 	}
 	else // !gB_SQLWindowFunctions && gI_Driver == Driver_mysql
 	{
@@ -1164,6 +1713,21 @@ void UpdateAllPoints(bool recalcall=false, char[] map="", int track=-1)
 			sMapWhere,
 			(sMapWhere[0] && sTrackWhere[0]) ? "AND" : "",
 			sTrackWhere);
+
+		for (int i = 0; i < gI_Styles; i++)
+		{
+			FormatEx(sQuery, sizeof(sQuery),
+				"UPDATE IGNORE %sstylepoints SET points = GetWeightedStylePoints(auth, %d) WHERE %s %s auth IN (SELECT DISTINCT auth FROM %splayertimes WHERE style = %d %s %s %s %s);",
+				gS_MySQLPrefix, i,
+				sLastLogin, (sLastLogin[0] != 0) ? "AND" : "",
+				gS_MySQLPrefix, i,
+				sMapWhere[0] ? "AND" : "",
+				sMapWhere,
+				sTrackWhere[0] ? "AND" : "",
+				sTrackWhere);
+
+			QueryLog(gH_SQL, SQL_UpdateAllStylePoints_Callback, sStyleQuery);
+		}
 	}
 
 	QueryLog(gH_SQL, SQL_UpdateAllPoints_Callback, sQuery);
@@ -1189,6 +1753,14 @@ public void SQL_UpdateAllPoints_Callback(Database db, DBResultSet results, const
 	}
 }
 
+public void SQL_UpdateAllStylePoints_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if(results == null)
+	{
+		LogError("Timer (rankings, update all style points) error! Reason: %s", error);
+	}
+}
+
 void UpdatePlayerRank(int client, bool first)
 {
 	int iSteamID = 0;
@@ -1198,14 +1770,40 @@ void UpdatePlayerRank(int client, bool first)
 		// if there's any issue with this query,
 		// add "ORDER BY points DESC " before "LIMIT 1"
 		char sQuery[512];
-		FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points;",
-			gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		if (gI_Driver == Driver_mysql)
+		{
+			FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
+		else if (gI_Driver == Driver_pgsql)
+		{
+			FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 CROSS JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points GROUP BY u2.points;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
+		else // SQLite
+		{
+			FormatEx(sQuery, 512, "SELECT u2.points, COUNT(*) FROM %susers u1 JOIN (SELECT points FROM %susers WHERE auth = %d) u2 WHERE u1.points >= u2.points;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID);
+		}
 
 		DataPack hPack = new DataPack();
 		hPack.WriteCell(GetClientSerial(client));
 		hPack.WriteCell(first);
 
 		QueryLog(gH_SQL, SQL_UpdatePlayerRank_Callback, sQuery, hPack, DBPrio_Low);
+
+		for (int i = 0; i < gI_Styles; i++)
+		{
+			FormatEx(sQuery, 512, "SELECT s2.points, COUNT(*) FROM %sstylepoints s1 JOIN (SELECT points FROM %sstylepoints WHERE auth = %d AND style = %d) s2 WHERE style = %d AND s1.points >= s2.points;",
+				gS_MySQLPrefix, gS_MySQLPrefix, iSteamID, i, i);
+
+			DataPack hStylePack = new DataPack();
+			hStylePack.WriteCell(GetClientSerial(client));
+			hStylePack.WriteCell(first);
+			hStylePack.WriteCell(i);
+
+			QueryLog(gH_SQL, SQL_UpdatePlayerStyleRank_Callback, sQuery, hStylePack, DBPrio_Low);
+		}
 	}
 }
 
@@ -1246,16 +1844,89 @@ public void SQL_UpdatePlayerRank_Callback(Database db, DBResultSet results, cons
 	}
 }
 
+public void SQL_UpdatePlayerStyleRank_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	DataPack hPack = view_as<DataPack>(data);
+	hPack.Reset();
+
+	int iSerial = hPack.ReadCell();
+	bool bFirst = view_as<bool>(hPack.ReadCell());
+	int iStyle = hPack.ReadCell();
+	delete hPack;
+
+	if(results == null)
+	{
+		LogError("Timer (rankings, update player style rank) error! Reason: %s", error);
+
+		return;
+	}
+
+	int client = GetClientFromSerial(iSerial);
+
+	if(client == 0)
+	{
+		return;
+	}
+
+	if(results.FetchRow())
+	{
+		gA_Rankings[client].fStylePoints[iStyle] = results.FetchFloat(0);
+		gA_Rankings[client].iStyleRank[iStyle] = (gA_Rankings[client].fStylePoints[iStyle] > 0.0)? results.FetchInt(1):0;
+
+		Call_StartForward(gH_Forwards_OnStyleRankAssigned);
+		Call_PushCell(client);
+		Call_PushCell(iStyle);
+		Call_PushCell(gA_Rankings[client].iStyleRank[iStyle]);
+		Call_PushCell(gA_Rankings[client].fStylePoints[iStyle]);
+		Call_PushCell(bFirst);
+		Call_Finish();
+	}
+}
+
 void UpdateTop100()
 {
 	char sQuery[512];
-	FormatEx(sQuery, sizeof(sQuery),
-		"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
-		UNION ALL \
-		SELECT * FROM (SELECT -1 as c, auth, name, FORMAT(points, 2) FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
-		gS_MySQLPrefix, gS_MySQLPrefix);
+	if (gI_Driver == Driver_mysql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
+			UNION ALL \
+			SELECT * FROM (SELECT -1 as c, auth, name, FORMAT(points, 2) FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+	}
+	else if (gI_Driver == Driver_pgsql)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
+			UNION ALL \
+			SELECT * FROM (SELECT -1 as c, auth, name, ROUND(points::numeric, 2)::text FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+	}
+	else // SQLite
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT * FROM (SELECT COUNT(*) as c, 0 as auth, '' as name, '' as p FROM %susers WHERE points > 0) a \
+			UNION ALL \
+			SELECT * FROM (SELECT -1 as c, auth, name, ROUND(points, 2) FROM %susers WHERE points > 0 ORDER BY points DESC LIMIT 100) b;",
+			gS_MySQLPrefix, gS_MySQLPrefix);
+	}
 
 	QueryLog(gH_SQL, SQL_UpdateTop100_Callback, sQuery, 0, DBPrio_High);
+
+	for (int i = 0; i < gI_Styles; i++)
+	{
+		FormatEx(sQuery, sizeof(sQuery),
+			"SELECT COUNT(*) as c, '' as auth, '' as name, '' as points FROM %sstylepoints as s WHERE style = %d AND points > 0.0 \
+			UNION ALL \
+			SELECT '' as c, %sstylepoints.auth, %susers.name, %sstylepoints.points \
+			FROM %sstylepoints \
+			INNER JOIN %susers \
+			ON %sstylepoints.auth = %susers.auth \
+			WHERE %sstylepoints.points > 0 AND %sstylepoints.style = %d ORDER BY c DESC, CAST(points AS FLOAT) DESC LIMIT 101;",
+			gS_MySQLPrefix, i, gS_MySQLPrefix, gS_MySQLPrefix,gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, gS_MySQLPrefix, i);
+
+		QueryLog(gH_SQL, SQL_UpdateStyleTop100_Callback, sQuery, i, DBPrio_High);
+	}
 }
 
 public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -1303,28 +1974,105 @@ public void SQL_UpdateTop100_Callback(Database db, DBResultSet results, const ch
 		gH_Top100Menu.AddItem("-1", sDisplay);
 	}
 
+	gH_Top100Menu.ExitBackButton = true;
 	gH_Top100Menu.ExitButton = true;
+}
+
+public void SQL_UpdateStyleTop100_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("Timer (rankings, update style top 100) error! Reason: %s", error);
+
+		return;
+	}
+
+	if (!results.FetchRow())
+	{
+		LogError("Timer (rankings, update style top 100 b) error! Reason: failed to fetch first row");
+		return;
+	}
+
+	int iStyle = data;
+	gI_StyleRankedPlayers[iStyle] = results.FetchInt(0);
+
+	int row = 0;
+	char sName[33];
+	while (results.FetchRow())
+	{
+		gA_StyleTop[iStyle].iSteamID[row] = results.FetchInt(1);
+
+		results.FetchString(2, sName, 33);
+		gA_StyleTop[iStyle].sName.SetString(row, sName);
+
+		gA_StyleTop[iStyle].fPoints[row] = results.FetchFloat(3);
+		row++;
+	}
 }
 
 bool DoWeHaveWindowFunctions(const char[] sVersion)
 {
-	char buf[100][2];
-	ExplodeString(sVersion, ".", buf, 2, 100);
-	int iMajor = StringToInt(buf[0]);
-	int iMinor = StringToInt(buf[1]);
-
 	if (gI_Driver == Driver_sqlite)
 	{
+		char buf[100][2];
+		ExplodeString(sVersion, ".", buf, 2, 100);
+		int iMajor = StringToInt(buf[0]);
+		int iMinor = StringToInt(buf[1]);
 		// 2018~
 		return iMajor > 3 || (iMajor == 3 && iMinor >= 25); // 2018~
 	}
 	else if (gI_Driver == Driver_pgsql)
 	{
-		// 2009~
+		// PostgreSQL version string format: "PostgreSQL 16.1 on x86_64-pc-linux-gnu..."
+		// Extract version number after "PostgreSQL "
+		char sVersionCopy[100];
+		strcopy(sVersionCopy, sizeof(sVersionCopy), sVersion);
+		
+		int iStart = StrContains(sVersionCopy, "PostgreSQL ");
+		if (iStart != -1)
+		{
+			iStart += 11; // Length of "PostgreSQL "
+			char sVersionPart[32];
+			strcopy(sVersionPart, sizeof(sVersionPart), sVersionCopy[iStart]);
+			
+			// Find first space to terminate version string
+			int iEnd = StrContains(sVersionPart, " ");
+			if (iEnd != -1)
+			{
+				sVersionPart[iEnd] = '\0';
+			}
+			
+			char buf[32][2];
+			ExplodeString(sVersionPart, ".", buf, 2, 32);
+			int iMajor = StringToInt(buf[0]);
+			int iMinor = StringToInt(buf[1]);
+			
+			// PostgreSQL has had window functions since 8.4 (2009)
+			// But modern PostgreSQL uses major.minor format where major >= 10
+			if (iMajor >= 10)
+			{
+				return true; // All PostgreSQL 10+ have window functions
+			}
+			else
+			{
+				return iMajor > 8 || (iMajor == 8 && iMinor >= 4);
+			}
+		}
+		
+		// Fallback: assume old format and check anyway
+		char buf[100][2];
+		ExplodeString(sVersion, ".", buf, 2, 100);
+		int iMajor = StringToInt(buf[0]);
+		int iMinor = StringToInt(buf[1]);
 		return iMajor > 8 || (iMajor == 8 && iMinor >= 4);
 	}
 	else if (gI_Driver == Driver_mysql)
 	{
+		char buf[100][2];
+		ExplodeString(sVersion, ".", buf, 2, 100);
+		int iMajor = StringToInt(buf[0]);
+		int iMinor = StringToInt(buf[1]);
+		
 		if (StrContains(sVersion, "MariaDB") != -1)
 		{
 			 // 2016~
@@ -1366,8 +2114,8 @@ public void SQL_Version_Callback(Database db, DBResultSet results, const char[] 
 		}
 		else if (gI_Driver == Driver_pgsql)
 		{
-			LogError("Okay, really? Your postgres version is from 2014 or earlier... come on, brother...");
-			SetFailState("Update postgresql");
+			LogError("PostgreSQL version does not support window functions. Window functions require PostgreSQL 8.4 or later.");
+			SetFailState("Update PostgreSQL to version 8.4 or later");
 		}
 		else // mysql
 		{
@@ -1647,14 +2395,29 @@ public int Native_GetPoints(Handle handler, int numParams)
 	return view_as<int>(gA_Rankings[GetNativeCell(1)].fPoints);
 }
 
+public int Native_GetStylePoints(Handle handler, int numParams)
+{
+	return view_as<int>(gA_Rankings[GetNativeCell(1)].fStylePoints[GetNativeCell(2)]);
+}
+
 public int Native_GetRank(Handle handler, int numParams)
 {
 	return gA_Rankings[GetNativeCell(1)].iRank;
 }
 
+public int Native_GetStyleRank(Handle handler, int numParams)
+{
+	return gA_Rankings[GetNativeCell(1)].iStyleRank[GetNativeCell(2)];
+}
+
 public int Native_GetRankedPlayers(Handle handler, int numParams)
 {
 	return gI_RankedPlayers;
+}
+
+public int Native_GetStyleRankedPlayers(Handle handler, int numParams)
+{
+	return gI_StyleRankedPlayers[GetNativeCell(1)];
 }
 
 public int Native_Rankings_DeleteMap(Handle handler, int numParams)

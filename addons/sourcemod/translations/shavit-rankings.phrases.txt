@@ -16,15 +16,43 @@
 		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:d},{6:s},{7:d},{8:s},{9:.1f},{10:s}"
 		"en"		"{1}{2}{3} is ranked {4}{5}{6} out of {7} with {8}{9}{10} points."
 	}
+	"StyleRank"
+	{
+		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:d},{6:s},{7:d},{8:s},{9:.1f},{10:s},{11:s},{12:s},{13:s}"
+		"en"		"{1}{2}{3} is ranked {4}{5}{6} out of {7} with {8}{9}{10} points. ({11}{12}{13})"
+	}
 	"Unranked"
 	{
 		"#format"	"{1:s},{2:N},{3:s}"
 		"en"		"{1}{2}{3} is unranked."
 	}
+	"UnrankedOnStyle"
+	{
+		"#format"	"{1:s},{2:N},{3:s},{4:s},{5:s},{6:s}"
+		"en"		"{1}{2}{3} is unranked on {4}{5}{6}."
+	}
 	// ---------- Menus ---------- //
 	"Top100"
 	{
 		"en"		"Top 100 ranked players:"
+	}
+	"StyleTop100"
+	{
+		"#format"	"{1:s}"
+		"en"		"Top 100 ranked players ({1}):"
+	}
+	"StyleRankTitle"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1}'s rank:"
+	}
+	"StyleTopTitle"
+	{
+		"en"		"Top Players Menu:"
+	}
+	"Overall"
+	{
+		"en"		"Overall"
 	}
 	"NoRankedPlayers"
 	{
