@@ -2112,7 +2112,7 @@ public int Native_PrintToChatAll(Handle plugin, int numParams)
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i))
+		if (IsClientInGame(i) && (!IsFakeClient(i) || IsClientSourceTV(i)))
 		{
 			SetGlobalTransTarget(i);
 
