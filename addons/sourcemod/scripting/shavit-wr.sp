@@ -3012,7 +3012,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 			for(int i = 1; i <= MaxClients; i++)
 			{
-				if(client != i && IsValidClient(i) && GetSpectatorTarget(i) == client)
+				if (client != i && IsClientInGame(i) && (IsClientSourceTV(i) || GetSpectatorTarget(i) == client))
 				{
 					if(bWorseTimeMsg)
 					{
