@@ -2690,7 +2690,12 @@ Action ReplayOnPlayerRunCmd(bot_info_t info, int &buttons, int &impulse, float v
 			if (info.fPlaybackSpeed == 0.5 && info.bDoMiddleFrame && (info.iTick+1 < limit))
 			{
 				frame_t asdf;
-				info.aCache.aFrames.GetArray(info.iTick+1, asdf, 5);
+				info.aCache.aFrames.GetArray(info.iTick+1, asdf, 6);
+
+				if (!isClient)
+				{
+					asdf.pos[2] += (asdf.buttons & IN_DUCK) ? gF_EyeOffsetDuck : gF_EyeOffset;
+				}
 
 				float middle[3];
 				MakeVectorFromPoints(aFrame.pos, asdf.pos, middle);
