@@ -2816,15 +2816,10 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 		Call_Finish();
 	}
 
-	float fDifference = (gF_PlayerRecord[client][style][track] - time);
-
-	if(fDifference < 0.0)
-	{
-		fDifference = -fDifference;
-	}
-
-	char sDifference[16];
-	FormatSeconds(fDifference, sDifference, 16, true);
+	float fDifference = time - gF_PlayerRecord[client][style][track];
+	
+	char sDifference[32];
+	FormatEx(sDifference, sizeof(sDifference), "%+.6f", fDifference);
 
 	char sSync[32]; // 32 because colors
 	FormatEx(sSync, 32, (sync != -1.0)? " @ %s%.02f%%":"", gS_ChatStrings.sVariable, sync);
