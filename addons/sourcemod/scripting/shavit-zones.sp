@@ -3701,6 +3701,7 @@ public int MenuHandler_DeleteZone(Menu menu, MenuAction action, int param1, int 
 				QueryLog(gH_SQL, SQL_DeleteZone_Callback, sQuery, hDatapack);
 
 				Shavit_RemoveZone(id);
+				OpenDeleteMenu(param1, GetMenuSelectionPosition());
 			}
 		}
 	}
