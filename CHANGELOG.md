@@ -3,8 +3,63 @@ Note: Dates are UTC+0.
 
 
 
-# v4.?.? - ? - 2026-0?-?? - rtldg
-¿
+# v4.0.2 - yep - 2026-11-16 - rtldg
+[`v4.0.1...v4.0.2`](https://github.com/shavitush/bhoptimer/compare/v4.0.1...v4.0.2)
+
+Nothing big was added/changed in bhoptimer this year.  Slow year, my bad.
+
+## Known bugs:
+- That noclip in the wall thing
+- shavit-rankings still has some sql query error with sqlite
+- others
+
+## Changes:
+- important
+	- Updated CS:S gamedata for the 2026-08-24 update https://github.com/shavitush/bhoptimer/commit/e4382c4d32fd24fdefb9b3816636968aa2ee3cce
+	- Require eventqueuefix v1.4.0+ / support handling of OnUser1-4 events https://github.com/shavitush/bhoptimer/pull/1272 https://github.com/shavitush/bhoptimer/commit/850dec4b37e79412a026cf37005e6f91b93d801b
+		- This means you have to update eventqueuefix!  Which means you can just copy it from bhoptimer's release zip!
+- new commands
+	- Admin commands !playreplayfile & !replayfileinfo @mariokeks https://github.com/shavitush/bhoptimer/pull/1280 https://github.com/shavitush/bhoptimer/commit/5612d8eb325f5f729d3ea0a48314e6a24f55e0d1
+- quality of life
+	- While editing/creating zones, use track/type colors https://github.com/shavitush/bhoptimer/commit/297cc94361c7eecffa9b0529bec82876b8114e41
+	- Permit zoning while !pause'd https://github.com/shavitush/bhoptimer/commit/46a0b1177756f772b1898b278afa58b0fc855e8c
+	- add player's PB to the !wr menu (like how !style menu is) @mourningsickness https://github.com/shavitush/bhoptimer/pull/1289 https://github.com/shavitush/bhoptimer/commit/5031b1d4d39622e31ac7e5b2c27c96929b6360a0
+- bug fixes
+	- Optimize replicated convar updates to reduce spam (on CS:GO) @akanora https://github.com/shavitush/bhoptimer/commit/6dcf9a0ec77bd979f79ca009be12f4180bbb28cc
+		- "Cache last replicated convar values to avoid spamming ReplicateToClient (which causes `DispatchAsyncEvent backlog` errors / lag in CS:GO, for example on !r)."
+	- Fix practice mode finish messages @akanora https://github.com/shavitush/bhoptimer/pull/1267 https://github.com/shavitush/bhoptimer/commit/1a6e297777f530c50054a68e46fa7f0f164d96e5
+		- read the PR for info...
+	- Play no improvement sound with same time @mourningsickness https://github.com/shavitush/bhoptimer/pull/1276 https://github.com/shavitush/bhoptimer/commit/f9c8bdb9ae45fc97b6034b2f537629b7a495f4db
+	- show correct PB in !wr when viewing a different map @akanora https://github.com/shavitush/bhoptimer/pull/1290 https://github.com/shavitush/bhoptimer/commit/188dd55320ed14e39500c59c7ea9dbc9af95e90c
+	- Fix prop replay bot jitter at 0.5x playback @zasbu https://github.com/shavitush/bhoptimer/commit/279f676ca9885b13f6372d21dec634dbfb0e11c2
+- bug fixes but boring
+	- Fix some zone-menu waiting-for-input state thing https://github.com/shavitush/bhoptimer/commit/6c42a05b2fcb946fe64022a7684861e5543f0c2a
+		- I don't even remember what this was about anymore
+	- fix improperly formatted ReplyToCommand() for !settier @mourningsickness https://github.com/shavitush/bhoptimer/pull/1277 https://github.com/shavitush/bhoptimer/commit/10a9ae4ddc2382ab6fe01407bf77027ff8e2dcf6
+	- fix client not in game error with the top-left hud thing @mourningsickness https://github.com/shavitush/bhoptimer/pull/1278 https://github.com/shavitush/bhoptimer/commit/41d72a4bdf2b6af9bd30302277876dc610c6802f
+	- fix memory leaks in async replay-saving callbacks @mariokeks https://github.com/shavitush/bhoptimer/pull/1279 https://github.com/shavitush/bhoptimer/commit/5e1addcdc630aacb5afc235bef7864dafa735228
+	- Fixed Zone_Slay & Zone_Stop activating on a paused timer state in TouchPost @mariokeks https://github.com/shavitush/bhoptimer/pull/1279 https://github.com/shavitush/bhoptimer/commit/ebf955389033d99dfa095cbe5c76c54b4b70bc11
+	- Fix table typo for lowercasing stagetimeswr migration @Nairdaa https://github.com/shavitush/bhoptimer/commit/f08b0ee86180e5036992957354048f20f0e6de2e
+	- Fix !stats menu query when not using shavit-mapchooser... or something https://github.com/shavitush/bhoptimer/commit/474d06a6f3bdc792590f381b1712f1a1324098dc
+	- Fix Shavit_GetReplayBotType documentation @mariokeks https://github.com/shavitush/bhoptimer/pull/1293 https://github.com/shavitush/bhoptimer/commit/57a406b0eb239a9bb248b5ad0dd5efd6df733d02
+	- Fix point updates aborting and sm_top not rounding with sqlite @ddyfad https://github.com/shavitush/bhoptimer/pull/1296 https://github.com/shavitush/bhoptimer/commit/5af7ab4175dcd90cedcdcbe3465578873fc7ebf0
+- misc
+	- Calculate sync using last tick's input vel @f0e https://github.com/shavitush/bhoptimer/pull/1286 https://github.com/shavitush/bhoptimer/commit/e59c4fe50212f6a79b63650193cb7c19d9f94a9f
+	- Improve readability of Shavit_GetReplayData()'s implementation https://github.com/shavitush/bhoptimer/commit/1b55edaf59c4a48cb188ba59511dec8cbf7aa5a0
+	- Resize frames ArrayList every 20s instead of 2s https://github.com/shavitush/bhoptimer/commit/254a10b06de9a18674d39cef5a2236aa5ecdffed
+	- Make DHook_ProcessMovementPost() do MaybeDoPhysicsUntouch() even if timer is paused/stopped https://github.com/shavitush/bhoptimer/commit/f9d6602554d1f9260f782da10cd343a12f322fa9
+	- Replace tickcount-based perf detection [with number-of-ticks-on-ground thing] @mariokeks https://github.com/shavitush/bhoptimer/pull/1282 https://github.com/shavitush/bhoptimer/commit/ff5f53440f4245c88d0d5233f24b857f4b1a3cc0
+	- Calculate perf-jump-measuring-window ticks instead of hardcoding to 10 (for tickrates that aren't 100) https://github.com/shavitush/bhoptimer/commit/57cf1ac1be24127b45ed37a10d47ffb92510cccf
+	- add Shavit_GetReplayBotCache @akanora https://github.com/shavitush/bhoptimer/pull/1275 https://github.com/shavitush/bhoptimer/commit/e03fbc07fbcdf020a017c50dd3a871a523279cc8
+	- Add timestamp to replay-file header @mariokeks https://github.com/shavitush/bhoptimer/pull/1280 https://github.com/shavitush/bhoptimer/commit/a4e9e6d2be2a861543f2515632facb96437e02e5
+	- Make geoip extension optional (& fix SDR address typo 🤫) https://github.com/shavitush/bhoptimer/commit/4c12e1d5f629690dfe79b350fbc680e779b6cce8
+	- Allow registering new style-commands when the config is reloaded (on map change) https://github.com/shavitush/bhoptimer/commit/90ac45d61644bacb19b91b2fd85b381b07243b35
+	- Raise shavit_checkpoints_maxcp_seg limit from 50 to 10000 @2x74 https://github.com/shavitush/bhoptimer/commit/c52e88f6b29bf8de63a24295983b8cabc011befc
+	- make removing stylecommands possilbe when a config is reloaded (on map chnage) https://github.com/shavitush/bhoptimer/commit/ee011f7ad683ed7498f7b87c7e73e3f344a860bd
+	- Add Shavit_StopReplay & Shavit_GetClientReplayBot natives @mariokeks https://github.com/shavitush/bhoptimer/pull/1292 https://github.com/shavitush/bhoptimer/commit/b04bdfebe4d4097c848f2bd0d3f866bb918e5b02
+	- Add Replay_Automatic type @mariokeks https://github.com/shavitush/bhoptimer/pull/1291 https://github.com/shavitush/bhoptimer/commit/d8184262b262b478f8d0f107f7b1a1361894080b
+	- Add cvar option to enable both local and remote json zoning @ddyfad https://github.com/shavitush/bhoptimer/pull/1295 https://github.com/shavitush/bhoptimer/commit/3425fc3a85b2e785c4f358802e3fd8459b6a2cf2
+	- Shavit_PrintToChatAll to SourceTV too https://github.com/shavitush/bhoptimer/commit/4e371a04a16669e26b870c59a254815ba3b89042
 
 
 
