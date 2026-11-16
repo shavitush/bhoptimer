@@ -26,8 +26,8 @@
 
 #define SHAVIT_VERSION_MAJOR 4
 #define SHAVIT_VERSION_MINOR 0
-#define SHAVIT_VERSION_PATCH 2
-#define SHAVIT_VERSION "4.0.2"
+#define SHAVIT_VERSION_PATCH 3
+#define SHAVIT_VERSION "4.0.3a"
 #define STYLE_LIMIT 256
 
 // god i fucking hate sourcemod. NULL_VECTOR isn't const so it's not guaranteed to be 0,0,0
